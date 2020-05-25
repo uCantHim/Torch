@@ -1,0 +1,16 @@
+target_sources(
+    torch
+    PUBLIC
+        Framebuffer.h
+        MemoryPool.h
+        RenderEngine.h
+        RenderEnvironment.h
+        Scene.h
+        Vertex.h
+        VulkanDrawable.h
+    PRIVATE
+        Framebuffer.cpp
+        MemoryPool.cpp
+        RenderEngine.cpp
+        RenderEnvironment.cpp
+)
