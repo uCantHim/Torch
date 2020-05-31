@@ -151,24 +151,15 @@ void VulkanApp::destroy()
 void VulkanApp::makeRenderEnvironment()
 {
     vk::AttachmentReference colorAttachmentRef(0, vk::ImageLayout::eColorAttachmentOptimal);
-
-    vk::AttachmentDescription attachmentDescr(
-        vk::AttachmentDescriptionFlags(),
-        getSwapchain().getImageFormat(),
-        vk::SampleCountFlagBits::e1,
-        vk::AttachmentLoadOp::eClear,
-        vk::AttachmentStoreOp::eStore,
-        vk::AttachmentLoadOp::eDontCare,
-        vk::AttachmentStoreOp::eDontCare,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::ePresentSrcKHR
-    );
+    vk::AttachmentReference depthAttachmentRef(1, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
     vk::SubpassDescription subpass(
         vk::SubpassDescriptionFlags(),
         vk::PipelineBindPoint::eGraphics,
         0, nullptr,
-        1, &colorAttachmentRef
+        1, &colorAttachmentRef,
+        nullptr, // resolve attachments
+        &depthAttachmentRef
     );
 
     vk::SubpassDependency dependency(
@@ -183,7 +174,6 @@ void VulkanApp::makeRenderEnvironment()
     auto [newRenderpass, old] = Renderpass::create(
         STANDARD_RENDERPASS,
         {
-            { attachmentDescr },
             { subpass },
             { dependency },
             {},
@@ -199,7 +189,7 @@ void VulkanApp::makeRenderEnvironment()
     }
 
     // Update buffers
-    mat4 model{ glm::translate(mat4{1.0f}, vec3{0.0f, 0.0f, -2.0f})};
+    mat4 model{ glm::translate(mat4{1.0f}, vec3{0.0f, 0.0f, 0.0f})};
     mat4 view{ glm::lookAt(vec3{1.0f, 0.0f, 3.0f}, vec3{0.0f}, vec3{0.0f, 1.0f, 0.0f}) };
     auto imageExtent = getSwapchain().getImageExtent();
     mat4 proj{ glm::perspective(
@@ -209,8 +199,8 @@ void VulkanApp::makeRenderEnvironment()
     };
 
     auto buf = static_cast<uint8_t*>(matrixBuffer.map(0, VK_WHOLE_SIZE));
-    memcpy(buf,                       &model[0][0], sizeof(mat4));
-    memcpy(buf + sizeof(mat4),        &view[0][0], sizeof(mat4));
+    memcpy(buf,                    &model[0][0], sizeof(mat4));
+    memcpy(buf + sizeof(mat4),     &view[0][0], sizeof(mat4));
     memcpy(buf + sizeof(mat4) * 2, &proj[0][0], sizeof(mat4));
     matrixBuffer.unmap();
 
@@ -314,9 +304,9 @@ void VulkanApp::createPipeline(vkb::Swapchain& swapchain)
     // Depth- and stencil tests
     vk::PipelineDepthStencilStateCreateInfo depthStencil(
         vk::PipelineDepthStencilStateCreateFlags(),
-        VK_TRUE, VK_TRUE, vk::CompareOp::eGreater, VK_FALSE,
+        VK_TRUE, VK_TRUE, vk::CompareOp::eLess, VK_FALSE,
         VK_FALSE, vk::StencilOpState(), vk::StencilOpState(),
-        0.0f, 0.0f
+        0.0f, 1.0f
     );
 
     // Color blending

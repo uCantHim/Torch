@@ -15,7 +15,6 @@ class Scene;
 
 struct RenderpassCreateInfo
 {
-    std::vector<vk::AttachmentDescription> attachments;
     std::vector<vk::SubpassDescription> subpasses;
     std::vector<vk::SubpassDependency> dependencies;
     vk::RenderPassCreateFlags flags = {};

@@ -6,14 +6,34 @@
 
 Renderpass::Renderpass(const RenderpassCreateInfo& info)
     :
-    renderpass(getDevice()->createRenderPassUnique(
-        vk::RenderPassCreateInfo(
-            info.flags,
-            static_cast<uint32_t>(info.attachments.size()), info.attachments.data(),
-            static_cast<uint32_t>(info.subpasses.size()), info.subpasses.data(),
-            static_cast<uint32_t>(info.dependencies.size()), info.dependencies.data()
-        )
-    )),
+    renderpass([&]() {
+        std::vector<vk::AttachmentDescription> attachments = {
+            {
+                vk::AttachmentDescriptionFlags(),
+                getSwapchain().getImageFormat(),
+                vk::SampleCountFlagBits::e1,
+                vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
+                vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
+                vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR
+            },
+            {
+                vk::AttachmentDescriptionFlags(),
+                vk::Format::eD32Sfloat,
+                vk::SampleCountFlagBits::e1,
+                vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // load/store ops
+                vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
+                vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
+            },
+        };
+        return getDevice()->createRenderPassUnique(
+            vk::RenderPassCreateInfo(
+                info.flags,
+                static_cast<uint32_t>(attachments.size()), attachments.data(),
+                static_cast<uint32_t>(info.subpasses.size()), info.subpasses.data(),
+                static_cast<uint32_t>(info.dependencies.size()), info.dependencies.data()
+            )
+        );
+    }()),
     framebuffer(*renderpass),
     subpassCount(info.subpasses.size()),
     // Creates synchronization objects
@@ -105,13 +125,16 @@ void Renderpass::drawFrame(Scene& scene)
 
 void Renderpass::beginCommandBuffer(const vk::CommandBuffer& buf) const noexcept
 {
-    vk::ClearValue clearColor(std::array<float, 4>{0.5f, 0.0f, 0.3f, 1.0f});
+    std::vector<vk::ClearValue> clearValues = {
+        { std::array<float, 4>{ 0.5f, 0.0f, 0.3f, 1.0f } },
+        { vk::ClearDepthStencilValue(1.0f, 0) },
+    };
     buf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderpass,
             framebuffer.get(),
             vk::Rect2D({ 0, 0 }, getSwapchain().getImageExtent()),
-            1u, &clearColor
+            static_cast<uint32_t>(clearValues.size()), clearValues.data()
         ),
         vk::SubpassContents::eSecondaryCommandBuffers
     );

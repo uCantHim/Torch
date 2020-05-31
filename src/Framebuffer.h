@@ -1,13 +1,15 @@
 #pragma once
-#ifndef FRAMEBUFFER_H
-#define FRAMEBUFFER_H
 
+#include "vkb/Image.h"
 #include "vkb/FrameSpecificObject.h"
 
-/*
-A standard framebuffer.
-Has one color attachment, which is initialized as one image in
-the swapchain. */
+/**
+ * @brief A standard framebuffer
+ *
+ * Attachment 0: Color attachment. Creates views from the swapchain's
+ *               images.
+ * Attachment 1: 32-bit depth attachment.
+ */
 class Framebuffer : public vkb::VulkanBase
 {
 public:
@@ -19,16 +21,13 @@ public:
     Framebuffer& operator=(const Framebuffer&) = delete;
     Framebuffer& operator=(Framebuffer&&) noexcept = default;
 
-    [[nodiscard]]
-    auto get() const noexcept -> const vk::Framebuffer&;
-    [[nodiscard]]
-    auto getAt(uint32_t index) const noexcept -> const vk::Framebuffer&;
+    auto get() const noexcept -> vk::Framebuffer;
+    auto getAt(uint32_t index) const noexcept -> vk::Framebuffer;
 
 private:
     vkb::FrameSpecificObject<vk::ImageView> colorImageViews;
+    vkb::FrameSpecificObject<vkb::Image> depthImages;
+    vkb::FrameSpecificObject<vk::UniqueImageView> depthImageViews;
+
     vkb::FrameSpecificObject<vk::Framebuffer> framebuffers;
 };
-
-
-
-#endif
