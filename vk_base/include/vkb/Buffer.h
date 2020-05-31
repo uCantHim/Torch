@@ -12,7 +12,7 @@ using memptr = uint8_t*;
 /**
  * @brief A buffer backed by managed device memory
  */
-class Buffer : public vkb::VulkanBase
+class Buffer : private vkb::VulkanBase
 {
 public:
     Buffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags flags);

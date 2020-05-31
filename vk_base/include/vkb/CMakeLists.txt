@@ -5,6 +5,7 @@ target_sources(
     PUBLIC
         Buffer.h
         FrameSpecificObject.h
+        Image.h
         Logger.h
         PoolProvider.h
         QueueProvider.h

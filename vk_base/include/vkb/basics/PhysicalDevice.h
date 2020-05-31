@@ -105,7 +105,17 @@ namespace vkb
         auto getSwapchainSupport(const vk::SurfaceKHR& surface) const noexcept
             -> phys_device_properties::SwapchainSupport;
 
-        uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) const;
+        /**
+         * @brief Find the index of a memory type with specific properties
+         *
+         * @param uint32_t memoryTypeBits The memory type bits in a queried
+         *                                vk::MemoryRequirements structure
+         * @param vk::MemoryPropertyFlags properties Required memory
+         *                                           properties
+         *
+         * @return uint32_t The index of the searched memory type
+         */
+        uint32_t findMemoryType(uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties) const;
 
 
         ///////////////////////////

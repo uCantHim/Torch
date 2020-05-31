@@ -8,11 +8,14 @@ using namespace std::chrono;
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "vkb/ShaderProgram.h"
-#include "Vertex.h"
+#include "vkb/Image.h"
+
 #include "RenderEnvironment.h"
+
+#include "Settings.h"
+#include "Vertex.h"
 #include "TriangleList.h"
 #include "Quad.h"
-#include "Settings.h"
 
 
 
@@ -82,6 +85,7 @@ VulkanApp::VulkanApp()
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     )
 {
+    vkb::Image image("arch_3D_simplistic.png");
 }
 
 

@@ -1,5 +1,7 @@
 #include "VulkanBase.h"
 
+#include <IL/il.h>
+
 
 
 void vkb::vulkanInit(const VulkanInitInfo& initInfo)
@@ -40,6 +42,9 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
     if constexpr (enableVerboseLogging) {
         std::cout << "GLFW initialized successfully\n";
     }
+
+    // Initi DevIL
+    ilInit();
 
     try {
         instance = std::make_unique<VulkanInstance>();
@@ -124,6 +129,11 @@ auto vkb::VulkanBase::createSurface(vk::Extent2D size) -> Surface
 auto vkb::VulkanBase::getInstance() noexcept -> VulkanInstance&
 {
     return *instance;
+}
+
+auto vkb::VulkanBase::getPhysicalDevice() noexcept -> PhysicalDevice&
+{
+    return *physicalDevice;
 }
 
 auto vkb::VulkanBase::getDevice() noexcept -> Device&
