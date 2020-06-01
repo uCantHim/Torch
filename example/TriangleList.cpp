@@ -67,14 +67,7 @@ auto TriangleList::recordCommandBuffer(uint32_t subpass, const vk::CommandBuffer
      * only once
      */
 
-    cmdBuf.get()->bindPipeline(vk::PipelineBindPoint::eGraphics, *getPipeline(subpass));
-    cmdBuf.get()->bindDescriptorSets(
-        vk::PipelineBindPoint::eGraphics,
-        getPipeline(subpass).getPipelineLayout(),
-        0, // First set
-        getPipeline(subpass).getPipelineDescriptorSets(),
-        {}
-    );
+    getPipeline(subpass).bind(**cmdBuf);
     cmdBuf.get()->bindVertexBuffers(
         INPUT_BINDING_0,
         vertexBuffer.get(),
@@ -83,7 +76,7 @@ auto TriangleList::recordCommandBuffer(uint32_t subpass, const vk::CommandBuffer
 
     mat4 model = glm::translate(mat4(1.0f), vec3(-1, 0, -2));
     cmdBuf.get()->pushConstants<mat4>(
-        getPipeline(subpass).getPipelineLayout(),
+        *getPipeline(subpass).getLayout(),
         vk::ShaderStageFlagBits::eVertex,
         0,
         model

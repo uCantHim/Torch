@@ -32,9 +32,13 @@ private:
     vk::UniqueDescriptorPool descriptorPool;
     vk::UniqueDescriptorSetLayout standardDescriptorSetLayout;
     std::vector<vk::PushConstantRange> standardPushConstantRanges;
-    vk::UniquePipelineLayout standardPipelineLayout;
+
+    PipelineLayout pipelineLayout;
+
     vk::UniqueDescriptorSet matrixBufferDescriptorSet;
     vkb::Buffer matrixBuffer;
+    vkb::Image texture;
+    vk::UniqueImageView textureImageView;
 
     Renderpass* renderpass{ nullptr };
     Scene scene;

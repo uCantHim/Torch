@@ -23,7 +23,8 @@ VulkanApp::VulkanApp()
     :
     descriptorPool([]() {
         std::vector<vk::DescriptorPoolSize> descriptorPoolSizes = {
-            vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBuffer, 1 }
+            vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBuffer, 1 },
+            vk::DescriptorPoolSize{ vk::DescriptorType::eCombinedImageSampler, 1 },
         };
         return getDevice()->createDescriptorPoolUnique(
             vk::DescriptorPoolCreateInfo{
@@ -37,12 +38,18 @@ VulkanApp::VulkanApp()
 
     standardDescriptorSetLayout([]() {
         std::vector<vk::DescriptorSetLayoutBinding> bindings = {
-            vk::DescriptorSetLayoutBinding{
+            {
                 DESCRIPTOR_BINDING_0,
                 vk::DescriptorType::eUniformBuffer,
                 1, // Array size
                 vk::ShaderStageFlagBits::eVertex
-            }
+            },
+            {
+                1,
+                vk::DescriptorType::eCombinedImageSampler,
+                1,
+                vk::ShaderStageFlagBits::eFragment
+            },
         };
         return getDevice()->createDescriptorSetLayoutUnique(
             vk::DescriptorSetLayoutCreateInfo{
@@ -61,15 +68,10 @@ VulkanApp::VulkanApp()
         }
     }),
 
-    standardPipelineLayout(getDevice()->createPipelineLayoutUnique(
-        vk::PipelineLayoutCreateInfo{
-            vk::PipelineLayoutCreateFlags(),
-            1, // Descriptor set layout count
-            &*standardDescriptorSetLayout, // Descriptor set layouts
-            static_cast<uint32_t>(standardPushConstantRanges.size()), // Push constant count
-            standardPushConstantRanges.data() // Push constants
-        }
-    )),
+    pipelineLayout(
+        std::vector<vk::DescriptorSetLayout>{ *standardDescriptorSetLayout },
+        standardPushConstantRanges
+    ),
 
     matrixBufferDescriptorSet(std::move(getDevice()->allocateDescriptorSetsUnique(
         vk::DescriptorSetAllocateInfo{
@@ -83,9 +85,11 @@ VulkanApp::VulkanApp()
         sizeof(mat4) * 3,
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-    )
+    ),
+    texture("arch_3D_simplistic.png"),
+    textureImageView(texture.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Snorm, {}))
 {
-    vkb::Image image("arch_3D_simplistic.png");
+    texture.changeLayout(vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 
@@ -173,7 +177,7 @@ void VulkanApp::makeRenderEnvironment()
 
     auto [newRenderpass, old] = Renderpass::create(
         STANDARD_RENDERPASS,
-        {
+        RenderpassCreateInfo{
             { subpass },
             { dependency },
             {},
@@ -209,16 +213,31 @@ void VulkanApp::makeRenderEnvironment()
         0, // offset
         sizeof(mat4) * 3 // size
     };
+    vk::DescriptorImageInfo imageInfo(
+        texture.getDefaultSampler(),
+        *textureImageView,
+        vk::ImageLayout::eShaderReadOnlyOptimal
+    );
     getDevice()->updateDescriptorSets(
-        vk::WriteDescriptorSet{
-            *matrixBufferDescriptorSet,
-            DESCRIPTOR_BINDING_0,
-            0, // dst array element
-            1,
-            vk::DescriptorType::eUniformBuffer,
-            nullptr, // image info
-            &bufferInfo,
-            nullptr // texel buffer info
+        {
+            vk::WriteDescriptorSet{
+                *matrixBufferDescriptorSet,
+                DESCRIPTOR_BINDING_0,
+                0, // dst array element
+                1,
+                vk::DescriptorType::eUniformBuffer,
+                nullptr, // image info
+                &bufferInfo,
+                nullptr // texel buffer info
+            },
+            {
+                *matrixBufferDescriptorSet,
+                1,
+                0,
+                1,
+                vk::DescriptorType::eCombinedImageSampler,
+                &imageInfo
+            },
         },
         {} // descriptor copies
     );
@@ -334,24 +353,25 @@ void VulkanApp::createPipeline(vkb::Swapchain& swapchain)
     // Create the pipeline
     auto [pipeline, old] = GraphicsPipeline::create(
         STANDARD_PIPELINE,
-        {
-            shaders.getStages(),
-            vertexInput,
-            inputAssembly,
-            tessellation,
-            viewport,
-            rasterizer,
-            multisampling,
-            depthStencil,
-            colorBlending,
-            dynamicState,
-            *standardPipelineLayout,
-            Renderpass::at(STANDARD_RENDERPASS), 0,
-            vk::Pipeline(), 0,
-            vk::PipelineCreateFlags()
-        }
+        pipelineLayout,
+        vk::GraphicsPipelineCreateInfo(
+            {},
+            static_cast<uint32_t>(shaders.getStages().size()), shaders.getStages().data(),
+            &vertexInput,
+            &inputAssembly,
+            &tessellation,
+            &viewport,
+            &rasterizer,
+            &multisampling,
+            &depthStencil,
+            &colorBlending,
+            &dynamicState,
+            *pipelineLayout,
+            *Renderpass::at(STANDARD_RENDERPASS), 0,
+            vk::Pipeline(), 0
+        )
     );
-    pipeline.addPipelineDescriptorSet(*matrixBufferDescriptorSet);
+    pipeline.setStaticDescriptorSet(DESCRIPTOR_BINDING_0, *matrixBufferDescriptorSet);
 }
 
 

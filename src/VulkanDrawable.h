@@ -1,11 +1,8 @@
 #pragma once
-#ifndef VULKANDRAWABLE_H
-#define VULKANDRAWABLE_H
 
 #include <vulkan/vulkan.hpp>
 
 #include "RenderEnvironment.h"
-
 
 /**
  * @brief A polymorphic interface for drawables
@@ -21,9 +18,8 @@ public:
         const vk::CommandBufferInheritanceInfo& inheritInfo
     ) -> vk::CommandBuffer = 0;
 
-    virtual auto getPipeline(uint32_t subpass) const -> Pipeline& = 0;
+    virtual auto getPipeline(uint32_t subpass) const -> GraphicsPipeline& = 0;
 };
-
 
 /**
  * @brief A CRTP base class for all drawables
@@ -32,18 +28,13 @@ public:
  * drawable class is always associated with a specific renderpass.
  */
 template<class Derived>
-class VulkanDrawable
-    : public VulkanDrawableInterface,
-      private internal::pipeline_helper<Derived>
+class VulkanDrawable : public VulkanDrawableInterface,
+                       private internal::pipeline_helper<Derived, GraphicsPipeline>
 {
 public:
     VulkanDrawable() = default;
 
-    auto getPipeline(uint32_t subpass) const -> Pipeline& final {
-        return internal::pipeline_helper<Derived>::_get_pipeline(subpass);
+    auto getPipeline(uint32_t subpass) const -> GraphicsPipeline& final {
+        return internal::pipeline_helper<Derived, GraphicsPipeline>::_get_pipeline(subpass);
     }
 };
-
-
-
-#endif

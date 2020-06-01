@@ -1,6 +1,4 @@
 #pragma once
-#ifndef RENDERENVIRONMENT_H
-#define RENDERENVIRONMENT_H
 
 #include <type_traits>
 
@@ -21,10 +19,11 @@ struct RenderpassCreateInfo
     std::vector<vk::DescriptorSet> renderpassLocalDescriptorSets;
 };
 
-class Renderpass : public vkb::VulkanManagedObject<Renderpass, const RenderpassCreateInfo&>
+class Renderpass : public vkb::VulkanManagedObject<Renderpass>
 {
 public:
-    Renderpass(const RenderpassCreateInfo& info);
+    explicit Renderpass(const RenderpassCreateInfo& info);
+
     Renderpass(const Renderpass&) = delete;
     Renderpass(Renderpass&&) = default;
     ~Renderpass();
@@ -71,94 +70,74 @@ private:
     bool pauseRendering{ false };
 };
 
-
 /**
- * @brief A generic ck::Pipeline wrapper
- *
- * Specialized by pipeline subclasses, such as GraphicsPipeline
+ * @brief A pipeline layout
  */
-class Pipeline
+class PipelineLayout
 {
-protected:
-    Pipeline(vk::Pipeline pipeline, vk::PipelineLayout layout, vk::PipelineBindPoint bindPoint);
-
 public:
     /**
-     * The createGraphicsPipelineUnique doesnt work, idk why. So I have
-     * to use the standard non-unique pipeline.
+     * @brief Create the layout in an uninitialized state
+     *
+     * Does not allocate any Vulkan resources.
      */
-    ~Pipeline();
+    PipelineLayout() = default;
 
-    [[nodiscard]]
-    auto get() noexcept -> vk::Pipeline&;
+    /**
+     * @brief Create a pipeline layout
+     */
+    PipelineLayout(std::vector<vk::DescriptorSetLayout> descriptorSets,
+                   std::vector<vk::PushConstantRange> pushConstants);
 
-    [[nodiscard]]
-    auto get() const noexcept -> const vk::Pipeline&;
+    auto operator*() const noexcept -> vk::PipelineLayout;
+    auto get() const noexcept -> vk::PipelineLayout;
 
-    [[nodiscard]]
-    auto operator*() const noexcept -> const vk::Pipeline&;
+    auto getDescriptorSetLayout(uint32_t setIndex) -> vk::DescriptorSetLayout;
+    auto getDescriptorSetLayouts() const noexcept -> const std::vector<vk::DescriptorSetLayout>&;
 
-    [[nodiscard]]
-    auto operator*() noexcept -> vk::Pipeline&;
+    auto getPushConstantRange(uint32_t pushConstantIndex) -> vk::PushConstantRange;
+    auto getPushConstantRanges() const noexcept -> const std::vector<vk::PushConstantRange>&;
 
+private:
+    vk::UniquePipelineLayout layout;
+
+    std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+    std::vector<vk::PushConstantRange> pushConstantRanges;
+};
+
+/**
+ * @brief A graphics pipeline
+ */
+class GraphicsPipeline : public vkb::VulkanManagedObject<GraphicsPipeline>
+{
+public:
+    GraphicsPipeline(const PipelineLayout& layout, vk::GraphicsPipelineCreateInfo createInfo);
+    ~GraphicsPipeline() = default;
+
+    auto operator*() const noexcept -> vk::Pipeline;
+    auto get() const noexcept -> vk::Pipeline;
+
+    /**
+     * @brief Bind the pipeline
+     *
+     * Also binds all static descriptor sets of the pipeline.
+     *
+     * @param vk::CommandBuffer cmdBuf The command buffer to record the
+     *                                 pipeline bind to.
+     */
     void bind(vk::CommandBuffer cmdBuf) const noexcept;
 
-    [[nodiscard]]
-    auto getPipelineLayout() const noexcept -> vk::PipelineLayout;
+    auto getLayout() const noexcept -> const PipelineLayout&;
 
-    [[nodiscard]]
-    auto getPipelineDescriptorSets() const noexcept -> const std::vector<vk::DescriptorSet>&;
-
-    void addPipelineDescriptorSet(vk::DescriptorSet descriptorSet) noexcept;
+    void setStaticDescriptorSet(uint32_t setIndex, vk::DescriptorSet descriptorSet) noexcept;
 
 protected:
-    vk::PipelineBindPoint bindPoint;
-    vk::PipelineLayout layout;
-    vk::Pipeline pipeline;
+    const PipelineLayout& layout;
+    vk::UniquePipeline pipeline;
 
-    std::vector<vk::DescriptorSet> staticDescriptorSets;
+    std::vector<std::pair<uint32_t, vk::DescriptorSet>> staticDescriptorSets;
 };
 
 
 template<class Derived, size_t PipelineIndex, size_t SubpassIndex>
 using has_graphics_pipeline = has_pipeline<Derived, GraphicsPipeline, PipelineIndex, SubpassIndex>;
-
-
-struct GraphicsPipelineCreateInfo
-{
-    std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-    vk::PipelineVertexInputStateCreateInfo vertexInput;
-    vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
-    vk::PipelineTessellationStateCreateInfo tessellation;
-    vk::PipelineViewportStateCreateInfo viewport;
-    vk::PipelineRasterizationStateCreateInfo rasterization;
-    vk::PipelineMultisampleStateCreateInfo multisample;
-    vk::PipelineDepthStencilStateCreateInfo depthStencil;
-    vk::PipelineColorBlendStateCreateInfo colorBlend;
-    vk::PipelineDynamicStateCreateInfo dynamicState;
-    vk::PipelineLayout layout;
-    const Renderpass& renderpass;
-    uint32_t subpassIndex;
-    vk::Pipeline basePipeline;
-    int32_t basePipelineIndex;
-    vk::PipelineCreateFlags flags;
-};
-
-/**
- * A vk::Pipeline RAII-wrapper.
- */
-class GraphicsPipeline
-    : public Pipeline,
-      public vkb::VulkanManagedObject<GraphicsPipeline, const GraphicsPipelineCreateInfo&>
-{
-public:
-    explicit GraphicsPipeline(const GraphicsPipelineCreateInfo& info);
-    GraphicsPipeline(const GraphicsPipeline&) = default;
-    GraphicsPipeline(GraphicsPipeline&&) = default;
-    ~GraphicsPipeline() = default;
-
-    GraphicsPipeline& operator=(const GraphicsPipeline&) = default;
-    GraphicsPipeline& operator=(GraphicsPipeline&&) = default;
-};
-
-#endif

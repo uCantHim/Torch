@@ -78,7 +78,7 @@ auto Quad::recordCommandBuffer(uint32_t subpass, const vk::CommandBufferInherita
 
     mat4 model = glm::translate(mat4(1.0f), vec3(-1, 0, -4));
     cmdBuf.pushConstants<mat4>(
-        getPipeline(subpass).getPipelineLayout(),
+        *getPipeline(subpass).getLayout(),
         vk::ShaderStageFlagBits::eVertex,
         0,
         model

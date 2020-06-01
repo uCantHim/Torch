@@ -121,29 +121,25 @@ private:
 /*
 A VulkanBase that provides a CRTP static interface to manage
 objects of the derived class. */
-template<class Derived, typename... ConstructArgs>
+template<class Derived>
 class VulkanManagedObject : public VulkanBase,
-                            private VulkanStaticDestruction<
-                                VulkanManagedObject<Derived, ConstructArgs...>
-                            >
+                            private VulkanStaticDestruction<VulkanManagedObject<Derived>>
 {
 public:
     /**
-     * @brief Creates a new Derived
+     * @brief Create a new Derived
      *
      * Generates a new index for the object.
-     * Returns the created object. If the index was already occupied, also
-     * returns the object that was previously at the index.
      *
      * @param ConstructArgs&&... args: The constructor arguments
      *
-     * @return pair<size_t index, Derived* createdObject>
+     * @return Derived& The created object
      */
-    [[nodiscard]]
-    static auto create(ConstructArgs&&... args) -> Derived&;
+    template<typename ...ConstructArgs>
+    static auto createAtNextIndex(ConstructArgs&&... args) -> Derived&;
 
     /**
-     * @brief Creates a new Derived at a specific index
+     * @brief Create a new Derived at a specific index
      *
      * Returns the created object. If the index was already occupied, also
      * returns the object that was previously at the index.
@@ -151,44 +147,46 @@ public:
      * @param size_t index A key for the new object.
      * @param ConstructArgs&&... args The constructor arguments
      */
+    template<typename ...ConstructArgs>
     static auto create(size_t index, ConstructArgs&&... args)
         -> std::pair<Derived&, std::optional<std::unique_ptr<Derived>>>;
 
-    /*
-    Returns the stored object at the index.
-    Returns nullopt if no object exists at the index.
-
-    @param size_t index: The index to look at
-
-    @return optional<Derived*> The object at the specified index */
-    [[nodiscard]]
+    /**
+     * Returns the stored object at the index.
+     * Returns nullopt if no object exists at the index.
+     *
+     * @param size_t index: The index to look at
+     *
+     * @return optional<Derived*> The object at the specified index
+     */
     static auto find(size_t index) noexcept -> std::optional<Derived*>;
 
-    /*
-    Returns the stored object at the index.
-    Throws a std::out_of_range if no object exists at that index.
-
-    @param size_t index: The index to look at
-
-    @return Derived* The object at the specified index */
-    [[nodiscard]]
+    /**
+     * Returns the stored object at the index.
+     * Throws a std::out_of_range if no object exists at that index.
+     *
+     * @param size_t index: The index to look at
+     *
+     * @return Derived* The object at the specified index
+     */
     static auto at(size_t index) -> Derived&;
 
-    /*
-    Destroys the object at the index.
-    Does nothing if no object exists at the index.
-
-    @param size_t index: The index of the object to destroy */
+    /**
+     * Destroys the object at the index.
+     * Does nothing if no object exists at the index.
+     *
+     * @param size_t index: The index of the object to destroy
+     */
     static void destroy(size_t index);
 
-    /*
-    Returns the map-index of the object.
-    If the object has not been created with VulkanManagedObject::create()
-    ans thus has no index because it is not present in the map, the index
-    is UINT64_MAX.
-
-    @return size_t map index */
-    [[nodiscard]]
+    /**
+     * Returns the map-index of the object.
+     * If the object has not been created with VulkanManagedObject::create()
+     * ans thus has no index because it is not present in the map, the index
+     * is UINT64_MAX.
+     *
+     * @return size_t map index
+     */
     inline auto getIndex() const noexcept -> size_t {
         return _index;
     }
@@ -207,15 +205,17 @@ private:
 
 
 // create
-template<class Derived, typename ...ConstructArgs>
-inline auto VulkanManagedObject<Derived, ConstructArgs...>::create(ConstructArgs&&... args) -> Derived&
+template<class Derived>
+template<typename ...ConstructArgs>
+inline auto VulkanManagedObject<Derived>::createAtNextIndex(ConstructArgs&&... args) -> Derived&
 {
     return create(getNextIndex(), std::forward<ConstructArgs>(args)...).first;
 }
 
 // create
-template<class Derived, typename ...ConstructArgs>
-inline auto VulkanManagedObject<Derived, ConstructArgs...>::create(size_t index, ConstructArgs&&... args)
+template<class Derived>
+template<typename ...ConstructArgs>
+inline auto VulkanManagedObject<Derived>::create(size_t index, ConstructArgs&&... args)
     -> std::pair<Derived&, std::optional<std::unique_ptr<Derived>>>
 {
     if (index >= _objects.size())
@@ -252,8 +252,8 @@ inline auto VulkanManagedObject<Derived, ConstructArgs...>::create(size_t index,
 }
 
 // get
-template<class Derived, typename ...ConstructArgs>
-inline auto VulkanManagedObject<Derived, ConstructArgs...>::find(size_t index) noexcept
+template<class Derived>
+inline auto VulkanManagedObject<Derived>::find(size_t index) noexcept
 -> std::optional<Derived*>
 {
     if (index >= _objects.size() || _objects[index] == nullptr)
@@ -262,8 +262,8 @@ inline auto VulkanManagedObject<Derived, ConstructArgs...>::find(size_t index) n
 }
 
 // at
-template<class Derived, typename ...ConstructArgs>
-inline auto VulkanManagedObject<Derived, ConstructArgs...>::at(size_t index) -> Derived&
+template<class Derived>
+inline auto VulkanManagedObject<Derived>::at(size_t index) -> Derived&
 {
     try {
         return *_objects.at(index);
@@ -274,8 +274,8 @@ inline auto VulkanManagedObject<Derived, ConstructArgs...>::at(size_t index) -> 
 }
 
 // destroy
-template<class Derived, typename ...ConstructArgs>
-inline void VulkanManagedObject<Derived, ConstructArgs...>::destroy(size_t index)
+template<class Derived>
+inline void VulkanManagedObject<Derived>::destroy(size_t index)
 {
     try {
         _objects.at(index) = nullptr;
@@ -286,8 +286,8 @@ inline void VulkanManagedObject<Derived, ConstructArgs...>::destroy(size_t index
 }
 
 // getNextIndex
-template<class Derived, typename ...ConstructArgs>
-inline size_t VulkanManagedObject<Derived, ConstructArgs...>::getNextIndex() noexcept
+template<class Derived>
+inline size_t VulkanManagedObject<Derived>::getNextIndex() noexcept
 {
     return _objects.size();
 }

@@ -3,7 +3,6 @@
 #include "vkb/VulkanBase.h"
 
 class VulkanDrawableInterface;
-class Pipeline;
 
 namespace internal
 {
@@ -16,7 +15,7 @@ namespace internal
      * Don't inherit from this directly!
      * Add a pipeline by inheriting Derived from has_pipeline.
      */
-    template<class Derived>
+    template<class Derived, class PipelineType>
     class pipeline_helper
     {
     protected:
@@ -26,12 +25,12 @@ namespace internal
          * If this is called multiple times, the pipeline for the subpass
          * will be overridden.
          *
-         * @param uint32_t subpassIndex Index of the subpass that executes
-         *                                 the pipeline
-         * @param Pipeline& pipeline    The pipeline that is executed in the
-         *                                 specified subpass
+         * @param uint32_t subpassIndex  Index of the subpass that executes
+         *                               the pipeline
+         * @param PipelineType& pipeline The pipeline that is executed in the
+         *                               specified subpass
          */
-        static inline void _add_pipeline(uint32_t subpassIndex, Pipeline& pipeline)
+        static inline void _add_pipeline(uint32_t subpassIndex, PipelineType& pipeline)
         {
             if (pipelinesPerSubpass.size() <= subpassIndex)
                 pipelinesPerSubpass.resize(subpassIndex + 1, nullptr);
@@ -50,7 +49,7 @@ namespace internal
          *  - std::runtime_error in the subpass index is specified but the stored
          *    pipeline is nullptr. This is most probably a bug.
          */
-        static inline constexpr auto _get_pipeline(uint32_t subpassIndex) -> Pipeline&
+        static inline constexpr auto _get_pipeline(uint32_t subpassIndex) -> PipelineType&
         {
             if constexpr (vkb::debugMode)
             {
@@ -70,7 +69,7 @@ namespace internal
         }
 
     private:
-        static inline std::vector<Pipeline*> pipelinesPerSubpass;
+        static inline std::vector<PipelineType*> pipelinesPerSubpass;
         static inline std::vector<size_t> pipelineIndices;
 
     };
@@ -89,7 +88,7 @@ namespace internal
  * @tparam SubpassIndex  The subpass that the pipeline is used in
  */
 template<class Derived, class PipelineType, uint32_t PipelineIndex, uint32_t SubpassIndex>
-class has_pipeline : private internal::pipeline_helper<Derived>
+class has_pipeline : private internal::pipeline_helper<Derived, PipelineType>
 {
     friend PipelineType;
 
@@ -119,7 +118,7 @@ class has_pipeline : private internal::pipeline_helper<Derived>
         void signalRecreateFinished() override {
             auto pipeline = PipelineType::find(PipelineIndex);
             if (pipeline.has_value())
-                internal::pipeline_helper<Derived>::_add_pipeline(SubpassIndex, *pipeline.value());
+                internal::pipeline_helper<Derived, PipelineType>::_add_pipeline(SubpassIndex, *pipeline.value());
         }
     };
     static inline recreate_helper _recreate_helper;

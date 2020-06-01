@@ -146,97 +146,86 @@ void Renderpass::beginCommandBuffer(const vk::CommandBuffer& buf) const noexcept
 //        Pipeline classes        //
 // ---------------------------- //
 
-Pipeline::Pipeline(
-    vk::Pipeline pipeline,
-    vk::PipelineLayout layout,
-    vk::PipelineBindPoint bindPoint)
+PipelineLayout::PipelineLayout(
+    std::vector<vk::DescriptorSetLayout> descriptorSets,
+    std::vector<vk::PushConstantRange> pushConstants)
     :
-    bindPoint(bindPoint),
+    layout(vkb::VulkanBase::getDevice()->createPipelineLayoutUnique({
+        {},
+        static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(),
+        static_cast<uint32_t>(pushConstants.size()), pushConstants.data()
+    })),
+    descriptorSetLayouts(descriptorSets),
+    pushConstantRanges(pushConstants)
+{
+}
+
+auto PipelineLayout::get() const noexcept -> vk::PipelineLayout
+{
+    return *layout;
+}
+
+auto PipelineLayout::operator*() const noexcept -> vk::PipelineLayout
+{
+    return *layout;
+}
+
+auto PipelineLayout::getDescriptorSetLayouts() const noexcept
+    -> const std::vector<vk::DescriptorSetLayout>&
+{
+    return descriptorSetLayouts;
+}
+
+auto PipelineLayout::getPushConstantRanges() const noexcept
+    -> const std::vector<vk::PushConstantRange>&
+{
+    return pushConstantRanges;
+}
+
+
+
+GraphicsPipeline::GraphicsPipeline(
+    const PipelineLayout& layout,
+    vk::GraphicsPipelineCreateInfo createInfo)
+    :
     layout(layout),
-    pipeline(pipeline)
+    pipeline(vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique(
+        {}, createInfo
+    ))
 {
 }
 
-Pipeline::~Pipeline()
+auto GraphicsPipeline::operator*() const noexcept -> vk::Pipeline
 {
-    vkb::VulkanBase::getDevice()->destroyPipeline(pipeline);
+    return *pipeline;
 }
 
-
-auto Pipeline::get() noexcept -> vk::Pipeline&
+auto GraphicsPipeline::get() const noexcept -> vk::Pipeline
 {
-    return pipeline;
+    return *pipeline;
 }
 
-auto Pipeline::get() const noexcept -> const vk::Pipeline&
+void GraphicsPipeline::bind(vk::CommandBuffer cmdBuf) const noexcept
 {
-    return pipeline;
+    cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+
+    for (const auto& [index, set] : staticDescriptorSets)
+    {
+        cmdBuf.bindDescriptorSets(
+            vk::PipelineBindPoint::eGraphics, *layout,
+            index, set,
+            {} // dynamic offsets
+        );
+    }
 }
 
-auto Pipeline::operator*() const noexcept -> const vk::Pipeline&
-{
-    return pipeline;
-}
-
-auto Pipeline::operator*() noexcept -> vk::Pipeline&
-{
-    return pipeline;
-}
-
-void Pipeline::bind(vk::CommandBuffer cmdBuf) const noexcept
-{
-    cmdBuf.bindPipeline(bindPoint, pipeline);
-    cmdBuf.bindDescriptorSets(
-        bindPoint,
-        layout,
-        0,
-        staticDescriptorSets,
-        {} // dynamic offsets
-    );
-}
-
-auto Pipeline::getPipelineLayout() const noexcept -> vk::PipelineLayout
+auto GraphicsPipeline::getLayout() const noexcept -> const PipelineLayout&
 {
     return layout;
 }
 
-auto Pipeline::getPipelineDescriptorSets() const noexcept -> const std::vector<vk::DescriptorSet>&
+void GraphicsPipeline::setStaticDescriptorSet(uint32_t setIndex, vk::DescriptorSet descriptorSet) noexcept
 {
-    return staticDescriptorSets;
+    staticDescriptorSets.emplace_back(setIndex, descriptorSet);
 }
 
-void Pipeline::addPipelineDescriptorSet(vk::DescriptorSet descriptorSet) noexcept
-{
-    staticDescriptorSets.push_back(descriptorSet);
-}
-
-
-
-GraphicsPipeline::GraphicsPipeline(const GraphicsPipelineCreateInfo& info)
-    :
-    Pipeline(
-        getDevice()->createGraphicsPipeline(
-            vk::PipelineCache(),
-            vk::GraphicsPipelineCreateInfo(
-                info.flags,
-                static_cast<uint32_t>(info.shaderStages.size()), info.shaderStages.data(),
-                &info.vertexInput,
-                &info.inputAssembly,
-                &info.tessellation,
-                &info.viewport,
-                &info.rasterization,
-                &info.multisample,
-                &info.depthStencil,
-                &info.colorBlend,
-                &info.dynamicState,
-                info.layout,
-                *info.renderpass,
-                info.subpassIndex,
-                vk::Pipeline(), 0
-            )
-        ).value,
-        info.layout,
-        vk::PipelineBindPoint::eGraphics
-    )
-{
-}
