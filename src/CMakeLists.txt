@@ -3,6 +3,7 @@ target_sources(
     PUBLIC
         Framebuffer.h
         MemoryPool.h
+        PipelineHelper.h
         RenderEngine.h
         RenderEnvironment.h
         Scene.h
