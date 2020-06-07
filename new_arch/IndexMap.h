@@ -13,9 +13,12 @@ template<typename Key, typename Value>
 class IndexMap
 {
 public:
-    static_assert(std::is_integral_v<Key>, "Key must be an arithmetic type");
-    static_assert(std::is_default_constructible_v<Value>,
-                  "Value must be default constructible");
+    IndexMap()
+    {
+        static_assert(std::is_integral_v<Key>, "Key must be an arithmetic type");
+        static_assert(std::is_default_constructible_v<Value>,
+                      "Value must be default constructible");
+    }
 
     auto operator[](Key key) noexcept -> Value&;
     auto operator[](Key key) const noexcept -> const Value&;

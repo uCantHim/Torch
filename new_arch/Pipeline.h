@@ -30,10 +30,10 @@ class Pipeline
 {
 public:
     Pipeline(Pipeline&&) noexcept = default;
+    Pipeline& operator=(Pipeline&&) noexcept = default;
 
     Pipeline(const Pipeline&) = delete;
     Pipeline& operator=(const Pipeline&) = delete;
-    Pipeline& operator=(Pipeline&&) noexcept = delete;
 
     auto operator*();
     auto get();
@@ -53,10 +53,11 @@ public:
     void setStaticDescriptorSet(uint32_t setIndex, vk::DescriptorSet set) noexcept;
 
 protected:
-    Pipeline(const PipelineLayout& layout, vk::UniquePipeline pipeline);
+    Pipeline() = default;
+    Pipeline(PipelineLayout& layout, vk::UniquePipeline pipeline);
 
 private:
-    const PipelineLayout& layout;
+    PipelineLayout* layout;
     vk::UniquePipeline pipeline;
 
     std::vector<vk::DescriptorSet> staticDescriptorSets;
@@ -69,6 +70,7 @@ class GraphicsPipeline : public Pipeline,
                          public SelfManagedObject<GraphicsPipeline>
 {
 public:
+    GraphicsPipeline() = default;
     GraphicsPipeline(vk::GraphicsPipelineCreateInfo info, const PipelineLayout& layout);
 };
 
