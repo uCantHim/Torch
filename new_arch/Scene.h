@@ -17,84 +17,82 @@ private:
      */
     struct DrawableExecutionRegistration
     {
-        struct ID {
-            uint32_t* registrationIndex;
+        struct ID
+        {
+        private:
+            friend Scene;
+
+            ID(DrawableExecutionRegistration** r) : reg(r) {}
+
+            DrawableExecutionRegistration** reg;
         };
 
-        // Keeps the ID struct's index alive
-        std::unique_ptr<uint32_t> indexInRegistrationArray;
+        DrawableExecutionRegistration() = default;
+
+        /**
+         * @brief Construct a registration
+         *
+         * Leave the index empty, fill it in Scene::insertRegistration().
+         */
+        DrawableExecutionRegistration(
+            SubPass::ID s,
+            GraphicsPipeline::ID p,
+            std::function<void(vk::CommandBuffer)> func);
+
+        // Allows me to modify all ID struct's pointer remotely
+        std::unique_ptr<DrawableExecutionRegistration*> thisPointer{ nullptr };
+        uint32_t indexInRegistrationArray;
 
         // Entry data
         SubPass::ID subPass;            // Might be able to remove this later on
         GraphicsPipeline::ID pipeline;  // Might be able to remove this later on
-        Drawable* drawable;
         std::function<void(vk::CommandBuffer)> recordFunction;
     };
 
 public:
     using RegistrationID = DrawableExecutionRegistration::ID;
 
-    auto createDrawable()
-    {
-        // TODO: I don't think I use a pool anymore
-    }
+    /**
+     * @brief Get all pipelines used in a subpass
+     */
+    auto getPipelines(SubPass::ID subpass) const noexcept
+        -> const std::vector<GraphicsPipeline::ID>&;
 
-    // TODO: These two functions are out of date
-    auto getPipelines(SubPass::ID subpass) -> const std::vector<GraphicsPipeline::ID>&;
-    auto getDrawables(GraphicsPipeline::ID pipeline) -> std::vector<Drawable*>&;
+    auto getDrawFunctions(SubPass::ID subpass, GraphicsPipeline::ID pipeline) const noexcept
+        -> const std::vector<std::function<void(vk::CommandBuffer)>>&;
 
-    void foreachDrawable(SubPass::ID subpass, GraphicsPipeline::ID pipeline, void func(Drawable&))
-    {
-        // TODO
-    }
+    void invokeDrawFunctions(
+        SubPass::ID subpass,
+        GraphicsPipeline::ID pipeline,
+        vk::CommandBuffer cmdBuf
+    ) const;
 
-    auto registerDrawableStage(
+    auto registerDrawFunction(
         SubPass::ID subpass,
         GraphicsPipeline::ID usedPipeline,
         std::function<void(vk::CommandBuffer)> commandBufferRecordingFunction
-    ) -> DrawableExecutionRegistration::ID;
+    ) -> RegistrationID;
 
-    void removeDrawable(Drawable& d)
-    {
-        assert(d.sceneInfo.owningScene == this);
-
-        const auto& info = d.sceneInfo;
-        uint32_t numSubPasses = drawablesperPipeline.getMaxIndex();
-        for (uint32_t subPass = 0; subPass < numSubPasses; subPass++)
-        {
-            const auto& [pipelineIndex, drawableIndex] = info.registeredPipelines[subPass];
-
-            auto& drawableArray = drawablesperPipeline[subPass][pipelineIndex];
-            assert(drawableIndex < drawableArray.size());
-
-            // Move last drawable in list to index of removed drawable
-            std::swap(drawableArray[drawableIndex], drawableArray.back());
-            drawableArray.pop_back();
-            // Set new drawable index in reference structure of moved drawable
-            drawableArray[drawableIndex].drawable->sceneInfo.registeredPipelines[subPass]
-                = { pipelineIndex, drawableIndex };
-        }
-    }
+    void unregisterDrawFunction(RegistrationID id);
 
 private:
     template<typename T> using PerSubpass = IndexMap<SubPass::ID, T>;
     template<typename T> using PerPipeline = IndexMap<GraphicsPipeline::ID, T>;
 
-    struct DrawableInfo
-    {
-        Drawable drawable;
-        IndexMap<SubPass::ID, std::pair<GraphicsPipeline::ID, size_t>> indicesInPipelineArray;
-    };
-    IndexMap<uint32_t, DrawableInfo> drawables;
-
     /**
      * @brief Add a registration to the registration array
      */
-    auto insertRegistration(
-        SubPass::ID subpass,
-        GraphicsPipeline::ID pipeline,
-        DrawableExecutionRegistration reg
-    ) -> DrawableExecutionRegistration::ID;
+    auto insertRegistration(DrawableExecutionRegistration reg) -> RegistrationID;
 
-    PerSubpass<PerPipeline<std::vector<DrawableExecutionRegistration>>> drawablesperPipeline;
+    // TODO: Store the functions in a separate array with ONLY functions.
+    // Just reference those functions through the indexInRegistrationArray
+    // property in DrawableExecutionRegistration.
+    PerSubpass<PerPipeline<std::vector<DrawableExecutionRegistration>>> drawableRegistrations;
+
+    // Pipeline storage
+    void tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline);
+    void removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline);
+
+    PerSubpass<std::set<GraphicsPipeline::ID>> uniquePipelines;
+    PerSubpass<std::vector<GraphicsPipeline::ID>> uniquePipelinesVector;
 };

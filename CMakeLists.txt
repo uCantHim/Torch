@@ -18,6 +18,8 @@ add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(example)
 
+add_subdirectory(new_arch)
+
 target_link_libraries(torch PUBLIC vk_base)
 
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
