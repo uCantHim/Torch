@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "SelfManagedObject.h"
+#include "data_utils/SelfManagedObject.h"
 
 // Will probably not be used but I can define a consistent ID type this way
 struct SubPass
@@ -18,6 +18,8 @@ struct SubPass
 class RenderPass : public SelfManagedObject<RenderPass>
 {
 public:
+    RenderPass() = default;
+
     auto getSubPasses() -> const std::vector<SubPass::ID>&;
 
 private:

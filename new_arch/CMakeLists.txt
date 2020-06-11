@@ -3,19 +3,15 @@ target_sources(
     PUBLIC
         Drawable.h
         Engine.h
-        IndexMap.h
-        ObjectPool.h
-        ObjectPool.inl
         Pipeline.h
         Renderpass.h
         Scene.h
-        SelfManagedObject.h
         Shader.h
-        SortedObjectPool.h
     PRIVATE
-        IndexMap.inl
         Scene.cpp
 )
+
+add_subdirectory(data_utils)
 
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
@@ -25,15 +21,10 @@ target_sources(
     PUBLIC
         Drawable.h
         Engine.h
-        IndexMap.h
-        ObjectPool.h
-        ObjectPool.inl
         Pipeline.h
         Renderpass.h
         Scene.h
-        SelfManagedObject.h
         Shader.h
-        SortedObjectPool.h
     PRIVATE
         Scene.cpp
 )

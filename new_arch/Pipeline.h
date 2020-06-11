@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "SelfManagedObject.h"
+#include "data_utils/SelfManagedObject.h"
 
 class PipelineLayout
 {

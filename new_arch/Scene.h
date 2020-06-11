@@ -3,10 +3,9 @@
 #include <vector>
 #include <set>
 
-#include "IndexMap.h"
+#include "data_utils/IndexMap.h"
 #include "Renderpass.h"
 #include "Pipeline.h"
-#include "Drawable.h"
 
 class Scene
 {
@@ -58,9 +57,9 @@ public:
     auto getPipelines(SubPass::ID subpass) const noexcept
         -> const std::vector<GraphicsPipeline::ID>&;
 
-    auto getDrawFunctions(SubPass::ID subpass, GraphicsPipeline::ID pipeline) const noexcept
-        -> const std::vector<std::function<void(vk::CommandBuffer)>>&;
-
+    /**
+     * @brief Invoke all registered draw functions of a subpass and pipeline
+     */
     void invokeDrawFunctions(
         SubPass::ID subpass,
         GraphicsPipeline::ID pipeline,

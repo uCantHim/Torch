@@ -1,0 +1,9 @@
+target_sources(
+    torch
+    PUBLIC
+        IndexMap.h
+        IndexMap.inl
+        ObjectPool.h
+        ObjectPool.inl
+        SelfManagedObject.h
+)
