@@ -1,13 +1,33 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include <vkb/VulkanBase.h>
 
 #include "data_utils/SelfManagedObject.h"
 
 class PipelineLayout
 {
 public:
-    auto operator*();
+    PipelineLayout(
+        std::vector<vk::DescriptorSetLayout> descriptorSetLayouts,
+        std::vector<vk::PushConstantRange> pushConstantRanges)
+        :
+        layout(vkb::VulkanBase::getDevice()->createPipelineLayoutUnique(
+            vk::PipelineLayoutCreateInfo(
+                {},
+                descriptorSetLayouts.size(), descriptorSetLayouts.data(),
+                pushConstantRanges.size(), pushConstantRanges.data()
+            )
+        )),
+        descriptorSetLayouts(std::move(descriptorSetLayouts)),
+        pushConstantRanges(std::move(pushConstantRanges))
+    {
+    }
+
+    auto operator*() const noexcept -> vk::PipelineLayout {
+        return *layout;
+    }
+
     auto get();
 
     void addDescriptorSetLayouts();
@@ -17,10 +37,10 @@ public:
     auto getPushConstantRanges();
 
 private:
+    vk::UniquePipelineLayout layout;
+
     std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
     std::vector<vk::PushConstantRange> pushConstantRanges;
-
-    vk::UniquePipelineLayout layout;
 };
 
 /**
@@ -46,7 +66,19 @@ public:
      * @param bool bindStaticDescSets  If false, don't bind the pipeline's
      *                                 static descriptor sets.
      */
-    void bind(vk::CommandBuffer cmdBuf, bool bindStaticDescSets = true) const noexcept;
+    void bind(vk::CommandBuffer cmdBuf, bool bindStaticDescSets = true) const noexcept
+    {
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+
+        if (bindStaticDescSets)
+        {
+            cmdBuf.bindDescriptorSets(
+                vk::PipelineBindPoint::eGraphics,
+                **layout,
+                0, staticDescriptorSets,
+                {});
+        }
+    }
 
     auto getLayout() const noexcept -> const PipelineLayout&;
 
@@ -54,7 +86,11 @@ public:
 
 protected:
     Pipeline() = default;
-    Pipeline(PipelineLayout& layout, vk::UniquePipeline pipeline);
+    Pipeline(PipelineLayout& layout, vk::UniquePipeline pipeline)
+        :
+        layout(&layout),
+        pipeline(std::move(pipeline))
+    {}
 
 private:
     PipelineLayout* layout;
@@ -71,7 +107,14 @@ class GraphicsPipeline : public Pipeline,
 {
 public:
     GraphicsPipeline() = default;
-    GraphicsPipeline(vk::GraphicsPipelineCreateInfo info, const PipelineLayout& layout);
+    GraphicsPipeline(vk::GraphicsPipelineCreateInfo info, PipelineLayout& layout)
+        :
+        Pipeline(
+            layout,
+            vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info)
+        )
+    {
+    }
 };
 
 /**

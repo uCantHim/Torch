@@ -11,6 +11,7 @@ RenderPass::RenderPass(const vk::RenderPassCreateInfo& createInfo)
     renderPass(vkb::VulkanBase::getDevice()->createRenderPassUnique(createInfo)),
     framebuffer(*renderPass)
 {
+    subpasses = { 0 };
 }
 
 auto RenderPass::operator*() noexcept -> vk::RenderPass

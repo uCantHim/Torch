@@ -35,6 +35,9 @@ auto Scene::registerDrawFunction(
     std::function<void(vk::CommandBuffer)> commandBufferRecordingFunction
     ) -> RegistrationID
 {
+    std::cout << "Registering draw function at subpass " << subpass
+        << " and pipeline " << usedPipeline << "\n";
+
     tryInsertPipeline(subpass, usedPipeline);
 
     return insertRegistration(

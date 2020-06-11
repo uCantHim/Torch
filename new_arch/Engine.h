@@ -17,10 +17,12 @@ public:
      */
     void drawScene(RenderPass& renderPass, Scene& scene)
     {
-        static const vk::ClearValue clearColor(vk::ClearColorValue(std::array<float, 4>{ 1.0, 0.4, 1.0 }));
+        static const std::vector<vk::ClearValue> clearValues = {
+            vk::ClearColorValue(std::array<float, 4>{ 1.0, 0.4, 1.0 }),
+            vk::ClearDepthStencilValue(1.0f, 0),
+        };
 
         auto& swapchain = vkb::VulkanBase::getSwapchain();
-        const auto swapchainSize = swapchain.getImageExtent();
 
         // Set up rendering
         cmdBuf->reset({});
@@ -30,31 +32,43 @@ public:
             vk::RenderPassBeginInfo(
                 *renderPass,
                 renderPass.getFramebuffer(),
-                vk::Rect2D{ swapchainSize.width, swapchainSize.height },
-                1u, &clearColor
+                vk::Rect2D({ 0, 0 }, swapchain.getImageExtent()),
+                static_cast<uint32_t>(clearValues.size()), clearValues.data()
             ),
             vk::SubpassContents::eInline
         );
 
-        for (auto subPass : renderPass.getSubPasses())
+        // Record all commands
+        const auto& subPasses = renderPass.getSubPasses();
+        for (size_t i = 0; i < subPasses.size(); i++)
         {
+            auto& subPass = subPasses[i];
+
+            std::cout << "Subpass " << subPass << " started\n";
             for (auto pipeline : scene.getPipelines(subPass))
             {
+                std::cout << "Pipeline " << pipeline << " started\n";
                 // Bind the current pipeline
-                GraphicsPipeline::at(pipeline).bind(*cmdBuf, true);
+                GraphicsPipeline::at(pipeline).bind(*cmdBuf, false);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(subPass, pipeline, *cmdBuf);
             }
 
-            cmdBuf->nextSubpass(vk::SubpassContents::eInline);
+            if (i < subPasses.size() - 1) {
+                cmdBuf->nextSubpass(vk::SubpassContents::eInline);
+            }
         }
 
         cmdBuf->endRenderPass();
         cmdBuf->end();
+        std::cout << "Recording finished\n";
 
-
-        auto image = swapchain.acquireImage({});
+        // Submit work and present the image
+        auto semaphore = vkb::VulkanBase::getDevice()->createSemaphoreUnique(
+            vk::SemaphoreCreateInfo(vk::SemaphoreCreateFlags())
+        );
+        auto image = swapchain.acquireImage(*semaphore);
 
         vkb::VulkanBase::getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
 
