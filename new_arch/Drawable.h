@@ -4,21 +4,15 @@
 
 #include "Renderpass.h"
 #include "Pipeline.h"
+#include "Scene.h"
 
-class Scene;
 class Geometry;
 class Material;
 
-class DrawableType
-{
-public:
-    virtual auto getCommandBuffer(SubPass::ID subpass) -> vk::CommandBuffer = 0;
-};
-
 /**
- * @brief Purely component-based Drawable class
+ * @brief Utiliy for functions that can be registered at a scene
  */
-class Drawable
+class SceneRegisterable
 {
 public:
     /**
@@ -27,10 +21,29 @@ public:
      * Record command buffers with a specific function for this particular
      * pipeline.
      */
-    void usePipeline(SubPass::ID pass,
+    void usePipeline(SubPass::ID subPass,
                      GraphicsPipeline::ID pipeline,
                      std::function<void(vk::CommandBuffer)> recordCommandBufferFunction);
 
+    void attachToScene(Scene& scene);
+    void removeFromScene();
+
+private:
+    using RecordFuncTuple = std::tuple<SubPass::ID,
+                                       GraphicsPipeline::ID,
+                                       std::function<void(vk::CommandBuffer)>>;
+
+    std::vector<RecordFuncTuple> drawableRecordFuncs;
+    std::vector<Scene::RegistrationID> registrationIDs;
+    Scene* currentScene{ nullptr };
+};
+
+/**
+ * @brief Purely component-based Drawable class
+ */
+class DefaultDrawable : SceneRegisterable
+{
+public:
     auto getGeometry();
     auto getMaterial();
 
@@ -39,9 +52,6 @@ public:
     auto getTransform();
 
 private:
-    std::unique_ptr<DrawableType> type;
     Geometry* geo;
     Material* material;
-
-    uint32_t commandBufferRecorder;
 };

@@ -1,0 +1,36 @@
+#include "Drawable.h"
+
+
+
+void SceneRegisterable::usePipeline(
+    SubPass::ID subPass,
+    GraphicsPipeline::ID pipeline,
+    std::function<void(vk::CommandBuffer)> recordCommandBufferFunction)
+{
+    drawableRecordFuncs.emplace_back(subPass, pipeline, std::move(recordCommandBufferFunction));
+}
+
+void SceneRegisterable::attachToScene(Scene& scene)
+{
+    if (!registrationIDs.empty())
+    {
+        removeFromScene();
+    }
+
+    for (const auto& [subPass, pipeline, func] : drawableRecordFuncs)
+    {
+        registrationIDs.push_back(scene.registerDrawFunction(subPass, pipeline, func));
+    }
+    currentScene = &scene;
+}
+
+void SceneRegisterable::removeFromScene()
+{
+    assert(currentScene != nullptr);
+
+    for (auto id : registrationIDs)
+    {
+        currentScene->unregisterDrawFunction(id);
+    }
+    registrationIDs.clear();
+}
