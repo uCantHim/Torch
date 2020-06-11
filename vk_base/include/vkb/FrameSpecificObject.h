@@ -35,6 +35,13 @@ public:
         }
     }
 
+    explicit FrameSpecificObject(std::vector<R> objects)
+        :
+        FrameSpecificObject([&objects](uint32_t imageIndex) {
+            return std::move(objects[imageIndex]);
+        })
+    {}
+
     FrameSpecificObject(const FrameSpecificObject&) = delete;
     FrameSpecificObject(FrameSpecificObject&&) = default;
     ~FrameSpecificObject() = default;
@@ -46,7 +53,15 @@ public:
         return objects[getCurrentFrame()];
     }
 
+    inline auto operator*() const -> const R& {
+        return objects[getCurrentFrame()];
+    }
+
     inline auto operator->() -> R* {
+        return &objects[getCurrentFrame()];
+    }
+
+    inline auto operator->() const -> const R* {
         return &objects[getCurrentFrame()];
     }
 
@@ -55,7 +70,6 @@ public:
      *
      * @return R& The object for the current frame
      */
-    [[nodiscard]]
     inline auto get() noexcept -> R& {
         return objects[getCurrentFrame()];
     }
@@ -65,7 +79,6 @@ public:
      *
      * @return const R& The object for the current frame
      */
-    [[nodiscard]]
     inline auto get() const noexcept -> const R& {
         return objects[getCurrentFrame()];
     }
@@ -73,7 +86,6 @@ public:
     /**
      * @return const R& The object for a specific frame
      */
-    [[nodiscard]]
     inline auto getAt(uint32_t imageIndex) const noexcept -> const R& {
         assert(imageIndex < objects.size());
         return objects[imageIndex];
