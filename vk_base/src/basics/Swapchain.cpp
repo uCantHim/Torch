@@ -5,7 +5,7 @@ using namespace std::chrono;
 
 #include "PhysicalDevice.h"
 #include "Device.h"
-#include "VulkanBase.h"
+#include "VulkanDebug.h"
 
 
 
@@ -144,13 +144,13 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
 }
 
 
-auto vkb::Swapchain::getImageExtent() const noexcept -> const vk::Extent2D&
+auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
 {
     return swapchainExtent;
 }
 
 
-auto vkb::Swapchain::getImageFormat() const noexcept -> const vk::Format&
+auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
 {
     return swapchainFormat;
 }
@@ -168,7 +168,7 @@ auto vkb::Swapchain::getCurrentFrame() const noexcept -> uint32_t
 }
 
 
-auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> const vk::Image&
+auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> vk::Image
 {
     return images[index];
 }
@@ -198,6 +198,7 @@ void vkb::Swapchain::presentImage(
         &image,
         nullptr
     );
+
     try {
         queue.presentKHR(presentInfo);
     }
@@ -210,6 +211,26 @@ void vkb::Swapchain::presentImage(
     }
 
     FrameCounter::currentFrame = (FrameCounter::currentFrame + 1) % numFrames;
+}
+
+
+auto vkb::Swapchain::createImageViews() const noexcept -> std::vector<vk::UniqueImageView>
+{
+    std::vector<vk::UniqueImageView> result;
+    result.reserve(images.size());
+
+    for (const auto& image : images)
+    {
+        result.push_back(device->createImageViewUnique(
+            vk::ImageViewCreateInfo(
+                {}, image, vk::ImageViewType::e2D,
+                getImageFormat(), vk::ComponentMapping(),
+                { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+            )
+        ));
+    }
+
+    return result;
 }
 
 

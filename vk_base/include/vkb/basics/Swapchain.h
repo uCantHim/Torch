@@ -42,19 +42,19 @@ public:
 
     Swapchain(const Device& device, Surface s);
 
-    auto getImageExtent() const noexcept -> const vk::Extent2D&;
-    auto getImageFormat() const noexcept -> const vk::Format&;
+    auto getImageExtent() const noexcept -> vk::Extent2D;
+    auto getImageFormat() const noexcept -> vk::Format;
 
     auto getFrameCount() const noexcept -> uint32_t;
     auto getCurrentFrame() const noexcept -> uint32_t;
-    auto getImage(uint32_t index) const noexcept -> const vk::Image&;
+    auto getImage(uint32_t index) const noexcept -> vk::Image;
 
     auto acquireImage(vk::Semaphore signalSemaphore) const -> image_index;
-    void presentImage(
-        image_index image,
-        const vk::Queue& queue,
-        const std::vector<vk::Semaphore>& waitSemaphores
-    );
+    void presentImage(image_index image,
+                      const vk::Queue& queue,
+                      const std::vector<vk::Semaphore>& waitSemaphores);
+
+    auto createImageViews() const noexcept -> std::vector<vk::UniqueImageView>;
 
 public:
     void createSwapchain(bool recreate);
