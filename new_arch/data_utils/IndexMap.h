@@ -20,6 +20,9 @@ public:
 
     auto at(Key key) -> Value&;
 
+    template<typename ...Args>
+    auto emplace(Key key, Args&&... args) -> Value&;
+
     auto remove(Key key) -> Value;
 
     auto size() const noexcept -> size_t;

@@ -43,6 +43,19 @@ inline auto IndexMap<Key, Value>::at(Key key) -> Value&
 }
 
 template<typename Key, typename Value>
+template<typename ...Args>
+inline auto IndexMap<Key, Value>::emplace(Key key, Args&&... args) -> Value&
+{
+    assert(key >= 0);
+
+    if (key >= values.size()) {
+        values.resize(key + 1);
+    }
+
+    return *values.emplace(values.begin() + key, std::forward<Args>(args)...);
+}
+
+template<typename Key, typename Value>
 inline auto IndexMap<Key, Value>::remove(Key key) -> Value
 {
     assert(key < values.size());
