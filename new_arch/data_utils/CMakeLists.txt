@@ -6,4 +6,5 @@ target_sources(
         ObjectPool.h
         ObjectPool.inl
         SelfManagedObject.h
+        SelfManagedObject.inl
 )

@@ -22,7 +22,6 @@ class SelfManagedObject
 public:
     using ID = uint64_t;
 
-
     // ----------------
     // Static functions
 
@@ -34,14 +33,11 @@ public:
      * @throws Error if the index is occupied
      */
     template<typename ...ConstructArgs>
-    static auto create(size_t index, ConstructArgs&&... args) -> Derived&;
+    static auto create(ID index, ConstructArgs&&... args) -> Derived&;
 
-    static auto at(size_t index) -> Derived&;
-    static auto find(size_t index) noexcept
-        -> std::optional<std::reference_wrapper<Derived>>;
+    static auto at(ID index) -> Derived&;
 
-    static void destroy(size_t index);
-
+    static void destroy(ID index);
 
     // ------------------
     // Non-static methods
@@ -52,4 +48,9 @@ private:
     using StoredType = Derived;
 
     static inline IndexMap<ID, StoredType> objects;
+
+    ID myId;
 };
+
+
+#include "SelfManagedObject.inl"
