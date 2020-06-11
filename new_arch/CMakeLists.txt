@@ -7,7 +7,10 @@ target_sources(
         Renderpass.h
         Scene.h
         Shader.h
+        StaticDrawable.h
+        StaticDrawable.inl
     PRIVATE
+        Drawable.cpp
         Scene.cpp
 )
 
@@ -25,6 +28,9 @@ target_sources(
         Renderpass.h
         Scene.h
         Shader.h
+        StaticDrawable.h
+        StaticDrawable.inl
     PRIVATE
+        Drawable.cpp
         Scene.cpp
 )
