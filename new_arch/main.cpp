@@ -2,11 +2,13 @@
 
 #include <glm/glm.hpp>
 using namespace glm;
+
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
+#include <vkb/Image.h>
 #include <vkb/ShaderProgram.h>
 
-#include "Engine.h"
+#include "CommandCollector.h"
 #include "Scene.h"
 #include "StaticDrawable.h"
 
@@ -15,38 +17,21 @@ using namespace glm;
  */
 class Thing : public SceneRegisterable,
               public StaticPipelineRenderInterface<Thing, 0, 0>
-              //public StaticPipelineRenderInterface<Thing, 0, 1>
 {
 public:
-    // template<GraphicsPipeline::ID Pipeline>
-    // void recordCommandBuffer(vk::CommandBuffer)
-    // {
-    //     if constexpr (Pipeline == 0)
-    //     {
-    //         // ...
-    //     }
-    //     else if constexpr (Pipeline == 1)
-    //     {
-    //         // ...
-    //     }
-    // }
-
-
     void recordCommandBuffer(PipelineIndex<0>, vk::CommandBuffer)
     {
         std::cout << "Recording commands for pipeline 0...\n";
     }
-
-    void recordCommandBuffer(PipelineIndex<1>, vk::CommandBuffer)
-    {
-        std::cout << "Recording commands for pipeline 1...\n";
-    }
 };
+
 
 constexpr uint32_t DESCRIPTOR_BINDING_0 = 0;
 
+
 void createRenderpass();
 void createPipeline(PipelineLayout& pipelineLayout);
+
 
 int main()
 {
@@ -124,10 +109,56 @@ int main()
     );
     texture.changeLayout(vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal);
 
+    const auto& swapchain = vkb::VulkanBase::getSwapchain();
     createRenderpass();
     createPipeline(pipelineLayout);
 
-    Engine engine;
+    vkb::FrameSpecificObject<vk::UniqueImageView> colorAttachmentImageViews(
+        vkb::VulkanBase::getSwapchain().createImageViews()
+    );
+
+    vkb::FrameSpecificObject<vkb::Image> depthImages(
+        [&swapchain](uint32_t) {
+            return vkb::Image(vk::ImageCreateInfo(
+                {},
+                vk::ImageType::e2D,
+                vk::Format::eD24UnormS8Uint,
+                vk::Extent3D{ swapchain.getImageExtent(), 1 },
+                1, 1, vk::SampleCountFlagBits::e1,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment
+            ));
+        }
+    );
+    vkb::FrameSpecificObject<vk::UniqueImageView> depthAttachmentImageViews(
+        [&depthImages](uint32_t imageIndex) {
+            return depthImages.getAt(imageIndex).createView(
+                vk::ImageViewType::e2D, vk::Format::eD24UnormS8Uint, vk::ComponentMapping(),
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1)
+            );
+        }
+    );
+
+    vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers(
+        [&](uint32_t imageIndex) -> vk::UniqueFramebuffer
+        {
+            std::vector<vk::ImageView> imageViews;
+            imageViews.push_back(*colorAttachmentImageViews.getAt(imageIndex));
+            imageViews.push_back(*depthAttachmentImageViews.getAt(imageIndex));
+
+            return vkb::VulkanBase::getDevice()->createFramebufferUnique(
+                vk::FramebufferCreateInfo(
+                    {},
+                    *RenderPass::at(0),
+                    static_cast<uint32_t>(imageViews.size()), imageViews.data(),
+                    swapchain.getImageExtent().width, swapchain.getImageExtent().height,
+                    1 // layers
+                )
+            );
+        }
+    );
+
+    CommandCollector engine;
     Scene scene;
 
     scene.registerDrawFunction(0, 0, [](vk::CommandBuffer) {
@@ -139,7 +170,28 @@ int main()
 
     while (true)
     {
-        engine.drawScene(RenderPass::at(0), scene);
+        DrawInfo info{
+            .renderPass=&RenderPass::at(0),
+            .framebuffer=**framebuffers,
+            .viewport={
+                { 0, 0 },
+                { swapchain.getImageExtent().width, swapchain.getImageExtent().height }
+            }
+        };
+        auto cmdBuf = engine.recordScene(scene, info);
+
+        // Submit work and present the image
+        auto semaphore = vkb::VulkanBase::getDevice()->createSemaphoreUnique(
+            vk::SemaphoreCreateInfo(vk::SemaphoreCreateFlags())
+        );
+        auto image = swapchain.acquireImage(*semaphore);
+        vkb::VulkanBase::getDevice().executeGraphicsCommandBufferSynchronously(cmdBuf);
+        vkb::VulkanBase::getSwapchain().presentImage(
+            image,
+            vkb::VulkanBase::getQueueProvider().getQueue(vkb::queue_type::presentation),
+            {}
+        );
+
     }
 
     std::cout << " --- Done\n";
@@ -155,22 +207,8 @@ void createRenderpass()
     };
 
     std::vector<vk::AttachmentDescription> attachments = {
-        {
-            vk::AttachmentDescriptionFlags(),
-            vkb::VulkanBase::getSwapchain().getImageFormat(),
-            vk::SampleCountFlagBits::e1,
-            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
-            vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
-            vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR
-        },
-        {
-            vk::AttachmentDescriptionFlags(),
-            vk::Format::eD32Sfloat,
-            vk::SampleCountFlagBits::e1,
-            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // load/store ops
-            vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
-            vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
-        },
+        makeDefaultSwapchainColorAttachment(vkb::VulkanBase::getSwapchain()),
+        makeDefaultDepthStencilAttachment(),
     };
 
     vk::SubpassDescription subpass(
@@ -198,7 +236,11 @@ void createRenderpass()
             static_cast<uint32_t>(attachments.size()), attachments.data(),
             1u, &subpass,
             1u, &dependency
-        )
+        ),
+        std::vector<vk::ClearValue>{
+            vk::ClearColorValue(std::array<float, 4>{ 1.0, 0.4, 1.0 }),
+            vk::ClearDepthStencilValue(1.0f, 0),
+        }
     );
 }
 

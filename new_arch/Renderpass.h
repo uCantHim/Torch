@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include <vkb/basics/Swapchain.h>
 
 #include "data_utils/SelfManagedObject.h"
-#include "Framebuffer.h"
 
 // Will probably not be used but I can define a consistent ID type this way
 struct SubPass
@@ -19,21 +19,48 @@ struct SubPass
 class RenderPass : public SelfManagedObject<RenderPass>
 {
 public:
-    RenderPass();
-    explicit RenderPass(const vk::RenderPassCreateInfo& createInfo);
+    RenderPass() = default;
+    RenderPass(const vk::RenderPassCreateInfo& createInfo, std::vector<vk::ClearValue> clearValues);
 
     auto operator*() noexcept -> vk::RenderPass;
     auto operator*() const noexcept -> vk::RenderPass;
     auto get() const noexcept -> vk::RenderPass;
 
+    auto getNumSubPasses() const noexcept -> uint32_t;
     auto getSubPasses() const noexcept -> const std::vector<SubPass::ID>&;
-    auto getFramebuffer() const noexcept -> vk::Framebuffer;
+
+    auto getClearValues() const noexcept -> const std::vector<vk::ClearValue>&;
 
 private:
     vk::UniqueRenderPass renderPass;
-    Framebuffer framebuffer;
 
     // Just a list of contiguous numbers. Could be a simple int but I like
     // the consistency of having range-based for loops everywhere.
-    std::vector<SubPass::ID> subpasses;
+    std::vector<SubPass::ID> subPasses;
+
+    std::vector<vk::ClearValue> clearValues;
 };
+
+
+/**
+ * @brief Create a default color attachment description
+ *
+ * Use this for a quick color attachment.
+ *
+ * The attachment is in the format of the swapchain's images. It's cleared
+ * on load and stored on store. The sample count is 1. The image is
+ * expected in an undefined layout and will be transformed into presentable
+ * layout.
+ */
+auto makeDefaultSwapchainColorAttachment(vkb::Swapchain& swapchain) -> vk::AttachmentDescription;
+
+/**
+ * @brief Create a default depth attachment description
+ *
+ * Use this for a quick depth attachment with sensible defaults.
+ *
+ * 24 bit depth, 8 bit stencil format. 1 sample. Cleared on load, don't
+ * care on store. The image is expected in an undefined layout and will
+ * be transformed into a depthStencilAttachmentOptimal layout.
+ */
+auto makeDefaultDepthStencilAttachment() -> vk::AttachmentDescription;

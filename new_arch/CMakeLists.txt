@@ -3,7 +3,6 @@ target_sources(
     PUBLIC
         Drawable.h
         Engine.h
-        Framebuffer.h
         Pipeline.h
         Renderpass.h
         Scene.h
@@ -12,7 +11,6 @@ target_sources(
         StaticDrawable.inl
     PRIVATE
         Drawable.cpp
-        Framebuffer.cpp
         Renderpass.cpp
         Scene.cpp
 )
@@ -27,7 +25,6 @@ target_sources(
     PUBLIC
         Drawable.h
         Engine.h
-        Framebuffer.h
         Pipeline.h
         Renderpass.h
         Scene.h
@@ -36,7 +33,6 @@ target_sources(
         StaticDrawable.inl
     PRIVATE
         Drawable.cpp
-        Framebuffer.cpp
         Renderpass.cpp
         Scene.cpp
 )
