@@ -9,7 +9,7 @@ using namespace glm;
 #include <vkb/ShaderProgram.h>
 
 #include "CommandCollector.h"
-#include "Scene.h"
+#include "BasicScene.h"
 #include "StaticDrawable.h"
 
 /**
@@ -159,7 +159,7 @@ int main()
     );
 
     CommandCollector engine;
-    Scene scene;
+    BasicScene scene;
 
     scene.registerDrawFunction(0, 0, [](vk::CommandBuffer) {
         std::cout << "Random draw function\n";

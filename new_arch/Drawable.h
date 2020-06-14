@@ -4,7 +4,7 @@
 
 #include "Renderpass.h"
 #include "Pipeline.h"
-#include "Scene.h"
+#include "BasicScene.h"
 
 class Geometry;
 class Material;
@@ -25,7 +25,7 @@ public:
                      GraphicsPipeline::ID pipeline,
                      std::function<void(vk::CommandBuffer)> recordCommandBufferFunction);
 
-    void attachToScene(Scene& scene);
+    void attachToScene(BasicScene& scene);
     void removeFromScene();
 
 private:
@@ -34,8 +34,8 @@ private:
                                        std::function<void(vk::CommandBuffer)>>;
 
     std::vector<RecordFuncTuple> drawableRecordFuncs;
-    std::vector<Scene::RegistrationID> registrationIDs;
-    Scene* currentScene{ nullptr };
+    std::vector<BasicScene::RegistrationID> registrationIDs;
+    BasicScene* currentScene{ nullptr };
 };
 
 /**

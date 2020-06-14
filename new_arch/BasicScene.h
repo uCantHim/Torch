@@ -7,7 +7,7 @@
 #include "Renderpass.h"
 #include "Pipeline.h"
 
-class Scene
+class BasicScene
 {
 private:
     /**
@@ -19,7 +19,7 @@ private:
         struct ID
         {
         private:
-            friend Scene;
+            friend BasicScene;
 
             ID(DrawableExecutionRegistration** r) : reg(r) {}
 
@@ -31,7 +31,7 @@ private:
         /**
          * @brief Construct a registration
          *
-         * Leave the index empty, fill it in Scene::insertRegistration().
+         * Leave the index empty, fill it in BasicScene::insertRegistration().
          */
         DrawableExecutionRegistration(
             SubPass::ID s,

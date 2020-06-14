@@ -2,17 +2,17 @@ target_sources(
     torch
     PUBLIC
         Drawable.h
-        Engine.h
+        CommandCollector.h
         Pipeline.h
         Renderpass.h
-        Scene.h
+        BasicScene.h
         Shader.h
         StaticDrawable.h
         StaticDrawable.inl
     PRIVATE
         Drawable.cpp
         Renderpass.cpp
-        Scene.cpp
+        BasicScene.cpp
 )
 
 add_subdirectory(data_utils)
@@ -20,22 +20,6 @@ add_subdirectory(data_utils)
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 add_executable(NewArchTest main.cpp)
-target_sources(
-    NewArchTest
-    PUBLIC
-        Drawable.h
-        Engine.h
-        Pipeline.h
-        Renderpass.h
-        Scene.h
-        Shader.h
-        StaticDrawable.h
-        StaticDrawable.inl
-    PRIVATE
-        Drawable.cpp
-        Renderpass.cpp
-        Scene.cpp
-)
 
-target_link_libraries(NewArchTest PUBLIC vk_base)
+target_link_libraries(NewArchTest PUBLIC vk_base torch)
 target_include_directories(NewArchTest PUBLIC ../vk_base/include)
