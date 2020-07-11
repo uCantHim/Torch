@@ -2,8 +2,9 @@
 
 #include <functional>
 
+#include "Renderpass.h"
 #include "Pipeline.h"
-#include "Drawable.h"
+#include "SceneRegisterable.h"
 
 template<GraphicsPipeline::ID Pipeline>
 struct PipelineIndex {};
@@ -32,4 +33,4 @@ public:
 };
 
 
-#include "StaticDrawable.inl"
+#include "DrawableStatic.inl"

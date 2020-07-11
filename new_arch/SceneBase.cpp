@@ -1,8 +1,8 @@
-#include "BasicScene.h"
+#include "SceneBase.h"
 
 
 
-BasicScene::DrawableExecutionRegistration::DrawableExecutionRegistration(
+SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
     SubPass::ID s,
     GraphicsPipeline::ID p,
     DrawableFunction func)
@@ -12,13 +12,13 @@ BasicScene::DrawableExecutionRegistration::DrawableExecutionRegistration(
 
 
 
-auto BasicScene::getPipelines(SubPass::ID subpass) const noexcept
+auto SceneBase::getPipelines(SubPass::ID subpass) const noexcept
     -> const std::vector<GraphicsPipeline::ID>&
 {
     return uniquePipelinesVector[subpass];
 }
 
-void BasicScene::invokeDrawFunctions(
+void SceneBase::invokeDrawFunctions(
     SubPass::ID subpass,
     GraphicsPipeline::ID pipeline,
     vk::CommandBuffer cmdBuf) const
@@ -29,7 +29,7 @@ void BasicScene::invokeDrawFunctions(
     }
 }
 
-auto BasicScene::registerDrawFunction(
+auto SceneBase::registerDrawFunction(
     SubPass::ID subpass,
     GraphicsPipeline::ID usedPipeline,
     DrawableFunction commandBufferRecordingFunction
@@ -45,7 +45,7 @@ auto BasicScene::registerDrawFunction(
     );
 }
 
-void BasicScene::unregisterDrawFunction(RegistrationID id)
+void SceneBase::unregisterDrawFunction(RegistrationID id)
 {
     DrawableExecutionRegistration* entry = *id.reg;
 
@@ -68,7 +68,7 @@ void BasicScene::unregisterDrawFunction(RegistrationID id)
     }
 }
 
-auto BasicScene::insertRegistration(DrawableExecutionRegistration entry) -> RegistrationID
+auto SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> RegistrationID
 {
     auto& currentRegistrationArray = drawableRegistrations[entry.subPass][entry.pipeline];
 
@@ -83,7 +83,7 @@ auto BasicScene::insertRegistration(DrawableExecutionRegistration entry) -> Regi
     return { it->thisPointer.get() };
 }
 
-void BasicScene::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
+void SceneBase::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
 {
     auto [it, success] = uniquePipelines[subpass].insert(pipeline);
     if (success) {
@@ -91,7 +91,7 @@ void BasicScene::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pip
     }
 }
 
-void BasicScene::removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
+void SceneBase::removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
 {
     uniquePipelines[subpass].erase(pipeline);
     std::remove(

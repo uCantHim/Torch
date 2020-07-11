@@ -1,4 +1,7 @@
+#include <chrono>
+using namespace std::chrono;
 #include <iostream>
+#include <fstream>
 
 #include <glm/glm.hpp>
 using namespace glm;
@@ -9,19 +12,34 @@ using namespace glm;
 #include <vkb/ShaderProgram.h>
 
 #include "CommandCollector.h"
-#include "BasicScene.h"
-#include "StaticDrawable.h"
+#include "SceneBase.h"
+#include "DrawableStatic.h"
+#include "utils/Transformation.h"
+
+std::ofstream file("trash");
 
 /**
  * @brief A sample implementation
  */
 class Thing : public SceneRegisterable,
-              public StaticPipelineRenderInterface<Thing, 0, 0>
+              public StaticPipelineRenderInterface<Thing, 0, 0>,
+              public StaticPipelineRenderInterface<Thing, 0, 1>,
+              public StaticPipelineRenderInterface<Thing, 0, 2>
 {
 public:
     void recordCommandBuffer(PipelineIndex<0>, vk::CommandBuffer)
     {
-        std::cout << "Recording commands for pipeline 0...\n";
+        file << "_";
+    }
+
+    void recordCommandBuffer(PipelineIndex<1>, vk::CommandBuffer)
+    {
+        file << "_";
+    }
+
+    void recordCommandBuffer(PipelineIndex<2>, vk::CommandBuffer)
+    {
+        file << "_";
     }
 };
 
@@ -159,17 +177,23 @@ int main()
     );
 
     CommandCollector engine;
-    BasicScene scene;
+    SceneBase scene;
 
-    scene.registerDrawFunction(0, 0, [](vk::CommandBuffer) {
-        std::cout << "Random draw function\n";
-    });
+    constexpr size_t NUM_OBJECTS = 2000;
 
-    Thing thing;
-    thing.attachToScene(scene);
+    std::vector<Thing> objects(NUM_OBJECTS);
+    for (auto& obj : objects)
+    {
+        obj.attachToScene(scene);
+    }
+
+    std::cout << "--- Size of Transformation: " << sizeof(trc::Transformation) << "\n";
+    std::cin.get();
 
     while (true)
     {
+        auto start = system_clock::now();
+
         DrawInfo info{
             .renderPass=&RenderPass::at(0),
             .framebuffer=**framebuffers,
@@ -192,6 +216,9 @@ int main()
             {}
         );
 
+        auto end = system_clock::now();
+        std::cout << "Frame duration (" << NUM_OBJECTS << " objects): "
+            << duration_cast<microseconds>(end - start).count() << " µs\n";
     }
 
     std::cout << " --- Done\n";
@@ -358,24 +385,27 @@ void createPipeline(PipelineLayout& pipelineLayout)
     vkb::VulkanBase::getDevice()->waitIdle();
 
     // Create the pipeline
-    GraphicsPipeline::create(
-        0,
-        vk::GraphicsPipelineCreateInfo(
-            {},
-            static_cast<uint32_t>(shaders.getStages().size()), shaders.getStages().data(),
-            &vertexInput,
-            &inputAssembly,
-            &tessellation,
-            &viewport,
-            &rasterizer,
-            &multisampling,
-            &depthStencil,
-            &colorBlending,
-            &dynamicState,
-            *pipelineLayout,
-            *RenderPass::at(0), 0,
-            vk::Pipeline(), 0
-        ),
-        pipelineLayout
-    );
+    for (int i = 0; i < 3; i++)
+    {
+        GraphicsPipeline::create(
+            i,
+            vk::GraphicsPipelineCreateInfo(
+                {},
+                static_cast<uint32_t>(shaders.getStages().size()), shaders.getStages().data(),
+                &vertexInput,
+                &inputAssembly,
+                &tessellation,
+                &viewport,
+                &rasterizer,
+                &multisampling,
+                &depthStencil,
+                &colorBlending,
+                &dynamicState,
+                *pipelineLayout,
+                *RenderPass::at(0), 0,
+                vk::Pipeline(), 0
+            ),
+            pipelineLayout
+        );
+    }
 }

@@ -9,7 +9,7 @@
 
 using DrawableFunction = std::function<void(vk::CommandBuffer)>;
 
-class BasicScene
+class SceneBase
 {
 private:
     /**
@@ -21,7 +21,7 @@ private:
         struct ID
         {
         private:
-            friend BasicScene;
+            friend SceneBase;
 
             ID(DrawableExecutionRegistration** r) : reg(r) {}
 
@@ -33,7 +33,7 @@ private:
         /**
          * @brief Construct a registration
          *
-         * Leave the index empty, fill it in BasicScene::insertRegistration().
+         * Leave the index empty, fill it in SceneBase::insertRegistration().
          */
         DrawableExecutionRegistration(
             SubPass::ID s,

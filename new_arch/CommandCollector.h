@@ -5,7 +5,7 @@
 using namespace glm;
 
 #include "Renderpass.h"
-#include "BasicScene.h"
+#include "SceneBase.h"
 
 struct Viewport
 {
@@ -32,7 +32,7 @@ public:
      *
      * TODO: This is a trivial implementation. Do some fancy threaded stuff here.
      */
-    auto recordScene(BasicScene& scene, const DrawInfo& drawInfo) -> vk::CommandBuffer
+    auto recordScene(SceneBase& scene, const DrawInfo& drawInfo) -> vk::CommandBuffer
     {
         assert(drawInfo.renderPass != nullptr);
 

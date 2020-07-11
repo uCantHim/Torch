@@ -1,4 +1,4 @@
-#include "Drawable.h"
+#include "SceneRegisterable.h"
 
 
 
@@ -10,7 +10,7 @@ void SceneRegisterable::usePipeline(
     drawableRecordFuncs.emplace_back(subPass, pipeline, std::move(recordCommandBufferFunction));
 }
 
-void SceneRegisterable::attachToScene(BasicScene& scene)
+void SceneRegisterable::attachToScene(SceneBase& scene)
 {
     if (!registrationIDs.empty())
     {

@@ -2,12 +2,7 @@
 
 #include <vector>
 
-#include "Renderpass.h"
-#include "Pipeline.h"
-#include "BasicScene.h"
-
-class Geometry;
-class Material;
+#include "SceneBase.h"
 
 /**
  * @brief Class that groups drawable functions into single objects
@@ -48,7 +43,7 @@ public:
      * after its pipeline functions have been modified. Though it's not
      * advised to do so.
      */
-    void attachToScene(BasicScene& scene);
+    void attachToScene(SceneBase& scene);
 
     /**
      * @brief Remove the object from the scene it is currently attached to
@@ -64,24 +59,6 @@ private:
                                        DrawableFunction>;
 
     std::vector<RecordFuncTuple> drawableRecordFuncs;
-    std::vector<BasicScene::RegistrationID> registrationIDs;
-    BasicScene* currentScene{ nullptr };
-};
-
-/**
- * @brief Purely component-based Drawable class
- */
-class DefaultDrawable : SceneRegisterable
-{
-public:
-    auto getGeometry();
-    auto getMaterial();
-
-    // Look the transformation up in a global array of matrices
-    // I can keep a separate array of links to parents
-    auto getTransform();
-
-private:
-    Geometry* geo;
-    Material* material;
+    std::vector<SceneBase::RegistrationID> registrationIDs;
+    SceneBase* currentScene{ nullptr };
 };

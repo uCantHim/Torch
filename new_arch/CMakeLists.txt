@@ -1,20 +1,23 @@
 target_sources(
     torch
     PUBLIC
-        Drawable.h
         CommandCollector.h
+        DrawableBase.h
         Pipeline.h
         Renderpass.h
-        BasicScene.h
+        SceneBase.h
+        SceneRegisterable.h
         Shader.h
-        StaticDrawable.h
-        StaticDrawable.inl
+        DrawableStatic.h
+        DrawableStatic.inl
     PRIVATE
-        Drawable.cpp
+        DrawableBase.cpp
         Renderpass.cpp
-        BasicScene.cpp
+        SceneBase.cpp
+        SceneRegisterable.cpp
 )
 
+add_subdirectory(utils)
 add_subdirectory(data_utils)
 
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})
