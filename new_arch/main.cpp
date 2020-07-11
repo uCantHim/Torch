@@ -11,10 +11,10 @@ using namespace glm;
 #include <vkb/Image.h>
 #include <vkb/ShaderProgram.h>
 
-#include "CommandCollector.h"
-#include "SceneBase.h"
-#include "DrawableStatic.h"
+#include "base/SceneBase.h"
+#include "base/DrawableStatic.h"
 #include "utils/Transformation.h"
+#include "CommandCollector.h"
 
 std::ofstream file("trash");
 
@@ -186,9 +186,6 @@ int main()
     {
         obj.attachToScene(scene);
     }
-
-    std::cout << "--- Size of Transformation: " << sizeof(trc::Transformation) << "\n";
-    std::cin.get();
 
     while (true)
     {

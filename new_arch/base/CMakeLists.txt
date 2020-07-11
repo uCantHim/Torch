@@ -1,0 +1,11 @@
+target_sources(
+    torch
+    PUBLIC
+        SceneBase.h
+        SceneRegisterable.h
+        DrawableStatic.h
+        DrawableStatic.inl
+    PRIVATE
+        SceneBase.cpp
+        SceneRegisterable.cpp
+)

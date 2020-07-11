@@ -5,18 +5,13 @@ target_sources(
         DrawableBase.h
         Pipeline.h
         Renderpass.h
-        SceneBase.h
-        SceneRegisterable.h
         Shader.h
-        DrawableStatic.h
-        DrawableStatic.inl
     PRIVATE
         DrawableBase.cpp
         Renderpass.cpp
-        SceneBase.cpp
-        SceneRegisterable.cpp
 )
 
+add_subdirectory(base)
 add_subdirectory(utils)
 add_subdirectory(data_utils)
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SceneRegisterable.h"
+#include "base/SceneRegisterable.h"
 
 class Geometry;
 class Material;

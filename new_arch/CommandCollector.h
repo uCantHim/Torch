@@ -5,7 +5,7 @@
 using namespace glm;
 
 #include "Renderpass.h"
-#include "SceneBase.h"
+#include "base/SceneBase.h"
 
 struct Viewport
 {
