@@ -5,7 +5,7 @@
 void SceneRegisterable::usePipeline(
     SubPass::ID subPass,
     GraphicsPipeline::ID pipeline,
-    std::function<void(vk::CommandBuffer)> recordCommandBufferFunction)
+    DrawableFunction recordCommandBufferFunction)
 {
     drawableRecordFuncs.emplace_back(subPass, pipeline, std::move(recordCommandBufferFunction));
 }

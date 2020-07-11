@@ -5,7 +5,7 @@
 BasicScene::DrawableExecutionRegistration::DrawableExecutionRegistration(
     SubPass::ID s,
     GraphicsPipeline::ID p,
-    std::function<void(vk::CommandBuffer)> func)
+    DrawableFunction func)
     :
     subPass(s), pipeline(p), recordFunction(func)
 {}
@@ -32,11 +32,11 @@ void BasicScene::invokeDrawFunctions(
 auto BasicScene::registerDrawFunction(
     SubPass::ID subpass,
     GraphicsPipeline::ID usedPipeline,
-    std::function<void(vk::CommandBuffer)> commandBufferRecordingFunction
+    DrawableFunction commandBufferRecordingFunction
     ) -> RegistrationID
 {
-    std::cout << "Registering draw function at subpass " << subpass
-        << " and pipeline " << usedPipeline << "\n";
+    //std::cout << "Registering draw function at subpass " << subpass
+    //    << " and pipeline " << usedPipeline << "\n";
 
     tryInsertPipeline(subpass, usedPipeline);
 

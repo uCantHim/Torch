@@ -7,6 +7,8 @@
 #include "Renderpass.h"
 #include "Pipeline.h"
 
+using DrawableFunction = std::function<void(vk::CommandBuffer)>;
+
 class BasicScene
 {
 private:
@@ -36,7 +38,7 @@ private:
         DrawableExecutionRegistration(
             SubPass::ID s,
             GraphicsPipeline::ID p,
-            std::function<void(vk::CommandBuffer)> func);
+            DrawableFunction func);
 
         // Allows me to modify all ID struct's pointer remotely
         std::unique_ptr<DrawableExecutionRegistration*> thisPointer{ nullptr };
@@ -45,7 +47,7 @@ private:
         // Entry data
         SubPass::ID subPass;            // Might be able to remove this later on
         GraphicsPipeline::ID pipeline;  // Might be able to remove this later on
-        std::function<void(vk::CommandBuffer)> recordFunction;
+        DrawableFunction recordFunction;
     };
 
 public:
@@ -69,7 +71,7 @@ public:
     auto registerDrawFunction(
         SubPass::ID subpass,
         GraphicsPipeline::ID usedPipeline,
-        std::function<void(vk::CommandBuffer)> commandBufferRecordingFunction
+        DrawableFunction commandBufferRecordingFunction
     ) -> RegistrationID;
 
     void unregisterDrawFunction(RegistrationID id);
