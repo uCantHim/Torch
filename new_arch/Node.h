@@ -8,6 +8,14 @@
 class Node : public trc::Transformation
 {
 public:
+    Node() = default;
+    Node(const Node& other) = delete;
+    Node(Node&& other) noexcept;
+    ~Node();
+
+    auto operator=(const Node& rhs) -> Node& = delete;
+    auto operator=(Node&& rhs) noexcept -> Node&;
+
     auto getGlobalTransform() const noexcept -> const mat4&;
 
     void update() noexcept;

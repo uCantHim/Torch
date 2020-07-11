@@ -9,6 +9,35 @@
  * for its global transformation.
  */
 
+Node::Node(Node&& other) noexcept
+    :
+    parent(other.parent),
+    children(std::move(other.children))
+{
+    parent->detach(other);
+    parent->attach(*this);
+}
+
+Node::~Node()
+{
+    detachFromParent();
+    for (Node* child : children)
+    {
+        child->parent = nullptr;
+    }
+}
+
+auto Node::operator=(Node&& rhs) noexcept -> Node&
+{
+    parent = rhs.parent;
+    parent->detach(rhs);
+    parent->attach(*this);
+
+    children = std::move(rhs.children);
+
+    return *this;
+}
+
 auto Node::getGlobalTransform() const noexcept -> const mat4&
 {
     return getTransformationMatrix();
