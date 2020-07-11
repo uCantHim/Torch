@@ -3,11 +3,13 @@ target_sources(
     PUBLIC
         CommandCollector.h
         DrawableBase.h
+        Node.h
         Pipeline.h
         Renderpass.h
         Shader.h
     PRIVATE
         DrawableBase.cpp
+        Node.cpp
         Renderpass.cpp
 )
 
