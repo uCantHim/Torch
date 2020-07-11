@@ -31,7 +31,7 @@ auto trc::Transformation::setFromMatrix(const mat4& t) -> self&
     return *this;
 }
 
-void trc::Transformation::setTemporaryFromMatrix(const mat4& t)
+void trc::Transformation::setFromMatrixTemporary(const mat4& t)
 {
 	matrixRepresentation = t;
 }

@@ -16,11 +16,8 @@ StaticPipelineRenderInterface<Derived, SubPass, Pipeline>::StaticPipelineRenderI
     static_cast<Derived*>(this)->usePipeline(
         SubPass,
         Pipeline,
-        std::bind(
-            static_cast<RecordFuncType>(&Derived::recordCommandBuffer),
-            static_cast<Derived*>(this),
-            PipelineIndex<Pipeline>(),
-            std::placeholders::_1
-        )
+        [this](vk::CommandBuffer cmdBuf) {
+            static_cast<Derived*>(this)->recordCommandBuffer(PipelineIndex<Pipeline>(), cmdBuf);
+        }
     );
 }

@@ -126,7 +126,7 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
         case vk::PhysicalDeviceType::eOther:
             typeString = "unkown type"; break;
         }
-        name = properties.deviceName;
+        name = std::string(properties.deviceName);
         std::cout << "\nFound device \"" << name << "\" (" << typeString << "):\n";
 
         // Print queue family info
