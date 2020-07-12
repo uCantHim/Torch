@@ -13,7 +13,18 @@ vkb::Buffer::Buffer(
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags)
     :
-    buffer(getDevice()->createBufferUnique(
+    Buffer(vkb::VulkanBase::getDevice(), bufferSize, usage, flags)
+{}
+
+
+vkb::Buffer::Buffer(
+    const Device& device,
+    vk::DeviceSize bufferSize,
+    vk::BufferUsageFlags usage,
+    vk::MemoryPropertyFlags flags)
+    :
+    device(&device),
+    buffer(device->createBufferUnique(
         vk::BufferCreateInfo{
             vk::BufferCreateFlags(),
             bufferSize,
@@ -24,27 +35,56 @@ vkb::Buffer::Buffer(
         }
     )),
     memory([&] {
-        auto physicalDevice = getDevice().getPhysicalDevice();
-        auto memReq = getDevice()->getBufferMemoryRequirements(*buffer);
-        return getDevice()->allocateMemoryUnique(
-            { memReq.size, physicalDevice.findMemoryType(memReq.memoryTypeBits, flags) }
+        auto memReq = device->getBufferMemoryRequirements(*buffer);
+        return device->allocateMemoryUnique(
+            { memReq.size, device.getPhysicalDevice().findMemoryType(memReq.memoryTypeBits, flags) }
         );
     }()),
     bufferSize(bufferSize)
 {
-    getDevice()->bindBufferMemory(*buffer, *memory, 0);
+    device->bindBufferMemory(*buffer, *memory, 0);
+}
+
+
+vkb::Buffer::Buffer(
+    vk::DeviceSize bufferSize,
+    const void* data,
+    vk::BufferUsageFlags usage,
+    vk::MemoryPropertyFlags flags)
+    :
+    Buffer(vkb::VulkanBase::getDevice(), bufferSize, data, usage, flags)
+{
+}
+
+
+vkb::Buffer::Buffer(
+    const Device& device,
+    vk::DeviceSize bufferSize,
+    const void* data,
+    vk::BufferUsageFlags usage,
+    vk::MemoryPropertyFlags flags)
+    :
+    Buffer(device, bufferSize, usage, flags)
+{
+    copyFrom(bufferSize, data);
 }
 
 
 auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) -> memptr
 {
-    return static_cast<memptr>(getDevice()->mapMemory(*memory, offset, size));
+    return static_cast<memptr>(device->get().mapMemory(*memory, offset, size));
+}
+
+
+auto vkb::Buffer::map(BufferRegion mappedRegion) -> memptr
+{
+    return map(mappedRegion.offset, mappedRegion.size);
 }
 
 
 void vkb::Buffer::unmap()
 {
-    getDevice()->unmapMemory(*memory);
+    (*device)->unmapMemory(*memory);
 }
 
 
@@ -52,7 +92,7 @@ void vkb::Buffer::copyFrom(const Buffer& src)
 {
     assert(src.bufferSize >= bufferSize);
     copyBuffer(
-        getDevice(),
+        *device,
         *buffer, *src.buffer,
         0u, 0u, bufferSize
     );
@@ -63,10 +103,17 @@ void vkb::Buffer::copyTo(const Buffer& dst)
 {
     assert(dst.bufferSize >= bufferSize);
     copyBuffer(
-        getDevice(),
+        *device,
         *dst.buffer, *buffer,
         0u, 0u, bufferSize
     );
+}
+
+void vkb::Buffer::copyFrom(vk::DeviceSize size, const void* data, BufferRegion dstRegion)
+{
+    auto buf = map(dstRegion);
+    memcpy(buf, data, size);
+    unmap();
 }
 
 
@@ -74,48 +121,44 @@ void vkb::Buffer::copyTo(const Buffer& dst)
 //        Device local buffer        //
 // ---------------------------- //
 
-vkb::DeviceLocalBuffer::DeviceLocalBuffer(vk::DeviceSize size, const void* data, vk::BufferUsageFlags usage)
+vkb::DeviceLocalBuffer::DeviceLocalBuffer(
+    vk::DeviceSize bufferSize,
+    const void* data,
+    vk::BufferUsageFlags usage)
     :
-    Buffer(size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal)
-{
-    assert(size > 0);
-    assert(data != nullptr);
-
-    Buffer staging(
-        size, vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    );
-
-    void* stagingMem = staging.map();
-    memcpy(stagingMem, data, size);
-    staging.unmap();
-
-    copyFrom(staging);
-}
-
-
-// ------------------------ //
-//        Uniform Buffer        //
-// ------------------------ //
-
-vkb::UniformBuffer::UniformBuffer(vk::DeviceSize size)
-    :
-    buffers(
-        [&](uint32_t) -> vkb::Buffer {
-            return Buffer(
-                size,
-                vk::BufferUsageFlagBits::eUniformBuffer,
-                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-            );
-        }
+    DeviceLocalBuffer(
+        vkb::VulkanBase::getDevice(),
+        bufferSize,
+        data,
+        usage
     )
 {
 }
 
-
-auto vkb::UniformBuffer::get() const noexcept -> const vkb::Buffer&
+vkb::DeviceLocalBuffer::DeviceLocalBuffer(
+    const Device& device,
+    vk::DeviceSize bufferSize,
+    const void* data,
+    vk::BufferUsageFlags usage)
+    :
+    Buffer(
+        device,
+        bufferSize,
+        usage | vk::BufferUsageFlagBits::eTransferDst,
+        vk::MemoryPropertyFlagBits::eDeviceLocal
+    )
 {
-    return buffers.get();
+    assert(bufferSize > 0);
+    assert(data != nullptr);
+
+    Buffer staging(
+        device,
+        bufferSize, data,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    );
+
+    copyFrom(staging);
 }
 
 
