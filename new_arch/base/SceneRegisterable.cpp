@@ -2,7 +2,7 @@
 
 
 
-void SceneRegisterable::usePipeline(
+void trc::SceneRegisterable::usePipeline(
     SubPass::ID subPass,
     GraphicsPipeline::ID pipeline,
     DrawableFunction recordCommandBufferFunction)
@@ -10,7 +10,7 @@ void SceneRegisterable::usePipeline(
     drawableRecordFuncs.emplace_back(subPass, pipeline, std::move(recordCommandBufferFunction));
 }
 
-void SceneRegisterable::attachToScene(SceneBase& scene)
+void trc::SceneRegisterable::attachToScene(SceneBase& scene)
 {
     if (!registrationIDs.empty())
     {
@@ -24,7 +24,7 @@ void SceneRegisterable::attachToScene(SceneBase& scene)
     currentScene = &scene;
 }
 
-void SceneRegisterable::removeFromScene()
+void trc::SceneRegisterable::removeFromScene()
 {
     assert(currentScene != nullptr);
 

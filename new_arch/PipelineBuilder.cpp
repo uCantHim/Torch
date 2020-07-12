@@ -2,19 +2,19 @@
 
 
 
-auto GraphicsPipelineBuilder::create() -> GraphicsPipelineBuilder
+auto trc::GraphicsPipelineBuilder::create() -> GraphicsPipelineBuilder
 {
     return {};
 }
 
-auto GraphicsPipelineBuilder::setProgram(const vkb::ShaderProgram& program) -> Self
+auto trc::GraphicsPipelineBuilder::setProgram(const vkb::ShaderProgram& program) -> Self
 {
     this->program = &program;
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::addVertexInputBinding(
+auto trc::GraphicsPipelineBuilder::addVertexInputBinding(
     vk::VertexInputBindingDescription inputBinding,
     std::vector<vk::VertexInputAttributeDescription> attributes) -> Self
 {
@@ -28,7 +28,7 @@ auto GraphicsPipelineBuilder::addVertexInputBinding(
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setVertexInput(
+auto trc::GraphicsPipelineBuilder::setVertexInput(
     const std::vector<vk::VertexInputBindingDescription>& inputBindings,
     const std::vector<vk::VertexInputAttributeDescription>& attributes) -> Self
 {
@@ -38,7 +38,7 @@ auto GraphicsPipelineBuilder::setVertexInput(
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setInputAssembly(vk::PipelineInputAssemblyStateCreateInfo inputAssembly)
+auto trc::GraphicsPipelineBuilder::setInputAssembly(vk::PipelineInputAssemblyStateCreateInfo inputAssembly)
      -> Self
 {
     this->inputAssembly = inputAssembly;
@@ -46,14 +46,14 @@ auto GraphicsPipelineBuilder::setInputAssembly(vk::PipelineInputAssemblyStateCre
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setPrimitiveTopology(vk::PrimitiveTopology topo) -> Self
+auto trc::GraphicsPipelineBuilder::setPrimitiveTopology(vk::PrimitiveTopology topo) -> Self
 {
     inputAssembly.setTopology(topo);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setTessellation(vk::PipelineTessellationStateCreateInfo tessellation)
+auto trc::GraphicsPipelineBuilder::setTessellation(vk::PipelineTessellationStateCreateInfo tessellation)
     -> Self
 {
     this->tessellation = tessellation;
@@ -61,21 +61,21 @@ auto GraphicsPipelineBuilder::setTessellation(vk::PipelineTessellationStateCreat
     return *this;
 }
 
-auto GraphicsPipelineBuilder::addViewport(vk::Viewport viewport) -> Self
+auto trc::GraphicsPipelineBuilder::addViewport(vk::Viewport viewport) -> Self
 {
     this->viewports.push_back(viewport);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::addScissorRect(vk::Rect2D scissorRect) -> Self
+auto trc::GraphicsPipelineBuilder::addScissorRect(vk::Rect2D scissorRect) -> Self
 {
     this->scissorRects.push_back(scissorRect);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setRasterization(vk::PipelineRasterizationStateCreateInfo rasterization)
+auto trc::GraphicsPipelineBuilder::setRasterization(vk::PipelineRasterizationStateCreateInfo rasterization)
     -> Self
 {
     this->rasterization = rasterization;
@@ -83,28 +83,28 @@ auto GraphicsPipelineBuilder::setRasterization(vk::PipelineRasterizationStateCre
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setPolygonMode(vk::PolygonMode polyMode) -> Self
+auto trc::GraphicsPipelineBuilder::setPolygonMode(vk::PolygonMode polyMode) -> Self
 {
     this->rasterization.setPolygonMode(polyMode);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setCullMode(vk::CullModeFlags cullMode) -> Self
+auto trc::GraphicsPipelineBuilder::setCullMode(vk::CullModeFlags cullMode) -> Self
 {
     this->rasterization.setCullMode(cullMode);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setFrontFace(vk::FrontFace frontFace) -> Self
+auto trc::GraphicsPipelineBuilder::setFrontFace(vk::FrontFace frontFace) -> Self
 {
     this->rasterization.setFrontFace(frontFace);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setMultisampling(vk::PipelineMultisampleStateCreateInfo multisampling)
+auto trc::GraphicsPipelineBuilder::setMultisampling(vk::PipelineMultisampleStateCreateInfo multisampling)
     -> Self
 {
     this->multisampling = multisampling;
@@ -112,14 +112,14 @@ auto GraphicsPipelineBuilder::setMultisampling(vk::PipelineMultisampleStateCreat
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setSampleCount(vk::SampleCountFlagBits sampleCount) -> Self
+auto trc::GraphicsPipelineBuilder::setSampleCount(vk::SampleCountFlagBits sampleCount) -> Self
 {
     this->multisampling.setRasterizationSamples(sampleCount);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setDepthStencilTests(vk::PipelineDepthStencilStateCreateInfo depthStencil)
+auto trc::GraphicsPipelineBuilder::setDepthStencilTests(vk::PipelineDepthStencilStateCreateInfo depthStencil)
     -> Self
 {
     this->depthStencil = depthStencil;
@@ -127,21 +127,21 @@ auto GraphicsPipelineBuilder::setDepthStencilTests(vk::PipelineDepthStencilState
     return *this;
 }
 
-auto GraphicsPipelineBuilder::enableDepthTest() -> Self
+auto trc::GraphicsPipelineBuilder::enableDepthTest() -> Self
 {
     this->depthStencil.setDepthTestEnable(true);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::disableDepthTest() -> Self
+auto trc::GraphicsPipelineBuilder::disableDepthTest() -> Self
 {
     this->depthStencil.setDepthTestEnable(false);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::addColorBlendAttachment(
+auto trc::GraphicsPipelineBuilder::addColorBlendAttachment(
     vk::PipelineColorBlendAttachmentState blendAttachment) -> Self
 {
     this->colorBlendAttachments.push_back(blendAttachment);
@@ -149,7 +149,7 @@ auto GraphicsPipelineBuilder::addColorBlendAttachment(
     return *this;
 }
 
-auto GraphicsPipelineBuilder::setColorBlending(
+auto trc::GraphicsPipelineBuilder::setColorBlending(
     vk::PipelineColorBlendStateCreateFlags flags,
     vk::Bool32 logicOpEnable,
     vk::LogicOp logicalOperation,
@@ -166,14 +166,14 @@ auto GraphicsPipelineBuilder::setColorBlending(
     return *this;
 }
 
-auto GraphicsPipelineBuilder::addDynamicState(vk::DynamicState dynamicState) -> Self
+auto trc::GraphicsPipelineBuilder::addDynamicState(vk::DynamicState dynamicState) -> Self
 {
     this->dynamicStates.push_back(dynamicState);
 
     return *this;
 }
 
-auto GraphicsPipelineBuilder::build(
+auto trc::GraphicsPipelineBuilder::build(
     vk::Device device,
     vk::PipelineLayout layout,
     vk::RenderPass renderPass,

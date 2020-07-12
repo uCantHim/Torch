@@ -2,7 +2,7 @@
 
 
 
-SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
+trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
     SubPass::ID s,
     GraphicsPipeline::ID p,
     DrawableFunction func)
@@ -12,13 +12,13 @@ SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
 
 
 
-auto SceneBase::getPipelines(SubPass::ID subpass) const noexcept
+auto trc::SceneBase::getPipelines(SubPass::ID subpass) const noexcept
     -> const std::vector<GraphicsPipeline::ID>&
 {
     return uniquePipelinesVector[subpass];
 }
 
-void SceneBase::invokeDrawFunctions(
+void trc::SceneBase::invokeDrawFunctions(
     SubPass::ID subpass,
     GraphicsPipeline::ID pipeline,
     vk::CommandBuffer cmdBuf) const
@@ -29,7 +29,7 @@ void SceneBase::invokeDrawFunctions(
     }
 }
 
-auto SceneBase::registerDrawFunction(
+auto trc::SceneBase::registerDrawFunction(
     SubPass::ID subpass,
     GraphicsPipeline::ID usedPipeline,
     DrawableFunction commandBufferRecordingFunction
@@ -45,7 +45,7 @@ auto SceneBase::registerDrawFunction(
     );
 }
 
-void SceneBase::unregisterDrawFunction(RegistrationID id)
+void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
 {
     DrawableExecutionRegistration* entry = *id.reg;
 
@@ -68,7 +68,7 @@ void SceneBase::unregisterDrawFunction(RegistrationID id)
     }
 }
 
-auto SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> RegistrationID
+auto trc::SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> RegistrationID
 {
     auto& currentRegistrationArray = drawableRegistrations[entry.subPass][entry.pipeline];
 
@@ -83,7 +83,7 @@ auto SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> Regis
     return { it->thisPointer.get() };
 }
 
-void SceneBase::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
+void trc::SceneBase::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
 {
     auto [it, success] = uniquePipelines[subpass].insert(pipeline);
     if (success) {
@@ -91,7 +91,7 @@ void SceneBase::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipe
     }
 }
 
-void SceneBase::removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
+void trc::SceneBase::removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
 {
     uniquePipelines[subpass].erase(pipeline);
     std::remove(

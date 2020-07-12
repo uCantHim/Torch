@@ -22,23 +22,23 @@ std::ofstream file("trash");
 /**
  * @brief A sample implementation
  */
-class Thing : public SceneRegisterable,
-              public StaticPipelineRenderInterface<Thing, 0, 0>,
-              public StaticPipelineRenderInterface<Thing, 0, 1>,
-              public StaticPipelineRenderInterface<Thing, 0, 2>
+class Thing : public trc::SceneRegisterable,
+              public trc::StaticPipelineRenderInterface<Thing, 0, 0>,
+              public trc::StaticPipelineRenderInterface<Thing, 0, 1>,
+              public trc::StaticPipelineRenderInterface<Thing, 0, 2>
 {
 public:
-    void recordCommandBuffer(PipelineIndex<0>, vk::CommandBuffer)
+    void recordCommandBuffer(trc::PipelineIndex<0>, vk::CommandBuffer)
     {
         file << "_";
     }
 
-    void recordCommandBuffer(PipelineIndex<1>, vk::CommandBuffer)
+    void recordCommandBuffer(trc::PipelineIndex<1>, vk::CommandBuffer)
     {
         file << "_";
     }
 
-    void recordCommandBuffer(PipelineIndex<2>, vk::CommandBuffer)
+    void recordCommandBuffer(trc::PipelineIndex<2>, vk::CommandBuffer)
     {
         file << "_";
     }
@@ -49,7 +49,7 @@ constexpr uint32_t DESCRIPTOR_BINDING_0 = 0;
 
 
 void createRenderpass();
-void createPipeline(PipelineLayout& pipelineLayout);
+void createPipeline(trc::PipelineLayout& pipelineLayout);
 
 
 int main()
@@ -103,7 +103,7 @@ int main()
             sizeof(mat4) * 3
         }
     };
-    PipelineLayout pipelineLayout(
+    trc::PipelineLayout pipelineLayout(
         std::vector<vk::DescriptorSetLayout>{ *standardDescriptorSetLayout },
         standardPushConstantRanges
     );
@@ -168,7 +168,7 @@ int main()
             return vkb::VulkanBase::getDevice()->createFramebufferUnique(
                 vk::FramebufferCreateInfo(
                     {},
-                    *RenderPass::at(0),
+                    *trc::RenderPass::at(0),
                     static_cast<uint32_t>(imageViews.size()), imageViews.data(),
                     swapchain.getImageExtent().width, swapchain.getImageExtent().height,
                     1 // layers
@@ -177,8 +177,8 @@ int main()
         }
     );
 
-    CommandCollector engine;
-    SceneBase scene;
+    trc::CommandCollector engine;
+    trc::SceneBase scene;
 
     constexpr size_t NUM_OBJECTS = 2000;
 
@@ -192,8 +192,8 @@ int main()
     {
         auto start = system_clock::now();
 
-        DrawInfo info{
-            .renderPass=&RenderPass::at(0),
+        trc::DrawInfo info{
+            .renderPass=&trc::RenderPass::at(0),
             .framebuffer=**framebuffers,
             .viewport={
                 { 0, 0 },
@@ -232,8 +232,8 @@ void createRenderpass()
     };
 
     std::vector<vk::AttachmentDescription> attachments = {
-        makeDefaultSwapchainColorAttachment(vkb::VulkanBase::getSwapchain()),
-        makeDefaultDepthStencilAttachment(),
+        trc::makeDefaultSwapchainColorAttachment(vkb::VulkanBase::getSwapchain()),
+        trc::makeDefaultDepthStencilAttachment(),
     };
 
     vk::SubpassDescription subpass(
@@ -254,7 +254,7 @@ void createRenderpass()
         vk::DependencyFlags()
     );
 
-    RenderPass::create(
+    trc::RenderPass::create(
         0,
         vk::RenderPassCreateInfo(
             vk::RenderPassCreateFlags(),
@@ -270,7 +270,7 @@ void createRenderpass()
 }
 
 
-void createPipeline(PipelineLayout& pipelineLayout)
+void createPipeline(trc::PipelineLayout& pipelineLayout)
 {
     struct Vertex
     {
@@ -287,7 +287,7 @@ void createPipeline(PipelineLayout& pipelineLayout)
         "shaders/spirv_out/fragment.frag.spv"
     );
 
-    auto builder = GraphicsPipelineBuilder::create()
+    auto builder = trc::GraphicsPipelineBuilder::create()
         .setProgram(program)
         .addVertexInputBinding(
             { 0, sizeof(Vertex), vk::VertexInputRate::eVertex },
@@ -312,15 +312,15 @@ void createPipeline(PipelineLayout& pipelineLayout)
             )
         )
         .addColorBlendAttachment(
-            DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED
+            trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED
         )
         .setColorBlending({}, VK_FALSE, vk::LogicOp::eCopy, {});
 
     for (int i = 0; i < 3; i++)
     {
-        GraphicsPipeline::create(
+        trc::GraphicsPipeline::create(
             i,
             *pipelineLayout,
-            builder.build(*vkb::VulkanBase::getDevice(), *pipelineLayout, *RenderPass::at(0), 0));
+            builder.build(*vkb::VulkanBase::getDevice(), *pipelineLayout, *trc::RenderPass::at(0), 0));
     }
 }

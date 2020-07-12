@@ -9,7 +9,7 @@
  * for its global transformation.
  */
 
-Node::Node(Node&& other) noexcept
+trc::Node::Node(Node&& other) noexcept
     :
     parent(other.parent),
     children(std::move(other.children))
@@ -18,7 +18,7 @@ Node::Node(Node&& other) noexcept
     parent->attach(*this);
 }
 
-Node::~Node()
+trc::Node::~Node()
 {
     detachFromParent();
     for (Node* child : children)
@@ -27,7 +27,7 @@ Node::~Node()
     }
 }
 
-auto Node::operator=(Node&& rhs) noexcept -> Node&
+auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
 {
     parent = rhs.parent;
     parent->detach(rhs);
@@ -38,12 +38,12 @@ auto Node::operator=(Node&& rhs) noexcept -> Node&
     return *this;
 }
 
-auto Node::getGlobalTransform() const noexcept -> const mat4&
+auto trc::Node::getGlobalTransform() const noexcept -> const mat4&
 {
     return getTransformationMatrix();
 }
 
-void Node::update() noexcept
+void trc::Node::update() noexcept
 {
     // Get global transform once because getTransformationMatrix() has an if statement
     const mat4& global = getTransformationMatrix();
@@ -53,13 +53,13 @@ void Node::update() noexcept
     }
 }
 
-void Node::update(const mat4& parentTransform) noexcept
+void trc::Node::update(const mat4& parentTransform) noexcept
 {
     setFromMatrixTemporary(getTransformationMatrix() * parentTransform);
     update();
 }
 
-void Node::updateAsRoot() noexcept
+void trc::Node::updateAsRoot() noexcept
 {
     for (Node* child : children)
     {
@@ -67,7 +67,7 @@ void Node::updateAsRoot() noexcept
     }
 }
 
-void Node::attach(Node& child)
+void trc::Node::attach(Node& child)
 {
     child.detachFromParent();
 
@@ -75,12 +75,12 @@ void Node::attach(Node& child)
     child.parent = this;
 }
 
-void Node::detach(Node& child)
+void trc::Node::detach(Node& child)
 {
     children.erase(std::find(children.begin(), children.end(), &child));
 }
 
-void Node::detachFromParent()
+void trc::Node::detachFromParent()
 {
     if (parent != nullptr)
     {

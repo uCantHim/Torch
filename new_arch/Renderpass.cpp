@@ -6,7 +6,7 @@
 
 
 
-RenderPass::RenderPass(
+trc::RenderPass::RenderPass(
     const vk::RenderPassCreateInfo& createInfo,
     std::vector<vk::ClearValue> clearValues)
     :
@@ -17,39 +17,39 @@ RenderPass::RenderPass(
     std::iota(subPasses.begin(), subPasses.end(), 0);
 }
 
-auto RenderPass::operator*() noexcept -> vk::RenderPass
+auto trc::RenderPass::operator*() noexcept -> vk::RenderPass
 {
     return *renderPass;
 }
 
-auto RenderPass::operator*() const noexcept -> vk::RenderPass
+auto trc::RenderPass::operator*() const noexcept -> vk::RenderPass
 {
     return *renderPass;
 }
 
-auto RenderPass::get() const noexcept -> vk::RenderPass
+auto trc::RenderPass::get() const noexcept -> vk::RenderPass
 {
     return *renderPass;
 }
 
-auto RenderPass::getNumSubPasses() const noexcept -> uint32_t
+auto trc::RenderPass::getNumSubPasses() const noexcept -> uint32_t
 {
     return subPasses.size();
 }
 
-auto RenderPass::getSubPasses() const noexcept -> const std::vector<SubPass::ID>&
+auto trc::RenderPass::getSubPasses() const noexcept -> const std::vector<SubPass::ID>&
 {
     return subPasses;
 }
 
-auto RenderPass::getClearValues() const noexcept -> const std::vector<vk::ClearValue>&
+auto trc::RenderPass::getClearValues() const noexcept -> const std::vector<vk::ClearValue>&
 {
     return clearValues;
 }
 
 
 
-auto makeDefaultSwapchainColorAttachment(vkb::Swapchain& swapchain) -> vk::AttachmentDescription
+auto trc::makeDefaultSwapchainColorAttachment(vkb::Swapchain& swapchain) -> vk::AttachmentDescription
 {
     return vk::AttachmentDescription(
         vk::AttachmentDescriptionFlags(),
@@ -61,7 +61,7 @@ auto makeDefaultSwapchainColorAttachment(vkb::Swapchain& swapchain) -> vk::Attac
     );
 }
 
-auto makeDefaultDepthStencilAttachment() -> vk::AttachmentDescription
+auto trc::makeDefaultDepthStencilAttachment() -> vk::AttachmentDescription
 {
     return vk::AttachmentDescription(
         vk::AttachmentDescriptionFlags(),

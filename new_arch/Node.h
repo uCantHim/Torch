@@ -5,33 +5,36 @@
 
 #include "utils/Transformation.h"
 
-class Node : public trc::Transformation
+namespace trc
 {
-public:
-    Node() = default;
-    Node(const Node& other) = delete;
-    Node(Node&& other) noexcept;
-    ~Node();
+    class Node : public trc::Transformation
+    {
+    public:
+        Node() = default;
+        Node(const Node& other) = delete;
+        Node(Node&& other) noexcept;
+        ~Node();
 
-    auto operator=(const Node& rhs) -> Node& = delete;
-    auto operator=(Node&& rhs) noexcept -> Node&;
+        auto operator=(const Node& rhs) -> Node& = delete;
+        auto operator=(Node&& rhs) noexcept -> Node&;
 
-    auto getGlobalTransform() const noexcept -> const mat4&;
+        auto getGlobalTransform() const noexcept -> const mat4&;
 
-    void update() noexcept;
-    void update(const mat4& parentTransform) noexcept;
-    /**
-     * @brief Updates children without a parent transformation
-     *
-     * This saves a matrix multiplication per child.
-     */
-    void updateAsRoot() noexcept;
+        void update() noexcept;
+        void update(const mat4& parentTransform) noexcept;
+        /**
+         * @brief Updates children without a parent transformation
+         *
+         * This saves a matrix multiplication per child.
+         */
+        void updateAsRoot() noexcept;
 
-    void attach(Node& child);
-    void detach(Node& child);
-    void detachFromParent();
+        void attach(Node& child);
+        void detach(Node& child);
+        void detachFromParent();
 
-private:
-    Node* parent{ nullptr };
-    std::vector<Node*> children;
-};
+    private:
+        Node* parent{ nullptr };
+        std::vector<Node*> children;
+    };
+} // namespace trc

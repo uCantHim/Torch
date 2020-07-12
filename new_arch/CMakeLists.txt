@@ -7,10 +7,10 @@ target_sources(
         Pipeline.h
         PipelineBuilder.h
         Renderpass.h
-        Shader.h
     PRIVATE
         DrawableBase.cpp
         Node.cpp
+        Pipeline.cpp
         PipelineBuilder.cpp
         Renderpass.cpp
 )
