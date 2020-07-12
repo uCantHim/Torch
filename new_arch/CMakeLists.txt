@@ -5,11 +5,13 @@ target_sources(
         DrawableBase.h
         Node.h
         Pipeline.h
+        PipelineBuilder.h
         Renderpass.h
         Shader.h
     PRIVATE
         DrawableBase.cpp
         Node.cpp
+        PipelineBuilder.cpp
         Renderpass.cpp
 )
 

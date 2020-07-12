@@ -15,6 +15,7 @@ using namespace glm;
 #include "base/DrawableStatic.h"
 #include "utils/Transformation.h"
 #include "CommandCollector.h"
+#include "PipelineBuilder.h"
 
 std::ofstream file("trash");
 
@@ -281,128 +282,45 @@ void createPipeline(PipelineLayout& pipelineLayout)
     const auto& swapchain = vkb::VulkanBase::getSwapchain();
 
     // Shader stages
-    vkb::ShaderProgram shaders(
+    vkb::ShaderProgram program(
         "shaders/spirv_out/vertex.vert.spv",
         "shaders/spirv_out/fragment.frag.spv"
     );
 
-    // Vertex input
-    std::vector<vk::VertexInputBindingDescription> inputBindings = {
-        { 0, sizeof(Vertex), vk::VertexInputRate::eVertex }
-    };
-    std::vector<vk::VertexInputAttributeDescription> inputAttributes = {
-        { 0, 0, vk::Format::eR32G32B32Sfloat },
-        { 1, 0, vk::Format::eR32G32B32Sfloat },
-        { 2, 0, vk::Format::eR32G32Sfloat },
-    };
+    auto builder = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            { 0, sizeof(Vertex), vk::VertexInputRate::eVertex },
+            {
+                { 0, 0, vk::Format::eR32G32B32Sfloat },
+                { 1, 0, vk::Format::eR32G32B32Sfloat },
+                { 2, 0, vk::Format::eR32G32Sfloat },
+            }
+        )
+        .addViewport(
+            vk::Viewport(
+                0.0f, 0.0f,
+                static_cast<float>(swapchain.getImageExtent().width),
+                static_cast<float>(swapchain.getImageExtent().height),
+                0.0f, 1.0f
+            )
+        )
+        .addScissorRect(
+            vk::Rect2D(
+                vk::Offset2D(0, 0),
+                swapchain.getImageExtent()
+            )
+        )
+        .addColorBlendAttachment(
+            DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED
+        )
+        .setColorBlending({}, VK_FALSE, vk::LogicOp::eCopy, {});
 
-    vk::PipelineVertexInputStateCreateInfo vertexInput(
-        vk::PipelineVertexInputStateCreateFlags(),
-        static_cast<uint32_t>(inputBindings.size()), inputBindings.data(),
-        static_cast<uint32_t>(inputAttributes.size()), inputAttributes.data()
-    );
-
-    // Input assembly
-    vk::PipelineInputAssemblyStateCreateInfo inputAssembly(
-        vk::PipelineInputAssemblyStateCreateFlags(),
-        vk::PrimitiveTopology::eTriangleList,
-        VK_FALSE
-    );
-
-    // Tessellation
-    vk::PipelineTessellationStateCreateInfo tessellation(
-        vk::PipelineTessellationStateCreateFlags(),
-        0u
-    );
-
-    // Viewport and scissor
-    vk::Viewport vp(
-        0.0f, 0.0f,
-        static_cast<float>(swapchain.getImageExtent().width),
-        static_cast<float>(swapchain.getImageExtent().height),
-        0.0f, 1.0f
-    );
-    vk::Rect2D scissor(
-        vk::Offset2D(0, 0),
-        swapchain.getImageExtent()
-    );
-    vk::PipelineViewportStateCreateInfo viewport(
-        vk::PipelineViewportStateCreateFlags(),
-        1, &vp,
-        1, &scissor
-    );
-
-    // Rasterizer
-    vk::PipelineRasterizationStateCreateInfo rasterizer(
-        vk::PipelineRasterizationStateCreateFlags(),
-        VK_FALSE, VK_FALSE,                    // Depth clamp and rasterization discard
-        vk::PolygonMode::eFill,
-        vk::CullModeFlagBits::eNone,
-        vk::FrontFace::eCounterClockwise,
-        VK_FALSE, 0.0f, 0.0f, 0.0f,            // Depth biases
-        1.0f
-    );
-
-    // Multisampling
-    vk::PipelineMultisampleStateCreateInfo multisampling(
-        vk::PipelineMultisampleStateCreateFlags(),
-        vk::SampleCountFlagBits::e1,
-        VK_FALSE, 0.0f, nullptr,
-        VK_FALSE, VK_FALSE
-    );
-
-    // Depth- and stencil tests
-    vk::PipelineDepthStencilStateCreateInfo depthStencil(
-        vk::PipelineDepthStencilStateCreateFlags(),
-        VK_TRUE, VK_TRUE, vk::CompareOp::eLess, VK_FALSE,
-        VK_FALSE, vk::StencilOpState(), vk::StencilOpState(),
-        0.0f, 1.0f
-    );
-
-    // Color blending
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment(
-        VK_FALSE,
-        vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
-        vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
-        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
-        | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
-    );
-    vk::PipelineColorBlendStateCreateInfo colorBlending(
-        vk::PipelineColorBlendStateCreateFlags(),
-        VK_FALSE, vk::LogicOp::eCopy,
-        1, &colorBlendAttachment
-    );
-
-    // Dynamic state
-    vk::PipelineDynamicStateCreateInfo dynamicState(
-        vk::PipelineDynamicStateCreateFlags(),
-        0, nullptr
-    );
-
-    vkb::VulkanBase::getDevice()->waitIdle();
-
-    // Create the pipeline
     for (int i = 0; i < 3; i++)
     {
         GraphicsPipeline::create(
             i,
-            vk::GraphicsPipelineCreateInfo(
-                {},
-                static_cast<uint32_t>(shaders.getStages().size()), shaders.getStages().data(),
-                &vertexInput,
-                &inputAssembly,
-                &tessellation,
-                &viewport,
-                &rasterizer,
-                &multisampling,
-                &depthStencil,
-                &colorBlending,
-                &dynamicState,
-                *pipelineLayout,
-                *RenderPass::at(0), 0,
-                vk::Pipeline(), 0
-            ),
-            pipelineLayout
-        );
+            *pipelineLayout,
+            builder.build(*vkb::VulkanBase::getDevice(), *pipelineLayout, *RenderPass::at(0), 0));
     }
 }

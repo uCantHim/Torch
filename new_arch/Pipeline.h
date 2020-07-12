@@ -74,26 +74,26 @@ public:
         {
             cmdBuf.bindDescriptorSets(
                 vk::PipelineBindPoint::eGraphics,
-                **layout,
+                layout,
                 0, staticDescriptorSets,
                 {});
         }
     }
 
-    auto getLayout() const noexcept -> const PipelineLayout&;
+    auto getLayout() const noexcept -> vk::PipelineLayout;
 
     void setStaticDescriptorSet(uint32_t setIndex, vk::DescriptorSet set) noexcept;
 
 protected:
     Pipeline() = default;
-    Pipeline(PipelineLayout& layout, vk::UniquePipeline pipeline)
+    Pipeline(vk::PipelineLayout layout, vk::UniquePipeline pipeline)
         :
-        layout(&layout),
+        layout(layout),
         pipeline(std::move(pipeline))
     {}
 
 private:
-    PipelineLayout* layout;
+    vk::PipelineLayout layout;
     vk::UniquePipeline pipeline;
 
     std::vector<vk::DescriptorSet> staticDescriptorSets;
@@ -107,14 +107,18 @@ class GraphicsPipeline : public Pipeline,
 {
 public:
     GraphicsPipeline() = default;
-    GraphicsPipeline(vk::GraphicsPipelineCreateInfo info, PipelineLayout& layout)
+    GraphicsPipeline(vk::PipelineLayout layout, vk::GraphicsPipelineCreateInfo info)
         :
         Pipeline(
             layout,
             vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info)
         )
-    {
-    }
+    {}
+
+    GraphicsPipeline(vk::PipelineLayout layout, vk::UniquePipeline pipeline)
+        :
+        Pipeline(layout, std::move(pipeline))
+    {}
 };
 
 /**
@@ -124,5 +128,5 @@ class ComputePipeline : public Pipeline,
                         public SelfManagedObject<ComputePipeline>
 {
 public:
-    ComputePipeline(vk::PipelineShaderStageCreateInfo shader, const PipelineLayout& layout);
+    ComputePipeline(vk::PipelineShaderStageCreateInfo shader, vk::PipelineLayout layout);
 };
