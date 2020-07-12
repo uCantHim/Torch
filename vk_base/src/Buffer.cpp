@@ -74,7 +74,7 @@ void vkb::Buffer::copyTo(const Buffer& dst)
 //        Device local buffer        //
 // ---------------------------- //
 
-vkb::DeviceLocalBuffer::DeviceLocalBuffer(vk::DeviceSize size, void* data, vk::BufferUsageFlags usage)
+vkb::DeviceLocalBuffer::DeviceLocalBuffer(vk::DeviceSize size, const void* data, vk::BufferUsageFlags usage)
     :
     Buffer(size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal)
 {

@@ -21,7 +21,7 @@ add_subdirectory(include/trc)
 # Does not work with the new version yet
 # add_subdirectory(example)
 
-target_link_libraries(torch PUBLIC vk_base)
+target_link_libraries(torch PUBLIC vk_base fbxsdk)
 
 target_include_directories(torch PUBLIC include)
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)

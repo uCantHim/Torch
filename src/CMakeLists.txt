@@ -2,6 +2,7 @@ target_sources(
     torch
     PRIVATE
         DrawableBase.cpp
+        Geometry.cpp
         Node.cpp
         Pipeline.cpp
         PipelineBuilder.cpp

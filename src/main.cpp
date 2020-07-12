@@ -14,6 +14,8 @@ using namespace glm;
 #include "trc/base/SceneBase.h"
 #include "trc/base/DrawableStatic.h"
 #include "trc/utils/Transformation.h"
+#include "trc/utils/FBXLoader.h"
+#include "trc/Geometry.h"
 #include "trc/CommandCollector.h"
 #include "trc/PipelineBuilder.h"
 
@@ -56,6 +58,10 @@ int main()
 {
     using v = vkb::VulkanBase;
     vkb::vulkanInit({});
+
+    trc::FBXLoader fbxLoader;
+    trc::Geometry geo(fbxLoader.loadFBXFile("grass_lowpoly.fbx").meshes[0].mesh);
+    std::cin.get();
 
     auto descriptorPool = []() -> vk::UniqueDescriptorPool {
         std::vector<vk::DescriptorPoolSize> descriptorPoolSizes = {

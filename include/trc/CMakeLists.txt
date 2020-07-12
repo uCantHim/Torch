@@ -3,10 +3,12 @@ target_sources(
     PUBLIC
         CommandCollector.h
         DrawableBase.h
+        Geometry.h
         Node.h
         Pipeline.h
         PipelineBuilder.h
         Renderpass.h
+        Vertex.h
 )
 
 add_subdirectory(base)

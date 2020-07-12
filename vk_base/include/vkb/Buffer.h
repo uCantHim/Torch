@@ -85,10 +85,13 @@ be assigned at creation time. */
 class DeviceLocalBuffer : private Buffer
 {
 public:
-    DeviceLocalBuffer(vk::DeviceSize size, void* data, vk::BufferUsageFlags usage);
+    DeviceLocalBuffer(vk::DeviceSize size, const void* data, vk::BufferUsageFlags usage);
 
-    [[nodiscard]]
-    inline auto get() const noexcept -> const vk::Buffer& {
+    inline auto operator*() const noexcept -> vk::Buffer {
+        return Buffer::get();
+    }
+
+    inline auto get() const noexcept -> vk::Buffer {
         return Buffer::get();
     }
 };
@@ -110,7 +113,6 @@ public:
     UniformBuffer& operator=(const UniformBuffer&) = delete;
     UniformBuffer& operator=(UniformBuffer&&) noexcept = default;
 
-    [[nodiscard]]
     auto get() const noexcept -> const Buffer&;
 
 private:
