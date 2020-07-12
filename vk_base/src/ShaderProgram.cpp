@@ -74,7 +74,7 @@ auto vkb::ShaderProgram::create(
 }
 
 
-auto vkb::ShaderProgram::getStages() const noexcept -> const ShaderStages&
+auto vkb::ShaderProgram::getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&
 {
     return stages;
 }

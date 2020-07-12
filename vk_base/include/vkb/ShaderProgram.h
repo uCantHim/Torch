@@ -11,7 +11,7 @@ namespace vkb
 class ShaderProgram : public VulkanBase
 {
 public:
-    using ShaderStages = std::vector<vk::PipelineShaderStageCreateInfo>;
+    using ShaderStageCreateInfos = std::vector<vk::PipelineShaderStageCreateInfo>;
 
     ShaderProgram(
         const std::string& vertPath,
@@ -36,11 +36,10 @@ public:
         const std::string& tesePath = ""
     );
 
-    [[nodiscard]]
-    auto getStages() const noexcept -> const ShaderStages&;
+    auto getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&;
 
 private:
-    ShaderStages stages;
+    ShaderStageCreateInfos stages;
     std::vector<vk::UniqueShaderModule> modules;
 };
 

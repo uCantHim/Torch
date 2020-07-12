@@ -356,7 +356,8 @@ void VulkanApp::createPipeline(vkb::Swapchain& swapchain)
         pipelineLayout,
         vk::GraphicsPipelineCreateInfo(
             {},
-            static_cast<uint32_t>(shaders.getStages().size()), shaders.getStages().data(),
+            static_cast<uint32_t>(shaders.getStageCreateInfos().size()),
+            shaders.getStageCreateInfos().data(),
             &vertexInput,
             &inputAssembly,
             &tessellation,
