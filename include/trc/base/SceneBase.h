@@ -79,8 +79,8 @@ namespace trc
         void unregisterDrawFunction(RegistrationID id);
 
     private:
-        template<typename T> using PerSubpass = IndexMap<SubPass::ID, T>;
-        template<typename T> using PerPipeline = IndexMap<GraphicsPipeline::ID, T>;
+        template<typename T> using PerSubpass = data::IndexMap<SubPass::ID, T>;
+        template<typename T> using PerPipeline = data::IndexMap<GraphicsPipeline::ID, T>;
 
         /**
          * @brief Add a registration to the registration array

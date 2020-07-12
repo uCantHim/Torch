@@ -3,7 +3,7 @@
 
 
 template<class T>
-inline datautil::ObjectPool<T>::ObjectPool(const size_t poolSize)
+inline ObjectPool<T>::ObjectPool(const size_t poolSize)
     :
     objects(poolSize)
 {
@@ -15,7 +15,7 @@ inline datautil::ObjectPool<T>::ObjectPool(const size_t poolSize)
 }
 
 template<class T>
-inline void datautil::ObjectPool<T>::foreachActive(std::function<void(T&)> f)
+inline void ObjectPool<T>::foreachActive(std::function<void(T&)> f)
 {
     for (auto& obj : objects) {
         if (obj.isAlive()) {
@@ -27,13 +27,13 @@ inline void datautil::ObjectPool<T>::foreachActive(std::function<void(T&)> f)
 
 
 template<class Derived>
-inline bool datautil::PooledObject<Derived>::isAlive()
+inline bool PooledObject<Derived>::isAlive()
 {
     return alive;
 }
 
 template<class Derived>
-inline void datautil::PooledObject<Derived>::release()
+inline void PooledObject<Derived>::release()
 {
     owningPool->releaseObject(static_cast<Derived&>(*this));
 }

@@ -1,6 +1,4 @@
 #pragma once
-#ifndef OBJECTPOOL_H
-#define OBJECTPOOL_H
 
 #include <memory>
 #include <vector>
@@ -23,7 +21,7 @@ private:
 };
 
 
-namespace datautil
+namespace trc::data
 {
     class ObjectPoolOverflowError : public Exception {};
 
@@ -283,8 +281,7 @@ namespace datautil
         };
     } // namespace under_construction
 
+
 #include "ObjectPool.inl"
 
 } // namespace ic::util
-
-#endif

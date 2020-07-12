@@ -5,7 +5,4 @@ target_sources(
         SceneRegisterable.h
         DrawableStatic.h
         DrawableStatic.inl
-    PRIVATE
-        SceneBase.cpp
-        SceneRegisterable.cpp
 )

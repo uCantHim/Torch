@@ -10,7 +10,7 @@ namespace trc
     // Will probably not be used but I can define a consistent ID type this way
     struct SubPass
     {
-        using ID = SelfManagedObject<SubPass>::ID;
+        using ID = data::SelfManagedObject<SubPass>::ID;
     };
 
     /**
@@ -18,7 +18,7 @@ namespace trc
      *
      * Contains subpasses.
      */
-    class RenderPass : public SelfManagedObject<RenderPass>
+    class RenderPass : public data::SelfManagedObject<RenderPass>
     {
     public:
         RenderPass() = default;

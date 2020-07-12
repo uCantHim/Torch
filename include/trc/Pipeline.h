@@ -95,7 +95,7 @@ namespace trc
      * @brief A graphics pipeline
      */
     class GraphicsPipeline : public Pipeline,
-                             public SelfManagedObject<GraphicsPipeline>
+                             public data::SelfManagedObject<GraphicsPipeline>
     {
     public:
         GraphicsPipeline() = default;
@@ -118,7 +118,7 @@ namespace trc
      * @brief A compute pipeline
      */
     class ComputePipeline : public Pipeline,
-                            public SelfManagedObject<ComputePipeline>
+                            public data::SelfManagedObject<ComputePipeline>
     {
     public:
         ComputePipeline(vk::PipelineShaderStageCreateInfo shader, vk::PipelineLayout layout);

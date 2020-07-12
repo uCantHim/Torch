@@ -11,11 +11,11 @@ using namespace glm;
 #include <vkb/Image.h>
 #include <vkb/ShaderProgram.h>
 
-#include "base/SceneBase.h"
-#include "base/DrawableStatic.h"
-#include "utils/Transformation.h"
-#include "CommandCollector.h"
-#include "PipelineBuilder.h"
+#include "trc/base/SceneBase.h"
+#include "trc/base/DrawableStatic.h"
+#include "trc/utils/Transformation.h"
+#include "trc/CommandCollector.h"
+#include "trc/PipelineBuilder.h"
 
 std::ofstream file("trash");
 
