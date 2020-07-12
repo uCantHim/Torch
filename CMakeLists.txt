@@ -16,13 +16,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 add_library(torch)
 add_subdirectory(vk_base)
 add_subdirectory(src)
-add_subdirectory(include)
+add_subdirectory(include/trc)
 
 # Does not work with the new version yet
 # add_subdirectory(example)
 
 target_link_libraries(torch PUBLIC vk_base)
 
+target_include_directories(torch PUBLIC include)
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
 
 
