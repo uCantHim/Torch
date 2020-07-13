@@ -8,9 +8,8 @@
 #include <optional>
 
 #include <fbxsdk.h>
-#include <glm/glm.hpp>
-using namespace glm;
 
+#include "Boilerplate.h"
 #include "Geometry.h"
 
 namespace trc

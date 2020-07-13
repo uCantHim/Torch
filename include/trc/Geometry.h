@@ -13,7 +13,7 @@ namespace trc
     struct MeshData
     {
         std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
+        std::vector<ui32> indices;
     };
 
     class Geometry
@@ -28,6 +28,6 @@ namespace trc
         vkb::DeviceLocalBuffer indexBuffer;
         vkb::DeviceLocalBuffer vertexBuffer;
 
-        uint32_t numIndices;
+        ui32 numIndices;
     };
 }

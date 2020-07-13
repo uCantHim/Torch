@@ -177,36 +177,36 @@ auto trc::GraphicsPipelineBuilder::build(
     vk::Device device,
     vk::PipelineLayout layout,
     vk::RenderPass renderPass,
-    uint32_t subPass) -> vk::UniquePipeline
+    ui32 subPass) -> vk::UniquePipeline
 {
     const auto& shaderStages = program->getStageCreateInfos();
 
     vertexInput = vk::PipelineVertexInputStateCreateInfo(
         vk::PipelineVertexInputStateCreateFlags(),
-        static_cast<uint32_t>(inputBindings.size()), inputBindings.data(),
-        static_cast<uint32_t>(attributes.size()), attributes.data()
+        static_cast<ui32>(inputBindings.size()), inputBindings.data(),
+        static_cast<ui32>(attributes.size()), attributes.data()
     );
 
     viewport = vk::PipelineViewportStateCreateInfo(
         vk::PipelineViewportStateCreateFlags(),
-        static_cast<uint32_t>(viewports.size()), viewports.data(),
-        static_cast<uint32_t>(scissorRects.size()), scissorRects.data()
+        static_cast<ui32>(viewports.size()), viewports.data(),
+        static_cast<ui32>(scissorRects.size()), scissorRects.data()
     );
 
 
     dynamicState = vk::PipelineDynamicStateCreateInfo(
         vk::PipelineDynamicStateCreateFlags(),
-        static_cast<uint32_t>(dynamicStates.size()), dynamicStates.data()
+        static_cast<ui32>(dynamicStates.size()), dynamicStates.data()
     );
 
-    colorBlending.setAttachmentCount(static_cast<uint32_t>(colorBlendAttachments.size()));
+    colorBlending.setAttachmentCount(static_cast<ui32>(colorBlendAttachments.size()));
     colorBlending.setPAttachments(colorBlendAttachments.data());
 
     return device.createGraphicsPipelineUnique(
         {},
         vk::GraphicsPipelineCreateInfo(
             {},
-            static_cast<uint32_t>(shaderStages.size()), shaderStages.data(),
+            static_cast<ui32>(shaderStages.size()), shaderStages.data(),
             &vertexInput,
             &inputAssembly,
             &tessellation,

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
 #include <vkb/basics/Swapchain.h>
 
+#include "Boilerplate.h"
 #include "data_utils/SelfManagedObject.h"
 
 namespace trc
@@ -28,7 +28,7 @@ namespace trc
         auto operator*() const noexcept -> vk::RenderPass;
         auto get() const noexcept -> vk::RenderPass;
 
-        auto getNumSubPasses() const noexcept -> uint32_t;
+        auto getNumSubPasses() const noexcept -> ui32;
         auto getSubPasses() const noexcept -> const std::vector<SubPass::ID>&;
 
         auto getClearValues() const noexcept -> const std::vector<vk::ClearValue>&;

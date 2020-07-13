@@ -2,9 +2,8 @@
 
 #include <iostream>
 
-#include <glm/glm.hpp>
+#include "Boilerplate.h"
 #include <glm/gtc/quaternion.hpp>
-using namespace glm;
 
 namespace trc
 {

@@ -3,8 +3,9 @@
 #include <array>
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
 #include <vkb/ShaderProgram.h>
+
+#include "Boilerplate.h"
 
 namespace trc
 {
@@ -114,7 +115,7 @@ namespace trc
         auto build(vk::Device device,
                    vk::PipelineLayout layout,
                    vk::RenderPass renderPass,
-                   uint32_t subPass)
+                   ui32 subPass)
             -> vk::UniquePipeline;
 
     private:

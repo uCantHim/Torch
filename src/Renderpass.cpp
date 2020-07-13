@@ -32,7 +32,7 @@ auto trc::RenderPass::get() const noexcept -> vk::RenderPass
     return *renderPass;
 }
 
-auto trc::RenderPass::getNumSubPasses() const noexcept -> uint32_t
+auto trc::RenderPass::getNumSubPasses() const noexcept -> ui32
 {
     return subPasses.size();
 }

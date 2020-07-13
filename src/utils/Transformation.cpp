@@ -2,7 +2,6 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
 
@@ -228,7 +227,7 @@ const glm::mat4& trc::Transformation::getTransformationMatrix() const
 	{
 		matrixRepresentation =
             glm::translate(glm::mat4(1.0f), translation)
-            * glm::toMat4(rotation)
+            * glm::mat4(rotation)
             * getScaleAsMatrix();
 		matrixDirty = false;
 	}

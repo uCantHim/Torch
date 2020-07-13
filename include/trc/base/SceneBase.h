@@ -44,7 +44,7 @@ namespace trc
 
             // Allows me to modify all ID struct's pointer remotely
             std::unique_ptr<DrawableExecutionRegistration*> thisPointer{ nullptr };
-            uint32_t indexInRegistrationArray;
+            ui32 indexInRegistrationArray;
 
             // Entry data
             SubPass::ID subPass;            // Might be able to remove this later on

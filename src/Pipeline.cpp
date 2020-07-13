@@ -42,7 +42,7 @@ auto trc::Pipeline::getLayout() const noexcept -> vk::PipelineLayout
     return layout;
 }
 
-void trc::Pipeline::addStaticDescriptorSet(uint32_t descriptorIndex, vk::DescriptorSet set) noexcept
+void trc::Pipeline::addStaticDescriptorSet(ui32 descriptorIndex, vk::DescriptorSet set) noexcept
 {
     staticDescriptorSets.emplace_back(descriptorIndex, set);
 }

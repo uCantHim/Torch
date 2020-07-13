@@ -1,9 +1,8 @@
 #pragma once
 
 #include <vkb/VulkanBase.h>
-#include <glm/glm.hpp>
-using namespace glm;
 
+#include "Boilerplate.h"
 #include "Renderpass.h"
 #include "base/SceneBase.h"
 
@@ -53,14 +52,14 @@ namespace trc
                         { viewport.offset.x, viewport.offset.y },
                         { viewport.size.x, viewport.size.y }
                     ),
-                    static_cast<uint32_t>(clearValues.size()), clearValues.data()
+                    static_cast<ui32>(clearValues.size()), clearValues.data()
                 ),
                 vk::SubpassContents::eInline
             );
 
             // Record all commands
-            const uint32_t subPassCount = drawInfo.renderPass->getNumSubPasses();
-            for (uint32_t subPass = 0; subPass < subPassCount; subPass++)
+            const ui32 subPassCount = drawInfo.renderPass->getNumSubPasses();
+            for (ui32 subPass = 0; subPass < subPassCount; subPass++)
             {
                 for (auto pipeline : scene.getPipelines(subPass))
                 {

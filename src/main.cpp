@@ -3,9 +3,6 @@ using namespace std::chrono;
 #include <iostream>
 #include <fstream>
 
-#include <glm/glm.hpp>
-using namespace glm;
-
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>

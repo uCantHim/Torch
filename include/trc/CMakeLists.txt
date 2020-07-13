@@ -1,6 +1,7 @@
 target_sources(
     torch
     PUBLIC
+        Boilerplate.h
         CommandCollector.h
         DrawableBase.h
         Geometry.h

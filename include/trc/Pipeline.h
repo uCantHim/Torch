@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
 #include <vkb/VulkanBase.h>
 
+#include "Boilerplate.h"
 #include "data_utils/SelfManagedObject.h"
 
 namespace trc
@@ -70,7 +70,7 @@ namespace trc
 
         auto getLayout() const noexcept -> vk::PipelineLayout;
 
-        void addStaticDescriptorSet(uint32_t descriptorIndex, vk::DescriptorSet set) noexcept;
+        void addStaticDescriptorSet(ui32 descriptorIndex, vk::DescriptorSet set) noexcept;
 
     protected:
         Pipeline() = default;
@@ -88,7 +88,7 @@ namespace trc
         vk::UniquePipeline pipeline;
         vk::PipelineBindPoint bindPoint;
 
-        std::vector<std::pair<uint32_t, vk::DescriptorSet>> staticDescriptorSets;
+        std::vector<std::pair<ui32, vk::DescriptorSet>> staticDescriptorSets;
     };
 
     /**

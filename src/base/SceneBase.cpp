@@ -76,7 +76,7 @@ auto trc::SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> 
     auto it = currentRegistrationArray.emplace(currentRegistrationArray.end(), std::move(entry));
 
     // Make long-living index in the pipeline's registration array
-    uint32_t newIndex = static_cast<uint32_t>(it - currentRegistrationArray.begin());
+    ui32 newIndex = static_cast<ui32>(it - currentRegistrationArray.begin());
     it->thisPointer = std::make_unique<DrawableExecutionRegistration*>(&*it);
     it->indexInRegistrationArray = newIndex;
 

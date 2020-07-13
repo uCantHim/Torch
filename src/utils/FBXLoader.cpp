@@ -145,7 +145,7 @@ auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> MeshData
     result.indices.reserve(indexCount);
     for (int i = 0; i < indexCount; i++)
     {
-        result.indices.push_back(static_cast<uint32_t>(indices[i]));
+        result.indices.push_back(static_cast<ui32>(indices[i]));
     }
 
     loadVertices(mesh, result);

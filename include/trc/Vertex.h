@@ -1,7 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
-using namespace glm;
+#include "Boilerplate.h"
 
 namespace trc
 {
@@ -13,5 +12,5 @@ namespace trc
         vec3 tangent;
     };
 
-    using VertexIndex = uint32_t;
+    using VertexIndex = ui32;
 } // namespace trc
