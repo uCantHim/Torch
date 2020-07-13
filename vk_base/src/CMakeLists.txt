@@ -4,8 +4,10 @@ target_sources(
     vk_base
     PRIVATE
         Buffer.cpp
+        Memory.cpp
         Image.cpp
         Logger.cpp
+        MemoryPool.cpp
         PoolProvider.cpp
         QueueProvider.cpp
         ShaderProgram.cpp

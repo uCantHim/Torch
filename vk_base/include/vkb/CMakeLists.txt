@@ -4,9 +4,11 @@ target_sources(
     vk_base
     PUBLIC
         Buffer.h
+        Memory.h
         FrameSpecificObject.h
         Image.h
         Logger.h
+        MemoryPool.h
         PoolProvider.h
         QueueProvider.h
         ShaderProgram.h
