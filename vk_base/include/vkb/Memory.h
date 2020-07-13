@@ -69,6 +69,22 @@ namespace vkb
         auto operator=(DeviceMemory&&) noexcept -> DeviceMemory&;
 
         /**
+         * @brief Allocate a single piece of device memory
+         *
+         * This implements a canonical way of allocation device memory.
+         *
+         * @param const Device&           device       The device used to allocate the memory
+         * @param vk::MemoryPropertyFlags properties   Properties that the type of the allocated
+         *                                             memory should have
+         * @param vk::MemoryRequirements  requirements
+         *
+         * @return DeviceMemory
+         */
+        static auto allocate(const Device& device,
+                             vk::MemoryPropertyFlags properties,
+                             vk::MemoryRequirements requirements) -> DeviceMemory;
+
+        /**
          * @brief Bind the memory to a buffer
          */
         void bindToBuffer(const Device& device, vk::Buffer buffer);
@@ -89,7 +105,7 @@ namespace vkb
          *
          * @return void* Pointer to mapped memory
          */
-        auto map(const Device& device, vk::DeviceSize mappedSize, vk::DeviceSize offset) -> void*;
+        auto map(const Device& device, vk::DeviceSize mappedOffset, vk::DeviceSize mappedSize) -> void*;
 
         /**
          * @brief Unmap the memory from host memory.

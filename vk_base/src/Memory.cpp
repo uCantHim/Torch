@@ -36,19 +36,39 @@ auto vkb::DeviceMemory::operator=(DeviceMemory&& rhs) noexcept -> DeviceMemory&
     return *this;
 }
 
+auto vkb::DeviceMemory::allocate(
+    const Device& device,
+    vk::MemoryPropertyFlags properties,
+    vk::MemoryRequirements requirements) -> DeviceMemory
+{
+    vk::DeviceMemory mem = device->allocateMemory({
+        requirements.size,
+        device.getPhysicalDevice().findMemoryType(
+            requirements.memoryTypeBits, properties
+        )
+    });
+
+    return DeviceMemory(
+        { mem, requirements.size, 0 },
+        [&device](const DeviceMemoryInternals& internals) {
+            device->freeMemory(internals.memory);
+        }
+    );
+}
+
 void vkb::DeviceMemory::bindToBuffer(const Device& device, vk::Buffer buffer)
 {
     device->bindBufferMemory(buffer, internal.memory, internal.baseOffset);
 }
 
-auto vkb::DeviceMemory::map(const Device& device, vk::DeviceSize mappedSize, vk::DeviceSize offset) -> void*
+auto vkb::DeviceMemory::map(const Device& device, vk::DeviceSize mappedOffset, vk::DeviceSize mappedSize) -> void*
 {
     assert(mappedSize == VK_WHOLE_SIZE || mappedSize <= internal.size);
 
     if (mappedSize == VK_WHOLE_SIZE) {
         mappedSize = internal.size;
     }
-    return device->mapMemory(internal.memory, internal.baseOffset + offset, mappedSize);
+    return device->mapMemory(internal.memory, internal.baseOffset + mappedOffset, mappedSize);
 }
 
 void vkb::DeviceMemory::unmap(const Device& device)
