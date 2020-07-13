@@ -2,7 +2,8 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "FrameSpecificObject.h"
+#include "VulkanBase.h"
+#include "Memory.h"
 
 namespace vkb
 {
@@ -14,6 +15,26 @@ namespace vkb
         vk::DeviceSize size{ VK_WHOLE_SIZE };
     };
 
+    using MemoryAllocator = std::function<DeviceMemory(
+        const Device&,
+        vk::MemoryPropertyFlags,
+        vk::MemoryRequirements)
+    >;
+
+    class DefaultDeviceMemoryAllocator
+    {
+    public:
+        /**
+         * The device must outlive the created DeviceMemory.
+         */
+        auto operator()(const Device& device,
+                        vk::MemoryPropertyFlags properties,
+                        vk::MemoryRequirements requirements) -> DeviceMemory
+        {
+            return DeviceMemory::allocate(device, properties, requirements);
+        }
+    };
+
     /**
      * @brief A buffer backed by managed device memory
      */
@@ -22,38 +43,46 @@ namespace vkb
     public:
         /**
          * @brief Construct a buffer
-         *
-         *
          */
-        Buffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags flags);
+        Buffer(vk::DeviceSize bufferSize,
+               vk::BufferUsageFlags usage,
+               vk::MemoryPropertyFlags flags,
+               MemoryAllocator allocator = DefaultDeviceMemoryAllocator());
 
         Buffer(const Device& device,
                vk::DeviceSize bufferSize,
                vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags);
+               vk::MemoryPropertyFlags flags,
+               MemoryAllocator allocator = DefaultDeviceMemoryAllocator());
 
         Buffer(vk::DeviceSize bufferSize,
                const void* data,
                vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags);
+               vk::MemoryPropertyFlags flags,
+               MemoryAllocator allocator = DefaultDeviceMemoryAllocator());
 
         Buffer(const Device& device,
                vk::DeviceSize bufferSize,
                const void* data,
                vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags);
+               vk::MemoryPropertyFlags flags,
+               MemoryAllocator allocator = DefaultDeviceMemoryAllocator());
 
         template<typename T>
-        Buffer(const std::vector<T>& data, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags flags)
-            : Buffer(vkb::VulkanBase::getDevice(), data, usage, flags)
+        Buffer(const std::vector<T>& data,
+               vk::BufferUsageFlags usage,
+               vk::MemoryPropertyFlags flags,
+               MemoryAllocator allocator = DefaultDeviceMemoryAllocator())
+            : Buffer(vkb::VulkanBase::getDevice(), data, usage, flags, std::move(allocator))
         {}
 
         template<typename T>
         Buffer(const Device& device,
                const std::vector<T>& data,
                vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags)
-            : Buffer(device, sizeof(T) * data.size(), data.data(), usage, flags)
+               vk::MemoryPropertyFlags flags,
+               MemoryAllocator allocator = DefaultDeviceMemoryAllocator())
+            : Buffer(device, sizeof(T) * data.size(), data.data(), usage, flags, std::move(allocator))
         {}
 
         Buffer(const Buffer&) = delete;
@@ -114,10 +143,9 @@ namespace vkb
         const Device* device;
 
         vk::UniqueBuffer buffer;
-        vk::UniqueDeviceMemory memory;
+        DeviceMemory memory;
 
         vk::DeviceSize bufferSize{ 0 };
-        mutable bool isMapped{ false };
     };
 
 
@@ -147,16 +175,22 @@ namespace vkb
     class DeviceLocalBuffer : private Buffer
     {
     public:
-        DeviceLocalBuffer(vk::DeviceSize bufferSize, const void* data, vk::BufferUsageFlags usage);
+        DeviceLocalBuffer(vk::DeviceSize bufferSize,
+                          const void* data,
+                          vk::BufferUsageFlags usage,
+                          MemoryAllocator allocator = DefaultDeviceMemoryAllocator());
 
         DeviceLocalBuffer(const Device& device,
                           vk::DeviceSize bufferSize,
                           const void* data,
-                          vk::BufferUsageFlags usage);
+                          vk::BufferUsageFlags usage,
+                          MemoryAllocator allocator = DefaultDeviceMemoryAllocator());
 
         template<typename T>
-        DeviceLocalBuffer(const std::vector<T>& data, vk::BufferUsageFlags usage)
-            : DeviceLocalBuffer(sizeof(T) * data.size(), data.data(), usage)
+        DeviceLocalBuffer(const std::vector<T>& data,
+                          vk::BufferUsageFlags usage,
+                          MemoryAllocator allocator = DefaultDeviceMemoryAllocator())
+            : DeviceLocalBuffer(sizeof(T) * data.size(), data.data(), usage, std::move(allocator))
         {}
 
         inline auto operator*() const noexcept -> vk::Buffer {

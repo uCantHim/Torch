@@ -7,6 +7,7 @@ using namespace std::chrono;
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 #include <vkb/ShaderProgram.h>
+#include <vkb/FrameSpecificObject.h>
 
 #include "trc/base/SceneBase.h"
 #include "trc/base/DrawableStatic.h"
