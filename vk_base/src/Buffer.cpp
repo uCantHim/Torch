@@ -10,7 +10,7 @@ vkb::Buffer::Buffer(
     vk::DeviceSize bufferSize,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    MemoryAllocator allocator)
+    DeviceMemoryAllocator allocator)
     :
     Buffer(vkb::VulkanBase::getDevice(), bufferSize, usage, flags, std::move(allocator))
 {}
@@ -21,7 +21,7 @@ vkb::Buffer::Buffer(
     vk::DeviceSize bufferSize,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    MemoryAllocator allocator)
+    DeviceMemoryAllocator allocator)
     :
     device(&device),
     buffer(device->createBufferUnique(
@@ -46,7 +46,7 @@ vkb::Buffer::Buffer(
     const void* data,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    MemoryAllocator allocator)
+    DeviceMemoryAllocator allocator)
     :
     Buffer(vkb::VulkanBase::getDevice(), bufferSize, data, usage, flags, std::move(allocator))
 {
@@ -59,7 +59,7 @@ vkb::Buffer::Buffer(
     const void* data,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    MemoryAllocator allocator)
+    DeviceMemoryAllocator allocator)
     :
     Buffer(device, bufferSize, usage, flags, std::move(allocator))
 {
@@ -122,7 +122,7 @@ vkb::DeviceLocalBuffer::DeviceLocalBuffer(
     vk::DeviceSize bufferSize,
     const void* data,
     vk::BufferUsageFlags usage,
-    MemoryAllocator allocator)
+    DeviceMemoryAllocator allocator)
     :
     DeviceLocalBuffer(
         vkb::VulkanBase::getDevice(),
@@ -139,7 +139,7 @@ vkb::DeviceLocalBuffer::DeviceLocalBuffer(
     vk::DeviceSize bufferSize,
     const void* data,
     vk::BufferUsageFlags usage,
-    MemoryAllocator allocator)
+    DeviceMemoryAllocator allocator)
     :
     Buffer(
         device,

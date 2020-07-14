@@ -17,6 +17,9 @@ namespace vkb
         vk::DeviceSize baseOffset{ 0 };  // Offset in pool-like structures
     };
 
+    /**
+     * @brief An interface for DeviceMemory deleters
+     */
     using DeviceMemoryDeleter = std::function<void(const DeviceMemoryInternals&)>;
 
     /**
@@ -120,5 +123,35 @@ namespace vkb
         bool isMovedFrom{ false };
         DeviceMemoryDeleter deleter;
         DeviceMemoryInternals internal;
+    };
+
+    /**
+     * @brief An interface for DeviceMemory allocators
+     */
+    using DeviceMemoryAllocator = std::function<DeviceMemory(
+        const Device&,
+        vk::MemoryPropertyFlags,
+        vk::MemoryRequirements)
+    >;
+
+    /**
+     * @brief Default allocator for device memory
+     *
+     * Implements the DeviceMemoryAllocator interface with a call operator.
+     * Uses the plain DeviceMemory::allocate() static function to allocate
+     * a single piece of device memory
+     */
+    class DefaultDeviceMemoryAllocator
+    {
+    public:
+        /**
+         * The device must outlive the created DeviceMemory.
+         */
+        auto operator()(const Device& device,
+                        vk::MemoryPropertyFlags properties,
+                        vk::MemoryRequirements requirements) -> DeviceMemory
+        {
+            return DeviceMemory::allocate(device, properties, requirements);
+        }
     };
 } // namespace vkb
