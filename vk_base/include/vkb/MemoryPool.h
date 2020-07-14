@@ -85,7 +85,10 @@ namespace vkb
     class MemoryPool
     {
     public:
-        MemoryPool(const PhysicalDevice& physDevice, vk::DeviceSize chuckSize = DEFAULT_CHUNK_SIZE);
+        explicit MemoryPool(vk::DeviceSize chunkSize = DEFAULT_CHUNK_SIZE);
+        explicit MemoryPool(const PhysicalDevice& physDevice, vk::DeviceSize chunkSize = DEFAULT_CHUNK_SIZE);
+
+        void setPhysicalDevice(const PhysicalDevice& physDevice);
 
         /**
          * @brief Allocate device memory
@@ -101,11 +104,13 @@ namespace vkb
         auto allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
             -> DeviceMemory;
 
-    private:
-        static constexpr vk::DeviceSize DEFAULT_CHUNK_SIZE = 100000000; // 200 mb, is divisible by 256 (base alignment)
+        auto makeAllocator() -> DeviceMemoryAllocator;
 
-        const PhysicalDevice* physDevice;
-        vk::DeviceSize chunkSize;
+    private:
+        static constexpr vk::DeviceSize DEFAULT_CHUNK_SIZE = 100000000; // 100 mb, is divisible by 256 (base alignment)
+
+        const PhysicalDevice* physDevice{ nullptr };
+        vk::DeviceSize chunkSize{ DEFAULT_CHUNK_SIZE };
         std::vector<std::vector<ManagedMemoryChunk>> chunksPerMemoryType;
     };
 } // namespace vkb

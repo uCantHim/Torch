@@ -52,6 +52,15 @@ void vkb::ManagedMemoryChunk::releaseMemory(
 
 
 
+vkb::MemoryPool::MemoryPool(vk::DeviceSize chunkSize)
+    :
+    chunkSize(chunkSize)
+{
+    if constexpr (vkb::enableVerboseLogging) {
+        std::cout << "Memory pool created with deferred physical device initialization\n";
+    }
+}
+
 vkb::MemoryPool::MemoryPool(const PhysicalDevice& physDevice, vk::DeviceSize chunkSize)
     :
     physDevice(&physDevice),
@@ -61,6 +70,12 @@ vkb::MemoryPool::MemoryPool(const PhysicalDevice& physDevice, vk::DeviceSize chu
     if constexpr (vkb::enableVerboseLogging) {
         std::cout << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.\n";
     }
+}
+
+void vkb::MemoryPool::setPhysicalDevice(const PhysicalDevice& physDevice)
+{
+    chunksPerMemoryType.resize(physDevice.memoryProperties.memoryTypeCount);
+    this->physDevice = &physDevice;
 }
 
 auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
@@ -79,14 +94,14 @@ auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
         {
             // No more memory chunks to allocate from.
             // Create a new memory chunk for the required memory type index.
-            const size_t chunkSize = glm::max(DEFAULT_CHUNK_SIZE, requirements.size);
+            const size_t newChunkSize = glm::max(chunkSize, requirements.size);
 
             if constexpr (vkb::enableVerboseLogging) {
-                std::cout << "Allocated a chunk of " << chunkSize << " bytes of device memory.\n";
+                std::cout << "Allocated a chunk of " << newChunkSize << " bytes of device memory.\n";
             }
 
             return chunks.emplace_back(
-                chunkSize,
+                newChunkSize,
                 typeIndex
             ).allocateMemory(requirements);
         }
@@ -102,4 +117,14 @@ auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             continue;
         }
     }
+}
+
+auto vkb::MemoryPool::makeAllocator() -> DeviceMemoryAllocator
+{
+    return [this](const Device&,
+                  vk::MemoryPropertyFlags properties,
+                  vk::MemoryRequirements requirements)
+    {
+        return allocateMemory(properties, requirements);
+    };
 }
