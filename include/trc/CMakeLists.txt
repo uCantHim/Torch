@@ -1,6 +1,8 @@
 target_sources(
     torch
     PUBLIC
+        Asset.h
+        AssetRegistry.h
         Boilerplate.h
         CommandCollector.h
         DrawableBase.h

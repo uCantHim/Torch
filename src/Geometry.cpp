@@ -4,8 +4,8 @@
 
 trc::Geometry::Geometry(const MeshData& data)
     :
-    indexBuffer(data.indices, vk::BufferUsageFlagBits::eIndexBuffer),
-    vertexBuffer(data.vertices, vk::BufferUsageFlagBits::eVertexBuffer),
+    indexBuffer(data.indices, vk::BufferUsageFlagBits::eIndexBuffer, pool.makeAllocator()),
+    vertexBuffer(data.vertices, vk::BufferUsageFlagBits::eVertexBuffer, pool.makeAllocator()),
     numIndices(data.indices.size())
 {
 }

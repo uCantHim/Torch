@@ -8,6 +8,7 @@ using namespace std::chrono;
 #include <vkb/Image.h>
 #include <vkb/ShaderProgram.h>
 #include <vkb/FrameSpecificObject.h>
+#include <vkb/MemoryPool.h>
 
 #include "trc/base/SceneBase.h"
 #include "trc/base/DrawableStatic.h"
@@ -16,6 +17,7 @@ using namespace std::chrono;
 #include "trc/Geometry.h"
 #include "trc/CommandCollector.h"
 #include "trc/PipelineBuilder.h"
+#include "trc/AssetRegistry.h"
 
 std::ofstream file("trash");
 
@@ -58,7 +60,12 @@ int main()
     vkb::vulkanInit({});
 
     trc::FBXLoader fbxLoader;
-    trc::Geometry geo(fbxLoader.loadFBXFile("grass_lowpoly.fbx").meshes[0].mesh);
+    auto importResult = fbxLoader.loadFBXFile("grass_lowpoly.fbx");
+    auto& geo = trc::GeometryRegistry::emplace(1, importResult.meshes[0].mesh);
+
+    vkb::MemoryPool pool(vkb::VulkanBase::getDevice().getPhysicalDevice(), 20000);
+    vkb::Buffer pooledBuf(500, vk::BufferUsageFlagBits::eStorageBuffer, {}, pool.makeAllocator());
+
     std::cin.get();
 
     auto descriptorPool = []() -> vk::UniqueDescriptorPool {
