@@ -32,13 +32,19 @@ namespace trc::data
             -> std::pair<ID, std::reference_wrapper<Derived>>;
 
         /**
-         * @throws Error if the index is occupied
+         * @throws std::runtime_error if an object already exists at the index
          */
         template<typename ...ConstructArgs>
         static auto create(ID index, ConstructArgs&&... args) -> Derived&;
 
+        /**
+         * @throw std::out_of_range if no object at that index exists
+         */
         static auto at(ID index) -> Derived&;
 
+        /**
+         * @throw std::out_of_range if no object at that index exists
+         */
         static void destroy(ID index);
 
         // ------------------
@@ -47,9 +53,7 @@ namespace trc::data
         auto id() const noexcept -> ID;
 
     private:
-        using StoredType = Derived;
-
-        static inline IndexMap<ID, StoredType> objects;
+        static inline IndexMap<ID, std::unique_ptr<Derived>> objects;
 
         ID myId;
     };
