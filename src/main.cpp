@@ -18,13 +18,15 @@ using namespace std::chrono;
 #include "trc/CommandCollector.h"
 #include "trc/PipelineBuilder.h"
 #include "trc/AssetRegistry.h"
+#include "trc/DrawableBase.h"
+#include "trc/Scene.h"
 
 std::ofstream file("trash");
 
 /**
  * @brief A sample implementation
  */
-class Thing : public trc::SceneRegisterable,
+class Thing : public trc::DrawableBase,
               public trc::StaticPipelineRenderInterface<Thing, 0, 0>,
               public trc::StaticPipelineRenderInterface<Thing, 0, 1>,
               public trc::StaticPipelineRenderInterface<Thing, 0, 2>
@@ -61,7 +63,7 @@ int main()
 
     trc::FBXLoader fbxLoader;
     auto importResult = fbxLoader.loadFBXFile("grass_lowpoly.fbx");
-    auto& geo = trc::GeometryRegistry::emplace(1, importResult.meshes[0].mesh);
+    auto& geo = trc::AssetRegistry::add(1, trc::Geometry(importResult.meshes[0].mesh));
 
     vkb::MemoryPool pool(vkb::VulkanBase::getDevice().getPhysicalDevice(), 20000);
     vkb::Buffer pooledBuf(500, vk::BufferUsageFlagBits::eStorageBuffer, {}, pool.makeAllocator());
@@ -189,10 +191,10 @@ int main()
     );
 
     trc::CommandCollector engine;
-    trc::SceneBase scene;
 
     constexpr size_t NUM_OBJECTS = 2000;
 
+    trc::Scene scene;
     std::vector<Thing> objects(NUM_OBJECTS);
     for (auto& obj : objects)
     {

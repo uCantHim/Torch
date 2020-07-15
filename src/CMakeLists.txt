@@ -1,6 +1,7 @@
 target_sources(
     torch
     PRIVATE
+        AssetRegistry.cpp
         DrawableBase.cpp
         Geometry.cpp
         Node.cpp

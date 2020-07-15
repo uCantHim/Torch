@@ -7,8 +7,8 @@ namespace fs = std::filesystem;
 #include <vkb/MemoryPool.h>
 #include <vkb/Buffer.h>
 
-#include "Vertex.h"
 #include "Asset.h"
+#include "Vertex.h"
 
 namespace trc
 {

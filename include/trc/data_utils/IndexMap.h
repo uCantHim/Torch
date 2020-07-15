@@ -30,16 +30,6 @@ namespace trc::data
         auto size() const noexcept -> size_t;
         void reserve(size_t size);
 
-        /**
-         * TODO
-         *
-         * Iterators that skip unpopulated entries:
-         * auto begin();
-         * auto end();
-         *
-         * auto emplace();
-         */
-
     private:
         std::vector<Value> values;
     };

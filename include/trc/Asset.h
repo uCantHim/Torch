@@ -7,16 +7,12 @@ namespace trc
     class Asset
     {
     public:
-        using ID = ui32;
-
-        auto getId() const noexcept -> ID {
+        inline auto getAssetId() const noexcept -> ui32 {
             return id;
         }
 
     private:
-        template<typename>
         friend class AssetRegistry;
-
-        ID id;
+        ui32 id{ UINT32_MAX };
     };
 } // namespace trc

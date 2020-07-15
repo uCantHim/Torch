@@ -1,68 +1,98 @@
 #pragma once
 
+#include <string>
 #include <unordered_map>
 
 #include "Boilerplate.h"
-#include "Asset.h"
+#include "utils/Exception.h"
+#include "data_utils/IndexMap.h"
 #include "Geometry.h"
 #include "Material.h"
-#include "data_utils/IndexMap.h"
 
 namespace trc
 {
-    template<typename T>
+    class DuplicateKeyError : public Exception {};
+    class KeyNotFoundError : public Exception {};
+
     class AssetRegistry
     {
     public:
-        static_assert(std::is_base_of_v<Asset, T>,
-                      "Types stored in the asset registry must be derived from Asset");
-        static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
+        static void init();
 
-        static auto add(Asset::ID id, T obj) -> T&
-        {
-            assert(assets[id] == nullptr);
+        static auto add(ui32 key, Geometry geo) -> Geometry&;
+        static auto add(ui32 key, Material mat) -> Material&;
 
-            auto& result = *assets.emplace(id, new T(std::move(obj)));
-            result.id = id;
+        static auto getGeometry(ui32 key) -> Geometry&;
+        static auto getMaterial(ui32 key) -> Material&;
 
-            return result;
-        }
-
-        template<typename ...Args>
-        static auto emplace(Asset::ID id, Args&&... args) -> T&
-        {
-            assert(assets[id] == nullptr);
-
-            auto& result = *assets.emplace(id, new T(std::forward<Args>(args)...));
-            result.id = id;
-
-            return result;
-        }
-
-        static auto get(Asset::ID id) -> T&
-        {
-            assert(assets.size() > id && assets[id] != nullptr);
-
-            return *assets[id];
-        }
+        static auto getDescriptorSetLayout() noexcept -> vk::DescriptorSetLayout;
+        static auto getDescriptorSet() noexcept -> vk::DescriptorSet;
 
     private:
-        static inline data::IndexMap<Asset::ID, std::unique_ptr<T>> assets;
+        static inline bool __init = []() {
+            vkb::VulkanBase::onInit(AssetRegistry::init);
+            return true;
+        }();
+
+        template<typename T>
+        using StrMap = std::unordered_map<std::string, T>;
+
+        template<typename T>
+        static auto addToMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key, T value) -> T&;
+        template<typename T>
+        static auto getFromMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key) -> T&;
+
+        static inline data::IndexMap<ui32, std::unique_ptr<Geometry>> geometries;
+        static inline data::IndexMap<ui32, std::unique_ptr<Material>> materials;
+
+        //////////
+        // Buffers
+        static void updateMaterialBuffer();
+
+        static inline vkb::DeviceLocalBuffer materialBuffer;
+
+        //////////////
+        // Descriptors
+        static constexpr ui32 MAT_BUFFER_BINDING = 0;
+
+        static void createDescriptors();
+        static void updateDescriptors();
+
+        static inline vk::UniqueDescriptorPool descPool;
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline vk::UniqueDescriptorSet descSet;
     };
 
-    /**
-     * @brief Asset registry for geometries
-     */
-    class GeometryRegistry : public AssetRegistry<Geometry>
+
+
+    template<typename T>
+    auto AssetRegistry::addToMap(
+        data::IndexMap<ui32, std::unique_ptr<T>>& map,
+        ui32 key, T value) -> T&
     {
-    public:
-    };
+        static_assert(std::is_base_of_v<Asset, T>, "");
+        static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
+        assert(key != UINT32_MAX);  // Reserved ID that signals empty value
 
-    /**
-     * @brief Asset registry for materials
-     */
-    class MaterialRegistry : public AssetRegistry<Material>
+        if (map[key] != nullptr) {
+            throw DuplicateKeyError();
+        }
+
+        T& result = *map.emplace(key, std::make_unique<T>(std::move(value)));
+        result.id = key;
+
+        return result;
+    }
+
+    template<typename T>
+    auto AssetRegistry::getFromMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key) -> T&
     {
+        assert(key != UINT32_MAX);  // Reserved ID that signals empty value
 
-    };
+        if (map[key] == nullptr) {
+            throw KeyNotFoundError();
+        }
+
+        return *map[key];
+    }
 } // namespace trc
