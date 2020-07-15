@@ -7,6 +7,7 @@ target_sources(
         CommandCollector.h
         DrawableBase.h
         Geometry.h
+        Material.h
         Node.h
         Pipeline.h
         PipelineBuilder.h

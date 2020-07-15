@@ -58,7 +58,10 @@ namespace trc
     public:
     };
 
-    class MaterialRegistry
+    /**
+     * @brief Asset registry for materials
+     */
+    class MaterialRegistry : public AssetRegistry<Material>
     {
 
     };
