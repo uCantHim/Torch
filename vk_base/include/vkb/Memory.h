@@ -57,6 +57,8 @@ namespace vkb
     class DeviceMemory
     {
     public:
+        DeviceMemory() = default;
+
         template<typename Del = DefaultDeviceMemoryDeleter>
         explicit DeviceMemory(DeviceMemoryInternals data)
             : DeviceMemory(std::move(data), Del())
@@ -121,8 +123,8 @@ namespace vkb
 
     private:
         bool isMovedFrom{ false };
-        DeviceMemoryDeleter deleter;
-        DeviceMemoryInternals internal;
+        DeviceMemoryDeleter deleter{ [](auto&&) {} };
+        DeviceMemoryInternals internal{ {}, 0, 0 };
     };
 
     /**

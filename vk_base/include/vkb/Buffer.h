@@ -21,6 +21,8 @@ namespace vkb
     class Buffer
     {
     public:
+        Buffer() = default;
+
         /**
          * @brief Construct a buffer
          */
@@ -120,7 +122,7 @@ namespace vkb
         }
 
     private:
-        const Device* device;
+        const Device* device{ nullptr };
 
         vk::UniqueBuffer buffer;
         DeviceMemory memory;
@@ -155,6 +157,8 @@ namespace vkb
     class DeviceLocalBuffer : private Buffer
     {
     public:
+        DeviceLocalBuffer() = default;
+
         DeviceLocalBuffer(vk::DeviceSize bufferSize,
                           const void* data,
                           vk::BufferUsageFlags usage,
