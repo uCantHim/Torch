@@ -87,7 +87,7 @@ public:
     };
 
     SwapchainDependentResource();
-    ~SwapchainDependentResource();
+    virtual ~SwapchainDependentResource();
 
     virtual void signalRecreateRequired() = 0;
     virtual void recreate(Swapchain&) = 0;
