@@ -26,13 +26,16 @@ namespace trc
     template<typename Derived, SubPass::ID SubPass, GraphicsPipeline::ID Pipeline>
     class StaticPipelineRenderInterface
     {
-    private:
-        using Self = StaticPipelineRenderInterface<Derived, SubPass, Pipeline>;
-        using RecordFuncType = void(Derived::*)(PipelineIndex<Pipeline>, vk::CommandBuffer);
-
     public:
         StaticPipelineRenderInterface();
     };
+
+
+    /**
+     * @brief A better name
+     */
+    template<typename Derived, SubPass::ID SubPass, GraphicsPipeline::ID Pipeline>
+    using UsePipeline = StaticPipelineRenderInterface<Derived, SubPass, Pipeline>;
 
 
 #include "DrawableStatic.inl"

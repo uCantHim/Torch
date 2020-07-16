@@ -2,12 +2,14 @@ target_sources(
     torch
     PRIVATE
         AssetRegistry.cpp
-        DrawableBase.cpp
+        Drawable.cpp
         Geometry.cpp
         Node.cpp
         Pipeline.cpp
         PipelineBuilder.cpp
+        Renderer.cpp
         Renderpass.cpp
+        RenderPassDefinitions.cpp
 )
 
 add_subdirectory(base)

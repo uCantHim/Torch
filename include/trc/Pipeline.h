@@ -7,7 +7,7 @@
 
 namespace trc
 {
-    class PipelineLayout
+    class PipelineLayout : public data::SelfManagedObject<PipelineLayout>
     {
     public:
         PipelineLayout(
@@ -62,11 +62,9 @@ namespace trc
          *
          * @param vk::CommandBuffer cmdBuf The command buffer to record the
          *                                 pipeline bind to.
-         * @param bool bindStaticDescSets  If false, don't bind the pipeline's
-         *                                 static descriptor sets.
          */
         void bind(vk::CommandBuffer cmdBuf) const;
-        void bindDescriptorSets(vk::CommandBuffer cmdBuf) const;
+        void bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const;
 
         auto getLayout() const noexcept -> vk::PipelineLayout;
 

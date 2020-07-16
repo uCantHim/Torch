@@ -24,7 +24,6 @@ namespace trc
         RenderPass() = default;
         RenderPass(const vk::RenderPassCreateInfo& createInfo, std::vector<vk::ClearValue> clearValues);
 
-        auto operator*() noexcept -> vk::RenderPass;
         auto operator*() const noexcept -> vk::RenderPass;
         auto get() const noexcept -> vk::RenderPass;
 

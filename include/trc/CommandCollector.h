@@ -25,7 +25,12 @@ namespace trc
     {
     public:
         CommandCollector()
-            : cmdBuf(vkb::VulkanBase::getDevice().createGraphicsCommandBuffer())
+            :
+            commandBuffers(
+                [](ui32) {
+                    return vkb::VulkanBase::getDevice().createGraphicsCommandBuffer();
+                }
+            )
         {}
 
         /**
@@ -39,12 +44,13 @@ namespace trc
 
             const auto& clearValues = drawInfo.renderPass->getClearValues();
             const auto& [renderPass, framebuffer, viewport] = drawInfo;
+            auto cmdBuf = **commandBuffers;
 
             // Set up rendering
-            cmdBuf->reset({});
+            cmdBuf.reset({});
 
-            cmdBuf->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-            cmdBuf->beginRenderPass(
+            cmdBuf.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+            cmdBuf.beginRenderPass(
                 vk::RenderPassBeginInfo(
                     **renderPass,
                     framebuffer,
@@ -65,25 +71,25 @@ namespace trc
                 {
                     // Bind the current pipeline
                     auto& p = GraphicsPipeline::at(pipeline);
-                    p.bind(*cmdBuf);
-                    p.bindDescriptorSets(*cmdBuf);
+                    p.bind(cmdBuf);
+                    p.bindStaticDescriptorSets(cmdBuf);
 
                     // Record commands for all objects with this pipeline
-                    scene.invokeDrawFunctions(subPass, pipeline, *cmdBuf);
+                    scene.invokeDrawFunctions(subPass, pipeline, cmdBuf);
                 }
 
                 if (subPass < subPassCount - 1) {
-                    cmdBuf->nextSubpass(vk::SubpassContents::eInline);
+                    cmdBuf.nextSubpass(vk::SubpassContents::eInline);
                 }
             }
 
-            cmdBuf->endRenderPass();
-            cmdBuf->end();
+            cmdBuf.endRenderPass();
+            cmdBuf.end();
 
-            return *cmdBuf;
+            return cmdBuf;
         }
 
     private:
-        vk::UniqueCommandBuffer cmdBuf;
+        vkb::FrameSpecificObject<vk::UniqueCommandBuffer> commandBuffers;
     };
 } // namespace trc

@@ -31,6 +31,8 @@ namespace trc
         auto getIndexBuffer() const noexcept -> vk::Buffer;
         auto getVertexBuffer() const noexcept -> vk::Buffer;
 
+        auto getIndexCount() const noexcept -> ui32;
+
     private:
         vkb::DeviceLocalBuffer indexBuffer;
         vkb::DeviceLocalBuffer vertexBuffer;

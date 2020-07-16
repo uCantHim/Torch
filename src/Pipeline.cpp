@@ -29,7 +29,7 @@ void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 }
 
-void trc::Pipeline::bindDescriptorSets(vk::CommandBuffer cmdBuf) const
+void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
 {
     for (const auto& [index, set] : staticDescriptorSets)
     {

@@ -55,7 +55,7 @@ void trc::AssetRegistry::updateMaterialBuffer()
         data.emplace_back();
     }
 
-    materialBuffer = vkb::DeviceLocalBuffer(data, vk::BufferUsageFlagBits::eUniformBuffer);
+    materialBuffer = vkb::DeviceLocalBuffer(data, vk::BufferUsageFlagBits::eStorageBuffer);
 }
 
 void trc::AssetRegistry::createDescriptors()
@@ -68,7 +68,7 @@ void trc::AssetRegistry::createDescriptors()
 
     // Create pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eUniformBuffer, 1 },
+        { vk::DescriptorType::eStorageBuffer, 1 },
     };
     descPool = device->createDescriptorPoolUnique({
         vk::DescriptorPoolCreateFlags(), 1, poolSizes
@@ -78,7 +78,7 @@ void trc::AssetRegistry::createDescriptors()
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
         vk::DescriptorSetLayoutBinding(
             MAT_BUFFER_BINDING,
-            vk::DescriptorType::eUniformBuffer,
+            vk::DescriptorType::eStorageBuffer,
             1,
             vk::ShaderStageFlagBits::eFragment
         ),
@@ -103,7 +103,7 @@ void trc::AssetRegistry::updateDescriptors()
     writes.push_back(vk::WriteDescriptorSet(
         *descSet,
         MAT_BUFFER_BINDING, 0, 1,
-        vk::DescriptorType::eUniformBuffer,
+        vk::DescriptorType::eStorageBuffer,
         {},
         &matBufferWrite
     ));

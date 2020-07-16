@@ -17,11 +17,6 @@ trc::RenderPass::RenderPass(
     std::iota(subPasses.begin(), subPasses.end(), 0);
 }
 
-auto trc::RenderPass::operator*() noexcept -> vk::RenderPass
-{
-    return *renderPass;
-}
-
 auto trc::RenderPass::operator*() const noexcept -> vk::RenderPass
 {
     return *renderPass;

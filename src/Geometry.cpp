@@ -19,3 +19,8 @@ auto trc::Geometry::getVertexBuffer() const noexcept -> vk::Buffer
 {
     return *vertexBuffer;
 }
+
+auto trc::Geometry::getIndexCount() const noexcept -> ui32
+{
+    return numIndices;
+}

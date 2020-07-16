@@ -4,7 +4,7 @@ target_sources(
         AssetRegistry.h
         Boilerplate.h
         CommandCollector.h
-        DrawableBase.h
+        Drawable.h
         Geometry.h
         Material.h
         Node.h
