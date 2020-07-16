@@ -17,6 +17,7 @@ add_library(torch)
 add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(include/trc)
+add_subdirectory(shaders)
 
 # Does not work with the new version yet
 # add_subdirectory(example)
