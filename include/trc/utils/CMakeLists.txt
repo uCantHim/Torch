@@ -5,4 +5,5 @@ target_sources(
         Exception.h
         FBXLoader.h
         Transformation.h
+        Util.h
 )

@@ -6,6 +6,7 @@ target_sources(
         CommandCollector.h
         Drawable.h
         Geometry.h
+        Light.h
         Material.h
         Node.h
         Pipeline.h

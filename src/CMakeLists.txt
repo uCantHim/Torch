@@ -4,12 +4,14 @@ target_sources(
         AssetRegistry.cpp
         Drawable.cpp
         Geometry.cpp
+        Light.cpp
         Node.cpp
         Pipeline.cpp
         PipelineBuilder.cpp
         Renderer.cpp
         Renderpass.cpp
         RenderPassDefinitions.cpp
+        Scene.cpp
 )
 
 add_subdirectory(base)
