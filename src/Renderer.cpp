@@ -39,8 +39,6 @@ void trc::Renderer::drawFrame(Scene& scene)
         **frameInFlightFences
     );
 
-    //auto& qp = vkb::VulkanBase::getQueueProvider();
-    //auto presentQueue = qp.getQueue(vkb::queue_type::presentation);
     auto presentQueue = device->getQueue(device.getPhysicalDevice().queueFamilies.presentationFamilies[0].index, 0);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
@@ -126,6 +124,15 @@ void trc::Renderer::createFramebuffer()
 
 void trc::Renderer::signalRecreateRequired()
 {
+    std::vector<vk::Fence> fences;
+    frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
+        fences.push_back(*fence);
+    });
+    vkb::VulkanBase::getDevice()->waitForFences(
+        fences,
+        true,
+        UINT64_MAX
+    );
 }
 
 void trc::Renderer::recreate(vkb::Swapchain&)

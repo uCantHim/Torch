@@ -28,13 +28,4 @@ namespace trc::internal
     void makeMainRenderPass();
 
     void makeDrawableDeferredPipeline();
-
-    struct RenderEnvRecreateHelper : public vkb::SwapchainDependentResource
-    {
-        void signalRecreateRequired() override;
-        void recreate(vkb::Swapchain& swapchain) override;
-        void signalRecreateFinished() override;
-    };
-
-    static RenderEnvRecreateHelper envRecreateHelper;
 }

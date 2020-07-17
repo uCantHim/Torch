@@ -45,7 +45,7 @@ void trc::internal::makeMainRenderPass()
         vk::DependencyFlags()
     );
 
-    trc::RenderPass::create(
+    trc::RenderPass::emplace(
         0,
         vk::RenderPassCreateInfo(
             vk::RenderPassCreateFlags(),
@@ -66,7 +66,7 @@ void trc::internal::makeDrawableDeferredPipeline()
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
-    auto& layout = PipelineLayout::create(
+    auto& layout = PipelineLayout::emplace(
         Pipelines::eDrawableDeferred,
         std::vector<vk::DescriptorSetLayout> {
             AssetRegistry::getDescriptorSetLayout()
@@ -103,20 +103,5 @@ void trc::internal::makeDrawableDeferredPipeline()
             *RenderPass::at(0), RenderPasses::eDeferredPass
         );
 
-    GraphicsPipeline::create(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
-}
-
-
-
-void trc::internal::RenderEnvRecreateHelper::signalRecreateRequired()
-{
-}
-
-void trc::internal::RenderEnvRecreateHelper::recreate(vkb::Swapchain&)
-{
-    initRenderEnvironment();
-}
-
-void trc::internal::RenderEnvRecreateHelper::signalRecreateFinished()
-{
+    GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
 }

@@ -53,13 +53,7 @@ int main()
 
     while (true)
     {
-        auto start = system_clock::now();
-
         renderer.drawFrame(scene);
-
-        auto end = system_clock::now();
-        std::cout << "Frame duration (" << NUM_OBJECTS << " objects): "
-            << duration_cast<microseconds>(end - start).count() << " µs\n";
     }
 
     std::cout << " --- Done\n";
