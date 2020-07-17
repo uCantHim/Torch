@@ -30,6 +30,16 @@ auto SelfManagedObject<Derived>::create(ID index, ConstructArgs&&... args) -> De
 }
 
 template<class Derived>
+template<typename ...ConstructArgs>
+auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> Derived&
+{
+    auto& result = *objects.emplace(index, new Derived(std::forward<ConstructArgs>(args)...));
+    result.myId = index;
+
+    return result;
+}
+
+template<class Derived>
 auto SelfManagedObject<Derived>::at(ID index) -> Derived&
 {
     if (objects.size() <= index || objects[index] == nullptr) {

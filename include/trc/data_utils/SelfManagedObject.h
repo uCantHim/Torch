@@ -38,6 +38,12 @@ namespace trc::data
         static auto create(ID index, ConstructArgs&&... args) -> Derived&;
 
         /**
+         * @brief Like create(), but can overwrite existing objects
+         */
+        template<typename ...ConstructArgs>
+        static auto emplace(ID index, ConstructArgs&&... args) -> Derived&;
+
+        /**
          * @throw std::out_of_range if no object at that index exists
          */
         static auto at(ID index) -> Derived&;
