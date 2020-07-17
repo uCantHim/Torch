@@ -1,6 +1,7 @@
 target_sources(
     torch
     PUBLIC
+        Camera.h
         Exception.h
         FBXLoader.h
         Transformation.h
