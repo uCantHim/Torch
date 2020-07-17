@@ -29,9 +29,11 @@ int main()
     trc::FBXLoader fbxLoader;
     auto grassImport = fbxLoader.loadFBXFile("grass_lowpoly.fbx");
     auto treeImport = fbxLoader.loadFBXFile("tree_lowpoly.fbx");
-    auto& grassGeo = trc::AssetRegistry::add(1, trc::Geometry(grassImport.meshes[0].mesh));
-    auto& treeGeo = trc::AssetRegistry::add(2, trc::Geometry(treeImport.meshes[0].mesh));
-    auto& mat = trc::AssetRegistry::add(0, trc::Material());
+    auto& grassGeo = trc::AssetRegistry::addGeometry(1, trc::Geometry(grassImport.meshes[0].mesh));
+    auto& treeGeo = trc::AssetRegistry::addGeometry(2, trc::Geometry(treeImport.meshes[0].mesh));
+
+    trc::ui32 mat = 0;
+    trc::AssetRegistry::addMaterial(mat, trc::Material());
 
     vkb::MemoryPool pool(v::getDevice().getPhysicalDevice(), 20000);
     vkb::Buffer pooledBuf(500, vk::BufferUsageFlagBits::eStorageBuffer, {}, pool.makeAllocator());
@@ -54,6 +56,11 @@ int main()
     trc::Drawable tree(treeGeo, mat);
     tree.attachToScene(scene);
     tree.setScale(0.04f).rotateX(glm::quarter_pi<float>());
+
+    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, 1.0f, -1.0f));
+    trc::Light ambientLight = trc::makeAmbientLight(vec3(0.1f));
+    scene.addLight(sunLight);
+    //scene.addLight(ambientLight);
 
     while (true)
     {

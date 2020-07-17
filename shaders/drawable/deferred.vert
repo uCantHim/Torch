@@ -1,8 +1,6 @@
 #version 460
 #extension GL_GOOGLE_include_directive : require
 
-#include "../resources.glsl"
-
 layout (location = 0) in vec3 vertexPosition;
 layout (location = 1) in vec3 vertexNormal;
 layout (location = 2) in vec2 vertexUv;
@@ -16,11 +14,6 @@ layout (set = 0, binding = 0, std140) uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
-layout (set = 1, binding = 0, std140) buffer readonly MaterialBuffer
-{
-    Material materials[];
-};
-
 layout (push_constant) uniform PushConstants
 {
     mat4 modelMatrix;
@@ -29,8 +22,10 @@ layout (push_constant) uniform PushConstants
 
 layout (location = 0) out Vertex
 {
+    vec3 worldPos;
     vec3 normal;
     vec2 uv;
+    uint material;
 } vert;
 
 
@@ -40,7 +35,11 @@ layout (location = 0) out Vertex
 
 void main()
 {
-    gl_Position = camera.projMatrix * camera.viewMatrix * modelMatrix * vec4(vertexPosition, 1.0);
-    vert.normal = normalize((transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz);
+    vec4 worldPos = modelMatrix * vec4(vertexPosition, 1.0);
+    gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;
+
+    vert.worldPos = worldPos.xyz;
+    vert.normal = (transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz;
     vert.uv = vertexUv;
+    vert.material = materialIndex;
 }

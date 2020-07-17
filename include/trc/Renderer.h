@@ -41,6 +41,9 @@ namespace trc
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorSet descSet;
 
+        void bindLightBuffer(vk::Buffer lightBuffer);
+        vk::Buffer cachedLightBuffer;
+
         void updateCameraMatrixBuffer(const Camera& camera);
         vkb::Buffer cameraMatrixBuffer;
 

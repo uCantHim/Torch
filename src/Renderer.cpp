@@ -23,12 +23,17 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto& device = vkb::VulkanBase::getDevice();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
 
+    // Update
+    scene.updateTransforms();
+    updateCameraMatrixBuffer(camera);
+    bindLightBuffer(scene.getLightBuffer());
+
+    // Acquire image
     device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     device->resetFences(**frameInFlightFences);
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
     // Collect commands
-    updateCameraMatrixBuffer(camera);
     DrawInfo info = {
         .renderPass = &RenderPass::at(0),
         .framebuffer = **framebuffers,
@@ -137,6 +142,7 @@ void trc::Renderer::createDescriptors()
 {
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eUniformBuffer, 1 }, // Camera buffer
+        { vk::DescriptorType::eStorageBuffer, 1 }, // Light buffer
     };
     descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo({}, 1, poolSizes)
@@ -148,6 +154,11 @@ void trc::Renderer::createDescriptors()
             0,
             vk::DescriptorType::eUniformBuffer, 1,
             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
+        ),
+        vk::DescriptorSetLayoutBinding(
+            1,
+            vk::DescriptorType::eStorageBuffer, 1,
+            vk::ShaderStageFlagBits::eFragment
         ),
     };
     descLayout = vkb::VulkanBase::getDevice()->createDescriptorSetLayoutUnique(
@@ -171,6 +182,29 @@ void trc::Renderer::createDescriptors()
     };
 
     vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
+}
+
+void trc::Renderer::bindLightBuffer(vk::Buffer lightBuffer)
+{
+    if (cachedLightBuffer != lightBuffer)
+    {
+        // Wait until no command buffer uses the descriptor set
+        std::vector<vk::Fence> fences;
+        frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
+            fences.push_back(*fence);
+        });
+        vkb::VulkanBase::getDevice()->waitForFences(fences, true, UINT64_MAX);
+
+        // Update descriptor set
+        vk::DescriptorBufferInfo lightBufferInfo(lightBuffer, 0, VK_WHOLE_SIZE);
+
+        std::vector<vk::WriteDescriptorSet> writes = {
+            { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
+        };
+        vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
+
+        cachedLightBuffer = lightBuffer;
+    }
 }
 
 void trc::Renderer::updateCameraMatrixBuffer(const Camera& camera)

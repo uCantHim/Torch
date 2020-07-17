@@ -1,6 +1,6 @@
-// Definitions of various resource structs
+// Material related stuff
 
-#define NO_TEXTURE uint(~0)
+#define NO_TEXTURE (uint(0) - 1)
 
 struct Material
 {

@@ -75,7 +75,7 @@ void trc::internal::makeDrawableDeferredPipeline(
         },
         std::vector<vk::PushConstantRange> {
             vk::PushConstantRange(
-                vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+                vk::ShaderStageFlagBits::eVertex,
                 0, sizeof(mat4) + sizeof(ui32)
             )
         }
