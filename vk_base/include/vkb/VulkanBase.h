@@ -72,6 +72,31 @@ private:
 };
 
 
+auto getInstance() noexcept -> VulkanInstance& {
+    return VulkanBase::getInstance();
+}
+
+auto getPhysicalDevice() noexcept -> PhysicalDevice& {
+    return VulkanBase::getPhysicalDevice();
+}
+
+auto getDevice() noexcept -> Device& {
+    return VulkanBase::getDevice();
+}
+
+auto getSwapchain() noexcept -> Swapchain& {
+    return VulkanBase::getSwapchain();
+}
+
+auto getQueueProvider() noexcept -> QueueProvider& {
+    return VulkanBase::getQueueProvider();
+}
+
+auto getPoolProvider() noexcept -> PoolProvider& {
+    return VulkanBase::getPoolProvider();
+}
+
+
 /**
  * @brief Helper for static creation of vulkan objects
  *
