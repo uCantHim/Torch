@@ -48,11 +48,6 @@ void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
         sizeof(mat4), material->getAssetId()
     );
 
-    //cmdBuf.bindDescriptorSets(
-    //    vk::PipelineBindPoint::eGraphics, pipeline.getLayout(),
-    //    0, AssetRegistry::getDescriptorSet(), {}
-    //);
-
     cmdBuf.drawIndexed(geometry->getIndexCount(), 1, 0, 0, 0);
 }
 

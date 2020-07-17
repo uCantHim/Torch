@@ -43,7 +43,9 @@ int main()
     constexpr size_t NUM_OBJECTS = 2000;
 
     trc::Scene scene;
-    trc::Camera camera({ { 0, 0 }, { windowSize.width, windowSize.height } }, 45.0f, { 0.0f, 1.0f });
+    trc::Camera camera({ { 0, 0 }, { windowSize.width, windowSize.height } }, 45.0f, { 0.1f, 100.0f });
+    camera.setPosition({ 1, 0, 1 });
+    camera.setForwardVector({ -1, 0, -1 });
 
     trc::Drawable grass(grassGeo, mat);
     grass.attachToScene(scene);

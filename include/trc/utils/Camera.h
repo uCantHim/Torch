@@ -18,8 +18,8 @@ namespace trc
      */
     struct Viewport
     {
-        ivec2 offset{ uvec2(0u) };
-        uvec2 size{ uvec2(0u) };
+        ivec2 offset{ 0, 0 };
+        uvec2 size{ 0, 0 };
     };
 
 

@@ -8,7 +8,7 @@ layout (location = 1) in vec3 vertexNormal;
 layout (location = 2) in vec2 vertexUv;
 layout (location = 3) in vec3 vertexTangent;
 
-layout (set = 0, binding = 0) uniform CameraBuffer
+layout (set = 0, binding = 0, std140) uniform CameraBuffer
 {
     mat4 viewMatrix;
     mat4 projMatrix;
@@ -40,7 +40,7 @@ layout (location = 0) out Vertex
 
 void main()
 {
-    gl_Position = /* camera.projMatrix * camera.viewMatrix * */ modelMatrix * vec4(vertexPosition, 1.0);
+    gl_Position = camera.projMatrix * camera.viewMatrix * modelMatrix * vec4(vertexPosition, 1.0);
     vert.normal = normalize((transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz);
     vert.uv = vertexUv;
 }
