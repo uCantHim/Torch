@@ -5,20 +5,15 @@
 #include "Boilerplate.h"
 #include "Renderpass.h"
 #include "base/SceneBase.h"
+#include "utils/Camera.h"
 
 namespace trc
 {
-    struct Viewport
-    {
-        ivec2 offset;
-        uvec2 size;
-    };
-
     struct DrawInfo
     {
         RenderPass* renderPass;
         vk::Framebuffer framebuffer;
-        Viewport viewport;
+        const Camera* camera;
     };
 
     class CommandCollector
@@ -43,7 +38,9 @@ namespace trc
             assert(drawInfo.renderPass != nullptr);
 
             const auto& clearValues = drawInfo.renderPass->getClearValues();
-            const auto& [renderPass, framebuffer, viewport] = drawInfo;
+            const auto& [renderPass, framebuffer, camera] = drawInfo;
+            Viewport viewport = camera->getViewport();
+
             auto cmdBuf = **commandBuffers;
 
             // Set up rendering

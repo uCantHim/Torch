@@ -6,14 +6,15 @@
 
 
 
-void trc::internal::initRenderEnvironment()
+void trc::internal::makeRenderPasses()
 {
     makeMainRenderPass();
-
-    makeDrawableDeferredPipeline();
 }
 
-
+void trc::internal::makePipelines(std::pair<vk::DescriptorSetLayout, vk::DescriptorSet> cameraSet)
+{
+    makeDrawableDeferredPipeline(cameraSet);
+}
 
 void trc::internal::makeMainRenderPass()
 {
@@ -60,8 +61,8 @@ void trc::internal::makeMainRenderPass()
     );
 }
 
-
-void trc::internal::makeDrawableDeferredPipeline()
+void trc::internal::makeDrawableDeferredPipeline(
+    std::pair<vk::DescriptorSetLayout, vk::DescriptorSet> cameraSet)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -69,7 +70,8 @@ void trc::internal::makeDrawableDeferredPipeline()
     auto& layout = PipelineLayout::emplace(
         Pipelines::eDrawableDeferred,
         std::vector<vk::DescriptorSetLayout> {
-            AssetRegistry::getDescriptorSetLayout()
+            cameraSet.first,
+            AssetRegistry::getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
             vk::PushConstantRange(
@@ -103,5 +105,7 @@ void trc::internal::makeDrawableDeferredPipeline()
             *RenderPass::at(0), RenderPasses::eDeferredPass
         );
 
-    GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
+    auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
+    p.addStaticDescriptorSet(0, cameraSet.second);
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSet());
 }

@@ -3,31 +3,41 @@
 
 
 trc::Renderer::Renderer()
+    :
+    cameraMatrixBuffer(
+        sizeof(mat4) * 4,
+        vk::BufferUsageFlagBits::eUniformBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    )
 {
-    internal::initRenderEnvironment();
+    internal::makeRenderPasses();
     createSemaphores();
     createFramebuffer();
+    createDescriptors();
+
+    internal::makePipelines({ *descLayout, *descSet });
 }
 
-void trc::Renderer::drawFrame(Scene& scene)
+void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 {
     auto& device = vkb::VulkanBase::getDevice();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
-    auto swapchainSize = swapchain.getImageExtent();
 
     device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     device->resetFences(**frameInFlightFences);
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
+    // Collect commands
+    updateCameraMatrixBuffer(camera);
     DrawInfo info = {
         .renderPass = &RenderPass::at(0),
         .framebuffer = **framebuffers,
-        .viewport = { {0, 0}, {swapchainSize.width, swapchainSize.height} }
+        .camera = &camera
     };
     auto cmdBuf = collector.recordScene(scene, info);
 
+    // Submit command buffers
     auto queue = device->getQueue(device.getPhysicalDevice().queueFamilies.graphicsFamilies[0].index, 0);
-
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
     queue.submit(
         vk::SubmitInfo(
@@ -39,6 +49,7 @@ void trc::Renderer::drawFrame(Scene& scene)
         **frameInFlightFences
     );
 
+    // Present frame
     auto presentQueue = device->getQueue(device.getPhysicalDevice().queueFamilies.presentationFamilies[0].index, 0);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
@@ -122,6 +133,56 @@ void trc::Renderer::createFramebuffer()
     );
 }
 
+void trc::Renderer::createDescriptors()
+{
+    std::vector<vk::DescriptorPoolSize> poolSizes = {
+        { vk::DescriptorType::eUniformBuffer, 1 }, // Camera buffer
+    };
+    descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
+        vk::DescriptorPoolCreateInfo({}, 1, poolSizes)
+    );
+
+    // Layout
+    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
+        vk::DescriptorSetLayoutBinding(
+            0,
+            vk::DescriptorType::eUniformBuffer, 1,
+            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
+        ),
+    };
+    descLayout = vkb::VulkanBase::getDevice()->createDescriptorSetLayoutUnique(
+        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
+    );
+
+    // Set
+    descSet = std::move(vkb::VulkanBase::getDevice()->allocateDescriptorSetsUnique(
+        vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
+    )[0]);
+
+    // Write
+    vk::DescriptorBufferInfo cameraBufferInfo(*cameraMatrixBuffer, 0, VK_WHOLE_SIZE);
+    std::vector<vk::WriteDescriptorSet> writes = {
+        vk::WriteDescriptorSet(
+            *descSet,
+            0, 0, 1, vk::DescriptorType::eUniformBuffer,
+            {},
+            &cameraBufferInfo
+        ),
+    };
+
+    vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
+}
+
+void trc::Renderer::updateCameraMatrixBuffer(const Camera& camera)
+{
+    auto buf = reinterpret_cast<mat4*>(cameraMatrixBuffer.map());
+    buf[0] = camera.getViewMatrix();
+    buf[1] = camera.getProjectionMatrix();
+    buf[2] = inverse(camera.getViewMatrix());
+    buf[3] = inverse(camera.getProjectionMatrix());
+    cameraMatrixBuffer.unmap();
+}
+
 void trc::Renderer::signalRecreateRequired()
 {
     std::vector<vk::Fence> fences;
@@ -137,7 +198,8 @@ void trc::Renderer::signalRecreateRequired()
 
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
-    internal::initRenderEnvironment();
+    internal::makeRenderPasses();
+    internal::makePipelines({ *descLayout, *descSet });
     createFramebuffer();
 }
 

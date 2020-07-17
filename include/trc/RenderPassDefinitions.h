@@ -23,9 +23,10 @@ namespace trc::internal
     };
 
 
-    void initRenderEnvironment();
-
+    void makeRenderPasses();
     void makeMainRenderPass();
 
-    void makeDrawableDeferredPipeline();
+    void makePipelines(std::pair<vk::DescriptorSetLayout, vk::DescriptorSet> cameraSet);
+    void makeDrawableDeferredPipeline(
+        std::pair<vk::DescriptorSetLayout, vk::DescriptorSet> cameraSet);
 }

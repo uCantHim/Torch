@@ -8,15 +8,15 @@ layout (location = 1) in vec3 vertexNormal;
 layout (location = 2) in vec2 vertexUv;
 layout (location = 3) in vec3 vertexTangent;
 
-//layout (set = 0, binding = 0) uniform CameraBuffer
-//{
-//    mat4 viewMatrix;
-//    mat4 projMatrix;
-//    mat4 inverseViewMatrix;
-//    mat4 inverseProjMatrix;
-//} camera;
+layout (set = 0, binding = 0) uniform CameraBuffer
+{
+    mat4 viewMatrix;
+    mat4 projMatrix;
+    mat4 inverseViewMatrix;
+    mat4 inverseProjMatrix;
+} camera;
 
-layout (set = 0, binding = 0, std140) buffer readonly MaterialBuffer
+layout (set = 1, binding = 0, std140) buffer readonly MaterialBuffer
 {
     Material materials[];
 };
