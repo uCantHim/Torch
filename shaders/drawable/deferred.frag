@@ -8,7 +8,12 @@ layout (location = 0) in Vertex
     vec2 uv;
 } vert;
 
+const vec3 LIGHT_DIR = vec3(1, 1, -1);
+
 void main()
 {
-    fragColor = vec4(abs(vert.normal), 1.0);
+    vec3 color = vec3(0.0, 1.0, 1.0);
+    color *= max(0.0, dot(vert.normal, normalize(LIGHT_DIR)));
+
+    fragColor = vec4(color, 1.0);
 }

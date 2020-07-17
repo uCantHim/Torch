@@ -41,6 +41,6 @@ layout (location = 0) out Vertex
 void main()
 {
     gl_Position = /* camera.projMatrix * camera.viewMatrix * */ modelMatrix * vec4(vertexPosition, 1.0);
-    vert.normal = vertexNormal;
+    vert.normal = normalize((transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz);
     vert.uv = vertexUv;
 }
