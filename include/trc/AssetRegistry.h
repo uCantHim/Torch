@@ -19,8 +19,8 @@ namespace trc
     public:
         static void init();
 
-        static auto add(ui32 key, Geometry geo) -> Geometry&;
-        static auto add(ui32 key, Material mat) -> Material&;
+        static auto addGeometry(ui32 key, Geometry geo) -> Geometry&;
+        static auto addMaterial(ui32 key, Material mat) -> Material&;
 
         static auto getGeometry(ui32 key) -> Geometry&;
         static auto getMaterial(ui32 key) -> Material&;
@@ -70,7 +70,6 @@ namespace trc
         data::IndexMap<ui32, std::unique_ptr<T>>& map,
         ui32 key, T value) -> T&
     {
-        static_assert(std::is_base_of_v<Asset, T>, "");
         static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
         assert(key != UINT32_MAX);  // Reserved ID that signals empty value
 
@@ -78,10 +77,7 @@ namespace trc
             throw DuplicateKeyError();
         }
 
-        T& result = *map.emplace(key, std::make_unique<T>(std::move(value)));
-        result.id = key;
-
-        return result;
+        return *map.emplace(key, std::make_unique<T>(std::move(value)));
     }
 
     template<typename T>

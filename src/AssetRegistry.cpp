@@ -8,12 +8,15 @@ void trc::AssetRegistry::init()
     createDescriptors();
 }
 
-auto trc::AssetRegistry::add(ui32 key, Geometry geo) -> Geometry&
+auto trc::AssetRegistry::addGeometry(ui32 key, Geometry geo) -> Geometry&
 {
-    return addToMap(geometries, key, std::move(geo));
+    auto& result = addToMap(geometries, key, std::move(geo));
+    result.id = key;
+
+    return result;
 }
 
-auto trc::AssetRegistry::add(ui32 key, Material mat) -> Material&
+auto trc::AssetRegistry::addMaterial(ui32 key, Material mat) -> Material&
 {
     return addToMap(materials, key, std::move(mat));
 }

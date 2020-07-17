@@ -26,18 +26,18 @@ namespace trc
         using Deferred = PipelineIndex<Pipelines::eDrawableDeferred>;
         using Lighting = PipelineIndex<Pipelines::eDrawableLighting>;
 
-        Drawable(Geometry& geo, Material& mat);
+        Drawable(Geometry& geo, ui32 mat);
 
         auto getGeometry() const noexcept -> const Geometry&;
-        auto getMaterial() const noexcept -> const Material&;
+        auto getMaterial() const noexcept -> ui32;
         void setGeometry(Geometry& geo);
-        void setMaterial(Material& mat);
+        void setMaterial(ui32 matIndex);
 
         void recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf);
         void recordCommandBuffer(Lighting, vk::CommandBuffer cmdBuf);
 
     protected:
         Geometry* geometry;
-        Material* material;
+        ui32 material;
     };
 }

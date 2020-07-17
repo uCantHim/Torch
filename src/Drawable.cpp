@@ -6,10 +6,10 @@
 
 
 
-trc::Drawable::Drawable(Geometry& geo, Material& mat)
+trc::Drawable::Drawable(Geometry& geo, ui32 mat)
     :
     geometry(&geo),
-    material(&mat)
+    material(mat)
 {
 }
 
@@ -18,9 +18,9 @@ auto trc::Drawable::getGeometry() const noexcept -> const Geometry&
     return *geometry;
 }
 
-auto trc::Drawable::getMaterial() const noexcept -> const Material&
+auto trc::Drawable::getMaterial() const noexcept -> ui32
 {
-    return *material;
+    return material;
 }
 
 void trc::Drawable::setGeometry(Geometry& geo)
@@ -28,9 +28,9 @@ void trc::Drawable::setGeometry(Geometry& geo)
     geometry = &geo;
 }
 
-void trc::Drawable::setMaterial(Material& mat)
+void trc::Drawable::setMaterial(ui32 mat)
 {
-    material = &mat;
+    material = mat;
 }
 
 void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
@@ -40,12 +40,12 @@ void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
 
     auto& pipeline = GraphicsPipeline::at(Pipelines::eDrawableDeferred);
     cmdBuf.pushConstants<mat4>(
-        pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+        pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex,
         0, getTransformationMatrix()
     );
     cmdBuf.pushConstants<ui32>(
-        pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-        sizeof(mat4), material->getAssetId()
+        pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex,
+        sizeof(mat4), material
     );
 
     cmdBuf.drawIndexed(geometry->getIndexCount(), 1, 0, 0, 0);
