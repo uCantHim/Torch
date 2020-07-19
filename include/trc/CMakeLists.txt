@@ -4,6 +4,7 @@ target_sources(
         AssetRegistry.h
         Boilerplate.h
         CommandCollector.h
+        DescriptorProvider.h
         Drawable.h
         Geometry.h
         Light.h

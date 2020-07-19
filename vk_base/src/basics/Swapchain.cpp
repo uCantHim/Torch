@@ -214,20 +214,34 @@ void vkb::Swapchain::presentImage(
 }
 
 
+auto vkb::Swapchain::getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView
+{
+    assert(imageIndex < getFrameCount());
+
+    return *imageViews[imageIndex];
+}
+
+auto vkb::Swapchain::createImageView(uint32_t imageIndex) const noexcept -> vk::UniqueImageView
+{
+    assert(imageIndex < getFrameCount());
+
+    return device->createImageViewUnique(
+        vk::ImageViewCreateInfo(
+            {}, images[imageIndex], vk::ImageViewType::e2D,
+            getImageFormat(), vk::ComponentMapping(),
+            { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+        )
+    );
+}
+
 auto vkb::Swapchain::createImageViews() const noexcept -> std::vector<vk::UniqueImageView>
 {
     std::vector<vk::UniqueImageView> result;
     result.reserve(images.size());
 
-    for (const auto& image : images)
+    for (uint32_t i = 0; i < getFrameCount(); i++)
     {
-        result.push_back(device->createImageViewUnique(
-            vk::ImageViewCreateInfo(
-                {}, image, vk::ImageViewType::e2D,
-                getImageFormat(), vk::ComponentMapping(),
-                { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-            )
-        ));
+        result.push_back(createImageView(i));
     }
 
     return result;
@@ -283,21 +297,22 @@ void vkb::Swapchain::createSwapchain(bool recreate)
     );
     swapchain = device->createSwapchainKHRUnique(createInfo);
 
-    // Retrieve created images
-    images = device->getSwapchainImagesKHR(swapchain.get());
-
     swapchainExtent = optimalImageExtent;
     swapchainFormat = optimalFormat.format;
     FrameCounter::currentFrame = 0;
 
-    if constexpr (enableVerboseLogging) {
-        std::cout << "Created new swapchain, recreating dependent resources...\n";
-    }
+    // Retrieve created images
+    images = device->getSwapchainImagesKHR(swapchain.get());
+    imageViews = createImageViews();
 
     // Recreate all dependent resources
     // Signal to all dependent resources that recreation is done
     if (recreate)
     {
+        if constexpr (enableVerboseLogging) {
+            std::cout << "New swapchain created, recreating swapchain-dependent resources...\n";
+        }
+
         SwapchainDependentResource::DependentResourceLock::recreateAll(*this);
         SwapchainDependentResource::DependentResourceLock::endRecreate();
     }

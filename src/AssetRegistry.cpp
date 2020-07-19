@@ -31,14 +31,9 @@ auto trc::AssetRegistry::getMaterial(ui32 key) -> Material&
     return getFromMap(materials, key);
 }
 
-auto trc::AssetRegistry::getDescriptorSetLayout() noexcept -> vk::DescriptorSetLayout
+auto trc::AssetRegistry::getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&
 {
-    return *descLayout;
-}
-
-auto trc::AssetRegistry::getDescriptorSet() noexcept -> vk::DescriptorSet
-{
-    return *descSet;
+    return descriptorProvider;
 }
 
 void trc::AssetRegistry::updateMaterialBuffer()
@@ -92,6 +87,7 @@ void trc::AssetRegistry::createDescriptors()
 
     // Create descriptor set
     descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
+    descriptorProvider = { *descLayout, *descSet };
 
     updateDescriptors();
 }

@@ -54,6 +54,8 @@ public:
                       const vk::Queue& queue,
                       const std::vector<vk::Semaphore>& waitSemaphores);
 
+    auto getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView;
+    auto createImageView(uint32_t imageIndex) const noexcept -> vk::UniqueImageView;
     auto createImageViews() const noexcept -> std::vector<vk::UniqueImageView>;
 
 public:
@@ -68,6 +70,7 @@ public:
     vk::Format swapchainFormat;
 
     std::vector<vk::Image> images;
+    std::vector<vk::UniqueImageView> imageViews;
 
     uint32_t numFrames{ 0 };
 };

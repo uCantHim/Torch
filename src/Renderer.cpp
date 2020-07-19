@@ -1,21 +1,32 @@
 #include "Renderer.h"
 
+#include "RenderPassDefinitions.h"
+
 
 
 trc::Renderer::Renderer()
     :
+    deferredPass(new RenderPassDeferred()),
     cameraMatrixBuffer(
         sizeof(mat4) * 4,
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    ),
+    fullscreenQuadVertexBuffer(
+        std::vector<vec3>{
+            vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
+            vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0)
+        },
+        vk::BufferUsageFlagBits::eVertexBuffer
     )
 {
-    internal::makeRenderPasses();
     createSemaphores();
-    createFramebuffer();
     createDescriptors();
 
-    internal::makePipelines({ *descLayout, *descSet });
+    internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
+    internal::makeFinalLightingPipeline(*deferredPass,
+                                        cameraDescriptorProvider,
+                                        deferredPass->getInputAttachmentDescriptor());
 }
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
@@ -35,8 +46,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Collect commands
     DrawInfo info = {
-        .renderPass = &RenderPass::at(0),
-        .framebuffer = **framebuffers,
+        .renderPass = deferredPass.get(),
         .camera = &camera
     };
     auto cmdBuf = collector.recordScene(scene, info);
@@ -80,64 +90,6 @@ void trc::Renderer::createSemaphores()
     );
 }
 
-void trc::Renderer::createFramebuffer()
-{
-    framebuffers = {};
-    framebufferImageViews.clear();
-    framebufferImageViews.reserve(2);
-    framebufferAttachmentImages.clear();
-
-    auto& swapchain = vkb::VulkanBase::getSwapchain();
-
-    // Color image views
-    auto& colorImageViews = framebufferImageViews.emplace_back(swapchain.createImageViews());
-
-    // Depth images
-    auto& depthImages = framebufferAttachmentImages.emplace_back(
-        [&swapchain](uint32_t) {
-            return vkb::Image(vk::ImageCreateInfo(
-                {},
-                vk::ImageType::e2D,
-                vk::Format::eD24UnormS8Uint,
-                vk::Extent3D{ swapchain.getImageExtent(), 1 },
-                1, 1, vk::SampleCountFlagBits::e1,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eDepthStencilAttachment
-            ));
-        }
-    );
-
-    // Depth image views
-    auto& depthImageViews = framebufferImageViews.emplace_back(
-        [&depthImages](uint32_t imageIndex) {
-            return depthImages.getAt(imageIndex).createView(
-                vk::ImageViewType::e2D, vk::Format::eD24UnormS8Uint, vk::ComponentMapping(),
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1)
-            );
-        }
-    );
-
-    framebuffers = vkb::FrameSpecificObject<vk::UniqueFramebuffer>(
-        [&](uint32_t imageIndex) -> vk::UniqueFramebuffer
-        {
-            std::vector<vk::ImageView> imageViews = {
-                *colorImageViews.getAt(imageIndex),
-                *depthImageViews.getAt(imageIndex),
-            };
-
-            return vkb::VulkanBase::getDevice()->createFramebufferUnique(
-                vk::FramebufferCreateInfo(
-                    {},
-                    *trc::RenderPass::at(0),
-                    static_cast<uint32_t>(imageViews.size()), imageViews.data(),
-                    swapchain.getImageExtent().width, swapchain.getImageExtent().height,
-                    1 // layers
-                )
-            );
-        }
-    );
-}
-
 void trc::Renderer::createDescriptors()
 {
     std::vector<vk::DescriptorPoolSize> poolSizes = {
@@ -169,6 +121,7 @@ void trc::Renderer::createDescriptors()
     descSet = std::move(vkb::VulkanBase::getDevice()->allocateDescriptorSetsUnique(
         vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
     )[0]);
+    cameraDescriptorProvider = { *descLayout, *descSet };
 
     // Write
     vk::DescriptorBufferInfo cameraBufferInfo(*cameraMatrixBuffer, 0, VK_WHOLE_SIZE);
@@ -232,9 +185,11 @@ void trc::Renderer::signalRecreateRequired()
 
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
-    internal::makeRenderPasses();
-    internal::makePipelines({ *descLayout, *descSet });
-    createFramebuffer();
+    deferredPass = std::make_unique<RenderPassDeferred>();
+    internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
+    internal::makeFinalLightingPipeline(*deferredPass,
+                                        cameraDescriptorProvider,
+                                        deferredPass->getInputAttachmentDescriptor());
 }
 
 void trc::Renderer::signalRecreateFinished()

@@ -1,9 +1,12 @@
 #pragma once
 
 #include <vkb/basics/Swapchain.h>
+#include <vkb/Image.h>
+#include <vkb/FrameSpecificObject.h>
 
 #include "Boilerplate.h"
 #include "data_utils/SelfManagedObject.h"
+#include "DescriptorProvider.h"
 
 namespace trc
 {
@@ -18,28 +21,65 @@ namespace trc
      *
      * Contains subpasses.
      */
-    class RenderPass : public data::SelfManagedObject<RenderPass>
+    class RenderPass
     {
     public:
-        RenderPass() = default;
-        RenderPass(const vk::RenderPassCreateInfo& createInfo, std::vector<vk::ClearValue> clearValues);
+        RenderPass(vk::UniqueRenderPass renderPass, ui32 subpassCount);
+        virtual ~RenderPass() = default;
 
         auto operator*() const noexcept -> vk::RenderPass;
         auto get() const noexcept -> vk::RenderPass;
 
         auto getNumSubPasses() const noexcept -> ui32;
-        auto getSubPasses() const noexcept -> const std::vector<SubPass::ID>&;
 
-        auto getClearValues() const noexcept -> const std::vector<vk::ClearValue>&;
+        virtual void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) = 0;
+        virtual void end(vk::CommandBuffer cmdBuf) = 0;
+
+    protected:
+        vk::UniqueRenderPass renderPass;
+        ui32 numSubpasses;
+    };
+
+
+    class RenderPassDeferred : public RenderPass
+    {
+    public:
+        RenderPassDeferred();
+
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
+        void end(vk::CommandBuffer cmdBuf) override;
+
+        auto getInputAttachmentDescriptor() const noexcept -> const DescriptorProviderInterface&;
 
     private:
-        vk::UniqueRenderPass renderPass;
+        class InputAttachmentDescriptorProvider : public DescriptorProviderInterface
+        {
+        public:
+            InputAttachmentDescriptorProvider(RenderPassDeferred& renderPass)
+                : renderPass(&renderPass) {}
 
-        // Just a list of contiguous numbers. Could be a simple int but I like
-        // the consistency of having range-based for loops everywhere.
-        std::vector<SubPass::ID> subPasses;
+            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
+            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
 
-        std::vector<vk::ClearValue> clearValues;
+        private:
+            RenderPassDeferred* renderPass;
+        };
+
+        // Attachments
+        std::vector<std::vector<vkb::Image>> attachmentImages;
+        std::vector<std::vector<vk::UniqueImageView>> attachmentImageViews;
+
+        vk::Extent2D framebufferSize;
+        vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
+
+        std::array<vk::ClearValue, 6> clearValues;
+
+        // Descriptors
+        void createInputAttachmentDescriptors();
+        vk::UniqueDescriptorPool descPool;
+        vk::UniqueDescriptorSetLayout inputAttachmentLayout;
+        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> inputAttachmentSets;
+        InputAttachmentDescriptorProvider descriptorProvider;
     };
 
 

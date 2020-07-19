@@ -12,7 +12,6 @@ namespace trc
     struct DrawInfo
     {
         RenderPass* renderPass;
-        vk::Framebuffer framebuffer;
         const Camera* camera;
     };
 
@@ -37,28 +36,13 @@ namespace trc
         {
             assert(drawInfo.renderPass != nullptr);
 
-            const auto& clearValues = drawInfo.renderPass->getClearValues();
-            const auto& [renderPass, framebuffer, camera] = drawInfo;
-            Viewport viewport = camera->getViewport();
-
+            const auto& [renderPass, camera] = drawInfo;
             auto cmdBuf = **commandBuffers;
 
             // Set up rendering
             cmdBuf.reset({});
-
-            cmdBuf.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-            cmdBuf.beginRenderPass(
-                vk::RenderPassBeginInfo(
-                    **renderPass,
-                    framebuffer,
-                    vk::Rect2D(
-                        { viewport.offset.x, viewport.offset.y },
-                        { viewport.size.x, viewport.size.y }
-                    ),
-                    static_cast<ui32>(clearValues.size()), clearValues.data()
-                ),
-                vk::SubpassContents::eInline
-            );
+            cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+            renderPass->begin(cmdBuf, vk::SubpassContents::eInline);
 
             // Record all commands
             const ui32 subPassCount = drawInfo.renderPass->getNumSubPasses();
@@ -80,7 +64,7 @@ namespace trc
                 }
             }
 
-            cmdBuf.endRenderPass();
+            renderPass->end(cmdBuf);
             cmdBuf.end();
 
             return cmdBuf;

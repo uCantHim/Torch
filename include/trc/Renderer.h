@@ -29,17 +29,15 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Framebuffer
-        void createFramebuffer();
-        std::vector<vkb::FrameSpecificObject<vkb::Image>> framebufferAttachmentImages;
-        std::vector<vkb::FrameSpecificObject<vk::UniqueImageView>> framebufferImageViews;
-        vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
+        // Render passes
+        std::unique_ptr<RenderPassDeferred> deferredPass;
 
         // General descriptor set
         void createDescriptors();
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorSet descSet;
+        DescriptorProvider cameraDescriptorProvider{ {}, {} };
 
         void bindLightBuffer(vk::Buffer lightBuffer);
         vk::Buffer cachedLightBuffer;
@@ -49,5 +47,7 @@ namespace trc
 
         // Other things
         CommandCollector collector;
+
+        vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }

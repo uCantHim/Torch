@@ -46,8 +46,8 @@ int main()
 
     trc::Scene scene;
     trc::Camera camera({ { 0, 0 }, { windowSize.width, windowSize.height } }, 45.0f, { 0.1f, 100.0f });
-    camera.setPosition({ 1, 0, 1 });
-    camera.setForwardVector({ -1, 0, -1 });
+    camera.setPosition({ 0, 0, 1.5f });
+    camera.setForwardVector({ 0, 0, -1 });
 
     trc::Drawable grass(grassGeo, mat);
     grass.attachToScene(scene);
@@ -55,12 +55,27 @@ int main()
 
     trc::Drawable tree(treeGeo, mat);
     tree.attachToScene(scene);
-    tree.setScale(0.04f).rotateX(glm::quarter_pi<float>());
+    tree.setScale(0.04f).rotateX(glm::quarter_pi<float>()).rotateY(0.4f);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, 1.0f, -1.0f));
-    trc::Light ambientLight = trc::makeAmbientLight(vec3(0.1f));
+    trc::Light ambientLight = trc::makeAmbientLight(vec3(0.05f));
     scene.addLight(sunLight);
-    //scene.addLight(ambientLight);
+    scene.addLight(ambientLight);
+
+    vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer(
+        std::vector<vec3>{
+            vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
+            vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0)
+        },
+        vk::BufferUsageFlagBits::eVertexBuffer
+    );
+    auto finalLightingDrawable = scene.registerDrawFunction(
+        1, 1,
+        [&](vk::CommandBuffer cmdBuf) {
+            cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
+            cmdBuf.draw(6, 1, 0, 0);
+        }
+    );
 
     while (true)
     {

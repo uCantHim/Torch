@@ -141,7 +141,6 @@ auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> MeshData
     assert(indexCount >= 0);
 	int* indices = mesh->GetPolygonVertices();
 
-    result.vertices.resize(indexCount);
     result.indices.reserve(indexCount);
     for (int i = 0; i < indexCount; i++)
     {
@@ -166,6 +165,8 @@ void trc::FBXLoader::loadVertices(FbxMesh* mesh, MeshData& result)
 	int vertCount = mesh->GetControlPointsCount();
 	FbxVector4* verts = mesh->GetControlPoints();
 
+    result.vertices.resize(vertCount);
+
 	for (int i = 0; i < vertCount; i++)
     {
 		result.vertices[i].position = vec3(verts[i].mData[0], verts[i].mData[1], verts[i].mData[2]);
@@ -189,8 +190,7 @@ void trc::FBXLoader::loadUVs(FbxMesh* mesh, MeshData& result)
 	// Mapping mode is by control-point
 	if (uvElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
 	{
-		std::cout << "ATTENTION! UV mapping mode is by control-point, this could cause undefined behaviour.\n";
-        assert(false);
+		std::cout << "ATTENTION! UV mapping mode is by control-point, this might cause errors\n";
 
 		for (int vertIndex = 0; vertIndex < mesh->GetControlPointsCount(); vertIndex++)
 		{
@@ -218,7 +218,7 @@ void trc::FBXLoader::loadUVs(FbxMesh* mesh, MeshData& result)
 			int uvIndex = i;
 
 			FbxVector2 uv = uvElement->GetDirectArray().GetAt(uvElement->GetIndexArray().GetAt(uvIndex));
-			result.vertices[uvIndex].uv = vec2(uv[0], uv[1]);
+			result.vertices[result.indices[uvIndex]].uv = vec2(uv[0], uv[1]);
 		}
 	}
 }
@@ -231,8 +231,7 @@ void trc::FBXLoader::loadNormals(FbxMesh* mesh, MeshData& result)
 	// Mapping mode is by control-point (vertex)
 	if (normalElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
 	{
-		std::cout << "ATTENTION! Normal mapping mode is by control-point, this could cause undefined behaviour.\n";
-        assert(false);
+		std::cout << "ATTENTION! Normal mapping mode is by control-point, this might cause errors\n";
 
 		for (int vertIndex = 0; vertIndex < mesh->GetControlPointsCount(); vertIndex++)
 		{
@@ -253,14 +252,13 @@ void trc::FBXLoader::loadNormals(FbxMesh* mesh, MeshData& result)
 	// Mapping mode is by polygon-vertex
 	if (normalElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex)
 	{
+        // Polygon vertices are logical vertices (as many as there are indices)
 		int indexCount = mesh->GetPolygonVertexCount();
 
 		for (int i = 0; i < indexCount; i++)
 		{
-			int normalIndex = i;
-
-			FbxVector4 normal = normalElement->GetDirectArray().GetAt(normalIndex);
-			result.vertices[normalIndex].normal = vec3(normal[0], normal[1], normal[2]);
+			FbxVector4 normal = normalElement->GetDirectArray().GetAt(i);
+			result.vertices[result.indices[i]].normal = vec3(normal[0], normal[1], normal[2]);
 		}
 	}
 }
@@ -290,7 +288,7 @@ void trc::FBXLoader::loadTangents(FbxMesh* mesh, MeshData& result)
 		for (int i = 0; i < indexCount; i++)
 		{
 			FbxVector4 tangent = tangentElement->GetDirectArray().GetAt(i);
-			result.vertices[i].tangent = vec3(tangent[0], tangent[1], tangent[2]);
+			result.vertices[result.indices[i]].tangent = vec3(tangent[0], tangent[1], tangent[2]);
 		}
 	}
 }

@@ -24,8 +24,9 @@ layout (location = 0) out Vertex
 {
     vec3 worldPos;
     vec3 normal;
+    vec3 tangent;
     vec2 uv;
-    uint material;
+    flat uint material;
 } vert;
 
 
@@ -40,6 +41,7 @@ void main()
 
     vert.worldPos = worldPos.xyz;
     vert.normal = (transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz;
+    vert.tangent = vertexTangent; // No transformation required as far as I know
     vert.uv = vertexUv;
     vert.material = materialIndex;
 }

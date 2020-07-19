@@ -6,6 +6,7 @@
 #include "Boilerplate.h"
 #include "utils/Exception.h"
 #include "data_utils/IndexMap.h"
+#include "DescriptorProvider.h"
 #include "Geometry.h"
 #include "Material.h"
 
@@ -25,8 +26,7 @@ namespace trc
         static auto getGeometry(ui32 key) -> Geometry&;
         static auto getMaterial(ui32 key) -> Material&;
 
-        static auto getDescriptorSetLayout() noexcept -> vk::DescriptorSetLayout;
-        static auto getDescriptorSet() noexcept -> vk::DescriptorSet;
+        static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
 
     private:
         static inline bool __init = []() {
@@ -61,6 +61,7 @@ namespace trc
         static inline vk::UniqueDescriptorPool descPool;
         static inline vk::UniqueDescriptorSetLayout descLayout;
         static inline vk::UniqueDescriptorSet descSet;
+        static inline DescriptorProvider descriptorProvider{ {}, {} };
     };
 
 

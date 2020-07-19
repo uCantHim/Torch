@@ -31,9 +31,9 @@ void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
 
 void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
 {
-    for (const auto& [index, set] : staticDescriptorSets)
+    for (const auto& [index, provider] : staticDescriptorSets)
     {
-        cmdBuf.bindDescriptorSets(bindPoint, layout, index, set, {});
+        cmdBuf.bindDescriptorSets(bindPoint, layout, index, provider->getDescriptorSet(), {});
     }
 }
 
@@ -42,7 +42,9 @@ auto trc::Pipeline::getLayout() const noexcept -> vk::PipelineLayout
     return layout;
 }
 
-void trc::Pipeline::addStaticDescriptorSet(ui32 descriptorIndex, vk::DescriptorSet set) noexcept
+void trc::Pipeline::addStaticDescriptorSet(
+    ui32 descriptorIndex,
+    const DescriptorProviderInterface& provider) noexcept
 {
-    staticDescriptorSets.emplace_back(descriptorIndex, set);
+    staticDescriptorSets.emplace_back(descriptorIndex, &provider);
 }

@@ -94,7 +94,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkb::VulkanDebug::vulkanDebugCallback(
         break;
 
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        std::cout << "A warning occured.\n";
+        std::cout << "A warning occured: " << callbackData->pMessage << "\n";
         vkWarningLog.log("A " + errorTypeStr + " warning occured:");
         vkWarningLog.log(callbackData->pMessage);
         break;

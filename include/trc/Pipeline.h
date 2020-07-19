@@ -4,6 +4,7 @@
 
 #include "Boilerplate.h"
 #include "data_utils/SelfManagedObject.h"
+#include "DescriptorProvider.h"
 
 namespace trc
 {
@@ -29,10 +30,7 @@ namespace trc
         auto operator*() const noexcept -> vk::PipelineLayout;
         auto get() const noexcept -> vk::PipelineLayout;
 
-        void addDescriptorSetLayouts();
         auto getDescriptorSetLayouts();
-
-        void addPushConstantRanges();
         auto getPushConstantRanges();
 
     private:
@@ -68,10 +66,10 @@ namespace trc
 
         auto getLayout() const noexcept -> vk::PipelineLayout;
 
-        void addStaticDescriptorSet(ui32 descriptorIndex, vk::DescriptorSet set) noexcept;
+        void addStaticDescriptorSet(ui32 descriptorIndex,
+                                    const DescriptorProviderInterface& provider) noexcept;
 
     protected:
-        Pipeline() = default;
         Pipeline(vk::PipelineLayout layout,
                  vk::UniquePipeline pipeline,
                  vk::PipelineBindPoint bindPoint)
@@ -86,7 +84,7 @@ namespace trc
         vk::UniquePipeline pipeline;
         vk::PipelineBindPoint bindPoint;
 
-        std::vector<std::pair<ui32, vk::DescriptorSet>> staticDescriptorSets;
+        std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
     };
 
     /**
@@ -96,7 +94,6 @@ namespace trc
                              public data::SelfManagedObject<GraphicsPipeline>
     {
     public:
-        GraphicsPipeline() = default;
         GraphicsPipeline(vk::PipelineLayout layout, vk::GraphicsPipelineCreateInfo info)
             :
             Pipeline(

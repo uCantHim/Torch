@@ -50,7 +50,3 @@ void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
 
     cmdBuf.drawIndexed(geometry->getIndexCount(), 1, 0, 0, 0);
 }
-
-void trc::Drawable::recordCommandBuffer(Lighting, vk::CommandBuffer cmdBuf)
-{
-}

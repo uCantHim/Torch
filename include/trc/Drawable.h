@@ -24,7 +24,6 @@ namespace trc
     {
     public:
         using Deferred = PipelineIndex<Pipelines::eDrawableDeferred>;
-        using Lighting = PipelineIndex<Pipelines::eDrawableLighting>;
 
         Drawable(Geometry& geo, ui32 mat);
 
@@ -34,7 +33,6 @@ namespace trc
         void setMaterial(ui32 matIndex);
 
         void recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf);
-        void recordCommandBuffer(Lighting, vk::CommandBuffer cmdBuf);
 
     protected:
         Geometry* geometry;
