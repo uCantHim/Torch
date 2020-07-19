@@ -35,9 +35,6 @@ auto trc::SceneBase::registerDrawFunction(
     DrawableFunction commandBufferRecordingFunction
     ) -> RegistrationID
 {
-    //std::cout << "Registering draw function at subpass " << subpass
-    //    << " and pipeline " << usedPipeline << "\n";
-
     tryInsertPipeline(subpass, usedPipeline);
 
     return insertRegistration(
@@ -94,9 +91,9 @@ void trc::SceneBase::tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID
 void trc::SceneBase::removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline)
 {
     uniquePipelines[subpass].erase(pipeline);
-    std::remove(
+    uniquePipelinesVector[subpass].erase(std::find(
         uniquePipelinesVector[subpass].begin(),
         uniquePipelinesVector[subpass].end(),
         pipeline
-    );
+    ));
 }
