@@ -62,21 +62,6 @@ int main()
     scene.addLight(sunLight);
     scene.addLight(ambientLight);
 
-    vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer(
-        std::vector<vec3>{
-            vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
-            vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0)
-        },
-        vk::BufferUsageFlagBits::eVertexBuffer
-    );
-    auto finalLightingDrawable = scene.registerDrawFunction(
-        1, 1,
-        [&](vk::CommandBuffer cmdBuf) {
-            cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
-            cmdBuf.draw(6, 1, 0, 0);
-        }
-    );
-
     while (true)
     {
         renderer.drawFrame(scene, camera);

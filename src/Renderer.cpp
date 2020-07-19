@@ -39,6 +39,15 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     updateCameraMatrixBuffer(camera);
     bindLightBuffer(scene.getLightBuffer());
 
+    // Add final lighting function to scene
+    auto finalLightingFunc = scene.registerDrawFunction(
+        1, 1,
+        [&](vk::CommandBuffer cmdBuf) {
+            cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
+            cmdBuf.draw(6, 1, 0, 0);
+        }
+    );
+
     // Acquire image
     device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     device->resetFences(**frameInFlightFences);
@@ -50,6 +59,9 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
         .camera = &camera
     };
     auto cmdBuf = collector.recordScene(scene, info);
+
+    // Remove fullscreen quad function
+    scene.unregisterDrawFunction(finalLightingFunc);
 
     // Submit command buffers
     auto queue = device->getQueue(device.getPhysicalDevice().queueFamilies.graphicsFamilies[0].index, 0);
