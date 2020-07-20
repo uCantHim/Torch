@@ -122,7 +122,6 @@ namespace vkb
         auto getSize() const noexcept -> vk::DeviceSize;
 
     private:
-        bool isMovedFrom{ false };
         DeviceMemoryDeleter deleter{ [](auto&&) {} };
         DeviceMemoryInternals internal{ {}, 0, 0 };
     };

@@ -10,8 +10,8 @@ target_sources(
         Pipeline.cpp
         PipelineBuilder.cpp
         Renderer.cpp
-        Renderpass.cpp
-        RenderPassDefinitions.cpp
+        RenderPass.cpp
+        PipelineDefinitions.cpp
         Scene.cpp
 )
 

@@ -35,7 +35,7 @@ int main()
     trc::ui32 mat = 0;
     trc::AssetRegistry::addMaterial(mat, trc::Material());
 
-    vkb::MemoryPool pool(v::getDevice().getPhysicalDevice(), 20000);
+    vkb::MemoryPool pool(v::getDevice(), 20000);
     vkb::Buffer pooledBuf(500, vk::BufferUsageFlagBits::eStorageBuffer, {}, pool.makeAllocator());
 
     // ------------------
@@ -46,19 +46,19 @@ int main()
 
     trc::Scene scene;
     trc::Camera camera({ { 0, 0 }, { windowSize.width, windowSize.height } }, 45.0f, { 0.1f, 100.0f });
-    camera.setPosition({ 0, 0, 1.5f });
-    camera.setForwardVector({ 0, 0, -1 });
+    camera.setPosition({ 0, 2.0f, 5.0f });
+    camera.setForwardVector({ 0, -2.0f / 5.0f, -1 });
 
     trc::Drawable grass(grassGeo, mat);
     grass.attachToScene(scene);
-    grass.setScale(0.2f).rotateX(glm::quarter_pi<float>()).translateX(-0.5);
+    grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     trc::Drawable tree(treeGeo, mat);
     tree.attachToScene(scene);
-    tree.setScale(0.04f).rotateX(glm::quarter_pi<float>()).rotateY(0.4f);
+    tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, 1.0f, -1.0f));
-    trc::Light ambientLight = trc::makeAmbientLight(vec3(0.05f));
+    trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
     scene.addLight(sunLight);
     scene.addLight(ambientLight);
 

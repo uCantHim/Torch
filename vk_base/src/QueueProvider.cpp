@@ -9,21 +9,21 @@ using namespace vkb::phys_device_properties;
 
 
 
-std::string queueTypeToString(queue_type type)
+std::string queueTypeToString(QueueType type)
 {
     switch (type)
     {
-    case queue_type::graphics:
+    case QueueType::graphics:
         return "graphics";
-    case queue_type::compute:
+    case QueueType::compute:
         return "compute";
-    case queue_type::transfer:
+    case QueueType::transfer:
         return "transfer";
-    case queue_type::sparseMemory:
+    case QueueType::sparseMemory:
         return "sparse memory";
-    case queue_type::protectedMemory:
+    case QueueType::protectedMemory:
         return "protected memory";
-    case queue_type::presentation:
+    case QueueType::presentation:
         return "presentation";
     default:
         return "ERROR in queueTypeToString()!";
@@ -54,7 +54,7 @@ size_t findMinIndex(const std::vector<T>& vals)
 /*
 Finds the most specialized queue family for a specific queue type.
 That means the */
-std::optional<familyIndex> findMostSpecialized(queue_type type, const std::vector<QueueFamily>& families)
+std::optional<familyIndex> findMostSpecialized(QueueType type, const std::vector<QueueFamily>& families)
 {
     std::vector<familyIndex> possibleFamilies; // Indices into families
     std::vector<uint32_t> numAdditionalCapabilities; // Corresponds to possibleFamilies
@@ -69,12 +69,12 @@ std::optional<familyIndex> findMostSpecialized(queue_type type, const std::vecto
         else continue;
 
         // Test for other supported types
-        for (auto t = static_cast<uint32_t>(queue_type::graphics);
+        for (auto t = static_cast<uint32_t>(QueueType::graphics);
             t < vkb::numQueueTypes_v;
             t++)
         {
             if (t == static_cast<uint32_t>(type)) continue;
-            if (family.isCapable(static_cast<queue_type>(t))) numAdditionalCapabilities.back()++;
+            if (family.isCapable(static_cast<QueueType>(t))) numAdditionalCapabilities.back()++;
         }
     }
 
@@ -101,41 +101,41 @@ vkb::QueueProvider::QueueProvider(const Device& device)
 
         // Build [capability => queue] array (works like a dict in this case)
         for (const auto& queue : queues) {
-            if (family.isCapable(queue_type::graphics)) {
-                queuesPerCapability[static_cast<size_t>(queue_type::graphics)].push_back(queue);
+            if (family.isCapable(QueueType::graphics)) {
+                queuesPerCapability[static_cast<size_t>(QueueType::graphics)].push_back(queue);
             }
-            if (family.isCapable(queue_type::compute)) {
-                queuesPerCapability[static_cast<size_t>(queue_type::compute)].push_back(queue);
+            if (family.isCapable(QueueType::compute)) {
+                queuesPerCapability[static_cast<size_t>(QueueType::compute)].push_back(queue);
             }
-            if (family.isCapable(queue_type::transfer)) {
-                queuesPerCapability[static_cast<size_t>(queue_type::transfer)].push_back(queue);
+            if (family.isCapable(QueueType::transfer)) {
+                queuesPerCapability[static_cast<size_t>(QueueType::transfer)].push_back(queue);
             }
-            if (family.isCapable(queue_type::sparseMemory)) {
-                queuesPerCapability[static_cast<size_t>(queue_type::sparseMemory)].push_back(queue);
+            if (family.isCapable(QueueType::sparseMemory)) {
+                queuesPerCapability[static_cast<size_t>(QueueType::sparseMemory)].push_back(queue);
             }
-            if (family.isCapable(queue_type::protectedMemory)) {
-                queuesPerCapability[static_cast<size_t>(queue_type::protectedMemory)].push_back(queue);
+            if (family.isCapable(QueueType::protectedMemory)) {
+                queuesPerCapability[static_cast<size_t>(QueueType::protectedMemory)].push_back(queue);
             }
-            if (family.isCapable(queue_type::presentation)) {
-                queuesPerCapability[static_cast<size_t>(queue_type::presentation)].push_back(queue);
+            if (family.isCapable(QueueType::presentation)) {
+                queuesPerCapability[static_cast<size_t>(QueueType::presentation)].push_back(queue);
             }
         }
     }
 
     // Look for specialized queues
     std::vector<std::optional<familyIndex>> capabilityFamilyIndices = {
-        findMostSpecialized(queue_type::graphics,            queueFamilies),
-        findMostSpecialized(queue_type::compute,            queueFamilies),
-        findMostSpecialized(queue_type::transfer,            queueFamilies),
-        findMostSpecialized(queue_type::sparseMemory,        queueFamilies),
-        findMostSpecialized(queue_type::protectedMemory,    queueFamilies),
-        findMostSpecialized(queue_type::presentation,        queueFamilies),
+        findMostSpecialized(QueueType::graphics,            queueFamilies),
+        findMostSpecialized(QueueType::compute,            queueFamilies),
+        findMostSpecialized(QueueType::transfer,            queueFamilies),
+        findMostSpecialized(QueueType::sparseMemory,        queueFamilies),
+        findMostSpecialized(QueueType::protectedMemory,    queueFamilies),
+        findMostSpecialized(QueueType::presentation,        queueFamilies),
     };
 
     // Use the 0-th queue as a fallback queue for when all other
     // queues are occupied.
     std::vector<uint32_t> usedQueues(queueFamilies.size(), 1);
-    int type = -1; // used for logging
+    int type = -1;
     for (auto capabilityIndex : capabilityFamilyIndices)
     {
         type++;
@@ -157,34 +157,20 @@ vkb::QueueProvider::QueueProvider(const Device& device)
         if constexpr (enableVerboseLogging)
         {
             std::cout << "Chose queue " << nextQueue << " from family #" << family.index
-                << " as the primary " << queueTypeToString(static_cast<queue_type>(type)) << " queue.\n";
+                << " as the primary " << queueTypeToString(static_cast<QueueType>(type)) << " queue.\n";
         }
     }
 }
 
-auto vkb::QueueProvider::getQueue(queue_type type) const noexcept -> const vk::Queue&
+auto vkb::QueueProvider::getQueue(QueueType type) const noexcept -> vk::Queue
 {
     return primaryQueues[static_cast<size_t>(type)];
 }
 
-
-auto vkb::QueueProvider::getQueueFamilyIndex(queue_type type) const noexcept -> familyIndex
+auto vkb::QueueProvider::getQueueFamilyIndex(QueueType type) const noexcept -> familyIndex
 {
     return primaryQueueFamilies[static_cast<size_t>(type)];
 }
-
-
-size_t vkb::QueueProvider::getQueueFamilyCount() const noexcept
-{
-    return queueFamilies.size();
-}
-
-
-auto vkb::QueueProvider::getQueueFamilies() const noexcept -> const std::vector<phys_device_properties::QueueFamily>&
-{
-    return queueFamilies;
-}
-
 
 auto vkb::QueueProvider::findQueues(const Device& device) const
     -> std::vector<std::pair<phys_device_properties::QueueFamily, std::vector<vk::Queue>>>

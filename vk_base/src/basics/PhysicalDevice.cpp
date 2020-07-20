@@ -44,22 +44,22 @@ auto vkb::phys_device_properties::findSupportedQueueFamilies(
             }
         };
 
-        if (newFamily.isCapable(queue_type::graphics)) {
+        if (newFamily.isCapable(QueueType::graphics)) {
             result.graphicsFamilies.push_back(newFamily);
         }
-        if (newFamily.isCapable(queue_type::compute)) {
+        if (newFamily.isCapable(QueueType::compute)) {
             result.computeFamilies.push_back(newFamily);
         }
-        if (newFamily.isCapable(queue_type::transfer)) {
+        if (newFamily.isCapable(QueueType::transfer)) {
             result.transferFamilies.push_back(newFamily);
         }
-        if (newFamily.isCapable(queue_type::sparseMemory)) {
+        if (newFamily.isCapable(QueueType::sparseMemory)) {
             result.sparseMemoryFamilies.push_back(newFamily);
         }
-        if (newFamily.isCapable(queue_type::protectedMemory)) {
+        if (newFamily.isCapable(QueueType::protectedMemory)) {
             result.protectedMemoryFamilies.push_back(newFamily);
         }
-        if (newFamily.isCapable(queue_type::presentation)) {
+        if (newFamily.isCapable(QueueType::presentation)) {
             result.presentationFamilies.push_back(newFamily);
         }
     }
@@ -135,17 +135,17 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
         for (const auto& fam : uniqueQueueFamilies) {
             std::cout << " - Queue family #" << fam.index << "\n";
             std::cout << "\t" << fam.queueCount << " queues\n";
-            if (fam.isCapable(queue_type::graphics))
+            if (fam.isCapable(QueueType::graphics))
                 std::cout << "\tgraphics capable\n";
-            if (fam.isCapable(queue_type::compute))
+            if (fam.isCapable(QueueType::compute))
                 std::cout << "\tcompute capable\n";
-            if (fam.isCapable(queue_type::transfer))
+            if (fam.isCapable(QueueType::transfer))
                 std::cout << "\ttransfer capable\n";
-            if (fam.isCapable(queue_type::sparseMemory))
+            if (fam.isCapable(QueueType::sparseMemory))
                 std::cout << "\tsparse memory capable\n";
-            if (fam.isCapable(queue_type::protectedMemory))
+            if (fam.isCapable(QueueType::protectedMemory))
                 std::cout << "\tprotected memory capable\n";
-            if (fam.isCapable(queue_type::presentation))
+            if (fam.isCapable(QueueType::presentation))
                 std::cout << "\tpresentation capable\n";
         }
     }

@@ -8,7 +8,7 @@
 #include "basics/PhysicalDevice.h"
 #include "basics/Device.h"
 #include "basics/Swapchain.h"
-#include "PoolProvider.h"
+#include "QueueProvider.h"
 
 namespace vkb
 {
@@ -17,7 +17,17 @@ namespace vkb
         vk::Extent2D windowSize{ 1920, 1080 };
     };
 
-    void vulkanInit(const VulkanInitInfo& initInfo);
+    /**
+     * @brief Initializes Vulkan functionality
+     *
+     * You can create Vulkan objects (device, swapchain, ...) yourself if
+     * you want to, this is just for convenience.
+     */
+    void vulkanInit(const VulkanInitInfo& initInfo = {});
+
+    /**
+     * @brief Destroy all Vulkan-related objects
+     */
     void vulkanTerminate();
 
     /**
@@ -39,7 +49,17 @@ namespace vkb
         static void onInit(std::function<void(void)> callback);
         static void onDestroy(std::function<void(void)> callback);
 
-        static void init(const VulkanInitInfo& initInfo);
+        /**
+         * @brief Initializes Vulkan functionality
+         *
+         * You can create Vulkan objects (device, swapchain, ...) yourself if
+         * you want to, this is just for convenience.
+         */
+        static void init(const VulkanInitInfo& initInfo = {});
+
+        /**
+         * @brief Destroy all Vulkan-related objects
+         */
         static void destroy();
 
         static bool isInitialized() noexcept;
@@ -53,7 +73,6 @@ namespace vkb
         static auto getSwapchain() noexcept      -> Swapchain&;
 
         static auto getQueueProvider() noexcept  -> QueueProvider&;
-        static auto getPoolProvider() noexcept   -> PoolProvider&;
 
     private:
         static inline bool _isInitialized{ false };
@@ -67,32 +86,32 @@ namespace vkb
         static inline std::unique_ptr<Swapchain>      swapchain{ nullptr };
 
         static inline std::unique_ptr<QueueProvider>  queueProvider{ nullptr };
-        static inline std::unique_ptr<PoolProvider>   poolProvider{ nullptr };
     };
 
 
+    /** @brief Shortcut for vkb::VulkanBase::getInstance() */
     inline auto getInstance() noexcept -> VulkanInstance& {
         return VulkanBase::getInstance();
     }
 
+    /** @brief Shortcut for vkb::VulkanBase::getPhysicalDevice() */
     inline auto getPhysicalDevice() noexcept -> PhysicalDevice& {
         return VulkanBase::getPhysicalDevice();
     }
 
+    /** @brief Shortcut for vkb::VulkanBase::getDevice() */
     inline auto getDevice() noexcept -> Device& {
         return VulkanBase::getDevice();
     }
 
+    /** @brief Shortcut for vkb::VulkanBase::getSwapchain() */
     inline auto getSwapchain() noexcept -> Swapchain& {
         return VulkanBase::getSwapchain();
     }
 
+    /** @brief Shortcut for vkb::VulkanBase::getQueueProvider() */
     inline auto getQueueProvider() noexcept -> QueueProvider& {
         return VulkanBase::getQueueProvider();
-    }
-
-    inline auto getPoolProvider() noexcept -> PoolProvider& {
-        return VulkanBase::getPoolProvider();
     }
 
 

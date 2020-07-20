@@ -16,7 +16,7 @@ vkb::ManagedMemoryChunk::ManagedMemoryChunk(
     size(size)
 {}
 
-auto vkb::ManagedMemoryChunk::allocateMemory(vk::MemoryRequirements requirements)
+auto vkb::ManagedMemoryChunk::allocateMemory(const vk::MemoryRequirements& requirements)
     -> DeviceMemory
 {
     if (nextMemoryOffset + requirements.size > size) {
@@ -61,27 +61,29 @@ vkb::MemoryPool::MemoryPool(vk::DeviceSize chunkSize)
     }
 }
 
-vkb::MemoryPool::MemoryPool(const PhysicalDevice& physDevice, vk::DeviceSize chunkSize)
+vkb::MemoryPool::MemoryPool(const Device& device, vk::DeviceSize chunkSize)
     :
-    physDevice(&physDevice),
+    device(&device),
     chunkSize(chunkSize),
-    chunksPerMemoryType(physDevice.memoryProperties.memoryTypeCount)
+    chunksPerMemoryType(device.getPhysicalDevice().memoryProperties.memoryTypeCount)
 {
     if constexpr (vkb::enableVerboseLogging) {
         std::cout << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.\n";
     }
 }
 
-void vkb::MemoryPool::setPhysicalDevice(const PhysicalDevice& physDevice)
+void vkb::MemoryPool::setDevice(const Device& device)
 {
-    chunksPerMemoryType.resize(physDevice.memoryProperties.memoryTypeCount);
-    this->physDevice = &physDevice;
+    assert(this->device == nullptr);
+
+    chunksPerMemoryType.resize(device.getPhysicalDevice().memoryProperties.memoryTypeCount);
+    this->device = &device;
 }
 
 auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
     -> DeviceMemory
 {
-    uint32_t typeIndex = physDevice->findMemoryType(
+    uint32_t typeIndex = device->getPhysicalDevice().findMemoryType(
         requirements.memoryTypeBits,
         properties
     );
@@ -101,14 +103,13 @@ auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             }
 
             return chunks.emplace_back(
-                newChunkSize,
-                typeIndex
-            ).allocateMemory(requirements);
+                new ManagedMemoryChunk(*device, newChunkSize, typeIndex)
+            )->allocateMemory(requirements);
         }
 
         try
         {
-            return chunks.at(i).allocateMemory(requirements);
+            return chunks.at(i)->allocateMemory(requirements);
         }
         catch (const std::out_of_range& err)
         {

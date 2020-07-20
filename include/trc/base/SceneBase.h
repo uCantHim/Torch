@@ -4,7 +4,7 @@
 #include <set>
 
 #include "data_utils/IndexMap.h"
-#include "Renderpass.h"
+#include "RenderPass.h"
 #include "Pipeline.h"
 
 namespace trc

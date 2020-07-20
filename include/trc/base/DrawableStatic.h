@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "Renderpass.h"
+#include "RenderPass.h"
 #include "Pipeline.h"
 #include "SceneRegisterable.h"
 

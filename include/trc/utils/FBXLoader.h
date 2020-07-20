@@ -25,6 +25,7 @@ namespace trc
     struct Mesh
     {
         std::string name;
+        mat4 globalTransform;
 
         MeshData mesh;
         RigData rig;
@@ -57,9 +58,24 @@ namespace trc
         static inline FbxIOSettings* fbx_io_settings{ nullptr };
         static inline bool initialized{ false };
 
+        /** FBX data for one mesh */
+        struct MeshImport
+        {
+            FbxMesh* fbxMesh;
+            std::string name;
+            mat4 transform;
+        };
+
+        /** Relevant FBX data of one scene */
+        struct SceneImport
+        {
+            std::vector<MeshImport> meshes;
+            std::vector<FbxSkeleton*> skeletonRoots;
+        };
+
         ///////////////////
         // FBX file loading
-        bool loadSceneFromFile(const std::string& path);
+        auto loadSceneFromFile(const std::string& path) -> std::optional<SceneImport>;
 
         // Ususal mesh data
         static auto loadMesh(FbxMesh* mesh) -> MeshData;
@@ -79,8 +95,6 @@ namespace trc
         std::map<std::string, int> nameToBoneIndex;
 
         FbxScene* scene{ nullptr };
-        std::vector<FbxMesh*> meshes;
-        std::vector<FbxSkeleton*> skeletonRoots;
 
         std::vector<FbxNode*> boneNodes;
     };

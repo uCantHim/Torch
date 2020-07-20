@@ -12,7 +12,8 @@ target_sources(
         Node.h
         Pipeline.h
         PipelineBuilder.h
-        Renderpass.h
+        RenderPass.h
+        PipelineDefinitions.h
         Vertex.h
 )
 

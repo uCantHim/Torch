@@ -2,7 +2,7 @@
 
 #include <vkb/basics/Swapchain.h>
 
-#include "Renderpass.h"
+#include "RenderPass.h"
 #include "Pipeline.h"
 
 namespace trc::internal

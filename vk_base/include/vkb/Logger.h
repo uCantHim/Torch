@@ -7,7 +7,7 @@
 namespace vkb
 {
 
-constexpr const char* DEFAULT_LOG = { "logs\\default.log" };
+constexpr const char* DEFAULT_LOG = { "logs/default.log" };
 
 class Logger
 {

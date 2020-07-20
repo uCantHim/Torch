@@ -7,7 +7,7 @@
 
 #include "Scene.h"
 #include "CommandCollector.h"
-#include "RenderPassDefinitions.h"
+#include "PipelineDefinitions.h"
 
 namespace trc
 {

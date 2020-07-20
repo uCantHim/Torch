@@ -3,7 +3,7 @@
 #include "base/SceneRegisterable.h"
 #include "base/DrawableStatic.h"
 #include "Node.h"
-#include "RenderPassDefinitions.h"
+#include "PipelineDefinitions.h"
 
 namespace trc
 {

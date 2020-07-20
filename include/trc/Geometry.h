@@ -22,7 +22,7 @@ namespace trc
     {
         friend class vkb::VulkanStaticInitialization<Geometry>;
         static void vulkanStaticInit() {
-            pool.setPhysicalDevice(vkb::VulkanBase::getDevice().getPhysicalDevice());
+            pool.setDevice(vkb::VulkanBase::getDevice());
         }
 
     public:

@@ -1,4 +1,4 @@
-#include "RenderPassDefinitions.h"
+#include "PipelineDefinitions.h"
 
 #include "PipelineBuilder.h"
 #include "Vertex.h"
@@ -43,6 +43,7 @@ void trc::internal::makeDrawableDeferredPipeline(
                 vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, 32),
             }
         )
+        .setFrontFace(vk::FrontFace::eClockwise)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)

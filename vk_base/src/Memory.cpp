@@ -14,24 +14,20 @@ vkb::DeviceMemory::DeviceMemory(DeviceMemory&& other) noexcept
     deleter(std::move(other.deleter)),
     internal(std::move(other.internal))
 {
-    other.isMovedFrom = true;
+    other.deleter = [](...) {};
 }
 
 vkb::DeviceMemory::~DeviceMemory()
 {
-    if (!isMovedFrom) {
-        deleter(internal);
-        std::cout << "Device memory destroyed\n";
-    }
+    deleter(internal);
 }
 
 auto vkb::DeviceMemory::operator=(DeviceMemory&& rhs) noexcept -> DeviceMemory&
 {
-    std::swap(deleter, rhs.deleter);
-    std::swap(internal, rhs.internal);
+    deleter = std::move(rhs.deleter);
+    internal = std::move(rhs.internal);
 
-    isMovedFrom = false;
-    rhs.isMovedFrom = true;
+    rhs.deleter = [](...) {};
 
     return *this;
 }

@@ -12,7 +12,7 @@ namespace vkb
         /* A queue type is the capability of a queue to perform a certain task.
         Queue types are defined by the queue family that a queue belongs to.
         Queues can have multiple queue types. */
-        enum class queue_type {
+        enum class QueueType {
             graphics, compute,
             transfer,
             sparseMemory, protectedMemory,
@@ -25,7 +25,7 @@ namespace vkb
         struct QueueFamily {
             QueueFamily() = default;
             QueueFamily(uint32_t _index, uint32_t _queueCount,
-                        std::array<bool, static_cast<size_t>(queue_type::numQueueTypes)> capabilities)
+                        std::array<bool, static_cast<size_t>(QueueType::numQueueTypes)> capabilities)
                 :
                 index(_index),
                 queueCount(_queueCount),
@@ -35,7 +35,7 @@ namespace vkb
             familyIndex index;
             uint32_t queueCount;
 
-            bool isCapable(queue_type type) const noexcept {
+            bool isCapable(QueueType type) const noexcept {
                 return capabilities[static_cast<size_t>(type)];
             }
 

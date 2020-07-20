@@ -66,6 +66,12 @@ namespace vkb
             const std::string& imagePath,
             vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled);
 
+        Image(const Image&) = delete;
+        Image(Image&&) noexcept = default;
+
+        auto operator=(const Image&) -> Image& = delete;
+        auto operator=(Image&&) noexcept -> Image& = default;
+
         /**
          * @brief Access the underlying vk::Image handle
          *
@@ -118,7 +124,7 @@ namespace vkb
          */
         auto createView(vk::ImageViewType viewType,
                         vk::Format viewFormat,
-                        vk::ComponentMapping componentMapping,
+                        vk::ComponentMapping componentMapping = {},
                         vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE
             ) const -> vk::UniqueImageView;
 

@@ -9,51 +9,47 @@
 
 namespace vkb
 {
+    using phys_device_properties::familyIndex;
+    using phys_device_properties::QueueType;
 
-using phys_device_properties::familyIndex;
-using phys_device_properties::queue_type;
-
-constexpr size_t numQueueTypes_v = static_cast<size_t>(queue_type::numQueueTypes);
-
-/*
-Manages queues and provides helper methods to find the
-appropriate queue for a given task.
-Provides one queue for each queue capability. */
-class QueueProvider
-{
-public:
-    explicit QueueProvider(const Device& device);
+    constexpr size_t numQueueTypes_v = static_cast<size_t>(QueueType::numQueueTypes);
 
     /**
-     * Returns the primary queue of the specified type.
+     * Manages queues and provides helper methods to find the
+     * appropriate queue for a given task.
+     * Provides one queue for each queue capability.
      */
-    auto getQueue(queue_type type) const noexcept -> const vk::Queue&;
+    class QueueProvider
+    {
+    public:
+        explicit QueueProvider(const Device& device);
 
-    /**
-     * Returns the family index of the primary queue of the specified type.
-     */
-    auto getQueueFamilyIndex(queue_type type) const noexcept -> familyIndex;
+        /**
+         * Returns the first queue of the specified type.
+         */
+        auto getQueue(QueueType type) const noexcept -> vk::Queue;
 
-    size_t getQueueFamilyCount() const noexcept;
-    auto getQueueFamilies() const noexcept -> const std::vector<phys_device_properties::QueueFamily>&;
+        /**
+         * Returns the family index of the primary queue of the specified type.
+         */
+        auto getQueueFamilyIndex(QueueType type) const noexcept -> familyIndex;
 
-private:
-    auto findQueues(const Device& device) const
-        -> std::vector<std::pair<phys_device_properties::QueueFamily, std::vector<vk::Queue>>>;
+    private:
+        auto findQueues(const Device& device) const
+            -> std::vector<std::pair<phys_device_properties::QueueFamily, std::vector<vk::Queue>>>;
 
-    /**
-     * Stores all queues with a certain capability at that
-     * capability's index.
-     */
-    std::array<std::vector<vk::Queue>, numQueueTypes_v> queuesPerCapability{};
+        /**
+         * Stores all queues with a certain capability at that
+         * capability's index.
+         */
+        std::array<std::vector<vk::Queue>, numQueueTypes_v> queuesPerCapability{};
 
-    /* All available queue families at their index */
-    std::vector<phys_device_properties::QueueFamily> queueFamilies;
+        /** All available queue families at their index */
+        std::vector<phys_device_properties::QueueFamily> queueFamilies;
 
-    /* One primary queue for each type/function. */
-    std::array<vk::Queue, numQueueTypes_v> primaryQueues{};
-    /* The families of the corresponding primary queues. */
-    std::array<familyIndex, numQueueTypes_v> primaryQueueFamilies{};
-};
-
+        /** One primary queue for each type/function. */
+        std::array<vk::Queue, numQueueTypes_v> primaryQueues{};
+        /** The families of the corresponding primary queues. */
+        std::array<familyIndex, numQueueTypes_v> primaryQueueFamilies{};
+    };
 } // namespace vkb
