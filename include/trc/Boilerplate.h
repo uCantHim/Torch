@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 using namespace glm;
 
+#define TRC_FLIP_Y_PROJECTION
+
 namespace trc
 {
 #ifndef NDEBUG

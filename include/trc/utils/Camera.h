@@ -46,6 +46,9 @@ namespace trc
      * constructing it with the respective constructor, or later on with the
      * methods Camera::makePerspective() and Camera::makeOrthogonal(). The
      * default constructor initializes the camera in perspective mode.
+     *
+     * #define TRC_FLIP_Y_PROJECTION to flip the y-Axis in the projection
+     * matrix. This also causes the face winding to change.
      */
     class Camera
     {
