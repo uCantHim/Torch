@@ -13,6 +13,13 @@ trc::Drawable::Drawable(Geometry& geo, ui32 mat)
 {
 }
 
+trc::Drawable::Drawable(Geometry& geo, ui32 mat, SceneBase& scene)
+    :
+    Drawable(geo, mat)
+{
+    attachToScene(scene);
+}
+
 auto trc::Drawable::getGeometry() const noexcept -> const Geometry&
 {
     return *geometry;
@@ -41,7 +48,7 @@ void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
     auto& pipeline = GraphicsPipeline::at(Pipelines::eDrawableDeferred);
     cmdBuf.pushConstants<mat4>(
         pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        0, getTransformationMatrix()
+        0, getGlobalTransform()
     );
     cmdBuf.pushConstants<ui32>(
         pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex,

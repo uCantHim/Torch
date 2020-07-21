@@ -26,6 +26,7 @@ namespace trc
         using Deferred = PipelineIndex<Pipelines::eDrawableDeferred>;
 
         Drawable(Geometry& geo, ui32 mat);
+        Drawable(Geometry& geo, ui32 mat, SceneBase& scene);
 
         auto getGeometry() const noexcept -> const Geometry&;
         auto getMaterial() const noexcept -> ui32;
