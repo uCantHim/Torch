@@ -34,6 +34,8 @@ namespace trc
         void detachFromParent();
 
     private:
+        mat4 globalTransform{ 1.0f };
+
         Node* parent{ nullptr };
         std::vector<Node*> children;
     };
