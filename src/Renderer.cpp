@@ -54,30 +54,26 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
     // Collect commands
-    DrawInfo info = {
-        .renderPass = deferredPass.get(),
-        .camera = &camera
-    };
-    auto cmdBuf = collector.recordScene(scene, info);
+    auto cmdBufs = collector.recordScene(scene, *deferredPass);
 
     // Remove fullscreen quad function
     scene.unregisterDrawFunction(finalLightingFunc);
 
     // Submit command buffers
-    auto queue = device->getQueue(device.getPhysicalDevice().queueFamilies.graphicsFamilies[0].index, 0);
+    auto queue = vkb::getQueueProvider().getQueue(vkb::QueueType::graphics);
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
     queue.submit(
         vk::SubmitInfo(
             **imageAcquireSemaphores,
             waitStage,
-            cmdBuf,
+            cmdBufs,
             **renderFinishedSemaphores
         ),
         **frameInFlightFences
     );
 
     // Present frame
-    auto presentQueue = device->getQueue(device.getPhysicalDevice().queueFamilies.presentationFamilies[0].index, 0);
+    auto presentQueue = vkb::getQueueProvider().getQueue(vkb::QueueType::presentation);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 

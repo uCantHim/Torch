@@ -2,6 +2,7 @@ target_sources(
     torch
     PRIVATE
         AssetRegistry.cpp
+        CommandCollector.cpp
         DescriptorProvider.cpp
         Drawable.cpp
         Geometry.cpp

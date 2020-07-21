@@ -57,7 +57,9 @@ void vkb::DeviceMemory::bindToBuffer(const Device& device, vk::Buffer buffer)
     device->bindBufferMemory(buffer, internal.memory, internal.baseOffset);
 }
 
-auto vkb::DeviceMemory::map(const Device& device, vk::DeviceSize mappedOffset, vk::DeviceSize mappedSize) -> void*
+auto vkb::DeviceMemory::map(const Device& device,
+                            vk::DeviceSize mappedOffset,
+                            vk::DeviceSize mappedSize) -> void*
 {
     assert(mappedSize == VK_WHOLE_SIZE || mappedSize <= internal.size);
 
