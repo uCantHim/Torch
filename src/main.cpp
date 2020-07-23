@@ -79,8 +79,10 @@ int main()
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, 1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
+    trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(0, 1, 1), 0.2f);
     scene.addLight(sunLight);
     scene.addLight(ambientLight);
+    scene.addLight(pointLight);
 
     std::vector<trc::Drawable> trees;
     trees.reserve(800);

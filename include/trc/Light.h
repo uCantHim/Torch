@@ -35,9 +35,9 @@ namespace trc
      * @brief Create a pointlight
      */
     extern auto makePointLight(vec3 color,
-                        vec3 position,
-                        float attLinear = 0.0f,
-                        float attQuadratic = 0.0f) -> Light;
+                               vec3 position,
+                               float attLinear = 0.0f,
+                               float attQuadratic = 0.0f) -> Light;
 
     /**
      * @brief Create an ambientlight

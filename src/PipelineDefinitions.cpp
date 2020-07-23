@@ -79,7 +79,11 @@ void trc::internal::makeFinalLightingPipeline(
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             gBufferInputSet.getDescriptorSetLayout(),
         },
-        std::vector<vk::PushConstantRange>()
+        std::vector<vk::PushConstantRange>
+        {
+            // Camera position
+            vk::PushConstantRange(vk::ShaderStageFlagBits::eFragment, 0, sizeof(vec3)),
+        }
     );
 
     // Pipeline

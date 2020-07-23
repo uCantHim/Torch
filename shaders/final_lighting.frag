@@ -22,6 +22,11 @@ layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput v
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
 layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
 
+layout (push_constant) uniform PushConstants
+{
+    vec3 cameraPos;
+} pushConstants;
+
 
 /////////////////////
 //      Main       //
@@ -56,8 +61,9 @@ vec3 calcLighting(vec3 color)
     const vec3 diffuseFactor = materials[mat].colorDiffuse.rgb;
     const vec3 specularFactor = materials[mat].colorSpecular.rgb;
 
+    const vec3 worldPos = subpassLoad(vertexPosition).xyz;
     const vec3 normal = normalize(subpassLoad(vertexNormal).xyz);
-    const vec3 toEye = -normalize(subpassLoad(vertexPosition).xyz);
+    const vec3 toEye = normalize(pushConstants.cameraPos - worldPos);
 
     for (uint i = 0; i < numLights; i++)
     {
@@ -70,19 +76,35 @@ vec3 calcLighting(vec3 color)
         }
 
         vec3 toLight;
-
+        float attenuation = 1.0f;
         if (lights[i].type == LIGHT_TYPE_SUN)
         {
             toLight = -normalize(lights[i].direction.xyz);
         }
+        else if (lights[i].type == LIGHT_TYPE_POINT)
+        {
+            toLight = lights[i].position.xyz - worldPos;
+
+            float dist = length(toLight);
+            attenuation -= (lights[i].attenuationLinear * dist
+                            + lights[i].attenuationQuadratic * dist * dist);
+            if (attenuation <= 0.0) {
+                continue;
+            }
+
+            toLight /= dist;
+        }
 
         // Diffuse
         float angle = max(0.0, dot(normal, toLight));
-        diffuse += lightColor * angle * diffuseFactor;
+        diffuse += lightColor * angle * diffuseFactor * attenuation;
 
         // Specular
         float reflectAngle = max(0.0, dot(normalize(reflect(-toLight, normal)), toEye));
-        specular += lightColor * pow(reflectAngle, materials[mat].shininess) * specularFactor;
+        specular += lightColor
+                    * pow(reflectAngle, materials[mat].shininess)  // Specular highlight
+                    * specularFactor                               // Material factor
+                    * attenuation;
     }
 
     return color * (ambient + diffuse) + specular;

@@ -39,10 +39,19 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     updateCameraMatrixBuffer(camera);
     bindLightBuffer(scene.getLightBuffer());
 
+    vec3 cameraPos = camera.getPosition();
+
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
-        1, 1,
-        [&](vk::CommandBuffer cmdBuf) {
+        internal::RenderPasses::eLightingPass,
+        internal::Pipelines::eDrawableLighting,
+        [&, cameraPos](vk::CommandBuffer cmdBuf)
+        {
+            auto& p = GraphicsPipeline::at(internal::Pipelines::eDrawableLighting);
+            cmdBuf.pushConstants<vec3>(
+                p.getLayout(), vk::ShaderStageFlagBits::eFragment, 0, cameraPos
+            );
+
             cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
             cmdBuf.draw(6, 1, 0, 0);
         }
