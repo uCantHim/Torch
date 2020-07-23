@@ -5,12 +5,13 @@
 #include "Node.h"
 #include "PipelineDefinitions.h"
 
+#include "Geometry.h"
+
 namespace trc
 {
     using namespace internal;
 
-    class Geometry;
-    class Material;
+    //class Geometry;
 
     class DrawableBase : public SceneRegisterable, public Node {};
 
@@ -28,7 +29,6 @@ namespace trc
         Drawable(Geometry& geo, ui32 mat);
         Drawable(Geometry& geo, ui32 mat, SceneBase& scene);
 
-        auto getGeometry() const noexcept -> const Geometry&;
         auto getMaterial() const noexcept -> ui32;
         void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);
@@ -36,7 +36,10 @@ namespace trc
         void recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf);
 
     protected:
-        Geometry* geometry;
+        vk::Buffer indexBuffer;
+        vk::Buffer vertexBuffer;
+        ui32 indexCount;
+
         ui32 material;
     };
 }

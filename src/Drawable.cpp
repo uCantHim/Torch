@@ -8,7 +8,9 @@
 
 trc::Drawable::Drawable(Geometry& geo, ui32 mat)
     :
-    geometry(&geo),
+    indexBuffer(geo.getIndexBuffer()),
+    vertexBuffer(geo.getVertexBuffer()),
+    indexCount(geo.getIndexCount()),
     material(mat)
 {
 }
@@ -20,11 +22,6 @@ trc::Drawable::Drawable(Geometry& geo, ui32 mat, SceneBase& scene)
     attachToScene(scene);
 }
 
-auto trc::Drawable::getGeometry() const noexcept -> const Geometry&
-{
-    return *geometry;
-}
-
 auto trc::Drawable::getMaterial() const noexcept -> ui32
 {
     return material;
@@ -32,7 +29,9 @@ auto trc::Drawable::getMaterial() const noexcept -> ui32
 
 void trc::Drawable::setGeometry(Geometry& geo)
 {
-    geometry = &geo;
+    indexBuffer = geo.getIndexBuffer();
+    vertexBuffer = geo.getVertexBuffer();
+    indexCount = geo.getIndexCount();
 }
 
 void trc::Drawable::setMaterial(ui32 mat)
@@ -42,8 +41,8 @@ void trc::Drawable::setMaterial(ui32 mat)
 
 void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
 {
-    cmdBuf.bindIndexBuffer(geometry->getIndexBuffer(), 0, vk::IndexType::eUint32);
-    cmdBuf.bindVertexBuffers(0, geometry->getVertexBuffer(), vk::DeviceSize(0));
+    cmdBuf.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
+    cmdBuf.bindVertexBuffers(0, vertexBuffer, vk::DeviceSize(0));
 
     auto& pipeline = GraphicsPipeline::at(Pipelines::eDrawableDeferred);
     cmdBuf.pushConstants<mat4>(
@@ -55,5 +54,5 @@ void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
         sizeof(mat4), material
     );
 
-    cmdBuf.drawIndexed(geometry->getIndexCount(), 1, 0, 0, 0);
+    cmdBuf.drawIndexed(indexCount, 1, 0, 0, 0);
 }
