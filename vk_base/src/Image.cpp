@@ -109,7 +109,7 @@ void vkb::Image::loadFromFile(const std::string& imagePath, vk::ImageUsageFlags 
     ilDeleteImage(imageId);
 }
 
-void vkb::Image::copyRawData(uint8_t* data, size_t size, ImageSize copySize)
+void vkb::Image::copyRawData(void* data, size_t size, ImageSize copySize)
 {
     copySize.extent = expandExtent(copySize.extent);
 

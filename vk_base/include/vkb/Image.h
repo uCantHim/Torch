@@ -117,7 +117,7 @@ namespace vkb
          * format for the image. Performs rudimentary boundary checks. The
          * user also has to bring the image in the correct layout.
          */
-        void copyRawData(uint8_t* data, size_t size, ImageSize copySize);
+        void copyRawData(void* data, size_t size, ImageSize copySize);
 
         /**
          * @brief Create a view on the image
