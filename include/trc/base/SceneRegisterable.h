@@ -29,7 +29,8 @@ namespace trc
          * might be a costly operation if you have a lot of functions on the
          * object.
          */
-        void usePipeline(SubPass::ID subPass,
+        void usePipeline(RenderPass::ID renderPass,
+                         SubPass::ID subPass,
                          GraphicsPipeline::ID pipeline,
                          DrawableFunction recordCommandBufferFunction);
 
@@ -56,7 +57,8 @@ namespace trc
         void removeFromScene();
 
     private:
-        using RecordFuncTuple = std::tuple<SubPass::ID,
+        using RecordFuncTuple = std::tuple<RenderPass::ID,
+                                           SubPass::ID,
                                            GraphicsPipeline::ID,
                                            DrawableFunction>;
 

@@ -1,10 +1,15 @@
 
 
 
-template<typename Derived, SubPass::ID SubPass, GraphicsPipeline::ID Pipeline>
-StaticPipelineRenderInterface<Derived, SubPass, Pipeline>::StaticPipelineRenderInterface()
+template<
+    typename Derived,
+    RenderPass::ID renderPass,
+    SubPass::ID subPass,
+    GraphicsPipeline::ID pipeline
+>
+StaticPipelineRenderInterface<Derived, renderPass, subPass, pipeline>::StaticPipelineRenderInterface()
 {
-    using Self = StaticPipelineRenderInterface<Derived, SubPass, Pipeline>;
+    using Self = StaticPipelineRenderInterface<Derived, renderPass, subPass, pipeline>;
 
     // Assert that Derived is actually a subclass of this template instantiation
     static_assert(std::is_base_of_v<Self, Derived>,
@@ -16,10 +21,11 @@ StaticPipelineRenderInterface<Derived, SubPass, Pipeline>::StaticPipelineRenderI
                   " SceneRegisterable.");
 
     static_cast<Derived*>(this)->usePipeline(
-        SubPass,
-        Pipeline,
+        renderPass,
+        subPass,
+        pipeline,
         [this](vk::CommandBuffer cmdBuf) {
-            static_cast<Derived*>(this)->recordCommandBuffer(PipelineIndex<Pipeline>(), cmdBuf);
+            static_cast<Derived*>(this)->recordCommandBuffer(PipelineIndex<pipeline>(), cmdBuf);
         }
     );
 }

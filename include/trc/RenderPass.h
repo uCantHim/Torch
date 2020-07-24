@@ -21,7 +21,7 @@ namespace trc
      *
      * Contains subpasses.
      */
-    class RenderPass
+    class RenderPass : public data::SelfManagedObject<RenderPass>
     {
     public:
         RenderPass(vk::UniqueRenderPass renderPass, ui32 subpassCount);

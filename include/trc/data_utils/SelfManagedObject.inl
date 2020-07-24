@@ -30,6 +30,22 @@ auto SelfManagedObject<Derived>::create(ID index, ConstructArgs&&... args) -> De
 }
 
 template<class Derived>
+template<typename Class, typename ...ConstructArgs>
+auto SelfManagedObject<Derived>::create(ID index, ConstructArgs&&... args) -> Class&
+    requires(std::is_polymorphic_v<Derived> == true
+             && std::is_base_of_v<Derived, Class> == true)
+{
+    if (objects.size() > index && objects[index] != nullptr) {
+        throw std::runtime_error("Index " + std::to_string(index) + " already occupied");
+    }
+
+    auto& result = *objects.emplace(index, new Class(std::forward<ConstructArgs>(args)...));
+    result.myId = index;
+
+    return static_cast<Class&>(result);
+}
+
+template<class Derived>
 template<typename ...ConstructArgs>
 auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> Derived&
 {
@@ -37,6 +53,18 @@ auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> D
     result.myId = index;
 
     return result;
+}
+
+template<class Derived>
+template<typename Class, typename ...ConstructArgs>
+auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> Class&
+    requires(std::is_polymorphic_v<Derived> == true
+             && std::is_base_of_v<Derived, Class> == true)
+{
+    auto& result = *objects.emplace(index, new Class(std::forward<ConstructArgs>(args)...));
+    result.myId = index;
+
+    return static_cast<Class&>(result);
 }
 
 template<class Derived>

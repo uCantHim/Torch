@@ -21,6 +21,7 @@ namespace trc
     class Drawable : public DrawableBase
                    , public UsePipeline<Drawable,
                                         RenderPasses::eDeferredPass,
+                                        0, // subpass
                                         Pipelines::eDrawableDeferred>
     {
     public:

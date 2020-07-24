@@ -12,6 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 add_library(torch)
 add_subdirectory(vk_base)

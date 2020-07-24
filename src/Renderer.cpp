@@ -6,7 +6,7 @@
 
 trc::Renderer::Renderer()
     :
-    deferredPass(new RenderPassDeferred()),
+    deferredPass(&RenderPassDeferred::create<RenderPassDeferred>(0)),
     cameraMatrixBuffer(
         sizeof(mat4) * 4,
         vk::BufferUsageFlagBits::eUniformBuffer,
@@ -43,6 +43,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
+        0,
         internal::RenderPasses::eLightingPass,
         internal::Pipelines::eDrawableLighting,
         [&, cameraPos](vk::CommandBuffer cmdBuf)
@@ -202,7 +203,7 @@ void trc::Renderer::signalRecreateRequired()
 
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
-    deferredPass = std::make_unique<RenderPassDeferred>();
+    deferredPass = &RenderPassDeferred::emplace<RenderPassDeferred>(0);
     internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
     internal::makeFinalLightingPipeline(*deferredPass,
                                         cameraDescriptorProvider,

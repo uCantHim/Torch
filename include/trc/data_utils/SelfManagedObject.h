@@ -37,11 +37,21 @@ namespace trc::data
         template<typename ...ConstructArgs>
         static auto create(ID index, ConstructArgs&&... args) -> Derived&;
 
+        template<typename Class, typename ...ConstructArgs>
+        static auto create(ID index, ConstructArgs&&... args) -> Class&
+            requires(std::is_polymorphic_v<Derived> == true
+                     && std::is_base_of_v<Derived, Class> == true);
+
         /**
          * @brief Like create(), but can overwrite existing objects
          */
         template<typename ...ConstructArgs>
         static auto emplace(ID index, ConstructArgs&&... args) -> Derived&;
+
+        template<typename Class, typename ...ConstructArgs>
+        static auto emplace(ID index, ConstructArgs&&... args) -> Class&
+            requires(std::is_polymorphic_v<Derived> == true
+                     && std::is_base_of_v<Derived, Class> == true);
 
         /**
          * @throw std::out_of_range if no object at that index exists

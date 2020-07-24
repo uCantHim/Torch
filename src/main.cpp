@@ -96,13 +96,7 @@ int main()
 
     while (true)
     {
-        auto start = system_clock::now();
-
         renderer.drawFrame(scene, camera);
-
-        auto end = system_clock::now();
-        auto duration = duration_cast<microseconds>(end - start).count();
-        std::cout << "Frame duration: " << duration << " µs\n";
     }
 
     std::cout << " --- Done\n";

@@ -30,7 +30,7 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
         // Render passes
-        std::unique_ptr<RenderPassDeferred> deferredPass;
+        RenderPassDeferred* deferredPass;
 
         // General descriptor set
         void createDescriptors();

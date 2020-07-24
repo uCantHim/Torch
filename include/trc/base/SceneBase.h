@@ -38,17 +38,20 @@ namespace trc
              * Leave the index empty, fill it in SceneBase::insertRegistration().
              */
             DrawableExecutionRegistration(
+                RenderPass::ID r,
                 SubPass::ID s,
                 GraphicsPipeline::ID p,
                 DrawableFunction func);
 
-            // Allows me to modify all ID struct's pointer remotely
+            // Allows me to modify pointer of all ID structs remotely
             std::unique_ptr<DrawableExecutionRegistration*> thisPointer{ nullptr };
             ui32 indexInRegistrationArray;
 
             // Entry data
-            SubPass::ID subPass;            // Might be able to remove this later on
-            GraphicsPipeline::ID pipeline;  // Might be able to remove this later on
+            RenderPass::ID renderPass;
+            SubPass::ID subPass;
+            GraphicsPipeline::ID pipeline;
+
             DrawableFunction recordFunction;
         };
 
@@ -58,19 +61,21 @@ namespace trc
         /**
          * @brief Get all pipelines used in a subpass
          */
-        auto getPipelines(SubPass::ID subpass) const noexcept
-            -> const std::vector<GraphicsPipeline::ID>&;
+        auto getPipelines(RenderPass::ID renderPass, SubPass::ID subpass) const noexcept
+            -> const std::set<GraphicsPipeline::ID>&;
 
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline
          */
         void invokeDrawFunctions(
+            RenderPass::ID renderPass,
             SubPass::ID subpass,
             GraphicsPipeline::ID pipeline,
             vk::CommandBuffer cmdBuf
         ) const;
 
         auto registerDrawFunction(
+            RenderPass::ID renderPass,
             SubPass::ID subpass,
             GraphicsPipeline::ID usedPipeline,
             DrawableFunction commandBufferRecordingFunction
@@ -79,6 +84,7 @@ namespace trc
         void unregisterDrawFunction(RegistrationID id);
 
     private:
+        template<typename T> using PerRenderPass = data::IndexMap<RenderPass::ID, T>;
         template<typename T> using PerSubpass = data::IndexMap<SubPass::ID, T>;
         template<typename T> using PerPipeline = data::IndexMap<GraphicsPipeline::ID, T>;
 
@@ -87,16 +93,31 @@ namespace trc
          */
         auto insertRegistration(DrawableExecutionRegistration reg) -> RegistrationID;
 
-        // TODO: Store the functions in a separate array with ONLY functions.
-        // Just reference those functions through the indexInRegistrationArray
-        // property in DrawableExecutionRegistration.
-        PerSubpass<PerPipeline<std::vector<DrawableExecutionRegistration>>> drawableRegistrations;
+        /**
+         * Sorting the functions this way allows me to group all draw calls with
+         * the same pipelines together.
+         *
+         * TODO: Store the functions in a separate array with ONLY functions.
+         * Just reference those functions through the indexInRegistrationArray
+         * property in DrawableExecutionRegistration.
+         */
+        PerRenderPass<
+            PerSubpass<
+                PerPipeline<
+                    std::vector<DrawableExecutionRegistration>
+                >
+            >
+        > drawableRegistrations;
 
         // Pipeline storage
-        void tryInsertPipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline);
-        void removePipeline(SubPass::ID subpass, GraphicsPipeline::ID pipeline);
+        void tryInsertPipeline(RenderPass::ID renderPass,
+                               SubPass::ID subpass,
+                               GraphicsPipeline::ID pipeline);
+        void removePipeline(RenderPass::ID renderPass,
+                            SubPass::ID subpass,
+                            GraphicsPipeline::ID pipeline);
 
-        PerSubpass<std::set<GraphicsPipeline::ID>> uniquePipelines;
-        PerSubpass<std::vector<GraphicsPipeline::ID>> uniquePipelinesVector;
+        PerRenderPass<PerSubpass<std::set<GraphicsPipeline::ID>>> uniquePipelines;
+        PerRenderPass<PerSubpass<std::vector<GraphicsPipeline::ID>>> uniquePipelinesVector;
     };
 } // namespace trc

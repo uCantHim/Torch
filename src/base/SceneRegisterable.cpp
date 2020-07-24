@@ -3,11 +3,14 @@
 
 
 void trc::SceneRegisterable::usePipeline(
+    RenderPass::ID renderPass,
     SubPass::ID subPass,
     GraphicsPipeline::ID pipeline,
     DrawableFunction recordCommandBufferFunction)
 {
-    drawableRecordFuncs.emplace_back(subPass, pipeline, std::move(recordCommandBufferFunction));
+    drawableRecordFuncs.emplace_back(
+        renderPass, subPass, pipeline, std::move(recordCommandBufferFunction)
+    );
 }
 
 void trc::SceneRegisterable::attachToScene(SceneBase& scene)
@@ -17,9 +20,9 @@ void trc::SceneRegisterable::attachToScene(SceneBase& scene)
         removeFromScene();
     }
 
-    for (const auto& [subPass, pipeline, func] : drawableRecordFuncs)
+    for (const auto& [renderPass, subPass, pipeline, func] : drawableRecordFuncs)
     {
-        registrationIDs.push_back(scene.registerDrawFunction(subPass, pipeline, func));
+        registrationIDs.push_back(scene.registerDrawFunction(renderPass, subPass, pipeline, func));
     }
     currentScene = &scene;
 }
