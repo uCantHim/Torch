@@ -20,11 +20,14 @@ namespace trc
     class AssetRegistry
     {
     public:
+        template<typename T>
+        using Ref = std::reference_wrapper<T>;
+
         static void init();
 
-        static auto addGeometry(Geometry geo) -> std::pair<Geometry*, ui32>;
-        static auto addMaterial(Material mat) -> std::pair<Material*, ui32>;
-        static auto addImage(vkb::Image img) -> std::pair<vkb::Image*, ui32>;
+        static auto addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>;
+        static auto addMaterial(Material mat) -> std::pair<Ref<Material>, ui32>;
+        static auto addImage(vkb::Image img) -> std::pair<Ref<vkb::Image>, ui32>;
 
         static auto getGeometry(ui32 key) -> Geometry&;
         static auto getMaterial(ui32 key) -> Material&;

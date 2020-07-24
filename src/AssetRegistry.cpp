@@ -4,39 +4,35 @@
 
 void trc::AssetRegistry::init()
 {
-    images.reserve(10);
-    imageViews.reserve(10);
-    addImage(vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png"));
-
     updateMaterialBuffer();
     createDescriptors();
 }
 
-auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Geometry*, ui32>
+auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>
 {
     ui32 key = nextGeometryIndex++;
     auto& result = addToMap(geometries, key, std::move(geo));
     result.id = key;
 
-    return { &result, key };
+    return { result, key };
 }
 
-auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Material*, ui32>
+auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Ref<Material>, ui32>
 {
     ui32 key = nextMaterialIndex++;
 
-    return { &addToMap(materials, key, std::move(mat)), key };
+    return { addToMap(materials, key, std::move(mat)), key };
 }
 
-auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<vkb::Image*, ui32>
+auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, ui32>
 {
     ui32 key = nextImageIndex++;
     auto& image = addToMap(images, key, std::move(tex));
     imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Snorm);
 
-    //createDescriptors();
+    createDescriptors();
 
-    return { &image, key };
+    return { image, key };
 }
 
 auto trc::AssetRegistry::getGeometry(ui32 key) -> Geometry&
@@ -93,7 +89,7 @@ void trc::AssetRegistry::createDescriptors()
         { vk::DescriptorType::eCombinedImageSampler, max(1u, static_cast<ui32>(images.size())) },
     };
     descPool = device->createDescriptorPoolUnique({
-        vk::DescriptorPoolCreateFlags(), 1, poolSizes
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
     });
 
     // Create descriptor layout

@@ -22,7 +22,6 @@ struct CameraResize : public vkb::SwapchainDependentResource
 public:
     void signalRecreateRequired() override {}
     void recreate(vkb::Swapchain& sc) override {
-        std::cout << "Window resized\n";
         camera.setViewport({ { 0, 0 }, { sc.getImageExtent().width, sc.getImageExtent().height } });
     }
     void signalRecreateFinished() override {}
@@ -40,15 +39,13 @@ int main()
     vkb::VulkanInitInfo initInfo;
     vkb::vulkanInit(initInfo);
 
-    trc::Renderer renderer;
-
     // ------------------
     // Random test things
 
     trc::FBXLoader fbxLoader;
-    auto grassImport = fbxLoader.loadFBXFile("grass_lowpoly.fbx");
-    auto treeImport = fbxLoader.loadFBXFile("tree_lowpoly.fbx");
-    auto mapImport = fbxLoader.loadFBXFile("map.fbx");
+    auto grassImport = fbxLoader.loadFBXFile("assets/grass_lowpoly.fbx");
+    auto treeImport = fbxLoader.loadFBXFile("assets/tree_lowpoly.fbx");
+    auto mapImport = fbxLoader.loadFBXFile("assets/map.fbx");
 
     auto [grassGeo, grassGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
     auto [treeGeo, treeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
@@ -56,11 +53,15 @@ int main()
     auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
     auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
-    //auto [img, imgIndex] = trc::AssetRegistry::addImage(vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png"));
+    auto [img, imgIndex] = trc::AssetRegistry::addImage(
+        vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
+    );
 
-    trc::ui32 mat = trc::AssetRegistry::addMaterial(trc::Material()).second;
+    auto [mat, matIdx] = trc::AssetRegistry::addMaterial(trc::Material());
 
     // ------------------
+
+    trc::Renderer renderer;
 
     const auto& swapchain = vkb::VulkanBase::getSwapchain();
     const auto& windowSize = swapchain.getImageExtent();
@@ -69,17 +70,22 @@ int main()
     camera.setPosition({ 0, 2.0f, 5.0f });
     camera.setForwardVector({ 0, -2.0f / 5.0f, -1 });
 
-    //trc::Drawable grass(grassGeo, mat, scene);
-    //grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
+    trc::Drawable grass(grassGeo, matIdx, scene);
+    grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
-    //trc::Drawable tree(treeGeo, mat, scene);
-    //tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
+    trc::Drawable tree(treeGeo, matIdx, scene);
+    tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
 
-    //trc::Node node;
-    //node.rotateX(-glm::radians(90.0f));
-    //trc::Drawable map(mapGeo, mat, scene);
-    //node.attach(map);
-    //scene.getRoot().attach(node);
+    trc::Node node;
+    node.rotateX(-glm::radians(90.0f));
+    trc::Drawable map(mapGeo, matIdx, scene);
+    node.attach(map);
+    scene.getRoot().attach(node);
+
+    auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
+    auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
+    trc::Drawable plane(planeGeo, matIdx, scene);
+    plane.rotateY(glm::radians(90.0f));
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, 1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
@@ -92,7 +98,7 @@ int main()
     trees.reserve(800);
     for (int i = 0; i < 800; i++)
     {
-        auto& d = trees.emplace_back(*treeGeo, 2, scene);
+        auto& d = trees.emplace_back(treeGeo, matIdx, scene);
         d.setScale(0.1f).rotateX(glm::radians(-90.0f));
         d.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
         d.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
