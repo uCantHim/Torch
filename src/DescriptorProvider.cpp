@@ -20,3 +20,13 @@ auto trc::DescriptorProvider::getDescriptorSetLayout() const noexcept -> vk::Des
 {
     return layout;
 }
+
+void trc::DescriptorProvider::setDescriptorSet(vk::DescriptorSet newSet)
+{
+    set = newSet;
+}
+
+void trc::DescriptorProvider::setDescriptorSetLayout(vk::DescriptorSetLayout newLayout)
+{
+    layout = newLayout;
+}

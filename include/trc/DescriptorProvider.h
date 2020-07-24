@@ -21,6 +21,9 @@ namespace trc
         auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
 
+        void setDescriptorSet(vk::DescriptorSet newSet);
+        void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);
+
     private:
         vk::DescriptorSetLayout layout;
         vk::DescriptorSet set;
