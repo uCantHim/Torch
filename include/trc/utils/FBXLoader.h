@@ -61,6 +61,11 @@ namespace trc
         /** FBX data for one mesh */
         struct MeshImport
         {
+            // Contructor needed by clang because that compiler is weird as fuck
+            MeshImport(FbxMesh* fbxMesh, std::string name, mat4 transform)
+                : fbxMesh(fbxMesh), name(std::move(name)), transform(transform)
+            {}
+
             FbxMesh* fbxMesh;
             std::string name;
             mat4 transform;
