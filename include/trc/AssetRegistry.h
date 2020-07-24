@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
+#include <atomic>
+
+#include <vkb/Image.h>
 
 #include "Boilerplate.h"
 #include "utils/Exception.h"
@@ -20,11 +22,13 @@ namespace trc
     public:
         static void init();
 
-        static auto addGeometry(ui32 key, Geometry geo) -> Geometry&;
-        static auto addMaterial(ui32 key, Material mat) -> Material&;
+        static auto addGeometry(Geometry geo) -> std::pair<Geometry*, ui32>;
+        static auto addMaterial(Material mat) -> std::pair<Material*, ui32>;
+        static auto addImage(vkb::Image img) -> std::pair<vkb::Image*, ui32>;
 
         static auto getGeometry(ui32 key) -> Geometry&;
         static auto getMaterial(ui32 key) -> Material&;
+        static auto getImage(ui32 key) -> vkb::Image&;
 
         static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
 
@@ -35,25 +39,29 @@ namespace trc
         }();
 
         template<typename T>
-        using StrMap = std::unordered_map<std::string, T>;
-
-        template<typename T>
         static auto addToMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key, T value) -> T&;
         template<typename T>
         static auto getFromMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key) -> T&;
 
         static inline data::IndexMap<ui32, std::unique_ptr<Geometry>> geometries;
         static inline data::IndexMap<ui32, std::unique_ptr<Material>> materials;
+        static inline data::IndexMap<ui32, std::unique_ptr<vkb::Image>> images;
+
+        static inline std::atomic<ui32> nextGeometryIndex{ 0 };
+        static inline std::atomic<ui32> nextMaterialIndex{ 0 };
+        static inline std::atomic<ui32> nextImageIndex{ 0 };
 
         //////////
         // Buffers
         static void updateMaterialBuffer();
-
         static inline vkb::DeviceLocalBuffer materialBuffer;
+
+        static inline data::IndexMap<ui32, vk::UniqueImageView> imageViews;
 
         //////////////
         // Descriptors
         static constexpr ui32 MAT_BUFFER_BINDING = 0;
+        static constexpr ui32 IMG_DESCRIPTOR_BINDING = 1;
 
         static void createDescriptors();
         static void updateDescriptors();
@@ -74,7 +82,7 @@ namespace trc
         static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
         assert(key != UINT32_MAX);  // Reserved ID that signals empty value
 
-        if (map[key] != nullptr) {
+        if (map.size() > key && map[key] != nullptr) {
             throw DuplicateKeyError();
         }
 

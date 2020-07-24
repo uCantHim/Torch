@@ -4,21 +4,39 @@
 
 void trc::AssetRegistry::init()
 {
+    images.reserve(10);
+    imageViews.reserve(10);
+    addImage(vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png"));
+
     updateMaterialBuffer();
     createDescriptors();
 }
 
-auto trc::AssetRegistry::addGeometry(ui32 key, Geometry geo) -> Geometry&
+auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Geometry*, ui32>
 {
+    ui32 key = nextGeometryIndex++;
     auto& result = addToMap(geometries, key, std::move(geo));
     result.id = key;
 
-    return result;
+    return { &result, key };
 }
 
-auto trc::AssetRegistry::addMaterial(ui32 key, Material mat) -> Material&
+auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Material*, ui32>
 {
-    return addToMap(materials, key, std::move(mat));
+    ui32 key = nextMaterialIndex++;
+
+    return { &addToMap(materials, key, std::move(mat)), key };
+}
+
+auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<vkb::Image*, ui32>
+{
+    ui32 key = nextImageIndex++;
+    auto& image = addToMap(images, key, std::move(tex));
+    imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Snorm);
+
+    //createDescriptors();
+
+    return { &image, key };
 }
 
 auto trc::AssetRegistry::getGeometry(ui32 key) -> Geometry&
@@ -29,6 +47,11 @@ auto trc::AssetRegistry::getGeometry(ui32 key) -> Geometry&
 auto trc::AssetRegistry::getMaterial(ui32 key) -> Material&
 {
     return getFromMap(materials, key);
+}
+
+auto trc::AssetRegistry::getImage(ui32 key) -> vkb::Image&
+{
+    return getFromMap(images, key);
 }
 
 auto trc::AssetRegistry::getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&
@@ -67,6 +90,7 @@ void trc::AssetRegistry::createDescriptors()
     // Create pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eStorageBuffer, 1 },
+        { vk::DescriptorType::eCombinedImageSampler, max(1u, static_cast<ui32>(images.size())) },
     };
     descPool = device->createDescriptorPoolUnique({
         vk::DescriptorPoolCreateFlags(), 1, poolSizes
@@ -80,6 +104,12 @@ void trc::AssetRegistry::createDescriptors()
             1,
             vk::ShaderStageFlagBits::eFragment
         ),
+        vk::DescriptorSetLayoutBinding(
+            IMG_DESCRIPTOR_BINDING,
+            vk::DescriptorType::eCombinedImageSampler,
+            images.size(),
+            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
+        ),
     };
     descLayout = device->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo(vk::DescriptorSetLayoutCreateFlags(), layoutBindings)
@@ -87,7 +117,9 @@ void trc::AssetRegistry::createDescriptors()
 
     // Create descriptor set
     descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
-    descriptorProvider = { *descLayout, *descSet };
+
+    descriptorProvider.setDescriptorSet(*descSet);
+    descriptorProvider.setDescriptorSetLayout(*descLayout);
 
     updateDescriptors();
 }
@@ -96,9 +128,23 @@ void trc::AssetRegistry::updateDescriptors()
 {
     static const auto& device = vkb::VulkanBase::getDevice();
 
-    std::vector<vk::WriteDescriptorSet> writes;
-
     vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
+    // Image writes
+    std::vector<vk::DescriptorImageInfo> imageWrites;
+    for (ui32 i = 0; i < images.size(); i++)
+    {
+        if (images[i] == nullptr) {
+            break;
+        }
+
+        imageWrites.push_back(vk::DescriptorImageInfo(
+            images[i]->getDefaultSampler(),
+            *imageViews[i],
+            vk::ImageLayout::eGeneral
+        ));
+    }
+
+    std::vector<vk::WriteDescriptorSet> writes;
     writes.push_back(vk::WriteDescriptorSet(
         *descSet,
         MAT_BUFFER_BINDING, 0, 1,
@@ -106,6 +152,15 @@ void trc::AssetRegistry::updateDescriptors()
         {},
         &matBufferWrite
     ));
+    if (images.size() > 0)
+    {
+        device->updateDescriptorSets(vk::WriteDescriptorSet(
+            *descSet,
+            IMG_DESCRIPTOR_BINDING, 0, imageWrites.size(),
+            vk::DescriptorType::eCombinedImageSampler,
+            imageWrites.data()
+        ), {});
+    }
 
     if (!writes.empty()) {
         device->updateDescriptorSets(writes, {});

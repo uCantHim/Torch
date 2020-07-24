@@ -17,6 +17,8 @@ layout (set = 1, binding = 0, std140) buffer readonly MaterialBuffer
     Material materials[];
 };
 
+layout (set = 1, binding = 1) uniform sampler2D textures[1];
+
 layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
 layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
@@ -46,6 +48,9 @@ void main()
 
     uint diffTexture = materials[mat].diffuseTexture;
     vec3 color = vec3(0.3, 1.0, 0.9);
+
+    vec2 uv = subpassLoad(vertexUv).xy;
+    color = texture(textures[0], uv).rgb;
 
     fragColor = vec4(calcLighting(color), 1.0);
 }

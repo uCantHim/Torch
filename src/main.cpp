@@ -50,14 +50,15 @@ int main()
     auto treeImport = fbxLoader.loadFBXFile("tree_lowpoly.fbx");
     auto mapImport = fbxLoader.loadFBXFile("map.fbx");
 
-    auto& grassGeo = trc::AssetRegistry::addGeometry(1, trc::Geometry(grassImport.meshes[0].mesh));
-    auto& treeGeo = trc::AssetRegistry::addGeometry(2, trc::Geometry(treeImport.meshes[0].mesh));
-    auto& mapGeo = trc::AssetRegistry::addGeometry(3, trc::Geometry(mapImport.meshes[0].mesh));
-    auto& treeMat = trc::AssetRegistry::addMaterial(2, treeImport.meshes[0].materials[0]);
-    auto& mapMat = trc::AssetRegistry::addMaterial(3, mapImport.meshes[0].materials[0]);
+    auto [grassGeo, grassGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
+    auto [treeGeo, treeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
+    auto [mapGeo, mapGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
+    auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
+    auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
-    trc::ui32 mat = 0;
-    trc::AssetRegistry::addMaterial(mat, trc::Material());
+    //auto [img, imgIndex] = trc::AssetRegistry::addImage(vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png"));
+
+    trc::ui32 mat = trc::AssetRegistry::addMaterial(trc::Material()).second;
 
     // ------------------
 
@@ -91,7 +92,7 @@ int main()
     trees.reserve(800);
     for (int i = 0; i < 800; i++)
     {
-        auto& d = trees.emplace_back(treeGeo, 2, scene);
+        auto& d = trees.emplace_back(*treeGeo, 2, scene);
         d.setScale(0.1f).rotateX(glm::radians(-90.0f));
         d.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
         d.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
