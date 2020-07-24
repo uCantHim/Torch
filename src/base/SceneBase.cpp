@@ -16,6 +16,14 @@ trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
 auto trc::SceneBase::getPipelines(RenderPass::ID renderPass, SubPass::ID subpass) const noexcept
     -> const std::set<GraphicsPipeline::ID>&
 {
+    static std::set<GraphicsPipeline::ID> emptyResult;
+
+    if (uniquePipelines.size() <= renderPass
+        || uniquePipelines[renderPass].size() <= subpass)
+    {
+        return emptyResult;
+    }
+
     return uniquePipelines[renderPass][subpass];
 }
 
