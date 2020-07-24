@@ -11,6 +11,7 @@
 
 #include "Boilerplate.h"
 #include "Geometry.h"
+#include "Material.h"
 
 namespace trc
 {
@@ -28,6 +29,7 @@ namespace trc
         mat4 globalTransform;
 
         MeshData mesh;
+        std::vector<Material> materials;
         RigData rig;
         std::vector<AnimationData> animations;
     };
@@ -90,7 +92,7 @@ namespace trc
         static void loadTangents(FbxMesh* mesh, MeshData& result);
         static void computeTangents(MeshData& result);
 
-        // static void loadMaterials(FbxMesh* mesh, MeshConstructionParams* newMesh);
+        static auto loadMaterials(FbxMesh* mesh) -> std::vector<Material>;
 
         // // Animation data
         // void loadSkeleton(FbxMesh* mesh, ImportResult* newMesh);

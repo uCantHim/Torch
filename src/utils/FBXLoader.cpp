@@ -44,6 +44,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
             name,
             transform,
             loadMesh(mesh),
+            loadMaterials(mesh),
             {},
             {}
         };
@@ -373,67 +374,70 @@ void trc::FBXLoader::computeTangents(MeshData& result)
 }
 
 
-// void trc::FBXLoader::loadMaterials(FbxMesh* mesh, MeshConstructionParams*)
-// {
-//     FbxNode* meshNode = mesh->GetNode();
-//     int materialCount = meshNode->GetMaterialCount();
-//     std::cout << "\t" << materialCount << " materials found.\n";
-//
-//     FbxSurfaceMaterial* mat = meshNode->GetMaterial(0);
-//     if (mat != nullptr)
-//     {
-//         if (GetImplementation(mat, FBXSDK_IMPLEMENTATION_HLSL) != nullptr
-//             || GetImplementation(mat, FBXSDK_IMPLEMENTATION_CGFX) != nullptr) {
-//             std::cout << "Material " << mat->GetName() << " is some strange hardware shader, I don't know what to do with that.\n";
-//         }
-//         // Material is a Phong material
-//         else if (mat->GetClassId().Is(FbxSurfacePhong::ClassId))
-//         {
-//             std::cout << "\tLoading Phong material " << mat->GetName() << ".\n";
-//             auto phongMat = dynamic_cast<FbxSurfacePhong*>(mat);
-//             Material newMaterial;
-//
-//             FbxDouble3 colorAmbient = phongMat->Ambient;
-//             FbxDouble3 colorDiffuse = phongMat->Diffuse;
-//             FbxDouble3 colorSpecular = phongMat->Specular;
-//             newMaterial.ka = vec4(colorAmbient.mData[0], colorAmbient.mData[1], colorAmbient.mData[2], 1.0f);
-//             newMaterial.ka = vec4(1.0f); // FBX does not fully export materials. Ambient color, for example, gets lost
-//             newMaterial.kd = vec4(colorDiffuse.mData[0], colorDiffuse.mData[1], colorDiffuse.mData[2], 1.0f);
-//             newMaterial.ks = vec4(colorSpecular.mData[0], colorSpecular.mData[1], colorSpecular.mData[2], 1.0f);
-//             newMaterial.exponent = static_cast<float>(phongMat->Shininess);
-//             //newMaterial.opacity = 1.0f - (float)phongMat->TransparencyFactor.Get();
-//
-//             //newMeshParams->material = newMaterial;
-//         }
-//         // Material is a Lambert material
-//         else if (mat->GetClassId().Is(FbxSurfaceLambert::ClassId))
-//         {
-//             std::cout << "\tLoading Lambert material " << mat->GetName() << " with standard values for specular color and shinyness.\n";
-//             auto lambertMat = dynamic_cast<FbxSurfaceLambert*>(mat);
-//             Material newMaterial;
-//
-//             FbxDouble3 colorAmbient = lambertMat->Ambient;
-//             FbxDouble3 colorDiffuse = lambertMat->Diffuse;
-//             newMaterial.ka = vec4(colorAmbient.mData[0], colorAmbient.mData[1], colorAmbient.mData[2], 1.0f);
-//             newMaterial.ka = vec4(1.0f); // FBX does not fully export materials. Ambient color, for example, gets lost
-//             newMaterial.kd = vec4(colorDiffuse.mData[0], colorDiffuse.mData[1], colorDiffuse.mData[2], 1.0f);
-//             newMaterial.ks = vec4(1.0f); // Standard value
-//             const float STANDARD_EXPONENT = 16.0f;
-//             newMaterial.exponent = STANDARD_EXPONENT; // Standard value
-//             //newMaterial.opacity = 1.0f - (float)lambertMat->TransparencyFactor.Get();
-//
-//             //newMeshParams->material = newMaterial;
-//         }
-//         else {
-//             std::cout << "Material " << mat->GetName() << " is an unknown material type.\n";
-//         }
-//     }
-//     else {// if mat == nullptr
-//         std::cout << "\tNo materials were loaded for mesh! Standard material will be used.\n";
-//     }
-// }
-//
-//
+auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
+{
+    FbxNode* meshNode = mesh->GetNode();
+    const int materialCount = meshNode->GetMaterialCount();
+    std::cout << "\t" << materialCount << " materials found.\n";
+
+    std::vector<Material> result;
+
+    for (int i = 0; i < materialCount; i++)
+    {
+        FbxSurfaceMaterial* mat = meshNode->GetMaterial(i);
+        if (mat == nullptr) {
+            continue;
+        }
+
+        if (GetImplementation(mat, FBXSDK_IMPLEMENTATION_HLSL) != nullptr
+            || GetImplementation(mat, FBXSDK_IMPLEMENTATION_CGFX) != nullptr)
+        {
+            std::cout << "Material " << mat->GetName()
+                << " is some strange hardware shader, I don't know what to do with that.\n";
+            continue;
+        }
+
+        // Material is a Phong material
+        if (mat->GetClassId().Is(FbxSurfacePhong::ClassId))
+        {
+            std::cout << "\tLoading Phong material " << mat->GetName() << ".\n";
+            auto phongMat = dynamic_cast<FbxSurfacePhong*>(mat);
+            auto& newMaterial = result.emplace_back();
+
+            FbxDouble3 colorAmbient = phongMat->Ambient;
+            FbxDouble3 colorDiffuse = phongMat->Diffuse;
+            FbxDouble3 colorSpecular = phongMat->Specular;
+            newMaterial.colorAmbient = vec4(colorAmbient.mData[0], colorAmbient.mData[1], colorAmbient.mData[2], 1.0f);
+            newMaterial.colorDiffuse = vec4(colorDiffuse.mData[0], colorDiffuse.mData[1], colorDiffuse.mData[2], 1.0f);
+            newMaterial.colorSpecular = vec4(colorSpecular.mData[0], colorSpecular.mData[1], colorSpecular.mData[2], 1.0f);
+            newMaterial.shininess = static_cast<float>(phongMat->Shininess);
+            newMaterial.opacity = 1.0f - static_cast<float>(phongMat->TransparencyFactor.Get());
+        }
+        // Material is a Lambert material
+        else if (mat->GetClassId().Is(FbxSurfaceLambert::ClassId))
+        {
+            std::cout << "\tLoading Lambert material " << mat->GetName() << " with standard values for specular color and shinyness.\n";
+            auto lambertMat = dynamic_cast<FbxSurfaceLambert*>(mat);
+            Material newMaterial;
+
+            FbxDouble3 colorAmbient = lambertMat->Ambient;
+            FbxDouble3 colorDiffuse = lambertMat->Diffuse;
+            newMaterial.colorAmbient = vec4(colorAmbient.mData[0], colorAmbient.mData[1], colorAmbient.mData[2], 1.0f);
+            newMaterial.colorDiffuse = vec4(colorDiffuse.mData[0], colorDiffuse.mData[1], colorDiffuse.mData[2], 1.0f);
+            newMaterial.colorSpecular = vec4(1.0f);
+            newMaterial.opacity = 1.0f - static_cast<float>(lambertMat->TransparencyFactor.Get());
+            newMaterial.shininess = 1.0f; // Standard value
+        }
+        else {
+            std::cout << "Material " << mat->GetName() << " is an unknown material type.\n";
+            continue;
+        }
+    }
+
+    return result;
+}
+
+
 // void trc::FBXLoader::loadSkeleton(FbxMesh* mesh, ImportResult* newMeshParams)
 // {
 //     createBonesFromSkeleton(skeletonRoots[0]->GetNode(), nullptr, &newMeshParams->rig.value());
