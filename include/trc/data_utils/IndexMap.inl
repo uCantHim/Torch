@@ -52,7 +52,8 @@ inline auto IndexMap<Key, Value>::emplace(Key key, Args&&... args) -> Value&
         values.resize(key + 1);
     }
 
-    return *values.emplace(values.begin() + key, std::forward<Args>(args)...);
+    values[key] = Value(std::forward<Args>(args)...);
+    return values[key];
 }
 
 template<typename Key, typename Value>
