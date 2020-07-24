@@ -54,7 +54,7 @@ void trc::internal::makeDrawableDeferredPipeline(
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            *renderPass, RenderPasses::eDeferredPass
+            *renderPass, DeferredSubPasses::eGBufferPass
         );
 
     auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
@@ -105,7 +105,7 @@ void trc::internal::makeFinalLightingPipeline(
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            *renderPass, RenderPasses::eLightingPass
+            *renderPass, DeferredSubPasses::eLightingPass
         );
 
     auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableLighting, *layout, std::move(pipeline));

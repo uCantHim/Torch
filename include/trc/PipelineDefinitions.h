@@ -7,12 +7,20 @@
 
 namespace trc::internal
 {
-    enum RenderPasses : SubPass::ID
+    enum RenderPasses : RenderPass::ID
     {
         eDeferredPass = 0,
-        eLightingPass = 1,
 
         NUM_PASSES
+    };
+
+
+    enum DeferredSubPasses
+    {
+        eGBufferPass = 0,
+        eLightingPass = 1,
+
+        NUM_SUBPASSES
     };
 
 
