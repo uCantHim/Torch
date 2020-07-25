@@ -32,6 +32,11 @@ auto vkb::ManagedMemoryChunk::allocateMemory(const vk::MemoryRequirements& requi
     );
 }
 
+auto vkb::ManagedMemoryChunk::getRemainingSize() const noexcept -> vk::DeviceSize
+{
+    return size - nextMemoryOffset;
+}
+
 void vkb::ManagedMemoryChunk::releaseMemory(
     vk::DeviceSize memoryOffset,
     vk::DeviceSize memorySize) noexcept
@@ -47,6 +52,11 @@ void vkb::ManagedMemoryChunk::releaseMemory(
     else if (nextMemoryOffset - memorySize == memoryOffset)
     {
         nextMemoryOffset -= memorySize;
+    }
+
+    if constexpr (enableVerboseLogging) {
+        std::cout << "(ManagedMemoryChunk): Free " << memorySize << " bytes at offset "
+            << memoryOffset << "\n";
     }
 }
 
@@ -83,6 +93,10 @@ void vkb::MemoryPool::setDevice(const Device& device)
 auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
     -> DeviceMemory
 {
+    if constexpr (enableVerboseLogging) {
+        std::cout << "(MemoryPool): Request " << requirements.size << " bytes of memory\n";
+    }
+
     uint32_t typeIndex = device->getPhysicalDevice().findMemoryType(
         requirements.memoryTypeBits,
         properties
@@ -98,8 +112,9 @@ auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             // Create a new memory chunk for the required memory type index.
             const size_t newChunkSize = glm::max(chunkSize, requirements.size);
 
-            if constexpr (vkb::enableVerboseLogging) {
-                std::cout << "Allocated a chunk of " << newChunkSize << " bytes of device memory.\n";
+            if constexpr (enableVerboseLogging) {
+                std::cout << "(MemoryPool): Allocate a new chunk of " << newChunkSize << " bytes"
+                    << " and memory type " << typeIndex << "\n";
             }
 
             return chunks.emplace_back(
@@ -107,16 +122,16 @@ auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             )->allocateMemory(requirements);
         }
 
-        try
+        if (chunks[i]->getRemainingSize() >= requirements.size)
         {
+            if constexpr (enableVerboseLogging) {
+                std::cout << "(MemoryPool): Allocate " << requirements.size << " from chunk "
+                    << i << " (" << chunks[i]->getRemainingSize() << " bytes remaining)\n";
+            }
             return chunks.at(i)->allocateMemory(requirements);
         }
-        catch (const std::out_of_range& err)
-        {
-            // This out-of-range is thrown by ManagedMemoryChunk
-            i++;
-            continue;
-        }
+
+        i++;
     }
 }
 

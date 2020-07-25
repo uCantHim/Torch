@@ -56,6 +56,11 @@ namespace vkb
          */
         auto allocateMemory(const vk::MemoryRequirements& requirements) -> DeviceMemory;
 
+        /**
+         * @return vk::DeviceSize The amount of free bytes in the chunk
+         */
+        auto getRemainingSize() const noexcept -> vk::DeviceSize;
+
     private:
         /**
          * @brief Release allocated memory back to the pool
