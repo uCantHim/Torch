@@ -90,7 +90,8 @@ auto vkb::phys_device_properties::findSwapchainSupport(
  */
 static auto getRequiredDeviceExtensions() -> std::vector<const char*> {
     return std::vector<const char*> {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
     };
 }
 
@@ -166,7 +167,10 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
     }
 
     // Device features
-    const vk::PhysicalDeviceFeatures deviceFeatures = {};
+    const auto deviceFeatures = physicalDevice.getFeatures2<
+        vk::PhysicalDeviceFeatures2,
+        vk::PhysicalDeviceDescriptorIndexingFeatures
+    >();
 
     // Validation validationLayers
     const auto validationLayers = getRequiredValidationLayers();
@@ -174,16 +178,23 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
     // Extensions
     const auto deviceExtensions = getRequiredDeviceExtensions();
 
-    // Create the logical device
-    vk::DeviceCreateInfo createInfo(
-        {},
-        static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data(),
-        static_cast<uint32_t>(validationLayers.size()), validationLayers.data(),
-        static_cast<uint32_t>(deviceExtensions.size()), deviceExtensions.data(),
-        &deviceFeatures
-    );
+    vk::PhysicalDeviceDescriptorIndexingFeatures descIndexing;
+    descIndexing.runtimeDescriptorArray = true;
 
-    return physicalDevice.createDeviceUnique(createInfo);
+    // Create the logical device
+    vk::StructureChain chain
+    {
+        vk::DeviceCreateInfo(
+            {},
+            static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data(),
+            static_cast<uint32_t>(validationLayers.size()), validationLayers.data(),
+            static_cast<uint32_t>(deviceExtensions.size()), deviceExtensions.data(),
+            &deviceFeatures.get<vk::PhysicalDeviceFeatures2>().features
+        ),
+        deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
+    };
+
+    return physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
 }
 
 
