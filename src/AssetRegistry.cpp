@@ -28,7 +28,7 @@ auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, 
 {
     ui32 key = nextImageIndex++;
     auto& image = addToMap(images, key, std::move(tex));
-    imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Snorm);
+    imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
 
     createDescriptors();
 
@@ -73,6 +73,10 @@ void trc::AssetRegistry::updateMaterialBuffer()
     }
 
     materialBuffer = vkb::DeviceLocalBuffer(data, vk::BufferUsageFlagBits::eStorageBuffer);
+
+    if (descSet) {
+        updateDescriptors();
+    }
 }
 
 void trc::AssetRegistry::createDescriptors()

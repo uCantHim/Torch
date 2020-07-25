@@ -35,6 +35,8 @@ namespace trc
 
         static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
 
+        static void updateMaterialBuffer();
+
     private:
         static inline bool __init = []() {
             vkb::VulkanBase::onInit(AssetRegistry::init);
@@ -56,7 +58,6 @@ namespace trc
 
         //////////
         // Buffers
-        static void updateMaterialBuffer();
         static inline vkb::DeviceLocalBuffer materialBuffer;
 
         static inline data::IndexMap<ui32, vk::UniqueImageView> imageViews;
