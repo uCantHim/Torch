@@ -50,14 +50,32 @@ int main()
     auto [grassGeo, grassGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
     auto [treeGeo, treeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
     auto [mapGeo, mapGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
-    auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
-    auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
+    //auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
+    //auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
     auto [img, imgIndex] = trc::AssetRegistry::addImage(
         vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
     );
 
+    auto [stoneTex, stoneTexIdx] = trc::AssetRegistry::addImage(
+        vkb::Image("assets/rough_stone_wall.tif")
+    );
+    auto [stoneNormalTex, stoneNormalTexIdx] = trc::AssetRegistry::addImage(
+        vkb::Image("assets/rough_stone_wall_normal.tif")
+    );
+
     auto [mat, matIdx] = trc::AssetRegistry::addMaterial(trc::Material());
+    mat.get().colorAmbient = vec4(1.0f);
+    mat.get().colorDiffuse = vec4(1.0f);
+    mat.get().colorSpecular = vec4(1.0f);
+    mat.get().diffuseTexture = stoneTexIdx;
+    mat.get().bumpTexture = stoneNormalTexIdx;
+    mat.get().shininess = 2.0f;
+
+    trc::AssetRegistry::updateMaterialBuffer();
+
+    // Additional textures
+    trc::AssetRegistry::addImage(vkb::Image("assets/jute_normal.tif"));
 
     // ------------------
 
@@ -76,23 +94,24 @@ int main()
     trc::Drawable tree(treeGeo, matIdx, scene);
     tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
 
-    trc::Node node;
-    node.rotateX(-glm::radians(90.0f));
-    trc::Drawable map(mapGeo, matIdx, scene);
-    node.attach(map);
-    scene.getRoot().attach(node);
+    //trc::Node node;
+    //node.rotateX(-glm::radians(90.0f));
+    //trc::Drawable map(mapGeo, matIdx, scene);
+    //node.attach(map);
+    //scene.getRoot().attach(node);
 
     auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
     auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
     trc::Drawable plane(planeGeo, matIdx, scene);
-    plane.rotateY(glm::radians(90.0f));
+    plane.rotateY(glm::radians(-90.0f));
+    plane.translate(0.5f, 0.7f, 1.0f);
 
-    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, 1.0f, -1.0f));
+    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
     trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(0, 1, 1), 0.2f);
     scene.addLight(sunLight);
     scene.addLight(ambientLight);
-    scene.addLight(pointLight);
+    //scene.addLight(pointLight);
 
     std::vector<trc::Drawable> trees;
     trees.reserve(800);

@@ -14,6 +14,8 @@ layout (set = 0, binding = 0, std140) uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
+layout (set = 1, binding = 1) uniform sampler2D textures[];
+
 layout (push_constant) uniform PushConstants
 {
     mat4 modelMatrix;
@@ -23,10 +25,9 @@ layout (push_constant) uniform PushConstants
 layout (location = 0) out Vertex
 {
     vec3 worldPos;
-    vec3 normal;
-    vec3 tangent;
     vec2 uv;
     flat uint material;
+    mat3 tbn;
 } vert;
 
 
@@ -40,8 +41,11 @@ void main()
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;
 
     vert.worldPos = worldPos.xyz;
-    vert.normal = (transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz;
-    vert.tangent = vertexTangent; // No transformation required as far as I know
     vert.uv = vertexUv;
     vert.material = materialIndex;
+
+    vec3 N = normalize((transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz);
+    vec3 T = normalize((modelMatrix * vec4(vertexTangent, 0.0)).xyz);
+    vec3 B = cross(N, T);
+    vert.tbn = mat3(T, B, N);
 }

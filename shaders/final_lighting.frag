@@ -1,5 +1,6 @@
 #version 460
 #extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 #include "light.glsl"
 #include "material.glsl"
@@ -12,12 +13,12 @@ layout (set = 0, binding = 1, std140) buffer readonly LightBuffer
     Light lights[];
 };
 
-layout (set = 1, binding = 0, std140) buffer readonly MaterialBuffer
+layout (set = 1, binding = 0, std430) buffer readonly MaterialBuffer
 {
     Material materials[];
 };
 
-layout (set = 1, binding = 1) uniform sampler2D textures[1];
+layout (set = 1, binding = 1) uniform sampler2D textures[];
 
 layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
 layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
@@ -46,11 +47,15 @@ void main()
         return;
     }
 
-    uint diffTexture = materials[mat].diffuseTexture;
     vec3 color = vec3(0.3, 1.0, 0.9);
 
-    vec2 uv = subpassLoad(vertexUv).xy;
-    color = texture(textures[0], uv).rgb;
+    // Use diffuse texture if available
+    uint diffTexture = materials[mat].diffuseTexture;
+    if (diffTexture != NO_TEXTURE)
+    {
+        vec2 uv = subpassLoad(vertexUv).xy;
+        color = texture(textures[diffTexture], uv).rgb;
+    }
 
     fragColor = vec4(calcLighting(color), 1.0);
 }
@@ -109,8 +114,9 @@ vec3 calcLighting(vec3 color)
         specular += lightColor
                     * pow(reflectAngle, materials[mat].shininess)  // Specular highlight
                     * specularFactor                               // Material factor
-                    * attenuation;
+                    * attenuation
+                    * (materials[mat].shininess + 2.0) / (2.0 * 3.1415926535);
     }
 
-    return color * (ambient + diffuse) + specular;
+    return color * min((ambient + diffuse), vec3(1.0)) + specular;
 }
