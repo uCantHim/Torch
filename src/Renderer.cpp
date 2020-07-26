@@ -24,6 +24,7 @@ trc::Renderer::Renderer()
     createDescriptors();
 
     internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
+    internal::makeInstancedDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
     internal::makeFinalLightingPipeline(*deferredPass,
                                         cameraDescriptorProvider,
                                         deferredPass->getInputAttachmentDescriptor());
@@ -45,10 +46,10 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto finalLightingFunc = scene.registerDrawFunction(
         internal::RenderPasses::eDeferredPass,
         internal::DeferredSubPasses::eLightingPass,
-        internal::Pipelines::eDrawableLighting,
+        internal::Pipelines::eFinalLighting,
         [&, cameraPos](vk::CommandBuffer cmdBuf)
         {
-            auto& p = GraphicsPipeline::at(internal::Pipelines::eDrawableLighting);
+            auto& p = GraphicsPipeline::at(internal::Pipelines::eFinalLighting);
             cmdBuf.pushConstants<vec3>(
                 p.getLayout(), vk::ShaderStageFlagBits::eFragment, 0, cameraPos
             );
@@ -205,6 +206,7 @@ void trc::Renderer::recreate(vkb::Swapchain&)
 {
     deferredPass = &RenderPassDeferred::emplace<RenderPassDeferred>(0);
     internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
+    internal::makeInstancedDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
     internal::makeFinalLightingPipeline(*deferredPass,
                                         cameraDescriptorProvider,
                                         deferredPass->getInputAttachmentDescriptor());

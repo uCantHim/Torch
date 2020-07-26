@@ -6,6 +6,9 @@ layout (location = 1) in vec3 vertexNormal;
 layout (location = 2) in vec2 vertexUv;
 layout (location = 3) in vec3 vertexTangent;
 
+layout (location = 4) in mat4 instanceModelMatrix;
+layout (location = 8) in uint instanceMaterialIndex;
+
 layout (set = 0, binding = 0, std140) uniform CameraBuffer
 {
     mat4 viewMatrix;
@@ -13,12 +16,6 @@ layout (set = 0, binding = 0, std140) uniform CameraBuffer
     mat4 inverseViewMatrix;
     mat4 inverseProjMatrix;
 } camera;
-
-layout (push_constant) uniform PushConstants
-{
-    mat4 modelMatrix;
-    uint materialIndex;
-};
 
 layout (location = 0) out Vertex
 {
@@ -35,15 +32,15 @@ layout (location = 0) out Vertex
 
 void main()
 {
-    vec4 worldPos = modelMatrix * vec4(vertexPosition, 1.0);
+    vec4 worldPos = instanceModelMatrix * vec4(vertexPosition, 1.0);
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;
 
     vert.worldPos = worldPos.xyz;
     vert.uv = vertexUv;
-    vert.material = materialIndex;
+    vert.material = instanceMaterialIndex;
 
-    vec3 N = normalize((transpose(inverse(modelMatrix)) * vec4(vertexNormal, 0.0)).xyz);
-    vec3 T = normalize((modelMatrix * vec4(vertexTangent, 0.0)).xyz);
+    vec3 N = normalize((transpose(inverse(instanceModelMatrix)) * vec4(vertexNormal, 0.0)).xyz);
+    vec3 T = normalize((instanceModelMatrix * vec4(vertexTangent, 0.0)).xyz);
     vec3 B = cross(N, T);
     vert.tbn = mat3(T, B, N);
 }

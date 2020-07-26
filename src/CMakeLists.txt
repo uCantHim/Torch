@@ -5,6 +5,7 @@ target_sources(
         CommandCollector.cpp
         DescriptorProvider.cpp
         Drawable.cpp
+        DrawableInstanced.cpp
         Geometry.cpp
         Light.cpp
         Node.cpp

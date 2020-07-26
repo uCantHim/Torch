@@ -11,8 +11,6 @@ namespace trc
 {
     using namespace internal;
 
-    //class Geometry;
-
     class DrawableBase : public SceneRegisterable, public Node {};
 
     /**

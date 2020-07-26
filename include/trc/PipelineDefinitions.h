@@ -27,13 +27,21 @@ namespace trc::internal
     enum Pipelines : GraphicsPipeline::ID
     {
         eDrawableDeferred = 0,
-        eDrawableLighting = 1,
+        eFinalLighting = 1,
+        eDrawableInstancedDeferred = 2,
     };
 
 
-    void makeDrawableDeferredPipeline(RenderPass& renderPass,
-                                      const DescriptorProviderInterface& generalDescriptorSet);
-    void makeFinalLightingPipeline(RenderPass& renderPass,
-                                   const DescriptorProviderInterface& generalDescriptorSet,
-                                   const DescriptorProviderInterface& gBufferInputSet);
+    void makeDrawableDeferredPipeline(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeInstancedDrawableDeferredPipeline(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeFinalLightingPipeline(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet,
+        const DescriptorProviderInterface& gBufferInputSet);
 }

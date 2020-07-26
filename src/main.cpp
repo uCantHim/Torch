@@ -12,6 +12,7 @@ using namespace std::chrono;
 #include "trc/Geometry.h"
 #include "trc/AssetRegistry.h"
 #include "trc/Drawable.h"
+#include "trc/DrawableInstanced.h"
 #include "trc/Scene.h"
 #include "trc/Renderer.h"
 
@@ -113,15 +114,20 @@ int main()
     scene.addLight(ambientLight);
     //scene.addLight(pointLight);
 
-    std::vector<trc::Drawable> trees;
-    trees.reserve(800);
-    for (int i = 0; i < 800; i++)
+    // Instanced trees
+    constexpr trc::ui32 NUM_TREES = 800;
+
+    trc::DrawableInstanced instancedTrees(NUM_TREES, treeGeo, scene);
+    for (int i = 0; i < NUM_TREES; i++)
     {
-        auto& d = trees.emplace_back(treeGeo, matIdx, scene);
-        d.setScale(0.1f).rotateX(glm::radians(-90.0f));
-        d.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
-        d.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
+        trc::Transformation t;
+        t.setScale(0.1f).rotateX(glm::radians(-90.0f));
+        t.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
+        t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
+
+        instancedTrees.addInstance({ t.getTransformationMatrix(), matIdx });
     }
+
 
     while (true)
     {

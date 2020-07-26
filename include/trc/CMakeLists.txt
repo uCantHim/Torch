@@ -6,6 +6,7 @@ target_sources(
         CommandCollector.h
         DescriptorProvider.h
         Drawable.h
+        DrawableInstanced.h
         Geometry.h
         Light.h
         Material.h
