@@ -54,6 +54,10 @@ int main()
     auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
     auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
+    auto hoodedBoiImport = fbxLoader.loadFBXFile("assets/hooded_boi.fbx");
+    auto skeletonImport = fbxLoader.loadFBXFile("assets/skeleton.fbx");
+    trc::AssetRegistry::addGeometry(trc::Geometry(skeletonImport.meshes[0].mesh));
+
     auto [img, imgIndex] = trc::AssetRegistry::addImage(
         vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
     );

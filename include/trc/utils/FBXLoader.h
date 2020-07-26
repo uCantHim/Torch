@@ -17,10 +17,29 @@ namespace trc
 {
     struct RigData
     {
+        struct Bone
+        {
+            mat4 inverseBindPoseMat;
+        };
+
+        // Indexed by per-vertex bone indices
+        std::vector<Bone> bones;
+
+        // Maps bone names to their indices in the bones array
+        std::unordered_map<std::string, ui32> boneNamesToIndices;
     };
 
     struct AnimationData
     {
+        struct Keyframe
+        {
+            std::vector<mat4> boneMatrices;
+        };
+
+        ui32 frameCount;
+        float durationMs;
+        float frameTimeMs;
+        std::vector<Keyframe> keyframes;
     };
 
     struct Mesh
@@ -94,15 +113,26 @@ namespace trc
 
         static auto loadMaterials(FbxMesh* mesh) -> std::vector<Material>;
 
-        // // Animation data
-        // void loadSkeleton(FbxMesh* mesh, ImportResult* newMesh);
-        // void createBonesFromSkeleton(FbxNode* currentBoneNode, AnimationBone* parent, AnimRigConstrParams* newRigParams);
-        // void fillBoneData(FbxMesh* mesh, ImportResult* newMesh);
+        // Animation data
+        static constexpr ui32 MAX_WEIGHTS_PER_VERTEX = 4;
+        /**
+         * @brief Build a rig from a skeleton root node
+         *
+         * @return The created rig and an array of bone nodes. Entries in the bone node
+         *         array correspond to the bone with the same index in the rig. This array
+         *         is used internally to load animations.
+         */
+        auto loadSkeleton(FbxSkeleton* skeleton) -> std::pair<RigData, std::vector<FbxNode*>>;
 
-        std::map<std::string, int> nameToBoneIndex;
+        /**
+         * Builds a rig and loads that rig's bone indices and weights into the mesh
+         */
+        auto loadRig(FbxMesh* mesh, MeshData& result) -> std::pair<RigData, std::vector<FbxNode*>>;
+        auto loadAnimations(const RigData& rig, const std::vector<FbxNode*>& boneNodes)
+            -> std::vector<AnimationData>;
+
+        static void correctBoneWeights(MeshData& mesh);
 
         FbxScene* scene{ nullptr };
-
-        std::vector<FbxNode*> boneNodes;
     };
 } // namespace trc

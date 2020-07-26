@@ -36,7 +36,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
     }
     auto sceneImport = std::move(sceneImportOpt.value());
 
-    for (auto& [mesh, name, transform] : sceneImport.meshes)
+    for (ui32 meshIndex = 0; auto& [mesh, name, transform] : sceneImport.meshes)
     {
         std::cout << "Loading mesh " << name << ":\n";
 
@@ -45,17 +45,22 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
             transform,
             loadMesh(mesh),
             loadMaterials(mesh),
-            {},
-            {}
+            {}, {}
         };
 
-        // if (skeletonRoots.size() > meshIndex)
-        // {
-        //     result.rig = AnimRigConstrParams();
-        //     loadSkeleton(mesh, &result);
-        // }
+        if (sceneImport.skeletonRoots.size() > meshIndex)
+        {
+            auto skeleton = sceneImport.skeletonRoots[meshIndex];
+            std::cout << "Loading skeleton \"" << skeleton->GetName() << "\" for mesh \""
+                << name << "\"..\n";
+
+            auto [rig, boneNodes] = loadRig(mesh, newMesh.mesh);
+            newMesh.animations = loadAnimations(rig, boneNodes);
+            newMesh.rig = std::move(rig);
+        }
 
         result.meshes.push_back(std::move(newMesh));
+        meshIndex++;
     } // Per-mesh end
 
     auto elapsed_milliseconds = duration_cast<milliseconds>(system_clock::now() - start).count();
@@ -63,8 +68,6 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
     std::cout << "++++++++++++++++++++++++++++++++++\n";
 
     scene->Destroy();
-    nameToBoneIndex.clear();
-    boneNodes.clear();
 
     return result;
 }
@@ -438,190 +441,203 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
 }
 
 
-// void trc::FBXLoader::loadSkeleton(FbxMesh* mesh, ImportResult* newMeshParams)
-// {
-//     createBonesFromSkeleton(skeletonRoots[0]->GetNode(), nullptr, &newMeshParams->rig.value());
-//     fillBoneData(mesh, newMeshParams);
-// }
-//
-//
-// void trc::FBXLoader::createBonesFromSkeleton(FbxNode* currentBoneNode, AnimationBone* parent, AnimRigConstrParams* newRigParams)
-// {
-//     static int boneIndex = 0;
-//     // Reset the bone index in case other meshes are imported with the same fbxloader instance
-//     if (parent == nullptr) boneIndex = 0;
-//
-//     AnimationBone* newBone = nullptr;
-//     if (currentBoneNode->GetChildCount() > 0) // Ignore 'end' bones added by fbx
-//     {
-//         newBone = &newRigParams->bones.emplace_back(AnimationBone(currentBoneNode->GetName(), parent));
-//         boneNodes.push_back(currentBoneNode); // Save nodes for transformation evaluation
-//         nameToBoneIndex[newBone->getName()] = boneIndex++; // Allows indexing into the non-hierarchical bones array
-//     }
-//
-//     for (int i = 0; i < currentBoneNode->GetChildCount(); i++) {
-//         createBonesFromSkeleton(currentBoneNode->GetChild(i), newBone, newRigParams);
-//     }
-// }
-//
-//
-// void trc::FBXLoader::fillBoneData(FbxMesh* mesh, ImportResult* newMeshParams)
-// {
-//     // I don't know what this does but apparently it's important
-//     FbxVector4 T = mesh->GetNode()->GetGeometricTranslation(FbxNode::eSourcePivot);
-//     FbxVector4 R = mesh->GetNode()->GetGeometricRotation(FbxNode::eSourcePivot);
-//     FbxVector4 S = mesh->GetNode()->GetGeometricScaling(FbxNode::eSourcePivot);
-//     FbxAMatrix geometryTransformMat = FbxAMatrix(T, R, S);
-//
-//     auto newRigParams = &newMeshParams->rig.value();
-//     newRigParams->vertexWeights = std::vector<vec4>(newMeshParams->mesh.vertices.size());
-//     newRigParams->vertexBoneIndices = std::vector<ivec4>(newMeshParams->mesh.vertices.size());
-//
-//     std::vector<glm::length_t> weightsFilledHelper(newMeshParams->mesh.vertices.size());
-//     int deformerCount = mesh->GetDeformerCount();
-//
-//     // Deformers are whole skeletons of a mesh (probably)
-//     for (int deformerIndex = 0; deformerIndex < deformerCount; deformerIndex++)
-//     {
-//         std::cout << "\nSkin " << deformerIndex << ":\n\t";
-//         auto skin = static_cast<FbxSkin*>(mesh->GetDeformer(deformerIndex, FbxDeformer::eSkin));
-//         if (skin == nullptr) { continue; }
-//
-//         ////////////////
-//         // Get bone data
-//         size_t clusterCount = skin->GetClusterCount();
-//         std::vector<FbxCluster*> extractedClusters(clusterCount); // Store the clusters for animation extraction
-//
-//         unsigned int addedWeights = 0; // For logging only
-//         unsigned int correctedWeights = 0; // For logging only
-//         // Clusters hold bones, which are links (probably)
-//         for (size_t clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++)
-//         {
-//             auto cluster = skin->GetCluster(clusterIndex);
-//             std::string currBoneName = cluster->GetLink()->GetName();
-//             size_t currBoneIndex = static_cast<size_t>(nameToBoneIndex[currBoneName]);
-//             extractedClusters[currBoneIndex] = cluster; // For animations
-//
-//             // Calculate bind pose inverse matrix
-//             FbxAMatrix meshTransformMat;
-//             FbxAMatrix boneBindPoseMat;
-//             FbxAMatrix bindPoseInvMat;
-//
-//             cluster->GetTransformMatrix(meshTransformMat);
-//             cluster->GetTransformLinkMatrix(boneBindPoseMat);
-//             bindPoseInvMat = boneBindPoseMat.Inverse() * meshTransformMat * geometryTransformMat;
-//
-//             newRigParams->bones[currBoneIndex].setBindPoseInverseMatrix(fbxToGlm(bindPoseInvMat));
-//             newRigParams->bones[currBoneIndex].setAnimationTransformMatrix(fbxToGlm(boneBindPoseMat));
-//
-//             // Fill vertex weight data
-//             int indexCount = cluster->GetControlPointIndicesCount();
-//             int* indices = cluster->GetControlPointIndices();
-//             double* weights = cluster->GetControlPointWeights();
-//
-//             for (int i = 0; i < indexCount; i++)
-//             {
-//                 size_t vertIndex = static_cast<size_t>(indices[i]);
-//                 if (weightsFilledHelper[vertIndex] < MAX_WEIGHTS_PER_VERTEX)
-//                 {
-//                     newRigParams->vertexWeights[vertIndex][weightsFilledHelper[vertIndex]] = static_cast<float>(weights[i]);
-//                     newRigParams->vertexBoneIndices[vertIndex][weightsFilledHelper[vertIndex]] = static_cast<int>(currBoneIndex);
-//                     weightsFilledHelper[vertIndex]++;
-//                 }
-//
-//                 // Weight sum correction
-//                 vec4& weight = newRigParams->vertexWeights[vertIndex];
-//                 double weightSum = static_cast<double>(weight.x) + static_cast<double>(weight.y)
-//                                    + static_cast<double>(weight.z) + static_cast<double>(weight.w);
-//                 if (weightSum > 1.0001)
-//                 {
-//                     double overflow = weightSum - 1.0;
-//                     // Ratio-sustaining method
-//                     for (int j = 0; j < 4; j++) {
-//                         weight[j] -= static_cast<float>(overflow * (weight[j] / weightSum));
-//                     }
-//                     //std::cout << "Weight sum corrected at bone " << currBoneName << "\n";
-//                     correctedWeights++;
-//                 }
-//                 if (weightSum < 0.9999)
-//                 {
-//                     double missing = 1.0 - weightSum;
-//                     for (int j = 0; j < 4; j++) {
-//                         weight[j] += static_cast<float>(missing * (weight[j] / weightSum));
-//                     }
-//                     correctedWeights++;
-//                 }
-//                 addedWeights++;
-//             }
-//         } // Per-bone end
-//
-//         std::cout << newRigParams->bones.size() << " bones loaded.\n\t"
-//             << addedWeights << " weights loaded.\n\t"
-//             << correctedWeights << " weights corrected.\n";
-//
-//         /////////////////////
-//         // Get animation data
-//         int animStackCount = scene->GetSrcObjectCount<FbxAnimStack>();
-//         std::cout << "Animation count: " << animStackCount << "\n";
-//
-//         for (int animStackIndex = 0; animStackIndex < animStackCount; animStackIndex++)
-//         {
-//             auto animStack = scene->GetSrcObject<FbxAnimStack>(animStackIndex);
-//
-//             std::cout << "Animation " << animStackIndex << ": "
-//                 << animStack->GetName() << "\n";
-//
-//             // Animation time
-//             FbxTime::EMode timeMode = FbxTime::EMode::eFrames24;
-//             FbxTimeSpan timespan = animStack->GetLocalTimeSpan();
-//             size_t totalFrames = timespan.GetDuration().GetFrameCount(timeMode);
-//             std::cout << "\tDuration: " << totalFrames << " frames\n";
-//
-//             AnimationData newAnimData;
-//             newAnimData.frameCount = totalFrames;
-//             newAnimData.animationTime = static_cast<float>(timespan.GetDuration().GetMilliSeconds()), animStack->GetName();
-//             newAnimData.frameTime = newAnimData.animationTime / newAnimData.frameCount;
-//
-//             // Create keyframes
-//             newAnimData.keyframes.resize(totalFrames);
-//             for (size_t frame = 0; frame < totalFrames; frame++)
-//             {
-//                 Keyframe newKey;
-//                 newKey.frame = frame;
-//                 // Fill the keyframe's bones
-//                 for (size_t clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++)
-//                 {
-//                     FbxTime frameTime = FbxTime();
-//                     frameTime.SetFrame(frame, timeMode);
-//                     FbxAMatrix boneTransform = boneNodes[clusterIndex]->EvaluateGlobalTransform(frameTime);
-//
-//                     // Precompute boneMatrix * bindposeInverseMatrix for per-frame-bones
-//                     mat4 boneAnimationTransformMatrix = fbxToGlm(boneTransform) * newRigParams->bones[clusterIndex].getBindPoseInverseMatrix();
-//                     newKey.bones.push_back(boneAnimationTransformMatrix);
-//                 }
-//
-//                 newAnimData.keyframes[frame] = newKey;
-//             }
-//
-//             newRigParams->animations.emplace_back(std::move(newAnimData));
-//         }
-//
-//         // Fill weight data array
-//         newRigParams->weightArray.clear();
-//         newRigParams->boneIndexArray.clear();
-//         for (size_t indicesIndex = 0; indicesIndex < newMeshParams->mesh.indices.size(); indicesIndex++)
-//         {
-//             newRigParams->boneIndexArray.emplace_back(vec4(0));
-//             newRigParams->weightArray.emplace_back(vec4(0));
-//             for (size_t vec4Index = 0; vec4Index < 4; vec4Index++)
-//             {
-//                 size_t index = static_cast<size_t>(newMeshParams->mesh.indices[indicesIndex]);
-//                 newRigParams->weightArray[indicesIndex][vec4Index] = newRigParams->vertexWeights[index][vec4Index];
-//                 newRigParams->boneIndexArray[indicesIndex][vec4Index] = newRigParams->vertexBoneIndices[index][vec4Index];
-//             }
-//         }
-//     } // Per-skin end
-// }
+auto trc::FBXLoader::loadSkeleton(FbxSkeleton* skeleton)
+    -> std::pair<RigData, std::vector<FbxNode*>>
+{
+    RigData rig;
+    std::vector<FbxNode*> boneNodes;
+
+    std::function<void(FbxNode*)> collectNodeRecursive = [&](FbxNode* node)
+    {
+        assert(node != nullptr);
+
+        // Ignore 'end' bones created by FBX
+        if (node->GetChildCount() == 0) {
+            return;
+        }
+
+        rig.bones.emplace_back();
+        boneNodes.push_back(node);
+        rig.boneNamesToIndices[node->GetName()] = rig.bones.size() - 1;
+
+        for (int i = 0; i < node->GetChildCount(); i++)
+        {
+            collectNodeRecursive(node->GetChild(i));
+        }
+    };
+
+    collectNodeRecursive(skeleton->GetNode());
+
+    return { rig, boneNodes };
+}
+
+
+auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
+    -> std::pair<RigData, std::vector<FbxNode*>>
+{
+    // I don't know what this does but apparently it's important
+    FbxVector4 T = mesh->GetNode()->GetGeometricTranslation(FbxNode::eSourcePivot);
+    FbxVector4 R = mesh->GetNode()->GetGeometricRotation(FbxNode::eSourcePivot);
+    FbxVector4 S = mesh->GetNode()->GetGeometricScaling(FbxNode::eSourcePivot);
+    FbxAMatrix geometryTransformMat = FbxAMatrix(T, R, S);
+
+    const int deformerCount = mesh->GetDeformerCount();
+    if (deformerCount > 0)
+    {
+        std::cout << "\t--- Holy crap, the mesh " << mesh->GetName() << " has more than one "
+            << "deformer (skin). I don't know what to do with that, so it'll be ignored.\n";
+    }
+
+    // Deformers are whole skeletons of a mesh (probably)
+    // This loop is exited after the first iteration. It only exists for completeness's sake.
+    for (int deformerIndex = 0; deformerIndex < deformerCount; deformerIndex++)
+    {
+        auto skin = static_cast<FbxSkin*>(mesh->GetDeformer(deformerIndex, FbxDeformer::eSkin));
+        if (skin == nullptr) { continue; }
+
+        std::cout << "\tSkin #" << deformerIndex << " \"" << skin->GetName() << "\"" << ":\n";
+
+        ////////////
+        // Build rig
+        auto skeletonRoot = skin->GetCluster(0)->GetLink()->GetNodeAttribute();
+        /**
+         * If this assertion fails, the assumption that the first cluster in a skin is
+         *  always its root is false.
+         */
+        assert(skeletonRoot->GetAttributeType() == FbxNodeAttribute::eSkeleton);
+        auto [rig, boneNodes] = loadSkeleton(static_cast<FbxSkeleton*>(skeletonRoot));
+
+        ////////////////
+        // Get bone data
+        size_t clusterCount = skin->GetClusterCount();
+        std::vector<ui32> weightsFilledHelper(result.indices.size());
+
+        // Clusters hold bones, which are links (probably)
+        for (size_t clusterIndex = 0; clusterIndex < clusterCount; clusterIndex++)
+        {
+            auto cluster = skin->GetCluster(clusterIndex);
+            const std::string currBoneName = cluster->GetLink()->GetName();
+            const ui32 currBoneIndex = rig.boneNamesToIndices[currBoneName];
+
+            // Calculate bind pose inverse matrix
+            FbxAMatrix meshTransformMat;
+            FbxAMatrix boneBindPoseMat;
+            FbxAMatrix bindPoseInvMat;
+
+            cluster->GetTransformMatrix(meshTransformMat);
+            cluster->GetTransformLinkMatrix(boneBindPoseMat);
+            bindPoseInvMat = boneBindPoseMat.Inverse() * meshTransformMat * geometryTransformMat;
+
+            rig.bones[currBoneIndex].inverseBindPoseMat = fbxToGlm(bindPoseInvMat);
+
+            // Fill vertex weight data
+            int indexCount = cluster->GetControlPointIndicesCount();
+            int* indices = cluster->GetControlPointIndices();
+            double* weights = cluster->GetControlPointWeights();
+
+            for (int i = 0; i < indexCount; i++)
+            {
+                size_t vertIndex = static_cast<size_t>(indices[i]);
+                if (weightsFilledHelper[vertIndex] < MAX_WEIGHTS_PER_VERTEX)
+                {
+                    auto& vertex = result.vertices[vertIndex];
+                    vertex.boneWeights[weightsFilledHelper[vertIndex]] = float(weights[i]);
+                    vertex.boneIndices[weightsFilledHelper[vertIndex]] = float(currBoneIndex);
+
+                    weightsFilledHelper[vertIndex]++;
+                }
+            }
+        } // Per-bone end
+
+        std::cout << "\tCorrecting bone weights...\n";
+        correctBoneWeights(result);
+
+        return { rig, boneNodes };
+    } // per-skin
+}
+
+
+void trc::FBXLoader::correctBoneWeights(MeshData& mesh)
+{
+    ui32 totalWeights = 0; // For logging only
+    ui32 correctedWeights = 0; // For logging only
+    for (Vertex& vert : mesh.vertices)
+    {
+        // Weight sum correction
+        vec4& weight = vert.boneWeights;
+        double weightSum = static_cast<double>(weight.x) + static_cast<double>(weight.y)
+                           + static_cast<double>(weight.z) + static_cast<double>(weight.w);
+        if (weightSum > 1.0001)
+        {
+            double overflow = weightSum - 1.0;
+            // Ratio-sustaining method
+            for (int j = 0; j < 4; j++) {
+                weight[j] -= static_cast<float>(overflow * (weight[j] / weightSum));
+            }
+            correctedWeights++;
+        }
+        if (weightSum < 0.9999)
+        {
+            double missing = 1.0 - weightSum;
+            for (int j = 0; j < 4; j++) {
+                weight[j] += static_cast<float>(missing * (weight[j] / weightSum));
+            }
+            correctedWeights++;
+        }
+        totalWeights++;
+    }
+
+    std::cout << "\t\t" << correctedWeights << "/" << totalWeights << " weights corrected\n";
+}
+
+
+auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNode*>& boneNodes)
+    -> std::vector<AnimationData>
+{
+    std::vector<AnimationData> animations;
+
+    int animStackCount = scene->GetSrcObjectCount<FbxAnimStack>();
+    for (int animStackIndex = 0; animStackIndex < animStackCount; animStackIndex++)
+    {
+        auto animStack = scene->GetSrcObject<FbxAnimStack>(animStackIndex);
+        std::cout << "Animation " << animStackIndex << ": "
+            << animStack->GetName() << "\n";
+
+        // Animation time
+        FbxTime::EMode timeMode = FbxTime::EMode::eFrames24;
+        FbxTimeSpan timespan = animStack->GetLocalTimeSpan();
+        size_t totalFrames = timespan.GetDuration().GetFrameCount(timeMode);
+
+        AnimationData& animation = animations.emplace_back();
+        animation.frameCount = totalFrames;
+        animation.durationMs = static_cast<float>(timespan.GetDuration().GetMilliSeconds());
+        animation.frameTimeMs = animation.durationMs / static_cast<float>(animation.frameCount);
+
+        std::cout << "\tDuration: " << animation.durationMs << " ms ("
+            << animation.frameCount << " frames)\n";
+
+        // Create keyframes
+        for (size_t frame = 0; frame < totalFrames; frame++)
+        {
+            AnimationData::Keyframe& keyframe = animation.keyframes.emplace_back();
+
+            // Fill the keyframe's bones
+            for (ui32 boneIndex = 0; boneIndex < rig.bones.size(); boneIndex++)
+            {
+                FbxTime frameTime = FbxTime();
+                frameTime.SetFrame(frame, timeMode);
+                FbxAMatrix boneTransform = boneNodes[boneIndex]->EvaluateGlobalTransform(frameTime);
+
+                // Precompute boneMatrix * bindposeInverseMatrix for per-frame bones
+                keyframe.boneMatrices.emplace_back(
+                    fbxToGlm(boneTransform) * rig.bones[boneIndex].inverseBindPoseMat
+                );
+            }
+        }
+    }
+
+    return animations;
+}
 
 
 
