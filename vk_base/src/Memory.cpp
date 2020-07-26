@@ -64,7 +64,7 @@ auto vkb::DeviceMemory::map(const Device& device,
     assert(mappedSize == VK_WHOLE_SIZE || mappedSize <= internal.size);
 
     if (mappedSize == VK_WHOLE_SIZE) {
-        mappedSize = internal.size;
+        mappedSize = internal.size - mappedOffset;
     }
     return device->mapMemory(internal.memory, internal.baseOffset + mappedOffset, mappedSize);
 }
