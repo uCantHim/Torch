@@ -50,8 +50,8 @@ int main()
     auto [grassGeo, grassGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
     auto [treeGeo, treeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
     auto [mapGeo, mapGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
-    //auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
-    //auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
+    auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
+    auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
     auto [img, imgIndex] = trc::AssetRegistry::addImage(
         vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
@@ -103,7 +103,7 @@ int main()
     auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
     auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
     trc::Drawable plane(planeGeo, matIdx, scene);
-    plane.rotateY(glm::radians(-90.0f));
+    plane.rotateY(glm::radians(-65.0f));
     plane.translate(0.5f, 0.7f, 1.0f);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));

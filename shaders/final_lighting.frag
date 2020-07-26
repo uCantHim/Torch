@@ -35,7 +35,7 @@ layout (push_constant) uniform PushConstants
 //      Main       //
 /////////////////////
 
-uint mat = uint(subpassLoad(materialIndex).r);
+uint matIndex = floatBitsToUint(subpassLoad(materialIndex).r);
 
 vec3 calcLighting(vec3 color);
 
@@ -50,7 +50,7 @@ void main()
     vec3 color = vec3(0.3, 1.0, 0.9);
 
     // Use diffuse texture if available
-    uint diffTexture = materials[mat].diffuseTexture;
+    uint diffTexture = materials[matIndex].diffuseTexture;
     if (diffTexture != NO_TEXTURE)
     {
         vec2 uv = subpassLoad(vertexUv).xy;
@@ -67,9 +67,9 @@ vec3 calcLighting(vec3 color)
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
-    const vec3 ambientFactor = materials[mat].colorAmbient.rgb;
-    const vec3 diffuseFactor = materials[mat].colorDiffuse.rgb;
-    const vec3 specularFactor = materials[mat].colorSpecular.rgb;
+    const vec3 ambientFactor = materials[matIndex].colorAmbient.rgb;
+    const vec3 diffuseFactor = materials[matIndex].colorDiffuse.rgb;
+    const vec3 specularFactor = materials[matIndex].colorSpecular.rgb;
 
     const vec3 worldPos = subpassLoad(vertexPosition).xyz;
     const vec3 normal = normalize(subpassLoad(vertexNormal).xyz);
@@ -112,10 +112,11 @@ vec3 calcLighting(vec3 color)
         // Specular
         float reflectAngle = max(0.0, dot(normalize(reflect(-toLight, normal)), toEye));
         specular += lightColor
-                    * pow(reflectAngle, materials[mat].shininess)  // Specular highlight
-                    * specularFactor                               // Material factor
+                    * pow(reflectAngle, materials[matIndex].shininess)  // Specular highlight
+                    * specularFactor                                    // Material factor
                     * attenuation
-                    * (materials[mat].shininess + 2.0) / (2.0 * 3.1415926535);
+                    // Specular gamma correction
+                    * (materials[matIndex].shininess + 2.0) / (2.0 * 3.1415926535);
     }
 
     return color * min((ambient + diffuse), vec3(1.0)) + specular;
