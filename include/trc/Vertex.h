@@ -19,10 +19,12 @@ namespace trc
         -> std::vector<vk::VertexInputAttributeDescription>
     {
         return {
-            vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, 0),
-            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, 12),
-            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, 24),
-            vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, 32),
+            vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat,    0),
+            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat,    12),
+            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat,       24),
+            vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat,    32),
+            vk::VertexInputAttributeDescription(4, 0, vk::Format::eR32G32B32A32Uint,   64),
+            vk::VertexInputAttributeDescription(5, 0, vk::Format::eR32G32B32A32Sfloat, 48),
         };
     }
 } // namespace trc
