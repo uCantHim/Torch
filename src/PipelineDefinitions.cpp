@@ -37,12 +37,7 @@ void trc::internal::makeDrawableDeferredPipeline(
         .setProgram(program)
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
-            {
-                vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, 0),
-                vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, 12),
-                vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, 24),
-                vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, 32),
-            }
+            makeVertexAttributeDescriptions()
         )
         .setFrontFace(vk::FrontFace::eClockwise)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
@@ -89,12 +84,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
         // Vertex attributes
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
-            {
-                vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, 0),
-                vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, 12),
-                vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, 24),
-                vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat, 32),
-            }
+            makeVertexAttributeDescriptions()
         )
         // Per-instance attributes
         .addVertexInputBinding(
