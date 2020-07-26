@@ -79,9 +79,6 @@ int main()
 
     trc::AssetRegistry::updateMaterialBuffer();
 
-    // Additional textures
-    trc::AssetRegistry::addImage(vkb::Image("assets/jute_normal.tif"));
-
     // ------------------
 
     trc::Renderer renderer;

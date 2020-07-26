@@ -93,12 +93,12 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
             ),
             {
                 // Model matrix
-                vk::VertexInputAttributeDescription(4, 1, vk::Format::eR32G32B32A32Sfloat, 0),
-                vk::VertexInputAttributeDescription(5, 1, vk::Format::eR32G32B32A32Sfloat, 16),
-                vk::VertexInputAttributeDescription(6, 1, vk::Format::eR32G32B32A32Sfloat, 32),
-                vk::VertexInputAttributeDescription(7, 1, vk::Format::eR32G32B32A32Sfloat, 48),
+                vk::VertexInputAttributeDescription(6, 1, vk::Format::eR32G32B32A32Sfloat, 0),
+                vk::VertexInputAttributeDescription(7, 1, vk::Format::eR32G32B32A32Sfloat, 16),
+                vk::VertexInputAttributeDescription(8, 1, vk::Format::eR32G32B32A32Sfloat, 32),
+                vk::VertexInputAttributeDescription(9, 1, vk::Format::eR32G32B32A32Sfloat, 48),
                 // Material index
-                vk::VertexInputAttributeDescription(8, 1, vk::Format::eR32Uint, 64),
+                vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32Uint, 64),
             }
         )
         .setFrontFace(vk::FrontFace::eClockwise)

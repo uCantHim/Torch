@@ -554,6 +554,8 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
 
         return { rig, boneNodes };
     } // per-skin
+
+    return {};
 }
 
 
