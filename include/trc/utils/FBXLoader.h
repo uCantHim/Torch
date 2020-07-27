@@ -15,33 +15,6 @@
 
 namespace trc
 {
-    struct RigData
-    {
-        struct Bone
-        {
-            mat4 inverseBindPoseMat;
-        };
-
-        // Indexed by per-vertex bone indices
-        std::vector<Bone> bones;
-
-        // Maps bone names to their indices in the bones array
-        std::unordered_map<std::string, ui32> boneNamesToIndices;
-    };
-
-    struct AnimationData
-    {
-        struct Keyframe
-        {
-            std::vector<mat4> boneMatrices;
-        };
-
-        ui32 frameCount;
-        float durationMs;
-        float frameTimeMs;
-        std::vector<Keyframe> keyframes;
-    };
-
     struct Mesh
     {
         std::string name;

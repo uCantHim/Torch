@@ -5,15 +5,13 @@
 #include "light.glsl"
 #include "material.glsl"
 
-layout (location = 0) out vec4 fragColor;
-
-layout (set = 0, binding = 1, std140) buffer readonly LightBuffer
+layout (set = 0, binding = 1, std140) restrict readonly buffer LightBuffer
 {
     uint numLights;
     Light lights[];
 };
 
-layout (set = 1, binding = 0, std430) buffer readonly MaterialBuffer
+layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 {
     Material materials[];
 };
@@ -29,6 +27,8 @@ layout (push_constant) uniform PushConstants
 {
     vec3 cameraPos;
 } pushConstants;
+
+layout (location = 0) out vec4 fragColor;
 
 
 /////////////////////

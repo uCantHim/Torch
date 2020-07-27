@@ -12,10 +12,13 @@
 #define ANIM_DESCRIPTOR_SET_BINDING 3
 #endif
 
+#define NO_ANIMATION (uint(0) - 1)
+
 struct AnimationMetaData
 {
     uint offset;
     uint frameCount;
+    uint boneCount;
 };
 
 layout (location = BONE_INDICES_INPUT_LOCATION) in uvec4 vertexBoneIndices;
@@ -36,31 +39,31 @@ Animation
 } anim;
 
 
-void applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWeight)
+vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWeight)
 {
     vec4 currentFramePos = vec4(0.0);
     vec4 nextFramePos = vec4(0.0);
 
     const uint baseOffset = animMeta.metas[animIndex].offset;
-    const uint frameCount = animMeta.metas[animIndex].frameCount;
+    const uint boneCount = animMeta.metas[animIndex].boneCount;
 
     for (int i = 0; i < 4; i++)
     {
-        float weight = vertexBoneWeights[i];
+        const float weight = vertexBoneWeights[i];
         if (weight <= 0.0) {
-            continue;
+            break;
         }
 
         uint boneIndex = vertexBoneIndices[i];
-        uint currentFrameOffset = baseOffset + frameCount * frames[0] + boneIndex;
-        uint nextFrameOffset = baseOffset + frameCount * frames[1] + boneIndex;
+        uint currentFrameOffset = baseOffset + boneCount * frames[0] + boneIndex;
+        uint nextFrameOffset = baseOffset + boneCount * frames[1] + boneIndex;
 
         mat4 currentBoneMatrix = anim.boneMatrices[currentFrameOffset];
         mat4 nextBoneMatrix = anim.boneMatrices[nextFrameOffset];
 
-        currentFramePos += currentBoneMatrix * vertPos;
-        nextFramePos += nextBoneMatrix * vertPos;
+        currentFramePos += currentBoneMatrix * vertPos * weight;
+        nextFramePos += nextBoneMatrix * vertPos * weight;
     }
 
-    vertPos = currentFramePos * (1.0 - frameWeight) + nextFramePos * frameWeight;
+    return currentFramePos * (1.0 - frameWeight) + nextFramePos * frameWeight;
 }

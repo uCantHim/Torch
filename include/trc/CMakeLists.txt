@@ -1,6 +1,8 @@
 target_sources(
     torch
     PUBLIC
+        Animation.h
+        AnimationEngine.h
         AssetRegistry.h
         Boilerplate.h
         CommandCollector.h
@@ -13,8 +15,9 @@ target_sources(
         Node.h
         Pipeline.h
         PipelineBuilder.h
-        RenderPass.h
         PipelineDefinitions.h
+        RenderPass.h
+        Rig.h
         Vertex.h
 )
 

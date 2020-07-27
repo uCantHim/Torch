@@ -10,6 +10,13 @@ trc::Geometry::Geometry(const MeshData& data)
 {
 }
 
+trc::Geometry::Geometry(const MeshData& data, std::unique_ptr<Rig> rig)
+    :
+    Geometry(data)
+{
+    this->rig = std::move(rig);
+}
+
 auto trc::Geometry::getIndexBuffer() const noexcept -> vk::Buffer
 {
     return *indexBuffer;
@@ -23,4 +30,14 @@ auto trc::Geometry::getVertexBuffer() const noexcept -> vk::Buffer
 auto trc::Geometry::getIndexCount() const noexcept -> ui32
 {
     return numIndices;
+}
+
+auto trc::Geometry::hasRig() const noexcept -> bool
+{
+    return rig != nullptr;
+}
+
+auto trc::Geometry::getRig() const noexcept -> Rig*
+{
+    return rig.get();
 }

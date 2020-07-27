@@ -20,11 +20,19 @@ void trc::internal::makeDrawableDeferredPipeline(
         std::vector<vk::DescriptorSetLayout> {
             cameraDescriptorSet.getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
             vk::PushConstantRange(
                 vk::ShaderStageFlagBits::eVertex,
-                0, sizeof(mat4) + sizeof(ui32)
+                0,
+                // General drawable data
+                sizeof(mat4)    // model matrix
+                + sizeof(ui32)  // material index
+                // Animation related data
+                + sizeof(ui32)  // current animation index (UINT32_MAX if no animation)
+                + sizeof(uvec2) // active keyframes
+                + sizeof(float) // keyframe weight
             ),
         }
     );
@@ -56,6 +64,7 @@ void trc::internal::makeDrawableDeferredPipeline(
     auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(2, Animation::getDescriptorProvider());
 }
 
 void trc::internal::makeInstancedDrawableDeferredPipeline(

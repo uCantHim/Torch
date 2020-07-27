@@ -1,6 +1,8 @@
 target_sources(
     torch
     PRIVATE
+        Animation.cpp
+        AnimationEngine.cpp
         AssetRegistry.cpp
         CommandCollector.cpp
         DescriptorProvider.cpp
@@ -11,9 +13,10 @@ target_sources(
         Node.cpp
         Pipeline.cpp
         PipelineBuilder.cpp
+        PipelineDefinitions.cpp
         Renderer.cpp
         RenderPass.cpp
-        PipelineDefinitions.cpp
+        Rig.cpp
         Scene.cpp
 )
 

@@ -4,7 +4,7 @@
 
 #include "../material.glsl"
 
-layout (set = 1, binding = 0, std430) buffer readonly MaterialBuffer
+layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 {
     Material materials[];
 };

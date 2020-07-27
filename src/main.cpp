@@ -39,6 +39,7 @@ int main()
 
     vkb::VulkanInitInfo initInfo;
     vkb::vulkanInit(initInfo);
+    _camera_resize_helper.recreate(vkb::getSwapchain());
 
     // ------------------
     // Random test things
@@ -56,7 +57,24 @@ int main()
 
     auto hoodedBoiImport = fbxLoader.loadFBXFile("assets/hooded_boi.fbx");
     auto skeletonImport = fbxLoader.loadFBXFile("assets/skeleton.fbx");
-    trc::AssetRegistry::addGeometry(trc::Geometry(skeletonImport.meshes[0].mesh));
+    auto [skeletonGeo, skeletonGeoIndex] = trc::AssetRegistry::addGeometry(
+        trc::Geometry(
+            skeletonImport.meshes[0].mesh,
+            std::make_unique<trc::Rig>(
+                skeletonImport.meshes[0].rig,
+                skeletonImport.meshes[0].animations
+            )
+        )
+    );
+    auto [hoodedBoiGeo, hoodedBoiGeoIndex] = trc::AssetRegistry::addGeometry(
+        {
+            hoodedBoiImport.meshes[0].mesh,
+            std::make_unique<trc::Rig>(
+                hoodedBoiImport.meshes[0].rig,
+                hoodedBoiImport.meshes[0].animations
+            )
+        }
+    );
 
     auto [img, imgIndex] = trc::AssetRegistry::addImage(
         vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
@@ -96,11 +114,14 @@ int main()
     trc::Drawable tree(treeGeo, matIdx, scene);
     tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
 
-    //trc::Node node;
-    //node.rotateX(-glm::radians(90.0f));
-    //trc::Drawable map(mapGeo, matIdx, scene);
-    //node.attach(map);
-    //scene.getRoot().attach(node);
+    // Animated skeleton
+    trc::Drawable skeleton(skeletonGeo, mapMatIndex, scene);
+    skeleton.setScale(0.2f).translateX(1.0f);
+    skeleton.getAnimationEngine().playAnimation(0);
+
+    trc::Drawable hoddedBoi(hoodedBoiGeo, treeMatIndex, scene);
+    hoddedBoi.setScale(0.2f).translateX(-1.0f);
+    hoddedBoi.getAnimationEngine().playAnimation(0);
 
     auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
     auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));

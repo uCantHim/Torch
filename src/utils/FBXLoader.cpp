@@ -506,6 +506,7 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
          */
         assert(skeletonRoot->GetAttributeType() == FbxNodeAttribute::eSkeleton);
         auto [rig, boneNodes] = loadSkeleton(static_cast<FbxSkeleton*>(skeletonRoot));
+        rig.name = skin->GetName();
 
         ////////////////
         // Get bone data
@@ -611,6 +612,7 @@ auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNod
         size_t totalFrames = timespan.GetDuration().GetFrameCount(timeMode);
 
         AnimationData& animation = animations.emplace_back();
+        animation.name = animStack->GetName();
         animation.frameCount = totalFrames;
         animation.durationMs = static_cast<float>(timespan.GetDuration().GetMilliSeconds());
         animation.frameTimeMs = animation.durationMs / static_cast<float>(animation.frameCount);

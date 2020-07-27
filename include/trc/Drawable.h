@@ -6,6 +6,7 @@
 #include "PipelineDefinitions.h"
 
 #include "Geometry.h"
+#include "AnimationEngine.h"
 
 namespace trc
 {
@@ -32,6 +33,8 @@ namespace trc
         void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);
 
+        auto getAnimationEngine() noexcept -> AnimationEngine&;
+
         void recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf);
 
     protected:
@@ -40,5 +43,8 @@ namespace trc
         ui32 indexCount;
 
         ui32 material;
+
+        bool isAnimated{ false };
+        AnimationEngine animEngine;
     };
 }
