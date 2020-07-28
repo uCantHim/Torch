@@ -20,6 +20,14 @@ namespace trc
 
         struct InstanceDescription
         {
+            InstanceDescription() = default;
+            InstanceDescription(const mat4& t, ui32 matIndex)
+                : modelMatrix(t), materialIndex(matIndex)
+            {}
+            InstanceDescription(const Transformation& t, ui32 matIndex)
+                : modelMatrix(t.getTransformationMatrix()), materialIndex(matIndex)
+            {}
+
             mat4 modelMatrix;
             ui32 materialIndex;
         };
