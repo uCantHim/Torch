@@ -20,9 +20,6 @@ add_subdirectory(src)
 add_subdirectory(include/trc)
 add_subdirectory(shaders)
 
-# Does not work with the new version yet
-# add_subdirectory(example)
-
 target_link_libraries(torch PUBLIC vk_base fbxsdk)
 
 target_include_directories(torch PUBLIC include)

@@ -3,6 +3,7 @@ target_sources(
     PUBLIC
         Animation.h
         AnimationEngine.h
+        Asset.h
         AssetRegistry.h
         Boilerplate.h
         CommandCollector.h
@@ -16,8 +17,10 @@ target_sources(
         Pipeline.h
         PipelineBuilder.h
         PipelineDefinitions.h
+        Renderer.h
         RenderPass.h
         Rig.h
+        Scene.h
         Vertex.h
 )
 

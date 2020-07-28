@@ -47,7 +47,7 @@ void trc::internal::makeDrawableDeferredPipeline(
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-        .setFrontFace(vk::FrontFace::eClockwise)
+        .setFrontFace(vk::FrontFace::eCounterClockwise)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
@@ -110,7 +110,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
                 vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32Uint, 64),
             }
         )
-        .setFrontFace(vk::FrontFace::eClockwise)
+        .setFrontFace(vk::FrontFace::eCounterClockwise)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)

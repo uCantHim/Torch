@@ -146,6 +146,7 @@ int main()
         t.setScale(0.1f).rotateX(glm::radians(-90.0f));
         t.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
         t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
+        t.setTranslationY(-0.5f);
 
         instancedTrees.addInstance({ t.getTransformationMatrix(), matIdx });
     }
