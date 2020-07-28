@@ -24,6 +24,7 @@ namespace trc
         void signalRecreateFinished() override;
 
         // Synchronization
+        void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
         void createSemaphores();
         vkb::FrameSpecificObject<vk::UniqueSemaphore> imageAcquireSemaphores;
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;

@@ -9,7 +9,7 @@
 namespace vkb
 {
 
-#ifndef NDEBUG
+#ifdef MY_DEBUG
 constexpr auto debugMode = true;
 #else
 constexpr auto debugMode = false;

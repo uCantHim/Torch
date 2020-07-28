@@ -104,7 +104,9 @@ void trc::Renderer::createSemaphores()
 
     frameInFlightFences = vkb::FrameSpecificObject<vk::UniqueFence>(
         [](ui32) {
-            return vkb::VulkanBase::getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled });
+            return vkb::VulkanBase::getDevice()->createFenceUnique(
+                { vk::FenceCreateFlagBits::eSignaled }
+            );
         }
     );
 }
@@ -160,12 +162,7 @@ void trc::Renderer::bindLightBuffer(vk::Buffer lightBuffer)
 {
     if (cachedLightBuffer != lightBuffer)
     {
-        // Wait until no command buffer uses the descriptor set
-        std::vector<vk::Fence> fences;
-        frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
-            fences.push_back(*fence);
-        });
-        vkb::VulkanBase::getDevice()->waitForFences(fences, true, UINT64_MAX);
+        waitForAllFrames();
 
         // Update descriptor set
         vk::DescriptorBufferInfo lightBufferInfo(lightBuffer, 0, VK_WHOLE_SIZE);
@@ -191,15 +188,7 @@ void trc::Renderer::updateCameraMatrixBuffer(const Camera& camera)
 
 void trc::Renderer::signalRecreateRequired()
 {
-    std::vector<vk::Fence> fences;
-    frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
-        fences.push_back(*fence);
-    });
-    vkb::VulkanBase::getDevice()->waitForFences(
-        fences,
-        true,
-        UINT64_MAX
-    );
+    waitForAllFrames();
 }
 
 void trc::Renderer::recreate(vkb::Swapchain&)
@@ -210,8 +199,19 @@ void trc::Renderer::recreate(vkb::Swapchain&)
     internal::makeFinalLightingPipeline(*deferredPass,
                                         cameraDescriptorProvider,
                                         deferredPass->getInputAttachmentDescriptor());
+
+    createSemaphores();
 }
 
 void trc::Renderer::signalRecreateFinished()
 {
+}
+
+void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
+{
+    std::vector<vk::Fence> fences;
+    frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
+        fences.push_back(*fence);
+    });
+    vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
 }

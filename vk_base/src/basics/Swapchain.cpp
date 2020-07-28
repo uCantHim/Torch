@@ -204,7 +204,7 @@ void vkb::Swapchain::presentImage(
     }
     catch (const vk::OutOfDateKHRError&) {
         if constexpr (enableVerboseLogging) {
-            std::cout << "Swapchain has become invalid, create a new one.\n";
+            std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
         }
         createSwapchain(true);
         return;
