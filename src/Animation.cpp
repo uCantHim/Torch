@@ -81,6 +81,9 @@ void trc::Animation::vulkanStaticDestroy()
     device->freeDescriptorSets(descPool, descSet);
     device->destroyDescriptorSetLayout(descLayout);
     device->destroyDescriptorPool(descPool);
+
+    animationBuffer = {};
+    animationMetaDataBuffer = {};
 }
 
 void trc::Animation::createDescriptors()

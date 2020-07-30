@@ -156,6 +156,11 @@ namespace vkb
          */
         auto makeAllocator() -> DeviceMemoryAllocator;
 
+        /**
+         * @brief Free all memory allocated in the pool
+         */
+        void reset();
+
     private:
         static constexpr vk::DeviceSize DEFAULT_CHUNK_SIZE = 100000000; // 100 mb, is divisible by 256 (base alignment)
 

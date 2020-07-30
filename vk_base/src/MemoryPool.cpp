@@ -144,3 +144,8 @@ auto vkb::MemoryPool::makeAllocator() -> DeviceMemoryAllocator
         return allocateMemory(properties, requirements);
     };
 }
+
+void vkb::MemoryPool::reset()
+{
+    chunksPerMemoryType.erase(chunksPerMemoryType.begin(), chunksPerMemoryType.end());
+}

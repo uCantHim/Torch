@@ -19,12 +19,12 @@ void vkb::vulkanTerminate()
 void vkb::VulkanBase::onInit(std::function<void(void)> callback)
 {
     if (!_isInitialized)
-        onInitCallbacks.emplace_back(callback);
+        onInitCallbacks.emplace_back(std::move(callback));
 }
 
 void vkb::VulkanBase::onDestroy(std::function<void(void)> callback)
 {
-    onDestroyCallbacks.emplace_back(callback);
+    onDestroyCallbacks.emplace_back(std::move(callback));
 }
 
 void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
@@ -64,7 +64,7 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
 
     _isInitialized = true;
 
-    for (auto func : onInitCallbacks) {
+    for (auto& func : onInitCallbacks) {
         std::invoke(func);
     }
     onInitCallbacks = {};
@@ -72,16 +72,18 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
 
 void vkb::VulkanBase::destroy()
 {
-    for (auto func : onDestroyCallbacks) {
+    getDevice()->waitIdle();
+
+    for (auto& func : onDestroyCallbacks) {
         std::invoke(func);
     }
     onDestroyCallbacks = {};
 
     try {
-        queueProvider = nullptr;
-        swapchain = nullptr;
-        device = nullptr;
-        instance = nullptr;
+        queueProvider.reset();
+        swapchain.reset();
+        device.reset();
+        instance.reset();
     }
     catch (const std::exception& err) {
         std::cout << "Exception in VulkanBase::destroy(): " << err.what() << "\n";

@@ -8,6 +8,24 @@ void trc::AssetRegistry::init()
     createDescriptors();
 }
 
+void trc::AssetRegistry::reset()
+{
+    geometries = {};
+    materials = {};
+    imageViews = {};
+    images = {};
+
+    materialBuffer.reset();
+
+    descSet.reset();
+    descLayout.reset();
+    descPool.reset();
+
+    nextGeometryIndex = 0;
+    nextMaterialIndex = 0;
+    nextImageIndex = 0;
+}
+
 auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>
 {
     ui32 key = nextGeometryIndex++;
@@ -72,7 +90,9 @@ void trc::AssetRegistry::updateMaterialBuffer()
         data.emplace_back();
     }
 
-    materialBuffer = vkb::DeviceLocalBuffer(data, vk::BufferUsageFlagBits::eStorageBuffer);
+    materialBuffer = std::make_unique<vkb::DeviceLocalBuffer>(
+        data, vk::BufferUsageFlagBits::eStorageBuffer
+    );
 
     if (descSet) {
         updateDescriptors();
@@ -128,7 +148,7 @@ void trc::AssetRegistry::updateDescriptors()
 {
     static const auto& device = vkb::VulkanBase::getDevice();
 
-    vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo matBufferWrite(**materialBuffer, 0, VK_WHOLE_SIZE);
     // Image writes
     std::vector<vk::DescriptorImageInfo> imageWrites;
     for (ui32 i = 0; i < images.size(); i++)

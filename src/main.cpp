@@ -100,47 +100,44 @@ int main()
 
     // ------------------
 
-    trc::Renderer renderer;
+    auto renderer = std::make_unique<trc::Renderer>();
 
-    const auto& swapchain = vkb::VulkanBase::getSwapchain();
-    const auto& windowSize = swapchain.getImageExtent();
-
-    trc::Scene scene;
+    auto scene = std::make_unique<trc::Scene>();
     camera.setPosition({ 0, 2.0f, 5.0f });
     camera.setForwardVector({ 0, -2.0f / 5.0f, -1 });
 
-    trc::Drawable grass(grassGeo, matIdx, scene);
+    trc::Drawable grass(grassGeo, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
-    trc::Drawable tree(treeGeo, matIdx, scene);
+    trc::Drawable tree(treeGeo, matIdx, *scene);
     tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
 
     // Animated skeleton
-    trc::Drawable skeleton(skeletonGeo, mapMatIndex, scene);
+    trc::Drawable skeleton(skeletonGeo, mapMatIndex, *scene);
     skeleton.setScale(0.2f).translateX(1.0f);
     skeleton.getAnimationEngine().playAnimation(0);
 
-    trc::Drawable hoddedBoi(hoodedBoiGeo, treeMatIndex, scene);
+    trc::Drawable hoddedBoi(hoodedBoiGeo, treeMatIndex, *scene);
     hoddedBoi.setScale(0.2f).translateX(-1.0f);
     hoddedBoi.getAnimationEngine().playAnimation(0);
 
     auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
     auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
-    trc::Drawable plane(planeGeo, matIdx, scene);
+    trc::Drawable plane(planeGeo, matIdx, *scene);
     plane.rotateY(glm::radians(-65.0f));
     plane.translate(0.5f, 0.7f, 1.0f);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
     trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(0, 1, 1), 0.2f);
-    scene.addLight(sunLight);
-    scene.addLight(ambientLight);
+    scene->addLight(sunLight);
+    scene->addLight(ambientLight);
     //scene.addLight(pointLight);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
 
-    trc::DrawableInstanced instancedTrees(NUM_TREES, treeGeo, scene);
+    auto instancedTrees = std::make_unique<trc::DrawableInstanced>(NUM_TREES, treeGeo, *scene);
     for (int i = 0; i < NUM_TREES; i++)
     {
         trc::Transformation t;
@@ -149,7 +146,7 @@ int main()
         t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
         t.setTranslationY(-0.5f);
 
-        instancedTrees.addInstance({ t.getTransformationMatrix(), matIdx });
+        instancedTrees->addInstance({ t.getTransformationMatrix(), matIdx });
     }
 
 
@@ -160,11 +157,17 @@ int main()
 
     while (running)
     {
-        renderer.drawFrame(scene, camera);
+        renderer->drawFrame(*scene, camera);
 
         vkb::pollEvents();
     }
+
     vkb::getDevice()->waitIdle();
+    instancedTrees.reset();
+    scene.reset();
+    trc::AssetRegistry::reset();
+    renderer.reset();
+    vkb::vulkanTerminate();
 
     std::cout << " --- Done\n";
     return 0;

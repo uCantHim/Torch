@@ -19,11 +19,17 @@ namespace trc
         std::vector<ui32> indices;
     };
 
-    class Geometry : public vkb::VulkanStaticInitialization<Geometry>, public Asset
+    class Geometry : public vkb::VulkanStaticInitialization<Geometry>
+                   , public vkb::VulkanStaticDestruction<Geometry>
+                   , public Asset
     {
         friend class vkb::VulkanStaticInitialization<Geometry>;
+        friend class vkb::VulkanStaticDestruction<Geometry>;
         static void vulkanStaticInit() {
             pool.setDevice(vkb::VulkanBase::getDevice());
+        }
+        static void vulkanStaticDestroy() {
+            pool.reset();
         }
 
     public:

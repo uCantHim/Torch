@@ -19,9 +19,9 @@ namespace trc
 
         std::string name;
 
-        ui32 frameCount;
-        float durationMs;
-        float frameTimeMs;
+        ui32 frameCount{ 0 };
+        float durationMs{ 0.0f };
+        float frameTimeMs{ 0.0f };
         std::vector<Keyframe> keyframes;
     };
 
@@ -55,11 +55,11 @@ namespace trc
     private:
         struct AnimationMeta
         {
-            ui32 offset;
-            ui32 frameCount;
-            ui32 boneCount;
+            ui32 offset{ 0 };
+            ui32 frameCount{ 0 };
+            ui32 boneCount{ 0 };
 
-            ui32 __padding{ 42 };
+            ui32 __padding{ 0 };
         };
 
         static constexpr size_t MAX_ANIMATIONS = 300;

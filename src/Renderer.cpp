@@ -118,7 +118,9 @@ void trc::Renderer::createDescriptors()
         { vk::DescriptorType::eStorageBuffer, 1 }, // Light buffer
     };
     descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo({}, 1, poolSizes)
+        vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
+        )
     );
 
     // Layout

@@ -5,6 +5,8 @@
 #include <vector>
 #include <optional>
 
+#include <vkb/VulkanBase.h>
+
 #include "IndexMap.h"
 
 namespace trc::data
@@ -19,7 +21,7 @@ namespace trc::data
      * @tparam Derived The derived class
      */
     template<class Derived>
-    class SelfManagedObject
+    class SelfManagedObject : public vkb::VulkanStaticDestruction<SelfManagedObject<Derived>>
     {
     public:
         using ID = uint64_t;
@@ -69,6 +71,12 @@ namespace trc::data
         auto id() const noexcept -> ID;
 
     private:
+        friend class vkb::VulkanStaticDestruction<SelfManagedObject<Derived>>;
+        static void vulkanStaticDestroy()
+        {
+            objects = {};
+        }
+
         static inline IndexMap<ID, std::unique_ptr<Derived>> objects;
 
         ID myId;

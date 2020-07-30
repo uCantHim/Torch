@@ -24,6 +24,7 @@ namespace trc
         using Ref = std::reference_wrapper<T>;
 
         static void init();
+        static void reset();
 
         static auto addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>;
         static auto addMaterial(Material mat) -> std::pair<Ref<Material>, ui32>;
@@ -58,7 +59,7 @@ namespace trc
 
         //////////
         // Buffers
-        static inline vkb::DeviceLocalBuffer materialBuffer;
+        static inline std::unique_ptr<vkb::DeviceLocalBuffer> materialBuffer;
 
         static inline data::IndexMap<ui32, vk::UniqueImageView> imageViews;
 
