@@ -5,106 +5,158 @@
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
+#include "../event/Keys.h"
+
 namespace vkb
 {
 
-class Device;
-class Window;
+    class Device;
 
-struct Surface
-{
-    using windowDeleter = std::function<void(GLFWwindow*)>;
-    using surfaceDeleter = std::function<void(vk::SurfaceKHR*)>;
-
-    std::unique_ptr<GLFWwindow, windowDeleter> window;
-    std::unique_ptr<vk::SurfaceKHR, surfaceDeleter> surface;
-};
-
-class SwapchainDependentResource;
-
-class Swapchain
-{
-public:
-    class FrameCounter
+    struct Surface
     {
-        friend class Swapchain;
+        using windowDeleter = std::function<void(GLFWwindow*)>;
+        using surfaceDeleter = std::function<void(vk::SurfaceKHR*)>;
 
+        std::unique_ptr<GLFWwindow, windowDeleter> window;
+        std::unique_ptr<vk::SurfaceKHR, surfaceDeleter> surface;
+    };
+
+    class SwapchainDependentResource;
+
+    extern void pollEvents();
+
+    class Swapchain
+    {
     public:
-        static inline size_t getCurrentFrame() noexcept {
-            return currentFrame;
+        class FrameCounter
+        {
+            friend class Swapchain;
+
+        public:
+            static inline size_t getCurrentFrame() noexcept {
+                return currentFrame;
+            }
+
+        private:
+            static inline size_t currentFrame{ 0 };
+        };
+
+        using image_index = uint32_t;
+
+        /**
+         * @brief Construct a swapchain
+         */
+        Swapchain(const Device& device, Surface s);
+
+        /**
+         * @return GLFWwindow* The GLFW window handle of the swapchain's surface
+         */
+        auto getGlfwWindow() noexcept -> GLFWwindow*
+        {
+            return window.get();
         }
 
-    private:
-        static inline size_t currentFrame{ 0 };
+        /**
+         * @return vk::Extent2D Size of the swapchain images, i.e. the window size
+         */
+        auto getImageExtent() const noexcept -> vk::Extent2D;
+
+        /**
+         * @return vk::Format The format of the swapchain images
+         */
+        auto getImageFormat() const noexcept -> vk::Format;
+
+        /**
+         * @return uint32_t Number of images in the swapchain
+         */
+        auto getFrameCount() const noexcept -> uint32_t;
+
+        /**
+         * @return uint32_t The index of the currently active image
+         */
+        auto getCurrentFrame() const noexcept -> uint32_t;
+        auto getImage(uint32_t index) const noexcept -> vk::Image;
+
+        auto acquireImage(vk::Semaphore signalSemaphore) const -> image_index;
+        void presentImage(image_index image,
+                          const vk::Queue& queue,
+                          const std::vector<vk::Semaphore>& waitSemaphores);
+
+        /**
+         * @brief Get an image view on one of the swapchain images
+         *
+         * The swapchain holds one default image view for each image in the
+         * swapchain. This function queries one of these views.
+         *
+         * The returned view must not be destroyed manually.
+         *
+         * @return vk::ImageView
+         */
+        auto getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView;
+
+        /**
+         * @brief Create an image view for one of the images in the swapchain
+         */
+        auto createImageView(uint32_t imageIndex) const noexcept -> vk::UniqueImageView;
+
+        /**
+         * @brief Create image views for all images in the swapchain
+         *
+         * Returned images are in the array position corresponding to their
+         * index.
+         */
+        auto createImageViews() const noexcept -> std::vector<vk::UniqueImageView>;
+
+        auto getKeyState(Key key) const -> InputAction;
+        auto getMouseButtonState(MouseButton button) const -> InputAction;
+
+    public:
+        void initGlfwCallbacks(GLFWwindow* window);
+        void createSwapchain(bool recreate);
+
+        const Device& device;
+        std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
+        std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> surface;
+
+        vk::UniqueSwapchainKHR swapchain;
+        vk::Extent2D swapchainExtent;
+        vk::Format swapchainFormat;
+
+        std::vector<vk::Image> images;
+        std::vector<vk::UniqueImageView> imageViews;
+
+        uint32_t numFrames{ 0 };
     };
 
-    using image_index = uint32_t;
 
-    Swapchain(const Device& device, Surface s);
-
-    auto getImageExtent() const noexcept -> vk::Extent2D;
-    auto getImageFormat() const noexcept -> vk::Format;
-
-    auto getFrameCount() const noexcept -> uint32_t;
-    auto getCurrentFrame() const noexcept -> uint32_t;
-    auto getImage(uint32_t index) const noexcept -> vk::Image;
-
-    auto acquireImage(vk::Semaphore signalSemaphore) const -> image_index;
-    void presentImage(image_index image,
-                      const vk::Queue& queue,
-                      const std::vector<vk::Semaphore>& waitSemaphores);
-
-    auto getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView;
-    auto createImageView(uint32_t imageIndex) const noexcept -> vk::UniqueImageView;
-    auto createImageViews() const noexcept -> std::vector<vk::UniqueImageView>;
-
-public:
-    void createSwapchain(bool recreate);
-
-    const Device& device;
-    std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
-    std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> surface;
-
-    vk::UniqueSwapchainKHR swapchain;
-    vk::Extent2D swapchainExtent;
-    vk::Format swapchainFormat;
-
-    std::vector<vk::Image> images;
-    std::vector<vk::UniqueImageView> imageViews;
-
-    uint32_t numFrames{ 0 };
-};
-
-
-class SwapchainDependentResource
-{
-public:
-    class DependentResourceLock
+    class SwapchainDependentResource
     {
-        friend class Swapchain;
+    public:
+        class DependentResourceLock
+        {
+            friend class Swapchain;
+
+        private:
+            static void startRecreate();
+            static void recreateAll(Swapchain& swapchain);
+            static void endRecreate();
+        };
+
+        SwapchainDependentResource();
+        virtual ~SwapchainDependentResource();
+
+        virtual void signalRecreateRequired() = 0;
+        virtual void recreate(Swapchain&) = 0;
+        virtual void signalRecreateFinished() = 0;
 
     private:
-        static void startRecreate();
-        static void recreateAll(Swapchain& swapchain);
-        static void endRecreate();
+        uint32_t index;
+
+        static uint32_t registerSwapchainDependentResource(SwapchainDependentResource& res);
+        static void removeSwapchainDependentResource(uint32_t index);
+
+        static inline bool isRecreating{ false };
+        static inline std::vector<SwapchainDependentResource*> newResources;
+        static inline std::vector<SwapchainDependentResource*> dependentResources;
     };
-
-    SwapchainDependentResource();
-    virtual ~SwapchainDependentResource();
-
-    virtual void signalRecreateRequired() = 0;
-    virtual void recreate(Swapchain&) = 0;
-    virtual void signalRecreateFinished() = 0;
-
-private:
-    uint32_t index;
-
-    static uint32_t registerSwapchainDependentResource(SwapchainDependentResource& res);
-    static void removeSwapchainDependentResource(uint32_t index);
-
-    static inline bool isRecreating{ false };
-    static inline std::vector<SwapchainDependentResource*> newResources;
-    static inline std::vector<SwapchainDependentResource*> dependentResources;
-};
-
 } // namespace vkb

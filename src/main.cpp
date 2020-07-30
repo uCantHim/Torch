@@ -7,6 +7,7 @@ using namespace std::chrono;
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
+#include <vkb/event/EventHandler.h>
 
 #include "trc/utils/FBXLoader.h"
 #include "trc/Geometry.h"
@@ -152,10 +153,18 @@ int main()
     }
 
 
-    while (true)
+    bool running{ true };
+    auto yo = vkb::EventHandler<vkb::SwapchainDestroyEvent>::addListener(
+        [&running](const vkb::SwapchainDestroyEvent&) { running = false; }
+    );
+
+    while (running)
     {
         renderer.drawFrame(scene, camera);
+
+        vkb::pollEvents();
     }
+    vkb::getDevice()->waitIdle();
 
     std::cout << " --- Done\n";
     return 0;

@@ -1,11 +1,22 @@
 #include "Swapchain.h"
 
+#include <stdexcept>
 #include <chrono>
 using namespace std::chrono;
 
 #include "PhysicalDevice.h"
 #include "Device.h"
 #include "VulkanDebug.h"
+#include "event/EventHandler.h"
+#include "event/InputEvents.h"
+#include "event/WindowEvents.h"
+
+
+
+void vkb::pollEvents()
+{
+    glfwPollEvents();
+}
 
 
 
@@ -140,6 +151,7 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
     window(std::move(s.window)),
     surface(std::move(s.surface))
 {
+    initGlfwCallbacks(window.get());
     createSwapchain(false);
 }
 
@@ -247,6 +259,97 @@ auto vkb::Swapchain::createImageViews() const noexcept -> std::vector<vk::Unique
     return result;
 }
 
+auto vkb::Swapchain::getKeyState(Key key) const -> InputAction
+{
+    return static_cast<InputAction>(glfwGetKey(window.get(), static_cast<int>(key)));
+}
+
+auto vkb::Swapchain::getMouseButtonState(MouseButton button) const -> InputAction
+{
+    return static_cast<InputAction>(glfwGetMouseButton(window.get(), static_cast<int>(button)));
+}
+
+void onChar(GLFWwindow* window, unsigned int codepoint)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    vkb::EventHandler<vkb::CharInputEvent>::notify({ swapchain, codepoint });
+}
+
+void onKey(GLFWwindow* window, int key, int, int action, int mods)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    switch(action)
+    {
+    case GLFW_PRESS:
+        vkb::EventHandler<vkb::KeyPressEvent>::notify(
+            { swapchain, static_cast<vkb::Key>(key), mods }
+        );
+        break;
+    case GLFW_RELEASE:
+        vkb::EventHandler<vkb::KeyReleaseEvent>::notify(
+            { swapchain, static_cast<vkb::Key>(key), mods }
+        );
+        break;
+    case GLFW_REPEAT:
+        vkb::EventHandler<vkb::KeyRepeatEvent>::notify(
+            { swapchain, static_cast<vkb::Key>(key), mods }
+        );
+        break;
+    default:
+        throw std::logic_error("");
+    };
+}
+
+void onMouseMove(GLFWwindow* window, double xpos, double ypos)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+
+    double yInv = static_cast<double>(swapchain->getImageExtent().height) - ypos;
+    vkb::EventHandler<vkb::MouseMoveEvent>::notify(
+        { swapchain, static_cast<float>(xpos), static_cast<float>(yInv) }
+    );
+}
+
+void onMouseClick(GLFWwindow* window, int button, int action, int mods)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    switch (action)
+    {
+    case GLFW_PRESS:
+        vkb::EventHandler<vkb::MouseClickEvent>::notify(
+            { swapchain, static_cast<vkb::MouseButton>(button), mods }
+        );
+        break;
+    case GLFW_RELEASE:
+        vkb::EventHandler<vkb::MouseReleaseEvent>::notify(
+            { swapchain, static_cast<vkb::MouseButton>(button), mods }
+        );
+        break;
+    default:
+        throw std::logic_error("");
+    }
+}
+
+void onWindowClose(GLFWwindow* window)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    vkb::EventHandler<vkb::SwapchainDestroyEvent>::notify({ swapchain });
+}
+
+void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
+{
+    glfwSetWindowUserPointer(window, this);
+
+    // Whyyyyy can't I use lambdas here :(
+    glfwSetCharCallback(window, onChar);
+    glfwSetKeyCallback(window, onKey);
+    glfwSetCursorPosCallback(window, onMouseMove);
+    glfwSetMouseButtonCallback(window, onMouseClick);
+
+    glfwSetWindowCloseCallback(window, onWindowClose);
+
+    EventThread::start();
+}
 
 void vkb::Swapchain::createSwapchain(bool recreate)
 {
