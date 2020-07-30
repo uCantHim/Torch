@@ -126,7 +126,11 @@ namespace vkb
     {
     public:
         // Ensure that the static variable is instantiated
-        VulkanStaticInitialization() { _init; }
+        VulkanStaticInitialization()
+        {
+            [[maybe_unused]]
+            static bool _assert_init = _init;
+        }
 
     private:
         static inline bool _init = []() {
@@ -149,7 +153,11 @@ namespace vkb
     {
     public:
         // Ensure that the static variable is instantiated
-        VulkanStaticDestruction() { _init; }
+        VulkanStaticDestruction()
+        {
+            [[maybe_unused]]
+            static bool _assert_init = _init;
+        }
 
     private:
         static inline bool _init = []() {
