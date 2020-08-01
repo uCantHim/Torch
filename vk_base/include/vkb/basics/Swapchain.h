@@ -9,7 +9,6 @@
 
 namespace vkb
 {
-
     class Device;
 
     struct Surface
@@ -23,8 +22,21 @@ namespace vkb
 
     class SwapchainDependentResource;
 
+    /**
+     * Call this once per frame.
+     *
+     * Just calls glfwPollEvents().
+     */
     extern void pollEvents();
 
+    /**
+     * @brief A swapchain
+     *
+     * This is the equivalent to the classical 'Window' class. I didn't
+     * want to wrap this in a Window class because I want to expose as much
+     * of the Vulkan stuff as possible. Why should I use the conventional
+     * terminology if Vulkan has no concept of windows?
+     */
     class Swapchain
     {
     public:
@@ -51,10 +63,7 @@ namespace vkb
         /**
          * @return GLFWwindow* The GLFW window handle of the swapchain's surface
          */
-        auto getGlfwWindow() noexcept -> GLFWwindow*
-        {
-            return window.get();
-        }
+        auto getGlfwWindow() const noexcept -> GLFWwindow*;
 
         /**
          * @return vk::Extent2D Size of the swapchain images, i.e. the window size
@@ -97,7 +106,7 @@ namespace vkb
         /**
          * @brief Create an image view for one of the images in the swapchain
          */
-        auto createImageView(uint32_t imageIndex) const noexcept -> vk::UniqueImageView;
+        auto createImageView(uint32_t imageIndex) const -> vk::UniqueImageView;
 
         /**
          * @brief Create image views for all images in the swapchain
@@ -105,7 +114,7 @@ namespace vkb
          * Returned images are in the array position corresponding to their
          * index.
          */
-        auto createImageViews() const noexcept -> std::vector<vk::UniqueImageView>;
+        auto createImageViews() const -> std::vector<vk::UniqueImageView>;
 
         auto getKeyState(Key key) const -> InputAction;
         auto getMouseButtonState(MouseButton button) const -> InputAction;

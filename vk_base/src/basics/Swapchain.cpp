@@ -155,6 +155,10 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
     createSwapchain(false);
 }
 
+auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
+{
+    return window.get();
+}
 
 auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
 {
@@ -233,7 +237,7 @@ auto vkb::Swapchain::getImageView(uint32_t imageIndex) const noexcept -> vk::Ima
     return *imageViews[imageIndex];
 }
 
-auto vkb::Swapchain::createImageView(uint32_t imageIndex) const noexcept -> vk::UniqueImageView
+auto vkb::Swapchain::createImageView(uint32_t imageIndex) const -> vk::UniqueImageView
 {
     assert(imageIndex < getFrameCount());
 
@@ -246,7 +250,7 @@ auto vkb::Swapchain::createImageView(uint32_t imageIndex) const noexcept -> vk::
     );
 }
 
-auto vkb::Swapchain::createImageViews() const noexcept -> std::vector<vk::UniqueImageView>
+auto vkb::Swapchain::createImageViews() const -> std::vector<vk::UniqueImageView>
 {
     std::vector<vk::UniqueImageView> result;
     result.reserve(images.size());
@@ -490,11 +494,9 @@ uint32_t vkb::SwapchainDependentResource::registerSwapchainDependentResource(Swa
         newResources.push_back(&res);
         return dependentResources.size() + newResources.size() - 1;
     }
-    else
-    {
-        dependentResources.push_back(&res);
-        return dependentResources.size() - 1;
-    }
+
+    dependentResources.push_back(&res);
+    return dependentResources.size() - 1;
 }
 
 void vkb::SwapchainDependentResource::removeSwapchainDependentResource(uint32_t index)
