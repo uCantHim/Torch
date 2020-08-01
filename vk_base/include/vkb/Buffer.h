@@ -11,6 +11,10 @@ namespace vkb
 
     struct BufferRegion
     {
+        BufferRegion() = default;
+        BufferRegion(vk::DeviceSize offset, vk::DeviceSize size)
+            : offset(offset), size(size) {}
+
         vk::DeviceSize offset{ 0 };
         vk::DeviceSize size{ VK_WHOLE_SIZE };
     };
@@ -82,6 +86,8 @@ namespace vkb
             return *buffer;
         }
 
+        auto size() const noexcept -> vk::DeviceSize;
+
         /**
          * @brief Map a range of the buffer to CPU memory
          *
@@ -106,8 +112,8 @@ namespace vkb
          */
         void unmap();
 
-        void copyFrom(const Buffer& src);
-        void copyTo(const Buffer& dst);
+        void copyFrom(const Buffer& src, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
+        void copyTo(const Buffer& dst, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
 
         void copyFrom(vk::DeviceSize copySize, const void* data, BufferRegion dstRegion = {});
 

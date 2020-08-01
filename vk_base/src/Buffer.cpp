@@ -67,6 +67,11 @@ vkb::Buffer::Buffer(
 }
 
 
+auto vkb::Buffer::size() const noexcept -> vk::DeviceSize
+{
+    return bufferSize;
+}
+
 auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) -> memptr
 {
     return static_cast<memptr>(memory.map(*device, offset, size));
@@ -85,24 +90,30 @@ void vkb::Buffer::unmap()
 }
 
 
-void vkb::Buffer::copyFrom(const Buffer& src)
+void vkb::Buffer::copyFrom(const Buffer& src, BufferRegion srcRegion, vk::DeviceSize dstOffset)
 {
-    assert(src.bufferSize >= bufferSize);
+    if (srcRegion.size == VK_WHOLE_SIZE) {
+        srcRegion.size = src.bufferSize;
+    }
+
     copyBuffer(
         *device,
         *buffer, *src.buffer,
-        0u, 0u, bufferSize
+        dstOffset, srcRegion.offset, srcRegion.size
     );
 }
 
 
-void vkb::Buffer::copyTo(const Buffer& dst)
+void vkb::Buffer::copyTo(const Buffer& dst, BufferRegion srcRegion, vk::DeviceSize dstOffset)
 {
-    assert(dst.bufferSize >= bufferSize);
+    if (srcRegion.size == VK_WHOLE_SIZE) {
+        srcRegion.size = bufferSize;
+    }
+
     copyBuffer(
         *device,
         *dst.buffer, *buffer,
-        0u, 0u, bufferSize
+        dstOffset, srcRegion.offset, srcRegion.size
     );
 }
 
