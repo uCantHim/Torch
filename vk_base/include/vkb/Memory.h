@@ -92,7 +92,7 @@ namespace vkb
         /**
          * @brief Bind the memory to a buffer
          */
-        void bindToBuffer(const Device& device, vk::Buffer buffer);
+        void bindToBuffer(const Device& device, vk::Buffer buffer) const;
 
         /**
          * @brief Map device memory to host memory
@@ -110,14 +110,16 @@ namespace vkb
          *
          * @return void* Pointer to mapped memory
          */
-        auto map(const Device& device, vk::DeviceSize mappedOffset, vk::DeviceSize mappedSize) -> void*;
+        auto map(const Device& device,
+                 vk::DeviceSize mappedOffset,
+                 vk::DeviceSize mappedSize) const -> void*;
 
         /**
          * @brief Unmap the memory from host memory.
          *
          * Must not be called on memory that is not currently mapped.
          */
-        void unmap(const Device& device);
+        void unmap(const Device& device) const;
 
         auto getSize() const noexcept -> vk::DeviceSize;
 

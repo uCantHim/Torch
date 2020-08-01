@@ -12,9 +12,9 @@ vkb::DeviceMemory::DeviceMemory(DeviceMemoryInternals data, DeviceMemoryDeleter 
 vkb::DeviceMemory::DeviceMemory(DeviceMemory&& other) noexcept
     :
     deleter(std::move(other.deleter)),
-    internal(std::move(other.internal))
+    internal(other.internal)
 {
-    other.deleter = [](...) {};
+    other.deleter = [](const DeviceMemoryInternals&) {};
 }
 
 vkb::DeviceMemory::~DeviceMemory()
@@ -25,9 +25,9 @@ vkb::DeviceMemory::~DeviceMemory()
 auto vkb::DeviceMemory::operator=(DeviceMemory&& rhs) noexcept -> DeviceMemory&
 {
     deleter = std::move(rhs.deleter);
-    internal = std::move(rhs.internal);
+    internal = rhs.internal;
 
-    rhs.deleter = [](...) {};
+    rhs.deleter = [](const DeviceMemoryInternals&) {};
 
     return *this;
 }
@@ -52,14 +52,14 @@ auto vkb::DeviceMemory::allocate(
     );
 }
 
-void vkb::DeviceMemory::bindToBuffer(const Device& device, vk::Buffer buffer)
+void vkb::DeviceMemory::bindToBuffer(const Device& device, vk::Buffer buffer) const
 {
     device->bindBufferMemory(buffer, internal.memory, internal.baseOffset);
 }
 
 auto vkb::DeviceMemory::map(const Device& device,
                             vk::DeviceSize mappedOffset,
-                            vk::DeviceSize mappedSize) -> void*
+                            vk::DeviceSize mappedSize) const -> void*
 {
     assert(mappedSize == VK_WHOLE_SIZE || mappedSize <= internal.size);
 
@@ -69,7 +69,7 @@ auto vkb::DeviceMemory::map(const Device& device,
     return device->mapMemory(internal.memory, internal.baseOffset + mappedOffset, mappedSize);
 }
 
-void vkb::DeviceMemory::unmap(const Device& device)
+void vkb::DeviceMemory::unmap(const Device& device) const
 {
     device->unmapMemory(internal.memory);
 }
