@@ -10,9 +10,9 @@ vkb::Buffer::Buffer(
     vk::DeviceSize bufferSize,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    DeviceMemoryAllocator allocator)
+    const DeviceMemoryAllocator& allocator)
     :
-    Buffer(vkb::VulkanBase::getDevice(), bufferSize, usage, flags, std::move(allocator))
+    Buffer(vkb::VulkanBase::getDevice(), bufferSize, usage, flags, allocator)
 {}
 
 
@@ -21,7 +21,7 @@ vkb::Buffer::Buffer(
     vk::DeviceSize bufferSize,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    DeviceMemoryAllocator allocator)
+    const DeviceMemoryAllocator& allocator)
     :
     device(&device),
     buffer(device->createBufferUnique(
@@ -46,9 +46,9 @@ vkb::Buffer::Buffer(
     const void* data,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    DeviceMemoryAllocator allocator)
+    const DeviceMemoryAllocator& allocator)
     :
-    Buffer(vkb::VulkanBase::getDevice(), bufferSize, data, usage, flags, std::move(allocator))
+    Buffer(vkb::VulkanBase::getDevice(), bufferSize, data, usage, flags, allocator)
 {
 }
 
@@ -59,9 +59,9 @@ vkb::Buffer::Buffer(
     const void* data,
     vk::BufferUsageFlags usage,
     vk::MemoryPropertyFlags flags,
-    DeviceMemoryAllocator allocator)
+    const DeviceMemoryAllocator& allocator)
     :
-    Buffer(device, bufferSize, usage, flags, std::move(allocator))
+    Buffer(device, bufferSize, usage, flags, allocator)
 {
     copyFrom(bufferSize, data);
 }
@@ -122,14 +122,14 @@ vkb::DeviceLocalBuffer::DeviceLocalBuffer(
     vk::DeviceSize bufferSize,
     const void* data,
     vk::BufferUsageFlags usage,
-    DeviceMemoryAllocator allocator)
+    const DeviceMemoryAllocator& allocator)
     :
     DeviceLocalBuffer(
         vkb::VulkanBase::getDevice(),
         bufferSize,
         data,
         usage,
-        std::move(allocator)
+        allocator
     )
 {
 }
@@ -139,14 +139,14 @@ vkb::DeviceLocalBuffer::DeviceLocalBuffer(
     vk::DeviceSize bufferSize,
     const void* data,
     vk::BufferUsageFlags usage,
-    DeviceMemoryAllocator allocator)
+    const DeviceMemoryAllocator& allocator)
     :
     Buffer(
         device,
         bufferSize,
         usage | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
-        std::move(allocator)
+        allocator
     )
 {
     assert(bufferSize > 0);

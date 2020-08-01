@@ -29,32 +29,32 @@ namespace vkb
         Buffer(vk::DeviceSize bufferSize,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
-               DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator());
+               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
         Buffer(const Device& device,
                vk::DeviceSize bufferSize,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
-               DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator());
+               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
         Buffer(vk::DeviceSize bufferSize,
                const void* data,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
-               DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator());
+               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
         Buffer(const Device& device,
                vk::DeviceSize bufferSize,
                const void* data,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
-               DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator());
+               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
         template<typename T>
         Buffer(const std::vector<T>& data,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
-               DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator())
+               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
             : Buffer(vkb::VulkanBase::getDevice(), data, usage, flags, std::move(allocator))
         {}
 
@@ -63,7 +63,7 @@ namespace vkb
                const std::vector<T>& data,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
-               DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator())
+               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
             : Buffer(device, sizeof(T) * data.size(), data.data(), usage, flags, std::move(allocator))
         {}
 
@@ -162,18 +162,18 @@ namespace vkb
         DeviceLocalBuffer(vk::DeviceSize bufferSize,
                           const void* data,
                           vk::BufferUsageFlags usage,
-                          DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator());
+                          const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
         DeviceLocalBuffer(const Device& device,
                           vk::DeviceSize bufferSize,
                           const void* data,
                           vk::BufferUsageFlags usage,
-                          DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator());
+                          const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
         template<typename T>
         DeviceLocalBuffer(const std::vector<T>& data,
                           vk::BufferUsageFlags usage,
-                          DeviceMemoryAllocator allocator = DefaultDeviceMemoryAllocator())
+                          const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
             : DeviceLocalBuffer(sizeof(T) * data.size(), data.data(), usage, std::move(allocator))
         {}
 
