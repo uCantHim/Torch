@@ -41,8 +41,6 @@ namespace trc
         DescriptorProvider cameraDescriptorProvider{ {}, {} };
 
         void bindLightBuffer(vk::Buffer lightBuffer);
-        vk::Buffer cachedLightBuffer;
-
         void updateCameraMatrixBuffer(const Camera& camera);
         vkb::Buffer cameraMatrixBuffer;
 

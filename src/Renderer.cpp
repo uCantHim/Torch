@@ -119,7 +119,9 @@ void trc::Renderer::createDescriptors()
     };
     descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+            1, poolSizes
         )
     );
 
@@ -136,8 +138,21 @@ void trc::Renderer::createDescriptors()
             vk::ShaderStageFlagBits::eFragment
         ),
     };
+
+    // Include the update after bind bit in the pNext chain for the layout
+    std::vector<vk::DescriptorBindingFlags> bindingFlags = {
+        vk::DescriptorBindingFlags(), // No flags for the camera descriptor
+        vk::DescriptorBindingFlagBits::eUpdateAfterBind,
+    };
+    vk::StructureChain layoutChain{
+        vk::DescriptorSetLayoutCreateInfo(
+            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
+        ),
+        vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags.size(), bindingFlags.data())
+    };
+    // Layout
     descLayout = vkb::VulkanBase::getDevice()->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
+        layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
     );
 
     // Set
@@ -162,20 +177,13 @@ void trc::Renderer::createDescriptors()
 
 void trc::Renderer::bindLightBuffer(vk::Buffer lightBuffer)
 {
-    if (cachedLightBuffer != lightBuffer)
-    {
-        waitForAllFrames();
+    // Update descriptor set
+    vk::DescriptorBufferInfo lightBufferInfo(lightBuffer, 0, VK_WHOLE_SIZE);
 
-        // Update descriptor set
-        vk::DescriptorBufferInfo lightBufferInfo(lightBuffer, 0, VK_WHOLE_SIZE);
-
-        std::vector<vk::WriteDescriptorSet> writes = {
-            { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
-        };
-        vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
-
-        cachedLightBuffer = lightBuffer;
-    }
+    std::vector<vk::WriteDescriptorSet> writes = {
+        { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
+    };
+    vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
 }
 
 void trc::Renderer::updateCameraMatrixBuffer(const Camera& camera)
