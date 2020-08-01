@@ -4,7 +4,6 @@
 
 void trc::AssetRegistry::init()
 {
-    updateMaterialBuffer();
     createDescriptors();
 }
 
@@ -15,7 +14,7 @@ void trc::AssetRegistry::reset()
     imageViews = {};
     images = {};
 
-    materialBuffer.reset();
+    materialBuffer = {};
 
     descSet.reset();
     descLayout.reset();
@@ -24,6 +23,25 @@ void trc::AssetRegistry::reset()
     nextGeometryIndex = 0;
     nextMaterialIndex = 0;
     nextImageIndex = 0;
+}
+
+void trc::AssetRegistry::vulkanStaticInit()
+{
+    constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
+
+    // Create material buffer
+    materialBuffer = vkb::Buffer(
+        defaultMaterialBufferSize,
+        vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    );
+
+    init();
+}
+
+void trc::AssetRegistry::vulkanStaticDestroy()
+{
+    reset();
 }
 
 auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>
@@ -75,28 +93,14 @@ auto trc::AssetRegistry::getDescriptorSetProvider() noexcept -> DescriptorProvid
 
 void trc::AssetRegistry::updateMaterialBuffer()
 {
-    std::vector<Material> data;
-    for (ui32 i = 0; i < materials.size(); i++)
+    auto buf = reinterpret_cast<Material*>(materialBuffer.map());
+    for (size_t i = 0; i < materials.size(); i++)
     {
-        const auto& matPtr = materials[i];
-        if (matPtr != nullptr) {
-            data.push_back(*matPtr);
+        if (materials[i] != nullptr) {
+            buf[i] = *materials[i];
         }
     }
-
-    // The buffer should always be written to the descriptor set, which is
-    // only possible if the buffer size is not zero.
-    if (materials.size() == 0) {
-        data.emplace_back();
-    }
-
-    materialBuffer = std::make_unique<vkb::DeviceLocalBuffer>(
-        data, vk::BufferUsageFlagBits::eStorageBuffer
-    );
-
-    if (descSet) {
-        updateDescriptors();
-    }
+    materialBuffer.unmap();
 }
 
 void trc::AssetRegistry::createDescriptors()
@@ -148,7 +152,7 @@ void trc::AssetRegistry::updateDescriptors()
 {
     static const auto& device = vkb::VulkanBase::getDevice();
 
-    vk::DescriptorBufferInfo matBufferWrite(**materialBuffer, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
     // Image writes
     std::vector<vk::DescriptorImageInfo> imageWrites;
     for (ui32 i = 0; i < images.size(); i++)

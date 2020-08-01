@@ -17,7 +17,8 @@ namespace trc
     class DuplicateKeyError : public Exception {};
     class KeyNotFoundError : public Exception {};
 
-    class AssetRegistry
+    class AssetRegistry : public vkb::VulkanStaticInitialization<AssetRegistry>
+                        , public vkb::VulkanStaticDestruction<AssetRegistry>
     {
     public:
         template<typename T>
@@ -39,10 +40,10 @@ namespace trc
         static void updateMaterialBuffer();
 
     private:
-        static inline bool __init = []() {
-            vkb::VulkanBase::onInit(AssetRegistry::init);
-            return true;
-        }();
+        friend vkb::VulkanStaticInitialization<AssetRegistry>;
+        friend vkb::VulkanStaticDestruction<AssetRegistry>;
+        static void vulkanStaticInit();
+        static void vulkanStaticDestroy();
 
         template<typename T>
         static auto addToMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key, T value) -> T&;
@@ -59,8 +60,7 @@ namespace trc
 
         //////////
         // Buffers
-        static inline std::unique_ptr<vkb::DeviceLocalBuffer> materialBuffer;
-
+        static inline vkb::Buffer materialBuffer;
         static inline data::IndexMap<ui32, vk::UniqueImageView> imageViews;
 
         //////////////
@@ -104,5 +104,10 @@ namespace trc
         }
 
         return *map[key];
+    }
+
+    namespace internal
+    {
+        static inline AssetRegistry _asset_registry_init;
     }
 } // namespace trc
