@@ -63,7 +63,7 @@ namespace trc
         };
 
         static constexpr size_t MAX_ANIMATIONS = 300;
-        static constexpr size_t ANIMATION_BUFFER_SIZE = MAX_ANIMATIONS * 60 * sizeof(mat4);
+        static constexpr size_t ANIMATION_BUFFER_SIZE = 2000000;
 
         friend vkb::VulkanStaticInitialization<Animation>;
         friend vkb::VulkanStaticDestruction<Animation>;

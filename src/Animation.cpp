@@ -11,6 +11,7 @@ trc::Animation::Animation(const AnimationData& data)
 {
     std::lock_guard lock(animationCreateLock);
 
+    // Write animation meta data to buffer
     AnimationMeta newMeta{
         .offset = animationBufferOffset,
         .frameCount = data.frameCount,
@@ -20,11 +21,35 @@ trc::Animation::Animation(const AnimationData& data)
     memcpy(metaBuf, &newMeta, sizeof(newMeta));
     animationMetaDataBuffer.unmap();
 
+    // Create new buffer if the current one is too small
+    if ((animationBufferOffset + data.frameCount * newMeta.boneCount) * sizeof(mat4)
+        > animationBuffer.size())
+    {
+        vkb::Buffer newBuffer(
+            animationBuffer.size() * 2,
+            vk::BufferUsageFlagBits::eStorageBuffer
+            | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
+            vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+        );
+        newBuffer.copyFrom(animationBuffer, vkb::BufferRegion(0, animationBuffer.size()));
+
+        vk::DescriptorBufferInfo animBuffer(*newBuffer, 0, VK_WHOLE_SIZE);
+        std::vector<vk::WriteDescriptorSet> writes = {
+            vk::WriteDescriptorSet(descSet, 1, 0, vk::DescriptorType::eStorageBuffer, {}, animBuffer),
+        };
+        vkb::getDevice()->updateDescriptorSets(writes, {});
+
+        animationBuffer = std::move(newBuffer);
+    }
+
+    // Copy animation into buffer
     auto animBuf = animationBuffer.map(animationBufferOffset * sizeof(mat4));
     for (size_t offset = 0; const auto& kf : data.keyframes)
     {
-        memcpy(animBuf + offset, kf.boneMatrices.data(), kf.boneMatrices.size() * sizeof(mat4));
-        offset += kf.boneMatrices.size() * sizeof(mat4);
+        const size_t copySize = kf.boneMatrices.size() * sizeof(mat4);
+
+        memcpy(animBuf + offset, kf.boneMatrices.data(), copySize);
+        offset += copySize;
     }
     animationBuffer.unmap();
 
@@ -67,7 +92,8 @@ void trc::Animation::vulkanStaticInit()
 
     animationBuffer = vkb::Buffer(
         ANIMATION_BUFFER_SIZE,
-        vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::BufferUsageFlagBits::eStorageBuffer
+        | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     );
 
