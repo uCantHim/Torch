@@ -39,7 +39,7 @@ auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Ref<Material>, u
 {
     ui32 key = nextMaterialIndex++;
 
-    return { addToMap(materials, key, std::move(mat)), key };
+    return { addToMap(materials, key, mat), key };
 }
 
 auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, ui32>
@@ -157,7 +157,7 @@ void trc::AssetRegistry::updateDescriptors()
             break;
         }
 
-        imageWrites.push_back(vk::DescriptorImageInfo(
+        imageWrites.emplace_back(vk::DescriptorImageInfo(
             images[i]->getDefaultSampler(),
             *imageViews[i],
             vk::ImageLayout::eGeneral

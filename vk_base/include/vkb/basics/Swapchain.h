@@ -152,6 +152,11 @@ namespace vkb
         };
 
         SwapchainDependentResource();
+
+        SwapchainDependentResource(const SwapchainDependentResource&) = default;
+        SwapchainDependentResource(SwapchainDependentResource&&) noexcept = default;
+        auto operator=(const SwapchainDependentResource&) -> SwapchainDependentResource& = default;
+        auto operator=(SwapchainDependentResource&&) noexcept -> SwapchainDependentResource& = default;
         virtual ~SwapchainDependentResource();
 
         virtual void signalRecreateRequired() = 0;

@@ -1,5 +1,7 @@
 #include "MemoryPool.h"
 
+#include <glm/glm.hpp>
+
 
 
 vkb::ManagedMemoryChunk::ManagedMemoryChunk(vk::DeviceSize size, uint32_t memoryTypeIndex)

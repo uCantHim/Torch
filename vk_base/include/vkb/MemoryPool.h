@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include <glm/glm.hpp>
-
 #include "VulkanBase.h"
 #include "Memory.h"
 
@@ -38,6 +36,7 @@ namespace vkb
         ManagedMemoryChunk(ManagedMemoryChunk&&) = delete;
         auto operator=(const ManagedMemoryChunk&) -> ManagedMemoryChunk& = delete;
         auto operator=(ManagedMemoryChunk&&) -> ManagedMemoryChunk& = delete;
+        ~ManagedMemoryChunk() = default;
 
         /**
          * @brief Allocate raw device memory from the pre-allocated chunk
@@ -123,6 +122,7 @@ namespace vkb
         MemoryPool(MemoryPool&&) noexcept = default;
         auto operator=(const MemoryPool&) -> MemoryPool& = delete;
         auto operator=(MemoryPool&&) noexcept -> MemoryPool& = default;
+        ~MemoryPool() = default;
 
         /**
          * @brief Set the used device for the memory pool
