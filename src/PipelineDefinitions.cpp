@@ -4,6 +4,7 @@
 #include "Vertex.h"
 #include "AssetRegistry.h"
 #include "DrawableInstanced.h"
+#include "Scene.h"
 
 
 
@@ -147,6 +148,7 @@ void trc::internal::makeFinalLightingPipeline(
             generalDescriptorSet.getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             gBufferInputSet.getDescriptorSetLayout(),
+            SceneDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
         {
@@ -181,4 +183,5 @@ void trc::internal::makeFinalLightingPipeline(
     p.addStaticDescriptorSet(0, generalDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, gBufferInputSet);
+    p.addStaticDescriptorSet(3, SceneDescriptor::getProvider());
 }

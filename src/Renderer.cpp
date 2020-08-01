@@ -37,8 +37,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Update
     scene.updateTransforms();
+    SceneDescriptor::setActiveScene(scene);
     updateCameraMatrixBuffer(camera);
-    bindLightBuffer(scene.getLightBuffer());
 
     vec3 cameraPos = camera.getPosition();
 
@@ -115,44 +115,23 @@ void trc::Renderer::createDescriptors()
 {
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eUniformBuffer, 1 }, // Camera buffer
-        { vk::DescriptorType::eStorageBuffer, 1 }, // Light buffer
     };
     descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             1, poolSizes
         )
     );
 
     // Layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
+    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
         vk::DescriptorSetLayoutBinding(
-            0,
-            vk::DescriptorType::eUniformBuffer, 1,
+            0, vk::DescriptorType::eUniformBuffer, 1,
             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
         ),
-        vk::DescriptorSetLayoutBinding(
-            1,
-            vk::DescriptorType::eStorageBuffer, 1,
-            vk::ShaderStageFlagBits::eFragment
-        ),
     };
-
-    // Include the update after bind bit in the pNext chain for the layout
-    std::vector<vk::DescriptorBindingFlags> bindingFlags = {
-        vk::DescriptorBindingFlags(), // No flags for the camera descriptor
-        vk::DescriptorBindingFlagBits::eUpdateAfterBind,
-    };
-    vk::StructureChain layoutChain{
-        vk::DescriptorSetLayoutCreateInfo(
-            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
-        ),
-        vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags.size(), bindingFlags.data())
-    };
-    // Layout
     descLayout = vkb::VulkanBase::getDevice()->createDescriptorSetLayoutUnique(
-        layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
+        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
     );
 
     // Set
@@ -172,17 +151,6 @@ void trc::Renderer::createDescriptors()
         ),
     };
 
-    vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
-}
-
-void trc::Renderer::bindLightBuffer(vk::Buffer lightBuffer)
-{
-    // Update descriptor set
-    vk::DescriptorBufferInfo lightBufferInfo(lightBuffer, 0, VK_WHOLE_SIZE);
-
-    std::vector<vk::WriteDescriptorSet> writes = {
-        { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
-    };
     vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
 }
 

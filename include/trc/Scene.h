@@ -25,6 +25,7 @@ namespace trc
         void removeLight(Light& light);
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
+        auto getPickingBuffer() const noexcept -> vk::Buffer;
 
     private:
         Node root;
@@ -32,5 +33,28 @@ namespace trc
         void updateLightBuffer();
         std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
+        vkb::Buffer pickingBuffer;
+    };
+
+
+    class SceneDescriptor : public vkb::VulkanStaticInitialization<SceneDescriptor>
+                          , public vkb::VulkanStaticDestruction<SceneDescriptor>
+    {
+    public:
+        static auto getProvider() noexcept -> const DescriptorProviderInterface&;
+
+        static void setActiveScene(const Scene& scene) noexcept;
+
+    private:
+        friend vkb::VulkanStaticInitialization<SceneDescriptor>;
+        friend vkb::VulkanStaticDestruction<SceneDescriptor>;
+        static inline vkb::VulkanStaticInitialization<SceneDescriptor> _force_init;
+        static void vulkanStaticInit();
+        static void vulkanStaticDestroy();
+
+        static inline vk::UniqueDescriptorPool descPool;
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline vk::UniqueDescriptorSet descSet;
+        static inline DescriptorProvider provider{ {}, {} };
     };
 } // namespace trc

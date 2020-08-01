@@ -5,11 +5,10 @@
 #include "light.glsl"
 #include "material.glsl"
 
-layout (set = 0, binding = 1, std140) restrict readonly buffer LightBuffer
-{
-    uint numLights;
-    Light lights[];
-};
+layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
+layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
+layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
+layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
 
 layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 {
@@ -18,10 +17,11 @@ layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 
 layout (set = 1, binding = 1) uniform sampler2D textures[];
 
-layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
-layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
-layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
-layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
+layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
+{
+    uint numLights;
+    Light lights[];
+};
 
 layout (push_constant) uniform PushConstants
 {
