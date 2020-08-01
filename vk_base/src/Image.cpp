@@ -21,6 +21,22 @@ vkb::Image::Image(const std::string& imagePath, vk::ImageUsageFlags usage)
     loadFromFile(imagePath, usage);
 }
 
+vkb::Image::Image(glm::vec4 color, vk::ImageUsageFlags usage)
+    :
+    Image(vk::ImageCreateInfo(
+        vk::ImageCreateFlags(),
+        vk::ImageType::e2D,
+        vk::Format::eR8G8B8A8Unorm,
+        { 1, 1, 1 },
+        1, 1,
+        vk::SampleCountFlagBits::e1,
+        vk::ImageTiling::eOptimal,
+        usage
+    ))
+{
+    copyRawData(&color, sizeof(glm::vec4), {});
+}
+
 auto vkb::Image::operator*() const noexcept -> vk::Image
 {
     return *image;
@@ -90,11 +106,10 @@ void vkb::Image::loadFromFile(const std::string& imagePath, vk::ImageUsageFlags 
         throw std::runtime_error("Unable to load image from \"" + imagePath + "\":"
                                  + std::to_string(ilGetError()));
     }
-
     ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
 
-    uint32_t imageWidth = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_WIDTH));
-    uint32_t imageHeight = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_HEIGHT));
+    const auto imageWidth = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_WIDTH));
+    const auto imageHeight = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_HEIGHT));
 
     vk::ImageCreateInfo info(
         {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
@@ -152,7 +167,7 @@ auto vkb::Image::createView(
     vk::ImageSubresourceRange subRes) const -> vk::UniqueImageView
 {
     return getDevice()->createImageViewUnique(
-        { {}, *image, viewType, viewFormat, componentMapping, subRes }
+        { {}, *image, viewType, viewFormat, componentMapping, std::move(subRes) }
     );
 }
 
@@ -161,7 +176,7 @@ void vkb::Image::changeLayout(vk::ImageLayout from, vk::ImageLayout to,
 {
     auto cmdBuf = getDevice().createGraphicsCommandBuffer();
     cmdBuf->begin(vk::CommandBufferBeginInfo{});
-    changeLayout(*cmdBuf, from, to, subRes);
+    changeLayout(*cmdBuf, from, to, std::move(subRes));
     cmdBuf->end();
     getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
 }
@@ -176,7 +191,7 @@ void vkb::Image::changeLayout(vk::CommandBuffer cmdBuf,
         vk::DependencyFlags(),
         {},
         {},
-        vk::ImageMemoryBarrier{ {}, {}, from, to, 0, 0, *image, subRes }
+        vk::ImageMemoryBarrier{ {}, {}, from, to, 0, 0, *image, std::move(subRes) }
     );
 }
 
@@ -192,12 +207,7 @@ auto vkb::Image::expandExtent(vk::Extent3D otherExtent) -> vk::Extent3D
 void vkb::Image::recreateImage(const vk::ImageCreateInfo& info)
 {
     auto createInfo = info;
-    // Always include the flag that allows views of different formats
-    createInfo.flags |= vk::ImageCreateFlagBits::eMutableFormat;
-    // Always include the transfer dst bit
-    if (!(info.usage & vk::ImageUsageFlagBits::eTransferDst)) {
-        createInfo.usage = createInfo.usage | vk::ImageUsageFlagBits::eTransferDst;
-    }
+    createInfo.usage |= vk::ImageUsageFlagBits::eTransferDst;
 
     // Create image
     image = getDevice()->createImageUnique(createInfo);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include <glm/glm.hpp>
 
 #include "VulkanBase.h"
 
@@ -29,7 +30,7 @@ namespace vkb
      * An image will always have the additional usage bit
      * `vk::ImageUsageFlagBits::eTransferSrc` set.
      */
-    class Image : private VulkanBase
+    class Image
     {
     public:
         /**
@@ -66,8 +67,12 @@ namespace vkb
             const std::string& imagePath,
             vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled);
 
+        explicit Image(glm::vec4 color,
+                       vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled);
+
         Image(const Image&) = delete;
         Image(Image&&) noexcept = default;
+        ~Image() = default;
 
         auto operator=(const Image&) -> Image& = delete;
         auto operator=(Image&&) noexcept -> Image& = default;
