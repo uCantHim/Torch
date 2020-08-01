@@ -25,9 +25,10 @@ auto vkb::ManagedMemoryChunk::allocateMemory(const vk::MemoryRequirements& requi
         throw std::out_of_range("Chunk is out of device memory");
     }
 
+    const auto currentOffset = nextMemoryOffset;
     nextMemoryOffset += requirements.size;
     return DeviceMemory(
-        { *memory, requirements.size, nextMemoryOffset },
+        { *memory, requirements.size, currentOffset },
         [this](const DeviceMemoryInternals& internals) {
             releaseMemory(internals.baseOffset, internals.size);
         }
