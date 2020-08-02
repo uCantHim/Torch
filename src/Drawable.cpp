@@ -6,65 +6,109 @@
 
 
 
-trc::Drawable::Drawable(Geometry& geo, ui32 mat)
+trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
     :
-    indexBuffer(geo.getIndexBuffer()),
-    vertexBuffer(geo.getVertexBuffer()),
-    indexCount(geo.getIndexCount()),
-    material(mat)
-{
-    if (geo.hasRig())
-    {
-        assert(geo.getRig() != nullptr);
-        animEngine = { *geo.getRig() };
-        isAnimated = true;
-    }
-}
-
-trc::Drawable::Drawable(Geometry& geo, ui32 mat, SceneBase& scene)
-    :
-    Drawable(geo, mat)
+    geo(&geo),
+    matIndex(material)
 {
     attachToScene(scene);
 }
 
-auto trc::Drawable::getMaterial() const noexcept -> ui32
-{
-    return material;
-}
-
 void trc::Drawable::setGeometry(Geometry& geo)
 {
-    indexBuffer = geo.getIndexBuffer();
-    vertexBuffer = geo.getVertexBuffer();
-    indexCount = geo.getIndexCount();
+    this->geo = &geo;
+    currentScene->unregisterDrawFunction(registration);
+    updateDrawFunction();
 }
 
-void trc::Drawable::setMaterial(ui32 mat)
+void trc::Drawable::setMaterial(ui32 matIndex)
 {
-    material = mat;
+    this->matIndex = matIndex;
+    currentScene->unregisterDrawFunction(registration);
+    updateDrawFunction();
 }
 
-auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
+void trc::Drawable::makePickable()
 {
-    return animEngine;
 }
 
-void trc::Drawable::recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf)
+void trc::Drawable::attachToScene(SceneBase& scene)
 {
-    cmdBuf.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-    cmdBuf.bindVertexBuffers(0, vertexBuffer, vk::DeviceSize(0));
+    if (currentScene != nullptr) {
+        currentScene->unregisterDrawFunction(registration);
+    }
 
-    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferred).getLayout();
+    currentScene = &scene;
+    updateDrawFunction();
+}
+
+void trc::Drawable::updateDrawFunction()
+{
+    if (currentScene == nullptr || geo == nullptr) {
+        return;
+    }
+
+    if (geo->hasRig())
+    {
+        animEngine = { *geo->getRig() };
+        registration = currentScene->registerDrawFunction(
+            RenderPasses::eDeferredPass,
+            DeferredSubPasses::eGBufferPass,
+            Pipelines::eDrawableDeferredAnimated,
+            [this](vk::CommandBuffer cmdBuf) {
+                drawAnimated(cmdBuf);
+            }
+        );
+    }
+    else
+    {
+        registration = currentScene->registerDrawFunction(
+            RenderPasses::eDeferredPass,
+            DeferredSubPasses::eGBufferPass,
+            Pipelines::eDrawableDeferred,
+            [this](vk::CommandBuffer cmdBuf) {
+                draw(cmdBuf);
+            }
+        );
+    }
+}
+
+void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout)
+{
+    cmdBuf.bindIndexBuffer(geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
+    cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
+
     cmdBuf.pushConstants<mat4>(
         layout, vk::ShaderStageFlagBits::eVertex,
         0, getGlobalTransform()
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), material
+        sizeof(mat4), matIndex
     );
+}
+
+void trc::Drawable::draw(vk::CommandBuffer cmdBuf)
+{
+    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferred).getLayout();
+    prepareDraw(cmdBuf, layout);
+
+    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
+}
+
+void trc::Drawable::drawAnimated(vk::CommandBuffer cmdBuf)
+{
+    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredAnimated).getLayout();
+    prepareDraw(cmdBuf, layout);
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
-    cmdBuf.drawIndexed(indexCount, 1, 0, 0, 0);
+    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
+}
+
+void trc::Drawable::drawPickable(vk::CommandBuffer)
+{
+}
+
+void trc::Drawable::drawAnimatedAndPickable(vk::CommandBuffer)
+{
 }

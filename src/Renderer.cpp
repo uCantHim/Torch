@@ -28,8 +28,7 @@ trc::Renderer::Renderer()
     createSemaphores();
     createDescriptors();
 
-    internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
-    internal::makeInstancedDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
+    internal::makeAllDrawablePipelines(*deferredPass, cameraDescriptorProvider);
     internal::makeFinalLightingPipeline(*deferredPass,
                                         cameraDescriptorProvider,
                                         deferredPass->getInputAttachmentDescriptor());
@@ -197,8 +196,7 @@ void trc::Renderer::signalRecreateRequired()
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
     deferredPass = &RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    internal::makeDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
-    internal::makeInstancedDrawableDeferredPipeline(*deferredPass, cameraDescriptorProvider);
+    internal::makeAllDrawablePipelines(*deferredPass, cameraDescriptorProvider);
     internal::makeFinalLightingPipeline(*deferredPass,
                                         cameraDescriptorProvider,
                                         deferredPass->getInputAttachmentDescriptor());

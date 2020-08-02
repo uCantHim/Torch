@@ -27,14 +27,48 @@ namespace trc::internal
     enum Pipelines : GraphicsPipeline::ID
     {
         eDrawableDeferred = 0,
-        eFinalLighting = 1,
-        eDrawableInstancedDeferred = 2,
+        eDrawableDeferredAnimated = 1,
+        eDrawableDeferredPickable = 2,
+        eDrawableDeferredAnimatedAndPickable = 3,
+        eFinalLighting = 4,
+        eDrawableInstancedDeferred = 5,
     };
 
+
+    enum DrawablePipelineFeatureFlagBits : ui32
+    {
+        eNone = 0,
+        eAnimated = 1 << 0,
+        ePickable = 1 << 1,
+    };
+
+    void makeAllDrawablePipelines(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet);
 
     void makeDrawableDeferredPipeline(
         RenderPass& renderPass,
         const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeDrawableDeferredAnimatedPipeline(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeDrawableDeferredPickablePipeline(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeDrawableDeferredAnimatedAndPickablePipeline(
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet);
+
+    void _makeDrawableDeferredPipeline(
+        ui32 pipelineIndex,
+        RenderPass& renderPass,
+        const DescriptorProviderInterface& generalDescriptorSet,
+        ui32 featureFlags
+    );
+
 
     void makeInstancedDrawableDeferredPipeline(
         RenderPass& renderPass,

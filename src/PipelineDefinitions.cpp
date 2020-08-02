@@ -8,15 +8,69 @@
 
 
 
+void trc::internal::makeAllDrawablePipelines(
+    RenderPass& renderPass,
+    const DescriptorProviderInterface& generalDescriptorSet)
+{
+    makeDrawableDeferredPipeline(renderPass, generalDescriptorSet);
+    makeDrawableDeferredAnimatedPipeline(renderPass, generalDescriptorSet);
+    makeDrawableDeferredPickablePipeline(renderPass, generalDescriptorSet);
+    makeDrawableDeferredAnimatedAndPickablePipeline(renderPass, generalDescriptorSet);
+
+    makeInstancedDrawableDeferredPipeline(renderPass, generalDescriptorSet);
+}
+
 void trc::internal::makeDrawableDeferredPipeline(
     RenderPass& renderPass,
-    const DescriptorProviderInterface& cameraDescriptorSet)
+    const DescriptorProviderInterface& generalDescriptorSet)
+{
+    _makeDrawableDeferredPipeline(
+        Pipelines::eDrawableDeferred, renderPass, generalDescriptorSet,
+        DrawablePipelineFeatureFlagBits::eNone
+    );
+}
+
+void trc::internal::makeDrawableDeferredAnimatedPipeline(
+    RenderPass& renderPass,
+    const DescriptorProviderInterface& generalDescriptorSet)
+{
+    _makeDrawableDeferredPipeline(
+        Pipelines::eDrawableDeferredAnimated, renderPass, generalDescriptorSet,
+        DrawablePipelineFeatureFlagBits::eAnimated
+    );
+}
+
+void trc::internal::makeDrawableDeferredPickablePipeline(
+    RenderPass& renderPass,
+    const DescriptorProviderInterface& generalDescriptorSet)
+{
+    _makeDrawableDeferredPipeline(
+        Pipelines::eDrawableDeferredPickable, renderPass, generalDescriptorSet,
+        DrawablePipelineFeatureFlagBits::ePickable
+    );
+}
+
+void trc::internal::makeDrawableDeferredAnimatedAndPickablePipeline(
+    RenderPass& renderPass,
+    const DescriptorProviderInterface& generalDescriptorSet)
+{
+    _makeDrawableDeferredPipeline(
+        Pipelines::eDrawableDeferredAnimatedAndPickable, renderPass, generalDescriptorSet,
+        DrawablePipelineFeatureFlagBits::eAnimated | DrawablePipelineFeatureFlagBits::ePickable
+    );
+}
+
+void trc::internal::_makeDrawableDeferredPipeline(
+    ui32 pipelineIndex,
+    RenderPass& renderPass,
+    const DescriptorProviderInterface& cameraDescriptorSet,
+    ui32 featureFlags)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
-    auto& layout = PipelineLayout::emplace(
+    static auto& layout = PipelineLayout::emplace(
         Pipelines::eDrawableDeferred,
         std::vector<vk::DescriptorSetLayout> {
             cameraDescriptorSet.getDescriptorSetLayout(),
@@ -42,8 +96,23 @@ void trc::internal::makeDrawableDeferredPipeline(
     );
 
     // Pipeline
+    ui32 constants[] {
+        (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0,
+        (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0,
+    };
+    std::vector<vk::SpecializationMapEntry> specEntries{
+        vk::SpecializationMapEntry(0, 0, sizeof(ui32)),
+        vk::SpecializationMapEntry(1, sizeof(ui32), sizeof(ui32)),
+    };
+    vk::SpecializationInfo vertSpec(
+        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
+    vk::SpecializationInfo fragSpec(
+        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
+
     vkb::ShaderProgram program("shaders/drawable/deferred.vert.spv",
                                "shaders/drawable/deferred.frag.spv");
+    program.setVertexSpecializationConstants(&vertSpec);
+    program.setFragmentSpecializationConstants(&fragSpec);
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -65,7 +134,7 @@ void trc::internal::makeDrawableDeferredPipeline(
             *renderPass, DeferredSubPasses::eGBufferPass
         );
 
-    auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
+    auto& p = GraphicsPipeline::emplace(pipelineIndex, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());

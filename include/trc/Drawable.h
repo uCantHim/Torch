@@ -12,39 +12,38 @@ namespace trc
 {
     using namespace internal;
 
-    class DrawableBase : public SceneRegisterable, public Node {};
-
-    /**
-     * @brief Purely component-based Drawable class
-     */
-    class Drawable : public DrawableBase
-                   , public UsePipeline<Drawable,
-                                        RenderPasses::eDeferredPass,
-                                        DeferredSubPasses::eGBufferPass,
-                                        Pipelines::eDrawableDeferred>
+    class Drawable : public Node
     {
     public:
-        using Deferred = PipelineIndex<Pipelines::eDrawableDeferred>;
+        Drawable(Geometry& geo, ui32 material, SceneBase& scene);
 
-        Drawable(Geometry& geo, ui32 mat);
-        Drawable(Geometry& geo, ui32 mat, SceneBase& scene);
-
-        auto getMaterial() const noexcept -> ui32;
         void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);
 
-        auto getAnimationEngine() noexcept -> AnimationEngine&;
+        void makePickable();
+        auto getAnimationEngine() noexcept -> AnimationEngine& {
+            return animEngine;
+        }
 
-        void recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf);
+        void attachToScene(SceneBase& scene);
 
-    protected:
-        vk::Buffer indexBuffer;
-        vk::Buffer vertexBuffer;
-        ui32 indexCount;
+    private:
+        void updateDrawFunction();
 
-        ui32 material;
+        void prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout);
 
-        bool isAnimated{ false };
+        void draw(vk::CommandBuffer cmdBuf);
+        void drawAnimated(vk::CommandBuffer cmdBuf);
+        void drawPickable(vk::CommandBuffer cmdBuf);
+        void drawAnimatedAndPickable(vk::CommandBuffer cmdBuf);
+
+        SceneBase* currentScene{ nullptr };
+        SceneBase::RegistrationID registration;
+        bool isPickable{ false };
+
+        Geometry* geo{ nullptr };
+        ui32 matIndex{ 0 };
+
         AnimationEngine animEngine;
     };
 }
