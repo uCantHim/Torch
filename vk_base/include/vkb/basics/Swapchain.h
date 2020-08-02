@@ -4,6 +4,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include "../event/Keys.h"
 
@@ -118,6 +119,7 @@ namespace vkb
 
         auto getKeyState(Key key) const -> InputAction;
         auto getMouseButtonState(MouseButton button) const -> InputAction;
+        auto getMousePosition() const -> glm::vec2;
 
     public:
         void initGlfwCallbacks(GLFWwindow* window);

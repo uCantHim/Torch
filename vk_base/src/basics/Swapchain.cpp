@@ -273,6 +273,14 @@ auto vkb::Swapchain::getMouseButtonState(MouseButton button) const -> InputActio
     return static_cast<InputAction>(glfwGetMouseButton(window.get(), static_cast<int>(button)));
 }
 
+auto vkb::Swapchain::getMousePosition() const -> glm::vec2
+{
+    double x, y;
+    glfwGetCursorPos(window.get(), &x, &y);
+
+    return { static_cast<float>(x), static_cast<float>(y) };
+}
+
 void onChar(GLFWwindow* window, unsigned int codepoint)
 {
     auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
