@@ -42,9 +42,18 @@ namespace vkb
 
         auto getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&;
 
+        void setVertexSpecializationConstants(vk::SpecializationInfo* info);
+        void setFragmentSpecializationConstants(vk::SpecializationInfo* info);
+        void setGeometrySpecializationConstants(vk::SpecializationInfo* info);
+        void setTessControlSpecializationConstants(vk::SpecializationInfo* info);
+        void setTessEvalSpecializationConstants(vk::SpecializationInfo* info);
+
     private:
         ShaderStageCreateInfos stages;
         std::vector<vk::UniqueShaderModule> modules;
+
+        bool hasGeom{ false };
+        bool hasTess{ false };
     };
 
 

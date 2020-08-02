@@ -30,7 +30,9 @@ vkb::ShaderProgram::ShaderProgram(
     modules.push_back(std::move(vert));
     modules.push_back(std::move(frag));
 
-    if (!geomPath.empty()) {
+    if (!geomPath.empty())
+    {
+        hasGeom = true;
         auto geom = createShaderModule(readFile(geomPath));
 
         stages.emplace_back(
@@ -41,7 +43,9 @@ vkb::ShaderProgram::ShaderProgram(
         );
         modules.push_back(std::move(geom));
     }
-    if (!tescPath.empty() && !tesePath.empty()) {
+    if (!tescPath.empty() && !tesePath.empty())
+    {
+        hasTess = true;
         auto tesc = createShaderModule(readFile(tescPath));
         auto tese = createShaderModule(readFile(tesePath));
 
@@ -62,7 +66,6 @@ vkb::ShaderProgram::ShaderProgram(
     }
 }
 
-
 auto vkb::ShaderProgram::create(
     const std::string& vertPath,
     const std::string& fragPath,
@@ -73,11 +76,54 @@ auto vkb::ShaderProgram::create(
     return ShaderProgram(vertPath, fragPath, geomPath, tescPath, tesePath);
 }
 
-
 auto vkb::ShaderProgram::getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&
 {
     return stages;
 }
+
+void vkb::ShaderProgram::setVertexSpecializationConstants(vk::SpecializationInfo* info)
+{
+    stages[0].setPSpecializationInfo(info);
+}
+
+void vkb::ShaderProgram::setFragmentSpecializationConstants(vk::SpecializationInfo* info)
+{
+    stages[1].setPSpecializationInfo(info);
+}
+
+void vkb::ShaderProgram::setGeometrySpecializationConstants(vk::SpecializationInfo* info)
+{
+    if (hasGeom) {
+        stages[2].setPSpecializationInfo(info);
+    }
+}
+
+void vkb::ShaderProgram::setTessControlSpecializationConstants(vk::SpecializationInfo* info)
+{
+    if (hasTess)
+    {
+        if (hasGeom) {
+            stages[3].setPSpecializationInfo(info);
+        }
+        else {
+            stages[2].setPSpecializationInfo(info);
+        }
+    }
+}
+
+void vkb::ShaderProgram::setTessEvalSpecializationConstants(vk::SpecializationInfo* info)
+{
+    if (hasTess)
+    {
+        if (hasGeom) {
+            stages[4].setPSpecializationInfo(info);
+        }
+        else {
+            stages[3].setPSpecializationInfo(info);
+        }
+    }
+}
+
 
 
 auto vkb::readFile(const std::string& path) -> std::vector<char>
