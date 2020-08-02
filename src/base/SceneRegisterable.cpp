@@ -8,14 +8,21 @@ void trc::SceneRegisterable::usePipeline(
     GraphicsPipeline::ID pipeline,
     DrawableFunction recordCommandBufferFunction)
 {
-    drawableRecordFuncs.emplace_back(
+    auto& func = drawableRecordFuncs.emplace_back(
         renderPass, subPass, pipeline, std::move(recordCommandBufferFunction)
     );
+
+    if (currentScene != nullptr)
+    {
+        registrationIDs.push_back(
+            currentScene->registerDrawFunction(renderPass, subPass, pipeline, std::get<3>(func))
+        );
+    }
 }
 
 void trc::SceneRegisterable::attachToScene(SceneBase& scene)
 {
-    if (!registrationIDs.empty())
+    if (currentScene != nullptr)
     {
         removeFromScene();
     }
@@ -36,4 +43,5 @@ void trc::SceneRegisterable::removeFromScene()
         currentScene->unregisterDrawFunction(id);
     }
     registrationIDs.clear();
+    currentScene = nullptr;
 }

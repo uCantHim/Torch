@@ -74,6 +74,9 @@ namespace trc
             vk::CommandBuffer cmdBuf
         ) const;
 
+        /**
+         * Don't worry, the RegistrationID is the size of a pointer.
+         */
         auto registerDrawFunction(
             RenderPass::ID renderPass,
             SubPass::ID subpass,

@@ -8,6 +8,10 @@ namespace trc
 {
     /**
      * @brief Class that groups drawable functions into single objects
+     *
+     * This class is useful to declare drawable functions once and then
+     * never modify them again because added functions can't be removed
+     * from the object.
      */
     class SceneRegisterable
     {
@@ -18,16 +22,8 @@ namespace trc
          * Record command buffers with a specific function for this particular
          * pipeline.
          *
-         * Functions added this way after the object has been attached to a
-         * scene will be ignored for that scene. The goal of this mechanic is
-         * to make it possible to build a unique drawable and then attach this
-         * complete result as an object to a scene. It's not meant for runtime
-         * customization of existing objects.
-         *
-         * If you want to do this anyway, you can detach the object, modify
-         * it, and then re-attach it to the scene. Be warned however that this
-         * might be a costly operation if you have a lot of functions on the
-         * object.
+         * If the object is currently attach to a scene, the new pipeline will
+         * be added to that scene.
          */
         void usePipeline(RenderPass::ID renderPass,
                          SubPass::ID subPass,
@@ -41,10 +37,6 @@ namespace trc
          * time. If this method is called while the object is still attached
          * to a scene, the object will be detached from that scene and then
          * attached to the new scene.
-         *
-         * Hint: This can be used to easily re-attach an object to a scene
-         * after its pipeline functions have been modified. Though it's not
-         * advised to do so.
          */
         void attachToScene(SceneBase& scene);
 
