@@ -21,6 +21,7 @@ void trc::internal::makeDrawableDeferredPipeline(
         std::vector<vk::DescriptorSetLayout> {
             cameraDescriptorSet.getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            SceneDescriptor::getProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
@@ -34,6 +35,8 @@ void trc::internal::makeDrawableDeferredPipeline(
                 + sizeof(ui32)  // current animation index (UINT32_MAX if no animation)
                 + sizeof(uvec2) // active keyframes
                 + sizeof(float) // keyframe weight
+                // Picking
+                + sizeof(ui32)  // Picking ID
             ),
         }
     );
@@ -65,7 +68,8 @@ void trc::internal::makeDrawableDeferredPipeline(
     auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableDeferred, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, Animation::getDescriptorProvider());
+    p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, Animation::getDescriptorProvider());
 }
 
 void trc::internal::makeInstancedDrawableDeferredPipeline(
@@ -81,6 +85,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
         std::vector<vk::DescriptorSetLayout> {
             cameraDescriptorSet.getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            SceneDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
     );
@@ -130,6 +135,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
         *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
 }
 
 void trc::internal::makeFinalLightingPipeline(

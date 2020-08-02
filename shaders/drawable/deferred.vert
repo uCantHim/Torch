@@ -3,8 +3,11 @@
 
 #define BONE_INDICES_INPUT_LOCATION 4
 #define BONE_WEIGHTS_INPUT_LOCATION 5
-#define ANIM_DESCRIPTOR_SET_BINDING 2
+#define ANIM_DESCRIPTOR_SET_BINDING 3
 #include "../animation.glsl"
+
+layout (constant_id = 0) const bool isAnimated = false;
+layout (constant_id = 1) const bool isPickable = false;
 
 layout (location = 0) in vec3 vertexPosition;
 layout (location = 1) in vec3 vertexNormal;
@@ -27,6 +30,8 @@ layout (push_constant) uniform PushConstants
     uint animation;
     uint keyframes[2];
     float keyframeWeigth;
+
+    uint pickableID;
 };
 
 layout (location = 0) out Vertex
@@ -35,6 +40,9 @@ layout (location = 0) out Vertex
     vec2 uv;
     flat uint material;
     mat3 tbn;
+
+    flat uint pickableID;
+    flat uint instanceIndex;
 } vert;
 
 
@@ -47,7 +55,8 @@ void main()
     vec4 vertPos = vec4(vertexPosition, 1.0);
     vec4 normal = vec4(vertexNormal, 0.0);
     vec4 tangent = vec4(vertexTangent, 0.0);
-    if (animation != NO_ANIMATION)
+
+    if (isAnimated)
     {
         vertPos = applyAnimation(animation, vertPos, keyframes, keyframeWeigth);
         normal = applyAnimation(animation, normal, keyframes, keyframeWeigth);
@@ -58,6 +67,7 @@ void main()
     vec4 worldPos = modelMatrix * vertPos;
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;
 
+    // Set out-attributes
     vert.worldPos = worldPos.xyz;
     vert.uv = vertexUv;
     vert.material = materialIndex;
@@ -66,4 +76,10 @@ void main()
     vec3 T = normalize((modelMatrix * tangent).xyz);
     vec3 B = cross(N, T);
     vert.tbn = mat3(T, B, N);
+
+    if (isPickable)
+    {
+        vert.pickableID = pickableID;
+        vert.instanceIndex = gl_InstanceIndex;
+    }
 }
