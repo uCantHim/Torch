@@ -12,6 +12,11 @@ trc::Renderer::Renderer()
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
+    globalDataBuffer(
+        sizeof(vec2) * 2,
+        vk::BufferUsageFlagBits::eUniformBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    ),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
@@ -39,6 +44,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     scene.updateTransforms();
     SceneDescriptor::setActiveScene(scene);
     updateCameraMatrixBuffer(camera);
+    updateGlobalDataBuffer(vkb::getSwapchain());
 
     vec3 cameraPos = camera.getPosition();
 
@@ -115,6 +121,7 @@ void trc::Renderer::createDescriptors()
 {
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eUniformBuffer, 1 }, // Camera buffer
+        { vk::DescriptorType::eUniformBuffer, 1 }, // Global data buffer
     };
     descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
@@ -127,6 +134,10 @@ void trc::Renderer::createDescriptors()
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
         vk::DescriptorSetLayoutBinding(
             0, vk::DescriptorType::eUniformBuffer, 1,
+            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
+        ),
+        vk::DescriptorSetLayoutBinding(
+            1, vk::DescriptorType::eUniformBuffer, 1,
             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
         ),
     };
@@ -142,12 +153,15 @@ void trc::Renderer::createDescriptors()
 
     // Write
     vk::DescriptorBufferInfo cameraBufferInfo(*cameraMatrixBuffer, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo globalDataBufferInfo(*globalDataBuffer, 0, VK_WHOLE_SIZE);
     std::vector<vk::WriteDescriptorSet> writes = {
         vk::WriteDescriptorSet(
-            *descSet,
-            0, 0, 1, vk::DescriptorType::eUniformBuffer,
-            {},
-            &cameraBufferInfo
+            *descSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer,
+            {}, &cameraBufferInfo
+        ),
+        vk::WriteDescriptorSet(
+            *descSet, 1, 0, 1, vk::DescriptorType::eUniformBuffer,
+            {}, &globalDataBufferInfo
         ),
     };
 
@@ -162,6 +176,17 @@ void trc::Renderer::updateCameraMatrixBuffer(const Camera& camera)
     buf[2] = inverse(camera.getViewMatrix());
     buf[3] = inverse(camera.getProjectionMatrix());
     cameraMatrixBuffer.unmap();
+}
+
+void trc::Renderer::updateGlobalDataBuffer(const vkb::Swapchain& swapchain)
+{
+    const vec2 res = vec2(static_cast<float>(swapchain.getImageExtent().width),
+                    static_cast<float>(swapchain.getImageExtent().height));
+
+    auto buf = reinterpret_cast<vec2*>(globalDataBuffer.map());
+    buf[0] = swapchain.getMousePosition();
+    buf[1] = res;
+    globalDataBuffer.unmap();
 }
 
 void trc::Renderer::signalRecreateRequired()

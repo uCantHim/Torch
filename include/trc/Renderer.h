@@ -42,6 +42,8 @@ namespace trc
 
         void updateCameraMatrixBuffer(const Camera& camera);
         vkb::Buffer cameraMatrixBuffer;
+        void updateGlobalDataBuffer(const vkb::Swapchain& swapchain);
+        vkb::Buffer globalDataBuffer;
 
         // Other things
         CommandCollector collector;
