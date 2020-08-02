@@ -53,10 +53,10 @@ int main()
     auto [grassGeo, grassGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
     auto [treeGeo, treeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
     auto [mapGeo, mapGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
+
     auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
     auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
-    auto hoodedBoiImport = fbxLoader.loadFBXFile("assets/hooded_boi.fbx");
     auto skeletonImport = fbxLoader.loadFBXFile("assets/skeleton.fbx");
     auto [skeletonGeo, skeletonGeoIndex] = trc::AssetRegistry::addGeometry(
         trc::Geometry(
@@ -67,6 +67,7 @@ int main()
             )
         )
     );
+    auto hoodedBoiImport = fbxLoader.loadFBXFile("assets/hooded_boi.fbx");
     auto [hoodedBoiGeo, hoodedBoiGeoIndex] = trc::AssetRegistry::addGeometry(
         {
             hoodedBoiImport.meshes[0].mesh,
@@ -75,6 +76,16 @@ int main()
                 hoodedBoiImport.meshes[0].animations
             )
         }
+    );
+    auto lindaMesh = fbxLoader.loadFBXFile("assets/Female_Character.fbx").meshes[0];
+    auto [lindaGeo, lindaGeoIndex] = trc::AssetRegistry::addGeometry(
+        trc::Geometry(
+            lindaMesh.mesh,
+            std::make_unique<trc::Rig>(lindaMesh.rig, lindaMesh.animations)
+        )
+    );
+    auto [lindaDiffTex, lindaDiffTexIdx] = trc::AssetRegistry::addImage(
+        vkb::Image("assets/Female_Character.png")
     );
 
     auto [img, imgIndex] = trc::AssetRegistry::addImage(
@@ -109,30 +120,42 @@ int main()
     trc::Drawable grass(grassGeo, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
-    trc::Drawable tree(treeGeo, matIdx, *scene);
-    tree.setScale(0.1f).rotateX(glm::radians(-90.0f)).translate(0, 0, -1.0f).rotateY(0.3f);
-
     // Animated skeleton
-    trc::Drawable skeleton(skeletonGeo, mapMatIndex, *scene);
-    skeleton.setScale(0.2f).translateX(1.0f);
-    skeleton.getAnimationEngine().playAnimation(0);
+    std::vector<trc::Drawable> skeletons;
+    skeletons.reserve(50);
+    for (int i = 0; i < 50; i++)
+    {
+        auto& skeleton = skeletons.emplace_back(skeletonGeo, mapMatIndex, *scene);
+        skeleton.setScale(0.04f).translateX(0.05f * i);
+        skeleton.getAnimationEngine().playAnimation(0);
+    }
 
+    // Hooded boi
     trc::Drawable hoddedBoi(hoodedBoiGeo, treeMatIndex, *scene);
-    hoddedBoi.setScale(0.2f).translateX(-1.0f);
+    hoddedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     hoddedBoi.getAnimationEngine().playAnimation(0);
+
+    // Linda
+    auto [lindaMat, lindaMatIdx] = trc::AssetRegistry::addMaterial(lindaMesh.materials[0]);
+    lindaMat.get().colorSpecular = vec4(0.0f);
+    lindaMat.get().diffuseTexture = lindaDiffTexIdx;
+    trc::AssetRegistry::updateMaterialBuffer();
+
+    trc::Drawable linda(lindaGeo, lindaMatIdx, *scene);
+    linda.setScale(0.3f).translateX(-1.0f);
+    linda.getAnimationEngine().playAnimation(0);
 
     auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
     auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
     trc::Drawable plane(planeGeo, matIdx, *scene);
-    plane.rotateY(glm::radians(-65.0f));
-    plane.translate(0.5f, 0.7f, 1.0f);
+    plane.rotateZ(glm::radians(90.0f)).setScale(30.0f);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
-    trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(0, 1, 1), 0.2f);
+    trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
     scene->addLight(sunLight);
     scene->addLight(ambientLight);
-    //scene.addLight(pointLight);
+    scene->addLight(pointLight);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
@@ -144,7 +167,6 @@ int main()
         t.setScale(0.1f).rotateX(glm::radians(-90.0f));
         t.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
         t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
-        t.setTranslationY(-0.5f);
 
         instancedTrees->addInstance({ t.getTransformationMatrix(), matIdx });
     }
@@ -155,17 +177,26 @@ int main()
         [&running](const vkb::SwapchainDestroyEvent&) { running = false; }
     );
 
+    vkb::Timer timer;
+    uint32_t frames{ 0 };
     while (running)
     {
         renderer->drawFrame(*scene, camera);
 
         vkb::pollEvents();
+        frames++;
+
+        if (timer.duration() >= 1000)
+        {
+            std::cout << frames << " frames in one second\n";
+            frames = 0;
+            timer.reset();
+        }
     }
 
     vkb::getDevice()->waitIdle();
     instancedTrees.reset();
     scene.reset();
-    trc::AssetRegistry::reset();
     renderer.reset();
     vkb::vulkanTerminate();
 
