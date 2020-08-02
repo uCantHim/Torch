@@ -22,12 +22,14 @@ namespace trc
         {
             struct ID
             {
+                ID() = default;
+
             private:
                 friend SceneBase;
 
                 ID(DrawableExecutionRegistration** r) : reg(r) {}
 
-                DrawableExecutionRegistration** reg;
+                DrawableExecutionRegistration** reg{ nullptr };
             };
 
             DrawableExecutionRegistration() = default;
