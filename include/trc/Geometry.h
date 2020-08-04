@@ -19,6 +19,16 @@ namespace trc
         std::vector<ui32> indices;
     };
 
+    extern auto makePlaneGeo(
+        float width = 1.0f,
+        float height = 1.0f,
+        ui32 segmentsX = 1,
+        ui32 segmentsZ = 1,
+        std::function<float(float, float)> heightFunc = [](...) { return 0.0f; }
+    ) -> MeshData;
+
+    auto makeCubeGeo() -> MeshData;
+
     class Geometry : public vkb::VulkanStaticInitialization<Geometry>
                    , public vkb::VulkanStaticDestruction<Geometry>
                    , public Asset

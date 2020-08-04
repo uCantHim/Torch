@@ -126,7 +126,7 @@ int main()
     for (int i = 0; i < 50; i++)
     {
         auto& skeleton = skeletons.emplace_back(skeletonGeo, mapMatIndex, *scene);
-        skeleton.setScale(0.04f).translateX(0.05f * i);
+        skeleton.setScale(0.04f).translateX(-0.3f + 0.05f * i);
         skeleton.getAnimationEngine().playAnimation(0);
     }
 
@@ -144,11 +144,21 @@ int main()
     trc::Drawable linda(lindaGeo, lindaMatIdx, *scene);
     linda.setScale(0.3f).translateX(-1.0f);
     linda.getAnimationEngine().playAnimation(0);
+    auto& pickable = linda.enablePicking<trc::PickableFunctional>(
+        []() { std::cout << "Linda has been picked\n"; },
+        []() { std::cout << "Linda is no longer picked\n"; }
+    );
+
+    // Custom plane geo
+    auto [myPlaneGeo, myPlaneGeoIndex] = trc::AssetRegistry::addGeometry(
+        trc::Geometry(trc::makePlaneGeo(20.0f, 20.0f, 20, 20))
+    );
+    trc::Drawable myPlane(myPlaneGeo, matIdx, *scene);
 
     auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
     auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
-    trc::Drawable plane(planeGeo, matIdx, *scene);
-    plane.rotateZ(glm::radians(90.0f)).setScale(30.0f);
+    //trc::Drawable plane(planeGeo, matIdx, *scene);
+    //plane.rotateZ(glm::radians(90.0f)).setScale(30.0f);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
