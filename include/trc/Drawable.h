@@ -7,6 +7,7 @@
 
 #include "Geometry.h"
 #include "AnimationEngine.h"
+#include "PickableRegistry.h"
 
 namespace trc
 {
@@ -16,14 +17,29 @@ namespace trc
     {
     public:
         Drawable(Geometry& geo, ui32 material, SceneBase& scene);
+        ~Drawable();
+
+        Drawable(const Drawable&) = delete;
+        Drawable(Drawable&&) noexcept = default;
+        auto operator=(const Drawable&) -> Drawable& = delete;
+        auto operator=(Drawable&&) noexcept -> Drawable& = default;
 
         void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);
 
-        void makePickable();
-        auto getAnimationEngine() noexcept -> AnimationEngine& {
-            return animEngine;
+        template<typename PickableType, typename ...Args>
+        auto enablePicking(Args&&... args) -> PickableType&
+        {
+            PickableType& newPickable = PickableRegistry::makePickable<PickableType, Args...>(
+                std::forward<Args>(std::move(args))...
+            );
+
+            pickableId = newPickable.getPickableId();
+            updateDrawFunction();
+
+            return newPickable;
         }
+        auto getAnimationEngine() noexcept -> AnimationEngine&;
 
         void attachToScene(SceneBase& scene);
 
@@ -39,10 +55,10 @@ namespace trc
 
         SceneBase* currentScene{ nullptr };
         SceneBase::RegistrationID registration;
-        bool isPickable{ false };
 
         Geometry* geo{ nullptr };
         ui32 matIndex{ 0 };
+        Pickable::ID pickableId{ NO_PICKABLE };
 
         AnimationEngine animEngine;
     };

@@ -7,29 +7,44 @@
 
 
 trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
-    :
-    geo(&geo),
-    matIndex(material)
 {
+    setGeometry(geo);
+    setMaterial(material);
+
     attachToScene(scene);
+}
+
+trc::Drawable::~Drawable()
+{
+    //PickableRegistry::destroyPickable(PickableRegistry::getPickable(pickableId));
 }
 
 void trc::Drawable::setGeometry(Geometry& geo)
 {
     this->geo = &geo;
-    currentScene->unregisterDrawFunction(registration);
+    if (geo.hasRig()) {
+        animEngine = { *geo.getRig() };
+    }
+
+    if (currentScene != nullptr) {
+        currentScene->unregisterDrawFunction(registration);
+    }
     updateDrawFunction();
 }
 
 void trc::Drawable::setMaterial(ui32 matIndex)
 {
     this->matIndex = matIndex;
-    currentScene->unregisterDrawFunction(registration);
+
+    if (currentScene != nullptr) {
+        currentScene->unregisterDrawFunction(registration);
+    }
     updateDrawFunction();
 }
 
-void trc::Drawable::makePickable()
+auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
 {
+    return animEngine;
 }
 
 void trc::Drawable::attachToScene(SceneBase& scene)
@@ -48,29 +63,38 @@ void trc::Drawable::updateDrawFunction()
         return;
     }
 
+    DrawableFunction func;
+    GraphicsPipeline::ID pipeline;
     if (geo->hasRig())
     {
-        animEngine = { *geo->getRig() };
-        registration = currentScene->registerDrawFunction(
-            RenderPasses::eDeferredPass,
-            DeferredSubPasses::eGBufferPass,
-            Pipelines::eDrawableDeferredAnimated,
-            [this](vk::CommandBuffer cmdBuf) {
-                drawAnimated(cmdBuf);
-            }
-        );
+
+        if (pickableId == NO_PICKABLE) {
+            func = [this](vk::CommandBuffer cmdBuf) { drawAnimated(cmdBuf); };
+            pipeline = Pipelines::eDrawableDeferredAnimated;
+        }
+        else {
+            func = [this](vk::CommandBuffer cmdBuf) { drawAnimatedAndPickable(cmdBuf); };
+            pipeline = Pipelines::eDrawableDeferredAnimatedAndPickable;
+        }
     }
     else
     {
-        registration = currentScene->registerDrawFunction(
-            RenderPasses::eDeferredPass,
-            DeferredSubPasses::eGBufferPass,
-            Pipelines::eDrawableDeferred,
-            [this](vk::CommandBuffer cmdBuf) {
-                draw(cmdBuf);
-            }
-        );
+        if (pickableId == NO_PICKABLE) {
+            func = [this](vk::CommandBuffer cmdBuf) { draw(cmdBuf); };
+            pipeline = Pipelines::eDrawableDeferred;
+        }
+        else {
+            func = [this](vk::CommandBuffer cmdBuf) { drawPickable(cmdBuf); };
+            pipeline = Pipelines::eDrawableDeferredPickable;
+        }
     }
+
+    registration = currentScene->registerDrawFunction(
+        RenderPasses::eDeferredPass,
+        DeferredSubPasses::eGBufferPass,
+        pipeline,
+        std::move(func)
+    );
 }
 
 void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout)
@@ -105,10 +129,21 @@ void trc::Drawable::drawAnimated(vk::CommandBuffer cmdBuf)
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }
 
-void trc::Drawable::drawPickable(vk::CommandBuffer)
+void trc::Drawable::drawPickable(vk::CommandBuffer cmdBuf)
 {
+    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredPickable).getLayout();
+    prepareDraw(cmdBuf, layout);
+    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
+
+    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }
 
-void trc::Drawable::drawAnimatedAndPickable(vk::CommandBuffer)
+void trc::Drawable::drawAnimatedAndPickable(vk::CommandBuffer cmdBuf)
 {
+    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredAnimatedAndPickable).getLayout();
+    prepareDraw(cmdBuf, layout);
+    animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
+
+    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }
