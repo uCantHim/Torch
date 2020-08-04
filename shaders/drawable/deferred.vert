@@ -7,7 +7,6 @@
 #include "../animation.glsl"
 
 layout (constant_id = 0) const bool isAnimated = false;
-layout (constant_id = 1) const bool isPickable = false;
 
 layout (location = 0) in vec3 vertexPosition;
 layout (location = 1) in vec3 vertexNormal;
@@ -30,8 +29,6 @@ layout (push_constant) uniform PushConstants
     uint animation;
     uint keyframes[2];
     float keyframeWeigth;
-
-    uint pickableID;
 };
 
 layout (location = 0) out Vertex
@@ -41,7 +38,6 @@ layout (location = 0) out Vertex
     flat uint material;
     mat3 tbn;
 
-    flat uint pickableID;
     flat uint instanceIndex;
 } vert;
 
@@ -77,9 +73,5 @@ void main()
     vec3 B = cross(N, T);
     vert.tbn = mat3(T, B, N);
 
-    if (isPickable)
-    {
-        vert.pickableID = pickableID;
-        vert.instanceIndex = gl_InstanceIndex;
-    }
+    vert.instanceIndex = gl_InstanceIndex;
 }

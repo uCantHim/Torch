@@ -89,8 +89,11 @@ void trc::internal::_makeDrawableDeferredPipeline(
                 + sizeof(ui32)  // current animation index (UINT32_MAX if no animation)
                 + sizeof(uvec2) // active keyframes
                 + sizeof(float) // keyframe weight
-                // Picking
-                + sizeof(ui32)  // Picking ID
+            ),
+            vk::PushConstantRange(
+                vk::ShaderStageFlagBits::eFragment,
+                0,
+                sizeof(ui32)  // Picking ID
             ),
         }
     );
@@ -156,7 +159,13 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
         },
-        std::vector<vk::PushConstantRange>{}
+        std::vector<vk::PushConstantRange>{
+            vk::PushConstantRange(
+                vk::ShaderStageFlagBits::eFragment,
+                0,
+                sizeof(ui32)  // Picking ID
+            ),
+        }
     );
 
     // Pipeline

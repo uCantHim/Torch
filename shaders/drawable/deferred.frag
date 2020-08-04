@@ -4,8 +4,10 @@
 
 #include "../material.glsl"
 
+// Constants
 layout (constant_id = 1) const bool isPickable = false;
 
+// Buffers
 layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
 {
     vec2 mousePos;
@@ -19,6 +21,20 @@ layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 
 layout (set = 1, binding = 1) uniform sampler2D textures[];
 
+layout (set = 2, binding = 1) restrict buffer PickingBuffer
+{
+    uint pickableID;
+    uint instanceID;
+    float depth;
+} picking;
+
+// Push Constants
+layout (push_constant) uniform PushConstants
+{
+    uint pickableID;
+};
+
+// Input
 layout (location = 0) in Vertex
 {
     vec3 worldPos;
@@ -26,15 +42,8 @@ layout (location = 0) in Vertex
     flat uint material;
     mat3 tbn;
 
-    flat uint pickableID;
     flat uint instanceIndex;
 } vert;
-
-layout (set = 2, binding = 1) restrict writeonly buffer PickingBuffer
-{
-    uint pickableID;
-    uint instanceID;
-} picking;
 
 layout (location = 0) out vec4 outPosition;
 layout (location = 1) out vec3 outNormal;
@@ -66,10 +75,11 @@ void main()
 
     if (isPickable)
     {
-        if (gl_FragCoord.xy == global.mousePos)
+        if (gl_FragCoord.xy == global.mousePos && gl_FragCoord.z < picking.depth)
         {
-            picking.pickableID = vert.pickableID;
+            picking.pickableID = pickableID;
             picking.instanceID = vert.instanceIndex;
+            picking.depth = gl_FragCoord.z;
         }
     }
 }
