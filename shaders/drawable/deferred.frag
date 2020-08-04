@@ -31,7 +31,7 @@ layout (set = 2, binding = 1) restrict buffer PickingBuffer
 // Push Constants
 layout (push_constant) uniform PushConstants
 {
-    uint pickableID;
+    layout (offset = 84) uint pickableID;
 };
 
 // Input
@@ -73,9 +73,11 @@ void main()
         outNormal = vert.tbn * textureNormal;
     }
 
-    if (isPickable)
+    if (isPickable) // constant
     {
-        if (gl_FragCoord.xy == global.mousePos && gl_FragCoord.z < picking.depth)
+        // Floor because Vulkan sets the frag coord to .5 (the middle of the pixel)
+        if (floor(gl_FragCoord.xy) == global.mousePos
+            && gl_FragCoord.z < picking.depth)
         {
             picking.pickableID = pickableID;
             picking.instanceID = vert.instanceIndex;

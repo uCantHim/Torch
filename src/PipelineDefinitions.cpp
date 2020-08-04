@@ -92,7 +92,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
             ),
             vk::PushConstantRange(
                 vk::ShaderStageFlagBits::eFragment,
-                0,
+                84,
                 sizeof(ui32)  // Picking ID
             ),
         }
@@ -162,7 +162,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
         std::vector<vk::PushConstantRange>{
             vk::PushConstantRange(
                 vk::ShaderStageFlagBits::eFragment,
-                0,
+                84,
                 sizeof(ui32)  // Picking ID
             ),
         }
