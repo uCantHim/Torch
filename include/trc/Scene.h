@@ -10,6 +10,8 @@
 
 namespace trc
 {
+    class Pickable;
+
     class Scene : public SceneBase
     {
     public:
@@ -26,6 +28,7 @@ namespace trc
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getPickingBuffer() const noexcept -> vk::Buffer;
+        auto getPickedObject() -> std::optional<Pickable*>;
 
     private:
         Node root;
@@ -33,7 +36,10 @@ namespace trc
         void updateLightBuffer();
         std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
+
+        void updatePicking();
         vkb::Buffer pickingBuffer;
+        ui32 currentlyPicked{ 0 };
     };
 
 

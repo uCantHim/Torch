@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "utils/Util.h"
+#include "PickableRegistry.h"
 
 
 
@@ -14,11 +15,18 @@ trc::Scene::Scene()
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     pickingBuffer(
-        sizeof(ui32) * 2,
+        sizeof(ui32) * 3,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
+    auto buf = reinterpret_cast<ui32*>(pickingBuffer.map());
+    buf[0] = 0u;
+    buf[1] = 0u;
+    reinterpret_cast<float*>(buf)[2] = 1.0f;
+    pickingBuffer.unmap();
+
+    updateLightBuffer();
 }
 
 auto trc::Scene::getRoot() noexcept -> Node&
@@ -35,6 +43,7 @@ void trc::Scene::updateTransforms()
 {
     root.updateAsRoot();
     updateLightBuffer();
+    updatePicking();
 }
 
 void trc::Scene::add(SceneRegisterable& object)
@@ -62,6 +71,15 @@ auto trc::Scene::getPickingBuffer() const noexcept -> vk::Buffer
     return *pickingBuffer;
 }
 
+auto trc::Scene::getPickedObject() -> std::optional<Pickable*>
+{
+    if (currentlyPicked == 0) {
+        return std::nullopt;
+    }
+
+    return &PickableRegistry::getPickable(currentlyPicked);
+}
+
 void trc::Scene::updateLightBuffer()
 {
     assert(lights.size() <= MAX_LIGHTS);
@@ -77,6 +95,30 @@ void trc::Scene::updateLightBuffer()
     }
 
     lightBuffer.unmap();
+}
+
+void trc::Scene::updatePicking()
+{
+    auto buf = reinterpret_cast<ui32*>(pickingBuffer.map());
+    ui32 newPicked = buf[0];
+    buf[0] = 0u;
+    buf[1] = 0u;
+    reinterpret_cast<float*>(buf)[2] = 1.0f;
+    pickingBuffer.unmap();
+
+    // Unpick previously picked object
+    if (newPicked != currentlyPicked)
+    {
+        if (currentlyPicked != 0)
+        {
+            PickableRegistry::getPickable(currentlyPicked).onUnpick();
+        }
+        if (newPicked != 0)
+        {
+            PickableRegistry::getPickable(newPicked).onPick();
+        }
+        currentlyPicked = newPicked;
+    }
 }
 
 

@@ -9,7 +9,9 @@ namespace trc
 {
     constexpr ui32 NO_PICKABLE = 0;
 
-
+    /**
+     * @brief Abstract base class for objects that are pickable by the mouse
+     */
     class Pickable
     {
     public:
@@ -18,16 +20,41 @@ namespace trc
         Pickable() = default;
         virtual ~Pickable() = default;
 
+        /**
+         * @brief Called when the Pickable is first hovered by the mouse
+         */
         virtual void onPick() = 0;
+
+        /**
+         * @brief Called when the mouse leaves the Pickable
+         */
         virtual void onUnpick() = 0;
 
+        /**
+         * @return ID The Pickable's unique ID
+         */
         auto getPickableId() const noexcept -> ID;
+
+        /**
+         * @brief Set a unique ID for the pickable
+         *
+         * Do not use this! The program will probably blow up if you mess
+         * with this function.
+         */
         void setPickableId(ID pickableId);
 
     private:
         ID id{ 0 };
     };
 
+    /**
+     * @brief Pickable with std:function callbacks
+     *
+     * A convenient dynamic default implementation for a Pickable. Takes
+     * pick- and unpick callbacks in the form of std::functions. This
+     * approach is much more flexible than creating subclasses for every
+     * type of Pickable.
+     */
     class PickableFunctional : public Pickable
     {
     public:
@@ -44,6 +71,11 @@ namespace trc
         void* userData;
     };
 
+    /**
+     * @brief Internally used registry for pickables
+     *
+     * Stores all existing Pickables and assigns unique IDs to new ones.
+     */
     class PickableRegistry
     {
     public:
