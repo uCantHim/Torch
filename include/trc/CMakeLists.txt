@@ -14,6 +14,7 @@ target_sources(
         Light.h
         Material.h
         Node.h
+        PickableRegistry.h
         Pipeline.h
         PipelineBuilder.h
         PipelineDefinitions.h

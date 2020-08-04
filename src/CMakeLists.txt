@@ -11,6 +11,7 @@ target_sources(
         Geometry.cpp
         Light.cpp
         Node.cpp
+        PickableRegistry.cpp
         Pipeline.cpp
         PipelineBuilder.cpp
         PipelineDefinitions.cpp
