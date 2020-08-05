@@ -9,6 +9,8 @@
 #include "CommandCollector.h"
 #include "PipelineDefinitions.h"
 
+#include "RenderPassShadow.h"
+
 namespace trc
 {
     class Renderer : public vkb::SwapchainDependentResource
@@ -17,6 +19,15 @@ namespace trc
         Renderer();
 
         void drawFrame(Scene& scene, const Camera& camera);
+
+        /**
+         * TODO:
+         *
+         * Create a system where passes are semantically transparent to
+         * the renderer and are assigned priorities. The renderer orders
+         * and synchronizes the passes automatically based on that number.
+         */
+        void addShadowPass(RenderPassShadow& pass);
 
     private:
         void signalRecreateRequired() override;

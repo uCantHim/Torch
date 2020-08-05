@@ -23,6 +23,13 @@ layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
     Light lights[];
 };
 
+layout (set = 4, binding = 0) buffer ShadowMatrixBuffer
+{
+    mat4 shadowMatrices[];
+};
+
+layout (set = 4, binding = 1) uniform sampler2D ShadowMaps[];
+
 layout (push_constant) uniform PushConstants
 {
     vec3 cameraPos;

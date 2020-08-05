@@ -20,6 +20,7 @@ target_sources(
         PipelineDefinitions.h
         Renderer.h
         RenderPass.h
+        RenderPassShadow.h
         Rig.h
         Scene.h
         Vertex.h
