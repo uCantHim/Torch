@@ -4,6 +4,15 @@
 
 void trc::AssetRegistry::init()
 {
+    constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
+
+    // Create material buffer
+    materialBuffer = vkb::Buffer(
+        defaultMaterialBufferSize,
+        vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    );
+
     createDescriptors();
 }
 
@@ -23,25 +32,6 @@ void trc::AssetRegistry::reset()
     nextGeometryIndex = 0;
     nextMaterialIndex = 0;
     nextImageIndex = 0;
-}
-
-void trc::AssetRegistry::vulkanStaticInit()
-{
-    constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
-
-    // Create material buffer
-    materialBuffer = vkb::Buffer(
-        defaultMaterialBufferSize,
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    );
-
-    init();
-}
-
-void trc::AssetRegistry::vulkanStaticDestroy()
-{
-    reset();
 }
 
 auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>

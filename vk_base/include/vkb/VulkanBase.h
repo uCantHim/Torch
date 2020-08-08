@@ -114,57 +114,37 @@ namespace vkb
         return VulkanBase::getQueueProvider();
     }
 
-
     /**
-     * @brief Helper for static creation of vulkan objects
+     * @brief Initialization helper for static Vulkan objects
      *
-     * vulkanStaticInit() is called on the subclass when the vulkan
-     * library is initialized.
+     * Create a static StaticInit object and pass initialization- and
+     * destruction functions that are executed as soon as Vulkan has been
+     * initialized (i.e. `VulkanBase::init()` has been called).
+     *
+     * Example:
+     *
+     *     class MyClass
+     *     {
+     *         static inline vk::Buffer staticMember;
+     *         // ...
+     *
+     *         static inline StaticInit _init{
+     *             []() {
+     *                 staticMember = ...
+     *             },
+     *             []() {
+     *                 vkDestroyBuffer(staticMember);
+     *             }
+     *         };
+     *     };
      */
-    template<class Derived>
-    class VulkanStaticInitialization
+    class StaticInit
     {
     public:
-        // Ensure that the static variable is instantiated
-        VulkanStaticInitialization()
+        StaticInit(std::function<void()> init, std::function<void()> destroy)
         {
-            [[maybe_unused]]
-            static bool _assert_init = _init;
+            VulkanBase::onInit(std::move(init));
+            VulkanBase::onDestroy(std::move(destroy));
         }
-
-    private:
-        static inline bool _init = []() {
-            VulkanBase::onInit([&]() {
-                Derived::vulkanStaticInit();
-            });
-            return true;
-        }();
-    };
-
-
-    /**
-     * @brief Helper for static destruction of vulkan objects
-     *
-     * vulkanStaticDestroy() is called on the subclass when the vulkan library
-     * is terminated.
-     */
-    template<class Derived>
-    class VulkanStaticDestruction
-    {
-    public:
-        // Ensure that the static variable is instantiated
-        VulkanStaticDestruction()
-        {
-            [[maybe_unused]]
-            static bool _assert_init = _init;
-        }
-
-    private:
-        static inline bool _init = []() {
-            VulkanBase::onDestroy([&]() {
-                Derived::vulkanStaticDestroy();
-            });
-            return true;
-        }();
     };
 } // namespace vkb

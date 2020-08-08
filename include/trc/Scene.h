@@ -43,8 +43,7 @@ namespace trc
     };
 
 
-    class SceneDescriptor : public vkb::VulkanStaticInitialization<SceneDescriptor>
-                          , public vkb::VulkanStaticDestruction<SceneDescriptor>
+    class SceneDescriptor
     {
     public:
         static auto getProvider() noexcept -> const DescriptorProviderInterface&;
@@ -52,11 +51,11 @@ namespace trc
         static void setActiveScene(const Scene& scene) noexcept;
 
     private:
-        friend vkb::VulkanStaticInitialization<SceneDescriptor>;
-        friend vkb::VulkanStaticDestruction<SceneDescriptor>;
-        static inline vkb::VulkanStaticInitialization<SceneDescriptor> _force_init;
         static void vulkanStaticInit();
         static void vulkanStaticDestroy();
+        static inline vkb::StaticInit _init{
+            vulkanStaticInit, vulkanStaticDestroy
+        };
 
         static inline vk::UniqueDescriptorPool descPool;
         static inline vk::UniqueDescriptorSetLayout descLayout;
