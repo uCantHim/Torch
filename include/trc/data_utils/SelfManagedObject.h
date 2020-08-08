@@ -21,7 +21,7 @@ namespace trc::data
      * @tparam Derived The derived class
      */
     template<class Derived>
-    class SelfManagedObject : public vkb::VulkanStaticDestruction<SelfManagedObject<Derived>>
+    class SelfManagedObject
     {
     public:
         using ID = uint64_t;
@@ -71,15 +71,14 @@ namespace trc::data
         auto id() const noexcept -> ID;
 
     private:
-        friend class vkb::VulkanStaticDestruction<SelfManagedObject<Derived>>;
-        static void vulkanStaticDestroy()
-        {
-            objects = {};
-        }
+        ID myId;
 
         static inline IndexMap<ID, std::unique_ptr<Derived>> objects;
 
-        ID myId;
+        static inline vkb::StaticInit _init{
+            []() {},
+            []() { objects = {}; }
+        };
     };
 
 

@@ -125,8 +125,6 @@ void trc::Scene::updatePicking()
 
 auto trc::SceneDescriptor::getProvider() noexcept -> const DescriptorProviderInterface&
 {
-    static vkb::VulkanStaticInitialization<SceneDescriptor> _force_init;
-
     return provider;
 }
 

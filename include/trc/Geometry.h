@@ -29,19 +29,8 @@ namespace trc
 
     auto makeCubeGeo() -> MeshData;
 
-    class Geometry : public vkb::VulkanStaticInitialization<Geometry>
-                   , public vkb::VulkanStaticDestruction<Geometry>
-                   , public Asset
+    class Geometry : public Asset
     {
-        friend class vkb::VulkanStaticInitialization<Geometry>;
-        friend class vkb::VulkanStaticDestruction<Geometry>;
-        static void vulkanStaticInit() {
-            pool.setDevice(vkb::VulkanBase::getDevice());
-        }
-        static void vulkanStaticDestroy() {
-            pool.reset();
-        }
-
     public:
         Geometry(const MeshData& data);
         Geometry(const MeshData& data, std::unique_ptr<Rig> rig);
@@ -62,5 +51,10 @@ namespace trc
 
         static constexpr vk::DeviceSize CHUNK_SIZE{ 50000000 }; // 50 MB
         static inline vkb::MemoryPool pool{ CHUNK_SIZE };
+
+        static inline vkb::StaticInit _init{
+            []() { pool.setDevice(vkb::VulkanBase::getDevice()); },
+            []() { pool.reset(); }
+        };
     };
 } // namespace trc
