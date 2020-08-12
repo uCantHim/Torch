@@ -122,7 +122,7 @@ void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout lay
 
 void trc::Drawable::draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
-    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferred).getLayout();
+    auto layout = env.currentPipeline->getLayout();
     prepareDraw(cmdBuf, layout);
 
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
@@ -130,7 +130,7 @@ void trc::Drawable::draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 
 void trc::Drawable::drawAnimated(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
-    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredAnimated).getLayout();
+    auto layout = env.currentPipeline->getLayout();
     prepareDraw(cmdBuf, layout);
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
@@ -139,7 +139,7 @@ void trc::Drawable::drawAnimated(const DrawEnvironment& env, vk::CommandBuffer c
 
 void trc::Drawable::drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
-    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredPickable).getLayout();
+    auto layout = env.currentPipeline->getLayout();
     prepareDraw(cmdBuf, layout);
     cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
 
@@ -148,7 +148,7 @@ void trc::Drawable::drawPickable(const DrawEnvironment& env, vk::CommandBuffer c
 
 void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
-    auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredAnimatedAndPickable).getLayout();
+    auto layout = env.currentPipeline->getLayout();
     prepareDraw(cmdBuf, layout);
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
     cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);

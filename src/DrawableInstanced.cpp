@@ -38,7 +38,7 @@ void trc::DrawableInstanced::addInstance(InstanceDescription instance)
 
 void trc::DrawableInstanced::recordCommandBuffer(
     Deferred,
-    const DrawEnvironment& env,
+    const DrawEnvironment&,
     vk::CommandBuffer cmdBuf)
 {
     cmdBuf.bindIndexBuffer(geometry->getIndexBuffer(), 0, vk::IndexType::eUint32);
