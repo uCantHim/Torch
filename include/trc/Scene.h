@@ -23,8 +23,8 @@ namespace trc
         void updateTransforms();
 
         void add(SceneRegisterable& object);
-        void addLight(Light& light);
-        void removeLight(Light& light);
+        void addLight(const Light& light);
+        void removeLight(const Light& light);
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getPickingBuffer() const noexcept -> vk::Buffer;
@@ -33,9 +33,7 @@ namespace trc
     private:
         Node root;
 
-        void updateLightBuffer();
-        std::vector<Light*> lights;
-        vkb::Buffer lightBuffer;
+        LightRegistry lightRegistry;
 
         void updatePicking();
         vkb::Buffer pickingBuffer;

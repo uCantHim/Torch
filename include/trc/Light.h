@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vkb/Buffer.h>
+
 #include "Boilerplate.h"
 
 namespace trc
@@ -43,4 +45,30 @@ namespace trc
      * @brief Create an ambientlight
      */
     extern auto makeAmbientLight(vec3 color) -> Light;
-}
+
+    /**
+     * @brief Collection and management unit for lights and shadows
+     */
+    class LightRegistry
+    {
+    public:
+        LightRegistry();
+
+        /**
+         * @brief Update lights in the registry
+         *
+         * Updates the light buffer.
+         */
+        void update();
+
+        void addLight(const Light& light);
+        void removeLight(const Light& light);
+
+        auto getLightBuffer() const noexcept -> vk::Buffer;
+
+    private:
+        void updateLightBuffer();
+        std::vector<const Light*> lights;
+        vkb::Buffer lightBuffer;
+    };
+} // namespace trc
