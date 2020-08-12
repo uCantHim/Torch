@@ -33,9 +33,15 @@ void trc::SceneBase::invokeDrawFunctions(
     GraphicsPipeline::ID pipeline,
     vk::CommandBuffer cmdBuf) const
 {
+    DrawEnvironment env{
+        .currentRenderPass = &RenderPass::at(renderPass),
+        .currentSubPass = subpass,
+        .currentPipeline = &GraphicsPipeline::at(pipeline)
+    };
+
     for (auto& f : drawableRegistrations[renderPass][subpass][pipeline])
     {
-        f.recordFunction(cmdBuf);
+        f.recordFunction(env, cmdBuf);
     }
 }
 

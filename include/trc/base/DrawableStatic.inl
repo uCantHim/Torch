@@ -7,7 +7,7 @@ template<
     SubPass::ID subPass,
     GraphicsPipeline::ID pipeline
 >
-StaticPipelineRenderInterface<Derived, renderPass, subPass, pipeline>::StaticPipelineRenderInterface()
+trc::StaticPipelineRenderInterface<Derived, renderPass, subPass, pipeline>::StaticPipelineRenderInterface()
 {
     using Self = StaticPipelineRenderInterface<Derived, renderPass, subPass, pipeline>;
 
@@ -24,8 +24,10 @@ StaticPipelineRenderInterface<Derived, renderPass, subPass, pipeline>::StaticPip
         renderPass,
         subPass,
         pipeline,
-        [this](vk::CommandBuffer cmdBuf) {
-            static_cast<Derived*>(this)->recordCommandBuffer(PipelineIndex<pipeline>(), cmdBuf);
+        [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            static_cast<Derived*>(this)->recordCommandBuffer(
+                PipelineIndex<pipeline>(), env, cmdBuf
+            );
         }
     );
 }

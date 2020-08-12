@@ -9,7 +9,14 @@
 
 namespace trc
 {
-    using DrawableFunction = std::function<void(vk::CommandBuffer)>;
+    struct DrawEnvironment
+    {
+        RenderPass* currentRenderPass;
+        SubPass::ID currentSubPass;
+        Pipeline* currentPipeline;
+    };
+
+    using DrawableFunction = std::function<void(const DrawEnvironment&, vk::CommandBuffer)>;
 
     class SceneBase
     {

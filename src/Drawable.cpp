@@ -69,22 +69,30 @@ void trc::Drawable::updateDrawFunction()
     {
 
         if (pickableId == NO_PICKABLE) {
-            func = [this](vk::CommandBuffer cmdBuf) { drawAnimated(cmdBuf); };
+            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                drawAnimated(env, cmdBuf);
+            };
             pipeline = Pipelines::eDrawableDeferredAnimated;
         }
         else {
-            func = [this](vk::CommandBuffer cmdBuf) { drawAnimatedAndPickable(cmdBuf); };
+            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                drawAnimatedAndPickable(env, cmdBuf);
+            };
             pipeline = Pipelines::eDrawableDeferredAnimatedAndPickable;
         }
     }
     else
     {
         if (pickableId == NO_PICKABLE) {
-            func = [this](vk::CommandBuffer cmdBuf) { draw(cmdBuf); };
+            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                draw(env, cmdBuf);
+            };
             pipeline = Pipelines::eDrawableDeferred;
         }
         else {
-            func = [this](vk::CommandBuffer cmdBuf) { drawPickable(cmdBuf); };
+            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                drawPickable(env, cmdBuf);
+            };
             pipeline = Pipelines::eDrawableDeferredPickable;
         }
     }
@@ -112,7 +120,7 @@ void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout lay
     );
 }
 
-void trc::Drawable::draw(vk::CommandBuffer cmdBuf)
+void trc::Drawable::draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
     auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferred).getLayout();
     prepareDraw(cmdBuf, layout);
@@ -120,7 +128,7 @@ void trc::Drawable::draw(vk::CommandBuffer cmdBuf)
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }
 
-void trc::Drawable::drawAnimated(vk::CommandBuffer cmdBuf)
+void trc::Drawable::drawAnimated(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
     auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredAnimated).getLayout();
     prepareDraw(cmdBuf, layout);
@@ -129,7 +137,7 @@ void trc::Drawable::drawAnimated(vk::CommandBuffer cmdBuf)
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }
 
-void trc::Drawable::drawPickable(vk::CommandBuffer cmdBuf)
+void trc::Drawable::drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
     auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredPickable).getLayout();
     prepareDraw(cmdBuf, layout);
@@ -138,7 +146,7 @@ void trc::Drawable::drawPickable(vk::CommandBuffer cmdBuf)
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }
 
-void trc::Drawable::drawAnimatedAndPickable(vk::CommandBuffer cmdBuf)
+void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
     auto layout = GraphicsPipeline::at(Pipelines::eDrawableDeferredAnimatedAndPickable).getLayout();
     prepareDraw(cmdBuf, layout);

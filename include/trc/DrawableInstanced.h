@@ -40,7 +40,7 @@ namespace trc
 
         void addInstance(InstanceDescription instance);
 
-        void recordCommandBuffer(Deferred, vk::CommandBuffer cmdBuf);
+        void recordCommandBuffer(Deferred, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
     private:
         Geometry* geometry;
