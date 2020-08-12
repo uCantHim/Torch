@@ -4,6 +4,23 @@
 
 
 
+trc::LightNode::LightNode(Light& light)
+    :
+    light(&light),
+    initialDirection(light.direction)
+{
+}
+
+void trc::LightNode::update()
+{
+    assert(light != nullptr);
+
+    light->position = { getTranslation(), 1.0f };
+    light->direction = getRotationAsMatrix() * initialDirection;
+}
+
+
+
 trc::LightRegistry::LightRegistry()
     :
     lightBuffer(
@@ -16,17 +33,55 @@ trc::LightRegistry::LightRegistry()
 
 void trc::LightRegistry::update()
 {
+    for (auto& [light, node] : lightNodes)
+    {
+        node->update();
+    }
+
     updateLightBuffer();
 }
 
-void trc::LightRegistry::addLight(const Light& light)
+auto trc::LightRegistry::addLight(const Light& light) -> const Light&
 {
-    lights.push_back(&light);
+    return *lights.emplace_back(&light);
 }
 
 void trc::LightRegistry::removeLight(const Light& light)
 {
+    removeLightNode(light);
     lights.erase(std::find(lights.begin(), lights.end(), &light));
+}
+
+auto trc::LightRegistry::createLightNode(Light& light) -> LightNode&
+{
+    return *lightNodes.emplace_back(
+        &light,
+        std::make_unique<LightNode>(light)
+    ).second;
+}
+
+void trc::LightRegistry::removeLightNode(const LightNode& node)
+{
+    auto it = std::find_if(
+        lightNodes.begin(), lightNodes.end(),
+        [&node](const auto& pair) { return pair.second.get() == &node; }
+    );
+
+    if (it != lightNodes.end()) {
+        lightNodes.erase(it);
+    }
+}
+
+void trc::LightRegistry::removeLightNode(const Light& light)
+{
+    auto it = std::find_if(
+        lightNodes.begin(), lightNodes.end(),
+        [&light](const auto& pair) { return pair.first == &light; }
+    );
+
+    if (it != lightNodes.end()) {
+        lightNodes.erase(it);
+    }
 }
 
 auto trc::LightRegistry::getLightBuffer() const noexcept -> vk::Buffer

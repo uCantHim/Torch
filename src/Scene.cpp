@@ -59,6 +59,11 @@ auto trc::Scene::getLightBuffer() const noexcept -> vk::Buffer
     return lightRegistry.getLightBuffer();
 }
 
+auto trc::Scene::getLightRegistry() noexcept -> LightRegistry&
+{
+    return lightRegistry;
+}
+
 auto trc::Scene::getPickingBuffer() const noexcept -> vk::Buffer
 {
     return *pickingBuffer;

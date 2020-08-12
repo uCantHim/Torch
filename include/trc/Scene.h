@@ -27,6 +27,7 @@ namespace trc
         void removeLight(const Light& light);
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
+        auto getLightRegistry() noexcept -> LightRegistry&;
         auto getPickingBuffer() const noexcept -> vk::Buffer;
         auto getPickedObject() -> std::optional<Pickable*>;
 
