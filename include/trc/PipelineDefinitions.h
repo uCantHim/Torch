@@ -2,14 +2,29 @@
 
 #include <vkb/basics/Swapchain.h>
 
+#include "RenderStage.h"
 #include "RenderPass.h"
+#include "RenderPassShadow.h"
 #include "Pipeline.h"
 
 namespace trc::internal
 {
+    enum RenderStages : RenderStage::ID
+    {
+        eDeferred,
+        eShadow,
+
+        // Maybe one day...?
+        eReflection,
+    };
+
     enum RenderPasses : RenderPass::ID
     {
         eDeferredPass = 0,
+
+        /** The index of the first shadow pass */
+        eShadowPassesBegin = 1,
+        eShadowPassesEnd = MAX_SHADOW_MAPS,
 
         NUM_PASSES
     };
@@ -32,6 +47,8 @@ namespace trc::internal
         eDrawableDeferredAnimatedAndPickable = 3,
         eFinalLighting = 4,
         eDrawableInstancedDeferred = 5,
+
+        eDrawableShadow,
     };
 
 
@@ -69,6 +86,7 @@ namespace trc::internal
         ui32 featureFlags
     );
 
+    void makeDrawableShadowPipeline(RenderPass& renderPass);
 
     void makeInstancedDrawableDeferredPipeline(
         RenderPass& renderPass,

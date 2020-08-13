@@ -18,6 +18,8 @@ target_sources(
         Renderer.cpp
         RenderPass.cpp
         RenderPassShadow.cpp
+        RenderStage.cpp
+        RenderStageDeferred.cpp
         Rig.cpp
         Scene.cpp
 )

@@ -6,7 +6,6 @@
 
 trc::Renderer::Renderer()
     :
-    deferredPass(&RenderPassDeferred::create<RenderPassDeferred>(0)),
     cameraMatrixBuffer(
         sizeof(mat4) * 4,
         vk::BufferUsageFlagBits::eUniformBuffer,
@@ -28,10 +27,15 @@ trc::Renderer::Renderer()
     createSemaphores();
     createDescriptors();
 
-    internal::makeAllDrawablePipelines(*deferredPass, cameraDescriptorProvider);
-    internal::makeFinalLightingPipeline(*deferredPass,
-                                        cameraDescriptorProvider,
-                                        deferredPass->getInputAttachmentDescriptor());
+    initRenderStages();
+    addStage(internal::RenderStages::eDeferred);
+
+    auto& deferredPass = RenderPass::at(internal::RenderPasses::eDeferredPass);
+    internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
+    internal::makeFinalLightingPipeline(
+        deferredPass,
+        cameraDescriptorProvider,
+        static_cast<RenderPassDeferred&>(deferredPass).getInputAttachmentDescriptor());
 }
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
@@ -52,7 +56,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
         internal::RenderPasses::eDeferredPass,
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
-        [&, cameraPos](vk::CommandBuffer cmdBuf)
+        [&, cameraPos](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
             auto& p = GraphicsPipeline::at(internal::Pipelines::eFinalLighting);
             cmdBuf.pushConstants<vec3>(
@@ -70,7 +74,16 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
     // Collect commands
-    auto cmdBufs = collector.recordScene(scene, *deferredPass);
+    std::vector<vk::CommandBuffer> cmdBufs;
+    // TODO: Assign priorities to stages and apply synchronization
+    for (const RenderStage* stage : renderStages)
+    {
+        for (const auto pass : stage->getRenderPasses())
+        {
+            auto _cmdBufs = collector.recordScene(scene, RenderPass::at(pass));
+            cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
+        }
+    }
 
     // Remove fullscreen quad function
     scene.unregisterDrawFunction(finalLightingFunc);
@@ -91,6 +104,11 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // Present frame
     auto presentQueue = vkb::getQueueProvider().getQueue(vkb::QueueType::presentation);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
+}
+
+void trc::Renderer::addStage(RenderStage::ID newStage)
+{
+    renderStages.push_back(&RenderStage::at(newStage));
 }
 
 void trc::Renderer::createSemaphores()
@@ -195,11 +213,11 @@ void trc::Renderer::signalRecreateRequired()
 
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
-    deferredPass = &RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    internal::makeAllDrawablePipelines(*deferredPass, cameraDescriptorProvider);
-    internal::makeFinalLightingPipeline(*deferredPass,
+    auto& deferredPass = RenderPassDeferred::emplace<RenderPassDeferred>(0);
+    internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
+    internal::makeFinalLightingPipeline(deferredPass,
                                         cameraDescriptorProvider,
-                                        deferredPass->getInputAttachmentDescriptor());
+                                        deferredPass.getInputAttachmentDescriptor());
 
     createSemaphores();
 }

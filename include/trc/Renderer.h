@@ -7,12 +7,22 @@
 
 #include "Scene.h"
 #include "CommandCollector.h"
+#include "RenderStage.h"
 #include "PipelineDefinitions.h"
 
-#include "RenderPassShadow.h"
+#include "RenderPassShadow.h" // TODO: Rename to RenderStageShadow.h
+#include "RenderStageDeferred.h"
 
 namespace trc
 {
+    inline void initRenderStages()
+    {
+        using namespace internal;
+
+        RenderStage::create<DeferredStage>(RenderStages::eDeferred);
+        RenderStage::create<ShadowStage>(RenderStages::eShadow);
+    }
+
     class Renderer : public vkb::SwapchainDependentResource
     {
     public:
@@ -27,7 +37,7 @@ namespace trc
          * the renderer and are assigned priorities. The renderer orders
          * and synchronizes the passes automatically based on that number.
          */
-        void addShadowPass(RenderPassShadow& pass);
+        void addStage(RenderStage::ID stage);
 
     private:
         void signalRecreateRequired() override;
@@ -41,8 +51,8 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Render passes
-        RenderPassDeferred* deferredPass;
+        // Render stages
+        std::vector<RenderStage*> renderStages;
 
         // General descriptor set
         void createDescriptors();
