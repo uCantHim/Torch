@@ -84,7 +84,7 @@ void SelfManagedObject<Derived>::destroy(ID index)
         throw std::out_of_range("No object at index " + std::to_string(index));
     }
 
-    objects.at(index) = std::make_unique<Derived>();
+    objects.at(index).reset();
 }
 
 template<class Derived>
