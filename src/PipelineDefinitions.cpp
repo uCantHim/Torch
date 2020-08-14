@@ -144,6 +144,59 @@ void trc::internal::_makeDrawableDeferredPipeline(
     p.addStaticDescriptorSet(3, Animation::getDescriptorProvider());
 }
 
+void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
+{
+    // Layout
+    auto& layout = PipelineLayout::emplace(
+        Pipelines::eDrawableShadow,
+        std::vector<vk::DescriptorSetLayout>
+        {
+            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+        },
+        std::vector<vk::PushConstantRange>
+        {
+            vk::PushConstantRange(
+                vk::ShaderStageFlagBits::eVertex,
+                0,
+                sizeof(mat4)    // model matrix
+                + sizeof(ui32)  // isAnimated
+            )
+        }
+    );
+
+    // Pipeline
+    vkb::ShaderProgram program("shaders/drawable/shadow.vert.spv",
+                               "shaders/drawable/shadow.frag.spv");
+
+    vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
+            makeVertexAttributeDescriptions()
+        )
+        .addViewport(vk::Viewport(
+            0, 0,
+            1, 1,  // dynamic state, this value is provisional
+            0.0f, 1.0f
+        ))
+        .addScissorRect(vk::Rect2D(
+            { 0, 0 },
+            { 1, 1 }  // dynamic state, this value is provisional
+        ))
+        //.addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
+        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .build(
+            *vkb::VulkanBase::getDevice(),
+            *layout,
+            *renderPass, 0
+        );
+
+    auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableShadow, *layout, std::move(pipeline));
+    p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
+}
+
 void trc::internal::makeInstancedDrawableDeferredPipeline(
     RenderPass& renderPass,
     const DescriptorProviderInterface& cameraDescriptorSet)

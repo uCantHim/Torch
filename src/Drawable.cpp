@@ -27,7 +27,8 @@ void trc::Drawable::setGeometry(Geometry& geo)
     }
 
     if (currentScene != nullptr) {
-        currentScene->unregisterDrawFunction(registration);
+        currentScene->unregisterDrawFunction(deferredRegistration);
+        currentScene->unregisterDrawFunction(shadowRegistration);
     }
     updateDrawFunction();
 }
@@ -37,7 +38,8 @@ void trc::Drawable::setMaterial(ui32 matIndex)
     this->matIndex = matIndex;
 
     if (currentScene != nullptr) {
-        currentScene->unregisterDrawFunction(registration);
+        currentScene->unregisterDrawFunction(deferredRegistration);
+        currentScene->unregisterDrawFunction(shadowRegistration);
     }
     updateDrawFunction();
 }
@@ -50,7 +52,8 @@ auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
 void trc::Drawable::attachToScene(SceneBase& scene)
 {
     if (currentScene != nullptr) {
-        currentScene->unregisterDrawFunction(registration);
+        currentScene->unregisterDrawFunction(deferredRegistration);
+        currentScene->unregisterDrawFunction(shadowRegistration);
     }
 
     currentScene = &scene;
@@ -97,11 +100,15 @@ void trc::Drawable::updateDrawFunction()
         }
     }
 
-    registration = currentScene->registerDrawFunction(
-        RenderPasses::eDeferredPass,
+    deferredRegistration = currentScene->registerDrawFunction(
+        RenderStages::eDeferred,
         DeferredSubPasses::eGBufferPass,
         pipeline,
         std::move(func)
+    );
+    shadowRegistration = currentScene->registerDrawFunction(
+        RenderStages::eShadow, 0, Pipelines::eDrawableShadow,
+        [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
     );
 }
 
@@ -152,6 +159,32 @@ void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::Comm
     prepareDraw(cmdBuf, layout);
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
     cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
+
+    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
+}
+
+void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+{
+    ivec2 res = static_cast<SunShadowPass*>(env.currentRenderPass)->getResolution();
+    cmdBuf.setViewport(0, vk::Viewport(0.0f, 0.0f, res.x, res.y, 0.0f, 1.0f));
+    cmdBuf.setScissor(0, {{ 0, 0 }, { res.x, static_cast<ui32>(res.y) }});
+
+    cmdBuf.bindIndexBuffer(geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
+    cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
+
+    auto layout = env.currentPipeline->getLayout();
+    cmdBuf.pushConstants<mat4>(
+        layout, vk::ShaderStageFlagBits::eVertex,
+        0, getGlobalTransform()
+    );
+    cmdBuf.pushConstants<ui32>(
+        layout, vk::ShaderStageFlagBits::eVertex,
+        sizeof(mat4), env.currentRenderPass->id()
+    );
+    cmdBuf.pushConstants<ui32>(
+        layout, vk::ShaderStageFlagBits::eVertex,
+        sizeof(mat4) + sizeof(ui32), false
+    );
 
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }

@@ -29,7 +29,6 @@ namespace trc::internal
         NUM_PASSES
     };
 
-
     enum DeferredSubPasses
     {
         eGBufferPass = 0,
@@ -37,7 +36,6 @@ namespace trc::internal
 
         NUM_SUBPASSES
     };
-
 
     enum Pipelines : GraphicsPipeline::ID
     {

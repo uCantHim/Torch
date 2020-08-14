@@ -53,8 +53,11 @@ namespace trc
         void drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
         void drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
+        void drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+
         SceneBase* currentScene{ nullptr };
-        SceneBase::RegistrationID registration;
+        SceneBase::RegistrationID deferredRegistration;
+        SceneBase::RegistrationID shadowRegistration;
 
         Geometry* geo{ nullptr };
         ui32 matIndex{ 0 };
