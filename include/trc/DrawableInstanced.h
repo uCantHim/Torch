@@ -12,7 +12,7 @@ namespace trc
     class DrawableInstanced : public SceneRegisterable
                             , public Node
                             , public UsePipeline<DrawableInstanced,
-                                                 RenderPasses::eDeferredPass,
+                                                 RenderStages::eDeferred,
                                                  DeferredSubPasses::eGBufferPass,
                                                  Pipelines::eDrawableInstancedDeferred>
     {

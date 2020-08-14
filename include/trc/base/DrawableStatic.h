@@ -23,7 +23,7 @@ namespace trc
      * TODO: Extend this documentation
      * TODO: Add a similar mechanism to declare subpasses at compile time
      */
-    template<typename Derived, RenderPass::ID, SubPass::ID, GraphicsPipeline::ID>
+    template<typename Derived, RenderStage::ID, SubPass::ID, GraphicsPipeline::ID>
     class StaticPipelineRenderInterface
     {
     public:
@@ -36,11 +36,11 @@ namespace trc
      */
     template<
         typename Derived,
-        RenderPass::ID RenderPass,
+        RenderStage::ID RenderStage,
         SubPass::ID SubPass,
         GraphicsPipeline::ID Pipeline
     >
-    using UsePipeline = StaticPipelineRenderInterface<Derived, RenderPass, SubPass, Pipeline>;
+    using UsePipeline = StaticPipelineRenderInterface<Derived, RenderStage, SubPass, Pipeline>;
 
 
 #include "DrawableStatic.inl"
