@@ -220,5 +220,5 @@ auto trc::GraphicsPipelineBuilder::build(
             renderPass, subPass,
             vk::Pipeline(), 0
         )
-    );
+    ).value;
 }

@@ -69,7 +69,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     );
 
     // Acquire image
-    device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
+    auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
+    assert(fenceResult == vk::Result::eSuccess);
     device->resetFences(**frameInFlightFences);
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
@@ -232,5 +233,8 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
         fences.push_back(*fence);
     });
-    vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
+    auto result = vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
+    if (result == vk::Result::eTimeout) {
+        std::cout << "Timeout in Renderer::waitForAllFrames!\n";
+    }
 }
