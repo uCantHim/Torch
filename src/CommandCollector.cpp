@@ -18,6 +18,7 @@ trc::CommandCollector::CommandCollector()
 
 auto trc::CommandCollector::recordScene(
     SceneBase& scene,
+    RenderStage::ID renderStage,
     RenderPass& renderPass) -> std::vector<vk::CommandBuffer>
 {
     const RenderPass::ID renderPassId = renderPass.id();
@@ -32,7 +33,7 @@ auto trc::CommandCollector::recordScene(
     const ui32 subPassCount = renderPass.getNumSubPasses();
     for (ui32 subPass = 0; subPass < subPassCount; subPass++)
     {
-        for (auto pipeline : scene.getPipelines(renderPassId, subPass))
+        for (auto pipeline : scene.getPipelines(renderStage, subPass))
         {
             // Bind the current pipeline
             auto& p = GraphicsPipeline::at(pipeline);
@@ -40,7 +41,7 @@ auto trc::CommandCollector::recordScene(
             p.bindStaticDescriptorSets(cmdBuf);
 
             // Record commands for all objects with this pipeline
-            scene.invokeDrawFunctions(renderPassId, subPass, pipeline, cmdBuf);
+            scene.invokeDrawFunctions(renderStage, renderPassId, subPass, pipeline, cmdBuf);
         }
 
 

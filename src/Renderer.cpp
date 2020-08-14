@@ -80,7 +80,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     {
         for (const auto pass : stage->getRenderPasses())
         {
-            auto _cmdBufs = collector.recordScene(scene, RenderPass::at(pass));
+            auto _cmdBufs = collector.recordScene(scene, stage->id(), RenderPass::at(pass));
             cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
         }
     }

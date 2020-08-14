@@ -3,59 +3,61 @@
 
 
 trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
-    RenderPass::ID r,
-    SubPass::ID s,
-    GraphicsPipeline::ID p,
+    RenderStage::ID stage,
+    SubPass::ID subPass,
+    GraphicsPipeline::ID pipeline,
     DrawableFunction func)
     :
-    renderPass(r), subPass(s), pipeline(p), recordFunction(func)
+    renderStage(stage), subPass(subPass), pipeline(pipeline), recordFunction(func)
 {}
 
 
 
-auto trc::SceneBase::getPipelines(RenderPass::ID renderPass, SubPass::ID subpass) const noexcept
+auto trc::SceneBase::getPipelines(RenderStage::ID renderStage, SubPass::ID subPass) const noexcept
     -> const std::set<GraphicsPipeline::ID>&
 {
     static std::set<GraphicsPipeline::ID> emptyResult;
 
-    if (uniquePipelines.size() <= renderPass
-        || uniquePipelines[renderPass].size() <= subpass)
+    if (uniquePipelines.size() <= renderStage
+        || uniquePipelines[renderStage].size() <= subPass)
     {
         return emptyResult;
     }
 
-    return uniquePipelines[renderPass][subpass];
+    return uniquePipelines[renderStage][subPass];
 }
 
 void trc::SceneBase::invokeDrawFunctions(
+    RenderStage::ID renderStage,
     RenderPass::ID renderPass,
-    SubPass::ID subpass,
+    SubPass::ID subPass,
     GraphicsPipeline::ID pipeline,
     vk::CommandBuffer cmdBuf) const
 {
     DrawEnvironment env{
+        .currentRenderStage = &RenderStage::at(renderStage),
         .currentRenderPass = &RenderPass::at(renderPass),
-        .currentSubPass = subpass,
+        .currentSubPass = subPass,
         .currentPipeline = &GraphicsPipeline::at(pipeline)
     };
 
-    for (auto& f : drawableRegistrations[renderPass][subpass][pipeline])
+    for (auto& f : drawableRegistrations[renderStage][subPass][pipeline])
     {
         f.recordFunction(env, cmdBuf);
     }
 }
 
 auto trc::SceneBase::registerDrawFunction(
-    RenderPass::ID renderPass,
+    RenderStage::ID renderStage,
     SubPass::ID subpass,
     GraphicsPipeline::ID usedPipeline,
     DrawableFunction commandBufferRecordingFunction
     ) -> RegistrationID
 {
-    tryInsertPipeline(renderPass, subpass, usedPipeline);
+    tryInsertPipeline(renderStage, subpass, usedPipeline);
 
     return insertRegistration(
-        { renderPass, subpass, usedPipeline, std::move(commandBufferRecordingFunction) }
+        { renderStage, subpass, usedPipeline, std::move(commandBufferRecordingFunction) }
     );
 }
 
@@ -63,12 +65,12 @@ void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
 {
     DrawableExecutionRegistration* entry = *id.reg;
 
-    const auto renderPass = entry->renderPass;
-    const auto subpass = entry->subPass;
+    const auto renderStage = entry->renderStage;
+    const auto subPass = entry->subPass;
     const auto pipeline = entry->pipeline;
     const auto index = entry->indexInRegistrationArray;
 
-    auto& vectorToRemoveFrom = drawableRegistrations[renderPass][subpass][pipeline];
+    auto& vectorToRemoveFrom = drawableRegistrations[renderStage][subPass][pipeline];
 
     auto& movedElem = vectorToRemoveFrom.back();
     std::swap(vectorToRemoveFrom[index], movedElem);
@@ -79,18 +81,18 @@ void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
 
     vectorToRemoveFrom.pop_back();
     if (vectorToRemoveFrom.empty()) {
-        removePipeline(renderPass, subpass, pipeline);
+        removePipeline(renderStage, subPass, pipeline);
     }
 }
 
 auto trc::SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> RegistrationID
 {
-    assert(RenderPass::at(entry.renderPass).getNumSubPasses() > entry.subPass);
+    assert(RenderStage::at(entry.renderStage).getNumSubPasses() > entry.subPass);
 
-    const auto renderPass = entry.renderPass;
+    const auto renderStage = entry.renderStage;
     const auto subPass = entry.subPass;
     const auto pipeline = entry.pipeline;
-    auto& currentRegistrationArray = drawableRegistrations[renderPass][subPass][pipeline];
+    auto& currentRegistrationArray = drawableRegistrations[renderStage][subPass][pipeline];
 
     // Insert before end to get the iterator. I hope this makes it kind of thread safe
     auto it = currentRegistrationArray.emplace(currentRegistrationArray.end(), std::move(entry));
@@ -104,25 +106,23 @@ auto trc::SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> 
 }
 
 void trc::SceneBase::tryInsertPipeline(
-    RenderPass::ID renderPass,
-    SubPass::ID subpass,
+    RenderStage::ID renderStage,
+    SubPass::ID subPass,
     GraphicsPipeline::ID pipeline)
 {
-    auto [it, success] = uniquePipelines[renderPass][subpass].insert(pipeline);
+    auto [it, success] = uniquePipelines[renderStage][subPass].insert(pipeline);
     if (success) {
-        uniquePipelinesVector[renderPass][subpass].push_back(pipeline);
+        uniquePipelinesVector[renderStage][subPass].push_back(pipeline);
     }
 }
 
 void trc::SceneBase::removePipeline(
-    RenderPass::ID renderPass,
-    SubPass::ID subpass,
+    RenderPass::ID renderStage,
+    SubPass::ID subPass,
     GraphicsPipeline::ID pipeline)
 {
-    uniquePipelines[renderPass][subpass].erase(pipeline);
-    uniquePipelinesVector[renderPass][subpass].erase(std::find(
-        uniquePipelinesVector[renderPass][subpass].begin(),
-        uniquePipelinesVector[renderPass][subpass].end(),
-        pipeline
+    uniquePipelines[renderStage][subPass].erase(pipeline);
+    uniquePipelinesVector[renderStage][subPass].erase(std::ranges::find(
+        uniquePipelinesVector[renderStage][subPass], pipeline
     ));
 }

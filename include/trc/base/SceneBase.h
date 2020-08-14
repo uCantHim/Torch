@@ -4,6 +4,7 @@
 #include <set>
 
 #include "data_utils/IndexMap.h"
+#include "RenderStage.h"
 #include "RenderPass.h"
 #include "Pipeline.h"
 
@@ -11,6 +12,7 @@ namespace trc
 {
     struct DrawEnvironment
     {
+        RenderStage* currentRenderStage;
         RenderPass* currentRenderPass;
         SubPass::ID currentSubPass;
         Pipeline* currentPipeline;
@@ -47,7 +49,7 @@ namespace trc
              * Leave the index empty, fill it in SceneBase::insertRegistration().
              */
             DrawableExecutionRegistration(
-                RenderPass::ID r,
+                RenderStage::ID r,
                 SubPass::ID s,
                 GraphicsPipeline::ID p,
                 DrawableFunction func);
@@ -57,7 +59,7 @@ namespace trc
             ui32 indexInRegistrationArray;
 
             // Entry data
-            RenderPass::ID renderPass;
+            RenderStage::ID renderStage;
             SubPass::ID subPass;
             GraphicsPipeline::ID pipeline;
 
@@ -70,15 +72,18 @@ namespace trc
         /**
          * @brief Get all pipelines used in a subpass
          */
-        auto getPipelines(RenderPass::ID renderPass, SubPass::ID subpass) const noexcept
+        auto getPipelines(RenderStage::ID renderStage, SubPass::ID subPass) const noexcept
             -> const std::set<GraphicsPipeline::ID>&;
 
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline
+         *
+         * TODO: Can I remove the renderPass parameter?
          */
         void invokeDrawFunctions(
+            RenderStage::ID stage,
             RenderPass::ID renderPass,
-            SubPass::ID subpass,
+            SubPass::ID subPass,
             GraphicsPipeline::ID pipeline,
             vk::CommandBuffer cmdBuf
         ) const;
@@ -87,7 +92,7 @@ namespace trc
          * Don't worry, the RegistrationID is the size of a pointer.
          */
         auto registerDrawFunction(
-            RenderPass::ID renderPass,
+            RenderStage::ID renderStage,
             SubPass::ID subpass,
             GraphicsPipeline::ID usedPipeline,
             DrawableFunction commandBufferRecordingFunction
@@ -96,7 +101,7 @@ namespace trc
         void unregisterDrawFunction(RegistrationID id);
 
     private:
-        template<typename T> using PerRenderPass = data::IndexMap<RenderPass::ID, T>;
+        template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID, T>;
         template<typename T> using PerSubpass = data::IndexMap<SubPass::ID, T>;
         template<typename T> using PerPipeline = data::IndexMap<GraphicsPipeline::ID, T>;
 
@@ -113,7 +118,7 @@ namespace trc
          * Just reference those functions through the indexInRegistrationArray
          * property in DrawableExecutionRegistration.
          */
-        PerRenderPass<
+        PerRenderStage<
             PerSubpass<
                 PerPipeline<
                     std::vector<DrawableExecutionRegistration>
@@ -122,14 +127,14 @@ namespace trc
         > drawableRegistrations;
 
         // Pipeline storage
-        void tryInsertPipeline(RenderPass::ID renderPass,
+        void tryInsertPipeline(RenderStage::ID renderStage,
                                SubPass::ID subpass,
                                GraphicsPipeline::ID pipeline);
-        void removePipeline(RenderPass::ID renderPass,
+        void removePipeline(RenderStage::ID renderStage,
                             SubPass::ID subpass,
                             GraphicsPipeline::ID pipeline);
 
-        PerRenderPass<PerSubpass<std::set<GraphicsPipeline::ID>>> uniquePipelines;
-        PerRenderPass<PerSubpass<std::vector<GraphicsPipeline::ID>>> uniquePipelinesVector;
+        PerRenderStage<PerSubpass<std::set<GraphicsPipeline::ID>>> uniquePipelines;
+        PerRenderStage<PerSubpass<std::vector<GraphicsPipeline::ID>>> uniquePipelinesVector;
     };
 } // namespace trc

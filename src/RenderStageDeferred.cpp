@@ -5,6 +5,8 @@
 
 
 trc::DeferredStage::DeferredStage()
+    :
+    RenderStage(2)
 {
     RenderPass::create<RenderPassDeferred>(internal::RenderPasses::eDeferredPass);
     addRenderPass(internal::RenderPasses::eDeferredPass);

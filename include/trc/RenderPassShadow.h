@@ -59,6 +59,8 @@ namespace trc
     class ShadowStage : public RenderStage
     {
     public:
+        ShadowStage() : RenderStage(1) {}
+
         //void addRenderPass(RenderPass::ID newPass) final;
         //void removeRenderPass(RenderPass::ID pass) final;
     };
