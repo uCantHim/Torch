@@ -28,6 +28,7 @@ trc::Renderer::Renderer()
     createDescriptors();
 
     initRenderStages();
+    addStage(internal::RenderStages::eShadow);
     addStage(internal::RenderStages::eDeferred);
 
     auto& deferredPass = RenderPass::at(internal::RenderPasses::eDeferredPass);
@@ -53,7 +54,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
-        internal::RenderPasses::eDeferredPass,
+        internal::RenderStages::eDeferred,
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
         [&, cameraPos](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -79,8 +80,10 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // TODO: Assign priorities to stages and apply synchronization
     for (const RenderStage* stage : renderStages)
     {
+        std::cout << "Stage " << stage->id() << "\n";
         for (const auto pass : stage->getRenderPasses())
         {
+            std::cout << "Pass " << pass << "\n";
             auto _cmdBufs = collector.recordScene(scene, stage->id(), RenderPass::at(pass));
             cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
         }
@@ -105,6 +108,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // Present frame
     auto presentQueue = vkb::getQueueProvider().getQueue(vkb::QueueType::presentation);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
+
+    vkb::getDevice()->waitIdle();
 }
 
 void trc::Renderer::addStage(RenderStage::ID newStage)

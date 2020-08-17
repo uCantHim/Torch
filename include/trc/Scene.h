@@ -22,7 +22,6 @@ namespace trc
 
         void updateTransforms();
 
-        void add(SceneRegisterable& object);
         void addLight(const Light& light);
         void removeLight(const Light& light);
 

@@ -39,11 +39,6 @@ void trc::Scene::updateTransforms()
     updatePicking();
 }
 
-void trc::Scene::add(SceneRegisterable& object)
-{
-    object.attachToScene(*this);
-}
-
 void trc::Scene::addLight(const Light& light)
 {
     lightRegistry.addLight(light);

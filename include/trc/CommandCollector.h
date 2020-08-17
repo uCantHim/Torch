@@ -22,6 +22,6 @@ namespace trc
 
     private:
         vk::UniqueCommandPool pool;
-        vkb::FrameSpecificObject<vk::UniqueCommandBuffer> commandBuffers;
+        std::vector<vkb::FrameSpecificObject<vk::UniqueCommandBuffer>> commandBuffers;
     };
 } // namespace trc

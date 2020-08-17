@@ -10,11 +10,23 @@ trc::CommandCollector::CommandCollector()
             | vk::CommandPoolCreateFlagBits::eTransient,
             vkb::getQueueProvider().getQueueFamilyIndex(vkb::QueueType::graphics)
         )
-    )),
-    commandBuffers(vkb::VulkanBase::getDevice()->allocateCommandBuffersUnique(
-        { *pool, vk::CommandBufferLevel::ePrimary, vkb::getSwapchain().getFrameCount() }
     ))
-{}
+{
+    commandBuffers.push_back(
+        vkb::FrameSpecificObject<vk::UniqueCommandBuffer>(
+            vkb::VulkanBase::getDevice()->allocateCommandBuffersUnique(
+                { *pool, vk::CommandBufferLevel::ePrimary, vkb::getSwapchain().getFrameCount() }
+            )
+        )
+    );
+    commandBuffers.push_back(
+        vkb::FrameSpecificObject<vk::UniqueCommandBuffer>(
+            vkb::VulkanBase::getDevice()->allocateCommandBuffersUnique(
+                { *pool, vk::CommandBufferLevel::ePrimary, vkb::getSwapchain().getFrameCount() }
+            )
+        )
+    );
+}
 
 auto trc::CommandCollector::recordScene(
     SceneBase& scene,
@@ -22,7 +34,7 @@ auto trc::CommandCollector::recordScene(
     RenderPass& renderPass) -> std::vector<vk::CommandBuffer>
 {
     const RenderPass::ID renderPassId = renderPass.id();
-    auto cmdBuf = **commandBuffers;
+    auto cmdBuf = **commandBuffers[renderStage];
 
     // Set up rendering
     cmdBuf.reset({});
@@ -33,8 +45,11 @@ auto trc::CommandCollector::recordScene(
     const ui32 subPassCount = renderPass.getNumSubPasses();
     for (ui32 subPass = 0; subPass < subPassCount; subPass++)
     {
+        std::cout << "(Collector): Subpass " << subPass << "\n";
         for (auto pipeline : scene.getPipelines(renderStage, subPass))
         {
+            std::cout << "(Collector): Pipeline " << pipeline << "\n";
+
             // Bind the current pipeline
             auto& p = GraphicsPipeline::at(pipeline);
             p.bind(cmdBuf);

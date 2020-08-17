@@ -108,7 +108,10 @@ void trc::Drawable::updateDrawFunction()
     );
     shadowRegistration = currentScene->registerDrawFunction(
         RenderStages::eShadow, 0, Pipelines::eDrawableShadow,
-        [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
+        [this](const auto& env, vk::CommandBuffer cmdBuf) {
+            std::cout << "Drawable shadow function\n";
+            drawShadow(env, cmdBuf);
+        }
     );
 }
 
@@ -165,10 +168,14 @@ void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::Comm
 
 void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
-    ivec2 res = static_cast<SunShadowPass*>(env.currentRenderPass)->getResolution();
-    cmdBuf.setViewport(0, vk::Viewport(0.0f, 0.0f, res.x, res.y, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, {{ 0, 0 }, { res.x, static_cast<ui32>(res.y) }});
+    assert(dynamic_cast<RenderPassShadow*>(env.currentRenderPass) != nullptr);
 
+    // Set pipeline dynamic states
+    uvec2 res = static_cast<RenderPassShadow*>(env.currentRenderPass)->getResolution();
+    cmdBuf.setViewport(0, vk::Viewport(0.0f, 0.0f, res.x, res.y, 0.0f, 1.0f));
+    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
+
+    // Bind buffers and push constants
     cmdBuf.bindIndexBuffer(geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
     cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
 
@@ -179,12 +186,10 @@ void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmd
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), env.currentRenderPass->id()
+        sizeof(mat4), 0u //env.currentRenderPass->id()
     );
-    cmdBuf.pushConstants<ui32>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4) + sizeof(ui32), false
-    );
+    animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
+    // Draw
     cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
 }

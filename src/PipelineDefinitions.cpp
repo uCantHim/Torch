@@ -152,6 +152,7 @@ void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
         std::vector<vk::DescriptorSetLayout>
         {
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
         {
@@ -159,7 +160,11 @@ void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
                 vk::ShaderStageFlagBits::eVertex,
                 0,
                 sizeof(mat4)    // model matrix
-                + sizeof(ui32)  // isAnimated
+                + sizeof(ui32)  // light index
+                // Animation related data
+                + sizeof(ui32)  // current animation index (UINT32_MAX if no animation)
+                + sizeof(uvec2) // active keyframes
+                + sizeof(float) // keyframe weight
             )
         }
     );
@@ -183,7 +188,6 @@ void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
             { 0, 0 },
             { 1, 1 }  // dynamic state, this value is provisional
         ))
-        //.addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
@@ -195,6 +199,7 @@ void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
 
     auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableShadow, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
 
 void trc::internal::makeInstancedDrawableDeferredPipeline(
@@ -286,6 +291,7 @@ void trc::internal::makeFinalLightingPipeline(
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             gBufferInputSet.getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
         {
@@ -321,4 +327,5 @@ void trc::internal::makeFinalLightingPipeline(
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, gBufferInputSet);
     p.addStaticDescriptorSet(3, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(4, ShadowDescriptor::getProvider());
 }

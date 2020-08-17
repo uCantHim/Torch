@@ -10,6 +10,12 @@ layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput v
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
 layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
 
+layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
+{
+    vec2 mousePos;
+    vec2 resolution;
+} global;
+
 layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 {
     Material materials[];
@@ -48,6 +54,9 @@ vec3 calcLighting(vec3 color);
 
 void main()
 {
+    fragColor = vec4(vec3(texture(ShadowMaps[0], gl_FragCoord.xy / global.resolution).r), 1);
+    return;
+
     if (subpassLoad(vertexPosition).w != 1.0)
     {
         fragColor = vec4(0.0);
