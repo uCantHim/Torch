@@ -16,4 +16,7 @@ struct Light
     float attenuationQuadratic;
 
     uint type;
+
+    bool hasShadow;
+    uint firstShadowIndex;
 };

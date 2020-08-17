@@ -25,6 +25,11 @@ namespace trc
         float attenuationQuadratic{ 0.0f };
 
         Type type;
+
+        bool32 hasShadow{ false };
+        ui32 firstShadowIndex{ 0 };
+
+        ui32 __padding[2];
     };
 
     constexpr ui32 MAX_LIGHTS = 32;
