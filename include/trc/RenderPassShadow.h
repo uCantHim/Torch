@@ -17,15 +17,32 @@ namespace trc
     constexpr ui32 MAX_SHADOW_MAPS = MAX_LIGHTS * 4;
 
     /**
+     * @brief Enable shadows for a light
+     *
+     * Creates one or more (depending on the type of light) shadow passes
+     * for a light. Registers the pass(es) at the ShadowStage. Enables
+     * shadows on the light. Long story short, no further work is required
+     * after calling this function.
+     *
+     * @param Light& light      The light that shall cast shadows.
+     * @param uvec2  resolution The resolution of the created shadow map.
+     * @param mat4   projMatrix A projection matrix for the created
+     *                          renderpass.
+     *
+     * @return Node A node that all created shadow passes are attached to.
+     *              This node could be attached to a light node of the
+     *              light, for example.
+     */
+    extern auto enableShadow(Light& light, uvec2 shadowMapResolution, mat4 projectionMatrix)
+        -> Node;
+
+    /**
      * @brief The render stage that renders shadow maps
      */
     class ShadowStage : public RenderStage
     {
     public:
         ShadowStage() : RenderStage(1) {}
-
-        //void addRenderPass(RenderPass::ID newPass) final;
-        //void removeRenderPass(RenderPass::ID pass) final;
     };
 
     /**
@@ -71,15 +88,37 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
     };
 
+    struct ShadowDescriptorInfo
+    {
+        const vkb::FrameSpecificObject<vk::Sampler>& samplers;
+        const vkb::FrameSpecificObject<vk::ImageView>& views;
+        mat4 viewProjMatrix;
+    };
+
     class ShadowDescriptor
     {
     public:
         static auto getProvider() noexcept -> const DescriptorProviderInterface&;
 
-        static auto addShadow(const vkb::FrameSpecificObject<vk::Sampler>& samplers,
-                              const vkb::FrameSpecificObject<vk::ImageView>& views,
-                              const mat4& viewProjMatrix) -> ui32;
+        /**
+         * @brief Add information for one shadow to the descriptor
+         */
+        static auto addShadow(const ShadowDescriptorInfo& shadowInfo) -> ui32;
+
+        /**
+         * @brief Update the view-projection matrix for a shadow
+         *
+         * @param ui32 shadowIndex Index of the shadow to update
+         * @param const mat4& viewProjMatrix New shadow matrix
+         */
         static void updateShadow(ui32 shadowIndex, const mat4& viewProjMatrix);
+
+        /**
+         * @brief Remove a shadow from the descriptor
+         *
+         * Does not modify any memory or descriptor bindings, just frees
+         * the index.
+         */
         static void removeShadow(ui32 index);
 
     private:

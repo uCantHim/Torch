@@ -168,20 +168,15 @@ int main()
     scene->addLight(ambientLight);
     scene->addLight(pointLight);
 
-    auto& pointLightNode = scene->getLightRegistry().createLightNode(pointLight);
-    auto& shadowPass = trc::RenderPass::create<trc::RenderPassShadow>(
-        trc::internal::RenderPasses::eShadowPassesBegin,
-        uvec2(2048, 2048),
-        mat4(1, 0, 0, 0,
-             0, -1, 0, 0,
-             0, 0, 1, 0,
-             0, 0, 0, 1) * glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f)
-    );
-    shadowPass.setFromMatrixTemporary(glm::lookAt(vec3(0, 2, 5), vec3(0, 0, 0), vec3(0, 1, 0)));
+    // Make shadow pass for sun light
+    mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f);
+    auto shadowPassNode = trc::enableShadow(sunLight, uvec2(2048, 2048), proj);
+    shadowPassNode.setFromMatrix(glm::lookAt(vec3(0, 2, 5), vec3(0, 0, 0), vec3(0, 1, 0)));
+    scene->getRoot().attach(shadowPassNode);
+
     trc::internal::makeDrawableShadowPipeline(
         trc::RenderPass::at(trc::internal::RenderPasses::eShadowPassesBegin)
     );
-    trc::RenderStage::at(trc::internal::RenderStages::eShadow).addRenderPass(shadowPass.id());
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;

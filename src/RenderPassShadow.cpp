@@ -5,6 +5,78 @@
 
 
 
+namespace trc::internal
+{
+    static std::atomic<ui32> nextShadowPassIndex{ RenderPasses::eShadowPassesBegin };
+    static std::vector<ui32> freeShadowPassIndices;
+
+    inline auto getNewShadowPassIndex() -> trc::ui32
+    {
+        ui32 result;
+        if (!freeShadowPassIndices.empty())
+        {
+            result = freeShadowPassIndices.back();
+            freeShadowPassIndices.pop_back();
+        }
+        else {
+            result = nextShadowPassIndex++;
+        }
+
+        if (result > RenderPasses::eShadowPassesEnd) {
+            throw std::out_of_range("No indices for shadow passes remaining");
+        }
+
+        return result;
+    }
+
+    inline void freeShadowPassIndex(ui32 index)
+    {
+        freeShadowPassIndices.push_back(index);
+    }
+} // namespace trc
+
+auto trc::enableShadow(Light& light, uvec2 shadowMapResolution, mat4 projectionMatrix) -> Node
+{
+    Node result;
+    std::vector<RenderPass::ID> createdPasses;
+
+    // Create passes
+    switch (light.type)
+    {
+    case Light::Type::eSunLight:
+        result.attach(RenderPass::emplace<RenderPassShadow>(
+            createdPasses.emplace_back(internal::getNewShadowPassIndex()),
+            shadowMapResolution,
+            projectionMatrix
+        ));
+        break;
+    case Light::Type::ePointLight:
+        // Just store multiple descriptor indices in Light, I don't want
+        // to be able to allocate a range of descriptor indices ahead of time.
+        throw std::logic_error("Shadows for point lights are not implemented yet");
+        break;
+    case Light::Type::eAmbientLight:
+        return {};
+    default:
+        throw std::logic_error("Light type " + std::to_string(light.type) + " does not exist");
+    }
+
+    // Set properties on light
+    light.hasShadow = true;
+    light.firstShadowIndex = static_cast<RenderPassShadow&>(
+        RenderPass::at(createdPasses[0])
+    ).getShadowIndex();
+
+    // Add created passes to shadow stage
+    for (auto pass : createdPasses) {
+        RenderStage::at(internal::RenderStages::eShadow).addRenderPass(pass);
+    }
+
+    return result;
+}
+
+
+
 trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix)
     :
     RenderPass(
@@ -86,7 +158,11 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
         );
     })
 {
-    shadowDescriptorIndex = ShadowDescriptor::addShadow(
+#ifdef TRC_FLIP_Y_PROJECTION
+    this->projMatrix *= mat4(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+#endif
+
+    shadowDescriptorIndex = ShadowDescriptor::addShadow({
         vkb::FrameSpecificObject<vk::Sampler>{ [&](ui32 imageIndex) {
             return depthImages.getAt(imageIndex).getDefaultSampler();
         }},
@@ -94,7 +170,7 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
             return *depthImageViews.getAt(imageIndex);
         }},
         projMatrix * getGlobalTransform()
-    );
+    });
 }
 
 trc::RenderPassShadow::~RenderPassShadow()
@@ -158,16 +234,13 @@ auto trc::ShadowDescriptor::getNewIndex() -> ui32
     return result;
 }
 
-auto trc::ShadowDescriptor::addShadow(
-    const vkb::FrameSpecificObject<vk::Sampler>& samplers,
-    const vkb::FrameSpecificObject<vk::ImageView>& views,
-    const mat4& viewProjMatrix) -> ui32
+auto trc::ShadowDescriptor::addShadow(const ShadowDescriptorInfo& info) -> ui32
 {
     ui32 newIndex = getNewIndex();
 
     // Update shadow matrix buffer
     auto buf = reinterpret_cast<mat4*>(shadowMatrixBuffer.map());
-    buf[newIndex] = viewProjMatrix;
+    buf[newIndex] = info.viewProjMatrix;
     shadowMatrixBuffer.unmap();
 
     // Update image descriptor
@@ -175,8 +248,8 @@ auto trc::ShadowDescriptor::addShadow(
     descSet->foreach([&](vk::UniqueDescriptorSet& set)
     {
         vk::DescriptorImageInfo imageInfo(
-            samplers.getAt(imageIndex),
-            views.getAt(imageIndex),
+            info.samplers.getAt(imageIndex),
+            info.views.getAt(imageIndex),
             vk::ImageLayout::eShaderReadOnlyOptimal);
         std::vector<vk::WriteDescriptorSet> writes{
             vk::WriteDescriptorSet(
