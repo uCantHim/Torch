@@ -168,10 +168,11 @@ void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::Comm
 
 void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
-    assert(dynamic_cast<RenderPassShadow*>(env.currentRenderPass) != nullptr);
+    auto currentRenderPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
+    assert(currentRenderPass != nullptr);
 
     // Set pipeline dynamic states
-    uvec2 res = static_cast<RenderPassShadow*>(env.currentRenderPass)->getResolution();
+    uvec2 res = currentRenderPass->getResolution();
     cmdBuf.setViewport(0, vk::Viewport(0.0f, 0.0f, res.x, res.y, 0.0f, 1.0f));
     cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
 
@@ -186,7 +187,7 @@ void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmd
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), 0u //env.currentRenderPass->id()
+        sizeof(mat4), currentRenderPass->getShadowIndex()
     );
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 

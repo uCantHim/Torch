@@ -139,6 +139,11 @@ auto trc::RenderPassShadow::getResolution() const noexcept -> uvec2
     return resolution;
 }
 
+auto trc::RenderPassShadow::getShadowIndex() const noexcept -> ui32
+{
+    return shadowDescriptorIndex;
+}
+
 
 
 auto trc::ShadowDescriptor::getProvider() noexcept -> const DescriptorProviderInterface&

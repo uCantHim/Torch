@@ -54,6 +54,8 @@ namespace trc
         auto getProjectionMatrix() const noexcept -> const mat4&;
         void setProjectionMatrix(const mat4& view) noexcept;
 
+        auto getShadowIndex() const noexcept -> ui32;
+
     private:
         Light* light;
 
