@@ -108,10 +108,7 @@ void trc::Drawable::updateDrawFunction()
     );
     shadowRegistration = currentScene->registerDrawFunction(
         RenderStages::eShadow, 0, Pipelines::eDrawableShadow,
-        [this](const auto& env, vk::CommandBuffer cmdBuf) {
-            std::cout << "Drawable shadow function\n";
-            drawShadow(env, cmdBuf);
-        }
+        [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
     );
 }
 

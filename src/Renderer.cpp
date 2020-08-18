@@ -80,10 +80,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // TODO: Assign priorities to stages and apply synchronization
     for (const RenderStage* stage : renderStages)
     {
-        std::cout << "Stage " << stage->id() << "\n";
         for (const auto pass : stage->getRenderPasses())
         {
-            std::cout << "Pass " << pass << "\n";
             auto _cmdBufs = collector.recordScene(scene, stage->id(), RenderPass::at(pass));
             cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
         }

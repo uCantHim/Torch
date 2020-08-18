@@ -45,11 +45,8 @@ auto trc::CommandCollector::recordScene(
     const ui32 subPassCount = renderPass.getNumSubPasses();
     for (ui32 subPass = 0; subPass < subPassCount; subPass++)
     {
-        std::cout << "(Collector): Subpass " << subPass << "\n";
         for (auto pipeline : scene.getPipelines(renderStage, subPass))
         {
-            std::cout << "(Collector): Pipeline " << pipeline << "\n";
-
             // Bind the current pipeline
             auto& p = GraphicsPipeline::at(pipeline);
             p.bind(cmdBuf);
@@ -58,7 +55,6 @@ auto trc::CommandCollector::recordScene(
             // Record commands for all objects with this pipeline
             scene.invokeDrawFunctions(renderStage, renderPassId, subPass, pipeline, cmdBuf);
         }
-
 
         if (subPass < subPassCount - 1) {
             cmdBuf.nextSubpass(vk::SubpassContents::eInline);
