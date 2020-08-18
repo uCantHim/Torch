@@ -174,10 +174,6 @@ int main()
     shadowPassNode.setFromMatrix(glm::lookAt(vec3(0, 2, 5), vec3(0, 0, 0), vec3(0, 1, 0)));
     scene->getRoot().attach(shadowPassNode);
 
-    trc::internal::makeDrawableShadowPipeline(
-        trc::RenderPass::at(trc::internal::RenderPasses::eShadowPassesBegin)
-    );
-
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
 

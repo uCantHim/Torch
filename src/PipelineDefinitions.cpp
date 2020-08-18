@@ -18,6 +18,9 @@ void trc::internal::makeAllDrawablePipelines(
     makeDrawableDeferredAnimatedAndPickablePipeline(renderPass, generalDescriptorSet);
 
     makeInstancedDrawableDeferredPipeline(renderPass, generalDescriptorSet);
+
+    RenderPassShadow dummyPass({ 1, 1 }, mat4());
+    makeDrawableShadowPipeline(dummyPass);
 }
 
 void trc::internal::makeDrawableDeferredPipeline(
@@ -179,23 +182,12 @@ void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-        .addViewport(vk::Viewport(
-            0, 0,
-            1, 1,  // dynamic state, this value is provisional
-            0.0f, 1.0f
-        ))
-        .addScissorRect(vk::Rect2D(
-            { 0, 0 },
-            { 1, 1 }  // dynamic state, this value is provisional
-        ))
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))  // Dynamic state
+        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))     // Dynamic state
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .build(
-            *vkb::VulkanBase::getDevice(),
-            *layout,
-            *renderPass, 0
-        );
+        .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
     auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableShadow, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
