@@ -52,7 +52,7 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
         // Render stages
-        std::vector<RenderStage*> renderStages;
+        std::vector<RenderStage::ID> renderStages;
 
         // General descriptor set
         void createDescriptors();

@@ -30,38 +30,40 @@ trc::CommandCollector::CommandCollector()
 
 auto trc::CommandCollector::recordScene(
     SceneBase& scene,
-    RenderStage::ID renderStage,
-    RenderPass& renderPass) -> std::vector<vk::CommandBuffer>
+    RenderStage::ID renderStage) -> std::vector<vk::CommandBuffer>
 {
-    const RenderPass::ID renderPassId = renderPass.id();
     auto cmdBuf = **commandBuffers[renderStage];
 
     // Set up rendering
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    renderPass.begin(cmdBuf, vk::SubpassContents::eInline);
-
-    // Record all commands
-    const ui32 subPassCount = renderPass.getNumSubPasses();
-    for (ui32 subPass = 0; subPass < subPassCount; subPass++)
+    for (auto renderPassId : RenderStage::at(renderStage).getRenderPasses())
     {
-        for (auto pipeline : scene.getPipelines(renderStage, subPass))
+        auto& renderPass = RenderPass::at(renderPassId);
+        renderPass.begin(cmdBuf, vk::SubpassContents::eInline);
+
+        // Record all commands
+        const ui32 subPassCount = renderPass.getNumSubPasses();
+        for (ui32 subPass = 0; subPass < subPassCount; subPass++)
         {
-            // Bind the current pipeline
-            auto& p = GraphicsPipeline::at(pipeline);
-            p.bind(cmdBuf);
-            p.bindStaticDescriptorSets(cmdBuf);
+            for (auto pipeline : scene.getPipelines(renderStage, subPass))
+            {
+                // Bind the current pipeline
+                auto& p = GraphicsPipeline::at(pipeline);
+                p.bind(cmdBuf);
+                p.bindStaticDescriptorSets(cmdBuf);
 
-            // Record commands for all objects with this pipeline
-            scene.invokeDrawFunctions(renderStage, renderPassId, subPass, pipeline, cmdBuf);
+                // Record commands for all objects with this pipeline
+                scene.invokeDrawFunctions(renderStage, renderPassId, subPass, pipeline, cmdBuf);
+            }
+
+            if (subPass < subPassCount - 1) {
+                cmdBuf.nextSubpass(vk::SubpassContents::eInline);
+            }
         }
 
-        if (subPass < subPassCount - 1) {
-            cmdBuf.nextSubpass(vk::SubpassContents::eInline);
-        }
+        renderPass.end(cmdBuf);
     }
-
-    renderPass.end(cmdBuf);
     cmdBuf.end();
 
     return { cmdBuf };

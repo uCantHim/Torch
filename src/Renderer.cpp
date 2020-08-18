@@ -77,14 +77,10 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Collect commands
     std::vector<vk::CommandBuffer> cmdBufs;
-    // TODO: Assign priorities to stages and apply synchronization
-    for (const RenderStage* stage : renderStages)
+    for (const RenderStage::ID stage : renderStages)
     {
-        for (const auto pass : stage->getRenderPasses())
-        {
-            auto _cmdBufs = collector.recordScene(scene, stage->id(), RenderPass::at(pass));
-            cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
-        }
+        auto _cmdBufs = collector.recordScene(scene, stage);
+        cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
     }
 
     // Remove fullscreen quad function
@@ -106,13 +102,11 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // Present frame
     auto presentQueue = vkb::getQueueProvider().getQueue(vkb::QueueType::presentation);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
-
-    vkb::getDevice()->waitIdle();
 }
 
 void trc::Renderer::addStage(RenderStage::ID newStage)
 {
-    renderStages.push_back(&RenderStage::at(newStage));
+    renderStages.push_back(newStage);
 }
 
 void trc::Renderer::createSemaphores()
