@@ -40,7 +40,7 @@ namespace trc
          * @param uvec2 resolution Resolution of the shadow map
          * @param mat4 projMatrix Projection matrix of the shadow map
          */
-        RenderPassShadow(uvec2 resolution, const mat4& projMatrix, Light& light);
+        RenderPassShadow(uvec2 resolution, const mat4& projMatrix);
         ~RenderPassShadow() override;
 
         /**
@@ -54,11 +54,14 @@ namespace trc
         auto getProjectionMatrix() const noexcept -> const mat4&;
         void setProjectionMatrix(const mat4& view) noexcept;
 
+        /**
+         * @return ui32 The pass's index in all shadow-related resources
+         *              on the device. This includes the shadow matrix
+         *              buffer and the array of shadow map samplers.
+         */
         auto getShadowIndex() const noexcept -> ui32;
 
     private:
-        Light* light;
-
         uvec2 resolution;
         mat4 projMatrix;
         ui32 shadowDescriptorIndex;

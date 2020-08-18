@@ -5,7 +5,7 @@
 
 
 
-trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix, Light& light)
+trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix)
     :
     RenderPass(
         [&]()
@@ -40,7 +40,8 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
                     vk::PipelineStageFlagBits::eAllCommands,
                     vk::PipelineStageFlagBits::eAllGraphics,
                     vk::AccessFlags(),
-                    vk::AccessFlagBits::eDepthStencilAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead,
+                    vk::AccessFlagBits::eDepthStencilAttachmentWrite
+                    | vk::AccessFlagBits::eDepthStencilAttachmentRead,
                     vk::DependencyFlagBits::eByRegion
                 ),
             };
@@ -51,7 +52,6 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
         }(),
         1
     ),
-    light(&light),
     resolution(resolution),
     projMatrix(projMatrix),
     depthImages([&resolution](ui32) {
@@ -95,15 +95,11 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
         }},
         projMatrix * getGlobalTransform()
     );
-
-    light.hasShadow = true;
-    light.firstShadowIndex = shadowDescriptorIndex;
 }
 
 trc::RenderPassShadow::~RenderPassShadow()
 {
     ShadowDescriptor::removeShadow(shadowDescriptorIndex);
-    light->hasShadow = false;
 }
 
 void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
@@ -184,8 +180,7 @@ auto trc::ShadowDescriptor::addShadow(
             vk::ImageLayout::eShaderReadOnlyOptimal);
         std::vector<vk::WriteDescriptorSet> writes{
             vk::WriteDescriptorSet(
-                *set, 1, newIndex,
-                1,
+                *set, 1, newIndex, 1,
                 vk::DescriptorType::eCombinedImageSampler,
                 &imageInfo
             ),

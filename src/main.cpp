@@ -175,8 +175,7 @@ int main()
         mat4(1, 0, 0, 0,
              0, -1, 0, 0,
              0, 0, 1, 0,
-             0, 0, 0, 1) * glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f),
-        sunLight
+             0, 0, 0, 1) * glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f)
     );
     shadowPass.setFromMatrixTemporary(glm::lookAt(vec3(0, 2, 5), vec3(0, 0, 0), vec3(0, 1, 0)));
     trc::internal::makeDrawableShadowPipeline(
