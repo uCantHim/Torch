@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include <vkb/util/Timer.h>
+
 #include "PipelineDefinitions.h"
 
 
@@ -28,8 +30,8 @@ trc::Renderer::Renderer()
     createDescriptors();
 
     initRenderStages();
-    addStage(internal::RenderStages::eShadow);
-    addStage(internal::RenderStages::eDeferred);
+    addStage(internal::RenderStages::eDeferred, 3);
+    addStage(internal::RenderStages::eShadow, 1);
 
     auto& deferredPass = RenderPass::at(internal::RenderPasses::eDeferredPass);
     internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
@@ -77,10 +79,10 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Collect commands
     std::vector<vk::CommandBuffer> cmdBufs;
-    for (const RenderStage::ID stage : renderStages)
+    for (ui32 i = 0; const auto& [stage, _] : renderStages)
     {
-        auto _cmdBufs = collector.recordScene(scene, stage);
-        cmdBufs.insert(cmdBufs.end(), _cmdBufs.begin(), _cmdBufs.end());
+        cmdBufs.push_back(commandCollectors[i].recordScene(scene, stage));
+        i++;
     }
 
     // Remove fullscreen quad function
@@ -104,9 +106,13 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 
-void trc::Renderer::addStage(RenderStage::ID newStage)
+void trc::Renderer::addStage(RenderStage::ID stage, ui32 priority)
 {
-    renderStages.push_back(newStage);
+    auto it = renderStages.begin();
+    while (it != renderStages.end() && it->second < priority) it++;
+
+    renderStages.insert(it, { stage, priority });
+    commandCollectors.emplace_back();
 }
 
 void trc::Renderer::createSemaphores()

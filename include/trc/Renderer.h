@@ -30,14 +30,7 @@ namespace trc
 
         void drawFrame(Scene& scene, const Camera& camera);
 
-        /**
-         * TODO:
-         *
-         * Create a system where passes are semantically transparent to
-         * the renderer and are assigned priorities. The renderer orders
-         * and synchronizes the passes automatically based on that number.
-         */
-        void addStage(RenderStage::ID stage);
+        void addStage(RenderStage::ID stage, ui32 priority);
 
     private:
         void signalRecreateRequired() override;
@@ -52,7 +45,8 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
         // Render stages
-        std::vector<RenderStage::ID> renderStages;
+        std::vector<std::pair<RenderStage::ID, ui32>> renderStages;
+        std::vector<CommandCollector> commandCollectors;
 
         // General descriptor set
         void createDescriptors();
@@ -67,8 +61,6 @@ namespace trc
         vkb::Buffer globalDataBuffer;
 
         // Other things
-        CommandCollector collector;
-
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }
