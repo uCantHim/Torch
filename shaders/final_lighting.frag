@@ -4,6 +4,8 @@
 
 #include "light.glsl"
 #include "material.glsl"
+#define SHADOW_DESCRIPTOR_SET_BINDING 4
+#include "shadow.glsl"
 
 layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
 layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
@@ -29,13 +31,6 @@ layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
     Light lights[];
 };
 
-layout (set = 4, binding = 0) buffer ShadowMatrixBuffer
-{
-    mat4 shadowMatrices[];
-};
-
-layout (set = 4, binding = 1) uniform sampler2D ShadowMaps[];
-
 layout (push_constant) uniform PushConstants
 {
     vec3 cameraPos;
@@ -54,9 +49,6 @@ vec3 calcLighting(vec3 color);
 
 void main()
 {
-    fragColor = vec4(vec3(texture(ShadowMaps[0], gl_FragCoord.xy / global.resolution).r), 1);
-    return;
-
     if (subpassLoad(vertexPosition).w != 1.0)
     {
         fragColor = vec4(0.0);
@@ -135,5 +127,10 @@ vec3 calcLighting(vec3 color)
                     * (materials[matIndex].shininess + 2.0) / (2.0 * 3.1415926535);
     }
 
-    return color * min((ambient + diffuse), vec3(1.0)) + specular;
+    float shadowFactor = 1.0;
+    if (isInShadow(worldPos, 0, 0.002)) {
+        shadowFactor = 0.2f;
+    }
+
+    return (color * min((ambient + diffuse), vec3(1.0)) + specular) * shadowFactor;
 }
