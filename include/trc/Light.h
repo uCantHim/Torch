@@ -29,7 +29,7 @@ namespace trc
         bool32 hasShadow{ false };
         ui32 firstShadowIndex{ 0 };
 
-        ui32 __padding[2];
+        ui32 __padding[2]{ 0, 0 };
     };
 
     constexpr ui32 MAX_LIGHTS = 32;
