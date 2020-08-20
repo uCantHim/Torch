@@ -114,6 +114,11 @@ vec3 calcLighting(vec3 color)
 
         const float shadow = lightShadowValue(worldPos, lights[i], 0.002);
 
+        // Ambient
+        // The ambient percentage has nothing to do with physical correctness,
+        // thus it won't be affected by shadow.
+        ambient += lightColor * ambientFactor * lights[i].ambientPercentage * attenuation;
+
         // Diffuse
         float angle = max(0.0, dot(normal, toLight));
         diffuse += lightColor * angle * diffuseFactor * attenuation * shadow;
