@@ -5,9 +5,6 @@
 #include <atomic>
 #include <mutex>
 
-#include "InputEvents.h"
-#include "WindowEvents.h"
-
 namespace vkb
 {
     class EventThread
@@ -25,7 +22,6 @@ namespace vkb
         static inline std::mutex handlerListLock;
         static inline std::vector<std::function<void()>> handlers;
     };
-
 
     template<typename EventType>
     class EventHandler

@@ -8,7 +8,7 @@ using namespace std::chrono;
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
-#include <vkb/event/EventHandler.h>
+#include <vkb/event/Event.h>
 
 #include "trc/utils/FBXLoader.h"
 #include "trc/Geometry.h"
