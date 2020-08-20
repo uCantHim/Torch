@@ -1,8 +1,14 @@
 // Functions that calculate shadows
 
+#extension GL_GOOGLE_include_directive : require
+
 #ifndef SHADOW_DESCRIPTOR_SET_BINDING
 #define SHADOW_DESCRIPTOR_SET_BINDING 4
 #endif
+
+#define NO_SHADOW 1.0
+
+#include "light.glsl"
 
 layout (set = SHADOW_DESCRIPTOR_SET_BINDING, binding = 0) restrict readonly buffer ShadowMatrixBuffer
 {
@@ -32,4 +38,26 @@ bool isInShadow(vec3 worldCoords, uint shadowIndex, float bias)
                         && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0;
 
     return (objectDepth > (shadowDepth + bias)) && liesInShadowMap;
+}
+
+/**
+ * @brief Calculate the amount of light that reaches a point
+ */
+float lightShadowValue(vec3 worldCoords, Light light, float bias)
+{
+    if (!light.hasShadow) {
+        return NO_SHADOW;
+    }
+
+    switch (light.type)
+    {
+    case LIGHT_TYPE_SUN:
+        if (isInShadow(worldCoords, light.firstShadowIndex, bias)) {
+            return 0.2;
+        }
+
+        return NO_SHADOW;
+    }
+
+    return NO_SHADOW;
 }

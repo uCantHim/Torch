@@ -2,7 +2,6 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-#include "light.glsl"
 #include "material.glsl"
 #define SHADOW_DESCRIPTOR_SET_BINDING 4
 #include "shadow.glsl"
@@ -113,24 +112,24 @@ vec3 calcLighting(vec3 color)
             toLight /= dist;
         }
 
+        const float shadow = lightShadowValue(worldPos, lights[i], 0.002);
+
         // Diffuse
         float angle = max(0.0, dot(normal, toLight));
-        diffuse += lightColor * angle * diffuseFactor * attenuation;
+        diffuse += lightColor * angle * diffuseFactor * attenuation * shadow;
 
         // Specular
-        float reflectAngle = max(0.0, dot(normalize(reflect(-toLight, normal)), toEye));
-        specular += lightColor
-                    * pow(reflectAngle, materials[matIndex].shininess)  // Specular highlight
-                    * specularFactor                                    // Material factor
-                    * attenuation
-                    // Specular gamma correction
-                    * (materials[matIndex].shininess + 2.0) / (2.0 * 3.1415926535);
+        if (shadow == NO_SHADOW)
+        {
+            float reflectAngle = max(0.0, dot(normalize(reflect(-toLight, normal)), toEye));
+            specular += lightColor
+                        * pow(reflectAngle, materials[matIndex].shininess)  // Specular highlight
+                        * specularFactor                                    // Material factor
+                        * attenuation
+                        // Specular gamma correction
+                        * (materials[matIndex].shininess + 2.0) / (2.0 * 3.1415926535);
+        }
     }
 
-    float shadowFactor = 1.0;
-    if (isInShadow(worldPos, 0, 0.002)) {
-        shadowFactor = 0.2f;
-    }
-
-    return (color * min((ambient + diffuse), vec3(1.0)) + specular) * shadowFactor;
+    return color * min((ambient + diffuse), vec3(1.0)) + specular;
 }
