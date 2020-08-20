@@ -5,6 +5,7 @@ target_sources(
         AnimationEngine.h
         Asset.h
         AssetRegistry.h
+        AssetRegistry.inl
         Boilerplate.h
         CommandCollector.h
         DescriptorProvider.h

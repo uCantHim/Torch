@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <atomic>
 
 #include <vkb/Image.h>
@@ -17,11 +18,46 @@ namespace trc
     class DuplicateKeyError : public Exception {};
     class KeyNotFoundError : public Exception {};
 
+    /**
+     * @brief Helper that maps strings to asset indices
+     */
+    template<typename NameType>
+    class AssetRegistryNameWrapper
+    {
+    public:
+        template<typename T>
+        using Ref = std::reference_wrapper<T>;
+
+        static auto addGeometry(const NameType& key, Geometry geo)
+            -> std::pair<Ref<Geometry>, ui32>;
+        static auto addMaterial(const NameType& key, Material mat)
+            -> std::pair<Ref<Material>, ui32>;
+        static auto addImage(const NameType& key, vkb::Image img)
+            -> std::pair<Ref<vkb::Image>, ui32>;
+
+        static auto getGeometry(const NameType& key) -> Geometry&;
+        static auto getMaterial(const NameType& key) -> Material&;
+        static auto getImage(const NameType& key) -> vkb::Image&;
+
+        static auto getGeometryIndex(const NameType& key) -> ui32;
+        static auto getMaterialIndex(const NameType& key) -> ui32;
+        static auto getImageIndex(const NameType& key) -> ui32;
+
+    private:
+        using NameToIndexMap = std::unordered_map<NameType, ui32>;
+
+        static inline NameToIndexMap geometryNames;
+        static inline NameToIndexMap materialNames;
+        static inline NameToIndexMap imageNames;
+    };
+
     class AssetRegistry
     {
     public:
         template<typename T>
         using Ref = std::reference_wrapper<T>;
+
+        using Named = AssetRegistryNameWrapper<std::string>;
 
         static void init();
         static void reset();
@@ -74,33 +110,6 @@ namespace trc
         static inline vk::UniqueDescriptorSet descSet;
         static inline DescriptorProvider descriptorProvider{ {}, {} };
     };
-
-
-
-    template<typename T>
-    auto AssetRegistry::addToMap(
-        data::IndexMap<ui32, std::unique_ptr<T>>& map,
-        ui32 key, T value) -> T&
-    {
-        static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
-        assert(key != UINT32_MAX);  // Reserved ID that signals empty value
-
-        if (map.size() > key && map[key] != nullptr) {
-            throw DuplicateKeyError();
-        }
-
-        return *map.emplace(key, std::make_unique<T>(std::move(value)));
-    }
-
-    template<typename T>
-    auto AssetRegistry::getFromMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key) -> T&
-    {
-        assert(key != UINT32_MAX);  // Reserved ID that signals empty value
-
-        if (map[key] == nullptr) {
-            throw KeyNotFoundError();
-        }
-
-        return *map[key];
-    }
 } // namespace trc
+
+#include "AssetRegistry.inl"
