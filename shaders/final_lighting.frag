@@ -2,13 +2,20 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-#include "light.glsl"
 #include "material.glsl"
+#define SHADOW_DESCRIPTOR_SET_BINDING 4
+#include "shadow.glsl"
 
 layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
 layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
 layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
+
+layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
+{
+    vec2 mousePos;
+    vec2 resolution;
+} global;
 
 layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 {
@@ -105,18 +112,28 @@ vec3 calcLighting(vec3 color)
             toLight /= dist;
         }
 
+        const float shadow = lightShadowValue(worldPos, lights[i], 0.002);
+
+        // Ambient
+        // The ambient percentage has nothing to do with physical correctness,
+        // thus it won't be affected by shadow.
+        ambient += lightColor * ambientFactor * lights[i].ambientPercentage * attenuation;
+
         // Diffuse
         float angle = max(0.0, dot(normal, toLight));
-        diffuse += lightColor * angle * diffuseFactor * attenuation;
+        diffuse += lightColor * angle * diffuseFactor * attenuation * shadow;
 
         // Specular
-        float reflectAngle = max(0.0, dot(normalize(reflect(-toLight, normal)), toEye));
-        specular += lightColor
-                    * pow(reflectAngle, materials[matIndex].shininess)  // Specular highlight
-                    * specularFactor                                    // Material factor
-                    * attenuation
-                    // Specular gamma correction
-                    * (materials[matIndex].shininess + 2.0) / (2.0 * 3.1415926535);
+        if (shadow == NO_SHADOW)
+        {
+            float reflectAngle = max(0.0, dot(normalize(reflect(-toLight, normal)), toEye));
+            specular += lightColor
+                        * pow(reflectAngle, materials[matIndex].shininess)  // Specular highlight
+                        * specularFactor                                    // Material factor
+                        * attenuation
+                        // Specular gamma correction
+                        * (materials[matIndex].shininess + 2.0) / (2.0 * 3.1415926535);
+        }
     }
 
     return color * min((ambient + diffuse), vec3(1.0)) + specular;

@@ -17,6 +17,9 @@ target_sources(
         PipelineDefinitions.cpp
         Renderer.cpp
         RenderPass.cpp
+        RenderPassShadow.cpp
+        RenderStage.cpp
+        RenderStageDeferred.cpp
         Rig.cpp
         Scene.cpp
 )

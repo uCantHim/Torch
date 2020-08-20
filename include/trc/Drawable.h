@@ -48,13 +48,16 @@ namespace trc
 
         void prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout);
 
-        void draw(vk::CommandBuffer cmdBuf);
-        void drawAnimated(vk::CommandBuffer cmdBuf);
-        void drawPickable(vk::CommandBuffer cmdBuf);
-        void drawAnimatedAndPickable(vk::CommandBuffer cmdBuf);
+        void draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+        void drawAnimated(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+        void drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+        void drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+
+        void drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
         SceneBase* currentScene{ nullptr };
-        SceneBase::RegistrationID registration;
+        SceneBase::RegistrationID deferredRegistration;
+        SceneBase::RegistrationID shadowRegistration;
 
         Geometry* geo{ nullptr };
         ui32 matIndex{ 0 };

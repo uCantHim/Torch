@@ -29,4 +29,6 @@ namespace trc
     using ui16 = uint16;
     using ui32 = uint32;
     using ui64 = uint64;
+
+    using bool32 = ui32;
 } // namespace trc

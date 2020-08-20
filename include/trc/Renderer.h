@@ -7,16 +7,30 @@
 
 #include "Scene.h"
 #include "CommandCollector.h"
+#include "RenderStage.h"
 #include "PipelineDefinitions.h"
+
+#include "RenderPassShadow.h" // TODO: Rename to RenderStageShadow.h
+#include "RenderStageDeferred.h"
 
 namespace trc
 {
+    inline void initRenderStages()
+    {
+        using namespace internal;
+
+        RenderStage::create<DeferredStage>(RenderStages::eDeferred);
+        RenderStage::create<ShadowStage>(RenderStages::eShadow);
+    }
+
     class Renderer : public vkb::SwapchainDependentResource
     {
     public:
         Renderer();
 
         void drawFrame(Scene& scene, const Camera& camera);
+
+        void addStage(RenderStage::ID stage, ui32 priority);
 
     private:
         void signalRecreateRequired() override;
@@ -30,8 +44,9 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Render passes
-        RenderPassDeferred* deferredPass;
+        // Render stages
+        std::vector<std::pair<RenderStage::ID, ui32>> renderStages;
+        std::vector<CommandCollector> commandCollectors;
 
         // General descriptor set
         void createDescriptors();
@@ -46,8 +61,6 @@ namespace trc
         vkb::Buffer globalDataBuffer;
 
         // Other things
-        CommandCollector collector;
-
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }

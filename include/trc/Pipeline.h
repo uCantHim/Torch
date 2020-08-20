@@ -98,7 +98,7 @@ namespace trc
             :
             Pipeline(
                 layout,
-                vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info),
+                vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info).value,
                 vk::PipelineBindPoint::eGraphics
             )
         {}

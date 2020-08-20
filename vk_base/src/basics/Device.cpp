@@ -66,7 +66,7 @@ void vkb::Device::executeGraphicsCommandBufferSynchronously(vk::CommandBuffer cm
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );
-    device->waitForFences(*fence, true, UINT64_MAX);
+    assert(device->waitForFences(*fence, true, UINT64_MAX) == vk::Result::eSuccess);
 }
 
 auto vkb::Device::createTransferCommandBuffer(vk::CommandBufferLevel level) const
@@ -87,5 +87,5 @@ void vkb::Device::executeTransferCommandBufferSyncronously(vk::CommandBuffer cmd
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );
-    device->waitForFences(*fence, true, UINT64_MAX);
+    assert(device->waitForFences(*fence, true, UINT64_MAX) == vk::Result::eSuccess);
 }

@@ -1,3 +1,4 @@
+#include "RenderPassShadow.h"
 #include <chrono>
 using namespace std::chrono;
 #include <iostream>
@@ -166,6 +167,13 @@ int main()
     scene->addLight(sunLight);
     scene->addLight(ambientLight);
     scene->addLight(pointLight);
+
+    // Make shadow pass for sun light
+    //mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f);
+    mat4 proj = glm::ortho(-3.0f, 3.0f, -3.0f, 3.0f, 1.0f, 30.0f);
+    auto shadowPassNode = trc::enableShadow(sunLight, uvec2(2048, 2048), proj);
+    shadowPassNode.setFromMatrix(glm::lookAt(vec3(-10, 10, 15), vec3(0, 0, 0), vec3(0, 1, 0)));
+    scene->getRoot().attach(shadowPassNode);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;

@@ -9,11 +9,6 @@
 
 trc::Scene::Scene()
     :
-    lightBuffer(
-        util::sizeof_pad_16_v<Light> * MAX_LIGHTS,
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
     pickingBuffer(
         sizeof(ui32) * 3,
         vk::BufferUsageFlagBits::eStorageBuffer,
@@ -25,8 +20,6 @@ trc::Scene::Scene()
     buf[1] = 0u;
     reinterpret_cast<float*>(buf)[2] = 1.0f;
     pickingBuffer.unmap();
-
-    updateLightBuffer();
 }
 
 auto trc::Scene::getRoot() noexcept -> Node&
@@ -42,28 +35,28 @@ auto trc::Scene::getRoot() const noexcept -> const Node&
 void trc::Scene::updateTransforms()
 {
     root.updateAsRoot();
-    updateLightBuffer();
+    lightRegistry.update();
     updatePicking();
 }
 
-void trc::Scene::add(SceneRegisterable& object)
+void trc::Scene::addLight(const Light& light)
 {
-    object.attachToScene(*this);
+    lightRegistry.addLight(light);
 }
 
-void trc::Scene::addLight(Light& light)
+void trc::Scene::removeLight(const Light& light)
 {
-    lights.push_back(&light);
-}
-
-void trc::Scene::removeLight(Light& light)
-{
-    lights.erase(std::find(lights.begin(), lights.end(), &light));
+    lightRegistry.removeLight(light);
 }
 
 auto trc::Scene::getLightBuffer() const noexcept -> vk::Buffer
 {
-    return *lightBuffer;
+    return lightRegistry.getLightBuffer();
+}
+
+auto trc::Scene::getLightRegistry() noexcept -> LightRegistry&
+{
+    return lightRegistry;
 }
 
 auto trc::Scene::getPickingBuffer() const noexcept -> vk::Buffer
@@ -78,23 +71,6 @@ auto trc::Scene::getPickedObject() -> std::optional<Pickable*>
     }
 
     return &PickableRegistry::getPickable(currentlyPicked);
-}
-
-void trc::Scene::updateLightBuffer()
-{
-    assert(lights.size() <= MAX_LIGHTS);
-
-    auto buf = lightBuffer.map();
-
-    const ui32 numLights = lights.size();
-    memcpy(buf, &numLights, sizeof(ui32));
-    for (size_t offset = sizeof(vec4); const Light* light : lights)
-    {
-        memcpy(buf + offset, light, sizeof(Light));
-        offset += util::sizeof_pad_16_v<Light>;
-    }
-
-    lightBuffer.unmap();
 }
 
 void trc::Scene::updatePicking()
@@ -125,8 +101,6 @@ void trc::Scene::updatePicking()
 
 auto trc::SceneDescriptor::getProvider() noexcept -> const DescriptorProviderInterface&
 {
-    static vkb::VulkanStaticInitialization<SceneDescriptor> _force_init;
-
     return provider;
 }
 

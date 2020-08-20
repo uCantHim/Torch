@@ -216,7 +216,10 @@ void vkb::Swapchain::presentImage(
     );
 
     try {
-        queue.presentKHR(presentInfo);
+        auto result = queue.presentKHR(presentInfo);
+        if (result == vk::Result::eSuboptimalKHR) {
+            std::cout << "--- Swapchain has become suboptimal\n";
+        }
     }
     catch (const vk::OutOfDateKHRError&) {
         if constexpr (enableVerboseLogging) {

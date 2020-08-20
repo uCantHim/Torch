@@ -25,8 +25,7 @@ namespace trc
         std::vector<Keyframe> keyframes;
     };
 
-    class Animation : public vkb::VulkanStaticInitialization<Animation>
-                    , public vkb::VulkanStaticDestruction<Animation>
+    class Animation
     {
     public:
         explicit Animation(const AnimationData& data);
@@ -65,11 +64,11 @@ namespace trc
         static constexpr size_t MAX_ANIMATIONS = 300;
         static constexpr size_t ANIMATION_BUFFER_SIZE = 2000000;
 
-        friend vkb::VulkanStaticInitialization<Animation>;
-        friend vkb::VulkanStaticDestruction<Animation>;
-
         static void vulkanStaticInit();
         static void vulkanStaticDestroy();
+        static inline vkb::StaticInit _init{
+            vulkanStaticInit, vulkanStaticDestroy
+        };
 
         static inline std::mutex animationCreateLock;
         static inline ui32 numAnimations{ 0 };

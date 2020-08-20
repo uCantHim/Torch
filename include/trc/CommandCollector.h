@@ -17,8 +17,8 @@ namespace trc
         /**
          * Collect commands of a scene and write them to a primary command buffer
          */
-        auto recordScene(SceneBase& scene, RenderPass& renderPass)
-            -> std::vector<vk::CommandBuffer>;
+        auto recordScene(SceneBase& scene, RenderStage::ID renderStage)
+            -> vk::CommandBuffer;
 
     private:
         vk::UniqueCommandPool pool;

@@ -2,18 +2,32 @@
 
 #include <vkb/basics/Swapchain.h>
 
+#include "RenderStage.h"
 #include "RenderPass.h"
+#include "RenderPassShadow.h"
 #include "Pipeline.h"
 
 namespace trc::internal
 {
+    enum RenderStages : RenderStage::ID
+    {
+        eDeferred,
+        eShadow,
+
+        // Maybe one day...?
+        eReflection,
+    };
+
     enum RenderPasses : RenderPass::ID
     {
         eDeferredPass = 0,
 
+        /** The index of the first shadow pass */
+        eShadowPassesBegin = 1,
+        eShadowPassesEnd = MAX_SHADOW_MAPS,
+
         NUM_PASSES
     };
-
 
     enum DeferredSubPasses
     {
@@ -23,7 +37,6 @@ namespace trc::internal
         NUM_SUBPASSES
     };
 
-
     enum Pipelines : GraphicsPipeline::ID
     {
         eDrawableDeferred = 0,
@@ -32,6 +45,9 @@ namespace trc::internal
         eDrawableDeferredAnimatedAndPickable = 3,
         eFinalLighting = 4,
         eDrawableInstancedDeferred = 5,
+
+        eDrawableShadow,
+        eDrawableInstancedShadow,
     };
 
 
@@ -69,10 +85,13 @@ namespace trc::internal
         ui32 featureFlags
     );
 
+    void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
 
     void makeInstancedDrawableDeferredPipeline(
         RenderPass& renderPass,
         const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass);
 
     void makeFinalLightingPipeline(
         RenderPass& renderPass,

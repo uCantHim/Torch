@@ -4,6 +4,7 @@ target_sources(
         Camera.h
         Exception.h
         FBXLoader.h
+        ThreadPool.h
         Transformation.h
         Util.h
 )

@@ -1,5 +1,111 @@
 #include "Light.h"
 
+#include "utils/Util.h"
+
+
+
+trc::LightNode::LightNode(Light& light)
+    :
+    light(&light),
+    initialDirection(light.direction)
+{
+}
+
+void trc::LightNode::update()
+{
+    assert(light != nullptr);
+
+    light->position = { getTranslation(), 1.0f };
+    light->direction = getRotationAsMatrix() * initialDirection;
+}
+
+
+
+trc::LightRegistry::LightRegistry()
+    :
+    lightBuffer(
+        util::sizeof_pad_16_v<Light> * MAX_LIGHTS,
+        vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    )
+{
+}
+
+void trc::LightRegistry::update()
+{
+    for (auto& [light, node] : lightNodes)
+    {
+        node->update();
+    }
+
+    updateLightBuffer();
+}
+
+auto trc::LightRegistry::addLight(const Light& light) -> const Light&
+{
+    return *lights.emplace_back(&light);
+}
+
+void trc::LightRegistry::removeLight(const Light& light)
+{
+    removeLightNode(light);
+    lights.erase(std::find(lights.begin(), lights.end(), &light));
+}
+
+auto trc::LightRegistry::createLightNode(Light& light) -> LightNode&
+{
+    return *lightNodes.emplace_back(
+        &light,
+        std::make_unique<LightNode>(light)
+    ).second;
+}
+
+void trc::LightRegistry::removeLightNode(const LightNode& node)
+{
+    auto it = std::find_if(
+        lightNodes.begin(), lightNodes.end(),
+        [&node](const auto& pair) { return pair.second.get() == &node; }
+    );
+
+    if (it != lightNodes.end()) {
+        lightNodes.erase(it);
+    }
+}
+
+void trc::LightRegistry::removeLightNode(const Light& light)
+{
+    auto it = std::find_if(
+        lightNodes.begin(), lightNodes.end(),
+        [&light](const auto& pair) { return pair.first == &light; }
+    );
+
+    if (it != lightNodes.end()) {
+        lightNodes.erase(it);
+    }
+}
+
+auto trc::LightRegistry::getLightBuffer() const noexcept -> vk::Buffer
+{
+    return *lightBuffer;
+}
+
+void trc::LightRegistry::updateLightBuffer()
+{
+    assert(lights.size() <= MAX_LIGHTS);
+
+    auto buf = lightBuffer.map();
+
+    const ui32 numLights = lights.size();
+    memcpy(buf, &numLights, sizeof(ui32));
+    for (size_t offset = sizeof(vec4); const Light* light : lights)
+    {
+        memcpy(buf + offset, light, sizeof(Light));
+        offset += util::sizeof_pad_16_v<Light>;
+    }
+
+    lightBuffer.unmap();
+}
+
 
 
 auto trc::makeSunLight(vec3 color, vec3 direction, float ambientPercent) -> Light

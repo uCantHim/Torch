@@ -32,8 +32,7 @@ auto SelfManagedObject<Derived>::create(ID index, ConstructArgs&&... args) -> De
 template<class Derived>
 template<typename Class, typename ...ConstructArgs>
 auto SelfManagedObject<Derived>::create(ID index, ConstructArgs&&... args) -> Class&
-    requires(std::is_polymorphic_v<Derived> == true
-             && std::is_base_of_v<Derived, Class> == true)
+    requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>)
 {
     if (objects.size() > index && objects[index] != nullptr) {
         throw std::runtime_error("Index " + std::to_string(index) + " already occupied");
@@ -58,8 +57,7 @@ auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> D
 template<class Derived>
 template<typename Class, typename ...ConstructArgs>
 auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> Class&
-    requires(std::is_polymorphic_v<Derived> == true
-             && std::is_base_of_v<Derived, Class> == true)
+    requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>)
 {
     auto& result = *objects.emplace(index, new Class(std::forward<ConstructArgs>(args)...));
     result.myId = index;
@@ -84,7 +82,7 @@ void SelfManagedObject<Derived>::destroy(ID index)
         throw std::out_of_range("No object at index " + std::to_string(index));
     }
 
-    objects.at(index) = std::make_unique<Derived>();
+    objects.at(index).reset();
 }
 
 template<class Derived>

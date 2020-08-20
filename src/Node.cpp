@@ -4,18 +4,18 @@
 
 
 
-/**
- * Node uses the temporary matrix mechanism of Transformation as a storage
- * for its global transformation.
- */
-
 trc::Node::Node(Node&& other) noexcept
     :
     parent(other.parent),
     children(std::move(other.children))
 {
-    parent->detach(other);
-    parent->attach(*this);
+    if (parent != nullptr)
+    {
+        parent->detach(other);
+        parent->attach(*this);
+    }
+
+    other.parent = nullptr;
 }
 
 trc::Node::~Node()
@@ -30,8 +30,12 @@ trc::Node::~Node()
 auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
 {
     parent = rhs.parent;
-    parent->detach(rhs);
-    parent->attach(*this);
+    rhs.parent = nullptr;
+    if (parent != nullptr)
+    {
+        parent->detach(rhs);
+        parent->attach(*this);
+    }
 
     children = std::move(rhs.children);
 

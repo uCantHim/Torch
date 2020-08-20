@@ -30,3 +30,37 @@ void trc::DescriptorProvider::setDescriptorSetLayout(vk::DescriptorSetLayout new
 {
     layout = newLayout;
 }
+
+
+
+trc::FrameSpecificDescriptorProvider::FrameSpecificDescriptorProvider(
+    vk::DescriptorSetLayout layout,
+    vkb::FrameSpecificObject<vk::DescriptorSet> set)
+    :
+    layout(layout),
+    set(std::move(set))
+{
+}
+
+auto trc::FrameSpecificDescriptorProvider::getDescriptorSet() const noexcept -> vk::DescriptorSet
+{
+    return *set;
+}
+
+auto trc::FrameSpecificDescriptorProvider::getDescriptorSetLayout() const noexcept
+    -> vk::DescriptorSetLayout
+{
+    return layout;
+}
+
+void trc::FrameSpecificDescriptorProvider::setDescriptorSet(
+    vkb::FrameSpecificObject<vk::DescriptorSet> newSet)
+{
+    set = std::move(newSet);
+}
+
+void trc::FrameSpecificDescriptorProvider::setDescriptorSetLayout(
+    vk::DescriptorSetLayout newLayout)
+{
+    layout = newLayout;
+}

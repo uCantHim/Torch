@@ -1,12 +1,13 @@
 #include "Renderer.h"
 
+#include <vkb/util/Timer.h>
+
 #include "PipelineDefinitions.h"
 
 
 
 trc::Renderer::Renderer()
     :
-    deferredPass(&RenderPassDeferred::create<RenderPassDeferred>(0)),
     cameraMatrixBuffer(
         sizeof(mat4) * 4,
         vk::BufferUsageFlagBits::eUniformBuffer,
@@ -28,10 +29,16 @@ trc::Renderer::Renderer()
     createSemaphores();
     createDescriptors();
 
-    internal::makeAllDrawablePipelines(*deferredPass, cameraDescriptorProvider);
-    internal::makeFinalLightingPipeline(*deferredPass,
-                                        cameraDescriptorProvider,
-                                        deferredPass->getInputAttachmentDescriptor());
+    initRenderStages();
+    addStage(internal::RenderStages::eDeferred, 3);
+    addStage(internal::RenderStages::eShadow, 1);
+
+    auto& deferredPass = RenderPass::at(internal::RenderPasses::eDeferredPass);
+    internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
+    internal::makeFinalLightingPipeline(
+        deferredPass,
+        cameraDescriptorProvider,
+        static_cast<RenderPassDeferred&>(deferredPass).getInputAttachmentDescriptor());
 }
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
@@ -49,10 +56,10 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
-        internal::RenderPasses::eDeferredPass,
+        internal::RenderStages::eDeferred,
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
-        [&, cameraPos](vk::CommandBuffer cmdBuf)
+        [&, cameraPos](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
             auto& p = GraphicsPipeline::at(internal::Pipelines::eFinalLighting);
             cmdBuf.pushConstants<vec3>(
@@ -65,12 +72,18 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     );
 
     // Acquire image
-    device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
+    auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
+    assert(fenceResult == vk::Result::eSuccess);
     device->resetFences(**frameInFlightFences);
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
     // Collect commands
-    auto cmdBufs = collector.recordScene(scene, *deferredPass);
+    std::vector<vk::CommandBuffer> cmdBufs;
+    for (ui32 i = 0; const auto& [stage, _] : renderStages)
+    {
+        cmdBufs.push_back(commandCollectors[i].recordScene(scene, stage));
+        i++;
+    }
 
     // Remove fullscreen quad function
     scene.unregisterDrawFunction(finalLightingFunc);
@@ -91,6 +104,15 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // Present frame
     auto presentQueue = vkb::getQueueProvider().getQueue(vkb::QueueType::presentation);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
+}
+
+void trc::Renderer::addStage(RenderStage::ID stage, ui32 priority)
+{
+    auto it = renderStages.begin();
+    while (it != renderStages.end() && it->second < priority) it++;
+
+    renderStages.insert(it, { stage, priority });
+    commandCollectors.emplace_back();
 }
 
 void trc::Renderer::createSemaphores()
@@ -195,11 +217,11 @@ void trc::Renderer::signalRecreateRequired()
 
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
-    deferredPass = &RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    internal::makeAllDrawablePipelines(*deferredPass, cameraDescriptorProvider);
-    internal::makeFinalLightingPipeline(*deferredPass,
+    auto& deferredPass = RenderPassDeferred::emplace<RenderPassDeferred>(0);
+    internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
+    internal::makeFinalLightingPipeline(deferredPass,
                                         cameraDescriptorProvider,
-                                        deferredPass->getInputAttachmentDescriptor());
+                                        deferredPass.getInputAttachmentDescriptor());
 
     createSemaphores();
 }
@@ -214,5 +236,8 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
         fences.push_back(*fence);
     });
-    vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
+    auto result = vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
+    if (result == vk::Result::eTimeout) {
+        std::cout << "Timeout in Renderer::waitForAllFrames!\n";
+    }
 }
