@@ -6,7 +6,32 @@ using namespace std::chrono;
 
 
 
-mat4 fbxToGlm(const FbxAMatrix& fm);
+namespace trc
+{
+    mat4 fbxToGlm(const FbxAMatrix& fm)
+    {
+        mat4 mat;
+        mat[0][0] = static_cast<float>(fm[0][0]);
+        mat[0][1] = static_cast<float>(fm[0][1]);
+        mat[0][2] = static_cast<float>(fm[0][2]);
+        mat[0][3] = static_cast<float>(fm[0][3]);
+        mat[1][0] = static_cast<float>(fm[1][0]);
+        mat[1][1] = static_cast<float>(fm[1][1]);
+        mat[1][2] = static_cast<float>(fm[1][2]);
+        mat[1][3] = static_cast<float>(fm[1][3]);
+        mat[2][0] = static_cast<float>(fm[2][0]);
+        mat[2][1] = static_cast<float>(fm[2][1]);
+        mat[2][2] = static_cast<float>(fm[2][2]);
+        mat[2][3] = static_cast<float>(fm[2][3]);
+        mat[3][0] = static_cast<float>(fm[3][0]);
+        mat[3][1] = static_cast<float>(fm[3][1]);
+        mat[3][2] = static_cast<float>(fm[3][2]);
+        mat[3][3] = static_cast<float>(fm[3][3]);
+        return mat;
+    }
+} // namespace trc
+
+
 
 trc::FBXLoader::FBXLoader()
 {
@@ -641,29 +666,4 @@ auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNod
     }
 
     return animations;
-}
-
-
-
-
-mat4 fbxToGlm(const FbxAMatrix& fm)
-{
-    mat4 mat;
-    mat[0][0] = static_cast<float>(fm[0][0]);
-    mat[0][1] = static_cast<float>(fm[0][1]);
-    mat[0][2] = static_cast<float>(fm[0][2]);
-    mat[0][3] = static_cast<float>(fm[0][3]);
-    mat[1][0] = static_cast<float>(fm[1][0]);
-    mat[1][1] = static_cast<float>(fm[1][1]);
-    mat[1][2] = static_cast<float>(fm[1][2]);
-    mat[1][3] = static_cast<float>(fm[1][3]);
-    mat[2][0] = static_cast<float>(fm[2][0]);
-    mat[2][1] = static_cast<float>(fm[2][1]);
-    mat[2][2] = static_cast<float>(fm[2][2]);
-    mat[2][3] = static_cast<float>(fm[2][3]);
-    mat[3][0] = static_cast<float>(fm[3][0]);
-    mat[3][1] = static_cast<float>(fm[3][1]);
-    mat[3][2] = static_cast<float>(fm[3][2]);
-    mat[3][3] = static_cast<float>(fm[3][3]);
-    return mat;
 }
