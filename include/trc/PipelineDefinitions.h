@@ -47,6 +47,7 @@ namespace trc::internal
         eDrawableInstancedDeferred = 5,
 
         eDrawableShadow,
+        eDrawableInstancedShadow,
     };
 
 
@@ -84,11 +85,13 @@ namespace trc::internal
         ui32 featureFlags
     );
 
-    void makeDrawableShadowPipeline(RenderPass& renderPass);
+    void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
 
     void makeInstancedDrawableDeferredPipeline(
         RenderPass& renderPass,
         const DescriptorProviderInterface& generalDescriptorSet);
+
+    void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass);
 
     void makeFinalLightingPipeline(
         RenderPass& renderPass,

@@ -15,9 +15,14 @@ namespace trc
                                                  RenderStages::eDeferred,
                                                  DeferredSubPasses::eGBufferPass,
                                                  Pipelines::eDrawableInstancedDeferred>
+                            , public UsePipeline<DrawableInstanced,
+                                                 RenderStages::eShadow,
+                                                 0,
+                                                 Pipelines::eDrawableInstancedShadow>
     {
     public:
         using Deferred = PipelineIndex<Pipelines::eDrawableInstancedDeferred>;
+        using Shadow = PipelineIndex<Pipelines::eDrawableInstancedShadow>;
 
         struct InstanceDescription
         {
@@ -41,6 +46,7 @@ namespace trc
         void addInstance(InstanceDescription instance);
 
         void recordCommandBuffer(Deferred, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+        void recordCommandBuffer(Shadow, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
     private:
         Geometry* geometry;

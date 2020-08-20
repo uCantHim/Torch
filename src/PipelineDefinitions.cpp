@@ -21,6 +21,7 @@ void trc::internal::makeAllDrawablePipelines(
 
     RenderPassShadow dummyPass({ 1, 1 }, mat4());
     makeDrawableShadowPipeline(dummyPass);
+    makeInstancedDrawableShadowPipeline(dummyPass);
 }
 
 void trc::internal::makeDrawableDeferredPipeline(
@@ -147,7 +148,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
     p.addStaticDescriptorSet(3, Animation::getDescriptorProvider());
 }
 
-void trc::internal::makeDrawableShadowPipeline(RenderPass& renderPass)
+void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
     auto& layout = PipelineLayout::emplace(
@@ -264,6 +265,63 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+}
+
+void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
+{
+    // Layout
+    auto& layout = PipelineLayout::emplace(
+        Pipelines::eDrawableInstancedShadow,
+        std::vector<vk::DescriptorSetLayout>
+        {
+            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+        },
+        std::vector<vk::PushConstantRange>
+        {
+            vk::PushConstantRange(
+                vk::ShaderStageFlagBits::eVertex,
+                0,
+                sizeof(ui32)  // light index
+            )
+        }
+    );
+
+    // Pipeline
+    vkb::ShaderProgram program("shaders/drawable/shadow_instanced.vert.spv",
+                               "shaders/drawable/shadow.frag.spv");
+
+    vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        // Default vertex attributes
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
+            makeVertexAttributeDescriptions()
+        )
+        // Per-instance attributes
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(
+                1, sizeof(DrawableInstanced::InstanceDescription), vk::VertexInputRate::eInstance
+            ),
+            {
+                // Model matrix
+                vk::VertexInputAttributeDescription(6, 1, vk::Format::eR32G32B32A32Sfloat, 0),
+                vk::VertexInputAttributeDescription(7, 1, vk::Format::eR32G32B32A32Sfloat, 16),
+                vk::VertexInputAttributeDescription(8, 1, vk::Format::eR32G32B32A32Sfloat, 32),
+                vk::VertexInputAttributeDescription(9, 1, vk::Format::eR32G32B32A32Sfloat, 48),
+            }
+        )
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))  // Dynamic state
+        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))     // Dynamic state
+        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
+
+    auto& p = GraphicsPipeline::emplace(
+        Pipelines::eDrawableInstancedShadow,
+        *layout, std::move(pipeline)
+    );
+    p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
 }
 
 void trc::internal::makeFinalLightingPipeline(
