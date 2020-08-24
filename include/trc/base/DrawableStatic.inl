@@ -3,9 +3,9 @@
 
 template<
     typename Derived,
-    RenderStage::ID renderStage,
-    SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline
+    RenderStage::ID::Type renderStage,
+    SubPass::ID::Type subPass,
+    GraphicsPipeline::ID::Type pipeline
 >
 trc::StaticPipelineRenderInterface<Derived, renderStage, subPass, pipeline>::StaticPipelineRenderInterface()
 {

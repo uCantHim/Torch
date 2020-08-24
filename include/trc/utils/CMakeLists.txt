@@ -6,5 +6,6 @@ target_sources(
         FBXLoader.h
         ThreadPool.h
         Transformation.h
+        TypesafeId.h
         Util.h
 )

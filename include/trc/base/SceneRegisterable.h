@@ -25,7 +25,7 @@ namespace trc
          * If the object is currently attach to a scene, the new pipeline will
          * be added to that scene.
          */
-        void usePipeline(RenderPass::ID renderPass,
+        void usePipeline(RenderStage::ID renderStage,
                          SubPass::ID subPass,
                          GraphicsPipeline::ID pipeline,
                          DrawableFunction recordCommandBufferFunction);
@@ -49,7 +49,7 @@ namespace trc
         void removeFromScene();
 
     private:
-        using RecordFuncTuple = std::tuple<RenderPass::ID,
+        using RecordFuncTuple = std::tuple<RenderStage::ID,
                                            SubPass::ID,
                                            GraphicsPipeline::ID,
                                            DrawableFunction>;

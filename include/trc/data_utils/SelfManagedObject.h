@@ -8,6 +8,7 @@
 #include <vkb/VulkanBase.h>
 
 #include "IndexMap.h"
+#include "utils/TypesafeId.h"
 
 namespace trc::data
 {
@@ -24,7 +25,8 @@ namespace trc::data
     class SelfManagedObject
     {
     public:
-        using ID = uint64_t;
+        using IDType = uint64_t;
+        using ID = TypesafeID<Derived, IDType>;
 
         // ----------------
         // Static functions
@@ -71,7 +73,7 @@ namespace trc::data
     private:
         ID myId;
 
-        static inline IndexMap<ID, std::unique_ptr<Derived>> objects;
+        static inline IndexMap<IDType, std::unique_ptr<Derived>> objects;
 
         static inline vkb::StaticInit _init{
             []() {},
