@@ -186,8 +186,8 @@ int main()
 
 
     bool running{ true };
-    auto yo = vkb::EventHandler<vkb::SwapchainDestroyEvent>::addListener(
-        [&running](const vkb::SwapchainDestroyEvent&) { running = false; }
+    auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
+        [&running](const vkb::SwapchainCloseEvent&) { running = false; }
     );
 
     vkb::Timer timer;
