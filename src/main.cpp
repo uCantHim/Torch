@@ -18,22 +18,18 @@ using namespace std::chrono;
 #include "trc/Scene.h"
 #include "trc/Renderer.h"
 
-trc::Camera camera({ { 0, 0 }, { 1, 1 } }, 45.0f, { 0.1f, 100.0f });
+trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
 
 struct CameraResize : public vkb::SwapchainDependentResource
 {
 public:
     void signalRecreateRequired() override {}
     void recreate(vkb::Swapchain& sc) override {
-        camera.setViewport({ { 0, 0 }, { sc.getImageExtent().width, sc.getImageExtent().height } });
+        camera.setAspect(float(sc.getImageExtent().width) / float(sc.getImageExtent().height));
     }
     void signalRecreateFinished() override {}
 };
 static CameraResize _camera_resize_helper;
-
-void resizeCameraViewport(GLFWwindow*, int sizeX, int sizeY)
-{
-}
 
 int main()
 {
