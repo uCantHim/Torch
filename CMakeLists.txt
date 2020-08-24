@@ -25,10 +25,9 @@ target_link_libraries(torch PUBLIC vk_base fbxsdk)
 target_include_directories(torch PUBLIC include)
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
 
-
 #################
 # Compile options
-
+target_compile_definitions(torch PRIVATE TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders")
 target_compile_options(torch PUBLIC -fPIC)
 
 if (NOT MSVC)
