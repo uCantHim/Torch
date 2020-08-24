@@ -6,16 +6,21 @@
 
 
 
-trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
+trc::Drawable::Drawable(Geometry& geo, ui32 material)
 {
     setGeometry(geo);
     setMaterial(material);
+}
 
+trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
+    : Drawable(geo, material)
+{
     attachToScene(scene);
 }
 
 trc::Drawable::~Drawable()
 {
+    removeFromScene();
     //PickableRegistry::destroyPickable(PickableRegistry::getPickable(pickableId));
 }
 
@@ -26,10 +31,7 @@ void trc::Drawable::setGeometry(Geometry& geo)
         animEngine = { *geo.getRig() };
     }
 
-    if (currentScene != nullptr) {
-        currentScene->unregisterDrawFunction(deferredRegistration);
-        currentScene->unregisterDrawFunction(shadowRegistration);
-    }
+    removeFromScene();
     updateDrawFunction();
 }
 
@@ -37,10 +39,7 @@ void trc::Drawable::setMaterial(ui32 matIndex)
 {
     this->matIndex = matIndex;
 
-    if (currentScene != nullptr) {
-        currentScene->unregisterDrawFunction(deferredRegistration);
-        currentScene->unregisterDrawFunction(shadowRegistration);
-    }
+    removeFromScene();
     updateDrawFunction();
 }
 
@@ -49,15 +48,27 @@ auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
     return animEngine;
 }
 
+auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
+{
+    return animEngine;
+}
+
 void trc::Drawable::attachToScene(SceneBase& scene)
 {
-    if (currentScene != nullptr) {
-        currentScene->unregisterDrawFunction(deferredRegistration);
-        currentScene->unregisterDrawFunction(shadowRegistration);
-    }
+    removeFromScene();
 
     currentScene = &scene;
     updateDrawFunction();
+}
+
+void trc::Drawable::removeFromScene()
+{
+    if (currentScene == nullptr) {
+        return;
+    }
+
+    currentScene->unregisterDrawFunction(deferredRegistration);
+    currentScene->unregisterDrawFunction(shadowRegistration);
 }
 
 void trc::Drawable::updateDrawFunction()

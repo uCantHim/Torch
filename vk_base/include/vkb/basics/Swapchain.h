@@ -35,8 +35,8 @@ namespace vkb
      *
      * This is the equivalent to the classical 'Window' class. I didn't
      * want to wrap this in a Window class because I want to expose as much
-     * of the Vulkan stuff as possible. Why should I use the conventional
-     * terminology if Vulkan has no concept of windows?
+     * of the Vulkan stuff as possible. I don't see a reason to use the
+     * conventional terminology if Vulkan has no concept of windows.
      */
     class Swapchain
     {
@@ -60,6 +60,12 @@ namespace vkb
          * @brief Construct a swapchain
          */
         Swapchain(const Device& device, Surface s);
+        Swapchain(Swapchain&&) noexcept = default;
+        ~Swapchain();
+
+        Swapchain(const Swapchain&) = delete;
+        auto operator=(const Swapchain&) -> Swapchain& = delete;
+        auto operator=(Swapchain&&) noexcept -> Swapchain& = delete;
 
         /**
          * @return GLFWwindow* The GLFW window handle of the swapchain's surface

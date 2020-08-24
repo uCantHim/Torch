@@ -8,7 +8,7 @@ using namespace std::chrono;
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
-#include <vkb/event/EventHandler.h>
+#include <vkb/event/Event.h>
 
 #include "trc/utils/FBXLoader.h"
 #include "trc/Geometry.h"
@@ -18,22 +18,18 @@ using namespace std::chrono;
 #include "trc/Scene.h"
 #include "trc/Renderer.h"
 
-trc::Camera camera({ { 0, 0 }, { 1, 1 } }, 45.0f, { 0.1f, 100.0f });
+trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
 
 struct CameraResize : public vkb::SwapchainDependentResource
 {
 public:
     void signalRecreateRequired() override {}
     void recreate(vkb::Swapchain& sc) override {
-        camera.setViewport({ { 0, 0 }, { sc.getImageExtent().width, sc.getImageExtent().height } });
+        camera.setAspect(float(sc.getImageExtent().width) / float(sc.getImageExtent().height));
     }
     void signalRecreateFinished() override {}
 };
 static CameraResize _camera_resize_helper;
-
-void resizeCameraViewport(GLFWwindow*, int sizeX, int sizeY)
-{
-}
 
 int main()
 {
@@ -115,8 +111,7 @@ int main()
     auto renderer = std::make_unique<trc::Renderer>();
 
     auto scene = std::make_unique<trc::Scene>();
-    camera.setPosition({ 0, 2.0f, 5.0f });
-    camera.setForwardVector({ 0, -2.0f / 5.0f, -1 });
+    camera.lookAt({ 0, 2.0f, 5.0f }, vec3(0, 2.0f, 5.0f) + vec3(0, -2.0f / 5.0f, -1 ), { 0, 1, 0 });
 
     trc::Drawable grass(grassGeo, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
@@ -191,8 +186,8 @@ int main()
 
 
     bool running{ true };
-    auto yo = vkb::EventHandler<vkb::SwapchainDestroyEvent>::addListener(
-        [&running](const vkb::SwapchainDestroyEvent&) { running = false; }
+    auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
+        [&running](const vkb::SwapchainCloseEvent&) { running = false; }
     );
 
     vkb::Timer timer;

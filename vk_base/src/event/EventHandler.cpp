@@ -1,5 +1,6 @@
 #include "event/EventHandler.h"
 
+#include <iostream>
 #include <thread>
 
 #include "VulkanDebug.h"

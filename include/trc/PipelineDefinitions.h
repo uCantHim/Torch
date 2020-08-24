@@ -9,7 +9,7 @@
 
 namespace trc::internal
 {
-    enum RenderStages : RenderStage::ID
+    enum RenderStages : RenderStage::ID::Type
     {
         eDeferred,
         eShadow,
@@ -18,7 +18,7 @@ namespace trc::internal
         eReflection,
     };
 
-    enum RenderPasses : RenderPass::ID
+    enum RenderPasses : RenderPass::ID::Type
     {
         eDeferredPass = 0,
 
@@ -37,7 +37,7 @@ namespace trc::internal
         NUM_SUBPASSES
     };
 
-    enum Pipelines : GraphicsPipeline::ID
+    enum Pipelines : GraphicsPipeline::ID::Type
     {
         eDrawableDeferred = 0,
         eDrawableDeferredAnimated = 1,

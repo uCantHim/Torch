@@ -153,6 +153,13 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
 {
     initGlfwCallbacks(window.get());
     createSwapchain(false);
+
+    EventHandler<SwapchainCreateEvent>::notify({ {this} });
+}
+
+vkb::Swapchain::~Swapchain()
+{
+    EventHandler<SwapchainDestroyEvent>::notify({ {this} });
 }
 
 auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
@@ -348,7 +355,7 @@ void onMouseClick(GLFWwindow* window, int button, int action, int mods)
 void onWindowClose(GLFWwindow* window)
 {
     auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
-    vkb::EventHandler<vkb::SwapchainDestroyEvent>::notify({ swapchain });
+    vkb::EventHandler<vkb::SwapchainCloseEvent>::notify({ {swapchain} });
 }
 
 void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
@@ -431,6 +438,7 @@ void vkb::Swapchain::createSwapchain(bool recreate)
             std::cout << "New swapchain created, recreating swapchain-dependent resources...\n";
         }
 
+        EventHandler<SwapchainResizeEvent>::notify({ {this} });
         SwapchainDependentResource::DependentResourceLock::recreateAll(*this);
         SwapchainDependentResource::DependentResourceLock::endRecreate();
     }

@@ -117,7 +117,7 @@ void trc::SceneBase::tryInsertPipeline(
 }
 
 void trc::SceneBase::removePipeline(
-    RenderPass::ID renderStage,
+    RenderStage::ID renderStage,
     SubPass::ID subPass,
     GraphicsPipeline::ID pipeline)
 {

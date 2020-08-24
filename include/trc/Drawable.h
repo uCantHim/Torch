@@ -16,6 +16,9 @@ namespace trc
     class Drawable : public Node
     {
     public:
+        Drawable() = default;
+        explicit
+        Drawable(Geometry& geo, ui32 material = 0);
         Drawable(Geometry& geo, ui32 material, SceneBase& scene);
         ~Drawable();
 
@@ -27,6 +30,38 @@ namespace trc
         void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);
 
+        /**
+         * @return AnimationEngine& Always returns an animation engine, even
+         *                          if the geometry doesn't have a rig.
+         */
+        auto getAnimationEngine() noexcept -> AnimationEngine&;
+
+        /**
+         * @return AnimationEngine& Always returns an animation engine, even
+         *                          if the geometry doesn't have a rig.
+         */
+        auto getAnimationEngine() const noexcept -> const AnimationEngine&;
+
+        /**
+         * @brief Enable picking for the drawable
+         *
+         * In order to enable picking, a Pickable needs to be created and
+         * associated with the Drawable. That is what this function does.
+         *
+         * An object of type PickableType is created at the
+         * PickableRegistry. The provided PickableType must derive from
+         * Pickable for this to work. The ID of the created Pickable is
+         * stored in the Drawable.
+         *
+         * Picking cannot be disabled once it has been enabled.
+         *
+         * @tparam PickableType Type of the Pickable that's created for the
+         *                      Drawable.
+         * @tparam ...Args Argument types for the constructor of the
+         *                 pickable. Can be deduced from the function
+         *                 arguments.
+         * @param Args&&... args Constructor arguments for the pickable.
+         */
         template<typename PickableType, typename ...Args>
         auto enablePicking(Args&&... args) -> PickableType&
         {
@@ -39,9 +74,23 @@ namespace trc
 
             return newPickable;
         }
-        auto getAnimationEngine() noexcept -> AnimationEngine&;
 
+        /**
+         * @brief Register all necessary functions at a scene
+         *
+         * Can only be attached to one scene at a time. If the drawable is
+         * already attached to a scene, the drawable is removed from that
+         * scene first.
+         *
+         * @param SceneBase& scene The scene to attach to.
+         */
         void attachToScene(SceneBase& scene);
+
+        /**
+         * @brief Remove the Drawable from the scene it is currently
+         *        attached to
+         */
+        void removeFromScene();
 
     private:
         void updateDrawFunction();
