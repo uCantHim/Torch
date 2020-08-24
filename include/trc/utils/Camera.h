@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Boilerplate.h"
+#include "Node.h"
 
 namespace trc
 {
@@ -27,7 +28,7 @@ namespace trc
      * #define TRC_FLIP_Y_PROJECTION to flip the y-Axis in the projection
      * matrix.
      */
-    class Camera
+    class Camera : public Node
     {
     public:
         static constexpr float DEFAULT_FOV = 45.0f;
@@ -59,15 +60,19 @@ namespace trc
          */
         Camera(float left, float right, float bottom, float top, float zNear, float zFar);
 
-        mat4 getViewMatrix() const noexcept;
-        mat4 getProjectionMatrix() const noexcept;
-        vec3 getPosition() const noexcept;
-        vec3 getForwardVector() const noexcept;
-        vec3 getUpVector() const noexcept;
+        auto getViewMatrix() const noexcept -> const mat4&;
+        auto getProjectionMatrix() const noexcept -> const mat4&;
 
-        void setPosition(vec3 newPos);
-        void setForwardVector(vec3 forward);
-        void setUpVector(vec3 up);
+        /**
+         * @brief Calculate transformation from look-at parameters
+         *
+         * Set the node's transformation to the calculated look-at matrix
+         *
+         * @param vec3 position Camera position
+         * @param vec3 point    The point to look at
+         * @param vec3 upVector
+         */
+        void lookAt(vec3 position, vec3 point, vec3 upVector);
 
         /**
          * @brief Set the distance of the depth clipping planes from the camera
@@ -120,20 +125,10 @@ namespace trc
         void makeOrthogonal(float left, float right, float bottom, float top, float zNear, float zFar);
 
     private:
-        void calcViewMatrix();
         void calcProjMatrix();
         bool isOrtho{ false };
 
-        // View things
-        vec3 position{ 0.0f };
-        vec3 forwardVector{ 0.0f, 0.0f, -1.0f };
-        vec3 upVector{ 0.0f, 1.0f, 0.0f };
-
-        mat4 viewMatrix{ 1.0f };
-
-        // Projection things
         vec2 depthBounds{ 1.0f, 100.0f };
-
         float fov{ DEFAULT_FOV };
         float aspect{ 1.0f };
 
