@@ -75,44 +75,29 @@ auto trc::AssetRegistryNameWrapper<NameType>::addImage(const NameType& key, vkb:
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::getGeometry(const NameType& key) -> Geometry&
 {
-    try {
-        return AssetRegistry::getGeometry(geometryNames[key]);
-    }
-    catch (const std::out_of_range&) {
-        throw KeyNotFoundError();
-    }
+    return AssetRegistry::getGeometry(getGeometryIndex(key));
 }
 
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::getMaterial(const NameType& key) -> Material&
 {
-    try {
-        return AssetRegistry::getMaterial(materialNames[key]);
-    }
-    catch (const std::out_of_range&) {
-        throw KeyNotFoundError();
-    }
+    return AssetRegistry::getMaterial(getMaterialIndex(key));
 }
 
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::getImage(const NameType& key) -> vkb::Image&
 {
-    try {
-        return AssetRegistry::getImage(imageNames[key]);
-    }
-    catch (const std::out_of_range&) {
-        throw KeyNotFoundError();
-    }
+    return AssetRegistry::getImage(getImageIndex(key));
 }
 
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::getGeometryIndex(const NameType& key) -> ui32
 {
     try {
-        return geometryNames[key];
+        return geometryNames.at(key);
     }
     catch (const std::out_of_range&) {
-        throw KeyNotFoundError();
+        return 0;
     }
 }
 
@@ -120,10 +105,10 @@ template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::getMaterialIndex(const NameType& key) -> ui32
 {
     try {
-        return materialNames[key];
+        return materialNames.at(key);
     }
     catch (const std::out_of_range&) {
-        throw KeyNotFoundError();
+        return 0;
     }
 }
 
@@ -131,9 +116,9 @@ template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::getImageIndex(const NameType& key) -> ui32
 {
     try {
-        return imageNames[key];
+        return imageNames.at(key);
     }
     catch (const std::out_of_range&) {
-        throw KeyNotFoundError();
+        return 0;
     }
 }

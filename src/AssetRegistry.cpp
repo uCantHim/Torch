@@ -12,6 +12,8 @@ void trc::AssetRegistry::init()
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     );
+    addMaterial({});
+    updateMaterialBuffer();
 
     createDescriptors();
 }
