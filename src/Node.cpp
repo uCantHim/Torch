@@ -14,8 +14,11 @@ trc::Node::Node(Node&& other) noexcept
         parent->detach(other);
         parent->attach(*this);
     }
-
     other.parent = nullptr;
+
+    for (auto c : children) {
+        c->parent = this;
+    }
 }
 
 trc::Node::~Node()
@@ -38,6 +41,9 @@ auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
     }
 
     children = std::move(rhs.children);
+    for (auto c : children) {
+        c->parent = this;
+    }
 
     return *this;
 }
