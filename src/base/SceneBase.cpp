@@ -3,12 +3,10 @@
 
 
 trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
-    RenderStage::ID stage,
-    SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline,
+    std::unique_ptr<RegistrationIndex> indexStruct,
     DrawableFunction func)
     :
-    renderStage(stage), subPass(subPass), pipeline(pipeline), recordFunction(func)
+    indexInRegistrationArray(std::move(indexStruct)), recordFunction(func)
 {}
 
 
@@ -49,60 +47,42 @@ void trc::SceneBase::invokeDrawFunctions(
 
 auto trc::SceneBase::registerDrawFunction(
     RenderStage::ID renderStage,
-    SubPass::ID subpass,
-    GraphicsPipeline::ID usedPipeline,
+    SubPass::ID subPass,
+    GraphicsPipeline::ID pipeline,
     DrawableFunction commandBufferRecordingFunction
     ) -> RegistrationID
 {
-    tryInsertPipeline(renderStage, subpass, usedPipeline);
+    assert(RenderStage::at(renderStage).getNumSubPasses() > subPass);
 
-    return insertRegistration(
-        { renderStage, subpass, usedPipeline, std::move(commandBufferRecordingFunction) }
+    tryInsertPipeline(renderStage, subPass, pipeline);
+
+    auto& currentRegistrationArray = drawableRegistrations[renderStage][subPass][pipeline];
+    auto& reg = currentRegistrationArray.emplace_back(
+        std::make_unique<DrawableExecutionRegistration::RegistrationIndex>(
+            renderStage, subPass, pipeline, currentRegistrationArray.size()
+        ),
+        std::move(commandBufferRecordingFunction)
     );
+
+    return { reg };
 }
 
 void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
 {
-    DrawableExecutionRegistration* entry = *id.reg;
-
-    const auto renderStage = entry->renderStage;
-    const auto subPass = entry->subPass;
-    const auto pipeline = entry->pipeline;
-    const auto index = entry->indexInRegistrationArray;
+    const auto [renderStage, subPass, pipeline, index] = *id.regIndex;
 
     auto& vectorToRemoveFrom = drawableRegistrations[renderStage][subPass][pipeline];
+    std::swap(vectorToRemoveFrom[index], vectorToRemoveFrom.back());
 
-    auto& movedElem = vectorToRemoveFrom.back();
-    std::swap(vectorToRemoveFrom[index], movedElem);
+    // Set new index on registration that has been moved from the back of the vector
+    auto& movedElem = vectorToRemoveFrom[index];
+    movedElem.indexInRegistrationArray->indexInRegistrationArray = index;
 
-    // Set backreferencing values
-    *movedElem.thisPointer = &movedElem;
-    movedElem.indexInRegistrationArray = index;
-
+    // Remove old registration that's now at the back of the vector
     vectorToRemoveFrom.pop_back();
     if (vectorToRemoveFrom.empty()) {
         removePipeline(renderStage, subPass, pipeline);
     }
-}
-
-auto trc::SceneBase::insertRegistration(DrawableExecutionRegistration entry) -> RegistrationID
-{
-    assert(RenderStage::at(entry.renderStage).getNumSubPasses() > entry.subPass);
-
-    const auto renderStage = entry.renderStage;
-    const auto subPass = entry.subPass;
-    const auto pipeline = entry.pipeline;
-    auto& currentRegistrationArray = drawableRegistrations[renderStage][subPass][pipeline];
-
-    // Insert before end to get the iterator. I hope this makes it kind of thread safe
-    auto it = currentRegistrationArray.emplace(currentRegistrationArray.end(), std::move(entry));
-
-    // Make long-living index in the pipeline's registration array
-    ui32 newIndex = static_cast<ui32>(it - currentRegistrationArray.begin());
-    it->thisPointer = std::make_unique<DrawableExecutionRegistration*>(&*it);
-    it->indexInRegistrationArray = newIndex;
-
-    return { it->thisPointer.get() };
 }
 
 void trc::SceneBase::tryInsertPipeline(

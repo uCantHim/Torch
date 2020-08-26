@@ -29,6 +29,22 @@ namespace trc
          */
         struct DrawableExecutionRegistration
         {
+            struct RegistrationIndex
+            {
+                RegistrationIndex(
+                    RenderStage::ID stage,
+                    SubPass::ID sub,
+                    GraphicsPipeline::ID pipeline,
+                    ui32 i)
+                    :
+                    renderStage(stage), subPass(sub), pipeline(pipeline), indexInRegistrationArray(i) {}
+
+                RenderStage::ID renderStage;
+                SubPass::ID subPass;
+                GraphicsPipeline::ID pipeline;
+                ui32 indexInRegistrationArray;
+            };
+
             struct ID
             {
                 ID() = default;
@@ -36,9 +52,11 @@ namespace trc
             private:
                 friend SceneBase;
 
-                ID(DrawableExecutionRegistration** r) : reg(r) {}
+                ID(DrawableExecutionRegistration& r)
+                    : regIndex(r.indexInRegistrationArray.get())
+                {}
 
-                DrawableExecutionRegistration** reg{ nullptr };
+                RegistrationIndex* regIndex{ nullptr };
             };
 
             DrawableExecutionRegistration() = default;
@@ -49,20 +67,13 @@ namespace trc
              * Leave the index empty, fill it in SceneBase::insertRegistration().
              */
             DrawableExecutionRegistration(
-                RenderStage::ID r,
-                SubPass::ID s,
-                GraphicsPipeline::ID p,
+                std::unique_ptr<RegistrationIndex> indexStruct,
                 DrawableFunction func);
 
             // Allows me to modify pointer of all ID structs remotely
-            std::unique_ptr<DrawableExecutionRegistration*> thisPointer{ nullptr };
-            ui32 indexInRegistrationArray;
+            std::unique_ptr<RegistrationIndex> indexInRegistrationArray;
 
             // Entry data
-            RenderStage::ID renderStage;
-            SubPass::ID subPass;
-            GraphicsPipeline::ID pipeline;
-
             DrawableFunction recordFunction;
         };
 
@@ -104,11 +115,6 @@ namespace trc
         template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID::Type, T>;
         template<typename T> using PerSubpass = data::IndexMap<SubPass::ID::Type, T>;
         template<typename T> using PerPipeline = data::IndexMap<GraphicsPipeline::ID::Type, T>;
-
-        /**
-         * @brief Add a registration to the registration array
-         */
-        auto insertRegistration(DrawableExecutionRegistration reg) -> RegistrationID;
 
         /**
          * Sorting the functions this way allows me to group all draw calls with
