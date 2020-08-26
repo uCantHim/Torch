@@ -16,9 +16,9 @@ namespace trc
             eAmbientLight = 2,
         };
 
-        vec4 color;
-        vec4 position;
-        vec4 direction;
+        vec4 color{ 1.0f };
+        vec4 position{ 0.0f };
+        vec4 direction{ 1.0f };
 
         float ambientPercentage{ 0.0f };
         float attenuationLinear{ 0.5f };
