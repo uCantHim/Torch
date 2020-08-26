@@ -22,10 +22,11 @@ namespace trc
         Drawable(Geometry& geo, ui32 material, SceneBase& scene);
         ~Drawable();
 
+        Drawable(Drawable&&) noexcept;
+        auto operator=(Drawable&&) noexcept -> Drawable&;
+
         Drawable(const Drawable&) = delete;
-        Drawable(Drawable&&) noexcept = default;
         auto operator=(const Drawable&) -> Drawable& = delete;
-        auto operator=(Drawable&&) noexcept -> Drawable& = default;
 
         void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);

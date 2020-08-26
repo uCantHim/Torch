@@ -18,6 +18,43 @@ trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
     attachToScene(scene);
 }
 
+trc::Drawable::Drawable(Drawable&& other) noexcept
+    :
+    geo(other.geo),
+    matIndex(other.matIndex),
+    pickableId(other.pickableId),
+    animEngine(std::move(other.animEngine))
+{
+    if (other.currentScene != nullptr)
+    {
+        attachToScene(*other.currentScene);
+        other.removeFromScene();
+    }
+    other.geo = nullptr;
+    other.pickableId = NO_PICKABLE;
+}
+
+auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
+{
+    geo = rhs.geo;
+    rhs.geo = nullptr;
+    matIndex = rhs.matIndex;
+    rhs.matIndex = 0;
+    pickableId = rhs.pickableId;
+    rhs.pickableId = NO_PICKABLE;
+
+    animEngine = std::move(rhs.animEngine);
+
+    removeFromScene();
+    if (rhs.currentScene != nullptr)
+    {
+        attachToScene(*rhs.currentScene);
+        rhs.removeFromScene();
+    }
+
+    return *this;
+}
+
 trc::Drawable::~Drawable()
 {
     removeFromScene();
@@ -38,9 +75,6 @@ void trc::Drawable::setGeometry(Geometry& geo)
 void trc::Drawable::setMaterial(ui32 matIndex)
 {
     this->matIndex = matIndex;
-
-    removeFromScene();
-    updateDrawFunction();
 }
 
 auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
@@ -69,6 +103,7 @@ void trc::Drawable::removeFromScene()
 
     currentScene->unregisterDrawFunction(deferredRegistration);
     currentScene->unregisterDrawFunction(shadowRegistration);
+    currentScene = nullptr;
 }
 
 void trc::Drawable::updateDrawFunction()
