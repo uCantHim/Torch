@@ -37,7 +37,7 @@ namespace trc::internal
         NUM_SUBPASSES
     };
 
-    enum Pipelines : GraphicsPipeline::ID::Type
+    enum Pipelines : Pipeline::ID::Type
     {
         eDrawableDeferred = 0,
         eDrawableDeferredAnimated = 1,

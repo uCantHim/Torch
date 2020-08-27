@@ -5,7 +5,7 @@
 void trc::SceneRegisterable::usePipeline(
     RenderStage::ID renderStage,
     SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline,
+    Pipeline::ID pipeline,
     DrawableFunction recordCommandBufferFunction)
 {
     auto& func = drawableRecordFuncs.emplace_back(

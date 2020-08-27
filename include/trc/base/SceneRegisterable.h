@@ -27,7 +27,7 @@ namespace trc
          */
         void usePipeline(RenderStage::ID renderStage,
                          SubPass::ID subPass,
-                         GraphicsPipeline::ID pipeline,
+                         Pipeline::ID pipeline,
                          DrawableFunction recordCommandBufferFunction);
 
         /**
@@ -51,7 +51,7 @@ namespace trc
     private:
         using RecordFuncTuple = std::tuple<RenderStage::ID,
                                            SubPass::ID,
-                                           GraphicsPipeline::ID,
+                                           Pipeline::ID,
                                            DrawableFunction>;
 
         std::vector<RecordFuncTuple> drawableRecordFuncs;

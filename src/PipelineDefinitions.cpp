@@ -141,7 +141,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
             *renderPass, DeferredSubPasses::eGBufferPass
         );
 
-    auto& p = GraphicsPipeline::emplace(pipelineIndex, *layout, std::move(pipeline));
+    auto& p = makeGraphicsPipeline(pipelineIndex, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
@@ -190,7 +190,7 @@ void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
-    auto& p = GraphicsPipeline::emplace(Pipelines::eDrawableShadow, *layout, std::move(pipeline));
+    auto& p = makeGraphicsPipeline(Pipelines::eDrawableShadow, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
@@ -259,7 +259,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
             *renderPass, DeferredSubPasses::eGBufferPass
         );
 
-    auto& p = GraphicsPipeline::emplace(
+    auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedDeferred,
         *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
@@ -317,7 +317,7 @@ void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& render
         .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
-    auto& p = GraphicsPipeline::emplace(
+    auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedShadow,
         *layout, std::move(pipeline)
     );
@@ -372,7 +372,7 @@ void trc::internal::makeFinalLightingPipeline(
             *renderPass, DeferredSubPasses::eLightingPass
         );
 
-    auto& p = GraphicsPipeline::emplace(Pipelines::eFinalLighting, *layout, std::move(pipeline));
+    auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, *layout, std::move(pipeline));
     p.addStaticDescriptorSet(0, generalDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, gBufferInputSet);

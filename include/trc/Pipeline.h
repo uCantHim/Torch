@@ -43,9 +43,13 @@ namespace trc
     /**
      * @brief Base class for all pipelines
      */
-    class Pipeline
+    class Pipeline : public data::SelfManagedObject<Pipeline>
     {
     public:
+        Pipeline(vk::PipelineLayout layout,
+                 vk::UniquePipeline pipeline,
+                 vk::PipelineBindPoint bindPoint);
+
         Pipeline(Pipeline&&) noexcept = default;
         Pipeline& operator=(Pipeline&&) noexcept = default;
 
@@ -69,16 +73,6 @@ namespace trc
         void addStaticDescriptorSet(ui32 descriptorIndex,
                                     const DescriptorProviderInterface& provider) noexcept;
 
-    protected:
-        Pipeline(vk::PipelineLayout layout,
-                 vk::UniquePipeline pipeline,
-                 vk::PipelineBindPoint bindPoint)
-            :
-            layout(layout),
-            pipeline(std::move(pipeline)),
-            bindPoint(bindPoint)
-        {}
-
     private:
         vk::PipelineLayout layout;
         vk::UniquePipeline pipeline;
@@ -87,35 +81,27 @@ namespace trc
         std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
     };
 
-    /**
-     * @brief A graphics pipeline
-     */
-    class GraphicsPipeline : public Pipeline,
-                             public data::SelfManagedObject<GraphicsPipeline>
-    {
-    public:
-        GraphicsPipeline(vk::PipelineLayout layout, vk::GraphicsPipelineCreateInfo info)
-            :
-            Pipeline(
-                layout,
-                vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info).value,
-                vk::PipelineBindPoint::eGraphics
-            )
-        {}
+    extern auto makeGraphicsPipeline(
+        ui32 index,
+        vk::PipelineLayout layout,
+        vk::UniquePipeline pipeline
+    ) -> Pipeline&;
 
-        GraphicsPipeline(vk::PipelineLayout layout, vk::UniquePipeline pipeline)
-            :
-            Pipeline(layout, std::move(pipeline), vk::PipelineBindPoint::eGraphics)
-        {}
-    };
+    extern auto makeGraphicsPipeline(
+        ui32 index,
+        vk::PipelineLayout layout,
+        const vk::GraphicsPipelineCreateInfo& info
+    ) -> Pipeline&;
 
-    /**
-     * @brief A compute pipeline
-     */
-    class ComputePipeline : public Pipeline,
-                            public data::SelfManagedObject<ComputePipeline>
-    {
-    public:
-        ComputePipeline(vk::PipelineShaderStageCreateInfo shader, vk::PipelineLayout layout);
-    };
+    extern auto makeComputePipeline(
+        ui32 index,
+        vk::PipelineLayout layout,
+        vk::UniquePipeline pipeline
+    ) -> Pipeline&;
+
+    extern auto makeComputePipeline(
+        ui32 index,
+        vk::PipelineLayout layout,
+        const vk::ComputePipelineCreateInfo& info
+    ) -> Pipeline&;
 } // namespace trc

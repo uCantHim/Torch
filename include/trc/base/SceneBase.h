@@ -34,14 +34,14 @@ namespace trc
                 RegistrationIndex(
                     RenderStage::ID stage,
                     SubPass::ID sub,
-                    GraphicsPipeline::ID pipeline,
+                    Pipeline::ID pipeline,
                     ui32 i)
                     :
                     renderStage(stage), subPass(sub), pipeline(pipeline), indexInRegistrationArray(i) {}
 
                 RenderStage::ID renderStage;
                 SubPass::ID subPass;
-                GraphicsPipeline::ID pipeline;
+                Pipeline::ID pipeline;
                 ui32 indexInRegistrationArray;
             };
 
@@ -84,7 +84,7 @@ namespace trc
          * @brief Get all pipelines used in a subpass
          */
         auto getPipelines(RenderStage::ID renderStage, SubPass::ID subPass) const noexcept
-            -> const std::set<GraphicsPipeline::ID>&;
+            -> const std::set<Pipeline::ID>&;
 
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline
@@ -95,7 +95,7 @@ namespace trc
             RenderStage::ID stage,
             RenderPass::ID renderPass,
             SubPass::ID subPass,
-            GraphicsPipeline::ID pipeline,
+            Pipeline::ID pipeline,
             vk::CommandBuffer cmdBuf
         ) const;
 
@@ -105,7 +105,7 @@ namespace trc
         auto registerDrawFunction(
             RenderStage::ID renderStage,
             SubPass::ID subpass,
-            GraphicsPipeline::ID usedPipeline,
+            Pipeline::ID usedPipeline,
             DrawableFunction commandBufferRecordingFunction
         ) -> RegistrationID;
 
@@ -114,7 +114,7 @@ namespace trc
     private:
         template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID::Type, T>;
         template<typename T> using PerSubpass = data::IndexMap<SubPass::ID::Type, T>;
-        template<typename T> using PerPipeline = data::IndexMap<GraphicsPipeline::ID::Type, T>;
+        template<typename T> using PerPipeline = data::IndexMap<Pipeline::ID::Type, T>;
 
         /**
          * Sorting the functions this way allows me to group all draw calls with
@@ -135,12 +135,12 @@ namespace trc
         // Pipeline storage
         void tryInsertPipeline(RenderStage::ID renderStage,
                                SubPass::ID subpass,
-                               GraphicsPipeline::ID pipeline);
+                               Pipeline::ID pipeline);
         void removePipeline(RenderStage::ID renderStage,
                             SubPass::ID subpass,
-                            GraphicsPipeline::ID pipeline);
+                            Pipeline::ID pipeline);
 
-        PerRenderStage<PerSubpass<std::set<GraphicsPipeline::ID>>> uniquePipelines;
-        PerRenderStage<PerSubpass<std::vector<GraphicsPipeline::ID>>> uniquePipelinesVector;
+        PerRenderStage<PerSubpass<std::set<Pipeline::ID>>> uniquePipelines;
+        PerRenderStage<PerSubpass<std::vector<Pipeline::ID>>> uniquePipelinesVector;
     };
 } // namespace trc

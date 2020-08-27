@@ -12,9 +12,9 @@ trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
 
 
 auto trc::SceneBase::getPipelines(RenderStage::ID renderStage, SubPass::ID subPass) const noexcept
-    -> const std::set<GraphicsPipeline::ID>&
+    -> const std::set<Pipeline::ID>&
 {
-    static std::set<GraphicsPipeline::ID> emptyResult;
+    static std::set<Pipeline::ID> emptyResult;
 
     if (uniquePipelines.size() <= renderStage
         || uniquePipelines[renderStage].size() <= subPass)
@@ -29,14 +29,14 @@ void trc::SceneBase::invokeDrawFunctions(
     RenderStage::ID renderStage,
     RenderPass::ID renderPass,
     SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline,
+    Pipeline::ID pipeline,
     vk::CommandBuffer cmdBuf) const
 {
     DrawEnvironment env{
         .currentRenderStage = &RenderStage::at(renderStage),
         .currentRenderPass = &RenderPass::at(renderPass),
         .currentSubPass = subPass,
-        .currentPipeline = &GraphicsPipeline::at(pipeline)
+        .currentPipeline = &Pipeline::at(pipeline)
     };
 
     for (auto& f : drawableRegistrations[renderStage][subPass][pipeline])
@@ -48,7 +48,7 @@ void trc::SceneBase::invokeDrawFunctions(
 auto trc::SceneBase::registerDrawFunction(
     RenderStage::ID renderStage,
     SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline,
+    Pipeline::ID pipeline,
     DrawableFunction commandBufferRecordingFunction
     ) -> RegistrationID
 {
@@ -88,7 +88,7 @@ void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
 void trc::SceneBase::tryInsertPipeline(
     RenderStage::ID renderStage,
     SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline)
+    Pipeline::ID pipeline)
 {
     auto [it, success] = uniquePipelines[renderStage][subPass].insert(pipeline);
     if (success) {
@@ -99,7 +99,7 @@ void trc::SceneBase::tryInsertPipeline(
 void trc::SceneBase::removePipeline(
     RenderStage::ID renderStage,
     SubPass::ID subPass,
-    GraphicsPipeline::ID pipeline)
+    Pipeline::ID pipeline)
 {
     uniquePipelines[renderStage][subPass].erase(pipeline);
     uniquePipelinesVector[renderStage][subPass].erase(std::ranges::find(

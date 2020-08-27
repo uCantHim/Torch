@@ -40,7 +40,7 @@ auto trc::CommandCollector::recordScene(
             for (auto pipeline : scene.getPipelines(renderStage, subPass))
             {
                 // Bind the current pipeline
-                auto& p = GraphicsPipeline::at(pipeline);
+                auto& p = Pipeline::at(pipeline);
                 p.bind(cmdBuf);
                 p.bindStaticDescriptorSets(cmdBuf);
 

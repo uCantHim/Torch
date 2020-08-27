@@ -59,7 +59,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
         internal::Pipelines::eFinalLighting,
         [&, cameraPos = -camera.getViewMatrix()[3]](auto&&, vk::CommandBuffer cmdBuf)
         {
-            auto& p = GraphicsPipeline::at(internal::Pipelines::eFinalLighting);
+            auto& p = Pipeline::at(internal::Pipelines::eFinalLighting);
             cmdBuf.pushConstants<vec3>(
                 p.getLayout(), vk::ShaderStageFlagBits::eFragment, 0, vec3(cameraPos)
             );

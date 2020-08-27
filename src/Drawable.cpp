@@ -113,7 +113,7 @@ void trc::Drawable::updateDrawFunction()
     }
 
     DrawableFunction func;
-    GraphicsPipeline::ID pipeline;
+    Pipeline::ID pipeline;
     if (geo->hasRig())
     {
 

@@ -8,7 +8,7 @@
 
 namespace trc
 {
-    template<GraphicsPipeline::ID::Type Pipeline>
+    template<Pipeline::ID::Type Pipeline>
     struct PipelineIndex {};
 
     /**
@@ -23,7 +23,7 @@ namespace trc
      * TODO: Extend this documentation
      * TODO: Add a similar mechanism to declare subpasses at compile time
      */
-    template<typename Derived, RenderStage::ID::Type, SubPass::ID::Type, GraphicsPipeline::ID::Type>
+    template<typename Derived, RenderStage::ID::Type, SubPass::ID::Type, Pipeline::ID::Type>
     class StaticPipelineRenderInterface
     {
     public:
@@ -38,7 +38,7 @@ namespace trc
         typename Derived,
         RenderStage::ID::Type RenderStage,
         SubPass::ID::Type SubPass,
-        GraphicsPipeline::ID::Type Pipeline
+        Pipeline::ID::Type Pipeline
     >
     using UsePipeline = StaticPipelineRenderInterface<Derived, RenderStage, SubPass, Pipeline>;
 
