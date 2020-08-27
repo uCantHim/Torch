@@ -4,7 +4,22 @@
 #include <chrono>
 using namespace std::chrono;
 
+#include <vkb/basics/VulkanDebug.h>
 
+
+
+class FbxLogger
+{
+public:
+    template<typename T>
+    inline auto operator<<(const T& t) -> FbxLogger&
+    {
+        if constexpr (vkb::enableVerboseLogging) {
+            std::cout << t;
+        }
+        return *this;
+    }
+};
 
 namespace trc
 {
@@ -29,6 +44,8 @@ namespace trc
         mat[3][3] = static_cast<float>(fm[3][3]);
         return mat;
     }
+
+    static FbxLogger fbxLog;
 } // namespace trc
 
 
@@ -56,14 +73,14 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
 
     auto sceneImportOpt = loadSceneFromFile(path);
     if (!sceneImportOpt.has_value()) {
-        std::cout << "Unable to load scene: " << path << "\n";
+        fbxLog << "Unable to load scene: " << path << "\n";
         return result;
     }
     auto sceneImport = std::move(sceneImportOpt.value());
 
     for (ui32 meshIndex = 0; auto& [mesh, name, transform] : sceneImport.meshes)
     {
-        std::cout << "Loading mesh " << name << ":\n";
+        fbxLog << "Loading mesh " << name << ":\n";
 
         Mesh newMesh = {
             name,
@@ -76,7 +93,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
         if (sceneImport.skeletonRoots.size() > meshIndex)
         {
             auto skeleton = sceneImport.skeletonRoots[meshIndex];
-            std::cout << "Loading skeleton \"" << skeleton->GetName() << "\" for mesh \""
+            fbxLog << "Loading skeleton \"" << skeleton->GetName() << "\" for mesh \""
                 << name << "\"..\n";
 
             auto [rig, boneNodes] = loadRig(mesh, newMesh.mesh);
@@ -89,8 +106,8 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
     } // Per-mesh end
 
     auto elapsed_milliseconds = duration_cast<milliseconds>(system_clock::now() - start).count();
-    std::cout << "\nFile loaded in " << elapsed_milliseconds << "ms.\n";
-    std::cout << "++++++++++++++++++++++++++++++++++\n";
+    fbxLog << "\nFile loaded in " << elapsed_milliseconds << "ms.\n";
+    fbxLog << "++++++++++++++++++++++++++++++++++\n";
 
     scene->Destroy();
 
@@ -105,19 +122,19 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
         && path[path.length() - 2] == 'b'
         && path[path.length() - 1] == 'x'))
     {
-        std::cout << path << "is not a valid FBX-file.\n";
+        fbxLog << path << "is not a valid FBX-file.\n";
         return std::nullopt;
     }
 
-    std::cout << "\n++++++++++++++++++++++++++++++++++\n";
-    std::cout << "Loading scene from file " << path << "...\n";
+    fbxLog << "\n++++++++++++++++++++++++++++++++++\n";
+    fbxLog << "Loading scene from file " << path << "...\n";
 
     FbxImporter* importer = FbxImporter::Create(fbx_memory_manager, "");
 
     if (!importer->Initialize(path.c_str(), -1, fbx_memory_manager->GetIOSettings()))
     {
-        std::cout << "Call to FbxImporter::Initialize() failed.\n";
-        std::cout << "Error returned: " << importer->GetStatus().GetErrorString() << "\n\n";
+        fbxLog << "Call to FbxImporter::Initialize() failed.\n";
+        fbxLog << "Error returned: " << importer->GetStatus().GetErrorString() << "\n\n";
         return std::nullopt;
     }
 
@@ -131,7 +148,7 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
 
     if (scene == nullptr)
     {
-        std::cout << "File " << path << "could not be loaded.\n";
+        fbxLog << "File " << path << "could not be loaded.\n";
         return std::nullopt;
     }
 
@@ -155,13 +172,13 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
                 fbxToGlm(evaluator->GetNodeGlobalTransform(node))
             );
 
-            std::cout << "Mesh found: " << attrib->GetName() << "\n";
+            fbxLog << "Mesh found: " << attrib->GetName() << "\n";
             break;
         case FbxNodeAttribute::eSkeleton:
             if ((static_cast<FbxSkeleton*>(attrib))->IsSkeletonRoot())
             {
                 importResult.skeletonRoots.push_back(static_cast<FbxSkeleton*>(attrib));
-                std::cout << "Skeleton root found: " << attrib->GetName() << "\n";
+                fbxLog << "Skeleton root found: " << attrib->GetName() << "\n";
             }
             break;
         default:
@@ -193,7 +210,7 @@ auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> MeshData
     loadNormals(mesh, result);
     loadTangents(mesh, result);
 
-    std::cout << "\t" << result.vertices.size() << " vertices have been loaded.\n"
+    fbxLog << "\t" << result.vertices.size() << " vertices have been loaded.\n"
               << "\t" << result.indices.size() << " indices have been loaded.\n";
 
     return result;
@@ -221,17 +238,17 @@ void trc::FBXLoader::loadUVs(FbxMesh* mesh, MeshData& result)
     mesh->GetUVSetNames(uvSetNameList);
     if (uvSetNameList.GetCount() <= 0)
     {
-        std::cout << "\tMesh doesn't have any uv sets!\n";
+        fbxLog << "\tMesh doesn't have any uv sets!\n";
         return;
     }
-    std::cout << "\tMesh has " << uvSetNameList.GetCount() << " UV sets. Using the first one.\n";
+    fbxLog << "\tMesh has " << uvSetNameList.GetCount() << " UV sets. Using the first one.\n";
 
     FbxGeometryElementUV* uvElement = mesh->GetElementUV(uvSetNameList.GetStringAt(0));
 
     // Mapping mode is by control-point
     if (uvElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
     {
-        std::cout << "ATTENTION! UV mapping mode is by control-point, this might cause errors\n";
+        fbxLog << "ATTENTION! UV mapping mode is by control-point, this might cause errors\n";
 
         for (int vertIndex = 0; vertIndex < mesh->GetControlPointsCount(); vertIndex++)
         {
@@ -272,7 +289,7 @@ void trc::FBXLoader::loadNormals(FbxMesh* mesh, MeshData& result)
     // Mapping mode is by control-point (vertex)
     if (normalElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
     {
-        std::cout << "ATTENTION! Normal mapping mode is by control-point, this might cause errors\n";
+        fbxLog << "ATTENTION! Normal mapping mode is by control-point, this might cause errors\n";
 
         for (int vertIndex = 0; vertIndex < mesh->GetControlPointsCount(); vertIndex++)
         {
@@ -310,7 +327,7 @@ void trc::FBXLoader::loadTangents(FbxMesh* mesh, MeshData& result)
     FbxGeometryElementTangent* tangentElement = mesh->GetElementTangent();
     if (tangentElement == nullptr)
     {
-        std::cout << "\tNo precomputed tangents found. Computing tangents...\n";
+        fbxLog << "\tNo precomputed tangents found. Computing tangents...\n";
         computeTangents(result);
 
         return;
@@ -318,7 +335,7 @@ void trc::FBXLoader::loadTangents(FbxMesh* mesh, MeshData& result)
 
     if (tangentElement->GetMappingMode() == FbxGeometryElement::eByControlPoint)
     {
-        std::cout << "ATTENTION! Tangent mapping mode is by control point, this is not implemented!\n";
+        fbxLog << "ATTENTION! Tangent mapping mode is by control point, this is not implemented!\n";
         assert(false);
     }
 
@@ -339,12 +356,12 @@ void trc::FBXLoader::computeTangents(MeshData& result)
 {
     if (result.indices.empty() || result.indices.size() % 3 != 0)
     {
-        std::cout << "Failed to compute tangents. Indices are either not existing or the mesh is not triangulated.\n";
+        fbxLog << "Failed to compute tangents. Indices are either not existing or the mesh is not triangulated.\n";
         return;
     }
     if (result.vertices.empty())
     {
-        std::cout << "Failed to compute tangents. No vertices loaded for the mesh.\n";
+        fbxLog << "Failed to compute tangents. No vertices loaded for the mesh.\n";
         return;
     }
 
@@ -398,7 +415,7 @@ void trc::FBXLoader::computeTangents(MeshData& result)
         // with a simple cross product. Seems better than an additional vertex attribute.
     }
 
-    std::cout << "\t" << result.indices.size() << " tangents and bitangents computed.\n";
+    fbxLog << "\t" << result.indices.size() << " tangents and bitangents computed.\n";
 }
 
 
@@ -406,7 +423,7 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
 {
     FbxNode* meshNode = mesh->GetNode();
     const int materialCount = meshNode->GetMaterialCount();
-    std::cout << "\t" << materialCount << " materials found.\n";
+    fbxLog << "\t" << materialCount << " materials found.\n";
 
     std::vector<Material> result;
 
@@ -420,7 +437,7 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
         if (GetImplementation(mat, FBXSDK_IMPLEMENTATION_HLSL) != nullptr
             || GetImplementation(mat, FBXSDK_IMPLEMENTATION_CGFX) != nullptr)
         {
-            std::cout << "Material " << mat->GetName()
+            fbxLog << "Material " << mat->GetName()
                 << " is some strange hardware shader, I don't know what to do with that.\n";
             continue;
         }
@@ -428,7 +445,7 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
         // Material is a Phong material
         if (mat->GetClassId().Is(FbxSurfacePhong::ClassId))
         {
-            std::cout << "\tLoading Phong material " << mat->GetName() << ".\n";
+            fbxLog << "\tLoading Phong material " << mat->GetName() << ".\n";
             auto phongMat = dynamic_cast<FbxSurfacePhong*>(mat);
             auto& newMaterial = result.emplace_back();
 
@@ -444,7 +461,7 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
         // Material is a Lambert material
         else if (mat->GetClassId().Is(FbxSurfaceLambert::ClassId))
         {
-            std::cout << "\tLoading Lambert material " << mat->GetName() << " with standard values for specular color and shinyness.\n";
+            fbxLog << "\tLoading Lambert material " << mat->GetName() << " with standard values for specular color and shinyness.\n";
             auto lambertMat = dynamic_cast<FbxSurfaceLambert*>(mat);
             Material newMaterial;
 
@@ -457,7 +474,7 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
             newMaterial.shininess = 1.0f; // Standard value
         }
         else {
-            std::cout << "Material " << mat->GetName() << " is an unknown material type.\n";
+            fbxLog << "Material " << mat->GetName() << " is an unknown material type.\n";
             continue;
         }
     }
@@ -509,7 +526,7 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
     const int deformerCount = mesh->GetDeformerCount();
     if (deformerCount > 0)
     {
-        std::cout << "\t--- Holy crap, the mesh " << mesh->GetName() << " has more than one "
+        fbxLog << "\t--- Holy crap, the mesh " << mesh->GetName() << " has more than one "
             << "deformer (skin). I don't know what to do with that, so it'll be ignored.\n";
     }
 
@@ -520,7 +537,7 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
         auto skin = static_cast<FbxSkin*>(mesh->GetDeformer(deformerIndex, FbxDeformer::eSkin));
         if (skin == nullptr) { continue; }
 
-        std::cout << "\tSkin #" << deformerIndex << " \"" << skin->GetName() << "\"" << ":\n";
+        fbxLog << "\tSkin #" << deformerIndex << " \"" << skin->GetName() << "\"" << ":\n";
 
         ////////////
         // Build rig
@@ -575,7 +592,7 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
             }
         } // Per-bone end
 
-        std::cout << "\tCorrecting bone weights...\n";
+        fbxLog << "\tCorrecting bone weights...\n";
         correctBoneWeights(result);
 
         return { rig, boneNodes };
@@ -615,7 +632,7 @@ void trc::FBXLoader::correctBoneWeights(MeshData& mesh)
         totalWeights++;
     }
 
-    std::cout << "\t\t" << correctedWeights << "/" << totalWeights << " weights corrected\n";
+    fbxLog << "\t\t" << correctedWeights << "/" << totalWeights << " weights corrected\n";
 }
 
 
@@ -628,7 +645,7 @@ auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNod
     for (int animStackIndex = 0; animStackIndex < animStackCount; animStackIndex++)
     {
         auto animStack = scene->GetSrcObject<FbxAnimStack>(animStackIndex);
-        std::cout << "Animation " << animStackIndex << ": "
+        fbxLog << "Animation " << animStackIndex << ": "
             << animStack->GetName() << "\n";
 
         // Animation time
@@ -642,7 +659,7 @@ auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNod
         animation.durationMs = static_cast<float>(timespan.GetDuration().GetMilliSeconds());
         animation.frameTimeMs = animation.durationMs / static_cast<float>(animation.frameCount);
 
-        std::cout << "\tDuration: " << animation.durationMs << " ms ("
+        fbxLog << "\tDuration: " << animation.durationMs << " ms ("
             << animation.frameCount << " frames)\n";
 
         // Create keyframes
