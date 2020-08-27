@@ -21,12 +21,11 @@ trc::Renderer::Renderer()
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
 
-    auto& deferredPass = RenderPass::at(internal::RenderPasses::eDeferredPass);
-    internal::makeAllDrawablePipelines(deferredPass, GlobalRenderDataDescriptor::getProvider());
-    internal::makeFinalLightingPipeline(
-        deferredPass,
-        GlobalRenderDataDescriptor::getProvider(),
-        static_cast<RenderPassDeferred&>(deferredPass).getInputAttachmentDescriptor());
+    auto& deferredPass = static_cast<RenderPassDeferred&>(
+        RenderPass::at(internal::RenderPasses::eDeferredPass)
+    );
+    internal::makeAllDrawablePipelines();
+    internal::makeFinalLightingPipeline(deferredPass, deferredPass.getInputAttachmentDescriptor());
 }
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
@@ -132,10 +131,8 @@ void trc::Renderer::signalRecreateRequired()
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
     auto& deferredPass = RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    internal::makeAllDrawablePipelines(deferredPass, GlobalRenderDataDescriptor::getProvider());
-    internal::makeFinalLightingPipeline(deferredPass,
-                                        GlobalRenderDataDescriptor::getProvider(),
-                                        deferredPass.getInputAttachmentDescriptor());
+    internal::makeAllDrawablePipelines();
+    internal::makeFinalLightingPipeline(deferredPass, deferredPass.getInputAttachmentDescriptor());
 
     createSemaphores();
 }

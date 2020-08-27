@@ -50,51 +50,22 @@ namespace trc::internal
         eDrawableInstancedShadow,
     };
 
+    void makeAllDrawablePipelines();
 
-    enum DrawablePipelineFeatureFlagBits : ui32
-    {
-        eNone = 0,
-        eAnimated = 1 << 0,
-        ePickable = 1 << 1,
-    };
+    // Deferred pipelines
+    void makeDrawableDeferredPipeline(RenderPass& renderPass);
+    void makeDrawableDeferredAnimatedPipeline(RenderPass& renderPass);
+    void makeDrawableDeferredPickablePipeline(RenderPass& renderPass);
+    void makeDrawableDeferredAnimatedAndPickablePipeline(RenderPass& renderPass);
+    void _makeDrawableDeferredPipeline(ui32 pipelineIndex, ui32 featureFlags, RenderPass& rp);
+    void makeInstancedDrawableDeferredPipeline(RenderPass& renderPass);
 
-    void makeAllDrawablePipelines(
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet);
-
-    void makeDrawableDeferredPipeline(
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet);
-
-    void makeDrawableDeferredAnimatedPipeline(
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet);
-
-    void makeDrawableDeferredPickablePipeline(
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet);
-
-    void makeDrawableDeferredAnimatedAndPickablePipeline(
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet);
-
-    void _makeDrawableDeferredPipeline(
-        ui32 pipelineIndex,
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet,
-        ui32 featureFlags
-    );
-
+    // Shadow pipelines
     void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
-
-    void makeInstancedDrawableDeferredPipeline(
-        RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet);
-
     void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass);
 
+    // Final lighting pipeline
     void makeFinalLightingPipeline(
         RenderPass& renderPass,
-        const DescriptorProviderInterface& generalDescriptorSet,
         const DescriptorProviderInterface& gBufferInputSet);
 }

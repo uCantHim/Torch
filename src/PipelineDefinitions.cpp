@@ -5,70 +5,77 @@
 #include "AssetRegistry.h"
 #include "DrawableInstanced.h"
 #include "Scene.h"
+#include "Renderer.h"
 
 
 
-void trc::internal::makeAllDrawablePipelines(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& generalDescriptorSet)
+namespace trc::internal
 {
-    makeDrawableDeferredPipeline(renderPass, generalDescriptorSet);
-    makeDrawableDeferredAnimatedPipeline(renderPass, generalDescriptorSet);
-    makeDrawableDeferredPickablePipeline(renderPass, generalDescriptorSet);
-    makeDrawableDeferredAnimatedAndPickablePipeline(renderPass, generalDescriptorSet);
+    enum DrawablePipelineFeatureFlagBits : ui32
+    {
+        eNone = 0,
+        eAnimated = 1 << 0,
+        ePickable = 1 << 1,
+    };
+}
 
-    makeInstancedDrawableDeferredPipeline(renderPass, generalDescriptorSet);
+
+
+void trc::internal::makeAllDrawablePipelines()
+{
+    RenderPassDeferred dummyDeferredPass;
+
+    makeDrawableDeferredPipeline(dummyDeferredPass);
+    makeDrawableDeferredAnimatedPipeline(dummyDeferredPass);
+    makeDrawableDeferredPickablePipeline(dummyDeferredPass);
+    makeDrawableDeferredAnimatedAndPickablePipeline(dummyDeferredPass);
+    makeInstancedDrawableDeferredPipeline(dummyDeferredPass);
 
     RenderPassShadow dummyPass({ 1, 1 }, mat4());
     makeDrawableShadowPipeline(dummyPass);
     makeInstancedDrawableShadowPipeline(dummyPass);
 }
 
-void trc::internal::makeDrawableDeferredPipeline(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& generalDescriptorSet)
+void trc::internal::makeDrawableDeferredPipeline(RenderPass& renderPass)
 {
     _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferred, renderPass, generalDescriptorSet,
-        DrawablePipelineFeatureFlagBits::eNone
+        Pipelines::eDrawableDeferred,
+        DrawablePipelineFeatureFlagBits::eNone,
+        renderPass
     );
 }
 
-void trc::internal::makeDrawableDeferredAnimatedPipeline(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& generalDescriptorSet)
+void trc::internal::makeDrawableDeferredAnimatedPipeline(RenderPass& renderPass)
 {
     _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferredAnimated, renderPass, generalDescriptorSet,
-        DrawablePipelineFeatureFlagBits::eAnimated
+        Pipelines::eDrawableDeferredAnimated,
+        DrawablePipelineFeatureFlagBits::eAnimated,
+        renderPass
     );
 }
 
-void trc::internal::makeDrawableDeferredPickablePipeline(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& generalDescriptorSet)
+void trc::internal::makeDrawableDeferredPickablePipeline(RenderPass& renderPass)
 {
     _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferredPickable, renderPass, generalDescriptorSet,
-        DrawablePipelineFeatureFlagBits::ePickable
+        Pipelines::eDrawableDeferredPickable,
+        DrawablePipelineFeatureFlagBits::ePickable,
+        renderPass
     );
 }
 
-void trc::internal::makeDrawableDeferredAnimatedAndPickablePipeline(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& generalDescriptorSet)
+void trc::internal::makeDrawableDeferredAnimatedAndPickablePipeline(RenderPass& renderPass)
 {
     _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferredAnimatedAndPickable, renderPass, generalDescriptorSet,
-        DrawablePipelineFeatureFlagBits::eAnimated | DrawablePipelineFeatureFlagBits::ePickable
+        Pipelines::eDrawableDeferredAnimatedAndPickable,
+        DrawablePipelineFeatureFlagBits::eAnimated | DrawablePipelineFeatureFlagBits::ePickable,
+        renderPass
     );
 }
 
 void trc::internal::_makeDrawableDeferredPipeline(
     ui32 pipelineIndex,
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& cameraDescriptorSet,
-    ui32 featureFlags)
+    ui32 featureFlags,
+    RenderPass& renderPass)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -76,7 +83,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            cameraDescriptorSet.getDescriptorSetLayout(),
+            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
@@ -141,7 +148,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
         );
 
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, cameraDescriptorSet);
+    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
     p.addStaticDescriptorSet(3, Animation::getDescriptorProvider());
@@ -193,9 +200,7 @@ void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
 
-void trc::internal::makeInstancedDrawableDeferredPipeline(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& cameraDescriptorSet)
+void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -203,7 +208,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            cameraDescriptorSet.getDescriptorSetLayout(),
+        GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
         },
@@ -259,7 +264,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
     auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedDeferred,
         std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, cameraDescriptorSet);
+    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
 }
@@ -322,7 +327,6 @@ void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& render
 
 void trc::internal::makeFinalLightingPipeline(
     RenderPass& renderPass,
-    const DescriptorProviderInterface& generalDescriptorSet,
     const DescriptorProviderInterface& gBufferInputSet)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
@@ -332,7 +336,7 @@ void trc::internal::makeFinalLightingPipeline(
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            generalDescriptorSet.getDescriptorSetLayout(),
+        GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             gBufferInputSet.getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
@@ -368,7 +372,7 @@ void trc::internal::makeFinalLightingPipeline(
         );
 
     auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, generalDescriptorSet);
+    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, gBufferInputSet);
     p.addStaticDescriptorSet(3, SceneDescriptor::getProvider());
