@@ -74,8 +74,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
     auto extent = swapchain.getImageExtent();
 
     // Layout
-    static auto& layout = PipelineLayout::emplace(
-        Pipelines::eDrawableDeferred,
+    auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
             cameraDescriptorSet.getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
@@ -141,7 +140,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
             *renderPass, DeferredSubPasses::eGBufferPass
         );
 
-    auto& p = makeGraphicsPipeline(pipelineIndex, *layout, std::move(pipeline));
+    auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
@@ -151,8 +150,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
 void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
-    auto& layout = PipelineLayout::emplace(
-        Pipelines::eDrawableShadow,
+    auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
@@ -190,7 +188,7 @@ void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
-    auto& p = makeGraphicsPipeline(Pipelines::eDrawableShadow, *layout, std::move(pipeline));
+    auto& p = makeGraphicsPipeline(Pipelines::eDrawableShadow, std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
@@ -203,8 +201,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
     auto extent = swapchain.getImageExtent();
 
     // Layout
-    auto& layout = PipelineLayout::emplace(
-        Pipelines::eDrawableInstancedDeferred,
+    auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
             cameraDescriptorSet.getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
@@ -261,7 +258,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
 
     auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedDeferred,
-        *layout, std::move(pipeline));
+        std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, cameraDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
@@ -270,8 +267,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(
 void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
-    auto& layout = PipelineLayout::emplace(
-        Pipelines::eDrawableInstancedShadow,
+    auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
@@ -319,7 +315,7 @@ void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& render
 
     auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedShadow,
-        *layout, std::move(pipeline)
+        std::move(layout), std::move(pipeline)
     );
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
 }
@@ -333,8 +329,7 @@ void trc::internal::makeFinalLightingPipeline(
     auto extent = swapchain.getImageExtent();
 
     // Layout
-    auto& layout = PipelineLayout::emplace(
-        Pipelines::eFinalLighting,
+    auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
             generalDescriptorSet.getDescriptorSetLayout(),
@@ -372,7 +367,7 @@ void trc::internal::makeFinalLightingPipeline(
             *renderPass, DeferredSubPasses::eLightingPass
         );
 
-    auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, *layout, std::move(pipeline));
+    auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, generalDescriptorSet);
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, gBufferInputSet);

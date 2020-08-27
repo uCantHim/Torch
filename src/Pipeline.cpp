@@ -2,24 +2,12 @@
 
 
 
-auto trc::PipelineLayout::operator*() const noexcept -> vk::PipelineLayout
-{
-    return *layout;
-}
-
-auto trc::PipelineLayout::get() const noexcept -> vk::PipelineLayout
-{
-    return *layout;
-}
-
-
-
 trc::Pipeline::Pipeline(
-    vk::PipelineLayout layout,
+    vk::UniquePipelineLayout layout,
     vk::UniquePipeline pipeline,
     vk::PipelineBindPoint bindPoint)
     :
-    layout(layout),
+    layout(std::move(layout)),
     pipeline(std::move(pipeline)),
     bindPoint(bindPoint)
 {}
@@ -43,13 +31,13 @@ void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
 {
     for (const auto& [index, provider] : staticDescriptorSets)
     {
-        cmdBuf.bindDescriptorSets(bindPoint, layout, index, provider->getDescriptorSet(), {});
+        cmdBuf.bindDescriptorSets(bindPoint, *layout, index, provider->getDescriptorSet(), {});
     }
 }
 
 auto trc::Pipeline::getLayout() const noexcept -> vk::PipelineLayout
 {
-    return layout;
+    return *layout;
 }
 
 void trc::Pipeline::addStaticDescriptorSet(
@@ -63,12 +51,12 @@ void trc::Pipeline::addStaticDescriptorSet(
 
 auto trc::makeGraphicsPipeline(
     ui32 index,
-    vk::PipelineLayout layout,
+    vk::UniquePipelineLayout layout,
     vk::UniquePipeline pipeline) -> Pipeline&
 {
     return Pipeline::emplace(
         index,
-        layout,
+        std::move(layout),
         std::move(pipeline),
         vk::PipelineBindPoint::eGraphics
     );
@@ -76,13 +64,13 @@ auto trc::makeGraphicsPipeline(
 
 auto trc::makeGraphicsPipeline(
     ui32 index,
-    vk::PipelineLayout layout,
+    vk::UniquePipelineLayout layout,
     const vk::GraphicsPipelineCreateInfo& info
     ) -> Pipeline&
 {
     return Pipeline::emplace(
         index,
-        layout,
+        std::move(layout),
         vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info).value,
         vk::PipelineBindPoint::eGraphics
     );
@@ -90,13 +78,13 @@ auto trc::makeGraphicsPipeline(
 
 auto trc::makeComputePipeline(
     ui32 index,
-    vk::PipelineLayout layout,
+    vk::UniquePipelineLayout layout,
     vk::UniquePipeline pipeline
     ) -> Pipeline&
 {
     return Pipeline::emplace(
         index,
-        layout,
+        std::move(layout),
         std::move(pipeline),
         vk::PipelineBindPoint::eCompute
     );
@@ -104,13 +92,13 @@ auto trc::makeComputePipeline(
 
 auto trc::makeComputePipeline(
     ui32 index,
-    vk::PipelineLayout layout,
+    vk::UniquePipelineLayout layout,
     const vk::ComputePipelineCreateInfo& info
     ) -> Pipeline&
 {
     return Pipeline::emplace(
         index,
-        layout,
+        std::move(layout),
         vkb::getDevice()->createComputePipelineUnique({}, info).value,
         vk::PipelineBindPoint::eCompute
     );

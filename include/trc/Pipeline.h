@@ -8,37 +8,28 @@
 
 namespace trc
 {
-    class PipelineLayout : public data::SelfManagedObject<PipelineLayout>
+    /**
+     * @brief Helper to create a pipeline layout
+     *
+     * @param descriptorSetLayouts List of descriptor set layouts in the
+     *                             pipeline
+     * @param pushConstantRanges   List of push constant ranges in the
+     *                             pipeline
+     *
+     * @return vk::UniquePipeline
+     */
+    inline auto makePipelineLayout(
+        const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
+        const std::vector<vk::PushConstantRange>& pushConstantRanges)
     {
-    public:
-        PipelineLayout(
-            std::vector<vk::DescriptorSetLayout> descriptorSetLayouts,
-            std::vector<vk::PushConstantRange> pushConstantRanges)
-            :
-            layout(vkb::VulkanBase::getDevice()->createPipelineLayoutUnique(
-                vk::PipelineLayoutCreateInfo(
-                    {},
-                    descriptorSetLayouts.size(), descriptorSetLayouts.data(),
-                    pushConstantRanges.size(), pushConstantRanges.data()
-                )
-            )),
-            descriptorSetLayouts(std::move(descriptorSetLayouts)),
-            pushConstantRanges(std::move(pushConstantRanges))
-        {
-        }
-
-        auto operator*() const noexcept -> vk::PipelineLayout;
-        auto get() const noexcept -> vk::PipelineLayout;
-
-        auto getDescriptorSetLayouts();
-        auto getPushConstantRanges();
-
-    private:
-        vk::UniquePipelineLayout layout;
-
-        std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
-        std::vector<vk::PushConstantRange> pushConstantRanges;
-    };
+        return vkb::VulkanBase::getDevice()->createPipelineLayoutUnique(
+            vk::PipelineLayoutCreateInfo(
+                {},
+                descriptorSetLayouts.size(), descriptorSetLayouts.data(),
+                pushConstantRanges.size(), pushConstantRanges.data()
+            )
+        );
+    }
 
     /**
      * @brief Base class for all pipelines
@@ -46,7 +37,7 @@ namespace trc
     class Pipeline : public data::SelfManagedObject<Pipeline>
     {
     public:
-        Pipeline(vk::PipelineLayout layout,
+        Pipeline(vk::UniquePipelineLayout layout,
                  vk::UniquePipeline pipeline,
                  vk::PipelineBindPoint bindPoint);
 
@@ -74,7 +65,7 @@ namespace trc
                                     const DescriptorProviderInterface& provider) noexcept;
 
     private:
-        vk::PipelineLayout layout;
+        vk::UniquePipelineLayout layout;
         vk::UniquePipeline pipeline;
         vk::PipelineBindPoint bindPoint;
 
@@ -83,25 +74,25 @@ namespace trc
 
     extern auto makeGraphicsPipeline(
         ui32 index,
-        vk::PipelineLayout layout,
+        vk::UniquePipelineLayout layout,
         vk::UniquePipeline pipeline
     ) -> Pipeline&;
 
     extern auto makeGraphicsPipeline(
         ui32 index,
-        vk::PipelineLayout layout,
+        vk::UniquePipelineLayout layout,
         const vk::GraphicsPipelineCreateInfo& info
     ) -> Pipeline&;
 
     extern auto makeComputePipeline(
         ui32 index,
-        vk::PipelineLayout layout,
+        vk::UniquePipelineLayout layout,
         vk::UniquePipeline pipeline
     ) -> Pipeline&;
 
     extern auto makeComputePipeline(
         ui32 index,
-        vk::PipelineLayout layout,
+        vk::UniquePipelineLayout layout,
         const vk::ComputePipelineCreateInfo& info
     ) -> Pipeline&;
 } // namespace trc
