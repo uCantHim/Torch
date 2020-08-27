@@ -142,8 +142,11 @@ void vkb::Image::copyRawData(void* data, size_t size, ImageSize copySize)
                         vk::MemoryPropertyFlagBits::eHostCoherent
                         | vk::MemoryPropertyFlagBits::eHostVisible);
 
-    std::cout << "Image requires " << imageMemReq.size << " bytes\n";
-    std::cout << "Copying " << size << " bytes\n";
+    if constexpr (enableVerboseLogging)
+    {
+        std::cout << "Image requires " << imageMemReq.size << " bytes\n";
+        std::cout << "Copying " << size << " bytes\n";
+    }
 
     auto buf = staging.map();
     memcpy(buf, data, size);
