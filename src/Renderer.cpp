@@ -29,7 +29,6 @@ trc::Renderer::Renderer()
     createSemaphores();
     createDescriptors();
 
-    initRenderStages();
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
 

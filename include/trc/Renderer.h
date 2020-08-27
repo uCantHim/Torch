@@ -15,14 +15,6 @@
 
 namespace trc
 {
-    inline void initRenderStages()
-    {
-        using namespace internal;
-
-        RenderStage::create<DeferredStage>(RenderStages::eDeferred);
-        RenderStage::create<ShadowStage>(RenderStages::eShadow);
-    }
-
     class Renderer : public vkb::SwapchainDependentResource
     {
     public:
@@ -33,6 +25,15 @@ namespace trc
         void addStage(RenderStage::ID stage, ui32 priority);
 
     private:
+        // Initialize render stages
+        static inline vkb::StaticInit _render_stages_init{
+            []() {
+                RenderStage::create<DeferredStage>(internal::RenderStages::eDeferred);
+                RenderStage::create<ShadowStage>(internal::RenderStages::eShadow);
+            },
+            []() {}
+        };
+
         void signalRecreateRequired() override;
         void recreate(vkb::Swapchain& swapchain) override;
         void signalRecreateFinished() override;
