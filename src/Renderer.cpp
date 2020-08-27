@@ -8,16 +8,6 @@
 
 trc::Renderer::Renderer()
     :
-    cameraMatrixBuffer(
-        sizeof(mat4) * 4,
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
-    globalDataBuffer(
-        sizeof(vec2) * 2,
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
@@ -27,16 +17,15 @@ trc::Renderer::Renderer()
     )
 {
     createSemaphores();
-    createDescriptors();
 
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
 
     auto& deferredPass = RenderPass::at(internal::RenderPasses::eDeferredPass);
-    internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
+    internal::makeAllDrawablePipelines(deferredPass, GlobalRenderDataDescriptor::getProvider());
     internal::makeFinalLightingPipeline(
         deferredPass,
-        cameraDescriptorProvider,
+        GlobalRenderDataDescriptor::getProvider(),
         static_cast<RenderPassDeferred&>(deferredPass).getInputAttachmentDescriptor());
 }
 
@@ -48,8 +37,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     // Update
     scene.updateTransforms();
     SceneDescriptor::setActiveScene(scene);
-    updateCameraMatrixBuffer(camera);
-    updateGlobalDataBuffer(vkb::getSwapchain());
+    GlobalRenderDataDescriptor::updateCameraMatrices(camera);
+    GlobalRenderDataDescriptor::updateSwapchainData(vkb::getSwapchain());
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
@@ -135,78 +124,6 @@ void trc::Renderer::createSemaphores()
     );
 }
 
-void trc::Renderer::createDescriptors()
-{
-    std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eUniformBuffer, 1 }, // Camera buffer
-        { vk::DescriptorType::eUniformBuffer, 1 }, // Global data buffer
-    };
-    descPool = vkb::VulkanBase::getDevice()->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            1, poolSizes
-        )
-    );
-
-    // Layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
-        vk::DescriptorSetLayoutBinding(
-            0, vk::DescriptorType::eUniformBuffer, 1,
-            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
-        ),
-        vk::DescriptorSetLayoutBinding(
-            1, vk::DescriptorType::eUniformBuffer, 1,
-            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
-        ),
-    };
-    descLayout = vkb::VulkanBase::getDevice()->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
-    );
-
-    // Set
-    descSet = std::move(vkb::VulkanBase::getDevice()->allocateDescriptorSetsUnique(
-        vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
-    )[0]);
-    cameraDescriptorProvider = { *descLayout, *descSet };
-
-    // Write
-    vk::DescriptorBufferInfo cameraBufferInfo(*cameraMatrixBuffer, 0, VK_WHOLE_SIZE);
-    vk::DescriptorBufferInfo globalDataBufferInfo(*globalDataBuffer, 0, VK_WHOLE_SIZE);
-    std::vector<vk::WriteDescriptorSet> writes = {
-        vk::WriteDescriptorSet(
-            *descSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer,
-            {}, &cameraBufferInfo
-        ),
-        vk::WriteDescriptorSet(
-            *descSet, 1, 0, 1, vk::DescriptorType::eUniformBuffer,
-            {}, &globalDataBufferInfo
-        ),
-    };
-
-    vkb::VulkanBase::getDevice()->updateDescriptorSets(writes, {});
-}
-
-void trc::Renderer::updateCameraMatrixBuffer(const Camera& camera)
-{
-    auto buf = reinterpret_cast<mat4*>(cameraMatrixBuffer.map());
-    buf[0] = camera.getViewMatrix();
-    buf[1] = camera.getProjectionMatrix();
-    buf[2] = inverse(camera.getViewMatrix());
-    buf[3] = inverse(camera.getProjectionMatrix());
-    cameraMatrixBuffer.unmap();
-}
-
-void trc::Renderer::updateGlobalDataBuffer(const vkb::Swapchain& swapchain)
-{
-    const vec2 res = vec2(static_cast<float>(swapchain.getImageExtent().width),
-                    static_cast<float>(swapchain.getImageExtent().height));
-
-    auto buf = reinterpret_cast<vec2*>(globalDataBuffer.map());
-    buf[0] = swapchain.getMousePosition();
-    buf[1] = res;
-    globalDataBuffer.unmap();
-}
-
 void trc::Renderer::signalRecreateRequired()
 {
     waitForAllFrames();
@@ -215,9 +132,9 @@ void trc::Renderer::signalRecreateRequired()
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
     auto& deferredPass = RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    internal::makeAllDrawablePipelines(deferredPass, cameraDescriptorProvider);
+    internal::makeAllDrawablePipelines(deferredPass, GlobalRenderDataDescriptor::getProvider());
     internal::makeFinalLightingPipeline(deferredPass,
-                                        cameraDescriptorProvider,
+                                        GlobalRenderDataDescriptor::getProvider(),
                                         deferredPass.getInputAttachmentDescriptor());
 
     createSemaphores();
@@ -237,4 +154,106 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }
+}
+
+
+
+auto trc::GlobalRenderDataDescriptor::getProvider() noexcept -> const DescriptorProviderInterface&
+{
+    return *provider;
+}
+
+void trc::GlobalRenderDataDescriptor::updateCameraMatrices(const Camera& camera)
+{
+    auto buf = reinterpret_cast<mat4*>(buffer.map(0, CAMERA_DATA_SIZE));
+    buf[0] = camera.getViewMatrix();
+    buf[1] = camera.getProjectionMatrix();
+    buf[2] = inverse(camera.getViewMatrix());
+    buf[3] = inverse(camera.getProjectionMatrix());
+    buffer.unmap();
+}
+
+void trc::GlobalRenderDataDescriptor::updateSwapchainData(const vkb::Swapchain& swapchain)
+{
+    const vec2 res = vec2(static_cast<float>(swapchain.getImageExtent().width),
+                          static_cast<float>(swapchain.getImageExtent().height));
+
+    auto buf = reinterpret_cast<vec2*>(buffer.map(CAMERA_DATA_SIZE, SWAPCHAIN_DATA_SIZE));
+    buf[0] = swapchain.getMousePosition();
+    buf[1] = res;
+    buffer.unmap();
+}
+
+void trc::GlobalRenderDataDescriptor::vulkanStaticInit()
+{
+    // Create buffer
+    buffer = vkb::Buffer(
+        CAMERA_DATA_SIZE + SWAPCHAIN_DATA_SIZE,
+        vk::BufferUsageFlagBits::eUniformBuffer,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+    );
+
+    // Create descriptors
+    descPool = vkb::getDevice()->createDescriptorPoolUnique(
+        vk::DescriptorPoolCreateInfo({}, vkb::getSwapchain().getFrameCount(),
+            std::vector<vk::DescriptorPoolSize>{
+                { vk::DescriptorType::eUniformBuffer, 2 }
+            }
+    ));
+
+    descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
+        vk::DescriptorSetLayoutCreateInfo({},
+            std::vector<vk::DescriptorSetLayoutBinding>{
+                {
+                    0, vk::DescriptorType::eUniformBuffer, 1,
+                    vk::ShaderStageFlagBits::eAllGraphics
+                },
+                {
+                    1, vk::DescriptorType::eUniformBuffer, 1,
+                    vk::ShaderStageFlagBits::eAllGraphics
+                },
+            }
+    ));
+
+    descSets = std::make_unique<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>>([](ui32)
+    {
+        return std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+            vk::DescriptorSetAllocateInfo(*descPool, *descLayout)
+        )[0]);
+    });
+    descSets->foreach([](vk::UniqueDescriptorSet& set)
+    {
+        vk::DescriptorBufferInfo cameraInfo(*buffer, 0, CAMERA_DATA_SIZE);
+        vk::DescriptorBufferInfo swapchainInfo(*buffer, CAMERA_DATA_SIZE, SWAPCHAIN_DATA_SIZE);
+        std::vector<vk::WriteDescriptorSet> writes{
+            vk::WriteDescriptorSet(
+                *set, 0, 0, 1,
+                vk::DescriptorType::eUniformBuffer,
+                nullptr, &cameraInfo, nullptr
+            ),
+            vk::WriteDescriptorSet(
+                *set, 1, 0, 1,
+                vk::DescriptorType::eUniformBuffer,
+                nullptr, &swapchainInfo, nullptr
+            ),
+        };
+        vkb::getDevice()->updateDescriptorSets(writes, {});
+    });
+
+    // Provider
+    provider = std::make_unique<FrameSpecificDescriptorProvider>(
+        *descLayout,
+        vkb::FrameSpecificObject<vk::DescriptorSet>{
+            [](ui32 imageIndex) { return *descSets->getAt(imageIndex); }
+        }
+    );
+}
+
+void trc::GlobalRenderDataDescriptor::vulkanStaticDestroy()
+{
+    descSets.reset();
+    descLayout.reset();
+    descPool.reset();
+
+    buffer = {};
 }

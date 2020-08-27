@@ -49,19 +49,47 @@ namespace trc
         std::vector<std::pair<RenderStage::ID, ui32>> renderStages;
         std::vector<CommandCollector> commandCollectors;
 
-        // General descriptor set
-        void createDescriptors();
-        vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSetLayout descLayout;
-        vk::UniqueDescriptorSet descSet;
-        DescriptorProvider cameraDescriptorProvider{ {}, {} };
-
-        void updateCameraMatrixBuffer(const Camera& camera);
-        vkb::Buffer cameraMatrixBuffer;
-        void updateGlobalDataBuffer(const vkb::Swapchain& swapchain);
-        vkb::Buffer globalDataBuffer;
-
         // Other things
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
+    };
+
+    /**
+     * @brief Provides global, renderer-specific data
+     *
+     * Contains the following data:
+     *
+     * - binding 0:
+     *      mat4 currentViewMatrix
+     *      mat4 currentProjMatrix
+     *      mat4 currentInverseViewMatrix
+     *      mat4 currentInverseProjMatrix
+     *
+     * - binding 1:
+     *      vec2 mousePosition          (specified in integer pixels)
+     *      vec2 swapchainResolution    (in pixels)
+     */
+    class GlobalRenderDataDescriptor
+    {
+    public:
+        static auto getProvider() noexcept -> const DescriptorProviderInterface&;
+
+        static void updateCameraMatrices(const Camera& camera);
+        static void updateSwapchainData(const vkb::Swapchain& swapchain);
+
+    private:
+        static void vulkanStaticInit();
+        static void vulkanStaticDestroy();
+        static inline vkb::StaticInit _init{
+            vulkanStaticInit, vulkanStaticDestroy
+        };
+
+        static inline vk::UniqueDescriptorPool descPool;
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>> descSets;
+        static inline std::unique_ptr<FrameSpecificDescriptorProvider> provider{ nullptr };
+
+        static constexpr vk::DeviceSize CAMERA_DATA_SIZE{ sizeof(mat4) * 4 };
+        static constexpr vk::DeviceSize SWAPCHAIN_DATA_SIZE{ sizeof(vec2) * 2 };
+        static inline vkb::Buffer buffer;
     };
 }
