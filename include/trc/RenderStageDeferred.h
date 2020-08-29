@@ -51,6 +51,8 @@ namespace trc
         static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>> descSets;
         static inline std::unique_ptr<FrameSpecificDescriptorProvider> provider;
 
+        static inline vkb::Image fragmentListHeadPointerImage;
+        static inline vk::UniqueImageView fragmentListHeadPointerImageView;
         static inline vkb::Buffer fragmentListBuffer;
     };
 } // namespace trc

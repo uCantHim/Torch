@@ -276,6 +276,17 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
         sizeof(ui32), vkb::getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment);
     const ui32 FRAGMENT_LIST_SIZE = sizeof(uvec3) * MAX_FRAGS_PER_PIXEL
                                     * swapchainSize.width * swapchainSize.height;
+    fragmentListHeadPointerImage = vkb::Image(vk::ImageCreateInfo(
+        {},
+        vk::ImageType::e2D, vk::Format::eR8Uint,
+        vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
+        1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eStorage
+    ));
+    fragmentListHeadPointerImage.changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+    fragmentListHeadPointerImageView = fragmentListHeadPointerImage.createView(
+        vk::ImageViewType::e2D, vk::Format::eR8Uint
+    );
     fragmentListBuffer = vkb::Buffer(
         ATOMIC_BUFFER_SECTION_SIZE + FRAGMENT_LIST_SIZE,
         vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -284,6 +295,7 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eInputAttachment, 4 },
+        { vk::DescriptorType::eStorageImage, 1 },
         { vk::DescriptorType::eStorageBuffer, 2 },
     };
     descPool = vkb::getDevice()->createDescriptorPoolUnique(
@@ -299,10 +311,12 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
         { 1, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 2, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 3, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
+        // Fragment list head pointer image
+        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment },
         // Fragment list allocator
-        { 4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
-        // Fragment list
         { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        // Fragment list
+        { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
     };
     descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
@@ -320,10 +334,11 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
 
         // Write set
         std::vector<vk::DescriptorImageInfo> imageInfos = {
-            vk::DescriptorImageInfo({}, *imageViews[0], vk::ImageLayout::eShaderReadOnlyOptimal),
-            vk::DescriptorImageInfo({}, *imageViews[1], vk::ImageLayout::eShaderReadOnlyOptimal),
-            vk::DescriptorImageInfo({}, *imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal),
-            vk::DescriptorImageInfo({}, *imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal),
+            { {}, *imageViews[0], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, *imageViews[1], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, *imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, *imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, *fragmentListHeadPointerImageView, vk::ImageLayout::eGeneral },
         };
         std::vector<vk::DescriptorBufferInfo> bufferInfos{
             { *fragmentListBuffer, 0,                          ATOMIC_BUFFER_SECTION_SIZE },
@@ -334,8 +349,9 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
             { *set, 1, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[1] },
             { *set, 2, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[2] },
             { *set, 3, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[3] },
-            { *set, 4, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[0] },
-            { *set, 5, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[1] },
+            { *set, 4, 0, 1, vk::DescriptorType::eStorageImage, &imageInfos[4] },
+            { *set, 5, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[0] },
+            { *set, 6, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[1] },
         };
         vkb::getDevice()->updateDescriptorSets(writes, {});
 
