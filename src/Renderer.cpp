@@ -139,9 +139,9 @@ void trc::Renderer::signalRecreateFinished()
 void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
 {
     std::vector<vk::Fence> fences;
-    frameInFlightFences.foreach([&fences](vk::UniqueFence& fence) {
+    for (auto& fence : frameInFlightFences) {
         fences.push_back(*fence);
-    });
+    }
     auto result = vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
@@ -187,7 +187,9 @@ void trc::GlobalRenderDataDescriptor::vulkanStaticInit()
 
     // Create descriptors
     descPool = vkb::getDevice()->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo({}, vkb::getSwapchain().getFrameCount(),
+        vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            vkb::getSwapchain().getFrameCount(),
             std::vector<vk::DescriptorPoolSize>{
                 { vk::DescriptorType::eUniformBuffer, 2 }
             }
@@ -213,7 +215,7 @@ void trc::GlobalRenderDataDescriptor::vulkanStaticInit()
             vk::DescriptorSetAllocateInfo(*descPool, *descLayout)
         )[0]);
     });
-    descSets->foreach([](vk::UniqueDescriptorSet& set)
+    for (auto& set : *descSets)
     {
         vk::DescriptorBufferInfo cameraInfo(*buffer, 0, CAMERA_DATA_SIZE);
         vk::DescriptorBufferInfo swapchainInfo(*buffer, CAMERA_DATA_SIZE, SWAPCHAIN_DATA_SIZE);
@@ -230,7 +232,7 @@ void trc::GlobalRenderDataDescriptor::vulkanStaticInit()
             ),
         };
         vkb::getDevice()->updateDescriptorSets(writes, {});
-    });
+    }
 
     // Provider
     provider = std::make_unique<FrameSpecificDescriptorProvider>(

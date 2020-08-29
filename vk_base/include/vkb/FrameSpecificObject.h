@@ -135,6 +135,13 @@ namespace vkb
             }
         }
 
+        inline auto begin() {
+            return objects.begin();
+        }
+
+        inline auto end() {
+            return objects.end();
+        }
 
     private:
         const Swapchain* swapchain;

@@ -241,7 +241,7 @@ auto trc::ShadowDescriptor::addShadow(const ShadowDescriptorInfo& info) -> ui32
 
     // Update image descriptor
     ui32 imageIndex{ 0 };
-    descSet->foreach([&](vk::UniqueDescriptorSet& set)
+    for (auto& set : *descSet)
     {
         vk::DescriptorImageInfo imageInfo(
             info.samplers.getAt(imageIndex),
@@ -257,7 +257,7 @@ auto trc::ShadowDescriptor::addShadow(const ShadowDescriptorInfo& info) -> ui32
         vkb::getDevice()->updateDescriptorSets(writes, {});
 
         imageIndex++;
-    });
+    }
 
     return newIndex;
 }
@@ -342,7 +342,7 @@ void trc::ShadowDescriptor::init()
     descProvider = std::make_unique<FrameSpecificDescriptorProvider>(*descLayout, std::move(sets));
 
     // Write descriptors
-    descSet->foreach([&](vk::UniqueDescriptorSet& set)
+    for (auto& set : *descSet)
     {
         vk::DescriptorBufferInfo bufferInfo(*shadowMatrixBuffer, 0, VK_WHOLE_SIZE);
         std::vector<vk::WriteDescriptorSet> writes{
@@ -355,7 +355,7 @@ void trc::ShadowDescriptor::init()
             ),
         };
         vkb::getDevice()->updateDescriptorSets(writes, {});
-    });
+    }
 }
 
 void trc::ShadowDescriptor::destroy()
