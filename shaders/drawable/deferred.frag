@@ -4,6 +4,8 @@
 
 #include "../material.glsl"
 
+layout (early_fragment_tests) in;
+
 // Constants
 layout (constant_id = 1) const bool isPickable = false;
 

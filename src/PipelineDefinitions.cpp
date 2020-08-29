@@ -28,7 +28,7 @@ namespace trc::internal
 
 void trc::internal::makeAllDrawablePipelines()
 {
-    RenderPassDeferred dummyDeferredPass;
+    auto& dummyDeferredPass = RenderPass::at(RenderPasses::eDeferredPass);
 
     makeDrawableDeferredPipeline(dummyDeferredPass);
     makeDrawableDeferredAnimatedPipeline(dummyDeferredPass);
@@ -91,6 +91,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
@@ -157,7 +158,8 @@ void trc::internal::_makeDrawableDeferredPipeline(
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
-    p.addStaticDescriptorSet(3, Animation::getDescriptorProvider());
+    p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
+    p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
 }
 
 void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
@@ -214,9 +216,10 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-        GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
             vk::PushConstantRange(
@@ -274,6 +277,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
 }
 
 void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)

@@ -1,6 +1,9 @@
 #version 460
 #extension GL_GOOGLE_include_directive : require
 
+#define BONE_INDICES_INPUT_LOCATION 4
+#define BONE_WEIGHTS_INPUT_LOCATION 5
+#define ANIM_DESCRIPTOR_SET_BINDING 4
 #include "../animation.glsl"
 
 layout (location = 0) in vec3 vertexPosition;
