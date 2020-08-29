@@ -1,5 +1,6 @@
 #include "RenderStageDeferred.h"
 
+#include "utils/Util.h"
 #include "PipelineDefinitions.h"
 
 
@@ -263,11 +264,22 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
     descLayout.reset();
     descPool.reset();
 
+    // Create buffers
+    constexpr ui32 MAX_FRAGS_PER_PIXEL{ 4 };
+    const auto swapchainSize = vkb::getSwapchain().getImageExtent();
+    const ui32 ATOMIC_BUFFER_SECTION_SIZE = util::pad(
+        sizeof(ui32), vkb::getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment);
+    const ui32 FRAGMENT_LIST_SIZE = sizeof(uvec3) * MAX_FRAGS_PER_PIXEL
+                                    * swapchainSize.width * swapchainSize.height;
+    fragmentListBuffer = vkb::Buffer(
+        ATOMIC_BUFFER_SECTION_SIZE + FRAGMENT_LIST_SIZE,
+        vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+    );
+
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eInputAttachment, 4 },
-        { vk::DescriptorType::eStorageImage, 2 },
-        { vk::DescriptorType::eUniformBuffer, 1 },
+        { vk::DescriptorType::eStorageBuffer, 2 },
     };
     descPool = vkb::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
@@ -282,10 +294,10 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
         { 1, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 2, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 3, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
-        // Transparency
-        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment },
-        { 5, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment },
-        { 6, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        // Fragment list allocator
+        { 4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        // Fragment list
+        { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
     };
     descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
@@ -308,13 +320,18 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
             vk::DescriptorImageInfo({}, *imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal),
             vk::DescriptorImageInfo({}, *imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal),
         };
+        std::vector<vk::DescriptorBufferInfo> bufferInfos{
+            { *fragmentListBuffer, 0,                          ATOMIC_BUFFER_SECTION_SIZE },
+            { *fragmentListBuffer, ATOMIC_BUFFER_SECTION_SIZE, FRAGMENT_LIST_SIZE },
+        };
         std::vector<vk::WriteDescriptorSet> writes = {
             { *set, 0, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[0] },
             { *set, 1, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[1] },
             { *set, 2, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[2] },
             { *set, 3, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[3] },
+            { *set, 4, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[0] },
+            { *set, 5, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[1] },
         };
-
         vkb::getDevice()->updateDescriptorSets(writes, {});
 
         return set;
