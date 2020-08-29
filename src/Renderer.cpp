@@ -109,25 +109,13 @@ void trc::Renderer::addStage(RenderStage::ID stage, ui32 priority)
 
 void trc::Renderer::createSemaphores()
 {
-    imageAcquireSemaphores = vkb::FrameSpecificObject<vk::UniqueSemaphore>(
-        [](ui32) {
-            return vkb::VulkanBase::getDevice()->createSemaphoreUnique({});
-        }
-    );
-
-    renderFinishedSemaphores = vkb::FrameSpecificObject<vk::UniqueSemaphore>(
-        [](ui32) {
-            return vkb::VulkanBase::getDevice()->createSemaphoreUnique({});
-        }
-    );
-
-    frameInFlightFences = vkb::FrameSpecificObject<vk::UniqueFence>(
-        [](ui32) {
-            return vkb::VulkanBase::getDevice()->createFenceUnique(
-                { vk::FenceCreateFlagBits::eSignaled }
-            );
-        }
-    );
+    imageAcquireSemaphores = { [](ui32) { return vkb::getDevice()->createSemaphoreUnique({}); }};
+    renderFinishedSemaphores = { [](ui32) { return vkb::getDevice()->createSemaphoreUnique({}); }};
+    frameInFlightFences = { [](ui32) {
+        return vkb::getDevice()->createFenceUnique(
+            { vk::FenceCreateFlagBits::eSignaled }
+        );
+    }};
 }
 
 void trc::Renderer::signalRecreateRequired()

@@ -8,7 +8,7 @@
 namespace vkb
 {
     template<class R>
-    class FrameSpecificObject : public VulkanBase, private Swapchain::FrameCounter
+    class FrameSpecificObject : public VulkanBase
     {
     public:
         /**
@@ -17,17 +17,46 @@ namespace vkb
          */
         FrameSpecificObject() requires(std::is_default_constructible_v<R>)
             : FrameSpecificObject([](uint32_t) { return R{}; })
-        {
-        }
+        {}
 
         /**
-         * Full-initialization constructor.
+         * Default constructor.
+         * Only available when R is default constructible.
          *
-         * @param std::function<R(uint32_t)> func: A constructor function for the
-         * object. Is called for every frame in the swapchain. Provies the current
-         * frame index as argument.
+         * @param const Swapchain& swapchain
          */
-        explicit FrameSpecificObject(std::function<R(uint32_t)> func)
+        FrameSpecificObject(const Swapchain& swapchain) requires(std::is_default_constructible_v<R>)
+            : FrameSpecificObject(swapchain, [](uint32_t) { return R{}; })
+        {}
+
+        FrameSpecificObject(std::vector<R> objects)
+            : FrameSpecificObject(vkb::getSwapchain(), std::move(objects))
+        {}
+
+        FrameSpecificObject(const Swapchain& swapchain, std::vector<R> objects)
+            :
+            FrameSpecificObject(swapchain, [&objects](uint32_t imageIndex) {
+                return std::move(objects[imageIndex]);
+            })
+        {}
+
+        /**
+         * @param std::function<R(uint32_t)> func: A constructor function
+         * for the object. Is called for every frame in the swapchain.
+         * Provides the current frame index as argument.
+         */
+        FrameSpecificObject(std::function<R(uint32_t)> func)
+            : FrameSpecificObject(vkb::getSwapchain(), std::move(func))
+        {}
+
+        /**
+         * @param const Swapchain& swapchain The swapchain
+         * @param std::function<R(uint32_t)> func: A constructor function
+         * for the object. Is called for every frame in the swapchain.
+         * Provides the current frame index as argument.
+         */
+        FrameSpecificObject(const Swapchain& swapchain, std::function<R(uint32_t)> func)
+            : swapchain(&swapchain)
         {
             uint32_t count{ getSwapchain().getFrameCount() };
             objects.reserve(count);
@@ -35,13 +64,6 @@ namespace vkb
                 objects.push_back(func(i));
             }
         }
-
-        explicit FrameSpecificObject(std::vector<R> objects)
-            :
-            FrameSpecificObject([&objects](uint32_t imageIndex) {
-                return std::move(objects[imageIndex]);
-            })
-        {}
 
         FrameSpecificObject(const FrameSpecificObject&) = delete;
         FrameSpecificObject(FrameSpecificObject&&) = default;
@@ -51,19 +73,19 @@ namespace vkb
         FrameSpecificObject& operator=(FrameSpecificObject&&) = default;
 
         inline auto operator*() -> R& {
-            return objects[getCurrentFrame()];
+            return objects[swapchain->getCurrentFrame()];
         }
 
         inline auto operator*() const -> const R& {
-            return objects[getCurrentFrame()];
+            return objects[swapchain->getCurrentFrame()];
         }
 
         inline auto operator->() -> R* {
-            return &objects[getCurrentFrame()];
+            return &objects[swapchain->getCurrentFrame()];
         }
 
         inline auto operator->() const -> const R* {
-            return &objects[getCurrentFrame()];
+            return &objects[swapchain->getCurrentFrame()];
         }
 
         /**
@@ -72,7 +94,7 @@ namespace vkb
          * @return R& The object for the current frame
          */
         inline auto get() noexcept -> R& {
-            return objects[getCurrentFrame()];
+            return objects[swapchain->getCurrentFrame()];
         }
 
         /**
@@ -81,7 +103,15 @@ namespace vkb
          * @return const R& The object for the current frame
          */
         inline auto get() const noexcept -> const R& {
-            return objects[getCurrentFrame()];
+            return objects[swapchain->getCurrentFrame()];
+        }
+
+        /**
+         * @return const R& The object for a specific frame
+         */
+        inline auto getAt(uint32_t imageIndex) noexcept -> R& {
+            assert(imageIndex < objects.size());
+            return objects[imageIndex];
         }
 
         /**
@@ -107,6 +137,7 @@ namespace vkb
 
 
     private:
+        const Swapchain* swapchain;
         std::vector<R> objects;
     };
 } // namespace vkb

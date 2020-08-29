@@ -273,7 +273,8 @@ void trc::RenderPassDeferred::createInputAttachmentDescriptors()
     );
 
     // Sets
-    inputAttachmentSets = vkb::FrameSpecificObject<vk::UniqueDescriptorSet>([&](ui32 imageIndex) {
+    inputAttachmentSets = { [&](ui32 imageIndex)
+    {
         const auto& imageViews = attachmentImageViews[imageIndex];
 
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
@@ -297,7 +298,7 @@ void trc::RenderPassDeferred::createInputAttachmentDescriptors()
         vkb::getDevice()->updateDescriptorSets(writes, {});
 
         return set;
-    });
+    }};
 }
 
 auto trc::RenderPassDeferred::InputAttachmentDescriptorProvider::getDescriptorSet()

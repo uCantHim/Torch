@@ -187,7 +187,7 @@ auto vkb::Swapchain::getFrameCount() const noexcept -> uint32_t
 
 auto vkb::Swapchain::getCurrentFrame() const noexcept -> uint32_t
 {
-    return FrameCounter::currentFrame;
+    return currentFrame;
 }
 
 
@@ -212,7 +212,7 @@ auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> image_
 
 void vkb::Swapchain::presentImage(
     image_index image,
-    const vk::Queue& queue,
+    vk::Queue queue,
     const std::vector<vk::Semaphore>& waitSemaphores)
 {
     vk::PresentInfoKHR presentInfo(
@@ -236,7 +236,7 @@ void vkb::Swapchain::presentImage(
         return;
     }
 
-    FrameCounter::currentFrame = (FrameCounter::currentFrame + 1) % numFrames;
+    currentFrame = (currentFrame + 1) % numFrames;
 }
 
 
@@ -424,7 +424,7 @@ void vkb::Swapchain::createSwapchain(bool recreate)
 
     swapchainExtent = optimalImageExtent;
     swapchainFormat = optimalFormat.format;
-    FrameCounter::currentFrame = 0;
+    currentFrame = 0;
 
     // Retrieve created images
     images = device->getSwapchainImagesKHR(swapchain.get());

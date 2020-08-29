@@ -163,12 +163,8 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
 #endif
 
     shadowDescriptorIndex = ShadowDescriptor::addShadow({
-        vkb::FrameSpecificObject<vk::Sampler>{ [&](ui32 imageIndex) {
-            return depthImages.getAt(imageIndex).getDefaultSampler();
-        }},
-        vkb::FrameSpecificObject<vk::ImageView>{ [&](ui32 imageIndex) {
-            return *depthImageViews.getAt(imageIndex);
-        }},
+        { [&](ui32 imageIndex) { return depthImages.getAt(imageIndex).getDefaultSampler(); }},
+        { [&](ui32 imageIndex) { return *depthImageViews.getAt(imageIndex); }},
         projMatrix * getGlobalTransform()
     });
 }

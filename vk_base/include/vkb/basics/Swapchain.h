@@ -10,8 +10,6 @@
 
 namespace vkb
 {
-    class Device;
-
     struct Surface
     {
         using windowDeleter = std::function<void(GLFWwindow*)>;
@@ -21,6 +19,7 @@ namespace vkb
         std::unique_ptr<vk::SurfaceKHR, surfaceDeleter> surface;
     };
 
+    class Device;
     class SwapchainDependentResource;
 
     /**
@@ -41,19 +40,6 @@ namespace vkb
     class Swapchain
     {
     public:
-        class FrameCounter
-        {
-            friend class Swapchain;
-
-        public:
-            static inline size_t getCurrentFrame() noexcept {
-                return currentFrame;
-            }
-
-        private:
-            static inline size_t currentFrame{ 0 };
-        };
-
         using image_index = uint32_t;
 
         /**
@@ -91,11 +77,16 @@ namespace vkb
          * @return uint32_t The index of the currently active image
          */
         auto getCurrentFrame() const noexcept -> uint32_t;
+
+        /**
+         * @brief Get a specific swapchain image
+         * @return vk::Image
+         */
         auto getImage(uint32_t index) const noexcept -> vk::Image;
 
         auto acquireImage(vk::Semaphore signalSemaphore) const -> image_index;
         void presentImage(image_index image,
-                          const vk::Queue& queue,
+                          vk::Queue queue,
                           const std::vector<vk::Semaphore>& waitSemaphores);
 
         /**
@@ -143,6 +134,7 @@ namespace vkb
         std::vector<vk::UniqueImageView> imageViews;
 
         uint32_t numFrames{ 0 };
+        uint32_t currentFrame{ 0 };
     };
 
 
