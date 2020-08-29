@@ -1,5 +1,7 @@
 #include "AssetRegistry.h"
 
+#include "PipelineRegistry.h"
+
 
 
 void trc::AssetRegistry::init()
@@ -59,6 +61,7 @@ auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, 
     imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
 
     createDescriptors();
+    PipelineRegistry::recreateAll();
 
     return { image, key };
 }

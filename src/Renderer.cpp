@@ -3,6 +3,7 @@
 #include <vkb/util/Timer.h>
 
 #include "PipelineDefinitions.h"
+#include "PipelineRegistry.h"
 
 
 
@@ -21,11 +22,17 @@ trc::Renderer::Renderer()
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
 
-    auto& deferredPass = static_cast<RenderPassDeferred&>(
-        RenderPass::at(internal::RenderPasses::eDeferredPass)
-    );
-    internal::makeAllDrawablePipelines();
-    internal::makeFinalLightingPipeline(deferredPass, deferredPass.getInputAttachmentDescriptor());
+    PipelineRegistry::registerPipeline(internal::makeAllDrawablePipelines);
+    PipelineRegistry::registerPipeline([&]() {
+        auto& deferredPass = static_cast<RenderPassDeferred&>(
+            RenderPass::at(internal::RenderPasses::eDeferredPass)
+        );
+        internal::makeFinalLightingPipeline(
+            deferredPass,
+            deferredPass.getInputAttachmentDescriptor()
+        );
+    });
+    PipelineRegistry::recreateAll();
 }
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)

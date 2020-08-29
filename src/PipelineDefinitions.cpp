@@ -1,5 +1,8 @@
 #include "PipelineDefinitions.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 #include "PipelineBuilder.h"
 #include "Vertex.h"
 #include "AssetRegistry.h"
@@ -17,6 +20,8 @@ namespace trc::internal
         eAnimated = 1 << 0,
         ePickable = 1 << 1,
     };
+
+    static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
 }
 
 
@@ -122,8 +127,8 @@ void trc::internal::_makeDrawableDeferredPipeline(
     vk::SpecializationInfo fragSpec(
         specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
 
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/drawable/deferred.vert.spv",
-                               TRC_SHADER_DIR"/drawable/deferred.frag.spv");
+    vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
+                               SHADER_DIR / "drawable/deferred.frag.spv");
     program.setVertexSpecializationConstants(&vertSpec);
     program.setFragmentSpecializationConstants(&fragSpec);
 
@@ -179,8 +184,8 @@ void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
     );
 
     // Pipeline
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/drawable/shadow.vert.spv",
-                               TRC_SHADER_DIR"/drawable/shadow.frag.spv");
+    vkb::ShaderProgram program(SHADER_DIR / "drawable/shadow.vert.spv",
+                               SHADER_DIR / "drawable/shadow.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -222,8 +227,8 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass
     );
 
     // Pipeline
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/drawable/instanced.vert.spv",
-                               TRC_SHADER_DIR"/drawable/deferred.frag.spv");
+    vkb::ShaderProgram program(SHADER_DIR / "drawable/instanced.vert.spv",
+                               SHADER_DIR / "drawable/deferred.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -288,8 +293,8 @@ void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& render
     );
 
     // Pipeline
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/drawable/shadow_instanced.vert.spv",
-                               TRC_SHADER_DIR"/drawable/shadow.frag.spv");
+    vkb::ShaderProgram program(SHADER_DIR / "drawable/shadow_instanced.vert.spv",
+                               SHADER_DIR / "drawable/shadow.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -350,8 +355,8 @@ void trc::internal::makeFinalLightingPipeline(
     );
 
     // Pipeline
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/final_lighting.vert.spv",
-                               TRC_SHADER_DIR"/final_lighting.frag.spv");
+    vkb::ShaderProgram program(SHADER_DIR / "final_lighting.vert.spv",
+                               SHADER_DIR / "final_lighting.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
