@@ -49,13 +49,6 @@ trc::RenderPassDeferred::RenderPassDeferred()
                     vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
                     vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
                 ),
-                // Transparent fragments list head pointer
-                vk::AttachmentDescription(
-                    {}, vk::Format::eR8Uint, vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
-                ),
                 // Depth-/Stencil buffer
                 trc::makeDefaultDepthStencilAttachment(),
                 // Swapchain images
@@ -67,8 +60,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
                 { 1, vk::ImageLayout::eColorAttachmentOptimal }, // Normals
                 { 2, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
                 { 3, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
-                { 4, vk::ImageLayout::eColorAttachmentOptimal }, // Frag list head pointer
-                { 5, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
+                { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
             };
 
             std::vector<vk::AttachmentReference> lightingAttachments = {
@@ -76,8 +68,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
                 { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
                 { 2, vk::ImageLayout::eShaderReadOnlyOptimal }, // UVs
                 { 3, vk::ImageLayout::eShaderReadOnlyOptimal }, // Material indices
-                { 4, vk::ImageLayout::eShaderReadOnlyOptimal }, // Frag list head pointer
-                { 6, vk::ImageLayout::eColorAttachmentOptimal }, // Swapchain images
+                { 5, vk::ImageLayout::eColorAttachmentOptimal }, // Swapchain images
             };
 
             std::vector<vk::SubpassDescription> subpasses = {
@@ -85,15 +76,15 @@ trc::RenderPassDeferred::RenderPassDeferred()
                     vk::SubpassDescriptionFlags(),
                     vk::PipelineBindPoint::eGraphics,
                     0, nullptr,
-                    5, &deferredAttachments[0],
+                    4, &deferredAttachments[0],
                     nullptr, // resolve attachments
-                    &deferredAttachments[5]
+                    &deferredAttachments[4]
                 ),
                 vk::SubpassDescription(
                     vk::SubpassDescriptionFlags(),
                     vk::PipelineBindPoint::eGraphics,
-                    5, &lightingAttachments[0],
-                    1, &lightingAttachments[5],
+                    4, &lightingAttachments[0],
+                    1, &lightingAttachments[4],
                     nullptr, // resolve attachments
                     nullptr
                 ),
@@ -131,7 +122,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
     ), // Base class RenderPass constructor
     framebuffers([&](ui32 frameIndex)
     {
-        constexpr size_t numAttachments = 6;
+        constexpr size_t numAttachments = 5;
 
         const auto swapchainExtent = vkb::getSwapchain().getImageExtent();
         auto& images = attachmentImages.emplace_back();
@@ -162,12 +153,6 @@ trc::RenderPassDeferred::RenderPassDeferred()
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
         ));
-        auto& headPointerImage = images.emplace_back(vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR8Uint,
-            vk::Extent3D{ swapchainExtent, 1 },
-            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-        ));
         auto& depthImage = images.emplace_back(vk::ImageCreateInfo(
             {},
             vk::ImageType::e2D,
@@ -190,9 +175,6 @@ trc::RenderPassDeferred::RenderPassDeferred()
         auto materialView = *imageViews.emplace_back(
             materialImage.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint, {})
         );
-        auto headPointerView = *imageViews.emplace_back(
-            headPointerImage.createView(vk::ImageViewType::e2D, vk::Format::eR8Uint, {})
-        );
         auto depthView = *imageViews.emplace_back(
             depthImage.createView(
                 vk::ImageViewType::e2D, vk::Format::eD24UnormS8Uint, vk::ComponentMapping(),
@@ -206,7 +188,6 @@ trc::RenderPassDeferred::RenderPassDeferred()
             normalView,
             uvView,
             materialView,
-            headPointerView,
             depthView,
             colorOutputView
         };
@@ -228,7 +209,6 @@ trc::RenderPassDeferred::RenderPassDeferred()
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<ui32, 4>{ UINT32_MAX, 0, 0, 0 }),
-        vk::ClearColorValue(std::array<ui32, 4>{ 0, 0, 0, 0 }),
         vk::ClearDepthStencilValue(1.0f, 0.0f),
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     };
@@ -248,8 +228,6 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
     images[2].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
     images[3].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
-                                   vk::ImageLayout::eColorAttachmentOptimal);
-    images[4].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
 
     cmdBuf.beginRenderPass(
