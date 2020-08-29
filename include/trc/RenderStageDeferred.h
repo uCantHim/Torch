@@ -35,7 +35,7 @@ namespace trc
         vk::Extent2D framebufferSize;
         vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
 
-        std::array<vk::ClearValue, 6> clearValues;
+        std::array<vk::ClearValue, 7> clearValues;
     };
 
     class DeferredRenderPassDescriptor
