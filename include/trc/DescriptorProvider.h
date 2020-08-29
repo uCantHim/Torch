@@ -11,6 +11,13 @@ namespace trc
     public:
         virtual auto getDescriptorSet() const noexcept -> vk::DescriptorSet = 0;
         virtual auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout = 0;
+
+        virtual void bindDescriptorSet(
+            vk::CommandBuffer cmdBuf,
+            vk::PipelineBindPoint bindPoint,
+            vk::PipelineLayout pipelineLayout,
+            ui32 setIndex
+        ) const = 0;
     };
 
     class DescriptorProvider : public DescriptorProviderInterface
@@ -20,6 +27,12 @@ namespace trc
 
         auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+        void bindDescriptorSet(
+            vk::CommandBuffer cmdBuf,
+            vk::PipelineBindPoint bindPoint,
+            vk::PipelineLayout pipelineLayout,
+            ui32 setIndex
+        ) const override;
 
         void setDescriptorSet(vk::DescriptorSet newSet);
         void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);
@@ -41,6 +54,12 @@ namespace trc
 
         auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+        void bindDescriptorSet(
+            vk::CommandBuffer cmdBuf,
+            vk::PipelineBindPoint bindPoint,
+            vk::PipelineLayout pipelineLayout,
+            ui32 setIndex
+        ) const override;
 
         void setDescriptorSet(vkb::FrameSpecificObject<vk::DescriptorSet> newSet);
         void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);

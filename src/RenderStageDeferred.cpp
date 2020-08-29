@@ -312,3 +312,12 @@ auto trc::RenderPassDeferred::InputAttachmentDescriptorProvider::getDescriptorSe
 {
     return *renderPass->inputAttachmentLayout;
 }
+
+void trc::RenderPassDeferred::InputAttachmentDescriptorProvider::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, getDescriptorSet(), {});
+}

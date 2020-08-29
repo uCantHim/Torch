@@ -21,6 +21,15 @@ auto trc::DescriptorProvider::getDescriptorSetLayout() const noexcept -> vk::Des
     return layout;
 }
 
+void trc::DescriptorProvider::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, set, {});
+}
+
 void trc::DescriptorProvider::setDescriptorSet(vk::DescriptorSet newSet)
 {
     set = newSet;
@@ -51,6 +60,15 @@ auto trc::FrameSpecificDescriptorProvider::getDescriptorSetLayout() const noexce
     -> vk::DescriptorSetLayout
 {
     return layout;
+}
+
+void trc::FrameSpecificDescriptorProvider::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, *set, {});
 }
 
 void trc::FrameSpecificDescriptorProvider::setDescriptorSet(

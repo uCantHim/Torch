@@ -34,6 +34,12 @@ namespace trc
 
             auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
             auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+            void bindDescriptorSet(
+                vk::CommandBuffer cmdBuf,
+                vk::PipelineBindPoint bindPoint,
+                vk::PipelineLayout pipelineLayout,
+                ui32 setIndex
+            ) const override;
 
         private:
             RenderPassDeferred* renderPass;

@@ -31,7 +31,7 @@ void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
 {
     for (const auto& [index, provider] : staticDescriptorSets)
     {
-        cmdBuf.bindDescriptorSets(bindPoint, *layout, index, provider->getDescriptorSet(), {});
+        provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }
 }
 
