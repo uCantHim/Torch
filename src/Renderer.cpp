@@ -28,6 +28,7 @@ trc::Renderer::Renderer()
         auto& deferredPass = static_cast<RenderPassDeferred&>(
             RenderPass::at(internal::RenderPasses::eDeferredPass)
         );
+        DeferredRenderPassDescriptor::init(deferredPass);
         internal::makeFinalLightingPipeline(
             deferredPass,
             deferredPass.getInputAttachmentDescriptor()

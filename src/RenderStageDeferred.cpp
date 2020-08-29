@@ -196,8 +196,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
             )
         );
     }),
-    clearValues({}),
-    descriptorProvider(*this)
+    clearValues({})
 {
     clearValues = {
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
@@ -208,7 +207,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     };
 
-    createInputAttachmentDescriptors();
+    DeferredRenderPassDescriptor::init(*this);
 }
 
 void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
@@ -244,16 +243,31 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
     cmdBuf.endRenderPass();
 }
 
+auto trc::RenderPassDeferred::getAttachmentImageViews(ui32 imageIndex) const noexcept
+   -> const std::vector<vk::UniqueImageView>&
+{
+    return attachmentImageViews[imageIndex];
+}
+
 auto trc::RenderPassDeferred::getInputAttachmentDescriptor() const noexcept
     -> const DescriptorProviderInterface&
 {
-    return descriptorProvider;
+    return DeferredRenderPassDescriptor::getProvider();
 }
 
-void trc::RenderPassDeferred::createInputAttachmentDescriptors()
+
+
+void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPass)
 {
+    descSets.reset();
+    descLayout.reset();
+    descPool.reset();
+
+    // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eInputAttachment, 3 },
+        { vk::DescriptorType::eInputAttachment, 4 },
+        { vk::DescriptorType::eStorageImage, 2 },
+        { vk::DescriptorType::eUniformBuffer, 1 },
     };
     descPool = vkb::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
@@ -263,22 +277,28 @@ void trc::RenderPassDeferred::createInputAttachmentDescriptors()
 
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
+        // Input attachments
         { 0, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 1, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 2, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
         { 3, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
+        // Transparency
+        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment },
+        { 5, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment },
+        { 6, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment },
     };
-    inputAttachmentLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
+    descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
     );
 
     // Sets
-    inputAttachmentSets = { [&](ui32 imageIndex)
+    descSets = std::make_unique<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>>(
+    [&](ui32 imageIndex)
     {
-        const auto& imageViews = attachmentImageViews[imageIndex];
+        const auto& imageViews = renderPass.getAttachmentImageViews(imageIndex);
 
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
-            vk::DescriptorSetAllocateInfo(*descPool, *inputAttachmentLayout)
+            vk::DescriptorSetAllocateInfo(*descPool, *descLayout)
         )[0]);
 
         // Write set
@@ -298,26 +318,17 @@ void trc::RenderPassDeferred::createInputAttachmentDescriptors()
         vkb::getDevice()->updateDescriptorSets(writes, {});
 
         return set;
-    }};
+    });
+
+    provider.reset(new FrameSpecificDescriptorProvider(
+        *descLayout,
+        vkb::FrameSpecificObject<vk::DescriptorSet>(
+            [](ui32 imageIndex) { return *descSets->getAt(imageIndex); }
+        )
+    ));
 }
 
-auto trc::RenderPassDeferred::InputAttachmentDescriptorProvider::getDescriptorSet()
-    const noexcept -> vk::DescriptorSet
+auto trc::DeferredRenderPassDescriptor::getProvider() -> const DescriptorProviderInterface&
 {
-    return **renderPass->inputAttachmentSets;
-}
-
-auto trc::RenderPassDeferred::InputAttachmentDescriptorProvider::getDescriptorSetLayout()
-    const noexcept -> vk::DescriptorSetLayout
-{
-    return *renderPass->inputAttachmentLayout;
-}
-
-void trc::RenderPassDeferred::InputAttachmentDescriptorProvider::bindDescriptorSet(
-    vk::CommandBuffer cmdBuf,
-    vk::PipelineBindPoint bindPoint,
-    vk::PipelineLayout pipelineLayout,
-    ui32 setIndex) const
-{
-    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, getDescriptorSet(), {});
+    return *provider;
 }

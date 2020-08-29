@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vkb/FrameSpecificObject.h>
+#include <vkb/Buffer.h>
 #include <vkb/Image.h>
 
 #include "RenderStage.h"
@@ -14,7 +15,6 @@ namespace trc
         DeferredStage();
     };
 
-
     class RenderPassDeferred : public RenderPass
     {
     public:
@@ -23,28 +23,11 @@ namespace trc
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
+        auto getAttachmentImageViews(ui32 imageIndex) const noexcept
+           -> const std::vector<vk::UniqueImageView>&;
         auto getInputAttachmentDescriptor() const noexcept -> const DescriptorProviderInterface&;
 
     private:
-        class InputAttachmentDescriptorProvider : public DescriptorProviderInterface
-        {
-        public:
-            InputAttachmentDescriptorProvider(RenderPassDeferred& renderPass)
-                : renderPass(&renderPass) {}
-
-            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
-            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
-            void bindDescriptorSet(
-                vk::CommandBuffer cmdBuf,
-                vk::PipelineBindPoint bindPoint,
-                vk::PipelineLayout pipelineLayout,
-                ui32 setIndex
-            ) const override;
-
-        private:
-            RenderPassDeferred* renderPass;
-        };
-
         // Attachments
         std::vector<std::vector<vkb::Image>> attachmentImages;
         std::vector<std::vector<vk::UniqueImageView>> attachmentImageViews;
@@ -53,12 +36,23 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
 
         std::array<vk::ClearValue, 6> clearValues;
+    };
 
-        // Descriptors
-        void createInputAttachmentDescriptors();
-        vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSetLayout inputAttachmentLayout;
-        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> inputAttachmentSets;
-        InputAttachmentDescriptorProvider descriptorProvider;
+    class DeferredRenderPassDescriptor
+    {
+    public:
+        static void init(const RenderPassDeferred& deferredPass);
+
+        static auto getProvider() -> const DescriptorProviderInterface&;
+
+    private:
+        static inline vk::UniqueDescriptorPool descPool;
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>> descSets;
+        static inline std::unique_ptr<FrameSpecificDescriptorProvider> provider;
+
+        static inline vkb::Image headPointerImage;
+        static inline vkb::Image fragmentBufferImage;
+        static inline vkb::Buffer fragmentAllocationBuffer;
     };
 } // namespace trc
