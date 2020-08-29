@@ -83,11 +83,26 @@ namespace trc
             vulkanStaticInit, vulkanStaticDestroy
         };
 
+        /** Calculates dynamic offsets into the buffer */
+        class RenderDataDescriptorProvider : public DescriptorProviderInterface
+        {
+        public:
+            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
+            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+            void bindDescriptorSet(
+                vk::CommandBuffer cmdBuf,
+                vk::PipelineBindPoint bindPoint,
+                vk::PipelineLayout pipelineLayout,
+                ui32 setIndex
+            ) const override;
+        };
+
         static inline vk::UniqueDescriptorPool descPool;
         static inline vk::UniqueDescriptorSetLayout descLayout;
-        static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>> descSets;
-        static inline std::unique_ptr<FrameSpecificDescriptorProvider> provider{ nullptr };
+        static inline vk::UniqueDescriptorSet descSet;
+        static inline RenderDataDescriptorProvider provider;
 
+        static inline ui32 BUFFER_SECTION_SIZE{ 0 };
         static constexpr vk::DeviceSize CAMERA_DATA_SIZE{ sizeof(mat4) * 4 };
         static constexpr vk::DeviceSize SWAPCHAIN_DATA_SIZE{ sizeof(vec2) * 2 };
         static inline vkb::Buffer buffer;
