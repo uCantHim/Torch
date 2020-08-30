@@ -1,6 +1,5 @@
 // Various lighting calculations
 
-#define SHADOW_DESCRIPTOR_SET_BINDING 4
 #include "shadow.glsl"
 
 vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint material)

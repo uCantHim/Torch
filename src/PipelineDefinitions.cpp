@@ -197,6 +197,7 @@ void trc::internal::makeDrawableTransparentPipeline(
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
+            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
             vk::PushConstantRange(
@@ -222,20 +223,18 @@ void trc::internal::makeDrawableTransparentPipeline(
     ui32 constants[] {
         (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0,
         (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0,
-        true // transparency
     };
     std::vector<vk::SpecializationMapEntry> specEntries{
         vk::SpecializationMapEntry(0, 0, sizeof(ui32)),
         vk::SpecializationMapEntry(1, sizeof(ui32), sizeof(ui32)),
-        vk::SpecializationMapEntry(2, sizeof(ui32) * 2, sizeof(ui32)),
     };
     vk::SpecializationInfo vertSpec(
-        specEntries.size(), specEntries.data(), sizeof(ui32) * 3, constants);
+        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
     vk::SpecializationInfo fragSpec(
-        specEntries.size(), specEntries.data(), sizeof(ui32) * 3, constants);
+        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
 
     vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
-                               SHADER_DIR / "drawable/deferred.frag.spv");
+                               SHADER_DIR / "drawable/transparent.frag.spv");
     program.setVertexSpecializationConstants(&vertSpec);
     program.setFragmentSpecializationConstants(&fragSpec);
 
@@ -260,6 +259,7 @@ void trc::internal::makeDrawableTransparentPipeline(
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
     p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
+    p.addStaticDescriptorSet(5, ShadowDescriptor::getProvider());
 }
 
 void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
@@ -446,7 +446,7 @@ void trc::internal::makeFinalLightingPipeline(
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-        GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             gBufferInputSet.getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),

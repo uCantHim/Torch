@@ -37,7 +37,7 @@ layout (set = 2, binding = 6) restrict buffer FragmentList
      * 1: Fragment depth value
      * 2: Next-pointer
      */
-    uint fragmentList[][3];
+    uvec4 fragmentList[];
 };
 
 layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
@@ -58,7 +58,7 @@ layout (location = 0) out vec4 fragColor;
 //      Main       //
 /////////////////////
 
-vec3 calcLighting(vec3 color);
+#define SHADOW_DESCRIPTOR_SET_BINDING 4
 #include "lighting.glsl"
 
 void main()
@@ -88,9 +88,9 @@ void main()
     // Exchange doesn't seem to have any difference in performance to imageLoad().
     // Use exchange to reset head pointer to default value.
     uint fragListIndex = imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), ~0u);
-    if (fragListIndex != ~0u)
+    while (fragListIndex != ~0u)
     {
         fragColor *= unpackUnorm4x8(fragmentList[fragListIndex][0]);
-        return;
+        fragListIndex = fragmentList[fragListIndex][2];
     }
 }

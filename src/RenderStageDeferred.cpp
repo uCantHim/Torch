@@ -313,6 +313,18 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
         ));
         result.changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
         imageViews.push_back(result.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint));
+
+        // Clear image
+        auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
+        cmdBuf->begin(vk::CommandBufferBeginInfo());
+        cmdBuf->clearColorImage(
+            *result, vk::ImageLayout::eGeneral,
+            vk::ClearColorValue(std::array<ui32, 4>{ ~0u }),
+            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        );
+        cmdBuf->end();
+        vkb::getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
+
         return result;
     }});
     fragmentListHeadPointerImageView.reset(new vkb::FrameSpecificObject<vk::UniqueImageView>{

@@ -3,6 +3,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 #include "../material.glsl"
+#include "../light.glsl"
 
 layout (early_fragment_tests) in;
 
@@ -10,6 +11,14 @@ layout (early_fragment_tests) in;
 layout (constant_id = 1) const bool isPickable = false;
 
 // Buffers
+layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
+{
+    mat4 viewMatrix;
+    mat4 projMatrix;
+    mat4 inverseViewMatrix;
+    mat4 inverseProjMatrix;
+} camera;
+
 layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
 {
     vec2 mousePos;
@@ -22,6 +31,12 @@ layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 };
 
 layout (set = 1, binding = 1) uniform sampler2D textures[];
+
+layout (set = 2, binding = 0) buffer LightBuffer
+{
+    uint numLights;
+    Light lights[];
+};
 
 layout (set = 2, binding = 1) restrict buffer PickingBuffer
 {
@@ -45,7 +60,7 @@ layout (set = 3, binding = 6) restrict buffer FragmentList
      * 1: Fragment depth value
      * 2: Next-pointer
      */
-    uint fragmentList[][3];
+    uvec4 fragmentList[];
 };
 
 // Push Constants
@@ -65,24 +80,30 @@ layout (location = 0) in Vertex
     flat uint instanceIndex;
 } vert;
 
-layout (location = 0) out vec4 outPosition;
-layout (location = 1) out vec3 outNormal;
-layout (location = 2) out vec2 outUv;
-layout (location = 3) out uint outMaterial;
-
 
 /////////////////////
 //      Main       //
 /////////////////////
 
+#define SHADOW_DESCRIPTOR_SET_BINDING 5
+#include "../lighting.glsl"
+
 vec3 calcVertexNormal();
+void appendFragment(vec4 color);
 
 void main()
 {
-    outPosition = vec4(vert.worldPos, gl_FragCoord.z);
-    outUv = vert.uv;
-    outMaterial = vert.material;
-    outNormal = calcVertexNormal();
+    uint diffTex = materials[vert.material].diffuseTexture;
+    vec4 diffuseColor = texture(textures[diffTex], vert.uv);
+    vec3 color = calcLighting(
+        diffuseColor.rgb,
+        vert.worldPos,
+        calcVertexNormal(),
+        (camera.viewMatrix * vec4(0, 0, 0, 1)).xyz,
+        vert.material
+    );
+
+    appendFragment(vec4(color, diffuseColor.a));
 
     if (isPickable) // constant
     {
@@ -95,6 +116,9 @@ void main()
             picking.depth = gl_FragCoord.z;
         }
     }
+
+    // TODO: Does this improve performance?
+    discard;
 }
 
 
@@ -111,4 +135,21 @@ vec3 calcVertexNormal()
         textureNormal.y = -textureNormal.y;  // Vulkan axis flip
         return normalize(vert.tbn * textureNormal);
     }
+}
+
+
+void appendFragment(vec4 color)
+{
+    uint newIndex = atomicAdd(nextFragmentListIndex, 1);
+    if (newIndex > maxFragmentListIndex) {
+        return;
+    }
+
+    uvec4 newElement = uvec4(
+        packUnorm4x8(color),
+        floatBitsToUint(gl_FragCoord.z - 0.001),
+        imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), newIndex),
+        42
+    );
+    fragmentList[newIndex] = newElement;
 }
