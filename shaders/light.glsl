@@ -1,5 +1,8 @@
 // Light related stuff
 
+#ifndef TRC_LIGHT_GLSL_INCLUDE
+#define TRC_LIGHT_GLSL_INCLUDE
+
 #define LIGHT_TYPE_SUN 0
 #define LIGHT_TYPE_POINT 1
 #define LIGHT_TYPE_AMBIENT 2
@@ -20,3 +23,5 @@ struct Light
     bool hasShadow;
     uint firstShadowIndex;
 };
+
+#endif

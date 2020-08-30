@@ -1,5 +1,8 @@
 // Functions that calculate shadows
 
+#ifndef TRC_SHADOW_GLSL_INCLUDE
+#define TRC_SHADOW_GLSL_INCLUDE
+
 #extension GL_GOOGLE_include_directive : require
 
 #ifndef SHADOW_DESCRIPTOR_SET_BINDING
@@ -61,3 +64,5 @@ float lightShadowValue(vec3 worldCoords, Light light, float bias)
 
     return NO_SHADOW;
 }
+
+#endif

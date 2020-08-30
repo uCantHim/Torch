@@ -1,5 +1,8 @@
 // Material related stuff
 
+#ifndef TRC_MATERIAL_GLSL_INCLUDE
+#define TRC_MATERIAL_GLSL_INCLUDE
+
 #define NO_TEXTURE (uint(0) - 1)
 
 struct Material
@@ -17,3 +20,5 @@ struct Material
     uint specularTexture;
     uint bumpTexture;
 };
+
+#endif
