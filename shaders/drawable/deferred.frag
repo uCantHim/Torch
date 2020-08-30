@@ -4,10 +4,11 @@
 
 #include "../material.glsl"
 
-//layout (early_fragment_tests) in;
+layout (early_fragment_tests) in;
 
 // Constants
 layout (constant_id = 1) const bool isPickable = false;
+layout (constant_id = 2) const bool isTransparent = false;
 
 // Buffers
 layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
@@ -79,10 +80,10 @@ void appendFragment(vec4 color);
 
 void main()
 {
-    uint diffTex = materials[vert.material].diffuseTexture;
-    vec4 diffTexColor = texture(textures[diffTex], vert.uv);
-    if (diffTexColor.a < 1.0)
+    if (isTransparent) // constant
     {
+        //uint diffTex = materials[vert.material].diffuseTexture;
+        //vec4 diffTexColor = texture(textures[diffTex], vert.uv);
         appendFragment(vec4(0, 0, 1, 1));
         discard;
     }

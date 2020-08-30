@@ -87,6 +87,14 @@ auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine
     return animEngine;
 }
 
+void trc::Drawable::makeTransparent()
+{
+    isTransparent = true;
+    currentScene->unregisterDrawFunction(deferredRegistration);
+    currentScene->unregisterDrawFunction(shadowRegistration);
+    updateDrawFunction();
+}
+
 void trc::Drawable::attachToScene(SceneBase& scene)
 {
     removeFromScene();
@@ -121,13 +129,15 @@ void trc::Drawable::updateDrawFunction()
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 drawAnimated(env, cmdBuf);
             };
-            pipeline = Pipelines::eDrawableDeferredAnimated;
+            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferredAnimated
+                                     : Pipelines::eDrawableDeferredAnimated;
         }
         else {
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 drawAnimatedAndPickable(env, cmdBuf);
             };
-            pipeline = Pipelines::eDrawableDeferredAnimatedAndPickable;
+            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferredAnimatedAndPickable
+                                     : Pipelines::eDrawableDeferredAnimatedAndPickable;
         }
     }
     else
@@ -136,19 +146,21 @@ void trc::Drawable::updateDrawFunction()
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 draw(env, cmdBuf);
             };
-            pipeline = Pipelines::eDrawableDeferred;
+            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferred
+                                     : Pipelines::eDrawableDeferred;
         }
         else {
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 drawPickable(env, cmdBuf);
             };
-            pipeline = Pipelines::eDrawableDeferredPickable;
+            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferredPickable
+                                     : Pipelines::eDrawableDeferredPickable;
         }
     }
 
     deferredRegistration = currentScene->registerDrawFunction(
         RenderStages::eDeferred,
-        DeferredSubPasses::eGBufferPass,
+        isTransparent ? DeferredSubPasses::eTransparencyPass : DeferredSubPasses::eGBufferPass,
         pipeline,
         std::move(func)
     );

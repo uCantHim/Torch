@@ -44,8 +44,12 @@ namespace trc::internal
         eDrawableDeferredAnimated = 1,
         eDrawableDeferredPickable = 2,
         eDrawableDeferredAnimatedAndPickable = 3,
-        eFinalLighting = 4,
-        eDrawableInstancedDeferred = 5,
+        eDrawableTransparentDeferred,
+        eDrawableTransparentDeferredAnimated,
+        eDrawableTransparentDeferredPickable,
+        eDrawableTransparentDeferredAnimatedAndPickable,
+        eFinalLighting,
+        eDrawableInstancedDeferred,
 
         eDrawableShadow,
         eDrawableInstancedShadow,
@@ -59,6 +63,7 @@ namespace trc::internal
     void makeDrawableDeferredPickablePipeline(RenderPass& renderPass);
     void makeDrawableDeferredAnimatedAndPickablePipeline(RenderPass& renderPass);
     void _makeDrawableDeferredPipeline(ui32 pipelineIndex, ui32 featureFlags, RenderPass& rp);
+    void makeDrawableTransparentPipeline(ui32 pipelineIndex, ui32 featureFlags, RenderPass& rp);
     void makeInstancedDrawableDeferredPipeline(RenderPass& renderPass);
 
     // Shadow pipelines

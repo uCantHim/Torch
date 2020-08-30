@@ -76,6 +76,8 @@ namespace trc
             return newPickable;
         }
 
+        void makeTransparent();
+
         /**
          * @brief Register all necessary functions at a scene
          *
@@ -112,6 +114,7 @@ namespace trc
         Geometry* geo{ nullptr };
         ui32 matIndex{ 0 };
         Pickable::ID pickableId{ NO_PICKABLE };
+        bool isTransparent{ false };
 
         AnimationEngine animEngine;
     };

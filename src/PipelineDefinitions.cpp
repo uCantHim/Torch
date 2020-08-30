@@ -34,6 +34,26 @@ void trc::internal::makeAllDrawablePipelines()
     makeDrawableDeferredAnimatedPipeline(dummyDeferredPass);
     makeDrawableDeferredPickablePipeline(dummyDeferredPass);
     makeDrawableDeferredAnimatedAndPickablePipeline(dummyDeferredPass);
+    makeDrawableTransparentPipeline(
+        Pipelines::eDrawableTransparentDeferred,
+        DrawablePipelineFeatureFlagBits::eNone,
+        dummyDeferredPass
+    );
+    makeDrawableTransparentPipeline(
+        Pipelines::eDrawableTransparentDeferredPickable,
+        DrawablePipelineFeatureFlagBits::ePickable,
+        dummyDeferredPass
+    );
+    makeDrawableTransparentPipeline(
+        Pipelines::eDrawableTransparentDeferredAnimated,
+        DrawablePipelineFeatureFlagBits::eAnimated,
+        dummyDeferredPass
+    );
+    makeDrawableTransparentPipeline(
+        Pipelines::eDrawableTransparentDeferredAnimatedAndPickable,
+        DrawablePipelineFeatureFlagBits::ePickable | DrawablePipelineFeatureFlagBits::eAnimated,
+        dummyDeferredPass
+    );
     makeInstancedDrawableDeferredPipeline(dummyDeferredPass);
 
     RenderPassShadow dummyPass({ 1, 1 }, mat4());
@@ -151,6 +171,87 @@ void trc::internal::_makeDrawableDeferredPipeline(
             *vkb::VulkanBase::getDevice(),
             *layout,
             *renderPass, DeferredSubPasses::eGBufferPass
+        );
+
+    auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
+    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
+    p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
+}
+
+void trc::internal::makeDrawableTransparentPipeline(
+    ui32 pipelineIndex,
+    ui32 featureFlags,
+    RenderPass& renderPass)
+{
+    auto& swapchain = vkb::VulkanBase::getSwapchain();
+    auto extent = swapchain.getImageExtent();
+
+    // Layout
+    auto layout = makePipelineLayout(
+        std::vector<vk::DescriptorSetLayout> {
+            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
+            Animation::getDescriptorProvider().getDescriptorSetLayout(),
+        },
+        std::vector<vk::PushConstantRange> {
+            vk::PushConstantRange(
+                vk::ShaderStageFlagBits::eVertex,
+                0,
+                // General drawable data
+                sizeof(mat4)    // model matrix
+                + sizeof(ui32)  // material index
+                // Animation related data
+                + sizeof(ui32)  // current animation index (UINT32_MAX if no animation)
+                + sizeof(uvec2) // active keyframes
+                + sizeof(float) // keyframe weight
+            ),
+            vk::PushConstantRange(
+                vk::ShaderStageFlagBits::eFragment,
+                84,
+                sizeof(ui32)  // Picking ID
+            ),
+        }
+    );
+
+    // Pipeline
+    ui32 constants[] {
+        (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0,
+        (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0,
+        true // transparency
+    };
+    std::vector<vk::SpecializationMapEntry> specEntries{
+        vk::SpecializationMapEntry(0, 0, sizeof(ui32)),
+        vk::SpecializationMapEntry(1, sizeof(ui32), sizeof(ui32)),
+        vk::SpecializationMapEntry(2, sizeof(ui32) * 2, sizeof(ui32)),
+    };
+    vk::SpecializationInfo vertSpec(
+        specEntries.size(), specEntries.data(), sizeof(ui32) * 3, constants);
+    vk::SpecializationInfo fragSpec(
+        specEntries.size(), specEntries.data(), sizeof(ui32) * 3, constants);
+
+    vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
+                               SHADER_DIR / "drawable/deferred.frag.spv");
+    program.setVertexSpecializationConstants(&vertSpec);
+    program.setFragmentSpecializationConstants(&fragSpec);
+
+    vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
+            makeVertexAttributeDescriptions()
+        )
+        .setCullMode(vk::CullModeFlagBits::eNone) // Don't cull back faces because they're visible
+        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
+        .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .build(
+            *vkb::VulkanBase::getDevice(),
+            *layout,
+            *renderPass, DeferredSubPasses::eTransparencyPass
         );
 
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));

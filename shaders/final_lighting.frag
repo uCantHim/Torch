@@ -80,7 +80,7 @@ void main()
     // Exchange doesn't seem to have any difference in performance to imageLoad().
     // Use exchange to reset head pointer to default value.
     uint fragListIndex = imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), ~0u);
-    if (fragListIndex != ~0u && uintBitsToFloat(fragmentList[fragListIndex][1]) < subpassLoad(vertexPosition).w)
+    if (fragListIndex != ~0u)
     {
         fragColor *= unpackUnorm4x8(fragmentList[fragListIndex][0]);
         return;
