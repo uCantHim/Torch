@@ -42,6 +42,7 @@ namespace trc
     {
     public:
         static void init(const RenderPassDeferred& deferredPass);
+        static void resetValues(vk::CommandBuffer cmdBuf);
 
         static auto getProvider() -> const DescriptorProviderInterface&;
 
@@ -51,8 +52,10 @@ namespace trc
         static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>> descSets;
         static inline std::unique_ptr<FrameSpecificDescriptorProvider> provider;
 
-        static inline vkb::Image fragmentListHeadPointerImage;
-        static inline vk::UniqueImageView fragmentListHeadPointerImageView;
-        static inline vkb::Buffer fragmentListBuffer;
+        static inline std::unique_ptr<vkb::FrameSpecificObject<vkb::Image>>
+            fragmentListHeadPointerImage;
+        static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueImageView>>
+            fragmentListHeadPointerImageView;
+        static inline std::unique_ptr<vkb::FrameSpecificObject<vkb::Buffer>> fragmentListBuffer;
     };
 } // namespace trc

@@ -229,6 +229,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
                                    vk::ImageLayout::eColorAttachmentOptimal);
     images[3].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
+    DeferredRenderPassDescriptor::resetValues(cmdBuf);
 
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
@@ -276,21 +277,41 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
         sizeof(ui32), vkb::getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment);
     const ui32 FRAGMENT_LIST_SIZE = sizeof(uvec3) * MAX_FRAGS_PER_PIXEL
                                     * swapchainSize.width * swapchainSize.height;
-    fragmentListHeadPointerImage = vkb::Image(vk::ImageCreateInfo(
-        {},
-        vk::ImageType::e2D, vk::Format::eR8Uint,
-        vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
-        1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eStorage
-    ));
-    fragmentListHeadPointerImage.changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
-    fragmentListHeadPointerImageView = fragmentListHeadPointerImage.createView(
-        vk::ImageViewType::e2D, vk::Format::eR8Uint
-    );
-    fragmentListBuffer = vkb::Buffer(
-        ATOMIC_BUFFER_SECTION_SIZE + FRAGMENT_LIST_SIZE,
-        vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
-    );
+    std::vector<vk::UniqueImageView> imageViews;
+    fragmentListHeadPointerImage.reset(new vkb::FrameSpecificObject<vkb::Image>{ [&](ui32) {
+        vkb::Image result(vk::ImageCreateInfo(
+            {},
+            vk::ImageType::e2D, vk::Format::eR32Uint,
+            vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
+            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+            vk::ImageUsageFlagBits::eStorage
+        ));
+        result.changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        imageViews.push_back(result.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint));
+        return result;
+    }});
+    fragmentListHeadPointerImageView.reset(new vkb::FrameSpecificObject<vk::UniqueImageView>{
+        std::move(imageViews)
+    });
+    fragmentListBuffer.reset(new vkb::FrameSpecificObject<vkb::Buffer>{ [&](ui32) {
+        vkb::Buffer result(
+            ATOMIC_BUFFER_SECTION_SIZE + FRAGMENT_LIST_SIZE,
+            vk::BufferUsageFlagBits::eStorageBuffer
+            | vk::BufferUsageFlagBits::eTransferDst
+            | vk::BufferUsageFlagBits::eTransferSrc,
+            vk::MemoryPropertyFlagBits::eDeviceLocal
+        );
+
+        const ui32 MAX_FRAGS = MAX_FRAGS_PER_PIXEL * swapchainSize.width * swapchainSize.height;
+        auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
+        cmdBuf->begin(vk::CommandBufferBeginInfo(vk::CommandBufferBeginInfo()));
+        cmdBuf->updateBuffer<ui32>(*result, 0, { 0, MAX_FRAGS, 0, });
+        cmdBuf->end();
+        vkb::getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
+
+        return result;
+    }});
+
 
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
@@ -338,11 +359,13 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
             { {}, *imageViews[1], vk::ImageLayout::eShaderReadOnlyOptimal },
             { {}, *imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal },
             { {}, *imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, *fragmentListHeadPointerImageView, vk::ImageLayout::eGeneral },
+            { {}, *fragmentListHeadPointerImageView->getAt(imageIndex), vk::ImageLayout::eGeneral },
         };
         std::vector<vk::DescriptorBufferInfo> bufferInfos{
-            { *fragmentListBuffer, 0,                          ATOMIC_BUFFER_SECTION_SIZE },
-            { *fragmentListBuffer, ATOMIC_BUFFER_SECTION_SIZE, FRAGMENT_LIST_SIZE },
+            { *fragmentListBuffer->getAt(imageIndex),
+              0,                          ATOMIC_BUFFER_SECTION_SIZE },
+            { *fragmentListBuffer->getAt(imageIndex),
+              ATOMIC_BUFFER_SECTION_SIZE, FRAGMENT_LIST_SIZE },
         };
         std::vector<vk::WriteDescriptorSet> writes = {
             { *set, 0, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[0] },
@@ -364,6 +387,12 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
             [](ui32 imageIndex) { return *descSets->getAt(imageIndex); }
         )
     ));
+}
+
+void trc::DeferredRenderPassDescriptor::resetValues(vk::CommandBuffer cmdBuf)
+{
+    cmdBuf.copyBuffer(***fragmentListBuffer, ***fragmentListBuffer,
+                      vk::BufferCopy(sizeof(ui32) * 3, 0, sizeof(ui32)));
 }
 
 auto trc::DeferredRenderPassDescriptor::getProvider() -> const DescriptorProviderInterface&
