@@ -4,7 +4,7 @@
 
 #include "../material.glsl"
 
-layout (early_fragment_tests) in;
+//layout (early_fragment_tests) in;
 
 // Constants
 layout (constant_id = 1) const bool isPickable = false;
@@ -29,6 +29,24 @@ layout (set = 2, binding = 1) restrict buffer PickingBuffer
     uint instanceID;
     float depth;
 } picking;
+
+layout (set = 3, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
+
+layout (set = 3, binding = 5) restrict buffer FragmentListAllocator
+{
+    uint nextFragmentListIndex;
+    uint maxFragmentListIndex;
+};
+
+layout (set = 3, binding = 6) restrict buffer FragmentList
+{
+    /**
+     * 0: A packed color
+     * 1: Fragment depth value
+     * 2: Next-pointer
+     */
+    uint fragmentList[][3];
+};
 
 // Push Constants
 layout (push_constant) uniform PushConstants
@@ -57,9 +75,19 @@ layout (location = 3) out uint outMaterial;
 //      Main       //
 /////////////////////
 
+void appendFragment(vec4 color);
+
 void main()
 {
-    outPosition = vec4(vert.worldPos, 1.0);
+    uint diffTex = materials[vert.material].diffuseTexture;
+    vec4 diffTexColor = texture(textures[diffTex], vert.uv);
+    if (diffTexColor.a < 1.0)
+    {
+        appendFragment(vec4(0, 0, 1, 1));
+        discard;
+    }
+
+    outPosition = vec4(vert.worldPos, gl_FragCoord.z);
     outUv = vert.uv;
     outMaterial = vert.material;
 
@@ -86,4 +114,20 @@ void main()
             picking.depth = gl_FragCoord.z;
         }
     }
+}
+
+
+void appendFragment(vec4 color)
+{
+    uint newIndex = atomicAdd(nextFragmentListIndex, 1);
+    if (newIndex > maxFragmentListIndex) {
+        return;
+    }
+
+    uint newElement[3] = {
+        packUnorm4x8(color),
+        floatBitsToUint(gl_FragCoord.z - 0.001),
+        imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), newIndex)
+    };
+    fragmentList[newIndex] = newElement;
 }

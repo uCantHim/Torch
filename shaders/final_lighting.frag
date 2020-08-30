@@ -24,6 +24,23 @@ layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 
 layout (set = 1, binding = 1) uniform sampler2D textures[];
 
+layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
+
+layout (set = 2, binding = 5) restrict buffer FragmentListAllocator
+{
+    uint nextFragmentListIndex;
+};
+
+layout (set = 2, binding = 6) restrict buffer FragmentList
+{
+    /**
+     * 0: A packed color
+     * 1: Fragment depth value
+     * 2: Next-pointer
+     */
+    uint fragmentList[][3];
+};
+
 layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
 {
     uint numLights;
@@ -48,12 +65,6 @@ vec3 calcLighting(vec3 color);
 
 void main()
 {
-    if (subpassLoad(vertexPosition).w != 1.0)
-    {
-        fragColor = vec4(0.0);
-        return;
-    }
-
     vec3 color = vec3(0.3, 1.0, 0.9);
 
     // Use diffuse texture if available
@@ -65,6 +76,15 @@ void main()
     }
 
     fragColor = vec4(calcLighting(color), 1.0);
+
+    // Exchange doesn't seem to have any difference in performance to imageLoad().
+    // Use exchange to reset head pointer to default value.
+    uint fragListIndex = imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), ~0u);
+    if (fragListIndex != ~0u && uintBitsToFloat(fragmentList[fragListIndex][1]) < subpassLoad(vertexPosition).w)
+    {
+        fragColor *= unpackUnorm4x8(fragmentList[fragListIndex][0]);
+        return;
+    }
 }
 
 
