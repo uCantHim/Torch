@@ -32,7 +32,8 @@ namespace trc::internal
     enum DeferredSubPasses
     {
         eGBufferPass = 0,
-        eLightingPass = 1,
+        eTransparencyPass = 1,
+        eLightingPass = 2,
 
         NUM_SUBPASSES
     };

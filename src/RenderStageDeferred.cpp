@@ -7,7 +7,7 @@
 
 trc::DeferredStage::DeferredStage()
     :
-    RenderStage(2)
+    RenderStage(NUM_DEFERRED_SUBPASSES)
 {
     RenderPass::create<RenderPassDeferred>(internal::RenderPasses::eDeferredPass);
     addRenderPass(internal::RenderPasses::eDeferredPass);
@@ -63,6 +63,11 @@ trc::RenderPassDeferred::RenderPassDeferred()
                 { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
             };
 
+            std::vector<vk::AttachmentReference> transparencyAttachments{
+                { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
+            };
+            std::vector<ui32> transparencyPreservedAttachments{ 0, 1, 2, 3 };
+
             std::vector<vk::AttachmentReference> lightingAttachments = {
                 { 0, vk::ImageLayout::eShaderReadOnlyOptimal }, // Vertex positions
                 { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
@@ -72,6 +77,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
             };
 
             std::vector<vk::SubpassDescription> subpasses = {
+                // Deferred diffuse subpass
                 vk::SubpassDescription(
                     vk::SubpassDescriptionFlags(),
                     vk::PipelineBindPoint::eGraphics,
@@ -80,6 +86,17 @@ trc::RenderPassDeferred::RenderPassDeferred()
                     nullptr, // resolve attachments
                     &deferredAttachments[4]
                 ),
+                // Deferred transparency subpass
+                vk::SubpassDescription(
+                    vk::SubpassDescriptionFlags(),
+                    vk::PipelineBindPoint::eGraphics,
+                    0, nullptr, // input attachments
+                    0, nullptr, // color attachments
+                    nullptr,    // resolve attachments
+                    &transparencyAttachments[0], // depth attachment (read-only)
+                    4, transparencyPreservedAttachments.data() // preserve the deferred attachments
+                ),
+                // Final lighting subpass
                 vk::SubpassDescription(
                     vk::SubpassDescriptionFlags(),
                     vk::PipelineBindPoint::eGraphics,
@@ -101,6 +118,14 @@ trc::RenderPassDeferred::RenderPassDeferred()
                 ),
                 vk::SubpassDependency(
                     0, 1,
+                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                    vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+                    vk::AccessFlagBits::eDepthStencilAttachmentRead,
+                    vk::DependencyFlagBits::eByRegion
+                ),
+                vk::SubpassDependency(
+                    1, 2,
                     vk::PipelineStageFlagBits::eAllGraphics,
                     vk::PipelineStageFlagBits::eAllGraphics,
                     vk::AccessFlagBits::eColorAttachmentWrite,
@@ -118,7 +143,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
                 )
             );
         }(),
-        2 // Number of subpasses
+        NUM_DEFERRED_SUBPASSES
     ), // Base class RenderPass constructor
     framebuffers([&](ui32 frameIndex)
     {

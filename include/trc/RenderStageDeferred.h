@@ -9,6 +9,8 @@
 
 namespace trc
 {
+    constexpr ui32 NUM_DEFERRED_SUBPASSES = 3;
+
     class DeferredStage : public RenderStage
     {
     public:
