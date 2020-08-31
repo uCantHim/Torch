@@ -10,14 +10,24 @@ trc::AnimationEngine::AnimationEngine(const Rig& rig)
 
 void trc::AnimationEngine::playAnimation(ui32 index)
 {
-    currentAnimation = &rig->getAnimation(index);
-    currentAnimationIndex = currentAnimation->getBufferIndex();
+    try {
+        currentAnimation = &rig->getAnimation(index);
+        currentAnimationIndex = currentAnimation->getBufferIndex();
+    }
+    catch (const std::out_of_range& err) {
+        // Do nothing
+    }
 }
 
 void trc::AnimationEngine::playAnimation(const std::string& name)
 {
-    currentAnimation = &rig->getAnimationByName(name);
-    currentAnimationIndex = currentAnimation->getBufferIndex();
+    try {
+        currentAnimation = &rig->getAnimationByName(name);
+        currentAnimationIndex = currentAnimation->getBufferIndex();
+    }
+    catch (const std::out_of_range& err) {
+        // Do nothing
+    }
 }
 
 auto trc::AnimationEngine::getCurrentAnimationIndex() const noexcept -> ui32

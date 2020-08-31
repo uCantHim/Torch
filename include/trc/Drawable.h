@@ -18,7 +18,7 @@ namespace trc
     public:
         Drawable() = default;
         explicit
-        Drawable(Geometry& geo, ui32 material = 0);
+        Drawable(Geometry& geo, ui32 material = 0, bool transparent = false);
         Drawable(Geometry& geo, ui32 material, SceneBase& scene);
         ~Drawable();
 
@@ -28,7 +28,6 @@ namespace trc
         Drawable(const Drawable&) = delete;
         auto operator=(const Drawable&) -> Drawable& = delete;
 
-        void setGeometry(Geometry& geo);
         void setMaterial(ui32 matIndex);
 
         /**
@@ -54,6 +53,8 @@ namespace trc
          * Pickable for this to work. The ID of the created Pickable is
          * stored in the Drawable.
          *
+         * The pickable object is destroyed when the drawable is destroyed.
+         *
          * Picking cannot be disabled once it has been enabled.
          *
          * @tparam PickableType Type of the Pickable that's created for the
@@ -71,12 +72,12 @@ namespace trc
             );
 
             pickableId = newPickable.getPickableId();
-            updateDrawFunction();
+            updateDrawFunctions();
 
             return newPickable;
         }
 
-        void makeTransparent();
+        void enableTransparency();
 
         /**
          * @brief Register all necessary functions at a scene
@@ -96,7 +97,8 @@ namespace trc
         void removeFromScene();
 
     private:
-        void updateDrawFunction();
+        void removeDrawFunctions();
+        void updateDrawFunctions();
 
         void prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout);
 

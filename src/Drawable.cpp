@@ -6,10 +6,16 @@
 
 
 
-trc::Drawable::Drawable(Geometry& geo, ui32 material)
+trc::Drawable::Drawable(Geometry& geo, ui32 material, bool transparent)
+    :
+    geo(&geo),
+    isTransparent(transparent)
 {
-    setGeometry(geo);
+    if (geo.hasRig()) {
+        animEngine = { *geo.getRig() };
+    }
     setMaterial(material);
+    updateDrawFunctions();
 }
 
 trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
@@ -23,6 +29,7 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
     geo(other.geo),
     matIndex(other.matIndex),
     pickableId(other.pickableId),
+    isTransparent(other.isTransparent),
     animEngine(std::move(other.animEngine))
 {
     if (other.currentScene != nullptr)
@@ -31,7 +38,9 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
         other.removeFromScene();
     }
     other.geo = nullptr;
+    other.matIndex = 0;
     other.pickableId = NO_PICKABLE;
+    other.isTransparent = false;
 }
 
 auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
@@ -42,6 +51,8 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
     rhs.matIndex = 0;
     pickableId = rhs.pickableId;
     rhs.pickableId = NO_PICKABLE;
+    isTransparent = rhs.isTransparent;
+    rhs.isTransparent = false;
 
     animEngine = std::move(rhs.animEngine);
 
@@ -58,18 +69,9 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 trc::Drawable::~Drawable()
 {
     removeFromScene();
-    //PickableRegistry::destroyPickable(PickableRegistry::getPickable(pickableId));
-}
-
-void trc::Drawable::setGeometry(Geometry& geo)
-{
-    this->geo = &geo;
-    if (geo.hasRig()) {
-        animEngine = { *geo.getRig() };
+    if (pickableId != NO_PICKABLE) {
+        PickableRegistry::destroyPickable(PickableRegistry::getPickable(pickableId));
     }
-
-    removeFromScene();
-    updateDrawFunction();
 }
 
 void trc::Drawable::setMaterial(ui32 matIndex)
@@ -87,12 +89,11 @@ auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine
     return animEngine;
 }
 
-void trc::Drawable::makeTransparent()
+void trc::Drawable::enableTransparency()
 {
     isTransparent = true;
-    currentScene->unregisterDrawFunction(deferredRegistration);
-    currentScene->unregisterDrawFunction(shadowRegistration);
-    updateDrawFunction();
+    removeDrawFunctions();
+    updateDrawFunctions();
 }
 
 void trc::Drawable::attachToScene(SceneBase& scene)
@@ -100,21 +101,25 @@ void trc::Drawable::attachToScene(SceneBase& scene)
     removeFromScene();
 
     currentScene = &scene;
-    updateDrawFunction();
+    updateDrawFunctions();
 }
 
 void trc::Drawable::removeFromScene()
 {
-    if (currentScene == nullptr) {
-        return;
+    if (currentScene != nullptr)
+    {
+        removeDrawFunctions();
+        currentScene = nullptr;
     }
-
-    currentScene->unregisterDrawFunction(deferredRegistration);
-    currentScene->unregisterDrawFunction(shadowRegistration);
-    currentScene = nullptr;
 }
 
-void trc::Drawable::updateDrawFunction()
+void trc::Drawable::removeDrawFunctions()
+{
+    currentScene->unregisterDrawFunction(deferredRegistration);
+    currentScene->unregisterDrawFunction(shadowRegistration);
+}
+
+void trc::Drawable::updateDrawFunctions()
 {
     if (currentScene == nullptr || geo == nullptr) {
         return;
@@ -175,14 +180,8 @@ void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout lay
     cmdBuf.bindIndexBuffer(geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
     cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
 
-    cmdBuf.pushConstants<mat4>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        0, getGlobalTransform()
-    );
-    cmdBuf.pushConstants<ui32>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), matIndex
-    );
+    cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0, getGlobalTransform());
+    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), matIndex);
 }
 
 void trc::Drawable::draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
@@ -204,6 +203,8 @@ void trc::Drawable::drawAnimated(const DrawEnvironment& env, vk::CommandBuffer c
 
 void trc::Drawable::drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
+    assert(pickableId != NO_PICKABLE);
+
     auto layout = env.currentPipeline->getLayout();
     prepareDraw(cmdBuf, layout);
     cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
@@ -213,6 +214,8 @@ void trc::Drawable::drawPickable(const DrawEnvironment& env, vk::CommandBuffer c
 
 void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
 {
+    assert(pickableId != NO_PICKABLE);
+
     auto layout = env.currentPipeline->getLayout();
     prepareDraw(cmdBuf, layout);
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);

@@ -147,7 +147,7 @@ int main()
     trc::AssetRegistry::updateMaterialBuffer();
 
     trc::Drawable linda(lindaGeo, matIdx, *scene);
-    linda.makeTransparent();
+    linda.enableTransparency();
     linda.setScale(0.3f).translateX(-1.0f);
     linda.getAnimationEngine().playAnimation(0);
     auto& pickable = linda.enablePicking<trc::PickableFunctional>(
