@@ -452,11 +452,7 @@ void trc::internal::makeFinalLightingPipeline(
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
         },
-        std::vector<vk::PushConstantRange>
-        {
-            // Camera position
-            vk::PushConstantRange(vk::ShaderStageFlagBits::eFragment, 0, sizeof(vec3)),
-        }
+        std::vector<vk::PushConstantRange>{}
     );
 
     // Pipeline

@@ -52,13 +52,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
         internal::RenderStages::eDeferred,
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
-        [&, cameraPos = -camera.getViewMatrix()[3]](auto&&, vk::CommandBuffer cmdBuf)
+        [&](auto&&, vk::CommandBuffer cmdBuf)
         {
-            auto& p = Pipeline::at(internal::Pipelines::eFinalLighting);
-            cmdBuf.pushConstants<vec3>(
-                p.getLayout(), vk::ShaderStageFlagBits::eFragment, 0, vec3(cameraPos)
-            );
-
             cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
             cmdBuf.draw(6, 1, 0, 0);
         }

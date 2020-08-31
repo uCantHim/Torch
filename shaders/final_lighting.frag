@@ -10,6 +10,14 @@ layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput v
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
 layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
 
+layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
+{
+    mat4 viewMatrix;
+    mat4 projMatrix;
+    mat4 inverseViewMatrix;
+    mat4 inverseProjMatrix;
+} camera;
+
 layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
 {
     vec2 mousePos;
@@ -46,11 +54,6 @@ layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
     Light lights[];
 };
 
-layout (push_constant) uniform PushConstants
-{
-    vec3 cameraPos;
-} pushConstants;
-
 layout (location = 0) out vec4 fragColor;
 
 
@@ -79,7 +82,7 @@ void main()
             color,
             subpassLoad(vertexPosition).xyz,
             normalize(subpassLoad(vertexNormal).xyz),
-            pushConstants.cameraPos,
+            camera.inverseViewMatrix[3].xyz,
             matIndex
         ),
         1.0
