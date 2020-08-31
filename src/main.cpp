@@ -89,6 +89,9 @@ int main()
         vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
     );
 
+    auto [grassImg, grassImgIdx] = trc::AssetRegistry::addImage(
+        vkb::Image("assets/grass_billboard_001.png")
+    );
     auto [stoneTex, stoneTexIdx] = trc::AssetRegistry::addImage(
         vkb::Image("assets/rough_stone_wall.tif")
     );
@@ -100,9 +103,15 @@ int main()
     mat.get().colorAmbient = vec4(1.0f);
     mat.get().colorDiffuse = vec4(1.0f);
     mat.get().colorSpecular = vec4(1.0f);
-    mat.get().diffuseTexture = stoneTexIdx;
+    mat.get().diffuseTexture = grassImgIdx;
     mat.get().bumpTexture = stoneNormalTexIdx;
     mat.get().shininess = 2.0f;
+
+    mapMat.get().colorAmbient = vec4(1.0f);
+    mapMat.get().colorDiffuse = vec4(1.0f);
+    mapMat.get().colorSpecular = vec4(1.0f);
+    mapMat.get().diffuseTexture = stoneTexIdx;
+    mapMat.get().bumpTexture = stoneNormalTexIdx;
 
     trc::AssetRegistry::updateMaterialBuffer();
 
@@ -121,15 +130,15 @@ int main()
     skeletons.reserve(50);
     for (int i = 0; i < 50; i++)
     {
-        auto& skeleton = skeletons.emplace_back(skeletonGeo, mapMatIndex, *scene);
+        auto& skeleton = skeletons.emplace_back(skeletonGeo, matIdx, *scene);
         skeleton.setScale(0.04f).translateX(-0.3f + 0.05f * i);
         skeleton.getAnimationEngine().playAnimation(0);
     }
 
     // Hooded boi
-    trc::Drawable hoddedBoi(hoodedBoiGeo, treeMatIndex, *scene);
-    hoddedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    hoddedBoi.getAnimationEngine().playAnimation(0);
+    trc::Drawable hoodedBoi(hoodedBoiGeo, treeMatIndex, *scene);
+    hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
+    hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
     auto [lindaMat, lindaMatIdx] = trc::AssetRegistry::addMaterial(lindaMesh.materials[0]);
@@ -137,7 +146,8 @@ int main()
     lindaMat.get().diffuseTexture = lindaDiffTexIdx;
     trc::AssetRegistry::updateMaterialBuffer();
 
-    trc::Drawable linda(lindaGeo, lindaMatIdx, *scene);
+    trc::Drawable linda(lindaGeo, matIdx, *scene);
+    linda.makeTransparent();
     linda.setScale(0.3f).translateX(-1.0f);
     linda.getAnimationEngine().playAnimation(0);
     auto& pickable = linda.enablePicking<trc::PickableFunctional>(
@@ -149,12 +159,7 @@ int main()
     auto [myPlaneGeo, myPlaneGeoIndex] = trc::AssetRegistry::addGeometry(
         trc::Geometry(trc::makePlaneGeo(20.0f, 20.0f, 20, 20))
     );
-    trc::Drawable myPlane(myPlaneGeo, matIdx, *scene);
-
-    auto planeImport = fbxLoader.loadFBXFile("assets/plane.fbx");
-    auto [planeGeo, planeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(planeImport.meshes[0].mesh));
-    //trc::Drawable plane(planeGeo, matIdx, *scene);
-    //plane.rotateZ(glm::radians(90.0f)).setScale(30.0f);
+    trc::Drawable myPlane(myPlaneGeo, mapMatIndex, *scene);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
@@ -181,7 +186,7 @@ int main()
         t.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
         t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
 
-        instancedTrees->addInstance({ t.getTransformationMatrix(), matIdx });
+        instancedTrees->addInstance({ t.getTransformationMatrix(), mapMatIndex });
     }
 
 
