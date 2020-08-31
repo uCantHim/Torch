@@ -5,6 +5,8 @@
 #include "material.glsl"
 #include "light.glsl"
 
+#define MAX_FRAGS 10
+
 layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
 layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
@@ -64,6 +66,8 @@ layout (location = 0) out vec4 fragColor;
 #define SHADOW_DESCRIPTOR_SET_BINDING 4
 #include "lighting.glsl"
 
+vec3 blendTransparent(vec3 opaqueColor);
+
 void main()
 {
     vec3 color = vec3(0.3, 1.0, 0.9);
@@ -77,23 +81,58 @@ void main()
         color = texture(textures[diffTexture], uv).rgb;
     }
 
-    fragColor = vec4(
-        calcLighting(
-            color,
-            subpassLoad(vertexPosition).xyz,
-            normalize(subpassLoad(vertexNormal).xyz),
-            camera.inverseViewMatrix[3].xyz,
-            matIndex
-        ),
-        1.0
+    color = calcLighting(
+        color,
+        subpassLoad(vertexPosition).xyz,
+        normalize(subpassLoad(vertexNormal).xyz),
+        camera.inverseViewMatrix[3].xyz,
+        matIndex
     );
 
+    color = blendTransparent(color);
+
+    fragColor = vec4(color, 1.0);
+}
+
+
+vec3 blendTransparent(vec3 opaqueColor)
+{
     // Exchange doesn't seem to have any difference in performance to imageLoad().
     // Use exchange to reset head pointer to default value.
     uint fragListIndex = imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), ~0u);
-    while (fragListIndex != ~0u)
+
+    // Build fragment list
+    uvec4 fragments[MAX_FRAGS];
+    int numFragments = 0;
+    while (numFragments < MAX_FRAGS && fragListIndex != ~0u)
     {
-        fragColor *= unpackUnorm4x8(fragmentList[fragListIndex][0]);
-        fragListIndex = fragmentList[fragListIndex][2];
+        fragments[numFragments] = fragmentList[fragListIndex];
+        numFragments++;
+        fragListIndex = fragmentList[fragListIndex].z;
     }
+
+    // Sort fragment list
+    for (int i = numFragments - 1; i > 0; i--)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            float depth1 = uintBitsToFloat(fragments[j].y);
+            float depth2 = uintBitsToFloat(fragments[j + 1].y);
+            if (depth1 > depth2)
+            {
+                uvec4 temp = fragments[j];
+                fragments[j] = fragments[j + 1];
+                fragments[j + 1] = temp;
+            }
+        }
+    }
+
+    // Blend fragments
+    for (int i = numFragments - 1; i >= 0; i--)
+    {
+        vec4 color = unpackUnorm4x8(fragments[i].x);
+        opaqueColor = opaqueColor * (1.0 - color.a) + color.rgb * color.a;
+    }
+
+    return opaqueColor;
 }

@@ -300,7 +300,7 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
     const auto swapchainSize = vkb::getSwapchain().getImageExtent();
     const ui32 ATOMIC_BUFFER_SECTION_SIZE = util::pad(
         sizeof(ui32), vkb::getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment);
-    const ui32 FRAGMENT_LIST_SIZE = sizeof(uvec3) * MAX_FRAGS_PER_PIXEL
+    const ui32 FRAGMENT_LIST_SIZE = sizeof(uvec4) * MAX_FRAGS_PER_PIXEL
                                     * swapchainSize.width * swapchainSize.height;
     std::vector<vk::UniqueImageView> imageViews;
     fragmentListHeadPointerImage.reset(new vkb::FrameSpecificObject<vkb::Image>{ [&](ui32) {

@@ -5,6 +5,7 @@
 #include "../material.glsl"
 #include "../light.glsl"
 
+// Compare early against the depth values from the opaque pass
 layout (early_fragment_tests) in;
 
 // Constants
@@ -56,6 +57,8 @@ layout (set = 3, binding = 5) restrict buffer FragmentListAllocator
 layout (set = 3, binding = 6) restrict buffer FragmentList
 {
     /**
+     * Four components because uvec3 causes alignment issues :/
+     *
      * 0: A packed color
      * 1: Fragment depth value
      * 2: Next-pointer
@@ -99,7 +102,7 @@ void main()
         diffuseColor.rgb,
         vert.worldPos,
         calcVertexNormal(),
-        (camera.viewMatrix * vec4(0, 0, 0, 1)).xyz,
+        camera.inverseViewMatrix[3].xyz,
         vert.material
     );
 
@@ -116,9 +119,6 @@ void main()
             picking.depth = gl_FragCoord.z;
         }
     }
-
-    // TODO: Does this improve performance?
-    discard;
 }
 
 

@@ -4,6 +4,12 @@
 
 vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint material)
 {
+    // This algorithm has undefined behaviour for normals N where |N| == 0
+    bvec3 nz = notEqual(normal, vec3(0.0));
+    if (!(nz.x || nz.y || nz.z)) {
+        return albedo;
+    }
+
     vec3 ambient = vec3(0.0);
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
