@@ -119,9 +119,12 @@ void vkb::Buffer::copyTo(const Buffer& dst, BufferRegion srcRegion, vk::DeviceSi
 
 void vkb::Buffer::copyFrom(vk::DeviceSize size, const void* data, BufferRegion dstRegion)
 {
-    auto buf = map(dstRegion);
-    memcpy(buf, data, size);
-    unmap();
+    if (data != nullptr)
+    {
+        auto buf = map(dstRegion);
+        memcpy(buf, data, size);
+        unmap();
+    }
 }
 
 
@@ -161,16 +164,18 @@ vkb::DeviceLocalBuffer::DeviceLocalBuffer(
     )
 {
     assert(bufferSize > 0);
-    assert(data != nullptr);
 
-    Buffer staging(
-        device,
-        bufferSize, data,
-        vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    );
+    if (data != nullptr)
+    {
+        Buffer staging(
+            device,
+            bufferSize, data,
+            vk::BufferUsageFlagBits::eTransferSrc,
+            vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+        );
 
-    copyFrom(staging);
+        copyFrom(staging);
+    }
 }
 
 
