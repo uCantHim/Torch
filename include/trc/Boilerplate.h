@@ -4,12 +4,13 @@
 
 #define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
-using namespace glm;
 
 #define TRC_FLIP_Y_PROJECTION
 
 namespace trc
 {
+    using namespace glm;
+
     using int8 = int8_t;
     using int16 = int16_t;
     using int32 = int32_t;

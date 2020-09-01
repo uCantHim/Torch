@@ -1,14 +1,13 @@
-#include "RenderPassShadow.h"
 #include <chrono>
 using namespace std::chrono;
 #include <iostream>
 #include <fstream>
 
-#include <GLFW/glfw3.h>
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/event/Event.h>
+using namespace glm;
 
 #include "trc/utils/FBXLoader.h"
 #include "trc/Geometry.h"

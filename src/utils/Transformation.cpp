@@ -235,22 +235,22 @@ const glm::mat4& trc::Transformation::getTransformationMatrix() const
 	return matrixRepresentation;
 }
 
-vec3 trc::Transformation::getTranslation() const
+auto trc::Transformation::getTranslation() const -> vec3
 {
      return translation;
 }
 
-mat4 trc::Transformation::getTranslationAsMatrix() const
+auto trc::Transformation::getTranslationAsMatrix() const -> mat4
 {
      return glm::translate(mat4(1.0f), translation);
 }
 
-vec3 trc::Transformation::getScale() const
+auto trc::Transformation::getScale() const -> vec3
 {
      return scaling;
 }
 
-mat4 trc::Transformation::getScaleAsMatrix() const
+auto trc::Transformation::getScaleAsMatrix() const -> mat4
 {
      return mat4(scaling.x, 0.0f, 0.0f, 0.0f,
                  0.0f, scaling.y, 0.0f, 0.0f,
@@ -258,7 +258,7 @@ mat4 trc::Transformation::getScaleAsMatrix() const
                  0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-quat trc::Transformation::getRotation() const
+auto trc::Transformation::getRotation() const -> quat
 {
      return rotation;
 }
@@ -268,7 +268,7 @@ auto trc::Transformation::getRotationAngleAxis() const -> std::pair<float, vec3>
     return { glm::angle(rotation), glm::axis(rotation) };
 }
 
-mat4 trc::Transformation::getRotationAsMatrix() const
+auto trc::Transformation::getRotationAsMatrix() const -> mat4
 {
      return glm::mat4_cast(rotation);
 }
