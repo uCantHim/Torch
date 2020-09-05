@@ -28,7 +28,7 @@ void main()
     const vec4 worldPos = modelMatrix * vec4(vertexPosition, 1.0);
 
     // Don't apply camera rotation - the particles always face the camera
-    gl_Position = camera.projMatrix * (camera.viewMatrix[3] + worldPos);
+    gl_Position = camera.projMatrix * vec4((camera.viewMatrix[3].xyz + worldPos.xyz), 1.0);
 
     vert.worldPos = worldPos.xyz;
     vert.uv = vertexUv;
