@@ -10,6 +10,7 @@ target_sources(
         DrawableInstanced.cpp
         Geometry.cpp
         Light.cpp
+        Particle.cpp
         Node.cpp
         PickableRegistry.cpp
         Pipeline.cpp

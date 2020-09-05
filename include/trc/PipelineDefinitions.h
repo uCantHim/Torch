@@ -14,8 +14,7 @@ namespace trc::internal
         eDeferred,
         eShadow,
 
-        // Maybe one day...?
-        eReflection,
+        NUM_STAGES
     };
 
     enum RenderPasses : RenderPass::ID::Type
@@ -53,6 +52,8 @@ namespace trc::internal
 
         eDrawableShadow,
         eDrawableInstancedShadow,
+
+        eParticleDraw,
     };
 
     void makeAllDrawablePipelines();

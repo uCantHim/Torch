@@ -3,6 +3,7 @@ using namespace std::chrono;
 #include <iostream>
 #include <fstream>
 
+#include <glm/gtc/random.hpp>
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
@@ -16,6 +17,7 @@ using namespace glm;
 #include "trc/DrawableInstanced.h"
 #include "trc/Scene.h"
 #include "trc/Renderer.h"
+#include "trc/Particle.h"
 
 trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
 
@@ -119,7 +121,7 @@ int main()
     auto renderer = std::make_unique<trc::Renderer>();
 
     auto scene = std::make_unique<trc::Scene>();
-    camera.lookAt({ 0, 2.0f, 5.0f }, vec3(0, 2.0f, 5.0f) + vec3(0, -2.0f / 5.0f, -1 ), { 0, 1, 0 });
+    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 1.5f, -1.0f ), { 0, 1, 0 });
 
     trc::Drawable grass(grassGeo, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
@@ -189,6 +191,16 @@ int main()
     }
 
 
+    trc::ParticleCollection particleCollection{ 100 };
+    particleCollection.attachToScene(*scene);
+    for (int i = 0; i < 20; i++)
+    {
+        trc::Particle particle;
+        particle.phys.position = glm::linearRand(vec3(-2, 0, -2), vec3(2, 2, 2));
+        particleCollection.addParticle(particle);
+    }
+
+
     bool running{ true };
     auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
         [&running](const vkb::SwapchainCloseEvent&) { running = false; }
@@ -199,6 +211,7 @@ int main()
     while (running)
     {
         renderer->drawFrame(*scene, camera);
+        particleCollection.update();
 
         vkb::pollEvents();
         frames++;
