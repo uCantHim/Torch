@@ -121,9 +121,8 @@ void trc::Renderer::signalRecreateRequired()
 
 void trc::Renderer::recreate(vkb::Swapchain&)
 {
-    auto& deferredPass = RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    internal::makeAllDrawablePipelines();
-    internal::makeFinalLightingPipeline(deferredPass, deferredPass.getInputAttachmentDescriptor());
+    RenderPassDeferred::emplace<RenderPassDeferred>(0);
+    PipelineRegistry::recreateAll();
 
     createSemaphores();
 }
