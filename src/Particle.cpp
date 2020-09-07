@@ -136,6 +136,7 @@ void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
 void trc::ParticleCollection::update()
 {
     std::lock_guard lock(lockParticleUpdate);
+    if (particles.empty()) return;
 
     // Run updater on matrix buffer
     auto matrixBuf = reinterpret_cast<mat4*>(particleMatrixStagingBuffer.map());
