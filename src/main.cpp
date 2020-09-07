@@ -121,7 +121,7 @@ int main()
     auto renderer = std::make_unique<trc::Renderer>();
 
     auto scene = std::make_unique<trc::Scene>();
-    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 1.5f, -1.0f ), { 0, 1, 0 });
+    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
 
     trc::Drawable grass(grassGeo, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
@@ -197,6 +197,8 @@ int main()
     {
         trc::Particle particle;
         particle.phys.position = glm::linearRand(vec3(-2, 0, -2), vec3(2, 2, 2));
+        particle.phys.linearVelocity = vec3(0, -0.2, 0);
+        particle.phys.angularVelocity = glm::radians(30.0f);
         particleCollection.addParticle(particle);
     }
 

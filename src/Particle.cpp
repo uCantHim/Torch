@@ -137,10 +137,17 @@ void trc::ParticleCollection::HostUpdater::update(
     std::vector<ParticlePhysical>& particles,
     mat4* transformData)
 {
+    const float frameTimeMs = float(frameTimer.reset()) / 1000.0f;
+    const float frameTimeSec = frameTimeMs / 1000.0f;
     for (size_t i = 0; auto& p : particles)
     {
-        // TODO: Simulate particles here
-        transformData[i++] = glm::translate(mat4(p.orientation), p.position);
+        p.timeLived -= frameTimeMs;
+        p.position += frameTimeSec * p.linearVelocity;
+
+        const quat rotDelta = glm::angleAxis(p.angularVelocity * frameTimeSec, p.rotationAxis);
+        p.orientation = rotDelta * p.orientation;
+
+        transformData[i++] = glm::translate(mat4(1.0f), p.position) * mat4(p.orientation);
     }
 }
 
@@ -204,7 +211,7 @@ void trc::internal::makeParticleDrawPipeline()
         //        { 9, 1, vk::Format::eR32Uint, sizeof(bool32) * 2 },     // texture
         //    }
         //)
-        .setCullMode(vk::CullModeFlagBits::eBack)
+        .setCullMode(vk::CullModeFlagBits::eNone)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)

@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include <glm/gtc/quaternion.hpp>
+#include <vkb/util/Timer.h>
 #include <vkb/Buffer.h>
 
 #include "Boilerplate.h"
@@ -29,9 +30,11 @@ namespace trc
     struct ParticlePhysical
     {
         vec3 position;
-        quat orientation{};
         vec3 linearVelocity;
-        vec3 angularVelocity;
+
+        quat orientation{ glm::angleAxis(0.0f, vec3{ 0, 1, 0 }) };
+        vec3 rotationAxis{ 0, 1, 0 };
+        float angularVelocity{ 0.0f };
 
         float lifeTime{ 1000.0f };
         float timeLived{ 0.0f };
@@ -84,6 +87,7 @@ namespace trc
         class HostUpdater : public Updater
         {
             void update(std::vector<ParticlePhysical>& particles, mat4* transformData);
+            vkb::Timer<std::chrono::microseconds> frameTimer;
         };
         class DeviceUpdater : public Updater
         {
