@@ -16,6 +16,7 @@ namespace trc
     namespace internal
     {
         extern void makeParticleDrawPipeline();
+        extern void makeParticleShadowPipeline();
     }
 
     struct ParticleMaterial
@@ -109,11 +110,12 @@ namespace trc
         std::unique_ptr<Updater> updater;
 
         SceneBase* currentScene{ nullptr };
-        SceneBase::RegistrationID drawRegistration;
+        std::vector<SceneBase::RegistrationID> sceneRegistrations;
 
         // Register pipeline creation
         static inline const bool _particle_pipeline_register = []() {
             PipelineRegistry::registerPipeline(internal::makeParticleDrawPipeline);
+            PipelineRegistry::registerPipeline(internal::makeParticleShadowPipeline);
             return true;
         }();
     };

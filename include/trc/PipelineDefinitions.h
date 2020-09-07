@@ -54,6 +54,7 @@ namespace trc::internal
         eDrawableInstancedShadow,
 
         eParticleDraw,
+        eParticleShadow,
     };
 
     void makeAllDrawablePipelines();

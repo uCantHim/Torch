@@ -66,7 +66,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
         removeFromScene();
     }
 
-    drawRegistration = scene.registerDrawFunction(
+    sceneRegistrations.emplace_back(scene.registerDrawFunction(
         internal::RenderStages::eDeferred,
         internal::DeferredSubPasses::eGBufferPass,
         internal::Pipelines::eParticleDraw,
@@ -75,14 +75,34 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
             cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
             cmdBuf.draw(6, particles.size(), 0, 0);
         }
-    );
+    ));
+    sceneRegistrations.emplace_back(scene.registerDrawFunction(
+        internal::RenderStages::eShadow,
+        0,
+        internal::Pipelines::eParticleShadow,
+        [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+        {
+            auto shadowPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
+            assert(shadowPass != nullptr);
+
+            cmdBuf.pushConstants<ui32>(
+                env.currentPipeline->getLayout(),
+                vk::ShaderStageFlagBits::eVertex,
+                0, shadowPass->getShadowIndex());
+            cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
+            cmdBuf.draw(6, particles.size(), 0, 0);
+        }
+    ));
     currentScene = &scene;
 }
 
 void trc::ParticleCollection::removeFromScene()
 {
     assert(currentScene != nullptr);
-    currentScene->unregisterDrawFunction(drawRegistration);
+    for (const auto& reg : sceneRegistrations) {
+        currentScene->unregisterDrawFunction(reg);
+    }
+    sceneRegistrations.clear();
 }
 
 void trc::ParticleCollection::addParticle(const Particle& particle)
@@ -152,8 +172,8 @@ void trc::ParticleCollection::HostUpdater::update(
 }
 
 void trc::ParticleCollection::DeviceUpdater::update(
-    std::vector<ParticlePhysical>& particles,
-    mat4* transformData)
+    std::vector<ParticlePhysical>&,
+    mat4*)
 {
 
 }
@@ -227,4 +247,59 @@ void trc::internal::makeParticleDrawPipeline()
         std::move(pipeline));
 
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+}
+
+void trc::internal::makeParticleShadowPipeline()
+{
+    RenderPassShadow dummyPass({ 1, 1 }, {});
+
+    auto layout = makePipelineLayout(
+        std::vector<vk::DescriptorSetLayout>{
+            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+        },
+        std::vector<vk::PushConstantRange>{
+            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)),
+        }
+    );
+
+    vkb::ShaderProgram program(SHADER_DIR / "particles/shadow.vert.spv",
+                               SHADER_DIR / "particles/shadow.frag.spv");
+
+    auto pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        // (per-vertex) Vertex positions
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
+                                              vk::VertexInputRate::eVertex),
+            {
+                { 0, 0, vk::Format::eR32G32B32Sfloat, 0 },
+                { 1, 0, vk::Format::eR32G32Sfloat,    sizeof(vec3) },
+                { 2, 0, vk::Format::eR32G32B32Sfloat, sizeof(vec3) + sizeof(vec2) },
+            }
+        )
+        // (per-instance) Particle model matrix
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(1, sizeof(mat4), vk::VertexInputRate::eInstance),
+            {
+                { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
+                { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },
+                { 5, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 2 },
+                { 6, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 3 },
+            }
+        )
+        .setCullMode(vk::CullModeFlagBits::eNone)
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect({ { 0, 0 }, { 1, 1 } })
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .build(*vkb::getDevice(), *layout, *dummyPass, 0);
+
+    auto& p = makeGraphicsPipeline(
+        Pipelines::eParticleShadow,
+        std::move(layout),
+        std::move(pipeline));
+
+    p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(1, GlobalRenderDataDescriptor::getProvider());
 }
