@@ -191,14 +191,15 @@ int main()
     }
 
 
-    trc::ParticleCollection particleCollection{ 100 };
+    trc::ParticleCollection particleCollection{ 1000 };
     particleCollection.attachToScene(*scene);
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 1000; i++)
     {
         trc::Particle particle;
         particle.phys.position = glm::linearRand(vec3(-2, 0, -2), vec3(2, 2, 2));
-        particle.phys.linearVelocity = vec3(0, -0.2, 0);
+        particle.phys.linearVelocity = vec3(0, -0.1, 0);
         particle.phys.angularVelocity = glm::radians(30.0f);
+        particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
         particleCollection.addParticle(particle);
     }
 

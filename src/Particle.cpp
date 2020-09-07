@@ -72,6 +72,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
         internal::Pipelines::eParticleDraw,
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
+            if (particles.empty()) return;
             cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
             cmdBuf.draw(6, particles.size(), 0, 0);
         }
@@ -82,6 +83,8 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
         internal::Pipelines::eParticleShadow,
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
+            if (particles.empty()) return;
+
             auto shadowPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
             assert(shadowPass != nullptr);
 
@@ -108,8 +111,11 @@ void trc::ParticleCollection::removeFromScene()
 void trc::ParticleCollection::addParticle(const Particle& particle)
 {
     std::lock_guard lock(lockParticleUpdate);
-    particles.push_back(particle.phys);
-    materials.push_back(particle.material);
+    if (particles.size() < maxParticles)
+    {
+        particles.push_back(particle.phys);
+        materials.push_back(particle.material);
+    }
 }
 
 void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
@@ -159,14 +165,25 @@ void trc::ParticleCollection::HostUpdater::update(
 {
     const float frameTimeMs = float(frameTimer.reset()) / 1000.0f;
     const float frameTimeSec = frameTimeMs / 1000.0f;
-    for (size_t i = 0; auto& p : particles)
+    for (size_t i = 0; i < particles.size(); /* nothing */)
     {
-        p.timeLived -= frameTimeMs;
-        p.position += frameTimeSec * p.linearVelocity;
+        auto& p = particles[i];
 
+        // Calculate particle lifetime
+        if (p.lifeTime - p.timeLived <= 0.0f)
+        {
+            p = particles.back();
+            particles.pop_back();
+            continue;
+        }
+        p.timeLived += frameTimeMs;
+
+        // Simulate particle physics
+        p.position += frameTimeSec * p.linearVelocity;
         const quat rotDelta = glm::angleAxis(p.angularVelocity * frameTimeSec, p.rotationAxis);
         p.orientation = rotDelta * p.orientation;
 
+        // Store calculated transform in buffer
         transformData[i++] = glm::translate(mat4(1.0f), p.position) * mat4(p.orientation);
     }
 }
