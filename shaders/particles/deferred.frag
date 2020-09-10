@@ -58,5 +58,7 @@ layout (location = 0) in Vertex
 void main()
 {
     vec4 diffuseColor = texture(textures[vert.textureIndex], vert.uv);
-    appendFragment(diffuseColor);
+    if (diffuseColor.a > 0.001) {
+        appendFragment(diffuseColor);
+    }
 }

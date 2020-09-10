@@ -196,7 +196,9 @@ void trc::ParticleCollection::HostUpdater::update(
         p.orientation = rotDelta * p.orientation;
 
         // Store calculated transform in buffer
-        transformData[i++] = glm::translate(mat4(1.0f), p.position) * mat4(p.orientation);
+        transformData[i++] = glm::translate(mat4(1.0f), p.position)
+                             * mat4(p.orientation)
+                             * glm::scale(mat4(1.0f), p.scaling);
     }
 }
 

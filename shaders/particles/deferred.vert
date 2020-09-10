@@ -30,8 +30,6 @@ void main()
     viewInverseRotation[3] = vec4(0, 0, 0, 1);
 
     // Apply the inverse view rotation to the particle to orient it towards the camera.
-    // Add this to the world position because the rotation has to be visible in the
-    // final lighting calculation.
     const vec4 worldPos = viewInverseRotation * modelMatrix * vec4(vertexPosition, 1.0);
 
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;

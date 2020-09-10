@@ -41,6 +41,8 @@ namespace trc
         vec3 rotationAxis{ 0, 1, 0 };
         float angularVelocity{ 0.0f };
 
+        vec3 scaling{ 1.0f };
+
         float lifeTime{ 1000.0f };
         float timeLived{ 0.0f };
         bool doRespawn{ false };
