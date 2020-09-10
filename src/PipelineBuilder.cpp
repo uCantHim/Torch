@@ -141,6 +141,20 @@ auto trc::GraphicsPipelineBuilder::disableDepthTest() -> Self
     return *this;
 }
 
+auto trc::GraphicsPipelineBuilder::enableDepthWrite() -> Self
+{
+    this->depthStencil.setDepthWriteEnable(true);
+
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::disableDepthWrite() -> Self
+{
+    this->depthStencil.setDepthWriteEnable(false);
+
+    return *this;
+}
+
 auto trc::GraphicsPipelineBuilder::addColorBlendAttachment(
     vk::PipelineColorBlendAttachmentState blendAttachment) -> Self
 {

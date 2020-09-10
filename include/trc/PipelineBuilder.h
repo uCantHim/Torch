@@ -97,6 +97,8 @@ namespace trc
         auto setDepthStencilTests(vk::PipelineDepthStencilStateCreateInfo depthStencil) -> Self;
         auto enableDepthTest() -> Self;
         auto disableDepthTest() -> Self;
+        auto enableDepthWrite() -> Self;
+        auto disableDepthWrite() -> Self;
 
         auto addColorBlendAttachment(vk::PipelineColorBlendAttachmentState blendAttachment) -> Self;
         /**
