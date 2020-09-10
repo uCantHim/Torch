@@ -245,6 +245,7 @@ void trc::internal::makeDrawableTransparentPipeline(
             makeVertexAttributeDescriptions()
         )
         .setCullMode(vk::CullModeFlagBits::eNone) // Don't cull back faces because they're visible
+        .disableDepthWrite()
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
         .build(
