@@ -8,6 +8,7 @@
 #include <vkb/Buffer.h>
 
 #include "Boilerplate.h"
+#include "utils/Util.h"
 #include "base/SceneBase.h"
 #include "PipelineRegistry.h"
 
@@ -28,10 +29,13 @@ namespace trc
         ui32 __padding{ 0 };
     };
 
+    static_assert(sizeof(trc::ParticleMaterial) == util::sizeof_pad_16_v<trc::ParticleMaterial>,
+                  "ParticleMaterial must be padded to a multiple of 16 bytes!");
+
     struct ParticlePhysical
     {
-        vec3 position;
-        vec3 linearVelocity;
+        vec3 position{ 0.0f };
+        vec3 linearVelocity{ 0.0f };
 
         quat orientation{ glm::angleAxis(0.0f, vec3{ 0, 1, 0 }) };
         vec3 rotationAxis{ 0, 1, 0 };
@@ -80,19 +84,31 @@ namespace trc
         class Updater
         {
         public:
-            virtual void update(
-                std::vector<ParticlePhysical>& particles,
-                mat4* transformData) = 0;
+            virtual void update(std::vector<ParticlePhysical>& particles,
+                                mat4* transformData,
+                                ParticleMaterial* materialData) = 0;
         };
 
+        /**
+         * @brief Simulates particles on the CPU
+         */
         class HostUpdater : public Updater
         {
-            void update(std::vector<ParticlePhysical>& particles, mat4* transformData);
+            void update(std::vector<ParticlePhysical>& particles,
+                        mat4* transformData,
+                        ParticleMaterial* materialData) override;
+
             vkb::Timer<std::chrono::microseconds> frameTimer;
         };
+
+        /**
+         * @brief Simulates particles on the GPU
+         */
         class DeviceUpdater : public Updater
         {
-            void update(std::vector<ParticlePhysical>& particles, mat4* transformData);
+            void update(std::vector<ParticlePhysical>& particles,
+                        mat4* transformData,
+                        ParticleMaterial* materialData) override;
         };
 
         static vkb::StaticInit _init;
@@ -101,10 +117,9 @@ namespace trc
         const ui32 maxParticles;
 
         std::vector<ParticlePhysical> particles;
-        std::vector<ParticleMaterial> materials;
         vkb::Buffer particleMatrixStagingBuffer;
         vkb::DeviceLocalBuffer particleMatrixBuffer;
-        vkb::DeviceLocalBuffer particleMaterialBuffer;
+        vkb::Buffer particleMaterialBuffer;
 
         std::mutex lockParticleUpdate;
         std::unique_ptr<Updater> updater;

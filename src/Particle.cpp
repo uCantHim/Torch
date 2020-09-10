@@ -33,9 +33,6 @@ vkb::StaticInit trc::ParticleCollection::_init{
     []() { vertexBuffer = {}; }
 };
 
-static_assert(sizeof(trc::ParticleMaterial) == util::sizeof_pad_16_v<trc::ParticleMaterial>,
-              "ParticleMaterial must be padded to a multiple of 16 bytes!");
-
 
 
 trc::ParticleCollection::ParticleCollection(
@@ -53,8 +50,9 @@ trc::ParticleCollection::ParticleCollection(
         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst
     ),
     particleMaterialBuffer(
-        util::sizeof_pad_16_v<ParticleMaterial> * maxParticles, nullptr,
-        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst
+        sizeof(ParticleMaterial) * maxParticles, nullptr,
+        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
     setUpdateMethod(updateMethod);
@@ -68,34 +66,37 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 
     sceneRegistrations.emplace_back(scene.registerDrawFunction(
         internal::RenderStages::eDeferred,
-        internal::DeferredSubPasses::eGBufferPass,
+        internal::DeferredSubPasses::eTransparencyPass,
         internal::Pipelines::eParticleDraw,
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
             if (particles.empty()) return;
-            cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
+
+            cmdBuf.bindVertexBuffers(0,
+                { *vertexBuffer, *particleMatrixBuffer, *particleMaterialBuffer },
+                { 0, 0, 0 });
             cmdBuf.draw(6, particles.size(), 0, 0);
         }
     ));
-    sceneRegistrations.emplace_back(scene.registerDrawFunction(
-        internal::RenderStages::eShadow,
-        0,
-        internal::Pipelines::eParticleShadow,
-        [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
-        {
-            if (particles.empty()) return;
+    //sceneRegistrations.emplace_back(scene.registerDrawFunction(
+    //    internal::RenderStages::eShadow,
+    //    0,
+    //    internal::Pipelines::eParticleShadow,
+    //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+    //    {
+    //        if (particles.empty()) return;
 
-            auto shadowPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
-            assert(shadowPass != nullptr);
+    //        auto shadowPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
+    //        assert(shadowPass != nullptr);
 
-            cmdBuf.pushConstants<ui32>(
-                env.currentPipeline->getLayout(),
-                vk::ShaderStageFlagBits::eVertex,
-                0, shadowPass->getShadowIndex());
-            cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
-            cmdBuf.draw(6, particles.size(), 0, 0);
-        }
-    ));
+    //        cmdBuf.pushConstants<ui32>(
+    //            env.currentPipeline->getLayout(),
+    //            vk::ShaderStageFlagBits::eVertex,
+    //            0, shadowPass->getShadowIndex());
+    //        cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
+    //        cmdBuf.draw(6, particles.size(), 0, 0);
+    //    }
+    //));
     currentScene = &scene;
 }
 
@@ -110,11 +111,16 @@ void trc::ParticleCollection::removeFromScene()
 
 void trc::ParticleCollection::addParticle(const Particle& particle)
 {
+    // TODO: Maybe keep a list of added particles and add them all at
+    // once in update(), just as I did in Stroom.
     std::lock_guard lock(lockParticleUpdate);
     if (particles.size() < maxParticles)
     {
+        auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
+        materialBuf[particles.size()] = particle.material;
+        particleMaterialBuffer.unmap();
+
         particles.push_back(particle.phys);
-        materials.push_back(particle.material);
     }
 }
 
@@ -140,8 +146,10 @@ void trc::ParticleCollection::update()
 
     // Run updater on matrix buffer
     auto matrixBuf = reinterpret_cast<mat4*>(particleMatrixStagingBuffer.map());
-    updater->update(particles, matrixBuf);
+    auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
+    updater->update(particles, matrixBuf, materialBuf);
     particleMatrixStagingBuffer.unmap();
+    particleMaterialBuffer.unmap();
 
     // Copy matrices to vertex attribute buffer
     auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
@@ -162,7 +170,8 @@ void trc::ParticleCollection::update()
 
 void trc::ParticleCollection::HostUpdater::update(
     std::vector<ParticlePhysical>& particles,
-    mat4* transformData)
+    mat4* transformData,
+    ParticleMaterial* materialData)
 {
     const float frameTimeMs = float(frameTimer.reset()) / 1000.0f;
     const float frameTimeSec = frameTimeMs / 1000.0f;
@@ -175,6 +184,8 @@ void trc::ParticleCollection::HostUpdater::update(
         {
             p = particles.back();
             particles.pop_back();
+            // Rearrange materials accordingly
+            materialData[i] = materialData[particles.size()];
             continue;
         }
         p.timeLived += frameTimeMs;
@@ -191,7 +202,8 @@ void trc::ParticleCollection::HostUpdater::update(
 
 void trc::ParticleCollection::DeviceUpdater::update(
     std::vector<ParticlePhysical>&,
-    mat4*)
+    mat4*,
+    ParticleMaterial*)
 {
 
 }
@@ -209,6 +221,8 @@ void trc::internal::makeParticleDrawPipeline()
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
     );
@@ -240,24 +254,20 @@ void trc::internal::makeParticleDrawPipeline()
             }
         )
         // (per-instance) Draw properties
-        //.addVertexInputBinding(
-        //    vk::VertexInputBindingDescription(2, sizeof(ParticleMaterial),
-        //                                      vk::VertexInputRate::eInstance),
-        //    {
-        //        { 7, 1, vk::Format::eR32Uint, 0 },                      // emitting
-        //        { 8, 1, vk::Format::eR32Uint, sizeof(bool32) },         // hasShadow
-        //        { 9, 1, vk::Format::eR32Uint, sizeof(bool32) * 2 },     // texture
-        //    }
-        //)
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(2, sizeof(ParticleMaterial),
+                                              vk::VertexInputRate::eInstance),
+            {
+                { 7, 1, vk::Format::eR32Uint, 0 },                    // emitting
+                { 8, 1, vk::Format::eR32Uint, sizeof(ui32) },         // hasShadow
+                { 9, 1, vk::Format::eR32Uint, sizeof(ui32) * 2 },     // texture
+            }
+        )
         .setCullMode(vk::CullModeFlagBits::eNone)
+        .disableDepthWrite()
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .setColorBlending({}, false, vk::LogicOp::eOr, {})
-        .build(*vkb::getDevice(), *layout, *renderPass, DeferredSubPasses::eGBufferPass);
+        .build(*vkb::getDevice(), *layout, *renderPass, DeferredSubPasses::eTransparencyPass);
 
     auto& p = makeGraphicsPipeline(
         Pipelines::eParticleDraw,
@@ -265,6 +275,8 @@ void trc::internal::makeParticleDrawPipeline()
         std::move(pipeline));
 
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(2, DeferredRenderPassDescriptor::getProvider());
 }
 
 void trc::internal::makeParticleShadowPipeline()

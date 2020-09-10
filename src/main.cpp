@@ -200,6 +200,7 @@ int main()
         particle.phys.linearVelocity = vec3(0, -0.1, 0);
         particle.phys.angularVelocity = glm::radians(30.0f);
         particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
+        particle.material.texture = grassImgIdx;
         particleCollection.addParticle(particle);
     }
 
