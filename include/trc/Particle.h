@@ -36,6 +36,7 @@ namespace trc
     {
         vec3 position{ 0.0f };
         vec3 linearVelocity{ 0.0f };
+        vec3 linearAcceleration{ 0.0f };
 
         quat orientation{ glm::angleAxis(0.0f, vec3{ 0, 1, 0 }) };
         vec3 rotationAxis{ 0, 1, 0 };
@@ -118,14 +119,17 @@ namespace trc
 
         const ui32 maxParticles;
 
+        // GPU resources
         std::vector<ParticlePhysical> particles;
         vkb::Buffer particleMatrixStagingBuffer;
         vkb::DeviceLocalBuffer particleMatrixBuffer;
         vkb::Buffer particleMaterialBuffer;
 
+        // Updater
         std::mutex lockParticleUpdate;
         std::unique_ptr<Updater> updater;
 
+        // Drawable registrations
         SceneBase* currentScene{ nullptr };
         std::vector<SceneBase::RegistrationID> sceneRegistrations;
 

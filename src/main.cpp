@@ -198,10 +198,11 @@ int main()
     {
         trc::Particle particle;
         particle.phys.position = glm::linearRand(vec3(-2, 0, -2), vec3(2, 2, 2));
-        particle.phys.linearVelocity = vec3(0, -0.1, 0);
+        particle.phys.linearVelocity = vec3(0, 0.05f, 0);
+        particle.phys.linearAcceleration = vec3(0, 0.01f, 0);
         particle.phys.angularVelocity = glm::radians(30.0f);
         particle.phys.scaling = vec3(0.15f);
-        particle.phys.lifeTime = 100000;//glm::linearRand(1000.0f, 6000.0f);
+        particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
         particle.material.texture = grassImgIdx;
         particleCollection.addParticle(particle);
     }

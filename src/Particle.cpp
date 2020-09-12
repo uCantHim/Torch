@@ -191,6 +191,7 @@ void trc::ParticleCollection::HostUpdater::update(
         p.timeLived += frameTimeMs;
 
         // Simulate particle physics
+        p.linearVelocity += frameTimeSec * p.linearAcceleration;
         p.position += frameTimeSec * p.linearVelocity;
         const quat rotDelta = glm::angleAxis(p.angularVelocity * frameTimeSec, p.rotationAxis);
         p.orientation = rotDelta * p.orientation;
