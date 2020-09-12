@@ -18,6 +18,11 @@ namespace trc::internal
 
 vkb::StaticInit trc::ParticleCollection::_init{
     []() {
+        memoryPool.reset(new vkb::MemoryPool(vkb::getDevice(), 2000000)); // 2 MB
+
+        PipelineRegistry::registerPipeline(internal::makeParticleDrawPipeline);
+        PipelineRegistry::registerPipeline(internal::makeParticleShadowPipeline);
+
         vertexBuffer = vkb::DeviceLocalBuffer(
             std::vector<ParticleVertex>{
                 { vec3(-0.1f, -0.1f, 0.0f), vec2(0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f) },
@@ -27,10 +32,14 @@ vkb::StaticInit trc::ParticleCollection::_init{
                 { vec3( 0.1f, -0.1f, 0.0f), vec2(1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f) },
                 { vec3( 0.1f,  0.1f, 0.0f), vec2(1.0f, 1.0f), vec3(0.0f, 0.0f, 1.0f) },
             },
-            vk::BufferUsageFlagBits::eVertexBuffer
+            vk::BufferUsageFlagBits::eVertexBuffer,
+            memoryPool->makeAllocator()
         );
     },
-    []() { vertexBuffer = {}; }
+    []() {
+        vertexBuffer = {};
+        memoryPool.reset();
+    }
 };
 
 
@@ -43,16 +52,19 @@ trc::ParticleCollection::ParticleCollection(
     particleMatrixStagingBuffer(
         sizeof(mat4) * maxParticles,
         vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
+        vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+        memoryPool->makeAllocator()
     ),
     particleMatrixBuffer(
         sizeof(mat4) * maxParticles, nullptr,
-        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst
+        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+        memoryPool->makeAllocator()
     ),
     particleMaterialBuffer(
         sizeof(ParticleMaterial) * maxParticles, nullptr,
         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
+        memoryPool->makeAllocator()
     )
 {
     setUpdateMethod(updateMethod);

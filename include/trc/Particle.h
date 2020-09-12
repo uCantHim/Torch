@@ -6,10 +6,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <vkb/util/Timer.h>
 #include <vkb/Buffer.h>
+#include <vkb/MemoryPool.h>
 
 #include "Boilerplate.h"
 #include "utils/Util.h"
 #include "base/SceneBase.h"
+#include "Node.h"
 #include "PipelineRegistry.h"
 
 namespace trc
@@ -114,9 +116,6 @@ namespace trc
                         ParticleMaterial* materialData) override;
         };
 
-        static vkb::StaticInit _init;
-        static inline vkb::DeviceLocalBuffer vertexBuffer;
-
         const ui32 maxParticles;
 
         // GPU resources
@@ -133,12 +132,10 @@ namespace trc
         SceneBase* currentScene{ nullptr };
         std::vector<SceneBase::RegistrationID> sceneRegistrations;
 
-        // Register pipeline creation
-        static inline const bool _particle_pipeline_register = []() {
-            PipelineRegistry::registerPipeline(internal::makeParticleDrawPipeline);
-            PipelineRegistry::registerPipeline(internal::makeParticleShadowPipeline);
-            return true;
-        }();
+        // Static resources
+        static vkb::StaticInit _init;
+        static inline std::unique_ptr<vkb::MemoryPool> memoryPool{ nullptr };
+        static inline vkb::DeviceLocalBuffer vertexBuffer;
     };
 
     /**
@@ -146,8 +143,10 @@ namespace trc
      *
      * Creates particles at a ParticleCollection.
      */
-    class ParticleSpawn
+    class ParticleSpawn : public Node
     {
     public:
+        ParticleSpawn() = default;
+        explicit ParticleSpawn(std::vector<Particle> particles);
     };
 }
