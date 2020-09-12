@@ -174,7 +174,6 @@ void trc::ParticleCollection::HostUpdater::update(
     ParticleMaterial* materialData)
 {
     const float frameTimeMs = float(frameTimer.reset()) / 1000.0f;
-    const float frameTimeSec = frameTimeMs / 1000.0f;
     for (size_t i = 0; i < particles.size(); /* nothing */)
     {
         auto& p = particles[i];
@@ -182,23 +181,31 @@ void trc::ParticleCollection::HostUpdater::update(
         // Calculate particle lifetime
         if (p.lifeTime - p.timeLived <= 0.0f)
         {
-            p = particles.back();
-            particles.pop_back();
-            // Rearrange materials accordingly
-            materialData[i] = materialData[particles.size()];
-            continue;
+            if (p.doRespawn) {
+                p.timeLived = 0.0f;
+            }
+            else
+            {
+                p = particles.back();
+                particles.pop_back();
+                // Rearrange materials accordingly
+                materialData[i] = materialData[particles.size()];
+                continue;
+            }
         }
         p.timeLived += frameTimeMs;
+        const float secondsLived = p.timeLived / 1000.0f;
 
         // Simulate particle physics
-        p.linearVelocity += frameTimeSec * p.linearAcceleration;
-        p.position += frameTimeSec * p.linearVelocity;
-        const quat rotDelta = glm::angleAxis(p.angularVelocity * frameTimeSec, p.rotationAxis);
-        p.orientation = rotDelta * p.orientation;
+        const vec3 pos = p.position
+                         + secondsLived * p.linearVelocity
+                         + secondsLived * secondsLived * p.linearAcceleration * 0.5f;
+        const quat rot = glm::angleAxis(secondsLived * p.angularVelocity, p.rotationAxis);
+        const quat orientation = rot * p.orientation;
 
         // Store calculated transform in buffer
-        transformData[i++] = glm::translate(mat4(1.0f), p.position)
-                             * mat4(p.orientation)
+        transformData[i++] = glm::translate(mat4(1.0f), pos)
+                             * mat4(orientation)
                              * glm::scale(mat4(1.0f), p.scaling);
     }
 }
