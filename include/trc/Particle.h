@@ -10,6 +10,7 @@
 
 #include "Boilerplate.h"
 #include "utils/Util.h"
+#include "utils/ThreadPool.h"
 #include "base/SceneBase.h"
 #include "Node.h"
 #include "PipelineRegistry.h"
@@ -81,6 +82,7 @@ namespace trc
         void removeFromScene();
 
         void addParticle(const Particle& particle);
+        void addParticles(const std::vector<Particle>& particles);
 
         void setUpdateMethod(ParticleUpdateMethod method);
         void update();
@@ -146,7 +148,18 @@ namespace trc
     class ParticleSpawn : public Node
     {
     public:
-        ParticleSpawn() = default;
-        explicit ParticleSpawn(std::vector<Particle> particles);
+        explicit ParticleSpawn(ParticleCollection& collection,
+                               std::vector<Particle> particles = {});
+
+        void addParticle(Particle particle);
+
+        void spawnParticles();
+        // void generateParticles();
+
+    private:
+        static inline ThreadPool threads;
+
+        std::vector<Particle> particles;
+        ParticleCollection* collection{ nullptr };
     };
 }

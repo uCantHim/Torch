@@ -192,8 +192,8 @@ int main()
     }
 
 
-    trc::ParticleCollection particleCollection{ 1000 };
-    particleCollection.attachToScene(*scene);
+    auto particleCollection = std::make_unique<trc::ParticleCollection>(10000);
+    particleCollection->attachToScene(*scene);
     for (int i = 0; i < 1000; i++)
     {
         trc::Particle particle;
@@ -204,20 +204,35 @@ int main()
         particle.phys.scaling = vec3(0.15f);
         particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
         particle.material.texture = grassImgIdx;
-        particleCollection.addParticle(particle);
+        particleCollection->addParticle(particle);
     }
 
-    std::thread([&]() {
-        while (true) {
-            particleCollection.update();
-        }
-    }).detach();
+    auto [particleImg, particleImgIdx] = trc::AssetRegistry::addImage(
+        vkb::Image("assets/yellowlight.png"));
+    trc::ParticleSpawn spawn(*particleCollection);
+    for (int i = 0; i < 50; i++)
+    {
+        trc::Particle p;
+        p.phys.linearVelocity = glm::linearRand(vec3(0.2, 0.2, 0.2), vec3(1.5f, 1.5f, 1.0f));
+        p.phys.linearAcceleration = vec3(0, -2.0f, 0);
+        p.phys.scaling = vec3(0.3f);
+        p.phys.lifeTime = 3000.0f;
+        p.material.texture = particleImgIdx;
+        spawn.addParticle(p);
+    }
+    spawn.spawnParticles();
 
 
     bool running{ true };
     auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
         [&running](const vkb::SwapchainCloseEvent&) { running = false; }
     );
+
+    std::thread particleUpdateThread([&]() {
+        while (running) {
+            particleCollection->update();
+        }
+    });
 
     vkb::Timer timer;
     uint32_t frames{ 0 };
@@ -237,9 +252,12 @@ int main()
     }
 
     vkb::getDevice()->waitIdle();
+    particleUpdateThread.join();
+    particleCollection.reset();
     instancedTrees.reset();
     scene.reset();
     renderer.reset();
+    trc::AssetRegistry::reset();
     vkb::vulkanTerminate();
 
     std::cout << " --- Done\n";

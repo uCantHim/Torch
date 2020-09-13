@@ -136,6 +136,19 @@ void trc::ParticleCollection::addParticle(const Particle& particle)
     }
 }
 
+void trc::ParticleCollection::addParticles(const std::vector<Particle>& newParticles)
+{
+    std::lock_guard lock(lockParticleUpdate);
+
+    auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
+    for (const auto& p : newParticles)
+    {
+        materialBuf[particles.size()] = p.material;
+        particles.push_back(p.phys);
+    }
+    particleMaterialBuffer.unmap();
+}
+
 void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
 {
     switch (method)
@@ -228,6 +241,41 @@ void trc::ParticleCollection::DeviceUpdater::update(
     ParticleMaterial*)
 {
 
+}
+
+
+
+//////////////////////////////
+//      Particle Spawn      //
+//////////////////////////////
+
+trc::ParticleSpawn::ParticleSpawn(ParticleCollection& c, std::vector<Particle> particles)
+    :
+    particles(std::move(particles)),
+    collection(&c)
+{
+}
+
+void trc::ParticleSpawn::addParticle(Particle particle)
+{
+    particles.push_back(particle);
+}
+
+void trc::ParticleSpawn::spawnParticles()
+{
+    threads.async([this]()
+    {
+        const mat4& globalTransform = getGlobalTransform();
+        std::vector<Particle> newParticles{ particles };
+        for (auto& p : newParticles)
+        {
+            p.phys.position = vec3(globalTransform * vec4(p.phys.position, 1.0f));
+            p.phys.timeLived = 0.0f;
+        }
+
+        // This function is costly as well
+        collection->addParticles(particles);
+    });
 }
 
 
