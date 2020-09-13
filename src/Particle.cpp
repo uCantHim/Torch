@@ -67,6 +67,7 @@ trc::ParticleCollection::ParticleCollection(
         memoryPool->makeAllocator()
     )
 {
+    particles.reserve(maxParticles);
     setUpdateMethod(updateMethod);
 }
 
@@ -143,6 +144,10 @@ void trc::ParticleCollection::addParticles(const std::vector<Particle>& newParti
     auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
     for (const auto& p : newParticles)
     {
+        if (particles.size() >= maxParticles) {
+            break;
+        }
+
         materialBuf[particles.size()] = p.material;
         particles.push_back(p.phys);
     }
