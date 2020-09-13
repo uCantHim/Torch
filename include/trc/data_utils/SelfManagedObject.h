@@ -65,6 +65,11 @@ namespace trc::data
          */
         static void destroy(ID index);
 
+        /**
+         * @brief Destroy all statically managed objects of this type
+         */
+        static void destroyAll();
+
         // ------------------
         // Non-static methods
 

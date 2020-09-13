@@ -86,6 +86,15 @@ void SelfManagedObject<Derived>::destroy(ID index)
 }
 
 template<class Derived>
+void SelfManagedObject<Derived>::destroyAll()
+{
+    for (size_t i = 0; i < objects.size(); i ++)
+    {
+        objects.at(i).reset();
+    }
+}
+
+template<class Derived>
 auto SelfManagedObject<Derived>::id() const noexcept -> ID
 {
     return myId;
