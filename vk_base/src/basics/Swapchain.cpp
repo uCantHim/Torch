@@ -369,8 +369,6 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
     glfwSetMouseButtonCallback(window, onMouseClick);
 
     glfwSetWindowCloseCallback(window, onWindowClose);
-
-    EventThread::start();
 }
 
 void vkb::Swapchain::createSwapchain(bool recreate)

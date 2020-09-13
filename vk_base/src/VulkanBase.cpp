@@ -2,6 +2,8 @@
 
 #include <IL/il.h>
 
+#include "event/EventHandler.h"
+
 
 
 void vkb::vulkanInit(const VulkanInitInfo& initInfo)
@@ -34,6 +36,8 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
         std::cout << "Warning: Tried to initialize VulkanBase more than once\n";
         return;
     }
+
+    EventThread::start();
 
     // Init GLFW first
     if (glfwInit() == GLFW_FALSE) {
@@ -72,6 +76,7 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
 
 void vkb::VulkanBase::destroy()
 {
+    EventThread::terminate();
     getDevice()->waitIdle();
 
     for (auto& func : onDestroyCallbacks) {
