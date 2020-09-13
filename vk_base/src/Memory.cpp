@@ -10,10 +10,12 @@ vkb::DeviceMemory::DeviceMemory(DeviceMemoryInternals data, DeviceMemoryDeleter 
 }
 
 vkb::DeviceMemory::DeviceMemory(DeviceMemory&& other) noexcept
-    :
-    deleter(std::move(other.deleter)),
-    internal(other.internal)
 {
+    deleter(internal);
+
+    deleter = std::move(other.deleter);
+    internal = other.internal;
+
     other.deleter = [](const DeviceMemoryInternals&) {};
 }
 
@@ -24,6 +26,8 @@ vkb::DeviceMemory::~DeviceMemory()
 
 auto vkb::DeviceMemory::operator=(DeviceMemory&& rhs) noexcept -> DeviceMemory&
 {
+    deleter(internal);
+
     deleter = std::move(rhs.deleter);
     internal = rhs.internal;
 
