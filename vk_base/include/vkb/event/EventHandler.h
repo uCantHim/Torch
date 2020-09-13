@@ -66,6 +66,32 @@ namespace vkb
         static inline std::queue<EventType> eventQueue;
     };
 
+    /**
+     * @brief Helper to unregister a listener when the handle is destroyed
+     *
+     * Implicitly constructible from ListenerId types.
+     *
+     * @tparam EventType Type of event that the listener listens to.
+     */
+    template<typename EventType>
+    class UniqueListenerId
+    {
+    public:
+        using IdType = typename EventHandler<EventType>::ListenerId;
+
+        UniqueListenerId() = default;
+        UniqueListenerId(IdType id)
+            :
+            _id(new IdType(id), [](IdType* oldId) {
+                EventHandler<EventType>::removeListener(*oldId);
+                delete oldId;
+            })
+        {}
+
+    private:
+        std::unique_ptr<IdType, std::function<void(IdType*)>> _id;
+    };
+
 
 
     template<typename EventType>

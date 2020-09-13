@@ -4,6 +4,8 @@
 #include <vkb/Image.h>
 #include <vkb/Buffer.h>
 #include <vkb/FrameSpecificObject.h>
+#include <vkb/event/EventHandler.h>
+#include <vkb/event/WindowEvents.h>
 
 #include "Scene.h"
 #include "CommandCollector.h"
@@ -27,6 +29,8 @@ namespace trc
     private:
         // Initialize render stages
         static vkb::StaticInit _init;
+        vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
+        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> postRecreateListener;
 
         // Synchronization
         void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);

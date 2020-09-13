@@ -31,15 +31,19 @@ trc::Renderer::Renderer()
     createSemaphores();
 
     // Pre recreate, finish rendering
-    vkb::EventHandler<vkb::PreSwapchainRecreateEvent>::addListener([this](const auto&) {
-        waitForAllFrames();
-    });
+    preRecreateListener = vkb::EventHandler<vkb::PreSwapchainRecreateEvent>::addListener(
+        [this](const auto&) {
+            waitForAllFrames();
+        }
+    );
     // Post recreate, create the required resources
-    vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener([this](const auto&) {
-        RenderPassDeferred::emplace<RenderPassDeferred>(0);
-        PipelineRegistry::recreateAll();
-        createSemaphores();
-    });
+    postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
+        [this](const auto&) {
+            RenderPassDeferred::emplace<RenderPassDeferred>(0);
+            PipelineRegistry::recreateAll();
+            createSemaphores();
+        }
+    );
 
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
