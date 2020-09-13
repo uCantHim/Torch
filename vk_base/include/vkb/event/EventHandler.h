@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <functional>
+#include <thread>
 #include <atomic>
 #include <mutex>
 
@@ -17,8 +18,8 @@ namespace vkb
 
     private:
         static inline bool shouldStop{ false };
-        static inline bool running{ false };
 
+        static inline std::thread thread;
         static inline std::mutex handlerListLock;
         static inline std::vector<std::function<void()>> handlers;
     };

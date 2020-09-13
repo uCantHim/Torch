@@ -11,9 +11,8 @@ void vkb::EventThread::start()
 {
     terminate();
     shouldStop = false;
-    running = true;
 
-    std::thread([]() {
+    thread = std::thread([]() {
         while (!shouldStop)
         {
             // Don't use range-based for-loop here because iterators
@@ -25,8 +24,7 @@ void vkb::EventThread::start()
                 EventThread::handlers[i]();
             }
         }
-        running = false;
-    }).detach();
+    });
 
     if constexpr (enableVerboseLogging) {
         std::cout << "--- Event thread started\n";
@@ -36,7 +34,9 @@ void vkb::EventThread::start()
 void vkb::EventThread::terminate()
 {
     shouldStop = true;
-    while (running);
+    if (thread.joinable()) {
+        thread.join();
+    }
 }
 
 void vkb::EventThread::registerHandler(std::function<void()> pollFunc)
