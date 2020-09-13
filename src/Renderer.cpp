@@ -1,12 +1,22 @@
 #include "Renderer.h"
 
 #include <vkb/util/Timer.h>
-#include <utils/Util.h>
+#include <vkb/event/EventHandler.h>
+#include <vkb/event/WindowEvents.h>
 
+#include "utils/Util.h"
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
 
 
+
+vkb::StaticInit trc::Renderer::_init{
+    []() {
+        RenderStage::create<DeferredStage>(internal::RenderStages::eDeferred);
+        RenderStage::create<ShadowStage>(internal::RenderStages::eShadow);
+    },
+    []() {}
+};
 
 trc::Renderer::Renderer()
     :
@@ -19,6 +29,17 @@ trc::Renderer::Renderer()
     )
 {
     createSemaphores();
+
+    // Pre recreate, finish rendering
+    vkb::EventHandler<vkb::PreSwapchainRecreateEvent>::addListener([this](const auto&) {
+        waitForAllFrames();
+    });
+    // Post recreate, create the required resources
+    vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener([this](const auto&) {
+        RenderPassDeferred::emplace<RenderPassDeferred>(0);
+        PipelineRegistry::recreateAll();
+        createSemaphores();
+    });
 
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
@@ -112,23 +133,6 @@ void trc::Renderer::createSemaphores()
             { vk::FenceCreateFlagBits::eSignaled }
         );
     }};
-}
-
-void trc::Renderer::signalRecreateRequired()
-{
-    waitForAllFrames();
-}
-
-void trc::Renderer::recreate(vkb::Swapchain&)
-{
-    RenderPassDeferred::emplace<RenderPassDeferred>(0);
-    PipelineRegistry::recreateAll();
-
-    createSemaphores();
-}
-
-void trc::Renderer::signalRecreateFinished()
-{
 }
 
 void trc::Renderer::waitForAllFrames(ui64 timeoutNs)

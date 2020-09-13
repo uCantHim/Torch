@@ -47,7 +47,7 @@ namespace vkb
          */
         Swapchain(const Device& device, Surface s);
         Swapchain(Swapchain&&) noexcept = default;
-        ~Swapchain();
+        ~Swapchain() = default;
 
         Swapchain(const Swapchain&) = delete;
         auto operator=(const Swapchain&) -> Swapchain& = delete;
@@ -120,7 +120,7 @@ namespace vkb
 
     public:
         void initGlfwCallbacks(GLFWwindow* window);
-        void createSwapchain(bool recreate);
+        void createSwapchain();
 
         const Device& device;
         std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
@@ -135,42 +135,5 @@ namespace vkb
 
         uint32_t numFrames{ 0 };
         uint32_t currentFrame{ 0 };
-    };
-
-
-    class SwapchainDependentResource
-    {
-    public:
-        class DependentResourceLock
-        {
-            friend class Swapchain;
-
-        private:
-            static void startRecreate();
-            static void recreateAll(Swapchain& swapchain);
-            static void endRecreate();
-        };
-
-        SwapchainDependentResource();
-
-        SwapchainDependentResource(const SwapchainDependentResource&) = default;
-        SwapchainDependentResource(SwapchainDependentResource&&) noexcept = default;
-        auto operator=(const SwapchainDependentResource&) -> SwapchainDependentResource& = default;
-        auto operator=(SwapchainDependentResource&&) noexcept -> SwapchainDependentResource& = default;
-        virtual ~SwapchainDependentResource();
-
-        virtual void signalRecreateRequired() = 0;
-        virtual void recreate(Swapchain&) = 0;
-        virtual void signalRecreateFinished() = 0;
-
-    private:
-        uint32_t index;
-
-        static uint32_t registerSwapchainDependentResource(SwapchainDependentResource& res);
-        static void removeSwapchainDependentResource(uint32_t index);
-
-        static inline bool isRecreating{ false };
-        static inline std::vector<SwapchainDependentResource*> newResources;
-        static inline std::vector<SwapchainDependentResource*> dependentResources;
     };
 } // namespace vkb

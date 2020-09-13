@@ -10,12 +10,13 @@ namespace vkb
     };
 
     struct SwapchainCreateEvent : public SwapchainEvent {};
-    struct SwapchainCloseEvent : public SwapchainEvent {};
-    struct SwapchainDestroyEvent : public SwapchainEvent {};
-    struct SwapchainResizeEvent : public SwapchainEvent {};
+    using SwapchainRecreateEvent = SwapchainCreateEvent;
+    using SwapchainResizeEvent = SwapchainCreateEvent;
 
-    using WindowCreateEvent = SwapchainCreateEvent;
-    using WindowCloseEvent = SwapchainCloseEvent;
-    using WindowDestroyEvent = SwapchainDestroyEvent;
-    using WindowResizeEvent = SwapchainResizeEvent;
+    struct PreSwapchainRecreateEvent : public SwapchainEvent {};
+
+    /**
+     * Dispatched when the OS requests the window to close.
+     */
+    struct SwapchainCloseEvent : public SwapchainEvent {};
 } // namespace vkb

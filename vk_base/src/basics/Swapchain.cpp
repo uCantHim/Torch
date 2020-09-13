@@ -152,14 +152,7 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
     surface(std::move(s.surface))
 {
     initGlfwCallbacks(window.get());
-    createSwapchain(false);
-
-    EventHandler<SwapchainCreateEvent>::notify({ {this} });
-}
-
-vkb::Swapchain::~Swapchain()
-{
-    EventHandler<SwapchainDestroyEvent>::notify({ {this} });
+    createSwapchain();
 }
 
 auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
@@ -232,7 +225,7 @@ void vkb::Swapchain::presentImage(
         if constexpr (enableVerboseLogging) {
             std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
         }
-        createSwapchain(true);
+        createSwapchain();
         return;
     }
 
@@ -371,18 +364,14 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
     glfwSetWindowCloseCallback(window, onWindowClose);
 }
 
-void vkb::Swapchain::createSwapchain(bool recreate)
+void vkb::Swapchain::createSwapchain()
 {
-    auto timerStart = system_clock::now();
+    // Signal start of recreation
+    // This allows objects depending on the swapchain to prepare the
+    // recreate, like locking resources.
+    EventHandler<PreSwapchainRecreateEvent>::notifySync({ {this} });
 
-    // Signal that the swapchain is baout to be recreated.
-    // This should be used by the dependent resources to ensure that no
-    // access to the swapchain is performed until the recreation is
-    // finished.
-    if (recreate) {
-        SwapchainDependentResource::DependentResourceLock::startRecreate();
-    }
-
+    const auto timerStart = system_clock::now();
     const auto& physDevice = device.getPhysicalDevice();
 
     const auto [capabilities, formats, presentModes] = physDevice.getSwapchainSupport(*surface);
@@ -428,18 +417,13 @@ void vkb::Swapchain::createSwapchain(bool recreate)
     images = device->getSwapchainImagesKHR(swapchain.get());
     imageViews = createImageViews();
 
-    // Recreate all dependent resources
-    // Signal to all dependent resources that recreation is done
-    if (recreate)
-    {
-        if constexpr (enableVerboseLogging) {
-            std::cout << "New swapchain created, recreating swapchain-dependent resources...\n";
-        }
-
-        EventHandler<SwapchainResizeEvent>::notify({ {this} });
-        SwapchainDependentResource::DependentResourceLock::recreateAll(*this);
-        SwapchainDependentResource::DependentResourceLock::endRecreate();
+    if constexpr (enableVerboseLogging) {
+        std::cout << "New swapchain created, recreating swapchain-dependent resources...\n";
     }
+    // Signal that recreation is finished.
+    // Objects depending on the swapchain should now recreate their
+    // resources.
+    EventHandler<SwapchainRecreateEvent>::notifySync({ {this} });
 
     if constexpr (enableVerboseLogging)
     {
@@ -447,78 +431,3 @@ void vkb::Swapchain::createSwapchain(bool recreate)
         std::cout << "Swapchain has been created successfully (" << duration.count() << " ms)\n";
     }
 }
-
-
-
-void vkb::SwapchainDependentResource::DependentResourceLock::startRecreate()
-{
-    SwapchainDependentResource::isRecreating = true;
-
-    for (auto res : SwapchainDependentResource::dependentResources)
-    {
-        if (res != nullptr) {
-            res->signalRecreateRequired();
-        }
-    }
-}
-
-void vkb::SwapchainDependentResource::DependentResourceLock::recreateAll(Swapchain& swapchain)
-{
-    for (auto res : SwapchainDependentResource::dependentResources)
-    {
-        if (res != nullptr) {
-            res->recreate(swapchain);
-        }
-    }
-}
-
-void vkb::SwapchainDependentResource::DependentResourceLock::endRecreate()
-{
-    for (auto res : SwapchainDependentResource::dependentResources)
-    {
-        if (res != nullptr) {
-            res->signalRecreateFinished();
-        }
-    }
-
-    for (auto newRes : newResources) {
-        dependentResources.push_back(newRes);
-    }
-    newResources.clear();
-
-    SwapchainDependentResource::isRecreating = false;
-}
-
-
-
-vkb::SwapchainDependentResource::SwapchainDependentResource()
-    :
-    index(registerSwapchainDependentResource(*this))
-{
-}
-
-vkb::SwapchainDependentResource::~SwapchainDependentResource()
-{
-    removeSwapchainDependentResource(index);
-}
-
-uint32_t vkb::SwapchainDependentResource::registerSwapchainDependentResource(SwapchainDependentResource& res)
-{
-    if (isRecreating)
-    {
-        // The swapchain is being recreated, add the new object
-        // after the recreation has finished
-        newResources.push_back(&res);
-        return dependentResources.size() + newResources.size() - 1;
-    }
-
-    dependentResources.push_back(&res);
-    return dependentResources.size() - 1;
-}
-
-void vkb::SwapchainDependentResource::removeSwapchainDependentResource(uint32_t index)
-{
-    assert(index < dependentResources.size());
-    dependentResources[index] = nullptr;
-}
-

@@ -20,26 +20,16 @@ using namespace glm;
 #include "trc/Renderer.h"
 #include "trc/Particle.h"
 
-trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
-
-struct CameraResize : public vkb::SwapchainDependentResource
-{
-public:
-    void signalRecreateRequired() override {}
-    void recreate(vkb::Swapchain& sc) override {
-        camera.setAspect(float(sc.getImageExtent().width) / float(sc.getImageExtent().height));
-    }
-    void signalRecreateFinished() override {}
-};
-static CameraResize _camera_resize_helper;
-
 int main()
 {
-    using v = vkb::VulkanBase;
+    trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
+    vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
+        const auto extent = e.swapchain->getImageExtent();
+        camera.setAspect(float(extent.width) / float(extent.height));
+    });
 
     vkb::VulkanInitInfo initInfo;
     vkb::vulkanInit(initInfo);
-    _camera_resize_helper.recreate(vkb::getSwapchain());
 
     // ------------------
     // Random test things
@@ -257,7 +247,9 @@ int main()
     instancedTrees.reset();
     scene.reset();
     renderer.reset();
-    trc::AssetRegistry::reset();
+    trc::RenderStage::destroyAll();
+    trc::RenderPass::destroyAll();
+    trc::Pipeline::destroyAll();
     vkb::vulkanTerminate();
 
     std::cout << " --- Done\n";

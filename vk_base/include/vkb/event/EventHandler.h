@@ -83,7 +83,7 @@ namespace vkb
         std::lock_guard lock(listenerListLock);
         for (auto& listener : listeners)
         {
-            listener(event);
+            listener.callback(event);
         }
     }
 

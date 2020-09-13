@@ -15,7 +15,7 @@
 
 namespace trc
 {
-    class Renderer : public vkb::SwapchainDependentResource
+    class Renderer
     {
     public:
         Renderer();
@@ -26,17 +26,7 @@ namespace trc
 
     private:
         // Initialize render stages
-        static inline vkb::StaticInit _render_stages_init{
-            []() {
-                RenderStage::create<DeferredStage>(internal::RenderStages::eDeferred);
-                RenderStage::create<ShadowStage>(internal::RenderStages::eShadow);
-            },
-            []() {}
-        };
-
-        void signalRecreateRequired() override;
-        void recreate(vkb::Swapchain& swapchain) override;
-        void signalRecreateFinished() override;
+        static vkb::StaticInit _init;
 
         // Synchronization
         void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
