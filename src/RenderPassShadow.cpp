@@ -363,4 +363,6 @@ void trc::ShadowDescriptor::destroy()
     descSet.reset();
     descLayout.reset();
     descPool.reset();
+
+    shadowMatrixBuffer = {};
 }
