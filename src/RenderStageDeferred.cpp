@@ -289,6 +289,20 @@ auto trc::RenderPassDeferred::getInputAttachmentDescriptor() const noexcept
 
 
 
+vkb::StaticInit trc::DeferredRenderPassDescriptor::_init{
+    []() {},
+    []() {
+        provider.reset();
+        descSets.reset();
+        descLayout.reset();
+        descPool.reset();
+
+        fragmentListBuffer.reset();
+        fragmentListHeadPointerImageView.reset();
+        fragmentListHeadPointerImage.reset();
+    }
+};
+
 void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPass)
 {
     descSets.reset();
