@@ -13,18 +13,18 @@ vkb::Device::Device(const PhysicalDevice& physDevice)
         {
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            physDevice.queueFamilies.graphicsFamilies[0].index
+            physDevice.queueCapabilities.graphicsCapable[0].index
         }
     )),
-    graphicsQueue(device->getQueue(physDevice.queueFamilies.graphicsFamilies[0].index, 0)),
+    graphicsQueue(device->getQueue(physDevice.queueCapabilities.graphicsCapable[0].index, 0)),
     transferPool(device->createCommandPoolUnique(
         {
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            physDevice.queueFamilies.transferFamilies[0].index
+            physDevice.queueCapabilities.transferCapable[0].index
         }
     )),
-    transferQueue(device->getQueue(physDevice.queueFamilies.transferFamilies[0].index, 0))
+    transferQueue(device->getQueue(physDevice.queueCapabilities.transferCapable[0].index, 0))
 {
 }
 

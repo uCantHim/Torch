@@ -54,12 +54,12 @@ size_t findMinIndex(const std::vector<T>& vals)
 /*
 Finds the most specialized queue family for a specific queue type.
 That means the */
-std::optional<familyIndex> findMostSpecialized(QueueType type, const std::vector<QueueFamily>& families)
+std::optional<QueueFamilyIndex> findMostSpecialized(QueueType type, const std::vector<QueueFamily>& families)
 {
-    std::vector<familyIndex> possibleFamilies; // Indices into families
+    std::vector<QueueFamilyIndex> possibleFamilies; // Indices into families
     std::vector<uint32_t> numAdditionalCapabilities; // Corresponds to possibleFamilies
 
-    for (familyIndex i = 0; i < families.size(); i++)
+    for (QueueFamilyIndex i = 0; i < families.size(); i++)
     {
         const auto& family = families[i];
         if (family.isCapable(type)) {
@@ -81,7 +81,7 @@ std::optional<familyIndex> findMostSpecialized(QueueType type, const std::vector
     if (possibleFamilies.empty()) {
         return std::nullopt;
     }
-    familyIndex resultQueue = possibleFamilies[findMinIndex(numAdditionalCapabilities)];
+    QueueFamilyIndex resultQueue = possibleFamilies[findMinIndex(numAdditionalCapabilities)];
     return resultQueue;
 }
 
@@ -123,13 +123,13 @@ vkb::QueueProvider::QueueProvider(const Device& device)
     }
 
     // Look for specialized queues
-    std::vector<std::optional<familyIndex>> capabilityFamilyIndices = {
-        findMostSpecialized(QueueType::graphics,            queueFamilies),
-        findMostSpecialized(QueueType::compute,            queueFamilies),
-        findMostSpecialized(QueueType::transfer,            queueFamilies),
-        findMostSpecialized(QueueType::sparseMemory,        queueFamilies),
-        findMostSpecialized(QueueType::protectedMemory,    queueFamilies),
-        findMostSpecialized(QueueType::presentation,        queueFamilies),
+    std::vector<std::optional<QueueFamilyIndex>> capabilityFamilyIndices = {
+        findMostSpecialized(QueueType::graphics,        queueFamilies),
+        findMostSpecialized(QueueType::compute,         queueFamilies),
+        findMostSpecialized(QueueType::transfer,        queueFamilies),
+        findMostSpecialized(QueueType::sparseMemory,    queueFamilies),
+        findMostSpecialized(QueueType::protectedMemory, queueFamilies),
+        findMostSpecialized(QueueType::presentation,    queueFamilies),
     };
 
     // Use the 0-th queue as a fallback queue for when all other
@@ -141,7 +141,7 @@ vkb::QueueProvider::QueueProvider(const Device& device)
         type++;
         if (!capabilityIndex.has_value()) continue;
 
-        familyIndex capability = capabilityIndex.value();
+        QueueFamilyIndex capability = capabilityIndex.value();
         const auto& family = queueFamilies[capability];
 
         auto nextQueue = usedQueues[family.index];
@@ -167,7 +167,7 @@ auto vkb::QueueProvider::getQueue(QueueType type) const noexcept -> vk::Queue
     return primaryQueues[static_cast<size_t>(type)];
 }
 
-auto vkb::QueueProvider::getQueueFamilyIndex(QueueType type) const noexcept -> familyIndex
+auto vkb::QueueProvider::getQueueFamilyIndex(QueueType type) const noexcept -> QueueFamilyIndex
 {
     return primaryQueueFamilies[static_cast<size_t>(type)];
 }
@@ -175,11 +175,11 @@ auto vkb::QueueProvider::getQueueFamilyIndex(QueueType type) const noexcept -> f
 auto vkb::QueueProvider::findQueues(const Device& device) const
     -> std::vector<std::pair<phys_device_properties::QueueFamily, std::vector<vk::Queue>>>
 {
-    const auto uniqueQueueFamilies = device.getPhysicalDevice().getUniqueQueueFamilies();
+    const auto& queueFamilies = device.getPhysicalDevice().queueFamilies;
 
     std::vector<std::pair<phys_device_properties::QueueFamily, std::vector<vk::Queue>>>
-    createdQueues(uniqueQueueFamilies.size());
-    for (const auto& family : uniqueQueueFamilies)
+    createdQueues(queueFamilies.size());
+    for (const auto& family : queueFamilies)
     {
         createdQueues[family.index].first = family;
         for (uint32_t queueIndex = 0; queueIndex < family.queueCount; queueIndex++)

@@ -9,7 +9,7 @@
 
 namespace vkb
 {
-    using phys_device_properties::familyIndex;
+    using phys_device_properties::QueueFamilyIndex;
     using phys_device_properties::QueueType;
 
     constexpr size_t numQueueTypes_v = static_cast<size_t>(QueueType::numQueueTypes);
@@ -32,7 +32,7 @@ namespace vkb
         /**
          * Returns the family index of the primary queue of the specified type.
          */
-        auto getQueueFamilyIndex(QueueType type) const noexcept -> familyIndex;
+        auto getQueueFamilyIndex(QueueType type) const noexcept -> QueueFamilyIndex;
 
     private:
         auto findQueues(const Device& device) const
@@ -50,6 +50,6 @@ namespace vkb
         /** One primary queue for each type/function. */
         std::array<vk::Queue, numQueueTypes_v> primaryQueues{};
         /** The families of the corresponding primary queues. */
-        std::array<familyIndex, numQueueTypes_v> primaryQueueFamilies{};
+        std::array<QueueFamilyIndex, numQueueTypes_v> primaryQueueFamilies{};
     };
 } // namespace vkb

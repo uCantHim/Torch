@@ -11,28 +11,21 @@
 //        Physical device helpers       //
 // ------------------------------------ //
 
-auto vkb::phys_device_properties::findSupportedQueueFamilies(
-    const vk::PhysicalDevice& device,
-    const vk::SurfaceKHR& surface) -> QueueFamilies
+auto vkb::phys_device_properties::getQueueFamilies(
+    vk::PhysicalDevice device,
+    vk::SurfaceKHR surface) -> std::vector<QueueFamily>
 {
-    QueueFamilies result;
-    auto queueFamilyProperties = device.getQueueFamilyProperties();
+    std::vector<QueueFamily> result;
+    auto queueFamilies = device.getQueueFamilyProperties();
 
-    for (size_t familyIndex = 0; familyIndex < queueFamilyProperties.size(); familyIndex++)
+    for (uint32_t familyIndex = 0; const auto& family : queueFamilies)
     {
-        const auto& familyProperty = queueFamilyProperties[familyIndex];
-        if (familyProperty.queueCount <= 0) {
-            continue;
-        }
+        const vk::QueueFlags queueCapabilities = family.queueFlags;
+        const bool presentCapability = device.getSurfaceSupportKHR(familyIndex, surface);
 
-        auto queueCapabilities = familyProperty.queueFlags;
-        bool presentCapability = device.getSurfaceSupportKHR(
-            static_cast<uint32_t>(familyIndex), surface
-        );
-
-        QueueFamily newFamily = {
-            static_cast<uint32_t>(familyIndex),
-            familyProperty.queueCount,
+        result.push_back({
+            familyIndex,
+            family.queueCount,
             {
                 static_cast<bool>(queueCapabilities & vk::QueueFlagBits::eGraphics),
                 static_cast<bool>(queueCapabilities & vk::QueueFlagBits::eCompute),
@@ -40,43 +33,39 @@ auto vkb::phys_device_properties::findSupportedQueueFamilies(
                 static_cast<bool>(queueCapabilities & vk::QueueFlagBits::eSparseBinding),
                 static_cast<bool>(queueCapabilities & vk::QueueFlagBits::eProtected),
                 presentCapability
-
             }
-        };
-
-        if (newFamily.isCapable(QueueType::graphics)) {
-            result.graphicsFamilies.push_back(newFamily);
-        }
-        if (newFamily.isCapable(QueueType::compute)) {
-            result.computeFamilies.push_back(newFamily);
-        }
-        if (newFamily.isCapable(QueueType::transfer)) {
-            result.transferFamilies.push_back(newFamily);
-        }
-        if (newFamily.isCapable(QueueType::sparseMemory)) {
-            result.sparseMemoryFamilies.push_back(newFamily);
-        }
-        if (newFamily.isCapable(QueueType::protectedMemory)) {
-            result.protectedMemoryFamilies.push_back(newFamily);
-        }
-        if (newFamily.isCapable(QueueType::presentation)) {
-            result.presentationFamilies.push_back(newFamily);
-        }
+        });
+        familyIndex++;
     }
 
     return result;
 }
 
-
-auto vkb::phys_device_properties::findSwapchainSupport(
-    const vk::PhysicalDevice& device,
-    const vk::SurfaceKHR& surface) -> SwapchainSupport
+auto vkb::phys_device_properties::sortByCapabilities(const std::vector<QueueFamily>& families)
+    -> QueueCapabilities
 {
-    SwapchainSupport result;
-
-    result.surfaceCapabilities = device.getSurfaceCapabilitiesKHR(surface);
-    result.surfaceFormats = device.getSurfaceFormatsKHR(surface);
-    result.surfacePresentModes = device.getSurfacePresentModesKHR(surface);
+    QueueCapabilities result;
+    for (const auto& family : families)
+    {
+        if (family.isCapable(QueueType::graphics)) {
+            result.graphicsCapable.push_back(family);
+        }
+        if (family.isCapable(QueueType::compute)) {
+            result.computeCapable.push_back(family);
+        }
+        if (family.isCapable(QueueType::transfer)) {
+            result.transferCapable.push_back(family);
+        }
+        if (family.isCapable(QueueType::sparseMemory)) {
+            result.sparseMemoryCapable.push_back(family);
+        }
+        if (family.isCapable(QueueType::protectedMemory)) {
+            result.protectedMemoryCapable.push_back(family);
+        }
+        if (family.isCapable(QueueType::presentation)) {
+            result.presentationCapable.push_back(family);
+        }
+    }
 
     return result;
 }
@@ -106,34 +95,25 @@ using namespace vkb::phys_device_properties;
 vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface)
     :
     physicalDevice(device),
-    queueFamilies(findSupportedQueueFamilies(device, surface)),
+    queueFamilies(getQueueFamilies(device, surface)),
+    queueCapabilities(sortByCapabilities(queueFamilies)),
     supportedExtensions(device.enumerateDeviceExtensionProperties()),
     properties(device.getProperties()),
     features(device.getFeatures()),
-    memoryProperties(device.getMemoryProperties())
+    memoryProperties(device.getMemoryProperties()),
+    name(properties.deviceName),
+    type(properties.deviceType),
+    typeString(vk::to_string(properties.deviceType))
 {
     // Logging
-    if constexpr (enableVerboseLogging) {
-        switch (properties.deviceType)
-        {
-        case vk::PhysicalDeviceType::eDiscreteGpu:
-            typeString = "discrete GPU"; break;
-        case vk::PhysicalDeviceType::eIntegratedGpu:
-            typeString = "integrated GPU"; break;
-        case vk::PhysicalDeviceType::eVirtualGpu:
-            typeString = "virtual GPU"; break;
-        case vk::PhysicalDeviceType::eCpu:
-            typeString = "CPU"; break;
-        case vk::PhysicalDeviceType::eOther:
-            typeString = "unkown type"; break;
-        }
-        name = std::string(properties.deviceName);
+    if constexpr (enableVerboseLogging)
+    {
         std::cout << "\nFound device \"" << name << "\" (" << typeString << "):\n";
 
         // Print queue family info
-        auto uniqueQueueFamilies = getUniqueQueueFamilies();
-        std::cout << uniqueQueueFamilies.size() << " queue families:\n";
-        for (const auto& fam : uniqueQueueFamilies) {
+        std::cout << queueFamilies.size() << " queue families:\n";
+        for (const auto& fam : queueFamilies)
+        {
             std::cout << " - Queue family #" << fam.index << "\n";
             std::cout << "\t" << fam.queueCount << " queues\n";
             if (fam.isCapable(QueueType::graphics))
@@ -156,11 +136,10 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
 auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
 {
     // Device queues
-    auto uniqueQueueFamilies = getUniqueQueueFamilies();
-    std::vector<float> prios(100, 1.0f); // Enough prios for 100 queues per family
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    for (const auto& queueFamily : uniqueQueueFamilies)
+    for (const auto& queueFamily : queueFamilies)
     {
+        std::vector<float> prios(queueFamily.queueCount, 1.0f);
         queueCreateInfos.push_back(
             { {}, queueFamily.index, queueFamily.queueCount, prios.data() }
         );
@@ -177,9 +156,6 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
 
     // Extensions
     const auto deviceExtensions = getRequiredDeviceExtensions();
-
-    vk::PhysicalDeviceDescriptorIndexingFeatures descIndexing;
-    descIndexing.runtimeDescriptorArray = true;
 
     // Create the logical device
     vk::StructureChain chain
@@ -198,57 +174,16 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
 }
 
 
-auto vkb::PhysicalDevice::getUniqueQueueFamilies() const noexcept
-    -> std::vector<QueueFamily>
-{
-    std::vector<QueueFamily> result;
-    std::set<uint32_t> gatheredFamilies;
-
-    for (const auto& family : queueFamilies.graphicsFamilies) {
-        const auto [it, success] = gatheredFamilies.insert(family.index);
-        if (success) {
-            result.push_back(family);
-        }
-    }
-    for (const auto& family : queueFamilies.computeFamilies) {
-        const auto [it, success] = gatheredFamilies.insert(family.index);
-        if (success) {
-            result.push_back(family);
-        }
-    }
-    for (const auto& family : queueFamilies.transferFamilies) {
-        const auto [it, success] = gatheredFamilies.insert(family.index);
-        if (success) {
-            result.push_back(family);
-        }
-    }
-    for (const auto& family : queueFamilies.sparseMemoryFamilies) {
-        const auto [it, success] = gatheredFamilies.insert(family.index);
-        if (success) {
-            result.push_back(family);
-        }
-    }
-    for (const auto& family : queueFamilies.protectedMemoryFamilies) {
-        const auto [it, success] = gatheredFamilies.insert(family.index);
-        if (success) {
-            result.push_back(family);
-        }
-    }
-    for (const auto& family : queueFamilies.presentationFamilies) {
-        const auto [it, success] = gatheredFamilies.insert(family.index);
-        if (success) {
-            result.push_back(family);
-        }
-    }
-
-    return result;
-}
-
-
-auto vkb::PhysicalDevice::getSwapchainSupport(const vk::SurfaceKHR& surface) const noexcept
+auto vkb::PhysicalDevice::getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
     -> phys_device_properties::SwapchainSupport
 {
-    return findSwapchainSupport(physicalDevice, surface);
+    SwapchainSupport result;
+
+    result.surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
+    result.surfaceFormats = physicalDevice.getSurfaceFormatsKHR(surface);
+    result.surfacePresentModes = physicalDevice.getSurfacePresentModesKHR(surface);
+
+    return result;
 }
 
 
@@ -319,18 +254,18 @@ auto vkb::device_helpers::getOptimalPhysicalDevice(vk::Instance instance, vk::Su
 bool vkb::device_helpers::isOptimalDevice(const PhysicalDevice& device)
 {
     return supportsRequiredDeviceExtensions(device)
-        && supportsRequiredQueueFamilies(device);
+        && supportsRequiredQueueCapabilities(device);
 }
 
 
-bool vkb::device_helpers::supportsRequiredQueueFamilies(const PhysicalDevice& device)
+bool vkb::device_helpers::supportsRequiredQueueCapabilities(const PhysicalDevice& device)
 {
-    using namespace phys_device_properties;
-    const auto& families = device.queueFamilies;
+    const auto& families = device.queueCapabilities;
 
-    return !families.graphicsFamilies.empty()
-        && !families.presentationFamilies.empty()
-        && !families.transferFamilies.empty();
+    return !families.graphicsCapable.empty()
+        && !families.presentationCapable.empty()
+        && !families.transferCapable.empty()
+        && !families.computeCapable.empty();
 }
 
 

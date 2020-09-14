@@ -30,16 +30,17 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
     ImageSharingDetails result;
 
     std::vector<uint32_t> imageSharingQueueFamilies;
-    auto graphicsFamilies = physicalDevice.queueFamilies.graphicsFamilies;
-    auto presentationFamilies = physicalDevice.queueFamilies.presentationFamilies;
+    const auto& graphicsFamilies = physicalDevice.queueCapabilities.graphicsCapable;
+    const auto& presentationFamilies = physicalDevice.queueCapabilities.presentationCapable;
     if (graphicsFamilies.empty() || presentationFamilies.empty()) {
         throw std::runtime_error("Unable to create swapchain; no graphics or presentation queues available."
             "This should have been checked during device selection.");
     }
 
-    auto& graphics = graphicsFamilies[0];
-    auto& present = presentationFamilies[0];
-    if (graphics.index == present.index) {
+    const auto& graphics = graphicsFamilies[0];
+    const auto& present = presentationFamilies[0];
+    if (graphics.index == present.index)
+    {
         // The graphics and the presentation queues are of the same family.
         // This is preferred because exclusive access for one queue family
         // will likely be faster than concurrent access.
@@ -50,7 +51,8 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
             std::cout << "Exclusive image sharing mode enabled\n";
         }
     }
-    else {
+    else
+    {
         // The graphics and the presentation queues are of different families.
         result.imageSharingMode = vk::SharingMode::eConcurrent;
         result.imageSharingQueueFamilies = { graphics.index, present.index };
