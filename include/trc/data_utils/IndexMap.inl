@@ -7,7 +7,8 @@
 template<typename Key, typename Value>
 inline IndexMap<Key, Value>::IndexMap()
 {
-    static_assert(std::is_integral_v<Key>, "Key must be an arithmetic type");
+    static_assert(std::is_convertible_v<Key, size_t>,
+                  "Key of IndexMap must be convertible to size_t!");
     static_assert(std::is_default_constructible_v<Value>,
                   "Value must be default constructible");
 }
