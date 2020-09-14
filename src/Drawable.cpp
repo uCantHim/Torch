@@ -6,7 +6,7 @@
 
 
 
-trc::Drawable::Drawable(Geometry& geo, ui32 material, bool transparent)
+trc::Drawable::Drawable(Geometry& geo, MaterialID material, bool transparent)
     :
     geo(&geo),
     isTransparent(transparent)
@@ -18,7 +18,7 @@ trc::Drawable::Drawable(Geometry& geo, ui32 material, bool transparent)
     updateDrawFunctions();
 }
 
-trc::Drawable::Drawable(Geometry& geo, ui32 material, SceneBase& scene)
+trc::Drawable::Drawable(Geometry& geo, MaterialID material, SceneBase& scene)
     : Drawable(geo, material)
 {
     attachToScene(scene);
@@ -74,7 +74,7 @@ trc::Drawable::~Drawable()
     }
 }
 
-void trc::Drawable::setMaterial(ui32 matIndex)
+void trc::Drawable::setMaterial(MaterialID matIndex)
 {
     this->matIndex = matIndex;
 }
@@ -181,7 +181,8 @@ void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout lay
     cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
 
     cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0, getGlobalTransform());
-    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), matIndex);
+    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
+                               sizeof(mat4), static_cast<ui32>(matIndex));
 }
 
 void trc::Drawable::draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)

@@ -8,6 +8,7 @@
 #include "Geometry.h"
 #include "AnimationEngine.h"
 #include "PickableRegistry.h"
+#include "AssetIds.h"
 
 namespace trc
 {
@@ -18,8 +19,8 @@ namespace trc
     public:
         Drawable() = default;
         explicit
-        Drawable(Geometry& geo, ui32 material = 0, bool transparent = false);
-        Drawable(Geometry& geo, ui32 material, SceneBase& scene);
+        Drawable(Geometry& geo, MaterialID material = 0, bool transparent = false);
+        Drawable(Geometry& geo, MaterialID material, SceneBase& scene);
         ~Drawable();
 
         Drawable(Drawable&&) noexcept;
@@ -28,7 +29,7 @@ namespace trc
         Drawable(const Drawable&) = delete;
         auto operator=(const Drawable&) -> Drawable& = delete;
 
-        void setMaterial(ui32 matIndex);
+        void setMaterial(MaterialID matIndex);
 
         /**
          * @return AnimationEngine& Always returns an animation engine, even
@@ -114,7 +115,7 @@ namespace trc
         SceneBase::RegistrationID shadowRegistration;
 
         Geometry* geo{ nullptr };
-        ui32 matIndex{ 0 };
+        MaterialID matIndex{ 0 };
         Pickable::ID pickableId{ NO_PICKABLE };
         bool isTransparent{ false };
 
