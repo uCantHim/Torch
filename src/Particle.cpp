@@ -65,7 +65,8 @@ trc::ParticleCollection::ParticleCollection(
         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
         memoryPool->makeAllocator()
-    )
+    ),
+    persistentMaterialBuf(reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map()))
 {
     particles.reserve(maxParticles);
     setUpdateMethod(updateMethod);
@@ -124,34 +125,14 @@ void trc::ParticleCollection::removeFromScene()
 
 void trc::ParticleCollection::addParticle(const Particle& particle)
 {
-    // TODO: Maybe keep a list of added particles and add them all at
-    // once in update(), just as I did in Stroom.
-    std::lock_guard lock(lockParticleUpdate);
-    if (particles.size() < maxParticles)
-    {
-        auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
-        materialBuf[particles.size()] = particle.material;
-        particleMaterialBuffer.unmap();
-
-        particles.push_back(particle.phys);
-    }
+    std::lock_guard lock(newParticleListLock);
+    newParticles.push_back(particle);
 }
 
-void trc::ParticleCollection::addParticles(const std::vector<Particle>& newParticles)
+void trc::ParticleCollection::addParticles(const std::vector<Particle>& _newParticles)
 {
-    std::lock_guard lock(lockParticleUpdate);
-
-    auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
-    for (const auto& p : newParticles)
-    {
-        if (particles.size() >= maxParticles) {
-            break;
-        }
-
-        materialBuf[particles.size()] = p.material;
-        particles.push_back(p.phys);
-    }
-    particleMaterialBuffer.unmap();
+    std::lock_guard lock(newParticleListLock);
+    newParticles.insert(newParticles.end(), _newParticles.begin(), _newParticles.end());
 }
 
 void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
@@ -171,15 +152,25 @@ void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
 
 void trc::ParticleCollection::update()
 {
-    std::lock_guard lock(lockParticleUpdate);
+    // Add new particles
+    std::unique_lock lock(newParticleListLock);
+    for (const auto& p : newParticles)
+    {
+        if (particles.size() >= maxParticles) {
+            break;
+        }
+
+        persistentMaterialBuf[particles.size()] = p.material;
+        particles.push_back(p.phys);
+    }
+    newParticles.clear();
+    lock.unlock();
     if (particles.empty()) return;
 
     // Run updater on matrix buffer
     auto matrixBuf = reinterpret_cast<mat4*>(particleMatrixStagingBuffer.map());
-    auto materialBuf = reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map());
-    updater->update(particles, matrixBuf, materialBuf);
+    updater->update(particles, matrixBuf, persistentMaterialBuf);
     particleMatrixStagingBuffer.unmap();
-    particleMaterialBuffer.unmap();
 
     // Copy matrices to vertex attribute buffer
     vkb::copyBuffer(

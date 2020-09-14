@@ -118,9 +118,12 @@ namespace trc
         vkb::Buffer particleMatrixStagingBuffer;
         vkb::DeviceLocalBuffer particleMatrixBuffer;
         vkb::Buffer particleMaterialBuffer;
+        ParticleMaterial* persistentMaterialBuf;
+
+        std::mutex newParticleListLock;
+        std::vector<Particle> newParticles;
 
         // Updater
-        std::mutex lockParticleUpdate;
         std::unique_ptr<Updater> updater;
 
         // Drawable registrations
