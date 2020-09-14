@@ -7,7 +7,6 @@ namespace fs = std::filesystem;
 #include <vkb/MemoryPool.h>
 #include <vkb/Buffer.h>
 
-#include "Asset.h"
 #include "Vertex.h"
 #include "Rig.h"
 
@@ -29,7 +28,7 @@ namespace trc
 
     auto makeCubeGeo() -> MeshData;
 
-    class Geometry : public Asset
+    class Geometry
     {
     public:
         Geometry(const MeshData& data);
