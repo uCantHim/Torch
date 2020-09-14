@@ -6,9 +6,7 @@ layout (location = 2) in vec3 vertexNormal;
 layout (location = 3) in mat4 modelMatrix;
 
 // Material properties
-layout (location = 7) in uint isEmitting;
-layout (location = 8) in uint hasShadow;
-layout (location = 9) in uint textureIndex;
+layout (location = 7) in uint textureIndex;
 
 layout (set = 0, binding = 0, std140) restrict readonly uniform CameraBuffer
 {

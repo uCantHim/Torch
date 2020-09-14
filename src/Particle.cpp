@@ -330,9 +330,7 @@ void trc::internal::makeParticleDrawPipeline()
             vk::VertexInputBindingDescription(2, sizeof(ParticleMaterial),
                                               vk::VertexInputRate::eInstance),
             {
-                { 7, 1, vk::Format::eR32Uint, 0 },                    // emitting
-                { 8, 1, vk::Format::eR32Uint, sizeof(ui32) },         // hasShadow
-                { 9, 1, vk::Format::eR32Uint, sizeof(ui32) * 2 },     // texture
+                { 7, 1, vk::Format::eR32Uint, 0 }, // texture
             }
         )
         .setCullMode(vk::CullModeFlagBits::eNone)

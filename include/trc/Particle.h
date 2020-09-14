@@ -25,15 +25,8 @@ namespace trc
 
     struct ParticleMaterial
     {
-        bool32 emitting{ false };
-        bool32 hasShadow{ true };
         ui32 texture;
-
-        ui32 __padding{ 0 };
     };
-
-    static_assert(sizeof(trc::ParticleMaterial) == util::sizeof_pad_16_v<trc::ParticleMaterial>,
-                  "ParticleMaterial must be padded to a multiple of 16 bytes!");
 
     struct ParticlePhysical
     {
