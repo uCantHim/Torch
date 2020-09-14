@@ -182,14 +182,11 @@ void trc::ParticleCollection::update()
     particleMaterialBuffer.unmap();
 
     // Copy matrices to vertex attribute buffer
-    auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
-    cmdBuf->begin(vk::CommandBufferBeginInfo());
-    cmdBuf->copyBuffer(
-        *particleMatrixStagingBuffer, *particleMatrixBuffer,
-        vk::BufferCopy(0, 0, particleMatrixStagingBuffer.size())
+    vkb::copyBuffer(
+        vkb::getDevice(),
+        *particleMatrixBuffer, *particleMatrixStagingBuffer,
+        0, 0, particleMatrixStagingBuffer.size()
     );
-    cmdBuf->end();
-    vkb::getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
 }
 
 

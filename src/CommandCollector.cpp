@@ -8,7 +8,7 @@ trc::CommandCollector::CommandCollector()
         vk::CommandPoolCreateInfo(
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            vkb::getQueueProvider().getQueueFamilyIndex(vkb::QueueType::graphics)
+            vkb::getDevice().getQueueFamily(vkb::QueueType::graphics)
         )
     )),
     commandBuffers(

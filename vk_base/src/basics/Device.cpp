@@ -5,26 +5,107 @@
 
 
 
+namespace vkb
+{
+    /**
+     * @return nullopt if no queue with the requested capability exists.
+     */
+    auto findMostSpecialized(QueueType type, const std::vector<QueueFamily>& families)
+        -> std::optional<QueueFamilyIndex>
+    {
+        // Queue families with the number of additional capabilities
+        std::vector<std::pair<QueueFamilyIndex, uint32_t>> possibleFamilies;
+
+        for (const auto& family : families)
+        {
+            if (family.isCapable(type))
+            {
+                auto& [_, numCapabilities] = possibleFamilies.emplace_back(family.index, 0);
+
+                // Test for other supported capabilities
+                for (uint32_t i = 0; i < static_cast<uint32_t>(QueueType::numQueueTypes); i++)
+                {
+                    if (family.isCapable(static_cast<QueueType>(i))){
+                        numCapabilities++;
+                    }
+                }
+            }
+        }
+
+        if (possibleFamilies.empty()) {
+            return std::nullopt;
+        }
+
+        // Find family with the least number of capabilities
+        uint32_t minCapabilities = 6;
+        QueueFamilyIndex familyWithMinCapabilities{ UINT32_MAX };
+        for (const auto& [familyIndex, capabilities] : possibleFamilies)
+        {
+            if (capabilities < minCapabilities) {
+                familyWithMinCapabilities = familyIndex;
+            }
+        }
+
+        if (familyWithMinCapabilities == UINT32_MAX) {
+            return std::nullopt;
+        }
+        return familyWithMinCapabilities;
+    }
+} // namespace vkb
+
+
+
 vkb::Device::Device(const PhysicalDevice& physDevice)
     :
     physicalDevice(physDevice),
     device(physDevice.createLogicalDevice()),
+    // Retrieve all queues from the device
+    queuesPerFamily([&]() {
+        std::vector<std::vector<vk::Queue>> result(physDevice.queueFamilies.size());
+        for (const auto& family : physDevice.queueFamilies)
+        {
+            auto& queues = result.at(family.index);
+            for (uint32_t i = 0; i < family.queueCount; i++)
+            {
+                queues.push_back(device->getQueue(family.index, i));
+            }
+        }
+        return result;
+    }()),
+    // Sort queue families by most specialized
+    mostSpecializedQueueFamilies([&]() {
+        std::array<QueueFamilyIndex, queueTypeCount> result;
+        for (size_t i = 0; i < queueTypeCount; i++)
+        {
+            auto mostSpecialized = findMostSpecialized(
+                static_cast<QueueType>(i),
+                physDevice.queueFamilies);
+
+            if (mostSpecialized.has_value()) {
+                result[i] = mostSpecialized.value();
+            }
+            else {
+                result[i] = UINT32_MAX;
+            }
+        }
+        return result;
+    }()),
     graphicsPool(device->createCommandPoolUnique(
         {
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            physDevice.queueCapabilities.graphicsCapable[0].index
+            getQueueFamily(QueueType::graphics)
         }
     )),
-    graphicsQueue(device->getQueue(physDevice.queueCapabilities.graphicsCapable[0].index, 0)),
+    graphicsQueue(getQueue(QueueType::graphics)),
     transferPool(device->createCommandPoolUnique(
         {
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            physDevice.queueCapabilities.transferCapable[0].index
+            getQueueFamily(QueueType::transfer)
         }
     )),
-    transferQueue(device->getQueue(physDevice.queueCapabilities.transferCapable[0].index, 0))
+    transferQueue(getQueues(getQueueFamily(QueueType::transfer)).at(1))
 {
 }
 
@@ -46,6 +127,28 @@ auto vkb::Device::get() const noexcept -> vk::Device
 auto vkb::Device::getPhysicalDevice() const noexcept -> const PhysicalDevice&
 {
     return physicalDevice;
+}
+
+auto vkb::Device::getQueue(QueueType capability, uint32_t queueIndex) -> vk::Queue
+{
+    return queuesPerFamily.at(getQueueFamily(capability)).at(queueIndex);
+}
+
+auto vkb::Device::getQueueFamily(QueueType capability) -> QueueFamilyIndex
+{
+    QueueFamilyIndex family = mostSpecializedQueueFamilies[static_cast<size_t>(capability)];
+    if (family == UINT32_MAX)
+    {
+        throw std::out_of_range("[Device::getQueueFamily]: No queue supports the requested "
+                                "capability" + std::to_string(static_cast<size_t>(capability)));
+    }
+
+    return family;
+}
+
+auto vkb::Device::getQueues(QueueFamilyIndex family) -> const std::vector<vk::Queue>&
+{
+    return queuesPerFamily.at(family);
 }
 
 auto vkb::Device::createGraphicsCommandBuffer(vk::CommandBufferLevel level) const

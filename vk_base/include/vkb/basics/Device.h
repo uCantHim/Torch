@@ -32,6 +32,28 @@ public:
     auto getPhysicalDevice() const noexcept -> const PhysicalDevice&;
 
     /**
+     * @param QueueType capability
+     * @param uint32_t  queueIndex
+     *
+     * @return vk::Queue The queueIndex-th queue of the most specialized
+     *                   queue family for the requested type.
+     *
+     * @throw std::out_of_range if no queue with the index exists.
+     */
+    auto getQueue(QueueType capability, uint32_t queueIndex = 0) -> vk::Queue;
+
+    /**
+     * @return vk::Queue The most specialized queue family for the
+     *                   requested type.
+     */
+    auto getQueueFamily(QueueType capability) -> QueueFamilyIndex;
+
+    /**
+     * @return All queues of a specific family
+     */
+    auto getQueues(QueueFamilyIndex family) -> const std::vector<vk::Queue>&;
+
+    /**
      * @brief Create a temporary command buffer for graphics operations
      *
      * Allocates the command buffer from a pool with the reset and the
@@ -118,6 +140,10 @@ public:
 private:
     const PhysicalDevice& physicalDevice;
     vk::UniqueDevice device;
+
+    static constexpr size_t queueTypeCount = static_cast<size_t>(QueueType::numQueueTypes);
+    std::vector<std::vector<vk::Queue>> queuesPerFamily;
+    std::array<QueueFamilyIndex, queueTypeCount> mostSpecializedQueueFamilies;
 
     vk::UniqueCommandPool graphicsPool;
     vk::Queue graphicsQueue;

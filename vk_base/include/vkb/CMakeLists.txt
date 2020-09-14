@@ -11,7 +11,6 @@ target_sources(
         Image.h
         Logger.h
         MemoryPool.h
-        QueueProvider.h
         ShaderProgram.h
         VulkanEXT.h
         VulkanBase.h

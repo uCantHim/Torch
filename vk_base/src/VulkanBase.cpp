@@ -59,7 +59,6 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
         );
         device = std::make_unique<Device>(*physicalDevice);
         swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
-        queueProvider = std::make_unique<QueueProvider>(*device);
     }
     catch (const std::exception& err) {
         std::cout << "Exception during vulkan_base initialization: " << err.what() << "\n";
@@ -85,7 +84,6 @@ void vkb::VulkanBase::destroy()
     onDestroyCallbacks = {};
 
     try {
-        queueProvider.reset();
         swapchain.reset();
         device.reset();
         instance.reset();
@@ -149,9 +147,4 @@ auto vkb::VulkanBase::getDevice() noexcept -> Device&
 auto vkb::VulkanBase::getSwapchain() noexcept -> Swapchain&
 {
     return *swapchain;
-}
-
-auto vkb::VulkanBase::getQueueProvider() noexcept -> QueueProvider&
-{
-    return *queueProvider;
 }

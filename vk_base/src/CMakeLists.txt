@@ -9,7 +9,6 @@ target_sources(
         Image.cpp
         Logger.cpp
         MemoryPool.cpp
-        QueueProvider.cpp
         ShaderProgram.cpp
         VulkanBase.cpp
 )

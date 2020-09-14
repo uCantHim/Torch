@@ -102,9 +102,9 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     scene.unregisterDrawFunction(finalLightingFunc);
 
     // Submit command buffers
-    auto queue = vkb::getQueueProvider().getQueue(vkb::QueueType::graphics);
+    auto graphicsQueue = vkb::getDevice().getQueue(vkb::QueueType::graphics);
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
-    queue.submit(
+    graphicsQueue.submit(
         vk::SubmitInfo(
             **imageAcquireSemaphores,
             waitStage,
@@ -115,7 +115,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     );
 
     // Present frame
-    auto presentQueue = vkb::getQueueProvider().getQueue(vkb::QueueType::presentation);
+    auto presentQueue = vkb::getDevice().getQueue(vkb::QueueType::presentation);
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 

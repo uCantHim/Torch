@@ -7,66 +7,56 @@
 
 namespace vkb
 {
-    namespace phys_device_properties
+    /* A queue type is the capability of a queue to perform a certain task.
+    Queue types are defined by the queue family that a queue belongs to.
+    Queues can have multiple queue types. */
+    enum class QueueType
     {
-        /* A queue type is the capability of a queue to perform a certain task.
-        Queue types are defined by the queue family that a queue belongs to.
-        Queues can have multiple queue types. */
-        enum class QueueType
-        {
-            graphics, compute,
-            transfer,
-            sparseMemory, protectedMemory,
-            presentation,
-            numQueueTypes
-        };
+        graphics, compute,
+        transfer,
+        sparseMemory, protectedMemory,
+        presentation,
+        numQueueTypes
+    };
 
-        using QueueFamilyIndex = uint32_t;
+    using QueueFamilyIndex = uint32_t;
 
-        struct QueueFamily
-        {
-            QueueFamily() = default;
-            QueueFamily(uint32_t _index, uint32_t _queueCount,
-                        std::array<bool, static_cast<size_t>(QueueType::numQueueTypes)> capabilities)
-                :
-                index(_index),
-                queueCount(_queueCount),
-                capabilities(capabilities.begin(), capabilities.end())
-            {}
+    struct QueueFamily
+    {
+        QueueFamily() = default;
+        QueueFamily(uint32_t _index, uint32_t _queueCount,
+                    std::array<bool, static_cast<size_t>(QueueType::numQueueTypes)> capabilities)
+            :
+            index(_index),
+            queueCount(_queueCount),
+            capabilities(capabilities.begin(), capabilities.end())
+        {}
 
-            QueueFamilyIndex index;
-            uint32_t queueCount;
+        QueueFamilyIndex index;
+        uint32_t queueCount;
 
-            bool isCapable(QueueType type) const noexcept {
-                return capabilities[static_cast<size_t>(type)];
-            }
+        bool isCapable(QueueType type) const noexcept {
+            return capabilities[static_cast<size_t>(type)];
+        }
 
-        private:
-            std::vector<bool> capabilities;
-        };
+    private:
+        std::vector<bool> capabilities;
+    };
 
-        struct QueueCapabilities
-        {
-            std::vector<QueueFamily> graphicsCapable;
-            std::vector<QueueFamily> computeCapable;
-            std::vector<QueueFamily> transferCapable;
-            std::vector<QueueFamily> sparseMemoryCapable;
-            std::vector<QueueFamily> protectedMemoryCapable;
-            std::vector<QueueFamily> presentationCapable;
-        };
+    struct QueueCapabilities
+    {
+        std::vector<QueueFamily> graphicsCapable;
+        std::vector<QueueFamily> computeCapable;
+        std::vector<QueueFamily> transferCapable;
+        std::vector<QueueFamily> sparseMemoryCapable;
+        std::vector<QueueFamily> protectedMemoryCapable;
+        std::vector<QueueFamily> presentationCapable;
+    };
 
-        struct SwapchainSupport
-        {
-            vk::SurfaceCapabilitiesKHR surfaceCapabilities;
-            std::vector<vk::SurfaceFormatKHR> surfaceFormats;
-            std::vector<vk::PresentModeKHR> surfacePresentModes;
-        };
-
-        extern auto getQueueFamilies(vk::PhysicalDevice, vk::SurfaceKHR surface)
-            -> std::vector<QueueFamily>;
-        extern auto sortByCapabilities(const std::vector<QueueFamily>& families)
-            -> QueueCapabilities;
-    } // namespace phys_device_properties
+    extern auto getQueueFamilies(vk::PhysicalDevice, vk::SurfaceKHR surface)
+        -> std::vector<QueueFamily>;
+    extern auto sortByCapabilities(const std::vector<QueueFamily>& families)
+        -> QueueCapabilities;
 
 
     /**
@@ -75,6 +65,13 @@ namespace vkb
     class PhysicalDevice
     {
     public:
+        struct SwapchainSupport
+        {
+            vk::SurfaceCapabilitiesKHR surfaceCapabilities;
+            std::vector<vk::SurfaceFormatKHR> surfaceFormats;
+            std::vector<vk::PresentModeKHR> surfacePresentModes;
+        };
+
         /**
          * @brief Create a physical device object
          *
@@ -96,7 +93,7 @@ namespace vkb
         auto createLogicalDevice() const -> vk::UniqueDevice;
 
         auto getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
-            -> phys_device_properties::SwapchainSupport;
+            -> SwapchainSupport;
 
         /**
          * @brief Find the index of a memory type with specific properties
@@ -117,8 +114,8 @@ namespace vkb
         const vk::PhysicalDevice physicalDevice;
 
         // Queues
-        const std::vector<phys_device_properties::QueueFamily> queueFamilies;
-        const phys_device_properties::QueueCapabilities queueCapabilities;
+        const std::vector<QueueFamily> queueFamilies;
+        const QueueCapabilities queueCapabilities;
 
         // Physical device properties
         const std::vector<vk::ExtensionProperties> supportedExtensions;

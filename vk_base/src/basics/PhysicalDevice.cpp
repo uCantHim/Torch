@@ -11,7 +11,7 @@
 //        Physical device helpers       //
 // ------------------------------------ //
 
-auto vkb::phys_device_properties::getQueueFamilies(
+auto vkb::getQueueFamilies(
     vk::PhysicalDevice device,
     vk::SurfaceKHR surface) -> std::vector<QueueFamily>
 {
@@ -41,7 +41,7 @@ auto vkb::phys_device_properties::getQueueFamilies(
     return result;
 }
 
-auto vkb::phys_device_properties::sortByCapabilities(const std::vector<QueueFamily>& families)
+auto vkb::sortByCapabilities(const std::vector<QueueFamily>& families)
     -> QueueCapabilities
 {
     QueueCapabilities result;
@@ -90,8 +90,6 @@ static auto getRequiredDeviceExtensions() -> std::vector<const char*> {
 //        Physcial device       //
 // ---------------------------- //
 
-using namespace vkb::phys_device_properties;
-
 vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface)
     :
     physicalDevice(device),
@@ -136,10 +134,10 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
 auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
 {
     // Device queues
+    std::vector<float> prios(100, 1.0f); // Enough prios for 100 queues per family
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     for (const auto& queueFamily : queueFamilies)
     {
-        std::vector<float> prios(queueFamily.queueCount, 1.0f);
         queueCreateInfos.push_back(
             { {}, queueFamily.index, queueFamily.queueCount, prios.data() }
         );
@@ -175,7 +173,7 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
 
 
 auto vkb::PhysicalDevice::getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
-    -> phys_device_properties::SwapchainSupport
+    -> SwapchainSupport
 {
     SwapchainSupport result;
 

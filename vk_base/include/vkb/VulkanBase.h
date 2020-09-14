@@ -8,7 +8,6 @@
 #include "basics/PhysicalDevice.h"
 #include "basics/Device.h"
 #include "basics/Swapchain.h"
-#include "QueueProvider.h"
 
 namespace vkb
 {
@@ -72,8 +71,6 @@ namespace vkb
         static auto getDevice() noexcept         -> Device&;
         static auto getSwapchain() noexcept      -> Swapchain&;
 
-        static auto getQueueProvider() noexcept  -> QueueProvider&;
-
     private:
         static inline bool _isInitialized{ false };
         static inline std::vector<std::function<void(void)>> onInitCallbacks;
@@ -84,8 +81,6 @@ namespace vkb
         static inline std::unique_ptr<PhysicalDevice> physicalDevice{ nullptr };
         static inline std::unique_ptr<Device>         device{ nullptr };
         static inline std::unique_ptr<Swapchain>      swapchain{ nullptr };
-
-        static inline std::unique_ptr<QueueProvider>  queueProvider{ nullptr };
     };
 
 
@@ -107,11 +102,6 @@ namespace vkb
     /** @brief Shortcut for vkb::VulkanBase::getSwapchain() */
     inline auto getSwapchain() noexcept -> Swapchain& {
         return VulkanBase::getSwapchain();
-    }
-
-    /** @brief Shortcut for vkb::VulkanBase::getQueueProvider() */
-    inline auto getQueueProvider() noexcept -> QueueProvider& {
-        return VulkanBase::getQueueProvider();
     }
 
     /**
