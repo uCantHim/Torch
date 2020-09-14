@@ -3,6 +3,7 @@ target_sources(
     PUBLIC
         Animation.h
         AnimationEngine.h
+        AssetIds.h
         AssetRegistry.h
         AssetRegistry.inl
         Boilerplate.h

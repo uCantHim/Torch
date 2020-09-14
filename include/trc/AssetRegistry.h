@@ -8,8 +8,10 @@
 
 #include "Boilerplate.h"
 #include "utils/Exception.h"
+#include "utils/TypesafeId.h"
 #include "data_utils/IndexMap.h"
 #include "DescriptorProvider.h"
+#include "AssetIds.h"
 #include "Geometry.h"
 #include "Material.h"
 
@@ -62,31 +64,32 @@ namespace trc
         static void init();
         static void reset();
 
-        static auto addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>;
-        static auto addMaterial(Material mat) -> std::pair<Ref<Material>, ui32>;
-        static auto addImage(vkb::Image img) -> std::pair<Ref<vkb::Image>, ui32>;
+        static auto addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, GeometryID>;
+        static auto addMaterial(Material mat) -> std::pair<Ref<Material>, MaterialID>;
+        static auto addImage(vkb::Image img) -> std::pair<Ref<vkb::Image>, TextureID>;
 
-        static auto getGeometry(ui32 key) -> Geometry&;
-        static auto getMaterial(ui32 key) -> Material&;
-        static auto getImage(ui32 key) -> vkb::Image&;
+        static auto getGeometry(GeometryID key) -> Geometry&;
+        static auto getMaterial(MaterialID key) -> Material&;
+        static auto getImage(TextureID key) -> vkb::Image&;
 
         static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
 
         static void updateMaterialBuffer();
 
     private:
-        static inline vkb::StaticInit _init{
-            init, reset
-        };
+        static inline vkb::StaticInit _init{ init, reset };
 
-        template<typename T>
-        static auto addToMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key, T value) -> T&;
-        template<typename T>
-        static auto getFromMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key) -> T&;
+        template<typename T, typename U>
+        static auto addToMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
+                             TypesafeID<U> key,
+                             T value) -> T&;
+        template<typename T, typename U>
+        static auto getFromMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
+                               TypesafeID<U> key) -> T&;
 
-        static inline data::IndexMap<ui32, std::unique_ptr<Geometry>> geometries;
-        static inline data::IndexMap<ui32, std::unique_ptr<Material>> materials;
-        static inline data::IndexMap<ui32, std::unique_ptr<vkb::Image>> images;
+        static inline data::IndexMap<GeometryID, std::unique_ptr<Geometry>> geometries;
+        static inline data::IndexMap<MaterialID, std::unique_ptr<Material>> materials;
+        static inline data::IndexMap<TextureID, std::unique_ptr<vkb::Image>> images;
 
         static inline std::atomic<ui32> nextGeometryIndex{ 0 };
         static inline std::atomic<ui32> nextMaterialIndex{ 0 };

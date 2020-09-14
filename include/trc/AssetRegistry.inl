@@ -1,27 +1,30 @@
 
 
 
-template<typename T>
+template<typename T, typename U>
 auto trc::AssetRegistry::addToMap(
-    data::IndexMap<ui32, std::unique_ptr<T>>& map,
-    ui32 key, T value) -> T&
+    data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
+    TypesafeID<U> key,
+    T value) -> T&
 {
     static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
-    assert(key != UINT32_MAX);  // Reserved ID that signals empty value
+    assert(static_cast<ui32>(key) != UINT32_MAX);  // Reserved ID that signals empty value
 
-    if (map.size() > key && map[key] != nullptr) {
+    if (map.size() > static_cast<ui32>(key) && map[static_cast<ui32>(key)] != nullptr) {
         throw DuplicateKeyError();
     }
 
     return *map.emplace(key, std::make_unique<T>(std::move(value)));
 }
 
-template<typename T>
-auto trc::AssetRegistry::getFromMap(data::IndexMap<ui32, std::unique_ptr<T>>& map, ui32 key) -> T&
+template<typename T, typename U>
+auto trc::AssetRegistry::getFromMap(
+    data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
+    TypesafeID<U> key) -> T&
 {
-    assert(key != UINT32_MAX);  // Reserved ID that signals empty value
+    assert(static_cast<ui32>(key) != UINT32_MAX);  // Reserved ID that signals empty value
 
-    if (map[key] == nullptr) {
+    if (map.size() <= static_cast<ui32>(key) || map[static_cast<ui32>(key)] == nullptr) {
         throw KeyNotFoundError();
     }
 

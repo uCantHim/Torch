@@ -38,25 +38,24 @@ void trc::AssetRegistry::reset()
     nextImageIndex = 0;
 }
 
-auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, ui32>
+auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, GeometryID>
 {
-    ui32 key = nextGeometryIndex++;
+    GeometryID key = nextGeometryIndex++;
     auto& result = addToMap(geometries, key, std::move(geo));
-    result.id = key;
 
     return { result, key };
 }
 
-auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Ref<Material>, ui32>
+auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Ref<Material>, MaterialID>
 {
-    ui32 key = nextMaterialIndex++;
+    MaterialID key = nextMaterialIndex++;
 
     return { addToMap(materials, key, mat), key };
 }
 
-auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, ui32>
+auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, TextureID>
 {
-    ui32 key = nextImageIndex++;
+    TextureID key = nextImageIndex++;
     auto& image = addToMap(images, key, std::move(tex));
     imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
 
@@ -66,17 +65,17 @@ auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, 
     return { image, key };
 }
 
-auto trc::AssetRegistry::getGeometry(ui32 key) -> Geometry&
+auto trc::AssetRegistry::getGeometry(GeometryID key) -> Geometry&
 {
     return getFromMap(geometries, key);
 }
 
-auto trc::AssetRegistry::getMaterial(ui32 key) -> Material&
+auto trc::AssetRegistry::getMaterial(MaterialID key) -> Material&
 {
     return getFromMap(materials, key);
 }
 
-auto trc::AssetRegistry::getImage(ui32 key) -> vkb::Image&
+auto trc::AssetRegistry::getImage(TextureID key) -> vkb::Image&
 {
     return getFromMap(images, key);
 }
