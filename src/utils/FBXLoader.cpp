@@ -87,7 +87,8 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
             transform,
             loadMesh(mesh),
             loadMaterials(mesh),
-            {}, {}
+            std::nullopt,
+            {}
         };
 
         if (sceneImport.skeletonRoots.size() > meshIndex)

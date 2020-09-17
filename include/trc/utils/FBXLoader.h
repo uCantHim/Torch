@@ -22,7 +22,7 @@ namespace trc
 
         MeshData mesh;
         std::vector<Material> materials;
-        RigData rig;
+        std::optional<RigData> rig;
         std::vector<AnimationData> animations;
     };
 
