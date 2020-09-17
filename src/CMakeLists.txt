@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
         Animation.cpp
         AnimationEngine.cpp
+        AssetUtils.cpp
         AssetRegistry.cpp
         CommandCollector.cpp
         DescriptorProvider.cpp

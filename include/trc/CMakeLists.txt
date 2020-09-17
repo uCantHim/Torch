@@ -4,6 +4,7 @@ target_sources(
         Animation.h
         AnimationEngine.h
         AssetIds.h
+        AssetUtils.h
         AssetRegistry.h
         AssetRegistry.inl
         Boilerplate.h

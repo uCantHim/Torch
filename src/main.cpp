@@ -20,6 +20,8 @@ using namespace glm;
 #include "trc/Renderer.h"
 #include "trc/Particle.h"
 
+#include "trc/AssetUtils.h"
+
 int main()
 {
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
@@ -51,7 +53,7 @@ int main()
         trc::Geometry(
             skeletonImport.meshes[0].mesh,
             std::make_unique<trc::Rig>(
-                skeletonImport.meshes[0].rig,
+                skeletonImport.meshes[0].rig.value(),
                 skeletonImport.meshes[0].animations
             )
         )
@@ -61,7 +63,7 @@ int main()
         {
             hoodedBoiImport.meshes[0].mesh,
             std::make_unique<trc::Rig>(
-                hoodedBoiImport.meshes[0].rig,
+                hoodedBoiImport.meshes[0].rig.value(),
                 hoodedBoiImport.meshes[0].animations
             )
         }
@@ -70,7 +72,7 @@ int main()
     auto [lindaGeo, lindaGeoIndex] = trc::AssetRegistry::addGeometry(
         trc::Geometry(
             lindaMesh.mesh,
-            std::make_unique<trc::Rig>(lindaMesh.rig, lindaMesh.animations)
+            std::make_unique<trc::Rig>(lindaMesh.rig.value(), lindaMesh.animations)
         )
     );
     auto [lindaDiffTex, lindaDiffTexIdx] = trc::AssetRegistry::addImage(
@@ -205,12 +207,30 @@ int main()
         trc::Particle p;
         p.phys.linearVelocity = glm::linearRand(vec3(0.2, 0.2, 0.2), vec3(1.5f, 1.5f, 1.0f));
         p.phys.linearAcceleration = vec3(0, -2.0f, 0);
-        p.phys.scaling = vec3(0.3f);
+        p.phys.scaling = vec3(0.2f);
         p.phys.lifeTime = 3000.0f;
         p.material.texture = particleImgIdx;
         spawn.addParticle(p);
     }
     spawn.spawnParticles();
+
+
+
+    auto kitchenScene = trc::loadScene("assets/transparency_test_scene.fbx");
+    trc::Light _sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
+    trc::Light _pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
+    //kitchenScene.scene.addLight(trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f)));
+    //kitchenScene.scene.addLight(trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f));
+    kitchenScene.scene.addLight(_sunLight);
+    kitchenScene.scene.addLight(_pointLight);
+
+    trc::Camera kitchenCamera(1.0f, 45.0f, 0.1f, 100.0f);
+    kitchenCamera.lookAt({ 10.0f, 5.0f, 10.0f }, vec3{ 0.0f }, { 0, 1, 0 });
+    vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
+        const auto extent = e.swapchain->getImageExtent();
+        kitchenCamera.setAspect(float(extent.width) / float(extent.height));
+    });
+
 
 
     bool running{ true };
@@ -223,12 +243,19 @@ int main()
             particleCollection->update();
         }
     });
+    std::thread particleSpawnThread([&]() {
+        while (running)
+        {
+            spawn.spawnParticles();
+            std::this_thread::sleep_for(2s);
+        }
+    });
 
     vkb::Timer timer;
     uint32_t frames{ 0 };
     while (running)
     {
-        renderer->drawFrame(*scene, camera);
+        renderer->drawFrame(kitchenScene.scene, kitchenCamera);
 
         vkb::pollEvents();
         frames++;
@@ -243,6 +270,7 @@ int main()
 
     vkb::getDevice()->waitIdle();
     particleUpdateThread.join();
+    particleSpawnThread.join();
     particleCollection.reset();
     instancedTrees.reset();
     scene.reset();
