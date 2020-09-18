@@ -6,6 +6,8 @@ endif()
 
 project(Torch)
 
+option(TORCH_BUILD_TEST "Build tests for torch" ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -15,10 +17,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DMY_DEBUG")
 
 add_library(torch)
+add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(include/trc)
-add_subdirectory(shaders)
+
+if (${TORCH_BUILD_TEST})
+    add_subdirectory(test)
+endif ()
 
 target_link_libraries(torch PUBLIC vk_base fbxsdk)
 
