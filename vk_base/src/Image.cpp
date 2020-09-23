@@ -34,7 +34,9 @@ vkb::Image::Image(glm::vec4 color, vk::ImageUsageFlags usage)
         usage
     ))
 {
+    changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     copyRawData(&color, sizeof(glm::vec4), {});
+    changeLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral);
 }
 
 auto vkb::Image::operator*() const noexcept -> vk::Image
