@@ -329,7 +329,7 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
         imageViews.push_back(result.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint));
 
         // Clear image
-        auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
+        auto cmdBuf = vkb::getDevice().createGraphicsCommandBuffer();
         cmdBuf->begin(vk::CommandBufferBeginInfo());
         cmdBuf->clearColorImage(
             *result, vk::ImageLayout::eGeneral,
@@ -337,7 +337,7 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
             vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
         );
         cmdBuf->end();
-        vkb::getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
+        vkb::getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
 
         return result;
     }});
