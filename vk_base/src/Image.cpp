@@ -196,7 +196,11 @@ void vkb::Image::changeLayout(vk::CommandBuffer cmdBuf,
         vk::DependencyFlags(),
         {},
         {},
-        vk::ImageMemoryBarrier{ {}, {}, from, to, 0, 0, *image, std::move(subRes) }
+        vk::ImageMemoryBarrier(
+            {}, {}, from, to,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, std::move(subRes)
+        )
     );
 }
 

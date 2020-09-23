@@ -50,7 +50,14 @@ trc::RenderPassDeferred::RenderPassDeferred()
                     vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
                 ),
                 // Depth-/Stencil buffer
-                trc::makeDefaultDepthStencilAttachment(),
+                vk::AttachmentDescription(
+                    vk::AttachmentDescriptionFlags(),
+                    vk::Format::eD24UnormS8Uint,
+                    vk::SampleCountFlagBits::e1,
+                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
+                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
+                    vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
+                ),
                 // Swapchain images
                 trc::makeDefaultSwapchainColorAttachment(vkb::VulkanBase::getSwapchain()),
             };
@@ -145,6 +152,11 @@ trc::RenderPassDeferred::RenderPassDeferred()
         }(),
         NUM_DEFERRED_SUBPASSES
     ), // Base class RenderPass constructor
+    depthPixelReadBuffer(
+        sizeof(vec4),
+        vk::BufferUsageFlagBits::eTransferDst,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+    ),
     framebuffers([&](ui32 frameIndex)
     {
         constexpr size_t numAttachments = 5;
@@ -165,6 +177,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
             vk::Extent3D{ swapchainExtent, 1 },
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            | vk::ImageUsageFlagBits::eTransferSrc
         ));
         auto& uvImage = images.emplace_back(vk::ImageCreateInfo(
             {}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat,
@@ -185,7 +198,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
             vk::Extent3D{ swapchainExtent, 1 },
             1, 1, vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment
+            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc
         ));
 
         auto positionView = *imageViews.emplace_back(
@@ -243,6 +256,8 @@ trc::RenderPassDeferred::RenderPassDeferred()
 
 void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
+    readMouseDepthValueFromBuffer();
+
     // Bring attachment images in color attachment layout
     ui32 imageIndex = vkb::getSwapchain().getCurrentFrame();
     auto& images = attachmentImages[imageIndex];
@@ -254,6 +269,14 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
                                    vk::ImageLayout::eColorAttachmentOptimal);
     images[3].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
+    images[4].changeLayout(
+        cmdBuf,
+        vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::ImageSubresourceRange(
+            vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
+            0, 1, 0, 1
+        )
+    );
     DeferredRenderPassDescriptor::resetValues(cmdBuf);
 
     cmdBuf.beginRenderPass(
@@ -273,6 +296,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
 void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
 {
     cmdBuf.endRenderPass();
+    copyMouseDepthValueToBuffer(cmdBuf);
 }
 
 auto trc::RenderPassDeferred::getAttachmentImageViews(ui32 imageIndex) const noexcept
@@ -285,6 +309,55 @@ auto trc::RenderPassDeferred::getInputAttachmentDescriptor() const noexcept
     -> const DescriptorProviderInterface&
 {
     return DeferredRenderPassDescriptor::getProvider();
+}
+
+auto trc::RenderPassDeferred::getMouseDepthValue() -> float
+{
+    return mouseDepthValue;
+}
+
+void trc::RenderPassDeferred::copyMouseDepthValueToBuffer(vk::CommandBuffer cmdBuf)
+{
+    vkb::Image& depthImage = attachmentImages[vkb::getSwapchain().getCurrentFrame()][4];
+    const vk::Extent3D size = depthImage.getSize();
+    const vec2 mousePos = vkb::getSwapchain().getMousePosition();
+    if (mousePos.x < 0 || mousePos.y < 0
+        || mousePos.x >= size.width || mousePos.y >= size.height)
+    {
+        return;
+    }
+
+    depthImage.changeLayout(
+        cmdBuf,
+        vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
+        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
+    );
+    cmdBuf.copyImageToBuffer(
+        *depthImage, vk::ImageLayout::eTransferSrcOptimal,
+        *depthPixelReadBuffer,
+        vk::BufferImageCopy(
+            0, // buffer offset
+            0, 0, // some weird 2D or 3D offsets, idk
+            vk::ImageSubresourceLayers(
+                vk::ImageAspectFlagBits::eDepth,
+                0, 0, 1
+            ),
+            { static_cast<i32>(mousePos.x), static_cast<i32>(mousePos.y), 0 },
+            { 1, 1, 1 }
+        )
+    );
+}
+
+void trc::RenderPassDeferred::readMouseDepthValueFromBuffer()
+{
+    auto buf = reinterpret_cast<ui32*>(depthPixelReadBuffer.map());
+    ui32 depthValueD24S8 = buf[0];
+    depthPixelReadBuffer.unmap();
+
+    // Don't ask me why 16 bit here, I think it should be 24. The result
+    // seems to be correct with 16 though.
+    constexpr float maxFloat16 = 65536.0f; // 2**16 -- std::pow is not constexpr
+    mouseDepthValue = static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
 }
 
 
