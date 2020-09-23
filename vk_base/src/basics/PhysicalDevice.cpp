@@ -7,6 +7,38 @@
 
 
 
+namespace std
+{
+    auto to_string(vkb::QueueType queueType) -> std::string
+    {
+        switch (queueType)
+        {
+        case vkb::QueueType::graphics:
+            return "Graphics";
+            break;
+        case vkb::QueueType::compute:
+            return "Compute";
+            break;
+        case vkb::QueueType::transfer:
+            return "Transfer";
+            break;
+        case vkb::QueueType::presentation:
+            return "Presentation";
+            break;
+        case vkb::QueueType::sparseMemory:
+            return "Sparse Memory";
+            break;
+        case vkb::QueueType::protectedMemory:
+            return "Protected Memory";
+            break;
+        case vkb::QueueType::numQueueTypes:
+            [[fallthrough]];
+        default:
+            throw std::logic_error("");
+        }
+    }
+}
+
 // ------------------------------------ //
 //        Physical device helpers       //
 // ------------------------------------ //

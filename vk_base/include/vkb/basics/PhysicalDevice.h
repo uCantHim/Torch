@@ -151,3 +151,9 @@ namespace vkb
         bool supportsRequiredDeviceExtensions(const PhysicalDevice& device);
     }
 } // namespace vkb
+
+
+namespace std
+{
+    extern auto to_string(vkb::QueueType queueType) -> std::string;
+}
