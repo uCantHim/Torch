@@ -3,6 +3,8 @@
 #include <set>
 #include <iostream>
 
+#include "VulkanDebug.h"
+
 
 
 namespace vkb
@@ -107,6 +109,23 @@ vkb::Device::Device(const PhysicalDevice& physDevice)
     )),
     transferQueue(getQueues(getQueueFamily(QueueType::transfer)).at(1))
 {
+    if constexpr (enableVerboseLogging)
+    {
+        std::cout << "\n";
+        for (int i = 0; i < static_cast<int>(QueueType::numQueueTypes); i++)
+        {
+            if (mostSpecializedQueueFamilies[i] != UINT32_MAX)
+            {
+                std::cout << "--- Chose queue family " << mostSpecializedQueueFamilies[i]
+                    << " as the primary " << std::to_string(QueueType(i)) << " queue family.\n";
+            }
+            else
+            {
+                std::cout << "--- No queue family found with " << std::to_string(QueueType(i))
+                    << " support.\n";
+            }
+        }
+    }
 }
 
 auto vkb::Device::operator->() const noexcept -> const vk::Device*
