@@ -6,7 +6,7 @@
 
 
 
-vkb::VulkanDebug::VulkanDebug(const vk::Instance& instance)
+vkb::VulkanDebug::VulkanDebug(vk::Instance instance)
     :
     instance(instance)
 {

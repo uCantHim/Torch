@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <vulkan/vulkan.hpp>
 
@@ -26,7 +28,7 @@ extern std::vector<const char*> getRequiredValidationLayers();
 class VulkanDebug
 {
 public:
-    explicit VulkanDebug(const vk::Instance& instance);
+    explicit VulkanDebug(vk::Instance instance);
     VulkanDebug(const VulkanDebug&) = delete;
     VulkanDebug(VulkanDebug&&) = delete;
     ~VulkanDebug() noexcept;
@@ -35,13 +37,19 @@ public:
     VulkanDebug& operator=(VulkanDebug&&) = delete;
 
 private:
-    const vk::Instance& instance; // Required for messenger destruction
+    const vk::Instance instance; // Required for messenger destruction
     VkDebugUtilsMessengerEXT debugMessenger{};
 
-    static inline Logger vkErrorLog   { "logs/vulkan_error.log" };
-    static inline Logger vkWarningLog { "logs/vulkan_warning.log" };
-    static inline Logger vkInfoLog    { "logs/vulkan_info.log" };
-    static inline Logger vkVerboseLog { "logs/vulkan_verbose.log" };
+    static inline const bool _init = []() -> bool {
+        if (!fs::is_directory("vulkan_logs")) {
+            fs::create_directory("vulkan_logs");
+        }
+        return true;
+    }();
+    static inline Logger vkErrorLog   { "vulkan_logs/vulkan_error.log" };
+    static inline Logger vkWarningLog { "vulkan_logs/vulkan_warning.log" };
+    static inline Logger vkInfoLog    { "vulkan_logs/vulkan_info.log" };
+    static inline Logger vkVerboseLog { "vulkan_logs/vulkan_verbose.log" };
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL vulkanDebugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
