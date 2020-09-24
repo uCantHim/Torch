@@ -6,22 +6,30 @@ endif()
 
 project(Torch)
 
+# Options
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
+option(TORCH_DEBUG ON)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+# Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_BUILD_TYPE Debug)
+# Debug settings
+if (${TORCH_DEBUG})
+    set(CMAKE_BUILD_TYPE Debug)
+else ()
+    set(CMAKE_BUILD_TYPE Release)
+endif ()
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DMY_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 
+# Library target
 add_library(torch)
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(include/trc)
 
+# Test
 if (${TORCH_BUILD_TEST})
     add_subdirectory(test)
 endif ()
@@ -35,6 +43,7 @@ target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/includ
 # Compile options
 target_compile_definitions(torch PRIVATE TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders")
 target_compile_options(torch PUBLIC -fPIC)
+target_compile_features(torch PUBLIC cxx_std_20)
 
 if (NOT MSVC)
     target_compile_options(torch PRIVATE -Wall -Wextra -Wpedantic)
