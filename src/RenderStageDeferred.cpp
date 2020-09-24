@@ -362,6 +362,30 @@ void trc::RenderPassDeferred::readMouseDepthValueFromBuffer()
 
 
 
+auto trc::getMouseDepth() -> float
+{
+    return RenderPassDeferred::getMouseDepthValue();
+}
+
+auto trc::getMouseWorldPos(const Camera& camera) -> vec3
+{
+    const float depth = getMouseDepth();
+    const auto windowSize = vkb::getSwapchain().getImageExtent();
+
+    return glm::unProject(
+        vec3(vkb::getSwapchain().getMousePosition(), depth),
+        camera.getViewMatrix(),
+        camera.getProjectionMatrix(),
+        vec4(0.0f, 0.0f, windowSize.width, windowSize.height)
+    );
+}
+
+
+
+// -------------------------------- //
+//       Deferred descriptor        //
+// -------------------------------- //
+
 vkb::StaticInit trc::DeferredRenderPassDescriptor::_init{
     []() {},
     []() {

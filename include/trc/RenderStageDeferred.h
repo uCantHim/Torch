@@ -6,6 +6,7 @@
 
 #include "RenderStage.h"
 #include "RenderPass.h"
+#include "utils/Camera.h"
 
 namespace trc
 {
@@ -52,15 +53,32 @@ namespace trc
     };
 
     /**
+     * This function does not have any calculational overhead. It is a more
+     * intuitive alternative to RenderPassDeferred::getMouseDepthValue.
+     *
      * @return float Depth of the pixel which contains the mouse cursor.
      *               Is zero if no depth value has been read. Is the last
      *               read depth value if the cursor is not in a window.
      */
-    inline auto getMouseDepth() -> float
-    {
-        return RenderPassDeferred::getMouseDepthValue();
-    }
+    extern auto getMouseDepth() -> float;
 
+    /**
+     * This function calculates the mouse position when it's called. It is
+     * a good idea to call this only once per frame and re-use the result.
+     *
+     * @param const Camera& camera Reconstructing the mouse coursor's world
+     *                             position requires the view- and projection
+     *                             matrices that were used for the scene that
+     *                             the cursor is in.
+     *
+     * @return vec3 Position of the mouse cursor in the world.
+     */
+    extern auto getMouseWorldPos(const Camera& camera) -> vec3;
+
+
+    /**
+     * @brief Static descriptor class for resources in deferred renderpass
+     */
     class DeferredRenderPassDescriptor
     {
     public:

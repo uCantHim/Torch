@@ -255,7 +255,9 @@ int main()
     uint32_t frames{ 0 };
     while (running)
     {
-        renderer->drawFrame(kitchenScene.scene, kitchenCamera);
+        renderer->drawFrame(*scene, camera);
+
+        trc::getMouseWorldPos(camera);
 
         vkb::pollEvents();
         frames++;
