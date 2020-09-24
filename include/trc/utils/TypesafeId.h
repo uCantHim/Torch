@@ -2,38 +2,41 @@
 
 #include <cstdint>
 
-template<typename ClassType, typename IdType = uint32_t>
-class TypesafeID
+namespace trc
 {
-    template<typename T>
-    static constexpr bool IsIdType = std::is_convertible_v<IdType, T>;
+    template<typename ClassType, typename IdType = uint32_t>
+    class TypesafeID
+    {
+        template<typename T>
+        static constexpr bool IsIdType = std::is_convertible_v<IdType, T>;
 
-public:
-    using Type = IdType;
+    public:
+        using Type = IdType;
 
-    TypesafeID() = default;
-    TypesafeID(IdType id) : _id(id) {}
+        TypesafeID() = default;
+        TypesafeID(IdType id) : _id(id) {}
 
-    template<typename T>
-    explicit TypesafeID(T id) requires IsIdType<T>
-        : _id(static_cast<IdType>(id)) {}
+        template<typename T>
+        explicit TypesafeID(T id) requires IsIdType<T>
+            : _id(static_cast<IdType>(id)) {}
 
-    /**
-     * Can only be implicitly casted to the ID type, but not to other
-     * arithmetic types.
-     */
-    operator IdType() const noexcept {
-        return _id;
-    }
+        /**
+         * Can only be implicitly casted to the ID type, but not to other
+         * arithmetic types.
+         */
+        operator IdType() const noexcept {
+            return _id;
+        }
 
-    /**
-     * Allow explicit casts to all arithmetic types
-     */
-    template<typename T>
-    explicit operator T() const noexcept requires IsIdType<T> {
-        return static_cast<T>(_id);
-    }
+        /**
+         * Allow explicit casts to all arithmetic types
+         */
+        template<typename T>
+        explicit operator T() const noexcept requires IsIdType<T> {
+            return static_cast<T>(_id);
+        }
 
-private:
-    IdType _id{ static_cast<IdType>(0) };
-};
+    private:
+        IdType _id{ static_cast<IdType>(0) };
+    };
+} // namespace trc
