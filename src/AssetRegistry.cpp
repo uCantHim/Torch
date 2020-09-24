@@ -14,8 +14,11 @@ void trc::AssetRegistry::init()
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     );
+
+    // Add default assets
     addMaterial({});
     updateMaterialBuffer();
+    addImage(vkb::Image(vec4(1.0f)));
 
     createDescriptors();
 }
