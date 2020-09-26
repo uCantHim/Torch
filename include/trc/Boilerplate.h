@@ -7,10 +7,8 @@
 
 #define TRC_FLIP_Y_PROJECTION
 
-namespace trc
+namespace trc::basic_types
 {
-    using namespace glm;
-
     using int8 = int8_t;
     using int16 = int16_t;
     using int32 = int32_t;
@@ -32,4 +30,10 @@ namespace trc
     using ui64 = uint64;
 
     using bool32 = ui32;
-} // namespace trc
+} // namespace trc::basic_types
+
+namespace trc
+{
+    using namespace glm;
+    using namespace basic_types;
+}
