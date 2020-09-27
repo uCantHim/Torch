@@ -12,7 +12,7 @@ namespace vkb
      *
      * Can be destroyed after a pipeline is created.
      */
-    class ShaderProgram : public VulkanBase
+    class ShaderProgram
     {
     public:
         using ShaderStageCreateInfos = std::vector<vk::PipelineShaderStageCreateInfo>;
@@ -25,20 +25,20 @@ namespace vkb
             const std::string& tesePath = ""
         );
 
+        ShaderProgram(
+            vk::UniqueShaderModule vertModule,
+            vk::UniqueShaderModule fragModule,
+            vk::UniqueShaderModule geomModule = {},
+            vk::UniqueShaderModule tescModule = {},
+            vk::UniqueShaderModule teseModule = {}
+        );
+
         ShaderProgram(const ShaderProgram&) = delete;
         ShaderProgram(ShaderProgram&&) noexcept = default;
         ~ShaderProgram() = default;
 
         ShaderProgram& operator=(const ShaderProgram&) = delete;
         ShaderProgram& operator=(ShaderProgram&&) noexcept = default;
-
-        static ShaderProgram create(
-            const std::string& vertPath,
-            const std::string& fragPath,
-            const std::string& geomPath = "",
-            const std::string& tescPath = "",
-            const std::string& tesePath = ""
-        );
 
         auto getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&;
 
@@ -56,8 +56,13 @@ namespace vkb
         bool hasTess{ false };
     };
 
+    /**
+     * @brief Read the contents of a file to a string
+     */
+    auto readFile(const std::string& path) -> std::string;
 
-    auto readFile(const std::string& path) -> std::vector<char>;
-    auto createShaderModule(std::vector<char> code) -> vk::UniqueShaderModule;
-
+    /**
+     * @brief Create a shader module from shader code
+     */
+    auto createShaderModule(const std::string& code) -> vk::UniqueShaderModule;
 } // namespace vkb

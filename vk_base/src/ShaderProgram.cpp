@@ -11,69 +11,73 @@ vkb::ShaderProgram::ShaderProgram(
     const std::string& geomPath,
     const std::string& tescPath,
     const std::string& tesePath)
+    :
+    ShaderProgram(
+        createShaderModule(readFile(vertPath)),
+        createShaderModule(readFile(fragPath)),
+        geomPath.empty() ? vk::UniqueShaderModule{} : createShaderModule(readFile(geomPath)),
+        tescPath.empty() ? vk::UniqueShaderModule{} : createShaderModule(readFile(tescPath)),
+        tesePath.empty() ? vk::UniqueShaderModule{} : createShaderModule(readFile(tesePath))
+    )
 {
-    auto vert = createShaderModule(readFile(vertPath));
-    auto frag = createShaderModule(readFile(fragPath));
+}
+
+vkb::ShaderProgram::ShaderProgram(
+    vk::UniqueShaderModule vertModule,
+    vk::UniqueShaderModule fragModule,
+    vk::UniqueShaderModule geomModule,
+    vk::UniqueShaderModule tescModule,
+    vk::UniqueShaderModule teseModule)
+{
+    assert(vertModule && fragModule);
 
     stages.emplace_back(
         vk::PipelineShaderStageCreateFlags(),
         vk::ShaderStageFlagBits::eVertex,
-        *vert,
+        *vertModule,
         "main"
     );
     stages.emplace_back(
         vk::PipelineShaderStageCreateFlags(),
         vk::ShaderStageFlagBits::eFragment,
-        *frag,
+        *fragModule,
         "main"
     );
-    modules.push_back(std::move(vert));
-    modules.push_back(std::move(frag));
+    modules.push_back(std::move(vertModule));
+    modules.push_back(std::move(fragModule));
 
-    if (!geomPath.empty())
+    if (geomModule)
     {
         hasGeom = true;
-        auto geom = createShaderModule(readFile(geomPath));
 
         stages.emplace_back(
             vk::PipelineShaderStageCreateFlags(),
             vk::ShaderStageFlagBits::eGeometry,
-            *geom,
+            *geomModule,
             "main"
         );
-        modules.push_back(std::move(geom));
+        modules.push_back(std::move(geomModule));
     }
-    if (!tescPath.empty() && !tesePath.empty())
+
+    if (tescModule && teseModule)
     {
         hasTess = true;
-        auto tesc = createShaderModule(readFile(tescPath));
-        auto tese = createShaderModule(readFile(tesePath));
 
         stages.emplace_back(
             vk::PipelineShaderStageCreateFlags(),
             vk::ShaderStageFlagBits::eTessellationControl,
-            *tesc,
+            *tescModule,
             "main"
         );
         stages.emplace_back(
             vk::PipelineShaderStageCreateFlags(),
             vk::ShaderStageFlagBits::eTessellationEvaluation,
-            *tese,
+            *teseModule,
             "main"
         );
-        modules.push_back(std::move(tesc));
-        modules.push_back(std::move(tese));
+        modules.push_back(std::move(tescModule));
+        modules.push_back(std::move(teseModule));
     }
-}
-
-auto vkb::ShaderProgram::create(
-    const std::string& vertPath,
-    const std::string& fragPath,
-    const std::string& geomPath,
-    const std::string& tescPath,
-    const std::string& tesePath) -> ShaderProgram
-{
-    return ShaderProgram(vertPath, fragPath, geomPath, tescPath, tesePath);
 }
 
 auto vkb::ShaderProgram::getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&
@@ -126,34 +130,28 @@ void vkb::ShaderProgram::setTessEvalSpecializationConstants(vk::SpecializationIn
 
 
 
-auto vkb::readFile(const std::string& path) -> std::vector<char>
+auto vkb::readFile(const std::string& path) -> std::string
 {
-    assert(!path.empty());
-
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) {
         throw std::runtime_error("Unable to open file " + path);
     }
 
-    size_t fileSize = static_cast<size_t>(file.tellg());
-    std::vector<char> result(fileSize);
-    file.seekg(0);
-    file.read(result.data(), fileSize);
-    file.close();
+    std::stringstream buf;
+    buf << file.rdbuf();
 
-    return result;
+    return buf.str();
 }
 
-
-auto vkb::createShaderModule(std::vector<char> code) -> vk::UniqueShaderModule
+auto vkb::createShaderModule(const std::string& code) -> vk::UniqueShaderModule
 {
     assert(!code.empty());
 
     vk::ShaderModuleCreateInfo info(
         vk::ShaderModuleCreateFlags(),
         code.size(),
-        reinterpret_cast<uint32_t*>(code.data())
+        reinterpret_cast<const uint32_t*>(code.data())
     );
 
-    return VulkanBase::getDevice().get().createShaderModuleUnique(info);
+    return getDevice()->createShaderModuleUnique(info);
 }
