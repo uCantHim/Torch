@@ -75,6 +75,20 @@ namespace trc
      */
     extern auto getMouseWorldPos(const Camera& camera) -> vec3;
 
+    /**
+     * Calculates the mouse cursor position in the world at a specific
+     * depth.
+     *
+     * @param const Camera& camera Reconstructing the mouse coursor's world
+     *                             position requires the view- and projection
+     *                             matrices that were used for the scene that
+     *                             the cursor is in.
+     * @param float         depth  A depth value in the range [0, 1].
+     *
+     * @return vec3 Position of the mouse cursor in the world.
+     */
+    extern auto getMouseWorldPosAtDepth(const Camera& camera, float depth) -> vec3;
+
 
     /**
      * @brief Static descriptor class for resources in deferred renderpass
