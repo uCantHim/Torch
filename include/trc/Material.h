@@ -9,9 +9,9 @@ namespace trc
 
     struct Material
     {
-        vec4 colorAmbient{ 1.0f, 0.0f, 1.0f, 1.0f };
-        vec4 colorDiffuse{ 1.0f, 0.0f, 1.0f, 1.0f };
-        vec4 colorSpecular;
+        vec4 colorAmbient{ 1.0f };
+        vec4 colorDiffuse{ 1.0f };
+        vec4 colorSpecular{ 1.0f };
 
         float shininess{ 1.0f };
 
@@ -22,7 +22,7 @@ namespace trc
         ui32 specularTexture{ NO_TEXTURE };
         ui32 bumpTexture{ NO_TEXTURE };
 
-        ui64 __padding;
+        ui64 __padding{ 0 };
     };
 
     static_assert(util::sizeof_pad_16_v<Material> == sizeof(Material),
