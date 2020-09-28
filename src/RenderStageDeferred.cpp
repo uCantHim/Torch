@@ -369,11 +369,16 @@ auto trc::getMouseDepth() -> float
 
 auto trc::getMouseWorldPos(const Camera& camera) -> vec3
 {
-    const float depth = getMouseDepth();
+    return getMouseWorldPosAtDepth(camera, trc::getMouseDepth());
+}
+
+auto trc::getMouseWorldPosAtDepth(const Camera& camera, const float depth) -> vec3
+{
     const auto windowSize = vkb::getSwapchain().getImageExtent();
+    vec2 mousePos = vkb::getSwapchain().getMousePosition();
 
     return glm::unProject(
-        vec3(vkb::getSwapchain().getMousePosition(), depth),
+        vec3(mousePos, depth),
         camera.getViewMatrix(),
         camera.getProjectionMatrix(),
         vec4(0.0f, 0.0f, windowSize.width, windowSize.height)
