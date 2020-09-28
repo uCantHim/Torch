@@ -9,6 +9,7 @@ using namespace std::chrono;
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/event/Event.h>
+#include <vkb/event/InputState.h>
 using namespace glm;
 
 #include "trc/utils/FBXLoader.h"
@@ -29,6 +30,9 @@ int main()
         const auto extent = e.swapchain->getImageExtent();
         camera.setAspect(float(extent.width) / float(extent.height));
     });
+
+    vkb::Keyboard::init();
+    vkb::Mouse::init();
 
     vkb::VulkanInitInfo initInfo;
     vkb::vulkanInit(initInfo);
@@ -255,6 +259,9 @@ int main()
     uint32_t frames{ 0 };
     while (running)
     {
+        if (vkb::Keyboard::isPressed(vkb::Key::a)) std::cout << "A pressed\n";
+        if (vkb::Keyboard::isPressed(vkb::Key::del)) std::cout << "DEL pressed\n";
+
         renderer->drawFrame(*scene, camera);
 
         trc::getMouseWorldPos(camera);

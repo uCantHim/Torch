@@ -3,6 +3,7 @@ target_sources(
     PUBLIC
         EventHandler.h
         InputEvents.h
+        InputState.h
         Keys.h
         WindowEvents.h
 )
