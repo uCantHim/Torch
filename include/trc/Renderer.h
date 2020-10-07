@@ -17,6 +17,16 @@
 
 namespace trc
 {
+    /**
+     * @brief Destroy all resources allocated by Torch
+     *
+     * Does call vkb::terminate for you!
+     *
+     * You should release all of your resources before calling this
+     * function.
+     */
+    extern void terminate();
+
     class Renderer
     {
     public:

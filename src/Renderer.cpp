@@ -7,6 +7,17 @@
 #include "utils/Util.h"
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
+#include "AssetRegistry.h"
+
+
+
+void trc::terminate()
+{
+    AssetRegistry::reset();
+    RenderPass::destroyAll();
+    Pipeline::destroyAll();
+    vkb::vulkanTerminate();
+}
 
 
 
