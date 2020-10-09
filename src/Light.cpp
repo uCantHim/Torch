@@ -49,7 +49,10 @@ auto trc::LightRegistry::addLight(const Light& light) -> const Light&
 void trc::LightRegistry::removeLight(const Light& light)
 {
     removeLightNode(light);
-    lights.erase(std::find(lights.begin(), lights.end(), &light));
+    auto it = std::remove(lights.begin(), lights.end(), &light);
+    if (it != lights.end()) {
+        lights.erase(it);
+    }
 }
 
 auto trc::LightRegistry::createLightNode(Light& light) -> LightNode&
