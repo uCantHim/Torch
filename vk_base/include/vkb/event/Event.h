@@ -104,6 +104,23 @@ namespace vkb
     }
 
     /**
+     * @brief Construct and fire an event
+     *
+     * emplace-like overload of the fire template.
+     *
+     * @tparam EventType Type of event fired. Can obviously not be deduced
+     *                   in this case.
+     * @tparam ...Args   Argument types to the constructor of EventType.
+     *                   Can be deduced.
+     */
+    template<typename EventType, typename... Args>
+    inline void fire(Args&&... args)
+        requires (std::is_constructible_v<EventType, Args...>)
+    {
+        EventHandler<EventType>::notify(EventType(std::forward<Args>(args)...));
+    }
+
+    /**
      * @brief Fire an event synchronously
      *
      * @tparam EventType Type of event fired. Can be deduced by the
@@ -116,5 +133,25 @@ namespace vkb
     inline void fireSync(EventType event)
     {
         EventHandler<EventType>::notifySync(std::move(event));
+    }
+
+    /**
+     * @brief Construct and fire an event synchronously
+     *
+     * emplace-like overload of the fireSync template.
+     *
+     * @tparam EventType Type of event fired. Can obviously not be deduced
+     *                   in this case.
+     * @tparam ...Args   Argument types to the constructor of EventType.
+     *                   Can be deduced.
+     *
+     * All registered listeners for the event are invoked synchronously
+     * in the same thread that this function is called in.
+     */
+    template<typename EventType, typename... Args>
+    inline void fireSync(Args&&... args)
+        requires (std::is_constructible_v<EventType, Args...>)
+    {
+        EventHandler<EventType>::notifySync(EventType(std::forward<Args>(args)...));
     }
 }
