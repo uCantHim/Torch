@@ -90,4 +90,31 @@ namespace vkb
     {
         return { EventHandler<EventType>::addListener(std::move(callback)) };
     }
+
+    /**
+     * @brief Fire an event
+     *
+     * @tparam EventType Type of event fired. Can be deduced by the
+     *                   compiler.
+     */
+    template<typename EventType>
+    inline void fire(EventType event)
+    {
+        EventHandler<EventType>::notify(std::move(event));
+    }
+
+    /**
+     * @brief Fire an event synchronously
+     *
+     * @tparam EventType Type of event fired. Can be deduced by the
+     *                   compiler.
+     *
+     * All registered listeners for the event are invoked synchronously
+     * in the same thread that this function is called in.
+     */
+    template<typename EventType>
+    inline void fireSync(EventType event)
+    {
+        EventHandler<EventType>::notifySync(std::move(event));
+    }
 }
