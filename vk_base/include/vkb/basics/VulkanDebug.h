@@ -11,7 +11,7 @@ namespace fs = std::filesystem;
 namespace vkb
 {
 
-#ifdef MY_DEBUG
+#ifdef TRC_DEBUG
 constexpr auto debugMode = true;
 #else
 constexpr auto debugMode = false;
