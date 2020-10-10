@@ -51,6 +51,14 @@ namespace vkb
         Image(const Device& device,
               const vk::ImageCreateInfo& createInfo,
               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
+
+        Image(Image&&) noexcept = default;
+        auto operator=(Image&&) noexcept -> Image& = default;
+        ~Image() = default;
+
+        Image(const Image&) = delete;
+        auto operator=(const Image&) -> Image& = delete;
+
         /**
          * @brief Access the underlying vk::Image handle
          *

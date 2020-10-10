@@ -166,14 +166,14 @@ auto vkb::makeImage2D(
     Image result{
         device,
         vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Uint,
+            {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
             { 1, 1, 1 }, 1, 1,
             vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, usage
         ),
         allocator
     };
 
-    // Why does R8G8B8A8Uint assume that the supplied data is in signed integer format?
+    // Why does R8G8B8A8Unorm assume that the supplied data is in signed integer format?
     std::array<uint8_t, 4> normalizedUnsigned{
         static_cast<uint8_t>(color.r * 128.0f),
         static_cast<uint8_t>(color.g * 128.0f),
