@@ -74,6 +74,8 @@ void vkb::Image::changeLayout(
             *image, std::move(subRes)
         )
     );
+
+    currentLayout = to;
 }
 
 void vkb::Image::writeData(void* srcData, size_t srcSize, ImageSize destArea)

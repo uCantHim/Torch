@@ -228,6 +228,7 @@ void vkb::Swapchain::presentImage(
             std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
         }
         createSwapchain();
+        return;
     }
 
     currentFrame = (currentFrame + 1) % numFrames;
@@ -429,6 +430,7 @@ void vkb::Swapchain::createSwapchain()
     if constexpr (enableVerboseLogging)
     {
         auto duration = duration_cast<milliseconds>(system_clock::now() - timerStart);
-        std::cout << "Swapchain has been created successfully (" << duration.count() << " ms)\n";
+        std::cout << "Swapchain has been created successfully with " << numFrames
+           << " images (" << duration.count() << " ms)\n";
     }
 }
