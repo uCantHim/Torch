@@ -1,9 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 
-#include "VulkanBase.h"
+#include "Memory.h"
 
 namespace vkb
 {
@@ -25,58 +24,33 @@ namespace vkb
     };
 
     /**
-     * @brief An image
-     *
-     * An image will always have the additional usage bit
-     * `vk::ImageUsageFlagBits::eTransferSrc` set.
+     * A subresource range for one color image with one array layer
+     * and one mipmap level.
      */
+    constexpr vk::ImageSubresourceRange DEFAULT_SUBRES_RANGE{
+        vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1
+    };
+
     class Image
     {
     public:
         /**
-         * A subresource range for one color image with one array layer
-         * and one mipmap level.
-         */
-        static constexpr vk::ImageSubresourceRange DEFAULT_SUBRES_RANGE
-            = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 };
-
-        /**
-         * @brief Create an uninitialized image
+         * @brief Incomplete initializating constructor
          *
-         * The underlying vk::Image is not created and no memory is
-         * allocated.
+         * Does not allocate memory, nor create an image. Actually, doesn't
+         * call any Vulkan API functions at all.
          */
         Image() = default;
 
         /**
-         * @brief Create an image
-         *
-         * Allocates memory for the image.
-         *
-         * @param const vk::ImageCreateInfo& info The standard Vulkan image
-         *                                        create info struct.
+         * Image is left in vk::ImageLayout::eUndefined.
          */
-        explicit Image(const vk::ImageCreateInfo& info);
+        Image(const vk::ImageCreateInfo& createInfo,
+              const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
 
-        /**
-         * @brief Create a 2D image from a file
-         *
-         * Creates an image with one mip level and one array layer.
-         */
-        explicit Image(
-            const std::string& imagePath,
-            vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled);
-
-        explicit Image(glm::vec4 color,
-                       vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled);
-
-        Image(const Image&) = delete;
-        Image(Image&&) noexcept = default;
-        ~Image() = default;
-
-        auto operator=(const Image&) -> Image& = delete;
-        auto operator=(Image&&) noexcept -> Image& = default;
-
+        Image(const Device& device,
+              const vk::ImageCreateInfo& createInfo,
+              const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
         /**
          * @brief Access the underlying vk::Image handle
          *
@@ -84,15 +58,31 @@ namespace vkb
          */
         auto operator*() const noexcept -> vk::Image;
 
-        /**
-         * @return The device memory backing the image
-         */
-        auto getMemory() const noexcept -> vk::DeviceMemory;
-
         auto getSize() const noexcept -> vk::Extent3D;
-        auto getType() const noexcept -> vk::ImageType;
-        auto getArrayLayerCount() const noexcept -> uint32_t;
-        auto getMipLevelCount() const noexcept -> uint32_t;
+
+        void changeLayout(const Device& device,
+                          vk::ImageLayout newLayout,
+                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
+
+        void changeLayout(vk::CommandBuffer cmdBuf,
+                          vk::ImageLayout newLayout,
+                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
+
+        /**
+         * Change the image's layout in a dedicated command buffer
+         */
+        void changeLayout(const Device& device,
+                          vk::ImageLayout from, vk::ImageLayout to,
+                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
+
+        /**
+         * Record the image layout change to a command buffer
+         */
+        void changeLayout(vk::CommandBuffer cmdBuf,
+                          vk::ImageLayout from, vk::ImageLayout to,
+                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
+
+        void writeData(void* srcData, size_t srcSize, ImageSize destArea);
 
         /**
          * @brief Get a sampler object with default values for the image
@@ -105,26 +95,6 @@ namespace vkb
         auto getDefaultSampler() const -> vk::Sampler;
 
         /**
-         * @brief Create a new image from an image file source
-         *
-         * Creates a 2D image with one mip level and one array layer.
-         * The format is vk::Format::aR8G8B8A8Uint.
-         *
-         * Image will be in layout vk::ImageLayout::eGeneral after this
-         * operation.
-         */
-        void loadFromFile(const std::string& imagePath, vk::ImageUsageFlags usage);
-
-        /**
-         * @brief Copy raw data into a region of the image
-         *
-         * The user is responsible for providing the data in the correct
-         * format for the image. Performs rudimentary boundary checks. The
-         * user also has to bring the image in the correct layout.
-         */
-        void copyRawData(void* data, size_t size, ImageSize copySize);
-
-        /**
          * @brief Create a view on the image
          */
         auto createView(vk::ImageViewType viewType,
@@ -133,38 +103,44 @@ namespace vkb
                         vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE
             ) const -> vk::UniqueImageView;
 
-        /**
-         * Change the image's layout in a dedicated command buffer
-         */
-        void changeLayout(vk::ImageLayout from, vk::ImageLayout to,
-                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
-        /**
-         * Record the image layout change to a command buffer
-         */
-        void changeLayout(vk::CommandBuffer cmdBuf,
-                          vk::ImageLayout from, vk::ImageLayout to,
-                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
     private:
-        void recreateImage(const vk::ImageCreateInfo& info);
-
         /**
          * @brief Turn UINT32_MAXs into the image's extent
-         *
          * @return vk::Extent3D The correct extent for the image
          */
         auto expandExtent(vk::Extent3D otherExtent) -> vk::Extent3D;
 
+        void createNewImage(const Device& device,
+                            const vk::ImageCreateInfo& createInfo,
+                            const DeviceMemoryAllocator& allocator);
+
+        DeviceMemory memory;
         vk::UniqueImage image;
-        vk::UniqueDeviceMemory memory;
-
-        vk::ImageType type;
-        vk::Extent3D extent;
-        uint32_t arrayLayers;
-        uint32_t mipLevels;
-
-        // I don't like mutable but I wanted getDefaultSampler() to be const
         mutable vk::UniqueSampler defaultSampler;
+
+        vk::ImageLayout currentLayout;
+        vk::Extent3D size;
     };
-} // namespace vkb
+
+    /**
+     * @brief Make a 1x1 2D image with just one color
+     */
+    extern auto makeImage2D(const Device& device,
+                            glm::vec4 color,
+                            vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled
+                                                        | vk::ImageUsageFlagBits::eTransferDst,
+                            const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator()
+        ) -> Image;
+
+    /**
+     * @brief Load an image from file
+     *
+     * The created image is in the format r8g8b8a8.
+     */
+    extern auto makeImage2D(const Device& device,
+                            const fs::path& filePath,
+                            vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled
+                                                        | vk::ImageUsageFlagBits::eTransferDst,
+                            const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator()
+        ) -> Image;
+}

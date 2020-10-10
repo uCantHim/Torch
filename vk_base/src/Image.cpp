@@ -1,42 +1,22 @@
 #include "Image.h"
 
-#include <iostream>
-#include <filesystem>
-namespace fs = std::filesystem;
-
 #include <IL/il.h>
 
 #include "Buffer.h"
 
 
 
-vkb::Image::Image(const vk::ImageCreateInfo& info)
-{
-    recreateImage(info);
-}
-
-vkb::Image::Image(const std::string& imagePath, vk::ImageUsageFlags usage)
-    : Image()
-{
-    loadFromFile(imagePath, usage);
-}
-
-vkb::Image::Image(glm::vec4 color, vk::ImageUsageFlags usage)
+vkb::Image::Image(const vk::ImageCreateInfo& createInfo, const DeviceMemoryAllocator& allocator)
     :
-    Image(vk::ImageCreateInfo(
-        vk::ImageCreateFlags(),
-        vk::ImageType::e2D,
-        vk::Format::eR8G8B8A8Unorm,
-        { 1, 1, 1 },
-        1, 1,
-        vk::SampleCountFlagBits::e1,
-        vk::ImageTiling::eOptimal,
-        usage
-    ))
+    Image(getDevice(), createInfo, allocator)
+{}
+
+vkb::Image::Image(
+    const Device& device,
+    const vk::ImageCreateInfo& createInfo,
+    const DeviceMemoryAllocator& allocator)
 {
-    changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    copyRawData(&color, sizeof(glm::vec4), {});
-    changeLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral);
+    createNewImage(device, createInfo, allocator);
 }
 
 auto vkb::Image::operator*() const noexcept -> vk::Image
@@ -44,29 +24,84 @@ auto vkb::Image::operator*() const noexcept -> vk::Image
     return *image;
 }
 
-auto vkb::Image::getMemory() const noexcept -> vk::DeviceMemory
-{
-    return *memory;
-}
-
 auto vkb::Image::getSize() const noexcept -> vk::Extent3D
 {
-    return extent;
+    return size;
 }
 
-auto vkb::Image::getType() const noexcept -> vk::ImageType
+void vkb::Image::changeLayout(
+    const Device& device,
+    vk::ImageLayout newLayout,
+    vk::ImageSubresourceRange subRes)
 {
-    return type;
+    changeLayout(device, currentLayout, newLayout, subRes);
 }
 
-auto vkb::Image::getArrayLayerCount() const noexcept -> uint32_t
+void vkb::Image::changeLayout(
+    vk::CommandBuffer cmdBuf,
+    vk::ImageLayout newLayout,
+    vk::ImageSubresourceRange subRes)
 {
-    return arrayLayers;
+    changeLayout(cmdBuf, currentLayout, newLayout, subRes);
 }
 
-auto vkb::Image::getMipLevelCount() const noexcept -> uint32_t
+void vkb::Image::changeLayout(
+    const Device& device,
+    vk::ImageLayout from, vk::ImageLayout to,
+    vk::ImageSubresourceRange subRes)
 {
-    return mipLevels;
+    auto cmdBuf = device.createGraphicsCommandBuffer();
+    cmdBuf->begin(vk::CommandBufferBeginInfo());
+    changeLayout(*cmdBuf, from, to, subRes);
+    cmdBuf->end();
+    device.executeGraphicsCommandBufferSynchronously(*cmdBuf);
+}
+
+void vkb::Image::changeLayout(
+    vk::CommandBuffer cmdBuf,
+    vk::ImageLayout from, vk::ImageLayout to,
+    vk::ImageSubresourceRange subRes)
+{
+    cmdBuf.pipelineBarrier(
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::DependencyFlags(),
+        {},
+        {},
+        vk::ImageMemoryBarrier(
+            {}, {}, from, to,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, std::move(subRes)
+        )
+    );
+}
+
+void vkb::Image::writeData(void* srcData, size_t srcSize, ImageSize destArea)
+{
+    Buffer buf(
+        srcSize, srcData,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    );
+
+    auto cmdBuf = getDevice().createGraphicsCommandBuffer();
+    cmdBuf->begin(vk::CommandBufferBeginInfo());
+
+    const auto prevLayout = currentLayout == vk::ImageLayout::eUndefined
+                            || currentLayout == vk::ImageLayout::ePreinitialized
+                            ? vk::ImageLayout::eGeneral
+                            : currentLayout;
+    changeLayout(*cmdBuf, vk::ImageLayout::eTransferDstOptimal);
+    const auto copyExtent = expandExtent(destArea.extent);
+    cmdBuf->copyBufferToImage(
+        *buf, *image,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::BufferImageCopy(0, 0, 0, destArea.subres, destArea.offset, copyExtent)
+    );
+    changeLayout(*cmdBuf, prevLayout);
+
+    cmdBuf->end();
+    getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
 }
 
 auto vkb::Image::getDefaultSampler() const -> vk::Sampler
@@ -88,83 +123,6 @@ auto vkb::Image::getDefaultSampler() const -> vk::Sampler
     return *defaultSampler;
 }
 
-void vkb::Image::loadFromFile(const std::string& imagePath, vk::ImageUsageFlags usage)
-{
-    assert(!imagePath.empty());
-
-    if (!fs::is_regular_file(imagePath)) {
-        throw std::runtime_error("In vkb::Image::loadFromFile(): " + imagePath + " is not a file");
-    }
-
-    ILuint imageId = ilGenImage();
-    ilBindImage(imageId);
-    ilEnable(IL_ORIGIN_SET);
-    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
-
-    ILboolean success = ilLoadImage(imagePath.c_str());
-    if (!success)
-    {
-        ilDeleteImage(imageId);
-        throw std::runtime_error("Unable to load image from \"" + imagePath + "\":"
-                                 + std::to_string(ilGetError()));
-    }
-    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
-
-    const auto imageWidth = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_WIDTH));
-    const auto imageHeight = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_HEIGHT));
-
-    vk::ImageCreateInfo info(
-        {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
-        { imageWidth, imageHeight, 1 }, 1, 1,
-        vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, usage);
-    recreateImage(info);
-
-    changeLayout(info.initialLayout, vk::ImageLayout::eTransferDstOptimal);
-    copyRawData(ilGetData(), 4 * imageWidth * imageHeight, {});
-    changeLayout(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral);
-
-    ilDeleteImage(imageId);
-}
-
-void vkb::Image::copyRawData(void* data, size_t size, ImageSize copySize)
-{
-    copySize.extent = expandExtent(copySize.extent);
-
-    assert(data != nullptr);
-    // Check for maximum possible per-channel size (which is 64 bit)
-    assert(size <= extent.width * extent.height * extent.depth * 4 * sizeof(uint64_t));
-    // Check for size
-    assert(copySize.extent.width <= extent.width + copySize.offset.x
-           && copySize.extent.height <= extent.height + copySize.offset.y
-           && copySize.extent.depth <= extent.depth + copySize.offset.z);
-
-    // Create staging buffer
-    const auto imageMemReq = getDevice()->getImageMemoryRequirements(*image);
-    vkb::Buffer staging(imageMemReq.size, vk::BufferUsageFlagBits::eTransferSrc,
-                        vk::MemoryPropertyFlagBits::eHostCoherent
-                        | vk::MemoryPropertyFlagBits::eHostVisible);
-
-    if constexpr (enableVerboseLogging)
-    {
-        std::cout << "Image requires " << imageMemReq.size << " bytes\n";
-        std::cout << "Copying " << size << " bytes\n";
-    }
-
-    auto buf = staging.map();
-    memcpy(buf, data, size);
-    staging.unmap();
-
-    // Copy buffer into image
-    auto cmdBuf = getDevice().createTransferCommandBuffer();
-    cmdBuf->begin(vk::CommandBufferBeginInfo());
-    cmdBuf->copyBufferToImage(
-        *staging, *image,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::BufferImageCopy(0, 0, 0, copySize.subres, copySize.offset, copySize.extent));
-    cmdBuf->end();
-    getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
-}
-
 auto vkb::Image::createView(
     vk::ImageViewType viewType,
     vk::Format viewFormat,
@@ -176,67 +134,93 @@ auto vkb::Image::createView(
     );
 }
 
-void vkb::Image::changeLayout(vk::ImageLayout from, vk::ImageLayout to,
-                              vk::ImageSubresourceRange subRes)
-{
-    auto cmdBuf = getDevice().createGraphicsCommandBuffer();
-    cmdBuf->begin(vk::CommandBufferBeginInfo{});
-    changeLayout(*cmdBuf, from, to, std::move(subRes));
-    cmdBuf->end();
-    getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
-}
-
-void vkb::Image::changeLayout(vk::CommandBuffer cmdBuf,
-                              vk::ImageLayout from, vk::ImageLayout to,
-                              vk::ImageSubresourceRange subRes)
-{
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::DependencyFlags(),
-        {},
-        {},
-        vk::ImageMemoryBarrier(
-            {}, {}, from, to,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            *image, std::move(subRes)
-        )
-    );
-}
-
 auto vkb::Image::expandExtent(vk::Extent3D otherExtent) -> vk::Extent3D
 {
     return {
-        otherExtent.width  == UINT32_MAX ? extent.width  : otherExtent.width,
-        otherExtent.height == UINT32_MAX ? extent.height : otherExtent.height,
-        otherExtent.depth  == UINT32_MAX ? extent.depth  : otherExtent.depth
+        otherExtent.width  == UINT32_MAX ? size.width  : otherExtent.width,
+        otherExtent.height == UINT32_MAX ? size.height : otherExtent.height,
+        otherExtent.depth  == UINT32_MAX ? size.depth  : otherExtent.depth
     };
 }
 
-void vkb::Image::recreateImage(const vk::ImageCreateInfo& info)
+void vkb::Image::createNewImage(
+    const Device& device,
+    const vk::ImageCreateInfo& createInfo,
+    const DeviceMemoryAllocator& allocator)
 {
-    auto createInfo = info;
-    createInfo.usage |= vk::ImageUsageFlagBits::eTransferDst;
+    image = device->createImageUnique(createInfo);
+    auto memReq = device->getImageMemoryRequirements(*image);
+    memory = allocator(device, vk::MemoryPropertyFlagBits::eDeviceLocal, memReq);
+    memory.bindToImage(device, *image);
 
-    // Create image
-    image = getDevice()->createImageUnique(createInfo);
+    currentLayout = vk::ImageLayout::eUndefined;
+    size = createInfo.extent;
+}
 
-    // Allocate memory for the image
-    const auto imageMemReq = getDevice()->getImageMemoryRequirements(*image);
-    memory = getDevice()->allocateMemoryUnique(
-        vk::MemoryAllocateInfo{
-            imageMemReq.size,
-            getPhysicalDevice().findMemoryType(
-                imageMemReq.memoryTypeBits,
-                vk::MemoryPropertyFlagBits::eDeviceLocal)
-        }
-    );
+auto vkb::makeImage2D(
+    const Device& device,
+    glm::vec4 color,
+    vk::ImageUsageFlags usage,
+    const DeviceMemoryAllocator& allocator) -> Image
+{
+    Image result{
+        device,
+        vk::ImageCreateInfo(
+            {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Uint,
+            { 1, 1, 1 }, 1, 1,
+            vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, usage
+        ),
+        allocator
+    };
 
-    getDevice()->bindImageMemory(*image, *memory, 0);
+    // Why does R8G8B8A8Uint assume that the supplied data is in signed integer format?
+    std::array<uint8_t, 4> normalizedUnsigned{
+        static_cast<uint8_t>(color.r * 128.0f),
+        static_cast<uint8_t>(color.g * 128.0f),
+        static_cast<uint8_t>(color.b * 128.0f),
+        static_cast<uint8_t>(color.a * 128.0f),
+    };
+    result.writeData(normalizedUnsigned.data(), sizeof(uint8_t) * 4, {});
 
-    // Fill helper fields
-    type = info.imageType;
-    extent = info.extent;
-    arrayLayers = info.arrayLayers;
-    mipLevels = info.mipLevels;
+    return result;
+}
+
+auto vkb::makeImage2D(
+    const Device& device,
+    const fs::path& filePath,
+    vk::ImageUsageFlags usage,
+    const DeviceMemoryAllocator& allocator) -> Image
+{
+    if (!fs::is_regular_file(filePath)) {
+        throw std::runtime_error(filePath.string() + " is not a file");
+    }
+
+    ILuint imageId = ilGenImage();
+    ilBindImage(imageId);
+    ilEnable(IL_ORIGIN_SET);
+    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+    ILboolean success = ilLoadImage(filePath.c_str());
+    if (!success)
+    {
+        ilDeleteImage(imageId);
+        throw std::runtime_error("Unable to load image from \"" + filePath.string() + "\":"
+                                 + std::to_string(ilGetError()));
+    }
+    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+
+    const auto imageWidth = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_WIDTH));
+    const auto imageHeight = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_HEIGHT));
+    Image result{
+        device,
+        vk::ImageCreateInfo(
+            {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
+            { imageWidth, imageHeight, 1 }, 1, 1,
+            vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, usage
+        ),
+        allocator
+    };
+
+    result.writeData(ilGetData(), 4 * imageWidth * imageHeight, {});
+
+    return result;
 }
