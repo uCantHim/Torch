@@ -448,11 +448,11 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
                 vk::ImageType::e2D, vk::Format::eR32Uint,
                 vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
                 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eStorage
+                vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst
             ),
             vkb::DefaultDeviceMemoryAllocator()
         );
-        result.changeLayout(vkb::getDevice(), /* vk::ImageLayout::eUndefined, */ vk::ImageLayout::eGeneral);
+        result.changeLayout(vkb::getDevice(), vk::ImageLayout::eGeneral);
         imageViews.push_back(result.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint));
 
         // Clear image

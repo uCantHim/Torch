@@ -10,7 +10,7 @@
 layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
 layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
 layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
-layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput materialIndex;
+layout (input_attachment_index = 3, set = 2, binding = 3) uniform usubpassInput materialIndex;
 
 layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
 {
@@ -71,7 +71,7 @@ vec3 blendTransparent(vec3 opaqueColor);
 void main()
 {
     vec3 color = vec3(0.3, 1.0, 0.9);
-    const uint matIndex = floatBitsToUint(subpassLoad(materialIndex).r);
+    const uint matIndex = subpassLoad(materialIndex).r;
 
     // Use diffuse texture if available
     uint diffTexture = materials[matIndex].diffuseTexture;
