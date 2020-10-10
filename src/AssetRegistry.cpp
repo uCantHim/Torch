@@ -18,7 +18,7 @@ void trc::AssetRegistry::init()
     // Add default assets
     addMaterial({});
     updateMaterialBuffer();
-    addImage(vkb::Image(vec4(1.0f)));
+    addImage(vkb::makeImage2D(vkb::getDevice(), vec4(1.0f)));
 
     createDescriptors();
 }

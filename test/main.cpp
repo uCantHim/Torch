@@ -80,21 +80,21 @@ int main()
         )
     );
     auto [lindaDiffTex, lindaDiffTexIdx] = trc::AssetRegistry::addImage(
-        vkb::Image("assets/Female_Character.png")
+        vkb::makeImage2D(vkb::getDevice(), "assets/Female_Character.png")
     );
 
     auto [img, imgIndex] = trc::AssetRegistry::addImage(
-        vkb::Image("/home/nicola/dotfiles/arch_3D_simplistic.png")
+        vkb::makeImage2D(vkb::getDevice(), "/home/nicola/dotfiles/arch_3D_simplistic.png")
     );
 
     auto [grassImg, grassImgIdx] = trc::AssetRegistry::addImage(
-        vkb::Image("assets/grass_billboard_001.png")
+        vkb::makeImage2D(vkb::getDevice(), "assets/grass_billboard_001.png")
     );
     auto [stoneTex, stoneTexIdx] = trc::AssetRegistry::addImage(
-        vkb::Image("assets/rough_stone_wall.tif")
+        vkb::makeImage2D(vkb::getDevice(), vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"assets/rough_stone_wall.tif")
     );
     auto [stoneNormalTex, stoneNormalTexIdx] = trc::AssetRegistry::addImage(
-        vkb::Image("assets/rough_stone_wall_normal.tif")
+        vkb::makeImage2D(vkb::getDevice(), "assets/rough_stone_wall_normal.tif")
     );
 
     auto [mat, matIdx] = trc::AssetRegistry::addMaterial(trc::Material());
@@ -204,7 +204,7 @@ int main()
     }
 
     auto [particleImg, particleImgIdx] = trc::AssetRegistry::addImage(
-        vkb::Image("assets/yellowlight.png"));
+        vkb::makeImage2D(vkb::getDevice(), "assets/yellowlight.png"));
     trc::ParticleSpawn spawn(*particleCollection);
     for (int i = 0; i < 50; i++)
     {

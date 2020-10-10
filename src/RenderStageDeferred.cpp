@@ -166,40 +166,61 @@ trc::RenderPassDeferred::RenderPassDeferred()
         images.reserve(numAttachments);
         auto& imageViews = attachmentImageViews.emplace_back();
 
-        auto& positionImage = images.emplace_back(vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
-            vk::Extent3D{ swapchainExtent, 1 },
-            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-        ));
-        auto& normalImage = images.emplace_back(vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
-            vk::Extent3D{ swapchainExtent, 1 },
-            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-            | vk::ImageUsageFlagBits::eTransferSrc
-        ));
-        auto& uvImage = images.emplace_back(vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat,
-            vk::Extent3D{ swapchainExtent, 1 },
-            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-        ));
-        auto& materialImage = images.emplace_back(vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR32Uint,
-            vk::Extent3D{ swapchainExtent, 1 },
-            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-        ));
-        auto& depthImage = images.emplace_back(vk::ImageCreateInfo(
-            {},
-            vk::ImageType::e2D,
-            vk::Format::eD24UnormS8Uint,
-            vk::Extent3D{ swapchainExtent, 1 },
-            1, 1, vk::SampleCountFlagBits::e1,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc
-        ));
+        auto& positionImage = images.emplace_back(
+            vkb::getDevice(),
+            vk::ImageCreateInfo(
+                {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
+                vk::Extent3D{ swapchainExtent, 1 },
+                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            ),
+            vkb::DefaultDeviceMemoryAllocator()
+        );
+        auto& normalImage = images.emplace_back(
+            vkb::getDevice(),
+            vk::ImageCreateInfo(
+                {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
+                vk::Extent3D{ swapchainExtent, 1 },
+                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+                | vk::ImageUsageFlagBits::eTransferSrc
+            ),
+            vkb::DefaultDeviceMemoryAllocator()
+        );
+        auto& uvImage = images.emplace_back(
+            vkb::getDevice(),
+            vk::ImageCreateInfo(
+                {}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat,
+                vk::Extent3D{ swapchainExtent, 1 },
+                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            ),
+            vkb::DefaultDeviceMemoryAllocator()
+        );
+        auto& materialImage = images.emplace_back(
+            vkb::getDevice(),
+            vk::ImageCreateInfo(
+                {}, vk::ImageType::e2D, vk::Format::eR32Uint,
+                vk::Extent3D{ swapchainExtent, 1 },
+                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            ),
+            vkb::DefaultDeviceMemoryAllocator()
+        );
+        auto& depthImage = images.emplace_back(
+            vkb::getDevice(),
+            vk::ImageCreateInfo(
+                {},
+                vk::ImageType::e2D,
+                vk::Format::eD24UnormS8Uint,
+                vk::Extent3D{ swapchainExtent, 1 },
+                1, 1, vk::SampleCountFlagBits::e1,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment
+                | vk::ImageUsageFlagBits::eTransferSrc
+            ),
+            vkb::DefaultDeviceMemoryAllocator()
+        );
 
         auto positionView = *imageViews.emplace_back(
             positionImage.createView(vk::ImageViewType::e2D, vk::Format::eR16G16B16A16Sfloat, {})
@@ -420,14 +441,18 @@ void trc::DeferredRenderPassDescriptor::init(const RenderPassDeferred& renderPas
                                     * swapchainSize.width * swapchainSize.height;
     std::vector<vk::UniqueImageView> imageViews;
     fragmentListHeadPointerImage.reset(new vkb::FrameSpecificObject<vkb::Image>{ [&](ui32) {
-        vkb::Image result(vk::ImageCreateInfo(
-            {},
-            vk::ImageType::e2D, vk::Format::eR32Uint,
-            vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
-            1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eStorage
-        ));
-        result.changeLayout(vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        vkb::Image result(
+            vkb::getDevice(),
+            vk::ImageCreateInfo(
+                {},
+                vk::ImageType::e2D, vk::Format::eR32Uint,
+                vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
+                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eStorage
+            ),
+            vkb::DefaultDeviceMemoryAllocator()
+        );
+        result.changeLayout(vkb::getDevice(), /* vk::ImageLayout::eUndefined, */ vk::ImageLayout::eGeneral);
         imageViews.push_back(result.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint));
 
         // Clear image
