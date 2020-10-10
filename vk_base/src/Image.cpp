@@ -158,6 +158,14 @@ void vkb::Image::createNewImage(
 }
 
 auto vkb::makeImage2D(
+    glm::vec4 color,
+    vk::ImageUsageFlags usage,
+    const DeviceMemoryAllocator& allocator) -> Image
+{
+    return makeImage2D(getDevice(), color, usage, allocator);
+}
+
+auto vkb::makeImage2D(
     const Device& device,
     glm::vec4 color,
     vk::ImageUsageFlags usage,
@@ -183,6 +191,14 @@ auto vkb::makeImage2D(
     result.writeData(normalizedUnsigned.data(), sizeof(uint8_t) * 4, {});
 
     return result;
+}
+
+auto vkb::makeImage2D(
+    const fs::path& filePath,
+    vk::ImageUsageFlags usage,
+    const DeviceMemoryAllocator& allocator) -> Image
+{
+    return makeImage2D(getDevice(), filePath, usage, allocator);
 }
 
 auto vkb::makeImage2D(
