@@ -95,6 +95,11 @@ namespace vkb
         void bindToBuffer(const Device& device, vk::Buffer buffer) const;
 
         /**
+         * @brief Bind the memory to an image
+         */
+        void bindToImage(const Device& device, vk::Image image) const;
+
+        /**
          * @brief Map device memory to host memory
          *
          * Attention: Only one DeviceMemory from the same ManagedMemoryChunk

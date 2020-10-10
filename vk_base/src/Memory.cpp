@@ -61,6 +61,11 @@ void vkb::DeviceMemory::bindToBuffer(const Device& device, vk::Buffer buffer) co
     device->bindBufferMemory(buffer, internal.memory, internal.baseOffset);
 }
 
+void vkb::DeviceMemory::bindToImage(const Device& device, vk::Image image) const
+{
+    device->bindImageMemory(image, internal.memory, internal.baseOffset);
+}
+
 auto vkb::DeviceMemory::map(const Device& device,
                             vk::DeviceSize mappedOffset,
                             vk::DeviceSize mappedSize) const -> void*
