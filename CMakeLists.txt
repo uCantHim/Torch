@@ -8,7 +8,7 @@ project(Torch)
 
 # Options
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
-option(TORCH_DEBUG ON)
+option(TORCH_DEBUG "Build with debug flags and -logging" ON)
 
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
