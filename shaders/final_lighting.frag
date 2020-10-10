@@ -70,7 +70,7 @@ vec3 blendTransparent(vec3 opaqueColor);
 
 void main()
 {
-    vec3 color = vec3(0.3, 1.0, 0.9);
+    vec3 color = vec3(0.0);
     const uint matIndex = subpassLoad(materialIndex).r;
 
     // Use diffuse texture if available

@@ -267,7 +267,7 @@ trc::RenderPassDeferred::RenderPassDeferred()
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
-        vk::ClearColorValue(std::array<ui32, 4>{ UINT32_MAX, 0, 0, 0 }),
+        vk::ClearColorValue(std::array<ui32, 4>{ 0, 0, 0, 0 }),
         vk::ClearDepthStencilValue(1.0f, 0.0f),
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     };
