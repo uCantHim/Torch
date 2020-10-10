@@ -228,7 +228,6 @@ void vkb::Swapchain::presentImage(
             std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
         }
         createSwapchain();
-        return;
     }
 
     currentFrame = (currentFrame + 1) % numFrames;

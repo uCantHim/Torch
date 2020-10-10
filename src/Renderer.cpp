@@ -49,10 +49,9 @@ trc::Renderer::Renderer()
     );
     // Post recreate, create the required resources
     postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
-        [this](const auto&) {
+        [](const auto&) {
             RenderPassDeferred::emplace<RenderPassDeferred>(0);
             PipelineRegistry::recreateAll();
-            createSemaphores();
         }
     );
 
