@@ -57,12 +57,26 @@ namespace trc
          *                                 pipeline bind to.
          */
         void bind(vk::CommandBuffer cmdBuf) const;
+
+        /**
+         * @brief Bind all static descriptor sets specified for the pipeline
+         *
+         * "Static" descriptor sets are the descriptor sets that are
+         * pipeline-specific rather than draw-call-specific.
+         */
         void bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const;
+
+        /**
+         * @brief Supply default values to specified push constant ranges
+         */
+        void bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf) const;
 
         auto getLayout() const noexcept -> vk::PipelineLayout;
 
         void addStaticDescriptorSet(ui32 descriptorIndex,
                                     const DescriptorProviderInterface& provider) noexcept;
+        template<typename T>
+        void addDefaultPushConstantValue(ui32 offset, T value, vk::ShaderStageFlags stages);
 
     private:
         vk::UniquePipelineLayout layout;
@@ -70,6 +84,8 @@ namespace trc
         vk::PipelineBindPoint bindPoint;
 
         std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
+        using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<uint8_t>>;
+        std::vector<PushConstantValue> defaultPushConstants;
     };
 
     extern auto makeGraphicsPipeline(
@@ -95,4 +111,16 @@ namespace trc
         vk::UniquePipelineLayout layout,
         const vk::ComputePipelineCreateInfo& info
     ) -> Pipeline&;
+
+
+
+    template<typename T>
+    void Pipeline::addDefaultPushConstantValue(ui32 offset, T value, vk::ShaderStageFlags stages)
+    {
+        std::vector<uint8_t> defaultValue;
+        defaultValue.resize(sizeof(T));
+        memcpy(defaultValue.data(), &value, sizeof(T));
+
+        defaultPushConstants.emplace_back(offset, stages, std::move(defaultValue));
+    }
 } // namespace trc

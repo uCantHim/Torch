@@ -43,6 +43,7 @@ auto trc::CommandCollector::recordScene(
                 auto& p = Pipeline::at(pipeline);
                 p.bind(cmdBuf);
                 p.bindStaticDescriptorSets(cmdBuf);
+                p.bindDefaultPushConstantValues(cmdBuf);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(renderStage, renderPassId, subPass, pipeline, cmdBuf);

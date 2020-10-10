@@ -35,6 +35,14 @@ void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
     }
 }
 
+void trc::Pipeline::bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf) const
+{
+    for (const auto& [offset, stages, data] : defaultPushConstants)
+    {
+        cmdBuf.pushConstants(*layout, stages, offset, data.size(), data.data());
+    }
+}
+
 auto trc::Pipeline::getLayout() const noexcept -> vk::PipelineLayout
 {
     return *layout;
