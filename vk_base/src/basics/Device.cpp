@@ -148,12 +148,12 @@ auto vkb::Device::getPhysicalDevice() const noexcept -> const PhysicalDevice&
     return physicalDevice;
 }
 
-auto vkb::Device::getQueue(QueueType capability, uint32_t queueIndex) -> vk::Queue
+auto vkb::Device::getQueue(QueueType capability, uint32_t queueIndex) const -> vk::Queue
 {
     return queuesPerFamily.at(getQueueFamily(capability)).at(queueIndex);
 }
 
-auto vkb::Device::getQueueFamily(QueueType capability) -> QueueFamilyIndex
+auto vkb::Device::getQueueFamily(QueueType capability) const -> QueueFamilyIndex
 {
     QueueFamilyIndex family = mostSpecializedQueueFamilies[static_cast<size_t>(capability)];
     if (family == UINT32_MAX)
@@ -165,7 +165,7 @@ auto vkb::Device::getQueueFamily(QueueType capability) -> QueueFamilyIndex
     return family;
 }
 
-auto vkb::Device::getQueues(QueueFamilyIndex family) -> const std::vector<vk::Queue>&
+auto vkb::Device::getQueues(QueueFamilyIndex family) const -> const std::vector<vk::Queue>&
 {
     return queuesPerFamily.at(family);
 }
