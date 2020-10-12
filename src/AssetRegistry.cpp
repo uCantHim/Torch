@@ -41,22 +41,23 @@ void trc::AssetRegistry::reset()
     nextImageIndex = 0;
 }
 
-auto trc::AssetRegistry::addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, GeometryID>
+auto trc::AssetRegistry::addGeometry(Geometry geo) -> GeometryID
 {
     GeometryID key = nextGeometryIndex++;
-    auto& result = addToMap(geometries, key, std::move(geo));
+    addToMap(geometries, key, std::move(geo));
 
-    return { result, key };
+    return key;
 }
 
-auto trc::AssetRegistry::addMaterial(Material mat) -> std::pair<Ref<Material>, MaterialID>
+auto trc::AssetRegistry::addMaterial(Material mat) -> MaterialID
 {
     MaterialID key = nextMaterialIndex++;
+    addToMap(materials, key, mat);
 
-    return { addToMap(materials, key, mat), key };
+    return key;
 }
 
-auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, TextureID>
+auto trc::AssetRegistry::addImage(vkb::Image tex) -> TextureID
 {
     TextureID key = nextImageIndex++;
     auto& image = addToMap(images, key, std::move(tex));
@@ -65,7 +66,7 @@ auto trc::AssetRegistry::addImage(vkb::Image tex) -> std::pair<Ref<vkb::Image>, 
     createDescriptors();
     PipelineRegistry::recreateAll();
 
-    return { image, key };
+    return key;
 }
 
 auto trc::AssetRegistry::getGeometry(GeometryID key) -> Geometry&

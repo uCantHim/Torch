@@ -45,15 +45,15 @@ int main()
     auto treeImport = fbxLoader.loadFBXFile("assets/tree_lowpoly.fbx");
     auto mapImport = fbxLoader.loadFBXFile("assets/map.fbx");
 
-    auto [grassGeo, grassGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
-    auto [treeGeo, treeGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
-    auto [mapGeo, mapGeoIndex] = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
+    auto grassGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
+    auto treeGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
+    auto mapGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
 
-    auto [treeMat, treeMatIndex] = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
-    auto [mapMat, mapMatIndex] = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
+    auto treeMatIndex = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
+    auto mapMatIndex = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
     auto skeletonImport = fbxLoader.loadFBXFile("assets/skeleton.fbx");
-    auto [skeletonGeo, skeletonGeoIndex] = trc::AssetRegistry::addGeometry(
+    auto skeletonGeoIndex = trc::AssetRegistry::addGeometry(
         trc::Geometry(
             skeletonImport.meshes[0].mesh,
             std::make_unique<trc::Rig>(
@@ -63,7 +63,7 @@ int main()
         )
     );
     auto hoodedBoiImport = fbxLoader.loadFBXFile("assets/hooded_boi.fbx");
-    auto [hoodedBoiGeo, hoodedBoiGeoIndex] = trc::AssetRegistry::addGeometry(
+    auto hoodedBoiGeoIndex = trc::AssetRegistry::addGeometry(
         {
             hoodedBoiImport.meshes[0].mesh,
             std::make_unique<trc::Rig>(
@@ -73,43 +73,45 @@ int main()
         }
     );
     auto lindaMesh = fbxLoader.loadFBXFile("assets/Female_Character.fbx").meshes[0];
-    auto [lindaGeo, lindaGeoIndex] = trc::AssetRegistry::addGeometry(
+    auto lindaGeoIndex = trc::AssetRegistry::addGeometry(
         trc::Geometry(
             lindaMesh.mesh,
             std::make_unique<trc::Rig>(lindaMesh.rig.value(), lindaMesh.animations)
         )
     );
-    auto [lindaDiffTex, lindaDiffTexIdx] = trc::AssetRegistry::addImage(
+    auto lindaDiffTexIdx = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), "assets/Female_Character.png")
     );
 
-    auto [img, imgIndex] = trc::AssetRegistry::addImage(
+    auto imgIndex = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), "/home/nicola/dotfiles/arch_3D_simplistic.png")
     );
 
-    auto [grassImg, grassImgIdx] = trc::AssetRegistry::addImage(
+    auto grassImgIdx = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), "assets/grass_billboard_001.png")
     );
-    auto [stoneTex, stoneTexIdx] = trc::AssetRegistry::addImage(
+    auto stoneTexIdx = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"assets/rough_stone_wall.tif")
     );
-    auto [stoneNormalTex, stoneNormalTexIdx] = trc::AssetRegistry::addImage(
+    auto stoneNormalTexIdx = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), "assets/rough_stone_wall_normal.tif")
     );
 
-    auto [mat, matIdx] = trc::AssetRegistry::addMaterial(trc::Material());
-    mat.get().colorAmbient = vec4(1.0f);
-    mat.get().colorDiffuse = vec4(1.0f);
-    mat.get().colorSpecular = vec4(1.0f);
-    mat.get().diffuseTexture = grassImgIdx;
-    mat.get().bumpTexture = stoneNormalTexIdx;
-    mat.get().shininess = 2.0f;
+    auto matIdx = trc::AssetRegistry::addMaterial({
+        .colorAmbient = vec4(1.0f),
+        .colorDiffuse = vec4(1.0f),
+        .colorSpecular = vec4(1.0f),
+        .shininess = 2.0f,
+        .diffuseTexture = grassImgIdx,
+        .bumpTexture = stoneNormalTexIdx,
+    });
 
-    mapMat.get().colorAmbient = vec4(1.0f);
-    mapMat.get().colorDiffuse = vec4(1.0f);
-    mapMat.get().colorSpecular = vec4(1.0f);
-    mapMat.get().diffuseTexture = stoneTexIdx;
-    mapMat.get().bumpTexture = stoneNormalTexIdx;
+    auto& mapMat = trc::AssetRegistry::getMaterial(mapMatIndex);
+    mapMat.colorAmbient = vec4(1.0f);
+    mapMat.colorDiffuse = vec4(1.0f);
+    mapMat.colorSpecular = vec4(1.0f);
+    mapMat.diffuseTexture = stoneTexIdx;
+    mapMat.bumpTexture = stoneNormalTexIdx;
 
     trc::AssetRegistry::updateMaterialBuffer();
 
@@ -120,7 +122,7 @@ int main()
     auto scene = std::make_unique<trc::Scene>();
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
 
-    trc::Drawable grass(grassGeo, matIdx, *scene);
+    trc::Drawable grass(grassGeoIndex, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     // Animated skeleton
@@ -128,23 +130,24 @@ int main()
     skeletons.reserve(50);
     for (int i = 0; i < 50; i++)
     {
-        auto& skeleton = skeletons.emplace_back(skeletonGeo, matIdx, *scene);
+        auto& skeleton = skeletons.emplace_back(skeletonGeoIndex, matIdx, *scene);
         skeleton.setScale(0.04f).translateX(-0.3f + 0.05f * i);
         skeleton.getAnimationEngine().playAnimation(0);
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi(hoodedBoiGeo, treeMatIndex, *scene);
+    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, treeMatIndex, *scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
-    auto [lindaMat, lindaMatIdx] = trc::AssetRegistry::addMaterial(lindaMesh.materials[0]);
-    lindaMat.get().colorSpecular = vec4(0.0f);
-    lindaMat.get().diffuseTexture = lindaDiffTexIdx;
+    auto lindaMatIdx = trc::AssetRegistry::addMaterial({
+        .colorSpecular = vec4(0.0f),
+        .diffuseTexture = lindaDiffTexIdx
+    });
     trc::AssetRegistry::updateMaterialBuffer();
 
-    trc::Drawable linda(lindaGeo, matIdx, *scene);
+    trc::Drawable linda(lindaGeoIndex, matIdx, *scene);
     linda.enableTransparency();
     linda.setScale(0.3f).translateX(-1.0f);
     linda.getAnimationEngine().playAnimation(0);
@@ -154,10 +157,10 @@ int main()
     );
 
     // Custom plane geo
-    auto [myPlaneGeo, myPlaneGeoIndex] = trc::AssetRegistry::addGeometry(
+    auto myPlaneGeoIndex = trc::AssetRegistry::addGeometry(
         trc::Geometry(trc::makePlaneGeo(20.0f, 20.0f, 20, 20))
     );
-    trc::Drawable myPlane(myPlaneGeo, mapMatIndex, *scene);
+    trc::Drawable myPlane(myPlaneGeoIndex, mapMatIndex, *scene);
 
     trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
@@ -176,6 +179,7 @@ int main()
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
 
+    auto& treeGeo = trc::AssetRegistry::getGeometry(treeGeoIndex);
     auto instancedTrees = std::make_unique<trc::DrawableInstanced>(NUM_TREES, treeGeo, *scene);
     for (int i = 0; i < NUM_TREES; i++)
     {
@@ -203,7 +207,7 @@ int main()
         particleCollection->addParticle(particle);
     }
 
-    auto [particleImg, particleImgIdx] = trc::AssetRegistry::addImage(
+    auto particleImgIdx = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), "assets/yellowlight.png"));
     trc::ParticleSpawn spawn(*particleCollection);
     for (int i = 0; i < 50; i++)

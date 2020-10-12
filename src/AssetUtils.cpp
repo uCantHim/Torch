@@ -17,13 +17,13 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
         if (mesh.rig.has_value()) {
             rig = std::make_unique<Rig>(std::move(mesh.rig.value()), std::move(mesh.animations));
         }
-        GeometryID geoIdx = AssetRegistry::addGeometry({ mesh.mesh, std::move(rig) }).second;
+        GeometryID geoIdx = AssetRegistry::addGeometry({ mesh.mesh, std::move(rig) });
 
         // Load material
         MaterialID matIdx{ 0 };
         if (!mesh.materials.empty())
         {
-            matIdx = AssetRegistry::addMaterial(mesh.materials.front()).second;
+            matIdx = AssetRegistry::addMaterial(mesh.materials.front());
         }
 
         geos.emplace_back(geoIdx, matIdx);

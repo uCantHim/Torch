@@ -1,20 +1,19 @@
 
 
 
-template<typename T, typename U>
+template<typename T, typename U, typename... Args>
 auto trc::AssetRegistry::addToMap(
     data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
     TypesafeID<U> key,
-    T value) -> T&
+    Args&&... args) -> T&
 {
-    static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>, "");
     assert(static_cast<ui32>(key) != UINT32_MAX);  // Reserved ID that signals empty value
 
-    if (map.size() > static_cast<ui32>(key) && map[static_cast<ui32>(key)] != nullptr) {
+    if (map.size() > static_cast<size_t>(key) && map.at(key) != nullptr) {
         throw DuplicateKeyError();
     }
 
-    return *map.emplace(key, std::make_unique<T>(std::move(value)));
+    return *map.emplace(key, std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 template<typename T, typename U>
@@ -24,7 +23,7 @@ auto trc::AssetRegistry::getFromMap(
 {
     assert(static_cast<ui32>(key) != UINT32_MAX);  // Reserved ID that signals empty value
 
-    if (map.size() <= static_cast<ui32>(key) || map[static_cast<ui32>(key)] == nullptr) {
+    if (map.size() <= static_cast<size_t>(key) || map.at(key) == nullptr) {
         throw KeyNotFoundError();
     }
 
@@ -35,44 +34,44 @@ auto trc::AssetRegistry::getFromMap(
 
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::addGeometry(const NameType& key, Geometry geo)
-    -> std::pair<Ref<Geometry>, ui32>
+    -> Geometry&
 {
     auto result = AssetRegistry::addGeometry(std::move(geo));
 
-    auto [it, success] = geometryNames.emplace(key, result.second);
+    auto [it, success] = geometryNames.emplace(key, result);
     if (!success) {
         throw trc::DuplicateKeyError();
     }
 
-    return result;
+    return AssetRegistry::getGeometry(result);
 }
 
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::addMaterial(const NameType& key, Material mat)
-    -> std::pair<Ref<Material>, ui32>
+    -> Material&
 {
     auto result = AssetRegistry::addMaterial(std::move(mat));
 
-    auto [it, success] = materialNames.emplace(key, result.second);
+    auto [it, success] = materialNames.emplace(key, result);
     if (!success) {
         throw trc::DuplicateKeyError();
     }
 
-    return result;
+    return AssetRegistry::getMaterial(result);
 }
 
 template<typename NameType>
 auto trc::AssetRegistryNameWrapper<NameType>::addImage(const NameType& key, vkb::Image img)
-    -> std::pair<Ref<vkb::Image>, ui32>
+    -> vkb::Image&
 {
     auto result = AssetRegistry::addImage(std::move(img));
 
-    auto [it, success] = imageNames.emplace(key, result.second);
+    auto [it, success] = imageNames.emplace(key, result);
     if (!success) {
         throw trc::DuplicateKeyError();
     }
 
-    return result;
+    return AssetRegistry::getImage(result);
 }
 
 template<typename NameType>

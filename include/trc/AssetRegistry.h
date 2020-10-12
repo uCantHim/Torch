@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils/Maybe.h"
+
 #include <string>
 #include <unordered_map>
 #include <atomic>
@@ -27,15 +29,9 @@ namespace trc
     class AssetRegistryNameWrapper
     {
     public:
-        template<typename T>
-        using Ref = std::reference_wrapper<T>;
-
-        static auto addGeometry(const NameType& key, Geometry geo)
-            -> std::pair<Ref<Geometry>, ui32>;
-        static auto addMaterial(const NameType& key, Material mat)
-            -> std::pair<Ref<Material>, ui32>;
-        static auto addImage(const NameType& key, vkb::Image img)
-            -> std::pair<Ref<vkb::Image>, ui32>;
+        static auto addGeometry(const NameType& key, Geometry geo) -> Geometry&;
+        static auto addMaterial(const NameType& key, Material mat) -> Material&;
+        static auto addImage(const NameType& key, vkb::Image img) -> vkb::Image&;
 
         static auto getGeometry(const NameType& key) -> Geometry&;
         static auto getMaterial(const NameType& key) -> Material&;
@@ -56,17 +52,14 @@ namespace trc
     class AssetRegistry
     {
     public:
-        template<typename T>
-        using Ref = std::reference_wrapper<T>;
-
         using Named = AssetRegistryNameWrapper<std::string>;
 
         static void init();
         static void reset();
 
-        static auto addGeometry(Geometry geo) -> std::pair<Ref<Geometry>, GeometryID>;
-        static auto addMaterial(Material mat) -> std::pair<Ref<Material>, MaterialID>;
-        static auto addImage(vkb::Image img) -> std::pair<Ref<vkb::Image>, TextureID>;
+        static auto addGeometry(Geometry geo) -> GeometryID;
+        static auto addMaterial(Material mat) -> MaterialID;
+        static auto addImage(vkb::Image img) -> TextureID;
 
         static auto getGeometry(GeometryID key) -> Geometry&;
         static auto getMaterial(MaterialID key) -> Material&;
@@ -79,10 +72,10 @@ namespace trc
     private:
         static inline vkb::StaticInit _init{ init, reset };
 
-        template<typename T, typename U>
+        template<typename T, typename U, typename... Args>
         static auto addToMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
                              TypesafeID<U> key,
-                             T value) -> T&;
+                             Args&&... args) -> T&;
         template<typename T, typename U>
         static auto getFromMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
                                TypesafeID<U> key) -> T&;
