@@ -6,6 +6,18 @@
 
 
 
+trc::Drawable::Drawable(GeometryID geo, MaterialID material)
+    :
+    Drawable(AssetRegistry::getGeometry(geo), material)
+{
+}
+
+trc::Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
+    :
+    Drawable(AssetRegistry::getGeometry(geo), material, scene)
+{
+}
+
 trc::Drawable::Drawable(Geometry& geo, MaterialID material, bool transparent)
     :
     geo(&geo),
