@@ -2,6 +2,7 @@
 
 #include <string>
 #include <exception>
+#include <ostream>
 
 namespace trc
 {
@@ -19,4 +20,13 @@ namespace trc
     private:
         std::string errorMsg;
     };
+
+    /**
+     * @brief Overloaded stream input operator for Exception
+     */
+    inline auto operator<<(std::ostream& s, const Exception& e) -> std::ostream&
+    {
+        s << "Exception: " << e.what();
+        return s;
+    }
 }
