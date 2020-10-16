@@ -3,7 +3,8 @@ include(GoogleTest)
 
 add_executable(tests)
 target_sources(tests PRIVATE utils/test_maybe.cpp)
-target_link_libraries(tests GTest::GTest GTest::Main)
+target_compile_options(tests PRIVATE -O0)
+target_link_libraries(tests GTest::GTest GTest::Main torch)
 gtest_discover_tests(tests)
 
 # My custom test executable
