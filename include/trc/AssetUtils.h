@@ -20,5 +20,7 @@ namespace trc
         std::vector<std::pair<GeometryID, MaterialID>> importedGeometries;
     };
 
+#ifdef TRC_USE_FBX_SDK
     extern auto loadScene(const fs::path& fbxFilePath) -> SceneImportResult;
+#endif
 }

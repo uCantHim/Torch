@@ -1,6 +1,7 @@
 #include "AssetUtils.h"
 
 
+#ifdef TRC_USE_FBX_SDK
 
 auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
 {
@@ -42,3 +43,5 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
 
     return result;
 }
+
+#endif // #ifdef TRC_USE_FBX_SDK

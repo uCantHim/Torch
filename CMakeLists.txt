@@ -9,6 +9,7 @@ project(Torch)
 # Options
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" ON)
+option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features" ON)
 
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -29,15 +30,21 @@ add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(include/trc)
 
+target_link_libraries(torch PUBLIC vk_base)
+
+target_include_directories(torch PUBLIC include)
+target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
+
 # Test
 if (${TORCH_BUILD_TEST})
     add_subdirectory(test)
 endif ()
 
-target_link_libraries(torch PUBLIC vk_base fbxsdk)
-
-target_include_directories(torch PUBLIC include)
-target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
+# Optional FBX stuff
+if (${TORCH_USE_FBX_SDK})
+    target_link_libraries(torch PUBLIC fbxsdk)
+    target_compile_definitions(torch PUBLIC TRC_USE_FBX_SDK)
+endif ()
 
 #################
 # Compile options

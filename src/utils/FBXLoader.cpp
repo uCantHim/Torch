@@ -1,3 +1,5 @@
+#ifdef TRC_USE_FBX_SDK
+
 #include "utils/FBXLoader.h"
 
 #include <iostream>
@@ -685,3 +687,5 @@ auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNod
 
     return animations;
 }
+
+#endif // #ifdef TRC_USE_FBX_SDK

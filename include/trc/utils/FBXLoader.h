@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef TRC_USE_FBX_SDK
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -109,3 +111,5 @@ namespace trc
         FbxScene* scene{ nullptr };
     };
 } // namespace trc
+
+#endif // #ifdef TRC_USE_FBX_SDK
