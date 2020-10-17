@@ -49,7 +49,6 @@ int main()
     auto treeGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
     auto mapGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
 
-    auto treeMatIndex = trc::AssetRegistry::addMaterial(treeImport.meshes[0].materials[0]);
     auto mapMatIndex = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
     auto skeletonImport = fbxLoader.loadFBXFile("assets/skeleton.fbx");
@@ -98,20 +97,25 @@ int main()
     );
 
     auto matIdx = trc::AssetRegistry::addMaterial({
-        .colorAmbient = vec4(1.0f),
-        .colorDiffuse = vec4(1.0f),
-        .colorSpecular = vec4(1.0f),
+        .kAmbient = vec4(1.0f),
+        .kDiffuse = vec4(1.0f),
+        .kSpecular = vec4(1.0f),
         .shininess = 2.0f,
         .diffuseTexture = grassImgIdx,
         .bumpTexture = stoneNormalTexIdx,
     });
 
-    auto& mapMat = trc::AssetRegistry::getMaterial(mapMatIndex);
-    mapMat.colorAmbient = vec4(1.0f);
-    mapMat.colorDiffuse = vec4(1.0f);
-    mapMat.colorSpecular = vec4(1.0f);
+    auto& mapMat = *trc::AssetRegistry::getMaterial(mapMatIndex).get();
+    mapMat.kAmbient = vec4(1.0f);
+    mapMat.kDiffuse = vec4(1.0f);
+    mapMat.kSpecular = vec4(1.0f);
     mapMat.diffuseTexture = stoneTexIdx;
     mapMat.bumpTexture = stoneNormalTexIdx;
+
+    trc::Material treeMat{
+        .color=vec4(0, 1, 0, 1),
+    };
+    auto treeMatIdx = trc::AssetRegistry::addMaterial(treeMat);
 
     trc::AssetRegistry::updateMaterialBuffer();
 
@@ -136,13 +140,13 @@ int main()
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, treeMatIndex, *scene);
+    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, 0, *scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
     auto lindaMatIdx = trc::AssetRegistry::addMaterial({
-        .colorSpecular = vec4(0.0f),
+        .kSpecular = vec4(0.0f),
         .diffuseTexture = lindaDiffTexIdx
     });
     trc::AssetRegistry::updateMaterialBuffer();
@@ -179,7 +183,7 @@ int main()
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
 
-    auto& treeGeo = trc::AssetRegistry::getGeometry(treeGeoIndex);
+    auto& treeGeo = *trc::AssetRegistry::getGeometry(treeGeoIndex).get();
     auto instancedTrees = std::make_unique<trc::DrawableInstanced>(NUM_TREES, treeGeo, *scene);
     for (int i = 0; i < NUM_TREES; i++)
     {
@@ -188,7 +192,7 @@ int main()
         t.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
         t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
 
-        instancedTrees->addInstance({ t.getTransformationMatrix(), mapMatIndex });
+        instancedTrees->addInstance({ t.getTransformationMatrix(), treeMatIdx });
     }
 
 

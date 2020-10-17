@@ -69,19 +69,19 @@ auto trc::AssetRegistry::addImage(vkb::Image tex) -> TextureID
     return key;
 }
 
-auto trc::AssetRegistry::getGeometry(GeometryID key) -> Geometry&
+auto trc::AssetRegistry::getGeometry(GeometryID key) -> Maybe<Geometry*>
 {
-    return getFromMap(geometries, key);
+    return &getFromMap(geometries, key);
 }
 
-auto trc::AssetRegistry::getMaterial(MaterialID key) -> Material&
+auto trc::AssetRegistry::getMaterial(MaterialID key) -> Maybe<Material*>
 {
-    return getFromMap(materials, key);
+    return &getFromMap(materials, key);
 }
 
-auto trc::AssetRegistry::getImage(TextureID key) -> vkb::Image&
+auto trc::AssetRegistry::getImage(TextureID key) -> Maybe<vkb::Image*>
 {
-    return getFromMap(images, key);
+    return &getFromMap(images, key);
 }
 
 auto trc::AssetRegistry::getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&

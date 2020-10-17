@@ -11,6 +11,7 @@
 #include "Boilerplate.h"
 #include "utils/Exception.h"
 #include "utils/TypesafeId.h"
+#include "utils/Maybe.h"
 #include "data_utils/IndexMap.h"
 #include "DescriptorProvider.h"
 #include "AssetIds.h"
@@ -61,9 +62,13 @@ namespace trc
         static auto addMaterial(Material mat) -> MaterialID;
         static auto addImage(vkb::Image img) -> TextureID;
 
-        static auto getGeometry(GeometryID key) -> Geometry&;
-        static auto getMaterial(MaterialID key) -> Material&;
-        static auto getImage(TextureID key) -> vkb::Image&;
+        //static auto emplaceGeometry(Geometry geo) -> GeometryID;
+        //static auto emplaceMaterial(Material mat) -> MaterialID;
+        //static auto emplaceImage(vkb::Image img) -> TextureID;
+
+        static auto getGeometry(GeometryID key) -> Maybe<Geometry*>;
+        static auto getMaterial(MaterialID key) -> Maybe<Material*>;
+        static auto getImage(TextureID key) -> Maybe<vkb::Image*>;
 
         static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
 

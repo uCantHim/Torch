@@ -43,7 +43,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::addGeometry(const NameType& key, G
         throw trc::DuplicateKeyError();
     }
 
-    return AssetRegistry::getGeometry(result);
+    return *AssetRegistry::getGeometry(result).get();
 }
 
 template<typename NameType>
@@ -57,7 +57,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::addMaterial(const NameType& key, M
         throw trc::DuplicateKeyError();
     }
 
-    return AssetRegistry::getMaterial(result);
+    return *AssetRegistry::getMaterial(result).get();
 }
 
 template<typename NameType>
@@ -71,7 +71,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::addImage(const NameType& key, vkb:
         throw trc::DuplicateKeyError();
     }
 
-    return AssetRegistry::getImage(result);
+    return *AssetRegistry::getImage(result).get();
 }
 
 template<typename NameType>

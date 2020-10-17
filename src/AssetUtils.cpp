@@ -10,7 +10,6 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
     FBXLoader loader;
     FileImportData importData = loader.loadFBXFile(fbxFilePath);
 
-    auto& geos = result.importedGeometries;
     for (const auto& mesh : importData.meshes)
     {
         // Load geometry
@@ -27,14 +26,14 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
             matIdx = AssetRegistry::addMaterial(mesh.materials.front());
         }
 
-        geos.emplace_back(geoIdx, matIdx);
+        result.importedGeometries.emplace_back(geoIdx, matIdx);
 
         // Create drawable
-        Drawable& d = *result.drawables.emplace_back(
-            new Drawable(AssetRegistry::getGeometry(geoIdx), matIdx, result.scene)
-        );
+        Drawable& d = *result.drawables.emplace_back(new Drawable(geoIdx, matIdx, result.scene));
         d.setFromMatrix(mesh.globalTransform);
-        if (matIdx != 0 && AssetRegistry::getMaterial(matIdx).opacity < 1.0f) {
+
+        // Apply transparency if appropriate
+        if (matIdx != 0 && AssetRegistry::getMaterial(matIdx).get()->opacity < 1.0f) {
             d.enableTransparency();
         }
     }
