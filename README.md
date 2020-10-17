@@ -45,7 +45,7 @@ You can find a heavily outdated version of the FBX SDK on the [AUR](https://aur.
 
 ### CMake options
 
- - `TORCH_BUILD_TEST`: Control if tests should be built. Default is `ON`.
+ - `TORCH_BUILD_TEST`: Control if tests should be built. Default is `OFF`.
 
  - `TORCH_DEBUG`: Control if Torch should be built in debug configuration. Default is `OFF`.
 

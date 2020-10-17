@@ -7,7 +7,7 @@ endif()
 project(Torch)
 
 # Options
-option(TORCH_BUILD_TEST "Build tests for torch" ON)
+option(TORCH_BUILD_TEST "Build tests for torch" OFF)
 option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features" ON)
 
