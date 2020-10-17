@@ -22,8 +22,10 @@ add_subdirectory(include/vkb)
 ###################
 # External packages
 
+find_package(PkgConfig REQUIRED) # For GLFW
+
 find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw3)
 find_package(glm REQUIRED)
 find_package(DevIL REQUIRED)
 
@@ -31,7 +33,7 @@ target_link_libraries(
     vk_base
     PUBLIC
         Vulkan::Vulkan
-        glfw
+        ${GLFW_LIBRARIES}
         ${IL_LIBRARIES}
 )
 
@@ -39,6 +41,7 @@ target_include_directories(
     vk_base
     PUBLIC
         ${Vulkan_INCLUDE_DIRS}
+        ${GLFW_INCLUDE_DIRS}
         ${GLM_INCLUDE_DIRS}
         ${IL_INCLUDE_DIR}
 )
