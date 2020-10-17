@@ -75,52 +75,67 @@ auto trc::AssetRegistryNameWrapper<NameType>::addImage(const NameType& key, vkb:
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getGeometry(const NameType& key) -> Geometry&
+auto trc::AssetRegistryNameWrapper<NameType>::getGeometry(const NameType& key) -> Maybe<Geometry*>
 {
-    return AssetRegistry::getGeometry(getGeometryIndex(key));
+    return getGeometryIndex(key).maybe(
+        [](GeometryID index) { return AssetRegistry::getGeometry(index); },
+        []()                 { return Maybe<Geometry*>(); }
+    );
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getMaterial(const NameType& key) -> Material&
+auto trc::AssetRegistryNameWrapper<NameType>::getMaterial(const NameType& key) -> Maybe<Material*>
 {
-    return AssetRegistry::getMaterial(getMaterialIndex(key));
+    return getMaterialIndex(key).maybe(
+        [](MaterialID index) { return AssetRegistry::getMaterial(index); },
+        []()                 { return Maybe<Material*>(); }
+    );
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getImage(const NameType& key) -> vkb::Image&
+auto trc::AssetRegistryNameWrapper<NameType>::getImage(const NameType& key) -> Maybe<vkb::Image*>
 {
-    return AssetRegistry::getImage(getImageIndex(key));
+    return getImageIndex(key).maybe(
+        [](TextureID index) { return AssetRegistry::getImage(index); },
+        []()                { return Maybe<vkb::Image*>(); }
+    );
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getGeometryIndex(const NameType& key) -> ui32
+auto trc::AssetRegistryNameWrapper<NameType>::getGeometryIndex(const NameType& key)
+    -> Maybe<GeometryID>
 {
-    try {
-        return geometryNames.at(key);
+    auto it = geometryNames.find(key);
+    if (it != geometryNames.end()) {
+        return it->second;
     }
-    catch (const std::out_of_range&) {
-        return 0;
-    }
-}
-
-template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getMaterialIndex(const NameType& key) -> ui32
-{
-    try {
-        return materialNames.at(key);
-    }
-    catch (const std::out_of_range&) {
-        return 0;
+    else {
+        return {};
     }
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getImageIndex(const NameType& key) -> ui32
+auto trc::AssetRegistryNameWrapper<NameType>::getMaterialIndex(const NameType& key)
+    -> Maybe<MaterialID>
 {
-    try {
-        return imageNames.at(key);
+    auto it = materialNames.find(key);
+    if (it != materialNames.end()) {
+        return it->second;
     }
-    catch (const std::out_of_range&) {
-        return 0;
+    else {
+        return {};
+    }
+}
+
+template<typename NameType>
+auto trc::AssetRegistryNameWrapper<NameType>::getImageIndex(const NameType& key)
+    -> Maybe<TextureID>
+{
+    auto it = imageNames.find(key);
+    if (it != imageNames.end()) {
+        return it->second;
+    }
+    else {
+        return {};
     }
 }

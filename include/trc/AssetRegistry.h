@@ -34,20 +34,21 @@ namespace trc
         static auto addMaterial(const NameType& key, Material mat) -> Material&;
         static auto addImage(const NameType& key, vkb::Image img) -> vkb::Image&;
 
-        static auto getGeometry(const NameType& key) -> Geometry&;
-        static auto getMaterial(const NameType& key) -> Material&;
-        static auto getImage(const NameType& key) -> vkb::Image&;
+        static auto getGeometry(const NameType& key) -> Maybe<Geometry*>;
+        static auto getMaterial(const NameType& key) -> Maybe<Material*>;
+        static auto getImage(const NameType& key) -> Maybe<vkb::Image*>;
 
-        static auto getGeometryIndex(const NameType& key) -> ui32;
-        static auto getMaterialIndex(const NameType& key) -> ui32;
-        static auto getImageIndex(const NameType& key) -> ui32;
+        static auto getGeometryIndex(const NameType& key) -> Maybe<GeometryID>;
+        static auto getMaterialIndex(const NameType& key) -> Maybe<MaterialID>;
+        static auto getImageIndex(const NameType& key) -> Maybe<TextureID>;
 
     private:
-        using NameToIndexMap = std::unordered_map<NameType, ui32>;
+        template<typename T>
+        using NameToIndexMap = std::unordered_map<NameType, TypesafeID<T, AssetRegistryIdType>>;
 
-        static inline NameToIndexMap geometryNames;
-        static inline NameToIndexMap materialNames;
-        static inline NameToIndexMap imageNames;
+        static inline NameToIndexMap<Geometry> geometryNames;
+        static inline NameToIndexMap<Material> materialNames;
+        static inline NameToIndexMap<vkb::Image> imageNames;
     };
 
     class AssetRegistry
