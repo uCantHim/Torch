@@ -135,10 +135,10 @@ namespace trc
                      }
         {
             if (hasValue()) {
-                success(getValue());
+                return success(getValue());
             }
             else {
-                error();
+                return error();
             }
         }
 
