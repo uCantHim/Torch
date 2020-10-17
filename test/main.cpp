@@ -103,7 +103,7 @@ int main()
     };
     auto treeMatIdx = trc::AssetRegistry::addMaterial(treeMat);
 
-    trc::AssetRegistry::updateMaterialBuffer();
+    trc::AssetRegistry::updateMaterials();
 
     // ------------------
 
@@ -135,7 +135,7 @@ int main()
         .kSpecular = vec4(0.0f),
         .diffuseTexture = lindaDiffTexIdx
     });
-    trc::AssetRegistry::updateMaterialBuffer();
+    trc::AssetRegistry::updateMaterials();
 
     trc::Drawable linda(lindaGeoIndex, matIdx, *scene);
     linda.enableTransparency();

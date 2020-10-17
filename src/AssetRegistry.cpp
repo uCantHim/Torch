@@ -17,7 +17,7 @@ void trc::AssetRegistry::init()
 
     // Add default assets
     addMaterial({});
-    updateMaterialBuffer();
+    updateMaterials();
     addImage(vkb::makeImage2D(vkb::getDevice(), vec4(1.0f)));
 
     createDescriptors();
@@ -89,7 +89,7 @@ auto trc::AssetRegistry::getDescriptorSetProvider() noexcept -> DescriptorProvid
     return descriptorProvider;
 }
 
-void trc::AssetRegistry::updateMaterialBuffer()
+void trc::AssetRegistry::updateMaterials()
 {
     auto buf = reinterpret_cast<Material*>(materialBuffer.map());
     for (size_t i = 0; i < materials.size(); i++)

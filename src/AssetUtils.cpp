@@ -60,7 +60,7 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
         }
     }
 
-    AssetRegistry::updateMaterialBuffer();
+    AssetRegistry::updateMaterials();
 
     return result;
 }

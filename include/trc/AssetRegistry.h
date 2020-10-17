@@ -73,7 +73,7 @@ namespace trc
 
         static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
 
-        static void updateMaterialBuffer();
+        static void updateMaterials();
 
     private:
         static inline vkb::StaticInit _init{ init, reset };
