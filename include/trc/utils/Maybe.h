@@ -28,13 +28,13 @@ namespace trc
         /**
          * @brief Construct Maybe from an lvalue
          */
-        explicit Maybe(const T& val) requires std::is_copy_constructible_v<T>
+        Maybe(const T& val) requires std::is_copy_constructible_v<T>
             : value(val) {}
 
         /**
          * @brief Construct Maybe from an rvalue
          */
-        explicit Maybe(T&& val) requires std::is_move_constructible_v<T>
+        Maybe(T&& val) requires std::is_move_constructible_v<T>
             : value(std::move(val)) {}
 
         /**
@@ -140,6 +140,18 @@ namespace trc
             else {
                 error();
             }
+        }
+
+        /**
+         * @brief Get the value in the Maybe
+         *
+         * @return T The Maybe's value if it has one.
+         *
+         * @throw MaybeEmptyError if the Maybe does not have a value.
+         */
+        inline auto operator*() -> T
+        {
+            return getValue();
         }
 
         /**
