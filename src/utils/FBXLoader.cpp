@@ -452,12 +452,12 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
             auto phongMat = dynamic_cast<FbxSurfacePhong*>(mat);
             auto& newMaterial = result.emplace_back();
 
-            FbxDouble3 colorAmbient = phongMat->Ambient;
-            FbxDouble3 colorDiffuse = phongMat->Diffuse;
-            FbxDouble3 colorSpecular = phongMat->Specular;
-            newMaterial.colorAmbient = vec4(colorAmbient.mData[0], colorAmbient.mData[1], colorAmbient.mData[2], 1.0f);
-            newMaterial.colorDiffuse = vec4(colorDiffuse.mData[0], colorDiffuse.mData[1], colorDiffuse.mData[2], 1.0f);
-            newMaterial.colorSpecular = vec4(colorSpecular.mData[0], colorSpecular.mData[1], colorSpecular.mData[2], 1.0f);
+            FbxDouble3 amb = phongMat->Ambient;
+            FbxDouble3 diff = phongMat->Diffuse;
+            FbxDouble3 spec = phongMat->Specular;
+            newMaterial.kAmbient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
+            newMaterial.kDiffuse = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
+            newMaterial.kSpecular = vec4(spec.mData[0], spec.mData[1], spec.mData[2], 1.0f);
             newMaterial.shininess = static_cast<float>(phongMat->Shininess);
             newMaterial.opacity = 1.0f - static_cast<float>(phongMat->TransparencyFactor.Get());
         }
@@ -468,11 +468,11 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
             auto lambertMat = dynamic_cast<FbxSurfaceLambert*>(mat);
             Material newMaterial;
 
-            FbxDouble3 colorAmbient = lambertMat->Ambient;
-            FbxDouble3 colorDiffuse = lambertMat->Diffuse;
-            newMaterial.colorAmbient = vec4(colorAmbient.mData[0], colorAmbient.mData[1], colorAmbient.mData[2], 1.0f);
-            newMaterial.colorDiffuse = vec4(colorDiffuse.mData[0], colorDiffuse.mData[1], colorDiffuse.mData[2], 1.0f);
-            newMaterial.colorSpecular = vec4(1.0f);
+            FbxDouble3 amb = lambertMat->Ambient;
+            FbxDouble3 diff = lambertMat->Diffuse;
+            newMaterial.kAmbient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
+            newMaterial.kDiffuse = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
+            newMaterial.kSpecular = vec4(1.0f);
             newMaterial.opacity = 1.0f - static_cast<float>(lambertMat->TransparencyFactor.Get());
             newMaterial.shininess = 1.0f; // Standard value
         }

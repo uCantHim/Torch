@@ -9,17 +9,64 @@ namespace trc
 
     struct Material
     {
-        vec4 colorAmbient{ 1.0f };
-        vec4 colorDiffuse{ 1.0f };
-        vec4 colorSpecular{ 1.0f };
+        /**
+         * @brief A plain color to be used if no diffuse texture is present
+         */
+        vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
 
+        /**
+         * @brief A coefficient for ambient lighting
+         */
+        vec4 kAmbient{ 1.0f };
+
+        /**
+         * @brief A coefficient for diffuse lighting
+         */
+        vec4 kDiffuse{ 1.0f };
+
+        /**
+         * @brief A coefficient for specular lighting
+         *
+         * Determines the color of specular highlights on the lighted
+         * surface.
+         */
+        vec4 kSpecular{ 1.0f };
+
+        /**
+         * @brief The sharpness of specular reflections
+         */
         float shininess{ 1.0f };
 
+        /**
+         * @brief Opacity, in the range [0, 1]
+         */
         float opacity{ 1.0f };
+
+        /**
+         * @brief Reflectivity, in the range [0, 1]
+         *
+         * Currently not implemented.
+         */
         float reflectivity{ 0.0f };
 
+        /**
+         * @brief A color texture
+         */
         ui32 diffuseTexture{ NO_TEXTURE };
+
+        /**
+         * @brief A specular texture
+         *
+         * Determines the strength of specular highlights. Has only one
+         * channel.
+         */
         ui32 specularTexture{ NO_TEXTURE };
+
+        /**
+         * @brief A bump/normal texture
+         *
+         * Contains modified surface normals for the shaded object.
+         */
         ui32 bumpTexture{ NO_TEXTURE };
 
         ui64 __padding{ 0 };

@@ -5,6 +5,7 @@
 vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint material)
 {
     // This algorithm has undefined behaviour for normals N where |N| == 0
+    // We exit early if that's the case.
     bvec3 nz = notEqual(normal, vec3(0.0));
     if (!(nz.x || nz.y || nz.z)) {
         return albedo;
@@ -14,9 +15,9 @@ vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint 
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
 
-    const vec3 ambientFactor = materials[material].colorAmbient.rgb;
-    const vec3 diffuseFactor = materials[material].colorDiffuse.rgb;
-    const vec3 specularFactor = materials[material].colorSpecular.rgb;
+    const vec3 ambientFactor = materials[material].kAmbient.rgb;
+    const vec3 diffuseFactor = materials[material].kDiffuse.rgb;
+    const vec3 specularFactor = materials[material].kSpecular.rgb;
 
     const vec3 toEye = normalize(cameraPos - worldPos);
 

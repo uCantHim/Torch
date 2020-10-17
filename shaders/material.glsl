@@ -7,9 +7,11 @@
 
 struct Material
 {
-    vec4 colorAmbient;
-    vec4 colorDiffuse;
-    vec4 colorSpecular;
+    vec4 color;
+
+    vec4 kAmbient;
+    vec4 kDiffuse;
+    vec4 kSpecular;
 
     float shininess;
 
