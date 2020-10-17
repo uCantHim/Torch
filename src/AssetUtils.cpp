@@ -3,6 +3,28 @@
 
 #ifdef TRC_USE_FBX_SDK
 
+auto trc::loadGeometry(const fs::path& fbxFilePath, bool loadRig) -> Maybe<Geometry>
+{
+    FBXLoader loader;
+    auto loadedMeshes = loader.loadFBXFile(fbxFilePath).meshes;
+    if (loadedMeshes.empty()) {
+        return {};
+    }
+
+    auto& mesh = loadedMeshes.front();
+    if (loadRig && mesh.rig.has_value())
+    {
+        return Geometry{
+            mesh.mesh,
+            std::make_unique<Rig>(std::move(mesh.rig.value()),
+                                  std::move(mesh.animations))
+        };
+    }
+    else {
+        return Geometry{ mesh.mesh };
+    }
+}
+
 auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
 {
     SceneImportResult result;

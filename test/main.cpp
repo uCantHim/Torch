@@ -51,25 +51,11 @@ int main()
 
     auto mapMatIndex = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
-    auto skeletonImport = fbxLoader.loadFBXFile("assets/skeleton.fbx");
     auto skeletonGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::Geometry(
-            skeletonImport.meshes[0].mesh,
-            std::make_unique<trc::Rig>(
-                skeletonImport.meshes[0].rig.value(),
-                skeletonImport.meshes[0].animations
-            )
-        )
+        trc::loadGeometry("assets/skeleton.fbx").get()
     );
-    auto hoodedBoiImport = fbxLoader.loadFBXFile("assets/hooded_boi.fbx");
     auto hoodedBoiGeoIndex = trc::AssetRegistry::addGeometry(
-        {
-            hoodedBoiImport.meshes[0].mesh,
-            std::make_unique<trc::Rig>(
-                hoodedBoiImport.meshes[0].rig.value(),
-                hoodedBoiImport.meshes[0].animations
-            )
-        }
+        trc::loadGeometry("assets/hooded_boi.fbx").get()
     );
     auto lindaMesh = fbxLoader.loadFBXFile("assets/Female_Character.fbx").meshes[0];
     auto lindaGeoIndex = trc::AssetRegistry::addGeometry(
