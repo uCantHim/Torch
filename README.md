@@ -58,43 +58,45 @@ a huge pain.
 Example
 -------
 
-    #include <trc/Renderer.h>
+```c++
+#include <trc/Renderer.h>
 
-    int main()
+int main()
+{
+    // Initialize basic Vulkan functionality. You can find a detailed
+    // explanation as to why this is necessary and about the weird
+    // namespace name below.
+    vkb::vulkanInit();
+
+    // Create a renderer. This initializes most of Torch's internal
+    // resources.
+    trc::Renderer renderer;
+
+    // The two things required to render something are
+    //   1. A scene and
+    //   2. A camera
+    trc::Scene scene;
+    trc::Camera camera;
+
+    // Main loop
+    while (true)
     {
-        // Initialize basic Vulkan functionality. You can find a detailed
-        // explanation as to why this is necessary and about the weird
-        // namespace name below.
-        vkb::vulkanInit();
+        // Poll system events. Again, namespace explained below.
+        vkb::pollEvent();
 
-        // Create a renderer. This initializes most of Torch's internal
-        // resources.
-        trc::Renderer renderer;
-
-        // The two things required to render something are
-        //   1. A scene and
-        //   2. A camera
-        trc::Scene scene;
-        trc::Camera camera;
-
-        // Main loop
-        while (true)
-        {
-            // Poll system events. Again, namespace explained below.
-            vkb::pollEvent();
-
-            // Use the renderer to draw the scene
-            renderer.draw(scene, camera);
-        }
-
-        // You have to destroy all your Vulkan resources here. I could have used unique_ptrs
-        // for the renderer, scene, and camera, and called reset on every one of them, but I
-        // went for better readability instead.
-        // After destroying all your Torch/Vulkan resouces, call:
-        trc::terminate();
-
-        return 0;
+        // Use the renderer to draw the scene
+        renderer.draw(scene, camera);
     }
+
+    // You have to destroy all your Vulkan resources here. I could have used unique_ptrs
+    // for the renderer, scene, and camera, and called reset on every one of them, but I
+    // went for better readability instead.
+    // After destroying all your Torch/Vulkan resouces, call:
+    trc::terminate();
+
+    return 0;
+}
+```
 
 
 <a name="overview"></a>
@@ -106,15 +108,17 @@ Overview
 `trc::Drawable` represents the most general type of drawable object. It always has a geometry and a material. The full
 process of creating a Drawable and the required assets:
 
-    // Load a geometry from a file. Only FBX format is supported at the moment.
-    trc::GeometryID geo = trc::AssetRegistry::addGeometry(trc::loadGeometry("my_geo.fbx").get());
+```c++
+// Load a geometry from a file. Only FBX format is supported at the moment.
+trc::GeometryID geo = trc::AssetRegistry::addGeometry(trc::loadGeometry("my_geo.fbx").get());
 
-    // Add a material
-    trc::MaterialID mat = trc::AssetRegistry::addMaterial({ .color=vec4(0, 1, 0.4, 1) });
-    trc::AssetRegistry::updateMaterials();
+// Add a material
+trc::MaterialID mat = trc::AssetRegistry::addMaterial({ .color=vec4(0, 1, 0.4, 1) });
+trc::AssetRegistry::updateMaterials();
 
-    // Create the drawable
-    trc::Drawable myDrawable(geo, mat);
+// Create the drawable
+trc::Drawable myDrawable(geo, mat);
+```
 
 ### Scene graph architecture
 
@@ -145,38 +149,46 @@ just for yourself.
 Vulkan Base provides an extremely cool event system. The easiest way to register an event handler for a specific type of
 event is the `vkb::on` function template:
 
-    #include <vkb/Event.h>
+```c++
+#include <vkb/Event.h>
 
-    vkb::on<vkb::KeyPressEvent>([](const vkb::KeyPressEvent& e) {
-        std::cout << "Key pressed: " << e.key << "\n";
-    });
+vkb::on<vkb::KeyPressEvent>([](const vkb::KeyPressEvent& e) {
+    std::cout << "Key pressed: " << e.key << "\n";
+});
+```
 
 It's possible to fire and listen to any type of event:
 
-    struct MyEventType
-    {
-        int number;
-        std::string description;
-    };
+```c++
+struct MyEventType
+{
+    int number;
+    std::string description;
+};
 
-    vkb::on<MyEventType>([](const auto& e) {
-        std::cout << e.description << ": " << e.number << "\n";
-    });
+vkb::on<MyEventType>([](const auto& e) {
+    std::cout << e.description << ": " << e.number << "\n";
+});
 
-    vkb::fire<MyEventType>({ 42, "The answer" });
+vkb::fire<MyEventType>({ 42, "The answer" });
+```
 
 The `vkb::on` and `vkb::fire` functions are helpers on top of some underlying, less expressive structures. They are
 roughly equivalent to the following:
 
-    // What vkb::on does:
-    vkb::EventHandler<MyEventType>::addListener([](const MyEventType& e) { ... });
+```c++
+// What vkb::on does:
+vkb::EventHandler<MyEventType>::addListener([](const MyEventType& e) { ... });
 
-    // What vkb::fire does:
-    vkb::EventHandler<MyEventType>::notify({ 42, "The answer" });
+// What vkb::fire does:
+vkb::EventHandler<MyEventType>::notify({ 42, "The answer" });
+```
 
 `vkb::on` also wraps the result of `EventHandler<>::addListener` in a temporary object that can be used to create unique
 listener handles in case you want to remove the listener later on:
 
-    {
-        auto uniqueHandle = vkb::on<MyEventType>([](auto&&) { ... }).makeUnique();
-    } // uniqueHandle gets destroyed and the listener is removed from the event handler
+```c++
+{
+    auto uniqueHandle = vkb::on<MyEventType>([](auto&&) { ... }).makeUnique();
+} // uniqueHandle gets destroyed and the listener is removed from the event handler
+```
