@@ -97,7 +97,11 @@ void appendFragment(vec4 color);
 void main()
 {
     uint diffTex = materials[vert.material].diffuseTexture;
-    vec4 diffuseColor = texture(textures[diffTex], vert.uv);
+    vec4 diffuseColor = materials[vert.material].color;
+    if (diffTex != NO_TEXTURE) {
+        diffuseColor = texture(textures[diffTex], vert.uv);
+    }
+
     vec3 color = calcLighting(
         diffuseColor.rgb,
         vert.worldPos,
