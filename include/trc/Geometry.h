@@ -26,7 +26,7 @@ namespace trc
         std::function<float(float, float)> heightFunc = [](...) { return 0.0f; }
     ) -> MeshData;
 
-    auto makeCubeGeo() -> MeshData;
+    extern auto makeCubeGeo() -> MeshData;
 
     class Geometry
     {
