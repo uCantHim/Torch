@@ -230,7 +230,6 @@ int main()
     });
 
 
-
     bool running{ true };
     auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
         [&running](const vkb::SwapchainCloseEvent&) { running = false; }
@@ -248,6 +247,24 @@ int main()
             std::this_thread::sleep_for(2s);
         }
     });
+
+
+    // Custom cube geo test
+    auto cubeGeoIdx = trc::AssetRegistry::addGeometry({ trc::makeCubeGeo() });
+    auto cubeMatIdx = trc::AssetRegistry::addMaterial({ .color={ 0.3, 0.3, 1, 0.5} });
+    trc::AssetRegistry::updateMaterials();
+    trc::Drawable cube{ cubeGeoIdx, cubeMatIdx, *scene };
+    cube.enableTransparency();
+    cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
+    std::thread([&cube, &running]() {
+        while (running)
+        {
+            std::this_thread::sleep_for(10ms);
+            cube.rotateY(glm::radians(0.5f));
+        }
+    }).detach();
+
+
 
     vkb::Timer timer;
     uint32_t frames{ 0 };
