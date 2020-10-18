@@ -14,8 +14,6 @@ struct Material
     vec4 kSpecular;
 
     float shininess;
-
-    float opacity;
     float reflectivity;
 
     uint diffuseTexture;

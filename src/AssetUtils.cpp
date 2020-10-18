@@ -53,11 +53,6 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
         // Create drawable
         Drawable& d = *result.drawables.emplace_back(new Drawable(geoIdx, matIdx, result.scene));
         d.setFromMatrix(mesh.globalTransform);
-
-        // Apply transparency if appropriate
-        if (matIdx != 0 && AssetRegistry::getMaterial(matIdx).get()->opacity < 1.0f) {
-            d.enableTransparency();
-        }
     }
 
     AssetRegistry::updateMaterials();

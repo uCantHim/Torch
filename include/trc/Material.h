@@ -11,6 +11,8 @@ namespace trc
     {
         /**
          * @brief A plain color to be used if no diffuse texture is present
+         *
+         * The alpha value is used as the material's opacity.
          */
         vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -36,11 +38,6 @@ namespace trc
          * @brief The sharpness of specular reflections
          */
         float shininess{ 1.0f };
-
-        /**
-         * @brief Opacity, in the range [0, 1]
-         */
-        float opacity{ 1.0f };
 
         /**
          * @brief Reflectivity, in the range [0, 1]
@@ -69,7 +66,7 @@ namespace trc
          */
         ui32 bumpTexture{ NO_TEXTURE };
 
-        ui64 __padding{ 0 };
+        ui32 __padding[3]{ 0, 0, 0 };
     };
 
     static_assert(util::sizeof_pad_16_v<Material> == sizeof(Material),

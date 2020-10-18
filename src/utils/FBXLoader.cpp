@@ -459,7 +459,6 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
             newMaterial.kDiffuse = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
             newMaterial.kSpecular = vec4(spec.mData[0], spec.mData[1], spec.mData[2], 1.0f);
             newMaterial.shininess = static_cast<float>(phongMat->Shininess);
-            newMaterial.opacity = 1.0f - static_cast<float>(phongMat->TransparencyFactor.Get());
         }
         // Material is a Lambert material
         else if (mat->GetClassId().Is(FbxSurfaceLambert::ClassId))
@@ -473,7 +472,6 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
             newMaterial.kAmbient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
             newMaterial.kDiffuse = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
             newMaterial.kSpecular = vec4(1.0f);
-            newMaterial.opacity = 1.0f - static_cast<float>(lambertMat->TransparencyFactor.Get());
             newMaterial.shininess = 1.0f; // Standard value
         }
         else {
