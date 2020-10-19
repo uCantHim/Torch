@@ -105,8 +105,8 @@ void trc::Animation::vulkanStaticDestroy()
     auto& device = vkb::getDevice();
 
     device->freeDescriptorSets(descPool, descSet);
-    device->destroyDescriptorSetLayout(descLayout);
-    device->destroyDescriptorPool(descPool);
+    device->destroyDescriptorSetLayout(descLayout, {});
+    device->destroyDescriptorPool(descPool, {});
 
     animationBuffer = {};
     animationMetaDataBuffer = {};

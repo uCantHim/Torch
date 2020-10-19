@@ -121,7 +121,7 @@ auto vkb::VulkanBase::createSurface(vk::Extent2D size) -> Surface
     result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> {
         new vk::SurfaceKHR(_surface),
         [&](vk::SurfaceKHR* oldSurface) {
-            (*instance)->destroySurfaceKHR(*oldSurface);
+            (*instance)->destroySurfaceKHR(*oldSurface, {});
             delete oldSurface;
         }
     };

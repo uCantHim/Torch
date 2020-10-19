@@ -176,7 +176,7 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
     }
 
     // Device features
-    const auto deviceFeatures = physicalDevice.getFeatures2<
+    auto deviceFeatures = physicalDevice.getFeatures2<
         vk::PhysicalDeviceFeatures2,
         vk::PhysicalDeviceDescriptorIndexingFeatures
     >();

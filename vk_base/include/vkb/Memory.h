@@ -33,7 +33,7 @@ namespace vkb
         {}
 
         void operator()(const DeviceMemoryInternals& internals) {
-            device->get().freeMemory(internals.memory);
+            device->get().freeMemory(internals.memory, {});
         }
 
     private:

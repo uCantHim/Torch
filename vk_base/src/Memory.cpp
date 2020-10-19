@@ -51,7 +51,7 @@ auto vkb::DeviceMemory::allocate(
     return DeviceMemory(
         { mem, requirements.size, 0 },
         [&device](const DeviceMemoryInternals& internals) {
-            device->freeMemory(internals.memory);
+            device->freeMemory(internals.memory, {});
         }
     );
 }
