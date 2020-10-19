@@ -47,7 +47,8 @@ namespace vkb
          * Allow convenient conversion to the unique handle type.
          */
         inline operator UniqueListenerId<EventType>() && {
-            return makeUnique();
+            // Can't use makeUnique() here because the rvalue qualifer is discarded
+            return { id };
         }
 
         /**
