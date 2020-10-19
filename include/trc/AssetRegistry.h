@@ -30,9 +30,9 @@ namespace trc
     class AssetRegistryNameWrapper
     {
     public:
-        static auto addGeometry(const NameType& key, Geometry geo) -> Geometry&;
-        static auto addMaterial(const NameType& key, Material mat) -> Material&;
-        static auto addImage(const NameType& key, vkb::Image img) -> vkb::Image&;
+        static auto addGeometry(const NameType& key, Geometry geo) -> GeometryID;
+        static auto addMaterial(const NameType& key, Material mat) -> MaterialID;
+        static auto addImage(const NameType& key, vkb::Image img) -> TextureID;
 
         static auto getGeometry(const NameType& key) -> Maybe<Geometry*>;
         static auto getMaterial(const NameType& key) -> Maybe<Material*>;
