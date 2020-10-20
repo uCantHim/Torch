@@ -125,6 +125,8 @@ namespace trc
 
         // Updater
         std::unique_ptr<Updater> updater;
+        vk::UniqueFence transferFence;
+        vk::UniqueCommandBuffer transferCmdBuf;
 
         // Drawable registrations
         SceneBase* currentScene{ nullptr };

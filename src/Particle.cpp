@@ -66,7 +66,9 @@ trc::ParticleCollection::ParticleCollection(
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
         memoryPool->makeAllocator()
     ),
-    persistentMaterialBuf(reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map()))
+    persistentMaterialBuf(reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map())),
+    transferFence(vkb::getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled })),
+    transferCmdBuf(vkb::getDevice().createTransferCommandBuffer())
 {
     particles.reserve(maxParticles);
     setUpdateMethod(updateMethod);
@@ -167,16 +169,29 @@ void trc::ParticleCollection::update()
     lock.unlock();
     if (particles.empty()) return;
 
+    // Transfer from staging to main buffer must be completed before the
+    // updater writes to the staging buffer again.
+    auto result = vkb::getDevice()->waitForFences(*transferFence, true, UINT64_MAX);
+    assert(result == vk::Result::eSuccess);
+    vkb::getDevice()->resetFences(*transferFence);
+
     // Run updater on matrix buffer
     auto matrixBuf = reinterpret_cast<mat4*>(particleMatrixStagingBuffer.map());
     updater->update(particles, matrixBuf, persistentMaterialBuf);
     particleMatrixStagingBuffer.unmap();
 
     // Copy matrices to vertex attribute buffer
-    vkb::copyBuffer(
-        vkb::getDevice(),
-        *particleMatrixBuffer, *particleMatrixStagingBuffer,
-        0, 0, particleMatrixStagingBuffer.size()
+    transferCmdBuf->begin(vk::CommandBufferBeginInfo());
+    transferCmdBuf->copyBuffer(
+        *particleMatrixStagingBuffer, *particleMatrixBuffer,
+        vk::BufferCopy(0, 0, particleMatrixStagingBuffer.size())
+    );
+    transferCmdBuf->end();
+
+    constexpr vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eTransfer;
+    vkb::getDevice().getQueue(vkb::QueueType::transfer, 2).submit(
+        vk::SubmitInfo(0, nullptr, &waitStage, 1, &*transferCmdBuf, 0, nullptr),
+        *transferFence
     );
 }
 
