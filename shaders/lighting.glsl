@@ -51,7 +51,7 @@ vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint 
             toLight /= dist;
         }
 
-        const float shadow = lightShadowValue(worldPos, lights[i], 0.002);
+        const float shadow = calcLightShadowValueSmooth(worldPos, lights[i]);
 
         // Ambient
         // The ambient percentage has nothing to do with physical correctness,
