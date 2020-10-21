@@ -347,6 +347,14 @@ void onMouseClick(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
+void onScroll(GLFWwindow* window, double xOffset, double yOffset)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    vkb::EventHandler<vkb::ScrollEvent>::notify(
+        { swapchain, static_cast<float>(xOffset), static_cast<float>(yOffset) }
+    );
+}
+
 void onWindowClose(GLFWwindow* window)
 {
     auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
@@ -357,11 +365,12 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 {
     glfwSetWindowUserPointer(window, this);
 
-    // Whyyyyy can't I use lambdas here :(
+    // Actually, I can use lambdas here, but I find this more clean now
     glfwSetCharCallback(window, onChar);
     glfwSetKeyCallback(window, onKey);
     glfwSetCursorPosCallback(window, onMouseMove);
     glfwSetMouseButtonCallback(window, onMouseClick);
+    glfwSetScrollCallback(window, onScroll);
 
     glfwSetWindowCloseCallback(window, onWindowClose);
 }

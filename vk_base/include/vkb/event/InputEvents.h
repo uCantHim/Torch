@@ -82,4 +82,16 @@ namespace vkb
         MouseReleaseEvent(Swapchain* sc, MouseButton button, int mods)
             : MouseButtonEventBase(sc, button, mods, InputAction::release) {}
     };
+
+
+    /////////////////////////////
+    //      Other Events       //
+    /////////////////////////////
+
+    struct ScrollEvent
+    {
+        Swapchain* swapchain;
+        float xOffset;
+        float yOffset;
+    };
 }
