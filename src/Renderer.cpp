@@ -13,9 +13,12 @@
 
 void trc::terminate()
 {
+    vkb::getDevice()->waitIdle();
+
     AssetRegistry::reset();
     RenderPass::destroyAll();
     Pipeline::destroyAll();
+    RenderStage::destroyAll();
     vkb::vulkanTerminate();
 }
 
