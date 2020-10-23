@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 
 namespace trc
 {
@@ -40,3 +41,18 @@ namespace trc
         IdType _id{ static_cast<IdType>(0) };
     };
 } // namespace trc
+
+
+namespace std
+{
+    /**
+     * @brief std::hash specialization for TypesafeID<> template
+     */
+    template<typename ClassType, typename IdType> requires requires { std::hash<IdType>{}; }
+    struct hash<trc::TypesafeID<ClassType, IdType>>
+    {
+        size_t operator()(const trc::TypesafeID<ClassType, IdType>& id) const noexcept {
+            return hash<IdType>{}(id);
+        }
+    };
+} // namespace std
