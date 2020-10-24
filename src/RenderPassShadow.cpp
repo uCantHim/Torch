@@ -1,85 +1,8 @@
 #include "RenderPassShadow.h"
 
-#include <vulkan/vulkan.hpp>
-
-#include "Light.h"
-#include "PipelineDefinitions.h"
 
 
-
-namespace trc::internal
-{
-    static std::atomic<ui32> nextShadowPassIndex{ RenderPasses::eShadowPassesBegin };
-    static std::vector<ui32> freeShadowPassIndices;
-
-    inline auto getNewShadowPassIndex() -> trc::ui32
-    {
-        ui32 result;
-        if (!freeShadowPassIndices.empty())
-        {
-            result = freeShadowPassIndices.back();
-            freeShadowPassIndices.pop_back();
-        }
-        else {
-            result = nextShadowPassIndex++;
-        }
-
-        if (result > RenderPasses::eShadowPassesEnd) {
-            throw std::out_of_range("No indices for shadow passes remaining");
-        }
-
-        return result;
-    }
-
-    inline void freeShadowPassIndex(ui32 index)
-    {
-        freeShadowPassIndices.push_back(index);
-    }
-} // namespace trc
-
-auto trc::enableShadow(Light& light, uvec2 shadowMapResolution, mat4 projectionMatrix) -> Node
-{
-    Node result;
-    std::vector<RenderPass::ID> createdPasses;
-
-    // Create passes
-    switch (light.type)
-    {
-    case Light::Type::eSunLight:
-        result.attach(RenderPass::replace<RenderPassShadow>(
-            createdPasses.emplace_back(internal::getNewShadowPassIndex()),
-            shadowMapResolution,
-            projectionMatrix
-        ));
-        break;
-    case Light::Type::ePointLight:
-        // Just store multiple descriptor indices in Light, I don't want
-        // to be able to allocate a range of descriptor indices ahead of time.
-        throw std::logic_error("Shadows for point lights are not implemented yet");
-        break;
-    case Light::Type::eAmbientLight:
-        return {};
-    default:
-        throw std::logic_error("Light type " + std::to_string(light.type) + " does not exist");
-    }
-
-    // Set properties on light
-    light.hasShadow = true;
-    light.firstShadowIndex = static_cast<RenderPassShadow&>(
-        RenderPass::at(createdPasses[0])
-    ).getShadowIndex();
-
-    // Add created passes to shadow stage
-    for (auto pass : createdPasses) {
-        RenderStage::at(internal::RenderStages::eShadow).addRenderPass(pass);
-    }
-
-    return result;
-}
-
-
-
-trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix)
+trc::RenderPassShadow::RenderPassShadow(uvec2 resolution)
     :
     RenderPass(
         [&]()
@@ -127,7 +50,6 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
         1
     ),
     resolution(resolution),
-    projMatrix(projMatrix),
     depthImages([&resolution](ui32) {
         return vkb::Image(
             vk::ImageCreateInfo(
@@ -160,26 +82,10 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution, const mat4& projMatrix
         );
     })
 {
-#ifdef TRC_FLIP_Y_PROJECTION
-    this->projMatrix *= mat4(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-#endif
-
-    shadowDescriptorIndex = ShadowDescriptor::addShadow({
-        { [&](ui32 imageIndex) { return depthImages.getAt(imageIndex).getDefaultSampler(); }},
-        { [&](ui32 imageIndex) { return *depthImageViews.getAt(imageIndex); }},
-        projMatrix * getGlobalTransform()
-    });
-}
-
-trc::RenderPassShadow::~RenderPassShadow()
-{
-    ShadowDescriptor::removeShadow(shadowDescriptorIndex);
 }
 
 void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    ShadowDescriptor::updateShadow(shadowDescriptorIndex, projMatrix * getGlobalTransform());
-
     depthImages->changeLayout(
         cmdBuf,
         vk::ImageLayout::eUndefined,
@@ -209,11 +115,6 @@ auto trc::RenderPassShadow::getResolution() const noexcept -> uvec2
     return resolution;
 }
 
-auto trc::RenderPassShadow::getShadowIndex() const noexcept -> ui32
-{
-    return shadowDescriptorIndex;
-}
-
 auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::Image&
 {
     return depthImages.getAt(imageIndex);
@@ -222,6 +123,16 @@ auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::I
 auto trc::RenderPassShadow::getDepthImageView(ui32 imageIndex) const -> vk::ImageView
 {
     return *depthImageViews.getAt(imageIndex);
+}
+
+auto trc::RenderPassShadow::getShadowMatrixIndex() const noexcept -> ui32
+{
+    return shadowMatrixIndex;
+}
+
+void trc::RenderPassShadow::setShadowMatrixIndex(ui32 newIndex) noexcept
+{
+    shadowMatrixIndex = newIndex;
 }
 
 

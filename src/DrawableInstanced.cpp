@@ -58,7 +58,7 @@ void trc::DrawableInstanced::recordCommandBuffer(
     cmdBuf.bindVertexBuffers(0, { geometry->getVertexBuffer(), *instanceDataBuffer }, { 0ul, 0ul });
     cmdBuf.pushConstants<ui32>(
         env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
-        0, static_cast<RenderPassShadow*>(env.currentRenderPass)->getShadowIndex()
+        0, static_cast<RenderPassShadow*>(env.currentRenderPass)->getShadowMatrixIndex()
     );
 
     cmdBuf.drawIndexed(geometry->getIndexCount(), numInstances, 0, 0, 0);

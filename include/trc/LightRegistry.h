@@ -31,7 +31,7 @@ namespace trc
     public:
         static constexpr ui32 MAX_SHADOW_MAPS = 256;
 
-        explicit _ShadowDescriptor(const LightRegistry& lightRegistry, ui32 maxShadowMaps);
+        explicit _ShadowDescriptor(const LightRegistry& lightRegistry, ui32 numShadowMaps);
 
         /**
          * The descriptor set is per-scene
@@ -49,7 +49,7 @@ namespace trc
         static inline vk::UniqueDescriptorSetLayout descLayout;
         static vkb::StaticInit _init;
 
-        void createDescriptors(const LightRegistry& lightRegistry, ui32 maxShadowMaps);
+        void createDescriptors(const LightRegistry& lightRegistry, ui32 numShadowMaps);
         vk::UniqueDescriptorPool descPool;
         vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
     };
@@ -117,6 +117,51 @@ namespace trc
          */
         void removeLightNode(const Light& light);
 
+        /**
+         * @brief Storage of and handle to a light's shadow
+         *
+         * A shadow consists of one (e.g. sun lights) or more (e.g. point
+         * lights) cameras that define the shadow direction and projection.
+         * The handle gives limited access to these cameras.
+         */
+        struct ShadowInfo
+        {
+            /**
+             * @return Node& A node that all shadow cameras are attached to
+             */
+            auto getNode() noexcept -> Node&;
+
+            /**
+             * @brief Set a projection matrix on all shadow cameras
+             */
+            void setProjectionMatrix(mat4 proj) noexcept;
+
+        private:
+            friend LightRegistry;
+
+            ShadowStage* shadowStage;
+            std::vector<RenderPassShadow*> shadowPasses;
+            std::vector<Camera> shadowCameras;
+            Node parentNode;
+        };
+
+
+        /**
+         * In order to work properly, a position should be set on sun
+         * lights before passing them to this function.
+         *
+         * @throw std::invalid_argument if shadows are already enabled on the light
+         * @throw std::runtime_error if something unexpected happens
+         */
+        auto enableShadow(Light& light,
+                          uvec2 shadowResolution,
+                          ShadowStage& renderStage) -> ShadowInfo&;
+
+        /**
+         * Does nothing if shadows are not enabled for the light
+         */
+        void disableShadow(Light& light);
+
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getShadowMatrixBuffer() const noexcept -> vk::Buffer;
 
@@ -129,20 +174,25 @@ namespace trc
         std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
 
-        struct ShadowInfo
-        {
-            // Has images
-            const RenderPassShadow& shadowPass;
-            Camera shadowCamera;
-        };
-        // Must be done only when a light is added or removed
+        /**
+         * Must be called only when a light or a shadow is added or removed
+         *
+         * Re-orders shadow matrices and -maps according to the order
+         * of lights in the light array. This means it also sets the
+         * correct shadow indices on the lights.
+         */
         void updateShadowDescriptors();
-        // This on the other hand must be done every frame in case the view-proj changes
-        void updateShadowMatrixBuffer();
-        std::unordered_map<const Light*, ShadowInfo> shadows;
-        vkb::Buffer shadowMatrixBuffer;
 
-        _ShadowDescriptor shadowDescriptor;
+        /**
+         * This must be called every frame in case a shadow matrix changes
+         */
+        void updateShadowMatrixBuffer();
+        std::unordered_map<Light*, ShadowInfo> shadows;
+        vkb::Buffer shadowMatrixBuffer;
+        ui32 nextFreeShadowPassIndex; // Initial value set in constructor because recursive include
+        std::vector<ui32> freeShadowPassIndices;
+
+        std::unique_ptr<_ShadowDescriptor> shadowDescriptor;
 
         /**
          * The light pointer allows me to delete light nodes when I only

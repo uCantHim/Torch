@@ -115,6 +115,11 @@ namespace trc
 
         void addStage(RenderStage::ID stage, ui32 priority);
 
+        auto getDefaultDeferredStageId() const noexcept -> RenderStage::ID;
+        auto getDefaultDeferredStage() const noexcept -> DeferredStage&;
+        auto getDefaultShadowStageId() const noexcept -> RenderStage::ID;
+        auto getDefaultShadowStage() const noexcept -> ShadowStage&;
+
         auto getDeferredRenderPassId() const noexcept -> RenderPass::ID;
         auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
 

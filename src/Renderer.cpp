@@ -141,6 +141,28 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 
+auto trc::Renderer::getDefaultDeferredStageId() const noexcept -> RenderStage::ID
+{
+    // TODO
+    return internal::RenderStages::eDeferred;
+}
+
+auto trc::Renderer::getDefaultDeferredStage() const noexcept -> DeferredStage&
+{
+    return static_cast<DeferredStage&>(RenderStage::at(getDefaultDeferredStageId()));
+}
+
+auto trc::Renderer::getDefaultShadowStageId() const noexcept -> RenderStage::ID
+{
+    // TODO
+    return internal::RenderStages::eShadow;
+}
+
+auto trc::Renderer::getDefaultShadowStage() const noexcept -> ShadowStage&
+{
+    return static_cast<ShadowStage&>(RenderStage::at(getDefaultShadowStageId()));
+}
+
 void trc::Renderer::addStage(RenderStage::ID stage, ui32 priority)
 {
     auto it = renderStages.begin();

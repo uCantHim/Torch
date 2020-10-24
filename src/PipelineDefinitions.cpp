@@ -57,7 +57,7 @@ void makeAllDrawablePipelines(const Renderer& renderer)
     );
     makeInstancedDrawableDeferredPipeline(renderer);
 
-    RenderPassShadow dummyPass({ 1, 1 }, mat4());
+    RenderPassShadow dummyPass({ 1, 1 });
     makeDrawableShadowPipeline(renderer, dummyPass);
     makeInstancedDrawableShadowPipeline(renderer, dummyPass);
 }
@@ -207,7 +207,7 @@ void makeDrawableTransparentPipeline(
             renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
-            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
             vk::PushConstantRange(
@@ -270,7 +270,7 @@ void makeDrawableTransparentPipeline(
     p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
-    p.addStaticDescriptorSet(5, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(5, renderer.getShadowDescriptorProvider());
 }
 
 void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)
@@ -461,7 +461,7 @@ void makeFinalLightingPipeline(const Renderer& renderer)
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
-            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
     );
@@ -493,7 +493,7 @@ void makeFinalLightingPipeline(const Renderer& renderer)
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(3, renderer.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(4, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(4, renderer.getShadowDescriptorProvider());
 }
 
 } // namespace trc::internal

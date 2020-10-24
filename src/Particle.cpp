@@ -355,11 +355,11 @@ void trc::internal::makeParticleDrawPipeline(const Renderer& renderer)
 
 void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
 {
-    RenderPassShadow dummyPass({ 1, 1 }, {});
+    RenderPassShadow dummyPass({ 1, 1 });
 
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
-            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
             renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
@@ -404,6 +404,6 @@ void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
         std::move(layout),
         std::move(pipeline));
 
-    p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getShadowDescriptorProvider());
     p.addStaticDescriptorSet(1, renderer.getGlobalDataDescriptorProvider());
 }

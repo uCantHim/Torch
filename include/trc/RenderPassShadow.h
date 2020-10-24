@@ -47,17 +47,15 @@ namespace trc
     /**
      * @brief A pass that renders a shadow map
      */
-    class RenderPassShadow : public RenderPass, public Node
+    class RenderPassShadow : public RenderPass
     {
     public:
         /**
          * Enables shadows on the light.
          *
          * @param uvec2 resolution Resolution of the shadow map
-         * @param mat4 projMatrix Projection matrix of the shadow map
          */
-        RenderPassShadow(uvec2 resolution, const mat4& projMatrix);
-        ~RenderPassShadow() override;
+        explicit RenderPassShadow(uvec2 resolution);
 
         /**
          * Updates the shadow matrix in the descriptor and starts the
@@ -67,23 +65,26 @@ namespace trc
         void end(vk::CommandBuffer cmdBuf) override;
 
         auto getResolution() const noexcept -> uvec2;
-        auto getProjectionMatrix() const noexcept -> const mat4&;
-        void setProjectionMatrix(const mat4& view) noexcept;
 
         /**
-         * @return ui32 The pass's index in all shadow-related resources
-         *              on the device. This includes the shadow matrix
-         *              buffer and the array of shadow map samplers.
+         * @return ui32 The shadow pass's index into the shadow matrix
+         *              buffer. Vertex shaders in the shadow stage use this
+         *              to get their view- projection matrix.
          */
-        auto getShadowIndex() const noexcept -> ui32;
+        auto getShadowMatrixIndex() const noexcept -> ui32;
+
+        /**
+         * This is called by the light registry when shadow passes are
+         * re-ordered. Please don't call this manually.
+         */
+        void setShadowMatrixIndex(ui32 newIndex) noexcept;
 
         auto getDepthImage(ui32 imageIndex) const -> const vkb::Image&;
         auto getDepthImageView(ui32 imageIndex) const -> vk::ImageView;
 
     private:
         uvec2 resolution;
-        mat4 projMatrix;
-        ui32 shadowDescriptorIndex;
+        ui32 shadowMatrixIndex;
 
         vkb::FrameSpecificObject<vkb::Image> depthImages;
         vkb::FrameSpecificObject<vk::UniqueImageView> depthImageViews;

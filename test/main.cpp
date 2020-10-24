@@ -151,7 +151,7 @@ int main()
     );
     trc::Drawable myPlane(myPlaneGeoIndex, mapMatIndex, *scene);
 
-    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
+    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
     trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
     trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
     scene->addLight(sunLight);
@@ -159,11 +159,14 @@ int main()
     scene->addLight(pointLight);
 
     // Make shadow pass for sun light
-    //mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 50.0f);
     mat4 proj = glm::ortho(-3.0f, 3.0f, -3.0f, 3.0f, 1.0f, 30.0f);
-    auto shadowPassNode = trc::enableShadow(sunLight, uvec2(2048, 2048), proj);
-    shadowPassNode.setFromMatrix(glm::lookAt(vec3(-10, 10, 15), vec3(0, 0, 0), vec3(0, 1, 0)));
-    scene->getRoot().attach(shadowPassNode);
+    sunLight.position = { vec3(-10, 10, 15), 0 };
+    scene->getLightRegistry().enableShadow(
+        sunLight,
+        uvec2(2048, 2048),
+        renderer->getDefaultShadowStage()
+    ).setProjectionMatrix(proj);
+    //scene->getLightRegistry().disableShadow(sunLight);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;

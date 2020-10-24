@@ -258,7 +258,7 @@ void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmd
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), currentRenderPass->getShadowIndex()
+        sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
     );
     animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 

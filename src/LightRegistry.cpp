@@ -1,6 +1,7 @@
 #include "LightRegistry.h"
 
 #include "utils/Util.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -17,6 +18,20 @@ void trc::LightNode::applyTransformToLight()
 
     light->position = { getTranslation(), 1.0f };
     light->direction = getRotationAsMatrix() * initialDirection;
+}
+
+
+
+auto trc::LightRegistry::ShadowInfo::getNode() noexcept -> Node&
+{
+    return parentNode;
+}
+
+void trc::LightRegistry::ShadowInfo::setProjectionMatrix(mat4 proj) noexcept
+{
+    for (auto& camera : shadowCameras) {
+        camera.setProjectionMatrix(proj);
+    }
 }
 
 
@@ -38,9 +53,7 @@ vkb::StaticInit trc::_ShadowDescriptor::_init{
         };
 
         vk::StructureChain layoutChain{
-            vk::DescriptorSetLayoutCreateInfo(
-                vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
-            ),
+            vk::DescriptorSetLayoutCreateInfo({}, layoutBindings),
             vk::DescriptorSetLayoutBindingFlagsCreateInfo(layoutFlags)
         };
         descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
@@ -52,9 +65,9 @@ vkb::StaticInit trc::_ShadowDescriptor::_init{
     }
 };
 
-trc::_ShadowDescriptor::_ShadowDescriptor(const LightRegistry& lightRegistry, ui32 maxShadowMaps)
+trc::_ShadowDescriptor::_ShadowDescriptor(const LightRegistry& lightRegistry, ui32 numShadowMaps)
 {
-    createDescriptors(lightRegistry, maxShadowMaps);
+    createDescriptors(lightRegistry, numShadowMaps);
 }
 
 auto trc::_ShadowDescriptor::getDescSet(ui32 imageIndex) const noexcept -> vk::DescriptorSet
@@ -69,15 +82,14 @@ auto trc::_ShadowDescriptor::getDescLayout() noexcept -> vk::DescriptorSetLayout
 
 void trc::_ShadowDescriptor::createDescriptors(
     const LightRegistry& lightRegistry,
-    const ui32 maxShadowMaps)
+    const ui32 numShadowMaps)
 {
     descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         vkb::getSwapchain().getFrameCount(), // max num sets
         std::vector<vk::DescriptorPoolSize>{
             { vk::DescriptorType::eStorageBuffer, 1 },
-            { vk::DescriptorType::eCombinedImageSampler, maxShadowMaps },
+            { vk::DescriptorType::eCombinedImageSampler, numShadowMaps },
         }
     ));
 
@@ -85,7 +97,7 @@ void trc::_ShadowDescriptor::createDescriptors(
     {
         vk::StructureChain descSetAllocateChain{
             vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout),
-            vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &maxShadowMaps)
+            vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &numShadowMaps)
         };
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
             descSetAllocateChain.get<vk::DescriptorSetAllocateInfo>()
@@ -107,6 +119,11 @@ void trc::_ShadowDescriptor::createDescriptors(
 }
 
 
+
+//////////////////////////////
+//      Light registry      //
+//////////////////////////////
+
 trc::LightRegistry::LightRegistry(const ui32 maxLights)
     :
     maxLights(maxLights),
@@ -121,7 +138,8 @@ trc::LightRegistry::LightRegistry(const ui32 maxLights)
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
-    shadowDescriptor(*this, maxShadowMaps)
+    nextFreeShadowPassIndex(internal::RenderPasses::eShadowPassesBegin),
+    shadowDescriptor(new _ShadowDescriptor(*this, maxShadowMaps))
 {
 }
 
@@ -138,7 +156,7 @@ void trc::LightRegistry::update()
 
 auto trc::LightRegistry::getDescriptor() const noexcept -> const _ShadowDescriptor&
 {
-    return shadowDescriptor;
+    return *shadowDescriptor;
 }
 
 auto trc::LightRegistry::getMaxLights() const noexcept -> ui32
@@ -149,7 +167,7 @@ auto trc::LightRegistry::getMaxLights() const noexcept -> ui32
 auto trc::LightRegistry::addLight(Light& light) -> Light&
 {
     auto& result = *lights.emplace_back(&light);
-    updateShadowDescriptors();
+    // Don't have to update the descriptors here
 
     return result;
 }
@@ -197,6 +215,79 @@ void trc::LightRegistry::removeLightNode(const Light& light)
     }
 }
 
+auto trc::LightRegistry::enableShadow(
+    Light& light,
+    uvec2 shadowResolution,
+    ShadowStage& renderStage) -> ShadowInfo&
+{
+    if (light.type != Light::Type::eSunLight) {
+        throw std::invalid_argument("Shadows are currently only supported for sun lights");
+    }
+    if (std::find(lights.begin(), lights.end(), &light) == lights.end()) {
+        throw std::invalid_argument("Light does not exist in the light registry!");
+    }
+    if (shadows.find(&light) != shadows.end()) {
+        throw std::invalid_argument("Shadows are already enabled for the light!");
+    }
+
+    auto [it, success] = shadows.try_emplace(&light);
+    if (!success) {
+        throw std::runtime_error("Unable to add light to the map in LightRegistry::enableShadow");
+    }
+
+    auto& newEntry = it->second;
+    for (ui32 i = 0; i < getNumShadowMaps(light); i++)
+    {
+        auto& camera = newEntry.shadowCameras.emplace_back();
+        newEntry.parentNode.attach(camera);
+        // Use lookAt for sun lights
+        if (light.type == Light::Type::eSunLight && length(light.direction) > 0.0f) {
+            camera.lookAt(light.position, light.position + light.direction, vec3(0, 1, 0));
+        }
+
+        // Generate an index for the new shadow pass
+        ui32 newIndex = 0;
+        if (!freeShadowPassIndices.empty()) {
+            newIndex = freeShadowPassIndices.back();
+            freeShadowPassIndices.pop_back();
+        }
+        else {
+            newIndex = nextFreeShadowPassIndex++;
+        }
+
+        // Create a new shadow pass
+        RenderPassShadow* newShadowPass = newEntry.shadowPasses.emplace_back(
+            &RenderPass::create<RenderPassShadow>(newIndex, shadowResolution)
+        );
+        renderStage.addRenderPass(newShadowPass->id());
+    }
+
+    newEntry.parentNode.update();
+    newEntry.shadowStage = &renderStage;
+    light.hasShadow = true;
+    updateShadowDescriptors();
+
+    return newEntry;
+}
+
+void trc::LightRegistry::disableShadow(Light& light)
+{
+    if (!light.hasShadow) return;
+    auto it = shadows.find(&light);
+    if (it == shadows.end()) return;
+
+    for (RenderPassShadow* shadowPass : it->second.shadowPasses)
+    {
+        const RenderPassShadow::ID id = shadowPass->id();
+        it->second.shadowStage->removeRenderPass(id);
+        freeShadowPassIndices.push_back(id);
+        RenderPass::destroy(id);
+    }
+    shadows.erase(it);
+
+    updateShadowDescriptors();
+}
+
 auto trc::LightRegistry::getLightBuffer() const noexcept -> vk::Buffer
 {
     return *lightBuffer;
@@ -231,21 +322,31 @@ void trc::LightRegistry::updateShadowMatrixBuffer()
     }
 
     mat4* buf = reinterpret_cast<mat4*>(shadowMatrixBuffer.map());
-    for (size_t i = 0; const Light* light : lights)
+    for (size_t i = 0; const auto& [light, shadow] : shadows)
     {
-        if (light->hasShadow)
+        for (const auto& camera : shadow.shadowCameras)
         {
-            auto it = shadows.find(light);
-            assert(it != shadows.end());
-
-            const auto& camera = it->second.shadowCamera;
+            // Only increase counter for lights that have a shadow
             buf[i++] = camera.getProjectionMatrix() * camera.getViewMatrix();
         }
     }
+    shadowMatrixBuffer.unmap();
 }
 
 void trc::LightRegistry::updateShadowDescriptors()
 {
+    /**
+     * Just recreate the whole descriptor here. I have to recreate the
+     * descriptor set because I can't have non-written (empty) samplers
+     * in the shadow map descriptor.
+     */
+    shadowDescriptor.reset(new _ShadowDescriptor(*this, [this]() -> ui32 {
+        // Count required number of shadow maps
+        ui32 result{ 0 };
+        for (auto& [light, shadow] : shadows) { result += getNumShadowMaps(*light); }
+        return result == 0 ? maxShadowMaps : min(result, maxShadowMaps);
+    }()));
+
     if (shadows.empty()) {
         return;
     }
@@ -255,32 +356,37 @@ void trc::LightRegistry::updateShadowDescriptors()
 
     for (ui32 i = 0; i < vkb::getSwapchain().getFrameCount(); i++)
     {
-        auto descSet = shadowDescriptor.getDescSet(i);
+        auto descSet = shadowDescriptor->getDescSet(i);
         auto& infos = imageInfos.emplace_back();
 
-        for (Light* light : lights)
+        for (auto& [light, shadow] : shadows)
         {
-            if (!light->hasShadow) continue;
-            auto it = shadows.find(light);
-            if (it == shadows.end()) continue;
-
             // Update shadow index on the light
             light->firstShadowIndex = infos.size();
 
-            const auto& shadowPass = it->second.shadowPass;
-            auto imageView = shadowPass.getDepthImageView(i);
-            auto sampler = shadowPass.getDepthImage(i).getDefaultSampler();
-            infos.emplace_back(sampler, imageView, vk::ImageLayout::eShaderReadOnlyOptimal);
+            for (auto shadowPass : shadow.shadowPasses)
+            {
+                auto imageView = shadowPass->getDepthImageView(i);
+                auto sampler = shadowPass->getDepthImage(i).getDefaultSampler();
+                shadowPass->setShadowMatrixIndex(infos.size());
+                infos.emplace_back(sampler, imageView, vk::ImageLayout::eShaderReadOnlyOptimal);
+            }
         }
 
-        writes.emplace_back(vk::WriteDescriptorSet(
-            descSet, 1, 0, infos.size(),
-            vk::DescriptorType::eCombinedImageSampler,
-            infos.data()
-        ));
+        // Might be empty if hasShadow flags have been manually set to false
+        if (!infos.empty())
+        {
+            writes.emplace_back(vk::WriteDescriptorSet(
+                descSet, 1, 0, infos.size(),
+                vk::DescriptorType::eCombinedImageSampler,
+                infos.data()
+            ));
+        }
     }
 
-    vkb::getDevice()->updateDescriptorSets(writes, {});
+    if (!writes.empty()) {
+        vkb::getDevice()->updateDescriptorSets(writes, {});
+    }
 
     // Ensure that no light tries to access an unset shadow map
     updateShadowMatrixBuffer();
