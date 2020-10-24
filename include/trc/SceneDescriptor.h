@@ -9,18 +9,26 @@ namespace trc
     class SceneDescriptor
     {
     public:
-        SceneDescriptor();
+        explicit SceneDescriptor(const Scene& scene);
 
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+        /**
+         * The descriptor set is per-scene
+         */
+        auto getDescSet() const noexcept -> vk::DescriptorSet;
 
-        void updateActiveScene(const Scene& scene) const noexcept;
+        /**
+         * The descriptor set layout is global for all SceneDescriptor
+         * instances.
+         */
+        static auto getDescLayout() noexcept -> vk::DescriptorSetLayout;
 
     private:
-        void createDescriptors();
+        // The descriptor set layout is the same for all instances
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static vkb::StaticInit _init;
 
+        void createDescriptors(const Scene& scene);
         vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorSet descSet;
-        DescriptorProvider provider{ {}, {} };
     };
 } // namespace trc

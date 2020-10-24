@@ -87,7 +87,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Update
     scene.update();
-    sceneDescriptor.updateActiveScene(scene);
+    sceneDescriptorProvider.setDescriptorSet(scene.getDescriptor().getDescSet());
     globalDataDescriptor.updateCameraMatrices(camera);
     globalDataDescriptor.updateSwapchainData(swapchain);
 
@@ -171,15 +171,10 @@ auto trc::Renderer::getGlobalDataDescriptorProvider() const noexcept
     return globalDataDescriptor.getProvider();
 }
 
-auto trc::Renderer::getSceneDescriptor() const noexcept -> const SceneDescriptor&
-{
-    return sceneDescriptor;
-}
-
 auto trc::Renderer::getSceneDescriptorProvider() const noexcept
     -> const DescriptorProviderInterface&
 {
-    return sceneDescriptor.getProvider();
+    return sceneDescriptorProvider;
 }
 
 void trc::Renderer::createSemaphores()

@@ -7,6 +7,7 @@
 #include "base/SceneRegisterable.h"
 #include "Node.h"
 #include "Light.h"
+#include "SceneDescriptor.h"
 
 namespace trc
 {
@@ -49,6 +50,13 @@ namespace trc
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getLightRegistry() noexcept -> LightRegistry&;
+        auto getLightRegistry() const noexcept -> const LightRegistry&;
+
+        /**
+         * @return const SceneDescriptor& The scene's descriptor
+         */
+        auto getDescriptor() const noexcept -> const SceneDescriptor&;
+
         auto getPickingBuffer() const noexcept -> vk::Buffer;
         auto getPickedObject() -> std::optional<Pickable*>;
 
@@ -60,5 +68,8 @@ namespace trc
         void updatePicking();
         vkb::Buffer pickingBuffer;
         ui32 currentlyPicked{ 0 };
+
+        // Must be initialized after the buffers
+        SceneDescriptor descriptor;
     };
 } // namespace trc

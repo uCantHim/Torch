@@ -103,6 +103,12 @@ namespace trc
     public:
         Renderer();
 
+        Renderer(const Renderer&) = delete;
+        Renderer(Renderer&&) = delete;
+        Renderer& operator=(const Renderer&) = delete;
+        Renderer& operator=(Renderer&&) = delete;
+        ~Renderer() = default;
+
         void drawFrame(Scene& scene, const Camera& camera);
 
         void addStage(RenderStage::ID stage, ui32 priority);
@@ -112,7 +118,6 @@ namespace trc
 
         auto getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&;
         auto getGlobalDataDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
-        auto getSceneDescriptor() const noexcept -> const SceneDescriptor&;
         auto getSceneDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
@@ -136,7 +141,9 @@ namespace trc
 
         // Other things
         GlobalRenderDataDescriptor globalDataDescriptor;
-        SceneDescriptor sceneDescriptor;
+        // A single descriptor provider. The descriptor set is switched to
+        // every frame to that of the current scene.
+        DescriptorProvider sceneDescriptorProvider{ SceneDescriptor::getDescLayout(), {} };
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }

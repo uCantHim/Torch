@@ -13,7 +13,8 @@ trc::Scene::Scene()
         sizeof(ui32) * 3,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    )
+    ),
+    descriptor(*this)
 {
     auto buf = reinterpret_cast<ui32*>(pickingBuffer.map());
     buf[0] = 0u;
@@ -61,6 +62,16 @@ auto trc::Scene::getLightBuffer() const noexcept -> vk::Buffer
 auto trc::Scene::getLightRegistry() noexcept -> LightRegistry&
 {
     return lightRegistry;
+}
+
+auto trc::Scene::getLightRegistry() const noexcept -> const LightRegistry&
+{
+    return lightRegistry;
+}
+
+auto trc::Scene::getDescriptor() const noexcept -> const SceneDescriptor&
+{
+    return descriptor;
 }
 
 auto trc::Scene::getPickingBuffer() const noexcept -> vk::Buffer
