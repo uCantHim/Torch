@@ -47,12 +47,21 @@ namespace trc::data
 
         /**
          * @brief Like create(), but can overwrite existing objects
+         *
+         * If an object already exists at the index, it is destroyed before
+         * the new object is created.
          */
         template<typename ...ConstructArgs>
-        static auto emplace(ID index, ConstructArgs&&... args) -> Derived&;
+        static auto replace(ID index, ConstructArgs&&... args) -> Derived&;
 
+        /**
+         * @brief Like create(), but can overwrite existing objects
+         *
+         * If an object already exists at the index, it is destroyed before
+         * the new object is created.
+         */
         template<typename Class, typename ...ConstructArgs>
-        static auto emplace(ID index, ConstructArgs&&... args) -> Class&
+        static auto replace(ID index, ConstructArgs&&... args) -> Class&
             requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>);
 
         /**

@@ -46,8 +46,12 @@ auto SelfManagedObject<Derived>::create(ID index, ConstructArgs&&... args) -> Cl
 
 template<class Derived>
 template<typename ...ConstructArgs>
-auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> Derived&
+auto SelfManagedObject<Derived>::replace(ID index, ConstructArgs&&... args) -> Derived&
 {
+    if (objects.at(index) != nullptr) {
+        objects.at(index).reset();
+    }
+
     auto& result = *objects.emplace(index, new Derived(std::forward<ConstructArgs>(args)...));
     result.myId = index;
 
@@ -56,9 +60,13 @@ auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> D
 
 template<class Derived>
 template<typename Class, typename ...ConstructArgs>
-auto SelfManagedObject<Derived>::emplace(ID index, ConstructArgs&&... args) -> Class&
+auto SelfManagedObject<Derived>::replace(ID index, ConstructArgs&&... args) -> Class&
     requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>)
 {
+    if (objects.at(index) != nullptr) {
+        objects.at(index).reset();
+    }
+
     auto& result = *objects.emplace(index, new Class(std::forward<ConstructArgs>(args)...));
     result.myId = index;
 
