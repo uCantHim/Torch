@@ -35,6 +35,11 @@ namespace trc::data
         static auto createAtNextIndex(ConstructArgs&&... args)
             -> std::pair<ID, std::reference_wrapper<Derived>>;
 
+        template<typename Class, typename ...ConstructArgs>
+        static auto createAtNextIndex(ConstructArgs&&... args)
+            -> std::pair<ID, std::reference_wrapper<Class>>
+            requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>);
+
         /**
          * @throws std::runtime_error if an object already exists at the index
          */

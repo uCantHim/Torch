@@ -11,8 +11,17 @@ auto SelfManagedObject<Derived>::createAtNextIndex(ConstructArgs&&... args)
     -> std::pair<ID, std::reference_wrapper<Derived>>
 {
     ID nextIndex = objects.size();
-
     return { nextIndex, create(nextIndex, std::forward<ConstructArgs>(args)...) };
+}
+
+template<class Derived>
+template<typename Class, typename ...ConstructArgs>
+auto SelfManagedObject<Derived>::createAtNextIndex(ConstructArgs&&... args)
+    -> std::pair<ID, std::reference_wrapper<Class>>
+    requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>)
+{
+    ID nextIndex = objects.size();
+    return { nextIndex, create<Class>(nextIndex, std::forward<ConstructArgs>(args)...) };
 }
 
 template<class Derived>
