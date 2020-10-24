@@ -57,7 +57,7 @@ template<class Derived>
 template<typename ...ConstructArgs>
 auto SelfManagedObject<Derived>::replace(ID index, ConstructArgs&&... args) -> Derived&
 {
-    if (objects.at(index) != nullptr) {
+    if (objects.size() > index && objects.at(index) != nullptr) {
         objects.at(index).reset();
     }
 
@@ -72,7 +72,7 @@ template<typename Class, typename ...ConstructArgs>
 auto SelfManagedObject<Derived>::replace(ID index, ConstructArgs&&... args) -> Class&
     requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>)
 {
-    if (objects.at(index) != nullptr) {
+    if (objects.size() > index && objects.at(index) != nullptr) {
         objects.at(index).reset();
     }
 
