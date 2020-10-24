@@ -85,7 +85,6 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto& swapchain = vkb::getSwapchain();
 
     // Update
-    scene.updateTransforms();
     SceneDescriptor::setActiveScene(scene);
     globalDataDescriptor.updateCameraMatrices(camera);
     globalDataDescriptor.updateSwapchainData(swapchain);
