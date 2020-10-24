@@ -124,6 +124,16 @@ namespace trc
          */
         void makeOrthogonal(float left, float right, float bottom, float top, float zNear, float zFar);
 
+        /**
+         * @brief Manually set the projection matrix
+         *
+         * The matrix is reset when either of setDepthBounds, setFov,
+         * setAspect, makePerspective, or makeOrthogonal is called.
+         *
+         * @param mat4 proj The new projection matrix
+         */
+        void setProjectionMatrix(mat4 proj) noexcept;
+
     private:
         void calcProjMatrix();
         bool isOrtho{ false };

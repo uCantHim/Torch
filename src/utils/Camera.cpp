@@ -73,6 +73,21 @@ void trc::Camera::makeOrthogonal(float left, float right, float bottom, float to
     calcProjMatrix();
 }
 
+void trc::Camera::setProjectionMatrix(mat4 proj) noexcept
+{
+    projectionMatrix = proj;
+
+#ifdef TRC_FLIP_Y_PROJECTION
+    static const GLM_CONSTEXPR mat4 axisFlipMatrix(
+        1, 0, 0, 0,
+        0, -1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    );
+    projectionMatrix *= axisFlipMatrix;
+#endif
+}
+
 void trc::Camera::calcProjMatrix()
 {
     if (isOrtho)
