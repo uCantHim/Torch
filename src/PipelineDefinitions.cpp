@@ -31,87 +31,86 @@ namespace
 
 void makeAllDrawablePipelines(const Renderer& renderer)
 {
-    auto& deferredPass = renderer.getDeferredRenderPass();
-
-    makeDrawableDeferredPipeline(deferredPass);
-    makeDrawableDeferredAnimatedPipeline(deferredPass);
-    makeDrawableDeferredPickablePipeline(deferredPass);
-    makeDrawableDeferredAnimatedAndPickablePipeline(deferredPass);
+    makeDrawableDeferredPipeline(renderer);
+    makeDrawableDeferredAnimatedPipeline(renderer);
+    makeDrawableDeferredPickablePipeline(renderer);
+    makeDrawableDeferredAnimatedAndPickablePipeline(renderer);
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferred,
         DrawablePipelineFeatureFlagBits::eNone,
-        deferredPass
+        renderer
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredPickable,
         DrawablePipelineFeatureFlagBits::ePickable,
-        deferredPass
+        renderer
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredAnimated,
         DrawablePipelineFeatureFlagBits::eAnimated,
-        deferredPass
+        renderer
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredAnimatedAndPickable,
         DrawablePipelineFeatureFlagBits::ePickable | DrawablePipelineFeatureFlagBits::eAnimated,
-        deferredPass
+        renderer
     );
-    makeInstancedDrawableDeferredPipeline(deferredPass);
+    makeInstancedDrawableDeferredPipeline(renderer);
 
     RenderPassShadow dummyPass({ 1, 1 }, mat4());
     makeDrawableShadowPipeline(dummyPass);
     makeInstancedDrawableShadowPipeline(dummyPass);
 }
 
-void makeDrawableDeferredPipeline(const RenderPassDeferred& renderPass)
+void makeDrawableDeferredPipeline(const Renderer& renderer)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferred,
         DrawablePipelineFeatureFlagBits::eNone,
-        renderPass
+        renderer
     );
 }
 
-void makeDrawableDeferredAnimatedPipeline(const RenderPassDeferred& renderPass)
+void makeDrawableDeferredAnimatedPipeline(const Renderer& renderer)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredAnimated,
         DrawablePipelineFeatureFlagBits::eAnimated,
-        renderPass
+        renderer
     );
 }
 
-void makeDrawableDeferredPickablePipeline(const RenderPassDeferred& renderPass)
+void makeDrawableDeferredPickablePipeline(const Renderer& renderer)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredPickable,
         DrawablePipelineFeatureFlagBits::ePickable,
-        renderPass
+        renderer
     );
 }
 
-void makeDrawableDeferredAnimatedAndPickablePipeline(const RenderPassDeferred& renderPass)
+void makeDrawableDeferredAnimatedAndPickablePipeline(const Renderer& renderer)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredAnimatedAndPickable,
         DrawablePipelineFeatureFlagBits::eAnimated | DrawablePipelineFeatureFlagBits::ePickable,
-        renderPass
+        renderer
     );
 }
 
 void _makeDrawableDeferredPipeline(
     ui32 pipelineIndex,
     ui32 featureFlags,
-    const RenderPassDeferred& renderPass)
+    const Renderer& renderer)
 {
+    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
@@ -177,7 +176,7 @@ void _makeDrawableDeferredPipeline(
         );
 
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
@@ -194,15 +193,16 @@ void _makeDrawableDeferredPipeline(
 void makeDrawableTransparentPipeline(
     ui32 pipelineIndex,
     ui32 featureFlags,
-    const RenderPassDeferred& renderPass)
+    const Renderer& renderer)
 {
+    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
@@ -265,7 +265,7 @@ void makeDrawableTransparentPipeline(
         );
 
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
@@ -319,15 +319,16 @@ void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
 
-void makeInstancedDrawableDeferredPipeline(const RenderPassDeferred& renderPass)
+void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
 {
+    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
@@ -384,7 +385,7 @@ void makeInstancedDrawableDeferredPipeline(const RenderPassDeferred& renderPass)
     auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedDeferred,
         std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
@@ -456,7 +457,7 @@ void makeFinalLightingPipeline(const Renderer& renderer)
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
@@ -488,7 +489,7 @@ void makeFinalLightingPipeline(const Renderer& renderer)
         );
 
     auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(3, SceneDescriptor::getProvider());

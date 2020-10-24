@@ -295,7 +295,7 @@ void trc::internal::makeParticleDrawPipeline(const Renderer& renderer)
 
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
-            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
         },
@@ -347,7 +347,7 @@ void trc::internal::makeParticleDrawPipeline(const Renderer& renderer)
         std::move(layout),
         std::move(pipeline));
 
-    p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
 
@@ -360,7 +360,7 @@ void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
-            GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)),
@@ -405,5 +405,5 @@ void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
         std::move(pipeline));
 
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
-    p.addStaticDescriptorSet(1, GlobalRenderDataDescriptor::getProvider());
+    p.addStaticDescriptorSet(1, renderer.getGlobalDataDescriptorProvider());
 }

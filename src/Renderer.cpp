@@ -81,14 +81,14 @@ trc::Renderer::Renderer()
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 {
-    auto& device = vkb::VulkanBase::getDevice();
-    auto& swapchain = vkb::VulkanBase::getSwapchain();
+    auto& device = vkb::getDevice();
+    auto& swapchain = vkb::getSwapchain();
 
     // Update
     scene.updateTransforms();
     SceneDescriptor::setActiveScene(scene);
-    GlobalRenderDataDescriptor::updateCameraMatrices(camera);
-    GlobalRenderDataDescriptor::updateSwapchainData(vkb::getSwapchain());
+    globalDataDescriptor.updateCameraMatrices(camera);
+    globalDataDescriptor.updateSwapchainData(swapchain);
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
@@ -159,6 +159,17 @@ auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDe
     return *result;
 }
 
+auto trc::Renderer::getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&
+{
+    return globalDataDescriptor;
+}
+
+auto trc::Renderer::getGlobalDataDescriptorProvider() const noexcept
+    -> const DescriptorProviderInterface&
+{
+    return globalDataDescriptor.getProvider();
+}
+
 void trc::Renderer::createSemaphores()
 {
     imageAcquireSemaphores = { [](ui32) { return vkb::getDevice()->createSemaphoreUnique({}); }};
@@ -184,7 +195,20 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
 
 
 
-auto trc::GlobalRenderDataDescriptor::getProvider() noexcept -> const DescriptorProviderInterface&
+trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor()
+    :
+    provider(*this),
+    BUFFER_SECTION_SIZE(util::pad(
+        CAMERA_DATA_SIZE + SWAPCHAIN_DATA_SIZE,
+        vkb::getPhysicalDevice().properties.limits.minUniformBufferOffsetAlignment
+    ))
+{
+    createResources();
+    createDescriptors();
+}
+
+auto trc::GlobalRenderDataDescriptor::getProvider() const noexcept
+    -> const DescriptorProviderInterface&
 {
     return provider;
 }
@@ -215,20 +239,17 @@ void trc::GlobalRenderDataDescriptor::updateSwapchainData(const vkb::Swapchain& 
     buffer.unmap();
 }
 
-void trc::GlobalRenderDataDescriptor::vulkanStaticInit()
+void trc::GlobalRenderDataDescriptor::createResources()
 {
-    BUFFER_SECTION_SIZE = util::pad(
-        CAMERA_DATA_SIZE + SWAPCHAIN_DATA_SIZE,
-        vkb::getPhysicalDevice().properties.limits.minUniformBufferOffsetAlignment
-    );
-
-    // Create buffer
     buffer = vkb::Buffer(
         BUFFER_SECTION_SIZE * vkb::getSwapchain().getFrameCount(),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     );
+}
 
+void trc::GlobalRenderDataDescriptor::createDescriptors()
+{
     // Create descriptors
     descPool = vkb::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
@@ -275,25 +296,23 @@ void trc::GlobalRenderDataDescriptor::vulkanStaticInit()
     vkb::getDevice()->updateDescriptorSets(writes, {});
 }
 
-void trc::GlobalRenderDataDescriptor::vulkanStaticDestroy()
+trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::RenderDataDescriptorProvider(
+    const GlobalRenderDataDescriptor& desc)
+    :
+    descriptor(desc)
 {
-    descSet.reset();
-    descLayout.reset();
-    descPool.reset();
-
-    buffer = {};
 }
 
 auto trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::getDescriptorSet()
     const noexcept -> vk::DescriptorSet
 {
-    return *GlobalRenderDataDescriptor::descSet;
+    return *descriptor.descSet;
 }
 
 auto trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::getDescriptorSetLayout()
     const noexcept -> vk::DescriptorSetLayout
 {
-    return *GlobalRenderDataDescriptor::descLayout;
+    return *descriptor.descLayout;
 }
 
 void trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::bindDescriptorSet(
@@ -302,11 +321,12 @@ void trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::bindDescript
     vk::PipelineLayout pipelineLayout,
     ui32 setIndex) const
 {
-    const ui32 dynamicOffset = BUFFER_SECTION_SIZE * vkb::getSwapchain().getCurrentFrame();
+    const ui32 dynamicOffset = descriptor.BUFFER_SECTION_SIZE
+                               * vkb::getSwapchain().getCurrentFrame();
 
     cmdBuf.bindDescriptorSets(
         bindPoint, pipelineLayout, setIndex,
-        *GlobalRenderDataDescriptor::descSet,
+        *descriptor.descSet,
         { dynamicOffset, dynamicOffset }
     );
 }

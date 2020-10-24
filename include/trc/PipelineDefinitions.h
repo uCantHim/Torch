@@ -63,19 +63,15 @@ namespace trc::internal
     void makeAllDrawablePipelines(const Renderer& renderer);
 
     // Deferred pipelines
-    void makeDrawableDeferredPipeline(const RenderPassDeferred& renderPass);
-    void makeDrawableDeferredAnimatedPipeline(const RenderPassDeferred& renderPass);
-    void makeDrawableDeferredPickablePipeline(const RenderPassDeferred& renderPass);
-    void makeDrawableDeferredAnimatedAndPickablePipeline(const RenderPassDeferred& renderPass);
+    void makeDrawableDeferredPipeline(const Renderer& renderer);
+    void makeDrawableDeferredAnimatedPipeline(const Renderer& renderer);
+    void makeDrawableDeferredPickablePipeline(const Renderer& renderer);
+    void makeDrawableDeferredAnimatedAndPickablePipeline(const Renderer& renderer);
 
-    void _makeDrawableDeferredPipeline(ui32 pipelineIndex,
-                                       ui32 featureFlags,
-                                       const RenderPassDeferred& rp);
-    void makeDrawableTransparentPipeline(ui32 pipelineIndex,
-                                         ui32 featureFlags,
-                                         const RenderPassDeferred& rp);
+    void _makeDrawableDeferredPipeline(ui32 pipelineIndex, ui32 featureFlags, const Renderer& rp);
+    void makeDrawableTransparentPipeline(ui32 pipelineIndex, ui32 featureFlags, const Renderer& rp);
 
-    void makeInstancedDrawableDeferredPipeline(const RenderPassDeferred& renderPass);
+    void makeInstancedDrawableDeferredPipeline(const Renderer& renderer);
 
     // Shadow pipelines
     void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
