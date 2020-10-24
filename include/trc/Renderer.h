@@ -13,6 +13,7 @@
 
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
+#include "Light.h"
 
 namespace trc
 {
@@ -24,6 +25,7 @@ namespace trc
 
     class Renderer;
 
+    // TODO
     extern auto init() -> std::unique_ptr<Renderer>;
 
     /**
@@ -119,6 +121,7 @@ namespace trc
         auto getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&;
         auto getGlobalDataDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
         auto getSceneDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
+        auto getShadowDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
         // Initialize render stages
@@ -142,8 +145,16 @@ namespace trc
         // Other things
         GlobalRenderDataDescriptor globalDataDescriptor;
         // A single descriptor provider. The descriptor set is switched to
-        // every frame to that of the current scene.
+        // that of the current scene every frame.
         DescriptorProvider sceneDescriptorProvider{ SceneDescriptor::getDescLayout(), {} };
+        // A single descriptor provider. The descriptor sets are switched
+        // to those of the current scene every frame.
+        // TODO: implement a more efficient provider wrapper so that I don't
+        // have to recreate the list of sets every frame
+        FrameSpecificDescriptorProvider shadowDescriptorProvider{
+            _ShadowDescriptor::getDescLayout(), {}
+        };
+
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }

@@ -1,9 +1,13 @@
 #pragma once
 
+#include <unordered_map>
+
 #include <vkb/Buffer.h>
+#include <utils/Camera.h>
 
 #include "Boilerplate.h"
 #include "Node.h"
+#include "RenderPassShadow.h"
 
 namespace trc
 {
@@ -31,6 +35,24 @@ namespace trc
 
         ui32 __padding[2]{ 0, 0 };
     };
+
+    /**
+     * @return Number of shadow maps based on light type
+     */
+    inline ui32 getNumShadowMaps(const Light& light)
+    {
+        switch (light.type)
+        {
+        case Light::Type::eSunLight:
+            return 1;
+        case Light::Type::ePointLight:
+            return 4;
+        case Light::Type::eAmbientLight:
+            return 0;
+        default:
+            throw std::logic_error("Light type enum does not exist");
+        }
+    }
 
     constexpr ui32 MAX_LIGHTS = 32;
 
@@ -72,13 +94,50 @@ namespace trc
         vec4 initialDirection;
     };
 
+    class LightRegistry;
+
+    class _ShadowDescriptor
+    {
+    public:
+        static constexpr ui32 MAX_SHADOW_MAPS = 256;
+
+        explicit _ShadowDescriptor(const LightRegistry& lightRegistry, ui32 maxShadowMaps);
+
+        /**
+         * The descriptor set is per-scene
+         */
+        auto getDescSet(ui32 imageIndex) const noexcept -> vk::DescriptorSet;
+
+        /**
+         * The descriptor set layout is global for all SceneDescriptor
+         * instances.
+         */
+        static auto getDescLayout() noexcept -> vk::DescriptorSetLayout;
+
+    private:
+        // The descriptor set layout is the same for all instances
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static vkb::StaticInit _init;
+
+        void createDescriptors(const LightRegistry& lightRegistry, ui32 maxShadowMaps);
+        vk::UniqueDescriptorPool descPool;
+        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
+    };
+
     /**
      * @brief Collection and management unit for lights and shadows
      */
     class LightRegistry
     {
     public:
-        LightRegistry();
+        struct LightHandle
+        {
+        private:
+            friend LightRegistry;
+            ui32 lightIndex;
+        };
+
+        explicit LightRegistry(ui32 maxLights = MAX_LIGHTS);
 
         /**
          * @brief Update lights in the registry
@@ -88,10 +147,14 @@ namespace trc
          */
         void update();
 
+        auto getDescriptor() const noexcept -> const _ShadowDescriptor&;
+
+        ui32 getMaxLights() const noexcept;
+
         /**
          * @return const Light& The added light
          */
-        auto addLight(const Light& light) -> const Light&;
+        auto addLight(Light& light) -> Light&;
 
         /**
          * Also removes a light node that has the light attached if such
@@ -123,11 +186,31 @@ namespace trc
         void removeLightNode(const Light& light);
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
+        auto getShadowMatrixBuffer() const noexcept -> vk::Buffer;
 
     private:
+        const ui32 maxLights;
+        const ui32 maxShadowMaps;
+
+        // Must be done every frame in case light properties change
         void updateLightBuffer();
-        std::vector<const Light*> lights;
+        std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
+
+        struct ShadowInfo
+        {
+            // Has images
+            const RenderPassShadow& shadowPass;
+            Camera shadowCamera;
+        };
+        // Must be done only when a light is added or removed
+        void updateShadowDescriptors();
+        // This on the other hand must be done every frame in case the view-proj changes
+        void updateShadowMatrixBuffer();
+        std::unordered_map<const Light*, ShadowInfo> shadows;
+        vkb::Buffer shadowMatrixBuffer;
+
+        _ShadowDescriptor shadowDescriptor;
 
         /**
          * The light pointer allows me to delete light nodes when I only

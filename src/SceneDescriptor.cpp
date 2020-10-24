@@ -12,28 +12,16 @@ vkb::StaticInit trc::SceneDescriptor::_init{
             { 0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
             // Picking buffer
             { 1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
-            // Shadow matrix buffer
-            { 2, vk::DescriptorType::eStorageBuffer, 1,
-              vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment },
-            // Shadow maps
-            { 3, vk::DescriptorType::eCombinedImageSampler, 128,
-              vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment },
         };
         std::vector<vk::DescriptorBindingFlags> layoutFlags{
             vk::DescriptorBindingFlagBits::eUpdateAfterBind, // light buffer
             vk::DescriptorBindingFlagBits::eUpdateAfterBind, // picking buffer
-            vk::DescriptorBindingFlagBits::eUpdateAfterBind, // shadow matrix buffer
-            vk::DescriptorBindingFlagBits::eVariableDescriptorCount, // shadow map samplers
         };
 
-        vk::StructureChain layoutChain{
+        descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
             vk::DescriptorSetLayoutCreateInfo(
                 vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
-            ),
-            vk::DescriptorSetLayoutBindingFlagsCreateInfo(layoutFlags)
-        };
-        descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
-            layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
+            )
         );
     },
     []() {
@@ -62,10 +50,10 @@ void trc::SceneDescriptor::createDescriptors(const Scene& scene)
 {
     descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
-        1,
+            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+        1, // max num sets
         std::vector<vk::DescriptorPoolSize>{
-            { vk::DescriptorType::eStorageBuffer, 3 },
+            { vk::DescriptorType::eStorageBuffer, 2 },
         }
     ));
 

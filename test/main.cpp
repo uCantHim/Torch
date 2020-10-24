@@ -137,8 +137,7 @@ int main()
     });
     trc::AssetRegistry::updateMaterials();
 
-    trc::Drawable linda(lindaGeoIndex, matIdx, *scene);
-    linda.enableTransparency();
+    trc::Drawable linda(lindaGeoIndex, lindaMatIdx, *scene);
     linda.setScale(0.3f).translateX(-1.0f);
     linda.getAnimationEngine().playAnimation(0);
     auto& pickable = linda.enablePicking<trc::PickableFunctional>(
@@ -273,8 +272,9 @@ int main()
         if (vkb::Keyboard::isPressed(vkb::Key::a)) std::cout << "A pressed\n";
         if (vkb::Keyboard::isPressed(vkb::Key::del)) std::cout << "DEL pressed\n";
 
-        renderer->drawFrame(*scene, camera);
+        scene->updateTransforms();
 
+        renderer->drawFrame(*scene, camera);
         trc::getMouseWorldPos(camera);
 
         vkb::pollEvents();

@@ -10,11 +10,10 @@
 #include "Node.h"
 #include "RenderStage.h"
 #include "RenderPass.h"
-#include "Light.h"
 
 namespace trc
 {
-    constexpr ui32 MAX_SHADOW_MAPS = MAX_LIGHTS * 4;
+    struct Light;
 
     /**
      * @brief Enable shadows for a light
@@ -77,6 +76,9 @@ namespace trc
          *              buffer and the array of shadow map samplers.
          */
         auto getShadowIndex() const noexcept -> ui32;
+
+        auto getDepthImage(ui32 imageIndex) const -> const vkb::Image&;
+        auto getDepthImageView(ui32 imageIndex) const -> vk::ImageView;
 
     private:
         uvec2 resolution;

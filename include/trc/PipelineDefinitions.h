@@ -20,11 +20,12 @@ namespace trc::internal
 
     enum RenderPasses : RenderPass::ID::Type
     {
+        // Unused, index is allocated per renderer
         //eDeferredPass = 0,
 
         /** The index of the first shadow pass */
         eShadowPassesBegin = 1,
-        eShadowPassesEnd = MAX_SHADOW_MAPS,
+        eShadowPassesEnd = _ShadowDescriptor::MAX_SHADOW_MAPS,
 
         NUM_PASSES
     };
@@ -74,8 +75,8 @@ namespace trc::internal
     void makeInstancedDrawableDeferredPipeline(const Renderer& renderer);
 
     // Shadow pipelines
-    void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
-    void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass);
+    void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass);
+    void makeInstancedDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass);
 
     // Final lighting pipeline
     void makeFinalLightingPipeline(const Renderer& renderer);

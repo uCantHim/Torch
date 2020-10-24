@@ -44,7 +44,7 @@ void trc::Scene::updateTransforms()
     root.updateAsRoot();
 }
 
-void trc::Scene::addLight(const Light& light)
+void trc::Scene::addLight(Light& light)
 {
     lightRegistry.addLight(light);
 }

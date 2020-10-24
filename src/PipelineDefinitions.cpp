@@ -58,8 +58,8 @@ void makeAllDrawablePipelines(const Renderer& renderer)
     makeInstancedDrawableDeferredPipeline(renderer);
 
     RenderPassShadow dummyPass({ 1, 1 }, mat4());
-    makeDrawableShadowPipeline(dummyPass);
-    makeInstancedDrawableShadowPipeline(dummyPass);
+    makeDrawableShadowPipeline(renderer, dummyPass);
+    makeInstancedDrawableShadowPipeline(renderer, dummyPass);
 }
 
 void makeDrawableDeferredPipeline(const Renderer& renderer)
@@ -273,13 +273,13 @@ void makeDrawableTransparentPipeline(
     p.addStaticDescriptorSet(5, ShadowDescriptor::getProvider());
 }
 
-void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
+void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)
 {
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
@@ -315,7 +315,7 @@ void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
     auto& p = makeGraphicsPipeline(Pipelines::eDrawableShadow, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getShadowDescriptorProvider());
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
 
@@ -391,13 +391,13 @@ void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
 }
 
-void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
+void makeInstancedDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)
 {
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            ShadowDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
         {
@@ -444,7 +444,7 @@ void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
         Pipelines::eDrawableInstancedShadow,
         std::move(layout), std::move(pipeline)
     );
-    p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
+    p.addStaticDescriptorSet(0, renderer.getShadowDescriptorProvider());
 }
 
 void makeFinalLightingPipeline(const Renderer& renderer)

@@ -1,7 +1,9 @@
 #include "RenderPassShadow.h"
 
-#include "PipelineDefinitions.h"
 #include <vulkan/vulkan.hpp>
+
+#include "Light.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -212,6 +214,16 @@ auto trc::RenderPassShadow::getShadowIndex() const noexcept -> ui32
     return shadowDescriptorIndex;
 }
 
+auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::Image&
+{
+    return depthImages.getAt(imageIndex);
+}
+
+auto trc::RenderPassShadow::getDepthImageView(ui32 imageIndex) const -> vk::ImageView
+{
+    return *depthImageViews.getAt(imageIndex);
+}
+
 
 
 auto trc::ShadowDescriptor::getProvider() noexcept -> const DescriptorProviderInterface&
@@ -276,6 +288,8 @@ void trc::ShadowDescriptor::removeShadow(ui32 shadowIndex)
 
 void trc::ShadowDescriptor::init()
 {
+    constexpr size_t MAX_SHADOW_MAPS = 32;
+
     // Shadow matrix buffer
     shadowMatrixBuffer = {
         sizeof(mat4) * MAX_SHADOW_MAPS,
@@ -330,12 +344,17 @@ void trc::ShadowDescriptor::init()
     for (ui32 i = 0; i < vkb::getSwapchain().getFrameCount(); i++) {
         layouts.push_back(*descLayout);
     }
-    descSet = std::make_unique<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>>(
-        vkb::getDevice()->allocateDescriptorSetsUnique(vk::DescriptorSetAllocateInfo(
+    ui32 numShadowMaps[]{ 1, 1, 1 };
+    vk::StructureChain descSetAllocateChain{
+        vk::DescriptorSetAllocateInfo(
             *descPool,
             vkb::getSwapchain().getFrameCount(),
             layouts.data()
-        ))
+        ),
+        vk::DescriptorSetVariableDescriptorCountAllocateInfo(3, numShadowMaps)
+    };
+    descSet = std::make_unique<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>>(
+        vkb::getDevice()->allocateDescriptorSetsUnique(descSetAllocateChain.get<vk::DescriptorSetAllocateInfo>())
     );
 
     vkb::FrameSpecificObject<vk::DescriptorSet> sets{ [](ui32 i) { return *descSet->getAt(i); } };
