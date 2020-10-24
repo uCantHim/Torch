@@ -11,7 +11,7 @@ trc::LightNode::LightNode(Light& light)
 {
 }
 
-void trc::LightNode::update()
+void trc::LightNode::applyTransformToLight()
 {
     assert(light != nullptr);
 
@@ -33,9 +33,8 @@ trc::LightRegistry::LightRegistry()
 
 void trc::LightRegistry::update()
 {
-    for (auto& [light, node] : lightNodes)
-    {
-        node->update();
+    for (auto& [light, node] : lightNodes) {
+        node->applyTransformToLight();
     }
 
     updateLightBuffer();

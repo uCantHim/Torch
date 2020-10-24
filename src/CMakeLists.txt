@@ -24,6 +24,7 @@ target_sources(
         RenderPassDeferred.cpp
         Rig.cpp
         Scene.cpp
+        SceneDescriptor.cpp
 )
 
 add_subdirectory(base)

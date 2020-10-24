@@ -20,6 +20,28 @@ namespace trc
         auto getRoot() noexcept -> Node&;
         auto getRoot() const noexcept -> const Node&;
 
+        /**
+         * @brief Update lights and picking
+         *
+         * Called automatically in Renderer::draw because it updates GPU
+         * resources.
+         */
+        void update();
+
+        /**
+         * @brief Traverse the node tree and update the transform of each node
+         *
+         * This it NOT called automatically. You don't have to ever call
+         * this if you don't want to, though you should if you want to
+         * attach nodes to the scene. If you do, call this once per frame
+         * (or more often if you want to, though that would be a heavy
+         * waste of resources).
+         *
+         * You may also call this from another thread than the rendering
+         * thread, though you have to take care because adding nodes while
+         * traversing the tree is NOT thread safe and will probably crash
+         * the program.
+         */
         void updateTransforms();
 
         void addLight(const Light& light);
@@ -38,26 +60,5 @@ namespace trc
         void updatePicking();
         vkb::Buffer pickingBuffer;
         ui32 currentlyPicked{ 0 };
-    };
-
-
-    class SceneDescriptor
-    {
-    public:
-        static auto getProvider() noexcept -> const DescriptorProviderInterface&;
-
-        static void setActiveScene(const Scene& scene) noexcept;
-
-    private:
-        static void vulkanStaticInit();
-        static void vulkanStaticDestroy();
-        static inline vkb::StaticInit _init{
-            vulkanStaticInit, vulkanStaticDestroy
-        };
-
-        static inline vk::UniqueDescriptorPool descPool;
-        static inline vk::UniqueDescriptorSetLayout descLayout;
-        static inline vk::UniqueDescriptorSet descSet;
-        static inline DescriptorProvider provider{ {}, {} };
     };
 } // namespace trc

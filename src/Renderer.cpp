@@ -9,6 +9,7 @@
 #include "PipelineRegistry.h"
 #include "AssetRegistry.h"
 #include "Particle.h" // For particle pipeline creation
+#include "Scene.h"
 
 
 
@@ -85,7 +86,8 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto& swapchain = vkb::getSwapchain();
 
     // Update
-    SceneDescriptor::setActiveScene(scene);
+    scene.update();
+    sceneDescriptor.updateActiveScene(scene);
     globalDataDescriptor.updateCameraMatrices(camera);
     globalDataDescriptor.updateSwapchainData(swapchain);
 
@@ -167,6 +169,17 @@ auto trc::Renderer::getGlobalDataDescriptorProvider() const noexcept
     -> const DescriptorProviderInterface&
 {
     return globalDataDescriptor.getProvider();
+}
+
+auto trc::Renderer::getSceneDescriptor() const noexcept -> const SceneDescriptor&
+{
+    return sceneDescriptor;
+}
+
+auto trc::Renderer::getSceneDescriptorProvider() const noexcept
+    -> const DescriptorProviderInterface&
+{
+    return sceneDescriptor.getProvider();
 }
 
 void trc::Renderer::createSemaphores()

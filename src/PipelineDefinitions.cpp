@@ -112,7 +112,7 @@ void _makeDrawableDeferredPipeline(
         std::vector<vk::DescriptorSetLayout> {
             renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
@@ -178,7 +178,7 @@ void _makeDrawableDeferredPipeline(
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
 
@@ -204,7 +204,7 @@ void makeDrawableTransparentPipeline(
         std::vector<vk::DescriptorSetLayout> {
             renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
@@ -267,7 +267,7 @@ void makeDrawableTransparentPipeline(
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
     p.addStaticDescriptorSet(5, ShadowDescriptor::getProvider());
@@ -330,7 +330,7 @@ void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
         std::vector<vk::DescriptorSetLayout> {
             renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
@@ -387,7 +387,7 @@ void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
         std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
 }
 
@@ -460,7 +460,7 @@ void makeFinalLightingPipeline(const Renderer& renderer)
             renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             renderPass.getDescriptorProvider().getDescriptorSetLayout(),
-            SceneDescriptor::getProvider().getDescriptorSetLayout(),
+            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
@@ -492,7 +492,7 @@ void makeFinalLightingPipeline(const Renderer& renderer)
     p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
-    p.addStaticDescriptorSet(3, SceneDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, renderer.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(4, ShadowDescriptor::getProvider());
 }
 

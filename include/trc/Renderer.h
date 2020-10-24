@@ -7,9 +7,9 @@
 #include <vkb/event/EventHandler.h>
 #include <vkb/event/WindowEvents.h>
 
-#include "Scene.h"
-#include "CommandCollector.h"
 #include "RenderStage.h"
+#include "SceneDescriptor.h"
+#include "CommandCollector.h"
 
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
@@ -112,6 +112,8 @@ namespace trc
 
         auto getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&;
         auto getGlobalDataDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
+        auto getSceneDescriptor() const noexcept -> const SceneDescriptor&;
+        auto getSceneDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
         // Initialize render stages
@@ -134,6 +136,7 @@ namespace trc
 
         // Other things
         GlobalRenderDataDescriptor globalDataDescriptor;
+        SceneDescriptor sceneDescriptor;
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }

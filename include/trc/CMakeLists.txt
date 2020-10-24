@@ -28,6 +28,7 @@ target_sources(
         RenderPassDeferred.h
         Rig.h
         Scene.h
+        SceneDescriptor.h
         Vertex.h
 )
 

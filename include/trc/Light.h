@@ -65,7 +65,7 @@ namespace trc
          *
          * Applies the node's transformation to its light
          */
-        void update();
+        void applyTransformToLight();
 
     private:
         Light* light;
@@ -83,7 +83,8 @@ namespace trc
         /**
          * @brief Update lights in the registry
          *
-         * Updates the light buffer.
+         * Updates the light buffer. Applies transformations of attached
+         * light nodes to their lights.
          */
         void update();
 
