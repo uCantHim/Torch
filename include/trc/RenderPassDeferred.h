@@ -10,25 +10,74 @@
 
 namespace trc
 {
-    constexpr ui32 NUM_DEFERRED_SUBPASSES = 3;
+    class RenderPassDeferred;
 
-    class DeferredStage : public RenderStage
+    /**
+     * @brief Resources and descriptor set for deferred renderpasses
+     *
+     * Provides:
+     *  - binding 0: input attachment
+     *  - binding 1: input attachment
+     *  - binding 2: input attachment
+     *  - binding 3: input attachment
+     *
+     *  - binding 4: storage image
+     *  - binding 5: storage buffer
+     *  - binding 6: storage buffer
+     */
+    class DeferredRenderPassDescriptor
     {
     public:
-        DeferredStage();
+        DeferredRenderPassDescriptor(const RenderPassDeferred& deferredPass,
+                                     const vkb::Swapchain& swapchain,
+                                     ui32 maxTransparentFragsPerPixel);
+
+        void resetValues(vk::CommandBuffer cmdBuf) const;
+
+        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+
+    private:
+        void createFragmentList(const vkb::Swapchain& swapchain, ui32 maxFragsPerPixel);
+        void createDescriptors(const RenderPassDeferred& renderPass);
+
+        const ui32 ATOMIC_BUFFER_SECTION_SIZE;
+        const ui32 FRAG_LIST_BUFFER_SIZE;
+
+        vkb::FrameSpecificObject<vkb::Image> fragmentListHeadPointerImage;
+        vkb::FrameSpecificObject<vk::UniqueImageView> fragmentListHeadPointerImageView;
+        vkb::FrameSpecificObject<vkb::Buffer> fragmentListBuffer;
+
+        vk::UniqueDescriptorPool descPool;
+        vk::UniqueDescriptorSetLayout descLayout;
+        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
+        FrameSpecificDescriptorProvider provider;
     };
 
+    /**
+     * @brief The main deferred renderpass
+     */
     class RenderPassDeferred : public RenderPass
     {
     public:
-        RenderPassDeferred();
+        static constexpr ui32 NUM_SUBPASSES = 3;
+
+        RenderPassDeferred(const vkb::Swapchain& swapchain, ui32 maxTransparentFragsPerPixel);
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
         auto getAttachmentImageViews(ui32 imageIndex) const noexcept
            -> const std::vector<vk::UniqueImageView>&;
-        auto getInputAttachmentDescriptor() const noexcept -> const DescriptorProviderInterface&;
+
+        /**
+         * @return The descriptor for the deferred renderpass
+         */
+        auto getDescriptor() const noexcept -> const DeferredRenderPassDescriptor&;
+
+        /**
+         * A shortcut for getDescriptor().getProvider()
+         */
+        auto getDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
         /**
          * @return float Depth of the pixel which contains the mouse cursor.
@@ -42,6 +91,8 @@ namespace trc
         void readMouseDepthValueFromBuffer();
         vkb::Buffer depthPixelReadBuffer;
 
+        const vkb::Swapchain& swapchain;
+
         // Attachments
         std::vector<std::vector<vkb::Image>> attachmentImages;
         std::vector<std::vector<vk::UniqueImageView>> attachmentImageViews;
@@ -50,6 +101,9 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
 
         std::array<vk::ClearValue, 6> clearValues;
+
+        // Descriptor
+        DeferredRenderPassDescriptor descriptor;
     };
 
     /**
@@ -88,31 +142,4 @@ namespace trc
      * @return vec3 Position of the mouse cursor in the world.
      */
     extern auto getMouseWorldPosAtDepth(const Camera& camera, float depth) -> vec3;
-
-
-    /**
-     * @brief Static descriptor class for resources in deferred renderpass
-     */
-    class DeferredRenderPassDescriptor
-    {
-    public:
-        static void init(const RenderPassDeferred& deferredPass);
-        static void resetValues(vk::CommandBuffer cmdBuf);
-
-        static auto getProvider() -> const DescriptorProviderInterface&;
-
-    private:
-        static inline vk::UniqueDescriptorPool descPool;
-        static inline vk::UniqueDescriptorSetLayout descLayout;
-        static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueDescriptorSet>> descSets;
-        static inline std::unique_ptr<FrameSpecificDescriptorProvider> provider;
-
-        static inline std::unique_ptr<vkb::FrameSpecificObject<vkb::Image>>
-            fragmentListHeadPointerImage;
-        static inline std::unique_ptr<vkb::FrameSpecificObject<vk::UniqueImageView>>
-            fragmentListHeadPointerImageView;
-        static inline std::unique_ptr<vkb::FrameSpecificObject<vkb::Buffer>> fragmentListBuffer;
-
-        static vkb::StaticInit _init;
-    };
 } // namespace trc

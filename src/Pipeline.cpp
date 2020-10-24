@@ -62,7 +62,7 @@ auto trc::makeGraphicsPipeline(
     vk::UniquePipelineLayout layout,
     vk::UniquePipeline pipeline) -> Pipeline&
 {
-    return Pipeline::emplace(
+    return Pipeline::replace(
         index,
         std::move(layout),
         std::move(pipeline),
@@ -76,7 +76,7 @@ auto trc::makeGraphicsPipeline(
     const vk::GraphicsPipelineCreateInfo& info
     ) -> Pipeline&
 {
-    return Pipeline::emplace(
+    return Pipeline::replace(
         index,
         std::move(layout),
         vkb::VulkanBase::getDevice()->createGraphicsPipelineUnique({}, info).value,
@@ -90,7 +90,7 @@ auto trc::makeComputePipeline(
     vk::UniquePipeline pipeline
     ) -> Pipeline&
 {
-    return Pipeline::emplace(
+    return Pipeline::replace(
         index,
         std::move(layout),
         std::move(pipeline),
@@ -104,7 +104,7 @@ auto trc::makeComputePipeline(
     const vk::ComputePipelineCreateInfo& info
     ) -> Pipeline&
 {
-    return Pipeline::emplace(
+    return Pipeline::replace(
         index,
         std::move(layout),
         vkb::getDevice()->createComputePipelineUnique({}, info).value,

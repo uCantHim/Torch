@@ -51,7 +51,8 @@ namespace trc
      * expected in an undefined layout and will be transformed into presentable
      * layout.
      */
-    auto makeDefaultSwapchainColorAttachment(vkb::Swapchain& swapchain) -> vk::AttachmentDescription;
+    auto makeDefaultSwapchainColorAttachment(const vkb::Swapchain& swapchain)
+        -> vk::AttachmentDescription;
 
     /**
      * @brief Create a default depth attachment description

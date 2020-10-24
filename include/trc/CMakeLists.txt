@@ -25,7 +25,7 @@ target_sources(
         RenderPass.h
         RenderPassShadow.h
         RenderStage.h
-        RenderStageDeferred.h
+        RenderPassDeferred.h
         Rig.h
         Scene.h
         Vertex.h

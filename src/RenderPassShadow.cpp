@@ -44,7 +44,7 @@ auto trc::enableShadow(Light& light, uvec2 shadowMapResolution, mat4 projectionM
     switch (light.type)
     {
     case Light::Type::eSunLight:
-        result.attach(RenderPass::emplace<RenderPassShadow>(
+        result.attach(RenderPass::replace<RenderPassShadow>(
             createdPasses.emplace_back(internal::getNewShadowPassIndex()),
             shadowMapResolution,
             projectionMatrix

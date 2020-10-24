@@ -2,7 +2,7 @@
 
 #include "PipelineDefinitions.cpp" // For the SHADER_DIR constant
 #include "PipelineBuilder.h"
-#include "RenderPass.h"
+#include "Renderer.h"
 
 
 
@@ -19,9 +19,6 @@ namespace trc::internal
 vkb::StaticInit trc::ParticleCollection::_init{
     []() {
         memoryPool.reset(new vkb::MemoryPool(vkb::getDevice(), 2000000)); // 2 MB
-
-        PipelineRegistry::registerPipeline(internal::makeParticleDrawPipeline);
-        PipelineRegistry::registerPipeline(internal::makeParticleShadowPipeline);
 
         vertexBuffer = vkb::DeviceLocalBuffer(
             std::vector<ParticleVertex>{
@@ -292,15 +289,15 @@ void trc::ParticleSpawn::spawnParticles()
 //      Particle Draw Pipeline      //
 //////////////////////////////////////
 
-void trc::internal::makeParticleDrawPipeline()
+void trc::internal::makeParticleDrawPipeline(const Renderer& renderer)
 {
-    auto& renderPass = RenderPass::at(RenderPasses::eDeferredPass);
+    auto& renderPass = renderer.getDeferredRenderPass();
 
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
+            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
     );
@@ -352,10 +349,11 @@ void trc::internal::makeParticleDrawPipeline()
 
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, DeferredRenderPassDescriptor::getProvider());
+    p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
+
 }
 
-void trc::internal::makeParticleShadowPipeline()
+void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
 {
     RenderPassShadow dummyPass({ 1, 1 }, {});
 

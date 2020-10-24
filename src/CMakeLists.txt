@@ -21,7 +21,7 @@ target_sources(
         RenderPass.cpp
         RenderPassShadow.cpp
         RenderStage.cpp
-        RenderStageDeferred.cpp
+        RenderPassDeferred.cpp
         Rig.cpp
         Scene.cpp
 )

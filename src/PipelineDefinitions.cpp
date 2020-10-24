@@ -14,6 +14,9 @@ namespace fs = std::filesystem;
 
 namespace trc::internal
 {
+
+namespace
+{
     enum DrawablePipelineFeatureFlagBits : ui32
     {
         eNone = 0,
@@ -26,42 +29,42 @@ namespace trc::internal
 
 
 
-void trc::internal::makeAllDrawablePipelines()
+void makeAllDrawablePipelines(const Renderer& renderer)
 {
-    auto& dummyDeferredPass = RenderPass::at(RenderPasses::eDeferredPass);
+    auto& deferredPass = renderer.getDeferredRenderPass();
 
-    makeDrawableDeferredPipeline(dummyDeferredPass);
-    makeDrawableDeferredAnimatedPipeline(dummyDeferredPass);
-    makeDrawableDeferredPickablePipeline(dummyDeferredPass);
-    makeDrawableDeferredAnimatedAndPickablePipeline(dummyDeferredPass);
+    makeDrawableDeferredPipeline(deferredPass);
+    makeDrawableDeferredAnimatedPipeline(deferredPass);
+    makeDrawableDeferredPickablePipeline(deferredPass);
+    makeDrawableDeferredAnimatedAndPickablePipeline(deferredPass);
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferred,
         DrawablePipelineFeatureFlagBits::eNone,
-        dummyDeferredPass
+        deferredPass
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredPickable,
         DrawablePipelineFeatureFlagBits::ePickable,
-        dummyDeferredPass
+        deferredPass
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredAnimated,
         DrawablePipelineFeatureFlagBits::eAnimated,
-        dummyDeferredPass
+        deferredPass
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredAnimatedAndPickable,
         DrawablePipelineFeatureFlagBits::ePickable | DrawablePipelineFeatureFlagBits::eAnimated,
-        dummyDeferredPass
+        deferredPass
     );
-    makeInstancedDrawableDeferredPipeline(dummyDeferredPass);
+    makeInstancedDrawableDeferredPipeline(deferredPass);
 
     RenderPassShadow dummyPass({ 1, 1 }, mat4());
     makeDrawableShadowPipeline(dummyPass);
     makeInstancedDrawableShadowPipeline(dummyPass);
 }
 
-void trc::internal::makeDrawableDeferredPipeline(RenderPass& renderPass)
+void makeDrawableDeferredPipeline(const RenderPassDeferred& renderPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferred,
@@ -70,7 +73,7 @@ void trc::internal::makeDrawableDeferredPipeline(RenderPass& renderPass)
     );
 }
 
-void trc::internal::makeDrawableDeferredAnimatedPipeline(RenderPass& renderPass)
+void makeDrawableDeferredAnimatedPipeline(const RenderPassDeferred& renderPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredAnimated,
@@ -79,7 +82,7 @@ void trc::internal::makeDrawableDeferredAnimatedPipeline(RenderPass& renderPass)
     );
 }
 
-void trc::internal::makeDrawableDeferredPickablePipeline(RenderPass& renderPass)
+void makeDrawableDeferredPickablePipeline(const RenderPassDeferred& renderPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredPickable,
@@ -88,7 +91,7 @@ void trc::internal::makeDrawableDeferredPickablePipeline(RenderPass& renderPass)
     );
 }
 
-void trc::internal::makeDrawableDeferredAnimatedAndPickablePipeline(RenderPass& renderPass)
+void makeDrawableDeferredAnimatedAndPickablePipeline(const RenderPassDeferred& renderPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredAnimatedAndPickable,
@@ -97,10 +100,10 @@ void trc::internal::makeDrawableDeferredAnimatedAndPickablePipeline(RenderPass& 
     );
 }
 
-void trc::internal::_makeDrawableDeferredPipeline(
+void _makeDrawableDeferredPipeline(
     ui32 pipelineIndex,
     ui32 featureFlags,
-    RenderPass& renderPass)
+    const RenderPassDeferred& renderPass)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -111,7 +114,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
-            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
+            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
@@ -177,7 +180,7 @@ void trc::internal::_makeDrawableDeferredPipeline(
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
-    p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
 
     p.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
@@ -188,10 +191,10 @@ void trc::internal::_makeDrawableDeferredPipeline(
     p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
 }
 
-void trc::internal::makeDrawableTransparentPipeline(
+void makeDrawableTransparentPipeline(
     ui32 pipelineIndex,
     ui32 featureFlags,
-    RenderPass& renderPass)
+    const RenderPassDeferred& renderPass)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -202,7 +205,7 @@ void trc::internal::makeDrawableTransparentPipeline(
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
-            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
+            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
         },
@@ -265,12 +268,12 @@ void trc::internal::makeDrawableTransparentPipeline(
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
-    p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
     p.addStaticDescriptorSet(5, ShadowDescriptor::getProvider());
 }
 
-void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
+void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
     auto layout = makePipelineLayout(
@@ -316,7 +319,7 @@ void trc::internal::makeDrawableShadowPipeline(RenderPassShadow& renderPass)
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
 
-void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass)
+void makeInstancedDrawableDeferredPipeline(const RenderPassDeferred& renderPass)
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -327,7 +330,7 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
-            DeferredRenderPassDescriptor::getProvider().getDescriptorSetLayout(),
+            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
             vk::PushConstantRange(
@@ -384,10 +387,10 @@ void trc::internal::makeInstancedDrawableDeferredPipeline(RenderPass& renderPass
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, SceneDescriptor::getProvider());
-    p.addStaticDescriptorSet(3, DeferredRenderPassDescriptor::getProvider());
+    p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
 }
 
-void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
+void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
     auto layout = makePipelineLayout(
@@ -443,10 +446,9 @@ void trc::internal::makeInstancedDrawableShadowPipeline(RenderPassShadow& render
     p.addStaticDescriptorSet(0, ShadowDescriptor::getProvider());
 }
 
-void trc::internal::makeFinalLightingPipeline(
-    RenderPass& renderPass,
-    const DescriptorProviderInterface& gBufferInputSet)
+void makeFinalLightingPipeline(const Renderer& renderer)
 {
+    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
@@ -456,7 +458,7 @@ void trc::internal::makeFinalLightingPipeline(
         {
             GlobalRenderDataDescriptor::getProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            gBufferInputSet.getDescriptorSetLayout(),
+            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
             SceneDescriptor::getProvider().getDescriptorSetLayout(),
             ShadowDescriptor::getProvider().getDescriptorSetLayout(),
         },
@@ -480,7 +482,7 @@ void trc::internal::makeFinalLightingPipeline(
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
         .build(
-            *vkb::VulkanBase::getDevice(),
+            *vkb::getDevice(),
             *layout,
             *renderPass, DeferredSubPasses::eLightingPass
         );
@@ -488,7 +490,9 @@ void trc::internal::makeFinalLightingPipeline(
     auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, std::move(layout), std::move(pipeline));
     p.addStaticDescriptorSet(0, GlobalRenderDataDescriptor::getProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, gBufferInputSet);
+    p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(3, SceneDescriptor::getProvider());
     p.addStaticDescriptorSet(4, ShadowDescriptor::getProvider());
 }
+
+} // namespace trc::internal

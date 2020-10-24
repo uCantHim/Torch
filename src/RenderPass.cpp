@@ -28,7 +28,8 @@ auto trc::RenderPass::getNumSubPasses() const noexcept -> ui32
 
 
 
-auto trc::makeDefaultSwapchainColorAttachment(vkb::Swapchain& swapchain) -> vk::AttachmentDescription
+auto trc::makeDefaultSwapchainColorAttachment(const vkb::Swapchain& swapchain)
+    -> vk::AttachmentDescription
 {
     return vk::AttachmentDescription(
         vk::AttachmentDescriptionFlags(),

@@ -17,10 +17,12 @@
 
 namespace trc
 {
+    class Renderer;
+
     namespace internal
     {
-        extern void makeParticleDrawPipeline();
-        extern void makeParticleShadowPipeline();
+        extern void makeParticleDrawPipeline(const Renderer& renderer);
+        extern void makeParticleShadowPipeline(const Renderer& renderer);
     }
 
     struct ParticleMaterial

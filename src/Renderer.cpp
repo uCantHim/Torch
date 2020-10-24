@@ -8,6 +8,7 @@
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
 #include "AssetRegistry.h"
+#include "Particle.h" // For particle pipeline creation
 
 
 
@@ -34,6 +35,7 @@ vkb::StaticInit trc::Renderer::_init{
 
 trc::Renderer::Renderer()
     :
+    deferredPassId(RenderPass::createAtNextIndex<RenderPassDeferred>(vkb::getSwapchain(), 4).first),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
@@ -52,25 +54,28 @@ trc::Renderer::Renderer()
     );
     // Post recreate, create the required resources
     postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
-        [](const auto&) {
-            RenderPassDeferred::emplace<RenderPassDeferred>(0);
+        [this](const auto&) {
+            // Completely recreate the deferred renderpass
+            RenderPassDeferred::replace<RenderPassDeferred>(deferredPassId, vkb::getSwapchain(), 4);
             PipelineRegistry::recreateAll();
         }
     );
 
+    // Add default stages
     addStage(internal::RenderStages::eDeferred, 3);
     addStage(internal::RenderStages::eShadow, 1);
 
-    PipelineRegistry::registerPipeline(internal::makeAllDrawablePipelines);
-    PipelineRegistry::registerPipeline([&]() {
-        auto& deferredPass = static_cast<RenderPassDeferred&>(
-            RenderPass::at(internal::RenderPasses::eDeferredPass)
-        );
-        internal::makeFinalLightingPipeline(
-            deferredPass,
-            deferredPass.getInputAttachmentDescriptor()
-        );
+    // TODO: Change this after the first phase of the rework because it's crap
+    // Add deferred pass the the deferred stage
+    RenderStage::at(internal::RenderStages::eDeferred).addRenderPass(deferredPassId);
+
+    PipelineRegistry::registerPipeline([this]() { internal::makeAllDrawablePipelines(*this); });
+    PipelineRegistry::registerPipeline([this]() { internal::makeFinalLightingPipeline(*this); });
+    PipelineRegistry::registerPipeline([this]() {
+        internal::makeParticleDrawPipeline(*this);
+        internal::makeParticleShadowPipeline(*this);
     });
+    // Create all pipelines for the first time
     PipelineRegistry::recreateAll();
 }
 
@@ -139,6 +144,19 @@ void trc::Renderer::addStage(RenderStage::ID stage, ui32 priority)
 
     renderStages.insert(it, { stage, priority });
     commandCollectors.emplace_back();
+}
+
+auto trc::Renderer::getDeferredRenderPassId() const noexcept -> RenderPass::ID
+{
+    return deferredPassId;
+}
+
+auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDeferred&
+{
+    auto result = dynamic_cast<RenderPassDeferred*>(&RenderPass::at(deferredPassId));
+    assert(result != nullptr);
+
+    return *result;
 }
 
 void trc::Renderer::createSemaphores()

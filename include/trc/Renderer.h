@@ -10,13 +10,22 @@
 #include "Scene.h"
 #include "CommandCollector.h"
 #include "RenderStage.h"
-#include "PipelineDefinitions.h"
 
-#include "RenderPassShadow.h" // TODO: Rename to RenderStageShadow.h
-#include "RenderStageDeferred.h"
+#include "RenderPassDeferred.h"
+#include "RenderPassShadow.h"
 
 namespace trc
 {
+    class DeferredStage : public RenderStage
+    {
+    public:
+        DeferredStage() : RenderStage(RenderPassDeferred::NUM_SUBPASSES) {}
+    };
+
+    class Renderer;
+
+    extern auto init() -> std::unique_ptr<Renderer>;
+
     /**
      * @brief Destroy all resources allocated by Torch
      *
@@ -36,6 +45,9 @@ namespace trc
 
         void addStage(RenderStage::ID stage, ui32 priority);
 
+        auto getDeferredRenderPassId() const noexcept -> RenderPass::ID;
+        auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
+
     private:
         // Initialize render stages
         static vkb::StaticInit _init;
@@ -49,7 +61,9 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Render stages
+        // Render passes and -stages (render passes have nothing to do with stages!)
+        RenderPass::ID deferredPassId;
+
         std::vector<std::pair<RenderStage::ID, ui32>> renderStages;
         std::vector<CommandCollector> commandCollectors;
 
