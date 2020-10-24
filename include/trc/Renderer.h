@@ -13,7 +13,7 @@
 
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
-#include "Light.h"
+#include "LightRegistry.h"
 
 namespace trc
 {

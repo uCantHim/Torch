@@ -6,7 +6,7 @@
 #include "base/SceneBase.h"
 #include "base/SceneRegisterable.h"
 #include "Node.h"
-#include "Light.h"
+#include "LightRegistry.h"
 #include "SceneDescriptor.h"
 
 namespace trc

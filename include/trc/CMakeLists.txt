@@ -14,6 +14,7 @@ target_sources(
         DrawableInstanced.h
         Geometry.h
         Light.h
+        LightRegistry.h
         Material.h
         Node.h
         Particle.h
