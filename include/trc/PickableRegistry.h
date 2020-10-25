@@ -35,15 +35,13 @@ namespace trc
          */
         auto getPickableId() const noexcept -> ID;
 
+    private:
+        friend class PickableRegistry;
+
         /**
          * @brief Set a unique ID for the pickable
-         *
-         * Do not use this! The program will probably blow up if you mess
-         * with this function.
          */
         void setPickableId(ID pickableId);
-
-    private:
         ID id{ 0 };
     };
 
