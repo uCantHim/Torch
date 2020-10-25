@@ -2,11 +2,12 @@
 
 #include <vkb/basics/Swapchain.h>
 
-#include "Renderer.h"
-#include "RenderStage.h"
-#include "RenderPass.h"
-#include "RenderPassShadow.h"
 #include "Pipeline.h"
+#include "LightRegistry.h"
+
+namespace trc {
+    class Renderer;
+}
 
 namespace trc::internal
 {
@@ -25,7 +26,7 @@ namespace trc::internal
 
         /** The index of the first shadow pass */
         eShadowPassesBegin = 1,
-        eShadowPassesEnd = _ShadowDescriptor::MAX_SHADOW_MAPS,
+        eShadowPassesEnd = ShadowDescriptor::MAX_SHADOW_MAPS,
 
         NUM_PASSES
     };

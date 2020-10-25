@@ -26,12 +26,12 @@ namespace trc
 
     class LightRegistry;
 
-    class _ShadowDescriptor
+    class ShadowDescriptor
     {
     public:
         static constexpr ui32 MAX_SHADOW_MAPS = 256;
 
-        explicit _ShadowDescriptor(const LightRegistry& lightRegistry, ui32 numShadowMaps);
+        explicit ShadowDescriptor(const LightRegistry &lightRegistry, ui32 numShadowMaps);
 
         /**
          * The descriptor set is per-scene
@@ -64,13 +64,6 @@ namespace trc
     class LightRegistry
     {
     public:
-        struct LightHandle
-        {
-        private:
-            friend LightRegistry;
-            ui32 lightIndex;
-        };
-
         explicit LightRegistry(ui32 maxLights = DEFAULT_MAX_LIGHTS);
 
         /**
@@ -81,7 +74,7 @@ namespace trc
          */
         void update();
 
-        auto getDescriptor() const noexcept -> const _ShadowDescriptor&;
+        auto getDescriptor() const noexcept -> const ShadowDescriptor&;
 
         ui32 getMaxLights() const noexcept;
 
@@ -149,8 +142,18 @@ namespace trc
 
 
         /**
+         * @brief Enable shadows for a specific light
+         *
          * In order to work properly, a position should be set on sun
          * lights before passing them to this function.
+         *
+         * @param Light& light      The light that shall cast shadows.
+         * @param uvec2  resolution The resolution of the created shadow
+         *                          map. This can not be changed later on.
+         * @param ShadowStage& renderStage The stage that created render
+         *                                 passes shall be attached to.
+         *
+         * @return ShadowInfo&
          *
          * @throw std::invalid_argument if shadows are already enabled on the light
          * @throw std::runtime_error if something unexpected happens
@@ -194,7 +197,7 @@ namespace trc
         ui32 nextFreeShadowPassIndex; // Initial value set in constructor because recursive include
         std::vector<ui32> freeShadowPassIndices;
 
-        std::unique_ptr<_ShadowDescriptor> shadowDescriptor;
+        std::unique_ptr<ShadowDescriptor> shadowDescriptor;
 
         /**
          * The light pointer allows me to delete light nodes when I only

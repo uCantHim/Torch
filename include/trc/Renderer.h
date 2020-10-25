@@ -157,7 +157,7 @@ namespace trc
         // TODO: implement a more efficient provider wrapper so that I don't
         // have to recreate the list of sets every frame
         FrameSpecificDescriptorProvider shadowDescriptorProvider{
-            _ShadowDescriptor::getDescLayout(), {}
+            ShadowDescriptor::getDescLayout(), {}
         };
 
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;

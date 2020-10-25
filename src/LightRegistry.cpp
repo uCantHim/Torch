@@ -36,7 +36,7 @@ void trc::LightRegistry::ShadowInfo::setProjectionMatrix(mat4 proj) noexcept
 
 
 
-vkb::StaticInit trc::_ShadowDescriptor::_init{
+vkb::StaticInit trc::ShadowDescriptor::_init{
     []() {
         // Create the static descriptor set layout
         std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
@@ -76,22 +76,22 @@ vkb::StaticInit trc::_ShadowDescriptor::_init{
     }
 };
 
-trc::_ShadowDescriptor::_ShadowDescriptor(const LightRegistry& lightRegistry, ui32 numShadowMaps)
+trc::ShadowDescriptor::ShadowDescriptor(const LightRegistry& lightRegistry, ui32 numShadowMaps)
 {
     createDescriptors(lightRegistry, numShadowMaps);
 }
 
-auto trc::_ShadowDescriptor::getDescSet(ui32 imageIndex) const noexcept -> vk::DescriptorSet
+auto trc::ShadowDescriptor::getDescSet(ui32 imageIndex) const noexcept -> vk::DescriptorSet
 {
     return *descSets.getAt(imageIndex);
 }
 
-auto trc::_ShadowDescriptor::getDescLayout() noexcept -> vk::DescriptorSetLayout
+auto trc::ShadowDescriptor::getDescLayout() noexcept -> vk::DescriptorSetLayout
 {
     return *descLayout;
 }
 
-void trc::_ShadowDescriptor::createDescriptors(
+void trc::ShadowDescriptor::createDescriptors(
     const LightRegistry& lightRegistry,
     const ui32 numShadowMaps)
 {
@@ -153,7 +153,7 @@ void trc::_ShadowDescriptor::createDescriptors(
 trc::LightRegistry::LightRegistry(const ui32 maxLights)
     :
     maxLights(maxLights),
-    maxShadowMaps(min(maxLights * 4, _ShadowDescriptor::MAX_SHADOW_MAPS)),
+    maxShadowMaps(min(maxLights * 4, ShadowDescriptor::MAX_SHADOW_MAPS)),
     lightBuffer(
         util::sizeof_pad_16_v<Light> * maxLights,
         vk::BufferUsageFlagBits::eStorageBuffer,
@@ -165,7 +165,7 @@ trc::LightRegistry::LightRegistry(const ui32 maxLights)
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     nextFreeShadowPassIndex(internal::RenderPasses::eShadowPassesBegin),
-    shadowDescriptor(new _ShadowDescriptor(*this, 0))
+    shadowDescriptor(new ShadowDescriptor(*this, 0))
 {
 }
 
@@ -180,7 +180,7 @@ void trc::LightRegistry::update()
     updateShadowMatrixBuffer();
 }
 
-auto trc::LightRegistry::getDescriptor() const noexcept -> const _ShadowDescriptor&
+auto trc::LightRegistry::getDescriptor() const noexcept -> const ShadowDescriptor&
 {
     return *shadowDescriptor;
 }
@@ -366,7 +366,7 @@ void trc::LightRegistry::updateShadowDescriptors()
      * descriptor set because I can't have non-written (empty) samplers
      * in the shadow map descriptor.
      */
-    shadowDescriptor.reset(new _ShadowDescriptor(*this, [this]() -> ui32 {
+    shadowDescriptor.reset(new ShadowDescriptor(*this, [this]() -> ui32 {
         // Count required number of shadow maps
         ui32 result{ 0 };
         for (auto& [light, shadow] : shadows) { result += getNumShadowMaps(*light); }
