@@ -12,9 +12,9 @@ trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
 
 
 auto trc::SceneBase::getPipelines(RenderStage::ID renderStage, SubPass::ID subPass) const noexcept
-    -> const std::set<Pipeline::ID>&
+    -> const std::unordered_set<Pipeline::ID>&
 {
-    static std::set<Pipeline::ID> emptyResult;
+    static std::unordered_set<Pipeline::ID> emptyResult;
 
     if (uniquePipelines.size() <= renderStage
         || uniquePipelines[renderStage].size() <= subPass)

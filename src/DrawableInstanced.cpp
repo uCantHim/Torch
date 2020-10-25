@@ -36,8 +36,7 @@ void trc::DrawableInstanced::addInstance(InstanceDescription instance)
     numInstances++;
 }
 
-void trc::DrawableInstanced::recordCommandBuffer(
-    Deferred,
+void trc::DrawableInstanced::recordCommandBuffer(Deferred,
     const DrawEnvironment&,
     vk::CommandBuffer cmdBuf)
 {
@@ -47,12 +46,15 @@ void trc::DrawableInstanced::recordCommandBuffer(
     cmdBuf.drawIndexed(geometry->getIndexCount(), numInstances, 0, 0, 0);
 }
 
-void trc::DrawableInstanced::recordCommandBuffer(
-    Shadow,
+void trc::DrawableInstanced::recordCommandBuffer(Shadow,
     const DrawEnvironment& env,
     vk::CommandBuffer cmdBuf)
 {
     assert(dynamic_cast<RenderPassShadow*>(env.currentRenderPass) != nullptr);
+
+    uvec2 res = static_cast<RenderPassShadow*>(env.currentRenderPass)->getResolution();
+    cmdBuf.setViewport(0, vk::Viewport(0.0f, 0.0f, res.x, res.y, 0.0f, 1.0f));
+    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
 
     cmdBuf.bindIndexBuffer(geometry->getIndexBuffer(), 0, vk::IndexType::eUint32);
     cmdBuf.bindVertexBuffers(0, { geometry->getVertexBuffer(), *instanceDataBuffer }, { 0ul, 0ul });

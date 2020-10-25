@@ -389,6 +389,8 @@ void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
+
+    p.addDefaultPushConstantValue(84, NO_PICKABLE, vk::ShaderStageFlagBits::eFragment);
 }
 
 void makeInstancedDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)

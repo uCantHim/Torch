@@ -1,7 +1,8 @@
 #pragma once
 
 #include <vector>
-#include <set>
+#include <unordered_set>
+#include <functional>
 
 #include "data_utils/IndexMap.h"
 #include "RenderStage.h"
@@ -84,7 +85,7 @@ namespace trc
          * @brief Get all pipelines used in a subpass
          */
         auto getPipelines(RenderStage::ID renderStage, SubPass::ID subPass) const noexcept
-            -> const std::set<Pipeline::ID>&;
+            -> const std::unordered_set<Pipeline::ID>&;
 
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline
@@ -140,7 +141,7 @@ namespace trc
                             SubPass::ID subpass,
                             Pipeline::ID pipeline);
 
-        PerRenderStage<PerSubpass<std::set<Pipeline::ID>>> uniquePipelines;
+        PerRenderStage<PerSubpass<std::unordered_set<Pipeline::ID>>> uniquePipelines;
         PerRenderStage<PerSubpass<std::vector<Pipeline::ID>>> uniquePipelinesVector;
     };
 } // namespace trc
