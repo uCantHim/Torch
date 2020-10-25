@@ -59,9 +59,20 @@ vkb::StaticInit trc::_ShadowDescriptor::_init{
         descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
             layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
         );
+
+        // Dummy resources in case the sampler descriptor count is specified as 0
+        dummyShadowImage = []() {
+            auto img =  vkb::makeImage2D(vec4(0.0f));
+            img.changeLayout(vkb::getDevice(), vk::ImageLayout::eShaderReadOnlyOptimal);
+            return img;
+        }();
+        dummyImageView = dummyShadowImage.createView(vk::ImageViewType::e2D,
+                                                     vk::Format::eR8G8B8A8Unorm);
     },
     []() {
         descLayout.reset();
+        dummyShadowImage = {};
+        dummyImageView.reset();
     }
 };
 
@@ -84,12 +95,14 @@ void trc::_ShadowDescriptor::createDescriptors(
     const LightRegistry& lightRegistry,
     const ui32 numShadowMaps)
 {
+    const ui32 actualNumShadowMaps = max(numShadowMaps, 1u); // Can't have empty descriptors
+
     descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         vkb::getSwapchain().getFrameCount(), // max num sets
         std::vector<vk::DescriptorPoolSize>{
             { vk::DescriptorType::eStorageBuffer, 1 },
-            { vk::DescriptorType::eCombinedImageSampler, numShadowMaps },
+            { vk::DescriptorType::eCombinedImageSampler, actualNumShadowMaps },
         }
     ));
 
@@ -97,7 +110,7 @@ void trc::_ShadowDescriptor::createDescriptors(
     {
         vk::StructureChain descSetAllocateChain{
             vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout),
-            vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &numShadowMaps)
+            vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &actualNumShadowMaps)
         };
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
             descSetAllocateChain.get<vk::DescriptorSetAllocateInfo>()
@@ -113,6 +126,19 @@ void trc::_ShadowDescriptor::createDescriptors(
             { *set, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &shadowMatrixBuffer },
         };
         vkb::getDevice()->updateDescriptorSets(writes, {});
+
+        // Write dummy value to descriptor if count is 0
+        if (numShadowMaps == 0)
+        {
+            vk::DescriptorImageInfo imageInfo(
+                dummyShadowImage.getDefaultSampler(),
+                *dummyImageView,
+                vk::ImageLayout::eShaderReadOnlyOptimal
+            );
+            vkb::getDevice()->updateDescriptorSets(vk::WriteDescriptorSet{
+                *set, 1, 0, 1, vk::DescriptorType::eCombinedImageSampler, &imageInfo
+            }, {});
+        }
 
         return set;
     }};
@@ -139,7 +165,7 @@ trc::LightRegistry::LightRegistry(const ui32 maxLights)
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     nextFreeShadowPassIndex(internal::RenderPasses::eShadowPassesBegin),
-    shadowDescriptor(new _ShadowDescriptor(*this, maxShadowMaps))
+    shadowDescriptor(new _ShadowDescriptor(*this, 0))
 {
 }
 
@@ -344,7 +370,7 @@ void trc::LightRegistry::updateShadowDescriptors()
         // Count required number of shadow maps
         ui32 result{ 0 };
         for (auto& [light, shadow] : shadows) { result += getNumShadowMaps(*light); }
-        return result == 0 ? maxShadowMaps : min(result, maxShadowMaps);
+        return result;
     }()));
 
     if (shadows.empty()) {

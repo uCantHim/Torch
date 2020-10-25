@@ -47,6 +47,8 @@ namespace trc
     private:
         // The descriptor set layout is the same for all instances
         static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline vkb::Image dummyShadowImage;
+        static inline vk::UniqueImageView dummyImageView;
         static vkb::StaticInit _init;
 
         void createDescriptors(const LightRegistry& lightRegistry, ui32 numShadowMaps);
