@@ -80,7 +80,7 @@ namespace trc
          * @throw MaybeEmptyError if the Maybe does not have a value.
          */
         template<typename Func>
-        inline auto operator>>(Func& rhs) -> decltype(std::declval<Func>()(std::declval<T>()))
+        inline auto operator>>(Func&& rhs) -> decltype(std::declval<Func>()(std::declval<T>()))
             requires requires(T val, Func func) { func(val); }
         {
             return rhs(getValue());
@@ -89,7 +89,7 @@ namespace trc
         /**
          * value_or operator
          */
-        inline auto operator||(T&& rhs) -> T
+        inline auto operator||(T rhs) -> T
         {
             if (hasValue()) {
                 return getValue();
