@@ -38,6 +38,7 @@ trc::Drawable::Drawable(Geometry& geo, MaterialID material, SceneBase& scene)
 
 trc::Drawable::Drawable(Drawable&& other) noexcept
     :
+    Node(std::forward<Node>(other)),
     geo(other.geo),
     matIndex(other.matIndex),
     pickableId(other.pickableId),
@@ -57,6 +58,8 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
 
 auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 {
+    Node::operator=(std::forward<Node>(rhs));
+
     geo = rhs.geo;
     rhs.geo = nullptr;
     matIndex = rhs.matIndex;

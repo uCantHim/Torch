@@ -6,6 +6,7 @@
 
 trc::Node::Node(Node&& other) noexcept
     :
+    Transformation(std::forward<Transformation>(other)),
     parent(other.parent),
     children(std::move(other.children))
 {
@@ -32,6 +33,8 @@ trc::Node::~Node()
 
 auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
 {
+    Transformation::operator=(std::forward<Node>(rhs));
+
     parent = rhs.parent;
     rhs.parent = nullptr;
     if (parent != nullptr)
