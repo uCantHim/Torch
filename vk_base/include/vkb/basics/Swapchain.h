@@ -64,6 +64,11 @@ namespace vkb
         auto getImageExtent() const noexcept -> vk::Extent2D;
 
         /**
+         * @return float Aspect ratio of the swapchain images (width/height)
+         */
+        auto getAspectRatio() const noexcept -> float;
+
+        /**
          * @return vk::Format The format of the swapchain images
          */
         auto getImageFormat() const noexcept -> vk::Format;

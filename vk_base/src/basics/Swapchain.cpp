@@ -167,6 +167,10 @@ auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
     return swapchainExtent;
 }
 
+auto vkb::Swapchain::getAspectRatio() const noexcept -> float
+{
+    return static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
+}
 
 auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
 {
