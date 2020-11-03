@@ -57,7 +57,6 @@ namespace trc
          */
         auto getDescriptor() const noexcept -> const SceneDescriptor&;
 
-        auto getPickingBuffer() const noexcept -> vk::Buffer;
         auto getPickedObject() -> std::optional<Pickable*>;
 
     private:
@@ -65,11 +64,10 @@ namespace trc
 
         LightRegistry lightRegistry;
 
-        void updatePicking();
-        vkb::Buffer pickingBuffer;
-        ui32 currentlyPicked{ 0 };
-
-        // Must be initialized after the buffers
+        // Must be initialized after the light registry
         SceneDescriptor descriptor;
+
+        void updatePicking();
+        ui32 currentlyPicked{ 0 };
     };
 } // namespace trc

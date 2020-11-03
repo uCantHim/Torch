@@ -9,18 +9,8 @@
 
 trc::Scene::Scene()
     :
-    pickingBuffer(
-        sizeof(ui32) * 3,
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
     descriptor(*this)
 {
-    auto buf = reinterpret_cast<ui32*>(pickingBuffer.map());
-    buf[0] = 0u;
-    buf[1] = 0u;
-    reinterpret_cast<float*>(buf)[2] = 1.0f;
-    pickingBuffer.unmap();
 }
 
 auto trc::Scene::getRoot() noexcept -> Node&
@@ -74,11 +64,6 @@ auto trc::Scene::getDescriptor() const noexcept -> const SceneDescriptor&
     return descriptor;
 }
 
-auto trc::Scene::getPickingBuffer() const noexcept -> vk::Buffer
-{
-    return *pickingBuffer;
-}
-
 auto trc::Scene::getPickedObject() -> std::optional<Pickable*>
 {
     if (currentlyPicked == 0) {
@@ -90,24 +75,27 @@ auto trc::Scene::getPickedObject() -> std::optional<Pickable*>
 
 void trc::Scene::updatePicking()
 {
-    auto buf = reinterpret_cast<ui32*>(pickingBuffer.map());
-    ui32 newPicked = buf[0];
-    buf[0] = 0u;
-    buf[1] = 0u;
-    reinterpret_cast<float*>(buf)[2] = 1.0f;
-    pickingBuffer.unmap();
-
-    // Unpick previously picked object
-    if (newPicked != currentlyPicked)
-    {
-        if (currentlyPicked != 0)
-        {
-            PickableRegistry::getPickable(currentlyPicked).onUnpick();
+    descriptor.updatePicking().maybe(
+        // An object is being picked
+        [this](ui32 newPicked) {
+            if (newPicked != currentlyPicked)
+            {
+                if (currentlyPicked != NO_PICKABLE)
+                {
+                    PickableRegistry::getPickable(currentlyPicked).onUnpick();
+                    currentlyPicked = NO_PICKABLE;
+                }
+                PickableRegistry::getPickable(newPicked).onPick();
+                currentlyPicked = newPicked;
+            }
+        },
+        // No object is picked
+        [this] {
+            if (currentlyPicked != NO_PICKABLE)
+            {
+                PickableRegistry::getPickable(currentlyPicked).onUnpick();
+                currentlyPicked = NO_PICKABLE;
+            }
         }
-        if (newPicked != 0)
-        {
-            PickableRegistry::getPickable(newPicked).onPick();
-        }
-        currentlyPicked = newPicked;
-    }
+    );
 }

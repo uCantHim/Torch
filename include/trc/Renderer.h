@@ -129,6 +129,41 @@ namespace trc
         auto getShadowDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
+        /**
+         * @brief Wraps the scene descriptors into one object
+         *
+         * This is necessary because only a single descriptor provider is
+         * stored in pipelines but the provider changes when the scene
+         * changes. I can store a single DescriptorProviderWrapper object
+         * in all pipelines and switch the scene descriptor every frame
+         * transprently to the outside.
+         */
+        class DescriptorProviderWrapper : public DescriptorProviderInterface
+        {
+        public:
+            explicit DescriptorProviderWrapper(vk::DescriptorSetLayout staticLayout);
+
+            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
+            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+            void bindDescriptorSet(
+                vk::CommandBuffer cmdBuf,
+                vk::PipelineBindPoint bindPoint,
+                vk::PipelineLayout pipelineLayout,
+                ui32 setIndex
+            ) const override;
+
+            void setWrappedProvider(const DescriptorProviderInterface& wrapped) noexcept;
+
+        private:
+            // TODO: Maybe use null descriptor here instead of
+            // `if (nullptr)` every time
+            const DescriptorProviderInterface* provider{ nullptr };
+
+            // Use a static descriptor set layout. All exchangable
+            // providers must have one.
+            const vk::DescriptorSetLayout descLayout;
+        };
+
         // Initialize render stages
         static vkb::StaticInit _init;
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
@@ -149,16 +184,11 @@ namespace trc
 
         // Other things
         GlobalRenderDataDescriptor globalDataDescriptor;
-        // A single descriptor provider. The descriptor set is switched to
-        // that of the current scene every frame.
-        DescriptorProvider sceneDescriptorProvider{ SceneDescriptor::getDescLayout(), {} };
-        // A single descriptor provider. The descriptor sets are switched
-        // to those of the current scene every frame.
-        // TODO: implement a more efficient provider wrapper so that I don't
-        // have to recreate the list of sets every frame
-        FrameSpecificDescriptorProvider shadowDescriptorProvider{
-            ShadowDescriptor::getDescLayout(), {}
-        };
+
+        // A descriptor provider for scenes. The actual provider is
+        // switched every frame.
+        DescriptorProviderWrapper sceneDescriptorProvider{ SceneDescriptor::getDescLayout() };
+        DescriptorProviderWrapper shadowDescriptorProvider{ ShadowDescriptor::getDescLayout() };
 
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };

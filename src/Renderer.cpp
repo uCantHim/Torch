@@ -26,6 +26,10 @@ void trc::terminate()
 
 
 
+/////////////////////////
+//      Renderer       //
+/////////////////////////
+
 vkb::StaticInit trc::Renderer::_init{
     []() {
         RenderStage::create<DeferredStage>(internal::RenderStages::eDeferred);
@@ -36,7 +40,7 @@ vkb::StaticInit trc::Renderer::_init{
 
 trc::Renderer::Renderer()
     :
-    deferredPassId(RenderPass::createAtNextIndex<RenderPassDeferred>(vkb::getSwapchain(), 4).first),
+    deferredPassId(RenderPass::createAtNextIndex<RenderPassDeferred>(vkb::getSwapchain(), 3).first),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
@@ -87,10 +91,10 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Update
     scene.update();
-    sceneDescriptorProvider.setDescriptorSet(scene.getDescriptor().getDescSet());
-    shadowDescriptorProvider.setDescriptorSet({
-        [&scene](ui32 i) { return scene.getLightRegistry().getDescriptor().getDescSet(i); }
-    });
+    sceneDescriptorProvider.setWrappedProvider(scene.getDescriptor().getProvider());
+    shadowDescriptorProvider.setWrappedProvider(
+        scene.getLightRegistry().getDescriptor().getProvider()
+    );
     globalDataDescriptor.updateCameraMatrices(camera);
     globalDataDescriptor.updateSwapchainData(swapchain);
 
@@ -232,6 +236,55 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
 }
 
 
+
+///////////////////////////////////////////
+//      Descriptor provider wrapper      //
+///////////////////////////////////////////
+
+trc::Renderer::DescriptorProviderWrapper::DescriptorProviderWrapper(
+    vk::DescriptorSetLayout staticLayout)
+    :
+    descLayout(staticLayout)
+{
+}
+
+auto trc::Renderer::DescriptorProviderWrapper::getDescriptorSet() const noexcept
+    -> vk::DescriptorSet
+{
+    if (provider != nullptr) {
+        return provider->getDescriptorSet();
+    }
+    return {};
+}
+
+auto trc::Renderer::DescriptorProviderWrapper::getDescriptorSetLayout() const noexcept
+    -> vk::DescriptorSetLayout
+{
+    return descLayout;
+}
+
+void trc::Renderer::DescriptorProviderWrapper::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    if (provider != nullptr) {
+        provider->bindDescriptorSet(cmdBuf, bindPoint, pipelineLayout, setIndex);
+    }
+}
+
+void trc::Renderer::DescriptorProviderWrapper::setWrappedProvider(
+    const DescriptorProviderInterface& wrapped) noexcept
+{
+    provider = &wrapped;
+}
+
+
+
+/////////////////////////////////////////////
+//      Global render data descriptor      //
+/////////////////////////////////////////////
 
 trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor()
     :
