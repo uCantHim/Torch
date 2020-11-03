@@ -28,15 +28,14 @@ namespace trc
 
     class ShadowDescriptor
     {
+        friend class LightRegistry;
+
     public:
         static constexpr ui32 MAX_SHADOW_MAPS = 256;
 
         explicit ShadowDescriptor(const LightRegistry &lightRegistry, ui32 numShadowMaps);
 
-        /**
-         * The descriptor set is per-scene
-         */
-        auto getDescSet(ui32 imageIndex) const noexcept -> vk::DescriptorSet;
+        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
         /**
          * The descriptor set layout is global for all SceneDescriptor
@@ -54,6 +53,7 @@ namespace trc
         void createDescriptors(const LightRegistry& lightRegistry, ui32 numShadowMaps);
         vk::UniqueDescriptorPool descPool;
         vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
+        FrameSpecificDescriptorProvider provider{ *descLayout, {} };
     };
 
     constexpr ui32 DEFAULT_MAX_LIGHTS = 32;

@@ -81,9 +81,9 @@ trc::ShadowDescriptor::ShadowDescriptor(const LightRegistry& lightRegistry, ui32
     createDescriptors(lightRegistry, numShadowMaps);
 }
 
-auto trc::ShadowDescriptor::getDescSet(ui32 imageIndex) const noexcept -> vk::DescriptorSet
+auto trc::ShadowDescriptor::getProvider() const noexcept -> const DescriptorProviderInterface&
 {
-    return *descSets.getAt(imageIndex);
+    return provider;
 }
 
 auto trc::ShadowDescriptor::getDescLayout() noexcept -> vk::DescriptorSetLayout
@@ -142,6 +142,8 @@ void trc::ShadowDescriptor::createDescriptors(
 
         return set;
     }};
+
+    provider.setDescriptorSet({ [this](ui32 i) { return *descSets.getAt(i); } });
 }
 
 
@@ -382,7 +384,7 @@ void trc::LightRegistry::updateShadowDescriptors()
 
     for (ui32 i = 0; i < vkb::getSwapchain().getFrameCount(); i++)
     {
-        auto descSet = shadowDescriptor->getDescSet(i);
+        auto descSet = *shadowDescriptor->descSets.getAt(i);
         auto& infos = imageInfos.emplace_back();
 
         for (auto& [light, shadow] : shadows)
