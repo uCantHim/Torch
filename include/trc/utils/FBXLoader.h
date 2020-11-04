@@ -11,7 +11,7 @@
 
 #include <fbxsdk.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "Geometry.h"
 #include "Material.h"
 

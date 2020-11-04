@@ -2,7 +2,7 @@
 
 #include <vkb/Image.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "utils/TypesafeId.h"
 #include "Geometry.h"
 #include "Material.h"

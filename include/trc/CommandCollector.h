@@ -2,7 +2,7 @@
 
 #include <vkb/VulkanBase.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "RenderPass.h"
 #include "base/SceneBase.h"
 #include "utils/Camera.h"

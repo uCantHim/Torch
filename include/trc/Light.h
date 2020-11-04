@@ -5,7 +5,7 @@
 #include <vkb/Buffer.h>
 #include <utils/Camera.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "Node.h"
 #include "RenderPassShadow.h"
 

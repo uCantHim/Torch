@@ -5,7 +5,7 @@
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "DescriptorProvider.h"
 
 namespace trc

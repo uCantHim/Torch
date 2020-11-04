@@ -2,7 +2,7 @@
 
 #include <vkb/Image.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "RenderStage.h"
 #include "RenderPass.h"
 

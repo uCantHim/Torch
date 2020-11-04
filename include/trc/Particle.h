@@ -8,7 +8,7 @@
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "utils/Util.h"
 #include "utils/ThreadPool.h"
 #include "base/SceneBase.h"

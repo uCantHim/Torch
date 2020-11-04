@@ -4,7 +4,7 @@
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "data_utils/SelfManagedObject.h"
 #include "DescriptorProvider.h"
 

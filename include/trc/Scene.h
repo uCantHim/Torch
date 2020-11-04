@@ -2,7 +2,7 @@
 
 #include <vkb/Buffer.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "base/SceneBase.h"
 #include "base/SceneRegisterable.h"
 #include "Node.h"

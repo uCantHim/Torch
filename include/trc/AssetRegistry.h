@@ -8,7 +8,7 @@
 
 #include <vkb/Image.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "utils/Exception.h"
 #include "utils/TypesafeId.h"
 #include "utils/Maybe.h"

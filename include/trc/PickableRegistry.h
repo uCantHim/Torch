@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include "data_utils/IndexMap.h"
 
 namespace trc

@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "Boilerplate.h"
+#include "Types.h"
 #include <glm/gtc/quaternion.hpp>
 
 namespace trc

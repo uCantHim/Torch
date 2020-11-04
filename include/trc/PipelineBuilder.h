@@ -5,7 +5,7 @@
 
 #include <vkb/ShaderProgram.h>
 
-#include "Boilerplate.h"
+#include "Types.h"
 
 namespace trc
 {
