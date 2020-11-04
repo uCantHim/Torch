@@ -19,6 +19,7 @@ target_sources(
         PipelineBuilder.cpp
         PipelineDefinitions.cpp
         Renderer.cpp
+        RenderDataDescriptor.cpp
         RenderPass.cpp
         RenderPassShadow.cpp
         RenderStage.cpp
