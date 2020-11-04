@@ -112,7 +112,7 @@ void trc::AssetRegistry::createDescriptors()
     // Create pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eStorageBuffer, 1 },
-        { vk::DescriptorType::eCombinedImageSampler, max(1u, static_cast<ui32>(images.size())) },
+        { vk::DescriptorType::eCombinedImageSampler, glm::max(1u, static_cast<ui32>(images.size())) },
     };
     descPool = device->createDescriptorPoolUnique({
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes

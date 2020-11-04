@@ -385,10 +385,10 @@ void trc::FBXLoader::computeTangents(MeshData& result)
         vec2 F = K - H;
         vec2 G = L - H;
 
-        mat3x2 DE_mat = mat3x2(D.x, E.x, D.y, E.y, D.z, E.z);
+        glm::mat3x2 DE_mat = glm::mat3x2(D.x, E.x, D.y, E.y, D.z, E.z);
         mat2 FG_mat = mat2(F, G);
 
-        mat3x2 TU_mat = (determinant(FG_mat) != 0 ? inverse(FG_mat) : mat2(1.0f)) * DE_mat;
+        glm::mat3x2 TU_mat = (determinant(FG_mat) != 0 ? inverse(FG_mat) : mat2(1.0f)) * DE_mat;
 
         vec3 T = vec3(TU_mat[0][0], TU_mat[1][0], TU_mat[2][0]); // Tangent
         // vec3 U = vec3(TU_mat[0][1], TU_mat[1][1], TU_mat[2][1]); // Bitangent

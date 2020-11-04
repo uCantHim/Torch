@@ -95,7 +95,7 @@ void trc::ShadowDescriptor::createDescriptors(
     const LightRegistry& lightRegistry,
     const ui32 numShadowMaps)
 {
-    const ui32 actualNumShadowMaps = max(numShadowMaps, 1u); // Can't have empty descriptors
+    const ui32 actualNumShadowMaps = glm::max(numShadowMaps, 1u); // Can't have empty descriptors
 
     descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
@@ -155,7 +155,7 @@ void trc::ShadowDescriptor::createDescriptors(
 trc::LightRegistry::LightRegistry(const ui32 maxLights)
     :
     maxLights(maxLights),
-    maxShadowMaps(min(maxLights * 4, ShadowDescriptor::MAX_SHADOW_MAPS)),
+    maxShadowMaps(glm::min(maxLights * 4, ShadowDescriptor::MAX_SHADOW_MAPS)),
     lightBuffer(
         util::sizeof_pad_16_v<Light> * maxLights,
         vk::BufferUsageFlagBits::eStorageBuffer,
