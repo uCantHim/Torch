@@ -4,26 +4,6 @@
 
 namespace trc
 {
-    /**
-     * @brief A node with an attached light
-     */
-    class LightNode : public Node
-    {
-    public:
-        LightNode(Light& light);
-
-        /**
-         * @brief Update the light's position
-         *
-         * Applies the node's transformation to its light
-         */
-        void applyTransformToLight();
-
-    private:
-        Light* light;
-        vec4 initialDirection;
-    };
-
     class LightRegistry;
 
     class ShadowDescriptor
@@ -88,29 +68,6 @@ namespace trc
          * a node exists.
          */
         void removeLight(const Light& light);
-
-        /**
-         * @brief Create a light node for a light
-         *
-         * LightRegistry::update updates the created node.
-         *
-         * @param Light& light The light attached to the node
-         *
-         * @return LightNode& The created node
-         */
-        auto createLightNode(Light& light) -> LightNode&;
-
-        /**
-         * @brief Remove a light node from the registry
-         */
-        void removeLightNode(const LightNode& node);
-
-        /**
-         * @brief Remove a light node that has a specific light attached
-         *
-         * Does nothing if no node with the passed light exists.
-         */
-        void removeLightNode(const Light& light);
 
         /**
          * @brief Storage of and handle to a light's shadow
@@ -198,11 +155,5 @@ namespace trc
         std::vector<ui32> freeShadowPassIndices;
 
         std::unique_ptr<ShadowDescriptor> shadowDescriptor;
-
-        /**
-         * The light pointer allows me to delete light nodes when I only
-         * have a corresponding light, as is the case in removeLight().
-         */
-        std::vector<std::pair<const Light*, std::unique_ptr<LightNode>>> lightNodes;
     };
 } // namespace trc

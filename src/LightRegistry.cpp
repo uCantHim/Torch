@@ -5,23 +5,6 @@
 
 
 
-trc::LightNode::LightNode(Light& light)
-    :
-    light(&light),
-    initialDirection(light.direction)
-{
-}
-
-void trc::LightNode::applyTransformToLight()
-{
-    assert(light != nullptr);
-
-    light->position = { getTranslation(), 1.0f };
-    light->direction = getRotationAsMatrix() * initialDirection;
-}
-
-
-
 auto trc::LightRegistry::ShadowInfo::getNode() noexcept -> Node&
 {
     return parentNode;
@@ -173,10 +156,6 @@ trc::LightRegistry::LightRegistry(const ui32 maxLights)
 
 void trc::LightRegistry::update()
 {
-    for (auto& [light, node] : lightNodes) {
-        node->applyTransformToLight();
-    }
-
     // TODO: Put these into a single buffer
     updateLightBuffer();
     updateShadowMatrixBuffer();
@@ -202,45 +181,12 @@ auto trc::LightRegistry::addLight(Light& light) -> Light&
 
 void trc::LightRegistry::removeLight(const Light& light)
 {
-    removeLightNode(light);
     auto it = std::remove(lights.begin(), lights.end(), &light);
     if (it != lights.end()) {
         lights.erase(it);
     }
 
     updateShadowDescriptors();
-}
-
-auto trc::LightRegistry::createLightNode(Light& light) -> LightNode&
-{
-    return *lightNodes.emplace_back(
-        &light,
-        std::make_unique<LightNode>(light)
-    ).second;
-}
-
-void trc::LightRegistry::removeLightNode(const LightNode& node)
-{
-    auto it = std::find_if(
-        lightNodes.begin(), lightNodes.end(),
-        [&node](const auto& pair) { return pair.second.get() == &node; }
-    );
-
-    if (it != lightNodes.end()) {
-        lightNodes.erase(it);
-    }
-}
-
-void trc::LightRegistry::removeLightNode(const Light& light)
-{
-    auto it = std::find_if(
-        lightNodes.begin(), lightNodes.end(),
-        [&light](const auto& pair) { return pair.first == &light; }
-    );
-
-    if (it != lightNodes.end()) {
-        lightNodes.erase(it);
-    }
 }
 
 auto trc::LightRegistry::enableShadow(
