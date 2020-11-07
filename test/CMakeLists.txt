@@ -16,5 +16,5 @@ gtest_discover_tests(tests)
 add_executable(TorchTest main.cpp)
 target_link_libraries(TorchTest PUBLIC torch)
 
-add_executable(VirtualDrawableTest drawable_chain.cpp)
-target_link_libraries(VirtualDrawableTest PUBLIC torch)
+add_executable(DrawableChainTest drawable_chain.cpp)
+target_link_libraries(DrawableChainTest PUBLIC torch)

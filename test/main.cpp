@@ -5,23 +5,18 @@ using namespace std::chrono;
 #include <thread>
 
 #include <glm/gtc/random.hpp>
+
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
-#include <vkb/event/Event.h>
-#include <vkb/event/InputState.h>
-using namespace glm;
 
-#include "trc/utils/FBXLoader.h"
-#include "trc/Geometry.h"
-#include "trc/AssetRegistry.h"
-#include "trc/Drawable.h"
-#include "trc/DrawableInstanced.h"
-#include "trc/Scene.h"
-#include "trc/Renderer.h"
-#include "trc/Particle.h"
-
-#include "trc/AssetUtils.h"
+#include <trc/Torch.h>
+using namespace trc::basic_types;
+#include <trc/utils/FBXLoader.h>
+#include <trc/Geometry.h>
+#include <trc/DrawableInstanced.h>
+#include <trc/Particle.h>
+#include <trc/AssetUtils.h>
 
 int main()
 {

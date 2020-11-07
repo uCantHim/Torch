@@ -1,38 +1,12 @@
 #include "Renderer.h"
 
 #include <vkb/util/Timer.h>
-#include <vkb/event/EventHandler.h>
-#include <vkb/event/WindowEvents.h>
 
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
 #include "AssetRegistry.h"
 #include "Particle.h" // For particle pipeline creation
 #include "Scene.h"
-
-
-
-auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
-{
-    vkb::vulkanInit();
-
-    RenderStageType::create(RenderStageTypes::eDeferred, RenderPassDeferred::NUM_SUBPASSES);
-    RenderStageType::create(RenderStageTypes::eShadow, 1);
-
-    return std::make_unique<Renderer>(info.rendererInfo);
-}
-
-void trc::terminate()
-{
-    vkb::getDevice()->waitIdle();
-
-    AssetRegistry::reset();
-    RenderPass::destroyAll();
-    Pipeline::destroyAll();
-    RenderStageType::destroy(RenderStageTypes::eDeferred);
-    RenderStageType::destroy(RenderStageTypes::eShadow);
-    vkb::vulkanTerminate();
-}
 
 
 

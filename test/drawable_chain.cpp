@@ -1,35 +1,26 @@
 #include <iostream>
 
-#include <trc/Renderer.h>
-#include <trc/Scene.h>
+#include <trc/Torch.h>
+using namespace trc::basic_types;
 #include <trc/utils/Camera.h>
-#include <trc/AssetRegistry.h>
 #include <trc/AssetUtils.h>
 #include <trc/experimental/DrawableChain.h>
 
-using ar = trc::AssetRegistry::Named;
 namespace trc {
     using namespace experimental;
 }
 
-struct ExampleEntity
-{
-    void update()
-    {
-    }
-
-    std::unique_ptr<trc::DrawableChainElement> drawable;
-};
+using ar = trc::AssetRegistry::Named;
 
 int main()
 {
     auto renderer = trc::init();
 
     auto geo = ar::addGeometry("grass", *trc::loadGeometry("assets/grass_lowpoly.fbx"));
-    auto mat = ar::addMaterial("green", { .color=glm::vec4(0, 1, 0, 1), .kSpecular=glm::vec4(0.0f) });
-    auto mat1 = ar::addMaterial("red", { .color=glm::vec4(1, 0, 0, 1), .kSpecular=glm::vec4(0.0f) });
-    auto mat2 = ar::addMaterial("purple", { .color=glm::vec4(1, 0, 1, 1), .kSpecular=glm::vec4(0.0f) });
-    auto mat3 = ar::addMaterial("blue", { .color=glm::vec4(0, 0, 1, 1), .kSpecular=glm::vec4(0.0f) });
+    auto mat = ar::addMaterial("green", { .color=vec4(0, 1, 0, 1), .kSpecular=vec4(0.0f) });
+    auto mat1 = ar::addMaterial("red", { .color=vec4(1, 0, 0, 1), .kSpecular=vec4(0.0f) });
+    auto mat2 = ar::addMaterial("purple", { .color=vec4(1, 0, 1, 1), .kSpecular=vec4(0.0f) });
+    auto mat3 = ar::addMaterial("blue", { .color=vec4(0, 0, 1, 1), .kSpecular=vec4(0.0f) });
     trc::AssetRegistry::updateMaterials();
 
     // Virtual drawable interface
@@ -59,8 +50,8 @@ int main()
     // General setup
     trc::Scene scene;
     trc::Camera camera(vkb::getSwapchain().getAspectRatio(), 45.0f, 0.5f, 100.0f);
-    camera.lookAt(glm::vec3(0, 2.5, 7), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
-    trc::Light sunLight = trc::makeSunLight(glm::vec3(1.0f), glm::vec3(0.0f, -1.0f, 0.0f), 0.6f);
+    camera.lookAt(vec3(0, 2.5, 7), vec3(0, 1, 0), vec3(0, 1, 0));
+    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(0.0f, -1.0f, 0.0f), 0.6f);
     scene.addLight(sunLight);
 
     // Add things to scene

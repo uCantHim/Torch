@@ -1,21 +1,17 @@
 #pragma once
 
 #include <vkb/VulkanBase.h>
-#include <vkb/Image.h>
 #include <vkb/Buffer.h>
 #include <vkb/FrameSpecificObject.h>
-#include <vkb/event/EventHandler.h>
-#include <vkb/event/WindowEvents.h>
+#include <vkb/event/Event.h>
 
 #include "TorchResources.h"
 #include "RenderStage.h"
+#include "RenderPassDeferred.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
+#include "LightRegistry.h" // For shadow descriptor
 #include "CommandCollector.h"
-
-#include "RenderPassDeferred.h"
-#include "RenderPassShadow.h"
-#include "LightRegistry.h"
 
 namespace trc
 {
@@ -27,26 +23,6 @@ namespace trc
         vkb::Swapchain* swapchain;
         ui32 maxTransparentFragsPerPixel{ 3 };
     };
-
-    struct TorchInitInfo
-    {
-        RendererCreateInfo rendererInfo;
-    };
-
-    /**
-     * @brief Initialize all required Torch resources
-     */
-    extern auto init(const TorchInitInfo& info = {}) -> std::unique_ptr<Renderer>;
-
-    /**
-     * @brief Destroy all resources allocated by Torch
-     *
-     * Does call vkb::terminate for you!
-     *
-     * You should release all of your resources before calling this
-     * function.
-     */
-    extern void terminate();
 
     /**
      * @brief The heart of the Torch rendering pipeline
