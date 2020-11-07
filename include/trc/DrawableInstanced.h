@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GlobalResources.h"
 #include "Drawable.h"
 
 namespace trc
@@ -12,11 +13,11 @@ namespace trc
     class DrawableInstanced : public SceneRegisterable
                             , public Node
                             , public UsePipeline<DrawableInstanced,
-                                                 RenderStages::eDeferred,
+                                                 RenderStageTypes::eDeferred,
                                                  DeferredSubPasses::eGBufferPass,
                                                  Pipelines::eDrawableInstancedDeferred>
                             , public UsePipeline<DrawableInstanced,
-                                                 RenderStages::eShadow,
+                                                 RenderStageTypes::eShadow,
                                                  0,
                                                  Pipelines::eDrawableInstancedShadow>
     {

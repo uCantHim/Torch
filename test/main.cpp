@@ -36,6 +36,7 @@ int main()
 
     vkb::VulkanInitInfo initInfo;
     vkb::vulkanInit(initInfo);
+    auto renderer = trc::init();
 
     // ------------------
     // Random test things
@@ -107,8 +108,6 @@ int main()
 
     // ------------------
 
-    auto renderer = std::make_unique<trc::Renderer>();
-
     auto scene = std::make_unique<trc::Scene>();
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
 
@@ -162,9 +161,7 @@ int main()
     mat4 proj = glm::ortho(-3.0f, 3.0f, -3.0f, 3.0f, 1.0f, 30.0f);
     sunLight.position = { vec3(-10, 10, 15), 0 };
     scene->getLightRegistry().enableShadow(
-        sunLight,
-        uvec2(2048, 2048),
-        renderer->getDefaultShadowStage()
+        sunLight, uvec2(2048, 2048)
     ).setProjectionMatrix(proj);
     //scene->getLightRegistry().disableShadow(sunLight);
 
@@ -298,10 +295,7 @@ int main()
     instancedTrees.reset();
     scene.reset();
     renderer.reset();
-    trc::RenderStage::destroyAll();
-    trc::RenderPass::destroyAll();
-    trc::Pipeline::destroyAll();
-    vkb::vulkanTerminate();
+    trc::terminate();
 
     std::cout << " --- Done\n";
     return 0;

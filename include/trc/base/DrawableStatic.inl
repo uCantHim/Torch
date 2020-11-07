@@ -3,7 +3,7 @@
 
 template<
     typename Derived,
-    RenderStage::ID::Type renderStage,
+    RenderStageType::ID::Type renderStage,
     SubPass::ID::Type subPass,
     Pipeline::ID::Type pipeline
 >

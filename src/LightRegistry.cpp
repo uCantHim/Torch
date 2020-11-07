@@ -191,8 +191,8 @@ void trc::LightRegistry::removeLight(const Light& light)
 
 auto trc::LightRegistry::enableShadow(
     Light& light,
-    uvec2 shadowResolution,
-    ShadowStage& renderStage) -> ShadowInfo&
+    uvec2 shadowResolution
+    ) -> ShadowInfo&
 {
     if (light.type != Light::Type::eSunLight) {
         throw std::invalid_argument("Shadows are currently only supported for sun lights");
@@ -233,11 +233,10 @@ auto trc::LightRegistry::enableShadow(
         RenderPassShadow* newShadowPass = newEntry.shadowPasses.emplace_back(
             &RenderPass::create<RenderPassShadow>(newIndex, shadowResolution)
         );
-        renderStage.addRenderPass(newShadowPass->id());
+        shadowStage.addRenderPass(newShadowPass->id());
     }
 
     newEntry.parentNode.update();
-    newEntry.shadowStage = &renderStage;
     light.hasShadow = true;
     updateShadowDescriptors();
 
@@ -253,7 +252,7 @@ void trc::LightRegistry::disableShadow(Light& light)
     for (RenderPassShadow* shadowPass : it->second.shadowPasses)
     {
         const RenderPassShadow::ID id = shadowPass->id();
-        it->second.shadowStage->removeRenderPass(id);
+        shadowStage.removeRenderPass(id);
         freeShadowPassIndices.push_back(id);
         RenderPass::destroy(id);
     }
@@ -270,6 +269,11 @@ auto trc::LightRegistry::getLightBuffer() const noexcept -> vk::Buffer
 auto trc::LightRegistry::getShadowMatrixBuffer() const noexcept -> vk::Buffer
 {
     return *shadowMatrixBuffer;
+}
+
+auto trc::LightRegistry::getShadowRenderStage() const noexcept -> const ShadowStage&
+{
+    return shadowStage;
 }
 
 void trc::LightRegistry::updateLightBuffer()

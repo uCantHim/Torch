@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Light.h"
+#include "GlobalResources.h"
 
 namespace trc
 {
@@ -88,10 +89,11 @@ namespace trc
              */
             void setProjectionMatrix(mat4 proj) noexcept;
 
+            auto getRenderPasses() const noexcept -> const std::vector<RenderPassShadow*>&;
+
         private:
             friend LightRegistry;
 
-            ShadowStage* shadowStage;
             std::vector<RenderPassShadow*> shadowPasses;
             std::vector<Camera> shadowCameras;
             Node parentNode;
@@ -115,9 +117,7 @@ namespace trc
          * @throw std::invalid_argument if shadows are already enabled on the light
          * @throw std::runtime_error if something unexpected happens
          */
-        auto enableShadow(Light& light,
-                          uvec2 shadowResolution,
-                          ShadowStage& renderStage) -> ShadowInfo&;
+        auto enableShadow(Light& light, uvec2 shadowResolution) -> ShadowInfo&;
 
         /**
          * Does nothing if shadows are not enabled for the light
@@ -126,6 +126,7 @@ namespace trc
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getShadowMatrixBuffer() const noexcept -> vk::Buffer;
+        auto getShadowRenderStage() const noexcept -> const ShadowStage&;
 
     private:
         const ui32 maxLights;
@@ -135,6 +136,8 @@ namespace trc
         void updateLightBuffer();
         std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
+
+        ShadowStage shadowStage;
 
         /**
          * Must be called only when a light or a shadow is added or removed

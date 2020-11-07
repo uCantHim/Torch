@@ -11,14 +11,6 @@ namespace trc {
 
 namespace trc::internal
 {
-    enum RenderStages : RenderStage::ID::Type
-    {
-        eDeferred,
-        eShadow,
-
-        NUM_STAGES
-    };
-
     enum RenderPasses : RenderPass::ID::Type
     {
         // Unused, index is allocated per renderer

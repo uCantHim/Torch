@@ -2,9 +2,9 @@
 
 
 
-trc::RenderStage::RenderStage(ui32 numSubPasses)
+trc::RenderStage::RenderStage(RenderStageType& type)
     :
-    numSubPasses(numSubPasses)
+    numSubPasses(type.numSubPasses)
 {
 }
 

@@ -1,14 +1,27 @@
 #pragma once
 
+#include <atomic>
+
 #include "data_utils/SelfManagedObject.h"
 #include "RenderPass.h"
 
 namespace trc
 {
-    class RenderStage : public data::SelfManagedObject<RenderStage>
+    struct RenderStageType : public data::SelfManagedObject<RenderStageType>
     {
     public:
-        RenderStage(ui32 numSubPasses);
+        RenderStageType(ui32 numSubPasses) : numSubPasses(numSubPasses) {}
+
+        const ui32 numSubPasses;
+    };
+
+    /**
+     * @brief A collection of render passes
+     */
+    class RenderStage
+    {
+    public:
+        explicit RenderStage(RenderStageType& type);
         virtual ~RenderStage() = default;
 
         virtual auto getRenderPasses() const noexcept -> const std::vector<RenderPass::ID>&;

@@ -21,14 +21,16 @@ trc::CommandCollector::CommandCollector()
 
 auto trc::CommandCollector::recordScene(
     SceneBase& scene,
-    RenderStage::ID renderStage) -> vk::CommandBuffer
+    RenderStageType::ID stageType,
+    const RenderStage& stage
+    ) -> vk::CommandBuffer
 {
     auto cmdBuf = **commandBuffers;
 
     // Set up rendering
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    for (auto renderPassId : RenderStage::at(renderStage).getRenderPasses())
+    for (auto renderPassId : stage.getRenderPasses())
     {
         auto& renderPass = RenderPass::at(renderPassId);
         renderPass.begin(cmdBuf, vk::SubpassContents::eInline);
@@ -37,7 +39,7 @@ auto trc::CommandCollector::recordScene(
         const ui32 subPassCount = renderPass.getNumSubPasses();
         for (ui32 subPass = 0; subPass < subPassCount; subPass++)
         {
-            for (auto pipeline : scene.getPipelines(renderStage, subPass))
+            for (auto pipeline : scene.getPipelines(stageType, subPass))
             {
                 // Bind the current pipeline
                 auto& p = Pipeline::at(pipeline);
@@ -46,7 +48,7 @@ auto trc::CommandCollector::recordScene(
                 p.bindDefaultPushConstantValues(cmdBuf);
 
                 // Record commands for all objects with this pipeline
-                scene.invokeDrawFunctions(renderStage, renderPassId, subPass, pipeline, cmdBuf);
+                scene.invokeDrawFunctions(stageType, renderPassId, subPass, pipeline, cmdBuf);
             }
 
             if (subPass < subPassCount - 1) {

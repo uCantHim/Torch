@@ -9,15 +9,6 @@
 namespace trc
 {
     /**
-     * @brief The render stage that renders shadow maps
-     */
-    class ShadowStage : public RenderStage
-    {
-    public:
-        ShadowStage() : RenderStage(1) {}
-    };
-
-    /**
      * @brief A pass that renders a shadow map
      *
      * Only renders a single shadow map. Point lights thus have multiple

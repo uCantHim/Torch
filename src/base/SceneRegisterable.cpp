@@ -3,7 +3,7 @@
 
 
 void trc::SceneRegisterable::usePipeline(
-    RenderStage::ID renderStage,
+    RenderStageType::ID renderStage,
     SubPass::ID subPass,
     Pipeline::ID pipeline,
     DrawableFunction recordCommandBufferFunction)

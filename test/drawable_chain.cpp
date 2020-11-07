@@ -23,7 +23,7 @@ struct ExampleEntity
 
 int main()
 {
-    vkb::vulkanInit();
+    auto renderer = trc::init();
 
     auto geo = ar::addGeometry("grass", *trc::loadGeometry("assets/grass_lowpoly.fbx"));
     auto mat = ar::addMaterial("green", { .color=glm::vec4(0, 1, 0, 1), .kSpecular=glm::vec4(0.0f) });
@@ -57,7 +57,6 @@ int main()
     chainRoot.translate(0.75f, -0.5f, 0.0f);
 
     // General setup
-    trc::Renderer renderer;
     trc::Scene scene;
     trc::Camera camera(vkb::getSwapchain().getAspectRatio(), 45.0f, 0.5f, 100.0f);
     camera.lookAt(glm::vec3(0, 2.5, 7), glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
@@ -74,7 +73,7 @@ int main()
     while (true)
     {
         scene.updateTransforms();
-        renderer.drawFrame(scene, camera);
+        renderer->drawFrame(scene, camera);
     }
 
     return 0;

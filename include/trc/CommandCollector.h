@@ -17,7 +17,7 @@ namespace trc
         /**
          * Collect commands of a scene and write them to a primary command buffer
          */
-        auto recordScene(SceneBase& scene, RenderStage::ID renderStage)
+        auto recordScene(SceneBase& scene, RenderStageType::ID stageType, const RenderStage& stage)
             -> vk::CommandBuffer;
 
     private:

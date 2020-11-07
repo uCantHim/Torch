@@ -7,6 +7,7 @@
 #include <vkb/event/EventHandler.h>
 #include <vkb/event/WindowEvents.h>
 
+#include "GlobalResources.h"
 #include "RenderStage.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
@@ -18,17 +19,24 @@
 
 namespace trc
 {
-    class DeferredStage : public RenderStage
-    {
-    public:
-        DeferredStage() : RenderStage(RenderPassDeferred::NUM_SUBPASSES) {}
-    };
-
     class Renderer;
     class Scene;
 
-    // TODO
-    extern auto init() -> std::unique_ptr<Renderer>;
+    struct RendererCreateInfo
+    {
+        vkb::Swapchain* swapchain;
+        ui32 maxTransparentFragsPerPixel{ 3 };
+    };
+
+    struct TorchInitInfo
+    {
+        RendererCreateInfo rendererInfo;
+    };
+
+    /**
+     * @brief Initialize all required Torch resources
+     */
+    extern auto init(const TorchInitInfo& info = {}) -> std::unique_ptr<Renderer>;
 
     /**
      * @brief Destroy all resources allocated by Torch
@@ -46,7 +54,7 @@ namespace trc
     class Renderer
     {
     public:
-        Renderer();
+        explicit Renderer(RendererCreateInfo info = {});
 
         Renderer(const Renderer&) = delete;
         Renderer(Renderer&&) = delete;
@@ -56,14 +64,11 @@ namespace trc
 
         void drawFrame(Scene& scene, const Camera& camera);
 
-        void addStage(RenderStage::ID stage, ui32 priority);
+        void enableRenderStageType(RenderStageType::ID stageType, i32 priority);
+        void addRenderStage(RenderStageType::ID type, RenderStage& stage);
+        void removeRenderStage(RenderStageType::ID type, RenderStage& stage);
 
-        auto getDefaultDeferredStageId() const noexcept -> RenderStage::ID;
-        auto getDefaultDeferredStage() const noexcept -> DeferredStage&;
-        auto getDefaultShadowStageId() const noexcept -> RenderStage::ID;
-        auto getDefaultShadowStage() const noexcept -> ShadowStage&;
-
-        auto getDeferredRenderPassId() const noexcept -> RenderPass::ID;
+        auto getDefaultDeferredStage() const noexcept -> const DeferredStage&;
         auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
 
         auto getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&;
@@ -107,8 +112,6 @@ namespace trc
             const vk::DescriptorSetLayout descLayout;
         };
 
-        // Initialize render stages
-        static vkb::StaticInit _init;
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> postRecreateListener;
 
@@ -119,10 +122,19 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Render passes and -stages (render passes have nothing to do with stages!)
-        RenderPass::ID deferredPassId;
+        // Default render stages
+        DeferredStage defaultDeferredStage;
 
-        std::vector<std::pair<RenderStage::ID, ui32>> renderStages;
+        // Default render passes
+        RenderPass::ID defaultDeferredPass;
+
+        struct EnabledStageType
+        {
+            i32 priority;
+            RenderStageType::ID type;
+            std::vector<RenderStage*> stages;
+        };
+        std::vector<EnabledStageType> enabledStages;
         std::vector<CommandCollector> commandCollectors;
 
         // Other things

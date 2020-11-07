@@ -78,7 +78,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     }
 
     sceneRegistrations.emplace_back(scene.registerDrawFunction(
-        internal::RenderStages::eDeferred,
+        RenderStageTypes::eDeferred,
         internal::DeferredSubPasses::eTransparencyPass,
         internal::Pipelines::eParticleDraw,
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -92,7 +92,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
         }
     ));
     //sceneRegistrations.emplace_back(scene.registerDrawFunction(
-    //    internal::RenderStages::eShadow,
+    //    internal::RenderStageTypes::eShadow,
     //    0,
     //    internal::Pipelines::eParticleShadow,
     //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)

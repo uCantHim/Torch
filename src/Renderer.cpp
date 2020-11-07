@@ -12,6 +12,16 @@
 
 
 
+auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
+{
+    vkb::vulkanInit();
+
+    RenderStageType::create(RenderStageTypes::eDeferred, RenderPassDeferred::NUM_SUBPASSES);
+    RenderStageType::create(RenderStageTypes::eShadow, 1);
+
+    return std::make_unique<Renderer>(info.rendererInfo);
+}
+
 void trc::terminate()
 {
     vkb::getDevice()->waitIdle();
@@ -19,7 +29,8 @@ void trc::terminate()
     AssetRegistry::reset();
     RenderPass::destroyAll();
     Pipeline::destroyAll();
-    RenderStage::destroyAll();
+    RenderStageType::destroy(RenderStageTypes::eDeferred);
+    RenderStageType::destroy(RenderStageTypes::eShadow);
     vkb::vulkanTerminate();
 }
 
@@ -29,17 +40,12 @@ void trc::terminate()
 //      Renderer       //
 /////////////////////////
 
-vkb::StaticInit trc::Renderer::_init{
-    []() {
-        RenderStage::create<DeferredStage>(internal::RenderStages::eDeferred);
-        RenderStage::create<ShadowStage>(internal::RenderStages::eShadow);
-    },
-    []() {}
-};
-
-trc::Renderer::Renderer()
+trc::Renderer::Renderer(RendererCreateInfo info)
     :
-    deferredPassId(RenderPass::createAtNextIndex<RenderPassDeferred>(vkb::getSwapchain(), 3).first),
+    // Create the deferred render pass
+    defaultDeferredPass(RenderPass::createAtNextIndex<RenderPassDeferred>(
+        vkb::getSwapchain(), info.maxTransparentFragsPerPixel
+    ).first),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
@@ -48,6 +54,11 @@ trc::Renderer::Renderer()
         vk::BufferUsageFlagBits::eVertexBuffer
     )
 {
+    enableRenderStageType(RenderStageTypes::eDeferred, 0);
+    enableRenderStageType(RenderStageTypes::eShadow, -10);
+    addRenderStage(RenderStageTypes::eDeferred, defaultDeferredStage);
+    defaultDeferredStage.addRenderPass(defaultDeferredPass);
+
     createSemaphores();
 
     // Pre recreate, finish rendering
@@ -58,20 +69,15 @@ trc::Renderer::Renderer()
     );
     // Post recreate, create the required resources
     postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
-        [this](const auto&) {
+        [this, maxFrags=info.maxTransparentFragsPerPixel](const auto&) {
             // Completely recreate the deferred renderpass
-            RenderPassDeferred::replace<RenderPassDeferred>(deferredPassId, vkb::getSwapchain(), 4);
+            RenderPass::replace<RenderPassDeferred>(
+                defaultDeferredPass,
+                vkb::getSwapchain(), maxFrags
+            );
             PipelineRegistry::recreateAll();
         }
     );
-
-    // Add default stages
-    addStage(internal::RenderStages::eDeferred, 3);
-    addStage(internal::RenderStages::eShadow, 1);
-
-    // TODO: Change this after the first phase of the rework because it's crap
-    // Add deferred pass the the deferred stage
-    RenderStage::at(internal::RenderStages::eDeferred).addRenderPass(deferredPassId);
 
     PipelineRegistry::registerPipeline([this]() { internal::makeAllDrawablePipelines(*this); });
     PipelineRegistry::registerPipeline([this]() { internal::makeFinalLightingPipeline(*this); });
@@ -99,7 +105,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
-        internal::RenderStages::eDeferred,
+        RenderStageTypes::eDeferred,
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
         [&](auto&&, vk::CommandBuffer cmdBuf)
@@ -117,10 +123,26 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Collect commands
     std::vector<vk::CommandBuffer> cmdBufs;
-    for (ui32 i = 0; const auto& [stage, _] : renderStages)
+    for (ui32 i = 0; const auto& [_, type, stages] : enabledStages)
     {
-        cmdBufs.push_back(commandCollectors[i].recordScene(scene, stage));
-        i++;
+        // Additionally render all passes in the current scene's light
+        // registry. This is not nice, but I wanted to move on to other
+        // things.
+        if (type == RenderStageTypes::eShadow)
+        {
+            cmdBufs.push_back(commandCollectors[i].recordScene(
+                scene, type,
+                scene.getLightRegistry().getShadowRenderStage()
+            ));
+            i++;
+        }
+
+        // Execute all render passes for this stage type
+        for (RenderStage* stage : stages)
+        {
+            cmdBufs.push_back(commandCollectors[i].recordScene(scene, type, *stage));
+            i++;
+        }
     }
 
     // Remove fullscreen quad function
@@ -144,48 +166,35 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 
-auto trc::Renderer::getDefaultDeferredStageId() const noexcept -> RenderStage::ID
+void trc::Renderer::enableRenderStageType(RenderStageType::ID stageType, i32 priority)
 {
-    // TODO
-    return internal::RenderStages::eDeferred;
-}
+    auto it = enabledStages.begin();
+    while (it != enabledStages.end() && it->priority < priority) it++;
 
-auto trc::Renderer::getDefaultDeferredStage() const noexcept -> DeferredStage&
-{
-    return static_cast<DeferredStage&>(RenderStage::at(getDefaultDeferredStageId()));
-}
-
-auto trc::Renderer::getDefaultShadowStageId() const noexcept -> RenderStage::ID
-{
-    // TODO
-    return internal::RenderStages::eShadow;
-}
-
-auto trc::Renderer::getDefaultShadowStage() const noexcept -> ShadowStage&
-{
-    return static_cast<ShadowStage&>(RenderStage::at(getDefaultShadowStageId()));
-}
-
-void trc::Renderer::addStage(RenderStage::ID stage, ui32 priority)
-{
-    auto it = renderStages.begin();
-    while (it != renderStages.end() && it->second < priority) it++;
-
-    renderStages.insert(it, { stage, priority });
+    enabledStages.insert(it, EnabledStageType{ priority, stageType, {} });
     commandCollectors.emplace_back();
 }
 
-auto trc::Renderer::getDeferredRenderPassId() const noexcept -> RenderPass::ID
+void trc::Renderer::addRenderStage(RenderStageType::ID type, RenderStage& stage)
 {
-    return deferredPassId;
+    for (auto& stageType : enabledStages)
+    {
+        if (stageType.type == type)
+        {
+            stageType.stages.push_back(&stage);
+            break;
+        }
+    }
+}
+
+auto trc::Renderer::getDefaultDeferredStage() const noexcept -> const DeferredStage&
+{
+    return defaultDeferredStage;
 }
 
 auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDeferred&
 {
-    auto result = dynamic_cast<RenderPassDeferred*>(&RenderPass::at(deferredPassId));
-    assert(result != nullptr);
-
-    return *result;
+    return static_cast<RenderPassDeferred&>(RenderPass::at(defaultDeferredPass));
 }
 
 auto trc::Renderer::getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&
