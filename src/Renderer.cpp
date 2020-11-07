@@ -194,6 +194,26 @@ auto trc::Renderer::getShadowDescriptorProvider() const noexcept
     return shadowDescriptorProvider;
 }
 
+auto trc::Renderer::getMouseWorldPos(const Camera& camera) -> vec3
+{
+    return getMouseWorldPosAtDepth(camera, getDeferredRenderPass().getMouseDepth());
+}
+
+auto trc::Renderer::getMouseWorldPosAtDepth(const Camera& camera, const float depth) -> vec3
+{
+    assert(depth >= 0.0f && depth <= 1.0f);
+
+    const auto windowSize = vkb::getSwapchain().getImageExtent();
+    const vec2 mousePos = vkb::getSwapchain().getMousePosition();
+
+    return glm::unProject(
+        vec3(mousePos, depth),
+        camera.getViewMatrix(),
+        camera.getProjectionMatrix(),
+        vec4(0.0f, 0.0f, windowSize.width, windowSize.height)
+    );
+}
+
 void trc::Renderer::createSemaphores()
 {
     imageAcquireSemaphores = { [](ui32) { return vkb::getDevice()->createSemaphoreUnique({}); }};

@@ -270,7 +270,6 @@ int main()
         scene->updateTransforms();
 
         renderer->drawFrame(*scene, camera);
-        trc::getMouseWorldPos(camera);
 
         vkb::pollEvents();
         frames++;

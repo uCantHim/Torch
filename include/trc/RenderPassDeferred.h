@@ -80,9 +80,17 @@ namespace trc
         auto getDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
         /**
+         * @brief Get the depth of pixel under the mouse cursor
+         *
+         * This function does not have any calculational overhead. The
+         * render pass evaluates the mouse depth every frame regardless of
+         * the number of calls to this function.
+         *
          * @return float Depth of the pixel which contains the mouse cursor.
+         *               Is zero if no depth value has been read. Is the last
+         *               read depth value if the cursor is not in a window.
          */
-        static auto getMouseDepthValue() -> float;
+        auto getMouseDepth() const noexcept -> float;
 
     private:
         static inline float mouseDepthValue{ 0.0f };
@@ -105,41 +113,4 @@ namespace trc
         // Descriptor
         DeferredRenderPassDescriptor descriptor;
     };
-
-    /**
-     * This function does not have any calculational overhead. It is a more
-     * intuitive alternative to RenderPassDeferred::getMouseDepthValue.
-     *
-     * @return float Depth of the pixel which contains the mouse cursor.
-     *               Is zero if no depth value has been read. Is the last
-     *               read depth value if the cursor is not in a window.
-     */
-    extern auto getMouseDepth() -> float;
-
-    /**
-     * This function calculates the mouse position when it's called. It is
-     * a good idea to call this only once per frame and re-use the result.
-     *
-     * @param const Camera& camera Reconstructing the mouse coursor's world
-     *                             position requires the view- and projection
-     *                             matrices that were used for the scene that
-     *                             the cursor is in.
-     *
-     * @return vec3 Position of the mouse cursor in the world.
-     */
-    extern auto getMouseWorldPos(const Camera& camera) -> vec3;
-
-    /**
-     * Calculates the mouse cursor position in the world at a specific
-     * depth.
-     *
-     * @param const Camera& camera Reconstructing the mouse coursor's world
-     *                             position requires the view- and projection
-     *                             matrices that were used for the scene that
-     *                             the cursor is in.
-     * @param float         depth  A depth value in the range [0, 1].
-     *
-     * @return vec3 Position of the mouse cursor in the world.
-     */
-    extern auto getMouseWorldPosAtDepth(const Camera& camera, float depth) -> vec3;
 } // namespace trc

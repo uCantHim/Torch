@@ -329,7 +329,7 @@ auto trc::RenderPassDeferred::getDescriptorProvider() const noexcept
     return descriptor.getProvider();
 }
 
-auto trc::RenderPassDeferred::getMouseDepthValue() -> float
+auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 {
     return mouseDepthValue;
 }
@@ -376,31 +376,6 @@ void trc::RenderPassDeferred::readMouseDepthValueFromBuffer()
     // seems to be correct with 16 though.
     constexpr float maxFloat16 = 65536.0f; // 2**16 -- std::pow is not constexpr
     mouseDepthValue = static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
-}
-
-
-
-auto trc::getMouseDepth() -> float
-{
-    return RenderPassDeferred::getMouseDepthValue();
-}
-
-auto trc::getMouseWorldPos(const Camera& camera) -> vec3
-{
-    return getMouseWorldPosAtDepth(camera, trc::getMouseDepth());
-}
-
-auto trc::getMouseWorldPosAtDepth(const Camera& camera, const float depth) -> vec3
-{
-    const auto windowSize = vkb::getSwapchain().getImageExtent();
-    vec2 mousePos = vkb::getSwapchain().getMousePosition();
-
-    return glm::unProject(
-        vec3(mousePos, depth),
-        camera.getViewMatrix(),
-        camera.getProjectionMatrix(),
-        vec4(0.0f, 0.0f, windowSize.width, windowSize.height)
-    );
 }
 
 
