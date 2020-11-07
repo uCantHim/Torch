@@ -16,7 +16,7 @@ Table of Contents
 Installation
 ------------
 
-You'll need the following libraries:
+You'll need the following libraries and tools:
 
  - Vulkan
 
@@ -43,6 +43,17 @@ You can find a heavily outdated version of the FBX SDK on the [AUR](https://aur.
 
     $ sudo apt install libvulkan-dev libglfw3-dev libglm-dev libdevil-dev glslang-tools
 
+### MacOS
+
+As far as I know, Apple doesn't support Vulkan :( If they do at some point and I forget to update this readme, you can
+google how the packages are called in homebrew and install them analogously to the other operating systems. Then proceed
+with the installation instructions below.
+
+### Windows
+
+I'm not a masochist, so I don't provide a script or a similar facility to set up the environment for Windows. Life is too
+short. You can either get a proper operating system or adapt the CMakeLists.txt to find your libraries.
+
 ### CMake options
 
  - `TORCH_BUILD_TEST`: Control if tests should be built. Default is `OFF`.
@@ -53,45 +64,59 @@ You can find a heavily outdated version of the FBX SDK on the [AUR](https://aur.
 functionality that is based on the FBX SDK will not be available. I added this option because installing that sdk can be
 a huge pain.
 
+### Installation
+
+After installing the dependencies, the installation is straight-forward:
+
+    git clone https://github.com/uCantHim/Torch.git
+    cd Torch
+    ./build.sh
+
+The `build.sh` script does the following (do this if you don't have bash):
+
+    mkdir build
+    cd build/
+    cmake ..
+    cmake --build . --parallel 8
+
 
 <a name="example"></a>
-Example
--------
+Small Example
+-------------
 
 ```c++
-#include <trc/Renderer.h>
+#include <trc/Torch.h>
 
 int main()
 {
-    // Initialize basic Vulkan functionality. You can find a detailed
-    // explanation as to why this is necessary and about the weird
-    // namespace name below.
-    vkb::vulkanInit();
-
-    // Create a renderer. This initializes most of Torch's internal
-    // resources.
-    trc::Renderer renderer;
+    // Initialize Torch and create a renderer. Do have to do this before
+    // you use any other functionality of Torch.
+    auto renderer = trc::init();
 
     // The two things required to render something are
-    //   1. A scene and
+    //   1. A scene
     //   2. A camera
-    trc::Scene scene;
+    // The scene is created as a unique_ptr instead of value here so we can
+    // easily delete it at the end. That's not necessary for the camera
+    // since it doesn't allocate any Vulkan resources.
+    auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
 
     // Main loop
-    while (true)
+    while (vkb::getSwapchain().isOpen())
     {
-        // Poll system events. Again, namespace explained below.
-        vkb::pollEvent();
+        // Poll system events. The weird namespace name is explained below.
+        vkb::pollEvents();
 
         // Use the renderer to draw the scene
-        renderer.draw(scene, camera);
+        renderer->drawFrame(*scene, camera);
     }
 
-    // You have to destroy all your Vulkan resources here. I could have used unique_ptrs
-    // for the renderer, scene, and camera, and called reset on every one of them, but I
-    // went for better readability instead.
-    // After destroying all your Torch/Vulkan resouces, call:
+    // Destroy the Torch resources
+    renderer.reset();
+    scene.reset();
+
+    // Call this after you've destroyed all Torch/Vulkan resources.
     trc::terminate();
 
     return 0;
@@ -122,7 +147,7 @@ trc::Drawable myDrawable(geo, mat);
 
 ### Scene graph architecture
 
-TODO
+TODO: write this section
 
 
 <a name="vkb"></a>

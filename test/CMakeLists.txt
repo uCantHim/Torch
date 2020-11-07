@@ -18,3 +18,6 @@ target_link_libraries(TorchTest PUBLIC torch)
 
 add_executable(DrawableChainTest drawable_chain.cpp)
 target_link_libraries(DrawableChainTest PUBLIC torch)
+
+add_executable(BasicSetup basic_setup.cpp)
+target_link_libraries(BasicSetup PUBLIC torch)
