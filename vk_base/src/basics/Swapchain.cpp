@@ -157,6 +157,11 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
     createSwapchain();
 }
 
+auto vkb::Swapchain::isOpen() const noexcept -> bool
+{
+    return isWindowOpen;
+}
+
 auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
 {
     return window.get();
@@ -362,6 +367,7 @@ void onScroll(GLFWwindow* window, double xOffset, double yOffset)
 void onWindowClose(GLFWwindow* window)
 {
     auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    swapchain->isWindowOpen = false;
     vkb::EventHandler<vkb::SwapchainCloseEvent>::notify({ {swapchain} });
 }
 

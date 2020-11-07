@@ -53,6 +53,8 @@ namespace vkb
         auto operator=(const Swapchain&) -> Swapchain& = delete;
         auto operator=(Swapchain&&) noexcept -> Swapchain& = delete;
 
+        auto isOpen() const noexcept -> bool;
+
         /**
          * @return GLFWwindow* The GLFW window handle of the swapchain's surface
          */
@@ -130,6 +132,7 @@ namespace vkb
         const Device& device;
         std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
         std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> surface;
+        bool isWindowOpen{ true };
 
         vk::UniqueSwapchainKHR swapchain;
         vk::Extent2D swapchainExtent;
