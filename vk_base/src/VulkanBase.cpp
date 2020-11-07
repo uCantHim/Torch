@@ -16,6 +16,41 @@ void vkb::vulkanTerminate()
     VulkanBase::destroy();
 }
 
+auto vkb::createSurface(VulkanInstance& instance, SurfaceCreateInfo createInfo) -> Surface
+{
+    Surface result;
+
+    // Create GLFW window
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    result.window = std::unique_ptr<GLFWwindow, Surface::windowDeleter>(
+        glfwCreateWindow(
+            createInfo.windowSize.width, createInfo.windowSize.height,
+            createInfo.windowTitle.c_str(),
+            nullptr, nullptr
+        ),
+        [](GLFWwindow* windowPtr) {
+            glfwDestroyWindow(windowPtr);
+            glfwTerminate();
+        }
+    );
+
+    // Create Vulkan surface
+    GLFWwindow* _window = result.window.get();
+    VkSurfaceKHR _surface;
+    if (glfwCreateWindowSurface(*instance, _window, nullptr, &_surface) != VK_SUCCESS) {
+        throw std::runtime_error("Unable to create window surface!");
+    }
+    result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> {
+        new vk::SurfaceKHR(_surface),
+        [&](vk::SurfaceKHR* oldSurface) {
+            instance->destroySurfaceKHR(*oldSurface, {});
+            delete oldSurface;
+        }
+    };
+
+    return result;
+}
+
 
 
 void vkb::VulkanBase::onInit(std::function<void(void)> callback)
@@ -52,7 +87,7 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
 
     try {
         instance = std::make_unique<VulkanInstance>();
-        Surface surface = createSurface(initInfo.windowSize);
+        Surface surface = createSurface(*instance, initInfo.surfaceCreateInfo);
 
         physicalDevice = std::make_unique<PhysicalDevice>(
             device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
@@ -96,37 +131,6 @@ void vkb::VulkanBase::destroy()
 bool vkb::VulkanBase::isInitialized() noexcept
 {
     return _isInitialized;
-}
-
-auto vkb::VulkanBase::createSurface(vk::Extent2D size) -> Surface
-{
-    Surface result;
-
-    // Create GLFW window
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    result.window = std::unique_ptr<GLFWwindow, Surface::windowDeleter>(
-        glfwCreateWindow(size.width, size.height, "Hello :)", nullptr, nullptr),
-        [](GLFWwindow* windowPtr) {
-            glfwDestroyWindow(windowPtr);
-            glfwTerminate();
-        }
-    );
-
-    // Create Vulkan surface
-    GLFWwindow* _window = result.window.get();
-    VkSurfaceKHR _surface;
-    if (glfwCreateWindowSurface(**instance, _window, nullptr, &_surface) != VK_SUCCESS) {
-        throw std::runtime_error("Unable to create window surface!");
-    }
-    result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> {
-        new vk::SurfaceKHR(_surface),
-        [&](vk::SurfaceKHR* oldSurface) {
-            (*instance)->destroySurfaceKHR(*oldSurface, {});
-            delete oldSurface;
-        }
-    };
-
-    return result;
 }
 
 auto vkb::VulkanBase::getInstance() noexcept -> VulkanInstance&

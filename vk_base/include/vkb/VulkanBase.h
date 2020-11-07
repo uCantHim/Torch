@@ -11,9 +11,15 @@
 
 namespace vkb
 {
-    struct VulkanInitInfo
+    struct SurfaceCreateInfo
     {
         vk::Extent2D windowSize{ 1920, 1080 };
+        std::string windowTitle;
+    };
+
+    struct VulkanInitInfo
+    {
+        SurfaceCreateInfo surfaceCreateInfo;
     };
 
     /**
@@ -28,6 +34,8 @@ namespace vkb
      * @brief Destroy all Vulkan-related objects
      */
     void vulkanTerminate();
+
+    auto createSurface(VulkanInstance& instance, SurfaceCreateInfo createInfo) -> Surface;
 
     /**
      * @brief Provides access to common vulkan access points
@@ -62,8 +70,6 @@ namespace vkb
         static void destroy();
 
         static bool isInitialized() noexcept;
-
-        static auto createSurface(vk::Extent2D size) -> Surface;
 
     public:
         static auto getInstance() noexcept       -> VulkanInstance&;
