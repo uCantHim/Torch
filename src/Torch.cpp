@@ -19,7 +19,7 @@ void trc::terminate()
     AssetRegistry::reset();
     RenderPass::destroyAll();
     Pipeline::destroyAll();
-    RenderStageType::destroy(RenderStageTypes::eDeferred);
-    RenderStageType::destroy(RenderStageTypes::eShadow);
+    RenderStage::destroyAll();
+    RenderStageType::destroyAll();
     vkb::vulkanTerminate();
 }

@@ -18,7 +18,7 @@ namespace trc
     /**
      * @brief A collection of render passes
      */
-    class RenderStage
+    class RenderStage : public data::SelfManagedObject<RenderStage>
     {
     public:
         explicit RenderStage(RenderStageType& type);
