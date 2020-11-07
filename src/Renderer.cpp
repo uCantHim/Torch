@@ -63,6 +63,11 @@ trc::Renderer::Renderer(RendererCreateInfo info)
     PipelineRegistry::recreateAll();
 }
 
+trc::Renderer::~Renderer()
+{
+    waitForAllFrames();
+}
+
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 {
     auto& device = vkb::getDevice();

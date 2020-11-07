@@ -32,11 +32,15 @@ namespace trc
     public:
         explicit Renderer(RendererCreateInfo info = {});
 
+        /**
+         * Waits for all frames to finish rendering
+         */
+        ~Renderer();
+
         Renderer(const Renderer&) = delete;
         Renderer(Renderer&&) = delete;
         Renderer& operator=(const Renderer&) = delete;
         Renderer& operator=(Renderer&&) = delete;
-        ~Renderer() = default;
 
         void drawFrame(Scene& scene, const Camera& camera);
 
