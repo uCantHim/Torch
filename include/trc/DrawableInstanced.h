@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GlobalResources.h"
+#include "TorchResources.h"
 #include "Drawable.h"
 
 namespace trc

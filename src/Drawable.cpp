@@ -1,6 +1,6 @@
 #include "Drawable.h"
 
-#include "GlobalResources.h"
+#include "TorchResources.h"
 #include "AssetRegistry.h"
 #include "Geometry.h"
 #include "Material.h"

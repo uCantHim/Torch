@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vkb/basics/Instance.h>
+#include <vkb/basics/Device.h>
+
 #include "RenderStage.h"
 
 namespace trc

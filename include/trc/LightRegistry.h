@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Light.h"
-#include "GlobalResources.h"
+#include "TorchResources.h"
 
 namespace trc
 {

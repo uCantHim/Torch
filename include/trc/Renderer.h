@@ -7,7 +7,7 @@
 #include <vkb/event/EventHandler.h>
 #include <vkb/event/WindowEvents.h>
 
-#include "GlobalResources.h"
+#include "TorchResources.h"
 #include "RenderStage.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
