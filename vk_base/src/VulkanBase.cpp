@@ -85,19 +85,22 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
     // Initi DevIL
     ilInit();
 
-    try {
-        instance = std::make_unique<VulkanInstance>();
-        Surface surface = createSurface(*instance, initInfo.surfaceCreateInfo);
+    if (initInfo.createResources)
+    {
+        try {
+            instance = std::make_unique<VulkanInstance>();
+            Surface surface = createSurface(*instance, initInfo.surfaceCreateInfo);
 
-        physicalDevice = std::make_unique<PhysicalDevice>(
-            device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
-        );
-        device = std::make_unique<Device>(*physicalDevice);
-        swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
-    }
-    catch (const std::exception& err) {
-        std::cout << "Exception during vulkan_base initialization: " << err.what() << "\n";
-        throw err;
+            physicalDevice = std::make_unique<PhysicalDevice>(
+                device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
+            );
+            device = std::make_unique<Device>(*physicalDevice);
+            swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
+        }
+        catch (const std::exception& err) {
+            std::cout << "Exception during vulkan_base initialization: " << err.what() << "\n";
+            throw err;
+        }
     }
 
     _isInitialized = true;
