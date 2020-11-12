@@ -10,6 +10,7 @@ project(Torch)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" ON)
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features" ON)
+option(TORCH_INTEGRATE_IMGUI "Use imgui integration" ON)
 
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -34,6 +35,30 @@ target_link_libraries(torch PUBLIC vk_base)
 
 target_include_directories(torch PUBLIC include)
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
+
+# Imgui integration
+if (${TORCH_INTEGRATE_IMGUI})
+    add_library(imgui)
+    target_link_libraries(torch PUBLIC imgui)
+
+    target_include_directories(
+        imgui PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends
+    )
+    target_sources(
+        imgui PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui.h
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_draw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_widgets.cpp
+
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.h
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.h
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
+    )
+endif ()
 
 # Test
 if (${TORCH_BUILD_TEST})
