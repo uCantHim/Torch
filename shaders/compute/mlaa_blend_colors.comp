@@ -1,0 +1,41 @@
+#version 460
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+layout (set = 0, binding = 0, rgba8) uniform image2D colorTex;
+layout (set = 0, binding = 1) uniform sampler2D colorSampler;
+layout (set = 0, binding = 4, rgba32f) uniform image2D areaTex;
+
+vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
+vec2 pixelSize = 1.0 / resolution;
+vec2 currPixel = vec2(gl_GlobalInvocationID.xy);
+
+void main()
+{
+    vec2 currUvCoord = currPixel * pixelSize;
+
+    vec4 topLeft = texture(colorSampler, currUvCoord);
+    float right = texture(colorSampler, currUvCoord + vec2(0, 1) * pixelSize).g;
+    float bottom = texture(colorSampler, currUvCoord + vec2(1, 0) * pixelSize).a;
+
+    vec4 areas = vec4(topLeft.r, right, topLeft.b, bottom);
+    float sum = dot(areas, vec4(1.0));
+
+    if (sum > 0.0)
+    {
+        vec4 o = areas * pixelSize.yyxx;
+
+        vec4 color = vec4(0.0);
+        color += texture(colorSampler, currUvCoord + vec2(   0, -o.r)) * areas.r;
+        color += texture(colorSampler, currUvCoord + vec2(   0, -o.g)) * areas.g;
+        color += texture(colorSampler, currUvCoord + vec2(-o.b,    0)) * areas.b;
+        color += texture(colorSampler, currUvCoord + vec2( o.a,    0)) * areas.a;
+        color /= sum;
+
+        imageStore(colorTex, ivec2(gl_GlobalInvocationID.xy), color);
+    }
+    else
+    {
+        // Don't blend the color
+    }
+}

@@ -1,0 +1,155 @@
+#version 460
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+layout (set = 0, binding = 2, rg8) uniform image2D edgeTex;
+layout (set = 0, binding = 3) uniform sampler2D edgeSampler;
+layout (set = 0, binding = 4, rgba32f) uniform image2D areaTex;
+layout (set = 0, binding = 5) uniform sampler2D precomputedAreaSampler;
+
+#define MAX_SEARCH_DIST 10
+
+vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
+vec2 pixelSize = 1.0 / resolution;
+vec2 currPixel = vec2(gl_GlobalInvocationID.xy);
+
+vec2 area(vec2 dist, float patternLeft, float patternRight);
+float searchXLeft(vec2 uv);
+float searchXRight(vec2 uv);
+float searchYUp(vec2 uv);
+float searchYDown(vec2 uv);
+
+void main()
+{
+    const vec2 currUvCoord = currPixel * pixelSize;
+    const vec2 edges = imageLoad(edgeTex, ivec2(gl_GlobalInvocationID.xy)).rg;
+
+    vec4 weights = vec4(0.0);
+
+    if (edges.g > 0.0) // Edge top
+    {
+        vec2 dist = vec2(searchXLeft(currUvCoord),
+                         searchXRight(currUvCoord));
+        // Determine crossing type
+        vec2 coordsLeft = currUvCoord + vec2(dist.x, 0.25) * pixelSize;
+        vec2 coordsRight = currUvCoord + vec2(dist.y + 1.0, 0.25) * pixelSize;
+        float crossingTypeLeft = texture(edgeSampler, coordsLeft).r;
+        float crossingTypeRight = texture(edgeSampler, coordsRight).r;
+
+        weights.rg = area(abs(dist), crossingTypeLeft, crossingTypeRight);
+    }
+
+    if (edges.r > 0.0) // Edge left
+    {
+        vec2 dist = vec2(searchYUp(currUvCoord),
+                         searchYDown(currUvCoord));
+        // Determine crossing type
+        vec2 coordsUp = currUvCoord + vec2(0.25, dist.x) * pixelSize;
+        vec2 coordsDown = currUvCoord + vec2(0.25, dist.y + 1.0) * pixelSize;
+        float crossingTypeUp = texture(edgeSampler, coordsUp).g;
+        float crossingTypeDown = texture(edgeSampler, coordsDown).g;
+
+        weights.ba = area(abs(dist), crossingTypeUp, crossingTypeDown);
+    }
+
+    imageStore(areaTex, ivec2(currPixel), weights);
+}
+
+
+
+#define NUM_DISTANCES 9
+#define AREA_SIZE (NUM_DISTANCES * 5)
+
+vec2 area(vec2 dist, float patternLeft, float patternRight)
+{
+    vec2 pixCoord = NUM_DISTANCES * round(4.0 * vec2(patternLeft, patternRight)) + dist;
+    vec2 texCoord = pixCoord / (AREA_SIZE - 1.0);
+
+    texCoord.y = 1.0 - texCoord.y; // Because the texture has to be flipped in Vulkan
+
+    return texture(precomputedAreaSampler, texCoord).rg;
+}
+
+float searchXLeft(vec2 uv)
+{
+    vec2 nextSearched = uv - (vec2(1.5, 0.0) * pixelSize);
+
+    for (int i = 0; i < MAX_SEARCH_DIST; i++)
+    {
+        float leftPixelEdge = texture(edgeSampler, nextSearched).g;
+
+        // If one of the tested pixels is not an edge, the end has been
+        // found. Use 0.9 instead of 1.0 to account for possible
+        // inaccuracies in the sample location.
+        if (leftPixelEdge < 0.9) {
+            return -2.0 * i - 2.0 * leftPixelEdge;
+        }
+
+        nextSearched -= vec2(2.0, 0.0) * pixelSize;
+    }
+
+    return -2.0 * MAX_SEARCH_DIST;
+}
+
+float searchXRight(vec2 uv)
+{
+    vec2 nextSearched = uv + (vec2(1.5, 0.0) * pixelSize);
+
+    for (int i = 0; i < MAX_SEARCH_DIST; i++)
+    {
+        float rightPixelEdge = texture(edgeSampler, nextSearched).g;
+
+        // If one of the tested pixels is not an edge, the end has been
+        // found. Use 0.9 instead of 1.0 to account for possible
+        // inaccuracies in the sample location.
+        if (rightPixelEdge < 0.9) {
+            return 2.0 * i + 2.0 * rightPixelEdge;
+        }
+
+        nextSearched += vec2(2.0, 0.0) * pixelSize;
+    }
+
+    return 2.0 * MAX_SEARCH_DIST;
+}
+
+float searchYUp(vec2 uv)
+{
+    vec2 nextSearched = uv + (vec2(0.0, 1.5) * pixelSize);
+
+    for (int i = 0; i < MAX_SEARCH_DIST; i++)
+    {
+        float upperPixelEdge = texture(edgeSampler, nextSearched).r;
+
+        // If one of the tested pixels is not an edge, the end has been
+        // found. Use 0.9 instead of 1.0 to account for possible
+        // inaccuracies in the sample location.
+        if (upperPixelEdge < 0.9) {
+            return 2.0 * i + 2.0 * upperPixelEdge;
+        }
+
+        nextSearched += vec2(0.0, 2.0) * pixelSize;
+    }
+
+    return 2.0 * MAX_SEARCH_DIST;
+}
+
+float searchYDown(vec2 uv)
+{
+    vec2 nextSearched = uv - (vec2(0.0, 1.5) * pixelSize);
+
+    for (int i = 0; i < MAX_SEARCH_DIST; i++)
+    {
+        float lowerPixelEdge = texture(edgeSampler, nextSearched).r;
+
+        // If one of the tested pixels is not an edge, the end has been
+        // found. Use 0.9 instead of 1.0 to account for possible
+        // inaccuracies in the sample location.
+        if (lowerPixelEdge < 0.9) {
+            return -2.0 * i - 2.0 * lowerPixelEdge;
+        }
+
+        nextSearched -= vec2(0.0, 2.0) * pixelSize;
+    }
+
+    return -2.0 * MAX_SEARCH_DIST;
+}

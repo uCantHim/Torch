@@ -1,0 +1,30 @@
+#version 460
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+layout (set = 0, binding = 1) uniform sampler2D colorTex;
+layout (set = 0, binding = 2, rg8) uniform image2D edgeTex;
+
+#define THRESHOLD 0.02
+
+float luminance(vec3 color)
+{
+    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+}
+
+void main()
+{
+    const vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
+    const vec2 currPixel = vec2(gl_GlobalInvocationID.xy);
+
+    float lum     = luminance(texture(colorTex, currPixel / resolution).rgb);
+    float lumLeft = luminance(texture(colorTex, (currPixel - vec2(1, 0)) / resolution).rgb);
+    float lumTop  = luminance(texture(colorTex, (currPixel - vec2(0, 1)) / resolution).rgb);
+
+    vec2 delta = abs(vec2(lum, lum) - vec2(lumLeft, lumTop));
+    vec2 edges = step(THRESHOLD, delta);
+
+    // The information stored in the texture is binary - either an edgel
+    // exists or it doesn't
+    imageStore(edgeTex, ivec2(gl_GlobalInvocationID.xy), vec4(edges, 0, 0));
+}
