@@ -17,7 +17,7 @@ namespace trc::internal
         //eDeferredPass = 0,
 
         /** The index of the first shadow pass */
-        eShadowPassesBegin = 1,
+        eShadowPassesBegin = 2,
         eShadowPassesEnd = ShadowDescriptor::MAX_SHADOW_MAPS,
 
         NUM_PASSES
@@ -50,6 +50,10 @@ namespace trc::internal
 
         eParticleDraw,
         eParticleShadow,
+
+        eMorphologicalAntiAliasingCompute1, // Find edges
+        eMorphologicalAntiAliasingCompute2, // Calculate blending weights
+        eMorphologicalAntiAliasingCompute3, // Blend
 
         NUM_PIPELINES
     };

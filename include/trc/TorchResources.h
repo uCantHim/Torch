@@ -1,8 +1,5 @@
 #pragma once
 
-#include <vkb/basics/Instance.h>
-#include <vkb/basics/Device.h>
-
 #include "RenderStage.h"
 
 namespace trc
@@ -11,6 +8,7 @@ namespace trc
     {
         eDeferred,
         eShadow,
+        ePostProcessing,
 
         NUM_STAGES
     };
