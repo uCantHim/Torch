@@ -12,6 +12,7 @@
 #include "SceneDescriptor.h"
 #include "LightRegistry.h" // For shadow descriptor
 #include "CommandCollector.h"
+#include "PostProcessing.h"
 
 namespace trc
 {
@@ -128,9 +129,11 @@ namespace trc
 
         // Default render stages
         DeferredStage defaultDeferredStage;
+        MorpholocialAntiAliasingStage aaStage;
 
         // Default render passes
         RenderPass::ID defaultDeferredPass;
+        RenderPass::ID aaPass;
 
         struct EnabledStageType
         {
@@ -150,5 +153,12 @@ namespace trc
         DescriptorProviderWrapper shadowDescriptorProvider{ ShadowDescriptor::getDescLayout() };
 
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
+
+        // Anti-aliasing
+        void executeAntiAliasing(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+        bool enableAntialiasing{ true };
+        vkb::FrameSpecificObject<vk::UniqueSampler> swapchainImageSamplers;
+        vkb::FrameSpecificObject<vk::UniqueImageView> swapchainImageViews;
+        MorpholocialAntiAliasingDescriptor aaDescriptor;
     };
 }
