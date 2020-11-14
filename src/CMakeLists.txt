@@ -6,6 +6,7 @@ target_sources(
         AssetUtils.cpp
         AssetRegistry.cpp
         CommandCollector.cpp
+        ComputePass.cpp
         DescriptorProvider.cpp
         Drawable.cpp
         DrawableInstanced.cpp
@@ -18,6 +19,7 @@ target_sources(
         Pipeline.cpp
         PipelineBuilder.cpp
         PipelineDefinitions.cpp
+        PostProcessing.cpp
         Renderer.cpp
         RenderDataDescriptor.cpp
         RenderPass.cpp

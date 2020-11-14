@@ -8,6 +8,7 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
 
     RenderStageType::create(RenderStageTypes::eDeferred, RenderPassDeferred::NUM_SUBPASSES);
     RenderStageType::create(RenderStageTypes::eShadow, 1);
+    RenderStageType::create(RenderStageTypes::ePostProcessing, 1);
 
     return std::make_unique<Renderer>(info.rendererInfo);
 }
