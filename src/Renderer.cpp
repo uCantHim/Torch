@@ -39,8 +39,8 @@ trc::Renderer::Renderer(RendererCreateInfo info)
             {},
             vk::Filter::eLinear, vk::Filter::eLinear,
             vk::SamplerMipmapMode::eLinear,
-            vk::SamplerAddressMode::eRepeat, vk::SamplerAddressMode::eRepeat,
-            vk::SamplerAddressMode::eRepeat
+            vk::SamplerAddressMode::eClampToBorder, vk::SamplerAddressMode::eClampToBorder,
+            vk::SamplerAddressMode::eClampToBorder
         ));
     }),
     swapchainImageViews([](ui32 i) {
@@ -388,21 +388,21 @@ void trc::Renderer::executeAntiAliasing(const DrawEnvironment& env, vk::CommandB
             cmdBuf, vk::PipelineBindPoint::eCompute,
             env.currentPipeline->getLayout(), 0 // set index
         );
-        cmdBuf.dispatch(size.width / 8, size.height / 8, 1);
+        cmdBuf.dispatch(size.width, size.height, 1);
 
         Pipeline::at(internal::Pipelines::eMorphologicalAntiAliasingCompute2).bind(cmdBuf);
         aaDescriptor.bindDescriptorSet(
             cmdBuf, vk::PipelineBindPoint::eCompute,
             env.currentPipeline->getLayout(), 0 // set index
         );
-        cmdBuf.dispatch(size.width / 8, size.height / 8, 1);
+        cmdBuf.dispatch(size.width, size.height, 1);
 
         Pipeline::at(internal::Pipelines::eMorphologicalAntiAliasingCompute3).bind(cmdBuf);
         aaDescriptor.bindDescriptorSet(
             cmdBuf, vk::PipelineBindPoint::eCompute,
             env.currentPipeline->getLayout(), 0 // set index
         );
-        cmdBuf.dispatch(size.width / 8, size.height / 8, 1);
+        cmdBuf.dispatch(size.width, size.height, 1);
 
         cmdBuf.pipelineBarrier(
             vk::PipelineStageFlagBits::eComputeShader,

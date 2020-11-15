@@ -1,13 +1,13 @@
 #version 460
 
-layout (local_size_x = 8, local_size_y = 8) in;
+layout (local_size_x = 1, local_size_y = 1) in;
 
 layout (set = 0, binding = 2, rg8) uniform image2D edgeTex;
 layout (set = 0, binding = 3) uniform sampler2D edgeSampler;
 layout (set = 0, binding = 4, rgba32f) uniform image2D areaTex;
 layout (set = 0, binding = 5) uniform sampler2D precomputedAreaSampler;
 
-#define MAX_SEARCH_DIST 10
+#define MAX_SEARCH_DIST 9
 
 vec2 resolution = vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
 vec2 pixelSize = 1.0 / resolution;
@@ -60,9 +60,9 @@ void main()
 #define NUM_DISTANCES 9
 #define AREA_SIZE (NUM_DISTANCES * 5)
 
-vec2 area(vec2 dist, float patternLeft, float patternRight)
+vec2 area(vec2 dist, float e1, float e2)
 {
-    vec2 pixCoord = NUM_DISTANCES * round(4.0 * vec2(patternLeft, patternRight)) + dist;
+    vec2 pixCoord = NUM_DISTANCES * round(4.0 * vec2(e1, e2)) + dist;
     vec2 texCoord = pixCoord / (AREA_SIZE - 1.0);
 
     texCoord.y = 1.0 - texCoord.y; // Because the texture has to be flipped in Vulkan
