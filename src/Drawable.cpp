@@ -108,8 +108,11 @@ auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine
 void trc::Drawable::enableTransparency()
 {
     isTransparent = true;
-    removeDrawFunctions();
-    updateDrawFunctions();
+    if (currentScene != nullptr)
+    {
+        removeDrawFunctions();
+        updateDrawFunctions();
+    }
 }
 
 void trc::Drawable::attachToScene(SceneBase& scene)
