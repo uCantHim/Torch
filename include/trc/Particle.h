@@ -86,6 +86,7 @@ namespace trc
         class Updater
         {
         public:
+            virtual ~Updater() = default;
             virtual void update(std::vector<ParticlePhysical>& particles,
                                 mat4* transformData,
                                 ParticleMaterial* materialData) = 0;
