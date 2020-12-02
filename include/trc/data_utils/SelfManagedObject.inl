@@ -10,7 +10,7 @@ template<typename ...ConstructArgs>
 auto SelfManagedObject<Derived>::createAtNextIndex(ConstructArgs&&... args)
     -> std::pair<ID, std::reference_wrapper<Derived>>
 {
-    ID nextIndex = objects.size();
+    ID nextIndex = getNextIndex();
     return { nextIndex, create(nextIndex, std::forward<ConstructArgs>(args)...) };
 }
 
@@ -20,7 +20,7 @@ auto SelfManagedObject<Derived>::createAtNextIndex(ConstructArgs&&... args)
     -> std::pair<ID, std::reference_wrapper<Class>>
     requires(std::is_polymorphic_v<Derived> && std::is_base_of_v<Derived, Class>)
 {
-    ID nextIndex = objects.size();
+    ID nextIndex = getNextIndex();
     return { nextIndex, create<Class>(nextIndex, std::forward<ConstructArgs>(args)...) };
 }
 
@@ -100,19 +100,33 @@ void SelfManagedObject<Derived>::destroy(ID index)
     }
 
     objects.at(index).reset();
+    freeIndices.push(index);
 }
 
 template<class Derived>
 void SelfManagedObject<Derived>::destroyAll()
 {
-    for (size_t i = 0; i < objects.size(); i ++)
-    {
+    for (size_t i = 0; i < objects.size(); i ++) {
         objects.at(i).reset();
     }
+    freeIndices = {};
 }
 
 template<class Derived>
 auto SelfManagedObject<Derived>::id() const noexcept -> ID
 {
     return myId;
+}
+
+template<class Derived>
+auto SelfManagedObject<Derived>::getNextIndex() noexcept -> ID
+{
+    if (freeIndices.empty()) {
+        return objects.size();
+    }
+    else {
+        auto result = freeIndices.top();
+        freeIndices.pop();
+        return result;
+    }
 }

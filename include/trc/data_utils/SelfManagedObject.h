@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include <optional>
+#include <stack>
 
 #include <vkb/VulkanBase.h>
 
@@ -92,6 +92,8 @@ namespace trc::data
     private:
         ID myId;
 
+        static auto getNextIndex() noexcept -> ID;
+        static inline std::stack<ID, std::vector<ID>> freeIndices;
         static inline IndexMap<IDType, std::unique_ptr<Derived>> objects;
 
         static inline vkb::StaticInit _init{
