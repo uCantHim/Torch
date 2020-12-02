@@ -12,18 +12,6 @@ namespace trc {
 
 namespace trc::internal
 {
-    enum RenderPasses : RenderPass::ID::Type
-    {
-        // Unused, index is allocated per renderer
-        //eDeferredPass = 0,
-
-        /** The index of the first shadow pass */
-        eShadowPassesBegin = 1,
-        eShadowPassesEnd = ShadowDescriptor::MAX_SHADOW_MAPS,
-
-        NUM_PASSES
-    };
-
     enum DeferredSubPasses
     {
         eGBufferPass = 0,

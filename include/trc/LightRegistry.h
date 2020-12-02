@@ -156,8 +156,6 @@ namespace trc
         void updateShadowMatrixBuffer();
         std::unordered_map<Light*, ShadowInfo> shadows;
         vkb::Buffer shadowMatrixBuffer;
-        ui32 nextFreeShadowPassIndex; // Initial value set in constructor because recursive include
-        std::vector<ui32> freeShadowPassIndices;
 
         std::unique_ptr<ShadowDescriptor> shadowDescriptor;
     };
