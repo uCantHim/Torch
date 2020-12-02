@@ -4,7 +4,6 @@
 
 #include "Types.h"
 #include "base/SceneBase.h"
-#include "base/SceneRegisterable.h"
 #include "Node.h"
 #include "LightRegistry.h"
 #include "SceneDescriptor.h"

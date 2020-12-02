@@ -1,7 +1,6 @@
 #pragma once
 
-#include "base/SceneRegisterable.h"
-#include "base/DrawableStatic.h"
+#include "base/SceneBase.h"
 #include "Node.h"
 #include "PipelineDefinitions.h"
 
