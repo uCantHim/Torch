@@ -6,7 +6,7 @@
 #include <vkb/event/Event.h>
 
 #include "TorchResources.h"
-#include "RenderStage.h"
+#include "RenderGraph.h"
 #include "RenderPassDeferred.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
@@ -44,11 +44,9 @@ namespace trc
 
         void drawFrame(Scene& scene, const Camera& camera);
 
-        void enableRenderStageType(RenderStageType::ID stageType, i32 priority);
-        void addRenderStage(RenderStageType::ID type, RenderStage& stage);
-        void removeRenderStage(RenderStageType::ID type, RenderStage& stage);
+        auto getRenderGraph() noexcept -> RenderGraph&;
+        auto getRenderGraph() const noexcept -> const RenderGraph&;
 
-        auto getDefaultDeferredStage() const noexcept -> const DeferredStage&;
         auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
 
         auto getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&;
@@ -126,19 +124,10 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Default render stages
-        DeferredStage defaultDeferredStage;
-
         // Default render passes
         RenderPass::ID defaultDeferredPass;
 
-        struct EnabledStageType
-        {
-            i32 priority;
-            RenderStageType::ID type;
-            std::vector<RenderStage*> stages;
-        };
-        std::vector<EnabledStageType> enabledStages;
+        RenderGraph renderGraph;
         std::vector<CommandCollector> commandCollectors;
 
         // Other things

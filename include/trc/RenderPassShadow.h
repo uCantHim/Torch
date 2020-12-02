@@ -3,7 +3,6 @@
 #include <vkb/Image.h>
 
 #include "Types.h"
-#include "RenderStage.h"
 #include "RenderPass.h"
 
 namespace trc

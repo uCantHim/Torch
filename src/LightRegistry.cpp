@@ -233,7 +233,7 @@ auto trc::LightRegistry::enableShadow(
         RenderPassShadow* newShadowPass = newEntry.shadowPasses.emplace_back(
             &RenderPass::create<RenderPassShadow>(newIndex, shadowResolution)
         );
-        shadowStage.addRenderPass(newShadowPass->id());
+        shadowPasses.push_back(newShadowPass->id());
     }
 
     newEntry.parentNode.update();
@@ -252,7 +252,7 @@ void trc::LightRegistry::disableShadow(Light& light)
     for (RenderPassShadow* shadowPass : it->second.shadowPasses)
     {
         const RenderPassShadow::ID id = shadowPass->id();
-        shadowStage.removeRenderPass(id);
+        shadowPasses.erase(std::remove(shadowPasses.begin(), shadowPasses.end(), id));
         freeShadowPassIndices.push_back(id);
         RenderPass::destroy(id);
     }
@@ -271,9 +271,10 @@ auto trc::LightRegistry::getShadowMatrixBuffer() const noexcept -> vk::Buffer
     return *shadowMatrixBuffer;
 }
 
-auto trc::LightRegistry::getShadowRenderStage() const noexcept -> const ShadowStage&
+auto trc::LightRegistry::getShadowRenderStage() const noexcept
+    -> const std::vector<RenderPass::ID>&
 {
-    return shadowStage;
+    return shadowPasses;
 }
 
 void trc::LightRegistry::updateLightBuffer()

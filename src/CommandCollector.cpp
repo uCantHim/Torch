@@ -22,7 +22,7 @@ trc::CommandCollector::CommandCollector()
 auto trc::CommandCollector::recordScene(
     SceneBase& scene,
     RenderStageType::ID stageType,
-    const RenderStage& stage
+    const std::vector<RenderPass::ID>& passes
     ) -> vk::CommandBuffer
 {
     auto cmdBuf = **commandBuffers;
@@ -30,7 +30,7 @@ auto trc::CommandCollector::recordScene(
     // Set up rendering
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    for (auto renderPassId : stage.getRenderPasses())
+    for (auto renderPassId : passes)
     {
         auto& renderPass = RenderPass::at(renderPassId);
         renderPass.begin(cmdBuf, vk::SubpassContents::eInline);

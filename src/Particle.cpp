@@ -78,7 +78,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     }
 
     sceneRegistrations.emplace_back(scene.registerDrawFunction(
-        RenderStageTypes::eDeferred,
+        RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eTransparencyPass,
         internal::Pipelines::eParticleDraw,
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)

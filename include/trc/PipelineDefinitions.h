@@ -4,6 +4,7 @@
 
 #include "Pipeline.h"
 #include "LightRegistry.h"
+#include "RenderPassShadow.h"
 
 namespace trc {
     class Renderer;

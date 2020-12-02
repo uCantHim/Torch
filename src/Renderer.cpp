@@ -28,10 +28,12 @@ trc::Renderer::Renderer(RendererCreateInfo info)
         vk::BufferUsageFlagBits::eVertexBuffer
     )
 {
-    enableRenderStageType(RenderStageTypes::eDeferred, 0);
-    enableRenderStageType(RenderStageTypes::eShadow, -10);
-    addRenderStage(RenderStageTypes::eDeferred, defaultDeferredStage);
-    defaultDeferredStage.addRenderPass(defaultDeferredPass);
+    // Specify basic graph layout
+    renderGraph.first(RenderStageTypes::getDeferred());
+    renderGraph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
+
+    // Add pass to deferred stage
+    renderGraph.addPass(RenderStageTypes::getDeferred(), defaultDeferredPass);
 
     createSemaphores();
 
@@ -73,6 +75,12 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto& device = vkb::getDevice();
     auto& swapchain = vkb::getSwapchain();
 
+    size_t size = 0;
+    renderGraph.foreachStage([&](auto&&, auto&&) { size++; });
+    while (size > commandCollectors.size()) {
+        commandCollectors.emplace_back();
+    }
+
     // Update
     scene.update();
     sceneDescriptorProvider.setWrappedProvider(scene.getDescriptor().getProvider());
@@ -84,7 +92,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
-        RenderStageTypes::eDeferred,
+        RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
         [&](auto&&, vk::CommandBuffer cmdBuf)
@@ -102,27 +110,27 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Collect commands
     std::vector<vk::CommandBuffer> cmdBufs;
-    for (ui32 i = 0; const auto& [_, type, stages] : enabledStages)
-    {
-        // Additionally render all passes in the current scene's light
-        // registry. This is not nice, but I wanted to move on to other
-        // things.
-        if (type == RenderStageTypes::eShadow)
+    int i{ 0 };
+    renderGraph.foreachStage(
+        [&, this](RenderStageType::ID stage, const std::vector<RenderPass::ID>& passes)
         {
-            cmdBufs.push_back(commandCollectors[i].recordScene(
-                scene, type,
-                scene.getLightRegistry().getShadowRenderStage()
-            ));
-            i++;
-        }
+            if (stage == RenderStageTypes::getShadow())
+            {
+                auto mergedPasses = scene.getLightRegistry().getShadowRenderStage();
+                mergedPasses.insert(mergedPasses.end(), passes.begin(), passes.end());
 
-        // Execute all render passes for this stage type
-        for (RenderStage* stage : stages)
-        {
-            cmdBufs.push_back(commandCollectors[i].recordScene(scene, type, *stage));
+                cmdBufs.push_back(commandCollectors.at(i).recordScene(
+                    scene, stage,
+                    mergedPasses
+                ));
+            }
+            else {
+                cmdBufs.push_back(commandCollectors.at(i).recordScene(scene, stage, passes));
+            }
+
             i++;
         }
-    }
+    );
 
     // Remove fullscreen quad function
     scene.unregisterDrawFunction(finalLightingFunc);
@@ -145,30 +153,14 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 
-void trc::Renderer::enableRenderStageType(RenderStageType::ID stageType, i32 priority)
+auto trc::Renderer::getRenderGraph() noexcept -> RenderGraph&
 {
-    auto it = enabledStages.begin();
-    while (it != enabledStages.end() && it->priority < priority) it++;
-
-    enabledStages.insert(it, EnabledStageType{ priority, stageType, {} });
-    commandCollectors.emplace_back();
+    return renderGraph;
 }
 
-void trc::Renderer::addRenderStage(RenderStageType::ID type, RenderStage& stage)
+auto trc::Renderer::getRenderGraph() const noexcept -> const RenderGraph&
 {
-    for (auto& stageType : enabledStages)
-    {
-        if (stageType.type == type)
-        {
-            stageType.stages.push_back(&stage);
-            break;
-        }
-    }
-}
-
-auto trc::Renderer::getDefaultDeferredStage() const noexcept -> const DeferredStage&
-{
-    return defaultDeferredStage;
+    return renderGraph;
 }
 
 auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDeferred&

@@ -7,26 +7,18 @@
 
 namespace trc
 {
-    enum RenderStageTypes : RenderStageType::ID::Type
+    struct RenderStageTypes
     {
-        eDeferred,
-        eShadow,
+        static auto getDeferred() -> RenderStageType::ID
+        {
+            static auto deferred = RenderStageType::createAtNextIndex(3).first;
+            return deferred;
+        }
 
-        NUM_STAGES
-    };
-
-    class DeferredStage : public RenderStage
-    {
-    public:
-        DeferredStage() : RenderStage(RenderStageType::at(RenderStageTypes::eDeferred)) {}
-    };
-
-    /**
-     * @brief A render stage that renders shadow maps
-     */
-    class ShadowStage : public RenderStage
-    {
-    public:
-        ShadowStage() : RenderStage(RenderStageType::at(RenderStageTypes::eShadow)) {}
+        static auto getShadow() -> RenderStageType::ID
+        {
+            static auto shadow = RenderStageType::createAtNextIndex(1).first;
+            return shadow;
+        }
     };
 } // namespace trc

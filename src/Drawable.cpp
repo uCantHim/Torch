@@ -183,13 +183,13 @@ void trc::Drawable::updateDrawFunctions()
     }
 
     deferredRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::eDeferred,
+        RenderStageTypes::getDeferred(),
         isTransparent ? DeferredSubPasses::eTransparencyPass : DeferredSubPasses::eGBufferPass,
         pipeline,
         std::move(func)
     );
     shadowRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::eShadow, 0, Pipelines::eDrawableShadow,
+        RenderStageTypes::getShadow(), 0, Pipelines::eDrawableShadow,
         [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
     );
 }

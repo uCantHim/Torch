@@ -61,11 +61,15 @@ int main()
     chainRoot.attachToScene(scene);
     scene.getRoot().attach(chainRoot);
 
-    while (true)
+    while (vkb::getSwapchain().isOpen())
     {
+        vkb::pollEvents();
+
         scene.updateTransforms();
         renderer->drawFrame(scene, camera);
     }
+
+    renderer.reset();
 
     return 0;
 }

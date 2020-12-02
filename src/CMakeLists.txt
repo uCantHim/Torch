@@ -20,9 +20,9 @@ target_sources(
         PipelineDefinitions.cpp
         Renderer.cpp
         RenderDataDescriptor.cpp
+        RenderGraph.cpp
         RenderPass.cpp
         RenderPassShadow.cpp
-        RenderStage.cpp
         RenderPassDeferred.cpp
         Rig.cpp
         Scene.cpp

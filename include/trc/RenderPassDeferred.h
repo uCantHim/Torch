@@ -4,7 +4,6 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 
-#include "RenderStage.h"
 #include "RenderPass.h"
 #include "utils/Camera.h"
 
