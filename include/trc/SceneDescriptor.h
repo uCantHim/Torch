@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vkb/StaticInit.h>
 #include <vkb/Buffer.h>
 
 #include "DescriptorProvider.h"

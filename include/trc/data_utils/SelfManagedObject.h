@@ -5,7 +5,7 @@
 #include <vector>
 #include <stack>
 
-#include <vkb/VulkanBase.h>
+#include <vkb/StaticInit.h>
 
 #include "IndexMap.h"
 #include "utils/TypesafeId.h"

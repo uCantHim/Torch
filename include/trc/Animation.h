@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include <vkb/VulkanBase.h>
+#include <vkb/StaticInit.h>
 #include <vkb/Buffer.h>
 
 #include "Types.h"
