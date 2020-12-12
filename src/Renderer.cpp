@@ -5,7 +5,6 @@
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
 #include "AssetRegistry.h"
-#include "Particle.h" // For particle pipeline creation
 #include "Scene.h"
 
 
@@ -51,18 +50,8 @@ trc::Renderer::Renderer(RendererCreateInfo info)
                 defaultDeferredPass,
                 vkb::getSwapchain(), maxFrags
             );
-            PipelineRegistry::recreateAll();
         }
     );
-
-    PipelineRegistry::registerPipeline([this]() { internal::makeAllDrawablePipelines(*this); });
-    PipelineRegistry::registerPipeline([this]() { internal::makeFinalLightingPipeline(*this); });
-    PipelineRegistry::registerPipeline([this]() {
-        internal::makeParticleDrawPipeline(*this);
-        internal::makeParticleShadowPipeline(*this);
-    });
-    // Create all pipelines for the first time
-    PipelineRegistry::recreateAll();
 }
 
 trc::Renderer::~Renderer()

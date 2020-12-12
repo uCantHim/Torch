@@ -1,12 +1,29 @@
 #include "Torch.h"
 
+#include "PipelineRegistry.h"
+#include "Particle.h" // For particle pipeline creation
+
 
 
 auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
 {
     vkb::vulkanInit();
 
-    return std::make_unique<Renderer>(info.rendererInfo);
+    auto renderer = std::make_unique<Renderer>(info.rendererInfo);
+
+    // Register required pipelines
+    auto& ref = *renderer;
+    PipelineRegistry::registerPipeline([&]() { internal::makeAllDrawablePipelines(ref); });
+    PipelineRegistry::registerPipeline([&]() { internal::makeFinalLightingPipeline(ref); });
+    PipelineRegistry::registerPipeline([&]() {
+        internal::makeParticleDrawPipeline(ref);
+        internal::makeParticleShadowPipeline(ref);
+    });
+
+    // Create all pipelines for the first time
+    PipelineRegistry::recreateAll();
+
+    return renderer;
 }
 
 void trc::terminate()
