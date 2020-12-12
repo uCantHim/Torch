@@ -4,6 +4,7 @@ vulkan_logs/
 .vscode/
 .ccls-cache/
 .clangd/
+.cache/
 compile_commands.json
 
 *.spv
