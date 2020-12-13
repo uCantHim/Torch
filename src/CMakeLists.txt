@@ -9,7 +9,9 @@ target_sources(
         DescriptorProvider.cpp
         Drawable.cpp
         DrawableInstanced.cpp
+        Font.cpp
         Geometry.cpp
+        Glyph.cpp
         Light.cpp
         LightRegistry.cpp
         Particle.cpp
