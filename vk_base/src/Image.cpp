@@ -78,7 +78,7 @@ void vkb::Image::changeLayout(
     currentLayout = to;
 }
 
-void vkb::Image::writeData(void* srcData, size_t srcSize, ImageSize destArea)
+void vkb::Image::writeData(const void* srcData, size_t srcSize, ImageSize destArea)
 {
     Buffer buf(
         srcSize, srcData,
