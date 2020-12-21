@@ -514,7 +514,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
         const auto& imageViews = renderPass.getAttachmentImageViews(imageIndex);
 
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
-            vk::DescriptorSetAllocateInfo(*descPool, *descLayout)
+            vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
         )[0]);
 
         // Write set
