@@ -8,19 +8,17 @@ int main()
 
     // Font stuff
 
-    trc::Font font{ "fonts/gil.ttf", 30 };
-    for (trc::CharCode c = 0; c < 300; c++) {
-        font.getGlyph(c);
-    }
+    trc::Font font{ "fonts/gil.ttf", 60 };
 
     trc::Text text(font);
     text.print("^Hello{ | }\n ~World_!$");
-    text.translate(-1.0f, 0.5f, 0.0f);
 
     // ---
 
     auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
+    camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+    camera.setDepthBounds(0.1f, 100.0f);
 
     text.attachToScene(*scene);
 

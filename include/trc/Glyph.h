@@ -42,6 +42,9 @@ namespace trc
 
     auto loadGlyphBitmap(FT_Face face, CharCode charCode) -> GlyphMeta;
 
+    /**
+     * @brief An image wrapper that can insert glyph images
+     */
     class GlyphMap
     {
     public:

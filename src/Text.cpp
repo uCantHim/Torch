@@ -103,9 +103,9 @@ void trc::Text::print(std::string_view str)
         if (c == '\n')
         {
 #ifdef TRC_FLIP_Y_PROJECTION
-            penPosition.y -= 1.0f;
+            penPosition.y -= font->getLineBreakAdvance();
 #else
-            penPosition.y += 1.0f;
+            penPosition.y += font->getLineBreakAdvance();
 #endif
             penPosition.x = 0.0f;
             continue;

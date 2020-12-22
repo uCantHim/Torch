@@ -16,6 +16,9 @@ namespace trc
         float advance;
     };
 
+    /**
+     * Contains a combined image sampler (format eR8Unorm) at binding 0
+     */
     class FontDescriptor
     {
     public:
@@ -47,12 +50,20 @@ namespace trc
          */
         auto getGlyph(CharCode charCode) -> Glyph;
 
+        /**
+         * @return float The amount of space between vertical lines of text
+         */
+        auto getLineBreakAdvance() const noexcept -> float;
+
         auto getDescriptor() const -> const FontDescriptor&;
 
     private:
         Face face;
         GlyphMap glyphMap;
         FontDescriptor descriptor;
+
+        // Meta
+        float lineBreakAdvance;
 
         std::unordered_map<CharCode, Glyph> glyphs;
     };

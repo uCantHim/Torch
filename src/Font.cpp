@@ -67,7 +67,9 @@ auto trc::FontDescriptor::getProvider() const -> const DescriptorProviderInterfa
 trc::Font::Font(const fs::path& path, ui32 fontSize)
     :
     face(path, fontSize),
-    descriptor(glyphMap)
+    descriptor(glyphMap),
+    lineBreakAdvance(static_cast<float>((*face.face)->size->metrics.height >> 6)
+                     / static_cast<float>(face.maxGlyphHeight))
 {
 }
 
@@ -86,6 +88,11 @@ auto trc::Font::getGlyph(CharCode charCode) -> Glyph
     }
 
     return it->second;
+}
+
+auto trc::Font::getLineBreakAdvance() const noexcept -> float
+{
+    return lineBreakAdvance;
 }
 
 auto trc::Font::getDescriptor() const -> const FontDescriptor&

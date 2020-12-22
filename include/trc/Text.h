@@ -12,6 +12,9 @@
 
 namespace trc
 {
+    /**
+     * @brief A 3D object that displays text
+     */
     class Text : public Node
     {
     public:
@@ -23,9 +26,8 @@ namespace trc
         void print(std::string_view str);
 
     private:
-        // A basic scaling applied to the text at all times. Ensures
-        // proper glyph resolution.
-        static constexpr float BASE_SCALING{ 0.1f };
+        // Scale the text down to get a crisp resolution
+        static constexpr float BASE_SCALING{ 0.075f };
 
         static inline std::unique_ptr<vkb::DeviceLocalBuffer> vertexBuffer;
         static vkb::StaticInit _init;
