@@ -89,7 +89,7 @@ namespace trc
          * @brief Get all pipelines used in a subpass
          */
         auto getPipelines(RenderStageType::ID renderStageType, SubPass::ID subPass) const noexcept
-            -> const std::unordered_set<Pipeline::ID>&;
+            -> const std::vector<Pipeline::ID>&;
 
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline

@@ -271,6 +271,13 @@ void makeDrawableTransparentPipeline(
     p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
     p.addStaticDescriptorSet(5, renderer.getShadowDescriptorProvider());
+
+    p.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(64, 0u,           vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
 }
 
 void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)
