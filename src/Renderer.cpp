@@ -50,6 +50,7 @@ trc::Renderer::Renderer(RendererCreateInfo info)
                 defaultDeferredPass,
                 vkb::getSwapchain(), maxFrags
             );
+            PipelineRegistry::recreateAll();
         }
     );
 }
