@@ -62,24 +62,7 @@ auto trc::loadGlyphBitmap(FT_Face face, CharCode charCode) -> GlyphMeta
     const ui32 bitmapHeight = glyphData.bitmap.rows;
 
     std::vector<ui8> data(bitmapWidth * bitmapHeight);
-    //memcpy(data.data(), glyphData.bitmap.buffer, data.size());
-    for (uint y = 0; y < bitmapHeight; y++)
-    {
-        const uint index = y * bitmapWidth;
-        // Seems to be equivalent to index. Idk why I did this.
-        //const uint bitmapIndex = ((bitmapHeight - 1) * bitmapWidth - (y * bitmapWidth));
-        for (uint x = 0; x < bitmapWidth; x++)
-        {
-            data[index + x] = glyphData.bitmap.buffer[index + x];
-        }
-    }
-
-    //std::cout << "Loaded glyph '" << char(charCode) << "':\n"
-    //    << "\tTotal size: " << normalSize.x * maxWidth << ", " << normalSize.y * maxHeight << "\n"
-    //    << "\tSize: " << glyph.size.x << ", " << glyph.size.y << "\n"
-    //    << "\tBearing: " << glyph.bearingY << "\n"
-    //    << "\tNegative bearing: " << glyph.negBearingY << "\n"
-    //    << "\tAdvance: " << glyph.advance << "\n\n";
+    memcpy(data.data(), glyphData.bitmap.buffer, data.size());
 
     const float maxWidth = (face->bbox.xMax >> 6) - (face->bbox.xMin >> 6);
     const float maxHeight = (face->bbox.yMax >> 6) - (face->bbox.yMin >> 6);
@@ -94,7 +77,7 @@ auto trc::loadGlyphBitmap(FT_Face face, CharCode charCode) -> GlyphMeta
         .size=normalSize,
         .bearingY=bearingY / maxHeight,
         .negBearingY=normalSize.y - bearingY / maxHeight,
-        .advance=static_cast<float>(glyphData.metrics.horiAdvance >> 6) / face->max_advance_width,
+        .advance=static_cast<float>(glyphData.metrics.horiAdvance >> 6) / maxWidth,
         .pixelData={ std::move(data), uvec2(bitmapWidth, bitmapHeight) }
     };
 }
@@ -108,7 +91,7 @@ trc::GlyphMap::GlyphMap()
         vk::ImageCreateInfo(
             {},
             vk::ImageType::e2D,
-            vk::Format::eR8Uint,
+            vk::Format::eR8Unorm,
             { MAP_WIDTH, MAP_HEIGHT, 1 },
             1, 1,
             vk::SampleCountFlagBits::e1,
@@ -118,6 +101,7 @@ trc::GlyphMap::GlyphMap()
         memoryPool->makeAllocator()
     )
 {
+    image.changeLayout(vkb::getDevice(), vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
@@ -131,6 +115,7 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
     {
         offset.x = 0;
         offset.y += maxHeight;
+        offset.y += 1; // A small spacing between glyphs to account for uv-inaccuracy
         maxHeight = 0;
     }
     if (offset.y + size.y > MAP_HEIGHT) {
@@ -149,6 +134,7 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
 
     maxHeight = glm::max(maxHeight, size.y);
     offset.x += size.x;
+    offset.x += 1; // A small spacing between glyphs to account for uv-inaccuracy
 
     return { ll, ur };
 }

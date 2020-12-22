@@ -2,6 +2,7 @@
 
 #include "PipelineRegistry.h"
 #include "Particle.h" // For particle pipeline creation
+#include "Text.h"
 
 
 
@@ -19,6 +20,7 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
         internal::makeParticleDrawPipeline(ref);
         internal::makeParticleShadowPipeline(ref);
     });
+    PipelineRegistry::registerPipeline([&]() { makeTextPipeline(ref); });
 
     // Create all pipelines for the first time
     PipelineRegistry::recreateAll();

@@ -29,6 +29,7 @@ target_sources(
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
+        Text.cpp
 
         Torch.cpp
 )

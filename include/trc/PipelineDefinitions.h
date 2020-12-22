@@ -40,6 +40,8 @@ namespace trc::internal
         eParticleDraw,
         eParticleShadow,
 
+        eText,
+
         NUM_PIPELINES
     };
 

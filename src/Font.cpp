@@ -18,7 +18,7 @@ vkb::StaticInit trc::FontDescriptor::_init{
 
 trc::FontDescriptor::FontDescriptor(GlyphMap& glyphMap)
     :
-    imageView(glyphMap.getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Uint)),
+    imageView(glyphMap.getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm)),
     descPool(
         vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
@@ -86,4 +86,9 @@ auto trc::Font::getGlyph(CharCode charCode) -> Glyph
     }
 
     return it->second;
+}
+
+auto trc::Font::getDescriptor() const -> const FontDescriptor&
+{
+    return descriptor;
 }
