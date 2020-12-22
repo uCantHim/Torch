@@ -1,6 +1,6 @@
 #include <trc/Torch.h>
-#include <trc/Font.h>
-#include <trc/Text.h>
+#include <trc/text/Font.h>
+#include <trc/text/Text.h>
 
 int main()
 {

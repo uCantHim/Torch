@@ -9,9 +9,7 @@ target_sources(
         DescriptorProvider.cpp
         Drawable.cpp
         DrawableInstanced.cpp
-        Font.cpp
         Geometry.cpp
-        Glyph.cpp
         Light.cpp
         LightRegistry.cpp
         Particle.cpp
@@ -29,13 +27,13 @@ target_sources(
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
-        Text.cpp
 
         Torch.cpp
 )
 
 add_subdirectory(base)
 add_subdirectory(utils)
+add_subdirectory(text)
 add_subdirectory(experimental)
 
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})
