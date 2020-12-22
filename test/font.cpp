@@ -15,6 +15,7 @@ int main()
 
     trc::Text text(font);
     text.print("^Hello{ | }\n ~World_!$");
+    text.translate(-1.0f, 0.5f, 0.0f);
 
     // ---
 

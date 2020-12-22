@@ -63,7 +63,7 @@ void trc::Text::attachToScene(SceneBase& scene)
             );
             cmdBuf.pushConstants<mat4>(
                 env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
-                0, glm::scale(mat4(1.0f), vec3(BASE_SCALING))
+                0, glm::scale(getGlobalTransform(), vec3(BASE_SCALING))
             );
 
             cmdBuf.bindVertexBuffers(0, { **vertexBuffer, *glyphBuffer }, { 0, 0 });
@@ -102,12 +102,31 @@ void trc::Text::print(std::string_view str)
     {
         if (c == '\n')
         {
+#ifdef TRC_FLIP_Y_PROJECTION
+            penPosition.y -= 1.0f;
+#else
             penPosition.y += 1.0f;
+#endif
             penPosition.x = 0.0f;
             continue;
         }
 
         auto g = font->getGlyph(c);
+
+        /**
+         * These calculations are a little bit weird because Torch flips
+         * the y-axis with the projection matrix. The glyph data, however,
+         * is calculated with the text origin in the upper-left corner.
+         */
+#ifdef TRC_FLIP_Y_PROJECTION
+        buf[i++] = LetterData{
+            .texCoordLL=vec2(g.texCoordLL.x, g.texCoordUR.y),
+            .texCoordUR=vec2(g.texCoordUR.x, g.texCoordLL.y),
+            .glyphOffset=penPosition,
+            .glyphSize=g.size,
+            .bearingY=g.size.y - g.bearingY
+        };
+#else
         buf[i++] = LetterData{
             .texCoordLL=g.texCoordLL,
             .texCoordUR=g.texCoordUR,
@@ -115,6 +134,7 @@ void trc::Text::print(std::string_view str)
             .glyphSize=g.size,
             .bearingY=g.bearingY
         };
+#endif
         penPosition.x += g.advance;
     }
     glyphBuffer.unmap();

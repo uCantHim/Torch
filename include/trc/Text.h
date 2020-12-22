@@ -8,10 +8,11 @@
 #include "Pipeline.h"
 #include "AssetIds.h"
 #include "base/SceneBase.h"
+#include "Node.h"
 
 namespace trc
 {
-    class Text
+    class Text : public Node
     {
     public:
         explicit Text(Font& font);
