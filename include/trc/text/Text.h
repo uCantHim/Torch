@@ -32,8 +32,7 @@ namespace trc
         static inline std::unique_ptr<vkb::DeviceLocalBuffer> vertexBuffer;
         static vkb::StaticInit _init;
 
-        SceneBase* scene{ nullptr };
-        SceneBase::RegistrationID drawRegistration;
+        SceneBase::UniqueRegistrationID drawRegistration;
 
         Font* font;
 

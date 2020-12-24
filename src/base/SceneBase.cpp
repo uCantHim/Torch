@@ -2,7 +2,20 @@
 
 
 
-trc::SceneBase::DrawableExecutionRegistration::DrawableExecutionRegistration(
+trc::UniqueDrawableRegistrationId::UniqueDrawableRegistrationId(
+    DrawableExecutionRegistration::ID id,
+    SceneBase& scene)
+    :
+    _id(new DrawableExecutionRegistration::ID{ id }, [scene=&scene](auto id) {
+        scene->unregisterDrawFunction(*id);
+        delete id;
+    })
+{
+}
+
+
+
+trc::DrawableExecutionRegistration::DrawableExecutionRegistration(
     std::unique_ptr<RegistrationIndex> indexStruct,
     DrawableFunction func)
     :
@@ -52,7 +65,7 @@ auto trc::SceneBase::registerDrawFunction(
     SubPass::ID subPass,
     Pipeline::ID pipeline,
     DrawableFunction commandBufferRecordingFunction
-    ) -> RegistrationID
+    ) -> MaybeUniqueRegistrationId
 {
     assert(RenderStageType::at(renderStageType).numSubPasses > subPass);
 
@@ -66,7 +79,7 @@ auto trc::SceneBase::registerDrawFunction(
         std::move(commandBufferRecordingFunction)
     );
 
-    return { reg };
+    return { reg, *this };
 }
 
 void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
@@ -85,6 +98,11 @@ void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
     if (vectorToRemoveFrom.empty()) {
         removePipeline(renderStageType, subPass, pipeline);
     }
+}
+
+void trc::SceneBase::unregisterDrawFunction(MaybeUniqueRegistrationId id)
+{
+    std::move(id).makeUnique();
 }
 
 void trc::SceneBase::tryInsertPipeline(

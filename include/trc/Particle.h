@@ -132,8 +132,7 @@ namespace trc
         vk::UniqueCommandBuffer transferCmdBuf;
 
         // Drawable registrations
-        SceneBase* currentScene{ nullptr };
-        std::vector<SceneBase::RegistrationID> sceneRegistrations;
+        SceneBase::UniqueRegistrationID drawRegistration;
 
         // Static resources
         static vkb::StaticInit _init;

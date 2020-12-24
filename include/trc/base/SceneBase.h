@@ -21,69 +21,119 @@ namespace trc
 
     using DrawableFunction = std::function<void(const DrawEnvironment&, vk::CommandBuffer)>;
 
-    class SceneBase
+    class SceneBase;
+
+    /**
+     * Registers one drawable with one command buffer recording function
+     * at a specific pipeline.
+     */
+    struct DrawableExecutionRegistration
     {
-    private:
-        /**
-         * Registers one drawable with one command buffer recording function
-         * at a specific pipeline.
-         */
-        struct DrawableExecutionRegistration
+        struct RegistrationIndex
         {
-            struct RegistrationIndex
-            {
-                RegistrationIndex(
-                    RenderStageType::ID stage,
-                    SubPass::ID sub,
-                    Pipeline::ID pipeline,
-                    ui32 i)
-                    :
-                    renderStageType(stage),
-                    subPass(sub),
-                    pipeline(pipeline),
-                    indexInRegistrationArray(i)
-                {}
+            RegistrationIndex(
+                RenderStageType::ID stage,
+                SubPass::ID sub,
+                Pipeline::ID pipeline,
+                ui32 i)
+                :
+                renderStageType(stage),
+                subPass(sub),
+                pipeline(pipeline),
+                indexInRegistrationArray(i)
+            {}
 
-                RenderStageType::ID renderStageType;
-                SubPass::ID subPass;
-                Pipeline::ID pipeline;
-                ui32 indexInRegistrationArray;
-            };
-
-            struct ID
-            {
-                ID() = default;
-
-            private:
-                friend SceneBase;
-
-                ID(DrawableExecutionRegistration& r)
-                    : regIndex(r.indexInRegistrationArray.get())
-                {}
-
-                RegistrationIndex* regIndex{ nullptr };
-            };
-
-            DrawableExecutionRegistration() = default;
-
-            /**
-             * @brief Construct a registration
-             *
-             * Leave the index empty, fill it in SceneBase::insertRegistration().
-             */
-            DrawableExecutionRegistration(
-                std::unique_ptr<RegistrationIndex> indexStruct,
-                DrawableFunction func);
-
-            // Allows me to modify pointer of all ID structs remotely
-            std::unique_ptr<RegistrationIndex> indexInRegistrationArray;
-
-            // Entry data
-            DrawableFunction recordFunction;
+            RenderStageType::ID renderStageType;
+            SubPass::ID subPass;
+            Pipeline::ID pipeline;
+            ui32 indexInRegistrationArray;
         };
 
+        struct ID
+        {
+            ID() = default;
+
+        private:
+            friend class SceneBase;
+
+            ID(DrawableExecutionRegistration& r)
+                : regIndex(r.indexInRegistrationArray.get())
+            {}
+
+            RegistrationIndex* regIndex{ nullptr };
+        };
+
+        DrawableExecutionRegistration() = default;
+
+        /**
+         * @brief Construct a registration
+         *
+         * Leave the index empty, fill it in SceneBase::insertRegistration().
+         */
+        DrawableExecutionRegistration(
+            std::unique_ptr<RegistrationIndex> indexStruct,
+            DrawableFunction func);
+
+        // Allows me to modify pointer of all ID structs remotely
+        std::unique_ptr<RegistrationIndex> indexInRegistrationArray;
+
+        // Entry data
+        DrawableFunction recordFunction;
+    };
+
+    /**
+     * @brief A unique wrapper for drawable registrations at a scene
+     *
+     * Automatically unregisters a referenced drawable registration ID from
+     * the scene.
+     */
+    struct UniqueDrawableRegistrationId
+    {
+    public:
+        UniqueDrawableRegistrationId() = default;
+        UniqueDrawableRegistrationId(DrawableExecutionRegistration::ID id,
+                                     SceneBase& scene);
+
+    private:
+        using Destructor = std::function<void(DrawableExecutionRegistration::ID*)>;
+        std::unique_ptr<DrawableExecutionRegistration::ID, Destructor> _id;
+    };
+
+    /**
+     * @brief Transient wrapper that can construct a unique ID on demand
+     *
+     * Purely used as an r-value. Can be converted to either a plain
+     * registration ID or a unique registration wrapper.
+     */
+    class MaybeUniqueRegistrationId
+    {
+    public:
+        MaybeUniqueRegistrationId(DrawableExecutionRegistration::ID id, SceneBase& scene)
+            : id(id), scene(&scene)
+        {}
+
+        inline operator DrawableExecutionRegistration::ID() && {
+            return id;
+        }
+
+        inline operator UniqueDrawableRegistrationId() && {
+            return { id, *scene };
+        }
+
+        inline auto makeUnique() && -> UniqueDrawableRegistrationId {
+            return { id, *scene };
+        }
+
+    private:
+        DrawableExecutionRegistration::ID id;
+        SceneBase* scene;
+    };
+
+    class SceneBase
+    {
     public:
         using RegistrationID = DrawableExecutionRegistration::ID;
+        using UniqueRegistrationID = UniqueDrawableRegistrationId;
 
         /**
          * @brief Get all pipelines used in a subpass
@@ -112,9 +162,10 @@ namespace trc
             SubPass::ID subpass,
             Pipeline::ID usedPipeline,
             DrawableFunction commandBufferRecordingFunction
-        ) -> RegistrationID;
+        ) -> MaybeUniqueRegistrationId;
 
         void unregisterDrawFunction(RegistrationID id);
+        void unregisterDrawFunction(MaybeUniqueRegistrationId id);
 
     private:
         template<typename T> using PerRenderStageType = data::IndexMap<RenderStageType::ID::Type, T>;

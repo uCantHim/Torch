@@ -73,11 +73,7 @@ trc::ParticleCollection::ParticleCollection(
 
 void trc::ParticleCollection::attachToScene(SceneBase& scene)
 {
-    if (currentScene != nullptr) {
-        removeFromScene();
-    }
-
-    sceneRegistrations.emplace_back(scene.registerDrawFunction(
+    drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eTransparencyPass,
         internal::Pipelines::eParticleDraw,
@@ -90,7 +86,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
                 { 0, 0, 0 });
             cmdBuf.draw(6, particles.size(), 0, 0);
         }
-    ));
+    ).makeUnique();
     //sceneRegistrations.emplace_back(scene.registerDrawFunction(
     //    internal::RenderStageTypes::eShadow,
     //    0,
@@ -110,16 +106,11 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     //        cmdBuf.draw(6, particles.size(), 0, 0);
     //    }
     //));
-    currentScene = &scene;
 }
 
 void trc::ParticleCollection::removeFromScene()
 {
-    assert(currentScene != nullptr);
-    for (const auto& reg : sceneRegistrations) {
-        currentScene->unregisterDrawFunction(reg);
-    }
-    sceneRegistrations.clear();
+    drawRegistration = {};
 }
 
 void trc::ParticleCollection::addParticle(const Particle& particle)

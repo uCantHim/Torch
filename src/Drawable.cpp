@@ -40,17 +40,15 @@ trc::Drawable::Drawable(Geometry& geo, MaterialID material, SceneBase& scene)
 trc::Drawable::Drawable(Drawable&& other) noexcept
     :
     Node(std::forward<Node>(other)),
+    deferredRegistration(std::move(other.deferredRegistration)),
+    shadowRegistration(std::move(other.shadowRegistration)),
     geo(other.geo),
     matIndex(other.matIndex),
     pickableId(other.pickableId),
     isTransparent(other.isTransparent),
     animEngine(std::move(other.animEngine))
 {
-    if (other.currentScene != nullptr)
-    {
-        attachToScene(*other.currentScene);
-        other.removeFromScene();
-    }
+    other.currentScene = nullptr;
     other.geo = nullptr;
     other.matIndex = 0;
     other.pickableId = NO_PICKABLE;
@@ -60,6 +58,10 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
 auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 {
     Node::operator=(std::forward<Node>(rhs));
+
+    rhs.currentScene = nullptr;
+    deferredRegistration = std::move(rhs.deferredRegistration);
+    shadowRegistration = std::move(rhs.shadowRegistration);
 
     geo = rhs.geo;
     rhs.geo = nullptr;
@@ -71,13 +73,6 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
     rhs.isTransparent = false;
 
     animEngine = std::move(rhs.animEngine);
-
-    removeFromScene();
-    if (rhs.currentScene != nullptr)
-    {
-        attachToScene(*rhs.currentScene);
-        rhs.removeFromScene();
-    }
 
     return *this;
 }
@@ -108,41 +103,25 @@ auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine
 void trc::Drawable::enableTransparency()
 {
     isTransparent = true;
-    if (currentScene != nullptr)
-    {
-        removeDrawFunctions();
-        updateDrawFunctions();
-    }
+    updateDrawFunctions();
 }
 
 void trc::Drawable::attachToScene(SceneBase& scene)
 {
-    removeFromScene();
-
     currentScene = &scene;
     updateDrawFunctions();
 }
 
 void trc::Drawable::removeFromScene()
 {
-    if (currentScene != nullptr)
-    {
-        removeDrawFunctions();
-        currentScene = nullptr;
-    }
-}
-
-void trc::Drawable::removeDrawFunctions()
-{
-    currentScene->unregisterDrawFunction(deferredRegistration);
-    currentScene->unregisterDrawFunction(shadowRegistration);
+    currentScene = nullptr;
+    deferredRegistration = {};
+    shadowRegistration = {};
 }
 
 void trc::Drawable::updateDrawFunctions()
 {
-    if (currentScene == nullptr || geo == nullptr) {
-        return;
-    }
+    if (currentScene == nullptr || geo == nullptr) return;
 
     DrawableFunction func;
     Pipeline::ID pipeline;

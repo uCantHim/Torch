@@ -45,12 +45,11 @@ trc::Text::Text(Font& font)
     :
     font(&font)
 {
-
 }
 
 void trc::Text::attachToScene(SceneBase& scene)
 {
-    scene.registerDrawFunction(
+    drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eTransparencyPass,
         internal::Pipelines::eText,
@@ -70,16 +69,11 @@ void trc::Text::attachToScene(SceneBase& scene)
             cmdBuf.draw(6, numLetters, 0, 0);
         }
     );
-    this->scene = &scene;
 }
 
 void trc::Text::removeFromScene()
 {
-    if (scene != nullptr)
-    {
-        scene->unregisterDrawFunction(drawRegistration);
-        scene = nullptr;
-    }
+    drawRegistration = {};
 }
 
 void trc::Text::print(std::string_view str)
@@ -157,14 +151,14 @@ void trc::makeTextPipeline(const Renderer& renderer)
         }
     );
 
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/text/static_text.vert.spv",
-                               TRC_SHADER_DIR"/text/static_text.frag.spv");
-
     // Can't access Text::LetterData struct from here
     constexpr size_t LETTER_DATA_SIZE = sizeof(vec2) * 4 + sizeof(float);
 
     auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+        .setProgram({
+            TRC_SHADER_DIR"/text/static_text.vert.spv",
+            TRC_SHADER_DIR"/text/static_text.frag.spv"
+        })
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(TextVertex), vk::VertexInputRate::eVertex),
             {
