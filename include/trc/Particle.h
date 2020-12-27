@@ -18,11 +18,12 @@
 namespace trc
 {
     class Renderer;
+    class RenderPassShadow;
 
     namespace internal
     {
-        extern void makeParticleDrawPipeline(const Renderer& renderer);
-        extern void makeParticleShadowPipeline(const Renderer& renderer);
+        extern void makeParticleDrawPipeline(vk::RenderPass deferredPass);
+        extern void makeParticleShadowPipeline(vk::RenderPass shadowPass);
     }
 
     struct ParticleMaterial

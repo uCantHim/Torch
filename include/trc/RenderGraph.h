@@ -19,7 +19,18 @@ namespace trc
         // TODO: Implement this
         // void parallel(RenderStageType::ID parentStage, RenderStageType::ID newStage);
 
+        /**
+         * @param RenderStageType::ID stage
+         *
+         * @return bool True if the graph contains the specified stage type
+         *              at least once.
+         */
         bool contains(RenderStageType::ID stage) const noexcept;
+
+        /**
+         * @return size_t The number of stages in the graph
+         */
+        auto size() const noexcept -> size_t;
 
         void addPass(RenderStageType::ID stage, RenderPass::ID newPass);
         void removePass(RenderStageType::ID stage, RenderPass::ID pass);

@@ -38,6 +38,11 @@ bool trc::RenderGraph::contains(RenderStageType::ID stage) const noexcept
     return stages.contains(stage);
 }
 
+auto trc::RenderGraph::size() const noexcept -> size_t
+{
+    return orderedStages.size();
+}
+
 void trc::RenderGraph::addPass(RenderStageType::ID stage, RenderPass::ID newPass)
 {
     auto it = stages.find(stage);

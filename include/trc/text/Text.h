@@ -50,5 +50,5 @@ namespace trc
 
     class Renderer;
 
-    void makeTextPipeline(const Renderer& renderer);
+    void makeTextPipeline(vk::RenderPass deferredPass);
 } // namespace trc

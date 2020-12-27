@@ -9,6 +9,64 @@
 
 
 
+/////////////////////////////////////
+//      Static Renderer data       //
+/////////////////////////////////////
+
+auto trc::SharedRendererData::getGlobalDataDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return globalRenderDataProvider;
+}
+
+auto trc::SharedRendererData::getDeferredPassDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return deferredDescriptorProvider;
+}
+
+auto trc::SharedRendererData::getShadowDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return shadowDescriptorProvider;
+}
+
+auto trc::SharedRendererData::getSceneDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return sceneDescriptorProvider;
+}
+
+void trc::SharedRendererData::init(
+    const DescriptorProviderInterface& globalDataDescriptor,
+    const DescriptorProviderInterface& deferredDescriptor)
+{
+    std::unique_lock lock{ renderLock };
+    globalRenderDataProvider = globalDataDescriptor;
+    deferredDescriptorProvider = deferredDescriptor;
+
+    globalRenderDataProvider.setDescLayout(globalDataDescriptor.getDescriptorSetLayout());
+    deferredDescriptorProvider.setDescLayout(deferredDescriptor.getDescriptorSetLayout());
+    shadowDescriptorProvider.setDescLayout(ShadowDescriptor::getDescLayout());
+    sceneDescriptorProvider.setDescLayout(SceneDescriptor::getDescLayout());
+}
+
+auto trc::SharedRendererData::beginRender(
+    const DescriptorProviderInterface& globalDataDescriptor,
+    const DescriptorProviderInterface& deferredDescriptor,
+    const DescriptorProviderInterface& shadowDescriptor,
+    const DescriptorProviderInterface& sceneDescriptor)
+    -> std::unique_lock<std::mutex>
+{
+    std::unique_lock lock{ renderLock };
+    globalRenderDataProvider = globalDataDescriptor;
+    deferredDescriptorProvider = deferredDescriptor;
+    shadowDescriptorProvider = shadowDescriptor;
+    sceneDescriptorProvider = sceneDescriptor;
+
+    return lock;
+}
+
 /////////////////////////
 //      Renderer       //
 /////////////////////////
@@ -27,6 +85,16 @@ trc::Renderer::Renderer(RendererCreateInfo info)
         vk::BufferUsageFlagBits::eVertexBuffer
     )
 {
+    [[maybe_unused]]
+    static bool _sharedDataInit = [this] {
+        // Initialize shared data
+        SharedRendererData::init(
+            globalDataDescriptor.getProvider(),
+            getDeferredRenderPass().getDescriptorProvider()
+        );
+        return true;
+    }();
+
     // Specify basic graph layout
     renderGraph.first(RenderStageTypes::getDeferred());
     renderGraph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
@@ -46,10 +114,15 @@ trc::Renderer::Renderer(RendererCreateInfo info)
     postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
         [this, maxFrags=info.maxTransparentFragsPerPixel](const auto&) {
             // Completely recreate the deferred renderpass
-            RenderPass::replace<RenderPassDeferred>(
+            auto& newPass = RenderPass::replace<RenderPassDeferred>(
                 defaultDeferredPass,
                 vkb::getSwapchain(), maxFrags
             );
+
+            // Update descriptors before recreating pipelines
+            SharedRendererData::deferredDescriptorProvider = newPass.getDescriptorProvider();
+            SharedRendererData::globalRenderDataProvider = globalDataDescriptor.getProvider();
+
             PipelineRegistry::recreateAll();
         }
     );
@@ -65,18 +138,22 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     auto& device = vkb::getDevice();
     auto& swapchain = vkb::getSwapchain();
 
-    size_t size = 0;
-    renderGraph.foreachStage([&](auto&&, auto&&) { size++; });
-    while (size > commandCollectors.size()) {
+    // Ensure that enough command collectors are available
+    while (renderGraph.size() > commandCollectors.size()) {
         commandCollectors.emplace_back();
     }
 
+    // Synchronize among multiple Renderer instances
+    // This is a lazy solution, but I finally wanted to continue living my life.
+    auto interRendererLock = SharedRendererData::beginRender(
+        globalDataDescriptor.getProvider(),
+        getDeferredRenderPass().getDescriptorProvider(),
+        scene.getLightRegistry().getDescriptor().getProvider(),
+        scene.getDescriptor().getProvider()
+    );
+
     // Update
     scene.update();
-    sceneDescriptorProvider.setWrappedProvider(scene.getDescriptor().getProvider());
-    shadowDescriptorProvider.setWrappedProvider(
-        scene.getLightRegistry().getDescriptor().getProvider()
-    );
     globalDataDescriptor.updateCameraMatrices(camera);
     globalDataDescriptor.updateSwapchainData(swapchain);
 
@@ -158,29 +235,6 @@ auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDe
     return static_cast<RenderPassDeferred&>(RenderPass::at(defaultDeferredPass));
 }
 
-auto trc::Renderer::getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&
-{
-    return globalDataDescriptor;
-}
-
-auto trc::Renderer::getGlobalDataDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return globalDataDescriptor.getProvider();
-}
-
-auto trc::Renderer::getSceneDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return sceneDescriptorProvider;
-}
-
-auto trc::Renderer::getShadowDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return shadowDescriptorProvider;
-}
-
 auto trc::Renderer::getMouseWorldPos(const Camera& camera) -> vec3
 {
     return getMouseWorldPosAtDepth(camera, getDeferredRenderPass().getMouseDepth());
@@ -222,49 +276,4 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }
-}
-
-
-
-///////////////////////////////////////////
-//      Descriptor provider wrapper      //
-///////////////////////////////////////////
-
-trc::Renderer::DescriptorProviderWrapper::DescriptorProviderWrapper(
-    vk::DescriptorSetLayout staticLayout)
-    :
-    descLayout(staticLayout)
-{
-}
-
-auto trc::Renderer::DescriptorProviderWrapper::getDescriptorSet() const noexcept
-    -> vk::DescriptorSet
-{
-    if (provider != nullptr) {
-        return provider->getDescriptorSet();
-    }
-    return {};
-}
-
-auto trc::Renderer::DescriptorProviderWrapper::getDescriptorSetLayout() const noexcept
-    -> vk::DescriptorSetLayout
-{
-    return descLayout;
-}
-
-void trc::Renderer::DescriptorProviderWrapper::bindDescriptorSet(
-    vk::CommandBuffer cmdBuf,
-    vk::PipelineBindPoint bindPoint,
-    vk::PipelineLayout pipelineLayout,
-    ui32 setIndex) const
-{
-    if (provider != nullptr) {
-        provider->bindDescriptorSet(cmdBuf, bindPoint, pipelineLayout, setIndex);
-    }
-}
-
-void trc::Renderer::DescriptorProviderWrapper::setWrappedProvider(
-    const DescriptorProviderInterface& wrapped) noexcept
-{
-    provider = &wrapped;
 }

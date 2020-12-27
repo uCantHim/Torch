@@ -7,6 +7,7 @@ target_sources(
         AssetRegistry.cpp
         CommandCollector.cpp
         DescriptorProvider.cpp
+        DescriptorProviderWrapper.cpp
         Drawable.cpp
         DrawableInstanced.cpp
         Geometry.cpp

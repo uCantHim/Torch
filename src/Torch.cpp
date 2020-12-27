@@ -13,14 +13,18 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
     auto renderer = std::make_unique<Renderer>(info.rendererInfo);
 
     // Register required pipelines
-    auto& ref = *renderer;
-    PipelineRegistry::registerPipeline([&]() { internal::makeAllDrawablePipelines(ref); });
-    PipelineRegistry::registerPipeline([&]() { internal::makeFinalLightingPipeline(ref); });
     PipelineRegistry::registerPipeline([&]() {
-        internal::makeParticleDrawPipeline(ref);
-        internal::makeParticleShadowPipeline(ref);
+        RenderPassShadow dummyPass{{ 1, 1 }};
+        internal::makeParticleShadowPipeline(*dummyPass);
     });
-    PipelineRegistry::registerPipeline([&]() { makeTextPipeline(ref); });
+    PipelineRegistry::registerPipeline([]() {
+        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+
+        internal::makeAllDrawablePipelines(*renderPass);
+        internal::makeFinalLightingPipeline(*renderPass);
+        internal::makeParticleDrawPipeline(*renderPass);
+        makeTextPipeline(*renderPass);
+    });
 
     // Create all pipelines for the first time
     PipelineRegistry::recreateAll();

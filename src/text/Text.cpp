@@ -136,15 +136,15 @@ void trc::Text::print(std::string_view str)
     numLetters = str.size();
 }
 
-void trc::makeTextPipeline(const Renderer& renderer)
+void trc::makeTextPipeline(vk::RenderPass deferredPass)
 {
     auto extent = vkb::getSwapchain().getImageExtent();
 
     auto layout = makePipelineLayout(
         {
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             FontDescriptor::getLayout(),
-            renderer.getDeferredRenderPass().getDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         {
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)),
@@ -187,11 +187,11 @@ void trc::makeTextPipeline(const Renderer& renderer)
         .build(
             *vkb::getDevice(),
             *layout,
-            *renderer.getDeferredRenderPass(),
+            deferredPass,
             internal::DeferredSubPasses::eTransparencyPass
         );
 
     auto& p = makeGraphicsPipeline(internal::Pipelines::eText, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(2, renderer.getDeferredRenderPass().getDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
 }
