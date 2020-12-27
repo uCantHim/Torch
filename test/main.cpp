@@ -17,6 +17,7 @@ using namespace trc::basic_types;
 #include <trc/DrawableInstanced.h>
 #include <trc/Particle.h>
 #include <trc/AssetUtils.h>
+#include <trc/text/Text.h>
 
 int main()
 {
@@ -257,6 +258,13 @@ int main()
             cube.rotateY(glm::radians(0.5f));
         }
     }).detach();
+
+
+    trc::Font font{ "fonts/gil.ttf", 64 };
+    trc::Text text{ font };
+    text.rotateY(0.5f);
+    text.print("Hello World!");
+    text.attachToScene(*scene);
 
 
 
