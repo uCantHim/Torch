@@ -329,6 +329,7 @@ void trc::internal::makeParticleDrawPipeline(vk::RenderPass deferredPass)
         .disableDepthWrite()
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(*vkb::getDevice(), *layout, deferredPass, DeferredSubPasses::eTransparencyPass);
 
     auto& p = makeGraphicsPipeline(

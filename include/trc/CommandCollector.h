@@ -18,6 +18,7 @@ namespace trc
          * Collect commands of a scene and write them to a primary command buffer
          */
         auto recordScene(SceneBase& scene,
+                         vk::Viewport viewport,
                          RenderStageType::ID stageType,
                          const std::vector<RenderPass::ID>& passes)
             -> vk::CommandBuffer;

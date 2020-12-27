@@ -184,6 +184,7 @@ void trc::makeTextPipeline(vk::RenderPass deferredPass)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::getDevice(),
             *layout,

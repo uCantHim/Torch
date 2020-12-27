@@ -85,6 +85,7 @@ namespace trc
          * Multiple renderers never actually render in parallel.
          */
         void drawFrame(Scene& scene, const Camera& camera);
+        void drawFrame(Scene& scene, const Camera& camera, vk::Viewport viewport);
 
         auto getRenderGraph() noexcept -> RenderGraph&;
         auto getRenderGraph() const noexcept -> const RenderGraph&;

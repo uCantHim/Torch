@@ -135,6 +135,12 @@ trc::Renderer::~Renderer()
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 {
+    auto extent = vkb::getSwapchain().getImageExtent();
+    drawFrame(scene, camera, vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f));
+}
+
+void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport viewport)
+{
     auto& device = vkb::getDevice();
     auto& swapchain = vkb::getSwapchain();
 
@@ -187,12 +193,15 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
                 mergedPasses.insert(mergedPasses.end(), passes.begin(), passes.end());
 
                 cmdBufs.push_back(commandCollectors.at(i).recordScene(
-                    scene, stage,
-                    mergedPasses
+                    scene, viewport,
+                    stage, mergedPasses
                 ));
             }
             else {
-                cmdBufs.push_back(commandCollectors.at(i).recordScene(scene, stage, passes));
+                cmdBufs.push_back(commandCollectors.at(i).recordScene(
+                    scene, viewport,
+                    stage, passes
+                ));
             }
 
             i++;

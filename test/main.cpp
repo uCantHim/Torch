@@ -23,7 +23,7 @@ int main()
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
     vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
-        camera.setAspect(float(extent.width) / float(extent.height));
+        camera.setAspect(float(extent.width * 0.5) / float(extent.height));
     });
 
     vkb::Keyboard::init();
@@ -269,7 +269,8 @@ int main()
 
         scene->updateTransforms();
 
-        renderer->drawFrame(*scene, camera);
+        vk::Viewport viewport{ 0.0f, 0.0f, 1280.0f, 1405.0f, 0.0f, 1.0f };
+        renderer->drawFrame(*scene, camera, viewport);
 
         vkb::pollEvents();
         frames++;

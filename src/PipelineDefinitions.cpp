@@ -168,6 +168,7 @@ void _makeDrawableDeferredPipeline(
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
@@ -256,6 +257,7 @@ void makeDrawableTransparentPipeline(
         .disableDepthWrite()
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
@@ -380,6 +382,7 @@ void makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
@@ -487,6 +490,7 @@ void makeFinalLightingPipeline(vk::RenderPass deferredPass)
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::getDevice(),
             *layout,

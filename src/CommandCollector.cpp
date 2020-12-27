@@ -21,6 +21,7 @@ trc::CommandCollector::CommandCollector()
 
 auto trc::CommandCollector::recordScene(
     SceneBase& scene,
+    vk::Viewport viewport,
     RenderStageType::ID stageType,
     const std::vector<RenderPass::ID>& passes
     ) -> vk::CommandBuffer
@@ -46,6 +47,7 @@ auto trc::CommandCollector::recordScene(
                 p.bind(cmdBuf);
                 p.bindStaticDescriptorSets(cmdBuf);
                 p.bindDefaultPushConstantValues(cmdBuf);
+                cmdBuf.setViewport(0, viewport);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(stageType, renderPassId, subPass, pipeline, cmdBuf);
