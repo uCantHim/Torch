@@ -193,13 +193,13 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
                 mergedPasses.insert(mergedPasses.end(), passes.begin(), passes.end());
 
                 cmdBufs.push_back(commandCollectors.at(i).recordScene(
-                    scene, viewport,
+                    scene, { viewport },
                     stage, mergedPasses
                 ));
             }
             else {
                 cmdBufs.push_back(commandCollectors.at(i).recordScene(
-                    scene, viewport,
+                    scene, { viewport },
                     stage, passes
                 ));
             }

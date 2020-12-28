@@ -262,7 +262,7 @@ int main()
 
     trc::Font font{ "fonts/gil.ttf", 64 };
     trc::Text text{ font };
-    text.rotateY(0.5f);
+    text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
     text.attachToScene(*scene);
 
