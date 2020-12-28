@@ -85,7 +85,7 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
             physicalDevice = std::make_unique<PhysicalDevice>(
                 device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
             );
-            device = std::make_unique<Device>(*physicalDevice);
+            device = std::make_unique<Device>(*physicalDevice, initInfo.deviceExtensions);
             swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
         }
         catch (const std::exception& err) {

@@ -19,10 +19,12 @@ namespace vkb
 
     struct VulkanInitInfo
     {
-        SurfaceCreateInfo surfaceCreateInfo;
+        SurfaceCreateInfo surfaceCreateInfo{};
 
         // Creates instance, device, and swapchain if true
         bool createResources{ true };
+        // Additional device extensions to load if createResources if true
+        std::vector<const char*> deviceExtensions{};
     };
 
     /**

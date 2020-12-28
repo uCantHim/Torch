@@ -113,6 +113,7 @@ static auto getRequiredDeviceExtensions() -> std::vector<const char*> {
     return std::vector<const char*> {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+        VK_NV_RAY_TRACING_EXTENSION_NAME,
     };
 }
 
@@ -163,7 +164,8 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
 }
 
 
-auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
+auto vkb::PhysicalDevice::createLogicalDevice(std::vector<const char*> deviceExtensions) const
+    -> vk::UniqueDevice
 {
     // Device queues
     std::vector<float> prios(100, 1.0f); // Enough prios for 100 queues per family
@@ -185,7 +187,8 @@ auto vkb::PhysicalDevice::createLogicalDevice() const -> vk::UniqueDevice
     const auto validationLayers = getRequiredValidationLayers();
 
     // Extensions
-    const auto deviceExtensions = getRequiredDeviceExtensions();
+    const auto requiredDevExt = getRequiredDeviceExtensions();
+    deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
 
     // Create the logical device
     vk::StructureChain chain

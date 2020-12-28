@@ -17,8 +17,12 @@ public:
      * @brief Create a logical device from a physical device
      *
      * Fully initializes the device.
+     *
+     * @param const PhysicalDevice& physDevice
+     * @param std::vector<const char*> deviceExtensions
      */
-    explicit Device(const PhysicalDevice& physDevice);
+    explicit Device(const PhysicalDevice& physDevice,
+                    std::vector<const char*> deviceExtensions = {});
     Device(Device&&) noexcept = default;
 
     Device(const Device&) = delete;
