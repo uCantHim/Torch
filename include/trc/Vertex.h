@@ -4,6 +4,8 @@
 
 namespace trc
 {
+    using VertexIndex = ui32;
+
     struct Vertex
     {
         Vertex() = default;

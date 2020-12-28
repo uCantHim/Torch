@@ -153,7 +153,8 @@ trc::Geometry::Geometry(const MeshData& data)
     :
     indexBuffer(data.indices, vk::BufferUsageFlagBits::eIndexBuffer, pool.makeAllocator()),
     vertexBuffer(data.vertices, vk::BufferUsageFlagBits::eVertexBuffer, pool.makeAllocator()),
-    numIndices(data.indices.size())
+    numIndices(data.indices.size()),
+    numVertices(data.vertices.size())
 {
 }
 
@@ -177,6 +178,11 @@ auto trc::Geometry::getVertexBuffer() const noexcept -> vk::Buffer
 auto trc::Geometry::getIndexCount() const noexcept -> ui32
 {
     return numIndices;
+}
+
+auto trc::Geometry::getVertexCount() const noexcept -> ui32
+{
+    return numVertices;
 }
 
 auto trc::Geometry::hasRig() const noexcept -> bool
