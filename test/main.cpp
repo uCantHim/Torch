@@ -22,16 +22,14 @@ using namespace trc::basic_types;
 int main()
 {
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
-    vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
+    vkb::on<vkb::SwapchainResizeEvent>([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
-        camera.setAspect(float(extent.width * 0.5) / float(extent.height));
+        camera.setAspect(float(extent.width) / float(extent.height));
     });
 
     vkb::Keyboard::init();
     vkb::Mouse::init();
 
-    vkb::VulkanInitInfo initInfo;
-    vkb::vulkanInit(initInfo);
     auto renderer = trc::init();
 
     // ------------------
@@ -277,8 +275,7 @@ int main()
 
         scene->updateTransforms();
 
-        vk::Viewport viewport{ 0.0f, 0.0f, 1280.0f, 1405.0f, 0.0f, 1.0f };
-        renderer->drawFrame(*scene, camera, viewport);
+        renderer->drawFrame(*scene, camera);
 
         vkb::pollEvents();
         frames++;

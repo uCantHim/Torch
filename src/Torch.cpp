@@ -8,7 +8,7 @@
 
 auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
 {
-    vkb::vulkanInit();
+    vkb::vulkanInit({ .deviceExtensions=info.deviceExtensions });
 
     auto renderer = std::make_unique<Renderer>(info.rendererInfo);
 
