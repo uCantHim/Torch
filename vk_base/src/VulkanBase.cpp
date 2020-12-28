@@ -94,7 +94,9 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
         }
     }
 
-    StaticInit::executeStaticInitializers();
+    if (!initInfo.delayStaticInitializerExecution) {
+        StaticInit::executeStaticInitializers();
+    }
 }
 
 void vkb::VulkanBase::destroy()

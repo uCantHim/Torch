@@ -23,6 +23,11 @@ namespace vkb
 
         // Creates instance, device, and swapchain if true
         bool createResources{ true };
+
+        // If true, static initializers won't be executed. Execute them
+        // manually via StaticInit::executeStaticInitializers.
+        bool delayStaticInitializerExecution{ false };
+
         // Additional device extensions to load if createResources if true
         std::vector<const char*> deviceExtensions{};
     };
