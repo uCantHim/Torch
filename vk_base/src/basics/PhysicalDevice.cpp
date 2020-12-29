@@ -177,18 +177,23 @@ auto vkb::PhysicalDevice::createLogicalDevice(std::vector<const char*> deviceExt
         );
     }
 
-    // Device features
-    auto deviceFeatures = physicalDevice.getFeatures2<
-        vk::PhysicalDeviceFeatures2,
-        vk::PhysicalDeviceDescriptorIndexingFeatures
-    >();
-
-    // Validation validationLayers
+    // Validation layers
     const auto validationLayers = getRequiredValidationLayers();
 
     // Extensions
     const auto requiredDevExt = getRequiredDeviceExtensions();
     deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
+
+    // Device features
+    auto deviceFeatures = physicalDevice.getFeatures2<
+        vk::PhysicalDeviceFeatures2,
+        vk::PhysicalDeviceDescriptorIndexingFeatures,
+
+        // For ray tracing:
+        vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
+        vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
+        vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
+    >();
 
     // Create the logical device
     vk::StructureChain chain
@@ -200,7 +205,12 @@ auto vkb::PhysicalDevice::createLogicalDevice(std::vector<const char*> deviceExt
             static_cast<uint32_t>(deviceExtensions.size()), deviceExtensions.data(),
             &deviceFeatures.get<vk::PhysicalDeviceFeatures2>().features
         ),
-        deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
+        deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>(),
+
+        // For ray tracing:
+        deviceFeatures.get<vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT>(),
+        deviceFeatures.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>(),
+        deviceFeatures.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>(),
     };
 
     return physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
