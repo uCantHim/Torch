@@ -82,6 +82,8 @@ namespace vkb
         static auto getDevice() noexcept         -> Device&;
         static auto getSwapchain() noexcept      -> Swapchain&;
 
+        static auto getDynamicLoader() noexcept  -> vk::DispatchLoaderDynamic;
+
     private:
         static inline bool isInitialized{ false };
 
@@ -89,6 +91,8 @@ namespace vkb
         static inline std::unique_ptr<PhysicalDevice> physicalDevice{ nullptr };
         static inline std::unique_ptr<Device>         device{ nullptr };
         static inline std::unique_ptr<Swapchain>      swapchain{ nullptr };
+
+        static inline vk::DispatchLoaderDynamic dynamicLoader;
     };
 
 
@@ -110,5 +114,15 @@ namespace vkb
     /** @brief Shortcut for vkb::VulkanBase::getSwapchain() */
     inline auto getSwapchain() noexcept -> Swapchain& {
         return VulkanBase::getSwapchain();
+    }
+
+    /** @brief Shortcut for vkb::VulkanBase::getDynamicLoader() */
+    inline auto getDynamicLoader() noexcept -> vk::DispatchLoaderDynamic {
+        return VulkanBase::getDynamicLoader();
+    }
+
+    /** @brief Shortcut for vkb::VulkanBase::getDynamicLoader() */
+    inline auto getDL() noexcept -> vk::DispatchLoaderDynamic {
+        return VulkanBase::getDynamicLoader();
     }
 } // namespace vkb

@@ -87,6 +87,8 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
             );
             device = std::make_unique<Device>(*physicalDevice, initInfo.deviceExtensions);
             swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
+
+            dynamicLoader = { **instance, vkGetInstanceProcAddr };
         }
         catch (const std::exception& err) {
             std::cout << "Exception during vulkan_base initialization: " << err.what() << "\n";
@@ -134,4 +136,9 @@ auto vkb::VulkanBase::getDevice() noexcept -> Device&
 auto vkb::VulkanBase::getSwapchain() noexcept -> Swapchain&
 {
     return *swapchain;
+}
+
+auto vkb::VulkanBase::getDynamicLoader() noexcept -> vk::DispatchLoaderDynamic
+{
+    return dynamicLoader;
 }
