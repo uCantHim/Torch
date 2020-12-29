@@ -151,8 +151,19 @@ auto trc::makeCubeGeo() -> MeshData
 
 trc::Geometry::Geometry(const MeshData& data)
     :
-    indexBuffer(data.indices, vk::BufferUsageFlagBits::eIndexBuffer, pool.makeAllocator()),
-    vertexBuffer(data.vertices, vk::BufferUsageFlagBits::eVertexBuffer, pool.makeAllocator()),
+    indexBuffer(
+        data.indices,
+        // Just always specify the shader device address flag in case I
+        // want to use the geometry for ray tracing. Doesn't hurt even if
+        // the feature is not enabled.
+        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        pool.makeAllocator()
+    ),
+    vertexBuffer(
+        data.vertices,
+        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        pool.makeAllocator()
+    ),
     numIndices(data.indices.size()),
     numVertices(data.vertices.size())
 {
