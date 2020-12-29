@@ -81,7 +81,7 @@ namespace trc
          */
         template<typename Func>
         inline auto operator>>(Func&& rhs) -> decltype(std::declval<Func>()(std::declval<T>()))
-            requires requires(T val, Func func) { func(val); }
+            requires requires(T val, Func func) { func(std::forward<T>(val)); }
         {
             return rhs(getValue());
         }
