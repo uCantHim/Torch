@@ -63,18 +63,189 @@ int main()
 
     auto layout = trc::makePipelineLayout(
         { *rayDescLayout, *outputImageDescLayout }, // Descriptor set layouts
-        {}  // Push constant ranges
+        {
+            // View and projection matrices
+            { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
+        }  // Push constant ranges
     );
-    auto rayPipeline = trc::rt::buildRayTracingPipeline()
-        .addGroup<trc::rt::RayShaderGroup::eGeneral>()
-            .addStage<trc::rt::RayShaderStage::eRaygen>("shaders/ray_tracing/raygen.rgen.spv")
+    //auto rayPipeline = trc::rt::buildRayTracingPipeline()
+    //    .addGroup<trc::rt::RayShaderGroup::eGeneral>()
+    //        .addStage<trc::rt::RayShaderStage::eRaygen>("shaders/ray_tracing/raygen.rgen.spv")
+    //    .build(16, *layout);
+
+    auto [rayPipeline, shaderBindingTable] = trc::rt::_buildRayTracingPipeline()
+        .addRaygenGroup("shaders/ray_tracing/raygen.rgen.spv")
+        .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
+        .addTrianglesHitGroup({}, "shaders/ray_tracing/anyhit.rahit.spv")
+        .addCallableGroup("shaders/ray_tracing/callable.rcall.spv")
         .build(16, *layout);
+
+
+    // --- Descriptor sets --- //
+
+    auto descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+        vkb::getSwapchain().getFrameCount() + 1,
+        std::vector<vk::DescriptorPoolSize>{
+            vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
+            vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1),
+        }
+    ));
+
+    std::vector<vk::UniqueImageView> imageViews;
+    vkb::FrameSpecificObject<vk::UniqueDescriptorSet> imageDescSets{
+        [&](ui32 imageIndex) -> vk::UniqueDescriptorSet
+        {
+            auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+                { *descPool, 1, &*outputImageDescLayout }
+            )[0]);
+
+            vk::Image image = vkb::getSwapchain().getImage(imageIndex);
+            vk::ImageView imageView = *imageViews.emplace_back(
+                vkb::getDevice()->createImageViewUnique(
+                    vk::ImageViewCreateInfo(
+                        {},
+                        image,
+                        vk::ImageViewType::e2D,
+                        vkb::getSwapchain().getImageFormat(),
+                        {}, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+                    )
+                )
+            );
+            vk::DescriptorImageInfo imageInfo(
+                {}, // sampler
+                *imageViews.emplace_back(vkb::getSwapchain().createImageView(imageIndex)),
+                vk::ImageLayout::eGeneral
+            );
+            vk::WriteDescriptorSet write(
+                *set, 0, 0, 1,
+                vk::DescriptorType::eStorageImage,
+                &imageInfo
+            );
+            vkb::getDevice()->updateDescriptorSets(write, {});
+
+            return set;
+        }
+    };
+
+    auto asDescSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+        { *descPool, 1, &*rayDescLayout }
+    )[0]);
+
+    auto tlasHandle = *tlas;
+    vk::StructureChain<
+        vk::WriteDescriptorSet,
+        vk::WriteDescriptorSetAccelerationStructureKHR
+    > asWriteChain{
+        vk::WriteDescriptorSet(
+            *asDescSet, 0, 0, 1,
+            vk::DescriptorType::eAccelerationStructureKHR,
+            {}, {}, {}
+        ),
+        vk::WriteDescriptorSetAccelerationStructureKHR(tlasHandle)
+    };
+    vkb::getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
+
+
+    class RayTracingRenderPass : public trc::RenderPass
+    {
+    public:
+        RayTracingRenderPass()
+            : RenderPass({}, 1)
+        {}
+
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override
+        {
+            std::cout << "Ray pass executed\n";
+        }
+
+        void end(vk::CommandBuffer cmdBuf) override {}
+    };
+
+    auto rayStageTypeId = trc::RenderStageType::createAtNextIndex(1).first;
+    auto rayPassId = trc::RenderPass::createAtNextIndex<RayTracingRenderPass>().first;
+    //auto rayPipelineId = trc::Pipeline::createAtNextIndex(
+    //    std::move(layout), std::move(rayPipeline),
+    //    vk::PipelineBindPoint::eRayTracingKHR
+    //).first;
+
+    renderer->getRenderGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
+    renderer->getRenderGraph().addPass(rayStageTypeId, rayPassId);
+
+    scene->registerDrawFunction(
+        rayStageTypeId, 0, trc::internal::Pipelines::eFinalLighting,
+        [
+            &,
+            pipeline=*rayPipeline,
+            &shaderBindingTable=shaderBindingTable
+        ](const trc::DrawEnvironment&, vk::CommandBuffer cmdBuf)
+        {
+            auto image = vkb::getSwapchain().getImage(vkb::getSwapchain().getCurrentFrame());
+
+            // Bring image into general layout
+            cmdBuf.pipelineBarrier(
+                vk::PipelineStageFlagBits::eAllCommands,
+                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+                vk::DependencyFlagBits::eByRegion,
+                {}, {},
+                vk::ImageMemoryBarrier(
+                    {},
+                    vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+                    vk::ImageLayout::eUndefined,
+                    vk::ImageLayout::eGeneral,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+                )
+            );
+
+            cmdBuf.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, pipeline);
+            cmdBuf.pushConstants<mat4>(
+                *layout, vk::ShaderStageFlagBits::eRaygenKHR,
+                0, { camera.getViewMatrix(), camera.getProjectionMatrix() }
+            );
+            cmdBuf.bindDescriptorSets(
+                vk::PipelineBindPoint::eRayTracingKHR, *layout,
+                0, { *asDescSet, **imageDescSets },
+                {} // Dynamic offsets
+            );
+
+            cmdBuf.traceRaysKHR(
+                shaderBindingTable.getShaderGroupAddress(0),
+                shaderBindingTable.getShaderGroupAddress(1),
+                shaderBindingTable.getShaderGroupAddress(2),
+                shaderBindingTable.getShaderGroupAddress(3),
+                vkb::getSwapchain().getImageExtent().width,
+                vkb::getSwapchain().getImageExtent().height,
+                1,
+                vkb::getDL()
+            );
+
+            // Bring image into present layout
+            cmdBuf.pipelineBarrier(
+                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+                vk::PipelineStageFlagBits::eAllCommands,
+                vk::DependencyFlagBits::eByRegion,
+                {}, {},
+                vk::ImageMemoryBarrier(
+                    vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+                    {},
+                    vk::ImageLayout::eGeneral,
+                    vk::ImageLayout::ePresentSrcKHR,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+                )
+            );
+        }
+    );
 
 
 
     while (vkb::getSwapchain().isOpen())
     {
         vkb::pollEvents();
+
         renderer->drawFrame(*scene, camera);
     }
 

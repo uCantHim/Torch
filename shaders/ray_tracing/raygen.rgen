@@ -1,16 +1,52 @@
 #version 460
-#extension GL_NV_ray_tracing : require
-
-#define gl_LaunchIDEXT gl_LaunchIDNV
-#define accelerationStructureEXT accelerationStructureNV
+#extension GL_EXT_ray_tracing : require
+//#extension GL_NV_ray_tracing : require
 
 layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
-
 layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
+
+layout (location = 0) rayPayloadEXT vec4 color;
+layout (location = 0) callableDataEXT vec4 callColor;
+
+layout (push_constant) uniform PushConstants
+{
+    mat4 viewMatrix;
+    mat4 projMatrix;
+};
 
 void main()
 {
-    vec4 color = vec4(0, 0, 0, 1);
+    const mat4 viewProjInverse = inverse(projMatrix * viewMatrix);
 
-    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), color);
+    const vec2 normalPixelCoord = vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy);
+    const vec4 pixelViewSpace = inverse(projMatrix) * vec4(normalPixelCoord, 1.0, 1.0);
+    const vec4 pixelWorldSpace = inverse(viewMatrix) * pixelViewSpace;
+
+    const vec4 cameraPos = viewMatrix[3];
+
+    vec4 rayOrigin = cameraPos;
+    vec4 rayDirection = normalize(pixelWorldSpace - cameraPos);
+    float minT = 0.001;
+    float maxT = 1000.0;
+
+    color = vec4(normalPixelCoord, 0, 1);
+
+    //traceRayEXT(
+    //    TLAS,             // top-level acceleration structure
+    //    0,                // ray flags
+    //    0xff,             // cull mask
+    //    0,                // sbt record offset
+    //    0,                // sbt record stride
+    //    0,                // miss index
+    //    rayOrigin.xyz,    // ray origin
+    //    minT,             // ray min range
+    //    rayDirection.xyz, // ray direction
+    //    maxT,             // ray max range
+    //    0                 // payload location
+    //);
+
+    callColor = vec4(1, 1, 1, 1);
+    executeCallableEXT(0, 0);
+
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), callColor);
 }
