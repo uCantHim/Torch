@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../RenderStage.h"
+#include "RenderStage.h"
 #include "AccelerationStructure.h"
+#include "RayPipeline.h"
 
 namespace trc::rt
 {

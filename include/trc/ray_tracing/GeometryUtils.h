@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../AssetIds.h"
-#include "../Node.h"
+#include "AssetIds.h"
+#include "Node.h"
 
 namespace trc::rt
 {

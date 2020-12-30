@@ -1,0 +1,16 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+
+#define gl_LaunchIDEXT gl_LaunchIDNV
+#define accelerationStructureEXT accelerationStructureNV
+
+layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
+
+layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
+
+void main()
+{
+    vec4 color = vec4(0, 0, 0, 1);
+
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), color);
+}

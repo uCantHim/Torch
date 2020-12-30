@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <trc/Torch.h>
+#include <trc/DescriptorSetUtils.h>
 #include <trc/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 using namespace trc::basic_types;
@@ -46,6 +47,29 @@ int main()
 
     TLAS tlas{ 30 };
     tlas.build(instanceBuffer);
+
+
+    // --- Ray Pipeline --- //
+
+    auto rayDescLayout = trc::buildDescriptorSetLayout()
+        .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
+                    vk::ShaderStageFlagBits::eRaygenKHR)
+        .buildUnique(vkb::getDevice());
+
+    auto outputImageDescLayout = trc::buildDescriptorSetLayout()
+        .addBinding(vk::DescriptorType::eStorageImage, 1,
+                    vk::ShaderStageFlagBits::eRaygenKHR)
+        .buildUnique(vkb::getDevice());
+
+    auto layout = trc::makePipelineLayout(
+        { *rayDescLayout, *outputImageDescLayout }, // Descriptor set layouts
+        {}  // Push constant ranges
+    );
+    auto rayPipeline = trc::rt::buildRayTracingPipeline()
+        .addGroup<trc::rt::RayShaderGroup::eGeneral>()
+            .addStage<trc::rt::RayShaderStage::eRaygen>("shaders/ray_tracing/raygen.rgen.spv")
+        .build(16, *layout);
+
 
 
     while (vkb::getSwapchain().isOpen())
