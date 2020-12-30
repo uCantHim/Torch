@@ -2,7 +2,8 @@
 
 #include "RenderStage.h"
 #include "AccelerationStructure.h"
-#include "RayPipeline.h"
+#include "RayPipelineBuilder.h"
+#include "ShaderBindingTable.h"
 
 namespace trc::rt
 {
