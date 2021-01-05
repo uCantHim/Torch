@@ -128,8 +128,8 @@ void trc::experimental::imgui::initImgui(
         device.executeGraphicsCommandBufferSynchronously(*oneTimeCmdBuf);
 
         // Create dummy pipeline
-        vkb::ShaderProgram program(TRC_SHADER_DIR"/empty_vert.spv",
-                                   TRC_SHADER_DIR"/empty_frag.spv");
+        vkb::ShaderProgram program(TRC_SHADER_DIR"/empty.vert.spv",
+                                   TRC_SHADER_DIR"/empty.frag.spv");
         auto layout = trc::makePipelineLayout({}, {});
         auto pipeline = trc::GraphicsPipelineBuilder::create()
             .setProgram(program)
