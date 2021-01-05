@@ -5,5 +5,7 @@ target_sources(torch
 
 
 if (${TORCH_INTEGRATE_IMGUI})
-    target_sources(torch PRIVATE ImguiIntegration.cpp)
+    target_sources(torch PRIVATE
+        ImguiIntegration.cpp
+    )
 endif ()

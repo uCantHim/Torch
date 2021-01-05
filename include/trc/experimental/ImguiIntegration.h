@@ -1,36 +1,73 @@
 #pragma once
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
-namespace ig = ImGui;
 #include <vkb/basics/Swapchain.h>
+#include <imgui.h>
 
-#include "Renderer.h"
-#include "Scene.h"
+#include "RenderStage.h"
+#include "RenderPass.h"
+#include "Pipeline.h"
 
-namespace trc::experimental
+namespace trc
+{
+    namespace ig = ImGui;
+
+    class Renderer;
+}
+
+namespace trc::experimental::imgui
 {
     extern auto getImguiRenderStageType() -> RenderStageType::ID;
     extern auto getImguiRenderPass(const vkb::Swapchain& swapchain) -> RenderPass::ID;
     extern auto getImguiPipeline() -> Pipeline::ID;
 
     /**
-     * @brief RenderPass for ImGui
+     * @brief Initialize imgui integration and set up renderer
+     *
+     * This function fully initializes imgui and sets up a renderer to use
+     * imgui. You can call beginImguiFrame() and use ImGui functionality
+     * after a call to this function.
+     *
+     * @param const vkb::Device& device
+     * @param Renderer& renderer Adds imgui stage and render pass to the
+     *                           renderer's graph.
+     * @param const vkb::Swapchain& swapchain
+     */
+    extern void initImgui(const vkb::Device& device,
+                          Renderer& renderer,
+                          const vkb::Swapchain& swapchain);
+
+    extern void terminateImgui();
+
+    /**
+     * @brief Begin ImGui command recording
+     *
+     * ImguiRenderPass calls this function before executing registered
+     * drawable functions if it hasn't been called before. If you only call
+     * imgui stuff via scene-registered drawable functions, you don't ever
+     * have to call this function.
+     *
+     * The Imgui frame ends when the ImguiRenderPass is executed. This
+     * happens in Renderer::drawFrame (after the deferred lighting pass).
+     *
+     * You can issue Imgui draw commands between the begin and end of the
+     * Imgui frame. If you want to, you can call beginImguiFrame() as the first
+     * thing in your main loop.
+     */
+    extern void beginImguiFrame();
+
+    /**
+     * @brief RenderPass for Imgui
      *
      * Renders to the swapchain, but after the final lighting pass. Meaning
      * it overwrites everything else.
-     *
-     * It is guaranteed that the ImGui render functions are executed after
-     * all other draw functions that are attached to this renderpass/-stage.
      */
-    class ImGuiRenderPass : public RenderPass
+    class ImguiRenderPass : public RenderPass
     {
     public:
         static constexpr ui32 NUM_SUBPASSES = 1;
 
-        explicit ImGuiRenderPass(const vkb::Swapchain& swapchain);
-        ~ImGuiRenderPass() override;
+        explicit ImguiRenderPass(const vkb::Swapchain& swapchain);
+        ~ImguiRenderPass() override;
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
@@ -49,101 +86,4 @@ namespace trc::experimental
         const vkb::Swapchain& swapchain;
         vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
     };
-
-    extern void initImgui(const vkb::Device& device,
-                          Renderer& renderer,
-                          const vkb::Swapchain& swapchain);
-
-    extern void terminateImgui();
-
-    /**
-     * @brief Begin ImGui command recording
-     *
-     * The ImGui frame ends when the ImGuiRenderPass is executed. This
-     * happens in Renderer::drawFrame.
-     *
-     * You can issue ImGui draw commands between the begin and end of the
-     * ImGui frame. If you want to, you can call beginImgui() as the first
-     * thing in your main loop.
-     */
-    extern void beginImgui();
-
-    template<typename T>
-    concept ImGuiDrawable = requires (T a) {
-        { a.drawImGui() };
-    };
-
-    /**
-     * @brief ImGui wrapper for a std::function
-     */
-    class ImGuiGenericElement
-    {
-    public:
-        explicit ImGuiGenericElement(std::function<void()> drawFunc)
-            : func(std::move(drawFunc)) {}
-
-        inline void drawImGui() {
-            func();
-        }
-
-    private:
-        std::function<void()> func;
-    };
-
-    /**
-     * @brief Root for any ImGuiDrawables
-     */
-    class ImGuiRoot
-    {
-    public:
-        template<ImGuiDrawable ElemType, typename... Args>
-        void registerElement(Args&&... args);
-
-        void draw();
-
-    private:
-        /**
-         * Any ImGuiDrawable. Satisfies ImGuiDrawable itself.
-         */
-        struct TypeErasedElement
-        {
-        public:
-            // Constructor from value
-            template<ImGuiDrawable T>
-            TypeErasedElement(T wrappedElem)
-                : element(std::make_unique<ElementWrapper<T>>(std::move(wrappedElem)))
-            {}
-
-            void drawImGui() {
-                element->drawImGui();
-            }
-
-        private:
-            struct ElementInterface {
-                virtual void drawImGui() = 0;
-            };
-
-            template<ImGuiDrawable T>
-            struct ElementWrapper : public ElementInterface
-            {
-                ElementWrapper(T wrappedElem) : wrapped(std::move(wrappedElem)) {}
-
-                void drawImGui() override {
-                    wrapped.drawImGui();
-                }
-                T wrapped;
-            };
-
-        private:
-            std::unique_ptr<ElementInterface> element;
-        };
-
-        std::vector<std::unique_ptr<TypeErasedElement>> elements;
-    };
-
-    template<ImGuiDrawable ElemType, typename... Args>
-    void ImGuiRoot::registerElement(Args&&... args)
-    {
-        elements.emplace_back(new TypeErasedElement(ElemType(std::forward<Args>(args)...)));
-    }
-} // namespace trc::experimental
+} // namespace trc::experimental::imgui
