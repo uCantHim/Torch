@@ -18,11 +18,38 @@ public:
      *
      * Fully initializes the device.
      *
+     * Use this constructor overload and pass only a physical device to
+     * create a device with default extensions and features.
+     *
+     * @tparam ...DeviceFeatures Additional device feature types that shall
+     *                           be enabled on the device.
+     *
      * @param const PhysicalDevice& physDevice
-     * @param std::vector<const char*> deviceExtensions
+     * @param std::vector<const char*> deviceExtensions Additional
+     *        extensions to load on the device.
+     * @param std::tuple<DeviceFeatures...> One cannot specify constructor
+     *        template arguments explicitly, so we have to use this proxy
+     *        parameter.
      */
+    template<typename... DeviceFeatures>
     explicit Device(const PhysicalDevice& physDevice,
-                    std::vector<const char*> deviceExtensions = {});
+                    std::vector<const char*> deviceExtensions = {},
+                    std::tuple<DeviceFeatures...> = {});
+
+    /**
+     * @brief Create a device with a pre-created logical device
+     *
+     * Use this overload for maximum control over logical device creation.
+     *
+     * The constructor also has an overload that accepts various
+     * configuration parameters and uses those to create a logical device.
+     *
+     * @param const PhysicalDevice& physDevice
+     * @param vk::UniqueDevice device MUST have been created from the
+     *                                physical device.
+     */
+    Device(const PhysicalDevice& physDevice, vk::UniqueDevice device);
+
     Device(Device&&) noexcept = default;
 
     Device(const Device&) = delete;
@@ -141,6 +168,9 @@ public:
      */
     void executeTransferCommandBufferSyncronously(vk::CommandBuffer cmdBuf) const;
 
+    template<std::invocable<vk::CommandBuffer> F>
+    void executeCommandsSynchronously(QueueType queueType, F func);
+
 private:
     const PhysicalDevice& physicalDevice;
     vk::UniqueDevice device;
@@ -154,5 +184,47 @@ private:
     vk::UniqueCommandPool transferPool;
     vk::Queue transferQueue;
 };
+
+
+
+template<typename... DeviceFeatures>
+Device::Device(
+    const PhysicalDevice& physDevice,
+    std::vector<const char*> deviceExtensions,
+    std::tuple<DeviceFeatures...>)
+    :
+    Device(
+        physDevice,
+        physDevice.createLogicalDevice<DeviceFeatures...>(std::move(deviceExtensions))
+    )
+{
+}
+
+template<std::invocable<vk::CommandBuffer> F>
+void Device::executeCommandsSynchronously(QueueType queueType, F func)
+{
+    auto pool = device->createCommandPoolUnique(vk::CommandPoolCreateInfo(
+        vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+        getQueueFamily(queueType)
+    ));
+
+    auto cmdBuf = std::move(device->allocateCommandBuffersUnique({
+        *pool,
+        vk::CommandBufferLevel::ePrimary,
+        1
+    })[0]);
+    cmdBuf->begin(vk::CommandBufferBeginInfo{});
+    func(*cmdBuf);
+    cmdBuf->end();
+
+    auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
+    getQueue(queueType, 0).submit(
+        vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf),
+        *fence
+    );
+    if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess) {
+        throw std::runtime_error("Failed to wait for fence in Device::executeCommandsSynchronously");
+    }
+}
 
 } // namespace vkb

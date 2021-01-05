@@ -59,10 +59,10 @@ namespace vkb
 
 vkb::Device::Device(
     const PhysicalDevice& physDevice,
-    std::vector<const char*> deviceExtensions)
+    vk::UniqueDevice logicalDevice)
     :
     physicalDevice(physDevice),
-    device(physDevice.createLogicalDevice(deviceExtensions)),
+    device(std::move(logicalDevice)),
     // Retrieve all queues from the device
     queuesPerFamily([&]() {
         std::vector<std::vector<vk::Queue>> result(physDevice.queueFamilies.size());

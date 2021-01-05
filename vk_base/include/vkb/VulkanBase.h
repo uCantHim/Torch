@@ -30,6 +30,9 @@ namespace vkb
 
         // Additional device extensions to load if createResources if true
         std::vector<const char*> deviceExtensions{};
+
+        // Enable ray tracing features on the device if true
+        bool enableRayTracingFeatures{ false };
     };
 
     /**

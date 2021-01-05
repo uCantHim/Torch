@@ -82,10 +82,28 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
             instance = std::make_unique<VulkanInstance>();
             Surface surface = createSurface(*instance, initInfo.surfaceCreateInfo);
 
+            // Find a physical device
             physicalDevice = std::make_unique<PhysicalDevice>(
                 device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
             );
-            device = std::make_unique<Device>(*physicalDevice, initInfo.deviceExtensions);
+
+            // Create the device
+            if (initInfo.enableRayTracingFeatures) {
+                device = std::make_unique<Device>(
+                    *physicalDevice,
+                    initInfo.deviceExtensions,
+                    std::tuple<
+                        vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
+                        vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
+                        vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
+                    >{}
+                );
+            }
+            else {
+                device = std::make_unique<Device>(*physicalDevice, initInfo.deviceExtensions);
+            }
+
+            // Create a swapchain
             swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
 
             dynamicLoader = { **instance, vkGetInstanceProcAddr };
