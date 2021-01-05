@@ -47,50 +47,54 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
     }
 
     // Calculate shader group addresses
-    for (ui32 i = 0; i < numShaderGroups; i++)
+    for (ui32 groupIndex = 0; ui32 numGroups : entrySizes)
     {
-        const ui32 stride = alignedGroupHandleSize * (i + 1);
-        if (stride > rayTracingProperties.maxShaderGroupStride)
+        const ui32 stride = alignedGroupHandleSize;
+        const ui32 size = alignedGroupHandleSize * numGroups;
+
+        // Copy all group addresses of current entry into aligned storage
+        std::vector<ui8> alignedHandleStorage(sbtSize);
+        for (ui32 i = 0; i < numGroups; i++)
         {
-            throw std::runtime_error(
-                "A shader group stride of " + std::to_string(stride)
-                + " exceeds the hardware's limit of "
-                + std::to_string(rayTracingProperties.maxShaderGroupStride)
+            memcpy(
+                alignedHandleStorage.data() + i * alignedGroupHandleSize,
+                shaderHandleStorage.data() + groupIndex * groupHandleSize,
+                groupHandleSize
             );
+            groupIndex++;
         }
 
         vkb::DeviceLocalBuffer buffer{
             device,
-            alignedGroupHandleSize,
-            shaderHandleStorage.data() + groupHandleSize * i,
+            alignedHandleStorage,
             vk::BufferUsageFlagBits::eShaderBindingTableKHR
             | vk::BufferUsageFlagBits::eShaderDeviceAddress,
             alloc
         };
         vk::StridedDeviceAddressRegionKHR address(
             device->getBufferAddress({ *buffer }),
-            stride,              // stride
-            alignedGroupHandleSize  // size
+            stride,  // stride
+            size     // size
         );
         entries.emplace_back(std::move(buffer), address);
     }
 }
 
-void trc::rt::ShaderBindingTable::setGroupAlias(
-    std::string shaderGroupName,
-    ui32 shaderGroupIndex)
+void trc::rt::ShaderBindingTable::setEntryAlias(
+    std::string entryName,
+    ui32 entryIndex)
 {
-    shaderGroupAliases.try_emplace(std::move(shaderGroupName), shaderGroupIndex);
+    entryAliases.try_emplace(std::move(entryName), entryIndex);
 }
 
-auto trc::rt::ShaderBindingTable::getShaderGroupAddress(ui32 shaderGroupIndex)
+auto trc::rt::ShaderBindingTable::getEntryAddress(ui32 entryIndex)
     -> vk::StridedDeviceAddressRegionKHR
 {
-    return entries.at(shaderGroupIndex).address;
+    return entries.at(entryIndex).address;
 }
 
-auto trc::rt::ShaderBindingTable::getShaderGroupAddress(const std::string& shaderGroupName)
+auto trc::rt::ShaderBindingTable::getEntryAddress(const std::string& entryName)
     -> vk::StridedDeviceAddressRegionKHR
 {
-    return getShaderGroupAddress(shaderGroupAliases.at(shaderGroupName));
+    return getEntryAddress(entryAliases.at(entryName));
 }

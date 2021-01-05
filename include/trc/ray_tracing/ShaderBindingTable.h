@@ -14,6 +14,21 @@ namespace trc::rt
     class ShaderBindingTable
     {
     public:
+        /**
+         * @brief Create a shader binding table
+         *
+         * Is is advised to pass an allocator to this constructor that
+         * allocates from a memory pool. Otherwise, each entry in the table
+         * gets its own allociation.
+         *
+         * @param const Device& device
+         * @param vk::Pipeline pipeline The ray tracing pipeline that this
+         *                              table refers to
+         * @param std::vector<ui32> entrySizes One ui32 for each entry in
+         *        the table. The number signals how many subsequent shader
+         *        groups are present in the entry.
+         * @param const vkb::DeviceMemoryAllocator& alloc
+         */
         ShaderBindingTable(
             const vkb::Device& device,
             vk::Pipeline pipeline,
@@ -22,18 +37,34 @@ namespace trc::rt
         );
 
         /**
-         * @brief Map a shader group index to a string
+         * @brief Map an entry index to a string
          */
-        void setGroupAlias(std::string shaderGroupName, ui32 shaderGroupIndex);
+        void setEntryAlias(std::string entryName, ui32 entryIndex);
 
-        auto getShaderGroupAddress(ui32 shaderGroupIndex) -> vk::StridedDeviceAddressRegionKHR;
-        auto getShaderGroupAddress(const std::string& shaderGroupName)
+        /**
+         * @return vk::StridedDeviceAddressRegionKHR The address of the
+         *         entryIndex-th entry in the shader binding table.
+         */
+        auto getEntryAddress(ui32 entryIndex) -> vk::StridedDeviceAddressRegionKHR;
+
+        /**
+         * @return vk::StridedDeviceAddressRegionKHR The address of an
+         *         entry with name entryName.
+         * @throw std::out_of_range if no entry has previously been mapped
+         *        to entryName.
+         */
+        auto getEntryAddress(const std::string& entryName)
             -> vk::StridedDeviceAddressRegionKHR;
 
     private:
+        // For shader group handle alignment
         static inline vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties;
         static vkb::StaticInit _init;
 
+        /**
+         * A single entry in the shader binding table has its own buffer
+         * and an address region specifying the address of the entry.
+         */
         struct GroupEntry
         {
             vkb::DeviceLocalBuffer buffer;
@@ -41,7 +72,6 @@ namespace trc::rt
         };
 
         std::vector<GroupEntry> entries;
-
-        std::unordered_map<std::string, ui32> shaderGroupAliases;
+        std::unordered_map<std::string, ui32> entryAliases;
     };
 } // namespace trc::rt

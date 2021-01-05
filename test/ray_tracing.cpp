@@ -113,15 +113,19 @@ int main()
         }
     );
 
+    constexpr ui32 maxRecursionDepth{ 16 };
     auto [rayPipeline, shaderBindingTable] = trc::rt::_buildRayTracingPipeline()
         .addRaygenGroup("shaders/ray_tracing/raygen.rgen.spv")
-        .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
+        .beginTableEntry()
+            .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
+            .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
+        .endTableEntry()
         .addTrianglesHitGroup(
             "shaders/ray_tracing/closesthit.rchit.spv",
             "shaders/ray_tracing/anyhit.rahit.spv"
         )
         .addCallableGroup("shaders/ray_tracing/callable.rcall.spv")
-        .build(16, *layout);
+        .build(vkb::getDevice(), maxRecursionDepth, *layout);
 
 
     // --- Descriptor sets --- //
@@ -250,10 +254,10 @@ int main()
             );
 
             cmdBuf.traceRaysKHR(
-                shaderBindingTable.getShaderGroupAddress(0),
-                shaderBindingTable.getShaderGroupAddress(1),
-                shaderBindingTable.getShaderGroupAddress(2),
-                shaderBindingTable.getShaderGroupAddress(3),
+                shaderBindingTable.getEntryAddress(0),
+                shaderBindingTable.getEntryAddress(1),
+                shaderBindingTable.getEntryAddress(2),
+                shaderBindingTable.getEntryAddress(3),
                 vkb::getSwapchain().getImageExtent().width,
                 vkb::getSwapchain().getImageExtent().height,
                 1,

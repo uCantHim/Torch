@@ -5,36 +5,46 @@
 
 
 
+auto trc::rt::RayTracingPipelineBuilder::beginTableEntry() -> Self&
+{
+    if (hasActiveEntry) {
+        endTableEntry();
+    }
+    hasActiveEntry = true;
+
+    return *this;
+}
+
+auto trc::rt::RayTracingPipelineBuilder::endTableEntry() -> Self&
+{
+    if (currentEntrySize != 0)
+    {
+        sbtEntries.push_back(currentEntrySize);
+        currentEntrySize = 0;
+    }
+    hasActiveEntry = false;
+
+    return *this;
+}
+
 auto trc::rt::RayTracingPipelineBuilder::addRaygenGroup(const fs::path& raygenPath) -> Self&
 {
+    auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eGeneral);
+
     auto newModule = addShaderModule(raygenPath);
     ui32 pipelineStageIndex = addPipelineStage(newModule, vk::ShaderStageFlagBits::eRaygenKHR);
-    shaderGroups.push_back(
-        vk::RayTracingShaderGroupCreateInfoKHR(
-            vk::RayTracingShaderGroupTypeKHR::eGeneral,
-            pipelineStageIndex,   // Index of general      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of closest hit  shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of any hit      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR  // Index of intersection shader in the pipelineStages array
-        )
-    );
+    group.generalShader = pipelineStageIndex;
 
     return *this;
 }
 
 auto trc::rt::RayTracingPipelineBuilder::addMissGroup(const fs::path& missPath) -> Self&
 {
+    auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eGeneral);
+
     auto newModule = addShaderModule(missPath);
     ui32 pipelineStageIndex = addPipelineStage(newModule, vk::ShaderStageFlagBits::eMissKHR);
-    shaderGroups.push_back(
-        vk::RayTracingShaderGroupCreateInfoKHR(
-            vk::RayTracingShaderGroupTypeKHR::eGeneral,
-            pipelineStageIndex,   // Index of general      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of closest hit  shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of any hit      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR  // Index of intersection shader in the pipelineStages array
-        )
-    );
+    group.generalShader = pipelineStageIndex;
 
     return *this;
 }
@@ -43,15 +53,7 @@ auto trc::rt::RayTracingPipelineBuilder::addTrianglesHitGroup(
     const fs::path& closestHitPath,
     const fs::path& anyHitPath) -> Self&
 {
-    auto& group = shaderGroups.emplace_back(
-        vk::RayTracingShaderGroupCreateInfoKHR(
-            vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup,
-            VK_SHADER_UNUSED_KHR, // Index of general      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of closest hit  shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of any hit      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR  // Index of intersection shader in the pipelineStages array
-        )
-    );
+    auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup);
 
     if (!closestHitPath.empty())
     {
@@ -78,15 +80,7 @@ auto trc::rt::RayTracingPipelineBuilder::addProceduralHitGroup(
     const fs::path& closestHitPath,
     const fs::path& anyHitPath) -> Self&
 {
-    auto& group = shaderGroups.emplace_back(
-        vk::RayTracingShaderGroupCreateInfoKHR(
-            vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup,
-            VK_SHADER_UNUSED_KHR, // Index of general      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of closest hit  shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of any hit      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR  // Index of intersection shader in the pipelineStages array
-        )
-    );
+    auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup);
 
     if (!intersectionPath.empty())
     {
@@ -118,28 +112,25 @@ auto trc::rt::RayTracingPipelineBuilder::addProceduralHitGroup(
 
 auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callablePath) -> Self&
 {
+    auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eGeneral);
+
     auto newModule = addShaderModule(callablePath);
     ui32 pipelineStageIndex = addPipelineStage(newModule, vk::ShaderStageFlagBits::eCallableKHR);
-    shaderGroups.push_back(
-        vk::RayTracingShaderGroupCreateInfoKHR(
-            vk::RayTracingShaderGroupTypeKHR::eGeneral,
-            pipelineStageIndex,   // Index of general      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of closest hit  shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR, // Index of any hit      shader in the pipelineStages array
-            VK_SHADER_UNUSED_KHR  // Index of intersection shader in the pipelineStages array
-        )
-    );
+    group.generalShader = pipelineStageIndex;
 
     return *this;
 }
 
-auto trc::rt::RayTracingPipelineBuilder::build(ui32 maxRecursionDepth, vk::PipelineLayout layout)
-    -> std::pair<UniquePipeline, ShaderBindingTable>
+auto trc::rt::RayTracingPipelineBuilder::build(
+    const vkb::Device& device,
+    ui32 maxRecursionDepth,
+    vk::PipelineLayout layout
+    ) -> std::pair<UniquePipeline, ShaderBindingTable>
 {
 	assert(pipelineStages.size() > 0);
 
     // Create pipeline
-	auto pipeline = vkb::getDevice()->createRayTracingPipelineKHRUnique(
+	auto pipeline = device->createRayTracingPipelineKHRUnique(
         {}, // optional deferred operation
 		{}, // cache
 		vk::RayTracingPipelineCreateInfoKHR(
@@ -155,16 +146,8 @@ auto trc::rt::RayTracingPipelineBuilder::build(ui32 maxRecursionDepth, vk::Pipel
 		nullptr, vkb::getDL()
 	).value;
 
-    // Create corresponding shader binding table
-    std::vector<ui32> tableEntries;
-    for (const auto& group : shaderGroups) {
-        tableEntries.push_back(1);
-    }
-    ShaderBindingTable sbt{
-        vkb::getDevice(),
-        *pipeline,
-        std::move(tableEntries)
-    };
+    // Create shader binding table
+    ShaderBindingTable sbt{ device, *pipeline, sbtEntries };
 
     return { std::move(pipeline), std::move(sbt) };
 }
@@ -190,4 +173,31 @@ auto trc::rt::RayTracingPipelineBuilder::addPipelineStage(
     );
 
     return pipelineStages.size() - 1;
+}
+
+auto trc::rt::RayTracingPipelineBuilder::addShaderGroup(vk::RayTracingShaderGroupTypeKHR type)
+    -> vk::RayTracingShaderGroupCreateInfoKHR&
+{
+    const bool isInEntry{ hasActiveEntry };
+    // Create a new entry just for this group if no entry is active
+    if (!isInEntry) {
+        beginTableEntry();
+    }
+
+    auto& result = shaderGroups.emplace_back(
+        vk::RayTracingShaderGroupCreateInfoKHR(
+            type,
+            VK_SHADER_UNUSED_KHR, // Index of general      shader in the pipelineStages array
+            VK_SHADER_UNUSED_KHR, // Index of closest hit  shader in the pipelineStages array
+            VK_SHADER_UNUSED_KHR, // Index of any hit      shader in the pipelineStages array
+            VK_SHADER_UNUSED_KHR  // Index of intersection shader in the pipelineStages array
+        )
+    );
+    currentEntrySize++;
+
+    if (!isInEntry) {
+        endTableEntry();
+    }
+
+    return result;
 }

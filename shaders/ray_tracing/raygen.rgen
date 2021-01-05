@@ -41,7 +41,7 @@ void main()
         0xff,         // cull mask
         0,            // sbt record offset
         0,            // sbt record stride
-        0,            // miss index
+        1,            // miss index
         rayOrigin,    // ray origin
         minT,         // ray min range
         rayDirection, // ray direction
