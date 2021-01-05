@@ -17,7 +17,10 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
         deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
     }
 
-    vkb::vulkanInit({ .deviceExtensions=deviceExtensions });
+    vkb::vulkanInit({
+        .deviceExtensions         = deviceExtensions,
+        .enableRayTracingFeatures = info.enableRayTracing
+    });
 
     auto renderer = std::make_unique<Renderer>(info.rendererInfo);
 
