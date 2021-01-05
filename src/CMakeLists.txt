@@ -7,6 +7,7 @@ target_sources(
         AssetRegistry.cpp
         CommandCollector.cpp
         DescriptorProvider.cpp
+        DescriptorProviderWrapper.cpp
         Drawable.cpp
         DrawableInstanced.cpp
         Geometry.cpp
@@ -20,9 +21,9 @@ target_sources(
         PipelineDefinitions.cpp
         Renderer.cpp
         RenderDataDescriptor.cpp
+        RenderGraph.cpp
         RenderPass.cpp
         RenderPassShadow.cpp
-        RenderStage.cpp
         RenderPassDeferred.cpp
         Rig.cpp
         Scene.cpp
@@ -33,6 +34,7 @@ target_sources(
 
 add_subdirectory(base)
 add_subdirectory(utils)
+add_subdirectory(text)
 add_subdirectory(experimental)
 
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})

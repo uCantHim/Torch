@@ -4,6 +4,19 @@
 
 
 
+trc::Camera::Camera()
+{
+#ifdef TRC_FLIP_Y_PROJECTION
+    static const GLM_CONSTEXPR mat4 axisFlipMatrix(
+        1, 0, 0, 0,
+        0, -1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    );
+    projectionMatrix *= axisFlipMatrix;
+#endif
+}
+
 trc::Camera::Camera(float aspect, float fovDegrees, float zNear, float zFar)
     :
     depthBounds({ zNear, zFar }),

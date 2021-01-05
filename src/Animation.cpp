@@ -131,7 +131,7 @@ void trc::Animation::createDescriptors()
     );
 
     descSet = std::move(vkb::getDevice()->allocateDescriptorSets(
-        vk::DescriptorSetAllocateInfo(descPool, descLayout)
+        vk::DescriptorSetAllocateInfo(descPool, 1, &descLayout)
     )[0]);
 
     // Write set

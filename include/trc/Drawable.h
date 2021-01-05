@@ -1,7 +1,6 @@
 #pragma once
 
-#include "base/SceneRegisterable.h"
-#include "base/DrawableStatic.h"
+#include "base/SceneBase.h"
 #include "Node.h"
 #include "PipelineDefinitions.h"
 
@@ -101,7 +100,6 @@ namespace trc
         void removeFromScene();
 
     private:
-        void removeDrawFunctions();
         void updateDrawFunctions();
 
         void prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout);
@@ -114,8 +112,8 @@ namespace trc
         void drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
         SceneBase* currentScene{ nullptr };
-        SceneBase::RegistrationID deferredRegistration;
-        SceneBase::RegistrationID shadowRegistration;
+        SceneBase::UniqueRegistrationID deferredRegistration;
+        SceneBase::UniqueRegistrationID shadowRegistration;
 
         Geometry* geo{ nullptr };
         MaterialID matIndex{ 0 };

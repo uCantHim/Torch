@@ -6,8 +6,6 @@
 #include <utils/Camera.h>
 
 #include "Types.h"
-#include "Node.h"
-#include "RenderPassShadow.h"
 
 namespace trc
 {

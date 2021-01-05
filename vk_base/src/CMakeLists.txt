@@ -10,5 +10,6 @@ target_sources(
         Logger.cpp
         MemoryPool.cpp
         ShaderProgram.cpp
+        StaticInit.cpp
         VulkanBase.cpp
 )

@@ -4,7 +4,6 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 
-#include "RenderStage.h"
 #include "RenderPass.h"
 #include "utils/Camera.h"
 
@@ -91,6 +90,18 @@ namespace trc
          *               read depth value if the cursor is not in a window.
          */
         auto getMouseDepth() const noexcept -> float;
+
+        /**
+         * @brief Make only a vk::RenderPass but don't allocate any
+         *        resources to back it up
+         *
+         * Can be used to make dummy render passes, for example during
+         * pipeline creation.
+         *
+         * @param const vkb::Swapchain& swapchain Used to determine the
+         *        image format of the color attachment.
+         */
+        static auto makeVkRenderPassInstance(const vkb::Swapchain& swapchain) -> vk::UniqueRenderPass;
 
     private:
         static inline float mouseDepthValue{ 0.0f };

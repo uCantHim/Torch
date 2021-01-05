@@ -29,91 +29,90 @@ namespace
 
 
 
-void makeAllDrawablePipelines(const Renderer& renderer)
+void makeAllDrawablePipelines(vk::RenderPass deferredPass)
 {
-    makeDrawableDeferredPipeline(renderer);
-    makeDrawableDeferredAnimatedPipeline(renderer);
-    makeDrawableDeferredPickablePipeline(renderer);
-    makeDrawableDeferredAnimatedAndPickablePipeline(renderer);
+    makeDrawableDeferredPipeline(deferredPass);
+    makeDrawableDeferredAnimatedPipeline(deferredPass);
+    makeDrawableDeferredPickablePipeline(deferredPass);
+    makeDrawableDeferredAnimatedAndPickablePipeline(deferredPass);
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferred,
         DrawablePipelineFeatureFlagBits::eNone,
-        renderer
+        deferredPass
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredPickable,
         DrawablePipelineFeatureFlagBits::ePickable,
-        renderer
+        deferredPass
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredAnimated,
         DrawablePipelineFeatureFlagBits::eAnimated,
-        renderer
+        deferredPass
     );
     makeDrawableTransparentPipeline(
         Pipelines::eDrawableTransparentDeferredAnimatedAndPickable,
         DrawablePipelineFeatureFlagBits::ePickable | DrawablePipelineFeatureFlagBits::eAnimated,
-        renderer
+        deferredPass
     );
-    makeInstancedDrawableDeferredPipeline(renderer);
+    makeInstancedDrawableDeferredPipeline(deferredPass);
 
     RenderPassShadow dummyPass({ 1, 1 });
-    makeDrawableShadowPipeline(renderer, dummyPass);
-    makeInstancedDrawableShadowPipeline(renderer, dummyPass);
+    makeDrawableShadowPipeline(dummyPass);
+    makeInstancedDrawableShadowPipeline(dummyPass);
 }
 
-void makeDrawableDeferredPipeline(const Renderer& renderer)
+void makeDrawableDeferredPipeline(vk::RenderPass deferredPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferred,
         DrawablePipelineFeatureFlagBits::eNone,
-        renderer
+        deferredPass
     );
 }
 
-void makeDrawableDeferredAnimatedPipeline(const Renderer& renderer)
+void makeDrawableDeferredAnimatedPipeline(vk::RenderPass deferredPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredAnimated,
         DrawablePipelineFeatureFlagBits::eAnimated,
-        renderer
+        deferredPass
     );
 }
 
-void makeDrawableDeferredPickablePipeline(const Renderer& renderer)
+void makeDrawableDeferredPickablePipeline(vk::RenderPass deferredPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredPickable,
         DrawablePipelineFeatureFlagBits::ePickable,
-        renderer
+        deferredPass
     );
 }
 
-void makeDrawableDeferredAnimatedAndPickablePipeline(const Renderer& renderer)
+void makeDrawableDeferredAnimatedAndPickablePipeline(vk::RenderPass deferredPass)
 {
     _makeDrawableDeferredPipeline(
         Pipelines::eDrawableDeferredAnimatedAndPickable,
         DrawablePipelineFeatureFlagBits::eAnimated | DrawablePipelineFeatureFlagBits::ePickable,
-        renderer
+        deferredPass
     );
 }
 
 void _makeDrawableDeferredPipeline(
     ui32 pipelineIndex,
     ui32 featureFlags,
-    const Renderer& renderer)
+    vk::RenderPass deferredPass)
 {
-    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
-            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getSceneDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
@@ -169,17 +168,18 @@ void _makeDrawableDeferredPipeline(
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            *renderPass, DeferredSubPasses::eGBufferPass
+            deferredPass, DeferredSubPasses::eGBufferPass
         );
 
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
+    p.addStaticDescriptorSet(2, Renderer::getSceneDescriptorProvider());
+    p.addStaticDescriptorSet(3, Renderer::getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
 
     p.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
@@ -193,21 +193,20 @@ void _makeDrawableDeferredPipeline(
 void makeDrawableTransparentPipeline(
     ui32 pipelineIndex,
     ui32 featureFlags,
-    const Renderer& renderer)
+    vk::RenderPass deferredPass)
 {
-    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
-            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getSceneDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
-            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getShadowDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange> {
             vk::PushConstantRange(
@@ -258,28 +257,36 @@ void makeDrawableTransparentPipeline(
         .disableDepthWrite()
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            *renderPass, DeferredSubPasses::eTransparencyPass
+            deferredPass, DeferredSubPasses::eTransparencyPass
         );
 
     auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
+    p.addStaticDescriptorSet(2, Renderer::getSceneDescriptorProvider());
+    p.addStaticDescriptorSet(3, Renderer::getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(4, Animation::getDescriptorProvider());
-    p.addStaticDescriptorSet(5, renderer.getShadowDescriptorProvider());
+    p.addStaticDescriptorSet(5, Renderer::getShadowDescriptorProvider());
+
+    p.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(64, 0u,           vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
+    p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
 }
 
-void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)
+void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getShadowDescriptorProvider().getDescriptorSetLayout(),
             Animation::getDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
@@ -315,23 +322,22 @@ void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& rend
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
     auto& p = makeGraphicsPipeline(Pipelines::eDrawableShadow, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, renderer.getShadowDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getShadowDescriptorProvider());
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
 }
 
-void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
+void makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass)
 {
-    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
-            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getSceneDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
             vk::PushConstantRange(
@@ -376,30 +382,31 @@ void makeInstancedDrawableDeferredPipeline(const Renderer& renderer)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            *renderPass, DeferredSubPasses::eGBufferPass
+            deferredPass, DeferredSubPasses::eGBufferPass
         );
 
     auto& p = makeGraphicsPipeline(
         Pipelines::eDrawableInstancedDeferred,
         std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, renderer.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(3, renderPass.getDescriptorProvider());
+    p.addStaticDescriptorSet(2, Renderer::getSceneDescriptorProvider());
+    p.addStaticDescriptorSet(3, Renderer::getDeferredPassDescriptorProvider());
 
     p.addDefaultPushConstantValue(84, NO_PICKABLE, vk::ShaderStageFlagBits::eFragment);
 }
 
-void makeInstancedDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass)
+void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
 {
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getShadowDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>
         {
@@ -446,12 +453,11 @@ void makeInstancedDrawableShadowPipeline(const Renderer& renderer, RenderPassSha
         Pipelines::eDrawableInstancedShadow,
         std::move(layout), std::move(pipeline)
     );
-    p.addStaticDescriptorSet(0, renderer.getShadowDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getShadowDescriptorProvider());
 }
 
-void makeFinalLightingPipeline(const Renderer& renderer)
+void makeFinalLightingPipeline(vk::RenderPass deferredPass)
 {
-    const auto& renderPass = renderer.getDeferredRenderPass();
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
 
@@ -459,11 +465,11 @@ void makeFinalLightingPipeline(const Renderer& renderer)
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
         {
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
-            renderer.getSceneDescriptorProvider().getDescriptorSetLayout(),
-            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getSceneDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getShadowDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
     );
@@ -484,18 +490,19 @@ void makeFinalLightingPipeline(const Renderer& renderer)
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::getDevice(),
             *layout,
-            *renderPass, DeferredSubPasses::eLightingPass
+            deferredPass, DeferredSubPasses::eLightingPass
         );
 
     auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, std::move(layout), std::move(pipeline));
-    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
-    p.addStaticDescriptorSet(3, renderer.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(4, renderer.getShadowDescriptorProvider());
+    p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
+    p.addStaticDescriptorSet(3, Renderer::getSceneDescriptorProvider());
+    p.addStaticDescriptorSet(4, Renderer::getShadowDescriptorProvider());
 }
 
 } // namespace trc::internal

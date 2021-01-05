@@ -138,7 +138,7 @@ void trc::AssetRegistry::createDescriptors()
     );
 
     // Create descriptor set
-    descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
+    descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, 1, &*descLayout })[0]);
 
     descriptorProvider.setDescriptorSet(*descSet);
     descriptorProvider.setDescriptorSetLayout(*descLayout);

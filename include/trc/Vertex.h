@@ -6,6 +6,10 @@ namespace trc
 {
     struct Vertex
     {
+        Vertex() = default;
+        Vertex(vec3 p, vec3 n, vec2 uv, vec3 t)
+            : position(p), normal(n), uv(uv), tangent(t) {}
+
         vec3 position;
         vec3 normal;
         vec2 uv;

@@ -5,26 +5,12 @@
 
 namespace trc
 {
-    using namespace internal;
-
     /**
      * @brief Purely component-based Drawable class
      */
-    class DrawableInstanced : public SceneRegisterable
-                            , public Node
-                            , public UsePipeline<DrawableInstanced,
-                                                 RenderStageTypes::eDeferred,
-                                                 DeferredSubPasses::eGBufferPass,
-                                                 Pipelines::eDrawableInstancedDeferred>
-                            , public UsePipeline<DrawableInstanced,
-                                                 RenderStageTypes::eShadow,
-                                                 0,
-                                                 Pipelines::eDrawableInstancedShadow>
+    class DrawableInstanced : public Node
     {
     public:
-        using Deferred = PipelineIndex<Pipelines::eDrawableInstancedDeferred>;
-        using Shadow = PipelineIndex<Pipelines::eDrawableInstancedShadow>;
-
         struct InstanceDescription
         {
             InstanceDescription() = default;
@@ -42,12 +28,12 @@ namespace trc
         DrawableInstanced(ui32 maxInstances, Geometry& geo);
         DrawableInstanced(ui32 maxInstances, Geometry& geo, SceneBase& scene);
 
+        void attachToScene(SceneBase& scene);
+        void removeFromScene();
+
         void setGeometry(Geometry& geo);
 
         void addInstance(InstanceDescription instance);
-
-        void recordCommandBuffer(Deferred, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
-        void recordCommandBuffer(Shadow, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
     private:
         Geometry* geometry;
@@ -55,5 +41,9 @@ namespace trc
         ui32 maxInstances;
         ui32 numInstances{ 0 };
         vkb::Buffer instanceDataBuffer;
+
+        SceneBase::RegistrationID deferredRegistration;
+        SceneBase::RegistrationID shadowRegistration;
+        SceneBase* scene{ nullptr };
     };
 } // namespace trc

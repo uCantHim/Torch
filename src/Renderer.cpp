@@ -5,10 +5,67 @@
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
 #include "AssetRegistry.h"
-#include "Particle.h" // For particle pipeline creation
 #include "Scene.h"
 
 
+
+/////////////////////////////////////
+//      Static Renderer data       //
+/////////////////////////////////////
+
+auto trc::SharedRendererData::getGlobalDataDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return globalRenderDataProvider;
+}
+
+auto trc::SharedRendererData::getDeferredPassDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return deferredDescriptorProvider;
+}
+
+auto trc::SharedRendererData::getShadowDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return shadowDescriptorProvider;
+}
+
+auto trc::SharedRendererData::getSceneDescriptorProvider() noexcept
+    -> const DescriptorProviderInterface&
+{
+    return sceneDescriptorProvider;
+}
+
+void trc::SharedRendererData::init(
+    const DescriptorProviderInterface& globalDataDescriptor,
+    const DescriptorProviderInterface& deferredDescriptor)
+{
+    std::unique_lock lock{ renderLock };
+    globalRenderDataProvider = globalDataDescriptor;
+    deferredDescriptorProvider = deferredDescriptor;
+
+    globalRenderDataProvider.setDescLayout(globalDataDescriptor.getDescriptorSetLayout());
+    deferredDescriptorProvider.setDescLayout(deferredDescriptor.getDescriptorSetLayout());
+    shadowDescriptorProvider.setDescLayout(ShadowDescriptor::getDescLayout());
+    sceneDescriptorProvider.setDescLayout(SceneDescriptor::getDescLayout());
+}
+
+auto trc::SharedRendererData::beginRender(
+    const DescriptorProviderInterface& globalDataDescriptor,
+    const DescriptorProviderInterface& deferredDescriptor,
+    const DescriptorProviderInterface& shadowDescriptor,
+    const DescriptorProviderInterface& sceneDescriptor)
+    -> std::unique_lock<std::mutex>
+{
+    std::unique_lock lock{ renderLock };
+    globalRenderDataProvider = globalDataDescriptor;
+    deferredDescriptorProvider = deferredDescriptor;
+    shadowDescriptorProvider = shadowDescriptor;
+    sceneDescriptorProvider = sceneDescriptor;
+
+    return lock;
+}
 
 /////////////////////////
 //      Renderer       //
@@ -28,10 +85,22 @@ trc::Renderer::Renderer(RendererCreateInfo info)
         vk::BufferUsageFlagBits::eVertexBuffer
     )
 {
-    enableRenderStageType(RenderStageTypes::eDeferred, 0);
-    enableRenderStageType(RenderStageTypes::eShadow, -10);
-    addRenderStage(RenderStageTypes::eDeferred, defaultDeferredStage);
-    defaultDeferredStage.addRenderPass(defaultDeferredPass);
+    [[maybe_unused]]
+    static bool _sharedDataInit = [this] {
+        // Initialize shared data
+        SharedRendererData::init(
+            globalDataDescriptor.getProvider(),
+            getDeferredRenderPass().getDescriptorProvider()
+        );
+        return true;
+    }();
+
+    // Specify basic graph layout
+    renderGraph.first(RenderStageTypes::getDeferred());
+    renderGraph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
+
+    // Add pass to deferred stage
+    renderGraph.addPass(RenderStageTypes::getDeferred(), defaultDeferredPass);
 
     createSemaphores();
 
@@ -45,22 +114,18 @@ trc::Renderer::Renderer(RendererCreateInfo info)
     postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
         [this, maxFrags=info.maxTransparentFragsPerPixel](const auto&) {
             // Completely recreate the deferred renderpass
-            RenderPass::replace<RenderPassDeferred>(
+            auto& newPass = RenderPass::replace<RenderPassDeferred>(
                 defaultDeferredPass,
                 vkb::getSwapchain(), maxFrags
             );
+
+            // Update descriptors before recreating pipelines
+            SharedRendererData::deferredDescriptorProvider = newPass.getDescriptorProvider();
+            SharedRendererData::globalRenderDataProvider = globalDataDescriptor.getProvider();
+
             PipelineRegistry::recreateAll();
         }
     );
-
-    PipelineRegistry::registerPipeline([this]() { internal::makeAllDrawablePipelines(*this); });
-    PipelineRegistry::registerPipeline([this]() { internal::makeFinalLightingPipeline(*this); });
-    PipelineRegistry::registerPipeline([this]() {
-        internal::makeParticleDrawPipeline(*this);
-        internal::makeParticleShadowPipeline(*this);
-    });
-    // Create all pipelines for the first time
-    PipelineRegistry::recreateAll();
 }
 
 trc::Renderer::~Renderer()
@@ -70,21 +135,37 @@ trc::Renderer::~Renderer()
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 {
+    auto extent = vkb::getSwapchain().getImageExtent();
+    drawFrame(scene, camera, vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f));
+}
+
+void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport viewport)
+{
     auto& device = vkb::getDevice();
     auto& swapchain = vkb::getSwapchain();
 
+    // Ensure that enough command collectors are available
+    while (renderGraph.size() > commandCollectors.size()) {
+        commandCollectors.emplace_back();
+    }
+
+    // Synchronize among multiple Renderer instances
+    // This is a lazy solution, but I finally wanted to continue living my life.
+    auto interRendererLock = SharedRendererData::beginRender(
+        globalDataDescriptor.getProvider(),
+        getDeferredRenderPass().getDescriptorProvider(),
+        scene.getLightRegistry().getDescriptor().getProvider(),
+        scene.getDescriptor().getProvider()
+    );
+
     // Update
     scene.update();
-    sceneDescriptorProvider.setWrappedProvider(scene.getDescriptor().getProvider());
-    shadowDescriptorProvider.setWrappedProvider(
-        scene.getLightRegistry().getDescriptor().getProvider()
-    );
     globalDataDescriptor.updateCameraMatrices(camera);
     globalDataDescriptor.updateSwapchainData(swapchain);
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
-        RenderStageTypes::eDeferred,
+        RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eLightingPass,
         internal::Pipelines::eFinalLighting,
         [&](auto&&, vk::CommandBuffer cmdBuf)
@@ -102,27 +183,30 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 
     // Collect commands
     std::vector<vk::CommandBuffer> cmdBufs;
-    for (ui32 i = 0; const auto& [_, type, stages] : enabledStages)
-    {
-        // Additionally render all passes in the current scene's light
-        // registry. This is not nice, but I wanted to move on to other
-        // things.
-        if (type == RenderStageTypes::eShadow)
+    int i{ 0 };
+    renderGraph.foreachStage(
+        [&, this](RenderStageType::ID stage, const std::vector<RenderPass::ID>& passes)
         {
-            cmdBufs.push_back(commandCollectors[i].recordScene(
-                scene, type,
-                scene.getLightRegistry().getShadowRenderStage()
-            ));
-            i++;
-        }
+            if (stage == RenderStageTypes::getShadow())
+            {
+                auto mergedPasses = scene.getLightRegistry().getShadowRenderStage();
+                mergedPasses.insert(mergedPasses.end(), passes.begin(), passes.end());
 
-        // Execute all render passes for this stage type
-        for (RenderStage* stage : stages)
-        {
-            cmdBufs.push_back(commandCollectors[i].recordScene(scene, type, *stage));
+                cmdBufs.push_back(commandCollectors.at(i).recordScene(
+                    scene, { viewport },
+                    stage, mergedPasses
+                ));
+            }
+            else {
+                cmdBufs.push_back(commandCollectors.at(i).recordScene(
+                    scene, { viewport },
+                    stage, passes
+                ));
+            }
+
             i++;
         }
-    }
+    );
 
     // Remove fullscreen quad function
     scene.unregisterDrawFunction(finalLightingFunc);
@@ -145,58 +229,19 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
     swapchain.presentImage(image, presentQueue, { **renderFinishedSemaphores });
 }
 
-void trc::Renderer::enableRenderStageType(RenderStageType::ID stageType, i32 priority)
+auto trc::Renderer::getRenderGraph() noexcept -> RenderGraph&
 {
-    auto it = enabledStages.begin();
-    while (it != enabledStages.end() && it->priority < priority) it++;
-
-    enabledStages.insert(it, EnabledStageType{ priority, stageType, {} });
-    commandCollectors.emplace_back();
+    return renderGraph;
 }
 
-void trc::Renderer::addRenderStage(RenderStageType::ID type, RenderStage& stage)
+auto trc::Renderer::getRenderGraph() const noexcept -> const RenderGraph&
 {
-    for (auto& stageType : enabledStages)
-    {
-        if (stageType.type == type)
-        {
-            stageType.stages.push_back(&stage);
-            break;
-        }
-    }
-}
-
-auto trc::Renderer::getDefaultDeferredStage() const noexcept -> const DeferredStage&
-{
-    return defaultDeferredStage;
+    return renderGraph;
 }
 
 auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDeferred&
 {
     return static_cast<RenderPassDeferred&>(RenderPass::at(defaultDeferredPass));
-}
-
-auto trc::Renderer::getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&
-{
-    return globalDataDescriptor;
-}
-
-auto trc::Renderer::getGlobalDataDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return globalDataDescriptor.getProvider();
-}
-
-auto trc::Renderer::getSceneDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return sceneDescriptorProvider;
-}
-
-auto trc::Renderer::getShadowDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return shadowDescriptorProvider;
 }
 
 auto trc::Renderer::getMouseWorldPos(const Camera& camera) -> vec3
@@ -240,49 +285,4 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }
-}
-
-
-
-///////////////////////////////////////////
-//      Descriptor provider wrapper      //
-///////////////////////////////////////////
-
-trc::Renderer::DescriptorProviderWrapper::DescriptorProviderWrapper(
-    vk::DescriptorSetLayout staticLayout)
-    :
-    descLayout(staticLayout)
-{
-}
-
-auto trc::Renderer::DescriptorProviderWrapper::getDescriptorSet() const noexcept
-    -> vk::DescriptorSet
-{
-    if (provider != nullptr) {
-        return provider->getDescriptorSet();
-    }
-    return {};
-}
-
-auto trc::Renderer::DescriptorProviderWrapper::getDescriptorSetLayout() const noexcept
-    -> vk::DescriptorSetLayout
-{
-    return descLayout;
-}
-
-void trc::Renderer::DescriptorProviderWrapper::bindDescriptorSet(
-    vk::CommandBuffer cmdBuf,
-    vk::PipelineBindPoint bindPoint,
-    vk::PipelineLayout pipelineLayout,
-    ui32 setIndex) const
-{
-    if (provider != nullptr) {
-        provider->bindDescriptorSet(cmdBuf, bindPoint, pipelineLayout, setIndex);
-    }
-}
-
-void trc::Renderer::DescriptorProviderWrapper::setWrappedProvider(
-    const DescriptorProviderInterface& wrapped) noexcept
-{
-    provider = &wrapped;
 }

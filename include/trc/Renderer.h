@@ -1,17 +1,20 @@
 #pragma once
 
+#include <mutex>
+
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/FrameSpecificObject.h>
 #include <vkb/event/Event.h>
 
 #include "TorchResources.h"
-#include "RenderStage.h"
+#include "RenderGraph.h"
 #include "RenderPassDeferred.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
 #include "LightRegistry.h" // For shadow descriptor
 #include "CommandCollector.h"
+#include "DescriptorProviderWrapper.h"
 
 namespace trc
 {
@@ -25,9 +28,45 @@ namespace trc
     };
 
     /**
-     * @brief The heart of the Torch rendering pipeline
+     * @brief Static data shared among all Renderer instances
      */
-    class Renderer
+    class SharedRendererData
+    {
+    public:
+        static auto getGlobalDataDescriptorProvider() noexcept
+            -> const DescriptorProviderInterface&;
+        static auto getDeferredPassDescriptorProvider() noexcept
+            -> const DescriptorProviderInterface&;
+        static auto getShadowDescriptorProvider() noexcept
+            -> const DescriptorProviderInterface&;
+        static auto getSceneDescriptorProvider() noexcept
+            -> const DescriptorProviderInterface&;
+
+    protected:
+        static void init(const DescriptorProviderInterface& globalDataDescriptor,
+                         const DescriptorProviderInterface& deferredDescriptor);
+
+        static auto beginRender(const DescriptorProviderInterface& globalDataDescriptor,
+                                const DescriptorProviderInterface& deferredDescriptor,
+                                const DescriptorProviderInterface& shadowDescriptor,
+                                const DescriptorProviderInterface& sceneDescriptor)
+            -> std::unique_lock<std::mutex>;
+
+        static inline DescriptorProviderWrapper globalRenderDataProvider;
+        static inline DescriptorProviderWrapper deferredDescriptorProvider;
+
+    private:
+        static inline std::mutex renderLock;
+        static inline DescriptorProviderWrapper shadowDescriptorProvider;
+        static inline DescriptorProviderWrapper sceneDescriptorProvider;
+    };
+
+    /**
+     * @brief The heart of the Torch rendering pipeline
+     *
+     * Controls the rendering process based on a RenderGraph.
+     */
+    class Renderer : public SharedRendererData
     {
     public:
         explicit Renderer(RendererCreateInfo info = {});
@@ -42,19 +81,16 @@ namespace trc
         Renderer& operator=(const Renderer&) = delete;
         Renderer& operator=(Renderer&&) = delete;
 
+        /**
+         * Multiple renderers never actually render in parallel.
+         */
         void drawFrame(Scene& scene, const Camera& camera);
+        void drawFrame(Scene& scene, const Camera& camera, vk::Viewport viewport);
 
-        void enableRenderStageType(RenderStageType::ID stageType, i32 priority);
-        void addRenderStage(RenderStageType::ID type, RenderStage& stage);
-        void removeRenderStage(RenderStageType::ID type, RenderStage& stage);
+        auto getRenderGraph() noexcept -> RenderGraph&;
+        auto getRenderGraph() const noexcept -> const RenderGraph&;
 
-        auto getDefaultDeferredStage() const noexcept -> const DeferredStage&;
         auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
-
-        auto getGlobalDataDescriptor() const noexcept -> const GlobalRenderDataDescriptor&;
-        auto getGlobalDataDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
-        auto getSceneDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
-        auto getShadowDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
         /**
          * This function basically just calls glm::unProject.
@@ -81,41 +117,6 @@ namespace trc
         auto getMouseWorldPosAtDepth(const Camera& camera, float depth) -> vec3;
 
     private:
-        /**
-         * @brief Wraps the scene descriptors into one object
-         *
-         * This is necessary because only a single descriptor provider is
-         * stored in pipelines but the provider changes when the scene
-         * changes. I can store a single DescriptorProviderWrapper object
-         * in all pipelines and switch the scene descriptor every frame
-         * transprently to the outside.
-         */
-        class DescriptorProviderWrapper : public DescriptorProviderInterface
-        {
-        public:
-            explicit DescriptorProviderWrapper(vk::DescriptorSetLayout staticLayout);
-
-            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
-            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
-            void bindDescriptorSet(
-                vk::CommandBuffer cmdBuf,
-                vk::PipelineBindPoint bindPoint,
-                vk::PipelineLayout pipelineLayout,
-                ui32 setIndex
-            ) const override;
-
-            void setWrappedProvider(const DescriptorProviderInterface& wrapped) noexcept;
-
-        private:
-            // TODO: Maybe use null descriptor here instead of
-            // `if (nullptr)` every time
-            const DescriptorProviderInterface* provider{ nullptr };
-
-            // Use a static descriptor set layout. All exchangable
-            // providers must have one.
-            const vk::DescriptorSetLayout descLayout;
-        };
-
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> postRecreateListener;
 
@@ -126,28 +127,14 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Default render stages
-        DeferredStage defaultDeferredStage;
-
         // Default render passes
         RenderPass::ID defaultDeferredPass;
 
-        struct EnabledStageType
-        {
-            i32 priority;
-            RenderStageType::ID type;
-            std::vector<RenderStage*> stages;
-        };
-        std::vector<EnabledStageType> enabledStages;
+        RenderGraph renderGraph;
         std::vector<CommandCollector> commandCollectors;
 
         // Other things
         GlobalRenderDataDescriptor globalDataDescriptor;
-
-        // A descriptor provider for scenes. The actual provider is
-        // switched every frame.
-        DescriptorProviderWrapper sceneDescriptorProvider{ SceneDescriptor::getDescLayout() };
-        DescriptorProviderWrapper shadowDescriptorProvider{ ShadowDescriptor::getDescLayout() };
 
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };

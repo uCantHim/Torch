@@ -84,7 +84,7 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
     ));
 
     descSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
-        vk::DescriptorSetAllocateInfo(*descPool, *descLayout)
+        vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
     )[0]);
 
     // Update descriptor set

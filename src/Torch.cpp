@@ -1,15 +1,35 @@
 #include "Torch.h"
 
+#include "PipelineRegistry.h"
+#include "Particle.h" // For particle pipeline creation
+#include "text/Text.h"
+
 
 
 auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
 {
     vkb::vulkanInit();
 
-    RenderStageType::create(RenderStageTypes::eDeferred, RenderPassDeferred::NUM_SUBPASSES);
-    RenderStageType::create(RenderStageTypes::eShadow, 1);
+    auto renderer = std::make_unique<Renderer>(info.rendererInfo);
 
-    return std::make_unique<Renderer>(info.rendererInfo);
+    // Register required pipelines
+    PipelineRegistry::registerPipeline([&]() {
+        RenderPassShadow dummyPass{{ 1, 1 }};
+        internal::makeParticleShadowPipeline(*dummyPass);
+    });
+    PipelineRegistry::registerPipeline([]() {
+        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+
+        internal::makeAllDrawablePipelines(*renderPass);
+        internal::makeFinalLightingPipeline(*renderPass);
+        internal::makeParticleDrawPipeline(*renderPass);
+        makeTextPipeline(*renderPass);
+    });
+
+    // Create all pipelines for the first time
+    PipelineRegistry::recreateAll();
+
+    return renderer;
 }
 
 void trc::terminate()
@@ -19,7 +39,6 @@ void trc::terminate()
     AssetRegistry::reset();
     RenderPass::destroyAll();
     Pipeline::destroyAll();
-    RenderStage::destroyAll();
     RenderStageType::destroyAll();
     vkb::vulkanTerminate();
 }

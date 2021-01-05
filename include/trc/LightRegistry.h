@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Light.h"
+#include "Node.h"
+#include "RenderPassShadow.h"
 #include "TorchResources.h"
 
 namespace trc
@@ -126,7 +128,7 @@ namespace trc
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getShadowMatrixBuffer() const noexcept -> vk::Buffer;
-        auto getShadowRenderStage() const noexcept -> const ShadowStage&;
+        auto getShadowRenderStage() const noexcept -> const std::vector<RenderPass::ID>&;
 
     private:
         const ui32 maxLights;
@@ -137,7 +139,7 @@ namespace trc
         std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
 
-        ShadowStage shadowStage;
+        std::vector<RenderPass::ID> shadowPasses;
 
         /**
          * Must be called only when a light or a shadow is added or removed
@@ -154,8 +156,6 @@ namespace trc
         void updateShadowMatrixBuffer();
         std::unordered_map<Light*, ShadowInfo> shadows;
         vkb::Buffer shadowMatrixBuffer;
-        ui32 nextFreeShadowPassIndex; // Initial value set in constructor because recursive include
-        std::vector<ui32> freeShadowPassIndices;
 
         std::unique_ptr<ShadowDescriptor> shadowDescriptor;
     };

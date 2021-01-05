@@ -10,138 +10,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
     const ui32 maxTransparentFragsPerPixel)
     :
     RenderPass(
-        [&]()
-        {
-            std::vector<vk::AttachmentDescription> attachments = {
-                // Vertex positions
-                vk::AttachmentDescription(
-                    {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
-                ),
-                // Normals
-                vk::AttachmentDescription(
-                    {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
-                ),
-                // UVs
-                vk::AttachmentDescription(
-                    {}, vk::Format::eR16G16Sfloat, vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
-                ),
-                // Material indices
-                vk::AttachmentDescription(
-                    {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
-                ),
-                // Depth-/Stencil buffer
-                vk::AttachmentDescription(
-                    vk::AttachmentDescriptionFlags(),
-                    vk::Format::eD24UnormS8Uint,
-                    vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
-                    vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
-                ),
-                // Swapchain images
-                trc::makeDefaultSwapchainColorAttachment(swapchain),
-            };
-
-            std::vector<vk::AttachmentReference> deferredAttachments = {
-                { 0, vk::ImageLayout::eColorAttachmentOptimal }, // Vertex positions
-                { 1, vk::ImageLayout::eColorAttachmentOptimal }, // Normals
-                { 2, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
-                { 3, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
-                { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
-            };
-
-            std::vector<vk::AttachmentReference> transparencyAttachments{
-                { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
-            };
-            std::vector<ui32> transparencyPreservedAttachments{ 0, 1, 2, 3 };
-
-            std::vector<vk::AttachmentReference> lightingAttachments = {
-                { 0, vk::ImageLayout::eShaderReadOnlyOptimal }, // Vertex positions
-                { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
-                { 2, vk::ImageLayout::eShaderReadOnlyOptimal }, // UVs
-                { 3, vk::ImageLayout::eShaderReadOnlyOptimal }, // Material indices
-                { 5, vk::ImageLayout::eColorAttachmentOptimal }, // Swapchain images
-            };
-
-            std::vector<vk::SubpassDescription> subpasses = {
-                // Deferred diffuse subpass
-                vk::SubpassDescription(
-                    vk::SubpassDescriptionFlags(),
-                    vk::PipelineBindPoint::eGraphics,
-                    0, nullptr,
-                    4, &deferredAttachments[0],
-                    nullptr, // resolve attachments
-                    &deferredAttachments[4]
-                ),
-                // Deferred transparency subpass
-                vk::SubpassDescription(
-                    vk::SubpassDescriptionFlags(),
-                    vk::PipelineBindPoint::eGraphics,
-                    0, nullptr, // input attachments
-                    0, nullptr, // color attachments
-                    nullptr,    // resolve attachments
-                    &transparencyAttachments[0], // depth attachment (read-only)
-                    4, transparencyPreservedAttachments.data() // preserve the deferred attachments
-                ),
-                // Final lighting subpass
-                vk::SubpassDescription(
-                    vk::SubpassDescriptionFlags(),
-                    vk::PipelineBindPoint::eGraphics,
-                    4, &lightingAttachments[0],
-                    1, &lightingAttachments[4],
-                    nullptr, // resolve attachments
-                    nullptr
-                ),
-            };
-
-            std::vector<vk::SubpassDependency> dependencies = {
-                vk::SubpassDependency(
-                    VK_SUBPASS_EXTERNAL, 0,
-                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                    vk::AccessFlags(),
-                    vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
-                    vk::DependencyFlags()
-                ),
-                vk::SubpassDependency(
-                    0, 1,
-                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
-                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
-                    vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-                    vk::AccessFlagBits::eDepthStencilAttachmentRead,
-                    vk::DependencyFlagBits::eByRegion
-                ),
-                vk::SubpassDependency(
-                    1, 2,
-                    vk::PipelineStageFlagBits::eAllGraphics,
-                    vk::PipelineStageFlagBits::eAllGraphics,
-                    vk::AccessFlagBits::eColorAttachmentWrite,
-                    vk::AccessFlagBits::eInputAttachmentRead,
-                    vk::DependencyFlagBits::eByRegion
-                )
-            };
-
-            return vkb::getDevice()->createRenderPassUnique(
-                vk::RenderPassCreateInfo(
-                    vk::RenderPassCreateFlags(),
-                    static_cast<ui32>(attachments.size()), attachments.data(),
-                    static_cast<ui32>(subpasses.size()), subpasses.data(),
-                    static_cast<ui32>(dependencies.size()), dependencies.data()
-                )
-            );
-        }(),
+        makeVkRenderPassInstance(swapchain),
         NUM_SUBPASSES
     ), // Base class RenderPass constructor
     depthPixelReadBuffer(
@@ -334,6 +203,140 @@ auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
     return mouseDepthValue;
 }
 
+auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swapchain)
+    -> vk::UniqueRenderPass
+{
+    std::vector<vk::AttachmentDescription> attachments = {
+        // Vertex positions
+        vk::AttachmentDescription(
+            {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+        ),
+        // Normals
+        vk::AttachmentDescription(
+            {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+        ),
+        // UVs
+        vk::AttachmentDescription(
+            {}, vk::Format::eR16G16Sfloat, vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+        ),
+        // Material indices
+        vk::AttachmentDescription(
+            {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+        ),
+        // Depth-/Stencil buffer
+        vk::AttachmentDescription(
+            vk::AttachmentDescriptionFlags(),
+            vk::Format::eD24UnormS8Uint,
+            vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
+        ),
+        // Swapchain images
+        trc::makeDefaultSwapchainColorAttachment(swapchain),
+    };
+
+    std::vector<vk::AttachmentReference> deferredAttachments = {
+        { 0, vk::ImageLayout::eColorAttachmentOptimal }, // Vertex positions
+        { 1, vk::ImageLayout::eColorAttachmentOptimal }, // Normals
+        { 2, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
+        { 3, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
+        { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
+    };
+
+    std::vector<vk::AttachmentReference> transparencyAttachments{
+        { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
+    };
+    std::vector<ui32> transparencyPreservedAttachments{ 0, 1, 2, 3 };
+
+    std::vector<vk::AttachmentReference> lightingAttachments = {
+        { 0, vk::ImageLayout::eShaderReadOnlyOptimal }, // Vertex positions
+        { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
+        { 2, vk::ImageLayout::eShaderReadOnlyOptimal }, // UVs
+        { 3, vk::ImageLayout::eShaderReadOnlyOptimal }, // Material indices
+        { 5, vk::ImageLayout::eColorAttachmentOptimal }, // Swapchain images
+    };
+
+    std::vector<vk::SubpassDescription> subpasses = {
+        // Deferred diffuse subpass
+        vk::SubpassDescription(
+            vk::SubpassDescriptionFlags(),
+            vk::PipelineBindPoint::eGraphics,
+            0, nullptr,
+            4, &deferredAttachments[0],
+            nullptr, // resolve attachments
+            &deferredAttachments[4]
+        ),
+        // Deferred transparency subpass
+        vk::SubpassDescription(
+            vk::SubpassDescriptionFlags(),
+            vk::PipelineBindPoint::eGraphics,
+            0, nullptr, // input attachments
+            0, nullptr, // color attachments
+            nullptr,    // resolve attachments
+            &transparencyAttachments[0], // depth attachment (read-only)
+            4, transparencyPreservedAttachments.data() // preserve the deferred attachments
+        ),
+        // Final lighting subpass
+        vk::SubpassDescription(
+            vk::SubpassDescriptionFlags(),
+            vk::PipelineBindPoint::eGraphics,
+            4, &lightingAttachments[0],
+            1, &lightingAttachments[4],
+            nullptr, // resolve attachments
+            nullptr
+        ),
+    };
+
+    std::vector<vk::SubpassDependency> dependencies = {
+        vk::SubpassDependency(
+            VK_SUBPASS_EXTERNAL, 0,
+            vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            vk::PipelineStageFlagBits::eColorAttachmentOutput,
+            vk::AccessFlags(),
+            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
+            vk::DependencyFlags()
+        ),
+        vk::SubpassDependency(
+            0, 1,
+            vk::PipelineStageFlagBits::eEarlyFragmentTests,
+            vk::PipelineStageFlagBits::eEarlyFragmentTests,
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+            vk::AccessFlagBits::eDepthStencilAttachmentRead,
+            vk::DependencyFlagBits::eByRegion
+        ),
+        vk::SubpassDependency(
+            1, 2,
+            vk::PipelineStageFlagBits::eAllGraphics,
+            vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlagBits::eColorAttachmentWrite,
+            vk::AccessFlagBits::eInputAttachmentRead,
+            vk::DependencyFlagBits::eByRegion
+        )
+    };
+
+    return vkb::getDevice()->createRenderPassUnique(
+        vk::RenderPassCreateInfo(
+            vk::RenderPassCreateFlags(),
+            static_cast<ui32>(attachments.size()), attachments.data(),
+            static_cast<ui32>(subpasses.size()), subpasses.data(),
+            static_cast<ui32>(dependencies.size()), dependencies.data()
+        )
+    );
+}
+
 void trc::RenderPassDeferred::copyMouseDepthValueToBuffer(vk::CommandBuffer cmdBuf)
 {
     vkb::Image& depthImage = attachmentImages[swapchain.getCurrentFrame()][4];
@@ -514,7 +517,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
         const auto& imageViews = renderPass.getAttachmentImageViews(imageIndex);
 
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
-            vk::DescriptorSetAllocateInfo(*descPool, *descLayout)
+            vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
         )[0]);
 
         // Write set

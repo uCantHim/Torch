@@ -216,6 +216,18 @@ namespace trc::experimental
      * Creates a root with an attached drawable chain of arbitrary length.
      * The first argument is the root itself.
      */
+    template<DrawableNodeType T>
+    inline auto makeDrawableChainRoot(T&& first) -> DrawableChainRoot<T>
+    {
+        return DrawableChainRoot<T>{ std::move(first) };
+    }
+
+    /**
+     * @brief Helper to create a root to a chain of drawables quickly
+     *
+     * Creates a root with an attached drawable chain of arbitrary length.
+     * The first argument is the root itself.
+     */
     template<DrawableNodeType T, DrawableNodeType... Args>
     inline auto makeDrawableChainRoot(T&& first, Args&&... args) -> DrawableChainRoot<T>
     {

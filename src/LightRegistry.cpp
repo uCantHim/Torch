@@ -149,7 +149,6 @@ trc::LightRegistry::LightRegistry(const ui32 maxLights)
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
-    nextFreeShadowPassIndex(internal::RenderPasses::eShadowPassesBegin),
     shadowDescriptor(new ShadowDescriptor(*this, 0))
 {
 }
@@ -219,21 +218,11 @@ auto trc::LightRegistry::enableShadow(
             camera.lookAt(light.position, light.position + light.direction, vec3(0, 1, 0));
         }
 
-        // Generate an index for the new shadow pass
-        ui32 newIndex = 0;
-        if (!freeShadowPassIndices.empty()) {
-            newIndex = freeShadowPassIndices.back();
-            freeShadowPassIndices.pop_back();
-        }
-        else {
-            newIndex = nextFreeShadowPassIndex++;
-        }
-
         // Create a new shadow pass
         RenderPassShadow* newShadowPass = newEntry.shadowPasses.emplace_back(
-            &RenderPass::create<RenderPassShadow>(newIndex, shadowResolution)
+            &RenderPass::createAtNextIndex<RenderPassShadow>(shadowResolution).second.get()
         );
-        shadowStage.addRenderPass(newShadowPass->id());
+        shadowPasses.push_back(newShadowPass->id());
     }
 
     newEntry.parentNode.update();
@@ -249,11 +238,11 @@ void trc::LightRegistry::disableShadow(Light& light)
     auto it = shadows.find(&light);
     if (it == shadows.end()) return;
 
+    // Remove and destroy all of the light's shadow passes
     for (RenderPassShadow* shadowPass : it->second.shadowPasses)
     {
         const RenderPassShadow::ID id = shadowPass->id();
-        shadowStage.removeRenderPass(id);
-        freeShadowPassIndices.push_back(id);
+        shadowPasses.erase(std::remove(shadowPasses.begin(), shadowPasses.end(), id));
         RenderPass::destroy(id);
     }
     shadows.erase(it);
@@ -271,9 +260,10 @@ auto trc::LightRegistry::getShadowMatrixBuffer() const noexcept -> vk::Buffer
     return *shadowMatrixBuffer;
 }
 
-auto trc::LightRegistry::getShadowRenderStage() const noexcept -> const ShadowStage&
+auto trc::LightRegistry::getShadowRenderStage() const noexcept
+    -> const std::vector<RenderPass::ID>&
 {
-    return shadowStage;
+    return shadowPasses;
 }
 
 void trc::LightRegistry::updateLightBuffer()

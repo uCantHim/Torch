@@ -33,7 +33,7 @@ namespace trc
     public:
         static constexpr float DEFAULT_FOV = 45.0f;
 
-        Camera() = default;
+        Camera();
 
         /**
          * @brief Construct a camera with perspective projection

@@ -4,6 +4,7 @@
 
 #include "Pipeline.h"
 #include "LightRegistry.h"
+#include "RenderPassShadow.h"
 
 namespace trc {
     class Renderer;
@@ -11,18 +12,6 @@ namespace trc {
 
 namespace trc::internal
 {
-    enum RenderPasses : RenderPass::ID::Type
-    {
-        // Unused, index is allocated per renderer
-        //eDeferredPass = 0,
-
-        /** The index of the first shadow pass */
-        eShadowPassesBegin = 1,
-        eShadowPassesEnd = ShadowDescriptor::MAX_SHADOW_MAPS,
-
-        NUM_PASSES
-    };
-
     enum DeferredSubPasses
     {
         eGBufferPass = 0,
@@ -51,27 +40,33 @@ namespace trc::internal
         eParticleDraw,
         eParticleShadow,
 
+        eText,
+
         NUM_PIPELINES
     };
 
-    void makeAllDrawablePipelines(const Renderer& renderer);
+    void makeAllDrawablePipelines(vk::RenderPass deferredPass);
 
     // Deferred pipelines
-    void makeDrawableDeferredPipeline(const Renderer& renderer);
-    void makeDrawableDeferredAnimatedPipeline(const Renderer& renderer);
-    void makeDrawableDeferredPickablePipeline(const Renderer& renderer);
-    void makeDrawableDeferredAnimatedAndPickablePipeline(const Renderer& renderer);
+    void makeDrawableDeferredPipeline(vk::RenderPass deferredPass);
+    void makeDrawableDeferredAnimatedPipeline(vk::RenderPass deferredPass);
+    void makeDrawableDeferredPickablePipeline(vk::RenderPass deferredPass);
+    void makeDrawableDeferredAnimatedAndPickablePipeline(vk::RenderPass deferredPass);
 
-    void _makeDrawableDeferredPipeline(ui32 pipelineIndex, ui32 featureFlags, const Renderer& rp);
-    void makeDrawableTransparentPipeline(ui32 pipelineIndex, ui32 featureFlags, const Renderer& rp);
+    void _makeDrawableDeferredPipeline(ui32 pipelineIndex,
+                                       ui32 featureFlags,
+                                       vk::RenderPass deferredPass);
+    void makeDrawableTransparentPipeline(ui32 pipelineIndex,
+                                         ui32 featureFlags,
+                                         vk::RenderPass deferredPass);
 
-    void makeInstancedDrawableDeferredPipeline(const Renderer& renderer);
+    void makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass);
 
     // Shadow pipelines
-    void makeDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass);
-    void makeInstancedDrawableShadowPipeline(const Renderer& renderer, RenderPassShadow& renderPass);
+    void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
+    void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass);
 
     // Final lighting pipeline
-    void makeFinalLightingPipeline(const Renderer& renderer);
+    void makeFinalLightingPipeline(vk::RenderPass deferredPass);
 
 } // namespace trc::internal

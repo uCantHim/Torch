@@ -89,8 +89,15 @@ namespace vkb
 
         /**
          * @brief Create a logical device from the physical device
+         *
+         * Some basic extensions that are required to be supported by the
+         * specification will be enabled by default.
+         *
+         * @param std::vector<const char*> deviceExtensions Extensions to
+         *        enable on the device.
          */
-        auto createLogicalDevice() const -> vk::UniqueDevice;
+        auto createLogicalDevice(std::vector<const char*> deviceExtensions = {}) const
+            -> vk::UniqueDevice;
 
         auto getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
             -> SwapchainSupport;

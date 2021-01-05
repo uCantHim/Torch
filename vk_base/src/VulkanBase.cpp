@@ -3,6 +3,7 @@
 #include <IL/il.h>
 
 #include "event/EventHandler.h"
+#include "StaticInit.h"
 
 
 
@@ -53,24 +54,14 @@ auto vkb::createSurface(VulkanInstance& instance, SurfaceCreateInfo createInfo) 
 
 
 
-void vkb::VulkanBase::onInit(std::function<void(void)> callback)
-{
-    if (!_isInitialized)
-        onInitCallbacks.emplace_back(std::move(callback));
-}
-
-void vkb::VulkanBase::onDestroy(std::function<void(void)> callback)
-{
-    onDestroyCallbacks.emplace_back(std::move(callback));
-}
-
 void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
 {
-    if (isInitialized())
+    if (isInitialized)
     {
         std::cout << "Warning: Tried to initialize VulkanBase more than once\n";
         return;
     }
+    isInitialized = true;
 
     EventThread::start();
 
@@ -94,7 +85,7 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
             physicalDevice = std::make_unique<PhysicalDevice>(
                 device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
             );
-            device = std::make_unique<Device>(*physicalDevice);
+            device = std::make_unique<Device>(*physicalDevice, initInfo.deviceExtensions);
             swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
         }
         catch (const std::exception& err) {
@@ -103,12 +94,9 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
         }
     }
 
-    _isInitialized = true;
-
-    for (auto& func : onInitCallbacks) {
-        std::invoke(func);
+    if (!initInfo.delayStaticInitializerExecution) {
+        StaticInit::executeStaticInitializers();
     }
-    onInitCallbacks = {};
 }
 
 void vkb::VulkanBase::destroy()
@@ -116,10 +104,7 @@ void vkb::VulkanBase::destroy()
     EventThread::terminate();
     getDevice()->waitIdle();
 
-    for (auto& func : onDestroyCallbacks) {
-        std::invoke(func);
-    }
-    onDestroyCallbacks = {};
+    StaticInit::executeStaticDestructors();
 
     try {
         swapchain.reset();
@@ -129,11 +114,6 @@ void vkb::VulkanBase::destroy()
     catch (const std::exception& err) {
         std::cout << "Exception in VulkanBase::destroy(): " << err.what() << "\n";
     }
-}
-
-bool vkb::VulkanBase::isInitialized() noexcept
-{
-    return _isInitialized;
 }
 
 auto vkb::VulkanBase::getInstance() noexcept -> VulkanInstance&

@@ -19,10 +19,17 @@ namespace vkb
 
     struct VulkanInitInfo
     {
-        SurfaceCreateInfo surfaceCreateInfo;
+        SurfaceCreateInfo surfaceCreateInfo{};
 
         // Creates instance, device, and swapchain if true
         bool createResources{ true };
+
+        // If true, static initializers won't be executed. Execute them
+        // manually via StaticInit::executeStaticInitializers.
+        bool delayStaticInitializerExecution{ false };
+
+        // Additional device extensions to load if createResources if true
+        std::vector<const char*> deviceExtensions{};
     };
 
     /**
@@ -56,9 +63,6 @@ namespace vkb
     class VulkanBase
     {
     public:
-        static void onInit(std::function<void(void)> callback);
-        static void onDestroy(std::function<void(void)> callback);
-
         /**
          * @brief Initializes Vulkan functionality
          *
@@ -72,8 +76,6 @@ namespace vkb
          */
         static void destroy();
 
-        static bool isInitialized() noexcept;
-
     public:
         static auto getInstance() noexcept       -> VulkanInstance&;
         static auto getPhysicalDevice() noexcept -> PhysicalDevice&;
@@ -81,12 +83,9 @@ namespace vkb
         static auto getSwapchain() noexcept      -> Swapchain&;
 
     private:
-        static inline bool _isInitialized{ false };
-        static inline std::vector<std::function<void(void)>> onInitCallbacks;
-        static inline std::vector<std::function<void(void)>> onDestroyCallbacks;
+        static inline bool isInitialized{ false };
 
         static inline std::unique_ptr<VulkanInstance> instance{ nullptr };
-
         static inline std::unique_ptr<PhysicalDevice> physicalDevice{ nullptr };
         static inline std::unique_ptr<Device>         device{ nullptr };
         static inline std::unique_ptr<Swapchain>      swapchain{ nullptr };
@@ -112,38 +111,4 @@ namespace vkb
     inline auto getSwapchain() noexcept -> Swapchain& {
         return VulkanBase::getSwapchain();
     }
-
-    /**
-     * @brief Initialization helper for static Vulkan objects
-     *
-     * Create a static StaticInit object and pass initialization- and
-     * destruction functions that are executed as soon as Vulkan has been
-     * initialized (i.e. `VulkanBase::init()` has been called).
-     *
-     * Example:
-     *
-     *     class MyClass
-     *     {
-     *         static inline vk::Buffer staticMember;
-     *         // ...
-     *
-     *         static inline StaticInit _init{
-     *             []() {
-     *                 staticMember = ...
-     *             },
-     *             []() {
-     *                 vkDestroyBuffer(staticMember);
-     *             }
-     *         };
-     *     };
-     */
-    class StaticInit
-    {
-    public:
-        StaticInit(std::function<void()> init, std::function<void()> destroy)
-        {
-            VulkanBase::onInit(std::move(init));
-            VulkanBase::onDestroy(std::move(destroy));
-        }
-    };
 } // namespace vkb

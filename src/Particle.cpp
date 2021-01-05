@@ -73,12 +73,8 @@ trc::ParticleCollection::ParticleCollection(
 
 void trc::ParticleCollection::attachToScene(SceneBase& scene)
 {
-    if (currentScene != nullptr) {
-        removeFromScene();
-    }
-
-    sceneRegistrations.emplace_back(scene.registerDrawFunction(
-        RenderStageTypes::eDeferred,
+    drawRegistration = scene.registerDrawFunction(
+        RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eTransparencyPass,
         internal::Pipelines::eParticleDraw,
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -90,7 +86,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
                 { 0, 0, 0 });
             cmdBuf.draw(6, particles.size(), 0, 0);
         }
-    ));
+    ).makeUnique();
     //sceneRegistrations.emplace_back(scene.registerDrawFunction(
     //    internal::RenderStageTypes::eShadow,
     //    0,
@@ -110,16 +106,11 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     //        cmdBuf.draw(6, particles.size(), 0, 0);
     //    }
     //));
-    currentScene = &scene;
 }
 
 void trc::ParticleCollection::removeFromScene()
 {
-    assert(currentScene != nullptr);
-    for (const auto& reg : sceneRegistrations) {
-        currentScene->unregisterDrawFunction(reg);
-    }
-    sceneRegistrations.clear();
+    drawRegistration = {};
 }
 
 void trc::ParticleCollection::addParticle(const Particle& particle)
@@ -289,15 +280,13 @@ void trc::ParticleSpawn::spawnParticles()
 //      Particle Draw Pipeline      //
 //////////////////////////////////////
 
-void trc::internal::makeParticleDrawPipeline(const Renderer& renderer)
+void trc::internal::makeParticleDrawPipeline(vk::RenderPass deferredPass)
 {
-    auto& renderPass = renderer.getDeferredRenderPass();
-
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
             AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
-            renderPass.getDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
     );
@@ -340,27 +329,26 @@ void trc::internal::makeParticleDrawPipeline(const Renderer& renderer)
         .disableDepthWrite()
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
-        .build(*vkb::getDevice(), *layout, *renderPass, DeferredSubPasses::eTransparencyPass);
+        .addDynamicState(vk::DynamicState::eViewport)
+        .build(*vkb::getDevice(), *layout, deferredPass, DeferredSubPasses::eTransparencyPass);
 
     auto& p = makeGraphicsPipeline(
         Pipelines::eParticleDraw,
         std::move(layout),
         std::move(pipeline));
 
-    p.addStaticDescriptorSet(0, renderer.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, renderPass.getDescriptorProvider());
+    p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
 
 }
 
-void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
+void trc::internal::makeParticleShadowPipeline(vk::RenderPass shadowPass)
 {
-    RenderPassShadow dummyPass({ 1, 1 });
-
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
-            renderer.getShadowDescriptorProvider().getDescriptorSetLayout(),
-            renderer.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getShadowDescriptorProvider().getDescriptorSetLayout(),
+            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)),
@@ -397,13 +385,13 @@ void trc::internal::makeParticleShadowPipeline(const Renderer& renderer)
         .addScissorRect({ { 0, 0 }, { 1, 1 } })
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .build(*vkb::getDevice(), *layout, *dummyPass, 0);
+        .build(*vkb::getDevice(), *layout, shadowPass, 0);
 
     auto& p = makeGraphicsPipeline(
         Pipelines::eParticleShadow,
         std::move(layout),
         std::move(pipeline));
 
-    p.addStaticDescriptorSet(0, renderer.getShadowDescriptorProvider());
-    p.addStaticDescriptorSet(1, renderer.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(0, Renderer::getShadowDescriptorProvider());
+    p.addStaticDescriptorSet(1, Renderer::getGlobalDataDescriptorProvider());
 }

@@ -24,6 +24,9 @@ endif ()
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 
+# Third-party
+find_package(Freetype REQUIRED)
+
 # Library target
 add_library(torch)
 add_subdirectory(shaders)
@@ -31,7 +34,11 @@ add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(include/trc)
 
-target_link_libraries(torch PUBLIC vk_base)
+target_link_libraries(
+    torch PUBLIC
+    vk_base
+    Freetype::Freetype
+)
 
 target_include_directories(torch PUBLIC include)
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)

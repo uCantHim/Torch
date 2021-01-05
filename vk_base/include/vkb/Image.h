@@ -90,7 +90,7 @@ namespace vkb
                           vk::ImageLayout from, vk::ImageLayout to,
                           vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
 
-        void writeData(void* srcData, size_t srcSize, ImageSize destArea);
+        void writeData(const void* srcData, size_t srcSize, ImageSize destArea);
 
         /**
          * @brief Get a sampler object with default values for the image
