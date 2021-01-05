@@ -156,10 +156,14 @@ auto trc::rt::RayTracingPipelineBuilder::build(ui32 maxRecursionDepth, vk::Pipel
 	).value;
 
     // Create corresponding shader binding table
+    std::vector<ui32> tableEntries;
+    for (const auto& group : shaderGroups) {
+        tableEntries.push_back(1);
+    }
     ShaderBindingTable sbt{
         vkb::getDevice(),
         *pipeline,
-        static_cast<ui32>(shaderGroups.size())
+        std::move(tableEntries)
     };
 
     return { std::move(pipeline), std::move(sbt) };

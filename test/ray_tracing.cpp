@@ -14,33 +14,75 @@ int main()
     auto renderer = trc::init({ .enableRayTracing=true });
     auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
+    camera.lookAt({ 0, 2, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
+    auto size = vkb::getSwapchain().getImageExtent();
+    camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
     trc::GeometryID geoId = trc::loadGeometry("assets/skeleton.fbx")
                             >> trc::AssetRegistry::addGeometry;
+
+    trc::GeometryID triId = trc::AssetRegistry::addGeometry(
+        trc::Geometry(
+            trc::MeshData{
+                .vertices = {
+                    { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },
+                    { vec3(1.0f, 1.0f, 0.0f), {}, {}, {} },
+                    { vec3(0.0f, 1.0f, 0.0f), {}, {}, {} },
+                },
+                .indices = {
+                    0, 1, 2
+                }
+            }
+        )
+    );
 
     // --- BLAS --- //
 
     BLAS blas{ geoId };
     blas.build();
 
+    BLAS triBlas{ triId };
+    triBlas.build();
+
 
     // --- TLAS --- //
 
-    trc::rt::GeometryInstance blasInstance{
+    std::vector<trc::rt::GeometryInstance> instances{
+        // Skeleton
+        //{
+        //    {
+        //        1, 0, 0, 0,
+        //        0, 1, 0, 0,
+        //        0, 0, 1, 0
+        //    },
+        //    42,   // instance custom index
+        //    0xff, // mask
+        //    0,    // shader binding table offset
+        //    static_cast<ui32>(
+        //        vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+        //        | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable
+        //    ),
+        //    blas.getDeviceAddress()
+        //},
+        // Triangle
         {
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0
-        },
-        42,   // instance custom index
-        0xff, // mask
-        0,    // shader binding table offset
-        static_cast<ui32>(vk::GeometryInstanceFlagBitsKHR::eForceOpaque),
-        blas.getDeviceAddress()
+            {
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0
+            },
+            42,   // instance custom index
+            0xff, // mask
+            0,    // shader binding table offset
+            static_cast<ui32>(
+                vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+                | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable
+            ),
+            triBlas.getDeviceAddress()
+        }
     };
     vkb::Buffer instanceBuffer{
-        sizeof(vk::AccelerationStructureInstanceKHR),
-        &blasInstance,
+        instances,
         vk::BufferUsageFlagBits::eShaderDeviceAddress,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     };
@@ -62,21 +104,20 @@ int main()
         .buildUnique(vkb::getDevice());
 
     auto layout = trc::makePipelineLayout(
-        { *rayDescLayout, *outputImageDescLayout }, // Descriptor set layouts
+        { *rayDescLayout, *outputImageDescLayout },
         {
             // View and projection matrices
             { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
-        }  // Push constant ranges
+        }
     );
-    //auto rayPipeline = trc::rt::buildRayTracingPipeline()
-    //    .addGroup<trc::rt::RayShaderGroup::eGeneral>()
-    //        .addStage<trc::rt::RayShaderStage::eRaygen>("shaders/ray_tracing/raygen.rgen.spv")
-    //    .build(16, *layout);
 
     auto [rayPipeline, shaderBindingTable] = trc::rt::_buildRayTracingPipeline()
         .addRaygenGroup("shaders/ray_tracing/raygen.rgen.spv")
         .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
-        .addTrianglesHitGroup({}, "shaders/ray_tracing/anyhit.rahit.spv")
+        .addTrianglesHitGroup(
+            "shaders/ray_tracing/closesthit.rchit.spv",
+            "shaders/ray_tracing/anyhit.rahit.spv"
+        )
         .addCallableGroup("shaders/ray_tracing/callable.rcall.spv")
         .build(16, *layout);
 
@@ -154,11 +195,7 @@ int main()
             : RenderPass({}, 1)
         {}
 
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override
-        {
-            std::cout << "Ray pass executed\n";
-        }
-
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override {}
         void end(vk::CommandBuffer cmdBuf) override {}
     };
 

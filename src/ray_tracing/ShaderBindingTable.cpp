@@ -1,5 +1,7 @@
 #include "ray_tracing/ShaderBindingTable.h"
 
+#include <numeric>
+
 #include "utils/Util.h"
 
 
@@ -16,7 +18,7 @@ vkb::StaticInit trc::rt::ShaderBindingTable::_init{
 trc::rt::ShaderBindingTable::ShaderBindingTable(
     const vkb::Device& device,
     vk::Pipeline pipeline,
-    ui32 numShaderGroups,
+    std::vector<ui32> entrySizes,
     const vkb::DeviceMemoryAllocator& alloc)
 {
     const auto rayTracingProperties = device.getPhysicalDevice().physicalDevice.getProperties2<
@@ -28,6 +30,7 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
     const ui32 alignedGroupHandleSize = util::pad(
         groupHandleSize, rayTracingProperties.shaderGroupBaseAlignment
     );
+    const ui32 numShaderGroups = std::accumulate(entrySizes.begin(), entrySizes.end(), 0u);
     const vk::DeviceSize sbtSize = alignedGroupHandleSize * numShaderGroups;
 
     std::vector<ui8> shaderHandleStorage(sbtSize);
@@ -43,33 +46,10 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
         throw std::runtime_error("Unable to retrieve shader group handles");
     }
 
-    // Copy retrieved group handles into aligned storage because the handles
-    // from vkGetRayTracingShaderGroupHandles are tightly packed. The Vulkan
-    // spec requires group offsets in vkCmdTraceRaysNV to be a multiple of
-    // VkPhysicalDeviceRayTracingPropertiesNV::shaderGroupHandleBaseAlignment.
-    std::vector<ui8> alignedStorage(sbtSize);
-    for (size_t i = 0; i < numShaderGroups; i++)
-    {
-        memcpy(
-            &alignedStorage[i * alignedGroupHandleSize],
-            &shaderHandleStorage[i * groupHandleSize],
-            groupHandleSize
-        );
-    }
-
-    buffer = vkb::DeviceLocalBuffer{
-        device,
-        alignedStorage,
-        vk::BufferUsageFlagBits::eShaderBindingTableKHR
-        | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        alloc
-    };
-    bufferDeviceAddress = device->getBufferAddress({ *buffer });
-
     // Calculate shader group addresses
     for (ui32 i = 0; i < numShaderGroups; i++)
     {
-        const ui32 stride = groupHandleSize * i;
+        const ui32 stride = alignedGroupHandleSize * (i + 1);
         if (stride > rayTracingProperties.maxShaderGroupStride)
         {
             throw std::runtime_error(
@@ -79,11 +59,20 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
             );
         }
 
-        groupAddresses.emplace_back(
-            bufferDeviceAddress,
+        vkb::DeviceLocalBuffer buffer{
+            device,
+            alignedGroupHandleSize,
+            shaderHandleStorage.data() + groupHandleSize * i,
+            vk::BufferUsageFlagBits::eShaderBindingTableKHR
+            | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+            alloc
+        };
+        vk::StridedDeviceAddressRegionKHR address(
+            device->getBufferAddress({ *buffer }),
             stride,              // stride
-            groupHandleSize * i  // size
+            alignedGroupHandleSize  // size
         );
+        entries.emplace_back(std::move(buffer), address);
     }
 }
 
@@ -97,7 +86,7 @@ void trc::rt::ShaderBindingTable::setGroupAlias(
 auto trc::rt::ShaderBindingTable::getShaderGroupAddress(ui32 shaderGroupIndex)
     -> vk::StridedDeviceAddressRegionKHR
 {
-    return groupAddresses.at(shaderGroupIndex);
+    return entries.at(shaderGroupIndex).address;
 }
 
 auto trc::rt::ShaderBindingTable::getShaderGroupAddress(const std::string& shaderGroupName)

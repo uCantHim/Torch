@@ -6,5 +6,5 @@ layout (location = 0) rayPayloadInEXT vec4 color;
 void main()
 {
     // Hit is green
-    color = vec4(0, 0.5, 0, 1);
+    color = vec4(0, 1, 0, 1);
 }

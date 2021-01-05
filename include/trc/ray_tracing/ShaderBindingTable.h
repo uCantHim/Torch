@@ -17,7 +17,7 @@ namespace trc::rt
         ShaderBindingTable(
             const vkb::Device& device,
             vk::Pipeline pipeline,
-            ui32 numShaderGroups,
+            std::vector<ui32> entrySizes,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{}
         );
 
@@ -34,9 +34,13 @@ namespace trc::rt
         static inline vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties;
         static vkb::StaticInit _init;
 
-        vkb::DeviceLocalBuffer buffer;
-        vk::DeviceAddress bufferDeviceAddress;
-        std::vector<vk::StridedDeviceAddressRegionKHR> groupAddresses;
+        struct GroupEntry
+        {
+            vkb::DeviceLocalBuffer buffer;
+            vk::StridedDeviceAddressRegionKHR address;
+        };
+
+        std::vector<GroupEntry> entries;
 
         std::unordered_map<std::string, ui32> shaderGroupAliases;
     };
