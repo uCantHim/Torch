@@ -24,3 +24,6 @@ target_link_libraries(BasicSetup PUBLIC torch)
 
 add_executable(Font font.cpp)
 target_link_libraries(Font PUBLIC torch)
+
+add_executable(ImGui imgui_integration.cpp)
+target_link_libraries(ImGui PUBLIC torch)
