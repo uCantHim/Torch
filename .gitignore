@@ -5,6 +5,9 @@ vulkan_logs/
 .ccls-cache/
 .clangd/
 .cache/
+project_executable
 compile_commands.json
 
 *.spv
+
+todo_list.md
