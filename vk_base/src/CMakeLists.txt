@@ -1,5 +1,6 @@
 add_subdirectory(basics)
 add_subdirectory(event)
+add_subdirectory(util)
 
 target_sources(
     vk_base

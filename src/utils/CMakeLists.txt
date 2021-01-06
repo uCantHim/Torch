@@ -3,6 +3,5 @@ target_sources(
     PRIVATE
         Camera.cpp
         FBXLoader.cpp
-        ThreadPool.cpp
         Transformation.cpp
 )

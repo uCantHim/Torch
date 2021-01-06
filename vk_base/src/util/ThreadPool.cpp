@@ -1,8 +1,8 @@
-#include "utils/ThreadPool.h"
+#include "util/ThreadPool.h"
 
 
 
-trc::ThreadPool::~ThreadPool()
+vkb::ThreadPool::~ThreadPool()
 {
     stopAllThreads = true;
     for (auto& lock : threadLocks)
@@ -19,7 +19,7 @@ trc::ThreadPool::~ThreadPool()
     }
 }
 
-void trc::ThreadPool::spawnThread()
+void vkb::ThreadPool::spawnThread()
 {
     auto& lock = *threadLocks.emplace_back(new ThreadLock);
     threads.emplace_back([this, &lock]() {
@@ -36,7 +36,7 @@ void trc::ThreadPool::spawnThread()
     });
 }
 
-void trc::ThreadPool::execute(std::function<void()> func)
+void vkb::ThreadPool::execute(std::function<void()> func)
 {
     for (auto& threadLock : threadLocks)
     {

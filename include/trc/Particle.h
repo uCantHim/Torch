@@ -4,13 +4,13 @@
 #include <mutex>
 
 #include <glm/gtc/quaternion.hpp>
-#include <vkb/util/Timer.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
+#include <vkb/util/Timer.h>
+#include <vkb/util/ThreadPool.h>
 
 #include "Types.h"
 #include "utils/Util.h"
-#include "utils/ThreadPool.h"
 #include "base/SceneBase.h"
 #include "Node.h"
 #include "PipelineRegistry.h"
@@ -158,7 +158,7 @@ namespace trc
         // void generateParticles();
 
     private:
-        static inline ThreadPool threads;
+        static inline vkb::ThreadPool threads;
 
         std::vector<Particle> particles;
         ParticleCollection* collection{ nullptr };
