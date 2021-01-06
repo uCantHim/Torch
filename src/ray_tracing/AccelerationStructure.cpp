@@ -10,7 +10,8 @@ auto trc::rt::internal::AccelerationStructureBase::operator*() const noexcept
 
 void trc::rt::internal::AccelerationStructureBase::create(
     vk::AccelerationStructureBuildGeometryInfoKHR buildInfo,
-    const vk::ArrayProxy<const ui32>& primitiveCount)
+    const vk::ArrayProxy<const ui32>& primitiveCount,
+    const vkb::DeviceMemoryAllocator& alloc)
 {
     geoBuildInfo = buildInfo;
 
@@ -28,7 +29,8 @@ void trc::rt::internal::AccelerationStructureBase::create(
      */
     accelerationStructureBuffer = vkb::DeviceLocalBuffer{
         buildSizes.accelerationStructureSize, nullptr,
-        vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
+        vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR,
+        alloc
     };
     accelerationStructure = vkb::getDevice()->createAccelerationStructureKHRUnique(
         vk::AccelerationStructureCreateInfoKHR{
@@ -43,16 +45,31 @@ void trc::rt::internal::AccelerationStructureBase::create(
     );
 }
 
+auto trc::rt::internal::AccelerationStructureBase::getGeometryBuildInfo() const noexcept
+    -> const vk::AccelerationStructureBuildGeometryInfoKHR&
+{
+    return geoBuildInfo;
+}
+
+auto trc::rt::internal::AccelerationStructureBase::getBuildSize() const noexcept
+    -> const vk::AccelerationStructureBuildSizesInfoKHR&
+{
+    return buildSizes;
+}
 
 
-trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(GeometryID geo)
+
+trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
+    GeometryID geo,
+    const vkb::DeviceMemoryAllocator& alloc)
     :
-    BottomLevelAccelerationStructure(std::vector<GeometryID>{ geo })
+    BottomLevelAccelerationStructure(std::vector<GeometryID>{ geo }, alloc)
 {
 }
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
-    std::vector<GeometryID> geos)
+    std::vector<GeometryID> geos,
+    const vkb::DeviceMemoryAllocator& alloc)
     :
     geometries([&] {
         std::vector<vk::AccelerationStructureGeometryKHR> result;
@@ -85,7 +102,8 @@ trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
             static_cast<ui32>(geometries.size()),
             geometries.data()
         },
-        primitiveCounts
+        primitiveCounts,
+        alloc
     );
 
     deviceAddress = vkb::getDevice()->getAccelerationStructureAddressKHR(
@@ -101,21 +119,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR
     >().get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
 
-    // Build ranges, the interface for these is terrible
-    std::vector<const vk::AccelerationStructureBuildRangeInfoKHR*> buildRangePointers;
-    const auto buildRanges = [this, &buildRangePointers] {
-        std::vector<vk::AccelerationStructureBuildRangeInfoKHR> result;
-        for (ui32 numPrimitives : primitiveCounts)
-        {
-            buildRangePointers.push_back(&result.emplace_back(
-                numPrimitives, // primitive count
-                0, // primitive offset
-                0, // first vertex index
-                0  // transform offset
-            ));
-        }
-        return result;
-    }();
+    auto [buildRanges, buildRangePointers] = makeBuildRanges();
 
     // Create a temporary scratch buffer
     vkb::DeviceLocalBuffer scratchBuffer{
@@ -140,7 +144,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     {
         vkb::getDevice().executeCommandsSynchronously(
             vkb::QueueType::compute,
-            [&](vk::CommandBuffer cmdBuf)
+            [&, &buildRangePointers=buildRangePointers](vk::CommandBuffer cmdBuf)
             {
                 cmdBuf.buildAccelerationStructuresKHR(
                     geoBuildInfo
@@ -159,9 +163,36 @@ auto trc::rt::BottomLevelAccelerationStructure::getDeviceAddress() const noexcep
     return deviceAddress;
 }
 
+auto trc::rt::BottomLevelAccelerationStructure::makeBuildRanges() const noexcept
+    -> std::pair<
+        std::unique_ptr<std::vector<vk::AccelerationStructureBuildRangeInfoKHR>>,
+        std::vector<const vk::AccelerationStructureBuildRangeInfoKHR*>
+    >
+{
+    std::vector<const vk::AccelerationStructureBuildRangeInfoKHR*> buildRangePointers;
+    auto buildRanges = [this, &buildRangePointers] {
+        auto result = std::make_unique<std::vector<vk::AccelerationStructureBuildRangeInfoKHR>>();
+        result->reserve(primitiveCounts.size());
+        for (ui32 numPrimitives : primitiveCounts)
+        {
+            buildRangePointers.push_back(&result->emplace_back(
+                numPrimitives, // primitive count
+                0, // primitive offset
+                0, // first vertex index
+                0  // transform offset
+            ));
+        }
+        return result;
+    }();
+
+    return { std::move(buildRanges), std::move(buildRangePointers) };
+}
 
 
-trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(uint32_t maxInstances)
+
+trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
+    ui32 maxInstances,
+    const vkb::DeviceMemoryAllocator& alloc)
     :
     maxInstances(maxInstances),
     geometry(
@@ -183,16 +214,17 @@ trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(uint32_t m
             1, // geometryCount MUST be 1 for top-level AS
             &geometry
         },
-        maxInstances
+        maxInstances,
+        alloc
     );
 }
 
 void trc::rt::TopLevelAccelerationStructure::build(
-    const vkb::Buffer& instanceBuffer,
+    vk::Buffer instanceBuffer,
     ui32 offset)
 {
     // Use new instance buffer
-    geometry.geometry.instances.data = vkb::getDevice()->getBufferAddress(*instanceBuffer);
+    geometry.geometry.instances.data = vkb::getDevice()->getBufferAddress(instanceBuffer);
 
     // Create temporary scratch buffer
     vkb::DeviceLocalBuffer scratchBuffer{
@@ -207,6 +239,8 @@ void trc::rt::TopLevelAccelerationStructure::build(
         {
             cmdBuf.buildAccelerationStructuresKHR(
                 geoBuildInfo
+                    .setGeometries(geometry)
+                    .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
                     .setDstAccelerationStructure(*accelerationStructure)
                     .setScratchData(vkb::getDevice()->getBufferAddress({ *scratchBuffer })),
                 { &buildRange },
@@ -222,39 +256,75 @@ void trc::rt::TopLevelAccelerationStructure::build(
 //      Helpers     //
 // ---------------- //
 
-//void trc::rt::buildAccelerationStructures(const std::vector<BottomLevelAccelerationStructure>& as)
-//{
-//    if (as.empty()) {
-//        return;
-//    }
-//
-//    auto scratchMemReq = Globals::getDevice().getAccelerationStructureMemoryRequirementsNV(
-//        { vk::AccelerationStructureMemoryRequirementsTypeNV::eBuildScratch, *as[0] },
-//        Globals::getFuncLoader()
-//    ).memoryRequirements;
-//
-//    const vk::DeviceSize scratchBufferOffset = scratchMemReq.size;
-//    const vk::DeviceSize maxScratchMemory = scratchMemReq.size * as.size();
-//
-//    Buffer scratchBuffer(maxScratchMemory,
-//                         vk::BufferUsageFlagBits::eRayTracingNV,
-//                         vk::MemoryPropertyFlagBits::eDeviceLocal);
-//
-//    auto cmdBuf = Globals::makeCmdBuf();
-//    cmdBuf->begin({});
-//    for (size_t i = 0; i < as.size(); i++)
-//    {
-//        const auto& structure = as[i];
-//
-//        cmdBuf->buildAccelerationStructureNV(
-//            structure.getInfo(),
-//            {}, 0, // instance data and offset
-//            VK_FALSE,
-//            *structure, {}, // dst, src
-//            *scratchBuffer, scratchBufferOffset * i,
-//            Globals::getFuncLoader());
-//    }
-//    cmdBuf->end();
-//
-//    util::executeCommandBuffer(*cmdBuf);
-//}
+void trc::rt::buildAccelerationStructures(const std::vector<BottomLevelAccelerationStructure*>& as)
+{
+    if (as.empty()) return;
+
+    static auto features = vkb::getPhysicalDevice().physicalDevice.getFeatures2<
+        vk::PhysicalDeviceFeatures2,
+        vk::PhysicalDeviceAccelerationStructureFeaturesKHR
+    >().get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
+
+    // Create a temporary scratch buffer
+    const ui32 scratchSize = [&as] {
+        ui32 result{ 0 };
+        for (auto& blas : as) {
+            result += blas->getBuildSize().buildScratchSize;
+        }
+        return result;
+    }();
+    vkb::MemoryPool scratchPool(vkb::getDevice(), scratchSize);
+    std::vector<vkb::DeviceLocalBuffer> scratchBuffers;
+
+    // Collect build infos
+    std::vector<vk::AccelerationStructureBuildGeometryInfoKHR> geoBuildInfos;
+    for (auto& blas : as)
+    {
+        auto& scratchBuffer = scratchBuffers.emplace_back(
+            blas->getBuildSize().buildScratchSize, nullptr,
+            vk::BufferUsageFlagBits::eShaderDeviceAddress,
+            scratchPool.makeAllocator()
+        );
+        auto info = blas->getGeometryBuildInfo();
+        geoBuildInfos.push_back(
+            info.setScratchData(vkb::getDevice()->getBufferAddress({ *scratchBuffer }))
+                .setDstAccelerationStructure(**blas)
+        );
+    }
+
+    // Collect build ranges for all acceleration structures
+    std::vector<const vk::AccelerationStructureBuildRangeInfoKHR*> buildRangePointers;
+    std::vector<std::unique_ptr<std::vector<vk::AccelerationStructureBuildRangeInfoKHR>>> buildRanges;
+    for (auto& blas : as)
+    {
+        auto [ranges, ptr] = blas->makeBuildRanges();
+        buildRangePointers.insert(buildRangePointers.end(), ptr.begin(), ptr.end());
+        buildRanges.push_back(std::move(ranges));
+    }
+
+    // Decide whether the AS should be built on the host or on the device.
+    // Build on the host if possible.
+    if (features.accelerationStructureHostCommands)
+    {
+        vkb::getDevice()->buildAccelerationStructuresKHR(
+            {}, // optional deferred operation
+            geoBuildInfos,
+            buildRangePointers,
+            vkb::getDL()
+        );
+    }
+    else
+    {
+        vkb::getDevice().executeCommandsSynchronously(
+            vkb::QueueType::compute,
+            [&](vk::CommandBuffer cmdBuf)
+            {
+                cmdBuf.buildAccelerationStructuresKHR(
+                    geoBuildInfos,
+                    buildRangePointers,
+                    vkb::getDL()
+                );
+            }
+        );
+    }
+}

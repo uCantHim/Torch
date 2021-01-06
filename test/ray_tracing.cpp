@@ -40,11 +40,9 @@ int main()
 
     // --- BLAS --- //
 
-    BLAS blas{ geoId };
-    blas.build();
-
     BLAS triBlas{ triId };
-    triBlas.build();
+    BLAS blas{ geoId };
+    trc::rt::buildAccelerationStructures({ &blas, &triBlas });
 
 
     // --- TLAS --- //
@@ -90,7 +88,7 @@ int main()
     };
 
     TLAS tlas{ 30 };
-    tlas.build(instanceBuffer);
+    tlas.build(*instanceBuffer);
 
 
     // --- Ray Pipeline --- //
