@@ -1,5 +1,7 @@
 #include "ray_tracing/AccelerationStructure.h"
 
+#include "ray_tracing/GeometryUtils.h"
+
 
 
 auto trc::rt::internal::AccelerationStructureBase::operator*() const noexcept

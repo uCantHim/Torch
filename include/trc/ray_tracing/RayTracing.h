@@ -2,6 +2,7 @@
 
 #include "RenderStage.h"
 #include "AccelerationStructure.h"
+#include "GeometryUtils.h"
 #include "RayPipelineBuilder.h"
 #include "ShaderBindingTable.h"
 

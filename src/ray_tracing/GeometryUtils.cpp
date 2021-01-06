@@ -1,6 +1,7 @@
 #include "ray_tracing/GeometryUtils.h"
 
 #include "AssetRegistry.h"
+#include "ray_tracing/AccelerationStructure.h"
 
 
 
@@ -25,4 +26,56 @@ auto trc::rt::makeGeometryInfo(const Geometry& geo) -> vk::AccelerationStructure
             }
         }
     };
+}
+
+trc::rt::GeometryInstance::GeometryInstance(
+    glm::mat3x4 transform,
+    const BottomLevelAccelerationStructure& blas)
+    :
+    transform(transform),
+    accelerationStructureAddress(blas.getDeviceAddress())
+{
+}
+
+trc::rt::GeometryInstance::GeometryInstance(
+    mat4 transform,
+    const BottomLevelAccelerationStructure& blas)
+    :
+    transform(transform),
+    accelerationStructureAddress(blas.getDeviceAddress())
+{
+}
+
+trc::rt::GeometryInstance::GeometryInstance(
+    glm::mat3x4 transform,
+    ui32 instanceCustomIndex,
+    ui8 mask,
+    ui32 shaderBindingTableRecordOffset,
+    vk::GeometryInstanceFlagsKHR flags,
+    const BottomLevelAccelerationStructure& blas)
+    :
+    transform(transform),
+    instanceCustomIndex(instanceCustomIndex),
+    mask(mask),
+    shaderBindingTableRecordOffset(shaderBindingTableRecordOffset),
+    flags(static_cast<ui32>(flags)),
+    accelerationStructureAddress(blas.getDeviceAddress())
+{
+}
+
+trc::rt::GeometryInstance::GeometryInstance(
+    mat4 transform,
+    ui32 instanceCustomIndex,
+    ui8 mask,
+    ui32 shaderBindingTableRecordOffset,
+    vk::GeometryInstanceFlagsKHR flags,
+    const BottomLevelAccelerationStructure& blas)
+    :
+    transform(transform),
+    instanceCustomIndex(instanceCustomIndex),
+    mask(mask),
+    shaderBindingTableRecordOffset(shaderBindingTableRecordOffset),
+    flags(static_cast<ui32>(flags)),
+    accelerationStructureAddress(blas.getDeviceAddress())
+{
 }

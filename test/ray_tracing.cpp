@@ -40,6 +40,7 @@ int main()
 
     // --- BLAS --- //
 
+    vkb::MemoryPool asPool{ vkb::getDevice(), 100000000 };
     BLAS triBlas{ triId };
     BLAS blas{ geoId };
     trc::rt::buildAccelerationStructures({ &blas, &triBlas });
@@ -49,21 +50,19 @@ int main()
 
     std::vector<trc::rt::GeometryInstance> instances{
         // Skeleton
-        //{
-        //    {
-        //        1, 0, 0, 0,
-        //        0, 1, 0, 0,
-        //        0, 0, 1, 0
-        //    },
-        //    42,   // instance custom index
-        //    0xff, // mask
-        //    0,    // shader binding table offset
-        //    static_cast<ui32>(
-        //        vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-        //        | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable
-        //    ),
-        //    blas.getDeviceAddress()
-        //},
+        {
+            {
+                0.03, 0, 0, -2,
+                0, 0.03, 0, 0,
+                0, 0, 0.03, 0
+            },
+            42,   // instance custom index
+            0xff, // mask
+            0,    // shader binding table offset
+            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+            | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable,
+            blas
+        },
         // Triangle
         {
             {
@@ -71,14 +70,12 @@ int main()
                 0, 1, 0, 0,
                 0, 0, 1, 0
             },
-            42,   // instance custom index
+            43,   // instance custom index
             0xff, // mask
             0,    // shader binding table offset
-            static_cast<ui32>(
-                vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-                | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable
-            ),
-            triBlas.getDeviceAddress()
+            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+            | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable,
+            triBlas
         }
     };
     vkb::Buffer instanceBuffer{

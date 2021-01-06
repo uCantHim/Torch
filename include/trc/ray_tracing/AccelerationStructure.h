@@ -1,6 +1,9 @@
 #pragma once
 
-#include "GeometryUtils.h"
+#include <vkb/Buffer.h>
+
+#include "Types.h"
+#include "AssetIds.h"
 
 namespace trc::rt
 {
