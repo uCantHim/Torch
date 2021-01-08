@@ -13,6 +13,9 @@ vkb::StaticInit trc::FontDescriptor::_init{
                 }
             )
         );
+    },
+    [] {
+        descLayout.reset();
     }
 };
 
