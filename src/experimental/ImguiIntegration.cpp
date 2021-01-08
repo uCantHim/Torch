@@ -15,6 +15,7 @@
 namespace
 {
     trc::Pipeline::ID imguiPipelineId;
+    vk::UniqueDescriptorPool imguiDescPool;
     bool imguiInitialized{ false };
 
     bool imguiHasBegun{ false };
@@ -95,7 +96,7 @@ void trc::experimental::imgui::initImgui(
             { vk::DescriptorType::eStorageBufferDynamic, 1000 },
             { vk::DescriptorType::eInputAttachment, 1000 },
         };
-        static auto imGuiDescPool = device->createDescriptorPoolUnique(
+        imguiDescPool = device->createDescriptorPoolUnique(
             vk::DescriptorPoolCreateInfo(
                 vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
                 1000 * poolSizes.size(),
@@ -114,7 +115,7 @@ void trc::experimental::imgui::initImgui(
         igInfo.QueueFamily = device.getQueueFamily(vkb::QueueType::graphics);
         igInfo.Queue = device.getQueues(igInfo.QueueFamily).back();
         igInfo.PipelineCache = {};
-        igInfo.DescriptorPool = *imGuiDescPool;
+        igInfo.DescriptorPool = *imguiDescPool;
         igInfo.Allocator = nullptr;
         igInfo.MinImageCount = vkb::getSwapchain().getFrameCount();
         igInfo.ImageCount = vkb::getSwapchain().getFrameCount();
@@ -157,6 +158,8 @@ void trc::experimental::imgui::terminateImgui()
     {
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
+
+        imguiDescPool.reset();
 
         imguiInitialized = false;
     }
