@@ -38,6 +38,9 @@ vkb::StaticInit trc::Text::_init{
             quad,
             vk::BufferUsageFlagBits::eVertexBuffer
         );
+    },
+    [] {
+        vertexBuffer.reset();
     }
 };
 
