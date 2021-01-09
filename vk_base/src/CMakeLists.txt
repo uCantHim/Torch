@@ -6,6 +6,7 @@ target_sources(
     vk_base
     PRIVATE
         Buffer.cpp
+        ExclusiveQueue.cpp
         Memory.cpp
         Image.cpp
         Logger.cpp
