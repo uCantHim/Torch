@@ -43,7 +43,7 @@ namespace vkb
         std::vector<bool> capabilities;
     };
 
-    struct QueueCapabilities
+    struct QueueFamilyCapabilities
     {
         std::vector<QueueFamily> graphicsCapable;
         std::vector<QueueFamily> computeCapable;
@@ -56,7 +56,7 @@ namespace vkb
     extern auto getQueueFamilies(vk::PhysicalDevice, vk::SurfaceKHR surface)
         -> std::vector<QueueFamily>;
     extern auto sortByCapabilities(const std::vector<QueueFamily>& families)
-        -> QueueCapabilities;
+        -> QueueFamilyCapabilities;
 
 
     /**
@@ -122,7 +122,7 @@ namespace vkb
 
         // Queues
         const std::vector<QueueFamily> queueFamilies;
-        const QueueCapabilities queueCapabilities;
+        const QueueFamilyCapabilities queueFamilyCapabilities;
 
         // Physical device properties
         const std::vector<vk::ExtensionProperties> supportedExtensions;

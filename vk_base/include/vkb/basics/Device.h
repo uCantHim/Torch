@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "PhysicalDevice.h"
+#include "../QueueManager.h"
 
 namespace vkb
 {
@@ -35,6 +36,9 @@ public:
 
     auto getPhysicalDevice() const noexcept -> const PhysicalDevice&;
 
+    auto getQueueManager() noexcept -> QueueManager&;
+    auto getQueueManager() const noexcept -> const QueueManager&;
+
     /**
      * @param QueueType capability
      * @param uint32_t  queueIndex
@@ -44,18 +48,21 @@ public:
      *
      * @throw std::out_of_range if no queue with the index exists.
      */
+    [[deprecated]]
     auto getQueue(QueueType capability, uint32_t queueIndex = 0) const -> vk::Queue;
 
     /**
      * @return vk::Queue The most specialized queue family for the
      *                   requested type.
      */
+    [[deprecated]]
     auto getQueueFamily(QueueType capability) const -> QueueFamilyIndex;
 
     /**
      * @return All queues of a specific family
      */
-    auto getQueues(QueueFamilyIndex family) const -> const std::vector<vk::Queue>&;
+    [[deprecated]]
+    auto getQueues(QueueFamilyIndex family) const -> std::vector<vk::Queue>;
 
     /**
      * @brief Create a temporary command buffer for graphics operations
@@ -145,9 +152,7 @@ private:
     const PhysicalDevice& physicalDevice;
     vk::UniqueDevice device;
 
-    static constexpr size_t queueTypeCount = static_cast<size_t>(QueueType::numQueueTypes);
-    std::vector<std::vector<vk::Queue>> queuesPerFamily;
-    std::array<QueueFamilyIndex, queueTypeCount> mostSpecializedQueueFamilies;
+    QueueManager queueManager;
 
     vk::UniqueCommandPool graphicsPool;
     vk::Queue graphicsQueue;

@@ -21,6 +21,8 @@ vkb::ThreadPool::~ThreadPool()
 
 void vkb::ThreadPool::spawnThread()
 {
+    std::lock_guard lk(threadListLock);
+
     auto& lock = *threadLocks.emplace_back(new ThreadLock);
     threads.emplace_back([this, &lock]() {
         while (!stopAllThreads)
@@ -38,19 +40,28 @@ void vkb::ThreadPool::spawnThread()
 
 void vkb::ThreadPool::execute(std::function<void()> func)
 {
-    for (auto& threadLock : threadLocks)
     {
-        if (threadLock->hasWork) continue;
+        std::lock_guard lock(threadListLock);
+        for (auto& threadLock : threadLocks)
+        {
+            if (threadLock->hasWork) continue;
 
-        std::lock_guard lock(threadLock->mutex);
-        threadLock->hasWork = true;
-        threadLock->work = std::move(func);
-        threadLock->cvar.notify_one();
+            std::lock_guard lock(threadLock->mutex);
+            threadLock->hasWork = true;
+            threadLock->work = std::move(func);
+            threadLock->cvar.notify_one();
 
-        return;
+            return;
+        }
     }
 
     // Did not find a thread ready for execution, create a new one
     spawnThread();
     execute(std::move(func));
+}
+
+auto vkb::getThreadPool() noexcept -> ThreadPool&
+{
+    static ThreadPool threadPool;
+    return threadPool;
 }

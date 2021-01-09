@@ -74,9 +74,9 @@ auto vkb::getQueueFamilies(
 }
 
 auto vkb::sortByCapabilities(const std::vector<QueueFamily>& families)
-    -> QueueCapabilities
+    -> QueueFamilyCapabilities
 {
-    QueueCapabilities result;
+    QueueFamilyCapabilities result;
     for (const auto& family : families)
     {
         if (family.isCapable(QueueType::graphics)) {
@@ -127,7 +127,7 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
     :
     physicalDevice(device),
     queueFamilies(getQueueFamilies(device, surface)),
-    queueCapabilities(sortByCapabilities(queueFamilies)),
+    queueFamilyCapabilities(sortByCapabilities(queueFamilies)),
     supportedExtensions(device.enumerateDeviceExtensionProperties()),
     properties(device.getProperties()),
     features(device.getFeatures()),
@@ -293,7 +293,7 @@ bool vkb::device_helpers::isOptimalDevice(const PhysicalDevice& device)
 
 bool vkb::device_helpers::supportsRequiredQueueCapabilities(const PhysicalDevice& device)
 {
-    const auto& families = device.queueCapabilities;
+    const auto& families = device.queueFamilyCapabilities;
 
     return !families.graphicsCapable.empty()
         && !families.presentationCapable.empty()

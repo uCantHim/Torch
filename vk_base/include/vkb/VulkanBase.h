@@ -82,6 +82,8 @@ namespace vkb
         static auto getDevice() noexcept         -> Device&;
         static auto getSwapchain() noexcept      -> Swapchain&;
 
+        static auto getQueueManager() noexcept   -> QueueManager&;
+
     private:
         static inline bool isInitialized{ false };
 
@@ -110,5 +112,9 @@ namespace vkb
     /** @brief Shortcut for vkb::VulkanBase::getSwapchain() */
     inline auto getSwapchain() noexcept -> Swapchain& {
         return VulkanBase::getSwapchain();
+    }
+
+    inline auto getQueueManager() noexcept -> QueueManager& {
+        return VulkanBase::getQueueManager();
     }
 } // namespace vkb

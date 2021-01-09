@@ -30,8 +30,8 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
     ImageSharingDetails result;
 
     std::vector<uint32_t> imageSharingQueueFamilies;
-    const auto& graphicsFamilies = physicalDevice.queueCapabilities.graphicsCapable;
-    const auto& presentationFamilies = physicalDevice.queueCapabilities.presentationCapable;
+    const auto& graphicsFamilies = physicalDevice.queueFamilyCapabilities.graphicsCapable;
+    const auto& presentationFamilies = physicalDevice.queueFamilyCapabilities.presentationCapable;
     if (graphicsFamilies.empty() || presentationFamilies.empty()) {
         throw std::runtime_error("Unable to create swapchain; no graphics or presentation queues available."
             "This should have been checked during device selection.");

@@ -135,3 +135,8 @@ auto vkb::VulkanBase::getSwapchain() noexcept -> Swapchain&
 {
     return *swapchain;
 }
+
+auto vkb::VulkanBase::getQueueManager() noexcept -> QueueManager&
+{
+    return getDevice().getQueueManager();
+}

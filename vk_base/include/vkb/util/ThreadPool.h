@@ -66,9 +66,20 @@ namespace vkb
         // Use unique_ptrs to make the thread pool reliably movable
         std::vector<std::unique_ptr<ThreadLock>> threadLocks;
 
+        // Guards the list of thread locks
+        std::mutex threadListLock;
+
         // Used to end all threads when the pool is destroyed
         bool stopAllThreads{ false };
     };
+
+    /**
+     * @brief Get a global thread pool
+     *
+     * A vkb::getThreadPool function in the same fashion as vkb::getDevice,
+     * vkb::getSwapchain, etc.
+     */
+    extern auto getThreadPool() noexcept -> ThreadPool&;
 
 
 
@@ -108,4 +119,4 @@ namespace vkb
             }
         );
     }
-} // namespace nc::async
+} // namespace vkb
