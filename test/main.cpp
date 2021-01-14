@@ -24,14 +24,12 @@ int main()
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
     vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
-        camera.setAspect(float(extent.width * 0.5) / float(extent.height));
+        camera.setAspect(float(extent.width) / float(extent.height));
     });
 
     vkb::Keyboard::init();
     vkb::Mouse::init();
 
-    vkb::VulkanInitInfo initInfo;
-    vkb::vulkanInit(initInfo);
     auto renderer = trc::init();
 
     // ------------------
@@ -153,13 +151,12 @@ int main()
     scene->addLight(ambientLight);
     scene->addLight(pointLight);
 
-    // Make shadow pass for sun light
-    mat4 proj = glm::ortho(-3.0f, 3.0f, -3.0f, 3.0f, 1.0f, 30.0f);
+    // Sun light
+    mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 30.0f);
     sunLight.position = { vec3(-10, 10, 15), 0 };
     scene->getLightRegistry().enableShadow(
         sunLight, uvec2(2048, 2048)
     ).setProjectionMatrix(proj);
-    //scene->getLightRegistry().disableShadow(sunLight);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
@@ -208,23 +205,6 @@ int main()
     spawn.spawnParticles();
 
 
-
-    auto kitchenScene = trc::loadScene("assets/transparency_test_scene.fbx");
-    trc::Light _sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f));
-    trc::Light _pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
-    //kitchenScene.scene.addLight(trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.0f)));
-    //kitchenScene.scene.addLight(trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f));
-    kitchenScene.scene.addLight(_sunLight);
-    kitchenScene.scene.addLight(_pointLight);
-
-    trc::Camera kitchenCamera(1.0f, 45.0f, 0.1f, 100.0f);
-    kitchenCamera.lookAt({ 10.0f, 5.0f, 10.0f }, vec3{ 0.0f }, { 0, 1, 0 });
-    vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
-        const auto extent = e.swapchain->getImageExtent();
-        kitchenCamera.setAspect(float(extent.width) / float(extent.height));
-    });
-
-
     bool running{ true };
     auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
         [&running](const vkb::SwapchainCloseEvent&) { running = false; }
@@ -259,7 +239,7 @@ int main()
         }
     }).detach();
 
-
+    // Text
     trc::Font font{ "fonts/gil.ttf", 64 };
     trc::Text text{ font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
@@ -267,18 +247,13 @@ int main()
     text.attachToScene(*scene);
 
 
-
     vkb::Timer timer;
     uint32_t frames{ 0 };
     while (running)
     {
-        if (vkb::Keyboard::isPressed(vkb::Key::a)) std::cout << "A pressed\n";
-        if (vkb::Keyboard::isPressed(vkb::Key::del)) std::cout << "DEL pressed\n";
-
         scene->updateTransforms();
 
-        vk::Viewport viewport{ 0.0f, 0.0f, 1280.0f, 1405.0f, 0.0f, 1.0f };
-        renderer->drawFrame(*scene, camera, viewport);
+        renderer->drawFrame(*scene, camera);
 
         vkb::pollEvents();
         frames++;
