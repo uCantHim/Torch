@@ -32,7 +32,7 @@ namespace trc::experimental::imgui
      *                           renderer's graph.
      * @param const vkb::Swapchain& swapchain
      */
-    extern void initImgui(const vkb::Device& device,
+    extern void initImgui(vkb::Device& device,
                           Renderer& renderer,
                           const vkb::Swapchain& swapchain);
 

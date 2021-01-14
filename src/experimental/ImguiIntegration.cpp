@@ -58,7 +58,7 @@ auto trc::experimental::imgui::getImguiPipeline() -> Pipeline::ID
 
 
 void trc::experimental::imgui::initImgui(
-    const vkb::Device& device,
+    vkb::Device& device,
     Renderer& renderer,
     const vkb::Swapchain& swapchain)
 {
@@ -105,21 +105,30 @@ void trc::experimental::imgui::initImgui(
         );
 
         RenderPass& renderPass = RenderPass::at(getImguiRenderPass(swapchain));
+        try {
+            auto [queue, family] = device.getQueueManager().getAnyQueue(vkb::QueueType::graphics);
+            device.getQueueManager().reserveQueue(queue);
 
-        // Init ImGui for Vulkan
-        ImGui_ImplGlfw_InitForVulkan(vkb::getSwapchain().getGlfwWindow(), true);
-        ImGui_ImplVulkan_InitInfo igInfo{};
-        igInfo.Instance = *vkb::getInstance();
-        igInfo.PhysicalDevice = vkb::getPhysicalDevice().physicalDevice;
-        igInfo.Device = *device;
-        igInfo.QueueFamily = device.getQueueFamily(vkb::QueueType::graphics);
-        igInfo.Queue = device.getQueues(igInfo.QueueFamily).back();
-        igInfo.PipelineCache = {};
-        igInfo.DescriptorPool = *imguiDescPool;
-        igInfo.Allocator = nullptr;
-        igInfo.MinImageCount = vkb::getSwapchain().getFrameCount();
-        igInfo.ImageCount = vkb::getSwapchain().getFrameCount();
-        ImGui_ImplVulkan_Init(&igInfo, *renderPass);
+            // Init ImGui for Vulkan
+            ImGui_ImplGlfw_InitForVulkan(vkb::getSwapchain().getGlfwWindow(), true);
+            ImGui_ImplVulkan_InitInfo igInfo{};
+            igInfo.Instance = *vkb::getInstance();
+            igInfo.PhysicalDevice = vkb::getPhysicalDevice().physicalDevice;
+            igInfo.Device = *device;
+            igInfo.QueueFamily = family;
+            igInfo.Queue = queue;
+            igInfo.PipelineCache = {};
+            igInfo.DescriptorPool = *imguiDescPool;
+            igInfo.Allocator = nullptr;
+            igInfo.MinImageCount = vkb::getSwapchain().getFrameCount();
+            igInfo.ImageCount = vkb::getSwapchain().getFrameCount();
+            ImGui_ImplVulkan_Init(&igInfo, *renderPass);
+        }
+        catch (const vkb::QueueReservedError& err)
+        {
+            throw std::runtime_error("Unable to reserve graphics queue for ImGui: "
+                                     + std::string(err.what()));
+        }
 
         // Upload fonts texture
         auto oneTimeCmdBuf = device.createGraphicsCommandBuffer();

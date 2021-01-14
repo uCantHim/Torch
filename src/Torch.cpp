@@ -9,6 +9,7 @@
 auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
 {
     vkb::vulkanInit();
+    Queues::init(vkb::getQueueManager());
 
     auto renderer = std::make_unique<Renderer>(info.rendererInfo);
 

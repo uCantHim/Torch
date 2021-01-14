@@ -177,7 +177,8 @@ void trc::ParticleCollection::update()
     transferCmdBuf->end();
 
     constexpr vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eTransfer;
-    vkb::getDevice().getQueue(vkb::QueueType::transfer, 2).submit(
+    static auto& transferQueue = Queues::getTransfer();
+    transferQueue.waitSubmit(
         vk::SubmitInfo(0, nullptr, &waitStage, 1, &*transferCmdBuf, 0, nullptr),
         *transferFence
     );

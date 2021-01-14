@@ -1,5 +1,7 @@
 #include "CommandCollector.h"
 
+#include "TorchResources.h"
+
 
 
 trc::CommandCollector::CommandCollector()
@@ -8,7 +10,7 @@ trc::CommandCollector::CommandCollector()
         vk::CommandPoolCreateInfo(
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            vkb::getDevice().getQueueFamily(vkb::QueueType::graphics)
+            Queues::getMainRenderFamily()
         )
     )),
     commandBuffers(

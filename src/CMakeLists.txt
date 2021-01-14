@@ -28,8 +28,8 @@ target_sources(
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
-
         Torch.cpp
+        TorchResources.cpp
 )
 
 add_subdirectory(base)
