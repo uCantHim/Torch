@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 #define GLM_DEPTH_ZERO_TO_ONE
@@ -61,6 +63,18 @@ namespace trc::basic_types
     using mat4 = glm::mat4;
 
     using quat = glm::quat;
+
+
+    // --------------------- //
+    // Smart pointer aliases //
+    // --------------------- //
+
+    template<typename T, typename D = std::default_delete<T>>
+    using u_ptr = std::unique_ptr<T, D>;
+    template<typename T>
+    using s_ptr = std::shared_ptr<T>;
+    template<typename T>
+    using w_ptr = std::weak_ptr<T>;
 } // namespace trc::basic_types
 
 namespace trc
