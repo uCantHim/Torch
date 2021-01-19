@@ -93,15 +93,15 @@ vkb::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
 
     // Collect all queues for each capability, not just of the primary
     // queue family
-    for (int familyIndex = 0; const auto& queues : queuesPerFamily)
+    for (const QueueFamily& family : physDevice.queueFamilies)
     {
-        const QueueFamily& family = physDevice.queueFamilies[familyIndex++];
+        const auto& queues = queuesPerFamily[family.index];
         for (size_t i = 0; i < queueTypeCount; i++)
         {
             if (family.isCapable(QueueType(i)))
             {
                 for (uint32_t queueIndex : queues) {
-                    queuesPerCapability[i].emplace_back(queueIndex, familyIndex);
+                    queuesPerCapability[i].emplace_back(queueIndex, family.index);
                 }
             }
         }
