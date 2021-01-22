@@ -1,74 +1,44 @@
 #pragma once
 
 #include "Element.h"
-#include "UiRenderer.h"
 
 namespace trc::ui
 {
-    auto calcGlobalTransform(const Node& node);
+    class Window;
 
-    class WindowInformationProvider
-    {
-
-    };
-
-    //template<GuiElement E>
-    //class UniqueElementHandle
-    //{
-    //    friend class Window;
-    //    UniqueElementHandle(E& elem, Window& window);
-
-    //public:
-    //    UniqueElementHandle(const UniqueElementHandle<E>&) = delete;
-    //    auto operator=(const UniqueElementHandle<E>&) -> UniqueElementHandle<E>& = delete;
-
-    //    UniqueElementHandle(UniqueElementHandle<E>&&) noexcept = default;
-    //    ~UniqueElementHandle() = default;
-
-    //    auto operator=(UniqueElementHandle<E>&&) noexcept -> UniqueElementHandle<E>& = default;
-
-    //    inline auto operator->() -> E*;
-    //    inline auto operator->() const -> const E*;
-
-    //private:
-    //    using Deleter = std::function<void(E*)>;
-    //    std::unique_ptr<E, Deleter> ptr;
-    //};
-
-    //template<GuiElement E>
-    //class SharedElementHandle
-    //{
-    //    friend class Window;
-    //    SharedElementHandle(E& elem, Window& window);
-
-    //public:
-    //    SharedElementHandle(const SharedElementHandle<E>&) = default;
-    //    SharedElementHandle(SharedElementHandle<E>&&) noexcept = default;
-    //    ~SharedElementHandle() = default;
-
-    //    auto operator=(const SharedElementHandle<E>&) -> SharedElementHandle<E>& = default;
-    //    auto operator=(SharedElementHandle<E>&&) noexcept -> SharedElementHandle<E>& = default;
-
-    //    auto operator->() -> E*;
-    //    auto operator->() const -> const E*;
-    //};
-
+    /**
+     * Typed unique handle for UI elements
+     */
     template<GuiElement E>
-    using SharedElementHandle = std::shared_ptr<E>;
-    template<GuiElement E>
-    using UniqueElementHandle = std::unique_ptr<E, std::function<void(E*)>>;
+    using SharedElementHandle = s_ptr<E>;
 
+    /**
+     * Typed shared handle for UI elements
+     */
+    template<GuiElement E>
+    using UniqueElementHandle = u_ptr<E, std::function<void(E*)>>;
+
+    /**
+     * Temporary proxy that creates either an unmanaged reference or a
+     * smart handle (i.e. unique or shared).
+     */
     template<GuiElement E>
     class ElementHandleFactory
     {
         friend class Window;
-        explicit ElementHandleFactory(E& element, Window& window);
+        ElementHandleFactory(E& element, Window& window);
 
     public:
         using SharedHandle = SharedElementHandle<E>;
         using UniqueHandle = UniqueElementHandle<E>;
 
+        ElementHandleFactory(const ElementHandleFactory<E>&) = delete;
+        ElementHandleFactory(ElementHandleFactory<E>&&) noexcept = delete;
+        auto operator=(const ElementHandleFactory<E>&) -> ElementHandleFactory<E>& = delete;
+        auto operator=(ElementHandleFactory<E>&&) noexcept -> ElementHandleFactory<E>& = delete;
+
         inline operator E&() &&;
+        inline auto makeRef() && -> E&;
         inline auto makeShared() && -> SharedHandle;
         inline auto makeUnique() && -> UniqueHandle;
 
@@ -77,28 +47,49 @@ namespace trc::ui
         Window* window;
     };
 
+    class WindowInformationProvider
+    {
+    public:
+        virtual auto getSize() -> vec2 = 0;
+    };
+
     /**
      * Acts as a root for the gui
      */
     class Window
     {
     public:
-        Window(WindowInformationProvider window, std::unique_ptr<Renderer> renderer);
+        explicit Window(u_ptr<WindowInformationProvider> window);
 
         /**
          * Realign elements, then draw then to a framebuffer
          */
-        void draw();
+        auto draw() -> std::vector<DrawInfo>;
 
-        auto getSize();
+        auto getSize() -> vec2;
+        auto getRoot() -> Element&;
 
+        /**
+         * @brief Create an element
+         */
         template<GuiElement E, typename... Args>
             requires std::is_constructible_v<E, Args...>
         auto create(Args&&... args) -> ElementHandleFactory<E>;
 
+        /**
+         * @brief Destroy an element
+         *
+         * @param Element& elem The element to destroy. Must have been
+         *        created at the same window.
+         */
         void destroy(Element& elem);
 
+        template<typename E>
+        void notifyEvent(E event);
+
     private:
+        auto concat(Transform parent, Transform child) -> Transform;
+
         /**
          * @brief Recalculate positions of elements
          *
@@ -107,10 +98,22 @@ namespace trc::ui
          */
         void realign();
 
-        WindowInformationProvider window;
-        std::vector<std::unique_ptr<Element>> drawableElements;
+        u_ptr<WindowInformationProvider> windowInfo;
 
-        std::unique_ptr<Renderer> renderer;
+        std::vector<u_ptr<Element>> drawableElements;
+
+        /**
+         * Traverses the tree recusively and calculates global transforms
+         * of visited elements. Applies a function to all visited elements.
+         */
+        template<std::invocable<Element&, SizeVal, SizeVal> F>
+        void traverse(F elemCallback);
+
+        struct Root : Element {
+            void draw(std::vector<DrawInfo>&, SizeVal, SizeVal) override {}
+        };
+
+        Root root;
     };
 
 #include "Window.inl"

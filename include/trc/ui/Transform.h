@@ -6,7 +6,7 @@ namespace trc::ui
 {
     using SizeVal = vec2;
 
-    enum class Size : ui8
+    enum class SizeType : ui8
     {
         eNorm,
         ePixel,
@@ -22,26 +22,14 @@ namespace trc::ui
     {
         struct Properties
         {
-            Size sizeType{ Size::eNorm };
+            SizeType type{ SizeType::eNorm };
             Align alignment{ Align::eRelative };
         };
 
-        SizeVal position;
-        SizeVal size;
+        SizeVal position{ 0.0f, 0.0f };
+        SizeVal size{ 1.0f, 1.0f };
 
         Properties posProp{};
         Properties sizeProp{};
     };
-
-    inline auto concat(Transform parent, Transform child) -> Transform
-    {
-        return {
-            .position = child.posProp.alignment == Align::eRelative
-                ? parent.position + child.position
-                : child.position,
-            .size = child.sizeProp.alignment == Align::eRelative
-                ? parent.size * child.size
-                : child.size
-        };
-    }
 } // namespace trc::ui

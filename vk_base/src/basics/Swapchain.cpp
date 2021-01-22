@@ -418,7 +418,7 @@ void vkb::Swapchain::createSwapchain()
         optimalFormat.colorSpace,
         optimalImageExtent,
         1u, // array layers
-        vk::ImageUsageFlagBits::eColorAttachment,
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
         imageSharingMode,
         static_cast<uint32_t>(imageSharingQueueFamilies.size()),
         imageSharingQueueFamilies.data(),
