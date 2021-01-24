@@ -4,8 +4,6 @@
 
 namespace trc::ui
 {
-    using SizeVal = vec2;
-
     enum class SizeType : ui8
     {
         eNorm,
@@ -26,8 +24,8 @@ namespace trc::ui
             Align alignment{ Align::eRelative };
         };
 
-        SizeVal position{ 0.0f, 0.0f };
-        SizeVal size{ 1.0f, 1.0f };
+        vec2 position{ 0.0f, 0.0f };
+        vec2 size{ 1.0f, 1.0f };
 
         Properties posProp{};
         Properties sizeProp{};

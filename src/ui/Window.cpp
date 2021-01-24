@@ -15,7 +15,7 @@ trc::ui::Window::Window(u_ptr<WindowInformationProvider> window)
 auto trc::ui::Window::draw() -> std::vector<DrawInfo>
 {
     std::vector<DrawInfo> drawList;
-    traverse([&drawList](Element& elem, SizeVal globalPos, SizeVal globalSize) {
+    traverse([&drawList](Element& elem, vec2 globalPos, vec2 globalSize) {
         elem.draw(drawList, globalPos, globalSize);
         //std::cout << "Global pos: " << globalPos.x << ", " << globalPos.y << "\n";
     });

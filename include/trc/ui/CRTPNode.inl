@@ -13,25 +13,25 @@ trc::ui::CRTPNode<Derived>::~CRTPNode<Derived>()
 }
 
 template<typename Derived>
-auto trc::ui::CRTPNode<Derived>::getPos() -> SizeVal
+auto trc::ui::CRTPNode<Derived>::getPos() -> vec2
 {
     return localTransform.position;
 }
 
 template<typename Derived>
-auto trc::ui::CRTPNode<Derived>::getSize() -> SizeVal
+auto trc::ui::CRTPNode<Derived>::getSize() -> vec2
 {
     return localTransform.size;
 }
 
 template<typename Derived>
-void trc::ui::CRTPNode<Derived>::setPos(SizeVal newPos)
+void trc::ui::CRTPNode<Derived>::setPos(vec2 newPos)
 {
     localTransform.position = newPos;
 }
 
 template<typename Derived>
-void trc::ui::CRTPNode<Derived>::setSize(SizeVal newSize)
+void trc::ui::CRTPNode<Derived>::setSize(vec2 newSize)
 {
     localTransform.size = newSize;
 }

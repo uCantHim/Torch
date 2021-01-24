@@ -60,6 +60,6 @@ namespace trc::ui
     private:
         friend class Window;
 
-        virtual void draw(std::vector<DrawInfo>& drawList, SizeVal globalPos, SizeVal globalSize) = 0;
+        virtual void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) = 0;
     };
 } // namespace trc::ui

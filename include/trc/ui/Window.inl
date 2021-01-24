@@ -47,7 +47,7 @@ auto trc::ui::Window::create(Args&&... args) -> ElementHandleFactory<E>
     return { newElem, *this };
 }
 
-template<std::invocable<trc::ui::Element&, trc::ui::SizeVal, trc::ui::SizeVal> F>
+template<std::invocable<trc::ui::Element&, trc::vec2, trc::vec2> F>
 void trc::ui::Window::traverse(F elemCallback)
 {
     using FuncType = std::function<void(Transform, Element&)>;

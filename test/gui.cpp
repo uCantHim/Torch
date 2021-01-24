@@ -12,7 +12,7 @@ namespace trc::ui
     class Quad : public Element
     {
     public:
-        void draw(std::vector<DrawInfo>& drawList, SizeVal globalPos, SizeVal globalSize) override
+        void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) override
         {
             std::cout << "Global pos: " << globalPos.x << ", " << globalPos.y << "\n";
 

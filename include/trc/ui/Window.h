@@ -106,11 +106,11 @@ namespace trc::ui
          * Traverses the tree recusively and calculates global transforms
          * of visited elements. Applies a function to all visited elements.
          */
-        template<std::invocable<Element&, SizeVal, SizeVal> F>
+        template<std::invocable<Element&, vec2, vec2> F>
         void traverse(F elemCallback);
 
         struct Root : Element {
-            void draw(std::vector<DrawInfo>&, SizeVal, SizeVal) override {}
+            void draw(std::vector<DrawInfo>&, vec2, vec2) override {}
         };
 
         Root root;

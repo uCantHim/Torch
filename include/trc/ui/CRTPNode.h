@@ -30,10 +30,10 @@ namespace trc::ui
          * TODO: Implement all special member functions
          */
 
-        auto getPos() -> SizeVal;
-        auto getSize() -> SizeVal;
-        void setPos(SizeVal newPos);
-        void setSize(SizeVal newSize);
+        auto getPos() -> vec2;
+        auto getSize() -> vec2;
+        void setPos(vec2 newPos);
+        void setSize(vec2 newSize);
 
         auto getTransform() -> Transform;
         void setTransform(Transform newTransform);
