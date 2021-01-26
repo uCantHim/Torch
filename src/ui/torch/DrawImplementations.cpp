@@ -2,13 +2,12 @@
 
 #include <vkb/Buffer.h>
 
-#include "Pipeline.h"
 #include "PipelineBuilder.h"
-using namespace trc;
 
 
 
-auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID
+auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass)
+    -> Pipeline::ID
 {
     vkb::ShaderProgram program(
         TRC_SHADER_DIR"/ui/quad.vert.spv",
@@ -34,7 +33,18 @@ auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
             {
-                vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0)
+                vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0),
+            }
+        )
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(1, sizeof(QuadData), vk::VertexInputRate::eInstance),
+            {
+                // Position:
+                vk::VertexInputAttributeDescription(1, 1, vk::Format::eR32G32Sfloat, 0),
+                // Size:
+                vk::VertexInputAttributeDescription(2, 1, vk::Format::eR32G32Sfloat, 8),
+                // Color:
+                vk::VertexInputAttributeDescription(3, 1, vk::Format::eR32G32B32A32Sfloat, 16),
             }
         )
         .addViewport({})
@@ -53,69 +63,111 @@ auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID
     ).first;
 }
 
-inline std::unique_ptr<vkb::DeviceLocalBuffer> quadVertexBuffer{ nullptr };
-inline Pipeline::ID quadPipeline;
 
 
+inline trc::Pipeline::ID quadPipeline;
 
-void trc::internal::initGuiDraw(vk::RenderPass renderPass)
+void trc::ui_impl::DrawCollector::initStaticResources(vk::RenderPass renderPass)
 {
     static bool initialized{ false };
     if (initialized) return;
     initialized = true;
 
-    quadVertexBuffer = std::make_unique<vkb::DeviceLocalBuffer>(
+    quadPipeline = makeQuadPipeline(renderPass, 0);
+}
+
+
+
+trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::RenderPass renderPass)
+    :
+    quadVertexBuffer(
         std::vector<vec2>{
             vec2(0, 0), vec2(1, 1), vec2(0, 1),
             vec2(0, 0), vec2(1, 0), vec2(1, 1)
         },
         vk::BufferUsageFlagBits::eVertexBuffer
-    );
+    ),
+    quadBuffer(
+        vkb::getDevice(),
+        100, // Initial max number of quads
+        vk::BufferUsageFlagBits::eVertexBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    ),
+    letterBuffer(
+        vkb::getDevice(),
+        100, // Initial max number of glyphs
+        vk::BufferUsageFlagBits::eVertexBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    )
+{
+    initStaticResources(renderPass);
 
-    quadPipeline = makeQuadPipeline(renderPass, 0);
+    createDescriptorSet(device);
 }
 
-void trc::internal::cleanupGuiDraw()
+void trc::ui_impl::DrawCollector::beginFrame()
 {
-    quadVertexBuffer.reset();
+    quadBuffer.reset();
+    letterBuffer.reset();
 }
 
-
-
-// ------------------------ //
-//      Draw functions      //
-// ------------------------ //
-
-inline void draw(const ui::ElementDrawInfo& elem, const ui::types::NoType&, vk::CommandBuffer cmdBuf)
+void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
 {
-    // No type, draw a canonical quad
+    std::visit([this, &elem=info.elem](auto type) {
+        add(elem, type);
+    }, info.type);
+}
+
+void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
+{
+    // Draw all quads first
     auto& p = Pipeline::at(quadPipeline);
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
     auto size = vkb::getSwapchain().getImageExtent();
     cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
     cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
 
-    cmdBuf.pushConstants<vec2>(
-        p.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        0, { elem.pos, elem.size }
-    );
-    cmdBuf.pushConstants<vec4>(
-        p.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        static_cast<ui32>(sizeof(vec2) * 2), std::get<vec4>(elem.background)
-    );
-
-    cmdBuf.bindVertexBuffers(0, **quadVertexBuffer, { 0 });
-    cmdBuf.draw(6, 1, 0, 0);
+    cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *quadBuffer }, { 0, 0 });
+    cmdBuf.draw(6, quadBuffer.size(), 0, 0);
 }
 
-inline void draw(const ui::ElementDrawInfo& elem, const ui::types::Text& text, vk::CommandBuffer cmdBuf)
+void trc::ui_impl::DrawCollector::add(
+    const ui::ElementDrawInfo& elem,
+    const ui::types::NoType&)
 {
-    std::cout << "UI Text element not implemented!\n";
+    const vec4 color = std::holds_alternative<vec4>(elem.background)
+        ? std::get<vec4>(elem.background)
+        : vec4(1.0f);
+
+    quadBuffer.push({ elem.pos, elem.size, color });
 }
 
-void trc::internal::drawElement(const ui::DrawInfo& info, vk::CommandBuffer cmdBuf)
+void trc::ui_impl::DrawCollector::add(
+    const ui::ElementDrawInfo& elem,
+    const ui::types::Text& text)
 {
-    std::visit([&elem=info.elem, cmdBuf](auto type) {
-        draw(elem, type, cmdBuf);
-    }, info.type);
+    for (const auto& letter : text.letters)
+    {
+        letterBuffer.push({
+            .pos        = elem.pos,
+            .size       = elem.size,
+            .texCoordLL = letter.texCoordLL,
+            .texCoordUR = letter.texCoordUR,
+            .bearingY   = letter.bearingY,
+            .fontIndex  = text.fontIndex
+        });
+    }
+}
+
+void trc::ui_impl::DrawCollector::createDescriptorSet(const vkb::Device& device)
+{
+    //descPool = device->createDescriptorPoolUnique(
+    //    vk::DescriptorPoolCreateInfo(
+    //        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+    //        1, // max sets
+    //        std::vector<vk::DescriptorPoolSize>{
+    //            //vk::DescriptorPoolSize(),
+    //        }
+    //    )
+    //);
 }

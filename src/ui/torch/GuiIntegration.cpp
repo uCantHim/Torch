@@ -87,7 +87,8 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
                 ui32(window.getSize().x), ui32(window.getSize().y), 1
             )
         )
-    )
+    ),
+    collector(vkb::getDevice(), *renderPass)
 {
     auto [queue, family] = vkb::getDevice().getQueueManager().getAnyQueue(vkb::QueueType::graphics);
     cmdPool = vkb::getDevice()->createCommandPoolUnique(
@@ -133,10 +134,12 @@ void trc::GuiRenderer::render()
     );
 
     // Record all element commands
+    collector.beginFrame();
     for (const auto& info : drawList)
     {
-        internal::drawElement(info, *cmdBuf);
+        collector.drawElement(info);
     }
+    collector.endFrame(*cmdBuf);
 
     cmdBuf->endRenderPass();
     cmdBuf->end();
@@ -167,8 +170,6 @@ trc::GuiRenderPass::GuiRenderPass(
     renderer(window),
     renderTargets(std::move(renderTargets))
 {
-    internal::initGuiDraw(renderer.getRenderPass());
-
     std::thread([this] {
         while (!stopRenderThread)
         {

@@ -11,6 +11,7 @@
 #include "RenderPass.h"
 #include "Pipeline.h"
 #include "ui/Window.h"
+#include "ui/torch/DrawImplementations.h"
 
 namespace trc
 {
@@ -60,7 +61,7 @@ namespace trc
         vk::UniqueImageView outputImageView;
         vk::UniqueFramebuffer framebuffer;
 
-        Pipeline::ID quadPipeline;
+        ui_impl::DrawCollector collector;
     };
 
     /**
