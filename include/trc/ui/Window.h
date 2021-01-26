@@ -62,9 +62,10 @@ namespace trc::ui
         explicit Window(u_ptr<WindowInformationProvider> window);
 
         /**
-         * Realign elements, then draw then to a framebuffer
+         * Calculate global transformatio, then build a list of DrawInfos
+         * from all elements in the tree.
          */
-        auto draw() -> std::vector<DrawInfo>;
+        auto draw() -> const DrawList&;
 
         auto getSize() -> vec2;
         auto getRoot() -> Element&;
@@ -74,7 +75,7 @@ namespace trc::ui
          */
         template<GuiElement E, typename... Args>
             requires std::is_constructible_v<E, Args...>
-        auto create(Args&&... args) -> ElementHandleFactory<E>;
+        inline auto create(Args&&... args) -> ElementHandleFactory<E>;
 
         /**
          * @brief Destroy an element
@@ -101,16 +102,17 @@ namespace trc::ui
         u_ptr<WindowInformationProvider> windowInfo;
 
         std::vector<u_ptr<Element>> drawableElements;
+        DrawList drawList;
 
         /**
          * Traverses the tree recusively and calculates global transforms
          * of visited elements. Applies a function to all visited elements.
          */
         template<std::invocable<Element&, vec2, vec2> F>
-        void traverse(F elemCallback);
+        inline void traverse(F elemCallback);
 
         struct Root : Element {
-            void draw(std::vector<DrawInfo>&, vec2, vec2) override {}
+            void draw(DrawList&, vec2, vec2) override {}
         };
 
         Root root;

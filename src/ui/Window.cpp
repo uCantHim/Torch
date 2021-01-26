@@ -12,12 +12,12 @@ trc::ui::Window::Window(u_ptr<WindowInformationProvider> window)
     assert(this->windowInfo != nullptr);
 }
 
-auto trc::ui::Window::draw() -> std::vector<DrawInfo>
+auto trc::ui::Window::draw() -> const DrawList&
 {
-    std::vector<DrawInfo> drawList;
-    traverse([&drawList](Element& elem, vec2 globalPos, vec2 globalSize) {
+    drawList.clear();
+
+    traverse([this](Element& elem, vec2 globalPos, vec2 globalSize) {
         elem.draw(drawList, globalPos, globalSize);
-        //std::cout << "Global pos: " << globalPos.x << ", " << globalPos.y << "\n";
     });
 
     return drawList;

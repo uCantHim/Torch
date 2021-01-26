@@ -38,7 +38,7 @@ inline auto trc::ui::ElementHandleFactory<E>::makeUnique() && -> UniqueHandle
 
 template<trc::ui::GuiElement E, typename... Args>
     requires std::is_constructible_v<E, Args...>
-auto trc::ui::Window::create(Args&&... args) -> ElementHandleFactory<E>
+inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleFactory<E>
 {
     E& newElem = static_cast<E&>(
         *drawableElements.emplace_back(new E(std::forward<Args>(args)...))
@@ -48,7 +48,7 @@ auto trc::ui::Window::create(Args&&... args) -> ElementHandleFactory<E>
 }
 
 template<std::invocable<trc::ui::Element&, trc::vec2, trc::vec2> F>
-void trc::ui::Window::traverse(F elemCallback)
+inline void trc::ui::Window::traverse(F elemCallback)
 {
     using FuncType = std::function<void(Transform, Element&)>;
     FuncType traverseElement = [&](Transform globalTransform, Element& node)

@@ -45,13 +45,10 @@ namespace trc
 
         void render();
 
-        auto getOutputImage() -> vk::Image;
+        auto getRenderPass() const -> vk::RenderPass;
+        auto getOutputImage() const -> vk::Image;
 
     private:
-        static vkb::StaticInit _init;
-        static inline std::unique_ptr<vkb::DeviceLocalBuffer> quadVertexBuffer;
-        void drawQuad(const ui::DrawInfo& info, vk::CommandBuffer cmdBuf);
-
         ui::Window* window;
 
         vk::Queue renderQueue;

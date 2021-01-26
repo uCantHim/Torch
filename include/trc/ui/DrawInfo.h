@@ -18,48 +18,61 @@ namespace trc::ui
 
 
     // --- Typed draw information ---
-
-    struct NoType {};
-
-    struct LetterInfo
+    namespace types
     {
-        vec2 texCoordLL;
-        vec2 texCoordUR;
-        vec2 glyphPosOffset;
-        vec2 glyphSize;
-        float bearingY;
-    };
+        struct NoType {};
 
-    struct TextDrawInfo
-    {
-        ui32 fontIndex;
-        std::vector<LetterInfo> letters;
-    };
+        struct LetterInfo
+        {
+            vec2 texCoordLL;
+            vec2 texCoordUR;
+            vec2 glyphPosOffset;
+            vec2 glyphSize;
+            float bearingY;
+        };
 
-    using TypedDrawInfo = std::variant<
-        NoType,
-        TextDrawInfo
-    >;
+        struct Text
+        {
+            ui32 fontIndex;
+            std::vector<LetterInfo> letters;
+        };
+    }
 
 
-    // --- Generic draw information ---
-
-    struct DrawInfo
+    /**
+     * Generic draw information for all elements
+     */
+    struct ElementDrawInfo
     {
         vec2 pos;
         vec2 size;
 
         // ui32 borderThickness{ 0 };
 
-        std::variant<vec4, TextureInfo> color;
-        TypedDrawInfo typeInfo;
+        std::variant<vec4, TextureInfo> background;
     };
+
+    using DrawType = std::variant<
+        types::NoType,
+        types::Text
+    >;
+
+    /**
+     * All draw information for a gui element
+     */
+    struct DrawInfo
+    {
+        ElementDrawInfo elem;
+        DrawType type;
+    };
+
+    using DrawList = std::vector<DrawInfo>;
 
     class Drawable
     {
-    private:
+    protected:
         friend class Window;
 
-        virtual void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) = 0;
+        virtual void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) = 0;
     };
 } // namespace trc::ui

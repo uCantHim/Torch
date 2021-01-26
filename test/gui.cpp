@@ -6,24 +6,8 @@
 #include <trc/ui/torch/GuiIntegration.h>
 using namespace trc::basic_types;
 namespace ui = trc::ui;
-
-namespace trc::ui
-{
-    class Quad : public Element
-    {
-    public:
-        void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) override
-        {
-            std::cout << "Global pos: " << globalPos.x << ", " << globalPos.y << "\n";
-
-            drawList.emplace_back(DrawInfo{
-                .pos=globalPos,
-                .size=globalSize,
-                .color=vec4(1.0f)
-            });
-        }
-    };
-}
+#include <ui/elements/Quad.h>
+#include <ui/elements/Text.h>
 
 int main()
 {

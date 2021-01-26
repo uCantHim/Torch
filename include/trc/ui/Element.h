@@ -12,7 +12,7 @@ namespace trc::ui
     class Element : public CRTPNode<Element>, public Drawable
     {
     public:
-        void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) override = 0;
+        //void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) override = 0;
     };
 
     template<typename T>

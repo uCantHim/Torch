@@ -3,58 +3,8 @@
 #include <ranges>
 #include <vulkan/vulkan.hpp>
 
-#include "PipelineBuilder.h"
 #include "ui/Element.h"
-
-
-
-namespace trc
-{
-    auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID
-    {
-        vkb::ShaderProgram program(
-            TRC_SHADER_DIR"/ui/quad.vert.spv",
-            TRC_SHADER_DIR"/ui/quad.frag.spv"
-        );
-
-        auto layout = trc::makePipelineLayout(
-            {},
-            {
-                vk::PushConstantRange(
-                    vk::ShaderStageFlagBits::eVertex,
-                    0,
-                    // pos, size
-                    sizeof(vec2) * 2
-                    // color
-                    + sizeof(vec4)
-                )
-            }
-        );
-
-        auto pipeline = GraphicsPipelineBuilder::create()
-            .setProgram(program)
-            .addVertexInputBinding(
-                vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
-                {
-                    vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0)
-                }
-            )
-            .addViewport({})
-            .addScissorRect({})
-            .addDynamicState(vk::DynamicState::eViewport)
-            .addDynamicState(vk::DynamicState::eScissor)
-            .setCullMode(vk::CullModeFlagBits::eNone)
-            .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-            .setColorBlending({}, false, {}, {})
-            .build(*vkb::getDevice(), *layout, renderPass, subPass);
-
-        return Pipeline::createAtNextIndex(
-            std::move(layout),
-            std::move(pipeline),
-            vk::PipelineBindPoint::eGraphics
-        ).first;
-    }
-}
+#include "ui/torch/DrawImplementations.h"
 
 
 
@@ -137,8 +87,7 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
                 ui32(window.getSize().x), ui32(window.getSize().y), 1
             )
         )
-    ),
-    quadPipeline(makeQuadPipeline(*renderPass, 0))
+    )
 {
     auto [queue, family] = vkb::getDevice().getQueueManager().getAnyQueue(vkb::QueueType::graphics);
     cmdPool = vkb::getDevice()->createCommandPoolUnique(
@@ -159,11 +108,12 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
 void trc::GuiRenderer::render()
 {
     auto drawList = window->draw();
+
     // Sort draw list by type of drawable
     std::ranges::sort(
         drawList,
-        [](const ui::DrawInfo& a, const ui::DrawInfo& b) {
-            return a.typeInfo.index() < b.typeInfo.index();
+        [](const auto& a, const auto& b) {
+            return a.type.index() < b.type.index();
         }
     );
 
@@ -182,21 +132,10 @@ void trc::GuiRenderer::render()
         vk::SubpassContents::eInline
     );
 
-    for (const ui::DrawInfo& info : drawList)
+    // Record all element commands
+    for (const auto& info : drawList)
     {
-        std::visit([this, &info, cmdBuf=*cmdBuf](auto type) {
-            if constexpr (std::is_same_v<ui::NoType, decltype(type)>)
-            {
-                // Draw generic quad
-                drawQuad(info, cmdBuf);
-            }
-            else if constexpr (std::is_same_v<ui::TextDrawInfo, decltype(type)>)
-            {
-                // Draw text
-                std::cout << "Warning: Encountered text element, which is"
-                    << " not yet implemented by the renderer\n";
-            }
-        }, info.typeInfo);
+        internal::drawElement(info, *cmdBuf);
     }
 
     cmdBuf->endRenderPass();
@@ -208,48 +147,17 @@ void trc::GuiRenderer::render()
     std::cout << "Fence wait result: " << vk::to_string(result) << "\n";
 }
 
-auto trc::GuiRenderer::getOutputImage() -> vk::Image
+auto trc::GuiRenderer::getRenderPass() const -> vk::RenderPass
+{
+    return *renderPass;
+}
+
+auto trc::GuiRenderer::getOutputImage() const -> vk::Image
 {
     return *outputImage;
 }
 
-void trc::GuiRenderer::drawQuad(const ui::DrawInfo& info, vk::CommandBuffer cmdBuf)
-{
-    auto& p = Pipeline::at(quadPipeline);
-    cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
-    auto size = vkb::getSwapchain().getImageExtent();
-    cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
 
-    cmdBuf.pushConstants<vec2>(
-        p.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        0, { info.pos, info.size }
-    );
-    cmdBuf.pushConstants<vec4>(
-        p.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        static_cast<ui32>(sizeof(vec2) * 2), std::get<vec4>(info.color)
-    );
-
-    cmdBuf.bindVertexBuffers(0, **quadVertexBuffer, { 0 });
-    cmdBuf.draw(6, 1, 0, 0);
-}
-
-
-
-vkb::StaticInit trc::GuiRenderer::_init{
-    [] {
-        quadVertexBuffer = std::make_unique<vkb::DeviceLocalBuffer>(
-            std::vector<vec2>{
-                vec2(0, 0), vec2(1, 1), vec2(0, 1),
-                vec2(0, 0), vec2(1, 0), vec2(1, 1)
-            },
-            vk::BufferUsageFlagBits::eVertexBuffer
-        );
-    },
-    [] {
-        quadVertexBuffer.reset();
-    }
-};
 
 trc::GuiRenderPass::GuiRenderPass(
     ui::Window& window,
@@ -259,6 +167,8 @@ trc::GuiRenderPass::GuiRenderPass(
     renderer(window),
     renderTargets(std::move(renderTargets))
 {
+    internal::initGuiDraw(renderer.getRenderPass());
+
     std::thread([this] {
         while (!stopRenderThread)
         {
