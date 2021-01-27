@@ -5,48 +5,10 @@
 #include "Pipeline.h"
 #include "text/Font.h"
 #include "ui/DrawInfo.h"
+#include "ui/torch/DynamicBuffer.h"
 
 namespace trc::ui_impl
 {
-    template<typename T>
-    struct DynamicBuffer
-    {
-    public:
-        DynamicBuffer(const vkb::Device& device,
-                      size_t initialSize,
-                      vk::BufferUsageFlags usageFlags,
-                      vk::MemoryPropertyFlags memoryProperties)
-            :
-            buffer(device, initialSize * sizeof(T), usageFlags, memoryProperties),
-            mappedBuf(reinterpret_cast<T*>(buffer.map()))
-        {}
-
-        inline auto operator*() const -> vk::Buffer {
-            return *buffer;
-        }
-
-        inline void push(T val)
-        {
-            mappedBuf[currentOffset] = val;
-            currentOffset++;
-        }
-
-        inline void reset()
-        {
-            currentOffset = 0;
-        }
-
-        inline auto size() const -> ui32
-        {
-            return currentOffset;
-        }
-
-    private:
-        vkb::Buffer buffer;
-        T* mappedBuf;
-        ui32 currentOffset{ 0 };
-    };
-
     class DrawCollector
     {
     public:

@@ -107,8 +107,8 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
 
 void trc::ui_impl::DrawCollector::beginFrame()
 {
-    quadBuffer.reset();
-    letterBuffer.reset();
+    quadBuffer.clear();
+    letterBuffer.clear();
 }
 
 void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
