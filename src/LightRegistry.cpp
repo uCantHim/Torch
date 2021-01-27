@@ -80,13 +80,14 @@ void trc::ShadowDescriptor::createDescriptors(
 {
     const ui32 actualNumShadowMaps = glm::max(numShadowMaps, 1u); // Can't have empty descriptors
 
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        { vk::DescriptorType::eStorageBuffer, 1 },
+        { vk::DescriptorType::eCombinedImageSampler, actualNumShadowMaps },
+    };
     descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         vkb::getSwapchain().getFrameCount(), // max num sets
-        std::vector<vk::DescriptorPoolSize>{
-            { vk::DescriptorType::eStorageBuffer, 1 },
-            { vk::DescriptorType::eCombinedImageSampler, actualNumShadowMaps },
-        }
+        poolSizes
     ));
 
     descSets = { [&](ui32)

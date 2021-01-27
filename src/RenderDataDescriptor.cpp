@@ -60,27 +60,29 @@ void trc::GlobalRenderDataDescriptor::createResources()
 void trc::GlobalRenderDataDescriptor::createDescriptors()
 {
     // Create descriptors
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        { vk::DescriptorType::eUniformBufferDynamic, 2 }
+    };
     descPool = vkb::getDevice()->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             vkb::getSwapchain().getFrameCount(),
-            std::vector<vk::DescriptorPoolSize>{
-                { vk::DescriptorType::eUniformBufferDynamic, 2 }
-            }
+            poolSizes
     ));
 
+    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
+        {
+            0, vk::DescriptorType::eUniformBufferDynamic, 1,
+            vk::ShaderStageFlagBits::eAllGraphics
+        },
+        {
+            1, vk::DescriptorType::eUniformBufferDynamic, 1,
+            vk::ShaderStageFlagBits::eAllGraphics
+        },
+    };
     descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({},
-            std::vector<vk::DescriptorSetLayoutBinding>{
-                {
-                    0, vk::DescriptorType::eUniformBufferDynamic, 1,
-                    vk::ShaderStageFlagBits::eAllGraphics
-                },
-                {
-                    1, vk::DescriptorType::eUniformBufferDynamic, 1,
-                    vk::ShaderStageFlagBits::eAllGraphics
-                },
-            }
+        layoutBindings
     ));
 
     descSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(

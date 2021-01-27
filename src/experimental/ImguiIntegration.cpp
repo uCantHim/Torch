@@ -195,40 +195,39 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
         {
             vk::AttachmentReference colorRef(0, vk::ImageLayout::eColorAttachmentOptimal);
 
-            return vkb::getDevice()->createRenderPassUnique(
-                vk::RenderPassCreateInfo(
+            std::vector<vk::AttachmentDescription> attachments{
+                vk::AttachmentDescription(
                     {},
-                    std::vector<vk::AttachmentDescription>{
-                        vk::AttachmentDescription(
-                            {},
-                            swapchain.getImageFormat(),
-                            vk::SampleCountFlagBits::e1,
-                            vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore,
-                            vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-                            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR
-                        )
-                    },
-                    std::vector<vk::SubpassDescription>{
-                        vk::SubpassDescription(
-                            {}, vk::PipelineBindPoint::eGraphics,
-                            0, nullptr, // input attachments
-                            1, &colorRef,
-                            nullptr, // resolve attachments
-                            nullptr, // depth attachments
-                            0, nullptr // preserve attachments
-                        ),
-                    },
-                    std::vector<vk::SubpassDependency>{
-                        vk::SubpassDependency(
-                            VK_SUBPASS_EXTERNAL, 0,
-                            vk::PipelineStageFlagBits::eAllGraphics,
-                            vk::PipelineStageFlagBits::eAllGraphics,
-                            vk::AccessFlagBits::eColorAttachmentWrite,
-                            vk::AccessFlagBits::eInputAttachmentRead,
-                            vk::DependencyFlagBits::eByRegion
-                        )
-                    }
+                    swapchain.getImageFormat(),
+                    vk::SampleCountFlagBits::e1,
+                    vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore,
+                    vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
+                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR
                 )
+            };
+            std::vector<vk::SubpassDescription> subpasses{
+                vk::SubpassDescription(
+                    {}, vk::PipelineBindPoint::eGraphics,
+                    0, nullptr, // input attachments
+                    1, &colorRef,
+                    nullptr, // resolve attachments
+                    nullptr, // depth attachments
+                    0, nullptr // preserve attachments
+                ),
+            };
+            std::vector<vk::SubpassDependency> dependencies{
+                vk::SubpassDependency(
+                    VK_SUBPASS_EXTERNAL, 0,
+                    vk::PipelineStageFlagBits::eAllGraphics,
+                    vk::PipelineStageFlagBits::eAllGraphics,
+                    vk::AccessFlagBits::eColorAttachmentWrite,
+                    vk::AccessFlagBits::eInputAttachmentRead,
+                    vk::DependencyFlagBits::eByRegion
+                )
+            };
+
+            return vkb::getDevice()->createRenderPassUnique(
+                vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
             );
         }(),
         1 // subpass count

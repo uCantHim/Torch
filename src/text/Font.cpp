@@ -4,14 +4,12 @@
 
 vkb::StaticInit trc::FontDescriptor::_init{
     [] {
+        std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
+            { 0, vk::DescriptorType::eCombinedImageSampler, 1,
+              vk::ShaderStageFlagBits::eFragment }
+        };
         descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
-            vk::DescriptorSetLayoutCreateInfo(
-                {},
-                std::vector<vk::DescriptorSetLayoutBinding>{
-                    { 0, vk::DescriptorType::eCombinedImageSampler, 1,
-                      vk::ShaderStageFlagBits::eFragment }
-                }
-            )
+            vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
         );
     },
     [] {
@@ -22,15 +20,14 @@ vkb::StaticInit trc::FontDescriptor::_init{
 trc::FontDescriptor::FontDescriptor(GlyphMap& glyphMap)
     :
     imageView(glyphMap.getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm)),
-    descPool(
-        vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            1,
-            std::vector<vk::DescriptorPoolSize>{
-                vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1)
-            }
-        ))
-    ),
+    descPool([] {
+        std::vector<vk::DescriptorPoolSize> poolSizes{
+            vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1)
+        };
+        return vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes)
+        );
+    }()),
     descSet([&]() -> vk::UniqueDescriptorSet {
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
             vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)

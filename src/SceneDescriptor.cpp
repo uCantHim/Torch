@@ -83,13 +83,12 @@ auto trc::SceneDescriptor::getDescLayout() noexcept -> vk::DescriptorSetLayout
 
 void trc::SceneDescriptor::createDescriptors(const Scene& scene)
 {
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        { vk::DescriptorType::eStorageBuffer, 1 },
+        { vk::DescriptorType::eStorageBufferDynamic, 1 },
+    };
     descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        1, // max num sets
-        std::vector<vk::DescriptorPoolSize>{
-            { vk::DescriptorType::eStorageBuffer, 1 },
-            { vk::DescriptorType::eStorageBufferDynamic, 1 },
-        }
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
     ));
 
     descSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
