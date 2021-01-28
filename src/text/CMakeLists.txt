@@ -2,6 +2,7 @@ target_sources(
     torch
     PRIVATE
         Font.cpp
-        Glyph.cpp
+        GlyphMap.cpp
+        GlyphLoading.cpp
         Text.cpp
 )

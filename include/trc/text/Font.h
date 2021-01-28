@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Glyph.h"
+#include "GlyphMap.h"
 #include "DescriptorProvider.h"
 
 namespace trc
