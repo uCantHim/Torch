@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Element.h"
+#include "Font.h"
+#include "text/GlyphLoading.h"
 
 namespace trc::ui
 {
@@ -53,13 +55,18 @@ namespace trc::ui
         virtual auto getSize() -> vec2 = 0;
     };
 
+    struct WindowCreateInfo
+    {
+        u_ptr<WindowInformationProvider> windowProvider;
+    };
+
     /**
      * Acts as a root for the gui
      */
     class Window
     {
     public:
-        explicit Window(u_ptr<WindowInformationProvider> window);
+        explicit Window(WindowCreateInfo createInfo);
 
         /**
          * Calculate global transformatio, then build a list of DrawInfos

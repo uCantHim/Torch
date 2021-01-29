@@ -134,7 +134,7 @@ void trc::GuiRenderer::render()
     );
 
     // Record all element commands
-    collector.beginFrame();
+    collector.beginFrame(window->getSize());
     for (const auto& info : drawList)
     {
         collector.drawElement(info);
@@ -147,7 +147,9 @@ void trc::GuiRenderer::render()
     auto fence = vkb::getDevice()->createFenceUnique(vk::FenceCreateInfo());
     renderQueue.submit(vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf, 0, nullptr), *fence);
     auto result = vkb::getDevice()->waitForFences(*fence, true, UINT64_MAX);
-    std::cout << "Fence wait result: " << vk::to_string(result) << "\n";
+    if (result != vk::Result::eSuccess) {
+        throw std::runtime_error("vkWaitForFences returned error while waiting for GUI render fence");
+    }
 }
 
 auto trc::GuiRenderer::getRenderPass() const -> vk::RenderPass

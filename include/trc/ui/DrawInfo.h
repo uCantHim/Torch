@@ -24,11 +24,16 @@ namespace trc::ui
 
         struct LetterInfo
         {
-            vec2 texCoordLL;
-            vec2 texCoordUR;
-            vec2 glyphPosOffset;
-            vec2 glyphSize;
-            float bearingY;
+            // Unicode character code
+            wchar_t characterCode;
+
+            // Offset from text position
+            ivec2 glyphOffsetPixels;
+            ivec2 glyphSizePixels;
+
+            // The glyph's bearing. Included here so that the
+            // implementation doesn't have to look it up.
+            ui32 bearingYPixels;
         };
 
         struct Text

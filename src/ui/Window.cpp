@@ -5,9 +5,9 @@
 
 
 
-trc::ui::Window::Window(u_ptr<WindowInformationProvider> window)
+trc::ui::Window::Window(WindowCreateInfo createInfo)
     :
-    windowInfo(std::move(window))
+    windowInfo(std::move(createInfo.windowProvider))
 {
     assert(this->windowInfo != nullptr);
 }
