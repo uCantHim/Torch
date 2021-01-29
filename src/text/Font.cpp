@@ -83,7 +83,11 @@ auto trc::Font::getGlyph(CharCode charCode) -> Glyph
         auto tex = glyphMap.addGlyph(newGlyph);
         it = glyphs.try_emplace(
             charCode,
-            Glyph{ tex.lowerLeft, tex.upperRight, newGlyph.size, newGlyph.bearingY, newGlyph.advance }
+            Glyph{
+                tex.lowerLeft, tex.upperRight,
+                newGlyph.metaNormalized.size,
+                newGlyph.metaNormalized.bearingY, newGlyph.metaNormalized.advance
+            }
         ).first;
     }
 

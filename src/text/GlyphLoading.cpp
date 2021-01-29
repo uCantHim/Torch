@@ -63,17 +63,25 @@ auto trc::loadGlyphBitmap(FT_Face face, CharCode charCode) -> GlyphMeta
     const float maxWidth = static_cast<float>((face->bbox.xMax >> 6) - (face->bbox.xMin >> 6));
     const float maxHeight = static_cast<float>((face->bbox.yMax >> 6) - (face->bbox.yMin >> 6));
 
-    const vec2 normalSize{
-        static_cast<float>(glyphData.metrics.width >> 6) / maxWidth,
-        static_cast<float>(glyphData.metrics.height >> 6) / maxHeight
-    };
-    const float bearingY = static_cast<float>(glyphData.metrics.horiBearingY >> 6);
+    const ivec2 pixelSize{ glyphData.metrics.width >> 6, glyphData.metrics.height >> 6 };
+    const vec2 normalSize{ static_cast<vec2>(pixelSize) / vec2(maxWidth, maxHeight) };
+
+    const ui32 bearingY = glyphData.metrics.horiBearingY >> 6;
+    const ui32 advance = glyphData.metrics.horiAdvance >> 6;
 
     return {
-        .size        = normalSize,
-        .bearingY    = bearingY / maxHeight,
-        .negBearingY = normalSize.y - bearingY / maxHeight,
-        .advance     = static_cast<float>(glyphData.metrics.horiAdvance >> 6) / maxWidth,
+        .metaInPixels = {
+            .size        = pixelSize,
+            .bearingY    = bearingY,
+            .negBearingY = pixelSize.y - bearingY,
+            .advance     = advance
+        },
+        .metaNormalized = {
+            .size        = normalSize,
+            .bearingY    = static_cast<float>(bearingY) / maxHeight,
+            .negBearingY = normalSize.y - (static_cast<float>(bearingY) / maxHeight),
+            .advance     = static_cast<float>(advance) / maxWidth,
+        },
         .pixelData   = { std::move(data), uvec2(bitmapWidth, bitmapHeight) }
     };
 }
