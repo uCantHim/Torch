@@ -1,0 +1,22 @@
+#version 460
+
+layout (local_size_x = 10, local_size_y = 10) in;
+
+layout (set = 0, binding = 0, rgba8) uniform image2D srcImage;
+layout (set = 0, binding = 1, rgba8) uniform image2D dstImage;
+
+void main()
+{
+    const ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+    const vec4 src = imageLoad(srcImage, coord);
+    const vec4 dst = imageLoad(dstImage, coord);
+
+    vec4 result = vec4(src.rgb * src.a + dst.rgb * (1.0 - src.a), 1.0);
+    float alphaThreshold = step(0.01, src.a);
+    result = vec4(src.rgb * alphaThreshold + dst.rgb * (1.0 - alphaThreshold), 1.0);
+
+    //result = vec4(src.rgb * src.a + dst.rgb * (1.0 - src.a), 1.0);
+
+    imageStore(dstImage, coord, result);
+}

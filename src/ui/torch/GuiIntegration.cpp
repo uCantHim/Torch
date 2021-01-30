@@ -3,6 +3,8 @@
 #include <ranges>
 #include <vulkan/vulkan.hpp>
 
+#include <vkb/ShaderProgram.h>
+
 #include "ui/Element.h"
 #include "ui/torch/DrawImplementations.h"
 
@@ -18,11 +20,13 @@ auto trc::getGuiRenderStage() -> RenderStageType::ID
 
 
 
-trc::GuiRenderer::GuiRenderer(ui::Window& window)
+trc::GuiRenderer::GuiRenderer(vkb::Device& device, ui::Window& window)
     :
+    device(device),
     window(&window),
+    renderFinishedFence(device->createFenceUnique({})),
     renderPass(
-        []() {
+        [&device]() {
             std::vector<vk::AttachmentDescription> attachments{
                 vk::AttachmentDescription(
                     vk::AttachmentDescriptionFlags(),
@@ -33,7 +37,7 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
                     vk::AttachmentLoadOp::eDontCare, // stencil
                     vk::AttachmentStoreOp::eDontCare, // stencil
                     vk::ImageLayout::eColorAttachmentOptimal,
-                    vk::ImageLayout::eTransferSrcOptimal
+                    vk::ImageLayout::eGeneral
                 )
             };
             vk::AttachmentReference colorAttachment(0, vk::ImageLayout::eColorAttachmentOptimal);
@@ -56,7 +60,7 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
                     vk::AccessFlags(), vk::AccessFlags()
                 )
             };
-            return vkb::getDevice()->createRenderPassUnique(
+            return device->createRenderPassUnique(
                 vk::RenderPassCreateInfo(
                     vk::RenderPassCreateFlags(),
                     attachments,
@@ -74,12 +78,14 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
             1, 1,
             vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc
+            vk::ImageUsageFlagBits::eColorAttachment
+            | vk::ImageUsageFlagBits::eTransferSrc
+            | vk::ImageUsageFlagBits::eStorage
         )
     ),
     outputImageView(outputImage.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm)),
     framebuffer(
-        vkb::getDevice()->createFramebufferUnique(
+        device->createFramebufferUnique(
             vk::FramebufferCreateInfo(
                 vk::FramebufferCreateFlags(),
                 *renderPass,
@@ -88,27 +94,28 @@ trc::GuiRenderer::GuiRenderer(ui::Window& window)
             )
         )
     ),
-    collector(vkb::getDevice(), *renderPass)
+    collector(device, *renderPass)
 {
-    auto [queue, family] = vkb::getDevice().getQueueManager().getAnyQueue(vkb::QueueType::graphics);
-    cmdPool = vkb::getDevice()->createCommandPoolUnique(
+    auto [queue, family] = device.getQueueManager().getAnyQueue(vkb::QueueType::graphics);
+    cmdPool = device->createCommandPoolUnique(
         vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, family)
     );
-    cmdBuf = std::move(vkb::getDevice()->allocateCommandBuffersUnique(
+    cmdBuf = std::move(device->allocateCommandBuffersUnique(
         vk::CommandBufferAllocateInfo(*cmdPool, vk::CommandBufferLevel::ePrimary, 1)
     )[0]);
 
-    renderQueue = vkb::getDevice().getQueueManager().reserveQueue(queue);
+    renderQueue = device.getQueueManager().reserveQueue(queue);
 
     outputImage.changeLayout(
-        vkb::getDevice(),
-        vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferSrcOptimal
+        device,
+        vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
     );
 }
 
 void trc::GuiRenderer::render()
 {
     auto drawList = window->draw();
+    if (drawList.empty()) return;
 
     // Sort draw list by type of drawable
     std::ranges::sort(
@@ -126,7 +133,7 @@ void trc::GuiRenderer::render()
     };
     outputImage.changeLayout(
         *cmdBuf,
-        vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eColorAttachmentOptimal
+        vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal
     );
     cmdBuf->beginRenderPass(
         vk::RenderPassBeginInfo(*renderPass, *framebuffer, { 0, { size.x, size.y } }, clearValue),
@@ -144,9 +151,12 @@ void trc::GuiRenderer::render()
     cmdBuf->endRenderPass();
     cmdBuf->end();
 
-    auto fence = vkb::getDevice()->createFenceUnique(vk::FenceCreateInfo());
-    renderQueue.submit(vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf, 0, nullptr), *fence);
-    auto result = vkb::getDevice()->waitForFences(*fence, true, UINT64_MAX);
+    device->resetFences(*renderFinishedFence);
+    renderQueue.submit(
+        vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf, 0, nullptr),
+        *renderFinishedFence
+    );
+    auto result = device->waitForFences(*renderFinishedFence, true, UINT64_MAX);
     if (result != vk::Result::eSuccess) {
         throw std::runtime_error("vkWaitForFences returned error while waiting for GUI render fence");
     }
@@ -165,12 +175,13 @@ auto trc::GuiRenderer::getOutputImage() const -> vk::Image
 
 
 trc::GuiRenderPass::GuiRenderPass(
-    ui::Window& window,
-    vkb::FrameSpecificObject<vk::Image> renderTargets)
+    vkb::Device& device,
+    const vkb::Swapchain& swapchain,
+    ui::Window& window)
     :
     RenderPass({}, 1),
-    renderer(window),
-    renderTargets(std::move(renderTargets))
+    renderer(device, window),
+    blendDescSets(swapchain)
 {
     std::thread([this] {
         while (!stopRenderThread)
@@ -182,6 +193,41 @@ trc::GuiRenderPass::GuiRenderPass(
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }).detach();
+
+    // Descriptor set layout
+    std::vector<vk::DescriptorSetLayoutBinding> bindings{
+        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1,
+                                       vk::ShaderStageFlagBits::eCompute),
+        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1,
+                                       vk::ShaderStageFlagBits::eCompute),
+    };
+    blendDescLayout = device->createDescriptorSetLayoutUnique({ {}, bindings });
+
+    createDescriptorSets(device, swapchain);
+
+    // Compute pipeline
+    imageBlendPipeline = [this]() -> Pipeline::ID {
+        auto shaderModule = vkb::createShaderModule(
+            vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
+        );
+        auto layout = makePipelineLayout({ *blendDescLayout }, {});
+        auto pipeline = vkb::getDevice()->createComputePipelineUnique(
+            {},
+            vk::ComputePipelineCreateInfo(
+                {},
+                vk::PipelineShaderStageCreateInfo(
+                    {}, vk::ShaderStageFlagBits::eCompute, *shaderModule, "main"
+                ),
+                *layout
+            )
+        ).value;
+
+        return Pipeline::createAtNextIndex(
+            std::move(layout),
+            std::move(pipeline),
+            vk::PipelineBindPoint::eCompute
+        ).first;
+    }();
 }
 
 trc::GuiRenderPass::~GuiRenderPass()
@@ -196,20 +242,6 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
 {
     std::lock_guard lock(renderLock);
 
-    //cmdBuf.pipelineBarrier(
-    //    vk::PipelineStageFlagBits::eAllCommands,
-    //    vk::PipelineStageFlagBits::eAllCommands,
-    //    vk::DependencyFlags(),
-    //    {},
-    //    {},
-    //    vk::ImageMemoryBarrier(
-    //        {}, {}, vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
-    //        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    //        renderer.getOutputImage(),
-    //        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-    //    )
-    //);
-
     auto swapchainImage = vkb::getSwapchain().getImage(vkb::getSwapchain().getCurrentFrame());
     cmdBuf.pipelineBarrier(
         vk::PipelineStageFlagBits::eAllCommands,
@@ -218,35 +250,30 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
         {},
         {},
         vk::ImageMemoryBarrier(
-            {}, {}, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferDstOptimal,
+            {}, {}, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eGeneral,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
             swapchainImage,
             vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
         )
     );
 
-    cmdBuf.copyImage(
-        renderer.getOutputImage(),
-        vk::ImageLayout::eTransferSrcOptimal,
-        swapchainImage,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::ImageCopy(
-            vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
-            { 0, 0, 0 }, // src offset
-            vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
-            { 0, 0, 0 }, // dst offset
-            vk::Extent3D{ vkb::getSwapchain().getImageExtent(),  1 }
-        )
+    auto& computePipeline = Pipeline::at(imageBlendPipeline);
+    cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline);
+    cmdBuf.bindDescriptorSets(
+        vk::PipelineBindPoint::eCompute, computePipeline.getLayout(),
+        0, **blendDescSets, {}
     );
+    const auto [x, y] = vkb::getSwapchain().getImageExtent();
+    cmdBuf.dispatch(glm::ceil(x / 10.0f), glm::ceil(y / 10.0f), 1);
 
     cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eComputeShader,
         vk::PipelineStageFlagBits::eAllCommands,
         vk::DependencyFlags(),
         {},
         {},
         vk::ImageMemoryBarrier(
-            {}, {}, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
+            {}, {}, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
             swapchainImage,
             vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
@@ -256,4 +283,61 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
 
 void trc::GuiRenderPass::end(vk::CommandBuffer)
 {
+}
+
+void trc::GuiRenderPass::createDescriptorSets(
+    const vkb::Device& device,
+    const vkb::Swapchain& swapchain)
+{
+    // Descriptor pool
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        { vk::DescriptorType::eStorageImage, 1 }, // Render result image
+        { vk::DescriptorType::eStorageImage, swapchain.getFrameCount() }, // Swapchain images
+    };
+    blendDescPool = device->createDescriptorPoolUnique(
+        vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            swapchain.getFrameCount(),
+            poolSizes
+        )
+    );
+
+    // Descriptor sets
+    swapchainImageViews.clear();
+    renderResultImageView = device->createImageViewUnique(
+        vk::ImageViewCreateInfo(
+            {},
+            renderer.getOutputImage(),
+            vk::ImageViewType::e2D,
+            vk::Format::eR8G8B8A8Unorm,
+            {}, vkb::DEFAULT_SUBRES_RANGE
+        )
+    );
+    blendDescSets = {
+        swapchain,
+        [this, &device, &swapchain](ui32 imageIndex) -> vk::UniqueDescriptorSet {
+            auto set = std::move(device->allocateDescriptorSetsUnique(
+                { *blendDescPool, *blendDescLayout }
+            )[0]);
+
+            auto view = *swapchainImageViews.emplace_back(swapchain.createImageView(imageIndex));
+            vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
+            vk::DescriptorImageInfo renderResultImageInfo({}, *renderResultImageView, vk::ImageLayout::eGeneral);
+            std::vector<vk::WriteDescriptorSet> writes{
+                {
+                    *set, 0, 0, 1,
+                    vk::DescriptorType::eStorageImage,
+                    &renderResultImageInfo, {}, {}
+                },
+                {
+                    *set, 1, 0, 1,
+                    vk::DescriptorType::eStorageImage,
+                    &swapchainImageInfo, {}, {}
+                },
+            };
+            device->updateDescriptorSets(writes, {});
+
+            return set;
+        }
+    };
 }

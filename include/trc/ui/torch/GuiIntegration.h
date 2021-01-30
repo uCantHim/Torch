@@ -42,7 +42,7 @@ namespace trc
     class GuiRenderer
     {
     public:
-        explicit GuiRenderer(ui::Window& window);
+        GuiRenderer(vkb::Device& device, ui::Window& window);
 
         void render();
 
@@ -50,9 +50,11 @@ namespace trc
         auto getOutputImage() const -> vk::Image;
 
     private:
+        const vkb::Device& device;
         ui::Window* window;
 
         vk::Queue renderQueue;
+        vk::UniqueFence renderFinishedFence;
         vk::UniqueCommandPool cmdPool;
         vk::UniqueCommandBuffer cmdBuf;
 
@@ -70,7 +72,9 @@ namespace trc
     class GuiRenderPass : public RenderPass
     {
     public:
-        GuiRenderPass(ui::Window& window, vkb::FrameSpecificObject<vk::Image> renderTargets);
+        GuiRenderPass(vkb::Device& device,
+                      const vkb::Swapchain& swapchain,
+                      ui::Window& window);
         ~GuiRenderPass();
 
         void begin(vk::CommandBuffer, vk::SubpassContents) override;
@@ -82,7 +86,13 @@ namespace trc
         std::thread renderThread;
         bool stopRenderThread{ false };
 
-        vkb::FrameSpecificObject<vk::Image> renderTargets;
+        vk::UniqueDescriptorSetLayout blendDescLayout;
 
+        void createDescriptorSets(const vkb::Device& device, const vkb::Swapchain& swapchain);
+        vk::UniqueDescriptorPool blendDescPool;
+        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> blendDescSets;
+        std::vector<vk::UniqueImageView> swapchainImageViews;
+        vk::UniqueImageView renderResultImageView;
+        Pipeline::ID imageBlendPipeline;
     };
 } // namespace trc
