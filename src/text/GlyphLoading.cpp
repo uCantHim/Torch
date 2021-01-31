@@ -1,5 +1,7 @@
 #include "text/GlyphLoading.h"
 
+#include <glm/glm.hpp>
+
 
 
 inline auto getFreetype() -> FT_Library
@@ -47,6 +49,69 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
     maxGlyphHeight = ((*face)->bbox.yMax >> 6) - ((*face)->bbox.yMin >> 6);
 }
 
+trc::SignedDistanceFace::SignedDistanceFace(const fs::path& path, ui32 fontSize)
+    :
+    face(path, fontSize),
+    highresFace(path, fontSize * RESOLUTION_FACTOR)
+{
+}
+
+auto trc::SignedDistanceFace::loadGlyphBitmap(CharCode charCode) const -> GlyphMeta
+{
+    const auto highres = ::trc::loadGlyphBitmap(highresFace, charCode);
+    auto lowres = ::trc::loadGlyphBitmap(face, charCode);
+
+    constexpr i32 neighborhoodRadius{ RESOLUTION_FACTOR * 3 };
+    constexpr float maxDist{ neighborhoodRadius };
+    const i32 width = lowres.pixelData.second.x;
+    const i32 height = lowres.pixelData.second.y;
+    const i32 highresWidth = highres.pixelData.second.x;
+    const i32 highresHeight = highres.pixelData.second.y;
+    for (i32 x = 0; x < width; x++)
+    {
+        for (i32 y = 0; y < height; y++)
+        {
+            const i32 highresX = x * RESOLUTION_FACTOR + (RESOLUTION_FACTOR * 0.5f);
+            const i32 highresY = y * RESOLUTION_FACTOR + (RESOLUTION_FACTOR * 0.5f);
+            ui8& current = lowres.pixelData.first.at(y * width + x);
+
+            auto isIn = [](ui8 v) { return v > 128; };
+            const bool currentIn = isIn(current);
+
+            float currDist{ maxDist };
+            for (i32 i = glm::max(0, highresX - neighborhoodRadius);
+                 i < glm::min(highresWidth, highresX + neighborhoodRadius);
+                 i++)
+            {
+                for (i32 j = glm::max(0, highresY - neighborhoodRadius);
+                     j < glm::min(highresHeight, highresY + neighborhoodRadius);
+                     j++)
+                {
+                    // Only try distance to pixel of other type
+                    if (currentIn != isIn(highres.pixelData.first.at(j * highresWidth + i)))
+                    {
+                        currDist = glm::min(
+                            currDist,
+                            glm::distance(vec2(highresX, highresY), vec2(i, j))
+                        );
+                    }
+                }
+            }
+
+            const float normDist = glm::min(1.0f, currDist / maxDist);
+            // In this value, 0.5 is at the edge. 0 is maximum dist outside of edge,
+            // 1 is maximum dist inside of edge.
+            const float finalDist = currentIn
+                ? 0.5f + 0.5f * normDist
+                : 0.5f - 0.5f * normDist;
+
+            current = 255 * finalDist;
+        }
+    }
+
+    return lowres;
+}
+
 auto trc::loadGlyphBitmap(FT_Face face, CharCode charCode) -> GlyphMeta
 {
     if (FT_Load_Char(face, charCode, FT_LOAD_RENDER) != 0) {
@@ -84,4 +149,14 @@ auto trc::loadGlyphBitmap(FT_Face face, CharCode charCode) -> GlyphMeta
         },
         .pixelData   = { std::move(data), uvec2(bitmapWidth, bitmapHeight) }
     };
+}
+
+auto trc::loadGlyphBitmap(const Face& face, CharCode charCode) -> GlyphMeta
+{
+    return loadGlyphBitmap(*face.face, charCode);
+}
+
+auto trc::loadGlyphBitmap(const SignedDistanceFace& face, CharCode charCode) -> GlyphMeta
+{
+    return face.loadGlyphBitmap(charCode);
 }
