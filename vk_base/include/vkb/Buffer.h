@@ -180,7 +180,15 @@ namespace vkb
         DeviceLocalBuffer(const std::vector<T>& data,
                           vk::BufferUsageFlags usage,
                           const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
-            : DeviceLocalBuffer(sizeof(T) * data.size(), data.data(), usage, std::move(allocator))
+            : DeviceLocalBuffer(sizeof(T) * data.size(), data.data(), usage, allocator)
+        {}
+
+        template<typename T>
+        DeviceLocalBuffer(const Device& device,
+                          const std::vector<T>& data,
+                          vk::BufferUsageFlags usage,
+                          const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
+            : DeviceLocalBuffer(device, sizeof(T) * data.size(), data.data(), usage, allocator)
         {}
 
         inline auto operator*() const noexcept -> vk::Buffer {
