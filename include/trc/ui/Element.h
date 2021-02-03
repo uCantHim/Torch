@@ -3,16 +3,37 @@
 #include <vector>
 
 #include "Types.h"
-#include "Transform.h"
 #include "CRTPNode.h"
 #include "DrawInfo.h"
+#include "event/Event.h"
+#include "event/EventListenerRegistryBase.h"
 
 namespace trc::ui
 {
-    class Element : public CRTPNode<Element>, public Drawable
+    template<typename ...EventTypes>
+    struct InheritEventListener : public EventListenerRegistryBase<EventTypes>...
     {
-    public:
-        //void draw(std::vector<DrawInfo>& drawList, vec2 globalPos, vec2 globalSize) override = 0;
+        using EventListenerRegistryBase<EventTypes>::addEventListener...;
+        using EventListenerRegistryBase<EventTypes>::removeEventListener...;
+        using EventListenerRegistryBase<EventTypes>::foreachEventListener...;
+        using EventListenerRegistryBase<EventTypes>::notify...;
+    };
+
+    struct ElementEventBase : public InheritEventListener<
+                                event::Click,
+                                event::Release,
+                                event::Hover
+                            >
+    {
+    };
+
+    /**
+     * @brief Base class of all UI elements
+     */
+    class Element : public CRTPNode<Element>
+                  , public Drawable
+                  , public ElementEventBase
+    {
     };
 
     template<typename T>
