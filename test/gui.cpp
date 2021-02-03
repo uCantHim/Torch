@@ -28,6 +28,15 @@ int main()
             std::make_unique<trc::TorchWindowInformationProvider>(vkb::getSwapchain())
         }};
 
+        // Notify GUI of mouse clicks
+        vkb::on<vkb::MouseClickEvent>([&window](const vkb::MouseClickEvent& e) {
+            if (e.action == vkb::InputAction::press)
+            {
+                vec2 pos = e.swapchain->getMousePosition();
+                window.signalMouseClick(pos.x, pos.y);
+            }
+        });
+
         // Add gui pass and stage to render graph
         auto renderPass = trc::RenderPass::createAtNextIndex<trc::GuiRenderPass>(
             vkb::getDevice(),
@@ -44,9 +53,16 @@ int main()
         quad->setPos({ 0.5f, 0.0f });
         quad->setSize({ 0.1f, 0.15f });
 
+        quad->addEventListener([](const ui::event::Click& e) {
+            std::cout << "Click on first quad\n";
+        });
+
         auto child = window.create<ui::Quad>().makeUnique();
         quad->attach(*child);
         child->setPos({ 0.15f, 0.4f });
+        child->addEventListener([](const ui::event::Click& e) {
+            std::cout << "Click on second quad\n";
+        });
 
         auto text = window.create<ui::Text>(
             "Hello World! and some more text…"

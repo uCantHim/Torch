@@ -41,6 +41,15 @@ void trc::ui::Window::destroy(Element& elem)
     ));
 }
 
+void trc::ui::Window::signalMouseClick(float posPixelsX, float posPixelsY)
+{
+    event::Click event;
+    event.mousePosPixels = vec2{ posPixelsX, posPixelsY };
+    event.mousePosNormal = vec2{ posPixelsX, posPixelsY } / getSize();
+
+    descendEvent(event);
+}
+
 auto trc::ui::Window::concat(const Transform parent, Transform child) -> Transform
 {
     const vec2 windowSize = getSize();

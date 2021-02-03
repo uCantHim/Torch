@@ -92,10 +92,23 @@ namespace trc::ui
          */
         void destroy(Element& elem);
 
-        template<typename E>
-        void notifyEvent(E event);
+        /**
+         * @brief Signal to the window that a mouse click has occured
+         */
+        void signalMouseClick(float posPixelsX, float posPixelsY);
+
+        // void signalMouseRelease(float posPixelsX, float posPixelsY);
+        // void signalMouseMove(float posPixelsX, float posPixelsY);
 
     private:
+        template<std::derived_from<event::MouseEvent> EventType>
+        void descendEvent(EventType event);
+
+        /**
+         * Must be a member function because pixel transformations have to
+         * be translated to normalized coordinates based on the window's
+         *size.
+         */
         auto concat(Transform parent, Transform child) -> Transform;
 
         /**
