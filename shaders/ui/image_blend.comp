@@ -13,10 +13,6 @@ void main()
     const vec4 dst = imageLoad(dstImage, coord);
 
     vec4 result = vec4(src.rgb * src.a + dst.rgb * (1.0 - src.a), 1.0);
-    float alphaThreshold = step(0.01, src.a);
-    result = vec4(src.rgb * alphaThreshold + dst.rgb * (1.0 - alphaThreshold), 1.0);
-
-    //result = vec4(src.rgb * src.a + dst.rgb * (1.0 - src.a), 1.0);
 
     imageStore(dstImage, coord, result);
 }
