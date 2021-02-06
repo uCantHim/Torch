@@ -27,3 +27,6 @@ target_link_libraries(Font PUBLIC torch)
 
 add_executable(ImGui imgui_integration.cpp)
 target_link_libraries(ImGui PUBLIC torch)
+
+add_executable(RayTracing ray_tracing.cpp)
+target_link_libraries(RayTracing PUBLIC torch)

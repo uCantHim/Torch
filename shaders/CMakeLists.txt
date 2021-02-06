@@ -51,7 +51,7 @@ else()
 
         add_custom_command(
             OUTPUT ${OUT_FILE}
-            COMMAND ${GLSLC} ${IN_FILE} -o ${OUT_FILE}
+            COMMAND ${GLSLC} --target-spv=spv1.4 ${IN_FILE} -o ${OUT_FILE}
             DEPENDS ${IN_FILE}
             IMPLICIT_DEPENDS CXX ${IN_FILE}
         )

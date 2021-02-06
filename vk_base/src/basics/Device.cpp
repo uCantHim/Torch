@@ -9,10 +9,10 @@
 
 vkb::Device::Device(
     const PhysicalDevice& physDevice,
-    std::vector<const char*> deviceExtensions)
+    vk::UniqueDevice logicalDevice)
     :
     physicalDevice(physDevice),
-    device(physDevice.createLogicalDevice(deviceExtensions)),
+    device(std::move(logicalDevice)),
     queueManager(physDevice, *this),
     // Retrieve all queues from the device
     graphicsPool(device->createCommandPoolUnique(

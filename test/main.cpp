@@ -22,7 +22,7 @@ using namespace trc::basic_types;
 int main()
 {
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
-    vkb::EventHandler<vkb::SwapchainResizeEvent>::addListener([&](const auto& e) {
+    vkb::on<vkb::SwapchainResizeEvent>([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
         camera.setAspect(float(extent.width) / float(extent.height));
     });

@@ -16,6 +16,8 @@ namespace trc
     struct TorchInitInfo
     {
         RendererCreateInfo rendererInfo;
+        bool enableRayTracing{ false };
+        std::vector<const char*> deviceExtensions;
     };
 
     /**
