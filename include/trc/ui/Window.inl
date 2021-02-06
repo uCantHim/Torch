@@ -64,22 +64,27 @@ void trc::ui::Window::descendEvent(EventType event)
     };
 
     /**
-     * Descend assumes that the mouse is inside of the element that is
-     * descended into.
+     * All elements in the tree are tested against the event, regardless
+     * of whether their parent is eligible for the event or not. Therefore,
+     * child elements can be outside of their parent's hitbox and still
+     * receive click events.
+     *
+     * This approach gives the user full flexibility regarding element
+     * positioning as no size contraints exist.
      */
     FuncType descend = [&, this](Element& e, Transform global)
     {
-        e.notify(event);
+        if (isInside(event.mousePosNormal, global)) {
+            e.notify(event);
+        }
         if (event.isPropagationStopped()) {
             return;
         }
 
         e.foreachChild([&, this, global](Element& child)
         {
-            const auto childTrans = concat(global, child.getTransform());
-            if (isInside(event.mousePosNormal, childTrans)) {
-                descend(child, childTrans);
-            }
+            const auto childTransform = concat(global, child.getTransform());
+            descend(child, childTransform);
         });
     };
 
