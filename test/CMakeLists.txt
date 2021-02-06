@@ -30,3 +30,6 @@ target_link_libraries(ImGui PUBLIC torch)
 
 add_executable(Gui gui.cpp)
 target_link_libraries(Gui PUBLIC torch)
+
+add_executable(RayTracing ray_tracing.cpp)
+target_link_libraries(RayTracing PUBLIC torch)

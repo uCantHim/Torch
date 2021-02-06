@@ -30,6 +30,9 @@ namespace vkb
 
         // Additional device extensions to load if createResources if true
         std::vector<const char*> deviceExtensions{};
+
+        // Enable ray tracing features on the device if true
+        bool enableRayTracingFeatures{ false };
     };
 
     /**
@@ -83,6 +86,7 @@ namespace vkb
         static auto getSwapchain() noexcept      -> Swapchain&;
 
         static auto getQueueManager() noexcept   -> QueueManager&;
+        static auto getDynamicLoader() noexcept  -> vk::DispatchLoaderDynamic;
 
     private:
         static inline bool isInitialized{ false };
@@ -91,6 +95,8 @@ namespace vkb
         static inline std::unique_ptr<PhysicalDevice> physicalDevice{ nullptr };
         static inline std::unique_ptr<Device>         device{ nullptr };
         static inline std::unique_ptr<Swapchain>      swapchain{ nullptr };
+
+        static inline vk::DispatchLoaderDynamic dynamicLoader;
     };
 
 
@@ -116,5 +122,15 @@ namespace vkb
 
     inline auto getQueueManager() noexcept -> QueueManager& {
         return VulkanBase::getQueueManager();
+    }
+
+    /** @brief Shortcut for vkb::VulkanBase::getDynamicLoader() */
+    inline auto getDynamicLoader() noexcept -> vk::DispatchLoaderDynamic {
+        return VulkanBase::getDynamicLoader();
+    }
+
+    /** @brief Shortcut for vkb::VulkanBase::getDynamicLoader() */
+    inline auto getDL() noexcept -> vk::DispatchLoaderDynamic {
+        return VulkanBase::getDynamicLoader();
     }
 } // namespace vkb

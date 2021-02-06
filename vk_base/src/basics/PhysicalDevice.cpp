@@ -3,41 +3,7 @@
 #include <set>
 #include <iostream>
 
-#include "VulkanDebug.h"
 
-
-
-namespace std
-{
-    auto to_string(vkb::QueueType queueType) -> std::string
-    {
-        switch (queueType)
-        {
-        case vkb::QueueType::graphics:
-            return "Graphics";
-            break;
-        case vkb::QueueType::compute:
-            return "Compute";
-            break;
-        case vkb::QueueType::transfer:
-            return "Transfer";
-            break;
-        case vkb::QueueType::presentation:
-            return "Presentation";
-            break;
-        case vkb::QueueType::sparseMemory:
-            return "Sparse Memory";
-            break;
-        case vkb::QueueType::protectedMemory:
-            return "Protected Memory";
-            break;
-        case vkb::QueueType::numQueueTypes:
-            [[fallthrough]];
-        default:
-            throw std::logic_error("");
-        }
-    }
-}
 
 // ------------------------------------ //
 //        Physical device helpers       //
@@ -103,21 +69,6 @@ auto vkb::sortByCapabilities(const std::vector<QueueFamily>& families)
 }
 
 
-/**
- * This must be a function (instead of a global constant) because the
- * device is initialized at static time. The global constant would be
- * initialized at a later time. Thus, this vector would be empty at
- * device initialization time, which would cause Vulkan to crash.
- */
-static auto getRequiredDeviceExtensions() -> std::vector<const char*> {
-    return std::vector<const char*> {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-        VK_NV_RAY_TRACING_EXTENSION_NAME,
-    };
-}
-
-
 
 // ---------------------------- //
 //        Physcial device       //
@@ -163,50 +114,6 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
     }
 }
 
-
-auto vkb::PhysicalDevice::createLogicalDevice(std::vector<const char*> deviceExtensions) const
-    -> vk::UniqueDevice
-{
-    // Device queues
-    std::vector<float> prios(100, 1.0f); // Enough prios for 100 queues per family
-    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    for (const auto& queueFamily : queueFamilies)
-    {
-        queueCreateInfos.push_back(
-            { {}, queueFamily.index, queueFamily.queueCount, prios.data() }
-        );
-    }
-
-    // Device features
-    auto deviceFeatures = physicalDevice.getFeatures2<
-        vk::PhysicalDeviceFeatures2,
-        vk::PhysicalDeviceDescriptorIndexingFeatures
-    >();
-
-    // Validation validationLayers
-    const auto validationLayers = getRequiredValidationLayers();
-
-    // Extensions
-    const auto requiredDevExt = getRequiredDeviceExtensions();
-    deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
-
-    // Create the logical device
-    vk::StructureChain chain
-    {
-        vk::DeviceCreateInfo(
-            {},
-            static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data(),
-            static_cast<uint32_t>(validationLayers.size()), validationLayers.data(),
-            static_cast<uint32_t>(deviceExtensions.size()), deviceExtensions.data(),
-            &deviceFeatures.get<vk::PhysicalDeviceFeatures2>().features
-        ),
-        deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
-    };
-
-    return physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
-}
-
-
 auto vkb::PhysicalDevice::getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
     -> SwapchainSupport
 {
@@ -218,7 +125,6 @@ auto vkb::PhysicalDevice::getSwapchainSupport(vk::SurfaceKHR surface) const noex
 
     return result;
 }
-
 
 uint32_t vkb::PhysicalDevice::findMemoryType(
     uint32_t requiredMemoryTypeBits,
@@ -254,7 +160,7 @@ auto vkb::device_helpers::findAllPhysicalDevices(vk::Instance instance, vk::Surf
     // Create all available physical devices
     std::vector<PhysicalDevice> detectedDevices;
     for (const auto& device : availableDevices) {
-        detectedDevices.push_back(PhysicalDevice(device, surface));
+        detectedDevices.emplace_back(PhysicalDevice(device, surface));
     }
 
     return detectedDevices;
@@ -283,13 +189,11 @@ auto vkb::device_helpers::getOptimalPhysicalDevice(vk::Instance instance, vk::Su
     throw std::runtime_error("Unable to find a physical device that meets the criteria.");
 }
 
-
 bool vkb::device_helpers::isOptimalDevice(const PhysicalDevice& device)
 {
     return supportsRequiredDeviceExtensions(device)
         && supportsRequiredQueueCapabilities(device);
 }
-
 
 bool vkb::device_helpers::supportsRequiredQueueCapabilities(const PhysicalDevice& device)
 {
@@ -300,7 +204,6 @@ bool vkb::device_helpers::supportsRequiredQueueCapabilities(const PhysicalDevice
         && !families.transferCapable.empty()
         && !families.computeCapable.empty();
 }
-
 
 bool vkb::device_helpers::supportsRequiredDeviceExtensions(const PhysicalDevice& device)
 {
@@ -314,4 +217,46 @@ bool vkb::device_helpers::supportsRequiredDeviceExtensions(const PhysicalDevice&
     }
 
     return requiredExtensions.empty();
+}
+
+auto vkb::device_helpers::getRequiredDeviceExtensions() -> std::vector<const char*>
+{
+    return {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+    };
+}
+
+
+
+namespace std
+{
+    auto to_string(vkb::QueueType queueType) -> std::string
+    {
+        switch (queueType)
+        {
+        case vkb::QueueType::graphics:
+            return "Graphics";
+            break;
+        case vkb::QueueType::compute:
+            return "Compute";
+            break;
+        case vkb::QueueType::transfer:
+            return "Transfer";
+            break;
+        case vkb::QueueType::presentation:
+            return "Presentation";
+            break;
+        case vkb::QueueType::sparseMemory:
+            return "Sparse Memory";
+            break;
+        case vkb::QueueType::protectedMemory:
+            return "Protected Memory";
+            break;
+        case vkb::QueueType::numQueueTypes:
+            [[fallthrough]];
+        default:
+            throw std::logic_error("");
+        }
+    }
 }

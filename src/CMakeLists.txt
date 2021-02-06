@@ -36,6 +36,7 @@ add_subdirectory(base)
 add_subdirectory(utils)
 add_subdirectory(text)
 add_subdirectory(ui)
+add_subdirectory(ray_tracing)
 add_subdirectory(experimental)
 
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})

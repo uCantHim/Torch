@@ -15,7 +15,7 @@ namespace trc
     struct MeshData
     {
         std::vector<Vertex> vertices;
-        std::vector<ui32> indices;
+        std::vector<VertexIndex> indices;
     };
 
     extern auto makePlaneGeo(
@@ -37,6 +37,7 @@ namespace trc
         auto getIndexBuffer() const noexcept -> vk::Buffer;
         auto getVertexBuffer() const noexcept -> vk::Buffer;
         auto getIndexCount() const noexcept -> ui32;
+        auto getVertexCount() const noexcept -> ui32;
 
         auto hasRig() const noexcept -> bool;
         auto getRig() const noexcept -> Rig*;
@@ -46,6 +47,7 @@ namespace trc
         vkb::DeviceLocalBuffer vertexBuffer;
 
         ui32 numIndices;
+        ui32 numVertices;
         std::unique_ptr<Rig> rig{ nullptr };
 
         static constexpr vk::DeviceSize CHUNK_SIZE{ 50000000 }; // 50 MB
