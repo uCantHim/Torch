@@ -35,7 +35,6 @@ target_sources(
 add_subdirectory(base)
 add_subdirectory(utils)
 add_subdirectory(text)
-add_subdirectory(ui)
 add_subdirectory(ray_tracing)
 add_subdirectory(experimental)
 
