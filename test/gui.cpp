@@ -72,6 +72,9 @@ int main()
         ).makeUnique();
         window.getRoot().attach(*text);
         text->setPos({ 0.2f, 0.4f });
+        text->addEventListener([](const ui::event::Click&) {
+            std::cout << "Text clicked\n";
+        });
 
         // Also add world-space objects
         trc::Light light = trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);

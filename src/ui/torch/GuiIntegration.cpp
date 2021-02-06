@@ -264,7 +264,8 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
         0, **blendDescSets, {}
     );
     const auto [x, y] = vkb::getSwapchain().getImageExtent();
-    cmdBuf.dispatch(glm::ceil(x / 10.0f), glm::ceil(y / 10.0f), 1);
+    constexpr float LOCAL_SIZE{ 10.0f };
+    cmdBuf.dispatch(glm::ceil(x / LOCAL_SIZE), glm::ceil(y / LOCAL_SIZE), 1);
 
     cmdBuf.pipelineBarrier(
         vk::PipelineStageFlagBits::eComputeShader,

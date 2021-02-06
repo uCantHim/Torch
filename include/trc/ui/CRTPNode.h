@@ -19,7 +19,8 @@ namespace trc::ui
     public:
         /**
          * Can't use concepts with CRTP because neither the derived type
-         * not the parent type are defined, so I use static_assert.
+         * nor the parent type are complete at concept resolution time, so
+         * I use static_assert instead.
          */
         CRTPNode() {
             static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
@@ -53,7 +54,7 @@ namespace trc::ui
     private:
         Transform localTransform;
 
-        Derived* parent { nullptr };
+        Derived* parent{ nullptr };
         std::vector<Derived*> children;
     };
 

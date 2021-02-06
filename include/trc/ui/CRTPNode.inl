@@ -1,7 +1,5 @@
 #include "CRTPNode.h"
 
-#include <ranges>
-
 
 
 template<typename Derived>
