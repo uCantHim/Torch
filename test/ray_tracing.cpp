@@ -125,13 +125,14 @@ int main()
 
     // --- Descriptor sets --- //
 
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
+        vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1),
+    };
     auto descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         vkb::getSwapchain().getFrameCount() + 1,
-        std::vector<vk::DescriptorPoolSize>{
-            vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
-            vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1),
-        }
+        poolSizes
     ));
 
     std::vector<vk::UniqueImageView> imageViews;
