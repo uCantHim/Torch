@@ -18,7 +18,7 @@ inline auto IndexMap<Key, Value>::operator[](Key key) noexcept -> Value&
 {
     assert(key >= 0);
 
-    if (key >= values.size()) {
+    if (static_cast<size_t>(key) >= values.size()) {
         values.resize(key + 1);
     }
 
@@ -28,7 +28,7 @@ inline auto IndexMap<Key, Value>::operator[](Key key) noexcept -> Value&
 template<typename Key, typename Value>
 inline auto IndexMap<Key, Value>::operator[](Key key) const noexcept -> const Value&
 {
-    assert(key < values.size());
+    assert(static_cast<size_t>(key) < values.size());
     assert(key >= 0);
 
     return values.at(key);
@@ -37,7 +37,7 @@ inline auto IndexMap<Key, Value>::operator[](Key key) const noexcept -> const Va
 template<typename Key, typename Value>
 inline auto IndexMap<Key, Value>::at(Key key) -> Value&
 {
-    assert(key < values.size());
+    assert(static_cast<size_t>(key) < values.size());
     assert(key >= 0);
 
     return values.at(key);
@@ -49,7 +49,7 @@ inline auto IndexMap<Key, Value>::emplace(Key key, Args&&... args) -> Value&
 {
     assert(key >= 0);
 
-    if (key >= values.size()) {
+    if (static_cast<size_t>(key) >= values.size()) {
         values.resize(key + 1);
     }
 
@@ -60,7 +60,7 @@ inline auto IndexMap<Key, Value>::emplace(Key key, Args&&... args) -> Value&
 template<typename Key, typename Value>
 inline auto IndexMap<Key, Value>::remove(Key key) -> Value
 {
-    assert(key < values.size());
+    assert(static_cast<size_t>(key) < values.size());
     assert(key >= 0);
 
     auto currentValue = std::move(values.at(key));
