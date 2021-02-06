@@ -19,18 +19,16 @@ vkb::Device::Device(
         {
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            getQueueFamily(QueueType::graphics)
+            queueManager.getPrimaryQueueFamily(QueueType::graphics)
         }
     )),
-    graphicsQueue(getQueue(QueueType::graphics)),
     transferPool(device->createCommandPoolUnique(
         {
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            getQueueFamily(QueueType::transfer)
+            queueManager.getPrimaryQueueFamily(QueueType::transfer)
         }
-    )),
-    transferQueue(getQueues(getQueueFamily(QueueType::transfer)).at(1))
+    ))
 {
 }
 
@@ -87,13 +85,16 @@ auto vkb::Device::createGraphicsCommandBuffer(vk::CommandBufferLevel level) cons
 
 void vkb::Device::executeGraphicsCommandBuffer(vk::CommandBuffer cmdBuf) const
 {
-    graphicsQueue.submit(vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf), {});
+    queueManager.getPrimaryQueue(QueueType::graphics).submit(
+        vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
+        {}
+    );
 }
 
 void vkb::Device::executeGraphicsCommandBufferSynchronously(vk::CommandBuffer cmdBuf) const
 {
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    graphicsQueue.submit(
+    queueManager.getPrimaryQueue(QueueType::graphics).submit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );
@@ -108,13 +109,16 @@ auto vkb::Device::createTransferCommandBuffer(vk::CommandBufferLevel level) cons
 
 void vkb::Device::executeTransferCommandBuffer(vk::CommandBuffer cmdBuf) const
 {
-    transferQueue.submit(vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf), {});
+    queueManager.getPrimaryQueue(QueueType::transfer).submit(
+        vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
+        {}
+    );
 }
 
 void vkb::Device::executeTransferCommandBufferSyncronously(vk::CommandBuffer cmdBuf) const
 {
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    transferQueue.submit(
+    queueManager.getPrimaryQueue(QueueType::transfer).submit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );

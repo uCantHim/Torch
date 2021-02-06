@@ -185,9 +185,7 @@ private:
     QueueManager queueManager;
 
     vk::UniqueCommandPool graphicsPool;
-    vk::Queue graphicsQueue;
     vk::UniqueCommandPool transferPool;
-    vk::Queue transferQueue;
 };
 
 
@@ -208,9 +206,10 @@ Device::Device(
 template<std::invocable<vk::CommandBuffer> F>
 void Device::executeCommandsSynchronously(QueueType queueType, F func)
 {
+    auto [queue, family] = queueManager.getAnyQueue(queueType);
     auto pool = device->createCommandPoolUnique(vk::CommandPoolCreateInfo(
         vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        getQueueFamily(queueType)
+        family
     ));
 
     auto cmdBuf = std::move(device->allocateCommandBuffersUnique({
@@ -223,7 +222,7 @@ void Device::executeCommandsSynchronously(QueueType queueType, F func)
     cmdBuf->end();
 
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    getQueue(queueType, 0).submit(
+    queue.submit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf),
         *fence
     );
