@@ -15,6 +15,7 @@ namespace trc
 
     private:
         static auto loadMeshes(const aiScene* scene) -> std::vector<Mesh>;
+        static auto loadMaterial(const aiMaterial* mat) -> Material;
     };
 } // namespace trc
 

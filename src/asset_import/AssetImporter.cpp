@@ -7,6 +7,11 @@
 
 
 
+inline auto toVec4(aiColor4D c) -> trc::basic_types::vec4
+{
+    return { c.r, c.g, c.b, c.a };
+}
+
 inline auto toVec3(aiVector3D v) -> trc::basic_types::vec3
 {
     return { v.x, v.y, v.z };
@@ -69,7 +74,37 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<Mesh>
                 meshData.indices.push_back(mesh->mFaces[f].mIndices[j]);
             }
         }
+
+        // Load material
+        newMesh.materials.emplace_back(loadMaterial(scene->mMaterials[mesh->mMaterialIndex]));
     }
+
+    return result;
+}
+
+auto trc::AssetImporter::loadMaterial(const aiMaterial* mat) -> Material
+{
+    Material result;
+
+    aiColor4D color;
+
+    mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+    result.color = toVec4(color);
+
+    mat->Get(AI_MATKEY_COLOR_AMBIENT, color);
+    result.kAmbient = toVec4(color);
+    mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+    result.kDiffuse = toVec4(color);
+    mat->Get(AI_MATKEY_COLOR_SPECULAR, color);
+    result.kSpecular = toVec4(color);
+
+    // AI_MATKEY_SHININESS is the exponent in the phong equation
+    mat->Get(AI_MATKEY_SHININESS, result.shininess);
+
+    // AI_MATKEY_SHININESS_STRENGTH scales the specular color
+    float shininessStrength{ 1.0f };
+    mat->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength);
+    result.kSpecular *= shininessStrength;
 
     return result;
 }
