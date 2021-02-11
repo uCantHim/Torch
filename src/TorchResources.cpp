@@ -56,7 +56,7 @@ void trc::Queues::init(vkb::QueueManager& queueManager)
         // Try to retrieve at least four transfer queues
         constexpr ui32 maxTransfer{ 4 };
         ui32 primaryTransferCount = glm::min(
-            queueManager.getPrimaryQueueCount(vkb::QueueType::transfer),
+            glm::max(1u, queueManager.getPrimaryQueueCount(vkb::QueueType::transfer) - 1),
             maxTransfer
         );
         // Primary transfer queues first
@@ -64,12 +64,6 @@ void trc::Queues::init(vkb::QueueManager& queueManager)
         {
             auto queue = queueManager.reservePrimaryQueue(vkb::QueueType::transfer);
             transferQueues.emplace_back(new vkb::ExclusiveQueue(queue));
-        }
-        // Fill with additional non-primary transfer queues
-        for (; totalTransfer < maxTransfer; totalTransfer++)
-        {
-            auto [queue, family] = queueManager.getAnyQueue(vkb::QueueType::transfer);
-            transferQueues.emplace_back(new vkb::ExclusiveQueue(queueManager.reserveQueue(queue)));
         }
     }
     catch (const vkb::QueueReservedError&) {}

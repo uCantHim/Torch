@@ -5,7 +5,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include "utils/FBXLoader.h"
+#include "FBXLoader.h"
 #include "AssetRegistry.h"
 #include "Scene.h"
 #include "Drawable.h"

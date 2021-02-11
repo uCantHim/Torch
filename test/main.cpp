@@ -12,11 +12,11 @@ using namespace std::chrono;
 
 #include <trc/Torch.h>
 using namespace trc::basic_types;
-#include <trc/utils/FBXLoader.h>
 #include <trc/Geometry.h>
 #include <trc/DrawableInstanced.h>
 #include <trc/Particle.h>
-#include <trc/AssetUtils.h>
+#include <trc/asset_import/FBXLoader.h>
+#include <trc/asset_import/AssetUtils.h>
 #include <trc/text/Text.h>
 
 int main()

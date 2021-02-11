@@ -3,7 +3,8 @@
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 #include <trc/utils/Camera.h>
-#include <trc/AssetUtils.h>
+#include <trc/asset_import/AssetUtils.h>
+#include <trc/asset_import/AssetImporter.h>
 #include <trc/experimental/DrawableChain.h>
 
 namespace trc {
@@ -16,7 +17,9 @@ int main()
 {
     auto renderer = trc::init();
 
-    auto geo = ar::addGeometry("grass", *trc::loadGeometry("assets/grass_lowpoly.fbx"));
+    auto grass = trc::AssetImporter::load("assets/grass_lowpoly.fbx");
+
+    auto geo = ar::addGeometry("grass", trc::Geometry(grass.meshes[0].mesh));
     auto mat = ar::addMaterial("green", { .color=vec4(0, 1, 0, 1), .kSpecular=vec4(0.0f) });
     auto mat1 = ar::addMaterial("red", { .color=vec4(1, 0, 0, 1), .kSpecular=vec4(0.0f) });
     auto mat2 = ar::addMaterial("purple", { .color=vec4(1, 0, 1, 1), .kSpecular=vec4(0.0f) });

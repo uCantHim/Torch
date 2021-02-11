@@ -3,7 +3,6 @@ target_sources(
     PRIVATE
         Animation.cpp
         AnimationEngine.cpp
-        AssetUtils.cpp
         AssetRegistry.cpp
         CommandCollector.cpp
         DescriptorProvider.cpp
@@ -33,6 +32,7 @@ target_sources(
 )
 
 add_subdirectory(base)
+add_subdirectory(asset_import)
 add_subdirectory(utils)
 add_subdirectory(text)
 add_subdirectory(ray_tracing)

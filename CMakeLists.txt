@@ -25,15 +25,19 @@ endif ()
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 
-# Third-party
+# Required third-party
 find_package(Freetype REQUIRED)
 
 # Library target
 add_library(torch)
-add_subdirectory(shaders)
-add_subdirectory(vk_base)
-add_subdirectory(src)
-add_subdirectory(include/trc)
+
+target_include_directories(torch
+    PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/include
+        ${CMAKE_CURRENT_LIST_DIR}/vk_base/include
+
+        ${CMAKE_CURRENT_LIST_DIR}/include/trc
+)
 
 target_link_libraries(
     torch PUBLIC
@@ -41,8 +45,9 @@ target_link_libraries(
     Freetype::Freetype
 )
 
-target_include_directories(torch PUBLIC include)
-target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR}/vk_base/include)
+add_subdirectory(shaders)
+add_subdirectory(vk_base)
+add_subdirectory(src)
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})
@@ -83,6 +88,16 @@ if (${TORCH_USE_FBX_SDK})
     target_link_libraries(torch PUBLIC fbxsdk)
     target_compile_definitions(torch PUBLIC TRC_USE_FBX_SDK)
 endif ()
+
+# Optional assimp stuff
+cmake_policy(PUSH)
+cmake_policy(SET CMP0012 NEW)
+find_package(assimp QUIET)
+if (${assimp_FOUND})
+    target_link_libraries(torch PUBLIC ${ASSIMP_LIBRARIES}) #assimp::assimp)
+    target_compile_definitions(torch PUBLIC TRC_USE_ASSIMP)
+endif ()
+cmake_policy(POP)
 
 #################
 # Compile options

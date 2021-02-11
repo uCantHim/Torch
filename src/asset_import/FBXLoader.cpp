@@ -1,6 +1,6 @@
 #ifdef TRC_USE_FBX_SDK
 
-#include "utils/FBXLoader.h"
+#include "asset_import/FBXLoader.h"
 
 #include <iostream>
 #include <chrono>

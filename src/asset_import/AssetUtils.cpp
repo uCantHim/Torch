@@ -1,4 +1,4 @@
-#include "AssetUtils.h"
+#include "asset_import/AssetUtils.h"
 
 
 #ifdef TRC_USE_FBX_SDK

@@ -2,7 +2,7 @@
 
 #include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
-#include <trc/AssetUtils.h>
+#include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 using namespace trc::basic_types;
 
