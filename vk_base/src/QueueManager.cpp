@@ -160,12 +160,13 @@ auto vkb::QueueManager::getPrimaryQueue(QueueType type) const -> vk::Queue
 {
     const auto& indices = queuesPerFamily.at(getPrimaryQueueFamily(type));
 
+    std::optional<vk::Queue> queue{ std::nullopt };
     uint32_t& nextQueueIndex = nextPrimaryQueueRotation[static_cast<size_t>(type)];
-    if (nextQueueIndex >= indices.size()) {
-        nextQueueIndex = 0;
-    }
-    auto queue = getQueue(indices.at(nextQueueIndex));
-    nextQueueIndex++;
+    const uint32_t initialIndex = nextQueueIndex;
+    do {
+        nextQueueIndex = ++nextQueueIndex >= indices.size() ? 0 : nextQueueIndex;
+        queue = getQueue(indices.at(nextQueueIndex));
+    } while (!queue.has_value() && initialIndex != nextQueueIndex);
 
     if (!queue.has_value())
     {

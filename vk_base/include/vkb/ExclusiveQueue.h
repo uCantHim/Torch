@@ -33,6 +33,8 @@ namespace vkb
         auto operator<<(const vk::SubmitInfo& submit) -> ExclusiveQueue&;
 
         /**
+         * Essentially the same behaviour as vkQueueSubmit
+         *
          * @throw std::runtime_error if current thread doesn't own queue
          */
         void submit(const vk::ArrayProxy<const vk::SubmitInfo>& submits, vk::Fence fence) const;
