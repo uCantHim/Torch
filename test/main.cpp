@@ -63,10 +63,6 @@ int main()
         vkb::makeImage2D(vkb::getDevice(), "assets/Female_Character.png")
     );
 
-    auto imgIndex = trc::AssetRegistry::addImage(
-        vkb::makeImage2D(vkb::getDevice(), "/home/nicola/dotfiles/arch_3D_simplistic.png")
-    );
-
     auto grassImgIdx = trc::AssetRegistry::addImage(
         vkb::makeImage2D(vkb::getDevice(), "assets/grass_billboard_001.png")
     );

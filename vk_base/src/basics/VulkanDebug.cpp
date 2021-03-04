@@ -136,7 +136,6 @@ auto vkb::getRequiredValidationLayers() -> std::vector<const char*>
         "VK_LAYER_GOOGLE_unique_objects",
 
         "VK_LAYER_NV_optimus",
-        "VK_LAYER_MESA_device_select",
     };
     std::vector<const char*> result;
 
