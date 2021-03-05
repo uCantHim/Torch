@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <concepts>
+#include <functional> // for reference_wrapper
 
 #include "Exception.h"
 
@@ -19,6 +20,11 @@ namespace trc
     template<typename T>
     class Maybe
     {
+        using StoredType = std::conditional_t<std::is_lvalue_reference_v<T>,
+            std::reference_wrapper<std::remove_reference_t<T>>,
+            T
+        >;
+
     public:
         /**
          * @brief Construct an empty Maybe value
@@ -28,19 +34,37 @@ namespace trc
         /**
          * @brief Construct Maybe from an lvalue
          */
-        Maybe(const T& val) requires std::is_copy_constructible_v<T>
-            : value(val) {}
+        Maybe(T val)
+            requires (!std::is_lvalue_reference_v<T>)
+            : value(std::move(val)) {}
 
         /**
-         * @brief Construct Maybe from an rvalue
+         * @brief Construct Maybe from an lvalue reference
          */
-        Maybe(T&& val) requires std::is_move_constructible_v<T>
-            : value(std::move(val)) {}
+        Maybe(T val)
+            requires std::is_lvalue_reference_v<T>
+                  && (!std::is_const_v<std::remove_reference_t<T>>)
+            : value(std::ref(val)) {}
+
+        /**
+         * @brief Construct Maybe from a const lvalue reference
+         */
+        Maybe(T val)
+            requires std::is_lvalue_reference_v<T>
+                  && std::is_const_v<std::remove_reference_t<T>>
+            : value(std::cref(val)) {}
+
+        ///**
+        // * @brief Construct Maybe from an rvalue
+        // */
+        //Maybe(T&& val) requires std::is_move_constructible_v<T>
+        //    : value(std::move(val)) {}
 
         /**
          * @brief Constuctor Maybe from a std::optional
          */
-        explicit Maybe(std::optional<T>&& opt)
+        explicit Maybe(std::optional<T> opt)
+            requires (!std::is_lvalue_reference_v<T>)
             : value(std::move(opt)) {}
 
         ~Maybe() noexcept = default;
@@ -55,35 +79,52 @@ namespace trc
         // Deleted copy assignment operator
         auto operator=(const Maybe<T>&) -> Maybe<T> = delete;
 
-        /**
-         * Pipe operator that puts the value into a variable
+        /*
+         * @brief Monadic function application
          *
-         * @return T& Reference to the variable that the value was stored
-         *            in (i.e. the right-hand operand). This allows for
-         *            code like this:
-         *
-         *                (m >> i) += 4;
-         *
-         * @throw MaybeEmptyError if the Maybe does not have a value.
+         * @return The value returned by the right-hand function or an
+         *         empty Maybe.
          */
-        inline auto operator>>(T& rhs) -> T&
+        template<std::invocable<T> Func>
+            requires requires (Func func, T val) {
+                { func(val) } -> std::same_as<Maybe<T>>;
+            }
+        inline auto operator>>(Func&& rhs) -> Maybe<T>
         {
-            rhs = getValue();
-            return rhs;
+            if (!hasValue()) {
+                return Maybe<T>{}; // Nothing
+            }
+
+            return rhs(getValue());
         }
 
-        /*
-         * @brief Invoke a function with the value contained in the Maybe
+        /**
+         * @brief Execute a function if the Maybe contains a value
          *
-         * @return The value returned by the function.
-         *
-         * @throw MaybeEmptyError if the Maybe does not have a value.
+         * In this overload, the function takes to value contained in the
+         * Maybe as an argument.
          */
-        template<typename Func>
-        inline auto operator>>(Func&& rhs) -> decltype(std::declval<Func>()(std::declval<T>()))
-            requires requires(T val, Func func) { func(std::forward<T>(val)); }
+        template<std::invocable<T> Func>
+        inline auto operator>>(Func&& rhs) -> std::invoke_result_t<Func, T>
         {
-            return rhs(getValue());
+            if (hasValue()) {
+                return rhs(getValue());
+            }
+        }
+
+        /**
+         * @brief Execute a function if the Maybe contains a value
+         *
+         * In this overload, the function does not take any arguments.
+         *
+         * TODO: I don't know if this overload is particularly sensible...
+         */
+        template<std::invocable Func>
+        inline auto operator>>(Func&& rhs) -> std::invoke_result_t<Func>
+        {
+            if (hasValue()) {
+                return rhs();
+            }
         }
 
         /**
@@ -105,10 +146,11 @@ namespace trc
          * @return The Maybe's value if one is present or the function's
          *         return value if there isn't.
          */
-        template<typename Func>
-        inline auto operator||(Func rhs) -> T
-            requires std::invocable<Func>
-                  && requires (Func func) { std::is_same_v<T, decltype(func())>; }
+        template<std::invocable Func>
+        inline auto operator||(Func&& rhs) -> T
+            requires requires (Func func) {
+                { func() } -> std::same_as<T>;
+            }
         {
             if (hasValue()) {
                 return getValue();
@@ -128,11 +170,14 @@ namespace trc
          */
         template<typename Success, typename Error>
         inline auto maybe(Success success, Error error) -> decltype(std::declval<Error>()())
-            requires std::invocable<Success, T>
-                  && std::invocable<Error>
-                  && requires (T val, Success s, Error e) {
-                         std::is_same_v<decltype(s(val)), decltype(e())>;
-                     }
+            requires requires () {
+                std::invocable<Success, T>;
+                std::invocable<Error>;
+                std::same_as<
+                    std::invoke_result_t<Success, T>,
+                    std::invoke_result_t<Error>
+                >;
+            }
         {
             if (hasValue()) {
                 return success(getValue());
@@ -192,10 +237,17 @@ namespace trc
             }
 
             // Set the Maybe's value to nullopt
-            std::optional<T> opt{ std::nullopt };
-            value.swap(opt);
+            auto result = [this] {
+                if constexpr (std::is_lvalue_reference_v<T>) {
+                    return value.value();
+                }
+                else {
+                    return std::move(value.value());
+                }
+            }();
+            value = std::nullopt;
 
-            return std::move(*opt);
+            return result;
         }
 
         inline bool hasValue() const
@@ -203,6 +255,6 @@ namespace trc
             return value.has_value();
         }
 
-        std::optional<T> value{ std::nullopt };
+        std::optional<StoredType> value{ std::nullopt };
     };
 } // namespace trc

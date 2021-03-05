@@ -52,17 +52,6 @@ TEST(MaybeTest, GetReturnsValue)
     ASSERT_EQ(trc::Maybe<int32_t>{ INT32_MAX + 1 }.get(), INT32_MAX + 1);
 }
 
-TEST(MaybeTest, EmptyPipeIntoVariableThrows)
-{
-    int i;
-    Foo foo;
-    trc::Maybe<int> m;
-    trc::Maybe<Foo> m_foo;
-
-    ASSERT_THROW(m >> i,       trc::MaybeEmptyError);
-    ASSERT_THROW(m_foo >> foo, trc::MaybeEmptyError);
-}
-
 TEST(MaybeTest, EmptyPipeIntoFunctionThrows)
 {
     auto iFunc = [](int i) {};
@@ -77,26 +66,6 @@ TEST(MaybeTest, EmptyPipeIntoFunctionThrows)
     ASSERT_THROW(m >> iFuncR,       trc::MaybeEmptyError);
     ASSERT_THROW(m_foo >> fooFunc,  trc::MaybeEmptyError);
     ASSERT_THROW(m_foo >> fooFuncR, trc::MaybeEmptyError);
-}
-
-TEST(MaybeTest, PipeOperatorIntoVariable)
-{
-    double resultD = 123.45;
-    std::string resultStr = "Hello World!";
-    std::vector<int> resultVec = { 9, 8, 7, 6, 5 };
-
-    trc::Maybe<double> m{ resultD };
-    trc::Maybe<Foo> m_foo{ { resultD, resultStr, resultVec } };
-
-    double d;
-    Foo foo;
-    m >> d;
-    m_foo >> foo;
-
-    ASSERT_DOUBLE_EQ(d, resultD);
-    ASSERT_DOUBLE_EQ(foo.d, resultD);
-    ASSERT_EQ(foo.str, resultStr);
-    ASSERT_EQ(foo.vec, resultVec);
 }
 
 TEST(MaybeTest, OrOperatorWithVariable)
