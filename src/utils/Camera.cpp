@@ -6,15 +6,7 @@
 
 trc::Camera::Camera()
 {
-#ifdef TRC_FLIP_Y_PROJECTION
-    static const GLM_CONSTEXPR mat4 axisFlipMatrix(
-        1, 0, 0, 0,
-        0, -1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    );
-    projectionMatrix *= axisFlipMatrix;
-#endif
+    makePerspective(16.0f / 9.0f, 45.0f, 0.1f, 100.0f);
 }
 
 trc::Camera::Camera(float aspect, float fovDegrees, float zNear, float zFar)
