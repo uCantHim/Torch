@@ -18,8 +18,8 @@ int main()
     auto size = vkb::getSwapchain().getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::GeometryID geoId = trc::loadGeometry("assets/skeleton.fbx")
-                            >> trc::AssetRegistry::addGeometry;
+    trc::GeometryID geoId = (trc::loadGeometry("assets/skeleton.fbx")
+                            >> trc::AssetRegistry::addGeometry).get();
 
     trc::GeometryID triId = trc::AssetRegistry::addGeometry(
         trc::Geometry(

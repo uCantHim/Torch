@@ -52,22 +52,6 @@ TEST(MaybeTest, GetReturnsValue)
     ASSERT_EQ(trc::Maybe<int32_t>{ INT32_MAX + 1 }.get(), INT32_MAX + 1);
 }
 
-TEST(MaybeTest, EmptyPipeIntoFunctionThrows)
-{
-    auto iFunc = [](int i) {};
-    auto fooFunc = [](Foo foo) {};
-    auto iFuncR = [](int i) { return i + 4; };
-    auto fooFuncR = [](Foo foo) { return foo; };
-
-    trc::Maybe<int> m;
-    trc::Maybe<Foo> m_foo;
-
-    ASSERT_THROW(m >> iFunc,        trc::MaybeEmptyError);
-    ASSERT_THROW(m >> iFuncR,       trc::MaybeEmptyError);
-    ASSERT_THROW(m_foo >> fooFunc,  trc::MaybeEmptyError);
-    ASSERT_THROW(m_foo >> fooFuncR, trc::MaybeEmptyError);
-}
-
 TEST(MaybeTest, OrOperatorWithVariable)
 {
     int resultI = 7;

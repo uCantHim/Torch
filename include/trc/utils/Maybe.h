@@ -86,44 +86,25 @@ namespace trc
          *         empty Maybe.
          */
         template<std::invocable<T> Func>
-            requires requires (Func func, T val) {
-                { func(val) } -> std::same_as<Maybe<T>>;
-            }
-        inline auto operator>>(Func&& rhs) -> Maybe<T>
+            requires (!std::is_same_v<std::invoke_result_t<Func, T>, void>)
+        inline auto operator>>(Func&& rhs) -> Maybe<std::invoke_result_t<Func, T>>
         {
-            if (!hasValue()) {
-                return Maybe<T>{}; // Nothing
+            if (hasValue()) {
+                return { rhs(getValue()) };
             }
 
-            return rhs(getValue());
+            return {}; // Nothing
         }
 
         /**
-         * @brief Execute a function if the Maybe contains a value
-         *
-         * In this overload, the function takes to value contained in the
-         * Maybe as an argument.
+         * @brief Function application with no return value
          */
         template<std::invocable<T> Func>
-        inline auto operator>>(Func&& rhs) -> std::invoke_result_t<Func, T>
+            requires std::is_same_v<std::invoke_result_t<Func, T>, void>
+        inline void operator>>(Func&& rhs)
         {
             if (hasValue()) {
-                return rhs(getValue());
-            }
-        }
-
-        /**
-         * @brief Execute a function if the Maybe contains a value
-         *
-         * In this overload, the function does not take any arguments.
-         *
-         * TODO: I don't know if this overload is particularly sensible...
-         */
-        template<std::invocable Func>
-        inline auto operator>>(Func&& rhs) -> std::invoke_result_t<Func>
-        {
-            if (hasValue()) {
-                return rhs();
+                rhs(getValue());
             }
         }
 
