@@ -112,11 +112,14 @@ trc::Renderer::Renderer(RendererCreateInfo info)
     );
     // Post recreate, create the required resources
     postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
-        [this, maxFrags=info.maxTransparentFragsPerPixel](const auto&) {
+        [this, info](const auto&) {
+            waitForAllFrames();
+
             // Completely recreate the deferred renderpass
             auto& newPass = RenderPass::replace<RenderPassDeferred>(
                 defaultDeferredPass,
-                vkb::getSwapchain(), maxFrags
+                vkb::getSwapchain(),
+                info.maxTransparentFragsPerPixel
             );
 
             // Update descriptors before recreating pipelines
