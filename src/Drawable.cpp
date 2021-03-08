@@ -40,6 +40,7 @@ trc::Drawable::Drawable(Geometry& geo, MaterialID material, SceneBase& scene)
 trc::Drawable::Drawable(Drawable&& other) noexcept
     :
     Node(std::forward<Node>(other)),
+    currentScene(other.currentScene),
     deferredRegistration(std::move(other.deferredRegistration)),
     shadowRegistration(std::move(other.shadowRegistration)),
     geo(other.geo),
@@ -53,12 +54,15 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
     other.matIndex = 0;
     other.pickableId = NO_PICKABLE;
     other.isTransparent = false;
+
+    updateDrawFunctions();
 }
 
 auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 {
     Node::operator=(std::forward<Node>(rhs));
 
+    currentScene = rhs.currentScene;
     rhs.currentScene = nullptr;
     deferredRegistration = std::move(rhs.deferredRegistration);
     shadowRegistration = std::move(rhs.shadowRegistration);
@@ -73,6 +77,8 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
     rhs.isTransparent = false;
 
     animEngine = std::move(rhs.animEngine);
+
+    updateDrawFunctions();
 
     return *this;
 }
