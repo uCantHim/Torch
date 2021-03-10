@@ -37,7 +37,9 @@ layout (set = 1, binding = 1) uniform sampler2D textures[];
 
 layout (set = 2, binding = 0) buffer LightBuffer
 {
-    uint numLights;
+    uint numSunLights;
+    uint numPointLights;
+    uint numAmbientLights;
     Light lights[];
 };
 

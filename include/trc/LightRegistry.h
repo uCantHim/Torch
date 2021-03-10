@@ -134,9 +134,18 @@ namespace trc
         const ui32 maxLights;
         const ui32 maxShadowMaps;
 
+        /**
+         * I could keep all lights in one array instead and sort that array
+         * by light type before every buffer update. But I wanted to try
+         * something different and see how it works out.
+         */
+        bool lightExists(const Light& light);
+        std::vector<Light*> sunLights;
+        std::vector<Light*> pointLights;
+        std::vector<Light*> ambientLights;
+
         // Must be done every frame in case light properties change
         void updateLightBuffer();
-        std::vector<Light*> lights;
         vkb::Buffer lightBuffer;
 
         std::vector<RenderPass::ID> shadowPasses;

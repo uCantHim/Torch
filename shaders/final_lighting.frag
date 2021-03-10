@@ -52,7 +52,9 @@ layout (set = 2, binding = 6) restrict buffer FragmentList
 
 layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
 {
-    uint numLights;
+    uint numSunLights;
+    uint numPointLights;
+    uint numAmbientLights;
     Light lights[];
 };
 

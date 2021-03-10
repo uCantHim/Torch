@@ -22,7 +22,12 @@ layout (set = SHADOW_DESCRIPTOR_SET_BINDING, binding = 0) restrict readonly buff
 layout (set = SHADOW_DESCRIPTOR_SET_BINDING, binding = 1) uniform sampler2D shadowMaps[];
 
 /**
- * @brief Tests if a point is in a shadow of a specific light
+ * @brief Tests if a point is in a shadow on a specific shadow map
+ *
+ * @param vec3 worldCoords The point in world space to test for whether it
+ *                         is in a shadow.
+ * @param uint shadowIndex Index of the shadow map and its corresponding
+ *                         shadow matrix
  */
 bool isInShadow(vec3 worldCoords, uint shadowIndex)
 {
@@ -41,28 +46,6 @@ bool isInShadow(vec3 worldCoords, uint shadowIndex)
                         && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0;
 
     return (objectDepth > (shadowDepth + bias)) && liesInShadowMap;
-}
-
-/**
- * @brief Calculate the amount of light that reaches a point
- */
-float calcLightShadowValueSharp(vec3 worldCoords, Light light)
-{
-    if (!light.hasShadow) {
-        return NO_SHADOW;
-    }
-
-    switch (light.type)
-    {
-    case LIGHT_TYPE_SUN:
-        if (isInShadow(worldCoords, light.firstShadowIndex)) {
-            return SHADOW_FACTOR_SUN_LIGHT;
-        }
-
-        return NO_SHADOW;
-    }
-
-    return NO_SHADOW;
 }
 
 /**
@@ -109,20 +92,30 @@ float calcSmoothShadowStrength(vec3 worldCoords, uint shadowIndex)
     return shadowStrength / 9.0;
 }
 
-float calcLightShadowValueSmooth(vec3 worldCoords, Light light)
+/**
+ * @brief Calculate the amount of light that reaches a point
+ */
+float calcSunShadowValueSharp(vec3 worldCoords, Light light)
 {
-    if (!light.hasShadow) {
+    if (!light.hasShadow || light.type != LIGHT_TYPE_SUN) {
         return NO_SHADOW;
     }
 
-    switch (light.type)
-    {
-    case LIGHT_TYPE_SUN:
-        return SHADOW_FACTOR_SUN_LIGHT
-               + 0.8 * (1.0 - calcSmoothShadowStrength(worldCoords, light.firstShadowIndex));
+    return float(!isInShadow(worldCoords, light.firstShadowIndex));
+}
+
+/**
+ * @brief Calculate the amount of light that reaches a point
+ *
+ * Smoothes the shadow at the edges
+ */
+float calcSunShadowValueSmooth(vec3 worldCoords, Light light)
+{
+    if (!light.hasShadow || light.type != LIGHT_TYPE_SUN) {
+        return NO_SHADOW;
     }
 
-    return NO_SHADOW;
+    return 1.0 - calcSmoothShadowStrength(worldCoords, light.firstShadowIndex);
 }
 
 #endif
