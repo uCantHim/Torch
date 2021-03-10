@@ -184,30 +184,24 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
     device->resetFences(**frameInFlightFences);
     auto image = swapchain.acquireImage(**imageAcquireSemaphores);
 
-    // Collect commands
+    // Collect commands from scene
+    int collectorIndex{ 0 };
     std::vector<vk::CommandBuffer> cmdBufs;
-    int i{ 0 };
     renderGraph.foreachStage(
         [&, this](RenderStageType::ID stage, const std::vector<RenderPass::ID>& passes)
         {
-            if (stage == RenderStageTypes::getShadow())
-            {
-                auto mergedPasses = scene.getLightRegistry().getShadowRenderStage();
-                mergedPasses.insert(mergedPasses.end(), passes.begin(), passes.end());
+            // Get additional passes from current scene
+            auto localPasses = scene.getLocalRenderPasses(stage);
+            localPasses.insert(localPasses.end(), passes.begin(), passes.end());
 
-                cmdBufs.push_back(commandCollectors.at(i).recordScene(
+            cmdBufs.push_back(
+                commandCollectors.at(collectorIndex).recordScene(
                     scene, { viewport },
-                    stage, mergedPasses
-                ));
-            }
-            else {
-                cmdBufs.push_back(commandCollectors.at(i).recordScene(
-                    scene, { viewport },
-                    stage, passes
-                ));
-            }
+                    stage, localPasses
+                )
+            );
 
-            i++;
+            collectorIndex++;
         }
     );
 

@@ -59,6 +59,16 @@ auto trc::Scene::getLightRegistry() const noexcept -> const LightRegistry&
     return lightRegistry;
 }
 
+auto trc::Scene::getLocalRenderPasses(RenderStageType::ID stageType)
+    -> std::vector<RenderPass::ID>
+{
+    if (stageType == RenderStageTypes::getShadow()) {
+        return lightRegistry.getShadowRenderStage();
+    }
+
+    return {};
+}
+
 auto trc::Scene::getDescriptor() const noexcept -> const SceneDescriptor&
 {
     return descriptor;

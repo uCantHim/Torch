@@ -52,6 +52,21 @@ namespace trc
         auto getLightRegistry() const noexcept -> const LightRegistry&;
 
         /**
+         * @brief Get additional per-scene render passes for a render stage
+         *
+         * Scenes can declare additional render passes for certain render
+         * stages that are not executed renderer-wide but only for this
+         * scene. The render stage has to be enabled in the renderer.
+         *
+         * The renderer calls this function for every enabled render stage
+         * in its render graph.
+         *
+         * TODO: Currently only provides shadow passes. Implement user-
+         * defined render passes.
+         */
+        auto getLocalRenderPasses(RenderStageType::ID stageType) -> std::vector<RenderPass::ID>;
+
+        /**
          * @return const SceneDescriptor& The scene's descriptor
          */
         auto getDescriptor() const noexcept -> const SceneDescriptor&;
