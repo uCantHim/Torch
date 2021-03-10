@@ -49,9 +49,15 @@ else()
 
         message("Compiling ${IN_FILE} -> ${OUT_FILE}")
 
+        if (${TORCH_OPTIMIZE_SHADERS})
+            set(SHADER_OPTIMIZATION_FLAG "-O")
+        else()
+            set(SHADER_OPTIMIZATION_FLAG "-O0")
+        endif ()
+
         add_custom_command(
             OUTPUT ${OUT_FILE}
-            COMMAND ${GLSLC} --target-spv=spv1.4 ${IN_FILE} -o ${OUT_FILE}
+            COMMAND ${GLSLC} ${SHADER_OPTIMIZATION_FLAG} --target-spv=spv1.4 --target-env=vulkan1.2 ${IN_FILE} -o ${OUT_FILE}
             DEPENDS ${IN_FILE}
             IMPLICIT_DEPENDS CXX ${IN_FILE}
         )
