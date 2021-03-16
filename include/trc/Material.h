@@ -66,7 +66,9 @@ namespace trc
          */
         ui32 bumpTexture{ NO_TEXTURE };
 
-        ui32 __padding[3]{ 0, 0, 0 };
+        bool32 performLighting{ true };
+
+        ui32 __padding[2]{ 0, 0 };
     };
 
     static_assert(util::sizeof_pad_16_v<Material> == sizeof(Material),

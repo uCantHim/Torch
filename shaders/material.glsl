@@ -19,6 +19,8 @@ struct Material
     uint diffuseTexture;
     uint specularTexture;
     uint bumpTexture;
+
+    bool performLighting;
 };
 
 #endif
