@@ -97,7 +97,7 @@ void trc::SceneDescriptor::createDescriptors(const Scene& scene)
 
     // Write descriptor set
     vk::DescriptorBufferInfo lightBufferInfo(scene.getLightBuffer(), 0, VK_WHOLE_SIZE);
-    vk::DescriptorBufferInfo pickingBufferInfo(*pickingBuffer, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo pickingBufferInfo(*pickingBuffer, 0, PICKING_BUFFER_SECTION_SIZE);
 
     std::vector<vk::WriteDescriptorSet> writes = {
         { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
