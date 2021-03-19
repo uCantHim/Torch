@@ -49,15 +49,18 @@ namespace trc::ui
         Window* window;
     };
 
-    class WindowInformationProvider
+    class WindowBackend
     {
     public:
         virtual auto getSize() -> vec2 = 0;
+
+        virtual void uploadImage(const fs::path& imagePath) = 0;
+        virtual void uploadFont(const fs::path& fontPath) = 0;
     };
 
     struct WindowCreateInfo
     {
-        u_ptr<WindowInformationProvider> windowProvider;
+        u_ptr<WindowBackend> windowProvider;
     };
 
     /**
@@ -74,7 +77,7 @@ namespace trc::ui
          */
         auto draw() -> const DrawList&;
 
-        auto getSize() -> vec2;
+        auto getSize() const -> vec2;
         auto getRoot() -> Element&;
 
         /**
@@ -105,13 +108,6 @@ namespace trc::ui
         void descendEvent(EventType event);
 
         /**
-         * Must be a member function because pixel transformations have to
-         * be translated to normalized coordinates based on the window's
-         *size.
-         */
-        auto concat(Transform parent, Transform child) -> Transform;
-
-        /**
          * @brief Recalculate positions of elements
          *
          * This converts normalized or absolute positions based on window size
@@ -119,7 +115,7 @@ namespace trc::ui
          */
         void realign();
 
-        u_ptr<WindowInformationProvider> windowInfo;
+        u_ptr<WindowBackend> windowInfo;
 
         std::vector<u_ptr<Element>> drawableElements;
         DrawList drawList;

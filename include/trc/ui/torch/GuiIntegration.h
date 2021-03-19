@@ -15,10 +15,10 @@
 
 namespace trc
 {
-    class TorchWindowInformationProvider : public ui::WindowInformationProvider
+    class TorchWindowBackend : public ui::WindowBackend
     {
     public:
-        explicit TorchWindowInformationProvider(const vkb::Swapchain& swapchain)
+        explicit TorchWindowBackend(const vkb::Swapchain& swapchain)
             : swapchain(swapchain)
         {}
 
@@ -26,6 +26,9 @@ namespace trc
         {
             return { swapchain.getImageExtent().width, swapchain.getImageExtent().height };
         }
+
+        void uploadImage(const fs::path& imagePath) override {}
+        void uploadFont(const fs::path& fontPath) override {}
 
     private:
         const vkb::Swapchain& swapchain;

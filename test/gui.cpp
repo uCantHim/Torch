@@ -25,7 +25,7 @@ int main()
         );
 
         ui::Window window{{
-            std::make_unique<trc::TorchWindowInformationProvider>(vkb::getSwapchain())
+            std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain())
         }};
 
         // Notify GUI of mouse clicks

@@ -1,6 +1,7 @@
 target_sources(
     torch PRIVATE
     Font.cpp
+    Transform.cpp
     Window.cpp
 )
 

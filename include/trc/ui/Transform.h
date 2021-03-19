@@ -30,4 +30,8 @@ namespace trc::ui
         Properties posProp{};
         Properties sizeProp{};
     };
+
+    class Window;
+
+    auto concat(Transform parent, Transform child, const Window& window) noexcept -> Transform;
 } // namespace trc::ui

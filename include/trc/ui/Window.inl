@@ -70,7 +70,7 @@ void trc::ui::Window::descendEvent(EventType event)
      * receive click events.
      *
      * This approach gives the user full flexibility regarding element
-     * positioning as no size contraints exist.
+     * positioning as no size constraints exist.
      */
     FuncType descend = [&, this](Element& e, Transform global)
     {
@@ -83,7 +83,7 @@ void trc::ui::Window::descendEvent(EventType event)
 
         e.foreachChild([&, this, global](Element& child)
         {
-            const auto childTransform = concat(global, child.getTransform());
+            const auto childTransform = concat(global, child.getTransform(), *this);
             descend(child, childTransform);
         });
     };
@@ -103,7 +103,7 @@ inline void trc::ui::Window::traverse(F elemCallback)
         node.foreachChild([&, globalTransform](Element& child)
         {
             traverseElement(
-                concat(globalTransform, child.getTransform()),
+                concat(globalTransform, child.getTransform(), *this),
                 child
             );
         });
