@@ -30,7 +30,7 @@ namespace trc::ui
     /**
      * @brief Base class of all UI elements
      */
-    class Element : public CRTPNode<Element>
+    class Element : public TransformNode<Element>
                   , public Drawable
                   , public ElementEventBase
     {

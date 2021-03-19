@@ -1,12 +1,38 @@
 #pragma once
 
 #include <vector>
-#include <concepts>
 
 #include "Transform.h"
 
 namespace trc::ui
 {
+    template<typename Derived>
+    class CRTPNode
+    {
+    public:
+        CRTPNode(const CRTPNode&) = delete;
+        auto operator=(const CRTPNode&) = delete;
+
+        CRTPNode() {
+            static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
+        }
+        CRTPNode(CRTPNode&&) noexcept = default;
+        ~CRTPNode();
+
+        auto operator=(CRTPNode&&) noexcept -> CRTPNode& = default;
+
+        void attach(Derived& child);
+        void detach(Derived& child);
+        void clearChildren();
+
+        template<std::invocable<Derived&> F>
+        void foreachChild(F func);
+
+    private:
+        Derived* parent{ nullptr };
+        std::vector<Derived*> children;
+    };
+
     /**
      * Idea:
      *
@@ -14,7 +40,7 @@ namespace trc::ui
      * internal calculations during drawing.
      */
     template<typename Derived>
-    class CRTPNode
+    class TransformNode : public CRTPNode<Derived>
     {
     public:
         /**
@@ -22,14 +48,9 @@ namespace trc::ui
          * nor the parent type are complete at concept resolution time, so
          * I use static_assert instead.
          */
-        CRTPNode() {
-            static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
+        TransformNode() {
+            static_assert(std::is_base_of_v<TransformNode<Derived>, Derived>, "");
         }
-        ~CRTPNode();
-
-        /**
-         * TODO: Implement all special member functions
-         */
 
         auto getPos() -> vec2;
         auto getSize() -> vec2;
@@ -44,18 +65,8 @@ namespace trc::ui
         auto setPositionProperties(Transform::Properties newProps);
         auto setSizeProperties(Transform::Properties newProps);
 
-        void attach(Derived& child);
-        void detach(Derived& child);
-        void clearChildren();
-
-        template<std::invocable<Derived&> F>
-        void foreachChild(F func);
-
     private:
         Transform localTransform;
-
-        Derived* parent{ nullptr };
-        std::vector<Derived*> children;
     };
 
 #include "CRTPNode.inl"
