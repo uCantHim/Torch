@@ -104,8 +104,21 @@ namespace trc::ui
         // void signalMouseMove(float posPixelsX, float posPixelsY);
 
     private:
+        /**
+         * @brief Dispatch an event to all events that the mouse hovers
+         */
         template<std::derived_from<event::MouseEvent> EventType>
-        void descendEvent(EventType event);
+        void descendMouseEvent(EventType event);
+
+        /**
+         * Stops descending the event if `breakCondition` returns `false`.
+         */
+        template<
+            std::derived_from<event::EventBase> EventType,
+            typename F
+        >
+        void descendEvent(EventType event, F breakCondition)
+            requires std::is_same_v<bool, std::invoke_result_t<F, Element&>>;
 
         /**
          * @brief Recalculate positions of elements
@@ -113,7 +126,7 @@ namespace trc::ui
          * This converts normalized or absolute positions based on window size
          * and stuff like that.
          */
-        void realign();
+        void realignElements();
 
         u_ptr<WindowBackend> windowInfo;
 
@@ -121,12 +134,16 @@ namespace trc::ui
         DrawList drawList;
 
         /**
-         * Traverses the tree recusively and calculates global transforms
-         * of visited elements. Applies a function to all visited elements.
+         * Traverses the tree recusively and applies a function to all
+         * visited elements. The function is applied to parents first, then
+         * to their children.
          */
         template<std::invocable<Element&, vec2, vec2> F>
         inline void traverse(F elemCallback);
 
+        /**
+         * @brief An element that does nothing
+         */
         struct Root : Element {
             void draw(DrawList&, vec2, vec2) override {}
         };

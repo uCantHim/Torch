@@ -28,9 +28,24 @@ namespace trc::ui
     };
 
     /**
+     * Used internally by the window to store global transformations.
+     * The transformation calculations are complex enough to justify
+     * violating my rule against state in this regard.
+     */
+    struct GlobalTransformStorage
+    {
+    private:
+        friend class Window;
+
+        vec2 globalPos;
+        vec2 globalSize;
+    };
+
+    /**
      * @brief Base class of all UI elements
      */
     class Element : public TransformNode<Element>
+                  , public GlobalTransformStorage
                   , public Drawable
                   , public ElementEventBase
     {

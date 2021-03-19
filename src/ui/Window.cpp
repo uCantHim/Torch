@@ -14,8 +14,9 @@ trc::ui::Window::Window(WindowCreateInfo createInfo)
 
 auto trc::ui::Window::draw() -> const DrawList&
 {
-    drawList.clear();
+    realignElements();
 
+    drawList.clear();
     traverse([this](Element& elem, vec2 globalPos, vec2 globalSize) {
         elem.draw(drawList, globalPos, globalSize);
     });
@@ -47,5 +48,30 @@ void trc::ui::Window::signalMouseClick(float posPixelsX, float posPixelsY)
     event.mousePosPixels = vec2{ posPixelsX, posPixelsY };
     event.mousePosNormal = vec2{ posPixelsX, posPixelsY } / getSize();
 
-    descendEvent(event);
+    descendMouseEvent(event);
+}
+
+void trc::ui::Window::realignElements()
+{
+    using FuncType = std::function<std::pair<vec2, vec2>(Transform, Element&)>;
+    FuncType calcTransform = [&](Transform globalTransform, Element& elem)
+        -> std::pair<vec2, vec2>
+    {
+        vec2 pos = globalTransform.position;
+        vec2 size = globalTransform.size;
+        elem.foreachChild([&, globalTransform](Element& child)
+        {
+            auto [cPos, cSize] = calcTransform(
+                concat(globalTransform, child.getTransform(), *this),
+                child
+            );
+            pos = glm::min(pos, cPos);
+            size = glm::max(size, cPos - globalTransform.position + cSize);
+        });
+
+        return { (elem.globalPos = pos), (elem.globalSize = size) };
+    };
+
+    // concat once to ensure that globalTransform is normalized
+    calcTransform(concat({}, root.getTransform(), *this), root);
 }

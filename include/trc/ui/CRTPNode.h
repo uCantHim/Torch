@@ -33,12 +33,6 @@ namespace trc::ui
         std::vector<Derived*> children;
     };
 
-    /**
-     * Idea:
-     *
-     * Global positions don't exist. They are calculated exclusively for
-     * internal calculations during drawing.
-     */
     template<typename Derived>
     class TransformNode : public CRTPNode<Derived>
     {

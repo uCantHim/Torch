@@ -49,10 +49,8 @@ inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleFactory<E>
 }
 
 template<std::derived_from<trc::ui::event::MouseEvent> EventType>
-void trc::ui::Window::descendEvent(EventType event)
+void trc::ui::Window::descendMouseEvent(EventType event)
 {
-    using FuncType = std::function<void(Element&, Transform)>;
-
     static constexpr auto isInside = [](const vec2 point, const Transform& t) -> bool {
         assert(t.posProp.type == SizeType::eNorm && t.sizeProp.type == SizeType::eNorm);
 
@@ -63,51 +61,38 @@ void trc::ui::Window::descendEvent(EventType event)
             && diff.y <= t.size.y;
     };
 
-    /**
-     * All elements in the tree are tested against the event, regardless
-     * of whether their parent is eligible for the event or not. Therefore,
-     * child elements can be outside of their parent's hitbox and still
-     * receive click events.
-     *
-     * This approach gives the user full flexibility regarding element
-     * positioning as no size constraints exist.
-     */
-    FuncType descend = [&, this](Element& e, Transform global)
-    {
-        if (isInside(event.mousePosNormal, global)) {
-            e.notify(event);
-        }
-        if (event.isPropagationStopped()) {
-            return;
-        }
+    descendEvent(event, [event](Element& e) {
+        return isInside(event.mousePosNormal, { e.globalPos, e.globalSize });
+    });
+}
 
-        e.foreachChild([&, this, global](Element& child)
-        {
-            const auto childTransform = concat(global, child.getTransform(), *this);
-            descend(child, childTransform);
-        });
+template<
+    std::derived_from<trc::ui::event::EventBase> EventType,
+    typename F
+>
+void trc::ui::Window::descendEvent(EventType event, F breakCondition)
+    requires std::is_same_v<bool, std::invoke_result_t<F, trc::ui::Element&>>
+{
+    std::function<void(Element&)> descend = [&](Element& e)
+    {
+        if (!breakCondition(e)) return;
+        if (event.isPropagationStopped()) return;
+
+        e.notify(event);
+        e.foreachChild(descend);
     };
 
-    if (isInside(event.mousePosNormal, root.getTransform())) {
-        descend(root, root.getTransform());
-    }
+    descend(root);
 }
 
 template<std::invocable<trc::ui::Element&, trc::vec2, trc::vec2> F>
 inline void trc::ui::Window::traverse(F elemCallback)
 {
-    using FuncType = std::function<void(Transform, Element&)>;
-    FuncType traverseElement = [&](Transform globalTransform, Element& node)
+    std::function<void(Element&)> traverseElement = [&](Element& node)
     {
-        elemCallback(node, globalTransform.position, globalTransform.size);
-        node.foreachChild([&, globalTransform](Element& child)
-        {
-            traverseElement(
-                concat(globalTransform, child.getTransform(), *this),
-                child
-            );
-        });
+        elemCallback(node, node.globalPos, node.globalSize);
+        node.foreachChild(traverseElement);
     };
 
-    traverseElement(root.getTransform(), root);
+    traverseElement(root);
 }
