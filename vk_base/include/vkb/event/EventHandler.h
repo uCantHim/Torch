@@ -55,13 +55,19 @@ namespace vkb
 
     private:
         static void pollEvents();
+        static void updateListeners();
         static inline const bool _init = []() {
             EventThread::registerHandler(pollEvents);
             return true;
         }();
 
         static inline std::mutex listenerListLock;
-        static inline std::vector<ListenerEntry> listeners;
+        static inline std::vector<std::unique_ptr<ListenerEntry>> listeners;
+
+        static inline std::mutex newListenersLock;
+        static inline std::vector<std::unique_ptr<ListenerEntry>> newListeners;
+        static inline std::mutex removedListenersLock;
+        static inline std::vector<ListenerId> removedListeners;
 
         static inline std::queue<EventType> eventQueue;
     };
@@ -106,45 +112,80 @@ namespace vkb
     template<typename EventType>
     void EventHandler<EventType>::notifySync(EventType event)
     {
+        updateListeners();
+
         std::lock_guard lock(listenerListLock);
         for (auto& listener : listeners)
         {
-            listener.callback(event);
+            listener->callback(event);
         }
     }
 
     template<typename EventType>
     auto EventHandler<EventType>::addListener(EventCallback newListener) -> ListenerId
     {
-        std::lock_guard lock(listenerListLock);
-        auto& newEntry = listeners.emplace_back(std::move(newListener));
-
-        return &newEntry;
+        std::lock_guard lock(newListenersLock);
+        return newListeners.emplace_back(new ListenerEntry(std::move(newListener))).get();
     }
 
     template<typename EventType>
     void EventHandler<EventType>::removeListener(ListenerId listener)
     {
-        std::lock_guard lock(listenerListLock);
-        listeners.erase(std::remove_if(
-            listeners.begin(), listeners.end(),
-            [&](ListenerEntry& entry) { return entry.id == listener->id; }
-        ));
+        std::lock_guard lock(removedListenersLock);
+        removedListeners.emplace_back(listener);
     }
 
     template<typename EventType>
     void EventHandler<EventType>::pollEvents()
     {
+        updateListeners();
+
+        // Now poll events
         std::lock_guard lock(listenerListLock);
         while (!eventQueue.empty())
         {
             const auto& event = eventQueue.front();
             for (auto& listener : listeners)
             {
-                listener.callback(event);
+                listener->callback(event);
             }
 
             eventQueue.pop();
+        }
+    }
+
+    template<typename EventType>
+    void EventHandler<EventType>::updateListeners()
+    {
+        // Add and remove listeners now in order to avoid deadlocks when
+        // adding a listener inside of another listener's callback
+        if (!newListeners.empty() || !removedListeners.empty())
+        {
+            std::unique_lock lock(listenerListLock, std::defer_lock);
+            std::unique_lock lock_(newListenersLock, std::defer_lock);
+            std::unique_lock lock__(removedListenersLock, std::defer_lock);
+            std::lock(lock, lock_, lock__);
+
+            // Add any new listeners
+            while (!newListeners.empty())
+            {
+                listeners.emplace_back(std::move(newListeners.back()));
+                newListeners.pop_back();
+            }
+
+            // Remove any old listeners
+            while (!removedListeners.empty())
+            {
+                auto it = std::remove_if(
+                    listeners.begin(), listeners.end(),
+                    [&](auto& entry) { return entry->id == removedListeners.back()->id; }
+                );
+                if (it != listeners.end())
+                {
+                    listeners.erase(it);
+                    removedListeners.pop_back();
+                }
+            }
         }
     }
 } // namespace vkb

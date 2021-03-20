@@ -13,7 +13,7 @@ void vkb::EventThread::start()
     shouldStop = false;
 
     thread = std::thread([]() {
-        while (!shouldStop)
+        do
         {
             // Don't use range-based for-loop here because iterators
             // are not thread safe. Declare size independently because
@@ -23,7 +23,7 @@ void vkb::EventThread::start()
             {
                 EventThread::handlers[i]();
             }
-        }
+        } while (!shouldStop);
     });
 
     if constexpr (enableVerboseLogging) {
