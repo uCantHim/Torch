@@ -183,7 +183,7 @@ trc::GuiRenderPass::GuiRenderPass(
     renderer(device, window),
     blendDescSets(swapchain)
 {
-    std::thread([this] {
+    renderThread = std::thread([this] {
         while (!stopRenderThread)
         {
             {
@@ -192,7 +192,7 @@ trc::GuiRenderPass::GuiRenderPass(
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
-    }).detach();
+    });
 
     // Descriptor set layout
     std::vector<vk::DescriptorSetLayoutBinding> bindings{

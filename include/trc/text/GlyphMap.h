@@ -46,7 +46,8 @@ namespace trc
 
         static inline std::unique_ptr<vkb::MemoryPool> memoryPool;
         static inline vkb::StaticInit _init{
-            [] { memoryPool.reset(new vkb::MemoryPool(vkb::getDevice(), 25000000)); }
+            [] { memoryPool.reset(new vkb::MemoryPool(vkb::getDevice(), 25000000)); },
+            [] { memoryPool.reset(); }
         };
 
         ivec2 offset{ 0, 0 };

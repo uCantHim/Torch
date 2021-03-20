@@ -71,7 +71,7 @@ int main()
             nerdFont
         ).makeUnique();
         window.getRoot().attach(*text);
-        text->setPos({ 0.2f, 0.4f });
+        text->setPos({ 0.2f, 0.6f });
         text->addEventListener([](const ui::event::Click&) {
             std::cout << "Text clicked\n";
         });
@@ -94,6 +94,7 @@ int main()
         }
 
         vkb::getDevice()->waitIdle();
+        trc::RenderPass::destroy(renderPass);
     }
 
     trc::terminate();

@@ -132,9 +132,6 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
 
 
 
-inline trc::Pipeline::ID quadPipeline;
-inline trc::Pipeline::ID textPipeline;
-
 void trc::ui_impl::DrawCollector::initStaticResources(
     const vkb::Device& device,
     vk::RenderPass renderPass)
@@ -162,6 +159,14 @@ void trc::ui_impl::DrawCollector::initStaticResources(
     // Create pipelines
     quadPipeline = makeQuadPipeline(renderPass, 0);
     textPipeline = makeTextPipeline(renderPass, 0);
+
+    // Add de-initialization callback
+    vkb::StaticInit{
+        []{},
+        []() {
+            descLayout.reset();
+        }
+    };
 }
 
 
@@ -226,22 +231,25 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     cmdBuf.draw(6, quadBuffer.size(), 0, 0);
 
     // Draw text
-    auto& pText = Pipeline::at(textPipeline);
-    cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
-    cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
+    if (letterBuffer.size() > 0)
+    {
+        auto& pText = Pipeline::at(textPipeline);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
+        cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
+        cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
 
-    cmdBuf.bindDescriptorSets(
-        vk::PipelineBindPoint::eGraphics, pText.getLayout(),
-        0, *descSet, {}
-    );
-    cmdBuf.pushConstants<vec2>(
-        pText.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        0, windowSizePixels
-    );
+        cmdBuf.bindDescriptorSets(
+            vk::PipelineBindPoint::eGraphics, pText.getLayout(),
+            0, *descSet, {}
+        );
+        cmdBuf.pushConstants<vec2>(
+            pText.getLayout(), vk::ShaderStageFlagBits::eVertex,
+            0, windowSizePixels
+        );
 
-    cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
-    cmdBuf.draw(6, letterBuffer.size(), 0, 0);
+        cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
+        cmdBuf.draw(6, letterBuffer.size(), 0, 0);
+    }
 }
 
 void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex)
@@ -297,6 +305,7 @@ void trc::ui_impl::DrawCollector::add(
         ? std::get<vec4>(elem.background)
         : vec4(1.0f);
 
+    // TODO: Add fonts in a callback instead of here, this is trash
     auto fontIt = fonts.find(text.fontIndex);
     if (fontIt == fonts.end())
     {

@@ -27,8 +27,8 @@ namespace trc
             return { swapchain.getImageExtent().width, swapchain.getImageExtent().height };
         }
 
-        void uploadImage(const fs::path& imagePath) override {}
-        void uploadFont(const fs::path& fontPath) override {}
+        void uploadImage(const fs::path&) override {}
+        void uploadFont(const fs::path&) override {}
 
     private:
         const vkb::Swapchain& swapchain;
@@ -89,10 +89,9 @@ namespace trc
         std::thread renderThread;
         bool stopRenderThread{ false };
 
-        vk::UniqueDescriptorSetLayout blendDescLayout;
-
         void createDescriptorSets(const vkb::Device& device, const vkb::Swapchain& swapchain);
         vk::UniqueDescriptorPool blendDescPool;
+        vk::UniqueDescriptorSetLayout blendDescLayout;
         vkb::FrameSpecificObject<vk::UniqueDescriptorSet> blendDescSets;
         std::vector<vk::UniqueImageView> swapchainImageViews;
         vk::UniqueImageView renderResultImageView;

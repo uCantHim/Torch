@@ -24,9 +24,12 @@ namespace trc::ui_impl
 
     private:
         static void initStaticResources(const vkb::Device& device, vk::RenderPass renderPass);
-        static inline vk::UniqueDescriptorSetLayout descLayout;
         static auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
         static auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
+
+        static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline trc::Pipeline::ID quadPipeline;
+        static inline trc::Pipeline::ID textPipeline;
 
         void add(const ui::ElementDrawInfo& elem, const ui::types::NoType&);
         void add(const ui::ElementDrawInfo& elem, const ui::types::Text&);
