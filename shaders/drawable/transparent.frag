@@ -93,7 +93,9 @@ void main()
         vert.material
     );
 
-    appendFragment(vec4(color, diffuseColor.a));
+    if (diffuseColor.a > 0.0) {
+        appendFragment(vec4(color, diffuseColor.a));
+    }
 
     if (isPickable) // constant
     {

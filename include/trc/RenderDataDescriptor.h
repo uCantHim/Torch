@@ -5,6 +5,7 @@
 
 #include "DescriptorProvider.h"
 #include "utils/Camera.h"
+#include "utils/Util.h"
 
 namespace trc
 {
@@ -61,7 +62,9 @@ namespace trc
         vk::UniqueDescriptorSet descSet;
         RenderDataDescriptorProvider provider;
 
-        static constexpr vk::DeviceSize CAMERA_DATA_SIZE{ sizeof(mat4) * 4 };
+        static constexpr vk::DeviceSize CAMERA_DATA_SIZE{
+            util::pad(sizeof(mat4) * 4 + sizeof(vec4) * 2, 256u)
+        };
         static constexpr vk::DeviceSize SWAPCHAIN_DATA_SIZE{ sizeof(vec2) * 2 };
         const ui32 BUFFER_SECTION_SIZE; // not static because depends on physical device align
         vkb::Buffer buffer;

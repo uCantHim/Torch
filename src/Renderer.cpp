@@ -170,7 +170,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
     auto finalLightingFunc = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eLightingPass,
-        internal::Pipelines::eFinalLighting,
+        internal::getFinalLightingPipeline(),
         [&](auto&&, vk::CommandBuffer cmdBuf)
         {
             cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));

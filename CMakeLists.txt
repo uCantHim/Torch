@@ -102,7 +102,7 @@ cmake_policy(POP)
 
 #################
 # Compile options
-target_compile_definitions(torch PRIVATE TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders")
+target_compile_definitions(torch PUBLIC TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders")
 target_compile_options(torch PUBLIC -fPIC)
 target_compile_features(torch PUBLIC cxx_std_20)
 

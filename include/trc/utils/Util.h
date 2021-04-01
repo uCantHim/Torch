@@ -4,16 +4,17 @@
 
 namespace util
 {
-    template<typename T>
-    inline constexpr T pad(T val, T padding)
+    template<typename T, typename U>
+    inline constexpr T pad(T val, U padding)
     {
         static_assert(std::is_integral_v<T>, "Type must be integral type!");
+        static_assert(std::is_integral_v<U>, "Type must be integral type!");
 
-        auto remainder = val % padding;
+        auto remainder = val % static_cast<T>(padding);
         if (remainder == 0)
             return val;
         else
-            return val + (padding - remainder);
+            return val + (static_cast<T>(padding) - remainder);
     }
 
     template<typename T>

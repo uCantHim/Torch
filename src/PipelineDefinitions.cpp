@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 #include "DrawableInstanced.h"
 #include "Scene.h"
 #include "Renderer.h"
+#include "PipelineRegistry.h"
 
 
 
@@ -23,85 +24,161 @@ namespace
         eAnimated = 1 << 0,
         ePickable = 1 << 1,
     };
-
-    static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
 }
 
+auto makeAllDrawablePipelines() -> std::vector<Pipeline>;
+auto makeDrawableDeferredPipeline(ui32 featureFlags, vk::RenderPass deferredPass) -> Pipeline;
+auto makeDrawableTransparentPipeline(ui32 featureFlags, vk::RenderPass deferredPass) -> Pipeline;
+auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipeline;
+auto makeDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline;
+auto makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline;
 
+/**
+ * Stores all dynamically created pipeline IDs
+ */
+static vk::UniqueRenderPass dummyDeferredPass;
+vkb::StaticInit _init{
+    [] { dummyDeferredPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain()); },
+    [] { dummyDeferredPass.reset(); }
+};
 
-void makeAllDrawablePipelines(vk::RenderPass deferredPass)
+using Flags = DrawablePipelineFeatureFlagBits;
+
+auto getDrawableDeferredPipeline() -> Pipeline::ID
 {
-    makeDrawableDeferredPipeline(deferredPass);
-    makeDrawableDeferredAnimatedPipeline(deferredPass);
-    makeDrawableDeferredPickablePipeline(deferredPass);
-    makeDrawableDeferredAnimatedAndPickablePipeline(deferredPass);
-    makeDrawableTransparentPipeline(
-        Pipelines::eDrawableTransparentDeferred,
-        DrawablePipelineFeatureFlagBits::eNone,
-        deferredPass
-    );
-    makeDrawableTransparentPipeline(
-        Pipelines::eDrawableTransparentDeferredPickable,
-        DrawablePipelineFeatureFlagBits::ePickable,
-        deferredPass
-    );
-    makeDrawableTransparentPipeline(
-        Pipelines::eDrawableTransparentDeferredAnimated,
-        DrawablePipelineFeatureFlagBits::eAnimated,
-        deferredPass
-    );
-    makeDrawableTransparentPipeline(
-        Pipelines::eDrawableTransparentDeferredAnimatedAndPickable,
-        DrawablePipelineFeatureFlagBits::ePickable | DrawablePipelineFeatureFlagBits::eAnimated,
-        deferredPass
-    );
-    makeInstancedDrawableDeferredPipeline(deferredPass);
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableDeferredPipeline(0, *dummyDeferredPass);
+    });
 
-    RenderPassShadow dummyPass({ 1, 1 });
-    makeDrawableShadowPipeline(dummyPass);
-    makeInstancedDrawableShadowPipeline(dummyPass);
+    return id;
 }
 
-void makeDrawableDeferredPipeline(vk::RenderPass deferredPass)
+auto getDrawableDeferredAnimatedPipeline() -> Pipeline::ID
 {
-    _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferred,
-        DrawablePipelineFeatureFlagBits::eNone,
-        deferredPass
-    );
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableDeferredPipeline(Flags::eAnimated, *dummyDeferredPass);
+    });
+
+    return id;
 }
 
-void makeDrawableDeferredAnimatedPipeline(vk::RenderPass deferredPass)
+auto getDrawableDeferredPickablePipeline() -> Pipeline::ID
 {
-    _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferredAnimated,
-        DrawablePipelineFeatureFlagBits::eAnimated,
-        deferredPass
-    );
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableDeferredPipeline(Flags::ePickable, *dummyDeferredPass);
+    });
+
+    return id;
 }
 
-void makeDrawableDeferredPickablePipeline(vk::RenderPass deferredPass)
+auto getDrawableDeferredAnimatedAndPickablePipeline() -> Pipeline::ID
 {
-    _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferredPickable,
-        DrawablePipelineFeatureFlagBits::ePickable,
-        deferredPass
-    );
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableDeferredPipeline(Flags::eAnimated | Flags::ePickable, *dummyDeferredPass);
+    });
+
+    return id;
 }
 
-void makeDrawableDeferredAnimatedAndPickablePipeline(vk::RenderPass deferredPass)
+auto getDrawableTransparentDeferredPipeline() -> Pipeline::ID
 {
-    _makeDrawableDeferredPipeline(
-        Pipelines::eDrawableDeferredAnimatedAndPickable,
-        DrawablePipelineFeatureFlagBits::eAnimated | DrawablePipelineFeatureFlagBits::ePickable,
-        deferredPass
-    );
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableTransparentPipeline(Flags::eNone, *dummyDeferredPass);
+    });
+
+    return id;
 }
 
-void _makeDrawableDeferredPipeline(
-    ui32 pipelineIndex,
+auto getDrawableTransparentDeferredAnimatedPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableTransparentPipeline(Flags::eAnimated, *dummyDeferredPass);
+    });
+
+    return id;
+}
+
+auto getDrawableTransparentDeferredPickablePipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableTransparentPipeline(Flags::ePickable, *dummyDeferredPass);
+    });
+
+    return id;
+}
+
+auto getDrawableTransparentDeferredAnimatedAndPickablePipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeDrawableTransparentPipeline(Flags::eAnimated | Flags::ePickable, *dummyDeferredPass);
+    });
+
+    return id;
+}
+
+auto getDrawableShadowPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        RenderPassShadow shadowPass{ { 1, 1 } };
+        return makeDrawableShadowPipeline(shadowPass);
+    });
+
+    return id;
+}
+
+auto getDrawableInstancedDeferredPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        return makeInstancedDrawableDeferredPipeline(*dummyDeferredPass);
+    });
+
+    return id;
+}
+
+auto getDrawableInstancedShadowPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        RenderPassShadow shadowPass{ { 1, 1 } };
+        return makeInstancedDrawableShadowPipeline(shadowPass);
+    });
+
+    return id;
+}
+
+
+auto makeAllDrawablePipelines() -> std::vector<::trc::Pipeline>
+{
+    using Flags = DrawablePipelineFeatureFlagBits;
+    RenderPassShadow shadowPass({ 1, 1 });
+    auto deferredPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+
+    std::vector<Pipeline> result;
+
+    // Default deferred
+    result.emplace_back(makeDrawableDeferredPipeline(Flags::eNone, *deferredPass));
+    result.emplace_back(makeDrawableDeferredPipeline(Flags::eAnimated, *deferredPass));
+    result.emplace_back(makeDrawableDeferredPipeline(Flags::ePickable, *deferredPass));
+    result.emplace_back(makeDrawableDeferredPipeline(Flags::eAnimated | Flags::ePickable, *deferredPass));
+
+    // Transparent
+    result.emplace_back(makeDrawableTransparentPipeline(Flags::eNone, *deferredPass));
+    result.emplace_back(makeDrawableTransparentPipeline(Flags::ePickable, *deferredPass));
+    result.emplace_back(makeDrawableTransparentPipeline(Flags::eAnimated, *deferredPass));
+    result.emplace_back(makeDrawableTransparentPipeline(Flags::ePickable | Flags::eAnimated, *deferredPass));
+
+    // Shadow
+    result.emplace_back(makeDrawableShadowPipeline(shadowPass));
+
+    // Instanced
+    result.emplace_back(makeInstancedDrawableDeferredPipeline(*deferredPass));
+    result.emplace_back(makeInstancedDrawableShadowPipeline(shadowPass));
+
+    return result;
+}
+
+auto makeDrawableDeferredPipeline(
     ui32 featureFlags,
-    vk::RenderPass deferredPass)
+    vk::RenderPass deferredPass) -> Pipeline
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -175,7 +252,7 @@ void _makeDrawableDeferredPipeline(
             deferredPass, DeferredSubPasses::eGBufferPass
         );
 
-    auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, Renderer::getSceneDescriptorProvider());
@@ -188,12 +265,13 @@ void _makeDrawableDeferredPipeline(
     p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
+
+    return p;
 }
 
-void makeDrawableTransparentPipeline(
-    ui32 pipelineIndex,
+auto makeDrawableTransparentPipeline(
     ui32 featureFlags,
-    vk::RenderPass deferredPass)
+    vk::RenderPass deferredPass) -> Pipeline
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -264,7 +342,7 @@ void makeDrawableTransparentPipeline(
             deferredPass, DeferredSubPasses::eTransparencyPass
         );
 
-    auto& p = makeGraphicsPipeline(pipelineIndex, std::move(layout), std::move(pipeline));
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, Renderer::getSceneDescriptorProvider());
@@ -278,9 +356,11 @@ void makeDrawableTransparentPipeline(
     p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
+
+    return p;
 }
 
-void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
+auto makeDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline
 {
     // Layout
     auto layout = makePipelineLayout(
@@ -321,12 +401,14 @@ void makeDrawableShadowPipeline(RenderPassShadow& renderPass)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
-    auto& p = makeGraphicsPipeline(Pipelines::eDrawableShadow, std::move(layout), std::move(pipeline));
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getShadowDescriptorProvider());
     p.addStaticDescriptorSet(1, Animation::getDescriptorProvider());
+
+    return p;
 }
 
-void makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass)
+auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -389,18 +471,19 @@ void makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass)
             deferredPass, DeferredSubPasses::eGBufferPass
         );
 
-    auto& p = makeGraphicsPipeline(
-        Pipelines::eDrawableInstancedDeferred,
-        std::move(layout), std::move(pipeline));
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
+
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, Renderer::getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, Renderer::getDeferredPassDescriptorProvider());
 
     p.addDefaultPushConstantValue(84, NO_PICKABLE, vk::ShaderStageFlagBits::eFragment);
+
+    return p;
 }
 
-void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
+auto makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline
 {
     // Layout
     auto layout = makePipelineLayout(
@@ -449,14 +532,13 @@ void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::VulkanBase::getDevice(), *layout, *renderPass, 0);
 
-    auto& p = makeGraphicsPipeline(
-        Pipelines::eDrawableInstancedShadow,
-        std::move(layout), std::move(pipeline)
-    );
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getShadowDescriptorProvider());
+
+    return p;
 }
 
-void makeFinalLightingPipeline(vk::RenderPass deferredPass)
+auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
     auto& swapchain = vkb::VulkanBase::getSwapchain();
     auto extent = swapchain.getImageExtent();
@@ -497,12 +579,24 @@ void makeFinalLightingPipeline(vk::RenderPass deferredPass)
             deferredPass, DeferredSubPasses::eLightingPass
         );
 
-    auto& p = makeGraphicsPipeline(Pipelines::eFinalLighting, std::move(layout), std::move(pipeline));
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(3, Renderer::getSceneDescriptorProvider());
     p.addStaticDescriptorSet(4, Renderer::getShadowDescriptorProvider());
+
+    return p;
+}
+
+auto getFinalLightingPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+        return makeFinalLightingPipeline(*renderPass);
+    });
+
+    return id;
 }
 
 } // namespace trc::internal

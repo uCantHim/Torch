@@ -21,52 +21,47 @@ namespace trc::internal
         NUM_SUBPASSES
     };
 
-    enum Pipelines : Pipeline::ID::Type
-    {
-        eDrawableDeferred = 0,
-        eDrawableDeferredAnimated = 1,
-        eDrawableDeferredPickable = 2,
-        eDrawableDeferredAnimatedAndPickable = 3,
-        eDrawableTransparentDeferred,
-        eDrawableTransparentDeferredAnimated,
-        eDrawableTransparentDeferredPickable,
-        eDrawableTransparentDeferredAnimatedAndPickable,
-        eFinalLighting,
-        eDrawableInstancedDeferred,
+    //enum Pipelines : Pipeline::ID::Type
+    //{
+    //    eDrawableDeferred = 0,
+    //    eDrawableDeferredAnimated = 1,
+    //    eDrawableDeferredPickable = 2,
+    //    eDrawableDeferredAnimatedAndPickable = 3,
+    //    eDrawableTransparentDeferred,
+    //    eDrawableTransparentDeferredAnimated,
+    //    eDrawableTransparentDeferredPickable,
+    //    eDrawableTransparentDeferredAnimatedAndPickable,
+    //    eFinalLighting,
+    //    eDrawableInstancedDeferred,
 
-        eDrawableShadow,
-        eDrawableInstancedShadow,
+    //    eDrawableShadow,
+    //    eDrawableInstancedShadow,
 
-        eParticleDraw,
-        eParticleShadow,
+    //    eParticleDraw,
+    //    eParticleShadow,
 
-        eText,
+    //    eText,
 
-        NUM_PIPELINES
-    };
+    //    NUM_PIPELINES
+    //};
 
-    void makeAllDrawablePipelines(vk::RenderPass deferredPass);
+    static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
 
-    // Deferred pipelines
-    void makeDrawableDeferredPipeline(vk::RenderPass deferredPass);
-    void makeDrawableDeferredAnimatedPipeline(vk::RenderPass deferredPass);
-    void makeDrawableDeferredPickablePipeline(vk::RenderPass deferredPass);
-    void makeDrawableDeferredAnimatedAndPickablePipeline(vk::RenderPass deferredPass);
+    auto getDrawableDeferredPipeline() -> Pipeline::ID;
+    auto getDrawableDeferredAnimatedPipeline() -> Pipeline::ID;
+    auto getDrawableDeferredPickablePipeline() -> Pipeline::ID;
+    auto getDrawableDeferredAnimatedAndPickablePipeline() -> Pipeline::ID;
 
-    void _makeDrawableDeferredPipeline(ui32 pipelineIndex,
-                                       ui32 featureFlags,
-                                       vk::RenderPass deferredPass);
-    void makeDrawableTransparentPipeline(ui32 pipelineIndex,
-                                         ui32 featureFlags,
-                                         vk::RenderPass deferredPass);
+    auto getDrawableTransparentDeferredPipeline() -> Pipeline::ID;
+    auto getDrawableTransparentDeferredAnimatedPipeline() -> Pipeline::ID;
+    auto getDrawableTransparentDeferredPickablePipeline() -> Pipeline::ID;
+    auto getDrawableTransparentDeferredAnimatedAndPickablePipeline() -> Pipeline::ID;
 
-    void makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass);
+    auto getDrawableShadowPipeline() -> Pipeline::ID;
 
-    // Shadow pipelines
-    void makeDrawableShadowPipeline(RenderPassShadow& renderPass);
-    void makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass);
+    auto getDrawableInstancedDeferredPipeline() -> Pipeline::ID;
+    auto getDrawableInstancedShadowPipeline() -> Pipeline::ID;
 
     // Final lighting pipeline
-    void makeFinalLightingPipeline(vk::RenderPass deferredPass);
-
+    auto getFinalLightingPipeline() -> Pipeline::ID;
 } // namespace trc::internal

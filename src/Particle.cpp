@@ -1,12 +1,13 @@
 #include "Particle.h"
 
-#include "PipelineDefinitions.cpp" // For the SHADER_DIR constant
+#include "AssetRegistry.h"
+#include "PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "PipelineBuilder.h"
 #include "Renderer.h"
 
 
 
-namespace trc::internal
+namespace trc
 {
     struct ParticleVertex
     {
@@ -14,7 +15,12 @@ namespace trc::internal
         vec2 uv;
         vec3 normal;
     };
+
+    auto makeParticleDrawPipeline(vk::RenderPass deferredPass) -> trc::Pipeline;
+    auto makeParticleShadowPipeline(vk::RenderPass deferredPass) -> trc::Pipeline;
 }
+
+
 
 vkb::StaticInit trc::ParticleCollection::_init{
     []() {
@@ -38,8 +44,6 @@ vkb::StaticInit trc::ParticleCollection::_init{
         memoryPool.reset();
     }
 };
-
-
 
 trc::ParticleCollection::ParticleCollection(
     const ui32 maxParticles,
@@ -76,7 +80,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eTransparencyPass,
-        internal::Pipelines::eParticleDraw,
+        getDeferredPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
             if (particles.empty()) return;
@@ -90,7 +94,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     //sceneRegistrations.emplace_back(scene.registerDrawFunction(
     //    internal::RenderStageTypes::eShadow,
     //    0,
-    //    internal::Pipelines::eParticleShadow,
+    //    getShadowPipeline(),
     //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
     //    {
     //        if (particles.empty()) return;
@@ -183,6 +187,27 @@ void trc::ParticleCollection::update()
         *transferFence
     );
 }
+
+auto trc::ParticleCollection::getDeferredPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+        return makeParticleDrawPipeline(*renderPass);
+    });
+
+    return id;
+}
+
+auto trc::ParticleCollection::getShadowPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        RenderPassShadow shadowPass{ { 1, 1 } };
+        return makeParticleShadowPipeline(*shadowPass);
+    });
+
+    return id;
+}
+
 
 
 
@@ -281,7 +306,7 @@ void trc::ParticleSpawn::spawnParticles()
 //      Particle Draw Pipeline      //
 //////////////////////////////////////
 
-void trc::internal::makeParticleDrawPipeline(vk::RenderPass deferredPass)
+auto trc::makeParticleDrawPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
@@ -292,8 +317,8 @@ void trc::internal::makeParticleDrawPipeline(vk::RenderPass deferredPass)
         std::vector<vk::PushConstantRange>{}
     );
 
-    vkb::ShaderProgram program(SHADER_DIR / "particles/deferred.vert.spv",
-                               SHADER_DIR / "particles/deferred.frag.spv");
+    vkb::ShaderProgram program(internal::SHADER_DIR / "particles/deferred.vert.spv",
+                               internal::SHADER_DIR / "particles/deferred.frag.spv");
 
     auto extent = vkb::getSwapchain().getImageExtent();
     auto pipeline = GraphicsPipelineBuilder::create()
@@ -331,20 +356,17 @@ void trc::internal::makeParticleDrawPipeline(vk::RenderPass deferredPass)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
         .addDynamicState(vk::DynamicState::eViewport)
-        .build(*vkb::getDevice(), *layout, deferredPass, DeferredSubPasses::eTransparencyPass);
+        .build(*vkb::getDevice(), *layout, deferredPass, internal::DeferredSubPasses::eTransparencyPass);
 
-    auto& p = makeGraphicsPipeline(
-        Pipelines::eParticleDraw,
-        std::move(layout),
-        std::move(pipeline));
-
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
 
+    return p;
 }
 
-void trc::internal::makeParticleShadowPipeline(vk::RenderPass shadowPass)
+auto trc::makeParticleShadowPipeline(vk::RenderPass shadowPass) -> Pipeline
 {
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>{
@@ -356,8 +378,8 @@ void trc::internal::makeParticleShadowPipeline(vk::RenderPass shadowPass)
         }
     );
 
-    vkb::ShaderProgram program(SHADER_DIR / "particles/shadow.vert.spv",
-                               SHADER_DIR / "particles/shadow.frag.spv");
+    vkb::ShaderProgram program(internal::SHADER_DIR / "particles/shadow.vert.spv",
+                               internal::SHADER_DIR / "particles/shadow.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -388,11 +410,9 @@ void trc::internal::makeParticleShadowPipeline(vk::RenderPass shadowPass)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::getDevice(), *layout, shadowPass, 0);
 
-    auto& p = makeGraphicsPipeline(
-        Pipelines::eParticleShadow,
-        std::move(layout),
-        std::move(pipeline));
-
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getShadowDescriptorProvider());
     p.addStaticDescriptorSet(1, Renderer::getGlobalDataDescriptorProvider());
+
+    return p;
 }

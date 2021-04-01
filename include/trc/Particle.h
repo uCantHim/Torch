@@ -20,12 +20,6 @@ namespace trc
     class Renderer;
     class RenderPassShadow;
 
-    namespace internal
-    {
-        extern void makeParticleDrawPipeline(vk::RenderPass deferredPass);
-        extern void makeParticleShadowPipeline(vk::RenderPass shadowPass);
-    }
-
     struct ParticleMaterial
     {
         ui32 texture;
@@ -82,6 +76,9 @@ namespace trc
 
         void setUpdateMethod(ParticleUpdateMethod method);
         void update();
+
+        static auto getDeferredPipeline() -> Pipeline::ID;
+        static auto getShadowPipeline() -> Pipeline::ID;
 
     private:
         class Updater

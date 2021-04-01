@@ -37,15 +37,16 @@ namespace trc
     class Pipeline : public data::SelfManagedObject<Pipeline>
     {
     public:
+        Pipeline(const Pipeline&) = delete;
+        Pipeline& operator=(const Pipeline&) = delete;
+
         Pipeline(vk::UniquePipelineLayout layout,
                  vk::UniquePipeline pipeline,
                  vk::PipelineBindPoint bindPoint);
-
         Pipeline(Pipeline&&) noexcept = default;
-        Pipeline& operator=(Pipeline&&) noexcept = default;
+        ~Pipeline() = default;
 
-        Pipeline(const Pipeline&) = delete;
-        Pipeline& operator=(const Pipeline&) = delete;
+        Pipeline& operator=(Pipeline&&) noexcept = default;
 
         auto operator*() const noexcept -> vk::Pipeline;
         auto get() const noexcept -> vk::Pipeline;
@@ -87,30 +88,6 @@ namespace trc
         using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<uint8_t>>;
         std::vector<PushConstantValue> defaultPushConstants;
     };
-
-    extern auto makeGraphicsPipeline(
-        ui32 index,
-        vk::UniquePipelineLayout layout,
-        vk::UniquePipeline pipeline
-    ) -> Pipeline&;
-
-    extern auto makeGraphicsPipeline(
-        ui32 index,
-        vk::UniquePipelineLayout layout,
-        const vk::GraphicsPipelineCreateInfo& info
-    ) -> Pipeline&;
-
-    extern auto makeComputePipeline(
-        ui32 index,
-        vk::UniquePipelineLayout layout,
-        vk::UniquePipeline pipeline
-    ) -> Pipeline&;
-
-    extern auto makeComputePipeline(
-        ui32 index,
-        vk::UniquePipelineLayout layout,
-        const vk::ComputePipelineCreateInfo& info
-    ) -> Pipeline&;
 
 
 

@@ -25,6 +25,8 @@ namespace trc
 
         void print(std::string_view str);
 
+        static auto getPipeline() -> Pipeline::ID;
+
     private:
         // Scale the text down to get a crisp resolution
         static constexpr float BASE_SCALING{ 0.075f };
@@ -49,6 +51,4 @@ namespace trc
     };
 
     class Renderer;
-
-    void makeTextPipeline(vk::RenderPass deferredPass);
 } // namespace trc

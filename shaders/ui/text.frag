@@ -15,6 +15,9 @@ layout (location = 0) out vec4 fragColor;
 
 void main()
 {
-    float alpha = texture(fonts[vert.fontIndex], vert.uv).r * TEXT_BOLDNESS;
+    float alpha = min(1.0, texture(fonts[vert.fontIndex], vert.uv).r * TEXT_BOLDNESS);
+    alpha = smoothstep(0.0, 1.0, alpha);
+    if (alpha < 0.01) discard;
+
     fragColor = vec4(TEXT_COLOR, alpha);
 }

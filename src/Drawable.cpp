@@ -138,15 +138,15 @@ void trc::Drawable::updateDrawFunctions()
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 drawAnimated(env, cmdBuf);
             };
-            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferredAnimated
-                                     : Pipelines::eDrawableDeferredAnimated;
+            pipeline = isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
+                                     : internal::getDrawableDeferredAnimatedPipeline();
         }
         else {
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 drawAnimatedAndPickable(env, cmdBuf);
             };
-            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferredAnimatedAndPickable
-                                     : Pipelines::eDrawableDeferredAnimatedAndPickable;
+            pipeline = isTransparent ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
+                                     : internal::getDrawableDeferredAnimatedAndPickablePipeline();
         }
     }
     else
@@ -155,15 +155,15 @@ void trc::Drawable::updateDrawFunctions()
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 draw(env, cmdBuf);
             };
-            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferred
-                                     : Pipelines::eDrawableDeferred;
+            pipeline = isTransparent ? internal::getDrawableTransparentDeferredPipeline()
+                                     : internal::getDrawableDeferredPipeline();
         }
         else {
             func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 drawPickable(env, cmdBuf);
             };
-            pipeline = isTransparent ? Pipelines::eDrawableTransparentDeferredPickable
-                                     : Pipelines::eDrawableDeferredPickable;
+            pipeline = isTransparent ? internal::getDrawableTransparentDeferredPickablePipeline()
+                                     : internal::getDrawableDeferredPickablePipeline();
         }
     }
 
@@ -174,7 +174,7 @@ void trc::Drawable::updateDrawFunctions()
         std::move(func)
     );
     shadowRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::getShadow(), 0, Pipelines::eDrawableShadow,
+        RenderStageTypes::getShadow(), 0, internal::getDrawableShadowPipeline(),
         [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
     );
 }

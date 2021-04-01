@@ -3,6 +3,7 @@
 #include "PipelineBuilder.h"
 #include "Renderer.h"
 #include "PipelineDefinitions.h"
+#include "PipelineRegistry.h"
 #include "TorchResources.h"
 #include "AssetRegistry.h"
 
@@ -27,6 +28,8 @@ namespace trc
             { { 1, 1, 0 }, { 1, 1 } },
         };
     }
+
+    auto makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline;
 } // namespace trc
 
 
@@ -55,7 +58,7 @@ void trc::Text::attachToScene(SceneBase& scene)
     drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
         internal::DeferredSubPasses::eTransparencyPass,
-        internal::Pipelines::eText,
+        getPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
             font->getDescriptor().getProvider().bindDescriptorSet(
@@ -139,7 +142,19 @@ void trc::Text::print(std::string_view str)
     numLetters = str.size();
 }
 
-void trc::makeTextPipeline(vk::RenderPass deferredPass)
+auto trc::Text::getPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry::registerPipeline([] {
+        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+        return makeTextPipeline(*renderPass);
+    });
+
+    return id;
+}
+
+
+
+auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
     auto extent = vkb::getSwapchain().getImageExtent();
 
@@ -195,7 +210,9 @@ void trc::makeTextPipeline(vk::RenderPass deferredPass)
             internal::DeferredSubPasses::eTransparencyPass
         );
 
-    auto& p = makeGraphicsPipeline(internal::Pipelines::eText, std::move(layout), std::move(pipeline));
+    Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
     p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
+
+    return p;
 }
