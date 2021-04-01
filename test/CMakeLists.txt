@@ -22,6 +22,9 @@ target_link_libraries(DrawableChainTest PUBLIC torch)
 add_executable(BasicSetup basic_setup.cpp)
 target_link_libraries(BasicSetup PUBLIC torch)
 
+add_executable(Flora flora.cpp)
+target_link_libraries(Flora PUBLIC torch)
+
 add_executable(Font font.cpp)
 target_link_libraries(Font PUBLIC torch)
 

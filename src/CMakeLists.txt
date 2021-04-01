@@ -35,6 +35,7 @@ add_subdirectory(base)
 add_subdirectory(asset_import)
 add_subdirectory(utils)
 add_subdirectory(text)
+add_subdirectory(flora)
 add_subdirectory(ray_tracing)
 add_subdirectory(experimental)
 
