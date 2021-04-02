@@ -3,7 +3,7 @@
 
 
 template<trc::ui::GuiElement E>
-trc::ui::ElementHandleFactory<E>::ElementHandleFactory(E& element, Window& window)
+trc::ui::ElementHandleProxy<E>::ElementHandleProxy(E& element, Window& window)
     :
     element(&element),
     window(&window)
@@ -11,25 +11,25 @@ trc::ui::ElementHandleFactory<E>::ElementHandleFactory(E& element, Window& windo
 }
 
 template<trc::ui::GuiElement E>
-inline trc::ui::ElementHandleFactory<E>::operator E&() &&
+inline trc::ui::ElementHandleProxy<E>::operator E&() &&
 {
     return *element;
 }
 
 template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleFactory<E>::makeRef() && -> E&
+inline auto trc::ui::ElementHandleProxy<E>::makeRef() && -> E&
 {
     return *element;
 }
 
 template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleFactory<E>::makeShared() && -> SharedHandle
+inline auto trc::ui::ElementHandleProxy<E>::makeShared() && -> SharedHandle
 {
     return SharedHandle(element, [window=window](E* elem) { window->destroy(*elem); });
 }
 
 template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleFactory<E>::makeUnique() && -> UniqueHandle
+inline auto trc::ui::ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
 {
     return UniqueHandle(element, [window=window](E* elem) { window->destroy(*elem); });
 }
@@ -39,7 +39,7 @@ inline auto trc::ui::ElementHandleFactory<E>::makeUnique() && -> UniqueHandle
 
 template<trc::ui::GuiElement E, typename... Args>
     requires std::is_constructible_v<E, Args...>
-inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleFactory<E>
+inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleProxy<E>
 {
     E& newElem = static_cast<E&>(
         *drawableElements.emplace_back(new E(std::forward<Args>(args)...))

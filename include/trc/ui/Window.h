@@ -25,19 +25,19 @@ namespace trc::ui
      * smart handle (i.e. unique or shared).
      */
     template<GuiElement E>
-    class ElementHandleFactory
+    class ElementHandleProxy
     {
         friend class Window;
-        ElementHandleFactory(E& element, Window& window);
+        ElementHandleProxy(E& element, Window& window);
 
     public:
         using SharedHandle = SharedElementHandle<E>;
         using UniqueHandle = UniqueElementHandle<E>;
 
-        ElementHandleFactory(const ElementHandleFactory<E>&) = delete;
-        ElementHandleFactory(ElementHandleFactory<E>&&) noexcept = delete;
-        auto operator=(const ElementHandleFactory<E>&) -> ElementHandleFactory<E>& = delete;
-        auto operator=(ElementHandleFactory<E>&&) noexcept -> ElementHandleFactory<E>& = delete;
+        ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
+        ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
+        auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
+        auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
 
         inline operator E&() &&;
         inline auto makeRef() && -> E&;
@@ -85,7 +85,7 @@ namespace trc::ui
          */
         template<GuiElement E, typename... Args>
             requires std::is_constructible_v<E, Args...>
-        inline auto create(Args&&... args) -> ElementHandleFactory<E>;
+        inline auto create(Args&&... args) -> ElementHandleProxy<E>;
 
         /**
          * @brief Destroy an element
