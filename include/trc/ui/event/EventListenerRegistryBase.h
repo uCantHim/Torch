@@ -41,9 +41,11 @@ namespace trc::ui
 
         inline void notify(EventType& event)
         {
-            foreachEventListener([&event](const EventListener& listener) {
-                listener(event);
-            });
+            std::lock_guard lock(listenerListLock);
+            for (auto& listener : listeners)
+            {
+                listener.callback(event);
+            }
         }
 
         /**
@@ -70,16 +72,6 @@ namespace trc::ui
             );
             if (it != listeners.end()) {
                 listeners.erase(it);
-            }
-        }
-
-        template<std::invocable<const EventListener&> F>
-        inline void foreachEventListener(F func)
-        {
-            std::lock_guard lock(listenerListLock);
-            for (auto& listener : listeners)
-            {
-                func(listener.callback);
             }
         }
 

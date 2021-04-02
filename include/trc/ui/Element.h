@@ -15,7 +15,6 @@ namespace trc::ui
     {
         using EventListenerRegistryBase<EventTypes>::addEventListener...;
         using EventListenerRegistryBase<EventTypes>::removeEventListener...;
-        using EventListenerRegistryBase<EventTypes>::foreachEventListener...;
         using EventListenerRegistryBase<EventTypes>::notify...;
     };
 
