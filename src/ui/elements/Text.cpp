@@ -15,6 +15,8 @@ trc::ui::Text::Text(std::wstring str, ui32 fontIndex)
     printedText(std::move(str)),
     fontIndex(fontIndex)
 {
+    setSize({ 1.0f, 1.0f });
+    setSizeProperties({ .type=SizeType::eNorm, .alignment=Align::eRelative });
 }
 
 void trc::ui::Text::draw(DrawList& drawList, vec2 globalPos, vec2 globalSize)
@@ -25,13 +27,14 @@ void trc::ui::Text::draw(DrawList& drawList, vec2 globalPos, vec2 globalSize)
     };
 
     // Create letter descriptions
+    const ui32 lineSpace = FontRegistry::getFontInfo(fontIndex).maxGlyphHeight;
     ivec2 glyphPos{ 0, 0 };
     for (wchar_t character : printedText)
     {
         if (character == '\n')
         {
             glyphPos.x = 0.0f;
-            glyphPos.y += FontRegistry::getFontInfo(fontIndex).maxGlyphHeight;
+            glyphPos.y += lineSpace;
             continue;
         }
 
@@ -58,7 +61,7 @@ void trc::ui::Text::draw(DrawList& drawList, vec2 globalPos, vec2 globalSize)
 
 void trc::ui::Text::print(std::string str)
 {
-    printedText = wstringConverter.from_bytes(std::move(str));
+    print(wstringConverter.from_bytes(std::move(str)));
 }
 
 void trc::ui::Text::print(std::wstring str)

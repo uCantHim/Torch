@@ -23,6 +23,7 @@ namespace trc
 
         ui32 maxGlyphHeight; // Height of the highest glyph in pixels
         ui32 maxGlyphWidth;  // Width of the widest glyph in pixels
+        ui32 lineSpace;      // Space between lines of text in pixels
     };
 
     using CharCode = ui64;

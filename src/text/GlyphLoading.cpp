@@ -47,6 +47,9 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
 
     maxGlyphWidth = ((*face)->bbox.xMax >> 6) - ((*face)->bbox.xMin >> 6);
     maxGlyphHeight = ((*face)->bbox.yMax >> 6) - ((*face)->bbox.yMin >> 6);
+
+    // maxGlyphHeight and lineSpace seem to be the same values
+    lineSpace = ((*face)->size->metrics.height >> 6);
 }
 
 trc::SignedDistanceFace::SignedDistanceFace(const fs::path& path, ui32 fontSize)
