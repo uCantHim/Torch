@@ -64,6 +64,8 @@ int main()
             std::cout << "Click on second quad\n";
         });
         child->style.background = vec4(1.0f, 0.0f, 1.0f, 1.0f );
+        child->style.borderThickness = 2;
+        child->style.borderColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
         auto text = window.create<ui::Text>(
             "Hello World! and some more text…"

@@ -24,26 +24,47 @@ namespace trc::ui_impl
 
     private:
         static void initStaticResources(const vkb::Device& device, vk::RenderPass renderPass);
+        static auto makeLinePipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
         static auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
         static auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
 
         static inline vk::UniqueDescriptorSetLayout descLayout;
+        static inline trc::Pipeline::ID linePipeline;
         static inline trc::Pipeline::ID quadPipeline;
         static inline trc::Pipeline::ID textPipeline;
+
+        struct _border {};
 
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::NoType&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Quad&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Text&);
+        void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border);
 
         // General resources
         const vkb::Device& device;
         vkb::DeviceLocalBuffer quadVertexBuffer;
+        vkb::DeviceLocalBuffer lineUvBuffer{
+            device,
+            std::vector<vec2>{ vec2(0.0f, 0.0f), vec2(1.0f, 1.0f) },
+            vk::BufferUsageFlagBits::eVertexBuffer
+        };
         vec2 windowSizePixels;
 
         void createDescriptorSet(const vkb::Device& device);
         void updateFontDescriptor();
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet descSet;
+
+        // Plain line vertices
+        struct Line
+        {
+            vec2 start;
+            vec2 end;
+
+            vec4 color;
+            float width;
+        };
+        std::vector<Line> lines;
 
         // Plain quad resources
         struct QuadData

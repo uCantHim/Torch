@@ -13,6 +13,45 @@ struct QuadVertex
     trc::vec2 uv;
 };
 
+auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui32 subPass)
+    -> Pipeline::ID
+{
+    vkb::ShaderProgram program(TRC_SHADER_DIR"/ui/line.vert.spv", TRC_SHADER_DIR"/ui/line.frag.spv");
+
+    auto layout = makePipelineLayout(
+        {},
+        {
+            // Line start and end
+            { vk::ShaderStageFlagBits::eVertex,   0,                sizeof(vec2) * 2 },
+            // Line color
+            { vk::ShaderStageFlagBits::eFragment, sizeof(vec2) * 2, sizeof(vec4) },
+        }
+    );
+
+    auto pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
+            { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
+        )
+        .setPrimitiveTopology(vk::PrimitiveTopology::eLineList)
+        //.setPolygonMode(vk::PolygonMode::eLine)
+        .addViewport({})
+        .addScissorRect({})
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .addDynamicState(vk::DynamicState::eLineWidth)
+        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
+        .setColorBlending({}, false, {}, {})
+        .build(*vkb::getDevice(), *layout, renderPass, subPass);
+
+    return Pipeline::createAtNextIndex(
+        std::move(layout),
+        std::move(pipeline),
+        vk::PipelineBindPoint::eGraphics
+    ).first;
+}
+
 auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass)
     -> Pipeline::ID
 {
@@ -157,6 +196,7 @@ void trc::ui_impl::DrawCollector::initStaticResources(
     descLayout = device->createDescriptorSetLayoutUnique(chain.get<vk::DescriptorSetLayoutCreateInfo>());
 
     // Create pipelines
+    linePipeline = makeLinePipeline(renderPass, 0);
     quadPipeline = makeQuadPipeline(renderPass, 0);
     textPipeline = makeTextPipeline(renderPass, 0);
 
@@ -175,6 +215,7 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
     :
     device(device),
     quadVertexBuffer(
+        device,
         std::vector<QuadVertex>{
             { vec2(0, 0), vec2(0, 0) },
             { vec2(1, 1), vec2(1, 1) },
@@ -185,14 +226,19 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
         },
         vk::BufferUsageFlagBits::eVertexBuffer
     ),
+    lineUvBuffer(
+        device,
+        std::vector<vec2>{ vec2(0.0f, 0.0f), vec2(1.0f, 1.0f) },
+        vk::BufferUsageFlagBits::eVertexBuffer
+    ),
     quadBuffer(
-        vkb::getDevice(),
+        device,
         100, // Initial max number of quads
         vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     letterBuffer(
-        vkb::getDevice(),
+        device,
         100, // Initial max number of glyphs
         vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
@@ -208,12 +254,16 @@ void trc::ui_impl::DrawCollector::beginFrame(vec2 windowSizePixels)
     this->windowSizePixels = windowSizePixels;
     quadBuffer.clear();
     letterBuffer.clear();
+    lines.clear();
 }
 
 void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
 {
     std::visit([this, &info](auto type) {
         add(info.pos, info.size, info.style, type);
+        if (info.style.borderThickness > 0) {
+            add(info.pos, info.size, info.style, _border{});
+        }
     }, info.type);
 }
 
@@ -221,7 +271,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
 {
     const auto size = vkb::getSwapchain().getImageExtent();
 
-    // Draw all quads first
+    // Draw all quads
     auto& p = Pipeline::at(quadPipeline);
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
     cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
@@ -229,6 +279,28 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
 
     cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *quadBuffer }, { 0, 0 });
     cmdBuf.draw(6, quadBuffer.size(), 0, 0);
+
+    // Draw all lines
+    if (!lines.empty())
+    {
+        auto& p = Pipeline::at(linePipeline);
+        auto layout = p.getLayout();
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
+        cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
+        cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
+
+        for (const auto& line : lines)
+        {
+            cmdBuf.pushConstants<vec2>(layout, vk::ShaderStageFlagBits::eVertex,
+                                       0, { line.start, line.end });
+            cmdBuf.pushConstants<vec4>(layout, vk::ShaderStageFlagBits::eFragment,
+                                       16, line.color);
+            cmdBuf.setLineWidth(line.width);
+
+            cmdBuf.bindVertexBuffers(0, *lineUvBuffer, vk::DeviceSize(0));
+            cmdBuf.draw(2, 1, 0, 0);
+        }
+    }
 
     // Draw text
     if (letterBuffer.size() > 0)
@@ -336,6 +408,20 @@ void trc::ui_impl::DrawCollector::add(
             .color = color
         });
     }
+}
+
+void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border)
+{
+    const vec2 ur{ pos + size };
+
+    // Left line
+    lines.push_back({ pos, { pos.x, ur.y }, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    // Bottom line
+    lines.push_back({ pos, { ur.x, pos.y }, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    // Right line
+    lines.push_back({ { ur.x, pos.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    // Top line
+    lines.push_back({ { pos.x, ur.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
 }
 
 void trc::ui_impl::DrawCollector::createDescriptorSet(const vkb::Device& device)
