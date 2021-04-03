@@ -9,18 +9,11 @@
 auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
 {
     auto deviceExtensions = info.deviceExtensions;
-    if (info.enableRayTracing)
-    {
-        deviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-        deviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-        deviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
-        deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-    }
-
     void* deviceFeatureChain{ nullptr };
 
+#ifdef TRC_USE_RAY_TRACING
     // Ray tracing device features
-    vk::StructureChain deviceFeatures{
+    vk::StructureChain rayTracingDeviceFeatures{
         vk::PhysicalDeviceFeatures2{}, // required for chain validity
         vk::PhysicalDeviceBufferDeviceAddressFeatures{},
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR{},
@@ -28,9 +21,16 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
     };
     if (info.enableRayTracing)
     {
+        // Add device extensions
+        deviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        deviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+        deviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+        deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+
         // Add ray tracing features to feature chain
-        deviceFeatureChain = &deviceFeatures.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+        deviceFeatureChain = &rayTracingDeviceFeatures.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
     }
+#endif
 
     // Initialize vkb
     vkb::vulkanInit({
