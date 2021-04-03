@@ -22,20 +22,17 @@ public:
      * Use this constructor overload and pass only a physical device to
      * create a device with default extensions and features.
      *
-     * @tparam ...DeviceFeatures Additional device feature types that shall
-     *                           be enabled on the device.
-     *
      * @param const PhysicalDevice& physDevice
      * @param std::vector<const char*> deviceExtensions Additional
      *        extensions to load on the device.
-     * @param std::tuple<DeviceFeatures...> One cannot specify constructor
-     *        template arguments explicitly, so we have to use this proxy
-     *        parameter.
+     * @param void* extraPhysicalDeviceFeatureChain Additional chained
+     *        device features to enable on the logical device. This
+     *        pointer will be set as pNext of the end of vkb's default
+     *        feature chain.
      */
-    template<typename... DeviceFeatures>
     explicit Device(const PhysicalDevice& physDevice,
                     std::vector<const char*> deviceExtensions = {},
-                    std::tuple<DeviceFeatures...> = {});
+                    void* extraPhysicalDeviceFeatureChain = nullptr);
 
     /**
      * @brief Create a device with a pre-created logical device
@@ -187,21 +184,6 @@ private:
     vk::UniqueCommandPool graphicsPool;
     vk::UniqueCommandPool transferPool;
 };
-
-
-
-template<typename... DeviceFeatures>
-Device::Device(
-    const PhysicalDevice& physDevice,
-    std::vector<const char*> deviceExtensions,
-    std::tuple<DeviceFeatures...>)
-    :
-    Device(
-        physDevice,
-        physDevice.createLogicalDevice<DeviceFeatures...>(std::move(deviceExtensions))
-    )
-{
-}
 
 template<std::invocable<vk::CommandBuffer> F>
 void Device::executeCommandsSynchronously(QueueType queueType, F func)

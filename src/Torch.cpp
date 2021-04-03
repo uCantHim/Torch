@@ -17,9 +17,25 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
         deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
     }
 
+    void* deviceFeatureChain{ nullptr };
+
+    // Ray tracing device features
+    vk::StructureChain deviceFeatures{
+        vk::PhysicalDeviceFeatures2{}, // required for chain validity
+        vk::PhysicalDeviceBufferDeviceAddressFeatures{},
+        vk::PhysicalDeviceAccelerationStructureFeaturesKHR{},
+        vk::PhysicalDeviceRayTracingPipelineFeaturesKHR{}
+    };
+    if (info.enableRayTracing)
+    {
+        // Add ray tracing features to feature chain
+        deviceFeatureChain = &deviceFeatures.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+    }
+
+    // Initialize vkb
     vkb::vulkanInit({
-        .deviceExtensions         = deviceExtensions,
-        .enableRayTracingFeatures = info.enableRayTracing
+        .deviceExtensions                = deviceExtensions,
+        .extraPhysicalDeviceFeatureChain = deviceFeatureChain
     });
     Queues::init(vkb::getQueueManager());
 

@@ -88,20 +88,11 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
             );
 
             // Create the device
-            if (initInfo.enableRayTracingFeatures) {
-                device = std::make_unique<Device>(
-                    *physicalDevice,
-                    initInfo.deviceExtensions,
-                    std::tuple<
-                        vk::PhysicalDeviceBufferDeviceAddressFeaturesEXT,
-                        vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
-                        vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
-                    >{}
-                );
-            }
-            else {
-                device = std::make_unique<Device>(*physicalDevice, initInfo.deviceExtensions);
-            }
+            device = std::make_unique<Device>(
+                *physicalDevice,
+                initInfo.deviceExtensions,
+                initInfo.extraPhysicalDeviceFeatureChain
+            );
 
             // Create a swapchain
             swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
