@@ -12,10 +12,11 @@ namespace vkb
         ThreadPool() = default;
         ~ThreadPool();
 
-        ThreadPool(ThreadPool&&) noexcept = default;
-        auto operator=(ThreadPool&&) noexcept -> ThreadPool& = default;
         ThreadPool(const ThreadPool&) = delete;
+        ThreadPool(ThreadPool&&) noexcept = delete;
+
         auto operator=(const ThreadPool&) -> ThreadPool& = delete;
+        auto operator=(ThreadPool&&) noexcept -> ThreadPool& = delete;
 
         /**
          * @brief Execute a function asynchronously with low overhead
