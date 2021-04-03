@@ -63,6 +63,7 @@ int main()
         child->addEventListener([](const ui::event::Click& e) {
             std::cout << "Click on second quad\n";
         });
+        child->style.background = vec4(1.0f, 0.0f, 1.0f, 1.0f );
 
         auto text = window.create<ui::Text>(
             "Hello World! and some more text…"

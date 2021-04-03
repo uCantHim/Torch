@@ -31,8 +31,9 @@ namespace trc::ui_impl
         static inline trc::Pipeline::ID quadPipeline;
         static inline trc::Pipeline::ID textPipeline;
 
-        void add(const ui::ElementDrawInfo& elem, const ui::types::NoType&);
-        void add(const ui::ElementDrawInfo& elem, const ui::types::Text&);
+        void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::NoType&);
+        void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Quad&);
+        void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Text&);
 
         // General resources
         const vkb::Device& device;

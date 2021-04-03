@@ -50,9 +50,9 @@ void trc::ui::Text::draw(DrawList& drawList, vec2 globalPos, vec2 globalSize)
     }
 
     drawList.emplace_back(DrawInfo{
-        .elem = ElementDrawInfo{
-            .pos = globalPos,
-            .size = globalSize,
+        .pos=globalPos,
+        .size=globalSize,
+        .style = {
             .background = vec4(0.0f)
         },
         .type = std::move(textInfo)

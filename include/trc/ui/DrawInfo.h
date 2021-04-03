@@ -1,26 +1,18 @@
 #pragma once
 
-#include <variant>
-
 #include "Types.h"
 #include "Transform.h"
+#include "Style.h"
 
 namespace trc::ui
 {
-    // --- Reusable data structures ---
-
-    struct TextureInfo
-    {
-        vec2 uvLL;
-        vec2 uvUR;
-        ui32 textureIndex;
-    };
-
-
-    // --- Typed draw information ---
+    /**
+     * Typed draw information
+     */
     namespace types
     {
         struct NoType {};
+        struct Quad {};
 
         struct LetterInfo
         {
@@ -44,30 +36,21 @@ namespace trc::ui
     }
 
 
-    /**
-     * Generic draw information for all elements
-     */
-    struct ElementDrawInfo
-    {
-        vec2 pos;
-        vec2 size;
-
-        // ui32 borderThickness{ 0 };
-
-        std::variant<vec4, TextureInfo> background;
-    };
-
     using DrawType = std::variant<
         types::NoType,
+        types::Quad,
         types::Text
     >;
+
 
     /**
      * All draw information for a gui element
      */
     struct DrawInfo
     {
-        ElementDrawInfo elem;
+        vec2 pos;
+        vec2 size;
+        ElementStyle style;
         DrawType type;
     };
 

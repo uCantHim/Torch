@@ -212,8 +212,8 @@ void trc::ui_impl::DrawCollector::beginFrame(vec2 windowSizePixels)
 
 void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
 {
-    std::visit([this, &elem=info.elem](auto type) {
-        add(elem, type);
+    std::visit([this, &info](auto type) {
+        add(info.pos, info.size, info.style, type);
     }, info.type);
 }
 
@@ -287,18 +287,27 @@ auto trc::ui_impl::DrawCollector::FontInfo::getGlyphUvs(wchar_t character)
 }
 
 void trc::ui_impl::DrawCollector::add(
-    const ui::ElementDrawInfo& elem,
+    vec2, vec2,
+    const ui::ElementStyle&,
     const ui::types::NoType&)
+{
+}
+
+void trc::ui_impl::DrawCollector::add(
+    vec2 pos, vec2 size,
+    const ui::ElementStyle& elem,
+    const ui::types::Quad&)
 {
     const vec4 color = std::holds_alternative<vec4>(elem.background)
         ? std::get<vec4>(elem.background)
         : vec4(1.0f);
 
-    quadBuffer.push({ elem.pos, elem.size, color });
+    quadBuffer.push({ pos, size, color });
 }
 
 void trc::ui_impl::DrawCollector::add(
-    const ui::ElementDrawInfo& elem,
+    vec2 pos, vec2,
+    const ui::ElementStyle& elem,
     const ui::types::Text& text)
 {
     const vec4 color = std::holds_alternative<vec4>(elem.background)
@@ -317,7 +326,7 @@ void trc::ui_impl::DrawCollector::add(
     {
         auto uvs = fontIt->second.getGlyphUvs(letter.characterCode);
         letterBuffer.push({
-            .basePos    = elem.pos,
+            .basePos    = pos,
             .pos        = static_cast<vec2>(letter.glyphOffsetPixels),
             .size       = static_cast<vec2>(letter.glyphSizePixels),
             .texCoordLL = uvs.lowerLeft,

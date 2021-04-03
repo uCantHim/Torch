@@ -48,6 +48,8 @@ namespace trc::ui
                   , public Drawable
                   , public ElementEventBase
     {
+    public:
+        ElementStyle style;
     };
 
     template<typename T>
