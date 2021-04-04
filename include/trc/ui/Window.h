@@ -70,6 +70,7 @@ namespace trc::ui
     struct WindowCreateInfo
     {
         u_ptr<WindowBackend> windowBackend;
+        std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
     };
 
     /**
@@ -79,10 +80,11 @@ namespace trc::ui
     {
     public:
         explicit Window(WindowCreateInfo createInfo);
+        Window(Window&&) noexcept = default;
+        ~Window();
 
         Window() = delete;
         Window(const Window&) = delete;
-        Window(Window&&) = delete;
 
         auto operator=(const Window&) -> Window& = delete;
         auto operator=(Window&&) -> Window& = delete;
@@ -119,6 +121,11 @@ namespace trc::ui
         // void signalMouseRelease(float posPixelsX, float posPixelsY);
         // void signalMouseMove(float posPixelsX, float posPixelsY);
 
+        /**
+         * @brief Called when the window is destroyed
+         */
+        std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
+
     private:
         /**
          * @brief Dispatch an event to all events that the mouse hovers
@@ -144,7 +151,7 @@ namespace trc::ui
          */
         void realignElements();
 
-        u_ptr<WindowBackend> windowInfo;
+        u_ptr<WindowBackend> windowBackend;
 
         std::vector<u_ptr<Element>> drawableElements;
         DrawList drawList;
@@ -164,7 +171,9 @@ namespace trc::ui
             void draw(DrawList&, vec2, vec2) override {}
         };
 
-        Root root;
+        // This is a unique_ptr because I'm too lazy to implement all those
+        // move constructors.
+        u_ptr<Root> root{ new Root };
     };
 
 #include "Window.inl"

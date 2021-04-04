@@ -82,7 +82,7 @@ void trc::ui::Window::descendEvent(EventType event, F breakCondition)
         e.foreachChild(descend);
     };
 
-    descend(root);
+    descend(*root);
 }
 
 template<std::invocable<trc::ui::Element&, trc::vec2, trc::vec2> F>
@@ -94,5 +94,5 @@ inline void trc::ui::Window::traverse(F elemCallback)
         node.foreachChild(traverseElement);
     };
 
-    traverseElement(root);
+    traverseElement(*root);
 }

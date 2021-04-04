@@ -16,9 +16,15 @@ void trc::ui::initUserCallbacks(
 
 trc::ui::Window::Window(WindowCreateInfo createInfo)
     :
-    windowInfo(std::move(createInfo.windowBackend))
+    onWindowDestruction(std::move(createInfo.onWindowDestruction)),
+    windowBackend(std::move(createInfo.windowBackend))
 {
-    assert(this->windowInfo != nullptr);
+    assert(this->windowBackend != nullptr);
+}
+
+trc::ui::Window::~Window()
+{
+    onWindowDestruction(*this);
 }
 
 auto trc::ui::Window::draw() -> const DrawList&
@@ -35,12 +41,12 @@ auto trc::ui::Window::draw() -> const DrawList&
 
 auto trc::ui::Window::getSize() const -> vec2
 {
-    return windowInfo->getSize();
+    return windowBackend->getSize();
 }
 
 auto trc::ui::Window::getRoot() -> Element&
 {
-    return root;
+    return *root;
 }
 
 void trc::ui::Window::destroy(Element& elem)
@@ -82,5 +88,5 @@ void trc::ui::Window::realignElements()
     };
 
     // concat once to ensure that globalTransform is normalized
-    calcTransform(concat({}, root.getTransform(), *this), root);
+    calcTransform(concat({}, root->getTransform(), *this), *root);
 }
