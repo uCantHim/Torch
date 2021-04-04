@@ -19,28 +19,7 @@ int main()
         camera->lookAt(vec3(0, 2, 4), vec3(0, 0, 0), vec3(0, 1, 0));
         camera->makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
 
-        ui::Window window{{
-            std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain())
-        }};
-
-        // Notify GUI of mouse clicks
-        vkb::on<vkb::MouseClickEvent>([&window](const vkb::MouseClickEvent& e) {
-            if (e.action == vkb::InputAction::press)
-            {
-                vec2 pos = e.swapchain->getMousePosition();
-                window.signalMouseClick(pos.x, pos.y);
-            }
-        });
-
-        // Add gui pass and stage to render graph
-        auto renderPass = trc::RenderPass::createAtNextIndex<trc::GuiRenderPass>(
-            vkb::getDevice(),
-            vkb::getSwapchain(),
-            window
-        ).first;
-        auto& graph = renderer->getRenderGraph();
-        graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
-        graph.addPass(trc::getGuiRenderStage(), renderPass);
+        auto window = trc::initGui(*renderer);
 
         // Now, after intialization, is it possible to load fonts
         const ui32 nerdFont = ui::FontRegistry::addFont(
@@ -49,8 +28,8 @@ int main()
         );
 
         // Create some gui elements
-        auto quad = window.create<ui::Quad>().makeUnique();
-        window.getRoot().attach(*quad);
+        auto quad = window->create<ui::Quad>().makeUnique();
+        window->getRoot().attach(*quad);
         quad->setPos({ 0.5f, 0.0f });
         quad->setSize({ 0.1f, 0.15f });
 
@@ -58,7 +37,7 @@ int main()
             std::cout << "Click on first quad\n";
         });
 
-        auto child = window.create<ui::Quad>().makeUnique();
+        auto child = window->create<ui::Quad>().makeUnique();
         quad->attach(*child);
         child->setPos({ 0.15f, 0.4f });
         child->addEventListener([](const ui::event::Click& e) {
@@ -68,13 +47,13 @@ int main()
         child->style.borderThickness = 2;
         child->style.borderColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
-        auto text = window.create<ui::Text>(
+        auto text = window->create<ui::Text>(
             "Hello World! and some more text…"
             "\n»this line« contains some cool special characters: “µ” · ħŋſđðſđ"
             "\nNewlines working: ∞",
             nerdFont
         ).makeUnique();
-        window.getRoot().attach(*text);
+        window->getRoot().attach(*text);
         text->setPos({ 0.2f, 0.6f });
 
         // Also add world-space objects
@@ -93,9 +72,6 @@ int main()
             vkb::pollEvents();
             renderer->drawFrame(*scene, *camera);
         }
-
-        vkb::getDevice()->waitIdle();
-        trc::RenderPass::destroy(renderPass);
     }
 
     trc::terminate();

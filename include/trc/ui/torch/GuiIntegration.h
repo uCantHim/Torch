@@ -15,6 +15,18 @@
 
 namespace trc
 {
+    class Renderer;
+
+    /**
+     * @brief Initialize the GUI implementation
+     */
+    auto initGui(Renderer& renderer) -> u_ptr<ui::Window>;
+
+    /**
+     * Access to static render stage
+     */
+    auto getGuiRenderStage() -> RenderStageType::ID;
+
     class TorchWindowBackend : public ui::WindowBackend
     {
     public:
@@ -30,11 +42,6 @@ namespace trc
     private:
         const vkb::Swapchain& swapchain;
     };
-
-    /**
-     * Access to static render stage
-     */
-    extern auto getGuiRenderStage() -> RenderStageType::ID;
 
     /**
      * Render a GUI root to an image
@@ -69,6 +76,10 @@ namespace trc
 
     /**
      * Render pass that integrates the gui into Torch's render pipeline.
+     *
+     * Actually, the GuiRenderer class contains the vkRenderPass instance.
+     * This class is merely the component that ties the GUI rendering to
+     * Torch's render pipeline.
      */
     class GuiRenderPass : public RenderPass
     {
@@ -82,6 +93,8 @@ namespace trc
         void end(vk::CommandBuffer) override;
 
     private:
+        const vkb::Device& device;
+
         GuiRenderer renderer;
         std::mutex renderLock;
         std::thread renderThread;

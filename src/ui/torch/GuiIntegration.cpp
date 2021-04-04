@@ -4,9 +4,47 @@
 #include <vulkan/vulkan.hpp>
 
 #include <vkb/ShaderProgram.h>
+#include <vkb/event/Event.h>
 
+#include "Renderer.h"
 #include "ui/Element.h"
 #include "ui/torch/DrawImplementations.h"
+
+
+
+auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
+{
+    auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
+        std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain()),
+    });
+
+    // Notify GUI of mouse clicks
+    vkb::on<vkb::MouseClickEvent>([window=window.get()](const vkb::MouseClickEvent& e) {
+        if (e.action == vkb::InputAction::press)
+        {
+            vec2 pos = e.swapchain->getMousePosition();
+            window->signalMouseClick(pos.x, pos.y);
+        }
+    });
+
+    // Add gui pass and stage to render graph
+    auto renderPass = trc::RenderPass::createAtNextIndex<trc::GuiRenderPass>(
+        vkb::getDevice(),
+        vkb::getSwapchain(),
+        *window
+    ).first;
+    auto& graph = renderer.getRenderGraph();
+    graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
+    graph.addPass(trc::getGuiRenderStage(), renderPass);
+
+    // Window destruction callback; destroy render pass here because
+    // it can't outlive the window or the renderer
+    window->onWindowDestruction = [=](ui::Window&) {
+        trc::RenderPass::destroy(renderPass);
+    };
+
+    return window;
+}
 
 
 
@@ -185,6 +223,7 @@ trc::GuiRenderPass::GuiRenderPass(
     ui::Window& window)
     :
     RenderPass({}, 1),
+    device(device),
     renderer(device, window),
     blendDescSets(swapchain)
 {
@@ -241,6 +280,8 @@ trc::GuiRenderPass::~GuiRenderPass()
     if (renderThread.joinable()) {
         renderThread.join();
     }
+
+    device->waitIdle();
 }
 
 void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
