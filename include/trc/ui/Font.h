@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <atomic>
 
 #include "Types.h"
 #include "data_utils/IndexMap.h"
@@ -25,7 +26,7 @@ namespace trc::ui
             data::IndexMap<wchar_t, u_ptr<GlyphMeta>> glyphs;
         };
 
-        static inline ui32 nextFontIndex{ 0 };
+        static inline std::atomic<ui32> nextFontIndex{ 0 };
         static inline data::IndexMap<ui32, u_ptr<FontData>> fonts;
     };
 } // namespace trc::ui

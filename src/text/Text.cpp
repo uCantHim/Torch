@@ -146,7 +146,7 @@ void trc::makeTextPipeline(vk::RenderPass deferredPass)
     auto layout = makePipelineLayout(
         {
             Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            FontDescriptor::getLayout(),
+            GlyphMapDescriptor::getLayout(),
             Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         {

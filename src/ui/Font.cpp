@@ -4,14 +4,14 @@
 
 auto trc::ui::FontRegistry::addFont(const fs::path& file, ui32 fontSize) -> ui32
 {
-    fonts.emplace(nextFontIndex, new FontData{
+    const ui32 fontIndex = nextFontIndex++;
+    fonts.emplace(fontIndex, new FontData{
         .face = Face(file, fontSize),
-        .index = nextFontIndex,
+        .index = fontIndex,
         .glyphs = {}
     });
-    nextFontIndex++;
 
-    return nextFontIndex - 1;
+    return fontIndex;
 }
 
 auto trc::ui::FontRegistry::getFontInfo(ui32 fontIndex) -> const Face&
@@ -27,7 +27,7 @@ auto trc::ui::FontRegistry::getGlyph(ui32 fontIndex, wchar_t character) -> const
 
     auto& glyph = font.glyphs[character];
     if (!glyph) {
-        glyph = std::make_unique<GlyphMeta>(loadGlyphBitmap(*font.face.face, character));
+        glyph = std::make_unique<GlyphMeta>(font.face.loadGlyph(character));
     }
 
     return *glyph;

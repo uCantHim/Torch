@@ -1,9 +1,5 @@
 #include "text/GlyphMap.h"
 
-#include <chrono>
-using namespace std::chrono;
-#include <iostream>
-
 
 
 trc::GlyphMap::GlyphMap()
@@ -64,4 +60,66 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
 auto trc::GlyphMap::getGlyphImage() -> vkb::Image&
 {
     return image;
+}
+
+
+
+vkb::StaticInit trc::GlyphMapDescriptor::_init{
+    [] {
+        std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
+            { 0, vk::DescriptorType::eCombinedImageSampler, 1,
+              vk::ShaderStageFlagBits::eFragment }
+        };
+        descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
+            vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
+        );
+    },
+    [] {
+        descLayout.reset();
+    }
+};
+
+trc::GlyphMapDescriptor::GlyphMapDescriptor(GlyphMap& glyphMap)
+    :
+    imageView(glyphMap.getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm)),
+    descPool([] {
+        std::vector<vk::DescriptorPoolSize> poolSizes{
+            vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1)
+        };
+        return vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes)
+        );
+    }()),
+    descSet([&]() -> vk::UniqueDescriptorSet {
+        auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+            vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
+        )[0]);
+
+        vk::DescriptorImageInfo glyphImage(
+            glyphMap.getGlyphImage().getDefaultSampler(),
+            *imageView,
+            vk::ImageLayout::eShaderReadOnlyOptimal
+        );
+        std::vector<vk::WriteDescriptorSet> writes{
+            vk::WriteDescriptorSet(
+                *set, 0, 0, 1, vk::DescriptorType::eCombinedImageSampler, &glyphImage
+            )
+        };
+
+        vkb::getDevice()->updateDescriptorSets(writes, {});
+
+        return set;
+    }()),
+    provider(*descLayout, *descSet)
+{
+}
+
+auto trc::GlyphMapDescriptor::getLayout() -> vk::DescriptorSetLayout
+{
+    return *descLayout;
+}
+
+auto trc::GlyphMapDescriptor::getProvider() const -> const DescriptorProviderInterface&
+{
+    return provider;
 }
