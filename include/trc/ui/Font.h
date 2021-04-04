@@ -18,15 +18,7 @@ namespace trc::ui
         static auto getGlyph(ui32 fontIndex, wchar_t character) -> const GlyphMeta&;
 
     private:
-        struct FontData
-        {
-            Face face;
-            ui32 index;
-
-            data::IndexMap<wchar_t, u_ptr<GlyphMeta>> glyphs;
-        };
-
         static inline std::atomic<ui32> nextFontIndex{ 0 };
-        static inline data::IndexMap<ui32, u_ptr<FontData>> fonts;
+        static inline data::IndexMap<ui32, u_ptr<GlyphCache>> fonts;
     };
 } // namespace trc::ui
