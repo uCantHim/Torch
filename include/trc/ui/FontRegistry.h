@@ -17,8 +17,12 @@ namespace trc::ui
         static auto getFontInfo(ui32 fontIndex) -> const Face&;
         static auto getGlyph(ui32 fontIndex, wchar_t character) -> const GlyphMeta&;
 
+        static void setFontAddCallback(std::function<void(ui32, const GlyphCache&)> func);
+
     private:
         static inline std::atomic<ui32> nextFontIndex{ 0 };
         static inline data::IndexMap<ui32, u_ptr<GlyphCache>> fonts;
+
+        static inline std::function<void(ui32, const GlyphCache&)> onFontAdd{ [](auto&&, auto&&) {} };
     };
 } // namespace trc::ui

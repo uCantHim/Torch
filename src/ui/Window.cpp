@@ -5,9 +5,18 @@
 
 
 
+void trc::ui::initUserCallbacks(
+    std::function<void(trc::basic_types::ui32, const GlyphCache&)> onFontLoad,
+    std::function<void(trc::basic_types::ui32)>)
+{
+    FontRegistry::setFontAddCallback(std::move(onFontLoad));
+}
+
+
+
 trc::ui::Window::Window(WindowCreateInfo createInfo)
     :
-    windowInfo(std::move(createInfo.windowProvider))
+    windowInfo(std::move(createInfo.windowBackend))
 {
     assert(this->windowInfo != nullptr);
 }

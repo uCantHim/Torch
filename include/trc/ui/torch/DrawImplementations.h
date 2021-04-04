@@ -8,7 +8,7 @@
 #include "ui/torch/DynamicBuffer.h"
 
 #include "ui/DrawInfo.h"
-#include "ui/Font.h"
+#include "ui/FontRegistry.h"
 
 namespace trc::ui_impl
 {
@@ -16,7 +16,7 @@ namespace trc::ui_impl
     {
     public:
         DrawCollector(const vkb::Device& device, vk::RenderPass renderPass);
-        ~DrawCollector() = default;
+        ~DrawCollector();
 
         void beginFrame(vec2 windowSizePixels);
         void drawElement(const ui::DrawInfo& info);
@@ -28,11 +28,17 @@ namespace trc::ui_impl
         static auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
         static auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
 
+        // A list of all existing collectors to notify them about newly loaded resources
+        static inline std::vector<DrawCollector*> existingCollectors;
+        // Save previously loaded fonts for collectors constructed later on
+        static inline std::vector<std::pair<ui32, const GlyphCache&>> existingFonts;
+
         static inline vk::UniqueDescriptorSetLayout descLayout;
         static inline trc::Pipeline::ID linePipeline;
         static inline trc::Pipeline::ID quadPipeline;
         static inline trc::Pipeline::ID textPipeline;
 
+        /** @brief Internal drawable type representing a border around an element */
         struct _border {};
 
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::NoType&);
@@ -80,11 +86,12 @@ namespace trc::ui_impl
         struct FontInfo
         {
         public:
-            explicit FontInfo(const vkb::Device& device);
+            explicit FontInfo(const vkb::Device& device, ui32 fontIndex, const GlyphCache& cache);
 
             auto getGlyphUvs(wchar_t character) -> GlyphMap::UvRectangle;
 
             ui32 fontIndex;
+            const GlyphCache& glyphCache;
             std::unique_ptr<GlyphMap> glyphMap;
             vk::UniqueImageView imageView;
             data::IndexMap<wchar_t, std::pair<bool, GlyphMap::UvRectangle>> glyphTextureCoords;
@@ -95,7 +102,7 @@ namespace trc::ui_impl
          *
          * @param ui32 fontIndex The font's index in the ui::FontRegistry
          */
-        void addFont(ui32 fontIndex);
+        void addFont(ui32 fontIndex, const GlyphCache& glyphCache);
         std::unordered_map<ui32, FontInfo> fonts;
 
         struct LetterData

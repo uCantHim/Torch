@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Element.h"
-#include "Font.h"
+#include "FontRegistry.h"
 #include "text/GlyphLoading.h"
 
 namespace trc::ui
@@ -49,18 +49,27 @@ namespace trc::ui
         Window* window;
     };
 
+    /**
+     * @brief Initialize global callbacks to the user
+     *
+     * The user is notified when a resource is loaded, for example. These
+     * callbacks are usually set by the active backend that has to manage
+     * its versions of loaded resources.
+     */
+    void initUserCallbacks(std::function<void(ui32, const GlyphCache&)> onFontLoad,
+                           std::function<void(ui32)>                    onImageLoad);
+
     class WindowBackend
     {
     public:
-        virtual auto getSize() -> vec2 = 0;
+        virtual ~WindowBackend() = default;
 
-        virtual void uploadImage(const fs::path& imagePath) = 0;
-        virtual void uploadFont(const fs::path& fontPath) = 0;
+        virtual auto getSize() -> vec2 = 0;
     };
 
     struct WindowCreateInfo
     {
-        u_ptr<WindowBackend> windowProvider;
+        u_ptr<WindowBackend> windowBackend;
     };
 
     /**
@@ -70,6 +79,13 @@ namespace trc::ui
     {
     public:
         explicit Window(WindowCreateInfo createInfo);
+
+        Window() = delete;
+        Window(const Window&) = delete;
+        Window(Window&&) = delete;
+
+        auto operator=(const Window&) -> Window& = delete;
+        auto operator=(Window&&) -> Window& = delete;
 
         /**
          * Calculate global transformatio, then build a list of DrawInfos

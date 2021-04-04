@@ -61,6 +61,8 @@ namespace trc::ui
     protected:
         friend class Window;
 
+        virtual ~Drawable() = default;
+
         virtual void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) = 0;
     };
 } // namespace trc::ui

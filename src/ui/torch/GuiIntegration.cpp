@@ -172,6 +172,11 @@ auto trc::GuiRenderer::getOutputImage() const -> vk::Image
     return *outputImage;
 }
 
+auto trc::GuiRenderer::getOutputImageView() const -> vk::ImageView
+{
+    return *outputImageView;
+}
+
 
 
 trc::GuiRenderPass::GuiRenderPass(
@@ -305,15 +310,6 @@ void trc::GuiRenderPass::createDescriptorSets(
 
     // Descriptor sets
     swapchainImageViews.clear();
-    renderResultImageView = device->createImageViewUnique(
-        vk::ImageViewCreateInfo(
-            {},
-            renderer.getOutputImage(),
-            vk::ImageViewType::e2D,
-            vk::Format::eR8G8B8A8Unorm,
-            {}, vkb::DEFAULT_SUBRES_RANGE
-        )
-    );
     blendDescSets = {
         swapchain,
         [this, &device, &swapchain](ui32 imageIndex) -> vk::UniqueDescriptorSet {
@@ -323,7 +319,7 @@ void trc::GuiRenderPass::createDescriptorSets(
 
             auto view = *swapchainImageViews.emplace_back(swapchain.createImageView(imageIndex));
             vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
-            vk::DescriptorImageInfo renderResultImageInfo({}, *renderResultImageView, vk::ImageLayout::eGeneral);
+            vk::DescriptorImageInfo renderResultImageInfo({}, renderer.getOutputImageView(), vk::ImageLayout::eGeneral);
             std::vector<vk::WriteDescriptorSet> writes{
                 {
                     *set, 0, 0, 1,

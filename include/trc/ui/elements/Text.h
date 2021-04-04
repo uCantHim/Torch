@@ -5,7 +5,7 @@
 #include <codecvt>
 
 #include "ui/Element.h"
-#include "ui/Font.h"
+#include "ui/FontRegistry.h"
 
 namespace trc::ui
 {

@@ -1,11 +1,13 @@
-#include "ui/Font.h"
+#include "ui/FontRegistry.h"
 
 
 
 auto trc::ui::FontRegistry::addFont(const fs::path& file, ui32 fontSize) -> ui32
 {
     const ui32 fontIndex = nextFontIndex++;
-    fonts.emplace(fontIndex, new GlyphCache(Face(file, fontSize)));
+    auto& cache = fonts.emplace(fontIndex, new GlyphCache(Face(file, fontSize)));
+
+    onFontAdd(fontIndex, *cache);
 
     return fontIndex;
 }
@@ -20,4 +22,9 @@ auto trc::ui::FontRegistry::getGlyph(ui32 fontIndex, wchar_t character) -> const
 {
     assert(fonts.at(fontIndex) != nullptr);
     return fonts.at(fontIndex)->getGlyph(character);
+}
+
+void trc::ui::FontRegistry::setFontAddCallback(std::function<void(ui32, const GlyphCache&)> func)
+{
+    onFontAdd = std::move(func);
 }

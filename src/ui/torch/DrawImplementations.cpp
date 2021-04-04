@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "PipelineBuilder.h"
+#include "ui/Window.h"
 
 
 
@@ -200,10 +201,26 @@ void trc::ui_impl::DrawCollector::initStaticResources(
     quadPipeline = makeQuadPipeline(renderPass, 0);
     textPipeline = makeTextPipeline(renderPass, 0);
 
+    // Set up resource loading callbacks
+    ui::initUserCallbacks(
+        // Callback on font load
+        [] (ui32 fontIndex, const GlyphCache& cache)
+        {
+            existingFonts.emplace_back(fontIndex, cache);
+            for (auto collector : existingCollectors) {
+                collector->addFont(fontIndex, cache);
+            }
+        },
+        // Callback on image load
+        [](auto) {}
+    );
+
     // Add de-initialization callback
     vkb::StaticInit{
         []{},
         []() {
+            existingCollectors.clear();
+            existingFonts.clear();
             descLayout.reset();
         }
     };
@@ -245,8 +262,20 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
     )
 {
     initStaticResources(device, renderPass);
-
     createDescriptorSet(device);
+
+    existingCollectors.push_back(this);
+    for (auto& [i, cache] : existingFonts) {
+        addFont(i, cache);
+    }
+}
+
+trc::ui_impl::DrawCollector::~DrawCollector()
+{
+    auto it = std::find(existingCollectors.begin(), existingCollectors.end(), this);
+    if (it != existingCollectors.end()) {
+        existingCollectors.erase(it);
+    }
 }
 
 void trc::ui_impl::DrawCollector::beginFrame(vec2 windowSizePixels)
@@ -324,22 +353,24 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     }
 }
 
-void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex)
+void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)
 {
-    auto [it, success] = fonts.try_emplace(fontIndex, device);
+    auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
     if (!success) {
         return;
     }
 
-    // Force loading a standard set of glyphs
+    // Force-load a standard set of glyphs
     for (wchar_t c = 32; c < 256; c++) {
         it->second.getGlyphUvs(c);
     }
     updateFontDescriptor();
 }
 
-trc::ui_impl::DrawCollector::FontInfo::FontInfo(const vkb::Device&)
+trc::ui_impl::DrawCollector::FontInfo::FontInfo(const vkb::Device&, ui32 fontIndex, const GlyphCache& cache)
     :
+    fontIndex(fontIndex),
+    glyphCache(cache),
     glyphMap(new GlyphMap),
     imageView(glyphMap->getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm))
 {
@@ -386,13 +417,9 @@ void trc::ui_impl::DrawCollector::add(
         ? std::get<vec4>(elem.background)
         : vec4(1.0f);
 
-    // TODO: Add fonts in a callback instead of here, this is trash
+    // Retrieve font
     auto fontIt = fonts.find(text.fontIndex);
-    if (fontIt == fonts.end())
-    {
-        addFont(text.fontIndex);
-        fontIt = fonts.find(text.fontIndex);
-    }
+    if (fontIt == fonts.end()) return;
 
     for (const auto& letter : text.letters)
     {

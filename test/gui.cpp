@@ -19,11 +19,6 @@ int main()
         camera->lookAt(vec3(0, 2, 4), vec3(0, 0, 0), vec3(0, 1, 0));
         camera->makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
 
-        const ui32 nerdFont = ui::FontRegistry::addFont(
-            "/usr/share/fonts/nerd-fonts-complete/TTF/Hack Regular Nerd Font Complete.ttf",
-            18
-        );
-
         ui::Window window{{
             std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain())
         }};
@@ -46,6 +41,12 @@ int main()
         auto& graph = renderer->getRenderGraph();
         graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
         graph.addPass(trc::getGuiRenderStage(), renderPass);
+
+        // Now, after intialization, is it possible to load fonts
+        const ui32 nerdFont = ui::FontRegistry::addFont(
+            "/usr/share/fonts/nerd-fonts-complete/TTF/Hack Regular Nerd Font Complete.ttf",
+            18
+        );
 
         // Create some gui elements
         auto quad = window.create<ui::Quad>().makeUnique();
