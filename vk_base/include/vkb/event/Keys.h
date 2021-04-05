@@ -88,10 +88,11 @@ namespace vkb
         menu            = GLFW_KEY_MENU,
 
         space           = GLFW_KEY_SPACE,
-        tab             = GLFW_KEY_TAB,
-        backspace       = GLFW_KEY_BACKSPACE,
         capslock        = GLFW_KEY_CAPS_LOCK,
         escape          = GLFW_KEY_ESCAPE,
+        enter           = GLFW_KEY_ENTER,
+        tab             = GLFW_KEY_TAB,
+        backspace       = GLFW_KEY_BACKSPACE,
 
         grave_accent    = GLFW_KEY_GRAVE_ACCENT,      // ^ on german
         minus           = GLFW_KEY_MINUS,             // ß on german
