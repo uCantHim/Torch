@@ -3,6 +3,7 @@
 #include "Types.h"
 #include "Transform.h"
 #include "Style.h"
+#include "text/GlyphLoading.h"
 
 namespace trc::ui
 {
@@ -17,7 +18,7 @@ namespace trc::ui
         struct LetterInfo
         {
             // Unicode character code
-            wchar_t characterCode;
+            CharCode characterCode;
 
             // Offset from text position
             ivec2 glyphOffsetPixels;

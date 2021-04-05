@@ -18,7 +18,7 @@ auto trc::ui::FontRegistry::getFontInfo(ui32 fontIndex) -> const Face&
     return fonts.at(fontIndex)->getFace();
 }
 
-auto trc::ui::FontRegistry::getGlyph(ui32 fontIndex, wchar_t character) -> const GlyphMeta&
+auto trc::ui::FontRegistry::getGlyph(ui32 fontIndex, CharCode character) -> const GlyphMeta&
 {
     assert(fonts.at(fontIndex) != nullptr);
     return fonts.at(fontIndex)->getGlyph(character);

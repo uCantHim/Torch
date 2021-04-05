@@ -15,7 +15,7 @@ namespace trc::ui
         static auto addFont(const fs::path& file, ui32 fontSize) -> ui32;
 
         static auto getFontInfo(ui32 fontIndex) -> const Face&;
-        static auto getGlyph(ui32 fontIndex, wchar_t character) -> const GlyphMeta&;
+        static auto getGlyph(ui32 fontIndex, CharCode character) -> const GlyphMeta&;
 
         static void setFontAddCallback(std::function<void(ui32, const GlyphCache&)> func);
 
