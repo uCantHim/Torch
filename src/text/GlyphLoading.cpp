@@ -44,6 +44,10 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
                 throw std::runtime_error("Unable to load font with specific size "
                                          + std::to_string(fontSize) + ": " + std::to_string(errorCode));
             }
+            errorCode = FT_Select_Charmap(*face, FT_ENCODING_UNICODE);
+            if (errorCode != 0) {
+                throw std::runtime_error("Unable to select unicode encoding on FreeType face");
+            }
             return face;
         }(),
         // Deleter
