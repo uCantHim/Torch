@@ -6,6 +6,7 @@
 #include "CRTPNode.h"
 #include "DrawInfo.h"
 #include "event/Event.h"
+#include "event/InputEvent.h"
 #include "event/EventListenerRegistryBase.h"
 
 namespace trc::ui
@@ -19,9 +20,14 @@ namespace trc::ui
     };
 
     struct ElementEventBase : public InheritEventListener<
-                                event::Click,
-                                event::Release,
-                                event::Hover
+                                // Low-level events
+                                event::KeyPress, event::KeyRelease,
+                                event::CharInput,
+
+                                // High-level user events
+                                event::Click, event::Release,
+                                event::Hover,
+                                event::Input
                             >
     {
     };
@@ -33,7 +39,7 @@ namespace trc::ui
      */
     struct GlobalTransformStorage
     {
-    private:
+    protected:
         friend class Window;
 
         vec2 globalPos;
@@ -42,6 +48,8 @@ namespace trc::ui
 
     /**
      * @brief Base class of all UI elements
+     *
+     * Contains a reference to its parent window
      */
     class Element : public TransformNode<Element>
                   , public GlobalTransformStorage
@@ -50,6 +58,16 @@ namespace trc::ui
     {
     public:
         ElementStyle style;
+
+    protected:
+        friend class Window;
+
+        Element() = default;
+        explicit Element(Window& window)
+            : window(&window)
+        {}
+
+        Window* window;
     };
 
     template<typename T>

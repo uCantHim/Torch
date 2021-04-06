@@ -42,6 +42,7 @@ namespace trc::ui_impl
         struct _border {};
 
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::NoType&);
+        void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Line&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Quad&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Text&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border);

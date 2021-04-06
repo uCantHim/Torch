@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IoConfig.h"
 #include "Element.h"
 #include "FontRegistry.h"
 #include "text/GlyphLoading.h"
@@ -71,6 +72,8 @@ namespace trc::ui
     {
         u_ptr<WindowBackend> windowBackend;
         std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
+
+        KeyMapping keyMap;
     };
 
     /**
@@ -102,7 +105,6 @@ namespace trc::ui
          * @brief Create an element
          */
         template<GuiElement E, typename... Args>
-            requires std::is_constructible_v<E, Args...>
         inline auto create(Args&&... args) -> ElementHandleProxy<E>;
 
         /**
@@ -120,6 +122,24 @@ namespace trc::ui
 
         // void signalMouseRelease(float posPixelsX, float posPixelsY);
         // void signalMouseMove(float posPixelsX, float posPixelsY);
+
+        void signalKeyPress(int key);
+        void signalKeyRepeat(int key); // Just issues a key press event for now
+        void signalKeyRelease(int key);
+        void signalCharInput(ui32 character);
+
+        auto getIoConfig() -> IoConfig&;
+        auto getIoConfig() const -> const IoConfig&;
+
+        /**
+         * Calculate the absolute pixel values of a normalized point
+         */
+        auto normToPixels(vec2 p) const -> vec2;
+
+        /**
+         * Normalize a point in pixels relative to the window size
+         */
+        auto pixelsToNorm(vec2 p) const -> vec2;
 
         /**
          * @brief Called when the window is destroyed
@@ -152,6 +172,7 @@ namespace trc::ui
         void realignElements();
 
         u_ptr<WindowBackend> windowBackend;
+        IoConfig ioConfig;
 
         std::vector<u_ptr<Element>> drawableElements;
         DrawList drawList;
@@ -161,14 +182,14 @@ namespace trc::ui
          * visited elements. The function is applied to parents first, then
          * to their children.
          */
-        template<std::invocable<Element&, vec2, vec2> F>
+        template<std::invocable<Element&> F>
         inline void traverse(F elemCallback);
 
         /**
          * @brief An element that does nothing
          */
         struct Root : Element {
-            void draw(DrawList&, vec2, vec2) override {}
+            void draw(DrawList&) override {}
         };
 
         // This is a unique_ptr because I'm too lazy to implement all those

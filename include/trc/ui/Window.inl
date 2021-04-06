@@ -38,14 +38,27 @@ inline auto trc::ui::ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
 
 
 template<trc::ui::GuiElement E, typename... Args>
-    requires std::is_constructible_v<E, Args...>
 inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleProxy<E>
 {
-    E& newElem = static_cast<E&>(
-        *drawableElements.emplace_back(new E(std::forward<Args>(args)...))
-    );
+    // Construct with Window in constructor if possible
+    if constexpr (std::is_constructible_v<E, Window&, Args...>)
+    {
+        E& newElem = static_cast<E&>(
+            *drawableElements.emplace_back(new E(*this, std::forward<Args>(args)...))
+        );
 
-    return { newElem, *this };
+        return { newElem, *this };
+    }
+    // Construct with args only and set window member later
+    else
+    {
+        E& newElem = static_cast<E&>(
+            *drawableElements.emplace_back(new E(std::forward<Args>(args)...))
+        );
+        newElem.window = this;
+
+        return { newElem, *this };
+    }
 }
 
 template<std::derived_from<trc::ui::event::MouseEvent> EventType>
@@ -85,12 +98,12 @@ void trc::ui::Window::descendEvent(EventType event, F breakCondition)
     descend(*root);
 }
 
-template<std::invocable<trc::ui::Element&, trc::vec2, trc::vec2> F>
+template<std::invocable<trc::ui::Element&> F>
 inline void trc::ui::Window::traverse(F elemCallback)
 {
     std::function<void(Element&)> traverseElement = [&](Element& node)
     {
-        elemCallback(node, node.globalPos, node.globalSize);
+        elemCallback(node);
         node.foreachChild(traverseElement);
     };
 

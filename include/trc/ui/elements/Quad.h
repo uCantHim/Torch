@@ -6,7 +6,8 @@ namespace trc::ui
 {
     class Quad : public Element
     {
-        void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) override
+    protected:
+        void draw(DrawList& drawList) override
         {
             drawList.emplace_back(DrawInfo{ globalPos, globalSize, style, types::Quad{} });
         }

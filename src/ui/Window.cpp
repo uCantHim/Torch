@@ -20,6 +20,8 @@ trc::ui::Window::Window(WindowCreateInfo createInfo)
     windowBackend(std::move(createInfo.windowBackend))
 {
     assert(this->windowBackend != nullptr);
+
+    ioConfig.keyMap = createInfo.keyMap;
 }
 
 trc::ui::Window::~Window()
@@ -32,8 +34,8 @@ auto trc::ui::Window::draw() -> const DrawList&
     realignElements();
 
     drawList.clear();
-    traverse([this](Element& elem, vec2 globalPos, vec2 globalSize) {
-        elem.draw(drawList, globalPos, globalSize);
+    traverse([this](Element& elem) {
+        elem.draw(drawList);
     });
 
     return drawList;
@@ -64,6 +66,53 @@ void trc::ui::Window::signalMouseClick(float posPixelsX, float posPixelsY)
     event.mousePosNormal = vec2{ posPixelsX, posPixelsY } / getSize();
 
     descendMouseEvent(event);
+}
+
+void trc::ui::Window::signalKeyPress(int key)
+{
+    ioConfig.keysDown[key] = true;
+
+    event::KeyPress event{ .key=key };
+    traverse([&](Element& e) { e.notify(event); });
+}
+
+void trc::ui::Window::signalKeyRepeat(int key)
+{
+    signalKeyPress(key);
+}
+
+void trc::ui::Window::signalKeyRelease(int key)
+{
+    ioConfig.keysDown[key] = false;
+
+    event::KeyRelease event{ .key=key };
+    traverse([&](Element& e) { e.notify(event); });
+}
+
+void trc::ui::Window::signalCharInput(ui32 character)
+{
+    event::CharInput event{ .character=character };
+    traverse([&](Element& e) { e.notify(event); });
+}
+
+auto trc::ui::Window::getIoConfig() -> IoConfig&
+{
+    return ioConfig;
+}
+
+auto trc::ui::Window::getIoConfig() const -> const IoConfig&
+{
+    return ioConfig;
+}
+
+auto trc::ui::Window::normToPixels(vec2 p) const -> vec2
+{
+    return glm::floor(p * windowBackend->getSize());
+}
+
+auto trc::ui::Window::pixelsToNorm(vec2 p) const -> vec2
+{
+    return p / windowBackend->getSize();
 }
 
 void trc::ui::Window::realignElements()

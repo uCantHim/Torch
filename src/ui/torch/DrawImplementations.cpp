@@ -36,7 +36,6 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
             { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
         )
         .setPrimitiveTopology(vk::PrimitiveTopology::eLineList)
-        //.setPolygonMode(vk::PolygonMode::eLine)
         .addViewport({})
         .addScissorRect({})
         .addDynamicState(vk::DynamicState::eViewport)
@@ -394,6 +393,23 @@ void trc::ui_impl::DrawCollector::add(
     const ui::ElementStyle&,
     const ui::types::NoType&)
 {
+}
+
+void trc::ui_impl::DrawCollector::add(
+    vec2 pos, vec2 size,
+    const ui::ElementStyle& elem,
+    const ui::types::Line& line)
+{
+    const vec4 color = std::holds_alternative<vec4>(elem.background)
+        ? std::get<vec4>(elem.background)
+        : vec4(1.0f);
+
+    lines.push_back({
+        .start = pos,
+        .end   = pos + size,
+        .color = color,
+        .width = static_cast<float>(line.width)
+    });
 }
 
 void trc::ui_impl::DrawCollector::add(

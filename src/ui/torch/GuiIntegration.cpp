@@ -15,7 +15,14 @@
 auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
 {
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
-        std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain()),
+        .windowBackend=std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain()),
+        .keyMap = ui::KeyMapping{
+            .escape = static_cast<int>(vkb::Key::escape),
+            .backspace = static_cast<int>(vkb::Key::backspace),
+            .enter = static_cast<int>(vkb::Key::enter),
+            .tab = static_cast<int>(vkb::Key::tab),
+            .del = static_cast<int>(vkb::Key::del),
+        }
     });
 
     // Notify GUI of mouse clicks
@@ -25,6 +32,20 @@ auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
             vec2 pos = e.swapchain->getMousePosition();
             window->signalMouseClick(pos.x, pos.y);
         }
+    });
+
+    // Notify GUI of key events
+    vkb::on<vkb::KeyPressEvent>([window=window.get()](auto& e) {
+        window->signalKeyPress(static_cast<int>(e.key));
+    });
+    vkb::on<vkb::KeyRepeatEvent>([window=window.get()](auto& e) {
+        window->signalKeyRepeat(static_cast<int>(e.key));
+    });
+    vkb::on<vkb::KeyReleaseEvent>([window=window.get()](auto& e) {
+        window->signalKeyRelease(static_cast<int>(e.key));
+    });
+    vkb::on<vkb::CharInputEvent>([window=window.get()](auto& e) {
+        window->signalCharInput(e.character);
     });
 
     // Add gui pass and stage to render graph

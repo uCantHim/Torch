@@ -13,6 +13,12 @@ namespace trc::ui
     namespace types
     {
         struct NoType {};
+
+        struct Line
+        {
+            ui32 width{ 1 };
+        };
+
         struct Quad {};
 
         struct LetterInfo
@@ -39,6 +45,7 @@ namespace trc::ui
 
     using DrawType = std::variant<
         types::NoType,
+        types::Line,
         types::Quad,
         types::Text
     >;
@@ -64,6 +71,6 @@ namespace trc::ui
 
         virtual ~Drawable() = default;
 
-        virtual void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) = 0;
+        virtual void draw(DrawList& drawList) = 0;
     };
 } // namespace trc::ui

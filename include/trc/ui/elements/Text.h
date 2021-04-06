@@ -7,6 +7,9 @@
 
 namespace trc::ui
 {
+    auto layoutText(const std::string& str, ui32 fontIndex) -> std::pair<types::Text, ivec2>;
+    auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex) -> std::pair<types::Text, ivec2>;
+
     class StaticTextProperties
     {
     public:
@@ -17,14 +20,12 @@ namespace trc::ui
         static inline ui32 defaultFont{ 0 };
     };
 
-    auto calcTextDrawable(const std::string& str, ui32 fontIndex) -> types::Text;
-
     class Text : public Element, public StaticTextProperties
     {
     public:
         Text(std::string str, ui32 fontIndex = getDefaultFont());
 
-        void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) override;
+        void draw(DrawList& drawList) override;
 
         void print(std::string str);
 
