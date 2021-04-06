@@ -118,7 +118,7 @@ trc::ui::Text::Text(std::string str, ui32 fontIndex)
     fontIndex(fontIndex)
 {
     setSize({ 1.0f, 1.0f });
-    setSizeProperties({ .type=SizeType::eNorm, .alignment=Align::eRelative });
+    setSizeProperties({ .format=Format::eNorm, .alignment=Align::eRelative });
 }
 
 void trc::ui::Text::draw(DrawList& drawList)

@@ -65,7 +65,7 @@ template<std::derived_from<trc::ui::event::MouseEvent> EventType>
 void trc::ui::Window::descendMouseEvent(EventType event)
 {
     static constexpr auto isInside = [](const vec2 point, const Transform& t) -> bool {
-        assert(t.posProp.type == SizeType::eNorm && t.sizeProp.type == SizeType::eNorm);
+        assert(t.posProp.format == Format::eNorm && t.sizeProp.format == Format::eNorm);
 
         const vec2 diff = point - t.position;
         return diff.x >= 0.0f

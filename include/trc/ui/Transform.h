@@ -4,7 +4,7 @@
 
 namespace trc::ui
 {
-    enum class SizeType : ui8
+    enum class Format : ui8
     {
         eNorm,
         ePixel,
@@ -20,7 +20,7 @@ namespace trc::ui
     {
         struct Properties
         {
-            SizeType type{ SizeType::eNorm };
+            Format format{ Format::eNorm };
             Align alignment{ Align::eRelative };
         };
 
