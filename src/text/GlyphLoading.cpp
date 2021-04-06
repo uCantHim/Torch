@@ -62,7 +62,12 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
     lineSpace(((*face)->size->metrics.height >> 6)),
     maxAscend((*face)->size->metrics.ascender >> 6),
     maxDescend((*face)->size->metrics.descender / 64),
-    maxLineHeight(maxAscend - maxDescend)
+    maxLineHeight(maxAscend - maxDescend),
+
+    lineSpaceNorm(static_cast<float>(lineSpace) / static_cast<float>(maxGlyphHeight)),
+    maxAscendNorm(static_cast<float>(maxAscend) / static_cast<float>(maxGlyphHeight)),
+    maxDescendNorm(static_cast<float>(maxDescend) / static_cast<float>(maxGlyphHeight)),
+    maxLineHeightNorm(maxAscendNorm - maxDescendNorm)
 {
 
 

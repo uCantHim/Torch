@@ -57,8 +57,13 @@ namespace trc
         const ui32 lineSpace;      // Space between lines of text in pixels
 
         const ui32 maxAscend;
-        const i32 maxDescend;
+        const i32 maxDescend; // Can be negative
         const ui32 maxLineHeight; // This is maxAscend - maxDescend
+
+        const float lineSpaceNorm;
+        const float maxAscendNorm;  // Max glyph ascend from baseline relative to max glyph height
+        const float maxDescendNorm; // Max glyph descend from baseline relative to max glyph height
+        const float maxLineHeightNorm;
     };
 
     /**
