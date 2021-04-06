@@ -59,8 +59,13 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
     maxGlyphHeight(((*face)->bbox.yMax >> 6) - ((*face)->bbox.yMin >> 6)),
     maxGlyphWidth(((*face)->bbox.xMax >> 6) - ((*face)->bbox.xMin >> 6)),
     // maxGlyphHeight and lineSpace seem to be the same values
-    lineSpace(((*face)->size->metrics.height >> 6))
+    lineSpace(((*face)->size->metrics.height >> 6)),
+    maxAscend((*face)->size->metrics.ascender >> 6),
+    maxDescend((*face)->size->metrics.descender / 64),
+    maxLineHeight(maxAscend - maxDescend)
 {
+
+
 }
 
 auto trc::Face::loadGlyph(CharCode charCode) const -> GlyphMeta

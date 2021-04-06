@@ -55,6 +55,10 @@ namespace trc
         const ui32 maxGlyphHeight; // Height of the highest glyph in pixels
         const ui32 maxGlyphWidth;  // Width of the widest glyph in pixels
         const ui32 lineSpace;      // Space between lines of text in pixels
+
+        const ui32 maxAscend;
+        const i32 maxDescend;
+        const ui32 maxLineHeight; // This is maxAscend - maxDescend
     };
 
     /**
