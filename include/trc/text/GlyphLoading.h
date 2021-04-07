@@ -44,26 +44,45 @@ namespace trc
     class Face
     {
     public:
-        explicit Face(const fs::path& path, ui32 fontSize = 18);
+        explicit Face(const fs::path& path, ui32 pixelSize = 40);
 
         auto loadGlyph(CharCode charCode) const -> GlyphMeta;
 
     private:
         std::unique_ptr<FT_Face, std::function<void(FT_Face*)>> face;
+        FT_Face _face{ *face };
+
+        inline auto scaleDevUnitsX(auto val)
+        {
+            if (FT_IS_SCALABLE(_face)) {
+                return FT_MulFix(val, _face->size->metrics.x_scale);
+            }
+            return val;
+        }
+
+        inline auto scaleDevUnitsY(auto val)
+        {
+            if (FT_IS_SCALABLE(_face)) {
+                return FT_MulFix(val, _face->size->metrics.y_scale);
+            }
+            return val;
+        }
 
     public:
+        const ui32 renderSize; // Pixel size in which the glyph's bitmaps are rendered
+
         const ui32 maxGlyphHeight; // Height of the highest glyph in pixels
         const ui32 maxGlyphWidth;  // Width of the widest glyph in pixels
-        const ui32 lineSpace;      // Space between lines of text in pixels
+        const ui32 lineSpace;      // Vertical space between lines of text in pixels
 
-        const ui32 maxAscend;
-        const i32 maxDescend; // Can be negative
-        const ui32 maxLineHeight; // This is maxAscend - maxDescend
+        const ui32 maxAscend;      // In pixels
+        const i32 maxDescend;      // In pixels; can be negative
+        const ui32 maxLineHeight;  // In pixels; equal to maxGlyphHeight
 
-        const float lineSpaceNorm;
-        const float maxAscendNorm;  // Max glyph ascend from baseline relative to max glyph height
-        const float maxDescendNorm; // Max glyph descend from baseline relative to max glyph height
-        const float maxLineHeightNorm;
+        const float lineSpaceNorm;     // Normalized vertical space between lines of text
+        const float maxAscendNorm;     // Max glyph ascend from baseline relative to max glyph height
+        const float maxDescendNorm;    // Max glyph descend from baseline relative to max glyph height
+        const float maxLineHeightNorm; // Is always 1.0f
     };
 
     /**

@@ -23,7 +23,7 @@ inline auto getFreetype() -> FT_Library
 
 
 
-trc::Face::Face(const fs::path& path, ui32 fontSize)
+trc::Face::Face(const fs::path& path, ui32 pixelSize)
     :
     face(
         // Create the face
@@ -39,10 +39,10 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
             if (errorCode != 0) {
                 throw std::runtime_error("Unable to load font (" + std::to_string(errorCode) + ")");
             }
-            errorCode = FT_Set_Pixel_Sizes(*face, 0, fontSize);
+            errorCode = FT_Set_Pixel_Sizes(*face, 0, pixelSize);
             if (errorCode != 0) {
                 throw std::runtime_error("Unable to load font with specific size "
-                                         + std::to_string(fontSize) + ": " + std::to_string(errorCode));
+                                         + std::to_string(pixelSize) + ": " + std::to_string(errorCode));
             }
             errorCode = FT_Select_Charmap(*face, FT_ENCODING_UNICODE);
             if (errorCode != 0) {
@@ -56,21 +56,30 @@ trc::Face::Face(const fs::path& path, ui32 fontSize)
             delete face;
         }
     ),
-    maxGlyphHeight(((*face)->bbox.yMax >> 6) - ((*face)->bbox.yMin >> 6)),
-    maxGlyphWidth(((*face)->bbox.xMax >> 6) - ((*face)->bbox.xMin >> 6)),
-    // maxGlyphHeight and lineSpace seem to be the same values
-    lineSpace(((*face)->size->metrics.height >> 6)),
-    maxAscend((*face)->size->metrics.ascender >> 6),
-    maxDescend((*face)->size->metrics.descender / 64),
-    maxLineHeight(maxAscend - maxDescend),
+    renderSize(pixelSize),
+    maxGlyphHeight(
+        (scaleDevUnitsY(_face->bbox.yMax) >> 6)
+        - (scaleDevUnitsY(_face->bbox.yMin) >> 6)
+    ),
+    maxGlyphWidth(
+        (scaleDevUnitsX(_face->bbox.xMax) >> 6)
+        - (scaleDevUnitsX(_face->bbox.xMin) >> 6)
+    ),
 
+    // Freetype says that the following three values don't have to be scaled
+    // to device size. WHYYYYYYY
+    lineSpace(_face->size->metrics.height >> 6),
+    maxAscend(_face->size->metrics.ascender >> 6),
+    maxDescend(_face->size->metrics.descender / 64),
+
+    maxLineHeight(maxGlyphHeight),
+
+    // Calculate normalized values based on the values queried above
     lineSpaceNorm(static_cast<float>(lineSpace) / static_cast<float>(maxGlyphHeight)),
     maxAscendNorm(static_cast<float>(maxAscend) / static_cast<float>(maxGlyphHeight)),
     maxDescendNorm(static_cast<float>(maxDescend) / static_cast<float>(maxGlyphHeight)),
-    maxLineHeightNorm(maxAscendNorm - maxDescendNorm)
+    maxLineHeightNorm(1.0f)
 {
-
-
 }
 
 auto trc::Face::loadGlyph(CharCode charCode) const -> GlyphMeta
@@ -79,18 +88,15 @@ auto trc::Face::loadGlyph(CharCode charCode) const -> GlyphMeta
         throw std::runtime_error("Failed to load character '" + std::to_string(charCode));
     }
 
-    const auto& glyphData = *(*face)->glyph;
+    const auto& glyphData = *_face->glyph;
     const ui32 bitmapWidth = glyphData.bitmap.width;
     const ui32 bitmapHeight = glyphData.bitmap.rows;
 
     std::vector<ui8> data(bitmapWidth * bitmapHeight);
     memcpy(data.data(), glyphData.bitmap.buffer, data.size());
 
-    const float maxWidth = static_cast<float>(((*face)->bbox.xMax >> 6) - ((*face)->bbox.xMin >> 6));
-    const float maxHeight = static_cast<float>(((*face)->bbox.yMax >> 6) - ((*face)->bbox.yMin >> 6));
-
     const ivec2 pixelSize{ glyphData.metrics.width >> 6, glyphData.metrics.height >> 6 };
-    const vec2 normalSize{ static_cast<vec2>(pixelSize) / vec2(maxWidth, maxHeight) };
+    const vec2 normalSize{ static_cast<vec2>(pixelSize) / vec2(maxGlyphWidth, maxGlyphHeight) };
 
     const ui32 bearingY = glyphData.metrics.horiBearingY >> 6;
     const ui32 advance = glyphData.metrics.horiAdvance >> 6;
@@ -104,9 +110,9 @@ auto trc::Face::loadGlyph(CharCode charCode) const -> GlyphMeta
         },
         .metaNormalized = {
             .size        = normalSize,
-            .bearingY    = static_cast<float>(bearingY) / maxHeight,
-            .negBearingY = normalSize.y - (static_cast<float>(bearingY) / maxHeight),
-            .advance     = static_cast<float>(advance) / maxWidth,
+            .bearingY    = static_cast<float>(bearingY) / maxGlyphHeight,
+            .negBearingY = normalSize.y - (static_cast<float>(bearingY) / maxGlyphHeight),
+            .advance     = static_cast<float>(advance) / maxGlyphWidth,
         },
         .pixelData   = { std::move(data), uvec2(bitmapWidth, bitmapHeight) }
     };
