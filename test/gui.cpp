@@ -22,10 +22,16 @@ int main()
         auto window = trc::initGui(*renderer);
 
         // Now, after intialization, is it possible to load fonts
-        const ui32 nerdFont = ui::FontRegistry::addFont(
-            "/usr/share/fonts/nerd-fonts-complete/TTF/Hack Regular Nerd Font Complete.ttf",
-            18
-        );
+        const auto fontPath = "/usr/share/fonts/nerd-fonts-complete/TTF/Hack Regular Nerd Font Complete.ttf";
+        const ui32 nerdFont = ui::FontRegistry::addFont(fontPath, 22);
+
+        const std::vector<ui32> fonts{
+            ui::FontRegistry::addFont(fontPath, 20),
+            ui::FontRegistry::addFont(fontPath, 28),
+            ui::FontRegistry::addFont(fontPath, 32),
+            ui::FontRegistry::addFont(fontPath, 40),
+            ui::FontRegistry::addFont(fontPath, 48),
+        };
 
         // Create some gui elements
         auto quad = window->create<ui::Quad>().makeUnique();
@@ -55,6 +61,17 @@ int main()
         ).makeUnique();
         window->getRoot().attach(*text);
         text->setPos({ 0.2f, 0.6f });
+
+        for (float i = 0.0f; ui32 font : fonts)
+        {
+            auto& el = window->create<ui::Text>(
+                "Placeholdertext for font size "
+                + std::to_string(ui::FontRegistry::getFontInfo(font).renderSize) + "! :D",
+                font
+            ).makeRef();
+            window->getRoot().attach(el);
+            el.setPos({ 0.4f, 0.1f + (i += 0.05f) });
+        }
 
         // Also add world-space objects
         trc::Light light = trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);

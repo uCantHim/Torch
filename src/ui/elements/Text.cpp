@@ -2,58 +2,20 @@
 
 #include <iostream>
 
-#include "ui/DrawInfo.h"
 #include "text/UnicodeUtils.h"
+#include "ui/DrawInfo.h"
+#include "ui/Window.h"
 
 
 
-auto trc::ui::layoutText(const std::string& str, ::trc::ui32 fontIndex)
-    -> std::pair<types::Text, ::trc::ivec2>
+auto trc::ui::layoutText(const std::string& str, ::trc::ui32 fontIndex, ::trc::vec2 scaling)
+    -> std::pair<types::Text, ::trc::vec2>
 {
-    types::Text textInfo{
-        .fontIndex = fontIndex,
-        .letters = {}
-    };
-
-    // Create letter descriptions
-    const auto& face = FontRegistry::getFontInfo(fontIndex);
-    const i32 lineHeight{ static_cast<i32>(face.maxAscend) - face.maxDescend };
-    ivec2 glyphPos{ 0, face.maxAscend };
-    ivec2 textSize{ 0, lineHeight };
-    i32 currentLineWidth{ 0 };
-
-    iterUtf8(str, [&](CharCode code) {
-        if (code == '\n')
-        {
-            glyphPos.x = 0.0f;
-            glyphPos.y += face.lineSpace;
-
-            // Count full text size
-            textSize.y += lineHeight;
-            currentLineWidth = 0;
-
-            return;
-        }
-
-        auto& glyph = FontRegistry::getGlyph(fontIndex, code);
-        textInfo.letters.emplace_back(types::LetterInfo{
-            .characterCode = code,
-            .glyphOffsetPixels = glyphPos,
-            .glyphSizePixels = glyph.metaInPixels.size,
-            .bearingYPixels = glyph.metaInPixels.bearingY
-        });
-
-        glyphPos.x += glyph.metaInPixels.advance;
-
-        // Count text size
-        textSize.x = glm::max(textSize.x, currentLineWidth += glyph.metaInPixels.advance);
-    });
-
-    return { textInfo, textSize };
+    return layoutText(decodeUtf8(str), fontIndex, scaling);
 }
 
-auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontIndex)
-    -> std::pair<types::Text, ::trc::ivec2>
+auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontIndex, ::trc::vec2 scaling)
+    -> std::pair<types::Text, ::trc::vec2>
 {
     types::Text textInfo{
         .fontIndex = fontIndex,
@@ -62,20 +24,20 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
 
     // Create letter descriptions
     const auto& face = FontRegistry::getFontInfo(fontIndex);
-    const i32 lineHeight{ static_cast<i32>(face.maxAscend) - face.maxDescend };
-    ivec2 glyphPos{ 0, face.maxAscend };
-    ivec2 textSize{ 0, lineHeight };
-    i32 currentLineWidth{ 0 };
+
+    vec2 glyphPos{ 0, face.maxAscendNorm };
+    vec2 textSize{ 0, face.maxLineHeightNorm };
+    float currentLineWidth{ 0 };
 
     for (CharCode code : chars)
     {
         if (code == '\n')
         {
             glyphPos.x = 0.0f;
-            glyphPos.y += face.lineSpace;
+            glyphPos.y += face.lineSpaceNorm;
 
             // Count full text size
-            textSize.y += lineHeight;
+            textSize.y += face.maxLineHeightNorm;
             currentLineWidth = 0;
 
             continue;
@@ -84,18 +46,18 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
         auto& glyph = FontRegistry::getGlyph(fontIndex, code);
         textInfo.letters.emplace_back(types::LetterInfo{
             .characterCode = code,
-            .glyphOffsetPixels = glyphPos,
-            .glyphSizePixels = glyph.metaInPixels.size,
-            .bearingYPixels = glyph.metaInPixels.bearingY
+            .glyphOffset = glyphPos * scaling,
+            .glyphSize = glyph.metaNormalized.size * scaling,
+            .bearingY = glyph.metaNormalized.bearingY * scaling.y
         });
 
-        glyphPos.x += glyph.metaInPixels.advance;
+        glyphPos.x += glyph.metaNormalized.advance;
 
         // Count text size
-        textSize.x = glm::max(textSize.x, currentLineWidth += glyph.metaInPixels.advance);
+        textSize.x = glm::max(textSize.x, currentLineWidth += glyph.metaNormalized.advance);
     }
 
-    return { textInfo, textSize };
+    return { textInfo, textSize * scaling };
 }
 
 
@@ -112,10 +74,49 @@ auto trc::ui::StaticTextProperties::getDefaultFont() -> ui32
 
 
 
-trc::ui::Text::Text(std::string str, ui32 fontIndex)
+// ------------------- //
+//      Text base      //
+// ------------------- //
+
+trc::ui::TextBase::TextBase(std::string str)
+    :
+    printedText(std::move(str))
+{
+}
+
+trc::ui::TextBase::TextBase(std::string str, ui32 fontIndex, ui32 fontSize)
     :
     printedText(std::move(str)),
-    fontIndex(fontIndex)
+    fontIndex(fontIndex),
+    fontSize(fontSize)
+{
+}
+
+void trc::ui::TextBase::print(std::string str)
+{
+    printedText = std::move(str);
+}
+
+auto trc::ui::TextBase::getFontScaling(const Window& window) const -> vec2
+{
+    return window.pixelsToNorm(vec2(fontSize));
+}
+
+
+
+// ---------------------- //
+//      Text element      //
+// ---------------------- //
+
+trc::ui::Text::Text(std::string str, ui32 fontIndex)
+    :
+    Text(std::move(str), fontIndex, FontRegistry::getFontInfo(fontIndex).renderSize)
+{
+}
+
+trc::ui::Text::Text(std::string str, ui32 fontIndex, ui32 fontSize)
+    :
+    TextBase(std::move(str), fontIndex, fontSize)
 {
     setSize({ 1.0f, 1.0f });
     setSizeProperties({ .format=Format::eNorm, .alignment=Align::eRelative });
@@ -123,15 +124,11 @@ trc::ui::Text::Text(std::string str, ui32 fontIndex)
 
 void trc::ui::Text::draw(DrawList& drawList)
 {
+    vec2 scaling = window->pixelsToNorm(vec2(FontRegistry::getFontInfo(fontIndex).renderSize * 1.333f));
     drawList.emplace_back(DrawInfo{
         .pos   = globalPos,
         .size  = globalSize,
         .style = { .background = vec4(0.0f) },
-        .type  = layoutText(printedText, fontIndex).first
+        .type  = layoutText(printedText, fontIndex, scaling).first
     });
-}
-
-void trc::ui::Text::print(std::string str)
-{
-    printedText = std::move(str);
 }

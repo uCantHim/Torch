@@ -27,12 +27,12 @@ namespace trc::ui
             CharCode characterCode;
 
             // Offset from text position
-            ivec2 glyphOffsetPixels;
-            ivec2 glyphSizePixels;
+            vec2 glyphOffset;
+            vec2 glyphSize;
 
             // The glyph's bearing. Included here so that the
             // implementation doesn't have to look it up.
-            ui32 bearingYPixels;
+            float bearingY;
         };
 
         struct Text

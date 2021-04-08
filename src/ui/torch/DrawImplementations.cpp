@@ -104,12 +104,7 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
         TRC_SHADER_DIR"/ui/text.frag.spv"
     );
 
-    auto layout = trc::makePipelineLayout(
-        { *descLayout },
-        {
-            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(vec2))
-        }
-    );
+    auto layout = trc::makePipelineLayout({ *descLayout }, {});
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -353,10 +348,6 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
         cmdBuf.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, pText.getLayout(),
             0, *fontDescSet, {}
-        );
-        cmdBuf.pushConstants<vec2>(
-            pText.getLayout(), vk::ShaderStageFlagBits::eVertex,
-            0, windowSizePixels
         );
 
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
