@@ -8,7 +8,12 @@
 namespace trc::ui
 {
     /**
-     * Generate glyph positions for a string of text
+     * @brief Generate glyph positions for a string of text
+     *
+     * Always adds a trailing null-character at the end. It has the correct
+     * position that a normal character would have. It can be used to
+     * compute things that require the advance of the last character in
+     * the string.
      *
      * @param vec2 scaling The function uses the font's normalized glyph
      *        data. Set this scaling to your desired font size divided by
@@ -18,7 +23,12 @@ namespace trc::ui
         -> std::pair<types::Text, vec2>;
 
     /**
-     * Generate glyph positions for an array of unicode characters
+     * @brief Generate glyph positions for an array of unicode characters
+     *
+     * Always adds a trailing null-character at the end. It has the correct
+     * position that a normal character would have. It can be used to
+     * compute things that require the advance of the last character in
+     * the string.
      *
      * @param vec2 scaling The function uses the font's normalized glyph
      *        data. Set this scaling to your desired font size divided by

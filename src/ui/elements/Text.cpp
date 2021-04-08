@@ -57,6 +57,14 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
         textSize.x = glm::max(textSize.x, currentLineWidth += glyph.metaNormalized.advance);
     }
 
+    // Add null-character at the end
+    textInfo.letters.emplace_back(types::LetterInfo{
+        .characterCode = 0x00,
+        .glyphOffset = glyphPos * scaling,
+        .glyphSize = vec2(0.0f),
+        .bearingY = 0.0f
+    });
+
     return { textInfo, textSize * scaling };
 }
 
