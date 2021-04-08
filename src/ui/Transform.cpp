@@ -16,13 +16,13 @@ auto trc::ui::concat(Transform parent, Transform child, const Window& window) no
     if (parent.sizeProp.format == Format::ePixel) { parent.size /= windowSize; }
 
     return {
-        .position = child.posProp.alignment == Align::eRelative
+        .position = child.posProp.align == Align::eRelative
             ? parent.position + child.position
             : child.position,
-        .size = child.sizeProp.alignment == Align::eRelative
+        .size = child.sizeProp.align == Align::eRelative
             ? parent.size * child.size
             : child.size,
-        .posProp = { .format = Format::eNorm, .alignment = Align::eAbsolute },
-        .sizeProp = { .format = Format::eNorm, .alignment = Align::eAbsolute },
+        .posProp = { .format = Format::eNorm, .align = Align::eAbsolute },
+        .sizeProp = { .format = Format::eNorm, .align = Align::eAbsolute },
     };
 }

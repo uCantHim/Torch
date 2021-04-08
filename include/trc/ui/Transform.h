@@ -21,7 +21,7 @@ namespace trc::ui
         struct Properties
         {
             Format format{ Format::eNorm };
-            Align alignment{ Align::eRelative };
+            Align align{ Align::eRelative };
         };
 
         vec2 position{ 0.0f, 0.0f };
