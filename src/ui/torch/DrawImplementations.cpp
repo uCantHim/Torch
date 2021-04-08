@@ -288,6 +288,7 @@ void trc::ui_impl::DrawCollector::beginFrame(vec2 windowSizePixels)
 {
     this->windowSizePixels = windowSizePixels;
     quadBuffer.clear();
+    textRanges.clear();
     letterBuffer.clear();
     lines.clear();
 }
@@ -338,20 +339,30 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     }
 
     // Draw text
-    if (letterBuffer.size() > 0)
+    if (!textRanges.empty())
     {
         auto& pText = Pipeline::at(textPipeline);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
         cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-        cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
 
         cmdBuf.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, pText.getLayout(),
             0, *fontDescSet, {}
         );
-
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
-        cmdBuf.draw(6, letterBuffer.size(), 0, 0);
+    }
+
+    for (ui32 letterOffset{ 0 };
+         auto [offset, extent, numLetters] : textRanges)
+    {
+        cmdBuf.setScissor(0, vk::Rect2D(
+            { static_cast<i32>(offset.x * size.width), static_cast<i32>(offset.y * size.height) },
+            { static_cast<ui32>(extent.x * size.width), static_cast<ui32>(extent.y * size.height) }
+        ));
+
+        cmdBuf.draw(6, numLetters, 0, letterOffset);
+
+        letterOffset += numLetters;
     }
 }
 
@@ -440,6 +451,13 @@ void trc::ui_impl::DrawCollector::add(
             .color = color
         });
     }
+
+    const float width = text.maxDisplayWidth < 0.0f ? 1.0f : text.maxDisplayWidth;
+    textRanges.push_back(TextRange{
+        .scissorOffset = pos,
+        .scissorSize   = { width, 1.0f },
+        .numLetters = static_cast<ui32>(text.letters.size())
+    });
 }
 
 void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border)

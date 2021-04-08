@@ -56,19 +56,11 @@ void trc::ui::InputField::draw(DrawList& drawList)
         ? padding
         : window->pixelsToNorm(padding);
     const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
-    const auto [text, textSize] = layoutText(inputChars, fontIndex, fontScaling);
+    auto [text, textSize] = layoutText(inputChars, fontIndex, fontScaling);
     const vec2 textPos{ globalPos + normPadding };
 
     globalSize.y = textSize.y + normPadding.y * 2.0f;
     Quad::draw(drawList);
-
-    // Draw text
-    drawList.push_back(DrawInfo{
-        .pos   = textPos,
-        .size  = textSize,
-        .style = {},
-        .type  = std::move(text)
-    });
 
     // Draw cursor line
     if (focused)
@@ -83,6 +75,15 @@ void trc::ui::InputField::draw(DrawList& drawList)
             .type  = types::Line{ .width=1 }
         });
     }
+
+    // Draw text
+    text.maxDisplayWidth = globalSize.x - normPadding.x * 2.0f;
+    drawList.push_back(DrawInfo{
+        .pos   = textPos,
+        .size  = textSize,
+        .style = {},
+        .type  = std::move(text)
+    });
 }
 
 void trc::ui::InputField::setPadding(vec2 newPadding)

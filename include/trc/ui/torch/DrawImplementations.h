@@ -121,6 +121,13 @@ namespace trc::ui_impl
 
             vec4 color;
         };
+        struct TextRange
+        {
+            vec2 scissorOffset;
+            vec2 scissorSize;
+            ui32 numLetters;
+        };
+        std::vector<TextRange> textRanges;
         DynamicBuffer<LetterData> letterBuffer;
     };
 } // namespace trc::ui_impl

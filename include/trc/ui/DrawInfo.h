@@ -39,6 +39,7 @@ namespace trc::ui
         {
             ui32 fontIndex;
             std::vector<LetterInfo> letters;
+            float maxDisplayWidth{ -1.0f }; // negative means unlimited
         };
     }
 
