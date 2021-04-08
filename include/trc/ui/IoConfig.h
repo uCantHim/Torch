@@ -15,6 +15,11 @@ namespace trc::ui
         int enter;
         int tab;
         int del;
+
+        int arrowLeft;
+        int arrowRight;
+        int arrowUp;
+        int arrowDown;
     };
 
     struct IoConfig

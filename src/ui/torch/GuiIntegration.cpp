@@ -17,11 +17,15 @@ auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
         .windowBackend=std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain()),
         .keyMap = ui::KeyMapping{
-            .escape = static_cast<int>(vkb::Key::escape),
-            .backspace = static_cast<int>(vkb::Key::backspace),
-            .enter = static_cast<int>(vkb::Key::enter),
-            .tab = static_cast<int>(vkb::Key::tab),
-            .del = static_cast<int>(vkb::Key::del),
+            .escape     = static_cast<int>(vkb::Key::escape),
+            .backspace  = static_cast<int>(vkb::Key::backspace),
+            .enter      = static_cast<int>(vkb::Key::enter),
+            .tab        = static_cast<int>(vkb::Key::tab),
+            .del        = static_cast<int>(vkb::Key::del),
+            .arrowLeft  = static_cast<int>(vkb::Key::arrow_left),
+            .arrowRight = static_cast<int>(vkb::Key::arrow_right),
+            .arrowUp    = static_cast<int>(vkb::Key::arrow_up),
+            .arrowDown  = static_cast<int>(vkb::Key::arrow_down),
         }
     });
 
