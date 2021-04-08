@@ -261,7 +261,19 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
     )
 {
     initStaticResources(device, renderPass);
-    createDescriptorSet(device);
+
+    // Create descriptor pool
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 30),
+    };
+    descPool = device->createDescriptorPoolUnique(
+        vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+            1, // max sets
+            poolSizes
+        )
+    );
 
     existingCollectors.push_back(this);
     for (auto& [i, cache] : existingFonts) {
@@ -340,7 +352,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
 
         cmdBuf.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, pText.getLayout(),
-            0, *descSet, {}
+            0, *fontDescSet, {}
         );
         cmdBuf.pushConstants<vec2>(
             pText.getLayout(), vk::ShaderStageFlagBits::eVertex,
@@ -350,20 +362,6 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
         cmdBuf.draw(6, letterBuffer.size(), 0, 0);
     }
-}
-
-void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)
-{
-    auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
-    if (!success) {
-        return;
-    }
-
-    // Force-load a standard set of glyphs
-    for (wchar_t c = 32; c < 256; c++) {
-        it->second.getGlyphUvs(c);
-    }
-    updateFontDescriptor();
 }
 
 trc::ui_impl::DrawCollector::FontInfo::FontInfo(const vkb::Device&, ui32 fontIndex, const GlyphCache& cache)
@@ -442,11 +440,11 @@ void trc::ui_impl::DrawCollector::add(
         auto uvs = fontIt->second.getGlyphUvs(letter.characterCode);
         letterBuffer.push({
             .basePos    = pos,
-            .pos        = static_cast<vec2>(letter.glyphOffsetPixels),
-            .size       = static_cast<vec2>(letter.glyphSizePixels),
+            .pos        = letter.glyphOffset,
+            .size       = letter.glyphSize,
             .texCoordLL = uvs.lowerLeft,
             .texCoordUR = uvs.upperRight,
-            .bearingY   = static_cast<float>(letter.bearingYPixels),
+            .bearingY   = letter.bearingY,
             .fontIndex  = text.fontIndex,
             .color = color
         });
@@ -467,35 +465,37 @@ void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyl
     lines.push_back({ { pos.x, ur.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
 }
 
-void trc::ui_impl::DrawCollector::createDescriptorSet(const vkb::Device& device)
+void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)
 {
-    std::vector<vk::DescriptorPoolSize> poolSizes{
-        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 30),
-    };
-    descPool = device->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
-            1, // max sets
-            poolSizes
-        )
-    );
+    auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
+    if (!success) {
+        std::cout << "Unable to add font of index " << fontIndex << "\n";
+        return;
+    }
 
-    // Create set
-    const ui32 descriptorCount{ 1 };
-    vk::StructureChain chain{
-        vk::DescriptorSetAllocateInfo(*descPool, *descLayout),
-        vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &descriptorCount)
-    };
-    descSet = std::move(device->allocateDescriptorSetsUnique(
-        chain.get<vk::DescriptorSetAllocateInfo>()
-    )[0]);
+    // Force-load a standard set of glyphs
+    for (wchar_t c = 32; c < 256; c++) {
+        it->second.getGlyphUvs(c);
+    }
+    updateFontDescriptor();
 }
 
 void trc::ui_impl::DrawCollector::updateFontDescriptor()
 {
     if (fonts.size() > 0)
     {
+        // Recreate descriptor set with updated descriptor count
+        const ui32 descriptorCount = fonts.size();
+        vk::StructureChain chain{
+            vk::DescriptorSetAllocateInfo(*descPool, *descLayout),
+            vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &descriptorCount)
+        };
+        fontDescSet.reset();
+        fontDescSet = std::move(device->allocateDescriptorSetsUnique(
+            chain.get<vk::DescriptorSetAllocateInfo>()
+        )[0]);
+
+        // Write desciptors
         std::vector<vk::DescriptorImageInfo> fontInfos;
         for (const auto& [fontIndex, font] : fonts)
         {
@@ -505,7 +505,7 @@ void trc::ui_impl::DrawCollector::updateFontDescriptor()
             ));
         }
         vk::WriteDescriptorSet write(
-            *descSet, 0,
+            *fontDescSet, 0,
             0, fontInfos.size(),
             vk::DescriptorType::eCombinedImageSampler,
             fontInfos.data(),

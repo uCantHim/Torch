@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include <vkb/Buffer.h>
 
 #include "Pipeline.h"
@@ -57,10 +59,9 @@ namespace trc::ui_impl
         };
         vec2 windowSizePixels;
 
-        void createDescriptorSet(const vkb::Device& device);
         void updateFontDescriptor();
         vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSet descSet;
+        vk::UniqueDescriptorSet fontDescSet;
 
         // Plain line vertices
         struct Line
@@ -104,7 +105,7 @@ namespace trc::ui_impl
          * @param ui32 fontIndex The font's index in the ui::FontRegistry
          */
         void addFont(ui32 fontIndex, const GlyphCache& glyphCache);
-        std::unordered_map<ui32, FontInfo> fonts;
+        std::map<ui32, FontInfo> fonts; // std::map is terrible, but IndexMap is not iterable
 
         struct LetterData
         {
