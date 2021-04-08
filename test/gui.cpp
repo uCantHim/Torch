@@ -8,6 +8,7 @@ using namespace trc::basic_types;
 namespace ui = trc::ui;
 #include <ui/elements/Quad.h>
 #include <ui/elements/Text.h>
+#include <ui/elements/InputField.h>
 
 int main()
 {
@@ -72,6 +73,12 @@ int main()
             window->getRoot().attach(el);
             el.setPos({ 0.4f, 0.1f + (i += 0.05f) });
         }
+
+        auto input = window->create<ui::InputField>().makeUnique();
+        input->setSize({ 150, 40 });
+        input->setSizeProperties({ .format=ui::Format::ePixel, .alignment=ui::Align::eRelative });
+        input->setPos({ 0.1f, 0.3f });
+        window->getRoot().attach(*input);
 
         // Also add world-space objects
         trc::Light light = trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
