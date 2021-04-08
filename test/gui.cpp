@@ -2,13 +2,15 @@
 
 #include <trc/Torch.h>
 #include <trc/TorchResources.h>
-#include <trc/ui/Window.h>
 #include <trc/ui/torch/GuiIntegration.h>
 using namespace trc::basic_types;
-namespace ui = trc::ui;
+
+#include <ui/Window.h>
 #include <ui/elements/Quad.h>
 #include <ui/elements/Text.h>
 #include <ui/elements/InputField.h>
+namespace ui = trc::ui;
+using namespace ui::size_literals;
 
 int main()
 {
@@ -37,8 +39,8 @@ int main()
         // Create some gui elements
         auto quad = window->create<ui::Quad>().makeUnique();
         window->getRoot().attach(*quad);
-        quad->setPos({ 0.5f, 0.0f });
-        quad->setSize({ 0.1f, 0.15f });
+        quad->setPos(0.5f, 0.0f);
+        quad->setSize(0.1f, 0.15f);
 
         quad->addEventListener([](const ui::event::Click& e) {
             std::cout << "Click on first quad\n";
@@ -46,7 +48,7 @@ int main()
 
         auto child = window->create<ui::Quad>().makeUnique();
         quad->attach(*child);
-        child->setPos({ 0.15f, 0.4f });
+        child->setPos(0.15f, 0.4f);
         child->addEventListener([](const ui::event::Click& e) {
             std::cout << "Click on second quad\n";
         });
@@ -61,7 +63,7 @@ int main()
             nerdFont
         ).makeUnique();
         window->getRoot().attach(*text);
-        text->setPos({ 0.2f, 0.6f });
+        text->setPos(0.2f, 0.6f);
 
         for (float i = 0.0f; ui32 font : fonts)
         {
@@ -71,13 +73,12 @@ int main()
                 font
             ).makeRef();
             window->getRoot().attach(el);
-            el.setPos({ 0.4f, 0.1f + (i += 0.05f) });
+            el.setPos(0.4f, 0.1f + (i += 0.05f));
         }
 
         auto input = window->create<ui::InputField>().makeUnique();
-        input->setSize({ 150, 40 });
-        input->setSizeProperties({ .format=ui::Format::ePixel, .alignment=ui::Align::eRelative });
-        input->setPos({ 0.1f, 0.3f });
+        input->setSize(150_px, 40_px);
+        input->setPos(0.1f, 0.3f);
         window->getRoot().attach(*input);
 
         // Also add world-space objects
