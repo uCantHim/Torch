@@ -2,7 +2,6 @@
 
 #include <vector>
 
-//#include "text/GlyphLoading.h"
 #include "text/UnicodeUtils.h"
 #include "ui/event/Event.h"
 
@@ -14,7 +13,12 @@ namespace trc::ui::event
     struct Input : EventBase
     {
     public:
-        Input(const std::vector<CharCode>& chars) : inputChars(chars) {}
+        Input(const std::vector<CharCode>& chars, CharCode lastInput)
+            : inputChars(chars), lastInput(lastInput) {}
+
+        inline auto getLastInput() const -> CharCode {
+            return lastInput;
+        }
 
         /**
          * @return std::string UTF-8 encoded string
@@ -31,6 +35,7 @@ namespace trc::ui::event
         }
 
     private:
-        const std::vector<CharCode> inputChars;
+        const std::vector<CharCode>& inputChars;
+        const CharCode lastInput;
     };
 } // namespace trc::ui::event
