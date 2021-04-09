@@ -1,40 +1,56 @@
 #pragma once
 
 #include <string>
-#include <locale>
-#include <codecvt>
 
 #include "ui/Element.h"
-#include "ui/Font.h"
+#include "ui/elements/BaseElements.h"
+#include "ui/FontRegistry.h"
 
 namespace trc::ui
 {
-    class StaticTextProperties
+    /**
+     * @brief Generate glyph positions for a string of text
+     *
+     * Always adds a trailing null-character at the end. It has the correct
+     * position that a normal character would have. It can be used to
+     * compute things that require the advance of the last character in
+     * the string.
+     *
+     * @param vec2 scaling The function uses the font's normalized glyph
+     *        data. Set this scaling to your desired font size divided by
+     *        your window size to get properly sized glyphs.
+     */
+    auto layoutText(const std::string& str, ui32 fontIndex, vec2 scaling)
+        -> std::pair<types::Text, vec2>;
+
+    /**
+     * @brief Generate glyph positions for an array of unicode characters
+     *
+     * Always adds a trailing null-character at the end. It has the correct
+     * position that a normal character would have. It can be used to
+     * compute things that require the advance of the last character in
+     * the string.
+     *
+     * @param vec2 scaling The function uses the font's normalized glyph
+     *        data. Set this scaling to your desired font size divided by
+     *        your window size to get properly sized glyphs.
+     */
+    auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling)
+        -> std::pair<types::Text, vec2>;
+
+    class Text : public Element, TextBase
     {
     public:
-        static void setDefaultFont(ui32 fontIndex);
-        static auto getDefaultFont() -> ui32;
+        Text() = default;
+        Text(std::string str,
+             ui32 fontIndex = DefaultStyle::font,
+             ui32 fontSize = DefaultStyle::fontSize);
 
-    protected:
-        static inline std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> wstringConverter;
-
-    private:
-        static inline ui32 defaultFont{ 0 };
-    };
-
-    class Text : public Element, public StaticTextProperties
-    {
-    public:
-        Text(std::string str, ui32 fontIndex = getDefaultFont());
-        Text(std::wstring str, ui32 fontIndex = getDefaultFont());
-
-        void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) override;
+        void draw(DrawList& drawList) override;
 
         void print(std::string str);
-        void print(std::wstring str);
 
     private:
-        std::wstring printedText;
-        ui32 fontIndex;
+        std::string printedText;
     };
 } // namespace trc::ui

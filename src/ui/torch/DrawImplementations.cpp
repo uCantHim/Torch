@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "PipelineBuilder.h"
+#include "ui/Window.h"
 
 
 
@@ -12,6 +13,44 @@ struct QuadVertex
     trc::vec2 pos;
     trc::vec2 uv;
 };
+
+auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui32 subPass)
+    -> Pipeline::ID
+{
+    vkb::ShaderProgram program(TRC_SHADER_DIR"/ui/line.vert.spv", TRC_SHADER_DIR"/ui/line.frag.spv");
+
+    auto layout = makePipelineLayout(
+        {},
+        {
+            // Line start and end
+            { vk::ShaderStageFlagBits::eVertex,   0,                sizeof(vec2) * 2 },
+            // Line color
+            { vk::ShaderStageFlagBits::eFragment, sizeof(vec2) * 2, sizeof(vec4) },
+        }
+    );
+
+    auto pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
+            { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
+        )
+        .setPrimitiveTopology(vk::PrimitiveTopology::eLineList)
+        .addViewport({})
+        .addScissorRect({})
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .addDynamicState(vk::DynamicState::eLineWidth)
+        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
+        .setColorBlending({}, false, {}, {})
+        .build(*vkb::getDevice(), *layout, renderPass, subPass);
+
+    return Pipeline::createAtNextIndex(
+        std::move(layout),
+        std::move(pipeline),
+        vk::PipelineBindPoint::eGraphics
+    ).first;
+}
 
 auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass)
     -> Pipeline::ID
@@ -65,12 +104,7 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
         TRC_SHADER_DIR"/ui/text.frag.spv"
     );
 
-    auto layout = trc::makePipelineLayout(
-        { *descLayout },
-        {
-            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(vec2))
-        }
-    );
+    auto layout = trc::makePipelineLayout({ *descLayout }, {});
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -132,9 +166,6 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
 
 
 
-inline trc::Pipeline::ID quadPipeline;
-inline trc::Pipeline::ID textPipeline;
-
 void trc::ui_impl::DrawCollector::initStaticResources(
     const vkb::Device& device,
     vk::RenderPass renderPass)
@@ -160,8 +191,33 @@ void trc::ui_impl::DrawCollector::initStaticResources(
     descLayout = device->createDescriptorSetLayoutUnique(chain.get<vk::DescriptorSetLayoutCreateInfo>());
 
     // Create pipelines
+    linePipeline = makeLinePipeline(renderPass, 0);
     quadPipeline = makeQuadPipeline(renderPass, 0);
     textPipeline = makeTextPipeline(renderPass, 0);
+
+    // Set up resource loading callbacks
+    ui::initUserCallbacks(
+        // Callback on font load
+        [] (ui32 fontIndex, const GlyphCache& cache)
+        {
+            existingFonts.emplace_back(fontIndex, cache);
+            for (auto collector : existingCollectors) {
+                collector->addFont(fontIndex, cache);
+            }
+        },
+        // Callback on image load
+        [](auto) {}
+    );
+
+    // Add de-initialization callback
+    vkb::StaticInit{
+        []{},
+        []() {
+            existingCollectors.clear();
+            existingFonts.clear();
+            descLayout.reset();
+        }
+    };
 }
 
 
@@ -170,6 +226,7 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
     :
     device(device),
     quadVertexBuffer(
+        device,
         std::vector<QuadVertex>{
             { vec2(0, 0), vec2(0, 0) },
             { vec2(1, 1), vec2(1, 1) },
@@ -180,14 +237,19 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
         },
         vk::BufferUsageFlagBits::eVertexBuffer
     ),
+    lineUvBuffer(
+        device,
+        std::vector<vec2>{ vec2(0.0f, 0.0f), vec2(1.0f, 1.0f) },
+        vk::BufferUsageFlagBits::eVertexBuffer
+    ),
     quadBuffer(
-        vkb::getDevice(),
+        device,
         100, // Initial max number of quads
         vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     letterBuffer(
-        vkb::getDevice(),
+        device,
         100, // Initial max number of glyphs
         vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
@@ -195,71 +257,121 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
 {
     initStaticResources(device, renderPass);
 
-    createDescriptorSet(device);
+    // Create descriptor pool
+    std::vector<vk::DescriptorPoolSize> poolSizes{
+        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 30),
+    };
+    descPool = device->createDescriptorPoolUnique(
+        vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+            1, // max sets
+            poolSizes
+        )
+    );
+
+    existingCollectors.push_back(this);
+    for (auto& [i, cache] : existingFonts) {
+        addFont(i, cache);
+    }
+}
+
+trc::ui_impl::DrawCollector::~DrawCollector()
+{
+    auto it = std::find(existingCollectors.begin(), existingCollectors.end(), this);
+    if (it != existingCollectors.end()) {
+        existingCollectors.erase(it);
+    }
 }
 
 void trc::ui_impl::DrawCollector::beginFrame(vec2 windowSizePixels)
 {
     this->windowSizePixels = windowSizePixels;
     quadBuffer.clear();
+    textRanges.clear();
     letterBuffer.clear();
+    lines.clear();
 }
 
 void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
 {
-    std::visit([this, &elem=info.elem](auto type) {
-        add(elem, type);
+    std::visit([this, &info](auto type) {
+        add(info.pos, info.size, info.style, type);
+        if (info.style.borderThickness > 0) {
+            add(info.pos, info.size, info.style, _border{});
+        }
     }, info.type);
 }
 
 void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
 {
     const auto size = vkb::getSwapchain().getImageExtent();
+    const vk::Viewport defaultViewport(0, 0, size.width, size.height, 0.0f, 1.0f);
+    const vk::Rect2D defaultScissor({ 0, 0 }, { size.width, size.height });
 
-    // Draw all quads first
+    // Draw all quads
     auto& p = Pipeline::at(quadPipeline);
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
-    cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
+    cmdBuf.setViewport(0, defaultViewport);
+    cmdBuf.setScissor(0, defaultScissor);
 
     cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *quadBuffer }, { 0, 0 });
     cmdBuf.draw(6, quadBuffer.size(), 0, 0);
 
+    // Draw all lines
+    if (!lines.empty())
+    {
+        auto& p = Pipeline::at(linePipeline);
+        auto layout = p.getLayout();
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
+        cmdBuf.setViewport(0, defaultViewport);
+        cmdBuf.setScissor(0, defaultScissor);
+
+        for (const auto& line : lines)
+        {
+            cmdBuf.pushConstants<vec2>(layout, vk::ShaderStageFlagBits::eVertex,
+                                       0, { line.start, line.end });
+            cmdBuf.pushConstants<vec4>(layout, vk::ShaderStageFlagBits::eFragment,
+                                       16, line.color);
+            cmdBuf.setLineWidth(line.width);
+
+            cmdBuf.bindVertexBuffers(0, *lineUvBuffer, vk::DeviceSize(0));
+            cmdBuf.draw(2, 1, 0, 0);
+        }
+    }
+
     // Draw text
-    auto& pText = Pipeline::at(textPipeline);
-    cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
-    cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
+    if (!textRanges.empty())
+    {
+        auto& pText = Pipeline::at(textPipeline);
+        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
+        cmdBuf.setViewport(0, defaultViewport);
 
-    cmdBuf.bindDescriptorSets(
-        vk::PipelineBindPoint::eGraphics, pText.getLayout(),
-        0, *descSet, {}
-    );
-    cmdBuf.pushConstants<vec2>(
-        pText.getLayout(), vk::ShaderStageFlagBits::eVertex,
-        0, windowSizePixels
-    );
-
-    cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
-    cmdBuf.draw(6, letterBuffer.size(), 0, 0);
-}
-
-void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex)
-{
-    auto [it, success] = fonts.try_emplace(fontIndex, device);
-    if (!success) {
-        return;
+        cmdBuf.bindDescriptorSets(
+            vk::PipelineBindPoint::eGraphics, pText.getLayout(),
+            0, *fontDescSet, {}
+        );
+        cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
     }
 
-    // Force loading a standard set of glyphs
-    for (wchar_t c = 32; c < 256; c++) {
-        it->second.getGlyphUvs(c);
+    for (ui32 letterOffset{ 0 };
+         auto [offset, extent, numLetters] : textRanges)
+    {
+        cmdBuf.setScissor(0, vk::Rect2D(
+            { static_cast<i32>(offset.x * size.width), static_cast<i32>(offset.y * size.height) },
+            { static_cast<ui32>(extent.x * size.width), static_cast<ui32>(extent.y * size.height) }
+        ));
+
+        cmdBuf.draw(6, numLetters, 0, letterOffset);
+
+        letterOffset += numLetters;
     }
-    updateFontDescriptor();
 }
 
-trc::ui_impl::DrawCollector::FontInfo::FontInfo(const vkb::Device&)
+trc::ui_impl::DrawCollector::FontInfo::FontInfo(const vkb::Device&, ui32 fontIndex, const GlyphCache& cache)
     :
+    fontIndex(fontIndex),
+    glyphCache(cache),
     glyphMap(new GlyphMap),
     imageView(glyphMap->getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm))
 {
@@ -279,76 +391,122 @@ auto trc::ui_impl::DrawCollector::FontInfo::getGlyphUvs(wchar_t character)
 }
 
 void trc::ui_impl::DrawCollector::add(
-    const ui::ElementDrawInfo& elem,
+    vec2, vec2,
+    const ui::ElementStyle&,
     const ui::types::NoType&)
 {
-    const vec4 color = std::holds_alternative<vec4>(elem.background)
-        ? std::get<vec4>(elem.background)
-        : vec4(1.0f);
-
-    quadBuffer.push({ elem.pos, elem.size, color });
 }
 
 void trc::ui_impl::DrawCollector::add(
-    const ui::ElementDrawInfo& elem,
-    const ui::types::Text& text)
+    vec2 pos, vec2 size,
+    const ui::ElementStyle& elem,
+    const ui::types::Line& line)
 {
     const vec4 color = std::holds_alternative<vec4>(elem.background)
         ? std::get<vec4>(elem.background)
         : vec4(1.0f);
 
+    lines.push_back({
+        .start = pos,
+        .end   = pos + size,
+        .color = color,
+        .width = static_cast<float>(line.width)
+    });
+}
+
+void trc::ui_impl::DrawCollector::add(
+    vec2 pos, vec2 size,
+    const ui::ElementStyle& elem,
+    const ui::types::Quad&)
+{
+    const vec4 color = std::holds_alternative<vec4>(elem.background)
+        ? std::get<vec4>(elem.background)
+        : vec4(1.0f);
+
+    quadBuffer.push({ pos, size, color });
+}
+
+void trc::ui_impl::DrawCollector::add(
+    vec2 pos, vec2,
+    const ui::ElementStyle& elem,
+    const ui::types::Text& text)
+{
+    const vec4 color = std::holds_alternative<vec4>(elem.foreground)
+        ? std::get<vec4>(elem.foreground)
+        : vec4(1.0f);
+
+    // Retrieve font
     auto fontIt = fonts.find(text.fontIndex);
-    if (fontIt == fonts.end())
-    {
-        addFont(text.fontIndex);
-        fontIt = fonts.find(text.fontIndex);
-    }
+    if (fontIt == fonts.end()) return;
 
     for (const auto& letter : text.letters)
     {
         auto uvs = fontIt->second.getGlyphUvs(letter.characterCode);
         letterBuffer.push({
-            .basePos    = elem.pos,
-            .pos        = static_cast<vec2>(letter.glyphOffsetPixels),
-            .size       = static_cast<vec2>(letter.glyphSizePixels),
+            .basePos    = pos,
+            .pos        = letter.glyphOffset,
+            .size       = letter.glyphSize,
             .texCoordLL = uvs.lowerLeft,
             .texCoordUR = uvs.upperRight,
-            .bearingY   = static_cast<float>(letter.bearingYPixels),
+            .bearingY   = letter.bearingY,
             .fontIndex  = text.fontIndex,
             .color = color
         });
     }
+
+    const float width = text.maxDisplayWidth < 0.0f ? 1.0f : text.maxDisplayWidth;
+    textRanges.push_back(TextRange{
+        .scissorOffset = pos,
+        .scissorSize   = { width, 1.0f },
+        .numLetters = static_cast<ui32>(text.letters.size())
+    });
 }
 
-void trc::ui_impl::DrawCollector::createDescriptorSet(const vkb::Device& device)
+void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border)
 {
-    std::vector<vk::DescriptorPoolSize> poolSizes{
-        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 30),
-    };
-    descPool = device->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-            | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
-            1, // max sets
-            poolSizes
-        )
-    );
+    const vec2 ur{ pos + size };
 
-    // Create set
-    const ui32 descriptorCount{ 1 };
-    vk::StructureChain chain{
-        vk::DescriptorSetAllocateInfo(*descPool, *descLayout),
-        vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &descriptorCount)
-    };
-    descSet = std::move(device->allocateDescriptorSetsUnique(
-        chain.get<vk::DescriptorSetAllocateInfo>()
-    )[0]);
+    // Left line
+    lines.push_back({ pos, { pos.x, ur.y }, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    // Bottom line
+    lines.push_back({ pos, { ur.x, pos.y }, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    // Right line
+    lines.push_back({ { ur.x, pos.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    // Top line
+    lines.push_back({ { pos.x, ur.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
+}
+
+void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)
+{
+    auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
+    if (!success) {
+        std::cout << "Unable to add font of index " << fontIndex << "\n";
+        return;
+    }
+
+    // Force-load a standard set of glyphs
+    for (wchar_t c = 32; c < 256; c++) {
+        it->second.getGlyphUvs(c);
+    }
+    updateFontDescriptor();
 }
 
 void trc::ui_impl::DrawCollector::updateFontDescriptor()
 {
     if (fonts.size() > 0)
     {
+        // Recreate descriptor set with updated descriptor count
+        const ui32 descriptorCount = fonts.size();
+        vk::StructureChain chain{
+            vk::DescriptorSetAllocateInfo(*descPool, *descLayout),
+            vk::DescriptorSetVariableDescriptorCountAllocateInfo(1, &descriptorCount)
+        };
+        fontDescSet.reset();
+        fontDescSet = std::move(device->allocateDescriptorSetsUnique(
+            chain.get<vk::DescriptorSetAllocateInfo>()
+        )[0]);
+
+        // Write desciptors
         std::vector<vk::DescriptorImageInfo> fontInfos;
         for (const auto& [fontIndex, font] : fonts)
         {
@@ -358,7 +516,7 @@ void trc::ui_impl::DrawCollector::updateFontDescriptor()
             ));
         }
         vk::WriteDescriptorSet write(
-            *descSet, 0,
+            *fontDescSet, 0,
             0, fontInfos.size(),
             vk::DescriptorType::eCombinedImageSampler,
             fontInfos.data(),

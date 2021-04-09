@@ -1,7 +1,8 @@
 #pragma once
 
+#include "IoConfig.h"
 #include "Element.h"
-#include "Font.h"
+#include "FontRegistry.h"
 #include "text/GlyphLoading.h"
 
 namespace trc::ui
@@ -25,19 +26,19 @@ namespace trc::ui
      * smart handle (i.e. unique or shared).
      */
     template<GuiElement E>
-    class ElementHandleFactory
+    class ElementHandleProxy
     {
         friend class Window;
-        ElementHandleFactory(E& element, Window& window);
+        ElementHandleProxy(E& element, Window& window);
 
     public:
         using SharedHandle = SharedElementHandle<E>;
         using UniqueHandle = UniqueElementHandle<E>;
 
-        ElementHandleFactory(const ElementHandleFactory<E>&) = delete;
-        ElementHandleFactory(ElementHandleFactory<E>&&) noexcept = delete;
-        auto operator=(const ElementHandleFactory<E>&) -> ElementHandleFactory<E>& = delete;
-        auto operator=(ElementHandleFactory<E>&&) noexcept -> ElementHandleFactory<E>& = delete;
+        ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
+        ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
+        auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
+        auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
 
         inline operator E&() &&;
         inline auto makeRef() && -> E&;
@@ -49,15 +50,30 @@ namespace trc::ui
         Window* window;
     };
 
-    class WindowInformationProvider
+    /**
+     * @brief Initialize global callbacks to the user
+     *
+     * The user is notified when a resource is loaded, for example. These
+     * callbacks are usually set by the active backend that has to manage
+     * its versions of loaded resources.
+     */
+    void initUserCallbacks(std::function<void(ui32, const GlyphCache&)> onFontLoad,
+                           std::function<void(ui32)>                    onImageLoad);
+
+    class WindowBackend
     {
     public:
+        virtual ~WindowBackend() = default;
+
         virtual auto getSize() -> vec2 = 0;
     };
 
     struct WindowCreateInfo
     {
-        u_ptr<WindowInformationProvider> windowProvider;
+        u_ptr<WindowBackend> windowBackend;
+        std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
+
+        KeyMapping keyMap;
     };
 
     /**
@@ -67,6 +83,14 @@ namespace trc::ui
     {
     public:
         explicit Window(WindowCreateInfo createInfo);
+        Window(Window&&) noexcept = default;
+        ~Window();
+
+        Window() = delete;
+        Window(const Window&) = delete;
+
+        auto operator=(const Window&) -> Window& = delete;
+        auto operator=(Window&&) -> Window& = delete;
 
         /**
          * Calculate global transformatio, then build a list of DrawInfos
@@ -74,15 +98,14 @@ namespace trc::ui
          */
         auto draw() -> const DrawList&;
 
-        auto getSize() -> vec2;
+        auto getSize() const -> vec2;
         auto getRoot() -> Element&;
 
         /**
          * @brief Create an element
          */
         template<GuiElement E, typename... Args>
-            requires std::is_constructible_v<E, Args...>
-        inline auto create(Args&&... args) -> ElementHandleFactory<E>;
+        inline auto create(Args&&... args) -> ElementHandleProxy<E>;
 
         /**
          * @brief Destroy an element
@@ -100,16 +123,45 @@ namespace trc::ui
         // void signalMouseRelease(float posPixelsX, float posPixelsY);
         // void signalMouseMove(float posPixelsX, float posPixelsY);
 
-    private:
-        template<std::derived_from<event::MouseEvent> EventType>
-        void descendEvent(EventType event);
+        void signalKeyPress(int key);
+        void signalKeyRepeat(int key); // Just issues a key press event for now
+        void signalKeyRelease(int key);
+        void signalCharInput(ui32 character);
+
+        auto getIoConfig() -> IoConfig&;
+        auto getIoConfig() const -> const IoConfig&;
 
         /**
-         * Must be a member function because pixel transformations have to
-         * be translated to normalized coordinates based on the window's
-         *size.
+         * Calculate the absolute pixel values of a normalized point
          */
-        auto concat(Transform parent, Transform child) -> Transform;
+        auto normToPixels(vec2 p) const -> vec2;
+
+        /**
+         * Normalize a point in pixels relative to the window size
+         */
+        auto pixelsToNorm(vec2 p) const -> vec2;
+
+        /**
+         * @brief Called when the window is destroyed
+         */
+        std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
+
+    private:
+        /**
+         * @brief Dispatch an event to all events that the mouse hovers
+         */
+        template<std::derived_from<event::MouseEvent> EventType>
+        void descendMouseEvent(EventType event);
+
+        /**
+         * Stops descending the event if `breakCondition` returns `false`.
+         */
+        template<
+            std::derived_from<event::EventBase> EventType,
+            typename F
+        >
+        void descendEvent(EventType event, F breakCondition)
+            requires std::is_same_v<bool, std::invoke_result_t<F, Element&>>;
 
         /**
          * @brief Recalculate positions of elements
@@ -117,25 +169,32 @@ namespace trc::ui
          * This converts normalized or absolute positions based on window size
          * and stuff like that.
          */
-        void realign();
+        void realignElements();
 
-        u_ptr<WindowInformationProvider> windowInfo;
+        u_ptr<WindowBackend> windowBackend;
+        IoConfig ioConfig;
 
         std::vector<u_ptr<Element>> drawableElements;
         DrawList drawList;
 
         /**
-         * Traverses the tree recusively and calculates global transforms
-         * of visited elements. Applies a function to all visited elements.
+         * Traverses the tree recusively and applies a function to all
+         * visited elements. The function is applied to parents first, then
+         * to their children.
          */
-        template<std::invocable<Element&, vec2, vec2> F>
+        template<std::invocable<Element&> F>
         inline void traverse(F elemCallback);
 
+        /**
+         * @brief An element that does nothing
+         */
         struct Root : Element {
-            void draw(DrawList&, vec2, vec2) override {}
+            void draw(DrawList&) override {}
         };
 
-        Root root;
+        // This is a unique_ptr because I'm too lazy to implement all those
+        // move constructors.
+        u_ptr<Root> root{ new Root };
     };
 
 #include "Window.inl"

@@ -76,7 +76,7 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
             stride,  // stride
             size     // size
         );
-        entries.emplace_back(std::move(buffer), address);
+        entries.push_back({ std::move(buffer), address });
     }
 }
 

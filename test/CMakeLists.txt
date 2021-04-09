@@ -1,14 +1,16 @@
-find_package(GTest REQUIRED)
+find_package(GTest)
 include(GoogleTest)
 
 ############
 # Unit tests
 
-add_executable(tests)
-target_sources(tests PRIVATE utils/test_maybe.cpp)
-target_compile_options(tests PRIVATE -O0)
-target_link_libraries(tests GTest::GTest GTest::Main torch)
-gtest_discover_tests(tests)
+if (${GTEST_FOUND})
+    add_executable(tests)
+    target_sources(tests PRIVATE utils/test_maybe.cpp)
+    target_compile_options(tests PRIVATE -O0)
+    target_link_libraries(tests GTest::GTest GTest::Main torch)
+    gtest_discover_tests(tests)
+endif ()
 
 #######################
 # Complex test programs
@@ -35,5 +37,7 @@ if (${TORCH_INTEGRATE_GUI})
     target_link_libraries(Gui PUBLIC torch)
 endif()
 
-add_executable(RayTracing ray_tracing.cpp)
-target_link_libraries(RayTracing PUBLIC torch)
+if (${TORCH_BUILD_RAY_TRACING})
+    add_executable(RayTracing ray_tracing.cpp)
+    target_link_libraries(RayTracing PUBLIC torch)
+endif ()

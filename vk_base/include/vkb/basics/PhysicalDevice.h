@@ -97,9 +97,13 @@ namespace vkb
          *
          * @param std::vector<const char*> deviceExtensions Extensions to
          *        enable on the device.
+         * @param void* extraPhysicalDeviceFeatureChain Additional chained
+         *        device features to enable on the logical device. This
+         *        pointer will be set as pNext of the end of vkb's default
+         *        feature chain.
          */
-        template<typename... DeviceFeatures>
-        auto createLogicalDevice(std::vector<const char*> deviceExtensions = {}) const
+        auto createLogicalDevice(std::vector<const char*> deviceExtensions = {},
+                                 void* extraPhysicalDeviceFeatureChain = nullptr) const
             -> vk::UniqueDevice;
 
         auto getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
@@ -164,54 +168,6 @@ namespace vkb
          * @brief Basic extensions that are always loaded.
          */
         auto getRequiredDeviceExtensions() -> std::vector<const char*>;
-    }
-
-
-
-    template<typename... DeviceFeatures>
-    auto vkb::PhysicalDevice::createLogicalDevice(std::vector<const char*> deviceExtensions) const
-        -> vk::UniqueDevice
-    {
-        // Device queues
-        std::vector<float> prios(100, 1.0f); // Enough prios for 100 queues per family
-        std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-        for (const auto& queueFamily : queueFamilies)
-        {
-            queueCreateInfos.push_back(
-                { {}, queueFamily.index, queueFamily.queueCount, prios.data() }
-            );
-        }
-
-        // Validation layers
-        const auto validationLayers = getRequiredValidationLayers();
-
-        // Extensions
-        const auto requiredDevExt = device_helpers::getRequiredDeviceExtensions();
-        deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
-
-        // Device features
-        auto deviceFeatures = physicalDevice.getFeatures2<
-            vk::PhysicalDeviceFeatures2,
-            vk::PhysicalDeviceDescriptorIndexingFeatures,
-            DeviceFeatures...
-        >();
-
-        // Create the logical device
-        vk::StructureChain chain
-        {
-            vk::DeviceCreateInfo(
-                {},
-                static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data(),
-                static_cast<uint32_t>(validationLayers.size()), validationLayers.data(),
-                static_cast<uint32_t>(deviceExtensions.size()), deviceExtensions.data(),
-                &deviceFeatures.template get<vk::PhysicalDeviceFeatures2>().features
-            ),
-            // This must be the first feature in the structure chain. This
-            // works because descriptor indexing is always enabled.
-            deviceFeatures.template get<vk::PhysicalDeviceDescriptorIndexingFeatures>(),
-        };
-
-        return physicalDevice.createDeviceUnique(chain.template get<vk::DeviceCreateInfo>());
     }
 } // namespace vkb
 

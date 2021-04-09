@@ -15,10 +15,22 @@
 
 namespace trc
 {
-    class TorchWindowInformationProvider : public ui::WindowInformationProvider
+    class Renderer;
+
+    /**
+     * @brief Initialize the GUI implementation
+     */
+    auto initGui(Renderer& renderer) -> u_ptr<ui::Window>;
+
+    /**
+     * Access to static render stage
+     */
+    auto getGuiRenderStage() -> RenderStageType::ID;
+
+    class TorchWindowBackend : public ui::WindowBackend
     {
     public:
-        explicit TorchWindowInformationProvider(const vkb::Swapchain& swapchain)
+        explicit TorchWindowBackend(const vkb::Swapchain& swapchain)
             : swapchain(swapchain)
         {}
 
@@ -32,11 +44,6 @@ namespace trc
     };
 
     /**
-     * Access to static render stage
-     */
-    extern auto getGuiRenderStage() -> RenderStageType::ID;
-
-    /**
      * Render a GUI root to an image
      */
     class GuiRenderer
@@ -48,6 +55,7 @@ namespace trc
 
         auto getRenderPass() const -> vk::RenderPass;
         auto getOutputImage() const -> vk::Image;
+        auto getOutputImageView() const -> vk::ImageView;
 
     private:
         const vkb::Device& device;
@@ -68,6 +76,10 @@ namespace trc
 
     /**
      * Render pass that integrates the gui into Torch's render pipeline.
+     *
+     * Actually, the GuiRenderer class contains the vkRenderPass instance.
+     * This class is merely the component that ties the GUI rendering to
+     * Torch's render pipeline.
      */
     class GuiRenderPass : public RenderPass
     {
@@ -81,18 +93,18 @@ namespace trc
         void end(vk::CommandBuffer) override;
 
     private:
+        const vkb::Device& device;
+
         GuiRenderer renderer;
         std::mutex renderLock;
         std::thread renderThread;
         bool stopRenderThread{ false };
 
-        vk::UniqueDescriptorSetLayout blendDescLayout;
-
         void createDescriptorSets(const vkb::Device& device, const vkb::Swapchain& swapchain);
         vk::UniqueDescriptorPool blendDescPool;
+        vk::UniqueDescriptorSetLayout blendDescLayout;
         vkb::FrameSpecificObject<vk::UniqueDescriptorSet> blendDescSets;
         std::vector<vk::UniqueImageView> swapchainImageViews;
-        vk::UniqueImageView renderResultImageView;
         Pipeline::ID imageBlendPipeline;
     };
 } // namespace trc

@@ -9,6 +9,21 @@
 
 vkb::Device::Device(
     const PhysicalDevice& physDevice,
+    std::vector<const char*> deviceExtensions,
+    void* extraPhysicalDeviceFeatureChain)
+    :
+    Device(
+        physDevice,
+        physDevice.createLogicalDevice(
+            std::move(deviceExtensions),
+            extraPhysicalDeviceFeatureChain
+        )
+    )
+{
+}
+
+vkb::Device::Device(
+    const PhysicalDevice& physDevice,
     vk::UniqueDevice logicalDevice)
     :
     physicalDevice(physDevice),

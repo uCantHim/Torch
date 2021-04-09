@@ -4,9 +4,72 @@
 #include <vulkan/vulkan.hpp>
 
 #include <vkb/ShaderProgram.h>
+#include <vkb/event/Event.h>
 
+#include "Renderer.h"
 #include "ui/Element.h"
 #include "ui/torch/DrawImplementations.h"
+
+
+
+auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
+{
+    auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
+        .windowBackend=std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain()),
+        .keyMap = ui::KeyMapping{
+            .escape     = static_cast<int>(vkb::Key::escape),
+            .backspace  = static_cast<int>(vkb::Key::backspace),
+            .enter      = static_cast<int>(vkb::Key::enter),
+            .tab        = static_cast<int>(vkb::Key::tab),
+            .del        = static_cast<int>(vkb::Key::del),
+            .arrowLeft  = static_cast<int>(vkb::Key::arrow_left),
+            .arrowRight = static_cast<int>(vkb::Key::arrow_right),
+            .arrowUp    = static_cast<int>(vkb::Key::arrow_up),
+            .arrowDown  = static_cast<int>(vkb::Key::arrow_down),
+        }
+    });
+
+    // Notify GUI of mouse clicks
+    vkb::on<vkb::MouseClickEvent>([window=window.get()](const vkb::MouseClickEvent& e) {
+        if (e.action == vkb::InputAction::press)
+        {
+            vec2 pos = e.swapchain->getMousePosition();
+            window->signalMouseClick(pos.x, pos.y);
+        }
+    });
+
+    // Notify GUI of key events
+    vkb::on<vkb::KeyPressEvent>([window=window.get()](auto& e) {
+        window->signalKeyPress(static_cast<int>(e.key));
+    });
+    vkb::on<vkb::KeyRepeatEvent>([window=window.get()](auto& e) {
+        window->signalKeyRepeat(static_cast<int>(e.key));
+    });
+    vkb::on<vkb::KeyReleaseEvent>([window=window.get()](auto& e) {
+        window->signalKeyRelease(static_cast<int>(e.key));
+    });
+    vkb::on<vkb::CharInputEvent>([window=window.get()](auto& e) {
+        window->signalCharInput(e.character);
+    });
+
+    // Add gui pass and stage to render graph
+    auto renderPass = trc::RenderPass::createAtNextIndex<trc::GuiRenderPass>(
+        vkb::getDevice(),
+        vkb::getSwapchain(),
+        *window
+    ).first;
+    auto& graph = renderer.getRenderGraph();
+    graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
+    graph.addPass(trc::getGuiRenderStage(), renderPass);
+
+    // Window destruction callback; destroy render pass here because
+    // it can't outlive the window or the renderer
+    window->onWindowDestruction = [=](ui::Window&) {
+        trc::RenderPass::destroy(renderPass);
+    };
+
+    return window;
+}
 
 
 
@@ -172,6 +235,11 @@ auto trc::GuiRenderer::getOutputImage() const -> vk::Image
     return *outputImage;
 }
 
+auto trc::GuiRenderer::getOutputImageView() const -> vk::ImageView
+{
+    return *outputImageView;
+}
+
 
 
 trc::GuiRenderPass::GuiRenderPass(
@@ -180,10 +248,11 @@ trc::GuiRenderPass::GuiRenderPass(
     ui::Window& window)
     :
     RenderPass({}, 1),
+    device(device),
     renderer(device, window),
     blendDescSets(swapchain)
 {
-    std::thread([this] {
+    renderThread = std::thread([this] {
         while (!stopRenderThread)
         {
             {
@@ -192,7 +261,7 @@ trc::GuiRenderPass::GuiRenderPass(
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
-    }).detach();
+    });
 
     // Descriptor set layout
     std::vector<vk::DescriptorSetLayoutBinding> bindings{
@@ -236,6 +305,8 @@ trc::GuiRenderPass::~GuiRenderPass()
     if (renderThread.joinable()) {
         renderThread.join();
     }
+
+    device->waitIdle();
 }
 
 void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
@@ -305,15 +376,6 @@ void trc::GuiRenderPass::createDescriptorSets(
 
     // Descriptor sets
     swapchainImageViews.clear();
-    renderResultImageView = device->createImageViewUnique(
-        vk::ImageViewCreateInfo(
-            {},
-            renderer.getOutputImage(),
-            vk::ImageViewType::e2D,
-            vk::Format::eR8G8B8A8Unorm,
-            {}, vkb::DEFAULT_SUBRES_RANGE
-        )
-    );
     blendDescSets = {
         swapchain,
         [this, &device, &swapchain](ui32 imageIndex) -> vk::UniqueDescriptorSet {
@@ -323,7 +385,7 @@ void trc::GuiRenderPass::createDescriptorSets(
 
             auto view = *swapchainImageViews.emplace_back(swapchain.createImageView(imageIndex));
             vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
-            vk::DescriptorImageInfo renderResultImageInfo({}, *renderResultImageView, vk::ImageLayout::eGeneral);
+            vk::DescriptorImageInfo renderResultImageInfo({}, renderer.getOutputImageView(), vk::ImageLayout::eGeneral);
             std::vector<vk::WriteDescriptorSet> writes{
                 {
                     *set, 0, 0, 1,

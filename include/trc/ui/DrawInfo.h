@@ -1,73 +1,65 @@
 #pragma once
 
-#include <variant>
-
 #include "Types.h"
 #include "Transform.h"
+#include "Style.h"
+#include "text/GlyphLoading.h"
 
 namespace trc::ui
 {
-    // --- Reusable data structures ---
-
-    struct TextureInfo
-    {
-        vec2 uvLL;
-        vec2 uvUR;
-        ui32 textureIndex;
-    };
-
-
-    // --- Typed draw information ---
+    /**
+     * Typed draw information
+     */
     namespace types
     {
         struct NoType {};
 
+        struct Line
+        {
+            ui32 width{ 1 };
+        };
+
+        struct Quad {};
+
         struct LetterInfo
         {
             // Unicode character code
-            wchar_t characterCode;
+            CharCode characterCode;
 
             // Offset from text position
-            ivec2 glyphOffsetPixels;
-            ivec2 glyphSizePixels;
+            vec2 glyphOffset;
+            vec2 glyphSize;
 
             // The glyph's bearing. Included here so that the
             // implementation doesn't have to look it up.
-            ui32 bearingYPixels;
+            float bearingY;
         };
 
         struct Text
         {
             ui32 fontIndex;
             std::vector<LetterInfo> letters;
+            float maxDisplayWidth{ -1.0f }; // negative means unlimited
         };
     }
 
 
-    /**
-     * Generic draw information for all elements
-     */
-    struct ElementDrawInfo
-    {
-        vec2 pos;
-        vec2 size;
-
-        // ui32 borderThickness{ 0 };
-
-        std::variant<vec4, TextureInfo> background;
-    };
-
     using DrawType = std::variant<
         types::NoType,
+        types::Line,
+        types::Quad,
         types::Text
     >;
+
 
     /**
      * All draw information for a gui element
      */
     struct DrawInfo
     {
-        ElementDrawInfo elem;
+        vec2 pos;
+        vec2 size;
+        ElementStyle style;
         DrawType type;
     };
 
@@ -78,6 +70,8 @@ namespace trc::ui
     protected:
         friend class Window;
 
-        virtual void draw(DrawList& drawList, vec2 globalPos, vec2 globalSize) = 0;
+        virtual ~Drawable() = default;
+
+        virtual void draw(DrawList& drawList) = 0;
     };
 } // namespace trc::ui

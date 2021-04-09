@@ -6,6 +6,7 @@
 #include "CRTPNode.h"
 #include "DrawInfo.h"
 #include "event/Event.h"
+#include "event/InputEvent.h"
 #include "event/EventListenerRegistryBase.h"
 
 namespace trc::ui
@@ -15,25 +16,58 @@ namespace trc::ui
     {
         using EventListenerRegistryBase<EventTypes>::addEventListener...;
         using EventListenerRegistryBase<EventTypes>::removeEventListener...;
-        using EventListenerRegistryBase<EventTypes>::foreachEventListener...;
         using EventListenerRegistryBase<EventTypes>::notify...;
     };
 
     struct ElementEventBase : public InheritEventListener<
-                                event::Click,
-                                event::Release,
-                                event::Hover
+                                // Low-level events
+                                event::KeyPress, event::KeyRelease,
+                                event::CharInput,
+
+                                // High-level user events
+                                event::Click, event::Release,
+                                event::Hover,
+                                event::Input
                             >
     {
     };
 
     /**
-     * @brief Base class of all UI elements
+     * Used internally by the window to store global transformations.
+     * The transformation calculations are complex enough to justify
+     * violating my rule against state in this regard.
      */
-    class Element : public CRTPNode<Element>
+    struct GlobalTransformStorage
+    {
+    protected:
+        friend class Window;
+
+        vec2 globalPos;
+        vec2 globalSize;
+    };
+
+    /**
+     * @brief Base class of all UI elements
+     *
+     * Contains a reference to its parent window
+     */
+    class Element : public TransformNode<Element>
+                  , public GlobalTransformStorage
                   , public Drawable
                   , public ElementEventBase
     {
+    public:
+        ElementStyle style;
+
+    protected:
+        friend class Window;
+
+        Element() = default;
+        explicit Element(Window& window)
+            : window(&window)
+        {}
+
+        Window* window;
     };
 
     template<typename T>
