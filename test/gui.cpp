@@ -78,7 +78,7 @@ int main()
 
         auto input = window->create<ui::InputField>().makeUnique();
         input->setSize(150_px, 40_px);
-        input->setPos(0.1f, 0.3f);
+        input->setPos(0.1_n, 300_px);
         window->getRoot().attach(*input);
 
         // Also add world-space objects
