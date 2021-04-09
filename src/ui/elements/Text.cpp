@@ -126,13 +126,11 @@ trc::ui::Text::Text(std::string str, ui32 fontIndex, ui32 fontSize)
     :
     TextBase(std::move(str), fontIndex, fontSize)
 {
-    setSize({ 1.0f, 1.0f });
-    setSizeProperties({ .format=Format::eNorm, .align=Align::eRelative });
 }
 
 void trc::ui::Text::draw(DrawList& drawList)
 {
-    vec2 scaling = window->pixelsToNorm(vec2(FontRegistry::getFontInfo(fontIndex).renderSize * 1.333f));
+    vec2 scaling = window->pixelsToNorm(vec2(fontSize));
     drawList.emplace_back(DrawInfo{
         .pos   = globalPos,
         .size  = globalSize,

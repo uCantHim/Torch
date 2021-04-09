@@ -306,12 +306,14 @@ void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
 void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
 {
     const auto size = vkb::getSwapchain().getImageExtent();
+    const vk::Viewport defaultViewport(0, 0, size.width, size.height, 0.0f, 1.0f);
+    const vk::Rect2D defaultScissor({ 0, 0 }, { size.width, size.height });
 
     // Draw all quads
     auto& p = Pipeline::at(quadPipeline);
     cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
-    cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
+    cmdBuf.setViewport(0, defaultViewport);
+    cmdBuf.setScissor(0, defaultScissor);
 
     cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *quadBuffer }, { 0, 0 });
     cmdBuf.draw(6, quadBuffer.size(), 0, 0);
@@ -322,8 +324,8 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
         auto& p = Pipeline::at(linePipeline);
         auto layout = p.getLayout();
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
-        cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
-        cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { size.width, size.height }));
+        cmdBuf.setViewport(0, defaultViewport);
+        cmdBuf.setScissor(0, defaultScissor);
 
         for (const auto& line : lines)
         {
@@ -343,7 +345,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     {
         auto& pText = Pipeline::at(textPipeline);
         cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
-        cmdBuf.setViewport(0, vk::Viewport(0, 0, size.width, size.height, 0.0f, 1.0f));
+        cmdBuf.setViewport(0, defaultViewport);
 
         cmdBuf.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, pText.getLayout(),
