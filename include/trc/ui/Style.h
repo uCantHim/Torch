@@ -21,6 +21,9 @@ namespace trc::ui
 
         static inline ui32 borderThickness{ 0 };
         static inline vec4 borderColor{ 0.8f, 0.8f, 1.0f, 1.0f };
+
+        static inline ui32 font{ 0 };
+        static inline ui32 fontSize{ 20 };
     };
 
     /**

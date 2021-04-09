@@ -37,40 +37,33 @@ namespace trc::ui
     auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling)
         -> std::pair<types::Text, vec2>;
 
-    class StaticTextProperties
-    {
-    public:
-        static void setDefaultFont(ui32 fontIndex);
-        static auto getDefaultFont() -> ui32;
-
-    private:
-        static inline ui32 defaultFont{ 0 };
-    };
-
-    class TextBase : public StaticTextProperties
+    class TextBase
     {
     public:
         TextBase() = default;
-        explicit TextBase(std::string str);
-        TextBase(std::string str, ui32 fontIndex, ui32 fontSize);
+        TextBase(ui32 font, ui32 size);
 
-        void print(std::string str);
+        void setFont(ui32 fontIndex);
+        void setFontSize(ui32 fontSize);
 
     protected:
-        auto getFontScaling(const Window& window) const -> vec2;
-
-        std::string printedText;
-        ui32 fontIndex{ getDefaultFont() };
-        ui32 fontSize{ FontRegistry::getFontInfo(fontIndex).renderSize };
+        ui32 fontIndex{ DefaultStyle::font };
+        ui32 fontSize{ DefaultStyle::fontSize };
     };
 
-    class Text : public Element, public TextBase
+    class Text : public Element, TextBase
     {
     public:
         Text() = default;
-        Text(std::string str, ui32 fontIndex);
-        Text(std::string str, ui32 fontIndex, ui32 fontSize);
+        Text(std::string str,
+             ui32 fontIndex = DefaultStyle::font,
+             ui32 fontSize = DefaultStyle::fontSize);
 
         void draw(DrawList& drawList) override;
+
+        void print(std::string str);
+
+    private:
+        std::string printedText;
     };
 } // namespace trc::ui

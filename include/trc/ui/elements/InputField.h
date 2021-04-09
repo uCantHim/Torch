@@ -10,7 +10,7 @@
 
 namespace trc::ui
 {
-    class InputField : public Quad, public StaticTextProperties
+    class InputField : public Quad, public TextBase
     {
     public:
         InputField();
@@ -38,9 +38,6 @@ namespace trc::ui
         void inputCharacter(CharCode code);
         void removeCharacterLeft();
         void removeCharacterRight();
-
-        ui32 fontIndex{ getDefaultFont() };
-        ui32 fontSize{ FontRegistry::getFontInfo(fontIndex).renderSize };
 
         bool focused{ false };
         std::vector<CharCode> inputChars;

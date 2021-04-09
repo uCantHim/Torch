@@ -70,44 +70,21 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
 
 
 
-void trc::ui::StaticTextProperties::setDefaultFont(ui32 fontIndex)
-{
-    defaultFont = fontIndex;
-}
-
-auto trc::ui::StaticTextProperties::getDefaultFont() -> ui32
-{
-    return defaultFont;
-}
-
-
-
-// ------------------- //
-//      Text base      //
-// ------------------- //
-
-trc::ui::TextBase::TextBase(std::string str)
+trc::ui::TextBase::TextBase(ui32 font, ui32 size)
     :
-    printedText(std::move(str))
+    fontIndex(font),
+    fontSize(size)
 {
 }
 
-trc::ui::TextBase::TextBase(std::string str, ui32 fontIndex, ui32 fontSize)
-    :
-    printedText(std::move(str)),
-    fontIndex(fontIndex),
-    fontSize(fontSize)
+void trc::ui::TextBase::setFont(ui32 fontIndex)
 {
+    this->fontIndex = fontIndex;
 }
 
-void trc::ui::TextBase::print(std::string str)
+void trc::ui::TextBase::setFontSize(ui32 fontSize)
 {
-    printedText = std::move(str);
-}
-
-auto trc::ui::TextBase::getFontScaling(const Window& window) const -> vec2
-{
-    return window.pixelsToNorm(vec2(fontSize));
+    this->fontSize = fontSize;
 }
 
 
@@ -116,25 +93,30 @@ auto trc::ui::TextBase::getFontScaling(const Window& window) const -> vec2
 //      Text element      //
 // ---------------------- //
 
-trc::ui::Text::Text(std::string str, ui32 fontIndex)
-    :
-    Text(std::move(str), fontIndex, FontRegistry::getFontInfo(fontIndex).renderSize)
-{
-}
-
 trc::ui::Text::Text(std::string str, ui32 fontIndex, ui32 fontSize)
     :
-    TextBase(std::move(str), fontIndex, fontSize)
+    TextBase(fontIndex, fontSize)
 {
+    print(std::move(str));
 }
 
 void trc::ui::Text::draw(DrawList& drawList)
 {
     vec2 scaling = window->pixelsToNorm(vec2(fontSize));
+    auto [text, size] = layoutText(printedText, fontIndex, scaling);
+
+    setSize(size);
+    setSizeProperties({ .format=Format::eNorm, .align=Align::eAbsolute });
+
     drawList.emplace_back(DrawInfo{
         .pos   = globalPos,
         .size  = globalSize,
         .style = { .background = vec4(0.0f) },
-        .type  = layoutText(printedText, fontIndex, scaling).first
+        .type  = std::move(text)
     });
+}
+
+void trc::ui::Text::print(std::string str)
+{
+    printedText = std::move(str);
 }

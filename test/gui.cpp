@@ -28,19 +28,14 @@ int main()
         const auto fontPath = "/usr/share/fonts/nerd-fonts-complete/TTF/Hack Regular Nerd Font Complete.ttf";
         const ui32 nerdFont = ui::FontRegistry::addFont(fontPath, 22);
 
-        const std::vector<ui32> fonts{
-            ui::FontRegistry::addFont(fontPath, 20),
-            ui::FontRegistry::addFont(fontPath, 28),
-            ui::FontRegistry::addFont(fontPath, 32),
-            ui::FontRegistry::addFont(fontPath, 40),
-            ui::FontRegistry::addFont(fontPath, 48),
-        };
+        const std::vector<ui32> fontSizes{ 20, 28, 32, 40, 48, };
 
         // Create some gui elements
         auto quad = window->create<ui::Quad>().makeUnique();
         window->getRoot().attach(*quad);
         quad->setPos(0.5f, 0.0f);
         quad->setSize(0.1f, 0.15f);
+        quad->style.background = vec4(0.3f, 0.3f, 0.7f, 0.5f);
 
         quad->addEventListener([](const ui::event::Click& e) {
             std::cout << "Click on first quad\n";
@@ -60,17 +55,16 @@ int main()
             "Hello World! and some more text…"
             "\n»this line« contains some cool special characters: “µ” · ħŋſđðſđ"
             "\nNewlines working: ∞",
-            nerdFont
+            nerdFont, 30
         ).makeUnique();
         window->getRoot().attach(*text);
         text->setPos(0.2f, 0.6f);
 
-        for (float i = 0.0f; ui32 font : fonts)
+        for (float i = 0.0f; ui32 fontSize : fontSizes)
         {
             auto& el = window->create<ui::Text>(
-                "Placeholdertext for font size "
-                + std::to_string(ui::FontRegistry::getFontInfo(font).renderSize) + "! :D",
-                font
+                "Placeholdertext for font size " + std::to_string(fontSize) + "! :D",
+                nerdFont, fontSize
             ).makeRef();
             window->getRoot().attach(el);
             el.setPos(0.4f, 0.1f + (i += 0.05f));
