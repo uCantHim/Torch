@@ -33,39 +33,6 @@ namespace trc::ui
         std::vector<Derived*> children;
     };
 
-    /**
-     * Internal representation of a pixel value
-     */
-    struct _pix {
-        float value;
-    };
-
-    /**
-     * Internal representation of a normalized value
-     */
-    struct _norm {
-        float value;
-    };
-
-    namespace size_literals
-    {
-        inline constexpr _pix operator ""_px(long double val) {
-            return _pix{ static_cast<float>(val) };
-        }
-
-        inline constexpr _pix operator ""_px(unsigned long long int val) {
-            return _pix{ static_cast<float>(val) };
-        }
-
-        inline constexpr _norm operator ""_n(long double val) {
-            return _norm{ static_cast<float>(val) };
-        }
-
-        inline constexpr _norm operator ""_n(unsigned long long int val) {
-            return _norm{ static_cast<float>(val) };
-        }
-    } // namespace size_literals
-
     template<typename Derived>
     class TransformNode : public CRTPNode<Derived>
     {
