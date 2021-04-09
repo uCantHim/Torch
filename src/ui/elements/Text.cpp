@@ -111,7 +111,7 @@ void trc::ui::Text::draw(DrawList& drawList)
     drawList.emplace_back(DrawInfo{
         .pos   = globalPos,
         .size  = globalSize,
-        .style = { .background = vec4(0.0f) },
+        .style = this->style,
         .type  = std::move(text)
     });
 }

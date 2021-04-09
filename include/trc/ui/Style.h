@@ -32,6 +32,7 @@ namespace trc::ui
     struct ElementStyle
     {
         std::variant<vec4, TextureInfo> background{ DefaultStyle::background };
+        std::variant<vec4, TextureInfo> foreground{ DefaultStyle::textColor };
 
         ui32 borderThickness{ DefaultStyle::borderThickness };
         vec4 borderColor{ DefaultStyle::borderColor };

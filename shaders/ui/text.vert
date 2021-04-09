@@ -17,6 +17,7 @@ layout (location = 9) in vec4 glyphColor;
 layout (location = 0) out Vertex {
     vec2 uv;
     flat uint fontIndex;
+    vec4 color;
 } vert;
 
 void main()
@@ -26,4 +27,5 @@ void main()
 
     vert.uv = texCoordLL + vertexUvCoord * (texCoordUR - texCoordLL);
     vert.fontIndex = fontIndex;
+    vert.color = glyphColor;
 }

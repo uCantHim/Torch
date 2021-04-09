@@ -431,8 +431,8 @@ void trc::ui_impl::DrawCollector::add(
     const ui::ElementStyle& elem,
     const ui::types::Text& text)
 {
-    const vec4 color = std::holds_alternative<vec4>(elem.background)
-        ? std::get<vec4>(elem.background)
+    const vec4 color = std::holds_alternative<vec4>(elem.foreground)
+        ? std::get<vec4>(elem.foreground)
         : vec4(1.0f);
 
     // Retrieve font

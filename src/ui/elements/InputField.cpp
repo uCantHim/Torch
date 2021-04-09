@@ -81,7 +81,7 @@ void trc::ui::InputField::draw(DrawList& drawList)
     drawList.push_back(DrawInfo{
         .pos   = textPos,
         .size  = textSize,
-        .style = {},
+        .style = this->style,
         .type  = std::move(text)
     });
 }
