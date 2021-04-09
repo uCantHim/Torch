@@ -9,6 +9,7 @@ using namespace trc::basic_types;
 #include <ui/elements/Quad.h>
 #include <ui/elements/Text.h>
 #include <ui/elements/InputField.h>
+#include <ui/elements/Button.h>
 namespace ui = trc::ui;
 using namespace ui::size_literals;
 
@@ -74,6 +75,17 @@ int main()
         input->setSize(150_px, 40_px);
         input->setPos(0.1_n, 300_px);
         window->getRoot().attach(*input);
+
+        auto& button = window->create<ui::Button>(
+            "Click me!",
+            []() { std::cout << "I've been clicked :D\n"; }
+        ).makeRef();
+        window->getRoot().attach(button);
+        button.setPos(0.7_n, 0.8_n);
+        button.style.background = vec4(1.0f, 1.0f, 0.2f, 1.0f);
+        button.style.foreground = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        button.setPadding(0.5_n, 1.0_n);
+        button.setFontSize(40);
 
         // Also add world-space objects
         trc::Light light = trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
