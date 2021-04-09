@@ -3,6 +3,7 @@
 #include <variant>
 
 #include "Types.h"
+#include "ui/Transform.h"
 
 namespace trc::ui
 {
@@ -21,6 +22,8 @@ namespace trc::ui
 
         static inline ui32 borderThickness{ 0 };
         static inline vec4 borderColor{ 0.8f, 0.8f, 1.0f, 1.0f };
+        static inline vec2 padding{ 8, 5 };
+        static inline _2D<Format> paddingFormat{ Format::ePixel };
 
         static inline ui32 font{ 0 };
         static inline ui32 fontSize{ 20 };

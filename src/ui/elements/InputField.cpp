@@ -52,11 +52,9 @@ void trc::ui::InputField::draw(DrawList& drawList)
 {
     using namespace std::chrono;
 
-    const vec2 normPadding = paddingType == Format::eNorm
-        ? padding
-        : window->pixelsToNorm(padding);
     const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
     auto [text, textSize] = layoutText(inputChars, fontIndex, fontScaling);
+    const vec2 normPadding = getNormPadding(textSize, *window);
     const vec2 textPos{ globalPos + normPadding };
 
     globalSize.y = textSize.y + normPadding.y * 2.0f;
@@ -84,16 +82,6 @@ void trc::ui::InputField::draw(DrawList& drawList)
         .style = this->style,
         .type  = std::move(text)
     });
-}
-
-void trc::ui::InputField::setPadding(vec2 newPadding)
-{
-    padding = newPadding;
-}
-
-void trc::ui::InputField::setPaddingType(Format size)
-{
-    paddingType = size;
 }
 
 auto trc::ui::InputField::getText() const -> std::string
