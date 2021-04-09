@@ -17,7 +17,7 @@ int main()
 {
     auto renderer = trc::init();
 
-    auto grass = trc::AssetImporter::load("assets/grass_lowpoly.fbx");
+    auto grass = trc::AssetImporter::load(TRC_ASSET_DIR"/grass_lowpoly.fbx");
 
     auto geo = ar::addGeometry("grass", trc::Geometry(grass.meshes[0].mesh));
     auto mat = ar::addMaterial("green", { .color=vec4(0, 1, 0, 1), .kSpecular=vec4(0.0f) });

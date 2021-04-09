@@ -26,10 +26,7 @@ int main()
         auto window = trc::initGui(*renderer);
 
         // Now, after intialization, is it possible to load fonts
-        const auto fontPath = "/usr/share/fonts/nerd-fonts-complete/TTF/Hack Regular Nerd Font Complete.ttf";
-        const ui32 nerdFont = ui::FontRegistry::addFont(fontPath, 22);
-
-        const std::vector<ui32> fontSizes{ 20, 28, 32, 40, 48, };
+        const ui32 nerdFont = ui::FontRegistry::addFont(TRC_FONT_DIR"/hack_mono.ttf", 40);
 
         // Create some gui elements
         auto quad = window->create<ui::Quad>().makeUnique();
@@ -52,6 +49,7 @@ int main()
         child->style.borderThickness = 2;
         child->style.borderColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
+        // Text element with line breaks
         auto text = window->create<ui::Text>(
             "Hello World! and some more text…"
             "\n»this line« contains some cool special characters: “µ” · ħŋſđðſđ"
@@ -61,7 +59,8 @@ int main()
         window->getRoot().attach(*text);
         text->setPos(0.2f, 0.6f);
 
-        for (float i = 0.0f; ui32 fontSize : fontSizes)
+        // Multiple text elements with different font sizes
+        for (float i = 0.0f; ui32 fontSize : { 20, 28, 32, 40, 48, })
         {
             auto& el = window->create<ui::Text>(
                 "Placeholdertext for font size " + std::to_string(fontSize) + "! :D",
@@ -71,11 +70,13 @@ int main()
             el.setPos(0.4f, 0.1f + (i += 0.05f));
         }
 
+        // Input field
         auto input = window->create<ui::InputField>().makeUnique();
         input->setSize(150_px, 40_px);
         input->setPos(0.1_n, 300_px);
         window->getRoot().attach(*input);
 
+        // Button
         auto& button = window->create<ui::Button>(
             "Click me!",
             []() { std::cout << "I've been clicked :D\n"; }
@@ -87,7 +88,7 @@ int main()
         button.setPadding(0.5_n, 1.0_n);
         button.setFontSize(40);
 
-        // Also add world-space objects
+        // Also add a world-space object
         trc::Light light = trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
         scene->addLight(light);
 

@@ -18,7 +18,7 @@ int main()
     auto size = vkb::getSwapchain().getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::GeometryID geoId = (trc::loadGeometry("assets/skeleton.fbx")
+    trc::GeometryID geoId = (trc::loadGeometry(TRC_ASSET_DIR"/skeleton.fbx")
                             >> trc::AssetRegistry::addGeometry).get();
 
     trc::GeometryID triId = trc::AssetRegistry::addGeometry(
@@ -110,16 +110,16 @@ int main()
 
     constexpr ui32 maxRecursionDepth{ 16 };
     auto [rayPipeline, shaderBindingTable] = trc::rt::_buildRayTracingPipeline()
-        .addRaygenGroup("shaders/ray_tracing/raygen.rgen.spv")
+        .addRaygenGroup(TRC_SHADER_DIR"/shaders/ray_tracing/raygen.rgen.spv")
         .beginTableEntry()
-            .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
-            .addMissGroup("shaders/ray_tracing/miss.rmiss.spv")
+            .addMissGroup(TRC_SHADER_DIR"/shaders/ray_tracing/miss.rmiss.spv")
+            .addMissGroup(TRC_SHADER_DIR"/shaders/ray_tracing/miss.rmiss.spv")
         .endTableEntry()
         .addTrianglesHitGroup(
-            "shaders/ray_tracing/closesthit.rchit.spv",
-            "shaders/ray_tracing/anyhit.rahit.spv"
+            TRC_SHADER_DIR"/shaders/ray_tracing/closesthit.rchit.spv",
+            TRC_SHADER_DIR"/shaders/ray_tracing/anyhit.rahit.spv"
         )
-        .addCallableGroup("shaders/ray_tracing/callable.rcall.spv")
+        .addCallableGroup(TRC_SHADER_DIR"/shaders/ray_tracing/callable.rcall.spv")
         .build(vkb::getDevice(), maxRecursionDepth, *layout);
 
 
