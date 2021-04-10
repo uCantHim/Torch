@@ -55,17 +55,41 @@ void trc::ui::InputField::draw(DrawList& drawList)
     const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
     auto [text, textSize] = layoutText(inputChars, fontIndex, fontScaling);
     const vec2 normPadding = getNormPadding(textSize, *window);
-    const vec2 textPos{ globalPos + normPadding };
 
     globalSize.y = textSize.y + normPadding.y * 2.0f;
     Quad::draw(drawList);
 
+    // Set scissor rect size
+    text.displayBegin = globalPos.x + normPadding.x;
+    text.maxDisplayWidth = globalSize.x - normPadding.x * 2.0f;
+
+    // Cursor position is necessary for text offset calculation
+    vec2 textPos{ globalPos + normPadding };
+    vec2 cursorPos = textPos;
+    cursorPos.x += text.letters.at(cursorPosition).glyphOffset.x;
+
+    // Move the text if the cursor is out of bounds
+    {
+        float textOffset{ lastTextOffset };
+        const float displayEnd = text.displayBegin + text.maxDisplayWidth;
+        const float withLastOffset = cursorPos.x + lastTextOffset;
+        if (withLastOffset > displayEnd) {
+            // Cursor is out-of-bounds to the right
+            textOffset -= withLastOffset - displayEnd;
+        }
+        else if (withLastOffset < text.displayBegin) {
+            // Cursor is out-of-bounds to the left
+            textOffset += text.displayBegin - withLastOffset;
+        }
+
+        lastTextOffset = textOffset;
+        cursorPos.x += textOffset;
+        textPos.x += textOffset;
+    }
+
     // Draw cursor line
     if (focused)
     {
-        vec2 cursorPos = textPos;
-        cursorPos.x += text.letters.at(cursorPosition).glyphOffset.x;
-
         drawList.push_back(DrawInfo{
             .pos   = cursorPos,
             .size  = { 0.0f, textSize.y },
@@ -75,7 +99,6 @@ void trc::ui::InputField::draw(DrawList& drawList)
     }
 
     // Draw text
-    text.maxDisplayWidth = globalSize.x - normPadding.x * 2.0f;
     drawList.push_back(DrawInfo{
         .pos   = textPos,
         .size  = textSize,
@@ -84,14 +107,21 @@ void trc::ui::InputField::draw(DrawList& drawList)
     });
 }
 
-auto trc::ui::InputField::getText() const -> std::string
+auto trc::ui::InputField::getInputText() const -> std::string
 {
     return encodeUtf8(inputChars);
 }
 
-auto trc::ui::InputField::getChars() const -> const std::vector<CharCode>&
+auto trc::ui::InputField::getInputChars() const -> const std::vector<CharCode>&
 {
     return inputChars;
+}
+
+void trc::ui::InputField::clearInput()
+{
+    inputChars.clear();
+    cursorPosition = 0;
+    lastTextOffset = 0.0f;
 }
 
 void trc::ui::InputField::inputCharacter(CharCode code)

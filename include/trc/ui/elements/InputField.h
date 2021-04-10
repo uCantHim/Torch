@@ -22,14 +22,24 @@ namespace trc::ui
         /**
          * @return std::string UTF-8 encoded string
          */
-        auto getText() const -> std::string;
+        auto getInputText() const -> std::string;
 
         /**
          * @return const std::vector<CharCode>& Unicode character codes
          */
-        auto getChars() const -> const std::vector<CharCode>&;
+        auto getInputChars() const -> const std::vector<CharCode>&;
 
+        void clearInput();
+
+        /**
+         * Also dispatch event::Input events when a character is deleted.
+         * This is the default setting.
+         */
         void enableEventOnDelete();
+
+        /**
+         * Don't dispatch event::Input events when a character is deleted.
+         */
         void disableEventOnDelete();
 
     private:
@@ -40,6 +50,7 @@ namespace trc::ui
         bool focused{ false };
         std::vector<CharCode> inputChars;
         ui32 cursorPosition{ 0 };
+        float lastTextOffset{ 0.0f };
 
         bool eventOnDelete{ true };
     };

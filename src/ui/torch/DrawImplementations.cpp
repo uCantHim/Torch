@@ -456,7 +456,7 @@ void trc::ui_impl::DrawCollector::add(
 
     const float width = text.maxDisplayWidth < 0.0f ? 1.0f : text.maxDisplayWidth;
     textRanges.push_back(TextRange{
-        .scissorOffset = pos,
+        .scissorOffset = { text.displayBegin, pos.y },
         .scissorSize   = { width, 1.0f },
         .numLetters = static_cast<ui32>(text.letters.size())
     });

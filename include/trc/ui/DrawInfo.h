@@ -39,6 +39,7 @@ namespace trc::ui
         {
             ui32 fontIndex;
             std::vector<LetterInfo> letters;
+            float displayBegin{ 0.0f }; // x-coordinate at which the scissor rect begins
             float maxDisplayWidth{ -1.0f }; // negative means unlimited
         };
     }
