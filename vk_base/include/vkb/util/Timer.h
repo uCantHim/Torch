@@ -4,26 +4,20 @@
 
 namespace vkb
 {
-    using DefaultTimeType = std::chrono::milliseconds;
-
     /**
-     * Counts elapsed time
+     * Counts elapsed time in milliseconds
      */
-    template<typename TimeType = DefaultTimeType>
     class Timer
     {
     public:
         Timer();
 
-        auto reset() noexcept -> uint32_t;
-        auto duration() const noexcept -> uint32_t;
+        auto reset() noexcept -> float;
+        auto duration() const noexcept -> float;
 
     private:
         using ClockType = std::chrono::system_clock;
-        using TimePoint = std::chrono::time_point<ClockType, TimeType>;
 
-        TimePoint last_reset;
+        ClockType::time_point last_reset;
     };
-
-#include "Timer.inl"
 } // namespace vkb

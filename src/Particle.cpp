@@ -220,7 +220,7 @@ void trc::ParticleCollection::HostUpdater::update(
     mat4* transformData,
     ParticleMaterial* materialData)
 {
-    const float frameTimeMs = float(frameTimer.reset()) / 1000.0f;
+    const float frameTimeMs = frameTimer.reset();
     for (size_t i = 0; i < particles.size(); /* nothing */)
     {
         auto& p = particles[i];

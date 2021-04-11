@@ -99,7 +99,7 @@ namespace trc
                         mat4* transformData,
                         ParticleMaterial* materialData) override;
 
-            vkb::Timer<std::chrono::microseconds> frameTimer;
+            vkb::Timer frameTimer;
         };
 
         /**

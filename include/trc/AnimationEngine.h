@@ -26,7 +26,7 @@ namespace trc
 
     private:
         const Rig* rig{ nullptr };
-        vkb::Timer<std::chrono::milliseconds> keyframeTimer;
+        vkb::Timer keyframeTimer;
 
         ui32 currentAnimationIndex{ NO_ANIMATION };
         const Animation* currentAnimation{ nullptr };
