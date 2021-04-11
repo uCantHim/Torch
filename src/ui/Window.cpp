@@ -72,7 +72,7 @@ void trc::ui::Window::signalKeyPress(int key)
 {
     ioConfig.keysDown[key] = true;
 
-    event::KeyPress event{ .key=key };
+    event::KeyPress event(key);
     traverse([&](Element& e) { e.notify(event); });
 }
 
@@ -85,13 +85,13 @@ void trc::ui::Window::signalKeyRelease(int key)
 {
     ioConfig.keysDown[key] = false;
 
-    event::KeyRelease event{ .key=key };
+    event::KeyRelease event(key);
     traverse([&](Element& e) { e.notify(event); });
 }
 
 void trc::ui::Window::signalCharInput(ui32 character)
 {
-    event::CharInput event{ .character=character };
+    event::CharInput event(character);
     traverse([&](Element& e) { e.notify(event); });
 }
 
