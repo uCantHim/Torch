@@ -12,38 +12,12 @@ namespace trc {
 
 namespace trc::internal
 {
-    enum DeferredSubPasses
+    namespace DeferredSubPasses
     {
-        eGBufferPass = 0,
-        eTransparencyPass = 1,
-        eLightingPass = 2,
-
-        NUM_SUBPASSES
-    };
-
-    //enum Pipelines : Pipeline::ID::Type
-    //{
-    //    eDrawableDeferred = 0,
-    //    eDrawableDeferredAnimated = 1,
-    //    eDrawableDeferredPickable = 2,
-    //    eDrawableDeferredAnimatedAndPickable = 3,
-    //    eDrawableTransparentDeferred,
-    //    eDrawableTransparentDeferredAnimated,
-    //    eDrawableTransparentDeferredPickable,
-    //    eDrawableTransparentDeferredAnimatedAndPickable,
-    //    eFinalLighting,
-    //    eDrawableInstancedDeferred,
-
-    //    eDrawableShadow,
-    //    eDrawableInstancedShadow,
-
-    //    eParticleDraw,
-    //    eParticleShadow,
-
-    //    eText,
-
-    //    NUM_PIPELINES
-    //};
+        constexpr SubPass::ID gBufferPass(0);
+        constexpr SubPass::ID transparencyPass(1);
+        constexpr SubPass::ID lightingPass(2);
+    }
 
     static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
 

@@ -43,7 +43,7 @@ void trc::AssetRegistry::reset()
 
 auto trc::AssetRegistry::addGeometry(Geometry geo) -> GeometryID
 {
-    GeometryID key = nextGeometryIndex++;
+    GeometryID key(nextGeometryIndex++);
     addToMap(geometries, key, std::move(geo));
 
     return key;
@@ -51,7 +51,7 @@ auto trc::AssetRegistry::addGeometry(Geometry geo) -> GeometryID
 
 auto trc::AssetRegistry::addMaterial(Material mat) -> MaterialID
 {
-    MaterialID key = nextMaterialIndex++;
+    MaterialID key(nextMaterialIndex++);
     addToMap(materials, key, mat);
 
     return key;
@@ -59,7 +59,7 @@ auto trc::AssetRegistry::addMaterial(Material mat) -> MaterialID
 
 auto trc::AssetRegistry::addImage(vkb::Image tex) -> TextureID
 {
-    TextureID key = nextImageIndex++;
+    TextureID key(nextImageIndex++);
     auto& image = addToMap(images, key, std::move(tex));
     imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
 
@@ -94,8 +94,9 @@ void trc::AssetRegistry::updateMaterials()
     auto buf = reinterpret_cast<Material*>(materialBuffer.map());
     for (size_t i = 0; i < materials.size(); i++)
     {
-        if (materials[i] != nullptr) {
-            buf[i] = *materials[i];
+        MaterialID id(i);
+        if (materials[id] != nullptr) {
+            buf[i] = *materials[id];
         }
     }
     materialBuffer.unmap();
@@ -155,12 +156,13 @@ void trc::AssetRegistry::updateDescriptors()
     std::vector<vk::DescriptorImageInfo> imageWrites;
     for (ui32 i = 0; i < images.size(); i++)
     {
-        if (images[i] == nullptr) {
+        TextureID id(i);
+        if (images[id] == nullptr) {
             break;
         }
 
         imageWrites.emplace_back(vk::DescriptorImageInfo(
-            images[i]->getDefaultSampler(),
+            images[id]->getDefaultSampler(),
             *imageViews[i],
             vk::ImageLayout::eGeneral
         ));

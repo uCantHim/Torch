@@ -115,7 +115,7 @@ int main()
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, 0, *scene);
+    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, trc::MaterialID(0), *scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     hoodedBoi.getAnimationEngine().playAnimation(0);
 

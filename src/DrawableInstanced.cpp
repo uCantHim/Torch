@@ -30,7 +30,7 @@ void trc::DrawableInstanced::attachToScene(SceneBase& scene)
     this->scene = &scene;
     scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        internal::DeferredSubPasses::eGBufferPass,
+        internal::DeferredSubPasses::gBufferPass,
         internal::getDrawableInstancedDeferredPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf) {
             cmdBuf.bindIndexBuffer(geometry->getIndexBuffer(), 0, vk::IndexType::eUint32);
@@ -46,7 +46,7 @@ void trc::DrawableInstanced::attachToScene(SceneBase& scene)
 
     scene.registerDrawFunction(
         RenderStageTypes::getShadow(),
-        0,
+        SubPass::ID(0),
         internal::getDrawableInstancedShadowPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
             assert(dynamic_cast<RenderPassShadow*>(env.currentRenderPass) != nullptr);

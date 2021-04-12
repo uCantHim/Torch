@@ -212,7 +212,7 @@ int main()
     renderer->getRenderGraph().addPass(rayStageTypeId, rayPassId);
 
     scene->registerDrawFunction(
-        rayStageTypeId, 0, trc::internal::getFinalLightingPipeline(),
+        rayStageTypeId, trc::SubPass::ID(0), trc::internal::getFinalLightingPipeline(),
         [
             &,
             pipeline=*rayPipeline,

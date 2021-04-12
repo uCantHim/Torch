@@ -42,7 +42,7 @@ auto trc::CommandCollector::recordScene(
         const ui32 subPassCount = renderPass.getNumSubPasses();
         for (ui32 subPass = 0; subPass < subPassCount; subPass++)
         {
-            for (auto pipeline : scene.getPipelines(stageType, subPass))
+            for (auto pipeline : scene.getPipelines(stageType, SubPass::ID(subPass)))
             {
                 // Bind the current pipeline
                 auto& p = Pipeline::at(pipeline);
@@ -55,7 +55,10 @@ auto trc::CommandCollector::recordScene(
                     cmdBuf.setViewport(0, viewport);
 
                     // Record commands for all objects with this pipeline
-                    scene.invokeDrawFunctions(stageType, renderPassId, subPass, pipeline, cmdBuf);
+                    scene.invokeDrawFunctions(
+                        stageType, renderPassId, SubPass::ID(subPass), pipeline,
+                        cmdBuf
+                    );
                 }
             }
 

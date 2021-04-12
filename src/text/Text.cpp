@@ -57,7 +57,7 @@ void trc::Text::attachToScene(SceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        internal::DeferredSubPasses::eTransparencyPass,
+        internal::DeferredSubPasses::transparencyPass,
         getPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
@@ -207,7 +207,7 @@ auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
             *vkb::getDevice(),
             *layout,
             deferredPass,
-            internal::DeferredSubPasses::eTransparencyPass
+            internal::DeferredSubPasses::transparencyPass
         );
 
     Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);

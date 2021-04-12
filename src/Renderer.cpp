@@ -169,7 +169,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        internal::DeferredSubPasses::eLightingPass,
+        internal::DeferredSubPasses::lightingPass,
         internal::getFinalLightingPipeline(),
         [&](auto&&, vk::CommandBuffer cmdBuf)
         {

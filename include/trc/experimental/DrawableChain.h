@@ -93,9 +93,11 @@ namespace trc::experimental
     /**
      * @brief A typesafe root for a chain of drawables
      *
-     * Use this if you want to have a chain of drawables but also a
-     * non-polymorphic interface of a specific drawable class. This class
-     * simply inherits from the template parameter type.
+     * This class does the following:
+     *  - Inherit from the template parameter type T
+     *  - Store a DrawableChainElement
+     *  - Provide a DrawableChainElement-like interface to said stored
+     *    element.
      *
      * A classical use case for this is when you want to have the full
      * interface of trc::Drawable (for example for access to the animation

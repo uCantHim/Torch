@@ -51,7 +51,7 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
 {
     other.currentScene = nullptr;
     other.geo = nullptr;
-    other.matIndex = 0;
+    other.matIndex = MaterialID(0);
     other.pickableId = NO_PICKABLE;
     other.isTransparent = false;
 
@@ -70,7 +70,7 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
     geo = rhs.geo;
     rhs.geo = nullptr;
     matIndex = rhs.matIndex;
-    rhs.matIndex = 0;
+    rhs.matIndex = MaterialID(0);
     pickableId = rhs.pickableId;
     rhs.pickableId = NO_PICKABLE;
     isTransparent = rhs.isTransparent;
@@ -169,12 +169,12 @@ void trc::Drawable::updateDrawFunctions()
 
     deferredRegistration = currentScene->registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        isTransparent ? DeferredSubPasses::eTransparencyPass : DeferredSubPasses::eGBufferPass,
+        isTransparent ? DeferredSubPasses::transparencyPass : DeferredSubPasses::gBufferPass,
         pipeline,
         std::move(func)
     );
     shadowRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::getShadow(), 0, internal::getDrawableShadowPipeline(),
+        RenderStageTypes::getShadow(), SubPass::ID(0), internal::getDrawableShadowPipeline(),
         [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
     );
 }

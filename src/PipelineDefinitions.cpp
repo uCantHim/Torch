@@ -249,7 +249,7 @@ auto makeDrawableDeferredPipeline(
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            deferredPass, DeferredSubPasses::eGBufferPass
+            deferredPass, DeferredSubPasses::gBufferPass
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
@@ -339,7 +339,7 @@ auto makeDrawableTransparentPipeline(
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            deferredPass, DeferredSubPasses::eTransparencyPass
+            deferredPass, DeferredSubPasses::transparencyPass
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
@@ -468,7 +468,7 @@ auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipel
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
-            deferredPass, DeferredSubPasses::eGBufferPass
+            deferredPass, DeferredSubPasses::gBufferPass
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
@@ -576,7 +576,7 @@ auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
         .build(
             *vkb::getDevice(),
             *layout,
-            deferredPass, DeferredSubPasses::eLightingPass
+            deferredPass, DeferredSubPasses::lightingPass
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };

@@ -122,7 +122,7 @@ template<class Derived>
 auto SelfManagedObject<Derived>::getNextIndex() noexcept -> ID
 {
     if (freeIndices.empty()) {
-        return objects.size();
+        return ID(objects.size());
     }
     else {
         auto result = freeIndices.top();

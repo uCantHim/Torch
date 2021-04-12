@@ -79,7 +79,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        internal::DeferredSubPasses::eTransparencyPass,
+        internal::DeferredSubPasses::transparencyPass,
         getDeferredPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
@@ -356,7 +356,7 @@ auto trc::makeParticleDrawPipeline(vk::RenderPass deferredPass) -> Pipeline
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
         .addDynamicState(vk::DynamicState::eViewport)
-        .build(*vkb::getDevice(), *layout, deferredPass, internal::DeferredSubPasses::eTransparencyPass);
+        .build(*vkb::getDevice(), *layout, deferredPass, internal::DeferredSubPasses::transparencyPass);
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());

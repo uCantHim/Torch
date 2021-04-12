@@ -14,18 +14,18 @@ namespace trc
     public:
         using Type = IdType;
 
-        TypesafeID() = default;
-        TypesafeID(IdType id) : _id(id) {}
+        constexpr TypesafeID() = default;
+        explicit constexpr TypesafeID(IdType id) : _id(id) {}
 
         template<typename T>
-        explicit TypesafeID(T id) requires IsIdType<T>
+        explicit constexpr TypesafeID(T id) requires IsIdType<T>
             : _id(static_cast<IdType>(id)) {}
 
         /**
-         * Can only be implicitly casted to the ID type, but not to other
+         * Can only be implicitly cast to the ID type, but not to other
          * arithmetic types.
          */
-        operator IdType() const noexcept {
+        constexpr operator IdType() const noexcept {
             return _id;
         }
 
@@ -33,7 +33,7 @@ namespace trc
          * Allow explicit casts to all arithmetic types
          */
         template<typename T>
-        explicit operator T() const noexcept requires IsIdType<T> {
+        explicit constexpr operator T() const noexcept requires IsIdType<T> {
             return static_cast<T>(_id);
         }
 
