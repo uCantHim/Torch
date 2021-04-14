@@ -57,15 +57,27 @@ namespace trc::experimental
             // The drawable member must never be nullptr
             assert(drawableObject != nullptr);
 
-            // Assign drawable now instead of via direct member initializer
-            // because I need the type information for attach().
             attach(*drawableObject);
-            drawable = std::move(drawableObject);
-
-            if (decoratedObject != nullptr) {
-                attach(*decoratedObject);
+            if (nextDecorated != nullptr)
+            {
+                // Attach the next chain element to the drawable instead of
+                // *this because it should be influenced by the drawable's
+                // transformation. This is consistent with the behaviour of
+                // DrawableChainRoot<>.
+                drawableObject->attach(*nextDecorated);
             }
+
+            // Assign drawable now instead of via direct member initializer
+            // because I need the type information for Node::attach above.
+            drawable = std::move(drawableObject);
         }
+
+        DrawableChainElement(DrawableChainElement&& other) = default;
+        ~DrawableChainElement() = default;
+        auto operator=(DrawableChainElement&& other) -> DrawableChainElement& = default;
+
+        DrawableChainElement(const DrawableChainElement&) = delete;
+        auto operator=(const DrawableChainElement&) -> DrawableChainElement& = delete;
 
         /**
          * @brief Attach all drawables in the chain to a scene
@@ -143,6 +155,13 @@ namespace trc::experimental
                 T::attach(*nextChainElement); // Because T must be a DrawableNodeType
             }
         }
+
+        DrawableChainRoot(DrawableChainRoot&& other) noexcept = default;
+        ~DrawableChainRoot() = default;
+        auto operator=(DrawableChainRoot&& other) noexcept -> DrawableChainRoot& = default;
+
+        DrawableChainRoot(const DrawableChainRoot&) = delete;
+        auto operator=(const DrawableChainRoot&) -> DrawableChainRoot& = delete;
 
         /**
          * @brief Attach all drawables in the chain to a scene
