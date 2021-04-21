@@ -46,6 +46,11 @@ namespace trc
          */
         void setFromMatrixTemporary(const mat4& t);
 
+        /**
+         * @brief Reset the transformation to the identity
+         */
+        void clearTransformation();
+
         auto translate(float x, float y, float z) -> self&;
         auto translate(vec3 t) -> self&;
         auto translateX(float x) -> self&;

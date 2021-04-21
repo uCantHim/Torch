@@ -35,6 +35,15 @@ void trc::Transformation::setFromMatrixTemporary(const mat4& t)
 	matrixRepresentation = t;
 }
 
+void trc::Transformation::clearTransformation()
+{
+    setTranslation(0.0f, 0.0f, 0.0f);
+    setScale(1.0f);
+    setRotation(glm::angleAxis(0.0f, vec3(0.0f, 1.0f, 0.0f)));
+    matrixRepresentation = mat4(1.0f);
+    matrixDirty = false;
+}
+
 
 // Translation
 auto trc::Transformation::translate(float x, float y, float z) -> self&
