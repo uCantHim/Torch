@@ -329,10 +329,8 @@ void onKey(GLFWwindow* window, int key, int, int action, int mods)
 void onMouseMove(GLFWwindow* window, double xpos, double ypos)
 {
     auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
-
-    double yInv = static_cast<double>(swapchain->getImageExtent().height) - ypos;
     vkb::EventHandler<vkb::MouseMoveEvent>::notify(
-        { swapchain, static_cast<float>(xpos), static_cast<float>(yInv) }
+        { swapchain, static_cast<float>(xpos), static_cast<float>(ypos) }
     );
 }
 
