@@ -3,6 +3,7 @@
 #include <memory>
 #include <concepts>
 #include <functional> // for reference_wrapper
+#include <optional>
 
 #include "Exception.h"
 

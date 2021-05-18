@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <unordered_set>
+#include <optional>
 
 #include "basics/PhysicalDevice.h"
 

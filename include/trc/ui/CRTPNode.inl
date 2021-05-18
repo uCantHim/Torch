@@ -3,7 +3,7 @@
 
 
 template<typename Derived>
-trc::ui::CRTPNode<Derived>::~CRTPNode<Derived>()
+trc::ui::CRTPNode<Derived>::~CRTPNode()
 {
     if (parent != nullptr) {
         parent->detach(static_cast<Derived&>(*this));

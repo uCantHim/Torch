@@ -6,8 +6,6 @@ endif()
 
 project(VulkanBase)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -55,6 +53,7 @@ endif()
 # Compile options
 
 target_compile_options(vk_base PUBLIC -fPIC)
+target_compile_features(vk_base PUBLIC cxx_std_20)
 
 if (NOT MSVC)
     target_compile_options(vk_base PRIVATE -Wall -Wextra -Wpedantic)
