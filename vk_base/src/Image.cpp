@@ -15,6 +15,8 @@ vkb::Image::Image(
     const Device& device,
     const vk::ImageCreateInfo& createInfo,
     const DeviceMemoryAllocator& allocator)
+    :
+    device(&device)
 {
     createNewImage(device, createInfo, allocator);
 }
@@ -22,6 +24,16 @@ vkb::Image::Image(
 auto vkb::Image::operator*() const noexcept -> vk::Image
 {
     return *image;
+}
+
+auto vkb::Image::getType() const noexcept -> vk::ImageType
+{
+    return type;
+}
+
+auto vkb::Image::getFormat() const noexcept -> vk::Format
+{
+    return format;
 }
 
 auto vkb::Image::getSize() const noexcept -> vk::Extent3D
@@ -86,7 +98,7 @@ void vkb::Image::writeData(const void* srcData, size_t srcSize, ImageSize destAr
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     );
 
-    auto cmdBuf = getDevice().createGraphicsCommandBuffer();
+    auto cmdBuf = device->createGraphicsCommandBuffer();
     cmdBuf->begin(vk::CommandBufferBeginInfo());
 
     const auto prevLayout = currentLayout == vk::ImageLayout::eUndefined
@@ -103,14 +115,19 @@ void vkb::Image::writeData(const void* srcData, size_t srcSize, ImageSize destAr
     changeLayout(*cmdBuf, prevLayout);
 
     cmdBuf->end();
-    getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
+    device->executeGraphicsCommandBufferSynchronously(*cmdBuf);
+}
+
+auto vkb::Image::getMemory() const noexcept -> const DeviceMemory&
+{
+    return memory;
 }
 
 auto vkb::Image::getDefaultSampler() const -> vk::Sampler
 {
     if (!defaultSampler)
     {
-        defaultSampler = getDevice()->createSamplerUnique(
+        defaultSampler = device->get().createSamplerUnique(
             vk::SamplerCreateInfo(
                 vk::SamplerCreateFlags(),
                 vk::Filter::eLinear, vk::Filter::eLinear,
@@ -125,13 +142,28 @@ auto vkb::Image::getDefaultSampler() const -> vk::Sampler
     return *defaultSampler;
 }
 
+auto vkb::Image::createView(vk::ImageAspectFlags aspect) const -> vk::UniqueImageView
+{
+    return device->get().createImageViewUnique(
+        vk::ImageViewCreateInfo(
+            {}, *image,
+            type == vk::ImageType::e2D ? vk::ImageViewType::e2D
+                : type == vk::ImageType::e3D ? vk::ImageViewType::e3D
+                : vk::ImageViewType::e1D,
+            format,
+            {}, // component mapping
+            vk::ImageSubresourceRange(aspect, 0, 1, 0, 1)
+        )
+    );
+}
+
 auto vkb::Image::createView(
     vk::ImageViewType viewType,
     vk::Format viewFormat,
     vk::ComponentMapping componentMapping,
     vk::ImageSubresourceRange subRes) const -> vk::UniqueImageView
 {
-    return getDevice()->createImageViewUnique(
+    return device->get().createImageViewUnique(
         { {}, *image, viewType, viewFormat, componentMapping, std::move(subRes) }
     );
 }
@@ -155,6 +187,8 @@ void vkb::Image::createNewImage(
     memory = allocator(device, vk::MemoryPropertyFlagBits::eDeviceLocal, memReq);
     memory.bindToImage(device, *image);
 
+    type = createInfo.imageType;
+    format = createInfo.format;
     currentLayout = vk::ImageLayout::eUndefined;
     size = createInfo.extent;
 }

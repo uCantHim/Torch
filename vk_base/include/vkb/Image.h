@@ -66,6 +66,8 @@ namespace vkb
          */
         auto operator*() const noexcept -> vk::Image;
 
+        auto getType() const noexcept -> vk::ImageType;
+        auto getFormat() const noexcept -> vk::Format;
         auto getSize() const noexcept -> vk::Extent3D;
 
         void changeLayout(const Device& device,
@@ -92,6 +94,8 @@ namespace vkb
 
         void writeData(const void* srcData, size_t srcSize, ImageSize destArea);
 
+        auto getMemory() const noexcept -> const DeviceMemory&;
+
         /**
          * @brief Get a sampler object with default values for the image
          *
@@ -101,6 +105,15 @@ namespace vkb
          * @return vk::Sampler
          */
         auto getDefaultSampler() const -> vk::Sampler;
+
+        /**
+         * @brief Create a view on the image
+         *
+         * Simplified interface for the most common use case. Use the
+         * image's format and type as the view's format and type.
+         */
+        auto createView(vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor) const
+            -> vk::UniqueImageView;
 
         /**
          * @brief Create a view on the image
@@ -122,10 +135,14 @@ namespace vkb
                             const vk::ImageCreateInfo& createInfo,
                             const DeviceMemoryAllocator& allocator);
 
+        const vkb::Device* device;
+
         DeviceMemory memory;
         vk::UniqueImage image;
         mutable vk::UniqueSampler defaultSampler;
 
+        vk::ImageType type;
+        vk::Format format;
         vk::ImageLayout currentLayout;
         vk::Extent3D size;
     };
