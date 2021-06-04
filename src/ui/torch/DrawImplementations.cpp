@@ -1,7 +1,6 @@
 #include "ui/torch/DrawImplementations.h"
 
 #include <vkb/Buffer.h>
-#include <vulkan/vulkan.hpp>
 
 #include "PipelineBuilder.h"
 #include "ui/Window.h"

@@ -4,7 +4,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include <vulkan/vulkan.hpp>
+#include "VulkanInclude.h"
 
 #include "../Logger.h"
 

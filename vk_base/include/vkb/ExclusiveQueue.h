@@ -6,7 +6,7 @@
 #include <atomic>
 #include <mutex>
 
-#include <vulkan/vulkan.hpp>
+#include "VulkanInclude.h"
 
 namespace vkb
 {

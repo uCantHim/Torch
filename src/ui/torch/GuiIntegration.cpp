@@ -1,7 +1,6 @@
 #include "ui/torch/GuiIntegration.h"
 
 #include <ranges>
-#include <vulkan/vulkan.hpp>
 
 #include <vkb/ShaderProgram.h>
 #include <vkb/event/Event.h>

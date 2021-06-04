@@ -2,7 +2,7 @@
 #ifndef VULKANEXT_H
 #define VULKANEXT_H
 
-#include <vulkan/vulkan.hpp>
+#include "VulkanInclude.h"
 
 namespace vkb::vkEXT
 {

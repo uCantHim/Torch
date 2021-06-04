@@ -3,7 +3,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include <vulkan/vulkan.hpp>
 #include <vkb/MemoryPool.h>
 #include <vkb/Buffer.h>
 

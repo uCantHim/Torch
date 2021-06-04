@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <vulkan/vulkan.hpp>
+#include <vkb/VulkanInclude.h>
 
 #define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
