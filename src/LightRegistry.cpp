@@ -1,5 +1,7 @@
 #include "LightRegistry.h"
 
+#include <vkb/ImageUtils.h>
+
 #include "utils/Util.h"
 #include "PipelineDefinitions.h"
 
@@ -45,7 +47,7 @@ vkb::StaticInit trc::ShadowDescriptor::_init{
 
         // Dummy resources in case the sampler descriptor count is specified as 0
         dummyShadowImage = []() {
-            auto img =  vkb::makeImage2D(vec4(0.0f));
+            auto img =  vkb::makeSinglePixelImage(vkb::getDevice(), vec4(0.0f));
             img.changeLayout(vkb::getDevice(), vk::ImageLayout::eShaderReadOnlyOptimal);
             return img;
         }();

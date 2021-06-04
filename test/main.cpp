@@ -9,6 +9,7 @@ using namespace std::chrono;
 #include <vkb/VulkanBase.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
+#include <vkb/ImageUtils.h>
 
 #include <trc/Torch.h>
 using namespace trc::basic_types;
@@ -60,17 +61,17 @@ int main()
         )
     );
     auto lindaDiffTexIdx = trc::AssetRegistry::addImage(
-        vkb::makeImage2D(vkb::getDevice(), TRC_ASSET_DIR"/Female_Character.png")
+        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/Female_Character.png")
     );
 
     auto grassImgIdx = trc::AssetRegistry::addImage(
-        vkb::makeImage2D(vkb::getDevice(), TRC_ASSET_DIR"/grass_billboard_001.png")
+        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/grass_billboard_001.png")
     );
     auto stoneTexIdx = trc::AssetRegistry::addImage(
-        vkb::makeImage2D(vkb::getDevice(), vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
+        vkb::makeSinglePixelImage(vkb::getDevice(), vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
     );
     auto stoneNormalTexIdx = trc::AssetRegistry::addImage(
-        vkb::makeImage2D(vkb::getDevice(), TRC_ASSET_DIR"/rough_stone_wall_normal.tif")
+        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
     auto matIdx = trc::AssetRegistry::addMaterial({
@@ -186,7 +187,7 @@ int main()
     }
 
     auto particleImgIdx = trc::AssetRegistry::addImage(
-        vkb::makeImage2D(vkb::getDevice(), TRC_ASSET_DIR"/yellowlight.png"));
+        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/yellowlight.png"));
     trc::ParticleSpawn spawn(*particleCollection);
     for (int i = 0; i < 50; i++)
     {

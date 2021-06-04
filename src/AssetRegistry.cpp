@@ -1,5 +1,7 @@
 #include "AssetRegistry.h"
 
+#include <vkb/ImageUtils.h>
+
 #include "PipelineRegistry.h"
 
 
@@ -18,7 +20,7 @@ void trc::AssetRegistry::init()
     // Add default assets
     addMaterial({});
     updateMaterials();
-    addImage(vkb::makeImage2D(vkb::getDevice(), vec4(1.0f)));
+    addImage(vkb::makeSinglePixelImage(vkb::getDevice(), vec4(1.0f)));
 
     createDescriptors();
 }

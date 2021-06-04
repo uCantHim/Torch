@@ -9,6 +9,7 @@ target_sources(
         ExclusiveQueue.cpp
         Memory.cpp
         Image.cpp
+        ImageUtils.cpp
         Logger.cpp
         MemoryPool.cpp
         QueueManager.cpp
