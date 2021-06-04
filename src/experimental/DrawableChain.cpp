@@ -37,20 +37,20 @@ namespace trc::experimental
     }
 
     auto DrawableChainElement::getNextChainElement() noexcept
-        -> Maybe<DrawableChainElement*>
+        -> Maybe<DrawableChainElement&>
     {
         if (nextDecorated != nullptr) {
-            return nextDecorated.get();
+            return *nextDecorated;
         }
 
         return {};
     }
 
     auto DrawableChainElement::getNextChainElement() const noexcept
-        -> Maybe<const DrawableChainElement*>
+        -> Maybe<const DrawableChainElement&>
     {
         if (nextDecorated != nullptr) {
-            return nextDecorated.get();
+            return *nextDecorated;
         }
 
         return {};

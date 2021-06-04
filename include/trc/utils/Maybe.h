@@ -55,12 +55,6 @@ namespace trc
                   && std::is_const_v<std::remove_reference_t<T>>
             : value(std::cref(val)) {}
 
-        ///**
-        // * @brief Construct Maybe from an rvalue
-        // */
-        //Maybe(T&& val) requires std::is_move_constructible_v<T>
-        //    : value(std::move(val)) {}
-
         /**
          * @brief Constuctor Maybe from a std::optional
          */
@@ -171,6 +165,8 @@ namespace trc
 
         /**
          * @brief Get the value in the Maybe
+         *
+         * This is the "trust me, I know what I'm doing" operator.
          *
          * @return T The Maybe's value if it has one.
          *

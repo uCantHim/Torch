@@ -91,8 +91,8 @@ namespace trc::experimental
 
         auto getDrawable() noexcept -> DrawableInterface&;
         auto getDrawable() const noexcept -> const DrawableInterface&;
-        auto getNextChainElement() noexcept -> Maybe<DrawableChainElement*>;
-        auto getNextChainElement() const noexcept -> Maybe<const DrawableChainElement*>;
+        auto getNextChainElement() noexcept -> Maybe<DrawableChainElement&>;
+        auto getNextChainElement() const noexcept -> Maybe<const DrawableChainElement&>;
 
     private:
         // Builds a chain of nodes that each keep one child alive
@@ -104,6 +104,10 @@ namespace trc::experimental
 
     /**
      * @brief A typesafe root for a chain of drawables
+     *
+     * Similar to DrawableChainElement, but inherits from the drawable type
+     * instead of storing it as a component. The DrawableChainRoot thus
+     * *is* the top-level drawable on the chain.
      *
      * This class does the following:
      *  - Inherit from the template parameter type T
@@ -183,6 +187,22 @@ namespace trc::experimental
             if (nextChainElement) {
                 nextChainElement->removeFromScene();
             }
+        }
+
+        inline auto getNextChainElement() noexcept -> Maybe<DrawableChainElement&>
+        {
+            if (nextChainElement != nullptr) {
+                return *nextChainElement;
+            }
+            return {};
+        }
+
+        inline auto getNextChainElement() const noexcept -> Maybe<const DrawableChainElement&>
+        {
+            if (nextChainElement != nullptr) {
+                return *nextChainElement;
+            }
+            return {};
         }
 
     private:
