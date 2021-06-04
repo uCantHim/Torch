@@ -26,7 +26,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
         const auto swapchainExtent = swapchain.getImageExtent();
         auto& images = attachmentImages.emplace_back();
         images.reserve(numAttachments);
-        auto& imageViews = attachmentImageViews.emplace_back();
 
         auto& positionImage = images.emplace_back(
             vkb::getDevice(),
@@ -84,43 +83,21 @@ trc::RenderPassDeferred::RenderPassDeferred(
             vkb::DefaultDeviceMemoryAllocator()
         );
 
-        auto positionView = *imageViews.emplace_back(
-            positionImage.createView(vk::ImageViewType::e2D, vk::Format::eR16G16B16A16Sfloat, {})
-        );
-        auto normalView = *imageViews.emplace_back(
-            normalImage.createView(vk::ImageViewType::e2D, vk::Format::eR16G16B16A16Sfloat, {})
-        );
-        auto uvView = *imageViews.emplace_back(
-            uvImage.createView(vk::ImageViewType::e2D, vk::Format::eR16G16Sfloat, {})
-        );
-        auto materialView = *imageViews.emplace_back(
-            materialImage.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint, {})
-        );
-        auto depthView = *imageViews.emplace_back(
-            depthImage.createView(
-                vk::ImageViewType::e2D, vk::Format::eD24UnormS8Uint, vk::ComponentMapping(),
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1)
-            )
-        );
-        auto colorOutputView = swapchain.getImageView(frameIndex);
-
-        std::vector<vk::ImageView> attachments = {
-            positionView,
-            normalView,
-            uvView,
-            materialView,
-            depthView,
-            colorOutputView
-        };
-
         framebufferSize = vk::Extent2D{ swapchainExtent.width, swapchainExtent.height };
-        return vkb::getDevice()->createFramebufferUnique(
-            vk::FramebufferCreateInfo(
-                {},
-                *renderPass,
-                attachments,
-                framebufferSize.width, framebufferSize.height, 1
-            )
+
+        std::vector<vk::UniqueImageView> views;
+        views.push_back(positionImage.createView());
+        views.push_back(normalImage.createView());
+        views.push_back(uvImage.createView());
+        views.push_back(materialImage.createView());
+        views.push_back(depthImage.createView(vk::ImageAspectFlagBits::eDepth));
+
+        return Framebuffer(
+            vkb::getDevice(),
+            *renderPass,
+            { framebufferSize.width, framebufferSize.height },
+            std::move(views),
+            { swapchain.getImageView(frameIndex) }
         );
     }),
     clearValues({
@@ -181,9 +158,15 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
 }
 
 auto trc::RenderPassDeferred::getAttachmentImageViews(ui32 imageIndex) const noexcept
-   -> const std::vector<vk::UniqueImageView>&
+   -> std::array<vk::ImageView, 4>
 {
-    return attachmentImageViews[imageIndex];
+    const Framebuffer& fb = framebuffers.getAt(imageIndex);
+    return {{
+        fb.getAttachmentView(0),
+        fb.getAttachmentView(1),
+        fb.getAttachmentView(2),
+        fb.getAttachmentView(3)
+    }};
 }
 
 auto trc::RenderPassDeferred::getDescriptor() const noexcept
@@ -514,7 +497,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
     // Sets
     descSets = { [&](ui32 imageIndex)
     {
-        const auto& imageViews = renderPass.getAttachmentImageViews(imageIndex);
+        auto imageViews = renderPass.getAttachmentImageViews(imageIndex);
 
         auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
             vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
@@ -522,10 +505,10 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
 
         // Write set
         std::vector<vk::DescriptorImageInfo> imageInfos = {
-            { {}, *imageViews[0], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, *imageViews[1], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, *imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, *imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, imageViews[0], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, imageViews[1], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
             { {}, *fragmentListHeadPointerImageView.getAt(imageIndex), vk::ImageLayout::eGeneral },
         };
         std::vector<vk::DescriptorBufferInfo> bufferInfos{

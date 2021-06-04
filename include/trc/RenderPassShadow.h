@@ -4,6 +4,7 @@
 
 #include "Types.h"
 #include "RenderPass.h"
+#include "Framebuffer.h"
 
 namespace trc
 {
@@ -51,7 +52,6 @@ namespace trc
         ui32 shadowMatrixIndex;
 
         vkb::FrameSpecificObject<vkb::Image> depthImages;
-        vkb::FrameSpecificObject<vk::UniqueImageView> depthImageViews;
-        vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
+        vkb::FrameSpecificObject<Framebuffer> framebuffers;
     };
 } // namespace trc

@@ -64,22 +64,11 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution)
             )
         );
     }),
-    depthImageViews([&](ui32 imageIndex) {
-        return depthImages.getAt(imageIndex).createView(
-            vk::ImageViewType::e2D, vk::Format::eD24UnormS8Uint, {},
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1)
-        );
-    }),
     framebuffers([&](ui32 imageIndex) {
-        vk::ImageView depthView = *depthImageViews.getAt(imageIndex);
-        return vkb::getDevice()->createFramebufferUnique(
-            vk::FramebufferCreateInfo(
-                {},
-                *renderPass,
-                depthView,
-                resolution.x, resolution.y, 1
-            )
-        );
+        std::vector<vk::UniqueImageView> views;
+        views.push_back(depthImages.getAt(imageIndex).createView(vk::ImageAspectFlagBits::eDepth));
+
+        return Framebuffer(vkb::getDevice(), *renderPass, resolution, { std::move(views) });
     })
 {
 }
@@ -122,7 +111,7 @@ auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::I
 
 auto trc::RenderPassShadow::getDepthImageView(ui32 imageIndex) const -> vk::ImageView
 {
-    return *depthImageViews.getAt(imageIndex);
+    return framebuffers.getAt(imageIndex).getAttachmentView(0);
 }
 
 auto trc::RenderPassShadow::getShadowMatrixIndex() const noexcept -> ui32

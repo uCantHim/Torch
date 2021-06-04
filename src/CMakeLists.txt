@@ -9,6 +9,7 @@ target_sources(
         DescriptorProviderWrapper.cpp
         Drawable.cpp
         DrawableInstanced.cpp
+        Framebuffer.cpp
         Geometry.cpp
         Light.cpp
         LightRegistry.cpp

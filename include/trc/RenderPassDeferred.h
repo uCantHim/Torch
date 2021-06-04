@@ -5,6 +5,7 @@
 #include <vkb/Image.h>
 
 #include "RenderPass.h"
+#include "Framebuffer.h"
 #include "utils/Camera.h"
 
 namespace trc
@@ -66,7 +67,7 @@ namespace trc
         void end(vk::CommandBuffer cmdBuf) override;
 
         auto getAttachmentImageViews(ui32 imageIndex) const noexcept
-           -> const std::vector<vk::UniqueImageView>&;
+           -> std::array<vk::ImageView, 4>;
 
         /**
          * @return The descriptor for the deferred renderpass
@@ -112,12 +113,9 @@ namespace trc
 
         const vkb::Swapchain& swapchain;
 
-        // Attachments
-        std::vector<std::vector<vkb::Image>> attachmentImages;
-        std::vector<std::vector<vk::UniqueImageView>> attachmentImageViews;
-
         vk::Extent2D framebufferSize;
-        vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
+        std::vector<std::vector<vkb::Image>> attachmentImages;
+        vkb::FrameSpecificObject<Framebuffer> framebuffers;
 
         std::array<vk::ClearValue, 6> clearValues;
 
