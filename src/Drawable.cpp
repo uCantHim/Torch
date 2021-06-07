@@ -8,31 +8,19 @@
 
 
 trc::Drawable::Drawable(GeometryID geo, MaterialID material)
-    :
-    Drawable(**AssetRegistry::getGeometry(geo), material)
 {
+    setMaterial(material);
+    setGeometry(geo);
+    if (this->geo->hasRig()) {
+        animEngine = { *this->geo->getRig() };
+    }
+
+    updateDrawFunctions();
 }
 
 trc::Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
     :
-    Drawable(**AssetRegistry::getGeometry(geo), material, scene)
-{
-}
-
-trc::Drawable::Drawable(Geometry& geo, MaterialID material, bool transparent)
-    :
-    geo(&geo),
-    isTransparent(transparent)
-{
-    if (geo.hasRig()) {
-        animEngine = { *geo.getRig() };
-    }
-    setMaterial(material);
-    updateDrawFunctions();
-}
-
-trc::Drawable::Drawable(Geometry& geo, MaterialID material, SceneBase& scene)
-    : Drawable(geo, material)
+    Drawable(geo, material)
 {
     attachToScene(scene);
 }
@@ -44,6 +32,7 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
     deferredRegistration(std::move(other.deferredRegistration)),
     shadowRegistration(std::move(other.shadowRegistration)),
     geo(other.geo),
+    geoIndex(other.geoIndex),
     matIndex(other.matIndex),
     pickableId(other.pickableId),
     isTransparent(other.isTransparent),
@@ -51,6 +40,7 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
 {
     other.currentScene = nullptr;
     other.geo = nullptr;
+    other.geoIndex = GeometryID(0);
     other.matIndex = MaterialID(0);
     other.pickableId = NO_PICKABLE;
     other.isTransparent = false;
@@ -69,6 +59,8 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 
     geo = rhs.geo;
     rhs.geo = nullptr;
+    geoIndex = rhs.geoIndex;
+    rhs.geoIndex = GeometryID(0);
     matIndex = rhs.matIndex;
     rhs.matIndex = MaterialID(0);
     pickableId = rhs.pickableId;
@@ -91,9 +83,25 @@ trc::Drawable::~Drawable()
     }
 }
 
+auto trc::Drawable::getMaterial() const -> MaterialID
+{
+    return matIndex;
+}
+
+auto trc::Drawable::getGeometry() const -> GeometryID
+{
+    return geoIndex;
+}
+
 void trc::Drawable::setMaterial(MaterialID matIndex)
 {
     this->matIndex = matIndex;
+}
+
+void trc::Drawable::setGeometry(GeometryID newGeo)
+{
+    geo = AssetRegistry::getGeometry(newGeo).get();
+    geoIndex = newGeo;
 }
 
 auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&

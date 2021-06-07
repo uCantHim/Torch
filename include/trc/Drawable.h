@@ -20,9 +20,6 @@ namespace trc
         explicit
         Drawable(GeometryID geo, MaterialID material = MaterialID(0));
         Drawable(GeometryID geo, MaterialID material, SceneBase& scene);
-        explicit
-        Drawable(Geometry& geo, MaterialID material = MaterialID(0), bool transparent = false);
-        Drawable(Geometry& geo, MaterialID material, SceneBase& scene);
         ~Drawable();
 
         Drawable(Drawable&&) noexcept;
@@ -31,7 +28,11 @@ namespace trc
         Drawable(const Drawable&) = delete;
         auto operator=(const Drawable&) -> Drawable& = delete;
 
+        auto getMaterial() const -> MaterialID;
+        auto getGeometry() const -> GeometryID;
+
         void setMaterial(MaterialID matIndex);
+        void setGeometry(GeometryID newGeo);
 
         /**
          * @return AnimationEngine& Always returns an animation engine, even
@@ -115,7 +116,16 @@ namespace trc
         SceneBase::UniqueRegistrationID deferredRegistration;
         SceneBase::UniqueRegistrationID shadowRegistration;
 
+        /**
+         * IDEA:
+         *
+         * Put all data required to actually draw stuff (geo, mat, flags, ...)
+         * into an external, contiguous storage. This way I also avoid move/copy
+         * bullshit.
+         */
+
         Geometry* geo{ nullptr };
+        GeometryID geoIndex{ 0 };
         MaterialID matIndex{ 0 };
         Pickable::ID pickableId{ NO_PICKABLE };
         bool isTransparent{ false };
