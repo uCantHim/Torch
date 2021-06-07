@@ -258,9 +258,9 @@ namespace trc::experimental
      * The first argument is the root itself.
      */
     template<DrawableNodeType T>
-    inline auto makeDrawableChainRoot(T&& first) -> DrawableChainRoot<T>
+    inline auto makeDrawableChainRoot(T&& first) -> DrawableChainRoot<std::decay_t<T>>
     {
-        return DrawableChainRoot<T>{ std::move(first) };
+        return DrawableChainRoot<std::decay_t<T>>{ std::move(first) };
     }
 
     /**
@@ -270,9 +270,10 @@ namespace trc::experimental
      * The first argument is the root itself.
      */
     template<DrawableNodeType T, DrawableNodeType... Args>
-    inline auto makeDrawableChainRoot(T&& first, Args&&... args) -> DrawableChainRoot<T>
+    inline auto makeDrawableChainRoot(T&& first, Args&&... args)
+        -> DrawableChainRoot<std::decay_t<T>>
     {
-        return DrawableChainRoot<T>{
+        return DrawableChainRoot<std::decay_t<T>>{
             makeDrawableChainUnique(std::forward<Args>(args)...),
             std::move(first)
         };
@@ -287,9 +288,10 @@ namespace trc::experimental
      * Overload for a single argument, i.e. a root with no attachments.
      */
     template<DrawableNodeType T>
-    inline auto makeDrawableChainRootUnique(T&& first) -> std::unique_ptr<DrawableChainRoot<T>>
+    inline auto makeDrawableChainRootUnique(T&& first)
+        -> std::unique_ptr<DrawableChainRoot<std::decay_t<T>>>
     {
-        return std::make_unique<DrawableChainRoot<T>>(std::move(first));
+        return std::make_unique<DrawableChainRoot<std::decay_t<T>>>(std::move(first));
     }
 
     /**
@@ -300,9 +302,9 @@ namespace trc::experimental
      */
     template<DrawableNodeType T, DrawableNodeType... Args>
     inline auto makeDrawableChainRootUnique(T&& first, Args&&... args)
-        -> std::unique_ptr<DrawableChainRoot<T>>
+        -> std::unique_ptr<DrawableChainRoot<std::decay_t<T>>>
     {
-        return std::make_unique<DrawableChainRoot<T>>(
+        return std::make_unique<DrawableChainRoot<std::decay_t<T>>>(
             makeDrawableChainUnique(std::forward<Args>(args)...),
             std::move(first)
         );
