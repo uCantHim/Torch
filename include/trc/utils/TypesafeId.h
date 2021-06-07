@@ -1,24 +1,28 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <functional>
 
 namespace trc
 {
-    template<typename ClassType, typename IdType = uint32_t>
+    template<typename ClassType, std::integral IdType = uint32_t>
     class TypesafeID
     {
-        template<typename T>
-        static constexpr bool IsIdType = std::is_convertible_v<IdType, T>;
-
     public:
         using Type = IdType;
+
+        /**
+         * Maximum value of the underlying numeric type. Can be used to
+         * signal an empty value.
+         */
+        static constexpr IdType NONE{ std::numeric_limits<IdType>::max() };
 
         constexpr TypesafeID() = default;
         explicit constexpr TypesafeID(IdType id) : _id(id) {}
 
-        template<typename T>
-        explicit constexpr TypesafeID(T id) requires IsIdType<T>
+        template<std::convertible_to<IdType> T>
+        explicit constexpr TypesafeID(T id)
             : _id(static_cast<IdType>(id)) {}
 
         /**
@@ -33,7 +37,7 @@ namespace trc
          * Allow explicit casts to all arithmetic types
          */
         template<typename T>
-        explicit constexpr operator T() const noexcept requires IsIdType<T> {
+        explicit constexpr operator T() const noexcept requires std::convertible_to<IdType, T> {
             return static_cast<T>(_id);
         }
 
