@@ -93,28 +93,9 @@ namespace trc
         auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
 
         /**
-         * This function basically just calls glm::unProject.
-         *
-         * @param const Camera& camera Reconstructing the mouse coursor's
-         *        world position requires the view- and projection matrices
-         *        that were used for the scene that the cursor is in.
-         *
          * @return vec3 Position of the mouse cursor in the world.
          */
-        auto getMouseWorldPos(const Camera& camera) -> vec3;
-
-        /**
-         * @brief Calculate the mouse cursor position in the world at a
-         *        specific depth.
-         *
-         * @param const Camera& camera Reconstructing the mouse coursor's
-         *        world position requires the view- and projection matrices
-         *        that were used for the scene that the cursor is in.
-         * @param float         depth  A depth value in the range [0, 1].
-         *
-         * @return vec3 Position of the mouse cursor in the world.
-         */
-        auto getMouseWorldPosAtDepth(const Camera& camera, float depth) -> vec3;
+        auto getMouseWorldPos() -> vec3;
 
     private:
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;

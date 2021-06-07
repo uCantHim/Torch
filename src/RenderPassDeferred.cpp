@@ -1,5 +1,7 @@
 #include "RenderPassDeferred.h"
 
+#include <glm/detail/type_half.hpp>
+
 #include "utils/Util.h"
 #include "PipelineDefinitions.h"
 
@@ -14,7 +16,12 @@ trc::RenderPassDeferred::RenderPassDeferred(
         NUM_SUBPASSES
     ), // Base class RenderPass constructor
     depthPixelReadBuffer(
-        sizeof(vec4),
+        sizeof(float),
+        vk::BufferUsageFlagBits::eTransferDst,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+    ),
+    mousePosBuffer(
+        sizeof(ui16) * 4,
         vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     ),
@@ -34,6 +41,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
                 vk::Extent3D{ swapchainExtent, 1 },
                 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+                | vk::ImageUsageFlagBits::eTransferSrc
             ),
             vkb::DefaultDeviceMemoryAllocator()
         );
@@ -44,7 +52,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
                 vk::Extent3D{ swapchainExtent, 1 },
                 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-                | vk::ImageUsageFlagBits::eTransferSrc
             ),
             vkb::DefaultDeviceMemoryAllocator()
         );
@@ -114,8 +121,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
 
 void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    readMouseDepthValueFromBuffer();
-
     // Bring attachment images in color attachment layout
     ui32 imageIndex = swapchain.getCurrentFrame();
     auto& images = attachmentImages[imageIndex];
@@ -154,7 +159,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
 void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
 {
     cmdBuf.endRenderPass();
-    copyMouseDepthValueToBuffer(cmdBuf);
+    copyMouseDataToBuffers(cmdBuf);
 }
 
 auto trc::RenderPassDeferred::getAttachmentImageViews(ui32 imageIndex) const noexcept
@@ -179,11 +184,6 @@ auto trc::RenderPassDeferred::getDescriptorProvider() const noexcept
     -> const DescriptorProviderInterface&
 {
     return descriptor.getProvider();
-}
-
-auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
-{
-    return mouseDepthValue;
 }
 
 auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swapchain)
@@ -279,7 +279,7 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
             4, &lightingAttachments[0],
             1, &lightingAttachments[4],
             nullptr, // resolve attachments
-            nullptr
+            nullptr  // depth attachment
         ),
     };
 
@@ -320,16 +320,11 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
     );
 }
 
-void trc::RenderPassDeferred::copyMouseDepthValueToBuffer(vk::CommandBuffer cmdBuf)
+void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
     vkb::Image& depthImage = attachmentImages[swapchain.getCurrentFrame()][4];
-    const vk::Extent3D size = depthImage.getSize();
-    const vec2 mousePos = swapchain.getMousePosition();
-    if (mousePos.x < 0 || mousePos.y < 0
-        || mousePos.x >= size.width || mousePos.y >= size.height)
-    {
-        return;
-    }
+    const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
+    const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
     depthImage.changeLayout(
         cmdBuf,
@@ -342,26 +337,48 @@ void trc::RenderPassDeferred::copyMouseDepthValueToBuffer(vk::CommandBuffer cmdB
         vk::BufferImageCopy(
             0, // buffer offset
             0, 0, // some weird 2D or 3D offsets, idk
-            vk::ImageSubresourceLayers(
-                vk::ImageAspectFlagBits::eDepth,
-                0, 0, 1
-            ),
+            vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eDepth, 0, 0, 1),
+            { static_cast<i32>(mousePos.x), static_cast<i32>(mousePos.y), 0 },
+            { 1, 1, 1 }
+        )
+    );
+
+    vkb::Image& posImage = attachmentImages[swapchain.getCurrentFrame()][0];
+    posImage.changeLayout(
+        cmdBuf,
+        vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferSrcOptimal,
+        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+    );
+    cmdBuf.copyImageToBuffer(
+        *posImage, vk::ImageLayout::eTransferSrcOptimal,
+        *mousePosBuffer,
+        vk::BufferImageCopy(
+            0, // buffer offset
+            0, 0, // some weird 2D or 3D offsets, idk
+            vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
             { static_cast<i32>(mousePos.x), static_cast<i32>(mousePos.y), 0 },
             { 1, 1, 1 }
         )
     );
 }
 
-void trc::RenderPassDeferred::readMouseDepthValueFromBuffer()
+auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 {
-    auto buf = reinterpret_cast<ui32*>(depthPixelReadBuffer.map());
-    ui32 depthValueD24S8 = buf[0];
-    depthPixelReadBuffer.unmap();
+    const ui32 depthValueD24S8 = depthBufMap[0];
 
     // Don't ask me why 16 bit here, I think it should be 24. The result
     // seems to be correct with 16 though.
     constexpr float maxFloat16 = 65536.0f; // 2**16 -- std::pow is not constexpr
-    mouseDepthValue = static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
+    return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
+}
+
+auto trc::RenderPassDeferred::getMousePos() const noexcept -> vec3
+{
+    return {
+        glm::detail::toFloat32(mousePosBufMap[0]),
+        glm::detail::toFloat32(mousePosBufMap[1]),
+        glm::detail::toFloat32(mousePosBufMap[2]),
+    };
 }
 
 

@@ -82,15 +82,21 @@ namespace trc
         /**
          * @brief Get the depth of pixel under the mouse cursor
          *
-         * This function does not have any calculational overhead. The
-         * render pass evaluates the mouse depth every frame regardless of
-         * the number of calls to this function.
-         *
          * @return float Depth of the pixel which contains the mouse cursor.
-         *               Is zero if no depth value has been read. Is the last
-         *               read depth value if the cursor is not in a window.
+         *               Is the last read depth value if the cursor is not
+         *               in a window.
          */
         auto getMouseDepth() const noexcept -> float;
+
+        /**
+         * @brief Get world position of mouse cursor
+         *
+         * This function reads six bytes of data from device- to host
+         * memory. You should probably call this only once per frame.
+         *
+         * @return vec3
+         */
+        auto getMousePos() const noexcept -> vec3;
 
         /**
          * @brief Make only a vk::RenderPass but don't allocate any
@@ -107,9 +113,11 @@ namespace trc
     private:
         static inline float mouseDepthValue{ 0.0f };
 
-        void copyMouseDepthValueToBuffer(vk::CommandBuffer cmdBuf);
-        void readMouseDepthValueFromBuffer();
+        void copyMouseDataToBuffers(vk::CommandBuffer cmdBuf);
         vkb::Buffer depthPixelReadBuffer;
+        vkb::Buffer mousePosBuffer;
+        float* depthBufMap = reinterpret_cast<float*>(depthPixelReadBuffer.map());
+        i16* mousePosBufMap = reinterpret_cast<i16*>(mousePosBuffer.map());
 
         const vkb::Swapchain& swapchain;
 

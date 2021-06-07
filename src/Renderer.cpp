@@ -241,24 +241,9 @@ auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDe
     return static_cast<RenderPassDeferred&>(RenderPass::at(defaultDeferredPass));
 }
 
-auto trc::Renderer::getMouseWorldPos(const Camera& camera) -> vec3
+auto trc::Renderer::getMouseWorldPos() -> vec3
 {
-    return getMouseWorldPosAtDepth(camera, getDeferredRenderPass().getMouseDepth());
-}
-
-auto trc::Renderer::getMouseWorldPosAtDepth(const Camera& camera, const float depth) -> vec3
-{
-    assert(depth >= 0.0f && depth <= 1.0f);
-
-    const auto windowSize = vkb::getSwapchain().getImageExtent();
-    const vec2 mousePos = vkb::getSwapchain().getMousePosition();
-
-    return glm::unProject(
-        vec3(mousePos, depth),
-        camera.getViewMatrix(),
-        camera.getProjectionMatrix(),
-        vec4(0.0f, 0.0f, windowSize.width, windowSize.height)
-    );
+    return getDeferredRenderPass().getMousePos();
 }
 
 void trc::Renderer::createSemaphores()
