@@ -362,13 +362,6 @@ void onScroll(GLFWwindow* window, double xOffset, double yOffset)
     );
 }
 
-void onWindowClose(GLFWwindow* window)
-{
-    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
-    swapchain->isWindowOpen = false;
-    vkb::EventHandler<vkb::SwapchainCloseEvent>::notify({ {swapchain} });
-}
-
 void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 {
     glfwSetWindowUserPointer(window, this);
@@ -380,7 +373,12 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
     glfwSetMouseButtonCallback(window, onMouseClick);
     glfwSetScrollCallback(window, onScroll);
 
-    glfwSetWindowCloseCallback(window, onWindowClose);
+    // Use a lambda here so I have access to the private member `isWindowOpen`
+    glfwSetWindowCloseCallback(window, [](GLFWwindow* window) {
+        auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+        swapchain->isWindowOpen = false;
+        vkb::EventHandler<vkb::SwapchainCloseEvent>::notify({ {swapchain} });
+    });
 }
 
 void vkb::Swapchain::createSwapchain()

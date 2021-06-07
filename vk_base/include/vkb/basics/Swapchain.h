@@ -126,10 +126,12 @@ namespace vkb
         auto getMousePosition() const -> glm::vec2;
 
     public:
+        const Device& device;
+
+    private:
         void initGlfwCallbacks(GLFWwindow* window);
         void createSwapchain();
 
-        const Device& device;
         std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
         std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> surface;
         bool isWindowOpen{ true };

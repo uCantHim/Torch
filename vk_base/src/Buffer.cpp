@@ -72,19 +72,19 @@ auto vkb::Buffer::size() const noexcept -> vk::DeviceSize
     return bufferSize;
 }
 
-auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) -> memptr
+auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) const -> memptr
 {
     return static_cast<memptr>(memory.map(*device, offset, size));
 }
 
 
-auto vkb::Buffer::map(BufferRegion mappedRegion) -> memptr
+auto vkb::Buffer::map(BufferRegion mappedRegion) const -> memptr
 {
     return map(mappedRegion.offset, mappedRegion.size);
 }
 
 
-void vkb::Buffer::unmap()
+void vkb::Buffer::unmap() const
 {
     memory.unmap(*device);
 }

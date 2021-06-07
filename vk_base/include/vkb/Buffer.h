@@ -98,19 +98,19 @@ namespace vkb
          *                              specified offset. Must be less than or
          *                              equal to the total buffer size.
          */
-        auto map(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) -> memptr;
+        auto map(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) const -> memptr;
 
         /**
          * @brief Map a range of the buffer to CPU memory
          *
          * @param BufferRegion mappedRegion Region of the buffer to map.
          */
-        auto map(BufferRegion mappedRegion) -> memptr;
+        auto map(BufferRegion mappedRegion) const -> memptr;
 
         /**
          * @brief Unmap the buffer if its memory is currently host mapped
          */
-        void unmap();
+        void unmap() const;
 
         void copyFrom(const Buffer& src, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
         void copyTo(const Buffer& dst, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
