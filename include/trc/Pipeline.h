@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vkb/VulkanBase.h>
+#include <nc/data/SelfManagedObject.h>
 
 #include "Types.h"
-#include "data_utils/SelfManagedObject.h"
 #include "DescriptorProvider.h"
 
 namespace trc

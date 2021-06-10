@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include <glm/gtc/quaternion.hpp>
+#include <vkb/StaticInit.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/util/Timer.h>

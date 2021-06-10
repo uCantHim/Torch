@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vkb/StaticInit.h>
+
 #include "Light.h"
 #include "Node.h"
 #include "RenderPassShadow.h"

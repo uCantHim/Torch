@@ -4,24 +4,10 @@
 #include <vector>
 #include <string>
 #include <type_traits>
-#include <functional>
 
-class Exception : public std::exception
-{
-public:
-    Exception(std::string err = "") : errorMessage(std::move(err))
-    {}
+#include "../Exception.h"
 
-    auto what() const noexcept -> const char* override {
-        return errorMessage.c_str();
-    }
-
-private:
-    std::string errorMessage;
-};
-
-
-namespace trc::data
+namespace nc::data
 {
     class ObjectPoolOverflowError : public Exception {};
 
@@ -41,31 +27,16 @@ namespace trc::data
     template<class T>
     class ObjectPool
     {
-    private:
-        template<typename _T>
-        struct has_poolDestroy
-        {
-        private:
-            using one = char;
-            struct two { char _[2]; };
-
-            template<typename C>
-            static one test(decltype(&C::poolDestroy));
-            template<typename C>
-            static two test(...);
-
-        public:
-            static constexpr bool value = sizeof(test<_T>(0)) == sizeof(char);
-        };
-
-        template<typename _T>
-        static constexpr bool has_poolDestroy_v = has_poolDestroy<_T>::value;
-
     public:
+        // Can't use concepts instead because PooledObject is incomplete
         static_assert(std::is_base_of_v<PooledObject<T>, T>,
                       "Type in object pool must be derived from an instance of PooledObject<>.");
 
-        explicit inline ObjectPool(size_t poolSize = 100);
+        /**
+         * @param size_t poolSize Maximum number of objects T in the pool.
+         *                        The pool can not be resized.
+         */
+        explicit inline ObjectPool(size_t poolSize);
 
         /**
          * @brief Create an object from the pool
@@ -76,21 +47,9 @@ namespace trc::data
          *
          * @return T&          The created object
          */
-        template<
-            typename ...Args,
-            class _T = T,                       // Locally-depentent redefinition of derived type
-            typename std::enable_if_t<          // Enable if T::poolInit() exists
-                std::is_member_function_pointer_v<decltype(&_T::poolInit)>,
-                bool
-            > = true
-        >
+        template<typename ...Args>
         inline auto createObject(Args&&... args) -> T&
-        {
-            T& result = createObject();
-            result.poolInit(std::forward<Args>(args)...);
-
-            return result;
-        }
+            requires requires (T a, Args&&... args) { a.poolInit(std::forward<Args>(args)...); };
 
         /**
          * @brief Create an object from the pool
@@ -100,27 +59,7 @@ namespace trc::data
          *
          * @return T& The created object
          */
-        inline auto createObject() -> T&
-        {
-            size_t index = nextSlot;
-            if (!freeSlotsStack.empty())
-            {
-                index = freeSlotsStack.back();
-                freeSlotsStack.pop_back();
-            }
-            else {
-                nextSlot++;
-            }
-
-            if (index >= objects.size()) {
-                throw ObjectPoolOverflowError();
-            }
-
-            auto& obj = objects[index];
-            obj.alive = true;
-
-            return obj;
-        }
+        inline auto createObject() -> T&;
 
         /**
          * @brief Release the object, give memory back to the pool
@@ -129,19 +68,8 @@ namespace trc::data
          *
          * @param T& object The released object
          */
-        template<
-            class _T = T,                       // Locally-depentent redefinition of derived type
-            typename std::enable_if_t<          // Enable overload if T::poolDestroy() exists
-                has_poolDestroy_v<_T>,
-                bool
-            > = true
-        >
         inline void releaseObject(T& object)
-        {
-            object.alive = false;
-            object.poolDestroy();
-            freeSlotsStack.push_back(object.id);
-        }
+            requires requires (T a) { a.poolDestroy(); };
 
         /**
          * @brief Release the object, give memory back to the pool
@@ -151,25 +79,16 @@ namespace trc::data
          *
          * @param T& object The released object
          */
-        template<
-            class _T = T,                       // Locally-depentent redefinition of derived type
-            typename std::enable_if_t<
-                !has_poolDestroy_v<_T>,
-                bool
-            > = true
-        >
-        inline void releaseObject(T& object)
-        {
-            object.alive = false;
-            freeSlotsStack.push_back(object.id);
-        }
+        inline void releaseObject(T& object);
 
-        inline void foreachActive(std::function<void(T&)> f);
+        template<std::invocable<T&> F>
+        inline void foreachActive(F func);
 
     private:
+        void doReleaseObject(T& object);
+
         std::vector<T> objects;
-        size_t nextSlot{ 0u };
-        std::vector<size_t> freeSlotsStack;
+        T* firstFreeObject;
     };
 
 
@@ -208,9 +127,16 @@ namespace trc::data
         using Pool = ObjectPool<Derived>;
         friend Pool;
 
-        size_t id;
-        Pool* owningPool;
         bool alive{ false };
+        union
+        {
+            // Used when alive
+            Pool* owningPool;
+            // Used when dead
+            Derived* next;
+        } poolState;
+
+        inline bool isAlive();
 
     protected: // Required by vector
         PooledObject() = default;
@@ -220,8 +146,6 @@ namespace trc::data
         PooledObject(const PooledObject&) = delete;
         PooledObject& operator=(const PooledObject&) = delete;
         PooledObject& operator=(PooledObject&&) = delete;
-
-        inline bool isAlive();
 
         /**
          * @brief Releases the object and gives the memory back to the pool

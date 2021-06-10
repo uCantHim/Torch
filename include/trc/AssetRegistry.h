@@ -7,12 +7,12 @@
 #include <atomic>
 
 #include <vkb/Image.h>
+#include <nc/data/IndexMap.h>
 
 #include "Types.h"
 #include "utils/Exception.h"
 #include "utils/TypesafeId.h"
 #include "utils/Maybe.h"
-#include "data_utils/IndexMap.h"
 #include "DescriptorProvider.h"
 #include "AssetIds.h"
 #include "Geometry.h"

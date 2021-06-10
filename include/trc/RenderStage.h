@@ -1,7 +1,8 @@
 #pragma once
 
+#include <nc/data/SelfManagedObject.h>
+
 #include "Types.h"
-#include "data_utils/SelfManagedObject.h"
 
 namespace trc
 {

@@ -3,8 +3,9 @@
 #include <string>
 #include <atomic>
 
+#include <nc/data/IndexMap.h>
+
 #include "Types.h"
-#include "data_utils/IndexMap.h"
 #include "text/GlyphLoading.h"
 
 namespace trc::ui

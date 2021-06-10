@@ -3,9 +3,9 @@
 #include <vkb/basics/Swapchain.h>
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
+#include <nc/data/SelfManagedObject.h>
 
 #include "Types.h"
-#include "data_utils/SelfManagedObject.h"
 #include "DescriptorProvider.h"
 
 namespace trc
