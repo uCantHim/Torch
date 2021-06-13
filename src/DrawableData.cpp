@@ -2,14 +2,14 @@
 
 
 
-auto trc::DrawableDataStore::create(const Transformation& t) -> ui32
+auto trc::DrawableDataStore::create(ui32 transformMatrixId) -> ui32
 {
     const ui32 id = idPool.generate();
     if (id >= data.size() * ARRAY_SIZE) {
         data.emplace_back(new std::array<DrawableData, ARRAY_SIZE>);
     }
 
-    data[size_t(id / ARRAY_SIZE)]->at(id % ARRAY_SIZE) = { .matrixId=t.getMatrixId() };
+    data[size_t(id / ARRAY_SIZE)]->at(id % ARRAY_SIZE) = { .matrixId=transformMatrixId };
     return id;
 }
 

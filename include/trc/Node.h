@@ -11,14 +11,16 @@ namespace trc
     {
     public:
         Node() = default;
-        Node(const Node& other) = delete;
         Node(Node&& other) noexcept;
         ~Node();
 
-        auto operator=(const Node& rhs) -> Node& = delete;
         auto operator=(Node&& rhs) noexcept -> Node&;
 
+        Node(const Node& other) = delete;
+        auto operator=(const Node& rhs) -> Node& = delete;
+
         auto getGlobalTransform() const noexcept -> const mat4&;
+        auto getGlobalTransformMatId() const noexcept -> ui32;
 
         void update() noexcept;
         void update(const mat4& parentTransform) noexcept;
@@ -34,7 +36,7 @@ namespace trc
         void detachFromParent();
 
     private:
-        mat4 globalTransform{ 1.0f };
+        ui32 globalTransformIndex{ matrices.create() };
 
         Node* parent{ nullptr };
         std::vector<Node*> children;

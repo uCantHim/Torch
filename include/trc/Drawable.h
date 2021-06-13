@@ -107,7 +107,7 @@ namespace trc
         SceneBase::UniqueRegistrationID deferredRegistration;
         SceneBase::UniqueRegistrationID shadowRegistration;
 
-        ui32 drawableDataId{ DrawableDataStore::create(*this) };
+        ui32 drawableDataId{ DrawableDataStore::create(getGlobalTransformMatId()) };
         DrawableData* data{ &DrawableDataStore::get(drawableDataId) };
         GeometryID geoIndex{ 0 };
     };

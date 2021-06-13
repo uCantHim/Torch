@@ -27,7 +27,7 @@ namespace trc
     class DrawableDataStore
     {
     public:
-        static auto create(const Transformation& t) -> ui32;
+        static auto create(ui32 transformMatrixId) -> ui32;
         static void free(ui32 id);
 
         static auto get(ui32 id) -> DrawableData&;

@@ -359,6 +359,7 @@ auto trc::Transformation::MatrixStorage::create() -> ui32
         std::lock_guard lk(lock);
         matrices.resize(id + 1);
     }
+    matrices[id] = mat4(1.0f);
 
     return id;
 }

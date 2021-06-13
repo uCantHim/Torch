@@ -138,7 +138,7 @@ namespace trc
 
         static auto getMatrix(ui32 id) -> mat4;
 
-    private:
+    protected:
         class MatrixStorage
         {
         public:
@@ -157,6 +157,7 @@ namespace trc
 
         static inline MatrixStorage matrices;
 
+    private:
         void updateMatrix();
 
         ui32 matrixIndex{ matrices.create() };

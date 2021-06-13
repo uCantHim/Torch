@@ -10,6 +10,7 @@ trc::Node::Node(Node&& other) noexcept
     parent(other.parent),
     children(std::move(other.children))
 {
+    std::swap(globalTransformIndex, other.globalTransformIndex);
     if (parent != nullptr)
     {
         parent->detach(other);
@@ -24,6 +25,7 @@ trc::Node::Node(Node&& other) noexcept
 
 trc::Node::~Node()
 {
+    matrices.free(globalTransformIndex);
     detachFromParent();
     for (Node* child : children)
     {
@@ -35,6 +37,7 @@ auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
 {
     Transformation::operator=(std::forward<Node>(rhs));
 
+    std::swap(globalTransformIndex, rhs.globalTransformIndex);
     parent = rhs.parent;
     rhs.parent = nullptr;
     if (parent != nullptr)
@@ -54,27 +57,32 @@ auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
 auto trc::Node::getGlobalTransform() const noexcept -> const mat4&
 {
     if (parent != nullptr) {
-        return globalTransform;
+        return matrices.get(globalTransformIndex);
     }
 
     return getTransformationMatrix();
 }
 
+auto trc::Node::getGlobalTransformMatId() const noexcept -> ui32
+{
+    return globalTransformIndex;
+}
+
 void trc::Node::update() noexcept
 {
-    globalTransform = getTransformationMatrix();
+    matrices.set(globalTransformIndex, getTransformationMatrix());
     for (Node* child : children)
     {
-        child->update(globalTransform);
+        child->update(getGlobalTransform());
     }
 }
 
 void trc::Node::update(const mat4& parentTransform) noexcept
 {
-    globalTransform = parentTransform * getTransformationMatrix();
+    matrices.set(globalTransformIndex, parentTransform * getTransformationMatrix());
     for (Node* child : children)
     {
-        child->update(globalTransform);
+        child->update(getGlobalTransform());
     }
 }
 
