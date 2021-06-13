@@ -13,7 +13,9 @@ auto nc::data::IdPool::generate() -> ui64
         return nextId++;
     }
     else {
-        return pop_back(freeIds);
+        auto result = freeIds.back();
+        freeIds.pop_back();
+        return result;
     }
 }
 

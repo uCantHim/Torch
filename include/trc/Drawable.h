@@ -3,16 +3,14 @@
 #include "base/SceneBase.h"
 #include "Node.h"
 #include "PipelineDefinitions.h"
-
 #include "Geometry.h"
 #include "AnimationEngine.h"
 #include "PickableRegistry.h"
 #include "AssetIds.h"
+#include "DrawableData.h"
 
 namespace trc
 {
-    using namespace internal;
-
     class Drawable : public Node
     {
     public:
@@ -75,7 +73,7 @@ namespace trc
                 std::forward<Args>(std::move(args))...
             );
 
-            pickableId = newPickable.getPickableId();
+            data->pickableId = newPickable.getPickableId();
             updateDrawFunctions();
 
             return newPickable;
@@ -103,33 +101,14 @@ namespace trc
     private:
         void updateDrawFunctions();
 
-        void prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout);
-
-        void draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
-        void drawAnimated(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
-        void drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
-        void drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
-
-        void drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+        static void drawShadow(DrawableData* data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
 
         SceneBase* currentScene{ nullptr };
         SceneBase::UniqueRegistrationID deferredRegistration;
         SceneBase::UniqueRegistrationID shadowRegistration;
 
-        /**
-         * IDEA:
-         *
-         * Put all data required to actually draw stuff (geo, mat, flags, ...)
-         * into an external, contiguous storage. This way I also avoid move/copy
-         * bullshit.
-         */
-
-        Geometry* geo{ nullptr };
+        ui32 drawableDataId{ DrawableDataStore::create(*this) };
+        DrawableData* data{ &DrawableDataStore::get(drawableDataId) };
         GeometryID geoIndex{ 0 };
-        MaterialID matIndex{ 0 };
-        Pickable::ID pickableId{ NO_PICKABLE };
-        bool isTransparent{ false };
-
-        AnimationEngine animEngine;
     };
 }

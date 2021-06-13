@@ -11,8 +11,8 @@ trc::Drawable::Drawable(GeometryID geo, MaterialID material)
 {
     setMaterial(material);
     setGeometry(geo);
-    if (this->geo->hasRig()) {
-        animEngine = { *this->geo->getRig() };
+    if (data->geo->hasRig()) {
+        data->animEngine = { *data->geo->getRig() };
     }
 
     updateDrawFunctions();
@@ -31,20 +31,12 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
     currentScene(other.currentScene),
     deferredRegistration(std::move(other.deferredRegistration)),
     shadowRegistration(std::move(other.shadowRegistration)),
-    geo(other.geo),
-    geoIndex(other.geoIndex),
-    matIndex(other.matIndex),
-    pickableId(other.pickableId),
-    isTransparent(other.isTransparent),
-    animEngine(std::move(other.animEngine))
+    geoIndex(other.geoIndex)
 {
-    other.currentScene = nullptr;
-    other.geo = nullptr;
-    other.geoIndex = GeometryID(0);
-    other.matIndex = MaterialID(0);
-    other.pickableId = NO_PICKABLE;
-    other.isTransparent = false;
+    std::swap(drawableDataId, other.drawableDataId);
+    std::swap(data, other.data);
 
+    other.removeFromScene();
     updateDrawFunctions();
 }
 
@@ -53,23 +45,13 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
     Node::operator=(std::forward<Node>(rhs));
 
     currentScene = rhs.currentScene;
-    rhs.currentScene = nullptr;
     deferredRegistration = std::move(rhs.deferredRegistration);
     shadowRegistration = std::move(rhs.shadowRegistration);
 
-    geo = rhs.geo;
-    rhs.geo = nullptr;
-    geoIndex = rhs.geoIndex;
-    rhs.geoIndex = GeometryID(0);
-    matIndex = rhs.matIndex;
-    rhs.matIndex = MaterialID(0);
-    pickableId = rhs.pickableId;
-    rhs.pickableId = NO_PICKABLE;
-    isTransparent = rhs.isTransparent;
-    rhs.isTransparent = false;
+    std::swap(drawableDataId, rhs.drawableDataId);
+    std::swap(data, rhs.data);
 
-    animEngine = std::move(rhs.animEngine);
-
+    rhs.removeFromScene();
     updateDrawFunctions();
 
     return *this;
@@ -78,14 +60,16 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 trc::Drawable::~Drawable()
 {
     removeFromScene();
-    if (pickableId != NO_PICKABLE) {
-        PickableRegistry::destroyPickable(PickableRegistry::getPickable(pickableId));
+    if (data->pickableId != NO_PICKABLE) {
+        PickableRegistry::destroyPickable(PickableRegistry::getPickable(data->pickableId));
     }
+
+    DrawableDataStore::free(drawableDataId);
 }
 
 auto trc::Drawable::getMaterial() const -> MaterialID
 {
-    return matIndex;
+    return data->mat;
 }
 
 auto trc::Drawable::getGeometry() const -> GeometryID
@@ -95,28 +79,28 @@ auto trc::Drawable::getGeometry() const -> GeometryID
 
 void trc::Drawable::setMaterial(MaterialID matIndex)
 {
-    this->matIndex = matIndex;
+    data->mat = matIndex;
 }
 
 void trc::Drawable::setGeometry(GeometryID newGeo)
 {
-    geo = AssetRegistry::getGeometry(newGeo).get();
+    data->geo = AssetRegistry::getGeometry(newGeo).get();
     geoIndex = newGeo;
 }
 
 auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
 {
-    return animEngine;
+    return data->animEngine;
 }
 
 auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
 {
-    return animEngine;
+    return data->animEngine;
 }
 
 void trc::Drawable::enableTransparency()
 {
-    isTransparent = true;
+    data->isTransparent = true;
     updateDrawFunctions();
 }
 
@@ -135,109 +119,100 @@ void trc::Drawable::removeFromScene()
 
 void trc::Drawable::updateDrawFunctions()
 {
-    if (currentScene == nullptr || geo == nullptr) return;
+    if (currentScene == nullptr || data->geo == nullptr) return;
+
+    auto bindBaseResources = [data=this->data](const auto& env, vk::CommandBuffer cmdBuf) {
+        cmdBuf.bindIndexBuffer(data->geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
+        cmdBuf.bindVertexBuffers(0, data->geo->getVertexBuffer(), vk::DeviceSize(0));
+
+        auto layout = env.currentPipeline->getLayout();
+        cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
+                                   Transformation::getMatrix(data->matrixId));
+        cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
+                                   sizeof(mat4), static_cast<ui32>(data->mat));
+    };
 
     DrawableFunction func;
     Pipeline::ID pipeline;
-    if (geo->hasRig())
+    if (data->geo->hasRig())
     {
+        if (data->pickableId == NO_PICKABLE)
+        {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                bindBaseResources(env, cmdBuf);
+                auto layout = env.currentPipeline->getLayout();
+                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
-        if (pickableId == NO_PICKABLE) {
-            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-                drawAnimated(env, cmdBuf);
+                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
-                                     : internal::getDrawableDeferredAnimatedPipeline();
+            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
+                                           : internal::getDrawableDeferredAnimatedPipeline();
         }
-        else {
-            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-                drawAnimatedAndPickable(env, cmdBuf);
+        else
+        {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                assert(data->pickableId != NO_PICKABLE);
+
+                bindBaseResources(env, cmdBuf);
+                auto layout = env.currentPipeline->getLayout();
+                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+                cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
+                                           data->pickableId);
+
+                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = isTransparent ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
-                                     : internal::getDrawableDeferredAnimatedAndPickablePipeline();
+            pipeline = data->isTransparent
+                ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
+                : internal::getDrawableDeferredAnimatedAndPickablePipeline();
         }
     }
     else
     {
-        if (pickableId == NO_PICKABLE) {
-            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-                draw(env, cmdBuf);
+        if (data->pickableId == NO_PICKABLE)
+        {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                bindBaseResources(env, cmdBuf);
+                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = isTransparent ? internal::getDrawableTransparentDeferredPipeline()
-                                     : internal::getDrawableDeferredPipeline();
+            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredPipeline()
+                                           : internal::getDrawableDeferredPipeline();
         }
-        else {
-            func = [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-                drawPickable(env, cmdBuf);
+        else
+        {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                assert(data->pickableId != NO_PICKABLE);
+
+                bindBaseResources(env, cmdBuf);
+                auto layout = env.currentPipeline->getLayout();
+                cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
+                                           data->pickableId);
+
+                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = isTransparent ? internal::getDrawableTransparentDeferredPickablePipeline()
-                                     : internal::getDrawableDeferredPickablePipeline();
+            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredPickablePipeline()
+                                           : internal::getDrawableDeferredPickablePipeline();
         }
     }
 
     deferredRegistration = currentScene->registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        isTransparent ? DeferredSubPasses::transparencyPass : DeferredSubPasses::gBufferPass,
+        data->isTransparent ? internal::DeferredSubPasses::transparencyPass
+                            : internal::DeferredSubPasses::gBufferPass,
         pipeline,
         std::move(func)
     );
     shadowRegistration = currentScene->registerDrawFunction(
         RenderStageTypes::getShadow(), SubPass::ID(0), internal::getDrawableShadowPipeline(),
-        [this](const auto& env, vk::CommandBuffer cmdBuf) { drawShadow(env, cmdBuf); }
+        [data=this->data](const auto& env, vk::CommandBuffer cmdBuf) {
+            drawShadow(data, env, cmdBuf);
+        }
     );
 }
 
-void trc::Drawable::prepareDraw(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout)
-{
-    cmdBuf.bindIndexBuffer(geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
-    cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
-
-    cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0, getGlobalTransform());
-    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                               sizeof(mat4), static_cast<ui32>(matIndex));
-}
-
-void trc::Drawable::draw(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
-{
-    auto layout = env.currentPipeline->getLayout();
-    prepareDraw(cmdBuf, layout);
-
-    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
-}
-
-void trc::Drawable::drawAnimated(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
-{
-    auto layout = env.currentPipeline->getLayout();
-    prepareDraw(cmdBuf, layout);
-    animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
-
-    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
-}
-
-void trc::Drawable::drawPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
-{
-    assert(pickableId != NO_PICKABLE);
-
-    auto layout = env.currentPipeline->getLayout();
-    prepareDraw(cmdBuf, layout);
-    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
-
-    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
-}
-
-void trc::Drawable::drawAnimatedAndPickable(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
-{
-    assert(pickableId != NO_PICKABLE);
-
-    auto layout = env.currentPipeline->getLayout();
-    prepareDraw(cmdBuf, layout);
-    animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
-    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84, pickableId);
-
-    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
-}
-
-void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+void trc::Drawable::drawShadow(
+    DrawableData* data,
+    const DrawEnvironment& env,
+    vk::CommandBuffer cmdBuf)
 {
     auto currentRenderPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
     assert(currentRenderPass != nullptr);
@@ -248,20 +223,20 @@ void trc::Drawable::drawShadow(const DrawEnvironment& env, vk::CommandBuffer cmd
     cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
 
     // Bind buffers and push constants
-    cmdBuf.bindIndexBuffer(geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
-    cmdBuf.bindVertexBuffers(0, geo->getVertexBuffer(), vk::DeviceSize(0));
+    cmdBuf.bindIndexBuffer(data->geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
+    cmdBuf.bindVertexBuffers(0, data->geo->getVertexBuffer(), vk::DeviceSize(0));
 
     auto layout = env.currentPipeline->getLayout();
     cmdBuf.pushConstants<mat4>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        0, getGlobalTransform()
+        0, Transformation::getMatrix(data->matrixId)
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,
         sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
     );
-    animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+    data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
     // Draw
-    cmdBuf.drawIndexed(geo->getIndexCount(), 1, 0, 0, 0);
+    cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
 }

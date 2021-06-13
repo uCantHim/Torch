@@ -1,6 +1,9 @@
 #pragma once
 
+#include <mutex>
 #include <iostream>
+
+#include <nc/data/ObjectId.h>
 
 #include "Types.h"
 #include <glm/gtc/quaternion.hpp>
@@ -17,8 +20,15 @@ namespace trc
     public:
         using self = Transformation;
 
-        Transformation() = default;
+        Transformation();
         Transformation(vec3 translation, vec3 scale, quat rotation);
+
+        Transformation(const Transformation& other);
+        Transformation(Transformation&& other) noexcept;
+        ~Transformation();
+
+        auto operator=(const Transformation& rhs) -> Transformation&;
+        auto operator=(Transformation&& rhs) noexcept -> Transformation&;
 
         /**
          * @return Pointer to the accumulated transformation matrix
@@ -124,9 +134,32 @@ namespace trc
          */
         auto getRotationAsMatrix() const -> mat4;
 
+        auto getMatrixId() const -> ui32;
+
+        static auto getMatrix(ui32 id) -> mat4;
+
     private:
-        mutable mat4 matrixRepresentation;
-        mutable bool matrixDirty{ true };
+        class MatrixStorage
+        {
+        public:
+            auto create() -> ui32;
+            void free(ui32 id);
+
+            auto get(ui32 id) -> const mat4&;
+            auto getPtr(ui32 id) -> const void*;
+            void set(ui32 id, mat4 mat);
+
+        private:
+            data::IdPool idGenerator;
+            std::mutex lock;
+            std::vector<mat4> matrices;
+        };
+
+        static inline MatrixStorage matrices;
+
+        void updateMatrix();
+
+        ui32 matrixIndex{ matrices.create() };
 
         vec3 translation{ 0.0f };
         vec3 scaling{ 1.0f };

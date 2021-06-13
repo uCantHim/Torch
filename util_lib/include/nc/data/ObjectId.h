@@ -10,16 +10,6 @@
 namespace nc::data
 {
 
-/**
- * @brief Remove an item from the back of a range and return it
- */
-inline auto pop_back(auto range)
-{
-    auto result = range.back();
-    range.pop_back();
-    return result;
-}
-
 class IdPool
 {
 public:

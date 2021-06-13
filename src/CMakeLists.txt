@@ -8,6 +8,7 @@ target_sources(
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
         Drawable.cpp
+        DrawableData.cpp
         DrawableInstanced.cpp
         Framebuffer.cpp
         Geometry.cpp
