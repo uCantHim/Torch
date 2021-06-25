@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/Maybe.h"
+#include <nc/functional/Maybe.h>
 #include "VirtualDrawable.h"
 
 namespace trc::experimental

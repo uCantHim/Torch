@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/Maybe.h"
+#include <nc/functional/Maybe.h>
 
 #include <string>
 #include <unordered_map>
@@ -12,7 +12,7 @@
 #include "Types.h"
 #include "utils/Exception.h"
 #include "utils/TypesafeId.h"
-#include "utils/Maybe.h"
+#include <nc/functional/Maybe.h>
 #include "DescriptorProvider.h"
 #include "AssetIds.h"
 #include "Geometry.h"

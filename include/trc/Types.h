@@ -10,6 +10,7 @@
 #define TRC_FLIP_Y_PROJECTION
 
 #include <nc/Types.h>
+#include <nc/functional/Maybe.h>
 
 /**
  * @brief Defines useful basic types
@@ -30,4 +31,7 @@ namespace trc
 {
     using namespace basic_types;
     using namespace nc;
+
+    using nc::functional::Maybe;
+    using nc::functional::MaybeEmptyError;
 } // namespace trc

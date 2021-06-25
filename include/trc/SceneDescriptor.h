@@ -4,7 +4,7 @@
 #include <vkb/Buffer.h>
 
 #include "DescriptorProvider.h"
-#include "utils/Maybe.h"
+#include <nc/functional/Maybe.h>
 #include "PickableRegistry.h"
 
 namespace trc

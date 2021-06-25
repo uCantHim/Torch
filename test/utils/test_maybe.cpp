@@ -2,7 +2,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <trc/utils/Maybe.h>
+#include <trc/Types.h>
 
 struct Foo
 {
