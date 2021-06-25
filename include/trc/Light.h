@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include <vkb/Buffer.h>
-#include <utils/Camera.h>
+#include <Camera.h>
 
 #include "Types.h"
 

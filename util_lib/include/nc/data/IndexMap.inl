@@ -18,7 +18,7 @@ inline auto nc::data::IndexMap<Key, Value>::operator[](Key key) noexcept -> Valu
 {
     assert(key >= 0);
 
-    if (key >= values.size()) {
+    if (key >= static_cast<Key>(values.size())) {
         values.resize(key + 1);
     }
 

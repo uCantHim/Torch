@@ -4,8 +4,8 @@
 
 #include "Types.h"
 #include "RenderPass.h"
-#include "base/SceneBase.h"
-#include "utils/Camera.h"
+#include "core/SceneBase.h"
+#include "Camera.h"
 
 namespace trc
 {

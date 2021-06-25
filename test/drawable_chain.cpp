@@ -2,14 +2,10 @@
 
 #include <trc/Torch.h>
 using namespace trc::basic_types;
-#include <trc/utils/Camera.h>
+#include <trc/Camera.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/asset_import/AssetImporter.h>
-#include <trc/experimental/DrawableChain.h>
-
-namespace trc {
-    using namespace experimental;
-}
+#include <trc/drawable/DrawableChain.h>
 
 using ar = trc::AssetRegistry::Named;
 

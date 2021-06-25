@@ -4,12 +4,8 @@ target_sources(
         Animation.cpp
         AnimationEngine.cpp
         AssetRegistry.cpp
-        CommandCollector.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
-        Drawable.cpp
-        DrawableData.cpp
-        DrawableInstanced.cpp
         Framebuffer.cpp
         Geometry.cpp
         Light.cpp
@@ -17,13 +13,8 @@ target_sources(
         Particle.cpp
         Node.cpp
         PickableRegistry.cpp
-        Pipeline.cpp
         PipelineBuilder.cpp
         PipelineDefinitions.cpp
-        Renderer.cpp
-        RenderDataDescriptor.cpp
-        RenderGraph.cpp
-        RenderPass.cpp
         RenderPassShadow.cpp
         RenderPassDeferred.cpp
         Rig.cpp
@@ -33,7 +24,8 @@ target_sources(
         TorchResources.cpp
 )
 
-add_subdirectory(base)
+add_subdirectory(core)
+add_subdirectory(drawable)
 add_subdirectory(asset_import)
 add_subdirectory(utils)
 add_subdirectory(text)

@@ -6,7 +6,7 @@
 
 #include "RenderPass.h"
 #include "Framebuffer.h"
-#include "utils/Camera.h"
+#include "Camera.h"
 
 namespace trc
 {

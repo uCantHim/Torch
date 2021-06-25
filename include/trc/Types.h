@@ -11,6 +11,7 @@
 
 #include <nc/Types.h>
 #include <nc/functional/Maybe.h>
+#include <nc/data/TypesafeId.h>
 
 /**
  * @brief Defines useful basic types
@@ -32,6 +33,7 @@ namespace trc
     using namespace basic_types;
     using namespace nc;
 
+    using nc::data::TypesafeID;
     using nc::functional::Maybe;
     using nc::functional::MaybeEmptyError;
 } // namespace trc

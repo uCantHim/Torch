@@ -14,7 +14,7 @@ using namespace std::chrono;
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 #include <trc/Geometry.h>
-#include <trc/DrawableInstanced.h>
+#include <trc/drawable/DrawableInstanced.h>
 #include <trc/Particle.h>
 #include <trc/asset_import/FBXLoader.h>
 #include <trc/asset_import/AssetUtils.h>

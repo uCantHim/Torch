@@ -1,8 +1,8 @@
-#include "experimental/DrawableChain.h"
+#include "drawable/DrawableChain.h"
 
 
 
-namespace trc::experimental
+namespace trc
 {
     void DrawableChainElement::attachToScene(SceneBase& scene)
     {

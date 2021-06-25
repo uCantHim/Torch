@@ -2,7 +2,7 @@
 
 #include <vkb/Buffer.h>
 
-#include "PipelineBuilder.h"
+#include "utils/PipelineBuilder.h"
 #include "ui/Window.h"
 
 

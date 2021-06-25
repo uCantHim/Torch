@@ -39,7 +39,12 @@ target_include_directories(torch
         ${CMAKE_CURRENT_LIST_DIR}/vk_base/include
         ${CMAKE_CURRENT_LIST_DIR}/util_lib/include
 
+    PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
+        ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
+    INTERFACE
+        ${CMAKE_CURRENT_LIST_DIR}/include/trc
+        ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
 )
 
 target_link_libraries(

@@ -3,7 +3,7 @@
 #include <vkb/Image.h>
 
 #include "Types.h"
-#include "RenderPass.h"
+#include "core/RenderPass.h"
 #include "Framebuffer.h"
 
 namespace trc

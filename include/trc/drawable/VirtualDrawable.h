@@ -1,10 +1,10 @@
 #pragma once
 
-#include "base/SceneBase.h"
+#include "core/SceneBase.h"
 #include "Node.h"
 #include "Drawable.h"
 
-namespace trc::experimental
+namespace trc
 {
     class DrawableInterface
     {

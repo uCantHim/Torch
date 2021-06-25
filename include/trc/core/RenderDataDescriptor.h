@@ -4,7 +4,7 @@
 #include <vkb/Buffer.h>
 
 #include "DescriptorProvider.h"
-#include "utils/Camera.h"
+#include "Camera.h"
 #include "utils/Util.h"
 
 namespace trc

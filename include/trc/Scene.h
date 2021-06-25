@@ -3,7 +3,7 @@
 #include <vkb/Buffer.h>
 
 #include "Types.h"
-#include "base/SceneBase.h"
+#include "core/SceneBase.h"
 #include "Node.h"
 #include "LightRegistry.h"
 #include "SceneDescriptor.h"

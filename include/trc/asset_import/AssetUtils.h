@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 #include "FBXLoader.h"
 #include "AssetRegistry.h"
 #include "Scene.h"
-#include "Drawable.h"
+#include "drawable/Drawable.h"
 
 namespace trc
 {

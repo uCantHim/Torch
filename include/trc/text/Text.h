@@ -7,7 +7,7 @@
 #include "Font.h"
 #include "Pipeline.h"
 #include "AssetIds.h"
-#include "base/SceneBase.h"
+#include "core/SceneBase.h"
 #include "Node.h"
 
 namespace trc

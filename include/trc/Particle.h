@@ -12,7 +12,7 @@
 
 #include "Types.h"
 #include "utils/Util.h"
-#include "base/SceneBase.h"
+#include "core/SceneBase.h"
 #include "Node.h"
 #include "PipelineRegistry.h"
 

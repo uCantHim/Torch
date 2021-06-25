@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/SceneBase.h"
+#include "core/SceneBase.h"
 #include "Node.h"
 #include "PipelineDefinitions.h"
 #include "Geometry.h"

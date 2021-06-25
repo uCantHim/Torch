@@ -6,7 +6,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "PipelineBuilder.h"
+#include "utils/PipelineBuilder.h"
 #include "TorchResources.h"
 #include "Renderer.h"
 

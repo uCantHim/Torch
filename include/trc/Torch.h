@@ -8,7 +8,7 @@
 #include "Scene.h"
 
 #include "AssetRegistry.h"
-#include "Drawable.h"
+#include "drawable/Drawable.h"
 #include "Light.h"
 
 namespace trc

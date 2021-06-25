@@ -8,11 +8,10 @@
 
 #include <vkb/Image.h>
 #include <nc/data/IndexMap.h>
+#include <nc/functional/Maybe.h>
 
 #include "Types.h"
 #include "utils/Exception.h"
-#include "utils/TypesafeId.h"
-#include <nc/functional/Maybe.h>
 #include "DescriptorProvider.h"
 #include "AssetIds.h"
 #include "Geometry.h"

@@ -2,7 +2,7 @@
 
 #include "AssetRegistry.h"
 #include "PipelineDefinitions.h" // For the SHADER_DIR constant
-#include "PipelineBuilder.h"
+#include "utils/PipelineBuilder.h"
 #include "Renderer.h"
 
 

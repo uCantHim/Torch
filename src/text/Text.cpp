@@ -1,6 +1,6 @@
 #include "text/Text.h"
 
-#include "PipelineBuilder.h"
+#include "utils/PipelineBuilder.h"
 #include "Renderer.h"
 #include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"

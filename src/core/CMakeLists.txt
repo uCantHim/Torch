@@ -1,0 +1,11 @@
+target_sources(
+    torch
+    PRIVATE
+        CommandCollector.cpp
+        Pipeline.cpp
+        Renderer.cpp
+        RenderDataDescriptor.cpp
+        RenderGraph.cpp
+        RenderPass.cpp
+        SceneBase.cpp
+)
