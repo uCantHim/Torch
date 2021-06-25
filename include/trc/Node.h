@@ -20,7 +20,6 @@ namespace trc
         auto operator=(const Node& rhs) -> Node& = delete;
 
         auto getGlobalTransform() const noexcept -> const mat4&;
-        auto getGlobalTransformMatId() const noexcept -> ui32;
 
         void update() noexcept;
         void update(const mat4& parentTransform) noexcept;

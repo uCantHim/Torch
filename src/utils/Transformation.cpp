@@ -68,11 +68,6 @@ auto trc::Transformation::operator=(Transformation&& rhs) noexcept -> Transforma
     return *this;
 }
 
-auto trc::Transformation::data() const noexcept -> const uint8_t*
-{
-    return reinterpret_cast<const uint8_t*>(matrices.getPtr(matrixIndex));
-}
-
 auto trc::Transformation::setFromMatrix(const mat4& t) -> self&
 {
     vec3 skew;

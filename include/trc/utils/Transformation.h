@@ -31,16 +31,6 @@ namespace trc
         auto operator=(Transformation&& rhs) noexcept -> Transformation&;
 
         /**
-         * @return Pointer to the accumulated transformation matrix
-         *
-         * The matrix may not reflect the most recent changes to the
-         * Transformation's state. It's **at most** one frame behind.
-         *
-         * One must not read more than sizeof(mat4) bytes from this pointer.
-         */
-        auto data() const noexcept -> const uint8_t*;
-
-        /**
          * @brief Set translation, rotation, and scaling from a matrix
          */
         auto setFromMatrix(const mat4& t) -> self&;

@@ -63,11 +63,6 @@ auto trc::Node::getGlobalTransform() const noexcept -> const mat4&
     return getTransformationMatrix();
 }
 
-auto trc::Node::getGlobalTransformMatId() const noexcept -> ui32
-{
-    return globalTransformIndex;
-}
-
 void trc::Node::update() noexcept
 {
     matrices.set(globalTransformIndex, getTransformationMatrix());

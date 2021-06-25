@@ -3,7 +3,7 @@
 #include <array>
 #include <vector>
 
-#include "utils/Transformation.h"
+#include "Node.h"
 #include "Geometry.h"
 #include "AssetIds.h"
 #include "AnimationEngine.h"
@@ -13,7 +13,7 @@ namespace trc
 {
     struct DrawableData
     {
-        ui32 matrixId;
+        Node* node;
 
         Geometry* geo{ 0 };
         MaterialID mat{ 0 };
@@ -27,7 +27,7 @@ namespace trc
     class DrawableDataStore
     {
     public:
-        static auto create(ui32 transformMatrixId) -> ui32;
+        static auto create(Node& node) -> ui32;
         static void free(ui32 id);
 
         static auto get(ui32 id) -> DrawableData&;
