@@ -195,6 +195,14 @@ auto trc::Transformation::setScale(float s) -> self&
     return *this;
 }
 
+auto trc::Transformation::setScale(float x, float y, float z) -> self&
+{
+    scaling = vec3(x, y, z);
+
+    updateMatrix();
+    return *this;
+}
+
 auto trc::Transformation::setScale(vec3 s) -> self&
 {
     scaling = s;

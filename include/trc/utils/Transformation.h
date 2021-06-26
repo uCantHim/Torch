@@ -67,6 +67,7 @@ namespace trc
         auto addScale(vec3 s) -> self&;
 
         auto setScale(float s) -> self&;
+        auto setScale(float x, float y, float z) -> self&;
         auto setScale(vec3 s) -> self&;
         auto setScaleX(float s) -> self&;
         auto setScaleY(float s) -> self&;
