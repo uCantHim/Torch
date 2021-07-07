@@ -50,8 +50,7 @@ int main()
     trc::Scene scene;
     trc::Camera camera(vkb::getSwapchain().getAspectRatio(), 45.0f, 0.5f, 100.0f);
     camera.lookAt(vec3(0, 2.5, 7), vec3(0, 1, 0), vec3(0, 1, 0));
-    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(0.0f, -1.0f, 0.0f), 0.6f);
-    scene.addLight(sunLight);
+    scene.addLight(trc::makeSunLight(vec3(1.0f), vec3(0.0f, -1.0f, 0.0f), 0.6f));
 
     // Add things to scene
     virtualDrawable->attachToScene(scene);

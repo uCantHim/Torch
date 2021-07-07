@@ -141,12 +141,9 @@ int main()
     );
     trc::Drawable myPlane(myPlaneGeoIndex, mapMatIndex, *scene);
 
-    trc::Light sunLight = trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
-    trc::Light ambientLight = trc::makeAmbientLight(vec3(0.15f));
-    trc::Light pointLight = trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
-    scene->addLight(sunLight);
-    scene->addLight(ambientLight);
-    scene->addLight(pointLight);
+    trc::Light& sunLight = scene->addLight(trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f)));
+    trc::Light& ambientLight = scene->addLight(trc::makeAmbientLight(vec3(0.15f)));
+    trc::Light& pointLight = scene->addLight(trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f));
 
     // Sun light
     mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 30.0f);

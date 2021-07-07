@@ -66,7 +66,7 @@ namespace trc
         /**
          * @return const Light& The added light
          */
-        auto addLight(Light& light) -> Light&;
+        auto addLight(Light light) -> Light&;
 
         /**
          * Also removes a light node that has the light attached if such
@@ -142,9 +142,9 @@ namespace trc
          * something different and see how it works out.
          */
         bool lightExists(const Light& light);
-        std::vector<Light*> sunLights;
-        std::vector<Light*> pointLights;
-        std::vector<Light*> ambientLights;
+        std::vector<u_ptr<Light>> sunLights;
+        std::vector<u_ptr<Light>> pointLights;
+        std::vector<u_ptr<Light>> ambientLights;
 
         // Must be done every frame in case light properties change
         void updateLightBuffer();

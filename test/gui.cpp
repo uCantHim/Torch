@@ -89,8 +89,7 @@ int main()
         button.setFontSize(40);
 
         // Also add a world-space object
-        trc::Light light = trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
-        scene->addLight(light);
+        trc::Light& light = scene->addLight(trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f));
 
         auto planeGeo = trc::AssetRegistry::addGeometry(trc::makePlaneGeo());
         auto planeMat = trc::AssetRegistry::addMaterial({ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) });

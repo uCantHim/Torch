@@ -44,7 +44,7 @@ namespace trc
          */
         void updateTransforms();
 
-        void addLight(Light& light);
+        auto addLight(Light light) -> Light&;
         void removeLight(const Light& light);
 
         auto getLightBuffer() const noexcept -> vk::Buffer;

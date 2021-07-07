@@ -173,30 +173,26 @@ auto trc::LightRegistry::getMaxLights() const noexcept -> ui32
     return maxLights;
 }
 
-auto trc::LightRegistry::addLight(Light& light) -> Light&
+auto trc::LightRegistry::addLight(Light light) -> Light&
 {
-    Light& result = [this, &light]() -> Light& {
-        switch (light.type)
-        {
-        case Light::Type::eSunLight:
-            return *sunLights.emplace_back(&light);
-        case Light::Type::ePointLight:
-            return *pointLights.emplace_back(&light);
-        case Light::Type::eAmbientLight:
-            return *ambientLights.emplace_back(&light);
-        }
+    switch (light.type)
+    {
+    case Light::Type::eSunLight:
+        return *sunLights.emplace_back(new Light(light));
+    case Light::Type::ePointLight:
+        return *pointLights.emplace_back(new Light(light));
+    case Light::Type::eAmbientLight:
+        return *ambientLights.emplace_back(new Light(light));
+    }
 
-        throw std::logic_error("Light type \"" + std::to_string(light.type) + "\" exists");
-    }();
-
-    // Don't have to update the descriptors here
-    return result;
+    throw std::logic_error("Light type \"" + std::to_string(light.type) + "\" exists");
 }
 
 void trc::LightRegistry::removeLight(const Light& light)
 {
-    auto remove = [](std::vector<Light*>& lights, const Light& light) {
-        auto it = std::remove(lights.begin(), lights.end(), &light);
+    auto remove = [](std::vector<u_ptr<Light>>& lights, const Light& light) {
+        auto it = std::remove_if(lights.begin(), lights.end(),
+                                 [&](auto& l) { return l.get() == &light; });
         if (it != lights.end()) {
             lights.erase(it);
         }
@@ -298,14 +294,15 @@ auto trc::LightRegistry::getShadowRenderStage() const noexcept
 
 bool trc::LightRegistry::lightExists(const Light& light)
 {
+    auto compare = [&](auto& ptr) { return &light == ptr.get(); };
     switch (light.type)
     {
     case Light::Type::eSunLight:
-        return std::find(sunLights.begin(), sunLights.end(), &light) == sunLights.end();
+        return std::find_if(sunLights.begin(), sunLights.end(), compare) == sunLights.end();
     case Light::Type::ePointLight:
-        return std::find(pointLights.begin(), pointLights.end(), &light) == pointLights.end();
+        return std::find_if(pointLights.begin(), pointLights.end(), compare) == pointLights.end();
     case Light::Type::eAmbientLight:
-        return std::find(ambientLights.begin(), ambientLights.end(), &light) == ambientLights.end();
+        return std::find_if(ambientLights.begin(), ambientLights.end(), compare) == ambientLights.end();
     }
 
     throw std::logic_error("Light type \"" + std::to_string(light.type) + "\" exists");
@@ -327,19 +324,19 @@ void trc::LightRegistry::updateLightBuffer()
 
     // Copy light data
     size_t offset = sizeof(vec4);
-    for (const Light* light : sunLights)
+    for (const auto& light : sunLights)
     {
-        memcpy(buf + offset, light, sizeof(Light));
+        memcpy(buf + offset, &*light, sizeof(Light));
         offset += util::sizeof_pad_16_v<Light>;
     }
-    for (const Light* light : pointLights)
+    for (const auto& light : pointLights)
     {
-        memcpy(buf + offset, light, sizeof(Light));
+        memcpy(buf + offset, &*light, sizeof(Light));
         offset += util::sizeof_pad_16_v<Light>;
     }
-    for (const Light* light : ambientLights)
+    for (const auto& light : ambientLights)
     {
-        memcpy(buf + offset, light, sizeof(Light));
+        memcpy(buf + offset, &*light, sizeof(Light));
         offset += util::sizeof_pad_16_v<Light>;
     }
 
