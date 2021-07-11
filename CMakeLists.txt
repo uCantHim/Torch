@@ -9,7 +9,7 @@ project(Torch)
 # Options
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
-option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features" ON)
+option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
@@ -95,7 +95,7 @@ endif ()
 
 # Optional FBX stuff
 if (${TORCH_USE_FBX_SDK})
-    target_link_libraries(torch PUBLIC fbxsdk)
+    target_link_libraries(torch PUBLIC fbxsdk xml2)
     target_compile_definitions(torch PUBLIC TRC_USE_FBX_SDK)
 endif ()
 
