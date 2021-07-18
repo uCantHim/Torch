@@ -24,11 +24,7 @@ TEST(MaybeTest, Get)
     ASSERT_EQ(nc::Maybe<int32_t>{ 42 }.get(), 42);
     ASSERT_EQ(nc::Maybe<int32_t>{ -187 }.get(), -187);
     ASSERT_EQ(nc::Maybe<int32_t>{ INT32_MIN     }.get(), INT32_MIN);
-    ASSERT_EQ(nc::Maybe<int32_t>{ INT32_MIN - 1 }.get(), INT32_MIN - 1);
-    ASSERT_EQ(nc::Maybe<int32_t>{ INT32_MIN + 1 }.get(), INT32_MIN + 1);
     ASSERT_EQ(nc::Maybe<int32_t>{ INT32_MAX     }.get(), INT32_MAX);
-    ASSERT_EQ(nc::Maybe<int32_t>{ INT32_MAX - 1 }.get(), INT32_MAX - 1);
-    ASSERT_EQ(nc::Maybe<int32_t>{ INT32_MAX + 1 }.get(), INT32_MAX + 1);
 
     // Access to empty Maybe must throw
     nc::Maybe<int> m;
