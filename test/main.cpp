@@ -37,9 +37,9 @@ int main()
     // Random test things
 
     trc::FBXLoader fbxLoader;
-    auto grassImport = fbxLoader.loadFBXFile(TRC_ASSET_DIR"/grass_lowpoly.fbx");
-    auto treeImport = fbxLoader.loadFBXFile(TRC_ASSET_DIR"/tree_lowpoly.fbx");
-    auto mapImport = fbxLoader.loadFBXFile(TRC_ASSET_DIR"/map.fbx");
+    auto grassImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx");
+    auto treeImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx");
+    auto mapImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/map.fbx");
 
     auto grassGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
     auto treeGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
@@ -48,12 +48,12 @@ int main()
     auto mapMatIndex = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
 
     auto skeletonGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::loadGeometry(TRC_ASSET_DIR"/skeleton.fbx").get()
+        trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx").get()
     );
     auto hoodedBoiGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::loadGeometry(TRC_ASSET_DIR"/hooded_boi.fbx").get()
+        trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx").get()
     );
-    auto lindaMesh = fbxLoader.loadFBXFile(TRC_ASSET_DIR"/Female_Character.fbx").meshes[0];
+    auto lindaMesh = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/Female_Character.fbx").meshes[0];
     auto lindaGeoIndex = trc::AssetRegistry::addGeometry(
         trc::Geometry(
             lindaMesh.mesh,
@@ -61,17 +61,17 @@ int main()
         )
     );
     auto lindaDiffTexIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/Female_Character.png")
+        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/Female_Character.png")
     );
 
     auto grassImgIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/grass_billboard_001.png")
+        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
     );
     auto stoneTexIdx = trc::AssetRegistry::addImage(
         vkb::makeSinglePixelImage(vkb::getDevice(), vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
     );
     auto stoneNormalTexIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/rough_stone_wall_normal.tif")
+        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
     auto matIdx = trc::AssetRegistry::addMaterial({
@@ -184,7 +184,7 @@ int main()
     }
 
     auto particleImgIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_ASSET_DIR"/yellowlight.png"));
+        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/yellowlight.png"));
     trc::ParticleSpawn spawn(*particleCollection);
     for (int i = 0; i < 50; i++)
     {
@@ -234,7 +234,7 @@ int main()
     }).detach();
 
     // Text
-    trc::Font font{ TRC_FONT_DIR"/gil.ttf", 64 };
+    trc::Font font{ TRC_TEST_FONT_DIR"/gil.ttf", 64 };
     trc::Text text{ font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");

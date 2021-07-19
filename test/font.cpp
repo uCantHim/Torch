@@ -8,7 +8,7 @@ int main()
 
     // Font stuff
 
-    trc::Font font{ TRC_FONT_DIR"/gil.ttf", 60 };
+    trc::Font font{ TRC_TEST_FONT_DIR"/gil.ttf", 60 };
 
     trc::Text text(font);
     text.print("^Hello{ | }\n ~World_!$");

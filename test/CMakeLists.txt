@@ -1,6 +1,11 @@
 find_package(GTest)
 include(GoogleTest)
 
+target_compile_definitions(torch PUBLIC
+    TRC_TEST_ASSET_DIR="${CMAKE_CURRENT_LIST_DIR}/assets"
+    TRC_TEST_FONT_DIR="${CMAKE_CURRENT_LIST_DIR}/fonts"
+)
+
 ############
 # Unit tests
 

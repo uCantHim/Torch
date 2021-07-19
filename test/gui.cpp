@@ -26,7 +26,7 @@ int main()
         auto window = trc::initGui(*renderer);
 
         // Now, after intialization, is it possible to load fonts
-        const ui32 nerdFont = ui::FontRegistry::addFont(TRC_FONT_DIR"/hack_mono.ttf", 40);
+        const ui32 nerdFont = ui::FontRegistry::addFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 40);
 
         // Create some gui elements
         auto quad = window->create<ui::Quad>().makeUnique();

@@ -113,8 +113,6 @@ cmake_policy(POP)
 # Compile options
 target_compile_definitions(torch PUBLIC
     TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
-    TRC_ASSET_DIR="${CMAKE_CURRENT_LIST_DIR}/assets"
-    TRC_FONT_DIR="${CMAKE_CURRENT_LIST_DIR}/fonts"
     $<$<BOOL:${TORCH_BUILD_RAY_TRACING}>:TRC_USE_RAY_TRACING>
 )
 target_compile_options(torch PUBLIC -fPIC)
