@@ -15,7 +15,7 @@ using namespace std::chrono;
 using namespace trc::basic_types;
 #include <trc/Geometry.h>
 #include <trc/drawable/DrawableInstanced.h>
-#include <trc/Particle.h>
+#include <trc/particle/Particle.h>
 #include <trc/asset_import/FBXLoader.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/text/Text.h>
@@ -213,7 +213,7 @@ int main()
         while (running)
         {
             spawn.spawnParticles();
-            std::this_thread::sleep_for(2s);
+            std::this_thread::sleep_for(1s);
         }
     });
 

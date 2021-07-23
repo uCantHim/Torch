@@ -24,11 +24,9 @@ layout (location = 0) out Vertex
 
 void main()
 {
-    mat4 viewInverseRotation = camera.inverseViewMatrix;
-    viewInverseRotation[3] = vec4(0, 0, 0, 1);
-
     // Apply the inverse view rotation to the particle to orient it towards the camera.
-    const vec4 worldPos = viewInverseRotation * modelMatrix * vec4(vertexPosition, 1.0);
+    vec4 worldPos = camera.inverseViewMatrix * modelMatrix * vec4(vertexPosition, 1.0);
+    worldPos.xyz -= camera.inverseViewMatrix[3].xyz;
 
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;
     vert.uv = vertexUv;

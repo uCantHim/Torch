@@ -10,7 +10,6 @@ target_sources(
         Geometry.cpp
         Light.cpp
         LightRegistry.cpp
-        Particle.cpp
         Node.cpp
         PickableRegistry.cpp
         PipelineBuilder.cpp
@@ -26,6 +25,7 @@ target_sources(
 
 add_subdirectory(core)
 add_subdirectory(drawable)
+add_subdirectory(particle)
 add_subdirectory(asset_import)
 add_subdirectory(utils)
 add_subdirectory(text)

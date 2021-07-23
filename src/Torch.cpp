@@ -1,9 +1,5 @@
 #include "Torch.h"
 
-#include "PipelineRegistry.h"
-#include "Particle.h" // For particle pipeline creation
-#include "text/Text.h"
-
 
 
 auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>

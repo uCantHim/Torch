@@ -1,4 +1,4 @@
-#include "Particle.h"
+#include "particle/Particle.h"
 
 #include "AssetRegistry.h"
 #include "PipelineDefinitions.h" // For the SHADER_DIR constant
@@ -147,18 +147,20 @@ void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
 void trc::ParticleCollection::update()
 {
     // Add new particles
-    std::unique_lock lock(newParticleListLock);
-    for (const auto& p : newParticles)
     {
-        if (particles.size() >= maxParticles) {
-            break;
-        }
+        std::lock_guard lock(newParticleListLock);
+        for (const auto& p : newParticles)
+        {
+            if (particles.size() >= maxParticles) {
+                break;
+            }
 
-        persistentMaterialBuf[particles.size()] = p.material;
-        particles.push_back(p.phys);
+            persistentMaterialBuf[particles.size()] = p.material;
+            particles.push_back(p.phys);
+        }
+        newParticles.clear();
     }
-    newParticles.clear();
-    lock.unlock();
+
     if (particles.empty()) return;
 
     // Transfer from staging to main buffer must be completed before the
