@@ -65,10 +65,9 @@ layout (location = 0) in Vertex
     flat uint instanceIndex;
 } vert;
 
-layout (location = 0) out vec4 outPosition;
-layout (location = 1) out vec3 outNormal;
-layout (location = 2) out vec2 outUv;
-layout (location = 3) out uint outMaterial;
+layout (location = 0) out vec3 outNormal;
+layout (location = 1) out vec2 outUv;
+layout (location = 2) out uint outMaterial;
 
 
 /////////////////////
@@ -79,7 +78,6 @@ vec3 calcVertexNormal();
 
 void main()
 {
-    outPosition = vec4(vert.worldPos, gl_FragCoord.z);
     outUv = vert.uv;
     outMaterial = vert.material;
     outNormal = calcVertexNormal();

@@ -7,10 +7,10 @@
 
 #define MAX_FRAGS 10
 
-layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexPosition;
-layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexNormal;
-layout (input_attachment_index = 2, set = 2, binding = 2) uniform subpassInput vertexUv;
-layout (input_attachment_index = 3, set = 2, binding = 3) uniform usubpassInput materialIndex;
+layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexNormal;
+layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexUv;
+layout (input_attachment_index = 2, set = 2, binding = 2) uniform usubpassInput materialIndex;
+layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput vertexDepth;
 
 layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
 {
@@ -68,6 +68,7 @@ layout (location = 0) out vec4 fragColor;
 #define SHADOW_DESCRIPTOR_SET_BINDING 4
 #include "lighting.glsl"
 
+vec4 worldPosFromDepth(float depth);
 vec3 blendTransparent(vec3 opaqueColor);
 
 void main()
@@ -85,7 +86,7 @@ void main()
 
     color = calcLighting(
         color,
-        subpassLoad(vertexPosition).xyz,
+        worldPosFromDepth(subpassLoad(vertexDepth).x).xyz,
         normalize(subpassLoad(vertexNormal).xyz),
         camera.inverseViewMatrix[3].xyz,
         matIndex
@@ -94,6 +95,16 @@ void main()
     color = blendTransparent(color);
 
     fragColor = vec4(color, 1.0);
+}
+
+
+vec4 worldPosFromDepth(float depth)
+{
+    const vec4 clipSpace = vec4(gl_FragCoord.xy / global.resolution * 2.0 - 1.0, depth, 1.0);
+    const vec4 viewSpace = camera.inverseProjMatrix * clipSpace;
+    const vec4 worldSpace = camera.inverseViewMatrix * (viewSpace / viewSpace.w);
+
+    return worldSpace;
 }
 
 

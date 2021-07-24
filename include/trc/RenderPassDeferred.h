@@ -91,12 +91,13 @@ namespace trc
         /**
          * @brief Get world position of mouse cursor
          *
-         * This function reads six bytes of data from device- to host
-         * memory. You should probably call this only once per frame.
+         * @param const Camera& camera The camera that was used to render
+         *        with this render pass. Required for projection and view
+         *        matrices.
          *
          * @return vec3
          */
-        auto getMousePos() const noexcept -> vec3;
+        auto getMousePos(const Camera& camera) const noexcept -> vec3;
 
         /**
          * @brief Make only a vk::RenderPass but don't allocate any
@@ -115,9 +116,7 @@ namespace trc
 
         void copyMouseDataToBuffers(vk::CommandBuffer cmdBuf);
         vkb::Buffer depthPixelReadBuffer;
-        vkb::Buffer mousePosBuffer;
         float* depthBufMap = reinterpret_cast<float*>(depthPixelReadBuffer.map());
-        i16* mousePosBufMap = reinterpret_cast<i16*>(mousePosBuffer.map());
 
         const vkb::Swapchain& swapchain;
 

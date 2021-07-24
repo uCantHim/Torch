@@ -95,7 +95,7 @@ namespace trc
         /**
          * @return vec3 Position of the mouse cursor in the world.
          */
-        auto getMouseWorldPos() -> vec3;
+        auto getMouseWorldPos(const Camera& camera) -> vec3;
 
     private:
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;

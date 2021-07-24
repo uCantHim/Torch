@@ -64,7 +64,8 @@ float calcSmoothShadowStrength(vec3 worldCoords, uint shadowIndex)
                                             // is already in the range [0, 1] in Vulkan
 
     // Exit early if the middle fragment isn't inside of the shadow map
-    if (!(shadowMapUV.x > 0.0 && shadowMapUV.x < 1.0 && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0))
+    if (!(shadowMapUV.x > 0.0 && shadowMapUV.x < 1.0
+          && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0))
     {
         return 0.0;
     }

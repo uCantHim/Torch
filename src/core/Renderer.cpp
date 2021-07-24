@@ -241,9 +241,9 @@ auto trc::Renderer::getDeferredRenderPass() const noexcept -> const RenderPassDe
     return static_cast<RenderPassDeferred&>(RenderPass::at(defaultDeferredPass));
 }
 
-auto trc::Renderer::getMouseWorldPos() -> vec3
+auto trc::Renderer::getMouseWorldPos(const Camera& camera) -> vec3
 {
-    return getDeferredRenderPass().getMousePos();
+    return getDeferredRenderPass().getMousePos(camera);
 }
 
 void trc::Renderer::createSemaphores()

@@ -20,11 +20,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     ),
-    mousePosBuffer(
-        sizeof(ui16) * 4,
-        vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
-    ),
     swapchain(swapchain),
     framebuffers([&](ui32 frameIndex)
     {
@@ -34,17 +29,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
         auto& images = attachmentImages.emplace_back();
         images.reserve(numAttachments);
 
-        auto& positionImage = images.emplace_back(
-            vkb::getDevice(),
-            vk::ImageCreateInfo(
-                {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
-                vk::Extent3D{ swapchainExtent, 1 },
-                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-                | vk::ImageUsageFlagBits::eTransferSrc
-            ),
-            vkb::DefaultDeviceMemoryAllocator()
-        );
         auto& normalImage = images.emplace_back(
             vkb::getDevice(),
             vk::ImageCreateInfo(
@@ -86,6 +70,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
                 vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eDepthStencilAttachment
                 | vk::ImageUsageFlagBits::eTransferSrc
+                | vk::ImageUsageFlagBits::eInputAttachment
             ),
             vkb::DefaultDeviceMemoryAllocator()
         );
@@ -93,7 +78,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
         framebufferSize = vk::Extent2D{ swapchainExtent.width, swapchainExtent.height };
 
         std::vector<vk::UniqueImageView> views;
-        views.push_back(positionImage.createView());
         views.push_back(normalImage.createView());
         views.push_back(uvImage.createView());
         views.push_back(materialImage.createView());
@@ -108,7 +92,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
         );
     }),
     clearValues({
-        vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<ui32, 4>{ 0, 0, 0, 0 }),
@@ -130,9 +113,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
                                    vk::ImageLayout::eColorAttachmentOptimal);
     images[2].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
-    images[3].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
-                                   vk::ImageLayout::eColorAttachmentOptimal);
-    images[4].changeLayout(
+    images[3].changeLayout(
         cmdBuf,
         vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal,
         vk::ImageSubresourceRange(
@@ -190,13 +171,6 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
     -> vk::UniqueRenderPass
 {
     std::vector<vk::AttachmentDescription> attachments = {
-        // Vertex positions
-        vk::AttachmentDescription(
-            {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
-            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
-        ),
         // Normals
         vk::AttachmentDescription(
             {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
@@ -231,26 +205,25 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
         trc::makeDefaultSwapchainColorAttachment(swapchain),
     };
 
-    std::vector<vk::AttachmentReference> deferredAttachments = {
-        { 0, vk::ImageLayout::eColorAttachmentOptimal }, // Vertex positions
-        { 1, vk::ImageLayout::eColorAttachmentOptimal }, // Normals
-        { 2, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
-        { 3, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
-        { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
+    std::vector<vk::AttachmentReference> deferredInput = {
+        { 0, vk::ImageLayout::eColorAttachmentOptimal }, // Normals
+        { 1, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
+        { 2, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
     };
+    vk::AttachmentReference deferredDepth{ 3, vk::ImageLayout::eDepthStencilAttachmentOptimal };
 
     std::vector<vk::AttachmentReference> transparencyAttachments{
-        { 4, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
+        { 3, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
     };
-    std::vector<ui32> transparencyPreservedAttachments{ 0, 1, 2, 3 };
+    std::vector<ui32> transparencyPreservedAttachments{ 0, 1, 2 };
 
-    std::vector<vk::AttachmentReference> lightingAttachments = {
-        { 0, vk::ImageLayout::eShaderReadOnlyOptimal }, // Vertex positions
-        { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
-        { 2, vk::ImageLayout::eShaderReadOnlyOptimal }, // UVs
-        { 3, vk::ImageLayout::eShaderReadOnlyOptimal }, // Material indices
-        { 5, vk::ImageLayout::eColorAttachmentOptimal }, // Swapchain images
+    std::vector<vk::AttachmentReference> lightingInput = {
+        { 0, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
+        { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // UVs
+        { 2, vk::ImageLayout::eShaderReadOnlyOptimal }, // Material indices
+        { 3, vk::ImageLayout::eShaderReadOnlyOptimal }, // Depth
     };
+    vk::AttachmentReference lightingColor{ 4, vk::ImageLayout::eColorAttachmentOptimal };
 
     std::vector<vk::SubpassDescription> subpasses = {
         // Deferred diffuse subpass
@@ -258,9 +231,9 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
             vk::SubpassDescriptionFlags(),
             vk::PipelineBindPoint::eGraphics,
             0, nullptr,
-            4, &deferredAttachments[0],
+            deferredInput.size(), deferredInput.data(),
             nullptr, // resolve attachments
-            &deferredAttachments[4]
+            &deferredDepth
         ),
         // Deferred transparency subpass
         vk::SubpassDescription(
@@ -276,8 +249,8 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
         vk::SubpassDescription(
             vk::SubpassDescriptionFlags(),
             vk::PipelineBindPoint::eGraphics,
-            4, &lightingAttachments[0],
-            1, &lightingAttachments[4],
+            lightingInput.size(), lightingInput.data(),  // input attachments
+            1, &lightingColor,  // color attachments
             nullptr, // resolve attachments
             nullptr  // depth attachment
         ),
@@ -322,7 +295,7 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
 
 void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
-    vkb::Image& depthImage = attachmentImages[swapchain.getCurrentFrame()][4];
+    vkb::Image& depthImage = attachmentImages[swapchain.getCurrentFrame()][3];
     const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
     const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
@@ -342,24 +315,6 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
             { 1, 1, 1 }
         )
     );
-
-    vkb::Image& posImage = attachmentImages[swapchain.getCurrentFrame()][0];
-    posImage.changeLayout(
-        cmdBuf,
-        vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferSrcOptimal,
-        { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-    );
-    cmdBuf.copyImageToBuffer(
-        *posImage, vk::ImageLayout::eTransferSrcOptimal,
-        *mousePosBuffer,
-        vk::BufferImageCopy(
-            0, // buffer offset
-            0, 0, // some weird 2D or 3D offsets, idk
-            vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
-            { static_cast<i32>(mousePos.x), static_cast<i32>(mousePos.y), 0 },
-            { 1, 1, 1 }
-        )
-    );
 }
 
 auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
@@ -372,13 +327,17 @@ auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
     return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
 }
 
-auto trc::RenderPassDeferred::getMousePos() const noexcept -> vec3
+auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
 {
-    return {
-        glm::detail::toFloat32(mousePosBufMap[0]),
-        glm::detail::toFloat32(mousePosBufMap[1]),
-        glm::detail::toFloat32(mousePosBufMap[2]),
-    };
+    const vec2 resolution{ swapchain.getImageExtent().width, swapchain.getImageExtent().height };
+    const vec2 mousePos = swapchain.getMousePosition();
+    const float depth = getMouseDepth();
+
+    const vec4 clipSpace = vec4(mousePos / resolution * 2.0f - 1.0f, depth, 1.0);
+    const vec4 viewSpace = glm::inverse(camera.getProjectionMatrix()) * clipSpace;
+    const vec4 worldSpace = glm::inverse(camera.getViewMatrix()) * (viewSpace / viewSpace.w);
+
+    return worldSpace;
 }
 
 
