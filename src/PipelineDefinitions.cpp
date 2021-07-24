@@ -213,18 +213,12 @@ auto makeDrawableDeferredPipeline(
     );
 
     // Pipeline
-    ui32 constants[] {
-        (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0,
-        (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0,
-    };
-    std::vector<vk::SpecializationMapEntry> specEntries{
-        vk::SpecializationMapEntry(0, 0, sizeof(ui32)),
-        vk::SpecializationMapEntry(1, sizeof(ui32), sizeof(ui32)),
-    };
-    vk::SpecializationInfo vertSpec(
-        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
-    vk::SpecializationInfo fragSpec(
-        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
+    bool32 vertConst = (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0;
+    bool32 fragConst = (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0;
+    vk::SpecializationMapEntry vertEntry(0, 0, sizeof(ui32));
+    vk::SpecializationMapEntry fragEntry(1, 0, sizeof(ui32));
+    vk::SpecializationInfo vertSpec(1, &vertEntry, sizeof(ui32) * 1, &vertConst);
+    vk::SpecializationInfo fragSpec(1, &fragEntry, sizeof(ui32) * 1, &fragConst);
 
     vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
                                SHADER_DIR / "drawable/deferred.frag.spv");
@@ -237,14 +231,9 @@ auto makeDrawableDeferredPipeline(
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-        .setFrontFace(vk::FrontFace::eCounterClockwise)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
@@ -307,18 +296,12 @@ auto makeDrawableTransparentPipeline(
     );
 
     // Pipeline
-    ui32 constants[] {
-        (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0,
-        (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0,
-    };
-    std::vector<vk::SpecializationMapEntry> specEntries{
-        vk::SpecializationMapEntry(0, 0, sizeof(ui32)),
-        vk::SpecializationMapEntry(1, sizeof(ui32), sizeof(ui32)),
-    };
-    vk::SpecializationInfo vertSpec(
-        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
-    vk::SpecializationInfo fragSpec(
-        specEntries.size(), specEntries.data(), sizeof(ui32) * 2, constants);
+    bool32 vertConst = (featureFlags & DrawablePipelineFeatureFlagBits::eAnimated) != 0;
+    bool32 fragConst = (featureFlags & DrawablePipelineFeatureFlagBits::ePickable) != 0;
+    vk::SpecializationMapEntry vertEntry(0, 0, sizeof(ui32));
+    vk::SpecializationMapEntry fragEntry(1, 0, sizeof(ui32));
+    vk::SpecializationInfo vertSpec(1, &vertEntry, sizeof(ui32) * 1, &vertConst);
+    vk::SpecializationInfo fragSpec(1, &fragEntry, sizeof(ui32) * 1, &fragConst);
 
     vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
                                SHADER_DIR / "drawable/transparent.frag.spv");
@@ -456,14 +439,9 @@ auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipel
                 vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32Uint, 64),
             }
         )
-        .setFrontFace(vk::FrontFace::eCounterClockwise)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::VulkanBase::getDevice(),
@@ -570,8 +548,7 @@ auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
         )
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .disableBlendAttachments(1)
         .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::getDevice(),

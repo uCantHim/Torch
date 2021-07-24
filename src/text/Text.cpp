@@ -197,11 +197,7 @@ auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
         .setCullMode(vk::CullModeFlagBits::eNone)
         .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
         .addScissorRect({ { 0, 0 }, extent })
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
         .build(
             *vkb::getDevice(),

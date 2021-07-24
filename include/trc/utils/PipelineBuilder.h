@@ -109,6 +109,8 @@ namespace trc
                               vk::Bool32 logicOpEnable, vk::LogicOp logicalOperation,
                               std::array<float, 4> blendConstants) -> Self;
 
+        auto disableBlendAttachments(ui32 numAttachments) -> Self;
+
         auto addDynamicState(vk::DynamicState dynamicState) -> Self;
 
         /**

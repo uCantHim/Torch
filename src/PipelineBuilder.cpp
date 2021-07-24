@@ -180,6 +180,16 @@ auto trc::GraphicsPipelineBuilder::setColorBlending(
     return *this;
 }
 
+auto trc::GraphicsPipelineBuilder::disableBlendAttachments(ui32 numAttachments) -> Self
+{
+    for (ui32 i = 0; i < numAttachments; i++) {
+        addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED);
+    }
+    setColorBlending({}, false, {}, {});
+
+    return *this;
+}
+
 auto trc::GraphicsPipelineBuilder::addDynamicState(vk::DynamicState dynamicState) -> Self
 {
     this->dynamicStates.push_back(dynamicState);
