@@ -33,12 +33,14 @@ auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipel
 auto makeDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline;
 auto makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline;
 
-/**
- * Stores all dynamically created pipeline IDs
- */
 static vk::UniqueRenderPass dummyDeferredPass;
 vkb::StaticInit _init{
-    [] { dummyDeferredPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain()); },
+    [] {
+        dummyDeferredPass = RenderPassDeferred::makeVkRenderPass(
+            vkb::getDevice(),
+            vkb::getSwapchain()
+        );
+    },
     [] { dummyDeferredPass.reset(); }
 };
 
@@ -150,7 +152,9 @@ auto makeAllDrawablePipelines() -> std::vector<::trc::Pipeline>
 {
     using Flags = DrawablePipelineFeatureFlagBits;
     RenderPassShadow shadowPass({ 1, 1 });
-    auto deferredPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+    auto deferredPass = RenderPassDeferred::makeVkRenderPass(
+        vkb::getDevice(), vkb::getSwapchain()
+    );
 
     std::vector<Pipeline> result;
 
@@ -569,7 +573,9 @@ auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
 auto getFinalLightingPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry::registerPipeline([] {
-        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+        auto renderPass = RenderPassDeferred::makeVkRenderPass(
+            vkb::getDevice(), vkb::getSwapchain()
+        );
         return makeFinalLightingPipeline(*renderPass);
     });
 

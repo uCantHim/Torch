@@ -193,7 +193,8 @@ void trc::ParticleCollection::update()
 auto trc::ParticleCollection::getDeferredPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry::registerPipeline([] {
-        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+        auto renderPass = RenderPassDeferred::makeVkRenderPass(
+            vkb::getDevice(), vkb::getSwapchain());
         return makeParticleDrawPipeline(*renderPass);
     });
 

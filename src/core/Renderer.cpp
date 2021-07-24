@@ -75,7 +75,7 @@ trc::Renderer::Renderer(RendererCreateInfo info)
     :
     // Create the deferred render pass
     defaultDeferredPass(RenderPass::createAtNextIndex<RenderPassDeferred>(
-        vkb::getSwapchain(), info.maxTransparentFragsPerPixel
+        vkb::getDevice(), vkb::getSwapchain(), info.maxTransparentFragsPerPixel
     ).first),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
@@ -118,6 +118,7 @@ trc::Renderer::Renderer(RendererCreateInfo info)
             // Completely recreate the deferred renderpass
             auto& newPass = RenderPass::replace<RenderPassDeferred>(
                 defaultDeferredPass,
+                vkb::getDevice(),
                 vkb::getSwapchain(),
                 info.maxTransparentFragsPerPixel
             );

@@ -7,6 +7,7 @@
 #include "RenderPass.h"
 #include "Framebuffer.h"
 #include "Camera.h"
+#include "GBuffer.h"
 
 namespace trc
 {
@@ -28,8 +29,9 @@ namespace trc
     class DeferredRenderPassDescriptor
     {
     public:
-        DeferredRenderPassDescriptor(const RenderPassDeferred& deferredPass,
+        DeferredRenderPassDescriptor(const vkb::Device& device,
                                      const vkb::Swapchain& swapchain,
+                                     const RenderPassDeferred& deferredPass,
                                      ui32 maxTransparentFragsPerPixel);
 
         void resetValues(vk::CommandBuffer cmdBuf) const;
@@ -37,8 +39,10 @@ namespace trc
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
-        void createFragmentList(const vkb::Swapchain& swapchain, ui32 maxFragsPerPixel);
-        void createDescriptors(const RenderPassDeferred& renderPass);
+        void createFragmentList(const vkb::Device& device,
+                                const vkb::Swapchain& swapchain,
+                                ui32 maxFragsPerPixel);
+        void createDescriptors(const vkb::Device& device, const RenderPassDeferred& renderPass);
 
         const ui32 ATOMIC_BUFFER_SECTION_SIZE;
         const ui32 FRAG_LIST_BUFFER_SIZE;
@@ -61,13 +65,15 @@ namespace trc
     public:
         static constexpr ui32 NUM_SUBPASSES = 3;
 
-        RenderPassDeferred(const vkb::Swapchain& swapchain, ui32 maxTransparentFragsPerPixel);
+        RenderPassDeferred(const vkb::Device& device,
+                           const vkb::Swapchain& swapchain,
+                           ui32 maxTransparentFragsPerPixel);
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
-        auto getAttachmentImageViews(ui32 imageIndex) const noexcept
-           -> std::array<vk::ImageView, 4>;
+        auto getGBuffer() -> vkb::FrameSpecificObject<GBuffer>&;
+        auto getGBuffer() const -> const vkb::FrameSpecificObject<GBuffer>&;
 
         /**
          * @return The descriptor for the deferred renderpass
@@ -109,7 +115,8 @@ namespace trc
          * @param const vkb::Swapchain& swapchain Used to determine the
          *        image format of the color attachment.
          */
-        static auto makeVkRenderPassInstance(const vkb::Swapchain& swapchain) -> vk::UniqueRenderPass;
+        static auto makeVkRenderPass(const vkb::Device& device, const vkb::Swapchain& swapchain)
+            -> vk::UniqueRenderPass;
 
     private:
         static inline float mouseDepthValue{ 0.0f };
@@ -121,7 +128,7 @@ namespace trc
         const vkb::Swapchain& swapchain;
 
         vk::Extent2D framebufferSize;
-        std::vector<std::vector<vkb::Image>> attachmentImages;
+        vkb::FrameSpecificObject<GBuffer> gBuffers;
         vkb::FrameSpecificObject<Framebuffer> framebuffers;
 
         std::array<vk::ClearValue, 6> clearValues;

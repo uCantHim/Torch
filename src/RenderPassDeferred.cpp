@@ -8,11 +8,12 @@
 
 
 trc::RenderPassDeferred::RenderPassDeferred(
+    const vkb::Device& device,
     const vkb::Swapchain& swapchain,
     const ui32 maxTransparentFragsPerPixel)
     :
     RenderPass(
-        makeVkRenderPassInstance(swapchain),
+        makeVkRenderPass(device, swapchain),
         NUM_SUBPASSES
     ), // Base class RenderPass constructor
     depthPixelReadBuffer(
@@ -21,75 +22,24 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     ),
     swapchain(swapchain),
+    framebufferSize(swapchain.getImageExtent()),
+    gBuffers([&](ui32) {
+        const auto extent = swapchain.getImageExtent();
+        return GBuffer(device, uvec2(extent.width, extent.height));
+    }),
     framebuffers([&](ui32 frameIndex)
     {
-        constexpr size_t numAttachments = 5;
+        GBuffer& g = gBuffers.getAt(frameIndex);
 
-        const auto swapchainExtent = swapchain.getImageExtent();
-        auto& images = attachmentImages.emplace_back();
-        images.reserve(numAttachments);
+        std::vector<vk::ImageView> views{
+            g.getImageView(GBuffer::eNormals),
+            g.getImageView(GBuffer::eUVs),
+            g.getImageView(GBuffer::eMaterials),
+            g.getImageView(GBuffer::eDepth),
+            swapchain.getImageView(frameIndex),
+        };
 
-        auto& normalImage = images.emplace_back(
-            vkb::getDevice(),
-            vk::ImageCreateInfo(
-                {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
-                vk::Extent3D{ swapchainExtent, 1 },
-                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-            ),
-            vkb::DefaultDeviceMemoryAllocator()
-        );
-        auto& uvImage = images.emplace_back(
-            vkb::getDevice(),
-            vk::ImageCreateInfo(
-                {}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat,
-                vk::Extent3D{ swapchainExtent, 1 },
-                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-            ),
-            vkb::DefaultDeviceMemoryAllocator()
-        );
-        auto& materialImage = images.emplace_back(
-            vkb::getDevice(),
-            vk::ImageCreateInfo(
-                {}, vk::ImageType::e2D, vk::Format::eR32Uint,
-                vk::Extent3D{ swapchainExtent, 1 },
-                1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
-            ),
-            vkb::DefaultDeviceMemoryAllocator()
-        );
-        auto& depthImage = images.emplace_back(
-            vkb::getDevice(),
-            vk::ImageCreateInfo(
-                {},
-                vk::ImageType::e2D,
-                vk::Format::eD24UnormS8Uint,
-                vk::Extent3D{ swapchainExtent, 1 },
-                1, 1, vk::SampleCountFlagBits::e1,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eDepthStencilAttachment
-                | vk::ImageUsageFlagBits::eTransferSrc
-                | vk::ImageUsageFlagBits::eInputAttachment
-            ),
-            vkb::DefaultDeviceMemoryAllocator()
-        );
-
-        framebufferSize = vk::Extent2D{ swapchainExtent.width, swapchainExtent.height };
-
-        std::vector<vk::UniqueImageView> views;
-        views.push_back(normalImage.createView());
-        views.push_back(uvImage.createView());
-        views.push_back(materialImage.createView());
-        views.push_back(depthImage.createView(vk::ImageAspectFlagBits::eDepth));
-
-        return Framebuffer(
-            vkb::getDevice(),
-            *renderPass,
-            { framebufferSize.width, framebufferSize.height },
-            std::move(views),
-            { swapchain.getImageView(frameIndex) }
-        );
+        return Framebuffer(device, *renderPass, g.getSize(), {}, std::move(views));
     }),
     clearValues({
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
@@ -98,22 +48,22 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::ClearDepthStencilValue(1.0f, 0.0f),
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     }),
-    descriptor(*this, swapchain, maxTransparentFragsPerPixel)
+    descriptor(device, swapchain, *this, maxTransparentFragsPerPixel)
 {
 }
 
 void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    // Bring attachment images in color attachment layout
-    ui32 imageIndex = swapchain.getCurrentFrame();
-    auto& images = attachmentImages[imageIndex];
-    images[0].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
+    const ui32 imageIndex = swapchain.getCurrentFrame();
+    GBuffer& g = gBuffers.getAt(imageIndex);
+
+    g.getImage(GBuffer::eNormals).changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
-    images[1].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
+    g.getImage(GBuffer::eUVs).changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
-    images[2].changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
+    g.getImage(GBuffer::eMaterials).changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eColorAttachmentOptimal);
-    images[3].changeLayout(
+    g.getImage(GBuffer::eDepth).changeLayout(
         cmdBuf,
         vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal,
         vk::ImageSubresourceRange(
@@ -143,16 +93,14 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
     copyMouseDataToBuffers(cmdBuf);
 }
 
-auto trc::RenderPassDeferred::getAttachmentImageViews(ui32 imageIndex) const noexcept
-   -> std::array<vk::ImageView, 4>
+auto trc::RenderPassDeferred::getGBuffer() -> vkb::FrameSpecificObject<GBuffer>&
 {
-    const Framebuffer& fb = framebuffers.getAt(imageIndex);
-    return {{
-        fb.getAttachmentView(0),
-        fb.getAttachmentView(1),
-        fb.getAttachmentView(2),
-        fb.getAttachmentView(3)
-    }};
+    return gBuffers;
+}
+
+auto trc::RenderPassDeferred::getGBuffer() const -> const vkb::FrameSpecificObject<GBuffer>&
+{
+    return gBuffers;
 }
 
 auto trc::RenderPassDeferred::getDescriptor() const noexcept
@@ -167,7 +115,9 @@ auto trc::RenderPassDeferred::getDescriptorProvider() const noexcept
     return descriptor.getProvider();
 }
 
-auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swapchain)
+auto trc::RenderPassDeferred::makeVkRenderPass(
+    const vkb::Device& device,
+    const vkb::Swapchain& swapchain)
     -> vk::UniqueRenderPass
 {
     std::vector<vk::AttachmentDescription> attachments = {
@@ -283,7 +233,7 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
         )
     };
 
-    return vkb::getDevice()->createRenderPassUnique(
+    return device->createRenderPassUnique(
         vk::RenderPassCreateInfo(
             vk::RenderPassCreateFlags(),
             static_cast<ui32>(attachments.size()), attachments.data(),
@@ -295,7 +245,7 @@ auto trc::RenderPassDeferred::makeVkRenderPassInstance(const vkb::Swapchain& swa
 
 void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
-    vkb::Image& depthImage = attachmentImages[swapchain.getCurrentFrame()][3];
+    vkb::Image& depthImage = gBuffers.getAt(swapchain.getCurrentFrame()).getImage(GBuffer::eDepth);
     const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
     const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
@@ -319,6 +269,8 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 
 auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 {
+    return depthBufMap[0];
+
     const ui32 depthValueD24S8 = depthBufMap[0];
 
     // Don't ask me why 16 bit here, I think it should be 24. The result
@@ -347,8 +299,9 @@ auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -
 // -------------------------------- //
 
 trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
-    const RenderPassDeferred& renderPass,
+    const vkb::Device& device,
     const vkb::Swapchain& swapchain,
+    const RenderPassDeferred& renderPass,
     const ui32 maxTransparentFragsPerPixel)
     :
     ATOMIC_BUFFER_SECTION_SIZE(util::pad(
@@ -361,8 +314,8 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
     ),
     provider({}, {}) // Doesn't have a default constructor
 {
-    createFragmentList(swapchain, maxTransparentFragsPerPixel);
-    createDescriptors(renderPass);
+    createFragmentList(device, swapchain, maxTransparentFragsPerPixel);
+    createDescriptors(device, renderPass);
 }
 
 void trc::DeferredRenderPassDescriptor::resetValues(vk::CommandBuffer cmdBuf) const
@@ -378,6 +331,7 @@ auto trc::DeferredRenderPassDescriptor::getProvider() const noexcept
 }
 
 void trc::DeferredRenderPassDescriptor::createFragmentList(
+    const vkb::Device& device,
     const vkb::Swapchain& swapchain,
     const ui32 maxFragsPerPixel)
 {
@@ -388,7 +342,7 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
     fragmentListHeadPointerImage = { [&](ui32)
     {
         vkb::Image result(
-            vkb::getDevice(),
+            device,
             vk::ImageCreateInfo(
                 {},
                 vk::ImageType::e2D, vk::Format::eR32Uint,
@@ -398,11 +352,11 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
             ),
             vkb::DefaultDeviceMemoryAllocator()
         );
-        result.changeLayout(vkb::getDevice(), vk::ImageLayout::eGeneral);
+        result.changeLayout(device, vk::ImageLayout::eGeneral);
         imageViews.push_back(result.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint));
 
         // Clear image
-        auto cmdBuf = vkb::getDevice().createGraphicsCommandBuffer();
+        auto cmdBuf = device.createGraphicsCommandBuffer();
         cmdBuf->begin(vk::CommandBufferBeginInfo());
         cmdBuf->clearColorImage(
             *result, vk::ImageLayout::eGeneral,
@@ -410,7 +364,7 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
             vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
         );
         cmdBuf->end();
-        vkb::getDevice().executeGraphicsCommandBufferSynchronously(*cmdBuf);
+        device.executeGraphicsCommandBufferSynchronously(*cmdBuf);
 
         return result;
     }};
@@ -428,17 +382,19 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
         );
 
         const ui32 MAX_FRAGS = maxFragsPerPixel * swapchainSize.width * swapchainSize.height;
-        auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
+        auto cmdBuf = device.createTransferCommandBuffer();
         cmdBuf->begin(vk::CommandBufferBeginInfo(vk::CommandBufferBeginInfo()));
         cmdBuf->updateBuffer<ui32>(*result, 0, { 0, MAX_FRAGS, 0, });
         cmdBuf->end();
-        vkb::getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
+        device.executeTransferCommandBufferSyncronously(*cmdBuf);
 
         return result;
     }};
 }
 
-void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferred& renderPass)
+void trc::DeferredRenderPassDescriptor::createDescriptors(
+    const vkb::Device& device,
+    const RenderPassDeferred& renderPass)
 {
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
@@ -446,7 +402,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
         { vk::DescriptorType::eStorageImage, 1 },
         { vk::DescriptorType::eStorageBuffer, 2 },
     };
-    descPool = vkb::getDevice()->createDescriptorPoolUnique(
+    descPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             vkb::getSwapchain().getFrameCount(), poolSizes)
@@ -466,16 +422,22 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
         // Fragment list
         { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
     };
-    descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
+    descLayout = device->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
     );
 
     // Sets
     descSets = { [&](ui32 imageIndex)
     {
-        auto imageViews = renderPass.getAttachmentImageViews(imageIndex);
+        auto& g = renderPass.getGBuffer().getAt(imageIndex);
+        std::vector<vk::ImageView> imageViews{
+            g.getImageView(GBuffer::eNormals),
+            g.getImageView(GBuffer::eUVs),
+            g.getImageView(GBuffer::eMaterials),
+            g.getImageView(GBuffer::eDepth),
+        };
 
-        auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+        auto set = std::move(device->allocateDescriptorSetsUnique(
             vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
         )[0]);
 
@@ -502,7 +464,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(const RenderPassDeferr
             { *set, 5, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[0] },
             { *set, 6, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[1] },
         };
-        vkb::getDevice()->updateDescriptorSets(writes, {});
+        device->updateDescriptorSets(writes, {});
 
         return set;
     }};

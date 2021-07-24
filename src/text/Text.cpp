@@ -145,7 +145,8 @@ void trc::Text::print(std::string_view str)
 auto trc::Text::getPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry::registerPipeline([] {
-        auto renderPass = RenderPassDeferred::makeVkRenderPassInstance(vkb::getSwapchain());
+        auto renderPass = RenderPassDeferred::makeVkRenderPass(
+            vkb::getDevice(), vkb::getSwapchain());
         return makeTextPipeline(*renderPass);
     });
 

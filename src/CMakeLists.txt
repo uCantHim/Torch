@@ -7,6 +7,7 @@ target_sources(
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
         Framebuffer.cpp
+        GBuffer.cpp
         Geometry.cpp
         Light.cpp
         LightRegistry.cpp
