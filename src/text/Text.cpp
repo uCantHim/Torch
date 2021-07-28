@@ -157,8 +157,6 @@ auto trc::Text::getPipeline() -> Pipeline::ID
 
 auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
-    auto extent = vkb::getSwapchain().getImageExtent();
-
     auto layout = makePipelineLayout(
         {
             Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
@@ -196,10 +194,11 @@ auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
             }
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
-        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
-        .addScissorRect({ { 0, 0 }, extent })
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect({ { 0, 0 }, { 1, 1 } })
         .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
         .build(
             *vkb::getDevice(),
             *layout,

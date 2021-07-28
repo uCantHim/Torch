@@ -52,7 +52,9 @@ auto trc::CommandCollector::recordScene(
 
                 for (const auto& viewport : viewports)
                 {
+                    vk::Rect2D scissor({ 0, 0 }, { ui32(viewport.width), ui32(viewport.height) });
                     cmdBuf.setViewport(0, viewport);
+                    cmdBuf.setScissor(0, scissor);
 
                     // Record commands for all objects with this pipeline
                     scene.invokeDrawFunctions(

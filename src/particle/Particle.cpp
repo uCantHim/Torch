@@ -323,7 +323,6 @@ auto trc::makeParticleDrawPipeline(vk::RenderPass deferredPass) -> Pipeline
     vkb::ShaderProgram program(internal::SHADER_DIR / "particles/deferred.vert.spv",
                                internal::SHADER_DIR / "particles/deferred.frag.spv");
 
-    auto extent = vkb::getSwapchain().getImageExtent();
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
         // (per-vertex) Vertex positions
@@ -356,9 +355,10 @@ auto trc::makeParticleDrawPipeline(vk::RenderPass deferredPass) -> Pipeline
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
         .disableDepthWrite()
-        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
-        .addScissorRect({ { 0, 0 }, extent })
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect({ { 0, 0 }, { 1, 1 } })
         .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
         .build(*vkb::getDevice(), *layout, deferredPass, internal::DeferredSubPasses::transparencyPass);
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };

@@ -184,9 +184,6 @@ auto makeDrawableDeferredPipeline(
     ui32 featureFlags,
     vk::RenderPass deferredPass) -> Pipeline
 {
-    auto& swapchain = vkb::VulkanBase::getSwapchain();
-    auto extent = swapchain.getImageExtent();
-
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
@@ -235,10 +232,11 @@ auto makeDrawableDeferredPipeline(
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
-        .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))
         .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
@@ -266,9 +264,6 @@ auto makeDrawableTransparentPipeline(
     ui32 featureFlags,
     vk::RenderPass deferredPass) -> Pipeline
 {
-    auto& swapchain = vkb::VulkanBase::getSwapchain();
-    auto extent = swapchain.getImageExtent();
-
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
@@ -320,9 +315,10 @@ auto makeDrawableTransparentPipeline(
         )
         .setCullMode(vk::CullModeFlagBits::eNone) // Don't cull back faces because they're visible
         .disableDepthWrite()
-        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
-        .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))
         .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
@@ -397,9 +393,6 @@ auto makeDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeline
 
 auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
-    auto& swapchain = vkb::VulkanBase::getSwapchain();
-    auto extent = swapchain.getImageExtent();
-
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout> {
@@ -443,10 +436,11 @@ auto makeInstancedDrawableDeferredPipeline(vk::RenderPass deferredPass) -> Pipel
                 vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32Uint, 64),
             }
         )
-        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
-        .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))
         .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
         .build(
             *vkb::VulkanBase::getDevice(),
             *layout,
@@ -522,9 +516,6 @@ auto makeInstancedDrawableShadowPipeline(RenderPassShadow& renderPass) -> Pipeli
 
 auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
 {
-    auto& swapchain = vkb::VulkanBase::getSwapchain();
-    auto extent = swapchain.getImageExtent();
-
     // Layout
     auto layout = makePipelineLayout(
         std::vector<vk::DescriptorSetLayout>
@@ -550,10 +541,11 @@ auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
                 vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, 0),
             }
         )
-        .addViewport(vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f))
-        .addScissorRect(vk::Rect2D({ 0, 0 }, extent))
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))
         .disableBlendAttachments(1)
         .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
         .build(
             *vkb::getDevice(),
             *layout,
@@ -573,10 +565,7 @@ auto makeFinalLightingPipeline(vk::RenderPass deferredPass) -> Pipeline
 auto getFinalLightingPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry::registerPipeline([] {
-        auto renderPass = RenderPassDeferred::makeVkRenderPass(
-            vkb::getDevice(), vkb::getSwapchain()
-        );
-        return makeFinalLightingPipeline(*renderPass);
+        return makeFinalLightingPipeline(*dummyDeferredPass);
     });
 
     return id;
