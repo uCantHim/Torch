@@ -4,57 +4,70 @@
 
 
 
-trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor()
+trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(const vkb::Swapchain& _swapchain)
     :
-    provider(*this),
+    device(_swapchain.device),
+    swapchain(_swapchain),
     BUFFER_SECTION_SIZE(util::pad(
         CAMERA_DATA_SIZE + SWAPCHAIN_DATA_SIZE,
-        vkb::getPhysicalDevice().properties.limits.minUniformBufferOffsetAlignment
-    ))
+        device.getPhysicalDevice().properties.limits.minUniformBufferOffsetAlignment
+    )),
+    buffer(
+        BUFFER_SECTION_SIZE * swapchain.getFrameCount(),
+        vk::BufferUsageFlagBits::eUniformBuffer,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+    )
 {
-    createResources();
     createDescriptors();
 }
 
-auto trc::GlobalRenderDataDescriptor::getProvider() const noexcept
-    -> const DescriptorProviderInterface&
+auto trc::GlobalRenderDataDescriptor::getDescriptorSet()
+    const noexcept -> vk::DescriptorSet
 {
-    return provider;
+    return *descSet;
 }
 
-void trc::GlobalRenderDataDescriptor::updateCameraMatrices(const Camera& camera)
+auto trc::GlobalRenderDataDescriptor::getDescriptorSetLayout()
+    const noexcept -> vk::DescriptorSetLayout
 {
-    auto buf = reinterpret_cast<mat4*>(buffer.map(
-        BUFFER_SECTION_SIZE * vkb::getSwapchain().getCurrentFrame(), CAMERA_DATA_SIZE
+    return *descLayout;
+}
+
+void trc::GlobalRenderDataDescriptor::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    const ui32 dynamicOffset = BUFFER_SECTION_SIZE * swapchain.getCurrentFrame();
+    cmdBuf.bindDescriptorSets(
+        bindPoint, pipelineLayout,
+        setIndex, *descSet,
+        { dynamicOffset, dynamicOffset }
+    );
+}
+
+void trc::GlobalRenderDataDescriptor::update(const Camera& camera)
+{
+    const ui32 currentFrame = swapchain.getCurrentFrame();
+
+    // Camera matrices
+    auto mats = reinterpret_cast<mat4*>(buffer.map(
+        BUFFER_SECTION_SIZE * currentFrame, CAMERA_DATA_SIZE
     ));
-    buf[0] = camera.getViewMatrix();
-    buf[1] = camera.getProjectionMatrix();
-    buf[2] = inverse(camera.getViewMatrix());
-    buf[3] = inverse(camera.getProjectionMatrix());
+    mats[0] = camera.getViewMatrix();
+    mats[1] = camera.getProjectionMatrix();
+    mats[2] = inverse(camera.getViewMatrix());
+    mats[3] = inverse(camera.getProjectionMatrix());
     buffer.unmap();
-}
 
-void trc::GlobalRenderDataDescriptor::updateSwapchainData(const vkb::Swapchain& swapchain)
-{
-    const ui32 currentFrame = vkb::getSwapchain().getCurrentFrame();
-    const vec2 res = vec2(static_cast<float>(swapchain.getImageExtent().width),
-                          static_cast<float>(swapchain.getImageExtent().height));
-
+    // Resolution and mouse pos
     auto buf = reinterpret_cast<vec2*>(buffer.map(
         BUFFER_SECTION_SIZE * currentFrame + CAMERA_DATA_SIZE, SWAPCHAIN_DATA_SIZE
     ));
     buf[0] = swapchain.getMousePosition();
-    buf[1] = res;
+    buf[1] = { swapchain.getImageExtent().width, swapchain.getImageExtent().height };;
     buffer.unmap();
-}
-
-void trc::GlobalRenderDataDescriptor::createResources()
-{
-    buffer = vkb::Buffer(
-        BUFFER_SECTION_SIZE * vkb::getSwapchain().getFrameCount(),
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-    );
 }
 
 void trc::GlobalRenderDataDescriptor::createDescriptors()
@@ -63,10 +76,10 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
     std::vector<vk::DescriptorPoolSize> poolSizes{
         { vk::DescriptorType::eUniformBufferDynamic, 2 }
     };
-    descPool = vkb::getDevice()->createDescriptorPoolUnique(
+    descPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            vkb::getSwapchain().getFrameCount(),
+            swapchain.getFrameCount(),
             poolSizes
     ));
 
@@ -80,12 +93,12 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
             vk::ShaderStageFlagBits::eAllGraphics
         },
     };
-    descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique(
+    descLayout = device->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({},
         layoutBindings
     ));
 
-    descSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+    descSet = std::move(device->allocateDescriptorSetsUnique(
         vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
     )[0]);
 
@@ -104,40 +117,5 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
             nullptr, &swapchainInfo, nullptr
         ),
     };
-    vkb::getDevice()->updateDescriptorSets(writes, {});
-}
-
-trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::RenderDataDescriptorProvider(
-    const GlobalRenderDataDescriptor& desc)
-    :
-    descriptor(desc)
-{
-}
-
-auto trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::getDescriptorSet()
-    const noexcept -> vk::DescriptorSet
-{
-    return *descriptor.descSet;
-}
-
-auto trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::getDescriptorSetLayout()
-    const noexcept -> vk::DescriptorSetLayout
-{
-    return *descriptor.descLayout;
-}
-
-void trc::GlobalRenderDataDescriptor::RenderDataDescriptorProvider::bindDescriptorSet(
-    vk::CommandBuffer cmdBuf,
-    vk::PipelineBindPoint bindPoint,
-    vk::PipelineLayout pipelineLayout,
-    ui32 setIndex) const
-{
-    const ui32 dynamicOffset = descriptor.BUFFER_SECTION_SIZE
-                               * vkb::getSwapchain().getCurrentFrame();
-
-    cmdBuf.bindDescriptorSets(
-        bindPoint, pipelineLayout, setIndex,
-        *descriptor.descSet,
-        { dynamicOffset, dynamicOffset }
-    );
+    device->updateDescriptorSets(writes, {});
 }

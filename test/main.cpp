@@ -111,7 +111,10 @@ int main()
     for (int i = 0; i < 50; i++)
     {
         auto& skeleton = skeletons.emplace_back(skeletonGeoIndex, matIdx, *scene);
-        skeleton.setScale(0.04f).translateX(-0.3f + 0.05f * i);
+        const float angle = glm::two_pi<float>() / 50 * i;
+        skeleton.setScale(0.02f).translateZ(1.2f)
+                .translate(glm::cos(angle), 0.0f, glm::sin(angle))
+                .rotateY(-glm::half_pi<float>() - angle);
         skeleton.getAnimationEngine().playAnimation(0);
     }
 
@@ -239,7 +242,6 @@ int main()
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
     text.attachToScene(*scene);
-
 
     vkb::Timer timer;
     uint32_t frames{ 0 };

@@ -71,12 +71,14 @@ auto trc::SharedRendererData::beginRender(
 //      Renderer       //
 /////////////////////////
 
-trc::Renderer::Renderer(RendererCreateInfo info)
+trc::Renderer::Renderer(vkb::Swapchain& _swapchain, RendererCreateInfo info)
     :
-    // Create the deferred render pass
+    device(_swapchain.device),
+    swapchain(&_swapchain),
     defaultDeferredPass(RenderPass::createAtNextIndex<RenderPassDeferred>(
-        vkb::getDevice(), vkb::getSwapchain(), info.maxTransparentFragsPerPixel
+        device, *swapchain, info.maxTransparentFragsPerPixel
     ).first),
+    globalDataDescriptor(*swapchain),
     fullscreenQuadVertexBuffer(
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
@@ -89,7 +91,7 @@ trc::Renderer::Renderer(RendererCreateInfo info)
     static bool _sharedDataInit = [this] {
         // Initialize shared data
         SharedRendererData::init(
-            globalDataDescriptor.getProvider(),
+            globalDataDescriptor,
             getDeferredRenderPass().getDescriptorProvider()
         );
         return true;
@@ -118,16 +120,16 @@ trc::Renderer::Renderer(RendererCreateInfo info)
             // Completely recreate the deferred renderpass
             auto& newPass = RenderPass::replace<RenderPassDeferred>(
                 defaultDeferredPass,
-                vkb::getDevice(),
-                vkb::getSwapchain(),
+                device,
+                *swapchain,
                 info.maxTransparentFragsPerPixel
             );
 
             // Update descriptors before recreating pipelines
             SharedRendererData::deferredDescriptorProvider = newPass.getDescriptorProvider();
-            SharedRendererData::globalRenderDataProvider = globalDataDescriptor.getProvider();
+            SharedRendererData::globalRenderDataProvider = globalDataDescriptor;
 
-            PipelineRegistry::recreateAll();
+            //PipelineRegistry::recreateAll();
         }
     );
 }
@@ -139,15 +141,12 @@ trc::Renderer::~Renderer()
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera)
 {
-    auto extent = vkb::getSwapchain().getImageExtent();
+    auto extent = swapchain->getImageExtent();
     drawFrame(scene, camera, vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f));
 }
 
 void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport viewport)
 {
-    auto& device = vkb::getDevice();
-    auto& swapchain = vkb::getSwapchain();
-
     // Ensure that enough command collectors are available
     while (renderGraph.size() > commandCollectors.size()) {
         commandCollectors.emplace_back();
@@ -156,7 +155,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
     // Synchronize among multiple Renderer instances
     // This is a lazy solution, but I finally wanted to continue living my life.
     auto interRendererLock = SharedRendererData::beginRender(
-        globalDataDescriptor.getProvider(),
+        globalDataDescriptor,
         getDeferredRenderPass().getDescriptorProvider(),
         scene.getLightRegistry().getDescriptor().getProvider(),
         scene.getDescriptor().getProvider()
@@ -164,8 +163,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
 
     // Update
     scene.update();
-    globalDataDescriptor.updateCameraMatrices(camera);
-    globalDataDescriptor.updateSwapchainData(swapchain);
+    globalDataDescriptor.update(camera);
 
     // Add final lighting function to scene
     auto finalLightingFunc = scene.registerDrawFunction(
@@ -183,7 +181,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
     auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     assert(fenceResult == vk::Result::eSuccess);
     device->resetFences(**frameInFlightFences);
-    auto image = swapchain.acquireImage(**imageAcquireSemaphores);
+    auto image = swapchain->acquireImage(**imageAcquireSemaphores);
 
     // Collect commands from scene
     int collectorIndex{ 0 };
@@ -224,7 +222,7 @@ void trc::Renderer::drawFrame(Scene& scene, const Camera& camera, vk::Viewport v
 
     // Present frame
     auto& presentQueue = Queues::getMainPresent();
-    swapchain.presentImage(image, *presentQueue, { **renderFinishedSemaphores });
+    swapchain->presentImage(image, *presentQueue, { **renderFinishedSemaphores });
 }
 
 auto trc::Renderer::getRenderGraph() noexcept -> RenderGraph&
@@ -249,13 +247,22 @@ auto trc::Renderer::getMouseWorldPos(const Camera& camera) -> vec3
 
 void trc::Renderer::createSemaphores()
 {
-    imageAcquireSemaphores = { [](ui32) { return vkb::getDevice()->createSemaphoreUnique({}); }};
-    renderFinishedSemaphores = { [](ui32) { return vkb::getDevice()->createSemaphoreUnique({}); }};
-    frameInFlightFences = { [](ui32) {
-        return vkb::getDevice()->createFenceUnique(
-            { vk::FenceCreateFlagBits::eSignaled }
-        );
-    }};
+    imageAcquireSemaphores = {
+        *swapchain,
+        [this](ui32) { return device->createSemaphoreUnique({}); }
+    };
+    renderFinishedSemaphores = {
+        *swapchain,
+        [this](ui32) { return device->createSemaphoreUnique({}); }
+    };
+    frameInFlightFences = {
+        *swapchain,
+        [this](ui32) {
+            return device->createFenceUnique(
+                { vk::FenceCreateFlagBits::eSignaled }
+            );
+        }
+    };
 }
 
 void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
@@ -264,7 +271,7 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     for (auto& fence : frameInFlightFences) {
         fences.push_back(*fence);
     }
-    auto result = vkb::VulkanBase::getDevice()->waitForFences(fences, true, timeoutNs);
+    auto result = device->waitForFences(fences, true, timeoutNs);
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }

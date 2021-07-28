@@ -35,7 +35,7 @@ auto trc::init(const TorchInitInfo& info) -> std::unique_ptr<Renderer>
     });
     Queues::init(vkb::getQueueManager());
 
-    auto renderer = std::make_unique<Renderer>(info.rendererInfo);
+    auto renderer = std::make_unique<Renderer>(vkb::getSwapchain(), info.rendererInfo);
 
     return renderer;
 }

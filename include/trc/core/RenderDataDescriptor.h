@@ -24,49 +24,39 @@ namespace trc
      *      vec2 mousePosition          (in pixels)
      *      vec2 swapchainResolution    (in pixels)
      */
-    class GlobalRenderDataDescriptor
+    class GlobalRenderDataDescriptor : public DescriptorProviderInterface
     {
     public:
-        GlobalRenderDataDescriptor();
+        GlobalRenderDataDescriptor(const vkb::Swapchain& swapchain);
 
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+        auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
+        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+        void bindDescriptorSet(
+            vk::CommandBuffer cmdBuf,
+            vk::PipelineBindPoint bindPoint,
+            vk::PipelineLayout pipelineLayout,
+            ui32 setIndex
+        ) const override;
 
-        void updateCameraMatrices(const Camera& camera);
-        void updateSwapchainData(const vkb::Swapchain& swapchain);
+        void update(const Camera& camera);
 
     private:
-        /** Calculates dynamic offsets into the buffer */
-        class RenderDataDescriptorProvider : public DescriptorProviderInterface
-        {
-        public:
-            RenderDataDescriptorProvider(const GlobalRenderDataDescriptor& desc);
-
-            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
-            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
-            void bindDescriptorSet(
-                vk::CommandBuffer cmdBuf,
-                vk::PipelineBindPoint bindPoint,
-                vk::PipelineLayout pipelineLayout,
-                ui32 setIndex
-            ) const override;
-
-        private:
-            const GlobalRenderDataDescriptor& descriptor;
+        static constexpr vk::DeviceSize CAMERA_DATA_SIZE{
+            util::pad(sizeof(mat4) * 4 + sizeof(vec4) * 2, 256u)
         };
+        static constexpr vk::DeviceSize SWAPCHAIN_DATA_SIZE{ sizeof(vec2) * 2 };
 
-        void createResources();
         void createDescriptors();
 
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorSet descSet;
-        RenderDataDescriptorProvider provider;
 
-        static constexpr vk::DeviceSize CAMERA_DATA_SIZE{
-            util::pad(sizeof(mat4) * 4 + sizeof(vec4) * 2, 256u)
-        };
-        static constexpr vk::DeviceSize SWAPCHAIN_DATA_SIZE{ sizeof(vec2) * 2 };
-        const ui32 BUFFER_SECTION_SIZE; // not static because depends on physical device align
+        const vkb::Device& device;
+        const vkb::Swapchain& swapchain;
+        const ui32 BUFFER_SECTION_SIZE; // not static because it depends on physical device align
+
+        /** Contains all descriptor data at dynamic offsets */
         vkb::Buffer buffer;
     };
 } // namespace trc

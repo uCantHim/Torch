@@ -23,7 +23,6 @@ namespace trc
 
     struct RendererCreateInfo
     {
-        vkb::Swapchain* swapchain;
         ui32 maxTransparentFragsPerPixel{ 3 };
     };
 
@@ -69,7 +68,7 @@ namespace trc
     class Renderer : public SharedRendererData
     {
     public:
-        explicit Renderer(RendererCreateInfo info = {});
+        explicit Renderer(vkb::Swapchain& swapchain, RendererCreateInfo info = {});
 
         /**
          * Waits for all frames to finish rendering
@@ -98,6 +97,9 @@ namespace trc
         auto getMouseWorldPos(const Camera& camera) -> vec3;
 
     private:
+        const vkb::Device& device;
+        vkb::Swapchain* swapchain; // Must be non-const for presentImage
+
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> postRecreateListener;
 
