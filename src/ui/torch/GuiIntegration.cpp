@@ -249,7 +249,36 @@ trc::GuiRenderPass::GuiRenderPass(
     RenderPass({}, 1),
     device(device),
     renderer(device, window),
-    blendDescSets(swapchain)
+    // Descriptor set layout
+    blendDescLayout([&]() {
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1,
+                                           vk::ShaderStageFlagBits::eCompute),
+            vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1,
+                                           vk::ShaderStageFlagBits::eCompute),
+        };
+        return device->createDescriptorSetLayoutUnique({ {}, bindings });
+    }()),
+    blendDescSets(swapchain),
+    // Compute pipeline
+    imageBlendPipeline([&, this]() -> Pipeline {
+        auto shaderModule = vkb::createShaderModule(
+            vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
+        );
+        auto layout = makePipelineLayout({ *blendDescLayout }, {});
+        auto pipeline = device->createComputePipelineUnique(
+            {},
+            vk::ComputePipelineCreateInfo(
+                {},
+                vk::PipelineShaderStageCreateInfo(
+                    {}, vk::ShaderStageFlagBits::eCompute, *shaderModule, "main"
+                ),
+                *layout
+            )
+        ).value;
+
+        return Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eCompute);
+    }())
 {
     renderThread = std::thread([this] {
         while (!stopRenderThread)
@@ -262,40 +291,7 @@ trc::GuiRenderPass::GuiRenderPass(
         }
     });
 
-    // Descriptor set layout
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{
-        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1,
-                                       vk::ShaderStageFlagBits::eCompute),
-        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1,
-                                       vk::ShaderStageFlagBits::eCompute),
-    };
-    blendDescLayout = device->createDescriptorSetLayoutUnique({ {}, bindings });
-
     createDescriptorSets(device, swapchain);
-
-    // Compute pipeline
-    imageBlendPipeline = [this]() -> Pipeline::ID {
-        auto shaderModule = vkb::createShaderModule(
-            vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
-        );
-        auto layout = makePipelineLayout({ *blendDescLayout }, {});
-        auto pipeline = vkb::getDevice()->createComputePipelineUnique(
-            {},
-            vk::ComputePipelineCreateInfo(
-                {},
-                vk::PipelineShaderStageCreateInfo(
-                    {}, vk::ShaderStageFlagBits::eCompute, *shaderModule, "main"
-                ),
-                *layout
-            )
-        ).value;
-
-        return Pipeline::createAtNextIndex(
-            std::move(layout),
-            std::move(pipeline),
-            vk::PipelineBindPoint::eCompute
-        ).first;
-    }();
 }
 
 trc::GuiRenderPass::~GuiRenderPass()
@@ -327,10 +323,10 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
         )
     );
 
-    auto& computePipeline = Pipeline::at(imageBlendPipeline);
-    cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline);
+    imageBlendPipeline.bind(cmdBuf);
+    //cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *imageBlendPipeline);
     cmdBuf.bindDescriptorSets(
-        vk::PipelineBindPoint::eCompute, computePipeline.getLayout(),
+        vk::PipelineBindPoint::eCompute, imageBlendPipeline.getLayout(),
         0, **blendDescSets, {}
     );
     const auto [x, y] = vkb::getSwapchain().getImageExtent();

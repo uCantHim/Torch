@@ -105,6 +105,6 @@ namespace trc
         vk::UniqueDescriptorSetLayout blendDescLayout;
         vkb::FrameSpecificObject<vk::UniqueDescriptorSet> blendDescSets;
         std::vector<vk::UniqueImageView> swapchainImageViews;
-        Pipeline::ID imageBlendPipeline;
+        Pipeline imageBlendPipeline;
     };
 } // namespace trc
