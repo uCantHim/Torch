@@ -24,7 +24,7 @@ auto trc::Pipeline::get() const noexcept -> vk::Pipeline
 
 void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
 {
-    cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+    cmdBuf.bindPipeline(bindPoint, *pipeline);
 }
 
 void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
