@@ -1,11 +1,11 @@
 #include "text/Text.h"
 
-#include "utils/PipelineBuilder.h"
-#include "Renderer.h"
-#include "PipelineDefinitions.h"
 #include "PipelineRegistry.h"
-#include "TorchResources.h"
+#include "utils/PipelineBuilder.h"
 #include "AssetRegistry.h"
+#include "DeferredRenderConfig.h"
+#include "PipelineDefinitions.h"
+#include "TorchResources.h"
 
 
 
@@ -29,27 +29,17 @@ namespace trc
         };
     }
 
-    auto makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline;
+    auto makeTextPipeline(const Instance& instance, const DeferredRenderConfig& config)
+        -> Pipeline;
 } // namespace trc
 
 
 
-vkb::StaticInit trc::Text::_init{
-    [] {
-        auto quad = makeQuad();
-        vertexBuffer = std::make_unique<vkb::DeviceLocalBuffer>(
-            quad,
-            vk::BufferUsageFlagBits::eVertexBuffer
-        );
-    },
-    [] {
-        vertexBuffer.reset();
-    }
-};
-
-trc::Text::Text(Font& font)
+trc::Text::Text(const Instance& instance, Font& font)
     :
-    font(&font)
+    instance(instance),
+    font(&font),
+    vertexBuffer(instance.getDevice(), makeQuad(), vk::BufferUsageFlagBits::eVertexBuffer)
 {
 }
 
@@ -57,11 +47,11 @@ void trc::Text::attachToScene(SceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        internal::DeferredSubPasses::transparencyPass,
+        RenderPassDeferred::SubPasses::transparency,
         getPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
-            font->getDescriptor().getProvider().bindDescriptorSet(
+            font->getDescriptor().bindDescriptorSet(
                 cmdBuf,
                 vk::PipelineBindPoint::eGraphics, env.currentPipeline->getLayout(),
                 1
@@ -71,7 +61,7 @@ void trc::Text::attachToScene(SceneBase& scene)
                 0, glm::scale(getGlobalTransform(), vec3(BASE_SCALING))
             );
 
-            cmdBuf.bindVertexBuffers(0, { **vertexBuffer, *glyphBuffer }, { 0, 0 });
+            cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *glyphBuffer }, { 0, 0 });
             cmdBuf.draw(6, numLetters, 0, 0);
         }
     );
@@ -88,6 +78,7 @@ void trc::Text::print(std::string_view str)
     if (str.size() * sizeof(LetterData) > glyphBuffer.size())
     {
         glyphBuffer = vkb::Buffer(
+            instance.getDevice(),
             str.size() * sizeof(LetterData),
             vk::BufferUsageFlagBits::eVertexBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -144,24 +135,23 @@ void trc::Text::print(std::string_view str)
 
 auto trc::Text::getPipeline() -> Pipeline::ID
 {
-    static auto id = PipelineRegistry::registerPipeline([] {
-        auto renderPass = RenderPassDeferred::makeVkRenderPass(
-            vkb::getDevice(), vkb::getSwapchain());
-        return makeTextPipeline(*renderPass);
-    });
+    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(makeTextPipeline);
 
     return id;
 }
 
 
 
-auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
+auto trc::makeTextPipeline(
+    const Instance& instance,
+    const DeferredRenderConfig& config) -> Pipeline
 {
     auto layout = makePipelineLayout(
+        instance.getDevice(),
         {
-            Renderer::getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            GlyphMapDescriptor::getLayout(),
-            Renderer::getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
+            config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            config.getFontDataStorage().getDescriptorSetLayout(),
+            config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         {
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)),
@@ -173,6 +163,7 @@ auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram({
+            instance.getDevice(),
             TRC_SHADER_DIR"/text/static_text.vert.spv",
             TRC_SHADER_DIR"/text/static_text.frag.spv"
         })
@@ -200,15 +191,14 @@ auto trc::makeTextPipeline(vk::RenderPass deferredPass) -> Pipeline
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(
-            *vkb::getDevice(),
+            *instance.getDevice(),
             *layout,
-            deferredPass,
-            internal::DeferredSubPasses::transparencyPass
+            *config.getDeferredRenderPass(), RenderPassDeferred::SubPasses::transparency
         );
 
     Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
-    p.addStaticDescriptorSet(0, Renderer::getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(2, Renderer::getDeferredPassDescriptorProvider());
+    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
 
     return p;
 }

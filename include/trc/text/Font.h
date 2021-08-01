@@ -2,10 +2,13 @@
 
 #include <unordered_map>
 
+#include "DescriptorProvider.h"
 #include "GlyphMap.h"
 
 namespace trc
 {
+    class FontDataStorage;
+
     struct GlyphDrawData
     {
         vec2 texCoordLL; // lower left texture coordinate
@@ -20,7 +23,7 @@ namespace trc
     class Font
     {
     public:
-        explicit Font(const fs::path& path, ui32 fontSize = 18);
+        Font(FontDataStorage& storage, const fs::path& path, ui32 fontSize = 18);
 
         /**
          * @brief Retrieve information about a glyph from the font
@@ -34,12 +37,12 @@ namespace trc
          */
         auto getLineBreakAdvance() const noexcept -> float;
 
-        auto getDescriptor() const -> const GlyphMapDescriptor&;
+        auto getDescriptor() const -> const DescriptorProvider&;
 
     private:
         Face face;
-        GlyphMap glyphMap;
-        GlyphMapDescriptor descriptor;
+        GlyphMap* glyphMap;
+        DescriptorProvider descProvider;
 
         // Meta
         float lineBreakAdvance;

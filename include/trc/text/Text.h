@@ -4,11 +4,11 @@
 
 #include <vkb/Buffer.h>
 
-#include "Font.h"
+#include "core/SceneBase.h"
 #include "Pipeline.h"
 #include "AssetIds.h"
-#include "core/SceneBase.h"
 #include "Node.h"
+#include "Font.h"
 
 namespace trc
 {
@@ -18,7 +18,7 @@ namespace trc
     class Text : public Node
     {
     public:
-        explicit Text(Font& font);
+        Text(const Instance& instance, Font& font);
 
         void attachToScene(SceneBase& scene);
         void removeFromScene();
@@ -31,12 +31,11 @@ namespace trc
         // Scale the text down to get a crisp resolution
         static constexpr float BASE_SCALING{ 0.075f };
 
-        static inline std::unique_ptr<vkb::DeviceLocalBuffer> vertexBuffer;
-        static vkb::StaticInit _init;
-
-        SceneBase::UniqueRegistrationID drawRegistration;
-
+        const Instance& instance;
         Font* font;
+
+        vkb::DeviceLocalBuffer vertexBuffer;
+        SceneBase::UniqueRegistrationID drawRegistration;
 
         struct LetterData
         {
@@ -49,6 +48,4 @@ namespace trc
         vkb::Buffer glyphBuffer;
         ui32 numLetters{ 0 };
     };
-
-    class Renderer;
 } // namespace trc

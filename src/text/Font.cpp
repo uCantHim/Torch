@@ -1,13 +1,18 @@
 #include "text/Font.h"
 
+#include "text/FontDataStorage.h"
 
 
-trc::Font::Font(const fs::path& path, ui32 fontSize)
+
+trc::Font::Font(FontDataStorage& storage, const fs::path& path, ui32 fontSize)
     :
     face(path, fontSize),
-    descriptor(glyphMap),
+    descProvider({}, {}),
     lineBreakAdvance(static_cast<float>(face.lineSpace) / static_cast<float>(face.maxGlyphHeight))
 {
+    auto [map, provider] = storage.allocateGlyphMap();
+    glyphMap = map;
+    descProvider = provider;
 }
 
 auto trc::Font::getGlyph(CharCode charCode) -> GlyphDrawData
@@ -17,7 +22,7 @@ auto trc::Font::getGlyph(CharCode charCode) -> GlyphDrawData
     {
         GlyphMeta newGlyph = face.loadGlyph(charCode);
 
-        auto tex = glyphMap.addGlyph(newGlyph);
+        auto tex = glyphMap->addGlyph(newGlyph);
         it = glyphs.try_emplace(
             charCode,
             GlyphDrawData{
@@ -36,7 +41,7 @@ auto trc::Font::getLineBreakAdvance() const noexcept -> float
     return lineBreakAdvance;
 }
 
-auto trc::Font::getDescriptor() const -> const GlyphMapDescriptor&
+auto trc::Font::getDescriptor() const -> const DescriptorProvider&
 {
-    return descriptor;
+    return descProvider;
 }
