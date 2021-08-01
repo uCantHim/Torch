@@ -2,10 +2,13 @@ target_sources(
     torch
     PRIVATE
         CommandCollector.cpp
+        Instance.cpp
         Pipeline.cpp
         Renderer.cpp
+        RenderConfiguration.cpp
         RenderDataDescriptor.cpp
         RenderGraph.cpp
         RenderPass.cpp
         SceneBase.cpp
+        Window.cpp
 )

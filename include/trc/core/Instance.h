@@ -1,0 +1,60 @@
+#pragma once
+
+#include <vkb/basics/Instance.h>
+#include <vkb/basics/Device.h>
+
+#include "Types.h"
+
+namespace trc
+{
+    class Window;
+    struct WindowCreateInfo;
+    class Instance;
+
+    struct InstanceCreateInfo
+    {
+        vk::Instance instance;
+        u_ptr<vkb::PhysicalDevice> physicalDevice;
+        u_ptr<vkb::Device> device;
+
+        vk::DispatchLoaderDynamic dynamicLoader{ instance, vkGetInstanceProcAddr };
+    };
+
+    struct DefaultInstanceCreateInfo
+    {
+        bool enableRayTracing{ false };
+        std::vector<const char*> deviceExtensions;
+    };
+
+    auto createDefaultInstance(DefaultInstanceCreateInfo info = {}) -> u_ptr<Instance>;
+
+    class Instance
+    {
+    public:
+        Instance(const Instance&) = delete;
+        Instance(Instance&&) noexcept = delete;
+        auto operator=(const Instance&) -> Instance& = delete;
+        auto operator=(Instance&&) noexcept -> Instance& = delete;
+
+        explicit Instance(InstanceCreateInfo&& info);
+        ~Instance();
+
+        auto getVulkanInstance() const -> vk::Instance;
+
+        auto getPhysicalDevice() -> vkb::PhysicalDevice&;
+        auto getPhysicalDevice() const -> const vkb::PhysicalDevice&;
+        auto getDevice() -> vkb::Device&;
+        auto getDevice() const -> const vkb::Device&;
+        auto getDynamicLoader() -> vk::DispatchLoaderDynamic&;
+        auto getDynamicLoader() const -> const vk::DispatchLoaderDynamic&;
+
+        auto makeWindow(const WindowCreateInfo& info) const -> u_ptr<Window>;
+
+    private:
+        vk::Instance instance;
+        u_ptr<vkb::PhysicalDevice> physicalDevice;
+        u_ptr<vkb::Device> device;
+
+        vk::DispatchLoaderDynamic dynamicLoader;
+    };
+} // namespace trc
