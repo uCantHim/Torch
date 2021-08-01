@@ -10,6 +10,9 @@
 
 namespace trc
 {
+    class Instance;
+    class AnimationDataStorage;
+
     struct AnimationData
     {
         struct Keyframe
@@ -25,12 +28,18 @@ namespace trc
         std::vector<Keyframe> keyframes;
     };
 
+    /**
+     * @brief A handle to an animation
+     */
     class Animation
     {
-    public:
-        explicit Animation(const AnimationData& data);
+    private:
+        friend class AnimationDataStorage;
 
-        static auto getDescriptorProvider() noexcept -> DescriptorProviderInterface&;
+        Animation(ui32 animationIndex, const AnimationData& data);
+
+    public:
+        Animation(AnimationDataStorage& storage, const AnimationData& data);
 
         auto getBufferIndex() const noexcept -> ui32;
 
@@ -52,6 +61,28 @@ namespace trc
         auto getFrameTime() const noexcept -> float;
 
     private:
+
+        ui32 animationIndex;
+        ui32 frameCount;
+        float durationMs;
+        float frameTimeMs;
+    };
+
+    /**
+     * @brief GPU storage for animation data and descriptors
+     *
+     * Can create animation handles.
+     */
+    class AnimationDataStorage
+    {
+    public:
+        explicit AnimationDataStorage(const Instance& instance);
+
+        auto addAnimation(const AnimationData& data) -> Animation;
+
+        auto getProvider() const -> const DescriptorProviderInterface&;
+
+    private:
         struct AnimationMeta
         {
             ui32 offset{ 0 };
@@ -64,27 +95,22 @@ namespace trc
         static constexpr size_t MAX_ANIMATIONS = 300;
         static constexpr size_t ANIMATION_BUFFER_SIZE = 2000000;
 
-        static void vulkanStaticInit();
-        static void vulkanStaticDestroy();
-        static inline vkb::StaticInit _init{
-            vulkanStaticInit, vulkanStaticDestroy
-        };
+        const Instance& instance;
 
-        static inline std::mutex animationCreateLock;
-        static inline ui32 numAnimations{ 0 };
-        static inline ui32 animationBufferOffset{ 0 };
-        static inline vkb::Buffer animationMetaDataBuffer;
-        static inline vkb::Buffer animationBuffer;
+        std::mutex animationCreateLock;
+        ui32 numAnimations{ 0 };
+        ui32 animationBufferOffset{ 0 };
 
-        static void createDescriptors();
-        static inline vk::DescriptorPool descPool;
-        static inline vk::DescriptorSetLayout descLayout;
-        static inline vk::DescriptorSet descSet;
-        static inline DescriptorProvider descProvider{ {}, {} };
+        vkb::Buffer animationMetaDataBuffer;
+        vkb::Buffer animationBuffer;
 
-        ui32 animationIndex;
-        ui32 frameCount;
-        float durationMs;
-        float frameTimeMs;
+        // Descriptor
+        void createDescriptor(const Instance& instance);
+        void writeDescriptor(const Instance& instance);
+
+        vk::UniqueDescriptorPool descPool;
+        vk::UniqueDescriptorSetLayout descLayout;
+        vk::UniqueDescriptorSet descSet;
+        DescriptorProvider descProvider{ {}, {} };
     };
 } // namespace trc
