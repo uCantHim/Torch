@@ -1,12 +1,14 @@
 #include "CommandCollector.h"
 
+#include "Window.h"
+
 #include "TorchResources.h"
 
 
 
-trc::CommandCollector::CommandCollector()
+trc::CommandCollector::CommandCollector(const Instance& instance, const Window& window)
     :
-    pool(vkb::getDevice()->createCommandPoolUnique(
+    pool(instance.getDevice()->createCommandPoolUnique(
         vk::CommandPoolCreateInfo(
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
@@ -14,51 +16,53 @@ trc::CommandCollector::CommandCollector()
         )
     )),
     commandBuffers(
-        vkb::VulkanBase::getDevice()->allocateCommandBuffersUnique(
-            { *pool, vk::CommandBufferLevel::ePrimary, vkb::getSwapchain().getFrameCount() }
+        window.getSwapchain(),
+        instance.getDevice()->allocateCommandBuffersUnique(
+            { *pool, vk::CommandBufferLevel::ePrimary, window.getSwapchain().getFrameCount() }
         )
     )
 {
 }
 
 auto trc::CommandCollector::recordScene(
-    SceneBase& scene,
-    std::vector<vk::Viewport> viewports,
+    const DrawConfig& draw,
     RenderStageType::ID stageType,
-    const std::vector<RenderPass::ID>& passes
+    const std::vector<RenderPass*>& passes
     ) -> vk::CommandBuffer
 {
+    SceneBase& scene = *draw.scene;
     auto cmdBuf = **commandBuffers;
 
     // Set up rendering
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    for (auto renderPassId : passes)
+    for (auto renderPass : passes)
     {
-        auto& renderPass = RenderPass::at(renderPassId);
-        renderPass.begin(cmdBuf, vk::SubpassContents::eInline);
+        assert(renderPass != nullptr);
+
+        renderPass->begin(cmdBuf, vk::SubpassContents::eInline);
 
         // Record all commands
-        const ui32 subPassCount = renderPass.getNumSubPasses();
+        const ui32 subPassCount = renderPass->getNumSubPasses();
         for (ui32 subPass = 0; subPass < subPassCount; subPass++)
         {
             for (auto pipeline : scene.getPipelines(stageType, SubPass::ID(subPass)))
             {
                 // Bind the current pipeline
-                auto& p = Pipeline::at(pipeline);
+                auto& p = draw.renderConfig->getPipeline(pipeline);
                 p.bind(cmdBuf);
                 p.bindStaticDescriptorSets(cmdBuf);
                 p.bindDefaultPushConstantValues(cmdBuf);
 
-                for (const auto& viewport : viewports)
+                for (const auto& [viewport, scissor] : draw.renderAreas)
                 {
-                    vk::Rect2D scissor({ 0, 0 }, { ui32(viewport.width), ui32(viewport.height) });
                     cmdBuf.setViewport(0, viewport);
                     cmdBuf.setScissor(0, scissor);
 
                     // Record commands for all objects with this pipeline
                     scene.invokeDrawFunctions(
-                        stageType, renderPassId, SubPass::ID(subPass), pipeline,
+                        stageType, *renderPass, SubPass::ID(subPass),
+                        pipeline, p,
                         cmdBuf
                     );
                 }
@@ -69,7 +73,7 @@ auto trc::CommandCollector::recordScene(
             }
         }
 
-        renderPass.end(cmdBuf);
+        renderPass->end(cmdBuf);
     }
     cmdBuf.end();
 

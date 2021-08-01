@@ -4,12 +4,12 @@
 
 #include "utils/Util.h"
 #include "PickableRegistry.h"
+#include "TorchResources.h"
 
 
-
-trc::Scene::Scene()
+trc::Scene::Scene(const Instance& instance)
     :
-    descriptor(*this)
+    lightRegistry(instance)
 {
 }
 
@@ -26,7 +26,6 @@ auto trc::Scene::getRoot() const noexcept -> const Node&
 void trc::Scene::update()
 {
     lightRegistry.update();
-    updatePicking();
 }
 
 void trc::Scene::updateTransforms()
@@ -57,55 +56,4 @@ auto trc::Scene::getLightRegistry() noexcept -> LightRegistry&
 auto trc::Scene::getLightRegistry() const noexcept -> const LightRegistry&
 {
     return lightRegistry;
-}
-
-auto trc::Scene::getLocalRenderPasses(RenderStageType::ID stageType)
-    -> std::vector<RenderPass::ID>
-{
-    if (stageType == RenderStageTypes::getShadow()) {
-        return lightRegistry.getShadowRenderStage();
-    }
-
-    return {};
-}
-
-auto trc::Scene::getDescriptor() const noexcept -> const SceneDescriptor&
-{
-    return descriptor;
-}
-
-auto trc::Scene::getPickedObject() -> std::optional<Pickable*>
-{
-    if (currentlyPicked == 0) {
-        return std::nullopt;
-    }
-
-    return &PickableRegistry::getPickable(currentlyPicked);
-}
-
-void trc::Scene::updatePicking()
-{
-    descriptor.updatePicking().maybe(
-        // An object is being picked
-        [this](ui32 newPicked) {
-            if (newPicked != currentlyPicked)
-            {
-                if (currentlyPicked != NO_PICKABLE)
-                {
-                    PickableRegistry::getPickable(currentlyPicked).onUnpick();
-                    currentlyPicked = NO_PICKABLE;
-                }
-                PickableRegistry::getPickable(newPicked).onPick();
-                currentlyPicked = newPicked;
-            }
-        },
-        // No object is picked
-        [this] {
-            if (currentlyPicked != NO_PICKABLE)
-            {
-                PickableRegistry::getPickable(currentlyPicked).onUnpick();
-                currentlyPicked = NO_PICKABLE;
-            }
-        }
-    );
 }

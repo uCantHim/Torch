@@ -8,6 +8,7 @@
 #include "Framebuffer.h"
 #include "Camera.h"
 #include "GBuffer.h"
+#include "DescriptorProvider.h"
 
 namespace trc
 {
@@ -42,7 +43,9 @@ namespace trc
         void createFragmentList(const vkb::Device& device,
                                 const vkb::Swapchain& swapchain,
                                 ui32 maxFragsPerPixel);
-        void createDescriptors(const vkb::Device& device, const RenderPassDeferred& renderPass);
+        void createDescriptors(const vkb::Device& device,
+                               const vkb::Swapchain& swapchain,
+                               const RenderPassDeferred& renderPass);
 
         const ui32 ATOMIC_BUFFER_SECTION_SIZE;
         const ui32 FRAG_LIST_BUFFER_SIZE;
@@ -64,6 +67,13 @@ namespace trc
     {
     public:
         static constexpr ui32 NUM_SUBPASSES = 3;
+
+        struct SubPasses
+        {
+            static constexpr SubPass::ID gBuffer{ 0 };
+            static constexpr SubPass::ID transparency{ 1 };
+            static constexpr SubPass::ID lighting{ 2 };
+        };
 
         RenderPassDeferred(const vkb::Device& device,
                            const vkb::Swapchain& swapchain,

@@ -146,13 +146,15 @@ namespace trc
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline
          *
-         * TODO: Can I remove the renderPass parameter?
+         * We need to pass the pipeline object along with the ID because
+         * the pipelines are not globally accessible anymore.
          */
         void invokeDrawFunctions(
             RenderStageType::ID stage,
-            RenderPass::ID renderPass,
+            RenderPass& renderPass,
             SubPass::ID subPass,
-            Pipeline::ID pipeline,
+            Pipeline::ID pipelineId,
+            Pipeline& pipeline,
             vk::CommandBuffer cmdBuf
         ) const;
 
@@ -177,10 +179,6 @@ namespace trc
         /**
          * Sorting the functions this way allows me to group all draw calls with
          * the same pipelines together.
-         *
-         * TODO: Store the functions in a separate array with ONLY functions.
-         * Just reference those functions through the indexInRegistrationArray
-         * property in DrawableExecutionRegistration.
          */
         PerRenderStageType<
             PerSubpass<

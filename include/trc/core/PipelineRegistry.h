@@ -44,6 +44,9 @@ namespace trc
          */
         explicit PipelineStorage(const Instance& instance, T& renderConfig);
 
+        template<PipelineFactoryFunc<T> F>
+        void notifyNewPipeline(F&& func);
+
     public:
         auto get(Pipeline::ID pipeline) -> Pipeline&;
 
@@ -67,10 +70,8 @@ namespace trc
         /**
          * @brief Create a pipeline storage object
          */
-        static auto createStorage(const Instance& instance, T& renderConfig) -> PipelineStorage<T>
-        {
-            return PipelineStorage<T>(instance, renderConfig);
-        }
+        static auto createStorage(const Instance& instance, T& renderConfig)
+            -> std::unique_ptr<PipelineStorage<T>>;
 
         template<PipelineFactoryFunc<T> F>
         static auto registerPipeline(F&& factoryFunc) -> Pipeline::ID;
@@ -85,10 +86,13 @@ namespace trc
         }
 
     private:
-        static inline std::mutex factoryLock;
-
         static inline data::IdPool idPool;
+
+        static inline std::mutex factoryLock;
         static inline std::vector<FactoryFunc> factories;
+
+        static inline std::mutex storageLock;
+        static inline std::vector<PipelineStorage<T>*> storages;
     };
 
 
@@ -100,6 +104,13 @@ namespace trc
         renderConfig(&renderConfig)
     {
         recreateAll();
+    }
+
+    template<typename T>
+    template<PipelineFactoryFunc<T> F>
+    void PipelineStorage<T>::notifyNewPipeline(F&& func)
+    {
+        pipelines.emplace_back(func(instance, *renderConfig));
     }
 
     template<typename T>
@@ -115,9 +126,23 @@ namespace trc
         PipelineRegistry<T>::foreachFactory([this](auto factory) {
             pipelines.push_back(factory(instance, *renderConfig));
         });
+
+        std::cout << "--- After pipeline creation: " << pipelines.size() << "\n";
     }
 
 
+
+    template<typename T>
+    auto PipelineRegistry<T>::createStorage(const Instance& instance, T& renderConfig)
+        -> std::unique_ptr<PipelineStorage<T>>
+    {
+        auto result = u_ptr<PipelineStorage<T>>(new PipelineStorage<T>(instance, renderConfig));
+
+        std::lock_guard lock(storageLock);
+        storages.push_back(result.get());
+
+        return result;
+    }
 
     template<typename T>
     template<PipelineFactoryFunc<T> F>
@@ -125,11 +150,22 @@ namespace trc
     {
         const Pipeline::ID id{ idPool.generate() };
 
-        std::lock_guard lock(factoryLock);
-        if (factories.size() <= id) {
-            factories.resize(id);
+        // Notiy existing storages
+        {
+            std::lock_guard lock(storageLock);
+            for (auto storage : storages) {
+                storage->notifyNewPipeline(factoryFunc);
+            }
         }
-        factories.emplace(factories.begin() + id, std::move(factoryFunc));
+
+        // Add the pipeline
+        {
+            std::lock_guard lock(factoryLock);
+            if (factories.size() <= id) {
+                factories.resize(id);
+            }
+            factories.emplace(factories.begin() + id, std::move(factoryFunc));
+        }
 
         return id;
     }

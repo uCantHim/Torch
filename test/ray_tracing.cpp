@@ -11,14 +11,16 @@ using trc::rt::TLAS;
 
 int main()
 {
-    auto renderer = trc::init({ .enableRayTracing=true });
-    auto scene = std::make_unique<trc::Scene>();
+    auto torch = trc::initDefault();
+    auto& animStorage = torch.renderConfig->getAnimationDataStorage();
+
+    auto scene = std::make_unique<trc::Scene>(*torch.instance);
     trc::Camera camera;
     camera.lookAt({ 0, 2, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
     auto size = vkb::getSwapchain().getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::GeometryID geoId = (trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx")
+    trc::GeometryID geoId = (trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", animStorage)
                             >> trc::AssetRegistry::addGeometry).get();
 
     trc::GeometryID triId = trc::AssetRegistry::addGeometry(
@@ -40,7 +42,7 @@ int main()
 
     // --- BLAS --- //
 
-    vkb::MemoryPool asPool{ vkb::getDevice(), 100000000 };
+    vkb::MemoryPool asPool{ torch.instance->getDevice(), 100000000 };
     BLAS triBlas{ triId };
     BLAS blas{ geoId };
     trc::rt::buildAccelerationStructures({ &blas, &triBlas });
@@ -93,14 +95,15 @@ int main()
     auto rayDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(vkb::getDevice());
+        .buildUnique(torch.instance->getDevice());
 
     auto outputImageDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(vkb::getDevice());
+        .buildUnique(torch.instance->getDevice());
 
     auto layout = trc::makePipelineLayout(
+        torch.instance->getDevice(),
         { *rayDescLayout, *outputImageDescLayout },
         {
             // View and projection matrices
@@ -109,7 +112,8 @@ int main()
     );
 
     constexpr ui32 maxRecursionDepth{ 16 };
-    auto [rayPipeline, shaderBindingTable] = trc::rt::_buildRayTracingPipeline()
+    auto [rayPipeline, shaderBindingTable] =
+        trc::rt::_buildRayTracingPipeline(torch.instance->getDevice())
         .addRaygenGroup(TRC_SHADER_DIR"/shaders/ray_tracing/raygen.rgen.spv")
         .beginTableEntry()
             .addMissGroup(TRC_SHADER_DIR"/shaders/ray_tracing/miss.rmiss.spv")
@@ -120,7 +124,7 @@ int main()
             TRC_SHADER_DIR"/shaders/ray_tracing/anyhit.rahit.spv"
         )
         .addCallableGroup(TRC_SHADER_DIR"/shaders/ray_tracing/callable.rcall.spv")
-        .build(vkb::getDevice(), maxRecursionDepth, *layout);
+        .build(maxRecursionDepth, *layout);
 
 
     // --- Descriptor sets --- //
@@ -129,7 +133,7 @@ int main()
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
         vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1),
     };
-    auto descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+    auto descPool = torch.instance->getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         vkb::getSwapchain().getFrameCount() + 1,
         poolSizes
@@ -137,15 +141,16 @@ int main()
 
     std::vector<vk::UniqueImageView> imageViews;
     vkb::FrameSpecificObject<vk::UniqueDescriptorSet> imageDescSets{
+        torch.window->getSwapchain(),
         [&](ui32 imageIndex) -> vk::UniqueDescriptorSet
         {
-            auto set = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+            auto set = std::move(torch.instance->getDevice()->allocateDescriptorSetsUnique(
                 { *descPool, 1, &*outputImageDescLayout }
             )[0]);
 
             vk::Image image = vkb::getSwapchain().getImage(imageIndex);
             vk::ImageView imageView = *imageViews.emplace_back(
-                vkb::getDevice()->createImageViewUnique(
+                torch.instance->getDevice()->createImageViewUnique(
                     vk::ImageViewCreateInfo(
                         {},
                         image,
@@ -165,13 +170,13 @@ int main()
                 vk::DescriptorType::eStorageImage,
                 &imageInfo
             );
-            vkb::getDevice()->updateDescriptorSets(write, {});
+            torch.instance->getDevice()->updateDescriptorSets(write, {});
 
             return set;
         }
     };
 
-    auto asDescSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+    auto asDescSet = std::move(torch.instance->getDevice()->allocateDescriptorSetsUnique(
         { *descPool, 1, &*rayDescLayout }
     )[0]);
 
@@ -187,7 +192,7 @@ int main()
         ),
         vk::WriteDescriptorSetAccelerationStructureKHR(tlasHandle)
     };
-    vkb::getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
+    torch.instance->getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
 
 
     class RayTracingRenderPass : public trc::RenderPass
@@ -202,14 +207,10 @@ int main()
     };
 
     auto rayStageTypeId = trc::RenderStageType::createAtNextIndex(1).first;
-    auto rayPassId = trc::RenderPass::createAtNextIndex<RayTracingRenderPass>().first;
-    //auto rayPipelineId = trc::Pipeline::createAtNextIndex(
-    //    std::move(layout), std::move(rayPipeline),
-    //    vk::PipelineBindPoint::eRayTracingKHR
-    //).first;
+    RayTracingRenderPass rayPass;
 
-    renderer->getRenderGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
-    renderer->getRenderGraph().addPass(rayStageTypeId, rayPassId);
+    torch.renderConfig->getGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
+    torch.renderConfig->getGraph().addPass(rayStageTypeId, rayPass);
 
     scene->registerDrawFunction(
         rayStageTypeId, trc::SubPass::ID(0), trc::internal::getFinalLightingPipeline(),
@@ -285,12 +286,20 @@ int main()
     {
         vkb::pollEvents();
 
-        renderer->drawFrame(*scene, camera);
+        torch.window->drawFrame(trc::DrawConfig{
+            .scene=scene.get(),
+            .camera=&camera,
+            .renderConfig=torch.renderConfig.get(),
+        });
     }
 
-    vkb::getDevice()->waitIdle();
+    torch.instance->getDevice()->waitIdle();
+
     scene.reset();
-    renderer.reset();
+    torch.renderConfig.reset();
+    torch.window.reset();
+    torch.instance.reset();
     trc::terminate();
+
     return 0;
 }

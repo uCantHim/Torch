@@ -3,24 +3,23 @@
 #include <vkb/VulkanBase.h>
 
 #include "Types.h"
+#include "Instance.h"
 #include "RenderPass.h"
-#include "core/SceneBase.h"
-#include "Camera.h"
+#include "DrawConfiguration.h"
 
 namespace trc
 {
     class CommandCollector
     {
     public:
-        CommandCollector();
+        explicit CommandCollector(const Instance& instance, const Window& window);
 
         /**
          * Collect commands of a scene and write them to a primary command buffer
          */
-        auto recordScene(SceneBase& scene,
-                         std::vector<vk::Viewport> viewports,
+        auto recordScene(const DrawConfig& draw,
                          RenderStageType::ID stageType,
-                         const std::vector<RenderPass::ID>& passes)
+                         const std::vector<RenderPass*>& passes)
             -> vk::CommandBuffer;
 
     private:

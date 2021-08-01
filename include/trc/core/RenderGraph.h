@@ -32,11 +32,12 @@ namespace trc
          */
         auto size() const noexcept -> size_t;
 
-        void addPass(RenderStageType::ID stage, RenderPass::ID newPass);
-        void removePass(RenderStageType::ID stage, RenderPass::ID pass);
+        void addPass(RenderStageType::ID stage, RenderPass& newPass);
+        void removePass(RenderStageType::ID stage, RenderPass& pass);
+        void clearPasses(RenderStageType::ID stage);
 
         template<typename F>
-            requires std::invocable<F, RenderStageType::ID, std::vector<RenderPass::ID>>
+            requires std::invocable<F, RenderStageType::ID, std::vector<RenderPass*>>
         void foreachStage(F func) const
         {
             for (const auto& [stage, info] : orderedStages) {
@@ -47,7 +48,7 @@ namespace trc
     private:
         struct StageInfo
         {
-            std::vector<RenderPass::ID> renderPasses;
+            std::vector<RenderPass*> renderPasses;
         };
 
         void insertNewStage(auto it, RenderStageType::ID newStage);

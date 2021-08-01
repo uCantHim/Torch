@@ -1,8 +1,10 @@
 #include "RenderPassShadow.h"
 
+#include "core/Instance.h"
 
 
-trc::RenderPassShadow::RenderPassShadow(uvec2 resolution)
+
+trc::RenderPassShadow::RenderPassShadow(const Instance& instance, uvec2 resolution)
     :
     RenderPass(
         [&]()
@@ -43,39 +45,38 @@ trc::RenderPassShadow::RenderPassShadow(uvec2 resolution)
                 ),
             };
 
-            return vkb::getDevice()->createRenderPassUnique(
+            return instance.getDevice()->createRenderPassUnique(
                 vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
             );
         }(),
         1
     ),
     resolution(resolution),
-    depthImages([&resolution](ui32) {
-        return vkb::Image(
-            vk::ImageCreateInfo(
-                {},
-                vk::ImageType::e2D,
-                vk::Format::eD24UnormS8Uint,
-                vk::Extent3D(resolution.x, resolution.y, 1),
-                1, 1,
-                vk::SampleCountFlagBits::e1,
-                vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
-            )
-        );
-    }),
-    framebuffers([&](ui32 imageIndex) {
+    depthImage(
+        instance.getDevice(),
+        vk::ImageCreateInfo(
+            {},
+            vk::ImageType::e2D,
+            vk::Format::eD24UnormS8Uint,
+            vk::Extent3D(resolution.x, resolution.y, 1),
+            1, 1,
+            vk::SampleCountFlagBits::e1,
+            vk::ImageTiling::eOptimal,
+            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
+        )
+    ),
+    framebuffer([&] {
         std::vector<vk::UniqueImageView> views;
-        views.push_back(depthImages.getAt(imageIndex).createView(vk::ImageAspectFlagBits::eDepth));
+        views.push_back(depthImage.createView(vk::ImageAspectFlagBits::eDepth));
 
-        return Framebuffer(vkb::getDevice(), *renderPass, resolution, { std::move(views) });
-    })
+        return Framebuffer(instance.getDevice(), *renderPass, resolution, { std::move(views) });
+    }())
 {
 }
 
 void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    depthImages->changeLayout(
+    depthImage.changeLayout(
         cmdBuf,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -86,7 +87,7 @@ void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents 
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderPass,
-            **framebuffers,
+            *framebuffer,
             vk::Rect2D({ 0, 0 }, { resolution.x, resolution.y }),
             clearValue
         ),
@@ -106,12 +107,12 @@ auto trc::RenderPassShadow::getResolution() const noexcept -> uvec2
 
 auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::Image&
 {
-    return depthImages.getAt(imageIndex);
+    return depthImage;
 }
 
 auto trc::RenderPassShadow::getDepthImageView(ui32 imageIndex) const -> vk::ImageView
 {
-    return framebuffers.getAt(imageIndex).getAttachmentView(0);
+    return framebuffer.getAttachmentView(0);
 }
 
 auto trc::RenderPassShadow::getShadowMatrixIndex() const noexcept -> ui32

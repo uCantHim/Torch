@@ -4,22 +4,20 @@
 #include <mutex>
 
 #include <glm/gtc/quaternion.hpp>
-#include <vkb/StaticInit.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/util/Timer.h>
 #include <vkb/util/ThreadPool.h>
 
 #include "Types.h"
-#include "utils/Util.h"
 #include "core/SceneBase.h"
+
+#include "utils/Util.h"
 #include "Node.h"
-#include "PipelineRegistry.h"
 
 namespace trc
 {
-    class Renderer;
-    class RenderPassShadow;
+    class Instance;
 
     struct ParticleMaterial
     {
@@ -66,6 +64,7 @@ namespace trc
     {
     public:
         explicit ParticleCollection(
+            const Instance& instance,
             ui32 maxParticles,
             ParticleUpdateMethod updateMethod = ParticleUpdateMethod::eHost);
 
@@ -113,7 +112,11 @@ namespace trc
                         ParticleMaterial* materialData) override;
         };
 
+        const Instance& instance;
         const ui32 maxParticles;
+
+        vkb::MemoryPool memoryPool;
+        vkb::DeviceLocalBuffer vertexBuffer;
 
         // GPU resources
         std::vector<ParticlePhysical> particles;
@@ -132,11 +135,6 @@ namespace trc
 
         // Drawable registrations
         SceneBase::UniqueRegistrationID drawRegistration;
-
-        // Static resources
-        static vkb::StaticInit _init;
-        static inline std::unique_ptr<vkb::MemoryPool> memoryPool{ nullptr };
-        static inline vkb::DeviceLocalBuffer vertexBuffer;
     };
 
     /**

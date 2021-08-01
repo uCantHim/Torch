@@ -2,73 +2,26 @@
 
 #include <mutex>
 
-#include <vkb/VulkanBase.h>
-#include <vkb/Buffer.h>
+#include <vkb/basics/Device.h>
 #include <vkb/FrameSpecificObject.h>
 #include <vkb/event/Event.h>
 
-#include "TorchResources.h"
-#include "RenderGraph.h"
-#include "RenderPassDeferred.h"
-#include "RenderDataDescriptor.h"
-#include "SceneDescriptor.h"
-#include "LightRegistry.h" // For shadow descriptor
 #include "CommandCollector.h"
-#include "DescriptorProviderWrapper.h"
 
 namespace trc
 {
-    class Renderer;
-    class Scene;
-
-    struct RendererCreateInfo
-    {
-        ui32 maxTransparentFragsPerPixel{ 3 };
-    };
-
-    /**
-     * @brief Static data shared among all Renderer instances
-     */
-    class SharedRendererData
-    {
-    public:
-        static auto getGlobalDataDescriptorProvider() noexcept
-            -> const DescriptorProviderInterface&;
-        static auto getDeferredPassDescriptorProvider() noexcept
-            -> const DescriptorProviderInterface&;
-        static auto getShadowDescriptorProvider() noexcept
-            -> const DescriptorProviderInterface&;
-        static auto getSceneDescriptorProvider() noexcept
-            -> const DescriptorProviderInterface&;
-
-    protected:
-        static void init(const DescriptorProviderInterface& globalDataDescriptor,
-                         const DescriptorProviderInterface& deferredDescriptor);
-
-        static auto beginRender(const DescriptorProviderInterface& globalDataDescriptor,
-                                const DescriptorProviderInterface& deferredDescriptor,
-                                const DescriptorProviderInterface& shadowDescriptor,
-                                const DescriptorProviderInterface& sceneDescriptor)
-            -> std::unique_lock<std::mutex>;
-
-        static inline DescriptorProviderWrapper globalRenderDataProvider;
-        static inline DescriptorProviderWrapper deferredDescriptorProvider;
-
-    private:
-        static inline std::mutex renderLock;
-        static inline DescriptorProviderWrapper shadowDescriptorProvider;
-        static inline DescriptorProviderWrapper sceneDescriptorProvider;
-    };
+    class Window;
+    struct DrawConfig;
 
     /**
      * @brief The heart of the Torch rendering pipeline
      *
      * Controls the rendering process based on a RenderGraph.
      */
-    class Renderer : public SharedRendererData
+    class Renderer
     {
     public:
-        explicit Renderer(vkb::Swapchain& swapchain, RendererCreateInfo info = {});
+        explicit Renderer(Window& window);
 
         /**
          * Waits for all frames to finish rendering
@@ -83,22 +36,12 @@ namespace trc
         /**
          * Multiple renderers never actually render in parallel.
          */
-        void drawFrame(Scene& scene, const Camera& camera);
-        void drawFrame(Scene& scene, const Camera& camera, vk::Viewport viewport);
-
-        auto getRenderGraph() noexcept -> RenderGraph&;
-        auto getRenderGraph() const noexcept -> const RenderGraph&;
-
-        auto getDeferredRenderPass() const noexcept -> const RenderPassDeferred&;
-
-        /**
-         * @return vec3 Position of the mouse cursor in the world.
-         */
-        auto getMouseWorldPos(const Camera& camera) -> vec3;
+        void drawFrame(const DrawConfig& draw);
 
     private:
+        const Instance& instance;
         const vkb::Device& device;
-        vkb::Swapchain* swapchain; // Must be non-const for presentImage
+        Window* window; // Must be non-const for presentImage
 
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> postRecreateListener;
@@ -110,15 +53,6 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        // Default render passes
-        RenderPass::ID defaultDeferredPass;
-
-        RenderGraph renderGraph;
         std::vector<CommandCollector> commandCollectors;
-
-        // Other things
-        GlobalRenderDataDescriptor globalDataDescriptor;
-
-        vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
     };
 }

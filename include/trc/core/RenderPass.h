@@ -1,19 +1,17 @@
 #pragma once
 
-#include <vkb/basics/Swapchain.h>
-#include <vkb/Image.h>
-#include <vkb/FrameSpecificObject.h>
-#include <nc/data/SelfManagedObject.h>
-
 #include "Types.h"
-#include "DescriptorProvider.h"
+
+namespace vkb {
+    class Swapchain;
+}
 
 namespace trc
 {
     // Will probably not be used but I can define a consistent ID type this way
     struct SubPass
     {
-        using ID = data::SelfManagedObject<SubPass>::ID;
+        using ID = TypesafeID<SubPass>;
     };
 
     /**
@@ -21,7 +19,7 @@ namespace trc
      *
      * Contains subpasses.
      */
-    class RenderPass : public data::SelfManagedObject<RenderPass>
+    class RenderPass
     {
     public:
         RenderPass(vk::UniqueRenderPass renderPass, ui32 subpassCount);

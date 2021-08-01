@@ -14,14 +14,6 @@ namespace vkb
         /**
          * Default constructor.
          * Only available when R is default constructible.
-         */
-        FrameSpecificObject() requires(std::is_default_constructible_v<R>)
-            : FrameSpecificObject([](uint32_t) { return R{}; })
-        {}
-
-        /**
-         * Default constructor.
-         * Only available when R is default constructible.
          *
          * @param const Swapchain& swapchain
          */
@@ -29,24 +21,11 @@ namespace vkb
             : FrameSpecificObject(swapchain, [](uint32_t) { return R{}; })
         {}
 
-        FrameSpecificObject(std::vector<R> objects)
-            : FrameSpecificObject(vkb::getSwapchain(), std::move(objects))
-        {}
-
         FrameSpecificObject(const Swapchain& swapchain, std::vector<R> objects)
             :
             FrameSpecificObject(swapchain, [&objects](uint32_t imageIndex) {
                 return std::move(objects[imageIndex]);
             })
-        {}
-
-        /**
-         * @param std::function<R(uint32_t)> func: A constructor function
-         * for the object. Is called for every frame in the swapchain.
-         * Provides the current frame index as argument.
-         */
-        FrameSpecificObject(std::function<R(uint32_t)> func)
-            : FrameSpecificObject(vkb::getSwapchain(), std::move(func))
         {}
 
         /**
@@ -58,7 +37,7 @@ namespace vkb
         FrameSpecificObject(const Swapchain& swapchain, std::function<R(uint32_t)> func)
             : swapchain(&swapchain)
         {
-            uint32_t count{ getSwapchain().getFrameCount() };
+            uint32_t count{ swapchain.getFrameCount() };
             objects.reserve(count);
             for (uint32_t i = 0; i < count; i++) {
                 objects.push_back(func(i));

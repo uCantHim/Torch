@@ -1,6 +1,8 @@
 #include "drawable/DrawableInstanced.h"
 
 #include "TorchResources.h"
+#include "RenderPassDeferred.h"
+#include "RenderPassShadow.h"
 
 
 
@@ -30,7 +32,7 @@ void trc::DrawableInstanced::attachToScene(SceneBase& scene)
     this->scene = &scene;
     scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        internal::DeferredSubPasses::gBufferPass,
+        RenderPassDeferred::SubPasses::gBuffer,
         internal::getDrawableInstancedDeferredPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf) {
             cmdBuf.bindIndexBuffer(geometry->getIndexBuffer(), 0, vk::IndexType::eUint32);

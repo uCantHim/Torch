@@ -8,6 +8,8 @@
 
 namespace trc
 {
+    class Instance;
+
     /**
      * @brief A pass that renders a shadow map
      *
@@ -20,7 +22,7 @@ namespace trc
         /**
          * @param uvec2 resolution Resolution of the shadow map
          */
-        explicit RenderPassShadow(uvec2 resolution);
+        RenderPassShadow(const Instance& instance, uvec2 resolution);
 
         /**
          * Updates the shadow matrix in the descriptor and starts the
@@ -51,7 +53,9 @@ namespace trc
         const uvec2 resolution;
         ui32 shadowMatrixIndex;
 
-        vkb::FrameSpecificObject<vkb::Image> depthImages;
-        vkb::FrameSpecificObject<Framebuffer> framebuffers;
+        //vkb::FrameSpecificObject<vkb::Image> depthImages;
+        //vkb::FrameSpecificObject<Framebuffer> framebuffers;
+        vkb::Image depthImage;
+        Framebuffer framebuffer;
     };
 } // namespace trc

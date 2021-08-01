@@ -9,6 +9,8 @@
 
 namespace trc
 {
+    class Window;
+
     /**
      * @brief Provides global, renderer-specific data
      *
@@ -27,7 +29,7 @@ namespace trc
     class GlobalRenderDataDescriptor : public DescriptorProviderInterface
     {
     public:
-        GlobalRenderDataDescriptor(const vkb::Swapchain& swapchain);
+        GlobalRenderDataDescriptor(const Window& window);
 
         auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;

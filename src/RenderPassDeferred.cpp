@@ -17,17 +17,18 @@ trc::RenderPassDeferred::RenderPassDeferred(
         NUM_SUBPASSES
     ), // Base class RenderPass constructor
     depthPixelReadBuffer(
+        device,
         sizeof(float),
         vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     ),
     swapchain(swapchain),
     framebufferSize(swapchain.getImageExtent()),
-    gBuffers([&](ui32) {
+    gBuffers(swapchain, [&](ui32) {
         const auto extent = swapchain.getImageExtent();
         return GBuffer(device, uvec2(extent.width, extent.height));
     }),
-    framebuffers([&](ui32 frameIndex)
+    framebuffers(swapchain, [&](ui32 frameIndex)
     {
         GBuffer& g = gBuffers.getAt(frameIndex);
 
@@ -193,7 +194,7 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             0, nullptr, // color attachments
             nullptr,    // resolve attachments
             &transparencyAttachments[0], // depth attachment (read-only)
-            4, transparencyPreservedAttachments.data() // preserve the deferred attachments
+            3, transparencyPreservedAttachments.data() // preserve the deferred attachments
         ),
         // Final lighting subpass
         vk::SubpassDescription(
@@ -306,16 +307,20 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
     :
     ATOMIC_BUFFER_SECTION_SIZE(util::pad(
         sizeof(ui32),
-        vkb::getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment
+        device.getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment
     )),
     FRAG_LIST_BUFFER_SIZE(
         sizeof(uvec4) * maxTransparentFragsPerPixel
         * swapchain.getImageExtent().width * swapchain.getImageExtent().height
     ),
-    provider({}, {}) // Doesn't have a default constructor
+    fragmentListHeadPointerImage(swapchain),
+    fragmentListHeadPointerImageView(swapchain),
+    fragmentListBuffer(swapchain),
+    descSets(swapchain),
+    provider({}, { swapchain }) // Doesn't have a default constructor
 {
     createFragmentList(device, swapchain, maxTransparentFragsPerPixel);
-    createDescriptors(device, renderPass);
+    createDescriptors(device, swapchain, renderPass);
 }
 
 void trc::DeferredRenderPassDescriptor::resetValues(vk::CommandBuffer cmdBuf) const
@@ -339,7 +344,7 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
 
     // Fragment list
     std::vector<vk::UniqueImageView> imageViews;
-    fragmentListHeadPointerImage = { [&](ui32)
+    fragmentListHeadPointerImage = { swapchain, [&](ui32)
     {
         vkb::Image result(
             device,
@@ -369,11 +374,12 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
         return result;
     }};
 
-    fragmentListHeadPointerImageView = std::move(imageViews);
+    fragmentListHeadPointerImageView = { swapchain, std::move(imageViews) };
 
-    fragmentListBuffer = { [&](ui32)
+    fragmentListBuffer = { swapchain, [&](ui32)
     {
         vkb::Buffer result(
+            device,
             ATOMIC_BUFFER_SECTION_SIZE + FRAG_LIST_BUFFER_SIZE,
             vk::BufferUsageFlagBits::eStorageBuffer
                 | vk::BufferUsageFlagBits::eTransferDst
@@ -394,6 +400,7 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
 
 void trc::DeferredRenderPassDescriptor::createDescriptors(
     const vkb::Device& device,
+    const vkb::Swapchain& swapchain,
     const RenderPassDeferred& renderPass)
 {
     // Pool
@@ -405,7 +412,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(
     descPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            vkb::getSwapchain().getFrameCount(), poolSizes)
+            swapchain.getFrameCount(), poolSizes)
     );
 
     // Layout
@@ -427,7 +434,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(
     );
 
     // Sets
-    descSets = { [&](ui32 imageIndex)
+    descSets = { swapchain, [&](ui32 imageIndex)
     {
         auto& g = renderPass.getGBuffer().getAt(imageIndex);
         std::vector<vk::ImageView> imageViews{
@@ -471,6 +478,6 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(
 
     provider = {
         *descLayout,
-        { [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
+        { swapchain, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
     };
 }

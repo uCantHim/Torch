@@ -56,6 +56,7 @@ trc::Instance::Instance(InstanceCreateInfo&& info)
     instance(info.instance),
     physicalDevice(std::move(info.physicalDevice)),
     device(std::move(info.device)),
+    queueManager(*physicalDevice, *device),
     dynamicLoader(std::move(info.dynamicLoader))
 {
 }
@@ -88,6 +89,16 @@ auto trc::Instance::getDevice() -> vkb::Device&
 auto trc::Instance::getDevice() const -> const vkb::Device&
 {
     return *device;
+}
+
+auto trc::Instance::getQueueManager() -> vkb::QueueManager&
+{
+    return queueManager;
+}
+
+auto trc::Instance::getQueueManager() const -> const vkb::QueueManager&
+{
+    return queueManager;
 }
 
 auto trc::Instance::getDynamicLoader() -> vk::DispatchLoaderDynamic&

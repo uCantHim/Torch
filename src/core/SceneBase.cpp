@@ -42,19 +42,20 @@ auto trc::SceneBase::getPipelines(
 
 void trc::SceneBase::invokeDrawFunctions(
     RenderStageType::ID renderStageType,
-    RenderPass::ID renderPass,
+    RenderPass& renderPass,
     SubPass::ID subPass,
-    Pipeline::ID pipeline,
+    Pipeline::ID pipelineId,
+    Pipeline& pipeline,
     vk::CommandBuffer cmdBuf) const
 {
     DrawEnvironment env{
         .currentRenderStageType = &RenderStageType::at(renderStageType),
-        .currentRenderPass = &RenderPass::at(renderPass),
+        .currentRenderPass = &renderPass,
         .currentSubPass = subPass,
-        .currentPipeline = &Pipeline::at(pipeline)
+        .currentPipeline = &pipeline,
     };
 
-    for (auto& f : drawableRegistrations[renderStageType][subPass][pipeline])
+    for (auto& f : drawableRegistrations[renderStageType][subPass][pipelineId])
     {
         f.recordFunction(env, cmdBuf);
     }

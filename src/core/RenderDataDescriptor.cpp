@@ -1,18 +1,20 @@
 #include "RenderDataDescriptor.h"
 
+#include "core/Window.h"
 #include "utils/Util.h"
 
 
 
-trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(const vkb::Swapchain& _swapchain)
+trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(const Window& window)
     :
-    device(_swapchain.device),
-    swapchain(_swapchain),
+    device(window.getDevice()),
+    swapchain(window.getSwapchain()),
     BUFFER_SECTION_SIZE(util::pad(
         CAMERA_DATA_SIZE + SWAPCHAIN_DATA_SIZE,
         device.getPhysicalDevice().properties.limits.minUniformBufferOffsetAlignment
     )),
     buffer(
+        window.getDevice(),
         BUFFER_SECTION_SIZE * swapchain.getFrameCount(),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent

@@ -45,6 +45,8 @@ namespace trc
         auto getPhysicalDevice() const -> const vkb::PhysicalDevice&;
         auto getDevice() -> vkb::Device&;
         auto getDevice() const -> const vkb::Device&;
+        auto getQueueManager() -> vkb::QueueManager&;
+        auto getQueueManager() const -> const vkb::QueueManager&;
         auto getDynamicLoader() -> vk::DispatchLoaderDynamic&;
         auto getDynamicLoader() const -> const vk::DispatchLoaderDynamic&;
 
@@ -54,6 +56,7 @@ namespace trc
         vk::Instance instance;
         u_ptr<vkb::PhysicalDevice> physicalDevice;
         u_ptr<vkb::Device> device;
+        vkb::QueueManager queueManager;
 
         vk::DispatchLoaderDynamic dynamicLoader;
     };

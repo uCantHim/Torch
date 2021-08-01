@@ -3,7 +3,11 @@
 
 #ifdef TRC_USE_FBX_SDK
 
-auto trc::loadGeometry(const fs::path& fbxFilePath, bool loadRig) -> Maybe<Geometry>
+auto trc::loadGeometry(
+    const fs::path& fbxFilePath,
+    AnimationDataStorage& animStorage,
+    bool loadRig
+    ) -> Maybe<Geometry>
 {
     FBXLoader loader;
     auto loadedMeshes = loader.loadFBXFile(fbxFilePath).meshes;
@@ -17,6 +21,7 @@ auto trc::loadGeometry(const fs::path& fbxFilePath, bool loadRig) -> Maybe<Geome
         return Geometry{
             mesh.mesh,
             std::make_unique<Rig>(std::move(mesh.rig.value()),
+                                  animStorage,
                                   std::move(mesh.animations))
         };
     }
@@ -25,9 +30,13 @@ auto trc::loadGeometry(const fs::path& fbxFilePath, bool loadRig) -> Maybe<Geome
     }
 }
 
-auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
+auto trc::loadScene(
+    const Instance& instance,
+    const fs::path& fbxFilePath,
+    AnimationDataStorage& animStorage
+    ) -> SceneImportResult
 {
-    SceneImportResult result;
+    SceneImportResult result{ .scene=Scene(instance) };
 
     FBXLoader loader;
     FileImportData importData = loader.loadFBXFile(fbxFilePath);
@@ -37,7 +46,9 @@ auto trc::loadScene(const fs::path& fbxFilePath) -> SceneImportResult
         // Load geometry
         std::unique_ptr<Rig> rig{ nullptr };
         if (mesh.rig.has_value()) {
-            rig = std::make_unique<Rig>(std::move(mesh.rig.value()), std::move(mesh.animations));
+            rig = std::make_unique<Rig>(std::move(mesh.rig.value()),
+                                        animStorage,
+                                        std::move(mesh.animations));
         }
         GeometryID geoIdx = AssetRegistry::addGeometry({ mesh.mesh, std::move(rig) });
 

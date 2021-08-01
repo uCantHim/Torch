@@ -91,6 +91,7 @@ void vkb::Image::changeLayout(
 void vkb::Image::writeData(const void* srcData, size_t srcSize, ImageSize destArea)
 {
     Buffer buf(
+        *device,
         srcSize, srcData,
         vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible

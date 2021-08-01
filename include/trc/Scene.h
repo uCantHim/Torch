@@ -1,12 +1,9 @@
 #pragma once
 
-#include <vkb/Buffer.h>
-
 #include "Types.h"
 #include "core/SceneBase.h"
 #include "Node.h"
 #include "LightRegistry.h"
-#include "SceneDescriptor.h"
 
 namespace trc
 {
@@ -15,7 +12,7 @@ namespace trc
     class Scene : public SceneBase
     {
     public:
-        Scene();
+        Scene(const Instance& instance);
 
         auto getRoot() noexcept -> Node&;
         auto getRoot() const noexcept -> const Node&;
@@ -61,27 +58,11 @@ namespace trc
          * The renderer calls this function for every enabled render stage
          * in its render graph.
          *
-         * TODO: Currently only provides shadow passes. Implement user-
-         * defined render passes.
+         * TODO: Is this still necessary?
          */
-        auto getLocalRenderPasses(RenderStageType::ID stageType) -> std::vector<RenderPass::ID>;
-
-        /**
-         * @return const SceneDescriptor& The scene's descriptor
-         */
-        auto getDescriptor() const noexcept -> const SceneDescriptor&;
-
-        auto getPickedObject() -> std::optional<Pickable*>;
 
     private:
         Node root;
-
         LightRegistry lightRegistry;
-
-        // Must be initialized after the light registry
-        SceneDescriptor descriptor;
-
-        void updatePicking();
-        ui32 currentlyPicked{ 0 };
     };
 } // namespace trc

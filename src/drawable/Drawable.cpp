@@ -5,6 +5,9 @@
 #include "Geometry.h"
 #include "Material.h"
 
+#include "RenderPassDeferred.h"
+#include "RenderPassShadow.h"
+
 
 
 trc::Drawable::Drawable(GeometryID geo, MaterialID material)
@@ -200,8 +203,8 @@ void trc::Drawable::updateDrawFunctions()
 
     deferredRegistration = currentScene->registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        data->isTransparent ? internal::DeferredSubPasses::transparencyPass
-                            : internal::DeferredSubPasses::gBufferPass,
+        data->isTransparent ? RenderPassDeferred::SubPasses::transparency
+                            : RenderPassDeferred::SubPasses::gBuffer,
         pipeline,
         std::move(func)
     );

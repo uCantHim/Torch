@@ -20,17 +20,17 @@ target_compile_definitions(torch PUBLIC
 #######################
 # Complex test programs
 
-add_executable(TorchTest main.cpp)
-target_link_libraries(TorchTest PUBLIC torch)
-
-add_executable(DrawableChainTest drawable_chain.cpp)
-target_link_libraries(DrawableChainTest PUBLIC torch)
-
 add_executable(BasicSetup basic_setup.cpp)
 target_link_libraries(BasicSetup PUBLIC torch)
 
-add_executable(Font font.cpp)
-target_link_libraries(Font PUBLIC torch)
+#add_executable(TorchTest main.cpp)
+#target_link_libraries(TorchTest PUBLIC torch)
+#
+#add_executable(DrawableChainTest drawable_chain.cpp)
+#target_link_libraries(DrawableChainTest PUBLIC torch)
+
+#add_executable(Font font.cpp)
+#target_link_libraries(Font PUBLIC torch)
 
 if (${TORCH_INTEGRATE_IMGUI})
     add_executable(ImGui imgui_integration.cpp)

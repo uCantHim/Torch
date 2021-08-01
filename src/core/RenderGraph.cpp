@@ -43,21 +43,29 @@ auto trc::RenderGraph::size() const noexcept -> size_t
     return orderedStages.size();
 }
 
-void trc::RenderGraph::addPass(RenderStageType::ID stage, RenderPass::ID newPass)
+void trc::RenderGraph::addPass(RenderStageType::ID stage, RenderPass& newPass)
 {
     auto it = stages.find(stage);
     if (it != stages.end()) {
-        it->second.renderPasses.push_back(newPass);
+        it->second.renderPasses.push_back(&newPass);
     }
 }
 
-void trc::RenderGraph::removePass(RenderStageType::ID stage, RenderPass::ID pass)
+void trc::RenderGraph::removePass(RenderStageType::ID stage, RenderPass& pass)
 {
     auto it = stages.find(stage);
     if (it != stages.end())
     {
         auto& renderPasses = it->second.renderPasses;
-        renderPasses.erase(std::remove(renderPasses.begin(), renderPasses.end(), pass));
+        renderPasses.erase(std::remove(renderPasses.begin(), renderPasses.end(), &pass));
+    }
+}
+
+void trc::RenderGraph::clearPasses(RenderStageType::ID stage)
+{
+    auto it = stages.find(stage);
+    if (it != stages.end()) {
+        it->second.renderPasses.clear();
     }
 }
 

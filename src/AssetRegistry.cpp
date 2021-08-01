@@ -2,11 +2,11 @@
 
 #include <vkb/ImageUtils.h>
 
-#include "PipelineRegistry.h"
+#include "core/Instance.h"
 
 
 
-void trc::AssetRegistry::init()
+void trc::AssetRegistry::init(const Instance& instance)
 {
     constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
 
@@ -22,7 +22,7 @@ void trc::AssetRegistry::init()
     updateMaterials();
     addImage(vkb::makeSinglePixelImage(vkb::getDevice(), vec4(1.0f)));
 
-    createDescriptors();
+    createDescriptors(instance);
 }
 
 void trc::AssetRegistry::reset()
@@ -65,8 +65,7 @@ auto trc::AssetRegistry::addImage(vkb::Image tex) -> TextureID
     auto& image = addToMap(images, key, std::move(tex));
     imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
 
-    createDescriptors();
-    PipelineRegistry::recreateAll();
+    //createDescriptors();
 
     return key;
 }
@@ -86,8 +85,37 @@ auto trc::AssetRegistry::getImage(TextureID key) -> Maybe<vkb::Image*>
     return &getFromMap(images, key);
 }
 
-auto trc::AssetRegistry::getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&
+auto trc::AssetRegistry::getDescriptorSetProvider(const Instance& instance) noexcept
+    -> DescriptorProviderInterface&
 {
+    static bool init{ false };
+
+    if (!init)
+    {
+        constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
+
+        // Create material buffer
+        materialBuffer = vkb::Buffer(
+            instance.getDevice(),
+            defaultMaterialBufferSize,
+            vk::BufferUsageFlagBits::eStorageBuffer,
+            vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+        );
+
+        // Add default assets
+        addMaterial({});
+        updateMaterials();
+        addImage(vkb::makeSinglePixelImage(instance.getDevice(), vec4(1.0f)));
+
+        createDescriptors(instance);
+        //updateDescriptors(instance);
+
+        descriptorProvider.setDescriptorSet(*descSet);
+        descriptorProvider.setDescriptorSetLayout(*descLayout);
+
+        init = true;
+    }
+
     return descriptorProvider;
 }
 
@@ -104,9 +132,9 @@ void trc::AssetRegistry::updateMaterials()
     materialBuffer.unmap();
 }
 
-void trc::AssetRegistry::createDescriptors()
+void trc::AssetRegistry::createDescriptors(const Instance& instance)
 {
-    static const auto& device = vkb::VulkanBase::getDevice();
+    const auto& device = instance.getDevice();
 
     descSet = {};
     descLayout = {};
@@ -142,16 +170,11 @@ void trc::AssetRegistry::createDescriptors()
 
     // Create descriptor set
     descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, 1, &*descLayout })[0]);
-
-    descriptorProvider.setDescriptorSet(*descSet);
-    descriptorProvider.setDescriptorSetLayout(*descLayout);
-
-    updateDescriptors();
 }
 
-void trc::AssetRegistry::updateDescriptors()
+void trc::AssetRegistry::updateDescriptors(const Instance& instance)
 {
-    static const auto& device = vkb::VulkanBase::getDevice();
+    const auto& device = instance.getDevice();
 
     vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
     // Image writes

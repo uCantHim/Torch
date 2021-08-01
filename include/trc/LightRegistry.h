@@ -1,47 +1,14 @@
 #pragma once
 
-#include <vkb/StaticInit.h>
+#include <vkb/Buffer.h>
 
 #include "Light.h"
 #include "Node.h"
 #include "RenderPassShadow.h"
-#include "TorchResources.h"
 
 namespace trc
 {
-    class LightRegistry;
-
-    class ShadowDescriptor
-    {
-        friend class LightRegistry;
-
-    public:
-        static constexpr ui32 MAX_SHADOW_MAPS = 256;
-
-        explicit ShadowDescriptor(const LightRegistry &lightRegistry, ui32 numShadowMaps);
-
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
-
-        /**
-         * The descriptor set layout is global for all SceneDescriptor
-         * instances.
-         */
-        static auto getDescLayout() noexcept -> vk::DescriptorSetLayout;
-
-    private:
-        // The descriptor set layout is the same for all instances
-        static inline vk::UniqueDescriptorSetLayout descLayout;
-        static inline vkb::Image dummyShadowImage;
-        static inline vk::UniqueImageView dummyImageView;
-        static vkb::StaticInit _init;
-
-        void createDescriptors(const LightRegistry& lightRegistry, ui32 numShadowMaps);
-        vk::UniqueDescriptorPool descPool;
-        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
-        FrameSpecificDescriptorProvider provider{ *descLayout, {} };
-    };
-
-    constexpr ui32 DEFAULT_MAX_LIGHTS = 32;
+    class Instance;
 
     /**
      * @brief Collection and management unit for lights and shadows
@@ -49,7 +16,17 @@ namespace trc
     class LightRegistry
     {
     public:
-        explicit LightRegistry(ui32 maxLights = DEFAULT_MAX_LIGHTS);
+        /**
+         * TODO: Rework some of the shadow stuff
+         */
+        friend class ShadowDescriptor;
+
+
+
+        static constexpr ui32 DEFAULT_MAX_LIGHTS = 32;
+        static constexpr ui32 MAX_SHADOW_MAPS = 256;
+
+        explicit LightRegistry(const Instance& instance, ui32 maxLights = DEFAULT_MAX_LIGHTS);
 
         /**
          * @brief Update lights in the registry
@@ -58,8 +35,6 @@ namespace trc
          * light nodes to their lights.
          */
         void update();
-
-        auto getDescriptor() const noexcept -> const ShadowDescriptor&;
 
         ui32 getMaxLights() const noexcept;
 
@@ -83,6 +58,10 @@ namespace trc
          */
         struct ShadowInfo
         {
+            // TODO: Remove this shit
+            friend class ShadowDescriptor;
+
+
             /**
              * @return Node& A node that all shadow cameras are attached to
              */
@@ -93,16 +72,12 @@ namespace trc
              */
             void setProjectionMatrix(mat4 proj) noexcept;
 
-            auto getRenderPasses() const noexcept -> const std::vector<RenderPassShadow*>&;
-
         private:
             friend LightRegistry;
 
-            std::vector<RenderPassShadow*> shadowPasses;
             std::vector<Camera> shadowCameras;
             Node parentNode;
         };
-
 
         /**
          * @brief Enable shadows for a specific light
@@ -130,7 +105,6 @@ namespace trc
 
         auto getLightBuffer() const noexcept -> vk::Buffer;
         auto getShadowMatrixBuffer() const noexcept -> vk::Buffer;
-        auto getShadowRenderStage() const noexcept -> const std::vector<RenderPass::ID>&;
 
     private:
         const ui32 maxLights;
@@ -150,24 +124,11 @@ namespace trc
         void updateLightBuffer();
         vkb::Buffer lightBuffer;
 
-        std::vector<RenderPass::ID> shadowPasses;
-
-        /**
-         * Must be called only when a light or a shadow is added or removed
-         *
-         * Re-orders shadow matrices and -maps according to the order
-         * of lights in the light array. This means it also sets the
-         * correct shadow indices on the lights.
-         */
-        void updateShadowDescriptors();
-
         /**
          * This must be called every frame in case a shadow matrix changes
          */
         void updateShadowMatrixBuffer();
         std::unordered_map<Light*, ShadowInfo> shadows;
         vkb::Buffer shadowMatrixBuffer;
-
-        std::unique_ptr<ShadowDescriptor> shadowDescriptor;
     };
 } // namespace trc

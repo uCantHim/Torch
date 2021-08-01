@@ -1,6 +1,6 @@
 #include "RenderPass.h"
 
-#include <vkb/VulkanBase.h>
+#include <vkb/basics/Swapchain.h>
 
 
 

@@ -1,45 +1,36 @@
 #include "SceneDescriptor.h"
 
+#include "core/Window.h"
 #include "Scene.h"
 
 
 
-vkb::StaticInit trc::SceneDescriptor::_init{
-    []() {
-        // Create the static descriptor set layout
-        std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
-            // Light buffer
-            { 0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
-            // Picking buffer
-            { 1, vk::DescriptorType::eStorageBufferDynamic, 1, vk::ShaderStageFlagBits::eFragment },
-        };
-        descLayout = vkb::getDevice()->createDescriptorSetLayoutUnique({ {}, layoutBindings });
-    },
-    []() {
-        descLayout.reset();
-    }
-};
-
-
-
-trc::SceneDescriptor::SceneDescriptor(const Scene& scene)
+trc::SceneDescriptor::SceneDescriptor(const Window& window)
     :
+    window(window),
     pickingBuffer(
-        PICKING_BUFFER_SECTION_SIZE * vkb::getSwapchain().getFrameCount(),
+        window.getDevice(),
+        PICKING_BUFFER_SECTION_SIZE * window.getSwapchain().getFrameCount(),
         vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
-    auto cmdBuf = vkb::getDevice().createTransferCommandBuffer();
+    auto cmdBuf = window.getDevice().createTransferCommandBuffer();
     cmdBuf->begin(vk::CommandBufferBeginInfo());
     cmdBuf->fillBuffer(*pickingBuffer, 0, VK_WHOLE_SIZE, 0);
     cmdBuf->end();
-    vkb::getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
+    window.getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
 
-    createDescriptors(scene);
+    createDescriptors(window.getInstance());
 }
 
-auto trc::SceneDescriptor::updatePicking() -> Maybe<ui32>
+void trc::SceneDescriptor::update(const Scene& scene)
+{
+    updatePicking();
+    writeDescriptors(window.getInstance(), scene);
+}
+
+void trc::SceneDescriptor::updatePicking()
 {
     /**
      * Only read the buffer every nth frame, where n is the number of
@@ -49,14 +40,15 @@ auto trc::SceneDescriptor::updatePicking() -> Maybe<ui32>
      *
      * I'm triggered. I use the eHostCoherent flag but see if Nvidia cares.
      */
-    if (vkb::getSwapchain().getCurrentFrame() != 0) return pickedObject;
+
+    if (window.getSwapchain().getCurrentFrame() != 0) return;
 
     // Read data of the previous frame
     ui32* buf = reinterpret_cast<ui32*>(pickingBuffer.map(
-        (vkb::getSwapchain().getFrameCount() - 1) * PICKING_BUFFER_SECTION_SIZE
+        (window.getSwapchain().getFrameCount() - 1) * PICKING_BUFFER_SECTION_SIZE
     ));
 
-    pickedObject = buf[0];
+    const ui32 newPicked = buf[0];
 
     // Reset buffer to default values
     buf[0] = 0u;
@@ -65,10 +57,29 @@ auto trc::SceneDescriptor::updatePicking() -> Maybe<ui32>
 
     pickingBuffer.unmap();
 
-    if (pickedObject != NO_PICKABLE) {
-        return pickedObject;
+    // An object is being picked
+    if (newPicked != NO_PICKABLE)
+    {
+        if (newPicked != currentlyPicked)
+        {
+            if (currentlyPicked != NO_PICKABLE)
+            {
+                PickableRegistry::getPickable(currentlyPicked).onUnpick();
+                currentlyPicked = NO_PICKABLE;
+            }
+            PickableRegistry::getPickable(newPicked).onPick();
+            currentlyPicked = newPicked;
+        }
     }
-    return {};
+    // No object is picked
+    else
+    {
+        if (currentlyPicked != NO_PICKABLE)
+        {
+            PickableRegistry::getPickable(currentlyPicked).onUnpick();
+            currentlyPicked = NO_PICKABLE;
+        }
+    }
 }
 
 auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProviderInterface&
@@ -76,25 +87,40 @@ auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProvi
     return provider;
 }
 
-auto trc::SceneDescriptor::getDescLayout() noexcept -> vk::DescriptorSetLayout
+auto trc::SceneDescriptor::getDescLayout() const noexcept -> vk::DescriptorSetLayout
 {
     return *descLayout;
 }
 
-void trc::SceneDescriptor::createDescriptors(const Scene& scene)
+void trc::SceneDescriptor::createDescriptors(const Instance& instance)
 {
+    // Layout
+    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
+        // Light buffer
+        { 0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        // Picking buffer
+        { 1, vk::DescriptorType::eStorageBufferDynamic, 1, vk::ShaderStageFlagBits::eFragment },
+    };
+    descLayout = instance.getDevice()->createDescriptorSetLayoutUnique({ {}, layoutBindings });
+
+
+    // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
         { vk::DescriptorType::eStorageBuffer, 1 },
         { vk::DescriptorType::eStorageBufferDynamic, 1 },
     };
-    descPool = vkb::getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+    descPool = instance.getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
     ));
 
-    descSet = std::move(vkb::getDevice()->allocateDescriptorSetsUnique(
+    // Sets
+    descSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
         vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
     )[0]);
+}
 
+void trc::SceneDescriptor::writeDescriptors(const Instance& instance, const Scene& scene)
+{
     // Write descriptor set
     vk::DescriptorBufferInfo lightBufferInfo(scene.getLightBuffer(), 0, VK_WHOLE_SIZE);
     vk::DescriptorBufferInfo pickingBufferInfo(*pickingBuffer, 0, PICKING_BUFFER_SECTION_SIZE);
@@ -103,7 +129,7 @@ void trc::SceneDescriptor::createDescriptors(const Scene& scene)
         { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
         { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBufferDynamic, {}, &pickingBufferInfo },
     };
-    vkb::getDevice()->updateDescriptorSets(writes, {});
+    instance.getDevice()->updateDescriptorSets(writes, {});
 }
 
 
@@ -122,7 +148,7 @@ auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSet() const noe
 auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSetLayout() const noexcept
     -> vk::DescriptorSetLayout
 {
-    return SceneDescriptor::getDescLayout();
+    return descriptor.getDescLayout();
 }
 
 void trc::SceneDescriptor::SceneDescriptorProvider::bindDescriptorSet(
@@ -131,11 +157,12 @@ void trc::SceneDescriptor::SceneDescriptorProvider::bindDescriptorSet(
     vk::PipelineLayout pipelineLayout,
     ui32 setIndex) const
 {
-    ui32 pickingBufferOffset = vkb::getSwapchain().getCurrentFrame() * PICKING_BUFFER_SECTION_SIZE;
+    const ui32 frame = descriptor.window.getSwapchain().getCurrentFrame();
+
     cmdBuf.bindDescriptorSets(
         bindPoint,
         pipelineLayout,
         setIndex, *descriptor.descSet,
-        pickingBufferOffset // dynamic offset
+        frame * PICKING_BUFFER_SECTION_SIZE // dynamic offset
     );
 }

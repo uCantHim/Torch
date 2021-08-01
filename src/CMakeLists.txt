@@ -4,6 +4,7 @@ target_sources(
         Animation.cpp
         AnimationEngine.cpp
         AssetRegistry.cpp
+        DeferredRenderConfig.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
         Framebuffer.cpp
@@ -20,6 +21,7 @@ target_sources(
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
+        ShadowDescriptor.cpp
         Torch.cpp
         TorchResources.cpp
 )

@@ -16,6 +16,7 @@
 #include "AssetIds.h"
 #include "Geometry.h"
 #include "Material.h"
+#include "Animation.h"
 
 namespace trc
 {
@@ -55,7 +56,7 @@ namespace trc
     public:
         using Named = AssetRegistryNameWrapper<std::string>;
 
-        static void init();
+        static void init(const Instance& instance);
         static void reset();
 
         static auto addGeometry(Geometry geo) -> GeometryID;
@@ -70,13 +71,12 @@ namespace trc
         static auto getMaterial(MaterialID key) -> Maybe<Material*>;
         static auto getImage(TextureID key) -> Maybe<vkb::Image*>;
 
-        static auto getDescriptorSetProvider() noexcept -> DescriptorProviderInterface&;
+        static auto getDescriptorSetProvider(const Instance& instance) noexcept
+            -> DescriptorProviderInterface&;
 
         static void updateMaterials();
 
     private:
-        static inline vkb::StaticInit _init{ init, reset };
-
         template<typename T, typename U, typename... Args>
         static auto addToMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
                              TypesafeID<U> key,
@@ -103,8 +103,8 @@ namespace trc
         static constexpr ui32 MAT_BUFFER_BINDING = 0;
         static constexpr ui32 IMG_DESCRIPTOR_BINDING = 1;
 
-        static void createDescriptors();
-        static void updateDescriptors();
+        static void createDescriptors(const Instance& instance);
+        static void updateDescriptors(const Instance& instance);
 
         static inline vk::UniqueDescriptorPool descPool;
         static inline vk::UniqueDescriptorSetLayout descLayout;

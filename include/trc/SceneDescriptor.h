@@ -1,29 +1,32 @@
 #pragma once
 
-#include <vkb/StaticInit.h>
 #include <vkb/Buffer.h>
 
+#include "Types.h"
 #include "DescriptorProvider.h"
-#include <nc/functional/Maybe.h>
 #include "PickableRegistry.h"
 
 namespace trc
 {
+    class Window;
+    class Instance;
     class Scene;
 
     class SceneDescriptor
     {
     public:
-        explicit SceneDescriptor(const Scene& scene);
+        explicit SceneDescriptor(const Window& window);
 
-        auto updatePicking() -> Maybe<ui32>;
+        void update(const Scene& scene);
+
+        void updatePicking();
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
         /**
          * The descriptor set layout is global for all SceneDescriptor
          * instances.
          */
-        static auto getDescLayout() noexcept -> vk::DescriptorSetLayout;
+        auto getDescLayout() const noexcept -> vk::DescriptorSetLayout;
 
     private:
         class SceneDescriptorProvider : public DescriptorProviderInterface
@@ -44,17 +47,18 @@ namespace trc
             const SceneDescriptor& descriptor;
         };
 
-        // The descriptor set layout is the same for all instances
-        static inline vk::UniqueDescriptorSetLayout descLayout;
-        static vkb::StaticInit _init;
+        void createDescriptors(const Instance& instance);
+        void writeDescriptors(const Instance& instance, const Scene& scene);
 
-        void createDescriptors(const Scene& scene);
+        const Window& window;
+
+        vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet descSet;
         SceneDescriptorProvider provider{ *this };
 
         static constexpr vk::DeviceSize PICKING_BUFFER_SECTION_SIZE = 16;
         vkb::Buffer pickingBuffer;
-        ui32 pickedObject{ NO_PICKABLE };
+        ui32 currentlyPicked{ NO_PICKABLE };
     };
 } // namespace trc
