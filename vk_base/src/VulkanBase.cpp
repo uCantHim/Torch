@@ -17,7 +17,7 @@ void vkb::vulkanTerminate()
     VulkanBase::destroy();
 }
 
-auto vkb::createSurface(VulkanInstance& instance, SurfaceCreateInfo createInfo) -> Surface
+auto vkb::createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface
 {
     Surface result;
 
@@ -31,20 +31,19 @@ auto vkb::createSurface(VulkanInstance& instance, SurfaceCreateInfo createInfo) 
         ),
         [](GLFWwindow* windowPtr) {
             glfwDestroyWindow(windowPtr);
-            glfwTerminate();
         }
     );
 
     // Create Vulkan surface
     GLFWwindow* _window = result.window.get();
     VkSurfaceKHR _surface;
-    if (glfwCreateWindowSurface(*instance, _window, nullptr, &_surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(instance, _window, nullptr, &_surface) != VK_SUCCESS) {
         throw std::runtime_error("Unable to create window surface!");
     }
     result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> {
         new vk::SurfaceKHR(_surface),
-        [&](vk::SurfaceKHR* oldSurface) {
-            instance->destroySurfaceKHR(*oldSurface, {});
+        [instance](vk::SurfaceKHR* oldSurface) {
+            instance.destroySurfaceKHR(*oldSurface);
             delete oldSurface;
         }
     };
@@ -80,7 +79,7 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
     {
         try {
             instance = std::make_unique<VulkanInstance>();
-            Surface surface = createSurface(*instance, initInfo.surfaceCreateInfo);
+            Surface surface = createSurface(**instance, initInfo.surfaceCreateInfo);
 
             // Find a physical device
             physicalDevice = std::make_unique<PhysicalDevice>(
@@ -113,7 +112,9 @@ void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
 void vkb::VulkanBase::destroy()
 {
     EventThread::terminate();
-    getDevice()->waitIdle();
+    if (device != nullptr) {
+        getDevice()->waitIdle();
+    }
 
     StaticInit::executeStaticDestructors();
 
@@ -125,6 +126,8 @@ void vkb::VulkanBase::destroy()
     catch (const std::exception& err) {
         std::cout << "Exception in VulkanBase::destroy(): " << err.what() << "\n";
     }
+
+    glfwTerminate();
 }
 
 auto vkb::VulkanBase::getInstance() noexcept -> VulkanInstance&

@@ -7,10 +7,10 @@
 namespace vkb
 {
 
-/*
-A proxy class for the vk::Instance that initializes the instance
-on construction time.
-*/
+/**
+ * A proxy class for the vk::Instance that initializes the instance
+ * on construction time.
+ */
 class VulkanInstance
 {
 public:

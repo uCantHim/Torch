@@ -48,7 +48,7 @@ namespace vkb
      */
     void vulkanTerminate();
 
-    auto createSurface(VulkanInstance& instance, SurfaceCreateInfo createInfo) -> Surface;
+    auto createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface;
 
     /**
      * @brief Provides access to common vulkan access points
