@@ -106,6 +106,18 @@ namespace vkb
                                  void* extraPhysicalDeviceFeatureChain = nullptr) const
             -> vk::UniqueDevice;
 
+        /**
+         * Determines whether the device has any queue family with
+         * presentation support for a specific surface.
+         *
+         * @return bool
+         */
+        bool hasSurfaceSupport(vk::SurfaceKHR surface) const;
+
+        /**
+         * @return SwapchainSupport Detailed information about the device's
+         *         support for a specific surface
+         */
         auto getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
             -> SwapchainSupport;
 

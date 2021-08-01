@@ -164,6 +164,18 @@ auto vkb::PhysicalDevice::createLogicalDevice(
     return physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
 }
 
+bool vkb::PhysicalDevice::hasSurfaceSupport(vk::SurfaceKHR surface) const
+{
+    size_t numFamilies = physicalDevice.getQueueFamilyProperties().size();
+    for (size_t i = 0; i < numFamilies; i++)
+    {
+        const bool support = physicalDevice.getSurfaceSupportKHR(i, surface);
+        if (support) return true;
+    }
+
+    return false;
+}
+
 auto vkb::PhysicalDevice::getSwapchainSupport(vk::SurfaceKHR surface) const noexcept
     -> SwapchainSupport
 {

@@ -153,6 +153,21 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
     window(std::move(s.window)),
     surface(std::move(s.surface))
 {
+    /**
+     * This call also has practical significance: Vulkan requires that the
+     * getSurfaceSupportKHR function be called on every surface before a
+     * swapchain is created on it.
+     */
+    if (!device.getPhysicalDevice().hasSurfaceSupport(*surface))
+    {
+        throw std::runtime_error(
+            "In Swapchain::Swapchain(): Physical device does not have surface"
+            " support for the specified surface! This means that none of the"
+            " device's queue families returned true from a call to"
+            " vkGetPhysicalDeviceSurfaceSupportKHR."
+        );
+    }
+
     initGlfwCallbacks(window.get());
     createSwapchain();
 }
