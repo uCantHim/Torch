@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vkb/VulkanBase.h>
-#include <nc/data/SelfManagedObject.h>
 
 #include "Types.h"
 #include "DescriptorProvider.h"
@@ -19,10 +18,11 @@ namespace trc
      * @return vk::UniquePipeline
      */
     inline auto makePipelineLayout(
+        const vkb::Device& device,
         const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
         const std::vector<vk::PushConstantRange>& pushConstantRanges)
     {
-        return vkb::VulkanBase::getDevice()->createPipelineLayoutUnique(
+        return device->createPipelineLayoutUnique(
             vk::PipelineLayoutCreateInfo(
                 {},
                 descriptorSetLayouts.size(), descriptorSetLayouts.data(),
@@ -34,9 +34,11 @@ namespace trc
     /**
      * @brief Base class for all pipelines
      */
-    class Pipeline : public data::SelfManagedObject<Pipeline>
+    class Pipeline
     {
     public:
+        using ID = TypesafeID<Pipeline, ui32>;
+
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 

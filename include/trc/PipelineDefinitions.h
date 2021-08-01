@@ -3,22 +3,9 @@
 #include <vkb/basics/Swapchain.h>
 
 #include "Pipeline.h"
-#include "LightRegistry.h"
-#include "RenderPassShadow.h"
-
-namespace trc {
-    class Renderer;
-}
 
 namespace trc::internal
 {
-    namespace DeferredSubPasses
-    {
-        constexpr SubPass::ID gBufferPass(0);
-        constexpr SubPass::ID transparencyPass(1);
-        constexpr SubPass::ID lightingPass(2);
-    }
-
     static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
 
     auto getDrawableDeferredPipeline() -> Pipeline::ID;
