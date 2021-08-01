@@ -19,6 +19,8 @@ namespace trc::rt
         using UniquePipeline = vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
         using Self = RayTracingPipelineBuilder;
 
+        explicit RayTracingPipelineBuilder(const vkb::Device& device);
+
         /**
          * Start an entry in the shader binding table. All shader groups
          * added after a call to this function will be grouped into the
@@ -47,7 +49,7 @@ namespace trc::rt
                                    const fs::path& anyHitPath) -> Self&;
         auto addCallableGroup(const fs::path& callablePath) -> Self&;
 
-        auto build(const vkb::Device& device, ui32 maxRecursionDepth, vk::PipelineLayout layout)
+        auto build(ui32 maxRecursionDepth, vk::PipelineLayout layout)
             -> std::pair<UniquePipeline, ShaderBindingTable>;
 
     private:
@@ -55,6 +57,8 @@ namespace trc::rt
         auto addPipelineStage(vk::ShaderModule _module, vk::ShaderStageFlagBits stage) -> ui32;
         auto addShaderGroup(vk::RayTracingShaderGroupTypeKHR type)
             -> vk::RayTracingShaderGroupCreateInfoKHR&;
+
+        const vkb::Device& device;
 
         // Need to be kept alive for the stage create infos
         std::vector<vk::UniqueShaderModule> shaderModules;
@@ -67,8 +71,8 @@ namespace trc::rt
         std::vector<ui32> sbtEntries;
     };
 
-	auto inline _buildRayTracingPipeline() -> RayTracingPipelineBuilder
+	auto inline _buildRayTracingPipeline(const vkb::Device& device) -> RayTracingPipelineBuilder
 	{
-		return RayTracingPipelineBuilder{};
+		return RayTracingPipelineBuilder{ device };
 	}
 } // namespace trc::rt

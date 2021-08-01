@@ -6,6 +6,7 @@
 
 
 vkb::ShaderProgram::ShaderProgram(
+    const vkb::Device& device,
     const std::string& vertPath,
     const std::string& fragPath,
     const std::string& geomPath,
@@ -13,11 +14,14 @@ vkb::ShaderProgram::ShaderProgram(
     const std::string& tesePath)
     :
     ShaderProgram(
-        createShaderModule(readFile(vertPath)),
-        createShaderModule(readFile(fragPath)),
-        geomPath.empty() ? vk::UniqueShaderModule{} : createShaderModule(readFile(geomPath)),
-        tescPath.empty() ? vk::UniqueShaderModule{} : createShaderModule(readFile(tescPath)),
-        tesePath.empty() ? vk::UniqueShaderModule{} : createShaderModule(readFile(tesePath))
+        createShaderModule(device, readFile(vertPath)),
+        createShaderModule(device, readFile(fragPath)),
+        geomPath.empty() ? vk::UniqueShaderModule{}
+                         : createShaderModule(device, readFile(geomPath)),
+        tescPath.empty() ? vk::UniqueShaderModule{}
+                         : createShaderModule(device, readFile(tescPath)),
+        tesePath.empty() ? vk::UniqueShaderModule{}
+                         : createShaderModule(device, readFile(tesePath))
     )
 {
 }
@@ -143,7 +147,8 @@ auto vkb::readFile(const std::string& path) -> std::string
     return buf.str();
 }
 
-auto vkb::createShaderModule(const std::string& code) -> vk::UniqueShaderModule
+auto vkb::createShaderModule(const vkb::Device& device, const std::string& code)
+    -> vk::UniqueShaderModule
 {
     assert(!code.empty());
 
@@ -153,5 +158,5 @@ auto vkb::createShaderModule(const std::string& code) -> vk::UniqueShaderModule
         reinterpret_cast<const uint32_t*>(code.data())
     );
 
-    return getDevice()->createShaderModuleUnique(info);
+    return device->createShaderModuleUnique(info);
 }

@@ -173,7 +173,7 @@ auto makeDrawableDeferredPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout> {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             config.getAnimationDataDescriptorProvider().getDescriptorSetLayout(),
@@ -206,7 +206,8 @@ auto makeDrawableDeferredPipeline(
     vk::SpecializationInfo vertSpec(1, &vertEntry, sizeof(ui32) * 1, &vertConst);
     vk::SpecializationInfo fragSpec(1, &fragEntry, sizeof(ui32) * 1, &fragConst);
 
-    vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
+    vkb::ShaderProgram program(instance.getDevice(),
+                               SHADER_DIR / "drawable/deferred.vert.spv",
                                SHADER_DIR / "drawable/deferred.frag.spv");
     program.setVertexSpecializationConstants(&vertSpec);
     program.setFragmentSpecializationConstants(&fragSpec);
@@ -230,7 +231,7 @@ auto makeDrawableDeferredPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
     p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
@@ -255,7 +256,7 @@ auto makeDrawableTransparentPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout> {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             config.getAnimationDataDescriptorProvider().getDescriptorSetLayout(),
@@ -289,7 +290,8 @@ auto makeDrawableTransparentPipeline(
     vk::SpecializationInfo vertSpec(1, &vertEntry, sizeof(ui32) * 1, &vertConst);
     vk::SpecializationInfo fragSpec(1, &fragEntry, sizeof(ui32) * 1, &fragConst);
 
-    vkb::ShaderProgram program(SHADER_DIR / "drawable/deferred.vert.spv",
+    vkb::ShaderProgram program(instance.getDevice(),
+                               SHADER_DIR / "drawable/deferred.vert.spv",
                                SHADER_DIR / "drawable/transparent.frag.spv");
     program.setVertexSpecializationConstants(&vertSpec);
     program.setFragmentSpecializationConstants(&fragSpec);
@@ -314,7 +316,7 @@ auto makeDrawableTransparentPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
     p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
@@ -358,7 +360,8 @@ auto makeDrawableShadowPipeline(
     );
 
     // Pipeline
-    vkb::ShaderProgram program(SHADER_DIR / "drawable/shadow.vert.spv",
+    vkb::ShaderProgram program(instance.getDevice(),
+                               SHADER_DIR / "drawable/shadow.vert.spv",
                                SHADER_DIR / "drawable/shadow.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
@@ -390,7 +393,7 @@ auto makeInstancedDrawableDeferredPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout> {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
@@ -404,7 +407,8 @@ auto makeInstancedDrawableDeferredPipeline(
     );
 
     // Pipeline
-    vkb::ShaderProgram program(SHADER_DIR / "drawable/instanced.vert.spv",
+    vkb::ShaderProgram program(instance.getDevice(),
+                               SHADER_DIR / "drawable/instanced.vert.spv",
                                SHADER_DIR / "drawable/deferred.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
@@ -443,7 +447,7 @@ auto makeInstancedDrawableDeferredPipeline(
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
 
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
     p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
 
@@ -474,7 +478,8 @@ auto makeInstancedDrawableShadowPipeline(
     );
 
     // Pipeline
-    vkb::ShaderProgram program(SHADER_DIR / "drawable/shadow_instanced.vert.spv",
+    vkb::ShaderProgram program(instance.getDevice(),
+                               SHADER_DIR / "drawable/shadow_instanced.vert.spv",
                                SHADER_DIR / "drawable/shadow.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
@@ -520,7 +525,7 @@ auto makeFinalLightingPipeline(
         std::vector<vk::DescriptorSetLayout>
         {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider().getDescriptorSetLayout(),
+            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getShadowDescriptorProvider().getDescriptorSetLayout(),
@@ -529,7 +534,8 @@ auto makeFinalLightingPipeline(
     );
 
     // Pipeline
-    vkb::ShaderProgram program(SHADER_DIR / "final_lighting.vert.spv",
+    vkb::ShaderProgram program(instance.getDevice(),
+                               SHADER_DIR / "final_lighting.vert.spv",
                                SHADER_DIR / "final_lighting.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
@@ -553,7 +559,7 @@ auto makeFinalLightingPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider());
+    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
     p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(4, config.getShadowDescriptorProvider());

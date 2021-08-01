@@ -5,6 +5,12 @@
 
 
 
+trc::rt::RayTracingPipelineBuilder::RayTracingPipelineBuilder(const vkb::Device& device)
+    :
+    device(device)
+{
+}
+
 auto trc::rt::RayTracingPipelineBuilder::beginTableEntry() -> Self&
 {
     if (hasActiveEntry) {
@@ -122,7 +128,6 @@ auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callab
 }
 
 auto trc::rt::RayTracingPipelineBuilder::build(
-    const vkb::Device& device,
     ui32 maxRecursionDepth,
     vk::PipelineLayout layout
     ) -> std::pair<UniquePipeline, ShaderBindingTable>
@@ -158,7 +163,9 @@ auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const fs::path& path) -
         throw std::runtime_error(path.string() + " is not a regular file");
     }
 
-    return *shaderModules.emplace_back(vkb::createShaderModule(vkb::readFile(path.string())));
+    return *shaderModules.emplace_back(
+        vkb::createShaderModule(device, vkb::readFile(path.string()))
+    );
 }
 
 auto trc::rt::RayTracingPipelineBuilder::addPipelineStage(

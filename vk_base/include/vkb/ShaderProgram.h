@@ -18,6 +18,7 @@ namespace vkb
         using ShaderStageCreateInfos = std::vector<vk::PipelineShaderStageCreateInfo>;
 
         ShaderProgram(
+            const vkb::Device& device,
             const std::string& vertPath,
             const std::string& fragPath,
             const std::string& geomPath = "",
@@ -64,5 +65,6 @@ namespace vkb
     /**
      * @brief Create a shader module from shader code
      */
-    auto createShaderModule(const std::string& code) -> vk::UniqueShaderModule;
+    auto createShaderModule(const vkb::Device& device, const std::string& code)
+        -> vk::UniqueShaderModule;
 } // namespace vkb
