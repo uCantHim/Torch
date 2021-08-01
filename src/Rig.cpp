@@ -2,13 +2,16 @@
 
 
 
-trc::Rig::Rig(const RigData& data, const std::vector<AnimationData>& animationData)
+trc::Rig::Rig(
+    const RigData& data,
+    AnimationDataStorage& animStorage,
+    const std::vector<AnimationData>& animationData)
     :
     bones(data.bones)
 {
     for (ui32 i = 0; const auto& anim : animationData)
     {
-        animations.emplace_back(anim);
+        animations.emplace_back(animStorage.addAnimation(anim));
         animationNames[anim.name] = i++;
     }
 }

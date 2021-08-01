@@ -23,7 +23,9 @@ namespace trc
     class Rig
     {
     public:
-        Rig(const RigData& data, const std::vector<AnimationData>& animationData);
+        Rig(const RigData& data,
+            AnimationDataStorage& animStorage,
+            const std::vector<AnimationData>& animationData);
 
         auto getAnimationCount() const noexcept -> ui32;
 
