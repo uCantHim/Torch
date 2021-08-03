@@ -173,7 +173,7 @@ public:
     void executeTransferCommandBufferSyncronously(vk::CommandBuffer cmdBuf) const;
 
     template<std::invocable<vk::CommandBuffer> F>
-    void executeCommandsSynchronously(QueueType queueType, F func);
+    void executeCommandsSynchronously(QueueType queueType, F func) const;
 
 private:
     const PhysicalDevice& physicalDevice;
@@ -186,7 +186,7 @@ private:
 };
 
 template<std::invocable<vk::CommandBuffer> F>
-void Device::executeCommandsSynchronously(QueueType queueType, F func)
+void Device::executeCommandsSynchronously(QueueType queueType, F func) const
 {
     auto [queue, family] = queueManager.getAnyQueue(queueType);
     auto pool = device->createCommandPoolUnique(vk::CommandPoolCreateInfo(
@@ -195,9 +195,7 @@ void Device::executeCommandsSynchronously(QueueType queueType, F func)
     ));
 
     auto cmdBuf = std::move(device->allocateCommandBuffersUnique({
-        *pool,
-        vk::CommandBufferLevel::ePrimary,
-        1
+        *pool, vk::CommandBufferLevel::ePrimary, 1
     })[0]);
     cmdBuf->begin(vk::CommandBufferBeginInfo{});
     func(*cmdBuf);
@@ -208,8 +206,11 @@ void Device::executeCommandsSynchronously(QueueType queueType, F func)
         vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf),
         *fence
     );
-    if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess) {
-        throw std::runtime_error("Failed to wait for fence in Device::executeCommandsSynchronously");
+    if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess)
+    {
+        throw std::runtime_error(
+            "Error while waiting for fence in Device::executeCommandsSynchronously"
+        );
     }
 }
 
