@@ -7,9 +7,9 @@ auto trc::makePlaneGeo(
     float height,
     ui32 segmentsX,
     ui32 segmentsY,
-    std::function<float(float, float)> heightFunc) -> MeshData
+    std::function<float(float, float)> heightFunc) -> GeometryData
 {
-    MeshData result;
+    GeometryData result;
 
     const float sizeX = width / segmentsX;
     const float sizeY = height / segmentsY;
@@ -55,7 +55,7 @@ auto trc::makePlaneGeo(
     return result;
 }
 
-auto trc::makeCubeGeo() -> MeshData
+auto trc::makeCubeGeo() -> GeometryData
 {
     //return {
     //    {
@@ -149,41 +149,35 @@ auto trc::makeCubeGeo() -> MeshData
 
 
 
-trc::Geometry::Geometry(const MeshData& data)
+trc::Geometry::Geometry(
+    vk::Buffer indices,
+    ui32 numIndices,
+    vk::IndexType indexType,
+    vk::Buffer verts,
+    ui32 numVerts)
     :
-    indexBuffer(
-        data.indices,
-        // Just always specify the shader device address flag in case I
-        // want to use the geometry for ray tracing. Doesn't hurt even if
-        // the feature is not enabled.
-        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        pool.makeAllocator()
-    ),
-    vertexBuffer(
-        data.vertices,
-        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        pool.makeAllocator()
-    ),
-    numIndices(data.indices.size()),
-    numVertices(data.vertices.size())
+    indexBuffer(indices),
+    vertexBuffer(verts),
+    numIndices(numIndices),
+    numVertices(numVerts),
+    indexType(indexType)
 {
 }
 
-trc::Geometry::Geometry(const MeshData& data, std::unique_ptr<Rig> rig)
-    :
-    Geometry(data)
+void trc::Geometry::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding)
 {
-    this->rig = std::move(rig);
+    cmdBuf.bindIndexBuffer(indexBuffer, 0, indexType);
+    cmdBuf.bindVertexBuffers(binding, vertexBuffer, vk::DeviceSize(0));
 }
 
 auto trc::Geometry::getIndexBuffer() const noexcept -> vk::Buffer
 {
-    return *indexBuffer;
+    return indexBuffer;
 }
 
 auto trc::Geometry::getVertexBuffer() const noexcept -> vk::Buffer
 {
-    return *vertexBuffer;
+    return vertexBuffer;
 }
 
 auto trc::Geometry::getIndexCount() const noexcept -> ui32
@@ -194,14 +188,4 @@ auto trc::Geometry::getIndexCount() const noexcept -> ui32
 auto trc::Geometry::getVertexCount() const noexcept -> ui32
 {
     return numVertices;
-}
-
-auto trc::Geometry::hasRig() const noexcept -> bool
-{
-    return rig != nullptr;
-}
-
-auto trc::Geometry::getRig() const noexcept -> Rig*
-{
-    return rig.get();
 }

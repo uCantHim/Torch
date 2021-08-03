@@ -16,7 +16,7 @@ namespace trc
     public:
         Drawable() = default;
         explicit
-        Drawable(GeometryID geo, MaterialID material = MaterialID(0));
+        Drawable(GeometryID geo, MaterialID material = {});
         Drawable(GeometryID geo, MaterialID material, SceneBase& scene);
         ~Drawable();
 
@@ -109,6 +109,6 @@ namespace trc
 
         ui32 drawableDataId{ DrawableDataStore::create(*this) };
         DrawableData* data{ &DrawableDataStore::get(drawableDataId) };
-        GeometryID geoIndex{ 0 };
+        GeometryID geoIndex;
     };
 }

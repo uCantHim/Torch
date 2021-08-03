@@ -23,19 +23,6 @@ trc::Renderer::Renderer(Window& _window)
     frameInFlightFences(_window.getSwapchain())
 {
     createSemaphores();
-
-    // Pre recreate, finish rendering
-    preRecreateListener = vkb::EventHandler<vkb::PreSwapchainRecreateEvent>::addListener(
-        [this](const auto&) {
-            waitForAllFrames();
-        }
-    );
-    // Post recreate, create the required resources
-    postRecreateListener = vkb::EventHandler<vkb::SwapchainRecreateEvent>::addListener(
-        [this](const auto&) {
-            waitForAllFrames();
-        }
-    );
 }
 
 trc::Renderer::~Renderer()

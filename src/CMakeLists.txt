@@ -2,6 +2,7 @@ target_sources(
     torch
     PRIVATE
         Animation.cpp
+        AnimationDataStorage.cpp
         AnimationEngine.cpp
         AssetRegistry.cpp
         DeferredRenderConfig.cpp

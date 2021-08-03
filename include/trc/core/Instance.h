@@ -47,8 +47,8 @@ namespace trc
         auto getDevice() const -> const vkb::Device&;
         auto getQueueManager() -> vkb::QueueManager&;
         auto getQueueManager() const -> const vkb::QueueManager&;
-        auto getDynamicLoader() -> vk::DispatchLoaderDynamic&;
-        auto getDynamicLoader() const -> const vk::DispatchLoaderDynamic&;
+        auto getDL() -> vk::DispatchLoaderDynamic&;
+        auto getDL() const -> const vk::DispatchLoaderDynamic&;
 
         auto makeWindow(const WindowCreateInfo& info) const -> u_ptr<Window>;
 

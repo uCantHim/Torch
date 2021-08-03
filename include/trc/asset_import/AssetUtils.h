@@ -15,9 +15,9 @@ namespace trc
     struct SceneImportResult
     {
         Scene scene;
-        std::vector<std::unique_ptr<Drawable>> drawables;
+        std::vector<std::unique_ptr<Drawable>> drawables{};
 
-        std::vector<std::pair<GeometryID, MaterialID>> importedGeometries;
+        std::vector<std::pair<GeometryID, MaterialID>> importedGeometries{};
     };
 
 #ifdef TRC_USE_FBX_SDK
@@ -32,11 +32,11 @@ namespace trc
      *         error occurs. Otherwise a Geometry.
      */
     extern auto loadGeometry(const fs::path& fbxFilePath,
-                             AnimationDataStorage& animStorage,
+                             AssetRegistry& assetRegistry,
                              bool loadRig = true) -> Maybe<Geometry>;
 
     extern auto loadScene(const Instance& instance,
                           const fs::path& fbxFilePath,
-                          AnimationDataStorage& animStorage) -> SceneImportResult;
+                          AssetRegistry& assetRegistry) -> SceneImportResult;
 #endif
 }

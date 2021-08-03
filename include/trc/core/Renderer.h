@@ -43,9 +43,6 @@ namespace trc
         const vkb::Device& device;
         Window* window; // Must be non-const for presentImage
 
-        vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
-        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> postRecreateListener;
-
         // Synchronization
         void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
         void createSemaphores();

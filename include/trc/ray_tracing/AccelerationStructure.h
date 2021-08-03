@@ -5,6 +5,10 @@
 #include "Types.h"
 #include "AssetIds.h"
 
+namespace trc {
+    class Instance;
+}
+
 namespace trc::rt
 {
     /**
@@ -40,7 +44,8 @@ namespace trc::rt
             /**
              * @brief Create or recreate the acceleration structure
              */
-            void create(vk::AccelerationStructureBuildGeometryInfoKHR buildInfo,
+            void create(const ::trc::Instance& instance,
+                        vk::AccelerationStructureBuildGeometryInfoKHR buildInfo,
                         const vk::ArrayProxy<const ui32>& primitiveCount,
                         const vkb::DeviceMemoryAllocator& alloc);
 
@@ -63,7 +68,8 @@ namespace trc::rt
          * @param const vkb::DeviceMemoryAllocator& alloc
          */
         explicit BottomLevelAccelerationStructure(
-            GeometryID geo,
+            const ::trc::Instance& instance,
+            Geometry geo,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
@@ -71,7 +77,8 @@ namespace trc::rt
          * @param const vkb::DeviceMemoryAllocator& alloc
          */
         explicit BottomLevelAccelerationStructure(
-            std::vector<GeometryID> geos,
+            const ::trc::Instance& instance,
+            std::vector<Geometry> geos,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
@@ -105,6 +112,8 @@ namespace trc::rt
             >;
 
     private:
+        const ::trc::Instance& instance;
+
         std::vector<vk::AccelerationStructureGeometryKHR> geometries;
         std::vector<ui32> primitiveCounts;
         ui64 deviceAddress;
@@ -120,7 +129,7 @@ namespace trc::rt
         /**
          * @brief Does not initialize anything
          */
-        TopLevelAccelerationStructure() = default;
+        explicit TopLevelAccelerationStructure(const Instance& instance);
 
         /**
          * @brief Create a top level acceleration structure
@@ -133,6 +142,7 @@ namespace trc::rt
          *                          in the TLAS
          */
         explicit TopLevelAccelerationStructure(
+            const ::trc::Instance& instance,
             ui32 maxInstances,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
@@ -149,6 +159,8 @@ namespace trc::rt
         void build(vk::Buffer instanceBuffer, ui32 offset = 0);
 
     private:
+        const Instance& instance;
+
         ui32 maxInstances;
         vk::AccelerationStructureGeometryKHR geometry;
 
@@ -168,7 +180,8 @@ namespace trc::rt
     /**
      * @brief Build multiple acceleration structures at once
      */
-    void buildAccelerationStructures(const std::vector<BottomLevelAccelerationStructure*>& as);
+    void buildAccelerationStructures(const ::trc::Instance& instance,
+                                     const std::vector<BottomLevelAccelerationStructure*>& as);
 
     using BLAS = BottomLevelAccelerationStructure;
     using TLAS = TopLevelAccelerationStructure;

@@ -313,7 +313,7 @@ auto trc::makeParticleDrawPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout>{
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
+            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         std::vector<vk::PushConstantRange>{}
@@ -366,7 +366,7 @@ auto trc::makeParticleDrawPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
+    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
 
     return p;

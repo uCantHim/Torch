@@ -173,7 +173,7 @@ auto makeDrawableDeferredPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout> {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
+            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             config.getAnimationDataDescriptorProvider().getDescriptorSetLayout(),
@@ -231,7 +231,7 @@ auto makeDrawableDeferredPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
+    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
@@ -256,7 +256,7 @@ auto makeDrawableTransparentPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout> {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
+            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             config.getAnimationDataDescriptorProvider().getDescriptorSetLayout(),
@@ -316,7 +316,7 @@ auto makeDrawableTransparentPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
+    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
@@ -393,7 +393,7 @@ auto makeInstancedDrawableDeferredPipeline(
         instance.getDevice(),
         std::vector<vk::DescriptorSetLayout> {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
+            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
@@ -447,7 +447,7 @@ auto makeInstancedDrawableDeferredPipeline(
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
 
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
+    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
 
@@ -525,7 +525,7 @@ auto makeFinalLightingPipeline(
         std::vector<vk::DescriptorSetLayout>
         {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            AssetRegistry::getDescriptorSetProvider(instance).getDescriptorSetLayout(),
+            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
             config.getSceneDescriptorProvider().getDescriptorSetLayout(),
             config.getShadowDescriptorProvider().getDescriptorSetLayout(),
@@ -559,7 +559,7 @@ auto makeFinalLightingPipeline(
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
     p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, AssetRegistry::getDescriptorSetProvider(instance));
+    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
     p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
     p.addStaticDescriptorSet(3, config.getSceneDescriptorProvider());
     p.addStaticDescriptorSet(4, config.getShadowDescriptorProvider());

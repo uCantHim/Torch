@@ -12,7 +12,8 @@
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
 #include "ShadowDescriptor.h"
-#include "Animation.h"
+#include "AssetRegistry.h"
+#include "AnimationDataStorage.h"
 #include "text/FontDataStorage.h"
 
 namespace trc
@@ -27,7 +28,7 @@ namespace trc
     {
         const Instance& instance;
         const Window& window;
-        const AssetRegistry& assetRegistry;
+        AssetRegistry* assetRegistry;
 
         ui32 maxTransparentFragsPerPixel{ 3 };
     };
@@ -55,6 +56,8 @@ namespace trc
         auto getShadowDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getAnimationDataDescriptorProvider() const -> const DescriptorProviderInterface&;
 
+        auto getAssets() -> AssetRegistry&;
+        auto getAssets() const -> const AssetRegistry&;
         auto getAnimationDataStorage() -> AnimationDataStorage&;
         auto getAnimationDataStorage() const -> const AnimationDataStorage&;
         auto getFontDataStorage() -> FontDataStorage&;
@@ -71,6 +74,7 @@ namespace trc
         ShadowDescriptor shadowDescriptor;
 
         // Data & Assets
+        AssetRegistry* assetRegistry;
         AnimationDataStorage animationStorage;
         FontDataStorage fontStorage;
 

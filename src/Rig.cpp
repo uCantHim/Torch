@@ -1,5 +1,7 @@
 #include "Rig.h"
 
+#include "AnimationDataStorage.h"
+
 
 
 trc::Rig::Rig(

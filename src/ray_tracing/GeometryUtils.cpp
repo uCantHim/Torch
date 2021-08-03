@@ -5,17 +5,12 @@
 
 
 
-auto trc::rt::makeGeometryInfo(GeometryID geoId) -> vk::AccelerationStructureGeometryKHR
-{
-    return makeGeometryInfo(**AssetRegistry::getGeometry(geoId));
-}
-
 auto trc::rt::makeGeometryInfo(const Geometry& geo) -> vk::AccelerationStructureGeometryKHR
 {
     return { // Array of geometries in the AS
         vk::GeometryTypeKHR::eTriangles,
         vk::AccelerationStructureGeometryDataKHR{ // a union
-            vk::AccelerationStructureGeometryTrianglesDataKHR{
+            vk::AccelerationStructureGeometryTrianglesDataKHR(
                 vk::Format::eR32G32B32Sfloat,
                 vkb::getDevice()->getBufferAddress({ geo.getVertexBuffer() }),
                 sizeof(trc::Vertex),
@@ -23,7 +18,7 @@ auto trc::rt::makeGeometryInfo(const Geometry& geo) -> vk::AccelerationStructure
                 vk::IndexType::eUint32,
                 vkb::getDevice()->getBufferAddress({ geo.getIndexBuffer() }),
                 nullptr // transform data
-            }
+            )
         }
     };
 }

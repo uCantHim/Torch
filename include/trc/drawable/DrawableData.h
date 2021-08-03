@@ -15,8 +15,8 @@ namespace trc
     {
         Node* node;
 
-        Geometry* geo{ 0 };
-        MaterialID mat{ 0 };
+        Geometry geo{};
+        MaterialID mat{};
 
         Pickable::ID pickableId{ NO_PICKABLE };
         bool isTransparent{ false };

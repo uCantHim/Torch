@@ -40,8 +40,6 @@ int main()
         }
 
         torch.instance->getDevice()->waitIdle();
-
-        trc::AssetRegistry::reset();
     }
 
     // Call this after you've destroyed all Torch/Vulkan resources.

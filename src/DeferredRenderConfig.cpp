@@ -24,6 +24,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
     sceneDescriptor(info.window),
     shadowDescriptor(info.window),
     // Asset storage
+    assetRegistry(info.assetRegistry),
     animationStorage(info.instance),
     fontStorage(info.instance),
     // Internal resources
@@ -36,6 +37,13 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
         vk::BufferUsageFlagBits::eVertexBuffer
     )
 {
+    if (info.assetRegistry == nullptr)
+    {
+        throw std::invalid_argument(
+            "Member assetRegistry in DeferredRenderCreateInfo may not be nullptr!"
+        );
+    }
+
     // Specify basic graph layout
     graph.first(RenderStageTypes::getDeferred());
     graph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
@@ -109,7 +117,32 @@ auto trc::DeferredRenderConfig::getAnimationDataDescriptorProvider() const
     return animationStorage.getProvider();
 }
 
+auto trc::DeferredRenderConfig::getAssets() -> AssetRegistry&
+{
+    return *assetRegistry;
+}
+
+auto trc::DeferredRenderConfig::getAssets() const -> const AssetRegistry&
+{
+    return *assetRegistry;
+}
+
 auto trc::DeferredRenderConfig::getAnimationDataStorage() -> AnimationDataStorage&
 {
     return animationStorage;
+}
+
+auto trc::DeferredRenderConfig::getAnimationDataStorage() const -> const AnimationDataStorage&
+{
+    return animationStorage;
+}
+
+auto trc::DeferredRenderConfig::getFontDataStorage() -> FontDataStorage&
+{
+    return fontStorage;
+}
+
+auto trc::DeferredRenderConfig::getFontDataStorage() const -> const FontDataStorage&
+{
+    return fontStorage;
 }

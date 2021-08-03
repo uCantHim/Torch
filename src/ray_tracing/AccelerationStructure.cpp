@@ -1,5 +1,8 @@
 #include "ray_tracing/AccelerationStructure.h"
 
+#include <vkb/MemoryPool.h>
+
+#include "core/Instance.h"
 #include "ray_tracing/GeometryUtils.h"
 
 
@@ -11,30 +14,32 @@ auto trc::rt::internal::AccelerationStructureBase::operator*() const noexcept
 }
 
 void trc::rt::internal::AccelerationStructureBase::create(
+    const ::trc::Instance& instance,
     vk::AccelerationStructureBuildGeometryInfoKHR buildInfo,
     const vk::ArrayProxy<const ui32>& primitiveCount,
     const vkb::DeviceMemoryAllocator& alloc)
 {
     geoBuildInfo = buildInfo;
 
-    buildSizes = vkb::getDevice()->getAccelerationStructureBuildSizesKHR(
+    buildSizes = instance.getDevice()->getAccelerationStructureBuildSizesKHR(
         vk::AccelerationStructureBuildTypeKHR::eHostOrDevice,
         geoBuildInfo,
         // Collect number of primitives for each geometry in the build
         // info
         primitiveCount,
-        vkb::getDL()
+        instance.getDL()
     );
 
     /**
      * TODO: Create a buffer pool instead of one buffer per AS
      */
     accelerationStructureBuffer = vkb::DeviceLocalBuffer{
+        instance.getDevice(),
         buildSizes.accelerationStructureSize, nullptr,
         vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR,
         alloc
     };
-    accelerationStructure = vkb::getDevice()->createAccelerationStructureKHRUnique(
+    accelerationStructure = instance.getDevice()->createAccelerationStructureKHRUnique(
         vk::AccelerationStructureCreateInfoKHR{
             {},
             *accelerationStructureBuffer,
@@ -43,7 +48,7 @@ void trc::rt::internal::AccelerationStructureBase::create(
             geoBuildInfo.type
         },
         nullptr,
-        vkb::getDL()
+        instance.getDL()
     );
 }
 
@@ -62,20 +67,23 @@ auto trc::rt::internal::AccelerationStructureBase::getBuildSize() const noexcept
 
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
-    GeometryID geo,
+    const ::trc::Instance& instance,
+    Geometry geo,
     const vkb::DeviceMemoryAllocator& alloc)
     :
-    BottomLevelAccelerationStructure(std::vector<GeometryID>{ geo }, alloc)
+    BottomLevelAccelerationStructure(instance, std::vector<Geometry>{ geo }, alloc)
 {
 }
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
-    std::vector<GeometryID> geos,
+    const ::trc::Instance& instance,
+    std::vector<Geometry> geos,
     const vkb::DeviceMemoryAllocator& alloc)
     :
+    instance(instance),
     geometries([&] {
         std::vector<vk::AccelerationStructureGeometryKHR> result;
-        for (GeometryID geo : geos) {
+        for (Geometry geo : geos) {
             result.push_back(makeGeometryInfo(geo));
         }
         return result;
@@ -96,6 +104,7 @@ trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     // Create the acceleration structure now (when the geometries vector
     // is initialized)
     create(
+        instance,
         vk::AccelerationStructureBuildGeometryInfoKHR{
             vk::AccelerationStructureTypeKHR::eBottomLevel,
             vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace,
@@ -108,15 +117,15 @@ trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
         alloc
     );
 
-    deviceAddress = vkb::getDevice()->getAccelerationStructureAddressKHR(
+    deviceAddress = instance.getDevice()->getAccelerationStructureAddressKHR(
         { *accelerationStructure },
-        vkb::getDL()
+        instance.getDL()
     );
 }
 
 void trc::rt::BottomLevelAccelerationStructure::build()
 {
-    static auto features = vkb::getPhysicalDevice().physicalDevice.getFeatures2<
+    static auto features = instance.getPhysicalDevice().physicalDevice.getFeatures2<
         vk::PhysicalDeviceFeatures2,
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR
     >().get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
@@ -133,27 +142,27 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
-        vkb::getDevice()->buildAccelerationStructuresKHR(
+        instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
             geoBuildInfo
-                .setScratchData(vkb::getDevice()->getBufferAddress({ *scratchBuffer }))
+                .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer }))
                 .setDstAccelerationStructure(*accelerationStructure),
             buildRangePointers,
-            vkb::getDL()
+            instance.getDL()
         );
     }
     else
     {
-        vkb::getDevice().executeCommandsSynchronously(
+        instance.getDevice().executeCommandsSynchronously(
             vkb::QueueType::compute,
             [&, &buildRangePointers=buildRangePointers](vk::CommandBuffer cmdBuf)
             {
                 cmdBuf.buildAccelerationStructuresKHR(
                     geoBuildInfo
-                        .setScratchData(vkb::getDevice()->getBufferAddress({ *scratchBuffer }))
+                        .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer }))
                         .setDstAccelerationStructure(*accelerationStructure),
                     buildRangePointers,
-                    vkb::getDL()
+                    instance.getDL()
                 );
             }
         );
@@ -193,9 +202,18 @@ auto trc::rt::BottomLevelAccelerationStructure::makeBuildRanges() const noexcept
 
 
 trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
+    const ::trc::Instance& instance)
+    :
+    instance(instance)
+{
+}
+
+trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
+    const ::trc::Instance& instance,
     ui32 maxInstances,
     const vkb::DeviceMemoryAllocator& alloc)
     :
+    instance(instance),
     maxInstances(maxInstances),
     geometry(
         vk::GeometryTypeKHR::eInstances,
@@ -208,6 +226,7 @@ trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
     )
 {
     create(
+        instance,
         vk::AccelerationStructureBuildGeometryInfoKHR{
             vk::AccelerationStructureTypeKHR::eTopLevel,
             vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace,
@@ -226,7 +245,7 @@ void trc::rt::TopLevelAccelerationStructure::build(
     ui32 offset)
 {
     // Use new instance buffer
-    geometry.geometry.instances.data = vkb::getDevice()->getBufferAddress(instanceBuffer);
+    geometry.geometry.instances.data = instance.getDevice()->getBufferAddress(instanceBuffer);
 
     // Create temporary scratch buffer
     vkb::DeviceLocalBuffer scratchBuffer{
@@ -236,7 +255,7 @@ void trc::rt::TopLevelAccelerationStructure::build(
     };
 
     vk::AccelerationStructureBuildRangeInfoKHR buildRange{ maxInstances, offset, 0, 0 };
-    vkb::getDevice().executeCommandsSynchronously(vkb::QueueType::compute,
+    instance.getDevice().executeCommandsSynchronously(vkb::QueueType::compute,
         [&](vk::CommandBuffer cmdBuf)
         {
             cmdBuf.buildAccelerationStructuresKHR(
@@ -244,9 +263,9 @@ void trc::rt::TopLevelAccelerationStructure::build(
                     .setGeometries(geometry)
                     .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
                     .setDstAccelerationStructure(*accelerationStructure)
-                    .setScratchData(vkb::getDevice()->getBufferAddress({ *scratchBuffer })),
+                    .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
                 { &buildRange },
-                vkb::getDL()
+                instance.getDL()
             );
         }
     );
@@ -258,11 +277,13 @@ void trc::rt::TopLevelAccelerationStructure::build(
 //      Helpers     //
 // ---------------- //
 
-void trc::rt::buildAccelerationStructures(const std::vector<BottomLevelAccelerationStructure*>& as)
+void trc::rt::buildAccelerationStructures(
+    const ::trc::Instance& instance,
+    const std::vector<BottomLevelAccelerationStructure*>& as)
 {
     if (as.empty()) return;
 
-    static auto features = vkb::getPhysicalDevice().physicalDevice.getFeatures2<
+    static auto features = instance.getPhysicalDevice().physicalDevice.getFeatures2<
         vk::PhysicalDeviceFeatures2,
         vk::PhysicalDeviceAccelerationStructureFeaturesKHR
     >().get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
@@ -275,7 +296,7 @@ void trc::rt::buildAccelerationStructures(const std::vector<BottomLevelAccelerat
         }
         return result;
     }();
-    vkb::MemoryPool scratchPool(vkb::getDevice(), scratchSize);
+    vkb::MemoryPool scratchPool(instance.getDevice(), scratchSize);
     std::vector<vkb::DeviceLocalBuffer> scratchBuffers;
 
     // Collect build infos
@@ -289,7 +310,7 @@ void trc::rt::buildAccelerationStructures(const std::vector<BottomLevelAccelerat
         );
         auto info = blas->getGeometryBuildInfo();
         geoBuildInfos.push_back(
-            info.setScratchData(vkb::getDevice()->getBufferAddress({ *scratchBuffer }))
+            info.setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer }))
                 .setDstAccelerationStructure(**blas)
         );
     }
@@ -308,23 +329,23 @@ void trc::rt::buildAccelerationStructures(const std::vector<BottomLevelAccelerat
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
-        vkb::getDevice()->buildAccelerationStructuresKHR(
+        instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
             geoBuildInfos,
             buildRangePointers,
-            vkb::getDL()
+            instance.getDL()
         );
     }
     else
     {
-        vkb::getDevice().executeCommandsSynchronously(
+        instance.getDevice().executeCommandsSynchronously(
             vkb::QueueType::compute,
             [&](vk::CommandBuffer cmdBuf)
             {
                 cmdBuf.buildAccelerationStructuresKHR(
                     geoBuildInfos,
                     buildRangePointers,
-                    vkb::getDL()
+                    instance.getDL()
                 );
             }
         );

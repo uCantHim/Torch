@@ -12,40 +12,40 @@ using trc::rt::TLAS;
 int main()
 {
     auto torch = trc::initDefault();
+    auto& instance = *torch.instance;
+    auto& swapchain = torch.window->getSwapchain();
     auto& animStorage = torch.renderConfig->getAnimationDataStorage();
+    auto& ar = *torch.assetRegistry;
 
     auto scene = std::make_unique<trc::Scene>(*torch.instance);
     trc::Camera camera;
     camera.lookAt({ 0, 2, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
-    auto size = vkb::getSwapchain().getImageExtent();
+    auto size = swapchain.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::GeometryID geoId = (trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", animStorage)
-                            >> trc::AssetRegistry::addGeometry).get();
+    trc::Geometry geo = *trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar);
 
-    trc::GeometryID triId = trc::AssetRegistry::addGeometry(
-        trc::Geometry(
-            trc::MeshData{
-                .vertices = {
-                    { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },
-                    { vec3(1.0f, 1.0f, 0.0f), {}, {}, {} },
-                    { vec3(0.0f, 1.0f, 0.0f), {}, {}, {} },
-                    { vec3(1.0f, 0.0f, 0.0f), {}, {}, {} },
-                },
-                .indices = {
-                    0, 1, 2,
-                    0, 3, 1,
-                }
+    trc::Geometry tri = ar.add(
+        trc::GeometryData{
+            .vertices = {
+                { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },
+                { vec3(1.0f, 1.0f, 0.0f), {}, {}, {} },
+                { vec3(0.0f, 1.0f, 0.0f), {}, {}, {} },
+                { vec3(1.0f, 0.0f, 0.0f), {}, {}, {} },
+            },
+            .indices = {
+                0, 1, 2,
+                0, 3, 1,
             }
-        )
-    );
+        }
+    ).get();
 
     // --- BLAS --- //
 
-    vkb::MemoryPool asPool{ torch.instance->getDevice(), 100000000 };
-    BLAS triBlas{ triId };
-    BLAS blas{ geoId };
-    trc::rt::buildAccelerationStructures({ &blas, &triBlas });
+    vkb::MemoryPool asPool{ instance.getDevice(), 100000000 };
+    BLAS triBlas{ instance, tri };
+    BLAS blas{ instance, geo };
+    trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
 
 
     // --- TLAS --- //
@@ -81,12 +81,13 @@ int main()
         }
     };
     vkb::Buffer instanceBuffer{
+        instance.getDevice(),
         instances,
         vk::BufferUsageFlagBits::eShaderDeviceAddress,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     };
 
-    TLAS tlas{ 30 };
+    TLAS tlas{ instance, 30 };
     tlas.build(*instanceBuffer);
 
 
@@ -133,36 +134,36 @@ int main()
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
         vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1),
     };
-    auto descPool = torch.instance->getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+    auto descPool = instance.getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        vkb::getSwapchain().getFrameCount() + 1,
+        swapchain.getFrameCount() + 1,
         poolSizes
     ));
 
     std::vector<vk::UniqueImageView> imageViews;
     vkb::FrameSpecificObject<vk::UniqueDescriptorSet> imageDescSets{
-        torch.window->getSwapchain(),
+        swapchain,
         [&](ui32 imageIndex) -> vk::UniqueDescriptorSet
         {
-            auto set = std::move(torch.instance->getDevice()->allocateDescriptorSetsUnique(
+            auto set = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
                 { *descPool, 1, &*outputImageDescLayout }
             )[0]);
 
-            vk::Image image = vkb::getSwapchain().getImage(imageIndex);
+            vk::Image image = swapchain.getImage(imageIndex);
             vk::ImageView imageView = *imageViews.emplace_back(
-                torch.instance->getDevice()->createImageViewUnique(
+                instance.getDevice()->createImageViewUnique(
                     vk::ImageViewCreateInfo(
                         {},
                         image,
                         vk::ImageViewType::e2D,
-                        vkb::getSwapchain().getImageFormat(),
+                        swapchain.getImageFormat(),
                         {}, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
                     )
                 )
             );
             vk::DescriptorImageInfo imageInfo(
                 {}, // sampler
-                *imageViews.emplace_back(vkb::getSwapchain().createImageView(imageIndex)),
+                *imageViews.emplace_back(swapchain.createImageView(imageIndex)),
                 vk::ImageLayout::eGeneral
             );
             vk::WriteDescriptorSet write(
@@ -170,13 +171,13 @@ int main()
                 vk::DescriptorType::eStorageImage,
                 &imageInfo
             );
-            torch.instance->getDevice()->updateDescriptorSets(write, {});
+            instance.getDevice()->updateDescriptorSets(write, {});
 
             return set;
         }
     };
 
-    auto asDescSet = std::move(torch.instance->getDevice()->allocateDescriptorSetsUnique(
+    auto asDescSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
         { *descPool, 1, &*rayDescLayout }
     )[0]);
 
@@ -192,7 +193,7 @@ int main()
         ),
         vk::WriteDescriptorSetAccelerationStructureKHR(tlasHandle)
     };
-    torch.instance->getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
+    instance.getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
 
 
     class RayTracingRenderPass : public trc::RenderPass
@@ -220,7 +221,7 @@ int main()
             &shaderBindingTable=shaderBindingTable
         ](const trc::DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
-            auto image = vkb::getSwapchain().getImage(vkb::getSwapchain().getCurrentFrame());
+            auto image = swapchain.getImage(swapchain.getCurrentFrame());
 
             // Bring image into general layout
             cmdBuf.pipelineBarrier(
@@ -255,10 +256,10 @@ int main()
                 shaderBindingTable.getEntryAddress(1),
                 shaderBindingTable.getEntryAddress(2),
                 shaderBindingTable.getEntryAddress(3),
-                vkb::getSwapchain().getImageExtent().width,
-                vkb::getSwapchain().getImageExtent().height,
+                swapchain.getImageExtent().width,
+                swapchain.getImageExtent().height,
                 1,
-                vkb::getDL()
+                instance.getDL()
             );
 
             // Bring image into present layout
@@ -282,7 +283,7 @@ int main()
 
 
 
-    while (vkb::getSwapchain().isOpen())
+    while (swapchain.isOpen())
     {
         vkb::pollEvents();
 
@@ -293,11 +294,12 @@ int main()
         });
     }
 
-    torch.instance->getDevice()->waitIdle();
+    instance.getDevice()->waitIdle();
 
     scene.reset();
     torch.renderConfig.reset();
     torch.window.reset();
+    torch.assetRegistry.reset();
     torch.instance.reset();
     trc::terminate();
 

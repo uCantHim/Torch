@@ -6,31 +6,33 @@
 
 
 
-void trc::AssetRegistry::init(const Instance& instance)
-{
-    constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
-
-    // Create material buffer
-    materialBuffer = vkb::Buffer(
-        defaultMaterialBufferSize,
+trc::AssetRegistry::AssetRegistry(const Instance& instance)
+    :
+    instance(instance),
+    device(instance.getDevice()),
+    memoryPool(instance.getDevice(), MEMORY_POOL_CHUNK_SIZE),
+    materialBuffer(
+        instance.getDevice(),
+        MATERIAL_BUFFER_DEFAULT_SIZE,  // Default material buffer size
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    );
+    )
+{
+    createDescriptors();
 
     // Add default assets
-    addMaterial({});
+    add(Material{});
     updateMaterials();
-    addImage(vkb::makeSinglePixelImage(vkb::getDevice(), vec4(1.0f)));
+    add(vkb::makeSinglePixelImage(device, vec4(1.0f)));
 
-    createDescriptors(instance);
+    writeDescriptors();
 }
 
 void trc::AssetRegistry::reset()
 {
     geometries = {};
     materials = {};
-    imageViews = {};
-    images = {};
+    textures = {};
 
     materialBuffer = {};
 
@@ -43,79 +45,82 @@ void trc::AssetRegistry::reset()
     nextImageIndex = 0;
 }
 
-auto trc::AssetRegistry::addGeometry(Geometry geo) -> GeometryID
+auto trc::AssetRegistry::add(GeometryData data) -> GeometryID
 {
-    GeometryID key(nextGeometryIndex++);
-    addToMap(geometries, key, std::move(geo));
+    GeometryID key(nextGeometryIndex++, *this);
+
+    addToMap(geometries, key,
+        GeometryStorage{
+            .indexBuf = {
+                device,
+                data.indices,
+                // Just always specify the shader device address flag in case I
+                // want to use the geometry for ray tracing. Doesn't hurt even if
+                // the feature is not enabled.
+                vk::BufferUsageFlagBits::eIndexBuffer
+                | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+                memoryPool.makeAllocator()
+            },
+            .vertexBuf = {
+                device,
+                data.vertices,
+                vk::BufferUsageFlagBits::eVertexBuffer
+                | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+                memoryPool.makeAllocator()
+            },
+            .numIndices = static_cast<ui32>(data.indices.size()),
+            .numVertices = static_cast<ui32>(data.vertices.size()),
+        }
+    );
 
     return key;
 }
 
-auto trc::AssetRegistry::addMaterial(Material mat) -> MaterialID
+auto trc::AssetRegistry::add(Material mat) -> MaterialID
 {
-    MaterialID key(nextMaterialIndex++);
+    MaterialID key(nextMaterialIndex++, *this);
     addToMap(materials, key, mat);
 
-    return key;
-}
-
-auto trc::AssetRegistry::addImage(vkb::Image tex) -> TextureID
-{
-    TextureID key(nextImageIndex++);
-    auto& image = addToMap(images, key, std::move(tex));
-    imageViews[key] = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
-
-    //createDescriptors();
+    updateMaterials();
 
     return key;
 }
 
-auto trc::AssetRegistry::getGeometry(GeometryID key) -> Maybe<Geometry*>
+auto trc::AssetRegistry::add(vkb::Image image) -> TextureID
 {
-    return &getFromMap(geometries, key);
+    TextureID key(nextImageIndex++, *this);
+
+    auto view = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
+    addToMap(textures, key,
+        TextureStorage{
+            .image = std::move(image),
+            .imageView = std::move(view),
+        }
+    );
+
+    writeDescriptors();
+
+    return key;
 }
 
-auto trc::AssetRegistry::getMaterial(MaterialID key) -> Maybe<Material*>
+auto trc::AssetRegistry::get(GeometryID key) -> Geometry
 {
-    return &getFromMap(materials, key);
+    return getFromMap(geometries, key);
 }
 
-auto trc::AssetRegistry::getImage(TextureID key) -> Maybe<vkb::Image*>
+auto trc::AssetRegistry::get(MaterialID key) -> Material&
 {
-    return &getFromMap(images, key);
+    return getFromMap(materials, key);
 }
 
-auto trc::AssetRegistry::getDescriptorSetProvider(const Instance& instance) noexcept
-    -> DescriptorProviderInterface&
+auto trc::AssetRegistry::get(TextureID key) -> Texture
 {
-    static bool init{ false };
+    return getFromMap(textures, key);
+}
 
-    if (!init)
-    {
-        constexpr size_t defaultMaterialBufferSize = sizeof(Material) * 100;
-
-        // Create material buffer
-        materialBuffer = vkb::Buffer(
-            instance.getDevice(),
-            defaultMaterialBufferSize,
-            vk::BufferUsageFlagBits::eStorageBuffer,
-            vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-        );
-
-        // Add default assets
-        addMaterial({});
-        updateMaterials();
-        addImage(vkb::makeSinglePixelImage(instance.getDevice(), vec4(1.0f)));
-
-        createDescriptors(instance);
-        //updateDescriptors(instance);
-
-        descriptorProvider.setDescriptorSet(*descSet);
-        descriptorProvider.setDescriptorSetLayout(*descLayout);
-
-        init = true;
-    }
-
+auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept
+    -> const DescriptorProviderInterface&
+{
     return descriptorProvider;
 }
 
@@ -124,7 +129,7 @@ void trc::AssetRegistry::updateMaterials()
     auto buf = reinterpret_cast<Material*>(materialBuffer.map());
     for (size_t i = 0; i < materials.size(); i++)
     {
-        MaterialID id(i);
+        MaterialID::ID id(i);
         if (materials[id] != nullptr) {
             buf[i] = *materials[id];
         }
@@ -132,10 +137,8 @@ void trc::AssetRegistry::updateMaterials()
     materialBuffer.unmap();
 }
 
-void trc::AssetRegistry::createDescriptors(const Instance& instance)
+void trc::AssetRegistry::createDescriptors()
 {
-    const auto& device = instance.getDevice();
-
     descSet = {};
     descLayout = {};
     descPool = {};
@@ -143,13 +146,20 @@ void trc::AssetRegistry::createDescriptors(const Instance& instance)
     // Create pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
         { vk::DescriptorType::eStorageBuffer, 1 },
-        { vk::DescriptorType::eCombinedImageSampler, glm::max(1u, static_cast<ui32>(images.size())) },
+        { vk::DescriptorType::eCombinedImageSampler, MAX_TEXTURE_COUNT },
     };
     descPool = device->createDescriptorPoolUnique({
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+        1, poolSizes
     });
 
     // Create descriptor layout
+    std::vector<vk::DescriptorBindingFlags> bindingFlags{
+        {},                                              // Flags for material buffer
+        vk::DescriptorBindingFlagBits::ePartiallyBound,  // Flags for textures
+    };
+
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
         vk::DescriptorSetLayoutBinding(
             MAT_BUFFER_BINDING,
@@ -160,39 +170,52 @@ void trc::AssetRegistry::createDescriptors(const Instance& instance)
         vk::DescriptorSetLayoutBinding(
             IMG_DESCRIPTOR_BINDING,
             vk::DescriptorType::eCombinedImageSampler,
-            images.size(),
+            MAX_TEXTURE_COUNT,
             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
         ),
     };
+
+    vk::StructureChain layoutChain{
+        vk::DescriptorSetLayoutCreateInfo(
+            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
+            layoutBindings
+        ),
+        vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags)
+    };
     descLayout = device->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo(vk::DescriptorSetLayoutCreateFlags(), layoutBindings)
+        layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
     );
 
     // Create descriptor set
     descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, 1, &*descLayout })[0]);
+
+    // Update provider
+    descriptorProvider.setDescriptorSetLayout(*descLayout);
+    descriptorProvider.setDescriptorSet(*descSet);
 }
 
-void trc::AssetRegistry::updateDescriptors(const Instance& instance)
+void trc::AssetRegistry::writeDescriptors()
 {
     const auto& device = instance.getDevice();
 
+    // Material descriptor infos
     vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
-    // Image writes
+
+    // Texture descriptor infos
     std::vector<vk::DescriptorImageInfo> imageWrites;
-    for (ui32 i = 0; i < images.size(); i++)
+    for (ui32 i = 0; i < textures.size(); i++)
     {
-        TextureID id(i);
-        if (images[id] == nullptr) {
-            break;
-        }
+        auto& tex = textures[TextureID::ID(i)];
+        if (tex == nullptr) break;
 
         imageWrites.emplace_back(vk::DescriptorImageInfo(
-            images[id]->getDefaultSampler(),
-            *imageViews[i],
+            tex->image.getDefaultSampler(),
+            *tex->imageView,
             vk::ImageLayout::eGeneral
         ));
     }
 
+    // Collect descriptor writes
     std::vector<vk::WriteDescriptorSet> writes;
     writes.push_back(vk::WriteDescriptorSet(
         *descSet,
@@ -201,7 +224,10 @@ void trc::AssetRegistry::updateDescriptors(const Instance& instance)
         {},
         &matBufferWrite
     ));
-    if (images.size() > 0)
+
+    // Only write texture information if at least one texture would be
+    // written (required by Vulkan)
+    if (textures.size() > 0)
     {
         device->updateDescriptorSets(vk::WriteDescriptorSet(
             *descSet,

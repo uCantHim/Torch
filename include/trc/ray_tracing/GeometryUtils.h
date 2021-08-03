@@ -7,7 +7,6 @@ namespace trc::rt
 {
     class BottomLevelAccelerationStructure;
 
-    auto makeGeometryInfo(GeometryID geo) -> vk::AccelerationStructureGeometryKHR;
     auto makeGeometryInfo(const Geometry& geo) -> vk::AccelerationStructureGeometryKHR;
 
     struct GeometryInstance

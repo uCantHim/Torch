@@ -193,9 +193,9 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
 }
 
 
-auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> MeshData
+auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> GeometryData
 {
-    MeshData result;
+    GeometryData result;
 
     // Load indices
     int indexCount = mesh->GetPolygonVertexCount();
@@ -220,7 +220,7 @@ auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> MeshData
 }
 
 
-void trc::FBXLoader::loadVertices(FbxMesh* mesh, MeshData& result)
+void trc::FBXLoader::loadVertices(FbxMesh* mesh, GeometryData& result)
 {
     // Load individual vertices
     int vertCount = mesh->GetControlPointsCount();
@@ -235,7 +235,7 @@ void trc::FBXLoader::loadVertices(FbxMesh* mesh, MeshData& result)
 }
 
 
-void trc::FBXLoader::loadUVs(FbxMesh* mesh, MeshData& result)
+void trc::FBXLoader::loadUVs(FbxMesh* mesh, GeometryData& result)
 {
     FbxStringList uvSetNameList;
     mesh->GetUVSetNames(uvSetNameList);
@@ -285,7 +285,7 @@ void trc::FBXLoader::loadUVs(FbxMesh* mesh, MeshData& result)
 }
 
 
-void trc::FBXLoader::loadNormals(FbxMesh* mesh, MeshData& result)
+void trc::FBXLoader::loadNormals(FbxMesh* mesh, GeometryData& result)
 {
     FbxGeometryElementNormal* normalElement = mesh->GetElementNormal();
 
@@ -325,7 +325,7 @@ void trc::FBXLoader::loadNormals(FbxMesh* mesh, MeshData& result)
 }
 
 
-void trc::FBXLoader::loadTangents(FbxMesh* mesh, MeshData& result)
+void trc::FBXLoader::loadTangents(FbxMesh* mesh, GeometryData& result)
 {
     FbxGeometryElementTangent* tangentElement = mesh->GetElementTangent();
     if (tangentElement == nullptr)
@@ -355,7 +355,7 @@ void trc::FBXLoader::loadTangents(FbxMesh* mesh, MeshData& result)
 }
 
 
-void trc::FBXLoader::computeTangents(MeshData& result)
+void trc::FBXLoader::computeTangents(GeometryData& result)
 {
     if (result.indices.empty() || result.indices.size() % 3 != 0)
     {
@@ -515,7 +515,7 @@ auto trc::FBXLoader::loadSkeleton(FbxSkeleton* skeleton)
 }
 
 
-auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
+auto trc::FBXLoader::loadRig(FbxMesh* mesh, GeometryData& result)
     -> std::pair<RigData, std::vector<FbxNode*>>
 {
     // I don't know what this does but apparently it's important
@@ -603,7 +603,7 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, MeshData& result)
 }
 
 
-void trc::FBXLoader::correctBoneWeights(MeshData& mesh)
+void trc::FBXLoader::correctBoneWeights(GeometryData& mesh)
 {
     ui32 totalWeights = 0; // For logging only
     ui32 correctedWeights = 0; // For logging only

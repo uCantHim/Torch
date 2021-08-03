@@ -37,12 +37,13 @@ auto trc::initDefault() -> DefaultTorchStack
 
     auto instance{ trc::createDefaultInstance() };
     auto window{ instance->makeWindow({}) };
+    auto ar{ std::make_unique<AssetRegistry>(*instance) };
     auto config{
         std::make_unique<DeferredRenderConfig>(
             DeferredRenderCreateInfo{
                 *instance,
                 *window,
-                trc::AssetRegistry{},
+                ar.get(),
                 3  // max transparent frags
             }
         )
@@ -53,6 +54,7 @@ auto trc::initDefault() -> DefaultTorchStack
     return {
         std::move(instance),
         std::move(window),
+        std::move(ar),
         std::move(config)
     };
 }
@@ -61,7 +63,6 @@ void trc::terminate()
 {
     torchGlobalVulkanInstance.reset();
 
-    AssetRegistry::reset();
     RenderStageType::destroyAll();
     vkb::vulkanTerminate();
 }

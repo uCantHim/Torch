@@ -58,12 +58,12 @@ namespace trc
         auto loadSceneFromFile(const std::string& path) -> std::optional<SceneImport>;
 
         // Ususal mesh data
-        static auto loadMesh(FbxMesh* mesh) -> MeshData;
-        static void loadVertices(FbxMesh* mesh, MeshData& result);
-        static void loadUVs(FbxMesh* mesh, MeshData& result);
-        static void loadNormals(FbxMesh* mesh, MeshData& result);
-        static void loadTangents(FbxMesh* mesh, MeshData& result);
-        static void computeTangents(MeshData& result);
+        static auto loadMesh(FbxMesh* mesh) -> GeometryData;
+        static void loadVertices(FbxMesh* mesh, GeometryData& result);
+        static void loadUVs(FbxMesh* mesh, GeometryData& result);
+        static void loadNormals(FbxMesh* mesh, GeometryData& result);
+        static void loadTangents(FbxMesh* mesh, GeometryData& result);
+        static void computeTangents(GeometryData& result);
 
         static auto loadMaterials(FbxMesh* mesh) -> std::vector<Material>;
 
@@ -81,11 +81,11 @@ namespace trc
         /**
          * Builds a rig and loads that rig's bone indices and weights into the mesh
          */
-        auto loadRig(FbxMesh* mesh, MeshData& result) -> std::pair<RigData, std::vector<FbxNode*>>;
+        auto loadRig(FbxMesh* mesh, GeometryData& result) -> std::pair<RigData, std::vector<FbxNode*>>;
         auto loadAnimations(const RigData& rig, const std::vector<FbxNode*>& boneNodes)
             -> std::vector<AnimationData>;
 
-        static void correctBoneWeights(MeshData& mesh);
+        static void correctBoneWeights(GeometryData& mesh);
 
         FbxScene* scene{ nullptr };
     };

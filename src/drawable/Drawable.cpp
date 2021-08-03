@@ -14,9 +14,9 @@ trc::Drawable::Drawable(GeometryID geo, MaterialID material)
 {
     setMaterial(material);
     setGeometry(geo);
-    if (data->geo->hasRig()) {
-        data->animEngine = { *data->geo->getRig() };
-    }
+    //if (data->geo->hasRig()) {
+    //    data->animEngine = { *data->geo->getRig() };
+    //}
 
     updateDrawFunctions();
 }
@@ -91,7 +91,7 @@ void trc::Drawable::setMaterial(MaterialID matIndex)
 
 void trc::Drawable::setGeometry(GeometryID newGeo)
 {
-    data->geo = AssetRegistry::getGeometry(newGeo).get();
+    data->geo = newGeo.get();
     geoIndex = newGeo;
 }
 
@@ -126,11 +126,10 @@ void trc::Drawable::removeFromScene()
 
 void trc::Drawable::updateDrawFunctions()
 {
-    if (currentScene == nullptr || data->geo == nullptr) return;
+    if (currentScene == nullptr) return;
 
     auto bindBaseResources = [data=this->data](const auto& env, vk::CommandBuffer cmdBuf) {
-        cmdBuf.bindIndexBuffer(data->geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
-        cmdBuf.bindVertexBuffers(0, data->geo->getVertexBuffer(), vk::DeviceSize(0));
+        data->geo.bindVertices(cmdBuf, 0);
 
         auto layout = env.currentPipeline->getLayout();
         cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
@@ -141,45 +140,45 @@ void trc::Drawable::updateDrawFunctions()
 
     DrawableFunction func;
     Pipeline::ID pipeline;
-    if (data->geo->hasRig())
+    //if (data->geo->hasRig())
+    //{
+    //    if (data->pickableId == NO_PICKABLE)
+    //    {
+    //        func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+    //            bindBaseResources(env, cmdBuf);
+    //            auto layout = env.currentPipeline->getLayout();
+    //            data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+
+    //            cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
+    //        };
+    //        pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
+    //                                       : internal::getDrawableDeferredAnimatedPipeline();
+    //    }
+    //    else
+    //    {
+    //        func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+    //            assert(data->pickableId != NO_PICKABLE);
+
+    //            bindBaseResources(env, cmdBuf);
+    //            auto layout = env.currentPipeline->getLayout();
+    //            data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+    //            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
+    //                                       data->pickableId);
+
+    //            cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
+    //        };
+    //        pipeline = data->isTransparent
+    //            ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
+    //            : internal::getDrawableDeferredAnimatedAndPickablePipeline();
+    //    }
+    //}
+    //else
     {
         if (data->pickableId == NO_PICKABLE)
         {
             func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 bindBaseResources(env, cmdBuf);
-                auto layout = env.currentPipeline->getLayout();
-                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
-
-                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
-            };
-            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
-                                           : internal::getDrawableDeferredAnimatedPipeline();
-        }
-        else
-        {
-            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-                assert(data->pickableId != NO_PICKABLE);
-
-                bindBaseResources(env, cmdBuf);
-                auto layout = env.currentPipeline->getLayout();
-                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
-                cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
-                                           data->pickableId);
-
-                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
-            };
-            pipeline = data->isTransparent
-                ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
-                : internal::getDrawableDeferredAnimatedAndPickablePipeline();
-        }
-    }
-    else
-    {
-        if (data->pickableId == NO_PICKABLE)
-        {
-            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-                bindBaseResources(env, cmdBuf);
-                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
+                cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
             pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredPipeline()
                                            : internal::getDrawableDeferredPipeline();
@@ -194,7 +193,7 @@ void trc::Drawable::updateDrawFunctions()
                 cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
                                            data->pickableId);
 
-                cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
+                cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
             pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredPickablePipeline()
                                            : internal::getDrawableDeferredPickablePipeline();
@@ -230,8 +229,7 @@ void trc::Drawable::drawShadow(
     cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
 
     // Bind buffers and push constants
-    cmdBuf.bindIndexBuffer(data->geo->getIndexBuffer(), 0, vk::IndexType::eUint32);
-    cmdBuf.bindVertexBuffers(0, data->geo->getVertexBuffer(), vk::DeviceSize(0));
+    data->geo.bindVertices(cmdBuf, 0);
 
     auto layout = env.currentPipeline->getLayout();
     cmdBuf.pushConstants<mat4>(
@@ -245,5 +243,5 @@ void trc::Drawable::drawShadow(
     data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
     // Draw
-    cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
+    cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
 }

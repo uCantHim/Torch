@@ -101,12 +101,12 @@ auto trc::Instance::getQueueManager() const -> const vkb::QueueManager&
     return queueManager;
 }
 
-auto trc::Instance::getDynamicLoader() -> vk::DispatchLoaderDynamic&
+auto trc::Instance::getDL() -> vk::DispatchLoaderDynamic&
 {
     return dynamicLoader;
 }
 
-auto trc::Instance::getDynamicLoader() const -> const vk::DispatchLoaderDynamic&
+auto trc::Instance::getDL() const -> const vk::DispatchLoaderDynamic&
 {
     return dynamicLoader;
 }

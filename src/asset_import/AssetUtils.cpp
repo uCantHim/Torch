@@ -5,7 +5,7 @@
 
 auto trc::loadGeometry(
     const fs::path& fbxFilePath,
-    AnimationDataStorage& animStorage,
+    AssetRegistry& assetRegistry,
     bool loadRig
     ) -> Maybe<Geometry>
 {
@@ -18,22 +18,22 @@ auto trc::loadGeometry(
     auto& mesh = loadedMeshes.front();
     if (loadRig && mesh.rig.has_value())
     {
-        return Geometry{
+        return assetRegistry.add(GeometryData{
             mesh.mesh,
-            std::make_unique<Rig>(std::move(mesh.rig.value()),
-                                  animStorage,
-                                  std::move(mesh.animations))
-        };
+            //std::make_unique<Rig>(std::move(mesh.rig.value()),
+            //                      animStorage,
+            //                      std::move(mesh.animations))
+        }).get();
     }
     else {
-        return Geometry{ mesh.mesh };
+        return assetRegistry.add(GeometryData{ mesh.mesh }).get();
     }
 }
 
 auto trc::loadScene(
     const Instance& instance,
     const fs::path& fbxFilePath,
-    AnimationDataStorage& animStorage
+    AssetRegistry& assetRegistry
     ) -> SceneImportResult
 {
     SceneImportResult result{ .scene=Scene(instance) };
@@ -45,18 +45,18 @@ auto trc::loadScene(
     {
         // Load geometry
         std::unique_ptr<Rig> rig{ nullptr };
-        if (mesh.rig.has_value()) {
-            rig = std::make_unique<Rig>(std::move(mesh.rig.value()),
-                                        animStorage,
-                                        std::move(mesh.animations));
+        if (mesh.rig.has_value())
+        {
+            //rig = std::make_unique<Rig>(std::move(mesh.rig.value()),
+            //                            animStorage,
+            //                            std::move(mesh.animations));
         }
-        GeometryID geoIdx = AssetRegistry::addGeometry({ mesh.mesh, std::move(rig) });
+        GeometryID geoIdx = assetRegistry.add(GeometryData{ mesh.mesh /*, std::move(rig) */ });
 
         // Load material
-        MaterialID matIdx{ 0 };
-        if (!mesh.materials.empty())
-        {
-            matIdx = AssetRegistry::addMaterial(mesh.materials.front());
+        MaterialID matIdx;
+        if (!mesh.materials.empty()) {
+            matIdx = assetRegistry.add(mesh.materials.front());
         }
 
         result.importedGeometries.emplace_back(geoIdx, matIdx);
@@ -65,8 +65,6 @@ auto trc::loadScene(
         Drawable& d = *result.drawables.emplace_back(new Drawable(geoIdx, matIdx, result.scene));
         d.setFromMatrix(mesh.globalTransform);
     }
-
-    AssetRegistry::updateMaterials();
 
     return result;
 }
