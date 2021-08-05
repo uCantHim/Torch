@@ -150,7 +150,7 @@ auto trc::makeTextPipeline(
         instance.getDevice(),
         {
             config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            config.getFontDataStorage().getDescriptorSetLayout(),
+            config.getAssets().getFonts().getDescriptorSetLayout(),
             config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
         },
         {

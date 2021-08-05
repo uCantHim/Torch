@@ -14,7 +14,6 @@ int main()
     auto torch = trc::initDefault();
     auto& instance = *torch.instance;
     auto& swapchain = torch.window->getSwapchain();
-    auto& animStorage = torch.renderConfig->getAnimationDataStorage();
     auto& ar = *torch.assetRegistry;
 
     auto scene = std::make_unique<trc::Scene>(*torch.instance);

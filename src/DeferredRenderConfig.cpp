@@ -25,8 +25,6 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
     shadowDescriptor(info.window),
     // Asset storage
     assetRegistry(info.assetRegistry),
-    animationStorage(info.instance),
-    fontStorage(info.instance),
     // Internal resources
     fullscreenQuadVertexBuffer(
         info.instance.getDevice(),
@@ -111,10 +109,16 @@ auto trc::DeferredRenderConfig::getShadowDescriptorProvider() const
     return shadowDescriptor.getProvider();
 }
 
+auto trc::DeferredRenderConfig::getAssetDescriptorProvider() const
+    -> const DescriptorProviderInterface&
+{
+    return assetRegistry->getDescriptorSetProvider();
+}
+
 auto trc::DeferredRenderConfig::getAnimationDataDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return animationStorage.getProvider();
+    return assetRegistry->getAnimations().getProvider();
 }
 
 auto trc::DeferredRenderConfig::getAssets() -> AssetRegistry&
@@ -125,24 +129,4 @@ auto trc::DeferredRenderConfig::getAssets() -> AssetRegistry&
 auto trc::DeferredRenderConfig::getAssets() const -> const AssetRegistry&
 {
     return *assetRegistry;
-}
-
-auto trc::DeferredRenderConfig::getAnimationDataStorage() -> AnimationDataStorage&
-{
-    return animationStorage;
-}
-
-auto trc::DeferredRenderConfig::getAnimationDataStorage() const -> const AnimationDataStorage&
-{
-    return animationStorage;
-}
-
-auto trc::DeferredRenderConfig::getFontDataStorage() -> FontDataStorage&
-{
-    return fontStorage;
-}
-
-auto trc::DeferredRenderConfig::getFontDataStorage() const -> const FontDataStorage&
-{
-    return fontStorage;
 }

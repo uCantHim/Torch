@@ -54,14 +54,11 @@ namespace trc
         auto getSceneDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getDeferredPassDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getShadowDescriptorProvider() const -> const DescriptorProviderInterface&;
+        auto getAssetDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getAnimationDataDescriptorProvider() const -> const DescriptorProviderInterface&;
 
         auto getAssets() -> AssetRegistry&;
         auto getAssets() const -> const AssetRegistry&;
-        auto getAnimationDataStorage() -> AnimationDataStorage&;
-        auto getAnimationDataStorage() const -> const AnimationDataStorage&;
-        auto getFontDataStorage() -> FontDataStorage&;
-        auto getFontDataStorage() const -> const FontDataStorage&;
 
     private:
         // Default render passes
@@ -75,8 +72,6 @@ namespace trc
 
         // Data & Assets
         AssetRegistry* assetRegistry;
-        AnimationDataStorage animationStorage;
-        FontDataStorage fontStorage;
 
         // Final lighting pass stuff
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;

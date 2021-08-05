@@ -16,7 +16,9 @@ trc::AssetRegistry::AssetRegistry(const Instance& instance)
         MATERIAL_BUFFER_DEFAULT_SIZE,  // Default material buffer size
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    )
+    ),
+    fontData(instance),
+    animationData(instance)
 {
     createDescriptors();
 
@@ -26,23 +28,6 @@ trc::AssetRegistry::AssetRegistry(const Instance& instance)
     add(vkb::makeSinglePixelImage(device, vec4(1.0f)));
 
     writeDescriptors();
-}
-
-void trc::AssetRegistry::reset()
-{
-    geometries = {};
-    materials = {};
-    textures = {};
-
-    materialBuffer = {};
-
-    descSet.reset();
-    descLayout.reset();
-    descPool.reset();
-
-    nextGeometryIndex = 0;
-    nextMaterialIndex = 0;
-    nextImageIndex = 0;
 }
 
 auto trc::AssetRegistry::add(GeometryData data) -> GeometryID
@@ -116,6 +101,26 @@ auto trc::AssetRegistry::get(MaterialID key) -> Material&
 auto trc::AssetRegistry::get(TextureID key) -> Texture
 {
     return getFromMap(textures, key);
+}
+
+auto trc::AssetRegistry::getFonts() -> FontDataStorage&
+{
+    return fontData;
+}
+
+auto trc::AssetRegistry::getFonts() const -> const FontDataStorage&
+{
+    return fontData;
+}
+
+auto trc::AssetRegistry::getAnimations() -> AnimationDataStorage&
+{
+    return animationData;
+}
+
+auto trc::AssetRegistry::getAnimations() const -> const AnimationDataStorage&
+{
+    return animationData;
 }
 
 auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept

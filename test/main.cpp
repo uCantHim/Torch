@@ -22,7 +22,7 @@ using namespace trc::basic_types;
 
 int main()
 {
-    trc::Camera camera(1.0f, 45.0f, 1.0f, 100.0f);
+    trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
     vkb::on<vkb::SwapchainResizeEvent>([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
         camera.setAspect(float(extent.width) / float(extent.height));
@@ -228,7 +228,7 @@ int main()
     }).detach();
 
     // Text
-    trc::Font font = torch.renderConfig->getFontDataStorage().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
+    trc::Font font = torch.assetRegistry->getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
     trc::Text text{ instance, font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");

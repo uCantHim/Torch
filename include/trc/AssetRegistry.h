@@ -15,7 +15,8 @@
 #include "AssetIds.h"
 #include "Geometry.h"
 #include "Material.h"
-#include "Animation.h"
+#include "AnimationDataStorage.h"
+#include "text/FontDataStorage.h"
 
 namespace trc
 {
@@ -62,9 +63,6 @@ namespace trc
     public:
         explicit AssetRegistry(const Instance& instance);
 
-        void init(const Instance& instance);
-        void reset();
-
         auto add(GeometryData geo) -> GeometryID;
         auto add(Material mat) -> MaterialID;
         auto add(vkb::Image image) -> TextureID;
@@ -72,6 +70,11 @@ namespace trc
         auto get(GeometryID key) -> Geometry;
         auto get(MaterialID key) -> Material&;
         auto get(TextureID key) -> Texture;
+
+        auto getFonts() -> FontDataStorage&;
+        auto getFonts() const -> const FontDataStorage&;
+        auto getAnimations() -> AnimationDataStorage&;
+        auto getAnimations() const -> const AnimationDataStorage&;
 
         auto getDescriptorSetProvider() const noexcept -> const DescriptorProviderInterface&;
 
@@ -152,6 +155,11 @@ namespace trc
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorSet descSet;
         DescriptorProvider descriptorProvider{ {}, {} };
+
+        ////////////////////////////
+        // Additional asset storages
+        FontDataStorage fontData;
+        AnimationDataStorage animationData;
     };
 
 

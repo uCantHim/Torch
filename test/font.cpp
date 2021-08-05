@@ -7,7 +7,7 @@ int main()
     {
         auto torch = trc::initDefault();
         auto& instance = *torch.instance;
-        auto& fonts = torch.renderConfig->getFontDataStorage();
+        auto& fonts = torch.assetRegistry->getFonts();
 
         // Font stuff
 
