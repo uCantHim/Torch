@@ -5,6 +5,8 @@
 
 namespace trc
 {
+    class Instance;
+
     /**
      * @brief Purely component-based Drawable class
      */
@@ -25,8 +27,7 @@ namespace trc
             ui32 materialIndex;
         };
 
-        DrawableInstanced(ui32 maxInstances, Geometry& geo);
-        DrawableInstanced(ui32 maxInstances, Geometry& geo, SceneBase& scene);
+        DrawableInstanced(const Instance& instance, ui32 maxInstances, Geometry& geo);
 
         void attachToScene(SceneBase& scene);
         void removeFromScene();

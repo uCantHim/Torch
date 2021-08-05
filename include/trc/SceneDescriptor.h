@@ -47,10 +47,11 @@ namespace trc
             const SceneDescriptor& descriptor;
         };
 
-        void createDescriptors(const Instance& instance);
-        void writeDescriptors(const Instance& instance, const Scene& scene);
+        void createDescriptors();
+        void writeDescriptors();
 
         const Window& window;
+        const vkb::Device& device;
 
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;

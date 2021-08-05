@@ -24,11 +24,13 @@ namespace trc
 
         constexpr AssetID() = default;
 
-        auto operator<=>(const AssetID<Derived>&) const = default;
+        inline auto operator<=>(const AssetID<Derived>&) const = default;
 
-        auto id() const -> AssetIdType;
-        auto get();
-        auto getAssetRegistry() -> AssetRegistry&;
+        inline auto operator*();
+
+        inline auto id() const -> AssetIdType;
+        inline auto get();
+        inline auto getAssetRegistry() -> AssetRegistry&;
 
     private:
         AssetRegistry* ar{ nullptr };

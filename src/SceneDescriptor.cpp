@@ -8,6 +8,7 @@
 trc::SceneDescriptor::SceneDescriptor(const Window& window)
     :
     window(window),
+    device(window.getDevice()),
     pickingBuffer(
         window.getDevice(),
         PICKING_BUFFER_SECTION_SIZE * window.getSwapchain().getFrameCount(),
@@ -21,13 +22,20 @@ trc::SceneDescriptor::SceneDescriptor(const Window& window)
     cmdBuf->end();
     window.getDevice().executeTransferCommandBufferSyncronously(*cmdBuf);
 
-    createDescriptors(window.getInstance());
+    createDescriptors();
+    writeDescriptors();
 }
 
 void trc::SceneDescriptor::update(const Scene& scene)
 {
     updatePicking();
-    writeDescriptors(window.getInstance(), scene);
+
+    // Update scene-specific descriptors
+    vk::DescriptorBufferInfo lightBufferInfo(scene.getLightBuffer(), 0, VK_WHOLE_SIZE);
+    std::vector<vk::WriteDescriptorSet> writes = {
+        { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
+    };
+    device->updateDescriptorSets(writes, {});
 }
 
 void trc::SceneDescriptor::updatePicking()
@@ -92,7 +100,7 @@ auto trc::SceneDescriptor::getDescLayout() const noexcept -> vk::DescriptorSetLa
     return *descLayout;
 }
 
-void trc::SceneDescriptor::createDescriptors(const Instance& instance)
+void trc::SceneDescriptor::createDescriptors()
 {
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
@@ -101,35 +109,47 @@ void trc::SceneDescriptor::createDescriptors(const Instance& instance)
         // Picking buffer
         { 1, vk::DescriptorType::eStorageBufferDynamic, 1, vk::ShaderStageFlagBits::eFragment },
     };
-    descLayout = instance.getDevice()->createDescriptorSetLayoutUnique({ {}, layoutBindings });
+    std::vector<vk::DescriptorBindingFlags> flags{
+        vk::DescriptorBindingFlagBits::eUpdateAfterBind,
+        {},  // No flags for the dynamic storage buffer
+    };
 
+    vk::StructureChain chain{
+        vk::DescriptorSetLayoutCreateInfo(
+            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
+        ),
+        vk::DescriptorSetLayoutBindingFlagsCreateInfo(flags),
+    };
+    descLayout = device->createDescriptorSetLayoutUnique(
+        chain.get<vk::DescriptorSetLayoutCreateInfo>()
+    );
 
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
         { vk::DescriptorType::eStorageBuffer, 1 },
         { vk::DescriptorType::eStorageBufferDynamic, 1 },
     };
-    descPool = instance.getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
+    descPool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+        1, poolSizes
     ));
 
     // Sets
-    descSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
+    descSet = std::move(device->allocateDescriptorSetsUnique(
         vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
     )[0]);
 }
 
-void trc::SceneDescriptor::writeDescriptors(const Instance& instance, const Scene& scene)
+void trc::SceneDescriptor::writeDescriptors()
 {
-    // Write descriptor set
-    vk::DescriptorBufferInfo lightBufferInfo(scene.getLightBuffer(), 0, VK_WHOLE_SIZE);
+    // Only write the descriptors that are scene-independent
     vk::DescriptorBufferInfo pickingBufferInfo(*pickingBuffer, 0, PICKING_BUFFER_SECTION_SIZE);
 
     std::vector<vk::WriteDescriptorSet> writes = {
-        { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
         { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBufferDynamic, {}, &pickingBufferInfo },
     };
-    instance.getDevice()->updateDescriptorSets(writes, {});
+    device->updateDescriptorSets(writes, {});
 }
 
 

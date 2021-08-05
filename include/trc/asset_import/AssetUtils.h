@@ -33,7 +33,7 @@ namespace trc
      */
     extern auto loadGeometry(const fs::path& fbxFilePath,
                              AssetRegistry& assetRegistry,
-                             bool loadRig = true) -> Maybe<Geometry>;
+                             bool loadRig = true) -> Maybe<GeometryID>;
 
     extern auto loadScene(const Instance& instance,
                           const fs::path& fbxFilePath,

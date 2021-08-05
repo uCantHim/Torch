@@ -35,6 +35,8 @@ namespace trc
         auto getSwapchain() const -> const vkb::Swapchain&;
         auto getRenderer() -> Renderer&;
 
+        auto makeFullscreenRenderArea() const -> RenderArea;
+
     private:
         const Instance& instance;
 

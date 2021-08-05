@@ -157,20 +157,25 @@ namespace trc
 
 
     template<typename Derived>
-    AssetID<Derived>::AssetID(ui32 id, AssetRegistry& ar)
+    inline AssetID<Derived>::AssetID(ui32 id, AssetRegistry& ar)
         :
         TypesafeID<Derived, AssetIdType>(id),
         ar(&ar)
     {}
 
     template<typename Derived>
-    auto AssetID<Derived>::id() const -> AssetIdType
+    inline auto AssetID<Derived>::operator*() {
+        return get();
+    }
+
+    template<typename Derived>
+    inline auto AssetID<Derived>::id() const -> AssetIdType
     {
         return static_cast<AssetIdType>(*this);
     }
 
     template<typename Derived>
-    auto AssetID<Derived>::get()
+    inline auto AssetID<Derived>::get()
     {
         assert(ar != nullptr);
 
@@ -178,7 +183,7 @@ namespace trc
     }
 
     template<typename Derived>
-    auto AssetID<Derived>::getAssetRegistry() -> AssetRegistry&
+    inline auto AssetID<Derived>::getAssetRegistry() -> AssetRegistry&
     {
         assert(ar != nullptr);
 

@@ -4,34 +4,42 @@
 
 int main()
 {
-    auto renderer = trc::init();
-
-    // Font stuff
-
-    trc::Font font{ TRC_TEST_FONT_DIR"/gil.ttf", 60 };
-
-    trc::Text text(font);
-    text.print("^Hello{ | }\n ~World_!$");
-
-    // ---
-
-    auto scene = std::make_unique<trc::Scene>();
-    trc::Camera camera;
-    camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
-    camera.setDepthBounds(0.1f, 100.0f);
-
-    text.attachToScene(*scene);
-
-    // Main loop
-    while (vkb::getSwapchain().isOpen())
     {
-        vkb::pollEvents();
-        renderer->drawFrame(*scene, camera);
+        auto torch = trc::initDefault();
+        auto& instance = *torch.instance;
+        auto& fonts = torch.renderConfig->getFontDataStorage();
+
+        // Font stuff
+
+        trc::Font font = fonts.makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 60);
+
+        trc::Text text(instance, font);
+        text.print("^Hello{ | }\n ~World_!$");
+
+        // ---
+
+        trc::Scene scene(instance);
+        trc::Camera camera;
+        camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+        camera.setDepthBounds(0.1f, 100.0f);
+
+        text.attachToScene(scene);
+
+        trc::DrawConfig draw{
+            .scene        = &scene,
+            .camera       = &camera,
+            .renderConfig = &*torch.renderConfig,
+            .renderAreas  = { torch.window->makeFullscreenRenderArea() }
+        };
+
+        // Main loop
+        while (torch.window->getSwapchain().isOpen())
+        {
+            vkb::pollEvents();
+            torch.window->drawFrame(draw);
+        }
     }
 
-    // Destroy the Torch resources
-    renderer.reset();
-    scene.reset();
     trc::terminate();
 
     return 0;

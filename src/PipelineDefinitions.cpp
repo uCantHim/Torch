@@ -309,7 +309,7 @@ auto makeDrawableTransparentPipeline(
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(
-            *vkb::VulkanBase::getDevice(),
+            *instance.getDevice(),
             *layout,
             *config.getDeferredRenderPass(), RenderPassDeferred::SubPasses::transparency
         );
@@ -439,7 +439,7 @@ auto makeInstancedDrawableDeferredPipeline(
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
         .build(
-            *vkb::VulkanBase::getDevice(),
+            *instance.getDevice(),
             *layout,
             *config.getDeferredRenderPass(), RenderPassDeferred::SubPasses::gBuffer
         );

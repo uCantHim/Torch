@@ -1,28 +1,26 @@
 #include "drawable/DrawableInstanced.h"
 
+#include "core/Instance.h"
 #include "TorchResources.h"
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
 
 
 
-trc::DrawableInstanced::DrawableInstanced(ui32 maxInstances, Geometry& geo)
+trc::DrawableInstanced::DrawableInstanced(
+    const Instance& instance,
+    ui32 maxInstances,
+    Geometry& geo)
     :
     geometry(&geo),
     maxInstances(maxInstances),
     instanceDataBuffer(
+        instance.getDevice(),
         sizeof(InstanceDescription) * maxInstances,
         vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
-}
-
-trc::DrawableInstanced::DrawableInstanced(ui32 maxInstances, Geometry& geo, SceneBase& scene)
-    :
-    DrawableInstanced(maxInstances, geo)
-{
-    attachToScene(scene);
 }
 
 void trc::DrawableInstanced::attachToScene(SceneBase& scene)

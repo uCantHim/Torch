@@ -50,17 +50,20 @@ trc::ParticleCollection::ParticleCollection(
         memoryPool.makeAllocator()
     ),
     particleMatrixStagingBuffer(
+        instance.getDevice(),
         sizeof(mat4) * maxParticles,
         vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
         memoryPool.makeAllocator()
     ),
     particleMatrixBuffer(
+        instance.getDevice(),
         sizeof(mat4) * maxParticles, nullptr,
         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
         memoryPool.makeAllocator()
     ),
     particleMaterialBuffer(
+        instance.getDevice(),
         sizeof(ParticleMaterial) * maxParticles, nullptr,
         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,

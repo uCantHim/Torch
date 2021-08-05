@@ -16,17 +16,28 @@ int main()
         trc::Scene scene{ *torch.instance };
         trc::Camera camera;
 
+        auto extent = torch.window->getSwapchain().getImageExtent();
+        extent.width *= 0.5;
+        extent.height *= 0.5;
+
         trc::DrawConfig drawConf{
             .scene=&scene,
             .camera=&camera,
             .renderConfig=torch.renderConfig.get(),
             .renderAreas={
                 trc::RenderArea{
-                    .viewport=vk::Viewport(0, 0, 100, 100),
-                    .scissor=vk::Rect2D({ 0, 0 }, { 100, 100 })
+                    .viewport=vk::Viewport(0, 0, extent.width, extent.height),
+                    .scissor=vk::Rect2D({ 0, 0 }, extent)
                 }
             }
         };
+
+        vkb::on<vkb::SwapchainResizeEvent>([&](const vkb::SwapchainResizeEvent& e) {
+            auto extent = e.swapchain->getImageExtent();
+            auto& area = drawConf.renderAreas[0];
+            area.viewport = vk::Viewport(0, 0, extent.width, extent.height),
+            area.scissor = vk::Rect2D({ 0, 0 }, extent);
+        });
 
         // Main loop
         while (torch.window->getSwapchain().isOpen())

@@ -22,7 +22,7 @@ using namespace trc::basic_types;
 
 int main()
 {
-    trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
+    trc::Camera camera(1.0f, 45.0f, 1.0f, 100.0f);
     vkb::on<vkb::SwapchainResizeEvent>([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
         camera.setAspect(float(extent.width) / float(extent.height));
@@ -31,7 +31,10 @@ int main()
     vkb::Keyboard::init();
     vkb::Mouse::init();
 
-    auto renderer = trc::init();
+    auto torch = trc::initDefault();
+    auto& ar = torch.renderConfig->getAssets();
+    const auto& instance = *torch.instance;
+    const auto& device = instance.getDevice();
 
     // ------------------
     // Random test things
@@ -41,40 +44,33 @@ int main()
     auto treeImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx");
     auto mapImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/map.fbx");
 
-    auto grassGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(grassImport.meshes[0].mesh));
-    auto treeGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(treeImport.meshes[0].mesh));
-    auto mapGeoIndex = trc::AssetRegistry::addGeometry(trc::Geometry(mapImport.meshes[0].mesh));
+    auto grassGeoIndex = ar.add(grassImport.meshes[0].mesh);
+    auto treeGeoIndex = ar.add(treeImport.meshes[0].mesh);
+    auto mapGeoIndex = ar.add(mapImport.meshes[0].mesh);
 
-    auto mapMatIndex = trc::AssetRegistry::addMaterial(mapImport.meshes[0].materials[0]);
+    auto mapMatIndex = ar.add(mapImport.meshes[0].materials[0]);
 
-    auto skeletonGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx").get()
-    );
-    auto hoodedBoiGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx").get()
-    );
+    auto skeletonGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get();
+    auto hoodedBoiGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx", ar).get();
     auto lindaMesh = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/Female_Character.fbx").meshes[0];
-    auto lindaGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::Geometry(
-            lindaMesh.mesh,
-            std::make_unique<trc::Rig>(lindaMesh.rig.value(), lindaMesh.animations)
-        )
-    );
-    auto lindaDiffTexIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/Female_Character.png")
+    auto lindaGeoIndex = ar.add(lindaMesh.mesh);
+    //std::make_unique<trc::Rig>(lindaMesh.rig.value(), lindaMesh.animations)
+
+    auto lindaDiffTexIdx = ar.add(
+        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/Female_Character.png")
     );
 
-    auto grassImgIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
+    auto grassImgIdx = ar.add(
+        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
     );
-    auto stoneTexIdx = trc::AssetRegistry::addImage(
-        vkb::makeSinglePixelImage(vkb::getDevice(), vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
+    auto stoneTexIdx = ar.add(
+        vkb::makeSinglePixelImage(device, vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
     );
-    auto stoneNormalTexIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
+    auto stoneNormalTexIdx = ar.add(
+        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
-    auto matIdx = trc::AssetRegistry::addMaterial({
+    auto matIdx = ar.add({
         .kAmbient = vec4(1.0f),
         .kDiffuse = vec4(1.0f),
         .kSpecular = vec4(1.0f),
@@ -83,7 +79,7 @@ int main()
         .bumpTexture = stoneNormalTexIdx,
     });
 
-    auto& mapMat = *trc::AssetRegistry::getMaterial(mapMatIndex).get();
+    auto& mapMat = ar.get(mapMatIndex);
     mapMat.kAmbient = vec4(1.0f);
     mapMat.kDiffuse = vec4(1.0f);
     mapMat.kSpecular = vec4(1.0f);
@@ -93,13 +89,11 @@ int main()
     trc::Material treeMat{
         .color=vec4(0, 1, 0, 1),
     };
-    auto treeMatIdx = trc::AssetRegistry::addMaterial(treeMat);
-
-    trc::AssetRegistry::updateMaterials();
+    auto treeMatIdx = ar.add(treeMat);
 
     // ------------------
 
-    auto scene = std::make_unique<trc::Scene>();
+    auto scene = std::make_unique<trc::Scene>(instance);
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
 
     trc::Drawable grass(grassGeoIndex, matIdx, *scene);
@@ -115,33 +109,30 @@ int main()
         skeleton.setScale(0.02f).translateZ(1.2f)
                 .translate(glm::cos(angle), 0.0f, glm::sin(angle))
                 .rotateY(-glm::half_pi<float>() - angle);
-        skeleton.getAnimationEngine().playAnimation(0);
+        //skeleton.getAnimationEngine().playAnimation(0);
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, trc::MaterialID(0), *scene);
+    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, {}, *scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    hoodedBoi.getAnimationEngine().playAnimation(0);
+    //hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
-    auto lindaMatIdx = trc::AssetRegistry::addMaterial({
+    auto lindaMatIdx = ar.add({
         .kSpecular = vec4(0.0f),
         .diffuseTexture = lindaDiffTexIdx
     });
-    trc::AssetRegistry::updateMaterials();
 
     trc::Drawable linda(lindaGeoIndex, lindaMatIdx, *scene);
     linda.setScale(0.3f).translateX(-1.0f);
-    linda.getAnimationEngine().playAnimation(0);
+    //linda.getAnimationEngine().playAnimation(0);
     auto& pickable = linda.enablePicking<trc::PickableFunctional>(
         []() { std::cout << "Linda has been picked\n"; },
         []() { std::cout << "Linda is no longer picked\n"; }
     );
 
-    // Custom plane geo
-    auto myPlaneGeoIndex = trc::AssetRegistry::addGeometry(
-        trc::Geometry(trc::makePlaneGeo(20.0f, 20.0f, 20, 20))
-    );
+    // Generated plane geo
+    auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
     trc::Drawable myPlane(myPlaneGeoIndex, mapMatIndex, *scene);
 
     trc::Light& sunLight = scene->addLight(trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f)));
@@ -158,8 +149,9 @@ int main()
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
 
-    auto& treeGeo = *trc::AssetRegistry::getGeometry(treeGeoIndex).get();
-    auto instancedTrees = std::make_unique<trc::DrawableInstanced>(NUM_TREES, treeGeo, *scene);
+    auto treeGeo = ar.get(treeGeoIndex);
+    auto instancedTrees = std::make_unique<trc::DrawableInstanced>(instance, NUM_TREES, treeGeo);
+    instancedTrees->attachToScene(*scene);
     for (int i = 0; i < NUM_TREES; i++)
     {
         trc::Transformation t;
@@ -171,7 +163,7 @@ int main()
     }
 
 
-    auto particleCollection = std::make_unique<trc::ParticleCollection>(10000);
+    auto particleCollection = std::make_unique<trc::ParticleCollection>(instance, 10000);
     particleCollection->attachToScene(*scene);
     for (int i = 0; i < 1000; i++)
     {
@@ -186,8 +178,8 @@ int main()
         particleCollection->addParticle(particle);
     }
 
-    auto particleImgIdx = trc::AssetRegistry::addImage(
-        vkb::loadImage2D(vkb::getDevice(), TRC_TEST_ASSET_DIR"/yellowlight.png"));
+    auto particleImgIdx = ar.add(
+        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/yellowlight.png"));
     trc::ParticleSpawn spawn(*particleCollection);
     for (int i = 0; i < 50; i++)
     {
@@ -222,9 +214,8 @@ int main()
 
 
     // Custom cube geo test
-    auto cubeGeoIdx = trc::AssetRegistry::addGeometry({ trc::makeCubeGeo() });
-    auto cubeMatIdx = trc::AssetRegistry::addMaterial({ .color={ 0.3, 0.3, 1, 0.5} });
-    trc::AssetRegistry::updateMaterials();
+    auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
+    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1, 0.5} });
     trc::Drawable cube{ cubeGeoIdx, cubeMatIdx, *scene };
     cube.enableTransparency();
     cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
@@ -237,11 +228,18 @@ int main()
     }).detach();
 
     // Text
-    trc::Font font{ TRC_TEST_FONT_DIR"/gil.ttf", 64 };
-    trc::Text text{ font };
+    trc::Font font = torch.renderConfig->getFontDataStorage().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
+    trc::Text text{ instance, font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
     text.attachToScene(*scene);
+
+    trc::DrawConfig draw{
+        .scene        = &*scene,
+        .camera       = &camera,
+        .renderConfig = &*torch.renderConfig,
+        .renderAreas  = { torch.window->makeFullscreenRenderArea() }
+    };
 
     vkb::Timer timer;
     uint32_t frames{ 0 };
@@ -249,7 +247,7 @@ int main()
     {
         scene->updateTransforms();
 
-        renderer->drawFrame(*scene, camera);
+        torch.window->drawFrame(draw);
 
         vkb::pollEvents();
         frames++;
@@ -262,13 +260,16 @@ int main()
         }
     }
 
-    vkb::getDevice()->waitIdle();
+    device->waitIdle();
     particleUpdateThread.join();
     particleSpawnThread.join();
     particleCollection.reset();
     instancedTrees.reset();
     scene.reset();
-    renderer.reset();
+    torch.renderConfig.reset();
+    torch.assetRegistry.reset();
+    torch.window.reset();
+    torch.instance.reset();
     trc::terminate();
 
     std::cout << " --- Done\n";

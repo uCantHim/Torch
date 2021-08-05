@@ -7,7 +7,7 @@ auto trc::loadGeometry(
     const fs::path& fbxFilePath,
     AssetRegistry& assetRegistry,
     bool loadRig
-    ) -> Maybe<Geometry>
+    ) -> Maybe<GeometryID>
 {
     FBXLoader loader;
     auto loadedMeshes = loader.loadFBXFile(fbxFilePath).meshes;
@@ -23,10 +23,10 @@ auto trc::loadGeometry(
             //std::make_unique<Rig>(std::move(mesh.rig.value()),
             //                      animStorage,
             //                      std::move(mesh.animations))
-        }).get();
+        });
     }
     else {
-        return assetRegistry.add(GeometryData{ mesh.mesh }).get();
+        return assetRegistry.add(GeometryData{ mesh.mesh });
     }
 }
 
