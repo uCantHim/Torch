@@ -45,6 +45,8 @@ public:
         return static_cast<T>(_id);
     }
 
+    inline auto operator<=>(const TypesafeID<ClassType, IdType>&) const = default;
+
 private:
     IdType _id{ static_cast<IdType>(0) };
 };
