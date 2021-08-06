@@ -154,13 +154,15 @@ trc::Geometry::Geometry(
     ui32 numIndices,
     vk::IndexType indexType,
     vk::Buffer verts,
-    ui32 numVerts)
+    ui32 numVerts,
+    Rig* rig)
     :
     indexBuffer(indices),
     vertexBuffer(verts),
     numIndices(numIndices),
     numVertices(numVerts),
-    indexType(indexType)
+    indexType(indexType),
+    rig(rig)
 {
 }
 
@@ -188,4 +190,14 @@ auto trc::Geometry::getIndexCount() const noexcept -> ui32
 auto trc::Geometry::getVertexCount() const noexcept -> ui32
 {
     return numVertices;
+}
+
+bool trc::Geometry::hasRig() const
+{
+    return rig != nullptr;
+}
+
+auto trc::Geometry::getRig() -> Rig*
+{
+    return rig;
 }

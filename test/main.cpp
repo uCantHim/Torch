@@ -53,8 +53,7 @@ int main()
     auto skeletonGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get();
     auto hoodedBoiGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx", ar).get();
     auto lindaMesh = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/Female_Character.fbx").meshes[0];
-    auto lindaGeoIndex = ar.add(lindaMesh.mesh);
-    //std::make_unique<trc::Rig>(lindaMesh.rig.value(), lindaMesh.animations)
+    auto lindaGeoIndex = ar.add(lindaMesh.mesh, lindaMesh.rig);
 
     auto lindaDiffTexIdx = ar.add(
         vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/Female_Character.png")
@@ -95,6 +94,7 @@ int main()
 
     auto scene = std::make_unique<trc::Scene>(instance);
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
+    camera.makePerspective(1920.0f / 1080.0f, 45.0f, 0.1f, 100.0f);
 
     trc::Drawable grass(grassGeoIndex, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
@@ -109,13 +109,13 @@ int main()
         skeleton.setScale(0.02f).translateZ(1.2f)
                 .translate(glm::cos(angle), 0.0f, glm::sin(angle))
                 .rotateY(-glm::half_pi<float>() - angle);
-        //skeleton.getAnimationEngine().playAnimation(0);
+        skeleton.getAnimationEngine().playAnimation(0);
     }
 
     // Hooded boi
     trc::Drawable hoodedBoi(hoodedBoiGeoIndex, {}, *scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    //hoodedBoi.getAnimationEngine().playAnimation(0);
+    hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
     auto lindaMatIdx = ar.add({
@@ -125,7 +125,7 @@ int main()
 
     trc::Drawable linda(lindaGeoIndex, lindaMatIdx, *scene);
     linda.setScale(0.3f).translateX(-1.0f);
-    //linda.getAnimationEngine().playAnimation(0);
+    linda.getAnimationEngine().playAnimation(0);
     auto& pickable = linda.enablePicking<trc::PickableFunctional>(
         []() { std::cout << "Linda has been picked\n"; },
         []() { std::cout << "Linda is no longer picked\n"; }

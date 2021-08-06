@@ -55,23 +55,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
 
 void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    const ui32 imageIndex = swapchain.getCurrentFrame();
-    GBuffer& g = gBuffers.getAt(imageIndex);
-
-    g.getImage(GBuffer::eNormals).changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
-                                   vk::ImageLayout::eColorAttachmentOptimal);
-    g.getImage(GBuffer::eUVs).changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
-                                   vk::ImageLayout::eColorAttachmentOptimal);
-    g.getImage(GBuffer::eMaterials).changeLayout(cmdBuf, vk::ImageLayout::eUndefined,
-                                   vk::ImageLayout::eColorAttachmentOptimal);
-    g.getImage(GBuffer::eDepth).changeLayout(
-        cmdBuf,
-        vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        vk::ImageSubresourceRange(
-            vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
-            0, 1, 0, 1
-        )
-    );
     descriptor.resetValues(cmdBuf);
 
     cmdBuf.beginRenderPass(
@@ -127,21 +110,21 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
         // UVs
         vk::AttachmentDescription(
             {}, vk::Format::eR16G16Sfloat, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
         // Material indices
         vk::AttachmentDescription(
             {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
         // Depth-/Stencil buffer
         vk::AttachmentDescription(
@@ -156,7 +139,7 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
         trc::makeDefaultSwapchainColorAttachment(swapchain),
     };
 
-    std::vector<vk::AttachmentReference> deferredInput = {
+    std::vector<vk::AttachmentReference> deferredOutput = {
         { 0, vk::ImageLayout::eColorAttachmentOptimal }, // Normals
         { 1, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
         { 2, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
@@ -182,7 +165,7 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             vk::SubpassDescriptionFlags(),
             vk::PipelineBindPoint::eGraphics,
             0, nullptr,
-            deferredInput.size(), deferredInput.data(),
+            deferredOutput.size(), deferredOutput.data(),
             nullptr, // resolve attachments
             &deferredDepth
         ),
@@ -194,7 +177,7 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             0, nullptr, // color attachments
             nullptr,    // resolve attachments
             &transparencyAttachments[0], // depth attachment (read-only)
-            3, transparencyPreservedAttachments.data() // preserve the deferred attachments
+            transparencyPreservedAttachments.size(), transparencyPreservedAttachments.data()
         ),
         // Final lighting subpass
         vk::SubpassDescription(
@@ -458,7 +441,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(
         };
         std::vector<vk::DescriptorBufferInfo> bufferInfos{
             { *fragmentListBuffer.getAt(imageIndex),
-              0,                          ATOMIC_BUFFER_SECTION_SIZE },
+              0, ATOMIC_BUFFER_SECTION_SIZE },
             { *fragmentListBuffer.getAt(imageIndex),
               ATOMIC_BUFFER_SECTION_SIZE, FRAG_LIST_BUFFER_SIZE },
         };

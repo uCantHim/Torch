@@ -22,7 +22,7 @@ int main()
     auto size = swapchain.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::Geometry geo = **trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar);
+    trc::Geometry geo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get().get();
 
     trc::Geometry tri = ar.add(
         trc::GeometryData{

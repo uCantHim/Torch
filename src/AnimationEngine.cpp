@@ -10,6 +10,10 @@ trc::AnimationEngine::AnimationEngine(const Rig& rig)
 
 void trc::AnimationEngine::playAnimation(ui32 index)
 {
+    if (rig == nullptr) {
+        throw std::runtime_error("[In AnimationEngine::playAnimation]: Rig is nullptr!");
+    }
+
     try {
         currentAnimation = &rig->getAnimation(index);
         currentAnimationIndex = currentAnimation->getBufferIndex();
@@ -21,9 +25,12 @@ void trc::AnimationEngine::playAnimation(ui32 index)
 
 void trc::AnimationEngine::playAnimation(const std::string& name)
 {
+    if (rig == nullptr) {
+        throw std::runtime_error("[In AnimationEngine::playAnimation]: Rig is nullptr!");
+    }
+
     try {
-        currentAnimation = &rig->getAnimationByName(name);
-        currentAnimationIndex = currentAnimation->getBufferIndex();
+        playAnimation(rig->getAnimationIndex(name));
     }
     catch (const std::out_of_range& err) {
         // Do nothing

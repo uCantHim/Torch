@@ -60,8 +60,9 @@ namespace trc
         auto getFrameTime() const noexcept -> float;
 
     private:
+        /** Index in the AnimationDataStorage's large animation buffer */
+        ui32 id;
 
-        ui32 animationIndex;
         ui32 frameCount;
         float durationMs;
         float frameTimeMs;

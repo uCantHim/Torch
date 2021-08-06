@@ -63,7 +63,8 @@ namespace trc
     public:
         explicit AssetRegistry(const Instance& instance);
 
-        auto add(GeometryData geo) -> GeometryID;
+        auto add(const GeometryData& geo,
+                 std::optional<RigData> rigData = std::nullopt) -> GeometryID;
         auto add(Material mat) -> MaterialID;
         auto add(vkb::Image image) -> TextureID;
 
@@ -99,7 +100,8 @@ namespace trc
             {
                 return {
                     *indexBuf, numIndices, vk::IndexType::eUint32,
-                    *vertexBuf, numVertices
+                    *vertexBuf, numVertices,
+                    rig.has_value() ? &rig.value() : nullptr
                 };
             }
 
@@ -108,6 +110,8 @@ namespace trc
 
             ui32 numIndices{ 0 };
             ui32 numVertices{ 0 };
+
+            std::optional<Rig> rig;
         };
 
         struct TextureStorage
@@ -159,7 +163,7 @@ namespace trc
         ////////////////////////////
         // Additional asset storages
         FontDataStorage fontData;
-        AnimationDataStorage animationData;
+        AnimationDataStorage animationStorage;
     };
 
 
@@ -170,11 +174,6 @@ namespace trc
         TypesafeID<Derived, AssetIdType>(id),
         ar(&ar)
     {}
-
-    template<typename Derived>
-    inline auto AssetID<Derived>::operator*() {
-        return get();
-    }
 
     template<typename Derived>
     inline auto AssetID<Derived>::id() const -> AssetIdType

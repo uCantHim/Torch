@@ -26,8 +26,6 @@ namespace trc
 
         inline auto operator<=>(const AssetID<Derived>&) const = default;
 
-        inline auto operator*();
-
         inline auto id() const -> AssetIdType;
         inline auto get();
         inline auto getAssetRegistry() -> AssetRegistry&;

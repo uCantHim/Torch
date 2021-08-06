@@ -14,9 +14,6 @@ trc::Drawable::Drawable(GeometryID geo, MaterialID material)
 {
     setMaterial(material);
     setGeometry(geo);
-    //if (data->geo->hasRig()) {
-    //    data->animEngine = { *data->geo->getRig() };
-    //}
 
     updateDrawFunctions();
 }
@@ -93,6 +90,9 @@ void trc::Drawable::setGeometry(GeometryID newGeo)
 {
     data->geo = newGeo.get();
     geoIndex = newGeo;
+    if (data->geo.hasRig()) {
+        data->animEngine = { *data->geo.getRig() };
+    }
 }
 
 auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
@@ -140,39 +140,39 @@ void trc::Drawable::updateDrawFunctions()
 
     DrawableFunction func;
     Pipeline::ID pipeline;
-    //if (data->geo->hasRig())
-    //{
-    //    if (data->pickableId == NO_PICKABLE)
-    //    {
-    //        func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-    //            bindBaseResources(env, cmdBuf);
-    //            auto layout = env.currentPipeline->getLayout();
-    //            data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+    if (data->geo.hasRig())
+    {
+        if (data->pickableId == NO_PICKABLE)
+        {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                bindBaseResources(env, cmdBuf);
+                auto layout = env.currentPipeline->getLayout();
+                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
 
-    //            cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
-    //        };
-    //        pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
-    //                                       : internal::getDrawableDeferredAnimatedPipeline();
-    //    }
-    //    else
-    //    {
-    //        func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-    //            assert(data->pickableId != NO_PICKABLE);
+                cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
+            };
+            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
+                                           : internal::getDrawableDeferredAnimatedPipeline();
+        }
+        else
+        {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+                assert(data->pickableId != NO_PICKABLE);
 
-    //            bindBaseResources(env, cmdBuf);
-    //            auto layout = env.currentPipeline->getLayout();
-    //            data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
-    //            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
-    //                                       data->pickableId);
+                bindBaseResources(env, cmdBuf);
+                auto layout = env.currentPipeline->getLayout();
+                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+                cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
+                                           data->pickableId);
 
-    //            cmdBuf.drawIndexed(data->geo->getIndexCount(), 1, 0, 0, 0);
-    //        };
-    //        pipeline = data->isTransparent
-    //            ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
-    //            : internal::getDrawableDeferredAnimatedAndPickablePipeline();
-    //    }
-    //}
-    //else
+                cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
+            };
+            pipeline = data->isTransparent
+                ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
+                : internal::getDrawableDeferredAnimatedAndPickablePipeline();
+        }
+    }
+    else
     {
         if (data->pickableId == NO_PICKABLE)
         {

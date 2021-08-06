@@ -18,7 +18,7 @@ trc::AssetRegistry::AssetRegistry(const Instance& instance)
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     fontData(instance),
-    animationData(instance)
+    animationStorage(instance)
 {
     createDescriptors();
 
@@ -30,7 +30,8 @@ trc::AssetRegistry::AssetRegistry(const Instance& instance)
     writeDescriptors();
 }
 
-auto trc::AssetRegistry::add(GeometryData data) -> GeometryID
+auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> rigData)
+    -> GeometryID
 {
     GeometryID key(nextGeometryIndex++, *this);
 
@@ -55,6 +56,10 @@ auto trc::AssetRegistry::add(GeometryData data) -> GeometryID
             },
             .numIndices = static_cast<ui32>(data.indices.size()),
             .numVertices = static_cast<ui32>(data.vertices.size()),
+
+            .rig = rigData.has_value()
+                ? std::optional<Rig>(Rig(rigData.value(), animationStorage))
+                : std::nullopt,
         }
     );
 
@@ -115,12 +120,12 @@ auto trc::AssetRegistry::getFonts() const -> const FontDataStorage&
 
 auto trc::AssetRegistry::getAnimations() -> AnimationDataStorage&
 {
-    return animationData;
+    return animationStorage;
 }
 
 auto trc::AssetRegistry::getAnimations() const -> const AnimationDataStorage&
 {
-    return animationData;
+    return animationStorage;
 }
 
 auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept

@@ -6,7 +6,7 @@
 
 trc::Animation::Animation(ui32 animationIndex, const AnimationData& data)
     :
-    animationIndex(animationIndex),
+    id(animationIndex),
     frameCount(data.frameCount),
     durationMs(data.durationMs),
     frameTimeMs(data.frameTimeMs)
@@ -15,13 +15,13 @@ trc::Animation::Animation(ui32 animationIndex, const AnimationData& data)
 
 trc::Animation::Animation(AnimationDataStorage& storage, const AnimationData& data)
     :
-    Animation(storage.addAnimation(data))
+    Animation(storage.makeAnimation(data))
 {
 }
 
 auto trc::Animation::getBufferIndex() const noexcept -> ui32
 {
-    return animationIndex;
+    return id;
 }
 
 auto trc::Animation::getFrameCount() const noexcept -> ui32

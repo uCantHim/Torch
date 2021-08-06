@@ -89,8 +89,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
             transform,
             loadMesh(mesh),
             loadMaterials(mesh),
-            std::nullopt,
-            {}
+            std::nullopt
         };
 
         if (sceneImport.skeletonRoots.size() > meshIndex)
@@ -100,7 +99,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
                 << name << "\"..\n";
 
             auto [rig, boneNodes] = loadRig(mesh, newMesh.mesh);
-            newMesh.animations = loadAnimations(rig, boneNodes);
+            rig.animations = loadAnimations(rig, boneNodes);
             newMesh.rig = std::move(rig);
         }
 

@@ -34,7 +34,8 @@ namespace trc
         friend class AssetRegistry;
 
         Geometry(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
-                 vk::Buffer verts, ui32 numVerts);
+                 vk::Buffer verts, ui32 numVerts,
+                 Rig* rig = nullptr);
 
     public:
         Geometry() = default;
@@ -61,14 +62,18 @@ namespace trc
         auto getIndexCount() const noexcept -> ui32;
         auto getVertexCount() const noexcept -> ui32;
 
+        bool hasRig() const;
+        auto getRig() -> Rig*;
+
     private:
         vk::Buffer indexBuffer;
         vk::Buffer vertexBuffer;
 
         ui32 numIndices{ 0 };
         ui32 numVertices{ 0 };
-
         vk::IndexType indexType;
+
+        Rig* rig;
     };
 
     static_assert(std::regular<Geometry>);

@@ -4,18 +4,26 @@
 
 
 
-trc::Rig::Rig(
-    const RigData& data,
-    AnimationDataStorage& animStorage,
-    const std::vector<AnimationData>& animationData)
+trc::Rig::Rig(const RigData& data, AnimationDataStorage& animStorage)
     :
-    bones(data.bones)
+    animationStorage(&animStorage),
+    rigName(data.name),
+    bones(data.bones),
+    boneNames(data.boneNamesToIndices)
 {
-    for (ui32 i = 0; const auto& anim : animationData)
-    {
-        animations.emplace_back(animStorage.addAnimation(anim));
-        animationNames[anim.name] = i++;
+    for (const auto& anim : data.animations) {
+        addAnimation(anim);
     }
+}
+
+auto trc::Rig::getName() const noexcept -> const std::string&
+{
+    return rigName;
+}
+
+auto trc::Rig::getBoneByName(const std::string& name) const -> const RigData::Bone&
+{
+    return bones.at(boneNames.at(name));
 }
 
 auto trc::Rig::getAnimationCount() const noexcept -> ui32
@@ -46,4 +54,18 @@ auto trc::Rig::getAnimationByName(const std::string& name) -> Animation&
 auto trc::Rig::getAnimationByName(const std::string& name) const -> const Animation&
 {
     return animations.at(animationNames.at(name));
+}
+
+auto trc::Rig::addAnimation(const AnimationData& animData) -> ui32
+{
+    // Restrictions to ensure that the animation is compatible with the rig
+    assert(!animData.keyframes.empty());
+    assert(animData.keyframes[0].boneMatrices.size() == bones.size());
+    assert(!animationNames.contains(animData.name));
+
+    animations.emplace_back(animationStorage->makeAnimation(animData));
+    const ui32 id = animations.size() - 1;
+    animationNames[animData.name] = id;
+
+    return id;
 }

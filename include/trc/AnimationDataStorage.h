@@ -22,7 +22,7 @@ namespace trc
     public:
         explicit AnimationDataStorage(const Instance& instance);
 
-        auto addAnimation(const AnimationData& data) -> Animation;
+        auto makeAnimation(const AnimationData& data) -> Animation;
 
         auto getProvider() const -> const DescriptorProviderInterface&;
 
@@ -41,6 +41,7 @@ namespace trc
 
         const Instance& instance;
 
+        // Device memory management
         std::mutex animationCreateLock;
         ui32 numAnimations{ 0 };
         ui32 animationBufferOffset{ 0 };

@@ -16,18 +16,11 @@ auto trc::loadGeometry(
     }
 
     auto& mesh = loadedMeshes.front();
-    if (loadRig && mesh.rig.has_value())
-    {
-        return assetRegistry.add(GeometryData{
-            mesh.mesh,
-            //std::make_unique<Rig>(std::move(mesh.rig.value()),
-            //                      animStorage,
-            //                      std::move(mesh.animations))
-        });
-    }
-    else {
-        return assetRegistry.add(GeometryData{ mesh.mesh });
-    }
+
+    return assetRegistry.add(
+        mesh.mesh,
+        loadRig ? mesh.rig : std::nullopt
+    );
 }
 
 auto trc::loadScene(
@@ -44,14 +37,7 @@ auto trc::loadScene(
     for (const auto& mesh : importData.meshes)
     {
         // Load geometry
-        std::unique_ptr<Rig> rig{ nullptr };
-        if (mesh.rig.has_value())
-        {
-            //rig = std::make_unique<Rig>(std::move(mesh.rig.value()),
-            //                            animStorage,
-            //                            std::move(mesh.animations));
-        }
-        GeometryID geoIdx = assetRegistry.add(GeometryData{ mesh.mesh /*, std::move(rig) */ });
+        GeometryID geoIdx = assetRegistry.add(GeometryData{ mesh.mesh }, mesh.rig);
 
         // Load material
         MaterialID matIdx;
@@ -62,7 +48,8 @@ auto trc::loadScene(
         result.importedGeometries.emplace_back(geoIdx, matIdx);
 
         // Create drawable
-        Drawable& d = *result.drawables.emplace_back(new Drawable(geoIdx, matIdx, result.scene));
+        Drawable& d = *result.drawables.emplace_back(new Drawable(geoIdx, matIdx));
+        d.attachToScene(result.scene);
         d.setFromMatrix(mesh.globalTransform);
     }
 

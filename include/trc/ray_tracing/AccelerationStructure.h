@@ -3,7 +3,7 @@
 #include <vkb/Buffer.h>
 
 #include "Types.h"
-#include "AssetIds.h"
+#include "Geometry.h"
 
 namespace trc {
     class Instance;

@@ -25,8 +25,16 @@ trc::AnimationDataStorage::AnimationDataStorage(const Instance& instance)
     writeDescriptor(instance);
 }
 
-auto trc::AnimationDataStorage::addAnimation(const AnimationData& data) -> Animation
+auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> Animation
 {
+    if (data.keyframes.empty())
+    {
+        throw std::invalid_argument(
+            "[In AnimationDataStorage::makeAnimation]: Argument of type AnimationData"
+            " must have at least one keyframe!"
+        );
+    }
+
     std::lock_guard lock(animationCreateLock);
 
     // Write animation meta data to buffer
@@ -45,6 +53,7 @@ auto trc::AnimationDataStorage::addAnimation(const AnimationData& data) -> Anima
         > animationBuffer.size())
     {
         vkb::Buffer newBuffer(
+            instance.getDevice(),
             animationBuffer.size() * 2,
             vk::BufferUsageFlagBits::eStorageBuffer
             | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,

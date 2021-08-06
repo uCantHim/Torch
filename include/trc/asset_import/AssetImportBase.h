@@ -17,7 +17,6 @@ namespace trc
         GeometryData mesh;
         std::vector<Material> materials;
         std::optional<RigData> rig;
-        std::vector<AnimationData> animations;
     };
 
     /**

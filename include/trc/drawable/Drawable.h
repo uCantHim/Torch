@@ -15,8 +15,7 @@ namespace trc
     {
     public:
         Drawable() = default;
-        explicit
-        Drawable(GeometryID geo, MaterialID material = {});
+        Drawable(GeometryID geo, MaterialID material);
         Drawable(GeometryID geo, MaterialID material, SceneBase& scene);
         ~Drawable();
 
