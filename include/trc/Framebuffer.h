@@ -61,14 +61,11 @@ namespace trc
 
         auto operator*() const -> vk::Framebuffer;
 
-        auto getSize() const -> vec2;
         auto getAttachmentView(ui32 attachmentIndex) const -> vk::ImageView;
 
     private:
         std::vector<vk::UniqueImageView> attachmentImageViews;
         std::vector<vk::ImageView> additionalAttachmentImageViews;
         vk::UniqueFramebuffer framebuffer;
-
-        vec2 size;
     };
 } // namespace trc

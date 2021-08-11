@@ -10,8 +10,7 @@ trc::Framebuffer::Framebuffer(
     std::vector<vk::ImageView> additionalAttachments)
     :
     attachmentImageViews(std::move(attachments)),
-    additionalAttachmentImageViews(std::move(additionalAttachments)),
-    size(size)
+    additionalAttachmentImageViews(std::move(additionalAttachments))
 {
     std::vector<vk::ImageView> tmpAttachmentViews;
     for (const auto& view : attachmentImageViews) {
@@ -38,8 +37,6 @@ trc::Framebuffer::Framebuffer(
     vk::RenderPass renderPass,
     const uvec2 size,
     vk::FramebufferAttachmentsCreateInfo attachmentInfo)
-    :
-    size(size)
 {
     vk::StructureChain chain{
         vk::FramebufferCreateInfo(
@@ -58,11 +55,6 @@ trc::Framebuffer::Framebuffer(
 auto trc::Framebuffer::operator*() const -> vk::Framebuffer
 {
     return *framebuffer;
-}
-
-auto trc::Framebuffer::getSize() const -> vec2
-{
-    return size;
 }
 
 auto trc::Framebuffer::getAttachmentView(ui32 attachmentIndex) const -> vk::ImageView
