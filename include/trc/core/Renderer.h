@@ -50,6 +50,6 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        std::vector<CommandCollector> commandCollectors;
+        CommandCollector commandCollector;
     };
 }

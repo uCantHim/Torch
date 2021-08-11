@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <vkb/VulkanBase.h>
 
 #include "Types.h"
@@ -17,13 +19,19 @@ namespace trc
         /**
          * Collect commands of a scene and write them to a primary command buffer
          */
-        auto recordScene(const DrawConfig& draw,
-                         RenderStageType::ID stageType,
-                         const std::vector<RenderPass*>& passes)
-            -> vk::CommandBuffer;
+        auto recordScene(const DrawConfig& draw, const RenderGraph& graph)
+            -> std::vector<vk::CommandBuffer>;
 
     private:
+        void recordStage(vk::CommandBuffer cmdBuf,
+                         const DrawConfig& draw,
+                         RenderStageType::ID stage,
+                         const std::vector<RenderPass*>& passes);
+
+        const vkb::Device& device;
+        const vkb::Swapchain& swapchain;
+
         vk::UniqueCommandPool pool;
-        vkb::FrameSpecificObject<vk::UniqueCommandBuffer> commandBuffers;
+        std::vector<vkb::FrameSpecificObject<vk::UniqueCommandBuffer>> commandBuffers;
     };
 } // namespace trc

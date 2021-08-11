@@ -20,7 +20,8 @@ trc::Renderer::Renderer(Window& _window)
     window(&_window),
     imageAcquireSemaphores(_window.getSwapchain()),
     renderFinishedSemaphores(_window.getSwapchain()),
-    frameInFlightFences(_window.getSwapchain())
+    frameInFlightFences(_window.getSwapchain()),
+    commandCollector(_window.getInstance(), _window)
 {
     createSemaphores();
 }
@@ -42,11 +43,6 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
 
     if (draw.renderAreas.empty()) return;
 
-    // Ensure that enough command collectors are available
-    while (renderGraph.size() > commandCollectors.size()) {
-        commandCollectors.emplace_back(instance, *window);
-    }
-
     // Update
     scene.update();
     renderConfig.preDraw(draw);
@@ -58,17 +54,7 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     auto image = window->getSwapchain().acquireImage(**imageAcquireSemaphores);
 
     // Collect commands from scene
-    int collectorIndex{ 0 };
-    std::vector<vk::CommandBuffer> cmdBufs;
-    renderGraph.foreachStage(
-        [&, this](RenderStageType::ID stage, const std::vector<RenderPass*>& passes)
-        {
-            auto& collector = commandCollectors.at(collectorIndex);
-            cmdBufs.push_back(collector.recordScene(draw, stage, passes));
-
-            collectorIndex++;
-        }
-    );
+    auto cmdBufs = commandCollector.recordScene(draw, renderGraph);
 
     // Post-draw cleanup callback
     renderConfig.postDraw(draw);
