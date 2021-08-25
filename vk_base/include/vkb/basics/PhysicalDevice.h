@@ -75,6 +75,17 @@ namespace vkb
         };
 
         /**
+         * @brief Create optimal physical device
+         *
+         * Uses several restrictions to search for an optimal physical
+         * device in the system and uses that. Throws a std::runtime_error
+         * if no such device exists.
+         *
+         * @throw std::runtime_error if no appropriate device can be found.
+         */
+        PhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface);
+
+        /**
          * @brief Create a physical device object
          *
          * Requires a surface because it has to query for swapchain and

@@ -74,6 +74,12 @@ auto vkb::sortByCapabilities(const std::vector<QueueFamily>& families)
 //        Physcial device       //
 // ---------------------------- //
 
+vkb::PhysicalDevice::PhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
+    :
+    PhysicalDevice(device_helpers::getOptimalPhysicalDevice(instance, surface))
+{
+}
+
 vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface)
     :
     physicalDevice(device),
