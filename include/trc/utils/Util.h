@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <vector>
 
 namespace util
 {
@@ -34,4 +35,22 @@ namespace util
 
     template<typename T>
     constexpr auto sizeof_pad_16_v = sizeof_pad_16<T>();
+
+    template<typename T>
+    auto merged(const std::vector<T>& a, const std::vector<T>& b)
+        -> std::vector<T>
+    {
+        if (a.size() > b.size())
+        {
+            auto result = a;
+            result.insert(a.end(), b.begin(), b.end());
+            return result;
+        }
+        else
+        {
+            auto result = b;
+            result.insert(b.end(), a.begin(), a.end());
+            return result;
+        }
+    }
 }
