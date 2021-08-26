@@ -9,6 +9,13 @@ trc::SceneDescriptor::SceneDescriptor(const Window& window)
     :
     window(window),
     device(window.getDevice()),
+    lightBuffer(
+        window.getDevice(),
+        util::sizeof_pad_16_v<LightData> * 128,
+        vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    ),
+    lightBufferMap(lightBuffer.map()),
     pickingBuffer(
         window.getDevice(),
         PICKING_BUFFER_SECTION_SIZE * window.getSwapchain().getFrameCount(),
@@ -30,12 +37,32 @@ void trc::SceneDescriptor::update(const Scene& scene)
 {
     updatePicking();
 
-    // Update scene-specific descriptors
-    vk::DescriptorBufferInfo lightBufferInfo(scene.getLightBuffer(), 0, VK_WHOLE_SIZE);
-    std::vector<vk::WriteDescriptorSet> writes = {
-        { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
-    };
-    device->updateDescriptorSets(writes, {});
+    const auto& lights = scene.getLights();
+
+    // Resize light buffer if the current one is too small
+    if (lights.getRequiredLightDataSize() > lightBuffer.size())
+    {
+        lightBuffer.unmap();
+
+        // Create new buffer
+        lightBuffer = vkb::Buffer(
+            window.getDevice(),
+            lights.getRequiredLightDataSize(),
+            vk::BufferUsageFlagBits::eStorageBuffer,
+            vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+        );
+        lightBufferMap = lightBuffer.map();
+
+        // Update descriptor
+        vk::DescriptorBufferInfo lightBufferInfo(*lightBuffer, 0, VK_WHOLE_SIZE);
+        std::vector<vk::WriteDescriptorSet> writes = {
+            { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
+        };
+        device->updateDescriptorSets(writes, {});
+    }
+
+    // Update light data
+    lights.writeLightData(lightBufferMap);
 }
 
 void trc::SceneDescriptor::updatePicking()
@@ -143,11 +170,12 @@ void trc::SceneDescriptor::createDescriptors()
 
 void trc::SceneDescriptor::writeDescriptors()
 {
-    // Only write the descriptors that are scene-independent
     vk::DescriptorBufferInfo pickingBufferInfo(*pickingBuffer, 0, PICKING_BUFFER_SECTION_SIZE);
+    vk::DescriptorBufferInfo lightBufferInfo(*lightBuffer, 0, VK_WHOLE_SIZE);
 
     std::vector<vk::WriteDescriptorSet> writes = {
         { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBufferDynamic, {}, &pickingBufferInfo },
+        { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
     };
     device->updateDescriptorSets(writes, {});
 }

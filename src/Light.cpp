@@ -3,59 +3,104 @@
 #include "utils/Util.h"
 
 
-auto trc::getNumShadowMaps(const Light& light) -> ui32
+
+trc::Light::Light(LightData& lightData)
+    :
+    data(&lightData)
 {
-    switch (light.type)
+}
+
+trc::Light::operator bool() const
+{
+    return data != nullptr;
+}
+
+auto trc::Light::getType() const -> Type
+{
+    assert(*this);
+    return data->type;
+}
+
+auto trc::Light::getColor() const -> vec3
+{
+    assert(*this);
+    return data->color;
+}
+
+auto trc::Light::getPosition() const -> vec3
+{
+    assert(*this);
+    return data->position;
+}
+
+auto trc::Light::getDirection() const -> vec3
+{
+    assert(*this);
+    return data->direction;
+}
+
+auto trc::Light::getAmbientPercentage() const -> float
+{
+    assert(*this);
+    return data->ambientPercentage;
+}
+
+void trc::Light::setColor(vec3 newColor)
+{
+    assert(*this);
+    data->color = vec4(newColor, 1.0f);
+}
+
+void trc::Light::setPosition(vec3 newPos)
+{
+    assert(*this);
+    data->position = vec4(newPos, 1.0f);
+}
+
+void trc::Light::setDirection(vec3 newDir)
+{
+    assert(*this);
+    data->direction = vec4(newDir, 0.0f);
+}
+
+void trc::Light::setAmbientPercentage(float ambient)
+{
+    assert(*this);
+    data->ambientPercentage = ambient;
+}
+
+void trc::Light::addShadowMap(const ui32 shadowMapIndex)
+{
+    assert(*this);
+    assert(data->numShadowMaps < LightData::MAX_SHADOW_MAPS);
+
+    data->shadowMapIndices[data->numShadowMaps] = shadowMapIndex;
+    data->numShadowMaps++;
+}
+
+void trc::Light::removeAllShadowMaps()
+{
+    assert(*this);
+
+    data->numShadowMaps = 0;
+    for (ui32 i = 0; i < LightData::MAX_SHADOW_MAPS; i++) {
+        data->shadowMapIndices[i] = 0;
+    }
+}
+
+
+
+auto trc::getNumShadowMaps(const Light::Type lightType) -> ui32
+{
+    switch (lightType)
     {
-    case Light::Type::eSunLight:
+    case LightData::Type::eSunLight:
         return 1;
-    case Light::Type::ePointLight:
+    case LightData::Type::ePointLight:
         return 4;
-    case Light::Type::eAmbientLight:
+    case LightData::Type::eAmbientLight:
         return 0;
     default:
         throw std::logic_error("Light type enum does not exist");
     }
-}
-
-auto trc::makeSunLight(vec3 color, vec3 direction, float ambientPercent) -> Light
-{
-    return {
-        .color                = vec4(color, 1.0f),
-        .position             = vec4(0.0f),
-        .direction            = vec4(direction, 0.0f),
-        .ambientPercentage    = ambientPercent,
-        .attenuationLinear    = 0.0f,
-        .attenuationQuadratic = 0.0f,
-        .type                 = Light::Type::eSunLight
-    };
-}
-
-auto trc::makePointLight(vec3 color,
-                         vec3 position,
-                         float attLinear,
-                         float attQuadratic) -> Light
-{
-    return {
-        .color                = vec4(color, 1.0f),
-        .position             = vec4(position, 1.0f),
-        .direction            = vec4(0.0f),
-        .ambientPercentage    = 0.0f,
-        .attenuationLinear    = attLinear,
-        .attenuationQuadratic = attQuadratic,
-        .type                 = Light::Type::ePointLight
-    };
-}
-
-auto trc::makeAmbientLight(vec3 color) -> Light
-{
-    return {
-        .color                = vec4(color, 1.0f),
-        .position             = vec4(0.0f),
-        .direction            = vec4(0.0f),
-        .ambientPercentage    = 1.0f,
-        .attenuationLinear    = 0.0f,
-        .attenuationQuadratic = 0.0f,
-        .type                 = Light::Type::eAmbientLight
-    };
 }

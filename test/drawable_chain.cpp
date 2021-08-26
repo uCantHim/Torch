@@ -48,10 +48,10 @@ int main()
         chainRoot.translate(0.75f, -0.5f, 0.0f);
 
         // General setup
-        trc::Scene scene(instance);
+        trc::Scene scene;
         trc::Camera camera(swapchain.getAspectRatio(), 45.0f, 0.5f, 100.0f);
         camera.lookAt(vec3(0, 2.5, 7), vec3(0, 1, 0), vec3(0, 1, 0));
-        scene.addLight(trc::makeSunLight(vec3(1.0f), vec3(0.0f, -1.0f, 0.0f), 0.6f));
+        scene.getLights().makeSunLight(vec3(1.0f), vec3(0.0f, -1.0f, 0.0f), 0.6f);
 
         // Add things to scene
         virtualDrawable->attachToScene(scene);

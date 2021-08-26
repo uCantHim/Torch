@@ -31,12 +31,12 @@ namespace trc
      * @return Nothing if the file doesn't contain any meshes or a file-I/O
      *         error occurs. Otherwise a Geometry.
      */
-    extern auto loadGeometry(const fs::path& fbxFilePath,
+    auto loadGeometry(const fs::path& fbxFilePath,
                              AssetRegistry& assetRegistry,
                              bool loadRig = true) -> Maybe<GeometryID>;
 
-    extern auto loadScene(const Instance& instance,
-                          const fs::path& fbxFilePath,
-                          AssetRegistry& assetRegistry) -> SceneImportResult;
+    //extern auto loadScene(const Instance& instance,
+    //                      const fs::path& fbxFilePath,
+    //                      AssetRegistry& assetRegistry) -> SceneImportResult;
 #endif
 }

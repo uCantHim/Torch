@@ -2,6 +2,7 @@
 
 #include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
+#include <trc/TorchResources.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 using namespace trc::basic_types;
@@ -16,7 +17,7 @@ int main()
     auto& swapchain = torch.window->getSwapchain();
     auto& ar = *torch.assetRegistry;
 
-    auto scene = std::make_unique<trc::Scene>(*torch.instance);
+    auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
     camera.lookAt({ 0, 2, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
     auto size = swapchain.getImageExtent();

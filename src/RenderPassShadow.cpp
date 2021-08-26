@@ -1,10 +1,12 @@
 #include "RenderPassShadow.h"
 
-#include "core/Instance.h"
+#include "core/Window.h"
 
 
 
-trc::RenderPassShadow::RenderPassShadow(const Instance& instance, uvec2 resolution)
+trc::RenderPassShadow::RenderPassShadow(
+    const Window& window,
+    const ShadowPassCreateInfo& info)
     :
     RenderPass(
         [&]()
@@ -45,38 +47,40 @@ trc::RenderPassShadow::RenderPassShadow(const Instance& instance, uvec2 resoluti
                 ),
             };
 
-            return instance.getDevice()->createRenderPassUnique(
+            return window.getDevice()->createRenderPassUnique(
                 vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
             );
         }(),
         1
     ),
-    resolution(resolution),
-    depthImage(
-        instance.getDevice(),
-        vk::ImageCreateInfo(
-            {},
-            vk::ImageType::e2D,
-            vk::Format::eD24UnormS8Uint,
-            vk::Extent3D(resolution.x, resolution.y, 1),
-            1, 1,
-            vk::SampleCountFlagBits::e1,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
-        )
-    ),
-    framebuffer([&] {
+    resolution(info.resolution),
+    depthImages(window.getSwapchain(), [&](ui32) {
+        return vkb::Image(
+            window.getDevice(),
+            vk::ImageCreateInfo(
+                {},
+                vk::ImageType::e2D,
+                vk::Format::eD24UnormS8Uint,
+                vk::Extent3D(resolution.x, resolution.y, 1),
+                1, 1,
+                vk::SampleCountFlagBits::e1,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled
+            )
+        );
+    }),
+    framebuffers(window.getSwapchain(), [&](ui32 i) {
         std::vector<vk::UniqueImageView> views;
-        views.push_back(depthImage.createView(vk::ImageAspectFlagBits::eDepth));
+        views.push_back(depthImages.getAt(i).createView(vk::ImageAspectFlagBits::eDepth));
 
-        return Framebuffer(instance.getDevice(), *renderPass, resolution, { std::move(views) });
-    }())
+        return Framebuffer(window.getDevice(), *renderPass, resolution, { std::move(views) });
+    })
 {
 }
 
 void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    depthImage.changeLayout(
+    depthImages->changeLayout(
         cmdBuf,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -87,7 +91,7 @@ void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents 
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderPass,
-            *framebuffer,
+            **framebuffers,
             vk::Rect2D({ 0, 0 }, { resolution.x, resolution.y }),
             clearValue
         ),
@@ -107,20 +111,15 @@ auto trc::RenderPassShadow::getResolution() const noexcept -> uvec2
 
 auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::Image&
 {
-    return depthImage;
+    return depthImages.getAt(imageIndex);
 }
 
 auto trc::RenderPassShadow::getDepthImageView(ui32 imageIndex) const -> vk::ImageView
 {
-    return framebuffer.getAttachmentView(0);
+    return framebuffers.getAt(imageIndex).getAttachmentView(0);
 }
 
 auto trc::RenderPassShadow::getShadowMatrixIndex() const noexcept -> ui32
 {
     return shadowMatrixIndex;
-}
-
-void trc::RenderPassShadow::setShadowMatrixIndex(ui32 newIndex) noexcept
-{
-    shadowMatrixIndex = newIndex;
 }

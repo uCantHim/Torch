@@ -12,6 +12,10 @@ namespace trc
     class Instance;
     class Scene;
 
+    /**
+     * binding 0: Lights (uniform buffer)
+     * binding 1: Picking information (storage buffer)
+     */
     class SceneDescriptor
     {
     public:
@@ -57,6 +61,9 @@ namespace trc
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet descSet;
         SceneDescriptorProvider provider{ *this };
+
+        vkb::Buffer lightBuffer;
+        ui8* lightBufferMap;  // Persistent mapping
 
         static constexpr vk::DeviceSize PICKING_BUFFER_SECTION_SIZE = 16;
         vkb::Buffer pickingBuffer;

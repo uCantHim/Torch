@@ -92,9 +92,8 @@ int main()
 
     // ------------------
 
-    auto scene = std::make_unique<trc::Scene>(instance);
+    auto scene = std::make_unique<trc::Scene>();
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
-    camera.makePerspective(1920.0f / 1080.0f, 45.0f, 0.1f, 100.0f);
 
     trc::Drawable grass(grassGeoIndex, matIdx, *scene);
     grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
@@ -135,16 +134,20 @@ int main()
     auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
     trc::Drawable myPlane(myPlaneGeoIndex, mapMatIndex, *scene);
 
-    trc::Light& sunLight = scene->addLight(trc::makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f)));
-    trc::Light& ambientLight = scene->addLight(trc::makeAmbientLight(vec3(0.15f)));
-    trc::Light& pointLight = scene->addLight(trc::makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f));
+    trc::Light sunLight = scene->getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
+    trc::Light ambientLight = scene->getLights().makeAmbientLight(vec3(0.15f));
+    trc::Light pointLight = scene->getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
 
     // Sun light
     mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 30.0f);
-    sunLight.position = { vec3(-10, 10, 15), 0 };
-    scene->getLightRegistry().enableShadow(
-        sunLight, uvec2(2048, 2048)
-    ).setProjectionMatrix(proj);
+    sunLight.setPosition(vec3(-10, 10, 15));
+    auto& shadowNode = scene->enableShadow(
+        sunLight,
+        { .shadowMapResolution=uvec2(2048, 2048) },
+        torch.renderConfig->getShadowPool()
+    );
+    shadowNode.setProjectionMatrix(proj);
+    scene->getRoot().attach(shadowNode);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;

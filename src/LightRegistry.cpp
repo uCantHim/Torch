@@ -1,180 +1,160 @@
 #include "LightRegistry.h"
 
-#include <vkb/ImageUtils.h>
-
-#include "core/Instance.h"
-#include "utils/Util.h"
-#include "PipelineDefinitions.h"
 
 
-
-auto trc::LightRegistry::ShadowInfo::getNode() noexcept -> Node&
+auto trc::LightRegistry::makeSunLight(vec3 color, vec3 direction, float ambientPercent)
+    -> Light
 {
-    return parentNode;
+    return addLight({
+        .color                = vec4(color, 1.0f),
+        .position             = vec4(0.0f),
+        .direction            = vec4(direction, 0.0f),
+        .ambientPercentage    = ambientPercent,
+        .attenuationLinear    = 0.0f,
+        .attenuationQuadratic = 0.0f,
+        .type                 = LightData::Type::eSunLight
+    });
 }
 
-void trc::LightRegistry::ShadowInfo::setProjectionMatrix(mat4 proj) noexcept
+auto trc::LightRegistry::makeSunLightUnique(vec3 color, vec3 direction, float ambientPercent)
+    -> UniqueLight
 {
-    for (auto& camera : shadowCameras) {
-        camera.setProjectionMatrix(proj);
-    }
+    return UniqueLight(
+        new Light(makeSunLight(color, direction, ambientPercent)),
+        [this](Light* light) {
+            deleteLight(*light);
+            delete light;
+        }
+    );
 }
 
-
-
-//////////////////////////////
-//      Light registry      //
-//////////////////////////////
-
-trc::LightRegistry::LightRegistry(const Instance& instance, const ui32 maxLights)
-    :
-    maxLights(maxLights),
-    maxShadowMaps(glm::min(maxLights * 4, MAX_SHADOW_MAPS)),
-    lightBuffer(
-        instance.getDevice(),
-        util::sizeof_pad_16_v<Light> * maxLights,
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
-    shadowMatrixBuffer(
-        instance.getDevice(),
-        sizeof(mat4) * maxShadowMaps,
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-    )
+auto trc::LightRegistry::makePointLight(
+    vec3 color,
+    vec3 position,
+    float attLinear,
+    float attQuadratic) -> Light
 {
+    return addLight({
+        .color                = vec4(color, 1.0f),
+        .position             = vec4(position, 1.0f),
+        .direction            = vec4(0.0f),
+        .ambientPercentage    = 0.0f,
+        .attenuationLinear    = attLinear,
+        .attenuationQuadratic = attQuadratic,
+        .type                 = LightData::Type::ePointLight
+    });
 }
 
-void trc::LightRegistry::update()
+auto trc::LightRegistry::makePointLightUnique(
+    vec3 color,
+    vec3 position,
+    float attLinear,
+    float attQuadratic) -> UniqueLight
 {
-    // TODO: Put these into a single buffer
-    updateLightBuffer();
-    updateShadowMatrixBuffer();
+    return UniqueLight(
+        new Light(makePointLight(color, position, attLinear, attQuadratic)),
+        [this](Light* light) {
+            deleteLight(*light);
+            delete light;
+        }
+    );
 }
 
-auto trc::LightRegistry::getMaxLights() const noexcept -> ui32
+auto trc::LightRegistry::makeAmbientLight(vec3 color) -> Light
 {
-    return maxLights;
+    return addLight({
+        .color                = vec4(color, 1.0f),
+        .position             = vec4(0.0f),
+        .direction            = vec4(0.0f),
+        .ambientPercentage    = 1.0f,
+        .attenuationLinear    = 0.0f,
+        .attenuationQuadratic = 0.0f,
+        .type                 = LightData::Type::eAmbientLight
+    });
 }
 
-auto trc::LightRegistry::addLight(Light light) -> Light&
+auto trc::LightRegistry::makeAmbientLightUnique(vec3 color) -> UniqueLight
 {
+    return UniqueLight(
+        new Light(makeAmbientLight(color)),
+        [this](Light* light) {
+            deleteLight(*light);
+            delete light;
+        }
+    );
+}
+
+auto trc::LightRegistry::addLight(LightData light) -> Light
+{
+    requiredLightDataSize += sizeof(LightData);
+
     switch (light.type)
     {
-    case Light::Type::eSunLight:
-        return *sunLights.emplace_back(new Light(light));
-    case Light::Type::ePointLight:
-        return *pointLights.emplace_back(new Light(light));
-    case Light::Type::eAmbientLight:
-        return *ambientLights.emplace_back(new Light(light));
+    case LightData::Type::eSunLight:
+        return Light(*sunLights.emplace_back(new LightData(light)));
+    case LightData::Type::ePointLight:
+        return Light(*pointLights.emplace_back(new LightData(light)));
+    case LightData::Type::eAmbientLight:
+        return Light(*ambientLights.emplace_back(new LightData(light)));
     }
 
-    throw std::logic_error("Light type \"" + std::to_string(light.type) + "\" exists");
+    // This should not be able to happen
+    throw std::logic_error("Light type \"" + std::to_string(light.type) + "\" does not exist");
 }
 
-void trc::LightRegistry::removeLight(const Light& light)
+void trc::LightRegistry::deleteLight(Light light)
 {
-    auto remove = [](std::vector<u_ptr<Light>>& lights, const Light& light) {
+    if (!light) return;
+
+    auto remove = [this](std::vector<u_ptr<LightData>>& lights, LightData* light) {
         auto it = std::remove_if(lights.begin(), lights.end(),
-                                 [&](auto& l) { return l.get() == &light; });
-        if (it != lights.end()) {
+                                 [&](auto& l) { return l.get() == light; });
+        if (it != lights.end())
+        {
             lights.erase(it);
+            requiredLightDataSize -= sizeof(LightData);
         }
     };
 
-    switch (light.type)
+    switch (light.data->type)
     {
-    case Light::Type::eSunLight:
-        remove(sunLights, light);
+    case LightData::Type::eSunLight:
+        remove(sunLights, light.data);
         break;
-    case Light::Type::ePointLight:
-        remove(pointLights, light);
+    case LightData::Type::ePointLight:
+        remove(pointLights, light.data);
         break;
-    case Light::Type::eAmbientLight:
-        remove(ambientLights, light);
+    case LightData::Type::eAmbientLight:
+        remove(ambientLights, light.data);
         break;
     }
 }
 
-auto trc::LightRegistry::enableShadow(
-    Light& light,
-    uvec2 shadowResolution
-    ) -> ShadowInfo&
+bool trc::LightRegistry::lightExists(Light light)
 {
-    if (light.type != Light::Type::eSunLight) {
-        throw std::invalid_argument("Shadows are currently only supported for sun lights");
-    }
-    if (lightExists(light)) {
-        throw std::invalid_argument("Light does not exist in the light registry!");
-    }
-    if (shadows.find(&light) != shadows.end()) {
-        throw std::invalid_argument("Shadows are already enabled for the light!");
-    }
+    if (!light) return false;
 
-    auto [it, success] = shadows.try_emplace(&light);
-    if (!success) {
-        throw std::runtime_error("Unable to add light to the map in LightRegistry::enableShadow");
-    }
-
-    auto& newEntry = it->second;
-    for (ui32 i = 0; i < getNumShadowMaps(light); i++)
+    auto compare = [&](auto& ptr) { return light.data == ptr.get(); };
+    switch (light.data->type)
     {
-        auto& camera = newEntry.shadowCameras.emplace_back();
-        newEntry.parentNode.attach(camera);
-        // Use lookAt for sun lights
-        if (light.type == Light::Type::eSunLight && length(light.direction) > 0.0f) {
-            camera.lookAt(light.position, light.position + light.direction, vec3(0, 1, 0));
-        }
-    }
-
-    newEntry.parentNode.update();
-    light.hasShadow = true;
-
-    return newEntry;
-}
-
-void trc::LightRegistry::disableShadow(Light& light)
-{
-    if (!light.hasShadow) return;
-
-    auto it = shadows.find(&light);
-    if (it != shadows.end()) {
-        shadows.erase(it);
-    }
-}
-
-auto trc::LightRegistry::getLightBuffer() const noexcept -> vk::Buffer
-{
-    return *lightBuffer;
-}
-
-auto trc::LightRegistry::getShadowMatrixBuffer() const noexcept -> vk::Buffer
-{
-    return *shadowMatrixBuffer;
-}
-
-bool trc::LightRegistry::lightExists(const Light& light)
-{
-    auto compare = [&](auto& ptr) { return &light == ptr.get(); };
-    switch (light.type)
-    {
-    case Light::Type::eSunLight:
+    case LightData::Type::eSunLight:
         return std::find_if(sunLights.begin(), sunLights.end(), compare) == sunLights.end();
-    case Light::Type::ePointLight:
+    case LightData::Type::ePointLight:
         return std::find_if(pointLights.begin(), pointLights.end(), compare) == pointLights.end();
-    case Light::Type::eAmbientLight:
+    case LightData::Type::eAmbientLight:
         return std::find_if(ambientLights.begin(), ambientLights.end(), compare) == ambientLights.end();
     }
 
-    throw std::logic_error("Light type \"" + std::to_string(light.type) + "\" exists");
+    throw std::logic_error("Light type \"" + std::to_string(light.data->type) + "\" exists");
 }
 
-void trc::LightRegistry::updateLightBuffer()
+auto trc::LightRegistry::getRequiredLightDataSize() const -> ui32
 {
-    assert(sunLights.size() + pointLights.size() + ambientLights.size() <= maxLights);
+    return requiredLightDataSize;
+}
 
-    auto buf = lightBuffer.map();
-
+void trc::LightRegistry::writeLightData(ui8* buf) const
+{
     // Set number of lights
     const ui32 numSunLights = sunLights.size();
     const ui32 numPointLights = pointLights.size();
@@ -187,37 +167,17 @@ void trc::LightRegistry::updateLightBuffer()
     size_t offset = sizeof(vec4);
     for (const auto& light : sunLights)
     {
-        memcpy(buf + offset, &*light, sizeof(Light));
-        offset += util::sizeof_pad_16_v<Light>;
+        memcpy(buf + offset, &*light, sizeof(LightData));
+        offset += util::sizeof_pad_16_v<LightData>;
     }
     for (const auto& light : pointLights)
     {
-        memcpy(buf + offset, &*light, sizeof(Light));
-        offset += util::sizeof_pad_16_v<Light>;
+        memcpy(buf + offset, &*light, sizeof(LightData));
+        offset += util::sizeof_pad_16_v<LightData>;
     }
     for (const auto& light : ambientLights)
     {
-        memcpy(buf + offset, &*light, sizeof(Light));
-        offset += util::sizeof_pad_16_v<Light>;
+        memcpy(buf + offset, &*light, sizeof(LightData));
+        offset += util::sizeof_pad_16_v<LightData>;
     }
-
-    lightBuffer.unmap();
-}
-
-void trc::LightRegistry::updateShadowMatrixBuffer()
-{
-    if (shadows.empty()) {
-        return;
-    }
-
-    mat4* buf = reinterpret_cast<mat4*>(shadowMatrixBuffer.map());
-    for (size_t i = 0; const auto& [light, shadow] : shadows)
-    {
-        for (const auto& camera : shadow.shadowCameras)
-        {
-            // Only increase counter for lights that have a shadow
-            buf[i++] = camera.getProjectionMatrix() * camera.getViewMatrix();
-        }
-    }
-    shadowMatrixBuffer.unmap();
 }

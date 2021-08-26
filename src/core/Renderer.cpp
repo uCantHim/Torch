@@ -37,14 +37,12 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     assert(draw.camera != nullptr);
     assert(draw.renderConfig != nullptr);
 
-    Scene& scene = *draw.scene;
     RenderConfig& renderConfig = *draw.renderConfig;
     RenderGraph& renderGraph = draw.renderConfig->getGraph();
 
     if (draw.renderAreas.empty()) return;
 
     // Update
-    scene.update();
     renderConfig.preDraw(draw);
 
     // Acquire image

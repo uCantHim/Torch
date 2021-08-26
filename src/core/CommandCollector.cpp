@@ -1,8 +1,8 @@
 #include "CommandCollector.h"
 
 #include "Window.h"
-
 #include "TorchResources.h"
+#include "utils/Util.h"
 
 
 
@@ -63,7 +63,7 @@ void trc::CommandCollector::recordStage(
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
-    for (auto renderPass : passes)
+    for (auto renderPass : util::merged(passes, scene.getDynamicRenderPasses(stage)))
     {
         assert(renderPass != nullptr);
 

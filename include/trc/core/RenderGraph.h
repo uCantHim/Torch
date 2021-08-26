@@ -5,10 +5,11 @@
 
 #include "Types.h"
 #include "RenderStage.h"
-#include "RenderPass.h"
 
 namespace trc
 {
+    class RenderPass;
+
     class RenderGraph
     {
     public:

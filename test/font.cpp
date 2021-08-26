@@ -18,7 +18,7 @@ int main()
 
         // ---
 
-        trc::Scene scene(instance);
+        trc::Scene scene;
         trc::Camera camera;
         camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
         camera.setDepthBounds(0.1f, 100.0f);

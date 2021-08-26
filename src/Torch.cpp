@@ -1,5 +1,7 @@
 #include "Torch.h"
 
+#include "TorchResources.h"
+
 
 
 static inline trc::u_ptr<vkb::VulkanInstance> torchGlobalVulkanInstance{ nullptr };

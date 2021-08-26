@@ -9,11 +9,8 @@ int main()
         //   1. A scene
         //   2. A camera
         //   3. A render configuration, which defines a concrete rendering
-        //      implementation - for example a deferred renderer.
-        // The scene is created as a unique_ptr instead of value here so we can
-        // easily delete it at the end. That's not necessary for the camera
-        // since it doesn't allocate any Vulkan resources.
-        trc::Scene scene{ *torch.instance };
+        //      implementation - in this case Torch's default renderer.
+        trc::Scene scene;
         trc::Camera camera;
 
         auto extent = torch.window->getSwapchain().getImageExtent();

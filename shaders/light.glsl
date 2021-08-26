@@ -20,8 +20,10 @@ struct Light
 
     uint type;
 
-    bool hasShadow;
-    uint firstShadowIndex;
+    uint numShadowMaps;
+    uint shadowMapIndices[4];
 };
+
+#define HAS_SHADOW(light) (light.numShadowMaps > 0)
 
 #endif

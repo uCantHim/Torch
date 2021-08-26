@@ -22,7 +22,7 @@ target_sources(
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
-        ShadowDescriptor.cpp
+        ShadowPool.cpp
         Torch.cpp
         TorchResources.cpp
 )

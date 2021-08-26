@@ -11,7 +11,7 @@
 #include "RenderPassShadow.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
-#include "ShadowDescriptor.h"
+#include "ShadowPool.h"
 #include "AssetRegistry.h"
 #include "AnimationDataStorage.h"
 #include "text/FontDataStorage.h"
@@ -59,6 +59,8 @@ namespace trc
 
         auto getAssets() -> AssetRegistry&;
         auto getAssets() const -> const AssetRegistry&;
+        auto getShadowPool() -> ShadowPool&;
+        auto getShadowPool() const -> const ShadowPool&;
 
     private:
         // Default render passes
@@ -68,10 +70,10 @@ namespace trc
         // Descriptors
         GlobalRenderDataDescriptor globalDataDescriptor;
         SceneDescriptor sceneDescriptor;
-        ShadowDescriptor shadowDescriptor;
 
         // Data & Assets
         AssetRegistry* assetRegistry;
+        ShadowPool shadowPool;
 
         // Final lighting pass stuff
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;

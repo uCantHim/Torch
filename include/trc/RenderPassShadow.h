@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vkb/Image.h>
+#include <vkb/FrameSpecificObject.h>
 
 #include "Types.h"
 #include "core/RenderPass.h"
@@ -8,7 +9,13 @@
 
 namespace trc
 {
-    class Instance;
+    class Window;
+
+    struct ShadowPassCreateInfo
+    {
+        ui32 shadowIndex;
+        uvec2 resolution;
+    };
 
     /**
      * @brief A pass that renders a shadow map
@@ -20,9 +27,10 @@ namespace trc
     {
     public:
         /**
-         * @param uvec2 resolution Resolution of the shadow map
+         * @param const Window& window
+         * @param const ShadowPassCreateInfo& info
          */
-        RenderPassShadow(const Instance& instance, uvec2 resolution);
+        RenderPassShadow(const Window& window, const ShadowPassCreateInfo& info);
 
         /**
          * Updates the shadow matrix in the descriptor and starts the
@@ -40,22 +48,14 @@ namespace trc
          */
         auto getShadowMatrixIndex() const noexcept -> ui32;
 
-        /**
-         * This is called by the light registry when shadow passes are
-         * re-ordered. Please don't call this manually.
-         */
-        void setShadowMatrixIndex(ui32 newIndex) noexcept;
-
-        auto getDepthImage(ui32 imageIndex) const -> const vkb::Image&;
-        auto getDepthImageView(ui32 imageIndex) const -> vk::ImageView;
+        auto getDepthImage(ui32 frameIndex) const -> const vkb::Image&;
+        auto getDepthImageView(ui32 frameIndex) const -> vk::ImageView;
 
     private:
         const uvec2 resolution;
         ui32 shadowMatrixIndex;
 
-        //vkb::FrameSpecificObject<vkb::Image> depthImages;
-        //vkb::FrameSpecificObject<Framebuffer> framebuffers;
-        vkb::Image depthImage;
-        Framebuffer framebuffer;
+        vkb::FrameSpecificObject<vkb::Image> depthImages;
+        vkb::FrameSpecificObject<Framebuffer> framebuffers;
     };
 } // namespace trc

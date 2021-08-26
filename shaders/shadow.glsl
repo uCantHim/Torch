@@ -98,11 +98,11 @@ float calcSmoothShadowStrength(vec3 worldCoords, uint shadowIndex)
  */
 float calcSunShadowValueSharp(vec3 worldCoords, Light light)
 {
-    if (!light.hasShadow || light.type != LIGHT_TYPE_SUN) {
+    if (!HAS_SHADOW(light) || light.type != LIGHT_TYPE_SUN) {
         return NO_SHADOW;
     }
 
-    return float(!isInShadow(worldCoords, light.firstShadowIndex));
+    return float(!isInShadow(worldCoords, light.shadowMapIndices[0]));
 }
 
 /**
@@ -112,11 +112,11 @@ float calcSunShadowValueSharp(vec3 worldCoords, Light light)
  */
 float calcSunShadowValueSmooth(vec3 worldCoords, Light light)
 {
-    if (!light.hasShadow || light.type != LIGHT_TYPE_SUN) {
+    if (!HAS_SHADOW(light) || light.type != LIGHT_TYPE_SUN) {
         return NO_SHADOW;
     }
 
-    return 1.0 - calcSmoothShadowStrength(worldCoords, light.firstShadowIndex);
+    return 1.0 - calcSmoothShadowStrength(worldCoords, light.shadowMapIndices[0]);
 }
 
 #endif

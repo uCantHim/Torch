@@ -10,6 +10,7 @@
 #include "RenderStage.h"
 #include "RenderPass.h"
 #include "Pipeline.h"
+#include "DynamicRenderPassContainer.h"
 
 namespace trc
 {
@@ -131,7 +132,7 @@ namespace trc
         SceneBase* scene;
     };
 
-    class SceneBase
+    class SceneBase : public DynamicRenderPassContainer
     {
     public:
         using RegistrationID = DrawableExecutionRegistration::ID;

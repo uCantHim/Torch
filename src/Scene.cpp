@@ -1,17 +1,8 @@
 #include "Scene.h"
 
-#include <cstring>
-
-#include "utils/Util.h"
-#include "PickableRegistry.h"
 #include "TorchResources.h"
 
 
-trc::Scene::Scene(const Instance& instance)
-    :
-    lightRegistry(instance)
-{
-}
 
 auto trc::Scene::getRoot() noexcept -> Node&
 {
@@ -23,37 +14,83 @@ auto trc::Scene::getRoot() const noexcept -> const Node&
     return root;
 }
 
-void trc::Scene::update()
-{
-    lightRegistry.update();
-}
-
 void trc::Scene::updateTransforms()
 {
     root.updateAsRoot();
 }
 
-auto trc::Scene::addLight(Light light) -> Light&
-{
-    return lightRegistry.addLight(light);
-}
-
-void trc::Scene::removeLight(const Light& light)
-{
-    lightRegistry.removeLight(light);
-}
-
-auto trc::Scene::getLightBuffer() const noexcept -> vk::Buffer
-{
-    return lightRegistry.getLightBuffer();
-}
-
-auto trc::Scene::getLightRegistry() noexcept -> LightRegistry&
+auto trc::Scene::getLights() noexcept -> LightRegistry&
 {
     return lightRegistry;
 }
 
-auto trc::Scene::getLightRegistry() const noexcept -> const LightRegistry&
+auto trc::Scene::getLights() const noexcept -> const LightRegistry&
 {
     return lightRegistry;
+}
+
+auto trc::Scene::enableShadow(
+    Light light,
+    const ShadowCreateInfo& shadowInfo,
+    ShadowPool& shadowPool
+    ) -> ShadowNode&
+{
+    if (light.getType() != Light::Type::eSunLight) {
+        throw std::invalid_argument("Shadows are currently only supported for sun lights");
+    }
+    if (lightRegistry.lightExists(light)) {
+        throw std::invalid_argument("Light does not exist in the light registry!");
+    }
+    if (shadowNodes.find(light) != shadowNodes.end()) {
+        throw std::invalid_argument("Shadows are already enabled for the light!");
+    }
+
+    auto [it, success] = shadowNodes.try_emplace(light);
+    if (!success) {
+        throw std::runtime_error("Unable to add light to the map in LightRegistry::enableShadow");
+    }
+
+    auto& newEntry = it->second;
+    for (ui32 i = 0; i < getNumShadowMaps(light.getType()); i++)
+    {
+        ShadowMap& shadow = newEntry.shadows.emplace_back(
+            shadowPool.allocateShadow(shadowInfo)
+        );
+        Camera& camera = *shadow.camera;
+        newEntry.attach(camera);
+
+        // Add shadow to light info
+        light.addShadowMap(shadow.index);
+
+        // Add the dynamic render pass
+        addRenderPass(RenderStageTypes::getShadow(), *shadow.renderPass);
+
+        // Use lookAt for sun lights
+        if (light.getType() == LightData::Type::eSunLight && length(light.getDirection()) > 0.0f)
+        {
+            camera.lookAt(light.getPosition(),
+                          light.getPosition() + light.getDirection(),
+                          vec3(0, 1, 0));
+        }
+    }
+
+    newEntry.update();
+
+    return newEntry;
+}
+
+void trc::Scene::disableShadow(Light light)
+{
+    auto it = shadowNodes.find(light);
+    if (it != shadowNodes.end())
+    {
+        light.removeAllShadowMaps();
+
+        // Remove all render passes
+        for (auto& shadow : it->second.shadows) {
+            removeRenderPass(RenderStageTypes::getShadow(), *shadow.renderPass);
+        }
+
+        shadowNodes.erase(it);
+    }
 }

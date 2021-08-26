@@ -1,5 +1,7 @@
 #include "RenderGraph.h"
 
+#include "RenderPass.h"
+
 
 
 void trc::RenderGraph::first(RenderStageType::ID newStage)

@@ -2,6 +2,7 @@ target_sources(
     torch
     PRIVATE
         CommandCollector.cpp
+        DynamicRenderPassContainer.cpp
         Instance.cpp
         Pipeline.cpp
         Renderer.cpp
