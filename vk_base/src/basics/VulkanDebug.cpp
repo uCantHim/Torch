@@ -10,7 +10,7 @@ vkb::VulkanDebug::VulkanDebug(vk::Instance instance)
     :
     instance(instance)
 {
-    if constexpr (!debugMode) {
+    if constexpr (!VKB_DEBUG) {
         return;
     }
 
@@ -74,7 +74,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkb::VulkanDebug::vulkanDebugCallback(
     switch (messageSeverity)
     {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        std::cerr << "A " << errorTypeStr << " error occured. Check the error log for additional details.\n";
+        std::cerr << "A " << errorTypeStr << " error occured."
+            << " Check the error log for additional details.\n";
         std::cerr << callbackData->pMessage << "\n";
 
         vkErrorLog.log("A " + errorTypeStr + " error occured:");
@@ -117,7 +118,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkb::VulkanDebug::vulkanDebugCallback(
 
 auto vkb::getRequiredValidationLayers() -> std::vector<const char*>
 {
-    if constexpr (!debugMode) {
+    if constexpr (!VKB_DEBUG) {
         return {};
     }
 
@@ -147,13 +148,6 @@ auto vkb::getRequiredValidationLayers() -> std::vector<const char*>
                 result.push_back(enabledLayer);
                 break;
             }
-        }
-    }
-
-    if constexpr(enableVerboseLogging) {
-        std::cout << "\nEnabled validation layers:\n";
-        for (const auto& name : result) {
-            std::cout << " - " << name << "\n";
         }
     }
 

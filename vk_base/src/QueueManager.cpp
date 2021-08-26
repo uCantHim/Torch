@@ -109,17 +109,17 @@ vkb::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
 
     if constexpr (enableVerboseLogging)
     {
-        std::cout << "\n";
+        std::cout << "\nQueue manager created for logical device.\n";
         for (int i = 0; i < static_cast<int>(QueueType::numQueueTypes); i++)
         {
             if (primaryQueueFamilies[i] != UINT32_MAX)
             {
-                std::cout << "--- Chose queue family " << primaryQueueFamilies[i]
+                std::cout << "   Chose queue family " << primaryQueueFamilies[i]
                     << " as the primary " << std::to_string(QueueType(i)) << " queue family.\n";
             }
             else
             {
-                std::cout << "--- No queue family found with " << std::to_string(QueueType(i))
+                std::cout << "   No queue family found with " << std::to_string(QueueType(i))
                     << " support.\n";
             }
         }

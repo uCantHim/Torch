@@ -126,7 +126,14 @@ auto vkb::PhysicalDevice::createLogicalDevice(
     ) const -> vk::UniqueDevice
 {
     // Device queues
-    std::vector<float> prios(100, 1.0f); // Enough prios for 100 queues per family
+    const auto maxQueues = [&] {
+        uint32_t result = 0;
+        for (const auto& f : queueFamilies) {
+            result = std::max(result, f.queueCount);
+        }
+        return result;
+    }();
+    std::vector<float> prios(maxQueues, 1.0f);
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     for (const auto& queueFamily : queueFamilies)
     {
@@ -143,31 +150,52 @@ auto vkb::PhysicalDevice::createLogicalDevice(
     deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
 
     // Device features
-    vk::StructureChain defaultFeatures{
+    vk::StructureChain deviceFeatures{
         vk::PhysicalDeviceFeatures2{},
-        vk::PhysicalDeviceDescriptorIndexingFeatures{}
+        vk::PhysicalDeviceDescriptorIndexingFeatures{},
     };
 
-    defaultFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
+    deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
         .setPNext(extraPhysicalDeviceFeatureChain);
-    physicalDevice.getFeatures2(&defaultFeatures.get<vk::PhysicalDeviceFeatures2>());
+    physicalDevice.getFeatures2(&deviceFeatures.get<vk::PhysicalDeviceFeatures2>());
 
     // Create the logical device
     vk::StructureChain chain
     {
         vk::DeviceCreateInfo(
             {},
-            static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data(),
-            static_cast<uint32_t>(validationLayers.size()), validationLayers.data(),
-            static_cast<uint32_t>(deviceExtensions.size()), deviceExtensions.data(),
-            &defaultFeatures.get<vk::PhysicalDeviceFeatures2>().features
+            queueCreateInfos,
+            validationLayers,
+            deviceExtensions,
+            &deviceFeatures.get<vk::PhysicalDeviceFeatures2>().features
         ),
         // This must be the first feature in the structure chain. This
         // works because descriptor indexing is always enabled.
-        defaultFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
+        deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
     };
 
-    return physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
+    auto result = physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
+
+    if constexpr (enableVerboseLogging)
+    {
+        std::cout << "\nLogical device created from physical device \"" << name << "\"\n";
+
+        std::cout << "   Enabled device extensions:\n";
+        for (const auto& name : deviceExtensions) {
+            std::cout << "    - " << name << "\n";
+        }
+
+        std::cout << "   Enabled device features:\n";
+        constexpr auto pNextOffset = offsetof(vk::PhysicalDeviceFeatures2, pNext);
+        uint8_t* feature = reinterpret_cast<uint8_t*>(&deviceFeatures.get<vk::PhysicalDeviceFeatures2>());
+        while (feature != nullptr)
+        {
+            std::cout << "    - " << vk::to_string(*(vk::StructureType*)feature) << "\n";
+            feature = (uint8_t*) *(uint64_t*)(feature + pNextOffset);
+        }
+    }
+
+    return result;
 }
 
 bool vkb::PhysicalDevice::hasSurfaceSupport(vk::SurfaceKHR surface) const

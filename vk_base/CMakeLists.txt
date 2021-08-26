@@ -41,6 +41,7 @@ target_include_directories(
         ${GLFW_INCLUDE_DIRS}
         ${GLM_INCLUDE_DIRS}
         ${IL_INCLUDE_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/include
         ${CMAKE_CURRENT_LIST_DIR}/include/vkb
 )
 

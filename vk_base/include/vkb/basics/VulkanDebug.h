@@ -12,16 +12,16 @@ namespace vkb
 {
 
 #ifdef TRC_DEBUG
-constexpr auto debugMode = true;
+constexpr auto VKB_DEBUG = true;
 #else
-constexpr auto debugMode = false;
+constexpr auto VKB_DEBUG = false;
 #endif
 
 /**
  * Various vulkan-related methods print a lot of information
  * if this is enabled.
  */
-constexpr bool enableVerboseLogging = debugMode;
+constexpr bool enableVerboseLogging = VKB_DEBUG;
 
 extern std::vector<const char*> getRequiredValidationLayers();
 
@@ -46,6 +46,7 @@ private:
         }
         return true;
     }();
+
     static inline Logger vkErrorLog   { "vulkan_logs/vulkan_error.log" };
     static inline Logger vkWarningLog { "vulkan_logs/vulkan_warning.log" };
     static inline Logger vkInfoLog    { "vulkan_logs/vulkan_info.log" };

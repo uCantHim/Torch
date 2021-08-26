@@ -19,8 +19,8 @@ public:
      *
      * Fully initializes the device.
      *
-     * Use this constructor overload and pass only a physical device to
-     * create a device with default extensions and features.
+     * Only pass a physical device to create a device with default
+     * extensions and features.
      *
      * @param const PhysicalDevice& physDevice
      * @param std::vector<const char*> deviceExtensions Additional

@@ -32,9 +32,12 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
     std::vector<uint32_t> imageSharingQueueFamilies;
     const auto& graphicsFamilies = physicalDevice.queueFamilyCapabilities.graphicsCapable;
     const auto& presentationFamilies = physicalDevice.queueFamilyCapabilities.presentationCapable;
-    if (graphicsFamilies.empty() || presentationFamilies.empty()) {
-        throw std::runtime_error("Unable to create swapchain; no graphics or presentation queues available."
-            "This should have been checked during device selection.");
+    if (graphicsFamilies.empty() || presentationFamilies.empty())
+    {
+        throw std::runtime_error(
+            "Unable to create swapchain; no graphics or presentation queues available."
+            "This should have been checked during device selection."
+        );
     }
 
     const auto& graphics = graphicsFamilies[0];
@@ -46,20 +49,12 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
         // will likely be faster than concurrent access.
         result.imageSharingMode = vk::SharingMode::eExclusive;
         result.imageSharingQueueFamilies = {}; // Not important for exclusive sharing
-
-        if constexpr (vkb::enableVerboseLogging) {
-            std::cout << "Exclusive image sharing mode enabled\n";
-        }
     }
     else
     {
         // The graphics and the presentation queues are of different families.
         result.imageSharingMode = vk::SharingMode::eConcurrent;
         result.imageSharingQueueFamilies = { graphics.index, present.index };
-
-        if constexpr (vkb::enableVerboseLogging) {
-            std::cout << "Concurrent image sharing mode enabled\n";
-        }
     }
 
     return result;
@@ -68,13 +63,9 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
 auto findOptimalImageExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) -> vk::Extent2D
 {
     auto& extent = capabilities.currentExtent;
-    if (extent.width != UINT32_MAX && extent.height != UINT32_MAX) {
+    if (extent.width != UINT32_MAX && extent.height != UINT32_MAX)
+    {
         // The extent has already been determined by the implementation
-        if constexpr (vkb::enableVerboseLogging)
-        {
-            std::cout << "Using implementation defined image extent: ("
-                << extent.width << ", " << extent.height << ")\n";
-        }
         return extent;
     }
 
@@ -90,23 +81,31 @@ auto findOptimalImageExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFW
                                      capabilities.minImageExtent.height,
                                      capabilities.maxImageExtent.height);
 
-    if constexpr (vkb::enableVerboseLogging) {
-        std::cout << "Using swapchain image extent ("
-            << extent.width << ", " << extent.height << ")\n";
-    }
-
     return actualExtent;
 }
 
 auto findOptimalSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats)
     -> vk::SurfaceFormatKHR
 {
-    for (const auto& format : formats) {
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        std::cout << "   Possible surface formats: ";
+        for (const auto& format : formats)
+        {
+            std::cout << "(" << vk::to_string(format.format) << " - "
+                << vk::to_string(format.colorSpace) << "), ";
+        }
+        std::cout << "\b\b \n";
+    }
+
+    for (const auto& format : formats)
+    {
         if (format.format == vk::Format::eR8G8B8A8Unorm
             && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
         {
-            if constexpr (vkb::enableVerboseLogging) {
-                std::cout << "Found optimal surface format \"" << vk::to_string(format.format)
+            if constexpr (vkb::enableVerboseLogging)
+            {
+                std::cout << "   Found optimal surface format \"" << vk::to_string(format.format)
                     << "\" in the color space \"" << vk::to_string(format.colorSpace) << "\"\n";
             }
             return format;
@@ -114,30 +113,40 @@ auto findOptimalSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats)
     }
 
     if constexpr (vkb::enableVerboseLogging) {
-        std::cout << "Picked suboptimal surface format.\n";
+        std::cout << "   Picked suboptimal surface format.\n";
     }
     return formats[0];
 }
 
-auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presentModes)
+auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presentModes,
+                                   vk::PresentModeKHR preferredMode = vk::PresentModeKHR::eMailbox)
     -> vk::PresentModeKHR
 {
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        std::cout << "   Possible present modes: ";
+        for (const auto& mode : presentModes) {
+            std::cout << vk::to_string(mode) << ", ";
+        }
+        std::cout << "\b\b \n";
+    }
+
     for (const auto& mode : presentModes)
     {
-        if (mode == vk::PresentModeKHR::eMailbox)
+        if (mode == preferredMode)
         {
             // Triple buffered. Not guaranteed to be supported.
             if constexpr (vkb::enableVerboseLogging) {
-                std::cout << "Found optimal present mode: " << vk::to_string(mode) << "\n";
+                std::cout << "   Using preferred present mode: " << vk::to_string(mode) << "\n";
             }
             return mode;
         }
     }
 
     if constexpr (vkb::enableVerboseLogging) {
-        std::cout << "Using suboptimal present mode: "
-            << vk::to_string(vk::PresentModeKHR::eImmediate) << "\n";
+        std::cout << "   Using present mode: " << vk::to_string(vk::PresentModeKHR::eImmediate) << "\n";
     }
+
     return vk::PresentModeKHR::eImmediate;
 }
 
@@ -399,6 +408,10 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 
 void vkb::Swapchain::createSwapchain()
 {
+    if constexpr (enableVerboseLogging) {
+        std::cout << "\nStarting swapchain creation\n";
+    }
+
     // Signal start of recreation
     // This allows objects depending on the swapchain to prepare the
     // recreate, like locking resources.
@@ -452,18 +465,29 @@ void vkb::Swapchain::createSwapchain()
     images = device->getSwapchainImagesKHR(swapchain.get());
     imageViews = createImageViews();
 
-    if constexpr (enableVerboseLogging) {
-        std::cout << "New swapchain created, recreating swapchain-dependent resources...\n";
+    if constexpr (enableVerboseLogging)
+    {
+        auto duration = duration_cast<milliseconds>(system_clock::now() - timerStart).count();
+
+        std::cout << "Swapchain created (" << duration << " ms):\n";
+
+        std::cout << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")\n";
+        std::cout << "   Images: " << numFrames << "\n";
+        std::cout << "   Format: " << vk::to_string(optimalFormat.format)
+            << ", Color Space: " << vk::to_string(optimalFormat.colorSpace) << "\n";
+        std::cout << "   Image usage: " << vk::to_string(createInfo.imageUsage) << "\n";
+        std::cout << "   Image sharing mode: " << vk::to_string(imageSharingMode) << "\n";
+        std::cout << "   Present mode: " << vk::to_string(optimalPresentMode) << "\n";
+
+        std::cout << "\nRecreating swapchain-dependent resources...\n";
     }
+
     // Signal that recreation is finished.
     // Objects depending on the swapchain should now recreate their
     // resources.
     EventHandler<SwapchainRecreateEvent>::notifySync({ {this} });
 
-    if constexpr (enableVerboseLogging)
-    {
-        auto duration = duration_cast<milliseconds>(system_clock::now() - timerStart);
-        std::cout << "Swapchain has been created successfully with " << numFrames
-           << " images (" << duration.count() << " ms)\n";
+    if constexpr (enableVerboseLogging) {
+        std::cout << "Swapchain-dependent resource creation completed.\n";
     }
 }
