@@ -22,12 +22,10 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         // Ray tracing device features
         auto features = physicalDevice->physicalDevice.getFeatures2<
             vk::PhysicalDeviceFeatures2,
-            vk::PhysicalDeviceBufferDeviceAddressFeatures,
             vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
             vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
         >();
 
-        auto addr = features.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
         auto as = features.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
         auto ray = features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
 
@@ -35,7 +33,6 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         {
             std::cout << "\nQuerying ray tracing support:\n";
             std::cout << std::boolalpha
-                << "   Buffer device address: " << (bool)addr.bufferDeviceAddress << "\n"
                 << "   Acceleration structure: " << (bool)as.accelerationStructure << "\n"
                 << "   Acceleration structure host commands: "
                     << (bool)as.accelerationStructureHostCommands << "\n"
@@ -44,10 +41,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
                 << "   Ray traversal primitive culling: " << (bool)ray.rayTraversalPrimitiveCulling << "\n";
         }
 
-        const bool rayTracingSupported = addr.bufferDeviceAddress
-                                         && as.accelerationStructure
-                                         && ray.rayTracingPipeline;
-
+        const bool rayTracingSupported = as.accelerationStructure && ray.rayTracingPipeline;
         if (rayTracingSupported && info.enableRayTracing)
         {
             rayTracingEnabled = true;
@@ -59,7 +53,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
             extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
 
             // Add ray tracing features to feature chain
-            deviceFeatureChain = &features.get<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+            deviceFeatureChain = &features.get<vk::PhysicalDeviceFeatures2>().pNext;
         }
 #endif // TRC_USE_RAY_TRACING
 

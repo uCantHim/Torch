@@ -149,14 +149,18 @@ auto vkb::PhysicalDevice::createLogicalDevice(
     const auto requiredDevExt = device_helpers::getRequiredDeviceExtensions();
     deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
 
-    // Device features
+    // Default device features
     vk::StructureChain deviceFeatures{
         vk::PhysicalDeviceFeatures2{},
+        vk::PhysicalDeviceBufferDeviceAddressFeatures{},
         vk::PhysicalDeviceDescriptorIndexingFeatures{},
     };
 
+    // Add custom features
     deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
         .setPNext(extraPhysicalDeviceFeatureChain);
+
+    // Query features
     physicalDevice.getFeatures2(&deviceFeatures.get<vk::PhysicalDeviceFeatures2>());
 
     // Create the logical device
@@ -167,11 +171,11 @@ auto vkb::PhysicalDevice::createLogicalDevice(
             queueCreateInfos,
             validationLayers,
             deviceExtensions,
-            &deviceFeatures.get<vk::PhysicalDeviceFeatures2>().features
+            nullptr
         ),
         // This must be the first feature in the structure chain. This
         // works because descriptor indexing is always enabled.
-        deviceFeatures.get<vk::PhysicalDeviceDescriptorIndexingFeatures>()
+        deviceFeatures.get<vk::PhysicalDeviceFeatures2>()
     };
 
     auto result = physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
