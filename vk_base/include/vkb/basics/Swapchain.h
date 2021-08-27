@@ -30,6 +30,35 @@ namespace vkb
     extern void pollEvents();
 
     /**
+     * These settings are *preferences*, the implementation is not
+     * guaranteed to support all possible values.
+     */
+    struct SwapchainCreateInfo
+    {
+        /** Only eFifo is guaranteed to be supported. */
+        vk::PresentModeKHR presentMode{ vk::PresentModeKHR::eMailbox };
+
+        /**
+         * A value of 0 means that the swapchain will be created with the
+         * least possible number of images.
+         */
+        uint32_t imageCount{ 3 };
+
+        /** The swapchain will always enable the eColorAttachment bit. */
+        vk::ImageUsageFlags imageUsage;
+
+        /**
+         * If set to true, swapchain creation will throw an exception
+         * (std::runtime_error) if any of the preferences are not supported
+         * by the implementation.
+         *
+         * If false, another supported value will be chosen if the preference
+         * is not supported.
+         */
+        bool throwWhenUnsupported{ false };
+    };
+
+    /**
      * @brief A swapchain
      *
      * This is the equivalent to the classical 'Window' class. I didn't
@@ -45,7 +74,7 @@ namespace vkb
         /**
          * @brief Construct a swapchain
          */
-        Swapchain(const Device& device, Surface s);
+        Swapchain(const Device& device, Surface s, const SwapchainCreateInfo& info = {});
         Swapchain(Swapchain&&) noexcept = default;
         ~Swapchain() = default;
 
@@ -59,6 +88,11 @@ namespace vkb
          * @return GLFWwindow* The GLFW window handle of the swapchain's surface
          */
         auto getGlfwWindow() const noexcept -> GLFWwindow*;
+
+        /**
+         * @return uvec2 Size of the swapchain images
+         */
+        auto getSize() const noexcept -> glm::uvec2;
 
         /**
          * @return vk::Extent2D Size of the swapchain images, i.e. the window size
@@ -90,6 +124,23 @@ namespace vkb
          * @return vk::Image
          */
         auto getImage(uint32_t index) const noexcept -> vk::Image;
+
+        /**
+         * @return vk::PresentModeKHR The swapchain's current presentation mode
+         */
+        auto getPresentMode() const noexcept -> vk::PresentModeKHR;
+
+        /**
+         * @brief Set a presentation mode to be used for the swapchain
+         *
+         * Another present mode will be used if the preferred one is not
+         * supported.
+         *
+         * Recreates the swapchain.
+         *
+         * @param vk::PresentModeKHR newMode
+         */
+        void setPreferredPresentMode(vk::PresentModeKHR newMode);
 
         auto acquireImage(vk::Semaphore signalSemaphore) const -> image_index;
         void presentImage(image_index image,
@@ -130,7 +181,9 @@ namespace vkb
 
     private:
         void initGlfwCallbacks(GLFWwindow* window);
-        void createSwapchain();
+        void createSwapchain(const SwapchainCreateInfo& info);
+
+        SwapchainCreateInfo createInfo;
 
         std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
         std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> surface;
@@ -139,6 +192,7 @@ namespace vkb
         vk::UniqueSwapchainKHR swapchain;
         vk::Extent2D swapchainExtent;
         vk::Format swapchainFormat;
+        vk::PresentModeKHR presentMode;
 
         std::vector<vk::Image> images;
         std::vector<vk::UniqueImageView> imageViews;

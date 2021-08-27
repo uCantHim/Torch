@@ -60,7 +60,10 @@ auto findOptimalImageSharingMode(const vkb::PhysicalDevice& physicalDevice) -> I
     return result;
 }
 
-auto findOptimalImageExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) -> vk::Extent2D
+auto findOptimalImageExtent(
+    const vk::SurfaceCapabilitiesKHR& capabilities,
+    GLFWwindow* window
+    ) -> vk::Extent2D
 {
     auto& extent = capabilities.currentExtent;
     if (extent.width != UINT32_MAX && extent.height != UINT32_MAX)
@@ -131,23 +134,32 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
         std::cout << "\b\b \n";
     }
 
+    bool immediateSupported{ false };
     for (const auto& mode : presentModes)
     {
         if (mode == preferredMode)
         {
-            // Triple buffered. Not guaranteed to be supported.
             if constexpr (vkb::enableVerboseLogging) {
                 std::cout << "   Using preferred present mode: " << vk::to_string(mode) << "\n";
             }
             return mode;
         }
+
+        if (mode == vk::PresentModeKHR::eImmediate) {
+            immediateSupported = true;
+        }
     }
 
     if constexpr (vkb::enableVerboseLogging) {
-        std::cout << "   Using present mode: " << vk::to_string(vk::PresentModeKHR::eImmediate) << "\n";
+        std::cout << "   Preferred present mode is not supported\n";
     }
 
-    return vk::PresentModeKHR::eImmediate;
+    if (immediateSupported) {
+        return vk::PresentModeKHR::eImmediate;
+    }
+    else {
+        return vk::PresentModeKHR::eFifo;  // The only mode that is required to be supported
+    }
 }
 
 
@@ -156,9 +168,10 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
 //        Swapchain class       //
 // ---------------------------- //
 
-vkb::Swapchain::Swapchain(const Device& device, Surface s)
+vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreateInfo& info)
     :
     device(device),
+    createInfo(info),
     window(std::move(s.window)),
     surface(std::move(s.surface))
 {
@@ -178,7 +191,7 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s)
     }
 
     initGlfwCallbacks(window.get());
-    createSwapchain();
+    createSwapchain(info);
 }
 
 auto vkb::Swapchain::isOpen() const noexcept -> bool
@@ -189,6 +202,11 @@ auto vkb::Swapchain::isOpen() const noexcept -> bool
 auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
 {
     return window.get();
+}
+
+auto vkb::Swapchain::getSize() const noexcept -> glm::uvec2
+{
+    return { swapchainExtent.width, swapchainExtent.height };
 }
 
 auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
@@ -206,7 +224,6 @@ auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
     return swapchainFormat;
 }
 
-
 auto vkb::Swapchain::getFrameCount() const noexcept -> uint32_t
 {
     return static_cast<uint32_t>(numFrames);
@@ -218,12 +235,16 @@ auto vkb::Swapchain::getCurrentFrame() const noexcept -> uint32_t
     return currentFrame;
 }
 
-
 auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> vk::Image
 {
     return images[index];
 }
 
+void vkb::Swapchain::setPreferredPresentMode(vk::PresentModeKHR newMode)
+{
+    createInfo.presentMode = newMode;
+    createSwapchain(createInfo);
+}
 
 auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> image_index
 {
@@ -236,7 +257,6 @@ auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> image_
     }
     return result.value;
 }
-
 
 void vkb::Swapchain::presentImage(
     image_index image,
@@ -253,7 +273,7 @@ void vkb::Swapchain::presentImage(
     try {
         auto result = queue.presentKHR(presentInfo);
         if (result == vk::Result::eSuboptimalKHR && enableVerboseLogging) {
-            std::cout << "--- Swapchain has become suboptimal\n";
+            std::cout << "--- Swapchain has become suboptimal. Do nothing.\n";
         }
     }
     catch (const vk::OutOfDateKHRError&)
@@ -261,13 +281,12 @@ void vkb::Swapchain::presentImage(
         if constexpr (enableVerboseLogging) {
             std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
         }
-        createSwapchain();
+        createSwapchain(createInfo);
         return;
     }
 
     currentFrame = (currentFrame + 1) % numFrames;
 }
-
 
 auto vkb::Swapchain::getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView
 {
@@ -406,7 +425,7 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
     });
 }
 
-void vkb::Swapchain::createSwapchain()
+void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 {
     if constexpr (enableVerboseLogging) {
         std::cout << "\nStarting swapchain creation\n";
@@ -420,19 +439,41 @@ void vkb::Swapchain::createSwapchain()
     const auto timerStart = system_clock::now();
     const auto& physDevice = device.getPhysicalDevice();
 
+    const auto [imageSharingMode, imageSharingQueueFamilies] = findOptimalImageSharingMode(physDevice);
     const auto [capabilities, formats, presentModes] = physDevice.getSwapchainSupport(*surface);
     auto optimalImageExtent = findOptimalImageExtent(capabilities, window.get());
     auto optimalFormat      = findOptimalSurfaceFormat(formats);
-    auto optimalPresentMode = findOptimalSurfacePresentMode(presentModes);
+    auto optimalPresentMode = findOptimalSurfacePresentMode(presentModes, info.presentMode);
 
     // Specify the number of images in the swapchain
-    numFrames = capabilities.minImageCount + 1; // min + 1 is a good heuristic.
-    if (capabilities.maxImageCount > 0) {
-        // MaxImageCount == 0 would mean that there is no limit on the image maximum.
-        numFrames = std::min(numFrames, capabilities.maxImageCount);
+    const uint32_t minImages = capabilities.minImageCount;
+    const uint32_t maxImages = capabilities.maxImageCount == 0  // 0 means no limit on the image maximum.
+                               ? std::numeric_limits<uint32_t>::max()
+                               : capabilities.maxImageCount;
+    numFrames = glm::clamp(info.imageCount, minImages, maxImages);
+
+    if (info.throwWhenUnsupported)
+    {
+        if (optimalPresentMode != info.presentMode)
+        {
+            throw std::runtime_error(
+                "[In Swapchain::createSwapchain]: Present mode \""
+                + vk::to_string(info.presentMode) + " is not supported!"
+            );
+        }
+
+        if (numFrames != info.imageCount)
+        {
+            throw std::runtime_error(
+                "[In Swapchain::createSwapchain]: Image count of " + std::to_string(info.imageCount)
+                + " is not supported!"
+            );
+        }
     }
 
-    const auto [imageSharingMode, imageSharingQueueFamilies] = findOptimalImageSharingMode(physDevice);
+    // Enable default image usage flags
+    auto usageFlags = info.imageUsage;
+    usageFlags |= vk::ImageUsageFlagBits::eColorAttachment;
 
     // Create the swapchain
     vk::SwapchainCreateInfoKHR createInfo(
@@ -443,9 +484,7 @@ void vkb::Swapchain::createSwapchain()
         optimalFormat.colorSpace,
         optimalImageExtent,
         1u, // array layers
-        vk::ImageUsageFlagBits::eColorAttachment
-        | vk::ImageUsageFlagBits::eTransferDst
-        | vk::ImageUsageFlagBits::eStorage,
+        usageFlags,
         imageSharingMode,
         static_cast<uint32_t>(imageSharingQueueFamilies.size()),
         imageSharingQueueFamilies.data(),
@@ -459,6 +498,7 @@ void vkb::Swapchain::createSwapchain()
 
     swapchainExtent = optimalImageExtent;
     swapchainFormat = optimalFormat.format;
+    presentMode = optimalPresentMode;
     currentFrame = 0;
 
     // Retrieve created images
