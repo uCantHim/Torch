@@ -1,15 +1,14 @@
 #pragma once
 
+#include <ranges>
 #include <vector>
 #include <functional>
-#include <ranges>
 #include <mutex>
 
 #include <nc/data/ObjectId.h>
 
 #include "Instance.h"
 #include "Pipeline.h"
-//#include "RenderConfiguration.h"
 
 namespace trc
 {
@@ -126,8 +125,6 @@ namespace trc
         PipelineRegistry<T>::foreachFactory([this](auto factory) {
             pipelines.push_back(factory(instance, *renderConfig));
         });
-
-        std::cout << "--- After pipeline creation: " << pipelines.size() << "\n";
     }
 
 

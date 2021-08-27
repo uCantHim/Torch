@@ -24,6 +24,11 @@ trc::Renderer::Renderer(Window& _window)
     commandCollector(_window.getInstance(), _window)
 {
     createSemaphores();
+
+    swapchainRecreateListener = vkb::on<vkb::PreSwapchainRecreateEvent>([&](auto e) {
+        if (e.swapchain != &_window.getSwapchain()) return;
+        waitForAllFrames();
+    }).makeUnique();
 }
 
 trc::Renderer::~Renderer()
@@ -45,10 +50,12 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     // Update
     renderConfig.preDraw(draw);
 
-    // Acquire image
+    // Wait for frame
     auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     assert(fenceResult == vk::Result::eSuccess);
     device->resetFences(**frameInFlightFences);
+
+    // Acquire image
     auto image = window->getSwapchain().acquireImage(**imageAcquireSemaphores);
 
     // Collect commands from scene

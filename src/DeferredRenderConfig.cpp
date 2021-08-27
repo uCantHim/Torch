@@ -1,8 +1,9 @@
 #include "DeferredRenderConfig.h"
 
-#include "Window.h"
-#include "core/DrawConfiguration.h"
+#include <vkb/util/Timer.h>
 
+#include "core/Window.h"
+#include "core/DrawConfiguration.h"
 #include "TorchResources.h"
 #include "RenderPassDeferred.h"
 #include "PipelineDefinitions.h"  // TODO: Enums are here - remove this
@@ -12,12 +13,13 @@
 trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& info)
     :
     RenderConfigCrtpBase(info.instance),
+    window(info.window),
     // Passes
-    deferredPass(
+    deferredPass(new RenderPassDeferred(
         info.instance.getDevice(),
         info.window.getSwapchain(),
         info.maxTransparentFragsPerPixel
-    ),
+    )),
     shadowPass(info.window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
     // Descriptors
     globalDataDescriptor(info.window),
@@ -47,7 +49,33 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
     graph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
 
     // Add pass to deferred stage
-    graph.addPass(RenderStageTypes::getDeferred(), deferredPass);
+    graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+
+    swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this, info](auto e) {
+        if (e.swapchain != &window.getSwapchain()) return;
+
+        vkb::Timer timer;
+
+        graph.removePass(RenderStageTypes::getDeferred(), *deferredPass);
+        deferredPass.reset(new RenderPassDeferred(
+            window.getDevice(),
+            window.getSwapchain(),
+            info.maxTransparentFragsPerPixel
+        ));
+        graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+        if constexpr (vkb::enableVerboseLogging)
+        {
+            std::cout << "Deferred renderpass recreated for new swapchain"
+                << " (" << timer.reset() << " ms)\n";
+        }
+
+        getPipelineStorage().recreateAll();
+        if constexpr (vkb::enableVerboseLogging)
+        {
+            std::cout << "All pipelines recreated for new deferred renderpass"
+                << " (" << timer.reset() << " ms)\n";
+        }
+    }).makeUnique();
 }
 
 void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
@@ -66,7 +94,6 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 
     globalDataDescriptor.update(*draw.camera);
     sceneDescriptor.update(*draw.scene);
-    //shadowPool->update();
 }
 
 void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
@@ -77,7 +104,7 @@ void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
 
 auto trc::DeferredRenderConfig::getDeferredRenderPass() const -> const RenderPassDeferred&
 {
-    return deferredPass;
+    return *deferredPass;
 }
 
 auto trc::DeferredRenderConfig::getCompatibleShadowRenderPass() const -> vk::RenderPass
@@ -100,7 +127,7 @@ auto trc::DeferredRenderConfig::getSceneDescriptorProvider() const
 auto trc::DeferredRenderConfig::getDeferredPassDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return deferredPass.getDescriptorProvider();
+    return deferredPass->getDescriptorProvider();
 }
 
 auto trc::DeferredRenderConfig::getShadowDescriptorProvider() const

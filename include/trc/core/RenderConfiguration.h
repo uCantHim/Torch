@@ -45,11 +45,10 @@ namespace trc
         inline RenderConfigCrtpBase(const Instance& instance);
 
         inline auto getPipeline(Pipeline::ID id) -> Pipeline& override;
+        inline auto getPipelineStorage() -> PipelineStorage<Derived>&;
 
     private:
         u_ptr<PipelineStorage<Derived>> pipelineStorage;
-
-        // TODO: Asset registry here
     };
 
     /**
@@ -76,5 +75,11 @@ namespace trc
     inline auto RenderConfigCrtpBase<Derived>::getPipeline(Pipeline::ID id) -> Pipeline&
     {
         return pipelineStorage->get(id);
+    }
+
+    template<typename Derived>
+    inline auto RenderConfigCrtpBase<Derived>::getPipelineStorage() -> PipelineStorage<Derived>&
+    {
+        return *pipelineStorage;
     }
 } // namespace trc

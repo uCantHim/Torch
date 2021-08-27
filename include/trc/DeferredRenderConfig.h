@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vkb/event/Event.h>
+
 #include "Types.h"
 #include "core/Instance.h"
 #include "core/RenderConfiguration.h"
@@ -64,8 +66,11 @@ namespace trc
         auto getShadowPool() const -> const ShadowPool&;
 
     private:
+        const Window& window;
+        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
+
         // Default render passes
-        RenderPassDeferred deferredPass;
+        u_ptr<RenderPassDeferred> deferredPass;
         RenderPassShadow shadowPass;
 
         // Descriptors

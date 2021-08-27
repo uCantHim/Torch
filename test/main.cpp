@@ -244,6 +244,10 @@ int main()
         .renderAreas  = { torch.window->makeFullscreenRenderArea() }
     };
 
+    vkb::on<vkb::SwapchainRecreateEvent>([&](auto) {
+        draw.renderAreas[0] = torch.window->makeFullscreenRenderArea();
+    });
+
     vkb::Timer timer;
     uint32_t frames{ 0 };
     while (running)
