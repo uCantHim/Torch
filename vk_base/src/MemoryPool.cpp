@@ -14,7 +14,13 @@ vkb::ManagedMemoryChunk::ManagedMemoryChunk(
     vk::DeviceSize size,
     uint32_t memoryTypeIndex)
     :
-    memory(device->allocateMemoryUnique({ size, memoryTypeIndex })),
+    memory([&] {
+        vk::StructureChain chain{
+            vk::MemoryAllocateInfo{ size, memoryTypeIndex },
+            vk::MemoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        };
+        return device->allocateMemoryUnique(chain.get<vk::MemoryAllocateInfo>());
+    }()),
     size(size)
 {}
 
