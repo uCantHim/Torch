@@ -61,6 +61,7 @@ auto trc::ShadowPool::allocateShadow(const ShadowCreateInfo& info) -> ShadowMap
     for (ui32 i = 0; i < swapchain.getFrameCount(); i++) {
         writeDescriptors(i);
     }
+    updateMatrixBuffer();
 
     return {
         .index      = id,
@@ -137,6 +138,16 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
         )
     };
 
+    // Write shadow matrix buffers only once
+    descSets.foreach([this](auto& set) {
+        vk::DescriptorBufferInfo bufferInfo(*shadowMatrixBuffer, 0, VK_WHOLE_SIZE);
+        std::vector<vk::WriteDescriptorSet> writes = {
+            { *set, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &bufferInfo },
+        };
+
+        device->updateDescriptorSets(writes, {});
+    });
+
     provider.setDescriptorSetLayout(*descLayout);
     provider.setDescriptorSet({ swapchain, [&](ui32 i) { return *descSets.getAt(i); } });
 }
@@ -145,16 +156,11 @@ void trc::ShadowPool::writeDescriptors(ui32 frameIndex)
 {
     auto descSet = *descSets.getAt(frameIndex);
 
-    // Always update the shadow matrix buffer
-    vk::DescriptorBufferInfo bufferInfo(*shadowMatrixBuffer, 0, VK_WHOLE_SIZE);
-    std::vector<vk::WriteDescriptorSet> writes = {
-        { descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &bufferInfo },
-    };
-
     // Collect all shadow images
     std::vector<vk::DescriptorImageInfo> imageInfos;
     for (auto& shadow : shadows)
     {
+        // Vector space is pre-allocated. Skip empty shadow slots.
         if (shadow == nullptr) continue;
 
         auto& pass = shadow->renderPass;
@@ -165,12 +171,12 @@ void trc::ShadowPool::writeDescriptors(ui32 frameIndex)
 
     if (!imageInfos.empty())
     {
-        writes.emplace_back(vk::WriteDescriptorSet(
+        vk::WriteDescriptorSet write(
             descSet, 1, 0, imageInfos.size(),
             vk::DescriptorType::eCombinedImageSampler,
             imageInfos.data()
-        ));
-    }
+        );
 
-    device->updateDescriptorSets(writes, {});
+        device->updateDescriptorSets(write, {});
+    }
 }

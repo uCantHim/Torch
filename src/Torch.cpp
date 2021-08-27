@@ -47,12 +47,14 @@ auto trc::initDefault() -> DefaultTorchStack
     auto instance = std::make_unique<trc::Instance>();
     auto window = instance->makeWindow({});
     auto ar = std::make_unique<AssetRegistry>(*instance);
+    auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
     auto config{
         std::make_unique<DeferredRenderConfig>(
             DeferredRenderCreateInfo{
                 *instance,
                 *window,
                 ar.get(),
+                sp.get(),
                 3  // max transparent frags
             }
         )
@@ -64,6 +66,7 @@ auto trc::initDefault() -> DefaultTorchStack
         std::move(instance),
         std::move(window),
         std::move(ar),
+        std::move(sp),
         std::move(config)
     };
 }

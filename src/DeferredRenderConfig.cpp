@@ -24,7 +24,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
     sceneDescriptor(info.window),
     // Asset storage
     assetRegistry(info.assetRegistry),
-    shadowPool(info.window, { .maxShadowMaps=200 }),
+    shadowPool(info.shadowPool),
     // Internal resources
     fullscreenQuadVertexBuffer(
         info.instance.getDevice(),
@@ -66,7 +66,7 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 
     globalDataDescriptor.update(*draw.camera);
     sceneDescriptor.update(*draw.scene);
-    shadowPool.update();
+    //shadowPool->update();
 }
 
 void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
@@ -106,7 +106,7 @@ auto trc::DeferredRenderConfig::getDeferredPassDescriptorProvider() const
 auto trc::DeferredRenderConfig::getShadowDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return shadowPool.getProvider();
+    return shadowPool->getProvider();
 }
 
 auto trc::DeferredRenderConfig::getAssetDescriptorProvider() const
@@ -133,10 +133,10 @@ auto trc::DeferredRenderConfig::getAssets() const -> const AssetRegistry&
 
 auto trc::DeferredRenderConfig::getShadowPool() -> ShadowPool&
 {
-    return shadowPool;
+    return *shadowPool;
 }
 
 auto trc::DeferredRenderConfig::getShadowPool() const -> const ShadowPool&
 {
-    return shadowPool;
+    return *shadowPool;
 }

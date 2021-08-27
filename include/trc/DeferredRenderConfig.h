@@ -29,6 +29,7 @@ namespace trc
         const Instance& instance;
         const Window& window;
         AssetRegistry* assetRegistry;
+        ShadowPool* shadowPool;
 
         ui32 maxTransparentFragsPerPixel{ 3 };
     };
@@ -73,7 +74,7 @@ namespace trc
 
         // Data & Assets
         AssetRegistry* assetRegistry;
-        ShadowPool shadowPool;
+        ShadowPool* shadowPool;
 
         // Final lighting pass stuff
         vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;

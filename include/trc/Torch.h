@@ -43,6 +43,7 @@ namespace trc
         u_ptr<Instance> instance;
         u_ptr<Window> window;
         u_ptr<AssetRegistry> assetRegistry;
+        u_ptr<ShadowPool> shadowPool;
         u_ptr<DeferredRenderConfig> renderConfig;
     };
 

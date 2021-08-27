@@ -55,6 +55,12 @@ namespace trc
          */
         ShadowPool(const Window& window, ShadowPoolCreateInfo info);
 
+        /**
+         * @brief Update shadow matrices
+         *
+         * This is only necessary if a shadow's camera's view or projection
+         * matrices have changed.
+         */
         void update();
 
         auto allocateShadow(const ShadowCreateInfo& info) -> ShadowMap;

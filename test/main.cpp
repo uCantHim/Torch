@@ -144,7 +144,7 @@ int main()
     auto& shadowNode = scene->enableShadow(
         sunLight,
         { .shadowMapResolution=uvec2(2048, 2048) },
-        torch.renderConfig->getShadowPool()
+        *torch.shadowPool
     );
     shadowNode.setProjectionMatrix(proj);
     scene->getRoot().attach(shadowNode);
@@ -249,6 +249,7 @@ int main()
     while (running)
     {
         scene->updateTransforms();
+        torch.shadowPool->update();
 
         torch.window->drawFrame(draw);
 
