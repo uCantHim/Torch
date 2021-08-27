@@ -30,6 +30,13 @@ void trc::init(const TorchInitInfo&)
 
 auto trc::getVulkanInstance() -> vkb::VulkanInstance&
 {
+    if (torchGlobalVulkanInstance == nullptr)
+    {
+        throw std::runtime_error(
+            "[In trc::getVulkanInstance]: Instance not initialized. You must call init() first!"
+        );
+    }
+
     return *torchGlobalVulkanInstance;
 }
 
@@ -37,9 +44,9 @@ auto trc::initDefault() -> DefaultTorchStack
 {
     init();
 
-    auto instance{ trc::createDefaultInstance() };
-    auto window{ instance->makeWindow({}) };
-    auto ar{ std::make_unique<AssetRegistry>(*instance) };
+    auto instance = std::make_unique<trc::Instance>();
+    auto window = instance->makeWindow({});
+    auto ar = std::make_unique<AssetRegistry>(*instance);
     auto config{
         std::make_unique<DeferredRenderConfig>(
             DeferredRenderCreateInfo{

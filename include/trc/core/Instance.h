@@ -9,24 +9,12 @@ namespace trc
 {
     class Window;
     struct WindowCreateInfo;
-    class Instance;
 
     struct InstanceCreateInfo
-    {
-        vk::Instance instance;
-        u_ptr<vkb::PhysicalDevice> physicalDevice;
-        u_ptr<vkb::Device> device;
-
-        vk::DispatchLoaderDynamic dynamicLoader{ instance, vkGetInstanceProcAddr };
-    };
-
-    struct DefaultInstanceCreateInfo
     {
         bool enableRayTracing{ false };
         std::vector<const char*> deviceExtensions;
     };
-
-    auto createDefaultInstance(DefaultInstanceCreateInfo info = {}) -> u_ptr<Instance>;
 
     class Instance
     {
@@ -36,7 +24,7 @@ namespace trc
         auto operator=(const Instance&) -> Instance& = delete;
         auto operator=(Instance&&) noexcept -> Instance& = delete;
 
-        explicit Instance(InstanceCreateInfo&& info);
+        explicit Instance(const InstanceCreateInfo& info = {});
         ~Instance();
 
         auto getVulkanInstance() const -> vk::Instance;
@@ -52,6 +40,8 @@ namespace trc
 
         auto makeWindow(const WindowCreateInfo& info) const -> u_ptr<Window>;
 
+        bool hasRayTracing() const;
+
     private:
         vk::Instance instance;
         u_ptr<vkb::PhysicalDevice> physicalDevice;
@@ -59,5 +49,7 @@ namespace trc
         vkb::QueueManager queueManager;
 
         vk::DispatchLoaderDynamic dynamicLoader;
+
+        bool rayTracingEnabled{ false };
     };
 } // namespace trc

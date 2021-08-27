@@ -26,6 +26,13 @@ namespace trc
      */
     void init(const TorchInitInfo& info = {});
 
+    /**
+     * Torch has a single global vk::Instance as the basis for all Torch
+     * instances. Retrieve it with with function.
+     *
+     * @throws std::runtime_error if the instance has not been intitialized
+     *                            with trc::init.
+     */
     auto getVulkanInstance() -> vkb::VulkanInstance&;
 
     /**

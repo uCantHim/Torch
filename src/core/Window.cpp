@@ -7,13 +7,23 @@
 trc::Window::Window(const Instance& instance, WindowCreateInfo info)
     :
     instance(instance),
-    swapchain(
-        instance.getDevice(),
-        vkb::createSurface(
-            instance.getVulkanInstance(),
-            { .windowSize={ info.size.x, info.size.y }, .windowTitle=info.title }
-        )
-    ),
+    swapchain([&] {
+        // Additional flags currently only used for ray tracing
+        if (instance.hasRayTracing())
+        {
+            info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst
+                                                   | vk::ImageUsageFlagBits::eStorage;
+        }
+
+        return vkb::Swapchain(
+            instance.getDevice(),
+            vkb::createSurface(
+                instance.getVulkanInstance(),
+                { .windowSize={ info.size.x, info.size.y }, .windowTitle=info.title }
+            ),
+            info.swapchainCreateInfo
+        );
+    }()),
     renderer(*this)
 {
 }

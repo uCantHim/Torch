@@ -13,6 +13,8 @@ namespace trc
     {
         uvec2 size{ 1920, 1080 };
         std::string title = "";
+
+        vkb::SwapchainCreateInfo swapchainCreateInfo{};
     };
 
     /**
