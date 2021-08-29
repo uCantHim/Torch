@@ -26,11 +26,13 @@ namespace trc
         /**
          * @brief
          */
-        Window(const Instance& instance, WindowCreateInfo info);
+        Window(Instance& instance, WindowCreateInfo info);
 
         void drawFrame(const DrawConfig& drawConfig);
 
+        auto getInstance() -> Instance&;
         auto getInstance() const -> const Instance&;
+        auto getDevice() -> vkb::Device&;
         auto getDevice() const -> const vkb::Device&;
 
         auto getSwapchain() -> vkb::Swapchain&;
@@ -40,7 +42,7 @@ namespace trc
         auto makeFullscreenRenderArea() const -> RenderArea;
 
     private:
-        const Instance& instance;
+        Instance* instance;
 
         vkb::Swapchain swapchain;
         Renderer renderer;

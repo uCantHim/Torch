@@ -64,7 +64,7 @@ namespace trc
     {
     public:
         explicit ParticleCollection(
-            const Instance& instance,
+            Instance& instance,
             ui32 maxParticles,
             ParticleUpdateMethod updateMethod = ParticleUpdateMethod::eHost);
 
@@ -130,7 +130,9 @@ namespace trc
 
         // Updater
         std::unique_ptr<Updater> updater;
+        vkb::ExclusiveQueue transferQueue;
         vk::UniqueFence transferFence;
+        vk::UniqueCommandPool transferCmdPool;
         vk::UniqueCommandBuffer transferCmdBuf;
 
         // Drawable registrations

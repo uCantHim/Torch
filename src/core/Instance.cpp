@@ -59,7 +59,6 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
 
         return new vkb::Device(*physicalDevice, extensions, deviceFeatureChain);
     }()),
-    queueManager(*physicalDevice, *device),
     dynamicLoader(instance, vkGetInstanceProcAddr)
 {
 }
@@ -94,16 +93,6 @@ auto trc::Instance::getDevice() const -> const vkb::Device&
     return *device;
 }
 
-auto trc::Instance::getQueueManager() -> vkb::QueueManager&
-{
-    return queueManager;
-}
-
-auto trc::Instance::getQueueManager() const -> const vkb::QueueManager&
-{
-    return queueManager;
-}
-
 auto trc::Instance::getDL() -> vk::DispatchLoaderDynamic&
 {
     return dynamicLoader;
@@ -114,7 +103,7 @@ auto trc::Instance::getDL() const -> const vk::DispatchLoaderDynamic&
     return dynamicLoader;
 }
 
-auto trc::Instance::makeWindow(const WindowCreateInfo& info) const -> u_ptr<Window>
+auto trc::Instance::makeWindow(const WindowCreateInfo& info) -> u_ptr<Window>
 {
     return std::make_unique<Window>(*this, info);
 }

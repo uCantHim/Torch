@@ -29,7 +29,7 @@ namespace trc
 
 
 trc::ParticleCollection::ParticleCollection(
-    const Instance& instance,
+    Instance& instance,
     const ui32 maxParticles,
     ParticleUpdateMethod updateMethod)
     :
@@ -70,9 +70,18 @@ trc::ParticleCollection::ParticleCollection(
         memoryPool.makeAllocator()
     ),
     persistentMaterialBuf(reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map())),
-    transferFence(instance.getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled })),
-    transferCmdBuf(instance.getDevice().createTransferCommandBuffer())
+    transferFence(instance.getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled }))
 {
+    auto& dev = instance.getDevice();
+    auto [tq, tf] = dev.getQueueManager().getAnyQueue(vkb::QueueType::transfer);
+    transferQueue = dev.getQueueManager().reserveQueue(tq);
+    transferCmdPool = dev->createCommandPoolUnique({
+        vk::CommandPoolCreateFlagBits::eResetCommandBuffer, tf
+    });
+    transferCmdBuf = std::move(dev->allocateCommandBuffersUnique({
+        *transferCmdPool, vk::CommandBufferLevel::ePrimary, 1
+    })[0]);
+
     particles.reserve(maxParticles);
     setUpdateMethod(updateMethod);
 }
@@ -185,7 +194,6 @@ void trc::ParticleCollection::update()
     transferCmdBuf->end();
 
     constexpr vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eTransfer;
-    static auto& transferQueue = Queues::getTransfer();
     transferQueue.waitSubmit(
         vk::SubmitInfo(0, nullptr, &waitStage, 1, &*transferCmdBuf, 0, nullptr),
         *transferFence

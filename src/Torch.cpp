@@ -60,8 +60,6 @@ auto trc::initDefault() -> DefaultTorchStack
         )
     };
 
-    Queues::init(instance->getQueueManager());
-
     return {
         std::move(instance),
         std::move(window),

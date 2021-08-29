@@ -14,7 +14,7 @@ namespace trc
     class CommandCollector
     {
     public:
-        explicit CommandCollector(const Instance& instance, const Window& window);
+        CommandCollector(const Window& window, vkb::QueueFamilyIndex renderQueueFamily);
 
         /**
          * Collect commands of a scene and write them to a primary command buffer

@@ -4,9 +4,9 @@
 
 
 
-trc::Window::Window(const Instance& instance, WindowCreateInfo info)
+trc::Window::Window(Instance& instance, WindowCreateInfo info)
     :
-    instance(instance),
+    instance(&instance),
     swapchain([&] {
         // Additional flags currently only used for ray tracing
         if (instance.hasRayTracing())
@@ -33,14 +33,24 @@ void trc::Window::drawFrame(const DrawConfig& drawConfig)
     renderer.drawFrame(drawConfig);
 }
 
+auto trc::Window::getInstance() -> Instance&
+{
+    return *instance;
+}
+
 auto trc::Window::getInstance() const -> const Instance&
 {
-    return instance;
+    return *instance;
+}
+
+auto trc::Window::getDevice() -> vkb::Device&
+{
+    return instance->getDevice();
 }
 
 auto trc::Window::getDevice() const -> const vkb::Device&
 {
-    return instance.getDevice();
+    return instance->getDevice();
 }
 
 auto trc::Window::getSwapchain() -> vkb::Swapchain&

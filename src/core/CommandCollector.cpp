@@ -6,15 +6,17 @@
 
 
 
-trc::CommandCollector::CommandCollector(const Instance& instance, const Window& window)
+trc::CommandCollector::CommandCollector(
+    const Window& window,
+    vkb::QueueFamilyIndex renderQueueFamily)
     :
-    device(instance.getDevice()),
+    device(window.getDevice()),
     swapchain(window.getSwapchain()),
-    pool(instance.getDevice()->createCommandPoolUnique(
+    pool(window.getDevice()->createCommandPoolUnique(
         vk::CommandPoolCreateInfo(
             vk::CommandPoolCreateFlagBits::eResetCommandBuffer
             | vk::CommandPoolCreateFlagBits::eTransient,
-            Queues::getMainRenderFamily()
+            renderQueueFamily
         )
     ))
 {

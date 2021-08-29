@@ -20,13 +20,21 @@ trc::Renderer::Renderer(Window& _window)
     window(&_window),
     imageAcquireSemaphores(_window.getSwapchain()),
     renderFinishedSemaphores(_window.getSwapchain()),
-    frameInFlightFences(_window.getSwapchain()),
-    commandCollector(_window.getInstance(), _window)
+    frameInFlightFences(_window.getSwapchain())
 {
     createSemaphores();
 
-    swapchainRecreateListener = vkb::on<vkb::PreSwapchainRecreateEvent>([&](auto e) {
-        if (e.swapchain != &_window.getSwapchain()) return;
+    vkb::QueueManager& qm = _window.getDevice().getQueueManager();
+    std::tie(mainRenderQueue, mainRenderQueueFamily)
+        = util::tryReserve(qm, vkb::QueueType::graphics);
+    std::tie(mainPresentQueue, mainPresentQueueFamily)
+        = util::tryReserve(qm, vkb::QueueType::presentation);
+    std::cout << "--- Main presentation family: " << mainPresentQueueFamily << "\n";
+
+    commandCollector = std::make_unique<CommandCollector>(_window, mainRenderQueueFamily);
+
+    swapchainRecreateListener = vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto e) {
+        if (e.swapchain != &window->getSwapchain()) return;
         waitForAllFrames();
     }).makeUnique();
 }
@@ -51,23 +59,24 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     renderConfig.preDraw(draw);
 
     // Wait for frame
-    auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
-    assert(fenceResult == vk::Result::eSuccess);
+    auto fenceResult = device->waitForFences(**frameInFlightFences, true, 1000000000);
+    if (fenceResult == vk::Result::eTimeout) {
+        return;
+    }
     device->resetFences(**frameInFlightFences);
 
     // Acquire image
     auto image = window->getSwapchain().acquireImage(**imageAcquireSemaphores);
 
     // Collect commands from scene
-    auto cmdBufs = commandCollector.recordScene(draw, renderGraph);
+    auto cmdBufs = commandCollector->recordScene(draw, renderGraph);
 
     // Post-draw cleanup callback
     renderConfig.postDraw(draw);
 
     // Submit command buffers
-    auto& graphicsQueue = Queues::getMainRender();
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
-    graphicsQueue.submit(
+    mainRenderQueue.submit(
         vk::SubmitInfo(
             **imageAcquireSemaphores,
             waitStage,
@@ -78,8 +87,7 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     );
 
     // Present frame
-    auto& presentQueue = Queues::getMainPresent();
-    window->getSwapchain().presentImage(image, *presentQueue, { **renderFinishedSemaphores });
+    window->getSwapchain().presentImage(image, *mainPresentQueue, { **renderFinishedSemaphores });
 }
 
 void trc::Renderer::createSemaphores()

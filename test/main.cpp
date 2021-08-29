@@ -33,7 +33,7 @@ int main()
 
     auto torch = trc::initDefault();
     auto& ar = torch.renderConfig->getAssets();
-    const auto& instance = *torch.instance;
+    auto& instance = *torch.instance;
     const auto& device = instance.getDevice();
 
     // ------------------

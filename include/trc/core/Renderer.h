@@ -2,8 +2,8 @@
 
 #include <mutex>
 
-#include <vkb/basics/Device.h>
 #include <vkb/FrameSpecificObject.h>
+#include <vkb/ExclusiveQueue.h>
 #include <vkb/event/Event.h>
 
 #include "CommandCollector.h"
@@ -52,6 +52,12 @@ namespace trc
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
         vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
 
-        CommandCollector commandCollector;
+        // Queues and command collection
+        vkb::ExclusiveQueue mainRenderQueue;
+        vkb::QueueFamilyIndex mainRenderQueueFamily;
+        vkb::ExclusiveQueue mainPresentQueue;
+        vkb::QueueFamilyIndex mainPresentQueueFamily;
+
+        u_ptr<CommandCollector> commandCollector;
     };
 }
