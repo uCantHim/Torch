@@ -21,12 +21,12 @@ void vkb::ExclusiveQueue::submit(
     const vk::ArrayProxy<const vk::SubmitInfo>& submits,
     vk::Fence fence) const
 {
-    std::lock_guard lock(submissionLock);
-    if (std::this_thread::get_id() != currentThread)
+    std::lock_guard lock(sync->submissionLock);
+    if (std::this_thread::get_id() != sync->currentThread)
     {
         std::stringstream ss;
         ss << "Tried to submit work in thread " << std::this_thread::get_id()
-            << ", but queue is currently owned by thread " << currentThread;
+            << ", but queue is currently owned by thread " << sync->currentThread;
         throw std::runtime_error(ss.str());
     }
 
@@ -37,8 +37,8 @@ bool vkb::ExclusiveQueue::trySubmit(
     const vk::ArrayProxy<const vk::SubmitInfo>& submits,
     vk::Fence fence) const
 {
-    std::lock_guard lock(submissionLock);
-    if (std::this_thread::get_id() != currentThread) {
+    std::lock_guard lock(sync->submissionLock);
+    if (std::this_thread::get_id() != sync->currentThread) {
         return false;
     }
 
@@ -50,23 +50,23 @@ void vkb::ExclusiveQueue::waitSubmit(
     const vk::ArrayProxy<const vk::SubmitInfo>& submits,
     vk::Fence fence)
 {
-    std::lock_guard lock(submissionLock);
+    std::lock_guard lock(sync->submissionLock);
     transferOwnership(std::this_thread::get_id());
     doSubmit(submits, fence);
 }
 
 void vkb::ExclusiveQueue::transferOwnership(std::thread::id newOwner)
 {
-    if (newOwner != currentThread)
+    if (newOwner != sync->currentThread)
     {
-        currentThread = newOwner;
+        sync->currentThread = newOwner;
         queue.waitIdle();
     }
 }
 
 bool vkb::ExclusiveQueue::hasOwnership(std::thread::id thread) const noexcept
 {
-    return currentThread == thread;
+    return sync->currentThread == thread;
 }
 
 void vkb::ExclusiveQueue::doSubmit(

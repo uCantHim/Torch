@@ -1,9 +1,7 @@
 #pragma once
 
-#include <queue>
-#include <functional>
+#include <memory>
 #include <thread>
-#include <atomic>
 #include <mutex>
 
 #include "VulkanInclude.h"
@@ -13,14 +11,28 @@ namespace vkb
     class ExclusiveQueue
     {
     public:
+        /**
+         * @brief Create an uninitialized queue
+         */
+        ExclusiveQueue() = default;
+
+        /**
+         * @brief Fully initialize the queue
+         */
         explicit ExclusiveQueue(vk::Queue queue);
+
         ~ExclusiveQueue() = default;
 
-        ExclusiveQueue(const ExclusiveQueue&) = delete;
-        ExclusiveQueue(ExclusiveQueue&&) noexcept = delete;
-        auto operator=(const ExclusiveQueue&) -> ExclusiveQueue& = delete;
-        auto operator=(ExclusiveQueue&&) noexcept -> ExclusiveQueue& = delete;
+        ExclusiveQueue(const ExclusiveQueue&) = default;
+        ExclusiveQueue(ExclusiveQueue&&) noexcept = default;
+        auto operator=(const ExclusiveQueue&) -> ExclusiveQueue& = default;
+        auto operator=(ExclusiveQueue&&) noexcept -> ExclusiveQueue& = default;
 
+        auto operator<=>(const ExclusiveQueue&) const = default;
+
+        /**
+         * @brief Get the underlying vk::Queue
+         */
         inline auto operator*() const noexcept -> vk::Queue {
             return queue;
         }
@@ -76,11 +88,15 @@ namespace vkb
         void waitIdle() const;
 
     private:
+        struct SyncState
+        {
+            mutable std::mutex submissionLock;
+            std::thread::id currentThread{ std::this_thread::get_id() };
+        };
+
         void doSubmit(const vk::ArrayProxy<const vk::SubmitInfo>& submits, vk::Fence fence) const;
 
         vk::Queue queue;
-
-        mutable std::mutex submissionLock;
-        std::thread::id currentThread{ std::this_thread::get_id() };
+        std::shared_ptr<SyncState> sync{ new SyncState };
     };
 } // namespace vkb
