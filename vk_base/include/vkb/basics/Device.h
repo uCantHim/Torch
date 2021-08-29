@@ -64,31 +64,6 @@ public:
     auto getQueueManager() const noexcept -> const QueueManager&;
 
     /**
-     * @param QueueType capability
-     * @param uint32_t  queueIndex
-     *
-     * @return vk::Queue The queueIndex-th queue of the most specialized
-     *                   queue family for the requested type.
-     *
-     * @throw std::out_of_range if no queue with the index exists.
-     */
-    [[deprecated]]
-    auto getQueue(QueueType capability, uint32_t queueIndex = 0) const -> vk::Queue;
-
-    /**
-     * @return vk::Queue The most specialized queue family for the
-     *                   requested type.
-     */
-    [[deprecated]]
-    auto getQueueFamily(QueueType capability) const -> QueueFamilyIndex;
-
-    /**
-     * @return All queues of a specific family
-     */
-    [[deprecated]]
-    auto getQueues(QueueFamilyIndex family) const -> std::vector<vk::Queue>;
-
-    /**
      * @brief Create a temporary command buffer for graphics operations
      *
      * Allocates the command buffer from a pool with the reset and the

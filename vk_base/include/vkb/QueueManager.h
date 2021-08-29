@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "basics/PhysicalDevice.h"
+#include "ExclusiveQueue.h"
 
 namespace vkb
 {
@@ -35,10 +36,10 @@ namespace vkb
         /**
          * @brief Query all unreserved queues of a specific queue family
          *
-         * @return std::vector<vk::Queue> All unreserved queues of a
+         * @return std::vector<ExclusiveQueue> All unreserved queues of a
          *                                specific queue family.
          */
-        auto getFamilyQueues(QueueFamilyIndex family) const -> std::vector<vk::Queue>;
+        auto getFamilyQueues(QueueFamilyIndex family) const -> std::vector<ExclusiveQueue>;
 
         /**
          * @return QueueFamilyIndex Index of the primary queue family for
@@ -57,7 +58,7 @@ namespace vkb
          * @throw QueueReservedError if all primary queues of the requested
          *        capability are reserved.
          */
-        auto getPrimaryQueue(QueueType type) const -> vk::Queue;
+        auto getPrimaryQueue(QueueType type) const -> ExclusiveQueue;
 
         /**
          * Query specific queue of primary queue family for a specific
@@ -73,7 +74,7 @@ namespace vkb
          * @throw QueueReservedError if the primary queue at the requested
          *        index is reserved.
          */
-        auto getPrimaryQueue(QueueType type, uint32_t queueIndex) const -> vk::Queue;
+        auto getPrimaryQueue(QueueType type, uint32_t queueIndex) const -> ExclusiveQueue;
 
         /**
          * @param QueueType type
@@ -95,7 +96,7 @@ namespace vkb
          *        capability are reserved.
          */
         auto getAnyQueue(QueueType type) const
-            -> std::pair<vk::Queue, QueueFamilyIndex>;
+            -> std::pair<ExclusiveQueue, QueueFamilyIndex>;
 
         /**
          * Query specific queue with the requested capability.
@@ -108,7 +109,7 @@ namespace vkb
          *                          exists.
          */
         auto getAnyQueue(QueueType type, uint32_t queueIndex) const
-            -> std::pair<vk::Queue, QueueFamilyIndex>;
+            -> std::pair<ExclusiveQueue, QueueFamilyIndex>;
 
         /**
          * @param QueueType type
@@ -124,9 +125,9 @@ namespace vkb
          * Reserving a queue locks it and makes it impossible to retrieve
          * the queue from the QueueManager with subsequent query calls.
          *
-         * @param vk::Queue queue The queue to reserve.
+         * @param ExclusiveQueue queue The queue to reserve.
          *
-         * @return vk::Queue The queue that was specified as argument
+         * @return ExclusiveQueue The queue that was specified as argument
          *         (purely for convenience)
          *
          * @throw QueueReservedError if the specified queue is already
@@ -134,7 +135,7 @@ namespace vkb
          * @throw std::out_of_range if the specified queue handle doesn't
          *                          exist.
          */
-        auto reserveQueue(vk::Queue queue) -> vk::Queue;
+        auto reserveQueue(ExclusiveQueue queue) -> ExclusiveQueue;
 
         /**
          * @brief Reserve the next primary queue in the rotation
@@ -149,7 +150,7 @@ namespace vkb
          * @throw std::out_of_range if no family supports the requested
          *                          capability.
          */
-        auto reservePrimaryQueue(QueueType type) -> vk::Queue;
+        auto reservePrimaryQueue(QueueType type) -> ExclusiveQueue;
 
         /**
          * @brief Reserve a specific primary queue
@@ -163,13 +164,13 @@ namespace vkb
          *                          capability or if no queue exists at the
          *                          specified index.
          */
-        auto reservePrimaryQueue(QueueType type, uint32_t queueIndex) -> vk::Queue;
+        auto reservePrimaryQueue(QueueType type, uint32_t queueIndex) -> ExclusiveQueue;
 
     private:
         static constexpr size_t queueTypeCount = static_cast<size_t>(QueueType::numQueueTypes);
 
         // All queues. Other data structures index this array.
-        std::vector<vk::Queue> queueStorage;
+        std::vector<ExclusiveQueue> queueStorage;
         std::unordered_set<uint32_t> reservedQueueIndices;
 
         /**
@@ -179,7 +180,7 @@ namespace vkb
          *
          * @throw std::out_of_range if index is out of range
          */
-        auto getQueue(uint32_t index) const -> std::optional<vk::Queue>;
+        auto getQueue(uint32_t index) const -> std::optional<ExclusiveQueue>;
 
         /**
          * Stores a list of queues at queue family indices.

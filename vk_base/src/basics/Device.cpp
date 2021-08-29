@@ -77,21 +77,6 @@ auto vkb::Device::getQueueManager() const noexcept -> const QueueManager&
     return queueManager;
 }
 
-auto vkb::Device::getQueue(QueueType capability, uint32_t queueIndex) const -> vk::Queue
-{
-    return queueManager.getPrimaryQueue(capability, queueIndex);
-}
-
-auto vkb::Device::getQueueFamily(QueueType capability) const -> QueueFamilyIndex
-{
-    return queueManager.getPrimaryQueueFamily(capability);
-}
-
-auto vkb::Device::getQueues(QueueFamilyIndex family) const -> std::vector<vk::Queue>
-{
-    return queueManager.getFamilyQueues(family);
-}
-
 auto vkb::Device::createGraphicsCommandBuffer(vk::CommandBufferLevel level) const
     -> vk::UniqueCommandBuffer
 {

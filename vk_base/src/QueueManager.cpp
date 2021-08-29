@@ -69,7 +69,7 @@ vkb::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
         auto& queues = queuesPerFamily.at(family.index);
         for (uint32_t i = 0; i < family.queueCount; i++)
         {
-            queueStorage.push_back(device->getQueue(family.index, i));
+            queueStorage.emplace_back(device->getQueue(family.index, i));
             uint32_t newQueueIndex{ static_cast<uint32_t>(queueStorage.size()) - 1 };
             queues.push_back(newQueueIndex);
         }
@@ -126,9 +126,9 @@ vkb::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
     }
 }
 
-auto vkb::QueueManager::getFamilyQueues(QueueFamilyIndex family) const -> std::vector<vk::Queue>
+auto vkb::QueueManager::getFamilyQueues(QueueFamilyIndex family) const -> std::vector<ExclusiveQueue>
 {
-    std::vector<vk::Queue> result;
+    std::vector<ExclusiveQueue> result;
 
     const auto& indices = queuesPerFamily.at(family);
     for (uint32_t index : indices)
@@ -156,11 +156,11 @@ auto vkb::QueueManager::getPrimaryQueueFamily(QueueType type) const -> QueueFami
     return family;
 }
 
-auto vkb::QueueManager::getPrimaryQueue(QueueType type) const -> vk::Queue
+auto vkb::QueueManager::getPrimaryQueue(QueueType type) const -> ExclusiveQueue
 {
     const auto& indices = queuesPerFamily.at(getPrimaryQueueFamily(type));
 
-    std::optional<vk::Queue> queue{ std::nullopt };
+    std::optional<ExclusiveQueue> queue{ std::nullopt };
     uint32_t& nextQueueIndex = nextPrimaryQueueRotation[static_cast<size_t>(type)];
     const uint32_t initialIndex = nextQueueIndex;
     do {
@@ -176,7 +176,7 @@ auto vkb::QueueManager::getPrimaryQueue(QueueType type) const -> vk::Queue
     return queue.value();
 }
 
-auto vkb::QueueManager::getPrimaryQueue(QueueType type, uint32_t queueIndex) const -> vk::Queue
+auto vkb::QueueManager::getPrimaryQueue(QueueType type, uint32_t queueIndex) const -> ExclusiveQueue
 {
     auto queue = getQueue(queuesPerFamily[getPrimaryQueueFamily(type)].at(queueIndex));
     if (!queue.has_value())
@@ -198,7 +198,7 @@ auto vkb::QueueManager::getPrimaryQueueCount(QueueType type) const noexcept -> u
 }
 
 auto vkb::QueueManager::getAnyQueue(QueueType type) const
-    -> std::pair<vk::Queue, QueueFamilyIndex>
+    -> std::pair<ExclusiveQueue, QueueFamilyIndex>
 {
     auto getNextQueueIndex = [this](QueueType type) {
         uint32_t& nextQueueIndex = nextAnyQueueRotation[static_cast<size_t>(type)];
@@ -225,7 +225,7 @@ auto vkb::QueueManager::getAnyQueue(QueueType type) const
 }
 
 auto vkb::QueueManager::getAnyQueue(QueueType type, uint32_t queueIndex) const
-    -> std::pair<vk::Queue, QueueFamilyIndex>
+    -> std::pair<ExclusiveQueue, QueueFamilyIndex>
 {
     auto [index, family] = queuesPerCapability[static_cast<size_t>(type)].at(queueIndex);
     auto queue = getQueue(index);
@@ -242,7 +242,7 @@ auto vkb::QueueManager::getAnyQueueCount(QueueType type) const noexcept -> uint3
     return static_cast<uint32_t>(queuesPerCapability[static_cast<size_t>(type)].size());
 }
 
-auto vkb::QueueManager::reserveQueue(vk::Queue queue) -> vk::Queue
+auto vkb::QueueManager::reserveQueue(ExclusiveQueue queue) -> ExclusiveQueue
 {
     for (uint32_t i = 0; i < queueStorage.size(); i++)
     {
@@ -260,17 +260,17 @@ auto vkb::QueueManager::reserveQueue(vk::Queue queue) -> vk::Queue
     throw std::out_of_range("Tried to reserve queue that does not exist");
 }
 
-auto vkb::QueueManager::reservePrimaryQueue(QueueType type) -> vk::Queue
+auto vkb::QueueManager::reservePrimaryQueue(QueueType type) -> ExclusiveQueue
 {
     return reserveQueue(getPrimaryQueue(type));
 }
 
-auto vkb::QueueManager::reservePrimaryQueue(QueueType type, uint32_t queueIndex) -> vk::Queue
+auto vkb::QueueManager::reservePrimaryQueue(QueueType type, uint32_t queueIndex) -> ExclusiveQueue
 {
     return reserveQueue(getPrimaryQueue(type, queueIndex));
 }
 
-auto vkb::QueueManager::getQueue(uint32_t index) const -> std::optional<vk::Queue>
+auto vkb::QueueManager::getQueue(uint32_t index) const -> std::optional<ExclusiveQueue>
 {
     if (reservedQueueIndices.contains(index)) {
         return std::nullopt;
