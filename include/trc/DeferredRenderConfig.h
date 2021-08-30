@@ -77,6 +77,12 @@ namespace trc
         GlobalRenderDataDescriptor globalDataDescriptor;
         SceneDescriptor sceneDescriptor;
 
+        /**
+         * Use a wrapper here because the pass is recreated on swapchain
+         * resize. This way I don't have to recreate the pipelines.
+         */
+        DescriptorProviderWrapper deferredPassDescriptorProvider;
+
         // Data & Assets
         AssetRegistry* assetRegistry;
         ShadowPool* shadowPool;

@@ -44,6 +44,11 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
         );
     }
 
+    // Initialize descriptor provider for the deferred renderpass
+    auto& p = deferredPass->getDescriptorProvider();
+    deferredPassDescriptorProvider.setWrappedProvider(p);
+    deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
+
     // Specify basic graph layout
     graph.first(RenderStageTypes::getDeferred());
     graph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
@@ -65,16 +70,14 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
         graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
         if constexpr (vkb::enableVerboseLogging)
         {
+            const float time = timer.reset();
             std::cout << "Deferred renderpass recreated for new swapchain"
-                << " (" << timer.reset() << " ms)\n";
+                << " (" << time << " ms)\n";
         }
 
-        getPipelineStorage().recreateAll();
-        if constexpr (vkb::enableVerboseLogging)
-        {
-            std::cout << "All pipelines recreated for new deferred renderpass"
-                << " (" << timer.reset() << " ms)\n";
-        }
+        auto& p = deferredPass->getDescriptorProvider();
+        deferredPassDescriptorProvider.setWrappedProvider(p);
+        deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
     }).makeUnique();
 }
 
@@ -127,7 +130,7 @@ auto trc::DeferredRenderConfig::getSceneDescriptorProvider() const
 auto trc::DeferredRenderConfig::getDeferredPassDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return deferredPass->getDescriptorProvider();
+    return deferredPassDescriptorProvider;
 }
 
 auto trc::DeferredRenderConfig::getShadowDescriptorProvider() const
