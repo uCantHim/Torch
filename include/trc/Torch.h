@@ -14,9 +14,10 @@
 
 namespace trc
 {
-    struct TorchInitInfo
-    {
-    };
+    /**
+     * Reserved for future use, but empty for now.
+     */
+    struct TorchInitInfo {};
 
     /**
      * @brief Initialize Torch globally
@@ -36,23 +37,42 @@ namespace trc
     auto getVulkanInstance() -> vkb::VulkanInstance&;
 
     /**
-     * @brief A collection of objects necessary for rendering with Torch
+     * @brief A collection of objects required to render stuff
+     *
+     * It is certainly possible to create all of these yourself. This is
+     * a convenient default implementation.
      */
-    struct DefaultTorchStack
+    struct TorchStack
     {
         u_ptr<Instance> instance;
         u_ptr<Window> window;
         u_ptr<AssetRegistry> assetRegistry;
         u_ptr<ShadowPool> shadowPool;
         u_ptr<DeferredRenderConfig> renderConfig;
+
+        /**
+         * @brief Quickly create a draw configuration with default values
+         *
+         * @param Scene& scene The scene which to render with the new
+         *                     configuration.
+         * @param Camera& camera The camera from which to render the scene.
+         *
+         * @return DrawConfig
+         */
+        auto makeDrawConfig(Scene& scene, Camera& camera) const -> DrawConfig;
+
+        /**
+         * @brief Draw a frame
+         *
+         * Shortcut for `stack.window->drawFrame()`.
+         */
+        void drawFrame(const DrawConfig& draw);
     };
 
     /**
-     * @brief Create a default configuration of Torch
-     *
-     * This is fine in most cases.
+     * @brief Create a full default configuration of Torch
      */
-    auto initDefault() -> DefaultTorchStack;
+    auto initFull() -> TorchStack;
 
     /**
      * @brief Destroy all resources allocated by Torch

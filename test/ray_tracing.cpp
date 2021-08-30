@@ -12,7 +12,7 @@ using trc::rt::TLAS;
 
 int main()
 {
-    auto torch = trc::initDefault();
+    auto torch = trc::initFull();
     auto& instance = *torch.instance;
     auto& swapchain = torch.window->getSwapchain();
     auto& ar = *torch.assetRegistry;

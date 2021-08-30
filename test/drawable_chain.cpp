@@ -10,7 +10,7 @@ using namespace trc::basic_types;
 int main()
 {
     {
-        auto torch = trc::initDefault();
+        auto torch = trc::initFull();
         auto& ar = torch.renderConfig->getAssets().named;
         auto& instance = *torch.instance;
         auto& swapchain = torch.window->getSwapchain();

@@ -31,7 +31,7 @@ int main()
     vkb::Keyboard::init();
     vkb::Mouse::init();
 
-    auto torch = trc::initDefault();
+    auto torch = trc::initFull();
     auto& ar = torch.renderConfig->getAssets();
     auto& instance = *torch.instance;
     const auto& device = instance.getDevice();

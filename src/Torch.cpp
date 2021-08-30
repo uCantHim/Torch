@@ -40,7 +40,7 @@ auto trc::getVulkanInstance() -> vkb::VulkanInstance&
     return *torchGlobalVulkanInstance;
 }
 
-auto trc::initDefault() -> DefaultTorchStack
+auto trc::initFull() -> TorchStack
 {
     init();
 
@@ -75,4 +75,21 @@ void trc::terminate()
 
     RenderStageType::destroyAll();
     vkb::vulkanTerminate();
+}
+
+
+
+auto trc::TorchStack::makeDrawConfig(Scene& scene, Camera& camera) const -> DrawConfig
+{
+    return {
+        .scene        = &scene,
+        .camera       = &camera,
+        .renderConfig = renderConfig.get(),
+        .renderAreas  = { window->makeFullscreenRenderArea() }
+    };
+}
+
+void trc::TorchStack::drawFrame(const DrawConfig& draw)
+{
+    window->drawFrame(draw);
 }

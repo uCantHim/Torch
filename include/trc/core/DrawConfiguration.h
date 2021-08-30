@@ -16,7 +16,7 @@ namespace trc
     };
 
     /**
-     * @brief Configuration for a single draw call
+     * @brief Configuration for a draw call
      */
     struct DrawConfig
     {
