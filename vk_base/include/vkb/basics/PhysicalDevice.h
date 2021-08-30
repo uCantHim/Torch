@@ -100,6 +100,9 @@ namespace vkb
         PhysicalDevice& operator=(const PhysicalDevice&) = delete;
         PhysicalDevice& operator=(PhysicalDevice&&) noexcept = delete;
 
+        auto operator->() const noexcept -> const vk::PhysicalDevice*;
+        auto operator*() const noexcept -> vk::PhysicalDevice;
+
         /**
          * @brief Create a logical device from the physical device
          *

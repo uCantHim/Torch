@@ -120,6 +120,16 @@ vkb::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
     }
 }
 
+auto vkb::PhysicalDevice::operator->() const noexcept -> const vk::PhysicalDevice*
+{
+    return &physicalDevice;
+}
+
+auto vkb::PhysicalDevice::operator*() const noexcept -> vk::PhysicalDevice
+{
+    return physicalDevice;
+}
+
 auto vkb::PhysicalDevice::createLogicalDevice(
     std::vector<const char*> deviceExtensions,
     void* extraPhysicalDeviceFeatureChain
