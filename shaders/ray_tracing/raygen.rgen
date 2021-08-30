@@ -1,10 +1,5 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
-#extension GL_NV_ray_tracing : require
-
-// Until RayTracingProvisionalKHR is replaced by RayTracingKHR
-#define executeCallableEXT executeCallableNV
-#define traceRayEXT traceNV
 
 layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
 layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
@@ -50,7 +45,7 @@ void main()
     );
 
     callColor = vec4(1, 1, 1, 1);
-    executeCallableNV(0, 0);
+    executeCallableEXT(0, 0);
 
     imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), color);
 }

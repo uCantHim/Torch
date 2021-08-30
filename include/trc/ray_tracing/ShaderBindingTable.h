@@ -5,7 +5,6 @@
 #include <unordered_map>
 
 #include <vkb/Buffer.h>
-#include <vkb/StaticInit.h>
 
 #include "Types.h"
 
@@ -31,6 +30,7 @@ namespace trc::rt
          */
         ShaderBindingTable(
             const vkb::Device& device,
+            const vk::DispatchLoaderDynamic& dl,
             vk::Pipeline pipeline,
             std::vector<ui32> entrySizes,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{}
@@ -57,10 +57,6 @@ namespace trc::rt
             -> vk::StridedDeviceAddressRegionKHR;
 
     private:
-        // For shader group handle alignment
-        static inline vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties;
-        static vkb::StaticInit _init;
-
         /**
          * A single entry in the shader binding table has its own buffer
          * and an address region specifying the address of the entry.

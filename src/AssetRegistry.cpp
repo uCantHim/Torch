@@ -44,14 +44,16 @@ auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> ri
                 // want to use the geometry for ray tracing. Doesn't hurt even if
                 // the feature is not enabled.
                 vk::BufferUsageFlagBits::eIndexBuffer
-                | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+                | vk::BufferUsageFlagBits::eShaderDeviceAddress
+                | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
                 memoryPool.makeAllocator()
             },
             .vertexBuf = {
                 device,
                 data.vertices,
                 vk::BufferUsageFlagBits::eVertexBuffer
-                | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+                | vk::BufferUsageFlagBits::eShaderDeviceAddress
+                | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
                 memoryPool.makeAllocator()
             },
             .numIndices = static_cast<ui32>(data.indices.size()),

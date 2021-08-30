@@ -6,17 +6,9 @@
 
 
 
-vkb::StaticInit trc::rt::ShaderBindingTable::_init{
-    [] {
-        rayTracingProperties = vkb::getPhysicalDevice().physicalDevice.getProperties2<
-            vk::PhysicalDeviceProperties2,
-            vk::PhysicalDeviceRayTracingPipelinePropertiesKHR
-        >().get<vk::PhysicalDeviceRayTracingPipelinePropertiesKHR>();
-    }
-};
-
 trc::rt::ShaderBindingTable::ShaderBindingTable(
     const vkb::Device& device,
+    const vk::DispatchLoaderDynamic& dl,
     vk::Pipeline pipeline,
     std::vector<ui32> entrySizes,
     const vkb::DeviceMemoryAllocator& alloc)
@@ -34,13 +26,13 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
     const vk::DeviceSize sbtSize = alignedGroupHandleSize * numShaderGroups;
 
     std::vector<ui8> shaderHandleStorage(sbtSize);
-    auto result = vkb::getDevice()->getRayTracingShaderGroupHandlesKHR(
+    auto result = device->getRayTracingShaderGroupHandlesKHR(
         pipeline,
         0, // first group
         numShaderGroups, // group count
         shaderHandleStorage.size(),
         shaderHandleStorage.data(),
-        vkb::getDL()
+        dl
     );
     if (result != vk::Result::eSuccess) {
         throw std::runtime_error("Unable to retrieve shader group handles");

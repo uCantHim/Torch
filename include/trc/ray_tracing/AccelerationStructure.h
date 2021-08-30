@@ -168,8 +168,8 @@ namespace trc::rt
          * The top level AS keeps the scratch buffer because it is updated
          * way more often than the bottom level AS
          */
-        vkb::Buffer scratchBuffer;
-        vkb::Buffer instanceBuffer;
+        //vkb::Buffer scratchBuffer;
+        //vkb::Buffer instanceBuffer;
     };
 
 

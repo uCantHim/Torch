@@ -84,7 +84,7 @@ trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     geometries([&] {
         std::vector<vk::AccelerationStructureGeometryKHR> result;
         for (Geometry geo : geos) {
-            result.push_back(makeGeometryInfo(geo));
+            result.push_back(makeGeometryInfo(instance.getDevice(), geo));
         }
         return result;
     }()),
@@ -134,6 +134,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
 
     // Create a temporary scratch buffer
     vkb::DeviceLocalBuffer scratchBuffer{
+        instance.getDevice(),
         buildSizes.buildScratchSize, nullptr,
         vk::BufferUsageFlagBits::eShaderDeviceAddress
     };
@@ -249,6 +250,7 @@ void trc::rt::TopLevelAccelerationStructure::build(
 
     // Create temporary scratch buffer
     vkb::DeviceLocalBuffer scratchBuffer{
+        instance.getDevice(),
         buildSizes.buildScratchSize,
         nullptr,
         vk::BufferUsageFlagBits::eShaderDeviceAddress
@@ -303,7 +305,8 @@ void trc::rt::buildAccelerationStructures(
     std::vector<vk::AccelerationStructureBuildGeometryInfoKHR> geoBuildInfos;
     for (auto& blas : as)
     {
-        auto& scratchBuffer = scratchBuffers.emplace_back(
+        vkb::DeviceLocalBuffer& scratchBuffer = scratchBuffers.emplace_back(
+            instance.getDevice(),
             blas->getBuildSize().buildScratchSize, nullptr,
             vk::BufferUsageFlagBits::eShaderDeviceAddress,
             scratchPool.makeAllocator()
@@ -314,6 +317,8 @@ void trc::rt::buildAccelerationStructures(
                 .setDstAccelerationStructure(**blas)
         );
     }
+
+    geoBuildInfos[0].pGeometries[0].geometry.triangles.vertexData;
 
     // Collect build ranges for all acceleration structures
     std::vector<const vk::AccelerationStructureBuildRangeInfoKHR*> buildRangePointers;

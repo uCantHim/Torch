@@ -5,18 +5,19 @@
 
 
 
-auto trc::rt::makeGeometryInfo(const Geometry& geo) -> vk::AccelerationStructureGeometryKHR
+auto trc::rt::makeGeometryInfo(const vkb::Device& device, const Geometry& geo)
+    -> vk::AccelerationStructureGeometryKHR
 {
     return { // Array of geometries in the AS
         vk::GeometryTypeKHR::eTriangles,
         vk::AccelerationStructureGeometryDataKHR{ // a union
             vk::AccelerationStructureGeometryTrianglesDataKHR(
                 vk::Format::eR32G32B32Sfloat,
-                vkb::getDevice()->getBufferAddress({ geo.getVertexBuffer() }),
+                device->getBufferAddress({ geo.getVertexBuffer() }),
                 sizeof(trc::Vertex),
                 geo.getIndexCount(), // max vertex
                 vk::IndexType::eUint32,
-                vkb::getDevice()->getBufferAddress({ geo.getIndexBuffer() }),
+                device->getBufferAddress({ geo.getIndexBuffer() }),
                 nullptr // transform data
             )
         }

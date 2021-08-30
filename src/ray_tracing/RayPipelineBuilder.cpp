@@ -5,9 +5,10 @@
 
 
 
-trc::rt::RayTracingPipelineBuilder::RayTracingPipelineBuilder(const vkb::Device& device)
+trc::rt::RayTracingPipelineBuilder::RayTracingPipelineBuilder(const ::trc::Instance& instance)
     :
-    device(device)
+    device(instance.getDevice()),
+    dl(instance.getDL())
 {
 }
 
@@ -148,11 +149,11 @@ auto trc::rt::RayTracingPipelineBuilder::build(
             nullptr, // dynamic state create info
 			layout
 		),
-		nullptr, vkb::getDL()
+		nullptr, dl
 	).value;
 
     // Create shader binding table
-    ShaderBindingTable sbt{ device, *pipeline, sbtEntries };
+    ShaderBindingTable sbt{ device, dl, *pipeline, sbtEntries };
 
     return { std::move(pipeline), std::move(sbt) };
 }

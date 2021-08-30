@@ -12,7 +12,10 @@ using trc::rt::TLAS;
 
 int main()
 {
-    auto torch = trc::initFull();
+    auto torch = trc::initFull(
+        trc::InstanceCreateInfo{ .enableRayTracing = true },
+        trc::WindowCreateInfo{}
+    );
     auto& instance = *torch.instance;
     auto& swapchain = torch.window->getSwapchain();
     auto& ar = *torch.assetRegistry;
@@ -83,7 +86,8 @@ int main()
     vkb::Buffer instanceBuffer{
         instance.getDevice(),
         instances,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        vk::BufferUsageFlagBits::eShaderDeviceAddress
+        | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     };
 
@@ -114,17 +118,17 @@ int main()
 
     constexpr ui32 maxRecursionDepth{ 16 };
     auto [rayPipeline, shaderBindingTable] =
-        trc::rt::_buildRayTracingPipeline(torch.instance->getDevice())
-        .addRaygenGroup(TRC_SHADER_DIR"/shaders/ray_tracing/raygen.rgen.spv")
+        trc::rt::_buildRayTracingPipeline(*torch.instance)
+        .addRaygenGroup(TRC_SHADER_DIR"/ray_tracing/raygen.rgen.spv")
         .beginTableEntry()
-            .addMissGroup(TRC_SHADER_DIR"/shaders/ray_tracing/miss.rmiss.spv")
-            .addMissGroup(TRC_SHADER_DIR"/shaders/ray_tracing/miss.rmiss.spv")
+            .addMissGroup(TRC_SHADER_DIR"/ray_tracing/miss.rmiss.spv")
+            .addMissGroup(TRC_SHADER_DIR"/ray_tracing/miss.rmiss.spv")
         .endTableEntry()
         .addTrianglesHitGroup(
-            TRC_SHADER_DIR"/shaders/ray_tracing/closesthit.rchit.spv",
-            TRC_SHADER_DIR"/shaders/ray_tracing/anyhit.rahit.spv"
+            TRC_SHADER_DIR"/ray_tracing/closesthit.rchit.spv",
+            TRC_SHADER_DIR"/ray_tracing/anyhit.rahit.spv"
         )
-        .addCallableGroup(TRC_SHADER_DIR"/shaders/ray_tracing/callable.rcall.spv")
+        .addCallableGroup(TRC_SHADER_DIR"/ray_tracing/callable.rcall.spv")
         .build(maxRecursionDepth, *layout);
 
 
@@ -291,6 +295,7 @@ int main()
             .scene=scene.get(),
             .camera=&camera,
             .renderConfig=torch.renderConfig.get(),
+            .renderAreas={ torch.window->makeFullscreenRenderArea() }
         });
     }
 

@@ -6,6 +6,7 @@
 namespace fs = std::filesystem;
 
 #include "Types.h"
+#include "core/Instance.h"
 #include "ray_tracing/ShaderBindingTable.h"
 
 namespace trc::rt
@@ -19,7 +20,7 @@ namespace trc::rt
         using UniquePipeline = vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
         using Self = RayTracingPipelineBuilder;
 
-        explicit RayTracingPipelineBuilder(const vkb::Device& device);
+        explicit RayTracingPipelineBuilder(const ::trc::Instance& instance);
 
         /**
          * Start an entry in the shader binding table. All shader groups
@@ -59,6 +60,7 @@ namespace trc::rt
             -> vk::RayTracingShaderGroupCreateInfoKHR&;
 
         const vkb::Device& device;
+        vk::DispatchLoaderDynamic dl;
 
         // Need to be kept alive for the stage create infos
         std::vector<vk::UniqueShaderModule> shaderModules;
@@ -71,8 +73,8 @@ namespace trc::rt
         std::vector<ui32> sbtEntries;
     };
 
-	auto inline _buildRayTracingPipeline(const vkb::Device& device) -> RayTracingPipelineBuilder
+	auto inline _buildRayTracingPipeline(const ::trc::Instance& instance) -> RayTracingPipelineBuilder
 	{
-		return RayTracingPipelineBuilder{ device };
+		return RayTracingPipelineBuilder{ instance };
 	}
 } // namespace trc::rt

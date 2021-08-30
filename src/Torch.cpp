@@ -48,7 +48,12 @@ auto trc::initFull(
     init();
 
     auto instance = std::make_unique<trc::Instance>(instanceInfo);
-    auto window = instance->makeWindow(windowInfo);
+
+    auto winInfo = windowInfo;
+    if (instanceInfo.enableRayTracing) {
+        winInfo.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
+    }
+    auto window = instance->makeWindow(winInfo);
     auto ar = std::make_unique<AssetRegistry>(*instance);
     auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
     auto config{
