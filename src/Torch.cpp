@@ -40,12 +40,15 @@ auto trc::getVulkanInstance() -> vkb::VulkanInstance&
     return *torchGlobalVulkanInstance;
 }
 
-auto trc::initFull() -> TorchStack
+auto trc::initFull(
+    const InstanceCreateInfo& instanceInfo,
+    const WindowCreateInfo& windowInfo
+    ) -> TorchStack
 {
     init();
 
-    auto instance = std::make_unique<trc::Instance>();
-    auto window = instance->makeWindow({});
+    auto instance = std::make_unique<trc::Instance>(instanceInfo);
+    auto window = instance->makeWindow(windowInfo);
     auto ar = std::make_unique<AssetRegistry>(*instance);
     auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
     auto config{

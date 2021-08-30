@@ -72,7 +72,9 @@ namespace trc
     /**
      * @brief Create a full default configuration of Torch
      */
-    auto initFull() -> TorchStack;
+    auto initFull(const InstanceCreateInfo& instanceInfo = {},
+                  const WindowCreateInfo& windowInfo = {}
+                  ) -> TorchStack;
 
     /**
      * @brief Destroy all resources allocated by Torch

@@ -53,7 +53,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
             extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
 
             // Add ray tracing features to feature chain
-            deviceFeatureChain = &features.get<vk::PhysicalDeviceFeatures2>().pNext;
+            deviceFeatureChain = features.get<vk::PhysicalDeviceFeatures2>().pNext;
         }
 #endif // TRC_USE_RAY_TRACING
 
