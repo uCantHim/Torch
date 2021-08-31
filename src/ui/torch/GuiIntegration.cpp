@@ -5,16 +5,16 @@
 #include <vkb/ShaderProgram.h>
 #include <vkb/event/Event.h>
 
-#include "Renderer.h"
+#include "core/RenderGraph.h"
+#include "TorchResources.h"
 #include "ui/Element.h"
-#include "ui/torch/DrawImplementations.h"
 
 
 
-auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
+auto trc::initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiStack
 {
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
-        .windowBackend=std::make_unique<trc::TorchWindowBackend>(vkb::getSwapchain()),
+        .windowBackend=std::make_unique<trc::TorchWindowBackend>(swapchain),
         .keyMap = ui::KeyMapping{
             .escape     = static_cast<int>(vkb::Key::escape),
             .backspace  = static_cast<int>(vkb::Key::backspace),
@@ -27,47 +27,49 @@ auto trc::initGui(Renderer& renderer) -> u_ptr<ui::Window>
             .arrowDown  = static_cast<int>(vkb::Key::arrow_down),
         }
     });
+    ui::Window* windowPtr = window.get();
 
-    // Notify GUI of mouse clicks
-    vkb::on<vkb::MouseClickEvent>([window=window.get()](const vkb::MouseClickEvent& e) {
-        if (e.action == vkb::InputAction::press)
-        {
-            vec2 pos = e.swapchain->getMousePosition();
-            window->signalMouseClick(pos.x, pos.y);
-        }
-    });
+    auto renderer = std::make_unique<GuiRenderer>(device);
+    auto renderPass = std::make_unique<GuiIntegrationPass>(device, swapchain, *window, *renderer);
 
-    // Notify GUI of key events
-    vkb::on<vkb::KeyPressEvent>([window=window.get()](auto& e) {
-        window->signalKeyPress(static_cast<int>(e.key));
-    });
-    vkb::on<vkb::KeyRepeatEvent>([window=window.get()](auto& e) {
-        window->signalKeyRepeat(static_cast<int>(e.key));
-    });
-    vkb::on<vkb::KeyReleaseEvent>([window=window.get()](auto& e) {
-        window->signalKeyRelease(static_cast<int>(e.key));
-    });
-    vkb::on<vkb::CharInputEvent>([window=window.get()](auto& e) {
-        window->signalCharInput(e.character);
-    });
+    return {
+        .window = std::move(window),
+        .renderer = std::move(renderer),
+        .renderPass = std::move(renderPass),
 
-    // Add gui pass and stage to render graph
-    auto renderPass = trc::RenderPass::createAtNextIndex<trc::GuiRenderPass>(
-        vkb::getDevice(),
-        vkb::getSwapchain(),
-        *window
-    ).first;
-    auto& graph = renderer.getRenderGraph();
-    graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
-    graph.addPass(trc::getGuiRenderStage(), renderPass);
+        // Notify GUI of mouse clicks
+        .mouseClickListener = vkb::on<vkb::MouseClickEvent>(
+            [=](const vkb::MouseClickEvent& e) {
+                if (e.action == vkb::InputAction::press)
+                {
+                    vec2 pos = e.swapchain->getMousePosition();
+                    windowPtr->signalMouseClick(pos.x, pos.y);
+                }
+            }
+        ),
 
-    // Window destruction callback; destroy render pass here because
-    // it can't outlive the window or the renderer
-    window->onWindowDestruction = [=](ui::Window&) {
-        trc::RenderPass::destroy(renderPass);
+        // Notify GUI of key events
+        .keyPressListener = vkb::on<vkb::KeyPressEvent>([=](auto& e) {
+            windowPtr->signalKeyPress(static_cast<int>(e.key));
+        }),
+        .keyRepeatListener = vkb::on<vkb::KeyRepeatEvent>([=](auto& e) {
+            windowPtr->signalKeyRepeat(static_cast<int>(e.key));
+        }),
+        .keyReleaseListener = vkb::on<vkb::KeyReleaseEvent>([=](auto& e) {
+            windowPtr->signalKeyRelease(static_cast<int>(e.key));
+        }),
+        .charInputListener = vkb::on<vkb::CharInputEvent>([=](auto& e) {
+            windowPtr->signalCharInput(e.character);
+        })
     };
+}
 
-    return window;
+
+
+void trc::integrateGui(GuiStack& stack, RenderGraph& graph)
+{
+    graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
+    graph.addPass(trc::getGuiRenderStage(), *stack.renderPass);
 }
 
 
@@ -82,175 +84,17 @@ auto trc::getGuiRenderStage() -> RenderStageType::ID
 
 
 
-trc::GuiRenderer::GuiRenderer(vkb::Device& device, ui::Window& window)
-    :
-    device(device),
-    window(&window),
-    renderFinishedFence(device->createFenceUnique({})),
-    renderPass(
-        [&device]() {
-            std::vector<vk::AttachmentDescription> attachments{
-                vk::AttachmentDescription(
-                    vk::AttachmentDescriptionFlags(),
-                    vk::Format::eR8G8B8A8Unorm,
-                    vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear,
-                    vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eDontCare, // stencil
-                    vk::AttachmentStoreOp::eDontCare, // stencil
-                    vk::ImageLayout::eColorAttachmentOptimal,
-                    vk::ImageLayout::eGeneral
-                )
-            };
-            vk::AttachmentReference colorAttachment(0, vk::ImageLayout::eColorAttachmentOptimal);
-            std::vector<vk::SubpassDescription> subpasses{
-                vk::SubpassDescription(
-                    vk::SubpassDescriptionFlags(),
-                    vk::PipelineBindPoint::eGraphics,
-                    0, nullptr, // input
-                    1, &colorAttachment,
-                    nullptr,    // resolve
-                    nullptr,    // depth
-                    0, nullptr  // some other attachment
-                )
-            };
-            std::vector<vk::SubpassDependency> dependencies{
-                vk::SubpassDependency(
-                    VK_SUBPASS_EXTERNAL, 0,
-                    vk::PipelineStageFlagBits::eAllGraphics,
-                    vk::PipelineStageFlagBits::eTopOfPipe,
-                    vk::AccessFlags(), vk::AccessFlags()
-                )
-            };
-            return device->createRenderPassUnique(
-                vk::RenderPassCreateInfo(
-                    vk::RenderPassCreateFlags(),
-                    attachments,
-                    subpasses,
-                    dependencies
-                )
-            );
-        }()
-    ),
-    outputImage(
-        vk::ImageCreateInfo(
-            vk::ImageCreateFlags(),
-            vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
-            { ui32(window.getSize().x), ui32(window.getSize().y), 1 },
-            1, 1,
-            vk::SampleCountFlagBits::e1,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment
-            | vk::ImageUsageFlagBits::eTransferSrc
-            | vk::ImageUsageFlagBits::eStorage
-        )
-    ),
-    outputImageView(outputImage.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm)),
-    framebuffer(
-        device->createFramebufferUnique(
-            vk::FramebufferCreateInfo(
-                vk::FramebufferCreateFlags(),
-                *renderPass,
-                *outputImageView,
-                ui32(window.getSize().x), ui32(window.getSize().y), 1
-            )
-        )
-    ),
-    collector(device, *renderPass)
-{
-    auto [queue, family] = device.getQueueManager().getAnyQueue(vkb::QueueType::graphics);
-    cmdPool = device->createCommandPoolUnique(
-        vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, family)
-    );
-    cmdBuf = std::move(device->allocateCommandBuffersUnique(
-        vk::CommandBufferAllocateInfo(*cmdPool, vk::CommandBufferLevel::ePrimary, 1)
-    )[0]);
-
-    renderQueue = device.getQueueManager().reserveQueue(queue);
-
-    outputImage.changeLayout(
-        device,
-        vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
-    );
-}
-
-void trc::GuiRenderer::render()
-{
-    auto drawList = window->draw();
-    if (drawList.empty()) return;
-
-    // Sort draw list by type of drawable
-    std::ranges::sort(
-        drawList,
-        [](const auto& a, const auto& b) {
-            return a.type.index() < b.type.index();
-        }
-    );
-
-    cmdBuf->begin(vk::CommandBufferBeginInfo());
-
-    const uvec2 size = window->getSize();
-    vk::ClearValue clearValue{
-        vk::ClearColorValue(std::array<float, 4>{{ 0.0f, 0.0f, 0.0f, 0.0f }})
-    };
-    outputImage.changeLayout(
-        *cmdBuf,
-        vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal
-    );
-    cmdBuf->beginRenderPass(
-        vk::RenderPassBeginInfo(*renderPass, *framebuffer, { 0, { size.x, size.y } }, clearValue),
-        vk::SubpassContents::eInline
-    );
-
-    // Record all element commands
-    collector.beginFrame(window->getSize());
-    for (const auto& info : drawList)
-    {
-        collector.drawElement(info);
-    }
-    collector.endFrame(*cmdBuf);
-
-    cmdBuf->endRenderPass();
-    cmdBuf->end();
-
-    device->resetFences(*renderFinishedFence);
-    renderQueue.submit(
-        vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf, 0, nullptr),
-        *renderFinishedFence
-    );
-    auto result = device->waitForFences(*renderFinishedFence, true, UINT64_MAX);
-    if (result != vk::Result::eSuccess) {
-        throw std::runtime_error("vkWaitForFences returned error while waiting for GUI render fence");
-    }
-}
-
-auto trc::GuiRenderer::getRenderPass() const -> vk::RenderPass
-{
-    return *renderPass;
-}
-
-auto trc::GuiRenderer::getOutputImage() const -> vk::Image
-{
-    return *outputImage;
-}
-
-auto trc::GuiRenderer::getOutputImageView() const -> vk::ImageView
-{
-    return *outputImageView;
-}
-
-
-
-trc::GuiRenderPass::GuiRenderPass(
-    vkb::Device& device,
+trc::GuiIntegrationPass::GuiIntegrationPass(
+    const vkb::Device& device,
     const vkb::Swapchain& swapchain,
-    ui::Window& window)
+    ui::Window& window,
+    GuiRenderer& renderer)
     :
     RenderPass({}, 1),
     device(device),
-    renderer(device, window),
-    // Descriptor set layout
-    blendDescLayout([&]() {
+    swapchain(swapchain),
+    renderTarget(device, renderer.getRenderPass(), window.getSize()),
+    blendDescLayout([&] {
         std::vector<vk::DescriptorSetLayoutBinding> bindings{
             vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1,
                                            vk::ShaderStageFlagBits::eCompute),
@@ -263,9 +107,10 @@ trc::GuiRenderPass::GuiRenderPass(
     // Compute pipeline
     imageBlendPipeline([&, this]() -> Pipeline {
         auto shaderModule = vkb::createShaderModule(
+            device,
             vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
         );
-        auto layout = makePipelineLayout({ *blendDescLayout }, {});
+        auto layout = makePipelineLayout(device, { *blendDescLayout }, {});
         auto pipeline = device->createComputePipelineUnique(
             {},
             vk::ComputePipelineCreateInfo(
@@ -278,23 +123,31 @@ trc::GuiRenderPass::GuiRenderPass(
         ).value;
 
         return Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eCompute);
-    }())
+    }()),
+    swapchainRecreateListener(vkb::on<vkb::SwapchainRecreateEvent>([&](auto& e) {
+        if (e.swapchain != &swapchain) return;
+
+        renderTarget = GuiRenderTarget(device, renderer.getRenderPass(), window.getSize());
+        createDescriptorSets();
+        writeDescriptorSets(renderTarget.getFramebuffer().getAttachmentView(0));
+    }))
 {
-    renderThread = std::thread([this] {
+    renderThread = std::thread([&, this] {
         while (!stopRenderThread)
         {
             {
                 std::lock_guard lock(renderLock);
-                renderer.render();
+                renderer.render(window, renderTarget);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     });
 
-    createDescriptorSets(device, swapchain);
+    createDescriptorSets();
+    writeDescriptorSets(renderTarget.getFramebuffer().getAttachmentView(0));
 }
 
-trc::GuiRenderPass::~GuiRenderPass()
+trc::GuiIntegrationPass::~GuiIntegrationPass()
 {
     stopRenderThread = true;
     if (renderThread.joinable()) {
@@ -304,11 +157,11 @@ trc::GuiRenderPass::~GuiRenderPass()
     device->waitIdle();
 }
 
-void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
+void trc::GuiIntegrationPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
 {
     std::lock_guard lock(renderLock);
 
-    auto swapchainImage = vkb::getSwapchain().getImage(vkb::getSwapchain().getCurrentFrame());
+    auto swapchainImage = swapchain.getImage(swapchain.getCurrentFrame());
     cmdBuf.pipelineBarrier(
         vk::PipelineStageFlagBits::eAllCommands,
         vk::PipelineStageFlagBits::eAllCommands,
@@ -324,12 +177,11 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
     );
 
     imageBlendPipeline.bind(cmdBuf);
-    //cmdBuf.bindPipeline(vk::PipelineBindPoint::eCompute, *imageBlendPipeline);
     cmdBuf.bindDescriptorSets(
         vk::PipelineBindPoint::eCompute, imageBlendPipeline.getLayout(),
         0, **blendDescSets, {}
     );
-    const auto [x, y] = vkb::getSwapchain().getImageExtent();
+    const auto [x, y] = swapchain.getImageExtent();
     constexpr float LOCAL_SIZE{ 10.0f };
     cmdBuf.dispatch(glm::ceil(x / LOCAL_SIZE), glm::ceil(y / LOCAL_SIZE), 1);
 
@@ -348,14 +200,15 @@ void trc::GuiRenderPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
     );
 }
 
-void trc::GuiRenderPass::end(vk::CommandBuffer)
+void trc::GuiIntegrationPass::end(vk::CommandBuffer)
 {
 }
 
-void trc::GuiRenderPass::createDescriptorSets(
-    const vkb::Device& device,
-    const vkb::Swapchain& swapchain)
+void trc::GuiIntegrationPass::createDescriptorSets()
 {
+    blendDescSets = { swapchain };
+    blendDescPool.reset();
+
     // Descriptor pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
         { vk::DescriptorType::eStorageImage, 1 }, // Render result image
@@ -373,29 +226,35 @@ void trc::GuiRenderPass::createDescriptorSets(
     swapchainImageViews.clear();
     blendDescSets = {
         swapchain,
-        [this, &device, &swapchain](ui32 imageIndex) -> vk::UniqueDescriptorSet {
-            auto set = std::move(device->allocateDescriptorSetsUnique(
+        [this](ui32) -> vk::UniqueDescriptorSet {
+            return std::move(device->allocateDescriptorSetsUnique(
                 { *blendDescPool, *blendDescLayout }
             )[0]);
-
-            auto view = *swapchainImageViews.emplace_back(swapchain.createImageView(imageIndex));
-            vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
-            vk::DescriptorImageInfo renderResultImageInfo({}, renderer.getOutputImageView(), vk::ImageLayout::eGeneral);
-            std::vector<vk::WriteDescriptorSet> writes{
-                {
-                    *set, 0, 0, 1,
-                    vk::DescriptorType::eStorageImage,
-                    &renderResultImageInfo, {}, {}
-                },
-                {
-                    *set, 1, 0, 1,
-                    vk::DescriptorType::eStorageImage,
-                    &swapchainImageInfo, {}, {}
-                },
-            };
-            device->updateDescriptorSets(writes, {});
-
-            return set;
         }
     };
+}
+
+void trc::GuiIntegrationPass::writeDescriptorSets(vk::ImageView srcImage)
+{
+    for (ui32 i = 0; i < swapchain.getFrameCount(); i++)
+    {
+        vk::DescriptorSet set = *blendDescSets.getAt(i);
+
+        auto view = *swapchainImageViews.emplace_back(swapchain.createImageView(i));
+        vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
+        vk::DescriptorImageInfo renderResultImageInfo({}, srcImage, vk::ImageLayout::eGeneral);
+        std::vector<vk::WriteDescriptorSet> writes{
+            {
+                set, 0, 0, 1,
+                vk::DescriptorType::eStorageImage,
+                &renderResultImageInfo, {}, {}
+            },
+            {
+                set, 1, 0, 1,
+                vk::DescriptorType::eStorageImage,
+                &swapchainImageInfo, {}, {}
+            },
+        };
+        device->updateDescriptorSets(writes, {});
+    }
 }

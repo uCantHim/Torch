@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include <trc/Torch.h>
-#include <trc/TorchResources.h>
 #include <trc/ui/torch/GuiIntegration.h>
 using namespace trc::basic_types;
 
@@ -16,17 +15,25 @@ using namespace ui::size_literals;
 int main()
 {
     {
-        auto renderer = trc::init();
-        auto scene = std::make_unique<trc::Scene>();
-        auto camera = std::make_unique<trc::Camera>();
-        const auto [width, height] = vkb::getSwapchain().getImageExtent();
-        camera->lookAt(vec3(0, 2, 4), vec3(0, 0, 0), vec3(0, 1, 0));
-        camera->makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
+        // Gui requires the storage flag to be set on swapchain images
+        auto torch = trc::initFull();
+        auto& swapchain = torch.window->getSwapchain();
+        auto& ar = *torch.assetRegistry;
 
-        auto window = trc::initGui(*renderer);
+        trc::Scene scene;
+        trc::Camera camera;
+        const auto [width, height] = swapchain.getImageExtent();
+        camera.lookAt(vec3(0, 2, 4), vec3(0, 0, 0), vec3(0, 1, 0));
+        camera.makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
+
+        // Initialize GUI
+        auto guiStack = trc::initGui(torch.instance->getDevice(), swapchain);
+        ui::Window* window = guiStack.window.get();
+        trc::integrateGui(guiStack, torch.renderConfig->getGraph());
+
 
         // Now, after intialization, is it possible to load fonts
-        const ui32 nerdFont = ui::FontRegistry::addFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 40);
+        const ui32 font = ui::FontRegistry::addFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 40);
 
         // Create some gui elements
         auto quad = window->create<ui::Quad>().makeUnique();
@@ -54,7 +61,7 @@ int main()
             "Hello World! and some more text…"
             "\n»this line« contains some cool special characters: “µ” · ħŋſđðſđ"
             "\nNewlines working: ∞",
-            nerdFont, 30
+            font, 30
         ).makeUnique();
         window->getRoot().attach(*text);
         text->setPos(0.2f, 0.6f);
@@ -64,7 +71,7 @@ int main()
         {
             auto& el = window->create<ui::Text>(
                 "Placeholdertext for font size " + std::to_string(fontSize) + "! :D",
-                nerdFont, fontSize
+                font, fontSize
             ).makeRef();
             window->getRoot().attach(el);
             el.setPos(0.4f, 0.1f + (i += 0.05f));
@@ -89,19 +96,18 @@ int main()
         button.setFontSize(40);
 
         // Also add a world-space object
-        trc::Light& light = scene->addLight(trc::makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f));
-
-        auto planeGeo = trc::AssetRegistry::addGeometry(trc::makePlaneGeo());
-        auto planeMat = trc::AssetRegistry::addMaterial({ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) });
-        trc::AssetRegistry::updateMaterials();
-        trc::Drawable plane(planeGeo, planeMat);
-        plane.attachToScene(*scene);
+        trc::Light light = scene.getLights().makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
+        trc::Drawable plane(
+            ar.add(trc::makePlaneGeo()),
+            ar.add(trc::Material{ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) })
+        );
+        plane.attachToScene(scene);
         plane.rotateX(glm::radians(30.0f));
 
-        while (vkb::getSwapchain().isOpen())
+        while (swapchain.isOpen())
         {
             vkb::pollEvents();
-            renderer->drawFrame(*scene, *camera);
+            torch.drawFrame(torch.makeDrawConfig(scene, camera));
         }
     }
 

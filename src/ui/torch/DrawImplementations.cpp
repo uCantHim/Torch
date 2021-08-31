@@ -4,6 +4,7 @@
 
 #include "utils/PipelineBuilder.h"
 #include "ui/Window.h"
+#include "ui/torch/GuiRenderer.h"
 
 
 
@@ -14,11 +15,14 @@ struct QuadVertex
 };
 
 auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui32 subPass)
-    -> Pipeline::ID
+    -> Pipeline
 {
-    vkb::ShaderProgram program(TRC_SHADER_DIR"/ui/line.vert.spv", TRC_SHADER_DIR"/ui/line.frag.spv");
+    vkb::ShaderProgram program(device,
+        TRC_SHADER_DIR"/ui/line.vert.spv",
+        TRC_SHADER_DIR"/ui/line.frag.spv"
+    );
 
-    auto layout = makePipelineLayout(
+    auto layout = makePipelineLayout(device,
         {},
         {
             // Line start and end
@@ -42,24 +46,24 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
         .addDynamicState(vk::DynamicState::eLineWidth)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, {}, {})
-        .build(*vkb::getDevice(), *layout, renderPass, subPass);
+        .build(*device, *layout, renderPass, subPass);
 
-    return Pipeline::createAtNextIndex(
+    return Pipeline(
         std::move(layout),
         std::move(pipeline),
         vk::PipelineBindPoint::eGraphics
-    ).first;
+    );
 }
 
 auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass)
-    -> Pipeline::ID
+    -> Pipeline
 {
-    vkb::ShaderProgram program(
+    vkb::ShaderProgram program(device,
         TRC_SHADER_DIR"/ui/quad.vert.spv",
         TRC_SHADER_DIR"/ui/quad.frag.spv"
     );
 
-    auto layout = trc::makePipelineLayout({}, {});
+    auto layout = trc::makePipelineLayout(device, {}, {});
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
         .addVertexInputBinding(
@@ -86,24 +90,24 @@ auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui
         .setCullMode(vk::CullModeFlagBits::eNone)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, {}, {})
-        .build(*vkb::getDevice(), *layout, renderPass, subPass);
+        .build(*device, *layout, renderPass, subPass);
 
-    return Pipeline::createAtNextIndex(
+    return Pipeline(
         std::move(layout),
         std::move(pipeline),
         vk::PipelineBindPoint::eGraphics
-    ).first;
+    );
 }
 
 auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui32 subPass)
-    -> Pipeline::ID
+    -> Pipeline
 {
-    vkb::ShaderProgram program(
+    vkb::ShaderProgram program(device,
         TRC_SHADER_DIR"/ui/text.vert.spv",
         TRC_SHADER_DIR"/ui/text.frag.spv"
     );
 
-    auto layout = trc::makePipelineLayout({ *descLayout }, {});
+    auto layout = trc::makePipelineLayout(device, { *descLayout }, {});
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -154,45 +158,22 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
             )
         )
         .setColorBlending({}, false, {}, {})
-        .build(*vkb::getDevice(), *layout, renderPass, subPass);
+        .build(*device, *layout, renderPass, subPass);
 
-    return Pipeline::createAtNextIndex(
+    return Pipeline(
         std::move(layout),
         std::move(pipeline),
         vk::PipelineBindPoint::eGraphics
-    ).first;
+    );
 }
 
 
 
-void trc::ui_impl::DrawCollector::initStaticResources(
-    const vkb::Device& device,
-    vk::RenderPass renderPass)
+void trc::ui_impl::DrawCollector::initStaticResources()
 {
     static bool initialized{ false };
     if (initialized) return;
     initialized = true;
-
-    // Create layout
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{
-        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 30,
-                                       vk::ShaderStageFlagBits::eFragment)
-    };
-    auto bindingFlags = vk::DescriptorBindingFlagBits::eVariableDescriptorCount
-                        | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
-    vk::StructureChain chain{
-        vk::DescriptorSetLayoutCreateInfo(
-            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
-            bindings
-        ),
-        vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags),
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(chain.get<vk::DescriptorSetLayoutCreateInfo>());
-
-    // Create pipelines
-    linePipeline = makeLinePipeline(renderPass, 0);
-    quadPipeline = makeQuadPipeline(renderPass, 0);
-    textPipeline = makeTextPipeline(renderPass, 0);
 
     // Set up resource loading callbacks
     ui::initUserCallbacks(
@@ -207,21 +188,11 @@ void trc::ui_impl::DrawCollector::initStaticResources(
         // Callback on image load
         [](auto) {}
     );
-
-    // Add de-initialization callback
-    vkb::StaticInit{
-        []{},
-        []() {
-            existingCollectors.clear();
-            existingFonts.clear();
-            descLayout.reset();
-        }
-    };
 }
 
 
 
-trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::RenderPass renderPass)
+trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, ::trc::GuiRenderer& renderer)
     :
     device(device),
     quadVertexBuffer(
@@ -241,6 +212,28 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
         std::vector<vec2>{ vec2(0.0f, 0.0f), vec2(1.0f, 1.0f) },
         vk::BufferUsageFlagBits::eVertexBuffer
     ),
+    // Create descriptor set layout
+    descLayout([&] {
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 30,
+                                           vk::ShaderStageFlagBits::eFragment)
+        };
+        auto bindingFlags = vk::DescriptorBindingFlagBits::eVariableDescriptorCount
+                            | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
+        vk::StructureChain chain{
+            vk::DescriptorSetLayoutCreateInfo(
+                vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
+                bindings
+            ),
+            vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags),
+        };
+
+        return device->createDescriptorSetLayoutUnique(chain.get<vk::DescriptorSetLayoutCreateInfo>());
+    }()),
+
+    linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
+    quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
+    textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),
     quadBuffer(
         device,
         100, // Initial max number of quads
@@ -254,7 +247,7 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, vk::Render
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
-    initStaticResources(device, renderPass);
+    initStaticResources();
 
     // Create descriptor pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
@@ -283,9 +276,8 @@ trc::ui_impl::DrawCollector::~DrawCollector()
     }
 }
 
-void trc::ui_impl::DrawCollector::beginFrame(vec2 windowSizePixels)
+void trc::ui_impl::DrawCollector::beginFrame()
 {
-    this->windowSizePixels = windowSizePixels;
     quadBuffer.clear();
     textRanges.clear();
     letterBuffer.clear();
@@ -302,15 +294,14 @@ void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
     }, info.type);
 }
 
-void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
+void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windowSizePixels)
 {
-    const auto size = vkb::getSwapchain().getImageExtent();
-    const vk::Viewport defaultViewport(0, 0, size.width, size.height, 0.0f, 1.0f);
-    const vk::Rect2D defaultScissor({ 0, 0 }, { size.width, size.height });
+    const uvec2 size = windowSizePixels;
+    const vk::Viewport defaultViewport(0, 0, size.x, size.y, 0.0f, 1.0f);
+    const vk::Rect2D defaultScissor({ 0, 0 }, { size.x, size.y });
 
     // Draw all quads
-    auto& p = Pipeline::at(quadPipeline);
-    cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
+    quadPipeline.bind(cmdBuf);
     cmdBuf.setViewport(0, defaultViewport);
     cmdBuf.setScissor(0, defaultScissor);
 
@@ -320,9 +311,8 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     // Draw all lines
     if (!lines.empty())
     {
-        auto& p = Pipeline::at(linePipeline);
-        auto layout = p.getLayout();
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *p);
+        auto layout = linePipeline.getLayout();
+        linePipeline.bind(cmdBuf);
         cmdBuf.setViewport(0, defaultViewport);
         cmdBuf.setScissor(0, defaultScissor);
 
@@ -342,12 +332,11 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     // Draw text
     if (!textRanges.empty())
     {
-        auto& pText = Pipeline::at(textPipeline);
-        cmdBuf.bindPipeline(vk::PipelineBindPoint::eGraphics, *pText);
+        textPipeline.bind(cmdBuf);
         cmdBuf.setViewport(0, defaultViewport);
 
         cmdBuf.bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics, pText.getLayout(),
+            vk::PipelineBindPoint::eGraphics, textPipeline.getLayout(),
             0, *fontDescSet, {}
         );
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
@@ -357,8 +346,8 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
          auto [offset, extent, numLetters] : textRanges)
     {
         cmdBuf.setScissor(0, vk::Rect2D(
-            { static_cast<i32>(offset.x * size.width), static_cast<i32>(offset.y * size.height) },
-            { static_cast<ui32>(extent.x * size.width), static_cast<ui32>(extent.y * size.height) }
+            { static_cast<i32>(offset.x * size.x), static_cast<i32>(offset.y * size.y) },
+            { static_cast<ui32>(extent.x * size.x), static_cast<ui32>(extent.y * size.y) }
         ));
 
         cmdBuf.draw(6, numLetters, 0, letterOffset);
@@ -367,11 +356,14 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf)
     }
 }
 
-trc::ui_impl::DrawCollector::FontInfo::FontInfo(const vkb::Device&, ui32 fontIndex, const GlyphCache& cache)
+trc::ui_impl::DrawCollector::FontInfo::FontInfo(
+    const vkb::Device& device,
+    ui32 fontIndex,
+    const GlyphCache& cache)
     :
     fontIndex(fontIndex),
     glyphCache(cache),
-    glyphMap(new GlyphMap),
+    glyphMap(new GlyphMap(device)),
     imageView(glyphMap->getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm))
 {
 }

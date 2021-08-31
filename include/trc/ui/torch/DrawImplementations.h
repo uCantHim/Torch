@@ -12,33 +12,35 @@
 #include "ui/DrawInfo.h"
 #include "ui/FontRegistry.h"
 
+namespace trc {
+    class GuiRenderer;
+}
+
 namespace trc::ui_impl
 {
+    using namespace trc::basic_types;
+
     class DrawCollector
     {
     public:
-        DrawCollector(const vkb::Device& device, vk::RenderPass renderPass);
+        DrawCollector(const vkb::Device& device, ::trc::GuiRenderer& renderer);
         ~DrawCollector();
 
-        void beginFrame(vec2 windowSizePixels);
+        void beginFrame();
         void drawElement(const ui::DrawInfo& info);
-        void endFrame(vk::CommandBuffer cmdBuf);
+        void endFrame(vk::CommandBuffer cmdBuf, uvec2 windowSizePixels);
 
     private:
-        static void initStaticResources(const vkb::Device& device, vk::RenderPass renderPass);
-        static auto makeLinePipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
-        static auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
-        static auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline::ID;
+        static void initStaticResources();
 
         // A list of all existing collectors to notify them about newly loaded resources
         static inline std::vector<DrawCollector*> existingCollectors;
         // Save previously loaded fonts for collectors constructed later on
         static inline std::vector<std::pair<ui32, const GlyphCache&>> existingFonts;
 
-        static inline vk::UniqueDescriptorSetLayout descLayout;
-        static inline trc::Pipeline::ID linePipeline;
-        static inline trc::Pipeline::ID quadPipeline;
-        static inline trc::Pipeline::ID textPipeline;
+        auto makeLinePipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
+        auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
+        auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
 
         /** @brief Internal drawable type representing a border around an element */
         struct _border {};
@@ -57,11 +59,17 @@ namespace trc::ui_impl
             std::vector<vec2>{ vec2(0.0f, 0.0f), vec2(1.0f, 1.0f) },
             vk::BufferUsageFlagBits::eVertexBuffer
         };
-        vec2 windowSizePixels;
 
+        // Descriptors
         void updateFontDescriptor();
+        vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet fontDescSet;
+
+        // Pipelines
+        trc::Pipeline linePipeline;
+        trc::Pipeline quadPipeline;
+        trc::Pipeline textPipeline;
 
         // Plain line vertices
         struct Line
