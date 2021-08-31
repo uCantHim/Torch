@@ -85,7 +85,7 @@ auto vkb::Device::createGraphicsCommandBuffer(vk::CommandBufferLevel level) cons
 
 void vkb::Device::executeGraphicsCommandBuffer(vk::CommandBuffer cmdBuf) const
 {
-    queueManager.getPrimaryQueue(QueueType::graphics).submit(
+    queueManager.getPrimaryQueue(QueueType::graphics).waitSubmit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         {}
     );
@@ -94,7 +94,7 @@ void vkb::Device::executeGraphicsCommandBuffer(vk::CommandBuffer cmdBuf) const
 void vkb::Device::executeGraphicsCommandBufferSynchronously(vk::CommandBuffer cmdBuf) const
 {
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    queueManager.getPrimaryQueue(QueueType::graphics).submit(
+    queueManager.getPrimaryQueue(QueueType::graphics).waitSubmit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );
@@ -109,7 +109,7 @@ auto vkb::Device::createTransferCommandBuffer(vk::CommandBufferLevel level) cons
 
 void vkb::Device::executeTransferCommandBuffer(vk::CommandBuffer cmdBuf) const
 {
-    queueManager.getPrimaryQueue(QueueType::transfer).submit(
+    queueManager.getPrimaryQueue(QueueType::transfer).waitSubmit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         {}
     );
@@ -118,7 +118,7 @@ void vkb::Device::executeTransferCommandBuffer(vk::CommandBuffer cmdBuf) const
 void vkb::Device::executeTransferCommandBufferSyncronously(vk::CommandBuffer cmdBuf) const
 {
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    queueManager.getPrimaryQueue(QueueType::transfer).submit(
+    queueManager.getPrimaryQueue(QueueType::transfer).waitSubmit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );

@@ -263,12 +263,7 @@ void vkb::Swapchain::presentImage(
     vk::Queue queue,
     const std::vector<vk::Semaphore>& waitSemaphores)
 {
-    vk::PresentInfoKHR presentInfo(
-        static_cast<uint32_t>(waitSemaphores.size()), waitSemaphores.data(),
-        1u, &swapchain.get(),
-        &image,
-        nullptr
-    );
+    vk::PresentInfoKHR presentInfo(waitSemaphores, *swapchain, image);
 
     try {
         auto result = queue.presentKHR(presentInfo);
