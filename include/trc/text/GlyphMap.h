@@ -23,7 +23,8 @@ namespace trc
             vec2 upperRight;
         };
 
-        GlyphMap(const vkb::Device& device, const vkb::DeviceMemoryAllocator& alloc);
+        GlyphMap(const vkb::Device& device,
+                 const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
          * @param const GlyphMeta& glyph A new glyph
