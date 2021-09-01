@@ -36,7 +36,6 @@ add_library(torch)
 target_include_directories(torch
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
-        ${CMAKE_CURRENT_LIST_DIR}/vk_base/include
         ${CMAKE_CURRENT_LIST_DIR}/util_lib/include
 
     PRIVATE
@@ -71,14 +70,12 @@ if (${TORCH_INTEGRATE_IMGUI})
     )
     target_sources(
         imgui PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui.h
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui.cpp
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_draw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_tables.cpp
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_widgets.cpp
 
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.h
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.h
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
     )
 endif ()
@@ -104,7 +101,7 @@ cmake_policy(PUSH)
 cmake_policy(SET CMP0012 NEW)
 find_package(assimp QUIET)
 if (${assimp_FOUND})
-    target_link_libraries(torch PUBLIC ${ASSIMP_LIBRARIES}) #assimp::assimp)
+    target_link_libraries(torch PUBLIC ${ASSIMP_LIBRARIES})
     target_compile_definitions(torch PUBLIC TRC_USE_ASSIMP)
 endif ()
 cmake_policy(POP)

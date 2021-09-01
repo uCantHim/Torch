@@ -11,28 +11,26 @@ namespace trc {
 
 int main()
 {
-    auto renderer = trc::init();
-    auto scene = std::make_unique<trc::Scene>();
-    trc::Camera camera;
-
-    trc::imgui::initImgui(vkb::getDevice(), *renderer, vkb::getSwapchain());
-
-    while (vkb::getSwapchain().isOpen())
     {
-        vkb::pollEvents();
+        auto torch = trc::initFull();
+        trc::Scene scene;
+        trc::Camera camera;
 
-        trc::imgui::beginImguiFrame();
-        ig::Begin("Window :D");
-        ig::Text("Hello World!");
-        ig::End();
+        auto imgui = trc::imgui::initImgui(*torch.window, torch.renderConfig->getGraph());
 
-        renderer->drawFrame(*scene, camera);
+        while (torch.window->getSwapchain().isOpen())
+        {
+            vkb::pollEvents();
+
+            trc::imgui::beginImguiFrame();
+            ig::Begin("Window :D");
+            ig::Text("Hello World!");
+            ig::End();
+
+            torch.drawFrame(torch.makeDrawConfig(scene, camera));
+        }
     }
 
-    vkb::getDevice()->waitIdle();
-    scene.reset();
-    renderer.reset();
-    trc::imgui::terminateImgui();
     trc::terminate();
 
     std::cout << "Done.\n";

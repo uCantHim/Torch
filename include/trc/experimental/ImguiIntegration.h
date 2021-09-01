@@ -3,38 +3,38 @@
 #include <vkb/basics/Swapchain.h>
 #include <imgui.h>
 
-#include "RenderStage.h"
-#include "RenderPass.h"
-#include "Pipeline.h"
+#include "core/Window.h"
+#include "core/RenderStage.h"
+#include "core/RenderPass.h"
+#include "core/Pipeline.h"
 
 namespace trc
 {
-    namespace ig = ImGui;
-
-    class Renderer;
+    class RenderGraph;
 }
 
 namespace trc::experimental::imgui
 {
+    namespace ig = ImGui;
+
+    class ImguiRenderPass;
+
     extern auto getImguiRenderStageType() -> RenderStageType::ID;
-    extern auto getImguiRenderPass(const vkb::Swapchain& swapchain) -> RenderPass::ID;
-    extern auto getImguiPipeline() -> Pipeline::ID;
 
     /**
-     * @brief Initialize imgui integration and set up renderer
+     * @brief Initialize imgui integration and set up render graph
      *
-     * This function fully initializes imgui and sets up a renderer to use
-     * imgui. You can call beginImguiFrame() and use ImGui functionality
+     * This function fully initializes imgui and sets a render graph up to
+     * use imgui. You can call beginImguiFrame() and use ImGui functionality
      * after a call to this function.
      *
-     * @param const vkb::Device& device
-     * @param Renderer& renderer Adds imgui stage and render pass to the
-     *                           renderer's graph.
-     * @param const vkb::Swapchain& swapchain
+     * Call this function for each window on which you want to use imgui.
+     *
+     * @param Window& window The window on which to enable imgui
+     * @param RenderGraph& graph Adds imgui stage and render pass to the
+     *                           render graph.
      */
-    extern void initImgui(vkb::Device& device,
-                          Renderer& renderer,
-                          const vkb::Swapchain& swapchain);
+    extern auto initImgui(Window& window, RenderGraph& renderGraph) -> u_ptr<ImguiRenderPass>;
 
     extern void terminateImgui();
 
@@ -57,9 +57,6 @@ namespace trc::experimental::imgui
 
     /**
      * @brief RenderPass for Imgui
-     *
-     * Renders to the swapchain, but after the final lighting pass. Meaning
-     * it overwrites everything else.
      */
     class ImguiRenderPass : public RenderPass
     {
@@ -81,9 +78,14 @@ namespace trc::experimental::imgui
             GLFWscrollfun vkbScrollCallback;
         };
 
+        void createFramebuffers();
+
         static inline std::unordered_map<const GLFWwindow*, CallbackStorage> callbackStorages;
 
         const vkb::Swapchain& swapchain;
+        Pipeline imguiPipeline;
         vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
+
+        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
     };
 } // namespace trc::experimental::imgui

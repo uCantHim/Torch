@@ -6,15 +6,15 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
+#include "core/RenderGraph.h"
 #include "utils/PipelineBuilder.h"
+#include "Torch.h"
 #include "TorchResources.h"
-#include "Renderer.h"
 
 
 
 namespace
 {
-    trc::Pipeline::ID imguiPipelineId;
     vk::UniqueDescriptorPool imguiDescPool;
     bool imguiInitialized{ false };
 
@@ -29,55 +29,25 @@ auto trc::experimental::imgui::getImguiRenderStageType() -> RenderStageType::ID
     return imguiStageId;
 }
 
-auto trc::experimental::imgui::getImguiRenderPass(const vkb::Swapchain& swapchain) -> RenderPass::ID
+
+
+auto trc::experimental::imgui::initImgui(Window& window, RenderGraph& graph)
+    -> trc::u_ptr<ImguiRenderPass>
 {
-    static std::unordered_map<const vkb::Swapchain*, RenderPass::ID> passesPerSwapchain;
+    auto& device = window.getDevice();
+    auto& swapchain = window.getSwapchain();
 
-    auto it = passesPerSwapchain.find(&swapchain);
-    if (it == passesPerSwapchain.end())
-    {
-        it = passesPerSwapchain.try_emplace(
-            &swapchain,
-            RenderPass::createAtNextIndex<ImguiRenderPass>(swapchain).first
-        ).first;
-    }
+    auto renderPass = std::make_unique<ImguiRenderPass>(swapchain);
 
-    return it->second;
-}
-
-auto trc::experimental::imgui::getImguiPipeline() -> Pipeline::ID
-{
-    if (!imguiInitialized) {
-        throw std::runtime_error("In getImguiPipeline(): ImGui has not been initialized."
-                                 " Call initImgui first!");
-    }
-
-    return imguiPipelineId;
-}
-
-
-
-void trc::experimental::imgui::initImgui(
-    vkb::Device& device,
-    Renderer& renderer,
-    const vkb::Swapchain& swapchain)
-{
-    auto& graph = renderer.getRenderGraph();
     graph.after(trc::RenderStageTypes::getDeferred(), getImguiRenderStageType());
-    graph.addPass(getImguiRenderStageType(), getImguiRenderPass(swapchain));
+    graph.addPass(getImguiRenderStageType(), *renderPass);
 
-    // Recreate the imgui pass on swapchain recreate
-    vkb::on<vkb::SwapchainRecreateEvent>([&swapchain](const auto& e) {
-        if (e.swapchain == &swapchain) {
-            RenderPass::replace<ImguiRenderPass>(getImguiRenderPass(swapchain), swapchain);
-        }
-    });
-
+    // Initialize global imgui stuff
     if (!imguiInitialized)
     {
         // Standard ImGui initialization stuff
         IMGUI_CHECKVERSION();
-        ig::CreateContext();
+        ig::SetCurrentContext(ig::CreateContext());
         ImGuiIO& io = ig::GetIO(); (void) io;
 
         ig::StyleColorsDark();
@@ -104,25 +74,23 @@ void trc::experimental::imgui::initImgui(
             )
         );
 
-        RenderPass& renderPass = RenderPass::at(getImguiRenderPass(swapchain));
         try {
             auto [queue, family] = device.getQueueManager().getAnyQueue(vkb::QueueType::graphics);
             device.getQueueManager().reserveQueue(queue);
 
             // Init ImGui for Vulkan
-            ImGui_ImplGlfw_InitForVulkan(vkb::getSwapchain().getGlfwWindow(), true);
             ImGui_ImplVulkan_InitInfo igInfo{};
-            igInfo.Instance = *vkb::getInstance();
-            igInfo.PhysicalDevice = vkb::getPhysicalDevice().physicalDevice;
+            igInfo.Instance = *getVulkanInstance();
+            igInfo.PhysicalDevice = *device.getPhysicalDevice();
             igInfo.Device = *device;
             igInfo.QueueFamily = family;
-            igInfo.Queue = queue;
+            igInfo.Queue = *queue;
             igInfo.PipelineCache = {};
             igInfo.DescriptorPool = *imguiDescPool;
             igInfo.Allocator = nullptr;
-            igInfo.MinImageCount = vkb::getSwapchain().getFrameCount();
-            igInfo.ImageCount = vkb::getSwapchain().getFrameCount();
-            ImGui_ImplVulkan_Init(&igInfo, *renderPass);
+            igInfo.MinImageCount = swapchain.getFrameCount();
+            igInfo.ImageCount = swapchain.getFrameCount();
+            ImGui_ImplVulkan_Init(&igInfo, **renderPass);
         }
         catch (const vkb::QueueReservedError& err)
         {
@@ -137,28 +105,13 @@ void trc::experimental::imgui::initImgui(
         oneTimeCmdBuf->end();
         device.executeGraphicsCommandBufferSynchronously(*oneTimeCmdBuf);
 
-        // Create dummy pipeline
-        vkb::ShaderProgram program(TRC_SHADER_DIR"/empty.vert.spv",
-                                   TRC_SHADER_DIR"/empty.frag.spv");
-        auto layout = trc::makePipelineLayout({}, {});
-        auto pipeline = trc::GraphicsPipelineBuilder::create()
-            .setProgram(program)
-            .addViewport({})
-            .addScissorRect({})
-            .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-            .setColorBlending({}, false, vk::LogicOp::eOr, {})
-            .addDynamicState(vk::DynamicState::eViewport)
-            .addDynamicState(vk::DynamicState::eScissor)
-            .build(*device, *layout, *renderPass, 0);
-
-        imguiPipelineId = trc::Pipeline::createAtNextIndex(
-            std::move(layout),
-            std::move(pipeline),
-            vk::PipelineBindPoint::eGraphics
-        ).first;
-
         imguiInitialized = true;
     }
+
+    // Initialize window-specific stuff
+    ImGui_ImplGlfw_InitForVulkan(swapchain.getGlfwWindow(), true);
+
+    return renderPass;
 }
 
 void trc::experimental::imgui::terminateImgui()
@@ -226,32 +179,39 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
                 )
             };
 
-            return vkb::getDevice()->createRenderPassUnique(
+            return swapchain.device->createRenderPassUnique(
                 vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
             );
         }(),
         1 // subpass count
     ),
     swapchain(swapchain),
-    framebuffers(
-        swapchain,
-        [this, &swapchain](ui32 imageIndex) -> vk::UniqueFramebuffer
-        {
-            const vk::ImageView imageView = swapchain.getImageView(imageIndex);
-            const vk::Extent2D imageSize = swapchain.getImageExtent();
+    // Create pipeline
+    imguiPipeline([&]() -> Pipeline {
+        vkb::ShaderProgram program(swapchain.device,
+            TRC_SHADER_DIR"/empty.vert.spv",
+            TRC_SHADER_DIR"/empty.frag.spv"
+        );
+        auto layout = trc::makePipelineLayout(swapchain.device, {}, {});
+        auto pipeline = trc::GraphicsPipelineBuilder::create()
+            .setProgram(program)
+            .addViewport({})
+            .addScissorRect({})
+            .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
+            .setColorBlending({}, false, vk::LogicOp::eOr, {})
+            .addDynamicState(vk::DynamicState::eViewport)
+            .addDynamicState(vk::DynamicState::eScissor)
+            .build(*swapchain.device, *layout, *renderPass, 0);
 
-            return vkb::getDevice()->createFramebufferUnique(
-                vk::FramebufferCreateInfo(
-                    {},
-                    *renderPass,
-                    1, &imageView,
-                    imageSize.width, imageSize.height, 1
-                )
-            );
-        }
-    )
+        return Pipeline(
+            std::move(layout),
+            std::move(pipeline),
+            vk::PipelineBindPoint::eGraphics
+        );
+    }()),
+    framebuffers(swapchain)
 {
-    auto window = vkb::getSwapchain().getGlfwWindow();
+    auto window = swapchain.getGlfwWindow();
     auto it = callbackStorages.find(window);
     if (it != callbackStorages.end()) {
         throw std::runtime_error("Don't create multiple ImguiRenderPasses for the same swapchain!");
@@ -260,10 +220,9 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
         it = callbackStorages.try_emplace(window).first;
     }
 
-
+    // Replace vkb's event callbacks
     auto& storage = it->second;
 
-    // Replace vkb's event callbacks
     storage.vkbCharCallback = glfwSetCharCallback(window,
         [](GLFWwindow* window, unsigned int codepoint) {
             if (!ig::GetIO().WantCaptureKeyboard) {
@@ -292,11 +251,19 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
             }
         }
     );
+
+    createFramebuffers();
+    swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this](auto& e) {
+        if (e.swapchain != &this->swapchain) return;
+        createFramebuffers();
+    });
 }
 
 trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
 {
-    auto window = vkb::getSwapchain().getGlfwWindow();
+    swapchain.device->waitIdle();
+
+    auto window = swapchain.getGlfwWindow();
     auto& storage = callbackStorages.at(window);
 
     // Replace vkb's event callbacks
@@ -306,6 +273,12 @@ trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
     glfwSetScrollCallback(window, storage.vkbScrollCallback);
 
     callbackStorages.erase(window);
+    if (callbackStorages.empty())
+    {
+        // No ImguiRenderPass instances exist anymore. Terminate now for
+        // safety.
+        terminateImgui();
+    }
 }
 
 void trc::experimental::imgui::ImguiRenderPass::begin(
@@ -353,4 +326,25 @@ void trc::experimental::imgui::ImguiRenderPass::end(vk::CommandBuffer cmdBuf)
     imguiHasBegun = false;
 
     cmdBuf.endRenderPass();
+}
+
+void trc::experimental::imgui::ImguiRenderPass::createFramebuffers()
+{
+    framebuffers = {
+        swapchain,
+        [this](ui32 imageIndex) -> vk::UniqueFramebuffer
+        {
+            const vk::ImageView imageView = swapchain.getImageView(imageIndex);
+            const vk::Extent2D imageSize = swapchain.getImageExtent();
+
+            return swapchain.device->createFramebufferUnique(
+                vk::FramebufferCreateInfo(
+                    {},
+                    *renderPass,
+                    1, &imageView,
+                    imageSize.width, imageSize.height, 1
+                )
+            );
+        }
+    };
 }
