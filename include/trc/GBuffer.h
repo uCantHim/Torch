@@ -14,7 +14,7 @@ namespace trc
         enum Image : ui32
         {
             eNormals,
-            eUVs,
+            eAlbedo,
             eMaterials,
             eDepth,
 

@@ -34,7 +34,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
 
         std::vector<vk::ImageView> views{
             g.getImageView(GBuffer::eNormals),
-            g.getImageView(GBuffer::eUVs),
+            g.getImageView(GBuffer::eAlbedo),
             g.getImageView(GBuffer::eMaterials),
             g.getImageView(GBuffer::eDepth),
             swapchain.getImageView(frameIndex),
@@ -112,9 +112,9 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
-        // UVs
+        // Albedo
         vk::AttachmentDescription(
-            {}, vk::Format::eR16G16Sfloat, vk::SampleCountFlagBits::e1,
+            {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
@@ -422,7 +422,7 @@ void trc::DeferredRenderPassDescriptor::createDescriptors(
         auto& g = renderPass.getGBuffer().getAt(imageIndex);
         std::vector<vk::ImageView> imageViews{
             g.getImageView(GBuffer::eNormals),
-            g.getImageView(GBuffer::eUVs),
+            g.getImageView(GBuffer::eAlbedo),
             g.getImageView(GBuffer::eMaterials),
             g.getImageView(GBuffer::eDepth),
         };

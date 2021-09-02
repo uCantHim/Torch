@@ -21,11 +21,11 @@ trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
         vkb::DefaultDeviceMemoryAllocator()
     );
 
-    // UVs
+    // Albedo
     images.emplace_back(
         device,
         vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR16G16Sfloat,
+            {}, vk::ImageType::e2D, vk::Format::eR32Uint,
             vk::Extent3D{ extent, 1 },
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
@@ -63,7 +63,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
     );
 
     imageViews.push_back(getImage(Image::eNormals).createView());
-    imageViews.push_back(getImage(Image::eUVs).createView());
+    imageViews.push_back(getImage(Image::eAlbedo).createView());
     imageViews.push_back(getImage(Image::eMaterials).createView());
     imageViews.push_back(getImage(Image::eDepth).createView(vk::ImageAspectFlagBits::eDepth));
 }

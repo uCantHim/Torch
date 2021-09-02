@@ -7,10 +7,10 @@
 
 #define MAX_FRAGS 10
 
-layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput vertexNormal;
-layout (input_attachment_index = 1, set = 2, binding = 1) uniform subpassInput vertexUv;
-layout (input_attachment_index = 2, set = 2, binding = 2) uniform usubpassInput materialIndex;
-layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput vertexDepth;
+layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput inNormal;
+layout (input_attachment_index = 1, set = 2, binding = 1) uniform usubpassInput inAlbedo;
+layout (input_attachment_index = 2, set = 2, binding = 2) uniform usubpassInput inMaterial;
+layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput inDepth;
 
 layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
 {
@@ -73,21 +73,13 @@ vec3 blendTransparent(vec3 opaqueColor);
 
 void main()
 {
-    const uint matIndex = subpassLoad(materialIndex).r;
-    vec3 color = materials[matIndex].color.rgb;
-
-    // Use diffuse texture if available
-    uint diffTexture = materials[matIndex].diffuseTexture;
-    if (diffTexture != NO_TEXTURE)
-    {
-        vec2 uv = subpassLoad(vertexUv).xy;
-        color = texture(textures[diffTexture], uv).rgb;
-    }
+    const uint matIndex = subpassLoad(inMaterial)[0];
+    vec3 color = unpackUnorm4x8(subpassLoad(inAlbedo)[0]).xyz;
 
     color = calcLighting(
         color,
-        worldPosFromDepth(subpassLoad(vertexDepth).x).xyz,
-        normalize(subpassLoad(vertexNormal).xyz),
+        worldPosFromDepth(subpassLoad(inDepth).x).xyz,
+        normalize(subpassLoad(inNormal).xyz),
         camera.inverseViewMatrix[3].xyz,
         matIndex
     );

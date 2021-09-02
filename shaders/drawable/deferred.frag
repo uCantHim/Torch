@@ -66,7 +66,7 @@ layout (location = 0) in Vertex
 } vert;
 
 layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec2 outUv;
+layout (location = 1) out uint outAlbedo;
 layout (location = 2) out uint outMaterial;
 
 
@@ -74,13 +74,14 @@ layout (location = 2) out uint outMaterial;
 //      Main       //
 /////////////////////
 
+vec3 calcVertexColor();
 vec3 calcVertexNormal();
 
 void main()
 {
-    outUv = vert.uv;
-    outMaterial = vert.material;
     outNormal = calcVertexNormal();
+    outAlbedo = packUnorm4x8(vec4(calcVertexColor(), 0.0));
+    outMaterial = vert.material;
 
     if (isPickable) // constant
     {
@@ -93,6 +94,20 @@ void main()
             picking.depth = gl_FragCoord.z;
         }
     }
+}
+
+
+vec3 calcVertexColor()
+{
+    vec3 color = materials[vert.material].color.rgb;
+
+    // Use diffuse texture if available
+    uint diffTexture = materials[vert.material].diffuseTexture;
+    if (diffTexture != NO_TEXTURE) {
+        color = texture(textures[diffTexture], vert.uv).rgb;
+    }
+
+    return color;
 }
 
 
