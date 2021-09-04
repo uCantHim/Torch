@@ -1,6 +1,5 @@
 #include "event/InputState.h"
 
-#include "VulkanBase.h"
 #include "event/EventHandler.h"
 #include "event/InputEvents.h"
 
@@ -39,9 +38,12 @@ void vkb::Mouse::init()
     EventHandler<MouseClickEvent>::addListener([](const auto& e) {
         states[static_cast<size_t>(e.button)] = InputAction::press;
     });
-
     EventHandler<MouseReleaseEvent>::addListener([](const auto& e) {
         states[static_cast<size_t>(e.button)] = InputAction::release;
+    });
+
+    EventHandler<MouseMoveEvent>::addListener([](const MouseMoveEvent& e) {
+            mousePos = glm::vec2{ e.x, e.y };
     });
 }
 
@@ -62,5 +64,5 @@ auto vkb::Mouse::getState(MouseButton button) -> InputAction
 
 auto vkb::Mouse::getPosition() -> glm::vec2
 {
-    return getSwapchain().getMousePosition();
+    return mousePos;
 }

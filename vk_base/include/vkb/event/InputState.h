@@ -57,5 +57,7 @@ namespace vkb
         static inline std::array<InputAction, static_cast<size_t>(MouseButton::MAX_ENUM)> states{
             InputAction::release
         };
+
+        static inline glm::vec2 mousePos;
     };
 } // namespace vkb
