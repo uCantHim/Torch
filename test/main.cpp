@@ -192,6 +192,7 @@ int main()
         p.phys.scaling = vec3(0.2f);
         p.phys.lifeTime = 3000.0f;
         p.material.texture = particleImgIdx;
+        p.material.blending = trc::ParticleMaterial::BlendingType::eAlphaBlend;
         spawn.addParticle(p);
     }
     spawn.spawnParticles();
@@ -203,8 +204,9 @@ int main()
     );
 
     std::thread particleUpdateThread([&]() {
+        vkb::Timer timer;
         while (running) {
-            particleCollection->update();
+            particleCollection->update(timer.reset());
         }
     });
     std::thread particleSpawnThread([&]() {

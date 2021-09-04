@@ -18,10 +18,20 @@
 namespace trc
 {
     class Instance;
+    class DeferredRenderConfig;
 
     struct ParticleMaterial
     {
+        enum BlendingType : ui32
+        {
+            eDiscardZeroAlpha = 0,
+            eAlphaBlend,
+
+            NUM_BLENDING_TYPES
+        };
+
         ui32 texture;
+        BlendingType blending{ BlendingType::eDiscardZeroAlpha };
     };
 
     struct ParticlePhysical
@@ -38,21 +48,12 @@ namespace trc
 
         float lifeTime{ 1000.0f };
         float timeLived{ 0.0f };
-        bool doRespawn{ false };
     };
 
     struct Particle
     {
         ParticlePhysical phys;
         ParticleMaterial material;
-    };
-
-    enum class ParticleUpdateMethod
-    {
-        eHost = 0,
-        eDevice = 1,
-
-        MAX_ENUM
     };
 
     /**
@@ -63,10 +64,7 @@ namespace trc
     class ParticleCollection
     {
     public:
-        explicit ParticleCollection(
-            Instance& instance,
-            ui32 maxParticles,
-            ParticleUpdateMethod updateMethod = ParticleUpdateMethod::eHost);
+        ParticleCollection(Instance& instance, ui32 maxParticles);
 
         void attachToScene(SceneBase& scene);
         void removeFromScene();
@@ -74,43 +72,41 @@ namespace trc
         void addParticle(const Particle& particle);
         void addParticles(const std::vector<Particle>& particles);
 
-        void setUpdateMethod(ParticleUpdateMethod method);
-        void update();
+        /**
+         * @brief Simulate particles and update GPU data
+         *
+         * @param float timeDelta Simulation time in milliseconds
+         */
+        void update(float timeDelta);
 
-        static auto getDeferredPipeline() -> Pipeline::ID;
+        static auto getAlphaDiscardPipeline() -> Pipeline::ID;
+        static auto getAlphaBlendPipeline() -> Pipeline::ID;
         static auto getShadowPipeline() -> Pipeline::ID;
 
     private:
-        class Updater
+        /**
+         * @brief Per-instance device data
+         */
+        struct ParticleDeviceData
         {
-        public:
-            virtual ~Updater() = default;
-            virtual void update(std::vector<ParticlePhysical>& particles,
-                                mat4* transformData,
-                                ParticleMaterial* materialData) = 0;
+            mat4 transform;
+            ui32 textureIndex;
         };
+
+        static auto makeParticleDrawAlphaDiscardPipeline(const Instance& instance,
+                                                         const DeferredRenderConfig& config)
+            -> trc::Pipeline;
+        static auto makeParticleDrawAlphaBlendPipeline(const Instance& instance,
+                                                       const DeferredRenderConfig& config)
+            -> trc::Pipeline;
+        static auto makeParticleShadowPipeline(const Instance& instance,
+                                               const DeferredRenderConfig& config)
+            -> trc::Pipeline;
 
         /**
-         * @brief Simulates particles on the CPU
+         * @brief Simulate particle physics
          */
-        class HostUpdater : public Updater
-        {
-            void update(std::vector<ParticlePhysical>& particles,
-                        mat4* transformData,
-                        ParticleMaterial* materialData) override;
-
-            vkb::Timer frameTimer;
-        };
-
-        /**
-         * @brief Simulates particles on the GPU
-         */
-        class DeviceUpdater : public Updater
-        {
-            void update(std::vector<ParticlePhysical>& particles,
-                        mat4* transformData,
-                        ParticleMaterial* materialData) override;
-        };
+        void tickParticles(float timeDelta);
 
         const Instance& instance;
         const ui32 maxParticles;
@@ -119,24 +115,37 @@ namespace trc
         vkb::DeviceLocalBuffer vertexBuffer;
 
         // GPU resources
-        std::vector<ParticlePhysical> particles;
-        vkb::Buffer particleMatrixStagingBuffer;
-        vkb::DeviceLocalBuffer particleMatrixBuffer;
-        vkb::Buffer particleMaterialBuffer;
-        ParticleMaterial* persistentMaterialBuf;
+        std::vector<Particle> particles;
+        vkb::Buffer particleDeviceDataStagingBuffer;
+        vkb::DeviceLocalBuffer particleDeviceDataBuffer;
 
+        ParticleDeviceData* persistentParticleDeviceDataBuf;
+
+        // Per-blend type draw calls
+        using Blend = ParticleMaterial::BlendingType;
+        template<typename T>
+        using PerBlendType = std::array<T, Blend::NUM_BLENDING_TYPES>;
+
+        struct BlendTypeSize
+        {
+            ui32 offset{ 0 };
+            ui32 count{ 0 };
+        };
+        PerBlendType<BlendTypeSize> blendTypeSizes;
+
+        // Staging storage for new particles
         std::mutex newParticleListLock;
         std::vector<Particle> newParticles;
 
         // Updater
-        std::unique_ptr<Updater> updater;
         vkb::ExclusiveQueue transferQueue;
         vk::UniqueFence transferFence;
         vk::UniqueCommandPool transferCmdPool;
         vk::UniqueCommandBuffer transferCmdBuf;
 
         // Drawable registrations
-        SceneBase::UniqueRegistrationID drawRegistration;
+        PerBlendType<SceneBase::UniqueRegistrationID> drawRegistrations;
+        SceneBase::UniqueRegistrationID shadowRegistration;
     };
 
     /**

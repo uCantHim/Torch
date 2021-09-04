@@ -19,19 +19,13 @@ namespace trc
         vec2 uv;
         vec3 normal;
     };
-
-    auto makeParticleDrawPipeline(const Instance& instance, const DeferredRenderConfig& config)
-        -> trc::Pipeline;
-    auto makeParticleShadowPipeline(const Instance& instance, const DeferredRenderConfig& config)
-        -> trc::Pipeline;
 }
 
 
 
 trc::ParticleCollection::ParticleCollection(
     Instance& instance,
-    const ui32 maxParticles,
-    ParticleUpdateMethod updateMethod)
+    const ui32 maxParticles)
     :
     instance(instance),
     maxParticles(maxParticles),
@@ -49,27 +43,22 @@ trc::ParticleCollection::ParticleCollection(
         vk::BufferUsageFlagBits::eVertexBuffer,
         memoryPool.makeAllocator()
     ),
-    particleMatrixStagingBuffer(
+    particleDeviceDataStagingBuffer(
         instance.getDevice(),
-        sizeof(mat4) * maxParticles,
+        sizeof(ParticleDeviceData) * maxParticles,
         vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
         memoryPool.makeAllocator()
     ),
-    particleMatrixBuffer(
+    particleDeviceDataBuffer(
         instance.getDevice(),
-        sizeof(mat4) * maxParticles, nullptr,
+        sizeof(ParticleDeviceData) * maxParticles, nullptr,
         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
         memoryPool.makeAllocator()
     ),
-    particleMaterialBuffer(
-        instance.getDevice(),
-        sizeof(ParticleMaterial) * maxParticles, nullptr,
-        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
-        memoryPool.makeAllocator()
+    persistentParticleDeviceDataBuf(
+        reinterpret_cast<ParticleDeviceData*>(particleDeviceDataStagingBuffer.map())
     ),
-    persistentMaterialBuf(reinterpret_cast<ParticleMaterial*>(particleMaterialBuffer.map())),
     transferFence(instance.getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled }))
 {
     auto& dev = instance.getDevice();
@@ -83,29 +72,48 @@ trc::ParticleCollection::ParticleCollection(
     })[0]);
 
     particles.reserve(maxParticles);
-    setUpdateMethod(updateMethod);
 }
 
 void trc::ParticleCollection::attachToScene(SceneBase& scene)
 {
-    drawRegistration = scene.registerDrawFunction(
+    // Alpha discard pipeline
+    drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
-        RenderPassDeferred::SubPasses::transparency,
-        getDeferredPipeline(),
+        RenderPassDeferred::SubPasses::gBuffer,
+        getAlphaDiscardPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
-            if (particles.empty()) return;
+            auto [offset, count] = blendTypeSizes[Blend::eDiscardZeroAlpha];
+            if (count == 0) return;
 
+            std::cout << "Drawing alpha discard particles: " << offset << ", " << count << "\n";
             cmdBuf.bindVertexBuffers(0,
-                { *vertexBuffer, *particleMatrixBuffer, *particleMaterialBuffer },
-                { 0, 0, 0 });
-            cmdBuf.draw(6, particles.size(), 0, 0);
+                { *vertexBuffer, *particleDeviceDataBuffer },
+                { 0, offset * sizeof(ParticleDeviceData) });
+            cmdBuf.draw(6, count, 0, 0);
         }
     ).makeUnique();
-    //sceneRegistrations.emplace_back(scene.registerDrawFunction(
-    //    internal::RenderStageTypes::eShadow,
-    //    0,
-    //    getShadowPipeline(),
+
+    // Alpha blend pipeline
+    drawRegistrations[Blend::eAlphaBlend] = scene.registerDrawFunction(
+        RenderStageTypes::getDeferred(),
+        RenderPassDeferred::SubPasses::transparency,
+        getAlphaBlendPipeline(),
+        [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
+        {
+            auto [offset, count] = blendTypeSizes[Blend::eAlphaBlend];
+            if (count == 0) return;
+
+            std::cout << "Drawing alpha blend particles: " << offset << ", " << count << "\n";
+            cmdBuf.bindVertexBuffers(0,
+                { *vertexBuffer, *particleDeviceDataBuffer },
+                { 0, offset * sizeof(ParticleDeviceData) });
+            cmdBuf.draw(6, count, 0, 0);
+        }
+    ).makeUnique();
+
+    //shadowRegistration = scene.registerDrawFunction(
+    //    RenderStageTypes::getShadow(), SubPass::ID(0), getShadowPipeline(),
     //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
     //    {
     //        if (particles.empty()) return;
@@ -116,16 +124,16 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     //        cmdBuf.pushConstants<ui32>(
     //            env.currentPipeline->getLayout(),
     //            vk::ShaderStageFlagBits::eVertex,
-    //            0, shadowPass->getShadowIndex());
-    //        cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleMatrixBuffer }, { 0, 0 });
+    //            0, shadowPass->getShadowMatrixIndex());
+    //        cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *particleDeviceDataBuffer }, { 0, 0 });
     //        cmdBuf.draw(6, particles.size(), 0, 0);
     //    }
-    //));
+    //);
 }
 
 void trc::ParticleCollection::removeFromScene()
 {
-    drawRegistration = {};
+    drawRegistrations = {};
 }
 
 void trc::ParticleCollection::addParticle(const Particle& particle)
@@ -140,22 +148,7 @@ void trc::ParticleCollection::addParticles(const std::vector<Particle>& _newPart
     newParticles.insert(newParticles.end(), _newParticles.begin(), _newParticles.end());
 }
 
-void trc::ParticleCollection::setUpdateMethod(ParticleUpdateMethod method)
-{
-    switch (method)
-    {
-    case ParticleUpdateMethod::eDevice:
-        updater.reset(new DeviceUpdater);
-        break;
-    case ParticleUpdateMethod::eHost:
-        updater.reset(new HostUpdater);
-        break;
-    default:
-        throw std::logic_error("Unknown enum ParticleUpdateMethod");
-    }
-}
-
-void trc::ParticleCollection::update()
+void trc::ParticleCollection::update(const float timeDelta)
 {
     // Add new particles
     {
@@ -165,9 +158,7 @@ void trc::ParticleCollection::update()
             if (particles.size() >= maxParticles) {
                 break;
             }
-
-            persistentMaterialBuf[particles.size()] = p.material;
-            particles.push_back(p.phys);
+            particles.push_back(p);
         }
         newParticles.clear();
     }
@@ -181,15 +172,13 @@ void trc::ParticleCollection::update()
     instance.getDevice()->resetFences(*transferFence);
 
     // Run updater on matrix buffer
-    auto matrixBuf = reinterpret_cast<mat4*>(particleMatrixStagingBuffer.map());
-    updater->update(particles, matrixBuf, persistentMaterialBuf);
-    particleMatrixStagingBuffer.unmap();
+    tickParticles(timeDelta);
 
     // Copy matrices to vertex attribute buffer
     transferCmdBuf->begin(vk::CommandBufferBeginInfo());
     transferCmdBuf->copyBuffer(
-        *particleMatrixStagingBuffer, *particleMatrixBuffer,
-        vk::BufferCopy(0, 0, particleMatrixStagingBuffer.size())
+        *particleDeviceDataStagingBuffer, *particleDeviceDataBuffer,
+        vk::BufferCopy(0, 0, particleDeviceDataStagingBuffer.size())
     );
     transferCmdBuf->end();
 
@@ -200,10 +189,19 @@ void trc::ParticleCollection::update()
     );
 }
 
-auto trc::ParticleCollection::getDeferredPipeline() -> Pipeline::ID
+auto trc::ParticleCollection::getAlphaDiscardPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleDrawPipeline
+        makeParticleDrawAlphaDiscardPipeline
+    );
+
+    return id;
+}
+
+auto trc::ParticleCollection::getAlphaBlendPipeline() -> Pipeline::ID
+{
+    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
+        makeParticleDrawAlphaBlendPipeline
     );
 
     return id;
@@ -218,61 +216,55 @@ auto trc::ParticleCollection::getShadowPipeline() -> Pipeline::ID
     return id;
 }
 
-
-
-
-////////////////////////////////
-//      Particle Updater      //
-////////////////////////////////
-
-void trc::ParticleCollection::HostUpdater::update(
-    std::vector<ParticlePhysical>& particles,
-    mat4* transformData,
-    ParticleMaterial* materialData)
+void trc::ParticleCollection::tickParticles(const float timeDelta)
 {
-    const float frameTimeMs = frameTimer.reset();
+    const float frameTimeMs = timeDelta;
+
+    PerBlendType<BlendTypeSize> tmpSizes;
     for (size_t i = 0; i < particles.size(); /* nothing */)
     {
-        auto& p = particles[i];
+        auto& p = particles[i].phys;
 
         // Calculate particle lifetime
         if (p.lifeTime - p.timeLived <= 0.0f)
         {
-            if (p.doRespawn) {
-                p.timeLived = 0.0f;
-            }
-            else
-            {
-                p = particles.back();
-                particles.pop_back();
-                // Rearrange materials accordingly
-                materialData[i] = materialData[particles.size()];
-                continue;
-            }
+            // Particle is dead. Use the classic unstable remove.
+            particles[i] = particles.back();
+            particles.pop_back();
+            continue;
         }
         p.timeLived += frameTimeMs;
-        const float secondsLived = p.timeLived / 1000.0f;
+
+        const float secondsElapsed = timeDelta / 1000.0f;
 
         // Simulate particle physics
-        const vec3 pos = p.position
-                         + secondsLived * p.linearVelocity
-                         + secondsLived * secondsLived * p.linearAcceleration * 0.5f;
-        const quat rot = glm::angleAxis(secondsLived * p.angularVelocity, p.rotationAxis);
-        const quat orientation = rot * p.orientation;
+        p.linearVelocity += secondsElapsed * p.linearAcceleration;
+        p.position += secondsElapsed * p.linearVelocity;
+
+        const quat rot = glm::angleAxis(secondsElapsed * p.angularVelocity, p.rotationAxis);
+        p.orientation = rot * p.orientation;
+
+        ++tmpSizes[particles[i].material.blending].count;
+
+        ++i;
+    }
+
+    tmpSizes[Blend::eDiscardZeroAlpha].offset = 0;
+    tmpSizes[Blend::eAlphaBlend].offset       = tmpSizes[Blend::eDiscardZeroAlpha].count;
+    blendTypeSizes = tmpSizes;
+
+    ParticleDeviceData* devData = persistentParticleDeviceDataBuf;
+    for (size_t i = 0; i < particles.size(); i++)
+    {
+        const ui32 index = tmpSizes[particles[i].material.blending].offset++;
 
         // Store calculated transform in buffer
-        transformData[i++] = glm::translate(mat4(1.0f), pos)
-                             * mat4(orientation)
-                             * glm::scale(mat4(1.0f), p.scaling);
+        auto& p = particles[i].phys;
+        devData[index].transform = glm::translate(mat4(1.0f), p.position)
+                                   * mat4(p.orientation)
+                                   * glm::scale(mat4(1.0f), p.scaling);
+        devData[index].textureIndex = particles[i].material.texture;
     }
-}
-
-void trc::ParticleCollection::DeviceUpdater::update(
-    std::vector<ParticlePhysical>&,
-    mat4*,
-    ParticleMaterial*)
-{
-
 }
 
 
@@ -316,7 +308,66 @@ void trc::ParticleSpawn::spawnParticles()
 //      Particle Draw Pipeline      //
 //////////////////////////////////////
 
-auto trc::makeParticleDrawPipeline(
+auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
+    const Instance& instance,
+    const DeferredRenderConfig& config) -> Pipeline
+{
+    auto layout = makePipelineLayout(
+        instance.getDevice(),
+        std::vector<vk::DescriptorSetLayout>{
+            config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
+        },
+        std::vector<vk::PushConstantRange>{}
+    );
+
+    vkb::ShaderProgram program(instance.getDevice(),
+                               internal::SHADER_DIR / "particles/deferred.vert.spv",
+                               internal::SHADER_DIR / "particles/alpha_discard.frag.spv");
+
+    auto pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        // (per-vertex) Vertex positions
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
+                                              vk::VertexInputRate::eVertex),
+            {
+                { 0, 0, vk::Format::eR32G32B32Sfloat, 0 },
+                { 1, 0, vk::Format::eR32G32Sfloat,    sizeof(vec3) },
+                { 2, 0, vk::Format::eR32G32B32Sfloat, sizeof(vec3) + sizeof(vec2) },
+            }
+        )
+        // (per-instance) Particle data
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(1, sizeof(ParticleDeviceData),
+                                              vk::VertexInputRate::eInstance),
+            {
+                { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
+                { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },
+                { 5, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 2 },
+                { 6, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 3 },
+                { 7, 1, vk::Format::eR32Uint, sizeof(mat4) },  // texture
+            }
+        )
+        .setCullMode(vk::CullModeFlagBits::eNone)
+        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
+        .addScissorRect({ { 0, 0 }, { 1, 1 } })
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .disableBlendAttachments(3)
+        .build(
+            *instance.getDevice(), *layout,
+            *config.getDeferredRenderPass(), RenderPassDeferred::SubPasses::gBuffer
+        );
+
+    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
+    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
+
+    return p;
+}
+
+auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
     const Instance& instance,
     const DeferredRenderConfig& config) -> Pipeline
 {
@@ -332,7 +383,7 @@ auto trc::makeParticleDrawPipeline(
 
     vkb::ShaderProgram program(instance.getDevice(),
                                internal::SHADER_DIR / "particles/deferred.vert.spv",
-                               internal::SHADER_DIR / "particles/deferred.frag.spv");
+                               internal::SHADER_DIR / "particles/alpha_blend.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -346,22 +397,15 @@ auto trc::makeParticleDrawPipeline(
                 { 2, 0, vk::Format::eR32G32B32Sfloat, sizeof(vec3) + sizeof(vec2) },
             }
         )
-        // (per-instance) Particle model matrix
         .addVertexInputBinding(
-            vk::VertexInputBindingDescription(1, sizeof(mat4), vk::VertexInputRate::eInstance),
+            vk::VertexInputBindingDescription(1, sizeof(ParticleDeviceData),
+                                              vk::VertexInputRate::eInstance),
             {
                 { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
                 { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },
                 { 5, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 2 },
                 { 6, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 3 },
-            }
-        )
-        // (per-instance) Draw properties
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(2, sizeof(ParticleMaterial),
-                                              vk::VertexInputRate::eInstance),
-            {
-                { 7, 1, vk::Format::eR32Uint, 0 }, // texture
+                { 7, 1, vk::Format::eR32Uint, sizeof(mat4) },  // texture
             }
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
@@ -383,7 +427,7 @@ auto trc::makeParticleDrawPipeline(
     return p;
 }
 
-auto trc::makeParticleShadowPipeline(
+auto trc::ParticleCollection::makeParticleShadowPipeline(
     const Instance& instance,
     const DeferredRenderConfig& config) -> Pipeline
 {
@@ -416,7 +460,8 @@ auto trc::makeParticleShadowPipeline(
         )
         // (per-instance) Particle model matrix
         .addVertexInputBinding(
-            vk::VertexInputBindingDescription(1, sizeof(mat4), vk::VertexInputRate::eInstance),
+            vk::VertexInputBindingDescription(1, sizeof(ParticleDeviceData),
+                                              vk::VertexInputRate::eInstance),
             {
                 { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
                 { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },

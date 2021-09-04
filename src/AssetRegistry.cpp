@@ -23,7 +23,7 @@ trc::AssetRegistry::AssetRegistry(const Instance& instance)
     createDescriptors();
 
     // Add default assets
-    add(Material{});
+    add(Material{ .performLighting=false });
     updateMaterials();
     add(vkb::makeSinglePixelImage(device, vec4(1.0f)));
 
