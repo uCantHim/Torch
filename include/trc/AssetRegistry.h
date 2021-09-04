@@ -79,6 +79,9 @@ namespace trc
 
         auto getDescriptorSetProvider() const noexcept -> const DescriptorProviderInterface&;
 
+        // TODO: Don't re-upload ALL materials every time one is added
+        void updateMaterials();
+
     public:
         AssetRegistryNameWrapper<std::string> named{ *this };
 
@@ -151,9 +154,6 @@ namespace trc
 
         void createDescriptors();
         void writeDescriptors();
-
-        // TODO: Don't re-upload ALL materials every time one is added
-        void updateMaterials();
 
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
