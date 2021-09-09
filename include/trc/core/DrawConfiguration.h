@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "Types.h"
 #include "Scene.h"
 #include "Camera.h"
@@ -24,6 +22,6 @@ namespace trc
         Camera* camera;
 
         RenderConfig* renderConfig;
-        std::vector<RenderArea> renderAreas;
+        RenderArea renderArea;
     };
 } // namespace trc

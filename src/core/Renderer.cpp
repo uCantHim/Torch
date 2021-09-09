@@ -53,8 +53,6 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     RenderConfig& renderConfig = *draw.renderConfig;
     RenderGraph& renderGraph = draw.renderConfig->getGraph();
 
-    if (draw.renderAreas.empty()) return;
-
     // Update
     renderConfig.preDraw(draw);
 

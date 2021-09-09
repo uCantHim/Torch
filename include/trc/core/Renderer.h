@@ -33,10 +33,9 @@ namespace trc
         Renderer& operator=(const Renderer&) = delete;
         Renderer& operator=(Renderer&&) = delete;
 
-        /**
-         * Multiple renderers never actually render in parallel.
-         */
         void drawFrame(const DrawConfig& draw);
+
+        void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
 
     private:
         const Instance& instance;
@@ -46,7 +45,6 @@ namespace trc
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> swapchainRecreateListener;
 
         // Synchronization
-        void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
         void createSemaphores();
         vkb::FrameSpecificObject<vk::UniqueSemaphore> imageAcquireSemaphores;
         vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;

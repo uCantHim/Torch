@@ -61,6 +61,7 @@ void trc::CommandCollector::recordStage(
     const std::vector<RenderPass*>& passes)
 {
     SceneBase& scene = *draw.scene;
+    const auto& [viewport, scissor] = draw.renderArea;
 
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
@@ -83,18 +84,15 @@ void trc::CommandCollector::recordStage(
                 p.bindStaticDescriptorSets(cmdBuf);
                 p.bindDefaultPushConstantValues(cmdBuf);
 
-                for (const auto& [viewport, scissor] : draw.renderAreas)
-                {
-                    cmdBuf.setViewport(0, viewport);
-                    cmdBuf.setScissor(0, scissor);
+                cmdBuf.setViewport(0, viewport);
+                cmdBuf.setScissor(0, scissor);
 
-                    // Record commands for all objects with this pipeline
-                    scene.invokeDrawFunctions(
-                        stage, *renderPass, SubPass::ID(subPass),
-                        pipeline, p,
-                        cmdBuf
-                    );
-                }
+                // Record commands for all objects with this pipeline
+                scene.invokeDrawFunctions(
+                    stage, *renderPass, SubPass::ID(subPass),
+                    pipeline, p,
+                    cmdBuf
+                );
             }
 
             if (subPass < subPassCount - 1) {

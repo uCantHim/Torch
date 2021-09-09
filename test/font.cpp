@@ -29,7 +29,7 @@ int main()
             .scene        = &scene,
             .camera       = &camera,
             .renderConfig = &*torch.renderConfig,
-            .renderAreas  = { torch.window->makeFullscreenRenderArea() }
+            .renderArea  = { torch.window->makeFullscreenRenderArea() }
         };
 
         // Main loop

@@ -295,7 +295,7 @@ int main()
             .scene=scene.get(),
             .camera=&camera,
             .renderConfig=torch.renderConfig.get(),
-            .renderAreas={ torch.window->makeFullscreenRenderArea() }
+            .renderArea={ torch.window->makeFullscreenRenderArea() }
         });
     }
 
