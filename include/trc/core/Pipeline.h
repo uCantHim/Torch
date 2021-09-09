@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vkb/VulkanBase.h>
+#include <vkb/basics/Device.h>
 
 #include "Types.h"
 #include "DescriptorProvider.h"

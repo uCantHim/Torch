@@ -1,13 +1,10 @@
 #include "MemoryPool.h"
 
+#include <iostream>
+
 #include <glm/glm.hpp>
 
 
-
-vkb::ManagedMemoryChunk::ManagedMemoryChunk(vk::DeviceSize size, uint32_t memoryTypeIndex)
-    :
-    ManagedMemoryChunk(vkb::VulkanBase::getDevice(), size, memoryTypeIndex)
-{}
 
 vkb::ManagedMemoryChunk::ManagedMemoryChunk(
     const Device& device,

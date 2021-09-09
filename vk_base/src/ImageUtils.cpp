@@ -33,14 +33,6 @@ auto vkb::makeSinglePixelImage(
 }
 
 auto vkb::loadImage2D(
-    const fs::path& filePath,
-    vk::ImageUsageFlags usage,
-    const DeviceMemoryAllocator& allocator) -> Image
-{
-    return loadImage2D(getDevice(), filePath, usage, allocator);
-}
-
-auto vkb::loadImage2D(
     const Device& device,
     const fs::path& filePath,
     vk::ImageUsageFlags usage,

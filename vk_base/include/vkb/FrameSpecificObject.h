@@ -3,12 +3,12 @@
 #include <vector>
 #include <functional>
 
-#include "VulkanBase.h"
+#include "basics/Swapchain.h"
 
 namespace vkb
 {
     template<class R>
-    class FrameSpecificObject : public VulkanBase
+    class FrameSpecificObject
     {
     public:
         /**

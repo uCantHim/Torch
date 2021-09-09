@@ -3,7 +3,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include "utils/PipelineBuilder.h"
+#include "core/PipelineBuilder.h"
 #include "Vertex.h"
 #include "AssetRegistry.h"
 #include "drawable/DrawableInstanced.h"

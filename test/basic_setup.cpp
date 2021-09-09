@@ -13,8 +13,8 @@ int main()
         trc::Camera camera;
 
         // We create a draw configuration that tells the renderer what to
-        // draw. We can create this object yourself, but here we let a
-        // utility function do it for us.
+        // draw. We can create this object ourselves, but, since we will use
+        // default settings anyway, we let a utility function do it for us.
         trc::DrawConfig drawConf = torch.makeDrawConfig(scene, camera);
 
         // Main loop

@@ -2,7 +2,6 @@
 
 #include "VulkanInclude.h"
 
-#include "VulkanBase.h"
 #include "Memory.h"
 
 namespace vkb
@@ -27,22 +26,8 @@ namespace vkb
     public:
         Buffer() = default;
 
-        /**
-         * @brief Construct a buffer
-         */
-        Buffer(vk::DeviceSize bufferSize,
-               vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags,
-               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
-
         Buffer(const Device& device,
                vk::DeviceSize bufferSize,
-               vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags,
-               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
-
-        Buffer(vk::DeviceSize bufferSize,
-               const void* data,
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
                const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
@@ -53,14 +38,6 @@ namespace vkb
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
                const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
-
-        template<typename T>
-        Buffer(const std::vector<T>& data,
-               vk::BufferUsageFlags usage,
-               vk::MemoryPropertyFlags flags,
-               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
-            : Buffer(vkb::VulkanBase::getDevice(), data, usage, flags, std::move(allocator))
-        {}
 
         template<typename T>
         Buffer(const Device& device,
@@ -145,8 +122,9 @@ namespace vkb
     class CopyBuffer : public Buffer
     {
     public:
-        explicit CopyBuffer(vk::DeviceSize bufferSize)
+        CopyBuffer(const Device& device, vk::DeviceSize bufferSize)
             : Buffer(
+                device,
                 bufferSize,
                 vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
                 vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
@@ -165,23 +143,11 @@ namespace vkb
     public:
         DeviceLocalBuffer() = default;
 
-        DeviceLocalBuffer(vk::DeviceSize bufferSize,
-                          const void* data,
-                          vk::BufferUsageFlags usage,
-                          const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
-
         DeviceLocalBuffer(const Device& device,
                           vk::DeviceSize bufferSize,
                           const void* data,
                           vk::BufferUsageFlags usage,
                           const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
-
-        template<typename T>
-        DeviceLocalBuffer(const std::vector<T>& data,
-                          vk::BufferUsageFlags usage,
-                          const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
-            : DeviceLocalBuffer(sizeof(T) * data.size(), data.data(), usage, allocator)
-        {}
 
         template<typename T>
         DeviceLocalBuffer(const Device& device,

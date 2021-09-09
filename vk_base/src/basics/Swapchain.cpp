@@ -13,6 +13,42 @@ using namespace std::chrono;
 
 
 
+auto vkb::createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface
+{
+    Surface result;
+
+    // Create GLFW window
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    result.window = std::unique_ptr<GLFWwindow, Surface::WindowDeleter>(
+        glfwCreateWindow(
+            createInfo.windowSize.width, createInfo.windowSize.height,
+            createInfo.windowTitle.c_str(),
+            nullptr, nullptr
+        ),
+        [](GLFWwindow* windowPtr) {
+            glfwDestroyWindow(windowPtr);
+        }
+    );
+
+    // Create Vulkan surface
+    GLFWwindow* _window = result.window.get();
+    VkSurfaceKHR _surface;
+    if (glfwCreateWindowSurface(instance, _window, nullptr, &_surface) != VK_SUCCESS) {
+        throw std::runtime_error("Unable to create window surface!");
+    }
+    result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::SurfaceDeleter> {
+        new vk::SurfaceKHR(_surface),
+        [instance](vk::SurfaceKHR* oldSurface) {
+            instance.destroySurfaceKHR(*oldSurface);
+            delete oldSurface;
+        }
+    };
+
+    return result;
+}
+
+
+
 void vkb::pollEvents()
 {
     glfwPollEvents();

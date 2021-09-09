@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nc/data/SelfManagedObject.h>
+#include "util/data/SelfManagedObject.h"
 
 #include "Types.h"
 

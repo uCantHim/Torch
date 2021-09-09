@@ -1,6 +1,6 @@
 #include "Window.h"
 
-#include <vkb/VulkanBase.h>
+#include <vkb/basics/Device.h>
 
 
 

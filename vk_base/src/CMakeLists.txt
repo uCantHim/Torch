@@ -14,6 +14,5 @@ target_sources(
         MemoryPool.cpp
         QueueManager.cpp
         ShaderProgram.cpp
-        StaticInit.cpp
         VulkanBase.cpp
 )

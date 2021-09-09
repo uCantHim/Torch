@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "VulkanBase.h"
 #include "Memory.h"
 
 namespace vkb
@@ -13,15 +12,6 @@ namespace vkb
     class ManagedMemoryChunk
     {
     public:
-        /**
-         * @brief A large chunk of device memory to allocate subranges from
-         *
-         * @param DeviceSize size            Size of memory in bytes
-         * @param uint32_t   memoryTypeIndex The memory type is an index returned from
-         *                                   PhysicalDevice::findMemoryIndex().
-         */
-        ManagedMemoryChunk(vk::DeviceSize size, uint32_t memoryTypeIndex);
-
         /**
          * @brief A large chunk of device memory to allocate subranges from
          *

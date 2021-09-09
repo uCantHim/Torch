@@ -5,7 +5,7 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
-#include <nc/data/ObjectId.h>
+#include "util/data/ObjectId.h"
 
 #include "Types.h"
 #include "core/Instance.h"

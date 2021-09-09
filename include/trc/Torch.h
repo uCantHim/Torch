@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vkb/event/Event.h>
+#include <vkb/VulkanBase.h>
 
 #include "Types.h"
 #include "Instance.h"

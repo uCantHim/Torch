@@ -5,6 +5,7 @@ target_sources(
         DynamicRenderPassContainer.cpp
         Instance.cpp
         Pipeline.cpp
+        PipelineBuilder.cpp
         Renderer.cpp
         RenderConfiguration.cpp
         RenderDataDescriptor.cpp

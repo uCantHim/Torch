@@ -2,7 +2,6 @@
 
 #include <mutex>
 
-#include <vkb/StaticInit.h>
 #include <vkb/Buffer.h>
 
 #include "Types.h"

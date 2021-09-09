@@ -7,7 +7,7 @@
 #include <imgui_impl_vulkan.h>
 
 #include "core/RenderGraph.h"
-#include "utils/PipelineBuilder.h"
+#include "core/PipelineBuilder.h"
 #include "Torch.h"
 #include "TorchResources.h"
 

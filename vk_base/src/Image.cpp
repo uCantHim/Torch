@@ -4,11 +4,6 @@
 
 
 
-vkb::Image::Image(const vk::ImageCreateInfo& createInfo, const DeviceMemoryAllocator& allocator)
-    :
-    Image(getDevice(), createInfo, allocator)
-{}
-
 vkb::Image::Image(
     const Device& device,
     const vk::ImageCreateInfo& createInfo,

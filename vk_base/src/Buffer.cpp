@@ -7,16 +7,6 @@
 // ------------------------- //
 
 vkb::Buffer::Buffer(
-    vk::DeviceSize bufferSize,
-    vk::BufferUsageFlags usage,
-    vk::MemoryPropertyFlags flags,
-    const DeviceMemoryAllocator& allocator)
-    :
-    Buffer(vkb::VulkanBase::getDevice(), bufferSize, usage, flags, allocator)
-{}
-
-
-vkb::Buffer::Buffer(
     const Device& device,
     vk::DeviceSize bufferSize,
     vk::BufferUsageFlags usage,
@@ -38,18 +28,6 @@ vkb::Buffer::Buffer(
     bufferSize(bufferSize)
 {
     memory.bindToBuffer(device, *buffer);
-}
-
-
-vkb::Buffer::Buffer(
-    vk::DeviceSize bufferSize,
-    const void* data,
-    vk::BufferUsageFlags usage,
-    vk::MemoryPropertyFlags flags,
-    const DeviceMemoryAllocator& allocator)
-    :
-    Buffer(vkb::VulkanBase::getDevice(), bufferSize, data, usage, flags, allocator)
-{
 }
 
 
@@ -131,22 +109,6 @@ void vkb::Buffer::copyFrom(vk::DeviceSize size, const void* data, BufferRegion d
 // --------------------------------- //
 //        Device local buffer        //
 // --------------------------------- //
-
-vkb::DeviceLocalBuffer::DeviceLocalBuffer(
-    vk::DeviceSize bufferSize,
-    const void* data,
-    vk::BufferUsageFlags usage,
-    const DeviceMemoryAllocator& allocator)
-    :
-    DeviceLocalBuffer(
-        vkb::VulkanBase::getDevice(),
-        bufferSize,
-        data,
-        usage,
-        allocator
-    )
-{
-}
 
 vkb::DeviceLocalBuffer::DeviceLocalBuffer(
     const Device& device,

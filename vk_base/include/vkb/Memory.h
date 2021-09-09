@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanBase.h"
+#include "basics/Device.h"
 
 namespace vkb
 {
@@ -41,28 +41,12 @@ namespace vkb
     };
 
     /**
-     * @brief Frees device memory with the default VulkanBase device
-     */
-    struct DefaultDeviceMemoryDeleter : public ClassicalDeviceMemoryDeleter
-    {
-    public:
-        DefaultDeviceMemoryDeleter()
-            : ClassicalDeviceMemoryDeleter(vkb::VulkanBase::getDevice())
-        {}
-    };
-
-    /**
      * @brief Device Memory
      */
     class DeviceMemory
     {
     public:
         DeviceMemory() = default;
-
-        template<typename Del = DefaultDeviceMemoryDeleter>
-        explicit DeviceMemory(DeviceMemoryInternals data)
-            : DeviceMemory(std::move(data), Del())
-        {}
 
         DeviceMemory(DeviceMemoryInternals data, DeviceMemoryDeleter deleter);
 

@@ -35,7 +35,7 @@ add_library(torch)
 target_include_directories(torch
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
-        ${CMAKE_CURRENT_LIST_DIR}/util_lib/include
+        #${CMAKE_CURRENT_LIST_DIR}/util_lib/include
 
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
@@ -48,13 +48,12 @@ target_include_directories(torch
 target_link_libraries(
     torch PUBLIC
     vk_base
-    TorchUtilLib
     Freetype::Freetype
 )
 
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
-add_subdirectory(util_lib)
+#add_subdirectory(util_lib)
 add_subdirectory(src)
 
 # Imgui integration

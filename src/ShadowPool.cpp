@@ -170,8 +170,8 @@ void trc::ShadowPool::writeDescriptors(ui32 frameIndex)
         if (shadow == nullptr) continue;
 
         auto& pass = shadow->renderPass;
-        auto imageView = pass.getDepthImageView(frameIndex);
-        auto sampler = pass.getDepthImage(frameIndex).getDefaultSampler();
+        auto imageView = pass.getShadowImageView(frameIndex);
+        auto sampler = pass.getShadowImage(frameIndex).getDefaultSampler();
         imageInfos.emplace_back(sampler, imageView, vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 

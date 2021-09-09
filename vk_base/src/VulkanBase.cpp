@@ -2,160 +2,28 @@
 
 #include <IL/il.h>
 
-#include "event/EventHandler.h"
-#include "StaticInit.h"
 
 
-
-void vkb::vulkanInit(const VulkanInitInfo& initInfo)
+void vkb::init(const VulkanBaseInitInfo& info)
 {
-    VulkanBase::init(initInfo);
-}
-
-void vkb::vulkanTerminate()
-{
-    VulkanBase::destroy();
-}
-
-auto vkb::createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface
-{
-    Surface result;
-
-    // Create GLFW window
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    result.window = std::unique_ptr<GLFWwindow, Surface::windowDeleter>(
-        glfwCreateWindow(
-            createInfo.windowSize.width, createInfo.windowSize.height,
-            createInfo.windowTitle.c_str(),
-            nullptr, nullptr
-        ),
-        [](GLFWwindow* windowPtr) {
-            glfwDestroyWindow(windowPtr);
-        }
-    );
-
-    // Create Vulkan surface
-    GLFWwindow* _window = result.window.get();
-    VkSurfaceKHR _surface;
-    if (glfwCreateWindowSurface(instance, _window, nullptr, &_surface) != VK_SUCCESS) {
-        throw std::runtime_error("Unable to create window surface!");
+    if (info.startEventThread) {
+        EventThread::start();
     }
-    result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> {
-        new vk::SurfaceKHR(_surface),
-        [instance](vk::SurfaceKHR* oldSurface) {
-            instance.destroySurfaceKHR(*oldSurface);
-            delete oldSurface;
-        }
-    };
-
-    return result;
-}
-
-
-
-void vkb::VulkanBase::init(const VulkanInitInfo& initInfo)
-{
-    if (isInitialized)
-    {
-        std::cout << "Warning: Tried to initialize VulkanBase more than once\n";
-        return;
-    }
-    isInitialized = true;
-
-    EventThread::start();
 
     // Init GLFW first
     if (glfwInit() == GLFW_FALSE) {
         throw std::runtime_error("Initialization of GLFW failed!\n");
     }
-    if constexpr (enableVerboseLogging) {
+    if constexpr (vkb::enableVerboseLogging) {
         std::cout << "GLFW initialized successfully\n";
     }
 
     // Initi DevIL
     ilInit();
-
-    if (initInfo.createResources)
-    {
-        try {
-            instance = std::make_unique<VulkanInstance>();
-            Surface surface = createSurface(**instance, initInfo.surfaceCreateInfo);
-
-            // Find a physical device
-            physicalDevice = std::make_unique<PhysicalDevice>(
-                device_helpers::getOptimalPhysicalDevice(**instance, *surface.surface)
-            );
-
-            // Create the device
-            device = std::make_unique<Device>(
-                *physicalDevice,
-                initInfo.deviceExtensions,
-                initInfo.extraPhysicalDeviceFeatureChain
-            );
-
-            // Create a swapchain
-            swapchain = std::make_unique<Swapchain>(*device, std::move(surface));
-
-            dynamicLoader = { **instance, vkGetInstanceProcAddr };
-        }
-        catch (const std::exception& err) {
-            std::cout << "Exception during vulkan_base initialization: " << err.what() << "\n";
-            throw err;
-        }
-    }
-
-    if (!initInfo.delayStaticInitializerExecution) {
-        StaticInit::executeStaticInitializers();
-    }
 }
 
-void vkb::VulkanBase::destroy()
+void vkb::terminate()
 {
-    EventThread::terminate();
-    if (device != nullptr) {
-        getDevice()->waitIdle();
-    }
-
-    StaticInit::executeStaticDestructors();
-
-    try {
-        swapchain.reset();
-        device.reset();
-        instance.reset();
-    }
-    catch (const std::exception& err) {
-        std::cout << "Exception in VulkanBase::destroy(): " << err.what() << "\n";
-    }
-
+    vkb::EventThread::terminate();
     glfwTerminate();
-}
-
-auto vkb::VulkanBase::getInstance() noexcept -> VulkanInstance&
-{
-    return *instance;
-}
-
-auto vkb::VulkanBase::getPhysicalDevice() noexcept -> PhysicalDevice&
-{
-    return *physicalDevice;
-}
-
-auto vkb::VulkanBase::getDevice() noexcept -> Device&
-{
-    return *device;
-}
-
-auto vkb::VulkanBase::getSwapchain() noexcept -> Swapchain&
-{
-    return *swapchain;
-}
-
-auto vkb::VulkanBase::getQueueManager() noexcept -> QueueManager&
-{
-    return getDevice().getQueueManager();
-}
-
-auto vkb::VulkanBase::getDynamicLoader() noexcept -> vk::DispatchLoaderDynamic
-{
-    return dynamicLoader;
 }

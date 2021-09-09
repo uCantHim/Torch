@@ -1,7 +1,7 @@
 #include "text/Text.h"
 
 #include "PipelineRegistry.h"
-#include "utils/PipelineBuilder.h"
+#include "core/PipelineBuilder.h"
 #include "AssetRegistry.h"
 #include "DeferredRenderConfig.h"
 #include "PipelineDefinitions.h"

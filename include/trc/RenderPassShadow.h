@@ -48,8 +48,8 @@ namespace trc
          */
         auto getShadowMatrixIndex() const noexcept -> ui32;
 
-        auto getDepthImage(ui32 frameIndex) const -> const vkb::Image&;
-        auto getDepthImageView(ui32 frameIndex) const -> vk::ImageView;
+        auto getShadowImage(ui32 frameIndex) const -> const vkb::Image&;
+        auto getShadowImageView(ui32 frameIndex) const -> vk::ImageView;
 
     private:
         const uvec2 resolution;

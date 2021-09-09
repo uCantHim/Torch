@@ -1,5 +1,7 @@
 #include "Torch.h"
 
+#include <IL/il.h>
+
 #include "TorchResources.h"
 
 
@@ -14,16 +16,7 @@ void trc::init(const TorchInitInfo&)
     if (init) return;
     init = true;
 
-    /**
-     * Initialize:
-     *   - Event thread
-     *   - GLFW
-     *   - DevIL
-     */
-    vkb::vulkanInit({
-        .createResources=false,
-        .delayStaticInitializerExecution=true,
-    });
+    vkb::init();
 
     torchGlobalVulkanInstance = std::make_unique<vkb::VulkanInstance>();
 }
@@ -86,7 +79,8 @@ void trc::terminate()
     torchGlobalVulkanInstance.reset();
 
     RenderStageType::destroyAll();
-    vkb::vulkanTerminate();
+
+    vkb::terminate();
 }
 
 

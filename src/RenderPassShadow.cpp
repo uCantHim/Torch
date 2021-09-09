@@ -109,12 +109,12 @@ auto trc::RenderPassShadow::getResolution() const noexcept -> uvec2
     return resolution;
 }
 
-auto trc::RenderPassShadow::getDepthImage(ui32 imageIndex) const -> const vkb::Image&
+auto trc::RenderPassShadow::getShadowImage(ui32 imageIndex) const -> const vkb::Image&
 {
     return depthImages.getAt(imageIndex);
 }
 
-auto trc::RenderPassShadow::getDepthImageView(ui32 imageIndex) const -> vk::ImageView
+auto trc::RenderPassShadow::getShadowImageView(ui32 imageIndex) const -> vk::ImageView
 {
     return framebuffers.getAt(imageIndex).getAttachmentView(0);
 }

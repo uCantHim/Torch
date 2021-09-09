@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <vkb/VulkanBase.h>
+#include <vkb/basics/Device.h>
 
 #include "Types.h"
 #include "Instance.h"

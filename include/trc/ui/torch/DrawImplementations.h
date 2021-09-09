@@ -3,7 +3,7 @@
 #include <map>
 
 #include <vkb/Buffer.h>
-#include <nc/data/IndexMap.h>
+#include "util/data/IndexMap.h"
 
 #include "Pipeline.h"
 #include "text/GlyphMap.h"

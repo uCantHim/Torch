@@ -7,7 +7,7 @@ namespace fs = std::filesystem;
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <nc/data/IndexMap.h>
+#include "util/data/IndexMap.h"
 
 #include "Types.h"
 

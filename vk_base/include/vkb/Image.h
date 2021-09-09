@@ -43,11 +43,8 @@ namespace vkb
         Image() = default;
 
         /**
-         * Image is left in vk::ImageLayout::eUndefined.
+         * Image is in layout vk::ImageLayout::eUndefined.
          */
-        Image(const vk::ImageCreateInfo& createInfo,
-              const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());
-
         Image(const Device& device,
               const vk::ImageCreateInfo& createInfo,
               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator());

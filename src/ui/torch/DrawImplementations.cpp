@@ -2,7 +2,7 @@
 
 #include <vkb/Buffer.h>
 
-#include "utils/PipelineBuilder.h"
+#include "core/PipelineBuilder.h"
 #include "ui/Window.h"
 #include "ui/torch/GuiRenderer.h"
 

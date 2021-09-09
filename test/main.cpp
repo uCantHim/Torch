@@ -6,7 +6,7 @@ using namespace std::chrono;
 
 #include <glm/gtc/random.hpp>
 
-#include <vkb/VulkanBase.h>
+#include <vkb/basics/Device.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/ImageUtils.h>

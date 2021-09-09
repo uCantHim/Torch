@@ -5,7 +5,7 @@
 #include <functional>
 #include <mutex>
 
-#include <nc/data/ObjectId.h>
+#include "util/data/ObjectId.h"
 
 #include "Instance.h"
 #include "Pipeline.h"

@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-#include "VulkanBase.h"
+#include "basics/Device.h"
 
 namespace vkb
 {

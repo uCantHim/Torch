@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <functional>
 
-#include <nc/data/IndexMap.h>
+#include "util/data/IndexMap.h"
 
 #include "Types.h"
 #include "RenderStage.h"

@@ -6,11 +6,11 @@
 
 #include <vkb/Image.h>
 #include <vkb/MemoryPool.h>
-#include <nc/data/IndexMap.h>
-#include <nc/functional/Maybe.h>
+#include "util/data/IndexMap.h"
+#include "util/functional/Maybe.h"
 
 #include "Types.h"
-#include "utils/Exception.h"
+#include "util/Exception.h"
 #include "DescriptorProvider.h"
 #include "AssetIds.h"
 #include "Geometry.h"

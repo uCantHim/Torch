@@ -10,24 +10,32 @@
 
 namespace vkb
 {
-    struct Surface
-    {
-        using windowDeleter = std::function<void(GLFWwindow*)>;
-        using surfaceDeleter = std::function<void(vk::SurfaceKHR*)>;
-
-        std::unique_ptr<GLFWwindow, windowDeleter> window;
-        std::unique_ptr<vk::SurfaceKHR, surfaceDeleter> surface;
-    };
-
     class Device;
     class SwapchainDependentResource;
+
+    struct SurfaceCreateInfo
+    {
+        vk::Extent2D windowSize{ 1920, 1080 };
+        std::string windowTitle;
+    };
+
+    struct Surface
+    {
+        using WindowDeleter = std::function<void(GLFWwindow*)>;
+        using SurfaceDeleter = std::function<void(vk::SurfaceKHR*)>;
+
+        std::unique_ptr<GLFWwindow, WindowDeleter> window;
+        std::unique_ptr<vk::SurfaceKHR, SurfaceDeleter> surface;
+    };
+
+    auto createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface;
 
     /**
      * Call this once per frame.
      *
      * Just calls glfwPollEvents().
      */
-    extern void pollEvents();
+    void pollEvents();
 
     /**
      * These settings are *preferences*, the implementation is not
@@ -185,8 +193,8 @@ namespace vkb
 
         SwapchainCreateInfo createInfo;
 
-        std::unique_ptr<GLFWwindow, Surface::windowDeleter> window;
-        std::unique_ptr<vk::SurfaceKHR, Surface::surfaceDeleter> surface;
+        std::unique_ptr<GLFWwindow, Surface::WindowDeleter> window;
+        std::unique_ptr<vk::SurfaceKHR, Surface::SurfaceDeleter> surface;
         bool isWindowOpen{ true };
 
         vk::UniqueSwapchainKHR swapchain;

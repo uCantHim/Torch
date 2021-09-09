@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include <nc/data/IndexMap.h>
+#include "util/data/IndexMap.h"
 
 #include "Types.h"
 
