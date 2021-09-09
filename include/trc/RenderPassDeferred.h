@@ -57,13 +57,13 @@ namespace trc
         const ui32 ATOMIC_BUFFER_SECTION_SIZE;
         const ui32 FRAG_LIST_BUFFER_SIZE;
 
-        vkb::FrameSpecificObject<vkb::Image> fragmentListHeadPointerImage;
-        vkb::FrameSpecificObject<vk::UniqueImageView> fragmentListHeadPointerImageView;
-        vkb::FrameSpecificObject<vkb::Buffer> fragmentListBuffer;
+        vkb::FrameSpecific<vkb::Image> fragmentListHeadPointerImage;
+        vkb::FrameSpecific<vk::UniqueImageView> fragmentListHeadPointerImageView;
+        vkb::FrameSpecific<vkb::Buffer> fragmentListBuffer;
 
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
-        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
+        vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
         FrameSpecificDescriptorProvider provider;
     };
 
@@ -89,8 +89,8 @@ namespace trc
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
-        auto getGBuffer() -> vkb::FrameSpecificObject<GBuffer>&;
-        auto getGBuffer() const -> const vkb::FrameSpecificObject<GBuffer>&;
+        auto getGBuffer() -> vkb::FrameSpecific<GBuffer>&;
+        auto getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&;
 
         /**
          * @return The descriptor for the deferred renderpass
@@ -145,8 +145,8 @@ namespace trc
         const vkb::Swapchain& swapchain;
 
         vk::Extent2D framebufferSize;
-        vkb::FrameSpecificObject<GBuffer> gBuffers;
-        vkb::FrameSpecificObject<Framebuffer> framebuffers;
+        vkb::FrameSpecific<GBuffer> gBuffers;
+        vkb::FrameSpecific<Framebuffer> framebuffers;
 
         std::array<vk::ClearValue, 6> clearValues;
 

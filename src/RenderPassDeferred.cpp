@@ -76,12 +76,12 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
     copyMouseDataToBuffers(cmdBuf);
 }
 
-auto trc::RenderPassDeferred::getGBuffer() -> vkb::FrameSpecificObject<GBuffer>&
+auto trc::RenderPassDeferred::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
 {
     return gBuffers;
 }
 
-auto trc::RenderPassDeferred::getGBuffer() const -> const vkb::FrameSpecificObject<GBuffer>&
+auto trc::RenderPassDeferred::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
 {
     return gBuffers;
 }

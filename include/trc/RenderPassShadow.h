@@ -55,7 +55,7 @@ namespace trc
         const uvec2 resolution;
         ui32 shadowMatrixIndex;
 
-        vkb::FrameSpecificObject<vkb::Image> depthImages;
-        vkb::FrameSpecificObject<Framebuffer> framebuffers;
+        vkb::FrameSpecific<vkb::Image> depthImages;
+        vkb::FrameSpecific<Framebuffer> framebuffers;
     };
 } // namespace trc

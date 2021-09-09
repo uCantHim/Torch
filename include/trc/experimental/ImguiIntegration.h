@@ -84,7 +84,7 @@ namespace trc::experimental::imgui
 
         const vkb::Swapchain& swapchain;
         Pipeline imguiPipeline;
-        vkb::FrameSpecificObject<vk::UniqueFramebuffer> framebuffers;
+        vkb::FrameSpecific<vk::UniqueFramebuffer> framebuffers;
 
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
     };

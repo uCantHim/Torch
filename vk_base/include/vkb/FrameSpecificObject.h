@@ -8,7 +8,7 @@
 namespace vkb
 {
     template<class R>
-    class FrameSpecificObject
+    class FrameSpecific
     {
     public:
         /**
@@ -17,13 +17,13 @@ namespace vkb
          *
          * @param const Swapchain& swapchain
          */
-        FrameSpecificObject(const Swapchain& swapchain) requires(std::is_default_constructible_v<R>)
-            : FrameSpecificObject(swapchain, [](uint32_t) { return R{}; })
+        FrameSpecific(const Swapchain& swapchain) requires(std::is_default_constructible_v<R>)
+            : FrameSpecific(swapchain, [](uint32_t) { return R{}; })
         {}
 
-        FrameSpecificObject(const Swapchain& swapchain, std::vector<R> objects)
+        FrameSpecific(const Swapchain& swapchain, std::vector<R> objects)
             :
-            FrameSpecificObject(swapchain, [&objects](uint32_t imageIndex) {
+            FrameSpecific(swapchain, [&objects](uint32_t imageIndex) {
                 return std::move(objects[imageIndex]);
             })
         {}
@@ -34,7 +34,7 @@ namespace vkb
          * for the object. Is called for every frame in the swapchain.
          * Provides the current frame index as argument.
          */
-        FrameSpecificObject(const Swapchain& swapchain, std::function<R(uint32_t)> func)
+        FrameSpecific(const Swapchain& swapchain, std::function<R(uint32_t)> func)
             : swapchain(&swapchain)
         {
             uint32_t count{ swapchain.getFrameCount() };
@@ -44,12 +44,12 @@ namespace vkb
             }
         }
 
-        FrameSpecificObject(const FrameSpecificObject&) = delete;
-        FrameSpecificObject(FrameSpecificObject&&) = default;
-        ~FrameSpecificObject() = default;
+        FrameSpecific(const FrameSpecific&) = delete;
+        FrameSpecific(FrameSpecific&&) = default;
+        ~FrameSpecific() = default;
 
-        FrameSpecificObject& operator=(const FrameSpecificObject&) = delete;
-        FrameSpecificObject& operator=(FrameSpecificObject&&) = default;
+        FrameSpecific& operator=(const FrameSpecific&) = delete;
+        FrameSpecific& operator=(FrameSpecific&&) = default;
 
         inline auto operator*() -> R& {
             return objects[swapchain->getCurrentFrame()];

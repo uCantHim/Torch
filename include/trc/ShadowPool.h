@@ -97,7 +97,7 @@ namespace trc
 
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
-        vkb::FrameSpecificObject<vk::UniqueDescriptorSet> descSets;
+        vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
         FrameSpecificDescriptorProvider provider;
     };
 } // namespace trc

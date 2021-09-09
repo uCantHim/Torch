@@ -46,9 +46,9 @@ namespace trc
 
         // Synchronization
         void createSemaphores();
-        vkb::FrameSpecificObject<vk::UniqueSemaphore> imageAcquireSemaphores;
-        vkb::FrameSpecificObject<vk::UniqueSemaphore> renderFinishedSemaphores;
-        vkb::FrameSpecificObject<vk::UniqueFence> frameInFlightFences;
+        vkb::FrameSpecific<vk::UniqueSemaphore> imageAcquireSemaphores;
+        vkb::FrameSpecific<vk::UniqueSemaphore> renderFinishedSemaphores;
+        vkb::FrameSpecific<vk::UniqueFence> frameInFlightFences;
 
         // Queues and command collection
         vkb::ExclusiveQueue mainRenderQueue;

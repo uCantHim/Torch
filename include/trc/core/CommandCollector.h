@@ -32,6 +32,6 @@ namespace trc
         const vkb::Swapchain& swapchain;
 
         vk::UniqueCommandPool pool;
-        std::vector<vkb::FrameSpecificObject<vk::UniqueCommandBuffer>> commandBuffers;
+        std::vector<vkb::FrameSpecific<vk::UniqueCommandBuffer>> commandBuffers;
     };
 } // namespace trc

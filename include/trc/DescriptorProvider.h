@@ -56,7 +56,7 @@ namespace trc
     public:
         FrameSpecificDescriptorProvider(
             vk::DescriptorSetLayout layout,
-            vkb::FrameSpecificObject<vk::DescriptorSet> set);
+            vkb::FrameSpecific<vk::DescriptorSet> set);
 
         auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
@@ -67,11 +67,11 @@ namespace trc
             ui32 setIndex
         ) const override;
 
-        void setDescriptorSet(vkb::FrameSpecificObject<vk::DescriptorSet> newSet);
+        void setDescriptorSet(vkb::FrameSpecific<vk::DescriptorSet> newSet);
         void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);
 
     private:
         vk::DescriptorSetLayout layout;
-        vkb::FrameSpecificObject<vk::DescriptorSet> set;
+        vkb::FrameSpecific<vk::DescriptorSet> set;
     };
 }
