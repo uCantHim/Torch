@@ -14,6 +14,12 @@ namespace trc
 {
     class RenderPassDeferred;
 
+    struct RenderPassDeferredCreateInfo
+    {
+        uvec2 gBufferSize;
+        ui32 maxTransparentFragsPerPixel;
+    };
+
     /**
      * @brief Resources and descriptor set for deferred renderpasses
      *
@@ -33,7 +39,7 @@ namespace trc
         DeferredRenderPassDescriptor(const vkb::Device& device,
                                      const vkb::Swapchain& swapchain,
                                      const RenderPassDeferred& deferredPass,
-                                     ui32 maxTransparentFragsPerPixel);
+                                     const RenderPassDeferredCreateInfo& info);
 
         void resetValues(vk::CommandBuffer cmdBuf) const;
 
@@ -42,6 +48,7 @@ namespace trc
     private:
         void createFragmentList(const vkb::Device& device,
                                 const vkb::Swapchain& swapchain,
+                                uvec2 size,
                                 ui32 maxFragsPerPixel);
         void createDescriptors(const vkb::Device& device,
                                const vkb::Swapchain& swapchain,
@@ -77,7 +84,7 @@ namespace trc
 
         RenderPassDeferred(const vkb::Device& device,
                            const vkb::Swapchain& swapchain,
-                           ui32 maxTransparentFragsPerPixel);
+                           const RenderPassDeferredCreateInfo& info);
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;

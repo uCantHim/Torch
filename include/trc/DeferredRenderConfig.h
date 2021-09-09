@@ -28,8 +28,6 @@ namespace trc
      */
     struct DeferredRenderCreateInfo
     {
-        const Instance& instance;
-        const Window& window;
         AssetRegistry* assetRegistry;
         ShadowPool* shadowPool;
 
@@ -45,7 +43,7 @@ namespace trc
         /**
          * @brief
          */
-        explicit DeferredRenderConfig(const DeferredRenderCreateInfo& info);
+        DeferredRenderConfig(const Window& window, const DeferredRenderCreateInfo& info);
 
         void preDraw(const DrawConfig& draw) override;
         void postDraw(const DrawConfig& draw) override;

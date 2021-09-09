@@ -58,9 +58,8 @@ auto trc::initFull(
     auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
     auto config{
         std::make_unique<DeferredRenderConfig>(
+            *window,
             DeferredRenderCreateInfo{
-                *instance,
-                *window,
                 ar.get(),
                 sp.get(),
                 3  // max transparent frags
@@ -77,6 +76,11 @@ auto trc::initFull(
     };
 }
 
+void trc::pollEvents()
+{
+    vkb::pollEvents();
+}
+
 void trc::terminate()
 {
     torchGlobalVulkanInstance.reset();
@@ -87,13 +91,35 @@ void trc::terminate()
 
 
 
+trc::TorchStack::TorchStack(
+    u_ptr<Instance> instance,
+    u_ptr<Window> window,
+    u_ptr<AssetRegistry> assetRegistry,
+    u_ptr<ShadowPool> shadowPool,
+    u_ptr<DeferredRenderConfig> renderConfig)
+    :
+    instance(std::move(instance)),
+    window(std::move(window)),
+    assetRegistry(std::move(assetRegistry)),
+    shadowPool(std::move(shadowPool)),
+    renderConfig(std::move(renderConfig))
+{
+}
+
+trc::TorchStack::~TorchStack()
+{
+    if (window != nullptr) {
+        window->getRenderer().waitForAllFrames();
+    }
+}
+
 auto trc::TorchStack::makeDrawConfig(Scene& scene, Camera& camera) const -> DrawConfig
 {
     return {
         .scene        = &scene,
         .camera       = &camera,
         .renderConfig = renderConfig.get(),
-        .renderAreas  = { window->makeFullscreenRenderArea() }
+        .renderArea   = window->makeFullscreenRenderArea()
     };
 }
 

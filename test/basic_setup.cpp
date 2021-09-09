@@ -21,14 +21,11 @@ int main()
         while (torch.window->getSwapchain().isOpen())
         {
             // Poll system events
-            vkb::pollEvents();
+            trc::pollEvents();
 
             // Draw a frame
             torch.drawFrame(drawConf);
         }
-
-        // Wait until all device operations have been completed
-        torch.instance->getDevice()->waitIdle();
 
         // End of scope, the TorchStack object gets destroyed
     }

@@ -13,7 +13,6 @@ option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requir
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
-option(TORCH_BUILD_RAY_TRACING "Include ray tracing facilities in build" ON)
 
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -110,7 +109,6 @@ cmake_policy(POP)
 # Compile options
 target_compile_definitions(torch PUBLIC
     TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
-    $<$<BOOL:${TORCH_BUILD_RAY_TRACING}>:TRC_USE_RAY_TRACING>
 )
 target_compile_options(torch PUBLIC -fPIC)
 target_compile_features(torch PUBLIC cxx_std_20)

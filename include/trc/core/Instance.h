@@ -36,6 +36,7 @@ namespace trc
         auto getDL() -> vk::DispatchLoaderDynamic&;
         auto getDL() const -> const vk::DispatchLoaderDynamic&;
 
+        auto makeWindow() -> u_ptr<Window>;
         auto makeWindow(const WindowCreateInfo& info) -> u_ptr<Window>;
 
         bool hasRayTracing() const;

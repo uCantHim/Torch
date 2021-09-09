@@ -64,6 +64,11 @@ auto trc::Window::getSwapchain() const -> const vkb::Swapchain&
     return swapchain;
 }
 
+auto trc::Window::getRenderer() -> Renderer&
+{
+    return renderer;
+}
+
 auto trc::Window::makeFullscreenRenderArea() const -> RenderArea
 {
     auto extent = swapchain.getImageExtent();

@@ -18,14 +18,23 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         void* deviceFeatureChain{ nullptr };
         auto extensions = info.deviceExtensions;
 
-#ifdef TRC_USE_RAY_TRACING
         // Ray tracing device features
         auto features = physicalDevice->physicalDevice.getFeatures2<
             vk::PhysicalDeviceFeatures2,
+
+            vk::PhysicalDeviceInlineUniformBlockFeaturesEXT,
+
+            // Ray tracing
             vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
             vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
         >();
 
+        if (!features.get<vk::PhysicalDeviceInlineUniformBlockFeaturesEXT>().inlineUniformBlock) {
+            features.unlink<vk::PhysicalDeviceInlineUniformBlockFeaturesEXT>();
+        }
+
+        ///////////////////////////////
+        // Test for ray tracing support
         auto as = features.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
         auto ray = features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
 
@@ -42,7 +51,12 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         }
 
         const bool rayTracingSupported = as.accelerationStructure && ray.rayTracingPipeline;
-        if (rayTracingSupported && info.enableRayTracing)
+        if (!info.enableRayTracing)
+        {
+            features.unlink<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
+            features.unlink<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
+        }
+        else if (rayTracingSupported && info.enableRayTracing)
         {
             rayTracingEnabled = true;
 
@@ -51,11 +65,10 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
             extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
             extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
             extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-
-            // Add ray tracing features to feature chain
-            deviceFeatureChain = features.get<vk::PhysicalDeviceFeatures2>().pNext;
         }
-#endif // TRC_USE_RAY_TRACING
+
+        // Require remaining features from device
+        deviceFeatureChain = features.get<vk::PhysicalDeviceFeatures2>().pNext;
 
         return new vkb::Device(*physicalDevice, extensions, deviceFeatureChain);
     }()),
@@ -101,6 +114,11 @@ auto trc::Instance::getDL() -> vk::DispatchLoaderDynamic&
 auto trc::Instance::getDL() const -> const vk::DispatchLoaderDynamic&
 {
     return dynamicLoader;
+}
+
+auto trc::Instance::makeWindow() -> u_ptr<Window>
+{
+    return makeWindow({});
 }
 
 auto trc::Instance::makeWindow(const WindowCreateInfo& info) -> u_ptr<Window>

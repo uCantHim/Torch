@@ -10,7 +10,7 @@
 trc::RenderPassDeferred::RenderPassDeferred(
     const vkb::Device& device,
     const vkb::Swapchain& swapchain,
-    const ui32 maxTransparentFragsPerPixel)
+    const RenderPassDeferredCreateInfo& info)
     :
     RenderPass(
         makeVkRenderPass(device, swapchain),
@@ -23,10 +23,9 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     ),
     swapchain(swapchain),
-    framebufferSize(swapchain.getImageExtent()),
+    framebufferSize(info.gBufferSize.x, info.gBufferSize.y),
     gBuffers(swapchain, [&](ui32) {
-        const auto extent = swapchain.getImageExtent();
-        return GBuffer(device, uvec2(extent.width, extent.height));
+        return GBuffer(device, info.gBufferSize);
     }),
     framebuffers(swapchain, [&](ui32 frameIndex)
     {
@@ -49,7 +48,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::ClearDepthStencilValue(1.0f, 0.0f),
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     }),
-    descriptor(device, swapchain, *this, maxTransparentFragsPerPixel)
+    descriptor(device, swapchain, *this, info)
 {
 }
 
@@ -265,7 +264,7 @@ auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 
 auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
 {
-    const vec2 resolution{ swapchain.getImageExtent().width, swapchain.getImageExtent().height };
+    const vec2 resolution{ framebufferSize.width, framebufferSize.height };
     const vec2 mousePos = swapchain.getMousePosition();
     const float depth = getMouseDepth();
 
@@ -286,15 +285,15 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
     const vkb::Device& device,
     const vkb::Swapchain& swapchain,
     const RenderPassDeferred& renderPass,
-    const ui32 maxTransparentFragsPerPixel)
+    const RenderPassDeferredCreateInfo& info)
     :
     ATOMIC_BUFFER_SECTION_SIZE(util::pad(
         sizeof(ui32),
         device.getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment
     )),
     FRAG_LIST_BUFFER_SIZE(
-        sizeof(uvec4) * maxTransparentFragsPerPixel
-        * swapchain.getImageExtent().width * swapchain.getImageExtent().height
+        sizeof(uvec4) * info.maxTransparentFragsPerPixel
+        * info.gBufferSize.x * info.gBufferSize.y
     ),
     fragmentListHeadPointerImage(swapchain),
     fragmentListHeadPointerImageView(swapchain),
@@ -302,7 +301,7 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
     descSets(swapchain),
     provider({}, { swapchain }) // Doesn't have a default constructor
 {
-    createFragmentList(device, swapchain, maxTransparentFragsPerPixel);
+    createFragmentList(device, swapchain, info.gBufferSize, info.maxTransparentFragsPerPixel);
     createDescriptors(device, swapchain, renderPass);
 }
 
@@ -321,10 +320,9 @@ auto trc::DeferredRenderPassDescriptor::getProvider() const noexcept
 void trc::DeferredRenderPassDescriptor::createFragmentList(
     const vkb::Device& device,
     const vkb::Swapchain& swapchain,
+    const uvec2 size,
     const ui32 maxFragsPerPixel)
 {
-    const vk::Extent2D swapchainSize = swapchain.getImageExtent();
-
     // Fragment list
     std::vector<vk::UniqueImageView> imageViews;
     fragmentListHeadPointerImage = { swapchain, [&](ui32)
@@ -334,7 +332,7 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
             vk::ImageCreateInfo(
                 {},
                 vk::ImageType::e2D, vk::Format::eR32Uint,
-                vk::Extent3D(swapchainSize.width, swapchainSize.height, 1),
+                vk::Extent3D(size.x, size.y, 1),
                 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst
             ),
@@ -370,7 +368,7 @@ void trc::DeferredRenderPassDescriptor::createFragmentList(
             vk::MemoryPropertyFlagBits::eDeviceLocal
         );
 
-        const ui32 MAX_FRAGS = maxFragsPerPixel * swapchainSize.width * swapchainSize.height;
+        const ui32 MAX_FRAGS = maxFragsPerPixel * size.x * size.y;
         auto cmdBuf = device.createTransferCommandBuffer();
         cmdBuf->begin(vk::CommandBufferBeginInfo(vk::CommandBufferBeginInfo()));
         cmdBuf->updateBuffer<ui32>(*result, 0, { 0, MAX_FRAGS, 0, });

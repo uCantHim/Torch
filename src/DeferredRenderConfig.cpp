@@ -10,26 +10,28 @@
 
 
 
-trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& info)
+trc::DeferredRenderConfig::DeferredRenderConfig(
+    const Window& _window,
+    const DeferredRenderCreateInfo& info)
     :
-    RenderConfigCrtpBase(info.instance),
-    window(info.window),
+    RenderConfigCrtpBase(_window.getInstance()),
+    window(_window),
     // Passes
     deferredPass(new RenderPassDeferred(
-        info.instance.getDevice(),
-        info.window.getSwapchain(),
-        info.maxTransparentFragsPerPixel
+        window.getDevice(),
+        window.getSwapchain(),
+        { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
     )),
-    shadowPass(info.window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
+    shadowPass(window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
     // Descriptors
-    globalDataDescriptor(info.window),
-    sceneDescriptor(info.window),
+    globalDataDescriptor(window),
+    sceneDescriptor(window),
     // Asset storage
     assetRegistry(info.assetRegistry),
     shadowPool(info.shadowPool),
     // Internal resources
     fullscreenQuadVertexBuffer(
-        info.instance.getDevice(),
+        window.getDevice(),
         std::vector<vec3>{
             vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
             vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0)
@@ -65,7 +67,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(const DeferredRenderCreateInfo& 
         deferredPass.reset(new RenderPassDeferred(
             window.getDevice(),
             window.getSwapchain(),
-            info.maxTransparentFragsPerPixel
+            { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
         ));
         graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
         if constexpr (vkb::enableVerboseLogging)

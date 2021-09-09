@@ -26,7 +26,7 @@ namespace trc
         /**
          * @brief
          */
-        Window(Instance& instance, WindowCreateInfo info);
+        explicit Window(Instance& instance, WindowCreateInfo info = {});
 
         void drawFrame(const DrawConfig& drawConfig);
 
