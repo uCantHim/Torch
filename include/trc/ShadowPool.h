@@ -33,7 +33,7 @@ namespace trc
      */
     struct ShadowPoolCreateInfo
     {
-        ui32 maxShadowMaps;
+        ui32 maxShadowMaps{ 1 };
     };
 
     /**

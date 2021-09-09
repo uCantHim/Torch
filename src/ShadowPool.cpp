@@ -31,6 +31,12 @@ trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
     descSets(window.getSwapchain()),
     provider({}, { window.getSwapchain() })
 {
+    if (info.maxShadowMaps == 0)
+    {
+        throw std::invalid_argument("[In ShadowPool::ShadowPool]: Maximum number of shadows must"
+                                    " be greater than 0!");
+    }
+
     createDescriptors(info.maxShadowMaps);
     for (ui32 i = 0; i < swapchain.getFrameCount(); i++) {
         writeDescriptors(i);
@@ -50,7 +56,7 @@ auto trc::ShadowPool::allocateShadow(const ShadowCreateInfo& info) -> ShadowMap
         shadowIdPool.free(id);
         throw std::out_of_range(
             "[In ShadowPool::allocateShadow]: Unable to allocate shadow - the maximum of "
-            + std::to_string(shadows.size()) + " shadows would be exceeded!"
+            + std::to_string(shadows.size()) + " shadows is exceeded!"
         );
     }
 
