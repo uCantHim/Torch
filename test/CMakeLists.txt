@@ -43,6 +43,9 @@ target_link_libraries(DrawableChainTest PUBLIC torch)
 add_executable(Font font.cpp)
 target_link_libraries(Font PUBLIC torch)
 
+add_executable(RayTracing ray_tracing.cpp)
+target_link_libraries(RayTracing PUBLIC torch)
+
 if (${TORCH_INTEGRATE_IMGUI})
     add_executable(ImGui imgui_integration.cpp)
     target_link_libraries(ImGui PUBLIC torch)
@@ -52,8 +55,3 @@ if (${TORCH_INTEGRATE_GUI})
     add_executable(Gui gui.cpp)
     target_link_libraries(Gui PUBLIC torch)
 endif()
-
-if (${TORCH_BUILD_RAY_TRACING})
-    add_executable(RayTracing ray_tracing.cpp)
-    target_link_libraries(RayTracing PUBLIC torch)
-endif ()
