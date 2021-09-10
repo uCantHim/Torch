@@ -8,23 +8,43 @@ trc::Pipeline::Pipeline(
     vk::PipelineBindPoint bindPoint)
     :
     layout(std::move(layout)),
-    pipeline(std::move(pipeline)),
+    pipelineStorage(std::move(pipeline)),
+    pipeline(*std::get<vk::UniquePipeline>(pipelineStorage)),
     bindPoint(bindPoint)
 {}
 
+trc::Pipeline::Pipeline(
+    vk::UniquePipelineLayout layout,
+    UniquePipelineStorageType pipeline,
+    vk::PipelineBindPoint bindPoint)
+    :
+    layout(std::move(layout)),
+    pipelineStorage(std::move(pipeline)),
+    bindPoint(bindPoint)
+{
+    using UniquePipelineDl = vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
+
+    if (std::holds_alternative<vk::UniquePipeline>(pipelineStorage)) {
+        this->pipeline = *std::get<vk::UniquePipeline>(pipelineStorage);
+    }
+    else if (std::holds_alternative<UniquePipelineDl>(pipelineStorage)) {
+        this->pipeline = *std::get<UniquePipelineDl>(pipelineStorage);
+    }
+}
+
 auto trc::Pipeline::operator*() const noexcept -> vk::Pipeline
 {
-    return *pipeline;
+    return pipeline;
 }
 
 auto trc::Pipeline::get() const noexcept -> vk::Pipeline
 {
-    return *pipeline;
+    return pipeline;
 }
 
 void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
 {
-    cmdBuf.bindPipeline(bindPoint, *pipeline);
+    cmdBuf.bindPipeline(bindPoint, pipeline);
 }
 
 void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const

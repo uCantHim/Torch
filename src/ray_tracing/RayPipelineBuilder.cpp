@@ -130,8 +130,9 @@ auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callab
 
 auto trc::rt::RayTracingPipelineBuilder::build(
     ui32 maxRecursionDepth,
-    vk::PipelineLayout layout
-    ) -> std::pair<UniquePipeline, ShaderBindingTable>
+    vk::UniquePipelineLayout layout,
+    const vkb::DeviceMemoryAllocator alloc
+    ) -> std::pair<Pipeline, ShaderBindingTable>
 {
 	assert(pipelineStages.size() > 0);
 
@@ -147,15 +148,18 @@ auto trc::rt::RayTracingPipelineBuilder::build(
             nullptr, // pipeline library create info
             nullptr, // ray tracing pipeline interface create info
             nullptr, // dynamic state create info
-			layout
+			*layout
 		),
 		nullptr, dl
 	).value;
 
     // Create shader binding table
-    ShaderBindingTable sbt{ device, dl, *pipeline, sbtEntries };
+    ShaderBindingTable sbt{ device, dl, *pipeline, sbtEntries, alloc };
 
-    return { std::move(pipeline), std::move(sbt) };
+    return {
+        Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eRayTracingKHR),
+        std::move(sbt)
+    };
 }
 
 auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const fs::path& path) -> vk::ShaderModule
