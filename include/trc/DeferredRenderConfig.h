@@ -48,6 +48,9 @@ namespace trc
         void preDraw(const DrawConfig& draw) override;
         void postDraw(const DrawConfig& draw) override;
 
+        auto getGBuffer() -> vkb::FrameSpecific<GBuffer>&;
+        auto getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&;
+
         auto getDeferredRenderPass() const -> const RenderPassDeferred&;
         auto getCompatibleShadowRenderPass() const -> vk::RenderPass;
 

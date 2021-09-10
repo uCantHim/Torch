@@ -86,7 +86,6 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
             auto [offset, count] = blendTypeSizes[Blend::eDiscardZeroAlpha];
             if (count == 0) return;
 
-            std::cout << "Drawing alpha discard particles: " << offset << ", " << count << "\n";
             cmdBuf.bindVertexBuffers(0,
                 { *vertexBuffer, *particleDeviceDataBuffer },
                 { 0, offset * sizeof(ParticleDeviceData) });
@@ -104,7 +103,6 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
             auto [offset, count] = blendTypeSizes[Blend::eAlphaBlend];
             if (count == 0) return;
 
-            std::cout << "Drawing alpha blend particles: " << offset << ", " << count << "\n";
             cmdBuf.bindVertexBuffers(0,
                 { *vertexBuffer, *particleDeviceDataBuffer },
                 { 0, offset * sizeof(ParticleDeviceData) });

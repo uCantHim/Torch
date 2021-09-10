@@ -107,6 +107,16 @@ void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
     draw.scene->unregisterDrawFunction(finalLightingFunc);
 }
 
+auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
+{
+    return deferredPass->getGBuffer();
+}
+
+auto trc::DeferredRenderConfig::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
+{
+    return deferredPass->getGBuffer();
+}
+
 auto trc::DeferredRenderConfig::getDeferredRenderPass() const -> const RenderPassDeferred&
 {
     return *deferredPass;
