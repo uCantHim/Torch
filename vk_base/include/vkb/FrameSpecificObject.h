@@ -67,6 +67,10 @@ namespace vkb
             return &objects[swapchain->getCurrentFrame()];
         }
 
+        inline auto getSwapchain() const -> const Swapchain& {
+            return *swapchain;
+        }
+
         /**
          * Returns the object for the currently 'active' frame.
          *
