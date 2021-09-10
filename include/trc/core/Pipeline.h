@@ -102,4 +102,15 @@ namespace trc
 
         defaultPushConstants.emplace_back(offset, stages, std::move(defaultValue));
     }
+
+
+
+    /**
+     * @brief Create a compute shader pipeline
+     */
+    auto makeComputePipeline(const vkb::Device& device,
+                             vk::UniquePipelineLayout layout,
+                             vk::UniqueShaderModule shader,
+                             vk::PipelineCreateFlags flags = {},
+                             const std::string& entryPoint = "main") -> Pipeline;
 } // namespace trc

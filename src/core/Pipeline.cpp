@@ -54,3 +54,26 @@ void trc::Pipeline::addStaticDescriptorSet(
 {
     staticDescriptorSets.emplace_back(descriptorIndex, &provider);
 }
+
+
+
+auto trc::makeComputePipeline(
+    const vkb::Device& device,
+    vk::UniquePipelineLayout layout,
+    vk::UniqueShaderModule shader,
+    vk::PipelineCreateFlags flags,
+    const std::string& entryPoint) -> Pipeline
+{
+    auto pipeline = device->createComputePipelineUnique(
+        {},
+        vk::ComputePipelineCreateInfo(
+            flags,
+            vk::PipelineShaderStageCreateInfo(
+                {}, vk::ShaderStageFlagBits::eCompute, *shader, entryPoint.c_str()
+            ),
+            *layout
+        )
+    ).value;
+
+    return Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eCompute);
+}
