@@ -58,10 +58,22 @@ namespace trc
         NameToIndexMap<vkb::Image> imageNames;
     };
 
+    struct AssetRegistryCreateInfo
+    {
+        vk::BufferUsageFlags geometryBufferUsage;
+
+        vk::ShaderStageFlags materialDescriptorStages;
+        vk::ShaderStageFlags textureDescriptorStages;
+        vk::ShaderStageFlags geometryDescriptorStages;
+
+        bool enableRayTracing{ true };
+    };
+
     class AssetRegistry
     {
     public:
-        explicit AssetRegistry(const Instance& instance);
+        explicit AssetRegistry(const Instance& instance,
+                               const AssetRegistryCreateInfo& info = {});
 
         auto add(const GeometryData& geo,
                  std::optional<RigData> rigData = std::nullopt) -> GeometryID;
@@ -86,6 +98,8 @@ namespace trc
         AssetRegistryNameWrapper<std::string> named{ *this };
 
     private:
+        static auto addDefaultValues(const AssetRegistryCreateInfo& info) -> AssetRegistryCreateInfo;
+
         template<typename T, typename U, typename... Args>
         auto addToMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
                              TypesafeID<U> key,
@@ -93,6 +107,17 @@ namespace trc
         template<typename T, typename U>
         auto getFromMap(data::IndexMap<TypesafeID<U>, std::unique_ptr<T>>& map,
                                TypesafeID<U> key) -> T&;
+
+        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
+        static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(Material) * 100;
+        static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
+        static constexpr ui32 MAX_GEOMETRY_COUNT = 5000;
+
+        const Instance& instance;
+        const vkb::Device& device;
+        vkb::MemoryPool memoryPool;
+
+        const AssetRegistryCreateInfo config;
 
         /**
          * GPU resources for geometry data
@@ -135,22 +160,19 @@ namespace trc
         std::atomic<ui32> nextMaterialIndex{ 0 };
         std::atomic<ui32> nextImageIndex{ 0 };
 
-        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
-        static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(Material) * 100;
-        static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
-
-        const Instance& instance;
-        const vkb::Device& device;
-        vkb::MemoryPool memoryPool;
-
         //////////
         // Buffers
         vkb::Buffer materialBuffer;
 
         //////////////
         // Descriptors
-        static constexpr ui32 MAT_BUFFER_BINDING = 0;
-        static constexpr ui32 IMG_DESCRIPTOR_BINDING = 1;
+        enum DescBinding
+        {
+            eMaterials = 0,
+            eTextures = 1,
+            eVertexBuffers = 2,
+            eIndexBuffers = 3,
+        };
 
         void createDescriptors();
         void writeDescriptors();
