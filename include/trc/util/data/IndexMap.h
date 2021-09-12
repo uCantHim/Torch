@@ -34,6 +34,13 @@ public:
     auto size() const noexcept -> size_t;
     void reserve(size_t size);
 
+    auto begin() {
+        return values.begin();
+    }
+    auto end() {
+        return values.end();
+    }
+
 private:
     std::vector<Value> values;
 };
