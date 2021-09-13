@@ -39,127 +39,52 @@ auto makeDrawableShadowPipeline(const Instance& instance,
                                 const DeferredRenderConfig& config) -> Pipeline;
 auto makeInstancedDrawableShadowPipeline(const Instance& instance,
                                          const DeferredRenderConfig& config) -> Pipeline;
+auto makeFinalLightingPipeline(const Instance& instance,
+                               const DeferredRenderConfig& config) -> Pipeline;
 
 using Flags = DrawablePipelineFeatureFlagBits;
 
-auto getDrawableDeferredPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableDeferredPipeline(0, instance, config);
-        }
-    );
+auto _makeDrawDef = [](const Instance& instance, const auto& config) {
+    return makeDrawableDeferredPipeline(0, instance, config);
+};
+auto _makeDrawDefAnim = [](const Instance& instance, const auto& config) {
+    return makeDrawableDeferredPipeline(Flags::eAnimated, instance, config);
+};
+auto _makeDrawDefPick = [](const Instance& instance, const auto& config) {
+    return makeDrawableDeferredPipeline(Flags::ePickable, instance, config);
+};
+auto _makeDrawDefAnimPick = [](const Instance& instance, const auto& config) {
+    return makeDrawableDeferredPipeline(Flags::ePickable | Flags::eAnimated, instance, config);
+};
 
-    return id;
-}
+auto _makeTransDef = [](const Instance& instance, const auto& config) {
+    return makeDrawableTransparentPipeline(Flags::eNone, instance, config);
+};
+auto _makeTransDefAnim = [](const Instance& instance, const auto& config) {
+    return makeDrawableTransparentPipeline(Flags::eAnimated, instance, config);
+};
+auto _makeTransDefPick = [](const Instance& instance, const auto& config) {
+    return makeDrawableTransparentPipeline(Flags::ePickable, instance, config);
+};
+auto _makeTransDefAnimPick = [](const Instance& instance, const auto& config) {
+    return makeDrawableTransparentPipeline(Flags::eAnimated | Flags::ePickable, instance, config);
+};
 
-auto getDrawableDeferredAnimatedPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableDeferredPipeline(Flags::eAnimated, instance, config);
-        }
-    );
+PIPELINE_GETTER_FUNC(getDrawableDeferredPipeline, _makeDrawDef, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedPipeline, _makeDrawDefAnim, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableDeferredPickablePipeline, _makeDrawDefPick, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedAndPickablePipeline, _makeDrawDefAnimPick, DeferredRenderConfig)
 
-    return id;
-}
+PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPipeline, _makeTransDef, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedPipeline, _makeTransDefAnim, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPickablePipeline, _makeTransDefPick, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedAndPickablePipeline, _makeTransDefAnimPick, DeferredRenderConfig)
 
-auto getDrawableDeferredPickablePipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableDeferredPipeline(Flags::ePickable, instance, config);
-        }
-    );
+PIPELINE_GETTER_FUNC(getDrawableShadowPipeline, makeDrawableShadowPipeline, DeferredRenderConfig);
+PIPELINE_GETTER_FUNC(getDrawableInstancedDeferredPipeline, makeInstancedDrawableDeferredPipeline, DeferredRenderConfig);
+PIPELINE_GETTER_FUNC(getDrawableInstancedShadowPipeline, makeInstancedDrawableShadowPipeline, DeferredRenderConfig);
 
-    return id;
-}
-
-auto getDrawableDeferredAnimatedAndPickablePipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableDeferredPipeline(Flags::eAnimated | Flags::ePickable, instance, config);
-        }
-    );
-
-    return id;
-}
-
-auto getDrawableTransparentDeferredPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableTransparentPipeline(Flags::eNone, instance, config);
-        }
-    );
-
-    return id;
-}
-
-auto getDrawableTransparentDeferredAnimatedPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableTransparentPipeline(Flags::eAnimated, instance, config);
-        }
-    );
-
-    return id;
-}
-
-auto getDrawableTransparentDeferredPickablePipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config) {
-            return makeDrawableTransparentPipeline(Flags::ePickable, instance, config);
-        }
-    );
-
-    return id;
-}
-
-auto getDrawableTransparentDeferredAnimatedAndPickablePipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        [](const Instance& instance, const auto& config)
-        {
-            return makeDrawableTransparentPipeline(
-                Flags::eAnimated | Flags::ePickable,
-                instance, config
-            );
-        }
-    );
-
-    return id;
-}
-
-auto getDrawableShadowPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeDrawableShadowPipeline
-    );
-
-    return id;
-}
-
-auto getDrawableInstancedDeferredPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeInstancedDrawableDeferredPipeline
-    );
-
-    return id;
-}
-
-auto getDrawableInstancedShadowPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeInstancedDrawableShadowPipeline
-    );
-
-    return id;
-}
+PIPELINE_GETTER_FUNC(getFinalLightingPipeline, makeFinalLightingPipeline, DeferredRenderConfig);
 
 
 
@@ -565,15 +490,6 @@ auto makeFinalLightingPipeline(
     p.addStaticDescriptorSet(4, config.getShadowDescriptorProvider());
 
     return p;
-}
-
-auto getFinalLightingPipeline() -> Pipeline::ID
-{
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeFinalLightingPipeline
-    );
-
-    return id;
 }
 
 } // namespace trc::internal
