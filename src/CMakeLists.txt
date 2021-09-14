@@ -35,4 +35,5 @@ add_subdirectory(text)
 add_subdirectory(ray_tracing)
 add_subdirectory(experimental)
 
-target_include_directories(torch PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+# Shader editing library
+add_subdirectory(shader_edit)

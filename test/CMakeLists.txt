@@ -57,3 +57,6 @@ if (${TORCH_BUILD_RAY_TRACING})
     add_executable(RayTracing ray_tracing.cpp)
     target_link_libraries(RayTracing PUBLIC torch)
 endif ()
+
+add_executable(ParseShader shader_editing.cpp)
+target_link_libraries(ParseShader PUBLIC torch)
