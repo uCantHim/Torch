@@ -5,6 +5,7 @@
 #include "GeometryUtils.h"
 #include "RayPipelineBuilder.h"
 #include "ShaderBindingTable.h"
+#include "RayTracingPass.h"
 
 namespace trc::rt
 {
