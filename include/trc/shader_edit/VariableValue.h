@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "TextRenderer.h"
+#include "FileInclude.h"
 
 namespace shader_edit
 {
@@ -12,6 +13,10 @@ namespace shader_edit
     class VariableValue
     {
     public:
+        VariableValue()
+            : source(std::make_unique<ValueRenderer<std::string>>(""))
+        {}
+
         /**
          * @brief
          */
@@ -20,12 +25,13 @@ namespace shader_edit
             : source(std::make_unique<ValueRenderer<T>>(std::forward<T>(value)))
         {}
 
+        VariableValue(const VariableValue&);
         VariableValue(VariableValue&&) noexcept = default;
+        auto operator=(const VariableValue&) -> VariableValue&;
         auto operator=(VariableValue&&) noexcept -> VariableValue& = default;
+        ~VariableValue() = default;
 
-        auto toString() const -> std::string {
-            return source->getCode();
-        }
+        auto toString() const -> std::string;
 
     private:
         std::unique_ptr<ShaderCodeSource> source;

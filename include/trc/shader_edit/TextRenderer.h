@@ -15,6 +15,8 @@ namespace shader_edit
         ShaderCodeSource() = default;
         virtual ~ShaderCodeSource() = default;
 
+        virtual auto copy() const -> std::unique_ptr<ShaderCodeSource> = 0;
+
         virtual auto getCode() const -> std::string = 0;
     };
 
@@ -30,7 +32,11 @@ namespace shader_edit
     /**
      * @brief Render anything on which to_string is callable
      */
-    inline auto render(auto val) -> std::string
+    template<typename T>
+        requires requires (T a) {
+            { std::to_string(a) };
+        }
+    inline auto render(T&& val) -> std::string
     {
         return std::to_string(val);
     }
@@ -44,12 +50,17 @@ namespace shader_edit
     };
 
     template<Renderable T>
+        requires std::copy_constructible<T>
     class ValueRenderer : public ShaderCodeSource
     {
     public:
         explicit ValueRenderer(T value)
             : value(std::move(value))
         {}
+
+        auto copy() const -> std::unique_ptr<ShaderCodeSource> override {
+            return std::make_unique<ValueRenderer<T>>(value);
+        }
 
         auto getCode() const -> std::string override {
             return render(value);

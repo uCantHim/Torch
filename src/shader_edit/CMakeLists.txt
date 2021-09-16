@@ -3,4 +3,5 @@ target_sources(torch PRIVATE
     LayoutQualifier.cpp
     Parser.cpp
     StringUtil.cpp
+    VariableValue.cpp
 )
