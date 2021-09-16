@@ -9,24 +9,15 @@ namespace shader_edit
     /**
      * Shader variable syntax:
      *
-     *     //$ type name
+     *     //$ name
      *
      * The sequence '//$' at the beginning of a line designates a variable
      * definition.
      *
-     * type: The variable's type declaration
      * name: A name by which the variable can be referenced
      */
     struct Variable
     {
-        enum class Type
-        {
-            eLayoutQualifier,
-
-            eCustom,
-        };
-
-        Type type;
         std::string name;
     };
 
@@ -39,9 +30,6 @@ namespace shader_edit
     };
 
     constexpr auto VAR_DECL{ "//$" };
-
-    constexpr auto TYPE_NAME_LAYOUT_QUALIFIER{ "layout" };
-    constexpr auto TYPE_NAME_CUSTOM{ "custom" };
 
     auto parse(std::istream& is) -> ParseResult;
     auto parse(std::vector<std::string> lines) -> ParseResult;

@@ -27,8 +27,7 @@ private:
 
 auto parseVariable(const std::string& line) -> std::optional<Variable>
 {
-    constexpr size_t TYPE_POS{ 1 };
-    constexpr size_t NAME_POS{ 2 };
+    constexpr size_t NAME_POS{ 1 };
 
     auto split = splitString(line, " ");
     removeEmpty(split);
@@ -37,33 +36,13 @@ auto parseVariable(const std::string& line) -> std::optional<Variable>
     const bool isVar = split.size() >= 1 && split.at(0) == VAR_DECL;
     if (!isVar) return std::nullopt;
 
-    // Parse type
-    Variable::Type type = [&] {
-        if (split.size() < 2) {
-            throw SyntaxError("Expected type declaration, found none");
-        }
-
-        auto& type = split.at(TYPE_POS);
-        if (type == TYPE_NAME_LAYOUT_QUALIFIER) {
-            return Variable::Type::eLayoutQualifier;
-        }
-        else if (type == TYPE_NAME_CUSTOM) {
-            return Variable::Type::eCustom;
-        }
-
-        throw SyntaxError("Typename \"" + type + "\" is not a valid variable type");
-    }();
-
     // Parse name
-    if (split.size() < 3) {
+    if (split.size() < 2) {
         throw SyntaxError("Expected variable name, found none");
     }
     auto& name = split.at(NAME_POS);
 
-    return Variable{
-        .type=type,
-        .name=std::move(name),
-    };
+    return Variable{ .name=std::move(name) };
 }
 
 
