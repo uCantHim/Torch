@@ -3,6 +3,7 @@
 #include <vkb/ImageUtils.h>
 
 #include "core/Instance.h"
+#include "ray_tracing/RayPipelineBuilder.h"
 
 
 
@@ -160,21 +161,9 @@ auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
             | vk::BufferUsageFlagBits::eShaderDeviceAddress
             | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR;
 
-        result.materialDescriptorStages |= vk::ShaderStageFlagBits::eRaygenKHR
-                                           |vk::ShaderStageFlagBits::eCallableKHR
-                                           | vk::ShaderStageFlagBits::eAnyHitKHR
-                                           | vk::ShaderStageFlagBits::eClosestHitKHR
-                                           | vk::ShaderStageFlagBits::eIntersectionKHR;
-        result.textureDescriptorStages |= vk::ShaderStageFlagBits::eRaygenKHR
-                                          | vk::ShaderStageFlagBits::eCallableKHR
-                                          | vk::ShaderStageFlagBits::eAnyHitKHR
-                                          | vk::ShaderStageFlagBits::eClosestHitKHR
-                                          | vk::ShaderStageFlagBits::eIntersectionKHR;
-        result.geometryDescriptorStages |= vk::ShaderStageFlagBits::eRaygenKHR
-                                           | vk::ShaderStageFlagBits::eCallableKHR
-                                           | vk::ShaderStageFlagBits::eAnyHitKHR
-                                           | vk::ShaderStageFlagBits::eClosestHitKHR
-                                           | vk::ShaderStageFlagBits::eIntersectionKHR;
+        result.materialDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        result.textureDescriptorStages  |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        result.geometryDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
     }
 
     return result;

@@ -12,6 +12,14 @@ namespace fs = std::filesystem;
 
 namespace trc::rt
 {
+    constexpr vk::ShaderStageFlags ALL_RAY_PIPELINE_STAGE_FLAGS{
+        vk::ShaderStageFlagBits::eRaygenKHR
+        | vk::ShaderStageFlagBits::eCallableKHR
+        | vk::ShaderStageFlagBits::eAnyHitKHR
+        | vk::ShaderStageFlagBits::eClosestHitKHR
+        | vk::ShaderStageFlagBits::eIntersectionKHR
+    };
+
     /**
      * @brief Builder for ray tracing pipeline and shader binding table
      */
