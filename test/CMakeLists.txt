@@ -9,21 +9,7 @@ target_compile_definitions(torch PUBLIC
 ############
 # Unit tests
 
-if (${GTEST_FOUND})
-    add_executable(TorchUnitTests)
-
-    target_sources(TorchUnitTests
-        PRIVATE
-            functional/test_maybe.cpp
-            data/test_object_pool.cpp
-            data/test_typesafe_id.cpp
-    )
-
-    target_link_libraries(TorchUnitTests PRIVATE GTest::GTest GTest::Main torch)
-    target_compile_options(TorchUnitTests PRIVATE -O0 -g)
-
-    gtest_discover_tests(TorchUnitTests)
-endif ()
+add_subdirectory(unittest)
 
 #######################
 # Complex test programs
@@ -57,6 +43,3 @@ if (${TORCH_BUILD_RAY_TRACING})
     add_executable(RayTracing ray_tracing.cpp)
     target_link_libraries(RayTracing PUBLIC torch)
 endif ()
-
-add_executable(ParseShader shader_editing.cpp)
-target_link_libraries(ParseShader PUBLIC torch)

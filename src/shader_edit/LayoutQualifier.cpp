@@ -4,7 +4,7 @@
 
 auto shader_edit::render(layout::Location loc) -> std::string
 {
-    return "layout (location = " + std::to_string(loc.location) + ") ";
+    return "layout (location = " + std::to_string(loc.location) + ")";
 }
 
 auto shader_edit::render(layout::Set set) -> std::string
@@ -16,15 +16,15 @@ auto shader_edit::render(layout::Set set) -> std::string
             for (auto& dec : set.decorators) str += ", " + dec;
             return str;
         }()
-        + ") ";
+        + ")";
 }
 
 auto shader_edit::render(layout::PushConstant) -> std::string
 {
-    return "layout (push_constant) ";
+    return "layout (push_constant)";
 }
 
 auto shader_edit::render(layout::SpecializationConstant spec) -> std::string
 {
-    return "layout (constant_id = " + std::to_string(spec.constantId) + ") ";
+    return "layout (constant_id = " + std::to_string(spec.constantId) + ")";
 }
