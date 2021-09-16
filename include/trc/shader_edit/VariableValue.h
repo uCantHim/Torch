@@ -2,40 +2,10 @@
 
 #include <memory>
 
-#include "ShaderCodeSource.h"
+#include "TextRenderer.h"
 
 namespace shader_edit
 {
-    /**
-     * @brief Render anything that is directy convertible to string
-     */
-    template<std::convertible_to<std::string> T>
-    inline auto render(T&& str) -> std::string
-    {
-        return std::string(std::forward<T>(str));
-    }
-
-    template<typename T>
-    concept Renderable = requires (T a) {
-        { render(a) } -> std::convertible_to<std::string>;
-    };
-
-    template<Renderable T>
-    class ValueRenderer : public ShaderCodeSource
-    {
-    public:
-        explicit ValueRenderer(T value)
-            : value(std::move(value))
-        {}
-
-        auto getCode() const -> std::string override {
-            return render(value);
-        }
-
-    private:
-        T value;
-    };
-
     /**
      * @brief
      */

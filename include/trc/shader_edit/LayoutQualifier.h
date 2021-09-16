@@ -2,7 +2,6 @@
 
 #include <string>
 #include <vector>
-#include <variant>
 
 namespace shader_edit
 {
@@ -13,7 +12,7 @@ namespace shader_edit
             uint location;
         };
 
-        struct DescriptorSet
+        struct Set
         {
             uint set;
             uint binding;
@@ -30,10 +29,8 @@ namespace shader_edit
         };
     } // namespace layout
 
-    using LayoutQualifier = std::variant<
-        layout::Location,
-        layout::DescriptorSet,
-        layout::PushConstant,
-        layout::SpecializationConstant
-    >;
+    auto render(layout::Location loc) -> std::string;
+    auto render(layout::Set set) -> std::string;
+    auto render(layout::PushConstant) -> std::string;
+    auto render(layout::SpecializationConstant spec) -> std::string;
 } // namespace shader_edit

@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include <trc/shader_edit/Parser.h>
+#include <trc/shader_edit/LayoutQualifier.h>
 #include <trc/shader_edit/Document.h>
 
 int main(int argc, char* argv[])
@@ -29,7 +30,8 @@ int main(int argc, char* argv[])
     }
 
     shader_edit::Document document(std::move(parseResult));
-    document.set("vert_pos_loc", "Hello Document!");
+    document.set("vert_pos_loc", shader_edit::layout::Location{ 3 });
+    document.set("camera_buf_binding", 42);
 
     std::cout << "\n\nFinal document:\n\n" << document.compile()[0];
 
