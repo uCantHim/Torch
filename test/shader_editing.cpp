@@ -5,6 +5,8 @@
 #include <trc/shader_edit/LayoutQualifier.h>
 #include <trc/shader_edit/Document.h>
 
+namespace layout = shader_edit::layout;
+
 int main(int argc, char* argv[])
 {
     if (argc < 2)
@@ -23,17 +25,32 @@ int main(int argc, char* argv[])
     auto parseResult = shader_edit::parse(file);
     for (auto [line, var] : parseResult.variablesByLine)
     {
-        std::cout << "Variable \"" << var.name << "\""
-            << " of type " << uint(var.type)
-            << " in line " << line
-            << "\n";
+        std::cout << "Variable \"" << var.name << "\" in line " << line << "\n";
     }
 
     shader_edit::Document document(std::move(parseResult));
-    document.set("vert_pos_loc", shader_edit::layout::Location{ 3 });
-    document.set("camera_buf_binding", 42);
+    document.set("vert_pos_loc", layout::Location{ 3 });
+    document.set("vert_pos_loc", 42);
+    document.permutate("camera_buf_binding",
+        {
+            layout::Set{ 0, 2, { "std430" } },
+            layout::Set{ 1, 2, {} },
+            layout::Set{ 2, 4, { "std140" } },
+        }
+    );
+    shader_edit::render("Hi");
+    document.permutate("some_cool_name",
+        {
+            "const bool VAR = true;",
+            "const bool VAR = false;",
+        }
+    );
 
-    std::cout << "\n\nFinal document:\n\n" << document.compile()[0];
+    auto permutations = document.compile();
+    for (const auto& doc : permutations)
+    {
+        std::cout << "\n--- Permutation\n" << doc << "\n";
+    }
 
     return 0;
 }
