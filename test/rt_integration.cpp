@@ -1,8 +1,3 @@
-/**
- * This file shows how Torch infrastructure could be used to implement very
- * basic ray tracing functionality.
- */
-
 #include <iostream>
 
 #include <trc/Torch.h>
@@ -10,6 +5,7 @@
 #include <trc/TorchResources.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
+#include <trc/ray_tracing/FinalCompositingPass.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -19,9 +15,12 @@ int main()
 {
     auto torch = trc::initFull(
         trc::InstanceCreateInfo{ .enableRayTracing = true },
-        trc::WindowCreateInfo{}
+        trc::WindowCreateInfo{
+            .swapchainCreateInfo={ .imageUsage=vk::ImageUsageFlagBits::eTransferDst }
+        }
     );
     auto& instance = *torch.instance;
+    auto& device = torch.instance->getDevice();
     auto& swapchain = torch.window->getSwapchain();
     auto& ar = *torch.assetRegistry;
 
@@ -107,57 +106,14 @@ int main()
                     vk::ShaderStageFlagBits::eRaygenKHR)
         .buildUnique(torch.instance->getDevice());
 
-    auto outputImageDescLayout = trc::buildDescriptorSetLayout()
-        .addBinding(vk::DescriptorType::eStorageImage, 1,
-                    vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(torch.instance->getDevice());
-
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
-        vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1),
     };
     auto descPool = instance.getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         swapchain.getFrameCount() + 1,
         poolSizes
     ));
-
-    std::vector<vk::UniqueImageView> imageViews;
-    vkb::FrameSpecific<vk::UniqueDescriptorSet> imageDescSets{
-        swapchain,
-        [&](ui32 imageIndex) -> vk::UniqueDescriptorSet
-        {
-            auto set = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
-                { *descPool, 1, &*outputImageDescLayout }
-            )[0]);
-
-            vk::Image image = swapchain.getImage(imageIndex);
-            vk::ImageView imageView = *imageViews.emplace_back(
-                instance.getDevice()->createImageViewUnique(
-                    vk::ImageViewCreateInfo(
-                        {},
-                        image,
-                        vk::ImageViewType::e2D,
-                        swapchain.getImageFormat(),
-                        {}, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-                    )
-                )
-            );
-            vk::DescriptorImageInfo imageInfo(
-                {}, // sampler
-                *imageViews.emplace_back(swapchain.createImageView(imageIndex)),
-                vk::ImageLayout::eGeneral
-            );
-            vk::WriteDescriptorSet write(
-                *set, 0, 0, 1,
-                vk::DescriptorType::eStorageImage,
-                &imageInfo
-            );
-            instance.getDevice()->updateDescriptorSets(write, {});
-
-            return set;
-        }
-    };
 
     auto tlasDescSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
         { *descPool, 1, &*tlasDescLayout }
@@ -175,10 +131,24 @@ int main()
     instance.getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
 
 
+    // --- Output Images --- //
+
+    vkb::FrameSpecific<trc::rt::RayBuffer> rayBuffer{
+        swapchain,
+        [&](ui32) {
+            return trc::rt::RayBuffer(
+                device,
+                { swapchain.getSize(), vk::ImageUsageFlagBits::eTransferSrc }
+            );
+        }
+    };
+
+
     // --- Ray Pipeline --- //
 
     constexpr ui32 maxRecursionDepth{ 16 };
-    auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(*torch.instance)
+    auto [rayPipeline, shaderBindingTable] =
+        trc::rt::buildRayTracingPipeline(*torch.instance)
         .addRaygenGroup(TRC_SHADER_DIR"/test/raygen.rgen.spv")
         .beginTableEntry()
             .addMissGroup(TRC_SHADER_DIR"/test/miss_blue.rmiss.spv")
@@ -192,7 +162,7 @@ int main()
         .build(
             maxRecursionDepth,
             trc::makePipelineLayout(torch.instance->getDevice(),
-                { *tlasDescLayout, *outputImageDescLayout },
+                { *tlasDescLayout, rayBuffer->getImageDescriptorLayout() },
                 {
                     // View and projection matrices
                     { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
@@ -201,26 +171,23 @@ int main()
         );
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
-    trc::FrameSpecificDescriptorProvider imageDescProvider{ *outputImageDescLayout, imageDescSets };
+    trc::FrameSpecificDescriptorProvider reflectionImageProvider(
+        rayBuffer->getImageDescriptorLayout(),
+        {
+            swapchain,
+            [&](ui32 i) {
+                return rayBuffer.getAt(i).getImageDescriptor(trc::rt::RayBuffer::eReflections).getDescriptorSet();
+            }
+        }
+    );
     rayPipeline.addStaticDescriptorSet(0, tlasDescProvider);
-    rayPipeline.addStaticDescriptorSet(1, imageDescProvider);
+    rayPipeline.addStaticDescriptorSet(1, reflectionImageProvider);
 
 
     // --- Render Pass --- //
 
-    class RayTracingRenderPass : public trc::RenderPass
-    {
-    public:
-        RayTracingRenderPass()
-            : RenderPass({}, 1)
-        {}
-
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override {}
-        void end(vk::CommandBuffer cmdBuf) override {}
-    };
-
     auto rayStageTypeId = trc::RenderStageType::createAtNextIndex(1).first;
-    RayTracingRenderPass rayPass;
+    trc::RayTracingPass rayPass;
 
     torch.renderConfig->getGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
     torch.renderConfig->getGraph().addPass(rayStageTypeId, rayPass);
@@ -236,7 +203,7 @@ int main()
             &shaderBindingTable=shaderBindingTable
         ](const trc::DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
-            auto image = swapchain.getImage(swapchain.getCurrentFrame());
+            vk::Image image = *rayBuffer->getImage(trc::rt::RayBuffer::eReflections);
 
             // Bring image into general layout
             cmdBuf.pipelineBarrier(
@@ -274,23 +241,88 @@ int main()
             );
 
             // Bring image into present layout
-            cmdBuf.pipelineBarrier(
-                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
-                vk::PipelineStageFlagBits::eAllCommands,
-                vk::DependencyFlagBits::eByRegion,
-                {}, {},
-                vk::ImageMemoryBarrier(
-                    vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-                    {},
-                    vk::ImageLayout::eGeneral,
-                    vk::ImageLayout::ePresentSrcKHR,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-                )
-            );
+            //cmdBuf.pipelineBarrier(
+            //    vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+            //    vk::PipelineStageFlagBits::eAllCommands,
+            //    vk::DependencyFlagBits::eByRegion,
+            //    {}, {},
+            //    vk::ImageMemoryBarrier(
+            //        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+            //        {},
+            //        vk::ImageLayout::eGeneral,
+            //        vk::ImageLayout::eTransferSrcOptimal,
+            //        VK_QUEUE_FAMILY_IGNORED,
+            //        VK_QUEUE_FAMILY_IGNORED,
+            //        image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+            //    )
+            //);
+
+            // Bring swapchain image into transfer dst layout
+            //cmdBuf.pipelineBarrier(
+            //    vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+            //    vk::PipelineStageFlagBits::eAllCommands,
+            //    vk::DependencyFlagBits::eByRegion,
+            //    {}, {},
+            //    vk::ImageMemoryBarrier(
+            //        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+            //        {},
+            //        vk::ImageLayout::eUndefined,
+            //        vk::ImageLayout::eTransferDstOptimal,
+            //        VK_QUEUE_FAMILY_IGNORED,
+            //        VK_QUEUE_FAMILY_IGNORED,
+            //        swapchain.getImage(swapchain.getCurrentFrame()),
+            //        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+            //    )
+            //);
+
+            //cmdBuf.copyImage(
+            //    image, vk::ImageLayout::eTransferSrcOptimal,
+            //    swapchain.getImage(swapchain.getCurrentFrame()), vk::ImageLayout::eTransferDstOptimal,
+            //    vk::ImageCopy(
+            //        vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
+            //        { 0, 0, 0 },
+            //        vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
+            //        { 0, 0, 0 },
+            //        vk::Extent3D{ swapchain.getImageExtent(), 1 }
+            //    )
+            //);
+
+            // Bring swapchain image into present layout
+            //cmdBuf.pipelineBarrier(
+            //    vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+            //    vk::PipelineStageFlagBits::eAllCommands,
+            //    vk::DependencyFlagBits::eByRegion,
+            //    {}, {},
+            //    vk::ImageMemoryBarrier(
+            //        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+            //        {},
+            //        vk::ImageLayout::eTransferDstOptimal,
+            //        vk::ImageLayout::eGeneral,
+            //        VK_QUEUE_FAMILY_IGNORED,
+            //        VK_QUEUE_FAMILY_IGNORED,
+            //        swapchain.getImage(swapchain.getCurrentFrame()),
+            //        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+            //    )
+            //);
         }
     );
+
+
+
+    // Add the final compositing pass that merges rasterization and ray tracing results
+    trc::rt::FinalCompositingPass compositing(
+        *torch.window,
+        {
+            .gBuffer = &torch.renderConfig->getGBuffer(),
+            .rayBuffer = &rayBuffer,
+        }
+    );
+
+    auto& graph = torch.renderConfig->getGraph();
+    graph.after(rayStageTypeId, trc::rt::getFinalCompositingStage());
+    graph.addPass(trc::rt::getFinalCompositingStage(), compositing);
+
+
 
     while (swapchain.isOpen())
     {
