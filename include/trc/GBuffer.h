@@ -1,13 +1,16 @@
 #pragma once
 
-#include <vkb/basics/Device.h>
-#include <vkb/basics/Swapchain.h>
+#include <vkb/Image.h>
 
 #include "Types.h"
-#include "Framebuffer.h"
 
 namespace trc
 {
+    struct GBufferCreateInfo
+    {
+        uvec2 size;
+    };
+
     class GBuffer
     {
     public:
@@ -21,10 +24,11 @@ namespace trc
             NUM_IMAGES
         };
 
-        GBuffer(const vkb::Device& device, uvec2 size);
+        GBuffer(const vkb::Device& device, const GBufferCreateInfo& size);
 
         auto getSize() const -> uvec2;
         auto getExtent() const -> vk::Extent2D;
+
         auto getImage(Image imageType) -> vkb::Image&;
         auto getImage(Image imageType) const -> const vkb::Image&;
         auto getImageView(Image imageType) const -> vk::ImageView;

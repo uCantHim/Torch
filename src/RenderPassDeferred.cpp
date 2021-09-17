@@ -25,7 +25,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
     swapchain(swapchain),
     framebufferSize(info.gBufferSize.x, info.gBufferSize.y),
     gBuffers(swapchain, [&](ui32) {
-        return GBuffer(device, info.gBufferSize);
+        return GBuffer(device, { info.gBufferSize });
     }),
     framebuffers(swapchain, [&](ui32 frameIndex)
     {

@@ -1,13 +1,21 @@
 #include "GBuffer.h"
 
+#include "DescriptorSetUtils.h"
 
 
-trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
+
+trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     :
-    size(_size),
+    size(info.size),
     extent(size.x, size.y)
 {
     images.reserve(Image::NUM_IMAGES);
+    const auto colorUsage = vk::ImageUsageFlagBits::eColorAttachment
+                            | vk::ImageUsageFlagBits::eInputAttachment
+                            | vk::ImageUsageFlagBits::eStorage;
+    const auto depthUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment
+                            | vk::ImageUsageFlagBits::eTransferSrc
+                            | vk::ImageUsageFlagBits::eInputAttachment;
 
     // Normals
     images.emplace_back(
@@ -16,7 +24,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
             {}, vk::ImageType::e2D, vk::Format::eR16G16B16A16Sfloat,
             vk::Extent3D{ extent, 1 },
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            colorUsage
         ),
         vkb::DefaultDeviceMemoryAllocator()
     );
@@ -28,7 +36,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
             {}, vk::ImageType::e2D, vk::Format::eR32Uint,
             vk::Extent3D{ extent, 1 },
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            colorUsage
         ),
         vkb::DefaultDeviceMemoryAllocator()
     );
@@ -40,7 +48,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
             {}, vk::ImageType::e2D, vk::Format::eR32Uint,
             vk::Extent3D{ extent, 1 },
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment
+            colorUsage
         ),
         vkb::DefaultDeviceMemoryAllocator()
     );
@@ -55,9 +63,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, uvec2 _size)
             vk::Extent3D{ extent, 1 },
             1, 1, vk::SampleCountFlagBits::e1,
             vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment
-            | vk::ImageUsageFlagBits::eTransferSrc
-            | vk::ImageUsageFlagBits::eInputAttachment
+            depthUsage
         ),
         vkb::DefaultDeviceMemoryAllocator()
     );
