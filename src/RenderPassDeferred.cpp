@@ -56,6 +56,27 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
 {
     descriptor.resetValues(cmdBuf);
 
+    // Bring depth image into depthStencil layout
+    cmdBuf.pipelineBarrier(
+        vk::PipelineStageFlagBits::eAllGraphics,
+        vk::PipelineStageFlagBits::eAllGraphics,
+        vk::DependencyFlagBits::eByRegion,
+        {}, {},
+        vk::ImageMemoryBarrier(
+            {},
+            vk::AccessFlagBits::eDepthStencilAttachmentRead
+            | vk::AccessFlagBits::eDepthStencilAttachmentRead,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eDepthStencilAttachmentOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *gBuffers.get().getImage(GBuffer::eDepth),
+            vk::ImageSubresourceRange(
+                vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
+                0, 1, 0, 1
+            )
+        )
+    );
+
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderPass,

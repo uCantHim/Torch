@@ -134,7 +134,7 @@ void trc::SceneDescriptor::createDescriptors()
         // Light buffer
         { 0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
         // Picking buffer
-        { 1, vk::DescriptorType::eStorageBufferDynamic, 1, vk::ShaderStageFlagBits::eFragment },
+        { 1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
     };
     std::vector<vk::DescriptorBindingFlags> flags{
         vk::DescriptorBindingFlagBits::eUpdateAfterBind,
@@ -154,7 +154,7 @@ void trc::SceneDescriptor::createDescriptors()
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
         { vk::DescriptorType::eStorageBuffer, 1 },
-        { vk::DescriptorType::eStorageBufferDynamic, 1 },
+        { vk::DescriptorType::eStorageBuffer, 1 },
     };
     descPool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
@@ -174,7 +174,7 @@ void trc::SceneDescriptor::writeDescriptors()
     vk::DescriptorBufferInfo lightBufferInfo(*lightBuffer, 0, VK_WHOLE_SIZE);
 
     std::vector<vk::WriteDescriptorSet> writes = {
-        { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBufferDynamic, {}, &pickingBufferInfo },
+        { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &pickingBufferInfo },
         { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
     };
     device->updateDescriptorSets(writes, {});
@@ -211,6 +211,7 @@ void trc::SceneDescriptor::SceneDescriptorProvider::bindDescriptorSet(
         bindPoint,
         pipelineLayout,
         setIndex, *descriptor.descSet,
-        frame * PICKING_BUFFER_SECTION_SIZE // dynamic offset
+        {}
+        //frame * PICKING_BUFFER_SECTION_SIZE // dynamic offset
     );
 }

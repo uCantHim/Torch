@@ -136,7 +136,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     vkb::DeviceLocalBuffer scratchBuffer{
         instance.getDevice(),
         buildSizes.buildScratchSize, nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer
     };
 
     // Decide whether the AS should be built on the host or on the device.
@@ -253,7 +253,7 @@ void trc::rt::TopLevelAccelerationStructure::build(
         instance.getDevice(),
         buildSizes.buildScratchSize,
         nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer
     };
 
     vk::AccelerationStructureBuildRangeInfoKHR buildRange{ maxInstances, offset, 0, 0 };
@@ -308,7 +308,7 @@ void trc::rt::buildAccelerationStructures(
         vkb::DeviceLocalBuffer& scratchBuffer = scratchBuffers.emplace_back(
             instance.getDevice(),
             blas->getBuildSize().buildScratchSize, nullptr,
-            vk::BufferUsageFlagBits::eShaderDeviceAddress,
+            vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
             scratchPool.makeAllocator()
         );
         auto info = blas->getGeometryBuildInfo();
