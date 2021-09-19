@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "util/Transformation.h"
+#include "Transformation.h"
 
 namespace trc
 {
@@ -19,7 +19,8 @@ namespace trc
         Node(const Node& other) = delete;
         auto operator=(const Node& rhs) -> Node& = delete;
 
-        auto getGlobalTransform() const noexcept -> const mat4&;
+        auto getGlobalTransform() const noexcept -> mat4;
+        auto getGlobalTransformID() const noexcept -> ID;
 
         void update() noexcept;
         void update(const mat4& parentTransform) noexcept;
@@ -35,7 +36,9 @@ namespace trc
         void detachFromParent();
 
     private:
-        ui32 globalTransformIndex{ matrices.create() };
+        void onLocalMatrixUpdate() override;
+
+        ID globalTransformIndex{ matrices.create() };
 
         Node* parent{ nullptr };
         std::vector<Node*> children;

@@ -5,6 +5,7 @@ target_sources(
         AnimationDataStorage.cpp
         AnimationEngine.cpp
         AssetRegistry.cpp
+        Camera.cpp
         DeferredRenderConfig.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
@@ -24,6 +25,7 @@ target_sources(
         ShadowPool.cpp
         Torch.cpp
         TorchResources.cpp
+        Transformation.cpp
 )
 
 add_subdirectory(core)

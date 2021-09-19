@@ -60,7 +60,7 @@ namespace trc
          */
         Camera(float left, float right, float bottom, float top, float zNear, float zFar);
 
-        auto getViewMatrix() const noexcept -> const mat4&;
+        auto getViewMatrix() const noexcept -> mat4;
         auto getProjectionMatrix() const noexcept -> const mat4&;
 
         /**

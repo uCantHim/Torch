@@ -9,7 +9,10 @@ auto trc::DrawableDataStore::create(Node& node) -> ui32
         data.emplace_back(new std::array<DrawableData, ARRAY_SIZE>);
     }
 
-    data[size_t(id / ARRAY_SIZE)]->at(id % ARRAY_SIZE) = { .node=&node };
+    data[size_t(id / ARRAY_SIZE)]->at(id % ARRAY_SIZE) = {
+        .modelMatrixId=node.getGlobalTransformID()
+    };
+
     return id;
 }
 

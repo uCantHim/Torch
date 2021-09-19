@@ -35,8 +35,6 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
 {
     std::swap(drawableDataId, other.drawableDataId);
     std::swap(data, other.data);
-    data->node = this;
-    other.data->node = &other;
 
     other.removeFromScene();
     updateDrawFunctions();
@@ -52,8 +50,6 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 
     std::swap(drawableDataId, rhs.drawableDataId);
     std::swap(data, rhs.data);
-    data->node = this;
-    rhs.data->node = &rhs;
 
     rhs.removeFromScene();
     updateDrawFunctions();
@@ -133,7 +129,7 @@ void trc::Drawable::updateDrawFunctions()
 
         auto layout = env.currentPipeline->getLayout();
         cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                   data->node->getGlobalTransform());
+                                   data->modelMatrixId.get());
         cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
                                    sizeof(mat4), static_cast<ui32>(data->mat));
     };
@@ -234,7 +230,7 @@ void trc::Drawable::drawShadow(
     auto layout = env.currentPipeline->getLayout();
     cmdBuf.pushConstants<mat4>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        0, data->node->getGlobalTransform()
+        0, data->modelMatrixId.get()
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,

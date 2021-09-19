@@ -54,13 +54,14 @@ auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
     return *this;
 }
 
-auto trc::Node::getGlobalTransform() const noexcept -> const mat4&
+auto trc::Node::getGlobalTransform() const noexcept -> mat4
 {
-    if (parent != nullptr) {
-        return matrices.get(globalTransformIndex);
-    }
+    return matrices.get(globalTransformIndex);
+}
 
-    return getTransformationMatrix();
+auto trc::Node::getGlobalTransformID() const noexcept -> ID
+{
+    return globalTransformIndex;
 }
 
 void trc::Node::update() noexcept
@@ -110,5 +111,12 @@ void trc::Node::detachFromParent()
     {
         parent->detach(*this);
         parent = nullptr;
+    }
+}
+
+void trc::Node::onLocalMatrixUpdate()
+{
+    if (parent == nullptr) {
+        matrices.set(globalTransformIndex, getTransformationMatrix());
     }
 }

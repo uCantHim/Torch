@@ -25,7 +25,7 @@ trc::Camera::Camera(float left, float right, float bottom, float top, float zNea
     makeOrthogonal(left, right, bottom, top, depthBounds.x, depthBounds.y);
 }
 
-auto trc::Camera::getViewMatrix() const noexcept -> const mat4&
+auto trc::Camera::getViewMatrix() const noexcept -> mat4
 {
 	return getGlobalTransform();
 }

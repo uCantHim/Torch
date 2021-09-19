@@ -13,7 +13,7 @@ namespace trc
 {
     struct DrawableData
     {
-        Node* node;
+        Transformation::ID modelMatrixId;
 
         Geometry geo{};
         MaterialID mat{};

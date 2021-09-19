@@ -1,4 +1,4 @@
-#include "util/Transformation.h"
+#include "Transformation.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
@@ -286,7 +286,7 @@ auto trc::Transformation::setRotation(const glm::quat& rot) -> self&
 
 
 
-auto trc::Transformation::getTransformationMatrix() const -> const glm::mat4&
+auto trc::Transformation::getTransformationMatrix() const -> mat4
 {
 	return matrices.get(matrixIndex);
 }
@@ -329,12 +329,12 @@ auto trc::Transformation::getRotationAsMatrix() const -> mat4
     return glm::mat4_cast(rotation);
 }
 
-auto trc::Transformation::getMatrixId() const -> ui32
+auto trc::Transformation::getMatrixId() const -> ID
 {
     return matrixIndex;
 }
 
-auto trc::Transformation::getMatrix(ui32 id) -> mat4
+auto trc::Transformation::getMatrix(ID id) -> mat4
 {
     return matrices.get(id);
 }
@@ -346,6 +346,8 @@ void trc::Transformation::updateMatrix()
         * getRotationAsMatrix()
         * getScaleAsMatrix()
     );
+
+    onLocalMatrixUpdate();
 }
 
 
@@ -354,7 +356,7 @@ void trc::Transformation::updateMatrix()
 //      Matrix storage      //
 // ------------------------ //
 
-auto trc::Transformation::MatrixStorage::create() -> ui32
+auto trc::Transformation::MatrixStorage::create() -> ID
 {
     const ui32 id = ui32(idGenerator.generate());
     if (matrices.size() <= id)
@@ -364,27 +366,21 @@ auto trc::Transformation::MatrixStorage::create() -> ui32
     }
     matrices[id] = mat4(1.0f);
 
-    return id;
+    return ID(id);
 }
 
-void trc::Transformation::MatrixStorage::free(ui32 id)
+void trc::Transformation::MatrixStorage::free(ID id)
 {
     idGenerator.free(id);
 }
 
-auto trc::Transformation::MatrixStorage::get(ui32 id) -> const mat4&
+auto trc::Transformation::MatrixStorage::get(ID id) -> mat4
 {
     assert(matrices.size() > id);
     return matrices[id];
 }
 
-auto trc::Transformation::MatrixStorage::getPtr(ui32 id) -> const void*
-{
-    assert(matrices.size() > id);
-    return &matrices[id];
-}
-
-void trc::Transformation::MatrixStorage::set(ui32 id, mat4 mat)
+void trc::Transformation::MatrixStorage::set(ID id, mat4 mat)
 {
     assert(matrices.size() > id);
     matrices[id] = mat;
