@@ -51,6 +51,14 @@ namespace trc
 
     /**
      * @brief The main deferred renderpass
+     *
+     * After the renderpass has completed, the g-buffer images are in the
+     * following layouts:
+     *  - normals:   eGeneral
+     *  - albedo:    eGeneral
+     *  - materials: eGeneral
+     *  - depth:     eShaderReadOnlyOptimal
+     *  - swapchain: ePresentSrcKHR
      */
     class RenderPassDeferred : public RenderPass
     {

@@ -35,11 +35,6 @@ layout (set = 1, binding = 1) uniform sampler2D textures[];
 
 layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
 
-layout (set = 2, binding = 5) restrict buffer FragmentListAllocator
-{
-    uint nextFragmentListIndex;
-};
-
 layout (set = 2, binding = 6) restrict buffer FragmentList
 {
     /**

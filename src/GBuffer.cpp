@@ -71,7 +71,8 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
                             | vk::ImageUsageFlagBits::eStorage;
     const auto depthUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment
                             | vk::ImageUsageFlagBits::eTransferSrc
-                            | vk::ImageUsageFlagBits::eInputAttachment;
+                            | vk::ImageUsageFlagBits::eInputAttachment
+                            | vk::ImageUsageFlagBits::eSampled;
 
     // Normals
     images.emplace_back(

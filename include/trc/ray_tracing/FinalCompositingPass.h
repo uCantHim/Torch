@@ -6,12 +6,17 @@
 #include "GBuffer.h"
 #include "RayBuffer.h"
 
+namespace trc {
+    class AssetRegistry;
+}
+
 namespace trc::rt
 {
     struct FinalCompositingPassCreateInfo
     {
-        vkb::FrameSpecific<GBuffer>* gBuffer;
-        vkb::FrameSpecific<RayBuffer>* rayBuffer;
+        vkb::FrameSpecific<GBuffer>* gBuffer{ nullptr };
+        vkb::FrameSpecific<RayBuffer>* rayBuffer{ nullptr };
+        AssetRegistry* assetRegistry{ nullptr };
     };
 
     auto getFinalCompositingStage() -> RenderStageType::ID;
@@ -32,6 +37,14 @@ namespace trc::rt
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpass) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
+        /**
+         * binding 0 (g-buffer normals):       image2D rgba16
+         * binding 1 (g-buffer albedo):        uimage2D r32ui
+         * binding 2 (g-buffer materials):     uimage2D r32ui
+         * binding 3 (ray-buffer reflections): image2D rgba8
+         */
+        auto getInputImageDescriptor() const -> const DescriptorProviderInterface&;
+
     private:
         static constexpr uvec3 COMPUTE_LOCAL_SIZE{ 10, 10, 1 };
 
@@ -43,6 +56,8 @@ namespace trc::rt
         vk::UniqueDescriptorSetLayout outputLayout;
         vkb::FrameSpecific<vk::UniqueDescriptorSet> inputSets;
         vkb::FrameSpecific<vk::UniqueDescriptorSet> outputSets;
+
+        std::vector<vk::UniqueSampler> depthSamplers;
 
         FrameSpecificDescriptorProvider inputSetProvider;
         FrameSpecificDescriptorProvider outputSetProvider;

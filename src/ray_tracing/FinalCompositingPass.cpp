@@ -4,6 +4,8 @@
 
 #include "util/Util.h"
 #include "DescriptorSetUtils.h"
+#include "AssetRegistry.h"
+#include "ray_tracing/RayPipelineBuilder.h"
 
 
 
@@ -44,10 +46,18 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     }()),
     // Layouts
     inputLayout(buildDescriptorSetLayout()
-        .addBinding(vk::DescriptorType::eStorageImage, GBuffer::NUM_IMAGES,
-                    vk::ShaderStageFlagBits::eCompute)
-        .addBinding(vk::DescriptorType::eStorageImage, RayBuffer::NUM_IMAGES,
-                    vk::ShaderStageFlagBits::eCompute)
+        // G-Buffer bindings first
+        .addBinding(vk::DescriptorType::eStorageImage, 1,
+                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
+        .addBinding(vk::DescriptorType::eStorageImage, 1,
+                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
+        .addBinding(vk::DescriptorType::eStorageImage, 1,
+                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
+        .addBinding(vk::DescriptorType::eCombinedImageSampler, 1,
+                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
+        // Ray-Buffer bindings
+        .addBinding(vk::DescriptorType::eStorageImage, 1,
+                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
         .build(window.getDevice())
     ),
     outputLayout(buildDescriptorSetLayout()
@@ -63,7 +73,11 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     computePipeline(makeComputePipeline(
         window.getDevice(),
         makePipelineLayout(window.getDevice(),
-            { *inputLayout, *outputLayout },
+            {
+                *inputLayout,
+                *outputLayout,
+                info.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout()
+            },
             {}
         ),
         vkb::createShaderModule(
@@ -72,6 +86,10 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         )
     ))
 {
+    assert(info.gBuffer != nullptr);
+    assert(info.rayBuffer != nullptr);
+    assert(info.assetRegistry != nullptr);
+
     inputSets = {
         window.getSwapchain(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
@@ -79,20 +97,38 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
                 window.getDevice()->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
             );
 
+            vk::Sampler depthSampler = *depthSamplers.emplace_back(
+                window.getDevice()->createSamplerUnique(
+                    vk::SamplerCreateInfo(
+                        {},
+                        vk::Filter::eLinear, vk::Filter::eLinear,
+                        vk::SamplerMipmapMode::eNearest,
+                        vk::SamplerAddressMode::eRepeat, // u
+                        vk::SamplerAddressMode::eRepeat, // v
+                        vk::SamplerAddressMode::eRepeat  // w
+                    )
+                )
+            );
+
             auto& g = info.gBuffer->getAt(i);
             auto& r = info.rayBuffer->getAt(i);
-            std::vector<vk::DescriptorImageInfo> firstBinding{
+            std::vector<vk::DescriptorImageInfo> gImages{
                 { {}, g.getImageView(GBuffer::eNormals),   vk::ImageLayout::eGeneral },
                 { {}, g.getImageView(GBuffer::eAlbedo),    vk::ImageLayout::eGeneral },
                 { {}, g.getImageView(GBuffer::eMaterials), vk::ImageLayout::eGeneral },
             };
-            std::vector<vk::DescriptorImageInfo> secondBinding{
+            std::vector<vk::DescriptorImageInfo> depthImage{
+                { depthSampler, g.getImageView(GBuffer::eDepth), vk::ImageLayout::eShaderReadOnlyOptimal },
+            };
+
+            std::vector<vk::DescriptorImageInfo> rayImages{
                 { {}, r.getImageView(RayBuffer::eReflections), vk::ImageLayout::eGeneral },
             };
 
             std::vector<vk::WriteDescriptorSet> writes{
-                { *set, 0, 0, vk::DescriptorType::eStorageImage, firstBinding },
-                { *set, 1, 0, vk::DescriptorType::eStorageImage, secondBinding },
+                { *set, 0, 0, vk::DescriptorType::eStorageImage, gImages },
+                { *set, 3, 0, vk::DescriptorType::eCombinedImageSampler, depthImage },
+                { *set, 4, 0, vk::DescriptorType::eStorageImage, rayImages },
             };
             window.getDevice()->updateDescriptorSets(writes, {});
 
@@ -120,6 +156,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
 
     computePipeline.addStaticDescriptorSet(0, inputSetProvider);
     computePipeline.addStaticDescriptorSet(1, outputSetProvider);
+    computePipeline.addStaticDescriptorSet(2, info.assetRegistry->getDescriptorSetProvider());
 }
 
 void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
@@ -169,4 +206,10 @@ void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassC
 
 void trc::rt::FinalCompositingPass::end(vk::CommandBuffer)
 {
+}
+
+auto trc::rt::FinalCompositingPass::getInputImageDescriptor() const
+    -> const DescriptorProviderInterface&
+{
+    return inputSetProvider;
 }

@@ -130,21 +130,21 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             {}, vk::Format::eR16G16B16A16Sfloat, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
         ),
         // Albedo
         vk::AttachmentDescription(
             {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
         ),
         // Material indices
         vk::AttachmentDescription(
             {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
         ),
         // Depth-/Stencil buffer
         vk::AttachmentDescription(
@@ -253,8 +253,7 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
     const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
     const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
-    depthImage.changeLayout(
-        cmdBuf,
+    depthImage.changeLayout(cmdBuf,
         vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
         { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
     );
@@ -265,9 +264,13 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
             0, // buffer offset
             0, 0, // some weird 2D or 3D offsets, idk
             vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eDepth, 0, 0, 1),
-            { static_cast<i32>(mousePos.x), static_cast<i32>(mousePos.y), 0 },
+            { mousePos.x, mousePos.y, 0 },
             { 1, 1, 1 }
         )
+    );
+    depthImage.changeLayout(cmdBuf,
+        vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
     );
 }
 

@@ -42,7 +42,7 @@ namespace trc
         /**
          * @brief Reflectivity, in the range [0, 1]
          *
-         * Currently not implemented.
+         * Ray-tracing-only property.
          */
         float reflectivity{ 0.0f };
 
