@@ -40,16 +40,4 @@ namespace trc::rt
         ui8 flags : 8 { 0 };  // vk::GeometryInstanceFlagsKHR
         ui64 accelerationStructureAddress;
     };
-
-    class Instance : public Node
-    {
-    public:
-        /**
-         * Updates the instance's transform
-         */
-        auto getInstanceData() const -> const GeometryInstance&;
-
-    private:
-        GeometryInstance instanceData;
-    };
 }

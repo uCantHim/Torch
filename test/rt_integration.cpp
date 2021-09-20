@@ -8,6 +8,7 @@
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 #include <trc/ray_tracing/FinalCompositingPass.h>
+#include <trc/ray_tracing/RayScene.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -58,80 +59,22 @@ int main()
     );
     sphere.attachToScene(*scene);
     sphere.translate(-1.5f, 0.5f, 1.0f).setScale(0.2f);
+    trc::Node sphereNode;
+    sphereNode.attach(sphere);
+    scene->getRoot().attach(sphereNode);
 
     auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
     //auto& shadow = scene->enableShadow(sun, { .shadowMapResolution=uvec2(2048, 2048) }, *torch.shadowPool);
     //shadow.setProjectionMatrix(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -10.0f, 30.0f));
     //scene->getRoot().attach(shadow);
 
-    // Create ray traced content
-    trc::Geometry geo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get().get();
 
-    trc::Geometry tri = ar.add(
-        trc::GeometryData{
-            .vertices = {
-                { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },
-                { vec3(1.0f, 1.0f, 0.0f), {}, {}, {} },
-                { vec3(0.0f, 1.0f, 0.0f), {}, {}, {} },
-                { vec3(1.0f, 0.0f, 0.0f), {}, {}, {} },
-            },
-            .indices = {
-                0, 1, 2,
-                0, 3, 1,
-            }
-        }
-    ).get();
+    // --- Ray tracing scene --- //
 
-    // --- BLAS --- //
-
-    vkb::MemoryPool asPool{ instance.getDevice(), 100000000 };
-    BLAS triBlas{ instance, tri };
-    BLAS blas{ instance, geo };
-    trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
-
-
-    // --- TLAS --- //
-
-    std::vector<trc::rt::GeometryInstance> instances{
-        // Skeleton
-        {
-            {
-                0.03, 0, 0, -2,
-                0, 0.03, 0, 0,
-                0, 0, 0.03, 0
-            },
-            42,   // instance custom index
-            0xff, // mask
-            0,    // shader binding table offset
-            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-            | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable,
-            blas
-        },
-        // Triangle
-        {
-            {
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0
-            },
-            43,   // instance custom index
-            0xff, // mask
-            0,    // shader binding table offset
-            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-            | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable,
-            triBlas
-        }
-    };
-    vkb::Buffer instanceBuffer{
-        instance.getDevice(),
-        instances,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress
-        | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
-    };
-
-    TLAS tlas{ instance, 30 };
-    tlas.build(*instanceBuffer);
+    trc::rt::RayScene rayScene(instance);
+    rayScene.addDrawable({ tree.getGlobalTransformID(), treeGeo, treeMat });
+    rayScene.addDrawable({ floor.getGlobalTransformID(), floor.getGeometry(), tree.getMaterial() });
+    rayScene.addDrawable({ sphere.getGlobalTransformID(), sphere.getGeometry(), sphere.getMaterial() });
 
 
     // --- Descriptor sets --- //
@@ -154,7 +97,7 @@ int main()
         { *descPool, 1, &*tlasDescLayout }
     )[0]);
 
-    auto tlasHandle = *tlas;
+    auto tlasHandle = *rayScene.getTlas();
     vk::StructureChain asWriteChain{
         vk::WriteDescriptorSet(
             *tlasDescSet, 0, 0, 1,
@@ -208,16 +151,14 @@ int main()
     constexpr ui32 maxRecursionDepth{ 16 };
     auto [rayPipeline, shaderBindingTable] =
         trc::rt::buildRayTracingPipeline(*torch.instance)
-        .addRaygenGroup(TRC_SHADER_DIR"/test/raygen.rgen.spv")
+        .addRaygenGroup(TRC_SHADER_DIR"/ray_tracing/reflect.rgen.spv")
         .beginTableEntry()
-            .addMissGroup(TRC_SHADER_DIR"/test/miss_blue.rmiss.spv")
-            .addMissGroup(TRC_SHADER_DIR"/test/miss_orange.rmiss.spv")
+            .addMissGroup(TRC_SHADER_DIR"/ray_tracing/blue.rmiss.spv")
         .endTableEntry()
         .addTrianglesHitGroup(
-            TRC_SHADER_DIR"/test/closesthit.rchit.spv",
-            TRC_SHADER_DIR"/test/anyhit.rahit.spv"
+            TRC_SHADER_DIR"/ray_tracing/reflect.rchit.spv",
+            TRC_SHADER_DIR"/ray_tracing/anyhit.rahit.spv"
         )
-        .addCallableGroup(TRC_SHADER_DIR"/test/callable.rcall.spv")
         .build(
             maxRecursionDepth,
             trc::makePipelineLayout(torch.instance->getDevice(),
@@ -288,7 +229,7 @@ int main()
                 shaderBindingTable.getEntryAddress(0),
                 shaderBindingTable.getEntryAddress(1),
                 shaderBindingTable.getEntryAddress(2),
-                shaderBindingTable.getEntryAddress(3),
+                {},
                 swapchain.getImageExtent().width,
                 swapchain.getImageExtent().height,
                 1,
@@ -299,11 +240,20 @@ int main()
 
 
 
+    vkb::Timer timer;
     while (swapchain.isOpen())
     {
         vkb::pollEvents();
 
+        sphereNode.setRotation(timer.duration() / 1000.0f * 0.5f, vec3(0, 1, 0));
+
         scene->updateTransforms();
+        device.executeCommandsSynchronously(
+            vkb::QueueType::compute,
+            [&](vk::CommandBuffer cmdBuf) {
+                rayScene.update(cmdBuf);
+            }
+        );
 
         torch.window->drawFrame(trc::DrawConfig{
             .scene=scene.get(),

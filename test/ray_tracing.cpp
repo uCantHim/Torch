@@ -97,7 +97,7 @@ int main()
     };
 
     TLAS tlas{ instance, 30 };
-    tlas.build(*instanceBuffer);
+    tlas.build(*instanceBuffer, instances.size());
 
 
     // --- Descriptor sets --- //

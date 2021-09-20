@@ -1,0 +1,75 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+
+#include "../material.glsl"
+
+layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
+layout (set = 1, binding = 0, rgba16) readonly uniform image2D gBufferNormal;
+layout (set = 1, binding = 1, r32ui) readonly uniform uimage2D gBufferAlbedo;
+layout (set = 1, binding = 2, r32ui) readonly uniform uimage2D gBufferMaterial;
+layout (set = 1, binding = 3) uniform sampler2D gBufferDepth;
+
+layout (set = 1, binding = 4, rgba8) writeonly uniform image2D outputImage;
+
+layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
+{
+    Material materials[];
+};
+
+layout (location = 0) rayPayloadEXT vec4 color;
+
+layout (push_constant) uniform PushConstants
+{
+    mat4 viewMatrix;
+    mat4 projMatrix;
+};
+
+vec3 worldPosFromDepth(vec2 normalPixelCoord, float depth)
+{
+    const vec4 clipSpace = vec4(normalPixelCoord * 2.0 - 1.0, depth, 1.0);
+    const vec4 viewSpace = inverse(projMatrix) * clipSpace;
+    const vec4 worldSpace = inverse(viewMatrix) * (viewSpace / viewSpace.w);
+    // or: worldSpace /= worldSpace.w;
+
+    return worldSpace.xyz;
+}
+
+void main()
+{
+    const vec2 normalPixelCoord = (vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy));
+    const ivec2 texelCoord = ivec2(gl_LaunchIDEXT.xy);
+
+    uint mat = imageLoad(gBufferMaterial, texelCoord).r;
+    if (materials[mat].reflectivity <= 0.0f) {
+        return;
+    }
+
+    const float depth = texture(gBufferDepth, normalPixelCoord).r;
+    const vec3 worldPos = worldPosFromDepth(normalPixelCoord, depth);
+
+    vec4 cameraPos = inverse(viewMatrix) * vec4(0, 0, 0, 1);
+    vec3 rayOrigin = worldPos;
+    vec3 rayDirection = normalize(worldPos - cameraPos.xyz);
+    vec3 reflectedRay = reflect(rayDirection, imageLoad(gBufferNormal, texelCoord).xyz);
+    reflectedRay += rayDirection * 0.1;
+    float minT = 0.001;
+    float maxT = 1000.0;
+
+    color = vec4(1, 1, 1, 1);
+
+    traceRayEXT(
+        TLAS,         // top-level acceleration structure
+        0,            // ray flags
+        0xff,         // cull mask
+        0,            // sbt record offset
+        0,            // sbt record stride
+        0,            // miss index
+        rayOrigin,    // ray origin
+        minT,         // ray min range
+        reflectedRay, // ray direction
+        maxT,         // ray max range
+        0             // payload location
+    );
+
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), color);
+}
