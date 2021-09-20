@@ -147,16 +147,29 @@ namespace trc::rt
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
-         * @brief Build the TLAS from a buffer of instances
-         *
-         * Remaining instances are discarded if the number of instances in the
-         * vector is greater than maxInstances.
+         * @brief Build the TLAS from a buffer of GeometryInstance structs
          *
          * @param vk::Buffer instanceBuffer Buffer that contains instance
          *        data formatted as vk::AccelerationStructureInstanceKHR
          *        dictates.
          */
-        void build(vk::Buffer instanceBuffer, ui32 offset = 0);
+        void build(vk::Buffer instanceBuffer, ui32 numInstances, ui32 offset = 0);
+
+        /**
+         * @brief Build the TLAS from a buffer of GeometryInstance structs
+         *
+         * @param vk::Buffer instanceBuffer Buffer that contains instance
+         *        data formatted as vk::AccelerationStructureInstanceKHR
+         *        dictates.
+         * @param ui32 numInstance The number of instances to read from
+         *        instanceBuffer. Will be capped at the TLAS's maxInstances
+         *        number.
+         * @param ui32 offset Byte offset into instanceBuffer.
+         */
+        void build(vk::CommandBuffer cmdBuf,
+                   vk::Buffer instanceBuffer,
+                   ui32 numInstances,
+                   ui32 offset = 0);
 
     private:
         const Instance& instance;

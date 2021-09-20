@@ -243,6 +243,21 @@ trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
 
 void trc::rt::TopLevelAccelerationStructure::build(
     vk::Buffer instanceBuffer,
+    ui32 numInstances,
+    ui32 offset)
+{
+    instance.getDevice().executeCommandsSynchronously(
+        vkb::QueueType::compute,
+        [&](vk::CommandBuffer cmdBuf) {
+            build(cmdBuf, instanceBuffer, numInstances, offset);
+        }
+    );
+}
+
+void trc::rt::TopLevelAccelerationStructure::build(
+    vk::CommandBuffer cmdBuf,
+    vk::Buffer instanceBuffer,
+    ui32 numInstances,
     ui32 offset)
 {
     // Use new instance buffer
@@ -256,20 +271,20 @@ void trc::rt::TopLevelAccelerationStructure::build(
         vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer
     };
 
-    vk::AccelerationStructureBuildRangeInfoKHR buildRange{ maxInstances, offset, 0, 0 };
-    instance.getDevice().executeCommandsSynchronously(vkb::QueueType::compute,
-        [&](vk::CommandBuffer cmdBuf)
-        {
-            cmdBuf.buildAccelerationStructuresKHR(
-                geoBuildInfo
-                    .setGeometries(geometry)
-                    .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
-                    .setDstAccelerationStructure(*accelerationStructure)
-                    .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
-                { &buildRange },
-                instance.getDL()
-            );
-        }
+    vk::AccelerationStructureBuildRangeInfoKHR buildRange{
+        glm::min(numInstances, maxInstances),
+        offset,
+        0, 0
+    };
+
+    cmdBuf.buildAccelerationStructuresKHR(
+        geoBuildInfo
+            .setGeometries(geometry)
+            .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+            .setDstAccelerationStructure(*accelerationStructure)
+            .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
+        { &buildRange },
+        instance.getDL()
     );
 }
 
