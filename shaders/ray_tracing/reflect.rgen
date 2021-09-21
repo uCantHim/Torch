@@ -51,8 +51,7 @@ void main()
     vec3 rayOrigin = worldPos;
     vec3 rayDirection = normalize(worldPos - cameraPos.xyz);
     vec3 reflectedRay = reflect(rayDirection, imageLoad(gBufferNormal, texelCoord).xyz);
-    reflectedRay += rayDirection * 0.1;
-    float minT = 0.001;
+    float minT = 0.01;
     float maxT = 1000.0;
 
     color = vec4(1, 1, 1, 1);

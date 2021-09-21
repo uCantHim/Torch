@@ -42,12 +42,12 @@ void trc::rt::RayScene::update(vk::CommandBuffer cmdBuf)
     // Update BLAS transforms
     for (ui32 i = 0; i < modelMatrices.size(); i++)
     {
-        blasInstanceBufferMap[i].transform = modelMatrices.at(i).get();
+        blasInstanceBufferMap[i].transform = glm::transpose(modelMatrices.at(i).get());
     }
 
     cmdBuf.copyBuffer(
         *drawableDataStagingBuffer, *drawableDataDeviceBuffer,
-        vk::BufferCopy(0, 0, drawables.size())
+        vk::BufferCopy(0, 0, drawables.size() * sizeof(DrawableShadingData))
     );
 
     tlas.build(cmdBuf, *blasInstanceBuffer, drawables.size());
@@ -59,9 +59,10 @@ void trc::rt::RayScene::addDrawable(RayTraceable obj)
         throw std::runtime_error("[In RayScene::addDrawable]: Maximum drawables exceeded!");
     }
 
+    const ui32 id = drawables.size();
     auto& d = drawables.emplace_back(
         obj,
-        ui32(drawables.size()),
+        id,
         BLAS(instance, obj.geo.get(), blasAlloc)
     );
     modelMatrices.emplace_back(obj.modelMatrix);
@@ -70,17 +71,16 @@ void trc::rt::RayScene::addDrawable(RayTraceable obj)
     d.blas.build();
 
     // Create acceleration structure instances and drawable shading data
-    blasInstanceBufferMap[drawables.size()] = {
+    blasInstanceBufferMap[id] = {
         d.info.modelMatrix.get(),
-        d.index,
+        id,
         0xff,   // mask
         0,      // sbt offset
         vk::GeometryInstanceFlagBitsKHR::eForceOpaque
         | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable,
-        //,     // GeometryInstanceFlagsKHR
         d.blas
     };
-    drawableDataBufferMap[drawables.size()] = { obj.geo.id(), obj.mat.id() };
+    drawableDataBufferMap[id] = { obj.geo.id(), obj.mat.id() };
 }
 
 auto trc::rt::RayScene::getTlas() -> TLAS&

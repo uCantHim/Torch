@@ -34,34 +34,49 @@ int main()
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
     // Create some rasterized stuff
-    trc::GeometryID treeGeo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx", ar).get();
-    trc::MaterialID treeMat = ar.add(trc::Material{ .color=vec4(0, 1, 0, 1) });
-    trc::Drawable tree(treeGeo, treeMat, *scene);
-    tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
-
-    trc::Drawable floor(
-        ar.add(trc::makePlaneGeo(50.0f, 50.0f, 80, 80)),
-        ar.add(trc::Material{
-            .kSpecular=vec4(0.2f),
-            .diffuseTexture=ar.add(
-                vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/tex_pavement_grassy_albedo.tif")
-            ),
-            .bumpTexture=ar.add(
-                vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/tex_pavement_grassy_normal.tif")
-            )
-        })
-    );
-    floor.attachToScene(*scene);
-
     trc::Drawable sphere(
         trc::loadGeometry(TRC_TEST_ASSET_DIR"/sphere.fbx", ar).get(),
-        ar.add(trc::Material{ .reflectivity=1.0f })
+        ar.add(trc::Material{
+            .color=vec4(0.3f, 0.3f, 0.3f, 1),
+            .kSpecular=vec4(0.3f, 0.3f, 0.3f, 1),
+            .reflectivity=1.0f,
+        })
     );
     sphere.attachToScene(*scene);
     sphere.translate(-1.5f, 0.5f, 1.0f).setScale(0.2f);
     trc::Node sphereNode;
     sphereNode.attach(sphere);
     scene->getRoot().attach(sphereNode);
+
+    trc::Drawable plane(
+        ar.add(trc::makePlaneGeo()),
+        ar.add(trc::Material{ .reflectivity=1.0f }),
+        *scene
+    );
+    plane.rotateX(glm::radians(90.0f))
+        .rotateY(glm::radians(-15.0f))
+        .translate(0.5f, 0.5f, -1.0f)
+        .setScale(3.0f, 1.0f, 1.7f);
+
+    trc::GeometryID treeGeo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx", ar).get();
+    trc::MaterialID treeMat = ar.add(trc::Material{ .color=vec4(0, 1, 0, 1) });
+    trc::Drawable tree(treeGeo, treeMat, *scene);
+    tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
+
+    trc::Drawable floor(
+        ar.add(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
+        ar.add(trc::Material{
+            .kSpecular=vec4(0.2f),
+            .reflectivity=0.3f,
+            .diffuseTexture=ar.add(
+                vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/tex_pavement_grassy_albedo.tif")
+            ),
+            .bumpTexture=ar.add(
+                vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/tex_pavement_grassy_normal.tif")
+            ),
+        })
+    );
+    floor.attachToScene(*scene);
 
     auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
     //auto& shadow = scene->enableShadow(sun, { .shadowMapResolution=uvec2(2048, 2048) }, *torch.shadowPool);
@@ -72,9 +87,10 @@ int main()
     // --- Ray tracing scene --- //
 
     trc::rt::RayScene rayScene(instance);
-    rayScene.addDrawable({ tree.getGlobalTransformID(), treeGeo, treeMat });
-    rayScene.addDrawable({ floor.getGlobalTransformID(), floor.getGeometry(), tree.getMaterial() });
+    rayScene.addDrawable({ floor.getGlobalTransformID(), floor.getGeometry(), floor.getMaterial() });
     rayScene.addDrawable({ sphere.getGlobalTransformID(), sphere.getGeometry(), sphere.getMaterial() });
+    rayScene.addDrawable({ plane.getGlobalTransformID(), plane.getGeometry(), plane.getMaterial() });
+    rayScene.addDrawable({ tree.getGlobalTransformID(), treeGeo, treeMat });
 
 
     // --- Descriptor sets --- //
@@ -82,14 +98,16 @@ int main()
     auto tlasDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
+        .addBinding(vk::DescriptorType::eStorageBuffer, 1, trc::rt::ALL_RAY_PIPELINE_STAGE_FLAGS)
         .buildUnique(torch.instance->getDevice());
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
+        vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1),
     };
     auto descPool = instance.getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        swapchain.getFrameCount() + 1,
+        1,
         poolSizes
     ));
 
@@ -106,7 +124,15 @@ int main()
         ),
         vk::WriteDescriptorSetAccelerationStructureKHR(tlasHandle)
     };
-    instance.getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
+    vk::DescriptorBufferInfo bufferInfo(rayScene.getDrawableDataBuffer(), 0, VK_WHOLE_SIZE);
+    vk::WriteDescriptorSet bufferWrite(
+        *tlasDescSet, 1, 0, vk::DescriptorType::eStorageBuffer,
+        {}, bufferInfo
+    );
+    instance.getDevice()->updateDescriptorSets(
+        { asWriteChain.get<vk::WriteDescriptorSet>(), bufferWrite },
+        {}
+    );
 
 
     // --- Output Images --- //
@@ -239,6 +265,16 @@ int main()
     );
 
 
+    vkb::on<vkb::KeyPressEvent>([&](auto& e) {
+        static bool count{ false };
+        if (e.key == vkb::Key::r)
+        {
+            auto& mat = ar.get(floor.getMaterial());
+            mat.reflectivity = 0.3f * float(count);
+            ar.updateMaterials();
+            count = !count;
+        }
+    });
 
     vkb::Timer timer;
     while (swapchain.isOpen())

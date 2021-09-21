@@ -62,6 +62,11 @@ auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> ri
         }
     );
 
+    if (config.enableRayTracing)
+    {
+        writeDescriptors();
+    }
+
     return key;
 }
 
