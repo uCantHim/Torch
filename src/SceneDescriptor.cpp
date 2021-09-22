@@ -2,6 +2,7 @@
 
 #include "core/Window.h"
 #include "Scene.h"
+#include "ray_tracing/RayPipelineBuilder.h"
 
 
 
@@ -129,12 +130,17 @@ auto trc::SceneDescriptor::getDescLayout() const noexcept -> vk::DescriptorSetLa
 
 void trc::SceneDescriptor::createDescriptors()
 {
+    vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment;
+    if (window.getInstance().hasRayTracing()) {
+        shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+    }
+
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
         // Light buffer
-        { 0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        { 0, vk::DescriptorType::eStorageBuffer, 1, shaderStages },
         // Picking buffer
-        { 1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        { 1, vk::DescriptorType::eStorageBuffer, 1, shaderStages },
     };
     std::vector<vk::DescriptorBindingFlags> flags{
         vk::DescriptorBindingFlagBits::eUpdateAfterBind,
