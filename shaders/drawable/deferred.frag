@@ -55,7 +55,7 @@ layout (push_constant) uniform PushConstants
 };
 
 // Input
-layout (location = 0) in Vertex
+layout (location = 0) in VertexData
 {
     vec3 worldPos;
     vec2 uv;

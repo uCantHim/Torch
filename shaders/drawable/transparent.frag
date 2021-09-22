@@ -2,8 +2,14 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-#include "../material.glsl"
-#include "../light.glsl"
+#define ASSET_DESCRIPTOR_SET_BINDING 1
+#include "../asset_registry_descriptor.glsl"
+
+#define LIGHT_DESCRIPTOR_SET 2
+#define LIGHT_DESCRIPTOR_BINDING 0
+#define SHADOW_DESCRIPTOR_SET_BINDING 5
+#include "../lighting.glsl"
+
 #define TRANSPARENCY_SET_INDEX 3
 #include "../transparency.glsl"
 
@@ -28,21 +34,6 @@ layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
     vec2 resolution;
 } global;
 
-layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
-{
-    Material materials[];
-};
-
-layout (set = 1, binding = 1) uniform sampler2D textures[];
-
-layout (set = 2, binding = 0) buffer LightBuffer
-{
-    uint numSunLights;
-    uint numPointLights;
-    uint numAmbientLights;
-    Light lights[];
-};
-
 layout (set = 2, binding = 1) restrict buffer PickingBuffer
 {
     uint pickableID;
@@ -57,7 +48,7 @@ layout (push_constant) uniform PushConstants
 };
 
 // Input
-layout (location = 0) in Vertex
+layout (location = 0) in VertexData
 {
     vec3 worldPos;
     vec2 uv;
@@ -71,9 +62,6 @@ layout (location = 0) in Vertex
 /////////////////////
 //      Main       //
 /////////////////////
-
-#define SHADOW_DESCRIPTOR_SET_BINDING 5
-#include "../lighting.glsl"
 
 vec3 calcVertexNormal();
 

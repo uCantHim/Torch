@@ -1,5 +1,8 @@
 // Various lighting calculations
 
+#ifndef TRC_LIGHTING_GLSL_INCLUDE
+#define TRC_LIGHTING_GLSL_INCLUDE
+
 #include "shadow.glsl"
 
 struct LightValue
@@ -143,3 +146,7 @@ vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint 
 
     return albedo * min((ambient + diffuse), vec3(1.0)) + specular;
 }
+
+
+
+#endif

@@ -24,6 +24,15 @@ struct Light
     uint shadowMapIndices[4];
 };
 
+layout (set = LIGHT_DESCRIPTOR_SET, binding = LIGHT_DESCRIPTOR_BINDING)
+    restrict readonly buffer LightBuffer
+{
+    uint numSunLights;
+    uint numPointLights;
+    uint numAmbientLights;
+    Light lights[];
+};
+
 #define HAS_SHADOW(light) (light.numShadowMaps > 0)
 
 #endif

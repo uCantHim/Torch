@@ -2,8 +2,13 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-#include "material.glsl"
-#include "light.glsl"
+#define ASSET_DESCRIPTOR_SET_BINDING 1
+#include "asset_registry_descriptor.glsl"
+
+#define SHADOW_DESCRIPTOR_SET_BINDING 4
+#define LIGHT_DESCRIPTOR_SET 3
+#define LIGHT_DESCRIPTOR_BINDING 0
+#include "lighting.glsl"
 
 #define MAX_FRAGS 10
 
@@ -26,13 +31,6 @@ layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
     vec2 resolution;
 } global;
 
-layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
-{
-    Material materials[];
-};
-
-layout (set = 1, binding = 1) uniform sampler2D textures[];
-
 layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
 
 layout (set = 2, binding = 6) restrict buffer FragmentList
@@ -45,23 +43,12 @@ layout (set = 2, binding = 6) restrict buffer FragmentList
     uvec4 fragmentList[];
 };
 
-layout (set = 3, binding = 0) restrict readonly buffer LightBuffer
-{
-    uint numSunLights;
-    uint numPointLights;
-    uint numAmbientLights;
-    Light lights[];
-};
-
 layout (location = 0) out vec4 fragColor;
 
 
 /////////////////////
 //      Main       //
 /////////////////////
-
-#define SHADOW_DESCRIPTOR_SET_BINDING 4
-#include "lighting.glsl"
 
 vec4 worldPosFromDepth(float depth);
 vec3 blendTransparent(vec3 opaqueColor);
