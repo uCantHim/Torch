@@ -191,7 +191,9 @@ int main()
                 {
                     *tlasDescLayout,
                     compositing.getInputImageDescriptor().getDescriptorSetLayout(),
-                    torch.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout()
+                    torch.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout(),
+                    torch.renderConfig->getSceneDescriptorProvider().getDescriptorSetLayout(),
+                    torch.shadowPool->getProvider().getDescriptorSetLayout(),
                 },
                 {
                     // View and projection matrices
@@ -213,6 +215,8 @@ int main()
     rayPipeline.addStaticDescriptorSet(0, tlasDescProvider);
     rayPipeline.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
     rayPipeline.addStaticDescriptorSet(2, torch.assetRegistry->getDescriptorSetProvider());
+    rayPipeline.addStaticDescriptorSet(3, torch.renderConfig->getSceneDescriptorProvider());
+    rayPipeline.addStaticDescriptorSet(4, torch.shadowPool->getProvider());
 
 
     // --- Draw function --- //

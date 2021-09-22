@@ -1,11 +1,14 @@
 #version 460
 #extension GL_GOOGLE_include_directive : require
-#extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier: require
+#extension GL_EXT_ray_tracing : require
 
 #define ASSET_DESCRIPTOR_SET_BINDING 2
+#define LIGHT_DESCRIPTOR_SET 3
+#define LIGHT_DESCRIPTOR_BINDING 0
 #include "../asset_registry_descriptor.glsl"
 #include "hit_utils.glsl"
+#include "../lighting.glsl"
 
 struct DrawableData
 {
@@ -44,7 +47,5 @@ void main()
         albedo = texture(textures[diffTexture], uv).rgb;
     }
 
-    //color = vec4(albedo, 1);
-    //color = calcLighting(albedo, hitPos, normal, gl_WorldRayDirectionEXT, mat);
-    color = vec4(abs(normal), 1);
+    color.xyz = calcLighting(albedo, hitPos, normal, gl_WorldRayOriginEXT, mat);
 }
