@@ -109,8 +109,7 @@ vec3 calcLighting(vec3 albedo, vec3 worldPos, vec3 normal, vec3 cameraPos, uint 
     // This algorithm has undefined behaviour for normals N where |N| == 0
     // We exit early if that's the case.
     bvec3 nz = notEqual(normal, vec3(0.0));
-    if (nz != bvec3(true, true, true)) {
-    //if (!(nz.x || nz.y || nz.z)) {
+    if (!(nz.x || nz.y || nz.z)) {
         return albedo;
     }
 
