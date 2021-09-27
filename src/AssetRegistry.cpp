@@ -13,7 +13,19 @@ trc::AssetRegistry::AssetRegistry(
     :
     instance(instance),
     device(instance.getDevice()),
-    memoryPool(instance.getDevice(), MEMORY_POOL_CHUNK_SIZE),
+    memoryPool([&] {
+        if (info.enableRayTracing)
+        {
+            return vkb::MemoryPool(
+                instance.getDevice(),
+                MEMORY_POOL_CHUNK_SIZE,
+                vk::MemoryAllocateFlagBits::eDeviceAddress
+            );
+        }
+        else {
+            return vkb::MemoryPool(instance.getDevice(), MEMORY_POOL_CHUNK_SIZE);
+        }
+    }()),
     config(addDefaultValues(info)),
     materialBuffer(
         instance.getDevice(),

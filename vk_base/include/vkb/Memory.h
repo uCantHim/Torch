@@ -74,6 +74,24 @@ namespace vkb
                              vk::MemoryRequirements requirements) -> DeviceMemory;
 
         /**
+         * @brief Allocate a single piece of device memory
+         *
+         * This implements a canonical way of allocation device memory.
+         *
+         * @param const Device&           device       The device used to allocate the memory
+         * @param vk::MemoryPropertyFlags properties   Properties that the type of the allocated
+         *                                             memory should have
+         * @param vk::MemoryRequirements  requirements
+         * @param vk::MemoryAllocateFlags allocateFlags Additional flags
+         *
+         * @return DeviceMemory
+         */
+        static auto allocate(const Device& device,
+                             vk::MemoryPropertyFlags properties,
+                             vk::MemoryRequirements requirements,
+                             vk::MemoryAllocateFlags allocateFlags) -> DeviceMemory;
+
+        /**
          * @brief Bind the memory to a buffer
          */
         void bindToBuffer(const Device& device, vk::Buffer buffer) const;
@@ -136,6 +154,9 @@ namespace vkb
     class DefaultDeviceMemoryAllocator
     {
     public:
+        DefaultDeviceMemoryAllocator() = default;
+        DefaultDeviceMemoryAllocator(vk::MemoryAllocateFlags flags) : allocateFlags(flags) {}
+
         /**
          * The device must outlive the created DeviceMemory.
          */
@@ -143,7 +164,15 @@ namespace vkb
                         vk::MemoryPropertyFlags properties,
                         vk::MemoryRequirements requirements) -> DeviceMemory
         {
-            return DeviceMemory::allocate(device, properties, requirements);
+            if (!allocateFlags) {
+                return DeviceMemory::allocate(device, properties, requirements);
+            }
+            else {
+                return DeviceMemory::allocate(device, properties, requirements, allocateFlags);
+            }
         }
+
+    private:
+        vk::MemoryAllocateFlags allocateFlags;
     };
 } // namespace vkb

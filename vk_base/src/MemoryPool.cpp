@@ -11,10 +11,20 @@ vkb::ManagedMemoryChunk::ManagedMemoryChunk(
     vk::DeviceSize size,
     uint32_t memoryTypeIndex)
     :
+    memory(device->allocateMemoryUnique(vk::MemoryAllocateInfo{ size, memoryTypeIndex })),
+    size(size)
+{}
+
+vkb::ManagedMemoryChunk::ManagedMemoryChunk(
+    const Device& device,
+    vk::DeviceSize size,
+    uint32_t memoryTypeIndex,
+    vk::MemoryAllocateFlags allocateFlags)
+    :
     memory([&] {
         vk::StructureChain chain{
             vk::MemoryAllocateInfo{ size, memoryTypeIndex },
-            vk::MemoryAllocateFlagsInfo{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+            vk::MemoryAllocateFlagsInfo{ allocateFlags }
         };
         return device->allocateMemoryUnique(chain.get<vk::MemoryAllocateInfo>());
     }()),
@@ -68,32 +78,19 @@ void vkb::ManagedMemoryChunk::releaseMemory(
 
 
 
-vkb::MemoryPool::MemoryPool(vk::DeviceSize chunkSize)
-    :
-    chunkSize(chunkSize)
-{
-    if constexpr (vkb::enableVerboseLogging) {
-        std::cout << "Memory pool created with deferred physical device initialization\n";
-    }
-}
-
-vkb::MemoryPool::MemoryPool(const Device& device, vk::DeviceSize chunkSize)
+vkb::MemoryPool::MemoryPool(
+    const Device& device,
+    vk::DeviceSize chunkSize,
+    vk::MemoryAllocateFlags memoryAllocateFlags)
     :
     device(&device),
     chunkSize(chunkSize),
+    memoryAllocateFlags(memoryAllocateFlags),
     chunksPerMemoryType(device.getPhysicalDevice().memoryProperties.memoryTypeCount)
 {
     if constexpr (vkb::enableVerboseLogging) {
         std::cout << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.\n";
     }
-}
-
-void vkb::MemoryPool::setDevice(const Device& device)
-{
-    assert(this->device == nullptr);
-
-    chunksPerMemoryType.resize(device.getPhysicalDevice().memoryProperties.memoryTypeCount);
-    this->device = &device;
 }
 
 auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
@@ -124,7 +121,9 @@ auto vkb::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             }
 
             return chunks.emplace_back(
-                new ManagedMemoryChunk(*device, newChunkSize, typeIndex)
+                memoryAllocateFlags
+                    ?  new ManagedMemoryChunk(*device, newChunkSize, typeIndex, memoryAllocateFlags)
+                    :  new ManagedMemoryChunk(*device, newChunkSize, typeIndex)
             )->allocateMemory(requirements);
         }
 

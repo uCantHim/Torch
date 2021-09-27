@@ -7,7 +7,7 @@
 trc::FontDataStorage::FontDataStorage(const Instance& instance)
     :
     instance(instance),
-    memoryPool(instance.getDevice())
+    memoryPool(instance.getDevice(), 50000000)
 {
     // Create descriptor set layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{

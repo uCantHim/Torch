@@ -41,6 +41,25 @@ auto vkb::DeviceMemory::allocate(
     vk::MemoryPropertyFlags properties,
     vk::MemoryRequirements requirements) -> DeviceMemory
 {
+    vk::DeviceMemory mem = device->allocateMemory({
+        requirements.size,
+        device.getPhysicalDevice().findMemoryType(requirements.memoryTypeBits, properties)
+    });
+
+    return DeviceMemory(
+        { mem, requirements.size, 0 },
+        [&device](const DeviceMemoryInternals& internals) {
+            device->freeMemory(internals.memory, {});
+        }
+    );
+}
+
+auto vkb::DeviceMemory::allocate(
+    const Device& device,
+    vk::MemoryPropertyFlags properties,
+    vk::MemoryRequirements requirements,
+    vk::MemoryAllocateFlags flags) -> DeviceMemory
+{
     // Device address feature is always available in Vulkan 1.2
     vk::StructureChain chain{
         vk::MemoryAllocateInfo{
@@ -48,7 +67,7 @@ auto vkb::DeviceMemory::allocate(
             device.getPhysicalDevice().findMemoryType(requirements.memoryTypeBits, properties)
         },
         vk::MemoryAllocateFlagsInfo{
-            vk::MemoryAllocateFlagBits::eDeviceAddress
+            flags
         }
     };
     vk::DeviceMemory mem = device->allocateMemory(chain.get<vk::MemoryAllocateInfo>());

@@ -136,7 +136,8 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     vkb::DeviceLocalBuffer scratchBuffer{
         instance.getDevice(),
         buildSizes.buildScratchSize, nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
     // Decide whether the AS should be built on the host or on the device.
@@ -268,7 +269,8 @@ void trc::rt::TopLevelAccelerationStructure::build(
         instance.getDevice(),
         buildSizes.buildScratchSize,
         nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
     vk::AccelerationStructureBuildRangeInfoKHR buildRange{
@@ -313,7 +315,8 @@ void trc::rt::buildAccelerationStructures(
         }
         return result;
     }();
-    vkb::MemoryPool scratchPool(instance.getDevice(), scratchSize);
+    vkb::MemoryPool scratchPool(instance.getDevice(), scratchSize,
+                                vk::MemoryAllocateFlagBits::eDeviceAddress);
     std::vector<vkb::DeviceLocalBuffer> scratchBuffers;
 
     // Collect build infos

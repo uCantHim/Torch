@@ -10,14 +10,15 @@ trc::rt::RayScene::RayScene(const Instance& instance)
     :
     instance(instance),
     device(instance.getDevice()),
-    blasMemoryPool(device, 100000000), // 100 MB
+    blasMemoryPool(device, 100000000, vk::MemoryAllocateFlagBits::eDeviceAddress), // 100 MB
     blasAlloc(blasMemoryPool.makeAllocator()),
     blasInstanceBuffer(
         device,
         MAX_TLAS_INSTANCES * sizeof(GeometryInstance),
         vk::BufferUsageFlagBits::eShaderDeviceAddress
         | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
-        vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
+        vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     ),
     blasInstanceBufferMap(reinterpret_cast<GeometryInstance*>(blasInstanceBuffer.map())),
     tlas(instance, MAX_TLAS_INSTANCES),
@@ -25,13 +26,15 @@ trc::rt::RayScene::RayScene(const Instance& instance)
         device,
         MAX_TLAS_INSTANCES * sizeof(DrawableShadingData),
         vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     ),
     drawableDataDeviceBuffer(
         device,
         MAX_TLAS_INSTANCES * sizeof(DrawableShadingData),
         vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eDeviceLocal
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     ),
     drawableDataBufferMap(reinterpret_cast<DrawableShadingData*>(drawableDataStagingBuffer.map()))
 {

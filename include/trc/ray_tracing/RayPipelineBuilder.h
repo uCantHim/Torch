@@ -64,10 +64,14 @@ namespace trc::rt
          * Is is advised to specify an allocator that allocates from a
          * memory pool for the `alloc` parameter. Otherwise, each entry in
          * the table gets its own memory allocation.
+         *
+         * The allocator must allocate memory with the
+         * vk::MemoryAllocateFlagBits::eDeviceAddress flag set!
          */
         auto build(ui32 maxRecursionDepth,
                    vk::UniquePipelineLayout layout,
-                   const vkb::DeviceMemoryAllocator alloc = vkb::DefaultDeviceMemoryAllocator{})
+                   const vkb::DeviceMemoryAllocator alloc
+                       = vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress })
             -> std::pair<Pipeline, ShaderBindingTable>;
 
     private:

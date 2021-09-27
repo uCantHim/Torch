@@ -47,7 +47,12 @@ auto trc::initFull(
         winInfo.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
     }
     auto window = instance->makeWindow(winInfo);
-    auto ar = std::make_unique<AssetRegistry>(*instance);
+    auto ar = std::make_unique<AssetRegistry>(
+        *instance,
+        AssetRegistryCreateInfo{
+            .enableRayTracing=instanceInfo.enableRayTracing
+        }
+    );
     auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
     auto config{
         std::make_unique<DeferredRenderConfig>(
