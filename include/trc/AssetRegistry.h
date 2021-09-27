@@ -30,10 +30,10 @@ namespace trc
      * @brief Helper that maps strings to asset indices
      */
     template<typename NameType>
-    class AssetRegistryNameWrapper
+    class AssetRegistryNamedWrapper
     {
     public:
-        explicit AssetRegistryNameWrapper(AssetRegistry& ar);
+        explicit AssetRegistryNamedWrapper(AssetRegistry& ar);
 
         auto add(const NameType& key, GeometryData geo) -> GeometryID;
         auto add(const NameType& key, Material mat) -> MaterialID;
@@ -49,7 +49,7 @@ namespace trc
 
     private:
         template<typename T>
-        using NameToIndexMap = std::unordered_map<NameType, TypesafeID<T, AssetIdType>>;
+        using NameToIndexMap = std::unordered_map<NameType, TypesafeID<T, AssetIdNumericType>>;
 
         AssetRegistry* ar;
 
@@ -60,11 +60,11 @@ namespace trc
 
     struct AssetRegistryCreateInfo
     {
-        vk::BufferUsageFlags geometryBufferUsage;
+        vk::BufferUsageFlags geometryBufferUsage{};
 
-        vk::ShaderStageFlags materialDescriptorStages;
-        vk::ShaderStageFlags textureDescriptorStages;
-        vk::ShaderStageFlags geometryDescriptorStages;
+        vk::ShaderStageFlags materialDescriptorStages{};
+        vk::ShaderStageFlags textureDescriptorStages{};
+        vk::ShaderStageFlags geometryDescriptorStages{};
 
         bool enableRayTracing{ true };
     };
@@ -95,7 +95,7 @@ namespace trc
         void updateMaterials();
 
     public:
-        AssetRegistryNameWrapper<std::string> named{ *this };
+        AssetRegistryNamedWrapper<std::string> named{ *this };
 
     private:
         static auto addDefaultValues(const AssetRegistryCreateInfo& info) -> AssetRegistryCreateInfo;
@@ -187,37 +187,6 @@ namespace trc
         FontDataStorage fontData;
         AnimationDataStorage animationStorage;
     };
-
-
-
-    template<typename Derived>
-    inline AssetID<Derived>::AssetID(ui32 id, AssetRegistry& ar)
-        :
-        TypesafeID<Derived, AssetIdType>(id),
-        ar(&ar)
-    {}
-
-    template<typename Derived>
-    inline auto AssetID<Derived>::id() const -> AssetIdType
-    {
-        return static_cast<AssetIdType>(*this);
-    }
-
-    template<typename Derived>
-    inline auto AssetID<Derived>::get()
-    {
-        assert(ar != nullptr);
-
-        return ar->get(*this);
-    }
-
-    template<typename Derived>
-    inline auto AssetID<Derived>::getAssetRegistry() -> AssetRegistry&
-    {
-        assert(ar != nullptr);
-
-        return *ar;
-    }
 } // namespace trc
 
 #include "AssetRegistry.inl"

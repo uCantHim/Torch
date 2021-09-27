@@ -9,32 +9,86 @@ namespace trc
 {
     class AssetRegistry;
 
-    using AssetIdType = ui32;
+    using AssetIdNumericType = ui32;
 
-    template<typename Derived>
-    class AssetID : public TypesafeID<Derived, AssetIdType>
+    class AssetIdBase
     {
-    private:
-        friend class AssetRegistry;
-
-        AssetID(ui32 id, AssetRegistry& ar);
+    protected:
+        constexpr AssetIdBase() = default;
+        AssetIdBase(AssetRegistry& ar) : ar(&ar) {}
 
     public:
-        using ID = TypesafeID<Derived, AssetIdType>;
+        auto operator<=>(const AssetIdBase&) const = default;
 
-        constexpr AssetID() = default;
+        auto getAssetRegistry() -> AssetRegistry&
+        {
+            assert(ar != nullptr);
+            return *ar;
+        }
 
-        inline auto operator<=>(const AssetID<Derived>&) const = default;
-
-        inline auto id() const -> AssetIdType;
-        inline auto get();
-        inline auto getAssetRegistry() -> AssetRegistry&;
-
-    private:
+    protected:
         AssetRegistry* ar{ nullptr };
     };
 
-    using GeometryID = AssetID<Geometry>;
-    using MaterialID = AssetID<Material>;
-    using TextureID  = AssetID<Texture>;
+    /**
+     * @brief
+     */
+    class GeometryID : public TypesafeID<GeometryID, AssetIdNumericType>
+                     , public AssetIdBase
+    {
+    public:
+        using ID = TypesafeID<GeometryID, AssetIdNumericType>;
+
+        /**
+         * @brief
+         */
+        GeometryID() = default;
+
+        auto get() const -> Geometry;
+
+    protected:
+        friend class AssetRegistry;
+        GeometryID(AssetIdNumericType id, AssetRegistry& ar);
+    };
+
+    /**
+     * @brief
+     */
+    class MaterialID : public TypesafeID<MaterialID, AssetIdNumericType>
+                     , public AssetIdBase
+    {
+    public:
+        using ID = TypesafeID<MaterialID, AssetIdNumericType>;
+        /**
+         * @brief
+         */
+        MaterialID() = default;
+
+        auto get() const -> Material&;
+
+    protected:
+        friend class AssetRegistry;
+        MaterialID(AssetIdNumericType id, AssetRegistry& ar);
+    };
+
+    /**
+     * @brief
+     */
+    class TextureID : public TypesafeID<TextureID, AssetIdNumericType>
+                     , public AssetIdBase
+    {
+    public:
+        using ID = TypesafeID<TextureID, AssetIdNumericType>;
+
+        /**
+         * @brief
+         */
+        TextureID() = default;
+
+        auto get() const -> Texture;
+
+    protected:
+        friend class AssetRegistry;
+        TextureID(AssetIdNumericType id, AssetRegistry& ar);
+    };
 }

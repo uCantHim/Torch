@@ -83,7 +83,7 @@ void trc::rt::RayScene::addDrawable(RayTraceable obj)
         | vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable,
         d.blas
     };
-    drawableDataBufferMap[id] = { obj.geo.id(), obj.mat.id() };
+    drawableDataBufferMap[id] = { obj.geo, obj.mat };
 }
 
 auto trc::rt::RayScene::getTlas() -> TLAS&

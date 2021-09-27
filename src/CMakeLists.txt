@@ -4,6 +4,7 @@ target_sources(
         Animation.cpp
         AnimationDataStorage.cpp
         AnimationEngine.cpp
+        AssetIds.cpp
         AssetRegistry.cpp
         Camera.cpp
         DeferredRenderConfig.cpp
