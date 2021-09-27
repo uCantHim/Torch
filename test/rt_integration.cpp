@@ -1,3 +1,4 @@
+#include <future>
 #include <iostream>
 
 #include <vkb/ImageUtils.h>
@@ -5,6 +6,7 @@
 #include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
 #include <trc/TorchResources.h>
+#include <trc/PipelineDefinitions.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 #include <trc/ray_tracing/FinalCompositingPass.h>
@@ -14,7 +16,7 @@ using namespace trc::basic_types;
 using trc::rt::BLAS;
 using trc::rt::TLAS;
 
-int main()
+void run()
 {
     auto torch = trc::initFull(
         trc::InstanceCreateInfo{ .enableRayTracing = true },
@@ -187,7 +189,7 @@ int main()
         )
         .build(
             maxRecursionDepth,
-            trc::makePipelineLayout(torch.instance->getDevice(),
+            trc::makePipelineLayout(device,
                 {
                     *tlasDescLayout,
                     compositing.getInputImageDescriptor().getDescriptorSetLayout(),
@@ -222,7 +224,7 @@ int main()
     // --- Draw function --- //
 
     scene->registerDrawFunction(
-        rayStageTypeId, trc::SubPass::ID(0), trc::internal::getFinalLightingPipeline(),
+        rayStageTypeId, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
         [
             &,
             &rayPipeline=rayPipeline,
@@ -287,6 +289,7 @@ int main()
 
         sphereNode.setRotation(timer.duration() / 1000.0f * 0.5f, vec3(0, 1, 0));
 
+        // Update rasterized and ray traced scenes
         scene->updateTransforms();
         device.executeCommandsSynchronously(
             vkb::QueueType::compute,
@@ -303,13 +306,13 @@ int main()
         });
     }
 
-    instance.getDevice()->waitIdle();
+    torch.window->getRenderer().waitForAllFrames();
+}
 
-    scene.reset();
-    torch.renderConfig.reset();
-    torch.window.reset();
-    torch.assetRegistry.reset();
-    torch.instance.reset();
+int main()
+{
+    run();
+
     trc::terminate();
 
     return 0;

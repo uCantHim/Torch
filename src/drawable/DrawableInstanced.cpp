@@ -2,8 +2,10 @@
 
 #include "core/Instance.h"
 #include "TorchResources.h"
+#include "PipelineDefinitions.h"
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
+#include "Geometry.h"
 
 
 
@@ -31,7 +33,7 @@ void trc::DrawableInstanced::attachToScene(SceneBase& scene)
     scene.registerDrawFunction(
         RenderStageTypes::getDeferred(),
         RenderPassDeferred::SubPasses::gBuffer,
-        internal::getDrawableInstancedDeferredPipeline(),
+        getDrawableInstancedDeferredPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf) {
             cmdBuf.bindIndexBuffer(geometry->getIndexBuffer(), 0, vk::IndexType::eUint32);
             cmdBuf.bindVertexBuffers(
@@ -47,7 +49,7 @@ void trc::DrawableInstanced::attachToScene(SceneBase& scene)
     scene.registerDrawFunction(
         RenderStageTypes::getShadow(),
         SubPass::ID(0),
-        internal::getDrawableInstancedShadowPipeline(),
+        getDrawableInstancedShadowPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
             assert(dynamic_cast<RenderPassShadow*>(env.currentRenderPass) != nullptr);
 

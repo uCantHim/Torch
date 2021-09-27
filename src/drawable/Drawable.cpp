@@ -4,6 +4,7 @@
 #include "AssetRegistry.h"
 #include "Geometry.h"
 #include "Material.h"
+#include "drawable/RasterPipelines.h"
 
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
@@ -147,8 +148,8 @@ void trc::Drawable::updateDrawFunctions()
 
                 cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredAnimatedPipeline()
-                                           : internal::getDrawableDeferredAnimatedPipeline();
+            pipeline = data->isTransparent ? getDrawableTransparentDeferredAnimatedPipeline()
+                                           : getDrawableDeferredAnimatedPipeline();
         }
         else
         {
@@ -164,8 +165,8 @@ void trc::Drawable::updateDrawFunctions()
                 cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
             pipeline = data->isTransparent
-                ? internal::getDrawableTransparentDeferredAnimatedAndPickablePipeline()
-                : internal::getDrawableDeferredAnimatedAndPickablePipeline();
+                ? getDrawableTransparentDeferredAnimatedAndPickablePipeline()
+                : getDrawableDeferredAnimatedAndPickablePipeline();
         }
     }
     else
@@ -176,8 +177,8 @@ void trc::Drawable::updateDrawFunctions()
                 bindBaseResources(env, cmdBuf);
                 cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredPipeline()
-                                           : internal::getDrawableDeferredPipeline();
+            pipeline = data->isTransparent ? getDrawableTransparentDeferredPipeline()
+                                           : getDrawableDeferredPipeline();
         }
         else
         {
@@ -191,8 +192,8 @@ void trc::Drawable::updateDrawFunctions()
 
                 cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
-            pipeline = data->isTransparent ? internal::getDrawableTransparentDeferredPickablePipeline()
-                                           : internal::getDrawableDeferredPickablePipeline();
+            pipeline = data->isTransparent ? getDrawableTransparentDeferredPickablePipeline()
+                                           : getDrawableDeferredPickablePipeline();
         }
     }
 
@@ -204,7 +205,7 @@ void trc::Drawable::updateDrawFunctions()
         std::move(func)
     );
     shadowRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::getShadow(), SubPass::ID(0), internal::getDrawableShadowPipeline(),
+        RenderStageTypes::getShadow(), SubPass::ID(0), getDrawableShadowPipeline(),
         [data=this->data](const auto& env, vk::CommandBuffer cmdBuf) {
             drawShadow(data, env, cmdBuf);
         }

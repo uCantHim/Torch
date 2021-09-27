@@ -4,4 +4,5 @@ target_sources(
         Drawable.cpp
         DrawableData.cpp
         DrawableInstanced.cpp
+        RasterPipelines.cpp
 )

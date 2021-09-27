@@ -1,11 +1,15 @@
 #pragma once
 
-#include "TorchResources.h"
-#include "Drawable.h"
+#include <vkb/Buffer.h>
+
+#include "Types.h"
+#include "core/SceneBase.h"
+#include "Node.h"
 
 namespace trc
 {
     class Instance;
+    class Geometry;
 
     /**
      * @brief Purely component-based Drawable class

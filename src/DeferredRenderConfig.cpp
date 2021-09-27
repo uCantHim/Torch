@@ -89,7 +89,7 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
     finalLightingFunc = draw.scene->registerDrawFunction(
         RenderStageTypes::getDeferred(),
         RenderPassDeferred::SubPasses::lighting,
-        internal::getFinalLightingPipeline(),
+        getFinalLightingPipeline(),
         [&](auto&&, vk::CommandBuffer cmdBuf)
         {
             cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));

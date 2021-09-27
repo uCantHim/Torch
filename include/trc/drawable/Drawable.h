@@ -2,7 +2,6 @@
 
 #include "core/SceneBase.h"
 #include "Node.h"
-#include "PipelineDefinitions.h"
 #include "Geometry.h"
 #include "AnimationEngine.h"
 #include "PickableRegistry.h"

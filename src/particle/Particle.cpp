@@ -320,8 +320,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
     );
 
     vkb::ShaderProgram program(instance.getDevice(),
-                               internal::SHADER_DIR / "particles/deferred.vert.spv",
-                               internal::SHADER_DIR / "particles/alpha_discard.frag.spv");
+                               SHADER_DIR / "particles/deferred.vert.spv",
+                               SHADER_DIR / "particles/alpha_discard.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -380,8 +380,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
     );
 
     vkb::ShaderProgram program(instance.getDevice(),
-                               internal::SHADER_DIR / "particles/deferred.vert.spv",
-                               internal::SHADER_DIR / "particles/alpha_blend.frag.spv");
+                               SHADER_DIR / "particles/deferred.vert.spv",
+                               SHADER_DIR / "particles/alpha_blend.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -441,8 +441,8 @@ auto trc::ParticleCollection::makeParticleShadowPipeline(
     );
 
     vkb::ShaderProgram program(instance.getDevice(),
-                               internal::SHADER_DIR / "particles/shadow.vert.spv",
-                               internal::SHADER_DIR / "particles/shadow.frag.spv");
+                               SHADER_DIR / "particles/shadow.vert.spv",
+                               SHADER_DIR / "particles/shadow.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)

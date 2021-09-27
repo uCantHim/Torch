@@ -8,6 +8,7 @@
 #include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
 #include <trc/TorchResources.h>
+#include <trc/PipelineDefinitions.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 using namespace trc::basic_types;
@@ -229,7 +230,7 @@ int main()
     // --- Draw function --- //
 
     scene->registerDrawFunction(
-        rayStageTypeId, trc::SubPass::ID(0), trc::internal::getFinalLightingPipeline(),
+        rayStageTypeId, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
         [
             &,
             &rayPipeline=rayPipeline,
