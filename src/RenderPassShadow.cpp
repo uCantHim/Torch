@@ -54,6 +54,7 @@ trc::RenderPassShadow::RenderPassShadow(
         1
     ),
     resolution(info.resolution),
+    shadowMatrixIndex(info.shadowIndex),
     depthImages(window.getSwapchain(), [&](ui32) {
         return vkb::Image(
             window.getDevice(),

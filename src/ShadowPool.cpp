@@ -27,6 +27,7 @@ trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
         device, sizeof(mat4) * info.maxShadowMaps,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+        | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     shadowMatrixBufferMap(reinterpret_cast<mat4*>(shadowMatrixBuffer.map())),
     descSets(window.getSwapchain()),

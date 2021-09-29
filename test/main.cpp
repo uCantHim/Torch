@@ -139,8 +139,7 @@ int main()
     trc::Light pointLight = scene->getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
 
     // Sun light
-    mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 30.0f);
-    sunLight.setPosition(vec3(-10, 10, 15));
+    mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -50.0f, 5.0f);
     auto& shadowNode = scene->enableShadow(
         sunLight,
         { .shadowMapResolution=uvec2(2048, 2048) },
@@ -255,7 +254,6 @@ int main()
     while (running)
     {
         scene->updateTransforms();
-        torch.shadowPool->update();
 
         torch.window->drawFrame(draw);
 

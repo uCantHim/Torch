@@ -99,6 +99,7 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 
     globalDataDescriptor.update(*draw.camera);
     sceneDescriptor.update(*draw.scene);
+    shadowPool->update();
 }
 
 void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)

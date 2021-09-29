@@ -68,9 +68,7 @@ auto trc::Scene::enableShadow(
         // Use lookAt for sun lights
         if (light.getType() == LightData::Type::eSunLight && length(light.getDirection()) > 0.0f)
         {
-            camera.lookAt(light.getPosition(),
-                          light.getPosition() + light.getDirection(),
-                          vec3(0, 1, 0));
+            camera.lookAt(vec3(0.0f), light.getDirection(), vec3(0, 1, 0));
         }
     }
 
