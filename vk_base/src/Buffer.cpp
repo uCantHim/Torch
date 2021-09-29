@@ -45,6 +45,12 @@ vkb::Buffer::Buffer(
 }
 
 
+auto vkb::Buffer::getMemory() const -> const DeviceMemory&
+{
+    return memory;
+}
+
+
 auto vkb::Buffer::size() const noexcept -> vk::DeviceSize
 {
     return bufferSize;
@@ -65,6 +71,12 @@ auto vkb::Buffer::map(BufferRegion mappedRegion) const -> memptr
 void vkb::Buffer::unmap() const
 {
     memory.unmap(*device);
+}
+
+
+void vkb::Buffer::flush(vk::DeviceSize offset, vk::DeviceSize size) const
+{
+    memory.flush(*device, offset, size);
 }
 
 

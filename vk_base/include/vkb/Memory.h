@@ -128,6 +128,10 @@ namespace vkb
          */
         void unmap(const Device& device) const;
 
+        void flush(const Device& device,
+                   vk::DeviceSize offset = 0,
+                   vk::DeviceSize size = VK_WHOLE_SIZE) const;
+
         auto getSize() const noexcept -> vk::DeviceSize;
 
     private:

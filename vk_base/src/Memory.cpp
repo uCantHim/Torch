@@ -107,6 +107,13 @@ void vkb::DeviceMemory::unmap(const Device& device) const
     device->unmapMemory(internal.memory);
 }
 
+void vkb::DeviceMemory::flush(const Device& device,
+                              vk::DeviceSize offset,
+                              vk::DeviceSize size) const
+{
+    device->flushMappedMemoryRanges(vk::MappedMemoryRange(internal.memory, offset, size));
+}
+
 auto vkb::DeviceMemory::getSize() const noexcept -> vk::DeviceSize
 {
     return internal.size;
