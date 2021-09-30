@@ -73,6 +73,9 @@ namespace trc
         auto setTranslationY(float y) -> self&;
         auto setTranslationZ(float z) -> self&;
 
+        auto scale(float s) -> self&;
+        auto scale(float x, float y, float z) -> self&;
+        auto scale(vec3 s) -> self&;
         auto addScale(float s) -> self&;
         auto addScale(vec3 s) -> self&;
 
@@ -83,8 +86,9 @@ namespace trc
         auto setScaleY(float s) -> self&;
         auto setScaleZ(float s) -> self&;
 
-        auto rotate(const quat& rot) -> self&;
+        auto rotate(float x, float y, float z) -> self&;
         auto rotate(float angleRad, vec3 axis) -> self&;
+        auto rotate(const quat& rot) -> self&;
         auto rotateX(float angleRad) -> self&;
         auto rotateY(float angleRad) -> self&;
         auto rotateZ(float angleRad) -> self&;

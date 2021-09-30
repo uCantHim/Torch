@@ -187,6 +187,21 @@ auto trc::Transformation::addScale(vec3 s) -> self&
     return *this;
 }
 
+auto trc::Transformation::scale(float s) -> self&
+{
+    return setScale(scaling * s);
+}
+
+auto trc::Transformation::scale(float x, float y, float z) -> self&
+{
+    return setScale(scaling * vec3(x, y, z));
+}
+
+auto trc::Transformation::scale(vec3 s) -> self&
+{
+    return setScale(scaling * s);
+}
+
 auto trc::Transformation::setScale(float s) -> self&
 {
 	scaling = vec3(s);
@@ -237,6 +252,14 @@ auto trc::Transformation::setScaleZ(float s) -> self&
 
 
 // Rotation
+auto trc::Transformation::rotate(float x, float y, float z) -> self&
+{
+    rotation = quat(vec3(x, y, z));
+
+    updateMatrix();
+    return *this;
+}
+
 auto trc::Transformation::rotate(float angleRad, glm::vec3 axis) -> self&
 {
 	rotation = glm::angleAxis(angleRad, axis) * rotation;
