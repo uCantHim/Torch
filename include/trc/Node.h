@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 
 #include "Transformation.h"
@@ -10,7 +9,7 @@ namespace trc
     class Node : public trc::Transformation
     {
     public:
-        Node() = default;
+        Node();
         Node(Node&& other) noexcept;
         ~Node();
 
@@ -38,7 +37,7 @@ namespace trc
     private:
         void onLocalMatrixUpdate() override;
 
-        ID globalTransformIndex{ matrices.create() };
+        data::ExternalStorage<mat4> globalTransformIndex;
 
         Node* parent{ nullptr };
         std::vector<Node*> children;

@@ -4,6 +4,11 @@
 
 
 
+trc::Node::Node()
+{
+    onLocalMatrixUpdate();
+}
+
 trc::Node::Node(Node&& other) noexcept
     :
     Transformation(std::forward<Transformation>(other)),
@@ -25,7 +30,6 @@ trc::Node::Node(Node&& other) noexcept
 
 trc::Node::~Node()
 {
-    matrices.free(globalTransformIndex);
     detachFromParent();
     for (Node* child : children)
     {
@@ -56,7 +60,7 @@ auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
 
 auto trc::Node::getGlobalTransform() const noexcept -> mat4
 {
-    return matrices.get(globalTransformIndex);
+    return globalTransformIndex.get();
 }
 
 auto trc::Node::getGlobalTransformID() const noexcept -> ID
@@ -66,7 +70,7 @@ auto trc::Node::getGlobalTransformID() const noexcept -> ID
 
 void trc::Node::update() noexcept
 {
-    matrices.set(globalTransformIndex, getTransformationMatrix());
+    globalTransformIndex.set(getTransformationMatrix());
     for (Node* child : children)
     {
         child->update(getGlobalTransform());
@@ -75,7 +79,7 @@ void trc::Node::update() noexcept
 
 void trc::Node::update(const mat4& parentTransform) noexcept
 {
-    matrices.set(globalTransformIndex, parentTransform * getTransformationMatrix());
+    globalTransformIndex.set(parentTransform * getTransformationMatrix());
     for (Node* child : children)
     {
         child->update(getGlobalTransform());
@@ -117,6 +121,6 @@ void trc::Node::detachFromParent()
 void trc::Node::onLocalMatrixUpdate()
 {
     if (parent == nullptr) {
-        matrices.set(globalTransformIndex, getTransformationMatrix());
+        globalTransformIndex.set(getTransformationMatrix());
     }
 }

@@ -6,7 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "Types.h"
-#include "util/data/ObjectId.h"
+#include "util/data/ExternalStorage.h"
 
 namespace trc
 {
@@ -18,27 +18,18 @@ namespace trc
     class Transformation
     {
     public:
-        struct ID : data::TypesafeID<Transformation, ui32>
-        {
-            ID() = default;
-            explicit ID(ui32 id) : data::TypesafeID<Transformation, ui32>(id) {}
-
-            inline auto get() const -> mat4 {
-                return Transformation::getMatrix(*this);
-            }
-        };
-
+        using ID = data::ExternalStorage<mat4>::ID;
         using self = Transformation;
 
         Transformation();
         Transformation(vec3 translation, vec3 scale, quat rotation);
 
-        Transformation(const Transformation& other);
-        Transformation(Transformation&& other) noexcept;
-        ~Transformation();
+        Transformation(const Transformation& other) = default;
+        Transformation(Transformation&& other) noexcept = default;
+        ~Transformation() = default;
 
-        auto operator=(const Transformation& rhs) -> Transformation&;
-        auto operator=(Transformation&& rhs) noexcept -> Transformation&;
+        auto operator=(const Transformation& rhs) -> Transformation& = default;
+        auto operator=(Transformation&& rhs) noexcept -> Transformation& = default;
 
         /**
          * @brief Set translation, rotation, and scaling from a matrix
@@ -141,26 +132,7 @@ namespace trc
 
         auto getMatrixId() const -> ID;
 
-        static auto getMatrix(ID id) -> mat4;
-
     protected:
-        class MatrixStorage
-        {
-        public:
-            auto create() -> ID;
-            void free(ID id);
-
-            auto get(ID id) -> mat4;
-            void set(ID id, mat4 mat);
-
-        private:
-            data::IdPool idGenerator;
-            std::mutex lock;
-            std::vector<mat4> matrices;
-        };
-
-        static inline MatrixStorage matrices;
-
         /**
          * Used in Node to decide whether the local matrix or the global
          * matrix should be stored in the MatrixStorage slot.
@@ -174,7 +146,7 @@ namespace trc
     private:
         void updateMatrix();
 
-        ID matrixIndex{ matrices.create() };
+        data::ExternalStorage<mat4> matrixIndex;
 
         vec3 translation{ 0.0f };
         vec3 scaling{ 1.0f };
