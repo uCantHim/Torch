@@ -65,7 +65,8 @@ float calcSmoothShadowStrength(vec3 worldCoords, uint shadowIndex)
 
     // Exit early if the middle fragment isn't inside of the shadow map
     if (!(shadowMapUV.x > 0.0 && shadowMapUV.x < 1.0
-          && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0))
+          && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0
+          && objectDepth > 0.0 && objectDepth < 1.0))
     {
         return 0.0;
     }
