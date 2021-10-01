@@ -36,7 +36,7 @@ Animation
 {
     // Animations start at offsets defined in the AnimationMetaData array
     mat4 boneMatrices[];
-} anim;
+} animations;
 
 
 vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWeight)
@@ -58,8 +58,8 @@ vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWei
         uint currentFrameOffset = baseOffset + boneCount * frames[0] + boneIndex;
         uint nextFrameOffset = baseOffset + boneCount * frames[1] + boneIndex;
 
-        mat4 currentBoneMatrix = anim.boneMatrices[currentFrameOffset];
-        mat4 nextBoneMatrix = anim.boneMatrices[nextFrameOffset];
+        mat4 currentBoneMatrix = animations.boneMatrices[currentFrameOffset];
+        mat4 nextBoneMatrix = animations.boneMatrices[nextFrameOffset];
 
         currentFramePos += currentBoneMatrix * vertPos * weight;
         nextFramePos += nextBoneMatrix * vertPos * weight;

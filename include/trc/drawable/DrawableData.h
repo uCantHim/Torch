@@ -21,13 +21,13 @@ namespace trc
         Pickable::ID pickableId{ NO_PICKABLE };
         bool isTransparent{ false };
 
-        AnimationEngine animEngine{};
+        AnimationEngine::ID anim;
     };
 
     class DrawableDataStore
     {
     public:
-        static auto create(Node& node) -> ui32;
+        static auto create(Node& node, AnimationEngine& animEngine) -> ui32;
         static void free(ui32 id);
 
         static auto get(ui32 id) -> DrawableData&;

@@ -87,19 +87,21 @@ void trc::Drawable::setGeometry(GeometryID newGeo)
 {
     data->geo = newGeo.get();
     geoIndex = newGeo;
-    if (data->geo.hasRig()) {
-        data->animEngine = { *data->geo.getRig() };
+    if (data->geo.hasRig())
+    {
+        animEngine = { *data->geo.getRig() };
+        data->anim = animEngine.getState();
     }
 }
 
 auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
 {
-    return data->animEngine;
+    return animEngine;
 }
 
 auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
 {
-    return data->animEngine;
+    return animEngine;
 }
 
 void trc::Drawable::enableTransparency()
@@ -141,10 +143,14 @@ void trc::Drawable::updateDrawFunctions()
     {
         if (data->pickableId == NO_PICKABLE)
         {
-            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            func = [=, this, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 bindBaseResources(env, cmdBuf);
                 auto layout = env.currentPipeline->getLayout();
-                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+                animEngine.update();
+                cmdBuf.pushConstants<AnimationDeviceData>(
+                    layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+                    data->anim.get()
+                );
 
                 cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
             };
@@ -153,12 +159,16 @@ void trc::Drawable::updateDrawFunctions()
         }
         else
         {
-            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            func = [=, this, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 assert(data->pickableId != NO_PICKABLE);
 
                 bindBaseResources(env, cmdBuf);
                 auto layout = env.currentPipeline->getLayout();
-                data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+                animEngine.update();
+                cmdBuf.pushConstants<AnimationDeviceData>(
+                    layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+                    data->anim.get()
+                );
                 cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eFragment, 84,
                                            data->pickableId);
 
@@ -237,7 +247,10 @@ void trc::Drawable::drawShadow(
         layout, vk::ShaderStageFlagBits::eVertex,
         sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
     );
-    data->animEngine.pushConstants(sizeof(mat4) + sizeof(ui32), layout, cmdBuf);
+    cmdBuf.pushConstants<AnimationDeviceData>(
+        layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+        data->anim.get()
+    );
 
     // Draw
     cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);

@@ -21,14 +21,19 @@ layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
+struct AnimationData
+{
+    uint animation;
+    uint keyframes[2];
+    float keyframeWeigth;
+};
+
 layout (push_constant) uniform PushConstants
 {
     mat4 modelMatrix;
     uint materialIndex;
 
-    uint animation;
-    uint keyframes[2];
-    float keyframeWeigth;
+    AnimationData animData;
 };
 
 layout (location = 0) out Vertex
@@ -54,9 +59,9 @@ void main()
 
     if (isAnimated)
     {
-        vertPos = applyAnimation(animation, vertPos, keyframes, keyframeWeigth);
-        normal = applyAnimation(animation, normal, keyframes, keyframeWeigth);
-        tangent = applyAnimation(animation, tangent, keyframes, keyframeWeigth);
+        vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
+        normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
+        tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
     }
     vertPos.w = 1.0;
 

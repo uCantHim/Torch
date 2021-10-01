@@ -2,7 +2,7 @@
 
 
 
-auto trc::DrawableDataStore::create(Node& node) -> ui32
+auto trc::DrawableDataStore::create(Node& node, AnimationEngine& animEngine) -> ui32
 {
     const ui32 id = idPool.generate();
     if (id >= data.size() * ARRAY_SIZE) {
@@ -10,7 +10,8 @@ auto trc::DrawableDataStore::create(Node& node) -> ui32
     }
 
     data[size_t(id / ARRAY_SIZE)]->at(id % ARRAY_SIZE) = {
-        .modelMatrixId=node.getGlobalTransformID()
+        .modelMatrixId=node.getGlobalTransformID(),
+        .anim=animEngine.getState(),
     };
 
     return id;
