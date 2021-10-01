@@ -58,3 +58,6 @@ if (${TORCH_INTEGRATE_GUI})
     add_executable(Gui gui.cpp)
     target_link_libraries(Gui PUBLIC torch)
 endif()
+
+add_executable(NewScene new_scene_interface.cpp)
+target_link_libraries(NewScene PUBLIC torch)

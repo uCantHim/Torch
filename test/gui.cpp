@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <trc/Torch.h>
+#include <trc/drawable/Drawable.h>
 #include <trc/ui/torch/GuiIntegration.h>
 using namespace trc::basic_types;
 
