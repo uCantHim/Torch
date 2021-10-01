@@ -123,11 +123,6 @@ auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProvi
     return provider;
 }
 
-auto trc::SceneDescriptor::getDescLayout() const noexcept -> vk::DescriptorSetLayout
-{
-    return *descLayout;
-}
-
 void trc::SceneDescriptor::createDescriptors()
 {
     vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment;
@@ -202,7 +197,7 @@ auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSet() const noe
 auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSetLayout() const noexcept
     -> vk::DescriptorSetLayout
 {
-    return descriptor.getDescLayout();
+    return *descriptor.descLayout;
 }
 
 void trc::SceneDescriptor::SceneDescriptorProvider::bindDescriptorSet(

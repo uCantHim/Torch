@@ -26,12 +26,6 @@ namespace trc
         void updatePicking();
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
-        /**
-         * The descriptor set layout is global for all SceneDescriptor
-         * instances.
-         */
-        auto getDescLayout() const noexcept -> vk::DescriptorSetLayout;
-
     private:
         class SceneDescriptorProvider : public DescriptorProviderInterface
         {
