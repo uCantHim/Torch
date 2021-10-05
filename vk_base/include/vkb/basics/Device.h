@@ -177,7 +177,7 @@ void Device::executeCommandsSynchronously(QueueType queueType, F func) const
     cmdBuf->end();
 
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    queue.submit(
+    queue.waitSubmit(
         vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf),
         *fence
     );
