@@ -146,7 +146,6 @@ void trc::Drawable::updateDrawFunctions()
             func = [=, this, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 bindBaseResources(env, cmdBuf);
                 auto layout = env.currentPipeline->getLayout();
-                animEngine.update();
                 cmdBuf.pushConstants<AnimationDeviceData>(
                     layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
                     data->anim.get()
@@ -164,7 +163,6 @@ void trc::Drawable::updateDrawFunctions()
 
                 bindBaseResources(env, cmdBuf);
                 auto layout = env.currentPipeline->getLayout();
-                animEngine.update();
                 cmdBuf.pushConstants<AnimationDeviceData>(
                     layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
                     data->anim.get()

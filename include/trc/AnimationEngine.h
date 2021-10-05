@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vkb/util/Timer.h>
+#include <string>
 
 #include "Rig.h"
 #include "util/data/ExternalStorage.h"
@@ -24,7 +24,7 @@ namespace trc
         AnimationEngine() = default;
         AnimationEngine(const Rig& rig);
 
-        void update();
+        void update(float timeDeltaMs);
 
         void playAnimation(ui32 index);
         void playAnimation(const std::string& name);
@@ -34,9 +34,9 @@ namespace trc
 
     private:
         const Rig* rig{ nullptr };
-        vkb::Timer keyframeTimer;
 
         const Animation* currentAnimation{ nullptr };
+        float currentDuration{ 0.0f };
         uvec2 currentFrames{ 0, 1 };
 
         data::ExternalStorage<AnimationDeviceData> animationState;

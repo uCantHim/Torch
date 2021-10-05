@@ -8,20 +8,22 @@ trc::AnimationEngine::AnimationEngine(const Rig& rig)
 {
 }
 
-void trc::AnimationEngine::update()
+void trc::AnimationEngine::update(const float timeDelta)
 {
-    if (currentAnimation == nullptr) {
+    if (currentAnimation == nullptr)
+    {
         animationState.set({});
         return;
     }
 
     assert(currentAnimation->getFrameTime() != 0.0f);
 
-    float frameWeight = keyframeTimer.duration() / currentAnimation->getFrameTime();
+    currentDuration += timeDelta;
+    float frameWeight = currentDuration / currentAnimation->getFrameTime();
     if (frameWeight >= 1.0f)
     {
         frameWeight = 0.0f;
-        keyframeTimer.reset();
+        currentDuration = 0.0f;
 
         currentFrames += 1;
         if (currentFrames.x >= currentAnimation->getFrameCount()) {
@@ -33,7 +35,7 @@ void trc::AnimationEngine::update()
     }
 
     animationState.set({
-        .currentAnimation = currentAnimation ? currentAnimation->getBufferIndex() : NO_ANIMATION,
+        .currentAnimation = currentAnimation->getBufferIndex(),
         .keyframes = { currentFrames.x, currentFrames.y },
         .keyframeWeight = frameWeight,
     });
