@@ -65,14 +65,8 @@ auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags,
 auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags,
                                      const Instance& instance,
                                      const DeferredRenderConfig& config) -> Pipeline;
-auto makeInstancedDrawableDeferredPipeline(const Instance& instance,
-                                           const DeferredRenderConfig& config) -> Pipeline;
 auto makeDrawableShadowPipeline(const Instance& instance,
                                 const DeferredRenderConfig& config) -> Pipeline;
-auto makeInstancedDrawableShadowPipeline(const Instance& instance,
-                                         const DeferredRenderConfig& config) -> Pipeline;
-auto makeFinalLightingPipeline(const Instance& instance,
-                               const DeferredRenderConfig& config) -> Pipeline;
 
 using Flags = PipelineFeatureFlagBits;
 
@@ -113,10 +107,6 @@ PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPickablePipeline, _makeTransD
 PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedAndPickablePipeline, _makeTransDefAnimPick, DeferredRenderConfig)
 
 PIPELINE_GETTER_FUNC(getDrawableShadowPipeline, makeDrawableShadowPipeline, DeferredRenderConfig);
-PIPELINE_GETTER_FUNC(getDrawableInstancedDeferredPipeline, makeInstancedDrawableDeferredPipeline, DeferredRenderConfig);
-PIPELINE_GETTER_FUNC(getDrawableInstancedShadowPipeline, makeInstancedDrawableShadowPipeline, DeferredRenderConfig);
-
-PIPELINE_GETTER_FUNC(getFinalLightingPipeline, makeFinalLightingPipeline, DeferredRenderConfig);
 
 
 

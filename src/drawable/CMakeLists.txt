@@ -3,7 +3,6 @@ target_sources(
     PRIVATE
         Drawable.cpp
         DrawableData.cpp
-        DrawableInstanced.cpp
         DrawablePool.cpp
         RasterPipelines.cpp
         RasterDrawablePool.cpp

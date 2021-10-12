@@ -22,9 +22,6 @@ namespace trc
 {
     static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
 
-    auto getDrawableInstancedDeferredPipeline() -> Pipeline::ID;
-    auto getDrawableInstancedShadowPipeline() -> Pipeline::ID;
-
     // Final lighting pipeline
     auto getFinalLightingPipeline() -> Pipeline::ID;
 } // namespace trc::internal
