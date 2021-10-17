@@ -52,7 +52,10 @@ namespace trc
 
             u_ptr<std::mutex> instancesLock{ new std::mutex };
             std::vector<Instance> instances;  // Instances at fixed indices
+        };
 
+        struct DrawableMeta
+        {
             std::vector<Pipeline::ID> pipelines;  // Pipelines to which the drawable is attached
         };
 
@@ -61,6 +64,7 @@ namespace trc
         void removeFromPipeline(Pipeline::ID pipeline, ui32 drawableId);
 
         std::vector<DrawableData> drawables;  // Draw data at fixed indices
+        std::vector<DrawableMeta> drawableMetas;
 
 
         std::unordered_map<Pipeline::ID, std::pair<std::vector<ui32>, std::mutex>> drawCalls;

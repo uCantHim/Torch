@@ -1,5 +1,6 @@
 #include "drawable/RasterDrawablePool.h"
 
+#include "util/algorithm/VectorTransform.h"
 #include "TorchResources.h"
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
@@ -10,7 +11,8 @@
 
 trc::RasterDrawablePool::RasterDrawablePool(const RasterDrawablePoolCreateInfo& info)
     :
-    drawables(info.maxDrawables)
+    drawables(info.maxDrawables),
+    drawableMetas(info.maxDrawables)
 {
     createRasterFunctions();
 }
@@ -33,20 +35,22 @@ void trc::RasterDrawablePool::createDrawable(ui32 drawableId, const DrawableCrea
 
     d.geo        = info.geo.get();
     d.material   = info.mat;
-    d.pipelines  = getRequiredPipelines(info);
-    for (auto p : d.pipelines) {
+
+    DrawableMeta& m = drawableMetas.at(drawableId);
+    m.pipelines  = getRequiredPipelines(info);
+    for (auto p : m.pipelines) {
         addToPipeline(p, drawableId);
     }
 }
 
 void trc::RasterDrawablePool::deleteDrawable(ui32 drawableId)
 {
-    auto& d = drawables.at(drawableId);
+    auto& m = drawableMetas.at(drawableId);
 
-    for (auto p : d.pipelines) {
+    for (auto p : m.pipelines) {
         removeFromPipeline(p, drawableId);
     }
-    d.pipelines.clear();
+    m.pipelines.clear();
 }
 
 void trc::RasterDrawablePool::createInstance(ui32 drawableId, const DrawableInstanceCreateInfo& info)
@@ -80,7 +84,7 @@ void trc::RasterDrawablePool::addToPipeline(Pipeline::ID pipeline, ui32 drawable
 {
     auto& [drawVec, mutex] = drawCalls.at(pipeline);
     std::scoped_lock lock(mutex);
-    drawVec.emplace_back(drawableId);
+    util::insert_sorted(drawVec, drawableId);
 }
 
 void trc::RasterDrawablePool::removeFromPipeline(Pipeline::ID pipeline, ui32 drawableId)
@@ -93,7 +97,7 @@ void trc::RasterDrawablePool::removeFromPipeline(Pipeline::ID pipeline, ui32 dra
 void trc::RasterDrawablePool::createRasterFunctions()
 {
     auto makeFunction = [this](auto& pipelineData, auto func) {
-        return [&, this, func](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+        return [this, &pipelineData, func](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
             std::scoped_lock lock(pipelineData.second);
             for (ui32 drawDataId : pipelineData.first)
@@ -179,12 +183,6 @@ void trc::RasterDrawablePool::createRasterFunctions()
                 env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
                 sizeof(mat4) + sizeof(ui32), inst.animData.get()
             );
-
-            ui32 offset = sizeof(mat4) + sizeof(ui32);
-            auto stage = vk::ShaderStageFlagBits::eVertex;
-            cmdBuf.pushConstants<ui32>(layout, stage, offset, NO_ANIMATION);
-            cmdBuf.pushConstants<uvec2>(layout, stage, offset + 4, uvec2(0, 0));
-            cmdBuf.pushConstants<float>(layout, stage, offset + 12, 0.0f);
         }
     );
 }

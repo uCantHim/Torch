@@ -5,6 +5,32 @@
 namespace trc::util
 {
     /**
+     * @brief Insert an item into a sorted vector
+     */
+    template<typename T>
+    inline auto insert_sorted(std::vector<T>& vec, const T& value)
+        -> typename std::vector<T>::iterator
+    {
+        return vec.insert(
+            std::upper_bound(vec.begin(), vec.end(), value),
+            value
+        );
+    }
+
+    /**
+     * @brief Insert an item into a sorted vector with a sort predicate
+     */
+    template<typename T, typename Pred>
+    inline auto insert_sorted(std::vector<T>& vec, const T& value, Pred pred)
+        -> typename std::vector<T>::iterator
+    {
+        return vec.insert(
+            std::upper_bound(vec.begin(), vec.end(), value, pred),
+            value
+        );
+    }
+
+    /**
      * @brief Create a merged copy of two verctors
      */
     template<typename T>
