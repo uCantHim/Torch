@@ -7,6 +7,10 @@ using namespace trc::basic_types;
 #include <trc/asset_import/AssetImporter.h>
 #include <trc/drawable/DrawableChain.h>
 
+namespace trc {
+    using legacy::Drawable;
+}
+
 int main()
 {
     {

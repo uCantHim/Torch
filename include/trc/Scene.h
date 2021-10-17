@@ -58,9 +58,6 @@ namespace trc
         /**
          * @brief Enable shadows for a specific light
          *
-         * In order to work properly, a position should be set on sun
-         * lights before passing them to this function.
-         *
          * @param Light light The light that shall cast shadows.
          * @param const ShadowCreateInfo& shadowInfo
          * @param ShadowPool& shadowPool A shadow pool from which to

@@ -128,10 +128,9 @@ namespace trc
         void destroy(Handle instance);
 
         /**
-         * Update animation engines
          * Build TLAS (if ray tracing is enabled)
          */
-        void update(float timeDeltaMs);
+        void update();
 
         /**
          * @throw std::runtime_error if ray tracing is not enabled
@@ -175,14 +174,5 @@ namespace trc
         // Ray Tracing
 
         u_ptr<RayDrawablePool> ray;
-
-
-        ///////////////////////
-        // Auxiliary structures
-
-        void updateAnimations(float timeDeltaMs);
-
-        std::mutex animationEnginesLock;
-        std::vector<AnimationEngine*> animationEngines;
     };
 } // namespace trc

@@ -11,7 +11,10 @@
 
 
 
-trc::Drawable::Drawable(GeometryID geo, MaterialID material)
+namespace trc::legacy
+{
+
+Drawable::Drawable(GeometryID geo, MaterialID material)
 {
     setMaterial(material);
     setGeometry(geo);
@@ -19,14 +22,14 @@ trc::Drawable::Drawable(GeometryID geo, MaterialID material)
     updateDrawFunctions();
 }
 
-trc::Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
+Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
     :
     Drawable(geo, material)
 {
     attachToScene(scene);
 }
 
-trc::Drawable::Drawable(Drawable&& other) noexcept
+Drawable::Drawable(Drawable&& other) noexcept
     :
     Node(std::forward<Node>(other)),
     currentScene(other.currentScene),
@@ -41,7 +44,7 @@ trc::Drawable::Drawable(Drawable&& other) noexcept
     updateDrawFunctions();
 }
 
-auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
+auto Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
 {
     Node::operator=(std::forward<Node>(rhs));
 
@@ -58,7 +61,7 @@ auto trc::Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
     return *this;
 }
 
-trc::Drawable::~Drawable()
+Drawable::~Drawable()
 {
     removeFromScene();
     if (data->pickableId != NO_PICKABLE) {
@@ -68,22 +71,22 @@ trc::Drawable::~Drawable()
     DrawableDataStore::free(drawableDataId);
 }
 
-auto trc::Drawable::getMaterial() const -> MaterialID
+auto Drawable::getMaterial() const -> MaterialID
 {
     return data->mat;
 }
 
-auto trc::Drawable::getGeometry() const -> GeometryID
+auto Drawable::getGeometry() const -> GeometryID
 {
     return geoIndex;
 }
 
-void trc::Drawable::setMaterial(MaterialID matIndex)
+void Drawable::setMaterial(MaterialID matIndex)
 {
     data->mat = matIndex;
 }
 
-void trc::Drawable::setGeometry(GeometryID newGeo)
+void Drawable::setGeometry(GeometryID newGeo)
 {
     data->geo = newGeo.get();
     geoIndex = newGeo;
@@ -94,36 +97,36 @@ void trc::Drawable::setGeometry(GeometryID newGeo)
     }
 }
 
-auto trc::Drawable::getAnimationEngine() noexcept -> AnimationEngine&
+auto Drawable::getAnimationEngine() noexcept -> AnimationEngine&
 {
     return animEngine;
 }
 
-auto trc::Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
+auto Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
 {
     return animEngine;
 }
 
-void trc::Drawable::enableTransparency()
+void Drawable::enableTransparency()
 {
     data->isTransparent = true;
     updateDrawFunctions();
 }
 
-void trc::Drawable::attachToScene(SceneBase& scene)
+void Drawable::attachToScene(SceneBase& scene)
 {
     currentScene = &scene;
     updateDrawFunctions();
 }
 
-void trc::Drawable::removeFromScene()
+void Drawable::removeFromScene()
 {
     currentScene = nullptr;
     deferredRegistration = {};
     shadowRegistration = {};
 }
 
-void trc::Drawable::updateDrawFunctions()
+void Drawable::updateDrawFunctions()
 {
     if (currentScene == nullptr) return;
 
@@ -143,7 +146,7 @@ void trc::Drawable::updateDrawFunctions()
     {
         if (data->pickableId == NO_PICKABLE)
         {
-            func = [=, this, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 bindBaseResources(env, cmdBuf);
                 auto layout = env.currentPipeline->getLayout();
                 cmdBuf.pushConstants<AnimationDeviceData>(
@@ -158,7 +161,7 @@ void trc::Drawable::updateDrawFunctions()
         }
         else
         {
-            func = [=, this, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
                 assert(data->pickableId != NO_PICKABLE);
 
                 bindBaseResources(env, cmdBuf);
@@ -220,7 +223,7 @@ void trc::Drawable::updateDrawFunctions()
     );
 }
 
-void trc::Drawable::drawShadow(
+void Drawable::drawShadow(
     DrawableData* data,
     const DrawEnvironment& env,
     vk::CommandBuffer cmdBuf)
@@ -253,3 +256,5 @@ void trc::Drawable::drawShadow(
     // Draw
     cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
 }
+
+} // namespace trc::legacy

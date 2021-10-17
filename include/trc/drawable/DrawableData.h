@@ -9,7 +9,7 @@
 #include "AnimationEngine.h"
 #include "PickableRegistry.h"
 
-namespace trc
+namespace trc::legacy
 {
     struct DrawableData
     {

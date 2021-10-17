@@ -63,7 +63,7 @@ void run()
 
         const float frameTime = frameTimer.reset();
         scene.updateTransforms();
-        pool.update(frameTime);
+        pool.update();
 
         cube->rotateY((frameTime * 0.001f) * glm::radians(90.0f));
 

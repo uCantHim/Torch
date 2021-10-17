@@ -8,8 +8,12 @@
 #include "AssetIds.h"
 #include "DrawableData.h"
 
-namespace trc
+namespace trc::legacy
 {
+    /**
+     * The animation engine, if the geometry has a rig, is not updated
+     * automatically! The user has to take care of that.
+     */
     class Drawable : public Node
     {
     public:

@@ -282,7 +282,7 @@ void run()
 
         // Update rasterized and ray traced scenes
         scene->updateTransforms();
-        pool.update(time);
+        pool.update();
 
         torch.window->drawFrame(trc::DrawConfig{
             .scene=scene.get(),

@@ -42,10 +42,8 @@ void trc::DrawablePool::destroy(Handle instance)
     deleteInstance(instance);
 }
 
-void trc::DrawablePool::update(const float timeDeltaMs)
+void trc::DrawablePool::update()
 {
-    updateAnimations(timeDeltaMs);
-
     if (ray != nullptr) {
         ray->buildTlas().wait();
     }
@@ -61,15 +59,6 @@ auto trc::DrawablePool::getRayResources() const
     }
 
     return { *ray->getTlas(), ray->getDrawableDataBuffer() };
-}
-
-void trc::DrawablePool::updateAnimations(const float timeDeltaMs)
-{
-    std::scoped_lock lock(animationEnginesLock);
-    for (auto anim : animationEngines)
-    {
-        anim->update(timeDeltaMs);
-    }
 }
 
 auto trc::DrawablePool::createDrawable(const DrawableCreateInfo& info) -> Handle
@@ -119,12 +108,9 @@ auto trc::DrawablePool::createInstance(ui32 drawableId) -> Handle
     // Create a user-exposed handle for the new instance
     u_ptr<InstanceHandle> handle(new InstanceHandle(this, drawableId, id));
 
-    // Create helper data for the instance
-    if (d.geo.hasRig())
-    {
+    // Create animation engine if geometry has a rig
+    if (d.geo.hasRig()) {
         handle->animEngine = { *d.geo.getRig() };
-        std::scoped_lock lock(animationEnginesLock);
-        animationEngines.emplace_back(&handle->animEngine);
     }
 
     // Create drawable data for the instance
@@ -143,13 +129,6 @@ void trc::DrawablePool::deleteInstance(Handle instance)
     auto& d = drawables.at(instance->drawableId);
 
     assert(d.instances.size() > instance->instanceId);
-
-    if (d.geo.hasRig())
-    {
-        std::scoped_lock lock(animationEnginesLock);
-        auto& a = animationEngines;
-        a.erase(std::remove(a.begin(), a.end(), &instance->getAnimationEngine()));
-    }
 
     const ui32 newId = instance->instanceId;
     const ui32 oldId = d.instances.back()->instanceId;

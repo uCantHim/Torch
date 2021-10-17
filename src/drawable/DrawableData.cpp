@@ -2,7 +2,10 @@
 
 
 
-auto trc::DrawableDataStore::create(Node& node, AnimationEngine& animEngine) -> ui32
+namespace trc::legacy
+{
+
+auto DrawableDataStore::create(Node& node, AnimationEngine& animEngine) -> ui32
 {
     const ui32 id = idPool.generate();
     if (id >= data.size() * ARRAY_SIZE) {
@@ -17,13 +20,15 @@ auto trc::DrawableDataStore::create(Node& node, AnimationEngine& animEngine) -> 
     return id;
 }
 
-void trc::DrawableDataStore::free(ui32 id)
+void DrawableDataStore::free(ui32 id)
 {
     idPool.free(id);
 }
 
-auto trc::DrawableDataStore::get(ui32 id) -> DrawableData&
+auto DrawableDataStore::get(ui32 id) -> DrawableData&
 {
     assert(id < data.size() * ARRAY_SIZE);
     return data[size_t(id / ARRAY_SIZE)]->at(id % ARRAY_SIZE);
 }
+
+} // namespace trc::legacy
