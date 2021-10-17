@@ -4,7 +4,6 @@
 
 #include "Types.h"
 #include "DescriptorProvider.h"
-#include "PickableRegistry.h"
 
 namespace trc
 {
@@ -14,7 +13,6 @@ namespace trc
 
     /**
      * binding 0: Lights (uniform buffer)
-     * binding 1: Picking information (storage buffer)
      */
     class SceneDescriptor
     {
@@ -23,7 +21,6 @@ namespace trc
 
         void update(const Scene& scene);
 
-        void updatePicking();
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
@@ -58,9 +55,5 @@ namespace trc
 
         vkb::Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping
-
-        static constexpr vk::DeviceSize PICKING_BUFFER_SECTION_SIZE = 16;
-        vkb::Buffer pickingBuffer;
-        ui32 currentlyPicked{ NO_PICKABLE };
     };
 } // namespace trc

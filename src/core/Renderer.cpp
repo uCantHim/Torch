@@ -30,7 +30,12 @@ trc::Renderer::Renderer(Window& _window)
         = util::tryReserve(qm, vkb::QueueType::graphics);
     std::tie(mainPresentQueue, mainPresentQueueFamily)
         = util::tryReserve(qm, vkb::QueueType::presentation);
-    std::cout << "--- Main presentation family: " << mainPresentQueueFamily << "\n";
+
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        std::cout << "--- Main render family for renderer: " << mainRenderQueueFamily << "\n";
+        std::cout << "--- Main presentation family for renderer: " << mainPresentQueueFamily << "\n";
+    }
 
     commandCollector = std::make_unique<CommandCollector>(_window, mainRenderQueueFamily);
 

@@ -12,6 +12,16 @@
 namespace trc
 {
 
+auto getDrawableDeferredPipeline() -> Pipeline::ID;
+auto getDrawableDeferredAnimatedPipeline() -> Pipeline::ID;
+
+auto getDrawableTransparentDeferredPipeline() -> Pipeline::ID;
+auto getDrawableTransparentDeferredAnimatedPipeline() -> Pipeline::ID;
+
+auto getDrawableShadowPipeline() -> Pipeline::ID;
+
+
+
 auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
     if (featureFlags & PipelineFeatureFlagBits::eShadow)
@@ -22,16 +32,8 @@ auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 
     if (featureFlags & PipelineFeatureFlagBits::eTransparent)
     {
-        if (featureFlags & PipelineFeatureFlagBits::eAnimated
-            && featureFlags & PipelineFeatureFlagBits::ePickable)
-        {
-            return getDrawableTransparentDeferredAnimatedAndPickablePipeline();
-        }
-        else if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
+        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
             return getDrawableTransparentDeferredAnimatedPipeline();
-        }
-        else if (featureFlags & PipelineFeatureFlagBits::ePickable) {
-            return getDrawableTransparentDeferredPickablePipeline();
         }
         else {
             return getDrawableTransparentDeferredPipeline();
@@ -39,16 +41,8 @@ auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
     }
     else
     {
-        if (featureFlags & PipelineFeatureFlagBits::eAnimated
-            && featureFlags & PipelineFeatureFlagBits::ePickable)
-        {
-            return getDrawableDeferredAnimatedAndPickablePipeline();
-        }
-        else if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
+        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
             return getDrawableDeferredAnimatedPipeline();
-        }
-        else if (featureFlags & PipelineFeatureFlagBits::ePickable) {
-            return getDrawableDeferredPickablePipeline();
         }
         else {
             return getDrawableDeferredPipeline();
@@ -76,12 +70,6 @@ auto _makeDrawDef = [](const Instance& instance, const auto& config) {
 auto _makeDrawDefAnim = [](const Instance& instance, const auto& config) {
     return makeDrawableDeferredPipeline(Flags::eAnimated, instance, config);
 };
-auto _makeDrawDefPick = [](const Instance& instance, const auto& config) {
-    return makeDrawableDeferredPipeline(Flags::ePickable, instance, config);
-};
-auto _makeDrawDefAnimPick = [](const Instance& instance, const auto& config) {
-    return makeDrawableDeferredPipeline(Flags::ePickable | Flags::eAnimated, instance, config);
-};
 
 auto _makeTransDef = [](const Instance& instance, const auto& config) {
     return makeDrawableTransparentPipeline({}, instance, config);
@@ -89,22 +77,12 @@ auto _makeTransDef = [](const Instance& instance, const auto& config) {
 auto _makeTransDefAnim = [](const Instance& instance, const auto& config) {
     return makeDrawableTransparentPipeline(Flags::eAnimated, instance, config);
 };
-auto _makeTransDefPick = [](const Instance& instance, const auto& config) {
-    return makeDrawableTransparentPipeline(Flags::ePickable, instance, config);
-};
-auto _makeTransDefAnimPick = [](const Instance& instance, const auto& config) {
-    return makeDrawableTransparentPipeline(Flags::eAnimated | Flags::ePickable, instance, config);
-};
 
 PIPELINE_GETTER_FUNC(getDrawableDeferredPipeline, _makeDrawDef, DeferredRenderConfig)
 PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedPipeline, _makeDrawDefAnim, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getDrawableDeferredPickablePipeline, _makeDrawDefPick, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedAndPickablePipeline, _makeDrawDefAnimPick, DeferredRenderConfig)
 
 PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPipeline, _makeTransDef, DeferredRenderConfig)
 PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedPipeline, _makeTransDefAnim, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPickablePipeline, _makeTransDefPick, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedAndPickablePipeline, _makeTransDefAnimPick, DeferredRenderConfig)
 
 PIPELINE_GETTER_FUNC(getDrawableShadowPipeline, makeDrawableShadowPipeline, DeferredRenderConfig);
 
@@ -137,27 +115,18 @@ auto makeDrawableDeferredPipeline(
                 + sizeof(uvec2) // active keyframes
                 + sizeof(float) // keyframe weight
             ),
-            vk::PushConstantRange(
-                vk::ShaderStageFlagBits::eFragment,
-                84,
-                sizeof(ui32)  // Picking ID
-            ),
         }
     );
 
     // Pipeline
     bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
-    bool32 fragConst = !!(featureFlags & PipelineFeatureFlagBits::ePickable);
     vk::SpecializationMapEntry vertEntry(0, 0, sizeof(ui32));
-    vk::SpecializationMapEntry fragEntry(1, 0, sizeof(ui32));
     vk::SpecializationInfo vertSpec(1, &vertEntry, sizeof(ui32) * 1, &vertConst);
-    vk::SpecializationInfo fragSpec(1, &fragEntry, sizeof(ui32) * 1, &fragConst);
 
     vkb::ShaderProgram program(instance.getDevice(),
                                SHADER_DIR / "drawable/deferred.vert.spv",
                                SHADER_DIR / "drawable/deferred.frag.spv");
     program.setVertexSpecializationConstants(&vertSpec);
-    program.setFragmentSpecializationConstants(&fragSpec);
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -188,7 +157,6 @@ auto makeDrawableDeferredPipeline(
     p.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
 
     return p;
 }
@@ -221,27 +189,18 @@ auto makeDrawableTransparentPipeline(
                 + sizeof(uvec2) // active keyframes
                 + sizeof(float) // keyframe weight
             ),
-            vk::PushConstantRange(
-                vk::ShaderStageFlagBits::eFragment,
-                84,
-                sizeof(ui32)  // Picking ID
-            ),
         }
     );
 
     // Pipeline
     bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
-    bool32 fragConst = !!(featureFlags & PipelineFeatureFlagBits::ePickable);
     vk::SpecializationMapEntry vertEntry(0, 0, sizeof(ui32));
-    vk::SpecializationMapEntry fragEntry(1, 0, sizeof(ui32));
     vk::SpecializationInfo vertSpec(1, &vertEntry, sizeof(ui32) * 1, &vertConst);
-    vk::SpecializationInfo fragSpec(1, &fragEntry, sizeof(ui32) * 1, &fragConst);
 
     vkb::ShaderProgram program(instance.getDevice(),
                                SHADER_DIR / "drawable/deferred.vert.spv",
                                SHADER_DIR / "drawable/transparent.frag.spv");
     program.setVertexSpecializationConstants(&vertSpec);
-    program.setFragmentSpecializationConstants(&fragSpec);
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -274,7 +233,6 @@ auto makeDrawableTransparentPipeline(
     p.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
     p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(84, NO_PICKABLE,  vk::ShaderStageFlagBits::eFragment);
 
     return p;
 }

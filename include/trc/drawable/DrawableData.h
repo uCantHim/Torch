@@ -7,7 +7,6 @@
 #include "Geometry.h"
 #include "AssetIds.h"
 #include "AnimationEngine.h"
-#include "PickableRegistry.h"
 
 namespace trc::legacy
 {
@@ -18,7 +17,6 @@ namespace trc::legacy
         Geometry geo{};
         MaterialID mat{};
 
-        Pickable::ID pickableId{ NO_PICKABLE };
         bool isTransparent{ false };
 
         AnimationEngine::ID anim;

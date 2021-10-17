@@ -42,8 +42,6 @@ layout (location = 0) out Vertex
     vec2 uv;
     flat uint material;
     mat3 tbn;
-
-    flat uint instanceIndex;
 } vert;
 
 
@@ -77,6 +75,4 @@ void main()
     vec3 T = normalize((modelMatrix * tangent).xyz);
     vec3 B = cross(N, T);
     vert.tbn = mat3(T, B, N);
-
-    vert.instanceIndex = gl_InstanceIndex;
 }

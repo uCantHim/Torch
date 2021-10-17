@@ -10,7 +10,6 @@ namespace trc
     {
         eTransparent = 1 << 0,
         eAnimated    = 1 << 1,
-        ePickable    = 1 << 2,
 
         eShadow      = 1 << 3,
     };
@@ -18,18 +17,6 @@ namespace trc
     using PipelineFeatureFlags = vk::Flags<PipelineFeatureFlagBits>;
 
     auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
-
-    auto getDrawableDeferredPipeline() -> Pipeline::ID;
-    auto getDrawableDeferredAnimatedPipeline() -> Pipeline::ID;
-    auto getDrawableDeferredPickablePipeline() -> Pipeline::ID;
-    auto getDrawableDeferredAnimatedAndPickablePipeline() -> Pipeline::ID;
-
-    auto getDrawableTransparentDeferredPipeline() -> Pipeline::ID;
-    auto getDrawableTransparentDeferredAnimatedPipeline() -> Pipeline::ID;
-    auto getDrawableTransparentDeferredPickablePipeline() -> Pipeline::ID;
-    auto getDrawableTransparentDeferredAnimatedAndPickablePipeline() -> Pipeline::ID;
-
-    auto getDrawableShadowPipeline() -> Pipeline::ID;
 } // namespace trc
 
 namespace vk
@@ -41,7 +28,6 @@ namespace vk
       {
         allFlags = VkFlags(trc::PipelineFeatureFlagBits::eTransparent)
                    | VkFlags(trc::PipelineFeatureFlagBits::eAnimated)
-                   | VkFlags(trc::PipelineFeatureFlagBits::ePickable)
                    | VkFlags(trc::PipelineFeatureFlagBits::eShadow)
       };
     };

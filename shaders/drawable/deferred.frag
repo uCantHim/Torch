@@ -6,9 +6,6 @@
 
 layout (early_fragment_tests) in;
 
-// Constants
-layout (constant_id = 1) const bool isPickable = false;
-
 // Buffers
 layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
 {
@@ -22,13 +19,6 @@ layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 };
 
 layout (set = 1, binding = 1) uniform sampler2D textures[];
-
-layout (set = 2, binding = 1) restrict buffer PickingBuffer
-{
-    uint pickableID;
-    uint instanceID;
-    float depth;
-} picking;
 
 layout (set = 3, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
 
@@ -48,12 +38,6 @@ layout (set = 3, binding = 6) restrict buffer FragmentList
     uint fragmentList[][3];
 };
 
-// Push Constants
-layout (push_constant) uniform PushConstants
-{
-    layout (offset = 84) uint pickableID;
-};
-
 // Input
 layout (location = 0) in VertexData
 {
@@ -61,8 +45,6 @@ layout (location = 0) in VertexData
     vec2 uv;
     flat uint material;
     mat3 tbn;
-
-    flat uint instanceIndex;
 } vert;
 
 layout (location = 0) out vec3 outNormal;
@@ -82,18 +64,6 @@ void main()
     outNormal = calcVertexNormal();
     outAlbedo = packUnorm4x8(vec4(calcVertexColor(), 0.0));
     outMaterial = vert.material;
-
-    if (isPickable) // constant
-    {
-        // Floor because Vulkan sets the frag coord to .5 (the middle of the pixel)
-        if (floor(gl_FragCoord.xy) == global.mousePos
-            && gl_FragCoord.z < picking.depth)
-        {
-            picking.pickableID = pickableID;
-            picking.instanceID = vert.instanceIndex;
-            picking.depth = gl_FragCoord.z;
-        }
-    }
 }
 
 

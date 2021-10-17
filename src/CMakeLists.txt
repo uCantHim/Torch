@@ -16,7 +16,6 @@ target_sources(
         Light.cpp
         LightRegistry.cpp
         Node.cpp
-        PickableRegistry.cpp
         PipelineDefinitions.cpp
         RenderPassShadow.cpp
         RenderPassDeferred.cpp

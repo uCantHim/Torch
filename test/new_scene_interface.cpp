@@ -64,6 +64,7 @@ void run()
         const float frameTime = frameTimer.reset();
         scene.updateTransforms();
         pool.update();
+        linda->getAnimationEngine().update(frameTime);
 
         cube->rotateY((frameTime * 0.001f) * glm::radians(90.0f));
 

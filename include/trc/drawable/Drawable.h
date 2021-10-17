@@ -4,7 +4,6 @@
 #include "Node.h"
 #include "Geometry.h"
 #include "AnimationEngine.h"
-#include "PickableRegistry.h"
 #include "AssetIds.h"
 #include "DrawableData.h"
 
@@ -45,41 +44,6 @@ namespace trc::legacy
          *                          if the geometry doesn't have a rig.
          */
         auto getAnimationEngine() const noexcept -> const AnimationEngine&;
-
-        /**
-         * @brief Enable picking for the drawable
-         *
-         * In order to enable picking, a Pickable needs to be created and
-         * associated with the Drawable. That is what this function does.
-         *
-         * An object of type PickableType is created at the
-         * PickableRegistry. The provided PickableType must derive from
-         * Pickable for this to work. The ID of the created Pickable is
-         * stored in the Drawable.
-         *
-         * The pickable object is destroyed when the drawable is destroyed.
-         *
-         * Picking cannot be disabled once it has been enabled.
-         *
-         * @tparam PickableType Type of the Pickable that's created for the
-         *                      Drawable.
-         * @tparam ...Args Argument types for the constructor of the
-         *                 pickable. Can be deduced from the function
-         *                 arguments.
-         * @param Args&&... args Constructor arguments for the pickable.
-         */
-        template<typename PickableType, typename ...Args>
-        auto enablePicking(Args&&... args) -> PickableType&
-        {
-            PickableType& newPickable = PickableRegistry::makePickable<PickableType, Args...>(
-                std::forward<Args>(std::move(args))...
-            );
-
-            data->pickableId = newPickable.getPickableId();
-            updateDrawFunctions();
-
-            return newPickable;
-        }
 
         void enableTransparency();
 

@@ -31,9 +31,6 @@ namespace trc
 
     /**
      * @brief Scene class for shared rasterized/ray traced drawables
-     *
-     * Ray tracing is enabled if it is enabled on the trc::Instance passed
-     * to the constructor.
      */
     class DrawablePool
     {

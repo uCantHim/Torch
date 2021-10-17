@@ -16,9 +16,6 @@
 // Compare early against the depth values from the opaque pass
 layout (early_fragment_tests) in;
 
-// Constants
-layout (constant_id = 1) const bool isPickable = false;
-
 // Buffers
 layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
 {
@@ -54,8 +51,6 @@ layout (location = 0) in VertexData
     vec2 uv;
     flat uint material;
     mat3 tbn;
-
-    flat uint instanceIndex;
 } vert;
 
 
@@ -83,18 +78,6 @@ void main()
 
     if (diffuseColor.a > 0.0) {
         appendFragment(vec4(color, diffuseColor.a));
-    }
-
-    if (isPickable) // constant
-    {
-        // Floor because Vulkan sets the frag coord to .5 (the middle of the pixel)
-        if (floor(gl_FragCoord.xy) == global.mousePos
-            && gl_FragCoord.z < picking.depth)
-        {
-            picking.pickableID = pickableID;
-            picking.instanceID = vert.instanceIndex;
-            picking.depth = gl_FragCoord.z;
-        }
     }
 }
 
