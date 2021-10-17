@@ -24,6 +24,9 @@ namespace trc
          * Ray Traced: Maximum total number of instances.
          */
         ui32 maxInstances{ 1000 };
+
+        /** Initialize ray tracing if it is additionally enabled on the instance */
+        bool initRayTracing{ true };
     };
 
     /**

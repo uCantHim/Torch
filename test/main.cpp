@@ -30,7 +30,7 @@ void run()
     vkb::Keyboard::init();
     vkb::Mouse::init();
 
-    auto torch = trc::initFull({ .enableRayTracing=false });
+    auto torch = trc::initFull();
     auto& ar = torch.renderConfig->getAssets();
     auto& instance = *torch.instance;
     const auto& device = instance.getDevice();
@@ -92,7 +92,7 @@ void run()
     // ------------------
 
     trc::Scene scene;
-    trc::DrawablePool pool(instance, { .maxInstances=1000 }, scene);
+    trc::DrawablePool pool(instance, { .maxInstances=1000, .initRayTracing=false }, scene);
 
     std::vector<trc::AnimationEngine*> animEngines;
 

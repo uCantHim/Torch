@@ -12,7 +12,7 @@ trc::DrawablePool::DrawablePool(const ::trc::Instance& instance, const DrawableP
     raster({ info.maxInstances }),
     ray(nullptr)
 {
-    if (instance.hasRayTracing()) {
+    if (info.initRayTracing && instance.hasRayTracing()) {
         ray.reset(new RayDrawablePool(instance, { info.maxInstances }));
     }
 }
