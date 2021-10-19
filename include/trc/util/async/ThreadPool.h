@@ -27,14 +27,8 @@ namespace trc::async
          *                     function.
          */
         template<typename Func, typename ...Args>
-        auto async(Func func, Args&&... args) -> std::future<std::invoke_result_t<Func, Args...>>
             requires std::is_invocable_v<Func, Args...>
-                     && (!std::is_same_v<std::invoke_result_t<Func, Args...>, void>);
-
-        template<typename Func, typename ...Args>
-        void async(Func func, Args&&... args)
-            requires std::is_invocable_v<Func, Args...>
-                     && std::is_same_v<std::invoke_result_t<Func, Args...>, void>;
+        auto async(Func func, Args&&... args) -> std::future<std::invoke_result_t<Func, Args...>>;
 
     private:
         /** Spawn a new thread. Is called in execute(). */
@@ -73,28 +67,25 @@ namespace trc::async
 
 
     template<typename Func, typename ...Args>
+        requires std::is_invocable_v<Func, Args...>
     inline auto ThreadPool::async(Func func, Args&&... args)
         -> std::future<std::invoke_result_t<Func, Args...>>
-        requires std::is_invocable_v<Func, Args...>
-              && (!std::is_same_v<std::invoke_result_t<Func, Args...>, void>)
     {
         // Use a shared ptr because std::functions must be copyable, which
         // isn't the case for std::promise
         auto promise = std::make_shared<std::promise<std::invoke_result_t<Func, Args...>>>();
-        execute([promise, func = std::move(func), ...args = std::forward<Args>(args)]() {
-            promise->set_value(func(std::move(args)...));
+        execute([promise, func = std::move(func), ...args = std::forward<Args>(args)]() mutable
+        {
+            if constexpr (std::is_same_v<std::invoke_result_t<Func, Args...>, void>)
+            {
+                func(std::forward<Args>(args)...);
+                promise->set_value();
+            }
+            else {
+                promise->set_value(func(std::forward<Args>(args)...));
+            }
         });
 
         return promise->get_future();
-    }
-
-    template<typename Func, typename ...Args>
-    inline void ThreadPool::async(Func func, Args&&... args)
-        requires std::is_invocable_v<Func, Args...>
-                 && std::is_same_v<std::invoke_result_t<Func, Args...>, void>
-    {
-        execute([func = std::move(func), ...args = std::forward<Args>(args)]() {
-            func(std::forward<Args>(args)...);
-        });
     }
 } // namespace trc::async
