@@ -30,7 +30,7 @@ int main()
         // Initialize GUI
         auto guiStack = trc::initGui(torch.instance->getDevice(), swapchain);
         ui::Window* window = guiStack.window.get();
-        trc::integrateGui(guiStack, torch.renderConfig->getGraph());
+        trc::integrateGui(guiStack, torch.renderConfig->getLayout());
 
 
         // Now, after intialization, is it possible to load fonts

@@ -51,7 +51,6 @@ int main()
 
     // --- BLAS --- //
 
-    vkb::MemoryPool asPool{ instance.getDevice(), 100000000 };
     BLAS triBlas{ instance, tri };
     BLAS blas{ instance, geo };
     trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
@@ -94,7 +93,8 @@ int main()
         instances,
         vk::BufferUsageFlagBits::eShaderDeviceAddress
         | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
     TLAS tlas{ instance, 30 };
@@ -220,17 +220,15 @@ int main()
         void end(vk::CommandBuffer cmdBuf) override {}
     };
 
-    auto rayStageTypeId = trc::RenderStageType::createAtNextIndex(1).first;
     RayTracingRenderPass rayPass;
 
-    torch.renderConfig->getGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
-    torch.renderConfig->getGraph().addPass(rayStageTypeId, rayPass);
+    torch.renderConfig->getLayout().addPass(trc::rt::getRayTracingRenderStage(), rayPass);
 
 
     // --- Draw function --- //
 
     scene->registerDrawFunction(
-        rayStageTypeId, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
+        trc::rt::getRayTracingRenderStage(), trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
         [
             &,
             &rayPipeline=rayPipeline,

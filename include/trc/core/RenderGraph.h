@@ -2,23 +2,44 @@
 
 #include <vector>
 #include <unordered_map>
+#include <optional>
+#include <functional>
 
 #include "Types.h"
 #include "RenderStage.h"
+#include "RenderLayout.h"
 
 namespace trc
 {
+    class Window;
     class RenderPass;
 
+    /**
+     * @brief Declares the layout of a complete render pathway
+     *
+     * Can be compiled into a RenderLayout structure, which can be used to
+     * collect all draw commands from a scene that are relevant to the
+     * layout.
+     */
     class RenderGraph
     {
+        friend class RenderLayout;
+
     public:
         void first(RenderStageType::ID newStage);
         void before(RenderStageType::ID nextStage, RenderStageType::ID newStage);
         void after(RenderStageType::ID prevStage, RenderStageType::ID newStage);
 
-        // TODO: Implement this
-        // void parallel(RenderStageType::ID parentStage, RenderStageType::ID newStage);
+        /**
+         * @brief Create a stage-to-stage execution dependency
+         *
+         * All commands in `requiredStage` must have completed execution
+         * before any command in `stage` can be executed.
+         *
+         * @param RenderStageType::ID stage
+         * @param RenderStageType::ID requiredStage
+         */
+        void require(RenderStageType::ID stage, RenderStageType::ID requiredStage);
 
         /**
          * @param RenderStageType::ID stage
@@ -35,29 +56,25 @@ namespace trc
 
         void addPass(RenderStageType::ID stage, RenderPass& newPass);
         void removePass(RenderStageType::ID stage, RenderPass& pass);
-        void clearPasses(RenderStageType::ID stage);
 
-        template<typename F>
-            requires std::invocable<F, RenderStageType::ID, std::vector<RenderPass*>>
-        void foreachStage(F func) const
-        {
-            for (const auto& [stage, info] : orderedStages) {
-                func(stage, info->renderPasses);
-            }
-        }
+        auto compile(const Window& window) const -> RenderLayout;
 
     private:
         struct StageInfo
         {
+            RenderStageType::ID stage;
             std::vector<RenderPass*> renderPasses;
+
+            std::vector<RenderStageType::ID> waitDependencies;
         };
 
-        void insertNewStage(auto it, RenderStageType::ID newStage);
+        using StageIterator = typename std::vector<StageInfo>::iterator;
+        using StageConstIterator = typename std::vector<StageInfo>::const_iterator;
 
-        // Associates a type of stage with an actual stage instance
-        std::unordered_map<RenderStageType::ID, StageInfo> stages;
+        auto findStage(RenderStageType::ID stage) -> std::optional<StageIterator>;
+        auto findStage(RenderStageType::ID stage) const -> std::optional<StageConstIterator>;
+        void insert(StageIterator next, RenderStageType::ID newStage);
 
-        // Declares ordering of stages
-        std::vector<std::pair<RenderStageType::ID, StageInfo*>> orderedStages;
+        std::vector<StageInfo> stages;
     };
 } // namespace trc

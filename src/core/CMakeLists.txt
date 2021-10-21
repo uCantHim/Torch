@@ -1,7 +1,6 @@
 target_sources(
     torch
     PRIVATE
-        CommandCollector.cpp
         DynamicRenderPassContainer.cpp
         Instance.cpp
         Pipeline.cpp
@@ -10,6 +9,7 @@ target_sources(
         RenderConfiguration.cpp
         RenderDataDescriptor.cpp
         RenderGraph.cpp
+        RenderLayout.cpp
         RenderPass.cpp
         SceneBase.cpp
         Window.cpp

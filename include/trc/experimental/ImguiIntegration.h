@@ -10,7 +10,7 @@
 
 namespace trc
 {
-    class RenderGraph;
+    class RenderLayout;
 }
 
 namespace trc::experimental::imgui
@@ -31,10 +31,10 @@ namespace trc::experimental::imgui
      * Call this function for each window on which you want to use imgui.
      *
      * @param Window& window The window on which to enable imgui
-     * @param RenderGraph& graph Adds imgui stage and render pass to the
-     *                           render graph.
+     * @param RenderLayout& layout Adds imgui render pass to the render
+     *                             layout.
      */
-    extern auto initImgui(Window& window, RenderGraph& renderGraph) -> u_ptr<ImguiRenderPass>;
+    extern auto initImgui(Window& window, RenderLayout& layout) -> u_ptr<ImguiRenderPass>;
 
     extern void terminateImgui();
 

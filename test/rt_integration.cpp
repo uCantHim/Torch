@@ -10,7 +10,6 @@
 #include <trc/PipelineDefinitions.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
-#include <trc/ray_tracing/FinalCompositingPass.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -142,12 +141,11 @@ void run()
 
     // --- Render Pass --- //
 
-    auto rayStageTypeId = trc::RenderStageType::createAtNextIndex(1).first;
+    auto& layout = torch.renderConfig->getLayout();
+
+    // Add the pass that renders reflections to an offscreen image
     trc::RayTracingPass rayPass;
-
-    torch.renderConfig->getGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
-    torch.renderConfig->getGraph().addPass(rayStageTypeId, rayPass);
-
+    layout.addPass(trc::rt::getRayTracingRenderStage(), rayPass);
 
     // Add the final compositing pass that merges rasterization and ray tracing results
     trc::rt::FinalCompositingPass compositing(
@@ -158,10 +156,7 @@ void run()
             .assetRegistry = &ar,
         }
     );
-
-    auto& graph = torch.renderConfig->getGraph();
-    graph.after(rayStageTypeId, trc::rt::getFinalCompositingStage());
-    graph.addPass(trc::rt::getFinalCompositingStage(), compositing);
+    layout.addPass(trc::rt::getFinalCompositingStage(), compositing);
 
 
     // --- Ray Pipeline --- //
@@ -214,7 +209,8 @@ void run()
     // --- Draw function --- //
 
     scene->registerDrawFunction(
-        rayStageTypeId, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
+        trc::rt::getRayTracingRenderStage(), trc::SubPass::ID(0),
+        trc::getFinalLightingPipeline(),
         [
             &,
             &rayPipeline=rayPipeline,

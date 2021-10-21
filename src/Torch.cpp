@@ -3,6 +3,9 @@
 #include <IL/il.h>
 
 #include "TorchResources.h"
+#include "ui/torch/GuiIntegration.h"
+#include "experimental/ImguiIntegration.h"
+#include "ray_tracing/RayTracing.h"
 
 
 
@@ -38,6 +41,18 @@ auto trc::initFull(
     const WindowCreateInfo& windowInfo
     ) -> TorchStack
 {
+    auto graph = makeDeferredRenderGraph();
+
+    // Ray Tracing stages
+    graph.after(RenderStageTypes::getDeferred(), rt::getRayTracingRenderStage());
+    graph.after(rt::getRayTracingRenderStage(), rt::getFinalCompositingStage());
+    graph.require(rt::getFinalCompositingStage(), RenderStageTypes::getDeferred());
+    graph.require(rt::getFinalCompositingStage(), rt::getRayTracingRenderStage());
+
+    // GUI stages on final result
+    graph.after(rt::getFinalCompositingStage(), getGuiRenderStage());
+    graph.after(getGuiRenderStage(), experimental::imgui::getImguiRenderStageType());
+
     init();
 
     auto instance = std::make_unique<trc::Instance>(instanceInfo);
@@ -57,6 +72,7 @@ auto trc::initFull(
     auto config{
         std::make_unique<DeferredRenderConfig>(
             *window,
+            graph,
             DeferredRenderCreateInfo{
                 ar.get(),
                 sp.get(),

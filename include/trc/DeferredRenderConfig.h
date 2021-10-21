@@ -7,6 +7,7 @@
 #include "core/RenderConfiguration.h"
 #include "core/RenderPass.h"
 #include "core/SceneBase.h"
+#include "core/RenderGraph.h"
 
 #include "DescriptorProviderWrapper.h"
 #include "RenderPassDeferred.h"
@@ -21,7 +22,6 @@
 namespace trc
 {
     class Window;
-    class AssetRegistry;
 
     /**
      * @brief
@@ -34,6 +34,8 @@ namespace trc
         ui32 maxTransparentFragsPerPixel{ 3 };
     };
 
+    auto makeDeferredRenderGraph() -> RenderGraph;
+
     /**
      * @brief
      */
@@ -43,7 +45,16 @@ namespace trc
         /**
          * @brief
          */
-        DeferredRenderConfig(const Window& window, const DeferredRenderCreateInfo& info);
+        DeferredRenderConfig(const Window& window,
+                             const RenderGraph& graph,
+                             const DeferredRenderCreateInfo& info);
+
+        /**
+         * @brief
+         */
+        DeferredRenderConfig(const Window& window,
+                             RenderLayout layout,
+                             const DeferredRenderCreateInfo& info);
 
         void preDraw(const DrawConfig& draw) override;
         void postDraw(const DrawConfig& draw) override;

@@ -9,14 +9,6 @@
 
 
 
-auto trc::rt::getFinalCompositingStage() -> RenderStageType::ID
-{
-    static auto id = RenderStageType::createAtNextIndex(FinalCompositingPass::NUM_SUBPASSES).first;
-    return id;
-}
-
-
-
 trc::rt::FinalCompositingPass::FinalCompositingPass(
     const Window& window,
     const FinalCompositingPassCreateInfo& info)

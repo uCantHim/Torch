@@ -1,15 +1,14 @@
 #include "RenderConfiguration.h"
 
-#include "DrawConfiguration.h"
 
 
-
-auto trc::RenderConfig::getGraph() -> RenderGraph&
+trc::RenderConfig::RenderConfig(RenderLayout layout)
+    :
+    layout(std::move(layout))
 {
-    return graph;
 }
 
-auto trc::RenderConfig::getGraph() const -> const RenderGraph&
+auto trc::RenderConfig::getLayout() -> RenderLayout&
 {
-    return graph;
+    return layout;
 }

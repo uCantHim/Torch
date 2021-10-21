@@ -5,9 +5,8 @@
 #include <vkb/ShaderProgram.h>
 #include <vkb/event/Event.h>
 
-#include "core/RenderGraph.h"
+#include "core/RenderLayout.h"
 #include "TorchResources.h"
-#include "ui/Element.h"
 
 
 
@@ -66,10 +65,9 @@ auto trc::initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiSt
 
 
 
-void trc::integrateGui(GuiStack& stack, RenderGraph& graph)
+void trc::integrateGui(GuiStack& stack, RenderLayout& layout)
 {
-    graph.after(trc::RenderStageTypes::getDeferred(), trc::getGuiRenderStage());
-    graph.addPass(trc::getGuiRenderStage(), *stack.renderPass);
+    layout.addPass(trc::getGuiRenderStage(), *stack.renderPass);
 }
 
 

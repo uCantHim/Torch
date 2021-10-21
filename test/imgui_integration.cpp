@@ -16,7 +16,7 @@ int main()
         trc::Scene scene;
         trc::Camera camera;
 
-        auto imgui = trc::imgui::initImgui(*torch.window, torch.renderConfig->getGraph());
+        auto imgui = trc::imgui::initImgui(*torch.window, torch.renderConfig->getLayout());
 
         while (torch.window->getSwapchain().isOpen())
         {

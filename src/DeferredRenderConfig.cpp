@@ -10,11 +10,33 @@
 
 
 
+auto trc::makeDeferredRenderGraph() -> RenderGraph
+{
+    RenderGraph graph;
+
+    graph.first(RenderStageTypes::getShadow());
+    graph.after(RenderStageTypes::getShadow(), RenderStageTypes::getDeferred());
+
+    return graph;
+}
+
+
+
 trc::DeferredRenderConfig::DeferredRenderConfig(
     const Window& _window,
+    const RenderGraph& graph,
     const DeferredRenderCreateInfo& info)
     :
-    RenderConfigCrtpBase(_window.getInstance()),
+    DeferredRenderConfig(_window, RenderLayout(_window, graph), info)
+{
+}
+
+trc::DeferredRenderConfig::DeferredRenderConfig(
+    const Window& _window,
+    RenderLayout _layout,
+    const DeferredRenderCreateInfo& info)
+    :
+    RenderConfigCrtpBase(_window.getInstance(), std::move(_layout)),
     window(_window),
     // Passes
     deferredPass(new RenderPassDeferred(
@@ -51,25 +73,21 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     deferredPassDescriptorProvider.setWrappedProvider(p);
     deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
 
-    // Specify basic graph layout
-    graph.first(RenderStageTypes::getDeferred());
-    graph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
-
     // Add pass to deferred stage
-    graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+    layout.addPass(RenderStageTypes::getDeferred(), *deferredPass);
 
     swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this, info](auto e) {
         if (e.swapchain != &window.getSwapchain()) return;
 
         vkb::Timer timer;
 
-        graph.removePass(RenderStageTypes::getDeferred(), *deferredPass);
+        layout.removePass(RenderStageTypes::getDeferred(), *deferredPass);
         deferredPass.reset(new RenderPassDeferred(
             window.getDevice(),
             window.getSwapchain(),
             { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
         ));
-        graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+        layout.addPass(RenderStageTypes::getDeferred(), *deferredPass);
         if constexpr (vkb::enableVerboseLogging)
         {
             const float time = timer.reset();

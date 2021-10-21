@@ -4,8 +4,8 @@
 
 #include "RenderStage.h"
 #include "RenderPass.h"
+#include "RenderLayout.h"
 #include "PipelineRegistry.h"
-#include "RenderGraph.h"
 
 namespace trc
 {
@@ -17,7 +17,7 @@ namespace trc
     class RenderConfig
     {
     public:
-        RenderConfig() = default;
+        explicit RenderConfig(RenderLayout layout);
         virtual ~RenderConfig() = default;
 
         virtual void preDraw(const DrawConfig& draw) = 0;
@@ -25,11 +25,10 @@ namespace trc
 
         virtual auto getPipeline(Pipeline::ID id) -> Pipeline& = 0;
 
-        auto getGraph() -> RenderGraph&;
-        auto getGraph() const -> const RenderGraph&;
+        auto getLayout() -> RenderLayout&;
 
     protected:
-        RenderGraph graph;
+        RenderLayout layout;
     };
 
     /**
@@ -42,7 +41,7 @@ namespace trc
         /**
          * @brief
          */
-        inline RenderConfigCrtpBase(const Instance& instance);
+        inline RenderConfigCrtpBase(const Instance& instance, RenderLayout layout);
 
         inline auto getPipeline(Pipeline::ID id) -> Pipeline& override;
         inline auto getPipelineStorage() -> PipelineStorage<Derived>&;
@@ -64,8 +63,11 @@ namespace trc
     // ------------------------- //
 
     template<typename Derived>
-    inline RenderConfigCrtpBase<Derived>::RenderConfigCrtpBase(const Instance& instance)
+    inline RenderConfigCrtpBase<Derived>::RenderConfigCrtpBase(
+        const Instance& instance,
+        RenderLayout layout)
         :
+        RenderConfig(std::move(layout)),
         pipelineStorage(
             PipelineRegistry<Derived>::createStorage(instance, static_cast<Derived&>(*this))
         )

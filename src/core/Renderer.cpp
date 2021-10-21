@@ -4,7 +4,6 @@
 
 #include "Window.h"
 #include "DrawConfiguration.h"
-#include "Scene.h"
 #include "TorchResources.h"
 #include "util/Util.h"
 
@@ -37,8 +36,6 @@ trc::Renderer::Renderer(Window& _window)
         std::cout << "--- Main presentation family for renderer: " << mainPresentQueueFamily << "\n";
     }
 
-    commandCollector = std::make_unique<CommandCollector>(_window, mainRenderQueueFamily);
-
     swapchainRecreateListener = vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto e) {
         if (e.swapchain != &window->getSwapchain()) return;
         waitForAllFrames();
@@ -57,7 +54,6 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     assert(draw.renderConfig != nullptr);
 
     RenderConfig& renderConfig = *draw.renderConfig;
-    RenderGraph& renderGraph = draw.renderConfig->getGraph();
 
     // Update
     renderConfig.preDraw(draw);
@@ -73,7 +69,7 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     auto image = window->getSwapchain().acquireImage(**imageAcquireSemaphores);
 
     // Collect commands from scene
-    auto cmdBufs = commandCollector->recordScene(draw, renderGraph);
+    auto cmdBufs = draw.renderConfig->getLayout().record(draw);
 
     // Post-draw cleanup callback
     renderConfig.postDraw(draw);

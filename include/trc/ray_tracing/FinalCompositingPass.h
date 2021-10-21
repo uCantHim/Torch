@@ -19,8 +19,6 @@ namespace trc::rt
         AssetRegistry* assetRegistry{ nullptr };
     };
 
-    auto getFinalCompositingStage() -> RenderStageType::ID;
-
     /**
      * @brief Compute pass that merges raster and rt results together
      */
