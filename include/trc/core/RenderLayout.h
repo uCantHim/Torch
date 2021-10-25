@@ -5,6 +5,7 @@
 #include <vkb/basics/Device.h>
 #include <vkb/FrameSpecificObject.h>
 
+#include "util/async/ThreadPool.h"
 #include "RenderStage.h"
 
 namespace trc
@@ -34,13 +35,13 @@ namespace trc
 
         auto record(const DrawConfig& draw) -> std::vector<vk::CommandBuffer>;
 
-        void addPass(RenderStageType::ID stage, RenderPass& newPass);
-        void removePass(RenderStageType::ID stage, RenderPass& pass);
+        void addPass(RenderStage::ID stage, RenderPass& newPass);
+        void removePass(RenderStage::ID stage, RenderPass& pass);
 
     private:
         struct Stage
         {
-            RenderStageType::ID id;
+            RenderStage::ID id;
             std::vector<RenderPass*> renderPasses;
 
             std::vector<vk::Event> signalEvents;
@@ -48,12 +49,14 @@ namespace trc
         };
 
         void recordStage(vk::CommandBuffer cmdBuf, const DrawConfig& draw, const Stage& stage);
-        auto getStage(RenderStageType::ID stage) -> Stage*;
+        auto getStage(RenderStage::ID stage) -> Stage*;
 
         std::vector<Stage> stages;
 
         std::vector<vk::UniqueEvent> events;
         std::vector<vk::UniqueCommandPool> commandPools;
         std::vector<vkb::FrameSpecific<vk::UniqueCommandBuffer>> commandBuffers;
+
+        async::ThreadPool threadPool;
     };
 } // namespace trc

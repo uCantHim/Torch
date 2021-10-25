@@ -53,6 +53,7 @@ namespace trc
         void createInstance(ui32 drawableId, const DrawableInstanceCreateInfo& info);
         void deleteInstance(ui32 drawableId, ui32 instanceId);
 
+        auto getTlas() -> rt::TLAS&;
         auto getTlas() const -> const rt::TLAS&;
 
         /**

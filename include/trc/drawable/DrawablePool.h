@@ -130,7 +130,7 @@ namespace trc
         /**
          * Build TLAS (if ray tracing is enabled)
          */
-        void update();
+        void update(vk::CommandBuffer cmdBuf);
 
         /**
          * @throw std::runtime_error if ray tracing is not enabled

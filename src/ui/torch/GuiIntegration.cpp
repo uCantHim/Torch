@@ -67,17 +67,7 @@ auto trc::initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiSt
 
 void trc::integrateGui(GuiStack& stack, RenderLayout& layout)
 {
-    layout.addPass(trc::getGuiRenderStage(), *stack.renderPass);
-}
-
-
-
-auto trc::getGuiRenderStage() -> RenderStageType::ID
-{
-    constexpr ui32 NUM_SUBPASSES = 1;
-    static auto stage = RenderStageType::createAtNextIndex(NUM_SUBPASSES).first;
-
-    return stage;
+    layout.addPass(trc::guiRenderStage, *stack.renderPass);
 }
 
 

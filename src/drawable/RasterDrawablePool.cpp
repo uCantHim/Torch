@@ -122,7 +122,7 @@ void trc::RasterDrawablePool::createRasterFunctions()
         };
     };
 
-    auto addDrawFunc = [&](RenderStageType::ID stage, SubPass::ID subpass,
+    auto addDrawFunc = [&](RenderStage::ID stage, SubPass::ID subpass,
                            Pipeline::ID pipeline, auto func)
     {
         auto& drawVector = drawCalls.try_emplace(pipeline).first->second;
@@ -134,14 +134,14 @@ void trc::RasterDrawablePool::createRasterFunctions()
 
     // Default
     addDrawFunc(
-        RenderStageTypes::getDeferred(), RenderPassDeferred::SubPasses::gBuffer,
+        deferredRenderStage, RenderPassDeferred::SubPasses::gBuffer,
         getPipeline({}),
         [](Instance&, auto&, vk::CommandBuffer) {}
     );
 
     // Animated
     addDrawFunc(
-        RenderStageTypes::getDeferred(),
+        deferredRenderStage,
         RenderPassDeferred::SubPasses::gBuffer,
         getPipeline(PipelineFeatureFlagBits::eAnimated),
         [](Instance& inst, auto& env, vk::CommandBuffer cmdBuf) {
@@ -154,13 +154,13 @@ void trc::RasterDrawablePool::createRasterFunctions()
 
     // Transparent default
     addDrawFunc(
-        RenderStageTypes::getDeferred(), RenderPassDeferred::SubPasses::transparency,
+        deferredRenderStage, RenderPassDeferred::SubPasses::transparency,
         getPipeline(PipelineFeatureFlagBits::eTransparent),
         [](Instance&, auto&, vk::CommandBuffer) {}
     );
 
     addDrawFunc(
-        RenderStageTypes::getShadow(),
+        shadowRenderStage,
         SubPass::ID(0),
         getPipeline(PipelineFeatureFlagBits::eShadow),
         [](Instance& inst, const DrawEnvironment& env, vk::CommandBuffer cmdBuf)

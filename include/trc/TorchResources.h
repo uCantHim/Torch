@@ -4,12 +4,6 @@
 
 namespace trc
 {
-    /**
-     * @brief Access to global render stage types
-     */
-    struct RenderStageTypes
-    {
-        static auto getDeferred() -> RenderStageType::ID;
-        static auto getShadow() -> RenderStageType::ID;
-    };
+    inline RenderStage deferredRenderStage{};
+    inline RenderStage shadowRenderStage{};
 } // namespace trc

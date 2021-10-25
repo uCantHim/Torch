@@ -5,13 +5,13 @@
 
 
 
-void trc::DynamicRenderPassContainer::addRenderPass(RenderStageType::ID stage, RenderPass& pass)
+void trc::DynamicRenderPassContainer::addRenderPass(RenderStage::ID stage, RenderPass& pass)
 {
     auto [it, _] = dynamicPasses.try_emplace(stage);
     it->second.emplace_back(&pass);
 }
 
-void trc::DynamicRenderPassContainer::removeRenderPass(RenderStageType::ID stage, RenderPass& pass)
+void trc::DynamicRenderPassContainer::removeRenderPass(RenderStage::ID stage, RenderPass& pass)
 {
     auto it = dynamicPasses.find(stage);
     if (it != dynamicPasses.end()) {
@@ -24,7 +24,7 @@ void trc::DynamicRenderPassContainer::clearDynamicRenderPasses()
     dynamicPasses.clear();
 }
 
-void trc::DynamicRenderPassContainer::clearDynamicRenderPasses(RenderStageType::ID stage)
+void trc::DynamicRenderPassContainer::clearDynamicRenderPasses(RenderStage::ID stage)
 {
     auto it = dynamicPasses.find(stage);
     if (it != dynamicPasses.end()) {
@@ -32,7 +32,7 @@ void trc::DynamicRenderPassContainer::clearDynamicRenderPasses(RenderStageType::
     }
 }
 
-auto trc::DynamicRenderPassContainer::getDynamicRenderPasses(RenderStageType::ID stage)
+auto trc::DynamicRenderPassContainer::getDynamicRenderPasses(RenderStage::ID stage)
     -> const std::vector<RenderPass*>&
 {
     try {

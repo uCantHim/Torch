@@ -14,8 +14,8 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
 {
     RenderGraph graph;
 
-    graph.first(RenderStageTypes::getShadow());
-    graph.after(RenderStageTypes::getShadow(), RenderStageTypes::getDeferred());
+    graph.first(shadowRenderStage);
+    graph.after(shadowRenderStage, deferredRenderStage);
 
     return graph;
 }
@@ -74,25 +74,25 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
 
     // Add pass to deferred stage
-    layout.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+    layout.addPass(deferredRenderStage, *deferredPass);
 
     swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this, info](auto e) {
         if (e.swapchain != &window.getSwapchain()) return;
 
         vkb::Timer timer;
 
-        layout.removePass(RenderStageTypes::getDeferred(), *deferredPass);
+        layout.removePass(deferredRenderStage, *deferredPass);
         deferredPass.reset(new RenderPassDeferred(
             window.getDevice(),
             window.getSwapchain(),
             { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
         ));
-        layout.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+        layout.addPass(deferredRenderStage, *deferredPass);
+
         if constexpr (vkb::enableVerboseLogging)
         {
             const float time = timer.reset();
-            std::cout << "Deferred renderpass recreated for new swapchain"
-                << " (" << time << " ms)\n";
+            std::cout << "Deferred renderpass recreated for new swapchain (" << time << " ms)\n";
         }
 
         auto& p = deferredPass->getDescriptorProvider();
@@ -105,7 +105,7 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 {
     // Add final lighting function to scene
     finalLightingFunc = draw.scene->registerDrawFunction(
-        RenderStageTypes::getDeferred(),
+        deferredRenderStage,
         RenderPassDeferred::SubPasses::lighting,
         getFinalLightingPipeline(),
         [&](auto&&, vk::CommandBuffer cmdBuf)

@@ -12,15 +12,7 @@
 
 namespace trc::rt
 {
-    inline auto getRayTracingRenderStage() -> RenderStageType::ID
-    {
-        static auto id = RenderStageType::createAtNextIndex(1).first;
-        return id;
-    }
-
-    inline auto getFinalCompositingStage() -> RenderStageType::ID
-    {
-        static auto id = RenderStageType::createAtNextIndex(FinalCompositingPass::NUM_SUBPASSES).first;
-        return id;
-    }
+    inline RenderStage tlasBuildStage{};
+    inline RenderStage rayTracingRenderStage{};
+    inline RenderStage finalCompositingStage{};
 } // namespace trc::rt

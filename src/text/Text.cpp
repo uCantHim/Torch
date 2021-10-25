@@ -46,7 +46,7 @@ trc::Text::Text(const Instance& instance, Font& font)
 void trc::Text::attachToScene(SceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
-        RenderStageTypes::getDeferred(),
+        deferredRenderStage,
         RenderPassDeferred::SubPasses::transparency,
         getPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <ranges>
+#include <future>
 
 #include "core/Window.h"
 #include "core/RenderPass.h"
@@ -17,7 +18,7 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
     const vkb::Device& device = window.getDevice();
 
     // Store stages for second dependency pass
-    std::unordered_map<RenderStageType::ID, std::pair<const StageInfo*, Stage*>> stageStorage;
+    std::unordered_map<RenderStage::ID, std::pair<const StageInfo*, Stage*>> stageStorage;
 
     // Create stages
     stages.reserve(graph.size());
@@ -31,7 +32,7 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
     for (auto [id, data] : stageStorage)
     {
         auto [info, stage] = data;
-        for (RenderStageType::ID waitStage : info->waitDependencies)
+        for (RenderStage::ID waitStage : info->waitDependencies)
         {
             vk::Event event = *events.emplace_back(device->createEventUnique({}));
             stageStorage.at(waitStage).second->signalEvents.emplace_back(event);
@@ -60,6 +61,7 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
 
 auto trc::RenderLayout::record(const DrawConfig& draw) -> std::vector<vk::CommandBuffer>
 {
+    std::vector<std::future<void>> futures;
     std::vector<vk::CommandBuffer> result(stages.size());
 
     for (std::atomic<ui32> index = 0; const Stage& stage : stages)
@@ -68,7 +70,13 @@ auto trc::RenderLayout::record(const DrawConfig& draw) -> std::vector<vk::Comman
         vk::CommandBuffer cmdBuf = **commandBuffers.at(i);
         result[i] = cmdBuf;
 
-        recordStage(cmdBuf, draw, stage);
+        futures.emplace_back(threadPool.async([&, cmdBuf] {
+            recordStage(cmdBuf, draw, stage);
+        }));
+    }
+
+    for (auto& f : futures) {
+        f.wait();
     }
 
     return result;
@@ -81,6 +89,9 @@ void trc::RenderLayout::recordStage(
 {
     SceneBase& scene = *draw.scene;
     const auto& [viewport, scissor] = draw.renderArea;
+    const auto renderPasses = util::merged(stage.renderPasses,
+                                           scene.getDynamicRenderPasses(stage.id));
+    if (renderPasses.empty()) return;
 
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
@@ -100,7 +111,7 @@ void trc::RenderLayout::recordStage(
     }
 
     // Record render passes
-    for (auto renderPass : util::merged(stage.renderPasses, scene.getDynamicRenderPasses(stage.id)))
+    for (auto renderPass : renderPasses)
     {
         assert(renderPass != nullptr);
 
@@ -145,7 +156,7 @@ void trc::RenderLayout::recordStage(
     cmdBuf.end();
 }
 
-void trc::RenderLayout::addPass(RenderStageType::ID stage, RenderPass& newPass)
+void trc::RenderLayout::addPass(RenderStage::ID stage, RenderPass& newPass)
 {
     Stage* s = getStage(stage);
     if (s == nullptr)
@@ -158,7 +169,7 @@ void trc::RenderLayout::addPass(RenderStageType::ID stage, RenderPass& newPass)
     s->renderPasses.emplace_back(&newPass);
 }
 
-void trc::RenderLayout::removePass(RenderStageType::ID stage, RenderPass& pass)
+void trc::RenderLayout::removePass(RenderStage::ID stage, RenderPass& pass)
 {
     Stage* s = getStage(stage);
     if (s == nullptr)
@@ -174,7 +185,7 @@ void trc::RenderLayout::removePass(RenderStageType::ID stage, RenderPass& pass)
     }
 }
 
-auto trc::RenderLayout::getStage(RenderStageType::ID stage) -> Stage*
+auto trc::RenderLayout::getStage(RenderStage::ID stage) -> Stage*
 {
     auto it = std::ranges::find_if(stages, [stage](auto& a) { return a.id == stage; });
     if (it != stages.end()) {

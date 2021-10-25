@@ -19,7 +19,7 @@ namespace trc::experimental::imgui
 
     class ImguiRenderPass;
 
-    extern auto getImguiRenderStageType() -> RenderStageType::ID;
+    inline RenderStage imguiRenderStage{};
 
     /**
      * @brief Initialize imgui integration and set up render graph

@@ -138,6 +138,11 @@ void trc::RayDrawablePool::deleteInstance(ui32 drawableId, ui32 instanceId)
     d.instances.pop_back();
 }
 
+auto trc::RayDrawablePool::getTlas() -> rt::TLAS&
+{
+    return tlas;
+}
+
 auto trc::RayDrawablePool::getTlas() const -> const rt::TLAS&
 {
     return tlas;

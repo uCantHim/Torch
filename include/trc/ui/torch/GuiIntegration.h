@@ -19,10 +19,7 @@ namespace trc
 {
     class RenderLayout;
 
-    /**
-     * Access to static render stage
-     */
-    auto getGuiRenderStage() -> RenderStageType::ID;
+    inline RenderStage guiRenderStage{};
 
     class TorchWindowBackend : public ui::WindowBackend
     {

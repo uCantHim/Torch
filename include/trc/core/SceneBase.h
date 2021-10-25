@@ -16,7 +16,7 @@ namespace trc
 {
     struct DrawEnvironment
     {
-        RenderStageType* currentRenderStageType;
+        RenderStage::ID currentRenderStage;
         RenderPass* currentRenderPass;
         SubPass::ID currentSubPass;
         Pipeline* currentPipeline;
@@ -35,7 +35,7 @@ namespace trc
         struct RegistrationIndex
         {
             RegistrationIndex(
-                RenderStageType::ID stage,
+                RenderStage::ID stage,
                 SubPass::ID sub,
                 Pipeline::ID pipeline,
                 ui32 i)
@@ -46,7 +46,7 @@ namespace trc
                 indexInRegistrationArray(i)
             {}
 
-            RenderStageType::ID renderStageType;
+            RenderStage::ID renderStageType;
             SubPass::ID subPass;
             Pipeline::ID pipeline;
             ui32 indexInRegistrationArray;
@@ -141,7 +141,7 @@ namespace trc
         /**
          * @brief Get all pipelines used in a subpass
          */
-        auto getPipelines(RenderStageType::ID renderStageType, SubPass::ID subPass) const noexcept
+        auto getPipelines(RenderStage::ID renderStageType, SubPass::ID subPass) const noexcept
             -> const std::vector<Pipeline::ID>&;
 
         /**
@@ -151,7 +151,7 @@ namespace trc
          * the pipelines are not globally accessible anymore.
          */
         void invokeDrawFunctions(
-            RenderStageType::ID stage,
+            RenderStage::ID stage,
             RenderPass& renderPass,
             SubPass::ID subPass,
             Pipeline::ID pipelineId,
@@ -163,7 +163,7 @@ namespace trc
          * Don't worry, the RegistrationID is the size of a pointer.
          */
         auto registerDrawFunction(
-            RenderStageType::ID renderStageType,
+            RenderStage::ID renderStageType,
             SubPass::ID subpass,
             Pipeline::ID usedPipeline,
             DrawableFunction commandBufferRecordingFunction
@@ -173,7 +173,7 @@ namespace trc
         void unregisterDrawFunction(MaybeUniqueRegistrationId id);
 
     private:
-        template<typename T> using PerRenderStageType = data::IndexMap<RenderStageType::ID::Type, T>;
+        template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID::Type, T>;
         template<typename T> using PerSubpass = data::IndexMap<SubPass::ID::Type, T>;
         template<typename T> using PerPipeline = data::IndexMap<Pipeline::ID::Type, T>;
 
@@ -181,7 +181,7 @@ namespace trc
          * Sorting the functions this way allows me to group all draw calls with
          * the same pipelines together.
          */
-        PerRenderStageType<
+        PerRenderStage<
             PerSubpass<
                 PerPipeline<
                     std::vector<DrawableExecutionRegistration>
@@ -190,14 +190,14 @@ namespace trc
         > drawableRegistrations;
 
         // Pipeline storage
-        void tryInsertPipeline(RenderStageType::ID renderStageType,
+        void tryInsertPipeline(RenderStage::ID renderStageType,
                                SubPass::ID subpass,
                                Pipeline::ID pipeline);
-        void removePipeline(RenderStageType::ID renderStageType,
+        void removePipeline(RenderStage::ID renderStageType,
                             SubPass::ID subpass,
                             Pipeline::ID pipeline);
 
-        PerRenderStageType<PerSubpass<std::unordered_set<Pipeline::ID>>> uniquePipelines;
-        PerRenderStageType<PerSubpass<std::vector<Pipeline::ID>>> uniquePipelinesVector;
+        PerRenderStage<PerSubpass<std::unordered_set<Pipeline::ID>>> uniquePipelines;
+        PerRenderStage<PerSubpass<std::vector<Pipeline::ID>>> uniquePipelinesVector;
     };
 } // namespace trc

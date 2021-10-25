@@ -222,13 +222,13 @@ int main()
 
     RayTracingRenderPass rayPass;
 
-    torch.renderConfig->getLayout().addPass(trc::rt::getRayTracingRenderStage(), rayPass);
+    torch.renderConfig->getLayout().addPass(trc::rt::rayTracingRenderStage, rayPass);
 
 
     // --- Draw function --- //
 
     scene->registerDrawFunction(
-        trc::rt::getRayTracingRenderStage(), trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
+        trc::rt::rayTracingRenderStage, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
         [
             &,
             &rayPipeline=rayPipeline,

@@ -42,10 +42,10 @@ void trc::DrawablePool::destroy(Handle instance)
     deleteInstance(instance);
 }
 
-void trc::DrawablePool::update()
+void trc::DrawablePool::update(vk::CommandBuffer cmdBuf)
 {
     if (ray != nullptr) {
-        ray->buildTlas().wait();
+        ray->buildTlas(cmdBuf);
     }
 }
 
@@ -54,8 +54,8 @@ auto trc::DrawablePool::getRayResources() const
 {
     if (ray == nullptr)
     {
-        throw std::runtime_error("[In DrawablePool::getRayResources]: Ray Tracing is not"
-                                 " enabled on the trc::Instance!");
+        throw std::runtime_error("[In DrawablePool::getRayResources]: Ray tracing is not"
+                                 " for this pool!");
     }
 
     return { *ray->getTlas(), ray->getDrawableDataBuffer() };

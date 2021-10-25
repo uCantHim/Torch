@@ -79,7 +79,7 @@ namespace trc
         {
             DrawableFunction func;
             SubPass::ID subpass;
-            RenderStageType::ID stage;
+            RenderStage::ID stage;
         };
 
         std::unordered_map<Pipeline::ID, DrawFunctionSpec> drawFunctions;

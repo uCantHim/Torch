@@ -24,7 +24,6 @@ target_sources(
         SceneDescriptor.cpp
         ShadowPool.cpp
         Torch.cpp
-        TorchResources.cpp
         Transformation.cpp
 )
 

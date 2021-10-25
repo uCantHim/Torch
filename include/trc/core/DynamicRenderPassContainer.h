@@ -26,12 +26,12 @@ namespace trc
         /**
          * @brief Add a scene-specific render pass
          */
-        void addRenderPass(RenderStageType::ID stage, RenderPass& pass);
+        void addRenderPass(RenderStage::ID stage, RenderPass& pass);
 
         /**
          * @brief Remove a render pass from a stage
          */
-        void removeRenderPass(RenderStageType::ID stage, RenderPass& pass);
+        void removeRenderPass(RenderStage::ID stage, RenderPass& pass);
 
         /**
          * @brief Remove all dynamic passes for all stages
@@ -41,13 +41,13 @@ namespace trc
         /**
          * @brief Remove all dynamic passes for a specific stage
          *
-         * @param RenderStageType::ID stage
+         * @param RenderStage::ID stage
          */
-        void clearDynamicRenderPasses(RenderStageType::ID stage);
+        void clearDynamicRenderPasses(RenderStage::ID stage);
 
-        auto getDynamicRenderPasses(RenderStageType::ID stage) -> const std::vector<RenderPass*>&;
+        auto getDynamicRenderPasses(RenderStage::ID stage) -> const std::vector<RenderPass*>&;
 
     private:
-        std::unordered_map<RenderStageType::ID, std::vector<RenderPass*>> dynamicPasses;
+        std::unordered_map<RenderStage::ID, std::vector<RenderPass*>> dynamicPasses;
     };
 } // namespace trc

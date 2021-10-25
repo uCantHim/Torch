@@ -63,7 +63,7 @@ auto trc::Scene::enableShadow(
         light.addShadowMap(shadow.index);
 
         // Add the dynamic render pass
-        addRenderPass(RenderStageTypes::getShadow(), *shadow.renderPass);
+        addRenderPass(shadowRenderStage, *shadow.renderPass);
 
         // Use lookAt for sun lights
         if (light.getType() == LightData::Type::eSunLight && length(light.getDirection()) > 0.0f)
@@ -86,7 +86,7 @@ void trc::Scene::disableShadow(Light light)
 
         // Remove all render passes
         for (auto& shadow : it->second.shadows) {
-            removeRenderPass(RenderStageTypes::getShadow(), *shadow.renderPass);
+            removeRenderPass(shadowRenderStage, *shadow.renderPass);
         }
 
         shadowNodes.erase(it);

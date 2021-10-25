@@ -26,9 +26,9 @@ namespace trc
         friend class RenderLayout;
 
     public:
-        void first(RenderStageType::ID newStage);
-        void before(RenderStageType::ID nextStage, RenderStageType::ID newStage);
-        void after(RenderStageType::ID prevStage, RenderStageType::ID newStage);
+        void first(RenderStage::ID newStage);
+        void before(RenderStage::ID nextStage, RenderStage::ID newStage);
+        void after(RenderStage::ID prevStage, RenderStage::ID newStage);
 
         /**
          * @brief Create a stage-to-stage execution dependency
@@ -36,44 +36,44 @@ namespace trc
          * All commands in `requiredStage` must have completed execution
          * before any command in `stage` can be executed.
          *
-         * @param RenderStageType::ID stage
-         * @param RenderStageType::ID requiredStage
+         * @param RenderStage::ID stage
+         * @param RenderStage::ID requiredStage
          */
-        void require(RenderStageType::ID stage, RenderStageType::ID requiredStage);
+        void require(RenderStage::ID stage, RenderStage::ID requiredStage);
 
         /**
-         * @param RenderStageType::ID stage
+         * @param RenderStage::ID stage
          *
          * @return bool True if the graph contains the specified stage type
          *              at least once.
          */
-        bool contains(RenderStageType::ID stage) const noexcept;
+        bool contains(RenderStage::ID stage) const noexcept;
 
         /**
          * @return size_t The number of stages in the graph
          */
         auto size() const noexcept -> size_t;
 
-        void addPass(RenderStageType::ID stage, RenderPass& newPass);
-        void removePass(RenderStageType::ID stage, RenderPass& pass);
+        void addPass(RenderStage::ID stage, RenderPass& newPass);
+        void removePass(RenderStage::ID stage, RenderPass& pass);
 
         auto compile(const Window& window) const -> RenderLayout;
 
     private:
         struct StageInfo
         {
-            RenderStageType::ID stage;
+            RenderStage::ID stage;
             std::vector<RenderPass*> renderPasses;
 
-            std::vector<RenderStageType::ID> waitDependencies;
+            std::vector<RenderStage::ID> waitDependencies;
         };
 
         using StageIterator = typename std::vector<StageInfo>::iterator;
         using StageConstIterator = typename std::vector<StageInfo>::const_iterator;
 
-        auto findStage(RenderStageType::ID stage) -> std::optional<StageIterator>;
-        auto findStage(RenderStageType::ID stage) const -> std::optional<StageConstIterator>;
-        void insert(StageIterator next, RenderStageType::ID newStage);
+        auto findStage(RenderStage::ID stage) -> std::optional<StageIterator>;
+        auto findStage(RenderStage::ID stage) const -> std::optional<StageConstIterator>;
+        void insert(StageIterator next, RenderStage::ID newStage);
 
         std::vector<StageInfo> stages;
     };

@@ -41,21 +41,23 @@ auto trc::initFull(
     const WindowCreateInfo& windowInfo
     ) -> TorchStack
 {
-    auto graph = makeDeferredRenderGraph();
-
-    // Ray Tracing stages
-    graph.after(RenderStageTypes::getDeferred(), rt::getRayTracingRenderStage());
-    graph.after(rt::getRayTracingRenderStage(), rt::getFinalCompositingStage());
-    graph.require(rt::getFinalCompositingStage(), RenderStageTypes::getDeferred());
-    graph.require(rt::getFinalCompositingStage(), rt::getRayTracingRenderStage());
-
-    // GUI stages on final result
-    graph.after(rt::getFinalCompositingStage(), getGuiRenderStage());
-    graph.after(getGuiRenderStage(), experimental::imgui::getImguiRenderStageType());
-
     init();
 
     auto instance = std::make_unique<trc::Instance>(instanceInfo);
+
+    // Create render graph
+    auto graph = makeDeferredRenderGraph();
+    if (instance->hasRayTracing())
+    {
+        graph.first(rt::tlasBuildStage);
+        graph.after(deferredRenderStage, rt::rayTracingRenderStage);
+        graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
+        graph.require(rt::rayTracingRenderStage, rt::tlasBuildStage);
+        graph.require(rt::finalCompositingStage, deferredRenderStage);
+        graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
+    }
+    graph.after(rt::finalCompositingStage, guiRenderStage);
+    graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
 
     auto winInfo = windowInfo;
     if (instanceInfo.enableRayTracing) {
@@ -98,8 +100,6 @@ void trc::pollEvents()
 void trc::terminate()
 {
     torchGlobalVulkanInstance.reset();
-
-    RenderStageType::destroyAll();
 
     vkb::terminate();
 }

@@ -145,7 +145,7 @@ void run()
 
     // Add the pass that renders reflections to an offscreen image
     trc::RayTracingPass rayPass;
-    layout.addPass(trc::rt::getRayTracingRenderStage(), rayPass);
+    layout.addPass(trc::rt::rayTracingRenderStage, rayPass);
 
     // Add the final compositing pass that merges rasterization and ray tracing results
     trc::rt::FinalCompositingPass compositing(
@@ -156,7 +156,33 @@ void run()
             .assetRegistry = &ar,
         }
     );
-    layout.addPass(trc::rt::getFinalCompositingStage(), compositing);
+    layout.addPass(trc::rt::finalCompositingStage, compositing);
+
+
+    // --- Render Pass --- //
+
+    class TlasBuildPass : public trc::RenderPass
+    {
+    public:
+        TlasBuildPass(trc::DrawablePool& pool)
+            :
+            trc::RenderPass({}, 1),
+            pool(&pool)
+        {}
+
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents) override
+        {
+            pool->update(cmdBuf);
+        }
+
+        void end(vk::CommandBuffer) override {}
+
+    private:
+        trc::DrawablePool* pool;
+    };
+
+    TlasBuildPass tlasBuildPass{ pool };
+    layout.addPass(trc::rt::tlasBuildStage, tlasBuildPass);
 
 
     // --- Ray Pipeline --- //
@@ -209,7 +235,7 @@ void run()
     // --- Draw function --- //
 
     scene->registerDrawFunction(
-        trc::rt::getRayTracingRenderStage(), trc::SubPass::ID(0),
+        trc::rt::rayTracingRenderStage, trc::SubPass::ID(0),
         trc::getFinalLightingPipeline(),
         [
             &,
@@ -269,6 +295,8 @@ void run()
     });
 
     vkb::Timer timer;
+    vkb::Timer frameTimer;
+    int frames{ 0 };
     while (swapchain.isOpen())
     {
         vkb::pollEvents();
@@ -278,7 +306,6 @@ void run()
 
         // Update rasterized and ray traced scenes
         scene->updateTransforms();
-        pool.update();
 
         torch.window->drawFrame(trc::DrawConfig{
             .scene=scene.get(),
@@ -286,6 +313,14 @@ void run()
             .renderConfig=torch.renderConfig.get(),
             .renderArea={ torch.window->makeFullscreenRenderArea() }
         });
+
+        frames++;
+        if (frameTimer.duration() >= 1000.0f)
+        {
+            std::cout << frames << " FPS\n";
+            frames = 0;
+            frameTimer.reset();
+        }
     }
 
     torch.window->getRenderer().waitForAllFrames();

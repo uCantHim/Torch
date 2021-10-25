@@ -23,14 +23,6 @@ namespace
 
 
 
-auto trc::experimental::imgui::getImguiRenderStageType() -> RenderStageType::ID
-{
-    static RenderStageType::ID imguiStageId = RenderStageType::createAtNextIndex(1).first;
-    return imguiStageId;
-}
-
-
-
 auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
     -> trc::u_ptr<ImguiRenderPass>
 {
@@ -38,7 +30,7 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
     auto& swapchain = window.getSwapchain();
 
     auto renderPass = std::make_unique<ImguiRenderPass>(swapchain);
-    layout.addPass(getImguiRenderStageType(), *renderPass);
+    layout.addPass(imguiRenderStage, *renderPass);
 
     // Initialize global imgui stuff
     if (!imguiInitialized)
