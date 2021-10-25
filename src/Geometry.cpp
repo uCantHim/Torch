@@ -166,7 +166,7 @@ trc::Geometry::Geometry(
 {
 }
 
-void trc::Geometry::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding)
+void trc::Geometry::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
     cmdBuf.bindIndexBuffer(indexBuffer, 0, indexType);
     cmdBuf.bindVertexBuffers(binding, vertexBuffer, vk::DeviceSize(0));

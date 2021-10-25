@@ -55,7 +55,7 @@ namespace trc
          * @param ui32 binding Binding index to which the vertex buffer will
          *                     be bound.
          */
-        void bindVertices(vk::CommandBuffer cmdBuf, ui32 binding);
+        void bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const;
 
         auto getIndexBuffer() const noexcept -> vk::Buffer;
         auto getVertexBuffer() const noexcept -> vk::Buffer;

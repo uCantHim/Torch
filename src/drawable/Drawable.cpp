@@ -4,7 +4,6 @@
 #include "AssetRegistry.h"
 #include "Geometry.h"
 #include "Material.h"
-#include "drawable/RasterPipelines.h"
 
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
@@ -15,11 +14,9 @@ namespace trc::legacy
 {
 
 Drawable::Drawable(GeometryID geo, MaterialID material)
+    :
+    Drawable(DrawableCreateInfo{ geo, material })
 {
-    setMaterial(material);
-    setGeometry(geo);
-
-    updateDrawFunctions();
 }
 
 Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
@@ -29,42 +26,27 @@ Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
     attachToScene(scene);
 }
 
-Drawable::Drawable(Drawable&& other) noexcept
+Drawable::Drawable(const DrawableCreateInfo& info)
     :
-    Node(std::forward<Node>(other)),
-    currentScene(other.currentScene),
-    deferredRegistration(std::move(other.deferredRegistration)),
-    shadowRegistration(std::move(other.shadowRegistration)),
-    geoIndex(other.geoIndex)
+    data(std::make_unique<DrawableData>(
+        info.geo.get(),
+        info.geo,
+        info.mat,
+        Node::getGlobalTransformID(),
+        animEngine.getState()
+    ))
 {
-    std::swap(drawableDataId, other.drawableDataId);
-    std::swap(data, other.data);
+    PipelineFeatureFlags flags;
+    if (info.transparent) {
+        flags |= PipelineFeatureFlagBits::eTransparent;
+    }
+    if (data->geo.hasRig()) {
+        flags |= PipelineFeatureFlagBits::eAnimated;
+    }
 
-    other.removeFromScene();
-    updateDrawFunctions();
-}
-
-auto Drawable::operator=(Drawable&& rhs) noexcept -> Drawable&
-{
-    Node::operator=(std::forward<Node>(rhs));
-
-    currentScene = rhs.currentScene;
-    deferredRegistration = std::move(rhs.deferredRegistration);
-    shadowRegistration = std::move(rhs.shadowRegistration);
-
-    std::swap(drawableDataId, rhs.drawableDataId);
-    std::swap(data, rhs.data);
-
-    rhs.removeFromScene();
-    updateDrawFunctions();
-
-    return *this;
-}
-
-Drawable::~Drawable()
-{
-    removeFromScene();
-    DrawableDataStore::free(drawableDataId);
+    deferredPipeline = getPipeline(flags);
+    deferredSubpass = info.transparent ? RenderPassDeferred::SubPasses::transparency
+                                       : RenderPassDeferred::SubPasses::gBuffer;
 }
 
 auto Drawable::getMaterial() const -> MaterialID
@@ -74,23 +56,7 @@ auto Drawable::getMaterial() const -> MaterialID
 
 auto Drawable::getGeometry() const -> GeometryID
 {
-    return geoIndex;
-}
-
-void Drawable::setMaterial(MaterialID matIndex)
-{
-    data->mat = matIndex;
-}
-
-void Drawable::setGeometry(GeometryID newGeo)
-{
-    data->geo = newGeo.get();
-    geoIndex = newGeo;
-    if (data->geo.hasRig())
-    {
-        animEngine = { *data->geo.getRig() };
-        data->anim = animEngine.getState();
-    }
+    return data->geoId;
 }
 
 auto Drawable::getAnimationEngine() noexcept -> AnimationEngine&
@@ -103,53 +69,19 @@ auto Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
     return animEngine;
 }
 
-void Drawable::enableTransparency()
-{
-    data->isTransparent = true;
-    updateDrawFunctions();
-}
-
 void Drawable::attachToScene(SceneBase& scene)
 {
-    currentScene = &scene;
-    updateDrawFunctions();
-}
-
-void Drawable::removeFromScene()
-{
-    currentScene = nullptr;
-    deferredRegistration = {};
-    shadowRegistration = {};
-}
-
-void Drawable::updateDrawFunctions()
-{
-    if (currentScene == nullptr) return;
-
-    auto bindBaseResources = [data=this->data](const auto& env, vk::CommandBuffer cmdBuf) {
-        data->geo.bindVertices(cmdBuf, 0);
-
-        auto layout = env.currentPipeline->getLayout();
-        cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                   data->modelMatrixId.get());
-        cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                   sizeof(mat4), static_cast<ui32>(data->mat));
-    };
-
     DrawableFunction func;
-    PipelineFeatureFlags flags;
-
-    if (data->isTransparent) {
-        flags |= PipelineFeatureFlagBits::eTransparent;
-    }
-
     if (data->geo.hasRig())
     {
-        flags |= PipelineFeatureFlagBits::eAnimated;
+        func = [data=this->data.get()](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            data->geo.bindVertices(cmdBuf, 0);
 
-        func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-            bindBaseResources(env, cmdBuf);
             auto layout = env.currentPipeline->getLayout();
+            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
+                                       data->modelMatrixId.get());
+            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
+                                       sizeof(mat4), static_cast<ui32>(data->mat));
             cmdBuf.pushConstants<AnimationDeviceData>(
                 layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
                 data->anim.get()
@@ -160,30 +92,41 @@ void Drawable::updateDrawFunctions()
     }
     else
     {
-        func = [=, data=this->data](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-            bindBaseResources(env, cmdBuf);
+        func = [data=this->data.get()](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            data->geo.bindVertices(cmdBuf, 0);
+
+            auto layout = env.currentPipeline->getLayout();
+            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
+                                       data->modelMatrixId.get());
+            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
+                                       sizeof(mat4), static_cast<ui32>(data->mat));
             cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
         };
     }
 
-    deferredRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::getDeferred(),
-        data->isTransparent ? RenderPassDeferred::SubPasses::transparency
-                            : RenderPassDeferred::SubPasses::gBuffer,
-        getPipeline(flags),
+    deferredRegistration = scene.registerDrawFunction(
+        deferredRenderStage,
+        deferredSubpass,
+        deferredPipeline,
         std::move(func)
     );
-    shadowRegistration = currentScene->registerDrawFunction(
-        RenderStageTypes::getShadow(), SubPass::ID(0),
+    shadowRegistration = scene.registerDrawFunction(
+        shadowRenderStage, SubPass::ID(0),
         getPipeline(PipelineFeatureFlagBits::eShadow),
-        [data=this->data](const auto& env, vk::CommandBuffer cmdBuf) {
-            drawShadow(data, env, cmdBuf);
+        [data=this->data.get()](const auto& env, vk::CommandBuffer cmdBuf) {
+            drawShadow(*data, env, cmdBuf);
         }
     );
 }
 
+void Drawable::removeFromScene()
+{
+    deferredRegistration = {};
+    shadowRegistration = {};
+}
+
 void Drawable::drawShadow(
-    DrawableData* data,
+    const DrawableData& data,
     const DrawEnvironment& env,
     vk::CommandBuffer cmdBuf)
 {
@@ -196,12 +139,12 @@ void Drawable::drawShadow(
     cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
 
     // Bind buffers and push constants
-    data->geo.bindVertices(cmdBuf, 0);
+    data.geo.bindVertices(cmdBuf, 0);
 
     auto layout = env.currentPipeline->getLayout();
     cmdBuf.pushConstants<mat4>(
         layout, vk::ShaderStageFlagBits::eVertex,
-        0, data->modelMatrixId.get()
+        0, data.modelMatrixId.get()
     );
     cmdBuf.pushConstants<ui32>(
         layout, vk::ShaderStageFlagBits::eVertex,
@@ -209,11 +152,11 @@ void Drawable::drawShadow(
     );
     cmdBuf.pushConstants<AnimationDeviceData>(
         layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-        data->anim.get()
+        data.anim.get()
     );
 
     // Draw
-    cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
+    cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
 }
 
 } // namespace trc::legacy

@@ -2,10 +2,10 @@
 
 #include "core/SceneBase.h"
 #include "Node.h"
-#include "Geometry.h"
-#include "AnimationEngine.h"
 #include "AssetIds.h"
-#include "DrawableData.h"
+#include "AnimationEngine.h"
+#include "DrawablePoolStructs.h"
+#include "RasterPipelines.h"
 
 namespace trc::legacy
 {
@@ -17,21 +17,21 @@ namespace trc::legacy
     {
     public:
         Drawable() = default;
+        ~Drawable() = default;
+
+        explicit
+        Drawable(const DrawableCreateInfo& info);
         Drawable(GeometryID geo, MaterialID material);
         Drawable(GeometryID geo, MaterialID material, SceneBase& scene);
-        ~Drawable();
 
-        Drawable(Drawable&&) noexcept;
-        auto operator=(Drawable&&) noexcept -> Drawable&;
+        Drawable(Drawable&&) noexcept = default;
+        auto operator=(Drawable&&) noexcept -> Drawable& = default;
 
         Drawable(const Drawable&) = delete;
         auto operator=(const Drawable&) -> Drawable& = delete;
 
         auto getMaterial() const -> MaterialID;
         auto getGeometry() const -> GeometryID;
-
-        void setMaterial(MaterialID matIndex);
-        void setGeometry(GeometryID newGeo);
 
         /**
          * @return AnimationEngine& Always returns an animation engine, even
@@ -44,8 +44,6 @@ namespace trc::legacy
          *                          if the geometry doesn't have a rig.
          */
         auto getAnimationEngine() const noexcept -> const AnimationEngine&;
-
-        void enableTransparency();
 
         /**
          * @brief Register all necessary functions at a scene
@@ -65,18 +63,24 @@ namespace trc::legacy
         void removeFromScene();
 
     private:
-        void updateDrawFunctions();
+        struct DrawableData
+        {
+            Geometry geo{};
+            GeometryID geoId{};
+            MaterialID mat{};
 
-        static void drawShadow(DrawableData* data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+            Transformation::ID modelMatrixId;
+            AnimationEngine::ID anim;
+        };
 
-        SceneBase* currentScene{ nullptr };
+        static void drawShadow(const DrawableData& data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf);
+
+        Pipeline::ID deferredPipeline;
+        SubPass::ID deferredSubpass;
         SceneBase::UniqueRegistrationID deferredRegistration;
         SceneBase::UniqueRegistrationID shadowRegistration;
 
-        GeometryID geoIndex;
         AnimationEngine animEngine;
-
-        ui32 drawableDataId{ DrawableDataStore::create(*this, animEngine) };
-        DrawableData* data{ &DrawableDataStore::get(drawableDataId) };
+        u_ptr<DrawableData> data;
     };
 }
