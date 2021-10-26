@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "Types.h"
+#include "UpdatePass.h"
 #include "AnimationEngine.h"
 #include "DrawablePoolStructs.h"
 #include "RasterDrawablePool.h"
@@ -94,13 +95,19 @@ namespace trc
                      const DrawablePoolCreateInfo& info,
                      SceneBase& scene);
 
-        ~DrawablePool() = default;
+        ~DrawablePool();
 
         DrawablePool(const DrawablePool&) = delete;
         DrawablePool(DrawablePool&&) noexcept = delete;
         auto operator=(const DrawablePool&) -> DrawablePool& = delete;
         auto operator=(DrawablePool&&) noexcept -> DrawablePool& = delete;
 
+        /**
+         * @brief Register required draw functions and resources at a scene
+         *
+         * Adds a dynamic render pass in the resourceUpdateStage to the
+         * scene in which the pool updates internal device resources.
+         */
         void attachToScene(SceneBase& scene);
 
         /**
@@ -126,11 +133,6 @@ namespace trc
          *        this call. Access will result in segfaults.
          */
         void destroy(Handle instance);
-
-        /**
-         * Build TLAS (if ray tracing is enabled)
-         */
-        void update(vk::CommandBuffer cmdBuf);
 
         /**
          * @throw std::runtime_error if ray tracing is not enabled
@@ -173,6 +175,14 @@ namespace trc
         //////////////
         // Ray Tracing
 
+        /** Will be nullptr if ray tracing is not enabled. */
         u_ptr<RayDrawablePool> ray;
+
+
+        //////////////////////////////////
+        // Renderpass for resource updates
+
+        UpdateFunctionPass updatePass;
+        std::vector<SceneBase*> attachedScenes;
     };
 } // namespace trc

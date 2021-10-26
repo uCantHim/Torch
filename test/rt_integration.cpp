@@ -159,32 +159,6 @@ void run()
     layout.addPass(trc::rt::finalCompositingStage, compositing);
 
 
-    // --- Render Pass --- //
-
-    class TlasBuildPass : public trc::RenderPass
-    {
-    public:
-        TlasBuildPass(trc::DrawablePool& pool)
-            :
-            trc::RenderPass({}, 1),
-            pool(&pool)
-        {}
-
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents) override
-        {
-            pool->update(cmdBuf);
-        }
-
-        void end(vk::CommandBuffer) override {}
-
-    private:
-        trc::DrawablePool* pool;
-    };
-
-    TlasBuildPass tlasBuildPass{ pool };
-    layout.addPass(trc::rt::tlasBuildStage, tlasBuildPass);
-
-
     // --- Ray Pipeline --- //
 
     constexpr ui32 maxRecursionDepth{ 16 };

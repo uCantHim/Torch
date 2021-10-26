@@ -9,8 +9,14 @@ trc::DrawablePool::DrawablePool(const ::trc::Instance& instance, const DrawableP
     :
     instance(instance),
     drawables(info.maxInstances),
-    raster({ info.maxInstances }),
-    ray(nullptr)
+    raster(instance.getDevice(), { info.maxInstances }),
+    ray(nullptr),
+    updatePass([this](vk::CommandBuffer cmdBuf) {
+        raster.update();
+        if (ray != nullptr) {
+            ray->buildTlas(cmdBuf);
+        }
+    })
 {
     if (info.initRayTracing && instance.hasRayTracing()) {
         ray.reset(new RayDrawablePool(instance, { info.maxInstances }));
@@ -27,9 +33,20 @@ trc::DrawablePool::DrawablePool(
     attachToScene(scene);
 }
 
+trc::DrawablePool::~DrawablePool()
+{
+    for (auto s : attachedScenes)
+    {
+        s->removeRenderPass(resourceUpdateStage, updatePass);
+    }
+}
+
 void trc::DrawablePool::attachToScene(SceneBase& scene)
 {
     raster.attachToScene(scene);
+    scene.addRenderPass(resourceUpdateStage, updatePass);
+
+    attachedScenes.emplace_back(&scene);
 }
 
 auto trc::DrawablePool::create(const DrawableCreateInfo& info) -> Handle
@@ -40,13 +57,6 @@ auto trc::DrawablePool::create(const DrawableCreateInfo& info) -> Handle
 void trc::DrawablePool::destroy(Handle instance)
 {
     deleteInstance(instance);
-}
-
-void trc::DrawablePool::update(vk::CommandBuffer cmdBuf)
-{
-    if (ray != nullptr) {
-        ray->buildTlas(cmdBuf);
-    }
 }
 
 auto trc::DrawablePool::getRayResources() const
@@ -78,7 +88,7 @@ auto trc::DrawablePool::createDrawable(const DrawableCreateInfo& info) -> Handle
     d.matId = info.mat;
     d.geo = info.geo.get();
     d.isRasterized = info.rasterized;
-    d.isRayTraced = info.rayTraced && instance.hasRayTracing();
+    d.isRayTraced = info.rayTraced && ray != nullptr;
 
     if (d.isRasterized) {
         raster.createDrawable(id, info);
