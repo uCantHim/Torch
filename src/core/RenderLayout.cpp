@@ -34,7 +34,9 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
         auto [info, stage] = data;
         for (RenderStage::ID waitStage : info->waitDependencies)
         {
-            vk::Event event = *events.emplace_back(device->createEventUnique({}));
+            vk::Event event = *events.emplace_back(
+                device->createEventUnique({ vk::EventCreateFlagBits::eDeviceOnlyKHR })
+            );
             stageStorage.at(waitStage).second->signalEvents.emplace_back(event);
             stage->waitEvents.emplace_back(event);
         }
@@ -61,37 +63,52 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
 
 auto trc::RenderLayout::record(const DrawConfig& draw) -> std::vector<vk::CommandBuffer>
 {
-    std::vector<std::future<void>> futures;
-    std::vector<vk::CommandBuffer> result(stages.size());
+    std::vector<std::future<Maybe<vk::CommandBuffer>>> futures;
 
+    // Dispatch parallel collector threads
     for (std::atomic<ui32> index = 0; const Stage& stage : stages)
     {
-        ui32 i = index++;
-        vk::CommandBuffer cmdBuf = **commandBuffers.at(i);
-        result[i] = cmdBuf;
-
+        vk::CommandBuffer cmdBuf = **commandBuffers.at(index++);
         futures.emplace_back(threadPool.async([&, cmdBuf] {
-            recordStage(cmdBuf, draw, stage);
+            return recordStage(cmdBuf, draw, stage);
         }));
     }
 
+    // Insert recorded command buffers *in order*
+    std::vector<vk::CommandBuffer> result;
     for (auto& f : futures) {
-        f.wait();
+        f.get() >> [&](auto cmdBuf) { result.emplace_back(cmdBuf); };
     }
 
     return result;
 }
 
-void trc::RenderLayout::recordStage(
+auto trc::RenderLayout::recordStage(
     vk::CommandBuffer cmdBuf,
     const DrawConfig& draw,
     const Stage& stage)
+    -> Maybe<vk::CommandBuffer>
 {
     SceneBase& scene = *draw.scene;
     const auto& [viewport, scissor] = draw.renderArea;
     const auto renderPasses = util::merged(stage.renderPasses,
                                            scene.getDynamicRenderPasses(stage.id));
-    if (renderPasses.empty()) return;
+
+    // Only signal outgoing events if no renderpasses are specified
+    if (renderPasses.empty())
+    {
+        // Don't record anything if not necessary
+        if (stage.signalEvents.empty()) return {};
+
+        cmdBuf.reset({});
+        cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+        for (auto event : stage.signalEvents) {
+            cmdBuf.setEvent(event, vk::PipelineStageFlagBits::eAllCommands);
+        }
+        cmdBuf.end();
+
+        return cmdBuf;
+    }
 
     cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
@@ -154,6 +171,8 @@ void trc::RenderLayout::recordStage(
     }
 
     cmdBuf.end();
+
+    return cmdBuf;
 }
 
 void trc::RenderLayout::addPass(RenderStage::ID stage, RenderPass& newPass)

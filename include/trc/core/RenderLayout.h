@@ -48,7 +48,13 @@ namespace trc
             std::vector<vk::Event> waitEvents;
         };
 
-        void recordStage(vk::CommandBuffer cmdBuf, const DrawConfig& draw, const Stage& stage);
+        /**
+         * @return Maybe<vk::CommandBuffer> Nothing if no commands were
+         *         recorded to the command buffer.
+         */
+        auto recordStage(vk::CommandBuffer cmdBuf, const DrawConfig& draw, const Stage& stage)
+            -> Maybe<vk::CommandBuffer>;
+
         auto getStage(RenderStage::ID stage) -> Stage*;
 
         std::vector<Stage> stages;
