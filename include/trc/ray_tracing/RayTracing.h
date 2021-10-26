@@ -12,7 +12,6 @@
 
 namespace trc::rt
 {
-    inline RenderStage tlasBuildStage{};
     inline RenderStage rayTracingRenderStage{};
     inline RenderStage finalCompositingStage{};
 } // namespace trc::rt

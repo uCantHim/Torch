@@ -2,6 +2,7 @@
 
 #include <IL/il.h>
 
+#include "UpdatePass.h"
 #include "TorchResources.h"
 #include "ui/torch/GuiIntegration.h"
 #include "experimental/ImguiIntegration.h"
@@ -41,23 +42,24 @@ auto trc::initFull(
     const WindowCreateInfo& windowInfo
     ) -> TorchStack
 {
+    // Create render graph
+    auto graph = makeDeferredRenderGraph();
+
+    graph.first(resourceUpdateStage);
+
+    // Ray tracing stages
+    graph.after(deferredRenderStage, rt::rayTracingRenderStage);
+    graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
+    graph.require(rt::rayTracingRenderStage, resourceUpdateStage);
+    graph.require(rt::finalCompositingStage, deferredRenderStage);
+    graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
+
+    graph.after(rt::finalCompositingStage, guiRenderStage);
+    graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
+
     init();
 
     auto instance = std::make_unique<trc::Instance>(instanceInfo);
-
-    // Create render graph
-    auto graph = makeDeferredRenderGraph();
-    if (instance->hasRayTracing())
-    {
-        graph.first(rt::tlasBuildStage);
-        graph.after(deferredRenderStage, rt::rayTracingRenderStage);
-        graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
-        graph.require(rt::rayTracingRenderStage, rt::tlasBuildStage);
-        graph.require(rt::finalCompositingStage, deferredRenderStage);
-        graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
-    }
-    graph.after(rt::finalCompositingStage, guiRenderStage);
-    graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
 
     auto winInfo = windowInfo;
     if (instanceInfo.enableRayTracing) {
