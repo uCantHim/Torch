@@ -77,6 +77,8 @@ auto trc::data::ExternalStorage<T>::RegularDataStorage::create() -> ID
         objects.resize(id + 1);
     }
 
+    objects[id] = {};
+
     return ID(id);
 }
 
