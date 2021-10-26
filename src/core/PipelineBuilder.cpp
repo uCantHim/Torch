@@ -203,6 +203,21 @@ auto trc::GraphicsPipelineBuilder::build(
     vk::RenderPass renderPass,
     ui32 subPass) -> vk::UniquePipeline
 {
+    viewport = vk::PipelineViewportStateCreateInfo({}, viewports, scissorRects);
+
+    if (viewports.empty()
+        && std::ranges::find(dynamicStates, vk::DynamicState::eViewport) != dynamicStates.end())
+    {
+        const vk::Viewport vp(0, 0, 1, 1, 0.0f, 1.0f);
+        viewport.setViewports(vp);
+    }
+    if (scissorRects.empty()
+        && std::ranges::find(dynamicStates, vk::DynamicState::eScissor) != dynamicStates.end())
+    {
+        const vk::Rect2D sc({ 0, 0 }, { 1, 1 });
+        viewport.setScissors(sc);
+    }
+
     const auto& shaderStages = program->getStageCreateInfos();
 
     vertexInput = vk::PipelineVertexInputStateCreateInfo(
@@ -210,13 +225,6 @@ auto trc::GraphicsPipelineBuilder::build(
         static_cast<ui32>(inputBindings.size()), inputBindings.data(),
         static_cast<ui32>(attributes.size()), attributes.data()
     );
-
-    viewport = vk::PipelineViewportStateCreateInfo(
-        vk::PipelineViewportStateCreateFlags(),
-        static_cast<ui32>(viewports.size()), viewports.data(),
-        static_cast<ui32>(scissorRects.size()), scissorRects.data()
-    );
-
 
     dynamicState = vk::PipelineDynamicStateCreateInfo(
         vk::PipelineDynamicStateCreateFlags(),
