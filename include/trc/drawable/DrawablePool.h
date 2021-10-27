@@ -16,14 +16,6 @@ namespace trc
 
     struct DrawablePoolCreateInfo
     {
-        /**
-         * Has a slightly different meaning for rasterized and ray traced
-         * objects:
-         *
-         * Rasterized: Maximum number of drawables, but each drawable may
-         *             have an unlimited number of instances.
-         * Ray Traced: Maximum total number of instances.
-         */
         ui32 maxInstances{ 1000 };
 
         /** Initialize ray tracing if it is additionally enabled on the instance */

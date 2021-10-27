@@ -25,7 +25,9 @@ namespace trc
     class RasterDrawablePool
     {
     public:
-        explicit RasterDrawablePool(const RasterDrawablePoolCreateInfo& info);
+        explicit RasterDrawablePool(const vkb::Device& device, const RasterDrawablePoolCreateInfo& info);
+
+        void update();
 
         void attachToScene(SceneBase& scene);
 
@@ -41,21 +43,11 @@ namespace trc
             AnimationEngine::ID animData;
         };
 
-        /**
-         * Minimal usable data for one drawable. Instances are born out of
-         * this.
-         */
         struct DrawableData
         {
-            Geometry geo;
-            MaterialID material;
-
             u_ptr<std::mutex> instancesLock{ new std::mutex };
             std::vector<Instance> instances;  // Instances at fixed indices
-        };
 
-        struct DrawableMeta
-        {
             std::vector<Pipeline::ID> pipelines;  // Pipelines to which the drawable is attached
         };
 
@@ -64,10 +56,31 @@ namespace trc
         void removeFromPipeline(Pipeline::ID pipeline, ui32 drawableId);
 
         std::vector<DrawableData> drawables;  // Draw data at fixed indices
-        std::vector<DrawableMeta> drawableMetas;
 
 
-        std::unordered_map<Pipeline::ID, std::pair<std::vector<ui32>, std::mutex>> drawCalls;
+        ///////////////////////
+        // Instance device data
+
+        struct RenderData
+        {
+            Geometry geo;
+            MaterialID mat;
+            ui32 instanceOffset{ 0 };
+            ui32 instanceCount{ 0 };
+        };
+
+        /** Data used for draw calls at the same indices as DrawableData in `drawables` */
+        std::vector<RenderData> renderData;
+        std::mutex renderDataLock;
+
+        struct InstanceGpuData
+        {
+            mat4 model;
+            uvec4 animData;
+        };
+
+        vkb::Buffer instanceDataBuffer;
+        InstanceGpuData* instanceDataBufferMap;
 
 
         ///////////////////////////
@@ -81,6 +94,8 @@ namespace trc
             SubPass::ID subpass;
             RenderStage::ID stage;
         };
+
+        std::unordered_map<Pipeline::ID, std::pair<std::vector<ui32>, std::mutex>> drawCalls;
 
         std::unordered_map<Pipeline::ID, DrawFunctionSpec> drawFunctions;
         std::vector<SceneBase::UniqueRegistrationID> drawRegistrations;

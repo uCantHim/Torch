@@ -104,10 +104,10 @@ void trc::DrawablePool::deleteDrawable(ui32 drawableId)
 {
     assert(drawables.at(drawableId).instances.empty());
 
-    drawableIdPool.free(drawableId);
-
     if (drawables.at(drawableId).isRasterized) raster.deleteDrawable(drawableId);
     if (drawables.at(drawableId).isRayTraced) ray->deleteDrawable(drawableId);
+
+    drawableIdPool.free(drawableId);
 }
 
 auto trc::DrawablePool::createInstance(ui32 drawableId) -> Handle
@@ -140,16 +140,16 @@ void trc::DrawablePool::deleteInstance(Handle instance)
 
     assert(d.instances.size() > instance->instanceId);
 
+    if (d.isRasterized) raster.deleteInstance(instance->drawableId, instance->instanceId);
+    if (d.isRayTraced) ray->deleteInstance(instance->drawableId, instance->instanceId);
+
+    // Rearrange instance draw data
     const ui32 newId = instance->instanceId;
     const ui32 oldId = d.instances.back()->instanceId;
 
-    // Rearrange instance draw data
     std::swap(d.instances.at(newId), d.instances.at(oldId));
     d.instances.at(newId)->instanceId = newId;
     d.instances.pop_back();
-
-    if (d.isRasterized) raster.deleteInstance(instance->drawableId, newId);
-    if (d.isRayTraced) ray->deleteInstance(instance->drawableId, newId);
 
     if (d.instances.empty()) {
         deleteDrawable(instance->drawableId);

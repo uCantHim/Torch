@@ -151,9 +151,12 @@ void run()
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
-    for (int i = 0; i < NUM_TREES; i++)
+    auto firstTree = pool.create({ treeGeoIndex, treeMatIdx });
+    firstTree->setScale(0.1f).rotateX(glm::radians(-90.0f))
+        .setTranslation(-3.0f, 0.0f, -1.0f);
+    for (int i = 1; i < NUM_TREES; i++)
     {
-        pool.create({ treeGeoIndex, treeMatIdx })
+        firstTree->copy()
             ->setScale(0.1f).rotateX(glm::radians(-90.0f))
             .setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f)
             .setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);

@@ -69,6 +69,8 @@ void run()
 
         torch.drawFrame(torch.makeDrawConfig(scene, camera));
     }
+
+    torch.window->getRenderer().waitForAllFrames();
 }
 
 int main()

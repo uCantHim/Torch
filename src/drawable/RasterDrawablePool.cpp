@@ -9,12 +9,50 @@
 
 
 
-trc::RasterDrawablePool::RasterDrawablePool(const RasterDrawablePoolCreateInfo& info)
+trc::RasterDrawablePool::RasterDrawablePool(const vkb::Device& device, const RasterDrawablePoolCreateInfo& info)
     :
     drawables(info.maxDrawables),
-    drawableMetas(info.maxDrawables)
+    renderData(info.maxDrawables),
+    instanceDataBuffer(
+        device,
+        sizeof(InstanceGpuData) * info.maxDrawables,
+        vk::BufferUsageFlagBits::eVertexBuffer,
+        vk::MemoryPropertyFlagBits::eHostVisible
+    ),
+    instanceDataBufferMap(reinterpret_cast<InstanceGpuData*>(instanceDataBuffer.map()))
 {
     createRasterFunctions();
+}
+
+void trc::RasterDrawablePool::update()
+{
+    std::scoped_lock lock(renderDataLock);
+
+    ui32 instanceIndex{ 0 };
+    for (ui32 i = 0; i < drawables.size(); i++)
+    {
+        const auto& d = drawables.at(i);
+        if (d.instances.empty()) break;
+
+        renderData[i].instanceOffset = sizeof(InstanceGpuData) * instanceIndex;
+
+        std::scoped_lock iLock(*d.instancesLock);
+        for (const auto& inst : d.instances)
+        {
+            if (sizeof(InstanceGpuData) * instanceIndex >= instanceDataBuffer.size()) break;
+
+            instanceDataBufferMap[instanceIndex].model = inst.transform.get();
+            auto anim = inst.animData.get();
+            instanceDataBufferMap[instanceIndex].animData = uvec4(
+                anim.currentAnimation,
+                anim.keyframes[0],
+                anim.keyframes[1],
+                glm::floatBitsToUint(anim.keyframeWeight)
+            );
+            ++instanceIndex;
+        }
+        renderData[i].instanceCount = d.instances.size();
+    }
 }
 
 void trc::RasterDrawablePool::attachToScene(SceneBase& scene)
@@ -30,27 +68,27 @@ void trc::RasterDrawablePool::attachToScene(SceneBase& scene)
 
 void trc::RasterDrawablePool::createDrawable(ui32 drawableId, const DrawableCreateInfo& info)
 {
+    assert(drawables.at(drawableId).instances.empty());
+
+    renderData[drawableId].geo = info.geo.get();
+    renderData[drawableId].mat = info.mat;
+
     DrawableData& d = drawables.at(drawableId);
-    assert(d.instances.empty());
-
-    d.geo        = info.geo.get();
-    d.material   = info.mat;
-
-    DrawableMeta& m = drawableMetas.at(drawableId);
-    m.pipelines  = getRequiredPipelines(info);
-    for (auto p : m.pipelines) {
+    d.pipelines = getRequiredPipelines(info);
+    for (auto p : d.pipelines) {
         addToPipeline(p, drawableId);
     }
 }
 
 void trc::RasterDrawablePool::deleteDrawable(ui32 drawableId)
 {
-    auto& m = drawableMetas.at(drawableId);
+    auto& d = drawables.at(drawableId);
+    assert(d.instances.empty());
 
-    for (auto p : m.pipelines) {
+    for (auto p : d.pipelines) {
         removeFromPipeline(p, drawableId);
     }
-    m.pipelines.clear();
+    d.pipelines.clear();
 }
 
 void trc::RasterDrawablePool::createInstance(ui32 drawableId, const DrawableInstanceCreateInfo& info)
@@ -64,6 +102,7 @@ void trc::RasterDrawablePool::createInstance(ui32 drawableId, const DrawableInst
 void trc::RasterDrawablePool::deleteInstance(ui32 drawableId, ui32 instanceId)
 {
     auto& d = drawables.at(drawableId);
+    assert(d.instances.size() > instanceId);
 
     std::scoped_lock lock(*d.instancesLock);
     std::swap(d.instances.at(instanceId), d.instances.back());
@@ -74,14 +113,18 @@ auto trc::RasterDrawablePool::getRequiredPipelines(const DrawableCreateInfo& inf
     -> std::vector<Pipeline::ID>
 {
     PipelineFeatureFlags flags;
-    if (info.transparent)        flags |= PipelineFeatureFlagBits::eTransparent;
-    if (info.geo.get().hasRig()) flags |= PipelineFeatureFlagBits::eAnimated;
+    if (info.transparent) flags |= PipelineFeatureFlagBits::eTransparent;
 
-    return { getPipeline(PipelineFeatureFlagBits::eShadow), getPipeline(flags) };
+    return {
+        getPoolInstancePipeline(PipelineFeatureFlagBits::eShadow),
+        getPoolInstancePipeline(flags)
+    };
 }
 
 void trc::RasterDrawablePool::addToPipeline(Pipeline::ID pipeline, ui32 drawableId)
 {
+    assert(drawCalls.contains(pipeline));
+
     auto& [drawVec, mutex] = drawCalls.at(pipeline);
     std::scoped_lock lock(mutex);
     util::insert_sorted(drawVec, drawableId);
@@ -99,25 +142,20 @@ void trc::RasterDrawablePool::createRasterFunctions()
     auto makeFunction = [this](auto& pipelineData, auto func) {
         return [this, &pipelineData, func](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
-            std::scoped_lock lock(pipelineData.second);
+            std::scoped_lock lock(pipelineData.second, renderDataLock);
             for (ui32 drawDataId : pipelineData.first)
             {
-                auto& d = drawables.at(drawDataId);
+                auto& data = renderData.at(drawDataId);
                 auto layout = env.currentPipeline->getLayout();
 
-                d.geo.bindVertices(cmdBuf, 0);
+                data.geo.bindVertices(cmdBuf, 0);
+                cmdBuf.bindVertexBuffers(1, *instanceDataBuffer, data.instanceOffset);
                 cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                           sizeof(mat4), static_cast<ui32>(d.material));
+                                           0, static_cast<ui32>(data.mat));
 
-                std::scoped_lock iLock(*d.instancesLock);
-                for (auto& instance : d.instances)
-                {
-                    func(instance, env, cmdBuf);
+                func(data, env, cmdBuf);
 
-                    cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                               instance.transform.get());
-                    cmdBuf.drawIndexed(d.geo.getIndexCount(), 1, 0, 0, 0);
-                }
+                cmdBuf.drawIndexed(data.geo.getIndexCount(), data.instanceCount, 0, 0, 0);
             }
         };
     };
@@ -132,38 +170,10 @@ void trc::RasterDrawablePool::createRasterFunctions()
         );
     };
 
-    // Default
     addDrawFunc(
-        deferredRenderStage, RenderPassDeferred::SubPasses::gBuffer,
-        getPipeline({}),
-        [](Instance&, auto&, vk::CommandBuffer) {}
-    );
-
-    // Animated
-    addDrawFunc(
-        deferredRenderStage,
-        RenderPassDeferred::SubPasses::gBuffer,
-        getPipeline(PipelineFeatureFlagBits::eAnimated),
-        [](Instance& inst, auto& env, vk::CommandBuffer cmdBuf) {
-            cmdBuf.pushConstants<AnimationDeviceData>(
-                env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
-                sizeof(mat4) + sizeof(ui32), inst.animData.get()
-            );
-        }
-    );
-
-    // Transparent default
-    addDrawFunc(
-        deferredRenderStage, RenderPassDeferred::SubPasses::transparency,
-        getPipeline(PipelineFeatureFlagBits::eTransparent),
-        [](Instance&, auto&, vk::CommandBuffer) {}
-    );
-
-    addDrawFunc(
-        shadowRenderStage,
-        SubPass::ID(0),
-        getPipeline(PipelineFeatureFlagBits::eShadow),
-        [](Instance& inst, const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+        shadowRenderStage, SubPass::ID(0),
+        getPoolInstancePipeline(PipelineFeatureFlagBits::eShadow),
+        [](RenderData&, const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
             auto currentRenderPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
             assert(currentRenderPass != nullptr);
@@ -177,12 +187,21 @@ void trc::RasterDrawablePool::createRasterFunctions()
             auto layout = env.currentPipeline->getLayout();
             cmdBuf.pushConstants<ui32>(
                 layout, vk::ShaderStageFlagBits::eVertex,
-                sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
-            );
-            cmdBuf.pushConstants<AnimationDeviceData>(
-                env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
-                sizeof(mat4) + sizeof(ui32), inst.animData.get()
+                0, currentRenderPass->getShadowMatrixIndex()
             );
         }
+    );
+
+    // Instanced draw function
+    addDrawFunc(
+        deferredRenderStage, RenderPassDeferred::SubPasses::gBuffer,
+        getPoolInstancePipeline({}),
+        [](auto&, auto&, auto&) {}
+    );
+
+    addDrawFunc(
+        deferredRenderStage, RenderPassDeferred::SubPasses::transparency,
+        getPoolInstancePipeline(PipelineFeatureFlagBits::eTransparent),
+        [](auto&, auto&, auto&) {}
     );
 }

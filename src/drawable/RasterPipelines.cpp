@@ -50,6 +50,163 @@ auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
     }
 }
 
+auto makeDrawablePoolInstancedPipeline(
+    const Instance& instance,
+    const DeferredRenderConfig& conf,
+    PipelineFeatureFlags flags)
+    -> Pipeline
+{
+    const bool isTransparent = !!(flags & PipelineFeatureFlagBits::eTransparent);
+
+    vkb::ShaderProgram program(instance.getDevice(),
+                               TRC_SHADER_DIR"/drawable/pool_instance.vert.spv",
+                               isTransparent ? TRC_SHADER_DIR"/drawable/transparent.frag.spv"
+                                             : TRC_SHADER_DIR"/drawable/deferred.frag.spv");
+
+    auto layout = makePipelineLayout(instance.getDevice(),
+        [&] {
+            std::vector<vk::DescriptorSetLayout> layouts{
+                conf.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
+                conf.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
+                conf.getSceneDescriptorProvider().getDescriptorSetLayout(),
+                conf.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
+                conf.getAnimationDataDescriptorProvider().getDescriptorSetLayout(),
+            };
+            if (flags & PipelineFeatureFlagBits::eTransparent) {
+                layouts.emplace_back(conf.getShadowDescriptorProvider().getDescriptorSetLayout());
+            }
+
+            return layouts;
+        }(),
+        {
+            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32))
+        }
+    );
+
+    auto builder = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            { 0, sizeof(Vertex), vk::VertexInputRate::eVertex },
+            makeVertexAttributeDescriptions()
+        )
+        .addVertexInputBinding(
+            { 1, sizeof(mat4) + sizeof(uvec4), vk::VertexInputRate::eInstance },
+            {
+                vk::VertexInputAttributeDescription(6, 1, vk::Format::eR32G32B32A32Sfloat, 0),
+                vk::VertexInputAttributeDescription(7, 1, vk::Format::eR32G32B32A32Sfloat, 16),
+                vk::VertexInputAttributeDescription(8, 1, vk::Format::eR32G32B32A32Sfloat, 32),
+                vk::VertexInputAttributeDescription(9, 1, vk::Format::eR32G32B32A32Sfloat, 48),
+
+                vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32G32B32A32Uint, 64),
+            }
+        )
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .disableBlendAttachments(3);
+
+    if (isTransparent)
+    {
+        builder.setCullMode(vk::CullModeFlagBits::eNone);
+        builder.disableDepthWrite();
+    }
+
+    auto pipeline = builder.build(
+            *instance.getDevice(),
+            *layout,
+            *conf.getDeferredRenderPass(),
+            isTransparent ? RenderPassDeferred::SubPasses::transparency
+                          : RenderPassDeferred::SubPasses::gBuffer
+        );
+
+    Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
+    p.addStaticDescriptorSet(0, conf.getGlobalDataDescriptorProvider());
+    p.addStaticDescriptorSet(1, conf.getAssets().getDescriptorSetProvider());
+    p.addStaticDescriptorSet(2, conf.getSceneDescriptorProvider());
+    p.addStaticDescriptorSet(3, conf.getDeferredPassDescriptorProvider());
+    p.addStaticDescriptorSet(4, conf.getAnimationDataDescriptorProvider());
+    if (flags & PipelineFeatureFlagBits::eTransparent) {
+        p.addStaticDescriptorSet(5, conf.getShadowDescriptorProvider());
+    }
+
+    return p;
+}
+
+auto makeDrawablePoolInstancedShadowPipeline(const Instance& instance, const DeferredRenderConfig& conf)
+    -> Pipeline
+{
+    vkb::ShaderProgram program(instance.getDevice(),
+                               TRC_SHADER_DIR"/drawable/pool_instance_shadow.vert.spv",
+                               TRC_SHADER_DIR"/empty.frag.spv");
+
+    auto layout = makePipelineLayout(instance.getDevice(),
+        std::vector<vk::DescriptorSetLayout>{
+            conf.getShadowDescriptorProvider().getDescriptorSetLayout(),
+            conf.getAnimationDataDescriptorProvider().getDescriptorSetLayout(),
+        },
+        {
+            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)) // light index
+        }
+    );
+
+    auto pipeline = GraphicsPipelineBuilder::create()
+        .setProgram(program)
+        .addVertexInputBinding(
+            { 0, sizeof(Vertex), vk::VertexInputRate::eVertex },
+            makeVertexAttributeDescriptions()
+        )
+        .addVertexInputBinding(
+            { 1, sizeof(mat4) + sizeof(uvec4), vk::VertexInputRate::eInstance },
+            {
+                vk::VertexInputAttributeDescription(6, 1, vk::Format::eR32G32B32A32Sfloat, 0),
+                vk::VertexInputAttributeDescription(7, 1, vk::Format::eR32G32B32A32Sfloat, 16),
+                vk::VertexInputAttributeDescription(8, 1, vk::Format::eR32G32B32A32Sfloat, 32),
+                vk::VertexInputAttributeDescription(9, 1, vk::Format::eR32G32B32A32Sfloat, 48),
+
+                vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32G32B32A32Uint, 64),
+            }
+        )
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .disableBlendAttachments(1)
+        .build(*instance.getDevice(), *layout, conf.getCompatibleShadowRenderPass(), 0);
+
+    Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
+    p.addStaticDescriptorSet(0, conf.getShadowDescriptorProvider());
+    p.addStaticDescriptorSet(1, conf.getAnimationDataDescriptorProvider());
+
+    return p;
+}
+
+auto _makePoolInst = [](const Instance& instance, const auto& config) {
+    return makeDrawablePoolInstancedPipeline(instance, config, {});
+};
+auto _makePoolInstTrans = [](const Instance& instance, const auto& config) {
+    return makeDrawablePoolInstancedPipeline(instance, config, PipelineFeatureFlagBits::eTransparent);
+};
+
+PIPELINE_GETTER_FUNC(getInstancedPoolPipeline, _makePoolInst, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getInstancedPoolTransparentPipeline, _makePoolInstTrans, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getInstancedPoolShadowPipeline,
+                     makeDrawablePoolInstancedShadowPipeline,
+                     DeferredRenderConfig)
+
+
+
+auto getPoolInstancePipeline(PipelineFeatureFlags flags) -> Pipeline::ID
+{
+    if (flags & PipelineFeatureFlagBits::eShadow)
+    {
+        return getInstancedPoolShadowPipeline();
+    }
+    else if (flags & PipelineFeatureFlagBits::eTransparent)
+    {
+        return getInstancedPoolTransparentPipeline();
+    }
+    else {
+        return getInstancedPoolPipeline();
+    }
+}
+
 
 
 auto makeAllDrawablePipelines() -> std::vector<Pipeline>;
@@ -267,7 +424,7 @@ auto makeDrawableShadowPipeline(
     // Pipeline
     vkb::ShaderProgram program(instance.getDevice(),
                                SHADER_DIR / "drawable/shadow.vert.spv",
-                               SHADER_DIR / "drawable/shadow.frag.spv");
+                               SHADER_DIR / "empty.frag.spv");
 
     vk::UniquePipeline pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)

@@ -31,19 +31,6 @@ layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
     vec2 resolution;
 } global;
 
-layout (set = 2, binding = 1) restrict buffer PickingBuffer
-{
-    uint pickableID;
-    uint instanceID;
-    float depth;
-} picking;
-
-// Push Constants
-layout (push_constant) uniform PushConstants
-{
-    layout (offset = 84) uint pickableID;
-};
-
 // Input
 layout (location = 0) in VertexData
 {
@@ -62,21 +49,22 @@ vec3 calcVertexNormal();
 
 void main()
 {
-    uint diffTex = materials[vert.material].diffuseTexture;
+    const uint diffTex = materials[vert.material].diffuseTexture;
     vec4 diffuseColor = materials[vert.material].color;
     if (diffTex != NO_TEXTURE) {
         diffuseColor = texture(textures[diffTex], vert.uv);
     }
 
-    vec3 color = calcLighting(
-        diffuseColor.rgb,
-        vert.worldPos,
-        calcVertexNormal(),
-        camera.inverseViewMatrix[3].xyz,
-        vert.material
-    );
+    if (diffuseColor.a > 0.0)
+    {
+        vec3 color = calcLighting(
+            diffuseColor.rgb,
+            vert.worldPos,
+            calcVertexNormal(),
+            camera.inverseViewMatrix[3].xyz,
+            vert.material
+        );
 
-    if (diffuseColor.a > 0.0) {
         appendFragment(vec4(color, diffuseColor.a));
     }
 }

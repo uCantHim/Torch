@@ -16,7 +16,6 @@ if (${GTEST_FOUND})
         PRIVATE
             functional/test_maybe.cpp
             data/test_object_pool.cpp
-            data/test_typesafe_id.cpp
     )
 
     target_link_libraries(TorchUnitTests PRIVATE GTest::GTest GTest::Main torch)
@@ -61,3 +60,6 @@ endif()
 
 add_executable(NewScene new_scene_interface.cpp)
 target_link_libraries(NewScene PUBLIC torch)
+
+add_executable(PerformanceManyInstances many_instances.cpp)
+target_link_libraries(PerformanceManyInstances PUBLIC torch)
