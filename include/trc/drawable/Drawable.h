@@ -7,7 +7,7 @@
 #include "DrawablePoolStructs.h"
 #include "RasterPipelines.h"
 
-namespace trc::legacy
+namespace trc
 {
     /**
      * The animation engine, if the geometry has a rig, is not updated

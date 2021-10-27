@@ -10,7 +10,7 @@
 
 
 
-namespace trc::legacy
+namespace trc
 {
 
 Drawable::Drawable(GeometryID geo, MaterialID material)
@@ -159,4 +159,4 @@ void Drawable::drawShadow(
     cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
 }
 
-} // namespace trc::legacy
+} // namespace trc

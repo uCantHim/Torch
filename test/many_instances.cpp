@@ -3,12 +3,7 @@
 #include <glm/gtc/random.hpp>
 #include <vkb/util/Timer.h>
 #include <trc/Torch.h>
-#include <trc/ray_tracing/RayTracing.h>
-#include <trc/drawable/Drawable.h>
 
-namespace trc {
-    using namespace legacy;
-}
 using namespace trc::basic_types;
 
 void run()
