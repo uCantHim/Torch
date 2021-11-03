@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include <vkb/basics/Device.h>
 
 #include "Types.h"
@@ -38,12 +40,19 @@ namespace trc
     {
     public:
         using ID = TypesafeID<Pipeline, ui32>;
+        using UniquePipelineStorageType = std::variant<
+            vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderStatic>,  // vk::UniquePipeline
+            vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>
+        >;
 
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 
         Pipeline(vk::UniquePipelineLayout layout,
                  vk::UniquePipeline pipeline,
+                 vk::PipelineBindPoint bindPoint);
+        Pipeline(vk::UniquePipelineLayout layout,
+                 UniquePipelineStorageType pipeline,
                  vk::PipelineBindPoint bindPoint);
         Pipeline(Pipeline&&) noexcept = default;
         ~Pipeline() = default;
@@ -83,12 +92,13 @@ namespace trc
 
     private:
         vk::UniquePipelineLayout layout;
-        vk::UniquePipeline pipeline;
+        UniquePipelineStorageType pipelineStorage;
+        vk::Pipeline pipeline;
         vk::PipelineBindPoint bindPoint;
 
-        std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
         using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<uint8_t>>;
         std::vector<PushConstantValue> defaultPushConstants;
+        std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
     };
 
 
@@ -102,4 +112,15 @@ namespace trc
 
         defaultPushConstants.emplace_back(offset, stages, std::move(defaultValue));
     }
+
+
+
+    /**
+     * @brief Create a compute shader pipeline
+     */
+    auto makeComputePipeline(const vkb::Device& device,
+                             vk::UniquePipelineLayout layout,
+                             vk::UniqueShaderModule shader,
+                             vk::PipelineCreateFlags flags = {},
+                             const std::string& entryPoint = "main") -> Pipeline;
 } // namespace trc

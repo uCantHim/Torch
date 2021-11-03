@@ -4,7 +4,9 @@ target_sources(
         Animation.cpp
         AnimationDataStorage.cpp
         AnimationEngine.cpp
+        AssetIds.cpp
         AssetRegistry.cpp
+        Camera.cpp
         DeferredRenderConfig.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
@@ -14,7 +16,6 @@ target_sources(
         Light.cpp
         LightRegistry.cpp
         Node.cpp
-        PickableRegistry.cpp
         PipelineDefinitions.cpp
         RenderPassShadow.cpp
         RenderPassDeferred.cpp
@@ -23,7 +24,7 @@ target_sources(
         SceneDescriptor.cpp
         ShadowPool.cpp
         Torch.cpp
-        TorchResources.cpp
+        Transformation.cpp
 )
 
 add_subdirectory(core)

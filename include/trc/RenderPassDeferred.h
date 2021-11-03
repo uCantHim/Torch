@@ -38,29 +38,11 @@ namespace trc
     public:
         DeferredRenderPassDescriptor(const vkb::Device& device,
                                      const vkb::Swapchain& swapchain,
-                                     const RenderPassDeferred& deferredPass,
-                                     const RenderPassDeferredCreateInfo& info);
-
-        void resetValues(vk::CommandBuffer cmdBuf) const;
+                                     const vkb::FrameSpecific<GBuffer>& gBuffer);
 
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
-        void createFragmentList(const vkb::Device& device,
-                                const vkb::Swapchain& swapchain,
-                                uvec2 size,
-                                ui32 maxFragsPerPixel);
-        void createDescriptors(const vkb::Device& device,
-                               const vkb::Swapchain& swapchain,
-                               const RenderPassDeferred& renderPass);
-
-        const ui32 ATOMIC_BUFFER_SECTION_SIZE;
-        const ui32 FRAG_LIST_BUFFER_SIZE;
-
-        vkb::FrameSpecific<vkb::Image> fragmentListHeadPointerImage;
-        vkb::FrameSpecific<vk::UniqueImageView> fragmentListHeadPointerImageView;
-        vkb::FrameSpecific<vkb::Buffer> fragmentListBuffer;
-
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
         vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
@@ -69,6 +51,14 @@ namespace trc
 
     /**
      * @brief The main deferred renderpass
+     *
+     * After the renderpass has completed, the g-buffer images are in the
+     * following layouts:
+     *  - normals:   eGeneral
+     *  - albedo:    eGeneral
+     *  - materials: eGeneral
+     *  - depth:     eShaderReadOnlyOptimal
+     *  - swapchain: ePresentSrcKHR
      */
     class RenderPassDeferred : public RenderPass
     {

@@ -4,80 +4,95 @@
 
 
 
-void trc::RenderGraph::first(RenderStageType::ID newStage)
+void trc::RenderGraph::first(RenderStage::ID newStage)
 {
-    insertNewStage(orderedStages.begin(), newStage);
+    insert(stages.begin(), newStage);
 }
 
-void trc::RenderGraph::before(RenderStageType::ID nextStage, RenderStageType::ID newStage)
+void trc::RenderGraph::before(RenderStage::ID nextStage, RenderStage::ID newStage)
 {
-    auto it = std::find_if(
-        orderedStages.begin(), orderedStages.end(),
-        [nextStage](const auto& pair) {
-            return pair.first == nextStage;
-        }
-    );
-    if (it != orderedStages.end()) {
-        insertNewStage(it, newStage);
+    auto stage = findStage(nextStage);
+    if (stage.has_value()) {
+        insert(stage.value(), newStage);
     }
 }
 
-void trc::RenderGraph::after(RenderStageType::ID prevStage, RenderStageType::ID newStage)
+void trc::RenderGraph::after(RenderStage::ID prevStage, RenderStage::ID newStage)
 {
-    auto it = std::find_if(
-        orderedStages.begin(), orderedStages.end(),
-        [prevStage](const auto& pair) {
-            return pair.first == prevStage;
-        }
-    );
-    if (it != orderedStages.end()) {
-        insertNewStage(it + 1, newStage);
+    auto stage = findStage(prevStage);
+    if (stage.has_value()) {
+        insert(++stage.value(), newStage);
     }
 }
 
-bool trc::RenderGraph::contains(RenderStageType::ID stage) const noexcept
+void trc::RenderGraph::require(RenderStage::ID stage, RenderStage::ID requiredStage)
 {
-    return stages.contains(stage);
+    auto it = findStage(stage);
+    if (it.has_value()) {
+        it.value()->waitDependencies.emplace_back(requiredStage);
+    }
+}
+
+bool trc::RenderGraph::contains(RenderStage::ID stage) const noexcept
+{
+    return findStage(stage).has_value();
 }
 
 auto trc::RenderGraph::size() const noexcept -> size_t
 {
-    return orderedStages.size();
+    return stages.size();
 }
 
-void trc::RenderGraph::addPass(RenderStageType::ID stage, RenderPass& newPass)
+void trc::RenderGraph::addPass(RenderStage::ID stage, RenderPass& newPass)
 {
-    auto it = stages.find(stage);
-    if (it != stages.end()) {
-        it->second.renderPasses.push_back(&newPass);
+    auto it = findStage(stage);
+    if (it.has_value())
+    {
+        it.value()->renderPasses.push_back(&newPass);
     }
 }
 
-void trc::RenderGraph::removePass(RenderStageType::ID stage, RenderPass& pass)
+void trc::RenderGraph::removePass(RenderStage::ID stage, RenderPass& pass)
 {
-    auto it = stages.find(stage);
-    if (it != stages.end())
+    auto it = findStage(stage);
+    if (it.has_value())
     {
-        auto& renderPasses = it->second.renderPasses;
+        auto& renderPasses = it.value()->renderPasses;
         renderPasses.erase(std::remove(renderPasses.begin(), renderPasses.end(), &pass));
     }
 }
 
-void trc::RenderGraph::clearPasses(RenderStageType::ID stage)
+auto trc::RenderGraph::compile(const Window& window) const -> RenderLayout
 {
-    auto it = stages.find(stage);
-    if (it != stages.end()) {
-        it->second.renderPasses.clear();
-    }
+    return RenderLayout(window, *this);
 }
 
-void trc::RenderGraph::insertNewStage(auto insertIt, RenderStageType::ID newStage)
+auto trc::RenderGraph::findStage(RenderStage::ID stage) -> std::optional<StageIterator>
 {
-    auto [it, success] = stages.try_emplace(newStage);
-    if (!success) {
-        throw std::runtime_error("Duplicate stage in render graph");
+    for (auto it = stages.begin(); it !=stages.end(); ++it)
+    {
+        if (it->stage == stage) {
+            return it;
+        }
     }
 
-    StageInfo& stageStruct = it->second;
-    orderedStages.emplace(insertIt, newStage, &stageStruct);
+    return std::nullopt;
+}
+
+auto trc::RenderGraph::findStage(RenderStage::ID stage) const -> std::optional<StageConstIterator>
+{
+    for (auto it = stages.begin(); it !=stages.end(); ++it)
+    {
+        if (it->stage == stage) {
+            return it;
+        }
+    }
+
+    return std::nullopt;
+}
+
+void trc::RenderGraph::insert(StageIterator next, RenderStage::ID newStage)
+{
+    assert(!contains(newStage));
+    stages.insert(next, StageInfo{ .stage=newStage, .renderPasses={}, .waitDependencies={} });
 }

@@ -1,8 +1,14 @@
+/**
+ * This file shows how Torch infrastructure could be used to implement very
+ * basic ray tracing functionality.
+ */
+
 #include <iostream>
 
 #include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
 #include <trc/TorchResources.h>
+#include <trc/PipelineDefinitions.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 using namespace trc::basic_types;
@@ -45,7 +51,6 @@ int main()
 
     // --- BLAS --- //
 
-    vkb::MemoryPool asPool{ instance.getDevice(), 100000000 };
     BLAS triBlas{ instance, tri };
     BLAS blas{ instance, geo };
     trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
@@ -88,16 +93,17 @@ int main()
         instances,
         vk::BufferUsageFlagBits::eShaderDeviceAddress
         | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
     TLAS tlas{ instance, 30 };
-    tlas.build(*instanceBuffer);
+    tlas.build(*instanceBuffer, instances.size());
 
 
-    // --- Ray Pipeline --- //
+    // --- Descriptor sets --- //
 
-    auto rayDescLayout = trc::buildDescriptorSetLayout()
+    auto tlasDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
         .buildUnique(torch.instance->getDevice());
@@ -106,33 +112,6 @@ int main()
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
         .buildUnique(torch.instance->getDevice());
-
-    auto layout = trc::makePipelineLayout(
-        torch.instance->getDevice(),
-        { *rayDescLayout, *outputImageDescLayout },
-        {
-            // View and projection matrices
-            { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
-        }
-    );
-
-    constexpr ui32 maxRecursionDepth{ 16 };
-    auto [rayPipeline, shaderBindingTable] =
-        trc::rt::_buildRayTracingPipeline(*torch.instance)
-        .addRaygenGroup(TRC_SHADER_DIR"/ray_tracing/raygen.rgen.spv")
-        .beginTableEntry()
-            .addMissGroup(TRC_SHADER_DIR"/ray_tracing/miss.rmiss.spv")
-            .addMissGroup(TRC_SHADER_DIR"/ray_tracing/miss.rmiss.spv")
-        .endTableEntry()
-        .addTrianglesHitGroup(
-            TRC_SHADER_DIR"/ray_tracing/closesthit.rchit.spv",
-            TRC_SHADER_DIR"/ray_tracing/anyhit.rahit.spv"
-        )
-        .addCallableGroup(TRC_SHADER_DIR"/ray_tracing/callable.rcall.spv")
-        .build(maxRecursionDepth, *layout);
-
-
-    // --- Descriptor sets --- //
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
@@ -145,7 +124,7 @@ int main()
     ));
 
     std::vector<vk::UniqueImageView> imageViews;
-    vkb::FrameSpecificObject<vk::UniqueDescriptorSet> imageDescSets{
+    vkb::FrameSpecific<vk::UniqueDescriptorSet> imageDescSets{
         swapchain,
         [&](ui32 imageIndex) -> vk::UniqueDescriptorSet
         {
@@ -181,17 +160,14 @@ int main()
         }
     };
 
-    auto asDescSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
-        { *descPool, 1, &*rayDescLayout }
+    auto tlasDescSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
+        { *descPool, 1, &*tlasDescLayout }
     )[0]);
 
     auto tlasHandle = *tlas;
-    vk::StructureChain<
-        vk::WriteDescriptorSet,
-        vk::WriteDescriptorSetAccelerationStructureKHR
-    > asWriteChain{
+    vk::StructureChain asWriteChain{
         vk::WriteDescriptorSet(
-            *asDescSet, 0, 0, 1,
+            *tlasDescSet, 0, 0, 1,
             vk::DescriptorType::eAccelerationStructureKHR,
             {}, {}, {}
         ),
@@ -199,6 +175,39 @@ int main()
     };
     instance.getDevice()->updateDescriptorSets(asWriteChain.get<vk::WriteDescriptorSet>(), {});
 
+
+    // --- Ray Pipeline --- //
+
+    constexpr ui32 maxRecursionDepth{ 16 };
+    auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(*torch.instance)
+        .addRaygenGroup(TRC_SHADER_DIR"/test/raygen.rgen.spv")
+        .beginTableEntry()
+            .addMissGroup(TRC_SHADER_DIR"/test/miss_blue.rmiss.spv")
+            .addMissGroup(TRC_SHADER_DIR"/test/miss_orange.rmiss.spv")
+        .endTableEntry()
+        .addTrianglesHitGroup(
+            TRC_SHADER_DIR"/test/closesthit.rchit.spv",
+            TRC_SHADER_DIR"/test/anyhit.rahit.spv"
+        )
+        .addCallableGroup(TRC_SHADER_DIR"/test/callable.rcall.spv")
+        .build(
+            maxRecursionDepth,
+            trc::makePipelineLayout(torch.instance->getDevice(),
+                { *tlasDescLayout, *outputImageDescLayout },
+                {
+                    // View and projection matrices
+                    { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
+                }
+            )
+        );
+
+    trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
+    trc::FrameSpecificDescriptorProvider imageDescProvider{ *outputImageDescLayout, imageDescSets };
+    rayPipeline.addStaticDescriptorSet(0, tlasDescProvider);
+    rayPipeline.addStaticDescriptorSet(1, imageDescProvider);
+
+
+    // --- Render Pass --- //
 
     class RayTracingRenderPass : public trc::RenderPass
     {
@@ -211,17 +220,18 @@ int main()
         void end(vk::CommandBuffer cmdBuf) override {}
     };
 
-    auto rayStageTypeId = trc::RenderStageType::createAtNextIndex(1).first;
     RayTracingRenderPass rayPass;
 
-    torch.renderConfig->getGraph().after(trc::RenderStageTypes::getDeferred(), rayStageTypeId);
-    torch.renderConfig->getGraph().addPass(rayStageTypeId, rayPass);
+    torch.renderConfig->getLayout().addPass(trc::rt::rayTracingRenderStage, rayPass);
+
+
+    // --- Draw function --- //
 
     scene->registerDrawFunction(
-        rayStageTypeId, trc::SubPass::ID(0), trc::internal::getFinalLightingPipeline(),
+        trc::rt::rayTracingRenderStage, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
         [
             &,
-            pipeline=*rayPipeline,
+            &rayPipeline=rayPipeline,
             &shaderBindingTable=shaderBindingTable
         ](const trc::DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
@@ -244,15 +254,11 @@ int main()
                 )
             );
 
-            cmdBuf.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, pipeline);
+            rayPipeline.bind(cmdBuf);
+            rayPipeline.bindStaticDescriptorSets(cmdBuf);
             cmdBuf.pushConstants<mat4>(
-                *layout, vk::ShaderStageFlagBits::eRaygenKHR,
+                rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
                 0, { camera.getViewMatrix(), camera.getProjectionMatrix() }
-            );
-            cmdBuf.bindDescriptorSets(
-                vk::PipelineBindPoint::eRayTracingKHR, *layout,
-                0, { *asDescSet, **imageDescSets },
-                {} // Dynamic offsets
             );
 
             cmdBuf.traceRaysKHR(
@@ -284,8 +290,6 @@ int main()
             );
         }
     );
-
-
 
     while (swapchain.isOpen())
     {

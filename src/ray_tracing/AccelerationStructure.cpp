@@ -136,7 +136,8 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     vkb::DeviceLocalBuffer scratchBuffer{
         instance.getDevice(),
         buildSizes.buildScratchSize, nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
     // Decide whether the AS should be built on the host or on the device.
@@ -243,6 +244,21 @@ trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
 
 void trc::rt::TopLevelAccelerationStructure::build(
     vk::Buffer instanceBuffer,
+    ui32 numInstances,
+    ui32 offset)
+{
+    instance.getDevice().executeCommandsSynchronously(
+        vkb::QueueType::compute,
+        [&](vk::CommandBuffer cmdBuf) {
+            build(cmdBuf, instanceBuffer, numInstances, offset);
+        }
+    );
+}
+
+void trc::rt::TopLevelAccelerationStructure::build(
+    vk::CommandBuffer cmdBuf,
+    vk::Buffer instanceBuffer,
+    ui32 numInstances,
     ui32 offset)
 {
     // Use new instance buffer
@@ -253,23 +269,24 @@ void trc::rt::TopLevelAccelerationStructure::build(
         instance.getDevice(),
         buildSizes.buildScratchSize,
         nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
-    vk::AccelerationStructureBuildRangeInfoKHR buildRange{ maxInstances, offset, 0, 0 };
-    instance.getDevice().executeCommandsSynchronously(vkb::QueueType::compute,
-        [&](vk::CommandBuffer cmdBuf)
-        {
-            cmdBuf.buildAccelerationStructuresKHR(
-                geoBuildInfo
-                    .setGeometries(geometry)
-                    .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
-                    .setDstAccelerationStructure(*accelerationStructure)
-                    .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
-                { &buildRange },
-                instance.getDL()
-            );
-        }
+    vk::AccelerationStructureBuildRangeInfoKHR buildRange{
+        glm::min(numInstances, maxInstances),
+        offset,
+        0, 0
+    };
+
+    cmdBuf.buildAccelerationStructuresKHR(
+        geoBuildInfo
+            .setGeometries(geometry)
+            .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+            .setDstAccelerationStructure(*accelerationStructure)
+            .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
+        { &buildRange },
+        instance.getDL()
     );
 }
 
@@ -298,7 +315,8 @@ void trc::rt::buildAccelerationStructures(
         }
         return result;
     }();
-    vkb::MemoryPool scratchPool(instance.getDevice(), scratchSize);
+    vkb::MemoryPool scratchPool(instance.getDevice(), scratchSize,
+                                vk::MemoryAllocateFlagBits::eDeviceAddress);
     std::vector<vkb::DeviceLocalBuffer> scratchBuffers;
 
     // Collect build infos
@@ -308,7 +326,7 @@ void trc::rt::buildAccelerationStructures(
         vkb::DeviceLocalBuffer& scratchBuffer = scratchBuffers.emplace_back(
             instance.getDevice(),
             blas->getBuildSize().buildScratchSize, nullptr,
-            vk::BufferUsageFlagBits::eShaderDeviceAddress,
+            vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
             scratchPool.makeAllocator()
         );
         auto info = blas->getGeometryBuildInfo();

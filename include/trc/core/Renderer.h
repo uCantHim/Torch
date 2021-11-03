@@ -6,7 +6,7 @@
 #include <vkb/ExclusiveQueue.h>
 #include <vkb/event/Event.h>
 
-#include "CommandCollector.h"
+#include "Instance.h"
 
 namespace trc
 {
@@ -55,7 +55,5 @@ namespace trc
         vkb::QueueFamilyIndex mainRenderQueueFamily;
         vkb::ExclusiveQueue mainPresentQueue;
         vkb::QueueFamilyIndex mainPresentQueueFamily;
-
-        u_ptr<CommandCollector> commandCollector;
     };
 }

@@ -3,10 +3,10 @@
 #include <mutex>
 #include <iostream>
 
-#include "util/data/ObjectId.h"
+#include <glm/gtc/quaternion.hpp>
 
 #include "Types.h"
-#include <glm/gtc/quaternion.hpp>
+#include "util/data/ExternalStorage.h"
 
 namespace trc
 {
@@ -18,17 +18,18 @@ namespace trc
     class Transformation
     {
     public:
+        using ID = data::ExternalStorage<mat4>::ID;
         using self = Transformation;
 
         Transformation();
         Transformation(vec3 translation, vec3 scale, quat rotation);
 
-        Transformation(const Transformation& other);
-        Transformation(Transformation&& other) noexcept;
-        ~Transformation();
+        Transformation(const Transformation& other) = default;
+        Transformation(Transformation&& other) noexcept = default;
+        ~Transformation() = default;
 
-        auto operator=(const Transformation& rhs) -> Transformation&;
-        auto operator=(Transformation&& rhs) noexcept -> Transformation&;
+        auto operator=(const Transformation& rhs) -> Transformation& = default;
+        auto operator=(Transformation&& rhs) noexcept -> Transformation& = default;
 
         /**
          * @brief Set translation, rotation, and scaling from a matrix
@@ -63,6 +64,9 @@ namespace trc
         auto setTranslationY(float y) -> self&;
         auto setTranslationZ(float z) -> self&;
 
+        auto scale(float s) -> self&;
+        auto scale(float x, float y, float z) -> self&;
+        auto scale(vec3 s) -> self&;
         auto addScale(float s) -> self&;
         auto addScale(vec3 s) -> self&;
 
@@ -73,8 +77,9 @@ namespace trc
         auto setScaleY(float s) -> self&;
         auto setScaleZ(float s) -> self&;
 
-        auto rotate(const quat& rot) -> self&;
+        auto rotate(float x, float y, float z) -> self&;
         auto rotate(float angleRad, vec3 axis) -> self&;
+        auto rotate(const quat& rot) -> self&;
         auto rotateX(float angleRad) -> self&;
         auto rotateY(float angleRad) -> self&;
         auto rotateZ(float angleRad) -> self&;
@@ -87,7 +92,7 @@ namespace trc
          *
          * The order of application is scale -> rotation -> translation
          */
-        auto getTransformationMatrix() const -> const mat4&;
+        auto getTransformationMatrix() const -> mat4;
 
         /**
          * @return vec3 The total translation in all three directions
@@ -125,33 +130,23 @@ namespace trc
          */
         auto getRotationAsMatrix() const -> mat4;
 
-        auto getMatrixId() const -> ui32;
-
-        static auto getMatrix(ui32 id) -> mat4;
+        auto getMatrixId() const -> ID;
 
     protected:
-        class MatrixStorage
-        {
-        public:
-            auto create() -> ui32;
-            void free(ui32 id);
-
-            auto get(ui32 id) -> const mat4&;
-            auto getPtr(ui32 id) -> const void*;
-            void set(ui32 id, mat4 mat);
-
-        private:
-            data::IdPool idGenerator;
-            std::mutex lock;
-            std::vector<mat4> matrices;
-        };
-
-        static inline MatrixStorage matrices;
+        /**
+         * Used in Node to decide whether the local matrix or the global
+         * matrix should be stored in the MatrixStorage slot.
+         *
+         * I tried a lot of things that didn't use a virtual call, but in
+         * the end, this now seems to be the best option. It is not called
+         * every frame, only every time the transformation changes.
+         */
+        virtual void onLocalMatrixUpdate() {};
 
     private:
         void updateMatrix();
 
-        ui32 matrixIndex{ matrices.create() };
+        data::ExternalStorage<mat4> matrixIndex;
 
         vec3 translation{ 0.0f };
         vec3 scaling{ 1.0f };

@@ -1,0 +1,38 @@
+#version 460
+
+#include "material.glsl"
+
+layout (local_size_x = 10, local_size_y = 10) in;
+
+layout (set = 0, binding = 0, rgba16) readonly uniform image2D gBufferNormal;
+layout (set = 0, binding = 1, r32ui) readonly uniform uimage2D gBufferAlbedo;
+layout (set = 0, binding = 2, r32ui) readonly uniform uimage2D gBufferMaterial;
+layout (set = 1, binding = 3) uniform sampler2D gBufferDepth;
+layout (set = 0, binding = 4, rgba8) readonly uniform image2D rayBufferReflection;
+
+layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
+{
+    Material materials[];
+};
+
+layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    const vec4 rasterColor = imageLoad(outputImage, pixelCoords);
+    vec4 color = rasterColor;
+
+    const uint mat = imageLoad(gBufferMaterial, pixelCoords).r;
+
+    // Apply reflections
+    if (materials[mat].reflectivity > 0.0f)
+    {
+        vec4 reflectColor = imageLoad(rayBufferReflection, pixelCoords);
+        // Only mix colors if an object has been reflected (don't reflect the sky)
+        color = mix(rasterColor, reflectColor, materials[mat].reflectivity * reflectColor.a);
+    }
+
+    imageStore(outputImage, pixelCoords, color);
+}

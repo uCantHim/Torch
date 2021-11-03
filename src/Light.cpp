@@ -60,7 +60,8 @@ void trc::Light::setPosition(vec3 newPos)
 void trc::Light::setDirection(vec3 newDir)
 {
     assert(*this);
-    data->direction = vec4(newDir, 0.0f);
+    assert(length(newDir) > 0.0f);
+    data->direction = normalize(vec4(newDir, 0.0f));
 }
 
 void trc::Light::setAmbientPercentage(float ambient)

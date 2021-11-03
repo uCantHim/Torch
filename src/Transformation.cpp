@@ -1,4 +1,4 @@
-#include "util/Transformation.h"
+#include "Transformation.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
@@ -8,7 +8,7 @@
 
 trc::Transformation::Transformation()
 {
-    matrices.set(matrixIndex, mat4(1.0f));
+    matrixIndex.set(mat4(1.0f));
 }
 
 trc::Transformation::Transformation(glm::vec3 translation, vec3 scale, glm::quat rotation)
@@ -17,55 +17,6 @@ trc::Transformation::Transformation(glm::vec3 translation, vec3 scale, glm::quat
 	scaling(scale),
 	rotation(rotation)
 {
-}
-
-trc::Transformation::Transformation(const Transformation& other)
-    :
-    translation(other.translation),
-    scaling(other.scaling),
-    rotation(other.rotation)
-{
-    updateMatrix();
-}
-
-trc::Transformation::Transformation(Transformation&& other) noexcept
-    :
-    translation(other.translation),
-    scaling(other.scaling),
-    rotation(other.rotation)
-{
-    other.translation = vec3(0.0f);
-    other.scaling = vec3(1.0f);
-    other.rotation = glm::angleAxis(0.0f, vec3(0.0f, 1.0f, 0.0f));
-    std::swap(matrixIndex, other.matrixIndex);
-}
-
-trc::Transformation::~Transformation()
-{
-    matrices.free(matrixIndex);
-}
-
-auto trc::Transformation::operator=(const Transformation& rhs) -> Transformation&
-{
-    translation = rhs.translation;
-    scaling = rhs.scaling;
-    rotation = rhs.rotation;
-    updateMatrix();
-
-    return *this;
-}
-
-auto trc::Transformation::operator=(Transformation&& rhs) noexcept -> Transformation&
-{
-    translation = rhs.translation;
-    rhs.translation = vec3(0.0f);
-    scaling = rhs.scaling;
-    rhs.scaling = vec3(1.0f);
-    rotation = rhs.rotation;
-    rhs.rotation = glm::angleAxis(0.0f, vec3(0.0f, 1.0f, 0.0f));
-    std::swap(matrixIndex, rhs.matrixIndex);
-
-    return *this;
 }
 
 auto trc::Transformation::setFromMatrix(const mat4& t) -> self&
@@ -81,7 +32,7 @@ auto trc::Transformation::setFromMatrix(const mat4& t) -> self&
 
 void trc::Transformation::setFromMatrixTemporary(const mat4& t)
 {
-    matrices.set(matrixIndex, t);
+    matrixIndex.set(t);
 }
 
 void trc::Transformation::clearTransformation()
@@ -89,7 +40,7 @@ void trc::Transformation::clearTransformation()
     setTranslation(0.0f, 0.0f, 0.0f);
     setScale(1.0f);
     setRotation(glm::angleAxis(0.0f, vec3(0.0f, 1.0f, 0.0f)));
-    matrices.set(matrixIndex, mat4(1.0f));
+    matrixIndex.set(mat4(1.0f));
 }
 
 
@@ -187,6 +138,21 @@ auto trc::Transformation::addScale(vec3 s) -> self&
     return *this;
 }
 
+auto trc::Transformation::scale(float s) -> self&
+{
+    return setScale(scaling * s);
+}
+
+auto trc::Transformation::scale(float x, float y, float z) -> self&
+{
+    return setScale(scaling * vec3(x, y, z));
+}
+
+auto trc::Transformation::scale(vec3 s) -> self&
+{
+    return setScale(scaling * s);
+}
+
 auto trc::Transformation::setScale(float s) -> self&
 {
 	scaling = vec3(s);
@@ -237,6 +203,14 @@ auto trc::Transformation::setScaleZ(float s) -> self&
 
 
 // Rotation
+auto trc::Transformation::rotate(float x, float y, float z) -> self&
+{
+    rotation = quat(vec3(x, y, z));
+
+    updateMatrix();
+    return *this;
+}
+
 auto trc::Transformation::rotate(float angleRad, glm::vec3 axis) -> self&
 {
 	rotation = glm::angleAxis(angleRad, axis) * rotation;
@@ -286,9 +260,9 @@ auto trc::Transformation::setRotation(const glm::quat& rot) -> self&
 
 
 
-auto trc::Transformation::getTransformationMatrix() const -> const glm::mat4&
+auto trc::Transformation::getTransformationMatrix() const -> mat4
 {
-	return matrices.get(matrixIndex);
+    return matrixIndex.get();
 }
 
 auto trc::Transformation::getTranslation() const -> vec3
@@ -329,63 +303,18 @@ auto trc::Transformation::getRotationAsMatrix() const -> mat4
     return glm::mat4_cast(rotation);
 }
 
-auto trc::Transformation::getMatrixId() const -> ui32
+auto trc::Transformation::getMatrixId() const -> ID
 {
-    return matrixIndex;
-}
-
-auto trc::Transformation::getMatrix(ui32 id) -> mat4
-{
-    return matrices.get(id);
+    return matrixIndex.getDataId();
 }
 
 void trc::Transformation::updateMatrix()
 {
-    matrices.set(matrixIndex,
+    matrixIndex.set(
         getTranslationAsMatrix()
         * getRotationAsMatrix()
         * getScaleAsMatrix()
     );
-}
 
-
-
-// ------------------------ //
-//      Matrix storage      //
-// ------------------------ //
-
-auto trc::Transformation::MatrixStorage::create() -> ui32
-{
-    const ui32 id = ui32(idGenerator.generate());
-    if (matrices.size() <= id)
-    {
-        std::lock_guard lk(lock);
-        matrices.resize(id + 1);
-    }
-    matrices[id] = mat4(1.0f);
-
-    return id;
-}
-
-void trc::Transformation::MatrixStorage::free(ui32 id)
-{
-    idGenerator.free(id);
-}
-
-auto trc::Transformation::MatrixStorage::get(ui32 id) -> const mat4&
-{
-    assert(matrices.size() > id);
-    return matrices[id];
-}
-
-auto trc::Transformation::MatrixStorage::getPtr(ui32 id) -> const void*
-{
-    assert(matrices.size() > id);
-    return &matrices[id];
-}
-
-void trc::Transformation::MatrixStorage::set(ui32 id, mat4 mat)
-{
-    assert(matrices.size() > id);
-    matrices[id] = mat;
+    onLocalMatrixUpdate();
 }

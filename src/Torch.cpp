@@ -2,7 +2,11 @@
 
 #include <IL/il.h>
 
+#include "UpdatePass.h"
 #include "TorchResources.h"
+#include "ui/torch/GuiIntegration.h"
+#include "experimental/ImguiIntegration.h"
+#include "ray_tracing/RayTracing.h"
 
 
 
@@ -38,6 +42,21 @@ auto trc::initFull(
     const WindowCreateInfo& windowInfo
     ) -> TorchStack
 {
+    // Create render graph
+    auto graph = makeDeferredRenderGraph();
+
+    graph.first(resourceUpdateStage);
+
+    // Ray tracing stages
+    graph.after(deferredRenderStage, rt::rayTracingRenderStage);
+    graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
+    graph.require(rt::rayTracingRenderStage, resourceUpdateStage);
+    graph.require(rt::finalCompositingStage, deferredRenderStage);
+    graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
+
+    graph.after(rt::finalCompositingStage, guiRenderStage);
+    graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
+
     init();
 
     auto instance = std::make_unique<trc::Instance>(instanceInfo);
@@ -47,11 +66,17 @@ auto trc::initFull(
         winInfo.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
     }
     auto window = instance->makeWindow(winInfo);
-    auto ar = std::make_unique<AssetRegistry>(*instance);
+    auto ar = std::make_unique<AssetRegistry>(
+        *instance,
+        AssetRegistryCreateInfo{
+            .enableRayTracing=instanceInfo.enableRayTracing
+        }
+    );
     auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
     auto config{
         std::make_unique<DeferredRenderConfig>(
             *window,
+            graph,
             DeferredRenderCreateInfo{
                 ar.get(),
                 sp.get(),
@@ -77,8 +102,6 @@ void trc::pollEvents()
 void trc::terminate()
 {
     torchGlobalVulkanInstance.reset();
-
-    RenderStageType::destroyAll();
 
     vkb::terminate();
 }

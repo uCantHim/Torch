@@ -8,53 +8,22 @@ trc::AnimationEngine::AnimationEngine(const Rig& rig)
 {
 }
 
-void trc::AnimationEngine::playAnimation(ui32 index)
+void trc::AnimationEngine::update(const float timeDelta)
 {
-    if (rig == nullptr) {
-        throw std::runtime_error("[In AnimationEngine::playAnimation]: Rig is nullptr!");
-    }
-
-    try {
-        currentAnimation = &rig->getAnimation(index);
-        currentAnimationIndex = currentAnimation->getBufferIndex();
-    }
-    catch (const std::out_of_range& err) {
-        // Do nothing
-    }
-}
-
-void trc::AnimationEngine::playAnimation(const std::string& name)
-{
-    if (rig == nullptr) {
-        throw std::runtime_error("[In AnimationEngine::playAnimation]: Rig is nullptr!");
-    }
-
-    try {
-        playAnimation(rig->getAnimationIndex(name));
-    }
-    catch (const std::out_of_range& err) {
-        // Do nothing
-    }
-}
-
-auto trc::AnimationEngine::getCurrentAnimationIndex() const noexcept -> ui32
-{
-    return currentAnimationIndex;
-}
-
-auto trc::AnimationEngine::getCurrentFrameWeight() noexcept -> float
-{
-    if (currentAnimation == nullptr) {
-        return 0.0f;
+    if (currentAnimation == nullptr)
+    {
+        animationState.set({});
+        return;
     }
 
     assert(currentAnimation->getFrameTime() != 0.0f);
-    float frameWeight = keyframeTimer.duration() / currentAnimation->getFrameTime();
 
-    if (frameWeight > 1.0f)
+    currentDuration += timeDelta;
+    float frameWeight = currentDuration / currentAnimation->getFrameTime();
+    if (frameWeight >= 1.0f)
     {
         frameWeight = 0.0f;
-        keyframeTimer.reset();
+        currentDuration = 0.0f;
 
         currentFrames += 1;
         if (currentFrames.x >= currentAnimation->getFrameCount()) {
@@ -65,21 +34,44 @@ auto trc::AnimationEngine::getCurrentFrameWeight() noexcept -> float
         }
     }
 
-    return frameWeight;
+    animationState.set({
+        .currentAnimation = currentAnimation->getBufferIndex(),
+        .keyframes = { currentFrames.x, currentFrames.y },
+        .keyframeWeight = frameWeight,
+    });
 }
 
-auto trc::AnimationEngine::getCurrentFrames() noexcept -> uvec2
+void trc::AnimationEngine::playAnimation(ui32 index)
 {
-    return currentFrames;
+    if (rig == nullptr) {
+        throw std::runtime_error("[In AnimationEngine::playAnimation]: No rig is associated with"
+                                 " this animation engine!");
+    }
+
+    try {
+        currentAnimation = &rig->getAnimation(index);
+    }
+    catch (const std::out_of_range& err) {
+        // Do nothing
+    }
 }
 
-void trc::AnimationEngine::pushConstants(
-    ui32 offset,
-    vk::PipelineLayout layout,
-    vk::CommandBuffer cmdBuf)
+void trc::AnimationEngine::playAnimation(const std::string& name)
 {
-    auto stage = vk::ShaderStageFlagBits::eVertex;
-    cmdBuf.pushConstants<ui32>(layout, stage, offset, currentAnimationIndex);
-    cmdBuf.pushConstants<uvec2>(layout, stage, offset + 4, getCurrentFrames());
-    cmdBuf.pushConstants<float>(layout, stage, offset + 12, getCurrentFrameWeight());
+    if (rig == nullptr) {
+        throw std::runtime_error("[In AnimationEngine::playAnimation]: No rig is associated with"
+                                 " this animation engine!");
+    }
+
+    try {
+        playAnimation(rig->getAnimationIndex(name));
+    }
+    catch (const std::out_of_range& err) {
+        // Do nothing
+    }
+}
+
+auto trc::AnimationEngine::getState() const -> ID
+{
+    return animationState;
 }

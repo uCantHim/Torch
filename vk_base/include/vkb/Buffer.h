@@ -63,6 +63,8 @@ namespace vkb
             return *buffer;
         }
 
+        auto getMemory() const -> const DeviceMemory&;
+
         auto size() const noexcept -> vk::DeviceSize;
 
         /**
@@ -88,6 +90,8 @@ namespace vkb
          * @brief Unmap the buffer if its memory is currently host mapped
          */
         void unmap() const;
+
+        void flush(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) const;
 
         void copyFrom(const Buffer& src, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
         void copyTo(const Buffer& dst, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);

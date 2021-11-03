@@ -22,6 +22,20 @@ namespace vkb
          */
         ManagedMemoryChunk(const Device& device, vk::DeviceSize size, uint32_t memoryTypeIndex);
 
+        /**
+         * @brief A large chunk of device memory to allocate subranges from
+         *
+         * @param Device     device          The device to allocate memory from
+         * @param DeviceSize size            Size of memory in bytes
+         * @param uint32_t   memoryTypeIndex The memory type is an index returned from
+         *                                   PhysicalDevice::findMemoryIndex().
+         * @param vk::MemoryAllocateFlags allocateFlags
+         */
+        ManagedMemoryChunk(const Device& device,
+                           vk::DeviceSize size,
+                           uint32_t memoryTypeIndex,
+                           vk::MemoryAllocateFlags allocateFlags);
+
         ManagedMemoryChunk(const ManagedMemoryChunk&) = delete;
         ManagedMemoryChunk(ManagedMemoryChunk&&) = delete;
         auto operator=(const ManagedMemoryChunk&) -> ManagedMemoryChunk& = delete;
@@ -84,21 +98,6 @@ namespace vkb
     {
     public:
         /**
-         * @brief Partial initialization
-         *
-         * One MUST call MemoryPool::setDevice() before trying to allocate
-         * any memory from the pool.
-         *
-         * This constructor is meant for the purpose of initializing pools
-         * at static object creation time. Always use other constructors if
-         * you already have a physical available.
-         *
-         * @param vk::DeviceSize chunkSize Size of memory chunks allocated
-         *                                 in the memory pool.
-         */
-        explicit MemoryPool(vk::DeviceSize chunkSize);
-
-        /**
          * @brief Create a memory pool
          *
          * @param const Device&  device
@@ -106,24 +105,14 @@ namespace vkb
          *                                 in the memory pool.
          */
         explicit MemoryPool(const Device& device,
-                            vk::DeviceSize chunkSize = DEFAULT_CHUNK_SIZE);
+                            vk::DeviceSize chunkSize,
+                            vk::MemoryAllocateFlags memoryAllocateFlags = {});
 
         MemoryPool(const MemoryPool&) = delete;
         MemoryPool(MemoryPool&&) noexcept = default;
         auto operator=(const MemoryPool&) -> MemoryPool& = delete;
         auto operator=(MemoryPool&&) noexcept -> MemoryPool& = default;
         ~MemoryPool() = default;
-
-        /**
-         * @brief Set the used device for the memory pool
-         *
-         * Use this after creating the pool without an initial device,
-         * but before any memory is allocated from the pool.
-         *
-         * Cannot be used if a device has already been assigned to the pool
-         * (fails an assertion).
-         */
-        void setDevice(const Device& physDevice);
 
         /**
          * @brief Allocate device memory
@@ -152,10 +141,9 @@ namespace vkb
         void reset();
 
     private:
-        static constexpr vk::DeviceSize DEFAULT_CHUNK_SIZE = 100000000; // 100 mb, is divisible by 256 (base alignment)
-
         const Device* device{ nullptr };
-        vk::DeviceSize chunkSize{ DEFAULT_CHUNK_SIZE };
+        vk::DeviceSize chunkSize;
+        vk::MemoryAllocateFlags memoryAllocateFlags;
         std::vector<std::vector<std::unique_ptr<ManagedMemoryChunk>>> chunksPerMemoryType;
     };
 } // namespace vkb

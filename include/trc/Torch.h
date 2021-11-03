@@ -9,6 +9,7 @@
 #include "Scene.h"
 #include "AssetRegistry.h"
 #include "drawable/Drawable.h"
+#include "drawable/DrawablePool.h"
 #include "Light.h"
 #include "DeferredRenderConfig.h"
 

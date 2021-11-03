@@ -7,17 +7,25 @@ namespace fs = std::filesystem;
 
 #include "Types.h"
 #include "core/Instance.h"
+#include "core/Pipeline.h"
 #include "ray_tracing/ShaderBindingTable.h"
 
 namespace trc::rt
 {
+    constexpr vk::ShaderStageFlags ALL_RAY_PIPELINE_STAGE_FLAGS{
+        vk::ShaderStageFlagBits::eRaygenKHR
+        | vk::ShaderStageFlagBits::eCallableKHR
+        | vk::ShaderStageFlagBits::eAnyHitKHR
+        | vk::ShaderStageFlagBits::eClosestHitKHR
+        | vk::ShaderStageFlagBits::eIntersectionKHR
+    };
+
     /**
      * @brief Builder for ray tracing pipeline and shader binding table
      */
     class RayTracingPipelineBuilder
     {
     public:
-        using UniquePipeline = vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
         using Self = RayTracingPipelineBuilder;
 
         explicit RayTracingPipelineBuilder(const ::trc::Instance& instance);
@@ -50,8 +58,21 @@ namespace trc::rt
                                    const fs::path& anyHitPath) -> Self&;
         auto addCallableGroup(const fs::path& callablePath) -> Self&;
 
-        auto build(ui32 maxRecursionDepth, vk::PipelineLayout layout)
-            -> std::pair<UniquePipeline, ShaderBindingTable>;
+        /**
+         * @brief Use settings to build a pipeline and a shader binding table
+         *
+         * Is is advised to specify an allocator that allocates from a
+         * memory pool for the `alloc` parameter. Otherwise, each entry in
+         * the table gets its own memory allocation.
+         *
+         * The allocator must allocate memory with the
+         * vk::MemoryAllocateFlagBits::eDeviceAddress flag set!
+         */
+        auto build(ui32 maxRecursionDepth,
+                   vk::UniquePipelineLayout layout,
+                   const vkb::DeviceMemoryAllocator alloc
+                       = vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress })
+            -> std::pair<Pipeline, ShaderBindingTable>;
 
     private:
         auto addShaderModule(const fs::path& path) -> vk::ShaderModule;
@@ -73,7 +94,7 @@ namespace trc::rt
         std::vector<ui32> sbtEntries;
     };
 
-	auto inline _buildRayTracingPipeline(const ::trc::Instance& instance) -> RayTracingPipelineBuilder
+	auto inline buildRayTracingPipeline(const ::trc::Instance& instance) -> RayTracingPipelineBuilder
 	{
 		return RayTracingPipelineBuilder{ instance };
 	}

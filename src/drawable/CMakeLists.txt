@@ -2,6 +2,8 @@ target_sources(
     torch
     PRIVATE
         Drawable.cpp
-        DrawableData.cpp
-        DrawableInstanced.cpp
+        DrawablePool.cpp
+        RasterPipelines.cpp
+        RasterDrawablePool.cpp
+        RayDrawablePool.cpp
 )

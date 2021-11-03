@@ -10,11 +10,33 @@
 
 
 
+auto trc::makeDeferredRenderGraph() -> RenderGraph
+{
+    RenderGraph graph;
+
+    graph.first(shadowRenderStage);
+    graph.after(shadowRenderStage, deferredRenderStage);
+
+    return graph;
+}
+
+
+
 trc::DeferredRenderConfig::DeferredRenderConfig(
     const Window& _window,
+    const RenderGraph& graph,
     const DeferredRenderCreateInfo& info)
     :
-    RenderConfigCrtpBase(_window.getInstance()),
+    DeferredRenderConfig(_window, RenderLayout(_window, graph), info)
+{
+}
+
+trc::DeferredRenderConfig::DeferredRenderConfig(
+    const Window& _window,
+    RenderLayout _layout,
+    const DeferredRenderCreateInfo& info)
+    :
+    RenderConfigCrtpBase(_window.getInstance(), std::move(_layout)),
     window(_window),
     // Passes
     deferredPass(new RenderPassDeferred(
@@ -51,30 +73,26 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     deferredPassDescriptorProvider.setWrappedProvider(p);
     deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
 
-    // Specify basic graph layout
-    graph.first(RenderStageTypes::getDeferred());
-    graph.before(RenderStageTypes::getDeferred(), RenderStageTypes::getShadow());
-
     // Add pass to deferred stage
-    graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+    layout.addPass(deferredRenderStage, *deferredPass);
 
     swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this, info](auto e) {
         if (e.swapchain != &window.getSwapchain()) return;
 
         vkb::Timer timer;
 
-        graph.removePass(RenderStageTypes::getDeferred(), *deferredPass);
+        layout.removePass(deferredRenderStage, *deferredPass);
         deferredPass.reset(new RenderPassDeferred(
             window.getDevice(),
             window.getSwapchain(),
             { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
         ));
-        graph.addPass(RenderStageTypes::getDeferred(), *deferredPass);
+        layout.addPass(deferredRenderStage, *deferredPass);
+
         if constexpr (vkb::enableVerboseLogging)
         {
             const float time = timer.reset();
-            std::cout << "Deferred renderpass recreated for new swapchain"
-                << " (" << time << " ms)\n";
+            std::cout << "Deferred renderpass recreated for new swapchain (" << time << " ms)\n";
         }
 
         auto& p = deferredPass->getDescriptorProvider();
@@ -87,9 +105,9 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 {
     // Add final lighting function to scene
     finalLightingFunc = draw.scene->registerDrawFunction(
-        RenderStageTypes::getDeferred(),
+        deferredRenderStage,
         RenderPassDeferred::SubPasses::lighting,
-        internal::getFinalLightingPipeline(),
+        getFinalLightingPipeline(),
         [&](auto&&, vk::CommandBuffer cmdBuf)
         {
             cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
@@ -99,12 +117,23 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 
     globalDataDescriptor.update(*draw.camera);
     sceneDescriptor.update(*draw.scene);
+    shadowPool->update();
 }
 
 void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
 {
     // Remove fullscreen quad function
     draw.scene->unregisterDrawFunction(finalLightingFunc);
+}
+
+auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
+{
+    return deferredPass->getGBuffer();
+}
+
+auto trc::DeferredRenderConfig::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
+{
+    return deferredPass->getGBuffer();
 }
 
 auto trc::DeferredRenderConfig::getDeferredRenderPass() const -> const RenderPassDeferred&

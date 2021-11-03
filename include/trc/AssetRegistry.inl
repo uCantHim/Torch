@@ -38,13 +38,13 @@ auto trc::AssetRegistry::getFromMap(
 // ----------------------- //
 
 template<typename NameType>
-trc::AssetRegistryNameWrapper<NameType>::AssetRegistryNameWrapper(AssetRegistry& ar)
+trc::AssetRegistryNamedWrapper<NameType>::AssetRegistryNamedWrapper(AssetRegistry& ar)
     : ar(&ar)
 {
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::add(const NameType& key, GeometryData geo)
+auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, GeometryData geo)
     -> GeometryID
 {
     auto id = ar->add(std::move(geo));
@@ -58,7 +58,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::add(const NameType& key, GeometryD
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::add(const NameType& key, Material mat)
+auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, Material mat)
     -> MaterialID
 {
     auto id = ar->add(std::move(mat));
@@ -72,7 +72,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::add(const NameType& key, Material 
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::add(const NameType& key, vkb::Image img)
+auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, vkb::Image img)
     -> TextureID
 {
     auto id = ar->add(std::move(img));
@@ -86,28 +86,28 @@ auto trc::AssetRegistryNameWrapper<NameType>::add(const NameType& key, vkb::Imag
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getGeo(const NameType& key) -> Maybe<Geometry>
+auto trc::AssetRegistryNamedWrapper<NameType>::getGeo(const NameType& key) -> Maybe<Geometry>
 {
     return getGeometryIndex(key)
         >> [this](GeometryID index) { return ar->get(index); };
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getMat(const NameType& key) -> Maybe<Material&>
+auto trc::AssetRegistryNamedWrapper<NameType>::getMat(const NameType& key) -> Maybe<Material&>
 {
     return getMaterialIndex(key)
         >> [this](MaterialID index) { return ar->get(index); };
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getTex(const NameType& key) -> Maybe<Texture>
+auto trc::AssetRegistryNamedWrapper<NameType>::getTex(const NameType& key) -> Maybe<Texture>
 {
     return getImageIndex(key)
         >> [this](TextureID index) { return ar->get(index); };
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getGeoIndex(const NameType& key)
+auto trc::AssetRegistryNamedWrapper<NameType>::getGeoIndex(const NameType& key)
     -> Maybe<GeometryID>
 {
     auto it = geometryNames.find(key);
@@ -120,7 +120,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::getGeoIndex(const NameType& key)
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getMatIndex(const NameType& key)
+auto trc::AssetRegistryNamedWrapper<NameType>::getMatIndex(const NameType& key)
     -> Maybe<MaterialID>
 {
     auto it = materialNames.find(key);
@@ -133,7 +133,7 @@ auto trc::AssetRegistryNameWrapper<NameType>::getMatIndex(const NameType& key)
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNameWrapper<NameType>::getTexIndex(const NameType& key)
+auto trc::AssetRegistryNamedWrapper<NameType>::getTexIndex(const NameType& key)
     -> Maybe<TextureID>
 {
     auto it = imageNames.find(key);

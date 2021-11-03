@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Types.h"
 
 namespace trc

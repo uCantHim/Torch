@@ -1,16 +1,17 @@
 #pragma once
 
-#include "RenderStage.h"
+#include "core/RenderStage.h"
+
 #include "AccelerationStructure.h"
 #include "GeometryUtils.h"
 #include "RayPipelineBuilder.h"
 #include "ShaderBindingTable.h"
+#include "RayBuffer.h"
+#include "RayTracingPass.h"
+#include "FinalCompositingPass.h"
 
 namespace trc::rt
 {
-    inline auto getRayTracingRenderStageType() -> RenderStageType::ID
-    {
-        static auto id = RenderStageType::createAtNextIndex(1).first;
-        return id;
-    }
+    inline RenderStage rayTracingRenderStage{};
+    inline RenderStage finalCompositingStage{};
 } // namespace trc::rt

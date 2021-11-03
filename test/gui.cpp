@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <trc/Torch.h>
+#include <trc/drawable/Drawable.h>
 #include <trc/ui/torch/GuiIntegration.h>
 using namespace trc::basic_types;
 
@@ -29,7 +30,7 @@ int main()
         // Initialize GUI
         auto guiStack = trc::initGui(torch.instance->getDevice(), swapchain);
         ui::Window* window = guiStack.window.get();
-        trc::integrateGui(guiStack, torch.renderConfig->getGraph());
+        trc::integrateGui(guiStack, torch.renderConfig->getLayout());
 
 
         // Now, after intialization, is it possible to load fonts

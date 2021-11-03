@@ -78,7 +78,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 {
     // Alpha discard pipeline
     drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(
-        RenderStageTypes::getDeferred(),
+        deferredRenderStage,
         RenderPassDeferred::SubPasses::gBuffer,
         getAlphaDiscardPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -86,7 +86,6 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
             auto [offset, count] = blendTypeSizes[Blend::eDiscardZeroAlpha];
             if (count == 0) return;
 
-            std::cout << "Drawing alpha discard particles: " << offset << ", " << count << "\n";
             cmdBuf.bindVertexBuffers(0,
                 { *vertexBuffer, *particleDeviceDataBuffer },
                 { 0, offset * sizeof(ParticleDeviceData) });
@@ -96,7 +95,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 
     // Alpha blend pipeline
     drawRegistrations[Blend::eAlphaBlend] = scene.registerDrawFunction(
-        RenderStageTypes::getDeferred(),
+        deferredRenderStage,
         RenderPassDeferred::SubPasses::transparency,
         getAlphaBlendPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -104,7 +103,6 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
             auto [offset, count] = blendTypeSizes[Blend::eAlphaBlend];
             if (count == 0) return;
 
-            std::cout << "Drawing alpha blend particles: " << offset << ", " << count << "\n";
             cmdBuf.bindVertexBuffers(0,
                 { *vertexBuffer, *particleDeviceDataBuffer },
                 { 0, offset * sizeof(ParticleDeviceData) });
@@ -113,7 +111,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     ).makeUnique();
 
     //shadowRegistration = scene.registerDrawFunction(
-    //    RenderStageTypes::getShadow(), SubPass::ID(0), getShadowPipeline(),
+    //    shadowRenderStage, SubPass::ID(0), getShadowPipeline(),
     //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
     //    {
     //        if (particles.empty()) return;
@@ -322,8 +320,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
     );
 
     vkb::ShaderProgram program(instance.getDevice(),
-                               internal::SHADER_DIR / "particles/deferred.vert.spv",
-                               internal::SHADER_DIR / "particles/alpha_discard.frag.spv");
+                               SHADER_DIR / "particles/deferred.vert.spv",
+                               SHADER_DIR / "particles/alpha_discard.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -382,8 +380,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
     );
 
     vkb::ShaderProgram program(instance.getDevice(),
-                               internal::SHADER_DIR / "particles/deferred.vert.spv",
-                               internal::SHADER_DIR / "particles/alpha_blend.frag.spv");
+                               SHADER_DIR / "particles/deferred.vert.spv",
+                               SHADER_DIR / "particles/alpha_blend.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -443,8 +441,8 @@ auto trc::ParticleCollection::makeParticleShadowPipeline(
     );
 
     vkb::ShaderProgram program(instance.getDevice(),
-                               internal::SHADER_DIR / "particles/shadow.vert.spv",
-                               internal::SHADER_DIR / "particles/shadow.frag.spv");
+                               SHADER_DIR / "particles/shadow.vert.spv",
+                               SHADER_DIR / "particles/shadow.frag.spv");
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)

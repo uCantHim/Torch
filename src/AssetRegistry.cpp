@@ -3,14 +3,30 @@
 #include <vkb/ImageUtils.h>
 
 #include "core/Instance.h"
+#include "ray_tracing/RayPipelineBuilder.h"
 
 
 
-trc::AssetRegistry::AssetRegistry(const Instance& instance)
+trc::AssetRegistry::AssetRegistry(
+    const Instance& instance,
+    const AssetRegistryCreateInfo& info)
     :
     instance(instance),
     device(instance.getDevice()),
-    memoryPool(instance.getDevice(), MEMORY_POOL_CHUNK_SIZE),
+    memoryPool([&] {
+        if (info.enableRayTracing)
+        {
+            return vkb::MemoryPool(
+                instance.getDevice(),
+                MEMORY_POOL_CHUNK_SIZE,
+                vk::MemoryAllocateFlagBits::eDeviceAddress
+            );
+        }
+        else {
+            return vkb::MemoryPool(instance.getDevice(), MEMORY_POOL_CHUNK_SIZE);
+        }
+    }()),
+    config(addDefaultValues(info)),
     materialBuffer(
         instance.getDevice(),
         MATERIAL_BUFFER_DEFAULT_SIZE,  // Default material buffer size
@@ -40,20 +56,13 @@ auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> ri
             .indexBuf = {
                 device,
                 data.indices,
-                // Just always specify the shader device address flag in case I
-                // want to use the geometry for ray tracing. Doesn't hurt even if
-                // the feature is not enabled.
-                vk::BufferUsageFlagBits::eIndexBuffer
-                | vk::BufferUsageFlagBits::eShaderDeviceAddress
-                | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
+                config.geometryBufferUsage | vk::BufferUsageFlagBits::eIndexBuffer,
                 memoryPool.makeAllocator()
             },
             .vertexBuf = {
                 device,
                 data.vertices,
-                vk::BufferUsageFlagBits::eVertexBuffer
-                | vk::BufferUsageFlagBits::eShaderDeviceAddress
-                | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
+                config.geometryBufferUsage | vk::BufferUsageFlagBits::eVertexBuffer,
                 memoryPool.makeAllocator()
             },
             .numIndices = static_cast<ui32>(data.indices.size()),
@@ -64,6 +73,11 @@ auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> ri
                 : std::nullopt,
         }
     );
+
+    if (config.enableRayTracing)
+    {
+        writeDescriptors();
+    }
 
     return key;
 }
@@ -149,6 +163,32 @@ void trc::AssetRegistry::updateMaterials()
     materialBuffer.unmap();
 }
 
+auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
+    -> AssetRegistryCreateInfo
+{
+    auto result = info;
+
+    result.materialDescriptorStages |= vk::ShaderStageFlagBits::eFragment;
+    result.textureDescriptorStages |= vk::ShaderStageFlagBits::eFragment;
+
+    if (info.enableRayTracing)
+    {
+        result.geometryBufferUsage |=
+            vk::BufferUsageFlagBits::eStorageBuffer
+            | vk::BufferUsageFlagBits::eShaderDeviceAddress
+            | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR;
+
+        result.materialDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS
+                                           | vk::ShaderStageFlagBits::eCompute;
+        result.textureDescriptorStages  |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS
+                                           | vk::ShaderStageFlagBits::eCompute;
+        result.geometryDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS
+                                           | vk::ShaderStageFlagBits::eCompute;
+    }
+
+    return result;
+}
+
 void trc::AssetRegistry::createDescriptors()
 {
     descSet = {};
@@ -160,6 +200,13 @@ void trc::AssetRegistry::createDescriptors()
         { vk::DescriptorType::eStorageBuffer, 1 },
         { vk::DescriptorType::eCombinedImageSampler, MAX_TEXTURE_COUNT },
     };
+    if (config.enableRayTracing)
+    {
+        // Index and vertex buffers
+        poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, MAX_GEOMETRY_COUNT);
+        poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, MAX_GEOMETRY_COUNT);
+    }
+
     descPool = device->createDescriptorPoolUnique({
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
         | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
@@ -171,21 +218,42 @@ void trc::AssetRegistry::createDescriptors()
         {},                                              // Flags for material buffer
         vk::DescriptorBindingFlagBits::ePartiallyBound,  // Flags for textures
     };
+    if (config.enableRayTracing)
+    {
+        // Flags for vertex- and index buffers
+        bindingFlags.emplace_back(vk::DescriptorBindingFlagBits::ePartiallyBound);
+        bindingFlags.emplace_back(vk::DescriptorBindingFlagBits::ePartiallyBound);
+    }
 
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
         vk::DescriptorSetLayoutBinding(
-            MAT_BUFFER_BINDING,
+            DescBinding::eMaterials,
             vk::DescriptorType::eStorageBuffer,
             1,
-            vk::ShaderStageFlagBits::eFragment
+            config.materialDescriptorStages
         ),
         vk::DescriptorSetLayoutBinding(
-            IMG_DESCRIPTOR_BINDING,
+            DescBinding::eTextures,
             vk::DescriptorType::eCombinedImageSampler,
             MAX_TEXTURE_COUNT,
-            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment
+            config.textureDescriptorStages
         ),
     };
+    if (config.enableRayTracing)
+    {
+        layoutBindings.push_back(vk::DescriptorSetLayoutBinding(
+            DescBinding::eVertexBuffers,
+            vk::DescriptorType::eStorageBuffer,
+            MAX_GEOMETRY_COUNT,
+            config.geometryDescriptorStages
+        ));
+        layoutBindings.push_back(vk::DescriptorSetLayoutBinding(
+            DescBinding::eIndexBuffers,
+            vk::DescriptorType::eStorageBuffer,
+            MAX_GEOMETRY_COUNT,
+            config.geometryDescriptorStages
+        ));
+    }
 
     vk::StructureChain layoutChain{
         vk::DescriptorSetLayoutCreateInfo(
@@ -213,6 +281,18 @@ void trc::AssetRegistry::writeDescriptors()
     // Material descriptor infos
     vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
 
+    // Collect descriptor writes
+    std::vector<vk::WriteDescriptorSet> writes;
+
+    // Bind material buffer
+    writes.push_back(vk::WriteDescriptorSet(
+        *descSet,
+        DescBinding::eMaterials, 0, 1,
+        vk::DescriptorType::eStorageBuffer,
+        {},
+        &matBufferWrite
+    ));
+
     // Texture descriptor infos
     std::vector<vk::DescriptorImageInfo> imageWrites;
     for (ui32 i = 0; i < textures.size(); i++)
@@ -227,26 +307,50 @@ void trc::AssetRegistry::writeDescriptors()
         ));
     }
 
-    // Collect descriptor writes
-    std::vector<vk::WriteDescriptorSet> writes;
-    writes.push_back(vk::WriteDescriptorSet(
-        *descSet,
-        MAT_BUFFER_BINDING, 0, 1,
-        vk::DescriptorType::eStorageBuffer,
-        {},
-        &matBufferWrite
-    ));
-
-    // Only write texture information if at least one texture would be
-    // written (required by Vulkan)
     if (textures.size() > 0)
     {
-        device->updateDescriptorSets(vk::WriteDescriptorSet(
+        writes.push_back(vk::WriteDescriptorSet(
             *descSet,
-            IMG_DESCRIPTOR_BINDING, 0, imageWrites.size(),
+            DescBinding::eTextures, 0, imageWrites.size(),
             vk::DescriptorType::eCombinedImageSampler,
             imageWrites.data()
-        ), {});
+        ));
+    }
+
+    // Geometry descriptor infos
+    std::vector<vk::DescriptorBufferInfo> vertBufs;
+    std::vector<vk::DescriptorBufferInfo> indexBufs;
+    if (config.enableRayTracing)
+    {
+        for (auto& geo : geometries)
+        {
+            if (geo == nullptr)
+            {
+                vertBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
+                indexBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
+            }
+            else
+            {
+                vertBufs.emplace_back(vk::DescriptorBufferInfo(*geo->vertexBuf, 0, VK_WHOLE_SIZE));
+                indexBufs.emplace_back(vk::DescriptorBufferInfo(*geo->indexBuf, 0, VK_WHOLE_SIZE));
+            }
+        }
+
+        if (geometries.size() > 0)
+        {
+            writes.push_back(vk::WriteDescriptorSet(
+                *descSet, DescBinding::eVertexBuffers, 0, vertBufs.size(),
+                vk::DescriptorType::eStorageBuffer,
+                nullptr,
+                vertBufs.data()
+            ));
+            writes.push_back(vk::WriteDescriptorSet(
+                *descSet, DescBinding::eIndexBuffers, 0, indexBufs.size(),
+                vk::DescriptorType::eStorageBuffer,
+                nullptr,
+                indexBufs.data()
+            ));
+        }
     }
 
     if (!writes.empty()) {

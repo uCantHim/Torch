@@ -21,14 +21,19 @@ layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
+struct AnimationData
+{
+    uint animation;
+    uint keyframes[2];
+    float keyframeWeigth;
+};
+
 layout (push_constant) uniform PushConstants
 {
     mat4 modelMatrix;
     uint materialIndex;
 
-    uint animation;
-    uint keyframes[2];
-    float keyframeWeigth;
+    AnimationData animData;
 };
 
 layout (location = 0) out Vertex
@@ -37,8 +42,6 @@ layout (location = 0) out Vertex
     vec2 uv;
     flat uint material;
     mat3 tbn;
-
-    flat uint instanceIndex;
 } vert;
 
 
@@ -54,9 +57,9 @@ void main()
 
     if (isAnimated)
     {
-        vertPos = applyAnimation(animation, vertPos, keyframes, keyframeWeigth);
-        normal = applyAnimation(animation, normal, keyframes, keyframeWeigth);
-        tangent = applyAnimation(animation, tangent, keyframes, keyframeWeigth);
+        vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
+        normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
+        tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
     }
     vertPos.w = 1.0;
 
@@ -72,6 +75,4 @@ void main()
     vec3 T = normalize((modelMatrix * tangent).xyz);
     vec3 B = cross(N, T);
     vert.tbn = mat3(T, B, N);
-
-    vert.instanceIndex = gl_InstanceIndex;
 }

@@ -42,12 +42,12 @@ namespace trc
         bool hasRayTracing() const;
 
     private:
+        bool rayTracingEnabled{ false };
+
         vk::Instance instance;
         u_ptr<vkb::PhysicalDevice> physicalDevice;
         u_ptr<vkb::Device> device;
 
         vk::DispatchLoaderDynamic dynamicLoader;
-
-        bool rayTracingEnabled{ false };
     };
 } // namespace trc

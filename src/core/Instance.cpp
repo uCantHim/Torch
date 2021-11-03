@@ -25,6 +25,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
             vk::PhysicalDeviceInlineUniformBlockFeaturesEXT,
 
             // Ray tracing
+            vk::PhysicalDeviceBufferDeviceAddressFeatures,
             vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
             vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
         >();
@@ -51,12 +52,14 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         }
 
         const bool rayTracingSupported = as.accelerationStructure && ray.rayTracingPipeline;
-        if (!info.enableRayTracing)
+        const bool enableRayTracing = info.enableRayTracing && rayTracingSupported;
+        if (!enableRayTracing)
         {
+            features.unlink<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
             features.unlink<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
             features.unlink<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
         }
-        else if (rayTracingSupported && info.enableRayTracing)
+        else
         {
             rayTracingEnabled = true;
 

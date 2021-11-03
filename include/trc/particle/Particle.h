@@ -7,12 +7,12 @@
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/util/Timer.h>
-#include <vkb/util/ThreadPool.h>
 
 #include "Types.h"
 #include "core/SceneBase.h"
 
 #include "util/Util.h"
+#include "util/async/ThreadPool.h"
 #include "Node.h"
 
 namespace trc
@@ -165,7 +165,7 @@ namespace trc
         // void generateParticles();
 
     private:
-        static inline vkb::ThreadPool threads;
+        static inline async::ThreadPool threads;
 
         std::vector<Particle> particles;
         ParticleCollection* collection{ nullptr };

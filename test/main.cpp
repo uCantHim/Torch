@@ -13,16 +13,15 @@ using namespace std::chrono;
 
 #include <trc/Torch.h>
 using namespace trc::basic_types;
-#include <trc/Geometry.h>
-#include <trc/drawable/DrawableInstanced.h>
 #include <trc/particle/Particle.h>
 #include <trc/asset_import/FBXLoader.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/text/Text.h>
 
-int main()
+void run()
 {
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
+    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
     vkb::on<vkb::SwapchainResizeEvent>([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
         camera.setAspect(float(extent.width) / float(extent.height));
@@ -92,29 +91,35 @@ int main()
 
     // ------------------
 
-    auto scene = std::make_unique<trc::Scene>();
-    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
+    trc::Scene scene;
+    trc::DrawablePool pool(instance, { .maxInstances=1000, .initRayTracing=false }, scene);
 
-    trc::Drawable grass(grassGeoIndex, matIdx, *scene);
-    grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
+    std::vector<trc::AnimationEngine*> animEngines;
+
+    auto grass = pool.create({ grassGeoIndex, matIdx });
+    grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     // Animated skeleton
-    std::vector<trc::Drawable> skeletons;
-    skeletons.reserve(50);
-    for (int i = 0; i < 50; i++)
+    auto skeleton = pool.create({ skeletonGeoIndex, matIdx });
+    skeleton->scale(0.02f).translateZ(1.2f)
+            .translate(1.0f, 0.0f, 0.0f)
+            .rotateY(-glm::half_pi<float>());
+    animEngines.emplace_back(&skeleton->getAnimationEngine())->playAnimation(0);
+
+    for (int i = 1; i < 50; i++)
     {
-        auto& skeleton = skeletons.emplace_back(skeletonGeoIndex, matIdx, *scene);
+        auto inst = skeleton->copy();
         const float angle = glm::two_pi<float>() / 50 * i;
-        skeleton.setScale(0.02f).translateZ(1.2f)
-                .translate(glm::cos(angle), 0.0f, glm::sin(angle))
-                .rotateY(-glm::half_pi<float>() - angle);
-        skeleton.getAnimationEngine().playAnimation(0);
+        inst->scale(0.02f).translateZ(1.2f)
+            .translate(glm::cos(angle), 0.0f, glm::sin(angle))
+            .rotateY(-glm::half_pi<float>() - angle);
+        animEngines.emplace_back(&inst->getAnimationEngine())->playAnimation(0);
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi(hoodedBoiGeoIndex, {}, *scene);
-    hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    hoodedBoi.getAnimationEngine().playAnimation(0);
+    auto hoodedBoi = pool.create({ hoodedBoiGeoIndex, {} });
+    hoodedBoi->setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
+    animEngines.emplace_back(&hoodedBoi->getAnimationEngine())->playAnimation(0);
 
     // Linda
     auto lindaMatIdx = ar.add({
@@ -122,52 +127,44 @@ int main()
         .diffuseTexture = lindaDiffTexIdx
     });
 
-    trc::Drawable linda(lindaGeoIndex, lindaMatIdx, *scene);
-    linda.setScale(0.3f).translateX(-1.0f);
-    linda.getAnimationEngine().playAnimation(0);
-    auto& pickable = linda.enablePicking<trc::PickableFunctional>(
-        []() { std::cout << "Linda has been picked\n"; },
-        []() { std::cout << "Linda is no longer picked\n"; }
-    );
+    auto linda = pool.create({ lindaGeoIndex, lindaMatIdx });
+    linda->setScale(0.3f).translateX(-1.0f);
+    animEngines.emplace_back(&linda->getAnimationEngine())->playAnimation(0);
 
     // Generated plane geo
     auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
-    trc::Drawable myPlane(myPlaneGeoIndex, mapMatIndex, *scene);
+    auto myPlane = pool.create({ myPlaneGeoIndex, mapMatIndex });
 
-    trc::Light sunLight = scene->getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
-    trc::Light ambientLight = scene->getLights().makeAmbientLight(vec3(0.15f));
-    trc::Light pointLight = scene->getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
+    trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
+    trc::Light ambientLight = scene.getLights().makeAmbientLight(vec3(0.15f));
+    trc::Light pointLight = scene.getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
 
     // Sun light
-    mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 30.0f);
-    sunLight.setPosition(vec3(-10, 10, 15));
-    auto& shadowNode = scene->enableShadow(
+    mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -50.0f, 5.0f);
+    auto& shadowNode = scene.enableShadow(
         sunLight,
         { .shadowMapResolution=uvec2(2048, 2048) },
         *torch.shadowPool
     );
     shadowNode.setProjectionMatrix(proj);
-    scene->getRoot().attach(shadowNode);
+    scene.getRoot().attach(shadowNode);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
-
-    auto treeGeo = ar.get(treeGeoIndex);
-    auto instancedTrees = std::make_unique<trc::DrawableInstanced>(instance, NUM_TREES, treeGeo);
-    instancedTrees->attachToScene(*scene);
-    for (int i = 0; i < NUM_TREES; i++)
+    auto firstTree = pool.create({ treeGeoIndex, treeMatIdx });
+    firstTree->setScale(0.1f).rotateX(glm::radians(-90.0f))
+        .setTranslation(-3.0f, 0.0f, -1.0f);
+    for (int i = 1; i < NUM_TREES; i++)
     {
-        trc::Transformation t;
-        t.setScale(0.1f).rotateX(glm::radians(-90.0f));
-        t.setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f);
-        t.setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
-
-        instancedTrees->addInstance({ t.getTransformationMatrix(), treeMatIdx });
+        firstTree->copy()
+            ->setScale(0.1f).rotateX(glm::radians(-90.0f))
+            .setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f)
+            .setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
     }
 
-
-    auto particleCollection = std::make_unique<trc::ParticleCollection>(instance, 10000);
-    particleCollection->attachToScene(*scene);
+    // Particles
+    trc::ParticleCollection particleCollection(instance, 10000);
+    particleCollection.attachToScene(scene);
     for (int i = 0; i < 1000; i++)
     {
         trc::Particle particle;
@@ -178,12 +175,11 @@ int main()
         particle.phys.scaling = vec3(0.15f);
         particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
         particle.material.texture = grassImgIdx;
-        particleCollection->addParticle(particle);
+        particleCollection.addParticle(particle);
     }
 
-    auto particleImgIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/yellowlight.png"));
-    trc::ParticleSpawn spawn(*particleCollection);
+    auto particleImgIdx = ar.add(vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/yellowlight.png"));
+    trc::ParticleSpawn spawn(particleCollection);
     for (int i = 0; i < 50; i++)
     {
         trc::Particle p;
@@ -199,14 +195,14 @@ int main()
 
 
     bool running{ true };
-    auto yo = vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
+    vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
         [&running](const vkb::SwapchainCloseEvent&) { running = false; }
     );
 
     std::thread particleUpdateThread([&]() {
         vkb::Timer timer;
         while (running) {
-            particleCollection->update(timer.reset());
+            particleCollection.update(timer.reset());
         }
     });
     std::thread particleSpawnThread([&]() {
@@ -221,47 +217,40 @@ int main()
     // Custom cube geo test
     auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
     auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1, 0.5} });
-    trc::Drawable cube{ cubeGeoIdx, cubeMatIdx, *scene };
-    cube.enableTransparency();
-    cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
-    std::thread([&cube, &running]() {
+    auto cube = pool.create({ cubeGeoIdx, cubeMatIdx, true });
+    cube->translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
+    std::thread cubeRotateThread([&cube, &running]() {
         while (running)
         {
             std::this_thread::sleep_for(10ms);
-            cube.rotateY(glm::radians(0.5f));
+            cube->rotateY(glm::radians(0.5f));
         }
-    }).detach();
+    });
 
     // Text
     trc::Font font = torch.assetRegistry->getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
     trc::Text text{ instance, font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
-    text.attachToScene(*scene);
-
-    trc::DrawConfig draw{
-        .scene        = &*scene,
-        .camera       = &camera,
-        .renderConfig = &*torch.renderConfig,
-        .renderArea  = { torch.window->makeFullscreenRenderArea() }
-    };
-
-    vkb::on<vkb::SwapchainRecreateEvent>([&](auto) {
-        draw.renderArea = torch.window->makeFullscreenRenderArea();
-    });
+    text.attachToScene(scene);
 
     vkb::Timer timer;
+    vkb::Timer animTimer;
     uint32_t frames{ 0 };
     while (running)
     {
-        scene->updateTransforms();
-        torch.shadowPool->update();
+        trc::pollEvents();
 
-        torch.window->drawFrame(draw);
+        scene.updateTransforms();
 
-        vkb::pollEvents();
+        const float time = animTimer.reset();
+        for (auto anim : animEngines) {
+            anim->update(time);
+        }
+
+        torch.drawFrame(torch.makeDrawConfig(scene, camera));
+
         frames++;
-
         if (timer.duration() >= 1000)
         {
             std::cout << frames << " frames in one second\n";
@@ -271,15 +260,17 @@ int main()
     }
 
     device->waitIdle();
+
     particleUpdateThread.join();
     particleSpawnThread.join();
-    particleCollection.reset();
-    instancedTrees.reset();
-    scene.reset();
-    torch.renderConfig.reset();
-    torch.assetRegistry.reset();
-    torch.window.reset();
-    torch.instance.reset();
+    cubeRotateThread.join();
+}
+
+int main()
+{
+    // A function for extra scope
+    run();
+
     trc::terminate();
 
     std::cout << " --- Done\n";

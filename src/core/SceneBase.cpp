@@ -25,7 +25,7 @@ trc::DrawableExecutionRegistration::DrawableExecutionRegistration(
 
 
 auto trc::SceneBase::getPipelines(
-    RenderStageType::ID renderStageType,
+    RenderStage::ID renderStageType,
     SubPass::ID subPass
     ) const noexcept -> const std::vector<Pipeline::ID>&
 {
@@ -41,7 +41,7 @@ auto trc::SceneBase::getPipelines(
 }
 
 void trc::SceneBase::invokeDrawFunctions(
-    RenderStageType::ID renderStageType,
+    RenderStage::ID renderStage,
     RenderPass& renderPass,
     SubPass::ID subPass,
     Pipeline::ID pipelineId,
@@ -49,27 +49,25 @@ void trc::SceneBase::invokeDrawFunctions(
     vk::CommandBuffer cmdBuf) const
 {
     DrawEnvironment env{
-        .currentRenderStageType = &RenderStageType::at(renderStageType),
+        .currentRenderStage = renderStage,
         .currentRenderPass = &renderPass,
         .currentSubPass = subPass,
         .currentPipeline = &pipeline,
     };
 
-    for (auto& f : drawableRegistrations[renderStageType][subPass][pipelineId])
+    for (auto& f : drawableRegistrations[renderStage][subPass][pipelineId])
     {
         f.recordFunction(env, cmdBuf);
     }
 }
 
 auto trc::SceneBase::registerDrawFunction(
-    RenderStageType::ID renderStageType,
+    RenderStage::ID renderStageType,
     SubPass::ID subPass,
     Pipeline::ID pipeline,
     DrawableFunction commandBufferRecordingFunction
     ) -> MaybeUniqueRegistrationId
 {
-    assert(RenderStageType::at(renderStageType).numSubPasses > subPass);
-
     tryInsertPipeline(renderStageType, subPass, pipeline);
 
     auto& currentRegistrationArray = drawableRegistrations[renderStageType][subPass][pipeline];
@@ -107,7 +105,7 @@ void trc::SceneBase::unregisterDrawFunction(MaybeUniqueRegistrationId id)
 }
 
 void trc::SceneBase::tryInsertPipeline(
-    RenderStageType::ID renderStageType,
+    RenderStage::ID renderStageType,
     SubPass::ID subPass,
     Pipeline::ID pipeline)
 {
@@ -118,7 +116,7 @@ void trc::SceneBase::tryInsertPipeline(
 }
 
 void trc::SceneBase::removePipeline(
-    RenderStageType::ID renderStageType,
+    RenderStage::ID renderStageType,
     SubPass::ID subPass,
     Pipeline::ID pipeline)
 {

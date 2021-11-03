@@ -5,6 +5,7 @@
 #include <vkb/basics/Swapchain.h>
 
 #include "Instance.h"
+#include "DrawConfiguration.h"
 #include "Renderer.h"
 
 namespace trc

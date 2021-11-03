@@ -7,19 +7,9 @@ namespace fs = std::filesystem;
 
 #include "FBXLoader.h"
 #include "AssetRegistry.h"
-#include "Scene.h"
-#include "drawable/Drawable.h"
 
 namespace trc
 {
-    struct SceneImportResult
-    {
-        Scene scene;
-        std::vector<std::unique_ptr<Drawable>> drawables{};
-
-        std::vector<std::pair<GeometryID, MaterialID>> importedGeometries{};
-    };
-
 #ifdef TRC_USE_FBX_SDK
     /**
      * @brief Load the first mesh in the file into a geometry
@@ -32,11 +22,7 @@ namespace trc
      *         error occurs. Otherwise a Geometry.
      */
     auto loadGeometry(const fs::path& fbxFilePath,
-                             AssetRegistry& assetRegistry,
-                             bool loadRig = true) -> Maybe<GeometryID>;
-
-    //extern auto loadScene(const Instance& instance,
-    //                      const fs::path& fbxFilePath,
-    //                      AssetRegistry& assetRegistry) -> SceneImportResult;
+                      AssetRegistry& assetRegistry,
+                      bool loadRig = true) -> Maybe<GeometryID>;
 #endif
 }

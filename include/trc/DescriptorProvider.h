@@ -54,9 +54,23 @@ namespace trc
     class FrameSpecificDescriptorProvider : public DescriptorProviderInterface
     {
     public:
-        FrameSpecificDescriptorProvider(
-            vk::DescriptorSetLayout layout,
-            vkb::FrameSpecific<vk::DescriptorSet> set);
+        FrameSpecificDescriptorProvider(vk::DescriptorSetLayout layout,
+                                        vkb::FrameSpecific<vk::DescriptorSet> set);
+
+        /**
+         * @brief Convert handle types to plain handles
+         */
+        template<typename T>
+            requires requires (T a) { { *a } -> std::convertible_to<vk::DescriptorSet>; }
+        FrameSpecificDescriptorProvider(vk::DescriptorSetLayout layout,
+                                        vkb::FrameSpecific<T>& sets)
+            :
+            FrameSpecificDescriptorProvider(
+                layout,
+                { sets.getSwapchain(), [&](ui32 i) { return *sets.getAt(i); } }
+            )
+        {}
+
 
         auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;

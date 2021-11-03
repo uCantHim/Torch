@@ -1,6 +1,7 @@
 #include "ShadowPool.h"
 
 #include "core/Window.h"
+#include "ray_tracing/RayPipelineBuilder.h"
 
 
 
@@ -26,6 +27,7 @@ trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
         device, sizeof(mat4) * info.maxShadowMaps,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+        | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     shadowMatrixBufferMap(reinterpret_cast<mat4*>(shadowMatrixBuffer.map())),
     descSets(window.getSwapchain()),
@@ -95,14 +97,17 @@ void trc::ShadowPool::updateMatrixBuffer()
 
 void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
 {
+    auto shaderStages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+    if (window.getInstance().hasRayTracing()) {
+        shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+    }
+
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
         // Shadow matrix buffer
-        { 0, vk::DescriptorType::eStorageBuffer, 1,
-          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment },
+        { 0, vk::DescriptorType::eStorageBuffer, 1, shaderStages },
         // Shadow maps
-        { 1, vk::DescriptorType::eCombinedImageSampler, maxShadowMaps,
-          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment },
+        { 1, vk::DescriptorType::eCombinedImageSampler, maxShadowMaps, shaderStages },
     };
     std::vector<vk::DescriptorBindingFlags> layoutFlags{
         {}, // shadow matrix buffer

@@ -20,7 +20,7 @@ layout (set = 0, binding = 0, std430) buffer ShadowMatrices
 layout (push_constant) uniform PushConstants
 {
     mat4 modelMatrix;
-    uint lightIndex;  // Index into shadow matrix buffer
+    uint shadowIndex;  // Index into shadow matrix buffer
 
     uint animation;
     uint keyframes[2];
@@ -29,7 +29,7 @@ layout (push_constant) uniform PushConstants
 
 void main()
 {
-    mat4 viewProj = shadowMatrices[lightIndex];
+    mat4 viewProj = shadowMatrices[shadowIndex];
     vec4 vertPos = vec4(vertexPosition, 1.0);
     if (animation != NO_ANIMATION) {
         vertPos = applyAnimation(animation, vertPos, keyframes, keyframeWeigth);

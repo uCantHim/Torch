@@ -5,7 +5,6 @@ if (${GTEST_FOUND})
         PRIVATE
             functional/test_maybe.cpp
             data/test_object_pool.cpp
-            data/test_typesafe_id.cpp
             test_shader_edit.cpp
     )
 

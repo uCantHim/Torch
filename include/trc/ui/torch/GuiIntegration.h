@@ -17,10 +17,9 @@
 
 namespace trc
 {
-    /**
-     * Access to static render stage
-     */
-    auto getGuiRenderStage() -> RenderStageType::ID;
+    class RenderLayout;
+
+    inline RenderStage guiRenderStage{};
 
     class TorchWindowBackend : public ui::WindowBackend
     {
@@ -94,15 +93,13 @@ namespace trc
         vkb::UniqueListenerId<vkb::CharInputEvent>  charInputListener;
     };
 
-    class RenderGraph;
-
     /**
      * @brief Initialize the GUI implementation
      */
     auto initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiStack;
 
     /**
-     * @brief Insert gui renderpass into a render graph
+     * @brief Insert gui renderpass into a render layout
      */
-    void integrateGui(GuiStack& stack, RenderGraph& graph);
+    void integrateGui(GuiStack& stack, RenderLayout& layout);
 } // namespace trc

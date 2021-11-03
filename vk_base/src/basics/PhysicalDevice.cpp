@@ -162,7 +162,6 @@ auto vkb::PhysicalDevice::createLogicalDevice(
     // Default device features
     vk::StructureChain deviceFeatures{
         vk::PhysicalDeviceFeatures2{},
-        vk::PhysicalDeviceBufferDeviceAddressFeatures{},
         vk::PhysicalDeviceDescriptorIndexingFeatures{},
     };
 

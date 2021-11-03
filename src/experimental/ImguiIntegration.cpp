@@ -6,7 +6,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "core/RenderGraph.h"
+#include "core/RenderLayout.h"
 #include "core/PipelineBuilder.h"
 #include "Torch.h"
 #include "TorchResources.h"
@@ -23,24 +23,14 @@ namespace
 
 
 
-auto trc::experimental::imgui::getImguiRenderStageType() -> RenderStageType::ID
-{
-    static RenderStageType::ID imguiStageId = RenderStageType::createAtNextIndex(1).first;
-    return imguiStageId;
-}
-
-
-
-auto trc::experimental::imgui::initImgui(Window& window, RenderGraph& graph)
+auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
     -> trc::u_ptr<ImguiRenderPass>
 {
     auto& device = window.getDevice();
     auto& swapchain = window.getSwapchain();
 
     auto renderPass = std::make_unique<ImguiRenderPass>(swapchain);
-
-    graph.after(trc::RenderStageTypes::getDeferred(), getImguiRenderStageType());
-    graph.addPass(getImguiRenderStageType(), *renderPass);
+    layout.addPass(imguiRenderStage, *renderPass);
 
     // Initialize global imgui stuff
     if (!imguiInitialized)
