@@ -6,6 +6,7 @@
 
 #define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #define TRC_FLIP_Y_PROJECTION
 
