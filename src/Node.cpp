@@ -96,6 +96,9 @@ void trc::Node::updateAsRoot() noexcept
 
 void trc::Node::attach(Node& child)
 {
+    if (parent == &child) {
+        this->detachFromParent();
+    }
     child.detachFromParent();
 
     children.push_back(&child);
