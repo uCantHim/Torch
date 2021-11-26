@@ -10,7 +10,7 @@
 trc::RenderPassDeferred::RenderPassDeferred(
     const vkb::Device& device,
     const vkb::Swapchain& swapchain,
-    const RenderPassDeferredCreateInfo& info)
+    vkb::FrameSpecific<GBuffer>& gBuffer)
     :
     RenderPass(
         makeVkRenderPass(device, swapchain),
@@ -23,13 +23,11 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
     ),
     swapchain(swapchain),
-    framebufferSize(info.gBufferSize.x, info.gBufferSize.y),
-    gBuffers(swapchain, [&](ui32) {
-        return GBuffer(device, { info.gBufferSize });
-    }),
+    gBuffer(gBuffer),
+    framebufferSize(gBuffer.getAt(0).getSize()),
     framebuffers(swapchain, [&](ui32 frameIndex)
     {
-        GBuffer& g = gBuffers.getAt(frameIndex);
+        const GBuffer& g = gBuffer.getAt(frameIndex);
 
         std::vector<vk::ImageView> views{
             g.getImageView(GBuffer::eNormals),
@@ -48,13 +46,13 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::ClearDepthStencilValue(1.0f, 0.0f),
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     }),
-    descriptor(device, swapchain, gBuffers)
+    descriptor(device, swapchain, gBuffer)
 {
 }
 
 void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    gBuffers->clearTransparencyBufferData(cmdBuf);
+    gBuffer->initFrame(cmdBuf);
 
     // Bring depth image into depthStencil layout
     cmdBuf.pipelineBarrier(
@@ -69,7 +67,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eDepthStencilAttachmentOptimal,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            *gBuffers.get().getImage(GBuffer::eDepth),
+            *gBuffer->getImage(GBuffer::eDepth),
             vk::ImageSubresourceRange(
                 vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
                 0, 1, 0, 1
@@ -83,7 +81,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
             **framebuffers,
             vk::Rect2D(
                 { 0, 0 },
-                framebufferSize
+                gBuffer->getExtent()
             ),
             static_cast<ui32>(clearValues.size()), clearValues.data()
         ),
@@ -95,16 +93,6 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
 {
     cmdBuf.endRenderPass();
     copyMouseDataToBuffers(cmdBuf);
-}
-
-auto trc::RenderPassDeferred::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
-{
-    return gBuffers;
-}
-
-auto trc::RenderPassDeferred::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
-{
-    return gBuffers;
 }
 
 auto trc::RenderPassDeferred::getDescriptor() const noexcept
@@ -249,7 +237,7 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
 
 void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
-    vkb::Image& depthImage = gBuffers.getAt(swapchain.getCurrentFrame()).getImage(GBuffer::eDepth);
+    vkb::Image& depthImage = gBuffer.getAt(swapchain.getCurrentFrame()).getImage(GBuffer::eDepth);
     const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
     const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
@@ -288,7 +276,7 @@ auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 
 auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
 {
-    const vec2 resolution{ framebufferSize.width, framebufferSize.height };
+    const vec2 resolution{ gBuffer.getAt(0).getSize() };
     const vec2 mousePos = swapchain.getMousePosition();
     const float depth = getMouseDepth();
 

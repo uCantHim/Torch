@@ -39,11 +39,8 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     RenderConfigCrtpBase(_window.getInstance(), std::move(_layout)),
     window(_window),
     // Passes
-    deferredPass(new RenderPassDeferred(
-        window.getDevice(),
-        window.getSwapchain(),
-        { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
-    )),
+    gBuffer(nullptr),
+    deferredPass(nullptr),
     shadowPass(window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
     // Descriptors
     globalDataDescriptor(window),
@@ -68,37 +65,12 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
         );
     }
 
-    // Initialize descriptor provider for the deferred renderpass
-    auto& p = deferredPass->getDescriptorProvider();
-    deferredPassDescriptorProvider.setWrappedProvider(p);
-    deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
-
-    // Add pass to deferred stage
-    layout.addPass(deferredRenderStage, *deferredPass);
-
-    swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this, info](auto e) {
+    swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this](auto e) {
         if (e.swapchain != &window.getSwapchain()) return;
-
-        vkb::Timer timer;
-
-        layout.removePass(deferredRenderStage, *deferredPass);
-        deferredPass.reset(new RenderPassDeferred(
-            window.getDevice(),
-            window.getSwapchain(),
-            { window.getSwapchain().getSize(), info.maxTransparentFragsPerPixel }
-        ));
-        layout.addPass(deferredRenderStage, *deferredPass);
-
-        if constexpr (vkb::enableVerboseLogging)
-        {
-            const float time = timer.reset();
-            std::cout << "Deferred renderpass recreated for new swapchain (" << time << " ms)\n";
-        }
-
-        auto& p = deferredPass->getDescriptorProvider();
-        deferredPassDescriptorProvider.setWrappedProvider(p);
-        deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
+        resizeGBuffer(window.getSwapchain().getSize());
     }).makeUnique();
+
+    resizeGBuffer(window.getSwapchain().getSize());
 }
 
 void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
@@ -128,12 +100,12 @@ void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
 
 auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
 {
-    return deferredPass->getGBuffer();
+    return *gBuffer;
 }
 
 auto trc::DeferredRenderConfig::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
 {
-    return deferredPass->getGBuffer();
+    return *gBuffer;
 }
 
 auto trc::DeferredRenderConfig::getDeferredRenderPass() const -> const RenderPassDeferred&
@@ -200,4 +172,48 @@ auto trc::DeferredRenderConfig::getShadowPool() -> ShadowPool&
 auto trc::DeferredRenderConfig::getShadowPool() const -> const ShadowPool&
 {
     return *shadowPool;
+}
+
+void trc::DeferredRenderConfig::resizeGBuffer(uvec2 newSize)
+{
+    vkb::Timer timer;
+
+    // Delete resources
+    layout.removePass(deferredRenderStage, *deferredPass);
+    deferredPass.reset();
+    gBuffer.reset();
+
+    // Create new g-buffer
+    gBuffer = std::make_unique<vkb::FrameSpecific<GBuffer>>(
+        window.getSwapchain(),
+        [this, newSize](ui32) {
+            return GBuffer(
+                window.getDevice(),
+                GBufferCreateInfo{ .size=newSize, .maxTransparentFragsPerPixel=3 }
+            );
+        }
+    );
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        const float time = timer.reset();
+        std::cout << "GBuffer recreated for new swapchain (" << time << " ms)\n";
+    }
+
+    // Create new renderpass
+    deferredPass.reset(new RenderPassDeferred(
+        window.getDevice(),
+        window.getSwapchain(),
+        *gBuffer
+    ));
+    layout.addPass(deferredRenderStage, *deferredPass);
+
+    auto& p = deferredPass->getDescriptorProvider();
+    deferredPassDescriptorProvider.setWrappedProvider(p);
+    deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
+
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        const float time = timer.reset();
+        std::cout << "Deferred renderpass recreated for new swapchain (" << time << " ms)\n";
+    }
 }

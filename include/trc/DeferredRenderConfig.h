@@ -78,10 +78,13 @@ namespace trc
         auto getShadowPool() const -> const ShadowPool&;
 
     private:
+        void resizeGBuffer(uvec2 newSize);
+
         const Window& window;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
 
         // Default render passes
+        u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;
         u_ptr<RenderPassDeferred> deferredPass;
         RenderPassShadow shadowPass;
 
