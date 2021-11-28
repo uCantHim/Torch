@@ -133,11 +133,6 @@ void Drawable::drawShadow(
     auto currentRenderPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
     assert(currentRenderPass != nullptr);
 
-    // Set pipeline dynamic states
-    uvec2 res = currentRenderPass->getResolution();
-    cmdBuf.setViewport(0, vk::Viewport(0.0f, 0.0f, res.x, res.y, 0.0f, 1.0f));
-    cmdBuf.setScissor(0, vk::Rect2D({ 0, 0 }, { res.x, res.y }));
-
     // Bind buffers and push constants
     data.geo.bindVertices(cmdBuf, 0);
 

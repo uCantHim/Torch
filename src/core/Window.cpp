@@ -68,12 +68,3 @@ auto trc::Window::getRenderer() -> Renderer&
 {
     return renderer;
 }
-
-auto trc::Window::makeFullscreenRenderArea() const -> RenderArea
-{
-    auto extent = swapchain.getImageExtent();
-    return {
-        vk::Viewport(0, 0, extent.width, extent.height, 0.0f, 1.0f),
-        vk::Rect2D({ 0, 0 }, { extent.width, extent.height })
-    };
-}

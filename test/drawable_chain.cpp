@@ -64,8 +64,7 @@ int main()
         trc::DrawConfig draw{
             .scene        = &scene,
             .camera       = &camera,
-            .renderConfig = &*torch.renderConfig,
-            .renderArea  = { torch.window->makeFullscreenRenderArea() }
+            .renderConfig = &*torch.renderConfig
         };
 
         while (swapchain.isOpen())

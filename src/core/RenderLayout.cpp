@@ -90,7 +90,6 @@ auto trc::RenderLayout::recordStage(
     -> Maybe<vk::CommandBuffer>
 {
     SceneBase& scene = *draw.scene;
-    const auto& [viewport, scissor] = draw.renderArea;
     const auto renderPasses = util::merged(stage.renderPasses,
                                            scene.getDynamicRenderPasses(stage.id));
 
@@ -145,9 +144,6 @@ auto trc::RenderLayout::recordStage(
                 p.bind(cmdBuf);
                 p.bindStaticDescriptorSets(cmdBuf);
                 p.bindDefaultPushConstantValues(cmdBuf);
-
-                cmdBuf.setViewport(0, viewport);
-                cmdBuf.setScissor(0, scissor);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(

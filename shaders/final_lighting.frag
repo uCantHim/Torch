@@ -74,7 +74,12 @@ void main()
 
 vec4 worldPosFromDepth(float depth)
 {
-    const vec4 clipSpace = vec4(gl_FragCoord.xy / global.resolution * 2.0 - 1.0, depth, 1.0);
+    vec2 fc = gl_FragCoord.xy;
+#ifdef TRC_FLIP_Y_AXIS
+    fc.y = global.resolution.y - fc.y;  // Viewport height inversion
+#endif
+
+    const vec4 clipSpace = vec4(fc / global.resolution * 2.0 - 1.0, depth, 1.0);
     const vec4 viewSpace = camera.inverseProjMatrix * clipSpace;
     const vec4 worldSpace = camera.inverseViewMatrix * (viewSpace / viewSpace.w);
 

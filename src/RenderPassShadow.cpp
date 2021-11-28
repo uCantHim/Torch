@@ -98,6 +98,12 @@ void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents 
         ),
         subpassContents
     );
+
+    // Set viewport and scissor
+    cmdBuf.setViewport(0,
+        vk::Viewport{ 0.0f, 0.0f, float(resolution.x), float(resolution.y), 0.0f, 1.0f }
+    );
+    cmdBuf.setScissor(0, vk::Rect2D{ { 0, 0 }, { resolution.x, resolution.y } });
 }
 
 void trc::RenderPassShadow::end(vk::CommandBuffer cmdBuf)

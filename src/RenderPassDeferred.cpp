@@ -79,14 +79,32 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
         vk::RenderPassBeginInfo(
             *renderPass,
             **framebuffers,
-            vk::Rect2D(
-                { 0, 0 },
-                gBuffer->getExtent()
-            ),
-            static_cast<ui32>(clearValues.size()), clearValues.data()
+            vk::Rect2D({ 0, 0 }, gBuffer->getExtent()),
+            clearValues
         ),
         subpassContents
     );
+
+    // Set viewport and scissor
+#ifdef TRC_FLIP_Y_PROJECTION
+    cmdBuf.setViewport(0,
+        vk::Viewport{
+            0.0f, float(framebufferSize.y),
+            float(framebufferSize.x), -float(framebufferSize.y),
+            0.0f, 1.0f
+        }
+    );
+#else
+    cmdBuf.setViewport(0,
+        vk::Viewport{
+            0.0f, 0.0f,
+            float(framebufferSize.x), float(framebufferSize.y),
+            0.0f, 1.0f
+        }
+    );
+#endif
+
+    cmdBuf.setScissor(0, vk::Rect2D{ { 0, 0 }, { framebufferSize.x, framebufferSize.y } });
 }
 
 void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)

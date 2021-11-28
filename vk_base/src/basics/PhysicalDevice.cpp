@@ -337,6 +337,7 @@ bool vkb::device_helpers::supportsRequiredDeviceExtensions(const PhysicalDevice&
 auto vkb::device_helpers::getRequiredDeviceExtensions() -> std::vector<const char*>
 {
     return {
+        VK_KHR_MAINTENANCE_1_EXTENSION_NAME,  // Core in 1.1
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
     };

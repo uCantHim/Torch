@@ -135,8 +135,7 @@ auto trc::TorchStack::makeDrawConfig(Scene& scene, Camera& camera) const -> Draw
     return {
         .scene        = &scene,
         .camera       = &camera,
-        .renderConfig = renderConfig.get(),
-        .renderArea   = window->makeFullscreenRenderArea()
+        .renderConfig = renderConfig.get()
     };
 }
 

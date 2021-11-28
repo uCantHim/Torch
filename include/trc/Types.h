@@ -8,8 +8,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#define TRC_FLIP_Y_PROJECTION
-
 #include "util/functional/Maybe.h"
 #include "util/data/TypesafeId.h"
 

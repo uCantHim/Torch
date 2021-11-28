@@ -52,8 +52,8 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     fullscreenQuadVertexBuffer(
         window.getDevice(),
         std::vector<vec3>{
-            vec3(-1, 1, 0), vec3(1, 1, 0), vec3(-1, -1, 0),
-            vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0)
+            vec3(-1, 1, 0), vec3(-1, -1, 0), vec3(1, 1, 0),
+            vec3(1, 1, 0), vec3(-1, -1, 0), vec3(1, -1, 0)
         },
         vk::BufferUsageFlagBits::eVertexBuffer
     )
