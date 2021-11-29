@@ -270,6 +270,22 @@ auto vkb::QueueManager::reservePrimaryQueue(QueueType type, uint32_t queueIndex)
     return reserveQueue(getPrimaryQueue(type, queueIndex));
 }
 
+void vkb::QueueManager::freeReservedQueue(ExclusiveQueue queue)
+{
+    for (uint32_t i = 0; i < queueStorage.size(); i++)
+    {
+        if (queueStorage.at(i) == queue)
+        {
+            if (auto it = std::ranges::find(reservedQueueIndices, i);
+                it != reservedQueueIndices.end())
+            {
+                reservedQueueIndices.erase(it);
+            }
+            break;
+        }
+    }
+}
+
 auto vkb::QueueManager::getQueue(uint32_t index) const -> std::optional<ExclusiveQueue>
 {
     if (reservedQueueIndices.contains(index)) {
