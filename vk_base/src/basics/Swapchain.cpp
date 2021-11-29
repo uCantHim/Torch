@@ -383,17 +383,17 @@ void onKey(GLFWwindow* window, int key, int, int action, int mods)
     {
     case GLFW_PRESS:
         vkb::EventHandler<vkb::KeyPressEvent>::notify(
-            { swapchain, static_cast<vkb::Key>(key), mods }
+            { swapchain, static_cast<vkb::Key>(key), vkb::KeyModFlags(mods) }
         );
         break;
     case GLFW_RELEASE:
         vkb::EventHandler<vkb::KeyReleaseEvent>::notify(
-            { swapchain, static_cast<vkb::Key>(key), mods }
+            { swapchain, static_cast<vkb::Key>(key), vkb::KeyModFlags(mods) }
         );
         break;
     case GLFW_REPEAT:
         vkb::EventHandler<vkb::KeyRepeatEvent>::notify(
-            { swapchain, static_cast<vkb::Key>(key), mods }
+            { swapchain, static_cast<vkb::Key>(key), vkb::KeyModFlags(mods) }
         );
         break;
     default:
