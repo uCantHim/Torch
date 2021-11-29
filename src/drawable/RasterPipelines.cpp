@@ -434,6 +434,9 @@ auto makeDrawableShadowPipeline(
         )
         .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))  // Dynamic state
         .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))     // Dynamic state
+#ifdef TRC_FLIP_Y_PROJECTION
+        .setFrontFace(vk::FrontFace::eClockwise)
+#endif
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
