@@ -16,7 +16,7 @@
 trc::Renderer::Renderer(Window& _window)
     :
     instance(_window.getInstance()),
-    device(instance.getDevice()),
+    device(_window.getDevice()),
     window(&_window),
     imageAcquireSemaphores(_window.getSwapchain()),
     renderFinishedSemaphores(_window.getSwapchain()),
@@ -45,6 +45,10 @@ trc::Renderer::Renderer(Window& _window)
 trc::Renderer::~Renderer()
 {
     waitForAllFrames();
+
+    auto& q = device.getQueueManager();
+    q.freeReservedQueue(mainRenderQueue);
+    q.freeReservedQueue(mainPresentQueue);
 }
 
 void trc::Renderer::drawFrame(const DrawConfig& draw)
@@ -59,7 +63,7 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     renderConfig.preDraw(draw);
 
     // Wait for frame
-    auto fenceResult = device->waitForFences(**frameInFlightFences, true, 1000000000);
+    auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     if (fenceResult == vk::Result::eTimeout) {
         return;
     }

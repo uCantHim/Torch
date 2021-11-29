@@ -25,13 +25,20 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
             info.swapchainCreateInfo
         );
     }()),
-    renderer(*this)
+    renderer(new Renderer(*this)),
+    recreateListener(
+        vkb::on<vkb::SwapchainRecreateEvent>([this](auto&) {
+            // Create a new renderer to avoid the still mysterious crash on recreate
+            renderer->waitForAllFrames();
+            renderer.reset(new Renderer(*this));
+        })
+    )
 {
 }
 
 void trc::Window::drawFrame(const DrawConfig& drawConfig)
 {
-    renderer.drawFrame(drawConfig);
+    renderer->drawFrame(drawConfig);
 }
 
 auto trc::Window::getInstance() -> Instance&
@@ -66,5 +73,5 @@ auto trc::Window::getSwapchain() const -> const vkb::Swapchain&
 
 auto trc::Window::getRenderer() -> Renderer&
 {
-    return renderer;
+    return *renderer;
 }

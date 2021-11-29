@@ -458,6 +458,8 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 
 void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 {
+    std::scoped_lock lock(swapchainRecreateLock);
+
     if constexpr (enableVerboseLogging) {
         std::cout << "\nStarting swapchain creation\n";
     }

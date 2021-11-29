@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <iostream>
 
 #include "VulkanInclude.h"
@@ -190,6 +191,8 @@ namespace vkb
     private:
         void initGlfwCallbacks(GLFWwindow* window);
         void createSwapchain(const SwapchainCreateInfo& info);
+
+        std::mutex swapchainRecreateLock;
 
         SwapchainCreateInfo createInfo;
 

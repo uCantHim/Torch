@@ -39,7 +39,7 @@ namespace trc
 
     private:
         const Instance& instance;
-        const vkb::Device& device;
+        vkb::Device& device;
         Window* window; // Must be non-const for presentImage
 
         vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> swapchainRecreateListener;

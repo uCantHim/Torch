@@ -43,6 +43,7 @@ namespace trc
         Instance* instance;
 
         vkb::Swapchain swapchain;
-        Renderer renderer;
+        u_ptr<Renderer> renderer;
+        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> recreateListener;
     };
 } // namespace trc
