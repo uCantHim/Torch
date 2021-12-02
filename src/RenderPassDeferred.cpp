@@ -282,20 +282,22 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 
 auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 {
-    return depthBufMap[0];
-
     const ui32 depthValueD24S8 = depthBufMap[0];
 
-    // Don't ask me why 16 bit here, I think it should be 24. The result
-    // seems to be correct with 16 though.
-    constexpr float maxFloat16 = 65536.0f; // 2**16 -- std::pow is not constexpr
+    // Don't ask me why 16 bit here, I think it should be 24. The result is
+    // correct when we use 65536 as depth 1.0 (maximum depth) though.
+    constexpr float maxFloat16 = 65536.0f;  // 2^16
     return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
 }
 
 auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
 {
     const vec2 resolution{ gBuffer.getAt(0).getSize() };
+#ifdef TRC_FLIP_Y_PROJECTION
+    const vec2 mousePos = { swapchain.getMousePosition().x, resolution.y - swapchain.getMousePosition().y, };
+#else
     const vec2 mousePos = swapchain.getMousePosition();
+#endif
     const float depth = getMouseDepth();
 
     const vec4 clipSpace = vec4(mousePos / resolution * 2.0f - 1.0f, depth, 1.0);

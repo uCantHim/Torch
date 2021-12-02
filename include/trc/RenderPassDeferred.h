@@ -121,7 +121,7 @@ namespace trc
 
         void copyMouseDataToBuffers(vk::CommandBuffer cmdBuf);
         vkb::Buffer depthPixelReadBuffer;
-        float* depthBufMap = reinterpret_cast<float*>(depthPixelReadBuffer.map());
+        ui32* depthBufMap = reinterpret_cast<ui32*>(depthPixelReadBuffer.map());
 
         const vkb::Swapchain& swapchain;
 
