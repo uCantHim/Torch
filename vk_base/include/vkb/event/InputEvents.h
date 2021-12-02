@@ -63,23 +63,23 @@ namespace vkb
     {
         Swapchain* swapchain;
         MouseButton button;
-        int mods;
+        KeyModFlags mods;
         InputAction action;
 
     protected:
-        MouseButtonEventBase(Swapchain* sc, MouseButton button, int mods, InputAction action)
+        MouseButtonEventBase(Swapchain* sc, MouseButton button, KeyModFlags mods, InputAction action)
             : swapchain(sc), button(button), mods(mods), action(action) {}
     };
 
     struct MouseClickEvent : public MouseButtonEventBase
     {
-        MouseClickEvent(Swapchain* sc, MouseButton button, int mods)
+        MouseClickEvent(Swapchain* sc, MouseButton button, KeyModFlags mods)
             : MouseButtonEventBase(sc, button, mods, InputAction::press) {}
     };
 
     struct MouseReleaseEvent : public MouseButtonEventBase
     {
-        MouseReleaseEvent(Swapchain* sc, MouseButton button, int mods)
+        MouseReleaseEvent(Swapchain* sc, MouseButton button, KeyModFlags mods)
             : MouseButtonEventBase(sc, button, mods, InputAction::release) {}
     };
 

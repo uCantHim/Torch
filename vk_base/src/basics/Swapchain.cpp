@@ -416,12 +416,12 @@ void onMouseClick(GLFWwindow* window, int button, int action, int mods)
     {
     case GLFW_PRESS:
         vkb::EventHandler<vkb::MouseClickEvent>::notify(
-            { swapchain, static_cast<vkb::MouseButton>(button), mods }
+            { swapchain, static_cast<vkb::MouseButton>(button), vkb::KeyModFlags(mods) }
         );
         break;
     case GLFW_RELEASE:
         vkb::EventHandler<vkb::MouseReleaseEvent>::notify(
-            { swapchain, static_cast<vkb::MouseButton>(button), mods }
+            { swapchain, static_cast<vkb::MouseButton>(button), vkb::KeyModFlags(mods) }
         );
         break;
     default:
