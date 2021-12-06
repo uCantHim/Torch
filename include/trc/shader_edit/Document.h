@@ -2,9 +2,16 @@
 
 #include "Parser.h"
 #include "VariableValue.h"
+#include "util/Exception.h"
 
 namespace shader_edit
 {
+    class CompileError : public trc::Exception
+    {
+    public:
+        CompileError(std::string message) : trc::Exception(std::move(message)) {}
+    };
+
     class Document
     {
     public:

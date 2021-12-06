@@ -39,24 +39,33 @@ void Document::permutate(const std::string& name, std::vector<VariableValue> val
 
 auto Document::compile() const -> std::vector<std::string>
 {
+    auto remainingVars = parseData.variablesByName;
+    auto getVariableLine = [&remainingVars](const std::string& name) -> uint
+    {
+        auto var = remainingVars.extract(name);
+        if (var.empty())
+        {
+            throw CompileError(
+                "[In Document::compile]: Variable \"" + name + "\" does not exist in the document"
+            );
+        }
+
+        return var.mapped();
+    };
+
+
     auto resultLines = parseData.lines;
 
     // Insert definite values
     for (auto& [name, value] : singleValues)
     {
-        auto it = parseData.variablesByName.find(name);
-        if (it == parseData.variablesByName.end())
-        {
-            throw std::runtime_error(
-                "[In Document::compile]: Variable \"" + name + "\" does not exist in the document"
-            );
-        }
-
-        resultLines.at(it->second) = value.toString() + "    // " + name;
+        resultLines.at(getVariableLine(name)) = value.toString() + "    // " + name;
     }
 
     // Create permutations
-    auto createPermutations = [](const auto& documents, const auto& name, const auto& values) {
+    auto createPermutations = [&](const auto& documents, const auto& name, const auto& values)
+    {
+        const uint line = getVariableLine(name);
         std::vector<ParseResult> documentCopies;
         // Values first. This way, the first specified permutation remains
         // on the outer nesting level.
@@ -65,7 +74,6 @@ auto Document::compile() const -> std::vector<std::string>
             for (const auto& doc : documents)
             {
                 auto& copy = documentCopies.emplace_back(doc);
-                const uint line = copy.variablesByName.at(name);
                 copy.lines.at(line) = value.toString();
             }
         }
@@ -78,6 +86,17 @@ auto Document::compile() const -> std::vector<std::string>
     for (auto& [name, values] : multiValues)
     {
         permutations = createPermutations(permutations, name, values);
+    }
+
+    // Ensure that all variables have been set
+    if (!remainingVars.empty())
+    {
+        std::stringstream ss;
+        ss << "[In Document::compile]: Unable to compile document - not all variables have"
+           << " been set! Unset variables: ";
+        for (const auto& [name, _] : remainingVars) ss << std::quoted(name) << "  ";
+
+        throw CompileError(ss.str());
     }
 
     // Create resulting documents

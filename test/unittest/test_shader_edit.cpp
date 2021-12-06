@@ -8,7 +8,7 @@
 
 using namespace shader_edit;
 
-auto stringFromFile(const std::string& path)
+auto stringFromFile(const std::string& path) -> std::string
 {
     std::ifstream file(path);
     std::stringstream ss;
@@ -30,6 +30,14 @@ TEST(ShaderEdit, ReplaceVariable)
 
     auto targetResult = stringFromFile(DATADIR"/test_single_variable_result.vert");
     ASSERT_STREQ(results[0].c_str(), targetResult.c_str());
+}
+
+TEST(ShaderEdit, UnsetVariableThrows)
+{
+    std::ifstream file(DATADIR"/test_single_variable.vert");
+    Document document(file);
+
+    ASSERT_THROW(document.compile(), shader_edit::CompileError);
 }
 
 TEST(ShaderEdit, NestedPermutation)
