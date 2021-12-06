@@ -7,12 +7,6 @@
 
 namespace trc
 {
-    struct RenderArea
-    {
-        vk::Viewport viewport;
-        vk::Rect2D scissor;
-    };
-
     /**
      * @brief Configuration for a draw call
      */
@@ -22,6 +16,5 @@ namespace trc
         Camera* camera;
 
         RenderConfig* renderConfig;
-        RenderArea renderArea;
     };
 } // namespace trc

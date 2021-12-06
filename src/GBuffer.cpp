@@ -166,7 +166,7 @@ auto trc::GBuffer::getTransparencyResources() const -> TransparencyResources
     };
 }
 
-void trc::GBuffer::clearTransparencyBufferData(vk::CommandBuffer cmdBuf) const
+void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
 {
     // Cheat: Copy a constantly zero-valued byte to the first byte in the buffer
     cmdBuf.copyBuffer(*fragmentListBuffer, *fragmentListBuffer,

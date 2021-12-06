@@ -57,7 +57,7 @@ else()
 
         add_custom_command(
             OUTPUT ${OUT_FILE}
-            COMMAND ${GLSLC} ${SHADER_OPTIMIZATION_FLAG} --target-spv=spv1.4 --target-env=vulkan1.2 ${IN_FILE} -o ${OUT_FILE}
+            COMMAND ${GLSLC} ${SHADER_OPTIMIZATION_FLAG} --target-spv=spv1.4 --target-env=vulkan1.2 $<$<BOOL:TORCH_FLIP_Y_AXIS>:-DTRC_FLIP_Y_AXIS> ${IN_FILE} -o ${OUT_FILE}
             DEPENDS ${IN_FILE}
             IMPLICIT_DEPENDS CXX ${IN_FILE}
         )

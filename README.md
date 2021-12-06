@@ -89,32 +89,33 @@ Small Example
 
 int main()
 {
-    // Initialize Torch and create a renderer. Do have to do this before
-    // you use any other functionality of Torch.
-    auto renderer = trc::init();
-
-    // The two things required to render something are
-    //   1. A scene
-    //   2. A camera
-    // The scene is created as a unique_ptr instead of value here so we can
-    // easily delete it at the end. That's not necessary for the camera
-    // since it doesn't allocate any Vulkan resources.
-    auto scene = std::make_unique<trc::Scene>();
-    trc::Camera camera;
-
-    // Main loop
-    while (vkb::getSwapchain().isOpen())
     {
-        // Poll system events. The weird namespace name is explained below.
-        vkb::pollEvents();
+        // Initialize Torch
+        trc::TorchStack torch = trc::initFull();
 
-        // Use the renderer to draw the scene
-        renderer->drawFrame(*scene, camera);
+        // The things required to render something are
+        //   1. A scene
+        //   2. A camera
+        trc::Scene scene;
+        trc::Camera camera;
+
+        // We create a draw configuration that tells the renderer what to
+        // draw. We can create this object ourselves, but, since we will use
+        // default settings anyway, we let a utility function do it for us.
+        trc::DrawConfig drawConf = torch.makeDrawConfig(scene, camera);
+
+        // Main loop
+        while (torch.window->getSwapchain().isOpen())
+        {
+            // Poll system events
+            trc::pollEvents();
+
+            // Draw a frame
+            torch.drawFrame(drawConf);
+        }
+
+        // End of scope, the TorchStack object gets destroyed
     }
-
-    // Destroy the Torch resources
-    renderer.reset();
-    scene.reset();
 
     // Call this after you've destroyed all Torch/Vulkan resources.
     trc::terminate();
@@ -134,12 +135,14 @@ Overview
 process of creating a Drawable and the required assets:
 
 ```c++
+auto& ar = *torch.assetRegistry;  // `torch` is the TorchStack object from above
+
 // Load a geometry from a file. Only FBX format is supported at the moment.
-trc::GeometryID geo = trc::AssetRegistry::addGeometry(trc::loadGeometry("my_geo.fbx").get());
+trc::GeometryID geo = ar.add(trc::loadGeometry("my_geo.fbx").get());
 
 // Add a material
-trc::MaterialID mat = trc::AssetRegistry::addMaterial({ .color=vec4(0, 1, 0.4, 1) });
-trc::AssetRegistry::updateMaterials();
+trc::MaterialID mat = ar.add(trc::Material{ .color=vec4(0, 1, 0.4, 1) });
+ar.updateMaterials();
 
 // Create the drawable
 trc::Drawable myDrawable(geo, mat);
@@ -149,25 +152,6 @@ trc::Drawable myDrawable(geo, mat);
 
 TODO: write this section
 
-
-<a name="vkb"></a>
-vkb Aka Vulkan Base
--------------------
-
-Vulkan Base is a library with basic Vulkan utilities that I have not yet put into its own repository. That's also why
-the name is as original as MGK's lyrics.
-
-It's based on GLFW for window creation and event handling.
-
-### Setup
-
-Most importantly, it contains classes that alleviate most of the tedious boilerplate work. Examples on how to use these
-independently from Torch will be located in a separate documentation about Vulkan Base once I find both the time and
-motivation to write one.
-
-The call to `vkb::vulkanInit()` automatically initializes an instance, device, and swapchain. These are made available
-globally and are used by Torch. If you want to do complex Vulkan stuff yourself, I suggest you create another device
-just for yourself.
 
 ### Events
 
@@ -196,24 +180,4 @@ vkb::on<MyEventType>([](const auto& e) {
 });
 
 vkb::fire<MyEventType>({ 42, "The answer" });
-```
-
-The `vkb::on` and `vkb::fire` functions are helpers on top of some underlying, less expressive structures. They are
-roughly equivalent to the following:
-
-```c++
-// What vkb::on does:
-vkb::EventHandler<MyEventType>::addListener([](const MyEventType& e) { ... });
-
-// What vkb::fire does:
-vkb::EventHandler<MyEventType>::notify({ 42, "The answer" });
-```
-
-`vkb::on` also wraps the result of `EventHandler<>::addListener` in a temporary object that can be used to create unique
-listener handles in case you want to remove the listener later on:
-
-```c++
-{
-    auto uniqueHandle = vkb::on<MyEventType>([](auto&&) { ... }).makeUnique();
-} // uniqueHandle gets destroyed and the listener is removed from the event handler
 ```

@@ -53,9 +53,9 @@ namespace trc
 
         AssetRegistry* ar;
 
-        NameToIndexMap<Geometry> geometryNames;
-        NameToIndexMap<Material> materialNames;
-        NameToIndexMap<vkb::Image> imageNames;
+        std::unordered_map<NameType, GeometryID> geometryNames;
+        std::unordered_map<NameType, MaterialID> materialNames;
+        std::unordered_map<NameType, TextureID> imageNames;
     };
 
     struct AssetRegistryCreateInfo

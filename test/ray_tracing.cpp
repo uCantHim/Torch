@@ -295,12 +295,7 @@ int main()
     {
         vkb::pollEvents();
 
-        torch.window->drawFrame(trc::DrawConfig{
-            .scene=scene.get(),
-            .camera=&camera,
-            .renderConfig=torch.renderConfig.get(),
-            .renderArea={ torch.window->makeFullscreenRenderArea() }
-        });
+        torch.window->drawFrame(torch.makeDrawConfig(*scene, camera));
     }
 
     instance.getDevice()->waitIdle();

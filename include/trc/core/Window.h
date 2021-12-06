@@ -5,7 +5,6 @@
 #include <vkb/basics/Swapchain.h>
 
 #include "Instance.h"
-#include "DrawConfiguration.h"
 #include "Renderer.h"
 
 namespace trc
@@ -40,12 +39,11 @@ namespace trc
         auto getSwapchain() const -> const vkb::Swapchain&;
         auto getRenderer() -> Renderer&;
 
-        auto makeFullscreenRenderArea() const -> RenderArea;
-
     private:
         Instance* instance;
 
         vkb::Swapchain swapchain;
-        Renderer renderer;
+        u_ptr<Renderer> renderer;
+        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> recreateListener;
     };
 } // namespace trc

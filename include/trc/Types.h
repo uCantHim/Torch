@@ -6,8 +6,7 @@
 
 #define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
-
-#define TRC_FLIP_Y_PROJECTION
+#include <glm/gtc/quaternion.hpp>
 
 #include "util/functional/Maybe.h"
 #include "util/data/TypesafeId.h"

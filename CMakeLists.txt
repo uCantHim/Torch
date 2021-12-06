@@ -7,6 +7,7 @@ endif()
 project(Torch)
 
 # Options
+option(TORCH_FLIP_Y_AXIS "Build Torch in a configuration that has Vulkan's negative y-axis flipped" ON)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
@@ -49,6 +50,11 @@ target_link_libraries(
     torch PUBLIC
     vk_base
     Freetype::Freetype
+)
+
+target_compile_definitions(
+    torch PUBLIC
+    $<$<BOOL:TORCH_FLIP_Y_AXIS>:TRC_FLIP_Y_PROJECTION>
 )
 
 add_subdirectory(shaders)

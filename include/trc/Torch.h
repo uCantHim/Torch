@@ -11,6 +11,7 @@
 #include "drawable/Drawable.h"
 #include "drawable/DrawablePool.h"
 #include "Light.h"
+#include "DrawConfiguration.h"
 #include "DeferredRenderConfig.h"
 
 namespace trc

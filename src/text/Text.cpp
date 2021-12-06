@@ -93,11 +93,7 @@ void trc::Text::print(std::string_view str)
     {
         if (c == '\n')
         {
-#ifdef TRC_FLIP_Y_PROJECTION
             penPosition.y -= font->getLineBreakAdvance();
-#else
-            penPosition.y += font->getLineBreakAdvance();
-#endif
             penPosition.x = 0.0f;
             continue;
         }
@@ -126,6 +122,7 @@ void trc::Text::print(std::string_view str)
             .bearingY=g.bearingY
         };
 #endif
+
         penPosition.x += g.advance;
     }
     glyphBuffer.unmap();

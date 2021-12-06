@@ -33,6 +33,7 @@ auto trc::Transformation::setFromMatrix(const mat4& t) -> self&
 void trc::Transformation::setFromMatrixTemporary(const mat4& t)
 {
     matrixIndex.set(t);
+    onLocalMatrixUpdate();
 }
 
 void trc::Transformation::clearTransformation()

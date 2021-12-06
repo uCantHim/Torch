@@ -68,12 +68,11 @@ namespace trc
         auto getTransparencyResources() const -> TransparencyResources;
 
         /**
-         * @brief Reset fragment allocator
+         * @brief Initialize the g-buffer for rendering
          *
-         * Call this every frame before rendering transparent fragments to
-         * the list.
+         * Resets the fragment allocator.
          */
-        void clearTransparencyBufferData(vk::CommandBuffer cmdBuf) const;
+        void initFrame(vk::CommandBuffer cmdBuf) const;
 
     private:
         const uvec2 size;

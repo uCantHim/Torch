@@ -284,8 +284,7 @@ void run()
         torch.window->drawFrame(trc::DrawConfig{
             .scene=scene.get(),
             .camera=&camera,
-            .renderConfig=torch.renderConfig.get(),
-            .renderArea={ torch.window->makeFullscreenRenderArea() }
+            .renderConfig=torch.renderConfig.get()
         });
 
         frames++;

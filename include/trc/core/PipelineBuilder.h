@@ -26,7 +26,11 @@ namespace trc
         false,
         vk::PolygonMode::eFill,
         vk::CullModeFlagBits::eBack,
+#ifdef TRC_FLIP_Y_PROJECTION
         vk::FrontFace::eCounterClockwise,
+#else
+        vk::FrontFace::eClockwise,
+#endif
         false, 0.0f, 0.0f, 0.0f, // Depth bias
         1.0f
     );

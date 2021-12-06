@@ -13,30 +13,30 @@ namespace vkb
     {
         Swapchain* swapchain;
         Key key;
-        int mods;
+        KeyModFlags mods;
         InputAction action;
 
     protected:
-        KeyEventBase(Swapchain* sc, Key key, int mod, InputAction action)
+        KeyEventBase(Swapchain* sc, Key key, KeyModFlags mod, InputAction action)
             : swapchain(sc), key(key), mods(mod), action(action) {}
     };
 
     struct KeyPressEvent : public KeyEventBase
     {
-        KeyPressEvent(Swapchain* sc, Key key, int mod)
+        KeyPressEvent(Swapchain* sc, Key key, KeyModFlags mod)
             : KeyEventBase(sc, key, mod, InputAction::press) {}
 
     };
 
     struct KeyReleaseEvent : public KeyEventBase
     {
-        KeyReleaseEvent(Swapchain* sc, Key key, int mod)
+        KeyReleaseEvent(Swapchain* sc, Key key, KeyModFlags mod)
             : KeyEventBase(sc, key, mod, InputAction::release) {}
     };
 
     struct KeyRepeatEvent : public KeyEventBase
     {
-        KeyRepeatEvent(Swapchain* sc, Key key, int mod)
+        KeyRepeatEvent(Swapchain* sc, Key key, KeyModFlags mod)
             : KeyEventBase(sc, key, mod, InputAction::repeat) {}
     };
 

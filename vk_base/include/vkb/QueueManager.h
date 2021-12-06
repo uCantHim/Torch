@@ -166,6 +166,8 @@ namespace vkb
          */
         auto reservePrimaryQueue(QueueType type, uint32_t queueIndex) -> ExclusiveQueue;
 
+        void freeReservedQueue(ExclusiveQueue queue);
+
     private:
         static constexpr size_t queueTypeCount = static_cast<size_t>(QueueType::numQueueTypes);
 

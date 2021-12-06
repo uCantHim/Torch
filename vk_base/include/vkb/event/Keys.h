@@ -2,6 +2,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include "VulkanInclude.h"
+
 namespace vkb
 {
     /**
@@ -132,7 +134,7 @@ namespace vkb
      *
      * This is not an enum class because mods have to be combinable
      */
-    enum KeyMod {
+    enum KeyModFlagBits {
         shift     = GLFW_MOD_SHIFT,
         control   = GLFW_MOD_CONTROL,
         alt       = GLFW_MOD_ALT,
@@ -142,6 +144,8 @@ namespace vkb
 
         MAX_ENUM
     };
+
+    using KeyModFlags = vk::Flags<KeyModFlagBits>;
 
     /**
      * These have the same numeric value as the corresponding GLFW defines.
@@ -175,3 +179,52 @@ namespace vkb
         MAX_ENUM
     };
 } // namespace vkb
+
+
+
+namespace vk
+{
+    template <>
+    struct FlagTraits<::vkb::KeyModFlagBits>
+    {
+        enum : VkFlags
+        {
+            allFlags = VkFlags(::vkb::KeyModFlagBits::shift)
+                       | VkFlags(::vkb::KeyModFlagBits::control)
+                       | VkFlags(::vkb::KeyModFlagBits::alt)
+                       | VkFlags(::vkb::KeyModFlagBits::super)
+                       | VkFlags(::vkb::KeyModFlagBits::caps_lock)
+                       | VkFlags(::vkb::KeyModFlagBits::num_lock)
+        };
+    };
+} // namespace vk
+
+namespace vkb
+{
+    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
+        KeyModFlags operator|( KeyModFlagBits bit0,
+                               KeyModFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
+    {
+        return KeyModFlags( bit0 ) | bit1;
+    }
+
+    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
+        KeyModFlags operator&( KeyModFlagBits bit0,
+                               KeyModFlagBits bit1)VULKAN_HPP_NOEXCEPT
+    {
+        return KeyModFlags( bit0 ) & bit1;
+    }
+
+    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
+        KeyModFlags operator^( KeyModFlagBits bit0,
+                               KeyModFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
+    {
+        return KeyModFlags( bit0 ) ^ bit1;
+    }
+
+    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
+        KeyModFlags operator~( KeyModFlagBits bits ) VULKAN_HPP_NOEXCEPT
+    {
+        return ~( KeyModFlags( bits ) );
+    }
+} // namespace trc

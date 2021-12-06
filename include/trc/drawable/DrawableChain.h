@@ -92,6 +92,35 @@ namespace trc
 
         auto getDrawable() noexcept -> DrawableInterface&;
         auto getDrawable() const noexcept -> const DrawableInterface&;
+
+        /**
+         * @brief Try to cast the drawable to a type T
+         *
+         * @return Nothing if the contained drawable is not of type T
+         */
+        template<DrawableType T>
+        auto getDrawableAs() noexcept -> Maybe<T&>
+        {
+            if (T* ptr = dynamic_cast<T*>(drawable.get())) {
+                return *ptr;
+            }
+            return {};
+        }
+
+        /**
+         * @brief Try to cast the drawable to a type T
+         *
+         * @return Nothing if the contained drawable is not of type T
+         */
+        template<DrawableType T>
+        auto getDrawableAs() const noexcept -> Maybe<const T&>
+        {
+            if (const T* ptr = dynamic_cast<const T*>(drawable.get())) {
+                return *ptr;
+            }
+            return {};
+        }
+
         auto getNextChainElement() noexcept -> Maybe<DrawableChainElement&>;
         auto getNextChainElement() const noexcept -> Maybe<const DrawableChainElement&>;
 
