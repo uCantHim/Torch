@@ -42,6 +42,8 @@ auto trc::Node::operator=(Node&& rhs) noexcept -> Node&
     Transformation::operator=(std::forward<Node>(rhs));
 
     std::swap(globalTransformIndex, rhs.globalTransformIndex);
+
+    detachFromParent();
     parent = rhs.parent;
     rhs.parent = nullptr;
     if (parent != nullptr)
@@ -109,6 +111,7 @@ void trc::Node::attach(Node& child)
 void trc::Node::detach(Node& child)
 {
     children.erase(std::find(children.begin(), children.end(), &child));
+    child.parent = nullptr;
     child.update();
 }
 
