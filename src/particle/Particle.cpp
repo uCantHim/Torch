@@ -318,6 +318,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
         },
         std::vector<vk::PushConstantRange>{}
     );
+    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
 
     vkb::ShaderProgram program(instance.getDevice(),
                                SHADER_DIR / "particles/deferred.vert.spv",
@@ -359,8 +361,6 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
 
     return p;
 }
@@ -378,6 +378,9 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
         },
         std::vector<vk::PushConstantRange>{}
     );
+    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
+    layout.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
 
     vkb::ShaderProgram program(instance.getDevice(),
                                SHADER_DIR / "particles/deferred.vert.spv",
@@ -418,9 +421,6 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
 
     return p;
 }
@@ -439,6 +439,8 @@ auto trc::ParticleCollection::makeParticleShadowPipeline(
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)),
         }
     );
+    layout.addStaticDescriptorSet(0, config.getShadowDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getGlobalDataDescriptorProvider());
 
     vkb::ShaderProgram program(instance.getDevice(),
                                SHADER_DIR / "particles/shadow.vert.spv",
@@ -475,8 +477,6 @@ auto trc::ParticleCollection::makeParticleShadowPipeline(
         .build(*instance.getDevice(), *layout, config.getCompatibleShadowRenderPass(), 0);
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getShadowDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getGlobalDataDescriptorProvider());
 
     return p;
 }

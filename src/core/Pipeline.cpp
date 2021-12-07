@@ -3,7 +3,7 @@
 
 
 trc::Pipeline::Pipeline(
-    vk::UniquePipelineLayout layout,
+    PipelineLayout layout,
     vk::UniquePipeline pipeline,
     vk::PipelineBindPoint bindPoint)
     :
@@ -14,8 +14,8 @@ trc::Pipeline::Pipeline(
 {}
 
 trc::Pipeline::Pipeline(
-    vk::UniquePipelineLayout layout,
-    UniquePipelineStorageType pipeline,
+    PipelineLayout layout,
+    UniquePipelineHandleType pipeline,
     vk::PipelineBindPoint bindPoint)
     :
     layout(std::move(layout)),
@@ -45,41 +45,25 @@ auto trc::Pipeline::get() const noexcept -> vk::Pipeline
 void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
 {
     cmdBuf.bindPipeline(bindPoint, pipeline);
+    layout.bindStaticDescriptorSets(cmdBuf, bindPoint);
+    layout.bindDefaultPushConstantValues(cmdBuf);
 }
 
-void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
+auto trc::Pipeline::getLayout() noexcept -> PipelineLayout&
 {
-    for (const auto& [index, provider] : staticDescriptorSets)
-    {
-        provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
-    }
+    return layout;
 }
 
-void trc::Pipeline::bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf) const
+auto trc::Pipeline::getLayout() const noexcept -> const PipelineLayout&
 {
-    for (const auto& [offset, stages, data] : defaultPushConstants)
-    {
-        cmdBuf.pushConstants(*layout, stages, offset, data.size(), data.data());
-    }
-}
-
-auto trc::Pipeline::getLayout() const noexcept -> vk::PipelineLayout
-{
-    return *layout;
-}
-
-void trc::Pipeline::addStaticDescriptorSet(
-    ui32 descriptorIndex,
-    const DescriptorProviderInterface& provider) noexcept
-{
-    staticDescriptorSets.emplace_back(descriptorIndex, &provider);
+    return layout;
 }
 
 
 
 auto trc::makeComputePipeline(
     const vkb::Device& device,
-    vk::UniquePipelineLayout layout,
+    PipelineLayout layout,
     vk::UniqueShaderModule shader,
     vk::PipelineCreateFlags flags,
     const std::string& entryPoint) -> Pipeline

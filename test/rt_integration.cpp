@@ -199,11 +199,12 @@ void run()
             }
         }
     );
-    rayPipeline.addStaticDescriptorSet(0, tlasDescProvider);
-    rayPipeline.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
-    rayPipeline.addStaticDescriptorSet(2, torch.assetRegistry->getDescriptorSetProvider());
-    rayPipeline.addStaticDescriptorSet(3, torch.renderConfig->getSceneDescriptorProvider());
-    rayPipeline.addStaticDescriptorSet(4, torch.shadowPool->getProvider());
+    auto& rayLayout = rayPipeline.getLayout();
+    rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
+    rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
+    rayLayout.addStaticDescriptorSet(2, torch.assetRegistry->getDescriptorSetProvider());
+    rayLayout.addStaticDescriptorSet(3, torch.renderConfig->getSceneDescriptorProvider());
+    rayLayout.addStaticDescriptorSet(4, torch.shadowPool->getProvider());
 
 
     // --- Draw function --- //
@@ -237,9 +238,8 @@ void run()
             );
 
             rayPipeline.bind(cmdBuf);
-            rayPipeline.bindStaticDescriptorSets(cmdBuf);
             cmdBuf.pushConstants<mat4>(
-                rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
+                *rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
                 0, { camera.getViewMatrix(), camera.getProjectionMatrix() }
             );
 

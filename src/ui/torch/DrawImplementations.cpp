@@ -311,7 +311,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
     // Draw all lines
     if (!lines.empty())
     {
-        auto layout = linePipeline.getLayout();
+        auto layout = *linePipeline.getLayout();
         linePipeline.bind(cmdBuf);
         cmdBuf.setViewport(0, defaultViewport);
         cmdBuf.setScissor(0, defaultScissor);
@@ -336,7 +336,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
         cmdBuf.setViewport(0, defaultViewport);
 
         cmdBuf.bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics, textPipeline.getLayout(),
+            vk::PipelineBindPoint::eGraphics, *textPipeline.getLayout(),
             0, *fontDescSet, {}
         );
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });

@@ -203,8 +203,8 @@ int main()
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
     trc::FrameSpecificDescriptorProvider imageDescProvider{ *outputImageDescLayout, imageDescSets };
-    rayPipeline.addStaticDescriptorSet(0, tlasDescProvider);
-    rayPipeline.addStaticDescriptorSet(1, imageDescProvider);
+    rayPipeline.getLayout().addStaticDescriptorSet(0, tlasDescProvider);
+    rayPipeline.getLayout().addStaticDescriptorSet(1, imageDescProvider);
 
 
     // --- Render Pass --- //
@@ -255,9 +255,8 @@ int main()
             );
 
             rayPipeline.bind(cmdBuf);
-            rayPipeline.bindStaticDescriptorSets(cmdBuf);
             cmdBuf.pushConstants<mat4>(
-                rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
+                *rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
                 0, { camera.getViewMatrix(), camera.getProjectionMatrix() }
             );
 

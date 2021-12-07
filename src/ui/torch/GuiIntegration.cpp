@@ -166,7 +166,7 @@ void trc::GuiIntegrationPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
 
     imageBlendPipeline.bind(cmdBuf);
     cmdBuf.bindDescriptorSets(
-        vk::PipelineBindPoint::eCompute, imageBlendPipeline.getLayout(),
+        vk::PipelineBindPoint::eCompute, *imageBlendPipeline.getLayout(),
         0, **blendDescSets, {}
     );
     const auto [x, y] = swapchain.getImageExtent();

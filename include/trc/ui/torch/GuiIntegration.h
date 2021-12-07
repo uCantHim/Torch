@@ -5,6 +5,7 @@
 
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
+#include <vkb/FrameSpecificObject.h>
 #include <vkb/util/Timer.h>
 #include <vkb/event/Event.h>
 

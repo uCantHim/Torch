@@ -146,7 +146,7 @@ void trc::RasterDrawablePool::createRasterFunctions()
             for (ui32 drawDataId : pipelineData.first)
             {
                 auto& data = renderData.at(drawDataId);
-                auto layout = env.currentPipeline->getLayout();
+                auto layout = *env.currentPipeline->getLayout();
 
                 data.geo.bindVertices(cmdBuf, 0);
                 cmdBuf.bindVertexBuffers(1, *instanceDataBuffer, data.instanceOffset);
@@ -179,7 +179,7 @@ void trc::RasterDrawablePool::createRasterFunctions()
             assert(currentRenderPass != nullptr);
 
             // Bind buffers and push constants
-            auto layout = env.currentPipeline->getLayout();
+            auto layout = *env.currentPipeline->getLayout();
             cmdBuf.pushConstants<ui32>(
                 layout, vk::ShaderStageFlagBits::eVertex,
                 0, currentRenderPass->getShadowMatrixIndex()

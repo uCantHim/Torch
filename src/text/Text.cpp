@@ -53,11 +53,11 @@ void trc::Text::attachToScene(SceneBase& scene)
         {
             font->getDescriptor().bindDescriptorSet(
                 cmdBuf,
-                vk::PipelineBindPoint::eGraphics, env.currentPipeline->getLayout(),
+                vk::PipelineBindPoint::eGraphics, *env.currentPipeline->getLayout(),
                 1
             );
             cmdBuf.pushConstants<mat4>(
-                env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
+                *env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
                 0, glm::scale(getGlobalTransform(), vec3(BASE_SCALING))
             );
 
@@ -154,6 +154,8 @@ auto trc::makeTextPipeline(
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)),
         }
     );
+    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
 
     // Can't access Text::LetterData struct from here
     constexpr size_t LETTER_DATA_SIZE = sizeof(vec2) * 4 + sizeof(float);
@@ -194,8 +196,6 @@ auto trc::makeTextPipeline(
         );
 
     Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
-    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
 
     return p;
 }

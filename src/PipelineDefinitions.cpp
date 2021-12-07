@@ -41,6 +41,11 @@ auto makeFinalLightingPipeline(
         },
         std::vector<vk::PushConstantRange>{}
     );
+    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
+    layout.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
+    layout.addStaticDescriptorSet(3, config.getSceneDescriptorProvider());
+    layout.addStaticDescriptorSet(4, config.getShadowDescriptorProvider());
 
     // Pipeline
     vkb::ShaderProgram program(instance.getDevice(),
@@ -67,11 +72,6 @@ auto makeFinalLightingPipeline(
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
-    p.addStaticDescriptorSet(3, config.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(4, config.getShadowDescriptorProvider());
 
     return p;
 }

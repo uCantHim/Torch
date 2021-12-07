@@ -82,6 +82,14 @@ auto makeDrawablePoolInstancedPipeline(
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32))
         }
     );
+    layout.addStaticDescriptorSet(0, conf.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(1, conf.getAssets().getDescriptorSetProvider());
+    layout.addStaticDescriptorSet(2, conf.getSceneDescriptorProvider());
+    layout.addStaticDescriptorSet(3, conf.getDeferredPassDescriptorProvider());
+    layout.addStaticDescriptorSet(4, conf.getAnimationDataDescriptorProvider());
+    if (flags & PipelineFeatureFlagBits::eTransparent) {
+        layout.addStaticDescriptorSet(5, conf.getShadowDescriptorProvider());
+    }
 
     auto builder = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -119,14 +127,6 @@ auto makeDrawablePoolInstancedPipeline(
         );
 
     Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
-    p.addStaticDescriptorSet(0, conf.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, conf.getAssets().getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, conf.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(3, conf.getDeferredPassDescriptorProvider());
-    p.addStaticDescriptorSet(4, conf.getAnimationDataDescriptorProvider());
-    if (flags & PipelineFeatureFlagBits::eTransparent) {
-        p.addStaticDescriptorSet(5, conf.getShadowDescriptorProvider());
-    }
 
     return p;
 }
@@ -147,6 +147,8 @@ auto makeDrawablePoolInstancedShadowPipeline(const Instance& instance, const Def
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)) // light index
         }
     );
+    layout.addStaticDescriptorSet(0, conf.getShadowDescriptorProvider());
+    layout.addStaticDescriptorSet(1, conf.getAnimationDataDescriptorProvider());
 
     auto pipeline = GraphicsPipelineBuilder::create()
         .setProgram(program)
@@ -171,8 +173,6 @@ auto makeDrawablePoolInstancedShadowPipeline(const Instance& instance, const Def
         .build(*instance.getDevice(), *layout, conf.getCompatibleShadowRenderPass(), 0);
 
     Pipeline p(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics);
-    p.addStaticDescriptorSet(0, conf.getShadowDescriptorProvider());
-    p.addStaticDescriptorSet(1, conf.getAnimationDataDescriptorProvider());
 
     return p;
 }
@@ -274,6 +274,17 @@ auto makeDrawableDeferredPipeline(
             ),
         }
     );
+    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
+    layout.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
+    layout.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
+    layout.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
+
+    layout.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(64, 0u,           vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
 
     // Pipeline
     bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
@@ -303,17 +314,6 @@ auto makeDrawableDeferredPipeline(
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
-    p.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
-
-    p.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(64, 0u,           vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
 
     return p;
 }
@@ -348,6 +348,18 @@ auto makeDrawableTransparentPipeline(
             ),
         }
     );
+    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
+    layout.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
+    layout.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
+    layout.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
+    layout.addStaticDescriptorSet(5, config.getShadowDescriptorProvider());
+
+    layout.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(64, 0u,           vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
+    layout.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
 
     // Pipeline
     bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
@@ -378,18 +390,6 @@ auto makeDrawableTransparentPipeline(
         );
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
-    p.addStaticDescriptorSet(2, config.getSceneDescriptorProvider());
-    p.addStaticDescriptorSet(3, config.getDeferredPassDescriptorProvider());
-    p.addStaticDescriptorSet(4, config.getAnimationDataDescriptorProvider());
-    p.addStaticDescriptorSet(5, config.getShadowDescriptorProvider());
-
-    p.addDefaultPushConstantValue(0,  mat4(1.0f),   vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(64, 0u,           vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(68, NO_ANIMATION, vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(72, uvec2(0, 0),  vk::ShaderStageFlagBits::eVertex);
-    p.addDefaultPushConstantValue(80, 0.0f,         vk::ShaderStageFlagBits::eVertex);
 
     return p;
 }
@@ -420,6 +420,8 @@ auto makeDrawableShadowPipeline(
             )
         }
     );
+    layout.addStaticDescriptorSet(0, config.getShadowDescriptorProvider());
+    layout.addStaticDescriptorSet(1, config.getAnimationDataDescriptorProvider());
 
     // Pipeline
     vkb::ShaderProgram program(instance.getDevice(),
@@ -443,8 +445,6 @@ auto makeDrawableShadowPipeline(
         .build(*instance.getDevice(), *layout, config.getCompatibleShadowRenderPass(), 0);
 
     Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-    p.addStaticDescriptorSet(0, config.getShadowDescriptorProvider());
-    p.addStaticDescriptorSet(1, config.getAnimationDataDescriptorProvider());
 
     return p;
 }

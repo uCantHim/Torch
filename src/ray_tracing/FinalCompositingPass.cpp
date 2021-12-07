@@ -82,6 +82,10 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     assert(info.rayBuffer != nullptr);
     assert(info.assetRegistry != nullptr);
 
+    computePipeline.getLayout().addStaticDescriptorSet(0, inputSetProvider);
+    computePipeline.getLayout().addStaticDescriptorSet(1, outputSetProvider);
+    computePipeline.getLayout().addStaticDescriptorSet(2, info.assetRegistry->getDescriptorSetProvider());
+
     inputSets = {
         window.getSwapchain(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
@@ -145,10 +149,6 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
 
     inputSetProvider = { *inputLayout, inputSets };
     outputSetProvider = { *outputLayout, outputSets };
-
-    computePipeline.addStaticDescriptorSet(0, inputSetProvider);
-    computePipeline.addStaticDescriptorSet(1, outputSetProvider);
-    computePipeline.addStaticDescriptorSet(2, info.assetRegistry->getDescriptorSetProvider());
 }
 
 void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
@@ -172,8 +172,6 @@ void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassC
     );
 
     computePipeline.bind(cmdBuf);
-    computePipeline.bindStaticDescriptorSets(cmdBuf);
-    computePipeline.bindDefaultPushConstantValues(cmdBuf);
     auto [x, y, z] = computeGroupSize;
     cmdBuf.dispatch(x, y, z);
 

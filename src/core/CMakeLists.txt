@@ -5,6 +5,7 @@ target_sources(
         Instance.cpp
         Pipeline.cpp
         PipelineBuilder.cpp
+        PipelineLayout.cpp
         Renderer.cpp
         RenderConfiguration.cpp
         RenderDataDescriptor.cpp

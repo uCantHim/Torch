@@ -5,7 +5,7 @@
 #include <vkb/basics/Device.h>
 
 #include "Types.h"
-#include "DescriptorProvider.h"
+#include "PipelineLayout.h"
 
 namespace trc
 {
@@ -24,13 +24,7 @@ namespace trc
         const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
         const std::vector<vk::PushConstantRange>& pushConstantRanges)
     {
-        return device->createPipelineLayoutUnique(
-            vk::PipelineLayoutCreateInfo(
-                {},
-                descriptorSetLayouts.size(), descriptorSetLayouts.data(),
-                pushConstantRanges.size(), pushConstantRanges.data()
-            )
-        );
+        return PipelineLayout(device, descriptorSetLayouts, pushConstantRanges);
     }
 
     /**
@@ -40,7 +34,7 @@ namespace trc
     {
     public:
         using ID = TypesafeID<Pipeline, ui32>;
-        using UniquePipelineStorageType = std::variant<
+        using UniquePipelineHandleType = std::variant<
             vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderStatic>,  // vk::UniquePipeline
             vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>
         >;
@@ -48,11 +42,11 @@ namespace trc
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 
-        Pipeline(vk::UniquePipelineLayout layout,
+        Pipeline(PipelineLayout layout,
                  vk::UniquePipeline pipeline,
                  vk::PipelineBindPoint bindPoint);
-        Pipeline(vk::UniquePipelineLayout layout,
-                 UniquePipelineStorageType pipeline,
+        Pipeline(PipelineLayout layout,
+                 UniquePipelineHandleType pipeline,
                  vk::PipelineBindPoint bindPoint);
         Pipeline(Pipeline&&) noexcept = default;
         ~Pipeline() = default;
@@ -70,48 +64,15 @@ namespace trc
          */
         void bind(vk::CommandBuffer cmdBuf) const;
 
-        /**
-         * @brief Bind all static descriptor sets specified for the pipeline
-         *
-         * "Static" descriptor sets are the descriptor sets that are
-         * pipeline-specific rather than draw-call-specific.
-         */
-        void bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const;
-
-        /**
-         * @brief Supply default values to specified push constant ranges
-         */
-        void bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf) const;
-
-        auto getLayout() const noexcept -> vk::PipelineLayout;
-
-        void addStaticDescriptorSet(ui32 descriptorIndex,
-                                    const DescriptorProviderInterface& provider) noexcept;
-        template<typename T>
-        void addDefaultPushConstantValue(ui32 offset, T value, vk::ShaderStageFlags stages);
+        auto getLayout() noexcept -> PipelineLayout&;
+        auto getLayout() const noexcept -> const PipelineLayout&;
 
     private:
-        vk::UniquePipelineLayout layout;
-        UniquePipelineStorageType pipelineStorage;
+        PipelineLayout layout;
+        UniquePipelineHandleType pipelineStorage;
         vk::Pipeline pipeline;
         vk::PipelineBindPoint bindPoint;
-
-        using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<uint8_t>>;
-        std::vector<PushConstantValue> defaultPushConstants;
-        std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
     };
-
-
-
-    template<typename T>
-    void Pipeline::addDefaultPushConstantValue(ui32 offset, T value, vk::ShaderStageFlags stages)
-    {
-        std::vector<uint8_t> defaultValue;
-        defaultValue.resize(sizeof(T));
-        memcpy(defaultValue.data(), &value, sizeof(T));
-
-        defaultPushConstants.emplace_back(offset, stages, std::move(defaultValue));
-    }
 
 
 
@@ -119,7 +80,7 @@ namespace trc
      * @brief Create a compute shader pipeline
      */
     auto makeComputePipeline(const vkb::Device& device,
-                             vk::UniquePipelineLayout layout,
+                             PipelineLayout layout,
                              vk::UniqueShaderModule shader,
                              vk::PipelineCreateFlags flags = {},
                              const std::string& entryPoint = "main") -> Pipeline;

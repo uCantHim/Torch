@@ -130,7 +130,7 @@ auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callab
 
 auto trc::rt::RayTracingPipelineBuilder::build(
     ui32 maxRecursionDepth,
-    vk::UniquePipelineLayout layout,
+    PipelineLayout layout,
     const vkb::DeviceMemoryAllocator alloc
     ) -> std::pair<Pipeline, ShaderBindingTable>
 {

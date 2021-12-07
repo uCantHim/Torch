@@ -77,7 +77,7 @@ void Drawable::attachToScene(SceneBase& scene)
         func = [data=this->data.get()](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
             data->geo.bindVertices(cmdBuf, 0);
 
-            auto layout = env.currentPipeline->getLayout();
+            auto layout = *env.currentPipeline->getLayout();
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
                                        data->modelMatrixId.get());
             cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
@@ -95,7 +95,7 @@ void Drawable::attachToScene(SceneBase& scene)
         func = [data=this->data.get()](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
             data->geo.bindVertices(cmdBuf, 0);
 
-            auto layout = env.currentPipeline->getLayout();
+            auto layout = *env.currentPipeline->getLayout();
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
                                        data->modelMatrixId.get());
             cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
@@ -136,7 +136,7 @@ void Drawable::drawShadow(
     // Bind buffers and push constants
     data.geo.bindVertices(cmdBuf, 0);
 
-    auto layout = env.currentPipeline->getLayout();
+    auto layout = *env.currentPipeline->getLayout();
     cmdBuf.pushConstants<mat4>(
         layout, vk::ShaderStageFlagBits::eVertex,
         0, data.modelMatrixId.get()
