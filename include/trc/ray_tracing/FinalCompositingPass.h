@@ -60,6 +60,7 @@ namespace trc::rt
         FrameSpecificDescriptorProvider inputSetProvider;
         FrameSpecificDescriptorProvider outputSetProvider;
 
+        PipelineLayout computePipelineLayout;
         Pipeline computePipeline;
     };
 } // namespace trc::rt

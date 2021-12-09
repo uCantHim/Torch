@@ -6,6 +6,9 @@ target_sources(
         Pipeline.cpp
         PipelineBuilder.cpp
         PipelineLayout.cpp
+        PipelineLayoutBuilder.cpp
+        PipelineLayoutTemplate.cpp
+        PipelineTemplate.cpp
         Renderer.cpp
         RenderConfiguration.cpp
         RenderDataDescriptor.cpp

@@ -67,6 +67,9 @@ namespace trc::ui_impl
         vk::UniqueDescriptorSet fontDescSet;
 
         // Pipelines
+        trc::PipelineLayout linePipelineLayout;
+        trc::PipelineLayout quadPipelineLayout;
+        trc::PipelineLayout textPipelineLayout;
         trc::Pipeline linePipeline;
         trc::Pipeline quadPipeline;
         trc::Pipeline textPipeline;

@@ -3,29 +3,25 @@
 #include <ranges>
 #include <vector>
 #include <functional>
+#include <variant>
 #include <mutex>
-
-#include "util/data/ObjectId.h"
 
 #include "Instance.h"
 #include "Pipeline.h"
+#include "PipelineTemplate.h"
+#include "PipelineLayoutTemplate.h"
+#include "RenderConfiguration.h"
 
 namespace trc
 {
-    template<typename T, typename U>
-    concept Range = requires (T range) {
-        std::ranges::range<T>;
-        std::is_same_v<U, std::decay_t<decltype(std::begin(range))>>;
-    };
-
-    template<typename T, typename RenderConf>
-    concept PipelineFactoryFunc = requires (T func) {
-        std::invocable<T, const Instance&, const RenderConf&>;
-        std::is_same_v<Pipeline, std::invoke_result_t<T, const Instance, const RenderConf>>;
-    };
-
-    template<typename T>
+    template<RenderConfigType T>
     class PipelineRegistry;
+
+    template<RenderConfigType T>
+    inline auto registerPipeline(const PipelineTemplate& t) -> Pipeline::ID
+    {
+        return PipelineRegistry<T>::registerPipeline(t);
+    }
 
     /**
      * @brief
@@ -35,16 +31,14 @@ namespace trc
     {
     private:
         friend class PipelineRegistry<T>;
+        using FactoryType = typename PipelineRegistry<T>::PipelineFactory;
 
-        /**
-         * @brief
-         *
-         * @param T& renderConfig
-         */
-        explicit PipelineStorage(const Instance& instance, T& renderConfig);
+        PipelineStorage(typename PipelineRegistry<T>::StorageAccessInterface interface,
+                        const Instance& instance,
+                        T& renderConfig);
 
-        template<PipelineFactoryFunc<T> F>
-        void notifyNewPipeline(F&& func);
+        void notifyNewPipeline(Pipeline::ID id,
+                               FactoryType& factory);
 
     public:
         auto get(Pipeline::ID pipeline) -> Pipeline&;
@@ -52,118 +46,134 @@ namespace trc
         void recreateAll();
 
     private:
+        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
+        auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
+
+        typename PipelineRegistry<T>::StorageAccessInterface registry;
         const Instance& instance;
         T* renderConfig;
-        std::vector<Pipeline> pipelines;
+
+        std::vector<u_ptr<PipelineLayout>> layouts;
+        std::vector<u_ptr<Pipeline>> pipelines;
     };
 
     /**
      * @brief
      */
-    template<typename T>
+    template<RenderConfigType T>
     class PipelineRegistry
     {
     public:
-        using FactoryFunc = std::function<Pipeline(const Instance&, const T&)>;
+        /**
+         * @brief Creates pipeline objects from a stored template
+         */
+        class PipelineFactory
+        {
+        public:
+            PipelineFactory() = default;
+            PipelineFactory(PipelineTemplate t, PipelineLayout::ID layout, RenderPassName rp);
+            PipelineFactory(ComputePipelineTemplate t, PipelineLayout::ID layout);
+
+            auto getLayout() const -> PipelineLayout::ID;
+            auto getRenderPassName() const -> const RenderPassName&;
+
+            auto create(const Instance& instance, T& renderConfig, PipelineLayout& layout)
+                -> Pipeline;
+            auto clone() const -> std::variant<PipelineTemplate, ComputePipelineTemplate>;
+
+        private:
+            auto create(PipelineTemplate& p,
+                        const Instance& instance,
+                        T& renderConfig,
+                        PipelineLayout& layout) const -> Pipeline;
+            auto create(ComputePipelineTemplate& p,
+                        const Instance& instance,
+                        T& renderConfig,
+                        PipelineLayout& layout) const -> Pipeline;
+
+            PipelineLayout::ID layoutId;
+            RenderPassName renderPassName;
+            std::variant<PipelineTemplate, ComputePipelineTemplate> _template;
+        };
+
+        /**
+         * @brief Creates pipeline layouts from a stored template
+         */
+        class LayoutFactory
+        {
+        public:
+            LayoutFactory() = default;
+            explicit LayoutFactory(PipelineLayoutTemplate t);
+
+            auto create(const Instance& instance, T& renderConfig) -> PipelineLayout;
+            auto clone() const -> PipelineLayoutTemplate;
+
+        private:
+            PipelineLayoutTemplate _template;
+        };
+
+        static auto registerPipelineLayout(PipelineLayoutTemplate _template) -> PipelineLayout::ID;
+        static auto clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate;
+
+        static auto registerPipeline(const PipelineTemplate& pipelineTemplate)
+            -> Pipeline::ID;
+        static auto registerPipeline(const ComputePipelineTemplate& pipelineTemplate)
+            -> Pipeline::ID;
+
+        static auto cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate;
+        static auto cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate;
+        static auto getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID;
 
         /**
          * @brief Create a pipeline storage object
          */
         static auto createStorage(const Instance& instance, T& renderConfig)
-            -> std::unique_ptr<PipelineStorage<T>>;
+            -> u_ptr<PipelineStorage<T>>;
 
-        template<PipelineFactoryFunc<T> F>
-        static auto registerPipeline(F&& factoryFunc) -> Pipeline::ID;
-
-        template<std::invocable<FactoryFunc> F>
-        static void foreachFactory(F&& func)
+        /**
+         * @brief Used internally for communication with PipelineStorage
+         */
+        class StorageAccessInterface
         {
-            std::lock_guard lock(factoryLock);
-            for (auto& factory : factories) {
-                func(factory);
+        public:
+            auto invokePipelineFactory(Pipeline::ID id, const Instance& instance, T& renderConfig)
+                -> Pipeline;
+            auto invokeLayoutFactory(PipelineLayout::ID id, const Instance& instance, T& renderConfig)
+                -> PipelineLayout;
+
+            template<std::invocable<PipelineFactory&> F>
+            static void foreachFactory(F&& func)
+            {
+                std::scoped_lock lock(factoryLock);
+                for (auto& factory : factories) {
+                    func(factory);
+                }
             }
-        }
+
+        private:
+            friend PipelineRegistry;
+            StorageAccessInterface(PipelineRegistry reg);
+
+            PipelineRegistry registry;
+        };
 
     private:
-        static inline data::IdPool idPool;
+        static inline auto _allocPipelineLayoutId() -> PipelineLayout::ID;
+        static inline auto _allocPipelineId() -> Pipeline::ID;
+        static inline auto _registerPipelineFactory(PipelineFactory factory) -> Pipeline::ID;
 
+        static inline data::IdPool pipelineLayoutIdPool;
+        static inline data::IdPool pipelineIdPool;
+
+        static inline std::mutex layoutFactoryLock;
+        static inline std::vector<LayoutFactory> layoutFactories;
         static inline std::mutex factoryLock;
-        static inline std::vector<FactoryFunc> factories;
+        static inline std::vector<PipelineFactory> factories;
 
         static inline std::mutex storageLock;
         static inline std::vector<PipelineStorage<T>*> storages;
     };
-
-
-
-    template<typename T>
-    PipelineStorage<T>::PipelineStorage(const Instance& instance, T& renderConfig)
-        :
-        instance(instance),
-        renderConfig(&renderConfig)
-    {
-        recreateAll();
-    }
-
-    template<typename T>
-    template<PipelineFactoryFunc<T> F>
-    void PipelineStorage<T>::notifyNewPipeline(F&& func)
-    {
-        pipelines.emplace_back(func(instance, *renderConfig));
-    }
-
-    template<typename T>
-    auto PipelineStorage<T>::get(Pipeline::ID pipeline) -> Pipeline&
-    {
-        return pipelines.at(pipeline);
-    }
-
-    template<typename T>
-    void PipelineStorage<T>::recreateAll()
-    {
-        pipelines.clear();
-        PipelineRegistry<T>::foreachFactory([this](auto factory) {
-            pipelines.push_back(factory(instance, *renderConfig));
-        });
-    }
-
-
-
-    template<typename T>
-    auto PipelineRegistry<T>::createStorage(const Instance& instance, T& renderConfig)
-        -> std::unique_ptr<PipelineStorage<T>>
-    {
-        auto result = u_ptr<PipelineStorage<T>>(new PipelineStorage<T>(instance, renderConfig));
-
-        std::lock_guard lock(storageLock);
-        storages.push_back(result.get());
-
-        return result;
-    }
-
-    template<typename T>
-    template<PipelineFactoryFunc<T> F>
-    auto PipelineRegistry<T>::registerPipeline(F&& factoryFunc) -> Pipeline::ID
-    {
-        const Pipeline::ID id{ idPool.generate() };
-
-        // Notiy existing storages
-        {
-            std::lock_guard lock(storageLock);
-            for (auto storage : storages) {
-                storage->notifyNewPipeline(factoryFunc);
-            }
-        }
-
-        // Add the pipeline
-        {
-            std::lock_guard lock(factoryLock);
-            if (factories.size() <= id) {
-                factories.resize(id);
-            }
-            factories.emplace(factories.begin() + id, std::move(factoryFunc));
-        }
-
-        return id;
-    }
 } // namespace trc
+
+
+#include "PipelineRegistry.inl"

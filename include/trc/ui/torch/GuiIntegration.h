@@ -74,6 +74,7 @@ namespace trc
         vk::UniqueDescriptorSetLayout blendDescLayout;
         vkb::FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
         std::vector<vk::UniqueImageView> swapchainImageViews;
+        PipelineLayout imageBlendPipelineLayout;
         Pipeline imageBlendPipeline;
 
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;

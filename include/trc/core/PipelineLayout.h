@@ -20,6 +20,7 @@ namespace trc
     public:
         using ID = data::TypesafeID<PipelineLayout, ui32>;
 
+        PipelineLayout() = default;
         explicit
         PipelineLayout(vk::UniquePipelineLayout layout);
         PipelineLayout(const vkb::Device& device,

@@ -39,6 +39,8 @@ namespace trc
 
         using RenderPassGetter = std::function<RenderPassDefinition()>;
 
+        void addRenderPass(RenderPassName name, RenderPassGetter getter);
+
         auto getRenderPass(const RenderPassName& name) const
             -> RenderPassDefinition;
 
@@ -49,11 +51,13 @@ namespace trc
     class DescriptorRegistry
     {
     public:
+        void addDescriptor(DescriptorName name, const DescriptorProviderInterface& provider);
+
         auto getDescriptor(const DescriptorName& name) const
             -> const DescriptorProviderInterface&;
 
     private:
-        std::unordered_map<std::string, DescriptorProviderInterface*> descriptorProviders;
+        std::unordered_map<std::string, const DescriptorProviderInterface*> descriptorProviders;
     };
 
     /**

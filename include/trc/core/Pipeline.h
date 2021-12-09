@@ -42,10 +42,10 @@ namespace trc
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 
-        Pipeline(PipelineLayout layout,
+        Pipeline(PipelineLayout& layout,
                  vk::UniquePipeline pipeline,
                  vk::PipelineBindPoint bindPoint);
-        Pipeline(PipelineLayout layout,
+        Pipeline(PipelineLayout& layout,
                  UniquePipelineHandleType pipeline,
                  vk::PipelineBindPoint bindPoint);
         Pipeline(Pipeline&&) noexcept = default;
@@ -68,7 +68,7 @@ namespace trc
         auto getLayout() const noexcept -> const PipelineLayout&;
 
     private:
-        PipelineLayout layout;
+        PipelineLayout* layout;
         UniquePipelineHandleType pipelineStorage;
         vk::Pipeline pipeline;
         vk::PipelineBindPoint bindPoint;
@@ -80,7 +80,7 @@ namespace trc
      * @brief Create a compute shader pipeline
      */
     auto makeComputePipeline(const vkb::Device& device,
-                             PipelineLayout layout,
+                             PipelineLayout& layout,
                              vk::UniqueShaderModule shader,
                              vk::PipelineCreateFlags flags = {},
                              const std::string& entryPoint = "main") -> Pipeline;

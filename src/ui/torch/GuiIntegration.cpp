@@ -93,25 +93,15 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
     }()),
     blendDescSets(swapchain),
     // Compute pipeline
-    imageBlendPipeline([&, this]() -> Pipeline {
-        auto shaderModule = vkb::createShaderModule(
-            device,
-            vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
-        );
-        auto layout = makePipelineLayout(device, { *blendDescLayout }, {});
-        auto pipeline = device->createComputePipelineUnique(
-            {},
-            vk::ComputePipelineCreateInfo(
-                {},
-                vk::PipelineShaderStageCreateInfo(
-                    {}, vk::ShaderStageFlagBits::eCompute, *shaderModule, "main"
-                ),
-                *layout
+    imageBlendPipelineLayout(makePipelineLayout(device, { *blendDescLayout }, {})),
+    imageBlendPipeline(
+        makeComputePipeline(
+            device, imageBlendPipelineLayout,
+            vkb::createShaderModule(device,
+                vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
             )
-        ).value;
-
-        return Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eCompute);
-    }()),
+        )
+    ),
     swapchainRecreateListener(vkb::on<vkb::SwapchainRecreateEvent>([&](auto& e) {
         if (e.swapchain != &swapchain) return;
 

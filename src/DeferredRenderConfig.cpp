@@ -45,6 +45,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     // Descriptors
     globalDataDescriptor(window),
     sceneDescriptor(window),
+    fontDataDescriptor(info.assetRegistry->getFonts().getDescriptorSetLayout(), {}),
     // Asset storage
     assetRegistry(info.assetRegistry),
     shadowPool(info.shadowPool),
@@ -71,6 +72,33 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     }).makeUnique();
 
     resizeGBuffer(window.getSwapchain().getSize());
+
+    // Define named descriptors
+    addDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR }, getGlobalDataDescriptorProvider());
+    addDescriptor(DescriptorName{ ASSET_DESCRIPTOR },       getAssetDescriptorProvider());
+    addDescriptor(DescriptorName{ ANIMATION_DESCRIPTOR },   getAnimationDataDescriptorProvider());
+    addDescriptor(DescriptorName{ FONT_DESCRIPTOR },        getFontDescriptorProvider());
+    addDescriptor(DescriptorName{ SCENE_DESCRIPTOR },       getSceneDescriptorProvider());
+    addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getDeferredPassDescriptorProvider());
+    addDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },      getShadowDescriptorProvider());
+
+    // Define named render passes
+    addRenderPass(
+        RenderPassName{ OPAQUE_G_BUFFER_PASS },
+        [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 0 }; }
+    );
+    addRenderPass(
+        RenderPassName{ TRANSPARENT_G_BUFFER_PASS },
+        [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 1 }; }
+    );
+    addRenderPass(
+        RenderPassName{ FINAL_LIGHTING_PASS },
+        [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 2 }; }
+    );
+    addRenderPass(
+        RenderPassName{ SHADOW_PASS },
+        [&]{ return RenderPassDefinition{ getCompatibleShadowRenderPass(), 0 }; }
+    );
 }
 
 void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
@@ -146,6 +174,12 @@ auto trc::DeferredRenderConfig::getAssetDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return assetRegistry->getDescriptorSetProvider();
+}
+
+auto trc::DeferredRenderConfig::getFontDescriptorProvider() const
+    -> const DescriptorProviderInterface&
+{
+    return fontDataDescriptor;
 }
 
 auto trc::DeferredRenderConfig::getAnimationDataDescriptorProvider() const

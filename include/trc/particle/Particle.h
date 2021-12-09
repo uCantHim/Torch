@@ -10,6 +10,7 @@
 
 #include "Types.h"
 #include "core/SceneBase.h"
+#include "core/PipelineTemplate.h"
 
 #include "util/Util.h"
 #include "util/async/ThreadPool.h"
@@ -93,15 +94,9 @@ namespace trc
             ui32 textureIndex;
         };
 
-        static auto makeParticleDrawAlphaDiscardPipeline(const Instance& instance,
-                                                         const DeferredRenderConfig& config)
-            -> trc::Pipeline;
-        static auto makeParticleDrawAlphaBlendPipeline(const Instance& instance,
-                                                       const DeferredRenderConfig& config)
-            -> trc::Pipeline;
-        static auto makeParticleShadowPipeline(const Instance& instance,
-                                               const DeferredRenderConfig& config)
-            -> trc::Pipeline;
+        static auto makeParticleDrawAlphaDiscardPipeline() -> PipelineTemplate;
+        static auto makeParticleDrawAlphaBlendPipeline() -> PipelineTemplate;
+        static auto makeParticleShadowPipeline() -> PipelineTemplate;
 
         /**
          * @brief Simulate particle physics

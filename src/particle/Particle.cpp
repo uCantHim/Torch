@@ -2,7 +2,7 @@
 
 #include "core/Instance.h"
 
-#include "PipelineRegistry.h"
+#include "core/PipelineLayoutBuilder.h"
 #include "core/PipelineBuilder.h"
 #include "AssetRegistry.h"
 #include "DeferredRenderConfig.h"
@@ -190,7 +190,7 @@ void trc::ParticleCollection::update(const float timeDelta)
 auto trc::ParticleCollection::getAlphaDiscardPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleDrawAlphaDiscardPipeline
+        makeParticleDrawAlphaDiscardPipeline()
     );
 
     return id;
@@ -199,7 +199,7 @@ auto trc::ParticleCollection::getAlphaDiscardPipeline() -> Pipeline::ID
 auto trc::ParticleCollection::getAlphaBlendPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleDrawAlphaBlendPipeline
+        makeParticleDrawAlphaBlendPipeline()
     );
 
     return id;
@@ -208,7 +208,7 @@ auto trc::ParticleCollection::getAlphaBlendPipeline() -> Pipeline::ID
 auto trc::ParticleCollection::getShadowPipeline() -> Pipeline::ID
 {
     static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleShadowPipeline
+        makeParticleShadowPipeline()
     );
 
     return id;
@@ -306,27 +306,16 @@ void trc::ParticleSpawn::spawnParticles()
 //      Particle Draw Pipeline      //
 //////////////////////////////////////
 
-auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
-    const Instance& instance,
-    const DeferredRenderConfig& config) -> Pipeline
+auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> PipelineTemplate
 {
-    auto layout = makePipelineLayout(
-        instance.getDevice(),
-        std::vector<vk::DescriptorSetLayout>{
-            config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
-        },
-        std::vector<vk::PushConstantRange>{}
-    );
-    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
+    auto layout = buildPipelineLayout()
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
+        .registerLayout<DeferredRenderConfig>();
 
-    vkb::ShaderProgram program(instance.getDevice(),
-                               SHADER_DIR / "particles/deferred.vert.spv",
-                               SHADER_DIR / "particles/alpha_discard.frag.spv");
-
-    auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+    return buildGraphicsPipeline()
+        .setProgram(vkb::readFile(SHADER_DIR / "particles/deferred.vert.spv"),
+                    vkb::readFile(SHADER_DIR / "particles/alpha_discard.frag.spv"))
         // (per-vertex) Vertex positions
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
@@ -355,39 +344,20 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline(
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
         .disableBlendAttachments(3)
-        .build(
-            *instance.getDevice(), *layout,
-            *config.getDeferredRenderPass(), RenderPassDeferred::SubPasses::gBuffer
-        );
-
-    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-
-    return p;
+        .build(layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS });
 }
 
-auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
-    const Instance& instance,
-    const DeferredRenderConfig& config) -> Pipeline
+auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> PipelineTemplate
 {
-    auto layout = makePipelineLayout(
-        instance.getDevice(),
-        std::vector<vk::DescriptorSetLayout>{
-            config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-            config.getAssets().getDescriptorSetProvider().getDescriptorSetLayout(),
-            config.getDeferredPassDescriptorProvider().getDescriptorSetLayout(),
-        },
-        std::vector<vk::PushConstantRange>{}
-    );
-    layout.addStaticDescriptorSet(0, config.getGlobalDataDescriptorProvider());
-    layout.addStaticDescriptorSet(1, config.getAssets().getDescriptorSetProvider());
-    layout.addStaticDescriptorSet(2, config.getDeferredPassDescriptorProvider());
+    auto layout = buildPipelineLayout()
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .registerLayout<DeferredRenderConfig>();
 
-    vkb::ShaderProgram program(instance.getDevice(),
-                               SHADER_DIR / "particles/deferred.vert.spv",
-                               SHADER_DIR / "particles/alpha_blend.frag.spv");
-
-    auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+    return buildGraphicsPipeline()
+        .setProgram(vkb::readFile(SHADER_DIR / "particles/deferred.vert.spv"),
+                    vkb::readFile(SHADER_DIR / "particles/alpha_blend.frag.spv"))
         // (per-vertex) Vertex positions
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
@@ -415,39 +385,22 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline(
         .addScissorRect({ { 0, 0 }, { 1, 1 } })
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .build(
-            *instance.getDevice(), *layout,
-            *config.getDeferredRenderPass(), RenderPassDeferred::SubPasses::transparency
-        );
-
-    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-
-    return p;
+        .build(layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS });
 }
 
-auto trc::ParticleCollection::makeParticleShadowPipeline(
-    const Instance& instance,
-    const DeferredRenderConfig& config) -> Pipeline
+auto trc::ParticleCollection::makeParticleShadowPipeline() -> PipelineTemplate
 {
-    auto layout = makePipelineLayout(
-        instance.getDevice(),
-        std::vector<vk::DescriptorSetLayout>{
-            config.getShadowDescriptorProvider().getDescriptorSetLayout(),
-            config.getGlobalDataDescriptorProvider().getDescriptorSetLayout(),
-        },
-        std::vector<vk::PushConstantRange>{
-            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32)),
-        }
-    );
-    layout.addStaticDescriptorSet(0, config.getShadowDescriptorProvider());
-    layout.addStaticDescriptorSet(1, config.getGlobalDataDescriptorProvider());
+    auto layout = buildPipelineLayout()
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addPushConstantRange(
+            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32))
+        )
+        .registerLayout<DeferredRenderConfig>();
 
-    vkb::ShaderProgram program(instance.getDevice(),
-                               SHADER_DIR / "particles/shadow.vert.spv",
-                               SHADER_DIR / "particles/shadow.frag.spv");
-
-    auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+    return buildGraphicsPipeline()
+        .setProgram(vkb::readFile(SHADER_DIR / "particles/shadow.vert.spv"),
+                    vkb::readFile(SHADER_DIR / "particles/shadow.frag.spv"))
         // (per-vertex) Vertex positions
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
@@ -474,9 +427,5 @@ auto trc::ParticleCollection::makeParticleShadowPipeline(
         .addScissorRect({ { 0, 0 }, { 1, 1 } })
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .build(*instance.getDevice(), *layout, config.getCompatibleShadowRenderPass(), 0);
-
-    Pipeline p{ std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eGraphics };
-
-    return p;
+        .build(layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS });
 }

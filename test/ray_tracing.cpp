@@ -179,6 +179,13 @@ int main()
     // --- Ray Pipeline --- //
 
     constexpr ui32 maxRecursionDepth{ 16 };
+    auto rayPipelineLayout = trc::makePipelineLayout(torch.instance->getDevice(),
+        { *tlasDescLayout, *outputImageDescLayout },
+        {
+            // View and projection matrices
+            { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
+        }
+    );
     auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(*torch.instance)
         .addRaygenGroup(TRC_SHADER_DIR"/test/raygen.rgen.spv")
         .beginTableEntry()
@@ -190,16 +197,7 @@ int main()
             TRC_SHADER_DIR"/test/anyhit.rahit.spv"
         )
         .addCallableGroup(TRC_SHADER_DIR"/test/callable.rcall.spv")
-        .build(
-            maxRecursionDepth,
-            trc::makePipelineLayout(torch.instance->getDevice(),
-                { *tlasDescLayout, *outputImageDescLayout },
-                {
-                    // View and projection matrices
-                    { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
-                }
-            )
-        );
+        .build(maxRecursionDepth, rayPipelineLayout);
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
     trc::FrameSpecificDescriptorProvider imageDescProvider{ *outputImageDescLayout, imageDescSets };

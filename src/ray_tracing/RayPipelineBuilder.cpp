@@ -130,7 +130,7 @@ auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callab
 
 auto trc::rt::RayTracingPipelineBuilder::build(
     ui32 maxRecursionDepth,
-    PipelineLayout layout,
+    PipelineLayout& layout,
     const vkb::DeviceMemoryAllocator alloc
     ) -> std::pair<Pipeline, ShaderBindingTable>
 {
@@ -157,7 +157,7 @@ auto trc::rt::RayTracingPipelineBuilder::build(
     ShaderBindingTable sbt{ device, dl, *pipeline, sbtEntries, alloc };
 
     return {
-        Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eRayTracingKHR),
+        Pipeline(layout, std::move(pipeline), vk::PipelineBindPoint::eRayTracingKHR),
         std::move(sbt)
     };
 }
