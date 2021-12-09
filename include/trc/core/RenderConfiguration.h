@@ -4,17 +4,63 @@
 
 #include "RenderStage.h"
 #include "RenderPass.h"
+#include "Pipeline.h"
 #include "RenderLayout.h"
-#include "PipelineRegistry.h"
 
 namespace trc
 {
+    class DescriptorProviderInterface;
     struct DrawConfig;
+
+    /**
+     * @brief Strong type to reference a render pass
+     */
+    struct RenderPassName
+    {
+        std::string identifier;
+    };
+
+    /**
+     * @brief Strong type to reference a descriptor
+     */
+    struct DescriptorName
+    {
+        std::string identifier;
+    };
+
+    class RenderPassRegistry
+    {
+    public:
+        struct RenderPassDefinition
+        {
+            vk::RenderPass pass;
+            ui32 subpass;
+        };
+
+        using RenderPassGetter = std::function<RenderPassDefinition()>;
+
+        auto getRenderPass(const RenderPassName& name) const
+            -> RenderPassDefinition;
+
+    private:
+        std::unordered_map<std::string, RenderPassGetter> renderPasses;
+    };
+
+    class DescriptorRegistry
+    {
+    public:
+        auto getDescriptor(const DescriptorName& name) const
+            -> const DescriptorProviderInterface&;
+
+    private:
+        std::unordered_map<std::string, DescriptorProviderInterface*> descriptorProviders;
+    };
 
     /**
      * @brief A configuration of an entire render cycle
      */
-    class RenderConfig
+    class RenderConfig : public RenderPassRegistry
+                       , public DescriptorRegistry
     {
     public:
         explicit RenderConfig(RenderLayout layout);
@@ -32,56 +78,8 @@ namespace trc
     };
 
     /**
-     * @brief An implementation helper for custom RenderConfigs
-     */
-    template<typename Derived>
-    class RenderConfigCrtpBase : public RenderConfig
-    {
-    public:
-        /**
-         * @brief
-         */
-        inline RenderConfigCrtpBase(const Instance& instance, RenderLayout layout);
-
-        inline auto getPipeline(Pipeline::ID id) -> Pipeline& override;
-        inline auto getPipelineStorage() -> PipelineStorage<Derived>&;
-
-    private:
-        u_ptr<PipelineStorage<Derived>> pipelineStorage;
-    };
-
-    /**
      * @brief A type that implements RenderConfig
      */
     template<typename T>
     concept RenderConfigType = std::derived_from<T, RenderConfig>;
-
-
-
-    // ------------------------- //
-    //      Implementations      //
-    // ------------------------- //
-
-    template<typename Derived>
-    inline RenderConfigCrtpBase<Derived>::RenderConfigCrtpBase(
-        const Instance& instance,
-        RenderLayout layout)
-        :
-        RenderConfig(std::move(layout)),
-        pipelineStorage(
-            PipelineRegistry<Derived>::createStorage(instance, static_cast<Derived&>(*this))
-        )
-    {}
-
-    template<typename Derived>
-    inline auto RenderConfigCrtpBase<Derived>::getPipeline(Pipeline::ID id) -> Pipeline&
-    {
-        return pipelineStorage->get(id);
-    }
-
-    template<typename Derived>
-    inline auto RenderConfigCrtpBase<Derived>::getPipelineStorage() -> PipelineStorage<Derived>&
-    {
-        return *pipelineStorage;
-    }
 } // namespace trc
