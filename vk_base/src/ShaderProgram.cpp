@@ -150,6 +150,12 @@ auto vkb::readFile(const std::string& path) -> std::string
 auto vkb::createShaderModule(const vkb::Device& device, const std::string& code)
     -> vk::UniqueShaderModule
 {
+    return createShaderModule(*device, code);
+}
+
+auto vkb::createShaderModule(vk::Device device, const std::string& code)
+    -> vk::UniqueShaderModule
+{
     assert(!code.empty());
 
     vk::ShaderModuleCreateInfo info(
@@ -158,5 +164,5 @@ auto vkb::createShaderModule(const vkb::Device& device, const std::string& code)
         reinterpret_cast<const uint32_t*>(code.data())
     );
 
-    return device->createShaderModuleUnique(info);
+    return device.createShaderModuleUnique(info);
 }

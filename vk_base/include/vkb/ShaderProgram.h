@@ -67,4 +67,10 @@ namespace vkb
      */
     auto createShaderModule(const vkb::Device& device, const std::string& code)
         -> vk::UniqueShaderModule;
+
+    /**
+     * @brief Create a shader module from shader code
+     */
+    auto createShaderModule(vk::Device device, const std::string& code)
+        -> vk::UniqueShaderModule;
 } // namespace vkb
