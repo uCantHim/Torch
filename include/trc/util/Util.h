@@ -6,6 +6,9 @@
 
 namespace trc::util
 {
+    template<typename... Ts> struct VariantVisitor : Ts... { using Ts::operator()...; };
+    template<typename... Ts> VariantVisitor(Ts...) -> VariantVisitor<Ts...>;
+
     /**
      * Try to reserve a queue. Order:
      *  1. Reserve primary queue

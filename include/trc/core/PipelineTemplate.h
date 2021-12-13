@@ -9,6 +9,10 @@
 #include "PipelineLayout.h"
 #include "RenderConfiguration.h"
 
+namespace vkb {
+    class ShaderProgram;
+}
+
 namespace trc
 {
     class SpecializationConstantStorage
@@ -23,6 +27,8 @@ namespace trc
         template<typename T>
         void set(ui32 constantId, T&& value);
 
+        bool empty() const;
+
         /**
          * Adding constants with SpecializationConstantStorage::set<> after
          * a call to this function is dangerous because it might invalidate
@@ -36,20 +42,17 @@ namespace trc
         std::vector<ui8> data{};
     };
 
-    struct ShaderDefinitionData
+    struct ProgramDefinitionData
     {
-        std::string vertexShaderCode;
-        std::string fragmentShaderCode;
+        struct ShaderStage
+        {
+            std::string code;
+            SpecializationConstantStorage specConstants{};
+        };
 
-        std::optional<std::string> geometryShaderCode;
-        std::optional<std::string> tesselationControlShaderCode;
-        std::optional<std::string> tesselationEvaluationShaderCode;
+        auto makeProgram(const vkb::Device& device) const -> vkb::ShaderProgram;
 
-        SpecializationConstantStorage vertexSpecConstants{};
-        SpecializationConstantStorage fragmentSpecConstants{};
-        SpecializationConstantStorage geometrySpecConstants{};
-        SpecializationConstantStorage tesselationControlSpecConstants{};
-        SpecializationConstantStorage tesselationEvaluationSpecConstants{};
+        std::unordered_map<vk::ShaderStageFlagBits, ShaderStage> stages;
     };
 
     struct PipelineDefinitionData
@@ -86,8 +89,8 @@ namespace trc
     {
     public:
         PipelineTemplate() = default;
-        PipelineTemplate(ShaderDefinitionData program, PipelineDefinitionData pipeline);
-        PipelineTemplate(ShaderDefinitionData program,
+        PipelineTemplate(ProgramDefinitionData program, PipelineDefinitionData pipeline);
+        PipelineTemplate(ProgramDefinitionData program,
                          PipelineDefinitionData pipeline,
                          PipelineLayout::ID layout,
                          const RenderPassName& renderPass);
@@ -107,7 +110,7 @@ namespace trc
 
         auto getLayout() const -> PipelineLayout::ID;
         auto getRenderPass() const -> const RenderPassName&;
-        auto getProgramData() const -> const ShaderDefinitionData&;
+        auto getProgramData() const -> const ProgramDefinitionData&;
         auto getPipelineData() const -> const PipelineDefinitionData&;
 
     private:
@@ -116,7 +119,7 @@ namespace trc
         PipelineLayout::ID layout{ PipelineLayout::ID::NONE };
         RenderPassName renderPassName{};
 
-        ShaderDefinitionData program;
+        ProgramDefinitionData program;
         PipelineDefinitionData data;
     };
 
@@ -150,7 +153,7 @@ namespace trc
      * @brief Create a graphics pipeline from a template
      */
     auto makeGraphicsPipeline(const PipelineTemplate& _template,
-                              vk::Device device,
+                              const vkb::Device& device,
                               PipelineLayout& layout,
                               vk::RenderPass renderPass,
                               ui32 subPass

@@ -7,38 +7,45 @@ trc::GraphicsPipelineBuilder::GraphicsPipelineBuilder(const PipelineTemplate& _t
     program(_template.getProgramData()),
     data(_template.getPipelineData())
 {
-
 }
 
 auto trc::GraphicsPipelineBuilder::setVertexShader(ShaderCode code) -> Self&
 {
-    program.vertexShaderCode = std::move(code);
-    return *this;
+    return setShader(vk::ShaderStageFlagBits::eVertex, std::move(code));
 }
 
 auto trc::GraphicsPipelineBuilder::setFragmentShader(ShaderCode code) -> Self&
 {
-    program.fragmentShaderCode = std::move(code);
-    return *this;
+    return setShader(vk::ShaderStageFlagBits::eFragment, std::move(code));
 }
 
 auto trc::GraphicsPipelineBuilder::setGeometryShader(ShaderCode code) -> Self&
 {
-    program.geometryShaderCode = std::move(code);
-    return *this;
+    return setShader(vk::ShaderStageFlagBits::eGeometry, std::move(code));
 }
 
 auto trc::GraphicsPipelineBuilder::setTesselationShader(ShaderCode control, ShaderCode eval)
     -> Self&
 {
-    program.tesselationControlShaderCode = std::move(control);
-    program.tesselationEvaluationShaderCode = std::move(eval);
+    setShader(vk::ShaderStageFlagBits::eTessellationControl, std::move(control));
+    setShader(vk::ShaderStageFlagBits::eTessellationEvaluation, std::move(eval));
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setShader(vk::ShaderStageFlagBits stage, ShaderCode code)
+    -> Self&
+{
+    auto [it, _] = program.stages.try_emplace(stage);
+    it->second.code = std::move(code);
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setProgram(ShaderCode vertex, ShaderCode fragment) -> Self&
 {
-    program = { std::move(vertex), std::move(fragment), std::nullopt, std::nullopt, std::nullopt };
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
     return *this;
 }
 
@@ -47,10 +54,10 @@ auto trc::GraphicsPipelineBuilder::setProgram(
     ShaderCode geometry,
     ShaderCode fragment) -> Self&
 {
-    program = {
-        std::move(vertex), std::move(fragment),
-        std::move(geometry),
-        std::nullopt, std::nullopt
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eGeometry, { std::move(geometry) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
     };
     return *this;
 }
@@ -61,26 +68,46 @@ auto trc::GraphicsPipelineBuilder::setProgram(
     ShaderCode tese,
     ShaderCode fragment) -> Self&
 {
-    program = {
-        std::move(vertex), std::move(fragment),
-        std::nullopt,
-        std::move(tesc), std::move(tese)
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eTessellationControl, { std::move(tesc) } },
+        { vk::ShaderStageFlagBits::eTessellationEvaluation, { std::move(tese) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
     };
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setProgram(
     ShaderCode vertex,
-    ShaderCode geometry,
     ShaderCode tesc,
     ShaderCode tese,
+    ShaderCode geometry,
     ShaderCode fragment) -> Self&
 {
-    program = {
-        std::move(vertex), std::move(fragment),
-        std::move(geometry),
-        std::move(tesc), std::move(tese)
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eTessellationControl, { std::move(tesc) } },
+        { vk::ShaderStageFlagBits::eTessellationEvaluation, { std::move(tese) } },
+        { vk::ShaderStageFlagBits::eGeometry, { std::move(geometry) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
     };
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setMeshShadingProgram(
+    std::optional<ShaderCode> task,
+    ShaderCode mesh,
+    ShaderCode fragment) -> Self&
+{
+    program.stages = {
+        { vk::ShaderStageFlagBits::eMeshNV, { std::move(mesh) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
+    if (task.has_value())
+    {
+        program.stages[vk::ShaderStageFlagBits::eTaskNV].code = task.value();
+    }
+
     return *this;
 }
 
@@ -282,7 +309,7 @@ auto trc::GraphicsPipelineBuilder::build(
 {
     return makeGraphicsPipeline(
         { std::move(program), std::move(data) },
-        *device, layout, renderPass, subPass
+        device, layout, renderPass, subPass
     );
 }
 

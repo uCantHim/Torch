@@ -2,11 +2,19 @@
 
 #include "core/Instance.h"
 #include "core/PipelineBuilder.h"
+#include "util/Util.h"
 
 
+
+bool trc::SpecializationConstantStorage::empty() const
+{
+    return data.empty();
+}
 
 auto trc::SpecializationConstantStorage::makeSpecializationInfo() const -> vk::SpecializationInfo
 {
+    assert((entries.empty() && data.empty()) || (!entries.empty() && !data.empty()));
+
     return {
         static_cast<ui32>(entries.size()), entries.data(),
         static_cast<ui32>(data.size()), data.data()
@@ -15,7 +23,27 @@ auto trc::SpecializationConstantStorage::makeSpecializationInfo() const -> vk::S
 
 
 
-trc::PipelineTemplate::PipelineTemplate(ShaderDefinitionData program, PipelineDefinitionData pipeline)
+auto trc::ProgramDefinitionData::makeProgram(const vkb::Device& device) const
+    -> vkb::ShaderProgram
+{
+    vkb::ShaderProgram program(device);
+
+    for (const auto& [type, stage] : stages)
+    {
+        if (stage.specConstants.empty()) {
+            program.addStage({ type, stage.code });
+        }
+        else {
+            program.addStage({ type, stage.code, stage.specConstants.makeSpecializationInfo() });
+        }
+    }
+
+    return program;
+}
+
+
+
+trc::PipelineTemplate::PipelineTemplate(ProgramDefinitionData program, PipelineDefinitionData pipeline)
     :
     program(std::move(program)),
     data(std::move(pipeline))
@@ -24,7 +52,7 @@ trc::PipelineTemplate::PipelineTemplate(ShaderDefinitionData program, PipelineDe
 }
 
 trc::PipelineTemplate::PipelineTemplate(
-    ShaderDefinitionData program,
+    ProgramDefinitionData program,
     PipelineDefinitionData pipeline,
     PipelineLayout::ID layout,
     const RenderPassName& renderPass)
@@ -62,7 +90,7 @@ auto trc::PipelineTemplate::getRenderPass() const -> const RenderPassName&
     return renderPassName;
 }
 
-auto trc::PipelineTemplate::getProgramData() const -> const ShaderDefinitionData&
+auto trc::PipelineTemplate::getProgramData() const -> const ProgramDefinitionData&
 {
     return program;
 }
@@ -128,38 +156,23 @@ auto trc::ComputePipelineTemplate::getEntryPoint() const -> const std::string&
 
 auto trc::makeGraphicsPipeline(
     const PipelineTemplate& _template,
-    vk::Device device,
+    const vkb::Device& device,
     PipelineLayout& layout,
     vk::RenderPass renderPass,
     ui32 subPass) -> Pipeline
 {
     // Create copy because it will be modified
     PipelineDefinitionData def = _template.getPipelineData();
-    const ShaderDefinitionData& program = _template.getProgramData();
+    const ProgramDefinitionData& shader = _template.getProgramData();
 
     // Create a program from the shader code
-    const bool hasTess = program.tesselationControlShaderCode.has_value()
-                         && program.tesselationEvaluationShaderCode.has_value();
-    const bool hasGeom = program.geometryShaderCode.has_value();
+    vkb::ShaderProgram program = shader.makeProgram(device);
 
-    vkb::ShaderProgram prog(
-        vkb::createShaderModule(device, program.vertexShaderCode),
-        vkb::createShaderModule(device, program.fragmentShaderCode),
-        hasGeom ? vkb::createShaderModule(device, program.geometryShaderCode.value())
-                : vk::UniqueShaderModule{},
-        hasTess ? vkb::createShaderModule(device, program.tesselationControlShaderCode.value())
-                : vk::UniqueShaderModule{},
-        hasTess ? vkb::createShaderModule(device, program.tesselationEvaluationShaderCode.value())
-                : vk::UniqueShaderModule{}
-    );
-
-    //prog.setVertexSpecializationConstants(program.vertexSpecConstants.makeSpecializationInfo());
-
-    auto pipeline = device.createGraphicsPipelineUnique(
+    auto pipeline = device->createGraphicsPipelineUnique(
         {},
         vk::GraphicsPipelineCreateInfo(
             {},
-            prog.getStageCreateInfos(),
+            program.getStageCreateInfo(),
             &def.vertexInput,
             &def.inputAssembly,
             &def.tessellation,

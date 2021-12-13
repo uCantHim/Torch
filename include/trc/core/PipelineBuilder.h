@@ -26,19 +26,30 @@ namespace trc
         ////////////////////////
 
         auto setVertexShader(ShaderCode code) -> Self&;
-        auto setFragmentShader(ShaderCode code) -> Self&;
         auto setGeometryShader(ShaderCode code) -> Self&;
         auto setTesselationShader(ShaderCode control, ShaderCode eval) -> Self&;
+
+        auto setTaskShader(ShaderCode code) -> Self&;
+        auto setMeshShader(ShaderCode code) -> Self&;
+
+        auto setFragmentShader(ShaderCode code) -> Self&;
+
+        auto setShader(vk::ShaderStageFlagBits stage, ShaderCode code) -> Self&;
 
         auto setProgram(ShaderCode vertex, ShaderCode fragment) -> Self&;
         auto setProgram(ShaderCode vertex, ShaderCode geom, ShaderCode fragment) -> Self&;
         auto setProgram(ShaderCode vertex, ShaderCode tesc, ShaderCode tese, ShaderCode fragment)
             -> Self&;
         auto setProgram(ShaderCode vertex,
-                        ShaderCode geometry,
                         ShaderCode tesc,
                         ShaderCode tese,
+                        ShaderCode geometry,
                         ShaderCode fragment)
+            -> Self&;
+
+        auto setMeshShadingProgram(std::optional<ShaderCode> task,
+                                   ShaderCode mesh,
+                                   ShaderCode fragment)
             -> Self&;
 
         template<typename T>
@@ -51,6 +62,16 @@ namespace trc
         inline auto setTessControlSpecializationConstant(ui32 constantId, T&& data) -> Self&;
         template<typename T>
         inline auto setTessEvalSpecializationConstant(ui32 constantId, T&& data) -> Self&;
+        template<typename T>
+        inline auto setTaskSpecializationConstant(ui32 constantId, T&& data) -> Self&;
+        template<typename T>
+        inline auto setMeshSpecializationConstant(ui32 constantId, T&& data) -> Self&;
+
+        template<typename T>
+        inline auto setSpecializationConstant(vk::ShaderStageFlagBits stage,
+                                              ui32 constantId,
+                                              T&& data)
+            -> Self&;
 
 
         /////////////////////////
@@ -125,7 +146,7 @@ namespace trc
             -> Pipeline::ID;
 
     private:
-        ShaderDefinitionData program;
+        ProgramDefinitionData program;
         PipelineDefinitionData data;
     };
 
@@ -145,40 +166,79 @@ namespace trc
     inline auto GraphicsPipelineBuilder::setVertexSpecializationConstant(
         ui32 constantId, T&& data) -> Self&
     {
-        program.vertexSpecConstants.set(constantId, std::forward<T>(data));
-        return *this;
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eVertex, constantId, std::forward<T>(data)
+        );
     }
 
     template<typename T>
     inline auto GraphicsPipelineBuilder::setFragmentSpecializationConstant(
         ui32 constantId, T&& data) -> Self&
     {
-        program.fragmentSpecConstants.set(constantId, std::forward<T>(data));
-        return *this;
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eFragment, constantId, std::forward<T>(data)
+        );
     }
 
     template<typename T>
     inline auto GraphicsPipelineBuilder::setGeometrySpecializationConstant(
         ui32 constantId, T&& data) -> Self&
     {
-        program.geometrySpecConstants.set(constantId, std::forward<T>(data));
-        return *this;
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eGeometry, constantId, std::forward<T>(data)
+        );
     }
 
     template<typename T>
     inline auto GraphicsPipelineBuilder::setTessControlSpecializationConstant(
         ui32 constantId, T&& data) -> Self&
     {
-        program.tesselationControlSpecConstants.set(constantId, std::forward<T>(data));
-        return *this;
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eTessellationControl, constantId, std::forward<T>(data)
+        );
     }
 
     template<typename T>
     inline auto GraphicsPipelineBuilder::setTessEvalSpecializationConstant(
         ui32 constantId, T&& data) -> Self&
     {
-        program.tesselationEvaluationSpecConstants.set(constantId, std::forward<T>(data));
-        return *this;
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eTessellationEvaluation, constantId, std::forward<T>(data)
+        );
     }
 
+    template<typename T>
+    inline auto GraphicsPipelineBuilder::setTaskSpecializationConstant(
+        ui32 constantId, T&& data) -> Self&
+    {
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eTaskNV, constantId, std::forward<T>(data)
+        );
+    }
+
+    template<typename T>
+    inline auto GraphicsPipelineBuilder::setMeshSpecializationConstant(
+        ui32 constantId, T&& data) -> Self&
+    {
+        return setSpecializationConstant(
+            vk::ShaderStageFlagBits::eMeshNV, constantId, std::forward<T>(data)
+        );
+    }
+
+    template<typename T>
+    inline auto GraphicsPipelineBuilder::setSpecializationConstant(
+        vk::ShaderStageFlagBits stage, ui32 constantId, T&& data) -> Self&
+    {
+        auto it = program.stages.find(stage);
+        if (it != program.stages.end()) {
+            it->second.specConstants.set(constantId, std::forward<T>(data));
+        }
+        else {
+            throw Exception(
+                "[In GraphicsPipelineBuilder::setSpecializationConstant]: Shader stage "
+                + vk::to_string(stage) + " is not present in the pipeline builder"
+            );
+        }
+        return *this;
+    }
 } // namespace trc

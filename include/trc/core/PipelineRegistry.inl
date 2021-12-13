@@ -357,30 +357,17 @@ auto PipelineRegistry<T>::PipelineFactory::create(
 
     // Create copy because it will be modified
     PipelineDefinitionData def = t.getPipelineData();
-    const ShaderDefinitionData& program = t.getProgramData();
+    const ProgramDefinitionData& shader = t.getProgramData();
 
     // Create a program from the shader code
-    const bool hasTess = program.tesselationControlShaderCode.has_value()
-                         && program.tesselationEvaluationShaderCode.has_value();
-    const bool hasGeom = program.geometryShaderCode.has_value();
-
-    vkb::ShaderProgram prog(
-        vkb::createShaderModule(device, program.vertexShaderCode),
-        vkb::createShaderModule(device, program.fragmentShaderCode),
-        hasGeom ? vkb::createShaderModule(device, program.geometryShaderCode.value())
-                : vk::UniqueShaderModule{},
-        hasTess ? vkb::createShaderModule(device, program.tesselationControlShaderCode.value())
-                : vk::UniqueShaderModule{},
-        hasTess ? vkb::createShaderModule(device, program.tesselationEvaluationShaderCode.value())
-                : vk::UniqueShaderModule{}
-    );
+    auto program = shader.makeProgram(device);
 
     auto [renderPass, subPass] = renderConfig.getRenderPass(renderPassName);
     auto pipeline = device->createGraphicsPipelineUnique(
         {},
         vk::GraphicsPipelineCreateInfo(
             {},
-            prog.getStageCreateInfos(),
+            program.getStageCreateInfo(),
             &def.vertexInput,
             &def.inputAssembly,
             &def.tessellation,
