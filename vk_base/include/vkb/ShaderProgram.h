@@ -1,66 +1,53 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
+#include <optional>
+#include <filesystem>
 
 #include "basics/Device.h"
 
 namespace vkb
 {
-    /**
-     * @brief Shader program wrapper for easy pipeline creation
-     *
-     * Can be destroyed after a pipeline is created.
-     */
+    namespace fs = std::filesystem;
+
     class ShaderProgram
     {
     public:
-        using ShaderStageCreateInfos = std::vector<vk::PipelineShaderStageCreateInfo>;
+        struct ShaderStageInfo
+        {
+            ShaderStageInfo(vk::ShaderStageFlagBits type, const std::string& code);
+            ShaderStageInfo(vk::ShaderStageFlagBits type,
+                            const std::string& code,
+                            vk::SpecializationInfo spec);
 
-        ShaderProgram(
-            const vkb::Device& device,
-            const std::string& vertPath,
-            const std::string& fragPath,
-            const std::string& geomPath = "",
-            const std::string& tescPath = "",
-            const std::string& tesePath = ""
-        );
+            vk::ShaderStageFlagBits type;
+            const std::string& shaderCode;
+            std::optional<vk::SpecializationInfo> specializationInfo{ std::nullopt };
+        };
 
-        ShaderProgram(
-            vk::UniqueShaderModule vertModule,
-            vk::UniqueShaderModule fragModule,
-            vk::UniqueShaderModule geomModule = {},
-            vk::UniqueShaderModule tescModule = {},
-            vk::UniqueShaderModule teseModule = {}
-        );
+        explicit
+        ShaderProgram(const vkb::Device& device);
+        ShaderProgram(const vkb::Device& device,
+                      const vk::ArrayProxy<const ShaderStageInfo>& stages);
 
-        ShaderProgram(const ShaderProgram&) = delete;
-        ShaderProgram(ShaderProgram&&) noexcept = default;
-        ~ShaderProgram() = default;
+        void addStage(const ShaderStageInfo& stage);
+        void setSpecialization(vk::ShaderStageFlagBits stage, vk::SpecializationInfo info);
 
-        ShaderProgram& operator=(const ShaderProgram&) = delete;
-        ShaderProgram& operator=(ShaderProgram&&) noexcept = default;
-
-        auto getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&;
-
-        void setVertexSpecializationConstants(vk::SpecializationInfo* info);
-        void setFragmentSpecializationConstants(vk::SpecializationInfo* info);
-        void setGeometrySpecializationConstants(vk::SpecializationInfo* info);
-        void setTessControlSpecializationConstants(vk::SpecializationInfo* info);
-        void setTessEvalSpecializationConstants(vk::SpecializationInfo* info);
+        auto getStageCreateInfo() const & -> const std::vector<vk::PipelineShaderStageCreateInfo>&;
 
     private:
-        ShaderStageCreateInfos stages;
-        std::vector<vk::UniqueShaderModule> modules;
+        const Device& device;
 
-        bool hasGeom{ false };
-        bool hasTess{ false };
+        std::vector<vk::UniqueShaderModule> modules;
+        std::vector<std::unique_ptr<vk::SpecializationInfo>> specInfos;
+        std::vector<vk::PipelineShaderStageCreateInfo> createInfos;
     };
 
     /**
      * @brief Read the contents of a file to a string
      */
-    auto readFile(const std::string& path) -> std::string;
+    auto readFile(const fs::path& path) -> std::string;
 
     /**
      * @brief Create a shader module from shader code
