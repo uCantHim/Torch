@@ -5,12 +5,12 @@ namespace shader_edit
 {
 
 Document::Document(std::istream& is)
-    : Document(parse(is))
+    : Document(parseShader(is))
 {
 }
 
 Document::Document(std::vector<std::string> lines)
-    : Document(parse(std::move(lines)))
+    : Document(parseShader(std::move(lines)))
 {
 }
 

@@ -3,10 +3,18 @@
 #include <gtest/gtest.h>
 
 #include <trc/shader_edit/Parser.h>
-#include <trc/shader_edit/LayoutQualifier.h>
 #include <trc/shader_edit/Document.h>
 
 using namespace shader_edit;
+
+struct CustomLocation
+{
+    uint location;
+
+    explicit operator std::string() const {
+        return "layout (location = " + std::to_string(location) + ")";
+    }
+};
 
 auto stringFromFile(const std::string& path) -> std::string
 {
@@ -22,10 +30,23 @@ TEST(ShaderEdit, ReplaceVariable)
     std::ifstream file(DATADIR"/test_single_variable.vert");
     Document document(file);
 
-    document.set("vertex_location", layout::Location{ 0 });
+    document.set("vertex_location", "layout (location = 0)");
 
     auto results = document.compile();
+    ASSERT_EQ(results.size(), 1);
 
+    auto targetResult = stringFromFile(DATADIR"/test_single_variable_result.vert");
+    ASSERT_STREQ(results[0].c_str(), targetResult.c_str());
+}
+
+TEST(ShaderEdit, CustomRenderable)
+{
+    std::ifstream file(DATADIR"/test_single_variable.vert");
+    Document document(file);
+
+    document.set("vertex_location", CustomLocation{ 0 });
+
+    auto results = document.compile();
     ASSERT_EQ(results.size(), 1);
 
     auto targetResult = stringFromFile(DATADIR"/test_single_variable_result.vert");

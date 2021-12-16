@@ -9,13 +9,13 @@ namespace shader_edit
     /**
      * @brief
      */
-    class ShaderCodeSource
+    class VariableValueSource
     {
     public:
-        ShaderCodeSource() = default;
-        virtual ~ShaderCodeSource() = default;
+        VariableValueSource() = default;
+        virtual ~VariableValueSource() = default;
 
-        virtual auto copy() const -> std::unique_ptr<ShaderCodeSource> = 0;
+        virtual auto copy() const -> std::unique_ptr<VariableValueSource> = 0;
 
         virtual auto getCode() const -> std::string = 0;
     };
@@ -23,7 +23,9 @@ namespace shader_edit
     /**
      * @brief Render anything that is directy convertible to string
      */
-    template<std::convertible_to<std::string> T>
+    template<typename T>
+        requires std::convertible_to<T, std::string>
+              || std::constructible_from<std::string, T>
     inline auto render(T&& str) -> std::string
     {
         return std::string(std::forward<T>(str));
@@ -46,20 +48,20 @@ namespace shader_edit
      */
     template<typename T>
     concept Renderable = requires (T a) {
-        { render(a) } -> std::convertible_to<std::string>;
+        { render(std::forward<T>(a)) } -> std::convertible_to<std::string>;
     };
 
     template<Renderable T>
         requires std::copy_constructible<T>
-    class ValueRenderer : public ShaderCodeSource
+    class ValueConverter : public VariableValueSource
     {
     public:
-        explicit ValueRenderer(T value)
+        explicit ValueConverter(T value)
             : value(std::move(value))
         {}
 
-        auto copy() const -> std::unique_ptr<ShaderCodeSource> override {
-            return std::make_unique<ValueRenderer<T>>(value);
+        auto copy() const -> std::unique_ptr<VariableValueSource> override {
+            return std::make_unique<ValueConverter<T>>(value);
         }
 
         auto getCode() const -> std::string override {

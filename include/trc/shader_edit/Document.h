@@ -12,6 +12,9 @@ namespace shader_edit
         CompileError(std::string message) : trc::Exception(std::move(message)) {}
     };
 
+    /**
+     * @brief A parsed document that contains variables
+     */
     class Document
     {
     public:
@@ -41,6 +44,9 @@ namespace shader_edit
          * @brief Compile variable settings into one or more documents
          *
          * @return std::vector<std::string> Array of documents as strings
+         * @throw CompileError if one or more variables in the shader file
+         *                     have not been set via either `set` or
+         *                     `permutate`.
          */
         auto compile() const -> std::vector<std::string>;
 

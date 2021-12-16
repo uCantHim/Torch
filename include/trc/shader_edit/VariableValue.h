@@ -2,8 +2,7 @@
 
 #include <memory>
 
-#include "TextRenderer.h"
-#include "FileInclude.h"
+#include "VariableValueSource.h"
 
 namespace shader_edit
 {
@@ -14,7 +13,7 @@ namespace shader_edit
     {
     public:
         VariableValue()
-            : source(std::make_unique<ValueRenderer<std::string>>(""))
+            : source(std::make_unique<ValueConverter<std::string>>(""))
         {}
 
         /**
@@ -22,7 +21,7 @@ namespace shader_edit
          */
         template<Renderable T>
         VariableValue(T&& value)
-            : source(std::make_unique<ValueRenderer<T>>(std::forward<T>(value)))
+            : source(std::make_unique<ValueConverter<T>>(std::forward<T>(value)))
         {}
 
         VariableValue(const VariableValue&);
@@ -34,6 +33,6 @@ namespace shader_edit
         auto toString() const -> std::string;
 
     private:
-        std::unique_ptr<ShaderCodeSource> source;
+        std::unique_ptr<VariableValueSource> source;
     };
 } // namespace shader_edit

@@ -47,12 +47,12 @@ auto parseVariable(const std::string& line) -> std::optional<Variable>
 
 
 
-auto parse(std::istream& is) -> ParseResult
+auto parseShader(std::istream& is) -> ParseResult
 {
-    return parse(toLines(is));
+    return parseShader(toLines(is));
 }
 
-auto parse(std::vector<std::string> _lines) -> ParseResult
+auto parseShader(std::vector<std::string> _lines) -> ParseResult
 {
     ParseResult result{ .lines=std::move(_lines) };
 

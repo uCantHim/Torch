@@ -31,6 +31,6 @@ namespace shader_edit
 
     constexpr auto VAR_DECL{ "//$" };
 
-    auto parse(std::istream& is) -> ParseResult;
-    auto parse(std::vector<std::string> lines) -> ParseResult;
+    auto parseShader(std::istream& is) -> ParseResult;
+    auto parseShader(std::vector<std::string> lines) -> ParseResult;
 } // namespace shader_edit
