@@ -69,7 +69,7 @@ namespace trc::rt
          * vk::MemoryAllocateFlagBits::eDeviceAddress flag set!
          */
         auto build(ui32 maxRecursionDepth,
-                   vk::UniquePipelineLayout layout,
+                   PipelineLayout& layout,
                    const vkb::DeviceMemoryAllocator alloc
                        = vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress })
             -> std::pair<Pipeline, ShaderBindingTable>;

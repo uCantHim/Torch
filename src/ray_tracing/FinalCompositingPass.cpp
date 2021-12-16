@@ -62,16 +62,18 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     inputSetProvider({}, { window.getSwapchain() }),
     outputSetProvider({}, { window.getSwapchain() }),
 
+    computePipelineLayout(
+        window.getDevice(),
+        {
+            *inputLayout,
+            *outputLayout,
+            info.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout()
+        },
+        {}
+    ),
     computePipeline(makeComputePipeline(
         window.getDevice(),
-        makePipelineLayout(window.getDevice(),
-            {
-                *inputLayout,
-                *outputLayout,
-                info.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout()
-            },
-            {}
-        ),
+        computePipelineLayout,
         vkb::createShaderModule(
             window.getDevice(),
             vkb::readFile(TRC_SHADER_DIR"/compositing.comp.spv")
@@ -81,6 +83,10 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     assert(info.gBuffer != nullptr);
     assert(info.rayBuffer != nullptr);
     assert(info.assetRegistry != nullptr);
+
+    computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
+    computePipelineLayout.addStaticDescriptorSet(1, outputSetProvider);
+    computePipelineLayout.addStaticDescriptorSet(2, info.assetRegistry->getDescriptorSetProvider());
 
     inputSets = {
         window.getSwapchain(),
@@ -145,10 +151,6 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
 
     inputSetProvider = { *inputLayout, inputSets };
     outputSetProvider = { *outputLayout, outputSets };
-
-    computePipeline.addStaticDescriptorSet(0, inputSetProvider);
-    computePipeline.addStaticDescriptorSet(1, outputSetProvider);
-    computePipeline.addStaticDescriptorSet(2, info.assetRegistry->getDescriptorSetProvider());
 }
 
 void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
@@ -172,8 +174,6 @@ void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassC
     );
 
     computePipeline.bind(cmdBuf);
-    computePipeline.bindStaticDescriptorSets(cmdBuf);
-    computePipeline.bindDefaultPushConstantValues(cmdBuf);
     auto [x, y, z] = computeGroupSize;
     cmdBuf.dispatch(x, y, z);
 

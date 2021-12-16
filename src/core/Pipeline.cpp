@@ -3,25 +3,33 @@
 
 
 trc::Pipeline::Pipeline(
-    vk::UniquePipelineLayout layout,
+    PipelineLayout& layout,
     vk::UniquePipeline pipeline,
     vk::PipelineBindPoint bindPoint)
     :
-    layout(std::move(layout)),
+    layout(&layout),
     pipelineStorage(std::move(pipeline)),
     pipeline(*std::get<vk::UniquePipeline>(pipelineStorage)),
     bindPoint(bindPoint)
-{}
+{
+    if (!layout) {
+        throw Exception("[In Pipeline::Pipeline]: Specified layout is not a valid layout handle");
+    }
+}
 
 trc::Pipeline::Pipeline(
-    vk::UniquePipelineLayout layout,
-    UniquePipelineStorageType pipeline,
+    PipelineLayout& layout,
+    UniquePipelineHandleType pipeline,
     vk::PipelineBindPoint bindPoint)
     :
-    layout(std::move(layout)),
+    layout(&layout),
     pipelineStorage(std::move(pipeline)),
     bindPoint(bindPoint)
 {
+    if (!layout) {
+        throw Exception("[In Pipeline::Pipeline]: Specified layout is not a valid layout handle");
+    }
+
     using UniquePipelineDl = vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>;
 
     if (std::holds_alternative<vk::UniquePipeline>(pipelineStorage)) {
@@ -44,42 +52,30 @@ auto trc::Pipeline::get() const noexcept -> vk::Pipeline
 
 void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
 {
+    assert(*layout);
+
     cmdBuf.bindPipeline(bindPoint, pipeline);
+    layout->bindStaticDescriptorSets(cmdBuf, bindPoint);
+    layout->bindDefaultPushConstantValues(cmdBuf);
 }
 
-void trc::Pipeline::bindStaticDescriptorSets(vk::CommandBuffer cmdBuf) const
+auto trc::Pipeline::getLayout() noexcept -> PipelineLayout&
 {
-    for (const auto& [index, provider] : staticDescriptorSets)
-    {
-        provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
-    }
-}
-
-void trc::Pipeline::bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf) const
-{
-    for (const auto& [offset, stages, data] : defaultPushConstants)
-    {
-        cmdBuf.pushConstants(*layout, stages, offset, data.size(), data.data());
-    }
-}
-
-auto trc::Pipeline::getLayout() const noexcept -> vk::PipelineLayout
-{
+    assert(layout != nullptr);
     return *layout;
 }
 
-void trc::Pipeline::addStaticDescriptorSet(
-    ui32 descriptorIndex,
-    const DescriptorProviderInterface& provider) noexcept
+auto trc::Pipeline::getLayout() const noexcept -> const PipelineLayout&
 {
-    staticDescriptorSets.emplace_back(descriptorIndex, &provider);
+    assert(layout != nullptr);
+    return *layout;
 }
 
 
 
 auto trc::makeComputePipeline(
     const vkb::Device& device,
-    vk::UniquePipelineLayout layout,
+    PipelineLayout& layout,
     vk::UniqueShaderModule shader,
     vk::PipelineCreateFlags flags,
     const std::string& entryPoint) -> Pipeline
@@ -95,5 +91,5 @@ auto trc::makeComputePipeline(
         )
     ).value;
 
-    return Pipeline(std::move(layout), std::move(pipeline), vk::PipelineBindPoint::eCompute);
+    return Pipeline(layout, std::move(pipeline), vk::PipelineBindPoint::eCompute);
 }

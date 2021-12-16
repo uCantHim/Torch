@@ -11,11 +11,11 @@
  * Saves some standard boilerplate for defining a getter function for a
  * pipeline ID, which is a type of pipeline.
  */
-#define PIPELINE_GETTER_FUNC(Name, Factory, RenderConfigType)                           \
-    auto Name() -> Pipeline::ID                                                         \
-    {                                                                                   \
-        static auto id = PipelineRegistry<RenderConfigType>::registerPipeline(Factory); \
-        return id;                                                                      \
+#define PIPELINE_GETTER_FUNC(_Name, _Factory, _RenderConfigType)                             \
+    auto _Name() -> Pipeline::ID                                                             \
+    {                                                                                        \
+        static auto id = PipelineRegistry<_RenderConfigType>::registerPipeline(_Factory());  \
+        return id;                                                                           \
     }
 
 namespace trc

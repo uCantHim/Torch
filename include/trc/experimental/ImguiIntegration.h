@@ -83,6 +83,7 @@ namespace trc::experimental::imgui
         static inline std::unordered_map<const GLFWwindow*, CallbackStorage> callbackStorages;
 
         const vkb::Swapchain& swapchain;
+        PipelineLayout imguiPipelineLayout;
         Pipeline imguiPipeline;
         vkb::FrameSpecific<vk::UniqueFramebuffer> framebuffers;
 

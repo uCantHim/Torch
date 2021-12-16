@@ -177,28 +177,18 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
     ),
     swapchain(swapchain),
     // Create pipeline
-    imguiPipeline([&]() -> Pipeline {
-        vkb::ShaderProgram program(swapchain.device,
-            TRC_SHADER_DIR"/empty.vert.spv",
-            TRC_SHADER_DIR"/empty.frag.spv"
-        );
-        auto layout = trc::makePipelineLayout(swapchain.device, {}, {});
-        auto pipeline = trc::GraphicsPipelineBuilder::create()
-            .setProgram(program)
-            .addViewport({})
-            .addScissorRect({})
-            .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-            .setColorBlending({}, false, vk::LogicOp::eOr, {})
-            .addDynamicState(vk::DynamicState::eViewport)
-            .addDynamicState(vk::DynamicState::eScissor)
-            .build(*swapchain.device, *layout, *renderPass, 0);
-
-        return Pipeline(
-            std::move(layout),
-            std::move(pipeline),
-            vk::PipelineBindPoint::eGraphics
-        );
-    }()),
+    imguiPipelineLayout(trc::makePipelineLayout(swapchain.device, {}, {})),
+    imguiPipeline(trc::buildGraphicsPipeline()
+        .setProgram(vkb::readFile(TRC_SHADER_DIR"/empty.vert.spv"),
+                    vkb::readFile(TRC_SHADER_DIR"/empty.frag.spv"))
+        .addViewport({})
+        .addScissorRect({})
+        .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
+        .setColorBlending({}, false, vk::LogicOp::eOr, {})
+        .addDynamicState(vk::DynamicState::eViewport)
+        .addDynamicState(vk::DynamicState::eScissor)
+        .build(swapchain.device, imguiPipelineLayout, *renderPass, 0)
+    ),
     framebuffers(swapchain)
 {
     auto window = swapchain.getGlfwWindow();

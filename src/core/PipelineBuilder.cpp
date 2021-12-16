@@ -2,27 +2,124 @@
 
 
 
-auto trc::GraphicsPipelineBuilder::create() -> GraphicsPipelineBuilder
+trc::GraphicsPipelineBuilder::GraphicsPipelineBuilder(const PipelineTemplate& _template)
+    :
+    program(_template.getProgramData()),
+    data(_template.getPipelineData())
 {
-    return {};
 }
 
-auto trc::GraphicsPipelineBuilder::setProgram(const vkb::ShaderProgram& program) -> Self
+auto trc::GraphicsPipelineBuilder::setVertexShader(ShaderCode code) -> Self&
 {
-    this->program = &program;
+    return setShader(vk::ShaderStageFlagBits::eVertex, std::move(code));
+}
+
+auto trc::GraphicsPipelineBuilder::setFragmentShader(ShaderCode code) -> Self&
+{
+    return setShader(vk::ShaderStageFlagBits::eFragment, std::move(code));
+}
+
+auto trc::GraphicsPipelineBuilder::setGeometryShader(ShaderCode code) -> Self&
+{
+    return setShader(vk::ShaderStageFlagBits::eGeometry, std::move(code));
+}
+
+auto trc::GraphicsPipelineBuilder::setTesselationShader(ShaderCode control, ShaderCode eval)
+    -> Self&
+{
+    setShader(vk::ShaderStageFlagBits::eTessellationControl, std::move(control));
+    setShader(vk::ShaderStageFlagBits::eTessellationEvaluation, std::move(eval));
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setShader(vk::ShaderStageFlagBits stage, ShaderCode code)
+    -> Self&
+{
+    auto [it, _] = program.stages.try_emplace(stage);
+    it->second.code = std::move(code);
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setProgram(ShaderCode vertex, ShaderCode fragment) -> Self&
+{
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setProgram(
+    ShaderCode vertex,
+    ShaderCode geometry,
+    ShaderCode fragment) -> Self&
+{
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eGeometry, { std::move(geometry) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setProgram(
+    ShaderCode vertex,
+    ShaderCode tesc,
+    ShaderCode tese,
+    ShaderCode fragment) -> Self&
+{
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eTessellationControl, { std::move(tesc) } },
+        { vk::ShaderStageFlagBits::eTessellationEvaluation, { std::move(tese) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setProgram(
+    ShaderCode vertex,
+    ShaderCode tesc,
+    ShaderCode tese,
+    ShaderCode geometry,
+    ShaderCode fragment) -> Self&
+{
+    program.stages = {
+        { vk::ShaderStageFlagBits::eVertex, { std::move(vertex) } },
+        { vk::ShaderStageFlagBits::eTessellationControl, { std::move(tesc) } },
+        { vk::ShaderStageFlagBits::eTessellationEvaluation, { std::move(tese) } },
+        { vk::ShaderStageFlagBits::eGeometry, { std::move(geometry) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
+    return *this;
+}
+
+auto trc::GraphicsPipelineBuilder::setMeshShadingProgram(
+    std::optional<ShaderCode> task,
+    ShaderCode mesh,
+    ShaderCode fragment) -> Self&
+{
+    program.stages = {
+        { vk::ShaderStageFlagBits::eMeshNV, { std::move(mesh) } },
+        { vk::ShaderStageFlagBits::eFragment, { std::move(fragment) } },
+    };
+    if (task.has_value())
+    {
+        program.stages[vk::ShaderStageFlagBits::eTaskNV].code = task.value();
+    }
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::addVertexInputBinding(
     vk::VertexInputBindingDescription inputBinding,
-    std::vector<vk::VertexInputAttributeDescription> attributes) -> Self
+    std::vector<vk::VertexInputAttributeDescription> attributes) -> Self&
 {
-    this->inputBindings.push_back(inputBinding);
+    data.inputBindings.push_back(inputBinding);
     for (auto& attr : attributes)
     {
-        attr.binding = inputBindings.size() - 1;
-        this->attributes.push_back(attr);
+        attr.binding = data.inputBindings.size() - 1;
+        data.attributes.push_back(attr);
     }
 
     return *this;
@@ -30,135 +127,135 @@ auto trc::GraphicsPipelineBuilder::addVertexInputBinding(
 
 auto trc::GraphicsPipelineBuilder::setVertexInput(
     const std::vector<vk::VertexInputBindingDescription>& inputBindings,
-    const std::vector<vk::VertexInputAttributeDescription>& attributes) -> Self
+    const std::vector<vk::VertexInputAttributeDescription>& attributes) -> Self&
 {
-    this->inputBindings = inputBindings;
-    this->attributes = attributes;
+    data.inputBindings = inputBindings;
+    data.attributes = attributes;
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setInputAssembly(vk::PipelineInputAssemblyStateCreateInfo inputAssembly)
-     -> Self
+     -> Self&
 {
-    this->inputAssembly = inputAssembly;
+    data.inputAssembly = inputAssembly;
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::setPrimitiveTopology(vk::PrimitiveTopology topo) -> Self
+auto trc::GraphicsPipelineBuilder::setPrimitiveTopology(vk::PrimitiveTopology topo) -> Self&
 {
-    inputAssembly.setTopology(topo);
+    data.inputAssembly.setTopology(topo);
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setTessellation(vk::PipelineTessellationStateCreateInfo tessellation)
-    -> Self
+    -> Self&
 {
-    this->tessellation = tessellation;
+    data.tessellation = tessellation;
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::addViewport(vk::Viewport viewport) -> Self
+auto trc::GraphicsPipelineBuilder::addViewport(vk::Viewport viewport) -> Self&
 {
-    this->viewports.push_back(viewport);
+    data.viewports.push_back(viewport);
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::addScissorRect(vk::Rect2D scissorRect) -> Self
+auto trc::GraphicsPipelineBuilder::addScissorRect(vk::Rect2D scissorRect) -> Self&
 {
-    this->scissorRects.push_back(scissorRect);
+    data.scissorRects.push_back(scissorRect);
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setRasterization(vk::PipelineRasterizationStateCreateInfo rasterization)
-    -> Self
+    -> Self&
 {
-    this->rasterization = rasterization;
+    data.rasterization = rasterization;
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::setPolygonMode(vk::PolygonMode polyMode) -> Self
+auto trc::GraphicsPipelineBuilder::setPolygonMode(vk::PolygonMode polyMode) -> Self&
 {
-    this->rasterization.setPolygonMode(polyMode);
+    data.rasterization.setPolygonMode(polyMode);
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::setCullMode(vk::CullModeFlags cullMode) -> Self
+auto trc::GraphicsPipelineBuilder::setCullMode(vk::CullModeFlags cullMode) -> Self&
 {
-    this->rasterization.setCullMode(cullMode);
+    data.rasterization.setCullMode(cullMode);
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::setFrontFace(vk::FrontFace frontFace) -> Self
+auto trc::GraphicsPipelineBuilder::setFrontFace(vk::FrontFace frontFace) -> Self&
 {
-    this->rasterization.setFrontFace(frontFace);
+    data.rasterization.setFrontFace(frontFace);
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setMultisampling(vk::PipelineMultisampleStateCreateInfo multisampling)
-    -> Self
+    -> Self&
 {
-    this->multisampling = multisampling;
+    data.multisampling = multisampling;
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::setSampleCount(vk::SampleCountFlagBits sampleCount) -> Self
+auto trc::GraphicsPipelineBuilder::setSampleCount(vk::SampleCountFlagBits sampleCount) -> Self&
 {
-    this->multisampling.setRasterizationSamples(sampleCount);
+    data.multisampling.setRasterizationSamples(sampleCount);
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::setDepthStencilTests(vk::PipelineDepthStencilStateCreateInfo depthStencil)
-    -> Self
+    -> Self&
 {
-    this->depthStencil = depthStencil;
+    data.depthStencil = depthStencil;
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::enableDepthTest() -> Self
+auto trc::GraphicsPipelineBuilder::enableDepthTest() -> Self&
 {
-    this->depthStencil.setDepthTestEnable(true);
+    data.depthStencil.setDepthTestEnable(true);
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::disableDepthTest() -> Self
+auto trc::GraphicsPipelineBuilder::disableDepthTest() -> Self&
 {
-    this->depthStencil.setDepthTestEnable(false);
+    data.depthStencil.setDepthTestEnable(false);
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::enableDepthWrite() -> Self
+auto trc::GraphicsPipelineBuilder::enableDepthWrite() -> Self&
 {
-    this->depthStencil.setDepthWriteEnable(true);
+    data.depthStencil.setDepthWriteEnable(true);
 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::disableDepthWrite() -> Self
+auto trc::GraphicsPipelineBuilder::disableDepthWrite() -> Self&
 {
-    this->depthStencil.setDepthWriteEnable(false);
+    data.depthStencil.setDepthWriteEnable(false);
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::addColorBlendAttachment(
-    vk::PipelineColorBlendAttachmentState blendAttachment) -> Self
+    vk::PipelineColorBlendAttachmentState blendAttachment) -> Self&
 {
-    this->colorBlendAttachments.push_back(blendAttachment);
+    data.colorBlendAttachments.push_back(blendAttachment);
 
     return *this;
 }
@@ -167,9 +264,9 @@ auto trc::GraphicsPipelineBuilder::setColorBlending(
     vk::PipelineColorBlendStateCreateFlags flags,
     vk::Bool32 logicOpEnable,
     vk::LogicOp logicalOperation,
-    std::array<float, 4> blendConstants) -> Self
+    std::array<float, 4> blendConstants) -> Self&
 {
-    this->colorBlending = vk::PipelineColorBlendStateCreateInfo(
+    data.colorBlending = vk::PipelineColorBlendStateCreateInfo(
         flags,
         logicOpEnable,
         logicalOperation,
@@ -180,7 +277,7 @@ auto trc::GraphicsPipelineBuilder::setColorBlending(
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::disableBlendAttachments(ui32 numAttachments) -> Self
+auto trc::GraphicsPipelineBuilder::disableBlendAttachments(ui32 numAttachments) -> Self&
 {
     for (ui32 i = 0; i < numAttachments; i++) {
         addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED);
@@ -190,67 +287,35 @@ auto trc::GraphicsPipelineBuilder::disableBlendAttachments(ui32 numAttachments) 
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::addDynamicState(vk::DynamicState dynamicState) -> Self
+auto trc::GraphicsPipelineBuilder::addDynamicState(vk::DynamicState dynamicState) -> Self&
 {
-    this->dynamicStates.push_back(dynamicState);
+    data.dynamicStates.push_back(dynamicState);
 
     return *this;
 }
 
 auto trc::GraphicsPipelineBuilder::build(
-    vk::Device device,
-    vk::PipelineLayout layout,
-    vk::RenderPass renderPass,
-    ui32 subPass) -> vk::UniquePipeline
+    PipelineLayout::ID layout,
+    const RenderPassName& renderPass) const -> PipelineTemplate
 {
-    viewport = vk::PipelineViewportStateCreateInfo({}, viewports, scissorRects);
+    return { std::move(program), std::move(data), layout, renderPass };
+}
 
-    if (viewports.empty()
-        && std::ranges::find(dynamicStates, vk::DynamicState::eViewport) != dynamicStates.end())
-    {
-        const vk::Viewport vp(0, 0, 1, 1, 0.0f, 1.0f);
-        viewport.setViewports(vp);
-    }
-    if (scissorRects.empty()
-        && std::ranges::find(dynamicStates, vk::DynamicState::eScissor) != dynamicStates.end())
-    {
-        const vk::Rect2D sc({ 0, 0 }, { 1, 1 });
-        viewport.setScissors(sc);
-    }
-
-    const auto& shaderStages = program->getStageCreateInfos();
-
-    vertexInput = vk::PipelineVertexInputStateCreateInfo(
-        vk::PipelineVertexInputStateCreateFlags(),
-        static_cast<ui32>(inputBindings.size()), inputBindings.data(),
-        static_cast<ui32>(attributes.size()), attributes.data()
+auto trc::GraphicsPipelineBuilder::build(
+    const vkb::Device& device,
+    PipelineLayout& layout,
+    vk::RenderPass renderPass,
+    ui32 subPass) -> Pipeline
+{
+    return makeGraphicsPipeline(
+        { std::move(program), std::move(data) },
+        device, layout, renderPass, subPass
     );
+}
 
-    dynamicState = vk::PipelineDynamicStateCreateInfo(
-        vk::PipelineDynamicStateCreateFlags(),
-        static_cast<ui32>(dynamicStates.size()), dynamicStates.data()
-    );
 
-    colorBlending.setAttachmentCount(static_cast<ui32>(colorBlendAttachments.size()));
-    colorBlending.setPAttachments(colorBlendAttachments.data());
 
-    return device.createGraphicsPipelineUnique(
-        {},
-        vk::GraphicsPipelineCreateInfo(
-            {},
-            static_cast<ui32>(shaderStages.size()), shaderStages.data(),
-            &vertexInput,
-            &inputAssembly,
-            &tessellation,
-            &viewport,
-            &rasterization,
-            &multisampling,
-            &depthStencil,
-            &colorBlending,
-            &dynamicState,
-            layout,
-            renderPass, subPass,
-            vk::Pipeline(), 0
-        )
-    ).value;
+auto trc::buildGraphicsPipeline() -> GraphicsPipelineBuilder
+{
+    return {};
 }

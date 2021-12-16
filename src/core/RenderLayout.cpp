@@ -142,8 +142,6 @@ auto trc::RenderLayout::recordStage(
                 // Bind the current pipeline
                 auto& p = draw.renderConfig->getPipeline(pipeline);
                 p.bind(cmdBuf);
-                p.bindStaticDescriptorSets(cmdBuf);
-                p.bindDefaultPushConstantValues(cmdBuf);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(

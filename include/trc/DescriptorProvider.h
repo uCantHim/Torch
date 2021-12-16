@@ -6,12 +6,6 @@
 
 namespace trc
 {
-    struct Descriptor
-    {
-        vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSetLayout descLayout;
-    };
-
     class DescriptorProviderInterface
     {
     public:

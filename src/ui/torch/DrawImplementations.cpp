@@ -3,6 +3,7 @@
 #include <vkb/Buffer.h>
 
 #include "core/PipelineBuilder.h"
+#include "core/PipelineLayoutBuilder.h"
 #include "ui/Window.h"
 #include "ui/torch/GuiRenderer.h"
 
@@ -17,23 +18,9 @@ struct QuadVertex
 auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui32 subPass)
     -> Pipeline
 {
-    vkb::ShaderProgram program(device,
-        TRC_SHADER_DIR"/ui/line.vert.spv",
-        TRC_SHADER_DIR"/ui/line.frag.spv"
-    );
-
-    auto layout = makePipelineLayout(device,
-        {},
-        {
-            // Line start and end
-            { vk::ShaderStageFlagBits::eVertex,   0,                sizeof(vec2) * 2 },
-            // Line color
-            { vk::ShaderStageFlagBits::eFragment, sizeof(vec2) * 2, sizeof(vec4) },
-        }
-    );
-
-    auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+    return buildGraphicsPipeline()
+        .setProgram(vkb::readFile(TRC_SHADER_DIR"/ui/line.vert.spv"),
+                    vkb::readFile(TRC_SHADER_DIR"/ui/line.frag.spv"))
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
             { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
@@ -46,26 +33,15 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
         .addDynamicState(vk::DynamicState::eLineWidth)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, {}, {})
-        .build(*device, *layout, renderPass, subPass);
-
-    return Pipeline(
-        std::move(layout),
-        std::move(pipeline),
-        vk::PipelineBindPoint::eGraphics
-    );
+        .build(device, linePipelineLayout, renderPass, subPass);
 }
 
 auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass)
     -> Pipeline
 {
-    vkb::ShaderProgram program(device,
-        TRC_SHADER_DIR"/ui/quad.vert.spv",
-        TRC_SHADER_DIR"/ui/quad.frag.spv"
-    );
-
-    auto layout = trc::makePipelineLayout(device, {}, {});
-    auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+    return buildGraphicsPipeline()
+        .setProgram(vkb::readFile(TRC_SHADER_DIR"/ui/quad.vert.spv"),
+                    vkb::readFile(TRC_SHADER_DIR"/ui/quad.frag.spv"))
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(QuadVertex), vk::VertexInputRate::eVertex),
             {
@@ -90,27 +66,15 @@ auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui
         .setCullMode(vk::CullModeFlagBits::eNone)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, {}, {})
-        .build(*device, *layout, renderPass, subPass);
-
-    return Pipeline(
-        std::move(layout),
-        std::move(pipeline),
-        vk::PipelineBindPoint::eGraphics
-    );
+        .build(device, quadPipelineLayout, renderPass, subPass);
 }
 
 auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui32 subPass)
     -> Pipeline
 {
-    vkb::ShaderProgram program(device,
-        TRC_SHADER_DIR"/ui/text.vert.spv",
-        TRC_SHADER_DIR"/ui/text.frag.spv"
-    );
-
-    auto layout = trc::makePipelineLayout(device, { *descLayout }, {});
-
-    auto pipeline = GraphicsPipelineBuilder::create()
-        .setProgram(program)
+    return buildGraphicsPipeline()
+        .setProgram(vkb::readFile(TRC_SHADER_DIR"/ui/text.vert.spv"),
+                    vkb::readFile(TRC_SHADER_DIR"/ui/text.frag.spv"))
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(QuadVertex), vk::VertexInputRate::eVertex),
             {
@@ -158,13 +122,7 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
             )
         )
         .setColorBlending({}, false, {}, {})
-        .build(*device, *layout, renderPass, subPass);
-
-    return Pipeline(
-        std::move(layout),
-        std::move(pipeline),
-        vk::PipelineBindPoint::eGraphics
-    );
+        .build(device, textPipelineLayout, renderPass, subPass);
 }
 
 
@@ -231,6 +189,16 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, ::trc::Gui
         return device->createDescriptorSetLayoutUnique(chain.get<vk::DescriptorSetLayoutCreateInfo>());
     }()),
 
+    linePipelineLayout(makePipelineLayout(device, {},
+        {
+            // Line start and end
+            { vk::ShaderStageFlagBits::eVertex, 0, sizeof(vec2) * 2 },
+            // Line color
+            { vk::ShaderStageFlagBits::eFragment, sizeof(vec2) * 2, sizeof(vec4) },
+        }
+    )),
+    quadPipelineLayout(makePipelineLayout(device, {}, {})),
+    textPipelineLayout(trc::makePipelineLayout(device, { *descLayout }, {})),
     linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
     quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
     textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),
@@ -311,7 +279,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
     // Draw all lines
     if (!lines.empty())
     {
-        auto layout = linePipeline.getLayout();
+        auto layout = *linePipeline.getLayout();
         linePipeline.bind(cmdBuf);
         cmdBuf.setViewport(0, defaultViewport);
         cmdBuf.setScissor(0, defaultScissor);
@@ -336,7 +304,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
         cmdBuf.setViewport(0, defaultViewport);
 
         cmdBuf.bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics, textPipeline.getLayout(),
+            vk::PipelineBindPoint::eGraphics, *textPipeline.getLayout(),
             0, *fontDescSet, {}
         );
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });

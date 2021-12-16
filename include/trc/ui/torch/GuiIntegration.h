@@ -5,6 +5,7 @@
 
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
+#include <vkb/FrameSpecificObject.h>
 #include <vkb/util/Timer.h>
 #include <vkb/event/Event.h>
 
@@ -73,6 +74,7 @@ namespace trc
         vk::UniqueDescriptorSetLayout blendDescLayout;
         vkb::FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
         std::vector<vk::UniqueImageView> swapchainImageViews;
+        PipelineLayout imageBlendPipelineLayout;
         Pipeline imageBlendPipeline;
 
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;

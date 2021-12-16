@@ -5,140 +5,96 @@
 
 
 
+vkb::ShaderProgram::ShaderStageInfo::ShaderStageInfo(
+    vk::ShaderStageFlagBits type,
+    const std::string& code)
+    :
+    type(type),
+    shaderCode(code),
+    specializationInfo(std::nullopt)
+{
+}
+
+vkb::ShaderProgram::ShaderStageInfo::ShaderStageInfo(
+    vk::ShaderStageFlagBits type,
+    const std::string& code,
+    vk::SpecializationInfo spec)
+    :
+    type(type),
+    shaderCode(code),
+    specializationInfo(spec)
+{
+}
+
+
+
+vkb::ShaderProgram::ShaderProgram(const vkb::Device& device)
+    :
+    device(device)
+{
+}
+
 vkb::ShaderProgram::ShaderProgram(
     const vkb::Device& device,
-    const std::string& vertPath,
-    const std::string& fragPath,
-    const std::string& geomPath,
-    const std::string& tescPath,
-    const std::string& tesePath)
+    const vk::ArrayProxy<const ShaderStageInfo>& stages)
     :
-    ShaderProgram(
-        createShaderModule(device, readFile(vertPath)),
-        createShaderModule(device, readFile(fragPath)),
-        geomPath.empty() ? vk::UniqueShaderModule{}
-                         : createShaderModule(device, readFile(geomPath)),
-        tescPath.empty() ? vk::UniqueShaderModule{}
-                         : createShaderModule(device, readFile(tescPath)),
-        tesePath.empty() ? vk::UniqueShaderModule{}
-                         : createShaderModule(device, readFile(tesePath))
-    )
+    device(device)
 {
-}
-
-vkb::ShaderProgram::ShaderProgram(
-    vk::UniqueShaderModule vertModule,
-    vk::UniqueShaderModule fragModule,
-    vk::UniqueShaderModule geomModule,
-    vk::UniqueShaderModule tescModule,
-    vk::UniqueShaderModule teseModule)
-{
-    assert(vertModule && fragModule);
-
-    stages.emplace_back(
-        vk::PipelineShaderStageCreateFlags(),
-        vk::ShaderStageFlagBits::eVertex,
-        *vertModule,
-        "main"
-    );
-    stages.emplace_back(
-        vk::PipelineShaderStageCreateFlags(),
-        vk::ShaderStageFlagBits::eFragment,
-        *fragModule,
-        "main"
-    );
-    modules.push_back(std::move(vertModule));
-    modules.push_back(std::move(fragModule));
-
-    if (geomModule)
+    for (const auto& stage : stages)
     {
-        hasGeom = true;
-
-        stages.emplace_back(
-            vk::PipelineShaderStageCreateFlags(),
-            vk::ShaderStageFlagBits::eGeometry,
-            *geomModule,
-            "main"
-        );
-        modules.push_back(std::move(geomModule));
-    }
-
-    if (tescModule && teseModule)
-    {
-        hasTess = true;
-
-        stages.emplace_back(
-            vk::PipelineShaderStageCreateFlags(),
-            vk::ShaderStageFlagBits::eTessellationControl,
-            *tescModule,
-            "main"
-        );
-        stages.emplace_back(
-            vk::PipelineShaderStageCreateFlags(),
-            vk::ShaderStageFlagBits::eTessellationEvaluation,
-            *teseModule,
-            "main"
-        );
-        modules.push_back(std::move(tescModule));
-        modules.push_back(std::move(teseModule));
+        addStage(stage);
     }
 }
 
-auto vkb::ShaderProgram::getStageCreateInfos() const noexcept -> const ShaderStageCreateInfos&
+void vkb::ShaderProgram::addStage(const ShaderStageInfo& stage)
 {
-    return stages;
-}
+    auto& mod = modules.emplace_back(createShaderModule(device, stage.shaderCode));
 
-void vkb::ShaderProgram::setVertexSpecializationConstants(vk::SpecializationInfo* info)
-{
-    stages[0].setPSpecializationInfo(info);
-}
-
-void vkb::ShaderProgram::setFragmentSpecializationConstants(vk::SpecializationInfo* info)
-{
-    stages[1].setPSpecializationInfo(info);
-}
-
-void vkb::ShaderProgram::setGeometrySpecializationConstants(vk::SpecializationInfo* info)
-{
-    if (hasGeom) {
-        stages[2].setPSpecializationInfo(info);
-    }
-}
-
-void vkb::ShaderProgram::setTessControlSpecializationConstants(vk::SpecializationInfo* info)
-{
-    if (hasTess)
+    vk::SpecializationInfo* specInfo{ nullptr };
+    if (stage.specializationInfo.has_value())
     {
-        if (hasGeom) {
-            stages[3].setPSpecializationInfo(info);
-        }
-        else {
-            stages[2].setPSpecializationInfo(info);
+        specInfo = specInfos.emplace_back(
+            new vk::SpecializationInfo(stage.specializationInfo.value())
+        ).get();
+    }
+
+    createInfos.emplace_back(vk::PipelineShaderStageCreateInfo(
+        {},
+        stage.type,
+        *mod,
+        "main",
+        specInfo
+    ));
+}
+
+void vkb::ShaderProgram::setSpecialization(
+    vk::ShaderStageFlagBits stageType,
+    vk::SpecializationInfo info)
+{
+    for (auto& stage : createInfos)
+    {
+        if (stage.stage == stageType)
+        {
+            stage.setPSpecializationInfo(
+                specInfos.emplace_back(new vk::SpecializationInfo(info)).get()
+            );
         }
     }
 }
 
-void vkb::ShaderProgram::setTessEvalSpecializationConstants(vk::SpecializationInfo* info)
+auto vkb::ShaderProgram::getStageCreateInfo() const &
+    -> const std::vector<vk::PipelineShaderStageCreateInfo>&
 {
-    if (hasTess)
-    {
-        if (hasGeom) {
-            stages[4].setPSpecializationInfo(info);
-        }
-        else {
-            stages[3].setPSpecializationInfo(info);
-        }
-    }
+    return createInfos;
 }
 
 
 
-auto vkb::readFile(const std::string& path) -> std::string
+auto vkb::readFile(const fs::path& path) -> std::string
 {
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("Unable to open file " + path);
+        throw std::runtime_error("[In readFile]: Unable to open file " + path.string());
     }
 
     std::stringstream buf;
@@ -150,6 +106,12 @@ auto vkb::readFile(const std::string& path) -> std::string
 auto vkb::createShaderModule(const vkb::Device& device, const std::string& code)
     -> vk::UniqueShaderModule
 {
+    return createShaderModule(*device, code);
+}
+
+auto vkb::createShaderModule(vk::Device device, const std::string& code)
+    -> vk::UniqueShaderModule
+{
     assert(!code.empty());
 
     vk::ShaderModuleCreateInfo info(
@@ -158,5 +120,5 @@ auto vkb::createShaderModule(const vkb::Device& device, const std::string& code)
         reinterpret_cast<const uint32_t*>(code.data())
     );
 
-    return device->createShaderModuleUnique(info);
+    return device.createShaderModuleUnique(info);
 }

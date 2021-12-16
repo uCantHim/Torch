@@ -9,20 +9,7 @@ target_compile_definitions(torch PUBLIC
 ############
 # Unit tests
 
-if (${GTEST_FOUND})
-    add_executable(TorchUnitTests)
-
-    target_sources(TorchUnitTests
-        PRIVATE
-            functional/test_maybe.cpp
-            data/test_object_pool.cpp
-    )
-
-    target_link_libraries(TorchUnitTests PRIVATE GTest::GTest GTest::Main torch)
-    target_compile_options(TorchUnitTests PRIVATE -O0 -g)
-
-    gtest_discover_tests(TorchUnitTests)
-endif ()
+add_subdirectory(unittest)
 
 #######################
 # Complex test programs

@@ -162,6 +162,19 @@ void run()
     // --- Ray Pipeline --- //
 
     constexpr ui32 maxRecursionDepth{ 16 };
+    auto rayPipelineLayout = trc::makePipelineLayout(device,
+        {
+            *tlasDescLayout,
+            compositing.getInputImageDescriptor().getDescriptorSetLayout(),
+            torch.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout(),
+            torch.renderConfig->getSceneDescriptorProvider().getDescriptorSetLayout(),
+            torch.shadowPool->getProvider().getDescriptorSetLayout(),
+        },
+        {
+            // View and projection matrices
+            { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
+        }
+    );
     auto [rayPipeline, shaderBindingTable] =
         trc::rt::buildRayTracingPipeline(*torch.instance)
         .addRaygenGroup(TRC_SHADER_DIR"/ray_tracing/reflect.rgen.spv")
@@ -172,22 +185,7 @@ void run()
             TRC_SHADER_DIR"/ray_tracing/reflect.rchit.spv",
             TRC_SHADER_DIR"/ray_tracing/anyhit.rahit.spv"
         )
-        .build(
-            maxRecursionDepth,
-            trc::makePipelineLayout(device,
-                {
-                    *tlasDescLayout,
-                    compositing.getInputImageDescriptor().getDescriptorSetLayout(),
-                    torch.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout(),
-                    torch.renderConfig->getSceneDescriptorProvider().getDescriptorSetLayout(),
-                    torch.shadowPool->getProvider().getDescriptorSetLayout(),
-                },
-                {
-                    // View and projection matrices
-                    { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
-                }
-            )
-        );
+        .build(maxRecursionDepth, rayPipelineLayout);
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
     trc::FrameSpecificDescriptorProvider reflectionImageProvider(
@@ -199,11 +197,12 @@ void run()
             }
         }
     );
-    rayPipeline.addStaticDescriptorSet(0, tlasDescProvider);
-    rayPipeline.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
-    rayPipeline.addStaticDescriptorSet(2, torch.assetRegistry->getDescriptorSetProvider());
-    rayPipeline.addStaticDescriptorSet(3, torch.renderConfig->getSceneDescriptorProvider());
-    rayPipeline.addStaticDescriptorSet(4, torch.shadowPool->getProvider());
+    auto& rayLayout = rayPipeline.getLayout();
+    rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
+    rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
+    rayLayout.addStaticDescriptorSet(2, torch.assetRegistry->getDescriptorSetProvider());
+    rayLayout.addStaticDescriptorSet(3, torch.renderConfig->getSceneDescriptorProvider());
+    rayLayout.addStaticDescriptorSet(4, torch.shadowPool->getProvider());
 
 
     // --- Draw function --- //
@@ -237,9 +236,8 @@ void run()
             );
 
             rayPipeline.bind(cmdBuf);
-            rayPipeline.bindStaticDescriptorSets(cmdBuf);
             cmdBuf.pushConstants<mat4>(
-                rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
+                *rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
                 0, { camera.getViewMatrix(), camera.getProjectionMatrix() }
             );
 
