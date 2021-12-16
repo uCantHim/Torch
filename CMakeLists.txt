@@ -64,6 +64,8 @@ add_subdirectory(src)
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})
+    target_compile_definitions(torch PUBLIC TRC_USE_IMGUI)
+
     add_library(imgui)
     target_link_libraries(torch PUBLIC imgui)
 

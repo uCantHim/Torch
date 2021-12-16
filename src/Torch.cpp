@@ -5,7 +5,9 @@
 #include "UpdatePass.h"
 #include "TorchResources.h"
 #include "ui/torch/GuiIntegration.h"
+#ifdef TRC_USE_IMGUI
 #include "experimental/ImguiIntegration.h"
+#endif
 #include "ray_tracing/RayTracing.h"
 
 
@@ -55,7 +57,9 @@ auto trc::initFull(
     graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
 
     graph.after(rt::finalCompositingStage, guiRenderStage);
+#ifdef TRC_USE_IMGUI
     graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
+#endif
 
     init();
 
