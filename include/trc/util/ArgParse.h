@@ -11,11 +11,10 @@ namespace trc::util
 
     auto hasNamedArg(const Args& args, const std::string& argName) -> bool;
 
-    auto getNamedArg(const Args& args, const std::string& argName)
-        -> std::pair<std::string, std::string>;
+    auto getNamedArg(const Args& args, const std::string& argName) -> std::string;
 
     auto getNamedArgOr(const Args& args,
                        const std::string& argName,
                        const std::string& defaultValue)
-        -> std::pair<std::string, std::string>;
+        -> std::string;
 } // namespace trc::util

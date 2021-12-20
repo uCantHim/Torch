@@ -22,7 +22,7 @@ void printUsage()
         << "\n"
         << "Possible options:\n"
         << "\t--outDir DIRNAME\tWrite output files to directory DIRNAME\n"
-        << "\t--verbose -v \tVerbose output\n"
+        << "\t--verbose -v    \tEnable verbose output\n"
         << "\n";
 }
 
@@ -59,12 +59,9 @@ int main(int argc, const char* argv[])
     }
 
     // Write compilation result to output file
-    auto [name, outDir] = trc::util::getNamedArgOr(args, "--outDir", ".");
-
-    info("Compilation completed\n");
+    info("Compilation completed");
     for (const auto& shader : result.value().shaderFiles)
     {
-        info("Generated shader " + shader.filePath.string());
         writeToFile(shader);
     }
 
@@ -78,6 +75,10 @@ auto compile(const fs::path& filePath, const trc::util::Args& args)
         std::cout << "Parsing file " << filePath << "...\n";
         std::ifstream file{ filePath };
         auto compileConfig = CompileConfiguration::fromJson(file);
+
+        if (trc::util::hasNamedArg(args, "--outDir")) {
+            compileConfig.meta.outDir = trc::util::getNamedArg(args, "--outDir");
+        }
 
         std::cout << "Compiling file " << filePath << "...\n";
         Compiler compiler;
@@ -99,11 +100,10 @@ auto compile(const fs::path& filePath, const trc::util::Args& args)
 
 void writeToFile(const CompiledShaderFile& data)
 {
-    fs::path newFilename{ data.filePath.filename().string() + ".out" };
-    fs::path outFile{ data.filePath.parent_path() / newFilename };
+    fs::path outFile{ data.filePath.string() + ".out" };
     if (fs::is_regular_file(outFile))
     {
-        info("File " + outFile.string() + " already exists in the filesystem. Skipping.\n");
+        warn("File " + outFile.string() + " already exists in the filesystem. Skipping.");
         return;
     }
 
@@ -111,8 +111,9 @@ void writeToFile(const CompiledShaderFile& data)
     std::ofstream out{ outFile };
     if (!out.is_open())
     {
-        info("Unable to open file " + outFile.string() + " for writing. Skipping.\n");
+        info("Unable to open file " + outFile.string() + " for writing. Skipping.");
     }
 
     out << data.code;
+    info("Generated shader " + outFile.string());
 }
