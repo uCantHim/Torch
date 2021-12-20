@@ -45,14 +45,6 @@ auto parseMeta(const nl::json& json) -> CompileConfiguration::Meta
 
 auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
 {
-    auto toVariable = [](const nl::json& json) -> ShaderFileConfiguration::ValueOrVector {
-        if (json.is_array())
-        {
-            return json.get<std::vector<std::string>>();
-        }
-        return json.get<std::string>();
-    };
-
     if (!json.contains(SHADERS_OBJECT_NAME)
         || !json.at(SHADERS_OBJECT_NAME).is_object())
     {
@@ -74,12 +66,27 @@ auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
             .inputFilePath=std::move(path)
         };
 
-        if (shader.contains(SHADERS_VARIABLES)
-            && shader.at(SHADERS_VARIABLES).is_object())
+        auto varIt = shader.find(SHADERS_VARIABLES);
+        if (varIt != shader.end())
         {
-            for (const auto& [name, var] : shader.at(SHADERS_VARIABLES).items())
+            if (!varIt.value().is_object())
             {
-                conf.variables.try_emplace(std::move(name), toVariable(var));
+                throw ParseError("Variable declaration in " + conf.outputFileName.string()
+                    + " must be an object."
+                );
+            }
+
+            for (const auto& [name, permutations] : varIt->items())
+            {
+                auto [it, success] = conf.variables.try_emplace(name);
+                assert(success);  // Should be the case because the json key is unique
+                std::vector<ShaderFileConfiguration::Variable>& vec = it->second;
+                for (const auto& [tag, value] : permutations.items())
+                {
+                    auto& var = vec.emplace_back();
+                    var.tag = tag;
+                    var.value = value.get<std::string>();
+                }
             }
         }
 

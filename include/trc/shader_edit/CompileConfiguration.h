@@ -8,6 +8,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "VariableValue.h"
+
 namespace shader_edit
 {
     namespace fs = std::filesystem;
@@ -19,15 +21,25 @@ namespace shader_edit
 
     struct ShaderFileConfiguration
     {
-        using ValueOrVector = std::variant<std::string, std::vector<std::string>>;
+        struct Variable
+        {
+            std::string tag;
+            VariableValue value;
+        };
+        using VariableName = std::string;
 
         // Meta
         fs::path outputFileName;
         fs::path inputFilePath;
 
         // Configured data
-        std::unordered_map<std::string, ValueOrVector> variables{};
+        std::unordered_map<VariableName, std::vector<Variable>> variables{};
     };
+
+    inline auto render(const ShaderFileConfiguration::Variable& var) -> std::string
+    {
+        return var.value.toString();
+    }
 
     struct CompileConfiguration
     {
@@ -67,8 +79,6 @@ namespace shader_edit
     struct CompiledShaderFile
     {
         fs::path filePath;
-        std::string uniqueName;
-
         std::string code;
     };
 

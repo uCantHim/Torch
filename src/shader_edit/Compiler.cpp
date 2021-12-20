@@ -35,6 +35,9 @@ auto shader_edit::Compiler::compileShader(
     ShaderFileConfiguration shader)
     -> std::vector<CompiledShaderFile>
 {
+    constexpr const char* VAR_SEP{ "-" };
+    constexpr const char* NAME_TAG_SEP{ ":" };
+
     std::ifstream file(meta.basePath / shader.inputFilePath);
     if (!file.is_open())
     {
@@ -42,28 +45,34 @@ auto shader_edit::Compiler::compileShader(
     }
 
     std::vector<Document> documents{ Document(file) };
-    for (const auto& [name, var] : shader.variables)
+    std::vector<std::string> uniqueNames{ shader.outputFileName };
+
+    // Create permutations
+    for (const auto& [varName, permutations] : shader.variables)
     {
-        if (std::holds_alternative<std::string>(var))
+        documents = permutate(documents, varName, permutations);
+
+        // Assemble unique file names
+        std::vector<std::string> newNames;
+        for (const auto& name : uniqueNames)
         {
-            for (auto& document : documents) {
-                document.set(name, std::move(std::get<std::string>(var)));
+            for (const auto& var : permutations)
+            {
+                newNames.emplace_back(name + VAR_SEP + varName + NAME_TAG_SEP + var.tag);
             }
         }
-        else if (std::holds_alternative<std::vector<std::string>>(var))
-        {
-            const auto& arr = std::get<std::vector<std::string>>(var);
-            documents = permutate(documents, name, std::move(arr));
-        }
+        std::swap(uniqueNames, newNames);
     }
+    assert(documents.size() == uniqueNames.size());
 
+    // Compile resulting shader files
     std::vector<CompiledShaderFile> result;
     for (uint i = 0; const auto& doc : documents)
     {
+        fs::path name{ uniqueNames[i++] + shader.inputFilePath.extension().string() };
         result.emplace_back(CompiledShaderFile{
-            .filePath   = meta.outDir / std::move(shader.outputFileName),
-            .uniqueName = std::to_string(i++),
-            .code       = doc.compile()
+            .filePath = meta.outDir / name,
+            .code     = doc.compile()
         });
     }
 
