@@ -32,13 +32,15 @@ namespace shader_edit
         /**
          * @brief Permutate on a variable
          */
-        void permutate(const std::string& name, std::vector<VariableValue> values);
+        auto permutate(const std::string& name, std::vector<VariableValue> values) const
+            -> std::vector<Document>;
 
         /**
          * @brief Permutate on a variable
          */
         template<Renderable T>
-        inline void permutate(const std::string& name, std::vector<T> values);
+        inline auto permutate(const std::string& name, std::vector<T> values) const
+            -> std::vector<Document>;
 
         /**
          * @brief Compile variable settings into one or more documents
@@ -48,25 +50,73 @@ namespace shader_edit
          *                     have not been set via either `set` or
          *                     `permutate`.
          */
-        auto compile() const -> std::vector<std::string>;
+        auto compile() const -> std::string;
 
     private:
         ParseResult parseData;
-
-        std::unordered_map<std::string, VariableValue> singleValues;
-        std::unordered_map<std::string, std::vector<VariableValue>> multiValues;
+        std::unordered_map<std::string, VariableValue> variableValues;
     };
 
 
 
+    auto permutate(const Document& doc,
+                   const std::string& name,
+                   std::vector<VariableValue> values)
+        -> std::vector<Document>;
+
     template<Renderable T>
-    inline void Document::permutate(const std::string& name, std::vector<T> values)
+    auto permutate(const Document& doc,
+                   const std::string& name,
+                   std::vector<T> values)
+        -> std::vector<Document>;
+
+    auto permutate(const std::vector<Document>& docs,
+                   const std::string& name,
+                   std::vector<VariableValue> values)
+        -> std::vector<Document>;
+
+    template<Renderable T>
+    auto permutate(const std::vector<Document>& docs,
+                   const std::string& name,
+                   std::vector<T> values)
+        -> std::vector<Document>;
+
+    auto compile(const std::vector<Document>& docs) -> std::vector<std::string>;
+
+
+
+    template<Renderable T>
+    inline auto permutate(const Document& doc,
+                          const std::string& name,
+                          std::vector<T> values)
+        -> std::vector<Document>
     {
         std::vector<VariableValue> result;
         for (T& value : values) {
             result.emplace_back(std::move(value));
         }
 
-        permutate(name, std::move(result));
+        return permutate(doc, name, std::move(result));
+    }
+
+    template<Renderable T>
+    inline auto permutate(const std::vector<Document>& docs,
+                          const std::string& name,
+                          std::vector<T> values)
+        -> std::vector<Document>
+    {
+        std::vector<VariableValue> result;
+        for (T& value : values) {
+            result.emplace_back(std::move(value));
+        }
+
+        return permutate(docs, name, std::move(result));
+    }
+
+    template<Renderable T>
+    inline auto Document::permutate(const std::string& name, std::vector<T> values) const
+        -> std::vector<Document>
+    {
+        return permutate(*this, name, std::move(values));
     }
 } // namespace shader_edit
