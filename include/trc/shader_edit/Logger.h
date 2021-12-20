@@ -5,9 +5,13 @@
 
 namespace shader_edit
 {
+    inline bool verboseLogging{ false };
+
     inline void info(const std::string& info)
     {
-        std::cout << "[Info] " << info << "\n";
+        if (verboseLogging) {
+            std::cout << "[Info] " << info << "\n";
+        }
     }
 
     inline void warn(const std::string& warning)

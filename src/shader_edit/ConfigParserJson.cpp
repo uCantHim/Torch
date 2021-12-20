@@ -14,6 +14,7 @@ constexpr const char* META_OUT_DIR{ "out_dir" };
 
 constexpr const char* SHADERS_OBJECT_NAME{ "shaders" };
 constexpr const char* SHADERS_VARIABLES{ "variables" };
+constexpr const char* SHADERS_PATH{ "path" };
 
 auto parseMeta(const nl::json& json) -> CompileConfiguration::Meta
 {
@@ -35,19 +36,14 @@ auto parseMeta(const nl::json& json) -> CompileConfiguration::Meta
             result.basePath = std::move(basePath);
         }
     }
-    if (meta.contains(META_OUT_DIR))
-    {
-        fs::path outPath{ meta.at(META_OUT_DIR) };
-        if (fs::is_directory(outPath)) {
-            result.outDir = std::move(outPath);
-        }
+    if (meta.contains(META_OUT_DIR)) {
+        result.outDir = fs::path{ meta.at(META_OUT_DIR) };
     }
 
     return result;
 }
 
-auto parseShaders(const nl::json& json, const CompileConfiguration::Meta& meta)
-    -> std::vector<ShaderFileConfiguration>
+auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
 {
     auto toVariable = [](const nl::json& json) -> ShaderFileConfiguration::ValueOrVector {
         if (json.is_array())
@@ -60,18 +56,22 @@ auto parseShaders(const nl::json& json, const CompileConfiguration::Meta& meta)
     if (!json.contains(SHADERS_OBJECT_NAME)
         || !json.at(SHADERS_OBJECT_NAME).is_object())
     {
-        info("Json contains no shader definitions. Parser will generate no output.");
+        warn("Json contains no shader definitions. Parser will generate no output.");
         return {};
     }
 
     const auto& shaders = json.at(SHADERS_OBJECT_NAME);
     std::vector<ShaderFileConfiguration> result;
 
-    for (const auto& [path, shader] : shaders.items())
+    for (const auto& [name, shader] : shaders.items())
     {
-        std::cout << "Detected shader file " << path << "\n";
+        if (!shader.contains(SHADERS_PATH)) continue;
+        std::string path = shader.at(SHADERS_PATH).get<std::string>();
+        info("Detected shader file \"" + path + "\"\n");
+
         ShaderFileConfiguration conf{
-            .filePath=meta.basePath / path
+            .outputFileName=std::move(name),
+            .inputFilePath=std::move(path)
         };
 
         if (shader.contains(SHADERS_VARIABLES)
@@ -93,12 +93,9 @@ auto parseShaders(const nl::json& json, const CompileConfiguration::Meta& meta)
 
 auto shader_edit::parseConfig(const nl::json& json) -> CompileConfiguration
 {
-    auto meta = parseMeta(json);
-    auto shaders = parseShaders(json, meta);
-
     return {
-        .meta=std::move(meta),
-        .shaderFiles=std::move(shaders)
+        .meta=parseMeta(json),
+        .shaderFiles=parseShaders(json),
     };
 }
 

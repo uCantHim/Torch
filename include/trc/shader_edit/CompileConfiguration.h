@@ -22,7 +22,8 @@ namespace shader_edit
         using ValueOrVector = std::variant<std::string, std::vector<std::string>>;
 
         // Meta
-        fs::path filePath;
+        fs::path outputFileName;
+        fs::path inputFilePath;
 
         // Configured data
         std::unordered_map<std::string, ValueOrVector> variables{};

@@ -19,7 +19,8 @@ namespace shader_edit
         auto compile(CompileConfiguration config) -> CompileResult;
 
     private:
-        auto compileShader(ShaderFileConfiguration shader)
+        auto compileShader(const CompileConfiguration::Meta& meta,
+                           ShaderFileConfiguration shader)
             -> std::vector<CompiledShaderFile>;
     };
 } // namespace shader_edit
