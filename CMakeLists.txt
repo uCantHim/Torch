@@ -30,6 +30,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 # Required third-party
 include(FetchContent)
 
+find_package(nlohmann_json REQUIRED)
 find_package(Freetype REQUIRED)
 
 if (NOT TARGET shaderc)
@@ -67,6 +68,7 @@ target_link_libraries(
     torch PUBLIC
     vk_base
     shaderc
+    nlohmann_json::nlohmann_json
     Freetype::Freetype
     $<$<AND:$<BOOL:${HAS_PROFILER}>,$<BOOL:${TORCH_DEBUG}>>:profiler>
 )
@@ -79,6 +81,7 @@ target_compile_definitions(
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)
+add_subdirectory(tools)
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})

@@ -12,13 +12,13 @@ namespace fs = std::filesystem;
 #include <nlohmann/json.hpp>
 namespace nl = nlohmann;
 
-#include "Logger.h"
-#include "Compiler.h"
-#include "ConfigParserJson.h"
-#include "GenerateSpirv.h"
+#include <trc/shader_edit/Logger.h>
+#include <trc/shader_edit/Compiler.h>
+#include <trc/shader_edit/ConfigParserJson.h>
+#include <trc/shader_edit/GenerateSpirv.h>
 using namespace shader_edit;
 
-constexpr const char* EXECUTABLE_NAME{ "compiler" };
+constexpr const char* EXECUTABLE_NAME{ "shader_compiler" };
 
 void printUsage()
 {
