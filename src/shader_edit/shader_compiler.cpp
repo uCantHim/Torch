@@ -4,14 +4,18 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#include <vkb/basics/Device.h>
+#include <vkb/ShaderProgram.h>
 #include <trc/util/Exception.h>
 #include <trc/util/ArgParse.h>
+#include <trc/util/async/ThreadPool.h>
 #include <nlohmann/json.hpp>
 namespace nl = nlohmann;
 
 #include "Logger.h"
 #include "Compiler.h"
 #include "ConfigParserJson.h"
+#include "GenerateSpirv.h"
 using namespace shader_edit;
 
 constexpr const char* EXECUTABLE_NAME{ "compiler" };
@@ -22,13 +26,16 @@ void printUsage()
         << "\n"
         << "Possible options:\n"
         << "\t--outDir DIRNAME\tWrite output files to directory DIRNAME\n"
+        << "\t--genGlsl       \tGenerate GLSL files\n"
+        << "\t--genSpirv      \tCompile generated GLSL code into SPIR-V and output it to files\n"
+        << "\t--keep-existing \tDon't overwrite files that already exist in the filesystem\n"
         << "\t--verbose -v    \tEnable verbose output\n"
         << "\n";
 }
 
 auto compile(const fs::path& file, const trc::util::Args& args)
     -> std::optional<CompileResult>;
-void writeToFile(const CompiledShaderFile& data);
+void writeToFile(const fs::path& outFile, const std::string& data, bool replaceExisting);
 
 int main(int argc, const char* argv[])
 {
@@ -58,12 +65,48 @@ int main(int argc, const char* argv[])
         exit(1);
     }
 
-    // Write compilation result to output file
     info("Compilation completed");
-    for (const auto& shader : result.value().shaderFiles)
+
+    // Write compilation results to files
+    const bool overwrite = !trc::util::hasNamedArg(args, "--keep-existing");
+    const bool genGlsl = trc::util::hasNamedArg(args, "--genGlsl");
+    const bool genSpirv = trc::util::hasNamedArg(args, "--genSpv");
+
+    if (!genGlsl && !genSpirv)
     {
-        writeToFile(shader);
+        std::cout << "Neither --genGlsl nor --genSpv specified, no output will be produced.\n";
+        return 0;
     }
+
+    { // scope for thread pool synchronization
+    trc::async::ThreadPool tp{ std::thread::hardware_concurrency() };
+    for (auto& shader : result.value().shaderFiles)
+    {
+        if (genGlsl) {
+            writeToFile(shader.filePath, shader.code, overwrite);
+        }
+        if (genSpirv)
+        {
+            tp.async([&, shader=std::move(shader)] {
+                auto spv = generateSpirv(shader);
+                if (spv.GetNumErrors() > 0)
+                {
+                    error("Unable to compile " + shader.filePath.string() + " to SPIR-V: "
+                          + spv.GetErrorMessage());
+                    return;
+                }
+
+                std::vector<uint32_t> spvVec{ spv.begin(), spv.end() };
+                std::string spvData;
+                spvData.resize(spvVec.size() * sizeof(uint32_t));
+                memcpy(spvData.data(), spvVec.data(), spvVec.size() * sizeof(uint32_t));
+
+                fs::path spvPath{ shader.filePath.string() + ".spv" };
+                writeToFile(spvPath, spvData, overwrite);
+            });
+        }
+    }
+    } // scope
 
     std::cout << "\nCompilation successful.\n";
 }
@@ -72,15 +115,14 @@ auto compile(const fs::path& filePath, const trc::util::Args& args)
     -> std::optional<CompileResult>
 {
     try {
-        std::cout << "Parsing file " << filePath << "...\n";
+        std::cout << "Reading configuration from " << filePath << "\n";
+
         std::ifstream file{ filePath };
         auto compileConfig = CompileConfiguration::fromJson(file);
-
         if (trc::util::hasNamedArg(args, "--outDir")) {
             compileConfig.meta.outDir = trc::util::getNamedArg(args, "--outDir");
         }
 
-        std::cout << "Compiling file " << filePath << "...\n";
         Compiler compiler;
         return compiler.compile(std::move(compileConfig));
     }
@@ -98,12 +140,14 @@ auto compile(const fs::path& filePath, const trc::util::Args& args)
     }
 }
 
-void writeToFile(const CompiledShaderFile& data)
+void writeToFile(
+    const fs::path& outFile,
+    const std::string& data,
+    const bool replaceExisting)
 {
-    fs::path outFile{ data.filePath.string() + ".out" };
-    if (fs::is_regular_file(outFile))
+    if (!replaceExisting && fs::is_regular_file(outFile))
     {
-        warn("File " + outFile.string() + " already exists in the filesystem. Skipping.");
+        info("File " + outFile.string() + " already exists in the filesystem. Skipping.");
         return;
     }
 
@@ -111,9 +155,10 @@ void writeToFile(const CompiledShaderFile& data)
     std::ofstream out{ outFile };
     if (!out.is_open())
     {
-        info("Unable to open file " + outFile.string() + " for writing. Skipping.");
+        warn("Unable to open file " + outFile.string() + " for writing. Skipping.");
+        return;
     }
 
-    out << data.code;
-    info("Generated shader " + outFile.string());
+    out << data;
+    info("Generated file " + outFile.string());
 }

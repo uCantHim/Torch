@@ -13,7 +13,7 @@ auto shader_edit::Compiler::compile(CompileConfiguration config) -> CompileResul
 
     for (auto& shader : config.shaderFiles)
     {
-        info("Compiling shader module \"" + shader.inputFilePath.string() + "\"...");
+        info("Compiling shader file \"" + shader.inputFilePath.string() + "\"...");
         try {
             auto compileResults = compileShader(config.meta, std::move(shader));
             for (auto& compiled : compileResults)

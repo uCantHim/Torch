@@ -28,7 +28,25 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 
 # Required third-party
+include(FetchContent)
+
 find_package(Freetype REQUIRED)
+
+if (NOT TARGET shaderc)
+    FetchContent_Declare(
+        shaderc
+        GIT_REPOSITORY https://github.com/google/shaderc
+        GIT_TAG        657c5ed2ba1714c0430895a274a94d6f2aeeab85
+        PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
+    )
+    option(SHADERC_SKIP_TESTS "" ON)
+    option(SHADERC_SKIP_EXAMPLES "" ON)
+    FetchContent_MakeAvailable(shaderc)
+endif()
+
+if (TARGET profiler)
+    set(HAS_PROFILER TRUE)
+endif()
 
 # Library target
 add_library(torch)
@@ -36,7 +54,6 @@ add_library(torch)
 target_include_directories(torch
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
-        #${CMAKE_CURRENT_LIST_DIR}/util_lib/include
 
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
@@ -49,7 +66,9 @@ target_include_directories(torch
 target_link_libraries(
     torch PUBLIC
     vk_base
+    shaderc
     Freetype::Freetype
+    $<$<AND:$<BOOL:${HAS_PROFILER}>,$<BOOL:${TORCH_DEBUG}>>:profiler>
 )
 
 target_compile_definitions(
@@ -59,7 +78,6 @@ target_compile_definitions(
 
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
-#add_subdirectory(util_lib)
 add_subdirectory(src)
 
 # Imgui integration

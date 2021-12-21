@@ -59,7 +59,6 @@ auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
     {
         if (!shader.contains(SHADERS_PATH)) continue;
         std::string path = shader.at(SHADERS_PATH).get<std::string>();
-        info("Detected shader file \"" + path + "\"\n");
 
         ShaderFileConfiguration conf{
             .outputFileName=std::move(name),
