@@ -9,13 +9,15 @@ namespace trc::async
     class ThreadPool
     {
     public:
-        ThreadPool() = default;
-        ~ThreadPool();
-
-        ThreadPool(ThreadPool&&) noexcept = default;
-        auto operator=(ThreadPool&&) noexcept -> ThreadPool& = default;
         ThreadPool(const ThreadPool&) = delete;
         auto operator=(const ThreadPool&) -> ThreadPool& = delete;
+
+        ThreadPool() = default;
+        explicit ThreadPool(uint32_t maxThreads);
+        ~ThreadPool();
+
+        ThreadPool(ThreadPool&&) noexcept;
+        auto operator=(ThreadPool&&) noexcept -> ThreadPool&;
 
         /**
          * @brief Execute a function asynchronously with low overhead
@@ -31,17 +33,6 @@ namespace trc::async
         auto async(Func func, Args&&... args) -> std::future<std::invoke_result_t<Func, Args...>>;
 
     private:
-        /** Spawn a new thread. Is called in execute(). */
-        void spawnThread();
-
-        /**
-         * Execute a function asynchronously.
-         *
-         * Tries to find an idle thread to execute the function with. If
-         * no such thread is available, it creates a new thread.
-         */
-        void execute(std::function<void()> func);
-
         /**
          * Locking and work-distribution mechanism for a single thread.
          * This is very complicated because the usage of condition_variables
@@ -56,10 +47,24 @@ namespace trc::async
             std::mutex mutex;
         };
 
+        /** Spawn a new thread. Is called in execute(). */
+        auto spawnThread() -> ThreadLock&;
+
+        /**
+         * Execute a function asynchronously.
+         *
+         * Tries to find an idle thread to execute the function with. If
+         * no such thread is available, it creates a new thread.
+         */
+        void execute(std::function<void()> func);
+
         std::vector<std::thread> threads;
         // Use unique_ptrs to make the thread pool reliably movable
         std::vector<std::unique_ptr<ThreadLock>> threadLocks;
+        std::mutex listLock;
 
+        // Maximum number of threads that can run simultaneously
+        uint32_t maxThreads{ UINT32_MAX };
         // Used to end all threads when the pool is destroyed
         bool stopAllThreads{ false };
     };
