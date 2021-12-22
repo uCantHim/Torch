@@ -3,15 +3,15 @@
 #include <vkb/VulkanBase.h>
 
 #include "Types.h"
-#include "Instance.h"
-#include "Window.h"
+#include "core/Instance.h"
+#include "core/Window.h"
+#include "core/DrawConfiguration.h"
 
 #include "Scene.h"
 #include "AssetRegistry.h"
 #include "drawable/Drawable.h"
 #include "drawable/DrawablePool.h"
 #include "Light.h"
-#include "DrawConfiguration.h"
 #include "DeferredRenderConfig.h"
 
 namespace trc

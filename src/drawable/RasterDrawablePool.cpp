@@ -1,6 +1,6 @@
 #include "drawable/RasterDrawablePool.h"
 
-#include "util/algorithm/VectorTransform.h"
+#include "trc_util/algorithm/VectorTransform.h"
 #include "TorchResources.h"
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"

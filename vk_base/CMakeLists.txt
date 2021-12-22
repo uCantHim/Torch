@@ -41,8 +41,6 @@ target_include_directories(
         ${CMAKE_CURRENT_LIST_DIR}/include
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/vkb
-    INTERFACE
-        ${CMAKE_CURRENT_LIST_DIR}/include/vkb
 )
 
 

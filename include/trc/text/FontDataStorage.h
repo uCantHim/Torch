@@ -2,7 +2,7 @@
 
 #include <vkb/MemoryPool.h>
 
-#include "Types.h"
+#include "../Types.h"
 #include "Font.h"
 
 namespace trc

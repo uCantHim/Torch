@@ -3,9 +3,9 @@
 #include <vkb/Swapchain.h>
 #include <vkb/Buffer.h>
 
-#include "DescriptorProvider.h"
+#include "core/DescriptorProvider.h"
 #include "Camera.h"
-#include "util/Padding.h"
+#include "trc_util/Padding.h"
 
 namespace trc
 {

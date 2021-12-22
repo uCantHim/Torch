@@ -5,7 +5,7 @@
 
 #include <vkb/Device.h>
 
-#include "Types.h"
+#include "../Types.h"
 
 namespace trc
 {

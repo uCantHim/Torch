@@ -2,7 +2,7 @@
 
 #include <vkb/FrameSpecificObject.h>
 
-#include "Types.h"
+#include "../Types.h"
 
 namespace trc
 {

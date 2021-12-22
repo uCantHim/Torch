@@ -4,8 +4,8 @@
 
 #include <vkb/Image.h>
 
-#include "Types.h"
-#include "text/GlyphLoading.h"
+#include "../Types.h"
+#include "GlyphLoading.h"
 
 namespace trc
 {

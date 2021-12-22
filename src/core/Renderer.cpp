@@ -3,8 +3,8 @@
 #include "Window.h"
 #include "DrawConfiguration.h"
 #include "TorchResources.h"
-#include "util/Util.h"
-#include "util/Timer.h"
+#include "trc_util/Util.h"
+#include "trc_util/Timer.h"
 
 
 

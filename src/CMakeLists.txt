@@ -8,8 +8,6 @@ target_sources(
         AssetRegistry.cpp
         Camera.cpp
         DeferredRenderConfig.cpp
-        DescriptorProvider.cpp
-        DescriptorProviderWrapper.cpp
         Framebuffer.cpp
         GBuffer.cpp
         Geometry.cpp
@@ -17,6 +15,7 @@ target_sources(
         LightRegistry.cpp
         Node.cpp
         PipelineDefinitions.cpp
+        RenderDataDescriptor.cpp
         RenderPassShadow.cpp
         RenderPassDeferred.cpp
         Rig.cpp
@@ -31,7 +30,6 @@ add_subdirectory(core)
 add_subdirectory(drawable)
 add_subdirectory(particle)
 add_subdirectory(asset_import)
-add_subdirectory(util)
 add_subdirectory(text)
 add_subdirectory(ray_tracing)
 add_subdirectory(experimental)

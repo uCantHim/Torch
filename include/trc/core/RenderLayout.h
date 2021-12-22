@@ -5,7 +5,7 @@
 #include <vkb/Device.h>
 #include <vkb/FrameSpecificObject.h>
 
-#include "util/async/ThreadPool.h"
+#include "trc_util/async/ThreadPool.h"
 #include "RenderStage.h"
 
 namespace trc

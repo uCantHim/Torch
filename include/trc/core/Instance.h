@@ -3,7 +3,7 @@
 #include <vkb/Instance.h>
 #include <vkb/Device.h>
 
-#include "Types.h"
+#include "../Types.h"
 
 namespace trc
 {

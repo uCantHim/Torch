@@ -1,8 +1,8 @@
-#include "util/data/ObjectId.h"
+#include "trc_util/data/ObjectId.h"
 
 
 
-auto trc::data::IdPool::generate() -> ui64
+auto trc::data::IdPool::generate() -> uint64_t
 {
     if (freeIds.empty()) {
         return nextId++;
@@ -19,7 +19,7 @@ auto trc::data::IdPool::generate() -> ui64
     }
 }
 
-void trc::data::IdPool::free(ui64 id)
+void trc::data::IdPool::free(uint64_t id)
 {
     std::lock_guard lock(freeIdsLock);
     freeIds.push_back(id);

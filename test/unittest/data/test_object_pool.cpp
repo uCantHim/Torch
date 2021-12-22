@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <trc/util/data/ObjectPool.h>
+#include <trc_util/data/ObjectPool.h>
 
 struct Dummy : public trc::data::PooledObject<Dummy> {};
 

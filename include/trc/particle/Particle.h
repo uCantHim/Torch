@@ -10,9 +10,9 @@
 #include "Types.h"
 #include "core/SceneBase.h"
 #include "core/PipelineTemplate.h"
-#include "util/Timer.h"
-#include "util/Util.h"
-#include "util/async/ThreadPool.h"
+#include "trc_util/Timer.h"
+#include "trc_util/Util.h"
+#include "trc_util/async/ThreadPool.h"
 #include "Node.h"
 
 namespace trc

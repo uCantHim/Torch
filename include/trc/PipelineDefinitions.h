@@ -2,8 +2,8 @@
 
 #include <vkb/Swapchain.h>
 
-#include "Pipeline.h"
-#include "PipelineRegistry.h"
+#include "core/Pipeline.h"
+#include "core/PipelineRegistry.h"
 
 /**
  * @brief Define a getter function for a pipeline type

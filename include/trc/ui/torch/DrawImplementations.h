@@ -3,9 +3,9 @@
 #include <map>
 
 #include <vkb/Buffer.h>
-#include "util/data/IndexMap.h"
 
-#include "Pipeline.h"
+#include "trc_util/data/IndexMap.h"
+#include "core/Pipeline.h"
 #include "text/GlyphMap.h"
 #include "ui/torch/DynamicBuffer.h"
 

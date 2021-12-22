@@ -5,7 +5,7 @@
 #include <vkb/Buffer.h>
 
 #include "Types.h"
-#include "DescriptorProvider.h"
+#include "core/DescriptorProvider.h"
 
 namespace trc
 {

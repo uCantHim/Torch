@@ -9,7 +9,7 @@
 #include "core/SceneBase.h"
 #include "core/RenderGraph.h"
 
-#include "DescriptorProviderWrapper.h"
+#include "core/DescriptorProviderWrapper.h"
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
 #include "RenderDataDescriptor.h"

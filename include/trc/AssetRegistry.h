@@ -6,12 +6,12 @@
 
 #include <vkb/Image.h>
 #include <vkb/MemoryPool.h>
-#include "util/data/IndexMap.h"
-#include "util/functional/Maybe.h"
 
 #include "Types.h"
-#include "util/Exception.h"
-#include "DescriptorProvider.h"
+#include "trc_util/Exception.h"
+#include "trc_util/data/IndexMap.h"
+#include "trc_util/functional/Maybe.h"
+#include "core/DescriptorProvider.h"
 #include "AssetIds.h"
 #include "Geometry.h"
 #include "Material.h"

@@ -4,7 +4,6 @@
 #include <mutex>
 #include <vector>
 
-#include "Types.h"
 #include "TypesafeId.h"
 
 namespace trc::data
@@ -13,23 +12,23 @@ namespace trc::data
 class IdPool
 {
 public:
-    auto generate() -> ui64;
-    void free(ui64 id);
+    auto generate() -> uint64_t;
+    void free(uint64_t id);
 
     void reset();
 
 private:
-    std::atomic<ui64> nextId{ 0 };
+    std::atomic<uint64_t> nextId{ 0 };
 
     std::mutex freeIdsLock;
-    std::vector<ui64> freeIds;
+    std::vector<uint64_t> freeIds;
 };
 
 template<typename Derived>
 class HasID
 {
 public:
-    using ID = TypesafeID<Derived, ui64>;
+    using ID = TypesafeID<Derived, uint64_t>;
     using id_type = ID;
 
     inline HasID();
@@ -69,7 +68,7 @@ template<typename Derived>
 inline HasID<Derived>::HasID(HasID&& other)
     : _id(other._id)
 {
-    other._id = ~ui64(0);
+    other._id = ~uint64_t(0);
 }
 
 template<typename Derived>
@@ -82,7 +81,7 @@ template<typename Derived>
 inline auto HasID<Derived>::operator=(HasID&& other) -> HasID&
 {
     _id = other._id;
-    other._id = ~ui64(0);
+    other._id = ~uint64_t(0);
     return *this;
 }
 

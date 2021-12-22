@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderStage.h"
+#include "core/RenderStage.h"
 
 namespace trc
 {

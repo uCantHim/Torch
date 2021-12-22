@@ -5,7 +5,7 @@
 
 #include <vkb/ShaderProgram.h>
 
-#include "Types.h"
+#include "../Types.h"
 #include "PipelineTemplate.h"
 #include "PipelineRegistry.h"
 

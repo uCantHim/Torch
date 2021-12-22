@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DescriptorProvider.h"
+#include "core/DescriptorProvider.h"
 
 namespace trc
 {
