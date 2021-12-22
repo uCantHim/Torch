@@ -7,7 +7,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-#include "../event/Keys.h"
+#include "event/Keys.h"
 
 namespace vkb
 {

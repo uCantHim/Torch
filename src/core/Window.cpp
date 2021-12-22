@@ -1,6 +1,6 @@
 #include "Window.h"
 
-#include <vkb/basics/Device.h>
+#include <vkb/Device.h>
 
 
 

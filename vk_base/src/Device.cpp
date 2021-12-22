@@ -1,9 +1,9 @@
-#include "basics/Device.h"
+#include "Device.h"
 
 #include <set>
 #include <iostream>
 
-#include "basics/VulkanDebug.h"
+#include "VulkanDebug.h"
 
 
 

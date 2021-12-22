@@ -2,8 +2,7 @@
 #include <iostream>
 
 #include <vkb/ImageUtils.h>
-#include <vkb/util/Timer.h>
-
+#include <trc/util/Timer.h>
 #include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
 #include <trc/TorchResources.h>

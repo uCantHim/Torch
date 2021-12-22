@@ -3,7 +3,7 @@
 #include <vector>
 #include <functional>
 
-#include "basics/Swapchain.h"
+#include "Swapchain.h"
 
 namespace vkb
 {

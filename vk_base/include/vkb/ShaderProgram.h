@@ -5,7 +5,7 @@
 #include <optional>
 #include <filesystem>
 
-#include "basics/Device.h"
+#include "Device.h"
 
 namespace vkb
 {

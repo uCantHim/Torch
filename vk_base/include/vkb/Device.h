@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "PhysicalDevice.h"
-#include "../QueueManager.h"
+#include "QueueManager.h"
 
 namespace vkb
 {

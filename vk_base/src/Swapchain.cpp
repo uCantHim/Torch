@@ -1,12 +1,12 @@
-#include "basics/Swapchain.h"
+#include "Swapchain.h"
 
 #include <stdexcept>
 #include <chrono>
 using namespace std::chrono;
 
-#include "basics/PhysicalDevice.h"
-#include "basics/Device.h"
-#include "basics/VulkanDebug.h"
+#include "PhysicalDevice.h"
+#include "Device.h"
+#include "VulkanDebug.h"
 #include "event/EventHandler.h"
 #include "event/InputEvents.h"
 #include "event/WindowEvents.h"

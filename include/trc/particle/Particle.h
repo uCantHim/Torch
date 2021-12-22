@@ -6,12 +6,11 @@
 #include <glm/gtc/quaternion.hpp>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
-#include <vkb/util/Timer.h>
 
 #include "Types.h"
 #include "core/SceneBase.h"
 #include "core/PipelineTemplate.h"
-
+#include "util/Timer.h"
 #include "util/Util.h"
 #include "util/async/ThreadPool.h"
 #include "Node.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../basics/Swapchain.h"
+#include "../Swapchain.h"
 
 namespace vkb
 {

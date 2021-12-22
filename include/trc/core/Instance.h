@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vkb/basics/Instance.h>
-#include <vkb/basics/Device.h>
+#include <vkb/Instance.h>
+#include <vkb/Device.h>
 
 #include "Types.h"
 

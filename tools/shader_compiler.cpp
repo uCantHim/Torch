@@ -4,8 +4,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include <vkb/basics/Device.h>
-#include <vkb/ShaderProgram.h>
 #include <trc/util/Exception.h>
 #include <trc/util/ArgParse.h>
 #include <trc/util/async/ThreadPool.h>

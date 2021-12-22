@@ -1,5 +1,9 @@
 #include "shader_edit/Document.h"
 
+#include <sstream>
+#include <iomanip>
+
+
 
 namespace shader_edit
 {

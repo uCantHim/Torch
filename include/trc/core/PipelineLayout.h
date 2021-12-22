@@ -3,7 +3,7 @@
 #include <vector>
 #include <tuple>
 
-#include <vkb/basics/Device.h>
+#include <vkb/Device.h>
 
 #include "Types.h"
 

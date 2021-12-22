@@ -1,8 +1,7 @@
 #pragma once
 
+#include <memory>
 #include <string>
-#include <filesystem>
-namespace fs = std::filesystem;
 
 namespace shader_edit
 {

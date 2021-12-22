@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#include "basics/VulkanDebug.h"
-#include "basics/Device.h"
+#include "VulkanDebug.h"
+#include "Device.h"
 
 
 

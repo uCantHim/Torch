@@ -6,7 +6,6 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
-#include <vkb/util/Timer.h>
 #include <vkb/event/Event.h>
 
 #include "RenderStage.h"
@@ -15,6 +14,7 @@
 #include "Framebuffer.h"
 #include "ui/Window.h"
 #include "ui/torch/GuiRenderer.h"
+#include "util/Timer.h"
 
 namespace trc
 {

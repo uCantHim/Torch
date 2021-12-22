@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <optional>
 
-#include "basics/PhysicalDevice.h"
+#include "PhysicalDevice.h"
 #include "ExclusiveQueue.h"
 
 namespace vkb
