@@ -1,6 +1,6 @@
-#include "shader_edit/CompileConfiguration.h"
+#include "CompileConfiguration.h"
 
-#include "shader_edit/ConfigParserJson.h"
+#include "ConfigParserJson.h"
 
 
 

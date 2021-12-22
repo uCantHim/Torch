@@ -1,4 +1,4 @@
-#include "shader_edit/Document.h"
+#include "ShaderDocument.h"
 
 #include <sstream>
 #include <iomanip>
@@ -8,31 +8,31 @@
 namespace shader_edit
 {
 
-Document::Document(std::istream& is)
-    : Document(parseShader(is))
+ShaderDocument::ShaderDocument(std::istream& is)
+    : ShaderDocument(parseShader(is))
 {
 }
 
-Document::Document(std::vector<std::string> lines)
-    : Document(parseShader(std::move(lines)))
+ShaderDocument::ShaderDocument(std::vector<std::string> lines)
+    : ShaderDocument(parseShader(std::move(lines)))
 {
 }
 
-Document::Document(ParseResult parseResult)
+ShaderDocument::ShaderDocument(ParseResult parseResult)
     :
     parseData(std::move(parseResult))
 {
 }
 
-void Document::set(const std::string& name, VariableValue value)
+void ShaderDocument::set(const std::string& name, VariableValue value)
 {
     variableValues[name] = std::move(value);
 }
 
-auto Document::permutate(const std::string& name, std::vector<VariableValue> values) const
-    -> std::vector<Document>
+auto ShaderDocument::permutate(const std::string& name, std::vector<VariableValue> values) const
+    -> std::vector<ShaderDocument>
 {
-    std::vector<Document> result;
+    std::vector<ShaderDocument> result;
     for (auto& value : values)
     {
         auto& copy = result.emplace_back(*this);
@@ -42,7 +42,7 @@ auto Document::permutate(const std::string& name, std::vector<VariableValue> val
     return result;
 }
 
-auto Document::compile() const -> std::string
+auto ShaderDocument::compile() const -> std::string
 {
     auto resultLines = parseData.lines;
     auto remainingVars = parseData.variablesByName;
@@ -90,20 +90,20 @@ auto Document::compile() const -> std::string
 
 
 
-auto permutate(const Document& doc,
+auto permutate(const ShaderDocument& doc,
                const std::string& name,
                std::vector<VariableValue> values)
-    -> std::vector<Document>
+    -> std::vector<ShaderDocument>
 {
     return doc.permutate(name, std::move(values));
 }
 
-auto permutate(const std::vector<Document>& docs,
+auto permutate(const std::vector<ShaderDocument>& docs,
                const std::string& name,
                std::vector<VariableValue> values)
-    -> std::vector<Document>
+    -> std::vector<ShaderDocument>
 {
-    std::vector<Document> result;
+    std::vector<ShaderDocument> result;
     for (const auto& doc : docs)
     {
         auto newDocs = permutate(doc, name, values);
@@ -116,7 +116,7 @@ auto permutate(const std::vector<Document>& docs,
     return result;
 }
 
-auto compile(const std::vector<Document>& docs) -> std::vector<std::string>
+auto compile(const std::vector<ShaderDocument>& docs) -> std::vector<std::string>
 {
     std::vector<std::string> result;
     for (const auto& doc : docs) {

@@ -27,5 +27,5 @@ target_include_directories(torch_util
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc_util
 )
-target_compile_options(torch_util PUBLIC -Wall -Wextra -Wpedantic)
+target_compile_options(torch_util PRIVATE -Wall -Wextra -Wpedantic)
 target_compile_features(torch_util PUBLIC cxx_std_20)

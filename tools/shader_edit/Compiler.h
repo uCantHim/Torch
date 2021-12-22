@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CompileConfiguration.h"
-#include "Document.h"
+#include "ShaderDocument.h"
 
 namespace shader_edit
 {

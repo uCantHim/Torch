@@ -30,24 +30,15 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 # Required third-party
 include(FetchContent)
 
-find_package(nlohmann_json REQUIRED)
 find_package(Freetype REQUIRED)
-
-if (NOT TARGET shaderc)
-    FetchContent_Declare(
-        shaderc
-        GIT_REPOSITORY https://github.com/google/shaderc
-        GIT_TAG        657c5ed2ba1714c0430895a274a94d6f2aeeab85
-        PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
-    )
-    option(SHADERC_SKIP_TESTS "" ON)
-    option(SHADERC_SKIP_EXAMPLES "" ON)
-    FetchContent_MakeAvailable(shaderc)
-endif()
 
 if (TARGET profiler)
     set(HAS_PROFILER TRUE)
 endif()
+
+# Tools
+add_subdirectory(torch_util)
+add_subdirectory(tools)
 
 # Library target
 add_library(torch)
@@ -55,20 +46,16 @@ add_library(torch)
 target_include_directories(torch
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
-
-    PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
-        ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
-    INTERFACE
+    PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
         ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
 )
 
 target_link_libraries(
     torch PUBLIC
+    torch_util
     vk_base
-    shaderc
-    nlohmann_json::nlohmann_json
     Freetype::Freetype
     $<$<AND:$<BOOL:${HAS_PROFILER}>,$<BOOL:${TORCH_DEBUG}>>:profiler>
 )
@@ -81,7 +68,6 @@ target_compile_definitions(
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)
-add_subdirectory(tools)
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})

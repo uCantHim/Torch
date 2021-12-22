@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Parser.h"
+#include "ShaderDocumentParser.h"
 #include "VariableValue.h"
-#include "util/Exception.h"
+#include "trc_util/Exception.h"
 
 namespace shader_edit
 {
@@ -15,14 +15,14 @@ namespace shader_edit
     /**
      * @brief A parsed document that contains variables
      */
-    class Document
+    class ShaderDocument
     {
     public:
-        Document() = default;
+        ShaderDocument() = default;
 
-        explicit Document(std::istream& is);
-        explicit Document(std::vector<std::string> lines);
-        explicit Document(ParseResult parseResult);
+        explicit ShaderDocument(std::istream& is);
+        explicit ShaderDocument(std::vector<std::string> lines);
+        explicit ShaderDocument(ParseResult parseResult);
 
         /**
          * @brief Set the value of a variable
@@ -33,14 +33,14 @@ namespace shader_edit
          * @brief Permutate on a variable
          */
         auto permutate(const std::string& name, std::vector<VariableValue> values) const
-            -> std::vector<Document>;
+            -> std::vector<ShaderDocument>;
 
         /**
          * @brief Permutate on a variable
          */
         template<Renderable T>
         inline auto permutate(const std::string& name, std::vector<T> values) const
-            -> std::vector<Document>;
+            -> std::vector<ShaderDocument>;
 
         /**
          * @brief Compile variable settings into one or more documents
@@ -59,37 +59,37 @@ namespace shader_edit
 
 
 
-    auto permutate(const Document& doc,
+    auto permutate(const ShaderDocument& doc,
                    const std::string& name,
                    std::vector<VariableValue> values)
-        -> std::vector<Document>;
+        -> std::vector<ShaderDocument>;
 
     template<Renderable T>
-    auto permutate(const Document& doc,
+    auto permutate(const ShaderDocument& doc,
                    const std::string& name,
                    std::vector<T> values)
-        -> std::vector<Document>;
+        -> std::vector<ShaderDocument>;
 
-    auto permutate(const std::vector<Document>& docs,
+    auto permutate(const std::vector<ShaderDocument>& docs,
                    const std::string& name,
                    std::vector<VariableValue> values)
-        -> std::vector<Document>;
+        -> std::vector<ShaderDocument>;
 
     template<Renderable T>
-    auto permutate(const std::vector<Document>& docs,
+    auto permutate(const std::vector<ShaderDocument>& docs,
                    const std::string& name,
                    std::vector<T> values)
-        -> std::vector<Document>;
+        -> std::vector<ShaderDocument>;
 
-    auto compile(const std::vector<Document>& docs) -> std::vector<std::string>;
+    auto compile(const std::vector<ShaderDocument>& docs) -> std::vector<std::string>;
 
 
 
     template<Renderable T>
-    inline auto permutate(const Document& doc,
+    inline auto permutate(const ShaderDocument& doc,
                           const std::string& name,
                           std::vector<T> values)
-        -> std::vector<Document>
+        -> std::vector<ShaderDocument>
     {
         std::vector<VariableValue> result;
         for (T& value : values) {
@@ -100,10 +100,10 @@ namespace shader_edit
     }
 
     template<Renderable T>
-    inline auto permutate(const std::vector<Document>& docs,
+    inline auto permutate(const std::vector<ShaderDocument>& docs,
                           const std::string& name,
                           std::vector<T> values)
-        -> std::vector<Document>
+        -> std::vector<ShaderDocument>
     {
         std::vector<VariableValue> result;
         for (T& value : values) {
@@ -114,8 +114,8 @@ namespace shader_edit
     }
 
     template<Renderable T>
-    inline auto Document::permutate(const std::string& name, std::vector<T> values) const
-        -> std::vector<Document>
+    inline auto ShaderDocument::permutate(const std::string& name, std::vector<T> values) const
+        -> std::vector<ShaderDocument>
     {
         return permutate(*this, name, std::move(values));
     }

@@ -98,11 +98,11 @@ void vkb::VulkanDebug::vulkanDebugCallback(
     switch (messageSeverity)
     {
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-        std::cerr << "A " << vk::to_string(messageType) << " error occured."
+        std::cerr << "A Vulkan " << vk::to_string(messageType) << " error occured."
             << " Check the error log for additional details.\n";
         std::cerr << callbackData.pMessage << "\n";
 
-        ss << "A " + vk::to_string(messageType) + " error occured:\n";
+        ss << "A Vulkan " + vk::to_string(messageType) + " error occured:\n";
         ss << callbackData.pMessage << "\n";
         ss << "Involved objects:\n";
         for (uint32_t i = 0; i < callbackData.objectCount; i++)
@@ -114,7 +114,7 @@ void vkb::VulkanDebug::vulkanDebugCallback(
         }
 
         vkErrorLog << ss.rdbuf();
-        throw std::runtime_error(ss.str());
+        throw std::runtime_error("A Vulkan " + vk::to_string(messageType) + " error occured");
         break;
 
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:

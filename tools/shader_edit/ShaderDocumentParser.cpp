@@ -1,9 +1,9 @@
-#include "shader_edit/Parser.h"
+#include "ShaderDocumentParser.h"
 
 #include <optional>
 #include <iostream>
 
-#include "shader_edit/StringUtil.h"
+#include "StringUtil.h"
 
 
 

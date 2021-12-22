@@ -4,16 +4,16 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include <trc/util/Exception.h>
-#include <trc/util/ArgParse.h>
-#include <trc/util/async/ThreadPool.h>
+#include <trc_util/Exception.h>
+#include <trc_util/ArgParse.h>
+#include <trc_util/async/ThreadPool.h>
 #include <nlohmann/json.hpp>
 namespace nl = nlohmann;
 
-#include <trc/shader_edit/Logger.h>
-#include <trc/shader_edit/Compiler.h>
-#include <trc/shader_edit/ConfigParserJson.h>
-#include <trc/shader_edit/GenerateSpirv.h>
+#include "Logger.h"
+#include "Compiler.h"
+#include "ConfigParserJson.h"
+#include "GenerateSpirv.h"
 using namespace shader_edit;
 
 constexpr const char* EXECUTABLE_NAME{ "shader_compiler" };

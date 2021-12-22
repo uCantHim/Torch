@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include <trc/shader_edit/Parser.h>
-#include <trc/shader_edit/Document.h>
+#include <ShaderDocumentParser.h>
+#include <ShaderDocument.h>
 
 using namespace shader_edit;
 
@@ -28,7 +28,7 @@ auto stringFromFile(const std::string& path) -> std::string
 TEST(ShaderEdit, ReplaceVariable)
 {
     std::ifstream file(DATADIR"/test_single_variable.vert");
-    Document document(file);
+    ShaderDocument document(file);
 
     document.set("vertex_location", "layout (location = 0)");
 
@@ -40,7 +40,7 @@ TEST(ShaderEdit, ReplaceVariable)
 TEST(ShaderEdit, CustomRenderable)
 {
     std::ifstream file(DATADIR"/test_single_variable.vert");
-    Document document(file);
+    ShaderDocument document(file);
 
     document.set("vertex_location", CustomLocation{ 0 });
 
@@ -52,7 +52,7 @@ TEST(ShaderEdit, CustomRenderable)
 TEST(ShaderEdit, UnsetVariableThrows)
 {
     std::ifstream file(DATADIR"/test_single_variable.vert");
-    Document document(file);
+    ShaderDocument document(file);
 
     ASSERT_THROW(document.compile(), shader_edit::CompileError);
 }
@@ -61,10 +61,10 @@ TEST(ShaderEdit, NestedPermutation)
 {
     std::ifstream file(DATADIR"/test_permutations.vert");
 
-    Document document(file);
+    ShaderDocument document(file);
     document.set("var", "Hello World!");
 
-    std::vector<Document> docs;
+    std::vector<ShaderDocument> docs;
     docs = permutate(document, "permutation", { "Permutation #1", "Permutation #2" });
     docs = permutate(docs, "nested", { "Nested #1", "Nested #2", "Nested #3" });
     docs = permutate(docs, "inner", { "Foo", "Bar" });

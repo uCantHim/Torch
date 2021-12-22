@@ -1,8 +1,8 @@
-#include "shader_edit/ConfigParserJson.h"
+#include "ConfigParserJson.h"
 
 #include <iostream>
 
-#include "shader_edit/Logger.h"
+#include "Logger.h"
 
 using namespace shader_edit;
 

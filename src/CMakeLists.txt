@@ -33,6 +33,3 @@ add_subdirectory(asset_import)
 add_subdirectory(text)
 add_subdirectory(ray_tracing)
 add_subdirectory(experimental)
-
-# Shader editing library
-add_subdirectory(shader_edit)

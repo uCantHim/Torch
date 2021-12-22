@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "util/Exception.h"
+#include "trc_util/Exception.h"
 #include "CompileConfiguration.h"
 
 namespace shader_edit

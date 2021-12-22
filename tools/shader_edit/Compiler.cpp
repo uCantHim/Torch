@@ -1,9 +1,8 @@
-#include "shader_edit/Compiler.h"
+#include "Compiler.h"
 
 #include <fstream>
 
-#include "shader_edit/Document.h"
-#include "shader_edit/Logger.h"
+#include "Logger.h"
 
 
 
@@ -44,7 +43,7 @@ auto shader_edit::Compiler::compileShader(
         throw CompileError("Shader file \"" + shader.inputFilePath.string() + "\" does not exist");
     }
 
-    std::vector<Document> documents{ Document(file) };
+    std::vector<ShaderDocument> documents{ ShaderDocument(file) };
     std::vector<std::string> uniqueNames{ shader.outputFileName };
 
     // Create permutations

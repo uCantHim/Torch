@@ -1,4 +1,4 @@
-#include "shader_edit/ShaderCodeSource.h"
+#include "ShaderCodeSource.h"
 
 #include <sstream>
 #include <fstream>
