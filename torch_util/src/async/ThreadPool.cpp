@@ -86,12 +86,20 @@ void trc::async::ThreadPool::execute(std::function<void()> func)
     }
 
     // maxThreads has been reached, wait for thread to become available
-    while (idleWorkers.empty());  // DO NOT acquire the idleWorkerListLock before this!
-    std::scoped_lock lock(idleWorkerListLock);
-    assert(!idleWorkers.empty());  // I don't know if this is always the case
+    auto canProceed = [&] {
+        while (true)
+        {
+            std::unique_lock lock(idleWorkerListLock);
+            if (!idleWorkers.empty() && !idleWorkers.back()->isWorking()) {
+                return lock;
+            }
+        }
+    }();
+    assert(!idleWorkers.empty());
+    assert(idleWorkers.back() != nullptr);
+    assert(!idleWorkers.back()->isWorking());
 
     // Thread is available - dispatch work to it
-    while (idleWorkers.back()->isWorking());
     idleWorkers.back()->signalWork(std::move(work));
     idleWorkers.pop_back();
 }
@@ -115,13 +123,16 @@ trc::async::ThreadPool::WorkerThread::WorkerThread(std::function<void(WorkerThre
         while (!stopThread)
         {
             std::unique_lock lock(mutex);
-            cvar.wait(lock, [this]() { return hasWork; });
+            cvar.wait(lock, [this]() { return hasWork || stopThread; });
+            if (stopThread) break;
 
             // Do the actual work
             work(*this);
 
             hasWork = false;
         }
+
+        hasWork = false;
     })
 {
 }
@@ -144,9 +155,8 @@ bool trc::async::ThreadPool::WorkerThread::isWorking() const
 void trc::async::ThreadPool::WorkerThread::stop()
 {
     stopThread = true;
-    if (!isWorking()) {
-        signalWork([](auto&){});
-    }
+    std::scoped_lock lock(mutex);
+    cvar.notify_one();
 }
 
 void trc::async::ThreadPool::WorkerThread::join()
