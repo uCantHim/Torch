@@ -165,6 +165,7 @@ void trc::ParticleCollection::update(const float timeDelta)
 
     // Transfer from staging to main buffer must be completed before the
     // updater writes to the staging buffer again.
+    [[maybe_unused]]
     auto result = instance.getDevice()->waitForFences(*transferFence, true, UINT64_MAX);
     assert(result == vk::Result::eSuccess);
     instance.getDevice()->resetFences(*transferFence);

@@ -98,7 +98,14 @@ void vkb::Device::executeGraphicsCommandBufferSynchronously(vk::CommandBuffer cm
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );
-    assert(device->waitForFences(*fence, true, UINT64_MAX) == vk::Result::eSuccess);
+
+    if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess)
+    {
+        throw std::runtime_error(
+            "[In Device::executeGraphicsCommandBufferSynchronously]: waitForFences did not return"
+            " vk::Result::eSuccess when waiting for queue submission."
+        );
+    }
 }
 
 auto vkb::Device::createTransferCommandBuffer(vk::CommandBufferLevel level) const
@@ -122,5 +129,12 @@ void vkb::Device::executeTransferCommandBufferSyncronously(vk::CommandBuffer cmd
         vk::SubmitInfo(0, nullptr, nullptr, 1, &cmdBuf),
         *fence
     );
-    assert(device->waitForFences(*fence, true, UINT64_MAX) == vk::Result::eSuccess);
+
+    if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess)
+    {
+        throw std::runtime_error(
+            "[In Device::executeTransferCommandBufferSyncronously]: waitForFences did not return"
+            " vk::Result::eSuccess when waiting for queue submission."
+        );
+    }
 }

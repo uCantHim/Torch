@@ -1,4 +1,5 @@
 add_subdirectory(shader_edit)
 
 add_executable(shader_compiler shader_compiler.cpp)
+torch_default_compile_options(shader_compiler)
 target_link_libraries(shader_compiler PRIVATE torch_util shader_compiler_lib)

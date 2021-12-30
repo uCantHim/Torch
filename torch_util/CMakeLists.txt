@@ -21,11 +21,10 @@ add_library(torch_util STATIC
     src/async/ThreadPool.cpp
     src/data/ObjectId.cpp
 )
+torch_default_compile_options(torch_util)
 target_include_directories(torch_util
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc_util
 )
-target_compile_options(torch_util PRIVATE -Wall -Wextra -Wpedantic)
-target_compile_features(torch_util PUBLIC cxx_std_20)

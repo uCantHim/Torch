@@ -22,7 +22,7 @@ PipelineStorage<T>::PipelineStorage(
 
 template<typename T>
 void PipelineStorage<T>::notifyNewPipeline(
-    Pipeline::ID id,
+    [[maybe_unused]] Pipeline::ID id,
     FactoryType& factory)
 {
     assert(id == pipelines.size());

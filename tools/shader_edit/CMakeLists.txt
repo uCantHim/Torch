@@ -15,6 +15,7 @@ endif()
 
 # Library
 add_library(shader_compiler_lib STATIC)
+torch_default_compile_options(shader_compiler_lib)
 
 target_sources(shader_compiler_lib PRIVATE
     Compiler.cpp

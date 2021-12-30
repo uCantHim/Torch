@@ -19,16 +19,11 @@ option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Debug settings
-if (${TORCH_DEBUG})
-    set(CMAKE_BUILD_TYPE Debug)
-else ()
-    set(CMAKE_BUILD_TYPE Release)
-endif ()
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
+set(TORCH_DEBUG $<$<CONFIG:Debug>:ON>)
 
 # Required third-party
 include(FetchContent)
+include(cmake/utils.cmake)
 
 find_package(Freetype REQUIRED)
 
@@ -42,6 +37,7 @@ add_subdirectory(tools)
 
 # Library target
 add_library(torch)
+torch_default_compile_options(torch)
 
 target_include_directories(torch
     PUBLIC
@@ -57,12 +53,14 @@ target_link_libraries(
     torch_util
     vk_base
     Freetype::Freetype
-    $<$<AND:$<BOOL:${HAS_PROFILER}>,$<BOOL:${TORCH_DEBUG}>>:profiler>
+    $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
 )
 
 target_compile_definitions(
     torch PUBLIC
-    $<$<BOOL:TORCH_FLIP_Y_AXIS>:TRC_FLIP_Y_PROJECTION>
+    TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
+    $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
+    $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
 )
 
 add_subdirectory(shaders)
@@ -112,23 +110,9 @@ endif ()
 # Optional assimp stuff
 cmake_policy(PUSH)
 cmake_policy(SET CMP0012 NEW)
-find_package(assimp QUIET)
+find_package(assimp)
 if (${assimp_FOUND})
     target_link_libraries(torch PUBLIC ${ASSIMP_LIBRARIES})
     target_compile_definitions(torch PUBLIC TRC_USE_ASSIMP)
 endif ()
 cmake_policy(POP)
-
-#################
-# Compile options
-target_compile_definitions(torch PUBLIC
-    TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
-)
-target_compile_options(torch PUBLIC -fPIC)
-target_compile_features(torch PUBLIC cxx_std_20)
-
-if (NOT MSVC)
-    target_compile_options(torch PRIVATE -Wall -Wextra -Wpedantic)
-else()
-    target_compile_options(torch PRIVATE /W4)
-endif()
