@@ -1,5 +1,9 @@
 #include "trc_util/async/ThreadPool.h"
 
+#include <cassert>
+#include <ranges>
+#include <algorithm>
+
 
 
 trc::async::ThreadPool::ThreadPool(uint32_t maxThreads)
@@ -11,92 +15,142 @@ trc::async::ThreadPool::ThreadPool(ThreadPool&& other) noexcept
     :
     maxThreads(other.maxThreads)
 {
-    std::scoped_lock lock(other.listLock);
-
-    threads = std::move(other.threads);
-    threadLocks = std::move(other.threadLocks);
+    std::scoped_lock lock(workerListLock, other.workerListLock);
+    workers = std::move(other.workers);
 }
 
 auto trc::async::ThreadPool::operator=(ThreadPool&& rhs) noexcept -> ThreadPool&
 {
     if (this != &rhs)
     {
-        std::scoped_lock lock(listLock, rhs.listLock);
-
+        std::scoped_lock lock(workerListLock, rhs.workerListLock);
         maxThreads = rhs.maxThreads;
-        threads = std::move(rhs.threads);
-        threadLocks = std::move(rhs.threadLocks);
+        workers = std::move(rhs.workers);
     }
     return *this;
 }
 
 trc::async::ThreadPool::~ThreadPool()
 {
-    std::scoped_lock lock(listLock);
-    stopAllThreads = true;
-    for (auto& lock : threadLocks)
-    {
-        std::lock_guard lk(lock->mutex);
-        if (lock->hasWork) continue;
-        lock->work = []() {};
-        lock->hasWork = true;
-        lock->cvar.notify_one();
-    }
+    std::scoped_lock lock(workerListLock);
 
-    for (auto& thread : threads)
-    {
-        thread.join();
-    }
+    for (auto& worker : workers) worker->stop();
+    for (auto& worker : workers) worker->join();
 }
 
-auto trc::async::ThreadPool::spawnThread() -> ThreadLock&
+void trc::async::ThreadPool::trim()
 {
-    std::scoped_lock _lock(listLock);
+    std::scoped_lock lock(idleWorkerListLock, workerListLock);
+    for (WorkerThread* thread : idleWorkers)
+    {
+        assert(thread != nullptr);
+        thread->join();
 
-    auto& lock = *threadLocks.emplace_back(new ThreadLock);
-    threads.emplace_back([this, &lock]() {
-        do {
-            std::unique_lock mutexLock(lock.mutex);
-            lock.cvar.wait(mutexLock, [&lock]() { return lock.hasWork; });
+        auto it = std::remove_if(workers.begin(), workers.end(),
+                                 [&](const auto& other) { return thread == other.get(); });
+        assert(it != workers.end());
+        workers.erase(it);
+    }
+    idleWorkers.clear();
+}
 
-            // Do the actual work
-            lock.work();
+auto trc::async::ThreadPool::spawnThread(std::function<void(WorkerThread&)> initialWork)
+    -> WorkerThread&
+{
+    assert(workers.size() < maxThreads);
 
-            lock.work = []{};
-            lock.hasWork = false;
-        } while (!stopAllThreads);
-    });
-    return lock;
+    std::scoped_lock _lock(workerListLock);
+    return *workers.emplace_back(new WorkerThread(std::move(initialWork)));
 }
 
 void trc::async::ThreadPool::execute(std::function<void()> func)
 {
+    // Wrapper around the actual work that puts the worker into the idle
+    // list after the work is done.
+    auto work = [this, work=std::move(func)](WorkerThread& thread)
     {
-        std::scoped_lock _lock(listLock);
-        for (auto& threadLock : threadLocks)
+        work();
+
+        // The following happens slightly before hasWork is set to false
+        // in the worker thread, that's why we have to wait when signaling
+        // new work below
+        std::scoped_lock lock(idleWorkerListLock);
+        idleWorkers.emplace_back(&thread);
+    };
+
+    // Spawn a new thread if none are idle and if there is enough space
+    if (idleWorkers.empty() && workers.size() < maxThreads)
+    {
+        spawnThread(std::move(work));
+        return;
+    }
+
+    // maxThreads has been reached, wait for thread to become available
+    while (idleWorkers.empty());  // DO NOT acquire the idleWorkerListLock before this!
+    std::scoped_lock lock(idleWorkerListLock);
+    assert(!idleWorkers.empty());  // I don't know if this is always the case
+
+    // Thread is available - dispatch work to it
+    while (idleWorkers.back()->isWorking());
+    idleWorkers.back()->signalWork(std::move(work));
+    idleWorkers.pop_back();
+}
+
+
+
+// ------------------------ //
+//      Worker Thread       //
+// ------------------------ //
+
+trc::async::ThreadPool::WorkerThread::WorkerThread(std::function<void(WorkerThread&)> initialWork)
+    :
+    thread([this, initialWork=std::move(initialWork)]
+    {
+        hasWork = true;
+        // Execute initial work, no matter in which state the stopAllThreads
+        // flag is.
+        initialWork(*this);
+        hasWork = false;
+
+        while (!stopThread)
         {
-            if (threadLock->hasWork) continue;
+            std::unique_lock lock(mutex);
+            cvar.wait(lock, [this]() { return hasWork; });
 
-            std::lock_guard lock(threadLock->mutex);
-            threadLock->work = std::move(func);
-            threadLock->hasWork = true;
-            threadLock->cvar.notify_one();
+            // Do the actual work
+            work(*this);
 
-            return;
+            hasWork = false;
         }
-    }
+    })
+{
+}
 
-    // Did not find a thread ready for execution, create a new one
-    if (maxThreads > threads.size())
-    {
-        auto& lock = spawnThread();
+void trc::async::ThreadPool::WorkerThread::signalWork(std::function<void(WorkerThread&)> newWork)
+{
+    assert(!isWorking());
 
-        std::lock_guard _lock(lock.mutex);
-        lock.work = std::move(func);
-        lock.hasWork = true;
-        lock.cvar.notify_one();
+    std::scoped_lock lock(mutex);
+    work = std::move(newWork);
+    hasWork = true;
+    cvar.notify_one();
+}
+
+bool trc::async::ThreadPool::WorkerThread::isWorking() const
+{
+    return hasWork;
+}
+
+void trc::async::ThreadPool::WorkerThread::stop()
+{
+    stopThread = true;
+    if (!isWorking()) {
+        signalWork([](auto&){});
     }
-    else {
-        execute(std::move(func));
-    }
+}
+
+void trc::async::ThreadPool::WorkerThread::join()
+{
+    stop();
+    thread.join();
 }
