@@ -1,9 +1,8 @@
 #include "DeferredRenderConfig.h"
 
-#include <vkb/util/Timer.h>
-
 #include "core/Window.h"
 #include "core/DrawConfiguration.h"
+#include "trc_util/Timer.h"
 #include "TorchResources.h"
 #include "RenderPassDeferred.h"
 #include "PipelineDefinitions.h"  // TODO: Enums are here - remove this

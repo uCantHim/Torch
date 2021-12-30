@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <trc/util/functional/Maybe.h>
+#include <trc_util/functional/Maybe.h>
 
 namespace trc {
     using namespace functional;

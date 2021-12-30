@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <vkb/basics/Swapchain.h>
+#include <vkb/Swapchain.h>
 
 #include "Instance.h"
 #include "Renderer.h"

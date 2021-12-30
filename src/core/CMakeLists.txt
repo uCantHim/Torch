@@ -1,6 +1,8 @@
 target_sources(
     torch
     PRIVATE
+        DescriptorProvider.cpp
+        DescriptorProviderWrapper.cpp
         DynamicRenderPassContainer.cpp
         Instance.cpp
         Pipeline.cpp
@@ -11,7 +13,6 @@ target_sources(
         PipelineTemplate.cpp
         Renderer.cpp
         RenderConfiguration.cpp
-        RenderDataDescriptor.cpp
         RenderGraph.cpp
         RenderLayout.cpp
         RenderPass.cpp

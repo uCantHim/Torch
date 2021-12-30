@@ -3,7 +3,7 @@
 #include <vkb/Image.h>
 
 #include "core/Window.h"
-#include "DescriptorProvider.h"
+#include "core/DescriptorProvider.h"
 
 namespace trc::rt
 {

@@ -1,6 +1,6 @@
 #include "ray_tracing/RayPipelineBuilder.h"
 
-#include <vkb/basics/Device.h>
+#include <vkb/Device.h>
 #include <vkb/ShaderProgram.h>
 
 

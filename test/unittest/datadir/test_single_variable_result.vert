@@ -1,6 +1,6 @@
 #version 460
 
-layout (location = 0)    // vertex_location
+layout (location = 0)
 in vec3 vertexPosition;
 
 layout (push_constant) uniform PushConstants {

@@ -1,18 +1,20 @@
-add_subdirectory(basics)
 add_subdirectory(event)
-add_subdirectory(util)
 
 target_sources(
     vk_base
     PRIVATE
         Buffer.cpp
+        Device.cpp
         ExclusiveQueue.cpp
-        Memory.cpp
+        Instance.cpp
         Image.cpp
         ImageUtils.cpp
-        Logger.cpp
+        Memory.cpp
         MemoryPool.cpp
+        PhysicalDevice.cpp
         QueueManager.cpp
         ShaderProgram.cpp
+        Swapchain.cpp
         VulkanBase.cpp
+        VulkanDebug.cpp
 )

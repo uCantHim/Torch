@@ -2,7 +2,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include "VulkanInclude.h"
+#include "../VulkanInclude.h"
 
 namespace vkb
 {

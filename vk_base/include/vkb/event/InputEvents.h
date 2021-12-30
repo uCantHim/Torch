@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Keys.h"
-#include "../basics/Swapchain.h"
+#include "../Swapchain.h"
 
 namespace vkb
 {

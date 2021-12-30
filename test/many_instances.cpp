@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include <glm/gtc/random.hpp>
-#include <vkb/util/Timer.h>
+#include <trc_util/Timer.h>
 #include <trc/Torch.h>
 
 using namespace trc::basic_types;

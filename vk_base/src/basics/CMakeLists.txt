@@ -1,9 +1,0 @@
-target_sources(
-    vk_base
-    PRIVATE
-        Device.cpp
-        Instance.cpp
-        PhysicalDevice.cpp
-        Swapchain.cpp
-        VulkanDebug.cpp
-)

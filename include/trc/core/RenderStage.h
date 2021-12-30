@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Types.h"
-#include "util/data/ObjectId.h"
+#include "../Types.h"
+#include "trc_util/data/ObjectId.h"
 
 namespace trc
 {

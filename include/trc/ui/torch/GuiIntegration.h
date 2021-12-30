@@ -6,12 +6,12 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
-#include <vkb/util/Timer.h>
 #include <vkb/event/Event.h>
 
-#include "RenderStage.h"
-#include "RenderPass.h"
-#include "Pipeline.h"
+#include "trc_util/Timer.h"
+#include "core/RenderStage.h"
+#include "core/RenderPass.h"
+#include "core/Pipeline.h"
 #include "Framebuffer.h"
 #include "ui/Window.h"
 #include "ui/torch/GuiRenderer.h"

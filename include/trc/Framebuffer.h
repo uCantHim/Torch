@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vkb/basics/Swapchain.h>
+#include <vkb/Swapchain.h>
 #include <vkb/Image.h>
 
 #include "Types.h"

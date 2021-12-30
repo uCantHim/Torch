@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vkb/basics/Swapchain.h>
+#include <vkb/Swapchain.h>
 #include <imgui.h>
 
 #include "core/Window.h"

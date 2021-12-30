@@ -4,7 +4,7 @@
 #include <vector>
 #include <any>
 
-#include "Types.h"
+#include "../Types.h"
 #include "RenderConfiguration.h"
 
 namespace trc

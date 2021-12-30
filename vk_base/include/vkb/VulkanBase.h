@@ -1,10 +1,10 @@
 #pragma once
 
-#include "basics/Instance.h"
-#include "basics/VulkanDebug.h"
-#include "basics/PhysicalDevice.h"
-#include "basics/Device.h"
-#include "basics/Swapchain.h"
+#include "Instance.h"
+#include "VulkanDebug.h"
+#include "PhysicalDevice.h"
+#include "Device.h"
+#include "Swapchain.h"
 
 #include "Memory.h"
 #include "MemoryPool.h"

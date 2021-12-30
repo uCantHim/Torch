@@ -8,8 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "util/functional/Maybe.h"
-#include "util/data/TypesafeId.h"
+#include "trc_util/functional/Maybe.h"
+#include "trc_util/data/TypesafeId.h"
 
 /**
  * @brief Defines useful basic types

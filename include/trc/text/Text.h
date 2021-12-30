@@ -5,7 +5,7 @@
 #include <vkb/Buffer.h>
 
 #include "core/SceneBase.h"
-#include "Pipeline.h"
+#include "core/Pipeline.h"
 #include "AssetIds.h"
 #include "Node.h"
 #include "Font.h"

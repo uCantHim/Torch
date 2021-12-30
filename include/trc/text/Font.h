@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "DescriptorProvider.h"
+#include "../core/DescriptorProvider.h"
 #include "GlyphMap.h"
 
 namespace trc

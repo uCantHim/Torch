@@ -4,11 +4,11 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 
-#include "RenderPass.h"
+#include "core/RenderPass.h"
+#include "core/DescriptorProvider.h"
 #include "Framebuffer.h"
 #include "Camera.h"
 #include "GBuffer.h"
-#include "DescriptorProvider.h"
 
 namespace trc
 {

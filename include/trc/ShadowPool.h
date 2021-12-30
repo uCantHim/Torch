@@ -5,12 +5,12 @@
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
-#include "util/data/ObjectId.h"
+#include "trc_util/data/ObjectId.h"
 
 #include "Types.h"
 #include "core/Instance.h"
+#include "core/DescriptorProvider.h"
 #include "Framebuffer.h"
-#include "DescriptorProvider.h"
 #include "Camera.h"
 #include "RenderPassShadow.h"
 

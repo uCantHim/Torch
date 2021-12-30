@@ -2,7 +2,7 @@
 
 #include <vkb/ShaderProgram.h>
 
-#include "util/Util.h"
+#include "trc_util/Util.h"
 #include "DescriptorSetUtils.h"
 #include "AssetRegistry.h"
 #include "ray_tracing/RayPipelineBuilder.h"

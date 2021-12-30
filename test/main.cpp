@@ -6,7 +6,7 @@ using namespace std::chrono;
 
 #include <glm/gtc/random.hpp>
 
-#include <vkb/basics/Device.h>
+#include <vkb/Device.h>
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
 #include <vkb/ImageUtils.h>
@@ -45,7 +45,6 @@ void run()
 
     auto grassGeoIndex = ar.add(grassImport.meshes[0].mesh);
     auto treeGeoIndex = ar.add(treeImport.meshes[0].mesh);
-    auto mapGeoIndex = ar.add(mapImport.meshes[0].mesh);
 
     auto mapMatIndex = ar.add(mapImport.meshes[0].materials[0]);
 
@@ -133,10 +132,12 @@ void run()
 
     // Generated plane geo
     auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
-    auto myPlane = pool.create({ myPlaneGeoIndex, mapMatIndex });
+    pool.create({ myPlaneGeoIndex, mapMatIndex });
 
     trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
+    [[maybe_unused]]
     trc::Light ambientLight = scene.getLights().makeAmbientLight(vec3(0.15f));
+    [[maybe_unused]]
     trc::Light pointLight = scene.getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
 
     // Sun light
@@ -154,7 +155,7 @@ void run()
     auto firstTree = pool.create({ treeGeoIndex, treeMatIdx });
     firstTree->setScale(0.1f).rotateX(glm::radians(-90.0f))
         .setTranslation(-3.0f, 0.0f, -1.0f);
-    for (int i = 1; i < NUM_TREES; i++)
+    for (ui32 i = 1; i < NUM_TREES; i++)
     {
         firstTree->copy()
             ->setScale(0.1f).rotateX(glm::radians(-90.0f))

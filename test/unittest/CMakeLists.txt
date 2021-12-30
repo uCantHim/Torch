@@ -8,7 +8,7 @@ if (${GTEST_FOUND})
             test_shader_edit.cpp
     )
 
-    target_link_libraries(UnitTests PRIVATE GTest::GTest GTest::Main torch)
+    target_link_libraries(UnitTests PRIVATE GTest::GTest GTest::Main torch shader_compiler_lib)
     target_compile_options(UnitTests PRIVATE -O0 -g)
     target_compile_definitions(UnitTests PRIVATE
         DATADIR="${CMAKE_CURRENT_LIST_DIR}/datadir"

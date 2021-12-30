@@ -2,9 +2,9 @@
 
 #include <variant>
 
-#include <vkb/basics/Device.h>
+#include <vkb/Device.h>
 
-#include "Types.h"
+#include "../Types.h"
 #include "PipelineLayout.h"
 
 namespace trc

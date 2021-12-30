@@ -28,7 +28,17 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DTRC_DEBUG")
 
 # Required third-party
+include(FetchContent)
+
 find_package(Freetype REQUIRED)
+
+if (TARGET profiler)
+    set(HAS_PROFILER TRUE)
+endif()
+
+# Tools
+add_subdirectory(torch_util)
+add_subdirectory(tools)
 
 # Library target
 add_library(torch)
@@ -36,20 +46,18 @@ add_library(torch)
 target_include_directories(torch
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
-        #${CMAKE_CURRENT_LIST_DIR}/util_lib/include
-
-    PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
-        ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
-    INTERFACE
+    PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/trc
         ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
 )
 
 target_link_libraries(
     torch PUBLIC
+    torch_util
     vk_base
     Freetype::Freetype
+    $<$<AND:$<BOOL:${HAS_PROFILER}>,$<BOOL:${TORCH_DEBUG}>>:profiler>
 )
 
 target_compile_definitions(
@@ -59,7 +67,6 @@ target_compile_definitions(
 
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
-#add_subdirectory(util_lib)
 add_subdirectory(src)
 
 # Imgui integration

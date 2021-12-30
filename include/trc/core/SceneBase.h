@@ -4,9 +4,9 @@
 #include <unordered_set>
 #include <functional>
 
-#include "util/data/IndexMap.h"
+#include "trc_util/data/IndexMap.h"
 
-#include "Types.h"
+#include "../Types.h"
 #include "RenderStage.h"
 #include "RenderPass.h"
 #include "Pipeline.h"

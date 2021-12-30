@@ -3,7 +3,7 @@
 #include <string>
 #include <atomic>
 
-#include "util/data/IndexMap.h"
+#include "trc_util/data/IndexMap.h"
 
 #include "Types.h"
 #include "text/GlyphLoading.h"

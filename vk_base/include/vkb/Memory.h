@@ -1,6 +1,6 @@
 #pragma once
 
-#include "basics/Device.h"
+#include "Device.h"
 
 namespace vkb
 {
