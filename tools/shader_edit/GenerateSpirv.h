@@ -39,13 +39,15 @@ namespace shader_edit
         throw std::logic_error("Shader file extension \"" + ext.string() + "\" is invalid.");
     }
 
-    inline auto generateSpirv(const CompiledShaderFile& shader)
+    inline auto generateSpirv(const CompiledShaderFile& shader,
+                              const shaderc::CompileOptions& opts = {})
     {
         shaderc::Compiler compiler;
         auto result = compiler.CompileGlslToSpv(
             shader.code,
             shaderKindFromExtension(shader.filePath),
-            shader.filePath.c_str()
+            shader.filePath.c_str(),
+            opts
         );
 
         return result;
