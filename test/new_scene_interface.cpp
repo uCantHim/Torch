@@ -56,7 +56,7 @@ void run()
     vec2 win = torch.window->getSwapchain().getSize();
     camera.makePerspective(win.x / win.y, 45.0f, 0.1f, 100.0f);
 
-    vkb::Timer frameTimer;
+    trc::Timer frameTimer;
     while (torch.window->getSwapchain().isOpen())
     {
         trc::pollEvents();

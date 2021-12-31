@@ -265,8 +265,8 @@ void run()
         }
     });
 
-    vkb::Timer timer;
-    vkb::Timer frameTimer;
+    trc::Timer timer;
+    trc::Timer frameTimer;
     int frames{ 0 };
     while (swapchain.isOpen())
     {

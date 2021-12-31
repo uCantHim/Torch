@@ -201,7 +201,7 @@ void run()
     );
 
     std::thread particleUpdateThread([&]() {
-        vkb::Timer timer;
+        trc::Timer timer;
         while (running) {
             particleCollection.update(timer.reset());
         }
@@ -235,8 +235,8 @@ void run()
     text.print("Hello World!");
     text.attachToScene(scene);
 
-    vkb::Timer timer;
-    vkb::Timer animTimer;
+    trc::Timer timer;
+    trc::Timer animTimer;
     uint32_t frames{ 0 };
     while (running)
     {

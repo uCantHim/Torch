@@ -2,6 +2,8 @@
 
 #include <vkb/VulkanBase.h>
 
+#include <trc_util/Timer.h>
+
 #include "Types.h"
 #include "core/Instance.h"
 #include "core/Window.h"

@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace vkb
+namespace trc
 {
     /**
      * Counts elapsed time in milliseconds

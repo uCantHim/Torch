@@ -209,7 +209,7 @@ auto trc::DeferredRenderConfig::getShadowPool() const -> const ShadowPool&
 
 void trc::DeferredRenderConfig::resizeGBuffer(uvec2 newSize)
 {
-    vkb::Timer timer;
+    trc::Timer timer;
 
     // Delete resources
     layout.removePass(deferredRenderStage, *deferredPass);

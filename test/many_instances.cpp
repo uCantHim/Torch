@@ -75,7 +75,7 @@ void run()
 
 
     // Draw pooled scene structure first
-    vkb::Timer time;
+    trc::Timer time;
 
     for (ui32 i = 0; i < measuredFrames; i++)
     {
