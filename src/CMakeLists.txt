@@ -27,6 +27,7 @@ target_sources(
 )
 
 add_subdirectory(core)
+add_subdirectory(util)
 add_subdirectory(drawable)
 add_subdirectory(particle)
 add_subdirectory(asset_import)
