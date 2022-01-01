@@ -1,5 +1,8 @@
 #pragma once
 
+#include <any>
+#include <functional>
+
 #include <vkb/Instance.h>
 #include <vkb/Device.h>
 
@@ -14,6 +17,9 @@ namespace trc
     {
         bool enableRayTracing{ false };
         std::vector<const char*> deviceExtensions;
+        std::function<std::pair<std::any, void*>(const vkb::PhysicalDevice&)> deviceFeatureQuery{
+            [](auto) -> std::pair<std::any, void*> { return { {}, nullptr }; }
+        };
     };
 
     class Instance

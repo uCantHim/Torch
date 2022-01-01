@@ -30,6 +30,11 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
             vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
         >();
 
+        // Append user provided features to the end
+        auto [_, userPtr] = info.deviceFeatureQuery(*physicalDevice);
+        features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>().setPNext(userPtr);
+
+        // Test for feature support
         if (!features.get<vk::PhysicalDeviceInlineUniformBlockFeaturesEXT>().inlineUniformBlock) {
             features.unlink<vk::PhysicalDeviceInlineUniformBlockFeaturesEXT>();
         }
@@ -61,7 +66,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         }
         else
         {
-            rayTracingEnabled = true;
+            this->rayTracingEnabled = true;
 
             // Add device extensions
             extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
