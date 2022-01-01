@@ -147,6 +147,21 @@ namespace vkb
          */
         uint32_t findMemoryType(uint32_t memoryTypeBits, vk::MemoryPropertyFlags properties) const;
 
+        /**
+         * @brief Query a feature from the device
+         *
+         * @tparam T The type of feature to query;
+         *           e.g. vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
+         *
+         * @return T
+         */
+        template<typename T>
+        inline auto getFeature() const -> T
+        {
+            return physicalDevice.getFeatures2<vk::PhysicalDeviceFeatures2, T>()
+                .template get<T>();
+        }
+
 
         ///////////////////////////
         // Public device properties
