@@ -14,6 +14,7 @@ target_sources(
         GBufferPass.cpp
         Light.cpp
         LightRegistry.cpp
+        Meshlet.cpp
         Node.cpp
         PipelineDefinitions.cpp
         RenderDataDescriptor.cpp

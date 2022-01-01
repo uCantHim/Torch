@@ -35,6 +35,9 @@ target_link_libraries(BasicRay PUBLIC torch)
 add_executable(RayTracingIntegration rt_integration.cpp)
 target_link_libraries(RayTracingIntegration PUBLIC torch)
 
+add_executable(MeshShading mesh_shading.cpp)
+target_link_libraries(MeshShading PUBLIC torch)
+
 if (${TORCH_INTEGRATE_IMGUI})
     add_executable(ImGui imgui_integration.cpp)
     target_link_libraries(ImGui PUBLIC torch)

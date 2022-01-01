@@ -1,0 +1,112 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+#extension GL_NV_mesh_shader : require
+
+#include "vertex.glsl"
+
+const uint LOCAL_SIZE       = 32;
+const uint MAX_VERTICES     = 64;
+const uint MAX_PRIMITIVES   = 126;
+const uint MAX_PRIM_INDICES = MAX_PRIMITIVES * 3;
+
+layout (local_size_x = LOCAL_SIZE) in;
+layout (triangles) out;
+layout (max_vertices = MAX_VERTICES, max_primitives = MAX_PRIMITIVES) out;
+
+struct MeshletDesc
+{
+    uint vertexBegin;
+    uint primitiveBegin;
+    uint numVertices;
+    uint numPrimVerts;
+};
+
+layout (set = 0, binding = 0) uniform usamplerBuffer meshletDescriptions;
+layout (set = 0, binding = 1) uniform usamplerBuffer uniqueVertices;
+layout (set = 0, binding = 2) uniform usamplerBuffer primitiveIndicesPacked;
+layout (set = 0, binding = 3, std430) restrict readonly buffer VertexBuffer {
+    Vertex vertices[];
+};
+
+layout (set = 1, binding = 0) uniform CameraData
+{
+    mat4 view;
+    mat4 proj;
+};
+
+layout (push_constant) uniform PushConstants
+{
+    mat4 model;
+    uint material;
+};
+
+layout (location = 0) out VertexData
+{
+    vec3 normal;
+    vec3 color;
+    flat uint material;
+} vertexOut[];
+
+const uint NUM_COLORS = 8;
+const vec3 colorTable[] = {
+    vec3(255,   0,   0) / 255.0f,
+    vec3(255, 119,   0) / 255.0f,
+    vec3(255, 221,   0) / 255.0f,
+    vec3(  0, 255,   0) / 255.0f,
+    vec3(  0, 224, 255) / 255.0f,
+    vec3(  0,  32, 255) / 255.0f,
+    vec3(138,  43, 226) / 255.0f,
+    vec3(199, 125, 243) / 255.0f,
+};
+
+MeshletDesc getMeshlet(uint id);
+
+void main()
+{
+    const uint meshletID = gl_WorkGroupID.x;
+    MeshletDesc meshlet = getMeshlet(meshletID);
+
+    // The calculations in the parentheses perform correct integer rounding
+    const uint vertexLoops = (MAX_VERTICES + LOCAL_SIZE - 1) / LOCAL_SIZE;
+
+    for (uint loop = 0; loop < vertexLoops; loop++)
+    {
+        uint v = loop * LOCAL_SIZE + gl_LocalInvocationID.x;
+        v = min(meshlet.numVertices - 1, v);
+        uint vertIndex = texelFetch(uniqueVertices, int(meshlet.vertexBegin + v)).x;
+
+        // Calculate the vertex's position
+        vec3 vertexPosition = GET_VERTEX_POS(vertices[vertIndex]);
+        vec4 vertPos = proj * view * model * vec4(vertexPosition, 1.0f);
+        gl_MeshVerticesNV[v].gl_Position = vertPos;
+
+        vertexOut[v].normal = GET_VERTEX_NORMAL(vertices[vertIndex]);
+        vertexOut[v].color = colorTable[meshletID % NUM_COLORS];
+        vertexOut[v].material = material;
+    }
+
+
+    // The LOCAL_SIZE in the first pair of parentheses is still just for integer rounding
+    const uint primitiveLoops = (MAX_PRIM_INDICES + LOCAL_SIZE * 8 - 1)
+                                / (LOCAL_SIZE * 8);
+
+    for (uint loop = 0; loop < primitiveLoops; loop++)
+    {
+        uint p = (loop * LOCAL_SIZE + gl_LocalInvocationID.x);
+        p = min((meshlet.numPrimVerts - 1) / 8, p);
+
+        uvec2 packedIndices = texelFetch(primitiveIndicesPacked, int(meshlet.primitiveBegin / 8 + p)).rg;
+        writePackedPrimitiveIndices4x8NV(p * 8 + 0, packedIndices.x);
+        writePackedPrimitiveIndices4x8NV(p * 8 + 4, packedIndices.y);
+    }
+
+    if (gl_LocalInvocationID.x == 0) {
+        gl_PrimitiveCountNV = meshlet.numPrimVerts / 3;
+    }
+}
+
+MeshletDesc getMeshlet(uint id)
+{
+    uvec4 data = texelFetch(meshletDescriptions, int(id));
+    return MeshletDesc(data.x, data.y, data.z, data.w);
+}

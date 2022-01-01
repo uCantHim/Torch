@@ -77,20 +77,17 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
             poolSizes
     ));
 
+    vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eAllGraphics
+                                      | vk::ShaderStageFlagBits::eCompute;
+    shaderStages |= vk::ShaderStageFlagBits::eRaygenKHR;
+    if (device.getPhysicalDevice().getFeature<vk::PhysicalDeviceMeshShaderFeaturesNV>().meshShader) {
+        shaderStages |= vk::ShaderStageFlagBits::eMeshNV | vk::ShaderStageFlagBits::eTaskNV;
+    }
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
-        {
-            0, vk::DescriptorType::eUniformBufferDynamic, 1,
-            vk::ShaderStageFlagBits::eAllGraphics
-                | vk::ShaderStageFlagBits::eCompute
-                | vk::ShaderStageFlagBits::eRaygenKHR
-        },
-        {
-            1, vk::DescriptorType::eUniformBufferDynamic, 1,
-            vk::ShaderStageFlagBits::eAllGraphics
-                | vk::ShaderStageFlagBits::eCompute
-                | vk::ShaderStageFlagBits::eRaygenKHR
-        },
+        { 0, vk::DescriptorType::eUniformBufferDynamic, 1, shaderStages },
+        { 1, vk::DescriptorType::eUniformBufferDynamic, 1, shaderStages },
     };
+
     descLayout = device->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({},
         layoutBindings
