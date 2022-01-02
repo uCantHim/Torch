@@ -4,6 +4,7 @@
 
 #include "core/Instance.h"
 #include "ray_tracing/RayPipelineBuilder.h"
+#include "util/TriangleCacheOptimizer.h"
 
 
 
@@ -55,7 +56,7 @@ auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> ri
         GeometryStorage{
             .indexBuf = {
                 device,
-                data.indices,
+                util::optimizeTriangleOrderingForsyth(data.indices),
                 config.geometryBufferUsage | vk::BufferUsageFlagBits::eIndexBuffer,
                 memoryPool.makeAllocator()
             },
