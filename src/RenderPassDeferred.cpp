@@ -12,10 +12,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
     const vkb::Swapchain& swapchain,
     vkb::FrameSpecific<GBuffer>& gBuffer)
     :
-    RenderPass(
-        makeVkRenderPass(device, swapchain),
-        NUM_SUBPASSES
-    ), // Base class RenderPass constructor
+    RenderPass(makeVkRenderPass(device), NUM_SUBPASSES),
     depthPixelReadBuffer(
         device,
         sizeof(float),
@@ -24,7 +21,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
     ),
     swapchain(swapchain),
     gBuffer(gBuffer),
-    framebufferSize(gBuffer.getAt(0).getSize()),
+    framebufferSize(gBuffer->getSize()),
     framebuffers(swapchain, [&](ui32 frameIndex)
     {
         const GBuffer& g = gBuffer.getAt(frameIndex);
@@ -34,7 +31,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
             g.getImageView(GBuffer::eAlbedo),
             g.getImageView(GBuffer::eMaterials),
             g.getImageView(GBuffer::eDepth),
-            swapchain.getImageView(frameIndex),
         };
 
         return Framebuffer(device, *renderPass, g.getSize(), {}, std::move(views));
@@ -125,9 +121,7 @@ auto trc::RenderPassDeferred::getDescriptorProvider() const noexcept
     return descriptor.getProvider();
 }
 
-auto trc::RenderPassDeferred::makeVkRenderPass(
-    const vkb::Device& device,
-    const vkb::Swapchain& swapchain)
+auto trc::RenderPassDeferred::makeVkRenderPass(const vkb::Device& device)
     -> vk::UniqueRenderPass
 {
     std::vector<vk::AttachmentDescription> attachments = {
@@ -161,8 +155,6 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
             vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
         ),
-        // Swapchain images
-        trc::makeDefaultSwapchainColorAttachment(swapchain),
     };
 
     std::vector<vk::AttachmentReference> deferredOutput = {
@@ -170,30 +162,17 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
         { 1, vk::ImageLayout::eColorAttachmentOptimal }, // UVs
         { 2, vk::ImageLayout::eColorAttachmentOptimal }, // Material indices
     };
-    vk::AttachmentReference deferredDepth{ 3, vk::ImageLayout::eDepthStencilAttachmentOptimal };
-
-    std::vector<vk::AttachmentReference> transparencyAttachments{
-        { 3, vk::ImageLayout::eDepthStencilAttachmentOptimal }, // Depth buffer
-    };
-    std::vector<ui32> transparencyPreservedAttachments{ 0, 1, 2 };
-
-    std::vector<vk::AttachmentReference> lightingInput = {
-        { 0, vk::ImageLayout::eShaderReadOnlyOptimal }, // Normals
-        { 1, vk::ImageLayout::eShaderReadOnlyOptimal }, // UVs
-        { 2, vk::ImageLayout::eShaderReadOnlyOptimal }, // Material indices
-        { 3, vk::ImageLayout::eShaderReadOnlyOptimal }, // Depth
-    };
-    vk::AttachmentReference lightingColor{ 4, vk::ImageLayout::eColorAttachmentOptimal };
+    vk::AttachmentReference depthAttachment{ 3, vk::ImageLayout::eDepthStencilAttachmentOptimal };
 
     std::vector<vk::SubpassDescription> subpasses = {
         // Deferred diffuse subpass
         vk::SubpassDescription(
             vk::SubpassDescriptionFlags(),
             vk::PipelineBindPoint::eGraphics,
-            0, nullptr,
-            deferredOutput.size(), deferredOutput.data(),
-            nullptr, // resolve attachments
-            &deferredDepth
+            {}, // input attachments
+            deferredOutput,
+            {}, // resolve attachments
+            &depthAttachment
         ),
         // Deferred transparency subpass
         vk::SubpassDescription(
@@ -201,55 +180,34 @@ auto trc::RenderPassDeferred::makeVkRenderPass(
             vk::PipelineBindPoint::eGraphics,
             0, nullptr, // input attachments
             0, nullptr, // color attachments
-            nullptr,    // resolve attachments
-            &transparencyAttachments[0], // depth attachment (read-only)
-            transparencyPreservedAttachments.size(), transparencyPreservedAttachments.data()
-        ),
-        // Final lighting subpass
-        vk::SubpassDescription(
-            vk::SubpassDescriptionFlags(),
-            vk::PipelineBindPoint::eGraphics,
-            lightingInput.size(), lightingInput.data(),  // input attachments
-            1, &lightingColor,  // color attachments
             nullptr, // resolve attachments
-            nullptr  // depth attachment
+            &depthAttachment
         ),
     };
 
     std::vector<vk::SubpassDependency> dependencies = {
-        vk::SubpassDependency(
-            VK_SUBPASS_EXTERNAL, 0,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::AccessFlags(),
-            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
-            vk::DependencyFlags()
-        ),
+        // The second subpass uses the first's depth buffer for early fragment discard
         vk::SubpassDependency(
             0, 1,
-            vk::PipelineStageFlagBits::eEarlyFragmentTests,
+            vk::PipelineStageFlagBits::eLateFragmentTests,
             vk::PipelineStageFlagBits::eEarlyFragmentTests,
             vk::AccessFlagBits::eDepthStencilAttachmentWrite,
             vk::AccessFlagBits::eDepthStencilAttachmentRead,
             vk::DependencyFlagBits::eByRegion
         ),
+        // From transparency subpass to final lighting compute pass
         vk::SubpassDependency(
-            1, 2,
-            vk::PipelineStageFlagBits::eAllGraphics,
-            vk::PipelineStageFlagBits::eAllGraphics,
-            vk::AccessFlagBits::eColorAttachmentWrite,
-            vk::AccessFlagBits::eInputAttachmentRead,
+            1, VK_SUBPASS_EXTERNAL,
+            vk::PipelineStageFlagBits::eFragmentShader,
+            vk::PipelineStageFlagBits::eComputeShader,
+            vk::AccessFlagBits::eShaderWrite,
+            vk::AccessFlagBits::eShaderRead,
             vk::DependencyFlagBits::eByRegion
         )
     };
 
     return device->createRenderPassUnique(
-        vk::RenderPassCreateInfo(
-            vk::RenderPassCreateFlags(),
-            static_cast<ui32>(attachments.size()), attachments.data(),
-            static_cast<ui32>(subpasses.size()), subpasses.data(),
-            static_cast<ui32>(dependencies.size()), dependencies.data()
-        )
+        vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
     );
 }
 
@@ -323,9 +281,9 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
 {
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eInputAttachment, 4 },
-        { vk::DescriptorType::eStorageImage, 1 },
+        { vk::DescriptorType::eStorageImage, 5 },
         { vk::DescriptorType::eStorageBuffer, 2 },
+        { vk::DescriptorType::eCombinedImageSampler, 1 },
     };
     descPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
@@ -335,17 +293,22 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
 
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
-        // Input attachments
-        { 0, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
-        { 1, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
-        { 2, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
-        { 3, vk::DescriptorType::eInputAttachment, 1, vk::ShaderStageFlagBits::eFragment },
+        // G-Buffer images
+        { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute },
         // Fragment list head pointer image
-        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment },
+        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment
+                                                   | vk::ShaderStageFlagBits::eCompute },
         // Fragment list allocator
-        { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
+                                                    | vk::ShaderStageFlagBits::eCompute },
         // Fragment list
-        { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment },
+        { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
+                                                    | vk::ShaderStageFlagBits::eCompute },
+        // Swapchain image
+        { 7, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
     };
     descLayout = device->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
@@ -362,6 +325,7 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
             g.getImageView(GBuffer::eMaterials),
             g.getImageView(GBuffer::eDepth),
         };
+        vk::Sampler depthSampler = g.getImage(GBuffer::eDepth).getDefaultSampler();
 
         auto set = std::move(device->allocateDescriptorSetsUnique(
             vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
@@ -369,25 +333,29 @@ trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
 
         // Write set
         std::vector<vk::DescriptorImageInfo> imageInfos = {
-            { {}, imageViews[0], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, imageViews[1], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, imageViews[2], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {}, imageViews[0], vk::ImageLayout::eGeneral },
+            { {}, imageViews[1], vk::ImageLayout::eGeneral },
+            { {}, imageViews[2], vk::ImageLayout::eGeneral },
+            { depthSampler, imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
             { {}, transparent.headPointerImageView, vk::ImageLayout::eGeneral },
+            { {}, swapchain.getImageView(imageIndex), vk::ImageLayout::eGeneral },
         };
         std::vector<vk::DescriptorBufferInfo> bufferInfos{
             { transparent.allocatorAndFragmentListBuf, 0, transparent.FRAGMENT_LIST_OFFSET },
-            { transparent.allocatorAndFragmentListBuf,
-              transparent.FRAGMENT_LIST_OFFSET, transparent.FRAGMENT_LIST_SIZE },
+            { transparent.allocatorAndFragmentListBuf, transparent.FRAGMENT_LIST_OFFSET,
+                                                       transparent.FRAGMENT_LIST_SIZE },
         };
         std::vector<vk::WriteDescriptorSet> writes = {
-            { *set, 0, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[0] },
-            { *set, 1, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[1] },
-            { *set, 2, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[2] },
-            { *set, 3, 0, 1, vk::DescriptorType::eInputAttachment, &imageInfos[3] },
-            { *set, 4, 0, 1, vk::DescriptorType::eStorageImage, &imageInfos[4] },
-            { *set, 5, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[0] },
-            { *set, 6, 0, 1, vk::DescriptorType::eStorageBuffer, nullptr, &bufferInfos[1] },
+            { *set, 0, 0, vk::DescriptorType::eStorageImage, imageInfos[0] },
+            { *set, 1, 0, vk::DescriptorType::eStorageImage, imageInfos[1] },
+            { *set, 2, 0, vk::DescriptorType::eStorageImage, imageInfos[2] },
+            { *set, 3, 0, vk::DescriptorType::eCombinedImageSampler, imageInfos[3] },
+
+            { *set, 4, 0, vk::DescriptorType::eStorageImage, imageInfos[4] },
+            { *set, 5, 0, vk::DescriptorType::eStorageBuffer, {}, bufferInfos[0] },
+            { *set, 6, 0, vk::DescriptorType::eStorageBuffer, {}, bufferInfos[1] },
+
+            { *set, 7, 0, vk::DescriptorType::eStorageImage, imageInfos[5] },
         };
         device->updateDescriptorSets(writes, {});
 

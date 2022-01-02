@@ -157,13 +157,13 @@ void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassC
 {
     // Swapchain image: ePresentSrcKHR -> eGeneral
     cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eRayTracingShaderKHR,
         vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eComputeShader,
         vk::DependencyFlagBits::eByRegion,
         {}, {},
         vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-            {},
+            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderWrite,
+            vk::AccessFlagBits::eShaderRead,
             vk::ImageLayout::ePresentSrcKHR,
             vk::ImageLayout::eGeneral,
             VK_QUEUE_FAMILY_IGNORED,
@@ -179,12 +179,12 @@ void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassC
 
     // Swapchain image: eGeneral -> ePresentSrcKHR
     cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+        vk::PipelineStageFlagBits::eComputeShader,
         vk::PipelineStageFlagBits::eAllCommands,
         vk::DependencyFlagBits::eByRegion,
         {}, {},
         vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+            vk::AccessFlagBits::eShaderWrite,
             {},
             vk::ImageLayout::eGeneral,
             vk::ImageLayout::ePresentSrcKHR,

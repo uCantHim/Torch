@@ -206,14 +206,12 @@ void run()
 
     // --- Draw function --- //
 
-    scene->registerDrawFunction(
-        trc::rt::rayTracingRenderStage, trc::SubPass::ID(0),
-        trc::getFinalLightingPipeline(),
+    rayPass.addRayFunction(
         [
             &,
             &rayPipeline=rayPipeline,
             &shaderBindingTable=shaderBindingTable
-        ](const trc::DrawEnvironment&, vk::CommandBuffer cmdBuf)
+        ](vk::CommandBuffer cmdBuf)
         {
             vk::Image image = *rayBuffer->getImage(trc::rt::RayBuffer::eReflections);
 

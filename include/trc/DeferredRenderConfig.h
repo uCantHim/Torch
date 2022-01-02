@@ -12,6 +12,7 @@
 #include "core/DescriptorProviderWrapper.h"
 #include "RenderPassDeferred.h"
 #include "RenderPassShadow.h"
+#include "FinalLightingPass.h"
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
 #include "ShadowPool.h"
@@ -68,7 +69,7 @@ namespace trc
         static constexpr auto SCENE_DESCRIPTOR{ "scene_data" };
 
         /**
-         * Subpass inputs, transparency buffer
+         * Storage images, transparency buffer, swapchain image
          */
         static constexpr auto G_BUFFER_DESCRIPTOR{ "g_buffer" };
 
@@ -79,8 +80,8 @@ namespace trc
 
         static constexpr auto OPAQUE_G_BUFFER_PASS{ "g_buffer" };
         static constexpr auto TRANSPARENT_G_BUFFER_PASS{ "transparency" };
-        static constexpr auto FINAL_LIGHTING_PASS{ "final_lighting" };
         static constexpr auto SHADOW_PASS{ "shadow" };
+        static constexpr auto FINAL_LIGHTING_PASS{ "final_lighting" };
 
         /**
          * @brief
@@ -128,6 +129,7 @@ namespace trc
         u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;
         u_ptr<RenderPassDeferred> deferredPass;
         RenderPassShadow shadowPass;
+        u_ptr<FinalLightingPass> finalLightingPass;
 
         // Descriptors
         GlobalRenderDataDescriptor globalDataDescriptor;
@@ -143,9 +145,5 @@ namespace trc
         // Data & Assets
         AssetRegistry* assetRegistry;
         ShadowPool* shadowPool;
-
-        // Final lighting pass stuff
-        vkb::DeviceLocalBuffer fullscreenQuadVertexBuffer;
-        DrawableExecutionRegistration::ID finalLightingFunc;
     };
 } // namespace trc

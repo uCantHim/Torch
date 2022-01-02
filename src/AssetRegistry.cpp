@@ -169,8 +169,10 @@ auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
 {
     auto result = info;
 
-    result.materialDescriptorStages |= vk::ShaderStageFlagBits::eFragment;
-    result.textureDescriptorStages |= vk::ShaderStageFlagBits::eFragment;
+    result.materialDescriptorStages |= vk::ShaderStageFlagBits::eFragment
+                                       | vk::ShaderStageFlagBits::eCompute;
+    result.textureDescriptorStages |= vk::ShaderStageFlagBits::eFragment
+                                      | vk::ShaderStageFlagBits::eCompute;
 
     if (info.enableRayTracing)
     {
@@ -179,12 +181,9 @@ auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
             | vk::BufferUsageFlagBits::eShaderDeviceAddress
             | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR;
 
-        result.materialDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS
-                                           | vk::ShaderStageFlagBits::eCompute;
-        result.textureDescriptorStages  |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS
-                                           | vk::ShaderStageFlagBits::eCompute;
-        result.geometryDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS
-                                           | vk::ShaderStageFlagBits::eCompute;
+        result.materialDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        result.textureDescriptorStages  |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        result.geometryDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
     }
 
     return result;

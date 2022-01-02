@@ -97,7 +97,9 @@ void trc::ShadowPool::updateMatrixBuffer()
 
 void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
 {
-    auto shaderStages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+    auto shaderStages = vk::ShaderStageFlagBits::eVertex
+                        | vk::ShaderStageFlagBits::eFragment
+                        | vk::ShaderStageFlagBits::eCompute;
     if (window.getInstance().hasRayTracing()) {
         shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
     }

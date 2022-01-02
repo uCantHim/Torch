@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vkb/Swapchain.h>
-
 #include "core/Pipeline.h"
 #include "core/PipelineRegistry.h"
 
@@ -21,7 +19,4 @@
 namespace trc
 {
     static const fs::path SHADER_DIR{ TRC_SHADER_DIR };
-
-    // Final lighting pipeline
-    auto getFinalLightingPipeline() -> Pipeline::ID;
 } // namespace trc::internal

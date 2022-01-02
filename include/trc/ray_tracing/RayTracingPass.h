@@ -10,9 +10,17 @@ namespace trc
     class RayTracingPass : public trc::RenderPass
     {
     public:
-        RayTracingPass() : RenderPass({}, 1) {}
+        RayTracingPass() : RenderPass({}, 0) {}
 
-        void begin(vk::CommandBuffer, vk::SubpassContents) override {}
+        void begin(vk::CommandBuffer, vk::SubpassContents) override;
         void end(vk::CommandBuffer) override {}
+
+        /**
+         * @brief Add a function to be executed
+         */
+        void addRayFunction(std::function<void(vk::CommandBuffer)> func);
+
+    private:
+        std::vector<std::function<void(vk::CommandBuffer)>> rayFunctions;
     };
 } // namespace trc

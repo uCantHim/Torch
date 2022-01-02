@@ -15,6 +15,7 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
 
     graph.first(shadowRenderStage);
     graph.after(shadowRenderStage, deferredRenderStage);
+    graph.after(deferredRenderStage, finalLightingRenderStage);
 
     return graph;
 }
@@ -47,16 +48,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     fontDataDescriptor(info.assetRegistry->getFonts().getDescriptorSetLayout(), {}),
     // Asset storage
     assetRegistry(info.assetRegistry),
-    shadowPool(info.shadowPool),
-    // Internal resources
-    fullscreenQuadVertexBuffer(
-        window.getDevice(),
-        std::vector<vec3>{
-            vec3(-1, 1, 0), vec3(-1, -1, 0), vec3(1, 1, 0),
-            vec3(1, 1, 0), vec3(-1, -1, 0), vec3(1, -1, 0)
-        },
-        vk::BufferUsageFlagBits::eVertexBuffer
-    )
+    shadowPool(info.shadowPool)
 {
     if (info.assetRegistry == nullptr)
     {
@@ -65,9 +57,13 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
         );
     }
 
+    // Create gbuffer for the first time and register resize callback
     swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this](auto e) {
         if (e.swapchain != &window.getSwapchain()) return;
-        resizeGBuffer(window.getSwapchain().getSize());
+
+        const uvec2 newSize = window.getSwapchain().getSize();
+        resizeGBuffer(newSize);
+        finalLightingPass->resize(newSize);
     }).makeUnique();
 
     resizeGBuffer(window.getSwapchain().getSize());
@@ -91,38 +87,26 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
         [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 1 }; }
     );
     addRenderPass(
-        RenderPassName{ FINAL_LIGHTING_PASS },
-        [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 2 }; }
-    );
-    addRenderPass(
         RenderPassName{ SHADOW_PASS },
         [&]{ return RenderPassDefinition{ getCompatibleShadowRenderPass(), 0 }; }
     );
+
+    // The final lighting pass wants to create a pipeline layout, so it has
+    // to be created after the descriptors have been defined.
+    finalLightingPass = std::make_unique<FinalLightingPass>(window, *this);
+    layout.addPass(finalLightingRenderStage, *finalLightingPass);
 }
 
 void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 {
     // Add final lighting function to scene
-    finalLightingFunc = draw.scene->registerDrawFunction(
-        deferredRenderStage,
-        RenderPassDeferred::SubPasses::lighting,
-        getFinalLightingPipeline(),
-        [&](auto&&, vk::CommandBuffer cmdBuf)
-        {
-            cmdBuf.bindVertexBuffers(0, *fullscreenQuadVertexBuffer, vk::DeviceSize(0));
-            cmdBuf.draw(6, 1, 0, 0);
-        }
-    );
-
     globalDataDescriptor.update(*draw.camera);
     sceneDescriptor.update(*draw.scene);
     shadowPool->update();
 }
 
-void trc::DeferredRenderConfig::postDraw(const DrawConfig& draw)
+void trc::DeferredRenderConfig::postDraw(const DrawConfig&)
 {
-    // Remove fullscreen quad function
-    draw.scene->unregisterDrawFunction(finalLightingFunc);
 }
 
 auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
@@ -207,7 +191,7 @@ auto trc::DeferredRenderConfig::getShadowPool() const -> const ShadowPool&
     return *shadowPool;
 }
 
-void trc::DeferredRenderConfig::resizeGBuffer(uvec2 newSize)
+void trc::DeferredRenderConfig::resizeGBuffer(const uvec2 newSize)
 {
     trc::Timer timer;
 

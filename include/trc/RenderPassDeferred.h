@@ -18,14 +18,16 @@ namespace trc
      * @brief Resources and descriptor set for deferred renderpasses
      *
      * Provides:
-     *  - binding 0: input attachment
-     *  - binding 1: input attachment
-     *  - binding 2: input attachment
-     *  - binding 3: input attachment
+     *  - binding 0: storage image rgba16f  (normals)
+     *  - binding 1: storage image r32ui    (albedo)
+     *  - binding 2: storage image r32ui    (materials)
+     *  - binding 3: combined image sampler (depth)
      *
-     *  - binding 4: storage image
-     *  - binding 5: storage buffer
-     *  - binding 6: storage buffer
+     *  - binding 4: storage image  (head pointer image)
+     *  - binding 5: storage buffer (allocator)
+     *  - binding 6: storage buffer (fragment list)
+     *
+     *  - binding 7: storage image rgba8 (swapchain image)
      */
     class DeferredRenderPassDescriptor
     {
@@ -57,13 +59,12 @@ namespace trc
     class RenderPassDeferred : public RenderPass
     {
     public:
-        static constexpr ui32 NUM_SUBPASSES = 3;
+        static constexpr ui32 NUM_SUBPASSES = 2;
 
         struct SubPasses
         {
             static constexpr SubPass::ID gBuffer{ 0 };
             static constexpr SubPass::ID transparency{ 1 };
-            static constexpr SubPass::ID lighting{ 2 };
         };
 
         RenderPassDeferred(const vkb::Device& device,
@@ -113,8 +114,7 @@ namespace trc
          * @param const vkb::Swapchain& swapchain Used to determine the
          *        image format of the color attachment.
          */
-        static auto makeVkRenderPass(const vkb::Device& device, const vkb::Swapchain& swapchain)
-            -> vk::UniqueRenderPass;
+        static auto makeVkRenderPass(const vkb::Device& device) -> vk::UniqueRenderPass;
 
     private:
         static inline float mouseDepthValue{ 0.0f };

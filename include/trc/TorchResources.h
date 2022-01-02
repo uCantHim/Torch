@@ -5,5 +5,6 @@
 namespace trc
 {
     inline RenderStage deferredRenderStage{};
+    inline RenderStage finalLightingRenderStage{};
     inline RenderStage shadowRenderStage{};
 } // namespace trc

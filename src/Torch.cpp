@@ -50,10 +50,10 @@ auto trc::initFull(
     graph.first(resourceUpdateStage);
 
     // Ray tracing stages
-    graph.after(deferredRenderStage, rt::rayTracingRenderStage);
+    graph.after(finalLightingRenderStage, rt::rayTracingRenderStage);
     graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
     graph.require(rt::rayTracingRenderStage, resourceUpdateStage);
-    graph.require(rt::finalCompositingStage, deferredRenderStage);
+    graph.require(rt::finalCompositingStage, finalLightingRenderStage);
     graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
 
     graph.after(rt::finalCompositingStage, guiRenderStage);

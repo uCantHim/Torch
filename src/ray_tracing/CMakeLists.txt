@@ -5,5 +5,6 @@ target_sources(
         GeometryUtils.cpp
         RayBuffer.cpp
         RayPipelineBuilder.cpp
+        RayTracingPass.cpp
         ShaderBindingTable.cpp
 )

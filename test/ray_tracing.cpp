@@ -207,31 +207,18 @@ int main()
 
     // --- Render Pass --- //
 
-    class RayTracingRenderPass : public trc::RenderPass
-    {
-    public:
-        RayTracingRenderPass()
-            : RenderPass({}, 1)
-        {}
-
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override {}
-        void end(vk::CommandBuffer cmdBuf) override {}
-    };
-
-    RayTracingRenderPass rayPass;
-
+    trc::RayTracingPass rayPass;
     torch.renderConfig->getLayout().addPass(trc::rt::rayTracingRenderStage, rayPass);
 
 
     // --- Draw function --- //
 
-    scene->registerDrawFunction(
-        trc::rt::rayTracingRenderStage, trc::SubPass::ID(0), trc::getFinalLightingPipeline(),
+    rayPass.addRayFunction(
         [
             &,
             &rayPipeline=rayPipeline,
             &shaderBindingTable=shaderBindingTable
-        ](const trc::DrawEnvironment&, vk::CommandBuffer cmdBuf)
+        ](vk::CommandBuffer cmdBuf)
         {
             auto image = swapchain.getImage(swapchain.getCurrentFrame());
 

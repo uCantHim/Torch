@@ -12,10 +12,7 @@
 
 #define MAX_FRAGS 10
 
-layout (input_attachment_index = 0, set = 2, binding = 0) uniform subpassInput inNormal;
-layout (input_attachment_index = 1, set = 2, binding = 1) uniform usubpassInput inAlbedo;
-layout (input_attachment_index = 2, set = 2, binding = 2) uniform usubpassInput inMaterial;
-layout (input_attachment_index = 3, set = 2, binding = 3) uniform subpassInput inDepth;
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
 {
@@ -31,8 +28,13 @@ layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
     vec2 resolution;
 } global;
 
-layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
+layout (set = 2, binding = 0, rgba16f) uniform restrict readonly image2D inNormal;
+layout (set = 2, binding = 1, r32ui)   uniform restrict readonly uimage2D inAlbedo;
+layout (set = 2, binding = 2, r32ui)   uniform restrict readonly uimage2D inMaterial;
+layout (set = 2, binding = 3) uniform sampler2D inDepth;
+layout (set = 2, binding = 7, rgba8)  uniform restrict writeonly image2D swapchainImage;
 
+layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
 layout (set = 2, binding = 6) restrict buffer FragmentList
 {
     /**
@@ -43,38 +45,39 @@ layout (set = 2, binding = 6) restrict buffer FragmentList
     uvec4 fragmentList[];
 };
 
-layout (location = 0) out vec4 fragColor;
-
 
 /////////////////////
 //      Main       //
 /////////////////////
 
-vec4 worldPosFromDepth(float depth);
-vec3 blendTransparent(vec3 opaqueColor);
+vec4 worldPosFromDepth(ivec2 coords, float depth);
+vec3 blendTransparent(ivec2 coords, vec3 opaqueColor);
 
 void main()
 {
-    const uint matIndex = subpassLoad(inMaterial)[0];
-    vec3 color = unpackUnorm4x8(subpassLoad(inAlbedo)[0]).xyz;
+    ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+    coords = min(coords, ivec2(global.resolution));
+
+    const uint matIndex = imageLoad(inMaterial, coords).r;
+    vec3 color = unpackUnorm4x8(imageLoad(inAlbedo, coords).r).xyz;
 
     color = calcLighting(
         color,
-        worldPosFromDepth(subpassLoad(inDepth).x).xyz,
-        normalize(subpassLoad(inNormal).xyz),
+        worldPosFromDepth(coords, texelFetch(inDepth, coords, 0).r).xyz,
+        normalize(imageLoad(inNormal, coords).xyz),
         camera.inverseViewMatrix[3].xyz,
         matIndex
     );
 
-    color = blendTransparent(color);
+    color = blendTransparent(coords, color);
 
-    fragColor = vec4(color, 1.0);
+    imageStore(swapchainImage, coords, vec4(color, 1.0));
 }
 
 
-vec4 worldPosFromDepth(float depth)
+vec4 worldPosFromDepth(ivec2 coords, float depth)
 {
-    vec2 fc = gl_FragCoord.xy;
+    vec2 fc = coords;
 #ifdef TRC_FLIP_Y_AXIS
     fc.y = global.resolution.y - fc.y;  // Viewport height inversion
 #endif
@@ -87,11 +90,11 @@ vec4 worldPosFromDepth(float depth)
 }
 
 
-vec3 blendTransparent(vec3 opaqueColor)
+vec3 blendTransparent(ivec2 coords, vec3 opaqueColor)
 {
     // Exchange doesn't seem to have any difference in performance to imageLoad().
     // Use exchange to reset head pointer to default value.
-    uint fragListIndex = imageAtomicExchange(fragmentListHeadPointer, ivec2(gl_FragCoord.xy), ~0u);
+    uint fragListIndex = imageAtomicExchange(fragmentListHeadPointer, coords, ~0u);
 
     // Build fragment list
     uvec4 fragments[MAX_FRAGS];
@@ -128,3 +131,4 @@ vec3 blendTransparent(vec3 opaqueColor)
 
     return opaqueColor;
 }
+

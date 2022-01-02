@@ -59,7 +59,8 @@ auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProvi
 
 void trc::SceneDescriptor::createDescriptors()
 {
-    vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment;
+    vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment
+                                        | vk::ShaderStageFlagBits::eCompute;
     if (window.getInstance().hasRayTracing()) {
         shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
     }

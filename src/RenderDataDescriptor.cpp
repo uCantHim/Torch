@@ -88,11 +88,11 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
         {
             0, vk::DescriptorType::eUniformBufferDynamic, 1,
-            vk::ShaderStageFlagBits::eAllGraphics
+            vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute
         },
         {
             1, vk::DescriptorType::eUniformBufferDynamic, 1,
-            vk::ShaderStageFlagBits::eAllGraphics
+            vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute
         },
     };
     descLayout = device->createDescriptorSetLayoutUnique(

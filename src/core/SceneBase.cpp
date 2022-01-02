@@ -83,6 +83,8 @@ auto trc::SceneBase::registerDrawFunction(
 
 void trc::SceneBase::unregisterDrawFunction(RegistrationID id)
 {
+    if (id.regIndex == nullptr) return;
+
     const auto [renderStageType, subPass, pipeline, index] = *id.regIndex;
 
     auto& vectorToRemoveFrom = drawableRegistrations[renderStageType][subPass][pipeline];

@@ -8,13 +8,13 @@ target_sources(
         AssetRegistry.cpp
         Camera.cpp
         DeferredRenderConfig.cpp
+        FinalLightingPass.cpp
         Framebuffer.cpp
         GBuffer.cpp
         Geometry.cpp
         Light.cpp
         LightRegistry.cpp
         Node.cpp
-        PipelineDefinitions.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
         RenderPassDeferred.cpp
