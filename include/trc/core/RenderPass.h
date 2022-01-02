@@ -22,8 +22,14 @@ namespace trc
     class RenderPass
     {
     public:
+        /**
+         * @brief Constructor
+         */
         RenderPass(vk::UniqueRenderPass renderPass, ui32 subpassCount);
+
+        RenderPass(RenderPass&&) noexcept = default;
         virtual ~RenderPass() = default;
+        auto operator=(RenderPass&&) noexcept -> RenderPass& = default;
 
         auto operator*() const noexcept -> vk::RenderPass;
         auto get() const noexcept -> vk::RenderPass;
