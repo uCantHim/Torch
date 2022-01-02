@@ -1,6 +1,7 @@
 target_sources(
     torch
     PRIVATE
+        ComputePipelineBuilder.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
         DynamicRenderPassContainer.cpp

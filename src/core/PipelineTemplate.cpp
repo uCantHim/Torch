@@ -131,6 +131,11 @@ void trc::ComputePipelineTemplate::setProgramCode(std::string code)
     shaderCode = std::move(code);
 }
 
+void trc::ComputePipelineTemplate::setLayout(PipelineLayout::ID layoutId)
+{
+    layout = layoutId;
+}
+
 auto trc::ComputePipelineTemplate::getLayout() const -> PipelineLayout::ID
 {
     return layout;
@@ -161,8 +166,7 @@ auto trc::makeGraphicsPipeline(
     vk::RenderPass renderPass,
     ui32 subPass) -> Pipeline
 {
-    // Create copy because it will be modified
-    PipelineDefinitionData def = _template.getPipelineData();
+    const PipelineDefinitionData& def = _template.getPipelineData();
     const ProgramDefinitionData& shader = _template.getProgramData();
 
     // Create a program from the shader code
@@ -210,5 +214,5 @@ auto trc::makeComputePipeline(
         )
     ).value;
 
-    return Pipeline{ layout, std::move(pipeline), vk::PipelineBindPoint::eGraphics };
+    return Pipeline{ layout, std::move(pipeline), vk::PipelineBindPoint::eCompute };
 }

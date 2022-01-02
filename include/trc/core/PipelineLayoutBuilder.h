@@ -85,7 +85,16 @@ namespace trc
                                     std::optional<PushConstantDefaultValue> defaultValue = {}
                                     ) -> Self&;
 
+        /**
+         * @brief Build a pipeline layout template
+         */
         auto build() const -> PipelineLayoutTemplate;
+
+        /**
+         * @brief Build a pipeline layout
+         */
+        template<RenderConfigType T>
+        auto build(const Instance& instance, T& renderConfig) -> PipelineLayout;
 
         /**
          * @brief Build the layout and register it at a pipeline registry
@@ -101,6 +110,13 @@ namespace trc
     auto buildPipelineLayout() -> PipelineLayoutBuilder;
 
 
+
+    template<RenderConfigType T>
+    auto PipelineLayoutBuilder::build(const Instance& instance, T& renderConfig) -> PipelineLayout
+    {
+        return typename PipelineRegistry<T>::LayoutFactory{ build() }
+            .create(instance, renderConfig);
+    }
 
     template<RenderConfigType T>
     auto PipelineLayoutBuilder::registerLayout() const -> PipelineLayout::ID

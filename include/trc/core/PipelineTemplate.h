@@ -129,6 +129,7 @@ namespace trc
         ComputePipelineTemplate() = default;
 
         void setProgramCode(std::string code);
+        void setLayout(PipelineLayout::ID layoutId);
 
         template<typename T>
         inline void setSpecializationConstant(ui32 constantId, T&& data)

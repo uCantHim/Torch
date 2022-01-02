@@ -42,11 +42,11 @@ namespace trc
 
     public:
         auto get(Pipeline::ID pipeline) -> Pipeline&;
+        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
 
         void recreateAll();
 
     private:
-        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
         auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
 
         typename PipelineRegistry<T>::StorageAccessInterface registry;
@@ -64,6 +64,24 @@ namespace trc
     class PipelineRegistry
     {
     public:
+        static auto registerPipelineLayout(PipelineLayoutTemplate _template) -> PipelineLayout::ID;
+        static auto clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate;
+
+        static auto registerPipeline(const PipelineTemplate& pipelineTemplate)
+            -> Pipeline::ID;
+        static auto registerPipeline(const ComputePipelineTemplate& pipelineTemplate)
+            -> Pipeline::ID;
+
+        static auto cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate;
+        static auto cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate;
+        static auto getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID;
+
+        /**
+         * @brief Create a pipeline storage object
+         */
+        static auto createStorage(const Instance& instance, T& renderConfig)
+            -> u_ptr<PipelineStorage<T>>;
+
         /**
          * @brief Creates pipeline objects from a stored template
          */
@@ -111,24 +129,6 @@ namespace trc
         private:
             PipelineLayoutTemplate _template;
         };
-
-        static auto registerPipelineLayout(PipelineLayoutTemplate _template) -> PipelineLayout::ID;
-        static auto clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate;
-
-        static auto registerPipeline(const PipelineTemplate& pipelineTemplate)
-            -> Pipeline::ID;
-        static auto registerPipeline(const ComputePipelineTemplate& pipelineTemplate)
-            -> Pipeline::ID;
-
-        static auto cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate;
-        static auto cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate;
-        static auto getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID;
-
-        /**
-         * @brief Create a pipeline storage object
-         */
-        static auto createStorage(const Instance& instance, T& renderConfig)
-            -> u_ptr<PipelineStorage<T>>;
 
         /**
          * @brief Used internally for communication with PipelineStorage
