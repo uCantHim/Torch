@@ -20,7 +20,7 @@ namespace trc
     /**
      * @brief
      */
-    class Window
+    class Window : public vkb::Swapchain
     {
     public:
         /**
@@ -42,7 +42,6 @@ namespace trc
     private:
         Instance* instance;
 
-        vkb::Swapchain swapchain;
         u_ptr<Renderer> renderer;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> recreateListener;
     };

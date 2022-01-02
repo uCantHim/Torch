@@ -6,25 +6,25 @@
 
 trc::Window::Window(Instance& instance, WindowCreateInfo info)
     :
+    vkb::Swapchain(
+        instance.getDevice(),
+        vkb::createSurface(
+            instance.getVulkanInstance(),
+            { .windowSize={ info.size.x, info.size.y }, .windowTitle=info.title }
+        ),
+        // Swapchain create info
+        [&] {
+            // Always specify the storage bit
+            info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
+
+            // Additional flags currently only used for ray tracing
+            if (instance.hasRayTracing()) {
+                info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
+            }
+            return info.swapchainCreateInfo;
+        }()
+    ),
     instance(&instance),
-    swapchain([&] {
-        // Always specify the storage bit
-        info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
-
-        // Additional flags currently only used for ray tracing
-        if (instance.hasRayTracing()) {
-            info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
-        }
-
-        return vkb::Swapchain(
-            instance.getDevice(),
-            vkb::createSurface(
-                instance.getVulkanInstance(),
-                { .windowSize={ info.size.x, info.size.y }, .windowTitle=info.title }
-            ),
-            info.swapchainCreateInfo
-        );
-    }()),
     renderer(new Renderer(*this)),
     recreateListener(
         vkb::on<vkb::SwapchainRecreateEvent>([this](auto&) {
@@ -63,12 +63,12 @@ auto trc::Window::getDevice() const -> const vkb::Device&
 
 auto trc::Window::getSwapchain() -> vkb::Swapchain&
 {
-    return swapchain;
+    return *this;
 }
 
 auto trc::Window::getSwapchain() const -> const vkb::Swapchain&
 {
-    return swapchain;
+    return *this;
 }
 
 auto trc::Window::getRenderer() -> Renderer&
