@@ -98,7 +98,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
             fbxLog << "Loading skeleton \"" << skeleton->GetName() << "\" for mesh \""
                 << name << "\"..\n";
 
-            auto [rig, boneNodes] = loadRig(mesh, newMesh.mesh);
+            auto [rig, boneNodes] = loadRig(mesh, newMesh.geometry);
             rig.animations = loadAnimations(rig, boneNodes);
             newMesh.rig = std::move(rig);
         }

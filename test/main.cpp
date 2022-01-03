@@ -6,17 +6,12 @@ using namespace std::chrono;
 
 #include <glm/gtc/random.hpp>
 
-#include <vkb/Device.h>
-#include <vkb/Buffer.h>
-#include <vkb/MemoryPool.h>
 #include <vkb/ImageUtils.h>
 
 #include <trc/Torch.h>
-using namespace trc::basic_types;
 #include <trc/particle/Particle.h>
-#include <trc/asset_import/FBXLoader.h>
-#include <trc/asset_import/AssetUtils.h>
 #include <trc/text/Text.h>
+using namespace trc::basic_types;
 
 void run()
 {
@@ -38,20 +33,18 @@ void run()
     // ------------------
     // Random test things
 
-    trc::FBXLoader fbxLoader;
-    auto grassImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx");
-    auto treeImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx");
-    auto mapImport = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/map.fbx");
+    auto grassImport = trc::loadGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx");
+    auto treeImport = trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx");
+    auto mapImport = trc::loadGeometry(TRC_TEST_ASSET_DIR"/map.fbx");
 
-    auto grassGeoIndex = ar.add(grassImport.meshes[0].mesh);
-    auto treeGeoIndex = ar.add(treeImport.meshes[0].mesh);
-
+    auto grassGeoIndex = ar.add(grassImport.meshes[0].geometry);
+    auto treeGeoIndex = ar.add(treeImport.meshes[0].geometry);
     auto mapMatIndex = ar.add(mapImport.meshes[0].materials[0]);
 
     auto skeletonGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get();
     auto hoodedBoiGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx", ar).get();
-    auto lindaMesh = fbxLoader.loadFBXFile(TRC_TEST_ASSET_DIR"/Female_Character.fbx").meshes[0];
-    auto lindaGeoIndex = ar.add(lindaMesh.mesh, lindaMesh.rig);
+    auto lindaMesh = trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx").meshes[0];
+    auto lindaGeoIndex = ar.add(lindaMesh.geometry, lindaMesh.rig);
 
     auto lindaDiffTexIdx = ar.add(
         vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/Female_Character.png")

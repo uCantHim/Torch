@@ -18,7 +18,7 @@ int main()
 
         auto grass = trc::AssetImporter::load(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx");
 
-        auto geo = ar.add("grass", grass.meshes[0].mesh);
+        auto geo = ar.add("grass", grass.meshes[0].geometry);
         auto mat = ar.add("green", { .color=vec4(0, 1, 0, 1), .kSpecular=vec4(0.0f) });
         auto mat1 = ar.add("red", { .color=vec4(1, 0, 0, 1), .kSpecular=vec4(0.0f) });
         auto mat2 = ar.add("purple", { .color=vec4(1, 0, 1, 1), .kSpecular=vec4(0.0f) });

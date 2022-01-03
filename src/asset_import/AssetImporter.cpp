@@ -54,7 +54,7 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<Mesh>
     {
         aiMesh* mesh = scene->mMeshes[i];
         Mesh& newMesh = result.emplace_back();
-        auto& meshData = newMesh.mesh;
+        auto& meshData = newMesh.geometry;
 
         // Load vertices
         for (ui32 v = 0; v < mesh->mNumVertices; v++)

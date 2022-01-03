@@ -11,6 +11,7 @@
 
 #include "Scene.h"
 #include "AssetRegistry.h"
+#include "asset_import/AssetUtils.h"
 #include "drawable/Drawable.h"
 #include "drawable/DrawablePool.h"
 #include "Light.h"

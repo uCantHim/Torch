@@ -14,7 +14,7 @@ namespace trc
         std::string name;
         mat4 globalTransform;
 
-        GeometryData mesh;
+        GeometryData geometry;
         std::vector<Material> materials;
         std::optional<RigData> rig;
     };
