@@ -16,7 +16,7 @@ layout (location = 0) in Vertex
 } vert;
 
 layout (location = 0) out vec3 outNormal;
-layout (location = 1) out uint outAlbedo;
+layout (location = 1) out vec4 outAlbedo;
 layout (location = 2) out uint outMaterial;
 
 void main()
@@ -27,6 +27,6 @@ void main()
     }
 
     outNormal = vec3(0.0);
-    outAlbedo = packUnorm4x8(diffuseColor);
+    outAlbedo = diffuseColor;
     outMaterial = 0;
 }

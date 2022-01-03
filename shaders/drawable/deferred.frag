@@ -48,7 +48,7 @@ layout (location = 0) in VertexData
 } vert;
 
 layout (location = 0) out vec3 outNormal;
-layout (location = 1) out uint outAlbedo;
+layout (location = 1) out vec4 outAlbedo;
 layout (location = 2) out uint outMaterial;
 
 
@@ -62,7 +62,7 @@ vec3 calcVertexNormal();
 void main()
 {
     outNormal = calcVertexNormal();
-    outAlbedo = packUnorm4x8(vec4(calcVertexColor(), 0.0));
+    outAlbedo = vec4(calcVertexColor(), 0.0);
     outMaterial = vert.material;
 }
 

@@ -29,7 +29,7 @@ layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
 } global;
 
 layout (set = 2, binding = 0, rgba16f) uniform restrict readonly image2D inNormal;
-layout (set = 2, binding = 1, r32ui)   uniform restrict readonly uimage2D inAlbedo;
+layout (set = 2, binding = 1, rgba8)   uniform restrict readonly image2D inAlbedo;
 layout (set = 2, binding = 2, r32ui)   uniform restrict readonly uimage2D inMaterial;
 layout (set = 2, binding = 3) uniform sampler2D inDepth;
 layout (set = 2, binding = 7, rgba8)  uniform restrict writeonly image2D swapchainImage;
@@ -59,7 +59,7 @@ void main()
     coords = min(coords, ivec2(global.resolution));
 
     const uint matIndex = imageLoad(inMaterial, coords).r;
-    vec3 color = unpackUnorm4x8(imageLoad(inAlbedo, coords).r).xyz;
+    vec3 color = imageLoad(inAlbedo, coords).rgb;
 
     color = calcLighting(
         color,
