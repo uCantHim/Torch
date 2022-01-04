@@ -150,7 +150,12 @@ namespace trc
         class StorageAccessInterface
         {
         public:
-            auto invokePipelineFactory(Pipeline::ID id, const Instance& instance, T& renderConfig)
+            auto getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID;
+
+            auto invokePipelineFactory(Pipeline::ID id,
+                                       const Instance& instance,
+                                       T& renderConfig,
+                                       PipelineLayout& layout)
                 -> Pipeline;
             auto invokeLayoutFactory(PipelineLayout::ID id, const Instance& instance, T& renderConfig)
                 -> PipelineLayout;

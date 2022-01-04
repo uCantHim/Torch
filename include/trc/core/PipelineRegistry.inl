@@ -17,32 +17,30 @@ PipelineStorage<T>::PipelineStorage(
     instance(instance),
     renderConfig(&renderConfig)
 {
-    recreateAll();
 }
 
 template<typename T>
 void PipelineStorage<T>::notifyNewPipeline(
-    [[maybe_unused]] Pipeline::ID id,
-    FactoryType& factory)
+    Pipeline::ID,
+    FactoryType&)
 {
-    assert(id == pipelines.size());
-    pipelines.emplace_back(createPipeline(factory));
 }
 
 template<typename T>
 auto PipelineStorage<T>::get(Pipeline::ID pipeline) -> Pipeline&
 {
-    assert(pipeline < pipelines.size());
-    return *pipelines.at(pipeline);
-}
+    if (pipeline >= pipelines.size()) {
+        pipelines.resize(pipeline + 1);
+    }
 
-template<typename T>
-void PipelineStorage<T>::recreateAll()
-{
-    pipelines.clear();
-    registry.foreachFactory([this](auto& factory) {
-        pipelines.emplace_back(createPipeline(factory));
-    });
+    if (pipelines.at(pipeline) == nullptr)
+    {
+        auto& layout = getLayout(registry.getPipelineLayout(pipeline));
+        pipelines.at(pipeline) = std::make_unique<Pipeline>(
+            registry.invokePipelineFactory(pipeline, instance, *renderConfig, layout)
+        );
+    }
+    return *pipelines.at(pipeline);
 }
 
 template<typename T>
@@ -57,6 +55,15 @@ auto PipelineStorage<T>::getLayout(PipelineLayout::ID id) -> PipelineLayout&
     }
 
     return *layouts.at(id);
+}
+
+template<typename T>
+void PipelineStorage<T>::recreateAll()
+{
+    pipelines.clear();
+    registry.foreachFactory([this](auto& factory) {
+        pipelines.emplace_back(createPipeline(factory));
+    });
 }
 
 template<typename T>
@@ -204,7 +211,7 @@ auto PipelineRegistry<T>::cloneComputePipeline(Pipeline::ID id) -> ComputePipeli
 template<RenderConfigType T>
 auto PipelineRegistry<T>::getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID
 {
-    if (id < factories.size())
+    if (id >= factories.size())
     {
         throw Exception(
             "[In PipelineRegistry<>::getPipelineLayout]: Pipeline with ID \""
@@ -273,14 +280,24 @@ trc::PipelineRegistry<T>::StorageAccessInterface::StorageAccessInterface(Pipelin
 }
 
 template<RenderConfigType T>
+auto trc::PipelineRegistry<T>::StorageAccessInterface::getPipelineLayout(Pipeline::ID id)
+    -> PipelineLayout::ID
+{
+    return registry.getPipelineLayout(id);
+}
+
+template<RenderConfigType T>
 auto trc::PipelineRegistry<T>::StorageAccessInterface::invokePipelineFactory(
     Pipeline::ID id,
     const Instance& instance,
-    T& renderConfig)
+    T& renderConfig,
+    PipelineLayout& layout)
     -> Pipeline
 {
-    std::scoped_lock lock(factoryLock);
-    return factories.at(id).create(instance, renderConfig);
+    std::scoped_lock lock(registry.factoryLock);
+    assert(id < registry.factories.size());
+
+    return registry.factories.at(id).create(instance, renderConfig, layout);
 }
 
 template<RenderConfigType T>
@@ -290,8 +307,10 @@ auto trc::PipelineRegistry<T>::StorageAccessInterface::invokeLayoutFactory(
     T& renderConfig)
     -> PipelineLayout
 {
-    std::scoped_lock lock(layoutFactoryLock);
-    return layoutFactories.at(id).create(instance, renderConfig);
+    std::scoped_lock lock(registry.layoutFactoryLock);
+    assert(id < registry.layoutFactories.size());
+
+    return registry.layoutFactories.at(id).create(instance, renderConfig);
 }
 
 
