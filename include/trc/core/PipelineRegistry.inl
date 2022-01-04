@@ -102,35 +102,38 @@ auto PipelineRegistry<T>::clonePipelineLayout(PipelineLayout::ID id) -> Pipeline
 }
 
 template<RenderConfigType T>
-auto PipelineRegistry<T>::registerPipeline(const PipelineTemplate& _template) -> Pipeline::ID
+auto PipelineRegistry<T>::registerPipeline(
+    PipelineTemplate _template,
+    PipelineLayout::ID layout,
+    RenderPassName renderPass
+    ) -> Pipeline::ID
 {
-    if (_template.getLayout() >= layoutFactories.size())
+    if (layout >= layoutFactories.size())
     {
         throw Exception(
             "[In PipelineRegistry<>::registerPipeline]: No pipeline layout with the specified "
-            "ID \"" + std::to_string(_template.getLayout()) + "\" exists in the registry!"
+            "ID \"" + std::to_string(layout) + "\" exists in the registry!"
         );
     }
 
-    return _registerPipelineFactory({
-        _template,
-        _template.getLayout(),
-        _template.getRenderPass()
-    });
+    return _registerPipelineFactory({ std::move(_template), layout, std::move(renderPass) });
 }
 
 template<RenderConfigType T>
-auto PipelineRegistry<T>::registerPipeline(const ComputePipelineTemplate& _template) -> Pipeline::ID
+auto PipelineRegistry<T>::registerPipeline(
+    ComputePipelineTemplate _template,
+    PipelineLayout::ID layout
+    ) -> Pipeline::ID
 {
-    if (_template.getLayout() >= layoutFactories.size())
+    if (layout >= layoutFactories.size())
     {
         throw Exception(
             "[In PipelineRegistry<>::registerPipeline]: No pipeline layout with the specified "
-            "ID \"" + std::to_string(_template.getLayout()) + "\" exists in the registry!"
+            "ID \"" + std::to_string(layout) + "\" exists in the registry!"
         );
     }
 
-    _registerPipelineFactory({ _template, _template.getLayout() });
+    _registerPipelineFactory({ std::move(_template), layout });
 }
 
 template<RenderConfigType T>
@@ -354,36 +357,9 @@ auto PipelineRegistry<T>::PipelineFactory::create(
     ) const -> Pipeline
 {
     const auto& device = instance.getDevice();
-
-    // Create copy because it will be modified
-    PipelineDefinitionData def = t.getPipelineData();
-    const ProgramDefinitionData& shader = t.getProgramData();
-
-    // Create a program from the shader code
-    auto program = shader.makeProgram(device);
-
     auto [renderPass, subPass] = renderConfig.getRenderPass(renderPassName);
-    auto pipeline = device->createGraphicsPipelineUnique(
-        {},
-        vk::GraphicsPipelineCreateInfo(
-            {},
-            program.getStageCreateInfo(),
-            &def.vertexInput,
-            &def.inputAssembly,
-            &def.tessellation,
-            &def.viewport,
-            &def.rasterization,
-            &def.multisampling,
-            &def.depthStencil,
-            &def.colorBlending,
-            &def.dynamicState,
-            *layout,
-            renderPass, subPass,
-            vk::Pipeline(), 0
-        )
-    ).value;
 
-    return Pipeline{ layout, std::move(pipeline), vk::PipelineBindPoint::eGraphics };
+    return makeGraphicsPipeline(device, t, layout, renderPass, subPass);
 }
 
 template<RenderConfigType T>
@@ -394,23 +370,7 @@ auto PipelineRegistry<T>::PipelineFactory::create(
     PipelineLayout& layout
     ) const -> Pipeline
 {
-    const auto& device = instance.getDevice();
-
-    auto shaderModule = vkb::createShaderModule(device, t.getShaderCode());
-    auto pipeline = device->createComputePipelineUnique(
-        {},
-        vk::ComputePipelineCreateInfo(
-            {},
-            vk::PipelineShaderStageCreateInfo(
-                {}, vk::ShaderStageFlagBits::eCompute,
-                *shaderModule,
-                t.getEntryPoint().c_str()
-            ),
-            *layout
-        )
-    ).value;
-
-    return Pipeline{ layout, std::move(pipeline), vk::PipelineBindPoint::eGraphics };
+    return makeComputePipeline(instance.getDevice(), t, layout);
 }
 
 template<RenderConfigType T>
@@ -434,38 +394,7 @@ auto PipelineRegistry<T>::LayoutFactory::create(
     T& renderConfig)
     -> PipelineLayout
 {
-    std::vector<vk::DescriptorSetLayout> descLayouts;
-    for (const auto& desc : _template.getDescriptors())
-    {
-        descLayouts.emplace_back(renderConfig.getDescriptor(desc.name).getDescriptorSetLayout());
-    }
-
-    std::vector<vk::PushConstantRange> pushConstantRanges;
-    for (const auto& pc : _template.getPushConstants())
-    {
-        pushConstantRanges.emplace_back(pc.range);
-    }
-
-    vk::PipelineLayoutCreateInfo createInfo{ {}, descLayouts, pushConstantRanges };
-    PipelineLayout layout{ instance.getDevice()->createPipelineLayoutUnique(createInfo) };
-
-    // Add static descriptors and default push constant values to the layout
-    for (ui32 i = 0; i < _template.getDescriptors().size(); i++)
-    {
-        const auto& desc = _template.getDescriptors().at(i);
-        if (desc.isStatic) {
-            layout.addStaticDescriptorSet(i, renderConfig.getDescriptor(desc.name));
-        }
-    }
-
-    for (const auto& push : _template.getPushConstants())
-    {
-        if (push.defaultValue.has_value()) {
-            push.defaultValue.value().setAsDefault(layout, push.range);
-        }
-    }
-
-    return layout;
+    return makePipelineLayout(instance.getDevice(), _template, renderConfig);
 }
 
 template<RenderConfigType T>

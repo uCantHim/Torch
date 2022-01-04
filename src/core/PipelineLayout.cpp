@@ -12,12 +12,11 @@ trc::PipelineLayout::PipelineLayout(vk::UniquePipelineLayout layout)
 
 trc::PipelineLayout::PipelineLayout(
     const vkb::Device& device,
-    const std::vector<vk::DescriptorSetLayout>& descriptors,
-    const std::vector<vk::PushConstantRange>& pushConstants)
+    const vk::ArrayProxy<const vk::DescriptorSetLayout>& descriptors,
+    const vk::ArrayProxy<const vk::PushConstantRange>& pushConstants)
     :
     layout(device->createPipelineLayoutUnique({ {}, descriptors, pushConstants }))
 {
-
 }
 
 auto trc::PipelineLayout::operator*() const noexcept -> vk::PipelineLayout

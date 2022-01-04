@@ -61,6 +61,15 @@ namespace trc
         std::vector<PushConstant> pushConstants;
     };
 
+    /**
+     * @brief Create a pipeline layout from a template
+     */
+    template<RenderConfigType T>
+    auto makePipelineLayout(const vkb::Device& device,
+                            const PipelineLayoutTemplate& _template,
+                            const T& renderConfig
+        ) -> PipelineLayout;
+
 
 
     template<typename T>
@@ -79,4 +88,45 @@ namespace trc
         ),
         value(std::forward<T>(value))
     {}
+
+    template<RenderConfigType T>
+    auto makePipelineLayout(
+        const vkb::Device& device,
+        const PipelineLayoutTemplate& _template,
+        const T& renderConfig)
+        -> PipelineLayout
+    {
+        std::vector<vk::DescriptorSetLayout> descLayouts;
+        for (const auto& desc : _template.getDescriptors())
+        {
+            descLayouts.emplace_back(renderConfig.getDescriptor(desc.name).getDescriptorSetLayout());
+        }
+
+        std::vector<vk::PushConstantRange> pushConstantRanges;
+        for (const auto& pc : _template.getPushConstants())
+        {
+            pushConstantRanges.emplace_back(pc.range);
+        }
+
+        vk::PipelineLayoutCreateInfo createInfo{ {}, descLayouts, pushConstantRanges };
+        PipelineLayout layout{ device->createPipelineLayoutUnique(createInfo) };
+
+        // Add static descriptors and default push constant values to the layout
+        for (ui32 i = 0; i < _template.getDescriptors().size(); i++)
+        {
+            const auto& desc = _template.getDescriptors().at(i);
+            if (desc.isStatic) {
+                layout.addStaticDescriptorSet(i, renderConfig.getDescriptor(desc.name));
+            }
+        }
+
+        for (const auto& push : _template.getPushConstants())
+        {
+            if (push.defaultValue.has_value()) {
+                push.defaultValue.value().setAsDefault(layout, push.range);
+            }
+        }
+
+        return layout;
+    }
 } // namespace trc

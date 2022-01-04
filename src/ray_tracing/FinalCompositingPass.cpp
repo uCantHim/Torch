@@ -2,6 +2,7 @@
 
 #include <vkb/ShaderProgram.h>
 
+#include "core/ComputePipelineBuilder.h"
 #include "trc_util/Util.h"
 #include "DescriptorSetUtils.h"
 #include "AssetRegistry.h"
@@ -71,14 +72,10 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         },
         {}
     ),
-    computePipeline(makeComputePipeline(
-        window.getDevice(),
-        computePipelineLayout,
-        vkb::createShaderModule(
-            window.getDevice(),
-            vkb::readFile(TRC_SHADER_DIR"/compositing.comp.spv")
-        )
-    ))
+    computePipeline(buildComputePipeline()
+        .setProgram(vkb::readFile(TRC_SHADER_DIR"/compositing.comp.spv"))
+        .build(window.getDevice(), computePipelineLayout)
+    )
 {
     assert(info.gBuffer != nullptr);
     assert(info.rayBuffer != nullptr);

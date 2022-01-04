@@ -120,13 +120,8 @@ namespace trc
 
         /**
          * @build Finish the build process and create a pipeline template
-         *
-         * @param PipelineLayout::ID layout The pipeline's layout
-         * @param RenderPassName renderPass Name of a render pass with
-         *        which the pipeline will be compatible
          */
-        auto build(PipelineLayout::ID layout, const RenderPassName& renderPass) const
-            -> PipelineTemplate;
+        auto build() const -> PipelineTemplate;
 
         auto build(const vkb::Device& device,
                    PipelineLayout& layout,
@@ -159,7 +154,7 @@ namespace trc
         PipelineLayout::ID layout,
         const RenderPassName& renderPass) const -> Pipeline::ID
     {
-        return PipelineRegistry<T>::registerPipeline(build(layout, renderPass));
+        return PipelineRegistry<T>::registerPipeline(build(), layout, renderPass);
     }
 
     template<typename T>

@@ -10,24 +10,6 @@
 namespace trc
 {
     /**
-     * @brief Helper to create a pipeline layout
-     *
-     * @param descriptorSetLayouts List of descriptor set layouts in the
-     *                             pipeline
-     * @param pushConstantRanges   List of push constant ranges in the
-     *                             pipeline
-     *
-     * @return vk::UniquePipeline
-     */
-    inline auto makePipelineLayout(
-        const vkb::Device& device,
-        const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
-        const std::vector<vk::PushConstantRange>& pushConstantRanges)
-    {
-        return PipelineLayout(device, descriptorSetLayouts, pushConstantRanges);
-    }
-
-    /**
      * @brief Base class for all pipelines
      */
     class Pipeline
@@ -39,6 +21,7 @@ namespace trc
             vk::UniqueHandle<vk::Pipeline, vk::DispatchLoaderDynamic>
         >;
 
+        Pipeline() = delete;
         Pipeline(const Pipeline&) = delete;
         Pipeline& operator=(const Pipeline&) = delete;
 
@@ -74,14 +57,17 @@ namespace trc
         vk::PipelineBindPoint bindPoint;
     };
 
-
-
     /**
      * @brief Create a compute shader pipeline
+     *
+     * A most basic helper to create a compute pipeline quickly.
+     *
+     * @note No equivalent function exists for graphics pipelines because
+     * their creation is much more complex.
      */
     auto makeComputePipeline(const vkb::Device& device,
                              PipelineLayout& layout,
-                             vk::UniqueShaderModule shader,
+                             const std::string& code,
                              vk::PipelineCreateFlags flags = {},
                              const std::string& entryPoint = "main") -> Pipeline;
 } // namespace trc

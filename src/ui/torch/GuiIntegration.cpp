@@ -97,9 +97,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
     imageBlendPipeline(
         makeComputePipeline(
             device, imageBlendPipelineLayout,
-            vkb::createShaderModule(device,
-                vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
-            )
+            vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
         )
     ),
     swapchainRecreateListener(vkb::on<vkb::SwapchainRecreateEvent>([&](auto& e) {

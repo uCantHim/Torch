@@ -54,7 +54,6 @@ namespace trc
      *  - albedo:    eGeneral
      *  - materials: eGeneral
      *  - depth:     eShaderReadOnlyOptimal
-     *  - swapchain: ePresentSrcKHR
      */
     class RenderPassDeferred : public RenderPass
     {

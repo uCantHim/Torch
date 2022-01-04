@@ -19,7 +19,7 @@ trc::FinalLightingPass::FinalLightingPass(const Window& window, DeferredRenderCo
         .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ DeferredRenderConfig::SCENE_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
-        .build(window.getInstance(), config)
+        .build(window.getDevice(), config)
     ),
     pipeline(buildComputePipeline()
         .setProgram(vkb::readFile(TRC_SHADER_DIR"/final_lighting.comp.spv"))

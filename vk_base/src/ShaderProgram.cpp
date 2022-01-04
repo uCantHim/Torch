@@ -48,7 +48,7 @@ vkb::ShaderProgram::ShaderProgram(
 
 void vkb::ShaderProgram::addStage(const ShaderStageInfo& stage)
 {
-    auto& mod = modules.emplace_back(createShaderModule(device, stage.shaderCode));
+    auto& mod = modules.emplace_back(makeShaderModule(device, stage.shaderCode));
 
     vk::SpecializationInfo* specInfo{ nullptr };
     if (stage.specializationInfo.has_value())
@@ -103,13 +103,13 @@ auto vkb::readFile(const fs::path& path) -> std::string
     return buf.str();
 }
 
-auto vkb::createShaderModule(const vkb::Device& device, const std::string& code)
+auto vkb::makeShaderModule(const vkb::Device& device, const std::string& code)
     -> vk::UniqueShaderModule
 {
-    return createShaderModule(*device, code);
+    return makeShaderModule(*device, code);
 }
 
-auto vkb::createShaderModule(vk::Device device, const std::string& code)
+auto vkb::makeShaderModule(vk::Device device, const std::string& code)
     -> vk::UniqueShaderModule
 {
     assert(!code.empty());

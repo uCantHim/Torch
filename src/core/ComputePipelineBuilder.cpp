@@ -13,16 +13,15 @@ auto trc::ComputePipelineBuilder::setProgram(ShaderCode newCode) -> Self&
     return *this;
 }
 
-auto trc::ComputePipelineBuilder::build(PipelineLayout::ID layout) -> ComputePipelineTemplate
+auto trc::ComputePipelineBuilder::build() const -> ComputePipelineTemplate
 {
-    _template.setLayout(layout);
     return _template;
 }
 
 auto trc::ComputePipelineBuilder::build(const vkb::Device& device, PipelineLayout& layout)
     -> Pipeline
 {
-    return makeComputePipeline(_template, *device, layout);
+    return makeComputePipeline(device, build(), layout);
 }
 
 

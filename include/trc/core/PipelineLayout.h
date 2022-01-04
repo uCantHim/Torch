@@ -13,19 +13,29 @@ namespace trc
     class DescriptorProviderInterface;
 
     /**
-     * @brief
+     * @brief A pipeline layout
      */
     class PipelineLayout
     {
     public:
         using ID = data::TypesafeID<PipelineLayout, ui32>;
 
+        /**
+         * The default constructor creates an uninitialized PipelineLayout.
+         * In this case, the expression `*layout == VK_NULL_HANDLE`
+         * evaluates to `true`.
+         *
+         * The PipelineLayout is implicitly convertible to `bool` to test
+         * for this.
+         */
         PipelineLayout() = default;
+
         explicit
         PipelineLayout(vk::UniquePipelineLayout layout);
+
         PipelineLayout(const vkb::Device& device,
-                       const std::vector<vk::DescriptorSetLayout>& descriptors,
-                       const std::vector<vk::PushConstantRange>& pushConstants);
+                       const vk::ArrayProxy<const vk::DescriptorSetLayout>& descriptors,
+                       const vk::ArrayProxy<const vk::PushConstantRange>& pushConstants);
 
         auto operator*() const noexcept -> vk::PipelineLayout;
 
@@ -60,6 +70,30 @@ namespace trc
         std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
     };
 
+    /**
+     * @brief Helper to create a pipeline layout
+     *
+     * @note It is possible to create PipelineLayouts with a constructor
+     * that takes the exact same arguments. This function exists for
+     * historical reasons.
+     *
+     * @param device
+     * @param descriptorSetLayouts List of descriptor set layouts in the
+     *                             pipeline
+     * @param pushConstantRanges   List of push constant ranges in the
+     *                             pipeline
+     *
+     * @return PipelineLayout
+     */
+    inline auto makePipelineLayout(
+        const vkb::Device& device,
+        const vk::ArrayProxy<const vk::DescriptorSetLayout>& descriptorSetLayouts,
+        const vk::ArrayProxy<const vk::PushConstantRange>& pushConstantRanges)
+        -> PipelineLayout
+    {
+        return PipelineLayout(device, descriptorSetLayouts, pushConstantRanges);
+    }
+
 
 
     template<typename T>
@@ -68,8 +102,7 @@ namespace trc
         T value,
         vk::ShaderStageFlags stages)
     {
-        std::vector<uint8_t> defaultValue;
-        defaultValue.resize(sizeof(T));
+        std::vector<uint8_t> defaultValue(sizeof(T));
         memcpy(defaultValue.data(), &value, sizeof(T));
 
         defaultPushConstants.emplace_back(offset, stages, std::move(defaultValue));

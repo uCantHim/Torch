@@ -1,8 +1,8 @@
 #include "PipelineTemplate.h"
 
+#include <vkb/ShaderProgram.h>
+
 #include "core/Instance.h"
-#include "core/PipelineBuilder.h"
-#include "trc_util/Util.h"
 
 
 
@@ -51,45 +51,6 @@ trc::PipelineTemplate::PipelineTemplate(ProgramDefinitionData program, PipelineD
     compileData();
 }
 
-trc::PipelineTemplate::PipelineTemplate(
-    ProgramDefinitionData program,
-    PipelineDefinitionData pipeline,
-    PipelineLayout::ID layout,
-    const RenderPassName& renderPass)
-    :
-    layout(std::move(layout)),
-    renderPassName(std::move(renderPass)),
-    program(std::move(program)),
-    data(std::move(pipeline))
-{
-    compileData();
-}
-
-auto trc::PipelineTemplate::modify() const -> GraphicsPipelineBuilder
-{
-    return GraphicsPipelineBuilder{ *this };
-}
-
-void trc::PipelineTemplate::setLayout(PipelineLayout::ID _layout)
-{
-    layout = _layout;
-}
-
-void trc::PipelineTemplate::setRenderPass(const RenderPassName& name)
-{
-    renderPassName = name;
-}
-
-auto trc::PipelineTemplate::getLayout() const -> PipelineLayout::ID
-{
-    return layout;
-}
-
-auto trc::PipelineTemplate::getRenderPass() const -> const RenderPassName&
-{
-    return renderPassName;
-}
-
 auto trc::PipelineTemplate::getProgramData() const -> const ProgramDefinitionData&
 {
     return program;
@@ -104,19 +65,25 @@ void trc::PipelineTemplate::compileData()
 {
     data.viewport = vk::PipelineViewportStateCreateInfo({}, data.viewports, data.scissorRects);
 
-    if (data.viewport.viewportCount == 0
-        && std::ranges::find(data.dynamicStates, vk::DynamicState::eViewport)
-           != data.dynamicStates.end())
+    if (data.viewport.viewportCount == 0)
     {
         const auto& vp = data.viewports.emplace_back(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f));
         data.viewport.setViewports(vp);
+        if (std::ranges::find(data.dynamicStates, vk::DynamicState::eViewport)
+                == data.dynamicStates.end())
+        {
+            data.dynamicStates.emplace_back(vk::DynamicState::eViewport);
+        }
     }
-    if (data.viewport.scissorCount == 0
-        && std::ranges::find(data.dynamicStates, vk::DynamicState::eScissor)
-           != data.dynamicStates.end())
+    if (data.viewport.scissorCount == 0)
     {
         const auto& sc = data.scissorRects.emplace_back(vk::Rect2D({ 0, 0 }, { 1, 1 }));
         data.viewport.setScissors(sc);
+        if (std::ranges::find(data.dynamicStates, vk::DynamicState::eScissor)
+                == data.dynamicStates.end())
+        {
+            data.dynamicStates.emplace_back(vk::DynamicState::eScissor);
+        }
     }
 
     data.vertexInput = vk::PipelineVertexInputStateCreateInfo({}, data.inputBindings, data.attributes);
@@ -129,16 +96,6 @@ void trc::PipelineTemplate::compileData()
 void trc::ComputePipelineTemplate::setProgramCode(std::string code)
 {
     shaderCode = std::move(code);
-}
-
-void trc::ComputePipelineTemplate::setLayout(PipelineLayout::ID layoutId)
-{
-    layout = layoutId;
-}
-
-auto trc::ComputePipelineTemplate::getLayout() const -> PipelineLayout::ID
-{
-    return layout;
 }
 
 auto trc::ComputePipelineTemplate::getShaderCode() const -> const std::string&
@@ -160,8 +117,8 @@ auto trc::ComputePipelineTemplate::getEntryPoint() const -> const std::string&
 
 
 auto trc::makeGraphicsPipeline(
-    const PipelineTemplate& _template,
     const vkb::Device& device,
+    const PipelineTemplate& _template,
     PipelineLayout& layout,
     vk::RenderPass renderPass,
     ui32 subPass) -> Pipeline
@@ -196,12 +153,12 @@ auto trc::makeGraphicsPipeline(
 }
 
 auto trc::makeComputePipeline(
+    const vkb::Device& device,
     const ComputePipelineTemplate& _template,
-    vk::Device device,
     PipelineLayout& layout) -> Pipeline
 {
-    auto shaderModule = vkb::createShaderModule(device, _template.getShaderCode());
-    auto pipeline = device.createComputePipelineUnique(
+    auto shaderModule = vkb::makeShaderModule(device, _template.getShaderCode());
+    auto pipeline = device->createComputePipelineUnique(
         {},
         vk::ComputePipelineCreateInfo(
             {},

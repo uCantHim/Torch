@@ -94,7 +94,7 @@ namespace trc
          * @brief Build a pipeline layout
          */
         template<RenderConfigType T>
-        auto build(const Instance& instance, T& renderConfig) -> PipelineLayout;
+        auto build(const vkb::Device& device, T& renderConfig) -> PipelineLayout;
 
         /**
          * @brief Build the layout and register it at a pipeline registry
@@ -112,10 +112,9 @@ namespace trc
 
 
     template<RenderConfigType T>
-    auto PipelineLayoutBuilder::build(const Instance& instance, T& renderConfig) -> PipelineLayout
+    auto PipelineLayoutBuilder::build(const vkb::Device& device, T& renderConfig) -> PipelineLayout
     {
-        return typename PipelineRegistry<T>::LayoutFactory{ build() }
-            .create(instance, renderConfig);
+        return makePipelineLayout(device, build(), renderConfig);
     }
 
     template<RenderConfigType T>

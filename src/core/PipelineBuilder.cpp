@@ -294,11 +294,9 @@ auto trc::GraphicsPipelineBuilder::addDynamicState(vk::DynamicState dynamicState
     return *this;
 }
 
-auto trc::GraphicsPipelineBuilder::build(
-    PipelineLayout::ID layout,
-    const RenderPassName& renderPass) const -> PipelineTemplate
+auto trc::GraphicsPipelineBuilder::build() const -> PipelineTemplate
 {
-    return { std::move(program), std::move(data), layout, renderPass };
+    return { program, data };
 }
 
 auto trc::GraphicsPipelineBuilder::build(
@@ -307,10 +305,7 @@ auto trc::GraphicsPipelineBuilder::build(
     vk::RenderPass renderPass,
     ui32 subPass) -> Pipeline
 {
-    return makeGraphicsPipeline(
-        { std::move(program), std::move(data) },
-        device, layout, renderPass, subPass
-    );
+    return makeGraphicsPipeline(device, build(), layout, renderPass, subPass);
 }
 
 

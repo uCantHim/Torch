@@ -24,10 +24,8 @@ namespace trc
 
         /**
          * @build Finish the build process and create a pipeline template
-         *
-         * @param PipelineLayout::ID layout The pipeline's layout
          */
-        auto build(PipelineLayout::ID layout) -> ComputePipelineTemplate;
+        auto build() const -> ComputePipelineTemplate;
 
         auto build(const vkb::Device& device, PipelineLayout& layout) -> Pipeline;
 
@@ -60,6 +58,6 @@ namespace trc
     auto ComputePipelineBuilder::registerPipeline(PipelineLayout::ID layout)
         -> Pipeline::ID
     {
-        return PipelineRegistry<T>::registerPipeline(build(layout));
+        return PipelineRegistry<T>::registerPipeline(build(), layout);
     }
 } // namespace trc

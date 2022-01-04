@@ -93,9 +93,9 @@ namespace trc
             ui32 textureIndex;
         };
 
-        static auto makeParticleDrawAlphaDiscardPipeline() -> PipelineTemplate;
-        static auto makeParticleDrawAlphaBlendPipeline() -> PipelineTemplate;
-        static auto makeParticleShadowPipeline() -> PipelineTemplate;
+        static auto makeParticleDrawAlphaDiscardPipeline() -> Pipeline::ID;
+        static auto makeParticleDrawAlphaBlendPipeline() -> Pipeline::ID;
+        static auto makeParticleShadowPipeline() -> Pipeline::ID;
 
         /**
          * @brief Simulate particle physics

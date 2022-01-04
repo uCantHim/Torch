@@ -190,28 +190,19 @@ void trc::ParticleCollection::update(const float timeDelta)
 
 auto trc::ParticleCollection::getAlphaDiscardPipeline() -> Pipeline::ID
 {
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleDrawAlphaDiscardPipeline()
-    );
-
+    static auto id = makeParticleDrawAlphaDiscardPipeline();
     return id;
 }
 
 auto trc::ParticleCollection::getAlphaBlendPipeline() -> Pipeline::ID
 {
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleDrawAlphaBlendPipeline()
-    );
-
+    static auto id = makeParticleDrawAlphaBlendPipeline();
     return id;
 }
 
 auto trc::ParticleCollection::getShadowPipeline() -> Pipeline::ID
 {
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(
-        makeParticleShadowPipeline()
-    );
-
+    static auto id = makeParticleShadowPipeline();
     return id;
 }
 
@@ -307,7 +298,7 @@ void trc::ParticleSpawn::spawnParticles()
 //      Particle Draw Pipeline      //
 //////////////////////////////////////
 
-auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> PipelineTemplate
+auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
@@ -340,15 +331,13 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> Pipeline
             }
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
-        .addScissorRect({ { 0, 0 }, { 1, 1 } })
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
         .disableBlendAttachments(3)
-        .build(layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS }
+        );
 }
 
-auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> PipelineTemplate
+auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
@@ -382,14 +371,12 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> PipelineTe
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
         .disableDepthWrite()
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
-        .addScissorRect({ { 0, 0 }, { 1, 1 } })
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .build(layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+        );
 }
 
-auto trc::ParticleCollection::makeParticleShadowPipeline() -> PipelineTemplate
+auto trc::ParticleCollection::makeParticleShadowPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
@@ -424,9 +411,7 @@ auto trc::ParticleCollection::makeParticleShadowPipeline() -> PipelineTemplate
             }
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
-        .addScissorRect({ { 0, 0 }, { 1, 1 } })
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .build(layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS }
+        );
 }

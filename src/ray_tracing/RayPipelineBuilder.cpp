@@ -169,7 +169,7 @@ auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const fs::path& path) -
     }
 
     return *shaderModules.emplace_back(
-        vkb::createShaderModule(device, vkb::readFile(path.string()))
+        vkb::makeShaderModule(device, vkb::readFile(path.string()))
     );
 }
 

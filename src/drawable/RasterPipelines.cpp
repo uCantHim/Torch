@@ -51,7 +51,7 @@ auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
     }
 }
 
-auto makeDrawablePoolInstancedPipeline(PipelineFeatureFlags flags) -> PipelineTemplate
+auto makeDrawablePoolInstancedPipeline(PipelineFeatureFlags flags) -> Pipeline::ID
 {
     const bool isTransparent = !!(flags & PipelineFeatureFlagBits::eTransparent);
 
@@ -85,8 +85,6 @@ auto makeDrawablePoolInstancedPipeline(PipelineFeatureFlags flags) -> PipelineTe
                 vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32G32B32A32Uint, 64),
             }
         )
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
         .disableBlendAttachments(3);
 
     if (isTransparent)
@@ -95,14 +93,14 @@ auto makeDrawablePoolInstancedPipeline(PipelineFeatureFlags flags) -> PipelineTe
         builder.disableDepthWrite();
     }
 
-    return builder.build(
+    return builder.registerPipeline<DeferredRenderConfig>(
         layout,
         isTransparent ? RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
                       : RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS }
     );
 }
 
-auto makeDrawablePoolInstancedShadowPipeline() -> PipelineTemplate
+auto makeDrawablePoolInstancedShadowPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
@@ -128,10 +126,11 @@ auto makeDrawablePoolInstancedShadowPipeline() -> PipelineTemplate
                 vk::VertexInputAttributeDescription(10, 1, vk::Format::eR32G32B32A32Uint, 64),
             }
         )
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
         .disableBlendAttachments(1)
-        .build(layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout,
+            RenderPassName{ DeferredRenderConfig::SHADOW_PASS }
+        );
 }
 
 auto _makePoolInst = []() {
@@ -141,11 +140,10 @@ auto _makePoolInstTrans = []() {
     return makeDrawablePoolInstancedPipeline(PipelineFeatureFlagBits::eTransparent);
 };
 
-PIPELINE_GETTER_FUNC(getInstancedPoolPipeline, _makePoolInst, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getInstancedPoolTransparentPipeline, _makePoolInstTrans, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getInstancedPoolPipeline, _makePoolInst)
+PIPELINE_GETTER_FUNC(getInstancedPoolTransparentPipeline, _makePoolInstTrans)
 PIPELINE_GETTER_FUNC(getInstancedPoolShadowPipeline,
-                     makeDrawablePoolInstancedShadowPipeline,
-                     DeferredRenderConfig)
+                     makeDrawablePoolInstancedShadowPipeline)
 
 
 
@@ -166,9 +164,9 @@ auto getPoolInstancePipeline(PipelineFeatureFlags flags) -> Pipeline::ID
 
 
 
-auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> PipelineTemplate;
-auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> PipelineTemplate;
-auto makeDrawableShadowPipeline() -> PipelineTemplate;
+auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
+auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
+auto makeDrawableShadowPipeline() -> Pipeline::ID;
 
 using Flags = PipelineFeatureFlagBits;
 
@@ -185,13 +183,13 @@ auto _makeTransDefAnim = []() {
     return makeDrawableTransparentPipeline(Flags::eAnimated);
 };
 
-PIPELINE_GETTER_FUNC(getDrawableDeferredPipeline, _makeDrawDef, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedPipeline, _makeDrawDefAnim, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableDeferredPipeline, _makeDrawDef)
+PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedPipeline, _makeDrawDefAnim)
 
-PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPipeline, _makeTransDef, DeferredRenderConfig)
-PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedPipeline, _makeTransDefAnim, DeferredRenderConfig)
+PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPipeline, _makeTransDef)
+PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedPipeline, _makeTransDefAnim)
 
-PIPELINE_GETTER_FUNC(getDrawableShadowPipeline, makeDrawableShadowPipeline, DeferredRenderConfig);
+PIPELINE_GETTER_FUNC(getDrawableShadowPipeline, makeDrawableShadowPipeline)
 
 
 
@@ -205,7 +203,7 @@ struct DrawablePushConstants
     float keyframeWeight{ 0.0f };
 };
 
-auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> PipelineTemplate
+auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
@@ -229,15 +227,13 @@ auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
-        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))
         .disableBlendAttachments(3)
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .build(layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS }
+        );
 }
 
-auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> PipelineTemplate
+auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
@@ -264,14 +260,12 @@ auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipel
         )
         .setCullMode(vk::CullModeFlagBits::eNone) // Don't cull back faces because they're visible
         .disableDepthWrite()
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
-        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .build(layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+        );
 }
 
-auto makeDrawableShadowPipeline() -> PipelineTemplate
+auto makeDrawableShadowPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
@@ -288,15 +282,13 @@ auto makeDrawableShadowPipeline() -> PipelineTemplate
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))  // Dynamic state
-        .addScissorRect(vk::Rect2D({ 0, 0 }, { 1, 1 }))     // Dynamic state
 #ifdef TRC_FLIP_Y_PROJECTION
         .setFrontFace(vk::FrontFace::eClockwise)
 #endif
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .build(layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS }
+        );
 }
 
 } // namespace trc

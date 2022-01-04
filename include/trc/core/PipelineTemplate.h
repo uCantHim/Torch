@@ -80,44 +80,22 @@ namespace trc
         vk::PipelineDynamicStateCreateInfo dynamicState;
     };
 
-    class GraphicsPipelineBuilder;
-
     /**
-     * @brief
+     * The PipelineTemplate automatically sets viewport and scissor states
+     * as dynamic states if the pipeline definition contains no viewports
+     * or scissor rectangles, respectively.
      */
     class PipelineTemplate
     {
     public:
         PipelineTemplate() = default;
         PipelineTemplate(ProgramDefinitionData program, PipelineDefinitionData pipeline);
-        PipelineTemplate(ProgramDefinitionData program,
-                         PipelineDefinitionData pipeline,
-                         PipelineLayout::ID layout,
-                         const RenderPassName& renderPass);
 
-        /**
-         * @brief Alter the template with a pipeline builder
-         *
-         * Creates a copy of the template and wraps it into a pipeline
-         * builder, from where it can be conveniently modified. The
-         * original PipelineTemplate object on which this method is called
-         * will not be altered.
-         */
-        auto modify() const -> GraphicsPipelineBuilder;
-
-        void setLayout(PipelineLayout::ID layout);
-        void setRenderPass(const RenderPassName& name);
-
-        auto getLayout() const -> PipelineLayout::ID;
-        auto getRenderPass() const -> const RenderPassName&;
         auto getProgramData() const -> const ProgramDefinitionData&;
         auto getPipelineData() const -> const PipelineDefinitionData&;
 
     private:
         void compileData();
-
-        PipelineLayout::ID layout{ PipelineLayout::ID::NONE };
-        RenderPassName renderPassName{};
 
         ProgramDefinitionData program;
         PipelineDefinitionData data;
@@ -129,7 +107,6 @@ namespace trc
         ComputePipelineTemplate() = default;
 
         void setProgramCode(std::string code);
-        void setLayout(PipelineLayout::ID layoutId);
 
         template<typename T>
         inline void setSpecializationConstant(ui32 constantId, T&& data)
@@ -137,14 +114,11 @@ namespace trc
             specConstants.set(constantId, std::forward<T>(data));
         }
 
-        auto getLayout() const -> PipelineLayout::ID;
         auto getShaderCode() const -> const std::string&;
         auto getSpecializationConstants() const -> const SpecializationConstantStorage&;
         auto getEntryPoint() const -> const std::string&;
 
     private:
-        PipelineLayout::ID layout{ PipelineLayout::ID::NONE };
-
         std::string shaderCode;
         SpecializationConstantStorage specConstants;
         std::string entryPoint{ "main" };
@@ -153,20 +127,20 @@ namespace trc
     /**
      * @brief Create a graphics pipeline from a template
      */
-    auto makeGraphicsPipeline(const PipelineTemplate& _template,
-                              const vkb::Device& device,
+    auto makeGraphicsPipeline(const vkb::Device& device,
+                              const PipelineTemplate& _template,
                               PipelineLayout& layout,
                               vk::RenderPass renderPass,
                               ui32 subPass
-                              ) -> Pipeline;
+        ) -> Pipeline;
 
     /**
      * @brief Create a compute pipeline from a template
      */
-    auto makeComputePipeline(const ComputePipelineTemplate& _template,
-                             vk::Device device,
+    auto makeComputePipeline(const vkb::Device& device,
+                             const ComputePipelineTemplate& _template,
                              PipelineLayout& layout
-                             ) -> Pipeline;
+        ) -> Pipeline;
 
 
 

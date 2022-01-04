@@ -29,7 +29,7 @@ namespace trc
         };
     }
 
-    auto makeTextPipeline() -> PipelineTemplate;
+    auto makeTextPipeline() -> Pipeline::ID;
 } // namespace trc
 
 
@@ -131,14 +131,13 @@ void trc::Text::print(std::string_view str)
 
 auto trc::Text::getPipeline() -> Pipeline::ID
 {
-    static auto id = PipelineRegistry<DeferredRenderConfig>::registerPipeline(makeTextPipeline());
-
+    static auto id = makeTextPipeline();
     return id;
 }
 
 
 
-auto trc::makeTextPipeline() -> PipelineTemplate
+auto trc::makeTextPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
@@ -178,5 +177,7 @@ auto trc::makeTextPipeline() -> PipelineTemplate
         .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .build(layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS });
+        .registerPipeline<DeferredRenderConfig>(
+            layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+        );
 }

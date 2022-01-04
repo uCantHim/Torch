@@ -18,9 +18,20 @@ namespace trc
     class PipelineRegistry;
 
     template<RenderConfigType T>
-    inline auto registerPipeline(const PipelineTemplate& t) -> Pipeline::ID
+    inline auto registerPipeline(PipelineTemplate t,
+                                 PipelineLayout::ID layout,
+                                 RenderPassName renderPass)
+        -> Pipeline::ID
     {
-        return PipelineRegistry<T>::registerPipeline(t);
+        return PipelineRegistry<T>::registerPipeline(std::move(t), layout, std::move(renderPass));
+    }
+
+    template<RenderConfigType T>
+    inline auto registerPipeline(ComputePipelineTemplate t,
+                                 PipelineLayout::ID layout)
+        -> Pipeline::ID
+    {
+        return PipelineRegistry<T>::registerPipeline(std::move(t), layout);
     }
 
     /**
@@ -67,9 +78,12 @@ namespace trc
         static auto registerPipelineLayout(PipelineLayoutTemplate _template) -> PipelineLayout::ID;
         static auto clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate;
 
-        static auto registerPipeline(const PipelineTemplate& pipelineTemplate)
+        static auto registerPipeline(PipelineTemplate pipelineTemplate,
+                                     PipelineLayout::ID layout,
+                                     RenderPassName renderPass)
             -> Pipeline::ID;
-        static auto registerPipeline(const ComputePipelineTemplate& pipelineTemplate)
+        static auto registerPipeline(ComputePipelineTemplate pipelineTemplate,
+                                     PipelineLayout::ID layout)
             -> Pipeline::ID;
 
         static auto cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate;
