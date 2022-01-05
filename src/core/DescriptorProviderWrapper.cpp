@@ -9,15 +9,6 @@ trc::DescriptorProviderWrapper::DescriptorProviderWrapper(
 {
 }
 
-auto trc::DescriptorProviderWrapper::getDescriptorSet() const noexcept
-    -> vk::DescriptorSet
-{
-    if (provider != nullptr) {
-        return provider->getDescriptorSet();
-    }
-    return {};
-}
-
 auto trc::DescriptorProviderWrapper::getDescriptorSetLayout() const noexcept
     -> vk::DescriptorSetLayout
 {

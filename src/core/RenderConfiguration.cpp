@@ -31,37 +31,6 @@ auto trc::RenderPassRegistry::getRenderPass(const RenderPassName& name) const
 
 
 
-void trc::DescriptorRegistry::addDescriptor(
-    DescriptorName name,
-    const DescriptorProviderInterface& provider)
-{
-    auto [it, success] = descriptorProviders.try_emplace(std::move(name.identifier), &provider);
-
-    if (!success)
-    {
-        throw Exception(
-            "[In DescriptorRegistry::addDescriptor]: "
-            "Descriptor with name " + it->first + " is already defined!"
-        );
-    }
-}
-
-auto trc::DescriptorRegistry::getDescriptor(const DescriptorName& name) const
-    -> const DescriptorProviderInterface&
-{
-    auto it = descriptorProviders.find(name.identifier);
-    if (it != descriptorProviders.end()) {
-        return *it->second;
-    }
-
-    throw Exception(
-        "[In DescriptorRegistry::getDescriptor]: "
-        "No descriptor with the name \"" + name.identifier + "\" has been defined."
-    );
-}
-
-
-
 trc::RenderConfig::RenderConfig(RenderLayout layout)
     :
     layout(std::move(layout))

@@ -1,10 +1,13 @@
 #include "Renderer.h"
 
+#include <trc_util/Util.h>
+#include <trc_util/Timer.h>
+#include <trc_util/algorithm/VectorTransform.h>
+
 #include "Window.h"
 #include "DrawConfiguration.h"
+#include "RenderConfiguration.h"
 #include "TorchResources.h"
-#include "trc_util/Util.h"
-#include "trc_util/Timer.h"
 
 
 
@@ -50,17 +53,8 @@ trc::Renderer::~Renderer()
     q.freeReservedQueue(mainPresentQueue);
 }
 
-void trc::Renderer::drawFrame(const DrawConfig& draw)
+void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
 {
-    assert(draw.scene != nullptr);
-    assert(draw.camera != nullptr);
-    assert(draw.renderConfig != nullptr);
-
-    RenderConfig& renderConfig = *draw.renderConfig;
-
-    // Update
-    renderConfig.preDraw(draw);
-
     // Wait for frame
     auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     if (fenceResult == vk::Result::eTimeout) {
@@ -71,11 +65,25 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
     // Acquire image
     auto image = window->getSwapchain().acquireImage(**imageAcquireSemaphores);
 
-    // Collect commands from scene
-    auto cmdBufs = draw.renderConfig->getLayout().record(draw);
+    std::vector<vk::CommandBuffer> commandBuffers;
+    for (const auto& draw : draws)
+    {
+        assert(draw.scene != nullptr);
+        assert(draw.camera != nullptr);
+        assert(draw.renderConfig != nullptr);
 
-    // Post-draw cleanup callback
-    renderConfig.postDraw(draw);
+        RenderConfig& renderConfig = *draw.renderConfig;
+
+        // Update
+        renderConfig.preDraw(draw);
+
+        // Collect commands from scene
+        auto cmdBufs = draw.renderConfig->getLayout().record(draw);
+        util::merge(commandBuffers, cmdBufs);
+
+        // Post-draw cleanup callback
+        renderConfig.postDraw(draw);
+    }
 
     // Submit command buffers
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
@@ -83,7 +91,7 @@ void trc::Renderer::drawFrame(const DrawConfig& draw)
         vk::SubmitInfo(
             **imageAcquireSemaphores,
             waitStage,
-            cmdBufs,
+            commandBuffers,
             **renderFinishedSemaphores
         ),
         **frameInFlightFences

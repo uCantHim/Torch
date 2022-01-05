@@ -11,11 +11,6 @@ trc::DescriptorProvider::DescriptorProvider(
 {
 }
 
-auto trc::DescriptorProvider::getDescriptorSet() const noexcept -> vk::DescriptorSet
-{
-    return set;
-}
-
 auto trc::DescriptorProvider::getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout
 {
     return layout;
@@ -49,11 +44,6 @@ trc::FrameSpecificDescriptorProvider::FrameSpecificDescriptorProvider(
     layout(layout),
     set(std::move(set))
 {
-}
-
-auto trc::FrameSpecificDescriptorProvider::getDescriptorSet() const noexcept -> vk::DescriptorSet
-{
-    return *set;
 }
 
 auto trc::FrameSpecificDescriptorProvider::getDescriptorSetLayout() const noexcept

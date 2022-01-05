@@ -28,7 +28,7 @@ namespace trc
          */
         explicit Window(Instance& instance, WindowCreateInfo info = {});
 
-        void drawFrame(const DrawConfig& drawConfig);
+        void drawFrame(const vk::ArrayProxy<const DrawConfig>& draws);
 
         auto getInstance() -> Instance&;
         auto getInstance() const -> const Instance&;

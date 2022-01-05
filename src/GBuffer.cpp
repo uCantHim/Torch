@@ -182,10 +182,10 @@ void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
 
 trc::GBufferDescriptor::GBufferDescriptor(
     const vkb::Device& device,
-    const vkb::Swapchain& swapchain)
+    const vkb::FrameClock& frameClock)
     :
-    descSets(swapchain),
-    provider({}, { swapchain }) // Doesn't have a default constructor
+    descSets(frameClock),
+    provider({}, { frameClock }) // Doesn't have a default constructor
 {
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
@@ -196,7 +196,7 @@ trc::GBufferDescriptor::GBufferDescriptor(
     descPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            swapchain.getFrameCount(), poolSizes)
+            frameClock.getFrameCount(), poolSizes)
     );
 
     // Layout
@@ -223,23 +223,22 @@ trc::GBufferDescriptor::GBufferDescriptor(
     );
 
     // Sets
-    std::vector<vk::DescriptorSetLayout> layouts(swapchain.getFrameCount(), *descLayout);
-    descSets = { swapchain, device->allocateDescriptorSetsUnique({ *descPool, layouts }) };
+    std::vector<vk::DescriptorSetLayout> layouts(frameClock.getFrameCount(), *descLayout);
+    descSets = { frameClock, device->allocateDescriptorSetsUnique({ *descPool, layouts }) };
 
     provider = {
         *descLayout,
-        { swapchain, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
+        { frameClock, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
     };
 }
 
 trc::GBufferDescriptor::GBufferDescriptor(
     const vkb::Device& device,
-    const vkb::Swapchain& swapchain,
     const vkb::FrameSpecific<GBuffer>& gBuffer)
     :
-    GBufferDescriptor(device, swapchain)
+    GBufferDescriptor(device, gBuffer.getFrameClock())
 {
-    update(swapchain, gBuffer);
+    update(device, gBuffer);
 }
 
 auto trc::GBufferDescriptor::getProvider() const noexcept
@@ -249,10 +248,11 @@ auto trc::GBufferDescriptor::getProvider() const noexcept
 }
 
 void trc::GBufferDescriptor::update(
-    const vkb::Swapchain& swapchain,
+    const vkb::Device& device,
     const vkb::FrameSpecific<GBuffer>& gBuffer)
 {
-    for (size_t frame = 0; frame < swapchain.getFrameCount(); frame++)
+    const ui32 frameCount = gBuffer.getFrameClock().getFrameCount();
+    for (size_t frame = 0; frame < frameCount; frame++)
     {
         const auto& g = gBuffer.getAt(frame);
 
@@ -263,7 +263,6 @@ void trc::GBufferDescriptor::update(
             g.getImageView(GBuffer::eDepth),
         };
         vk::Sampler depthSampler = g.getImage(GBuffer::eDepth).getDefaultSampler();
-        vk::ImageView swapchainImage = swapchain.getImageView(frame);
         const auto transparent = g.getTransparencyResources();
 
         // Write set
@@ -273,7 +272,6 @@ void trc::GBufferDescriptor::update(
             { {},           imageViews[2],                    vk::ImageLayout::eGeneral },
             { depthSampler, imageViews[3],                    vk::ImageLayout::eShaderReadOnlyOptimal },
             { {},           transparent.headPointerImageView, vk::ImageLayout::eGeneral },
-            { {},           swapchainImage,                   vk::ImageLayout::eGeneral },
         };
         vk::DescriptorBufferInfo bufferInfos[]{
             { transparent.allocatorAndFragmentListBuf, 0, transparent.FRAGMENT_LIST_OFFSET },
@@ -291,10 +289,8 @@ void trc::GBufferDescriptor::update(
             { set, 4, 0, vk::DescriptorType::eStorageImage,         imageInfos[4] },
             { set, 5, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[0] },
             { set, 6, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[1] },
-
-            { set, 7, 0, vk::DescriptorType::eStorageImage,         imageInfos[5] },
         };
 
-        swapchain.device->updateDescriptorSets(writes, {});
+        device->updateDescriptorSets(writes, {});
     }
 }

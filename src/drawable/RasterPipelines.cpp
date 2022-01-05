@@ -271,7 +271,7 @@ auto makeDrawableShadowPipeline() -> Pipeline::ID
         .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ DeferredRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addPushConstantRange(
-            { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) }//, DrawablePushConstants{}
+            { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) }
         )
         .registerLayout<DeferredRenderConfig>();
 
@@ -282,9 +282,7 @@ auto makeDrawableShadowPipeline() -> Pipeline::ID
             vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
             makeVertexAttributeDescriptions()
         )
-#ifdef TRC_FLIP_Y_PROJECTION
-        .setFrontFace(vk::FrontFace::eClockwise)
-#endif
+        .setCullMode(vk::CullModeFlagBits::eFront)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
         .registerPipeline<DeferredRenderConfig>(
             layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS }

@@ -54,10 +54,19 @@ auto trc::Pipeline::get() const noexcept -> vk::Pipeline
 
 void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
 {
-    assert(*layout);
+    assert(layout != nullptr && *layout);
 
     cmdBuf.bindPipeline(bindPoint, pipeline);
     layout->bindStaticDescriptorSets(cmdBuf, bindPoint);
+    layout->bindDefaultPushConstantValues(cmdBuf);
+}
+
+void trc::Pipeline::bind(vk::CommandBuffer cmdBuf, const DescriptorRegistry& registry) const
+{
+    assert(layout != nullptr && *layout);
+
+    cmdBuf.bindPipeline(bindPoint, pipeline);
+    layout->bindStaticDescriptorSets(cmdBuf, bindPoint, registry);
     layout->bindDefaultPushConstantValues(cmdBuf);
 }
 

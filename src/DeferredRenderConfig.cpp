@@ -24,19 +24,9 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
 
 trc::DeferredRenderConfig::DeferredRenderConfig(
     const Window& _window,
-    const RenderGraph& graph,
     const DeferredRenderCreateInfo& info)
     :
-    DeferredRenderConfig(_window, RenderLayout(_window, graph), info)
-{
-}
-
-trc::DeferredRenderConfig::DeferredRenderConfig(
-    const Window& _window,
-    RenderLayout _layout,
-    const DeferredRenderCreateInfo& info)
-    :
-    RenderConfigCrtpBase(_window.getInstance(), std::move(_layout)),
+    RenderConfigCrtpBase(_window.getInstance(), RenderLayout(_window, info.renderGraph)),
     window(_window),
     // Passes
     gBuffer(nullptr),
@@ -58,16 +48,8 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
         );
     }
 
-    // Create gbuffer for the first time and register resize callback
-    swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this](auto e) {
-        if (e.swapchain != &window.getSwapchain()) return;
-
-        const uvec2 newSize = window.getSwapchain().getSize();
-        resizeGBuffer(newSize);
-        finalLightingPass->resize(newSize);
-    }).makeUnique();
-
-    resizeGBuffer(window.getSwapchain().getSize());
+    // Create gbuffer for the first time
+    createGBuffer({ 1, 1 });
 
     // Define named descriptors
     addDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR }, getGlobalDataDescriptorProvider());
@@ -94,7 +76,9 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
 
     // The final lighting pass wants to create a pipeline layout, so it has
     // to be created after the descriptors have been defined.
-    finalLightingPass = std::make_unique<FinalLightingPass>(window, *this);
+    finalLightingPass = std::make_unique<FinalLightingPass>(
+        window.getDevice(), info.target, uvec2(0, 0), uvec2(1, 1), *this
+    );
     layout.addPass(finalLightingRenderStage, *finalLightingPass);
 }
 
@@ -108,6 +92,21 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
 
 void trc::DeferredRenderConfig::postDraw(const DrawConfig&)
 {
+}
+
+void trc::DeferredRenderConfig::setViewport(uvec2 offset, uvec2 size)
+{
+    assert(finalLightingPass != nullptr);
+
+    createGBuffer(size);
+    finalLightingPass->setTargetArea(offset, size);
+}
+
+void trc::DeferredRenderConfig::setRenderTarget(const RenderTarget& target)
+{
+    assert(finalLightingPass != nullptr);
+
+    finalLightingPass->setRenderTarget(window.getDevice(), target);
 }
 
 auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
@@ -192,8 +191,17 @@ auto trc::DeferredRenderConfig::getShadowPool() const -> const ShadowPool&
     return *shadowPool;
 }
 
-void trc::DeferredRenderConfig::resizeGBuffer(const uvec2 newSize)
+auto trc::DeferredRenderConfig::getMouseWorldPos(const Camera& camera) const -> vec3
 {
+    return deferredPass->getMousePos(camera);
+}
+
+void trc::DeferredRenderConfig::createGBuffer(const uvec2 newSize)
+{
+    if (gBuffer != nullptr && gBuffer->get().getSize() == newSize) {
+        return;
+    }
+
     trc::Timer timer;
 
     // Delete resources
@@ -217,14 +225,21 @@ void trc::DeferredRenderConfig::resizeGBuffer(const uvec2 newSize)
         std::cout << "GBuffer recreated for new swapchain (" << time << " ms)\n";
     }
 
-    gBufferDescriptor.update(window, *gBuffer);
+    // Update g-buffer descriptor
+    gBufferDescriptor.update(window.getDevice(), *gBuffer);
+
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        const float time = timer.reset();
+        std::cout << "GBuffer descriptor updated (" << time << " ms)\n";
+    }
 
     // Create new renderpass
-    deferredPass.reset(new RenderPassDeferred(
+    deferredPass = std::make_unique<RenderPassDeferred>(
         window.getDevice(),
         window.getSwapchain(),
         *gBuffer
-    ));
+    );
     layout.addPass(deferredRenderStage, *deferredPass);
 
     if constexpr (vkb::enableVerboseLogging)

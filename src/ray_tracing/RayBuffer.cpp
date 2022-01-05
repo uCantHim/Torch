@@ -58,6 +58,11 @@ auto trc::rt::RayBuffer::getImageDescriptor(Image imageType) const -> const Desc
     return *singleImageProviders.at(imageType);
 }
 
+auto trc::rt::RayBuffer::getImageDescriptorSet(Image imageType) const -> vk::DescriptorSet
+{
+    return *sets.at(imageType);
+}
+
 auto trc::rt::RayBuffer::getImageDescriptorLayout() const -> vk::DescriptorSetLayout
 {
     return *layout;

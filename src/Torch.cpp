@@ -29,11 +29,8 @@ void trc::init(const TorchInitInfo&)
 
 auto trc::getVulkanInstance() -> vkb::VulkanInstance&
 {
-    if (torchGlobalVulkanInstance == nullptr)
-    {
-        throw std::runtime_error(
-            "[In trc::getVulkanInstance]: Instance not initialized. You must call init() first!"
-        );
+    if (torchGlobalVulkanInstance == nullptr) {
+        init();
     }
 
     return *torchGlobalVulkanInstance;
@@ -77,11 +74,14 @@ auto trc::initFull(
         }
     );
     auto sp = std::make_unique<ShadowPool>(*window, ShadowPoolCreateInfo{ .maxShadowMaps=200 });
+
+    auto target = std::make_unique<RenderTarget>(makeRenderTarget(*window));
     auto config{
         std::make_unique<DeferredRenderConfig>(
             *window,
-            graph,
             DeferredRenderCreateInfo{
+                std::move(graph),
+                *target,
                 ar.get(),
                 sp.get(),
                 3  // max transparent frags
@@ -94,6 +94,7 @@ auto trc::initFull(
         std::move(window),
         std::move(ar),
         std::move(sp),
+        std::move(target),
         std::move(config)
     };
 }
@@ -113,18 +114,36 @@ void trc::terminate()
 
 
 trc::TorchStack::TorchStack(
-    u_ptr<Instance> instance,
-    u_ptr<Window> window,
-    u_ptr<AssetRegistry> assetRegistry,
-    u_ptr<ShadowPool> shadowPool,
-    u_ptr<DeferredRenderConfig> renderConfig)
+    u_ptr<Instance> _instance,
+    u_ptr<Window> _window,
+    u_ptr<AssetRegistry> _assetRegistry,
+    u_ptr<ShadowPool> _shadowPool,
+    u_ptr<RenderTarget> _swapchainRenderTarget,
+    u_ptr<DeferredRenderConfig> _renderConfig)
     :
-    instance(std::move(instance)),
-    window(std::move(window)),
-    assetRegistry(std::move(assetRegistry)),
-    shadowPool(std::move(shadowPool)),
-    renderConfig(std::move(renderConfig))
+    instance(std::move(_instance)),
+    window(std::move(_window)),
+    assetRegistry(std::move(_assetRegistry)),
+    shadowPool(std::move(_shadowPool)),
+    swapchainRenderTarget(std::move(_swapchainRenderTarget)),
+    renderConfig(std::move(_renderConfig)),
+    swapchainRecreateListener(
+        vkb::on<vkb::SwapchainRecreateEvent>(
+        [window=window.get(), rc=renderConfig.get(), target=swapchainRenderTarget.get()]
+            (const vkb::SwapchainRecreateEvent& e)
+        {
+            if (e.swapchain == window)
+            {
+                const uvec2 newSize = e.swapchain->getSize();
+                *target = makeRenderTarget(*e.swapchain);
+                rc->setRenderTarget(*target);
+                rc->setViewport({ 0, 0 }, newSize);
+
+            }
+        })
+    )
 {
+    renderConfig->setViewport({ 0, 0 }, window->getSize());
 }
 
 trc::TorchStack::~TorchStack()

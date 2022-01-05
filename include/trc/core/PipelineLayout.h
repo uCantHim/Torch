@@ -6,6 +6,7 @@
 #include <vkb/Device.h>
 
 #include "../Types.h"
+#include "DescriptorRegistry.h"
 
 namespace trc
 {
@@ -46,6 +47,10 @@ namespace trc
         /**
          * @brief Bind all static descriptor sets specified for the pipeline
          *
+         * Only bind static descriptor sets that are defined through a
+         * DescriptorProvider. Don't bind the ones defined through a
+         * DescriptorID.
+         *
          * "Static" descriptor sets are the descriptor sets that are
          * pipeline-specific rather than draw-call-specific.
          */
@@ -53,12 +58,43 @@ namespace trc
                                       vk::PipelineBindPoint bindPoint) const;
 
         /**
+         * @brief Bind all static descriptor sets specified for the pipeline
+         *
+         * Use a descriptor registry to query and bind descriptors that are
+         * dynamically defined by a DescriptorID.
+         *
+         * "Static" descriptor sets are the descriptor sets that are
+         * pipeline-specific rather than draw-call-specific.
+         */
+        void bindStaticDescriptorSets(vk::CommandBuffer cmdBuf,
+                                      vk::PipelineBindPoint bindPoint,
+                                      const DescriptorRegistry& reg) const;
+
+        /**
          * @brief Supply default values to specified push constant ranges
          */
         void bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf) const;
 
+        /**
+         * @brief Define a static descriptor for the pipeline layout
+         *
+         * This function defines a descriptor provider that will be used
+         * to bind a descriptor set whenever a pipeline with this layout
+         * is bound to a command buffer.
+         */
         void addStaticDescriptorSet(ui32 descriptorIndex,
                                     const DescriptorProviderInterface& provider) noexcept;
+
+        /**
+         * @brief Define a static descriptor for the pipeline layout
+         *
+         * This function defines a descriptor ID that is used to
+         * dynamically query and bind a descriptor set from a
+         * DescriptorRegistry whenever a pipeline with this layout is bound
+         * to a command buffer.
+         */
+        void addStaticDescriptorSet(ui32 descriptorIndex, DescriptorID id) noexcept;
+
         template<typename T>
         void addDefaultPushConstantValue(ui32 offset, T value, vk::ShaderStageFlags stages);
 
@@ -67,6 +103,7 @@ namespace trc
 
         using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<uint8_t>>;
         std::vector<PushConstantValue> defaultPushConstants;
+        std::vector<std::pair<ui32, DescriptorID>> dynamicDescriptorSets;
         std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
     };
 

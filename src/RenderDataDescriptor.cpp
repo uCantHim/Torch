@@ -23,12 +23,6 @@ trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(const Window& window
     createDescriptors();
 }
 
-auto trc::GlobalRenderDataDescriptor::getDescriptorSet()
-    const noexcept -> vk::DescriptorSet
-{
-    return *descSet;
-}
-
 auto trc::GlobalRenderDataDescriptor::getDescriptorSetLayout()
     const noexcept -> vk::DescriptorSetLayout
 {
@@ -54,9 +48,7 @@ void trc::GlobalRenderDataDescriptor::update(const Camera& camera)
     const ui32 currentFrame = swapchain.getCurrentFrame();
 
     // Camera matrices
-    auto mats = reinterpret_cast<mat4*>(buffer.map(
-        BUFFER_SECTION_SIZE * currentFrame, CAMERA_DATA_SIZE
-    ));
+    auto mats = buffer.map<mat4*>(BUFFER_SECTION_SIZE * currentFrame, CAMERA_DATA_SIZE);
     mats[0] = camera.getViewMatrix();
     mats[1] = camera.getProjectionMatrix();
     mats[2] = inverse(camera.getViewMatrix());
@@ -64,11 +56,11 @@ void trc::GlobalRenderDataDescriptor::update(const Camera& camera)
     buffer.unmap();
 
     // Resolution and mouse pos
-    auto buf = reinterpret_cast<vec2*>(buffer.map(
+    auto buf = buffer.map<vec2*>(
         BUFFER_SECTION_SIZE * currentFrame + CAMERA_DATA_SIZE, SWAPCHAIN_DATA_SIZE
-    ));
+    );
     buf[0] = swapchain.getMousePosition();
-    buf[1] = { swapchain.getImageExtent().width, swapchain.getImageExtent().height };;
+    buf[1] = vec2(swapchain.getSize());
     buffer.unmap();
 }
 

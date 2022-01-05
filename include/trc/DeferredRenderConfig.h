@@ -29,6 +29,9 @@ namespace trc
      */
     struct DeferredRenderCreateInfo
     {
+        RenderGraph renderGraph;
+        const RenderTarget& target;
+
         AssetRegistry* assetRegistry;
         ShadowPool* shadowPool;
 
@@ -86,19 +89,13 @@ namespace trc
         /**
          * @brief
          */
-        DeferredRenderConfig(const Window& window,
-                             const RenderGraph& graph,
-                             const DeferredRenderCreateInfo& info);
-
-        /**
-         * @brief
-         */
-        DeferredRenderConfig(const Window& window,
-                             RenderLayout layout,
-                             const DeferredRenderCreateInfo& info);
+        DeferredRenderConfig(const Window& window, const DeferredRenderCreateInfo& info);
 
         void preDraw(const DrawConfig& draw) override;
         void postDraw(const DrawConfig& draw) override;
+
+        void setViewport(uvec2 offset, uvec2 size) override;
+        void setRenderTarget(const RenderTarget& newTarget) override;
 
         auto getGBuffer() -> vkb::FrameSpecific<GBuffer>&;
         auto getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&;
@@ -119,11 +116,12 @@ namespace trc
         auto getShadowPool() -> ShadowPool&;
         auto getShadowPool() const -> const ShadowPool&;
 
+        auto getMouseWorldPos(const Camera& camera) const -> vec3;
+
     private:
-        void resizeGBuffer(uvec2 newSize);
+        void createGBuffer(uvec2 newSize);
 
         const Window& window;
-        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
 
         // Default render passes
         u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;

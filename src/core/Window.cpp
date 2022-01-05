@@ -36,9 +36,9 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
 {
 }
 
-void trc::Window::drawFrame(const DrawConfig& drawConfig)
+void trc::Window::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
 {
-    renderer->drawFrame(drawConfig);
+    renderer->drawFrame(draws);
 }
 
 auto trc::Window::getInstance() -> Instance&

@@ -29,7 +29,6 @@ namespace trc
         public:
             explicit SceneDescriptorProvider(const SceneDescriptor& descriptor);
 
-            auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
             auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
             void bindDescriptorSet(
                 vk::CommandBuffer cmdBuf,

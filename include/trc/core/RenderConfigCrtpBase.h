@@ -14,16 +14,15 @@ namespace trc
     class RenderConfigCrtpBase : public RenderConfig
     {
     public:
-        /**
-         * @brief
-         */
-        inline RenderConfigCrtpBase(const Instance& instance, RenderLayout layout);
+        RenderConfigCrtpBase(const Instance& instance, RenderLayout layout);
+        ~RenderConfigCrtpBase();
 
         inline auto getPipeline(Pipeline::ID id) -> Pipeline& final;
         inline auto getPipelineStorage() -> PipelineStorage<Derived>&;
 
     private:
-        u_ptr<PipelineStorage<Derived>> pipelineStorage;
+        static inline std::atomic<ui32> instanceCount{ 0 };
+        static inline u_ptr<PipelineStorage<Derived>> pipelineStorage{ nullptr };
     };
 
 
@@ -37,11 +36,32 @@ namespace trc
         const Instance& instance,
         RenderLayout layout)
         :
-        RenderConfig(std::move(layout)),
-        pipelineStorage(
-            PipelineRegistry<Derived>::createStorage(instance, static_cast<Derived&>(*this))
-        )
-    {}
+        RenderConfig(std::move(layout))
+    {
+        if (pipelineStorage == nullptr)
+        {
+            pipelineStorage = PipelineRegistry<Derived>::createStorage(
+                instance,
+                static_cast<Derived&>(*this)
+            );
+        }
+        ++instanceCount;
+    }
+
+    template<typename Derived>
+    inline RenderConfigCrtpBase<Derived>::~RenderConfigCrtpBase()
+    {
+        /**
+         * The pipeline storage is static so that we have only one pipeline
+         * instance for all render configs of the same type, but we still
+         * have to destroy the pipeline storage before the device is
+         * destroyed.
+         */
+        --instanceCount;
+        if (instanceCount == 0) {
+            pipelineStorage.reset();
+        }
+    }
 
     template<typename Derived>
     inline auto RenderConfigCrtpBase<Derived>::getPipeline(Pipeline::ID id) -> Pipeline&

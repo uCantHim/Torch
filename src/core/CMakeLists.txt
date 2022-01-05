@@ -4,6 +4,7 @@ target_sources(
         ComputePipelineBuilder.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
+        DescriptorRegistry.cpp
         DynamicRenderPassContainer.cpp
         Instance.cpp
         Pipeline.cpp
@@ -17,6 +18,7 @@ target_sources(
         RenderGraph.cpp
         RenderLayout.cpp
         RenderPass.cpp
+        RenderTarget.cpp
         SceneBase.cpp
         Window.cpp
 )

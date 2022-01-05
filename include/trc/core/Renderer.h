@@ -33,7 +33,7 @@ namespace trc
         Renderer& operator=(const Renderer&) = delete;
         Renderer& operator=(Renderer&&) = delete;
 
-        void drawFrame(const DrawConfig& draw);
+        void drawFrame(const vk::ArrayProxy<const DrawConfig>& draws);
 
         void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
 

@@ -31,7 +31,6 @@ namespace trc
     public:
         GlobalRenderDataDescriptor(const Window& window);
 
-        auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,

@@ -99,7 +99,7 @@ namespace trc
         std::vector<vk::DescriptorSetLayout> descLayouts;
         for (const auto& desc : _template.getDescriptors())
         {
-            descLayouts.emplace_back(renderConfig.getDescriptor(desc.name).getDescriptorSetLayout());
+            descLayouts.emplace_back(renderConfig.getDescriptorLayout(desc.name));
         }
 
         std::vector<vk::PushConstantRange> pushConstantRanges;
@@ -112,12 +112,12 @@ namespace trc
         PipelineLayout layout{ device->createPipelineLayoutUnique(createInfo) };
 
         // Add static descriptors and default push constant values to the layout
-        for (ui32 i = 0; i < _template.getDescriptors().size(); i++)
+        for (ui32 i = 0; auto& desc : _template.getDescriptors())
         {
-            const auto& desc = _template.getDescriptors().at(i);
             if (desc.isStatic) {
-                layout.addStaticDescriptorSet(i, renderConfig.getDescriptor(desc.name));
+                layout.addStaticDescriptorSet(i, renderConfig.getDescriptorID(desc.name));
             }
+            ++i;
         }
 
         for (const auto& push : _template.getPushConstants())

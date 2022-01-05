@@ -29,7 +29,7 @@ trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
         | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
-    shadowMatrixBufferMap(reinterpret_cast<mat4*>(shadowMatrixBuffer.map())),
+    shadowMatrixBufferMap(shadowMatrixBuffer.map<mat4*>()),
     descSets(window.getSwapchain()),
     provider({}, { window.getSwapchain() })
 {

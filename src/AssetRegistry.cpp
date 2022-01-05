@@ -15,7 +15,7 @@ trc::AssetRegistry::AssetRegistry(
     instance(instance),
     device(instance.getDevice()),
     memoryPool([&] {
-        if (info.enableRayTracing)
+        if (instance.hasRayTracing() && info.enableRayTracing)
         {
             return vkb::MemoryPool(
                 instance.getDevice(),

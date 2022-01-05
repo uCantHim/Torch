@@ -1,12 +1,11 @@
 #pragma once
 
-#include "../Types.h"
-#include "Scene.h"
-#include "Camera.h"
-#include "RenderConfiguration.h"
-
 namespace trc
 {
+    class Scene;
+    class Camera;
+    class RenderConfig;
+
     /**
      * @brief Configuration for a draw call
      */

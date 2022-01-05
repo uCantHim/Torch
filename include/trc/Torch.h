@@ -8,6 +8,7 @@
 #include "core/Instance.h"
 #include "core/Window.h"
 #include "core/DrawConfiguration.h"
+#include "core/RenderTarget.h"
 
 #include "Scene.h"
 #include "AssetRegistry.h"
@@ -53,6 +54,7 @@ namespace trc
         u_ptr<Window> window;
         u_ptr<AssetRegistry> assetRegistry;
         u_ptr<ShadowPool> shadowPool;
+        u_ptr<RenderTarget> swapchainRenderTarget;
         u_ptr<DeferredRenderConfig> renderConfig;
 
         TorchStack() = default;
@@ -66,6 +68,7 @@ namespace trc
                    u_ptr<Window> window,
                    u_ptr<AssetRegistry> assetRegistry,
                    u_ptr<ShadowPool> shadowPool,
+                   u_ptr<RenderTarget> swapchainRenderTarget,
                    u_ptr<DeferredRenderConfig> renderConfig);
         ~TorchStack();
 
@@ -86,6 +89,9 @@ namespace trc
          * Shortcut for `stack.window->drawFrame()`.
          */
         void drawFrame(const DrawConfig& draw);
+
+    private:
+        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
     };
 
     /**

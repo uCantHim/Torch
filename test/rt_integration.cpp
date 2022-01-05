@@ -192,7 +192,7 @@ void run()
         {
             swapchain,
             [&](ui32 i) {
-                return rayBuffer.getAt(i).getImageDescriptor(trc::rt::RayBuffer::eReflections).getDescriptorSet();
+                return rayBuffer.getAt(i).getImageDescriptorSet(trc::rt::RayBuffer::eReflections);
             }
         }
     );

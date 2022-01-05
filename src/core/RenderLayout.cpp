@@ -7,7 +7,10 @@
 #include "core/Window.h"
 #include "core/RenderPass.h"
 #include "core/DrawConfiguration.h"
+#include "core/RenderConfiguration.h"
 #include "core/RenderGraph.h"
+#include "core/SceneBase.h"
+#include "../Scene.h"
 #include "trc_util/algorithm/VectorTransform.h"
 
 
@@ -141,7 +144,7 @@ auto trc::RenderLayout::recordStage(
             {
                 // Bind the current pipeline
                 auto& p = draw.renderConfig->getPipeline(pipeline);
-                p.bind(cmdBuf);
+                p.bind(cmdBuf, *draw.renderConfig);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(

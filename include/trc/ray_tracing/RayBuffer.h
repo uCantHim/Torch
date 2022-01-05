@@ -35,6 +35,7 @@ namespace trc::rt
         auto getImageView(Image imageType) const -> vk::ImageView;
 
         auto getImageDescriptor(Image imageType) const -> const DescriptorProvider&;
+        auto getImageDescriptorSet(Image imageType) const -> vk::DescriptorSet;
         auto getImageDescriptorLayout() const -> vk::DescriptorSetLayout;
 
     private:

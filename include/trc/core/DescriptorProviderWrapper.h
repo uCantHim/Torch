@@ -17,7 +17,6 @@ namespace trc
         DescriptorProviderWrapper() = default;
         explicit DescriptorProviderWrapper(vk::DescriptorSetLayout staticLayout);
 
-        auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,

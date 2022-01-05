@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vkb/Swapchain.h>
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
 #include <vkb/FrameSpecificObject.h>
@@ -106,8 +105,6 @@ namespace trc
      *  - binding 4: storage image  (head pointer image)
      *  - binding 5: storage buffer (allocator)
      *  - binding 6: storage buffer (fragment list)
-     *
-     *  - binding 7: storage image rgba8 (swapchain image)
      */
     class GBufferDescriptor
     {
@@ -116,18 +113,17 @@ namespace trc
          * @brief Create the descriptor
          */
         GBufferDescriptor(const vkb::Device& device,
-                          const vkb::Swapchain& swapchain);
+                          const vkb::FrameClock& frameClock);
 
         /**
          * @brief Create the descriptor and update the sets with resources
          */
         GBufferDescriptor(const vkb::Device& device,
-                          const vkb::Swapchain& swapchain,
                           const vkb::FrameSpecific<GBuffer>& gBuffer);
 
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
-        void update(const vkb::Swapchain& swapchain,
+        void update(const vkb::Device& device,
                     const vkb::FrameSpecific<GBuffer>& gBuffer);
 
     private:

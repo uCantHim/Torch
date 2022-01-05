@@ -71,8 +71,6 @@ namespace trc
         static auto makeVkRenderPass(const vkb::Device& device) -> vk::UniqueRenderPass;
 
     private:
-        static inline float mouseDepthValue{ 0.0f };
-
         void copyMouseDataToBuffers(vk::CommandBuffer cmdBuf);
         vkb::Buffer depthPixelReadBuffer;
         ui32* depthBufMap{ depthPixelReadBuffer.map<ui32*>() };

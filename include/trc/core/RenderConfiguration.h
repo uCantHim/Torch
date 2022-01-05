@@ -1,7 +1,9 @@
 #pragma once
 
 #include <concepts>
+#include <unordered_map>
 
+#include "DescriptorRegistry.h"
 #include "RenderStage.h"
 #include "RenderPass.h"
 #include "Pipeline.h"
@@ -9,21 +11,13 @@
 
 namespace trc
 {
-    class DescriptorProviderInterface;
     struct DrawConfig;
+    class RenderTarget;
 
     /**
      * @brief Strong type to reference a render pass
      */
     struct RenderPassName
-    {
-        std::string identifier;
-    };
-
-    /**
-     * @brief Strong type to reference a descriptor
-     */
-    struct DescriptorName
     {
         std::string identifier;
     };
@@ -48,18 +42,6 @@ namespace trc
         std::unordered_map<std::string, RenderPassGetter> renderPasses;
     };
 
-    class DescriptorRegistry
-    {
-    public:
-        void addDescriptor(DescriptorName name, const DescriptorProviderInterface& provider);
-
-        auto getDescriptor(const DescriptorName& name) const
-            -> const DescriptorProviderInterface&;
-
-    private:
-        std::unordered_map<std::string, const DescriptorProviderInterface*> descriptorProviders;
-    };
-
     /**
      * @brief A configuration of an entire render cycle
      */
@@ -72,6 +54,9 @@ namespace trc
 
         virtual void preDraw(const DrawConfig& draw) = 0;
         virtual void postDraw(const DrawConfig& draw) = 0;
+
+        virtual void setViewport(uvec2 newOffset, uvec2 newSize) = 0;
+        virtual void setRenderTarget(const RenderTarget& newTarget) = 0;
 
         virtual auto getPipeline(Pipeline::ID id) -> Pipeline& = 0;
 

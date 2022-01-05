@@ -9,9 +9,9 @@ namespace trc
     class DescriptorProviderInterface
     {
     public:
-        virtual auto getDescriptorSet() const noexcept -> vk::DescriptorSet = 0;
-        virtual auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout = 0;
+        virtual ~DescriptorProviderInterface() = default;
 
+        virtual auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout = 0;
         virtual void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,
@@ -25,7 +25,6 @@ namespace trc
     public:
         DescriptorProvider(vk::DescriptorSetLayout layout, vk::DescriptorSet set);
 
-        auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
@@ -61,12 +60,10 @@ namespace trc
             :
             FrameSpecificDescriptorProvider(
                 layout,
-                { sets.getSwapchain(), [&](ui32 i) { return *sets.getAt(i); } }
+                { sets.getFrameClock(), [&](ui32 i) { return *sets.getAt(i); } }
             )
         {}
 
-
-        auto getDescriptorSet() const noexcept -> vk::DescriptorSet override;
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,

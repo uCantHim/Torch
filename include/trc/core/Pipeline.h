@@ -40,12 +40,23 @@ namespace trc
         auto get() const noexcept -> vk::Pipeline;
 
         /**
-         * @brief Bind the pipeline and all static descriptor sets
+         * @brief Bind the pipeline and its layout's resources
+         *
+         * Does not bind static descriptor sets defined by a DescriptorID.
+         * You need a DescriptorRegistry for that.
          *
          * @param vk::CommandBuffer cmdBuf The command buffer to record the
          *                                 pipeline bind to.
          */
         void bind(vk::CommandBuffer cmdBuf) const;
+
+        /**
+         * @brief Bind the pipeline and all its layout's resources
+         *
+         * @param vk::CommandBuffer cmdBuf The command buffer to record the
+         *                                 pipeline bind to.
+         */
+        void bind(vk::CommandBuffer cmdBuf, const DescriptorRegistry& registry) const;
 
         auto getLayout() noexcept -> PipelineLayout&;
         auto getLayout() const noexcept -> const PipelineLayout&;

@@ -5,8 +5,8 @@
 #define ASSET_DESCRIPTOR_SET_BINDING 1
 #include "asset_registry_descriptor.glsl"
 
-#define SHADOW_DESCRIPTOR_SET_BINDING 4
-#define LIGHT_DESCRIPTOR_SET 3
+#define SHADOW_DESCRIPTOR_SET_BINDING 5
+#define LIGHT_DESCRIPTOR_SET 4
 #define LIGHT_DESCRIPTOR_BINDING 0
 #include "lighting.glsl"
 
@@ -22,17 +22,10 @@ layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
-layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
-{
-    vec2 mousePos;
-    vec2 resolution;
-} global;
-
 layout (set = 2, binding = 0, rgba16f) uniform restrict readonly image2D inNormal;
 layout (set = 2, binding = 1, rgba8)   uniform restrict readonly image2D inAlbedo;
 layout (set = 2, binding = 2, r32ui)   uniform restrict readonly uimage2D inMaterial;
 layout (set = 2, binding = 3) uniform sampler2D inDepth;
-layout (set = 2, binding = 7, rgba8)  uniform restrict writeonly image2D swapchainImage;
 
 layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
 layout (set = 2, binding = 6) restrict buffer FragmentList
@@ -43,6 +36,14 @@ layout (set = 2, binding = 6) restrict buffer FragmentList
      * 2: Next-pointer
      */
     uvec4 fragmentList[];
+};
+
+layout (set = 3, binding = 0, rgba8)  uniform restrict writeonly image2D outputImage;
+
+layout (push_constant) uniform PushConstants
+{
+    vec2 outputOffset;
+    vec2 outputSize;
 };
 
 
@@ -56,7 +57,7 @@ vec3 blendTransparent(ivec2 coords, vec3 opaqueColor);
 void main()
 {
     ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
-    coords = min(coords, ivec2(global.resolution));
+    coords = min(coords, ivec2(outputSize) - 1);
 
     const uint matIndex = imageLoad(inMaterial, coords).r;
     vec3 color = imageLoad(inAlbedo, coords).rgb;
@@ -71,7 +72,7 @@ void main()
 
     color = blendTransparent(coords, color);
 
-    imageStore(swapchainImage, coords, vec4(color, 1.0));
+    imageStore(outputImage, ivec2(outputOffset) + coords, vec4(color, 1.0));
 }
 
 
@@ -79,10 +80,10 @@ vec4 worldPosFromDepth(ivec2 coords, float depth)
 {
     vec2 fc = coords;
 #ifdef TRC_FLIP_Y_AXIS
-    fc.y = global.resolution.y - fc.y;  // Viewport height inversion
+    fc.y = (outputSize.y - 1) - fc.y;  // Viewport height inversion
 #endif
 
-    const vec4 clipSpace = vec4(fc / global.resolution * 2.0 - 1.0, depth, 1.0);
+    const vec4 clipSpace = vec4(fc / outputSize * 2.0 - 1.0, depth, 1.0);
     const vec4 viewSpace = camera.inverseProjMatrix * clipSpace;
     const vec4 worldSpace = camera.inverseViewMatrix * (viewSpace / viewSpace.w);
 

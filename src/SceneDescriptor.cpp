@@ -117,12 +117,6 @@ trc::SceneDescriptor::SceneDescriptorProvider::SceneDescriptorProvider(
     : descriptor(descriptor)
 {}
 
-auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSet() const noexcept
-    -> vk::DescriptorSet
-{
-    return *descriptor.descSet;
-}
-
 auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSetLayout() const noexcept
     -> vk::DescriptorSetLayout
 {

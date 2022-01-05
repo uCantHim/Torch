@@ -17,6 +17,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
         sizeof(float),
         vk::BufferUsageFlagBits::eTransferDst,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
+        | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     swapchain(swapchain),
     gBuffer(gBuffer),
@@ -39,7 +40,6 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<ui32, 4>{ 0, 0, 0, 0 }),
         vk::ClearDepthStencilValue(1.0f, 0.0f),
-        vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
     })
 {
 }
@@ -50,14 +50,14 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
 
     // Bring depth image into depthStencil layout
     cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllGraphics,
+        vk::PipelineStageFlagBits::eBottomOfPipe,
         vk::PipelineStageFlagBits::eAllGraphics,
         vk::DependencyFlagBits::eByRegion,
         {}, {},
         vk::ImageMemoryBarrier(
             {},
             vk::AccessFlagBits::eDepthStencilAttachmentRead
-            | vk::AccessFlagBits::eDepthStencilAttachmentRead,
+            | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eDepthStencilAttachmentOptimal,
             VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -199,13 +199,25 @@ auto trc::RenderPassDeferred::makeVkRenderPass(const vkb::Device& device)
 
 void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
-    vkb::Image& depthImage = gBuffer.getAt(swapchain.getCurrentFrame()).getImage(GBuffer::eDepth);
+    vkb::Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
     const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
     const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
-    depthImage.changeLayout(cmdBuf,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
-        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
+    cmdBuf.pipelineBarrier(
+        vk::PipelineStageFlagBits::eEarlyFragmentTests
+        | vk::PipelineStageFlagBits::eLateFragmentTests,
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::DependencyFlagBits::eByRegion,
+        {}, {},
+        vk::ImageMemoryBarrier(
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+            vk::AccessFlagBits::eTransferRead,
+            vk::ImageLayout::eDepthStencilAttachmentOptimal,
+            vk::ImageLayout::eTransferSrcOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *depthImage,
+            { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
+        )
     );
     cmdBuf.copyImageToBuffer(
         *depthImage, vk::ImageLayout::eTransferSrcOptimal,
@@ -218,9 +230,20 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
             { 1, 1, 1 }
         )
     );
-    depthImage.changeLayout(cmdBuf,
-        vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
+    cmdBuf.pipelineBarrier(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::DependencyFlagBits::eByRegion,
+        {}, {},
+        vk::ImageMemoryBarrier(
+            vk::AccessFlagBits::eTransferRead,
+            vk::AccessFlagBits::eShaderRead,
+            vk::ImageLayout::eTransferSrcOptimal,
+            vk::ImageLayout::eShaderReadOnlyOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *depthImage,
+            { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
+        )
     );
 }
 
@@ -236,12 +259,14 @@ auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
 
 auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
 {
-    const vec2 resolution{ gBuffer.getAt(0).getSize() };
+    const vec2 resolution{ framebufferSize };
+    const vec2 mousePos = glm::clamp([=, this]() -> vec2 {
 #ifdef TRC_FLIP_Y_PROJECTION
-    const vec2 mousePos = { swapchain.getMousePosition().x, resolution.y - swapchain.getMousePosition().y, };
+        return { swapchain.getMousePosition().x, resolution.y - swapchain.getMousePosition().y, };
 #else
-    const vec2 mousePos = swapchain.getMousePosition();
+        return swapchain.getMousePosition();
 #endif
+    }(), vec2(0.0f, 0.0f), resolution - 1.0f);
     const float depth = getMouseDepth();
 
     const vec4 clipSpace = vec4(mousePos / resolution * 2.0f - 1.0f, depth, 1.0);
