@@ -14,6 +14,7 @@ option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requir
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
+option(TORCH_BUILD_SHADER_COMPILER "Build Torch's custom shader compiler" OFF)
 
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
