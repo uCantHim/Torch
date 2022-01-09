@@ -221,6 +221,12 @@ void run()
         }
     });
 
+    // Thing at cursor
+    auto cursorCubeMat = ar.add(trc::Material{ .color=vec4(1, 1, 0, 0.3f) });
+    trc::Drawable cursorCube({ cubeGeoIdx, cursorCubeMat, true });
+    cursorCube.attachToScene(scene);
+    cursorCube.scale(0.2f);
+
     // Text
     trc::Font font = torch.assetRegistry->getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
     trc::Text text{ instance, font };
@@ -237,6 +243,7 @@ void run()
 
         scene.updateTransforms();
 
+        cursorCube.setTranslation(torch.renderConfig->getMouseWorldPos(camera));
         const float time = animTimer.reset();
         for (auto anim : animEngines) {
             anim->update(time);
