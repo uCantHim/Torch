@@ -56,15 +56,9 @@ auto vkb::Buffer::size() const noexcept -> vk::DeviceSize
     return bufferSize;
 }
 
-auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) const -> memptr
+auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) const -> uint8_t*
 {
-    return static_cast<memptr>(memory.map(*device, offset, size));
-}
-
-
-auto vkb::Buffer::map(BufferRegion mappedRegion) const -> memptr
-{
-    return map(mappedRegion.offset, mappedRegion.size);
+    return static_cast<uint8_t*>(memory.map(*device, offset, size));
 }
 
 
@@ -111,7 +105,7 @@ void vkb::Buffer::copyFrom(vk::DeviceSize size, const void* data, BufferRegion d
 {
     if (data != nullptr)
     {
-        auto buf = map(dstRegion);
+        auto buf = map(dstRegion.offset, dstRegion.size);
         memcpy(buf, data, size);
         unmap();
     }

@@ -6,8 +6,6 @@
 
 namespace vkb
 {
-    using memptr = uint8_t*;
-
     struct BufferRegion
     {
         BufferRegion() = default;
@@ -77,14 +75,25 @@ namespace vkb
          *                              specified offset. Must be less than or
          *                              equal to the total buffer size.
          */
-        auto map(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) const -> memptr;
+        auto map(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) const -> uint8_t*;
 
         /**
          * @brief Map a range of the buffer to CPU memory
          *
-         * @param BufferRegion mappedRegion Region of the buffer to map.
+         * Size may be VK_WHOLE_SIZE to map the whole buffer.
+         *
+         * @tparam T A pointer type. Returns a pointer of this type.
+         *
+         * @param vk::DeviceSize offset Offset into the buffer in bytes
+         * @param vk::DeviceSize size   Number of bytes mapped starting at the
+         *                              specified offset. Must be less than or
+         *                              equal to the total buffer size.
          */
-        auto map(BufferRegion mappedRegion) const -> memptr;
+        template<typename T> requires std::is_pointer_v<T>
+        auto map(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) const -> T
+        {
+            return reinterpret_cast<T>(map(offset, size));
+        }
 
         /**
          * @brief Unmap the buffer if its memory is currently host mapped
