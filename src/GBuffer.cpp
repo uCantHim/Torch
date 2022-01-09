@@ -2,6 +2,7 @@
 
 #include "trc_util/Padding.h"
 #include "DescriptorSetUtils.h"
+#include "Camera.h"
 
 
 
@@ -171,4 +172,129 @@ void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
     // Cheat: Copy a constantly zero-valued byte to the first byte in the buffer
     cmdBuf.copyBuffer(*fragmentListBuffer, *fragmentListBuffer,
                       vk::BufferCopy(sizeof(ui32) * 3, 0, sizeof(ui32)));
+}
+
+
+
+// -------------------------------- //
+//       G-Buffer descriptor        //
+// -------------------------------- //
+
+trc::GBufferDescriptor::GBufferDescriptor(
+    const vkb::Device& device,
+    const vkb::Swapchain& swapchain)
+    :
+    descSets(swapchain),
+    provider({}, { swapchain }) // Doesn't have a default constructor
+{
+    // Pool
+    std::vector<vk::DescriptorPoolSize> poolSizes = {
+        { vk::DescriptorType::eStorageImage, 5 },
+        { vk::DescriptorType::eStorageBuffer, 2 },
+        { vk::DescriptorType::eCombinedImageSampler, 1 },
+    };
+    descPool = device->createDescriptorPoolUnique(
+        vk::DescriptorPoolCreateInfo(
+            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            swapchain.getFrameCount(), poolSizes)
+    );
+
+    // Layout
+    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
+        // G-Buffer images
+        { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute },
+        // Fragment list head pointer image
+        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment
+                                                   | vk::ShaderStageFlagBits::eCompute },
+        // Fragment list allocator
+        { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
+                                                    | vk::ShaderStageFlagBits::eCompute },
+        // Fragment list
+        { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
+                                                    | vk::ShaderStageFlagBits::eCompute },
+        // Swapchain image
+        { 7, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+    };
+    descLayout = device->createDescriptorSetLayoutUnique(
+        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
+    );
+
+    // Sets
+    std::vector<vk::DescriptorSetLayout> layouts(swapchain.getFrameCount(), *descLayout);
+    descSets = { swapchain, device->allocateDescriptorSetsUnique({ *descPool, layouts }) };
+
+    provider = {
+        *descLayout,
+        { swapchain, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
+    };
+}
+
+trc::GBufferDescriptor::GBufferDescriptor(
+    const vkb::Device& device,
+    const vkb::Swapchain& swapchain,
+    const vkb::FrameSpecific<GBuffer>& gBuffer)
+    :
+    GBufferDescriptor(device, swapchain)
+{
+    update(swapchain, gBuffer);
+}
+
+auto trc::GBufferDescriptor::getProvider() const noexcept
+    -> const DescriptorProviderInterface&
+{
+    return provider;
+}
+
+void trc::GBufferDescriptor::update(
+    const vkb::Swapchain& swapchain,
+    const vkb::FrameSpecific<GBuffer>& gBuffer)
+{
+    for (size_t frame = 0; frame < swapchain.getFrameCount(); frame++)
+    {
+        const auto& g = gBuffer.getAt(frame);
+
+        vk::ImageView imageViews[]{
+            g.getImageView(GBuffer::eNormals),
+            g.getImageView(GBuffer::eAlbedo),
+            g.getImageView(GBuffer::eMaterials),
+            g.getImageView(GBuffer::eDepth),
+        };
+        vk::Sampler depthSampler = g.getImage(GBuffer::eDepth).getDefaultSampler();
+        vk::ImageView swapchainImage = swapchain.getImageView(frame);
+        const auto transparent = g.getTransparencyResources();
+
+        // Write set
+        vk::DescriptorImageInfo imageInfos[]{
+            { {},           imageViews[0],                    vk::ImageLayout::eGeneral },
+            { {},           imageViews[1],                    vk::ImageLayout::eGeneral },
+            { {},           imageViews[2],                    vk::ImageLayout::eGeneral },
+            { depthSampler, imageViews[3],                    vk::ImageLayout::eShaderReadOnlyOptimal },
+            { {},           transparent.headPointerImageView, vk::ImageLayout::eGeneral },
+            { {},           swapchainImage,                   vk::ImageLayout::eGeneral },
+        };
+        vk::DescriptorBufferInfo bufferInfos[]{
+            { transparent.allocatorAndFragmentListBuf, 0, transparent.FRAGMENT_LIST_OFFSET },
+            { transparent.allocatorAndFragmentListBuf, transparent.FRAGMENT_LIST_OFFSET,
+                                                       transparent.FRAGMENT_LIST_SIZE },
+        };
+
+        const auto set = *descSets.getAt(frame);
+        std::vector<vk::WriteDescriptorSet> writes{
+            { set, 0, 0, vk::DescriptorType::eStorageImage,         imageInfos[0] },
+            { set, 1, 0, vk::DescriptorType::eStorageImage,         imageInfos[1] },
+            { set, 2, 0, vk::DescriptorType::eStorageImage,         imageInfos[2] },
+            { set, 3, 0, vk::DescriptorType::eCombinedImageSampler, imageInfos[3] },
+
+            { set, 4, 0, vk::DescriptorType::eStorageImage,         imageInfos[4] },
+            { set, 5, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[0] },
+            { set, 6, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[1] },
+
+            { set, 7, 0, vk::DescriptorType::eStorageImage,         imageInfos[5] },
+        };
+
+        swapchain.device->updateDescriptorSets(writes, {});
+    }
 }

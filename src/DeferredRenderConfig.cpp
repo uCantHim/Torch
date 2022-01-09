@@ -43,6 +43,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     deferredPass(nullptr),
     shadowPass(window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
     // Descriptors
+    gBufferDescriptor(_window.getDevice(), _window),  // Don't update the descriptor sets yet!
     globalDataDescriptor(window),
     sceneDescriptor(window),
     fontDataDescriptor(info.assetRegistry->getFonts().getDescriptorSetLayout(), {}),
@@ -74,7 +75,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     addDescriptor(DescriptorName{ ANIMATION_DESCRIPTOR },   getAnimationDataDescriptorProvider());
     addDescriptor(DescriptorName{ FONT_DESCRIPTOR },        getFontDescriptorProvider());
     addDescriptor(DescriptorName{ SCENE_DESCRIPTOR },       getSceneDescriptorProvider());
-    addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getDeferredPassDescriptorProvider());
+    addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getGBufferDescriptorProvider());
     addDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },      getShadowDescriptorProvider());
 
     // Define named render passes
@@ -141,10 +142,10 @@ auto trc::DeferredRenderConfig::getSceneDescriptorProvider() const
     return sceneDescriptor.getProvider();
 }
 
-auto trc::DeferredRenderConfig::getDeferredPassDescriptorProvider() const
+auto trc::DeferredRenderConfig::getGBufferDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return deferredPassDescriptorProvider;
+    return gBufferDescriptor.getProvider();
 }
 
 auto trc::DeferredRenderConfig::getShadowDescriptorProvider() const
@@ -216,6 +217,8 @@ void trc::DeferredRenderConfig::resizeGBuffer(const uvec2 newSize)
         std::cout << "GBuffer recreated for new swapchain (" << time << " ms)\n";
     }
 
+    gBufferDescriptor.update(window, *gBuffer);
+
     // Create new renderpass
     deferredPass.reset(new RenderPassDeferred(
         window.getDevice(),
@@ -223,10 +226,6 @@ void trc::DeferredRenderConfig::resizeGBuffer(const uvec2 newSize)
         *gBuffer
     ));
     layout.addPass(deferredRenderStage, *deferredPass);
-
-    auto& p = deferredPass->getDescriptorProvider();
-    deferredPassDescriptorProvider.setWrappedProvider(p);
-    deferredPassDescriptorProvider.setDescLayout(p.getDescriptorSetLayout());
 
     if constexpr (vkb::enableVerboseLogging)
     {

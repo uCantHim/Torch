@@ -2,8 +2,7 @@
 
 #include <glm/detail/type_half.hpp>
 
-#include "trc_util/Padding.h"
-#include "PipelineDefinitions.h"
+#include "Camera.h"
 
 
 
@@ -41,8 +40,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
         vk::ClearColorValue(std::array<ui32, 4>{ 0, 0, 0, 0 }),
         vk::ClearDepthStencilValue(1.0f, 0.0f),
         vk::ClearColorValue(std::array<float, 4>{ 0.5f, 0.0f, 1.0f, 0.0f }),
-    }),
-    descriptor(device, swapchain, gBuffer)
+    })
 {
 }
 
@@ -75,7 +73,7 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
         vk::RenderPassBeginInfo(
             *renderPass,
             **framebuffers,
-            vk::Rect2D({ 0, 0 }, gBuffer->getExtent()),
+            vk::Rect2D({ 0, 0 }, { framebufferSize.x, framebufferSize.y }),
             clearValues
         ),
         subpassContents
@@ -107,18 +105,6 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
 {
     cmdBuf.endRenderPass();
     copyMouseDataToBuffers(cmdBuf);
-}
-
-auto trc::RenderPassDeferred::getDescriptor() const noexcept
-    -> const DeferredRenderPassDescriptor&
-{
-    return descriptor;
-}
-
-auto trc::RenderPassDeferred::getDescriptorProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return descriptor.getProvider();
 }
 
 auto trc::RenderPassDeferred::makeVkRenderPass(const vkb::Device& device)
@@ -263,113 +249,4 @@ auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -
     const vec4 worldSpace = glm::inverse(camera.getViewMatrix()) * (viewSpace / viewSpace.w);
 
     return worldSpace;
-}
-
-
-
-// -------------------------------- //
-//       Deferred descriptor        //
-// -------------------------------- //
-
-trc::DeferredRenderPassDescriptor::DeferredRenderPassDescriptor(
-    const vkb::Device& device,
-    const vkb::Swapchain& swapchain,
-    const vkb::FrameSpecific<GBuffer>& gBuffer)
-    :
-    descSets(swapchain),
-    provider({}, { swapchain }) // Doesn't have a default constructor
-{
-    // Pool
-    std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eStorageImage, 5 },
-        { vk::DescriptorType::eStorageBuffer, 2 },
-        { vk::DescriptorType::eCombinedImageSampler, 1 },
-    };
-    descPool = device->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            swapchain.getFrameCount(), poolSizes)
-    );
-
-    // Layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
-        // G-Buffer images
-        { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-        { 1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-        { 2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-        { 3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute },
-        // Fragment list head pointer image
-        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment
-                                                   | vk::ShaderStageFlagBits::eCompute },
-        // Fragment list allocator
-        { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
-                                                    | vk::ShaderStageFlagBits::eCompute },
-        // Fragment list
-        { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
-                                                    | vk::ShaderStageFlagBits::eCompute },
-        // Swapchain image
-        { 7, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
-    );
-
-    // Sets
-    descSets = { swapchain, [&](ui32 imageIndex)
-    {
-        auto& g = gBuffer.getAt(imageIndex);
-        const auto transparent = g.getTransparencyResources();
-        std::vector<vk::ImageView> imageViews{
-            g.getImageView(GBuffer::eNormals),
-            g.getImageView(GBuffer::eAlbedo),
-            g.getImageView(GBuffer::eMaterials),
-            g.getImageView(GBuffer::eDepth),
-        };
-        vk::Sampler depthSampler = g.getImage(GBuffer::eDepth).getDefaultSampler();
-
-        auto set = std::move(device->allocateDescriptorSetsUnique(
-            vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
-        )[0]);
-
-        // Write set
-        std::vector<vk::DescriptorImageInfo> imageInfos = {
-            { {}, imageViews[0], vk::ImageLayout::eGeneral },
-            { {}, imageViews[1], vk::ImageLayout::eGeneral },
-            { {}, imageViews[2], vk::ImageLayout::eGeneral },
-            { depthSampler, imageViews[3], vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {}, transparent.headPointerImageView, vk::ImageLayout::eGeneral },
-            { {}, swapchain.getImageView(imageIndex), vk::ImageLayout::eGeneral },
-        };
-        std::vector<vk::DescriptorBufferInfo> bufferInfos{
-            { transparent.allocatorAndFragmentListBuf, 0, transparent.FRAGMENT_LIST_OFFSET },
-            { transparent.allocatorAndFragmentListBuf, transparent.FRAGMENT_LIST_OFFSET,
-                                                       transparent.FRAGMENT_LIST_SIZE },
-        };
-        std::vector<vk::WriteDescriptorSet> writes = {
-            { *set, 0, 0, vk::DescriptorType::eStorageImage, imageInfos[0] },
-            { *set, 1, 0, vk::DescriptorType::eStorageImage, imageInfos[1] },
-            { *set, 2, 0, vk::DescriptorType::eStorageImage, imageInfos[2] },
-            { *set, 3, 0, vk::DescriptorType::eCombinedImageSampler, imageInfos[3] },
-
-            { *set, 4, 0, vk::DescriptorType::eStorageImage, imageInfos[4] },
-            { *set, 5, 0, vk::DescriptorType::eStorageBuffer, {}, bufferInfos[0] },
-            { *set, 6, 0, vk::DescriptorType::eStorageBuffer, {}, bufferInfos[1] },
-
-            { *set, 7, 0, vk::DescriptorType::eStorageImage, imageInfos[5] },
-        };
-        device->updateDescriptorSets(writes, {});
-
-        return set;
-    }};
-
-    provider = {
-        *descLayout,
-        { swapchain, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
-    };
-}
-
-auto trc::DeferredRenderPassDescriptor::getProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return provider;
 }

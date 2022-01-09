@@ -1,9 +1,12 @@
 #pragma once
 
+#include <vkb/Swapchain.h>
 #include <vkb/Buffer.h>
 #include <vkb/Image.h>
+#include <vkb/FrameSpecificObject.h>
 
 #include "Types.h"
+#include "core/DescriptorProvider.h"
 
 namespace trc
 {
@@ -75,6 +78,9 @@ namespace trc
         void initFrame(vk::CommandBuffer cmdBuf) const;
 
     private:
+        //////////////////
+        // Image resources
+
         const uvec2 size;
         const vk::Extent2D extent;
         std::vector<vkb::Image> images;
@@ -86,5 +92,49 @@ namespace trc
         vkb::Image fragmentListHeadPointerImage;
         vk::UniqueImageView fragmentListHeadPointerImageView;
         vkb::Buffer fragmentListBuffer;
+    };
+
+    /**
+     * @brief Resources and descriptor set for deferred renderpasses
+     *
+     * Provides:
+     *  - binding 0: storage image rgba16f  (normals)
+     *  - binding 1: storage image r32ui    (albedo)
+     *  - binding 2: storage image r32ui    (materials)
+     *  - binding 3: combined image sampler (depth)
+     *
+     *  - binding 4: storage image  (head pointer image)
+     *  - binding 5: storage buffer (allocator)
+     *  - binding 6: storage buffer (fragment list)
+     *
+     *  - binding 7: storage image rgba8 (swapchain image)
+     */
+    class GBufferDescriptor
+    {
+    public:
+        /**
+         * @brief Create the descriptor
+         */
+        GBufferDescriptor(const vkb::Device& device,
+                          const vkb::Swapchain& swapchain);
+
+        /**
+         * @brief Create the descriptor and update the sets with resources
+         */
+        GBufferDescriptor(const vkb::Device& device,
+                          const vkb::Swapchain& swapchain,
+                          const vkb::FrameSpecific<GBuffer>& gBuffer);
+
+        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+
+        void update(const vkb::Swapchain& swapchain,
+                    const vkb::FrameSpecific<GBuffer>& gBuffer);
+
+    private:
+        vk::UniqueDescriptorPool descPool;
+        vk::UniqueDescriptorSetLayout descLayout;
+        vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
+
+        FrameSpecificDescriptorProvider provider;
     };
 } // namespace trc

@@ -1,49 +1,14 @@
 #pragma once
 
 #include <vkb/FrameSpecificObject.h>
-#include <vkb/Buffer.h>
-#include <vkb/Image.h>
 
 #include "core/RenderPass.h"
-#include "core/DescriptorProvider.h"
 #include "Framebuffer.h"
-#include "Camera.h"
 #include "GBuffer.h"
 
 namespace trc
 {
-    class RenderPassDeferred;
-
-    /**
-     * @brief Resources and descriptor set for deferred renderpasses
-     *
-     * Provides:
-     *  - binding 0: storage image rgba16f  (normals)
-     *  - binding 1: storage image r32ui    (albedo)
-     *  - binding 2: storage image r32ui    (materials)
-     *  - binding 3: combined image sampler (depth)
-     *
-     *  - binding 4: storage image  (head pointer image)
-     *  - binding 5: storage buffer (allocator)
-     *  - binding 6: storage buffer (fragment list)
-     *
-     *  - binding 7: storage image rgba8 (swapchain image)
-     */
-    class DeferredRenderPassDescriptor
-    {
-    public:
-        DeferredRenderPassDescriptor(const vkb::Device& device,
-                                     const vkb::Swapchain& swapchain,
-                                     const vkb::FrameSpecific<GBuffer>& gBuffer);
-
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
-
-    private:
-        vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSetLayout descLayout;
-        vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
-        FrameSpecificDescriptorProvider provider;
-    };
+    class Camera;
 
     /**
      * @brief The main deferred renderpass
@@ -72,16 +37,6 @@ namespace trc
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
-
-        /**
-         * @return The descriptor for the deferred renderpass
-         */
-        auto getDescriptor() const noexcept -> const DeferredRenderPassDescriptor&;
-
-        /**
-         * A shortcut for getDescriptor().getProvider()
-         */
-        auto getDescriptorProvider() const noexcept -> const DescriptorProviderInterface&;
 
         /**
          * @brief Get the depth of pixel under the mouse cursor
@@ -120,17 +75,14 @@ namespace trc
 
         void copyMouseDataToBuffers(vk::CommandBuffer cmdBuf);
         vkb::Buffer depthPixelReadBuffer;
-        ui32* depthBufMap = reinterpret_cast<ui32*>(depthPixelReadBuffer.map());
+        ui32* depthBufMap{ depthPixelReadBuffer.map<ui32*>() };
 
         const vkb::Swapchain& swapchain;
-
         vkb::FrameSpecific<GBuffer>& gBuffer;
+
         uvec2 framebufferSize;
         vkb::FrameSpecific<Framebuffer> framebuffers;
 
         std::array<vk::ClearValue, 6> clearValues;
-
-        // Descriptor
-        DeferredRenderPassDescriptor descriptor;
     };
 } // namespace trc

@@ -108,7 +108,7 @@ namespace trc
 
         auto getGlobalDataDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getSceneDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getDeferredPassDescriptorProvider() const -> const DescriptorProviderInterface&;
+        auto getGBufferDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getShadowDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getAssetDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getFontDescriptorProvider() const -> const DescriptorProviderInterface&;
@@ -132,14 +132,10 @@ namespace trc
         u_ptr<FinalLightingPass> finalLightingPass;
 
         // Descriptors
+        GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
         SceneDescriptor sceneDescriptor;
 
-        /**
-         * Use a wrapper here because the pass is recreated on swapchain
-         * resize. This way I don't have to recreate the pipelines.
-         */
-        DescriptorProviderWrapper deferredPassDescriptorProvider;
         DescriptorProvider fontDataDescriptor;
 
         // Data & Assets
