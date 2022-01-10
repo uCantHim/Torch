@@ -6,6 +6,7 @@ target_sources(
         Buffer.cpp
         Device.cpp
         ExclusiveQueue.cpp
+        FrameClock.cpp
         Instance.cpp
         Image.cpp
         ImageUtils.cpp

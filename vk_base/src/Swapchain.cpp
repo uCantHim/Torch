@@ -206,6 +206,26 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
 
 vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreateInfo& info)
     :
+    FrameClock([&device, &s, &info] {
+        const auto& phys = device.getPhysicalDevice();
+        const auto capabilities = phys.getSwapchainSupport(*s.surface).surfaceCapabilities;
+        const uint32_t minImages = capabilities.minImageCount;
+        const uint32_t maxImages = capabilities.maxImageCount == 0  // 0 means no limit
+                                   ? std::numeric_limits<uint32_t>::max()
+                                   : capabilities.maxImageCount;
+
+        const uint32_t numFrames = glm::clamp(info.imageCount, minImages, maxImages);
+        if (numFrames != info.imageCount)
+        {
+            throw std::runtime_error(
+                "[In Swapchain::Swapchain]: Image count of " + std::to_string(info.imageCount)
+                + " is not supported! The device support a minimum of " + std::to_string(minImages)
+                + " and a maximum of " + std::to_string(maxImages) + "."
+            );
+        }
+
+        return numFrames;
+    }()),
     device(device),
     createInfo(info),
     window(std::move(s.window)),
@@ -260,17 +280,6 @@ auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
     return swapchainFormat;
 }
 
-auto vkb::Swapchain::getFrameCount() const noexcept -> uint32_t
-{
-    return static_cast<uint32_t>(numFrames);
-}
-
-
-auto vkb::Swapchain::getCurrentFrame() const noexcept -> uint32_t
-{
-    return currentFrame;
-}
-
 auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> vk::Image
 {
     return images[index];
@@ -282,7 +291,7 @@ void vkb::Swapchain::setPreferredPresentMode(vk::PresentModeKHR newMode)
     createSwapchain(createInfo);
 }
 
-auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> image_index
+auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> uint32_t
 {
     auto result = device->acquireNextImageKHR(*swapchain, UINT64_MAX, signalSemaphore, vk::Fence());
     if (result.result == vk::Result::eErrorOutOfDateKHR)
@@ -295,7 +304,7 @@ auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> image_
 }
 
 void vkb::Swapchain::presentImage(
-    image_index image,
+    uint32_t image,
     vk::Queue queue,
     const std::vector<vk::Semaphore>& waitSemaphores)
 {
@@ -316,7 +325,7 @@ void vkb::Swapchain::presentImage(
         return;
     }
 
-    currentFrame = (currentFrame + 1) % numFrames;
+    FrameClock::endFrame();
 }
 
 auto vkb::Swapchain::getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView
@@ -483,7 +492,7 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     const uint32_t maxImages = capabilities.maxImageCount == 0  // 0 means no limit on the image maximum.
                                ? std::numeric_limits<uint32_t>::max()
                                : capabilities.maxImageCount;
-    numFrames = glm::clamp(info.imageCount, minImages, maxImages);
+    const uint32_t numFrames = glm::clamp(info.imageCount, minImages, maxImages);
 
     if (info.throwWhenUnsupported)
     {
@@ -495,11 +504,12 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
             );
         }
 
-        if (numFrames != info.imageCount)
+        if (numFrames != FrameClock::getFrameCount())
         {
+            // This should not be able to happen
             throw std::runtime_error(
-                "[In Swapchain::createSwapchain]: Image count of " + std::to_string(info.imageCount)
-                + " is not supported!"
+                "[In Swapchain::createSwapchain]: Number of images in swapchain"
+                " has changed after recreation"
             );
         }
     }
@@ -532,7 +542,7 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     swapchainExtent = optimalImageExtent;
     swapchainFormat = optimalFormat.format;
     presentMode = optimalPresentMode;
-    currentFrame = 0;
+    FrameClock::resetCurrentFrame();
 
     // Retrieve created images
     images = device->getSwapchainImagesKHR(swapchain.get());

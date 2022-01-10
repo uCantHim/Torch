@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cassert>
 #include <vector>
 #include <functional>
 
-#include "Swapchain.h"
+#include "FrameClock.h"
 
 namespace vkb
 {
@@ -15,60 +16,62 @@ namespace vkb
          * Default constructor.
          * Only available when R is default constructible.
          *
-         * @param const Swapchain& swapchain
+         * @param const FrameClock& frameClock
          */
-        FrameSpecific(const Swapchain& swapchain) requires(std::is_default_constructible_v<R>)
-            : FrameSpecific(swapchain, [](uint32_t) { return R{}; })
+        FrameSpecific(const FrameClock& frameClock) requires(std::is_default_constructible_v<R>)
+            : FrameSpecific(frameClock, [](uint32_t) { return R{}; })
         {}
 
-        FrameSpecific(const Swapchain& swapchain, std::vector<R> objects)
+        FrameSpecific(const FrameClock& frameClock, std::vector<R> objects)
             :
-            FrameSpecific(swapchain, [&objects](uint32_t imageIndex) {
+            FrameSpecific(frameClock, [&objects](uint32_t imageIndex) {
                 return std::move(objects[imageIndex]);
             })
         {}
 
         /**
-         * @param const Swapchain& swapchain The swapchain
+         * @param const FrameClock& frameClock The frameClock
          * @param std::function<R(uint32_t)> func: A constructor function
-         * for the object. Is called for every frame in the swapchain.
-         * Provides the current frame index as argument.
+         *        for the object. Is called for every frame in the frame
+         *        clock. Provides the current frame index as argument.
          */
-        FrameSpecific(const Swapchain& swapchain, std::function<R(uint32_t)> func)
-            : swapchain(&swapchain)
+        FrameSpecific(const FrameClock& frameClock, std::function<R(uint32_t)> func)
+            : frameClock(&frameClock)
         {
-            uint32_t count{ swapchain.getFrameCount() };
+            const uint32_t count{ frameClock.getFrameCount() };
             objects.reserve(count);
             for (uint32_t i = 0; i < count; i++) {
-                objects.push_back(func(i));
+                objects.emplace_back(func(i));
             }
         }
 
-        FrameSpecific(const FrameSpecific&) = delete;
+        FrameSpecific(const FrameSpecific&) requires std::copy_constructible<R>
+            = default;
         FrameSpecific(FrameSpecific&&) = default;
         ~FrameSpecific() = default;
 
-        FrameSpecific& operator=(const FrameSpecific&) = delete;
+        FrameSpecific& operator=(const FrameSpecific&) requires std::is_copy_assignable_v<R>
+            = default;
         FrameSpecific& operator=(FrameSpecific&&) = default;
 
         inline auto operator*() -> R& {
-            return objects[swapchain->getCurrentFrame()];
+            return objects[frameClock->getCurrentFrame()];
         }
 
         inline auto operator*() const -> const R& {
-            return objects[swapchain->getCurrentFrame()];
+            return objects[frameClock->getCurrentFrame()];
         }
 
         inline auto operator->() -> R* {
-            return &objects[swapchain->getCurrentFrame()];
+            return &objects[frameClock->getCurrentFrame()];
         }
 
         inline auto operator->() const -> const R* {
-            return &objects[swapchain->getCurrentFrame()];
+            return &objects[frameClock->getCurrentFrame()];
         }
 
-        inline auto getSwapchain() const -> const Swapchain& {
-            return *swapchain;
+        inline auto getFrameClock() const -> const FrameClock& {
+            return *frameClock;
         }
 
         /**
@@ -77,7 +80,7 @@ namespace vkb
          * @return R& The object for the current frame
          */
         inline auto get() noexcept -> R& {
-            return objects[swapchain->getCurrentFrame()];
+            return objects[frameClock->getCurrentFrame()];
         }
 
         /**
@@ -86,13 +89,14 @@ namespace vkb
          * @return const R& The object for the current frame
          */
         inline auto get() const noexcept -> const R& {
-            return objects[swapchain->getCurrentFrame()];
+            return objects[frameClock->getCurrentFrame()];
         }
 
         /**
          * @return const R& The object for a specific frame
          */
-        inline auto getAt(uint32_t imageIndex) noexcept -> R& {
+        inline auto getAt(uint32_t imageIndex) noexcept -> R&
+        {
             assert(imageIndex < objects.size());
             return objects[imageIndex];
         }
@@ -100,7 +104,8 @@ namespace vkb
         /**
          * @return const R& The object for a specific frame
          */
-        inline auto getAt(uint32_t imageIndex) const noexcept -> const R& {
+        inline auto getAt(uint32_t imageIndex) const noexcept -> const R&
+        {
             assert(imageIndex < objects.size());
             return objects[imageIndex];
         }
@@ -112,7 +117,8 @@ namespace vkb
          * @param std::function<void(R&)> func The mapped function, called for
          *                                        every object.
          */
-        inline void foreach(std::function<void(R&)> func) {
+        inline void foreach(std::function<void(R&)> func)
+        {
             for (auto& object : objects) {
                 func(object);
             }
@@ -126,8 +132,16 @@ namespace vkb
             return objects.end();
         }
 
+        inline auto begin() const {
+            return objects.begin();
+        }
+
+        inline auto end() const {
+            return objects.end();
+        }
+
     private:
-        const Swapchain* swapchain;
+        const FrameClock* frameClock;
         std::vector<R> objects;
     };
 } // namespace vkb

@@ -8,11 +8,11 @@
 #include <glm/glm.hpp>
 
 #include "event/Keys.h"
+#include "FrameClock.h"
 
 namespace vkb
 {
     class Device;
-    class SwapchainDependentResource;
 
     struct SurfaceCreateInfo
     {
@@ -75,11 +75,9 @@ namespace vkb
      * of the Vulkan stuff as possible. I don't see a reason to use the
      * conventional terminology if Vulkan has no concept of windows.
      */
-    class Swapchain
+    class Swapchain : public FrameClock
     {
     public:
-        using image_index = uint32_t;
-
         /**
          * @brief Construct a swapchain
          */
@@ -119,25 +117,10 @@ namespace vkb
         auto getImageFormat() const noexcept -> vk::Format;
 
         /**
-         * @return uint32_t Number of images in the swapchain
-         */
-        auto getFrameCount() const noexcept -> uint32_t;
-
-        /**
-         * @return uint32_t The index of the currently active image
-         */
-        auto getCurrentFrame() const noexcept -> uint32_t;
-
-        /**
          * @brief Get a specific swapchain image
          * @return vk::Image
          */
         auto getImage(uint32_t index) const noexcept -> vk::Image;
-
-        /**
-         * @return vk::PresentModeKHR The swapchain's current presentation mode
-         */
-        auto getPresentMode() const noexcept -> vk::PresentModeKHR;
 
         /**
          * @brief Set a presentation mode to be used for the swapchain
@@ -151,8 +134,8 @@ namespace vkb
          */
         void setPreferredPresentMode(vk::PresentModeKHR newMode);
 
-        auto acquireImage(vk::Semaphore signalSemaphore) const -> image_index;
-        void presentImage(image_index image,
+        auto acquireImage(vk::Semaphore signalSemaphore) const -> uint32_t;
+        void presentImage(uint32_t image,
                           vk::Queue queue,
                           const std::vector<vk::Semaphore>& waitSemaphores);
 
@@ -207,8 +190,5 @@ namespace vkb
 
         std::vector<vk::Image> images;
         std::vector<vk::UniqueImageView> imageViews;
-
-        uint32_t numFrames{ 0 };
-        uint32_t currentFrame{ 0 };
     };
 } // namespace vkb
