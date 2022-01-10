@@ -29,7 +29,7 @@ namespace vkb
         std::unique_ptr<vk::SurfaceKHR, SurfaceDeleter> surface;
     };
 
-    auto createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface;
+    auto makeSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface;
 
     /**
      * Call this once per frame.

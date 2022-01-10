@@ -19,7 +19,7 @@ int main()
         vkb::VulkanInstance instance;
         log("Instance created");
 
-        auto surface = vkb::createSurface(*instance, {});
+        auto surface = vkb::makeSurface(*instance, {});
         log("Surface and window created");
 
         std::unique_ptr<vkb::PhysicalDevice> phys;
@@ -40,7 +40,7 @@ int main()
         vkb::Device device(*phys);
         log("Logical device created");
 
-        vkb::Swapchain swapchain(device, vkb::createSurface(*instance, {}));
+        vkb::Swapchain swapchain(device, vkb::makeSurface(*instance, {}));
         log("Swapchain created");
     }
 

@@ -8,7 +8,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
     :
     vkb::Swapchain(
         instance.getDevice(),
-        vkb::createSurface(
+        vkb::makeSurface(
             instance.getVulkanInstance(),
             { .windowSize={ info.size.x, info.size.y }, .windowTitle=info.title }
         ),

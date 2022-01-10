@@ -10,7 +10,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
     instance(*::trc::getVulkanInstance()),
     physicalDevice([this] {
         vkb::Surface surface{
-            vkb::createSurface(instance, { .windowSize={ 1, 1 }, .windowTitle="" })
+            vkb::makeSurface(instance, { .windowSize={ 1, 1 }, .windowTitle="" })
         };
         return new vkb::PhysicalDevice(instance, *surface.surface);
     }()),

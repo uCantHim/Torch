@@ -13,7 +13,7 @@ using namespace std::chrono;
 
 
 
-auto vkb::createSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface
+auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface
 {
     Surface result;
 
