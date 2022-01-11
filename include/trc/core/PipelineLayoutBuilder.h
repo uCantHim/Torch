@@ -3,9 +3,9 @@
 #include <vector>
 #include <optional>
 
-#include "DrawConfiguration.h"
 #include "PipelineLayoutTemplate.h"
 #include "PipelineRegistry.h"
+#include "DescriptorProvider.h"
 
 namespace trc
 {
@@ -16,6 +16,7 @@ namespace trc
     {
     public:
         using Self = PipelineLayoutBuilder;
+        using Descriptor = PipelineLayoutTemplate::Descriptor;
 
         PipelineLayoutBuilder() = default;
 
@@ -68,6 +69,8 @@ namespace trc
                              bool hasStaticSet = true
                              ) -> Self&;
 
+        auto addDescriptor(const DescriptorProviderInterface& provider, bool hasStaticSet) -> Self&;
+
         /**
          * Only call this function once per stage in vk::PipelineStageFlags.
          * The Vulkan specification requires this.
@@ -103,7 +106,10 @@ namespace trc
         auto registerLayout() const -> PipelineLayout::ID;
 
     private:
-        std::vector<PipelineLayoutTemplate::Descriptor> descriptors;
+        using ProviderDefinition = std::pair<const DescriptorProviderInterface*, bool>;
+        using DescriptorDefinition = std::variant<Descriptor, ProviderDefinition>;
+
+        std::vector<DescriptorDefinition> descriptors;
         std::vector<PipelineLayoutTemplate::PushConstant> pushConstants;
     };
 
@@ -114,7 +120,53 @@ namespace trc
     template<RenderConfigType T>
     auto PipelineLayoutBuilder::build(const vkb::Device& device, T& renderConfig) -> PipelineLayout
     {
-        return makePipelineLayout(device, build(), renderConfig);
+        // Collect descriptors
+        std::vector<vk::DescriptorSetLayout> descLayouts;
+        std::vector<std::pair<const DescriptorProviderInterface*, bool>> providers;
+        auto addProvider = [&](const DescriptorProviderInterface* p, bool b)
+        {
+            providers.emplace_back(p, b);
+            descLayouts.emplace_back(p->getDescriptorSetLayout());
+        };
+
+        for (const auto& def : descriptors)
+        {
+            if (std::holds_alternative<ProviderDefinition>(def))
+            {
+                auto [p, isStatic] = std::get<ProviderDefinition>(def);
+                addProvider(p, isStatic);
+            }
+            else {
+                const auto& descName = std::get<Descriptor>(def);
+                const auto id = renderConfig.getDescriptorID(descName.name);
+                addProvider(&renderConfig.getDescriptor(id), descName.isStatic);
+            }
+        }
+
+        // Collect push constant ranges
+        std::vector<vk::PushConstantRange> pcRanges;
+        for (const auto& pc : pushConstants) {
+            pcRanges.emplace_back(pc.range);
+        }
+
+        auto layout = makePipelineLayout(device, std::move(descLayouts), std::move(pcRanges));
+
+        // Set static descriptors and default push constant values
+        for (ui32 i = 0; const auto& [p, isStatic] : providers)
+        {
+            if (isStatic) {
+                layout.addStaticDescriptorSet(i, *p);
+            }
+            ++i;
+        }
+        for (const auto& pc : pushConstants)
+        {
+            if (pc.defaultValue.has_value()) {
+                pc.defaultValue.value().setAsDefault(layout, pc.range);
+            }
+        }
+
+        return layout;
     }
 
     template<RenderConfigType T>

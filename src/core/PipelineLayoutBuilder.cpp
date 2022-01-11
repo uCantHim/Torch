@@ -7,7 +7,7 @@ auto trc::PipelineLayoutBuilder::addDescriptor(
     bool hasStaticSet
     ) -> Self&
 {
-    descriptors.emplace_back(std::move(name), hasStaticSet);
+    descriptors.emplace_back(Descriptor{ name, hasStaticSet });
     return *this;
 }
 
@@ -18,6 +18,15 @@ auto trc::PipelineLayoutBuilder::addDescriptorIf(
     ) -> Self&
 {
     if (condition) addDescriptor(name, hasStaticSet);
+    return *this;
+}
+
+auto trc::PipelineLayoutBuilder::addDescriptor(
+    const DescriptorProviderInterface& provider,
+    bool hasStaticSet
+    ) -> Self&
+{
+    descriptors.emplace_back(ProviderDefinition{ &provider, hasStaticSet });
     return *this;
 }
 
@@ -42,7 +51,18 @@ auto trc::PipelineLayoutBuilder::addPushConstantRangeIf(
 
 auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
 {
-    return { descriptors, pushConstants };
+    std::vector<Descriptor> descNames;
+    for (const auto& def : descriptors)
+    {
+        if (std::holds_alternative<ProviderDefinition>(def))
+        {
+            throw Exception("[In PipelineLayoutBuilder::build]: Contains a descriptor definition"
+                            " that is not a descriptor name; cannot build a template from this.");
+        }
+        descNames.emplace_back(std::get<Descriptor>(def));
+    }
+
+    return { std::move(descNames), pushConstants };
 }
 
 
