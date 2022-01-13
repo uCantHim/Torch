@@ -117,6 +117,11 @@ namespace vkb
         auto getImageFormat() const noexcept -> vk::Format;
 
         /**
+         * @return vk::ImageUsageFlags
+         */
+        auto getImageUsage() const noexcept -> vk::ImageUsageFlags;
+
+        /**
          * @brief Get a specific swapchain image
          * @return vk::Image
          */
@@ -186,6 +191,7 @@ namespace vkb
         vk::UniqueSwapchainKHR swapchain;
         vk::Extent2D swapchainExtent;
         vk::Format swapchainFormat;
+        vk::ImageUsageFlags swapchainImageUsage;
         vk::PresentModeKHR presentMode;
 
         std::vector<vk::Image> images;

@@ -229,7 +229,13 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
     device(device),
     createInfo(info),
     window(std::move(s.window)),
-    surface(std::move(s.surface))
+    surface(std::move(s.surface)),
+    swapchainImageUsage([&info] {
+        // Add necessary default usage flags
+        auto usageFlags = info.imageUsage;
+        usageFlags |= vk::ImageUsageFlagBits::eColorAttachment;
+        return usageFlags;
+    }())
 {
     /**
      * This call also has practical significance: Vulkan requires that the
@@ -278,6 +284,11 @@ auto vkb::Swapchain::getAspectRatio() const noexcept -> float
 auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
 {
     return swapchainFormat;
+}
+
+auto vkb::Swapchain::getImageUsage() const noexcept -> vk::ImageUsageFlags
+{
+    return swapchainImageUsage;
 }
 
 auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> vk::Image
@@ -514,10 +525,6 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
         }
     }
 
-    // Enable default image usage flags
-    auto usageFlags = info.imageUsage;
-    usageFlags |= vk::ImageUsageFlagBits::eColorAttachment;
-
     // Create the swapchain
     vk::SwapchainCreateInfoKHR createInfo(
         {},
@@ -527,7 +534,7 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
         optimalFormat.colorSpace,
         optimalImageExtent,
         1u, // array layers
-        usageFlags,
+        swapchainImageUsage,
         imageSharingMode,
         static_cast<uint32_t>(imageSharingQueueFamilies.size()),
         imageSharingQueueFamilies.data(),
