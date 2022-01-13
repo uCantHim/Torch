@@ -61,11 +61,13 @@ target_link_libraries(
     $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
 )
 
-target_compile_definitions(
-    torch PUBLIC
-    TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
-    $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
-    $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
+target_compile_definitions(torch
+    PUBLIC
+        TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
+        $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
+        $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
+    INTERFACE
+        TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
 )
 
 add_subdirectory(shaders)

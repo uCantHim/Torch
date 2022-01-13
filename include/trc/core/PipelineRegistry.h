@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ranges>
 #include <vector>
 #include <functional>
 #include <variant>
