@@ -23,6 +23,17 @@ namespace trc
 
     auto makeRenderTarget(const vkb::Swapchain& swapchain) -> RenderTarget;
 
+    /**
+     * The `imageUsage` parameter is in many cases unnecessary, unless you
+     * want to create an imageless framebuffer.
+     */
+    struct RenderTargetCreateInfo
+    {
+         uvec2 imageSize;
+         vk::Format imageFormat;
+         vk::ImageUsageFlags imageUsage;
+    };
+
     class RenderTarget
     {
     public:
@@ -35,8 +46,7 @@ namespace trc
         RenderTarget(const vkb::FrameClock& frameClock,
                      const vk::ArrayProxy<const vk::Image>& images,
                      const vk::ArrayProxy<const vk::ImageView>& imageViews,
-                     uvec2 imageSize,
-                     vk::Format imageFormat);
+                     const RenderTargetCreateInfo& createInfo);
 
         auto getFrameClock() const -> const vkb::FrameClock&;
 
@@ -49,10 +59,15 @@ namespace trc
         auto getImages() const -> const vkb::FrameSpecific<vk::Image>&;
         auto getImageViews() const -> const vkb::FrameSpecific<vk::ImageView>&;
 
+        auto getSize() const -> uvec2;
+        auto getFormat() const -> vk::Format;
+        auto getImageUsage() const -> vk::ImageUsageFlags;
+
     private:
         vkb::FrameSpecific<vk::Image> images;
         vkb::FrameSpecific<vk::ImageView> imageViews;
         uvec2 size;
         vk::Format format;
+        vk::ImageUsageFlags usage;
     };
 } // namespace trc

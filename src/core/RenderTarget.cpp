@@ -18,8 +18,11 @@ auto trc::makeRenderTarget(const vkb::Swapchain& swapchain) -> RenderTarget
         swapchain,
         std::move(images),
         std::move(imageViews),
-        swapchain.getSize(),
-        swapchain.getImageFormat()
+        {
+            swapchain.getSize(),
+            swapchain.getImageFormat(),
+            swapchain.getImageUsage()
+        }
     };
 }
 
@@ -29,13 +32,13 @@ trc::RenderTarget::RenderTarget(
     const vkb::FrameClock& frameClock,
     const vk::ArrayProxy<const vk::Image>& images,
     const vk::ArrayProxy<const vk::ImageView>& imageViews,
-    uvec2 imageSize,
-    vk::Format imageFormat)
+    const RenderTargetCreateInfo& info)
     :
     images(frameClock, { images.begin(), images.end() }),
     imageViews(frameClock, { imageViews.begin(), imageViews.end() }),
-    size(imageSize),
-    format(imageFormat)
+    size(info.imageSize),
+    format(info.imageFormat),
+    usage(info.imageUsage)
 {
 }
 
@@ -72,4 +75,19 @@ auto trc::RenderTarget::getImages() const -> const vkb::FrameSpecific<vk::Image>
 auto trc::RenderTarget::getImageViews() const -> const vkb::FrameSpecific<vk::ImageView>&
 {
     return imageViews;
+}
+
+auto trc::RenderTarget::getSize() const -> uvec2
+{
+    return size;
+}
+
+auto trc::RenderTarget::getFormat() const -> vk::Format
+{
+    return format;
+}
+
+auto trc::RenderTarget::getImageUsage() const -> vk::ImageUsageFlags
+{
+    return usage;
 }
