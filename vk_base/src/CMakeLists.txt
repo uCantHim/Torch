@@ -7,7 +7,6 @@ target_sources(
         Device.cpp
         ExclusiveQueue.cpp
         FrameClock.cpp
-        Instance.cpp
         Image.cpp
         ImageUtils.cpp
         Memory.cpp
@@ -18,4 +17,5 @@ target_sources(
         Swapchain.cpp
         VulkanBase.cpp
         VulkanDebug.cpp
+        VulkanInstance.cpp
 )

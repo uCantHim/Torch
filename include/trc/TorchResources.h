@@ -4,7 +4,7 @@
 
 namespace trc
 {
-    inline RenderStage deferredRenderStage{};
+    inline RenderStage gBufferRenderStage{};
     inline RenderStage finalLightingRenderStage{};
     inline RenderStage shadowRenderStage{};
 } // namespace trc

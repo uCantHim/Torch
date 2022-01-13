@@ -5,7 +5,7 @@
 #include "core/PipelineLayoutBuilder.h"
 #include "core/PipelineBuilder.h"
 #include "AssetRegistry.h"
-#include "DeferredRenderConfig.h"
+#include "TorchRenderConfig.h"
 #include "PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "TorchResources.h"
 
@@ -78,8 +78,8 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 {
     // Alpha discard pipeline
     drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(
-        deferredRenderStage,
-        RenderPassDeferred::SubPasses::gBuffer,
+        gBufferRenderStage,
+        GBufferPass::SubPasses::gBuffer,
         getAlphaDiscardPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
@@ -95,8 +95,8 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 
     // Alpha blend pipeline
     drawRegistrations[Blend::eAlphaBlend] = scene.registerDrawFunction(
-        deferredRenderStage,
-        RenderPassDeferred::SubPasses::transparency,
+        gBufferRenderStage,
+        GBufferPass::SubPasses::transparency,
         getAlphaBlendPipeline(),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
@@ -301,9 +301,9 @@ void trc::ParticleSpawn::spawnParticles()
 auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
-        .registerLayout<DeferredRenderConfig>();
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
+        .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
         .setProgram(vkb::readFile(SHADER_DIR / "particles/deferred.vert.spv"),
@@ -332,18 +332,18 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> Pipeline
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
         .disableBlendAttachments(3)
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
         );
 }
 
 auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .registerLayout<DeferredRenderConfig>();
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
         .setProgram(vkb::readFile(SHADER_DIR / "particles/deferred.vert.spv"),
@@ -371,20 +371,20 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> Pipeline::
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
         .disableDepthWrite()
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::TRANSPARENT_G_BUFFER_PASS }
         );
 }
 
 auto trc::ParticleCollection::makeParticleShadowPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
         .addPushConstantRange(
             vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32))
         )
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
         .setProgram(vkb::readFile(SHADER_DIR / "particles/shadow.vert.spv"),
@@ -411,7 +411,7 @@ auto trc::ParticleCollection::makeParticleShadowPipeline() -> Pipeline::ID
             }
         )
         .setCullMode(vk::CullModeFlagBits::eNone)
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::SHADOW_PASS }
         );
 }

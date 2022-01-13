@@ -5,7 +5,7 @@
 #include "Geometry.h"
 #include "Material.h"
 
-#include "RenderPassDeferred.h"
+#include "GBufferPass.h"
 #include "RenderPassShadow.h"
 
 
@@ -45,8 +45,8 @@ Drawable::Drawable(const DrawableCreateInfo& info)
     }
 
     deferredPipeline = getPipeline(flags);
-    deferredSubpass = info.transparent ? RenderPassDeferred::SubPasses::transparency
-                                       : RenderPassDeferred::SubPasses::gBuffer;
+    deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
+                                       : GBufferPass::SubPasses::gBuffer;
 }
 
 auto Drawable::getMaterial() const -> MaterialID
@@ -105,7 +105,7 @@ void Drawable::attachToScene(SceneBase& scene)
     }
 
     deferredRegistration = scene.registerDrawFunction(
-        deferredRenderStage,
+        gBufferRenderStage,
         deferredSubpass,
         deferredPipeline,
         std::move(func)

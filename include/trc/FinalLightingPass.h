@@ -9,7 +9,7 @@
 namespace trc
 {
     class RenderTarget;
-    class DeferredRenderConfig;
+    class TorchRenderConfig;
 
     /**
      * @brief
@@ -25,7 +25,7 @@ namespace trc
                           const RenderTarget& target,
                           uvec2 offset,
                           uvec2 size,
-                          DeferredRenderConfig& config);
+                          TorchRenderConfig& config);
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents) override;
         void end(vk::CommandBuffer) override {}
@@ -38,7 +38,7 @@ namespace trc
         void updateDescriptors(const vkb::Device& device, const RenderTarget& target);
 
         const RenderTarget* renderTarget;
-        const DeferredRenderConfig* renderConfig;
+        const TorchRenderConfig* renderConfig;
 
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;

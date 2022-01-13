@@ -16,14 +16,14 @@ void run()
     // techniques for individual viewports; for example, one viewport could
     // use the standard deferred rendering algorithm while the other uses
     // ray tracing.
-    trc::DeferredRenderCreateInfo info{
+    trc::TorchRenderConfigCreateInfo info{
         .renderGraph=trc::makeDeferredRenderGraph(),
         .target=renderTarget,
         .assetRegistry=&assets,
         .shadowPool=&shadows
     };
-    trc::DeferredRenderConfig config1(window, info);
-    trc::DeferredRenderConfig config2(window, info);
+    trc::TorchRenderConfig config1(window, info);
+    trc::TorchRenderConfig config2(window, info);
     config1.setViewport({ 100, 200 }, { 400, 400 });
     config2.setViewport({ 400, 550 }, { 300, 150 });
     config1.setClearColor(vec4(1, 1, 0, 1));

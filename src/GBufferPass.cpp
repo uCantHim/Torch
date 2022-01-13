@@ -1,4 +1,4 @@
-#include "RenderPassDeferred.h"
+#include "GBufferPass.h"
 
 #include <glm/detail/type_half.hpp>
 
@@ -6,7 +6,7 @@
 
 
 
-trc::RenderPassDeferred::RenderPassDeferred(
+trc::GBufferPass::GBufferPass(
     const vkb::Device& device,
     const vkb::Swapchain& swapchain,
     vkb::FrameSpecific<GBuffer>& gBuffer)
@@ -44,7 +44,7 @@ trc::RenderPassDeferred::RenderPassDeferred(
 {
 }
 
-void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
+void trc::GBufferPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
     gBuffer->initFrame(cmdBuf);
 
@@ -101,18 +101,18 @@ void trc::RenderPassDeferred::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
     cmdBuf.setScissor(0, vk::Rect2D{ { 0, 0 }, { framebufferSize.x, framebufferSize.y } });
 }
 
-void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
+void trc::GBufferPass::end(vk::CommandBuffer cmdBuf)
 {
     cmdBuf.endRenderPass();
     copyMouseDataToBuffers(cmdBuf);
 }
 
-void trc::RenderPassDeferred::setClearColor(const vec4 c)
+void trc::GBufferPass::setClearColor(const vec4 c)
 {
     clearValues[1] = vk::ClearColorValue(std::array<float, 4>{ c.r, c.g, c.b, c.a });
 }
 
-auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
+auto trc::GBufferPass::getMouseDepth() const noexcept -> float
 {
     const ui32 depthValueD24S8 = depthBufMap[0];
 
@@ -122,7 +122,7 @@ auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
     return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
 }
 
-auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
+auto trc::GBufferPass::getMousePos(const Camera& camera) const noexcept -> vec3
 {
     const vec2 resolution{ framebufferSize };
     const vec2 mousePos = glm::clamp([=, this]() -> vec2 {
@@ -141,7 +141,7 @@ auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -
     return worldSpace;
 }
 
-auto trc::RenderPassDeferred::makeVkRenderPass(const vkb::Device& device)
+auto trc::GBufferPass::makeVkRenderPass(const vkb::Device& device)
     -> vk::UniqueRenderPass
 {
     std::vector<vk::AttachmentDescription> attachments = {
@@ -231,7 +231,7 @@ auto trc::RenderPassDeferred::makeVkRenderPass(const vkb::Device& device)
     );
 }
 
-void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
+void trc::GBufferPass::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
     vkb::Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
     const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Instance.h"
+#include "VulkanInstance.h"
 #include "VulkanDebug.h"
 #include "PhysicalDevice.h"
 #include "Device.h"

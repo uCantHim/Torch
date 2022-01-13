@@ -10,7 +10,7 @@
 #include "core/RenderGraph.h"
 
 #include "core/DescriptorProviderWrapper.h"
-#include "RenderPassDeferred.h"
+#include "GBufferPass.h"
 #include "RenderPassShadow.h"
 #include "FinalLightingPass.h"
 #include "RenderDataDescriptor.h"
@@ -27,7 +27,7 @@ namespace trc
     /**
      * @brief
      */
-    struct DeferredRenderCreateInfo
+    struct TorchRenderConfigCreateInfo
     {
         RenderGraph renderGraph;
         const RenderTarget& target;
@@ -43,7 +43,7 @@ namespace trc
     /**
      * @brief
      */
-    class DeferredRenderConfig : public RenderConfigCrtpBase<DeferredRenderConfig>
+    class TorchRenderConfig : public RenderConfigCrtpBase<TorchRenderConfig>
     {
     public:
         /**
@@ -89,7 +89,7 @@ namespace trc
         /**
          * @brief
          */
-        DeferredRenderConfig(const Window& window, const DeferredRenderCreateInfo& info);
+        TorchRenderConfig(const Window& window, const TorchRenderConfigCreateInfo& info);
 
         void preDraw(const DrawConfig& draw) override;
         void postDraw(const DrawConfig& draw) override;
@@ -102,7 +102,7 @@ namespace trc
         auto getGBuffer() -> vkb::FrameSpecific<GBuffer>&;
         auto getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&;
 
-        auto getDeferredRenderPass() const -> const RenderPassDeferred&;
+        auto getGBufferRenderPass() const -> const GBufferPass&;
         auto getCompatibleShadowRenderPass() const -> vk::RenderPass;
 
         auto getGlobalDataDescriptorProvider() const -> const DescriptorProviderInterface&;
@@ -127,7 +127,7 @@ namespace trc
 
         // Default render passes
         u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;
-        u_ptr<RenderPassDeferred> deferredPass;
+        u_ptr<GBufferPass> gBufferPass;
         RenderPassShadow shadowPass;
         u_ptr<FinalLightingPass> finalLightingPass;
 

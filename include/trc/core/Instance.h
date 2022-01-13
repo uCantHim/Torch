@@ -3,7 +3,7 @@
 #include <any>
 #include <functional>
 
-#include <vkb/Instance.h>
+#include <vkb/VulkanInstance.h>
 #include <vkb/Device.h>
 
 #include "../Types.h"

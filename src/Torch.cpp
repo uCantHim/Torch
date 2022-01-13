@@ -102,7 +102,7 @@ trc::TorchStack::TorchStack(
     swapchainRenderTarget(makeRenderTarget(window)),
     renderConfig(
         window,
-        DeferredRenderCreateInfo{
+        TorchRenderConfigCreateInfo{
             makeTorchRenderGraph(),
             swapchainRenderTarget,
             &assetRegistry,
@@ -164,7 +164,7 @@ auto trc::TorchStack::getRenderTarget() -> RenderTarget&
     return swapchainRenderTarget;
 }
 
-auto trc::TorchStack::getRenderConfig() -> DeferredRenderConfig&
+auto trc::TorchStack::getRenderConfig() -> TorchRenderConfig&
 {
     return renderConfig;
 }

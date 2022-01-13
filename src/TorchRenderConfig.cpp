@@ -1,10 +1,10 @@
-#include "DeferredRenderConfig.h"
+#include "TorchRenderConfig.h"
 
 #include "core/Window.h"
 #include "core/DrawConfiguration.h"
 #include "trc_util/Timer.h"
 #include "TorchResources.h"
-#include "RenderPassDeferred.h"
+#include "GBufferPass.h"
 #include "PipelineDefinitions.h"  // TODO: Enums are here - remove this
 
 
@@ -14,23 +14,23 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
     RenderGraph graph;
 
     graph.first(shadowRenderStage);
-    graph.after(shadowRenderStage, deferredRenderStage);
-    graph.after(deferredRenderStage, finalLightingRenderStage);
+    graph.after(shadowRenderStage, gBufferRenderStage);
+    graph.after(gBufferRenderStage, finalLightingRenderStage);
 
     return graph;
 }
 
 
 
-trc::DeferredRenderConfig::DeferredRenderConfig(
+trc::TorchRenderConfig::TorchRenderConfig(
     const Window& _window,
-    const DeferredRenderCreateInfo& info)
+    const TorchRenderConfigCreateInfo& info)
     :
     RenderConfigCrtpBase(_window.getInstance(), RenderLayout(_window, info.renderGraph)),
     window(_window),
     // Passes
     gBuffer(nullptr),
-    deferredPass(nullptr),
+    gBufferPass(nullptr),
     shadowPass(window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
     // Descriptors
     gBufferDescriptor(_window.getDevice(), _window),  // Don't update the descriptor sets yet!
@@ -63,11 +63,11 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     // Define named render passes
     addRenderPass(
         RenderPassName{ OPAQUE_G_BUFFER_PASS },
-        [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 0 }; }
+        [&]{ return RenderPassDefinition{ *getGBufferRenderPass(), 0 }; }
     );
     addRenderPass(
         RenderPassName{ TRANSPARENT_G_BUFFER_PASS },
-        [&]{ return RenderPassDefinition{ *getDeferredRenderPass(), 1 }; }
+        [&]{ return RenderPassDefinition{ *getGBufferRenderPass(), 1 }; }
     );
     addRenderPass(
         RenderPassName{ SHADOW_PASS },
@@ -82,7 +82,7 @@ trc::DeferredRenderConfig::DeferredRenderConfig(
     layout.addPass(finalLightingRenderStage, *finalLightingPass);
 }
 
-void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
+void trc::TorchRenderConfig::preDraw(const DrawConfig& draw)
 {
     // Add final lighting function to scene
     globalDataDescriptor.update(*draw.camera);
@@ -90,11 +90,11 @@ void trc::DeferredRenderConfig::preDraw(const DrawConfig& draw)
     shadowPool->update();
 }
 
-void trc::DeferredRenderConfig::postDraw(const DrawConfig&)
+void trc::TorchRenderConfig::postDraw(const DrawConfig&)
 {
 }
 
-void trc::DeferredRenderConfig::setViewport(uvec2 offset, uvec2 size)
+void trc::TorchRenderConfig::setViewport(uvec2 offset, uvec2 size)
 {
     assert(finalLightingPass != nullptr);
 
@@ -102,108 +102,108 @@ void trc::DeferredRenderConfig::setViewport(uvec2 offset, uvec2 size)
     finalLightingPass->setTargetArea(offset, size);
 }
 
-void trc::DeferredRenderConfig::setRenderTarget(const RenderTarget& target)
+void trc::TorchRenderConfig::setRenderTarget(const RenderTarget& target)
 {
     assert(finalLightingPass != nullptr);
 
     finalLightingPass->setRenderTarget(window.getDevice(), target);
 }
 
-void trc::DeferredRenderConfig::setClearColor(vec4 color)
+void trc::TorchRenderConfig::setClearColor(vec4 color)
 {
-    if (deferredPass != nullptr) {
-        deferredPass->setClearColor(color);
+    if (gBufferPass != nullptr) {
+        gBufferPass->setClearColor(color);
     }
 }
 
-auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
+auto trc::TorchRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
 {
     return *gBuffer;
 }
 
-auto trc::DeferredRenderConfig::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
+auto trc::TorchRenderConfig::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
 {
     return *gBuffer;
 }
 
-auto trc::DeferredRenderConfig::getDeferredRenderPass() const -> const RenderPassDeferred&
+auto trc::TorchRenderConfig::getGBufferRenderPass() const -> const GBufferPass&
 {
-    return *deferredPass;
+    return *gBufferPass;
 }
 
-auto trc::DeferredRenderConfig::getCompatibleShadowRenderPass() const -> vk::RenderPass
+auto trc::TorchRenderConfig::getCompatibleShadowRenderPass() const -> vk::RenderPass
 {
     return *shadowPass;
 }
 
-auto trc::DeferredRenderConfig::getGlobalDataDescriptorProvider() const
+auto trc::TorchRenderConfig::getGlobalDataDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return globalDataDescriptor;
 }
 
-auto trc::DeferredRenderConfig::getSceneDescriptorProvider() const
+auto trc::TorchRenderConfig::getSceneDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return sceneDescriptor.getProvider();
 }
 
-auto trc::DeferredRenderConfig::getGBufferDescriptorProvider() const
+auto trc::TorchRenderConfig::getGBufferDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return gBufferDescriptor.getProvider();
 }
 
-auto trc::DeferredRenderConfig::getShadowDescriptorProvider() const
+auto trc::TorchRenderConfig::getShadowDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return shadowPool->getProvider();
 }
 
-auto trc::DeferredRenderConfig::getAssetDescriptorProvider() const
+auto trc::TorchRenderConfig::getAssetDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return assetRegistry->getDescriptorSetProvider();
 }
 
-auto trc::DeferredRenderConfig::getFontDescriptorProvider() const
+auto trc::TorchRenderConfig::getFontDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return fontDataDescriptor;
 }
 
-auto trc::DeferredRenderConfig::getAnimationDataDescriptorProvider() const
+auto trc::TorchRenderConfig::getAnimationDataDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return assetRegistry->getAnimations().getProvider();
 }
 
-auto trc::DeferredRenderConfig::getAssets() -> AssetRegistry&
+auto trc::TorchRenderConfig::getAssets() -> AssetRegistry&
 {
     return *assetRegistry;
 }
 
-auto trc::DeferredRenderConfig::getAssets() const -> const AssetRegistry&
+auto trc::TorchRenderConfig::getAssets() const -> const AssetRegistry&
 {
     return *assetRegistry;
 }
 
-auto trc::DeferredRenderConfig::getShadowPool() -> ShadowPool&
+auto trc::TorchRenderConfig::getShadowPool() -> ShadowPool&
 {
     return *shadowPool;
 }
 
-auto trc::DeferredRenderConfig::getShadowPool() const -> const ShadowPool&
+auto trc::TorchRenderConfig::getShadowPool() const -> const ShadowPool&
 {
     return *shadowPool;
 }
 
-auto trc::DeferredRenderConfig::getMouseWorldPos(const Camera& camera) const -> vec3
+auto trc::TorchRenderConfig::getMouseWorldPos(const Camera& camera) const -> vec3
 {
-    return deferredPass->getMousePos(camera);
+    return gBufferPass->getMousePos(camera);
 }
 
-void trc::DeferredRenderConfig::createGBuffer(const uvec2 newSize)
+void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
 {
     if (gBuffer != nullptr && gBuffer->get().getSize() == newSize) {
         return;
@@ -212,8 +212,8 @@ void trc::DeferredRenderConfig::createGBuffer(const uvec2 newSize)
     trc::Timer timer;
 
     // Delete resources
-    layout.removePass(deferredRenderStage, *deferredPass);
-    deferredPass.reset();
+    layout.removePass(gBufferRenderStage, *gBufferPass);
+    gBufferPass.reset();
     gBuffer.reset();
 
     // Create new g-buffer
@@ -242,12 +242,12 @@ void trc::DeferredRenderConfig::createGBuffer(const uvec2 newSize)
     }
 
     // Create new renderpass
-    deferredPass = std::make_unique<RenderPassDeferred>(
+    gBufferPass = std::make_unique<GBufferPass>(
         window.getDevice(),
         window.getSwapchain(),
         *gBuffer
     );
-    layout.addPass(deferredRenderStage, *deferredPass);
+    layout.addPass(gBufferRenderStage, *gBufferPass);
 
     if constexpr (vkb::enableVerboseLogging)
     {

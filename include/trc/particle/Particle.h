@@ -18,7 +18,7 @@
 namespace trc
 {
     class Instance;
-    class DeferredRenderConfig;
+    class TorchRenderConfig;
 
     struct ParticleMaterial
     {

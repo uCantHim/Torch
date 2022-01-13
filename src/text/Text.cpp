@@ -4,7 +4,7 @@
 #include "core/PipelineBuilder.h"
 #include "core/PipelineLayoutBuilder.h"
 #include "AssetRegistry.h"
-#include "DeferredRenderConfig.h"
+#include "TorchRenderConfig.h"
 #include "TorchResources.h"
 
 
@@ -45,8 +45,8 @@ trc::Text::Text(const Instance& instance, Font& font)
 void trc::Text::attachToScene(SceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
-        deferredRenderStage,
-        RenderPassDeferred::SubPasses::transparency,
+        gBufferRenderStage,
+        GBufferPass::SubPasses::transparency,
         getPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
@@ -140,11 +140,11 @@ auto trc::Text::getPipeline() -> Pipeline::ID
 auto trc::makeTextPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::FONT_DESCRIPTOR }, false)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::FONT_DESCRIPTOR }, false)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4) })
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     // Can't access Text::LetterData struct from here
     constexpr size_t LETTER_DATA_SIZE = sizeof(vec2) * 4 + sizeof(float);
@@ -177,7 +177,7 @@ auto trc::makeTextPipeline() -> Pipeline::ID
         .disableBlendAttachments(3)
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::TRANSPARENT_G_BUFFER_PASS }
         );
 }

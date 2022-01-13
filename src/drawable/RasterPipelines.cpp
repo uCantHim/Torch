@@ -5,7 +5,7 @@
 #include "core/PipelineBuilder.h"
 #include "core/PipelineLayoutBuilder.h"
 #include "PipelineDefinitions.h"
-#include "DeferredRenderConfig.h"
+#include "TorchRenderConfig.h"
 #include "AnimationEngine.h"
 
 
@@ -56,15 +56,15 @@ auto makeDrawablePoolInstancedPipeline(PipelineFeatureFlags flags) -> Pipeline::
     const bool isTransparent = !!(flags & PipelineFeatureFlagBits::eTransparent);
 
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SCENE_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ANIMATION_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addDescriptorIf(isTransparent,
-                         DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
+                         DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32) })
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     auto builder = buildGraphicsPipeline()
         .setProgram(vkb::readFile(TRC_SHADER_DIR"/drawable/pool_instance.vert.spv"),
@@ -93,20 +93,20 @@ auto makeDrawablePoolInstancedPipeline(PipelineFeatureFlags flags) -> Pipeline::
         builder.disableDepthWrite();
     }
 
-    return builder.registerPipeline<DeferredRenderConfig>(
+    return builder.registerPipeline<TorchRenderConfig>(
         layout,
-        isTransparent ? RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
-                      : RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS }
+        isTransparent ? RenderPassName{ TorchRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+                      : RenderPassName{ TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
     );
 }
 
 auto makeDrawablePoolInstancedShadowPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ANIMATION_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32) })
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
         .setProgram(vkb::readFile(TRC_SHADER_DIR"/drawable/pool_instance_shadow.vert.spv"),
@@ -127,9 +127,9 @@ auto makeDrawablePoolInstancedShadowPipeline() -> Pipeline::ID
             }
         )
         .disableBlendAttachments(1)
-        .registerPipeline<DeferredRenderConfig>(
+        .registerPipeline<TorchRenderConfig>(
             layout,
-            RenderPassName{ DeferredRenderConfig::SHADOW_PASS }
+            RenderPassName{ TorchRenderConfig::SHADOW_PASS }
         );
 }
 
@@ -206,16 +206,16 @@ struct DrawablePushConstants
 auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SCENE_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ANIMATION_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addPushConstantRange(
             { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) },
             DrawablePushConstants{}
         )
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     const bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
 
@@ -228,25 +228,25 @@ auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline
             makeVertexAttributeDescriptions()
         )
         .disableBlendAttachments(3)
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::OPAQUE_G_BUFFER_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
         );
 }
 
 auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SCENE_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ANIMATION_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange(
             { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) },
             DrawablePushConstants{}
         )
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     const bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
 
@@ -260,20 +260,20 @@ auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipel
         )
         .setCullMode(vk::CullModeFlagBits::eNone) // Don't cull back faces because they're visible
         .disableDepthWrite()
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::TRANSPARENT_G_BUFFER_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::TRANSPARENT_G_BUFFER_PASS }
         );
 }
 
 auto makeDrawableShadowPipeline() -> Pipeline::ID
 {
     auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ANIMATION_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addPushConstantRange(
             { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) }
         )
-        .registerLayout<DeferredRenderConfig>();
+        .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
         .setProgram(vkb::readFile(SHADER_DIR / "drawable/shadow.vert.spv"),
@@ -284,8 +284,8 @@ auto makeDrawableShadowPipeline() -> Pipeline::ID
         )
         .setCullMode(vk::CullModeFlagBits::eFront)
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
-        .registerPipeline<DeferredRenderConfig>(
-            layout, RenderPassName{ DeferredRenderConfig::SHADOW_PASS }
+        .registerPipeline<TorchRenderConfig>(
+            layout, RenderPassName{ TorchRenderConfig::SHADOW_PASS }
         );
 }
 

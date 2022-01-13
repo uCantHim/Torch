@@ -20,7 +20,7 @@ namespace trc
      *  - materials: eGeneral
      *  - depth:     eShaderReadOnlyOptimal
      */
-    class RenderPassDeferred : public RenderPass
+    class GBufferPass : public RenderPass
     {
     public:
         static constexpr ui32 NUM_SUBPASSES = 2;
@@ -31,7 +31,7 @@ namespace trc
             static constexpr SubPass::ID transparency{ 1 };
         };
 
-        RenderPassDeferred(const vkb::Device& device,
+        GBufferPass(const vkb::Device& device,
                            const vkb::Swapchain& swapchain,
                            vkb::FrameSpecific<GBuffer>& gBuffer);
 

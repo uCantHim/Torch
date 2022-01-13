@@ -5,7 +5,7 @@
 #include "core/PipelineLayoutBuilder.h"
 #include "core/ComputePipelineBuilder.h"
 #include "core/RenderTarget.h"
-#include "DeferredRenderConfig.h"
+#include "TorchRenderConfig.h"
 
 
 
@@ -14,7 +14,7 @@ trc::FinalLightingPass::FinalLightingPass(
     const RenderTarget& target,
     uvec2 offset,
     uvec2 size,
-    DeferredRenderConfig& config)
+    TorchRenderConfig& config)
     :
     RenderPass({}, 0),
     renderTarget(&target),
@@ -25,12 +25,12 @@ trc::FinalLightingPass::FinalLightingPass(
         return { *descLayout, descSets };
     }()),
     layout(buildPipelineLayout()
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::ASSET_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::G_BUFFER_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
         .addDescriptor(provider, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SCENE_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ DeferredRenderConfig::SHADOW_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
+        .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eCompute, 0, sizeof(vec2) * 2 })
         .build(device, config)
     ),

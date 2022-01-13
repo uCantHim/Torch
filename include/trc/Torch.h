@@ -16,7 +16,7 @@
 #include "drawable/Drawable.h"
 #include "drawable/DrawablePool.h"
 #include "Light.h"
-#include "DeferredRenderConfig.h"
+#include "TorchRenderConfig.h"
 
 namespace trc
 {
@@ -67,7 +67,7 @@ namespace trc
         auto getAssetRegistry() -> AssetRegistry&;
         auto getShadowPool() -> ShadowPool&;
         auto getRenderTarget() -> RenderTarget&;
-        auto getRenderConfig() -> DeferredRenderConfig&;
+        auto getRenderConfig() -> TorchRenderConfig&;
 
         /**
          * @brief Quickly create a draw configuration with default values
@@ -93,7 +93,7 @@ namespace trc
         AssetRegistry assetRegistry;
         ShadowPool shadowPool;
         RenderTarget swapchainRenderTarget;
-        DeferredRenderConfig renderConfig;
+        TorchRenderConfig renderConfig;
 
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
     };

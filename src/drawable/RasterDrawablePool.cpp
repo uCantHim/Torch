@@ -2,7 +2,7 @@
 
 #include "trc_util/algorithm/VectorTransform.h"
 #include "TorchResources.h"
-#include "RenderPassDeferred.h"
+#include "GBufferPass.h"
 #include "RenderPassShadow.h"
 #include "PipelineDefinitions.h"
 #include "drawable/RasterPipelines.h"
@@ -189,13 +189,13 @@ void trc::RasterDrawablePool::createRasterFunctions()
 
     // Instanced draw function
     addDrawFunc(
-        deferredRenderStage, RenderPassDeferred::SubPasses::gBuffer,
+        gBufferRenderStage, GBufferPass::SubPasses::gBuffer,
         getPoolInstancePipeline({}),
         [](auto&, auto&, auto&) {}
     );
 
     addDrawFunc(
-        deferredRenderStage, RenderPassDeferred::SubPasses::transparency,
+        gBufferRenderStage, GBufferPass::SubPasses::transparency,
         getPoolInstancePipeline(PipelineFeatureFlagBits::eTransparent),
         [](auto&, auto&, auto&) {}
     );

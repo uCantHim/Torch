@@ -7,22 +7,22 @@ target_sources(
         AssetIds.cpp
         AssetRegistry.cpp
         Camera.cpp
-        DeferredRenderConfig.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp
         GBuffer.cpp
+        GBufferPass.cpp
         Geometry.cpp
         Light.cpp
         LightRegistry.cpp
         Node.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
-        RenderPassDeferred.cpp
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
         ShadowPool.cpp
         Torch.cpp
+        TorchRenderConfig.cpp
         Transformation.cpp
 )
 
