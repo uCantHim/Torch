@@ -22,10 +22,10 @@ void run()
             .swapchainCreateInfo={ .imageUsage=vk::ImageUsageFlagBits::eTransferDst }
         }
     );
-    auto& instance = *torch.instance;
-    auto& device = torch.instance->getDevice();
-    auto& swapchain = torch.window->getSwapchain();
-    auto& ar = *torch.assetRegistry;
+    auto& instance = torch->getInstance();
+    auto& device = instance.getDevice();
+    auto& window = torch->getWindow();
+    auto& ar = torch->getAssetRegistry();
 
     auto scene = std::make_unique<trc::Scene>();
     trc::DrawablePool pool(instance, { .maxInstances = 4000 }, *scene);
@@ -33,7 +33,7 @@ void run()
     // Camera
     trc::Camera camera;
     camera.lookAt({ 0, 2, 4 }, { 0, 0, 0 }, { 0, 1, 0 });
-    auto size = swapchain.getImageExtent();
+    auto size = window.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
     // Create some objects
@@ -78,7 +78,11 @@ void run()
     });
 
     auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
-    auto& shadow = scene->enableShadow(sun, { .shadowMapResolution=uvec2(2048, 2048) }, *torch.shadowPool);
+    auto& shadow = scene->enableShadow(
+        sun,
+        { .shadowMapResolution=uvec2(2048, 2048) },
+        torch->getShadowPool()
+    );
     shadow.setProjectionMatrix(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f));
 
 
@@ -90,7 +94,7 @@ void run()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
         .addBinding(vk::DescriptorType::eStorageBuffer, 1, trc::rt::ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .buildUnique(torch.instance->getDevice());
+        .buildUnique(instance.getDevice());
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
@@ -128,11 +132,11 @@ void run()
     // --- Output Images --- //
 
     vkb::FrameSpecific<trc::rt::RayBuffer> rayBuffer{
-        swapchain,
+        window,
         [&](ui32) {
             return trc::rt::RayBuffer(
                 device,
-                { swapchain.getSize(), vk::ImageUsageFlagBits::eTransferSrc }
+                { window.getSize(), vk::ImageUsageFlagBits::eTransferSrc }
             );
         }
     };
@@ -140,7 +144,7 @@ void run()
 
     // --- Render Pass --- //
 
-    auto& layout = torch.renderConfig->getLayout();
+    auto& layout = torch->getRenderConfig().getLayout();
 
     // Add the pass that renders reflections to an offscreen image
     trc::RayTracingPass rayPass;
@@ -148,9 +152,9 @@ void run()
 
     // Add the final compositing pass that merges rasterization and ray tracing results
     trc::rt::FinalCompositingPass compositing(
-        *torch.window,
+        window,
         {
-            .gBuffer = &torch.renderConfig->getGBuffer(),
+            .gBuffer = &torch->getRenderConfig().getGBuffer(),
             .rayBuffer = &rayBuffer,
             .assetRegistry = &ar,
         }
@@ -165,9 +169,9 @@ void run()
         {
             *tlasDescLayout,
             compositing.getInputImageDescriptor().getDescriptorSetLayout(),
-            torch.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout(),
-            torch.renderConfig->getSceneDescriptorProvider().getDescriptorSetLayout(),
-            torch.shadowPool->getProvider().getDescriptorSetLayout(),
+            ar.getDescriptorSetProvider().getDescriptorSetLayout(),
+            torch->getRenderConfig().getSceneDescriptorProvider().getDescriptorSetLayout(),
+            torch->getShadowPool().getProvider().getDescriptorSetLayout(),
         },
         {
             // View and projection matrices
@@ -175,7 +179,7 @@ void run()
         }
     );
     auto [rayPipeline, shaderBindingTable] =
-        trc::rt::buildRayTracingPipeline(*torch.instance)
+        trc::rt::buildRayTracingPipeline(instance)
         .addRaygenGroup(TRC_SHADER_DIR"/ray_tracing/reflect.rgen.spv")
         .beginTableEntry()
             .addMissGroup(TRC_SHADER_DIR"/ray_tracing/blue.rmiss.spv")
@@ -190,7 +194,7 @@ void run()
     trc::FrameSpecificDescriptorProvider reflectionImageProvider(
         rayBuffer->getImageDescriptorLayout(),
         {
-            swapchain,
+            window,
             [&](ui32 i) {
                 return rayBuffer.getAt(i).getImageDescriptorSet(trc::rt::RayBuffer::eReflections);
             }
@@ -199,9 +203,9 @@ void run()
     auto& rayLayout = rayPipeline.getLayout();
     rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
     rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
-    rayLayout.addStaticDescriptorSet(2, torch.assetRegistry->getDescriptorSetProvider());
-    rayLayout.addStaticDescriptorSet(3, torch.renderConfig->getSceneDescriptorProvider());
-    rayLayout.addStaticDescriptorSet(4, torch.shadowPool->getProvider());
+    rayLayout.addStaticDescriptorSet(2, ar.getDescriptorSetProvider());
+    rayLayout.addStaticDescriptorSet(3, torch->getRenderConfig().getSceneDescriptorProvider());
+    rayLayout.addStaticDescriptorSet(4, torch->getShadowPool().getProvider());
 
 
     // --- Draw function --- //
@@ -243,8 +247,8 @@ void run()
                 shaderBindingTable.getEntryAddress(1),
                 shaderBindingTable.getEntryAddress(2),
                 {},
-                swapchain.getImageExtent().width,
-                swapchain.getImageExtent().height,
+                window.getImageExtent().width,
+                window.getImageExtent().height,
                 1,
                 instance.getDL()
             );
@@ -266,21 +270,15 @@ void run()
     trc::Timer timer;
     trc::Timer frameTimer;
     int frames{ 0 };
-    while (swapchain.isOpen())
+    while (window.isOpen())
     {
         vkb::pollEvents();
 
         const float time = timer.reset();
         sphereNode.rotateY(time / 1000.0f * 0.5f);
 
-        // Update rasterized and ray traced scenes
         scene->updateTransforms();
-
-        torch.window->drawFrame(trc::DrawConfig{
-            .scene=scene.get(),
-            .camera=&camera,
-            .renderConfig=torch.renderConfig.get()
-        });
+        window.drawFrame(torch->makeDrawConfig(*scene, camera));
 
         frames++;
         if (frameTimer.duration() >= 1000.0f)
@@ -291,7 +289,7 @@ void run()
         }
     }
 
-    torch.window->getRenderer().waitForAllFrames();
+    window.getRenderer().waitForAllFrames();
 }
 
 int main()

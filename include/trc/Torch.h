@@ -42,6 +42,8 @@ namespace trc
      */
     auto getVulkanInstance() -> vkb::VulkanInstance&;
 
+    auto makeTorchRenderGraph() -> RenderGraph;
+
     /**
      * @brief A collection of objects required to render stuff
      *
@@ -50,27 +52,22 @@ namespace trc
      */
     struct TorchStack
     {
-        u_ptr<Instance> instance;
-        u_ptr<Window> window;
-        u_ptr<AssetRegistry> assetRegistry;
-        u_ptr<ShadowPool> shadowPool;
-        u_ptr<RenderTarget> swapchainRenderTarget;
-        u_ptr<DeferredRenderConfig> renderConfig;
-
-        TorchStack() = default;
-        TorchStack(TorchStack&&) noexcept = default;
-        auto operator=(TorchStack&&) noexcept -> TorchStack& = default;
-
         TorchStack(const TorchStack&) = delete;
+        TorchStack(TorchStack&&) noexcept = delete;
         auto operator=(const TorchStack&) -> TorchStack& = delete;
+        auto operator=(TorchStack&&) noexcept -> TorchStack& = delete;
 
-        TorchStack(u_ptr<Instance> instance,
-                   u_ptr<Window> window,
-                   u_ptr<AssetRegistry> assetRegistry,
-                   u_ptr<ShadowPool> shadowPool,
-                   u_ptr<RenderTarget> swapchainRenderTarget,
-                   u_ptr<DeferredRenderConfig> renderConfig);
+        TorchStack(const InstanceCreateInfo& instanceInfo = {},
+                   const WindowCreateInfo& windowInfo = {});
         ~TorchStack();
+
+        auto getDevice() -> vkb::Device&;
+        auto getInstance() -> Instance&;
+        auto getWindow() -> Window&;
+        auto getAssetRegistry() -> AssetRegistry&;
+        auto getShadowPool() -> ShadowPool&;
+        auto getRenderTarget() -> RenderTarget&;
+        auto getRenderConfig() -> DeferredRenderConfig&;
 
         /**
          * @brief Quickly create a draw configuration with default values
@@ -81,7 +78,7 @@ namespace trc
          *
          * @return DrawConfig
          */
-        auto makeDrawConfig(Scene& scene, Camera& camera) const -> DrawConfig;
+        auto makeDrawConfig(Scene& scene, Camera& camera) -> DrawConfig;
 
         /**
          * @brief Draw a frame
@@ -91,6 +88,13 @@ namespace trc
         void drawFrame(const DrawConfig& draw);
 
     private:
+        Instance instance;
+        Window window;
+        AssetRegistry assetRegistry;
+        ShadowPool shadowPool;
+        RenderTarget swapchainRenderTarget;
+        DeferredRenderConfig renderConfig;
+
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
     };
 
@@ -99,7 +103,7 @@ namespace trc
      */
     auto initFull(const InstanceCreateInfo& instanceInfo = {},
                   const WindowCreateInfo& windowInfo = {}
-                  ) -> TorchStack;
+                  ) -> u_ptr<TorchStack>;
 
     /**
      * @brief Poll system events

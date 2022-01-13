@@ -4,7 +4,7 @@ int main()
 {
     {
         // Initialize Torch
-        trc::TorchStack torch = trc::initFull();
+        trc::TorchStack torch;
 
         // The things required to render something are
         //   1. A scene
@@ -18,7 +18,7 @@ int main()
         trc::DrawConfig drawConf = torch.makeDrawConfig(scene, camera);
 
         // Main loop
-        while (torch.window->getSwapchain().isOpen())
+        while (torch.getWindow().isOpen())
         {
             // Poll system events
             trc::pollEvents();

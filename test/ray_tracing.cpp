@@ -16,15 +16,16 @@ using namespace trc::basic_types;
 using trc::rt::BLAS;
 using trc::rt::TLAS;
 
-int main()
+void run()
 {
     auto torch = trc::initFull(
         trc::InstanceCreateInfo{ .enableRayTracing = true },
         trc::WindowCreateInfo{}
     );
-    auto& instance = *torch.instance;
-    auto& swapchain = torch.window->getSwapchain();
-    auto& ar = *torch.assetRegistry;
+    auto& device = torch->getDevice();
+    auto& instance = torch->getInstance();
+    auto& swapchain = torch->getWindow();
+    auto& ar = torch->getAssetRegistry();
 
     auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
@@ -106,12 +107,12 @@ int main()
     auto tlasDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(torch.instance->getDevice());
+        .buildUnique(device);
 
     auto outputImageDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(torch.instance->getDevice());
+        .buildUnique(device);
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
@@ -179,14 +180,14 @@ int main()
     // --- Ray Pipeline --- //
 
     constexpr ui32 maxRecursionDepth{ 16 };
-    auto rayPipelineLayout = trc::makePipelineLayout(torch.instance->getDevice(),
+    auto rayPipelineLayout = trc::makePipelineLayout(device,
         { *tlasDescLayout, *outputImageDescLayout },
         {
             // View and projection matrices
             { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
         }
     );
-    auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(*torch.instance)
+    auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(torch->getInstance())
         .addRaygenGroup(TRC_SHADER_DIR"/test/raygen.rgen.spv")
         .beginTableEntry()
             .addMissGroup(TRC_SHADER_DIR"/test/miss_blue.rmiss.spv")
@@ -208,7 +209,7 @@ int main()
     // --- Render Pass --- //
 
     trc::RayTracingPass rayPass;
-    torch.renderConfig->getLayout().addPass(trc::rt::rayTracingRenderStage, rayPass);
+    torch->getRenderConfig().getLayout().addPass(trc::rt::rayTracingRenderStage, rayPass);
 
 
     // --- Draw function --- //
@@ -278,17 +279,17 @@ int main()
     while (swapchain.isOpen())
     {
         vkb::pollEvents();
-
-        torch.window->drawFrame(torch.makeDrawConfig(*scene, camera));
+        swapchain.drawFrame(torch->makeDrawConfig(*scene, camera));
     }
 
     instance.getDevice()->waitIdle();
 
     scene.reset();
-    torch.renderConfig.reset();
-    torch.window.reset();
-    torch.assetRegistry.reset();
-    torch.instance.reset();
+}
+
+int main()
+{
+    run();
     trc::terminate();
 
     return 0;

@@ -8,11 +8,11 @@ void run()
 {
     auto torch = trc::initFull({ .enableRayTracing=true });
     trc::Scene scene;
-    trc::DrawablePool pool(*torch.instance);
+    trc::DrawablePool pool(torch->getInstance());
     pool.attachToScene(scene);
 
     // Load assets
-    auto& ar = *torch.assetRegistry;
+    auto& ar = torch->getAssetRegistry();
     auto cubeGeo = ar.add(trc::makeCubeGeo());
     auto cubeMat = ar.add(trc::Material{ .color=vec4(1.0f) });
     auto planeGeo = ar.add(trc::makePlaneGeo(3.0f, 3.0f));
@@ -24,7 +24,7 @@ void run()
     // Create lights and shadows
     trc::Light sun = scene.getLights().makeSunLight(vec3(1, 0.5f, 0), vec3(1, -2.0f, -0.2f), 0.3f);
 
-    auto& shadow = scene.enableShadow(sun, trc::ShadowCreateInfo{ uvec2(2048) }, *torch.shadowPool);
+    auto& shadow = scene.enableShadow(sun, trc::ShadowCreateInfo{ uvec2(2048) }, torch->getShadowPool());
     shadow.setProjectionMatrix(glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -40.0f, 5.0f));
     scene.getRoot().attach(shadow);
 
@@ -53,11 +53,11 @@ void run()
     // Create camera
     trc::Camera camera;
     camera.lookAt(vec3(0, 1, 5), vec3(0, 0, 0), vec3(0, 1, 0));
-    vec2 win = torch.window->getSwapchain().getSize();
+    vec2 win = torch->getWindow().getSize();
     camera.makePerspective(win.x / win.y, 45.0f, 0.1f, 100.0f);
 
     trc::Timer frameTimer;
-    while (torch.window->getSwapchain().isOpen())
+    while (torch->getWindow().isOpen())
     {
         trc::pollEvents();
 
@@ -67,10 +67,10 @@ void run()
 
         cube->rotateY((frameTime * 0.001f) * glm::radians(90.0f));
 
-        torch.drawFrame(torch.makeDrawConfig(scene, camera));
+        torch->drawFrame(torch->makeDrawConfig(scene, camera));
     }
 
-    torch.window->getRenderer().waitForAllFrames();
+    torch->getWindow().getRenderer().waitForAllFrames();
 }
 
 int main()

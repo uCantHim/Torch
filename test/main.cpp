@@ -26,8 +26,8 @@ void run()
     vkb::Mouse::init();
 
     auto torch = trc::initFull();
-    auto& ar = torch.renderConfig->getAssets();
-    auto& instance = *torch.instance;
+    auto& ar = torch->getRenderConfig().getAssets();
+    auto& instance = torch->getInstance();
     const auto& device = instance.getDevice();
 
     // ------------------
@@ -138,7 +138,7 @@ void run()
     auto& shadowNode = scene.enableShadow(
         sunLight,
         { .shadowMapResolution=uvec2(2048, 2048) },
-        *torch.shadowPool
+        torch->getShadowPool()
     );
     shadowNode.setProjectionMatrix(proj);
     scene.getRoot().attach(shadowNode);
@@ -228,7 +228,7 @@ void run()
     cursorCube.scale(0.2f);
 
     // Text
-    trc::Font font = torch.assetRegistry->getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
+    trc::Font font = ar.getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
     trc::Text text{ instance, font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
@@ -243,13 +243,13 @@ void run()
 
         scene.updateTransforms();
 
-        cursorCube.setTranslation(torch.renderConfig->getMouseWorldPos(camera));
+        cursorCube.setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
         const float time = animTimer.reset();
         for (auto anim : animEngines) {
             anim->update(time);
         }
 
-        torch.drawFrame(torch.makeDrawConfig(scene, camera));
+        torch->drawFrame(torch->makeDrawConfig(scene, camera));
 
         frames++;
         if (timer.duration() >= 1000)

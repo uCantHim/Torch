@@ -15,7 +15,7 @@ void run()
     srand(time(0));  // Init glm's random functions
 
     auto torch = trc::initFull();
-    auto& ar = *torch.assetRegistry;
+    auto& ar = torch->getAssetRegistry();
 
     // Create assets
     auto cubeGeo = ar.add(trc::makeCubeGeo());
@@ -28,13 +28,13 @@ void run()
     ar.updateMaterials();
 
     // Camera
-    const vec2 size = torch.window->getSwapchain().getSize();
+    const vec2 size = torch->getWindow().getSize();
     trc::Camera camera(size.x / size.y, 60.0f, 0.1f, 50.0f);
     camera.lookAt(vec3(15, 12, 13), vec3(0, 0, 0), vec3(0, 1, 0));
 
     // Create scenes
     trc::Scene poolScene;
-    trc::DrawablePool pool(*torch.instance, { numInstances, false }, poolScene);
+    trc::DrawablePool pool(torch->getInstance(), { numInstances, false }, poolScene);
     std::vector<trc::DrawablePool::Handle> handles;
 
     trc::Scene drawScene;
@@ -79,7 +79,7 @@ void run()
 
     for (ui32 i = 0; i < measuredFrames; i++)
     {
-        torch.drawFrame(torch.makeDrawConfig(poolScene, camera));
+        torch->drawFrame(torch->makeDrawConfig(poolScene, camera));
     }
     const float poolTime = time.reset();
 
@@ -87,7 +87,7 @@ void run()
     time.reset();
     for (ui32 i = 0; i < measuredFrames; i++)
     {
-        torch.drawFrame(torch.makeDrawConfig(drawScene, camera));
+        torch->drawFrame(torch->makeDrawConfig(drawScene, camera));
     }
     const float drawTime = time.reset();
 
@@ -97,7 +97,7 @@ void run()
     std::cout << measuredFrames << " frames with traditional drawable: " << drawTime << "ms"
         << "\t(" << drawTime / measuredFrames << "ms avg frame time\n";
 
-    torch.instance->getDevice()->waitIdle();
+    torch->getDevice()->waitIdle();
 }
 
 int main()

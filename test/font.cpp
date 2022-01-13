@@ -6,8 +6,9 @@ int main()
 {
     {
         auto torch = trc::initFull();
-        auto& instance = *torch.instance;
-        auto& fonts = torch.assetRegistry->getFonts();
+        auto& instance = torch->getInstance();
+        auto& window = torch->getWindow();
+        auto& fonts = torch->getAssetRegistry().getFonts();
 
         trc::Scene scene;
         trc::Camera camera;
@@ -17,7 +18,7 @@ int main()
 
         // Font stuff
 
-        trc::Font font = fonts.makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 60);
+        trc::Font font(fonts, TRC_TEST_FONT_DIR"/gil.ttf", 60);
 
         trc::Text text(instance, font);
         text.print("^Hello{ | }\n ~World_!$ ✓");
@@ -27,13 +28,13 @@ int main()
 
 
         // Main loop
-        while (torch.window->getSwapchain().isOpen())
+        while (window.isOpen())
         {
             vkb::pollEvents();
-            torch.window->drawFrame(torch.makeDrawConfig(scene, camera));
+            window.drawFrame(torch->makeDrawConfig(scene, camera));
         }
 
-        torch.window->getRenderer().waitForAllFrames();
+        window.getRenderer().waitForAllFrames();
     }
 
     trc::terminate();

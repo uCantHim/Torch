@@ -12,9 +12,8 @@ int main()
 {
     {
         auto torch = trc::initFull();
-        auto& ar = torch.renderConfig->getAssets().named;
-        auto& instance = *torch.instance;
-        auto& swapchain = torch.window->getSwapchain();
+        auto& ar = torch->getAssetRegistry().named;
+        auto& window = torch->getWindow();
 
         auto grass = trc::AssetImporter::load(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx");
 
@@ -50,7 +49,7 @@ int main()
 
         // General setup
         trc::Scene scene;
-        trc::Camera camera(swapchain.getAspectRatio(), 45.0f, 0.5f, 100.0f);
+        trc::Camera camera(window.getAspectRatio(), 45.0f, 0.5f, 100.0f);
         camera.lookAt(vec3(0, 2.5, 7), vec3(0, 1, 0), vec3(0, 1, 0));
         scene.getLights().makeSunLight(vec3(1.0f), vec3(0.0f, -1.0f, 0.0f), 0.6f);
 
@@ -61,18 +60,12 @@ int main()
         chainRoot.attachToScene(scene);
         scene.getRoot().attach(chainRoot);
 
-        trc::DrawConfig draw{
-            .scene        = &scene,
-            .camera       = &camera,
-            .renderConfig = &*torch.renderConfig
-        };
-
-        while (swapchain.isOpen())
+        while (window.isOpen())
         {
             vkb::pollEvents();
 
             scene.updateTransforms();
-            torch.window->drawFrame(draw);
+            window.drawFrame(torch->makeDrawConfig(scene, camera));
         }
     }
 

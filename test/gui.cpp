@@ -18,8 +18,8 @@ int main()
     {
         // Gui requires the storage flag to be set on swapchain images
         auto torch = trc::initFull();
-        auto& swapchain = torch.window->getSwapchain();
-        auto& ar = *torch.assetRegistry;
+        auto& swapchain = torch->getWindow();
+        auto& ar = torch->getAssetRegistry();
 
         trc::Scene scene;
         trc::Camera camera;
@@ -28,9 +28,9 @@ int main()
         camera.makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
 
         // Initialize GUI
-        auto guiStack = trc::initGui(torch.instance->getDevice(), swapchain);
+        auto guiStack = trc::initGui(torch->getDevice(), swapchain);
         ui::Window* window = guiStack.window.get();
-        trc::integrateGui(guiStack, torch.renderConfig->getLayout());
+        trc::integrateGui(guiStack, torch->getRenderConfig().getLayout());
 
 
         // Now, after intialization, is it possible to load fonts
@@ -108,7 +108,7 @@ int main()
         while (swapchain.isOpen())
         {
             vkb::pollEvents();
-            torch.drawFrame(torch.makeDrawConfig(scene, camera));
+            torch->drawFrame(torch->makeDrawConfig(scene, camera));
         }
     }
 
