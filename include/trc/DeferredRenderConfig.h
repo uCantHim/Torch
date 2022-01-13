@@ -97,6 +97,8 @@ namespace trc
         void setViewport(uvec2 offset, uvec2 size) override;
         void setRenderTarget(const RenderTarget& newTarget) override;
 
+        void setClearColor(vec4 color);
+
         auto getGBuffer() -> vkb::FrameSpecific<GBuffer>&;
         auto getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&;
 

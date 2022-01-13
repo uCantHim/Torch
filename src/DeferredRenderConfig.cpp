@@ -109,6 +109,13 @@ void trc::DeferredRenderConfig::setRenderTarget(const RenderTarget& target)
     finalLightingPass->setRenderTarget(window.getDevice(), target);
 }
 
+void trc::DeferredRenderConfig::setClearColor(vec4 color)
+{
+    if (deferredPass != nullptr) {
+        deferredPass->setClearColor(color);
+    }
+}
+
 auto trc::DeferredRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
 {
     return *gBuffer;

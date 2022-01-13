@@ -38,6 +38,8 @@ namespace trc
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
+        void setClearColor(vec4 color);
+
         /**
          * @brief Get the depth of pixel under the mouse cursor
          *
@@ -81,6 +83,6 @@ namespace trc
         uvec2 framebufferSize;
         vkb::FrameSpecific<Framebuffer> framebuffers;
 
-        std::array<vk::ClearValue, 6> clearValues;
+        std::array<vk::ClearValue, 4> clearValues;
     };
 } // namespace trc

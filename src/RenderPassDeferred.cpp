@@ -107,6 +107,40 @@ void trc::RenderPassDeferred::end(vk::CommandBuffer cmdBuf)
     copyMouseDataToBuffers(cmdBuf);
 }
 
+void trc::RenderPassDeferred::setClearColor(const vec4 c)
+{
+    clearValues[1] = vk::ClearColorValue(std::array<float, 4>{ c.r, c.g, c.b, c.a });
+}
+
+auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
+{
+    const ui32 depthValueD24S8 = depthBufMap[0];
+
+    // Don't ask me why 16 bit here, I think it should be 24. The result is
+    // correct when we use 65536 as depth 1.0 (maximum depth) though.
+    constexpr float maxFloat16 = 65536.0f;  // 2^16
+    return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
+}
+
+auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
+{
+    const vec2 resolution{ framebufferSize };
+    const vec2 mousePos = glm::clamp([=, this]() -> vec2 {
+#ifdef TRC_FLIP_Y_PROJECTION
+        return { swapchain.getMousePosition().x, resolution.y - swapchain.getMousePosition().y, };
+#else
+        return swapchain.getMousePosition();
+#endif
+    }(), vec2(0.0f, 0.0f), resolution - 1.0f);
+    const float depth = getMouseDepth();
+
+    const vec4 clipSpace = vec4(mousePos / resolution * 2.0f - 1.0f, depth, 1.0);
+    const vec4 viewSpace = glm::inverse(camera.getProjectionMatrix()) * clipSpace;
+    const vec4 worldSpace = glm::inverse(camera.getViewMatrix()) * (viewSpace / viewSpace.w);
+
+    return worldSpace;
+}
+
 auto trc::RenderPassDeferred::makeVkRenderPass(const vkb::Device& device)
     -> vk::UniqueRenderPass
 {
@@ -245,33 +279,4 @@ void trc::RenderPassDeferred::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
             { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
         )
     );
-}
-
-auto trc::RenderPassDeferred::getMouseDepth() const noexcept -> float
-{
-    const ui32 depthValueD24S8 = depthBufMap[0];
-
-    // Don't ask me why 16 bit here, I think it should be 24. The result is
-    // correct when we use 65536 as depth 1.0 (maximum depth) though.
-    constexpr float maxFloat16 = 65536.0f;  // 2^16
-    return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
-}
-
-auto trc::RenderPassDeferred::getMousePos(const Camera& camera) const noexcept -> vec3
-{
-    const vec2 resolution{ framebufferSize };
-    const vec2 mousePos = glm::clamp([=, this]() -> vec2 {
-#ifdef TRC_FLIP_Y_PROJECTION
-        return { swapchain.getMousePosition().x, resolution.y - swapchain.getMousePosition().y, };
-#else
-        return swapchain.getMousePosition();
-#endif
-    }(), vec2(0.0f, 0.0f), resolution - 1.0f);
-    const float depth = getMouseDepth();
-
-    const vec4 clipSpace = vec4(mousePos / resolution * 2.0f - 1.0f, depth, 1.0);
-    const vec4 viewSpace = glm::inverse(camera.getProjectionMatrix()) * clipSpace;
-    const vec4 worldSpace = glm::inverse(camera.getViewMatrix()) * (viewSpace / viewSpace.w);
-
-    return worldSpace;
 }
