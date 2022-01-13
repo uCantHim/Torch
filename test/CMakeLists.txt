@@ -20,6 +20,9 @@ target_link_libraries(VkBaseTest PUBLIC vk_base)
 add_executable(BasicSetup basic_setup.cpp)
 target_link_libraries(BasicSetup PUBLIC torch)
 
+add_executable(Viewports viewports.cpp)
+target_link_libraries(Viewports PUBLIC torch)
+
 add_executable(TorchTest main.cpp)
 target_link_libraries(TorchTest PUBLIC torch)
 
