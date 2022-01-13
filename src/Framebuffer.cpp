@@ -42,7 +42,7 @@ trc::Framebuffer::Framebuffer(
         vk::FramebufferCreateInfo(
             vk::FramebufferCreateFlagBits::eImageless,
             renderPass,
-            0, nullptr, // attachments
+            attachmentInfo.attachmentImageInfoCount, nullptr, // attachments
             size.x, size.y,
             1 // layers
         ),

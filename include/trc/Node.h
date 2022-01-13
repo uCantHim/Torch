@@ -34,9 +34,10 @@ namespace trc
         void detach(Node& child);
         void detachFromParent();
 
-    private:
+    protected:
         void onLocalMatrixUpdate() override;
 
+    private:
         data::ExternalStorage<mat4> globalTransformIndex;
 
         Node* parent{ nullptr };
