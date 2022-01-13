@@ -16,6 +16,10 @@ option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
 option(TORCH_BUILD_SHADER_COMPILER "Build Torch's custom shader compiler" OFF)
 
+if (${TORCH_DEBUG})
+    set(CMAKE_BUILD_TYPE DEBUG)
+endif()
+
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
