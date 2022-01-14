@@ -42,8 +42,12 @@ namespace trc::async
         /**
          * @brief Execute a function asynchronously with low overhead
          *
-         * Well, relatively low when compared with the effort of creating
-         * a new thread for the task.
+         * This function can run into a deadlock if the maximum worker
+         * count has been reached **and** no workers are idle **and** *if
+         * no existing worker can finish its task before the task supplied
+         * to this function is completed*. In this case, this function
+         * would block indefinitely waiting for a worker to become
+         * available and the work would never be executed.
          *
          * @return std::future Future with the result value of the executed
          *                     function.
@@ -65,9 +69,9 @@ namespace trc::async
         class WorkerThread
         {
         public:
-            explicit WorkerThread(std::function<void(WorkerThread&)> work);
+            WorkerThread(std::function<void()> work, ThreadPool* pool);
 
-            void signalWork(std::function<void(WorkerThread&)> work);
+            void signalWork(std::function<void(void)> work);
             bool isWorking() const;
 
             /** Signal the thread to stop after completing its current work */
@@ -76,10 +80,11 @@ namespace trc::async
             void join();
 
         private:
+            ThreadPool* owningPool;
             std::thread thread;
             bool stopThread{ false };
 
-            std::function<void(WorkerThread&)> work;
+            std::function<void(void)> work;
 
             bool hasWork{ false };
             std::condition_variable cvar;
@@ -87,7 +92,7 @@ namespace trc::async
         };
 
         /** Spawn a new thread. Is called in execute(). */
-        auto spawnThread(std::function<void(WorkerThread&)> initialWork) -> WorkerThread&;
+        auto spawnThread(std::function<void(void)> initialWork) -> WorkerThread&;
 
         /**
          * Execute a function asynchronously.

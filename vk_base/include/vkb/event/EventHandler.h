@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 
 namespace vkb
 {
@@ -14,14 +15,18 @@ namespace vkb
         static void start();
         static void terminate();
 
-        static void registerHandler(std::function<void()> pollFunc);
+        static void notifyActiveHandler(void(*pollFunc)(void));
 
     private:
         static inline bool shouldStop{ false };
 
         static inline std::thread thread;
-        static inline std::mutex handlerListLock;
-        static inline std::vector<std::function<void()>> handlers;
+        static inline std::mutex activeHandlerListLock;
+        static inline std::queue<void(*)(void)> activeHandlers;
+
+        static inline std::condition_variable cvar;
+        static inline std::mutex cvarLock;
+        static inline bool cvarFlag{ false };
     };
 
     template<typename EventType>
@@ -44,23 +49,19 @@ namespace vkb
         };
 
     public:
-        using EventCallback = std::function<void(const EventType&)>;
         using ListenerId = const ListenerEntry*;
 
         static void notify(EventType event);
         static void notifySync(EventType event);
 
-        static auto addListener(EventCallback newListener) -> ListenerId;
+        static auto addListener(std::function<void(const EventType&)> newListener) -> ListenerId;
         static void removeListener(ListenerId listener);
 
     private:
         static void pollEvents();
         static void updateListeners();
-        static inline const bool _init = []() {
-            EventThread::registerHandler(pollEvents);
-            return true;
-        }();
 
+        static inline std::atomic_flag isBeingPolled{ false };
         static inline std::mutex listenerListLock;
         static inline std::vector<std::unique_ptr<ListenerEntry>> listeners;
 
@@ -69,6 +70,7 @@ namespace vkb
         static inline std::mutex removedListenersLock;
         static inline std::vector<ListenerId> removedListeners;
 
+        static inline std::mutex queueProducerLock;
         static inline std::queue<EventType> eventQueue;
     };
 
@@ -103,10 +105,19 @@ namespace vkb
     template<typename EventType>
     void EventHandler<EventType>::notify(EventType event)
     {
-        [[maybe_unused]]
-        static bool _assert_init = _init;
+        if (listeners.empty() && newListeners.empty()) return;
 
-        eventQueue.emplace(std::move(event));
+        // Add event to queue
+        {
+            std::scoped_lock lock(queueProducerLock);
+            eventQueue.emplace(std::move(event));
+        }
+
+        // Notify the event thread that the handler has new events and is
+        // ready to be processed
+        if (!isBeingPolled.test_and_set()) {
+            EventThread::notifyActiveHandler(pollEvents);
+        }
     }
 
     template<typename EventType>
@@ -122,7 +133,8 @@ namespace vkb
     }
 
     template<typename EventType>
-    auto EventHandler<EventType>::addListener(EventCallback newListener) -> ListenerId
+    auto EventHandler<EventType>::addListener(std::function<void(const EventType&)> newListener)
+        -> ListenerId
     {
         std::lock_guard lock(newListenersLock);
         return newListeners.emplace_back(new ListenerEntry(std::move(newListener))).get();
@@ -152,6 +164,8 @@ namespace vkb
 
             eventQueue.pop();
         }
+
+        isBeingPolled.clear();
     }
 
     template<typename EventType>
@@ -161,10 +175,7 @@ namespace vkb
         // adding a listener inside of another listener's callback
         if (!newListeners.empty() || !removedListeners.empty())
         {
-            std::unique_lock lock(listenerListLock, std::defer_lock);
-            std::unique_lock lock_(newListenersLock, std::defer_lock);
-            std::unique_lock lock__(removedListenersLock, std::defer_lock);
-            std::lock(lock, lock_, lock__);
+            std::scoped_lock lock(listenerListLock, newListenersLock, removedListenersLock);
 
             // Add any new listeners
             while (!newListeners.empty())

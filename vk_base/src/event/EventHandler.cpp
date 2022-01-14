@@ -12,18 +12,21 @@ void vkb::EventThread::start()
     terminate();
     shouldStop = false;
 
-    thread = std::thread([]() {
-        do
+    thread = std::thread([]()
+    {
+        while (!shouldStop)
         {
-            // Don't use range-based for-loop here because iterators
-            // are not thread safe. Declare size independently because
-            // it silences the clangtidy modernization warning
-            const size_t size = handlers.size();
-            for (size_t i = 0; i < size; i++)
+            std::unique_lock lock(cvarLock);
+            cvar.wait(lock, [] { return cvarFlag; });
+            cvarFlag = false;
+
+            std::scoped_lock listLock(activeHandlerListLock);
+            while (!activeHandlers.empty())
             {
-                EventThread::handlers[i]();
+                activeHandlers.front()();
+                activeHandlers.pop();
             }
-        } while (!shouldStop);
+        }
     });
 
     if constexpr (enableVerboseLogging) {
@@ -34,13 +37,23 @@ void vkb::EventThread::start()
 void vkb::EventThread::terminate()
 {
     shouldStop = true;
+    notifyActiveHandler([]{});
+
     if (thread.joinable()) {
         thread.join();
     }
 }
 
-void vkb::EventThread::registerHandler(std::function<void()> pollFunc)
+void vkb::EventThread::notifyActiveHandler(void(*pollFunc)(void))
 {
-    std::lock_guard lock(handlerListLock);
-    EventThread::handlers.push_back(std::move(pollFunc));
+    {
+        std::scoped_lock lock(activeHandlerListLock);
+        activeHandlers.emplace(pollFunc);
+    }
+
+    std::unique_lock cvLock(cvarLock);
+    cvarFlag = true;
+
+    cvLock.unlock();
+    cvar.notify_one();
 }
