@@ -13,16 +13,22 @@ using namespace std::chrono;
 
 
 
-auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface
+auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo info) -> Surface
 {
     Surface result;
 
     // Create GLFW window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_VISIBLE,   !info.hidden);
+    glfwWindowHint(GLFW_MAXIMIZED, info.maximized);
+    glfwWindowHint(GLFW_RESIZABLE, info.resizeable);
+    glfwWindowHint(GLFW_FLOATING,  info.floating);
+    glfwWindowHint(GLFW_DECORATED, info.decorated);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, info.transparentFramebuffer);
     result.window = std::unique_ptr<GLFWwindow, Surface::WindowDeleter>(
         glfwCreateWindow(
-            createInfo.windowSize.width, createInfo.windowSize.height,
-            createInfo.windowTitle.c_str(),
+            info.windowSize.x, info.windowSize.y,
+            info.windowTitle.c_str(),
             nullptr, nullptr
         ),
         [](GLFWwindow* windowPtr) {
@@ -30,11 +36,23 @@ auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Su
         }
     );
 
-    // Create Vulkan surface
+    if (result.window == nullptr)
+    {
+        const char* errorMsg{ nullptr };
+        glfwGetError(&errorMsg);
+        throw std::runtime_error("[In makeSurface]: Unable to create a window: "
+                                 + std::string(errorMsg));
+    }
     GLFWwindow* _window = result.window.get();
+
+    // Create Vulkan surface
     VkSurfaceKHR _surface;
-    if (glfwCreateWindowSurface(instance, _window, nullptr, &_surface) != VK_SUCCESS) {
-        throw std::runtime_error("Unable to create window surface!");
+    if (glfwCreateWindowSurface(instance, _window, nullptr, &_surface) != VK_SUCCESS)
+    {
+        const char* errorMsg{ nullptr };
+        glfwGetError(&errorMsg);
+        throw std::runtime_error("[In makeSurface]: Unable to create window surface: "
+                                 + std::string(errorMsg));
     }
     result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::SurfaceDeleter> {
         new vk::SurfaceKHR(_surface),
@@ -256,52 +274,6 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
     createSwapchain(info);
 }
 
-auto vkb::Swapchain::isOpen() const noexcept -> bool
-{
-    return isWindowOpen;
-}
-
-auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
-{
-    return window.get();
-}
-
-auto vkb::Swapchain::getSize() const noexcept -> glm::uvec2
-{
-    return { swapchainExtent.width, swapchainExtent.height };
-}
-
-auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
-{
-    return swapchainExtent;
-}
-
-auto vkb::Swapchain::getAspectRatio() const noexcept -> float
-{
-    return static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
-}
-
-auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
-{
-    return swapchainFormat;
-}
-
-auto vkb::Swapchain::getImageUsage() const noexcept -> vk::ImageUsageFlags
-{
-    return swapchainImageUsage;
-}
-
-auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> vk::Image
-{
-    return images[index];
-}
-
-void vkb::Swapchain::setPreferredPresentMode(vk::PresentModeKHR newMode)
-{
-    createInfo.presentMode = newMode;
-    createSwapchain(createInfo);
-}
-
 auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> uint32_t
 {
     auto result = device->acquireNextImageKHR(*swapchain, UINT64_MAX, signalSemaphore, vk::Fence());
@@ -339,6 +311,26 @@ void vkb::Swapchain::presentImage(
     FrameClock::endFrame();
 }
 
+auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
+{
+    return swapchainExtent;
+}
+
+auto vkb::Swapchain::getImageFormat() const noexcept -> vk::Format
+{
+    return swapchainFormat;
+}
+
+auto vkb::Swapchain::getImageUsage() const noexcept -> vk::ImageUsageFlags
+{
+    return swapchainImageUsage;
+}
+
+auto vkb::Swapchain::getImage(uint32_t index) const noexcept -> vk::Image
+{
+    return images[index];
+}
+
 auto vkb::Swapchain::getImageView(uint32_t imageIndex) const noexcept -> vk::ImageView
 {
     assert(imageIndex < getFrameCount());
@@ -346,30 +338,163 @@ auto vkb::Swapchain::getImageView(uint32_t imageIndex) const noexcept -> vk::Ima
     return *imageViews[imageIndex];
 }
 
-auto vkb::Swapchain::createImageView(uint32_t imageIndex) const -> vk::UniqueImageView
+void vkb::Swapchain::setPresentMode(vk::PresentModeKHR newMode)
 {
-    assert(imageIndex < getFrameCount());
-
-    return device->createImageViewUnique(
-        vk::ImageViewCreateInfo(
-            {}, images[imageIndex], vk::ImageViewType::e2D,
-            getImageFormat(), vk::ComponentMapping(),
-            { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-        )
-    );
+    createInfo.presentMode = newMode;
+    createSwapchain(createInfo);
 }
 
-auto vkb::Swapchain::createImageViews() const -> std::vector<vk::UniqueImageView>
+
+
+////////////////////
+//  Window stuff  //
+////////////////////
+
+auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
 {
-    std::vector<vk::UniqueImageView> result;
-    result.reserve(images.size());
+    return window.get();
+}
 
-    for (uint32_t i = 0; i < getFrameCount(); i++)
-    {
-        result.push_back(createImageView(i));
+auto vkb::Swapchain::isOpen() const noexcept -> bool
+{
+    return !glfwWindowShouldClose(window.get());
+}
+
+auto vkb::Swapchain::shouldClose() const noexcept -> bool
+{
+    return !isOpen();
+}
+
+auto vkb::Swapchain::getSize() const noexcept -> glm::uvec2
+{
+    return { swapchainExtent.width, swapchainExtent.height };
+}
+
+auto vkb::Swapchain::getWindowSize() const -> glm::uvec2
+{
+    glm::ivec2 winSize;
+    glfwGetWindowSize(window.get(), &winSize.x, &winSize.y);
+    return winSize;
+}
+
+void vkb::Swapchain::resize(uint32_t width, uint32_t height)
+{
+    glfwSetWindowSize(window.get(), width, height);
+
+    // I don't have to recreate here. The next present will return an
+    // out-of-date swapchain.
+}
+
+void vkb::Swapchain::maximize()
+{
+    glfwMaximizeWindow(window.get());
+}
+
+void vkb::Swapchain::minimize()
+{
+    glfwIconifyWindow(window.get());
+}
+
+auto vkb::Swapchain::isMaximized() const -> bool
+{
+    return glfwGetWindowAttrib(window.get(), GLFW_MAXIMIZED);
+}
+
+auto vkb::Swapchain::isMinimized() const -> bool
+{
+    return glfwGetWindowAttrib(window.get(), GLFW_ICONIFIED);
+}
+
+void vkb::Swapchain::restore()
+{
+    glfwRestoreWindow(window.get());
+}
+
+auto vkb::Swapchain::getAspectRatio() const noexcept -> float
+{
+    return static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
+}
+
+void vkb::Swapchain::forceAspectRatio(int32_t width, int32_t height)
+{
+    glfwSetWindowAspectRatio(window.get(), width, height);
+}
+
+void vkb::Swapchain::forceAspectRatio(const bool forced)
+{
+    if (forced) {
+        forceAspectRatio(getSize().x, getSize().y);
     }
+    else {
+        forceAspectRatio(GLFW_DONT_CARE, GLFW_DONT_CARE);
+    }
+}
 
-    return result;
+void vkb::Swapchain::hide()
+{
+    glfwHideWindow(window.get());
+}
+
+void vkb::Swapchain::show()
+{
+    glfwShowWindow(window.get());
+}
+
+void vkb::Swapchain::setUserResizeable(const bool resizeable)
+{
+    glfwSetWindowAttrib(window.get(), GLFW_RESIZABLE, resizeable);
+}
+
+auto vkb::Swapchain::isUserResizeable() const -> bool
+{
+    return glfwGetWindowAttrib(window.get(), GLFW_RESIZABLE);
+}
+
+void vkb::Swapchain::setDecorated(bool decorated)
+{
+    glfwSetWindowAttrib(window.get(), GLFW_DECORATED, decorated);
+}
+
+auto vkb::Swapchain::getDecorated() const -> bool
+{
+    return glfwGetWindowAttrib(window.get(), GLFW_DECORATED);
+}
+
+void vkb::Swapchain::setFloating(bool floating)
+{
+    glfwSetWindowAttrib(window.get(), GLFW_FLOATING, floating);
+}
+
+auto vkb::Swapchain::getFloating() const -> bool
+{
+    return glfwGetWindowAttrib(window.get(), GLFW_FLOATING);
+}
+
+void vkb::Swapchain::setOpacity(float opacity)
+{
+    glfwSetWindowOpacity(window.get(), opacity);
+}
+
+auto vkb::Swapchain::getOpacity() const -> float
+{
+    return glfwGetWindowOpacity(window.get());
+}
+
+auto vkb::Swapchain::getPosition() const -> glm::ivec2
+{
+    glm::ivec2 pos;
+    glfwGetWindowPos(window.get(), &pos.x, &pos.y);
+    return pos;
+}
+
+void vkb::Swapchain::setPosition(int32_t x, int32_t y)
+{
+    glfwSetWindowPos(window.get(), x, y);
+}
+
+void vkb::Swapchain::setTitle(const char* title)
+{
+    glfwSetWindowTitle(window.get(), title);
 }
 
 auto vkb::Swapchain::getKeyState(Key key) const -> InputAction
@@ -384,11 +509,27 @@ auto vkb::Swapchain::getMouseButtonState(MouseButton button) const -> InputActio
 
 auto vkb::Swapchain::getMousePosition() const -> glm::vec2
 {
-    double x, y;
-    glfwGetCursorPos(window.get(), &x, &y);
+    glm::dvec2 pos;
+    glfwGetCursorPos(window.get(), &pos.x, &pos.y);
 
-    return { static_cast<float>(x), static_cast<float>(y) };
+    return pos;
 }
+
+auto vkb::Swapchain::isPressed(Key key) const -> bool
+{
+    return getKeyState(key) == InputAction::press;
+}
+
+auto vkb::Swapchain::isPressed(MouseButton button) const -> bool
+{
+    return getMouseButtonState(button) == InputAction::press;
+}
+
+
+
+//////////////////////
+//  Callback stuff  //
+//////////////////////
 
 void onChar(GLFWwindow* window, unsigned int codepoint)
 {
@@ -457,6 +598,12 @@ void onScroll(GLFWwindow* window, double xOffset, double yOffset)
     );
 }
 
+void onClose(GLFWwindow* window)
+{
+    auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
+    vkb::EventHandler<vkb::SwapchainCloseEvent>::notify({ {swapchain} });
+}
+
 void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 {
     glfwSetWindowUserPointer(window, this);
@@ -468,13 +615,14 @@ void vkb::Swapchain::initGlfwCallbacks(GLFWwindow* window)
     glfwSetMouseButtonCallback(window, onMouseClick);
     glfwSetScrollCallback(window, onScroll);
 
-    // Use a lambda here so I have access to the private member `isWindowOpen`
-    glfwSetWindowCloseCallback(window, [](GLFWwindow* window) {
-        auto swapchain = static_cast<vkb::Swapchain*>(glfwGetWindowUserPointer(window));
-        swapchain->isWindowOpen = false;
-        vkb::EventHandler<vkb::SwapchainCloseEvent>::notify({ {swapchain} });
-    });
+    glfwSetWindowCloseCallback(window, onClose);
 }
+
+
+
+//////////////////////////
+//  Swapchain creation  //
+//////////////////////////
 
 void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 {
@@ -494,9 +642,9 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 
     const auto [imageSharingMode, imageSharingQueueFamilies] = findOptimalImageSharingMode(physDevice);
     const auto [capabilities, formats, presentModes] = physDevice.getSwapchainSupport(*surface);
-    auto optimalImageExtent = findOptimalImageExtent(capabilities, window.get());
-    auto optimalFormat      = findOptimalSurfaceFormat(formats);
-    auto optimalPresentMode = findOptimalSurfacePresentMode(presentModes, info.presentMode);
+    const auto optimalImageExtent = findOptimalImageExtent(capabilities, window.get());
+    const auto optimalFormat      = findOptimalSurfaceFormat(formats);
+    const auto optimalPresentMode = findOptimalSurfacePresentMode(presentModes, info.presentMode);
 
     // Specify the number of images in the swapchain
     const uint32_t minImages = capabilities.minImageCount;
@@ -552,8 +700,11 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     FrameClock::resetCurrentFrame();
 
     // Retrieve created images
-    images = device->getSwapchainImagesKHR(swapchain.get());
-    imageViews = createImageViews();
+    images = device->getSwapchainImagesKHR(*swapchain);
+    imageViews.clear();
+    for (size_t i = 0; i < images.size(); i++) {
+        imageViews.emplace_back(createImageView(i));
+    }
 
     if constexpr (enableVerboseLogging)
     {
@@ -580,4 +731,17 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     if constexpr (enableVerboseLogging) {
         std::cout << "Swapchain-dependent resource creation completed.\n";
     }
+}
+
+auto vkb::Swapchain::createImageView(uint32_t imageIndex) const -> vk::UniqueImageView
+{
+    assert(imageIndex < getFrameCount());
+
+    return device->createImageViewUnique(
+        vk::ImageViewCreateInfo(
+            {}, images[imageIndex], vk::ImageViewType::e2D,
+            getImageFormat(), vk::ComponentMapping(),
+            { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+        )
+    );
 }

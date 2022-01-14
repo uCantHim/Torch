@@ -41,6 +41,9 @@ target_link_libraries(RayTracingIntegration PUBLIC torch)
 if (${TORCH_INTEGRATE_IMGUI})
     add_executable(ImGui imgui_integration.cpp)
     target_link_libraries(ImGui PUBLIC torch)
+
+    add_executable(Window window_functions.cpp)
+    target_link_libraries(Window PUBLIC torch)
 endif ()
 
 if (${TORCH_INTEGRATE_GUI})

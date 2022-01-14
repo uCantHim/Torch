@@ -10,7 +10,11 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
         instance.getDevice(),
         vkb::makeSurface(
             instance.getVulkanInstance(),
-            { .windowSize={ info.size.x, info.size.y }, .windowTitle=info.title }
+            [&] {
+                info.surfaceCreateInfo.windowSize = info.size;
+                info.surfaceCreateInfo.windowTitle = info.title;
+                return info.surfaceCreateInfo;
+            }()
         ),
         // Swapchain create info
         [&] {
@@ -34,6 +38,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
         })
     )
 {
+    setPosition(info.pos.x, info.pos.y);
 }
 
 void trc::Window::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)

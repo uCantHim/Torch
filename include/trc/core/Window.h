@@ -12,8 +12,10 @@ namespace trc
     struct WindowCreateInfo
     {
         uvec2 size{ 1920, 1080 };
-        std::string title = "";
+        ivec2 pos{ 0, 0 };
+        std::string title{ "" };
 
+        vkb::SurfaceCreateInfo surfaceCreateInfo{};
         vkb::SwapchainCreateInfo swapchainCreateInfo{};
     };
 

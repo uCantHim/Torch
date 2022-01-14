@@ -73,7 +73,6 @@ namespace trc
         vk::UniqueDescriptorPool blendDescPool;
         vk::UniqueDescriptorSetLayout blendDescLayout;
         vkb::FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
-        std::vector<vk::UniqueImageView> swapchainImageViews;
         PipelineLayout imageBlendPipelineLayout;
         Pipeline imageBlendPipeline;
 

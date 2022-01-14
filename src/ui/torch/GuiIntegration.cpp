@@ -1,7 +1,5 @@
 #include "ui/torch/GuiIntegration.h"
 
-#include <ranges>
-
 #include <vkb/ShaderProgram.h>
 #include <vkb/event/Event.h>
 
@@ -199,7 +197,6 @@ void trc::GuiIntegrationPass::createDescriptorSets()
     );
 
     // Descriptor sets
-    swapchainImageViews.clear();
     blendDescSets = {
         swapchain,
         [this](ui32) -> vk::UniqueDescriptorSet {
@@ -216,7 +213,7 @@ void trc::GuiIntegrationPass::writeDescriptorSets(vk::ImageView srcImage)
     {
         vk::DescriptorSet set = *blendDescSets.getAt(i);
 
-        auto view = *swapchainImageViews.emplace_back(swapchain.createImageView(i));
+        auto view = swapchain.getImageView(i);
         vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
         vk::DescriptorImageInfo renderResultImageInfo({}, srcImage, vk::ImageLayout::eGeneral);
         std::vector<vk::WriteDescriptorSet> writes{

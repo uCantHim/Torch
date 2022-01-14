@@ -16,9 +16,9 @@ int main()
         trc::Scene scene;
         trc::Camera camera;
 
-        auto imgui = trc::imgui::initImgui(*torch.window, torch.renderConfig->getLayout());
+        auto imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout());
 
-        while (torch.window->getSwapchain().isOpen())
+        while (torch->getWindow().isOpen())
         {
             vkb::pollEvents();
 
@@ -27,7 +27,7 @@ int main()
             ig::Text("Hello World!");
             ig::End();
 
-            torch.drawFrame(torch.makeDrawConfig(scene, camera));
+            torch->drawFrame(torch->makeDrawConfig(scene, camera));
         }
     }
 

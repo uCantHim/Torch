@@ -124,7 +124,6 @@ void run()
         poolSizes
     ));
 
-    std::vector<vk::UniqueImageView> imageViews;
     vkb::FrameSpecific<vk::UniqueDescriptorSet> imageDescSets{
         swapchain,
         [&](ui32 imageIndex) -> vk::UniqueDescriptorSet
@@ -134,20 +133,9 @@ void run()
             )[0]);
 
             vk::Image image = swapchain.getImage(imageIndex);
-            vk::ImageView imageView = *imageViews.emplace_back(
-                instance.getDevice()->createImageViewUnique(
-                    vk::ImageViewCreateInfo(
-                        {},
-                        image,
-                        vk::ImageViewType::e2D,
-                        swapchain.getImageFormat(),
-                        {}, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-                    )
-                )
-            );
             vk::DescriptorImageInfo imageInfo(
                 {}, // sampler
-                *imageViews.emplace_back(swapchain.createImageView(imageIndex)),
+                swapchain.getImageView(imageIndex),
                 vk::ImageLayout::eGeneral
             );
             vk::WriteDescriptorSet write(
