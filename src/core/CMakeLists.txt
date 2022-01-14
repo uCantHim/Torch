@@ -20,5 +20,6 @@ target_sources(
         RenderPass.cpp
         RenderTarget.cpp
         SceneBase.cpp
+        TypeErasedStructureChain.cpp
         Window.cpp
 )

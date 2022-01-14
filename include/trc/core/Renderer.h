@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include <vkb/PhysicalDevice.h>
 #include <vkb/FrameSpecificObject.h>
 #include <vkb/ExclusiveQueue.h>
 #include <vkb/event/Event.h>

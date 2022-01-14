@@ -1,12 +1,13 @@
 #pragma once
 
-#include <any>
-#include <functional>
-
-#include <vkb/VulkanInstance.h>
-#include <vkb/Device.h>
+namespace vkb {
+    class VulkanInstance;
+    class PhysicalDevice;
+    class Device;
+}
 
 #include "../Types.h"
+#include "TypeErasedStructureChain.h"
 
 namespace trc
 {
@@ -15,20 +16,24 @@ namespace trc
 
     struct InstanceCreateInfo
     {
+        /** If true, load all required ray tracing extensions and features */
         bool enableRayTracing{ false };
+
+        /** Additional device extensions to enable */
         std::vector<const char*> deviceExtensions;
-        std::function<std::pair<std::any, void*>(const vkb::PhysicalDevice&)> deviceFeatureQuery{
-            [](auto) -> std::pair<std::any, void*> { return { {}, nullptr }; }
-        };
+
+        /** Additional device features to enable */
+        TypeErasedStructureChain deviceFeatures;
     };
 
     class Instance
     {
     public:
         Instance(const Instance&) = delete;
-        Instance(Instance&&) noexcept = delete;
         auto operator=(const Instance&) -> Instance& = delete;
-        auto operator=(Instance&&) noexcept -> Instance& = delete;
+
+        Instance(Instance&&) noexcept = default;
+        auto operator=(Instance&&) noexcept -> Instance& = default;
 
         explicit Instance(const InstanceCreateInfo& info = {});
         ~Instance();

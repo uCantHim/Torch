@@ -1,5 +1,8 @@
 #include "core/Instance.h"
 
+#include <vkb/VulkanInstance.h>
+#include <vkb/Device.h>
+
 #include "Torch.h"
 #include "Window.h"
 
@@ -23,8 +26,6 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         auto features = physicalDevice->physicalDevice.getFeatures2<
             vk::PhysicalDeviceFeatures2,
 
-            vk::PhysicalDeviceInlineUniformBlockFeaturesEXT,
-
             // Ray tracing
             vk::PhysicalDeviceBufferDeviceAddressFeatures,
             vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
@@ -32,13 +33,8 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
         >();
 
         // Append user provided features to the end
-        auto [_, userPtr] = info.deviceFeatureQuery(*physicalDevice);
+        void* userPtr = info.deviceFeatures.getPNext();
         features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>().setPNext(userPtr);
-
-        // Test for feature support
-        if (!features.get<vk::PhysicalDeviceInlineUniformBlockFeaturesEXT>().inlineUniformBlock) {
-            features.unlink<vk::PhysicalDeviceInlineUniformBlockFeaturesEXT>();
-        }
 
         ///////////////////////////////
         // Test for ray tracing support
