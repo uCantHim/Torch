@@ -45,10 +45,11 @@ namespace trc
             /**
              * A storage buffer that contains two sections:
              *
-             * | section        | type/contents   |
-             * |----------------------------------|
-             * | allocator      | uint            |
-             * | fragment list  | uvec4[]         |
+             * | section        | type            | contents         |
+             * |----------------------------------|------------------|
+             * | allocator      | uint            | next frag index  |
+             * | allocator      | uint            | max frag index   |
+             * | fragment list  | uvec4[]         | fragment data    |
              *
              * The allocator section is FRAGMENT_LIST_OFFSET bytes long
              * (padding included) and contains two uint variables:

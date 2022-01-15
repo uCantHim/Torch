@@ -18,7 +18,7 @@ trc::RenderPassShadow::RenderPassShadow(
                     vk::SampleCountFlagBits::e1,
                     vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
                     vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-                    vk::ImageLayout::eDepthStencilAttachmentOptimal,
+                    vk::ImageLayout::eUndefined,
                     vk::ImageLayout::eShaderReadOnlyOptimal
                 )
             };
@@ -81,13 +81,6 @@ trc::RenderPassShadow::RenderPassShadow(
 
 void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
 {
-    depthImages->changeLayout(
-        cmdBuf,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
-    );
-
     vk::ClearValue clearValue{ vk::ClearDepthStencilValue(1.0f, 0) };
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(

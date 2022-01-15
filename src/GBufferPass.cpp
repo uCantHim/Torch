@@ -49,24 +49,15 @@ void trc::GBufferPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpa
     gBuffer->initFrame(cmdBuf);
 
     // Bring depth image into depthStencil layout
-    cmdBuf.pipelineBarrier(
+    gBuffer->getImage(GBuffer::eDepth).barrier(cmdBuf,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eDepthStencilAttachmentOptimal,
         vk::PipelineStageFlagBits::eBottomOfPipe,
         vk::PipelineStageFlagBits::eAllGraphics,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            {},
-            vk::AccessFlagBits::eDepthStencilAttachmentRead
-            | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eDepthStencilAttachmentOptimal,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            *gBuffer->getImage(GBuffer::eDepth),
-            vk::ImageSubresourceRange(
-                vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
-                0, 1, 0, 1
-            )
-        )
+        {},
+        vk::AccessFlagBits::eDepthStencilAttachmentRead
+        | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
     );
 
     cmdBuf.beginRenderPass(

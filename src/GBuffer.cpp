@@ -11,7 +11,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     size(info.size),
     extent(size.x, size.y),
     ATOMIC_BUFFER_SECTION_SIZE(util::pad(
-        sizeof(ui32),
+        sizeof(ui32) * 3,  // current index, max index, clear value
         device.getPhysicalDevice().properties.limits.minStorageBufferOffsetAlignment
     )),
     FRAG_LIST_BUFFER_SIZE(
@@ -41,26 +41,25 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     )
 {
     // Clear fragment head pointer image
-    auto cmdBuf = device.createGraphicsCommandBuffer();
-    cmdBuf->begin(vk::CommandBufferBeginInfo());
-
-    fragmentListHeadPointerImage.changeLayout(*cmdBuf, vk::ImageLayout::eGeneral);
-    cmdBuf->clearColorImage(
-        *fragmentListHeadPointerImage, vk::ImageLayout::eGeneral,
-        vk::ClearColorValue(std::array<ui32, 4>{ ~0u }),
-        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-    );
-
-    cmdBuf->end();
-    device.executeGraphicsCommandBufferSynchronously(*cmdBuf);
+    device.executeCommandsSynchronously(vkb::QueueType::graphics, [this](auto cmdBuf)
+    {
+        fragmentListHeadPointerImage.changeLayout(cmdBuf,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eGeneral
+        );
+        cmdBuf.clearColorImage(
+            *fragmentListHeadPointerImage, vk::ImageLayout::eGeneral,
+            vk::ClearColorValue(std::array<ui32, 4>{ ~0u }),
+            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        );
+    });
 
     // Clear atomic counter buffer
-    const ui32 MAX_FRAGS = info.maxTransparentFragsPerPixel * info.size.x * info.size.y;
-    auto cmdBufT = device.createTransferCommandBuffer();
-    cmdBufT->begin(vk::CommandBufferBeginInfo(vk::CommandBufferBeginInfo()));
-    cmdBufT->updateBuffer<ui32>(*fragmentListBuffer, 0, { 0, MAX_FRAGS, 0, });
-    cmdBufT->end();
-    device.executeTransferCommandBufferSyncronously(*cmdBufT);
+    device.executeCommandsSynchronously(vkb::QueueType::transfer, [&, this](vk::CommandBuffer cmdBuf)
+    {
+        const ui32 MAX_FRAGS = info.maxTransparentFragsPerPixel * info.size.x * info.size.y;
+        cmdBuf.updateBuffer<ui32>(*fragmentListBuffer, 0, { 0, MAX_FRAGS, 0, });
+    });
 
 
     ///////////////////////////
@@ -171,7 +170,15 @@ void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
 {
     // Cheat: Copy a constantly zero-valued byte to the first byte in the buffer
     cmdBuf.copyBuffer(*fragmentListBuffer, *fragmentListBuffer,
-                      vk::BufferCopy(sizeof(ui32) * 3, 0, sizeof(ui32)));
+                      vk::BufferCopy(sizeof(ui32) * 2, 0, sizeof(ui32)));
+    fragmentListBuffer.barrier(
+        cmdBuf,
+        0, sizeof(ui32),
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::AccessFlagBits::eTransferWrite,
+        vk::AccessFlagBits::eShaderRead
+    );
 }
 
 

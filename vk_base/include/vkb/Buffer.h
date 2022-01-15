@@ -102,6 +102,14 @@ namespace vkb
 
         void flush(vk::DeviceSize offset = 0, vk::DeviceSize size = VK_WHOLE_SIZE) const;
 
+        void barrier(vk::CommandBuffer cmdBuf,
+                     vk::DeviceSize offset,
+                     vk::DeviceSize size,
+                     vk::PipelineStageFlags srcStages,
+                     vk::PipelineStageFlags dstStages,
+                     vk::AccessFlags srcAccess,
+                     vk::AccessFlags dstAccess) const;
+
         void copyFrom(const Buffer& src, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
         void copyTo(const Buffer& dst, BufferRegion srcRegion = {}, vk::DeviceSize dstOffset = 0);
 
@@ -154,6 +162,8 @@ namespace vkb
     class DeviceLocalBuffer : private Buffer
     {
     public:
+        using Buffer::barrier;
+
         DeviceLocalBuffer() = default;
 
         DeviceLocalBuffer(const Device& device,

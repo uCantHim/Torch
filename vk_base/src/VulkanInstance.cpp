@@ -31,11 +31,18 @@ vkb::VulkanInstance::VulkanInstance()
         VK_API_VERSION_1_2
     );
 
-    instance = vk::createInstanceUnique(vk::InstanceCreateInfo(
-        {},
-        &appInfo,
-        layers, extensions
-    ));
+    vk::ValidationFeatureEnableEXT enables[] {
+        vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
+    };
+
+    vk::StructureChain chain{
+        vk::InstanceCreateInfo({}, &appInfo, layers, extensions),
+#ifdef TRC_DEBUG
+        vk::ValidationFeaturesEXT(1, enables),
+#endif
+    };
+
+    instance = vk::createInstanceUnique(chain.get());
 
     if constexpr (enableVerboseLogging)
     {

@@ -1,6 +1,7 @@
 #include "Image.h"
 
 #include "Buffer.h"
+#include "Barriers.h"
 
 
 
@@ -36,54 +37,53 @@ auto vkb::Image::getSize() const noexcept -> vk::Extent3D
 
 void vkb::Image::changeLayout(
     const Device& device,
-    vk::ImageLayout newLayout,
-    vk::ImageSubresourceRange subRes)
-{
-    changeLayout(device, currentLayout, newLayout, subRes);
-}
-
-void vkb::Image::changeLayout(
-    vk::CommandBuffer cmdBuf,
-    vk::ImageLayout newLayout,
-    vk::ImageSubresourceRange subRes)
-{
-    changeLayout(cmdBuf, currentLayout, newLayout, subRes);
-}
-
-void vkb::Image::changeLayout(
-    const Device& device,
     vk::ImageLayout from, vk::ImageLayout to,
     vk::ImageSubresourceRange subRes)
 {
-    auto cmdBuf = device.createGraphicsCommandBuffer();
-    cmdBuf->begin(vk::CommandBufferBeginInfo());
-    changeLayout(*cmdBuf, from, to, subRes);
-    cmdBuf->end();
-    device.executeGraphicsCommandBufferSynchronously(*cmdBuf);
-}
-
-void vkb::Image::changeLayout(
-    vk::CommandBuffer cmdBuf,
-    vk::ImageLayout from, vk::ImageLayout to,
-    vk::ImageSubresourceRange subRes)
-{
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::DependencyFlags(),
-        {},
-        {},
-        vk::ImageMemoryBarrier(
-            {}, {}, from, to,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            *image, std::move(subRes)
-        )
+    device.executeCommandsSynchronously(QueueType::graphics,
+        [=, this](vk::CommandBuffer cmdBuf) {
+            changeLayout(cmdBuf, from, to, subRes);
+        }
     );
-
-    currentLayout = to;
 }
 
-void vkb::Image::writeData(const void* srcData, size_t srcSize, ImageSize destArea)
+void vkb::Image::changeLayout(
+    vk::CommandBuffer cmdBuf,
+    vk::ImageLayout from, vk::ImageLayout to,
+    vk::ImageSubresourceRange subRes)
+{
+    barrier(cmdBuf,
+        from, to,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
+        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
+        subRes
+    );
+}
+
+void vkb::Image::barrier(
+    vk::CommandBuffer cmdBuf,
+    vk::ImageLayout from,
+    vk::ImageLayout to,
+    vk::PipelineStageFlags srcStages,
+    vk::PipelineStageFlags dstStages,
+    vk::AccessFlags srcAccess,
+    vk::AccessFlags dstAccess,
+    vk::ImageSubresourceRange subRes)
+{
+    imageMemoryBarrier(cmdBuf,
+        *image, from, to,
+        srcStages, dstStages, srcAccess, dstAccess,
+        subRes
+    );
+}
+
+void vkb::Image::writeData(
+    const void* srcData,
+    size_t srcSize,
+    ImageSize destArea,
+    vk::ImageLayout finalLayout)
 {
     Buffer buf(
         *device,
@@ -95,18 +95,28 @@ void vkb::Image::writeData(const void* srcData, size_t srcSize, ImageSize destAr
     auto cmdBuf = device->createGraphicsCommandBuffer();
     cmdBuf->begin(vk::CommandBufferBeginInfo());
 
-    const auto prevLayout = currentLayout == vk::ImageLayout::eUndefined
-                            || currentLayout == vk::ImageLayout::ePreinitialized
-                            ? vk::ImageLayout::eGeneral
-                            : currentLayout;
-    changeLayout(*cmdBuf, vk::ImageLayout::eTransferDstOptimal);
+    barrier(*cmdBuf,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::AccessFlagBits::eMemoryWrite,
+        vk::AccessFlagBits::eMemoryWrite
+    );
     const auto copyExtent = expandExtent(destArea.extent);
     cmdBuf->copyBufferToImage(
         *buf, *image,
         vk::ImageLayout::eTransferDstOptimal,
         vk::BufferImageCopy(0, 0, 0, destArea.subres, destArea.offset, copyExtent)
     );
-    changeLayout(*cmdBuf, prevLayout);
+    barrier(*cmdBuf,
+        vk::ImageLayout::eTransferDstOptimal,
+        finalLayout,
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::AccessFlagBits::eMemoryWrite,
+        vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eMemoryRead
+    );
 
     cmdBuf->end();
     device->executeGraphicsCommandBufferSynchronously(*cmdBuf);
@@ -183,6 +193,5 @@ void vkb::Image::createNewImage(
 
     type = createInfo.imageType;
     format = createInfo.format;
-    currentLayout = vk::ImageLayout::eUndefined;
     size = createInfo.extent;
 }

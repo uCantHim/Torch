@@ -1,5 +1,7 @@
 #include "Buffer.h"
 
+#include "Barriers.h"
+
 
 
 // ------------------------- //
@@ -56,6 +58,7 @@ auto vkb::Buffer::size() const noexcept -> vk::DeviceSize
     return bufferSize;
 }
 
+
 auto vkb::Buffer::map(vk::DeviceSize offset, vk::DeviceSize size) const -> uint8_t*
 {
     return static_cast<uint8_t*>(memory.map(*device, offset, size));
@@ -71,6 +74,19 @@ void vkb::Buffer::unmap() const
 void vkb::Buffer::flush(vk::DeviceSize offset, vk::DeviceSize size) const
 {
     memory.flush(*device, offset, size);
+}
+
+
+void vkb::Buffer::barrier(
+    vk::CommandBuffer cmdBuf,
+    vk::DeviceSize offset,
+    vk::DeviceSize size,
+    vk::PipelineStageFlags srcStages,
+    vk::PipelineStageFlags dstStages,
+    vk::AccessFlags srcAccess,
+    vk::AccessFlags dstAccess) const
+{
+    bufferMemoryBarrier(cmdBuf, *buffer, offset, size, srcStages, dstStages, srcAccess, dstAccess);
 }
 
 

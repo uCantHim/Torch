@@ -19,7 +19,10 @@ trc::GlyphMap::GlyphMap(const vkb::Device& device, const vkb::DeviceMemoryAlloca
         alloc
     )
 {
-    image.changeLayout(device, vk::ImageLayout::eShaderReadOnlyOptimal);
+    image.changeLayout(device,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eShaderReadOnlyOptimal
+    );
 }
 
 auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
@@ -43,7 +46,8 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
     image.writeData(
         data.data(),
         size.x * size.y,
-        vkb::ImageSize{ .offset={ offset.x, offset.y, 0 }, .extent={ size.x, size.y, 1 } }
+        vkb::ImageSize{ .offset={ offset.x, offset.y, 0 }, .extent={ size.x, size.y, 1 } },
+        vk::ImageLayout::eShaderReadOnlyOptimal
     );
 
     GLM_CONSTEXPR vec2 mapSize{ MAP_WIDTH, MAP_HEIGHT };

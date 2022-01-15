@@ -67,14 +67,6 @@ namespace vkb
         auto getFormat() const noexcept -> vk::Format;
         auto getSize() const noexcept -> vk::Extent3D;
 
-        void changeLayout(const Device& device,
-                          vk::ImageLayout newLayout,
-                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
-        void changeLayout(vk::CommandBuffer cmdBuf,
-                          vk::ImageLayout newLayout,
-                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
         /**
          * Change the image's layout in a dedicated command buffer
          */
@@ -89,7 +81,20 @@ namespace vkb
                           vk::ImageLayout from, vk::ImageLayout to,
                           vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
 
-        void writeData(const void* srcData, size_t srcSize, ImageSize destArea);
+        void barrier(vk::CommandBuffer cmdBuf,
+                     vk::ImageLayout from, vk::ImageLayout to,
+                     vk::PipelineStageFlags srcStages = vk::PipelineStageFlagBits::eAllCommands,
+                     vk::PipelineStageFlags dstStages = vk::PipelineStageFlagBits::eAllCommands,
+                     vk::AccessFlags srcAccess = vk::AccessFlagBits::eMemoryRead
+                                                 | vk::AccessFlagBits::eMemoryWrite,
+                     vk::AccessFlags dstAccess = vk::AccessFlagBits::eMemoryRead
+                                                 | vk::AccessFlagBits::eMemoryWrite,
+                     vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
+
+        void writeData(const void* srcData,
+                       size_t srcSize,
+                       ImageSize destArea,
+                       vk::ImageLayout finalLayout = vk::ImageLayout::eGeneral);
 
         auto getMemory() const noexcept -> const DeviceMemory&;
 
@@ -140,7 +145,6 @@ namespace vkb
 
         vk::ImageType type;
         vk::Format format;
-        vk::ImageLayout currentLayout;
         vk::Extent3D size;
     };
 } // namespace vkb

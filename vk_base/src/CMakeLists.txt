@@ -3,6 +3,7 @@ add_subdirectory(event)
 target_sources(
     vk_base
     PRIVATE
+        Barriers.cpp
         Buffer.cpp
         Device.cpp
         ExclusiveQueue.cpp

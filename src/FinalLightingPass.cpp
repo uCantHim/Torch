@@ -1,6 +1,7 @@
 #include "FinalLightingPass.h"
 
 #include <vkb/ShaderProgram.h>
+#include <vkb/Barriers.h>
 
 #include "core/PipelineLayoutBuilder.h"
 #include "core/ComputePipelineBuilder.h"
@@ -51,38 +52,30 @@ void trc::FinalLightingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents
     cmdBuf.pushConstants<vec2>(*layout, vk::ShaderStageFlagBits::eCompute,
                                0, { renderOffset, renderSize });
 
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        targetImage,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            {},
-            vk::AccessFlagBits::eMemoryWrite,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eGeneral,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            targetImage,
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-        )
+        vk::PipelineStageFlagBits::eComputeShader,
+        {},
+        vk::AccessFlagBits::eShaderWrite,
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 
     cmdBuf.dispatch(groupCount.x, groupCount.y, groupCount.z);
 
-    cmdBuf.pipelineBarrier(
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        targetImage,
+        vk::ImageLayout::eGeneral,
+        vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits::eComputeShader,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eShaderWrite,
-            vk::AccessFlagBits::eMemoryRead,
-            vk::ImageLayout::eGeneral,
-            vk::ImageLayout::ePresentSrcKHR,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            targetImage,
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-        )
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::AccessFlagBits::eShaderWrite,
+        {},
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 }
 
