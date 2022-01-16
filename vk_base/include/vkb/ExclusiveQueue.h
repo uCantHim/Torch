@@ -37,12 +37,9 @@ namespace vkb
             return queue;
         }
 
-        /**
-         * @brief Calls ExclusiveQueue::submit
-         *
-         * @throw std::runtime_error if current thread doesn't own queue
-         */
-        auto operator<<(const vk::SubmitInfo& submit) -> ExclusiveQueue&;
+        inline auto operator->() const noexcept -> const vk::Queue* {
+            return &queue;
+        }
 
         /**
          * Essentially the same behaviour as vkQueueSubmit

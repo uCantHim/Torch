@@ -11,12 +11,6 @@ vkb::ExclusiveQueue::ExclusiveQueue(vk::Queue queue)
 {
 }
 
-auto vkb::ExclusiveQueue::operator<<(const vk::SubmitInfo& submit) -> ExclusiveQueue&
-{
-    this->submit(submit, {});
-    return *this;
-}
-
 void vkb::ExclusiveQueue::submit(
     const vk::ArrayProxy<const vk::SubmitInfo>& submits,
     vk::Fence fence) const
