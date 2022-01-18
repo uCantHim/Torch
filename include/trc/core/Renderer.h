@@ -1,16 +1,15 @@
 #pragma once
 
-#include <mutex>
+#include <chrono>
 
 #include <vkb/PhysicalDevice.h>
 #include <vkb/FrameSpecificObject.h>
 #include <vkb/ExclusiveQueue.h>
 #include <vkb/event/Event.h>
 
-#include "Instance.h"
-
 namespace trc
 {
+    class Instance;
     class Window;
     struct DrawConfig;
 
@@ -22,6 +21,11 @@ namespace trc
     class Renderer
     {
     public:
+        Renderer(const Renderer&) = delete;
+        Renderer(Renderer&&) = delete;
+        Renderer& operator=(const Renderer&) = delete;
+        Renderer& operator=(Renderer&&) = delete;
+
         explicit Renderer(Window& window);
 
         /**
@@ -29,14 +33,9 @@ namespace trc
          */
         ~Renderer();
 
-        Renderer(const Renderer&) = delete;
-        Renderer(Renderer&&) = delete;
-        Renderer& operator=(const Renderer&) = delete;
-        Renderer& operator=(Renderer&&) = delete;
-
         void drawFrame(const vk::ArrayProxy<const DrawConfig>& draws);
 
-        void waitForAllFrames(ui64 timeoutNs = UINT64_MAX);
+        void waitForAllFrames(std::chrono::nanoseconds timeout = std::chrono::nanoseconds::max());
 
     private:
         const Instance& instance;

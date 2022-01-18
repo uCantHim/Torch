@@ -30,10 +30,13 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
     ),
     instance(&instance),
     renderer(new Renderer(*this)),
+    preRecreateListener(
+        vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto&) {
+            renderer->waitForAllFrames();
+        })
+    ),
     recreateListener(
         vkb::on<vkb::SwapchainRecreateEvent>([this](auto&) {
-            // Create a new renderer to avoid the still mysterious crash on recreate
-            renderer->waitForAllFrames();
             renderer.reset(new Renderer(*this));
         })
     )

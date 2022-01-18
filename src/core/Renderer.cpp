@@ -1,7 +1,6 @@
 #include "Renderer.h"
 
 #include <trc_util/Util.h>
-#include <trc_util/Timer.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "Window.h"
@@ -86,7 +85,7 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     }
 
     // Submit command buffers
-    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
+    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eComputeShader;
     mainRenderQueue.submit(
         vk::SubmitInfo(
             **imageAcquireSemaphores,
@@ -121,14 +120,17 @@ void trc::Renderer::createSemaphores()
     };
 }
 
-void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
+void trc::Renderer::waitForAllFrames(std::chrono::nanoseconds timeout)
 {
     std::vector<vk::Fence> fences;
     for (auto& fence : frameInFlightFences) {
         fences.push_back(*fence);
     }
-    auto result = device->waitForFences(fences, true, timeoutNs);
-    if (result == vk::Result::eTimeout) {
-        std::cout << "Timeout in Renderer::waitForAllFrames!\n";
+    auto result = device->waitForFences(fences, true, timeout.count());
+    if (result != vk::Result::eSuccess)
+    {
+        throw Exception("[In Renderer::waitForAllFrames]: Result from vkWaitForFences was"
+                        " expected to be " + vk::to_string(vk::Result::eSuccess)
+                        + ", but was " + vk::to_string(result) + "!");
     }
 }

@@ -45,6 +45,7 @@ namespace trc
         Instance* instance;
 
         u_ptr<Renderer> renderer;
+        vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> recreateListener;
     };
 } // namespace trc
