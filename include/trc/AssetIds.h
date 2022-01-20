@@ -11,13 +11,18 @@ namespace trc
 
     using AssetIdNumericType = ui32;
 
-    class AssetIdBase
+    template<typename Derived>
+    class AssetIdBase : public TypesafeID<Derived, AssetIdNumericType>
     {
     protected:
         constexpr AssetIdBase() = default;
-        AssetIdBase(AssetRegistry& ar) : ar(&ar) {}
+        AssetIdBase(AssetIdNumericType id, AssetRegistry& ar)
+            : TypesafeID<Derived, AssetIdNumericType>(id), ar(&ar)
+        {}
 
     public:
+        using ID = TypesafeID<Derived, AssetIdNumericType>;
+
         auto operator<=>(const AssetIdBase&) const = default;
 
         auto getAssetRegistry() -> AssetRegistry&
@@ -33,12 +38,9 @@ namespace trc
     /**
      * @brief
      */
-    class GeometryID : public TypesafeID<GeometryID, AssetIdNumericType>
-                     , public AssetIdBase
+    class GeometryID : public AssetIdBase<GeometryID>
     {
     public:
-        using ID = TypesafeID<GeometryID, AssetIdNumericType>;
-
         /**
          * @brief
          */
@@ -54,11 +56,9 @@ namespace trc
     /**
      * @brief
      */
-    class MaterialID : public TypesafeID<MaterialID, AssetIdNumericType>
-                     , public AssetIdBase
+    class MaterialID : public AssetIdBase<MaterialID>
     {
     public:
-        using ID = TypesafeID<MaterialID, AssetIdNumericType>;
         /**
          * @brief
          */
@@ -74,12 +74,9 @@ namespace trc
     /**
      * @brief
      */
-    class TextureID : public TypesafeID<TextureID, AssetIdNumericType>
-                     , public AssetIdBase
+    class TextureID : public AssetIdBase<TextureID>
     {
     public:
-        using ID = TypesafeID<TextureID, AssetIdNumericType>;
-
         /**
          * @brief
          */

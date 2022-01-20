@@ -6,8 +6,7 @@
 
 trc::GeometryID::GeometryID(AssetIdNumericType id, AssetRegistry& ar)
     :
-    TypesafeID<GeometryID, AssetIdNumericType>(id),
-    AssetIdBase(ar)
+    AssetIdBase(id, ar)
 {
 }
 
@@ -20,8 +19,7 @@ auto trc::GeometryID::get() const -> Geometry
 
 trc::MaterialID::MaterialID(AssetIdNumericType id, AssetRegistry& ar)
     :
-    TypesafeID<MaterialID, AssetIdNumericType>(id),
-    AssetIdBase(ar)
+    AssetIdBase(id, ar)
 {
 }
 
@@ -34,8 +32,7 @@ auto trc::MaterialID::get() const -> Material&
 
 trc::TextureID::TextureID(AssetIdNumericType id, AssetRegistry& ar)
     :
-    TypesafeID<TextureID, AssetIdNumericType>(id),
-    AssetIdBase(ar)
+    AssetIdBase(id, ar)
 {
 }
 
