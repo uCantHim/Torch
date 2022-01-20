@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include <vkb/Barriers.h>
 #include <vkb/event/Event.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -267,19 +268,15 @@ void trc::experimental::imgui::ImguiRenderPass::begin(
 {
     // Bring swapchain image into eColorAttachmentOptimal layout. The final
     // lighting pass brings it into ePresentSrcKHR.
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllGraphics,
-        vk::PipelineStageFlagBits::eAllGraphics,
-        vk::DependencyFlagBits::eByRegion,
-        {}, // memory barriers
-        {}, // buffer memory barriers
-        vk::ImageMemoryBarrier(
-            {}, {},
-            vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal,
-            0, 0,
-            swapchain.getImage(swapchain.getCurrentFrame()),
-            vkb::DEFAULT_SUBRES_RANGE
-        )
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        swapchain.getImage(swapchain.getCurrentFrame()),
+        vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal,
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
+        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
+        vkb::DEFAULT_SUBRES_RANGE
     );
 
     cmdBuf.beginRenderPass(
