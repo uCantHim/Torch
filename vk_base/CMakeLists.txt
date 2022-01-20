@@ -13,7 +13,16 @@ find_package(PkgConfig REQUIRED) # For GLFW
 find_package(Vulkan REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 find_package(glm REQUIRED)
-find_package(DevIL REQUIRED)
+find_package(PNG REQUIRED)
+
+# Load CImg
+FetchContent_Declare(
+    cimg
+    GIT_REPOSITORY https://github.com/dtschump/CImg.git
+    GIT_TAG        927fee511fe4fcc1ae5cdf2365a60048fe4ff935
+)
+FetchContent_MakeAvailable(cimg)
+
 
 #############
 # The library
@@ -33,7 +42,8 @@ target_link_libraries(
         Threads::Threads
         Vulkan::Vulkan
         ${GLFW_LIBRARIES}
-        ${IL_LIBRARIES}
+    PRIVATE
+        PNG::PNG
 )
 
 target_include_directories(
@@ -42,8 +52,8 @@ target_include_directories(
         ${Vulkan_INCLUDE_DIRS}
         ${GLFW_INCLUDE_DIRS}
         ${GLM_INCLUDE_DIRS}
-        ${IL_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/include
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/include/vkb
+        ${cimg_SOURCE_DIR}
 )

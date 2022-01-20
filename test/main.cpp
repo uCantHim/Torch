@@ -123,6 +123,21 @@ void run()
     linda->setScale(0.3f).translateX(-1.0f);
     animEngines.emplace_back(&linda->getAnimationEngine())->playAnimation(0);
 
+    // Images
+    auto planeGeo = ar.add(trc::makePlaneGeo());
+    auto transparentImg = ar.add(trc::Material{
+        .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/standard_model.png"))
+    });
+    auto opaqueImg = ar.add(trc::Material{
+        .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/lena.png"))
+    });
+    trc::Drawable img({ planeGeo, transparentImg, true });
+    img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
+    img.attachToScene(scene);
+    trc::Drawable img2({ planeGeo, opaqueImg, true });
+    img2.translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
+    img2.attachToScene(scene);
+
     // Generated plane geo
     auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
     pool.create({ myPlaneGeoIndex, mapMatIndex });

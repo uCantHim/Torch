@@ -37,7 +37,7 @@ trc::GuiRenderTarget::GuiRenderTarget(
 
 auto trc::GuiRenderTarget::getSize() const -> uvec2
 {
-    return { image.getSize().width, image.getSize().height };
+    return image.getSize();
 }
 
 auto trc::GuiRenderTarget::getImage() -> vkb::Image&

@@ -43,6 +43,22 @@ namespace vkb
         Image() = default;
 
         /**
+         * @brief Create a 2D image
+         *
+         * @param uint32_t width
+         * @param uint32_t height
+         * @param vk::Format format
+         */
+        Image(const vkb::Device& device,
+              uint32_t width,
+              uint32_t height,
+              vk::Format format = vk::Format::eR8G8B8A8Unorm,
+              vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eSampled
+                                        | vk::ImageUsageFlagBits::eStorage
+                                        | vk::ImageUsageFlagBits::eTransferDst,
+              const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator());
+
+        /**
          * Image is in layout vk::ImageLayout::eUndefined.
          */
         Image(const Device& device,
@@ -65,7 +81,8 @@ namespace vkb
 
         auto getType() const noexcept -> vk::ImageType;
         auto getFormat() const noexcept -> vk::Format;
-        auto getSize() const noexcept -> vk::Extent3D;
+        auto getSize() const noexcept -> glm::uvec2;
+        auto getExtent() const noexcept -> vk::Extent3D;
 
         /**
          * Change the image's layout in a dedicated command buffer
@@ -145,6 +162,6 @@ namespace vkb
 
         vk::ImageType type;
         vk::Format format;
-        vk::Extent3D size;
+        vk::Extent3D extent;
     };
 } // namespace vkb

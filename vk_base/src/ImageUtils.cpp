@@ -1,6 +1,9 @@
 #include "ImageUtils.h"
 
-#include <IL/il.h>
+#define cimg_display 0
+#define cimg_use_png 1
+#include <CImg.h>
+namespace cimg = cimg_library;
 
 
 
@@ -42,32 +45,32 @@ auto vkb::loadImage2D(
         throw std::runtime_error(filePath.string() + " is not a file");
     }
 
-    ILuint imageId = ilGenImage();
-    ilBindImage(imageId);
-    ilEnable(IL_ORIGIN_SET);
-    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
-    ILboolean success = ilLoadImage(filePath.c_str());
-    if (!success)
+    cimg::CImg<uint8_t> image(filePath.c_str());
+    if (image.spectrum() == 3)  // Image does not have an alpha channel
     {
-        ilDeleteImage(imageId);
-        throw std::runtime_error("Unable to load image from \"" + filePath.string() + "\":"
-                                 + std::to_string(ilGetError()));
+        image.channels(0, 3);
+        image.get_shared_channel(3).fill(255);
     }
-    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
 
-    const auto imageWidth = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_WIDTH));
-    const auto imageHeight = static_cast<uint32_t>(ilGetInteger(IL_IMAGE_HEIGHT));
-    Image result{
-        device,
-        vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
-            { imageWidth, imageHeight, 1 }, 1, 1,
-            vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal, usage
-        ),
-        allocator
-    };
+    const uint32_t width = image.width();
+    const uint32_t height = image.height();
 
-    result.writeData(ilGetData(), 4 * imageWidth * imageHeight, {});
+    uint8_t* pixelData = new uint8_t[4 * image.width() * image.height()];
+    for (size_t h = 0; h < height; h++)
+    {
+        for (size_t w = 0; w < width; w++)
+        {
+            const size_t offset = 4 * h * width + 4 * w;
+            pixelData[offset + 0] = image(w, h, 0, 0);
+            pixelData[offset + 1] = image(w, h, 0, 1);
+            pixelData[offset + 2] = image(w, h, 0, 2);
+            pixelData[offset + 3] = image(w, h, 0, 3);
+        }
+    }
+
+    Image result{ device, width, height, vk::Format::eR8G8B8A8Unorm, usage, allocator };
+    result.writeData(pixelData, 4 * width * height, {});
+    delete[] pixelData;
 
     return result;
 }

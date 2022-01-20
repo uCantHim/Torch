@@ -1,7 +1,5 @@
 #include "Torch.h"
 
-#include <IL/il.h>
-
 #include "UpdatePass.h"
 #include "TorchResources.h"
 #include "ui/torch/GuiIntegration.h"

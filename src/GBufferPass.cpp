@@ -225,7 +225,7 @@ auto trc::GBufferPass::makeVkRenderPass(const vkb::Device& device)
 void trc::GBufferPass::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
 {
     vkb::Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
-    const ivec2 size{ depthImage.getSize().width, depthImage.getSize().height };
+    const ivec2 size{ depthImage.getSize() };
     const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
 
     cmdBuf.pipelineBarrier(

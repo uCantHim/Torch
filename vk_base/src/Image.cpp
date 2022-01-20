@@ -6,6 +6,31 @@
 
 
 vkb::Image::Image(
+    const vkb::Device& device,
+    uint32_t width,
+    uint32_t height,
+    vk::Format format,
+    vk::ImageUsageFlags usage,
+    const DeviceMemoryAllocator& alloc)
+    :
+    Image(
+        device,
+        vk::ImageCreateInfo(
+            {},
+            vk::ImageType::e2D,
+            format,
+            { width, height, 1 },
+            1, 1,
+            vk::SampleCountFlagBits::e1,
+            vk::ImageTiling::eOptimal,
+            usage
+        ),
+        alloc
+    )
+{
+}
+
+vkb::Image::Image(
     const Device& device,
     const vk::ImageCreateInfo& createInfo,
     const DeviceMemoryAllocator& allocator)
@@ -30,9 +55,14 @@ auto vkb::Image::getFormat() const noexcept -> vk::Format
     return format;
 }
 
-auto vkb::Image::getSize() const noexcept -> vk::Extent3D
+auto vkb::Image::getSize() const noexcept -> glm::uvec2
 {
-    return size;
+    return { extent.width, extent.height };
+}
+
+auto vkb::Image::getExtent() const noexcept -> vk::Extent3D
+{
+    return extent;
 }
 
 void vkb::Image::changeLayout(
@@ -175,9 +205,9 @@ auto vkb::Image::createView(
 auto vkb::Image::expandExtent(vk::Extent3D otherExtent) -> vk::Extent3D
 {
     return {
-        otherExtent.width  == UINT32_MAX ? size.width  : otherExtent.width,
-        otherExtent.height == UINT32_MAX ? size.height : otherExtent.height,
-        otherExtent.depth  == UINT32_MAX ? size.depth  : otherExtent.depth
+        otherExtent.width  == UINT32_MAX ? extent.width  : otherExtent.width,
+        otherExtent.height == UINT32_MAX ? extent.height : otherExtent.height,
+        otherExtent.depth  == UINT32_MAX ? extent.depth  : otherExtent.depth
     };
 }
 
@@ -193,5 +223,5 @@ void vkb::Image::createNewImage(
 
     type = createInfo.imageType;
     format = createInfo.format;
-    size = createInfo.extent;
+    extent = createInfo.extent;
 }

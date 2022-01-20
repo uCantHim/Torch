@@ -1,5 +1,6 @@
 #include "ui/torch/GuiIntegration.h"
 
+#include <vkb/Barriers.h>
 #include <vkb/ShaderProgram.h>
 #include <vkb/event/Event.h>
 
@@ -136,18 +137,16 @@ void trc::GuiIntegrationPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
     std::lock_guard lock(renderLock);
 
     auto swapchainImage = swapchain.getImage(swapchain.getCurrentFrame());
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::DependencyFlags(),
-        {},
-        {},
-        vk::ImageMemoryBarrier(
-            {}, {}, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eGeneral,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            swapchainImage,
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-        )
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        swapchainImage,
+        vk::ImageLayout::ePresentSrcKHR,
+        vk::ImageLayout::eGeneral,
+        vk::PipelineStageFlagBits::eAllGraphics,
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::AccessFlagBits::eMemoryWrite,
+        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+        vkb::DEFAULT_SUBRES_RANGE
     );
 
     imageBlendPipeline.bind(cmdBuf);
@@ -159,18 +158,16 @@ void trc::GuiIntegrationPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContent
     constexpr float LOCAL_SIZE{ 10.0f };
     cmdBuf.dispatch(glm::ceil(x / LOCAL_SIZE), glm::ceil(y / LOCAL_SIZE), 1);
 
-    cmdBuf.pipelineBarrier(
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        swapchainImage,
+        vk::ImageLayout::eGeneral,
+        vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits::eComputeShader,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::DependencyFlags(),
-        {},
-        {},
-        vk::ImageMemoryBarrier(
-            {}, {}, vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            swapchainImage,
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-        )
+        vk::PipelineStageFlagBits::eHost,
+        vk::AccessFlagBits::eShaderWrite,
+        vk::AccessFlagBits::eMemoryRead,
+        vkb::DEFAULT_SUBRES_RANGE
     );
 }
 

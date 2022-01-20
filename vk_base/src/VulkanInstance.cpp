@@ -31,9 +31,11 @@ vkb::VulkanInstance::VulkanInstance()
         VK_API_VERSION_1_2
     );
 
+#ifdef TRC_DEBUG
     vk::ValidationFeatureEnableEXT enables[] {
         vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
     };
+#endif
 
     vk::StructureChain chain{
         vk::InstanceCreateInfo({}, &appInfo, layers, extensions),

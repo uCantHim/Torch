@@ -91,7 +91,6 @@ vec3 calcVertexNormal()
     else
     {
         vec3 textureNormal = texture(textures[bumpTex], vert.uv).rgb * 2.0 - 1.0;
-        textureNormal.y = -textureNormal.y;  // Vulkan axis flip
         return normalize(vert.tbn * textureNormal);
     }
 }

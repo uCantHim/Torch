@@ -1,7 +1,5 @@
 #include "VulkanBase.h"
 
-#include <IL/il.h>
-
 
 
 void vkb::init(const VulkanBaseInitInfo& info)
@@ -17,9 +15,6 @@ void vkb::init(const VulkanBaseInitInfo& info)
     if constexpr (vkb::enableVerboseLogging) {
         std::cout << "GLFW initialized successfully\n";
     }
-
-    // Initi DevIL
-    ilInit();
 }
 
 void vkb::terminate()
