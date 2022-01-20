@@ -1,3 +1,5 @@
+add_subdirectory(componentlib)
+
 if (${TORCH_BUILD_SHADER_COMPILER})
     add_subdirectory(shader_edit)
 
