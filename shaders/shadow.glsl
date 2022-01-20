@@ -21,6 +21,9 @@ layout (set = SHADOW_DESCRIPTOR_SET_BINDING, binding = 0) restrict readonly buff
 
 layout (set = SHADOW_DESCRIPTOR_SET_BINDING, binding = 1) uniform sampler2D shadowMaps[];
 
+const float SHADOW_BIAS = 0.0003;
+
+
 /**
  * @brief Tests if a point is in a shadow on a specific shadow map
  *
@@ -31,8 +34,6 @@ layout (set = SHADOW_DESCRIPTOR_SET_BINDING, binding = 1) uniform sampler2D shad
  */
 bool isInShadow(vec3 worldCoords, uint shadowIndex)
 {
-    const float bias = 0.002;
-
     vec4 projCoords = shadowMatrices[shadowIndex] * vec4(worldCoords, 1.0);
     projCoords.xyz /= projCoords.w;
 
@@ -46,7 +47,7 @@ bool isInShadow(vec3 worldCoords, uint shadowIndex)
                         && shadowMapUV.y > 0.0 && shadowMapUV.y < 1.0
                         && objectDepth > 0.0 && objectDepth < 1.0;
 
-    return (objectDepth > (shadowDepth + bias)) && liesInShadowMap;
+    return (objectDepth > (shadowDepth + SHADOW_BIAS)) && liesInShadowMap;
 }
 
 /**
@@ -55,8 +56,6 @@ bool isInShadow(vec3 worldCoords, uint shadowIndex)
  */
 float calcSmoothShadowStrength(vec3 worldCoords, uint shadowIndex)
 {
-    const float bias = 0.002;
-
     vec4 projCoords = shadowMatrices[shadowIndex] * vec4(worldCoords, 1.0);
     projCoords.xyz /= projCoords.w;
 
@@ -86,7 +85,7 @@ float calcSmoothShadowStrength(vec3 worldCoords, uint shadowIndex)
             // Test if the world coordinates map to a point on the shadow map
             bool liesInShadowMap = currentUV.x > 0.0 && currentUV.x < 1.0
                                 && currentUV.y > 0.0 && currentUV.y < 1.0;
-            bool objectIsInShadow = objectDepth > (shadowDepth + bias);
+            bool objectIsInShadow = objectDepth > (shadowDepth + SHADOW_BIAS);
 
             shadowStrength += 1.0 * float(objectIsInShadow && liesInShadowMap);
         }
