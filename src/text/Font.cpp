@@ -4,15 +4,20 @@
 
 
 
-trc::Font::Font(FontDataStorage& storage, const fs::path& path, ui32 fontSize)
+trc::Font::Font(FontDataStorage& storage, Face _face)
     :
-    face(path, fontSize),
+    face(std::move(_face)),
     descProvider({}, {}),
     lineBreakAdvance(static_cast<float>(face.lineSpace) / static_cast<float>(face.maxGlyphHeight))
 {
     auto [map, provider] = storage.allocateGlyphMap();
     glyphMap = map;
     descProvider = provider;
+}
+
+trc::Font::Font(FontDataStorage& storage, const fs::path& path, ui32 fontSize)
+    : Font(storage, Face(path, fontSize))
+{
 }
 
 auto trc::Font::getGlyph(CharCode charCode) -> GlyphDrawData

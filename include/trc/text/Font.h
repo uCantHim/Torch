@@ -23,6 +23,7 @@ namespace trc
     class Font
     {
     public:
+        Font(FontDataStorage& storage, Face face);
         Font(FontDataStorage& storage, const fs::path& path, ui32 fontSize = 18);
 
         /**
