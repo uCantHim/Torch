@@ -6,6 +6,7 @@
 using namespace trc::basic_types;
 
 #include "Scene.h"
+#include "AssetManager.h"
 #include "gui/ImGuiUtil.h"
 #include "gui/MainMenu.h"
 
@@ -16,7 +17,7 @@ public:
     static void end();
 
     static auto getTorch() -> trc::TorchStack&;
-    static auto getAssets() -> trc::AssetRegistry&;
+    static auto getAssets() -> AssetManager&;
     static auto getScene() -> Scene&;
 
 private:
@@ -26,8 +27,9 @@ private:
     static inline bool doEnd{ false };
 
     static inline u_ptr<trc::TorchStack> torch;
-    static inline u_ptr<Scene> scene{ nullptr };
     static inline u_ptr<trc::imgui::ImguiRenderPass> imgui{ nullptr };
+    static inline u_ptr<AssetManager> assetManager;
+    static inline u_ptr<Scene> scene{ nullptr };
 
     static inline gui::MainMenu mainMenu;
 };

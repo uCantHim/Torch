@@ -10,7 +10,7 @@ namespace global
     class ObjectSelection
     {
     public:
-        void selectObject(SceneObject::ID obj)
+        void selectObject(SceneObject obj)
         {
             unselectObject();
             selectedObject = obj;
@@ -19,11 +19,11 @@ namespace global
 
         void unselectObject()
         {
-
+            selectedObject = SceneObject::NONE;
         }
 
     private:
-        SceneObject::ID selectedObject;
+        SceneObject selectedObject;
     };
 
     static inline auto getObjectSelection() -> ObjectSelection&

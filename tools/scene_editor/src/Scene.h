@@ -3,15 +3,19 @@
 #include <vector>
 #include <mutex>
 
+#include <componentlib/ComponentStorage.h>
 #include <trc/Scene.h>
+#include <trc/Camera.h>
+#include <trc/drawable/Drawable.h>
+using namespace trc::basic_types;
 
 #include "SceneObject.h"
-#include "input/CameraController.h"
 
-class Scene
+class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
 public:
     Scene();
+    ~Scene();
 
     void update();
 
@@ -19,31 +23,37 @@ public:
     void loadFromFile();
 
     auto getCamera() -> trc::Camera&;
+    auto getCamera() const -> const trc::Camera&;
     auto getDrawableScene() -> trc::Scene&;
+
+    auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
 
     /**
      * @brief Add a drawable to the underlying trc::Scene
      */
-    template<typename T>
+    template<typename T> requires requires (T a, trc::Scene s) { a.attachToScene(s); }
     void addDrawable(T& drawable)
-        requires requires (T a, trc::Scene s) { a.attachToScene(s); }
     {
         drawable.attachToScene(scene);
     }
-
-    auto addObject(std::unique_ptr<trc::Drawable> drawable) -> SceneObject::ID;
-    auto getObject(SceneObject::ID id) -> SceneObject&;
-    void removeObject(SceneObject::ID id);
 
 private:
     trc::Camera camera;
     trc::Scene scene;
     trc::Light sunLight;
+};
 
-    input::CameraController cameraController{ camera };
+template<>
+struct componentlib::TableTraits<trc::Drawable>
+{
+    using UniqueStorage = std::true_type;
+};
 
-    auto getNextIndex() -> ui32;
-    std::mutex objectListLock;
-    std::vector<std::unique_ptr<SceneObject>> objects;
-    trc::data::IdPool objectIdPool;
+template<>
+struct componentlib::ComponentTraits<trc::Drawable>
+{
+    void onCreate(Scene& scene, SceneObject, trc::Drawable& d)
+    {
+        scene.addDrawable(d);
+    }
 };

@@ -2,25 +2,27 @@
 
 #include <trc/AssetRegistry.h>
 
+#include "App.h"
+#include "Scene.h"
 #include "ObjectSelection.h"
 
 
 
-const bool PickingState::_init = []
+PickingState::PickingState(Scene& scene)
+    :
+    scene(&scene)
 {
-    trc::on<trc::MouseMoveEvent>([](const auto&) { onMouseMove(); });
-    trc::on<trc::MouseClickEvent>(onMouseClick);
-    trc::on<trc::MouseReleaseEvent>(onMouseRelease);
+    trc::on<trc::MouseMoveEvent>([this](auto&) { onMouseMove(); });
+    trc::on<trc::MouseClickEvent>([this](auto& e) { onMouseClick(e); });
+    trc::on<trc::MouseReleaseEvent>([this](auto& e) { onMouseRelease(e); });
+}
 
-    return true;
-}();
-
-void PickingState::hoverObject(SceneObject::ID obj)
+void PickingState::hoverObject(SceneObject obj)
 {
     hoveredObject = obj;
 }
 
-void PickingState::unhoverObject(SceneObject::ID)
+void PickingState::unhoverObject(SceneObject)
 {
     hoveredObject = NO_OBJECT;
 }
@@ -42,7 +44,7 @@ void PickingState::onMouseRelease(const vkb::MouseReleaseEvent& e)
 {
     if (e.button == vkb::MouseButton::left)
     {
-        if (heldObject == nullptr)
+        if (heldObject == NO_OBJECT)
         {
             global::getObjectSelection().selectObject(hoveredObject);
             selectIsPending = false;
@@ -60,49 +62,47 @@ void PickingState::onMouseMove()
         float totalMove = glm::distance(mouseWindowPosAtClick, vkb::Mouse::getPosition());
         if (totalMove >= MOUSE_MOVE_DISTANCE_UNTIL_DRAG)
         {
-            takeObject(App::getScene().getObject(hoveredObject));
+            takeObject(hoveredObject);
             selectIsPending = false;
         }
     }
 
     // Drag object if one is being held
-    if (heldObject != nullptr)
+    if (heldObject != NO_OBJECT)
     {
         moveHeldObject();
     }
 
-    lastFrameMouseWorldPos = App::getTorch().getRenderConfig().getMouseWorldPos(
-        App::getScene().getCamera()
-    );
+    lastFrameMouseWorldPos = App::getTorch().getRenderConfig().getMouseWorldPos(scene->getCamera());
 }
 
-void PickingState::takeObject(SceneObject& obj)
+void PickingState::takeObject(SceneObject obj)
 {
-    heldObject = &obj;
-    initialObjectPos = obj.getSceneNode().getTranslation();
+    heldObject = obj;
+    initialObjectPos = scene->get<ObjectBaseNode>(obj).getTranslation();
 }
 
 void PickingState::dropObject()
 {
-    heldObject = nullptr;
+    heldObject = NO_OBJECT;
 }
 
 void PickingState::resetObject()
 {
-    if (heldObject == nullptr) return;
+    if (heldObject == NO_OBJECT) return;
 
-    heldObject->getSceneNode().setTranslation(initialObjectPos);
+    scene->get<ObjectBaseNode>(heldObject).setTranslation(initialObjectPos);
     dropObject();
 }
 
 void PickingState::moveHeldObject()
 {
-    if (heldObject == nullptr) return;
+    if (heldObject == NO_OBJECT) return;
 
     const vec3 currentMouseWorldPos = App::getTorch().getRenderConfig().getMouseWorldPos(
         App::getScene().getCamera()
     );
 
-    heldObject->getSceneNode().translate(currentMouseWorldPos - lastFrameMouseWorldPos);
+    scene->get<ObjectBaseNode>(heldObject).translate(currentMouseWorldPos - lastFrameMouseWorldPos);
     lastFrameMouseWorldPos = currentMouseWorldPos;
 }

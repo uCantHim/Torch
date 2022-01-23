@@ -29,9 +29,9 @@ auto App::getTorch() -> trc::TorchStack&
     return *torch;
 }
 
-auto App::getAssets() -> trc::AssetRegistry&
+auto App::getAssets() -> AssetManager&
 {
-    return torch->getAssetRegistry();
+    return *assetManager;
 }
 
 auto App::getScene() -> Scene&
@@ -43,6 +43,7 @@ void App::init()
 {
     torch = trc::initFull();
     imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout());
+    assetManager = std::make_unique<AssetManager>(torch->getAssetRegistry());
 
     vkb::Keyboard::init();
     vkb::Mouse::init();
@@ -60,20 +61,20 @@ void App::init()
     });
 
     // Create resources
-    auto& ar = torch->getAssetRegistry().named;
-    auto mg = ar.add("green", trc::Material{ .color = vec4(0, 0.6, 0, 1), .kSpecular = vec4(0.0f) });
-    auto mr = ar.add("red", trc::Material{ .color = vec4(1, 0, 0, 1) });
+    auto& ar = getAssets();
+    auto mg = ar.add(trc::Material{ .color = vec4(0, 0.6, 0, 1), .kSpecular = vec4(0.0f) });
+    auto mr = ar.add(trc::Material{ .color = vec4(1, 0, 0, 1) });
 
-    auto gi = ar.add("ground_plane", trc::makePlaneGeo(20, 20, 1, 1));
-    auto gi1 = ar.add("plane", trc::makePlaneGeo(0.5f, 0.5f, 1, 1));
-    auto cubeGeo = ar.add("cube", trc::makeCubeGeo());
+    auto gi = ar.add(trc::makePlaneGeo(20, 20, 1, 1));
+    auto gi1 = ar.add(trc::makePlaneGeo(0.5f, 0.5f, 1, 1));
+    auto cubeGeo = ar.add(trc::makeCubeGeo());
 
-    scene->addObject(std::make_unique<trc::Drawable>(gi, mg));
+    scene->createDefaultObject(trc::Drawable(gi, mg));
 
-    auto& smallPlane = scene->getObject(scene->addObject(std::make_unique<trc::Drawable>(gi1, mr)));
-    smallPlane.getSceneNode().rotateX(glm::radians(90.0f)).translateY(1.5f);
+    auto smallPlane = scene->createDefaultObject(trc::Drawable(gi1, mr));
+    scene->get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
 
-    scene->addObject(std::make_unique<trc::Drawable>(cubeGeo, mr));
+    scene->createDefaultObject(trc::Drawable(cubeGeo, mr));
 }
 
 void App::tick()

@@ -1,8 +1,9 @@
 target_sources(scene_editor PRIVATE
     App.cpp
+    AssetManager.cpp
     GlobalState.cpp
+    Hitbox.cpp
     Scene.cpp
-    SceneObject.cpp
 )
 
 add_subdirectory(input)
