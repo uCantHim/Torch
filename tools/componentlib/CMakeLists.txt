@@ -1,3 +1,5 @@
+set(COMPONENTLIB_BUILD_TESTS ${TORCH_BUILD_TEST})
+
 add_library(component STATIC
     include/componentlib/TableBase.h
     include/componentlib/Table.h
@@ -13,3 +15,7 @@ torch_default_compile_options(component)
 target_include_directories(component PUBLIC include/)
 target_link_libraries(component PUBLIC torch_util)
 set_target_properties(component PROPERTIES LINKER_LANGUAGE CXX)
+
+if (${COMPONENTLIB_BUILD_TESTS})
+    add_subdirectory(test)
+endif ()
