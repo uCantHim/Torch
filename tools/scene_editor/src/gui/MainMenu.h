@@ -2,18 +2,18 @@
 
 #include <unordered_map>
 
-#include <trc/Scene.h>
-
 #include "gui/ImGuiUtil.h"
 #include "gui/AssetEditor.h"
 #include "gui/SceneEditorFileExplorer.h"
+
+class App;
 
 namespace gui
 {
     class MainMenu
     {
     public:
-        MainMenu();
+        MainMenu(App& app);
 
         void drawImGui();
 

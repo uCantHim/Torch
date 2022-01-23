@@ -3,9 +3,8 @@
 #include <vector>
 #include <unordered_set>
 
-#include <trc/AssetRegistry.h>
-
 #include "ImGuiUtil.h"
+#include "AssetManager.h"
 #include "MaterialEditor.h"
 
 namespace gui
@@ -13,6 +12,8 @@ namespace gui
     class AssetEditor
     {
     public:
+        AssetEditor(AssetManager& assetManager);
+
         void drawImGui();
 
     private:
@@ -21,6 +22,8 @@ namespace gui
             std::string name;
             trc::MaterialID matId;
         };
+
+        AssetManager* assets;
 
         void drawMaterialGui();
         void drawMaterialList();

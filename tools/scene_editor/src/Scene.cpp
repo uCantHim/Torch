@@ -6,16 +6,16 @@
 
 
 
-Scene::Scene()
+Scene::Scene(App& app)
     :
-    sunLight()
+    app(&app)
 {
     auto recalcProjMat = [this](const vkb::SwapchainResizeEvent& e)
     {
         auto size = e.swapchain->getImageExtent();
         camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 50.0f);
     };
-    recalcProjMat({ { &App::getTorch().getWindow() } });
+    recalcProjMat({ { &app.getTorch().getWindow() } });
     camera.lookAt({ 5, 5, 5 }, { 0, 0, 0 }, { 0, 1, 0 });
     vkb::on<vkb::SwapchainResizeEvent>(recalcProjMat);
 
@@ -24,7 +24,7 @@ Scene::Scene()
     scene.enableShadow(
         sunLight,
         trc::ShadowCreateInfo{ .shadowMapResolution={ 4096, 4096 } },
-        App::getTorch().getShadowPool()
+        app.getTorch().getShadowPool()
     ).setProjectionMatrix(glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 50.0f));;
 }
 
@@ -37,24 +37,7 @@ void Scene::update()
 {
     scene.updateTransforms();
 
-    const vec3 mousePos = App::getTorch().getRenderConfig().getMouseWorldPos(camera);
-    float closestDist{ std::numeric_limits<float>::max() };
-    SceneObject closestObject{ SceneObject::NONE };
-    for (const auto& [key, hitbox] : get<Hitbox>().items())
-    {
-        if (hitbox.isInside(mousePos))
-        {
-            std::cout << "Mouse is inside of " << key << "\n";
-            const float dist = distance(mousePos, hitbox.getSphere().position);
-            if (dist < closestDist)
-            {
-                closestDist = dist;
-                closestObject = key;
-            }
-        }
-    }
-
-    std::cout << "Closest object is " << closestObject << "\n";
+    calcObjectHover();
 }
 
 auto Scene::getCamera() -> trc::Camera&
@@ -79,7 +62,32 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     auto& d = add<trc::Drawable>(obj, std::move(drawable));
     node.attach(d);
 
-    add<Hitbox>(obj, App::getAssets().getHitbox(d.getGeometry()));
+    scene.getRoot().attach(node);
+
+    add<Hitbox>(obj, app->getAssets().getHitbox(d.getGeometry()));
 
     return obj;
+}
+
+void Scene::calcObjectHover()
+{
+    const vec3 mousePos = app->getTorch().getRenderConfig().getMouseWorldPos(camera);
+
+    float closestDist{ std::numeric_limits<float>::max() };
+    SceneObject closestObject{ SceneObject::NONE };
+    for (const auto& [key, hitbox, node] : get<Hitbox>().join(get<ObjectBaseNode>()))
+    {
+        mat4 toObjectSpace = glm::inverse(node.getGlobalTransform());
+        if (hitbox.isInside(toObjectSpace * vec4(mousePos, 1.0f)))
+        {
+            const float dist = distance(mousePos, hitbox.getSphere().position);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closestObject = key;
+            }
+        }
+    }
+
+    objectSelection.hoverObject(closestObject);
 }

@@ -2,11 +2,14 @@
 
 #include <trc_util/Timer.h>
 
+#include "App.h"
 #include "ImGuiUtil.h"
 
 
 
-gui::MainMenu::MainMenu()
+gui::MainMenu::MainMenu(App& app)
+    :
+    assetEditor(app.getAssets())
 {
 }
 

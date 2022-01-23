@@ -2,33 +2,19 @@
 
 #include "SceneObject.h"
 
-namespace global
+/**
+ * Global state that stores selected objects
+ */
+class ObjectSelection
 {
-    /**
-     * Global state that stores selected objects
-     */
-    class ObjectSelection
-    {
-    public:
-        void selectObject(SceneObject obj)
-        {
-            unselectObject();
-            selectedObject = obj;
-            std::cout << "Object selected\n";
-        }
+public:
+    void hoverObject(SceneObject obj);
+    void unhoverObject();
 
-        void unselectObject()
-        {
-            selectedObject = SceneObject::NONE;
-        }
+    void selectObject(SceneObject obj);
+    void unselectObject();
 
-    private:
-        SceneObject selectedObject;
-    };
-
-    static inline auto getObjectSelection() -> ObjectSelection&
-    {
-        static ObjectSelection objectSelection;
-        return objectSelection;
-    }
-} // namespace global
+private:
+    SceneObject hoveredObject{ SceneObject::NONE };
+    SceneObject selectedObject{ SceneObject::NONE };
+};

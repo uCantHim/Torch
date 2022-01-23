@@ -10,11 +10,14 @@
 using namespace trc::basic_types;
 
 #include "SceneObject.h"
+#include "ObjectSelection.h"
+
+class App;
 
 class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
 public:
-    Scene();
+    explicit Scene(App& app);
     ~Scene();
 
     void update();
@@ -38,9 +41,15 @@ public:
     }
 
 private:
+    void calcObjectHover();
+
+    App* app;
+
     trc::Camera camera;
     trc::Scene scene;
     trc::Light sunLight;
+
+    ObjectSelection objectSelection;
 };
 
 template<>

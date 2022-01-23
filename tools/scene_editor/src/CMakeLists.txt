@@ -1,8 +1,8 @@
 target_sources(scene_editor PRIVATE
     App.cpp
     AssetManager.cpp
-    GlobalState.cpp
     Hitbox.cpp
+    ObjectSelection.cpp
     Scene.cpp
 )
 

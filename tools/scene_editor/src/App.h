@@ -13,23 +13,27 @@ using namespace trc::basic_types;
 class App
 {
 public:
-    static void start(int argc, char* argv[]);
-    static void end();
+    App(int argc, char* argv[]);
+    ~App();
 
-    static auto getTorch() -> trc::TorchStack&;
-    static auto getAssets() -> AssetManager&;
-    static auto getScene() -> Scene&;
+    void run();
+    void end();
+
+    auto getTorch() -> trc::TorchStack&;
+    auto getAssets() -> AssetManager&;
+    auto getScene() -> Scene&;
 
 private:
-    static void init();
-    static void tick();
-    static void terminate();
-    static inline bool doEnd{ false };
+    void init();
+    void tick();
+    bool doEnd{ false };
 
-    static inline u_ptr<trc::TorchStack> torch;
-    static inline u_ptr<trc::imgui::ImguiRenderPass> imgui{ nullptr };
-    static inline u_ptr<AssetManager> assetManager;
-    static inline u_ptr<Scene> scene{ nullptr };
+    u_ptr<int, std::function<void(int*)>> trcTerminator;
 
-    static inline gui::MainMenu mainMenu;
+    u_ptr<trc::TorchStack> torch;
+    u_ptr<trc::imgui::ImguiRenderPass> imgui{ nullptr };
+    AssetManager assetManager;
+    Scene scene;
+
+    gui::MainMenu mainMenu;
 };

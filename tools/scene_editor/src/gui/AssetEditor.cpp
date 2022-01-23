@@ -4,6 +4,12 @@
 
 
 
+gui::AssetEditor::AssetEditor(AssetManager& assetManager)
+    :
+    assets(&assetManager)
+{
+}
+
 void gui::AssetEditor::drawImGui()
 {
     imGuiTryBegin("Asset Editor");
@@ -21,7 +27,7 @@ void gui::AssetEditor::drawMaterialGui()
         if (matName.empty()) return;
 
         try {
-            trc::MaterialID matId = App::getAssets().add(trc::Material{});
+            trc::MaterialID matId = assets->add(trc::Material{});
             materials.emplace_back(matNameBuf.data(), matId);
             editedMaterial = matId;
             editedMaterialCopy = {}; // New material
@@ -42,8 +48,8 @@ void gui::AssetEditor::drawMaterialGui()
         materialEditor("Material Editor", editedMaterialCopy,
             [this]() {
                 // Material has been saved
-                App::getAssets().get(editedMaterial) = editedMaterialCopy;
-                App::getAssets().updateMaterials();
+                assets->get(editedMaterial) = editedMaterialCopy;
+                assets->updateMaterials();
                 editedMaterial = {};
             },
             [this]() {
@@ -63,7 +69,7 @@ void gui::AssetEditor::drawMaterialList()
         ig::SameLine();
         if (ig::Button("Edit")) {
             editedMaterial = mat.matId;
-            editedMaterialCopy = App::getAssets().get(mat.matId);
+            editedMaterialCopy = assets->get(mat.matId);
         }
         ig::PopID();
     }

@@ -1,5 +1,7 @@
 #include "Hitbox.h"
 
+#include <iostream>
+
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 
@@ -25,6 +27,15 @@ auto makeHitbox(const trc::GeometryData& geo) -> Hitbox
     const float height = maxCoords.y - minCoords.y;
     const float xzRadius = distance(xz(lowerPoint), xz(maxAbsCoords));
     Capsule capsule(height, xzRadius, lowerPoint);
+
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        vec3 m = sphere.position;
+        std::cout << "Generated hitbox for geometry with "
+            << "sphere [m = (" << m.x << ", " << m.y << ", " << m.z << "), r = " << sphere.radius
+            << "] and capsule [r = " << capsule.radius << ", h = " << capsule.height << "]"
+            << "\n";
+    }
 
     return { sphere, capsule };
 }
