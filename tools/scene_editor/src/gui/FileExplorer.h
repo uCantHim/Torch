@@ -3,7 +3,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include "ImGuiUtil.h"
+#include "ImguiUtil.h"
 
 namespace gui
 {

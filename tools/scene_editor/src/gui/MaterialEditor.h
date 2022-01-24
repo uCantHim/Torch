@@ -2,7 +2,7 @@
 
 #include <trc/Material.h>
 
-#include "ImGuiUtil.h"
+#include "ImguiUtil.h"
 
 namespace gui
 {

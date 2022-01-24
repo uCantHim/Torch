@@ -1,5 +1,7 @@
 #include "SceneEditorFileExplorer.h"
 
+#include "ContextMenu.h"
+
 
 
 gui::FileContentsPreview::FileContentsPreview(fs::path filePath)

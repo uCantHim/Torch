@@ -5,6 +5,8 @@
 
 #include <trc_util/Timer.h>
 
+#include "gui/ContextMenu.h"
+
 
 
 App::App(int, char*[])
@@ -22,18 +24,11 @@ App::App(int, char*[])
         if (e.key == vkb::Key::escape) { end(); }
     });
 
-    // Create GUI
-    vkb::on<vkb::MouseClickEvent>([](const auto& e)
-    {
-        if (e.button == vkb::MouseButton::right) {
-            gui::util::ContextMenu::show("object", []() { ig::Text("Hello context!"); });
-        }
-    });
-
     // Create resources
     auto& ar = getAssets();
     auto mg = ar.add(trc::Material{ .color = vec4(0, 0.6, 0, 1), .kSpecular = vec4(0.0f) });
     auto mr = ar.add(trc::Material{ .color = vec4(1, 0, 0, 1) });
+    auto mo = ar.add(trc::Material{ .color = vec4(1, 0.35f, 0, 1) });
 
     auto gi = ar.add(trc::makePlaneGeo(20, 20, 1, 1));
     auto gi1 = ar.add(trc::makePlaneGeo(0.5f, 0.5f, 1, 1));
@@ -44,7 +39,7 @@ App::App(int, char*[])
     auto smallPlane = scene.createDefaultObject(trc::Drawable(gi1, mr));
     scene.get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
 
-    auto cube = scene.createDefaultObject(trc::Drawable(cubeGeo, mr));
+    auto cube = scene.createDefaultObject(trc::Drawable(cubeGeo, mo));
     scene.get<ObjectBaseNode>(cube).translateY(0.5f);
 }
 
@@ -92,7 +87,7 @@ void App::tick()
     // Render
     trc::imgui::beginImguiFrame();
     mainMenu.drawImGui();
-    gui::util::ContextMenu::drawImGui();
+    gui::ContextMenu::drawImGui();
 
     torch->drawFrame(torch->makeDrawConfig(scene.getDrawableScene(), scene.getCamera()));
 

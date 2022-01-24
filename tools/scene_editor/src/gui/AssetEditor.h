@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_set>
 
-#include "ImGuiUtil.h"
+#include "ImguiUtil.h"
 #include "AssetManager.h"
 #include "MaterialEditor.h"
 

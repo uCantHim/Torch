@@ -7,7 +7,6 @@ using namespace trc::basic_types;
 
 #include "Scene.h"
 #include "AssetManager.h"
-#include "gui/ImGuiUtil.h"
 #include "gui/MainMenu.h"
 
 class App

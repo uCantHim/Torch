@@ -4,7 +4,7 @@
 
 #include <trc/AssetRegistry.h>
 
-#include "Hitbox.h"
+#include "object/Hitbox.h"
 
 /**
  * @brief

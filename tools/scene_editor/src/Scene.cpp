@@ -3,12 +3,15 @@
 #include <vkb/event/WindowEvents.h>
 
 #include "App.h"
+#include "gui/ContextMenu.h"
+#include "object/Context.h"
 
 
 
 Scene::Scene(App& app)
     :
-    app(&app)
+    app(&app),
+    objectSelection(*this)
 {
     auto recalcProjMat = [this](const vkb::SwapchainResizeEvent& e)
     {
@@ -26,6 +29,22 @@ Scene::Scene(App& app)
         trc::ShadowCreateInfo{ .shadowMapResolution={ 4096, 4096 } },
         app.getTorch().getShadowPool()
     ).setProjectionMatrix(glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 50.0f));;
+
+    // Create GUI
+    vkb::on<vkb::MouseClickEvent>([this](const auto& e)
+    {
+        if (e.button == vkb::MouseButton::right
+            && objectSelection.hasHoveredObject())
+        {
+            auto obj = objectSelection.getHoveredObject();
+            gui::ContextMenu::show(
+                "object " + obj.toString(),
+                makeContext(*this, obj)
+            );
+        }
+    });
+
+    vkb::on<vkb::MouseClickEvent>([](auto&) { gui::ContextMenu::close(); });
 }
 
 Scene::~Scene()
@@ -38,6 +57,16 @@ void Scene::update()
     scene.updateTransforms();
 
     calcObjectHover();
+}
+
+auto Scene::getTorch() -> trc::TorchStack&
+{
+    return app->getTorch();
+}
+
+auto Scene::getAssets() -> AssetManager&
+{
+    return app->getAssets();
 }
 
 auto Scene::getCamera() -> trc::Camera&
@@ -71,17 +100,17 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
 
 void Scene::calcObjectHover()
 {
-    const vec3 mousePos = app->getTorch().getRenderConfig().getMouseWorldPos(camera);
+    const vec4 mousePos = vec4(app->getTorch().getRenderConfig().getMouseWorldPos(camera), 1.0f);
 
     float closestDist{ std::numeric_limits<float>::max() };
     SceneObject closestObject{ SceneObject::NONE };
     for (const auto& [key, hitbox, node] : get<Hitbox>().join(get<ObjectBaseNode>()))
     {
-        mat4 toObjectSpace = glm::inverse(node.getGlobalTransform());
-        if (hitbox.isInside(toObjectSpace * vec4(mousePos, 1.0f)))
+        const vec3 objectSpace = glm::inverse(node.getGlobalTransform()) * mousePos;
+        if (hitbox.isInside(objectSpace))
         {
-            const float dist = distance(mousePos, hitbox.getSphere().position);
-            if (dist < closestDist)
+            const float dist = distance(objectSpace, hitbox.getSphere().position);
+            if (dist <= closestDist)
             {
                 closestDist = dist;
                 closestObject = key;

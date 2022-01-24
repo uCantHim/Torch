@@ -4,15 +4,14 @@
 #include <mutex>
 
 #include <componentlib/ComponentStorage.h>
-#include <trc/Scene.h>
-#include <trc/Camera.h>
-#include <trc/drawable/Drawable.h>
+#include <trc/Torch.h>
 using namespace trc::basic_types;
 
-#include "SceneObject.h"
-#include "ObjectSelection.h"
+#include "object/SceneObject.h"
+#include "object/ObjectSelection.h"
 
 class App;
+class AssetManager;
 
 class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
@@ -25,6 +24,8 @@ public:
     void saveToFile();
     void loadFromFile();
 
+    auto getTorch() -> trc::TorchStack&;
+    auto getAssets() -> AssetManager&;
     auto getCamera() -> trc::Camera&;
     auto getCamera() const -> const trc::Camera&;
     auto getDrawableScene() -> trc::Scene&;
