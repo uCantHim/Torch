@@ -38,6 +38,12 @@ struct ComponentID
     template<typename T>
     friend auto operator<<(std::ostream& s, const ComponentID<T>& obj) -> std::ostream&;
 
+    inline auto toString() const -> std::string
+    {
+        if (*this == NONE) return "NONE";
+        else               return std::to_string(id);
+    }
+
 private:
     // Make GameObject able to be used as a Table<> key
     template<typename, TableKey> friend class Table;
@@ -60,7 +66,7 @@ template<typename T>
 inline auto operator<<(std::ostream& s, const ComponentID<T>& obj) -> std::ostream&
 {
     if (obj == ComponentID<T>::NONE) s << "NONE";
-    else                          s << obj.id;
+    else                             s << obj.id;
 
     return s;
 }
@@ -76,4 +82,10 @@ namespace std
             return obj.id;
         }
     };
+
+    template<typename T>
+    inline auto to_string(const componentlib::ComponentID<T>& id) -> std::string
+    {
+        return id.toString();
+    }
 }
