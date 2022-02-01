@@ -6,6 +6,7 @@
 #include <trc_util/Timer.h>
 
 #include "gui/ContextMenu.h"
+#include "DefaultAssets.h"
 
 
 
@@ -25,6 +26,8 @@ App::App(int, char*[])
     });
 
     // Create resources
+    initDefaultAssets(assetManager);
+
     auto& ar = getAssets();
     auto mg = ar.add(trc::Material{ .color = vec4(0, 0.6, 0, 1), .kSpecular = vec4(0.0f) });
     auto mr = ar.add(trc::Material{ .color = vec4(1, 0, 0, 1) });
