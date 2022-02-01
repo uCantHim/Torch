@@ -16,11 +16,8 @@ class TypesafeID
 public:
     using Type = IdType;
 
-    /**
-     * Maximum value of the underlying numeric type. Can be used to
-     * signal an empty value.
-     */
-    static constexpr IdType NONE{ std::numeric_limits<IdType>::max() };
+    struct NoneType {};
+    static constexpr NoneType NONE{};
 
     constexpr TypesafeID() = default;
     explicit constexpr TypesafeID(IdType id) : _id(id) {}
@@ -29,9 +26,13 @@ public:
     explicit constexpr TypesafeID(T id)
         : _id(static_cast<IdType>(id)) {}
 
+    constexpr TypesafeID(const NoneType&) {
+        _setNone();
+    }
+
     /**
-     * Can only be implicitly cast to the ID type, but not to other
-     * arithmetic types.
+     * Can be implicitly cast to the numeric type, but not implicitly
+     * constructed from it.
      */
     constexpr operator IdType() const noexcept {
         return _id;
@@ -40,15 +41,36 @@ public:
     /**
      * Allow explicit casts to all arithmetic types
      */
-    template<typename T>
-    explicit constexpr operator T() const noexcept requires std::convertible_to<IdType, T> {
+    template<std::convertible_to<IdType> T>
+    explicit constexpr operator T() const noexcept {
         return static_cast<T>(_id);
     }
 
-    inline auto operator<=>(const TypesafeID<ClassType, IdType>&) const = default;
+    constexpr auto operator<=>(const TypesafeID<ClassType, IdType>&) const = default;
+
+    constexpr bool operator==(const NoneType&) const {
+        return _isNone();
+    }
+
+    constexpr bool operator!=(const NoneType&) const {
+        return !_isNone();
+    }
+
+    inline auto operator=(const NoneType&)
+    {
+        _setNone();
+        return *this;
+    }
 
 private:
-    IdType _id{ static_cast<IdType>(0) };
+    constexpr bool _isNone() const {
+        return _id == std::numeric_limits<IdType>::max();
+    }
+    constexpr void _setNone() {
+        _id = std::numeric_limits<IdType>::max();
+    }
+
+    IdType _id{ std::numeric_limits<IdType>::max() };
 };
 
 } // namespace trc::data

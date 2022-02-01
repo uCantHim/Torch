@@ -8,7 +8,9 @@ auto trc::AssetRegistry::addToMap(
     TypesafeID<U> key,
     Args&&... args) -> T&
 {
-    assert(static_cast<ui32>(key) != UINT32_MAX);  // Reserved ID that signals empty value
+    if (key == TypesafeID<U>::NONE) {
+        throw Exception("[In AssetRegistry::addToMap]: Key is NONE");
+    }
 
     if (map.size() > static_cast<size_t>(key) && map.at(key) != nullptr) {
         throw DuplicateKeyError();
@@ -22,7 +24,9 @@ auto trc::AssetRegistry::getFromMap(
     data::IndexMap<TypesafeID<U>, u_ptr<T>>& map,
     TypesafeID<U> key) -> T&
 {
-    assert(static_cast<ui32>(key) != UINT32_MAX);  // Reserved ID that signals empty value
+    if (key == TypesafeID<U>::NONE) {
+        throw Exception("[In AssetRegistry::addToMap]: Key is NONE");
+    }
 
     if (map.size() <= static_cast<size_t>(key) || map.at(key) == nullptr) {
         throw KeyNotFoundError();
