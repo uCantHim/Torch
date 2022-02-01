@@ -16,19 +16,30 @@ namespace trc
     class Drawable : public Node
     {
     public:
-        Drawable() = default;
-        ~Drawable() = default;
-
-        explicit
-        Drawable(const DrawableCreateInfo& info);
-        Drawable(GeometryID geo, MaterialID material);
-        Drawable(GeometryID geo, MaterialID material, SceneBase& scene);
-
         Drawable(Drawable&&) noexcept = default;
         auto operator=(Drawable&&) noexcept -> Drawable& = default;
 
         Drawable(const Drawable&) = delete;
         auto operator=(const Drawable&) -> Drawable& = delete;
+
+        Drawable() = default;
+        ~Drawable() = default;
+
+        /**
+         * @brief Create a drawable with default settings
+         */
+        explicit
+        Drawable(const DrawableCreateInfo& info);
+
+        /**
+         * @brief Create a drawable with a custom pipeline for the g-buffer pass
+         */
+        Drawable(const DrawableCreateInfo& info, Pipeline::ID gBufferPipeline);
+
+        /** @brief Legacy constructor */
+        Drawable(GeometryID geo, MaterialID material);
+        /** @brief Legacy constructor */
+        Drawable(GeometryID geo, MaterialID material, SceneBase& scene);
 
         auto getMaterial() const -> MaterialID;
         auto getGeometry() const -> GeometryID;
@@ -81,6 +92,7 @@ namespace trc
         SceneBase::UniqueRegistrationID shadowRegistration;
 
         AnimationEngine animEngine;
-        u_ptr<DrawableData> data;
+        u_ptr<DrawableData> data{ nullptr };
+        bool castShadow;
     };
 }

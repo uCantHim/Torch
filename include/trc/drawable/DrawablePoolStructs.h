@@ -18,6 +18,7 @@ namespace trc
         MaterialID mat;
 
         bool transparent{ false };
+        bool drawShadow{ true };
 
         bool rasterized{ true };
         bool rayTraced{ true };

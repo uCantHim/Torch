@@ -28,35 +28,50 @@ Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
 
 Drawable::Drawable(const DrawableCreateInfo& info)
     :
+    Drawable(info, [&]{
+        PipelineFeatureFlags flags;
+        if (info.transparent) {
+            flags |= PipelineFeatureFlagBits::eTransparent;
+        }
+        if (info.geo.get().hasRig()) {
+            flags |= PipelineFeatureFlagBits::eAnimated;
+        }
+
+        return getPipeline(flags);
+    }())
+{
+}
+
+Drawable::Drawable(const DrawableCreateInfo& info, Pipeline::ID pipeline)
+    :
+    deferredPipeline(pipeline),
     data(std::make_unique<DrawableData>(
         info.geo.get(),
         info.geo,
         info.mat,
         Node::getGlobalTransformID(),
         animEngine.getState()
-    ))
+    )),
+    castShadow(info.drawShadow)
 {
-    PipelineFeatureFlags flags;
-    if (info.transparent) {
-        flags |= PipelineFeatureFlagBits::eTransparent;
-    }
-    if (data->geo.hasRig()) {
-        flags |= PipelineFeatureFlagBits::eAnimated;
-    }
-
-    deferredPipeline = getPipeline(flags);
     deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
                                        : GBufferPass::SubPasses::gBuffer;
 }
 
 auto Drawable::getMaterial() const -> MaterialID
 {
-    return data->mat;
+    if (data != nullptr) {
+        return data->mat;
+    }
+    return {};
 }
 
 auto Drawable::getGeometry() const -> GeometryID
 {
-    return data->geoId;
+    if (data != nullptr) {
+        return data->geoId;
+    }
+    return {};
 }
 
 auto Drawable::getAnimationEngine() noexcept -> AnimationEngine&
@@ -71,6 +86,8 @@ auto Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
 
 void Drawable::attachToScene(SceneBase& scene)
 {
+    if (data == nullptr) return;
+
     DrawableFunction func;
     if (data->geo.hasRig())
     {
@@ -110,13 +127,16 @@ void Drawable::attachToScene(SceneBase& scene)
         deferredPipeline,
         std::move(func)
     );
-    shadowRegistration = scene.registerDrawFunction(
-        shadowRenderStage, SubPass::ID(0),
-        getPipeline(PipelineFeatureFlagBits::eShadow),
-        [data=this->data.get()](const auto& env, vk::CommandBuffer cmdBuf) {
-            drawShadow(*data, env, cmdBuf);
-        }
-    );
+    if (castShadow)
+    {
+        shadowRegistration = scene.registerDrawFunction(
+            shadowRenderStage, SubPass::ID(0),
+            getPipeline(PipelineFeatureFlagBits::eShadow),
+            [data=this->data.get()](const auto& env, vk::CommandBuffer cmdBuf) {
+                drawShadow(*data, env, cmdBuf);
+            }
+        );
+    }
 }
 
 void Drawable::removeFromScene()
