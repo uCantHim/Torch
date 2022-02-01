@@ -206,7 +206,7 @@ auto trc::Transformation::setScaleZ(float s) -> self&
 // Rotation
 auto trc::Transformation::rotate(float x, float y, float z) -> self&
 {
-    rotation = quat(vec3(x, y, z));
+    rotation = quat(vec3(x, y, z)) * rotation;
 
     updateMatrix();
     return *this;
