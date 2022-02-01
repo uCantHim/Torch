@@ -147,6 +147,9 @@ public:
 
     /**
      * @brief Add a component to a game object
+     *
+     * If a component of type C already exists for the object, this does
+     * nothing and returns the existing component.
      */
     template<ComponentType C, typename ...Args>
         requires std::constructible_from<C, Args...>
@@ -486,7 +489,10 @@ template<ComponentType C, typename ...Args>
 inline auto ComponentStorage<Derived, Key>::createComponent(Key obj, Args&&... args) -> C&
 {
     // Construct the component
-    C& component = getTable<C>().emplace(obj, std::forward<Args>(args)...);
+    auto [component, success] = getTable<C>().try_emplace(obj, std::forward<Args>(args)...);
+    if (!success) {
+        return component;
+    }
 
     // Optionally call initializer functions
     if constexpr (hasComponentConstructor<C>)
