@@ -223,11 +223,12 @@ void run()
     });
 
 
-    // Custom cube geo test
+    // Generated cube geo
     auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
     auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1, 0.5} });
     auto cube = pool.create({ cubeGeoIdx, cubeMatIdx, true });
     cube->translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
+
     std::thread cubeRotateThread([&cube, &running]() {
         while (running)
         {
@@ -238,9 +239,9 @@ void run()
 
     // Thing at cursor
     auto cursorCubeMat = ar.add(trc::Material{ .color=vec4(1, 1, 0, 0.3f) });
-    trc::Drawable cursorCube({ cubeGeoIdx, cursorCubeMat, true });
-    cursorCube.attachToScene(scene);
-    cursorCube.scale(0.2f);
+    trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false });
+    cursor.attachToScene(scene);
+    cursor.scale(0.15f);
 
     // Text
     trc::Font font = ar.getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
@@ -258,7 +259,7 @@ void run()
 
         scene.updateTransforms();
 
-        cursorCube.setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
+        cursor.setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
         const float time = animTimer.reset();
         for (auto anim : animEngines) {
             anim->update(time);

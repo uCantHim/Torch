@@ -26,6 +26,17 @@ namespace trc
     auto makeCubeGeo() -> GeometryData;
 
     /**
+     * @brief Generate a sphere geometry
+     *
+     * @param size_t columns Number of vertices on any given horizontal
+     *                       `2*PI`-long ring.
+     * @param size_t rows    Number of vertices on any given vertical
+     *                       `PI`-long half-ring. Is usually half as much
+     *                       as `columns`.
+     */
+    auto makeSphereGeo(size_t columns = 32, size_t rows = 16) -> GeometryData;
+
+    /**
      * @brief Handle to a geometry stored in the asset registry
      */
     class Geometry
