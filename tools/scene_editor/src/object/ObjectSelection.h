@@ -1,6 +1,7 @@
 #pragma once
 
 #include <trc/core/SceneBase.h>
+#include <trc/drawable/Drawable.h>
 #include <trc/AssetIds.h>
 
 #include "SceneObject.h"
@@ -31,6 +32,5 @@ private:
     SceneObject hoveredObject{ SceneObject::NONE };
     SceneObject selectedObject{ SceneObject::NONE };
 
-    trc::MaterialID objectShadeMaterial;
-    trc::SceneBase::UniqueRegistrationID objectShadeDrawable;
+    trc::Drawable objectShadeDrawable;
 };

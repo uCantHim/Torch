@@ -6,6 +6,7 @@
 
 #include "Scene.h"
 #include "AssetManager.h"
+#include "DefaultAssets.h"
 
 
 
@@ -37,10 +38,7 @@ auto getMouseHoverPipeline() -> trc::Pipeline::ID
 
 ObjectSelection::ObjectSelection(Scene& scene)
     :
-    scene(&scene),
-    objectShadeMaterial(
-        scene.getAssets().add(trc::Material{ .color=vec4(1, 0, 0, 1), .performLighting=false })
-    )
+    scene(&scene)
 {
 }
 
@@ -54,20 +52,13 @@ void ObjectSelection::hoverObject(SceneObject obj)
         if (hoveredObject != SceneObject::NONE)
         {
             trc::Drawable& d = scene->get<trc::Drawable>(obj);
-            objectShadeDrawable = scene->getDrawableScene().registerDrawFunction(
-                trc::gBufferRenderStage, trc::GBufferPass::SubPasses::gBuffer,
-                getMouseHoverPipeline(),
-                [this, &d, geo=d.getGeometry().get()](const auto& env, vk::CommandBuffer cmdBuf)
-                {
-                    auto layout = *env.currentPipeline->getLayout();
-                    cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex,
-                                               0, glm::scale(d.getGlobalTransform(), vec3(1.02f)));
-                    cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                               sizeof(mat4), ui32(objectShadeMaterial));
-                    geo.bindVertices(cmdBuf, 0);
-                    cmdBuf.drawIndexed(geo.getIndexCount(), 1, 0, 0, 0);
-                }
+            objectShadeDrawable = trc::Drawable(
+                { d.getGeometry(), g::mats().objectHighlight, false, false },
+                getMouseHoverPipeline()
             );
+            objectShadeDrawable.setScale(1.02f);
+            objectShadeDrawable.attachToScene(scene->getDrawableScene());
+            d.attach(objectShadeDrawable);
         }
     }
 }

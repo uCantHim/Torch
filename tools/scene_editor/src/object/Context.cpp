@@ -30,10 +30,16 @@ class HitboxDialog
 public:
     HitboxDialog(Hitbox hitbox, Scene& scene, SceneObject obj)
         : scene(&scene), obj(obj), hitbox(hitbox)
-    {}
+    {
+        auto& vis = scene.add<HitboxVisualization>(obj);
+        vis.attachToScene(scene.getDrawableScene());
+        scene.get<trc::Drawable>(obj).attach(vis);
+    }
 
     void operator()()
     {
+        auto& vis = scene->get<HitboxVisualization>(obj);
+
         if (!ig::CollapsingHeader("Hitbox")) return;
         ig::TreePush();
 
@@ -43,13 +49,14 @@ public:
             vec3 o = hitbox.getSphere().position;
             ig::Text("Offset: [%.2f, %.2f, %.2f]", o.x, o.y, o.z);
         ig::TreePop();
-        if (ig::Checkbox("Show spherical hitbox", &showSphere))
+        if (bool showSphere = vis.isSphereEnabled();
+            ig::Checkbox("Show spherical hitbox", &showSphere))
         {
             if (showSphere) {
-                sphereReg = makeHitboxDrawable(scene->getDrawableScene(), hitbox.getSphere());
+                vis.enableSphere(hitbox.getSphere());
             }
             else {
-                scene->getDrawableScene().unregisterDrawFunction(sphereReg);
+                vis.disableSphere();
             }
         }
         ig::Separator();
@@ -61,13 +68,14 @@ public:
             vec3 p = hitbox.getCapsule().position;
             ig::Text("Offset: [%.2f, %.2f, %.2f]", p.x, p.y, p.z);
         ig::TreePop();
-        if (ig::Checkbox("Show capsule hitbox", &showCapsule))
+        if (bool showCapsule = vis.isCapsuleEnabled();
+            ig::Checkbox("Show capsule hitbox", &showCapsule))
         {
             if (showCapsule) {
-                capsuleReg = makeHitboxDrawable(scene->getDrawableScene(), hitbox.getCapsule());
+                vis.enableCapsule(hitbox.getCapsule());
             }
             else {
-                scene->getDrawableScene().unregisterDrawFunction(capsuleReg);
+                vis.disableCapsule();
             }
         }
 
@@ -78,11 +86,6 @@ private:
     Scene* scene;
     SceneObject obj;
     Hitbox hitbox;
-
-    bool showSphere{ false };
-    bool showCapsule{ false };
-    trc::SceneBase::RegistrationID sphereReg;
-    trc::SceneBase::RegistrationID capsuleReg;
 };
 
 auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>

@@ -19,8 +19,7 @@ void initDefaultAssets(AssetManager& am)
     _init = true;
 
     defaultGeos.cube = am.add(trc::makeCubeGeo());
-    const auto sphere = trc::loadGeometry(TRC_TEST_ASSET_DIR"/sphere.fbx").meshes[0].geometry;
-    defaultGeos.sphere = am.add(sphere);
+    defaultGeos.sphere = am.add(trc::makeSphereGeo());
 
     defaultMats.undefined = am.add(trc::Material{
         .color=vec4(0.3f, 0.3f, 0.3f, 1.0f),
