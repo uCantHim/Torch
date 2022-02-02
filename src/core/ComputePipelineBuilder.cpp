@@ -30,3 +30,8 @@ auto trc::buildComputePipeline() -> ComputePipelineBuilder
 {
     return ComputePipelineBuilder{};
 }
+
+auto trc::buildComputePipeline(const ComputePipelineTemplate& t) -> ComputePipelineBuilder
+{
+    return ComputePipelineBuilder{ t };
+}

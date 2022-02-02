@@ -19,6 +19,8 @@ namespace trc
         using Descriptor = PipelineLayoutTemplate::Descriptor;
 
         PipelineLayoutBuilder() = default;
+        explicit
+        PipelineLayoutBuilder(const PipelineLayoutTemplate& t);
 
         /**
          * Idea:
@@ -114,6 +116,7 @@ namespace trc
     };
 
     auto buildPipelineLayout() -> PipelineLayoutBuilder;
+    auto buildPipelineLayout(const PipelineLayoutTemplate& t) -> PipelineLayoutBuilder;
 
 
 

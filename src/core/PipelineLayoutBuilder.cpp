@@ -2,6 +2,15 @@
 
 
 
+trc::PipelineLayoutBuilder::PipelineLayoutBuilder(const PipelineLayoutTemplate& t)
+    :
+    pushConstants(t.getPushConstants())
+{
+    for (const auto& d : t.getDescriptors()) {
+        descriptors.emplace_back(d);
+    }
+}
+
 auto trc::PipelineLayoutBuilder::addDescriptor(
     const DescriptorName& name,
     bool hasStaticSet
@@ -70,4 +79,9 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
 auto trc::buildPipelineLayout() -> PipelineLayoutBuilder
 {
     return PipelineLayoutBuilder{};
+}
+
+auto trc::buildPipelineLayout(const PipelineLayoutTemplate& t) -> PipelineLayoutBuilder
+{
+    return PipelineLayoutBuilder{ t };
 }

@@ -146,6 +146,7 @@ namespace trc
     };
 
     auto buildGraphicsPipeline() -> GraphicsPipelineBuilder;
+    auto buildGraphicsPipeline(const PipelineTemplate& t) -> GraphicsPipelineBuilder;
 
 
 

@@ -42,6 +42,7 @@ namespace trc
     };
 
     auto buildComputePipeline() -> ComputePipelineBuilder;
+    auto buildComputePipeline(const ComputePipelineTemplate& t) -> ComputePipelineBuilder;
 
 
 

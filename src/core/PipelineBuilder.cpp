@@ -314,3 +314,8 @@ auto trc::buildGraphicsPipeline() -> GraphicsPipelineBuilder
 {
     return {};
 }
+
+auto trc::buildGraphicsPipeline(const PipelineTemplate& t) -> GraphicsPipelineBuilder
+{
+    return GraphicsPipelineBuilder(t);
+}
