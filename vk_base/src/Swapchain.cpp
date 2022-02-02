@@ -515,6 +515,14 @@ auto vkb::Swapchain::getMousePosition() const -> glm::vec2
     return pos;
 }
 
+auto vkb::Swapchain::getMousePositionLowerLeft() const -> glm::vec2
+{
+    glm::dvec2 pos;
+    glfwGetCursorPos(window.get(), &pos.x, &pos.y);
+
+    return { pos.x, static_cast<double>(getSize().y) - pos.y };
+}
+
 auto vkb::Swapchain::isPressed(Key key) const -> bool
 {
     return getKeyState(key) == InputAction::press;

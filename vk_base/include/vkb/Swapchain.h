@@ -316,7 +316,18 @@ namespace vkb
 
         auto getKeyState(Key key) const -> InputAction;
         auto getMouseButtonState(MouseButton button) const -> InputAction;
+
+        /**
+         * @return vec2 Cursor position relative to the upper-left corner
+         *              of the window's content area
+         */
         auto getMousePosition() const -> glm::vec2;
+
+        /**
+         * @return vec2 Cursor position relative to the lower-left corner
+         *              of the window's content area
+         */
+        auto getMousePositionLowerLeft() const -> glm::vec2;
 
         auto isPressed(Key key) const -> bool;
         auto isPressed(MouseButton button) const -> bool;
