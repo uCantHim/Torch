@@ -29,6 +29,10 @@ void initDefaultAssets(AssetManager& am)
         .color=vec4(1.0f),
         .performLighting=false,
     });
+    defaultMats.objectSelect = am.add(trc::Material{
+        .color=vec4(1.0f, 0.5f, 0.0f, 1.0f),
+        .performLighting=false,
+    });
 }
 
 auto g::geos() -> const DefaultGeometries&

@@ -31,6 +31,4 @@ private:
 
     SceneObject hoveredObject{ SceneObject::NONE };
     SceneObject selectedObject{ SceneObject::NONE };
-
-    trc::Drawable objectShadeDrawable;
 };

@@ -18,6 +18,7 @@ namespace g
     {
         trc::MaterialID undefined;
         trc::MaterialID objectHighlight;
+        trc::MaterialID objectSelect;
     };
 
     auto geos() -> const DefaultGeometries&;
