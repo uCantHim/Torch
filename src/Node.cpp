@@ -110,7 +110,10 @@ void trc::Node::attach(Node& child)
 
 void trc::Node::detach(Node& child)
 {
-    children.erase(std::find(children.begin(), children.end(), &child));
+    auto it = std::remove(children.begin(), children.end(), &child);
+    if (it != children.end()) {
+        children.erase(it);
+    }
     child.parent = nullptr;
     child.update();
 }
