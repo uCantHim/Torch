@@ -198,9 +198,23 @@ auto trc::TorchRenderConfig::getShadowPool() const -> const ShadowPool&
     return *shadowPool;
 }
 
+auto trc::TorchRenderConfig::getMousePosAtDepth(const Camera& camera, const float depth) const
+    -> vec3
+{
+    const vec2 mousePos = glm::clamp([this]() -> vec2 {
+#ifdef TRC_FLIP_Y_PROJECTION
+        return window.getMousePositionLowerLeft();
+#else
+        return window.getMousePosition();
+#endif
+    }(), vec2(0.0f, 0.0f), vec2(window.getSize()) - 1.0f);
+
+    return camera.unproject(mousePos, depth, window.getSize());
+}
+
 auto trc::TorchRenderConfig::getMouseWorldPos(const Camera& camera) const -> vec3
 {
-    return gBufferPass->getMousePos(camera);
+    return getMousePosAtDepth(camera, gBufferPass->getMouseDepth());
 }
 
 void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)

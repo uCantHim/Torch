@@ -83,6 +83,18 @@ void trc::Camera::setProjectionMatrix(mat4 proj) noexcept
     projectionMatrix = proj;
 }
 
+auto trc::Camera::unproject(
+    const vec2 screenPos,
+    const float screenDepth,
+    const uvec2 viewportSize) const -> vec3
+{
+    const vec4 clipSpace = vec4(screenPos / vec2(viewportSize) * 2.0f - 1.0f, screenDepth, 1.0);
+    const vec4 viewSpace = glm::inverse(getProjectionMatrix()) * clipSpace;
+    const vec4 worldSpace = glm::inverse(getViewMatrix()) * (viewSpace / viewSpace.w);
+
+    return worldSpace;
+}
+
 void trc::Camera::calcProjMatrix()
 {
     if (isOrtho)

@@ -134,6 +134,11 @@ namespace trc
          */
         void setProjectionMatrix(mat4 proj) noexcept;
 
+        /**
+         * @brief Calculate world coordinates from screen coordinates
+         */
+        auto unproject(vec2 screenPos, float screenDepth, uvec2 viewportSize) const -> vec3;
+
     private:
         void calcProjMatrix();
         bool isOrtho{ false };

@@ -118,6 +118,7 @@ namespace trc
         auto getShadowPool() -> ShadowPool&;
         auto getShadowPool() const -> const ShadowPool&;
 
+        auto getMousePosAtDepth(const Camera& camera, float depth) const -> vec3;
         auto getMouseWorldPos(const Camera& camera) const -> vec3;
 
     private:

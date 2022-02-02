@@ -113,25 +113,6 @@ auto trc::GBufferPass::getMouseDepth() const noexcept -> float
     return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
 }
 
-auto trc::GBufferPass::getMousePos(const Camera& camera) const noexcept -> vec3
-{
-    const vec2 resolution{ framebufferSize };
-    const vec2 mousePos = glm::clamp([=, this]() -> vec2 {
-#ifdef TRC_FLIP_Y_PROJECTION
-        return { swapchain.getMousePosition().x, resolution.y - swapchain.getMousePosition().y, };
-#else
-        return swapchain.getMousePosition();
-#endif
-    }(), vec2(0.0f, 0.0f), resolution - 1.0f);
-    const float depth = getMouseDepth();
-
-    const vec4 clipSpace = vec4(mousePos / resolution * 2.0f - 1.0f, depth, 1.0);
-    const vec4 viewSpace = glm::inverse(camera.getProjectionMatrix()) * clipSpace;
-    const vec4 worldSpace = glm::inverse(camera.getViewMatrix()) * (viewSpace / viewSpace.w);
-
-    return worldSpace;
-}
-
 auto trc::GBufferPass::makeVkRenderPass(const vkb::Device& device)
     -> vk::UniqueRenderPass
 {
