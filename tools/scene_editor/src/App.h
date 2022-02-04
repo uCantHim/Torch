@@ -8,6 +8,7 @@ using namespace trc::basic_types;
 #include "Scene.h"
 #include "AssetManager.h"
 #include "gui/MainMenu.h"
+#include "input/InputState.h"
 
 class App
 {
@@ -35,4 +36,7 @@ private:
     Scene scene;
 
     gui::MainMenu mainMenu;
+    InputStateMachine inputState;
+
+    trc::Timer frameTimer;
 };

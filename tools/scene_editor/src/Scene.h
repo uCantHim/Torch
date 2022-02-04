@@ -30,6 +30,8 @@ public:
     auto getCamera() const -> const trc::Camera&;
     auto getDrawableScene() -> trc::Scene&;
 
+    void openContextMenu();
+
     auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
 
     /**

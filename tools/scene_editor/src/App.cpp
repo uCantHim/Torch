@@ -7,6 +7,7 @@
 
 #include "gui/ContextMenu.h"
 #include "DefaultAssets.h"
+#include "input/KeyConfig.h"
 
 
 
@@ -17,13 +18,24 @@ App::App(int, char*[])
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
     assetManager(torch->getAssetRegistry()),
     scene(*this),
-    mainMenu(*this)
+    mainMenu(*this),
+    inputState(*this)
 {
     vkb::Keyboard::init();
     vkb::Mouse::init();
     vkb::on<vkb::KeyPressEvent>([this](const vkb::KeyPressEvent& e) {
-        if (e.key == vkb::Key::escape) { end(); }
+        inputState.notify({ e.key, e.mods });
     });
+    vkb::on<vkb::MouseClickEvent>([this](const vkb::MouseClickEvent& e) {
+        inputState.notify({ e.button, e.mods });
+    });
+
+    inputState.setKeyMap(makeKeyMap(*this,
+        KeyConfig{
+            .closeApp = vkb::Key::escape,
+            .openContext = vkb::MouseButton::right
+        }
+    ));
 
     // Create resources
     initDefaultAssets(assetManager);
@@ -44,6 +56,8 @@ App::App(int, char*[])
 
     auto cube = scene.createDefaultObject(trc::Drawable(cubeGeo, mo));
     scene.get<ObjectBaseNode>(cube).translateY(0.5f);
+
+    frameTimer.reset();
 }
 
 App::~App()
@@ -83,8 +97,11 @@ void App::tick()
 {
     assert(torch != nullptr);
 
+    const float frameTime = frameTimer.reset();
+
     // Update
     trc::pollEvents();
+    inputState.update(frameTime);
     scene.update();
 
     // Render

@@ -29,22 +29,6 @@ Scene::Scene(App& app)
         trc::ShadowCreateInfo{ .shadowMapResolution={ 4096, 4096 } },
         app.getTorch().getShadowPool()
     ).setProjectionMatrix(glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 50.0f));;
-
-    // Create GUI
-    vkb::on<vkb::MouseClickEvent>([this](const auto& e)
-    {
-        if (e.button == vkb::MouseButton::right
-            && objectSelection.hasHoveredObject())
-        {
-            auto obj = objectSelection.getHoveredObject();
-            gui::ContextMenu::show(
-                "object " + obj.toString(),
-                makeContext(*this, obj)
-            );
-        }
-    });
-
-    vkb::on<vkb::MouseClickEvent>([](auto&) { gui::ContextMenu::close(); });
 }
 
 Scene::~Scene()
@@ -82,6 +66,18 @@ auto Scene::getCamera() const -> const trc::Camera&
 auto Scene::getDrawableScene() -> trc::Scene&
 {
     return scene;
+}
+
+void Scene::openContextMenu()
+{
+    if (objectSelection.hasHoveredObject())
+    {
+        auto obj = objectSelection.getHoveredObject();
+        gui::ContextMenu::show(
+            "object " + obj.toString(),
+            makeContext(*this, obj)
+        );
+    }
 }
 
 auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
