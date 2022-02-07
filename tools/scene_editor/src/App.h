@@ -23,7 +23,11 @@ public:
     auto getAssets() -> AssetManager&;
     auto getScene() -> Scene&;
 
+    static auto get() -> App&;
+
 private:
+    static inline App* _app{ nullptr };
+
     void init();
     void tick();
     bool doEnd{ false };

@@ -18,9 +18,15 @@ App::App(int, char*[])
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
     assetManager(torch->getAssetRegistry()),
     scene(*this),
-    mainMenu(*this),
-    inputState(*this)
+    mainMenu(*this)
 {
+    // Initialize global access
+    if (_app != nullptr) {
+        throw trc::Exception("[In App::App]: Only one App object may exist at any give time.");
+    }
+    _app = this;
+
+    // Initialize input
     vkb::Keyboard::init();
     vkb::Mouse::init();
     vkb::on<vkb::KeyPressEvent>([this](const vkb::KeyPressEvent& e) {
@@ -63,6 +69,13 @@ App::App(int, char*[])
 App::~App()
 {
     torch->getWindow().getRenderer().waitForAllFrames();
+    _app = nullptr;
+}
+
+auto App::get() -> App&
+{
+    assert(_app != nullptr);
+    return *_app;
 }
 
 void App::run()

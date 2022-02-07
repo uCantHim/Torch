@@ -5,9 +5,9 @@
 
 
 
-void openContextMenu(App& app)
+void openContextMenu()
 {
-    app.getScene().openContextMenu();
+    App::get().getScene().openContextMenu();
 }
 
 auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap
