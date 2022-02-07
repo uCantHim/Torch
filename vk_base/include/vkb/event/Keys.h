@@ -9,7 +9,7 @@ namespace vkb
     /**
      * These have the same numeric value as the corresponding GLFW defines.
      */
-    enum class Key {
+    enum class Key : int16_t {
         a = GLFW_KEY_A,
         b = GLFW_KEY_B,
         c = GLFW_KEY_C,
@@ -131,10 +131,8 @@ namespace vkb
 
     /**
      * These have the same numeric value as the corresponding GLFW defines.
-     *
-     * This is not an enum class because mods have to be combinable
      */
-    enum KeyModFlagBits {
+    enum class KeyModFlagBits : uint8_t {
         shift     = GLFW_MOD_SHIFT,
         control   = GLFW_MOD_CONTROL,
         alt       = GLFW_MOD_ALT,
@@ -150,7 +148,7 @@ namespace vkb
     /**
      * These have the same numeric value as the corresponding GLFW defines.
      */
-    enum class MouseButton {
+    enum class MouseButton : uint8_t {
         left     = GLFW_MOUSE_BUTTON_LEFT,
         right    = GLFW_MOUSE_BUTTON_RIGHT,
         wheel    = GLFW_MOUSE_BUTTON_MIDDLE,
@@ -171,7 +169,7 @@ namespace vkb
     /**
      * These have the same numeric value as the corresponding GLFW defines.
      */
-    enum class InputAction {
+    enum class InputAction : uint8_t {
         release = GLFW_RELEASE,
         press = GLFW_PRESS,
         repeat = GLFW_REPEAT,
