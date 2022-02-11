@@ -7,40 +7,23 @@
 
 #include "KeyMap.h"
 
-class CommandState;
+class InputState;
 
-struct VariantInput
+class CommandState
 {
-    template<typename T>
-    static constexpr bool keyOrMouseInput = std::same_as<T, KeyInput> || std::same_as<T, MouseInput>;
-
-    VariantInput(KeyInput in) : input(in) {}
-    VariantInput(MouseInput in) : input(in) {}
-
-    template<typename T> requires keyOrMouseInput<T>
-    bool is() const
-    {
-        return std::holds_alternative<T>(input);
-    }
-
-    template<typename T> requires keyOrMouseInput<T>
-    auto get() const -> T
-    {
-        if (!is<T>()) throw trc::Exception("Input is not of the requested type");
-        return std::get<T>(input);
-    }
-
-    std::variant<KeyInput, MouseInput> input;
+public:
+    virtual bool update(float timeDelta) = 0;
+    virtual void onExit() = 0;
 };
 
 /**
- * @brief Interface for manipulating command states
+ * @brief Interface for building and manipulating command states
  */
 class CommandCall
 {
 private:
-    friend class CommandState;
-    CommandCall(VariantInput input, CommandState& state);
+    friend class InputState;
+    CommandCall(VariantInput input, InputState& state);
     ~CommandCall() = default;
 
 public:
@@ -53,22 +36,45 @@ public:
     void onRepeat(std::function<void()> func);
     void onRelease(std::function<void()> func);
 
-    void onUpdate(std::function<bool(float)> func);
-    void onExit(std::function<void()> func);
+    void on(KeyInput input, u_ptr<InputCommand> cmd);
+    void on(MouseInput input, u_ptr<InputCommand> cmd);
+
+    template<std::invocable<CommandCall&> T>
+    void on(KeyInput input, T&& func);
+    template<std::invocable<CommandCall&> T>
+    void on(MouseInput input, T&& func);
+
+    template<std::derived_from<CommandState> T>
+    auto setState(T&& t) -> T&;
+    auto setState(u_ptr<CommandState> state) -> CommandState&;
 
     auto getProvokingInput() const -> const VariantInput&;
 
 private:
+    template<typename T>
+    struct FunctionalInputCommand : InputCommand
+    {
+        FunctionalInputCommand(T&& t) : func(std::forward<T>(t)) {}
+        T func;
+
+        void execute(CommandCall& call) override
+        {
+            func(call);
+        };
+    };
+
     VariantInput input;
-    CommandState* state;
+    InputState* state;
 };
 
 /**
  * @brief State that determines response to inputs
  *
  * Contains key mappings and per-frame update behaviour.
+ *
+ * Only used internally in InputStateMachine.
  */
-class CommandState
+class InputState
 {
     /** CommandCall enables manipulation of the CommandState */
     friend class CommandCall;
@@ -83,19 +89,24 @@ public:
     /**
      * @brief Create state for a command and execute it
      */
-    CommandState(VariantInput input, InputCommand& command);
+    InputState(VariantInput input, InputCommand& command);
 
     auto update(float timeDelta) -> Status;
     void exit();
 
+    void setCommandState(u_ptr<CommandState> state);
     auto getKeyMap() -> KeyMap&;
     void setKeyMap(KeyMap newMap);
 
 private:
-    CommandCall call;
+    struct NullCommandState : CommandState
+    {
+        bool update(float) override { return true; }
+        void onExit() override {}
+    };
 
-    std::function<bool(float)> onUpdate;
-    std::function<void()> onExit;
+    CommandCall call;
+    u_ptr<CommandState> state{ new NullCommandState };
 
     KeyMap keyMap;
 };
@@ -119,9 +130,33 @@ public:
 private:
     void executeCommand(VariantInput input, InputCommand& cmd);
 
-    void push(u_ptr<CommandState> state);
+    void push(u_ptr<InputState> state);
     void pop();
-    auto top() -> CommandState&;
+    auto top() -> InputState&;
 
-    std::vector<u_ptr<CommandState>> stateStack;
+    std::vector<u_ptr<InputState>> stateStack;
 };
+
+
+
+template<std::invocable<CommandCall&> T>
+void CommandCall::on(KeyInput input, T&& func)
+{
+    on(input, std::make_unique<FunctionalInputCommand<T>>(std::forward<T>(func)));
+}
+
+template<std::invocable<CommandCall&> T>
+void CommandCall::on(MouseInput input, T&& func)
+{
+    on(input, std::make_unique<FunctionalInputCommand<T>>(std::forward<T>(func)));
+}
+
+template<std::derived_from<CommandState> T>
+inline auto CommandCall::setState(T&& t) -> T&
+{
+    auto ptr = std::make_unique<T>(std::forward<T>(t));
+    auto& ref = *ptr;
+    state->setCommandState(std::move(ptr));
+
+    return ref;
+}

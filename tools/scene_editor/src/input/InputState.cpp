@@ -2,7 +2,7 @@
 
 
 
-CommandCall::CommandCall(VariantInput input, CommandState& state)
+CommandCall::CommandCall(VariantInput input, InputState& state)
     :
     input(input),
     state(&state)
@@ -24,14 +24,22 @@ void CommandCall::onRelease(std::function<void()>)
     throw trc::Exception("Not implemented");
 }
 
-void CommandCall::onUpdate(std::function<bool(float)> func)
+void CommandCall::on(KeyInput input, u_ptr<InputCommand> cmd)
 {
-    state->onUpdate = std::move(func);
+    state->keyMap.set(input, std::move(cmd));
 }
 
-void CommandCall::onExit(std::function<void()> func)
+void CommandCall::on(MouseInput input, u_ptr<InputCommand> cmd)
 {
-    state->onExit = std::move(func);
+    state->keyMap.set(input, std::move(cmd));
+}
+
+auto CommandCall::setState(u_ptr<CommandState> newState) -> CommandState&
+{
+    auto& ref = *newState;
+    state->setCommandState(std::move(newState));
+
+    return ref;
 }
 
 auto CommandCall::getProvokingInput() const -> const VariantInput&
@@ -41,34 +49,41 @@ auto CommandCall::getProvokingInput() const -> const VariantInput&
 
 
 
-CommandState::CommandState(VariantInput input, InputCommand& command)
+InputState::InputState(VariantInput input, InputCommand& command)
     :
-    call(input, *this),
-    onUpdate([](float){ return true; }),
-    onExit([]{})
+    call(input, *this)
 {
     command.execute(call);
 }
 
-auto CommandState::update(const float timeDelta) -> Status
+auto InputState::update(const float timeDelta) -> Status
 {
-    if (onUpdate(timeDelta)) {
+    assert(state != nullptr);
+
+    if (state->update(timeDelta)) {
         return Status::eDone;
     }
     return Status::eInProgress;
 }
 
-void CommandState::exit()
+void InputState::exit()
 {
-    onExit();
+    assert(state != nullptr);
+    state->onExit();
 }
 
-auto CommandState::getKeyMap() -> KeyMap&
+void InputState::setCommandState(u_ptr<CommandState> newState)
+{
+    assert(newState != nullptr);
+    state = std::move(newState);
+}
+
+auto InputState::getKeyMap() -> KeyMap&
 {
     return keyMap;
 }
 
-void CommandState::setKeyMap(KeyMap newMap)
+void InputState::setKeyMap(KeyMap newMap)
 {
     keyMap = std::move(newMap);
 }
@@ -77,11 +92,17 @@ void CommandState::setKeyMap(KeyMap newMap)
 
 InputStateMachine::InputStateMachine()
 {
+    struct EndlessCommandState : CommandState
+    {
+        bool update(float) override { return false; }
+        void onExit() override {}
+    };
+
     struct TopLevelCommand : InputCommand
     {
         void execute(CommandCall& call) override
         {
-            call.onUpdate([](float) { return false; });  // Never finish the command
+            call.setState(std::make_unique<EndlessCommandState>());
         }
     };
 
@@ -92,7 +113,7 @@ InputStateMachine::InputStateMachine()
 void InputStateMachine::update(const float timeDelta)
 {
     auto status = top().update(timeDelta);
-    if (status == CommandState::Status::eDone) {
+    if (status == InputState::Status::eDone) {
         pop();
     }
 }
@@ -128,10 +149,10 @@ void InputStateMachine::setKeyMap(KeyMap map)
 
 void InputStateMachine::executeCommand(VariantInput input, InputCommand& cmd)
 {
-    push(std::make_unique<CommandState>(input, cmd));
+    push(std::make_unique<InputState>(input, cmd));
 }
 
-void InputStateMachine::push(u_ptr<CommandState> state)
+void InputStateMachine::push(u_ptr<InputState> state)
 {
     stateStack.emplace_back(std::move(state));
 }
@@ -146,7 +167,7 @@ void InputStateMachine::pop()
     assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
 }
 
-auto InputStateMachine::top() -> CommandState&
+auto InputStateMachine::top() -> InputState&
 {
     assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
     return *stateStack.back();

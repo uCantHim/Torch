@@ -20,7 +20,7 @@ struct FunctionalInputCommand : InputCommand
 
 auto makeInputCommand(std::function<void()> execute) -> u_ptr<InputCommand>
 {
-    return std::make_unique<FunctionalInputCommand>([=](CommandCall&) -> u_ptr<CommandState> {
+    return std::make_unique<FunctionalInputCommand>([=](CommandCall&) -> u_ptr<InputState> {
         execute();
         return nullptr;
     });
@@ -28,7 +28,7 @@ auto makeInputCommand(std::function<void()> execute) -> u_ptr<InputCommand>
 
 auto makeInputCommand(std::function<void(CommandCall&)> execute) -> u_ptr<InputCommand>
 {
-    return std::make_unique<FunctionalInputCommand>([=](CommandCall& call) -> u_ptr<CommandState> {
+    return std::make_unique<FunctionalInputCommand>([=](CommandCall& call) -> u_ptr<InputState> {
         execute(call);
         return nullptr;
     });
