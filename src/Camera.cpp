@@ -83,6 +83,11 @@ void trc::Camera::setProjectionMatrix(mat4 proj) noexcept
     projectionMatrix = proj;
 }
 
+auto trc::Camera::project(vec3 worldPos) const -> vec4
+{
+    return getProjectionMatrix() * getViewMatrix() * vec4(worldPos, 1.0f);
+}
+
 auto trc::Camera::unproject(
     const vec2 screenPos,
     const float screenDepth,

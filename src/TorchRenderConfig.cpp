@@ -198,6 +198,11 @@ auto trc::TorchRenderConfig::getShadowPool() const -> const ShadowPool&
     return *shadowPool;
 }
 
+auto trc::TorchRenderConfig::getMouseDepth() const -> float
+{
+    return gBufferPass->getMouseDepth();
+}
+
 auto trc::TorchRenderConfig::getMousePosAtDepth(const Camera& camera, const float depth) const
     -> vec3
 {

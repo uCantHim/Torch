@@ -135,6 +135,13 @@ namespace trc
         void setProjectionMatrix(mat4 proj) noexcept;
 
         /**
+         * Short-hand for `camera.getProjectionMatrix() * camera.getViewMatrix() * pos`.
+         *
+         * @return vec3 The calculated coordinates in projection space
+         */
+        auto project(vec3 worldPos) const -> vec4;
+
+        /**
          * @brief Calculate world coordinates from screen coordinates
          */
         auto unproject(vec2 screenPos, float screenDepth, uvec2 viewportSize) const -> vec3;
