@@ -1,7 +1,5 @@
 #pragma once
 
-#include <initializer_list>
-#include <variant>
 #include <unordered_map>
 
 #include <trc/Types.h>
@@ -18,13 +16,11 @@ class KeyMap
 public:
     KeyMap() = default;
 
-    auto get(KeyInput input) -> InputCommand*;
-    auto get(MouseInput input) -> InputCommand*;
+    auto get(VariantInput input) -> InputCommand*;
 
-    void set(KeyInput input, u_ptr<InputCommand> cmd);
-    void set(MouseInput input, u_ptr<InputCommand> cmd);
-    void unset(KeyInput input);
-    void unset(MouseInput input);
+    void set(VariantInput input, u_ptr<InputCommand> cmd);
+    void unset(VariantInput input);
+
     void clear();
 
 private:
