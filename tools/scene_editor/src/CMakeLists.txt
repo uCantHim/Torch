@@ -6,6 +6,7 @@ target_sources(scene_editor PRIVATE
 )
 
 add_subdirectory(input)
+add_subdirectory(command)
 add_subdirectory(gui)
 add_subdirectory(object)
 

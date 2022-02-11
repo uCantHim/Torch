@@ -80,6 +80,29 @@ void Scene::openContextMenu()
     }
 }
 
+void Scene::selectHoveredObject()
+{
+    getHoveredObject() >> [&](SceneObject obj) {
+        objectSelection.selectObject(obj);
+    };
+}
+
+auto Scene::getHoveredObject() -> trc::Maybe<SceneObject>
+{
+    if (objectSelection.hasHoveredObject()) {
+        return objectSelection.getHoveredObject();
+    }
+    return {};
+}
+
+auto Scene::getSelectedObject() -> trc::Maybe<SceneObject>
+{
+    if (objectSelection.hasSelectedObject()) {
+        return objectSelection.getSelectedObject();
+    }
+    return {};
+}
+
 auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
 {
     auto obj = createObject();

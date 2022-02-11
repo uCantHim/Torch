@@ -30,7 +30,7 @@ void initDefaultAssets(AssetManager& am)
         .performLighting=false,
     });
     defaultMats.objectSelect = am.add(trc::Material{
-        .color=vec4(1.0f, 0.5f, 0.0f, 1.0f),
+        .color=vec4(1.0f, 0.8f, 0.0f, 1.0f),
         .performLighting=false,
     });
 }

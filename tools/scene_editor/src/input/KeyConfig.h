@@ -6,8 +6,11 @@ class App;
 
 struct KeyConfig
 {
-    KeyInput closeApp;
-    MouseInput openContext;
+    VariantInput closeApp;
+    VariantInput openContext;
+    VariantInput selectHoveredObject;
+
+    VariantInput translateObject;
 };
 
 auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap;

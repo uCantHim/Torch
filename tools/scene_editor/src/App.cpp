@@ -48,7 +48,9 @@ App::App(int, char*[])
     inputState.setKeyMap(makeKeyMap(*this,
         KeyConfig{
             .closeApp = vkb::Key::escape,
-            .openContext = vkb::MouseButton::right
+            .openContext = vkb::MouseButton::right,
+            .selectHoveredObject = vkb::MouseButton::left,
+            .translateObject = vkb::Key::g,
         }
     ));
 

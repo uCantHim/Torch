@@ -31,6 +31,9 @@ public:
     auto getDrawableScene() -> trc::Scene&;
 
     void openContextMenu();
+    void selectHoveredObject();
+    auto getHoveredObject() -> trc::Maybe<SceneObject>;
+    auto getSelectedObject() -> trc::Maybe<SceneObject>;
 
     auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
 
