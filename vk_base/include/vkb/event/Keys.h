@@ -133,14 +133,13 @@ namespace vkb
      * These have the same numeric value as the corresponding GLFW defines.
      */
     enum class KeyModFlagBits : uint8_t {
+        none      = 0,
         shift     = GLFW_MOD_SHIFT,
         control   = GLFW_MOD_CONTROL,
         alt       = GLFW_MOD_ALT,
         super     = GLFW_MOD_SUPER,
         caps_lock = GLFW_MOD_CAPS_LOCK,
         num_lock  = GLFW_MOD_NUM_LOCK,
-
-        MAX_ENUM
     };
 
     using KeyModFlags = vk::Flags<KeyModFlagBits>;
@@ -173,8 +172,6 @@ namespace vkb
         release = GLFW_RELEASE,
         press = GLFW_PRESS,
         repeat = GLFW_REPEAT,
-
-        MAX_ENUM
     };
 } // namespace vkb
 
