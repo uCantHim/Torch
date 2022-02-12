@@ -13,7 +13,7 @@ struct KeyInput
     KeyInput(vkb::Key key, vkb::KeyModFlags mods, vkb::InputAction action);
 
     vkb::Key key;
-    vkb::KeyModFlags mod;
+    vkb::KeyModFlags mod{ vkb::KeyModFlagBits::none };
     vkb::InputAction action{ vkb::InputAction::press };
 };
 
@@ -24,7 +24,7 @@ struct MouseInput
     MouseInput(vkb::MouseButton button, vkb::KeyModFlags mods, vkb::InputAction action);
 
     vkb::MouseButton button;
-    vkb::KeyModFlags mod;
+    vkb::KeyModFlags mod{ vkb::KeyModFlagBits::none };
     vkb::InputAction action{ vkb::InputAction::press };
 };
 

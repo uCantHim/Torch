@@ -30,10 +30,19 @@ App::App(int, char*[])
     vkb::Keyboard::init();
     vkb::Mouse::init();
     vkb::on<vkb::KeyPressEvent>([this](const vkb::KeyPressEvent& e) {
-        inputState.notify({ e.key, e.mods });
+        inputState.notify({ e.key, e.mods, vkb::InputAction::press });
+    });
+    vkb::on<vkb::KeyRepeatEvent>([this](const vkb::KeyRepeatEvent& e) {
+        inputState.notify({ e.key, e.mods, vkb::InputAction::repeat });
+    });
+    vkb::on<vkb::KeyReleaseEvent>([this](const vkb::KeyReleaseEvent& e) {
+        inputState.notify({ e.key, e.mods, vkb::InputAction::release });
     });
     vkb::on<vkb::MouseClickEvent>([this](const vkb::MouseClickEvent& e) {
-        inputState.notify({ e.button, e.mods });
+        inputState.notify({ e.button, e.mods, vkb::InputAction::press });
+    });
+    vkb::on<vkb::MouseReleaseEvent>([this](const vkb::MouseReleaseEvent& e) {
+        inputState.notify({ e.button, e.mods, vkb::InputAction::release });
     });
 
     inputState.setKeyMap(makeKeyMap(*this,

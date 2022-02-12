@@ -28,7 +28,7 @@ Scene::Scene(App& app)
         sunLight,
         trc::ShadowCreateInfo{ .shadowMapResolution={ 4096, 4096 } },
         app.getTorch().getShadowPool()
-    ).setProjectionMatrix(glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 50.0f));;
+    ).setProjectionMatrix(glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 20.0f));;
 }
 
 Scene::~Scene()
