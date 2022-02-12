@@ -146,6 +146,13 @@ namespace trc
          */
         auto unproject(vec2 screenPos, float screenDepth, uvec2 viewportSize) const -> vec3;
 
+        /**
+         * @brief Calculate a world position's projected screen depth
+         *
+         * @note This only works with perspective projection!
+         */
+        auto calcScreenDepth(vec3 worldPos) const -> float;
+
     private:
         void calcProjMatrix();
         bool isOrtho{ false };

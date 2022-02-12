@@ -100,6 +100,12 @@ auto trc::Camera::unproject(
     return worldSpace;
 }
 
+auto trc::Camera::calcScreenDepth(const vec3 worldPos) const -> float
+{
+    const vec4 clip = project(worldPos);
+    return clip.z / clip.w;
+}
+
 void trc::Camera::calcProjMatrix()
 {
     if (isOrtho)
