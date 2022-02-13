@@ -1,23 +1,25 @@
 #include "ImportDialog.h"
 
+#include <trc/asset_import/AssetUtils.h>
+
 #include "ImguiUtil.h"
+#include "App.h"
+#include "DefaultAssets.h"
 
 
 
-gui::FbxImportDialog::FbxImportDialog(const fs::path& filePath)
+gui::ImportDialog::ImportDialog(const fs::path& filePath)
 {
     loadFrom(filePath);
 }
 
-void gui::FbxImportDialog::loadFrom(const fs::path& fbxFilePath)
+void gui::ImportDialog::loadFrom(const fs::path& fbxFilePath)
 {
     filePath = fbxFilePath;
-
-    trc::FBXLoader loader;
-    importData = loader.loadFBXFile(filePath);
+    importData = trc::loadGeometry(fbxFilePath);
 }
 
-void gui::FbxImportDialog::drawImGui()
+void gui::ImportDialog::drawImGui()
 {
     ig::Text("Imported %lu meshes from %s", ui64(importData.meshes.size()), filePath.c_str());
     ig::Separator();
@@ -35,7 +37,7 @@ void gui::FbxImportDialog::drawImGui()
         if (!mesh.materials.empty())
         {
             ig::TreePush();
-            for (const auto& material : mesh.materials)
+            for ([[maybe_unused]] const auto& material : mesh.materials)
             {
                 ig::Text("A material. More information coming soon.");
             }
@@ -54,23 +56,46 @@ void gui::FbxImportDialog::drawImGui()
             ig::Separator();
             auto& anims = rigData.animations;
             ig::Text("%lu animations", ui64(anims.size()));
-            if (!anims.empty())
+            for (const auto& anim : anims)
             {
-                for (const auto& anim : anims)
-                {
-                    ig::Text("Animation \"%s\"", anim.name.c_str());
-                    ig::TreePush();
-                    ig::Text("Duration: %fms", anim.durationMs);
-                    ig::Text("%u frames", anim.frameCount);
-                    ig::TreePop();
-                }
+                ig::Text("Animation \"%s\"", anim.name.c_str());
+                ig::TreePush();
+                ig::Text("Duration: %fms", anim.durationMs);
+                ig::Text("%u frames", anim.frameCount);
+                ig::TreePop();
             }
         }
-        else
-        {
+        else {
             ig::Text("No rigs found");
         }
 
+        if (ig::Button("Import")) {
+            importGeometry(mesh);
+        }
+        if (ig::Button("Import and create in scene")) {
+            importAndCreateObject(mesh);
+        }
+
         ig::TreePop();
+    }
+}
+
+auto gui::ImportDialog::importGeometry(const trc::Mesh& mesh) -> trc::GeometryID
+{
+    auto& am = App::get().getAssets();
+    return am.add(mesh.geometry, mesh.rig);
+}
+
+void gui::ImportDialog::importAndCreateObject(const trc::Mesh& mesh)
+{
+    auto& scene = App::get().getScene();
+
+    const auto geoId = importGeometry(mesh);
+    const auto obj = scene.createDefaultObject(trc::Drawable(geoId, g::mats().undefined));
+
+    auto& d = scene.get<trc::Drawable>(obj);
+    d.setFromMatrix(mesh.globalTransform);
+    if (mesh.rig.has_value()) {
+        d.getAnimationEngine().playAnimation(0);
     }
 }

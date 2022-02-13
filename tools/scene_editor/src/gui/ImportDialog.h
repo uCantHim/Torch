@@ -1,20 +1,24 @@
 #pragma once
 
-#include <trc/asset_import/FBXLoader.h>
+#include <trc/AssetIds.h>
+#include <trc/asset_import/AssetImportBase.h>
 
 namespace gui
 {
-    class FbxImportDialog
+    class ImportDialog
     {
     public:
-        FbxImportDialog() = default;
-        explicit FbxImportDialog(const fs::path& filePath);
+        ImportDialog() = default;
+        explicit ImportDialog(const fs::path& filePath);
 
         void loadFrom(const fs::path& fbxFilePath);
 
         void drawImGui();
 
     private:
+        static auto importGeometry(const trc::Mesh& mesh) -> trc::GeometryID;
+        static void importAndCreateObject(const trc::Mesh& mesh);
+
         fs::path filePath;
         trc::FileImportData importData;
     };

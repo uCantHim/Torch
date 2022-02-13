@@ -27,7 +27,7 @@ namespace gui
         bool showImportDialog{ false };
 
         vec2 initialPopupPos;
-        FbxImportDialog importDialog;
+        ImportDialog importDialog;
     };
 
     class SceneEditorFileExplorer
