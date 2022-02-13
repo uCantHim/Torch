@@ -11,6 +11,8 @@ struct KeyConfig
     VariantInput selectHoveredObject;
 
     VariantInput translateObject;
+    VariantInput scaleObject;
+    VariantInput rotateObject;
 };
 
 auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap;

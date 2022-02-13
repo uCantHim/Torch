@@ -51,6 +51,8 @@ App::App(int, char*[])
             .openContext = vkb::MouseButton::right,
             .selectHoveredObject = vkb::MouseButton::left,
             .translateObject = vkb::Key::g,
+            .scaleObject = vkb::Key::s,
+            .rotateObject = vkb::Key::r,
         }
     ));
 
