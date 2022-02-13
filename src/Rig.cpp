@@ -43,17 +43,22 @@ auto trc::Rig::getAnimation(ui32 index) const -> const Animation&
 
 auto trc::Rig::getAnimationIndex(const std::string& name) const noexcept -> ui32
 {
-    return animationNames.at(name);
+    return animationsByName.at(name);
+}
+
+auto trc::Rig::getAnimationName(ui32 index) const -> const std::string&
+{
+    return animationNamesById.at(index);
 }
 
 auto trc::Rig::getAnimationByName(const std::string& name) -> Animation&
 {
-    return animations.at(animationNames.at(name));
+    return animations.at(animationsByName.at(name));
 }
 
 auto trc::Rig::getAnimationByName(const std::string& name) const -> const Animation&
 {
-    return animations.at(animationNames.at(name));
+    return animations.at(animationsByName.at(name));
 }
 
 auto trc::Rig::addAnimation(const AnimationData& animData) -> ui32
@@ -61,11 +66,12 @@ auto trc::Rig::addAnimation(const AnimationData& animData) -> ui32
     // Restrictions to ensure that the animation is compatible with the rig
     assert(!animData.keyframes.empty());
     assert(animData.keyframes[0].boneMatrices.size() == bones.size());
-    assert(!animationNames.contains(animData.name));
+    assert(!animationsByName.contains(animData.name));
 
     animations.emplace_back(animationStorage->makeAnimation(animData));
     const ui32 id = animations.size() - 1;
-    animationNames[animData.name] = id;
+    animationsByName[animData.name] = id;
+    animationNamesById[id] = animData.name;
 
     return id;
 }

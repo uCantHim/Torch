@@ -69,6 +69,11 @@ namespace trc
         auto getAnimationIndex(const std::string& name) const noexcept -> ui32;
 
         /**
+         * @brief Get an animation's name
+         */
+        auto getAnimationName(ui32 index) const -> const std::string&;
+
+        /**
          * @return Animation& The animation with the specified name
          * @throw std::out_of_range
          */
@@ -91,6 +96,7 @@ namespace trc
         std::unordered_map<std::string, ui32> boneNames;
 
         std::vector<Animation> animations;
-        std::unordered_map<std::string, ui32> animationNames;
+        std::unordered_map<std::string, ui32> animationsByName;
+        std::unordered_map<ui32, std::string> animationNamesById;
     };
 }
