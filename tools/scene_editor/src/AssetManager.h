@@ -16,7 +16,7 @@ public:
 
     void updateMaterials();
 
-    auto add(trc::GeometryData data) -> trc::GeometryID;
+    auto add(trc::GeometryData data, std::optional<trc::RigData> rig = {}) -> trc::GeometryID;
     auto add(trc::Material mat) -> trc::MaterialID;
     auto add(trc::Image image) -> trc::TextureID;
     auto add(trc::Face face) -> trc::Font;

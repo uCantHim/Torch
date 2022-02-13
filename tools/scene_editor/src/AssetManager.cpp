@@ -13,9 +13,10 @@ void AssetManager::updateMaterials()
     ar->updateMaterials();
 }
 
-auto AssetManager::add(trc::GeometryData data) -> trc::GeometryID
+auto AssetManager::add(trc::GeometryData data, std::optional<trc::RigData> rig)
+    -> trc::GeometryID
 {
-    auto id = ar->add(data);
+    auto id = ar->add(data, rig);
     geometryHitboxes.try_emplace(id, makeHitbox(data));
 
     return id;
