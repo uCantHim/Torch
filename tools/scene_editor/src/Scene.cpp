@@ -68,6 +68,21 @@ auto Scene::getDrawableScene() -> trc::Scene&
     return scene;
 }
 
+auto Scene::getMouseDepth() const -> float
+{
+    return app->getTorch().getRenderConfig().getMouseDepth();
+}
+
+auto Scene::getMousePosAtDepth(const float depth) const -> vec3
+{
+    return app->getTorch().getRenderConfig().getMousePosAtDepth(camera, depth);
+}
+
+auto Scene::getMouseWorldPos() const -> vec3
+{
+    return app->getTorch().getRenderConfig().getMouseWorldPos(camera);
+}
+
 void Scene::openContextMenu()
 {
     if (objectSelection.hasHoveredObject())

@@ -30,6 +30,10 @@ public:
     auto getCamera() const -> const trc::Camera&;
     auto getDrawableScene() -> trc::Scene&;
 
+    auto getMouseDepth() const -> float;
+    auto getMousePosAtDepth(float depth) const -> vec3;
+    auto getMouseWorldPos() const -> vec3;
+
     void openContextMenu();
     void selectHoveredObject();
     auto getHoveredObject() -> trc::Maybe<SceneObject>;

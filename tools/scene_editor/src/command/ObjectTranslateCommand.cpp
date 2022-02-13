@@ -3,45 +3,7 @@
 #include "App.h"
 #include "Scene.h"
 #include "input/InputState.h"
-
-
-
-enum class Axis : ui32
-{
-    eNone = 0,
-    eX = 1 << 0,
-    eY = 1 << 1,
-    eZ = 1 << 2,
-};
-
-using AxisFlags = vk::Flags<Axis>;
-
-VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-    AxisFlags operator|( Axis bit0,
-                           Axis bit1 ) VULKAN_HPP_NOEXCEPT
-{
-    return AxisFlags( bit0 ) | bit1;
-}
-
-VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-    AxisFlags operator&( Axis bit0,
-                           Axis bit1)VULKAN_HPP_NOEXCEPT
-{
-    return AxisFlags( bit0 ) & bit1;
-}
-
-VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-    AxisFlags operator^( Axis bit0,
-                           Axis bit1 ) VULKAN_HPP_NOEXCEPT
-{
-    return AxisFlags( bit0 ) ^ bit1;
-}
-
-VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-    AxisFlags operator~( Axis bits ) VULKAN_HPP_NOEXCEPT
-{
-    return ~( AxisFlags( bits ) );
-}
+#include "AxisFlags.h"
 
 
 
@@ -54,8 +16,7 @@ public:
         scene(&scene),
         originalPos(scene.get<ObjectBaseNode>(obj).getTranslation()),
         originalMousePos(
-            scene.getTorch().getRenderConfig().getMousePosAtDepth(
-                scene.getCamera(),
+            scene.getMousePosAtDepth(
                 scene.getCamera().calcScreenDepth(scene.get<ObjectBaseNode>(obj).getTranslation())
             )
         )
@@ -92,12 +53,10 @@ public:
 private:
     auto getNewPos() const -> vec3
     {
-        auto& rc = scene->getTorch().getRenderConfig();
         const float depth = scene->getCamera().calcScreenDepth(
             scene->get<ObjectBaseNode>(obj).getTranslation()
         );
-
-        const vec3 diff = rc.getMousePosAtDepth(scene->getCamera(), depth) - originalMousePos;
+        const vec3 diff = scene->getMousePosAtDepth(depth) - originalMousePos;
 
         return originalPos + diff * lockedAxis;
     }

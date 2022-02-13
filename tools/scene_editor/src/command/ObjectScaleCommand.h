@@ -2,10 +2,10 @@
 
 #include "input/InputCommand.h"
 
-class ObjectTranslateCommand : public InputCommand
+class ObjectScaleCommand : public InputCommand
 {
 public:
-    ObjectTranslateCommand() = default;
+    ObjectScaleCommand() = default;
 
     void execute(CommandCall& call) override;
 };
