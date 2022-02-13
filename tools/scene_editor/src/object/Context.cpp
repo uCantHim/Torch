@@ -88,6 +88,50 @@ private:
     Hitbox hitbox;
 };
 
+class AnimationDialog
+{
+public:
+    AnimationDialog(SceneObject obj, Scene& scene)
+        :
+        obj(obj),
+        scene(&scene),
+        rig(scene.get<trc::Drawable>(obj).getGeometry().get().getRig())
+    {
+    }
+
+    void operator()()
+    {
+        if (!ig::CollapsingHeader("Animation")) return;
+        ig::TreePush();
+
+        if (rig == nullptr)
+        {
+            ig::Text("No rig attached");
+            ig::TreePop();
+            return;
+        }
+
+        ig::Text("%i animations", rig->getAnimationCount());
+        for (ui32 i = 0; i < rig->getAnimationCount(); i++)
+        {
+            ig::Text("- \"%s\"", rig->getAnimationName(i).c_str());
+            ig::SameLine(10.0f);
+            if (ig::Button("Play"))
+            {
+                scene->get<trc::Drawable>(obj).getAnimationEngine().playAnimation(i);
+                scene->get<trc::Drawable>(obj).getAnimationEngine().update(5.0f);
+            }
+        }
+
+        ig::TreePop();
+    }
+
+private:
+    const SceneObject obj;
+    Scene* scene;
+    const trc::Rig* rig;
+};
+
 auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>
 {
     ComposedFunction func;
@@ -95,6 +139,9 @@ auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>
     scene.getM<Hitbox>(obj) >> [&](Hitbox hitbox) {
         func.add(HitboxDialog(hitbox, scene, obj));
     };
+    if (scene.get<trc::Drawable>(obj).getGeometry().get().hasRig()) {
+        func.add(AnimationDialog(obj, scene));
+    }
 
     return func;
 }
