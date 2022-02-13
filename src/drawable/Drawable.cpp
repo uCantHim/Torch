@@ -45,12 +45,17 @@ Drawable::Drawable(const DrawableCreateInfo& info)
 Drawable::Drawable(const DrawableCreateInfo& info, Pipeline::ID pipeline)
     :
     deferredPipeline(pipeline),
+    animEngine(
+        info.geo.get().hasRig()
+            ? std::make_unique<AnimationEngine>(*info.geo.get().getRig())
+            : std::make_unique<AnimationEngine>()
+    ),
     data(std::make_unique<DrawableData>(
         info.geo.get(),
         info.geo,
         info.mat,
         Node::getGlobalTransformID(),
-        animEngine.getState()
+        animEngine->getState()
     )),
     castShadow(info.drawShadow)
 {
@@ -76,12 +81,12 @@ auto Drawable::getGeometry() const -> GeometryID
 
 auto Drawable::getAnimationEngine() noexcept -> AnimationEngine&
 {
-    return animEngine;
+    return *animEngine;
 }
 
 auto Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
 {
-    return animEngine;
+    return *animEngine;
 }
 
 void Drawable::attachToScene(SceneBase& scene)

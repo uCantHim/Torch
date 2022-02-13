@@ -91,7 +91,7 @@ namespace trc
         SceneBase::UniqueRegistrationID deferredRegistration;
         SceneBase::UniqueRegistrationID shadowRegistration;
 
-        AnimationEngine animEngine;
+        u_ptr<AnimationEngine> animEngine;
         u_ptr<DrawableData> data{ nullptr };
         bool castShadow;
     };
