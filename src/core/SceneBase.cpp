@@ -6,11 +6,34 @@ trc::UniqueDrawableRegistrationId::UniqueDrawableRegistrationId(
     DrawableExecutionRegistration::ID id,
     SceneBase& scene)
     :
-    _id(new DrawableExecutionRegistration::ID{ id }, [scene=&scene](auto id) {
-        scene->unregisterDrawFunction(*id);
-        delete id;
-    })
+    id(id),
+    scene(&scene)
 {
+}
+
+trc::UniqueDrawableRegistrationId::UniqueDrawableRegistrationId(UniqueDrawableRegistrationId&& other) noexcept
+    :
+    id(other.id),
+    scene(other.scene)
+{
+    other.scene = nullptr;
+}
+
+trc::UniqueDrawableRegistrationId::~UniqueDrawableRegistrationId()
+{
+    if (scene != nullptr) {
+        scene->unregisterDrawFunction(id);
+    }
+}
+
+auto trc::UniqueDrawableRegistrationId::operator=(UniqueDrawableRegistrationId&& other) noexcept
+    -> UniqueDrawableRegistrationId&
+{
+    std::swap(id, other.id);
+    scene = other.scene;
+    other.scene = nullptr;
+
+    return *this;
 }
 
 

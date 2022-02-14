@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <functional>
 
-#include "trc_util/data/IndexMap.h"
+#include <trc_util/data/IndexMap.h>
 
 #include "../Types.h"
 #include "RenderStage.h"
@@ -93,13 +93,22 @@ namespace trc
     struct UniqueDrawableRegistrationId
     {
     public:
+        UniqueDrawableRegistrationId(const UniqueDrawableRegistrationId&) = delete;
+        auto operator=(const UniqueDrawableRegistrationId&) -> UniqueDrawableRegistrationId& = delete;
+
         UniqueDrawableRegistrationId() = default;
+        UniqueDrawableRegistrationId(UniqueDrawableRegistrationId&&) noexcept;
         UniqueDrawableRegistrationId(DrawableExecutionRegistration::ID id,
-                                     SceneBase& scene);
+                                      SceneBase& scene);
+        ~UniqueDrawableRegistrationId();
+
+        auto operator=(UniqueDrawableRegistrationId&&) noexcept -> UniqueDrawableRegistrationId&;
+
+        auto getScene() -> SceneBase*;
 
     private:
-        using Destructor = std::function<void(DrawableExecutionRegistration::ID*)>;
-        std::unique_ptr<DrawableExecutionRegistration::ID, Destructor> _id;
+        DrawableExecutionRegistration::ID id;
+        SceneBase* scene{ nullptr };
     };
 
     /**
