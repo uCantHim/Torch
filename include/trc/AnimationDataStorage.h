@@ -6,10 +6,10 @@
 
 #include "Types.h"
 #include "core/DescriptorProvider.h"
-#include "Animation.h"
 
 namespace trc
 {
+    struct AnimationData;
     class Instance;
 
     /**
@@ -22,7 +22,7 @@ namespace trc
     public:
         explicit AnimationDataStorage(const Instance& instance);
 
-        auto makeAnimation(const AnimationData& data) -> Animation;
+        auto makeAnimation(const AnimationData& data) -> ui32;
 
         auto getProvider() const -> const DescriptorProviderInterface&;
 

@@ -47,11 +47,6 @@ namespace trc
         auto getAnimationCount() const noexcept -> ui32;
 
         /**
-         * @return Animation& The animation at the specified index
-         * @throw std::out_of_range
-         */
-        auto getAnimation(ui32 index) -> Animation&;
-        /**
          * @return const Animation& The animation at the specified index
          * @throw std::out_of_range
          */
@@ -72,12 +67,6 @@ namespace trc
          * @brief Get an animation's name
          */
         auto getAnimationName(ui32 index) const -> const std::string&;
-
-        /**
-         * @return Animation& The animation with the specified name
-         * @throw std::out_of_range
-         */
-        auto getAnimationByName(const std::string& name) -> Animation&;
 
         /**
          * @return Animation& The animation with the specified name

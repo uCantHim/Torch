@@ -4,18 +4,12 @@
 
 
 
-trc::Animation::Animation(ui32 animationIndex, const AnimationData& data)
+trc::Animation::Animation(AnimationDataStorage& storage, const AnimationData& data)
     :
-    id(animationIndex),
+    id(storage.makeAnimation(data)),
     frameCount(data.frameCount),
     durationMs(data.durationMs),
     frameTimeMs(data.frameTimeMs)
-{
-}
-
-trc::Animation::Animation(AnimationDataStorage& storage, const AnimationData& data)
-    :
-    Animation(storage.makeAnimation(data))
 {
 }
 

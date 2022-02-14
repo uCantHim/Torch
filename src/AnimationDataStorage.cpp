@@ -1,6 +1,7 @@
 #include "AnimationDataStorage.h"
 
 #include "core/Instance.h"
+#include "Animation.h"
 
 
 
@@ -25,7 +26,7 @@ trc::AnimationDataStorage::AnimationDataStorage(const Instance& instance)
     writeDescriptor(instance);
 }
 
-auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> Animation
+auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> ui32
 {
     if (data.keyframes.empty())
     {
@@ -80,7 +81,7 @@ auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> Anim
     animationBufferOffset += data.frameCount * newMeta.boneCount;
 
     // Create the animation handle
-    return Animation(numAnimations - 1, data);
+    return numAnimations - 1;
 }
 
 auto trc::AnimationDataStorage::getProvider() const -> const DescriptorProviderInterface&

@@ -31,12 +31,12 @@ namespace trc
      */
     class Animation
     {
-    private:
-        friend class AnimationDataStorage;
-
-        Animation(ui32 animationIndex, const AnimationData& data);
-
     public:
+        Animation(const Animation&) = default;
+        Animation(Animation&&) noexcept = default;
+        auto operator=(const Animation&) -> Animation& = default;
+        auto operator=(Animation&&) noexcept -> Animation& = default;
+
         Animation(AnimationDataStorage& storage, const AnimationData& data);
 
         auto getBufferIndex() const noexcept -> ui32;

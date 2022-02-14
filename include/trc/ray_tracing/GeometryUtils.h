@@ -3,6 +3,10 @@
 #include "Node.h"
 #include "Geometry.h"
 
+namespace vkb {
+    class Device;
+}
+
 namespace trc::rt
 {
     class BottomLevelAccelerationStructure;

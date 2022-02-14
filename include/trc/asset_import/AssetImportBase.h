@@ -2,10 +2,12 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "Types.h"
 #include "Geometry.h"
 #include "Material.h"
+#include "Rig.h"
 
 namespace trc
 {
