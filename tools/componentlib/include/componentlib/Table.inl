@@ -7,6 +7,12 @@
 // -------------------------------- //
 
 template<typename Component, TableKey Key>
+inline auto Table<Component, Key>::size() const -> size_t
+{
+    return objects.size();
+}
+
+template<typename Component, TableKey Key>
 inline bool Table<Component, Key>::has(Key key) const
 {
     return indices.size() > key && indices.at(static_cast<size_t>(key)) != NONE;

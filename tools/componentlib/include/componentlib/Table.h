@@ -70,6 +70,11 @@ private:
 public:
     Table() = default;
 
+    /**
+     * @return size_t Number of objects in the table
+     */
+    auto size() const -> size_t;
+
 public:
     // ------------------------ //
     //      Element access      //
