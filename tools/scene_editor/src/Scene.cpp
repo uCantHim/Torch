@@ -36,10 +36,9 @@ Scene::~Scene()
     ComponentStorage::clear();
 }
 
-void Scene::update()
+void Scene::update(const float timeDelta)
 {
-    scene.updateTransforms();
-
+    scene.update(timeDelta);
     calcObjectHover();
 }
 
@@ -124,12 +123,16 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     auto& node = add<ObjectBaseNode>(obj);
     auto& d = add<trc::Drawable>(obj, std::move(drawable));
     node.attach(d);
-
     scene.getRoot().attach(node);
 
     add<Hitbox>(obj, app->getAssets().getHitbox(d.getGeometry()));
 
     return obj;
+}
+
+auto Scene::createDefaultObject(trc::DrawableCreateInfo createInfo) -> SceneObject
+{
+    return createDefaultObject(trc::Drawable(createInfo, getDrawableScene()));
 }
 
 void Scene::calcObjectHover()

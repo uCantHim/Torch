@@ -19,7 +19,7 @@ public:
     explicit Scene(App& app);
     ~Scene();
 
-    void update();
+    void update(float timeDelta);
 
     void saveToFile();
     void loadFromFile();
@@ -40,15 +40,7 @@ public:
     auto getSelectedObject() -> trc::Maybe<SceneObject>;
 
     auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
-
-    /**
-     * @brief Add a drawable to the underlying trc::Scene
-     */
-    template<typename T> requires requires (T a, trc::Scene s) { a.attachToScene(s); }
-    void addDrawable(T& drawable)
-    {
-        drawable.attachToScene(scene);
-    }
+    auto createDefaultObject(trc::DrawableCreateInfo createInfo) -> SceneObject;
 
 private:
     void calcObjectHover();
@@ -66,13 +58,4 @@ template<>
 struct componentlib::TableTraits<trc::Drawable>
 {
     using UniqueStorage = std::true_type;
-};
-
-template<>
-struct componentlib::ComponentTraits<trc::Drawable>
-{
-    void onCreate(Scene& scene, SceneObject, trc::Drawable& d)
-    {
-        scene.addDrawable(d);
-    }
 };

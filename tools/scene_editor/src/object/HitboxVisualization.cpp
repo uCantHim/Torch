@@ -25,22 +25,24 @@ auto getHitboxPipeline() -> trc::Pipeline::ID
     return pipeline;
 }
 
-auto makeHitboxDrawable(const Sphere& sphere) -> trc::Drawable
+auto makeHitboxDrawable(trc::Scene& scene, const Sphere& sphere) -> trc::Drawable
 {
     trc::Drawable result(
         { g::geos().sphere, g::mats().undefined, false, false },
-        getHitboxPipeline()
+        getHitboxPipeline(),
+        scene
     );
     result.setScale(sphere.radius);
 
     return result;
 }
 
-auto makeHitboxDrawable(const Capsule& caps) -> trc::Drawable
+auto makeHitboxDrawable(trc::Scene& scene, const Capsule& caps) -> trc::Drawable
 {
     trc::Drawable result(
         { g::geos().sphere, g::mats().undefined, false, false },
-        getHitboxPipeline()
+        getHitboxPipeline(),
+        scene
     );
     result.setScale(caps.radius, caps.height, caps.radius);
 
@@ -49,44 +51,28 @@ auto makeHitboxDrawable(const Capsule& caps) -> trc::Drawable
 
 
 
-void HitboxVisualization::attachToScene(trc::SceneBase& newScene)
+HitboxVisualization::HitboxVisualization(trc::Scene& scene)
+    :
+    scene(&scene)
 {
-    if (scene != nullptr)
-    {
-        sphereDrawable.removeFromScene();
-        capsuleDrawable.removeFromScene();
-    }
-
-    sphereDrawable.attachToScene(newScene);
-    capsuleDrawable.attachToScene(newScene);
-    scene = &newScene;
 }
 
 void HitboxVisualization::removeFromScene()
 {
-    if (scene != nullptr)
-    {
-        sphereDrawable.removeFromScene();
-        capsuleDrawable.removeFromScene();
-        scene = nullptr;
-    }
+    sphereDrawable.removeFromScene();
+    capsuleDrawable.removeFromScene();
 }
 
 void HitboxVisualization::enableSphere(const Sphere& sphere)
 {
-    sphereDrawable = makeHitboxDrawable(sphere);
+    sphereDrawable = makeHitboxDrawable(*scene, sphere);
     attach(sphereDrawable);
-    if (scene != nullptr) {
-        sphereDrawable.attachToScene(*scene);
-    }
     showSphere = true;
 }
 
 void HitboxVisualization::disableSphere()
 {
-    if (scene != nullptr) {
-        sphereDrawable.removeFromScene();
-    }
+    sphereDrawable.removeFromScene();
     showSphere = false;
 }
 
@@ -97,19 +83,14 @@ bool HitboxVisualization::isSphereEnabled() const
 
 void HitboxVisualization::enableCapsule(const Capsule& capsule)
 {
-    capsuleDrawable = makeHitboxDrawable(capsule);
+    capsuleDrawable = makeHitboxDrawable(*scene, capsule);
     attach(capsuleDrawable);
-    if (scene != nullptr) {
-        capsuleDrawable.attachToScene(*scene);
-    }
     showCapsule = true;
 }
 
 void HitboxVisualization::disableCapsule()
 {
-    if (scene != nullptr) {
-        capsuleDrawable.removeFromScene();
-    }
+    capsuleDrawable.removeFromScene();
     showCapsule = false;
 }
 

@@ -5,6 +5,9 @@
 
 #include "Hitbox.h"
 
+namespace trc{
+    class Scene;
+}
 class AssetManager;
 
 /**
@@ -14,9 +17,8 @@ class AssetManager;
 class HitboxVisualization : public trc::Node
 {
 public:
-    HitboxVisualization() = default;
+    HitboxVisualization(trc::Scene& scene);
 
-    void attachToScene(trc::SceneBase& scene);
     void removeFromScene();
 
     void enableSphere(const Sphere& sphere);
@@ -28,7 +30,7 @@ public:
     bool isCapsuleEnabled() const;
 
 private:
-    trc::SceneBase* scene{ nullptr };
+    trc::Scene* scene;
 
     bool showSphere{ false };
     bool showCapsule{ false };

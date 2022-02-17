@@ -39,11 +39,11 @@ ObjectOutline::ObjectOutline(Scene& scene, SceneObject obj, Type outlineType)
     :
     trc::Drawable(
         { scene.get<trc::Drawable>(obj).getGeometry(), toMaterial(outlineType), false, false },
-        getMouseHoverPipeline()
+        getMouseHoverPipeline(),
+        scene.getDrawableScene()
     )
 {
     this->setScale(OUTLINE_SCALE);
-    this->attachToScene(scene.getDrawableScene());
     scene.get<trc::Drawable>(obj).attach(*this);
 }
 

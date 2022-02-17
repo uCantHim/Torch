@@ -68,12 +68,12 @@ App::App(int, char*[])
     auto gi1 = ar.add(trc::makePlaneGeo(0.5f, 0.5f, 1, 1));
     auto cubeGeo = ar.add(trc::makeCubeGeo());
 
-    scene.createDefaultObject(trc::Drawable(gi, mg));
+    scene.createDefaultObject({ gi, mg });
 
-    auto smallPlane = scene.createDefaultObject(trc::Drawable(gi1, mr));
+    auto smallPlane = scene.createDefaultObject({ gi1, mr });
     scene.get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
 
-    auto cube = scene.createDefaultObject(trc::Drawable(cubeGeo, mo));
+    auto cube = scene.createDefaultObject({ cubeGeo, mo });
     scene.get<ObjectBaseNode>(cube).translateY(0.5f);
 
     frameTimer.reset();
@@ -128,7 +128,7 @@ void App::tick()
     // Update
     trc::pollEvents();
     inputState.update(frameTime);
-    scene.update();
+    scene.update(frameTime);
 
     // Render
     trc::imgui::beginImguiFrame();

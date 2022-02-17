@@ -91,7 +91,7 @@ void gui::ImportDialog::importAndCreateObject(const trc::Mesh& mesh)
     auto& scene = App::get().getScene();
 
     const auto geoId = importGeometry(mesh);
-    const auto obj = scene.createDefaultObject(trc::Drawable(geoId, g::mats().undefined));
+    const auto obj = scene.createDefaultObject({ geoId, g::mats().undefined });
 
     auto& d = scene.get<trc::Drawable>(obj);
     d.setFromMatrix(mesh.globalTransform);

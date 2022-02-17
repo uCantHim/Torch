@@ -31,8 +31,7 @@ public:
     HitboxDialog(Hitbox hitbox, Scene& scene, SceneObject obj)
         : scene(&scene), obj(obj), hitbox(hitbox)
     {
-        auto& vis = scene.add<HitboxVisualization>(obj);
-        vis.attachToScene(scene.getDrawableScene());
+        auto& vis = scene.add<HitboxVisualization>(obj, scene.getDrawableScene());
         scene.get<trc::Drawable>(obj).attach(vis);
     }
 
@@ -114,13 +113,14 @@ public:
         ig::Text("%i animations", rig->getAnimationCount());
         for (ui32 i = 0; i < rig->getAnimationCount(); i++)
         {
-            ig::Text("- \"%s\"", rig->getAnimationName(i).c_str());
-            ig::SameLine(10.0f);
+            ig::PushID(i);
             if (ig::Button("Play"))
             {
                 scene->get<trc::Drawable>(obj).getAnimationEngine().playAnimation(i);
-                scene->get<trc::Drawable>(obj).getAnimationEngine().update(5.0f);
             }
+            ig::PopID();
+            ig::SameLine(0.0f, 50.0f);
+            ig::Text("\"%s\"", rig->getAnimationName(i).c_str());
         }
 
         ig::TreePop();
@@ -139,9 +139,9 @@ auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>
     scene.getM<Hitbox>(obj) >> [&](Hitbox hitbox) {
         func.add(HitboxDialog(hitbox, scene, obj));
     };
-    if (scene.get<trc::Drawable>(obj).getGeometry().get().hasRig()) {
+    if (scene.get<trc::Drawable>(obj).isAnimated()) {
         func.add(AnimationDialog(obj, scene));
-    }
+    };
 
     return func;
 }

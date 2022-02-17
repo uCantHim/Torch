@@ -54,7 +54,7 @@ auto AssetManager::add(trc::Face face) -> trc::Font
 
 auto AssetManager::add(trc::AnimationData anim) -> trc::Animation
 {
-    return ar->getAnimations().makeAnimation(anim);
+    return trc::Animation(ar->getAnimations(), anim);
 }
 
 auto AssetManager::getHitbox(trc::GeometryID id) const -> const Hitbox&
