@@ -57,6 +57,7 @@ target_include_directories(torch
 target_link_libraries(
     torch PUBLIC
     torch_util
+    component
     vk_base
     Freetype::Freetype
     $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>

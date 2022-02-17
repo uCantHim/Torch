@@ -84,34 +84,34 @@ void run()
     // ------------------
 
     trc::Scene scene;
-    trc::DrawablePool pool(instance, { .maxInstances=1000, .initRayTracing=false }, scene);
 
-    std::vector<trc::AnimationEngine*> animEngines;
-
-    auto grass = pool.create({ grassGeoIndex, matIdx });
-    grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
+    trc::Drawable grass({ grassGeoIndex, matIdx }, scene);
+    grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     // Animated skeleton
-    auto skeleton = pool.create({ skeletonGeoIndex, matIdx });
-    skeleton->scale(0.02f).translateZ(1.2f)
-            .translate(1.0f, 0.0f, 0.0f)
-            .rotateY(-glm::half_pi<float>());
-    animEngines.emplace_back(&skeleton->getAnimationEngine())->playAnimation(0);
+    trc::Node skeletonNode;
+    skeletonNode.scale(0.02f).translateZ(1.2f)
+                .translate(1.0f, 0.0f, 0.0f)
+                .rotateY(-glm::half_pi<float>());
+    scene.getRoot().attach(skeletonNode);
+    std::vector<u_ptr<trc::Drawable>> skeletons;
+    trc::DrawableCreateInfo skelCreateInfo{ skeletonGeoIndex, matIdx };
 
-    for (int i = 1; i < 50; i++)
+    for (int i = 0; i < 50; i++)
     {
-        auto inst = skeleton->copy();
+        auto& inst = *skeletons.emplace_back(new trc::Drawable(skelCreateInfo, scene));
         const float angle = glm::two_pi<float>() / 50 * i;
-        inst->scale(0.02f).translateZ(1.2f)
+        inst.scale(0.02f).translateZ(1.2f)
             .translate(glm::cos(angle), 0.0f, glm::sin(angle))
             .rotateY(-glm::half_pi<float>() - angle);
-        animEngines.emplace_back(&inst->getAnimationEngine())->playAnimation(0);
+        scene.getRoot().attach(inst);
+        inst.getAnimationEngine().playAnimation(0);
     }
 
     // Hooded boi
-    auto hoodedBoi = pool.create({ hoodedBoiGeoIndex, {} });
-    hoodedBoi->setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    animEngines.emplace_back(&hoodedBoi->getAnimationEngine())->playAnimation(0);
+    trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, {} }, scene);
+    hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
+    hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
     auto lindaMatIdx = ar.add({
@@ -119,9 +119,9 @@ void run()
         .diffuseTexture = lindaDiffTexIdx
     });
 
-    auto linda = pool.create({ lindaGeoIndex, lindaMatIdx });
-    linda->setScale(0.3f).translateX(-1.0f);
-    animEngines.emplace_back(&linda->getAnimationEngine())->playAnimation(0);
+    trc::Drawable linda({ lindaGeoIndex, lindaMatIdx }, scene);
+    linda.setScale(0.3f).translateX(-1.0f);
+    linda.getAnimationEngine().playAnimation(0);
 
     // Images
     auto planeGeo = ar.add(trc::makePlaneGeo());
@@ -131,16 +131,14 @@ void run()
     auto opaqueImg = ar.add(trc::Material{
         .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/lena.png"))
     });
-    trc::Drawable img({ planeGeo, transparentImg, true });
+    trc::Drawable img({ planeGeo, transparentImg, true }, scene);
     img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
-    img.attachToScene(scene);
-    trc::Drawable img2({ planeGeo, opaqueImg, true });
+    trc::Drawable img2({ planeGeo, opaqueImg, false }, scene);
     img2.translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
-    img2.attachToScene(scene);
 
     // Generated plane geo
     auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
-    pool.create({ myPlaneGeoIndex, mapMatIndex });
+    trc::Drawable plane({ myPlaneGeoIndex, mapMatIndex }, scene);
 
     trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
     [[maybe_unused]]
@@ -160,13 +158,11 @@ void run()
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 800;
-    auto firstTree = pool.create({ treeGeoIndex, treeMatIdx });
-    firstTree->setScale(0.1f).rotateX(glm::radians(-90.0f))
-        .setTranslation(-3.0f, 0.0f, -1.0f);
-    for (ui32 i = 1; i < NUM_TREES; i++)
+    std::vector<u_ptr<trc::Drawable>> trees;
+    for (ui32 i = 0; i < NUM_TREES; i++)
     {
-        firstTree->copy()
-            ->setScale(0.1f).rotateX(glm::radians(-90.0f))
+        auto& tree = *trees.emplace_back(new trc::Drawable({ treeGeoIndex, treeMatIdx }, scene));
+        tree.setScale(0.1f).rotateX(glm::radians(-90.0f))
             .setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f)
             .setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
     }
@@ -226,21 +222,20 @@ void run()
     // Generated cube geo
     auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
     auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1, 0.5} });
-    auto cube = pool.create({ cubeGeoIdx, cubeMatIdx, true });
-    cube->translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
+    trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
+    cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
     std::thread cubeRotateThread([&cube, &running]() {
         while (running)
         {
             std::this_thread::sleep_for(10ms);
-            cube->rotateY(glm::radians(0.5f));
+            cube.rotateY(glm::radians(0.5f));
         }
     });
 
     // Thing at cursor
     auto cursorCubeMat = ar.add(trc::Material{ .color=vec4(1, 1, 0, 0.3f) });
-    trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false });
-    cursor.attachToScene(scene);
+    trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 
     // Text
@@ -251,19 +246,15 @@ void run()
     text.attachToScene(scene);
 
     trc::Timer timer;
-    trc::Timer animTimer;
+    trc::Timer frameTimer;
     uint32_t frames{ 0 };
     while (running)
     {
         trc::pollEvents();
 
-        scene.updateTransforms();
-
+        const float frameTime = frameTimer.reset();
+        scene.update(frameTime);
         cursor.setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
-        const float time = animTimer.reset();
-        for (auto anim : animEngines) {
-            anim->update(time);
-        }
 
         torch->drawFrame(torch->makeDrawConfig(scene, camera));
 

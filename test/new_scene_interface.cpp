@@ -62,7 +62,7 @@ void run()
         trc::pollEvents();
 
         const float frameTime = frameTimer.reset();
-        scene.updateTransforms();
+        scene.update(frameTime);
         linda->getAnimationEngine().update(frameTime);
 
         cube->rotateY((frameTime * 0.001f) * glm::radians(90.0f));

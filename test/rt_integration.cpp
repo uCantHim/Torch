@@ -9,6 +9,7 @@
 #include <trc/PipelineDefinitions.h>
 #include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
+#include <trc/drawable/DrawablePool.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -277,7 +278,7 @@ void run()
         const float time = timer.reset();
         sphereNode.rotateY(time / 1000.0f * 0.5f);
 
-        scene->updateTransforms();
+        scene->update(time);
         window.drawFrame(torch->makeDrawConfig(*scene, camera));
 
         frames++;

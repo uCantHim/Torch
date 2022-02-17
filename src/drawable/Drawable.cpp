@@ -13,145 +13,120 @@
 namespace trc
 {
 
-Drawable::Drawable(GeometryID geo, MaterialID material)
+Drawable::Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& scene)
     :
-    Drawable(DrawableCreateInfo{ geo, material })
+    Drawable({ geo, material }, scene)
 {
 }
 
-Drawable::Drawable(GeometryID geo, MaterialID material, SceneBase& scene)
+Drawable::Drawable(const DrawableCreateInfo& info, DrawableComponentScene& scene)
     :
-    Drawable(geo, material)
-{
-    attachToScene(scene);
-}
+    Drawable(
+        info,
+        [&info]{
+            PipelineFeatureFlags flags;
+            if (info.transparent) {
+                flags |= PipelineFeatureFlagBits::eTransparent;
+            }
+            if (info.geo.get().hasRig()) {
+                flags |= PipelineFeatureFlagBits::eAnimated;
+            }
 
-Drawable::Drawable(const DrawableCreateInfo& info)
-    :
-    Drawable(info, [&]{
-        PipelineFeatureFlags flags;
-        if (info.transparent) {
-            flags |= PipelineFeatureFlagBits::eTransparent;
-        }
-        if (info.geo.get().hasRig()) {
-            flags |= PipelineFeatureFlagBits::eAnimated;
-        }
-
-        return getPipeline(flags);
-    }())
+            return getPipeline(flags);
+        }(),
+        scene
+    )
 {
 }
 
-Drawable::Drawable(const DrawableCreateInfo& info, Pipeline::ID pipeline)
+Drawable::Drawable(
+    const DrawableCreateInfo& info,
+    Pipeline::ID pipeline,
+    DrawableComponentScene& scene)
     :
-    deferredPipeline(pipeline),
-    animEngine(
-        info.geo.get().hasRig()
-            ? std::make_unique<AnimationEngine>(*info.geo.get().getRig())
-            : std::make_unique<AnimationEngine>()
-    ),
-    data(std::make_unique<DrawableData>(
-        info.geo.get(),
-        info.geo,
-        info.mat,
-        Node::getGlobalTransformID(),
-        animEngine->getState()
-    )),
-    castShadow(info.drawShadow)
+    scene(&scene),
+    id(scene.makeDrawable()),
+    geo(info.geo)
 {
-    deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
-                                       : GBufferPass::SubPasses::gBuffer;
+    auto _geo = info.geo.get();
+
+    auto raster = makeRasterData(info, pipeline);
+    raster.drawData.geo = _geo;
+    raster.drawData.mat = info.mat;
+    raster.drawData.modelMatrixId = getGlobalTransformID();
+    if (_geo.hasRig())
+    {
+        scene.makeAnimation(id, *_geo.getRig());
+        raster.drawData.anim = scene.getAnimationEngine(id).getState();
+    }
+
+    scene.makeRasterization(id, raster);
+}
+
+Drawable::Drawable(Drawable&& other) noexcept
+    :
+    Node(std::forward<Node>(other)),
+    scene(other.scene),
+    id(other.id),
+    geo(other.geo)
+{
+    other.scene = nullptr;
+    other.id = DrawableID::NONE;
+}
+
+Drawable::~Drawable()
+{
+    if (id != DrawableID::NONE && scene != nullptr)
+    {
+        scene->destroyDrawable(id);
+    }
+}
+
+auto Drawable::operator=(Drawable&& other) noexcept -> Drawable&
+{
+    Node::operator=(std::forward<Node>(other));
+
+    std::swap(scene, other.scene);
+    std::swap(id, other.id);
+    std::swap(geo, other.geo);
+
+    return *this;
 }
 
 auto Drawable::getMaterial() const -> MaterialID
 {
-    if (data != nullptr) {
-        return data->mat;
-    }
-    return {};
+    return scene->getRasterization(id).mat;
 }
 
 auto Drawable::getGeometry() const -> GeometryID
 {
-    if (data != nullptr) {
-        return data->geoId;
-    }
-    return {};
+    return geo;
 }
 
-auto Drawable::getAnimationEngine() noexcept -> AnimationEngine&
+bool Drawable::isAnimated() const
 {
-    return *animEngine;
+    return scene->hasAnimation(id);
 }
 
-auto Drawable::getAnimationEngine() const noexcept -> const AnimationEngine&
+auto Drawable::getAnimationEngine() -> AnimationEngine&
 {
-    return *animEngine;
+    return scene->getAnimationEngine(id);
 }
 
-void Drawable::attachToScene(SceneBase& scene)
+auto Drawable::getAnimationEngine() const -> const AnimationEngine&
 {
-    if (data == nullptr) return;
-
-    DrawableFunction func;
-    if (data->geo.hasRig())
-    {
-        func = [data=this->data.get()](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-            data->geo.bindVertices(cmdBuf, 0);
-
-            auto layout = *env.currentPipeline->getLayout();
-            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                       data->modelMatrixId.get());
-            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data->mat));
-            cmdBuf.pushConstants<AnimationDeviceData>(
-                layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-                data->anim.get()
-            );
-
-            cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
-        };
-    }
-    else
-    {
-        func = [data=this->data.get()](const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-            data->geo.bindVertices(cmdBuf, 0);
-
-            auto layout = *env.currentPipeline->getLayout();
-            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                       data->modelMatrixId.get());
-            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data->mat));
-            cmdBuf.drawIndexed(data->geo.getIndexCount(), 1, 0, 0, 0);
-        };
-    }
-
-    deferredRegistration = scene.registerDrawFunction(
-        gBufferRenderStage,
-        deferredSubpass,
-        deferredPipeline,
-        std::move(func)
-    );
-    if (castShadow)
-    {
-        shadowRegistration = scene.registerDrawFunction(
-            shadowRenderStage, SubPass::ID(0),
-            getPipeline(PipelineFeatureFlagBits::eShadow),
-            [data=this->data.get()](const auto& env, vk::CommandBuffer cmdBuf) {
-                drawShadow(*data, env, cmdBuf);
-            }
-        );
-    }
+    return scene->getAnimationEngine(id);
 }
 
 void Drawable::removeFromScene()
 {
-    deferredRegistration = {};
-    shadowRegistration = {};
+    if (id != DrawableID::NONE) {
+        scene->destroyDrawable(id);
+    }
 }
 
 void Drawable::drawShadow(
-    const DrawableData& data,
+    const drawcomp::RasterComponent& data,
     const DrawEnvironment& env,
     vk::CommandBuffer cmdBuf)
 {
@@ -172,11 +147,76 @@ void Drawable::drawShadow(
     );
     cmdBuf.pushConstants<AnimationDeviceData>(
         layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-        data.anim.get()
+        data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
     );
 
     // Draw
     cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
+}
+
+auto Drawable::makeRasterData(
+    const DrawableCreateInfo& info,
+    Pipeline::ID gBufferPipeline
+    ) -> RasterComponentCreateInfo
+{
+    using FuncType = std::function<void(const drawcomp::RasterComponent&,
+                                        const DrawEnvironment&,
+                                        vk::CommandBuffer)>;
+
+    FuncType func;
+    if (info.geo.get().hasRig())
+    {
+        func = [](auto& data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            data.geo.bindVertices(cmdBuf, 0);
+
+            auto layout = *env.currentPipeline->getLayout();
+            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
+                                       data.modelMatrixId.get());
+            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
+                                       sizeof(mat4), static_cast<ui32>(data.mat));
+            cmdBuf.pushConstants<AnimationDeviceData>(
+                layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+                data.anim.get()
+            );
+
+            cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
+        };
+    }
+    else
+    {
+        func = [](auto& data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
+            data.geo.bindVertices(cmdBuf, 0);
+
+            auto layout = *env.currentPipeline->getLayout();
+            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
+                                       data.modelMatrixId.get());
+            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
+                                       sizeof(mat4), static_cast<ui32>(data.mat));
+            cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
+        };
+    }
+
+    auto deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
+                                            : GBufferPass::SubPasses::gBuffer;
+
+    RasterComponentCreateInfo result;
+
+    result.drawFunctions.emplace_back(
+        gBufferRenderStage,
+        deferredSubpass,
+        gBufferPipeline,
+        std::move(func)
+    );
+    if (info.drawShadow)
+    {
+        result.drawFunctions.emplace_back(
+            shadowRenderStage, SubPass::ID(0),
+            getPipeline(PipelineFeatureFlagBits::eShadow),
+            drawShadow
+        );
+    }
+
+    return result;
 }
 
 } // namespace trc

@@ -3,6 +3,7 @@
 #include <glm/gtc/random.hpp>
 #include <trc_util/Timer.h>
 #include <trc/Torch.h>
+#include <trc/drawable/DrawablePool.h>
 
 using namespace trc::basic_types;
 

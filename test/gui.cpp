@@ -100,9 +100,9 @@ int main()
         trc::Light light = scene.getLights().makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
         trc::Drawable plane(
             ar.add(trc::makePlaneGeo()),
-            ar.add(trc::Material{ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) })
+            ar.add(trc::Material{ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) }),
+            scene
         );
-        plane.attachToScene(scene);
         plane.rotateX(glm::radians(30.0f));
 
         while (swapchain.isOpen())

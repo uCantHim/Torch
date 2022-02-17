@@ -283,6 +283,10 @@ auto makeDrawableShadowPipeline() -> Pipeline::ID
             makeVertexAttributeDescriptions()
         )
         .setCullMode(vk::CullModeFlagBits::eFront)
+        .setRasterization(
+            vk::PipelineRasterizationStateCreateInfo(DEFAULT_RASTERIZATION)
+            .setDepthBiasConstantFactor(4.0f)
+        )
         .setColorBlending({}, false, vk::LogicOp::eOr, {})
         .registerPipeline<TorchRenderConfig>(
             layout, RenderPassName{ TorchRenderConfig::SHADOW_PASS }

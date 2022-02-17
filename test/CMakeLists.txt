@@ -26,9 +26,6 @@ target_link_libraries(Viewports PUBLIC torch)
 add_executable(TorchTest main.cpp)
 target_link_libraries(TorchTest PUBLIC torch)
 
-add_executable(DrawableChainTest drawable_chain.cpp)
-target_link_libraries(DrawableChainTest PUBLIC torch)
-
 add_executable(Font font.cpp)
 target_link_libraries(Font PUBLIC torch)
 

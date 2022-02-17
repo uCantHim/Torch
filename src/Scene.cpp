@@ -4,6 +4,24 @@
 
 
 
+trc::Scene::Scene()
+    :
+    SceneBase(),
+    DrawableComponentScene(static_cast<SceneBase&>(*this))
+{
+}
+
+void trc::Scene::update(const float timeDelta)
+{
+    updateAnimations(timeDelta);
+    updateTransforms();
+}
+
+void trc::Scene::updateTransforms()
+{
+    root.updateAsRoot();
+}
+
 auto trc::Scene::getRoot() noexcept -> Node&
 {
     return root;
@@ -12,11 +30,6 @@ auto trc::Scene::getRoot() noexcept -> Node&
 auto trc::Scene::getRoot() const noexcept -> const Node&
 {
     return root;
-}
-
-void trc::Scene::updateTransforms()
-{
-    root.updateAsRoot();
 }
 
 auto trc::Scene::getLights() noexcept -> LightRegistry&

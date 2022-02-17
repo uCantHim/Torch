@@ -26,8 +26,12 @@ namespace trc::data
     public:
         struct ID : data::TypesafeID<T, uint32_t>
         {
-            ID() = default;
+        private:
+            friend class ExternalStorage;
             explicit ID(uint32_t id) : data::TypesafeID<T, uint32_t>(id) {}
+
+        public:
+            ID() = default;
 
             inline auto get() const -> T {
                 return ExternalStorage<T>::getData(*this);
