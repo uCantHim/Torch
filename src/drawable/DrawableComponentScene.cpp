@@ -9,6 +9,57 @@ struct RasterRegistrations
 
 
 
+trc::UniqueDrawableID::UniqueDrawableID(DrawableComponentScene& scene, DrawableID id)
+    :
+    scene(&scene),
+    id(id)
+{
+}
+
+trc::UniqueDrawableID::UniqueDrawableID(UniqueDrawableID&& other) noexcept
+    :
+    scene(other.scene),
+    id(other.id)
+{
+    other.scene = nullptr;
+    other.id = DrawableID::NONE;
+}
+
+auto trc::UniqueDrawableID::operator=(UniqueDrawableID&& other) noexcept -> UniqueDrawableID&
+{
+    this->scene = other.scene;
+    this->id = other.id;
+    other.scene = nullptr;
+    other.id = DrawableID::NONE;
+
+    return *this;
+}
+
+trc::UniqueDrawableID::~UniqueDrawableID() noexcept
+{
+    if (id != DrawableID::NONE && scene != nullptr)
+    {
+        scene->destroyDrawable(id);
+    }
+}
+
+trc::UniqueDrawableID::operator bool() const
+{
+    return id != DrawableID::NONE;
+}
+
+trc::UniqueDrawableID::operator DrawableID() const
+{
+    return id;
+}
+
+auto trc::UniqueDrawableID::get() const -> DrawableID
+{
+    return id;
+}
+
+
+
 trc::DrawableComponentScene::DrawableComponentScene(SceneBase& base)
     :
     base(&base)
@@ -26,6 +77,11 @@ void trc::DrawableComponentScene::updateAnimations(const float timeDelta)
 auto trc::DrawableComponentScene::makeDrawable() -> DrawableID
 {
     return storage.createObject();
+}
+
+auto trc::DrawableComponentScene::makeDrawableUnique() -> UniqueDrawableID
+{
+    return { *this, storage.createObject() };
 }
 
 void trc::DrawableComponentScene::destroyDrawable(DrawableID drawable)
@@ -121,6 +177,6 @@ auto trc::DrawableComponentScene::getAnimationEngine(DrawableID drawable) -> Ani
         return result.value()->engine;
     }
 
-    throw std::out_of_range("[In DrawableComponentScene::getNode]: Drawable does not have an"
-                            " animation component!");
+    throw std::out_of_range("[In DrawableComponentScene::getAnimationEngine]: Drawable does not"
+                            " have an animation component!");
 }

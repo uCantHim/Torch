@@ -40,6 +40,34 @@ namespace trc
     }
     using DrawableID = componentlib::ComponentID<drawcomp::_DrawableIdTypeTag>;
 
+    class DrawableComponentScene;
+
+    /**
+     * @brief A move-only unique wrapper for DrawableID
+     *
+     * Calls scene.destroyDrawable(this) on destruction.
+     */
+    struct UniqueDrawableID
+    {
+    public:
+        UniqueDrawableID(const UniqueDrawableID&) = delete;
+        auto operator=(const UniqueDrawableID&) noexcept -> UniqueDrawableID& = delete;
+
+        UniqueDrawableID() = default;
+        UniqueDrawableID(DrawableComponentScene& scene, DrawableID id);
+        UniqueDrawableID(UniqueDrawableID&& other) noexcept;
+        auto operator=(UniqueDrawableID&& other) noexcept -> UniqueDrawableID&;
+        ~UniqueDrawableID() noexcept;
+
+        operator bool() const;
+        operator DrawableID() const;
+        auto get() const -> DrawableID;
+
+    private:
+        DrawableComponentScene* scene{ nullptr };
+        DrawableID id;
+    };
+
     /**
      * @brief
      */
@@ -51,6 +79,7 @@ namespace trc
         void updateAnimations(float timeDelta);
 
         auto makeDrawable() -> DrawableID;
+        auto makeDrawableUnique() -> UniqueDrawableID;
         void destroyDrawable(DrawableID drawable);
 
         void makeRasterization(DrawableID drawable, const RasterComponentCreateInfo& createInfo);
