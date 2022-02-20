@@ -1,10 +1,10 @@
 #pragma once
 
+#include "AssetImportBase.h"
+
 #ifdef TRC_USE_ASSIMP
 
 #include <assimp/scene.h>
-
-#include "AssetImportBase.h"
 
 namespace trc
 {
