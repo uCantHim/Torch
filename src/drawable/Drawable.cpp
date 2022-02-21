@@ -120,8 +120,10 @@ auto Drawable::getAnimationEngine() const -> const AnimationEngine&
 
 void Drawable::removeFromScene()
 {
-    if (id != DrawableID::NONE) {
+    if (id != DrawableID::NONE)
+    {
         scene->destroyDrawable(id);
+        id = DrawableID::NONE;
     }
 }
 
