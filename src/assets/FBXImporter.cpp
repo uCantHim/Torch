@@ -52,34 +52,23 @@ namespace trc
 
 
 
-trc::FBXLoader::FBXLoader()
+auto trc::FBXImporter::load(const fs::path& path) -> ThirdPartyFileImportData
 {
-    if (!initialized)
-    {
-        fbx_memory_manager = FbxManager::Create();
-        fbx_io_settings = FbxIOSettings::Create(fbx_memory_manager, IOSROOT);
-        fbx_memory_manager->SetIOSettings(fbx_io_settings);
+    init();
 
-        fbx_io_settings->SetBoolProp(IMP_ANIMATION, true);
-
-        initialized = true;
-    }
-}
-
-
-auto trc::FBXLoader::loadFBXFile(const std::string& path) -> ThirdPartyFileImportData
-{
     time_point<system_clock, milliseconds> start = time_point_cast<milliseconds>(system_clock::now());
 
     ThirdPartyFileImportData result;
     result.filePath = path;
 
     auto sceneImportOpt = loadSceneFromFile(path);
-    if (!sceneImportOpt.has_value()) {
+    if (!sceneImportOpt.has_value())
+    {
         fbxLog << "Unable to load scene: " << path << "\n";
         return result;
     }
     auto sceneImport = std::move(sceneImportOpt.value());
+    FbxScene* scene = sceneImport.scene;
 
     for (ui32 meshIndex = 0; auto& [mesh, name, transform] : sceneImport.meshes)
     {
@@ -100,7 +89,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> ThirdPartyFileImpor
                 << name << "\"..\n";
 
             auto [rig, boneNodes] = loadRig(mesh, newMesh.geometry);
-            rig.animations = loadAnimations(rig, boneNodes);
+            rig.animations = loadAnimations(scene, rig, boneNodes);
             newMesh.rig = std::move(rig);
         }
 
@@ -118,7 +107,22 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> ThirdPartyFileImpor
 }
 
 
-auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional<SceneImport>
+void trc::FBXImporter::init()
+{
+    if (!initialized)
+    {
+        fbx_memory_manager = FbxManager::Create();
+        fbx_io_settings = FbxIOSettings::Create(fbx_memory_manager, IOSROOT);
+        fbx_memory_manager->SetIOSettings(fbx_io_settings);
+
+        fbx_io_settings->SetBoolProp(IMP_ANIMATION, true);
+
+        initialized = true;
+    }
+}
+
+
+auto trc::FBXImporter::loadSceneFromFile(const std::string& path) -> std::optional<SceneImport>
 {
     if (path.length() < 3
         || !(path[path.length() - 3] == 'f'
@@ -141,7 +145,7 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
         return std::nullopt;
     }
 
-    scene = FbxScene::Create(fbx_memory_manager, "");
+    FbxScene* scene = FbxScene::Create(fbx_memory_manager, "");
     importer->Import(scene);
     importer->Destroy();
 
@@ -155,7 +159,11 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
         return std::nullopt;
     }
 
-    SceneImport importResult;
+    SceneImport importResult{
+        .scene = scene,
+        .meshes = {},
+        .skeletonRoots = {},
+    };
     FbxAnimEvaluator* evaluator = scene->GetAnimationEvaluator();
 
     for (int i = 0; i < scene->GetNodeCount(); i++)
@@ -193,7 +201,7 @@ auto trc::FBXLoader::loadSceneFromFile(const std::string& path) -> std::optional
 }
 
 
-auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> GeometryData
+auto trc::FBXImporter::loadMesh(FbxMesh* mesh) -> GeometryData
 {
     GeometryData result;
 
@@ -220,7 +228,7 @@ auto trc::FBXLoader::loadMesh(FbxMesh* mesh) -> GeometryData
 }
 
 
-void trc::FBXLoader::loadVertices(FbxMesh* mesh, GeometryData& result)
+void trc::FBXImporter::loadVertices(FbxMesh* mesh, GeometryData& result)
 {
     // Load individual vertices
     int vertCount = mesh->GetControlPointsCount();
@@ -235,7 +243,7 @@ void trc::FBXLoader::loadVertices(FbxMesh* mesh, GeometryData& result)
 }
 
 
-void trc::FBXLoader::loadUVs(FbxMesh* mesh, GeometryData& result)
+void trc::FBXImporter::loadUVs(FbxMesh* mesh, GeometryData& result)
 {
     FbxStringList uvSetNameList;
     mesh->GetUVSetNames(uvSetNameList);
@@ -285,7 +293,7 @@ void trc::FBXLoader::loadUVs(FbxMesh* mesh, GeometryData& result)
 }
 
 
-void trc::FBXLoader::loadNormals(FbxMesh* mesh, GeometryData& result)
+void trc::FBXImporter::loadNormals(FbxMesh* mesh, GeometryData& result)
 {
     FbxGeometryElementNormal* normalElement = mesh->GetElementNormal();
 
@@ -325,7 +333,7 @@ void trc::FBXLoader::loadNormals(FbxMesh* mesh, GeometryData& result)
 }
 
 
-void trc::FBXLoader::loadTangents(FbxMesh* mesh, GeometryData& result)
+void trc::FBXImporter::loadTangents(FbxMesh* mesh, GeometryData& result)
 {
     FbxGeometryElementTangent* tangentElement = mesh->GetElementTangent();
     if (tangentElement == nullptr)
@@ -355,7 +363,7 @@ void trc::FBXLoader::loadTangents(FbxMesh* mesh, GeometryData& result)
 }
 
 
-void trc::FBXLoader::computeTangents(GeometryData& result)
+void trc::FBXImporter::computeTangents(GeometryData& result)
 {
     if (result.indices.empty() || result.indices.size() % 3 != 0)
     {
@@ -400,15 +408,16 @@ void trc::FBXLoader::computeTangents(GeometryData& result)
         //vec3 _U = U - dot(N, U) * N - dot(_T, U) * _T;
         //     ^^ currently unused
 
-        // Because we orthonormalized the T-B-N-Matrix, we can use the transpose
+        // Because we orthonormalized the T-B-N-Matrix, we can use the *transpose*
         //        | T'.x  T'.y  T'.z |
         //        | U'.x  U'.y  U'.z |
         //        | N.x   N.y   N.z  |
         // as the inverse of the calculated Matrix.
         //
-        // This is necessary because the calculated T, U and N vectors are columns of the Tangentspace-to-Objectspace-Matrix.
-        // Since we need to transform from object- to tangentspace, we would have to calculate the inverse matrix
-        // inside of the shader, which we want to avoid.
+        // This is necessary because the calculated T, U and N vectors are columns of the
+        // Tangentspace-to-Objectspace-Matrix. Since we need to transform from object- to
+        // tangentspace, we would have to calculate the inverse matrix inside of the shader,
+        // which we want to avoid.
 
         result.vertices[result.indices[i + 0]].tangent = T_;
         result.vertices[result.indices[i + 1]].tangent = T_;
@@ -422,7 +431,7 @@ void trc::FBXLoader::computeTangents(GeometryData& result)
 }
 
 
-auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
+auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
 {
     FbxNode* meshNode = mesh->GetNode();
     const int materialCount = meshNode->GetMaterialCount();
@@ -484,11 +493,12 @@ auto trc::FBXLoader::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
 }
 
 
-auto trc::FBXLoader::loadSkeleton(FbxSkeleton* skeleton)
-    -> std::pair<RigData, std::vector<FbxNode*>>
+auto trc::FBXImporter::loadSkeleton(FbxSkeleton* skeleton)
+    -> std::tuple<RigData, std::vector<FbxNode*>, std::unordered_map<std::string, ui32>>
 {
     RigData rig;
     std::vector<FbxNode*> boneNodes;
+    std::unordered_map<std::string, ui32> boneNamesToIndices;
 
     std::function<void(FbxNode*)> collectNodeRecursive = [&](FbxNode* node)
     {
@@ -501,7 +511,7 @@ auto trc::FBXLoader::loadSkeleton(FbxSkeleton* skeleton)
 
         rig.bones.emplace_back();
         boneNodes.push_back(node);
-        rig.boneNamesToIndices[node->GetName()] = rig.bones.size() - 1;
+        boneNamesToIndices[node->GetName()] = rig.bones.size() - 1;
 
         for (int i = 0; i < node->GetChildCount(); i++)
         {
@@ -511,11 +521,11 @@ auto trc::FBXLoader::loadSkeleton(FbxSkeleton* skeleton)
 
     collectNodeRecursive(skeleton->GetNode());
 
-    return { rig, boneNodes };
+    return { rig, boneNodes, boneNamesToIndices };
 }
 
 
-auto trc::FBXLoader::loadRig(FbxMesh* mesh, GeometryData& result)
+auto trc::FBXImporter::loadRig(FbxMesh* mesh, GeometryData& result)
     -> std::pair<RigData, std::vector<FbxNode*>>
 {
     // I don't know what this does but apparently it's important
@@ -545,10 +555,10 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, GeometryData& result)
         auto skeletonRoot = skin->GetCluster(0)->GetLink()->GetNodeAttribute();
         /**
          * If this assertion fails, the assumption that the first cluster in a skin is
-         *  always its root is false.
+         * always its root is false.
          */
         assert(skeletonRoot->GetAttributeType() == FbxNodeAttribute::eSkeleton);
-        auto [rig, boneNodes] = loadSkeleton(static_cast<FbxSkeleton*>(skeletonRoot));
+        auto [rig, boneNodes, boneNamesToIndices] = loadSkeleton(static_cast<FbxSkeleton*>(skeletonRoot));
         rig.name = skin->GetName();
 
         ////////////////
@@ -561,7 +571,13 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, GeometryData& result)
         {
             auto cluster = skin->GetCluster(clusterIndex);
             const std::string currBoneName = cluster->GetLink()->GetName();
-            const ui32 currBoneIndex = rig.boneNamesToIndices[currBoneName];
+            const ui32 currBoneIndex = boneNamesToIndices[currBoneName];
+
+            /**
+             * TODO: *If* this assertion can never fail, we can remove the
+             * boneNamesToIndices map.
+             */
+            assert(clusterIndex == currBoneIndex);
 
             // Calculate bind pose inverse matrix
             FbxAMatrix meshTransformMat;
@@ -603,7 +619,7 @@ auto trc::FBXLoader::loadRig(FbxMesh* mesh, GeometryData& result)
 }
 
 
-void trc::FBXLoader::correctBoneWeights(GeometryData& mesh)
+void trc::FBXImporter::correctBoneWeights(GeometryData& mesh)
 {
     ui32 totalWeights = 0; // For logging only
     ui32 correctedWeights = 0; // For logging only
@@ -637,7 +653,10 @@ void trc::FBXLoader::correctBoneWeights(GeometryData& mesh)
 }
 
 
-auto trc::FBXLoader::loadAnimations(const RigData& rig, const std::vector<FbxNode*>& boneNodes)
+auto trc::FBXImporter::loadAnimations(
+    FbxScene* scene,
+    const RigData& rig,
+    const std::vector<FbxNode*>& boneNodes)
     -> std::vector<AnimationData>
 {
     std::vector<AnimationData> animations;

@@ -11,8 +11,7 @@ auto trc::loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData
     if (filePath.extension() == ".fbx")
     {
 #ifdef TRC_USE_FBX_SDK
-        FBXLoader loader;
-        return loader.loadFBXFile(filePath);
+        return FBXImporter::load(filePath);
 #else
         throw DataImportError("[In loadGeometry]: Unable to import data from .fbx files"
                               " as Torch was built without the FBX SDK");

@@ -35,6 +35,7 @@ namespace trc
     {
         struct Bone
         {
+            std::string name;
             mat4 inverseBindPoseMat;
         };
 
@@ -42,12 +43,6 @@ namespace trc
 
         // Indexed by per-vertex bone indices
         std::vector<Bone> bones;
-
-        // Maps bone names to their indices in the bones array
-        //
-        // TODO: This information is redundant if I add a name to the Bone
-        //       struct. Remove it.
-        std::unordered_map<std::string, ui32> boneNamesToIndices;
 
         // A set of animations attached to the rig
         std::vector<AnimationData> animations;

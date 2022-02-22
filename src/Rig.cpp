@@ -8,9 +8,14 @@ trc::Rig::Rig(const RigData& data, AnimationDataStorage& animStorage)
     :
     animationStorage(&animStorage),
     rigName(data.name),
-    bones(data.bones),
-    boneNames(data.boneNamesToIndices)
+    bones(data.bones)
 {
+    // Create mapping from bone name to bone index
+    for (ui32 i = 0; const RigData::Bone& bone : data.bones)
+    {
+        boneNames[bone.name] = i++;
+    }
+
     for (const auto& anim : data.animations) {
         addAnimation(anim);
     }
