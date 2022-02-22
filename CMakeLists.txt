@@ -32,6 +32,7 @@ include(FetchContent)
 include(cmake/utils.cmake)
 
 find_package(Freetype REQUIRED)
+find_package(Protobuf REQUIRED)
 
 if (TARGET profiler)
     set(HAS_PROFILER TRUE)
@@ -60,18 +61,37 @@ target_link_libraries(
     component
     vk_base
     Freetype::Freetype
+    protobuf::libprotobuf
     $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
 )
 
 target_compile_definitions(torch
     PUBLIC
         TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
+
+        # Hard-coded path until I have a project mechanism
+        TRC_PROJECT_DIR="${CMAKE_CURRENT_LIST_DIR}/project_files"
+
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
     INTERFACE
         TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
 )
 
+# Protobuf headers and sources
+protobuf_generate_cpp(
+    TRC_PROTO_SRCS TRC_PROTO_HDRS
+    protobuf/vector_types.proto
+    protobuf/geometry.proto
+    protobuf/texture.proto
+
+    protobuf/asset.proto
+)
+
+target_sources(torch PRIVATE ${TRC_PROTO_SRCS})
+target_include_directories(torch PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+# Sources
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)

@@ -1,0 +1,34 @@
+syntax = "proto3";
+package trc.serial;
+
+import "vector_types.proto";
+
+message Geometry
+{
+    message Vertex
+    {
+        vec3 position = 1;
+        vec3 normal = 2;
+        vec2 uv = 3;
+        vec3 tangent = 4;
+
+        uvec4 bone_indices = 5;
+        vec4 bone_weights = 6;
+    }
+
+    string name = 1;
+    repeated Vertex vertices = 2;
+    repeated uint32 indices = 3;
+}
+
+message PackedGeometry
+{
+    enum Type
+    {
+        mesh = 0;
+        riggedMesh = 1;
+    }
+
+    Type type = 1;
+    bytes data = 2;
+}

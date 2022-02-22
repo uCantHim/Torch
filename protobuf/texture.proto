@@ -1,0 +1,15 @@
+syntax = "proto3";
+package trc.serial;
+
+message Image
+{
+    uint32 width = 1;
+    uint32 height = 2;
+
+    bytes pixel_data_rgba8 = 3;
+}
+
+message Texture
+{
+    Image image = 1;
+}
