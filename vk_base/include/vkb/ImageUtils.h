@@ -1,11 +1,21 @@
 #pragma once
 
+#include <vector>
+
 #include <glm/glm.hpp>
 
 #include "Image.h"
 
 namespace vkb
 {
+    struct RawImageData
+    {
+        glm::uvec2 size;
+        std::vector<glm::u8vec4> pixels;
+    };
+
+    auto makeSinglePixelImageData(glm::vec4 color) -> RawImageData;
+
     /**
      * @brief Make a 1x1 2D image with just one color
      */
@@ -15,6 +25,8 @@ namespace vkb
                                                           | vk::ImageUsageFlagBits::eTransferDst,
                               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator()
         ) -> Image;
+
+    auto loadImageData2D(const fs::path& filePath) -> RawImageData;
 
     /**
      * @brief Load an image from file
