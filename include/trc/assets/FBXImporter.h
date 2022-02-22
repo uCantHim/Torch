@@ -26,7 +26,7 @@ namespace trc
         FBXLoader& operator=(FBXLoader&&) noexcept = default;
         ~FBXLoader() = default;
 
-        auto loadFBXFile(const std::string& path) -> FileImportData;
+        auto loadFBXFile(const std::string& path) -> ThirdPartyFileImportData;
 
     private:
         static inline FbxManager* fbx_memory_manager{ nullptr };

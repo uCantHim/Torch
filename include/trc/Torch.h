@@ -12,7 +12,8 @@
 
 #include "Scene.h"
 #include "AssetRegistry.h"
-#include "asset_import/AssetUtils.h"
+#include "assets/AssetImport.h"
+#include "assets/GeneratedGeometry.h"
 #include "drawable/Drawable.h"
 #include "Light.h"
 #include "TorchRenderConfig.h"

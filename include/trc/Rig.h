@@ -1,28 +1,10 @@
 #pragma once
 
 #include "Animation.h"
+#include "assets/RawData.h"
 
 namespace trc
 {
-    struct RigData
-    {
-        struct Bone
-        {
-            mat4 inverseBindPoseMat;
-        };
-
-        std::string name;
-
-        // Indexed by per-vertex bone indices
-        std::vector<Bone> bones;
-
-        // Maps bone names to their indices in the bones array
-        std::unordered_map<std::string, ui32> boneNamesToIndices;
-
-        // A set of animations attached to the rig
-        std::vector<AnimationData> animations;
-    };
-
     class Rig
     {
     public:

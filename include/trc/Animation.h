@@ -1,30 +1,11 @@
 #pragma once
 
-#include <mutex>
-
-#include <vkb/Buffer.h>
-
 #include "Types.h"
-#include "core/DescriptorProvider.h"
 
 namespace trc
 {
     class AnimationDataStorage;
-
-    struct AnimationData
-    {
-        struct Keyframe
-        {
-            std::vector<mat4> boneMatrices;
-        };
-
-        std::string name;
-
-        ui32 frameCount{ 0 };
-        float durationMs{ 0.0f };
-        float frameTimeMs{ 0.0f };
-        std::vector<Keyframe> keyframes;
-    };
+    struct AnimationData;
 
     /**
      * @brief A handle to an animation

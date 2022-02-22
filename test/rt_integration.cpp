@@ -7,7 +7,6 @@
 #include <trc/DescriptorSetUtils.h>
 #include <trc/TorchResources.h>
 #include <trc/PipelineDefinitions.h>
-#include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 #include <trc/drawable/DrawablePool.h>
 using namespace trc::basic_types;

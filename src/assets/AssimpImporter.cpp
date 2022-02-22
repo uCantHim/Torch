@@ -1,6 +1,6 @@
-#include "asset_import/AssetImporter.h"
-
 #ifdef TRC_USE_ASSIMP
+
+#include "assets/AssimpImporter.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -22,9 +22,10 @@ inline auto toVec2(aiVector2D v) -> trc::basic_types::vec2
     return { v.x, v.y };
 }
 
-auto trc::AssetImporter::load(const fs::path& filePath) -> FileImportData
+auto trc::AssetImporter::load(const fs::path& filePath) -> ThirdPartyFileImportData
 {
-    FileImportData result;
+    ThirdPartyFileImportData result;
+    result.filePath = filePath;
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filePath.c_str(),
@@ -46,14 +47,14 @@ auto trc::AssetImporter::load(const fs::path& filePath) -> FileImportData
     return result;
 }
 
-auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<Mesh>
+auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPartyMeshImport>
 {
-    std::vector<Mesh> result;
+    std::vector<ThirdPartyMeshImport> result;
 
     for (ui32 i = 0; i < scene->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[i];
-        Mesh& newMesh = result.emplace_back();
+        ThirdPartyMeshImport& newMesh = result.emplace_back();
         auto& meshData = newMesh.geometry;
 
         // Load vertices

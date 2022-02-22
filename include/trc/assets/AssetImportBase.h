@@ -3,15 +3,17 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <filesystem>
 
 #include "Types.h"
-#include "Geometry.h"
+#include "assets/RawData.h"
 #include "Material.h"
-#include "Rig.h"
 
 namespace trc
 {
-    struct Mesh
+    namespace fs = std::filesystem;
+
+    struct ThirdPartyMeshImport
     {
         std::string name;
         mat4 globalTransform;
@@ -24,8 +26,10 @@ namespace trc
     /**
      * @brief A holder for all data loaded from a file.
      */
-    struct FileImportData
+    struct ThirdPartyFileImportData
     {
-        std::vector<Mesh> meshes;
+        fs::path filePath;
+
+        std::vector<ThirdPartyMeshImport> meshes;
     };
 } // namespace trc

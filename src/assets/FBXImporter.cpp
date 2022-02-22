@@ -1,6 +1,6 @@
 #ifdef TRC_USE_FBX_SDK
 
-#include "asset_import/FBXLoader.h"
+#include "assets/FBXImporter.h"
 
 #include <iostream>
 #include <chrono>
@@ -14,7 +14,7 @@ class FbxLogger
 {
 public:
     template<typename T>
-    inline auto operator<<(const T& t) -> FbxLogger&
+    inline auto operator<<(T&& t) -> FbxLogger&
     {
         if constexpr (vkb::enableVerboseLogging) {
             std::cout << t;
@@ -67,11 +67,12 @@ trc::FBXLoader::FBXLoader()
 }
 
 
-auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
+auto trc::FBXLoader::loadFBXFile(const std::string& path) -> ThirdPartyFileImportData
 {
     time_point<system_clock, milliseconds> start = time_point_cast<milliseconds>(system_clock::now());
 
-    FileImportData result;
+    ThirdPartyFileImportData result;
+    result.filePath = path;
 
     auto sceneImportOpt = loadSceneFromFile(path);
     if (!sceneImportOpt.has_value()) {
@@ -84,7 +85,7 @@ auto trc::FBXLoader::loadFBXFile(const std::string& path) -> FileImportData
     {
         fbxLog << "Loading mesh " << name << ":\n";
 
-        Mesh newMesh = {
+        ThirdPartyMeshImport newMesh = {
             name,
             transform,
             loadMesh(mesh),

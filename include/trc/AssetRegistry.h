@@ -13,8 +13,10 @@
 #include "trc_util/functional/Maybe.h"
 #include "core/DescriptorProvider.h"
 #include "AssetIds.h"
+#include "assets/RawData.h"
 #include "Geometry.h"
 #include "Material.h"
+#include "Rig.h"
 #include "AnimationDataStorage.h"
 #include "text/FontDataStorage.h"
 

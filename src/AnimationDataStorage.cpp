@@ -2,6 +2,7 @@
 
 #include "core/Instance.h"
 #include "Animation.h"
+#include "assets/RawData.h"
 
 
 

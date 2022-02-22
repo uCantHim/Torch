@@ -1,6 +1,7 @@
 #include "Animation.h"
 
 #include "AnimationDataStorage.h"
+#include "assets/RawData.h"
 
 
 

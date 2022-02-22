@@ -5,13 +5,15 @@
 #include <filesystem>
 
 #include "trc_util/Exception.h"
-#include "FBXLoader.h"
-#include "AssetImporter.h"
-#include "AssetRegistry.h"
+#include "AssimpImporter.h"
+#include "FBXImporter.h"
+#include "AssetIds.h"
 
 namespace trc
 {
     namespace fs = std::filesystem;
+
+    class AssetRegistry;
 
     class DataImportError : public Exception
     {
@@ -24,7 +26,7 @@ namespace trc
      *
      * @throw DataImportError if the file format is not supported
      */
-    auto loadGeometry(const fs::path& filePath) -> FileImportData;
+    auto loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData;
 
     /**
      * @brief Load geometry from a file directly into an asset registry

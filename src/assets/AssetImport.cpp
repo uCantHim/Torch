@@ -1,8 +1,10 @@
-#include "asset_import/AssetUtils.h"
+#include "assets/AssetImport.h"
+
+#include "AssetRegistry.h"
 
 
 
-auto trc::loadGeometry(const fs::path& filePath) -> FileImportData
+auto trc::loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData
 {
     if (filePath.extension() == ".fbx")
     {

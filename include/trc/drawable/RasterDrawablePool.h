@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <mutex>
 
+#include <vkb/Buffer.h>
+
 #include "core/RenderStage.h"
 #include "core/Pipeline.h"
 #include "core/SceneBase.h"
