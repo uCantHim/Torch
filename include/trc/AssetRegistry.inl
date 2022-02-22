@@ -48,7 +48,7 @@ trc::AssetRegistryNamedWrapper<NameType>::AssetRegistryNamedWrapper(AssetRegistr
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, GeometryData geo)
+auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, const GeometryData& geo)
     -> GeometryID
 {
     auto id = ar->add(std::move(geo));
@@ -76,10 +76,10 @@ auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, Material
 }
 
 template<typename NameType>
-auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, vkb::Image img)
+auto trc::AssetRegistryNamedWrapper<NameType>::add(const NameType& key, const TextureData& tex)
     -> TextureID
 {
-    auto id = ar->add(std::move(img));
+    auto id = ar->add(tex);
 
     auto [it, success] = imageNames.emplace(key, id);
     if (!success) {

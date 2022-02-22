@@ -1,5 +1,11 @@
 #pragma once
 
+#include <vector>
+#include <unordered_map>
+
+#include <glm/fwd.hpp>
+
+#include "Types.h"
 #include "Vertex.h"
 
 namespace trc
@@ -38,9 +44,20 @@ namespace trc
         std::vector<Bone> bones;
 
         // Maps bone names to their indices in the bones array
+        //
+        // TODO: This information is redundant if I add a name to the Bone
+        //       struct. Remove it.
         std::unordered_map<std::string, ui32> boneNamesToIndices;
 
         // A set of animations attached to the rig
         std::vector<AnimationData> animations;
+    };
+
+
+
+    struct TextureData
+    {
+        uvec2 size;
+        std::vector<glm::u8vec4> pixels;
     };
 } // namespace trc

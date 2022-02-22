@@ -42,7 +42,7 @@ trc::AssetRegistry::AssetRegistry(
     // Add default assets
     add(Material{ .performLighting=false });
     updateMaterials();
-    add(vkb::makeSinglePixelImage(device, vec4(1.0f)));
+    add({ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
 
     writeDescriptors();
 }
@@ -93,11 +93,18 @@ auto trc::AssetRegistry::add(Material mat) -> MaterialID
     return key;
 }
 
-auto trc::AssetRegistry::add(vkb::Image image) -> TextureID
+auto trc::AssetRegistry::add(const TextureData& tex) -> TextureID
 {
-    TextureID key(nextImageIndex++, *this);
-
+    vkb::Image image(
+        device, tex.size.x, tex.size.y,
+        vk::Format::eR8G8B8A8Unorm,
+        vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst
+        // memoryPool.makeAllocator()
+    );
+    image.writeData(tex.pixels.data(), tex.size.x * tex.size.y * 4, {});
     auto view = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
+
+    TextureID key(nextImageIndex++, *this);
     addToMap(textures, key,
         TextureStorage{
             .image = std::move(image),

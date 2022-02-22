@@ -40,4 +40,6 @@ namespace trc
     auto loadGeometry(const fs::path& filePath,
                       AssetRegistry& assetRegistry,
                       bool loadRig = true) -> Maybe<GeometryID>;
+
+    auto loadTexture(const fs::path& filePath) -> TextureData;
 } // namespace trc

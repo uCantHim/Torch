@@ -69,10 +69,10 @@ void run()
             .kSpecular=vec4(0.2f),
             .reflectivity=0.3f,
             .diffuseTexture=ar.add(
-                vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/tex_pavement_grassy_albedo.tif")
+                trc::loadTexture(TRC_TEST_ASSET_DIR"/tex_pavement_grassy_albedo.tif")
             ),
             .bumpTexture=ar.add(
-                vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/tex_pavement_grassy_normal.tif")
+                trc::loadTexture(TRC_TEST_ASSET_DIR"/tex_pavement_grassy_normal.tif")
             ),
         })
     });

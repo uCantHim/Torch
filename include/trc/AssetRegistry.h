@@ -37,9 +37,9 @@ namespace trc
     public:
         explicit AssetRegistryNamedWrapper(AssetRegistry& ar);
 
-        auto add(const NameType& key, GeometryData geo) -> GeometryID;
+        auto add(const NameType& key, const GeometryData& geo) -> GeometryID;
         auto add(const NameType& key, Material mat) -> MaterialID;
-        auto add(const NameType& key, vkb::Image img) -> TextureID;
+        auto add(const NameType& key, const TextureData& tex) -> TextureID;
 
         auto getGeo(const NameType& key) -> Maybe<Geometry>;
         auto getMat(const NameType& key) -> Maybe<Material&>;
@@ -80,7 +80,7 @@ namespace trc
         auto add(const GeometryData& geo,
                  std::optional<RigData> rigData = std::nullopt) -> GeometryID;
         auto add(Material mat) -> MaterialID;
-        auto add(vkb::Image image) -> TextureID;
+        auto add(const TextureData& tex) -> TextureID;
 
         auto get(GeometryID key) -> Geometry;
         auto get(MaterialID key) -> Material&;

@@ -47,17 +47,17 @@ void run()
     auto lindaGeoIndex = ar.add(lindaMesh.geometry, lindaMesh.rig);
 
     auto lindaDiffTexIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/Female_Character.png")
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
     );
 
     auto grassImgIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
     );
     auto stoneTexIdx = ar.add(
-        vkb::makeSinglePixelImage(device, vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
     );
     auto stoneNormalTexIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
     auto matIdx = ar.add({
@@ -126,10 +126,10 @@ void run()
     // Images
     auto planeGeo = ar.add(trc::makePlaneGeo());
     auto transparentImg = ar.add(trc::Material{
-        .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/standard_model.png"))
+        .diffuseTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
     });
     auto opaqueImg = ar.add(trc::Material{
-        .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/lena.png"))
+        .diffuseTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     });
     trc::Drawable img({ planeGeo, transparentImg, true }, scene);
     img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
@@ -183,7 +183,7 @@ void run()
         particleCollection.addParticle(particle);
     }
 
-    auto particleImgIdx = ar.add(vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/yellowlight.png"));
+    auto particleImgIdx = ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png"));
     trc::ParticleSpawn spawn(particleCollection);
     for (int i = 0; i < 50; i++)
     {
