@@ -3,12 +3,14 @@ using namespace trc::basic_types;
 
 void run()
 {
+    trc::init();
+
     // Create basic Torch objects
     trc::Instance instance;
     trc::Window window(instance);
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
-    trc::AssetRegistry assets(instance);
+    trc::AssetManager assets(instance, {});
     trc::ShadowPool shadows(window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 });
 
     // Create one render configuration for each viewport.
@@ -19,7 +21,7 @@ void run()
     trc::TorchRenderConfigCreateInfo info{
         .renderGraph=trc::makeDeferredRenderGraph(),
         .target=renderTarget,
-        .assetRegistry=&assets,
+        .assetRegistry=&assets.getDeviceRegistry(),
         .shadowPool=&shadows
     };
     trc::TorchRenderConfig config1(window, info);
@@ -50,10 +52,10 @@ void run()
     scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create some geometries to render
-    auto planeGeo = assets.add(trc::makePlaneGeo());
-    auto cubeGeo = assets.add(trc::makeCubeGeo());
-    auto greenMat = assets.add(trc::Material{ .color=vec4(0, 1, 0, 1) });
-    auto redMat = assets.add(trc::Material{ .color=vec4(1, 0.3f, 0, 1) });
+    auto planeGeo = assets.create<trc::Geometry>(trc::makePlaneGeo());
+    auto cubeGeo = assets.create<trc::Geometry>(trc::makeCubeGeo());
+    auto greenMat = assets.create<trc::Material>(trc::MaterialData{ .color=vec4(0, 1, 0, 1) });
+    auto redMat = assets.create<trc::Material>(trc::MaterialData{ .color=vec4(1, 0.3f, 0, 1) });
 
     // Create an inclined plane and a rotating cube
     trc::Drawable plane(planeGeo, greenMat, scene);

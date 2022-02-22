@@ -3,7 +3,7 @@
 
 #define BONE_INDICES_INPUT_LOCATION 4
 #define BONE_WEIGHTS_INPUT_LOCATION 5
-#define ANIM_DESCRIPTOR_SET_BINDING 4
+#define ASSET_DESCRIPTOR_SET_BINDING 1
 #include "../animation.glsl"
 
 layout (constant_id = 0) const bool isAnimated = false;
@@ -32,7 +32,7 @@ layout (push_constant) uniform PushConstants
     uint materialIndex;
 };
 
-layout (location = 0) out Vertex
+layout (location = 0) out VertexData
 {
     vec3 worldPos;
     vec2 uv;

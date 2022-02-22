@@ -4,7 +4,6 @@
 
 #include "core/PipelineLayoutBuilder.h"
 #include "core/PipelineBuilder.h"
-#include "AssetRegistry.h"
 #include "TorchRenderConfig.h"
 #include "PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "TorchResources.h"

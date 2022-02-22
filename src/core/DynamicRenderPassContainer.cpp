@@ -35,10 +35,8 @@ void trc::DynamicRenderPassContainer::clearDynamicRenderPasses(RenderStage::ID s
 auto trc::DynamicRenderPassContainer::getDynamicRenderPasses(RenderStage::ID stage)
     -> const std::vector<RenderPass*>&
 {
-    try {
-        return dynamicPasses.at(stage);
+    if (!dynamicPasses.contains(stage)) {
+        dynamicPasses.emplace(stage, std::vector<RenderPass*>{});
     }
-    catch (const std::out_of_range& err) {
-        return dynamicPasses.emplace(stage, std::vector<RenderPass*>{}).first->second;
-    }
+    return dynamicPasses.at(stage);
 }

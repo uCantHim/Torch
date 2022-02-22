@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 
 if (UNIX AND NOT APPLE)
     set(LINUX TRUE)
@@ -32,6 +32,8 @@ include(FetchContent)
 include(cmake/utils.cmake)
 
 find_package(Freetype REQUIRED)
+find_package(Protobuf REQUIRED)
+find_package(PNG REQUIRED)
 
 if (TARGET profiler)
     set(HAS_PROFILER TRUE)
@@ -40,6 +42,7 @@ endif()
 # Tools
 add_subdirectory(torch_util)
 add_subdirectory(tools)
+add_subdirectory(shaders)
 
 # Library target
 add_library(torch)
@@ -55,26 +58,55 @@ target_include_directories(torch
 )
 
 target_link_libraries(
-    torch PUBLIC
-    torch_util
-    component
-    vk_base
-    Freetype::Freetype
-    $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
+    torch
+    PUBLIC
+        torch_util
+        component
+        vk_base
+        Freetype::Freetype
+        protobuf::libprotobuf
+        $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
+    PRIVATE
+        PNG::PNG
 )
+
+add_dependencies(compile_shaders pre_build_step)
+add_dependencies(torch compile_shaders pre_build_step)
 
 target_compile_definitions(torch
     PUBLIC
         TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
+
+        # Hard-coded path until I have a project mechanism
+        TRC_PROJECT_DIR="${CMAKE_CURRENT_LIST_DIR}/project_files"
+
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
     INTERFACE
         TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
 )
 
-add_subdirectory(shaders)
+# Protobuf headers and sources
+protobuf_generate_cpp(
+    TRC_PROTO_SRCS TRC_PROTO_HDRS
+    protobuf/vector_types.proto
+    protobuf/geometry.proto
+    protobuf/texture.proto
+    protobuf/material.proto
+    protobuf/rig.proto
+    protobuf/animation.proto
+
+    protobuf/asset.proto
+    protobuf/asset_reference.proto
+)
+
+target_sources(torch PRIVATE ${TRC_PROTO_SRCS})
+target_include_directories(torch PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+# Sources
 add_subdirectory(vk_base)
 add_subdirectory(src)
+add_subdirectory(include/trc) # Precompiled headers
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})

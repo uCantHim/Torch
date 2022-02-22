@@ -12,7 +12,7 @@ namespace trc
     public:
         RayTracingPass() : RenderPass({}, 0) {}
 
-        void begin(vk::CommandBuffer, vk::SubpassContents) override;
+        void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override {}
 
         /**

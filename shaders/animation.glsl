@@ -1,5 +1,7 @@
 // Animation related stuff
 
+#include "asset_registry_descriptor.glsl"
+
 #ifndef BONE_INDICES_INPUT_LOCATION
 #define BONE_INDICES_INPUT_LOCATION 4
 #endif
@@ -8,35 +10,17 @@
 #define BONE_WEIGHTS_INPUT_LOCATION 5
 #endif
 
-#ifndef ANIM_DESCRIPTOR_SET_BINDING
-#define ANIM_DESCRIPTOR_SET_BINDING 3
-#endif
-
 #define NO_ANIMATION (uint(0) - 1)
 
-struct AnimationMetaData
+struct AnimationPushConstantData
 {
-    uint offset;
-    uint frameCount;
-    uint boneCount;
+    uint animation;
+    uint keyframes[2];
+    float keyframeWeigth;
 };
 
 layout (location = BONE_INDICES_INPUT_LOCATION) in uvec4 vertexBoneIndices;
 layout (location = BONE_WEIGHTS_INPUT_LOCATION) in vec4 vertexBoneWeights;
-
-layout (set = ANIM_DESCRIPTOR_SET_BINDING, binding = 0, std140) restrict readonly buffer
-AnimationMeta
-{
-    // Indexed by animation indices provided by the client
-    AnimationMetaData metas[];
-} animMeta;
-
-layout (set = ANIM_DESCRIPTOR_SET_BINDING, binding = 1, std140) restrict readonly buffer
-Animation
-{
-    // Animations start at offsets defined in the AnimationMetaData array
-    mat4 boneMatrices[];
-} animations;
 
 
 vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWeight)
@@ -44,7 +28,7 @@ vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWei
     vec4 currentFramePos = vec4(0.0);
     vec4 nextFramePos = vec4(0.0);
 
-    const uint baseOffset = animMeta.metas[animIndex].offset;
+    const uint baseOffset = animMeta.metas[animIndex].baseOffset;
     const uint boneCount = animMeta.metas[animIndex].boneCount;
 
     for (int i = 0; i < 4; i++)

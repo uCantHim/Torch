@@ -10,11 +10,11 @@ auto shader_edit::Compiler::compile(CompileConfiguration config) -> CompileResul
 {
     CompileResult result;
 
-    for (auto& shader : config.shaderFiles)
+    for (const auto& shader : config.shaderFiles)
     {
         info("Compiling shader file \"" + shader.inputFilePath.string() + "\"...");
         try {
-            auto compileResults = compileShader(config.meta, std::move(shader));
+            auto compileResults = compileShader(config.meta, shader);
             for (auto& compiled : compileResults)
             {
                 result.shaderFiles.emplace_back(std::move(compiled));
@@ -31,7 +31,7 @@ auto shader_edit::Compiler::compile(CompileConfiguration config) -> CompileResul
 
 auto shader_edit::Compiler::compileShader(
     const CompileConfiguration::Meta& meta,
-    ShaderFileConfiguration shader)
+    const ShaderFileConfiguration& shader)
     -> std::vector<CompiledShaderFile>
 {
     constexpr const char* VAR_SEP{ "-" };
@@ -43,6 +43,7 @@ auto shader_edit::Compiler::compileShader(
         throw CompileError("Shader file \"" + shader.inputFilePath.string() + "\" does not exist");
     }
 
+    // Parse the document
     std::vector<ShaderDocument> documents{ ShaderDocument(file) };
     std::vector<std::string> uniqueNames{ shader.outputFileName };
 
@@ -51,13 +52,22 @@ auto shader_edit::Compiler::compileShader(
     {
         documents = permutate(documents, varName, permutations);
 
-        // Assemble unique file names
+        // Construct unique names for each permutation
         std::vector<std::string> newNames;
-        for (const auto& name : uniqueNames)
+        for (fs::path name : uniqueNames)
         {
-            for (const auto& var : permutations)
-            {
-                newNames.emplace_back(name + VAR_SEP + varName + NAME_TAG_SEP + var.tag);
+            if (permutations.size() == 1) {
+                newNames.emplace_back(name);
+            }
+            else {
+                const auto ext = name.extension().string();
+                for (const auto& var : permutations)
+                {
+                    newNames.emplace_back(
+                        name.replace_extension(VAR_SEP + varName + NAME_TAG_SEP + var.tag).string()
+                        += ext
+                    );
+                }
             }
         }
         std::swap(uniqueNames, newNames);
@@ -68,9 +78,8 @@ auto shader_edit::Compiler::compileShader(
     std::vector<CompiledShaderFile> result;
     for (uint i = 0; const auto& doc : documents)
     {
-        fs::path name{ uniqueNames[i++] + shader.inputFilePath.extension().string() };
         result.emplace_back(CompiledShaderFile{
-            .filePath = meta.outDir / name,
+            .filePath = meta.outDir / fs::path{ uniqueNames[i++] },
             .code     = doc.compile()
         });
     }

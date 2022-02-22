@@ -6,6 +6,7 @@ target_sources(
         DescriptorProviderWrapper.cpp
         DescriptorRegistry.cpp
         DynamicRenderPassContainer.cpp
+        FrameRenderState.cpp
         Instance.cpp
         Pipeline.cpp
         PipelineBuilder.cpp

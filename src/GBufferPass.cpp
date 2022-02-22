@@ -44,7 +44,10 @@ trc::GBufferPass::GBufferPass(
 {
 }
 
-void trc::GBufferPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
+void trc::GBufferPass::begin(
+    vk::CommandBuffer cmdBuf,
+    vk::SubpassContents subpassContents,
+    FrameRenderState&)
 {
     gBuffer->initFrame(cmdBuf);
 

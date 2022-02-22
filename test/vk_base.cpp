@@ -42,6 +42,20 @@ int main()
 
         vkb::Swapchain swapchain(device, vkb::makeSurface(*instance, {}));
         log("Swapchain created");
+
+
+        std::vector<vk::DescriptorPoolSize> poolSizes{
+            vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 2),
+            vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 4),
+        };
+        auto pool = device->createDescriptorPoolUnique({ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes });
+
+        std::vector<vk::DescriptorSetLayoutBinding> bindings{
+            vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, 6, vk::ShaderStageFlagBits::eFragment),
+        };
+        auto layout = device->createDescriptorSetLayoutUnique({ {}, bindings });
+
+        auto set = device->allocateDescriptorSetsUnique({ *pool, *layout });
     }
 
     vkb::terminate();

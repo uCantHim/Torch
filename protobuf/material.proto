@@ -1,0 +1,23 @@
+syntax = "proto3";
+package trc.serial;
+
+import "vector_types.proto";
+import "asset_reference.proto";
+
+message Material
+{
+    vec3 color = 1;
+
+    vec4 ambient_koefficient = 2;
+    vec4 diffuse_koefficient = 3;
+    vec4 specular_koefficient = 4;
+
+    float shininess = 5;
+    float opacity = 6;
+    float reflectivity = 7;
+
+    bool do_perform_lighting = 8;
+
+    optional AssetReference albedo_texture = 9;
+    optional AssetReference normal_texture = 10;
+}

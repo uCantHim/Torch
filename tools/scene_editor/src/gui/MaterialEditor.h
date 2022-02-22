@@ -1,13 +1,13 @@
 #pragma once
 
-#include <trc/Material.h>
+#include <trc/assets/Material.h>
 
 #include "ImguiUtil.h"
 
 namespace gui
 {
     inline void materialEditor(const char* title,
-                               trc::Material& mat,
+                               trc::MaterialData& mat,
                                auto onSaveCallback,
                                auto onCancelCallback = []() {})
     {
@@ -18,9 +18,9 @@ namespace gui
         ig::PushItemWidth(250);
         ig::ColorEdit4("Color", &mat.color.r, ImGuiColorEditFlags_NoAlpha);
 
-        ig::ColorEdit4("Ambient coefficient", &mat.kAmbient.r, ImGuiColorEditFlags_NoAlpha);
-        ig::ColorEdit4("Diffuse coefficient", &mat.kDiffuse.r, ImGuiColorEditFlags_NoAlpha);
-        ig::ColorEdit4("Specular coefficient", &mat.kSpecular.r, ImGuiColorEditFlags_NoAlpha);
+        ig::ColorEdit4("Ambient coefficient", &mat.ambientKoefficient.r, ImGuiColorEditFlags_NoAlpha);
+        ig::ColorEdit4("Diffuse coefficient", &mat.diffuseKoefficient.r, ImGuiColorEditFlags_NoAlpha);
+        ig::ColorEdit4("Specular coefficient", &mat.specularKoefficient.r, ImGuiColorEditFlags_NoAlpha);
 
         ig::PushItemWidth(150);
         ig::SliderFloat("Shininess", &mat.shininess, 0.0f, 64.0f);

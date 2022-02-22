@@ -2,12 +2,11 @@
 
 #include <vkb/Device.h>
 
-#include "AssetRegistry.h"
 #include "ray_tracing/AccelerationStructure.h"
 
 
 
-auto trc::rt::makeGeometryInfo(const vkb::Device& device, const Geometry& geo)
+auto trc::rt::makeGeometryInfo(const vkb::Device& device, const GeometryHandle& geo)
     -> vk::AccelerationStructureGeometryKHR
 {
     return { // Array of geometries in the AS
@@ -16,7 +15,7 @@ auto trc::rt::makeGeometryInfo(const vkb::Device& device, const Geometry& geo)
             vk::AccelerationStructureGeometryTrianglesDataKHR(
                 vk::Format::eR32G32B32Sfloat,
                 device->getBufferAddress({ geo.getVertexBuffer() }),
-                sizeof(trc::Vertex),
+                sizeof(trc::MeshVertex),
                 geo.getIndexCount(), // max vertex
                 vk::IndexType::eUint32,
                 device->getBufferAddress({ geo.getIndexBuffer() }),

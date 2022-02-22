@@ -36,7 +36,9 @@ namespace trc
          * Updates the shadow matrix in the descriptor and starts the
          * renderpass.
          */
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
+        void begin(vk::CommandBuffer cmdBuf,
+                   vk::SubpassContents subpassContents,
+                   FrameRenderState&) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
         auto getResolution() const noexcept -> uvec2;

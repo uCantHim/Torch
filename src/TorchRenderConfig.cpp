@@ -13,7 +13,8 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
 {
     RenderGraph graph;
 
-    graph.first(shadowRenderStage);
+    graph.first(resourceUpdateStage);
+    graph.after(resourceUpdateStage, shadowRenderStage);
     graph.after(shadowRenderStage, gBufferRenderStage);
     graph.after(gBufferRenderStage, finalLightingRenderStage);
 
@@ -54,7 +55,6 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // Define named descriptors
     addDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR }, getGlobalDataDescriptorProvider());
     addDescriptor(DescriptorName{ ASSET_DESCRIPTOR },       getAssetDescriptorProvider());
-    addDescriptor(DescriptorName{ ANIMATION_DESCRIPTOR },   getAnimationDataDescriptorProvider());
     addDescriptor(DescriptorName{ FONT_DESCRIPTOR },        getFontDescriptorProvider());
     addDescriptor(DescriptorName{ SCENE_DESCRIPTOR },       getSceneDescriptorProvider());
     addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getGBufferDescriptorProvider());
@@ -80,6 +80,8 @@ trc::TorchRenderConfig::TorchRenderConfig(
         window.getDevice(), info.target, uvec2(0, 0), uvec2(1, 1), *this
     );
     layout.addPass(finalLightingRenderStage, *finalLightingPass);
+
+    layout.addPass(resourceUpdateStage, assetRegistry->getUpdatePass());
 }
 
 void trc::TorchRenderConfig::preDraw(const DrawConfig& draw)
@@ -170,12 +172,6 @@ auto trc::TorchRenderConfig::getFontDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return fontDataDescriptor;
-}
-
-auto trc::TorchRenderConfig::getAnimationDataDescriptorProvider() const
-    -> const DescriptorProviderInterface&
-{
-    return assetRegistry->getAnimations().getProvider();
 }
 
 auto trc::TorchRenderConfig::getAssets() -> AssetRegistry&

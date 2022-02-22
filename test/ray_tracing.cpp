@@ -9,7 +9,6 @@
 #include <trc/DescriptorSetUtils.h>
 #include <trc/TorchResources.h>
 #include <trc/PipelineDefinitions.h>
-#include <trc/asset_import/AssetUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 using namespace trc::basic_types;
 
@@ -25,7 +24,7 @@ void run()
     auto& device = torch->getDevice();
     auto& instance = torch->getInstance();
     auto& swapchain = torch->getWindow();
-    auto& ar = torch->getAssetRegistry();
+    auto& am = torch->getAssetManager();
 
     auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
@@ -33,9 +32,9 @@ void run()
     auto size = swapchain.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::Geometry geo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get().get();
+    auto geo = am.create<trc::Geometry>(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
 
-    trc::Geometry tri = ar.add(
+    trc::GeometryHandle tri = am.create<trc::Geometry>(
         trc::GeometryData{
             .vertices = {
                 { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },
@@ -53,7 +52,7 @@ void run()
     // --- BLAS --- //
 
     BLAS triBlas{ instance, tri };
-    BLAS blas{ instance, geo };
+    BLAS blas{ instance, geo.getDeviceDataHandle() };
     trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
 
 
@@ -107,12 +106,12 @@ void run()
     auto tlasDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(device);
+        .build(device);
 
     auto outputImageDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(device);
+        .build(device);
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),

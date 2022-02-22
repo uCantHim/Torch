@@ -113,8 +113,12 @@ namespace vkb
 
         /**
          * @brief Present a previously acquired image to the engine
+         *
+         * @return bool False if the swapchain has been recreated, true
+         *              if no special case occured.
          */
-        void presentImage(uint32_t image,
+        [[nodiscard]]
+        bool presentImage(uint32_t image,
                           vk::Queue queue,
                           const std::vector<vk::Semaphore>& waitSemaphores);
 

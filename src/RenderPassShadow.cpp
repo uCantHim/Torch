@@ -79,7 +79,10 @@ trc::RenderPassShadow::RenderPassShadow(
 {
 }
 
-void trc::RenderPassShadow::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents)
+void trc::RenderPassShadow::begin(
+    vk::CommandBuffer cmdBuf,
+    vk::SubpassContents subpassContents,
+    FrameRenderState&)
 {
     vk::ClearValue clearValue{ vk::ClearDepthStencilValue(1.0f, 0) };
     cmdBuf.beginRenderPass(

@@ -2,15 +2,15 @@
 
 
 
-trc::AnimationEngine::AnimationEngine(const Rig& rig)
+trc::AnimationEngine::AnimationEngine(RigHandle rig)
     :
-    rig(&rig)
+    rig(rig)
 {
 }
 
 void trc::AnimationEngine::update(const float timeDelta)
 {
-    if (currentAnimation == nullptr)
+    if (!currentAnimation.has_value())
     {
         animationState.set({});
         return;
@@ -43,28 +43,9 @@ void trc::AnimationEngine::update(const float timeDelta)
 
 void trc::AnimationEngine::playAnimation(ui32 index)
 {
-    if (rig == nullptr) {
-        throw std::runtime_error("[In AnimationEngine::playAnimation]: No rig is associated with"
-                                 " this animation engine!");
-    }
-
     try {
-        currentAnimation = &rig->getAnimation(index);
-    }
-    catch (const std::out_of_range& err) {
-        // Do nothing
-    }
-}
-
-void trc::AnimationEngine::playAnimation(const std::string& name)
-{
-    if (rig == nullptr) {
-        throw std::runtime_error("[In AnimationEngine::playAnimation]: No rig is associated with"
-                                 " this animation engine!");
-    }
-
-    try {
-        playAnimation(rig->getAnimationIndex(name));
+        currentAnimation = rig.getAnimation(index).getDeviceDataHandle();
+        resetAnimationTime();
     }
     catch (const std::out_of_range& err) {
         // Do nothing
@@ -74,4 +55,10 @@ void trc::AnimationEngine::playAnimation(const std::string& name)
 auto trc::AnimationEngine::getState() const -> ID
 {
     return animationState;
+}
+
+void trc::AnimationEngine::resetAnimationTime()
+{
+    currentFrames = { 0, 1 };
+    currentDuration = 0.0f;
 }

@@ -13,11 +13,6 @@ ShaderDocument::ShaderDocument(std::istream& is)
 {
 }
 
-ShaderDocument::ShaderDocument(std::vector<std::string> lines)
-    : ShaderDocument(parseShader(std::move(lines)))
-{
-}
-
 ShaderDocument::ShaderDocument(ParseResult parseResult)
     :
     parseData(std::move(parseResult))
@@ -44,26 +39,34 @@ auto ShaderDocument::permutate(const std::string& name, std::vector<VariableValu
 
 auto ShaderDocument::compile() const -> std::string
 {
+    /** A variable's location */
+    struct Location
+    {
+        uint line;
+        size_t begin;
+        size_t end;
+    };
+
     auto resultLines = parseData.lines;
     auto remainingVars = parseData.variablesByName;
-    auto getVariableLine = [&remainingVars](const std::string& name) -> uint
+    auto getVariableLine = [&remainingVars](const std::string& name) -> Location
     {
-        auto var = remainingVars.extract(name);
-        if (var.empty())
+        auto node = remainingVars.extract(name);
+        if (node.empty())
         {
-            throw CompileError(
-                "[In Document::compile]: Variable \"" + name + "\" does not exist "
-                "in the document"
-            );
+            throw CompileError("[In Document::compile]: Variable \"" + name + "\" does not exist"
+                               " in the document");
         }
 
-        return var.mapped();
+        const auto& var = node.mapped();
+        return { var.line, var.firstChar, var.lastChar };
     };
 
     // Replace variables in the document
     for (auto& [name, value] : variableValues)
     {
-        resultLines.at(getVariableLine(name)) = value.toString();
+        auto [line, begin, end] = getVariableLine(name);
+        resultLines.at(line).replace(begin, end - begin, value.toString());
     }
 
     // Ensure that all variables have been set
@@ -92,15 +95,15 @@ auto ShaderDocument::compile() const -> std::string
 
 auto permutate(const ShaderDocument& doc,
                const std::string& name,
-               std::vector<VariableValue> values)
+               const std::vector<VariableValue>& values)
     -> std::vector<ShaderDocument>
 {
-    return doc.permutate(name, std::move(values));
+    return doc.permutate(name, values);
 }
 
 auto permutate(const std::vector<ShaderDocument>& docs,
                const std::string& name,
-               std::vector<VariableValue> values)
+               const std::vector<VariableValue>& values)
     -> std::vector<ShaderDocument>
 {
     std::vector<ShaderDocument> result;
@@ -119,6 +122,7 @@ auto permutate(const std::vector<ShaderDocument>& docs,
 auto compile(const std::vector<ShaderDocument>& docs) -> std::vector<std::string>
 {
     std::vector<std::string> result;
+    result.reserve(docs.size());
     for (const auto& doc : docs) {
         result.emplace_back(doc.compile());
     }

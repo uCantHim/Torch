@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include <vkb/VulkanInclude.h>
-
 #define GLM_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

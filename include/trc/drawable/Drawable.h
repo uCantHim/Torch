@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DrawableComponentScene.h"
-#include "DrawablePoolStructs.h"
+#include "DrawableStructs.h"
 #include "RasterPipelines.h"
 
 namespace trc
@@ -30,8 +30,8 @@ namespace trc
         /** @brief Legacy constructor */
         Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& scene);
 
-        auto getMaterial() const -> MaterialID;
         auto getGeometry() const -> GeometryID;
+        auto getMaterial() const -> MaterialID;
 
         /**
          * @return bool True if the drawable has a rig and an animation
@@ -59,16 +59,14 @@ namespace trc
         void removeFromScene();
 
     private:
-        static void drawShadow(const drawcomp::RasterComponent& data,
-                               const DrawEnvironment& env,
-                               vk::CommandBuffer cmdBuf);
-
         static auto makeRasterData(const DrawableCreateInfo& info,
                                    Pipeline::ID gBufferPipeline)
             -> RasterComponentCreateInfo;
 
         DrawableComponentScene* scene;
         DrawableID id;
+
         GeometryID geo;
+        MaterialID mat;
     };
 }

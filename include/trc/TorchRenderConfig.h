@@ -16,8 +16,7 @@
 #include "RenderDataDescriptor.h"
 #include "SceneDescriptor.h"
 #include "ShadowPool.h"
-#include "AssetRegistry.h"
-#include "AnimationDataStorage.h"
+#include "assets/AssetRegistry.h"
 #include "text/FontDataStorage.h"
 
 namespace trc
@@ -55,11 +54,6 @@ namespace trc
          * All of the asset registry's data
          */
         static constexpr auto ASSET_DESCRIPTOR{ "asset_registry" };
-
-        /**
-         * Keyframe transforms
-         */
-        static constexpr auto ANIMATION_DESCRIPTOR{ "animation_data" };
 
         /**
          * Font bitmaps
@@ -111,7 +105,6 @@ namespace trc
         auto getShadowDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getAssetDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getFontDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getAnimationDataDescriptorProvider() const -> const DescriptorProviderInterface&;
 
         auto getAssets() -> AssetRegistry&;
         auto getAssets() const -> const AssetRegistry&;

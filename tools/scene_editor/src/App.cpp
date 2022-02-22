@@ -16,7 +16,7 @@ App::App(int, char*[])
     trcTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
     torch(trc::initFull()),
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
-    assetManager(torch->getAssetRegistry()),
+    assetManager(&torch->getAssetManager()),
     scene(*this),
     mainMenu(*this)
 {
@@ -57,16 +57,21 @@ App::App(int, char*[])
     ));
 
     // Create resources
-    initDefaultAssets(assetManager);
+    initDefaultAssets(*assetManager);
 
     auto& ar = getAssets();
-    auto mg = ar.add(trc::Material{ .color = vec4(0, 0.6, 0, 1), .kSpecular = vec4(0.0f) });
-    auto mr = ar.add(trc::Material{ .color = vec4(1, 0, 0, 1) });
-    auto mo = ar.add(trc::Material{ .color = vec4(1, 0.35f, 0, 1) });
+    auto mg = ar.create(trc::MaterialData{ .color=vec4(0, 0.6, 0, 1), .specularKoefficient=vec4(0.0f) });
+    auto mr = ar.create(trc::MaterialData{ .color=vec4(1, 0, 0, 1) });
+    auto mo = ar.create(trc::MaterialData{ .color=vec4(1, 0.35f, 0, 1) });
 
-    auto gi = ar.add(trc::makePlaneGeo(20, 20, 1, 1));
-    auto gi1 = ar.add(trc::makePlaneGeo(0.5f, 0.5f, 1, 1));
-    auto cubeGeo = ar.add(trc::makeCubeGeo());
+    auto planeData = trc::makePlaneGeo(20, 20, 1, 1);
+    auto gi = ar.create(planeData);
+    addHitbox(gi, makeHitbox(planeData));
+    auto planeData1 = trc::makePlaneGeo(0.5f, 0.5f, 1, 1);
+    auto gi1 = ar.create(planeData1);
+    addHitbox(gi1, makeHitbox(planeData1));
+    auto cubeGeo = ar.create(trc::makeCubeGeo());
+    addHitbox(cubeGeo, makeHitbox(trc::makeCubeGeo()));
 
     scene.createDefaultObject({ gi, mg });
 
@@ -109,14 +114,25 @@ auto App::getTorch() -> trc::TorchStack&
     return *torch;
 }
 
-auto App::getAssets() -> AssetManager&
+auto App::getAssets() -> trc::AssetManager&
 {
-    return assetManager;
+    assert(assetManager != nullptr);
+    return *assetManager;
 }
 
 auto App::getScene() -> Scene&
 {
     return scene;
+}
+
+void App::addHitbox(trc::GeometryID geo, Hitbox hitbox)
+{
+    hitboxes.try_emplace(geo.getDeviceID(), hitbox);
+}
+
+auto App::getHitbox(trc::GeometryID geo) const -> const Hitbox&
+{
+    return hitboxes.at(geo.getDeviceID());
 }
 
 void App::tick()

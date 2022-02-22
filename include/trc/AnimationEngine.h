@@ -1,9 +1,11 @@
 #pragma once
 
-#include <string>
+#include <optional>
 
-#include "Rig.h"
-#include "trc_util/data/ExternalStorage.h"
+#include <trc_util/data/ExternalStorage.h>
+
+#include "assets/Rig.h"
+#include "assets/Animation.h"
 
 namespace trc
 {
@@ -21,21 +23,21 @@ namespace trc
     public:
         using ID = data::ExternalStorage<AnimationDeviceData>::ID;
 
-        AnimationEngine() = default;
-        AnimationEngine(const Rig& rig);
+        AnimationEngine(RigHandle rig);
 
         void update(float timeDeltaMs);
 
         void playAnimation(ui32 index);
-        void playAnimation(const std::string& name);
-        void playAnimation(const Animation& anim);
+        void playAnimation(AnimationHandle anim);
 
         auto getState() const -> ID;
 
     private:
-        const Rig* rig{ nullptr };
+        void resetAnimationTime();
 
-        const Animation* currentAnimation{ nullptr };
+        RigHandle rig;
+
+        std::optional<AnimationHandle> currentAnimation{ std::nullopt };
         float currentDuration{ 0.0f };
         uvec2 currentFrames{ 0, 1 };
 

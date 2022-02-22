@@ -1,9 +1,5 @@
 #pragma once
 
-#include <trc/core/SceneBase.h>
-#include <trc/drawable/Drawable.h>
-#include <trc/AssetIds.h>
-
 #include "SceneObject.h"
 
 class Scene;

@@ -132,7 +132,10 @@ trc::GuiIntegrationPass::~GuiIntegrationPass()
     device->waitIdle();
 }
 
-void trc::GuiIntegrationPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
+void trc::GuiIntegrationPass::begin(
+    vk::CommandBuffer cmdBuf,
+    vk::SubpassContents,
+    FrameRenderState&)
 {
     std::lock_guard lock(renderLock);
 

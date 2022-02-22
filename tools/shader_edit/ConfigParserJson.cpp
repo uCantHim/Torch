@@ -14,7 +14,26 @@ constexpr const char* META_OUT_DIR{ "out_dir" };
 
 constexpr const char* SHADERS_OBJECT_NAME{ "shaders" };
 constexpr const char* SHADERS_VARIABLES{ "variables" };
-constexpr const char* SHADERS_PATH{ "path" };
+constexpr const char* SHADERS_INPUT_PATH{ "in_path" };
+constexpr const char* SHADERS_OUTPUT_PATH{ "out_path" };
+
+auto determineInputName(const std::string& objectName, const nl::json& shaderObject)
+    -> std::string
+{
+    if (shaderObject.contains(SHADERS_INPUT_PATH)) {
+        return shaderObject.at(SHADERS_INPUT_PATH).get<std::string>();
+    }
+    return objectName;
+}
+
+auto determineOutputName(const std::string& objectName, const nl::json& shaderObject)
+    -> std::string
+{
+    if (shaderObject.contains(SHADERS_OUTPUT_PATH)) {
+        return shaderObject.at(SHADERS_OUTPUT_PATH).get<std::string>();
+    }
+    return objectName;
+}
 
 auto parseMeta(const nl::json& json) -> CompileConfiguration::Meta
 {
@@ -57,12 +76,9 @@ auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
 
     for (const auto& [name, shader] : shaders.items())
     {
-        if (!shader.contains(SHADERS_PATH)) continue;
-        std::string path = shader.at(SHADERS_PATH).get<std::string>();
-
         ShaderFileConfiguration conf{
-            .outputFileName=std::move(name),
-            .inputFilePath=std::move(path)
+            .inputFilePath=determineInputName(name, shader),
+            .outputFileName=determineOutputName(name, shader)
         };
 
         auto varIt = shader.find(SHADERS_VARIABLES);
@@ -71,8 +87,7 @@ auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
             if (!varIt.value().is_object())
             {
                 throw ParseError("Variable declaration in " + conf.outputFileName.string()
-                    + " must be an object."
-                );
+                                 + " must be an object.");
             }
 
             for (const auto& [name, permutations] : varIt->items())
@@ -82,6 +97,13 @@ auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
                 std::vector<ShaderFileConfiguration::Variable>& vec = it->second;
                 for (const auto& [tag, value] : permutations.items())
                 {
+                    if (!value.is_string())
+                    {
+                        warn("Value " + (tag.empty() ? "" : "\"" + tag + "\" ") + "of variable \""
+                             + name + "\" is not a string and will therefore be ignored.");
+                        continue;
+                    }
+
                     auto& var = vec.emplace_back();
                     var.tag = tag;
                     var.value = value.get<std::string>();
@@ -90,7 +112,7 @@ auto parseShaders(const nl::json& json) -> std::vector<ShaderFileConfiguration>
         }
 
         result.emplace_back(std::move(conf));
-    }
+    } // per-shader
 
     return result;
 }

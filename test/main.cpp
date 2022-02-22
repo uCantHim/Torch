@@ -26,60 +26,56 @@ void run()
     vkb::Mouse::init();
 
     auto torch = trc::initFull();
-    auto& ar = torch->getRenderConfig().getAssets();
+    auto& ar = torch->getAssetManager();
     auto& instance = torch->getInstance();
     const auto& device = instance.getDevice();
 
     // ------------------
     // Random test things
 
-    auto grassImport = trc::loadGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx");
-    auto treeImport = trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx");
-    auto mapImport = trc::loadGeometry(TRC_TEST_ASSET_DIR"/map.fbx");
+    auto grassGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx"));
+    auto treeGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
 
-    auto grassGeoIndex = ar.add(grassImport.meshes[0].geometry);
-    auto treeGeoIndex = ar.add(treeImport.meshes[0].geometry);
-    auto mapMatIndex = ar.add(mapImport.meshes[0].materials[0]);
+    auto skeletonGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
+    auto hoodedBoiGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
+    auto lindaGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
 
-    auto skeletonGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get();
-    auto hoodedBoiGeoIndex = trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx", ar).get();
-    auto lindaMesh = trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx").meshes[0];
-    auto lindaGeoIndex = ar.add(lindaMesh.geometry, lindaMesh.rig);
-
-    auto lindaDiffTexIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/Female_Character.png")
+    auto lindaDiffTexIdx = ar.create(
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
     );
 
-    auto grassImgIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
+    auto grassImgIdx = ar.create(
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
     );
-    auto stoneTexIdx = ar.add(
-        vkb::makeSinglePixelImage(device, vec4(1.0f, 0.0f, 0.0f, 1.0f)) //"/rough_stone_wall.tif")
+    auto stoneTexIdx = ar.create(
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
     );
-    auto stoneNormalTexIdx = ar.add(
-        vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
+    auto stoneNormalTexIdx = ar.create(
+        trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
-    auto matIdx = ar.add({
-        .kAmbient = vec4(1.0f),
-        .kDiffuse = vec4(1.0f),
-        .kSpecular = vec4(1.0f),
+    auto matIdx = ar.create(trc::MaterialData{
+        .ambientKoefficient = vec4(1.0f),
+        .diffuseKoefficient = vec4(1.0f),
+        .specularKoefficient = vec4(1.0f),
         .shininess = 2.0f,
-        .diffuseTexture = grassImgIdx,
-        .bumpTexture = stoneNormalTexIdx,
+        .albedoTexture = grassImgIdx,
+        .normalTexture = stoneNormalTexIdx,
     });
 
-    auto& mapMat = ar.get(mapMatIndex);
-    mapMat.kAmbient = vec4(1.0f);
-    mapMat.kDiffuse = vec4(1.0f);
-    mapMat.kSpecular = vec4(1.0f);
-    mapMat.diffuseTexture = stoneTexIdx;
-    mapMat.bumpTexture = stoneNormalTexIdx;
+    auto mapImport = trc::loadAssets(TRC_TEST_ASSET_DIR"/map.fbx");
+    auto mapMat = mapImport.meshes[0].materials[0].data;
+    mapMat.ambientKoefficient = vec4(1.0f);
+    mapMat.diffuseKoefficient = vec4(1.0f);
+    mapMat.specularKoefficient = vec4(1.0f);
+    mapMat.albedoTexture = stoneTexIdx;
+    mapMat.normalTexture = stoneNormalTexIdx;
+    auto mapMatIndex = ar.create(mapMat);
 
-    trc::Material treeMat{
+    trc::MaterialData treeMat{
         .color=vec4(0, 1, 0, 1),
     };
-    auto treeMatIdx = ar.add(treeMat);
+    auto treeMatIdx = ar.create(treeMat);
 
     // ------------------
 
@@ -109,14 +105,14 @@ void run()
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, {} }, scene);
+    trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, mapMatIndex }, scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
-    auto lindaMatIdx = ar.add({
-        .kSpecular = vec4(0.0f),
-        .diffuseTexture = lindaDiffTexIdx
+    auto lindaMatIdx = ar.create(trc::MaterialData{
+        .specularKoefficient = vec4(0.0f),
+        .albedoTexture = lindaDiffTexIdx
     });
 
     trc::Drawable linda({ lindaGeoIndex, lindaMatIdx }, scene);
@@ -124,12 +120,12 @@ void run()
     linda.getAnimationEngine().playAnimation(0);
 
     // Images
-    auto planeGeo = ar.add(trc::makePlaneGeo());
-    auto transparentImg = ar.add(trc::Material{
-        .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/standard_model.png"))
+    auto planeGeo = ar.create(trc::makePlaneGeo());
+    auto transparentImg = ar.create(trc::MaterialData{
+        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
     });
-    auto opaqueImg = ar.add(trc::Material{
-        .diffuseTexture=ar.add(trc::loadImage2D(device, TRC_TEST_ASSET_DIR"/lena.png"))
+    auto opaqueImg = ar.create(trc::MaterialData{
+        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     });
     trc::Drawable img({ planeGeo, transparentImg, true }, scene);
     img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
@@ -137,7 +133,7 @@ void run()
     img2.translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
 
     // Generated plane geo
-    auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
+    auto myPlaneGeoIndex = ar.create(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
     trc::Drawable plane({ myPlaneGeoIndex, mapMatIndex }, scene);
 
     trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
@@ -157,7 +153,7 @@ void run()
     scene.getRoot().attach(shadowNode);
 
     // Instanced trees
-    constexpr trc::ui32 NUM_TREES = 800;
+    constexpr trc::ui32 NUM_TREES = 200;
     std::vector<u_ptr<trc::Drawable>> trees;
     for (ui32 i = 0; i < NUM_TREES; i++)
     {
@@ -179,11 +175,11 @@ void run()
         particle.phys.angularVelocity = glm::radians(30.0f);
         particle.phys.scaling = vec3(0.15f);
         particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
-        particle.material.texture = grassImgIdx;
+        particle.material.texture = grassImgIdx.getDeviceDataHandle().getDeviceIndex();
         particleCollection.addParticle(particle);
     }
 
-    auto particleImgIdx = ar.add(vkb::loadImage2D(device, TRC_TEST_ASSET_DIR"/yellowlight.png"));
+    auto particleImg = ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png")).getDeviceDataHandle();
     trc::ParticleSpawn spawn(particleCollection);
     for (int i = 0; i < 50; i++)
     {
@@ -192,7 +188,7 @@ void run()
         p.phys.linearAcceleration = vec3(0, -2.0f, 0);
         p.phys.scaling = vec3(0.2f);
         p.phys.lifeTime = 3000.0f;
-        p.material.texture = particleImgIdx;
+        p.material.texture = particleImg.getDeviceIndex();
         p.material.blending = trc::ParticleMaterial::BlendingType::eAlphaBlend;
         spawn.addParticle(p);
     }
@@ -220,8 +216,8 @@ void run()
 
 
     // Generated cube geo
-    auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
-    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1, 0.5} });
+    auto cubeGeoIdx = ar.create<trc::Geometry>({ trc::makeCubeGeo() });
+    auto cubeMatIdx = ar.create<trc::Material>({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f });
     trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
     cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
@@ -234,12 +230,12 @@ void run()
     });
 
     // Thing at cursor
-    auto cursorCubeMat = ar.add(trc::Material{ .color=vec4(1, 1, 0, 0.3f) });
-    trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
+    auto cursorCubeMat = ar.create(trc::MaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f });
+    trc::Drawable cursor({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 
     // Text
-    trc::Font font = ar.getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
+    trc::Font font = ar.getDeviceRegistry().getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
     trc::Text text{ instance, font };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");

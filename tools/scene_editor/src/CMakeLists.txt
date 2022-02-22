@@ -1,6 +1,5 @@
 target_sources(scene_editor PRIVATE
     App.cpp
-    AssetManager.cpp
     DefaultAssets.cpp
     Scene.cpp
 )

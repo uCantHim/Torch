@@ -30,31 +30,38 @@ void drawShadow(
         layout, vk::ShaderStageFlagBits::eVertex,
         sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
     );
-    cmdBuf.pushConstants<AnimationDeviceData>(
-        layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-        data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
-    );
+    if (data.geo.hasRig())
+    {
+        cmdBuf.pushConstants<AnimationDeviceData>(
+            layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+            data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
+        );
+    }
 
     // Draw
     cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
+}
+
+auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> PipelineFlags
+{
+    PipelineFlags flags;
+    if (info.transparent) {
+        flags |= PipelineShadingTypeFlagBits::eTransparent;
+    }
+    if (info.geo.get().hasRig()) {
+        flags |= PipelineAnimationTypeFlagBits::eAnimated;
+    }
+
+    return flags;
 }
 
 } // namespace trc
 
 
 
-auto trc::makeDrawableRasterization(const DrawableCreateInfo& info)
-    -> RasterComponentCreateInfo
+auto trc::determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID
 {
-    PipelineFeatureFlags flags;
-    if (info.transparent) {
-        flags |= PipelineFeatureFlagBits::eTransparent;
-    }
-    if (info.geo.get().hasRig()) {
-        flags |= PipelineFeatureFlagBits::eAnimated;
-    }
-
-    return makeDefaultDrawableRasterization(info, getPipeline(flags));
+    return getPipeline(getDrawablePipelineFlags(info));
 }
 
 auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
@@ -74,7 +81,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
                                        data.modelMatrixId.get());
             cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data.mat));
+                                       sizeof(mat4), static_cast<ui32>(data.mat.getBufferIndex()));
             cmdBuf.pushConstants<AnimationDeviceData>(
                 layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
                 data.anim.get()
@@ -92,7 +99,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
                                        data.modelMatrixId.get());
             cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data.mat));
+                                       sizeof(mat4), static_cast<ui32>(data.mat.getBufferIndex()));
             cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
         };
     }
@@ -100,7 +107,15 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
     auto deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
                                             : GBufferPass::SubPasses::gBuffer;
 
-    RasterComponentCreateInfo result;
+    RasterComponentCreateInfo result{
+        .drawData={
+            .geo=info.geo.getDeviceDataHandle(),
+            .mat=info.mat.getDeviceDataHandle(),
+            .modelMatrixId={},  // None
+            .anim={},
+        },
+        .drawFunctions={},
+    };
 
     result.drawFunctions.emplace_back(
         gBufferRenderStage,
@@ -112,7 +127,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
     {
         result.drawFunctions.emplace_back(
             shadowRenderStage, SubPass::ID(0),
-            getPipeline(PipelineFeatureFlagBits::eShadow),
+            getPipeline(getDrawablePipelineFlags(info) | PipelineShadingTypeFlagBits::eShadow),
             drawShadow
         );
     }

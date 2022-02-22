@@ -4,8 +4,9 @@
 
 #include <vkb/Device.h>
 #include <vkb/FrameSpecificObject.h>
+#include <trc_util/async/ThreadPool.h>
+#include <trc_util/functional/Maybe.h>
 
-#include "trc_util/async/ThreadPool.h"
 #include "RenderStage.h"
 
 namespace trc
@@ -13,7 +14,9 @@ namespace trc
     class Window;
     class RenderPass;
     class RenderGraph;
-    struct DrawConfig;
+    class RenderConfig;
+    class SceneBase;
+    class FrameRenderState;
 
     /**
      * @brief A command collection policy
@@ -33,7 +36,8 @@ namespace trc
 
         auto operator=(RenderLayout&&) noexcept -> RenderLayout& = default;
 
-        auto record(const DrawConfig& draw) -> std::vector<vk::CommandBuffer>;
+        auto record(RenderConfig& config, SceneBase& scene, FrameRenderState& state)
+            -> std::vector<vk::CommandBuffer>;
 
         void addPass(RenderStage::ID stage, RenderPass& newPass);
         void removePass(RenderStage::ID stage, RenderPass& pass);
@@ -52,8 +56,12 @@ namespace trc
          * @return Maybe<vk::CommandBuffer> Nothing if no commands were
          *         recorded to the command buffer.
          */
-        auto recordStage(vk::CommandBuffer cmdBuf, const DrawConfig& draw, const Stage& stage)
-            -> Maybe<vk::CommandBuffer>;
+        auto recordStage(vk::CommandBuffer cmdBuf,
+                         RenderConfig& config,
+                         SceneBase& scene,
+                         FrameRenderState& frameState,
+                         const Stage& stage)
+            -> functional::Maybe<vk::CommandBuffer>;
 
         auto getStage(RenderStage::ID stage) -> Stage*;
 

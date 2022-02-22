@@ -1,0 +1,16 @@
+syntax = "proto3";
+package trc.serial;
+
+message Animation
+{
+    message Keyframe
+    {
+        repeated float bone_transform_matrices = 1;
+    }
+
+    uint32 frame_count = 1;
+    float duration = 2;
+    float time_per_frame = 3;  // Equals `duration / frame_count`
+
+    repeated Keyframe keyframes = 4;
+}

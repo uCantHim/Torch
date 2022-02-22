@@ -10,6 +10,11 @@
 namespace shader_edit
 {
 
+constexpr auto VAR_DECL{ "//$" };
+constexpr auto INLINE_VAR_DECL{ "$" };
+
+
+
 class SyntaxError : public std::exception
 {
 public:
@@ -25,24 +30,43 @@ private:
 
 
 
-auto parseVariable(const std::string& line) -> std::optional<Variable>
+auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
 {
     constexpr size_t NAME_POS{ 1 };
 
     auto split = splitString(line, " ");
     removeEmpty(split);
 
+    if (split.empty()) return std::nullopt;
+
     // Test if line is a variable declaration
-    const bool isVar = split.size() >= 1 && split.at(0) == VAR_DECL;
-    if (!isVar) return std::nullopt;
+    if (split.at(0) == VAR_DECL)
+    {
+        // Parse name
+        if (split.size() < 2) {
+            throw SyntaxError("Expected variable name, found none");
+        }
 
-    // Parse name
-    if (split.size() < 2) {
-        throw SyntaxError("Expected variable name, found none");
+        return ParsedVariable{ .name=split.at(NAME_POS) };
     }
-    auto& name = split.at(NAME_POS);
 
-    return Variable{ .name=std::move(name) };
+    // Test if line contains inline variable
+    for (const auto& chunk : split)
+    {
+        const bool isInlineVar = !chunk.empty() && chunk.starts_with(INLINE_VAR_DECL);
+        if (isInlineVar)
+        {
+            const std::string varName = chunk.substr(1);
+            if (varName.empty()) {
+                throw SyntaxError("Expected variable name, found none");
+            }
+
+            const size_t first = line.find(chunk);
+            return ParsedVariable{ .name=varName, .firstChar=first, .lastChar=first + chunk.size() };
+        }
+    }
+
+    return std::nullopt;
 }
 
 
@@ -56,22 +80,26 @@ auto parseShader(std::vector<std::string> _lines) -> ParseResult
 {
     ParseResult result{ .lines=std::move(_lines) };
 
-    for (uint i = 0; i < result.lines.size(); i++)
+    for (uint i = 0; auto& line : result.lines)
     {
-        auto& line = result.lines.at(i);
+        // We want to split by spaces: Treat all tabs like spaces
         std::replace(line.begin(), line.end(), '\t', ' ');
 
         try {
             auto var = parseVariable(line);
             if (var.has_value())
             {
-                result.variablesByLine[i] = var.value();
-                result.variablesByName[var.value().name] = i;
+                var->line = i;
+                result.variablesByName.try_emplace(var->name, std::move(var.value()));
             }
         }
-        catch (const SyntaxError& err) {
-            std::cout << "[Syntax error in line " << i << "]: " << err.what() << "\n";
+        catch (const SyntaxError& err)
+        {
+            std::stringstream ss;
+            ss << "[Syntax error in line " << i << "]: " << err.what();
+            throw SyntaxError(ss.str());
         }
+        ++i;
     }
 
     return result;

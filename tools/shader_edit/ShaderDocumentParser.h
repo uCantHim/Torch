@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <istream>
 
 namespace shader_edit
 {
@@ -16,20 +17,21 @@ namespace shader_edit
      *
      * name: A name by which the variable can be referenced
      */
-    struct Variable
+    struct ParsedVariable
     {
         std::string name;
+
+        uint line{ UINT32_MAX };
+        size_t firstChar{ 0 };
+        size_t lastChar{ std::string::npos };
     };
 
     struct ParseResult
     {
         std::vector<std::string> lines;
 
-        std::unordered_map<uint, Variable> variablesByLine{};
-        std::unordered_map<std::string, uint> variablesByName{};
+        std::unordered_map<std::string, ParsedVariable> variablesByName{};
     };
-
-    constexpr auto VAR_DECL{ "//$" };
 
     auto parseShader(std::istream& is) -> ParseResult;
     auto parseShader(std::vector<std::string> lines) -> ParseResult;

@@ -13,38 +13,21 @@ namespace trc
     public:
         using Self = DescriptorSetLayoutBuilder;
 
-        inline auto setFlags(vk::DescriptorSetLayoutCreateFlags flags) -> Self&
-        {
-            this->flags = flags;
-            return *this;
-        }
+        auto addFlag(vk::DescriptorSetLayoutCreateFlagBits flags) -> Self&;
+        auto addBinding(vk::DescriptorType type,
+                        ui32 count,
+                        vk::ShaderStageFlags stages,
+                        vk::DescriptorBindingFlags flags = {})
+            -> Self&;
 
-        inline auto addFlag(vk::DescriptorSetLayoutCreateFlags flags) -> Self&
-        {
-            this->flags |= flags;
-            return *this;
-        }
+        auto getBindingCount() const -> size_t;
 
-        inline auto addBinding(vk::DescriptorType type, ui32 count, vk::ShaderStageFlags stages)
-            -> Self&
-        {
-            bindings.emplace_back(bindings.size(), type, count, stages);
-            return *this;
-        }
-
-        inline auto build(const vkb::Device& device) -> vk::DescriptorSetLayout
-        {
-            return device->createDescriptorSetLayout({ flags, bindings });
-        }
-
-        inline auto buildUnique(const vkb::Device& device) -> vk::UniqueDescriptorSetLayout
-        {
-            return device->createDescriptorSetLayoutUnique({ flags, bindings });
-        }
+        auto build(const vkb::Device& device) -> vk::UniqueDescriptorSetLayout;
 
     private:
-        vk::DescriptorSetLayoutCreateFlags flags;
+        vk::DescriptorSetLayoutCreateFlags layoutFlags;
         std::vector<vk::DescriptorSetLayoutBinding> bindings;
+        std::vector<vk::DescriptorBindingFlags> bindingFlags;
     };
 
     inline auto buildDescriptorSetLayout() -> DescriptorSetLayoutBuilder

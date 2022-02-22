@@ -5,7 +5,6 @@
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/PipelineBuilder.h>
 
-#include "AssetManager.h"
 #include "DefaultAssets.h"
 
 auto getHitboxPipeline() -> trc::Pipeline::ID

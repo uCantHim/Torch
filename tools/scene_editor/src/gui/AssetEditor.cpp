@@ -4,7 +4,7 @@
 
 
 
-gui::AssetEditor::AssetEditor(AssetManager& assetManager)
+gui::AssetEditor::AssetEditor(trc::AssetManager& assetManager)
     :
     assets(&assetManager)
 {
@@ -27,7 +27,7 @@ void gui::AssetEditor::drawMaterialGui()
         if (matName.empty()) return;
 
         try {
-            trc::MaterialID matId = assets->add(trc::Material{});
+            trc::MaterialID matId = assets->create(trc::MaterialData{});
             materials.emplace_back(matNameBuf.data(), matId);
             editedMaterial = matId;
             editedMaterialCopy = {}; // New material
@@ -43,18 +43,20 @@ void gui::AssetEditor::drawMaterialGui()
         drawMaterialList();
     }
     // Draw material editor
-    if (editedMaterial != trc::MaterialID::NONE)
+    if (editedMaterial)
     {
         materialEditor("Material Editor", editedMaterialCopy,
             [this]() {
                 // Material has been saved
-                assets->get(editedMaterial) = editedMaterialCopy;
-                assets->updateMaterials();
-                editedMaterial = {};
+                assets->getModule<trc::Material>().modify(
+                    editedMaterial.getDeviceID(),
+                    [&](auto& mat) { mat = editedMaterialCopy; }
+                );
+                editedMaterial = trc::MaterialID::NONE;
             },
             [this]() {
                 // Don't save; edit has been canceled
-                editedMaterial = {};
+                editedMaterial = trc::MaterialID::NONE;
             }
         );
     }
@@ -67,9 +69,10 @@ void gui::AssetEditor::drawMaterialList()
         ig::PushID(mat.matId);
         ig::Text("Material \"%s\"", mat.name.c_str());
         ig::SameLine();
-        if (ig::Button("Edit")) {
+        if (ig::Button("Edit"))
+        {
             editedMaterial = mat.matId;
-            editedMaterialCopy = assets->get(mat.matId);
+            editedMaterialCopy = assets->getModule<trc::Material>().getData(mat.matId.getDeviceID());
         }
         ig::PopID();
     }

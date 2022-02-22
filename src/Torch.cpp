@@ -39,8 +39,6 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
     // Create render graph
     auto graph = makeDeferredRenderGraph();
 
-    graph.first(resourceUpdateStage);
-
     // Ray tracing stages
     graph.after(finalLightingRenderStage, rt::rayTracingRenderStage);
     graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
@@ -82,7 +80,7 @@ trc::TorchStack::TorchStack(
     const InstanceCreateInfo& instanceInfo,
     const WindowCreateInfo& windowInfo)
     :
-    instance(instanceInfo),
+    instance(instanceInfo, *getVulkanInstance()),
     window(instance, [&] {
         auto winInfo = windowInfo;
         if (instanceInfo.enableRayTracing) {
@@ -90,10 +88,10 @@ trc::TorchStack::TorchStack(
         }
         return winInfo;
     }()),
-    assetRegistry(
+    assetManager(
         instance,
         AssetRegistryCreateInfo{
-            .enableRayTracing=instanceInfo.enableRayTracing
+            .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
         }
     ),
     shadowPool(window, ShadowPoolCreateInfo{ .maxShadowMaps=200 }),
@@ -103,7 +101,7 @@ trc::TorchStack::TorchStack(
         TorchRenderConfigCreateInfo{
             makeTorchRenderGraph(),
             swapchainRenderTarget,
-            &assetRegistry,
+            &assetManager.getDeviceRegistry(),
             &shadowPool,
             3  // max transparent frags
         }
@@ -147,9 +145,9 @@ auto trc::TorchStack::getWindow() -> Window&
     return window;
 }
 
-auto trc::TorchStack::getAssetRegistry() -> AssetRegistry&
+auto trc::TorchStack::getAssetManager() -> AssetManager&
 {
-    return assetRegistry;
+    return assetManager;
 }
 
 auto trc::TorchStack::getShadowPool() -> ShadowPool&

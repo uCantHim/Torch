@@ -1,8 +1,5 @@
 #include "drawable/Drawable.h"
 
-#include "AssetRegistry.h"
-#include "Geometry.h"
-#include "Material.h"
 #include "TorchResources.h"
 #include "GBufferPass.h"
 #include "RenderPassShadow.h"
@@ -21,21 +18,7 @@ Drawable::Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& 
 
 Drawable::Drawable(const DrawableCreateInfo& info, DrawableComponentScene& scene)
     :
-    Drawable(
-        info,
-        [&info]{
-            PipelineFeatureFlags flags;
-            if (info.transparent) {
-                flags |= PipelineFeatureFlagBits::eTransparent;
-            }
-            if (info.geo.get().hasRig()) {
-                flags |= PipelineFeatureFlagBits::eAnimated;
-            }
-
-            return getPipeline(flags);
-        }(),
-        scene
-    )
+    Drawable(info, determineDrawablePipeline(info), scene)
 {
 }
 
@@ -46,17 +29,18 @@ Drawable::Drawable(
     :
     scene(&scene),
     id(scene.makeDrawable()),
-    geo(info.geo)
+    geo(info.geo),
+    mat(info.mat)
 {
-    auto _geo = info.geo.get();
+    auto geoHandle = info.geo.get();
 
     auto raster = makeRasterData(info, pipeline);
-    raster.drawData.geo = _geo;
-    raster.drawData.mat = info.mat;
+
+    // Model matrix ID and animation engine ID have to be set manually
     raster.drawData.modelMatrixId = getGlobalTransformID();
-    if (_geo.hasRig())
+    if (geoHandle.hasRig())
     {
-        scene.makeAnimation(id, *_geo.getRig());
+        scene.makeAnimationEngine(id, geoHandle.getRig().getDeviceDataHandle());
         raster.drawData.anim = scene.getAnimationEngine(id).getState();
     }
 
@@ -68,7 +52,8 @@ Drawable::Drawable(Drawable&& other) noexcept
     Node(std::forward<Node>(other)),
     scene(other.scene),
     id(other.id),
-    geo(other.geo)
+    geo(other.geo),
+    mat(other.mat)
 {
     other.scene = nullptr;
     other.id = DrawableID::NONE;
@@ -89,18 +74,19 @@ auto Drawable::operator=(Drawable&& other) noexcept -> Drawable&
     std::swap(scene, other.scene);
     std::swap(id, other.id);
     std::swap(geo, other.geo);
+    std::swap(mat, other.mat);
 
     return *this;
-}
-
-auto Drawable::getMaterial() const -> MaterialID
-{
-    return scene->getRasterization(id).mat;
 }
 
 auto Drawable::getGeometry() const -> GeometryID
 {
     return geo;
+}
+
+auto Drawable::getMaterial() const -> MaterialID
+{
+    return mat;
 }
 
 bool Drawable::isAnimated() const
@@ -125,35 +111,6 @@ void Drawable::removeFromScene()
         scene->destroyDrawable(id);
         id = DrawableID::NONE;
     }
-}
-
-void Drawable::drawShadow(
-    const drawcomp::RasterComponent& data,
-    const DrawEnvironment& env,
-    vk::CommandBuffer cmdBuf)
-{
-    auto currentRenderPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
-    assert(currentRenderPass != nullptr);
-
-    // Bind buffers and push constants
-    data.geo.bindVertices(cmdBuf, 0);
-
-    auto layout = *env.currentPipeline->getLayout();
-    cmdBuf.pushConstants<mat4>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        0, data.modelMatrixId.get()
-    );
-    cmdBuf.pushConstants<ui32>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
-    );
-    cmdBuf.pushConstants<AnimationDeviceData>(
-        layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-        data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
-    );
-
-    // Draw
-    cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
 }
 
 auto Drawable::makeRasterData(

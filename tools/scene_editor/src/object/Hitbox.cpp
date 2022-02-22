@@ -4,6 +4,7 @@
 
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
+#include <vkb/VulkanDebug.h>
 
 
 
@@ -12,7 +13,7 @@ auto makeHitbox(const trc::GeometryData& geo) -> Hitbox
     vec3 maxCoords{ std::numeric_limits<float>::min() };
     vec3 minCoords{ std::numeric_limits<float>::max() };
 
-    for (const trc::Vertex& vert : geo.vertices)
+    for (const trc::MeshVertex& vert : geo.vertices)
     {
         maxCoords = max(vert.position, maxCoords);
         minCoords = min(vert.position, minCoords);

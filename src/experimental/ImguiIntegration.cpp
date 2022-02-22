@@ -264,7 +264,8 @@ trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
 
 void trc::experimental::imgui::ImguiRenderPass::begin(
     vk::CommandBuffer cmdBuf,
-    vk::SubpassContents subpassContents)
+    vk::SubpassContents subpassContents,
+    FrameRenderState&)
 {
     // Bring swapchain image into eColorAttachmentOptimal layout. The final
     // lighting pass brings it into ePresentSrcKHR.

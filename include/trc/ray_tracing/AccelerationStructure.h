@@ -3,7 +3,7 @@
 #include <vkb/Buffer.h>
 
 #include "Types.h"
-#include "Geometry.h"
+#include "assets/Geometry.h"
 
 namespace trc {
     class Instance;
@@ -69,7 +69,7 @@ namespace trc::rt
          */
         explicit BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
-            Geometry geo,
+            GeometryHandle geo,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
@@ -78,7 +78,7 @@ namespace trc::rt
          */
         explicit BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
-            std::vector<Geometry> geos,
+            std::vector<GeometryHandle> geos,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**

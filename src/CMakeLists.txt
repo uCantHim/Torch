@@ -1,23 +1,18 @@
 target_sources(
     torch
     PRIVATE
-        Animation.cpp
-        AnimationDataStorage.cpp
         AnimationEngine.cpp
-        AssetIds.cpp
-        AssetRegistry.cpp
         Camera.cpp
+        DescriptorSetUtils.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp
         GBuffer.cpp
         GBufferPass.cpp
-        Geometry.cpp
         Light.cpp
         LightRegistry.cpp
         Node.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
-        Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
         ShadowPool.cpp
@@ -26,11 +21,11 @@ target_sources(
         Transformation.cpp
 )
 
+add_subdirectory(assets)
 add_subdirectory(core)
-add_subdirectory(util)
 add_subdirectory(drawable)
-add_subdirectory(particle)
-add_subdirectory(asset_import)
-add_subdirectory(text)
-add_subdirectory(ray_tracing)
 add_subdirectory(experimental)
+add_subdirectory(particle)
+add_subdirectory(ray_tracing)
+add_subdirectory(text)
+add_subdirectory(util)

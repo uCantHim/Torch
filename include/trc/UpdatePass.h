@@ -17,14 +17,14 @@ namespace trc
     public:
         UpdatePass() : RenderPass({}, 1) {}
 
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents) final
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState& state) final
         {
-            update(cmdBuf);
+            update(cmdBuf, state);
         }
 
         void end(vk::CommandBuffer) final { /* empty */ }
 
-        virtual void update(vk::CommandBuffer cmdBuf) = 0;
+        virtual void update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState) = 0;
     };
 
     /**
@@ -33,16 +33,16 @@ namespace trc
     class UpdateFunctionPass : public UpdatePass
     {
     public:
-        explicit UpdateFunctionPass(std::function<void(vk::CommandBuffer)> func)
+        explicit UpdateFunctionPass(std::function<void(vk::CommandBuffer, FrameRenderState&)> func)
             : updateFunction(std::move(func))
         {}
 
-        void update(vk::CommandBuffer cmdBuf) final
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) final
         {
-            updateFunction(cmdBuf);
+            updateFunction(cmdBuf, state);
         }
 
     private:
-        std::function<void(vk::CommandBuffer)> updateFunction;
+        std::function<void(vk::CommandBuffer, FrameRenderState&)> updateFunction;
     };
 } // namespace trc

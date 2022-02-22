@@ -1,6 +1,7 @@
 #include "Context.h"
 
 #include <vector>
+#include <functional>
 
 #include "Scene.h"
 #include "Hitbox.h"
@@ -94,7 +95,7 @@ public:
         :
         obj(obj),
         scene(&scene),
-        rig(scene.get<trc::Drawable>(obj).getGeometry().get().getRig())
+        rigId(scene.get<trc::Drawable>(obj).getGeometry().get().getRig())
     {
     }
 
@@ -103,15 +104,16 @@ public:
         if (!ig::CollapsingHeader("Animation")) return;
         ig::TreePush();
 
-        if (rig == nullptr)
+        if (!rigId)
         {
             ig::Text("No rig attached");
             ig::TreePop();
             return;
         }
 
-        ig::Text("%i animations", rig->getAnimationCount());
-        for (ui32 i = 0; i < rig->getAnimationCount(); i++)
+        auto rig = rigId.getDeviceDataHandle();
+        ig::Text("%i animations", rig.getAnimationCount());
+        for (ui32 i = 0; i < rig.getAnimationCount(); i++)
         {
             ig::PushID(i);
             if (ig::Button("Play"))
@@ -120,7 +122,8 @@ public:
             }
             ig::PopID();
             ig::SameLine(0.0f, 50.0f);
-            ig::Text("\"%s\"", rig->getAnimationName(i).c_str());
+            auto anim = rig.getAnimation(i);
+            ig::Text("\"%s\"", scene->getAssets().getAssetMetaData(anim).uniqueName.c_str());
         }
 
         ig::TreePop();
@@ -129,7 +132,7 @@ public:
 private:
     const SceneObject obj;
     Scene* scene;
-    const trc::Rig* rig;
+    const trc::RigID rigId;
 };
 
 auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>

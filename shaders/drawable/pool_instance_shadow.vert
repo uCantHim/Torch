@@ -3,7 +3,7 @@
 
 #define BONE_INDICES_INPUT_LOCATION 4
 #define BONE_WEIGHTS_INPUT_LOCATION 5
-#define ANIM_DESCRIPTOR_SET_BINDING 1
+#define ASSET_DESCRIPTOR_SET_BINDING 1
 #include "../animation.glsl"
 
 layout (location = 0) in vec3 vertexPosition;

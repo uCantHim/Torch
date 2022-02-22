@@ -1,0 +1,28 @@
+syntax = "proto3";
+package trc.serial;
+
+import "vector_types.proto";
+import "asset_reference.proto";
+
+message Geometry
+{
+    message Vertex
+    {
+        vec3 position = 1;
+        vec3 normal = 2;
+        vec2 uv = 3;
+        vec3 tangent = 4;
+    }
+
+    message SkelVertex
+    {
+        uvec4 bone_indices = 5;
+        vec4 bone_weights = 6;
+    }
+
+    repeated uint32 indices = 2;
+    repeated Vertex vertices = 3;
+    repeated SkelVertex skeletal_vertices = 4;
+
+    optional AssetReference rig = 5;
+}

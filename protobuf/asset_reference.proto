@@ -1,0 +1,7 @@
+syntax = "proto3";
+package trc.serial;
+
+message AssetReference
+{
+    string unique_path = 1;
+}

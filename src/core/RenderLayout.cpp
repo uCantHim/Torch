@@ -10,7 +10,6 @@
 #include "core/RenderConfiguration.h"
 #include "core/RenderGraph.h"
 #include "core/SceneBase.h"
-#include "../Scene.h"
 #include "trc_util/algorithm/VectorTransform.h"
 
 
@@ -64,7 +63,11 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
     }
 }
 
-auto trc::RenderLayout::record(const DrawConfig& draw) -> std::vector<vk::CommandBuffer>
+auto trc::RenderLayout::record(
+    RenderConfig& config,
+    SceneBase& scene,
+    FrameRenderState& state)
+    -> std::vector<vk::CommandBuffer>
 {
     std::vector<std::future<Maybe<vk::CommandBuffer>>> futures;
 
@@ -73,7 +76,7 @@ auto trc::RenderLayout::record(const DrawConfig& draw) -> std::vector<vk::Comman
     {
         vk::CommandBuffer cmdBuf = **commandBuffers.at(index++);
         futures.emplace_back(threadPool.async([&, cmdBuf] {
-            return recordStage(cmdBuf, draw, stage);
+            return recordStage(cmdBuf, config, scene, state, stage);
         }));
     }
 
@@ -88,11 +91,12 @@ auto trc::RenderLayout::record(const DrawConfig& draw) -> std::vector<vk::Comman
 
 auto trc::RenderLayout::recordStage(
     vk::CommandBuffer cmdBuf,
-    const DrawConfig& draw,
+    RenderConfig& config,
+    SceneBase& scene,
+    FrameRenderState& frameState,
     const Stage& stage)
     -> Maybe<vk::CommandBuffer>
 {
-    SceneBase& scene = *draw.scene;
     const auto renderPasses = util::merged(stage.renderPasses,
                                            scene.getDynamicRenderPasses(stage.id));
 
@@ -134,7 +138,7 @@ auto trc::RenderLayout::recordStage(
     {
         assert(renderPass != nullptr);
 
-        renderPass->begin(cmdBuf, vk::SubpassContents::eInline);
+        renderPass->begin(cmdBuf, vk::SubpassContents::eInline, frameState);
 
         // Record all commands
         const ui32 subPassCount = renderPass->getNumSubPasses();
@@ -143,8 +147,8 @@ auto trc::RenderLayout::recordStage(
             for (auto pipeline : scene.getPipelines(stage.id, SubPass::ID(subPass)))
             {
                 // Bind the current pipeline
-                auto& p = draw.renderConfig->getPipeline(pipeline);
-                p.bind(cmdBuf, *draw.renderConfig);
+                auto& p = config.getPipeline(pipeline);
+                p.bind(cmdBuf, config);
 
                 // Record commands for all objects with this pipeline
                 scene.invokeDrawFunctions(

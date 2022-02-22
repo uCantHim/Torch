@@ -68,22 +68,22 @@ auto trc::rt::internal::AccelerationStructureBase::getBuildSize() const noexcept
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     const ::trc::Instance& instance,
-    Geometry geo,
+    GeometryHandle geo,
     const vkb::DeviceMemoryAllocator& alloc)
     :
-    BottomLevelAccelerationStructure(instance, std::vector<Geometry>{ geo }, alloc)
+    BottomLevelAccelerationStructure(instance, std::vector<GeometryHandle>{ geo }, alloc)
 {
 }
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     const ::trc::Instance& instance,
-    std::vector<Geometry> geos,
+    std::vector<GeometryHandle> geos,
     const vkb::DeviceMemoryAllocator& alloc)
     :
     instance(instance),
     geometries([&] {
         std::vector<vk::AccelerationStructureGeometryKHR> result;
-        for (Geometry geo : geos) {
+        for (GeometryHandle geo : geos) {
             result.push_back(makeGeometryInfo(instance.getDevice(), geo));
         }
         return result;
@@ -144,7 +144,8 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
-        instance.getDevice()->buildAccelerationStructuresKHR(
+        [[maybe_unused]]
+        vk::Result result = instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
             geoBuildInfo
                 .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer }))
@@ -152,6 +153,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
             buildRangePointers,
             instance.getDL()
         );
+        assert(result == vk::Result::eSuccess);
     }
     else
     {
@@ -352,12 +354,14 @@ void trc::rt::buildAccelerationStructures(
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
-        instance.getDevice()->buildAccelerationStructuresKHR(
+        [[maybe_unused]]
+        vk::Result result = instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
             geoBuildInfos,
             buildRangePointers,
             instance.getDL()
         );
+        assert(result == vk::Result::eSuccess);
     }
     else
     {
