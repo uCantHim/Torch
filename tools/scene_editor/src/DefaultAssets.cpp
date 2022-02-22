@@ -1,6 +1,6 @@
 #include "DefaultAssets.h"
 
-#include <trc/asset_import/AssetUtils.h>
+#include <trc/assets/GeneratedGeometry.h>
 
 #include "AssetManager.h"
 

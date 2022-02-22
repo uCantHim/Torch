@@ -27,9 +27,9 @@ auto AssetManager::add(trc::Material mat) -> trc::MaterialID
     return ar->add(mat);
 }
 
-auto AssetManager::add(trc::Image image) -> trc::TextureID
+auto AssetManager::add(trc::TextureData tex) -> trc::TextureID
 {
-    return ar->add(std::move(image));
+    return ar->add(std::move(tex));
 }
 
 auto AssetManager::get(trc::GeometryID id) -> trc::Geometry

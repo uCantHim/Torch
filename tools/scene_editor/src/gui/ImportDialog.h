@@ -1,10 +1,14 @@
 #pragma once
 
+#include <filesystem>
+
 #include <trc/AssetIds.h>
-#include <trc/asset_import/AssetImportBase.h>
+#include <trc/assets/AssetImportBase.h>
 
 namespace gui
 {
+    namespace fs = std::filesystem;
+
     class ImportDialog
     {
     public:
@@ -16,10 +20,10 @@ namespace gui
         void drawImGui();
 
     private:
-        static auto importGeometry(const trc::Mesh& mesh) -> trc::GeometryID;
-        static void importAndCreateObject(const trc::Mesh& mesh);
+        static auto importGeometry(const trc::ThirdPartyMeshImport& mesh) -> trc::GeometryID;
+        static void importAndCreateObject(const trc::ThirdPartyMeshImport& mesh);
 
         fs::path filePath;
-        trc::FileImportData importData;
+        trc::ThirdPartyFileImportData importData;
     };
 }

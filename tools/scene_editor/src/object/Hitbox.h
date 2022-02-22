@@ -2,7 +2,7 @@
 
 #include <componentlib/ComponentBase.h>
 #include <trc/Types.h>
-#include <trc/Geometry.h>
+#include <trc/assets/RawData.h>
 using namespace trc::basic_types;
 
 struct Capsule

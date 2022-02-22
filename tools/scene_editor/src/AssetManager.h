@@ -18,7 +18,7 @@ public:
 
     auto add(trc::GeometryData data, std::optional<trc::RigData> rig = {}) -> trc::GeometryID;
     auto add(trc::Material mat) -> trc::MaterialID;
-    auto add(trc::Image image) -> trc::TextureID;
+    auto add(trc::TextureData tex) -> trc::TextureID;
     auto add(trc::Face face) -> trc::Font;
     auto add(trc::AnimationData anim) -> trc::Animation;
 

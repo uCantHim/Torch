@@ -4,6 +4,7 @@
 
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
+#include <vkb/VulkanDebug.h>
 
 
 

@@ -1,6 +1,6 @@
 #include "ImportDialog.h"
 
-#include <trc/asset_import/AssetUtils.h>
+#include <trc/assets/AssetImport.h>
 
 #include "ImguiUtil.h"
 #include "App.h"
@@ -80,13 +80,13 @@ void gui::ImportDialog::drawImGui()
     }
 }
 
-auto gui::ImportDialog::importGeometry(const trc::Mesh& mesh) -> trc::GeometryID
+auto gui::ImportDialog::importGeometry(const trc::ThirdPartyMeshImport& mesh) -> trc::GeometryID
 {
     auto& am = App::get().getAssets();
     return am.add(mesh.geometry, mesh.rig);
 }
 
-void gui::ImportDialog::importAndCreateObject(const trc::Mesh& mesh)
+void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& mesh)
 {
     auto& scene = App::get().getScene();
 
