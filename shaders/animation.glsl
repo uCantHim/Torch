@@ -16,7 +16,7 @@
 
 struct AnimationMetaData
 {
-    uint offset;
+    uint baseOffset;
     uint frameCount;
     uint boneCount;
 };
@@ -24,7 +24,7 @@ struct AnimationMetaData
 layout (location = BONE_INDICES_INPUT_LOCATION) in uvec4 vertexBoneIndices;
 layout (location = BONE_WEIGHTS_INPUT_LOCATION) in vec4 vertexBoneWeights;
 
-layout (set = ANIM_DESCRIPTOR_SET_BINDING, binding = 0, std140) restrict readonly buffer
+layout (set = ANIM_DESCRIPTOR_SET_BINDING, binding = 0, std430) restrict readonly buffer
 AnimationMeta
 {
     // Indexed by animation indices provided by the client
@@ -44,7 +44,7 @@ vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWei
     vec4 currentFramePos = vec4(0.0);
     vec4 nextFramePos = vec4(0.0);
 
-    const uint baseOffset = animMeta.metas[animIndex].offset;
+    const uint baseOffset = animMeta.metas[animIndex].baseOffset;
     const uint boneCount = animMeta.metas[animIndex].boneCount;
 
     for (int i = 0; i < 4; i++)

@@ -50,6 +50,7 @@ void trc::AnimationEngine::playAnimation(ui32 index)
 
     try {
         currentAnimation = &rig->getAnimation(index);
+        resetAnimationTime();
     }
     catch (const std::out_of_range& err) {
         // Do nothing
@@ -74,4 +75,10 @@ void trc::AnimationEngine::playAnimation(const std::string& name)
 auto trc::AnimationEngine::getState() const -> ID
 {
     return animationState;
+}
+
+void trc::AnimationEngine::resetAnimationTime()
+{
+    currentFrames = { 0, 1 };
+    currentDuration = 0.0f;
 }

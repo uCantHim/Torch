@@ -24,7 +24,7 @@ trc::AnimationDataStorage::AnimationDataStorage(const Instance& instance)
     )
 {
     createDescriptor(instance);
-    writeDescriptor(instance);
+    writeDescriptor(instance, *animationBuffer);
 }
 
 auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> ui32
@@ -45,9 +45,10 @@ auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> ui32
         .frameCount = data.frameCount,
         .boneCount = static_cast<ui32>(data.keyframes[0].boneMatrices.size())
     };
+    assert(data.frameCount == data.keyframes.size());
 
-    auto metaBuf = animationMetaDataBuffer.map(numAnimations * sizeof(AnimationMeta));
-    memcpy(metaBuf, &newMeta, sizeof(AnimationMeta));
+    auto metaBuf = animationMetaDataBuffer.map<AnimationMeta*>();
+    metaBuf[numAnimations] = newMeta;
     animationMetaDataBuffer.unmap();
 
     // Create new buffer if the current one is too small
@@ -62,9 +63,9 @@ auto trc::AnimationDataStorage::makeAnimation(const AnimationData& data) -> ui32
             vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
         );
         newBuffer.copyFrom(animationBuffer, vkb::BufferRegion(0, animationBuffer.size()));
-        animationBuffer = std::move(newBuffer);
 
-        writeDescriptor(instance);
+        writeDescriptor(instance, *newBuffer);
+        animationBuffer = std::move(newBuffer);
     }
 
     // Copy animation into buffer
@@ -97,18 +98,29 @@ void trc::AnimationDataStorage::createDescriptor(const Instance& instance)
         vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1),
         vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1),
     };
-    descPool = instance.getDevice()->createDescriptorPoolUnique(
-            { vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes }
-    );
+    descPool = instance.getDevice()->createDescriptorPoolUnique({
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
+        1, poolSizes
+    });
 
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
         { 0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex },
         { 1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex },
     };
-    descLayout = instance.getDevice()->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
-    );
+    std::vector<vk::DescriptorBindingFlags> bindingFlags{
+        vk::DescriptorBindingFlagBits::eUpdateAfterBind,
+        vk::DescriptorBindingFlagBits::eUpdateAfterBind,
+    };
+
+    vk::StructureChain chain{
+        vk::DescriptorSetLayoutCreateInfo(
+            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
+        ),
+        vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags)
+    };
+    descLayout = instance.getDevice()->createDescriptorSetLayoutUnique(chain.get());
 
     // Set
     descSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
@@ -119,10 +131,10 @@ void trc::AnimationDataStorage::createDescriptor(const Instance& instance)
     descProvider.setDescriptorSetLayout(*descLayout);
 }
 
-void trc::AnimationDataStorage::writeDescriptor(const Instance& instance)
+void trc::AnimationDataStorage::writeDescriptor(const Instance& instance, vk::Buffer animBuf)
 {
     vk::DescriptorBufferInfo metaBuffer(*animationMetaDataBuffer, 0, VK_WHOLE_SIZE);
-    vk::DescriptorBufferInfo animBuffer(*animationBuffer, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo animBuffer(animBuf, 0, VK_WHOLE_SIZE);
     std::vector<vk::WriteDescriptorSet> writes = {
         { *descSet, 0, 0, vk::DescriptorType::eStorageBuffer, {}, metaBuffer },
         { *descSet, 1, 0, vk::DescriptorType::eStorageBuffer, {}, animBuffer },

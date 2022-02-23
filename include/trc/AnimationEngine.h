@@ -33,6 +33,8 @@ namespace trc
         auto getState() const -> ID;
 
     private:
+        void resetAnimationTime();
+
         const Rig* rig{ nullptr };
 
         const Animation* currentAnimation{ nullptr };

@@ -32,8 +32,6 @@ namespace trc
             ui32 offset{ 0 };
             ui32 frameCount{ 0 };
             ui32 boneCount{ 0 };
-
-            ui32 __padding{ 0 };
         };
 
         static constexpr size_t MAX_ANIMATIONS = 300;
@@ -51,7 +49,7 @@ namespace trc
 
         // Descriptor
         void createDescriptor(const Instance& instance);
-        void writeDescriptor(const Instance& instance);
+        void writeDescriptor(const Instance& instance, vk::Buffer animBuf);
 
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
