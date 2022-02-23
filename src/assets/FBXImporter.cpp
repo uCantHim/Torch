@@ -113,6 +113,13 @@ void trc::FBXImporter::init()
     {
         fbx_memory_manager = FbxManager::Create();
         fbx_io_settings = FbxIOSettings::Create(fbx_memory_manager, IOSROOT);
+        fbx_io_settings->SetBoolProp(IMP_FBX_MATERIAL,        true);
+        fbx_io_settings->SetBoolProp(IMP_FBX_TEXTURE,         true);
+        fbx_io_settings->SetBoolProp(IMP_FBX_LINK,            true);
+        fbx_io_settings->SetBoolProp(IMP_FBX_SHAPE,           true);
+        fbx_io_settings->SetBoolProp(IMP_FBX_GOBO,            false);
+        fbx_io_settings->SetBoolProp(IMP_FBX_ANIMATION,       true);
+        fbx_io_settings->SetBoolProp(IMP_FBX_GLOBAL_SETTINGS, true);
         fbx_memory_manager->SetIOSettings(fbx_io_settings);
 
         fbx_io_settings->SetBoolProp(IMP_ANIMATION, true);
@@ -563,7 +570,7 @@ auto trc::FBXImporter::loadRig(FbxMesh* mesh, GeometryData& result)
 
         ////////////////
         // Get bone data
-        size_t clusterCount = skin->GetClusterCount();
+        const size_t clusterCount = skin->GetClusterCount();
         std::vector<ui32> weightsFilledHelper(result.indices.size());
 
         // Clusters hold bones, which are links (probably)
@@ -591,9 +598,9 @@ auto trc::FBXImporter::loadRig(FbxMesh* mesh, GeometryData& result)
             rig.bones[currBoneIndex].inverseBindPoseMat = fbxToGlm(bindPoseInvMat);
 
             // Fill vertex weight data
-            int indexCount = cluster->GetControlPointIndicesCount();
-            int* indices = cluster->GetControlPointIndices();
-            double* weights = cluster->GetControlPointWeights();
+            const int indexCount = cluster->GetControlPointIndicesCount();
+            const int* indices = cluster->GetControlPointIndices();
+            const double* weights = cluster->GetControlPointWeights();
 
             for (int i = 0; i < indexCount; i++)
             {
@@ -664,14 +671,33 @@ auto trc::FBXImporter::loadAnimations(
     int animStackCount = scene->GetSrcObjectCount<FbxAnimStack>();
     for (int animStackIndex = 0; animStackIndex < animStackCount; animStackIndex++)
     {
-        auto animStack = scene->GetSrcObject<FbxAnimStack>(animStackIndex);
+        FbxAnimStack* animStack = scene->GetSrcObject<FbxAnimStack>(animStackIndex);
         fbxLog << "Animation " << animStackIndex << ": "
             << animStack->GetName() << "\n";
 
+        /**
+         * RANT INCOMING
+         *
+         * what
+         * the
+         * fresh
+         * hell
+         * is
+         * this
+         * api
+         * design
+         * are
+         * you
+         * people
+         * brain
+         * damaged
+         */
+        scene->SetCurrentAnimationStack(animStack);  // <-- WHAT???
+
         // Animation time
-        FbxTime::EMode timeMode = FbxTime::EMode::eFrames24;
-        FbxTimeSpan timespan = animStack->GetLocalTimeSpan();
-        size_t totalFrames = timespan.GetDuration().GetFrameCount(timeMode);
+        const FbxTime::EMode timeMode = FbxTime::EMode::eFrames24;
+        const FbxTimeSpan timespan = animStack->GetLocalTimeSpan();
+        const size_t totalFrames = timespan.GetDuration().GetFrameCount(timeMode);
 
         AnimationData& animation = animations.emplace_back();
         animation.name = animStack->GetName();
@@ -685,22 +711,24 @@ auto trc::FBXImporter::loadAnimations(
         // Create keyframes
         for (size_t frame = 0; frame < totalFrames; frame++)
         {
-            AnimationData::Keyframe& keyframe = animation.keyframes.emplace_back();
+            auto& keyframe = animation.keyframes.emplace_back();
+
+            FbxTime frameTime;
+            frameTime.SetFrame(frame, timeMode);
 
             // Fill the keyframe's bones
             for (ui32 boneIndex = 0; boneIndex < rig.bones.size(); boneIndex++)
             {
-                FbxTime frameTime = FbxTime();
-                frameTime.SetFrame(frame, timeMode);
-                FbxAMatrix boneTransform = boneNodes[boneIndex]->EvaluateGlobalTransform(frameTime);
+                FbxNode* bone = boneNodes[boneIndex];
+                FbxAMatrix boneTransform = bone->EvaluateGlobalTransform(frameTime);
 
                 // Precompute boneMatrix * bindposeInverseMatrix for per-frame bones
                 keyframe.boneMatrices.emplace_back(
                     fbxToGlm(boneTransform) * rig.bones[boneIndex].inverseBindPoseMat
                 );
-            }
-        }
-    }
+            } // per-bone end
+        } // per-keyframe end
+    } // per-anim stack end
 
     return animations;
 }
