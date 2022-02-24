@@ -11,5 +11,6 @@ message Image
 
 message Texture
 {
-    Image image = 1;
+    string name = 1;
+    Image image = 2;
 }

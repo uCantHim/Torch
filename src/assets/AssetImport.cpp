@@ -49,6 +49,7 @@ auto trc::loadTexture(const fs::path& filePath) -> TextureData
 {
     auto image = vkb::loadImageData2D(filePath);
     return {
+        .name   = filePath.filename().replace_extension(""),
         .size   = image.size,
         .pixels = std::move(image.pixels),
     };

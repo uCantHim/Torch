@@ -22,7 +22,7 @@ FileOutputError::FileOutputError(const fs::path& path)
 auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
 {
     trc::serial::Geometry geo;
-    geo.set_name("");
+    geo.set_name(data.name);
     for (uint32_t idx : data.indices)
     {
         geo.add_indices(idx);
@@ -58,6 +58,8 @@ auto serializeAssetData(const TextureData& data) -> trc::serial::Texture
 {
     trc::serial::Texture tex;
 
+    tex.set_name(data.name);
+
     auto image = tex.mutable_image();
     image->set_width(data.size.x);
     image->set_height(data.size.y);
@@ -70,6 +72,7 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 {
     GeometryData data;
 
+    data.name = geo.name();
     data.vertices.reserve(geo.vertices().size());
     for (const auto& in : geo.vertices())
     {
@@ -93,11 +96,12 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
 {
     TextureData data;
 
+    data.name = tex.name();
     data.size = { tex.image().width(), tex.image().height() };
 
-    const size_t size = data.size.x * data.size.y;
-    data.pixels.resize(size);
-    memcpy(data.pixels.data(), tex.image().pixel_data_rgba8().data(), 4 * size);
+    const size_t numPixels = data.size.x * data.size.y;
+    data.pixels.resize(numPixels);
+    memcpy(data.pixels.data(), tex.image().pixel_data_rgba8().data(), 4 * numPixels);
 
     return data;
 }

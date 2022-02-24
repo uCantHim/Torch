@@ -42,7 +42,7 @@ trc::AssetRegistry::AssetRegistry(
     // Add default assets
     add(Material{ .performLighting=false });
     updateMaterials();
-    add({ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
+    add({ "trc_default_texture", { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
 
     writeDescriptors();
 }

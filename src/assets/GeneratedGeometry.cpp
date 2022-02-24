@@ -92,7 +92,8 @@ auto trc::makeCubeGeo() -> GeometryData
     //};
 
     return {
-        {
+        .name = "",
+        .vertices = {
             // Left side
             { { -0.5, -0.5, -0.5 }, normalize(vec3{ -1,  0,  0 }), { 0,     0.5  }, { 0, 0, -1 } },
             { { -0.5,  0.5,  0.5 }, normalize(vec3{ -1,  0,  0 }), { 0.333, 0.75 }, { 0, 0, -1 } },
@@ -136,7 +137,7 @@ auto trc::makeCubeGeo() -> GeometryData
             { {  0.5, -0.5, -0.5 }, normalize(vec3{  0, -1,  0 }), { 0.666, 0.25 }, { -1, 0, 0 } },
             { {  0.5, -0.5,  0.5 }, normalize(vec3{  0, -1,  0 }), { 0.666, 0.5  }, { -1, 0, 0 } },
         },
-        {
+        .indices = {
             0,  1,  2,  3,  4,  5,
             6,  7,  8,  9,  10, 11,
             12, 13, 14, 15, 16, 17,
