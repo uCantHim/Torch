@@ -8,7 +8,7 @@ message Asset
 {
     oneof asset_type
     {
-        Geometry mesh_geometry = 1;
-        Texture texture = 3;
+        Geometry geometry = 1;
+        Texture texture = 2;
     }
 }

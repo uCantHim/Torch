@@ -6,6 +6,7 @@
 
 #include "geometry.pb.h"
 #include "texture.pb.h"
+#include "asset.pb.h"
 
 #include "RawData.h"
 
@@ -25,13 +26,16 @@ namespace trc
         explicit FileOutputError(const fs::path& path);
     };
 
-    auto serializeAssetData(const GeometryData& data)  -> trc::serial::Geometry;
-    auto serializeAssetData(const TextureData& data)   -> trc::serial::Texture;
+    auto serializeAssetData(const GeometryData& data) -> serial::Geometry;
+    auto serializeAssetData(const TextureData& data)  -> serial::Texture;
 
-    auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData;
-    auto deserializeAssetData(const trc::serial::Texture& tex)  -> TextureData;
+    auto deserializeAssetData(const serial::Geometry& geo) -> GeometryData;
+    auto deserializeAssetData(const serial::Texture& tex)  -> TextureData;
 
-    void writeToFile(const fs::path& path, const google::protobuf::Message& msg);
-    auto loadGeoFromFile(const fs::path& filePath) -> trc::serial::Geometry;
-    auto loadTexFromFile(const fs::path& filePath) -> trc::serial::Texture;
+    void writeToFile(const fs::path& path, const serial::Asset& msg);
+    void writeToFile(const fs::path& path, const serial::Geometry& msg);
+    void writeToFile(const fs::path& path, const serial::Texture& msg);
+    auto loadAssetFromFile(const fs::path& path) -> serial::Asset;
+    auto loadGeoFromFile(const fs::path& filePath) -> serial::Geometry;
+    auto loadTexFromFile(const fs::path& filePath) -> serial::Texture;
 } // namespace trc

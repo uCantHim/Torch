@@ -102,17 +102,40 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
     return data;
 }
 
-void writeToFile(const fs::path& path, const google::protobuf::Message& msg)
+/**
+ * Internal utility to write arbitrary Message types
+ */
+template<std::derived_from<google::protobuf::Message> T>
+void writeToFile(const fs::path& filePath, const T& msg)
 {
-    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
     if (!out.is_open())
     {
-        throw FileOutputError(path);
+        throw FileOutputError(filePath);
     }
 
     [[maybe_unused]]
     const bool success = msg.SerializeToOstream(&out);
     assert(success && "The engine should only write valid data to file.");
+}
+
+void writeToFile(const fs::path& path, const serial::Asset& asset)
+{
+    writeToFile<serial::Asset>(path, asset);
+}
+
+void writeToFile(const fs::path& path, const serial::Geometry& msg)
+{
+    serial::Asset asset;
+    *asset.mutable_geometry() = msg;
+    writeToFile(path, asset);
+}
+
+void writeToFile(const fs::path& path, const serial::Texture& msg)
+{
+    serial::Asset asset;
+    *asset.mutable_texture() = msg;
+    writeToFile(path, asset);
 }
 
 /**
@@ -134,17 +157,35 @@ auto loadFromFile(const fs::path& filePath) -> T
     assert(success && "The engine should only read valid data from file.");
 
     return result;
+}
 
+auto loadAssetFromFile(const fs::path& path) -> serial::Asset
+{
+    return loadFromFile<trc::serial::Asset>(path);
 }
 
 auto loadGeoFromFile(const fs::path& filePath) -> serial::Geometry
 {
-    return loadFromFile<serial::Geometry>(filePath);
+    auto asset = loadAssetFromFile(filePath);
+    if (!asset.has_geometry())
+    {
+        throw FileInputError("[In loadGeoFromFile]: File " + filePath.string()
+                             + " does not contain a geometry asset");
+    }
+
+    return asset.geometry();
 }
 
 auto loadTexFromFile(const fs::path& filePath) -> serial::Texture
 {
-    return loadFromFile<serial::Texture>(filePath);
+    auto asset = loadAssetFromFile(filePath);
+    if (!asset.has_texture())
+    {
+        throw FileInputError("[In loadGeoFromFile]: File " + filePath.string()
+                             + " does not contain a geometry asset");
+    }
+
+    return asset.texture();
 }
 
 } // namespace trc
