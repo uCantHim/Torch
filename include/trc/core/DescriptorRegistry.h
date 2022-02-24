@@ -7,7 +7,8 @@
 #include <trc_util/data/ObjectId.h>
 #include <trc_util/data/IndexMap.h>
 
-#include "../Types.h"
+#include "trc/Types.h"
+#include "trc/VulkanInclude.h"
 
 namespace trc
 {

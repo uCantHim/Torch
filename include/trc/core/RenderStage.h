@@ -1,13 +1,17 @@
 #pragma once
 
-#include "../Types.h"
-#include "trc_util/data/ObjectId.h"
+#include <trc_util/data/TypesafeId.h>
+#include <trc_util/data/ObjectId.h>
 
 namespace trc
 {
+    /**
+     * Allocates a unique ID automatically on creation. Can be created as
+     * `static` to create global IDs.
+     */
     struct RenderStage
     {
-        using ID = TypesafeID<RenderStage>;
+        using ID = data::TypesafeID<RenderStage>;
 
         RenderStage() = default;
         ~RenderStage() = default;
@@ -25,6 +29,6 @@ namespace trc
     private:
         static inline data::IdPool idPool;
 
-        TypesafeID<RenderStage> id{ idPool.generate() };
+        ID id{ idPool.generate() };
     };
 } // namespace trc

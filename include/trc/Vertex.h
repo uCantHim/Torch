@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Types.h"
+#include "trc/VulkanInclude.h"
 
 namespace trc
 {
@@ -23,7 +24,7 @@ namespace trc
         vec4 boneWeights{ 0.0f };
     };
 
-    static inline auto makeVertexAttributeDescriptions()
+    inline auto makeVertexAttributeDescriptions()
         -> std::vector<vk::VertexInputAttributeDescription>
     {
         return {

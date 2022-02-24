@@ -4,8 +4,9 @@
 
 #include <vkb/Device.h>
 #include <vkb/FrameSpecificObject.h>
+#include <trc_util/async/ThreadPool.h>
+#include <trc_util/functional/Maybe.h>
 
-#include "trc_util/async/ThreadPool.h"
 #include "RenderStage.h"
 
 namespace trc
@@ -53,7 +54,7 @@ namespace trc
          *         recorded to the command buffer.
          */
         auto recordStage(vk::CommandBuffer cmdBuf, const DrawConfig& draw, const Stage& stage)
-            -> Maybe<vk::CommandBuffer>;
+            -> functional::Maybe<vk::CommandBuffer>;
 
         auto getStage(RenderStage::ID stage) -> Stage*;
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../Types.h"
+#include "trc/Types.h"
+#include "trc/VulkanInclude.h"
 
 namespace vkb {
     class Swapchain;

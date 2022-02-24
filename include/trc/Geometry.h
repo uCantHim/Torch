@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Types.h"
+#include "VulkanInclude.h"
 
 namespace trc
 {

@@ -6,7 +6,8 @@ namespace vkb {
     class Device;
 }
 
-#include "../Types.h"
+#include "trc/VulkanInclude.h"
+#include "trc/Types.h"
 #include "TypeErasedStructureChain.h"
 
 namespace trc
