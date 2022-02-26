@@ -46,3 +46,17 @@ VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
 {
     return ~( AxisFlags( bits ) );
 }
+
+
+
+namespace vk
+{
+    template <>
+    struct FlagTraits<::Axis>
+    {
+        enum : VkFlags
+        {
+            allFlags = VkFlags(::Axis::eX) | VkFlags(::Axis::eY) | VkFlags(::Axis::eZ)
+        };
+    };
+} // namespace vk
