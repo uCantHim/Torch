@@ -1,91 +1,91 @@
 #pragma once
 
 #include "Types.h"
-#include "Geometry.h"
-#include "Material.h"
-#include "Texture.h"
+#include "AssetBase.h"
 
 namespace trc
 {
-    class AssetRegistry;
+    class AssetInventory;
 
-    using AssetIdNumericType = ui32;
+    struct _AssetIdTypeTag {};
 
-    template<typename Derived>
-    class AssetIdBase : public TypesafeID<Derived, AssetIdNumericType>
+    /**
+     * @brief ID for basic metadata that is shared by all asset types
+     */
+    using AssetID = data::HardTypesafeID<_AssetIdTypeTag, AssetInventory, ui32>;
+
+    /**
+     * @brief ID for a specific asset type
+     */
+    template<AssetBaseType T>
+    struct TypedAssetID
     {
-    protected:
-        constexpr AssetIdBase() = default;
-        AssetIdBase(AssetIdNumericType id, AssetRegistry& ar)
-            : TypesafeID<Derived, AssetIdNumericType>(id), ar(&ar)
-        {}
+        using LocalID = data::HardTypesafeID<T, AssetRegistryModule<T>, ui32>;
 
-    public:
-        using ID = TypesafeID<Derived, AssetIdNumericType>;
+        /** ID that references metadata common to all assets */
+        AssetID uniqueId;
 
-        auto operator<=>(const AssetIdBase&) const = default;
+        /** ID that references data in the asset type's specific asset registry */
+        LocalID id;
 
-        auto getAssetRegistry() -> AssetRegistry&
+        /**
+         * Pointer to the asset type's specific registry module implementation
+         * at which the asset is allocated.
+         */
+        AssetRegistryModule<T>* reg;
+
+        TypedAssetID(AssetID base, LocalID type, AssetRegistryModule<T>& reg);
+
+        auto getDeviceDataHandle()
         {
-            assert(ar != nullptr);
-            return *ar;
+            return reg->getHandle(id);
         }
-
-    protected:
-        AssetRegistry* ar{ nullptr };
     };
 
-    /**
-     * @brief
-     */
-    class GeometryID : public AssetIdBase<GeometryID>
+
+
+    class GeometryRegistry;
+    class TextureRegistry;
+    class MaterialRegistry;
+    struct GeometryData;
+    struct TextureData;
+    struct MaterialData;
+
+    class _Geometry
     {
     public:
-        /**
-         * @brief
-         */
-        GeometryID() = default;
-
-        auto get() const -> Geometry;
-
-    protected:
-        friend class AssetRegistry;
-        GeometryID(AssetIdNumericType id, AssetRegistry& ar);
+        using Registry = GeometryRegistry;
+        using ImportData = GeometryData;
     };
 
-    /**
-     * @brief
-     */
-    class MaterialID : public AssetIdBase<MaterialID>
+    class _Texture
     {
     public:
-        /**
-         * @brief
-         */
-        MaterialID() = default;
-
-        auto get() const -> Material&;
-
-    protected:
-        friend class AssetRegistry;
-        MaterialID(AssetIdNumericType id, AssetRegistry& ar);
+        using Registry = TextureRegistry;
+        using ImportData = TextureData;
     };
 
-    /**
-     * @brief
-     */
-    class TextureID : public AssetIdBase<TextureID>
+    class _Material
     {
     public:
-        /**
-         * @brief
-         */
-        TextureID() = default;
-
-        auto get() const -> Texture;
-
-    protected:
-        friend class AssetRegistry;
-        TextureID(AssetIdNumericType id, AssetRegistry& ar);
+        using Registry = MaterialRegistry;
+        using ImportData = MaterialData;
     };
-}
+
+
+
+    using GeometryID = TypedAssetID<_Geometry>;
+    using TextureID = TypedAssetID<_Texture>;
+    using MaterialID = TypedAssetID<_Material>;
+
+
+
+    // template<typename T>
+    // concept AssetRegistryModuleType = requires (T a, AssetData<T> data, TypedAssetID<T> id)
+    // {
+    //     AssetBaseType<T>;
+    //     { a.add(data) } -> std::same_as<TypedAssetID<T>>;
+    //     { a.remove(id) };
+    //     { a.getHandle(id) } -> std::same_as<AssetHandle<T>>;
+    // };
+} // namespace trc
