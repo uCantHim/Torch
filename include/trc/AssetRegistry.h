@@ -28,38 +28,6 @@ namespace trc
     class DuplicateKeyError : public Exception {};
     class KeyNotFoundError : public Exception {};
 
-    /**
-     * @brief Helper that maps strings to asset indices
-     */
-    template<typename NameType>
-    class AssetRegistryNamedWrapper
-    {
-    public:
-        explicit AssetRegistryNamedWrapper(AssetRegistry& ar);
-
-        auto add(const NameType& key, const GeometryData& geo) -> GeometryID;
-        auto add(const NameType& key, Material mat) -> MaterialID;
-        auto add(const NameType& key, const TextureData& tex) -> TextureID;
-
-        auto getGeo(const NameType& key) -> Maybe<Geometry>;
-        auto getMat(const NameType& key) -> Maybe<Material&>;
-        auto getTex(const NameType& key) -> Maybe<Texture>;
-
-        auto getGeoIndex(const NameType& key) -> Maybe<GeometryID>;
-        auto getMatIndex(const NameType& key) -> Maybe<MaterialID>;
-        auto getTexIndex(const NameType& key) -> Maybe<TextureID>;
-
-    private:
-        template<typename T>
-        using NameToIndexMap = std::unordered_map<NameType, TypesafeID<T, AssetIdNumericType>>;
-
-        AssetRegistry* ar;
-
-        std::unordered_map<NameType, GeometryID> geometryNames;
-        std::unordered_map<NameType, MaterialID> materialNames;
-        std::unordered_map<NameType, TextureID> imageNames;
-    };
-
     struct AssetRegistryCreateInfo
     {
         vk::BufferUsageFlags geometryBufferUsage{};
@@ -95,9 +63,6 @@ namespace trc
 
         // TODO: Don't re-upload ALL materials every time one is added
         void updateMaterials();
-
-    public:
-        AssetRegistryNamedWrapper<std::string> named{ *this };
 
     private:
         static auto addDefaultValues(const AssetRegistryCreateInfo& info) -> AssetRegistryCreateInfo;
