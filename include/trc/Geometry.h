@@ -10,25 +10,25 @@ namespace trc
     /**
      * @brief Handle to a geometry stored in the asset registry
      */
-    class Geometry
+    class GeometryDeviceHandle
     {
     private:
         friend class AssetRegistry;
 
-        Geometry(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
+        GeometryDeviceHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
                  vk::Buffer verts, ui32 numVerts,
                  Rig* rig = nullptr);
 
     public:
-        Geometry() = default;
-        Geometry(const Geometry&) = default;
-        Geometry(Geometry&&) noexcept = default;
-        ~Geometry() = default;
+        GeometryDeviceHandle() = default;
+        GeometryDeviceHandle(const GeometryDeviceHandle&) = default;
+        GeometryDeviceHandle(GeometryDeviceHandle&&) noexcept = default;
+        ~GeometryDeviceHandle() = default;
 
-        auto operator=(const Geometry&) -> Geometry& = default;
-        auto operator=(Geometry&&) noexcept -> Geometry& = default;
+        auto operator=(const GeometryDeviceHandle&) -> GeometryDeviceHandle& = default;
+        auto operator=(GeometryDeviceHandle&&) noexcept -> GeometryDeviceHandle& = default;
 
-        auto operator<=>(const Geometry& rhs) const -> std::strong_ordering = default;
+        auto operator<=>(const GeometryDeviceHandle& rhs) const -> std::strong_ordering = default;
 
         /**
          * @brief Bind vertex and index buffer
@@ -58,5 +58,5 @@ namespace trc
         Rig* rig;
     };
 
-    static_assert(std::regular<Geometry>);
+    static_assert(std::regular<GeometryDeviceHandle>);
 } // namespace trc

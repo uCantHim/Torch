@@ -7,7 +7,7 @@
 namespace gui
 {
     inline void materialEditor(const char* title,
-                               trc::Material& mat,
+                               trc::MaterialDeviceHandle& mat,
                                auto onSaveCallback,
                                auto onCancelCallback = []() {})
     {

@@ -11,13 +11,13 @@ namespace trc
      * TODO: Remove getDefaultSampler function from vkb::Image and manage
      * samplers through this class?
      */
-    class Texture
+    class TextureDeviceHandle
     {
     public:
         /**
          * @brief
          */
-        Texture() = default;
+        TextureDeviceHandle() = default;
 
     private:
 

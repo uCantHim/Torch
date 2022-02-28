@@ -438,13 +438,13 @@ void trc::FBXImporter::computeTangents(GeometryData& result)
 }
 
 
-auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
+auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<MaterialDeviceHandle>
 {
     FbxNode* meshNode = mesh->GetNode();
     const int materialCount = meshNode->GetMaterialCount();
     fbxLog << "\t" << materialCount << " materials found.\n";
 
-    std::vector<Material> result;
+    std::vector<MaterialDeviceHandle> result;
 
     for (int i = 0; i < materialCount; i++)
     {
@@ -481,7 +481,7 @@ auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<Material>
         {
             fbxLog << "\tLoading Lambert material " << mat->GetName() << " with standard values for specular color and shinyness.\n";
             auto lambertMat = dynamic_cast<FbxSurfaceLambert*>(mat);
-            Material newMaterial;
+            MaterialDeviceHandle newMaterial;
 
             FbxDouble3 amb = lambertMat->Ambient;
             FbxDouble3 diff = lambertMat->Diffuse;

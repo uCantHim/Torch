@@ -69,7 +69,7 @@ namespace trc::rt
          */
         explicit BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
-            Geometry geo,
+            GeometryDeviceHandle geo,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
@@ -78,7 +78,7 @@ namespace trc::rt
          */
         explicit BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
-            std::vector<Geometry> geos,
+            std::vector<GeometryDeviceHandle> geos,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**

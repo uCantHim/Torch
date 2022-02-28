@@ -40,7 +40,7 @@ trc::AssetRegistry::AssetRegistry(
     createDescriptors();
 
     // Add default assets
-    add(Material{ .performLighting=false });
+    add(MaterialDeviceHandle{ .performLighting=false });
     updateMaterials();
     add({ "trc_default_texture", { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
 
@@ -83,7 +83,7 @@ auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> ri
     return key;
 }
 
-auto trc::AssetRegistry::add(Material mat) -> MaterialID
+auto trc::AssetRegistry::add(MaterialDeviceHandle mat) -> MaterialID
 {
     MaterialID key(nextMaterialIndex++, *this);
     addToMap(materials, key, mat);
@@ -117,17 +117,17 @@ auto trc::AssetRegistry::add(const TextureData& tex) -> TextureID
     return key;
 }
 
-auto trc::AssetRegistry::get(GeometryID key) -> Geometry
+auto trc::AssetRegistry::get(GeometryID key) -> GeometryDeviceHandle
 {
     return getFromMap(geometries, key);
 }
 
-auto trc::AssetRegistry::get(MaterialID key) -> Material&
+auto trc::AssetRegistry::get(MaterialID key) -> MaterialDeviceHandle&
 {
     return getFromMap(materials, key);
 }
 
-auto trc::AssetRegistry::get(TextureID key) -> Texture
+auto trc::AssetRegistry::get(TextureID key) -> TextureDeviceHandle
 {
     return getFromMap(textures, key);
 }
@@ -160,7 +160,7 @@ auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept
 
 void trc::AssetRegistry::updateMaterials()
 {
-    auto buf = reinterpret_cast<Material*>(materialBuffer.map());
+    auto buf = reinterpret_cast<MaterialDeviceHandle*>(materialBuffer.map());
     for (size_t i = 0; i < materials.size(); i++)
     {
         MaterialID::ID id(i);

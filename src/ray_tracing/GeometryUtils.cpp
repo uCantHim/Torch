@@ -7,7 +7,7 @@
 
 
 
-auto trc::rt::makeGeometryInfo(const vkb::Device& device, const Geometry& geo)
+auto trc::rt::makeGeometryInfo(const vkb::Device& device, const GeometryDeviceHandle& geo)
     -> vk::AccelerationStructureGeometryKHR
 {
     return { // Array of geometries in the AS

@@ -39,7 +39,7 @@ void run()
     // Create some objects
     auto sphere = pool.create({
         trc::loadGeometry(TRC_TEST_ASSET_DIR"/sphere.fbx", ar).get(),
-        ar.add(trc::Material{
+        ar.add(trc::MaterialDeviceHandle{
             .color=vec4(0.3f, 0.3f, 0.3f, 1),
             .kSpecular=vec4(0.3f, 0.3f, 0.3f, 1),
             .reflectivity=1.0f,
@@ -52,20 +52,20 @@ void run()
 
     auto plane = pool.create({
         ar.add(trc::makePlaneGeo()),
-        ar.add(trc::Material{ .reflectivity=1.0f })
+        ar.add(trc::MaterialDeviceHandle{ .reflectivity=1.0f })
     });
     plane->rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
         .translate(0.5f, 0.5f, -1.0f)
         .setScale(3.0f, 1.0f, 1.7f);
 
     trc::GeometryID treeGeo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx", ar).get();
-    trc::MaterialID treeMat = ar.add(trc::Material{ .color=vec4(0, 1, 0, 1) });
+    trc::MaterialID treeMat = ar.add(trc::MaterialDeviceHandle{ .color=vec4(0, 1, 0, 1) });
     auto tree = pool.create({ treeGeo, treeMat });
     tree->rotateX(-glm::half_pi<float>()).setScale(0.1f);
 
     auto floor = pool.create({
         ar.add(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
-        ar.add(trc::Material{
+        ar.add(trc::MaterialDeviceHandle{
             .kSpecular=vec4(0.2f),
             .reflectivity=0.3f,
             .diffuseTexture=ar.add(

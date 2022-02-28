@@ -65,7 +65,7 @@ namespace trc
 
         struct RenderData
         {
-            Geometry geo;
+            GeometryDeviceHandle geo;
             MaterialID mat;
             ui32 instanceOffset{ 0 };
             ui32 instanceCount{ 0 };

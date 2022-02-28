@@ -68,22 +68,22 @@ auto trc::rt::internal::AccelerationStructureBase::getBuildSize() const noexcept
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     const ::trc::Instance& instance,
-    Geometry geo,
+    GeometryDeviceHandle geo,
     const vkb::DeviceMemoryAllocator& alloc)
     :
-    BottomLevelAccelerationStructure(instance, std::vector<Geometry>{ geo }, alloc)
+    BottomLevelAccelerationStructure(instance, std::vector<GeometryDeviceHandle>{ geo }, alloc)
 {
 }
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     const ::trc::Instance& instance,
-    std::vector<Geometry> geos,
+    std::vector<GeometryDeviceHandle> geos,
     const vkb::DeviceMemoryAllocator& alloc)
     :
     instance(instance),
     geometries([&] {
         std::vector<vk::AccelerationStructureGeometryKHR> result;
-        for (Geometry geo : geos) {
+        for (GeometryDeviceHandle geo : geos) {
             result.push_back(makeGeometryInfo(instance.getDevice(), geo));
         }
         return result;

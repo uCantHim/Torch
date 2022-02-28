@@ -83,9 +83,9 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPa
     return result;
 }
 
-auto trc::AssetImporter::loadMaterial(const aiMaterial* mat) -> Material
+auto trc::AssetImporter::loadMaterial(const aiMaterial* mat) -> MaterialDeviceHandle
 {
-    Material result;
+    MaterialDeviceHandle result;
 
     aiColor4D color;
 

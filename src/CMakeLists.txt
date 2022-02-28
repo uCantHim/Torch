@@ -4,7 +4,7 @@ target_sources(
         Animation.cpp
         AnimationDataStorage.cpp
         AnimationEngine.cpp
-        AssetIds.cpp
+        AssetInventory.cpp
         AssetRegistry.cpp
         Camera.cpp
         FinalLightingPass.cpp

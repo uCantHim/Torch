@@ -143,7 +143,7 @@ namespace trc
 
             GeometryID geoId;
             MaterialID matId;
-            Geometry geo;
+            GeometryDeviceHandle geo;
 
             bool isRasterized;
             bool isRayTraced;

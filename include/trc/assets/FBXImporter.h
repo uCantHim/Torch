@@ -62,7 +62,7 @@ namespace trc
         static void loadTangents(FbxMesh* mesh, GeometryData& result);
         static void computeTangents(GeometryData& result);
 
-        static auto loadMaterials(FbxMesh* mesh) -> std::vector<Material>;
+        static auto loadMaterials(FbxMesh* mesh) -> std::vector<MaterialDeviceHandle>;
 
         // Animation data
         static constexpr ui32 MAX_WEIGHTS_PER_VERTEX = 4;

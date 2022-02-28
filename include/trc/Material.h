@@ -7,7 +7,15 @@ namespace trc
 {
     constexpr ui32 NO_TEXTURE = UINT32_MAX;
 
-    struct Material
+    /**
+     * TODO: This is not a device handle at all. I should implement this
+     * properly when I'm done with the new asset system.
+     *
+     * This struct is the device data struct and should be defined locally
+     * in a MaterialRegistry. Additionally, I will need MaterialImportData
+     * and a MaterialDeviceHandle.
+     */
+    struct MaterialDeviceHandle
     {
         /**
          * @brief A plain color to be used if no diffuse texture is present
@@ -71,6 +79,6 @@ namespace trc
         ui32 __padding[2]{ 0, 0 };
     };
 
-    static_assert(util::sizeof_pad_16_v<Material> == sizeof(Material),
+    static_assert(util::sizeof_pad_16_v<MaterialDeviceHandle> == sizeof(MaterialDeviceHandle),
                   "The Material struct must always be padded to 16 bytes");
 } // namespace trc

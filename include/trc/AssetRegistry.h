@@ -15,6 +15,7 @@
 #include "AssetIds.h"
 #include "assets/RawData.h"
 #include "Geometry.h"
+#include "Texture.h"
 #include "Material.h"
 #include "Rig.h"
 #include "AnimationDataStorage.h"
@@ -47,12 +48,12 @@ namespace trc
 
         auto add(const GeometryData& geo,
                  std::optional<RigData> rigData = std::nullopt) -> GeometryID;
-        auto add(Material mat) -> MaterialID;
+        auto add(MaterialDeviceHandle mat) -> MaterialID;
         auto add(const TextureData& tex) -> TextureID;
 
-        auto get(GeometryID key) -> Geometry;
-        auto get(MaterialID key) -> Material&;
-        auto get(TextureID key) -> Texture;
+        auto get(GeometryID key) -> GeometryDeviceHandle;
+        auto get(MaterialID key) -> MaterialDeviceHandle&;
+        auto get(TextureID key) -> TextureDeviceHandle;
 
         auto getFonts() -> FontDataStorage&;
         auto getFonts() const -> const FontDataStorage&;
@@ -76,7 +77,7 @@ namespace trc
                                TypesafeID<U> key) -> T&;
 
         static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
-        static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(Material) * 100;
+        static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(MaterialDeviceHandle) * 100;
         static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
         static constexpr ui32 MAX_GEOMETRY_COUNT = 5000;
 
@@ -91,7 +92,7 @@ namespace trc
          */
         struct GeometryStorage
         {
-            operator Geometry()
+            operator GeometryDeviceHandle()
             {
                 return {
                     *indexBuf, numIndices, vk::IndexType::eUint32,
@@ -111,7 +112,7 @@ namespace trc
 
         struct TextureStorage
         {
-            operator Texture() {
+            operator TextureDeviceHandle() {
                 return {};
             }
 

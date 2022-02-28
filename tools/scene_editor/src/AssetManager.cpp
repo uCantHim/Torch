@@ -22,7 +22,7 @@ auto AssetManager::add(trc::GeometryData data, std::optional<trc::RigData> rig)
     return id;
 }
 
-auto AssetManager::add(trc::Material mat) -> trc::MaterialID
+auto AssetManager::add(trc::MaterialDeviceHandle mat) -> trc::MaterialID
 {
     return ar->add(mat);
 }
@@ -32,17 +32,17 @@ auto AssetManager::add(trc::TextureData tex) -> trc::TextureID
     return ar->add(std::move(tex));
 }
 
-auto AssetManager::get(trc::GeometryID id) -> trc::Geometry
+auto AssetManager::get(trc::GeometryID id) -> trc::GeometryDeviceHandle
 {
     return ar->get(id);
 }
 
-auto AssetManager::get(trc::MaterialID id) -> trc::Material&
+auto AssetManager::get(trc::MaterialID id) -> trc::MaterialDeviceHandle&
 {
     return ar->get(id);
 }
 
-auto AssetManager::get(trc::TextureID id) -> trc::Texture
+auto AssetManager::get(trc::TextureID id) -> trc::TextureDeviceHandle
 {
     return ar->get(id);
 }

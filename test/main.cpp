@@ -76,7 +76,7 @@ void run()
     mapMat.diffuseTexture = stoneTexIdx;
     mapMat.bumpTexture = stoneNormalTexIdx;
 
-    trc::Material treeMat{
+    trc::MaterialDeviceHandle treeMat{
         .color=vec4(0, 1, 0, 1),
     };
     auto treeMatIdx = ar.add(treeMat);
@@ -125,10 +125,10 @@ void run()
 
     // Images
     auto planeGeo = ar.add(trc::makePlaneGeo());
-    auto transparentImg = ar.add(trc::Material{
+    auto transparentImg = ar.add(trc::MaterialDeviceHandle{
         .diffuseTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
     });
-    auto opaqueImg = ar.add(trc::Material{
+    auto opaqueImg = ar.add(trc::MaterialDeviceHandle{
         .diffuseTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     });
     trc::Drawable img({ planeGeo, transparentImg, true }, scene);
@@ -234,7 +234,7 @@ void run()
     });
 
     // Thing at cursor
-    auto cursorCubeMat = ar.add(trc::Material{ .color=vec4(1, 1, 0, 0.3f) });
+    auto cursorCubeMat = ar.add(trc::MaterialDeviceHandle{ .color=vec4(1, 1, 0, 0.3f) });
     trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 

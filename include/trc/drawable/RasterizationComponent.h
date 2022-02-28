@@ -3,6 +3,7 @@
 #include <componentlib/Table.h>
 
 #include "AssetIds.h"
+#include "Geometry.h"
 #include "Transformation.h"
 #include "AnimationEngine.h"
 
@@ -10,7 +11,7 @@ namespace trc::drawcomp
 {
     struct RasterComponent
     {
-        Geometry geo;
+        GeometryDeviceHandle geo;
         MaterialID mat;
 
         Transformation::ID modelMatrixId;

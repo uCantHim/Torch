@@ -19,7 +19,7 @@ namespace trc
         mat4 globalTransform;
 
         GeometryData geometry;
-        std::vector<Material> materials;
+        std::vector<MaterialDeviceHandle> materials;
         std::optional<RigData> rig;
     };
 

@@ -24,7 +24,7 @@ void run()
     for (int i = 0; i < 20; i++)
     {
         vec4 color(glm::linearRand(vec3(0), vec3(1)), 1.0f);
-        mats.emplace_back(ar.add(trc::Material{ .color=color }));
+        mats.emplace_back(ar.add(trc::MaterialDeviceHandle{ .color=color }));
     }
     ar.updateMaterials();
 

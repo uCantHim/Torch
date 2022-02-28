@@ -52,8 +52,8 @@ void run()
     // Create some geometries to render
     auto planeGeo = assets.add(trc::makePlaneGeo());
     auto cubeGeo = assets.add(trc::makeCubeGeo());
-    auto greenMat = assets.add(trc::Material{ .color=vec4(0, 1, 0, 1) });
-    auto redMat = assets.add(trc::Material{ .color=vec4(1, 0.3f, 0, 1) });
+    auto greenMat = assets.add(trc::MaterialDeviceHandle{ .color=vec4(0, 1, 0, 1) });
+    auto redMat = assets.add(trc::MaterialDeviceHandle{ .color=vec4(1, 0.3f, 0, 1) });
 
     // Create an inclined plane and a rotating cube
     trc::Drawable plane(planeGeo, greenMat, scene);

@@ -51,21 +51,21 @@ namespace trc
     struct TextureData;
     struct MaterialData;
 
-    class _Geometry
+    class Geometry
     {
     public:
         using Registry = GeometryRegistry;
         using ImportData = GeometryData;
     };
 
-    class _Texture
+    class Texture
     {
     public:
         using Registry = TextureRegistry;
         using ImportData = TextureData;
     };
 
-    class _Material
+    class Material
     {
     public:
         using Registry = MaterialRegistry;
@@ -74,9 +74,9 @@ namespace trc
 
 
 
-    using GeometryID = TypedAssetID<_Geometry>;
-    using TextureID = TypedAssetID<_Texture>;
-    using MaterialID = TypedAssetID<_Material>;
+    using GeometryID = TypedAssetID<Geometry>;
+    using TextureID = TypedAssetID<Texture>;
+    using MaterialID = TypedAssetID<Material>;
 
 
 

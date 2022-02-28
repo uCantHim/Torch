@@ -34,6 +34,6 @@ namespace gui
 
         // The edited material is a copy. A click on the save button
         // updates the actual material in the AssetRegistry.
-        trc::Material editedMaterialCopy;
+        trc::MaterialDeviceHandle editedMaterialCopy;
     };
 } // namespace gui

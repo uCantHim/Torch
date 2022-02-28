@@ -27,7 +27,7 @@ void gui::AssetEditor::drawMaterialGui()
         if (matName.empty()) return;
 
         try {
-            trc::MaterialID matId = assets->add(trc::Material{});
+            trc::MaterialID matId = assets->add(trc::MaterialDeviceHandle{});
             materials.emplace_back(matNameBuf.data(), matId);
             editedMaterial = matId;
             editedMaterialCopy = {}; // New material
