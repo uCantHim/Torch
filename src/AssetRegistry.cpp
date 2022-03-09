@@ -3,8 +3,10 @@
 #include <vkb/ImageUtils.h>
 
 #include "core/Instance.h"
+#include "GeometryRegistry.h"
+#include "MaterialRegistry.h"
+#include "TextureRegistry.h"
 #include "ray_tracing/RayPipelineBuilder.h"
-#include "util/TriangleCacheOptimizer.h"
 
 
 
@@ -12,28 +14,13 @@ trc::AssetRegistry::AssetRegistry(
     const Instance& instance,
     const AssetRegistryCreateInfo& info)
     :
-    instance(instance),
     device(instance.getDevice()),
-    memoryPool([&] {
-        if (instance.hasRayTracing() && info.enableRayTracing)
-        {
-            return vkb::MemoryPool(
-                instance.getDevice(),
-                MEMORY_POOL_CHUNK_SIZE,
-                vk::MemoryAllocateFlagBits::eDeviceAddress
-            );
-        }
-        else {
-            return vkb::MemoryPool(instance.getDevice(), MEMORY_POOL_CHUNK_SIZE);
-        }
-    }()),
     config(addDefaultValues(info)),
-    materialBuffer(
-        instance.getDevice(),
-        MATERIAL_BUFFER_DEFAULT_SIZE,  // Default material buffer size
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
+    modules(AssetRegistryModuleCreateInfo{
+        .device=instance.getDevice(),
+        .geometryBufferUsage=config.geometryBufferUsage,
+        .enableRayTracing=config.enableRayTracing,
+    }),
     fontData(instance),
     animationStorage(instance)
 {
@@ -41,95 +28,54 @@ trc::AssetRegistry::AssetRegistry(
 
     // Add default assets
     add(MaterialDeviceHandle{ .performLighting=false });
-    updateMaterials();
     add({ "trc_default_texture", { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
 
     writeDescriptors();
 }
 
-auto trc::AssetRegistry::add(const GeometryData& data, std::optional<RigData> rigData)
-    -> GeometryID
+auto trc::AssetRegistry::add(const GeometryData& data) -> LocalID<Geometry>
 {
-    GeometryID key(nextGeometryIndex++, *this);
-
-    addToMap(geometries, key,
-        GeometryStorage{
-            .indexBuf = {
-                device,
-                util::optimizeTriangleOrderingForsyth(data.indices),
-                config.geometryBufferUsage | vk::BufferUsageFlagBits::eIndexBuffer,
-                memoryPool.makeAllocator()
-            },
-            .vertexBuf = {
-                device,
-                data.vertices,
-                config.geometryBufferUsage | vk::BufferUsageFlagBits::eVertexBuffer,
-                memoryPool.makeAllocator()
-            },
-            .numIndices = static_cast<ui32>(data.indices.size()),
-            .numVertices = static_cast<ui32>(data.vertices.size()),
-
-            .rig = rigData.has_value()
-                ? std::optional<Rig>(Rig(rigData.value(), animationStorage))
-                : std::nullopt,
-        }
-    );
+    const auto id = modules.get<AssetRegistryModule<Geometry>>().add(data);
 
     if (config.enableRayTracing)
     {
         writeDescriptors();
     }
 
-    return key;
+    return id;
 }
 
-auto trc::AssetRegistry::add(MaterialDeviceHandle mat) -> MaterialID
+auto trc::AssetRegistry::add(const MaterialDeviceHandle& data) -> LocalID<Material>
 {
-    MaterialID key(nextMaterialIndex++, *this);
-    addToMap(materials, key, mat);
+    const auto id = modules.get<AssetRegistryModule<Material>>().add(data);
 
     updateMaterials();
 
-    return key;
+    return id;
 }
 
-auto trc::AssetRegistry::add(const TextureData& tex) -> TextureID
+auto trc::AssetRegistry::add(const TextureData& tex) -> LocalID<Texture>
 {
-    vkb::Image image(
-        device, tex.size.x, tex.size.y,
-        vk::Format::eR8G8B8A8Unorm,
-        vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst
-        // memoryPool.makeAllocator()
-    );
-    image.writeData(tex.pixels.data(), tex.size.x * tex.size.y * 4, {});
-    auto view = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
-
-    TextureID key(nextImageIndex++, *this);
-    addToMap(textures, key,
-        TextureStorage{
-            .image = std::move(image),
-            .imageView = std::move(view),
-        }
-    );
+    const auto id = modules.get<AssetRegistryModule<Texture>>().add(tex);
 
     writeDescriptors();
 
-    return key;
+    return id;
 }
 
-auto trc::AssetRegistry::get(GeometryID key) -> GeometryDeviceHandle
+auto trc::AssetRegistry::get(LocalID<Geometry> id) -> GeometryDeviceHandle
 {
-    return getFromMap(geometries, key);
+    return modules.get<GeometryRegistry>().getHandle(id);
 }
 
-auto trc::AssetRegistry::get(MaterialID key) -> MaterialDeviceHandle&
+auto trc::AssetRegistry::get(LocalID<Material> id) -> MaterialDeviceHandle
 {
-    return getFromMap(materials, key);
+    return modules.get<MaterialRegistry>().getHandle(id);
 }
 
-auto trc::AssetRegistry::get(TextureID key) -> TextureDeviceHandle
+auto trc::AssetRegistry::get(LocalID<Texture> id) -> TextureDeviceHandle
 {
-    return getFromMap(textures, key);
+    return modules.get<TextureRegistry>().getHandle(id);
 }
 
 auto trc::AssetRegistry::getFonts() -> FontDataStorage&
@@ -160,15 +106,7 @@ auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept
 
 void trc::AssetRegistry::updateMaterials()
 {
-    auto buf = reinterpret_cast<MaterialDeviceHandle*>(materialBuffer.map());
-    for (size_t i = 0; i < materials.size(); i++)
-    {
-        MaterialID::ID id(i);
-        if (materials[id] != nullptr) {
-            buf[i] = *materials[id];
-        }
-    }
-    materialBuffer.unmap();
+    modules.get<MaterialRegistry>().update();
 }
 
 auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
@@ -283,8 +221,6 @@ void trc::AssetRegistry::createDescriptors()
 
 void trc::AssetRegistry::writeDescriptors()
 {
-    const auto& device = instance.getDevice();
-
     // Material descriptor infos
     vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
 
@@ -304,7 +240,7 @@ void trc::AssetRegistry::writeDescriptors()
     std::vector<vk::DescriptorImageInfo> imageWrites;
     for (ui32 i = 0; i < textures.size(); i++)
     {
-        auto& tex = textures[TextureID::ID(i)];
+        auto& tex = textures[LocalID<Texture>::Type(i)];
         if (tex == nullptr) break;
 
         imageWrites.emplace_back(vk::DescriptorImageInfo(

@@ -6,6 +6,7 @@ target_sources(
         AnimationEngine.cpp
         AssetInventory.cpp
         AssetRegistry.cpp
+        AssetRegistryModuleStorage.cpp
         Camera.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp
