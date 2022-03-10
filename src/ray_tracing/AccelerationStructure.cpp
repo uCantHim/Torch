@@ -144,7 +144,8 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
-        instance.getDevice()->buildAccelerationStructuresKHR(
+        [[maybe_unused]]
+        vk::Result result = instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
             geoBuildInfo
                 .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer }))
@@ -152,6 +153,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
             buildRangePointers,
             instance.getDL()
         );
+        assert(result == vk::Result::eSuccess);
     }
     else
     {
@@ -352,12 +354,14 @@ void trc::rt::buildAccelerationStructures(
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
-        instance.getDevice()->buildAccelerationStructuresKHR(
+        [[maybe_unused]]
+        vk::Result result = instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
             geoBuildInfos,
             buildRangePointers,
             instance.getDL()
         );
+        assert(result == vk::Result::eSuccess);
     }
     else
     {
