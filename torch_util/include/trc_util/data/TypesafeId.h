@@ -86,6 +86,8 @@ class HardTypesafeID
 public:
     friend Friend;
 
+    using Type = IdType;
+
     /**
      * Type for safe comparison with a 'none'-value
      */
@@ -134,7 +136,7 @@ private:
     explicit constexpr HardTypesafeID(IdType id) : _id(id) {}
 
     /**
-     * Can be implicitly cast to the numeric type
+     * Can be explicitly cast to the numeric type
      */
     explicit constexpr operator IdType() const noexcept {
         return _id;

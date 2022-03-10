@@ -1,6 +1,7 @@
 #include "AssetRegistry.h"
 
 #include <vkb/ImageUtils.h>
+#include <trc_util/algorithm/VectorTransform.h>
 
 #include "core/Instance.h"
 #include "GeometryRegistry.h"
@@ -18,12 +19,20 @@ trc::AssetRegistry::AssetRegistry(
     config(addDefaultValues(info)),
     modules(AssetRegistryModuleCreateInfo{
         .device=instance.getDevice(),
+        .geoVertexBufBinding = DescBinding::eVertexBuffers,
+        .geoIndexBufBinding  = DescBinding::eIndexBuffers,
+        .materialBufBinding  = DescBinding::eMaterials,
+        .textureBinding      = DescBinding::eTextures,
         .geometryBufferUsage=config.geometryBufferUsage,
-        .enableRayTracing=config.enableRayTracing,
+        .enableRayTracing=config.enableRayTracing && instance.hasRayTracing(),
     }),
     fontData(instance),
     animationStorage(instance)
 {
+    modules.addModule<GeometryRegistry>();
+    modules.addModule<TextureRegistry>();
+    modules.addModule<MaterialRegistry>();
+
     createDescriptors();
 
     // Add default assets
@@ -106,7 +115,7 @@ auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept
 
 void trc::AssetRegistry::updateMaterials()
 {
-    modules.get<MaterialRegistry>().update();
+    modules.get<MaterialRegistry>().update({});
 }
 
 auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
@@ -140,76 +149,22 @@ void trc::AssetRegistry::createDescriptors()
     descLayout = {};
     descPool = {};
 
-    // Create pool
-    std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eStorageBuffer, 1 },
-        { vk::DescriptorType::eCombinedImageSampler, MAX_TEXTURE_COUNT },
-    };
-    if (config.enableRayTracing)
-    {
-        // Index and vertex buffers
-        poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, MAX_GEOMETRY_COUNT);
-        poolSizes.emplace_back(vk::DescriptorType::eStorageBuffer, MAX_GEOMETRY_COUNT);
-    }
-
-    descPool = device->createDescriptorPoolUnique({
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,
-        1, poolSizes
+    // Collect layout bindings
+    std::vector<DescriptorLayoutBindingInfo> layoutBindings;
+    modules.foreach([&layoutBindings](AssetRegistryModuleInterface& mod) {
+        util::merge(layoutBindings, mod.getDescriptorLayoutBindings());
     });
 
-    // Create descriptor layout
-    std::vector<vk::DescriptorBindingFlags> bindingFlags{
-        {},                                              // Flags for material buffer
-        vk::DescriptorBindingFlagBits::ePartiallyBound,  // Flags for textures
-    };
-    if (config.enableRayTracing)
-    {
-        // Flags for vertex- and index buffers
-        bindingFlags.emplace_back(vk::DescriptorBindingFlagBits::ePartiallyBound);
-        bindingFlags.emplace_back(vk::DescriptorBindingFlagBits::ePartiallyBound);
-    }
-
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
-        vk::DescriptorSetLayoutBinding(
-            DescBinding::eMaterials,
-            vk::DescriptorType::eStorageBuffer,
-            1,
-            config.materialDescriptorStages
-        ),
-        vk::DescriptorSetLayoutBinding(
-            DescBinding::eTextures,
-            vk::DescriptorType::eCombinedImageSampler,
-            MAX_TEXTURE_COUNT,
-            config.textureDescriptorStages
-        ),
-    };
-    if (config.enableRayTracing)
-    {
-        layoutBindings.push_back(vk::DescriptorSetLayoutBinding(
-            DescBinding::eVertexBuffers,
-            vk::DescriptorType::eStorageBuffer,
-            MAX_GEOMETRY_COUNT,
-            config.geometryDescriptorStages
-        ));
-        layoutBindings.push_back(vk::DescriptorSetLayoutBinding(
-            DescBinding::eIndexBuffers,
-            vk::DescriptorType::eStorageBuffer,
-            MAX_GEOMETRY_COUNT,
-            config.geometryDescriptorStages
-        ));
-    }
-
-    vk::StructureChain layoutChain{
-        vk::DescriptorSetLayoutCreateInfo(
-            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
-            layoutBindings
-        ),
-        vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags)
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(
-        layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
+    // Create pool
+    descPool = makeDescriptorPool(
+        device,
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
+        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,  // This flags is set automatically
+        1, layoutBindings
     );
+
+    // Create layout
+    descLayout = makeDescriptorSetLayout(device, layoutBindings);
 
     // Create descriptor set
     descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, 1, &*descLayout })[0]);
@@ -221,82 +176,81 @@ void trc::AssetRegistry::createDescriptors()
 
 void trc::AssetRegistry::writeDescriptors()
 {
-    // Material descriptor infos
-    vk::DescriptorBufferInfo matBufferWrite(*materialBuffer, 0, VK_WHOLE_SIZE);
-
-    // Collect descriptor writes
     std::vector<vk::WriteDescriptorSet> writes;
+    modules.foreach([&writes](AssetRegistryModuleInterface& mod) {
+        util::merge(writes, mod.getDescriptorUpdates());
+    });
 
-    // Bind material buffer
-    writes.push_back(vk::WriteDescriptorSet(
-        *descSet,
-        DescBinding::eMaterials, 0, 1,
-        vk::DescriptorType::eStorageBuffer,
-        {},
-        &matBufferWrite
-    ));
-
-    // Texture descriptor infos
-    std::vector<vk::DescriptorImageInfo> imageWrites;
-    for (ui32 i = 0; i < textures.size(); i++)
-    {
-        auto& tex = textures[LocalID<Texture>::Type(i)];
-        if (tex == nullptr) break;
-
-        imageWrites.emplace_back(vk::DescriptorImageInfo(
-            tex->image.getDefaultSampler(),
-            *tex->imageView,
-            vk::ImageLayout::eGeneral
-        ));
-    }
-
-    if (textures.size() > 0)
-    {
-        writes.push_back(vk::WriteDescriptorSet(
-            *descSet,
-            DescBinding::eTextures, 0, imageWrites.size(),
-            vk::DescriptorType::eCombinedImageSampler,
-            imageWrites.data()
-        ));
-    }
-
-    // Geometry descriptor infos
-    std::vector<vk::DescriptorBufferInfo> vertBufs;
-    std::vector<vk::DescriptorBufferInfo> indexBufs;
-    if (config.enableRayTracing)
-    {
-        for (auto& geo : geometries)
-        {
-            if (geo == nullptr)
-            {
-                vertBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
-                indexBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
-            }
-            else
-            {
-                vertBufs.emplace_back(vk::DescriptorBufferInfo(*geo->vertexBuf, 0, VK_WHOLE_SIZE));
-                indexBufs.emplace_back(vk::DescriptorBufferInfo(*geo->indexBuf, 0, VK_WHOLE_SIZE));
-            }
-        }
-
-        if (geometries.size() > 0)
-        {
-            writes.push_back(vk::WriteDescriptorSet(
-                *descSet, DescBinding::eVertexBuffers, 0, vertBufs.size(),
-                vk::DescriptorType::eStorageBuffer,
-                nullptr,
-                vertBufs.data()
-            ));
-            writes.push_back(vk::WriteDescriptorSet(
-                *descSet, DescBinding::eIndexBuffers, 0, indexBufs.size(),
-                vk::DescriptorType::eStorageBuffer,
-                nullptr,
-                indexBufs.data()
-            ));
-        }
+    for (auto& write : writes) {
+        write.setDstSet(*descSet);
     }
 
     if (!writes.empty()) {
         device->updateDescriptorSets(writes, {});
     }
+
+
+
+    // // Collect descriptor writes
+    // std::vector<vk::WriteDescriptorSet> writes;
+
+    // // Texture descriptor infos
+    // std::vector<vk::DescriptorImageInfo> imageWrites;
+    // for (ui32 i = 0; i < textures.size(); i++)
+    // {
+    //     auto& tex = textures[LocalID<Texture>::Type(i)];
+    //     if (tex == nullptr) break;
+
+    //     imageWrites.emplace_back(vk::DescriptorImageInfo(
+    //         tex->image.getDefaultSampler(),
+    //         *tex->imageView,
+    //         vk::ImageLayout::eGeneral
+    //     ));
+    // }
+
+    // if (textures.size() > 0)
+    // {
+    //     writes.push_back(vk::WriteDescriptorSet(
+    //         *descSet,
+    //         DescBinding::eTextures, 0, imageWrites.size(),
+    //         vk::DescriptorType::eCombinedImageSampler,
+    //         imageWrites.data()
+    //     ));
+    // }
+
+    // // Geometry descriptor infos
+    // std::vector<vk::DescriptorBufferInfo> vertBufs;
+    // std::vector<vk::DescriptorBufferInfo> indexBufs;
+    // if (config.enableRayTracing)
+    // {
+    //     for (auto& geo : geometries)
+    //     {
+    //         if (geo == nullptr)
+    //         {
+    //             vertBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
+    //             indexBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
+    //         }
+    //         else
+    //         {
+    //             vertBufs.emplace_back(vk::DescriptorBufferInfo(*geo->vertexBuf, 0, VK_WHOLE_SIZE));
+    //             indexBufs.emplace_back(vk::DescriptorBufferInfo(*geo->indexBuf, 0, VK_WHOLE_SIZE));
+    //         }
+    //     }
+
+    //     if (geometries.size() > 0)
+    //     {
+    //         writes.push_back(vk::WriteDescriptorSet(
+    //             *descSet, DescBinding::eVertexBuffers, 0, vertBufs.size(),
+    //             vk::DescriptorType::eStorageBuffer,
+    //             nullptr,
+    //             vertBufs.data()
+    //         ));
+    //         writes.push_back(vk::WriteDescriptorSet(
+    //             *descSet, DescBinding::eIndexBuffers, 0, indexBufs.size(),
+    //             vk::DescriptorType::eStorageBuffer,
+    //             nullptr,
+    //             indexBufs.data()
+    //         ));
+    //     }
+    // }
 }

@@ -12,26 +12,17 @@
 
 namespace trc
 {
-    struct AssetRegistryModuleCreateInfo
-    {
-        const vkb::Device& device;
-
-        vk::BufferUsageFlags geometryBufferUsage{};
-
-        bool enableRayTracing{ true };
-    };
-
     class AssetRegistryModuleStorage
     {
     public:
         explicit AssetRegistryModuleStorage(const AssetRegistryModuleCreateInfo& info);
         ~AssetRegistryModuleStorage() = default;
 
-        template<typename T>
-        auto get() -> T&;
+        template<AssetRegistryModuleType T>
+        void addModule();
 
-        template<typename T>
-        auto get() const -> const T&;
+        template<AssetRegistryModuleType T>
+        auto get() -> T&;
 
         void foreach(std::function<void(AssetRegistryModuleInterface&)> func);
 
@@ -45,7 +36,6 @@ namespace trc
         struct StaticIndex
         {
             static inline const uint32_t index{ StaticIndexPool::nextIndex++ };
-            static const bool _init;  // Initialization
         };
 
         struct TypeEntry
@@ -71,16 +61,7 @@ namespace trc
             void(*_delete)(void*){ nullptr };
         };
 
-        struct TypeRegistrations
-        {
-            template<typename T>
-                requires std::is_constructible_v<T, const AssetRegistryModuleCreateInfo&>
-            void add();
-
-            data::IndexMap<uint32_t, TypeEntry(*)(const AssetRegistryModuleCreateInfo&)> factories;
-        };
-
-        static inline TypeRegistrations types;
+        const AssetRegistryModuleCreateInfo createInfo;
 
         data::IndexMap<uint32_t, TypeEntry> entries;
     };

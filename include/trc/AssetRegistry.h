@@ -58,6 +58,9 @@ namespace trc
         auto get(LocalID<Texture> key) -> TextureDeviceHandle;
 
         template<AssetBaseType T>
+        void remove(LocalID<T> id);
+
+        template<AssetBaseType T>
         auto getModule() -> AssetRegistryModule<T>&;
         template<AssetBaseType T>
         auto getModule() const -> const AssetRegistryModule<T>&;
@@ -74,9 +77,6 @@ namespace trc
 
     private:
         static auto addDefaultValues(const AssetRegistryCreateInfo& info) -> AssetRegistryCreateInfo;
-
-        static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
-        static constexpr ui32 MAX_GEOMETRY_COUNT = 5000;
 
         const vkb::Device& device;
         const AssetRegistryCreateInfo config;
@@ -106,4 +106,24 @@ namespace trc
         FontDataStorage fontData;
         AnimationDataStorage animationStorage;
     };
+
+
+
+    template<AssetBaseType T>
+    inline void AssetRegistry::remove(LocalID<T> id)
+    {
+        modules.get<AssetRegistryModule<T>>().remove(id);
+    }
+
+    template<AssetBaseType T>
+    inline auto AssetRegistry::getModule() -> AssetRegistryModule<T>&
+    {
+        return modules.get<AssetRegistryModule<T>>();
+    }
+
+    template<AssetBaseType T>
+    inline auto AssetRegistry::getModule() const -> const AssetRegistryModule<T>&
+    {
+        return modules.get<AssetRegistryModule<T>>();
+    }
 } // namespace trc

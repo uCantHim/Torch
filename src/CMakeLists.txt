@@ -4,7 +4,7 @@ target_sources(
         Animation.cpp
         AnimationDataStorage.cpp
         AnimationEngine.cpp
-        AssetInventory.cpp
+        AssetManager.cpp
         AssetRegistry.cpp
         AssetRegistryModuleStorage.cpp
         Camera.cpp
@@ -13,15 +13,18 @@ target_sources(
         GBuffer.cpp
         GBufferPass.cpp
         Geometry.cpp
+        GeometryRegistry.cpp
         Light.cpp
         LightRegistry.cpp
         Node.cpp
+        MaterialRegistry.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
         Rig.cpp
         Scene.cpp
         SceneDescriptor.cpp
         ShadowPool.cpp
+        TextureRegistry.cpp
         Torch.cpp
         TorchRenderConfig.cpp
         Transformation.cpp

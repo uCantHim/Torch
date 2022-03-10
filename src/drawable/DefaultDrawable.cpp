@@ -4,6 +4,7 @@
 #include "GBufferPass.h"
 #include "RenderPassShadow.h"
 #include "drawable/RasterPipelines.h"
+#include "GeometryRegistry.h"
 
 
 
@@ -74,7 +75,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
                                        data.modelMatrixId.get());
             cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data.mat));
+                                       sizeof(mat4), static_cast<ui32>(data.mat.id));
             cmdBuf.pushConstants<AnimationDeviceData>(
                 layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
                 data.anim.get()
@@ -92,7 +93,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
                                        data.modelMatrixId.get());
             cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data.mat));
+                                       sizeof(mat4), static_cast<ui32>(data.mat.id));
             cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
         };
     }

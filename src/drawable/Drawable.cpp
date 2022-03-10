@@ -1,7 +1,6 @@
 #include "drawable/Drawable.h"
 
-#include "AssetRegistry.h"
-#include "Geometry.h"
+#include "GeometryRegistry.h"
 #include "Material.h"
 #include "TorchResources.h"
 #include "GBufferPass.h"

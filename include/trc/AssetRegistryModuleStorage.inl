@@ -1,26 +1,30 @@
 #include "AssetRegistryModuleStorage.h"
 
+#include <iostream>
+
 
 
 namespace trc
 {
 
-template<typename T>
+template<AssetRegistryModuleType T>
+void AssetRegistryModuleStorage::addModule()
+{
+    entries[StaticIndex<T>::index] = TypeEntry(std::make_unique<T>(createInfo));
+}
+
+template<AssetRegistryModuleType T>
 auto AssetRegistryModuleStorage::get() -> T&
 {
+    if (!entries[StaticIndex<T>::index].valid())
+    {
+        addModule<T>();
+    }
+
     return entries.at(StaticIndex<T>::index).template as<T>();
 }
 
-template<typename T>
-auto AssetRegistryModuleStorage::get() const -> const T&
-{
-    return entries.at(StaticIndex<T>::index).template as<T>();
-}
 
-template<typename T>
-const bool AssetRegistryModuleStorage::StaticIndex<T>::_init{
-    AssetRegistryModuleStorage::types.template add<T>()
-};
 
 template<typename T>
 AssetRegistryModuleStorage::TypeEntry::TypeEntry(std::unique_ptr<T> obj)
@@ -42,19 +46,6 @@ auto AssetRegistryModuleStorage::TypeEntry::as() const -> const T&
 {
     assert(ptr != nullptr);
     return *static_cast<const T*>(ptr);
-}
-
-template<typename T>
-    requires std::is_constructible_v<T, const AssetRegistryModuleCreateInfo&>
-void AssetRegistryModuleStorage::TypeRegistrations::add()
-{
-    factories.emplace(
-        StaticIndex<T>::index,
-        [](const AssetRegistryModuleCreateInfo& info)
-        {
-            return TypeEntry(std::make_unique<T>(info));
-        }
-    );
 }
 
 } // namespace trc

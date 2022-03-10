@@ -13,7 +13,7 @@ namespace trc
     class GeometryDeviceHandle
     {
     private:
-        friend class AssetRegistry;
+        friend class GeometryRegistry;
 
         GeometryDeviceHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
                  vk::Buffer verts, ui32 numVerts,

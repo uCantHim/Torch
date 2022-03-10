@@ -1,16 +1,16 @@
 #include "AssetRegistryModuleStorage.h"
 
+#include <iostream>
+
 
 
 namespace trc
 {
 
 AssetRegistryModuleStorage::AssetRegistryModuleStorage(const AssetRegistryModuleCreateInfo& info)
+    :
+    createInfo(info)
 {
-    for (uint32_t i = 0; const auto& factory : types.factories)
-    {
-        entries.emplace(i, factory(info));
-    }
 }
 
 void AssetRegistryModuleStorage::foreach(std::function<void(AssetRegistryModuleInterface&)> func)
