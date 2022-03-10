@@ -75,6 +75,20 @@ public:
      */
     auto size() const -> size_t;
 
+    /**
+     * @brief Access the table's raw data
+     *
+     * @return pointer A pointer to the address of the first element
+     */
+    auto data() -> Component*;
+
+    /**
+     * @brief Access the table's raw data
+     *
+     * @return pointer A pointer to the address of the first element
+     */
+    auto data() const -> const Component*;
+
 public:
     // ------------------------ //
     //      Element access      //
