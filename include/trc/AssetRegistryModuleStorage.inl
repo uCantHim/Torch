@@ -1,27 +1,33 @@
 #include "AssetRegistryModuleStorage.h"
 
-#include <iostream>
-
 
 
 namespace trc
 {
 
-template<AssetRegistryModuleType T>
-void AssetRegistryModuleStorage::addModule()
+template<AssetRegistryModuleType T, typename ...Args>
+    requires std::constructible_from<T, Args...>
+void AssetRegistryModuleStorage::addModule(Args&&... args)
 {
-    entries[StaticIndex<T>::index] = TypeEntry(std::make_unique<T>(createInfo));
+    entries.emplace(StaticIndex<T>::index, std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 template<AssetRegistryModuleType T>
 auto AssetRegistryModuleStorage::get() -> T&
 {
-    if (!entries[StaticIndex<T>::index].valid())
-    {
-        addModule<T>();
-    }
+    assert(entries.size() > StaticIndex<T>::index);
+    assert(entries.get(StaticIndex<T>::index).valid());
 
-    return entries.at(StaticIndex<T>::index).template as<T>();
+    return entries.get(StaticIndex<T>::index).template as<T>();
+}
+
+template<AssetRegistryModuleType T>
+auto AssetRegistryModuleStorage::get() const -> const T&
+{
+    assert(entries.size() > StaticIndex<T>::index);
+    assert(entries.get(StaticIndex<T>::index).valid());
+
+    return entries.get(StaticIndex<T>::index).template as<T>();
 }
 
 

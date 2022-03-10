@@ -17,7 +17,10 @@ trc::AssetRegistry::AssetRegistry(
     :
     device(instance.getDevice()),
     config(addDefaultValues(info)),
-    modules(AssetRegistryModuleCreateInfo{
+    fontData(instance),
+    animationStorage(instance)
+{
+    AssetRegistryModuleCreateInfo moduleCreateInfo{
         .device=instance.getDevice(),
         .geoVertexBufBinding = DescBinding::eVertexBuffers,
         .geoIndexBufBinding  = DescBinding::eIndexBuffers,
@@ -25,13 +28,11 @@ trc::AssetRegistry::AssetRegistry(
         .textureBinding      = DescBinding::eTextures,
         .geometryBufferUsage=config.geometryBufferUsage,
         .enableRayTracing=config.enableRayTracing && instance.hasRayTracing(),
-    }),
-    fontData(instance),
-    animationStorage(instance)
-{
-    modules.addModule<GeometryRegistry>();
-    modules.addModule<TextureRegistry>();
-    modules.addModule<MaterialRegistry>();
+    };
+
+    modules.addModule<GeometryRegistry>(moduleCreateInfo);
+    modules.addModule<TextureRegistry>(moduleCreateInfo);
+    modules.addModule<MaterialRegistry>(moduleCreateInfo);
 
     createDescriptors();
 

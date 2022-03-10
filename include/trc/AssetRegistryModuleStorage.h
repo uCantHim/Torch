@@ -1,13 +1,11 @@
 #pragma once
 
-#include <cstdint>
-#include <memory>
 #include <concepts>
 #include <functional>
 
-#include <vkb/Device.h>
-#include <trc_util/data/IndexMap.h>
+#include <componentlib/Table.h>
 
+#include "Types.h"
 #include "AssetRegistryModule.h"
 
 namespace trc
@@ -15,27 +13,30 @@ namespace trc
     class AssetRegistryModuleStorage
     {
     public:
-        explicit AssetRegistryModuleStorage(const AssetRegistryModuleCreateInfo& info);
+        AssetRegistryModuleStorage() = default;
         ~AssetRegistryModuleStorage() = default;
 
-        template<AssetRegistryModuleType T>
-        void addModule();
+        template<AssetRegistryModuleType T, typename ...Args>
+            requires std::constructible_from<T, Args...>
+        void addModule(Args&&... args);
 
         template<AssetRegistryModuleType T>
         auto get() -> T&;
+        template<AssetRegistryModuleType T>
+        auto get() const -> const T&;
 
         void foreach(std::function<void(AssetRegistryModuleInterface&)> func);
 
     private:
         struct StaticIndexPool
         {
-            static inline uint32_t nextIndex{ 0 };
+            static inline ui32 nextIndex{ 0 };
         };
 
         template<typename T>
         struct StaticIndex
         {
-            static inline const uint32_t index{ StaticIndexPool::nextIndex++ };
+            static inline const ui32 index{ StaticIndexPool::nextIndex++ };
         };
 
         struct TypeEntry
@@ -61,9 +62,7 @@ namespace trc
             void(*_delete)(void*){ nullptr };
         };
 
-        const AssetRegistryModuleCreateInfo createInfo;
-
-        data::IndexMap<uint32_t, TypeEntry> entries;
+        componentlib::Table<TypeEntry> entries;
     };
 } // namespace trc
 

@@ -7,20 +7,12 @@
 namespace trc
 {
 
-AssetRegistryModuleStorage::AssetRegistryModuleStorage(const AssetRegistryModuleCreateInfo& info)
-    :
-    createInfo(info)
-{
-}
-
 void AssetRegistryModuleStorage::foreach(std::function<void(AssetRegistryModuleInterface&)> func)
 {
     for (auto& entry : entries)
     {
-        if (entry.valid())
-        {
-            func(entry.as<AssetRegistryModuleInterface>());
-        }
+        assert(entry.valid());
+        func(entry.as<AssetRegistryModuleInterface>());
     }
 }
 
