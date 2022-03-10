@@ -26,25 +26,6 @@ auto trc::loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData
 #endif
 }
 
-auto trc::loadGeometry(
-    const fs::path& filePath,
-    AssetRegistry& assetRegistry,
-    bool loadRig
-    ) -> Maybe<GeometryID>
-{
-    auto loadedMeshes = loadGeometry(filePath).meshes;
-    if (loadedMeshes.empty()) {
-        return {};
-    }
-
-    auto& mesh = loadedMeshes.front();
-
-    return assetRegistry.add(
-        mesh.geometry,
-        loadRig ? mesh.rig : std::nullopt
-    );
-}
-
 auto trc::loadTexture(const fs::path& filePath) -> TextureData
 {
     auto image = vkb::loadImageData2D(filePath);

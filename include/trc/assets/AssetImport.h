@@ -28,18 +28,5 @@ namespace trc
      */
     auto loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData;
 
-    /**
-     * @brief Load geometry from a file directly into an asset registry
-     *
-     * @param const fs::path& filePath
-     * @param bool loadRig Indicate whether a rig should be loaded for the
-     *                     geometry if one is found.
-     *
-     * @return Nothing if any error occurs.
-     */
-    auto loadGeometry(const fs::path& filePath,
-                      AssetRegistry& assetRegistry,
-                      bool loadRig = true) -> Maybe<GeometryID>;
-
     auto loadTexture(const fs::path& filePath) -> TextureData;
 } // namespace trc
