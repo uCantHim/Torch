@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "assets/PNGConvert.h"
+
 
 
 namespace trc
@@ -63,7 +65,8 @@ auto serializeAssetData(const TextureData& data) -> trc::serial::Texture
     auto image = tex.mutable_image();
     image->set_width(data.size.x);
     image->set_height(data.size.y);
-    image->set_pixel_data_rgba8(data.pixels.data(), 4 * data.pixels.size());
+    const auto png = toPNG(data);
+    image->set_pixel_data_png(png.data(), png.size());
 
     return tex;
 }
@@ -96,12 +99,12 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
 {
     TextureData data;
 
+    const std::string& png = tex.image().pixel_data_png();
+    data = fromPNG(png.data(), png.size());
+    assert(data.size.x == tex.image().width() && data.size.y == tex.image().height());
+
     data.name = tex.name();
     data.size = { tex.image().width(), tex.image().height() };
-
-    const size_t numPixels = data.size.x * data.size.y;
-    data.pixels.resize(numPixels);
-    memcpy(data.pixels.data(), tex.image().pixel_data_rgba8().data(), 4 * numPixels);
 
     return data;
 }
