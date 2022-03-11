@@ -33,6 +33,7 @@ include(cmake/utils.cmake)
 
 find_package(Freetype REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(PNG REQUIRED)
 
 if (TARGET profiler)
     set(HAS_PROFILER TRUE)
@@ -56,13 +57,16 @@ target_include_directories(torch
 )
 
 target_link_libraries(
-    torch PUBLIC
-    torch_util
-    component
-    vk_base
-    Freetype::Freetype
-    protobuf::libprotobuf
-    $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
+    torch
+    PUBLIC
+        torch_util
+        component
+        vk_base
+        Freetype::Freetype
+        protobuf::libprotobuf
+        $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
+    PRIVATE
+        PNG::PNG
 )
 
 target_compile_definitions(torch

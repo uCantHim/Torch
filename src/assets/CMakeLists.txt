@@ -4,4 +4,5 @@ target_sources(torch PRIVATE
     FBXImporter.cpp
     GeneratedGeometry.cpp
     InternalFormat.cpp
+    PNGConvert.cpp
 )
