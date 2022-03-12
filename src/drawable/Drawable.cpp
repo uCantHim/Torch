@@ -20,21 +20,7 @@ Drawable::Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& 
 
 Drawable::Drawable(const DrawableCreateInfo& info, DrawableComponentScene& scene)
     :
-    Drawable(
-        info,
-        [&info]{
-            PipelineFeatureFlags flags;
-            if (info.transparent) {
-                flags |= PipelineFeatureFlagBits::eTransparent;
-            }
-            if (info.geo.get().hasRig()) {
-                flags |= PipelineFeatureFlagBits::eAnimated;
-            }
-
-            return getPipeline(flags);
-        }(),
-        scene
-    )
+    Drawable(info, determineDrawablePipeline(info), scene)
 {
 }
 
@@ -50,12 +36,12 @@ Drawable::Drawable(
     auto _geo = info.geo.get();
 
     auto raster = makeRasterData(info, pipeline);
-    raster.drawData.geo = _geo;
-    raster.drawData.mat = info.mat;
+
+    // Model matrix ID and animation engine ID have to be set manually
     raster.drawData.modelMatrixId = getGlobalTransformID();
     if (_geo.hasRig())
     {
-        scene.makeAnimation(id, *_geo.getRig());
+        scene.makeAnimationEngine(id, *_geo.getRig());
         raster.drawData.anim = scene.getAnimationEngine(id).getState();
     }
 
@@ -124,35 +110,6 @@ void Drawable::removeFromScene()
         scene->destroyDrawable(id);
         id = DrawableID::NONE;
     }
-}
-
-void Drawable::drawShadow(
-    const drawcomp::RasterComponent& data,
-    const DrawEnvironment& env,
-    vk::CommandBuffer cmdBuf)
-{
-    auto currentRenderPass = dynamic_cast<RenderPassShadow*>(env.currentRenderPass);
-    assert(currentRenderPass != nullptr);
-
-    // Bind buffers and push constants
-    data.geo.bindVertices(cmdBuf, 0);
-
-    auto layout = *env.currentPipeline->getLayout();
-    cmdBuf.pushConstants<mat4>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        0, data.modelMatrixId.get()
-    );
-    cmdBuf.pushConstants<ui32>(
-        layout, vk::ShaderStageFlagBits::eVertex,
-        sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
-    );
-    cmdBuf.pushConstants<AnimationDeviceData>(
-        layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-        data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
-    );
-
-    // Draw
-    cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
 }
 
 auto Drawable::makeRasterData(

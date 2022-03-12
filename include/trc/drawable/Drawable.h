@@ -59,10 +59,6 @@ namespace trc
         void removeFromScene();
 
     private:
-        static void drawShadow(const drawcomp::RasterComponent& data,
-                               const DrawEnvironment& env,
-                               vk::CommandBuffer cmdBuf);
-
         static auto makeRasterData(const DrawableCreateInfo& info,
                                    Pipeline::ID gBufferPipeline)
             -> RasterComponentCreateInfo;

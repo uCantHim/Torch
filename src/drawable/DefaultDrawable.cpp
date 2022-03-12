@@ -44,8 +44,7 @@ void drawShadow(
 
 
 
-auto trc::makeDrawableRasterization(const DrawableCreateInfo& info)
-    -> RasterComponentCreateInfo
+auto trc::determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID
 {
     PipelineFeatureFlags flags;
     if (info.transparent) {
@@ -55,7 +54,7 @@ auto trc::makeDrawableRasterization(const DrawableCreateInfo& info)
         flags |= PipelineFeatureFlagBits::eAnimated;
     }
 
-    return makeDefaultDrawableRasterization(info, getPipeline(flags));
+    return getPipeline(flags);
 }
 
 auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
@@ -101,7 +100,15 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
     auto deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
                                             : GBufferPass::SubPasses::gBuffer;
 
-    RasterComponentCreateInfo result;
+    RasterComponentCreateInfo result{
+        .drawData={
+            .geo=info.geo.getDeviceDataHandle(),
+            .mat=info.mat,
+            .modelMatrixId={},  // None
+            .anim={},
+        },
+        .drawFunctions={},
+    };
 
     result.drawFunctions.emplace_back(
         gBufferRenderStage,
