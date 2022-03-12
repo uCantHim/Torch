@@ -32,8 +32,7 @@ void run()
     auto size = swapchain.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    auto geoData = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx").meshes[0].geometry;
-    auto geo = am.createAsset<trc::Geometry>(geoData);
+    auto geo = am.createAsset<trc::Geometry>(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
 
     trc::GeometryDeviceHandle tri = am.createAsset<trc::Geometry>(
         trc::GeometryData{

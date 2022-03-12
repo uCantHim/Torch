@@ -6,14 +6,14 @@
 
 
 
-auto trc::loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData
+auto trc::loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData
 {
     if (filePath.extension() == ".fbx")
     {
 #ifdef TRC_USE_FBX_SDK
         return FBXImporter::load(filePath);
 #else
-        throw DataImportError("[In loadGeometry]: Unable to import data from .fbx files"
+        throw DataImportError("[In loadAssets]: Unable to import data from .fbx files"
                               " as Torch was built without the FBX SDK");
 #endif
     }
@@ -21,9 +21,19 @@ auto trc::loadGeometry(const fs::path& filePath) -> ThirdPartyFileImportData
 #ifdef TRC_USE_ASSIMP
     return AssetImporter::load(filePath);
 #else
-    throw DataImportError("[In loadGeometry]: Unable to import data from " + filePath.string()
+    throw DataImportError("[In loadAssets]: Unable to import data from " + filePath.string()
                           + " as Torch was built without Assimp");
 #endif
+}
+
+auto trc::loadGeometry(const fs::path& filePath) -> GeometryData
+{
+    const auto assets = loadAssets(filePath);
+    if (assets.meshes.empty()) {
+        throw DataImportError("[In loadGeometry]: File does not contain any geometries!");
+    }
+
+    return assets.meshes[0].geometry;
 }
 
 auto trc::loadTexture(const fs::path& filePath) -> TextureData
