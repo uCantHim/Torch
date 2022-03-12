@@ -16,7 +16,6 @@ namespace trc
     using PipelineFeatureFlags = vk::Flags<PipelineFeatureFlagBits>;
 
     auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
-    auto getPoolInstancePipeline(PipelineFeatureFlags flags) -> Pipeline::ID;
 } // namespace trc
 
 namespace vk
