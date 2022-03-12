@@ -24,7 +24,7 @@ void run()
     auto& device = torch->getDevice();
     auto& instance = torch->getInstance();
     auto& swapchain = torch->getWindow();
-    auto& ar = torch->getAssetRegistry();
+    auto& am = torch->getAssetManager();
 
     auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
@@ -32,9 +32,10 @@ void run()
     auto size = swapchain.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    trc::GeometryDeviceHandle geo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx", ar).get().get();
+    auto geoData = trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx").meshes[0].geometry;
+    auto geo = am.createAsset<trc::Geometry>(geoData);
 
-    trc::GeometryDeviceHandle tri = ar.add(
+    trc::GeometryDeviceHandle tri = am.createAsset<trc::Geometry>(
         trc::GeometryData{
             .vertices = {
                 { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },
@@ -52,7 +53,7 @@ void run()
     // --- BLAS --- //
 
     BLAS triBlas{ instance, tri };
-    BLAS blas{ instance, geo };
+    BLAS blas{ instance, geo.getDeviceDataHandle() };
     trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
 
 

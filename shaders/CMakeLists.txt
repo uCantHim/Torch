@@ -43,11 +43,11 @@ if (${GLSLC-NOTFOUND})
     message(WARNING "Failed to find glslc, will not be able to compile "
     "shaders through CMake. Possible fix: Vulkan SDK (re-)installation.")
 else()
+    message("-- Collecting shaders to compile")
+
     foreach(IN_FILE ${SHADERS_GLSL})
         get_filename_component(IN_BASENAME ${IN_FILE} NAME)
         set(OUT_FILE "${IN_FILE}.spv")
-
-        message("Compiling ${IN_FILE} -> ${OUT_FILE}")
 
         if (${TORCH_OPTIMIZE_SHADERS})
             set(SHADER_OPTIMIZATION_FLAG "-O")

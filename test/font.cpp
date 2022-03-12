@@ -8,7 +8,7 @@ int main()
         auto torch = trc::initFull();
         auto& instance = torch->getInstance();
         auto& window = torch->getWindow();
-        auto& fonts = torch->getAssetRegistry().getFonts();
+        auto& fonts = torch->getAssetManager().getDeviceRegistry().getFonts();
 
         trc::Scene scene;
         trc::Camera camera;

@@ -11,7 +11,10 @@
 #include "core/RenderTarget.h"
 
 #include "Scene.h"
-#include "AssetRegistry.h"
+#include "AssetManager.h"
+#include "GeometryRegistry.h"
+#include "TextureRegistry.h"
+#include "MaterialRegistry.h"
 #include "assets/AssetImport.h"
 #include "assets/GeneratedGeometry.h"
 #include "drawable/Drawable.h"
@@ -64,7 +67,7 @@ namespace trc
         auto getDevice() -> vkb::Device&;
         auto getInstance() -> Instance&;
         auto getWindow() -> Window&;
-        auto getAssetRegistry() -> AssetRegistry&;
+        auto getAssetManager() -> AssetManager&;
         auto getShadowPool() -> ShadowPool&;
         auto getRenderTarget() -> RenderTarget&;
         auto getRenderConfig() -> TorchRenderConfig&;
@@ -90,7 +93,7 @@ namespace trc
     private:
         Instance instance;
         Window window;
-        AssetRegistry assetRegistry;
+        AssetManager assetManager;
         ShadowPool shadowPool;
         RenderTarget swapchainRenderTarget;
         TorchRenderConfig renderConfig;

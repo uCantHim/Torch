@@ -1,5 +1,7 @@
 #pragma once
 
+#include <trc_util/data/TypesafeId.h>
+
 #include "Types.h"
 #include "AssetBase.h"
 

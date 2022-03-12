@@ -84,6 +84,8 @@ auto trc::GeometryRegistry::add(const GeometryData& data) -> LocalID
             .numVertices = static_cast<ui32>(data.vertices.size()),
 
             .rig = std::nullopt,
+
+            .deviceIndex = id,
         }
     );
 

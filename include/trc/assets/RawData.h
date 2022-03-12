@@ -1,9 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
-
-#include <glm/fwd.hpp>
 
 #include "Types.h"
 #include "Vertex.h"
@@ -16,6 +13,14 @@ namespace trc
 
         std::vector<Vertex> vertices;
         std::vector<VertexIndex> indices;
+    };
+
+    struct TextureData
+    {
+        std::string name;
+
+        uvec2 size;
+        std::vector<glm::u8vec4> pixels;
     };
 
     struct AnimationData
@@ -48,15 +53,5 @@ namespace trc
 
         // A set of animations attached to the rig
         std::vector<AnimationData> animations;
-    };
-
-
-
-    struct TextureData
-    {
-        std::string name;
-
-        uvec2 size;
-        std::vector<glm::u8vec4> pixels;
     };
 } // namespace trc
