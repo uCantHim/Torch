@@ -21,6 +21,13 @@ struct AnimationMetaData
     uint boneCount;
 };
 
+struct AnimationPushConstantData
+{
+    uint animation;
+    uint keyframes[2];
+    float keyframeWeigth;
+};
+
 layout (location = BONE_INDICES_INPUT_LOCATION) in uvec4 vertexBoneIndices;
 layout (location = BONE_WEIGHTS_INPUT_LOCATION) in vec4 vertexBoneWeights;
 

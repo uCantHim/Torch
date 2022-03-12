@@ -23,13 +23,16 @@ FileOutputError::FileOutputError(const fs::path& path)
 
 auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
 {
+    assert(data.skeletalVertices.size() == 0
+           || data.skeletalVertices.size() == data.vertices.size());
+
     trc::serial::Geometry geo;
     geo.set_name(data.name);
     for (uint32_t idx : data.indices)
     {
         geo.add_indices(idx);
     }
-    for (const trc::Vertex& v : data.vertices)
+    for (const trc::MeshVertex& v : data.vertices)
     {
         trc::serial::Geometry::Vertex* newVert = geo.add_vertices();
         newVert->mutable_position()->set_x(v.position.x);
@@ -43,6 +46,10 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
         newVert->mutable_tangent()->set_z(v.tangent.z);
         newVert->mutable_uv()->set_x(v.uv.x);
         newVert->mutable_uv()->set_y(v.uv.y);
+    }
+    for (const trc::SkeletalVertex& v : data.skeletalVertices)
+    {
+        trc::serial::Geometry::SkelVertex* newVert = geo.add_skeletal_vertices();
         newVert->mutable_bone_indices()->set_x(v.boneIndices.x);
         newVert->mutable_bone_indices()->set_y(v.boneIndices.y);
         newVert->mutable_bone_indices()->set_z(v.boneIndices.z);
@@ -84,6 +91,10 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
         v.normal      = { in.normal().x(), in.normal().y(), in.normal().z() };
         v.tangent     = { in.tangent().x(), in.tangent().y(), in.tangent().z() };
         v.uv          = { in.uv().x(), in.uv().y() };
+    }
+    for (const auto& in : geo.skeletal_vertices())
+    {
+        auto& v = data.skeletalVertices.emplace_back();
         v.boneIndices = { in.bone_indices().x(), in.bone_indices().y(),
                           in.bone_indices().z(), in.bone_indices().w() };
         v.boneWeights = { in.bone_weights().x(), in.bone_weights().y(),
@@ -91,6 +102,9 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
     }
     data.indices.reserve(geo.indices().size());
     data.indices.assign(geo.indices().begin(), geo.indices().end());
+
+    assert(data.skeletalVertices.size() == 0
+           || data.skeletalVertices.size() == data.vertices.size());
 
     return data;
 }

@@ -11,24 +11,16 @@ message Geometry
         vec3 normal = 2;
         vec2 uv = 3;
         vec3 tangent = 4;
+    }
 
+    message SkelVertex
+    {
         uvec4 bone_indices = 5;
         vec4 bone_weights = 6;
     }
 
     string name = 1;
-    repeated Vertex vertices = 2;
-    repeated uint32 indices = 3;
-}
-
-message PackedGeometry
-{
-    enum Type
-    {
-        mesh = 0;
-        riggedMesh = 1;
-    }
-
-    Type type = 1;
-    bytes data = 2;
+    repeated uint32 indices = 2;
+    repeated Vertex vertices = 3;
+    repeated SkelVertex skeletal_vertices = 4;
 }

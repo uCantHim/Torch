@@ -31,10 +31,13 @@ void drawShadow(
         layout, vk::ShaderStageFlagBits::eVertex,
         sizeof(mat4), currentRenderPass->getShadowMatrixIndex()
     );
-    cmdBuf.pushConstants<AnimationDeviceData>(
-        layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
-        data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
-    );
+    if (data.geo.hasRig())
+    {
+        cmdBuf.pushConstants<AnimationDeviceData>(
+            layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+            data.anim != AnimationEngine::ID::NONE ? data.anim.get() : AnimationDeviceData{}
+        );
+    }
 
     // Draw
     cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);

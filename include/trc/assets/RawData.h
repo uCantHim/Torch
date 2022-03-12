@@ -11,7 +11,8 @@ namespace trc
     {
         std::string name;
 
-        std::vector<Vertex> vertices;
+        std::vector<MeshVertex> vertices;
+        std::vector<SkeletalVertex> skeletalVertices;
         std::vector<VertexIndex> indices;
     };
 

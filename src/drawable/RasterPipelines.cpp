@@ -13,41 +13,27 @@
 namespace trc
 {
 
-auto getDrawableDeferredPipeline() -> Pipeline::ID;
-auto getDrawableDeferredAnimatedPipeline() -> Pipeline::ID;
-
-auto getDrawableTransparentDeferredPipeline() -> Pipeline::ID;
-auto getDrawableTransparentDeferredAnimatedPipeline() -> Pipeline::ID;
-
-auto getDrawableShadowPipeline() -> Pipeline::ID;
-
-
-
-auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
+auto makeVertexAttributeDescriptions(PipelineFeatureFlags flags)
+    -> std::vector<vk::VertexInputAttributeDescription>
 {
-    if (featureFlags & PipelineFeatureFlagBits::eShadow)
+    if (flags & PipelineFeatureFlagBits::eAnimated)
     {
-        assert(featureFlags == (featureFlags & PipelineFeatureFlagBits::eShadow));
-        return getDrawableShadowPipeline();
+        return {
+            vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat,    0),
+            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat,    12),
+            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat,       24),
+            vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat,    32),
+            vk::VertexInputAttributeDescription(4, 0, vk::Format::eR32G32B32A32Uint,   44),
+            vk::VertexInputAttributeDescription(5, 0, vk::Format::eR32G32B32A32Sfloat, 60),
+        };
     }
-
-    if (featureFlags & PipelineFeatureFlagBits::eTransparent)
-    {
-        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
-            return getDrawableTransparentDeferredAnimatedPipeline();
-        }
-        else {
-            return getDrawableTransparentDeferredPipeline();
-        }
-    }
-    else
-    {
-        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
-            return getDrawableDeferredAnimatedPipeline();
-        }
-        else {
-            return getDrawableDeferredPipeline();
-        }
+    else {
+        return {
+            vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat,    0),
+            vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat,    12),
+            vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat,       24),
+            vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32B32Sfloat,    32),
+        };
     }
 }
 
@@ -55,30 +41,47 @@ auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 
 auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
 auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
-auto makeDrawableShadowPipeline() -> Pipeline::ID;
+auto makeDrawableShadowPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
 
-using Flags = PipelineFeatureFlagBits;
+auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
+{
+    // Shadow
+    if (featureFlags & PipelineFeatureFlagBits::eShadow)
+    {
+        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
+            static auto p = makeDrawableShadowPipeline(featureFlags);
+            return p;
+        }
+        else {
+            static auto p = makeDrawableShadowPipeline(featureFlags);
+            return p;
+        }
+    }
 
-auto _makeDrawDef = []() {
-    return makeDrawableDeferredPipeline({});
-};
-auto _makeDrawDefAnim = []() {
-    return makeDrawableDeferredPipeline(Flags::eAnimated);
-};
-auto _makeTransDef = []() {
-    return makeDrawableTransparentPipeline({});
-};
-auto _makeTransDefAnim = []() {
-    return makeDrawableTransparentPipeline(Flags::eAnimated);
-};
-
-PIPELINE_GETTER_FUNC(getDrawableDeferredPipeline, _makeDrawDef)
-PIPELINE_GETTER_FUNC(getDrawableDeferredAnimatedPipeline, _makeDrawDefAnim)
-
-PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredPipeline, _makeTransDef)
-PIPELINE_GETTER_FUNC(getDrawableTransparentDeferredAnimatedPipeline, _makeTransDefAnim)
-
-PIPELINE_GETTER_FUNC(getDrawableShadowPipeline, makeDrawableShadowPipeline)
+    // Opaque or transparent
+    if (featureFlags & PipelineFeatureFlagBits::eTransparent)
+    {
+        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
+            static auto p = makeDrawableTransparentPipeline(featureFlags);
+            return p;
+        }
+        else {
+            static auto p = makeDrawableTransparentPipeline(featureFlags);
+            return p;
+        }
+    }
+    else
+    {
+        if (featureFlags & PipelineFeatureFlagBits::eAnimated) {
+            static auto p = makeDrawableDeferredPipeline(featureFlags);
+            return p;
+        }
+        else {
+            static auto p = makeDrawableDeferredPipeline(featureFlags);
+            return p;
+        }
+    }
+}
 
 
 
@@ -94,6 +97,8 @@ struct DrawablePushConstants
 
 auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
+    const bool isAnimated = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
+
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
@@ -106,15 +111,15 @@ auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline
         )
         .registerLayout<TorchRenderConfig>();
 
-    const bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
+    const auto vertShader = isAnimated ? "drawable/deferred_animated.vert.spv"
+                                       : "drawable/deferred.vert.spv";
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / "drawable/deferred.vert.spv"),
+        .setProgram(vkb::readFile(SHADER_DIR / vertShader),
                     vkb::readFile(SHADER_DIR / "drawable/deferred.frag.spv"))
-        .setVertexSpecializationConstant(0, vertConst)
         .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
-            makeVertexAttributeDescriptions()
+            vk::VertexInputBindingDescription(0, sizeof(MeshVertex), vk::VertexInputRate::eVertex),
+            makeVertexAttributeDescriptions(featureFlags)
         )
         .disableBlendAttachments(3)
         .registerPipeline<TorchRenderConfig>(
@@ -124,6 +129,8 @@ auto makeDrawableDeferredPipeline(PipelineFeatureFlags featureFlags) -> Pipeline
 
 auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
+    const bool isAnimated = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
+
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
@@ -137,15 +144,15 @@ auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipel
         )
         .registerLayout<TorchRenderConfig>();
 
-    const bool32 vertConst = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
+    const auto vertShader = isAnimated ? "drawable/deferred_animated.vert.spv"
+                                       : "drawable/deferred.vert.spv";
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / "drawable/deferred.vert.spv"),
+        .setProgram(vkb::readFile(SHADER_DIR / vertShader),
                     vkb::readFile(SHADER_DIR / "drawable/transparent.frag.spv"))
-        .setVertexSpecializationConstant(0, vertConst)
         .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
-            makeVertexAttributeDescriptions()
+            vk::VertexInputBindingDescription(0, sizeof(MeshVertex), vk::VertexInputRate::eVertex),
+            makeVertexAttributeDescriptions(featureFlags)
         )
         .setCullMode(vk::CullModeFlagBits::eNone) // Don't cull back faces because they're visible
         .disableDepthWrite()
@@ -154,22 +161,28 @@ auto makeDrawableTransparentPipeline(PipelineFeatureFlags featureFlags) -> Pipel
         );
 }
 
-auto makeDrawableShadowPipeline() -> Pipeline::ID
+auto makeDrawableShadowPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID
 {
+    const bool isAnimated = !!(featureFlags & PipelineFeatureFlagBits::eAnimated);
+
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addPushConstantRange(
-            { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) }
+            { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) },
+            DrawablePushConstants{}
         )
         .registerLayout<TorchRenderConfig>();
 
+    const auto vertShader = isAnimated ? "drawable/shadow_animated.vert.spv"
+                                       : "drawable/shadow.vert.spv";
+
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / "drawable/shadow.vert.spv"),
+        .setProgram(vkb::readFile(SHADER_DIR / vertShader),
                     vkb::readFile(SHADER_DIR / "empty.frag.spv"))
         .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(Vertex), vk::VertexInputRate::eVertex),
-            makeVertexAttributeDescriptions()
+            vk::VertexInputBindingDescription(0, sizeof(MeshVertex), vk::VertexInputRate::eVertex),
+            makeVertexAttributeDescriptions(featureFlags)
         )
         .setCullMode(vk::CullModeFlagBits::eFront)
         .setRasterization(

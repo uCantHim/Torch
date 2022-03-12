@@ -548,6 +548,11 @@ auto trc::FBXImporter::loadRig(FbxMesh* mesh, GeometryData& result)
             << "deformer (skin). I don't know what to do with that, so it'll be ignored.\n";
     }
 
+    // Create skeletal vertices if a deformer (skeleton) is present
+    if (deformerCount > 0) {
+        result.skeletalVertices.resize(result.vertices.size());
+    }
+
     // Deformers are whole skeletons of a mesh (probably)
     // This loop is exited after the first iteration. It only exists for completeness's sake.
     for (int deformerIndex = 0; deformerIndex < deformerCount; deformerIndex++)
@@ -571,6 +576,8 @@ auto trc::FBXImporter::loadRig(FbxMesh* mesh, GeometryData& result)
         ////////////////
         // Get bone data
         const size_t clusterCount = skin->GetClusterCount();
+
+        /** Stores how many bone indices have been set for each vertex */
         std::vector<ui32> weightsFilledHelper(result.indices.size());
 
         // Clusters hold bones, which are links (probably)
@@ -607,7 +614,7 @@ auto trc::FBXImporter::loadRig(FbxMesh* mesh, GeometryData& result)
                 size_t vertIndex = static_cast<size_t>(indices[i]);
                 if (weightsFilledHelper[vertIndex] < MAX_WEIGHTS_PER_VERTEX)
                 {
-                    auto& vertex = result.vertices[vertIndex];
+                    auto& vertex = result.skeletalVertices[vertIndex];
                     vertex.boneWeights[weightsFilledHelper[vertIndex]] = float(weights[i]);
                     vertex.boneIndices[weightsFilledHelper[vertIndex]] = float(currBoneIndex);
 
@@ -630,7 +637,7 @@ void trc::FBXImporter::correctBoneWeights(GeometryData& mesh)
 {
     ui32 totalWeights = 0; // For logging only
     ui32 correctedWeights = 0; // For logging only
-    for (Vertex& vert : mesh.vertices)
+    for (SkeletalVertex& vert : mesh.skeletalVertices)
     {
         // Weight sum correction
         vec4& weight = vert.boneWeights;

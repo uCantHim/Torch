@@ -1,5 +1,7 @@
 #include "assets/PNGConvert.h"
 
+#include <cstring>
+
 #include <png.h>
 
 

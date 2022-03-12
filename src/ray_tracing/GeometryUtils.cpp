@@ -16,7 +16,7 @@ auto trc::rt::makeGeometryInfo(const vkb::Device& device, const GeometryDeviceHa
             vk::AccelerationStructureGeometryTrianglesDataKHR(
                 vk::Format::eR32G32B32Sfloat,
                 device->getBufferAddress({ geo.getVertexBuffer() }),
-                sizeof(trc::Vertex),
+                sizeof(trc::MeshVertex),
                 geo.getIndexCount(), // max vertex
                 vk::IndexType::eUint32,
                 device->getBufferAddress({ geo.getIndexBuffer() }),
