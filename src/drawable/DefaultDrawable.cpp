@@ -43,21 +43,29 @@ void drawShadow(
     cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
 }
 
+auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> PipelineFlags
+{
+    PipelineFlags flags;
+    if (info.transparent) {
+        flags |= PipelineShadingTypeFlagBits::eTransparent;
+    }
+    if (info.geo.get().hasRig()) {
+        flags |= PipelineAnimationTypeFlagBits::eAnimated;
+    }
+    if (info.geo.get().getVertexType() == GeometryDeviceHandle::VertexType::eSkeletal) {
+        flags |= PipelineVertexTypeFlagBits::eSkeletal;
+    }
+
+    return flags;
+}
+
 } // namespace trc
 
 
 
 auto trc::determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID
 {
-    PipelineFeatureFlags flags;
-    if (info.transparent) {
-        flags |= PipelineFeatureFlagBits::eTransparent;
-    }
-    if (info.geo.get().hasRig()) {
-        flags |= PipelineFeatureFlagBits::eAnimated;
-    }
-
-    return getPipeline(flags);
+    return getPipeline(getDrawablePipelineFlags(info));
 }
 
 auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
@@ -123,7 +131,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
     {
         result.drawFunctions.emplace_back(
             shadowRenderStage, SubPass::ID(0),
-            getPipeline(PipelineFeatureFlagBits::eShadow),
+            getPipeline(getDrawablePipelineFlags(info) | PipelineShadingTypeFlagBits::eShadow),
             drawShadow
         );
     }

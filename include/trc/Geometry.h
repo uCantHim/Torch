@@ -12,14 +12,13 @@ namespace trc
      */
     class GeometryDeviceHandle
     {
-    private:
-        friend class GeometryRegistry;
-
-        GeometryDeviceHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
-                 vk::Buffer verts, ui32 numVerts,
-                 Rig* rig = nullptr);
-
     public:
+        enum class VertexType : ui8
+        {
+            eMesh     = 1 << 0,
+            eSkeletal = 1 << 1,
+        };
+
         GeometryDeviceHandle() = default;
         GeometryDeviceHandle(const GeometryDeviceHandle&) = default;
         GeometryDeviceHandle(GeometryDeviceHandle&&) noexcept = default;
@@ -42,18 +41,27 @@ namespace trc
         auto getIndexBuffer() const noexcept -> vk::Buffer;
         auto getVertexBuffer() const noexcept -> vk::Buffer;
         auto getIndexCount() const noexcept -> ui32;
-        auto getVertexCount() const noexcept -> ui32;
+
+        auto getIndexType() const noexcept -> vk::IndexType;
+        auto getVertexType() const noexcept -> VertexType;
+        auto getVertexSize() const noexcept -> size_t;
 
         bool hasRig() const;
         auto getRig() -> Rig*;
 
     private:
+        friend class GeometryRegistry;
+
+        GeometryDeviceHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
+                             vk::Buffer verts, VertexType vertexType,
+                             Rig* rig = nullptr);
+
         vk::Buffer indexBuffer;
         vk::Buffer vertexBuffer;
 
         ui32 numIndices{ 0 };
-        ui32 numVertices{ 0 };
         vk::IndexType indexType;
+        VertexType vertexType;
 
         Rig* rig;
     };

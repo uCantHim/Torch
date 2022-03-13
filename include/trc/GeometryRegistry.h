@@ -50,11 +50,13 @@ namespace trc
          */
         struct InternalStorage
         {
+            using VertexType = GeometryDeviceHandle::VertexType;
+
             operator GeometryDeviceHandle()
             {
                 return {
                     *indexBuf, numIndices, vk::IndexType::eUint32,
-                    *vertexBuf, numVertices,
+                    *vertexBuf, vertexType,
                     rig.has_value() ? &rig.value() : nullptr
                 };
             }
@@ -63,6 +65,8 @@ namespace trc
             vkb::DeviceLocalBuffer vertexBuf;
             ui32 numIndices{ 0 };
             ui32 numVertices{ 0 };
+
+            VertexType vertexType;
 
             std::optional<Rig> rig;
 

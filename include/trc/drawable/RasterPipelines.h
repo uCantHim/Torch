@@ -2,62 +2,40 @@
 
 #include "Types.h"
 #include "core/Pipeline.h"
+#include "FlagCombination.h"
 
 namespace trc
 {
-    enum class PipelineFeatureFlagBits : ui64
+    enum class PipelineShadingTypeFlagBits
     {
-        eTransparent = 1 << 0,
-        eAnimated    = 1 << 1,
+        eOpaque      = 0,
+        eTransparent = 1,
+        eShadow      = 2,
 
-        eShadow      = 1 << 3,
+        eMaxEnum     = 3,
     };
 
-    using PipelineFeatureFlags = vk::Flags<PipelineFeatureFlagBits>;
-
-    auto getPipeline(PipelineFeatureFlags featureFlags) -> Pipeline::ID;
-} // namespace trc
-
-namespace vk
-{
-    template <>
-    struct FlagTraits<trc::PipelineFeatureFlagBits>
+    enum class PipelineVertexTypeFlagBits
     {
-      enum : VkFlags
-      {
-        allFlags = VkFlags(trc::PipelineFeatureFlagBits::eTransparent)
-                   | VkFlags(trc::PipelineFeatureFlagBits::eAnimated)
-                   | VkFlags(trc::PipelineFeatureFlagBits::eShadow)
-      };
+        eMesh     = 0,
+        eSkeletal = 1,
+
+        eMaxEnum  = 2,
     };
-} // namespace vk
 
-namespace trc
-{
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        PipelineFeatureFlags operator|( PipelineFeatureFlagBits bit0,
-                                        PipelineFeatureFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
+    enum class PipelineAnimationTypeFlagBits
     {
-        return PipelineFeatureFlags( bit0 ) | bit1;
-    }
+        eNone     = 0,
+        eAnimated = 1,
 
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        PipelineFeatureFlags operator&( PipelineFeatureFlagBits bit0,
-                                        PipelineFeatureFlagBits bit1)VULKAN_HPP_NOEXCEPT
-    {
-        return PipelineFeatureFlags( bit0 ) & bit1;
-    }
+        eMaxEnum  = 2,
+    };
 
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        PipelineFeatureFlags operator^( PipelineFeatureFlagBits bit0,
-                                        PipelineFeatureFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
-    {
-        return PipelineFeatureFlags( bit0 ) ^ bit1;
-    }
+    using PipelineFlags = FlagCombination<
+        PipelineShadingTypeFlagBits,
+        PipelineVertexTypeFlagBits,
+        PipelineAnimationTypeFlagBits
+    >;
 
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        PipelineFeatureFlags operator~( PipelineFeatureFlagBits bits ) VULKAN_HPP_NOEXCEPT
-    {
-        return ~( PipelineFeatureFlags( bits ) );
-    }
+    auto getPipeline(PipelineFlags flags) -> Pipeline::ID;
 } // namespace trc
