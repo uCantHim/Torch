@@ -23,7 +23,7 @@ namespace trc
         void attachToScene(SceneBase& scene);
         void removeFromScene();
 
-        void print(std::string_view str);
+        void print(const std::string& str);
 
         static auto getPipeline() -> Pipeline::ID;
 

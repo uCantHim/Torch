@@ -6,6 +6,7 @@
 #include "AssetRegistry.h"
 #include "TorchRenderConfig.h"
 #include "TorchResources.h"
+#include "text/UnicodeUtils.h"
 
 
 
@@ -71,7 +72,7 @@ void trc::Text::removeFromScene()
     drawRegistration = {};
 }
 
-void trc::Text::print(std::string_view str)
+void trc::Text::print(const std::string& str)
 {
     // Create new buffer if new text exceeds current size
     if (str.size() * sizeof(LetterData) > glyphBuffer.size())
@@ -88,13 +89,13 @@ void trc::Text::print(std::string_view str)
 
     auto buf = reinterpret_cast<LetterData*>(glyphBuffer.map());
     vec2 penPosition{ 0.0f };
-    for (int i = 0; CharCode c : str)
+    iterUtf8(str, [&, i = 0](CharCode c) mutable
     {
         if (c == '\n')
         {
             penPosition.y -= font->getLineBreakAdvance();
             penPosition.x = 0.0f;
-            continue;
+            return;  // continue
         }
 
         auto g = font->getGlyph(c);
@@ -123,7 +124,7 @@ void trc::Text::print(std::string_view str)
 #endif
 
         penPosition.x += g.advance;
-    }
+    });
     glyphBuffer.unmap();
 
     numLetters = str.size();
