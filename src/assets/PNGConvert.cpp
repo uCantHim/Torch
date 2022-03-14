@@ -1,6 +1,7 @@
 #include "assets/PNGConvert.h"
 
 #include <cstring>
+#include <fstream>
 
 #include <png.h>
 
@@ -8,6 +9,28 @@
 
 namespace trc
 {
+
+bool isPNG(const fs::path& filePath)
+{
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) {
+        return false;
+    }
+
+    char buf[8];
+    file.read(buf, 8);
+
+    return isPNG(buf, file.gcount());
+}
+
+bool isPNG(const void* data, size_t size)
+{
+    size = std::min(size, size_t(8));
+    const bool isPng = !png_sig_cmp(static_cast<png_const_bytep>(data), 0, size);
+    return isPng;
+}
+
+
 
 struct PngWriteOutput
 {
@@ -92,13 +115,7 @@ auto fromPNG(const std::vector<ui8>& data) -> TextureData
 
 auto fromPNG(const void* data, const size_t size) -> TextureData
 {
-    // Basic checks
-    if (size < 8) {
-        throw std::runtime_error("Unable to read PNG data: Input data is smaller than 8 bytes");
-    }
-
-    const bool isPng = !png_sig_cmp(static_cast<png_const_bytep>(data), 0, 8);
-    if (!isPng) {
+    if (!isPNG(data, size)) {
         throw std::runtime_error("Unable to read PNG data: Input data is not PNG data!");
     }
 
@@ -150,7 +167,6 @@ auto fromPNG(const void* data, const size_t size) -> TextureData
     assert(png_get_channels(png, info) == 4);
 
     TextureData tex{
-        .name="",
         .size={ width, height },
         .pixels={}
     };
