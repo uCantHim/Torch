@@ -38,7 +38,7 @@ trc::AssetRegistry::AssetRegistry(
 
     // Add default assets
     add(MaterialDeviceHandle{ .performLighting=false });
-    add({ "trc_default_texture", { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
+    add({ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
 
     writeDescriptors();
 }

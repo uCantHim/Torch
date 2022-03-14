@@ -9,8 +9,6 @@ namespace trc
 {
     struct GeometryData
     {
-        std::string name;
-
         std::vector<MeshVertex> vertices;
         std::vector<SkeletalVertex> skeletalVertices;
         std::vector<VertexIndex> indices;
@@ -18,8 +16,6 @@ namespace trc
 
     struct TextureData
     {
-        std::string name;
-
         uvec2 size;
         std::vector<glm::u8vec4> pixels;
     };

@@ -27,7 +27,6 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
            || data.skeletalVertices.size() == data.vertices.size());
 
     trc::serial::Geometry geo;
-    geo.set_name(data.name);
     for (uint32_t idx : data.indices)
     {
         geo.add_indices(idx);
@@ -67,8 +66,6 @@ auto serializeAssetData(const TextureData& data) -> trc::serial::Texture
 {
     trc::serial::Texture tex;
 
-    tex.set_name(data.name);
-
     auto image = tex.mutable_image();
     image->set_width(data.size.x);
     image->set_height(data.size.y);
@@ -82,7 +79,7 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 {
     GeometryData data;
 
-    data.name = geo.name();
+    // Get vertices
     data.vertices.reserve(geo.vertices().size());
     for (const auto& in : geo.vertices())
     {
@@ -92,6 +89,9 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
         v.tangent     = { in.tangent().x(), in.tangent().y(), in.tangent().z() };
         v.uv          = { in.uv().x(), in.uv().y() };
     }
+
+    // Get skeletal vertices
+    data.skeletalVertices.reserve(geo.skeletal_vertices_size());
     for (const auto& in : geo.skeletal_vertices())
     {
         auto& v = data.skeletalVertices.emplace_back();
@@ -100,6 +100,8 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
         v.boneWeights = { in.bone_weights().x(), in.bone_weights().y(),
                           in.bone_weights().z(), in.bone_weights().w() };
     }
+
+    // Get indices
     data.indices.reserve(geo.indices().size());
     data.indices.assign(geo.indices().begin(), geo.indices().end());
 
@@ -117,7 +119,6 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
     data = fromPNG(png.data(), png.size());
     assert(data.size.x == tex.image().width() && data.size.y == tex.image().height());
 
-    data.name = tex.name();
     data.size = { tex.image().width(), tex.image().height() };
 
     return data;

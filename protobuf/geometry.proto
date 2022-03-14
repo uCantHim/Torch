@@ -19,7 +19,6 @@ message Geometry
         vec4 bone_weights = 6;
     }
 
-    string name = 1;
     repeated uint32 indices = 2;
     repeated Vertex vertices = 3;
     repeated SkelVertex skeletal_vertices = 4;
