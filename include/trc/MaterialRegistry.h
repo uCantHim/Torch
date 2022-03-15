@@ -35,7 +35,7 @@ namespace trc
         const AssetRegistryModuleCreateInfo config;
 
         data::IdPool idPool;
-        data::IndexMap<LocalID::Type, MaterialDeviceHandle> materials;
+        data::IndexMap<LocalID::IndexType, MaterialDeviceHandle> materials;
         vkb::Buffer materialBuffer;
 
         vk::DescriptorBufferInfo matBufferDescInfo;

@@ -182,9 +182,9 @@ namespace trc
         void unregisterDrawFunction(MaybeUniqueRegistrationId id);
 
     private:
-        template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID::Type, T>;
-        template<typename T> using PerSubpass = data::IndexMap<SubPass::ID::Type, T>;
-        template<typename T> using PerPipeline = data::IndexMap<Pipeline::ID::Type, T>;
+        template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID::IndexType, T>;
+        template<typename T> using PerSubpass = data::IndexMap<SubPass::ID::IndexType, T>;
+        template<typename T> using PerPipeline = data::IndexMap<Pipeline::ID::IndexType, T>;
 
         /**
          * Sorting the functions this way allows me to group all draw calls with

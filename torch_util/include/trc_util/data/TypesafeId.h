@@ -10,11 +10,14 @@ namespace trc::data
 /**
  * A more typesafe ID type
  */
-template<typename ClassType, std::integral IdType = uint32_t>
+template<typename _TypeTag, std::integral IdType = uint32_t>
 class TypesafeID
 {
 public:
-    using Type = IdType;
+    /** The type for which the template is specialized */
+    using Type = _TypeTag;
+    /** The ID's numeric type, e.g. uint32_t */
+    using IndexType = IdType;
 
     struct NoneType {};
     static constexpr NoneType NONE{};
@@ -46,7 +49,7 @@ public:
         return static_cast<T>(_id);
     }
 
-    constexpr auto operator<=>(const TypesafeID<ClassType, IdType>&) const = default;
+    constexpr auto operator<=>(const TypesafeID<_TypeTag, IdType>&) const = default;
 
     constexpr bool operator==(const NoneType&) const {
         return _isNone();
@@ -80,13 +83,16 @@ private:
  * @tparam Friend The only type that can construct a HardTypesafeID from
  *                a numeric value.
  */
-template<typename TypeTag, typename Friend, std::integral IdType = uint32_t>
+template<typename _TypeTag, typename Friend, std::integral IdType = uint32_t>
 class HardTypesafeID
 {
 public:
     friend Friend;
 
-    using Type = IdType;
+    /** The type for which the template is specialized */
+    using Type = _TypeTag;
+    /** The ID's numeric type, e.g. uint32_t */
+    using IndexType = IdType;
 
     /**
      * Type for safe comparison with a 'none'-value

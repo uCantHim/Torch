@@ -99,7 +99,7 @@ auto trc::GeometryRegistry::add(const GeometryData& data) -> LocalID
     LocalID id(idPool.generate());
 
     storage.emplace(
-        static_cast<LocalID::Type>(id),
+        static_cast<LocalID::IndexType>(id),
         InternalStorage{
             .indexBuf = {
                 device,
@@ -131,11 +131,11 @@ auto trc::GeometryRegistry::add(const GeometryData& data) -> LocalID
 
 void trc::GeometryRegistry::remove(LocalID id)
 {
-    idPool.free(static_cast<LocalID::Type>(id));
-    storage.at(static_cast<LocalID::Type>(id)) = {};
+    idPool.free(static_cast<LocalID::IndexType>(id));
+    storage.at(static_cast<LocalID::IndexType>(id)) = {};
 }
 
 auto trc::GeometryRegistry::getHandle(LocalID id) -> GeometryDeviceHandle
 {
-    return storage.at(static_cast<LocalID::Type>(id));
+    return storage.at(static_cast<LocalID::IndexType>(id));
 }

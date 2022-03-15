@@ -41,7 +41,7 @@ namespace trc
             vk::UniqueImageView imageView;
         };
 
-        template<typename T> using Table = componentlib::Table<T, LocalID::Type>;
+        template<typename T> using Table = componentlib::Table<T, LocalID::IndexType>;
 
         static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
         static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 512 * 512 * 4 * 200;  // 200 512x512 images

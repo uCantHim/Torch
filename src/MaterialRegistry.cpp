@@ -58,16 +58,16 @@ auto trc::MaterialRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescr
 auto trc::MaterialRegistry::add(const MaterialDeviceHandle& data) -> LocalID
 {
     const LocalID id(idPool.generate());
-    materials.emplace(static_cast<LocalID::Type>(id), data);
+    materials.emplace(static_cast<LocalID::IndexType>(id), data);
     return id;
 }
 
 void trc::MaterialRegistry::remove(LocalID id)
 {
-    idPool.free(static_cast<LocalID::Type>(id));
+    idPool.free(static_cast<LocalID::IndexType>(id));
 }
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> MaterialDeviceHandle
 {
-    return materials.at(static_cast<LocalID::Type>(id));
+    return materials.at(static_cast<LocalID::IndexType>(id));
 }

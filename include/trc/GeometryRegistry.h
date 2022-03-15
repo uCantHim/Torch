@@ -82,6 +82,6 @@ namespace trc
         vkb::MemoryPool memoryPool;
         data::IdPool idPool;
 
-        data::IndexMap<LocalID::Type, InternalStorage> storage;
+        data::IndexMap<LocalID::IndexType, InternalStorage> storage;
     };
 } // namespace trc

@@ -48,7 +48,7 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
 {
     // Allocate ID
     const LocalID id(idPool.generate());
-    if (static_cast<LocalID::Type>(id) >= MAX_TEXTURE_COUNT)
+    if (static_cast<LocalID::IndexType>(id) >= MAX_TEXTURE_COUNT)
     {
         throw std::out_of_range("[In TextureRegistry::add]: Unable to add new texture. Capacity"
                                 " of " + std::to_string(id) + " textures has been reached.");
@@ -66,7 +66,7 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
 
     // Store texture
     auto& tex = textures.emplace(
-        static_cast<LocalID::Type>(id),
+        static_cast<LocalID::IndexType>(id),
         InternalStorage{
             .image = std::move(image),
             .imageView = std::move(view),
@@ -75,7 +75,7 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
 
     // Create descriptor info
     descImageInfos.emplace(
-        static_cast<LocalID::Type>(id),
+        static_cast<LocalID::IndexType>(id),
         vk::DescriptorImageInfo(
             tex.image.getDefaultSampler(), *tex.imageView,
             vk::ImageLayout::eShaderReadOnlyOptimal
@@ -87,7 +87,7 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
 
 void trc::TextureRegistry::remove(const LocalID id)
 {
-    const LocalID::Type index(id);
+    const LocalID::IndexType index(id);
 
     textures.erase(index);
     descImageInfos.erase(index);
@@ -96,5 +96,5 @@ void trc::TextureRegistry::remove(const LocalID id)
 
 auto trc::TextureRegistry::getHandle(const LocalID id) -> TextureDeviceHandle
 {
-    return textures.get(static_cast<LocalID::Type>(id));
+    return textures.get(static_cast<LocalID::IndexType>(id));
 }
