@@ -1,17 +1,28 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
 #include "Types.h"
 #include "Vertex.h"
+#include "AssetPath.h"
 
 namespace trc
 {
+    /**
+     * @brief General data stored for every type of asset
+     */
+    struct AssetMetaData
+    {
+    };
+
     struct GeometryData
     {
         std::vector<MeshVertex> vertices;
         std::vector<SkeletalVertex> skeletalVertices;
         std::vector<VertexIndex> indices;
+
+        std::optional<AssetPath> rig{ std::nullopt };
     };
 
     struct TextureData

@@ -59,6 +59,10 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
         newVert->mutable_bone_weights()->set_w(v.boneWeights.w);
     }
 
+    if (data.rig.has_value()) {
+        geo.mutable_rig()->set_unique_path(data.rig.value().getUniquePath());
+    }
+
     return geo;
 }
 
@@ -105,6 +109,11 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
     data.indices.reserve(geo.indices().size());
     data.indices.assign(geo.indices().begin(), geo.indices().end());
 
+    // Get rig reference
+    if (geo.has_rig()) {
+        data.rig = AssetPath(geo.rig().unique_path());
+    }
+
     assert(data.skeletalVertices.size() == 0
            || data.skeletalVertices.size() == data.vertices.size());
 
@@ -124,6 +133,8 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
     return data;
 }
 
+
+
 /**
  * Internal utility to write arbitrary Message types
  */
@@ -141,23 +152,9 @@ void writeToFile(const fs::path& filePath, const T& msg)
     assert(success && "The engine should only write valid data to file.");
 }
 
-void writeToFile(const fs::path& path, const serial::Asset& asset)
+void writeAssetToFile(const fs::path& path, const serial::Asset& asset)
 {
     writeToFile<serial::Asset>(path, asset);
-}
-
-void writeToFile(const fs::path& path, const serial::Geometry& msg)
-{
-    serial::Asset asset;
-    *asset.mutable_geometry() = msg;
-    writeToFile(path, asset);
-}
-
-void writeToFile(const fs::path& path, const serial::Texture& msg)
-{
-    serial::Asset asset;
-    *asset.mutable_texture() = msg;
-    writeToFile(path, asset);
 }
 
 /**
@@ -184,30 +181,6 @@ auto loadFromFile(const fs::path& filePath) -> T
 auto loadAssetFromFile(const fs::path& path) -> serial::Asset
 {
     return loadFromFile<trc::serial::Asset>(path);
-}
-
-auto loadGeoFromFile(const fs::path& filePath) -> serial::Geometry
-{
-    auto asset = loadAssetFromFile(filePath);
-    if (!asset.has_geometry())
-    {
-        throw FileInputError("[In loadGeoFromFile]: File " + filePath.string()
-                             + " does not contain a geometry asset");
-    }
-
-    return asset.geometry();
-}
-
-auto loadTexFromFile(const fs::path& filePath) -> serial::Texture
-{
-    auto asset = loadAssetFromFile(filePath);
-    if (!asset.has_texture())
-    {
-        throw FileInputError("[In loadGeoFromFile]: File " + filePath.string()
-                             + " does not contain a geometry asset");
-    }
-
-    return asset.texture();
 }
 
 } // namespace trc

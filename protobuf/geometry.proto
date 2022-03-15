@@ -2,6 +2,7 @@ syntax = "proto3";
 package trc.serial;
 
 import "vector_types.proto";
+import "asset_reference.proto";
 
 message Geometry
 {
@@ -22,4 +23,6 @@ message Geometry
     repeated uint32 indices = 2;
     repeated Vertex vertices = 3;
     repeated SkelVertex skeletal_vertices = 4;
+
+    optional AssetReference rig = 5;
 }

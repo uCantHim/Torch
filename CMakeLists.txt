@@ -90,6 +90,7 @@ protobuf_generate_cpp(
     protobuf/texture.proto
 
     protobuf/asset.proto
+    protobuf/asset_reference.proto
 )
 
 target_sources(torch PRIVATE ${TRC_PROTO_SRCS})

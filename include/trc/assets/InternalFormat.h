@@ -32,10 +32,6 @@ namespace trc
     auto deserializeAssetData(const serial::Geometry& geo) -> GeometryData;
     auto deserializeAssetData(const serial::Texture& tex)  -> TextureData;
 
-    void writeToFile(const fs::path& path, const serial::Asset& msg);
-    void writeToFile(const fs::path& path, const serial::Geometry& msg);
-    void writeToFile(const fs::path& path, const serial::Texture& msg);
+    void writeAssetToFile(const fs::path& path, const serial::Asset& msg);
     auto loadAssetFromFile(const fs::path& path) -> serial::Asset;
-    auto loadGeoFromFile(const fs::path& filePath) -> serial::Geometry;
-    auto loadTexFromFile(const fs::path& filePath) -> serial::Texture;
 } // namespace trc
