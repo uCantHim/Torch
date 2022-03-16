@@ -1,16 +1,20 @@
 #pragma once
 
 #include <string>
+#include <any>
 #include <filesystem>
 
 #include <trc_util/data/ObjectId.h>
 
 #include "AssetIds.h"
 #include "AssetRegistry.h"
+#include "AssetPath.h"
 
 namespace trc
 {
     namespace fs = std::filesystem;
+
+    class AssetDataProxy;
 
     /**
      * @brief Manages assets on a high level
@@ -25,51 +29,46 @@ namespace trc
     public:
         AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo);
 
-        auto addGeometry(const GeometryData& data) -> GeometryID;
-        auto addTexture(const TextureData& data) -> TextureID;
+        auto add(const GeometryData& data) -> GeometryID;
+        auto add(const TextureData& data) -> TextureID;
+        auto add(const MaterialDeviceHandle& data) -> MaterialID;
 
         template<AssetBaseType T>
         auto createAsset(const AssetData<T>& data) -> TypedAssetID<T>;
-        template<AssetBaseType T>
-        void destroyAsset(TypedAssetID<T> id);
 
         /**
-         * We have something like
-         *
-         *     struct AssetPath { virtual auto load() = 0; };
-         *
-         *     struct CacheEntry
-         *     {
-         *         AssetPath path;
-         *
-         *         void load()
-         *         {
-         *             auto data = path.load();
-         *             // ...
-         *         }
-         *     };
-         *
-         *     struct ExternalPath : AssetPath {};
-         *     struct InternalPath : AssetPath {};
+         * @brief Load an asset in Torch's internal format
          */
-        auto importGeometry(const fs::path& filePath) -> GeometryID;
-        auto importTexture(const fs::path& filePath) -> TextureID;
+        template<AssetBaseType T>
+        auto loadAsset(AssetPath path) -> TypedAssetID<T>
+        {
+            return std::any_cast<TypedAssetID<T>>(_loadAsset(std::move(path)));
+        }
+
+        template<AssetBaseType T>
+        auto getMetadata(TypedAssetID<T> id) -> const AssetMetaData&;
+        auto getMetadata(AssetID id) -> const AssetMetaData&;
+
+        /**
+         * @brief Completely remove an asset from the asset manager
+         */
+        template<AssetBaseType T>
+        void destroyAsset(TypedAssetID<T> id);
 
         auto getDeviceRegistry() -> AssetRegistry&;
 
     private:
+        auto _loadAsset(AssetPath path) -> std::any;
+        auto _createAsset(const AssetDataProxy& data) -> std::any;
+        auto _createBaseAsset(const AssetMetaData& meta) -> AssetID;
+
         /** Handles device representations of assets */
         AssetRegistry registry;
-
-        struct MetaData
-        {
-            fs::path filePath;
-        };
 
         data::IdPool assetIdPool;
 
         /** Stores high-level management-related metadata for all asset types */
-        std::unordered_map<AssetID, MetaData> assetMetaData;
+        std::unordered_map<AssetID, AssetMetaData> assetMetaData;
     };
 } // namespace trc
 

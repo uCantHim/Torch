@@ -5,6 +5,7 @@ target_sources(
         AnimationDataStorage.cpp
         AnimationEngine.cpp
         AssetManager.cpp
+        AssetPath.cpp
         AssetRegistry.cpp
         AssetRegistryModuleStorage.cpp
         Camera.cpp
