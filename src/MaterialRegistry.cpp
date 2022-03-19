@@ -1,5 +1,6 @@
 #include "MaterialRegistry.h"
 
+#include "assets/RawData.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 
@@ -19,13 +20,16 @@ trc::MaterialRegistry::MaterialRegistry(const AssetRegistryModuleCreateInfo& inf
 
 void trc::MaterialRegistry::update(vk::CommandBuffer)
 {
-    if (materialBuffer.size() < sizeof(MaterialDeviceHandle) * materials.size())
+    if (materialBuffer.size() < sizeof(MaterialDeviceData) * materials.size())
     {
         throw std::runtime_error("[In MaterialRegistry::update]: Material buffer is too small!");
     }
 
-    auto buf = materialBuffer.map();
-    memcpy(buf, &materials[0], sizeof(MaterialDeviceHandle) * materials.size());
+    auto buf = materialBuffer.map<MaterialDeviceData*>();
+    for (const auto& mat : materials)
+    {
+        buf[mat.bufferIndex] = mat.matData;
+    }
     materialBuffer.unmap();
 }
 
@@ -55,10 +59,19 @@ auto trc::MaterialRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescr
     };
 }
 
-auto trc::MaterialRegistry::add(const MaterialDeviceHandle& data) -> LocalID
+auto trc::MaterialRegistry::add(const MaterialData& data) -> LocalID
 {
     const LocalID id(idPool.generate());
-    materials.emplace(static_cast<LocalID::IndexType>(id), data);
+    const ui32 bufferIndex{ id };
+
+    materials.emplace(
+        static_cast<LocalID::IndexType>(id),
+        InternalStorage{
+            .bufferIndex = bufferIndex,
+            .matData = data,
+        }
+    );
+
     return id;
 }
 
@@ -70,4 +83,21 @@ void trc::MaterialRegistry::remove(LocalID id)
 auto trc::MaterialRegistry::getHandle(LocalID id) -> MaterialDeviceHandle
 {
     return materials.at(static_cast<LocalID::IndexType>(id));
+}
+
+
+
+trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const MaterialData& data)
+    :
+    color(data.color, data.opacity),
+    kAmbient(data.ambientKoefficient),
+    kDiffuse(data.diffuseKoefficient),
+    kSpecular(data.specularKoefficient),
+    shininess(data.shininess),
+    reflectivity(data.reflectivity),
+    diffuseTexture(NO_TEXTURE),
+    specularTexture(NO_TEXTURE),
+    bumpTexture(NO_TEXTURE),
+    performLighting(data.doPerformLighting)
+{
 }

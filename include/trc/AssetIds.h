@@ -65,7 +65,7 @@ namespace trc
     class MaterialRegistry;
     struct GeometryData;
     struct TextureData;
-    struct MaterialDeviceHandle;
+    struct MaterialData;
 
     class Geometry
     {
@@ -85,7 +85,7 @@ namespace trc
     {
     public:
         using Registry = MaterialRegistry;
-        using ImportData = MaterialDeviceHandle;
+        using ImportData = MaterialData;
     };
 
 

@@ -21,6 +21,53 @@ FileOutputError::FileOutputError(const fs::path& path)
 
 
 
+auto convert(vec4 vec) -> serial::vec4
+{
+    serial::vec4 res;
+    res.set_x(vec.x);
+    res.set_y(vec.y);
+    res.set_z(vec.z);
+    res.set_w(vec.w);
+
+    return res;
+}
+
+auto convert(serial::vec4 vec) -> vec4
+{
+    return { vec.x(), vec.y(), vec.z(), vec.w() };
+}
+
+auto convert(vec3 vec) -> serial::vec3
+{
+    serial::vec3 res;
+    res.set_x(vec.x);
+    res.set_y(vec.y);
+    res.set_z(vec.z);
+
+    return res;
+}
+
+auto convert(serial::vec3 vec) -> vec3
+{
+    return { vec.x(), vec.y(), vec.z() };
+}
+
+template<typename T>
+void assignRef(serial::AssetReference* dst, const AssetReference<T>& src)
+{
+    if (!src.isEmpty()) {
+        *dst->mutable_unique_path() = src.getAssetPath().getUniquePath();
+    }
+}
+
+template<typename T>
+auto toRef(const serial::AssetReference& src)
+{
+    return AssetReference<T>(AssetPath(src.unique_path()));
+}
+
+
+
 auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
 {
     assert(data.skeletalVertices.size() == 0
@@ -66,19 +113,6 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
     return geo;
 }
 
-auto serializeAssetData(const TextureData& data) -> trc::serial::Texture
-{
-    trc::serial::Texture tex;
-
-    auto image = tex.mutable_image();
-    image->set_width(data.size.x);
-    image->set_height(data.size.y);
-    const auto png = toPNG(data);
-    image->set_pixel_data_png(png.data(), png.size());
-
-    return tex;
-}
-
 auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 {
     GeometryData data;
@@ -120,6 +154,19 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
     return data;
 }
 
+auto serializeAssetData(const TextureData& data) -> trc::serial::Texture
+{
+    trc::serial::Texture tex;
+
+    auto image = tex.mutable_image();
+    image->set_width(data.size.x);
+    image->set_height(data.size.y);
+    const auto png = toPNG(data);
+    image->set_pixel_data_png(png.data(), png.size());
+
+    return tex;
+}
+
 auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
 {
     TextureData data;
@@ -129,6 +176,54 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
     assert(data.size.x == tex.image().width() && data.size.y == tex.image().height());
 
     data.size = { tex.image().width(), tex.image().height() };
+
+    return data;
+}
+
+auto serializeAssetData(const MaterialData& data) -> trc::serial::Material
+{
+    trc::serial::Material mat;
+
+    *mat.mutable_color() = convert(data.color);
+
+    *mat.mutable_ambient_koefficient() = convert(data.ambientKoefficient);
+    *mat.mutable_diffuse_koefficient() = convert(data.diffuseKoefficient);
+    *mat.mutable_specular_koefficient() = convert(data.specularKoefficient);
+
+    mat.set_shininess(data.shininess);
+    mat.set_opacity(data.opacity);
+    mat.set_reflectivity(data.reflectivity);
+
+    mat.set_do_perform_lighting(data.doPerformLighting);
+
+    assignRef(mat.mutable_albedo_texture(), data.albedoTexture);
+    assignRef(mat.mutable_normal_texture(), data.normalTexture);
+
+    return mat;
+}
+
+auto deserializeAssetData(const trc::serial::Material& mat) -> MaterialData
+{
+    MaterialData data{
+        .color = convert(mat.color()),
+        .ambientKoefficient = convert(mat.ambient_koefficient()),
+        .diffuseKoefficient = convert(mat.diffuse_koefficient()),
+        .specularKoefficient = convert(mat.specular_koefficient()),
+        .shininess = mat.shininess(),
+        .opacity = mat.opacity(),
+        .reflectivity = mat.reflectivity(),
+        .doPerformLighting = mat.do_perform_lighting(),
+
+        .albedoTexture = {},
+        .normalTexture = {},
+    };
+
+    if (mat.has_albedo_texture()) {
+        data.albedoTexture = toRef<Texture>(mat.albedo_texture());
+    }
+    if (mat.has_normal_texture()) {
+        data.normalTexture = toRef<Texture>(mat.normal_texture());
+    }
 
     return data;
 }

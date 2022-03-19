@@ -48,6 +48,9 @@ void trc::AssetDataProxy::deserialize(const serial::Asset& asset)
     case Type::kTexture:
         variant = deserializeAssetData(asset.texture());
         break;
+    case Type::kMaterial:
+        variant = deserializeAssetData(asset.material());
+        break;
     default:
         throw std::invalid_argument("[In AssetDataProxy::AssetDataProxy]: Serialized asset data"
                                     " does not contain a valid AssetData type.");
@@ -60,7 +63,7 @@ auto trc::AssetDataProxy::serialize() const -> serial::Asset
     std::visit(util::VariantVisitor{
         [&](const GeometryData& data) { *result.mutable_geometry() = serializeAssetData(data); },
         [&](const TextureData& data) { *result.mutable_texture() = serializeAssetData(data); },
-        [&](const MaterialDeviceHandle&) {},
+        [&](const MaterialData& data) { *result.mutable_material() = serializeAssetData(data); },
         [&](const AnimationData&) {},
         [&](const RigData&) {},
     }, variant);

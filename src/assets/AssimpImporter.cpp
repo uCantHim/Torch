@@ -83,21 +83,25 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPa
     return result;
 }
 
-auto trc::AssetImporter::loadMaterial(const aiMaterial* mat) -> MaterialDeviceHandle
+auto trc::AssetImporter::loadMaterial(const aiMaterial* mat) -> MaterialData
 {
-    MaterialDeviceHandle result;
+    MaterialData result;
 
     aiColor4D color;
 
     mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-    result.color = toVec4(color);
+    result.color = vec3(toVec4(color));
 
     mat->Get(AI_MATKEY_COLOR_AMBIENT, color);
-    result.kAmbient = toVec4(color);
+    result.ambientKoefficient = toVec4(color);
     mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-    result.kDiffuse = toVec4(color);
+    result.diffuseKoefficient = toVec4(color);
     mat->Get(AI_MATKEY_COLOR_SPECULAR, color);
-    result.kSpecular = toVec4(color);
+    result.specularKoefficient = toVec4(color);
+
+    float opacity{ 1.0f };
+    mat->Get(AI_MATKEY_OPACITY, opacity);
+    result.opacity = opacity;
 
     // AI_MATKEY_SHININESS is the exponent in the phong equation
     mat->Get(AI_MATKEY_SHININESS, result.shininess);
@@ -105,7 +109,7 @@ auto trc::AssetImporter::loadMaterial(const aiMaterial* mat) -> MaterialDeviceHa
     // AI_MATKEY_SHININESS_STRENGTH scales the specular color
     float shininessStrength{ 1.0f };
     mat->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength);
-    result.kSpecular *= shininessStrength;
+    result.specularKoefficient *= shininessStrength;
 
     return result;
 }

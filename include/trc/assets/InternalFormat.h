@@ -6,6 +6,7 @@
 
 #include "geometry.pb.h"
 #include "texture.pb.h"
+#include "material.pb.h"
 #include "asset.pb.h"
 
 #include "RawData.h"
@@ -28,9 +29,11 @@ namespace trc
 
     auto serializeAssetData(const GeometryData& data) -> serial::Geometry;
     auto serializeAssetData(const TextureData& data)  -> serial::Texture;
+    auto serializeAssetData(const MaterialData& data)  -> serial::Material;
 
     auto deserializeAssetData(const serial::Geometry& geo) -> GeometryData;
     auto deserializeAssetData(const serial::Texture& tex)  -> TextureData;
+    auto deserializeAssetData(const serial::Material& tex) -> MaterialData;
 
     void writeAssetToFile(const fs::path& path, const serial::Asset& msg);
     auto loadAssetFromFile(const fs::path& path) -> serial::Asset;

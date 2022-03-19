@@ -37,7 +37,7 @@ trc::AssetRegistry::AssetRegistry(
     createDescriptors();
 
     // Add default assets
-    add(MaterialDeviceHandle{ .performLighting=false });
+    add(MaterialData{ .doPerformLighting=false });
     add({ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
 
     writeDescriptors();
@@ -55,7 +55,7 @@ auto trc::AssetRegistry::add(const GeometryData& data) -> LocalID<Geometry>
     return id;
 }
 
-auto trc::AssetRegistry::add(const MaterialDeviceHandle& data) -> LocalID<Material>
+auto trc::AssetRegistry::add(const MaterialData& data) -> LocalID<Material>
 {
     const auto id = modules.get<AssetRegistryModule<Material>>().add(data);
 

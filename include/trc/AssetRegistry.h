@@ -50,7 +50,7 @@ namespace trc
                                const AssetRegistryCreateInfo& info = {});
 
         auto add(const GeometryData& geo) -> LocalID<Geometry>;
-        auto add(const MaterialDeviceHandle& mat) -> LocalID<Material>;
+        auto add(const MaterialData& mat) -> LocalID<Material>;
         auto add(const TextureData& tex) -> LocalID<Texture>;
 
         auto get(LocalID<Geometry> key) -> GeometryDeviceHandle;

@@ -31,7 +31,7 @@ namespace trc
 
         auto add(const GeometryData& data) -> GeometryID;
         auto add(const TextureData& data) -> TextureID;
-        auto add(const MaterialDeviceHandle& data) -> MaterialID;
+        auto add(const MaterialData& data) -> MaterialID;
 
         template<AssetBaseType T>
         auto createAsset(const AssetData<T>& data) -> TypedAssetID<T>;

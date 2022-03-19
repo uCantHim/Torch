@@ -4,7 +4,6 @@
 
 #include "RawData.h"
 #include "AssetIds.h"
-#include "Material.h"
 
 namespace trc
 {
@@ -18,7 +17,7 @@ namespace trc
     using AssetDataVariantBase = std::variant<
         GeometryData,
         TextureData,
-        MaterialDeviceHandle
+        MaterialData
     >;
 
     struct AssetDataProxy

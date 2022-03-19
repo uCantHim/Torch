@@ -3,6 +3,7 @@ package trc.serial;
 
 import "geometry.proto";
 import "texture.proto";
+import "material.proto";
 
 message Asset
 {
@@ -10,5 +11,6 @@ message Asset
     {
         Geometry geometry = 1;
         Texture texture = 2;
+        Material material = 3;
     }
 }

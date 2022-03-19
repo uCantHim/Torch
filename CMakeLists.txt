@@ -88,6 +88,7 @@ protobuf_generate_cpp(
     protobuf/vector_types.proto
     protobuf/geometry.proto
     protobuf/texture.proto
+    protobuf/material.proto
 
     protobuf/asset.proto
     protobuf/asset_reference.proto

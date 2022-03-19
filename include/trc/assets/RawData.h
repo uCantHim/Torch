@@ -6,6 +6,7 @@
 #include "Types.h"
 #include "Vertex.h"
 #include "AssetPath.h"
+#include "AssetReference.h"
 
 namespace trc
 {
@@ -29,6 +30,24 @@ namespace trc
     {
         uvec2 size;
         std::vector<glm::u8vec4> pixels;
+    };
+
+    struct MaterialData
+    {
+        vec3 color{ 0.0f, 0.0f, 0.0f };
+
+        vec4 ambientKoefficient{ 1.0f };
+        vec4 diffuseKoefficient{ 1.0f };
+        vec4 specularKoefficient{ 1.0f };
+
+        float shininess{ 1.0f };
+        float opacity{ 1.0f };
+        float reflectivity{ 0.0f };
+
+        bool doPerformLighting{ true };
+
+        AssetReference<Texture> albedoTexture{};
+        AssetReference<Texture> normalTexture{};
     };
 
     struct AnimationData

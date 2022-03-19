@@ -24,7 +24,7 @@ auto trc::AssetManager::add(const TextureData& data) -> TextureID
     return createAsset<Texture>(data);
 }
 
-auto trc::AssetManager::add(const MaterialDeviceHandle& data) -> MaterialID
+auto trc::AssetManager::add(const MaterialData& data) -> MaterialID
 {
     return createAsset<Material>(data);
 }

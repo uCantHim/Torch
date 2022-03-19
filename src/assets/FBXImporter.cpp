@@ -438,13 +438,13 @@ void trc::FBXImporter::computeTangents(GeometryData& result)
 }
 
 
-auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<MaterialDeviceHandle>
+auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<MaterialData>
 {
     FbxNode* meshNode = mesh->GetNode();
     const int materialCount = meshNode->GetMaterialCount();
     fbxLog << "\t" << materialCount << " materials found.\n";
 
-    std::vector<MaterialDeviceHandle> result;
+    std::vector<MaterialData> result;
 
     for (int i = 0; i < materialCount; i++)
     {
@@ -465,30 +465,33 @@ auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<MaterialDevic
         if (mat->GetClassId().Is(FbxSurfacePhong::ClassId))
         {
             fbxLog << "\tLoading Phong material " << mat->GetName() << ".\n";
+
             auto phongMat = dynamic_cast<FbxSurfacePhong*>(mat);
-            auto& newMaterial = result.emplace_back();
+            auto& newMat = result.emplace_back();
 
             FbxDouble3 amb = phongMat->Ambient;
             FbxDouble3 diff = phongMat->Diffuse;
             FbxDouble3 spec = phongMat->Specular;
-            newMaterial.kAmbient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
-            newMaterial.kDiffuse = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
-            newMaterial.kSpecular = vec4(spec.mData[0], spec.mData[1], spec.mData[2], 1.0f);
-            newMaterial.shininess = static_cast<float>(phongMat->Shininess);
+            newMat.ambientKoefficient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
+            newMat.diffuseKoefficient = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
+            newMat.specularKoefficient = vec4(spec.mData[0], spec.mData[1], spec.mData[2], 1.0f);
+            newMat.shininess = static_cast<float>(phongMat->Shininess);
         }
         // Material is a Lambert material
         else if (mat->GetClassId().Is(FbxSurfaceLambert::ClassId))
         {
-            fbxLog << "\tLoading Lambert material " << mat->GetName() << " with standard values for specular color and shinyness.\n";
+            fbxLog << "\tLoading Lambert material " << mat->GetName()
+                << " with standard values for specular color and shinyness.\n";
+
             auto lambertMat = dynamic_cast<FbxSurfaceLambert*>(mat);
-            MaterialDeviceHandle newMaterial;
+            auto& newMat = result.emplace_back();
 
             FbxDouble3 amb = lambertMat->Ambient;
             FbxDouble3 diff = lambertMat->Diffuse;
-            newMaterial.kAmbient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
-            newMaterial.kDiffuse = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
-            newMaterial.kSpecular = vec4(1.0f);
-            newMaterial.shininess = 1.0f; // Standard value
+            newMat.ambientKoefficient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
+            newMat.diffuseKoefficient = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
+            newMat.specularKoefficient = vec4(1.0f);
+            newMat.shininess = 1.0f; // Standard value
         }
         else {
             fbxLog << "Material " << mat->GetName() << " is an unknown material type.\n";

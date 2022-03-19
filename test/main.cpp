@@ -55,25 +55,25 @@ void run()
         trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
-    auto matIdx = ar.add(trc::MaterialDeviceHandle{
-        .kAmbient = vec4(1.0f),
-        .kDiffuse = vec4(1.0f),
-        .kSpecular = vec4(1.0f),
+    auto matIdx = ar.add(trc::MaterialData{
+        .ambientKoefficient = vec4(1.0f),
+        .diffuseKoefficient = vec4(1.0f),
+        .specularKoefficient = vec4(1.0f),
         .shininess = 2.0f,
-        .diffuseTexture = grassImgIdx.id,
-        .bumpTexture = stoneNormalTexIdx.id,
+        .albedoTexture = grassImgIdx,
+        .normalTexture = stoneNormalTexIdx,
     });
 
     auto mapImport = trc::loadAssets(TRC_TEST_ASSET_DIR"/map.fbx");
     auto mapMat = mapImport.meshes[0].materials[0];
-    mapMat.kAmbient = vec4(1.0f);
-    mapMat.kDiffuse = vec4(1.0f);
-    mapMat.kSpecular = vec4(1.0f);
-    mapMat.diffuseTexture = stoneTexIdx.id;
-    mapMat.bumpTexture = stoneNormalTexIdx.id;
+    mapMat.ambientKoefficient = vec4(1.0f);
+    mapMat.diffuseKoefficient = vec4(1.0f);
+    mapMat.specularKoefficient = vec4(1.0f);
+    mapMat.albedoTexture = stoneTexIdx;
+    mapMat.normalTexture = stoneNormalTexIdx;
     auto mapMatIndex = ar.add(mapMat);
 
-    trc::MaterialDeviceHandle treeMat{
+    trc::MaterialData treeMat{
         .color=vec4(0, 1, 0, 1),
     };
     auto treeMatIdx = ar.add(treeMat);
@@ -111,9 +111,9 @@ void run()
     // hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
-    auto lindaMatIdx = ar.add(trc::MaterialDeviceHandle{
-        .kSpecular = vec4(0.0f),
-        .diffuseTexture = lindaDiffTexIdx.id
+    auto lindaMatIdx = ar.add(trc::MaterialData{
+        .specularKoefficient = vec4(0.0f),
+        .albedoTexture = lindaDiffTexIdx
     });
 
     trc::Drawable linda({ lindaGeoIndex, lindaMatIdx }, scene);
@@ -122,11 +122,11 @@ void run()
 
     // Images
     auto planeGeo = ar.add(trc::makePlaneGeo());
-    auto transparentImg = ar.add(trc::MaterialDeviceHandle{
-        .diffuseTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png")).id
+    auto transparentImg = ar.add(trc::MaterialData{
+        .albedoTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
     });
-    auto opaqueImg = ar.add(trc::MaterialDeviceHandle{
-        .diffuseTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png")).id
+    auto opaqueImg = ar.add(trc::MaterialData{
+        .albedoTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     });
     trc::Drawable img({ planeGeo, transparentImg, true }, scene);
     img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
@@ -218,7 +218,7 @@ void run()
 
     // Generated cube geo
     auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
-    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1, 0.5} });
+    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1 } });
     trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
     cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
@@ -231,7 +231,7 @@ void run()
     });
 
     // Thing at cursor
-    auto cursorCubeMat = ar.add(trc::MaterialDeviceHandle{ .color=vec4(1, 1, 0, 0.3f) });
+    auto cursorCubeMat = ar.add(trc::MaterialData{ .color=vec4(1, 1, 0, 0.3f) });
     trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 
