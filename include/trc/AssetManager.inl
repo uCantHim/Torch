@@ -32,6 +32,22 @@ inline auto AssetManager::createAsset(const AssetData<T>& data) -> TypedAssetID<
 }
 
 template<AssetBaseType T>
+inline auto AssetManager::loadAsset(AssetPath path) -> TypedAssetID<T>
+{
+    try {
+        return std::any_cast<TypedAssetID<T>>(_loadAsset(std::move(path)));
+    }
+    catch(const std::bad_any_cast&)
+    {
+        throw std::invalid_argument(
+            "[In AssetManager::loadAsset<>]: Asset imported from " + path.getUniquePath()
+            + " (full path " + path.getFilesystemPath().string() + ") does not match the type"
+            " specified in the function's template parameter."
+        );
+    }
+}
+
+template<AssetBaseType T>
 inline void AssetManager::destroyAsset(const TypedAssetID<T> id)
 {
     assetIdPool.free(static_cast<AssetID::IndexType>(id.uniqueId));
@@ -39,6 +55,12 @@ inline void AssetManager::destroyAsset(const TypedAssetID<T> id)
 
     id.reg->remove(id.id);
     // registry.remove(id.id);
+}
+
+template<AssetBaseType T>
+inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
+{
+    return registry.getModule<T>();
 }
 
 } // namespace trc

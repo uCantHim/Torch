@@ -6,7 +6,7 @@
 #include <trc_util/data/ObjectId.h>
 #include <componentlib/Table.h>
 
-#include "AssetIds.h"
+#include "Assets.h"
 #include "Texture.h"
 #include "AssetRegistryModule.h"
 
@@ -15,7 +15,7 @@ namespace trc
     class TextureRegistry : public AssetRegistryModuleInterface
     {
     public:
-        using LocalID = TextureID::LocalID;
+        using LocalID = TypedAssetID<Texture>::LocalID;
         using Handle = TextureDeviceHandle;
 
         explicit TextureRegistry(const AssetRegistryModuleCreateInfo& info);

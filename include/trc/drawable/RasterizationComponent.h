@@ -2,7 +2,7 @@
 
 #include <componentlib/Table.h>
 
-#include "AssetIds.h"
+#include "Assets.h"
 #include "Geometry.h"
 #include "Transformation.h"
 #include "AnimationEngine.h"

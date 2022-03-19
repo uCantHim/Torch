@@ -13,7 +13,7 @@
 #include "Types.h"
 #include "core/DescriptorProvider.h"
 #include "AssetRegistryModuleStorage.h"
-#include "AssetIds.h"
+#include "Assets.h"
 #include "assets/RawData.h"
 #include "Geometry.h"
 #include "Texture.h"

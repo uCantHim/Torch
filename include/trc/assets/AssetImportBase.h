@@ -7,7 +7,6 @@
 
 #include "Types.h"
 #include "assets/RawData.h"
-#include "Material.h"
 
 namespace trc
 {

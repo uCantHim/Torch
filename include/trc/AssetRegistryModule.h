@@ -37,9 +37,5 @@ namespace trc
         typename T::Handle;
         std::derived_from<T, AssetRegistryModuleInterface>;
         std::constructible_from<T, const AssetRegistryModuleCreateInfo&>;
-
-        // { a.add(data) } -> std::same_as<TypedAssetID<T>>;
-        // { a.remove(id) };
-        // { a.getHandle(id) } -> std::same_as<AssetHandle<T>>;
     };
 } // namespace trc

@@ -6,7 +6,6 @@
 
 #include "core/SceneBase.h"
 #include "core/Pipeline.h"
-#include "AssetIds.h"
 #include "Node.h"
 #include "Font.h"
 

@@ -6,9 +6,10 @@
 
 #include <trc_util/data/ObjectId.h>
 
-#include "AssetIds.h"
-#include "AssetRegistry.h"
+#include "Assets.h"
 #include "AssetPath.h"
+#include "AssetRegistry.h"
+#include "AssetManagerInterface.h"
 
 namespace trc
 {
@@ -24,7 +25,7 @@ namespace trc
      *
      * Does not manage device data!
      */
-    class AssetManager
+    class AssetManager : public AssetManagerInterface<AssetManager>
     {
     public:
         AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo);
@@ -40,10 +41,7 @@ namespace trc
          * @brief Load an asset in Torch's internal format
          */
         template<AssetBaseType T>
-        auto loadAsset(AssetPath path) -> TypedAssetID<T>
-        {
-            return std::any_cast<TypedAssetID<T>>(_loadAsset(std::move(path)));
-        }
+        auto loadAsset(AssetPath path) -> TypedAssetID<T>;
 
         template<AssetBaseType T>
         auto getMetadata(TypedAssetID<T> id) -> const AssetMetaData&;
@@ -56,6 +54,9 @@ namespace trc
         void destroyAsset(TypedAssetID<T> id);
 
         auto getDeviceRegistry() -> AssetRegistry&;
+
+        template<AssetBaseType T>
+        auto getModule() -> AssetRegistryModule<T>&;
 
     private:
         auto _loadAsset(AssetPath path) -> std::any;

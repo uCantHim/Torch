@@ -5,6 +5,7 @@
 
 #include "Types.h"
 #include "Vertex.h"
+#include "Assets.h"
 #include "AssetPath.h"
 #include "AssetReference.h"
 

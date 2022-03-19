@@ -3,7 +3,6 @@
 #include <variant>
 
 #include "RawData.h"
-#include "AssetIds.h"
 
 namespace trc
 {

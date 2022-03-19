@@ -7,7 +7,7 @@
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
 
-#include "AssetIds.h"
+#include "Assets.h"
 #include "Geometry.h"
 #include "Rig.h"
 #include "AssetRegistryModule.h"
@@ -20,7 +20,7 @@ namespace trc
     class GeometryRegistry : public AssetRegistryModuleInterface
     {
     public:
-        using LocalID = GeometryID::LocalID;
+        using LocalID = TypedAssetID<Geometry>::LocalID;
         using Handle = GeometryDeviceHandle;
 
         explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);

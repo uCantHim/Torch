@@ -6,7 +6,7 @@
 #include <trc_util/data/ObjectId.h>
 
 #include "Types.h"
-#include "AssetIds.h"
+#include "Assets.h"
 #include "Material.h"
 #include "AssetRegistryModule.h"
 #include "assets/RawData.h"
@@ -16,7 +16,7 @@ namespace trc
     class MaterialRegistry : public AssetRegistryModuleInterface
     {
     public:
-        using LocalID = MaterialID::LocalID;
+        using LocalID = TypedAssetID<Material>::LocalID;
         using Handle = MaterialDeviceHandle;
 
         MaterialRegistry(const AssetRegistryModuleCreateInfo& info);

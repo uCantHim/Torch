@@ -7,7 +7,6 @@
 #include "trc_util/Exception.h"
 #include "AssimpImporter.h"
 #include "FBXImporter.h"
-#include "AssetIds.h"
 
 namespace trc
 {

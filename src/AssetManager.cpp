@@ -49,7 +49,7 @@ auto trc::AssetManager::_createAsset(const AssetDataProxy& data) -> std::any
         using T = typename decltype(registry.add(data))::Type;
 
         const auto localId = registry.add(data);
-        result = TypedAssetID<T>{ assetId, localId, registry.getModule<T>() };
+        result = TypedAssetID<T>{ assetId, localId, *this };
     });
 
     return result;
