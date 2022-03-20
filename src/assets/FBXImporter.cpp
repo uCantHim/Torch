@@ -476,6 +476,7 @@ auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<MaterialData>
             newMat.diffuseKoefficient = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
             newMat.specularKoefficient = vec4(spec.mData[0], spec.mData[1], spec.mData[2], 1.0f);
             newMat.shininess = static_cast<float>(phongMat->Shininess);
+            newMat.opacity = static_cast<float>(1.0 - phongMat->TransparencyFactor);
         }
         // Material is a Lambert material
         else if (mat->GetClassId().Is(FbxSurfaceLambert::ClassId))
@@ -492,6 +493,7 @@ auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<MaterialData>
             newMat.diffuseKoefficient = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
             newMat.specularKoefficient = vec4(1.0f);
             newMat.shininess = 1.0f; // Standard value
+            newMat.opacity = static_cast<float>(1.0 - lambertMat->TransparencyFactor);
         }
         else {
             fbxLog << "Material " << mat->GetName() << " is an unknown material type.\n";
