@@ -3,15 +3,17 @@
 #include <vkb/VulkanInstance.h>
 #include <vkb/Device.h>
 
-#include "Torch.h"
 #include "Window.h"
 
 
 
-trc::Instance::Instance(const InstanceCreateInfo& info)
+trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
     :
-    instance(*::trc::getVulkanInstance()),
-    physicalDevice([this] {
+    // Create a new VkInstance if the _instance argument is VK_NULL_HANDLE
+    optionalLocalInstance(_instance ? nullptr : new vkb::VulkanInstance),
+    instance(_instance ? _instance : **optionalLocalInstance),
+
+    physicalDevice([instance=this->instance] {
         vkb::Surface surface = vkb::makeSurface(
             instance,
             { .windowSize={ 1, 1 }, .windowTitle="", .hidden=true }

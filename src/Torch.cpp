@@ -82,7 +82,7 @@ trc::TorchStack::TorchStack(
     const InstanceCreateInfo& instanceInfo,
     const WindowCreateInfo& windowInfo)
     :
-    instance(instanceInfo),
+    instance(instanceInfo, *getVulkanInstance()),
     window(instance, [&] {
         auto winInfo = windowInfo;
         if (instanceInfo.enableRayTracing) {
