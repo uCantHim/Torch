@@ -59,8 +59,10 @@ namespace trc
         auto getModule() -> AssetRegistryModule<T>&;
 
     private:
-        auto _loadAsset(AssetPath path) -> std::any;
-        auto _createAsset(const AssetDataProxy& data) -> std::any;
+        using AnyTypedID = std::any;
+
+        auto _loadAsset(const AssetPath& path) -> AnyTypedID;
+        auto _createAsset(const AssetDataProxy& data) -> AnyTypedID;
         auto _createBaseAsset(const AssetMetaData& meta) -> AssetID;
 
         /** Handles device representations of assets */

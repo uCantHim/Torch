@@ -34,22 +34,21 @@ auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
     return registry;
 }
 
-auto trc::AssetManager::_loadAsset(AssetPath path) -> std::any
+auto trc::AssetManager::_loadAsset(const AssetPath& path) -> AnyTypedID
 {
     return _createAsset(AssetDataProxy(path));
 }
 
-auto trc::AssetManager::_createAsset(const AssetDataProxy& data) -> std::any
+auto trc::AssetManager::_createAsset(const AssetDataProxy& data) -> AnyTypedID
 {
     const auto assetId = _createBaseAsset(data.getMetaData());
 
-    std::any result;
-    data.visit([=, this, &result](const auto& data)
+    std::any result = data.visit([this, assetId](const auto& data) -> std::any
     {
         using T = typename decltype(registry.add(data))::Type;
 
         const auto localId = registry.add(data);
-        result = TypedAssetID<T>{ assetId, localId, *this };
+        return TypedAssetID<T>{ assetId, localId, *this };
     });
 
     return result;
