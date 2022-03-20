@@ -1,0 +1,57 @@
+target_precompile_headers(torch
+    INTERFACE
+    AnimationDataStorage.h
+    AnimationEngine.h
+    Animation.h
+    AssetBase.h
+    AssetID.h
+    AssetManager.h
+    AssetManagerInterface.h
+    AssetPath.h
+    AssetReference.h
+    AssetRegistry.h
+    AssetRegistryModule.h
+    AssetRegistryModuleStorage.h
+    Assets.h
+    Camera.h
+    DescriptorCreateHelpers.h
+    DescriptorSetUtils.h
+    FinalLightingPass.h
+    FlagCombination.h
+    Framebuffer.h
+    GBuffer.h
+    GBufferPass.h
+    Geometry.h
+    GeometryRegistry.h
+    Light.h
+    LightRegistry.h
+    Material.h
+    MaterialRegistry.h
+    Node.h
+    PipelineDefinitions.h
+    RenderDataDescriptor.h
+    RenderPassShadow.h
+    Rig.h
+    SceneDescriptor.h
+    Scene.h
+    ShadowPool.h
+    Texture.h
+    TextureRegistry.h
+    Torch.h
+    TorchRenderConfig.h
+    TorchResources.h
+    Transformation.h
+    Types.h
+    UpdatePass.h
+    Vertex.h
+    VulkanInclude.h
+
+    PRIVATE
+    Types.h
+    VulkanInclude.h
+
+    PUBLIC
+    ${Vulkan_INCLUDE_DIR}/vulkan/vulkan.hpp
+)
+
+add_subdirectory(core)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 
 if (UNIX AND NOT APPLE)
     set(LINUX TRUE)
@@ -101,6 +101,7 @@ target_include_directories(torch PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)
+add_subdirectory(include/trc) # Precompiled headers
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})
