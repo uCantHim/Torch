@@ -34,9 +34,10 @@ namespace trc
         struct InternalStorage
         {
             operator TextureDeviceHandle() {
-                return {};
+                return TextureDeviceHandle(deviceIndex);
             }
 
+            ui32 deviceIndex;
             vkb::Image image;
             vk::UniqueImageView imageView;
         };

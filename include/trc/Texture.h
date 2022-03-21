@@ -1,12 +1,11 @@
 #pragma once
 
+#include "Types.h"
+
 namespace trc
 {
     /**
      * @brief Handle to a texture stored in the asset registry
-     *
-     * Abstraction over vkb::Image, which should just act as the basic
-     * memory-managing storage unit.
      *
      * TODO: Remove getDefaultSampler function from vkb::Image and manage
      * samplers through this class?
@@ -14,12 +13,14 @@ namespace trc
     class TextureDeviceHandle
     {
     public:
-        /**
-         * @brief
-         */
-        TextureDeviceHandle() = default;
+        auto getDeviceIndex() const -> ui32 {
+            return deviceIndex;
+        }
 
     private:
+        friend class TextureRegistry;
+        explicit TextureDeviceHandle(ui32 index) : deviceIndex(index) {}
 
+        ui32 deviceIndex;
     };
 } // namespace trc
