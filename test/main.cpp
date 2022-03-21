@@ -218,7 +218,7 @@ void run()
 
     // Generated cube geo
     auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
-    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1 } });
+    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f });
     trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
     cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
@@ -231,7 +231,7 @@ void run()
     });
 
     // Thing at cursor
-    auto cursorCubeMat = ar.add(trc::MaterialData{ .color=vec4(1, 1, 0, 0.3f) });
+    auto cursorCubeMat = ar.add(trc::MaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f });
     trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 

@@ -55,9 +55,8 @@ auto convert(serial::vec3 vec) -> vec3
 template<typename T>
 void assignRef(serial::AssetReference* dst, const AssetReference<T>& src)
 {
-    if (!src.isEmpty()) {
-        *dst->mutable_unique_path() = src.getAssetPath().getUniquePath();
-    }
+    assert(src.hasAssetPath());
+    *dst->mutable_unique_path() = src.getAssetPath().getUniquePath();
 }
 
 template<typename T>
@@ -70,7 +69,7 @@ auto toRef(const serial::AssetReference& src)
 
 auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
 {
-    assert(data.skeletalVertices.size() == 0
+    assert(data.skeletalVertices.empty()
            || data.skeletalVertices.size() == data.vertices.size());
 
     trc::serial::Geometry geo;
@@ -106,8 +105,8 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
         newVert->mutable_bone_weights()->set_w(v.boneWeights.w);
     }
 
-    if (data.rig.has_value()) {
-        geo.mutable_rig()->set_unique_path(data.rig.value().getUniquePath());
+    if (data.rig.hasAssetPath()) {
+        assignRef(geo.mutable_rig(), data.rig);
     }
 
     return geo;
@@ -145,10 +144,10 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 
     // Get rig reference
     if (geo.has_rig()) {
-        data.rig = AssetPath(geo.rig().unique_path());
+        data.rig = toRef<Geometry>(geo.rig());
     }
 
-    assert(data.skeletalVertices.size() == 0
+    assert(data.skeletalVertices.empty()
            || data.skeletalVertices.size() == data.vertices.size());
 
     return data;
@@ -196,8 +195,12 @@ auto serializeAssetData(const MaterialData& data) -> trc::serial::Material
 
     mat.set_do_perform_lighting(data.doPerformLighting);
 
-    assignRef(mat.mutable_albedo_texture(), data.albedoTexture);
-    assignRef(mat.mutable_normal_texture(), data.normalTexture);
+    if (data.albedoTexture.hasAssetPath()) {
+        assignRef(mat.mutable_albedo_texture(), data.albedoTexture);
+    }
+    if (data.normalTexture.hasAssetPath()) {
+        assignRef(mat.mutable_normal_texture(), data.normalTexture);
+    }
 
     return mat;
 }

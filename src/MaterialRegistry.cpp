@@ -95,9 +95,9 @@ trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const MaterialData
     kSpecular(data.specularKoefficient),
     shininess(data.shininess),
     reflectivity(data.reflectivity),
-    diffuseTexture(NO_TEXTURE),
+    diffuseTexture(data.albedoTexture.hasResolvedID() ? data.albedoTexture.getID().id : NO_TEXTURE),
     specularTexture(NO_TEXTURE),
-    bumpTexture(NO_TEXTURE),
+    bumpTexture(data.normalTexture.hasResolvedID() ? data.normalTexture.getID().id : NO_TEXTURE),
     performLighting(data.doPerformLighting)
 {
 }

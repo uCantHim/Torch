@@ -3,6 +3,8 @@ using namespace trc::basic_types;
 
 void run()
 {
+    trc::init();
+
     // Create basic Torch objects
     trc::Instance instance;
     trc::Window window(instance);
@@ -50,10 +52,10 @@ void run()
     scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create some geometries to render
-    auto planeGeo = assets.createAsset<trc::Geometry>(trc::makePlaneGeo());
-    auto cubeGeo = assets.createAsset<trc::Geometry>(trc::makeCubeGeo());
-    auto greenMat = assets.createAsset<trc::Material>(trc::MaterialData{ .color=vec4(0, 1, 0, 1) });
-    auto redMat = assets.createAsset<trc::Material>(trc::MaterialData{ .color=vec4(1, 0.3f, 0, 1) });
+    auto planeGeo = assets.create<trc::Geometry>(trc::makePlaneGeo());
+    auto cubeGeo = assets.create<trc::Geometry>(trc::makeCubeGeo());
+    auto greenMat = assets.create<trc::Material>(trc::MaterialData{ .color=vec4(0, 1, 0, 1) });
+    auto redMat = assets.create<trc::Material>(trc::MaterialData{ .color=vec4(1, 0.3f, 0, 1) });
 
     // Create an inclined plane and a rotating cube
     trc::Drawable plane(planeGeo, greenMat, scene);

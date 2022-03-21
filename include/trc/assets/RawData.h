@@ -6,7 +6,6 @@
 #include "Types.h"
 #include "Vertex.h"
 #include "Assets.h"
-#include "AssetPath.h"
 #include "AssetReference.h"
 
 namespace trc
@@ -24,7 +23,7 @@ namespace trc
         std::vector<SkeletalVertex> skeletalVertices;
         std::vector<VertexIndex> indices;
 
-        std::optional<AssetPath> rig{ std::nullopt };
+        AssetReference<Geometry> rig{};
     };
 
     struct TextureData

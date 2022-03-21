@@ -99,8 +99,8 @@ int main()
         // Also add a world-space object
         trc::Light light = scene.getLights().makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);
         trc::Drawable plane(
-            ar.createAsset<trc::Geometry>(trc::makePlaneGeo()),
-            ar.createAsset<trc::Material>(trc::MaterialData{ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) }),
+            ar.create<trc::Geometry>(trc::makePlaneGeo()),
+            ar.create<trc::Material>(trc::MaterialData{ .color=vec4(0.3f, 0.7f, 0.2f, 1.0f) }),
             scene
         );
         plane.rotateX(glm::radians(30.0f));

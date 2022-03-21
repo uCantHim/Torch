@@ -30,28 +30,46 @@ namespace trc
     public:
         AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo);
 
+        //////////////////////
+        //  Asset creation  //
+        //////////////////////
+
         auto add(const GeometryData& data) -> GeometryID;
         auto add(const TextureData& data) -> TextureID;
         auto add(const MaterialData& data) -> MaterialID;
 
+        /**
+         * @brief Create an asset from in-memory data
+         */
         template<AssetBaseType T>
-        auto createAsset(const AssetData<T>& data) -> TypedAssetID<T>;
+        auto create(const AssetData<T>& data) -> TypedAssetID<T>;
 
         /**
          * @brief Load an asset in Torch's internal format
          */
         template<AssetBaseType T>
-        auto loadAsset(AssetPath path) -> TypedAssetID<T>;
-
-        template<AssetBaseType T>
-        auto getMetadata(TypedAssetID<T> id) -> const AssetMetaData&;
-        auto getMetadata(AssetID id) -> const AssetMetaData&;
+        auto load(const AssetPath& path) -> TypedAssetID<T>;
 
         /**
          * @brief Completely remove an asset from the asset manager
          */
         template<AssetBaseType T>
         void destroyAsset(TypedAssetID<T> id);
+
+
+        ///////////////
+        //  Queries  //
+        ///////////////
+
+        bool exists(const AssetPath& path) const;
+
+        template<AssetBaseType T>
+        auto getAsset(const AssetPath& path) const -> TypedAssetID<T>;
+
+
+        /////////////////////////////////////
+        //  Access to the device registry  //
+        /////////////////////////////////////
 
         auto getDeviceRegistry() -> AssetRegistry&;
 
@@ -72,6 +90,8 @@ namespace trc
 
         /** Stores high-level management-related metadata for all asset types */
         std::unordered_map<AssetID, AssetMetaData> assetMetaData;
+
+        std::unordered_map<AssetPath, AnyTypedID> pathsToAssets;
     };
 } // namespace trc
 

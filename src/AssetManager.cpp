@@ -16,17 +16,31 @@ trc::AssetManager::AssetManager(const Instance& instance, const AssetRegistryCre
 
 auto trc::AssetManager::add(const GeometryData& data) -> GeometryID
 {
-    return createAsset<Geometry>(data);
+    return create<Geometry>(data);
 }
 
 auto trc::AssetManager::add(const TextureData& data) -> TextureID
 {
-    return createAsset<Texture>(data);
+    return create<Texture>(data);
 }
 
 auto trc::AssetManager::add(const MaterialData& data) -> MaterialID
 {
-    return createAsset<Material>(data);
+    auto ref = data.albedoTexture;
+    if (!ref.empty()) {
+        ref.resolve(*this);
+    }
+    ref = data.normalTexture;
+    if (!ref.empty()) {
+        ref.resolve(*this);
+    }
+
+    return create<Material>(data);
+}
+
+bool trc::AssetManager::exists(const AssetPath& path) const
+{
+    return pathsToAssets.contains(path);
 }
 
 auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
@@ -36,7 +50,17 @@ auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
 
 auto trc::AssetManager::_loadAsset(const AssetPath& path) -> AnyTypedID
 {
-    return _createAsset(AssetDataProxy(path));
+    auto [it, success] = pathsToAssets.try_emplace(path);
+    if (!success)
+    {
+        // Asset from `path` has already been loaded
+        return it->second;
+    }
+
+    const AnyTypedID id = _createAsset(AssetDataProxy(path));
+    it->second = id;
+
+    return id;
 }
 
 auto trc::AssetManager::_createAsset(const AssetDataProxy& data) -> AnyTypedID
