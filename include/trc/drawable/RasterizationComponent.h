@@ -4,6 +4,7 @@
 
 #include "Assets.h"
 #include "Geometry.h"
+#include "Material.h"
 #include "Transformation.h"
 #include "AnimationEngine.h"
 
@@ -12,7 +13,7 @@ namespace trc::drawcomp
     struct RasterComponent
     {
         GeometryDeviceHandle geo;
-        MaterialID mat;
+        MaterialDeviceHandle mat;
 
         Transformation::ID modelMatrixId;
         AnimationEngine::ID anim;

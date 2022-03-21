@@ -30,9 +30,6 @@ namespace trc
         /** @brief Legacy constructor */
         Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& scene);
 
-        auto getMaterial() const -> MaterialID;
-        auto getGeometry() const -> GeometryID;
-
         /**
          * @return bool True if the drawable has a rig and an animation
          *              engine. False otherwise.
@@ -65,6 +62,5 @@ namespace trc
 
         DrawableComponentScene* scene;
         DrawableID id;
-        GeometryID geo;
     };
 }

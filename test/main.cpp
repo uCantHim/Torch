@@ -106,7 +106,7 @@ void run()
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, {} }, scene);
+    trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, mapMatIndex }, scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     // hoodedBoi.getAnimationEngine().playAnimation(0);
 
@@ -176,7 +176,7 @@ void run()
         particle.phys.angularVelocity = glm::radians(30.0f);
         particle.phys.scaling = vec3(0.15f);
         particle.phys.lifeTime = glm::linearRand(1000.0f, 6000.0f);
-        particle.material.texture = grassImgIdx.id;
+        particle.material.texture = grassImgIdx.getDeviceDataHandle().getDeviceIndex();
         particleCollection.addParticle(particle);
     }
 
@@ -189,7 +189,7 @@ void run()
         p.phys.linearAcceleration = vec3(0, -2.0f, 0);
         p.phys.scaling = vec3(0.2f);
         p.phys.lifeTime = 3000.0f;
-        p.material.texture = particleImgIdx.id;
+        p.material.texture = particleImgIdx.getDeviceDataHandle().getDeviceIndex();
         p.material.blending = trc::ParticleMaterial::BlendingType::eAlphaBlend;
         spawn.addParticle(p);
     }

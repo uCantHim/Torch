@@ -137,7 +137,7 @@ namespace trc
     template<AssetBaseType T>
     bool AssetReference<T>::hasResolvedID() const
     {
-        return data != nullptr && data->id.uniqueId != AssetID::NONE;
+        return data != nullptr && data->id.getAssetID() != AssetID::NONE;
     }
 
     template<AssetBaseType T>

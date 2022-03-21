@@ -7,7 +7,9 @@ namespace trc
     struct MaterialDeviceHandle
     {
     public:
-        auto getBufferIndex() const -> ui32;
+        auto getBufferIndex() const -> ui32 {
+            return id;
+        }
 
     private:
         friend class MaterialRegistry;

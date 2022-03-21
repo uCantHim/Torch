@@ -2,6 +2,8 @@
 
 #include "assets/RawData.h"
 #include "ray_tracing/RayPipelineBuilder.h"
+#include "TextureRegistry.h"
+#include "AssetManager.h"
 
 
 
@@ -95,9 +97,13 @@ trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const MaterialData
     kSpecular(data.specularKoefficient),
     shininess(data.shininess),
     reflectivity(data.reflectivity),
-    diffuseTexture(data.albedoTexture.hasResolvedID() ? data.albedoTexture.getID().id : NO_TEXTURE),
+    diffuseTexture(data.albedoTexture.hasResolvedID()
+            ? data.albedoTexture.getID().getDeviceDataHandle().getDeviceIndex()
+            : NO_TEXTURE),
     specularTexture(NO_TEXTURE),
-    bumpTexture(data.normalTexture.hasResolvedID() ? data.normalTexture.getID().id : NO_TEXTURE),
+    bumpTexture(data.normalTexture.hasResolvedID()
+            ? data.normalTexture.getID().getDeviceDataHandle().getDeviceIndex()
+            : NO_TEXTURE),
     performLighting(data.doPerformLighting)
 {
 }
