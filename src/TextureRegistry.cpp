@@ -5,6 +5,36 @@
 
 
 
+trc::TextureRegistry::Handle::Handle(InternalStorage& s)
+    :
+    SharedCacheReference(s)
+{
+}
+
+auto trc::TextureRegistry::Handle::getDeviceIndex() const -> ui32
+{
+    return cache->deviceIndex;
+}
+
+
+
+void trc::TextureRegistry::CacheRefCounter::inc()
+{
+    if (++count == 1) {
+        registry->load(texture);
+    }
+}
+
+void trc::TextureRegistry::CacheRefCounter::dec()
+{
+    assert(count > 0);
+    if (--count == 0) {
+        registry->unload(texture);
+    }
+}
+
+
+
 trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),
@@ -36,12 +66,25 @@ auto trc::TextureRegistry::getDescriptorLayoutBindings()
 
 auto trc::TextureRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>
 {
-    return {
-        vk::WriteDescriptorSet(
-            {}, config.textureBinding, 0, vk::DescriptorType::eCombinedImageSampler,
-            descImageInfos
-        )
-    };
+    // DescriptorImageInfos need to be kept in memory because they are
+    // referenced in the returned WriteDescriptorSets
+    std::swap(oldDescriptorUpdates, descriptorUpdates);
+    descriptorUpdates.clear();
+
+    std::vector<vk::WriteDescriptorSet> result;
+    for (const auto& [index, info] : oldDescriptorUpdates)
+    {
+        result.emplace_back(
+            vk::WriteDescriptorSet(
+                {},
+                config.textureBinding, index,
+                vk::DescriptorType::eCombinedImageSampler,
+                info
+            )
+        );
+    }
+
+    return result;
 }
 
 auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
@@ -55,33 +98,15 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
                                 " of " + std::to_string(id) + " textures has been reached.");
     }
 
-    // Create image resource
-    vkb::Image image(
-        device, data.size.x, data.size.y,
-        vk::Format::eR8G8B8A8Unorm,
-        vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-        memoryPool.makeAllocator()
-    );
-    image.writeData(data.pixels.data(), data.size.x * data.size.y * 4, {});
-    auto view = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
-
     // Store texture
-    auto& tex = textures.emplace(
+    textures.emplace(
         deviceIndex,
-        InternalStorage{
+        new InternalStorage{
             .deviceIndex = deviceIndex,
-            .image = std::move(image),
-            .imageView = std::move(view),
+            .importData = data,
+            .refCount{ id, this },
+            .deviceData = nullptr,
         }
-    );
-
-    // Store descriptor info
-    descImageInfos.emplace(
-        deviceIndex,
-        vk::DescriptorImageInfo(
-            tex.image.getDefaultSampler(), *tex.imageView,
-            vk::ImageLayout::eShaderReadOnlyOptimal
-        )
     );
 
     return id;
@@ -92,11 +117,56 @@ void trc::TextureRegistry::remove(const LocalID id)
     const LocalID::IndexType index(id);
 
     textures.erase(index);
-    descImageInfos.erase(index);
     idPool.free(index);
 }
 
-auto trc::TextureRegistry::getHandle(const LocalID id) -> TextureDeviceHandle
+auto trc::TextureRegistry::getHandle(const LocalID id) -> Handle
 {
-    return textures.get(static_cast<LocalID::IndexType>(id));
+    assert(textures.get(id) != nullptr);
+
+    return Handle(*textures.get(id));
+}
+
+void trc::TextureRegistry::load(LocalID id)
+{
+    assert(textures.get(id) != nullptr);
+
+    auto& tex = *textures.get(id);
+    assert(tex.deviceData == nullptr);
+
+    const auto& data = tex.importData;
+    const ui32 deviceIndex = tex.deviceIndex;
+
+    // Create image resource
+    vkb::Image image(
+        device, data.size.x, data.size.y,
+        vk::Format::eR8G8B8A8Unorm,
+        vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+        memoryPool.makeAllocator()
+    );
+    image.writeData(data.pixels.data(), data.size.x * data.size.y * 4, {});
+    auto imageView = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
+
+    // Create descriptor info
+    descriptorUpdates.emplace_back(
+        deviceIndex,
+        vk::DescriptorImageInfo(
+            image.getDefaultSampler(), *imageView,
+            vk::ImageLayout::eShaderReadOnlyOptimal
+        )
+    );
+
+    // Store resources
+    tex.deviceData = std::make_unique<InternalStorage::Data>(
+        std::move(image),
+        std::move(imageView)
+    );
+}
+
+void trc::TextureRegistry::unload(LocalID id)
+{
+    assert(textures.get(id) != nullptr);
+    assert(textures.get(id)->deviceData != nullptr);
+
+    textures.get(id)->deviceData.reset();
 }

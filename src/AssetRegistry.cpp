@@ -30,9 +30,10 @@ trc::AssetRegistry::AssetRegistry(
         .enableRayTracing=config.enableRayTracing && instance.hasRayTracing(),
     };
 
-    modules.addModule<GeometryRegistry>(moduleCreateInfo);
-    modules.addModule<TextureRegistry>(moduleCreateInfo);
+    // Add modules in the order in which they should be destroyed
     modules.addModule<MaterialRegistry>(moduleCreateInfo);
+    modules.addModule<TextureRegistry>(moduleCreateInfo);
+    modules.addModule<GeometryRegistry>(moduleCreateInfo);
 
     createDescriptors();
 
@@ -71,21 +72,6 @@ auto trc::AssetRegistry::add(const TextureData& tex) -> LocalID<Texture>
     writeDescriptors();
 
     return id;
-}
-
-auto trc::AssetRegistry::get(LocalID<Geometry> id) -> GeometryDeviceHandle
-{
-    return modules.get<GeometryRegistry>().getHandle(id);
-}
-
-auto trc::AssetRegistry::get(LocalID<Material> id) -> MaterialDeviceHandle
-{
-    return modules.get<MaterialRegistry>().getHandle(id);
-}
-
-auto trc::AssetRegistry::get(LocalID<Texture> id) -> TextureDeviceHandle
-{
-    return modules.get<TextureRegistry>().getHandle(id);
 }
 
 auto trc::AssetRegistry::getFonts() -> FontDataStorage&

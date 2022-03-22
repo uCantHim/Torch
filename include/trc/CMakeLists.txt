@@ -35,7 +35,6 @@ target_precompile_headers(torch
     SceneDescriptor.h
     Scene.h
     ShadowPool.h
-    Texture.h
     TextureRegistry.h
     Torch.h
     TorchRenderConfig.h

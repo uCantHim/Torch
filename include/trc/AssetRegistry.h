@@ -16,7 +16,6 @@
 #include "Assets.h"
 #include "assets/RawData.h"
 #include "Geometry.h"
-#include "Texture.h"
 #include "Material.h"
 #include "Rig.h"
 #include "AnimationDataStorage.h"
@@ -53,9 +52,11 @@ namespace trc
         auto add(const MaterialData& mat) -> LocalID<Material>;
         auto add(const TextureData& tex) -> LocalID<Texture>;
 
-        auto get(LocalID<Geometry> key) -> GeometryDeviceHandle;
-        auto get(LocalID<Material> key) -> MaterialDeviceHandle;
-        auto get(LocalID<Texture> key) -> TextureDeviceHandle;
+        template<AssetBaseType T>
+        auto get(LocalID<T> key) -> AssetHandle<T>
+        {
+            return getModule<T>().getHandle(key);
+        }
 
         template<AssetBaseType T>
         void remove(LocalID<T> id);

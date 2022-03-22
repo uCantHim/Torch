@@ -9,6 +9,7 @@
 #include "Assets.h"
 #include "Material.h"
 #include "AssetRegistryModule.h"
+#include "TextureRegistry.h"
 #include "assets/RawData.h"
 
 namespace trc
@@ -75,6 +76,8 @@ namespace trc
 
             ui32 bufferIndex;
             MaterialData matData;
+            std::optional<AssetHandle<Texture>> albedoTex;
+            std::optional<AssetHandle<Texture>> normalTex;
         };
 
         static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(MaterialDeviceData) * 100;

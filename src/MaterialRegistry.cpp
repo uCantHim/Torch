@@ -71,6 +71,12 @@ auto trc::MaterialRegistry::add(const MaterialData& data) -> LocalID
         InternalStorage{
             .bufferIndex = bufferIndex,
             .matData = data,
+            .albedoTex = data.albedoTexture.hasResolvedID()
+                ? data.albedoTexture.getID().getDeviceDataHandle()
+                : std::optional<AssetHandle<Texture>>{},
+            .normalTex = data.normalTexture.hasResolvedID()
+                ? data.normalTexture.getID().getDeviceDataHandle()
+                : std::optional<AssetHandle<Texture>>{},
         }
     );
 
