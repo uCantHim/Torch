@@ -70,7 +70,7 @@ auto trc::TextureRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescri
     return result;
 }
 
-auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
+auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
 {
     // Allocate ID
     const LocalID id(idPool.generate());
@@ -87,7 +87,7 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
         new InternalStorage{
             CacheRefCounter(id, this),  // Base
             deviceIndex,
-            data,
+            std::move(source),
             nullptr,
         }
     );
@@ -117,7 +117,7 @@ void trc::TextureRegistry::load(LocalID id)
     auto& tex = *textures.get(id);
     assert(tex.deviceData == nullptr);
 
-    const auto& data = tex.importData;
+    auto data = tex.dataSource->load();
     const ui32 deviceIndex = tex.deviceIndex;
 
     // Create image resource

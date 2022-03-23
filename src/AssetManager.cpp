@@ -4,8 +4,6 @@
 #include "TextureRegistry.h"
 #include "MaterialRegistry.h"
 
-#include "assets/AssetDataProxy.h"
-
 
 
 trc::AssetManager::AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo)
@@ -46,36 +44,6 @@ bool trc::AssetManager::exists(const AssetPath& path) const
 auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
 {
     return registry;
-}
-
-auto trc::AssetManager::_loadAsset(const AssetPath& path) -> AnyTypedID
-{
-    auto [it, success] = pathsToAssets.try_emplace(path);
-    if (!success)
-    {
-        // Asset from `path` has already been loaded
-        return it->second;
-    }
-
-    const AnyTypedID id = _createAsset(AssetDataProxy(path));
-    it->second = id;
-
-    return id;
-}
-
-auto trc::AssetManager::_createAsset(const AssetDataProxy& data) -> AnyTypedID
-{
-    const auto assetId = _createBaseAsset(data.getMetaData());
-
-    std::any result = data.visit([this, assetId](const auto& data) -> std::any
-    {
-        using T = typename decltype(registry.add(data))::Type;
-
-        const auto localId = registry.add(data);
-        return TypedAssetID<T>{ assetId, localId, *this };
-    });
-
-    return result;
 }
 
 auto trc::AssetManager::_createBaseAsset(const AssetMetaData& meta) -> AssetID

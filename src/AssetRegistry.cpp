@@ -38,15 +38,17 @@ trc::AssetRegistry::AssetRegistry(
     createDescriptors();
 
     // Add default assets
-    add(MaterialData{ .doPerformLighting=false });
-    add({ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels });
+    add(std::make_unique<InMemorySource<Material>>(MaterialData{ .doPerformLighting=false }));
+    add(std::make_unique<InMemorySource<Texture>>(
+        TextureData{ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels }
+    ));
 
     writeDescriptors();
 }
 
-auto trc::AssetRegistry::add(const GeometryData& data) -> LocalID<Geometry>
+auto trc::AssetRegistry::add(u_ptr<AssetSource<Geometry>> src) -> LocalID<Geometry>
 {
-    const auto id = modules.get<AssetRegistryModule<Geometry>>().add(data);
+    const auto id = modules.get<AssetRegistryModule<Geometry>>().add(std::move(src));
 
     if (config.enableRayTracing)
     {
@@ -56,18 +58,18 @@ auto trc::AssetRegistry::add(const GeometryData& data) -> LocalID<Geometry>
     return id;
 }
 
-auto trc::AssetRegistry::add(const MaterialData& data) -> LocalID<Material>
+auto trc::AssetRegistry::add(u_ptr<AssetSource<Material>> src) -> LocalID<Material>
 {
-    const auto id = modules.get<AssetRegistryModule<Material>>().add(data);
+    const auto id = modules.get<AssetRegistryModule<Material>>().add(std::move(src));
 
     updateMaterials();
 
     return id;
 }
 
-auto trc::AssetRegistry::add(const TextureData& tex) -> LocalID<Texture>
+auto trc::AssetRegistry::add(u_ptr<AssetSource<Texture>> src) -> LocalID<Texture>
 {
-    const auto id = modules.get<AssetRegistryModule<Texture>>().add(tex);
+    const auto id = modules.get<AssetRegistryModule<Texture>>().add(std::move(src));
 
     writeDescriptors();
 

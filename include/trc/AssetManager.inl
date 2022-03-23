@@ -1,7 +1,5 @@
 #include "AssetManager.h"
 
-#include "assets/AssetDataProxy.h"
-
 
 
 namespace trc
@@ -17,34 +15,13 @@ inline auto generateUniqueName(std::string name)
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {
-    try {
-        auto res = _createAsset(AssetDataProxy{ data });
-        return std::any_cast<TypedAssetID<T>>(res);
-    }
-    catch(const std::bad_any_cast&)
-    {
-        throw std::logic_error(
-            "[In AssetManager::createAsset<>]: Internal engine logic error: Imported asset data"
-            " type did not result in the correct TypedAssetID specialization returned as a"
-            " std::any from createAsset(AssetDataProxy)! This result should not be possible."
-        );
-    }
+    return _createAsset<T>(std::make_unique<InMemorySource<T>>(data));
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::load(const AssetPath& path) -> TypedAssetID<T>
 {
-    try {
-        return std::any_cast<TypedAssetID<T>>(_loadAsset(path));
-    }
-    catch(const std::bad_any_cast&)
-    {
-        throw std::invalid_argument(
-            "[In AssetManager::loadAsset<>]: Asset imported from " + path.getUniquePath()
-            + " (full path " + path.getFilesystemPath().string() + ") does not match the type"
-            " specified in the function's template parameter."
-        );
-    }
+    return _loadAsset<T>(path);
 }
 
 template<AssetBaseType T>
@@ -82,6 +59,31 @@ template<AssetBaseType T>
 inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 {
     return registry.getModule<T>();
+}
+
+template<AssetBaseType T>
+auto AssetManager::_loadAsset(const AssetPath& path) -> TypedAssetID<T>
+{
+    auto [it, success] = pathsToAssets.try_emplace(path);
+    if (!success)
+    {
+        // Asset from `path` has already been loaded
+        return std::any_cast<TypedAssetID<T>>(it->second);
+    }
+
+    const auto id = _createAsset<T>(std::make_unique<AssetPathSource<T>>(path));
+    it->second = id;
+
+    return id;
+}
+
+template<AssetBaseType T>
+inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
+{
+    const auto assetId = _createBaseAsset({});
+
+    const auto localId = registry.add(std::move(source));
+    return TypedAssetID<T>{ assetId, localId, *this };
 }
 
 } // namespace trc

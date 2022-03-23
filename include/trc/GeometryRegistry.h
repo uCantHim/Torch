@@ -11,6 +11,7 @@
 #include "Geometry.h"
 #include "Rig.h"
 #include "AssetRegistryModule.h"
+#include "AssetSource.h"
 
 namespace trc
 {
@@ -30,7 +31,7 @@ namespace trc
         auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
         auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
 
-        auto add(const GeometryData& data) -> LocalID;
+        auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID;
         void remove(LocalID id);
 
         auto getHandle(LocalID id) -> GeometryDeviceHandle;

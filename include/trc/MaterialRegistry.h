@@ -11,6 +11,7 @@
 #include "AssetRegistryModule.h"
 #include "TextureRegistry.h"
 #include "assets/RawData.h"
+#include "AssetSource.h"
 
 namespace trc
 {
@@ -27,7 +28,7 @@ namespace trc
         auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
         auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
 
-        auto add(const MaterialData& data) -> LocalID;
+        auto add(u_ptr<AssetSource<Material>> source) -> LocalID;
         void remove(LocalID id);
 
         auto getHandle(LocalID id) -> MaterialDeviceHandle;

@@ -14,6 +14,7 @@
 #include "core/DescriptorProvider.h"
 #include "AssetRegistryModuleStorage.h"
 #include "Assets.h"
+#include "AssetSource.h"
 #include "assets/RawData.h"
 #include "Geometry.h"
 #include "Material.h"
@@ -48,9 +49,9 @@ namespace trc
         explicit AssetRegistry(const Instance& instance,
                                const AssetRegistryCreateInfo& info = {});
 
-        auto add(const GeometryData& geo) -> LocalID<Geometry>;
-        auto add(const MaterialData& mat) -> LocalID<Material>;
-        auto add(const TextureData& tex) -> LocalID<Texture>;
+        auto add(u_ptr<AssetSource<Geometry>> geo) -> LocalID<Geometry>;
+        auto add(u_ptr<AssetSource<Material>> mat) -> LocalID<Material>;
+        auto add(u_ptr<AssetSource<Texture>>tex) -> LocalID<Texture>;
 
         template<AssetBaseType T>
         auto get(LocalID<T> key) -> AssetHandle<T>

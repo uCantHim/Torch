@@ -61,10 +61,12 @@ auto trc::MaterialRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescr
     };
 }
 
-auto trc::MaterialRegistry::add(const MaterialData& data) -> LocalID
+auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 {
     const LocalID id(idPool.generate());
     const ui32 bufferIndex{ id };
+
+    auto data = source->load();
 
     materials.emplace(
         static_cast<LocalID::IndexType>(id),

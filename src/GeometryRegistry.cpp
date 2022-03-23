@@ -94,9 +94,11 @@ auto trc::GeometryRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescr
     return {};
 }
 
-auto trc::GeometryRegistry::add(const GeometryData& data) -> LocalID
+auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
 {
     LocalID id(idPool.generate());
+
+    auto data = source->load();
 
     storage.emplace(
         static_cast<LocalID::IndexType>(id),

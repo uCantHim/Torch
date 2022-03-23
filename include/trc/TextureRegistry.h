@@ -9,6 +9,7 @@
 #include "Assets.h"
 #include "assets/RawData.h"
 #include "AssetRegistryModule.h"
+#include "AssetSource.h"
 
 namespace trc
 {
@@ -39,7 +40,7 @@ namespace trc
         auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
         auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
 
-        auto add(const TextureData& data) -> LocalID;
+        auto add(u_ptr<AssetSource<Texture>> source) -> LocalID;
         void remove(LocalID id);
 
         auto getHandle(LocalID id) -> Handle;
@@ -57,7 +58,7 @@ namespace trc
             };
 
             ui32 deviceIndex;
-            TextureData importData;  // TODO: Use AssetSource instead
+            u_ptr<AssetSource<Texture>> dataSource;
 
             u_ptr<Data> deviceData{ nullptr };
         };

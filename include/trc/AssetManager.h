@@ -8,14 +8,13 @@
 
 #include "Assets.h"
 #include "AssetPath.h"
+#include "AssetSource.h"
 #include "AssetRegistry.h"
 #include "AssetManagerInterface.h"
 
 namespace trc
 {
     namespace fs = std::filesystem;
-
-    class AssetDataProxy;
 
     /**
      * @brief Manages assets on a high level
@@ -30,6 +29,7 @@ namespace trc
     public:
         AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo);
 
+
         //////////////////////
         //  Asset creation  //
         //////////////////////
@@ -40,6 +40,9 @@ namespace trc
 
         /**
          * @brief Create an asset from in-memory data
+         *
+         * Asset data imported by this method will permanently stay in host
+         * memory until the asset is destroyed.
          */
         template<AssetBaseType T>
         auto create(const AssetData<T>& data) -> TypedAssetID<T>;
@@ -79,8 +82,10 @@ namespace trc
     private:
         using AnyTypedID = std::any;
 
-        auto _loadAsset(const AssetPath& path) -> AnyTypedID;
-        auto _createAsset(const AssetDataProxy& data) -> AnyTypedID;
+        template<AssetBaseType T>
+        auto _loadAsset(const AssetPath& path) -> TypedAssetID<T>;
+        template<AssetBaseType T>
+        auto _createAsset(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>;
         auto _createBaseAsset(const AssetMetaData& meta) -> AssetID;
 
         /** Handles device representations of assets */
