@@ -27,8 +27,6 @@ namespace trc
         auto operator=(const GeometryDeviceHandle&) -> GeometryDeviceHandle& = default;
         auto operator=(GeometryDeviceHandle&&) noexcept -> GeometryDeviceHandle& = default;
 
-        auto operator<=>(const GeometryDeviceHandle& rhs) const -> std::strong_ordering = default;
-
         /**
          * @brief Bind vertex and index buffer
          *
@@ -66,5 +64,5 @@ namespace trc
         Rig* rig;
     };
 
-    static_assert(std::regular<GeometryDeviceHandle>);
+    static_assert(std::semiregular<GeometryDeviceHandle>);
 } // namespace trc
