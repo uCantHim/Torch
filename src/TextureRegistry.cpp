@@ -18,23 +18,6 @@ auto trc::TextureRegistry::Handle::getDeviceIndex() const -> ui32
 
 
 
-void trc::TextureRegistry::CacheRefCounter::inc()
-{
-    if (++count == 1) {
-        registry->load(texture);
-    }
-}
-
-void trc::TextureRegistry::CacheRefCounter::dec()
-{
-    assert(count > 0);
-    if (--count == 0) {
-        registry->unload(texture);
-    }
-}
-
-
-
 trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),
@@ -102,10 +85,10 @@ auto trc::TextureRegistry::add(const TextureData& data) -> LocalID
     textures.emplace(
         deviceIndex,
         new InternalStorage{
-            .deviceIndex = deviceIndex,
-            .importData = data,
-            .refCount{ id, this },
-            .deviceData = nullptr,
+            CacheRefCounter(id, this),  // Base
+            deviceIndex,
+            data,
+            nullptr,
         }
     );
 

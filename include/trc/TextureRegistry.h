@@ -9,11 +9,10 @@
 #include "Assets.h"
 #include "assets/RawData.h"
 #include "AssetRegistryModule.h"
-#include "SharedCacheReference.h"
 
 namespace trc
 {
-    class TextureRegistry : public AssetRegistryModuleInterface
+    class TextureRegistry : public AssetRegistryModuleCacheCrtpBase<Texture>
     {
         struct InternalStorage;
 
@@ -45,22 +44,11 @@ namespace trc
 
         auto getHandle(LocalID id) -> Handle;
 
+        void load(LocalID id) override;
+        void unload(LocalID id) override;
+
     private:
-        struct CacheRefCounter
-        {
-            CacheRefCounter(LocalID tex, TextureRegistry* reg)
-                : texture(tex), registry(reg)
-            {}
-
-            void inc();
-            void dec();
-
-            ui32 count{ 0 };
-            LocalID texture;
-            TextureRegistry* registry;
-        };
-
-        struct InternalStorage
+        struct InternalStorage : CacheRefCounter
         {
             struct Data
             {
@@ -68,20 +56,13 @@ namespace trc
                 vk::UniqueImageView imageView;
             };
 
-            inline void inc() { refCount.inc(); }
-            inline void dec() { refCount.dec(); }
-
             ui32 deviceIndex;
             TextureData importData;  // TODO: Use AssetSource instead
 
-            CacheRefCounter refCount;
             u_ptr<Data> deviceData{ nullptr };
         };
 
         template<typename T> using Table = componentlib::Table<T, LocalID::IndexType>;
-
-        void load(LocalID id);
-        void unload(LocalID id);
 
         static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
         static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 512 * 512 * 4 * 200;  // 200 512x512 images
