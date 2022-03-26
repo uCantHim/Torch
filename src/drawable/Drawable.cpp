@@ -40,7 +40,7 @@ Drawable::Drawable(
     raster.drawData.modelMatrixId = getGlobalTransformID();
     if (geo.hasRig())
     {
-        scene.makeAnimationEngine(id, *geo.getRig());
+        scene.makeAnimationEngine(id, geo.getRig());
         raster.drawData.anim = scene.getAnimationEngine(id).getState();
     }
 

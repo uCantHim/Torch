@@ -38,6 +38,17 @@ namespace trc
 
 
 
+trc::GeometryRegistry::InternalStorage::operator GeometryDeviceHandle()
+{
+    return {
+        *indexBuf, numIndices, vk::IndexType::eUint32,
+        *vertexBuf, vertexType,
+        rig.has_value() ? rig.value() : std::optional<RigDeviceHandle>{ std::nullopt }
+    };
+}
+
+
+
 trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),

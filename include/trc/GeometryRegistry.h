@@ -53,14 +53,7 @@ namespace trc
         {
             using VertexType = GeometryDeviceHandle::VertexType;
 
-            operator GeometryDeviceHandle()
-            {
-                return {
-                    *indexBuf, numIndices, vk::IndexType::eUint32,
-                    *vertexBuf, vertexType,
-                    rig.has_value() ? &rig.value() : nullptr
-                };
-            }
+            operator GeometryDeviceHandle();
 
             vkb::DeviceLocalBuffer indexBuf;
             vkb::DeviceLocalBuffer vertexBuf;
@@ -69,7 +62,7 @@ namespace trc
 
             VertexType vertexType;
 
-            std::optional<Rig> rig;
+            std::optional<RigDeviceHandle> rig;
 
             ui32 deviceIndex;
         };

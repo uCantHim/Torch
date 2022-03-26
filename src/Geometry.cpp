@@ -8,14 +8,14 @@ trc::GeometryDeviceHandle::GeometryDeviceHandle(
     vk::IndexType indexType,
     vk::Buffer verts,
     VertexType vertexType,
-    Rig* rig)
+    std::optional<RigDeviceHandle> rig)
     :
     indexBuffer(indices),
     vertexBuffer(verts),
     numIndices(numIndices),
     indexType(indexType),
     vertexType(vertexType),
-    rig(rig)
+    rig(std::move(rig))
 {
 }
 
@@ -52,10 +52,10 @@ auto trc::GeometryDeviceHandle::getVertexType() const noexcept -> VertexType
 
 bool trc::GeometryDeviceHandle::hasRig() const
 {
-    return rig != nullptr;
+    return rig.has_value();
 }
 
-auto trc::GeometryDeviceHandle::getRig() -> Rig*
+auto trc::GeometryDeviceHandle::getRig() -> RigDeviceHandle
 {
-    return rig;
+    return rig.value();
 }

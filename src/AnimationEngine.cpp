@@ -1,12 +1,13 @@
 #include "AnimationEngine.h"
 
 #include "AssetManager.h"
+#include "RigRegistry.h"
 
 
 
-trc::AnimationEngine::AnimationEngine(const Rig& rig)
+trc::AnimationEngine::AnimationEngine(RigDeviceHandle rig)
     :
-    rig(&rig)
+    rig(rig)
 {
 }
 
@@ -45,7 +46,7 @@ void trc::AnimationEngine::update(const float timeDelta)
 
 void trc::AnimationEngine::playAnimation(ui32 index)
 {
-    if (rig == nullptr) {
+    if (!rig.has_value()) {
         throw std::runtime_error("[In AnimationEngine::playAnimation]: No rig is associated with"
                                  " this animation engine!");
     }

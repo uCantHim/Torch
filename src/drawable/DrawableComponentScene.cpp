@@ -115,7 +115,7 @@ void trc::DrawableComponentScene::makeRaytracing(DrawableID drawable)
     storage.add<RayComponent>(drawable);
 }
 
-void trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, Rig& rig)
+void trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigDeviceHandle rig)
 {
     storage.add<AnimationComponent>(drawable, rig);
 }

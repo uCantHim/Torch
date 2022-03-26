@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "Rig.h"
+#include "Animation.h"
 #include "trc_util/data/ExternalStorage.h"
 
 namespace trc
@@ -23,7 +24,7 @@ namespace trc
         using ID = data::ExternalStorage<AnimationDeviceData>::ID;
 
         AnimationEngine() = default;
-        AnimationEngine(const Rig& rig);
+        AnimationEngine(RigDeviceHandle rig);
 
         void update(float timeDeltaMs);
 
@@ -35,7 +36,7 @@ namespace trc
     private:
         void resetAnimationTime();
 
-        const Rig* rig{ nullptr };
+        std::optional<RigDeviceHandle> rig{ std::nullopt };
 
         std::optional<AnimationDeviceHandle> currentAnimation{ std::nullopt };
         float currentDuration{ 0.0f };

@@ -24,7 +24,7 @@ namespace trc
         std::vector<SkeletalVertex> skeletalVertices;
         std::vector<VertexIndex> indices;
 
-        AssetReference<_Rig> rig{};
+        AssetReference<Rig> rig{};
     };
 
     struct TextureData

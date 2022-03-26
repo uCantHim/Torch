@@ -36,7 +36,7 @@ namespace trc
         using ImportData = MaterialData;
     };
 
-    class _Rig
+    class Rig
     {
     public:
         using Registry = RigRegistry;
@@ -53,6 +53,6 @@ namespace trc
     using GeometryID = TypedAssetID<Geometry>;
     using TextureID = TypedAssetID<Texture>;
     using MaterialID = TypedAssetID<Material>;
-    using RigID = TypedAssetID<_Rig>;
+    using RigID = TypedAssetID<Rig>;
     using AnimationID = TypedAssetID<Animation>;
 } // namespace trc

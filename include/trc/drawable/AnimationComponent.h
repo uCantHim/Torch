@@ -8,9 +8,9 @@ namespace trc::drawcomp
 {
     struct AnimationComponent
     {
-        AnimationComponent(Rig& rig) : rig(&rig), engine(rig) {}
+        AnimationComponent(RigDeviceHandle rig) : rig(rig), engine(rig) {}
 
-        Rig* rig;
+        RigDeviceHandle rig;
         AnimationEngine engine;
     };
 } // namespace trc::drawcomp

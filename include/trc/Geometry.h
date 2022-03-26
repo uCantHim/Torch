@@ -2,11 +2,11 @@
 
 #include "Types.h"
 #include "VulkanInclude.h"
+#include "Assets.h"
+#include "Rig.h"
 
 namespace trc
 {
-    class Rig;
-
     /**
      * @brief Handle to a geometry stored in the asset registry
      */
@@ -45,14 +45,14 @@ namespace trc
         auto getVertexSize() const noexcept -> size_t;
 
         bool hasRig() const;
-        auto getRig() -> Rig*;
+        auto getRig() -> RigDeviceHandle;
 
     private:
         friend class GeometryRegistry;
 
         GeometryDeviceHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
                              vk::Buffer verts, VertexType vertexType,
-                             Rig* rig = nullptr);
+                             std::optional<RigDeviceHandle> rig = std::nullopt);
 
         vk::Buffer indexBuffer;
         vk::Buffer vertexBuffer;
@@ -61,7 +61,7 @@ namespace trc
         vk::IndexType indexType;
         VertexType vertexType;
 
-        Rig* rig;
+        std::optional<RigDeviceHandle> rig;
     };
 
     static_assert(std::semiregular<GeometryDeviceHandle>);

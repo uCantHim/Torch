@@ -162,7 +162,7 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 
     // Get rig reference
     if (geo.has_rig()) {
-        data.rig = toRef<_Rig>(geo.rig());
+        data.rig = toRef<Rig>(geo.rig());
     }
 
     assert(data.skeletalVertices.empty()

@@ -22,6 +22,7 @@ target_sources(
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
         Rig.cpp
+        RigRegistry.cpp
         Scene.cpp
         SceneDescriptor.cpp
         ShadowPool.cpp
