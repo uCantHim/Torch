@@ -51,6 +51,12 @@ void trc::AssetDataProxy::deserialize(const serial::Asset& asset)
     case Type::kMaterial:
         variant = deserializeAssetData(asset.material());
         break;
+    case Type::kRig:
+        variant = deserializeAssetData(asset.rig());
+        break;
+    case Type::kAnimation:
+        variant = deserializeAssetData(asset.animation());
+        break;
     default:
         throw std::invalid_argument("[In AssetDataProxy::AssetDataProxy]: Serialized asset data"
                                     " does not contain a valid AssetData type.");
@@ -61,11 +67,11 @@ auto trc::AssetDataProxy::serialize() const -> serial::Asset
 {
     serial::Asset result;
     std::visit(util::VariantVisitor{
-        [&](const GeometryData& data) { *result.mutable_geometry() = serializeAssetData(data); },
-        [&](const TextureData& data) { *result.mutable_texture() = serializeAssetData(data); },
-        [&](const MaterialData& data) { *result.mutable_material() = serializeAssetData(data); },
-        [&](const AnimationData&) {},
-        [&](const RigData&) {},
+        [&](const GeometryData& data)  { *result.mutable_geometry() = serializeAssetData(data); },
+        [&](const TextureData& data)   { *result.mutable_texture() = serializeAssetData(data); },
+        [&](const MaterialData& data)  { *result.mutable_material() = serializeAssetData(data); },
+        [&](const RigData& data)       { *result.mutable_rig() = serializeAssetData(data); },
+        [&](const AnimationData& data) { *result.mutable_animation() = serializeAssetData(data); },
     }, variant);
 
     return result;

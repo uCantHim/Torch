@@ -16,7 +16,9 @@ namespace trc
     using AssetDataVariantBase = std::variant<
         GeometryData,
         TextureData,
-        MaterialData
+        MaterialData,
+        RigData,
+        AnimationData
     >;
 
     struct AssetDataProxy

@@ -1,0 +1,16 @@
+syntax = "proto3";
+package trc.serial;
+
+import "asset_reference.proto";
+
+message Rig
+{
+    message Bone
+    {
+        string name = 1;
+        repeated float inv_bind_pose_matrix = 2;
+    }
+
+    repeated Bone bones = 1;
+    repeated AssetReference animations = 2;
+}

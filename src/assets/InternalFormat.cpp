@@ -52,6 +52,24 @@ auto convert(serial::vec3 vec) -> vec3
     return { vec.x(), vec.y(), vec.z() };
 }
 
+void readMatrix(const google::protobuf::RepeatedField<float>& buf, mat4* mat)
+{
+    assert(buf.size() == 16);
+    assert(buf.size() * sizeof(float) == sizeof(mat4));
+
+    memcpy(mat, buf.data(), sizeof(mat4));
+}
+
+void writeMatrix(mat4 mat, google::protobuf::RepeatedField<float>* out)
+{
+    out->Resize(16, 0.0f);
+    assert(out->size() * sizeof(float) == sizeof(mat4));
+
+    memcpy(out->mutable_data(), &mat, sizeof(mat4));
+}
+
+
+
 template<typename T>
 void assignRef(serial::AssetReference* dst, const AssetReference<T>& src)
 {
@@ -144,7 +162,7 @@ auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 
     // Get rig reference
     if (geo.has_rig()) {
-        data.rig = toRef<Geometry>(geo.rig());
+        data.rig = toRef<_Rig>(geo.rig());
     }
 
     assert(data.skeletalVertices.empty()
@@ -229,6 +247,100 @@ auto deserializeAssetData(const trc::serial::Material& mat) -> MaterialData
     }
 
     return data;
+}
+
+auto serializeAssetData(const RigData& data)  -> serial::Rig
+{
+    serial::Rig out;
+
+    for (const RigData::Bone& bone : data.bones)
+    {
+        auto& newBone = *out.add_bones();
+        newBone.set_name(bone.name);
+        writeMatrix(bone.inverseBindPoseMat, newBone.mutable_inv_bind_pose_matrix());
+    }
+
+    for (const auto& ref : data.animations)
+    {
+        if (ref.hasAssetPath()) {
+            assignRef(out.add_animations(), ref);
+        }
+        else {
+            std::cout << "Warning: During rig asset serialization: RigData contains reference to"
+                " an asset without an asset path - the reference will not be included in the"
+                " serialized output!\n";
+        }
+    }
+
+    return out;
+}
+
+auto deserializeAssetData(const serial::Rig& rig) -> RigData
+{
+    RigData out;
+
+    for (const auto& bone : rig.bones())
+    {
+        auto& newBone = out.bones.emplace_back();
+        newBone.name = bone.name();
+        readMatrix(bone.inv_bind_pose_matrix(), &newBone.inverseBindPoseMat);
+    }
+
+    for (const auto& ref : rig.animations())
+    {
+        out.animations.emplace_back(toRef<_Animation>(ref));
+    }
+
+    return out;
+}
+
+auto serializeAssetData(const AnimationData& anim)  -> serial::Animation
+{
+    assert(anim.frameCount == anim.keyframes.size());
+
+    serial::Animation out;
+
+    out.set_frame_count(anim.frameCount);
+    out.set_duration(anim.durationMs);
+    out.set_time_per_frame(anim.frameTimeMs);
+
+    for (const auto& kf : anim.keyframes)
+    {
+        auto dst = out.add_keyframes()->mutable_bone_transform_matrices();
+        dst->Resize(kf.boneMatrices.size() * 16, 0.0f);
+
+        const size_t copySize = sizeof(mat4) * kf.boneMatrices.size();
+        assert(dst->size() * sizeof(float) == copySize);
+        memcpy(dst->mutable_data(), kf.boneMatrices.data(), copySize);
+    }
+
+    return out;
+}
+
+auto deserializeAssetData(const serial::Animation& tex) -> AnimationData
+{
+    assert(tex.keyframes_size() == static_cast<i32>(tex.frame_count()));
+
+    AnimationData out;
+
+    out.frameCount = tex.frame_count();
+    out.durationMs = tex.duration();
+    out.frameTimeMs = tex.time_per_frame();
+
+    for (const auto& kf : tex.keyframes())
+    {
+        assert((kf.bone_transform_matrices_size() % 16) == 0);
+
+        const size_t boneCount = kf.bone_transform_matrices_size() / 16;
+        auto& newKf = out.keyframes.emplace_back();
+        newKf.boneMatrices.resize(boneCount);
+
+        memcpy(newKf.boneMatrices.data(),
+               kf.bone_transform_matrices().data(),
+               boneCount * sizeof(mat4));
+    }
+
+    return out;
 }
 
 

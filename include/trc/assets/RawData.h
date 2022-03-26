@@ -24,7 +24,7 @@ namespace trc
         std::vector<SkeletalVertex> skeletalVertices;
         std::vector<VertexIndex> indices;
 
-        AssetReference<Geometry> rig{};
+        AssetReference<_Rig> rig{};
     };
 
     struct TextureData
@@ -80,6 +80,6 @@ namespace trc
         std::vector<Bone> bones;
 
         // A set of animations attached to the rig
-        std::vector<AnimationData> animations;
+        std::vector<AssetReference<_Animation>> animations;
     };
 } // namespace trc

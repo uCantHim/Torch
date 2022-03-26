@@ -89,7 +89,7 @@ auto trc::FBXImporter::load(const fs::path& path) -> ThirdPartyFileImportData
                 << name << "\"..\n";
 
             auto [rig, boneNodes] = loadRig(mesh, newMesh.geometry);
-            rig.animations = loadAnimations(scene, rig, boneNodes);
+            newMesh.animations = loadAnimations(scene, rig, boneNodes);
             newMesh.rig = std::move(rig);
         }
 
