@@ -1,5 +1,7 @@
 // Animation related stuff
 
+#include "asset_registry_descriptor.glsl"
+
 #ifndef BONE_INDICES_INPUT_LOCATION
 #define BONE_INDICES_INPUT_LOCATION 4
 #endif
@@ -8,18 +10,7 @@
 #define BONE_WEIGHTS_INPUT_LOCATION 5
 #endif
 
-#ifndef ANIM_DESCRIPTOR_SET_BINDING
-#define ANIM_DESCRIPTOR_SET_BINDING 3
-#endif
-
 #define NO_ANIMATION (uint(0) - 1)
-
-struct AnimationMetaData
-{
-    uint baseOffset;
-    uint frameCount;
-    uint boneCount;
-};
 
 struct AnimationPushConstantData
 {
@@ -30,20 +21,6 @@ struct AnimationPushConstantData
 
 layout (location = BONE_INDICES_INPUT_LOCATION) in uvec4 vertexBoneIndices;
 layout (location = BONE_WEIGHTS_INPUT_LOCATION) in vec4 vertexBoneWeights;
-
-layout (set = ANIM_DESCRIPTOR_SET_BINDING, binding = 0, std430) restrict readonly buffer
-AnimationMeta
-{
-    // Indexed by animation indices provided by the client
-    AnimationMetaData metas[];
-} animMeta;
-
-layout (set = ANIM_DESCRIPTOR_SET_BINDING, binding = 1, std140) restrict readonly buffer
-Animation
-{
-    // Animations start at offsets defined in the AnimationMetaData array
-    mat4 boneMatrices[];
-} animations;
 
 
 vec4 applyAnimation(uint animIndex, vec4 vertPos, uint frames[2], float frameWeight)

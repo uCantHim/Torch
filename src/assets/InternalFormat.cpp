@@ -288,7 +288,7 @@ auto deserializeAssetData(const serial::Rig& rig) -> RigData
 
     for (const auto& ref : rig.animations())
     {
-        out.animations.emplace_back(toRef<_Animation>(ref));
+        out.animations.emplace_back(toRef<Animation>(ref));
     }
 
     return out;

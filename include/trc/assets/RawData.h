@@ -80,6 +80,6 @@ namespace trc
         std::vector<Bone> bones;
 
         // A set of animations attached to the rig
-        std::vector<AssetReference<_Animation>> animations;
+        std::vector<AssetReference<Animation>> animations;
     };
 } // namespace trc

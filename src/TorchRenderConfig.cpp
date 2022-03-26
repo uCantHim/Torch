@@ -54,7 +54,6 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // Define named descriptors
     addDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR }, getGlobalDataDescriptorProvider());
     addDescriptor(DescriptorName{ ASSET_DESCRIPTOR },       getAssetDescriptorProvider());
-    addDescriptor(DescriptorName{ ANIMATION_DESCRIPTOR },   getAnimationDataDescriptorProvider());
     addDescriptor(DescriptorName{ FONT_DESCRIPTOR },        getFontDescriptorProvider());
     addDescriptor(DescriptorName{ SCENE_DESCRIPTOR },       getSceneDescriptorProvider());
     addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getGBufferDescriptorProvider());
@@ -170,12 +169,6 @@ auto trc::TorchRenderConfig::getFontDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
     return fontDataDescriptor;
-}
-
-auto trc::TorchRenderConfig::getAnimationDataDescriptorProvider() const
-    -> const DescriptorProviderInterface&
-{
-    return assetRegistry->getAnimations().getProvider();
 }
 
 auto trc::TorchRenderConfig::getAssets() -> AssetRegistry&

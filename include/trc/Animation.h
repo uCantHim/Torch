@@ -4,22 +4,15 @@
 
 namespace trc
 {
-    class AnimationDataStorage;
     struct AnimationData;
 
-    /**
-     * @brief A handle to an animation
-     */
-    class Animation
+    class AnimationDeviceHandle
     {
+    private:
+        friend class AnimationRegistry;
+        AnimationDeviceHandle(const AnimationData& data, ui32 deviceIndex);
+
     public:
-        Animation(const Animation&) = default;
-        Animation(Animation&&) noexcept = default;
-        auto operator=(const Animation&) -> Animation& = default;
-        auto operator=(Animation&&) noexcept -> Animation& = default;
-
-        Animation(AnimationDataStorage& storage, const AnimationData& data);
-
         auto getBufferIndex() const noexcept -> ui32;
 
         /**

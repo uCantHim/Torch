@@ -3,10 +3,8 @@
 
 #define BONE_INDICES_INPUT_LOCATION 4
 #define BONE_WEIGHTS_INPUT_LOCATION 5
-#define ANIM_DESCRIPTOR_SET_BINDING 4
+#define ASSET_DESCRIPTOR_SET_BINDING 1
 #include "../animation.glsl"
-
-layout (constant_id = 0) const bool isAnimated = false;
 
 layout (location = 0) in vec3 vertexPosition;
 layout (location = 1) in vec3 vertexNormal;
@@ -26,10 +24,10 @@ layout (push_constant) uniform PushConstants
     mat4 modelMatrix;
     uint materialIndex;
 
-    AnimationPushConstantData animData;
+    // AnimationPushConstantData animData;
 };
 
-layout (location = 0) out Vertex
+layout (location = 0) out VertexData
 {
     vec3 worldPos;
     vec2 uv;
@@ -48,9 +46,9 @@ void main()
     vec4 normal = vec4(vertexNormal, 0.0);
     vec4 tangent = vec4(vertexTangent, 0.0);
 
-    vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
-    normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
-    tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
+    // vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
+    // normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
+    // tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
     vertPos.w = 1.0;
 
     vec4 worldPos = modelMatrix * vertPos;

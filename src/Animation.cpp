@@ -1,35 +1,34 @@
 #include "Animation.h"
 
-#include "AnimationDataStorage.h"
 #include "assets/RawData.h"
 
 
 
-trc::Animation::Animation(AnimationDataStorage& storage, const AnimationData& data)
+trc::AnimationDeviceHandle::AnimationDeviceHandle(const AnimationData& data, ui32 deviceIndex)
     :
-    id(storage.makeAnimation(data)),
+    id(deviceIndex),
     frameCount(data.frameCount),
     durationMs(data.durationMs),
     frameTimeMs(data.frameTimeMs)
 {
 }
 
-auto trc::Animation::getBufferIndex() const noexcept -> ui32
+auto trc::AnimationDeviceHandle::getBufferIndex() const noexcept -> ui32
 {
     return id;
 }
 
-auto trc::Animation::getFrameCount() const noexcept -> ui32
+auto trc::AnimationDeviceHandle::getFrameCount() const noexcept -> ui32
 {
     return frameCount;
 }
 
-auto trc::Animation::getDuration() const noexcept -> float
+auto trc::AnimationDeviceHandle::getDuration() const noexcept -> float
 {
     return durationMs;
 }
 
-auto trc::Animation::getFrameTime() const noexcept -> float
+auto trc::AnimationDeviceHandle::getFrameTime() const noexcept -> float
 {
     return frameTimeMs;
 }

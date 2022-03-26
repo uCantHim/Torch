@@ -43,7 +43,7 @@ namespace trc
         using ImportData = RigData;
     };
 
-    class _Animation
+    class Animation
     {
     public:
         using Registry = AnimationRegistry;
@@ -54,5 +54,5 @@ namespace trc
     using TextureID = TypedAssetID<Texture>;
     using MaterialID = TypedAssetID<Material>;
     using RigID = TypedAssetID<_Rig>;
-    using AnimationID = TypedAssetID<_Animation>;
+    using AnimationID = TypedAssetID<Animation>;
 } // namespace trc

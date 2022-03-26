@@ -66,27 +66,22 @@ void trc::GeometryRegistry::update(vk::CommandBuffer)
 auto trc::GeometryRegistry::getDescriptorLayoutBindings()
     -> std::vector<DescriptorLayoutBindingInfo>
 {
-    std::vector<DescriptorLayoutBindingInfo> bindings;
-
-    if (config.enableRayTracing)
-    {
-        bindings.push_back({
+    return {
+        {
             config.vertBufBinding,
             vk::DescriptorType::eStorageBuffer,
             MAX_GEOMETRY_COUNT,
             rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
             {}, vk::DescriptorBindingFlagBits::ePartiallyBound,
-        });
-        bindings.push_back({
+        },
+        {
             config.indexBufBinding,
             vk::DescriptorType::eStorageBuffer,
             MAX_GEOMETRY_COUNT,
             rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
             {}, vk::DescriptorBindingFlagBits::ePartiallyBound,
-        });
-    }
-
-    return bindings;
+        },
+    };
 }
 
 auto trc::GeometryRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>

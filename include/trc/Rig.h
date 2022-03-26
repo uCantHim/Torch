@@ -1,14 +1,18 @@
 #pragma once
 
-#include "Animation.h"
+#include <vector>
+
+#include "Types.h"
+#include "Assets.h"
 #include "assets/RawData.h"
+#include "AnimationRegistry.h"
 
 namespace trc
 {
     class Rig
     {
     public:
-        Rig(const RigData& data, AnimationDataStorage& animStorage);
+        explicit Rig(const RigData& data);
 
         /**
          * @return const std::string& The rig's name
@@ -29,45 +33,19 @@ namespace trc
         auto getAnimationCount() const noexcept -> ui32;
 
         /**
-         * @return const Animation& The animation at the specified index
-         * @throw std::out_of_range
+         * @return AnimationID The animation at the specified index
+         * @throw std::out_of_range if index exceeds getAnimationCount()
          */
-        auto getAnimation(ui32 index) const -> const Animation&;
+        auto getAnimation(ui32 index) const -> AnimationID;
 
-        /**
-         * @brief Get an index handle to an animation in the rig
-         *
-         * This is not the animation's index in the GPU buffer! This index
-         * is used to query the animation from this rig.
-         *
-         * @return ui32
-         * @throw std::out_of_range
-         */
-        auto getAnimationIndex(const std::string& name) const noexcept -> ui32;
-
-        /**
-         * @brief Get an animation's name
-         */
-        auto getAnimationName(ui32 index) const -> const std::string&;
-
-        /**
-         * @return Animation& The animation with the specified name
-         * @throw std::out_of_range
-         */
-        auto getAnimationByName(const std::string& name) const -> const Animation&;
-
-        auto addAnimation(const AnimationData& anim) -> ui32;
+        void addAnimation(AnimationID anim);
 
     private:
-        AnimationDataStorage* animationStorage;
-
         std::string rigName;
 
         std::vector<RigData::Bone> bones;
         std::unordered_map<std::string, ui32> boneNames;
 
-        std::vector<Animation> animations;
-        std::unordered_map<std::string, ui32> animationsByName;
-        std::unordered_map<ui32, std::string> animationNamesById;
+        std::vector<AnimationID> animations;
     };
 }

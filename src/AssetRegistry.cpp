@@ -7,6 +7,7 @@
 #include "GeometryRegistry.h"
 #include "MaterialRegistry.h"
 #include "TextureRegistry.h"
+#include "AnimationRegistry.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 
@@ -17,8 +18,7 @@ trc::AssetRegistry::AssetRegistry(
     :
     device(instance.getDevice()),
     config(addDefaultValues(info)),
-    fontData(instance),
-    animationStorage(instance)
+    fontData(instance)
 {
     AssetRegistryModuleCreateInfo moduleCreateInfo{
         .device=instance.getDevice(),
@@ -26,6 +26,7 @@ trc::AssetRegistry::AssetRegistry(
         .geoIndexBufBinding  = DescBinding::eIndexBuffers,
         .materialBufBinding  = DescBinding::eMaterials,
         .textureBinding      = DescBinding::eTextures,
+        .animationBinding    = DescBinding::eAnimations,
         .geometryBufferUsage=config.geometryBufferUsage,
         .enableRayTracing=config.enableRayTracing && instance.hasRayTracing(),
     };
@@ -33,6 +34,7 @@ trc::AssetRegistry::AssetRegistry(
     // Add modules in the order in which they should be destroyed
     modules.addModule<MaterialRegistry>(moduleCreateInfo);
     modules.addModule<TextureRegistry>(moduleCreateInfo);
+    modules.addModule<AnimationRegistry>(moduleCreateInfo);
     modules.addModule<GeometryRegistry>(moduleCreateInfo);
 
     createDescriptors();
@@ -84,16 +86,6 @@ auto trc::AssetRegistry::getFonts() -> FontDataStorage&
 auto trc::AssetRegistry::getFonts() const -> const FontDataStorage&
 {
     return fontData;
-}
-
-auto trc::AssetRegistry::getAnimations() -> AnimationDataStorage&
-{
-    return animationStorage;
-}
-
-auto trc::AssetRegistry::getAnimations() const -> const AnimationDataStorage&
-{
-    return animationStorage;
 }
 
 auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept

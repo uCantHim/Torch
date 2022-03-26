@@ -19,7 +19,6 @@
 #include "Geometry.h"
 #include "Material.h"
 #include "Rig.h"
-#include "AnimationDataStorage.h"
 #include "text/FontDataStorage.h"
 
 namespace trc
@@ -69,8 +68,6 @@ namespace trc
 
         auto getFonts() -> FontDataStorage&;
         auto getFonts() const -> const FontDataStorage&;
-        auto getAnimations() -> AnimationDataStorage&;
-        auto getAnimations() const -> const AnimationDataStorage&;
 
         auto getDescriptorSetProvider() const noexcept -> const DescriptorProviderInterface&;
 
@@ -93,6 +90,7 @@ namespace trc
             eTextures = 1,
             eVertexBuffers = 2,
             eIndexBuffers = 3,
+            eAnimations = 4,
         };
 
         void createDescriptors();
@@ -106,7 +104,6 @@ namespace trc
         ////////////////////////////
         // Additional asset storages
         FontDataStorage fontData;
-        AnimationDataStorage animationStorage;
     };
 
 

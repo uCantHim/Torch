@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <optional>
 
 #include "Rig.h"
 #include "trc_util/data/ExternalStorage.h"
@@ -27,8 +28,7 @@ namespace trc
         void update(float timeDeltaMs);
 
         void playAnimation(ui32 index);
-        void playAnimation(const std::string& name);
-        void playAnimation(const Animation& anim);
+        void playAnimation(AnimationDeviceHandle anim);
 
         auto getState() const -> ID;
 
@@ -37,7 +37,7 @@ namespace trc
 
         const Rig* rig{ nullptr };
 
-        const Animation* currentAnimation{ nullptr };
+        std::optional<AnimationDeviceHandle> currentAnimation{ std::nullopt };
         float currentDuration{ 0.0f };
         uvec2 currentFrames{ 0, 1 };
 

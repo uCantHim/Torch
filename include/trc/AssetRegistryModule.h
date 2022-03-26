@@ -14,6 +14,7 @@ namespace trc
         ui32 geoIndexBufBinding;
         ui32 materialBufBinding;
         ui32 textureBinding;
+        ui32 animationBinding;
 
         vk::BufferUsageFlags geometryBufferUsage{};
 

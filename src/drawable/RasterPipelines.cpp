@@ -106,7 +106,6 @@ auto makeDrawableOpaquePipeline(PipelineFlags flags) -> Pipeline::ID
         .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addPushConstantRange(
             { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) },
             DrawablePushConstants{}
@@ -138,7 +137,6 @@ auto makeDrawableTransparentPipeline(PipelineFlags flags) -> Pipeline::ID
         .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange(
             { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) },
@@ -169,7 +167,7 @@ auto makeDrawableShadowPipeline(PipelineFlags flags) -> Pipeline::ID
 
     auto layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::ANIMATION_DESCRIPTOR }, true)
+        .addDescriptorIf(isAnimated, DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
         .addPushConstantRange(
             { vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawablePushConstants) },
             DrawablePushConstants{}
