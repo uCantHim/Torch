@@ -5,17 +5,13 @@
 namespace trc
 {
 
-inline auto generateUniqueName(std::string name)
-{
-    return "__trc_fileless_asset__" + name;
-}
-
-
-
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {
-    return _createAsset<T>(std::make_unique<InMemorySource<T>>(data));
+    return _createAsset<T>(
+        std::make_unique<InMemorySource<T>>(data),
+        AssetMetaData{ .uniqueName=generateUniqueName() }
+    );
 }
 
 template<AssetBaseType T>
@@ -30,8 +26,7 @@ inline void AssetManager::destroyAsset(const TypedAssetID<T> id)
     assetIdPool.free(static_cast<AssetID::IndexType>(id.uniqueId));
     assetMetaData.erase(id.uniqueId);
 
-    id.reg->remove(id.id);
-    // registry.remove(id.id);
+    registry.remove(id.id);
 }
 
 template<AssetBaseType T>
@@ -56,6 +51,12 @@ inline auto AssetManager::getAsset(const AssetPath& path) const -> TypedAssetID<
 }
 
 template<AssetBaseType T>
+inline auto AssetManager::getAssetMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
+{
+    return assetMetaData.at(id.getAssetID());
+}
+
+template<AssetBaseType T>
 inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 {
     return registry.getModule<T>();
@@ -71,16 +72,20 @@ auto AssetManager::_loadAsset(const AssetPath& path) -> TypedAssetID<T>
         return std::any_cast<TypedAssetID<T>>(it->second);
     }
 
-    const auto id = _createAsset<T>(std::make_unique<AssetPathSource<T>>(path));
+    const auto id = _createAsset<T>(
+        std::make_unique<AssetPathSource<T>>(path),
+        AssetMetaData{ .uniqueName=path.getUniquePath() }
+    );
     it->second = id;
 
     return id;
 }
 
 template<AssetBaseType T>
-inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
+inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source, AssetMetaData meta)
+    -> TypedAssetID<T>
 {
-    const auto assetId = _createBaseAsset({});
+    const auto assetId = _createBaseAsset(std::move(meta));
 
     const auto localId = registry.add(std::move(source));
     return TypedAssetID<T>{ assetId, localId, *this };

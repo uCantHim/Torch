@@ -11,6 +11,7 @@ namespace trc
 
     class AssetPath;
     class AssetManager;
+    struct AssetMetaData;
 
     template<typename Derived>
     class AssetManagerInterface
@@ -40,6 +41,12 @@ namespace trc
         }
 
         template<AssetBaseType T>
+        auto getAssetMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
+        {
+            return asDerived().template getAssetMetaData(id);
+        }
+
+        template<AssetBaseType T>
         inline auto getModule() -> AssetRegistryModule<T>&
         {
             return asDerived().template getModule<T>();
@@ -49,6 +56,7 @@ namespace trc
         constexpr auto asDerived() -> Derived& {
             return static_cast<Derived&>(*this);
         }
+
         constexpr auto asDerived() const -> const Derived& {
             return static_cast<const Derived&>(*this);
         }

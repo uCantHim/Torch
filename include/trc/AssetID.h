@@ -8,6 +8,8 @@
 
 namespace trc
 {
+    struct AssetMetaData;
+
     struct _AssetIdTypeTag {};
 
     /**
@@ -39,6 +41,7 @@ namespace trc
 
         auto get() const;
         auto getDeviceDataHandle() const;
+        auto getMetaData() const -> const AssetMetaData&;
 
     private:
         /** ID that references metadata common to all assets */
@@ -80,5 +83,11 @@ namespace trc
         }
 
         return manager->getModule<T>().getHandle(id);
+    }
+
+    template<AssetBaseType T>
+    auto TypedAssetID<T>::getMetaData() const -> const AssetMetaData&
+    {
+        return manager->getAssetMetaData(*this);
     }
 } // namespace trc

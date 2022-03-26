@@ -15,6 +15,7 @@ namespace trc
      */
     struct AssetMetaData
     {
+        std::string uniqueName;
     };
 
     struct GeometryData

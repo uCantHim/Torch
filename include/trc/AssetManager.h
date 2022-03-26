@@ -69,6 +69,9 @@ namespace trc
         template<AssetBaseType T>
         auto getAsset(const AssetPath& path) const -> TypedAssetID<T>;
 
+        template<AssetBaseType T>
+        auto getAssetMetaData(TypedAssetID<T> id) const -> const AssetMetaData&;
+
 
         /////////////////////////////////////
         //  Access to the device registry  //
@@ -82,11 +85,14 @@ namespace trc
     private:
         using AnyTypedID = std::any;
 
+        std::atomic<ui32> uniqueNameIndex{ 0 };
+        auto generateUniqueName() -> std::string;
+
         template<AssetBaseType T>
         auto _loadAsset(const AssetPath& path) -> TypedAssetID<T>;
         template<AssetBaseType T>
-        auto _createAsset(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>;
-        auto _createBaseAsset(const AssetMetaData& meta) -> AssetID;
+        auto _createAsset(u_ptr<AssetSource<T>> source, AssetMetaData meta) -> TypedAssetID<T>;
+        auto _createBaseAsset(AssetMetaData meta) -> AssetID;
 
         /** Handles device representations of assets */
         AssetRegistry registry;
