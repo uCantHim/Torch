@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <atomic>
 #include <any>
 #include <filesystem>
 
@@ -89,8 +90,6 @@ namespace trc
         auto getModule() -> AssetRegistryModule<T>&;
 
     private:
-        using AnyTypedID = std::any;
-
         /**
          * This is the asset source passed to the asset registry.
          *
@@ -136,6 +135,7 @@ namespace trc
         /** Stores high-level management-related metadata for all asset types */
         std::unordered_map<AssetID, AssetMetaData> assetMetaData;
 
+        using AnyTypedID = std::any;
         std::unordered_map<AssetPath, AnyTypedID> pathsToAssets;
     };
 } // namespace trc

@@ -39,12 +39,12 @@ namespace trc
 
 
 
-trc::GeometryRegistry::InternalStorage::operator GeometryDeviceHandle()
+trc::GeometryRegistry::InternalStorage::operator GeometryHandle()
 {
     return {
         *indexBuf, numIndices, vk::IndexType::eUint32,
         *vertexBuf, vertexType,
-        rig.has_value() ? rig.value() : std::optional<RigDeviceHandle>{ std::nullopt }
+        rig.has_value() ? rig.value() : std::optional<RigHandle>{ std::nullopt }
     };
 }
 
@@ -146,7 +146,7 @@ void trc::GeometryRegistry::remove(LocalID id)
     storage.at(static_cast<LocalID::IndexType>(id)) = {};
 }
 
-auto trc::GeometryRegistry::getHandle(LocalID id) -> GeometryDeviceHandle
+auto trc::GeometryRegistry::getHandle(LocalID id) -> GeometryHandle
 {
     return storage.at(static_cast<LocalID::IndexType>(id));
 }

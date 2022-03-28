@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+
 namespace trc
 {
     /**
@@ -9,6 +11,7 @@ namespace trc
     concept AssetBaseType = requires {
         typename T::Registry;
         typename T::ImportData;
+        std::semiregular<T>;
     };
 
     /**
@@ -27,5 +30,9 @@ namespace trc
      * @brief Typedef that retrieves an asset type's handle type
      */
     template<AssetBaseType T>
+        requires requires {
+            typename AssetRegistryModule<T>::Handle;
+            std::semiregular<typename AssetRegistryModule<T>::Handle>;
+        }
     using AssetHandle = typename AssetRegistryModule<T>::Handle;
 } // namespace trc

@@ -11,7 +11,6 @@ namespace trc
     template<AssetBaseType T>
     struct TypedAssetID;
 
-    class AssetPath;
     class AssetManager;
     struct AssetMetaData;
 

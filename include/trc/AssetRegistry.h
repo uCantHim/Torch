@@ -16,9 +16,6 @@
 #include "Assets.h"
 #include "AssetSource.h"
 #include "assets/RawData.h"
-#include "Geometry.h"
-#include "Material.h"
-#include "Rig.h"
 #include "text/FontDataStorage.h"
 
 namespace trc

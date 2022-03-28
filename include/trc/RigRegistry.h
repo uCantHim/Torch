@@ -21,10 +21,6 @@ namespace trc
     public:
         class Handle
         {
-        private:
-            friend RigRegistry;
-            explicit Handle(InternalStorage& storage);
-
         public:
             /**
              * @return const std::string& The rig's name
@@ -51,6 +47,9 @@ namespace trc
             auto getAnimation(ui32 index) const -> AnimationID;
 
         private:
+            friend RigRegistry;
+            explicit Handle(InternalStorage& storage);
+
             InternalStorage* storage;
         };
 
@@ -83,6 +82,4 @@ namespace trc
         data::IdPool rigIdPool;
         componentlib::Table<u_ptr<InternalStorage>, LocalID> storage;
     };
-
-    using RigDeviceHandle = RigRegistry::Handle;
 } // namespace trc

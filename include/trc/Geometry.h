@@ -10,7 +10,7 @@ namespace trc
     /**
      * @brief Handle to a geometry stored in the asset registry
      */
-    class GeometryDeviceHandle
+    class GeometryHandle
     {
     public:
         enum class VertexType : ui8
@@ -19,13 +19,13 @@ namespace trc
             eSkeletal = 1 << 1,
         };
 
-        GeometryDeviceHandle() = default;
-        GeometryDeviceHandle(const GeometryDeviceHandle&) = default;
-        GeometryDeviceHandle(GeometryDeviceHandle&&) noexcept = default;
-        ~GeometryDeviceHandle() = default;
+        GeometryHandle() = default;
+        GeometryHandle(const GeometryHandle&) = default;
+        GeometryHandle(GeometryHandle&&) noexcept = default;
+        ~GeometryHandle() = default;
 
-        auto operator=(const GeometryDeviceHandle&) -> GeometryDeviceHandle& = default;
-        auto operator=(GeometryDeviceHandle&&) noexcept -> GeometryDeviceHandle& = default;
+        auto operator=(const GeometryHandle&) -> GeometryHandle& = default;
+        auto operator=(GeometryHandle&&) noexcept -> GeometryHandle& = default;
 
         /**
          * @brief Bind vertex and index buffer
@@ -45,14 +45,14 @@ namespace trc
         auto getVertexSize() const noexcept -> size_t;
 
         bool hasRig() const;
-        auto getRig() -> RigDeviceHandle;
+        auto getRig() -> RigHandle;
 
     private:
         friend class GeometryRegistry;
 
-        GeometryDeviceHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
+        GeometryHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
                              vk::Buffer verts, VertexType vertexType,
-                             std::optional<RigDeviceHandle> rig = std::nullopt);
+                             std::optional<RigHandle> rig = std::nullopt);
 
         vk::Buffer indexBuffer;
         vk::Buffer vertexBuffer;
@@ -61,8 +61,8 @@ namespace trc
         vk::IndexType indexType;
         VertexType vertexType;
 
-        std::optional<RigDeviceHandle> rig;
+        std::optional<RigHandle> rig;
     };
 
-    static_assert(std::semiregular<GeometryDeviceHandle>);
+    static_assert(std::semiregular<GeometryHandle>);
 } // namespace trc

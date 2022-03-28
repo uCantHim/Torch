@@ -22,7 +22,7 @@ namespace trc
     {
     public:
         using LocalID = TypedAssetID<Geometry>::LocalID;
-        using Handle = GeometryDeviceHandle;
+        using Handle = GeometryHandle;
 
         explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);
 
@@ -34,7 +34,7 @@ namespace trc
         auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID;
         void remove(LocalID id);
 
-        auto getHandle(LocalID id) -> GeometryDeviceHandle;
+        auto getHandle(LocalID id) -> GeometryHandle;
 
     private:
         struct Config
@@ -51,9 +51,9 @@ namespace trc
          */
         struct InternalStorage
         {
-            using VertexType = GeometryDeviceHandle::VertexType;
+            using VertexType = GeometryHandle::VertexType;
 
-            operator GeometryDeviceHandle();
+            operator GeometryHandle();
 
             vkb::DeviceLocalBuffer indexBuf;
             vkb::DeviceLocalBuffer vertexBuf;
@@ -62,7 +62,7 @@ namespace trc
 
             VertexType vertexType;
 
-            std::optional<RigDeviceHandle> rig;
+            std::optional<RigHandle> rig;
 
             ui32 deviceIndex;
         };

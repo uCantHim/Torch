@@ -84,7 +84,7 @@ namespace trc
 
         void makeRasterization(DrawableID drawable, const RasterComponentCreateInfo& createInfo);
         void makeRaytracing(DrawableID drawable);
-        void makeAnimationEngine(DrawableID drawable, RigDeviceHandle rig);
+        void makeAnimationEngine(DrawableID drawable, RigHandle rig);
         void makeNode(DrawableID drawable);
 
         bool hasRasterization(DrawableID drawable) const;

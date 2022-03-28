@@ -1,6 +1,9 @@
 #pragma once
 
 #include "RigRegistry.h"
-#include "AnimationRegistry.h"
+#include "AssetManager.h"
 
-// Declares RigRegistry, RigDeviceHandle, and AnimationDeviceHandle
+namespace trc
+{
+    using RigHandle = RigRegistry::Handle;
+} // namespace trc

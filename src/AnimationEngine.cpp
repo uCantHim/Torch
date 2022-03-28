@@ -5,7 +5,7 @@
 
 
 
-trc::AnimationEngine::AnimationEngine(RigDeviceHandle rig)
+trc::AnimationEngine::AnimationEngine(RigHandle rig)
     :
     rig(rig)
 {

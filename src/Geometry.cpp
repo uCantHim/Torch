@@ -2,13 +2,13 @@
 
 
 
-trc::GeometryDeviceHandle::GeometryDeviceHandle(
+trc::GeometryHandle::GeometryHandle(
     vk::Buffer indices,
     ui32 numIndices,
     vk::IndexType indexType,
     vk::Buffer verts,
     VertexType vertexType,
-    std::optional<RigDeviceHandle> rig)
+    std::optional<RigHandle> rig)
     :
     indexBuffer(indices),
     vertexBuffer(verts),
@@ -19,43 +19,43 @@ trc::GeometryDeviceHandle::GeometryDeviceHandle(
 {
 }
 
-void trc::GeometryDeviceHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
+void trc::GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
     cmdBuf.bindIndexBuffer(indexBuffer, 0, indexType);
     cmdBuf.bindVertexBuffers(binding, vertexBuffer, vk::DeviceSize(0));
 }
 
-auto trc::GeometryDeviceHandle::getIndexBuffer() const noexcept -> vk::Buffer
+auto trc::GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
 {
     return indexBuffer;
 }
 
-auto trc::GeometryDeviceHandle::getVertexBuffer() const noexcept -> vk::Buffer
+auto trc::GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
 {
     return vertexBuffer;
 }
 
-auto trc::GeometryDeviceHandle::getIndexCount() const noexcept -> ui32
+auto trc::GeometryHandle::getIndexCount() const noexcept -> ui32
 {
     return numIndices;
 }
 
-auto trc::GeometryDeviceHandle::getIndexType() const noexcept -> vk::IndexType
+auto trc::GeometryHandle::getIndexType() const noexcept -> vk::IndexType
 {
     return indexType;
 }
 
-auto trc::GeometryDeviceHandle::getVertexType() const noexcept -> VertexType
+auto trc::GeometryHandle::getVertexType() const noexcept -> VertexType
 {
     return vertexType;
 }
 
-bool trc::GeometryDeviceHandle::hasRig() const
+bool trc::GeometryHandle::hasRig() const
 {
     return rig.has_value();
 }
 
-auto trc::GeometryDeviceHandle::getRig() -> RigDeviceHandle
+auto trc::GeometryHandle::getRig() -> RigHandle
 {
     return rig.value();
 }

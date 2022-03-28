@@ -24,21 +24,21 @@ namespace trc
         using ID = data::ExternalStorage<AnimationDeviceData>::ID;
 
         AnimationEngine() = default;
-        AnimationEngine(RigDeviceHandle rig);
+        AnimationEngine(RigHandle rig);
 
         void update(float timeDeltaMs);
 
         void playAnimation(ui32 index);
-        void playAnimation(AnimationDeviceHandle anim);
+        void playAnimation(AnimationHandle anim);
 
         auto getState() const -> ID;
 
     private:
         void resetAnimationTime();
 
-        std::optional<RigDeviceHandle> rig{ std::nullopt };
+        std::optional<RigHandle> rig{ std::nullopt };
 
-        std::optional<AnimationDeviceHandle> currentAnimation{ std::nullopt };
+        std::optional<AnimationHandle> currentAnimation{ std::nullopt };
         float currentDuration{ 0.0f };
         uvec2 currentFrames{ 0, 1 };
 

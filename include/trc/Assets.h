@@ -15,37 +15,32 @@ namespace trc
     struct RigData;
     struct AnimationData;
 
-    class Geometry
+    struct Geometry
     {
-    public:
         using Registry = GeometryRegistry;
         using ImportData = GeometryData;
     };
 
-    class Texture
+    struct Texture
     {
-    public:
         using Registry = TextureRegistry;
         using ImportData = TextureData;
     };
 
-    class Material
+    struct Material
     {
-    public:
         using Registry = MaterialRegistry;
         using ImportData = MaterialData;
     };
 
-    class Rig
+    struct Rig
     {
-    public:
         using Registry = RigRegistry;
         using ImportData = RigData;
     };
 
-    class Animation
+    struct Animation
     {
-    public:
         using Registry = AnimationRegistry;
         using ImportData = AnimationData;
     };

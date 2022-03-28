@@ -1,7 +1,6 @@
 target_sources(
     torch
     PRIVATE
-        Animation.cpp
         AnimationEngine.cpp
         AnimationRegistry.cpp
         AssetManager.cpp

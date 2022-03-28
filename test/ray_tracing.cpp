@@ -34,7 +34,7 @@ void run()
 
     auto geo = am.create<trc::Geometry>(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
 
-    trc::GeometryDeviceHandle tri = am.create<trc::Geometry>(
+    trc::GeometryHandle tri = am.create<trc::Geometry>(
         trc::GeometryData{
             .vertices = {
                 { vec3(0.0f, 0.0f, 0.0f), {}, {}, {} },

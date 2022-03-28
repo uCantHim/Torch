@@ -4,8 +4,8 @@ target_sources(
         DefaultDrawable.cpp
         Drawable.cpp
         DrawableComponentScene.cpp
-        DrawablePool.cpp
+        # DrawablePool.cpp
         RasterPipelines.cpp
-        RasterDrawablePool.cpp
-        RayDrawablePool.cpp
+        # RasterDrawablePool.cpp
+        # RayDrawablePool.cpp
 )

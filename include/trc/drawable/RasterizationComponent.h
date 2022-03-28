@@ -12,8 +12,8 @@ namespace trc::drawcomp
 {
     struct RasterComponent
     {
-        GeometryDeviceHandle geo;
-        MaterialDeviceHandle mat;
+        GeometryHandle geo;
+        MaterialHandle mat;
 
         Transformation::ID modelMatrixId;
         AnimationEngine::ID anim;

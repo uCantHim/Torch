@@ -10,7 +10,6 @@
 #include "AssetRegistryModule.h"
 #include "Assets.h"
 #include "AssetSource.h"
-#include "Animation.h"
 #include "assets/RawData.h"
 
 namespace trc
@@ -24,7 +23,40 @@ namespace trc
     {
     public:
         using LocalID = TypedAssetID<Animation>::LocalID;
-        using Handle = AnimationDeviceHandle;
+
+        class Handle
+        {
+        public:
+            auto getBufferIndex() const noexcept -> ui32;
+
+            /**
+             * @return uint32_t The number of frames in the animation
+             */
+            auto getFrameCount() const noexcept -> ui32;
+
+            /**
+             * @return float The total duration of the animation in milliseconds
+             */
+            auto getDuration() const noexcept -> float;
+
+            /**
+             * @return float The duration of a single frame in the animation in
+             *               milliseconds. All frames in an animation have the same
+             *               duration.
+             */
+            auto getFrameTime() const noexcept -> float;
+
+        private:
+            friend class AnimationRegistry;
+            Handle(const AnimationData& data, ui32 deviceIndex);
+
+            /** Index in the AnimationDataStorage's large animation buffer */
+            ui32 id;
+
+            ui32 frameCount;
+            float durationMs;
+            float frameTimeMs;
+        };
 
         explicit AnimationRegistry(const AssetRegistryModuleCreateInfo& info);
 

@@ -90,7 +90,7 @@ void trc::MaterialRegistry::remove(LocalID id)
     idPool.free(static_cast<LocalID::IndexType>(id));
 }
 
-auto trc::MaterialRegistry::getHandle(LocalID id) -> MaterialDeviceHandle
+auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
     return materials.at(static_cast<LocalID::IndexType>(id));
 }

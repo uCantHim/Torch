@@ -25,11 +25,12 @@ namespace trc
          */
         class Handle : public SharedCacheReference<InternalStorage>
         {
-            friend TextureRegistry;
-            explicit Handle(InternalStorage& s);
-
         public:
             auto getDeviceIndex() const -> ui32;
+
+        private:
+            friend TextureRegistry;
+            explicit Handle(InternalStorage& s);
         };
 
     public:

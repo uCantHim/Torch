@@ -2,6 +2,37 @@
 
 
 
+trc::AnimationRegistry::Handle::Handle(const AnimationData& data, ui32 deviceIndex)
+    :
+    id(deviceIndex),
+    frameCount(data.frameCount),
+    durationMs(data.durationMs),
+    frameTimeMs(data.frameTimeMs)
+{
+}
+
+auto trc::AnimationRegistry::Handle::getBufferIndex() const noexcept -> ui32
+{
+    return id;
+}
+
+auto trc::AnimationRegistry::Handle::getFrameCount() const noexcept -> ui32
+{
+    return frameCount;
+}
+
+auto trc::AnimationRegistry::Handle::getDuration() const noexcept -> float
+{
+    return durationMs;
+}
+
+auto trc::AnimationRegistry::Handle::getFrameTime() const noexcept -> float
+{
+    return frameTimeMs;
+}
+
+
+
 trc::AnimationRegistry::AnimationRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     config(info),

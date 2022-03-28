@@ -7,11 +7,10 @@
 
 #include "Types.h"
 #include "Assets.h"
-#include "Material.h"
 #include "AssetRegistryModule.h"
-#include "TextureRegistry.h"
-#include "assets/RawData.h"
 #include "AssetSource.h"
+#include "assets/RawData.h"
+#include "Texture.h"
 
 namespace trc
 {
@@ -19,7 +18,20 @@ namespace trc
     {
     public:
         using LocalID = TypedAssetID<Material>::LocalID;
-        using Handle = MaterialDeviceHandle;
+
+        struct Handle
+        {
+        public:
+            auto getBufferIndex() const -> ui32 {
+                return id;
+            }
+
+        private:
+            friend class MaterialRegistry;
+            explicit Handle(ui32 bufferIndex) : id(bufferIndex) {}
+
+            ui32 id;
+        };
 
         MaterialRegistry(const AssetRegistryModuleCreateInfo& info);
 
@@ -31,7 +43,7 @@ namespace trc
         auto add(u_ptr<AssetSource<Material>> source) -> LocalID;
         void remove(LocalID id);
 
-        auto getHandle(LocalID id) -> MaterialDeviceHandle;
+        auto getHandle(LocalID id) -> Handle;
 
         template<std::invocable<MaterialData&> F>
         void modify(LocalID id, F&& func)
@@ -71,8 +83,8 @@ namespace trc
 
         struct InternalStorage
         {
-            operator MaterialDeviceHandle() const {
-                return MaterialDeviceHandle(bufferIndex);
+            operator Handle() const {
+                return Handle(bufferIndex);
             }
 
             ui32 bufferIndex;
