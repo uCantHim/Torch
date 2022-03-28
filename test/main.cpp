@@ -38,8 +38,7 @@ void run()
 
     auto skeletonGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
     auto hoodedBoiGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
-    auto lindaMesh = trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx");
-    auto lindaGeoIndex = ar.add(lindaMesh); //, lindaMesh.rig);
+    auto lindaGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
 
     auto lindaDiffTexIdx = ar.add(
         trc::loadTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
@@ -102,13 +101,13 @@ void run()
             .translate(glm::cos(angle), 0.0f, glm::sin(angle))
             .rotateY(-glm::half_pi<float>() - angle);
         scene.getRoot().attach(inst);
-        // inst.getAnimationEngine().playAnimation(0);
+        inst.getAnimationEngine().playAnimation(0);
     }
 
     // Hooded boi
     trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, mapMatIndex }, scene);
     hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    // hoodedBoi.getAnimationEngine().playAnimation(0);
+    hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
     auto lindaMatIdx = ar.add(trc::MaterialData{
@@ -118,7 +117,7 @@ void run()
 
     trc::Drawable linda({ lindaGeoIndex, lindaMatIdx }, scene);
     linda.setScale(0.3f).translateX(-1.0f);
-    // linda.getAnimationEngine().playAnimation(0);
+    linda.getAnimationEngine().playAnimation(0);
 
     // Images
     auto planeGeo = ar.add(trc::makePlaneGeo());

@@ -106,7 +106,7 @@ namespace trc
 
     template<AssetBaseType T>
     AssetReference<T>::AssetReference(u_ptr<AssetSource<T>> source)
-        : data(new SharedData{ .dataSource=std::move(source) })
+        : data(new SharedData{ .dataSource=std::move(source), .id={} })
     {
     }
 

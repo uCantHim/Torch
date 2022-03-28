@@ -28,12 +28,22 @@ auto trc::loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData
 
 auto trc::loadGeometry(const fs::path& filePath) -> GeometryData
 {
-    const auto assets = loadAssets(filePath);
+    auto assets = loadAssets(filePath);
     if (assets.meshes.empty()) {
         throw DataImportError("[In loadGeometry]: File does not contain any geometries!");
     }
 
-    return assets.meshes[0].geometry;
+    auto& mesh = assets.meshes[0];
+    if (mesh.rig.has_value())
+    {
+        auto& rig = mesh.rig.value();
+        for (auto& anim : mesh.animations) {
+            rig.animations.emplace_back(anim);
+        }
+        mesh.geometry.rig = rig;
+    }
+
+    return mesh.geometry;
 }
 
 auto trc::loadTexture(const fs::path& filePath) -> TextureData
