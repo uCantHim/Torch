@@ -48,6 +48,12 @@ namespace trc
         auto create(const AssetData<T>& data) -> TypedAssetID<T>;
 
         /**
+         * @brief Create an asset from any asset data source
+         */
+        template<AssetBaseType T>
+        auto create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>;
+
+        /**
          * @brief Load an asset in Torch's internal format
          */
         template<AssetBaseType T>
@@ -85,8 +91,36 @@ namespace trc
     private:
         using AnyTypedID = std::any;
 
+        /**
+         * This is the asset source passed to the asset registry.
+         *
+         * It resolves any asset references when loading its data.
+         */
+        template<AssetBaseType T>
+        class InternalAssetSource : public AssetSource<T>
+        {
+        public:
+            InternalAssetSource(AssetManager& man, u_ptr<AssetSource<T>> impl)
+                : manager(&man), source(std::move(impl)) {}
+
+            auto load() -> AssetData<T> override
+            {
+                auto data = source->load();
+                manager->resolveReferences<T>(data);
+
+                return data;
+            }
+
+        private:
+            AssetManager* manager;
+            u_ptr<AssetSource<T>> source;
+        };
+
         std::atomic<ui32> uniqueNameIndex{ 0 };
         auto generateUniqueName() -> std::string;
+
+        template<AssetBaseType T>
+        void resolveReferences(AssetData<T>& data);
 
         template<AssetBaseType T>
         auto _loadAsset(const AssetPath& path) -> TypedAssetID<T>;

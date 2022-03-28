@@ -1,9 +1,5 @@
 #include "AssetManager.h"
 
-#include "GeometryRegistry.h"
-#include "TextureRegistry.h"
-#include "MaterialRegistry.h"
-
 
 
 trc::AssetManager::AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo)
@@ -24,15 +20,6 @@ auto trc::AssetManager::add(const TextureData& data) -> TextureID
 
 auto trc::AssetManager::add(const MaterialData& data) -> MaterialID
 {
-    auto ref = data.albedoTexture;
-    if (!ref.empty()) {
-        ref.resolve(*this);
-    }
-    ref = data.normalTexture;
-    if (!ref.empty()) {
-        ref.resolve(*this);
-    }
-
     return create<Material>(data);
 }
 

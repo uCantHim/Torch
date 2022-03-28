@@ -1,7 +1,12 @@
 #pragma once
 
+#include <variant>
+
+#include <trc_util/Util.h>
+
 #include "AssetID.h"
 #include "AssetPath.h"
+#include "AssetSource.h"
 #include "AssetManagerInterface.h"
 
 namespace trc
@@ -29,6 +34,8 @@ namespace trc
         AssetReference() = default;
         AssetReference(AssetPath path);
         AssetReference(TypedAssetID<T> id);
+        AssetReference(AssetData<T> data);
+        AssetReference(u_ptr<AssetSource<T>> source);
 
         /**
          * A reference is empty if it points to neither an asset path nor
@@ -40,8 +47,8 @@ namespace trc
 
         /**
          * Tests whether the reference points to an object that is
-         * identified by an asset path, or whether it is an ad-hoc
-         * reference to an asset that exists only in memory.
+         * identified by a persistent asset path, or whether it is an
+         * ad-hoc reference to an asset that exists only in memory.
          *
          * @return bool True if the referenced object is identified by an
          *              asset path.
@@ -66,11 +73,11 @@ namespace trc
     private:
         struct SharedData
         {
-            std::optional<AssetPath> path;
+            std::variant<std::monostate, AssetPath, u_ptr<AssetSource<T>>> dataSource;
             TypedAssetID<T> id;
         };
 
-        s_ptr<SharedData> data;
+        s_ptr<SharedData> data{ nullptr };
     };
 
 
@@ -81,13 +88,25 @@ namespace trc
 
     template<AssetBaseType T>
     AssetReference<T>::AssetReference(AssetPath path)
-        : data(new SharedData{ .path=std::move(path), .id={} })
+        : data(new SharedData{ .dataSource=std::move(path), .id={} })
     {
     }
 
     template<AssetBaseType T>
     AssetReference<T>::AssetReference(TypedAssetID<T> id)
-        : data(new SharedData{ .path=std::nullopt, .id=id })
+        : data(new SharedData{ .dataSource={}, .id=id })
+    {
+    }
+
+    template<AssetBaseType T>
+    AssetReference<T>::AssetReference(AssetData<T> data)
+        : AssetReference(std::make_unique<AssetSource<T>>(std::move(data)))
+    {
+    }
+
+    template<AssetBaseType T>
+    AssetReference<T>::AssetReference(u_ptr<AssetSource<T>> source)
+        : data(new SharedData{ .dataSource=std::move(source) })
     {
     }
 
@@ -100,7 +119,7 @@ namespace trc
     template<AssetBaseType T>
     bool AssetReference<T>::hasAssetPath() const
     {
-        return data != nullptr && data->path.has_value();
+        return data != nullptr && std::holds_alternative<AssetPath>(data->dataSource);
     }
 
     template<AssetBaseType T>
@@ -112,7 +131,7 @@ namespace trc
                                      " contain an asset path!");
         }
 
-        return data->path.value();
+        return std::get<AssetPath>(data->dataSource);
     }
 
     template<AssetBaseType T>
@@ -126,11 +145,16 @@ namespace trc
                                          " asset reference");
             }
 
-            const auto& path = data->path.value();
-            if (!manager.exists(path)) {
-                manager.load<T>(path);
-            }
-            data->id = manager.template getAsset<T>(path);
+            std::visit(
+                util::VariantVisitor{
+                    // We can move the source here because `resolve` won't be executed
+                    // again once the ID has been set
+                    [&](u_ptr<AssetSource<T>>& src) { data->id = manager.create(std::move(src)); },
+                    [&](const AssetPath& path) { data->id = manager.load<T>(path); },
+                    [](const std::monostate&) {}
+                },
+                data->dataSource
+            );
         }
     }
 

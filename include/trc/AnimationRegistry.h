@@ -8,9 +8,10 @@
 
 #include "Types.h"
 #include "AssetRegistryModule.h"
-#include "AssetSource.h"
 #include "Assets.h"
+#include "AssetSource.h"
 #include "Animation.h"
+#include "assets/RawData.h"
 
 namespace trc
 {

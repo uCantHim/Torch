@@ -6,10 +6,53 @@ namespace trc
 {
 
 template<AssetBaseType T>
+inline void AssetManager::resolveReferences(AssetData<T>&)
+{
+    // Do nothing in the unspecialized version
+}
+
+template<>
+inline void AssetManager::resolveReferences<Geometry>(AssetData<Geometry>& data)
+{
+    if (!data.rig.empty()) {
+        data.rig.resolve(*this);
+    }
+}
+
+template<>
+inline void AssetManager::resolveReferences<Material>(AssetData<Material>& data)
+{
+    if (!data.albedoTexture.empty()) {
+        data.albedoTexture.resolve(*this);
+    }
+    if (!data.normalTexture.empty()) {
+        data.normalTexture.resolve(*this);
+    }
+}
+
+template<>
+inline void AssetManager::resolveReferences<Rig>(AssetData<Rig>& data)
+{
+    for (auto& ref : data.animations)
+    {
+        ref.resolve(*this);
+    }
+}
+
+template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {
     return _createAsset<T>(
         std::make_unique<InMemorySource<T>>(data),
+        AssetMetaData{ .uniqueName=generateUniqueName() }
+    );
+}
+
+template<AssetBaseType T>
+inline auto AssetManager::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
+{
+    return _createAsset<T>(
+        std::move(source),
         AssetMetaData{ .uniqueName=generateUniqueName() }
     );
 }
@@ -63,7 +106,7 @@ inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 }
 
 template<AssetBaseType T>
-auto AssetManager::_loadAsset(const AssetPath& path) -> TypedAssetID<T>
+inline auto AssetManager::_loadAsset(const AssetPath& path) -> TypedAssetID<T>
 {
     auto [it, success] = pathsToAssets.try_emplace(path);
     if (!success)
@@ -85,9 +128,13 @@ template<AssetBaseType T>
 inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source, AssetMetaData meta)
     -> TypedAssetID<T>
 {
+    // Create general asset information
     const auto assetId = _createBaseAsset(std::move(meta));
 
-    const auto localId = registry.add(std::move(source));
+    // Create device resource
+    u_ptr<AssetSource<T>> internalSource{ new InternalAssetSource<T>(*this, std::move(source)) };
+    const auto localId = registry.add(std::move(internalSource));
+
     return TypedAssetID<T>{ assetId, localId, *this };
 }
 

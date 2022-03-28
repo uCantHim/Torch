@@ -2,7 +2,9 @@
 
 #include <concepts>
 
+#include "Types.h"
 #include "AssetBase.h"
+#include "AssetSource.h"
 
 namespace trc
 {
@@ -21,6 +23,18 @@ namespace trc
         {
             static_assert(std::derived_from<Derived, AssetManagerInterface<Derived>>,
                           "CRTP interface can only be instantiated with a derived type");
+        }
+
+        template<AssetBaseType T>
+        auto create(const AssetData<T>& data) -> TypedAssetID<T>
+        {
+            return asDerived().template create<T>(data);
+        }
+
+        template<AssetBaseType T>
+        auto create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
+        {
+            return asDerived().template create<T>(std::move(source));
         }
 
         template<AssetBaseType T>

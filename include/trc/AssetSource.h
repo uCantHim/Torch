@@ -1,13 +1,30 @@
 #pragma once
 
-#include <filesystem>
+#include <any>
 
+#include "AssetBase.h"
 #include "AssetPath.h"
-#include "assets/AssetDataProxy.h"
-#include "assets/InternalFormat.h"
 
 namespace trc
 {
+    struct AssetSourceLoadHelper
+    {
+        struct TypeProxy
+        {
+            template<typename T>
+            auto as() -> T {
+                return std::any_cast<T>(data);
+            }
+
+            std::any data;
+        };
+
+        /**
+         * Used to hide the AssetDataProxy implementation to prevent circular includes
+         */
+        static auto loadAsset(const AssetPath& path) -> TypeProxy;
+    };
+
     template<AssetBaseType T>
     class AssetSource
     {
@@ -27,9 +44,9 @@ namespace trc
         auto load() -> AssetData<T> override
         {
             try {
-                return AssetDataProxy(path).as<AssetData<T>>();
+                return AssetSourceLoadHelper::loadAsset(path).as<AssetData<T>>();
             }
-            catch (const std::bad_variant_access&)
+            catch (const std::bad_any_cast&)
             {
                 throw std::runtime_error("[In AssetPathSource::load]: Asset loaded from path "
                                          + path.getFilesystemPath().string() + " is not of the"

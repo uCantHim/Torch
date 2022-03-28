@@ -8,6 +8,7 @@ target_sources(
         AssetPath.cpp
         AssetRegistry.cpp
         AssetRegistryModuleStorage.cpp
+        AssetSource.cpp
         Camera.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp

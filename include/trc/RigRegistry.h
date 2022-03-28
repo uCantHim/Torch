@@ -9,6 +9,7 @@
 #include "Assets.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
+#include "assets/RawData.h"
 
 namespace trc
 {
