@@ -81,7 +81,7 @@ namespace trc
         };
 
         data::IdPool rigIdPool;
-        componentlib::Table<InternalStorage, LocalID> storage;
+        componentlib::Table<u_ptr<InternalStorage>, LocalID> storage;
     };
 
     using RigDeviceHandle = RigRegistry::Handle;

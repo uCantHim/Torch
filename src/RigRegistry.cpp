@@ -69,7 +69,7 @@ auto trc::RigRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptor
 auto trc::RigRegistry::add(u_ptr<AssetSource<Rig>> source) -> LocalID
 {
     const LocalID id{ rigIdPool.generate() };
-    storage.emplace(id, source->load());
+    storage.emplace(id, std::make_unique<InternalStorage>(source->load()));
 
     return id;
 }
@@ -81,5 +81,5 @@ void trc::RigRegistry::remove(LocalID id)
 
 auto trc::RigRegistry::getHandle(LocalID id) -> Handle
 {
-    return Handle(storage.get(id));
+    return Handle(*storage.get(id));
 }
