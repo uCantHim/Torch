@@ -30,7 +30,7 @@ void trc::MaterialRegistry::update(vk::CommandBuffer)
     auto buf = materialBuffer.map<MaterialDeviceData*>();
     for (const auto& mat : materials)
     {
-        buf[mat.bufferIndex] = mat.matData;
+        buf[mat->bufferIndex] = *mat;
     }
     materialBuffer.unmap();
 }
@@ -70,7 +70,7 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 
     materials.emplace(
         static_cast<LocalID::IndexType>(id),
-        InternalStorage{
+        new InternalStorage{
             .bufferIndex = bufferIndex,
             .matData = data,
             .albedoTex = data.albedoTexture.hasResolvedID()
@@ -92,26 +92,26 @@ void trc::MaterialRegistry::remove(LocalID id)
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
-    return materials.at(static_cast<LocalID::IndexType>(id));
+    return Handle(materials.at(id)->bufferIndex);
 }
 
 
 
-trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const MaterialData& data)
+trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const InternalStorage& data)
     :
-    color(data.color, data.opacity),
-    kAmbient(data.ambientKoefficient),
-    kDiffuse(data.diffuseKoefficient),
-    kSpecular(data.specularKoefficient),
-    shininess(data.shininess),
-    reflectivity(data.reflectivity),
-    diffuseTexture(data.albedoTexture.hasResolvedID()
-            ? data.albedoTexture.getID().getDeviceDataHandle().getDeviceIndex()
+    color(data.matData.color, data.matData.opacity),
+    kAmbient(data.matData.ambientKoefficient),
+    kDiffuse(data.matData.diffuseKoefficient),
+    kSpecular(data.matData.specularKoefficient),
+    shininess(data.matData.shininess),
+    reflectivity(data.matData.reflectivity),
+    diffuseTexture(data.albedoTex.has_value()
+            ? data.albedoTex->getDeviceIndex()
             : NO_TEXTURE),
     specularTexture(NO_TEXTURE),
-    bumpTexture(data.normalTexture.hasResolvedID()
-            ? data.normalTexture.getID().getDeviceDataHandle().getDeviceIndex()
+    bumpTexture(data.normalTex.has_value()
+            ? data.normalTex->getDeviceIndex()
             : NO_TEXTURE),
-    performLighting(data.doPerformLighting)
+    performLighting(data.matData.doPerformLighting)
 {
 }

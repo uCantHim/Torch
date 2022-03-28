@@ -48,17 +48,25 @@ namespace trc
         template<std::invocable<MaterialData&> F>
         void modify(LocalID id, F&& func)
         {
-            func(materials.at(id).matData);
+            func(materials.at(id)->matData);
             // Material buffer needs updating now
         }
 
     private:
         static constexpr ui32 NO_TEXTURE = UINT32_MAX;
 
+        struct InternalStorage
+        {
+            ui32 bufferIndex;
+            MaterialData matData;
+            std::optional<AssetHandle<Texture>> albedoTex;
+            std::optional<AssetHandle<Texture>> normalTex;
+        };
+
         struct MaterialDeviceData
         {
             MaterialDeviceData() = default;
-            MaterialDeviceData(const MaterialData& data);
+            MaterialDeviceData(const InternalStorage& data);
 
             vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -81,24 +89,12 @@ namespace trc
         static_assert(util::sizeof_pad_16_v<MaterialDeviceData> == sizeof(MaterialDeviceData),
                       "MaterialDeviceData struct must be padded to 16 bytes for std430!");
 
-        struct InternalStorage
-        {
-            operator Handle() const {
-                return Handle(bufferIndex);
-            }
-
-            ui32 bufferIndex;
-            MaterialData matData;
-            std::optional<AssetHandle<Texture>> albedoTex;
-            std::optional<AssetHandle<Texture>> normalTex;
-        };
-
         static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(MaterialDeviceData) * 100;
 
         const AssetRegistryModuleCreateInfo config;
 
         data::IdPool idPool;
-        data::IndexMap<LocalID::IndexType, InternalStorage> materials;
+        data::IndexMap<LocalID::IndexType, u_ptr<InternalStorage>> materials;
         vkb::Buffer materialBuffer;
 
         vk::DescriptorBufferInfo matBufferDescInfo;

@@ -95,23 +95,29 @@ namespace trc
 
             auto operator=(const SharedCacheReference& other) -> SharedCacheReference&
             {
-                if (cache != other.cache)
+                if (this != &other)
                 {
-                    cache->dec();
-                    cache = other.cache;
+                    if (cache != other.cache)
+                    {
+                        cache->dec();
+                        cache = other.cache;
+                    }
+                    cache->inc();
                 }
-                cache->inc();
                 return *this;
             }
 
             auto operator=(SharedCacheReference&& other) noexcept -> SharedCacheReference&
             {
-                if (cache != other.cache)
+                if (this != &other)
                 {
-                    cache->dec();
-                    cache = other.cache;
+                    if (cache != other.cache)
+                    {
+                        cache->dec();
+                        cache = other.cache;
+                    }
+                    cache->inc();
                 }
-                cache->inc();
                 return *this;
             }
 

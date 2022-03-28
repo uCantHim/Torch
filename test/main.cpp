@@ -153,7 +153,7 @@ void run()
     scene.getRoot().attach(shadowNode);
 
     // Instanced trees
-    constexpr trc::ui32 NUM_TREES = 800;
+    constexpr trc::ui32 NUM_TREES = 200;
     std::vector<u_ptr<trc::Drawable>> trees;
     for (ui32 i = 0; i < NUM_TREES; i++)
     {
@@ -179,7 +179,7 @@ void run()
         particleCollection.addParticle(particle);
     }
 
-    auto particleImgIdx = ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png"));
+    auto particleImg = ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png")).getDeviceDataHandle();
     trc::ParticleSpawn spawn(particleCollection);
     for (int i = 0; i < 50; i++)
     {
@@ -188,7 +188,7 @@ void run()
         p.phys.linearAcceleration = vec3(0, -2.0f, 0);
         p.phys.scaling = vec3(0.2f);
         p.phys.lifeTime = 3000.0f;
-        p.material.texture = particleImgIdx.getDeviceDataHandle().getDeviceIndex();
+        p.material.texture = particleImg.getDeviceIndex();
         p.material.blending = trc::ParticleMaterial::BlendingType::eAlphaBlend;
         spawn.addParticle(p);
     }
