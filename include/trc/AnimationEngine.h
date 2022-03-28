@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
 #include <optional>
+
+#include <trc_util/data/ExternalStorage.h>
 
 #include "Rig.h"
 #include "Animation.h"
-#include "trc_util/data/ExternalStorage.h"
 
 namespace trc
 {
@@ -23,7 +23,6 @@ namespace trc
     public:
         using ID = data::ExternalStorage<AnimationDeviceData>::ID;
 
-        AnimationEngine() = default;
         AnimationEngine(RigHandle rig);
 
         void update(float timeDeltaMs);
@@ -36,7 +35,7 @@ namespace trc
     private:
         void resetAnimationTime();
 
-        std::optional<RigHandle> rig{ std::nullopt };
+        RigHandle rig;
 
         std::optional<AnimationHandle> currentAnimation{ std::nullopt };
         float currentDuration{ 0.0f };

@@ -1,8 +1,5 @@
 #include "AnimationEngine.h"
 
-#include "AssetManager.h"
-#include "RigRegistry.h"
-
 
 
 trc::AnimationEngine::AnimationEngine(RigHandle rig)
@@ -46,13 +43,8 @@ void trc::AnimationEngine::update(const float timeDelta)
 
 void trc::AnimationEngine::playAnimation(ui32 index)
 {
-    if (!rig.has_value()) {
-        throw std::runtime_error("[In AnimationEngine::playAnimation]: No rig is associated with"
-                                 " this animation engine!");
-    }
-
     try {
-        currentAnimation = rig->getAnimation(index).getDeviceDataHandle();
+        currentAnimation = rig.getAnimation(index).getDeviceDataHandle();
         resetAnimationTime();
     }
     catch (const std::out_of_range& err) {
