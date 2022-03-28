@@ -34,8 +34,9 @@ trc::AssetRegistry::AssetRegistry(
     // Add modules in the order in which they should be destroyed
     modules.addModule<MaterialRegistry>(moduleCreateInfo);
     modules.addModule<TextureRegistry>(moduleCreateInfo);
-    modules.addModule<AnimationRegistry>(moduleCreateInfo);
     modules.addModule<GeometryRegistry>(moduleCreateInfo);
+    modules.addModule<RigRegistry>(moduleCreateInfo);
+    modules.addModule<AnimationRegistry>(moduleCreateInfo);
 
     createDescriptors();
 
@@ -76,6 +77,16 @@ auto trc::AssetRegistry::add(u_ptr<AssetSource<Texture>> src) -> LocalID<Texture
     writeDescriptors();
 
     return id;
+}
+
+auto trc::AssetRegistry::add(u_ptr<AssetSource<Rig>> src) -> LocalID<Rig>
+{
+    return modules.get<AssetRegistryModule<Rig>>().add(std::move(src));
+}
+
+auto trc::AssetRegistry::add(u_ptr<AssetSource<Animation>> src) -> LocalID<Animation>
+{
+    return modules.get<AssetRegistryModule<Animation>>().add(std::move(src));
 }
 
 auto trc::AssetRegistry::getFonts() -> FontDataStorage&

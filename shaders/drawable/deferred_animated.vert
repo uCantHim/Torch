@@ -24,7 +24,7 @@ layout (push_constant) uniform PushConstants
     mat4 modelMatrix;
     uint materialIndex;
 
-    // AnimationPushConstantData animData;
+    AnimationPushConstantData animData;
 };
 
 layout (location = 0) out VertexData
@@ -46,9 +46,9 @@ void main()
     vec4 normal = vec4(vertexNormal, 0.0);
     vec4 tangent = vec4(vertexTangent, 0.0);
 
-    // vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
-    // normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
-    // tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
+    vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
+    normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
+    tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
     vertPos.w = 1.0;
 
     vec4 worldPos = modelMatrix * vertPos;

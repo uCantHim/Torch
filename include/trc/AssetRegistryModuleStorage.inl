@@ -15,8 +15,16 @@ void AssetRegistryModuleStorage::addModule(Args&&... args)
 template<AssetRegistryModuleType T>
 auto AssetRegistryModuleStorage::get() -> T&
 {
-    assert(entries.size() > StaticIndex<T>::index);
-    assert(entries.get(StaticIndex<T>::index).valid());
+    const bool hasModule = entries.size() > StaticIndex<T>::index
+                        && entries.get(StaticIndex<T>::index).valid();
+    if (!hasModule)
+    {
+        throw std::invalid_argument(
+            "[In AssetRegistryModuleStorage::get]: Requested asset registry module type (static"
+            " index " + std::to_string(StaticIndex<T>::index) + ") does not exist in the module"
+            " storage!"
+        );
+    }
 
     return entries.get(StaticIndex<T>::index).template as<T>();
 }
@@ -24,8 +32,16 @@ auto AssetRegistryModuleStorage::get() -> T&
 template<AssetRegistryModuleType T>
 auto AssetRegistryModuleStorage::get() const -> const T&
 {
-    assert(entries.size() > StaticIndex<T>::index);
-    assert(entries.get(StaticIndex<T>::index).valid());
+    const bool hasModule = entries.size() > StaticIndex<T>::index
+                        && entries.get(StaticIndex<T>::index).valid();
+    if (!hasModule)
+    {
+        throw std::invalid_argument(
+            "[In AssetRegistryModuleStorage::get]: Requested asset registry module type (static"
+            " index " + std::to_string(StaticIndex<T>::index) + ") does not exist in the module"
+            " storage!"
+        );
+    }
 
     return entries.get(StaticIndex<T>::index).template as<T>();
 }

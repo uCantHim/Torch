@@ -100,7 +100,7 @@ namespace trc
 
     template<AssetBaseType T>
     AssetReference<T>::AssetReference(AssetData<T> data)
-        : AssetReference(std::make_unique<AssetSource<T>>(std::move(data)))
+        : AssetReference(std::make_unique<InMemorySource<T>>(std::move(data)))
     {
     }
 

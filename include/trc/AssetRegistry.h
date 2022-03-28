@@ -50,7 +50,9 @@ namespace trc
 
         auto add(u_ptr<AssetSource<Geometry>> geo) -> LocalID<Geometry>;
         auto add(u_ptr<AssetSource<Material>> mat) -> LocalID<Material>;
-        auto add(u_ptr<AssetSource<Texture>>tex) -> LocalID<Texture>;
+        auto add(u_ptr<AssetSource<Texture>> tex) -> LocalID<Texture>;
+        auto add(u_ptr<AssetSource<Rig>> rig) -> LocalID<Rig>;
+        auto add(u_ptr<AssetSource<Animation>> anim) -> LocalID<Animation>;
 
         template<AssetBaseType T>
         auto get(LocalID<T> key) -> AssetHandle<T>

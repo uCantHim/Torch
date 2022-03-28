@@ -2,6 +2,7 @@
 
 #include "util/TriangleCacheOptimizer.h"
 #include "ray_tracing/RayPipelineBuilder.h"
+#include "AssetManager.h"
 
 
 
@@ -128,7 +129,9 @@ auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
                 ? InternalStorage::VertexType::eMesh
                 : InternalStorage::VertexType::eSkeletal,
 
-            .rig = std::nullopt,
+            .rig = data.rig.empty()
+                ? std::optional<AssetHandle<Rig>>(std::nullopt)
+                : data.rig.getID().getDeviceDataHandle(),
 
             .deviceIndex = id,
         }
