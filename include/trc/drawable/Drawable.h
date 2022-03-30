@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DrawableComponentScene.h"
-#include "DrawablePoolStructs.h"
+#include "DrawableStructs.h"
 #include "RasterPipelines.h"
 
 namespace trc

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DrawablePoolStructs.h"
+#include "DrawableStructs.h"
 #include "DrawableComponentScene.h"
 
 namespace trc
