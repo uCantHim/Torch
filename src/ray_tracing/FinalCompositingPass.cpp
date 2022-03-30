@@ -5,7 +5,7 @@
 #include "core/ComputePipelineBuilder.h"
 #include "trc_util/Util.h"
 #include "DescriptorSetUtils.h"
-#include "AssetRegistry.h"
+#include "assets/AssetRegistry.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 

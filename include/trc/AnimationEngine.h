@@ -4,8 +4,8 @@
 
 #include <trc_util/data/ExternalStorage.h>
 
-#include "Rig.h"
-#include "Animation.h"
+#include "assets/Rig.h"
+#include "assets/Animation.h"
 
 namespace trc
 {

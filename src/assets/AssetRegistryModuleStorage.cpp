@@ -1,4 +1,4 @@
-#include "AssetRegistryModuleStorage.h"
+#include "assets/AssetRegistryModuleStorage.h"
 
 #include <iostream>
 

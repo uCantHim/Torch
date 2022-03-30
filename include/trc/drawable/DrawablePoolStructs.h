@@ -2,7 +2,8 @@
 
 #include "Transformation.h"
 #include "AnimationEngine.h"
-#include "AssetManager.h"
+#include "assets/Geometry.h"
+#include "assets/Material.h"
 
 namespace trc
 {

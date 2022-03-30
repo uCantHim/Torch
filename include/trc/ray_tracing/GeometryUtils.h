@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Node.h"
-#include "Geometry.h"
+#include "assets/Geometry.h"
 
 namespace vkb {
     class Device;

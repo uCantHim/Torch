@@ -5,8 +5,8 @@
 
 #include "Types.h"
 #include "Vertex.h"
-#include "Assets.h"
-#include "AssetReference.h"
+#include "assets/AssetBaseTypes.h"
+#include "assets/AssetReference.h"
 
 namespace trc
 {

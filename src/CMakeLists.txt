@@ -2,31 +2,19 @@ target_sources(
     torch
     PRIVATE
         AnimationEngine.cpp
-        AnimationRegistry.cpp
-        AssetManager.cpp
-        AssetPath.cpp
-        AssetRegistry.cpp
-        AssetRegistryModuleStorage.cpp
-        AssetSource.cpp
         Camera.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp
         GBuffer.cpp
         GBufferPass.cpp
-        Geometry.cpp
-        GeometryRegistry.cpp
         Light.cpp
         LightRegistry.cpp
         Node.cpp
-        MaterialRegistry.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
-        Rig.cpp
-        RigRegistry.cpp
         Scene.cpp
         SceneDescriptor.cpp
         ShadowPool.cpp
-        TextureRegistry.cpp
         Torch.cpp
         TorchRenderConfig.cpp
         Transformation.cpp

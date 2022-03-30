@@ -3,7 +3,6 @@
 #include "core/PipelineRegistry.h"
 #include "core/PipelineBuilder.h"
 #include "core/PipelineLayoutBuilder.h"
-#include "AssetRegistry.h"
 #include "TorchRenderConfig.h"
 #include "TorchResources.h"
 #include "text/UnicodeUtils.h"

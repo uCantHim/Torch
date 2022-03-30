@@ -1,9 +1,6 @@
-#include "MaterialRegistry.h"
+#include "assets/MaterialRegistry.h"
 
-#include "assets/RawData.h"
 #include "ray_tracing/RayPipelineBuilder.h"
-#include "TextureRegistry.h"
-#include "AssetManager.h"
 
 
 

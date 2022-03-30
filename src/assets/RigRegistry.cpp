@@ -1,4 +1,4 @@
-#include "RigRegistry.h"
+#include "assets/RigRegistry.h"
 
 
 

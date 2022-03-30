@@ -2,7 +2,8 @@
 
 #include <componentlib/Table.h>
 
-#include "Assets.h"
+#include "assets/Geometry.h"
+#include "assets/Material.h"
 #include "Transformation.h"
 #include "AnimationEngine.h"
 #include "ray_tracing/AccelerationStructure.h"

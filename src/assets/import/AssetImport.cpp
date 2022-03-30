@@ -1,8 +1,6 @@
-#include "assets/AssetImport.h"
+#include "assets/import/AssetImport.h"
 
 #include <vkb/ImageUtils.h>
-
-#include "AssetRegistry.h"
 
 
 

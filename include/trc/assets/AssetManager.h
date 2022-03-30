@@ -7,7 +7,7 @@
 
 #include <trc_util/data/ObjectId.h>
 
-#include "Assets.h"
+#include "AssetBaseTypes.h"
 #include "AssetPath.h"
 #include "AssetSource.h"
 #include "AssetRegistry.h"

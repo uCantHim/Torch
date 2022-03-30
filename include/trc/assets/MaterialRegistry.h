@@ -6,11 +6,11 @@
 #include <trc_util/data/ObjectId.h>
 
 #include "Types.h"
-#include "Assets.h"
+#include "AssetBaseTypes.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
-#include "assets/RawData.h"
 #include "Texture.h"
+#include "import/RawData.h"
 
 namespace trc
 {

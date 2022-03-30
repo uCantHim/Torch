@@ -1,7 +1,7 @@
-#include "assets/AssetDataProxy.h"
+#include "assets/import/AssetDataProxy.h"
 
 #include <trc_util/Util.h>
-#include "assets/InternalFormat.h"
+#include "assets/import/InternalFormat.h"
 
 
 

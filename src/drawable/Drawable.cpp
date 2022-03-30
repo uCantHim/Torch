@@ -1,7 +1,5 @@
 #include "drawable/Drawable.h"
 
-#include "GeometryRegistry.h"
-#include "Material.h"
 #include "TorchResources.h"
 #include "GBufferPass.h"
 #include "RenderPassShadow.h"

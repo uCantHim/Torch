@@ -13,9 +13,9 @@
 #include "Types.h"
 #include "core/DescriptorProvider.h"
 #include "AssetRegistryModuleStorage.h"
-#include "Assets.h"
+#include "AssetBaseTypes.h"
 #include "AssetSource.h"
-#include "assets/RawData.h"
+#include "import/RawData.h"
 #include "text/FontDataStorage.h"
 
 namespace trc

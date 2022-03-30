@@ -1,8 +1,8 @@
-#include "assets/InternalFormat.h"
+#include "assets/import/InternalFormat.h"
 
 #include <fstream>
 
-#include "assets/PNGConvert.h"
+#include "assets/import/PNGConvert.h"
 
 
 

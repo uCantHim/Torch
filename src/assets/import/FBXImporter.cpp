@@ -1,6 +1,6 @@
 #ifdef TRC_USE_FBX_SDK
 
-#include "assets/FBXImporter.h"
+#include "assets/import/FBXImporter.h"
 
 #include <iostream>
 #include <chrono>
@@ -74,12 +74,13 @@ auto trc::FBXImporter::load(const fs::path& path) -> ThirdPartyFileImportData
     {
         fbxLog << "Loading mesh " << name << ":\n";
 
-        ThirdPartyMeshImport newMesh = {
-            name,
-            transform,
-            loadMesh(mesh),
-            loadMaterials(mesh),
-            std::nullopt
+        ThirdPartyMeshImport newMesh{
+            .name=name,
+            .globalTransform=transform,
+            .geometry=loadMesh(mesh),
+            .materials=loadMaterials(mesh),
+            .rig=std::nullopt,
+            .animations={}
         };
 
         if (sceneImport.skeletonRoots.size() > meshIndex)

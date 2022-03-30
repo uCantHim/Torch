@@ -10,16 +10,11 @@
 #include "core/DrawConfiguration.h"
 #include "core/RenderTarget.h"
 
+#include "Camera.h"
 #include "Scene.h"
-#include "AssetManager.h"
-#include "GeometryRegistry.h"
-#include "TextureRegistry.h"
-#include "MaterialRegistry.h"
-#include "assets/AssetImport.h"
-#include "assets/GeneratedGeometry.h"
-#include "drawable/Drawable.h"
-#include "Light.h"
 #include "TorchRenderConfig.h"
+#include "assets/Assets.h"
+#include "drawable/Drawable.h"
 
 namespace trc
 {

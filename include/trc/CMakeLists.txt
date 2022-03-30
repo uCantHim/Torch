@@ -3,10 +3,9 @@ target_precompile_headers(torch
     Types.h
     VulkanInclude.h
 
-    # core
-    Instance.h
-    PipelineRegistry.h
-    SceneBase.h
+    core/Instance.h
+    core/PipelineRegistry.h
+    core/SceneBase.h
 
     PRIVATE
     Types.h

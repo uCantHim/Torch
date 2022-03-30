@@ -6,8 +6,8 @@
 #include <trc_util/data/ObjectId.h>
 #include <componentlib/Table.h>
 
-#include "Assets.h"
-#include "assets/RawData.h"
+#include "AssetBaseTypes.h"
+#include "import/RawData.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
 

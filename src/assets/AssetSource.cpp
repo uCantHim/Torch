@@ -1,6 +1,6 @@
-#include "AssetSource.h"
+#include "assets/AssetSource.h"
 
-#include "assets/AssetDataProxy.h"
+#include "assets/import/AssetDataProxy.h"
 
 
 

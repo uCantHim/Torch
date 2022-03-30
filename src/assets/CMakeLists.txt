@@ -1,9 +1,16 @@
-target_sources(torch PRIVATE
-    AssetDataProxy.cpp
-    AssetImport.cpp
-    AssimpImporter.cpp
-    FBXImporter.cpp
-    GeneratedGeometry.cpp
-    InternalFormat.cpp
-    PNGConvert.cpp
+target_sources(
+    torch
+    PRIVATE
+        AnimationRegistry.cpp
+        AssetManager.cpp
+        AssetPath.cpp
+        AssetRegistry.cpp
+        AssetRegistryModuleStorage.cpp
+        AssetSource.cpp
+        GeometryRegistry.cpp
+        MaterialRegistry.cpp
+        RigRegistry.cpp
+        TextureRegistry.cpp
 )
+
+add_subdirectory(import)

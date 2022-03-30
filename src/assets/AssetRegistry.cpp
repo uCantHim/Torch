@@ -1,13 +1,13 @@
-#include "AssetRegistry.h"
+#include "assets/AssetRegistry.h"
 
 #include <vkb/ImageUtils.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "core/Instance.h"
-#include "GeometryRegistry.h"
-#include "MaterialRegistry.h"
-#include "TextureRegistry.h"
-#include "AnimationRegistry.h"
+#include "assets/GeometryRegistry.h"
+#include "assets/MaterialRegistry.h"
+#include "assets/TextureRegistry.h"
+#include "assets/AnimationRegistry.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 

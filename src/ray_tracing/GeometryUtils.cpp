@@ -2,7 +2,6 @@
 
 #include <vkb/Device.h>
 
-#include "AssetRegistry.h"
 #include "ray_tracing/AccelerationStructure.h"
 
 

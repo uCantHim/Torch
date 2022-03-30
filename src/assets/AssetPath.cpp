@@ -1,4 +1,4 @@
-#include "AssetPath.h"
+#include "assets/AssetPath.h"
 
 #include "util/TorchDirectories.h"
 

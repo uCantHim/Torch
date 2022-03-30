@@ -4,8 +4,6 @@
 #include "GBufferPass.h"
 #include "RenderPassShadow.h"
 #include "drawable/RasterPipelines.h"
-#include "GeometryRegistry.h"
-#include "MaterialRegistry.h"
 
 
 
