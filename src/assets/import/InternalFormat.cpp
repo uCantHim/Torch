@@ -57,7 +57,7 @@ void readMatrix(const google::protobuf::RepeatedField<float>& buf, mat4* mat)
     assert(buf.size() == 16);
     assert(buf.size() * sizeof(float) == sizeof(mat4));
 
-    memcpy(mat, buf.data(), sizeof(mat4));
+    memcpy((void*)mat, buf.data(), sizeof(mat4));
 }
 
 void writeMatrix(mat4 mat, google::protobuf::RepeatedField<float>* out)
@@ -336,7 +336,7 @@ auto deserializeAssetData(const serial::Animation& tex) -> AnimationData
         newKf.boneMatrices.resize(boneCount);
 
         memcpy(newKf.boneMatrices.data(),
-               kf.bone_transform_matrices().data(),
+               (const mat4*)kf.bone_transform_matrices().data(),
                boneCount * sizeof(mat4));
     }
 
