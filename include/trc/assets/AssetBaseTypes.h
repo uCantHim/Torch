@@ -9,41 +9,37 @@ namespace trc
     class MaterialRegistry;
     class RigRegistry;
     class AnimationRegistry;
-    struct GeometryData;
-    struct TextureData;
-    struct MaterialData;
-    struct RigData;
-    struct AnimationData;
 
     struct Geometry
     {
         using Registry = GeometryRegistry;
-        using ImportData = GeometryData;
     };
 
     struct Texture
     {
         using Registry = TextureRegistry;
-        using ImportData = TextureData;
     };
 
     struct Material
     {
         using Registry = MaterialRegistry;
-        using ImportData = MaterialData;
     };
 
     struct Rig
     {
         using Registry = RigRegistry;
-        using ImportData = RigData;
     };
 
     struct Animation
     {
         using Registry = AnimationRegistry;
-        using ImportData = AnimationData;
     };
+
+    using GeometryData = AssetData<Geometry>;
+    using TextureData = AssetData<Texture>;
+    using MaterialData = AssetData<Material>;
+    using RigData = AssetData<Rig>;
+    using AnimationData = AssetData<Animation>;
 
     using GeometryID = TypedAssetID<Geometry>;
     using TextureID = TypedAssetID<Texture>;

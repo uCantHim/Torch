@@ -10,7 +10,6 @@ namespace trc
     template<typename T>
     concept AssetBaseType = requires {
         typename T::Registry;
-        typename T::ImportData;
         std::semiregular<T>;
     };
 
@@ -21,10 +20,10 @@ namespace trc
     using AssetRegistryModule = typename T::Registry;
 
     /**
-     * @brief Typedef that retrieves an asset type's import data type
+     * @brief Forward declaration that has to be specialized for each asset type
      */
     template<AssetBaseType T>
-    using AssetData = typename T::ImportData;
+    struct AssetData;
 
     /**
      * @brief Typedef that retrieves an asset type's handle type

@@ -33,28 +33,28 @@ void run()
     // ------------------
     // Random test things
 
-    auto grassGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx"));
-    auto treeGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
+    auto grassGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx"));
+    auto treeGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
 
-    auto skeletonGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
-    auto hoodedBoiGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
-    auto lindaGeoIndex = ar.add(trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
+    auto skeletonGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
+    auto hoodedBoiGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
+    auto lindaGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
 
-    auto lindaDiffTexIdx = ar.add(
+    auto lindaDiffTexIdx = ar.create(
         trc::loadTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
     );
 
-    auto grassImgIdx = ar.add(
+    auto grassImgIdx = ar.create(
         trc::loadTexture(TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
     );
-    auto stoneTexIdx = ar.add(
+    auto stoneTexIdx = ar.create(
         trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
     );
-    auto stoneNormalTexIdx = ar.add(
+    auto stoneNormalTexIdx = ar.create(
         trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
-    auto matIdx = ar.add(trc::MaterialData{
+    auto matIdx = ar.create(trc::MaterialData{
         .ambientKoefficient = vec4(1.0f),
         .diffuseKoefficient = vec4(1.0f),
         .specularKoefficient = vec4(1.0f),
@@ -70,12 +70,12 @@ void run()
     mapMat.specularKoefficient = vec4(1.0f);
     mapMat.albedoTexture = stoneTexIdx;
     mapMat.normalTexture = stoneNormalTexIdx;
-    auto mapMatIndex = ar.add(mapMat);
+    auto mapMatIndex = ar.create(mapMat);
 
     trc::MaterialData treeMat{
         .color=vec4(0, 1, 0, 1),
     };
-    auto treeMatIdx = ar.add(treeMat);
+    auto treeMatIdx = ar.create(treeMat);
 
     // ------------------
 
@@ -110,7 +110,7 @@ void run()
     hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
-    auto lindaMatIdx = ar.add(trc::MaterialData{
+    auto lindaMatIdx = ar.create(trc::MaterialData{
         .specularKoefficient = vec4(0.0f),
         .albedoTexture = lindaDiffTexIdx
     });
@@ -120,12 +120,12 @@ void run()
     linda.getAnimationEngine().playAnimation(0);
 
     // Images
-    auto planeGeo = ar.add(trc::makePlaneGeo());
-    auto transparentImg = ar.add(trc::MaterialData{
-        .albedoTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
+    auto planeGeo = ar.create(trc::makePlaneGeo());
+    auto transparentImg = ar.create(trc::MaterialData{
+        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
     });
-    auto opaqueImg = ar.add(trc::MaterialData{
-        .albedoTexture=ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
+    auto opaqueImg = ar.create(trc::MaterialData{
+        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     });
     trc::Drawable img({ planeGeo, transparentImg, true }, scene);
     img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
@@ -133,7 +133,7 @@ void run()
     img2.translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
 
     // Generated plane geo
-    auto myPlaneGeoIndex = ar.add(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
+    auto myPlaneGeoIndex = ar.create(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
     trc::Drawable plane({ myPlaneGeoIndex, mapMatIndex }, scene);
 
     trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
@@ -179,7 +179,7 @@ void run()
         particleCollection.addParticle(particle);
     }
 
-    auto particleImg = ar.add(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png")).getDeviceDataHandle();
+    auto particleImg = ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png")).getDeviceDataHandle();
     trc::ParticleSpawn spawn(particleCollection);
     for (int i = 0; i < 50; i++)
     {
@@ -216,8 +216,8 @@ void run()
 
 
     // Generated cube geo
-    auto cubeGeoIdx = ar.add({ trc::makeCubeGeo() });
-    auto cubeMatIdx = ar.add({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f });
+    auto cubeGeoIdx = ar.create<trc::Geometry>({ trc::makeCubeGeo() });
+    auto cubeMatIdx = ar.create<trc::Material>({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f });
     trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
     cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
@@ -230,8 +230,8 @@ void run()
     });
 
     // Thing at cursor
-    auto cursorCubeMat = ar.add(trc::MaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f });
-    trc::Drawable cursor({ ar.add(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
+    auto cursorCubeMat = ar.create(trc::MaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f });
+    trc::Drawable cursor({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 
     // Text

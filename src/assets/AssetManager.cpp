@@ -8,21 +8,6 @@ trc::AssetManager::AssetManager(const Instance& instance, const AssetRegistryCre
 {
 }
 
-auto trc::AssetManager::add(const GeometryData& data) -> GeometryID
-{
-    return create<Geometry>(data);
-}
-
-auto trc::AssetManager::add(const TextureData& data) -> TextureID
-{
-    return create<Texture>(data);
-}
-
-auto trc::AssetManager::add(const MaterialData& data) -> MaterialID
-{
-    return create<Material>(data);
-}
-
 bool trc::AssetManager::exists(const AssetPath& path) const
 {
     return pathsToAssets.contains(path);

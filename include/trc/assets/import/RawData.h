@@ -18,7 +18,8 @@ namespace trc
         std::string uniqueName;
     };
 
-    struct GeometryData
+    template<>
+    struct AssetData<Geometry>
     {
         std::vector<MeshVertex> vertices;
         std::vector<SkeletalVertex> skeletalVertices;
@@ -27,13 +28,15 @@ namespace trc
         AssetReference<Rig> rig{};
     };
 
-    struct TextureData
+    template<>
+    struct AssetData<Texture>
     {
         uvec2 size;
         std::vector<glm::u8vec4> pixels;
     };
 
-    struct MaterialData
+    template<>
+    struct AssetData<Material>
     {
         vec3 color{ 0.0f, 0.0f, 0.0f };
 
@@ -51,7 +54,8 @@ namespace trc
         AssetReference<Texture> normalTexture{};
     };
 
-    struct AnimationData
+    template<>
+    struct AssetData<Animation>
     {
         struct Keyframe
         {
@@ -66,7 +70,8 @@ namespace trc
         std::vector<Keyframe> keyframes;
     };
 
-    struct RigData
+    template<>
+    struct AssetData<Rig>
     {
         struct Bone
         {

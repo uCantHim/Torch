@@ -15,8 +15,6 @@
 
 namespace trc
 {
-    namespace fs = std::filesystem;
-
     /**
      * @brief Manages assets on a high level
      *
@@ -34,10 +32,6 @@ namespace trc
         //////////////////////
         //  Asset creation  //
         //////////////////////
-
-        auto add(const GeometryData& data) -> GeometryID;
-        auto add(const TextureData& data) -> TextureID;
-        auto add(const MaterialData& data) -> MaterialID;
 
         /**
          * @brief Create an asset from in-memory data
