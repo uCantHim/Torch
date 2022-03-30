@@ -29,8 +29,8 @@ namespace shader_edit
         using VariableName = std::string;
 
         // Meta
-        fs::path outputFileName;
         fs::path inputFilePath;
+        fs::path outputFileName;
 
         // Configured data
         std::unordered_map<VariableName, std::vector<Variable>> variables{};

@@ -21,7 +21,6 @@ namespace shader_edit
         ShaderDocument() = default;
 
         explicit ShaderDocument(std::istream& is);
-        explicit ShaderDocument(std::vector<std::string> lines);
         explicit ShaderDocument(ParseResult parseResult);
 
         /**
@@ -53,7 +52,15 @@ namespace shader_edit
         auto compile() const -> std::string;
 
     private:
+        /** Stores the entire document and all variables discovered during parsing. */
         ParseResult parseData;
+
+        /**
+         * Stores variable values that have been set with the `set` method.
+         *
+         * These will be read and used to replace the appropriate location
+         * in the parsed document.
+         */
         std::unordered_map<std::string, VariableValue> variableValues;
     };
 
@@ -61,7 +68,7 @@ namespace shader_edit
 
     auto permutate(const ShaderDocument& doc,
                    const std::string& name,
-                   std::vector<VariableValue> values)
+                   const std::vector<VariableValue>& values)
         -> std::vector<ShaderDocument>;
 
     template<Renderable T>
@@ -72,7 +79,7 @@ namespace shader_edit
 
     auto permutate(const std::vector<ShaderDocument>& docs,
                    const std::string& name,
-                   std::vector<VariableValue> values)
+                   const std::vector<VariableValue>& values)
         -> std::vector<ShaderDocument>;
 
     template<Renderable T>
@@ -85,6 +92,10 @@ namespace shader_edit
 
 
 
+    ///////////////////////
+    //  Implementations  //
+    ///////////////////////
+
     template<Renderable T>
     inline auto permutate(const ShaderDocument& doc,
                           const std::string& name,
@@ -96,7 +107,7 @@ namespace shader_edit
             result.emplace_back(std::move(value));
         }
 
-        return permutate(doc, name, std::move(result));
+        return permutate(doc, name, result);
     }
 
     template<Renderable T>

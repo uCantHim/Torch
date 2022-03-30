@@ -16,11 +16,11 @@ namespace shader_edit
          */
         Compiler() = default;
 
-        auto compile(CompileConfiguration config) -> CompileResult;
+        static auto compile(CompileConfiguration config) -> CompileResult;
 
     private:
-        auto compileShader(const CompileConfiguration::Meta& meta,
-                           ShaderFileConfiguration shader)
+        static auto compileShader(const CompileConfiguration::Meta& meta,
+                                  const ShaderFileConfiguration& shader)
             -> std::vector<CompiledShaderFile>;
     };
 } // namespace shader_edit
