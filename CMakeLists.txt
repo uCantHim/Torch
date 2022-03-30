@@ -42,6 +42,7 @@ endif()
 # Tools
 add_subdirectory(torch_util)
 add_subdirectory(tools)
+add_subdirectory(shaders)
 
 # Library target
 add_library(torch)
@@ -68,6 +69,8 @@ target_link_libraries(
     PRIVATE
         PNG::PNG
 )
+
+add_dependencies(torch compile_shaders)
 
 target_compile_definitions(torch
     PUBLIC
@@ -100,7 +103,6 @@ target_sources(torch PRIVATE ${TRC_PROTO_SRCS})
 target_include_directories(torch PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # Sources
-add_subdirectory(shaders)
 add_subdirectory(vk_base)
 add_subdirectory(src)
 add_subdirectory(include/trc) # Precompiled headers
