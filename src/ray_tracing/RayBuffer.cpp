@@ -74,7 +74,7 @@ void trc::rt::RayBuffer::createDescriptors(const vkb::Device& device)
 
     layout = buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1, ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .buildUnique(device);
+        .build(device);
 
     vk::DescriptorPoolSize poolSize{ vk::DescriptorType::eStorageImage, Image::NUM_IMAGES };
     pool = device->createDescriptorPoolUnique({

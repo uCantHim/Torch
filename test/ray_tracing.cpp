@@ -106,12 +106,12 @@ void run()
     auto tlasDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(device);
+        .build(device);
 
     auto outputImageDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
-        .buildUnique(device);
+        .build(device);
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),

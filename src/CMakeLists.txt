@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
         AnimationEngine.cpp
         Camera.cpp
+        DescriptorSetUtils.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp
         GBuffer.cpp

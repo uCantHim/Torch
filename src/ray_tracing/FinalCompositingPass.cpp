@@ -1,6 +1,7 @@
 #include "ray_tracing/FinalCompositingPass.h"
 
 #include <vkb/ShaderProgram.h>
+#include <vkb/Barriers.h>
 
 #include "core/ComputePipelineBuilder.h"
 #include "trc_util/Util.h"
@@ -153,21 +154,14 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
 void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
 {
     // Swapchain image: ePresentSrcKHR -> eGeneral
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderWrite,
-            vk::AccessFlagBits::eShaderRead,
-            vk::ImageLayout::ePresentSrcKHR,
-            vk::ImageLayout::eGeneral,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            swapchain.getImage(swapchain.getCurrentFrame()),
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-        )
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        swapchain.getImage(swapchain.getCurrentFrame()),
+        vk::ImageLayout::ePresentSrcKHR,         vk::ImageLayout::eGeneral,
+        vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eComputeShader,
+        vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderWrite,
+        vk::AccessFlagBits::eShaderRead,
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 
     computePipeline.bind(cmdBuf);
@@ -175,21 +169,14 @@ void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassC
     cmdBuf.dispatch(x, y, z);
 
     // Swapchain image: eGeneral -> ePresentSrcKHR
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eShaderWrite,
-            {},
-            vk::ImageLayout::eGeneral,
-            vk::ImageLayout::ePresentSrcKHR,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            swapchain.getImage(swapchain.getCurrentFrame()),
-            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-        )
+    vkb::imageMemoryBarrier(
+        cmdBuf,
+        swapchain.getImage(swapchain.getCurrentFrame()),
+        vk::ImageLayout::eGeneral,                 vk::ImageLayout::ePresentSrcKHR,
+        vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eAllCommands,
+        vk::AccessFlagBits::eShaderWrite,
+        {},
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 }
 
