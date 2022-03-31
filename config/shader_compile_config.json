@@ -1,0 +1,14 @@
+{
+    "shaders": {
+        "asset_registry_descriptor.glsl": {
+            "variables": {
+                "material_descriptor_binding": "0",
+                "texture_descriptor_binding": "1",
+                "geometry_index_descriptor_binding": "2",
+                "geometry_vertex_descriptor_binding": "3",
+                "animation_meta_descriptor_binding": "4",
+                "animation_data_descriptor_binding": "5"
+            }
+        }
+    }
+}

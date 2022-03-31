@@ -1,6 +1,15 @@
-add_subdirectory(componentlib)
+######################
+#   Required tools   #
+######################
 
+add_subdirectory(componentlib)
 add_subdirectory(shader_edit)
+add_subdirectory(pre_build_step)
+
+
+######################
+#   Optional tools   #
+######################
 
 if (${TORCH_BUILD_SHADER_COMPILER})
     if (NOT TARGET shaderc)

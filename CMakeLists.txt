@@ -70,7 +70,8 @@ target_link_libraries(
         PNG::PNG
 )
 
-add_dependencies(torch compile_shaders)
+add_dependencies(compile_shaders pre_build_step)
+add_dependencies(torch compile_shaders pre_build_step)
 
 target_compile_definitions(torch
     PUBLIC
