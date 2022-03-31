@@ -84,9 +84,6 @@ namespace trc
 
         void update(vk::CommandBuffer cmdBuf) final;
 
-        auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
-        auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
-
         auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID;
         void remove(LocalID id);
 
@@ -97,9 +94,6 @@ namespace trc
         {
             vk::BufferUsageFlags geometryBufferUsage;
             bool enableRayTracing;
-
-            ui32 vertBufBinding;
-            ui32 indexBufBinding;
         };
 
         /**
@@ -133,5 +127,8 @@ namespace trc
         data::IdPool idPool;
 
         data::IndexMap<LocalID::IndexType, InternalStorage> storage;
+
+        SharedDescriptorSet::Binding indexDescriptorBinding;
+        SharedDescriptorSet::Binding vertexDescriptorBinding;
     };
 } // namespace trc

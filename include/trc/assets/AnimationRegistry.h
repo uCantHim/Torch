@@ -62,9 +62,6 @@ namespace trc
 
         void update(vk::CommandBuffer cmdBuf) final;
 
-        auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
-        auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
-
         auto add(u_ptr<AssetSource<Animation>> source) -> LocalID;
 
         auto getHandle(LocalID id) -> Handle;
@@ -80,7 +77,6 @@ namespace trc
         static constexpr size_t MAX_ANIMATIONS = 300;
         static constexpr size_t ANIMATION_BUFFER_SIZE = 2000000;
 
-        const AssetRegistryModuleCreateInfo config;
         const vkb::Device& device;
 
         auto makeAnimation(const AnimationData& data) -> ui32;
@@ -97,6 +93,7 @@ namespace trc
         vkb::Buffer animationMetaDataBuffer;
         vkb::Buffer animationBuffer;
 
-        std::vector<vk::DescriptorBufferInfo> bufferInfos;
+        SharedDescriptorSet::Binding metaBinding;
+        SharedDescriptorSet::Binding dataBinding;
     };
 } // namespace trc

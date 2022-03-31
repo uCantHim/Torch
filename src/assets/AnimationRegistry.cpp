@@ -35,7 +35,6 @@ auto trc::AnimationRegistry::Handle::getFrameTime() const noexcept -> float
 
 trc::AnimationRegistry::AnimationRegistry(const AssetRegistryModuleCreateInfo& info)
     :
-    config(info),
     device(info.device),
     animationMetaDataBuffer(
         info.device,
@@ -51,47 +50,27 @@ trc::AnimationRegistry::AnimationRegistry(const AssetRegistryModuleCreateInfo& i
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
+    info.layoutBuilder->addLayoutFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool);
+    info.layoutBuilder->addPoolFlag(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind);
+    metaBinding = info.layoutBuilder->addBinding(
+        vk::DescriptorType::eStorageBuffer,
+        1,
+        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+        vk::DescriptorBindingFlagBits::eUpdateAfterBind
+    );
+    dataBinding = info.layoutBuilder->addBinding(
+        vk::DescriptorType::eStorageBuffer,
+        1,
+        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+        vk::DescriptorBindingFlagBits::eUpdateAfterBind
+    );
+
+    metaBinding.update(0, { *animationMetaDataBuffer, 0, VK_WHOLE_SIZE });
+    dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
 }
 
 void trc::AnimationRegistry::update(vk::CommandBuffer)
 {
-}
-
-auto trc::AnimationRegistry::getDescriptorLayoutBindings()
-    -> std::vector<DescriptorLayoutBindingInfo>
-{
-    return {
-        DescriptorLayoutBindingInfo{
-            .binding = config.animationBinding,
-            .type = vk::DescriptorType::eStorageBuffer,
-            .numDescriptors = 1,
-            .stages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-            .layoutFlags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
-            .bindingFlags = vk::DescriptorBindingFlagBits::eUpdateAfterBind,
-        },
-        DescriptorLayoutBindingInfo{
-            .binding = config.animationBinding + 1,
-            .type = vk::DescriptorType::eStorageBuffer,
-            .numDescriptors = 1,
-            .stages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-            .layoutFlags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
-            .bindingFlags = vk::DescriptorBindingFlagBits::eUpdateAfterBind,
-        }
-    };
-}
-
-auto trc::AnimationRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>
-{
-    bufferInfos = {
-        { *animationMetaDataBuffer, 0, VK_WHOLE_SIZE },
-        { *animationBuffer, 0, VK_WHOLE_SIZE }
-    };
-
-    const ui32 binding = config.animationBinding;
-    return std::vector<vk::WriteDescriptorSet>{
-        { {}, binding,     0, vk::DescriptorType::eStorageBuffer, {}, bufferInfos[0] },
-        { {}, binding + 1, 0, vk::DescriptorType::eStorageBuffer, {}, bufferInfos[1] },
-    };
 }
 
 auto trc::AnimationRegistry::add(u_ptr<AssetSource<Animation>> source) -> LocalID
@@ -148,6 +127,8 @@ auto trc::AnimationRegistry::makeAnimation(const AnimationData& data) -> ui32
         newBuffer.copyFrom(animationBuffer, vkb::BufferRegion(0, animationBuffer.size()));
 
         animationBuffer = std::move(newBuffer);
+
+        dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
     }
 
     // Copy animation into buffer

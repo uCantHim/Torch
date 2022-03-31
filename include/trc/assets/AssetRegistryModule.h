@@ -1,8 +1,9 @@
 #pragma once
 
 #include "VulkanInclude.h"
-#include "DescriptorCreateHelpers.h"
+#include "DescriptorSetUtils.h"
 #include "AssetID.h"
+#include "SharedDescriptorSet.h"
 
 namespace trc
 {
@@ -10,14 +11,9 @@ namespace trc
     {
         const vkb::Device& device;
 
-        ui32 geoVertexBufBinding;
-        ui32 geoIndexBufBinding;
-        ui32 materialBufBinding;
-        ui32 textureBinding;
-        ui32 animationBinding;
+        SharedDescriptorSet::Builder* layoutBuilder;
 
         vk::BufferUsageFlags geometryBufferUsage{};
-
         bool enableRayTracing{ true };
     };
 
@@ -31,9 +27,6 @@ namespace trc
         virtual ~AssetRegistryModuleInterface() = default;
 
         virtual void update(vk::CommandBuffer cmdBuf) = 0;
-
-        virtual auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> = 0;
-        virtual auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> = 0;
     };
 
     /**

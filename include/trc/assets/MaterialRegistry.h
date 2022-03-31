@@ -37,9 +37,6 @@ namespace trc
 
         void update(vk::CommandBuffer cmdBuf) final;
 
-        auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
-        auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
-
         auto add(u_ptr<AssetSource<Material>> source) -> LocalID;
         void remove(LocalID id);
 
@@ -97,6 +94,6 @@ namespace trc
         data::IndexMap<LocalID::IndexType, u_ptr<InternalStorage>> materials;
         vkb::Buffer materialBuffer;
 
-        vk::DescriptorBufferInfo matBufferDescInfo;
+        SharedDescriptorSet::Binding descBinding;
     };
 } // namespace trc

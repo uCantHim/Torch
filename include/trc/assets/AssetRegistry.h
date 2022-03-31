@@ -12,6 +12,7 @@
 
 #include "Types.h"
 #include "core/DescriptorProvider.h"
+#include "SharedDescriptorSet.h"
 #include "AssetRegistryModuleStorage.h"
 #include "AssetBaseTypes.h"
 #include "AssetSource.h"
@@ -74,34 +75,26 @@ namespace trc
         void updateMaterials();
 
     private:
-        static auto addDefaultValues(const AssetRegistryCreateInfo& info) -> AssetRegistryCreateInfo;
+        static auto addDefaultValues(const AssetRegistryCreateInfo& info)
+            -> AssetRegistryCreateInfo;
 
         const vkb::Device& device;
         const AssetRegistryCreateInfo config;
 
         AssetRegistryModuleStorage modules;
 
+
         //////////////
         // Descriptors
-        enum DescBinding
-        {
-            eMaterials = 0,
-            eTextures = 1,
-            eVertexBuffers = 2,
-            eIndexBuffers = 3,
-            eAnimations = 4,
-        };
 
-        void createDescriptors();
         void writeDescriptors();
 
-        vk::UniqueDescriptorPool descPool;
-        vk::UniqueDescriptorSetLayout descLayout;
-        vk::UniqueDescriptorSet descSet;
-        DescriptorProvider descriptorProvider{ {}, {} };
+        u_ptr<SharedDescriptorSet> descSet;
+
 
         ////////////////////////////
         // Additional asset storages
+
         FontDataStorage fontData;
     };
 

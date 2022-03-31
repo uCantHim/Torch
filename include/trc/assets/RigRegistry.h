@@ -58,8 +58,6 @@ namespace trc
         explicit RigRegistry(const AssetRegistryModuleCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf) final;
-        auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
-        auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
 
         auto add(u_ptr<AssetSource<Rig>> source) -> LocalID;
         void remove(LocalID id);

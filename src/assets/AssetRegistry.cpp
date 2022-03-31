@@ -18,15 +18,13 @@ trc::AssetRegistry::AssetRegistry(
     :
     device(instance.getDevice()),
     config(addDefaultValues(info)),
+    descSet(new SharedDescriptorSet),
     fontData(instance)
 {
+    auto builder = descSet->build();
     AssetRegistryModuleCreateInfo moduleCreateInfo{
         .device=instance.getDevice(),
-        .geoVertexBufBinding = DescBinding::eVertexBuffers,
-        .geoIndexBufBinding  = DescBinding::eIndexBuffers,
-        .materialBufBinding  = DescBinding::eMaterials,
-        .textureBinding      = DescBinding::eTextures,
-        .animationBinding    = DescBinding::eAnimations,
+        .layoutBuilder=&builder,
         .geometryBufferUsage=config.geometryBufferUsage,
         .enableRayTracing=config.enableRayTracing && instance.hasRayTracing(),
     };
@@ -38,7 +36,8 @@ trc::AssetRegistry::AssetRegistry(
     modules.addModule<RigRegistry>(moduleCreateInfo);
     modules.addModule<AnimationRegistry>(moduleCreateInfo);
 
-    createDescriptors();
+    // Create descriptors
+    builder.build(device);
 
     // Add default assets
     add(std::make_unique<InMemorySource<Material>>(MaterialData{ .doPerformLighting=false }));
@@ -102,7 +101,7 @@ auto trc::AssetRegistry::getFonts() const -> const FontDataStorage&
 auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept
     -> const DescriptorProviderInterface&
 {
-    return descriptorProvider;
+    return descSet->getProvider();
 }
 
 void trc::AssetRegistry::updateMaterials()
@@ -135,114 +134,7 @@ auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
     return result;
 }
 
-void trc::AssetRegistry::createDescriptors()
-{
-    descSet = {};
-    descLayout = {};
-    descPool = {};
-
-    // Collect layout bindings
-    std::vector<DescriptorLayoutBindingInfo> layoutBindings;
-    modules.foreach([&layoutBindings](AssetRegistryModuleInterface& mod) {
-        util::merge(layoutBindings, mod.getDescriptorLayoutBindings());
-    });
-
-    // Create pool
-    descPool = makeDescriptorPool(
-        device,
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
-        | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind,  // This flags is set automatically
-        1, layoutBindings
-    );
-
-    // Create layout
-    descLayout = makeDescriptorSetLayout(device, layoutBindings);
-
-    // Create descriptor set
-    descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, 1, &*descLayout })[0]);
-
-    // Update provider
-    descriptorProvider.setDescriptorSetLayout(*descLayout);
-    descriptorProvider.setDescriptorSet(*descSet);
-}
-
 void trc::AssetRegistry::writeDescriptors()
 {
-    std::vector<vk::WriteDescriptorSet> writes;
-    modules.foreach([&writes](AssetRegistryModuleInterface& mod) {
-        util::merge(writes, mod.getDescriptorUpdates());
-    });
-
-    for (auto& write : writes) {
-        write.setDstSet(*descSet);
-    }
-
-    if (!writes.empty()) {
-        device->updateDescriptorSets(writes, {});
-    }
-
-
-
-    // // Collect descriptor writes
-    // std::vector<vk::WriteDescriptorSet> writes;
-
-    // // Texture descriptor infos
-    // std::vector<vk::DescriptorImageInfo> imageWrites;
-    // for (ui32 i = 0; i < textures.size(); i++)
-    // {
-    //     auto& tex = textures[LocalID<Texture>::Type(i)];
-    //     if (tex == nullptr) break;
-
-    //     imageWrites.emplace_back(vk::DescriptorImageInfo(
-    //         tex->image.getDefaultSampler(),
-    //         *tex->imageView,
-    //         vk::ImageLayout::eGeneral
-    //     ));
-    // }
-
-    // if (textures.size() > 0)
-    // {
-    //     writes.push_back(vk::WriteDescriptorSet(
-    //         *descSet,
-    //         DescBinding::eTextures, 0, imageWrites.size(),
-    //         vk::DescriptorType::eCombinedImageSampler,
-    //         imageWrites.data()
-    //     ));
-    // }
-
-    // // Geometry descriptor infos
-    // std::vector<vk::DescriptorBufferInfo> vertBufs;
-    // std::vector<vk::DescriptorBufferInfo> indexBufs;
-    // if (config.enableRayTracing)
-    // {
-    //     for (auto& geo : geometries)
-    //     {
-    //         if (geo == nullptr)
-    //         {
-    //             vertBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
-    //             indexBufs.emplace_back(vk::DescriptorBufferInfo(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE));
-    //         }
-    //         else
-    //         {
-    //             vertBufs.emplace_back(vk::DescriptorBufferInfo(*geo->vertexBuf, 0, VK_WHOLE_SIZE));
-    //             indexBufs.emplace_back(vk::DescriptorBufferInfo(*geo->indexBuf, 0, VK_WHOLE_SIZE));
-    //         }
-    //     }
-
-    //     if (geometries.size() > 0)
-    //     {
-    //         writes.push_back(vk::WriteDescriptorSet(
-    //             *descSet, DescBinding::eVertexBuffers, 0, vertBufs.size(),
-    //             vk::DescriptorType::eStorageBuffer,
-    //             nullptr,
-    //             vertBufs.data()
-    //         ));
-    //         writes.push_back(vk::WriteDescriptorSet(
-    //             *descSet, DescBinding::eIndexBuffers, 0, indexBufs.size(),
-    //             vk::DescriptorType::eStorageBuffer,
-    //             nullptr,
-    //             indexBufs.data()
-    //         ));
-    //     }
-    // }
+    descSet->update(device);
 }

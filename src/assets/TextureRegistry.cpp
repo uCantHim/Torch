@@ -22,52 +22,23 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),
     config(info),
-    memoryPool(device, MEMORY_POOL_CHUNK_SIZE)
+    memoryPool(device, MEMORY_POOL_CHUNK_SIZE),
+    descBinding(
+        info.layoutBuilder->addBinding(
+            vk::DescriptorType::eCombinedImageSampler,
+            MAX_TEXTURE_COUNT,
+            vk::ShaderStageFlagBits::eAllGraphics
+                | vk::ShaderStageFlagBits::eCompute
+                | rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
+            vk::DescriptorBindingFlagBits::ePartiallyBound
+        )
+    )
 {
 }
 
 void trc::TextureRegistry::update(vk::CommandBuffer)
 {
     // Nothing
-}
-
-auto trc::TextureRegistry::getDescriptorLayoutBindings()
-    -> std::vector<DescriptorLayoutBindingInfo>
-{
-    return {
-        {
-            config.textureBinding,
-            vk::DescriptorType::eCombinedImageSampler,
-            MAX_TEXTURE_COUNT,
-            vk::ShaderStageFlagBits::eAllGraphics
-                | vk::ShaderStageFlagBits::eCompute
-                | rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
-            {}, vk::DescriptorBindingFlagBits::ePartiallyBound
-        }
-    };
-}
-
-auto trc::TextureRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>
-{
-    // DescriptorImageInfos need to be kept in memory because they are
-    // referenced in the returned WriteDescriptorSets
-    std::swap(oldDescriptorUpdates, descriptorUpdates);
-    descriptorUpdates.clear();
-
-    std::vector<vk::WriteDescriptorSet> result;
-    for (const auto& [index, info] : oldDescriptorUpdates)
-    {
-        result.emplace_back(
-            vk::WriteDescriptorSet(
-                {},
-                config.textureBinding, index,
-                vk::DescriptorType::eCombinedImageSampler,
-                info
-            )
-        );
-    }
-
-    return result;
 }
 
 auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
@@ -118,7 +89,6 @@ void trc::TextureRegistry::load(LocalID id)
     assert(tex.deviceData == nullptr);
 
     auto data = tex.dataSource->load();
-    const ui32 deviceIndex = tex.deviceIndex;
 
     // Create image resource
     vkb::Image image(
@@ -131,12 +101,9 @@ void trc::TextureRegistry::load(LocalID id)
     auto imageView = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
 
     // Create descriptor info
-    descriptorUpdates.emplace_back(
-        deviceIndex,
-        vk::DescriptorImageInfo(
-            image.getDefaultSampler(), *imageView,
-            vk::ImageLayout::eShaderReadOnlyOptimal
-        )
+    descBinding.update(
+        tex.deviceIndex,
+        { image.getDefaultSampler(), *imageView, vk::ImageLayout::eShaderReadOnlyOptimal }
     );
 
     // Store resources

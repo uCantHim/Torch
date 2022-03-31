@@ -13,8 +13,15 @@ trc::MaterialRegistry::MaterialRegistry(const AssetRegistryModuleCreateInfo& inf
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
-    matBufferDescInfo(*materialBuffer, 0, VK_WHOLE_SIZE)
+    descBinding(info.layoutBuilder->addBinding(
+        vk::DescriptorType::eStorageBuffer,
+        1,
+        vk::ShaderStageFlagBits::eAllGraphics
+            | vk::ShaderStageFlagBits::eCompute
+            | rt::ALL_RAY_PIPELINE_STAGE_FLAGS
+    ))
 {
+    descBinding.update(0, { *materialBuffer, 0, VK_WHOLE_SIZE });
 }
 
 void trc::MaterialRegistry::update(vk::CommandBuffer)
@@ -30,32 +37,6 @@ void trc::MaterialRegistry::update(vk::CommandBuffer)
         buf[mat->bufferIndex] = *mat;
     }
     materialBuffer.unmap();
-}
-
-auto trc::MaterialRegistry::getDescriptorLayoutBindings()
-    -> std::vector<DescriptorLayoutBindingInfo>
-{
-    return {
-        {
-            config.materialBufBinding,
-            vk::DescriptorType::eStorageBuffer,
-            1,
-            vk::ShaderStageFlagBits::eAllGraphics
-                | vk::ShaderStageFlagBits::eCompute
-                | rt::ALL_RAY_PIPELINE_STAGE_FLAGS
-        }
-    };
-}
-
-auto trc::MaterialRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>
-{
-    return {
-        vk::WriteDescriptorSet(
-            {}, config.materialBufBinding, 0, vk::DescriptorType::eStorageBuffer,
-            {},
-            matBufferDescInfo
-        )
-    };
 }
 
 auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID

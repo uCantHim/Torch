@@ -38,9 +38,6 @@ namespace trc
 
         void update(vk::CommandBuffer cmdBuf) final;
 
-        auto getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo> final;
-        auto getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet> final;
-
         auto add(u_ptr<AssetSource<Texture>> source) -> LocalID;
         void remove(LocalID id);
 
@@ -76,7 +73,6 @@ namespace trc
         data::IdPool idPool;
         Table<u_ptr<InternalStorage>> textures;
 
-        std::vector<std::pair<ui32, vk::DescriptorImageInfo>> descriptorUpdates;
-        std::vector<std::pair<ui32, vk::DescriptorImageInfo>> oldDescriptorUpdates;
+        SharedDescriptorSet::Binding descBinding;
     };
 } // namespace trc

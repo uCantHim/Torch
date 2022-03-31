@@ -56,16 +56,6 @@ void trc::RigRegistry::update(vk::CommandBuffer)
 {
 }
 
-auto trc::RigRegistry::getDescriptorLayoutBindings() -> std::vector<DescriptorLayoutBindingInfo>
-{
-    return {};
-}
-
-auto trc::RigRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>
-{
-    return {};
-}
-
 auto trc::RigRegistry::add(u_ptr<AssetSource<Rig>> source) -> LocalID
 {
     const LocalID id{ rigIdPool.generate() };

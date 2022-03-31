@@ -116,8 +116,6 @@ trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& inf
     config({
         info.geometryBufferUsage,
         info.enableRayTracing,
-        info.geoVertexBufBinding,
-        info.geoIndexBufBinding
     }),
     memoryPool([&] {
         vk::MemoryAllocateFlags allocFlags;
@@ -128,37 +126,23 @@ trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& inf
         return vkb::MemoryPool(info.device, MEMORY_POOL_CHUNK_SIZE, allocFlags);
     }())
 {
+    indexDescriptorBinding = info.layoutBuilder->addBinding(
+        vk::DescriptorType::eStorageBuffer,
+        MAX_GEOMETRY_COUNT,
+        rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
+        vk::DescriptorBindingFlagBits::ePartiallyBound
+    );
+    vertexDescriptorBinding = info.layoutBuilder->addBinding(
+        vk::DescriptorType::eStorageBuffer,
+        MAX_GEOMETRY_COUNT,
+        rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
+        vk::DescriptorBindingFlagBits::ePartiallyBound
+    );
 }
 
 void trc::GeometryRegistry::update(vk::CommandBuffer)
 {
     // Nothing
-}
-
-auto trc::GeometryRegistry::getDescriptorLayoutBindings()
-    -> std::vector<DescriptorLayoutBindingInfo>
-{
-    return {
-        {
-            config.vertBufBinding,
-            vk::DescriptorType::eStorageBuffer,
-            MAX_GEOMETRY_COUNT,
-            rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
-            {}, vk::DescriptorBindingFlagBits::ePartiallyBound,
-        },
-        {
-            config.indexBufBinding,
-            vk::DescriptorType::eStorageBuffer,
-            MAX_GEOMETRY_COUNT,
-            rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
-            {}, vk::DescriptorBindingFlagBits::ePartiallyBound,
-        },
-    };
-}
-
-auto trc::GeometryRegistry::getDescriptorUpdates() -> std::vector<vk::WriteDescriptorSet>
-{
-    return {};
 }
 
 auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
