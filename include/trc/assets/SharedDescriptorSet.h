@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include <vkb/Device.h>
 
 #include "VulkanInclude.h"
@@ -141,6 +143,7 @@ namespace trc
                     ui32 firstArrayElem,
                     const vk::ArrayProxy<const vk::BufferView>& bufferViews);
 
+        std::mutex descriptorUpdateLock;
         std::vector<UpdateContainer> updateStructs;
         std::vector<vk::WriteDescriptorSet> writes;
     };

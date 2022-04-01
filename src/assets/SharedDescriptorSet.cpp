@@ -158,6 +158,7 @@ auto trc::SharedDescriptorSet::getProvider() const -> const DescriptorProviderIn
 
 void trc::SharedDescriptorSet::update(const vkb::Device& device)
 {
+    std::scoped_lock lock(descriptorUpdateLock);
     if (!writes.empty())
     {
         device->updateDescriptorSets(writes, {});
@@ -171,6 +172,8 @@ void trc::SharedDescriptorSet::update(
     ui32 firstArrayElem,
     const vk::ArrayProxy<const vk::DescriptorBufferInfo>& buffers)
 {
+    std::scoped_lock lock(descriptorUpdateLock);
+
     auto& info = updateStructs.emplace_back(buffers);
     writes.push_back(
         vk::WriteDescriptorSet(
@@ -186,6 +189,8 @@ void trc::SharedDescriptorSet::update(
     ui32 firstArrayElem,
     const vk::ArrayProxy<const vk::DescriptorImageInfo>& images)
 {
+    std::scoped_lock lock(descriptorUpdateLock);
+
     auto& info = updateStructs.emplace_back(images);
     writes.push_back(
         vk::WriteDescriptorSet(
@@ -201,6 +206,8 @@ void trc::SharedDescriptorSet::update(
     ui32 firstArrayElem,
     const vk::ArrayProxy<const vk::BufferView>& bufferViews)
 {
+    std::scoped_lock lock(descriptorUpdateLock);
+
     auto& info = updateStructs.emplace_back(bufferViews);
     writes.push_back(
         vk::WriteDescriptorSet(
