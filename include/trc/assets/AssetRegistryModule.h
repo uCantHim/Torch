@@ -125,8 +125,7 @@ namespace trc
     };
 
     template<typename T>
-    concept AssetRegistryModuleType = requires (T a)
-    {
+    concept AssetRegistryModuleType = requires {
         typename T::Handle;
         std::derived_from<T, AssetRegistryModuleInterface>;
         std::constructible_from<T, const AssetRegistryModuleCreateInfo&>;

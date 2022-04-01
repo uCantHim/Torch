@@ -1,14 +1,21 @@
 #include "assets/AssetRegistry.h"
 
 #include <vkb/ImageUtils.h>
-#include <trc_util/algorithm/VectorTransform.h>
 
 #include "core/Instance.h"
+#include "ray_tracing/RayPipelineBuilder.h"
 #include "assets/GeometryRegistry.h"
 #include "assets/MaterialRegistry.h"
 #include "assets/TextureRegistry.h"
+#include "assets/RigRegistry.h"
 #include "assets/AnimationRegistry.h"
-#include "ray_tracing/RayPipelineBuilder.h"
+
+
+
+void trc::AssetRegistry::AssetModuleUpdatePass::update(vk::CommandBuffer cmdBuf)
+{
+    registry->update(cmdBuf);
+}
 
 
 
@@ -45,37 +52,26 @@ trc::AssetRegistry::AssetRegistry(
         TextureData{ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels }
     ));
 
-    writeDescriptors();
+    // Update modules once
+    device.executeCommandsSynchronously(vkb::QueueType::transfer, [this](auto cmdBuf) {
+        updateRenderPass->update(cmdBuf);
+        descSet->update(device);
+    });
 }
 
 auto trc::AssetRegistry::add(u_ptr<AssetSource<Geometry>> src) -> LocalID<Geometry>
 {
-    const auto id = modules.get<AssetRegistryModule<Geometry>>().add(std::move(src));
-
-    if (config.enableRayTracing)
-    {
-        writeDescriptors();
-    }
-
-    return id;
+    return modules.get<AssetRegistryModule<Geometry>>().add(std::move(src));
 }
 
 auto trc::AssetRegistry::add(u_ptr<AssetSource<Material>> src) -> LocalID<Material>
 {
-    const auto id = modules.get<AssetRegistryModule<Material>>().add(std::move(src));
-
-    updateMaterials();
-
-    return id;
+    return modules.get<AssetRegistryModule<Material>>().add(std::move(src));
 }
 
 auto trc::AssetRegistry::add(u_ptr<AssetSource<Texture>> src) -> LocalID<Texture>
 {
-    const auto id = modules.get<AssetRegistryModule<Texture>>().add(std::move(src));
-
-    writeDescriptors();
-
-    return id;
+    return modules.get<AssetRegistryModule<Texture>>().add(std::move(src));
 }
 
 auto trc::AssetRegistry::add(u_ptr<AssetSource<Rig>> src) -> LocalID<Rig>
@@ -98,43 +94,45 @@ auto trc::AssetRegistry::getFonts() const -> const FontDataStorage&
     return fontData;
 }
 
+auto trc::AssetRegistry::getUpdatePass() -> UpdatePass&
+{
+    return *updateRenderPass;
+}
+
 auto trc::AssetRegistry::getDescriptorSetProvider() const noexcept
     -> const DescriptorProviderInterface&
 {
     return descSet->getProvider();
 }
 
-void trc::AssetRegistry::updateMaterials()
-{
-    modules.get<MaterialRegistry>().update({});
-}
-
-auto trc::AssetRegistry::addDefaultValues(const AssetRegistryCreateInfo& info)
+auto trc::AssetRegistry::addDefaultValues(AssetRegistryCreateInfo info)
     -> AssetRegistryCreateInfo
 {
-    auto result = info;
-
-    result.materialDescriptorStages |= vk::ShaderStageFlagBits::eFragment
+    info.materialDescriptorStages |= vk::ShaderStageFlagBits::eFragment
                                        | vk::ShaderStageFlagBits::eCompute;
-    result.textureDescriptorStages |= vk::ShaderStageFlagBits::eFragment
+    info.textureDescriptorStages |= vk::ShaderStageFlagBits::eFragment
                                       | vk::ShaderStageFlagBits::eCompute;
 
     if (info.enableRayTracing)
     {
-        result.geometryBufferUsage |=
+        info.geometryBufferUsage |=
             vk::BufferUsageFlagBits::eStorageBuffer
             | vk::BufferUsageFlagBits::eShaderDeviceAddress
             | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR;
 
-        result.materialDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
-        result.textureDescriptorStages  |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
-        result.geometryDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        info.materialDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        info.textureDescriptorStages  |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+        info.geometryDescriptorStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
     }
 
-    return result;
+    return info;
 }
 
-void trc::AssetRegistry::writeDescriptors()
+void trc::AssetRegistry::update(vk::CommandBuffer cmdBuf)
 {
+    modules.foreach([cmdBuf](AssetRegistryModuleInterface& mod)
+    {
+        mod.update(cmdBuf);
+    });
     descSet->update(device);
 }

@@ -12,6 +12,7 @@
 
 #include "Types.h"
 #include "core/DescriptorProvider.h"
+#include "UpdatePass.h"
 #include "SharedDescriptorSet.h"
 #include "AssetRegistryModuleStorage.h"
 #include "AssetBaseTypes.h"
@@ -69,13 +70,11 @@ namespace trc
         auto getFonts() -> FontDataStorage&;
         auto getFonts() const -> const FontDataStorage&;
 
+        auto getUpdatePass() -> UpdatePass&;
         auto getDescriptorSetProvider() const noexcept -> const DescriptorProviderInterface&;
 
-        // TODO: Don't re-upload ALL materials every time one is added
-        void updateMaterials();
-
     private:
-        static auto addDefaultValues(const AssetRegistryCreateInfo& info)
+        static auto addDefaultValues(AssetRegistryCreateInfo info)
             -> AssetRegistryCreateInfo;
 
         const vkb::Device& device;
@@ -87,9 +86,18 @@ namespace trc
         //////////////
         // Descriptors
 
-        void writeDescriptors();
+        struct AssetModuleUpdatePass : UpdatePass
+        {
+            AssetModuleUpdatePass(AssetRegistry* reg) : registry(reg) {}
+            void update(vk::CommandBuffer cmdBuf) override;
+
+            AssetRegistry* registry;
+        };
+
+        void update(vk::CommandBuffer cmdBuf);
 
         u_ptr<SharedDescriptorSet> descSet;
+        u_ptr<AssetModuleUpdatePass> updateRenderPass{ new AssetModuleUpdatePass{ this } };
 
 
         ////////////////////////////

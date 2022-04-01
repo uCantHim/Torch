@@ -13,7 +13,8 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
 {
     RenderGraph graph;
 
-    graph.first(shadowRenderStage);
+    graph.first(resourceUpdateStage);
+    graph.after(resourceUpdateStage, shadowRenderStage);
     graph.after(shadowRenderStage, gBufferRenderStage);
     graph.after(gBufferRenderStage, finalLightingRenderStage);
 
@@ -79,6 +80,8 @@ trc::TorchRenderConfig::TorchRenderConfig(
         window.getDevice(), info.target, uvec2(0, 0), uvec2(1, 1), *this
     );
     layout.addPass(finalLightingRenderStage, *finalLightingPass);
+
+    layout.addPass(resourceUpdateStage, assetRegistry->getUpdatePass());
 }
 
 void trc::TorchRenderConfig::preDraw(const DrawConfig& draw)

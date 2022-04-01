@@ -39,8 +39,6 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
     // Create render graph
     auto graph = makeDeferredRenderGraph();
 
-    graph.first(resourceUpdateStage);
-
     // Ray tracing stages
     graph.after(finalLightingRenderStage, rt::rayTracingRenderStage);
     graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
