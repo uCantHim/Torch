@@ -1,6 +1,5 @@
 #include "assets/TextureRegistry.h"
 
-#include "assets/import/RawData.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 
@@ -31,6 +30,7 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
                 | vk::ShaderStageFlagBits::eCompute
                 | rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
             vk::DescriptorBindingFlagBits::ePartiallyBound
+                | vk::DescriptorBindingFlagBits::eUpdateAfterBind
         )
     )
 {
@@ -38,7 +38,7 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
 
 void trc::TextureRegistry::update(vk::CommandBuffer)
 {
-    // Nothing
+    dataWriter.update(cmdBuf, frameState);
 }
 
 auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
@@ -53,6 +53,7 @@ auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
     }
 
     // Store texture
+    std::scoped_lock lock(textureStorageLock);  // Unique ownership
     textures.emplace(
         deviceIndex,
         new InternalStorage{
@@ -68,8 +69,9 @@ auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
 
 void trc::TextureRegistry::remove(const LocalID id)
 {
-    const LocalID::IndexType index(id);
+    std::scoped_lock lock(textureStorageLock);  // Unique ownership
 
+    const LocalID::IndexType index(id);
     textures.erase(index);
     idPool.free(index);
 }
@@ -81,13 +83,15 @@ auto trc::TextureRegistry::getHandle(const LocalID id) -> Handle
     return Handle(*textures.get(id));
 }
 
-void trc::TextureRegistry::load(LocalID id)
+void trc::TextureRegistry::load(const LocalID id)
 {
+    std::scoped_lock lock(textureStorageLock);
+
     assert(textures.get(id) != nullptr);
+    assert(textures.get(id)->dataSource != nullptr);
+    assert(textures.get(id)->deviceData == nullptr);
 
     auto& tex = *textures.get(id);
-    assert(tex.deviceData == nullptr);
-
     auto data = tex.dataSource->load();
 
     // Create image resource
@@ -97,8 +101,40 @@ void trc::TextureRegistry::load(LocalID id)
         vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
         memoryPool.makeAllocator()
     );
-    image.writeData(data.pixels.data(), data.size.x * data.size.y * 4, {});
     auto imageView = image.createView(vk::ImageViewType::e2D, vk::Format::eR8G8B8A8Unorm);
+
+    // Write data to device-local image memory
+    dataWriter.barrierPreWrite(
+        vk::PipelineStageFlagBits::eHost,
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::ImageMemoryBarrier(
+            vk::AccessFlagBits::eHostWrite,
+            vk::AccessFlagBits::eTransferWrite,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eTransferDstOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        )
+    );
+    dataWriter.write(
+        *image,
+        vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
+        { 0, 0, 0 },
+        image.getExtent(),
+        data.pixels.data(), data.size.x * data.size.y * 4
+    );
+    dataWriter.barrierPostWrite(
+        vk::PipelineStageFlagBits::eTransfer,
+        vk::PipelineStageFlagBits::eAllGraphics | vk::PipelineStageFlagBits::eComputeShader,
+        vk::ImageMemoryBarrier(
+            vk::AccessFlagBits::eMemoryWrite,
+            vk::AccessFlagBits::eShaderRead,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::ImageLayout::eShaderReadOnlyOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        )
+    );
 
     // Create descriptor info
     descBinding.update(
@@ -115,8 +151,8 @@ void trc::TextureRegistry::load(LocalID id)
 
 void trc::TextureRegistry::unload(LocalID id)
 {
+    std::scoped_lock lock(textureStorageLock);
     assert(textures.get(id) != nullptr);
-    assert(textures.get(id)->deviceData != nullptr);
 
     textures.get(id)->deviceData.reset();
 }

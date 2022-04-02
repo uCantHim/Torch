@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shared_mutex>
+
 #include <vkb/Image.h>
 #include <vkb/MemoryPool.h>
 #include <trc_util/data/IndexMap.h>
@@ -71,6 +73,7 @@ namespace trc
         vkb::MemoryPool memoryPool;
 
         data::IdPool idPool;
+        std::shared_mutex textureStorageLock;
         Table<u_ptr<InternalStorage>> textures;
 
         SharedDescriptorSet::Binding descBinding;

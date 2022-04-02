@@ -54,8 +54,7 @@ trc::AssetRegistry::AssetRegistry(
 
     // Update modules once
     device.executeCommandsSynchronously(vkb::QueueType::transfer, [this](auto cmdBuf) {
-        updateRenderPass->update(cmdBuf);
-        descSet->update(device);
+        update(cmdBuf);
     });
 }
 
