@@ -44,7 +44,10 @@ trc::FinalLightingPass::FinalLightingPass(
     setRenderTarget(device, target);
 }
 
-void trc::FinalLightingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
+void trc::FinalLightingPass::begin(
+    vk::CommandBuffer cmdBuf,
+    vk::SubpassContents,
+    FrameRenderState&)
 {
     vk::Image targetImage = renderTarget->getCurrentImage();
 

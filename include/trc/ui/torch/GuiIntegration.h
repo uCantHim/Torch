@@ -54,7 +54,7 @@ namespace trc
                            GuiRenderer& renderer);
         ~GuiIntegrationPass();
 
-        void begin(vk::CommandBuffer, vk::SubpassContents) override;
+        void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override;
 
     private:

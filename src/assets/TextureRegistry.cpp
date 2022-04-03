@@ -36,7 +36,7 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
 {
 }
 
-void trc::TextureRegistry::update(vk::CommandBuffer)
+void trc::TextureRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
     dataWriter.update(cmdBuf, frameState);
 }

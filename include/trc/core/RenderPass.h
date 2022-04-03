@@ -9,6 +9,8 @@ namespace vkb {
 
 namespace trc
 {
+    class FrameRenderState;
+
     // Will probably not be used but I can define a consistent ID type this way
     struct SubPass
     {
@@ -37,7 +39,9 @@ namespace trc
 
         auto getNumSubPasses() const noexcept -> ui32;
 
-        virtual void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) = 0;
+        virtual void begin(vk::CommandBuffer cmdBuf,
+                           vk::SubpassContents subpassContents,
+                           FrameRenderState& frameState) = 0;
         virtual void end(vk::CommandBuffer cmdBuf) = 0;
 
     protected:

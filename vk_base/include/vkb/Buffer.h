@@ -43,7 +43,7 @@ namespace vkb
                vk::BufferUsageFlags usage,
                vk::MemoryPropertyFlags flags,
                const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator())
-            : Buffer(device, sizeof(T) * data.size(), data.data(), usage, flags, std::move(allocator))
+            : Buffer(device, sizeof(T) * data.size(), data.data(), usage, flags, allocator)
         {}
 
         Buffer(const Buffer&) = delete;

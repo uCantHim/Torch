@@ -286,7 +286,7 @@ auto vkb::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> uint32
     return result.value;
 }
 
-void vkb::Swapchain::presentImage(
+bool vkb::Swapchain::presentImage(
     uint32_t image,
     vk::Queue queue,
     const std::vector<vk::Semaphore>& waitSemaphores)
@@ -305,10 +305,11 @@ void vkb::Swapchain::presentImage(
             std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
         }
         createSwapchain(createInfo);
-        return;
+        return false;
     }
 
     FrameClock::endFrame();
+    return true;
 }
 
 auto vkb::Swapchain::getImageExtent() const noexcept -> vk::Extent2D

@@ -151,7 +151,10 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     outputSetProvider = { *outputLayout, outputSets };
 }
 
-void trc::rt::FinalCompositingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
+void trc::rt::FinalCompositingPass::begin(
+    vk::CommandBuffer cmdBuf,
+    vk::SubpassContents,
+    FrameRenderState&)
 {
     // Swapchain image: ePresentSrcKHR -> eGeneral
     vkb::imageMemoryBarrier(

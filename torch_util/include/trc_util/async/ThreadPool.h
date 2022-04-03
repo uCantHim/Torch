@@ -54,7 +54,7 @@ namespace trc::async
          */
         template<typename Func, typename ...Args>
             requires std::is_invocable_v<Func, Args...>
-        auto async(Func func, Args&&... args) -> std::future<std::invoke_result_t<Func, Args...>>;
+        auto async(Func&& func, Args&&... args) -> std::future<std::invoke_result_t<Func, Args...>>;
 
         /**
          * @brief Remove all idle threads
@@ -116,7 +116,7 @@ namespace trc::async
 
     template<typename Func, typename ...Args>
         requires std::is_invocable_v<Func, Args...>
-    inline auto ThreadPool::async(Func func, Args&&... args)
+    inline auto ThreadPool::async(Func&& func, Args&&... args)
         -> std::future<std::invoke_result_t<Func, Args...>>
     {
         using ReturnType = std::invoke_result_t<Func, Args...>;
@@ -124,7 +124,7 @@ namespace trc::async
         // Use a shared ptr because std::functions must be copyable, which
         // isn't the case for std::promise
         auto promise = std::make_shared<std::promise<ReturnType>>();
-        execute([promise, func = std::move(func), ...args = std::forward<Args>(args)]() mutable
+        execute([promise, func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
         {
             if constexpr (std::is_same_v<ReturnType, void>)
             {

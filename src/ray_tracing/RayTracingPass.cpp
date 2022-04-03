@@ -2,7 +2,7 @@
 
 
 
-void trc::RayTracingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents)
+void trc::RayTracingPass::begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&)
 {
     for (auto& f : rayFunctions) {
         f(cmdBuf);

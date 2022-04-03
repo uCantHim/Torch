@@ -27,7 +27,7 @@ namespace trc
                           uvec2 size,
                           TorchRenderConfig& config);
 
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents) override;
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override {}
 
         void setTargetArea(uvec2 offset, uvec2 size);

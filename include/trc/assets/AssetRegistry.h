@@ -89,12 +89,12 @@ namespace trc
         struct AssetModuleUpdatePass : UpdatePass
         {
             AssetModuleUpdatePass(AssetRegistry* reg) : registry(reg) {}
-            void update(vk::CommandBuffer cmdBuf) override;
+            void update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState) override;
 
             AssetRegistry* registry;
         };
 
-        void update(vk::CommandBuffer cmdBuf);
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState);
 
         u_ptr<SharedDescriptorSet> descSet;
         u_ptr<AssetModuleUpdatePass> updateRenderPass{ new AssetModuleUpdatePass{ this } };

@@ -12,9 +12,11 @@
 
 
 
-void trc::AssetRegistry::AssetModuleUpdatePass::update(vk::CommandBuffer cmdBuf)
+void trc::AssetRegistry::AssetModuleUpdatePass::update(
+    vk::CommandBuffer cmdBuf,
+    FrameRenderState& frameState)
 {
-    registry->update(cmdBuf);
+    registry->update(cmdBuf, frameState);
 }
 
 
@@ -51,11 +53,6 @@ trc::AssetRegistry::AssetRegistry(
     add(std::make_unique<InMemorySource<Texture>>(
         TextureData{ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels }
     ));
-
-    // Update modules once
-    device.executeCommandsSynchronously(vkb::QueueType::transfer, [this](auto cmdBuf) {
-        update(cmdBuf);
-    });
 }
 
 auto trc::AssetRegistry::add(u_ptr<AssetSource<Geometry>> src) -> LocalID<Geometry>
@@ -127,11 +124,11 @@ auto trc::AssetRegistry::addDefaultValues(AssetRegistryCreateInfo info)
     return info;
 }
 
-void trc::AssetRegistry::update(vk::CommandBuffer cmdBuf)
+void trc::AssetRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState)
 {
-    modules.foreach([cmdBuf](AssetRegistryModuleInterface& mod)
+    modules.foreach([cmdBuf, &frameState](AssetRegistryModuleInterface& mod)
     {
-        mod.update(cmdBuf);
+        mod.update(cmdBuf, frameState);
     });
     descSet->update(device);
 }

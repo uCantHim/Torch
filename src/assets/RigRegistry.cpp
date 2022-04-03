@@ -52,7 +52,7 @@ trc::RigRegistry::RigRegistry(const AssetRegistryModuleCreateInfo&)
 {
 }
 
-void trc::RigRegistry::update(vk::CommandBuffer)
+void trc::RigRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
 }
 

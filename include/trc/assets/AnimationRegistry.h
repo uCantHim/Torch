@@ -60,7 +60,7 @@ namespace trc
 
         explicit AnimationRegistry(const AssetRegistryModuleCreateInfo& info);
 
-        void update(vk::CommandBuffer cmdBuf) final;
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
         auto add(u_ptr<AssetSource<Animation>> source) -> LocalID;
 

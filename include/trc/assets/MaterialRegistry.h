@@ -35,7 +35,7 @@ namespace trc
 
         MaterialRegistry(const AssetRegistryModuleCreateInfo& info);
 
-        void update(vk::CommandBuffer cmdBuf) final;
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
         auto add(u_ptr<AssetSource<Material>> source) -> LocalID;
         void remove(LocalID id);

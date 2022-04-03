@@ -32,7 +32,7 @@ namespace trc::rt
          */
         FinalCompositingPass(const Window& window, const FinalCompositingPassCreateInfo& info);
 
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpass) override;
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
         /**

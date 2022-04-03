@@ -7,6 +7,8 @@
 
 namespace trc
 {
+    class FrameRenderState;
+
     struct AssetRegistryModuleCreateInfo
     {
         const vkb::Device& device;
@@ -26,7 +28,7 @@ namespace trc
         AssetRegistryModuleInterface() = default;
         virtual ~AssetRegistryModuleInterface() = default;
 
-        virtual void update(vk::CommandBuffer cmdBuf) = 0;
+        virtual void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) = 0;
     };
 
     /**

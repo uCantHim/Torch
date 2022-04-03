@@ -66,7 +66,7 @@ namespace trc::experimental::imgui
         explicit ImguiRenderPass(const vkb::Swapchain& swapchain);
         ~ImguiRenderPass() override;
 
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
+        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
     private:

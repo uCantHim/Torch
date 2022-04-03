@@ -35,7 +35,9 @@ namespace trc
                            const vkb::Swapchain& swapchain,
                            vkb::FrameSpecific<GBuffer>& gBuffer);
 
-        void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents subpassContents) override;
+        void begin(vk::CommandBuffer cmdBuf,
+                   vk::SubpassContents subpassContents,
+                   FrameRenderState&) override;
         void end(vk::CommandBuffer cmdBuf) override;
 
         void setClearColor(vec4 color);

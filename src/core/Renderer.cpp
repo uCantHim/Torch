@@ -8,6 +8,9 @@
 #include "DrawConfiguration.h"
 #include "RenderConfiguration.h"
 #include "TorchResources.h"
+#include "FrameRenderState.h"
+
+#include "Scene.h"  // TODO: Remove reference to specialized type from core
 
 
 
@@ -45,9 +48,11 @@ trc::Renderer::Renderer(Window& _window)
     instance(_window.getInstance()),
     device(_window.getDevice()),
     window(&_window),
-    imageAcquireSemaphores(_window.getSwapchain()),
-    renderFinishedSemaphores(_window.getSwapchain()),
-    frameInFlightFences(_window.getSwapchain())
+    imageAcquireSemaphores(_window),
+    renderFinishedSemaphores(_window),
+    frameInFlightFences(_window),
+    renderFinishedHostSignalSemaphores(_window),
+    hostSemSignalValue(_window, [](ui32){ return 1; })
 {
     createSemaphores();
 
@@ -62,8 +67,9 @@ trc::Renderer::Renderer(Window& _window)
     }
 
     swapchainRecreateListener = vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto e) {
-        if (e.swapchain != &window->getSwapchain()) return;
-        waitForAllFrames();
+        if (e.swapchain == window) {
+            waitForAllFrames();
+        }
     }).makeUnique();
 }
 
@@ -81,12 +87,15 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     // Wait for frame
     auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
     if (fenceResult == vk::Result::eTimeout) {
-        return;
+        throw std::runtime_error("[In Renderer::drawFrame]: Timeout in waitForFences");
     }
     device->resetFences(**frameInFlightFences);
 
     // Acquire image
-    auto image = window->getSwapchain().acquireImage(**imageAcquireSemaphores);
+    auto image = window->acquireImage(**imageAcquireSemaphores);
+
+    // Record commands
+    auto frameState = std::make_shared<FrameRenderState>();
 
     std::vector<vk::CommandBuffer> commandBuffers;
     for (const auto& draw : draws)
@@ -101,7 +110,11 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
         renderConfig.preDraw(draw);
 
         // Collect commands from scene
-        auto cmdBufs = draw.renderConfig->getLayout().record(draw);
+        auto cmdBufs = renderConfig.getLayout().record(
+            *draw.renderConfig,
+            *draw.scene,
+            *frameState
+        );
         util::merge(commandBuffers, cmdBufs);
 
         // Post-draw cleanup callback
@@ -109,33 +122,76 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     }
 
     // Submit command buffers
-    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eVertexInput;
-    mainRenderQueue.submit(
+    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eComputeShader
+                                       | vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+    std::vector<vk::Semaphore> signalSemaphores{
+        **renderFinishedSemaphores,
+        **renderFinishedHostSignalSemaphores,
+    };
+    const ui64 signalValues[]{ 0, *hostSemSignalValue };
+    vk::StructureChain chain{
         vk::SubmitInfo(
             **imageAcquireSemaphores,
             waitStage,
             commandBuffers,
-            **renderFinishedSemaphores
+            signalSemaphores
         ),
-        **frameInFlightFences
-    );
+        vk::TimelineSemaphoreSubmitInfo(0, nullptr, 2, signalValues)
+    };
+    mainRenderQueue.submit(chain.get(), **frameInFlightFences);
 
     // Present frame
-    window->getSwapchain().presentImage(image, *mainPresentQueue, { **renderFinishedSemaphores });
+    if (!window->presentImage(image, *mainPresentQueue, { **renderFinishedSemaphores })) {
+        return;
+    }
+
+    // Dispatch asynchronous handler for when the frame has finished rendering
+    threadPool.async(
+        [
+            this,
+            sem=**renderFinishedHostSignalSemaphores,
+            val=*hostSemSignalValue,
+            state=std::move(frameState),
+            fence=**frameInFlightFences
+        ]() mutable {
+            auto result = device->waitSemaphores(vk::SemaphoreWaitInfo({}, sem, val), UINT64_MAX);
+            if (result != vk::Result::eSuccess)
+            {
+                throw std::runtime_error(
+                    "[In Renderer::drawFrame::lambda]: vkWaitSemaphores returned a result other"
+                    " than eSuccess. This should not be possible.");
+            }
+
+            state->signalRenderFinished();
+        }
+    );
+
+    ++*hostSemSignalValue;
 }
 
 void trc::Renderer::createSemaphores()
 {
     imageAcquireSemaphores = {
-        window->getSwapchain(),
+        *window,
         [this](ui32) { return device->createSemaphoreUnique({}); }
     };
     renderFinishedSemaphores = {
-        window->getSwapchain(),
+        *window,
         [this](ui32) { return device->createSemaphoreUnique({}); }
     };
+    renderFinishedHostSignalSemaphores = {
+        *window,
+        [this](ui32) {
+            vk::StructureChain chain{
+                vk::SemaphoreCreateInfo(),
+                vk::SemaphoreTypeCreateInfo(vk::SemaphoreType::eTimeline, 0)
+            };
+            return device->createSemaphoreUnique(chain.get());
+        }
+    };
     frameInFlightFences = {
-        window->getSwapchain(),
+        *window,
         [this](ui32) {
             return device->createFenceUnique(
                 { vk::FenceCreateFlagBits::eSignaled }
@@ -154,4 +210,6 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }
+
+    threadPool.trim();
 }

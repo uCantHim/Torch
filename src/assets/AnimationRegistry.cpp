@@ -69,7 +69,7 @@ trc::AnimationRegistry::AnimationRegistry(const AssetRegistryModuleCreateInfo& i
     dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
 }
 
-void trc::AnimationRegistry::update(vk::CommandBuffer)
+void trc::AnimationRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
 }
 

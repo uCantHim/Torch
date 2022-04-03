@@ -24,7 +24,7 @@ trc::MaterialRegistry::MaterialRegistry(const AssetRegistryModuleCreateInfo& inf
     descBinding.update(0, { *materialBuffer, 0, VK_WHOLE_SIZE });
 }
 
-void trc::MaterialRegistry::update(vk::CommandBuffer)
+void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
     if (materialBuffer.size() < sizeof(MaterialDeviceData) * materials.size())
     {
