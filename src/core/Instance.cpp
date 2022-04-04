@@ -24,15 +24,11 @@ trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
         void* deviceFeatureChain{ nullptr };
         auto extensions = info.deviceExtensions;
 
-        // Required device extensions
-        extensions.emplace_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
-
         // Ray tracing device features
         auto features = physicalDevice->physicalDevice.getFeatures2<
             vk::PhysicalDeviceFeatures2,
 
             // Misc
-            vk::PhysicalDeviceSynchronization2Features,   // Vulkan 1.3
             vk::PhysicalDeviceTimelineSemaphoreFeatures,  // Vulkan 1.2
 
             // Ray tracing
