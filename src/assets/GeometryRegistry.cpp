@@ -99,24 +99,10 @@ namespace trc
 
 
 
-trc::GeometryRegistry::InternalStorage::operator GeometryHandle()
-{
-    return {
-        *indexBuf, numIndices, vk::IndexType::eUint32,
-        *vertexBuf, vertexType,
-        rig.has_value() ? rig.value() : std::optional<RigHandle>{ std::nullopt }
-    };
-}
-
-
-
 trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),
-    config({
-        info.geometryBufferUsage,
-        info.enableRayTracing,
-    }),
+    config({ info.geometryBufferUsage, info.enableRayTracing }),
     memoryPool([&] {
         vk::MemoryAllocateFlags allocFlags;
         if (info.enableRayTracing) {
@@ -124,73 +110,138 @@ trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& inf
         }
 
         return vkb::MemoryPool(info.device, MEMORY_POOL_CHUNK_SIZE, allocFlags);
-    }())
+    }()),
+    dataWriter(info.device) /* , memoryPool.makeAllocator()) */
 {
     indexDescriptorBinding = info.layoutBuilder->addBinding(
         vk::DescriptorType::eStorageBuffer,
         MAX_GEOMETRY_COUNT,
         rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
         vk::DescriptorBindingFlagBits::ePartiallyBound
+            | vk::DescriptorBindingFlagBits::eUpdateAfterBind
     );
     vertexDescriptorBinding = info.layoutBuilder->addBinding(
         vk::DescriptorType::eStorageBuffer,
         MAX_GEOMETRY_COUNT,
         rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
         vk::DescriptorBindingFlagBits::ePartiallyBound
+            | vk::DescriptorBindingFlagBits::eUpdateAfterBind
     );
 }
 
-void trc::GeometryRegistry::update(vk::CommandBuffer)
+void trc::GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
 {
-    // Nothing
+    dataWriter.update(cmdBuf, state);
 }
 
 auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
 {
-    LocalID id(idPool.generate());
+    const LocalID id(idPool.generate());
 
-    auto data = source->load();
-
+    std::scoped_lock lock(storageLock);
     storage.emplace(
-        static_cast<LocalID::IndexType>(id),
+        id,
         InternalStorage{
-            .indexBuf = {
-                device,
-                util::optimizeTriangleOrderingForsyth(data.indices),
-                config.geometryBufferUsage | vk::BufferUsageFlagBits::eIndexBuffer,
-                memoryPool.makeAllocator()
-            },
-            .vertexBuf = {
-                device,
-                makeVertexData(data),
-                config.geometryBufferUsage | vk::BufferUsageFlagBits::eVertexBuffer,
-                memoryPool.makeAllocator()
-            },
-            .numIndices = static_cast<ui32>(data.indices.size()),
-            .numVertices = static_cast<ui32>(data.vertices.size()),
-
-            .vertexType = data.skeletalVertices.empty()
-                ? InternalStorage::VertexType::eMesh
-                : InternalStorage::VertexType::eSkeletal,
-
-            .rig = data.rig.empty()
-                ? std::optional<AssetHandle<Rig>>(std::nullopt)
-                : data.rig.getID().getDeviceDataHandle(),
-
             .deviceIndex = id,
+            .source = std::move(source),
+            .deviceData = nullptr,
+            .refCounter = std::make_unique<CacheRefCounter>(id, this),
         }
     );
 
     return id;
 }
 
-void trc::GeometryRegistry::remove(LocalID id)
+void trc::GeometryRegistry::remove(const LocalID id)
 {
-    idPool.free(static_cast<LocalID::IndexType>(id));
-    storage.at(static_cast<LocalID::IndexType>(id)) = {};
+    std::scoped_lock lock(storageLock);
+    idPool.free(id);
+    storage.at(id) = {};
 }
 
-auto trc::GeometryRegistry::getHandle(LocalID id) -> GeometryHandle
+auto trc::GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
 {
-    return storage.at(static_cast<LocalID::IndexType>(id));
+    std::unique_lock lock(storageLock);
+    if (storage.at(id).deviceData == nullptr)
+    {
+        lock.unlock();
+        load(id);
+        lock.lock();
+    }
+
+    auto& data = *storage.at(id).deviceData;
+
+    return GeometryHandle(
+        *data.indexBuf, data.numIndices, vk::IndexType::eUint32,
+        *data.vertexBuf, data.vertexType,
+        data.rig
+    );
+}
+
+void trc::GeometryRegistry::load(const LocalID id)
+{
+    std::scoped_lock lock(storageLock);
+    assert(storage.at(id).source != nullptr);
+
+    if (storage.at(id).deviceData != nullptr)
+    {
+        // Is already loaded
+        return;
+    }
+
+    auto data = storage.at(id).source->load();
+    data.indices = util::optimizeTriangleOrderingForsyth(data.indices);
+    const auto vertexData = makeVertexData(data);
+    const size_t indicesSize = data.indices.size() * sizeof(decltype(data.indices)::value_type);
+    const size_t verticesSize = vertexData.size() * sizeof(decltype(vertexData)::value_type);
+
+    auto& deviceData = storage.at(id).deviceData;
+    deviceData.reset(new InternalStorage::DeviceData{
+        .indexBuf = {
+            device,
+            indicesSize,
+            config.geometryBufferUsage
+                | vk::BufferUsageFlagBits::eIndexBuffer
+                | vk::BufferUsageFlagBits::eTransferDst,
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            memoryPool.makeAllocator()
+        },
+        .vertexBuf = {
+            device,
+            verticesSize,
+            config.geometryBufferUsage
+                | vk::BufferUsageFlagBits::eVertexBuffer
+                | vk::BufferUsageFlagBits::eTransferDst,
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            memoryPool.makeAllocator()
+        },
+        .numIndices = static_cast<ui32>(data.indices.size()),
+        .numVertices = static_cast<ui32>(data.vertices.size()),
+
+        .vertexType = data.skeletalVertices.empty()
+            ? InternalStorage::VertexType::eMesh
+            : InternalStorage::VertexType::eSkeletal,
+
+        .rig = data.rig.empty()
+            ? std::optional<AssetHandle<Rig>>(std::nullopt)
+            : data.rig.getID().getDeviceDataHandle(),
+    });
+
+    // Enqueue writes to the device-local vertex buffers
+    dataWriter.write(*deviceData->indexBuf, 0, data.indices.data(), indicesSize);
+    dataWriter.write(*deviceData->vertexBuf, 0, vertexData.data(), verticesSize);
+
+    if (config.enableRayTracing)
+    {
+        // Enqueue writes to the descriptor set
+        const ui32 deviceIndex = storage.at(id).deviceIndex;
+        indexDescriptorBinding.update(deviceIndex,  { *deviceData->indexBuf, 0, VK_WHOLE_SIZE });
+        vertexDescriptorBinding.update(deviceIndex, { *deviceData->vertexBuf, 0, VK_WHOLE_SIZE });
+    }
+}
+
+void trc::GeometryRegistry::unload(LocalID id)
+{
+    std::scoped_lock lock(storageLock);
+    storage.at(id).deviceData.reset();
 }

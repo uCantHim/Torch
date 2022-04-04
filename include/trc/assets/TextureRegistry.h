@@ -12,6 +12,7 @@
 #include "import/RawData.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
+#include "util/DeviceLocalDataWriter.h"
 
 namespace trc
 {
@@ -71,6 +72,7 @@ namespace trc
         const vkb::Device& device;
         const AssetRegistryModuleCreateInfo config;
         vkb::MemoryPool memoryPool;
+        DeviceLocalDataWriter dataWriter;
 
         data::IdPool idPool;
         std::shared_mutex textureStorageLock;

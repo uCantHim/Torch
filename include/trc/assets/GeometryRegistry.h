@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <mutex>
 
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
@@ -11,6 +12,7 @@
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
 #include "Rig.h"
+#include "util/DeviceLocalDataWriter.h"
 
 namespace trc
 {
@@ -58,8 +60,8 @@ namespace trc
         friend class GeometryRegistry;
 
         GeometryHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
-                             vk::Buffer verts, VertexType vertexType,
-                             std::optional<RigHandle> rig = std::nullopt);
+                       vk::Buffer verts, VertexType vertexType,
+                       std::optional<RigHandle> rig = std::nullopt);
 
         vk::Buffer indexBuffer;
         vk::Buffer vertexBuffer;
@@ -74,7 +76,7 @@ namespace trc
     /**
      * @brief
      */
-    class GeometryRegistry : public AssetRegistryModuleInterface
+    class GeometryRegistry : public AssetRegistryModuleCacheCrtpBase<Geometry>
     {
     public:
         using LocalID = TypedAssetID<Geometry>::LocalID;
@@ -82,12 +84,15 @@ namespace trc
 
         explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);
 
-        void update(vk::CommandBuffer cmdBuf) final;
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) final;
 
         auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID;
         void remove(LocalID id);
 
         auto getHandle(LocalID id) -> GeometryHandle;
+
+        void load(LocalID id) override;
+        void unload(LocalID id) override;
 
     private:
         struct Config
@@ -103,18 +108,23 @@ namespace trc
         {
             using VertexType = GeometryHandle::VertexType;
 
-            operator GeometryHandle();
+            struct DeviceData
+            {
+                vkb::Buffer indexBuf;
+                vkb::Buffer vertexBuf;
+                ui32 numIndices{ 0 };
+                ui32 numVertices{ 0 };
 
-            vkb::DeviceLocalBuffer indexBuf;
-            vkb::DeviceLocalBuffer vertexBuf;
-            ui32 numIndices{ 0 };
-            ui32 numVertices{ 0 };
+                VertexType vertexType;
 
-            VertexType vertexType;
-
-            std::optional<RigHandle> rig;
+                std::optional<RigHandle> rig;
+            };
 
             ui32 deviceIndex;
+            u_ptr<AssetSource<Geometry>> source;
+            u_ptr<DeviceData> deviceData;
+
+            u_ptr<CacheRefCounter> refCounter;
         };
 
         static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
@@ -123,9 +133,11 @@ namespace trc
         const vkb::Device& device;
         const Config config;
 
-        vkb::MemoryPool memoryPool;
         data::IdPool idPool;
+        vkb::MemoryPool memoryPool;
+        DeviceLocalDataWriter dataWriter;
 
+        std::mutex storageLock;
         data::IndexMap<LocalID::IndexType, InternalStorage> storage;
 
         SharedDescriptorSet::Binding indexDescriptorBinding;

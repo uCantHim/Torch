@@ -22,6 +22,7 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
     device(info.device),
     config(info),
     memoryPool(device, MEMORY_POOL_CHUNK_SIZE),
+    dataWriter(info.device),
     descBinding(
         info.layoutBuilder->addBinding(
             vk::DescriptorType::eCombinedImageSampler,
@@ -36,7 +37,7 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
 {
 }
 
-void trc::TextureRegistry::update(vk::CommandBuffer, FrameRenderState&)
+void trc::TextureRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState)
 {
     dataWriter.update(cmdBuf, frameState);
 }
