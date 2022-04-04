@@ -48,7 +48,7 @@ int main()
             vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 2),
             vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 4),
         };
-        auto pool = device->createDescriptorPoolUnique({ {}, 1, poolSizes });
+        auto pool = device->createDescriptorPoolUnique({ vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes });
 
         std::vector<vk::DescriptorSetLayoutBinding> bindings{
             vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, 6, vk::ShaderStageFlagBits::eFragment),
@@ -56,8 +56,6 @@ int main()
         auto layout = device->createDescriptorSetLayoutUnique({ {}, bindings });
 
         auto set = device->allocateDescriptorSetsUnique({ *pool, *layout });
-
-        device->resetDescriptorPool(*pool);
     }
 
     vkb::terminate();
