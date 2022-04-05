@@ -32,11 +32,32 @@ namespace trc
             : uniqueId(base), id(type), manager(&man)
         {}
 
-        operator bool() const {
-            return manager != nullptr;
-        }
+        /**
+         * Returns `*this != NONE`.
+         *
+         * @return bool True if the asset ID is valid, false otherwise
+         */
+        operator bool() const;
 
+
+        //////////////////////////////
+        //  Comparison with NONE value
+
+        using NoneType = typename LocalID::NoneType;
+        static constexpr NoneType NONE{};
+
+        bool operator==(const NoneType&) const;
+        bool operator!=(const NoneType&) const;
+
+        auto operator=(const NoneType&) -> TypedAssetID<T>&;
+
+
+        ////////////////
+        //  Asset access
+
+        /** @return AssetID Global ID for type-agnostic asset data */
         auto getAssetID() const -> AssetID;
+        /** @return AssetID Local ID for type-specific asset data */
         auto getDeviceID() const -> LocalID;
 
         auto get() const;
@@ -54,6 +75,39 @@ namespace trc
     };
 
 
+
+    template<AssetBaseType T>
+    TypedAssetID<T>::operator bool() const
+    {
+        // If one is NONE, all others must also be NONE
+        // If that's not the case, something really bad probably happened
+        assert((uniqueId == AssetID::NONE && id == LocalID::NONE && manager == nullptr)
+            || (uniqueId != AssetID::NONE && id != LocalID::NONE && manager != nullptr));
+
+        return manager != nullptr;
+    }
+
+    template<AssetBaseType T>
+    bool TypedAssetID<T>::operator==(const NoneType&) const
+    {
+        return !*this;
+    }
+
+    template<AssetBaseType T>
+    bool TypedAssetID<T>::operator!=(const NoneType&) const
+    {
+        return !(*this == NONE);
+    }
+
+    template<AssetBaseType T>
+    auto TypedAssetID<T>::operator=(const NoneType&) -> TypedAssetID<T>&
+    {
+        uniqueId = AssetID::NONE;
+        id = LocalID::NONE;
+        manager = nullptr;
+
+        return *this;
+    }
 
     template<AssetBaseType T>
     auto TypedAssetID<T>::getAssetID() const -> AssetID
