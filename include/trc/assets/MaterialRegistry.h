@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include <vkb/Buffer.h>
 #include <trc_util/Padding.h>
 #include <trc_util/data/IndexMap.h>
@@ -42,12 +44,9 @@ namespace trc
 
         auto getHandle(LocalID id) -> Handle;
 
+        auto getData(LocalID id) -> MaterialData;
         template<std::invocable<MaterialData&> F>
-        void modify(LocalID id, F&& func)
-        {
-            func(materials.at(id)->matData);
-            // Material buffer needs updating now
-        }
+        void modify(LocalID id, F&& func);
 
     private:
         static constexpr ui32 NO_TEXTURE = UINT32_MAX;
@@ -88,12 +87,32 @@ namespace trc
 
         static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(MaterialDeviceData) * 100;
 
-        const AssetRegistryModuleCreateInfo config;
-
         data::IdPool idPool;
-        data::IndexMap<LocalID::IndexType, u_ptr<InternalStorage>> materials;
+
+        // Host and device data storage
+        std::mutex materialStorageLock;
+        std::vector<u_ptr<InternalStorage>> materials;
         vkb::Buffer materialBuffer;
 
+        // Descriptor
         SharedDescriptorSet::Binding descBinding;
+
+        // Device data updates
+        std::mutex changedMaterialsLock;
+        std::unordered_set<LocalID> changedMaterials;
     };
+
+
+    template<std::invocable<MaterialData&> F>
+    void MaterialRegistry::modify(const LocalID id, F&& func)
+    {
+        {
+            std::scoped_lock lock(materialStorageLock);
+            func(materials.at(id)->matData);
+        }
+        {
+            std::scoped_lock lock(changedMaterialsLock);
+            changedMaterials.emplace(id);
+        }
+    }
 } // namespace trc

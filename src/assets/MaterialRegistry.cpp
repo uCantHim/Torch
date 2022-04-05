@@ -6,7 +6,6 @@
 
 trc::MaterialRegistry::MaterialRegistry(const AssetRegistryModuleCreateInfo& info)
     :
-    config(info),
     materialBuffer(
         info.device,
         MATERIAL_BUFFER_DEFAULT_SIZE,  // Default material buffer size
@@ -31,12 +30,21 @@ void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
         throw std::runtime_error("[In MaterialRegistry::update]: Material buffer is too small!");
     }
 
-    auto buf = materialBuffer.map<MaterialDeviceData*>();
-    for (const auto& mat : materials)
+    // Execute necessary material updates
+    std::scoped_lock lock(changedMaterialsLock);
+    if (!changedMaterials.empty())
     {
-        buf[mat->bufferIndex] = *mat;
+        std::scoped_lock _lock(materialStorageLock);
+
+        auto buf = materialBuffer.map<MaterialDeviceData*>();
+        for (const LocalID id : changedMaterials)
+        {
+            const auto& mat = materials.at(id);
+            buf[mat->bufferIndex] = *mat;
+        }
+        materialBuffer.unmap();
     }
-    materialBuffer.unmap();
+    changedMaterials.clear();
 }
 
 auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
@@ -46,8 +54,12 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 
     auto data = source->load();
 
+    std::scoped_lock lock(materialStorageLock);
+    if (materials.size() <= id) {
+        materials.resize(id + 1);
+    }
     materials.emplace(
-        static_cast<LocalID::IndexType>(id),
+        materials.begin() + id,
         new InternalStorage{
             .bufferIndex = bufferIndex,
             .matData = data,
@@ -60,17 +72,29 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
         }
     );
 
+    std::scoped_lock _lock(changedMaterialsLock);
+    changedMaterials.emplace(id);
+
     return id;
 }
 
 void trc::MaterialRegistry::remove(LocalID id)
 {
-    idPool.free(static_cast<LocalID::IndexType>(id));
+    std::scoped_lock lock(materialStorageLock);
+    materials.at(id).reset();
+    idPool.free(id);
 }
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
+    std::scoped_lock lock(materialStorageLock);
     return Handle(materials.at(id)->bufferIndex);
+}
+
+auto trc::MaterialRegistry::getData(LocalID id) -> MaterialData
+{
+    std::scoped_lock lock(materialStorageLock);
+    return materials.at(id)->matData;
 }
 
 
