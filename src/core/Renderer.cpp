@@ -141,19 +141,13 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     };
     mainRenderQueue.submit(chain.get(), **frameInFlightFences);
 
-    // Present frame
-    if (!window->presentImage(image, *mainPresentQueue, { **renderFinishedSemaphores })) {
-        return;
-    }
-
     // Dispatch asynchronous handler for when the frame has finished rendering
     threadPool.async(
         [
             this,
             sem=**renderFinishedHostSignalSemaphores,
             val=*hostSemSignalValue,
-            state=std::move(frameState),
-            fence=**frameInFlightFences
+            state=std::move(frameState)
         ]() mutable {
             auto result = device->waitSemaphores(vk::SemaphoreWaitInfo({}, sem, val), UINT64_MAX);
             if (result != vk::Result::eSuccess)
@@ -168,6 +162,11 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     );
 
     ++*hostSemSignalValue;
+
+    // Present frame
+    if (!window->presentImage(image, *mainPresentQueue, { **renderFinishedSemaphores })) {
+        return;
+    }
 }
 
 void trc::Renderer::createSemaphores()
