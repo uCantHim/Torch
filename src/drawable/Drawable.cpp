@@ -28,17 +28,19 @@ Drawable::Drawable(
     DrawableComponentScene& scene)
     :
     scene(&scene),
-    id(scene.makeDrawable())
+    id(scene.makeDrawable()),
+    geo(info.geo),
+    mat(info.mat)
 {
-    auto geo = info.geo.get();
+    auto geoHandle = info.geo.get();
 
     auto raster = makeRasterData(info, pipeline);
 
     // Model matrix ID and animation engine ID have to be set manually
     raster.drawData.modelMatrixId = getGlobalTransformID();
-    if (geo.hasRig())
+    if (geoHandle.hasRig())
     {
-        scene.makeAnimationEngine(id, geo.getRig());
+        scene.makeAnimationEngine(id, geoHandle.getRig());
         raster.drawData.anim = scene.getAnimationEngine(id).getState();
     }
 
@@ -71,6 +73,16 @@ auto Drawable::operator=(Drawable&& other) noexcept -> Drawable&
     std::swap(id, other.id);
 
     return *this;
+}
+
+auto Drawable::getGeometry() const -> GeometryID
+{
+    return geo;
+}
+
+auto Drawable::getMaterial() const -> MaterialID
+{
+    return mat;
 }
 
 bool Drawable::isAnimated() const
