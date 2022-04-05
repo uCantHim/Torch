@@ -51,9 +51,6 @@ auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> PipelineFlags
     if (info.geo.get().hasRig()) {
         flags |= PipelineAnimationTypeFlagBits::eAnimated;
     }
-    if (info.geo.get().getVertexType() == GeometryHandle::VertexType::eSkeletal) {
-        flags |= PipelineVertexTypeFlagBits::eSkeletal;
-    }
 
     return flags;
 }

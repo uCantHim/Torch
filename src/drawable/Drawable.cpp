@@ -40,7 +40,7 @@ Drawable::Drawable(
     raster.drawData.modelMatrixId = getGlobalTransformID();
     if (geoHandle.hasRig())
     {
-        scene.makeAnimationEngine(id, geoHandle.getRig());
+        scene.makeAnimationEngine(id, geoHandle.getRig().getDeviceDataHandle());
         raster.drawData.anim = scene.getAnimationEngine(id).getState();
     }
 
@@ -51,7 +51,9 @@ Drawable::Drawable(Drawable&& other) noexcept
     :
     Node(std::forward<Node>(other)),
     scene(other.scene),
-    id(other.id)
+    id(other.id),
+    geo(other.geo),
+    mat(other.mat)
 {
     other.scene = nullptr;
     other.id = DrawableID::NONE;
@@ -71,6 +73,8 @@ auto Drawable::operator=(Drawable&& other) noexcept -> Drawable&
 
     std::swap(scene, other.scene);
     std::swap(id, other.id);
+    std::swap(geo, other.geo);
+    std::swap(mat, other.mat);
 
     return *this;
 }

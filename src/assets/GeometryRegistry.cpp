@@ -12,7 +12,7 @@ trc::GeometryHandle::GeometryHandle(
     vk::IndexType indexType,
     vk::Buffer verts,
     VertexType vertexType,
-    std::optional<RigHandle> rig)
+    std::optional<RigID> rig)
     :
     indexBuffer(indices),
     vertexBuffer(verts),
@@ -59,8 +59,15 @@ bool trc::GeometryHandle::hasRig() const
     return rig.has_value();
 }
 
-auto trc::GeometryHandle::getRig() -> RigHandle
+auto trc::GeometryHandle::getRig() -> RigID
 {
+    if (!rig.has_value())
+    {
+        throw std::out_of_range(
+            "[In GeometryHandle::getRig()]: Geometry has no rig associated with it!"
+        );
+    }
+
     return rig.value();
 }
 
@@ -72,7 +79,6 @@ namespace trc
     {
         assert(geo.skeletalVertices.empty()
                || geo.skeletalVertices.size() == geo.vertices.size());
-        // assert(geo.skeletalVertices.empty() == !geo.rig.has_value());
 
         std::vector<ui8> result;
         result.resize(geo.vertices.size() * sizeof(MeshVertex)
@@ -145,6 +151,7 @@ auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
             .deviceIndex = id,
             .source = std::move(source),
             .deviceData = nullptr,
+            .rig = std::nullopt,
             .refCounter = std::make_unique<CacheRefCounter>(id, this),
         }
     );
@@ -174,7 +181,7 @@ auto trc::GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
     return GeometryHandle(
         *data.indexBuf, data.numIndices, vk::IndexType::eUint32,
         *data.vertexBuf, data.vertexType,
-        data.rig
+        storage.at(id).rig
     );
 }
 
@@ -221,11 +228,10 @@ void trc::GeometryRegistry::load(const LocalID id)
         .vertexType = data.skeletalVertices.empty()
             ? InternalStorage::VertexType::eMesh
             : InternalStorage::VertexType::eSkeletal,
-
-        .rig = data.rig.empty()
-            ? std::optional<AssetHandle<Rig>>(std::nullopt)
-            : data.rig.getID().getDeviceDataHandle(),
     });
+    storage.at(id).rig = data.rig.empty()
+        ? std::optional<RigID>(std::nullopt)
+        : data.rig.getID(),
 
     // Enqueue writes to the device-local vertex buffers
     dataWriter.write(*deviceData->indexBuf, 0, data.indices.data(), indicesSize);

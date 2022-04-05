@@ -54,14 +54,14 @@ namespace trc
         auto getVertexSize() const noexcept -> size_t;
 
         bool hasRig() const;
-        auto getRig() -> RigHandle;
+        auto getRig() -> RigID;
 
     private:
         friend class GeometryRegistry;
 
         GeometryHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
                        vk::Buffer verts, VertexType vertexType,
-                       std::optional<RigHandle> rig = std::nullopt);
+                       std::optional<RigID> rig = std::nullopt);
 
         vk::Buffer indexBuffer;
         vk::Buffer vertexBuffer;
@@ -70,7 +70,7 @@ namespace trc
         vk::IndexType indexType;
         VertexType vertexType;
 
-        std::optional<RigHandle> rig;
+        std::optional<RigID> rig;
     };
 
     /**
@@ -116,13 +116,12 @@ namespace trc
                 ui32 numVertices{ 0 };
 
                 VertexType vertexType;
-
-                std::optional<RigHandle> rig;
             };
 
             ui32 deviceIndex;
             u_ptr<AssetSource<Geometry>> source;
             u_ptr<DeviceData> deviceData;
+            std::optional<RigID> rig;
 
             u_ptr<CacheRefCounter> refCounter;
         };

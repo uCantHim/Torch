@@ -59,6 +59,11 @@ auto getPipeline(PipelineFlags flags) -> Pipeline::ID
 
     const size_t index = flags.toIndex();
 
+    // Animated pipeline must have skeletal vertices
+    if (flags & PipelineAnimationTypeFlagBits::eAnimated) {
+        flags |= PipelineVertexTypeFlagBits::eSkeletal;
+    }
+
     // Shadow
     if (flags & PipelineShadingTypeFlagBits::eShadow)
     {
