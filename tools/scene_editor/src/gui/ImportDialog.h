@@ -2,8 +2,7 @@
 
 #include <filesystem>
 
-#include <trc/AssetIds.h>
-#include <trc/assets/AssetImportBase.h>
+#include <trc/assets/Assets.h>
 
 namespace gui
 {

@@ -4,7 +4,6 @@
 #include <unordered_set>
 
 #include "ImguiUtil.h"
-#include "AssetManager.h"
 #include "MaterialEditor.h"
 
 namespace gui
@@ -12,7 +11,7 @@ namespace gui
     class AssetEditor
     {
     public:
-        AssetEditor(AssetManager& assetManager);
+        AssetEditor(trc::AssetManager& assetManager);
 
         void drawImGui();
 
@@ -23,7 +22,7 @@ namespace gui
             trc::MaterialID matId;
         };
 
-        AssetManager* assets;
+        trc::AssetManager* assets;
 
         void drawMaterialGui();
         void drawMaterialList();
@@ -34,6 +33,6 @@ namespace gui
 
         // The edited material is a copy. A click on the save button
         // updates the actual material in the AssetRegistry.
-        trc::MaterialDeviceHandle editedMaterialCopy;
+        trc::MaterialData editedMaterialCopy;
     };
 } // namespace gui

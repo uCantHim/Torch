@@ -1,8 +1,8 @@
 #include "ObjectOutline.h"
 
+#include <trc/Torch.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/PipelineBuilder.h>
-#include <trc/TorchResources.h>
 #include <trc/drawable/DefaultDrawable.h>
 
 #include "Scene.h"
@@ -36,7 +36,7 @@ auto getObjectOutlinePipeline() -> trc::Pipeline::ID
 
 auto getAnimatedObjectOutlinePipeline() -> trc::Pipeline::ID
 {
-    static auto baseID = trc::getPipeline(trc::PipelineFeatureFlagBits::eAnimated);
+    static auto baseID = trc::getPipeline(trc::PipelineAnimationTypeFlagBits::eAnimated);
     static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
 
     static auto hoverPipeline = trc::buildGraphicsPipeline(
@@ -72,8 +72,8 @@ ObjectOutline::ObjectOutline(Scene& _scene, SceneObject obj, Type outlineType)
 
     scene.makeRasterization(drawable, trc::RasterComponentCreateInfo{
             .drawData={
-                .geo           = geo.get(),
-                .mat           = mat,
+                .geo           = geo.getDeviceDataHandle(),
+                .mat           = mat.getDeviceDataHandle(),
                 .modelMatrixId = node->getGlobalTransformID(),
                 .anim          = d.isAnimated()
                                  ? d.getAnimationEngine().getState()

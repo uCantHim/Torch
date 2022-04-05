@@ -11,7 +11,6 @@ using namespace trc::basic_types;
 #include "object/ObjectSelection.h"
 
 class App;
-class AssetManager;
 
 class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
@@ -25,7 +24,7 @@ public:
     void loadFromFile();
 
     auto getTorch() -> trc::TorchStack&;
-    auto getAssets() -> AssetManager&;
+    auto getAssets() -> trc::AssetManager&;
     auto getCamera() -> trc::Camera&;
     auto getCamera() const -> const trc::Camera&;
     auto getDrawableScene() -> trc::Scene&;

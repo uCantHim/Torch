@@ -1,8 +1,8 @@
 #include "DefaultAssets.h"
 
-#include <trc/assets/GeneratedGeometry.h>
-
-#include "AssetManager.h"
+#include <trc/Types.h>
+#include <trc/assets/import/GeneratedGeometry.h>
+using namespace trc::basic_types;
 
 
 
@@ -12,26 +12,26 @@ namespace
     g::DefaultMaterials defaultMats;
 }
 
-void initDefaultAssets(AssetManager& am)
+void initDefaultAssets(trc::AssetManager& am)
 {
     static bool _init{ false };
     if (_init) return;
     _init = true;
 
-    defaultGeos.cube = am.add(trc::makeCubeGeo());
-    defaultGeos.sphere = am.add(trc::makeSphereGeo());
+    defaultGeos.cube = am.create(trc::makeCubeGeo());
+    defaultGeos.sphere = am.create(trc::makeSphereGeo());
 
-    defaultMats.undefined = am.add(trc::MaterialDeviceHandle{
-        .color=vec4(0.3f, 0.3f, 0.3f, 1.0f),
-        .kSpecular=vec4(0.0f)
+    defaultMats.undefined = am.create(trc::MaterialData{
+        .color=vec3(0.3f, 0.3f, 0.3f),
+        .specularKoefficient=vec4(0.0f)
     });
-    defaultMats.objectHighlight = am.add(trc::MaterialDeviceHandle{
-        .color=vec4(1.0f),
-        .performLighting=false,
+    defaultMats.objectHighlight = am.create(trc::MaterialData{
+        .color=vec3(1.0f),
+        .doPerformLighting=false,
     });
-    defaultMats.objectSelect = am.add(trc::MaterialDeviceHandle{
-        .color=vec4(1.0f, 0.8f, 0.0f, 1.0f),
-        .performLighting=false,
+    defaultMats.objectSelect = am.create(trc::MaterialData{
+        .color=vec3(1.0f, 0.8f, 0.0f),
+        .doPerformLighting=false,
     });
 }
 

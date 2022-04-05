@@ -1,10 +1,9 @@
 #include "ImportDialog.h"
 
-#include <trc/assets/AssetImport.h>
-
 #include "ImguiUtil.h"
 #include "App.h"
 #include "DefaultAssets.h"
+#include "object/Hitbox.h"
 
 
 
@@ -16,7 +15,7 @@ gui::ImportDialog::ImportDialog(const fs::path& filePath)
 void gui::ImportDialog::loadFrom(const fs::path& fbxFilePath)
 {
     filePath = fbxFilePath;
-    importData = trc::loadGeometry(fbxFilePath);
+    importData = trc::loadAssets(fbxFilePath);
 }
 
 void gui::ImportDialog::drawImGui()
@@ -54,9 +53,8 @@ void gui::ImportDialog::drawImGui()
             ig::TreePop();
 
             ig::Separator();
-            auto& anims = rigData.animations;
-            ig::Text("%lu animations", ui64(anims.size()));
-            for (const auto& anim : anims)
+            ig::Text("%lu animations", ui64(mesh.animations.size()));
+            for (const auto& anim : mesh.animations)
             {
                 ig::Text("Animation \"%s\"", anim.name.c_str());
                 ig::TreePush();
@@ -82,8 +80,10 @@ void gui::ImportDialog::drawImGui()
 
 auto gui::ImportDialog::importGeometry(const trc::ThirdPartyMeshImport& mesh) -> trc::GeometryID
 {
-    auto& am = App::get().getAssets();
-    return am.add(mesh.geometry, mesh.rig);
+    const trc::GeometryID geo = App::get().getAssets().create(mesh.geometry);
+    App::get().addHitbox(geo, makeHitbox(mesh.geometry));
+
+    return geo;
 }
 
 void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& mesh)
@@ -91,11 +91,13 @@ void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& m
     auto& scene = App::get().getScene();
 
     const auto geoId = importGeometry(mesh);
+
+    // Create object with default components
     const auto obj = scene.createDefaultObject({ geoId, g::mats().undefined });
 
     auto& d = scene.get<trc::Drawable>(obj);
     d.setFromMatrix(mesh.globalTransform);
-    if (mesh.rig.has_value()) {
+    if (d.isAnimated()) {
         d.getAnimationEngine().playAnimation(0);
     }
 }

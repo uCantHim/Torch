@@ -1,10 +1,8 @@
 #pragma once
 
-#include <trc/AssetIds.h>
+#include <trc/assets/Assets.h>
 
-class AssetManager;
-
-void initDefaultAssets(AssetManager& assetManager);
+void initDefaultAssets(trc::AssetManager& assetManager);
 
 namespace g
 {

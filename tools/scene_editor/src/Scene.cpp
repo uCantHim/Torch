@@ -5,6 +5,7 @@
 #include "App.h"
 #include "gui/ContextMenu.h"
 #include "object/Context.h"
+#include "object/Hitbox.h"
 
 
 
@@ -47,7 +48,7 @@ auto Scene::getTorch() -> trc::TorchStack&
     return app->getTorch();
 }
 
-auto Scene::getAssets() -> AssetManager&
+auto Scene::getAssets() -> trc::AssetManager&
 {
     return app->getAssets();
 }
@@ -125,7 +126,7 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     node.attach(d);
     scene.getRoot().attach(node);
 
-    add<Hitbox>(obj, app->getAssets().getHitbox(d.getGeometry()));
+    add<Hitbox>(obj, app->getHitbox(d.getGeometry()));
 
     return obj;
 }

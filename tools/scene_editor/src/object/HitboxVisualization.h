@@ -1,6 +1,5 @@
 #pragma once
 
-#include <trc/core/Pipeline.h>
 #include <trc/drawable/Drawable.h>
 
 #include "Hitbox.h"
@@ -8,7 +7,6 @@
 namespace trc{
     class Scene;
 }
-class AssetManager;
 
 /**
  * The capsule visualization is a stretched sphere until I implement a
