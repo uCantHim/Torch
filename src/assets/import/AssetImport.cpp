@@ -4,24 +4,48 @@
 
 
 
+void linkAssetReferences(trc::ThirdPartyMeshImport& mesh)
+{
+    if (mesh.rig.has_value())
+    {
+        auto& rig = mesh.rig.value();
+        for (auto& anim : mesh.animations) {
+            rig.animations.emplace_back(anim);
+        }
+        mesh.geometry.rig = rig;
+    }
+}
+
+
+
 auto trc::loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData
 {
-    if (filePath.extension() == ".fbx")
+    auto result = [&]
     {
+        if (filePath.extension() == ".fbx")
+        {
 #ifdef TRC_USE_FBX_SDK
-        return FBXImporter::load(filePath);
+            return FBXImporter::load(filePath);
 #else
-        throw DataImportError("[In loadAssets]: Unable to import data from .fbx files"
-                              " as Torch was built without the FBX SDK");
+            throw DataImportError("[In loadAssets]: Unable to import data from .fbx files"
+                                  " as Torch was built without the FBX SDK");
 #endif
-    }
+        }
 
 #ifdef TRC_USE_ASSIMP
-    return AssetImporter::load(filePath);
+        return AssetImporter::load(filePath);
 #else
-    throw DataImportError("[In loadAssets]: Unable to import data from " + filePath.string()
-                          + " as Torch was built without Assimp");
+        throw DataImportError("[In loadAssets]: Unable to import data from " + filePath.string()
+                              + " as Torch was built without Assimp");
 #endif
+    }();
+
+    for (auto& mesh : result.meshes)
+    {
+        linkAssetReferences(mesh);
+    }
+
+    return result;
 }
 
 auto trc::loadGeometry(const fs::path& filePath) -> GeometryData
@@ -32,14 +56,7 @@ auto trc::loadGeometry(const fs::path& filePath) -> GeometryData
     }
 
     auto& mesh = assets.meshes[0];
-    if (mesh.rig.has_value())
-    {
-        auto& rig = mesh.rig.value();
-        for (auto& anim : mesh.animations) {
-            rig.animations.emplace_back(anim);
-        }
-        mesh.geometry.rig = rig;
-    }
+    linkAssetReferences(mesh);
 
     return mesh.geometry;
 }
