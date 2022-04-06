@@ -6,8 +6,8 @@
 
 #include "AssetID.h"
 #include "AssetPath.h"
-#include "AssetSource.h"
 #include "AssetManagerInterface.h"
+#include "AssetSource.h"  // This is not strictly necessary, a forward declaration works as well
 
 namespace trc
 {

@@ -4,10 +4,12 @@
 
 #include "Types.h"
 #include "AssetBase.h"
-#include "AssetSource.h"
+#include "AssetSource.h"  // This is not strictly necessary, a forward declaration works
 
 namespace trc
 {
+    class AssetPath;
+
     template<AssetBaseType T>
     struct TypedAssetID;
 

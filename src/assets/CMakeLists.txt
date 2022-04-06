@@ -6,7 +6,6 @@ target_sources(
         AssetPath.cpp
         AssetRegistry.cpp
         AssetRegistryModuleStorage.cpp
-        AssetSource.cpp
         GeometryRegistry.cpp
         MaterialRegistry.cpp
         RigRegistry.cpp

@@ -43,4 +43,34 @@ namespace trc
 
     void writeAssetToFile(const fs::path& path, const serial::Asset& msg);
     auto loadAssetFromFile(const fs::path& path) -> serial::Asset;
+
+    template<>
+    inline auto loadAssetData<Geometry>(const fs::path& path) -> AssetData<Geometry>
+    {
+        return deserializeAssetData(loadAssetFromFile(path).geometry());
+    }
+
+    template<>
+    inline auto loadAssetData<Texture>(const fs::path& path) -> AssetData<Texture>
+    {
+        return deserializeAssetData(loadAssetFromFile(path).texture());
+    }
+
+    template<>
+    inline auto loadAssetData<Material>(const fs::path& path) -> AssetData<Material>
+    {
+        return deserializeAssetData(loadAssetFromFile(path).material());
+    }
+
+    template<>
+    inline auto loadAssetData<Rig>(const fs::path& path) -> AssetData<Rig>
+    {
+        return deserializeAssetData(loadAssetFromFile(path).rig());
+    }
+
+    template<>
+    inline auto loadAssetData<Animation>(const fs::path& path) -> AssetData<Animation>
+    {
+        return deserializeAssetData(loadAssetFromFile(path).animation());
+    }
 } // namespace trc

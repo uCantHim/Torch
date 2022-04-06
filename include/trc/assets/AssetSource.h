@@ -1,29 +1,13 @@
 #pragma once
 
-#include <any>
+#include <filesystem>
 
 #include "AssetBase.h"
 #include "AssetPath.h"
 
 namespace trc
 {
-    struct AssetSourceLoadHelper
-    {
-        struct TypeProxy
-        {
-            template<typename T>
-            auto as() -> T {
-                return std::any_cast<T>(data);
-            }
-
-            std::any data;
-        };
-
-        /**
-         * Used to hide the AssetDataProxy implementation to prevent circular includes
-         */
-        static auto loadAsset(const AssetPath& path) -> TypeProxy;
-    };
+    namespace fs = std::filesystem;
 
     template<AssetBaseType T>
     class AssetSource
@@ -33,7 +17,23 @@ namespace trc
         virtual auto load() -> AssetData<T> = 0;
     };
 
+    /**
+     * Implement/specialize this template for an asset type to define a
+     * load operation for it.
+     */
     template<AssetBaseType T>
+    auto loadAssetData(const fs::path& path) -> AssetData<T>;
+
+    /**
+     * @brief Loads data from a file
+     *
+     * Uses a `loadAssetData` function that implements the loading and
+     * parsing from file.
+     */
+    template<AssetBaseType T>
+        requires requires (AssetPath path) {
+            { loadAssetData<T>(path.getFilesystemPath()) } -> std::same_as<AssetData<T>>;
+        }
     class AssetPathSource : public AssetSource<T>
     {
     public:
@@ -43,15 +43,7 @@ namespace trc
 
         auto load() -> AssetData<T> override
         {
-            try {
-                return AssetSourceLoadHelper::loadAsset(path).as<AssetData<T>>();
-            }
-            catch (const std::bad_any_cast&)
-            {
-                throw std::runtime_error("[In AssetPathSource::load]: Asset loaded from path "
-                                         + path.getFilesystemPath().string() + " is not of the"
-                                         " requested type!");
-            }
+            return loadAssetData<T>(path.getFilesystemPath());
         }
 
     private:

@@ -2,7 +2,8 @@
 
 #include <fstream>
 
-#include "assets/import/PNGConvert.h"
+#include "trc/assets/import/PNGConvert.h"
+#include "trc/assets/AssetSource.h"
 
 
 
