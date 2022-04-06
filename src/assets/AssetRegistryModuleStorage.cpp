@@ -9,6 +9,7 @@ namespace trc
 
 void AssetRegistryModuleStorage::foreach(std::function<void(AssetRegistryModuleInterface&)> func)
 {
+    std::scoped_lock lock(entriesLock);
     for (auto& entry : entries)
     {
         assert(entry.valid());

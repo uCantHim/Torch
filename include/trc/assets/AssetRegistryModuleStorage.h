@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <functional>
+#include <mutex>
 
 #include <componentlib/Table.h>
 
@@ -18,12 +19,11 @@ namespace trc
 
         template<AssetRegistryModuleType T, typename ...Args>
             requires std::constructible_from<T, Args...>
+                  && std::derived_from<T, AssetRegistryModuleInterface>
         void addModule(Args&&... args);
 
         template<AssetRegistryModuleType T>
         auto get() -> T&;
-        template<AssetRegistryModuleType T>
-        auto get() const -> const T&;
 
         void foreach(std::function<void(AssetRegistryModuleInterface&)> func);
 
@@ -62,6 +62,7 @@ namespace trc
             void(*_delete)(void*){ nullptr };
         };
 
+        std::mutex entriesLock;
         componentlib::Table<TypeEntry> entries;
     };
 } // namespace trc

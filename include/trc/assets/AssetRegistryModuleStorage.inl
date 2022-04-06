@@ -7,32 +7,18 @@ namespace trc
 
 template<AssetRegistryModuleType T, typename ...Args>
     requires std::constructible_from<T, Args...>
+          && std::derived_from<T, AssetRegistryModuleInterface>
 void AssetRegistryModuleStorage::addModule(Args&&... args)
 {
+    std::scoped_lock lock(entriesLock);
     entries.emplace(StaticIndex<T>::index, std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 template<AssetRegistryModuleType T>
 auto AssetRegistryModuleStorage::get() -> T&
 {
-    const bool hasModule = entries.size() > StaticIndex<T>::index
-                        && entries.get(StaticIndex<T>::index).valid();
-    if (!hasModule)
-    {
-        throw std::invalid_argument(
-            "[In AssetRegistryModuleStorage::get]: Requested asset registry module type (static"
-            " index " + std::to_string(StaticIndex<T>::index) + ") does not exist in the module"
-            " storage!"
-        );
-    }
-
-    return entries.get(StaticIndex<T>::index).template as<T>();
-}
-
-template<AssetRegistryModuleType T>
-auto AssetRegistryModuleStorage::get() const -> const T&
-{
-    const bool hasModule = entries.size() > StaticIndex<T>::index
+    std::scoped_lock lock(entriesLock);
+    const bool hasModule = entries.has(StaticIndex<T>::index)
                         && entries.get(StaticIndex<T>::index).valid();
     if (!hasModule)
     {
