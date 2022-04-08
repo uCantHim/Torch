@@ -394,4 +394,41 @@ auto loadAssetFromFile(const fs::path& path) -> serial::Asset
     return loadFromFile<trc::serial::Asset>(path);
 }
 
+
+
+void saveToFile(const trc::GeometryData& data, const fs::path& path)
+{
+    trc::serial::Asset asset;
+    *asset.mutable_geometry() = trc::serializeAssetData(data);
+    trc::writeAssetToFile(path, asset);
+}
+
+void saveToFile(const trc::TextureData& data, const fs::path& path)
+{
+    trc::serial::Asset asset;
+    *asset.mutable_texture() = trc::serializeAssetData(data);
+    trc::writeAssetToFile(path, asset);
+}
+
+void saveToFile(const trc::MaterialData& data, const fs::path& path)
+{
+    trc::serial::Asset asset;
+    *asset.mutable_material() = trc::serializeAssetData(data);
+    trc::writeAssetToFile(path, asset);
+}
+
+void saveToFile(const trc::RigData& data, const fs::path& path)
+{
+    trc::serial::Asset asset;
+    *asset.mutable_rig() = trc::serializeAssetData(data);
+    trc::writeAssetToFile(path, asset);
+}
+
+void saveToFile(const trc::AnimationData& data, const fs::path& path)
+{
+    trc::serial::Asset asset;
+    *asset.mutable_animation() = trc::serializeAssetData(data);
+    trc::writeAssetToFile(path, asset);
+}
+
 } // namespace trc

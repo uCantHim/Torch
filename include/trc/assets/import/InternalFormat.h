@@ -73,4 +73,15 @@ namespace trc
     {
         return deserializeAssetData(loadAssetFromFile(path).animation());
     }
+
+    /** @brief Write asset data in Torch's internal format to a file */
+    void saveToFile(const trc::GeometryData& data, const fs::path& path);
+    /** @brief Write asset data in Torch's internal format to a file */
+    void saveToFile(const trc::TextureData& data, const fs::path& path);
+    /** @brief Write asset data in Torch's internal format to a file */
+    void saveToFile(const trc::MaterialData& data, const fs::path& path);
+    /** @brief Write asset data in Torch's internal format to a file */
+    void saveToFile(const trc::RigData& data, const fs::path& path);
+    /** @brief Write asset data in Torch's internal format to a file */
+    void saveToFile(const trc::AnimationData& data, const fs::path& path);
 } // namespace trc

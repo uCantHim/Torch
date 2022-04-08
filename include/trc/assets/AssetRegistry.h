@@ -54,6 +54,9 @@ namespace trc
         auto add(u_ptr<AssetSource<Animation>> anim) -> LocalID<Animation>;
 
         template<AssetBaseType T>
+        auto add(u_ptr<AssetSource<T>> source) -> LocalID<T>;
+
+        template<AssetBaseType T>
         auto get(LocalID<T> key) -> AssetHandle<T>
         {
             return getModule<T>().getHandle(key);
@@ -61,6 +64,16 @@ namespace trc
 
         template<AssetBaseType T>
         void remove(LocalID<T> id);
+
+        template<AssetBaseType T>
+            requires requires (AssetRegistryModule<T> mod) {
+                { mod.add(u_ptr<AssetSource<T>>{}) } -> std::same_as<LocalID<T>>;
+                { mod.remove(LocalID<T>{}) };
+            }
+        void addModule()
+        {
+            modules.addModule<AssetRegistryModule<T>>();
+        }
 
         template<AssetBaseType T>
         auto getModule() -> AssetRegistryModule<T>&;
@@ -107,6 +120,12 @@ namespace trc
     };
 
 
+
+    template<AssetBaseType T>
+    auto AssetRegistry::add(u_ptr<AssetSource<T>> source) -> LocalID<T>
+    {
+        return modules.get<AssetRegistryModule<T>>().add(std::move(source));
+    }
 
     template<AssetBaseType T>
     inline void AssetRegistry::remove(LocalID<T> id)

@@ -130,7 +130,6 @@ namespace trc
     concept AssetRegistryModuleType = requires {
         typename T::Handle;
         std::derived_from<T, AssetRegistryModuleInterface>;
-        std::constructible_from<T, const AssetRegistryModuleCreateInfo&>;
     };
 
 
