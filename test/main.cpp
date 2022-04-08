@@ -64,7 +64,7 @@ void run()
     });
 
     auto mapImport = trc::loadAssets(TRC_TEST_ASSET_DIR"/map.fbx");
-    auto mapMat = mapImport.meshes[0].materials[0];
+    auto mapMat = mapImport.meshes[0].materials[0].data;
     mapMat.ambientKoefficient = vec4(1.0f);
     mapMat.diffuseKoefficient = vec4(1.0f);
     mapMat.specularKoefficient = vec4(1.0f);

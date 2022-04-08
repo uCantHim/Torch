@@ -77,7 +77,8 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPa
         }
 
         // Load material
-        newMesh.materials.emplace_back(loadMaterial(scene->mMaterials[mesh->mMaterialIndex]));
+        const aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
+        newMesh.materials.emplace_back(mat->GetName().C_Str(), loadMaterial(mat));
     }
 
     return result;

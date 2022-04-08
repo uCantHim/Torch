@@ -12,13 +12,19 @@ namespace trc
 {
     namespace fs = std::filesystem;
 
+    struct ThirdPartyMaterialImport
+    {
+        std::string name;
+        MaterialData data;
+    };
+
     struct ThirdPartyMeshImport
     {
         std::string name;
         mat4 globalTransform;
 
         GeometryData geometry;
-        std::vector<MaterialData> materials;
+        std::vector<ThirdPartyMaterialImport> materials;
         std::optional<RigData> rig;
         std::vector<AnimationData> animations;
     };
