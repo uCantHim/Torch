@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include <variant>
 #include <filesystem>
 
@@ -80,6 +81,13 @@ namespace shader_edit
     {
         fs::path filePath;
         std::string code;
+
+        struct VarSpec
+        {
+            std::string tag;
+            std::string value;
+        };
+        std::map<std::string, VarSpec> variablesToValues{};
     };
 
     struct CompileResult

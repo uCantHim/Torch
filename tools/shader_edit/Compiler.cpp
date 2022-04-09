@@ -34,9 +34,6 @@ auto shader_edit::Compiler::compileShader(
     const ShaderFileConfiguration& shader)
     -> std::vector<CompiledShaderFile>
 {
-    constexpr const char* VAR_SEP{ "-" };
-    constexpr const char* NAME_TAG_SEP{ ":" };
-
     std::ifstream file(meta.basePath / shader.inputFilePath);
     if (!file.is_open())
     {
@@ -45,42 +42,35 @@ auto shader_edit::Compiler::compileShader(
 
     // Parse the document
     std::vector<ShaderDocument> documents{ ShaderDocument(file) };
-    std::vector<std::string> uniqueNames{ shader.outputFileName };
+    using Map = std::map<std::string, CompiledShaderFile::VarSpec>;
+    std::vector<Map> setVariables{ Map() };
 
     // Create permutations
     for (const auto& [varName, permutations] : shader.variables)
     {
         documents = permutate(documents, varName, permutations);
 
-        // Construct unique names for each permutation
-        std::vector<std::string> newNames;
-        for (fs::path name : uniqueNames)
+        // Store set variable values in a map for each document
+        std::vector<Map> newVars;
+        for (const Map& map : setVariables)
         {
-            if (permutations.size() == 1) {
-                newNames.emplace_back(name);
-            }
-            else {
-                const auto ext = name.extension().string();
-                for (const auto& var : permutations)
-                {
-                    newNames.emplace_back(
-                        name.replace_extension(VAR_SEP + varName + NAME_TAG_SEP + var.tag).string()
-                        += ext
-                    );
-                }
+            for (const auto& [permutationTag, varValue] : permutations)
+            {
+                newVars.emplace_back(map).try_emplace(varName, permutationTag, varValue.toString());
             }
         }
-        std::swap(uniqueNames, newNames);
+        std::swap(setVariables, newVars);
     }
-    assert(documents.size() == uniqueNames.size());
+    assert(documents.size() == setVariables.size());
 
-    // Compile resulting shader files
+    // Collect resulting shader files
     std::vector<CompiledShaderFile> result;
     for (uint i = 0; const auto& doc : documents)
     {
         result.emplace_back(CompiledShaderFile{
-            .filePath = meta.outDir / fs::path{ uniqueNames[i++] },
-            .code     = doc.compile()
+            .filePath          = meta.outDir / shader.outputFileName,
+            .code              = doc.compile(),
+            .variablesToValues = std::move(setVariables[i++]),
         });
     }
 

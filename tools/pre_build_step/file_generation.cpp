@@ -1,3 +1,4 @@
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -21,6 +22,9 @@ int main()
 
 void generateAssetRegistryDescriptorFile()
 {
+    constexpr const char* VAR_SEP{ "-" };
+    constexpr const char* NAME_TAG_SEP{ ":" };
+
     const fs::path configDir{ CONFIG_DIR };
     const fs::path shaderDir{ SHADER_OUT_DIR };
 
@@ -40,8 +44,21 @@ void generateAssetRegistryDescriptorFile()
         throw err;
     }
 
-    for (const auto& shader : result.shaderFiles)
+    for (auto& shader : result.shaderFiles)
     {
+        std::stringstream ss;
+        for (int i = 0; const auto& [name, var] : shader.variablesToValues)
+        {
+            if (!var.tag.empty())
+            {
+                if (i++ != 0) ss << VAR_SEP;
+                ss << name << NAME_TAG_SEP << var.tag;
+            }
+        }
+
+        const std::string ext = shader.filePath.extension().string();
+        shader.filePath.replace_extension(ss.str() + ext);
+
         std::ofstream out(shader.filePath);
         out << shader.code;
     }
