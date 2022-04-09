@@ -8,6 +8,7 @@
 #include "DescriptorSetUtils.h"
 #include "assets/AssetRegistry.h"
 #include "ray_tracing/RayPipelineBuilder.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -74,7 +75,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         {}
     ),
     computePipeline(buildComputePipeline()
-        .setProgram(vkb::readFile(TRC_SHADER_DIR"/compositing.comp.spv"))
+        .setProgram(internal::loadShader("/compositing.comp.spv"))
         .build(window.getDevice(), computePipelineLayout)
     )
 {

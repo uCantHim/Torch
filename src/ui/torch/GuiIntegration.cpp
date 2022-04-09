@@ -6,6 +6,7 @@
 
 #include "core/RenderLayout.h"
 #include "TorchResources.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -96,7 +97,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
     imageBlendPipeline(
         makeComputePipeline(
             device, imageBlendPipelineLayout,
-            vkb::readFile(TRC_SHADER_DIR"/ui/image_blend.comp.spv")
+            internal::loadShader("/ui/image_blend.comp.spv")
         )
     ),
     swapchainRecreateListener(vkb::on<vkb::SwapchainRecreateEvent>([&](auto& e) {

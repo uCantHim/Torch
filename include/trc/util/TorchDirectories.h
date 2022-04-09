@@ -13,7 +13,26 @@ namespace trc::util
     auto getProjectDirectory() -> fs::path;
 
     /**
+     * @param fs::path path Must be a path to a directory.
+     *
+     * @throw std::invalid_argument if `path` is not a valid path to a
+     *        directory.
+     */
+    auto setProjectDirectory(fs::path newPath);
+
+    /**
      * @return fs::path A directory where Torch saves its assets.
      */
     auto getAssetStorageDirectory() -> fs::path;
+
+    /**
+     * @return fs::path Path to directory in which user shaders are stored.
+     */
+    auto getShaderStorageDirectory() -> fs::path;
+
+    /**
+     * @return fs::path Path to directory in which Torch's shaders are
+     *         stored.
+     */
+    auto getInternalShaderStorageDirectory() -> fs::path;
 } // namespace trc

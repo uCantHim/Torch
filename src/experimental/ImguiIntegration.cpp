@@ -11,6 +11,7 @@
 #include "core/PipelineBuilder.h"
 #include "Torch.h"
 #include "TorchResources.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -180,8 +181,8 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
     // Create pipeline
     imguiPipelineLayout(trc::makePipelineLayout(swapchain.device, {}, {})),
     imguiPipeline(trc::buildGraphicsPipeline()
-        .setProgram(vkb::readFile(TRC_SHADER_DIR"/empty.vert.spv"),
-                    vkb::readFile(TRC_SHADER_DIR"/empty.frag.spv"))
+        .setProgram(internal::loadShader("/empty.vert.spv"),
+                    internal::loadShader("/empty.frag.spv"))
         .addViewport({})
         .addScissorRect({})
         .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)

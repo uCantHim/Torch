@@ -11,6 +11,7 @@ target_sources(
         Light.cpp
         LightRegistry.cpp
         Node.cpp
+        PipelineDefinitions.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
         Scene.cpp

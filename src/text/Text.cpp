@@ -3,9 +3,10 @@
 #include "core/PipelineRegistry.h"
 #include "core/PipelineBuilder.h"
 #include "core/PipelineLayoutBuilder.h"
+#include "text/UnicodeUtils.h"
 #include "TorchRenderConfig.h"
 #include "TorchResources.h"
-#include "text/UnicodeUtils.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -151,8 +152,8 @@ auto trc::makeTextPipeline() -> Pipeline::ID
 
     return buildGraphicsPipeline()
         .setProgram(
-            vkb::readFile(TRC_SHADER_DIR"/text/static_text.vert.spv"),
-            vkb::readFile(TRC_SHADER_DIR"/text/static_text.frag.spv")
+            internal::loadShader("/text/static_text.vert.spv"),
+            internal::loadShader("/text/static_text.frag.spv")
         )
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(TextVertex), vk::VertexInputRate::eVertex),

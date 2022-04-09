@@ -75,13 +75,12 @@ add_dependencies(torch compile_shaders pre_build_step)
 
 target_compile_definitions(torch
     PUBLIC
+        TRC_COMPILE_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}"
         TRC_SHADER_DIR="${CMAKE_CURRENT_LIST_DIR}/shaders"
-
-        # Hard-coded path until I have a project mechanism
-        TRC_PROJECT_DIR="${CMAKE_CURRENT_LIST_DIR}/project_files"
 
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
+
     INTERFACE
         TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
 )

@@ -305,8 +305,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> Pipeline
         .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / "particles/deferred.vert.spv"),
-                    vkb::readFile(SHADER_DIR / "particles/alpha_discard.frag.spv"))
+        .setProgram(internal::loadShader("particles/deferred.vert.spv"),
+                    internal::loadShader("particles/alpha_discard.frag.spv"))
         // (per-vertex) Vertex positions
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
@@ -345,8 +345,8 @@ auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> Pipeline::
         .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / "particles/deferred.vert.spv"),
-                    vkb::readFile(SHADER_DIR / "particles/alpha_blend.frag.spv"))
+        .setProgram(internal::loadShader("particles/deferred.vert.spv"),
+                    internal::loadShader("particles/alpha_blend.frag.spv"))
         // (per-vertex) Vertex positions
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
@@ -386,8 +386,8 @@ auto trc::ParticleCollection::makeParticleShadowPipeline() -> Pipeline::ID
         .registerLayout<TorchRenderConfig>();
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / "particles/shadow.vert.spv"),
-                    vkb::readFile(SHADER_DIR / "particles/shadow.frag.spv"))
+        .setProgram(internal::loadShader("particles/shadow.vert.spv"),
+                    internal::loadShader("particles/shadow.frag.spv"))
         // (per-vertex) Vertex positions
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),

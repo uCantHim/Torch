@@ -121,8 +121,8 @@ auto makeDrawableOpaquePipeline(PipelineFlags flags) -> Pipeline::ID
                                        : "drawable/deferred.vert.spv";
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / vertShader),
-                    vkb::readFile(SHADER_DIR / "drawable/deferred.frag.spv"))
+        .setProgram(internal::loadShader(vertShader),
+                    internal::loadShader("drawable/deferred.frag.spv"))
         .addVertexInputBinding(
             makeVertexBindingDescription(flags.get<PipelineVertexTypeFlagBits>()),
             makeVertexAttributeDescriptions(flags.get<PipelineVertexTypeFlagBits>())
@@ -153,8 +153,8 @@ auto makeDrawableTransparentPipeline(PipelineFlags flags) -> Pipeline::ID
                                        : "drawable/deferred.vert.spv";
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / vertShader),
-                    vkb::readFile(SHADER_DIR / "drawable/transparent.frag.spv"))
+        .setProgram(internal::loadShader(vertShader),
+                    internal::loadShader("drawable/transparent.frag.spv"))
         .addVertexInputBinding(
             makeVertexBindingDescription(flags.get<PipelineVertexTypeFlagBits>()),
             makeVertexAttributeDescriptions(flags.get<PipelineVertexTypeFlagBits>())
@@ -183,8 +183,8 @@ auto makeDrawableShadowPipeline(PipelineFlags flags) -> Pipeline::ID
                                        : "drawable/shadow.vert.spv";
 
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(SHADER_DIR / vertShader),
-                    vkb::readFile(SHADER_DIR / "empty.frag.spv"))
+        .setProgram(internal::loadShader(vertShader),
+                    internal::loadShader("empty.frag.spv"))
         .addVertexInputBinding(
             makeVertexBindingDescription(flags.get<PipelineVertexTypeFlagBits>()),
             makeVertexAttributeDescriptions(flags.get<PipelineVertexTypeFlagBits>())

@@ -6,6 +6,7 @@
 #include "core/PipelineLayoutBuilder.h"
 #include "core/ComputePipelineBuilder.h"
 #include "core/RenderTarget.h"
+#include "PipelineDefinitions.h"
 #include "TorchRenderConfig.h"
 
 
@@ -36,7 +37,7 @@ trc::FinalLightingPass::FinalLightingPass(
         .build(device, config)
     ),
     pipeline(buildComputePipeline()
-        .setProgram(vkb::readFile(TRC_SHADER_DIR"/final_lighting.comp.spv"))
+        .setProgram(internal::loadShader("/final_lighting.comp.spv"))
         .build(device, layout)
     )
 {

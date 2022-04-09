@@ -6,6 +6,7 @@
 #include "core/PipelineLayoutBuilder.h"
 #include "ui/Window.h"
 #include "ui/torch/GuiRenderer.h"
+#include "PipelineDefinitions.h"
 
 
 
@@ -19,8 +20,8 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
     -> Pipeline
 {
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(TRC_SHADER_DIR"/ui/line.vert.spv"),
-                    vkb::readFile(TRC_SHADER_DIR"/ui/line.frag.spv"))
+        .setProgram(internal::loadShader("/ui/line.vert.spv"),
+                    internal::loadShader("/ui/line.frag.spv"))
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
             { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
@@ -40,8 +41,8 @@ auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui
     -> Pipeline
 {
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(TRC_SHADER_DIR"/ui/quad.vert.spv"),
-                    vkb::readFile(TRC_SHADER_DIR"/ui/quad.frag.spv"))
+        .setProgram(internal::loadShader("/ui/quad.vert.spv"),
+                    internal::loadShader("/ui/quad.frag.spv"))
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(QuadVertex), vk::VertexInputRate::eVertex),
             {
@@ -73,8 +74,8 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
     -> Pipeline
 {
     return buildGraphicsPipeline()
-        .setProgram(vkb::readFile(TRC_SHADER_DIR"/ui/text.vert.spv"),
-                    vkb::readFile(TRC_SHADER_DIR"/ui/text.frag.spv"))
+        .setProgram(internal::loadShader("/ui/text.vert.spv"),
+                    internal::loadShader("/ui/text.frag.spv"))
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(QuadVertex), vk::VertexInputRate::eVertex),
             {
