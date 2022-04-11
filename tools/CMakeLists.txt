@@ -4,6 +4,7 @@
 
 add_subdirectory(componentlib)
 add_subdirectory(shader_edit)
+add_subdirectory(pipeline_definition_language)
 add_subdirectory(pre_build_step)
 
 

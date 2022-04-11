@@ -1,0 +1,31 @@
+// Name of property of global object
+Meta:
+    BaseDir: "./shaders"
+
+Shader drawable_deferred:
+    Source: "drawable/deferred.vert"
+    Variable animation: match AnimationType
+        none -> ""
+        simple -> "applyAnimation(...)"
+
+
+// Is equivalent to:
+Shader drawable_deferred_static:
+    Source: "drawable/deferred.vert"
+    Variable animation: ""
+
+Shader drawable_deferred_animated:
+    Source: "drawable/deferred.vert"
+    Variable animation: "applyAnimation(...)"
+
+
+
+Pipeline drawable:
+    VertexShader: match AnimationType
+        none -> drawable_deferred_static
+        simple -> drawable_deferred_animated
+    VertexInput: match AnimationType
+        none -> meshVertex
+        simple -> skeletalVertex
+    // or:
+    VertexInput: meshVertex

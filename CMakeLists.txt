@@ -17,6 +17,8 @@ option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
 option(TORCH_BUILD_SHADER_COMPILER "Build Torch's custom shader compiler" OFF)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
 
+set(TORCH_EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
+
 if (${TORCH_DEBUG})
     set(CMAKE_BUILD_TYPE DEBUG)
 endif()
