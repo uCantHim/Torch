@@ -5,6 +5,8 @@
 #include <sstream>
 
 #include "Scanner.h"
+#include "Parser.h"
+#include "AstPrinter.h"
 
 
 
@@ -31,15 +33,22 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     std::stringstream ss;
     ss << file.rdbuf();
 
-    // Compile
+    // Scan
     Scanner scanner(ss.str(), *errorReporter);
     auto tokens = scanner.scanTokens();
 
-    for (const Token& token : tokens)
-    {
-        std::cout << "[line " << token.location.line << "]: "
-            << to_string(token.type) << " \"" << token.lexeme << "\"" << "\n";
+    // Parse
+    Parser parser(std::move(tokens), *errorReporter);
+    auto result = parser.parseTokens();
+    if (errorReporter->hadError()) {
+        return true;
     }
+
+    ObjectDeclarationFieldValue rootField(std::move(result));
+
+    // Print
+    AstPrinter printer(rootField);
+    printer.print();
 
     return errorReporter->hadError();
 }

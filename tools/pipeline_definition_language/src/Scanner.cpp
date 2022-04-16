@@ -19,6 +19,8 @@ Scanner::Scanner(std::string source, ErrorReporter& errorReporter)
 
 auto Scanner::scanTokens() -> std::vector<Token>
 {
+    addToken(TokenType::eNewline);
+    scanIndent();
     while (!isAtEnd())
     {
         start = current;
@@ -51,8 +53,6 @@ void Scanner::scanToken()
     switch (c)
     {
     case ':': addToken(TokenType::eColon); break;
-    case '{': addToken(TokenType::eLeftBrace); break;
-    case '}': addToken(TokenType::eRightBrace); break;
     case '-':
         if (match('>')) addToken(TokenType::eRightArrow);
         break;
@@ -69,8 +69,16 @@ void Scanner::scanToken()
     case '\r':
         break;
     case '\n':
-        ++line;
+        // Remove empty lines
+        if (tokens.size() >= 2
+            && tokens.at(tokens.size() - 1).type == TokenType::eIndent
+            && tokens.at(tokens.size() - 2).type == TokenType::eNewline)
+        {
+            tokens.pop_back();
+            tokens.pop_back();
+        }
         addToken(TokenType::eNewline);
+        ++line;
         start = current;
         scanIndent();
         break;
@@ -135,9 +143,8 @@ void Scanner::scanIndent()
         consume();
     }
 
-    if (spaces == 0) return;
     if (spaces % 4 == 0) {
-        addToken(TokenType::eIndent, Token::IndentLevel(spaces % 4));
+        addToken(TokenType::eIndent, Token::IndentLevel(spaces / 4));
     }
     else {
         error("Indent must be exactly four spaces per indent level.");

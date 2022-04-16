@@ -1,6 +1,8 @@
 add_executable(pipeline_compiler main.cpp
-    src/PipelineDefinitionLanguage.cpp
+    src/AstPrinter.cpp
     src/ErrorReporter.cpp
+    src/Parser.cpp
+    src/PipelineDefinitionLanguage.cpp
     src/Scanner.cpp
 )
 

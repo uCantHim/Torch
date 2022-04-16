@@ -1,6 +1,7 @@
 // Name of property of global object
 Meta:
-    BaseDir: "./shaders"
+    BaseDir: "./sh\naders"
+
 
 Shader drawable_deferred:
     Source: "drawable/deferred.vert"
@@ -17,7 +18,6 @@ Shader drawable_deferred_static:
 Shader drawable_deferred_animated:
     Source: "drawable/deferred.vert"
     Variable animation: "applyAnimation(...)"
-
 
 
 Pipeline drawable:

@@ -11,7 +11,6 @@ enum class TokenType
 
     // Symbols
     eIndent, eNewline, eColon, eRightArrow,
-    eLeftBrace, eRightBrace,
 
     // Literals
     eIdentifier, eLiteralString,
@@ -34,10 +33,6 @@ inline auto to_string(TokenType type) -> std::string
         return "eColon";
     case TokenType::eRightArrow:
         return "eRightArrow";
-    case TokenType::eLeftBrace:
-        return "eLeftBrace";
-    case TokenType::eRightBrace:
-        return "eRightBrace";
     case TokenType::eIdentifier:
         return "eIdentifier";
     case TokenType::eLiteralString:

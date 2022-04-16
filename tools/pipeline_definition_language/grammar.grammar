@@ -1,0 +1,15 @@
+object-decl  ->  NEWLINE (INDENT field-def)+
+
+field-def    ->  field-name ":" field-value
+
+field-name   ->  IDENTIFIER
+               | IDENTIFIER IDENTIFIER
+
+field-value  ->  LITERAL NEWLINE
+               | IDENTIFIER NEWLINE
+               | object-decl
+               | match-expr
+
+match-expr   -> "match" IDENTIFIER NEWLINE (INDENT match-case NEWLINE)+
+
+match-case   -> IDENTIFIER "->" field-value
