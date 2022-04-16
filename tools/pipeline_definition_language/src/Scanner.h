@@ -22,6 +22,8 @@ private:
     void scanIdentifier();
     void scanIndent();
 
+    void error(std::string message);
+
     auto peek() -> char;
     auto consume() -> char;
     bool match(char c);

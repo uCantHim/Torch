@@ -2,9 +2,11 @@
 
 #include <string>
 
+#include "Token.h"
+
 struct Error
 {
-    uint line;
+    TokenLocation location;
     std::string message;
 };
 

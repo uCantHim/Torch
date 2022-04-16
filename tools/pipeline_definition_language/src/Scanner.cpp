@@ -24,7 +24,18 @@ auto Scanner::scanTokens() -> std::vector<Token>
         start = current;
         scanToken();
     }
-    addToken(TokenType::eEof);
+
+    // Add EOF token
+    tokens.emplace_back(Token{
+        .type=TokenType::eEof,
+        .lexeme="EOF",
+        .value=std::monostate{},
+        .location{
+            .line=line,
+            .start=0,
+            .length=0,
+        }
+    });
 
     return tokens;
 }
@@ -68,10 +79,7 @@ void Scanner::scanToken()
             scanIdentifier();
         }
         else {
-            errorReporter->error({
-                .line=static_cast<uint>(line),
-                .message="Unexpected character: '" + std::string(&c) + "'"
-            });
+            error("Unexpected character: '" + std::string(&c) + "'");
         }
         break;
     };
@@ -84,10 +92,7 @@ void Scanner::scanStringLiteral()
         // Multiline strings are not allowed
         if (peek() == '\n')
         {
-            errorReporter->error({
-                .line=static_cast<uint>(line),
-                .message="Expected '\"', but encountered newline.",
-            });
+            error("Expected '\"', but encountered newline.");
             return;
         }
 
@@ -97,10 +102,7 @@ void Scanner::scanStringLiteral()
 
     if (isAtEnd())
     {
-        errorReporter->error({
-            .line=static_cast<uint>(line),
-            .message="Expected '\"', but encountered EOF.",
-        });
+        error("Expected '\"', but encountered EOF.");
         return;
     }
 
@@ -138,11 +140,16 @@ void Scanner::scanIndent()
         addToken(TokenType::eIndent, Token::IndentLevel(spaces % 4));
     }
     else {
-        errorReporter->error({
-            .line=static_cast<uint>(line),
-            .message="Indent must be exactly four spaces per indent level.",
-        });
+        error("Indent must be exactly four spaces per indent level.");
     }
+}
+
+void Scanner::error(std::string message)
+{
+    errorReporter->error({
+        .location={ line, 0, 1 },
+        .message=std::move(message),
+    });
 }
 
 auto Scanner::peek() -> char

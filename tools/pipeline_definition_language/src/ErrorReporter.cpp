@@ -25,5 +25,5 @@ DefaultErrorReporter::DefaultErrorReporter(std::ostream& os)
 
 void DefaultErrorReporter::reportError(const Error& error)
 {
-    *os << "Error in line " << error.line << ": " << error.message << "\n";
+    *os << "[line " << error.location.line << "] " << error.message << "\n";
 }
