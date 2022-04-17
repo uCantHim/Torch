@@ -156,8 +156,10 @@ void Scanner::scanIndent()
 
 void Scanner::error(std::string message)
 {
+    Token last = tokens.empty() ? Token{} : tokens.back();
+
     errorReporter->error({
-        .location={ line, 0, 1 },
+        .location={ line, last.location.start + last.location.length, 1 },
         .message=std::move(message),
     });
 }
@@ -207,14 +209,18 @@ void Scanner::addToken(TokenType type)
 void Scanner::addToken(TokenType type, Token::Value value)
 {
     const size_t len = current - start;
+
     tokens.emplace_back(Token{
         .type = type,
         .lexeme = source.substr(start, len),
         .value = std::move(value),
         .location{
             .line = line,
-            .start = 0,
+            .start = character,
             .length = len,
         }
     });
+
+    if (type == TokenType::eNewline) character = 1;
+    else character += len;
 }

@@ -41,6 +41,7 @@ private:
     size_t start{ 0 };
     size_t current{ 0 };
     size_t line{ 1 };
+    size_t character{ 1 };
 
     static const std::unordered_map<std::string, TokenType> keywords;
 
