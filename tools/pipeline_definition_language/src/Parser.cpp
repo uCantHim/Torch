@@ -50,21 +50,46 @@ auto Parser::parseStatement() -> Stmt
     {
     case TokenType::eIdentifier:
         return parseFieldDef();
+    case TokenType::eEnum:
+        return parseEnum();
     default:
-        error(peek(), "Expected identifier to begin field definition.");
+        error(peek(), "Expected type definition or field definition.");
     }
 
     throw std::logic_error("This code can never be reached.");
 }
 
-auto Parser::parseTypeDef() -> std::unique_ptr<TypeDef>
+auto Parser::parseEnum() -> EnumTypeDef
 {
-    throw std::invalid_argument("Not implemented");
-}
+    expect(TokenType::eEnum, "Expected ENUM to start enum definition.");
+    expect(TokenType::eIdentifier, "Expected identifier.");
 
-auto Parser::parseEnumDef() -> EnumTypeDef
-{
-    throw std::invalid_argument("Not implemented");
+    EnumTypeDef def{
+        .name=previous().lexeme,
+    };
+    expect(TokenType::eColon, "Expected COLON after enum identifier.");
+    expect(TokenType::eNewline, "Expected newline.");
+
+    // Parse options
+    increaseIndentLevel();
+    while (matchCurrentIndent() && !isAtEnd())
+    {
+        expect(TokenType::eIdentifier, "Expected enum option.");
+        def.options.emplace_back(previous().lexeme);
+
+        // The last option is allowed to omit the comma
+        const bool hadComma = match({ TokenType::eComma });
+        expect(TokenType::eNewline, "Expected newline.");
+
+        if (!hadComma) break;
+    }
+    decreaseIndentLevel();
+
+    if (def.options.empty()) {
+        error(peek(), "Expected at least one option for enum \"" + def.name + "\".");
+    }
+
+    return def;
 }
 
 auto Parser::parseFieldDef() -> FieldDefinition
@@ -242,13 +267,18 @@ void Parser::expect(TokenType type, std::string errorMessage)
     }
 }
 
-bool Parser::matchCurrentIndent()
+auto Parser::peekIndent() -> Indent
 {
     if (peek().type != TokenType::eIndent) {
         error(peek(), "<internal> Expected indent token.");
     }
 
-    const Indent indent = std::get<Indent>(peek().value);
+    return std::get<Indent>(peek().value);
+}
+
+bool Parser::matchCurrentIndent()
+{
+    const Indent indent = peekIndent();
     if (indent == currentIndent)
     {
         consume();

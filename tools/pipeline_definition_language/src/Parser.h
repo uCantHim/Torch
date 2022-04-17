@@ -22,9 +22,7 @@ private:
 
     auto parseStatement() -> Stmt;
 
-    auto parseTypeDef() -> std::unique_ptr<TypeDef>;
-    auto parseEnumDef() -> EnumTypeDef;
-
+    auto parseEnum() -> EnumTypeDef;
     auto parseFieldDef() -> FieldDefinition;
     auto parseFieldName() -> FieldName;
     auto parseFieldValue() -> FieldValue;
@@ -42,6 +40,7 @@ private:
     bool match(std::initializer_list<TokenType> types);
     void expect(TokenType type, std::string errorMessage);
 
+    auto peekIndent() -> Indent;
     bool matchCurrentIndent();
     void increaseIndentLevel();
     void decreaseIndentLevel();

@@ -17,9 +17,18 @@ void AstPrinter::print()
     }
 }
 
-void AstPrinter::operator()(TypeDef&)
+void AstPrinter::operator()(TypeDef& def)
 {
-    std::cout << "typedef";
+    std::visit(*this, def);
+}
+
+void AstPrinter::operator()(EnumTypeDef& def)
+{
+    std::cout << "enum " << def.name << ": ";
+    for (auto& opt : def.options) {
+        std::cout << opt << " | ";
+    }
+    std::cout << "\b\b \n\n";
 }
 
 void AstPrinter::operator()(FieldDefinition& field)

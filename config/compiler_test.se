@@ -3,6 +3,11 @@ Meta:
     BaseDir: "./sh\naders"
 
 
+enum AnimationType:
+    none,
+    simple,
+
+
 Shader drawable_deferred:
     Source: "drawable/deferred.vert"
     Variable animation: match AnimationType

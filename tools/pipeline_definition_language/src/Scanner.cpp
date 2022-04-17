@@ -6,6 +6,7 @@
 
 const std::unordered_map<std::string, TokenType> Scanner::keywords{
     { "match", TokenType::eMatch },
+    { "enum", TokenType::eEnum },
 };
 
 
@@ -53,6 +54,7 @@ void Scanner::scanToken()
     switch (c)
     {
     case ':': addToken(TokenType::eColon); break;
+    case ',': addToken(TokenType::eComma); break;
     case '-':
         if (match('>')) addToken(TokenType::eRightArrow);
         break;
@@ -63,6 +65,7 @@ void Scanner::scanToken()
         if (match('/')) {
             while (!isAtEnd() && peek() != '\n') consume();
         }
+        else error("Unexpected character '/'.");
         break;
     case ' ':
     case '\t':

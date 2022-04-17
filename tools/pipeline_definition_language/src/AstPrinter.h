@@ -10,8 +10,9 @@ public:
     void print();
 
     void operator()(TypeDef&);
-    void operator()(FieldDefinition&);
+    void operator()(EnumTypeDef&);
 
+    void operator()(FieldDefinition&);
     void operator()(LiteralValue&);
     void operator()(Identifier&);
     void operator()(ObjectDeclaration&);
