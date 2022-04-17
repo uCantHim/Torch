@@ -4,7 +4,6 @@
 
 #include "Exceptions.h"
 #include "ErrorReporter.h"
-#include "FieldValue.h"
 
 
 
@@ -47,7 +46,7 @@ auto Parser::parseFieldDef() -> FieldDefinition
     }
     auto value = parseFieldValue();
 
-    return { .name=std::move(name), .value=std::move(value) };
+    return { .name=std::move(name), .value=std::make_unique<FieldValue>(std::move(value)) };
 }
 
 auto Parser::parseFieldName() -> std::variant<TypelessFieldName, TypedFieldName>
@@ -68,34 +67,26 @@ auto Parser::parseFieldName() -> std::variant<TypelessFieldName, TypedFieldName>
     return TypelessFieldName{ .name{ previous().lexeme } };
 }
 
-auto Parser::parseFieldValue() -> std::unique_ptr<FieldValue>
+auto Parser::parseFieldValue() -> FieldValue
 {
     switch (peek().type)
     {
     case TokenType::eLiteralString:
         return [this]{
-            auto result = std::make_unique<LiteralFieldValue>(
-                LiteralValue{ .value=std::get<Token::StringValue>(consume().value) }
-            );
+            LiteralValue result{ .value=std::get<Token::StringValue>(consume().value) };
             expect(TokenType::eNewline, "Expected newline after literal value.");
             return result;
         }();
-        break;
     case TokenType::eIdentifier:
         return [this]{
-            auto result = std::make_unique<IdentifierFieldValue>(
-                Identifier{ .name=consume().lexeme }
-            );
+            Identifier result{ .name=consume().lexeme };
             expect(TokenType::eNewline, "Expected newline after identifier.");
             return result;
         }();
-        break;
     case TokenType::eNewline:
-        return std::make_unique<ObjectDeclarationFieldValue>(parseObjectDecl());
-        break;
+        return parseObjectDecl();
     case TokenType::eMatch:
-        return std::make_unique<MatchExpressionFieldValue>(parseMatchExpr());
-        break;
+        return parseMatchExpr();
     default:
         // Error
         error(peek(), "Expected a field value");
@@ -159,7 +150,7 @@ auto Parser::parseMatchCase() -> MatchCase
 
     return MatchCase{
         .caseIdentifier={ std::move(identifier) },
-        .value=std::move(fieldValue),
+        .value=std::make_unique<FieldValue>(std::move(fieldValue)),
     };
 }
 

@@ -4,8 +4,7 @@
 #include <vector>
 
 #include "Terminals.h"
-
-class FieldValue;
+#include "FieldValue.h"
 
 struct MatchCase
 {

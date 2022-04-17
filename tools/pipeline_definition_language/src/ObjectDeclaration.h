@@ -4,8 +4,7 @@
 #include <vector>
 
 #include "Terminals.h"
-
-class FieldValue;
+#include "FieldValue.h"
 
 struct TypedFieldName
 {
@@ -18,9 +17,11 @@ struct TypelessFieldName
     Identifier name;
 };
 
+using FieldName = std::variant<TypelessFieldName, TypedFieldName>;
+
 struct FieldDefinition
 {
-    std::variant<TypelessFieldName, TypedFieldName> name;
+    FieldName name;
     std::unique_ptr<FieldValue> value;
 };
 

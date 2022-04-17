@@ -2,17 +2,17 @@
 
 #include "SyntaxElements.h"
 
-class AstPrinter : public FieldValueVisitor
+class AstPrinter
 {
 public:
     explicit AstPrinter(FieldValue& root);
 
     void print();
 
-    void visit(LiteralFieldValue& val) override;
-    void visit(IdentifierFieldValue& val) override;
-    void visit(ObjectDeclarationFieldValue& val) override;
-    void visit(MatchExpressionFieldValue& val) override;
+    void operator()(LiteralValue&);
+    void operator()(Identifier&);
+    void operator()(ObjectDeclaration&);
+    void operator()(MatchExpression&);
 
 private:
     void printIndent();

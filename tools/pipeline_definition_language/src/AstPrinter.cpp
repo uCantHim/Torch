@@ -12,36 +12,36 @@ AstPrinter::AstPrinter(FieldValue& root)
 
 void AstPrinter::print()
 {
-    root->accept(*this);
+    std::visit(*this, *root);
 }
 
-void AstPrinter::visit(LiteralFieldValue& val)
+void AstPrinter::operator()(LiteralValue&)
 {
     std::cout << "literal";
 }
 
-void AstPrinter::visit(IdentifierFieldValue& val)
+void AstPrinter::operator()(Identifier&)
 {
     std::cout << "identifier";
 }
 
-void AstPrinter::visit(ObjectDeclarationFieldValue& val)
+void AstPrinter::operator()(ObjectDeclaration& val)
 {
     std::cout << "object:\n";
     ++indent;
-    for (auto& field : val.objectDeclaration.fields)
+    for (auto& field : val.fields)
     {
         printIndent();
         std::cout << "- ";
         std::visit([](auto& name) { std::cout << name.name.name; }, field.name);
         std::cout << ": ";
-        field.value->accept(*this);
+        std::visit(*this, *field.value);
         std::cout << "\n";
     }
     --indent;
 }
 
-void AstPrinter::visit(MatchExpressionFieldValue& val)
+void AstPrinter::operator()(MatchExpression&)
 {
     std::cout << "match expression";
 }

@@ -21,8 +21,8 @@ private:
     using Indent = Token::IndentLevel;
 
     auto parseFieldDef() -> FieldDefinition;
-    auto parseFieldName() -> std::variant<TypelessFieldName, TypedFieldName>;
-    auto parseFieldValue() -> std::unique_ptr<FieldValue>;
+    auto parseFieldName() -> FieldName;
+    auto parseFieldValue() -> FieldValue;
     auto parseObjectDecl() -> ObjectDeclaration;
     auto parseMatchExpr() -> MatchExpression;
     auto parseMatchCase() -> MatchCase;

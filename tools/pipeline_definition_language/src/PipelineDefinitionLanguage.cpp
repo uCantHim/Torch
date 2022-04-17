@@ -44,7 +44,7 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
         return true;
     }
 
-    ObjectDeclarationFieldValue rootField(std::move(result));
+    FieldValue rootField(std::move(result));
 
     // Print
     AstPrinter printer(rootField);
