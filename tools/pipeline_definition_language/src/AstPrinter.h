@@ -5,9 +5,12 @@
 class AstPrinter
 {
 public:
-    explicit AstPrinter(FieldValue& root);
+    explicit AstPrinter(std::vector<Stmt> statements);
 
     void print();
+
+    void operator()(TypeDef&);
+    void operator()(FieldDefinition&);
 
     void operator()(LiteralValue&);
     void operator()(Identifier&);
@@ -15,8 +18,9 @@ public:
     void operator()(MatchExpression&);
 
 private:
+    void printField(FieldDefinition& field);
     void printIndent();
 
-    FieldValue* root;
+    std::vector<Stmt> statements;
     size_t indent{ 0 };
 };

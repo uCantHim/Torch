@@ -1,3 +1,13 @@
+document     ->  statement*
+
+statement    ->  field-def | type-def
+
+type-def     ->  enum-decl
+
+enum-decl    ->  "enum" IDENTIFIER ":" NEWLINE (INDENT IDENTIFIER ",")+
+
+
+
 object-decl  ->  NEWLINE (INDENT field-def)+
 
 field-def    ->  field-name ":" field-value

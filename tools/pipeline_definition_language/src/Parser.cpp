@@ -27,14 +27,44 @@ Parser::Parser(std::vector<Token> _tokens, ErrorReporter& errorReporter)
 #endif
 }
 
-auto Parser::parseTokens() -> ObjectDeclaration
+auto Parser::parseTokens() -> std::vector<Stmt>
 {
+    while (match({ TokenType::eNewline }));
+
     try {
-        return parseObjectDecl();
+        std::vector<Stmt> result;
+        while (matchCurrentIndent() && !isAtEnd()) {
+            result.emplace_back(parseStatement());
+        }
+
+        return result;
     }
     catch (const ParseError&) {
         return {};
     }
+}
+
+auto Parser::parseStatement() -> Stmt
+{
+    switch (peek().type)
+    {
+    case TokenType::eIdentifier:
+        return parseFieldDef();
+    default:
+        error(peek(), "Expected identifier to begin field definition.");
+    }
+
+    throw std::logic_error("This code can never be reached.");
+}
+
+auto Parser::parseTypeDef() -> std::unique_ptr<TypeDef>
+{
+    throw std::invalid_argument("Not implemented");
+}
+
+auto Parser::parseEnumDef() -> EnumTypeDef
+{
+    throw std::invalid_argument("Not implemented");
 }
 
 auto Parser::parseFieldDef() -> FieldDefinition
@@ -218,10 +248,7 @@ bool Parser::matchCurrentIndent()
         error(peek(), "<internal> Expected indent token.");
     }
 
-    // Increase indent by one so that the indentation level can be 0
-    // initially and increased to 1 for members of the implicit global
-    // object.
-    const Indent indent = std::get<Indent>(peek().value) + 1;
+    const Indent indent = std::get<Indent>(peek().value);
     if (indent == currentIndent)
     {
         consume();

@@ -39,15 +39,13 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
 
     // Parse
     Parser parser(std::move(tokens), *errorReporter);
-    auto result = parser.parseTokens();
+    auto parseResult = parser.parseTokens();
     if (errorReporter->hadError()) {
         return true;
     }
 
-    FieldValue rootField(std::move(result));
-
     // Print
-    AstPrinter printer(rootField);
+    AstPrinter printer(std::move(parseResult));
     printer.print();
 
     return errorReporter->hadError();

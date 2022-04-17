@@ -15,10 +15,15 @@ class Parser
 public:
     Parser(std::vector<Token> tokens, ErrorReporter& errorReporter);
 
-    auto parseTokens() -> ObjectDeclaration;
+    auto parseTokens() -> std::vector<Stmt>;
 
 private:
     using Indent = Token::IndentLevel;
+
+    auto parseStatement() -> Stmt;
+
+    auto parseTypeDef() -> std::unique_ptr<TypeDef>;
+    auto parseEnumDef() -> EnumTypeDef;
 
     auto parseFieldDef() -> FieldDefinition;
     auto parseFieldName() -> FieldName;

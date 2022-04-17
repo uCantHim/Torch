@@ -4,15 +4,27 @@
 
 
 
-AstPrinter::AstPrinter(FieldValue& root)
+AstPrinter::AstPrinter(std::vector<Stmt> statements)
     :
-    root(&root)
+    statements(std::move(statements))
 {
 }
 
 void AstPrinter::print()
 {
-    std::visit(*this, *root);
+    for (auto& stmt : statements) {
+        std::visit(*this, stmt);
+    }
+}
+
+void AstPrinter::operator()(TypeDef&)
+{
+    std::cout << "typedef";
+}
+
+void AstPrinter::operator()(FieldDefinition& field)
+{
+    printField(field);
 }
 
 void AstPrinter::operator()(LiteralValue&)
@@ -31,12 +43,7 @@ void AstPrinter::operator()(ObjectDeclaration& val)
     ++indent;
     for (auto& field : val.fields)
     {
-        printIndent();
-        std::cout << "- ";
-        std::visit([](auto& name) { std::cout << name.name.name; }, field.name);
-        std::cout << ": ";
-        std::visit(*this, *field.value);
-        std::cout << "\n";
+        printField(field);
     }
     --indent;
 }
@@ -44,6 +51,16 @@ void AstPrinter::operator()(ObjectDeclaration& val)
 void AstPrinter::operator()(MatchExpression&)
 {
     std::cout << "match expression";
+}
+
+void AstPrinter::printField(FieldDefinition& field)
+{
+    printIndent();
+    std::cout << "- ";
+    std::visit([](auto& name) { std::cout << name.name.name; }, field.name);
+    std::cout << ": ";
+    std::visit(*this, *field.value);
+    std::cout << "\n";
 }
 
 void AstPrinter::printIndent()
