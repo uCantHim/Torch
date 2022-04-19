@@ -114,12 +114,12 @@ auto Parser::parseFieldName() -> std::variant<TypelessFieldName, TypedFieldName>
     if (check(TokenType::eIdentifier))
     {
         return TypedFieldName{
-            .type{ previous().lexeme },
-            .name{ consume().lexeme },
+            .type{ previous() },
+            .name{ consume() },
         };
     }
 
-    return TypelessFieldName{ .name{ previous().lexeme } };
+    return TypelessFieldName{ .name{ previous() } };
 }
 
 auto Parser::parseFieldValue() -> FieldValue
@@ -128,13 +128,13 @@ auto Parser::parseFieldValue() -> FieldValue
     {
     case TokenType::eLiteralString:
         return [this]{
-            LiteralValue result{ .value=std::get<Token::StringValue>(consume().value) };
+            LiteralValue result{ consume() };
             expect(TokenType::eNewline, "Expected newline after literal value.");
             return result;
         }();
     case TokenType::eIdentifier:
         return [this]{
-            Identifier result{ .name=consume().lexeme };
+            Identifier result{ consume() };
             expect(TokenType::eNewline, "Expected newline after identifier.");
             return result;
         }();
@@ -155,7 +155,7 @@ auto Parser::parseObjectDecl() -> ObjectDeclaration
 {
     expect(TokenType::eNewline, "Expected newline to begin an object declaration.");
 
-    ObjectDeclaration obj;
+    ObjectDeclaration obj{ previous() };
     increaseIndentLevel();
     while (matchCurrentIndent() && !isAtEnd())
     {
@@ -180,7 +180,7 @@ auto Parser::parseMatchExpr() -> MatchExpression
     expect(TokenType::eMatch, "Expected keyword \"match\" to start match expression.");
     expect(TokenType::eIdentifier, "Expected identifier after \"match\".");
 
-    MatchExpression expr{ .matchedType{ previous().lexeme } };
+    MatchExpression expr{ previous() };
     expect(TokenType::eNewline, "Expected newline after match identifier.");
 
     increaseIndentLevel();
@@ -199,7 +199,7 @@ auto Parser::parseMatchExpr() -> MatchExpression
 auto Parser::parseMatchCase() -> MatchCase
 {
     expect(TokenType::eIdentifier, "Expected identifier at the beginning of the match case.");
-    auto identifier = previous().lexeme;
+    Identifier identifier{ previous() };
     expect(TokenType::eRightArrow, "Expected RIGHT_ARROW ('->') in case expression.");
     auto fieldValue = parseFieldValue();
 

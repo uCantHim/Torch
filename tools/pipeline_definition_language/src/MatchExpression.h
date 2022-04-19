@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <memory>
 #include <vector>
 
@@ -14,6 +15,13 @@ struct MatchCase
 
 struct MatchExpression
 {
+    MatchExpression(Token _token)
+        : token(std::move(_token)), matchedType(token)
+    {
+        assert(token.type == TokenType::eIdentifier && "Token must be the matched type");
+    }
+
+    Token token;
     Identifier matchedType;
     std::vector<MatchCase> cases;
 };

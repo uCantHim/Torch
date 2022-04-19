@@ -27,5 +27,8 @@ struct FieldDefinition
 
 struct ObjectDeclaration
 {
+    ObjectDeclaration(Token token) : token(std::move(token)) {}
+
+    Token token;
     std::vector<FieldDefinition> fields;
 };

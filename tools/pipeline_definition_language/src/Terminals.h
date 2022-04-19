@@ -9,6 +9,11 @@
  */
 struct LiteralValue
 {
+    LiteralValue(Token _token)
+        : token(std::move(_token)), value(std::get<Token::StringValue>(token.value))
+    {}
+
+    Token token;
     std::string value;
 };
 
@@ -17,5 +22,10 @@ struct LiteralValue
  */
 struct Identifier
 {
+    Identifier(Token _token)
+        : token(std::move(_token)), name(token.lexeme)
+    {}
+
+    Token token;
     std::string name;
 };
