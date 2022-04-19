@@ -4,6 +4,7 @@ add_executable(pipeline_compiler main.cpp
     src/Parser.cpp
     src/PipelineDefinitionLanguage.cpp
     src/Scanner.cpp
+    src/TypeChecker.cpp
 )
 
 target_include_directories(pipeline_compiler PRIVATE src)

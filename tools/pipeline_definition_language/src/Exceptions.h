@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "ErrorReporter.h"
+
 class PipelineLanguageCompilerError : public std::exception
 {
 public:
@@ -13,4 +15,15 @@ public:
 class ParseError : public PipelineLanguageCompilerError
 {
 public:
+};
+
+class TypeError : public PipelineLanguageCompilerError
+{
+public:
+    TypeError(Token token, std::string message)
+        : token(std::move(token)), message(std::move(message))
+    {}
+
+    Token token;
+    std::string message;
 };

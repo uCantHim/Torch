@@ -6,6 +6,7 @@
 
 #include "Scanner.h"
 #include "Parser.h"
+#include "TypeChecker.h"
 #include "AstPrinter.h"
 
 
@@ -41,6 +42,12 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     Parser parser(std::move(tokens), *errorReporter);
     auto parseResult = parser.parseTokens();
     if (errorReporter->hadError()) {
+        return true;
+    }
+
+    // Check types
+    TypeChecker typeChecker(makeDefaultTypeConfig(), *errorReporter);
+    if (typeChecker.check(parseResult)) {
         return true;
     }
 
