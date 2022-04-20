@@ -14,6 +14,10 @@ public:
     {
         size_t flagId;
         size_t flagBitId;
+
+        inline bool operator==(const FlagBitReference& a) const {
+            return flagId == a.flagId && flagBitId == a.flagBitId;
+        }
     };
 
     void registerFlagType(const EnumTypeDef& def);
