@@ -273,7 +273,7 @@ void Parser::expect(TokenType type, std::string errorMessage)
 auto Parser::peekIndent() -> Indent
 {
     if (peek().type != TokenType::eIndent) {
-        error(peek(), "<internal> Expected indent token.");
+        error(peek(), "Expected indent.");
     }
 
     return std::get<Indent>(peek().value);

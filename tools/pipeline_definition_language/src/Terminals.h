@@ -29,3 +29,19 @@ struct Identifier
     Token token;
     std::string name;
 };
+
+inline bool operator==(const Identifier& a, const Identifier& b)
+{
+    return a.name == b.name;
+}
+
+namespace std
+{
+    template<>
+    struct hash<Identifier>
+    {
+        auto operator()(const Identifier& id) const {
+            return std::hash<std::string>{}(id.name);
+        }
+    };
+} // namespace std

@@ -199,8 +199,41 @@ bool TypeChecker::CheckValueType::operator()(const ObjectDeclaration& obj) const
 
 bool TypeChecker::CheckValueType::operator()(const MatchExpression& expr) const
 {
+    // Test if the matched type exists
+    auto it = self->config.types.find(expr.matchedType.name);
+    if (it == self->config.types.end())
+    {
+        self->error(expr.matchedType.token,
+                    "Matching on undefined type \"" + expr.matchedType.name + "\".");
+    }
+
+    // Check if the matched type is an enum type
+    if (!std::holds_alternative<EnumType>(it->second))
+    {
+        self->error(expr.matchedType.token,
+                    "Matching on non-enum type \"" + expr.matchedType.name + "\".");
+    }
+    auto& enumType = std::get<EnumType>(it->second);
+
+    // Check individual cases
+    std::unordered_set<Identifier> matchedCases;
     for (const auto& _case : expr.cases)
     {
+        // Check the case enumerator
+        auto& name = _case.caseIdentifier.name;
+        if (!enumType.options.contains(name))
+        {
+            self->error(_case.caseIdentifier.token,
+                        "No option named \"" + name + "\" in enum \"" + expr.matchedType.name + "\".");
+        }
+
+        // Check for duplicate matches
+        auto [_, success] = matchedCases.emplace(_case.caseIdentifier);
+        if (!success) {
+            self->error(_case.caseIdentifier.token, "Duplicate match on \"" + name + "\".");
+        }
+
+        // Check the type of the case's value
         try {
             if (!std::visit(CheckValueType{ *this }, *_case.value)) {
                 return false;
