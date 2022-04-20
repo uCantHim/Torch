@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 
 using TypeName = std::string;
@@ -37,7 +38,7 @@ struct ObjectType
 struct EnumType
 {
     TypeName typeName;
-    std::vector<std::string> options;
+    std::unordered_set<std::string> options;
 };
 
 using TypeType = std::variant<

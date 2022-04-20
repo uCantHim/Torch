@@ -75,7 +75,10 @@ auto Parser::parseEnum() -> EnumTypeDef
     while (matchCurrentIndent() && !isAtEnd())
     {
         expect(TokenType::eIdentifier, "Expected enum option.");
-        def.options.emplace_back(previous().lexeme);
+        auto [it, success] = def.options.emplace(previous().lexeme);
+        if (!success) {
+            error(previous(), "Redefinition of enum option \"" + *it + "\".");
+        }
 
         // The last option is allowed to omit the comma
         const bool hadComma = match({ TokenType::eComma });
