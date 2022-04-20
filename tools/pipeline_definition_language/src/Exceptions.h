@@ -27,3 +27,11 @@ public:
     Token token;
     std::string message;
 };
+
+class InternalLogicError : public PipelineLanguageCompilerError
+{
+public:
+    InternalLogicError(std::string message) : message(std::move(message)) {}
+
+    std::string message;
+};

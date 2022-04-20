@@ -7,6 +7,8 @@
 #include "Scanner.h"
 #include "Parser.h"
 #include "TypeChecker.h"
+#include "Compiler.h"
+#include "TorchCppWriter.h"
 #include "AstPrinter.h"
 
 
@@ -41,19 +43,28 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     // Parse
     Parser parser(std::move(tokens), *errorReporter);
     auto parseResult = parser.parseTokens();
-    if (errorReporter->hadError()) {
-        return true;
-    }
 
     // Check types
     TypeChecker typeChecker(makeDefaultTypeConfig(), *errorReporter);
-    if (typeChecker.check(parseResult)) {
+    typeChecker.check(parseResult);
+
+    // Compile
+    Compiler compiler;
+    auto compileResult = compiler.compile(parseResult);
+
+    // Interrupt now if any error has occured
+    if (errorReporter->hadError()) {
         return true;
     }
 
     // Print
     AstPrinter printer(std::move(parseResult));
     printer.print();
+
+    // Output
+    std::cout << "--- Compilation output ---\n\n";
+    TorchCppWriter writer;
+    writer.write(compileResult, std::cout);
 
     return errorReporter->hadError();
 }
