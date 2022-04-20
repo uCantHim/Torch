@@ -10,7 +10,7 @@
 struct MatchCase
 {
     Identifier caseIdentifier;
-    std::unique_ptr<FieldValue> value;
+    std::shared_ptr<FieldValue> value;
 };
 
 struct MatchExpression

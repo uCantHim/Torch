@@ -22,7 +22,7 @@ using FieldName = std::variant<TypelessFieldName, TypedFieldName>;
 struct FieldDefinition
 {
     FieldName name;
-    std::unique_ptr<FieldValue> value;
+    std::shared_ptr<FieldValue> value;
 };
 
 struct ObjectDeclaration
