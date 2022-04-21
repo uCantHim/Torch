@@ -109,8 +109,8 @@ bool VariantResolver::isVariantOfSameFlag(const FieldValueVariant& a, const Fiel
 }
 
 void VariantResolver::mergeFlags(
-    std::vector<FlagTable::FlagBitReference>& dst,
-    const std::vector<FlagTable::FlagBitReference>& src)
+    std::vector<VariantFlag>& dst,
+    const std::vector<VariantFlag>& src)
 {
     for (const auto& flag : src)
     {

@@ -19,19 +19,19 @@ void FlagTable::registerFlagType(const EnumTypeDef& def)
     flagsToIndices.try_emplace(flag.name, flagId);
 }
 
-auto FlagTable::getRef(const std::string& flagName, const std::string& bit) const -> FlagBitReference
+auto FlagTable::getRef(const std::string& flagName, const std::string& bit) const -> VariantFlag
 {
     const size_t flagId = flagsToIndices.at(flagName);
     return { .flagId=flagId, .flagBitId=flags.at(flagId).bitsToIndices.at(bit) };
 }
 
-auto FlagTable::getFlagBit(FlagBitReference ref) const -> std::pair<std::string, std::string>
+auto FlagTable::getFlagBit(VariantFlag ref) const -> std::pair<std::string, std::string>
 {
     const auto& flag = flags.at(ref.flagId);
     return { flag.name, flag.bits.at(ref.flagBitId) };
 }
 
-auto FlagTable::getAllFlags() -> std::vector<FlagDesc>
+auto FlagTable::makeFlagDescriptions() const -> std::vector<FlagDesc>
 {
     std::vector<FlagDesc> result;
     for (const auto& flag : flags) {

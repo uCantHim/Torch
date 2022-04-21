@@ -17,7 +17,7 @@ struct FieldValueVariant
     template<typename Visitor>
     void visit(Visitor& vis);
 
-    std::vector<FlagTable::FlagBitReference> setFlags;
+    std::vector<VariantFlag> setFlags;
     FieldValue value;  // Is guaranteed to be not a match expression
 };
 
@@ -42,8 +42,8 @@ public:
 private:
     static bool isVariantOfSameFlag(const FieldValueVariant& a,
                                     const FieldValueVariant& b);
-    static void mergeFlags(std::vector<FlagTable::FlagBitReference>& dst,
-                           const std::vector<FlagTable::FlagBitReference>& src);
+    static void mergeFlags(std::vector<VariantFlag>& dst,
+                           const std::vector<VariantFlag>& src);
 
     const FlagTable& flagTable;
     const IdentifierTable& identifierTable;

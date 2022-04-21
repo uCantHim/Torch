@@ -5,27 +5,45 @@
 #include <unordered_map>
 
 #include "SyntaxElements.h"
-#include "CompileResult.h"
+
+struct VariantFlag
+{
+    size_t flagId;
+    size_t flagBitId;
+
+    inline bool operator==(const VariantFlag& a) const {
+        return flagId == a.flagId && flagBitId == a.flagBitId;
+    }
+};
+
+namespace std
+{
+    template<>
+    struct hash<VariantFlag>
+    {
+        auto operator()(const VariantFlag& f) const -> size_t
+        {
+            return hash<size_t>{}((f.flagId << (sizeof(size_t) / 2)) + f.flagBitId);
+        }
+    };
+} // namespace std
 
 class FlagTable
 {
 public:
-    struct FlagBitReference
+    /** @brief Enums are translated into these flag types */
+    struct FlagDesc
     {
-        size_t flagId;
-        size_t flagBitId;
-
-        inline bool operator==(const FlagBitReference& a) const {
-            return flagId == a.flagId && flagBitId == a.flagBitId;
-        }
+        std::string flagName;
+        std::vector<std::string> flagBits;
     };
 
     void registerFlagType(const EnumTypeDef& def);
 
-    auto getRef(const std::string& flagName, const std::string& bit) const -> FlagBitReference;
-    auto getFlagBit(FlagBitReference ref) const -> std::pair<std::string, std::string>;
+    auto getRef(const std::string& flagName, const std::string& bit) const -> VariantFlag;
+    auto getFlagBit(VariantFlag ref) const -> std::pair<std::string, std::string>;
 
-    auto getAllFlags() -> std::vector<FlagDesc>;
+    auto makeFlagDescriptions() const -> std::vector<FlagDesc>;
 
 private:
     struct FlagStorage

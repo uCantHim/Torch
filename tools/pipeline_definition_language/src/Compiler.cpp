@@ -16,16 +16,14 @@ Compiler::Compiler(std::vector<Stmt> _statements, ErrorReporter& errorReporter)
 
 auto Compiler::compile() -> CompileResult
 {
-    CompileResult result;
-
     for (const auto& stmt : statements)
     {
         std::visit(*this, stmt);
     }
 
-    result.flagTypes = flagTable.getAllFlags();
+    result.flagTable = std::move(flagTable);
 
-    return result;
+    return std::move(result);
 }
 
 void Compiler::operator()(const TypeDef& def)

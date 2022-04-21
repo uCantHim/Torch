@@ -33,6 +33,7 @@ private:
     auto getIdentifierID(const Identifier& id) -> uint;
 
     const std::vector<Stmt> statements;
+    CompileResult result;
 
     IdentifierTable identifierTable;
     FlagTable flagTable;
