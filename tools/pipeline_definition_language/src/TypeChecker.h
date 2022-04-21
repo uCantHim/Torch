@@ -24,7 +24,9 @@ public:
     void operator()(const FieldDefinition&);
 
 private:
-    void checkFieldDefinition(const ObjectType& parent, const FieldDefinition& def);
+    void checkFieldDefinition(const ObjectType& parent,
+                              const FieldDefinition& def,
+                              bool allowArbitraryFields = false);
 
     /**
      * Defines ad-hoc state on the stack to recursively check the types of

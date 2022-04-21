@@ -4,11 +4,9 @@
 
 #include "Exceptions.h"
 #include "ErrorReporter.h"
+#include "Util.h"
 
 
-
-template<typename... Ts> struct VariantVisitor : Ts... { using Ts::operator()...; };
-template<typename... Ts> VariantVisitor(Ts...) -> VariantVisitor<Ts...>;
 
 auto makeDefaultTypeConfig() -> TypeConfiguration
 {
@@ -102,7 +100,7 @@ void TypeChecker::operator()(const EnumTypeDef& def)
 void TypeChecker::operator()(const FieldDefinition& def)
 {
     const auto& globalObj = std::get<ObjectType>(this->config.types.at(globalObjectTypeName));
-    checkFieldDefinition(globalObj, def);
+    checkFieldDefinition(globalObj, def, true);  // Allow arbitrary fields on the global object
 
     // Statement is valid, add defined variable to lookup table
     if (std::holds_alternative<TypedFieldName>(def.name))
@@ -112,10 +110,18 @@ void TypeChecker::operator()(const FieldDefinition& def)
     }
 }
 
-void TypeChecker::checkFieldDefinition(const ObjectType& parent, const FieldDefinition& def)
+void TypeChecker::checkFieldDefinition(
+    const ObjectType& parent,
+    const FieldDefinition& def,
+    const bool allowArbitraryFields)
 {
     TypeName expected = std::visit(VariantVisitor{
-        [this](const TypedFieldName& name){ return name.type.name; },
+        [&, this](const TypedFieldName& name){
+            if (!(allowArbitraryFields || parent.fields.contains(name.type.name))) {
+                error(name.type.token, "Invalid field name \"" + name.type.name + "\".");
+            }
+            return name.type.name;
+        },
         [this, &parent](const TypelessFieldName& name){
             if (!parent.fields.contains(name.name.name)) {
                 error(name.name.token, "Invalid field name \"" + name.name.name + "\".");
