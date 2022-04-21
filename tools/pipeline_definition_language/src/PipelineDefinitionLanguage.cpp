@@ -4,12 +4,12 @@
 #include <iostream>
 #include <sstream>
 
+#include "Exceptions.h"
 #include "Scanner.h"
 #include "Parser.h"
 #include "TypeChecker.h"
 #include "Compiler.h"
 #include "TorchCppWriter.h"
-#include "AstPrinter.h"
 
 
 
@@ -23,8 +23,14 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         exit(USAGE);
     }
 
-    const bool result = compile(argv[1]);
-    exit(result);
+    try {
+        const bool result = compile(argv[1]);
+        exit(result);
+    }
+    catch (const InternalLogicError& err) {
+        std::cout << "\n[INTERNAL COMPILER ERROR]: " << err.message << "\n";
+        exit(1);
+    }
 }
 
 bool PipelineDefinitionLanguage::compile(const fs::path& filename)
@@ -48,18 +54,19 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     TypeChecker typeChecker(makeDefaultTypeConfig(), *errorReporter);
     typeChecker.check(parseResult);
 
-    // Compile
-    Compiler compiler;
-    auto compileResult = compiler.compile(parseResult);
-
-    // Interrupt now if any error has occured
+    // Don't try to compile if errors have occured thus far
     if (errorReporter->hadError()) {
         return true;
     }
 
-    // Print
-    AstPrinter printer(std::move(parseResult));
-    printer.print();
+    // Compile
+    Compiler compiler(std::move(parseResult), *errorReporter);
+    auto compileResult = compiler.compile();
+
+    // Certainly don't output anything if errors have occured
+    if (errorReporter->hadError()) {
+        return true;
+    }
 
     // Output
     std::cout << "--- Compilation output ---\n\n";

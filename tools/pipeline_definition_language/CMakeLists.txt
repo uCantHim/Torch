@@ -3,6 +3,7 @@ add_executable(pipeline_compiler main.cpp
     src/Compiler.cpp
     src/ErrorReporter.cpp
     src/FlagTable.cpp
+    src/IdentifierTable.cpp
     src/Parser.cpp
     src/PipelineDefinitionLanguage.cpp
     src/Scanner.cpp

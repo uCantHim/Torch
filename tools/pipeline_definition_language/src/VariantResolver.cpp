@@ -3,11 +3,15 @@
 #include <ranges>
 #include <algorithm>
 
+#include "Exceptions.h"
+#include "IdentifierTable.h"
 
 
-VariantResolver::VariantResolver(const FlagTable& flags)
+
+VariantResolver::VariantResolver(const FlagTable& flags, const IdentifierTable& ids)
     :
-    flagTable(flags)
+    flagTable(flags),
+    identifierTable(ids)
 {
 }
 
@@ -25,9 +29,12 @@ auto VariantResolver::operator()(const LiteralValue& val) const -> std::vector<F
 
 auto VariantResolver::operator()(const Identifier& id) const -> std::vector<FieldValueVariant>
 {
-    std::vector<FieldValueVariant> res;
-    res.push_back({ .setFlags={}, .value=id });
-    return res;
+    const FieldValue* referenced = identifierTable.get(id);
+    if (referenced != nullptr) {
+        return std::visit(*this, *referenced);
+    }
+
+    throw InternalLogicError("Identifier \"" + id.name + "\" is not present in identifier table.");
 }
 
 auto VariantResolver::operator()(const ObjectDeclaration& obj) const -> std::vector<FieldValueVariant>

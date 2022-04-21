@@ -7,19 +7,30 @@
 #include "SyntaxElements.h"
 #include "FlagTable.h"
 
+class IdentifierTable;
+
 /**
  * @brief A FieldValue specialized for a specific combination of flag bits
  */
 struct FieldValueVariant
 {
+    template<typename Visitor>
+    void visit(Visitor& vis);
+
     std::vector<FlagTable::FlagBitReference> setFlags;
     FieldValue value;  // Is guaranteed to be not a match expression
 };
 
+/**
+ * @brief Resolves variated field values
+ *
+ * Creates complete value declarations by resolving variations and
+ * following references.
+ */
 class VariantResolver
 {
 public:
-    explicit VariantResolver(const FlagTable& flags);
+    VariantResolver(const FlagTable& flags, const IdentifierTable& ids);
 
     auto resolve(FieldValue& value) -> std::vector<FieldValueVariant>;
 
@@ -35,4 +46,5 @@ private:
                            const std::vector<FlagTable::FlagBitReference>& src);
 
     const FlagTable& flagTable;
+    const IdentifierTable& identifierTable;
 };
