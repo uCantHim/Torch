@@ -1,77 +1,135 @@
 #include "Compiler.h"
 
+#include <iostream>
+
 #include "Exceptions.h"
+#include "Util.h"
 
 
 
 Compiler::Compiler(std::vector<Stmt> _statements, ErrorReporter& errorReporter)
     :
-    statements(std::move(_statements)),
-    flagTable(FlagTypeCollector{}.collect(statements)),
-    identifierTable(IdentifierCollector{}.collect(statements)),
-    resolver(flagTable, identifierTable),
+    converter(std::move(_statements)),
     errorReporter(&errorReporter)
 {
 }
 
 auto Compiler::compile() -> CompileResult
 {
-    for (const auto& stmt : statements)
-    {
-        std::visit(*this, stmt);
+    auto globalObject = converter.convert();
+
+    auto it = globalObject.fields.find("Pipeline");
+    if (it != globalObject.fields.end()) {
+        compilePipelines(expectMap(it->second));
+    }
+    it = globalObject.fields.find("Shader");
+    if (it != globalObject.fields.end()) {
+        compileShaders(expectMap(it->second));
     }
 
-    result.flagTable = std::move(flagTable);
-
-    return std::move(result);
+    result.flagTable = converter.getFlagTable();
+    return result;
 }
 
-void Compiler::operator()(const TypeDef& def)
+void Compiler::error(const Token& token, std::string message)
 {
-    std::visit(*this, def);
+    errorReporter->error(Error{ .location=token.location, .message=std::move(message) });
 }
 
-void Compiler::operator()(const EnumTypeDef&)
+auto Compiler::expectField(const compiler::Object& obj, const std::string& field)
+    -> const compiler::FieldValueType&
 {
-    // Nothing - enum types are handled by FlagTypeCollector
+    try {
+        return obj.fields.at(field);
+    }
+    catch (const std::out_of_range& err) {
+        throw InternalLogicError(err.what());
+    }
 }
 
-void Compiler::operator()(const FieldDefinition& def)
+auto Compiler::expectSingle(const compiler::FieldValueType& field) -> const compiler::Value&
 {
-    const auto& [name, value] = def;
+    return *std::get<compiler::SingleValue>(field).value;
+}
 
-    if (std::holds_alternative<TypelessFieldName>(name)) return;
+auto Compiler::expectMap(const compiler::FieldValueType& field) -> const compiler::MapValue&
+{
+    return std::get<compiler::MapValue>(field);
+}
 
-    auto funcIt = typeCompileFuncs.find(std::get<TypedFieldName>(name).type.name);
-    if (funcIt != typeCompileFuncs.end())
+auto Compiler::expectLiteral(const compiler::Value& val) -> const compiler::Literal&
+{
+    return std::get<compiler::Literal>(val);
+}
+
+auto Compiler::expectObject(const compiler::Value& val) -> const compiler::Object&
+{
+    return std::get<compiler::Object>(val);
+}
+
+void Compiler::compileShaders(const compiler::MapValue& val)
+{
+    for (const auto& [name, value] : val.values)
     {
-        auto variants = resolver.resolve(*value);
-        for (auto& var : variants)
+        if (std::holds_alternative<compiler::Variated>(*value))
         {
-            funcIt->second(var.value);
-            std::visit(*this, var.value);
+            VariantGroup<ShaderDesc> shaders{ .baseName=name };
+            for (const auto& var : std::get<compiler::Variated>(*value).variants)
+            {
+                auto shader = compileShader(expectObject(*var.value));
+                shaders.variants.try_emplace(UniqueName(name, var.setFlags), std::move(shader));
+            }
+            if (shaders.variants.empty()) {
+                throw InternalLogicError("Variated value must have at least one variant");
+            }
+            // Collect all flag types
+            for (auto& flag : shaders.variants.begin()->first.getFlags()) {
+                shaders.flagTypes.emplace_back(flag.flagId);
+            }
+            result.shaders.try_emplace(name, std::move(shaders));
+        }
+        else {
+            auto shader = compileShader(expectObject(*value));
+            result.shaders.try_emplace(name, std::move(shader));
         }
     }
-    else {
+}
+
+auto Compiler::compileShader(const compiler::Object& obj) -> ShaderDesc
+{
+    ShaderDesc res;
+
+    res.source = expectLiteral(expectSingle(expectField(obj, "Source"))).value;
+    auto it = obj.fields.find("Variable");
+    if (it != obj.fields.end())
+    {
+        for (const auto& [name, val] : expectMap(it->second).values)
+        {
+            res.variables.try_emplace(name, expectLiteral(*val).value);
+        }
+    }
+
+    return res;
+}
+
+void Compiler::compilePipelines(const compiler::MapValue& val)
+{
+    for (const auto& [name, value] : val.values)
+    {
+        if (std::holds_alternative<compiler::Variated>(*value))
+        {
+            for (const auto& var : std::get<compiler::Variated>(*value).variants)
+            {
+                auto pipeline = compilePipeline(expectObject(*var.value));
+            }
+        }
+        else {
+            auto pipeline = compilePipeline(expectObject(*value));
+        }
     }
 }
 
-void Compiler::operator()(const LiteralValue& val)
+auto Compiler::compilePipeline(const compiler::Object& obj) -> PipelineDesc
 {
-}
-
-void Compiler::operator()(const Identifier& id)
-{
-    throw InternalLogicError("AST contains an identifier after VariantResolver has been"
-                             " called on it. This should not be possible.");
-}
-
-void Compiler::operator()(const ObjectDeclaration& obj)
-{
-}
-
-void Compiler::operator()(const MatchExpression& expr)
-{
-    throw InternalLogicError("AST contains a match expression after VariantResolver has been"
-                             " called on it. This should not be possible.");
+    return {};
 }

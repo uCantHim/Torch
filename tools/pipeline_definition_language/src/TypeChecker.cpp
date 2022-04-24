@@ -42,6 +42,10 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
             .typeName="Program",
             .fields={
                 { "VertexShader", { "Shader" } },
+                { "TessControlShader", { "Shader" } },
+                { "TessEvalShader", { "Shader" } },
+                { "GeometryShader", { "Shader" } },
+                { "FragmentShader", { "Shader" } },
             }
         }},
         { "Pipeline", ObjectType{
@@ -106,7 +110,7 @@ void TypeChecker::operator()(const FieldDefinition& def)
     if (std::holds_alternative<TypedFieldName>(def.name))
     {
         const auto& field = std::get<TypedFieldName>(def.name);
-        identifierValues.try_emplace(field.name, def.value.get());
+        identifierValues.try_emplace(field.mappedName, def.value.get());
     }
 }
 
@@ -117,10 +121,10 @@ void TypeChecker::checkFieldDefinition(
 {
     TypeName expected = std::visit(VariantVisitor{
         [&, this](const TypedFieldName& name){
-            if (!(allowArbitraryFields || parent.fields.contains(name.type.name))) {
-                error(name.type.token, "Invalid field name \"" + name.type.name + "\".");
+            if (!(allowArbitraryFields || parent.fields.contains(name.name.name))) {
+                error(name.name.token, "Invalid field name \"" + name.name.name + "\".");
             }
-            return name.type.name;
+            return name.name.name;
         },
         [this, &parent](const TypelessFieldName& name){
             if (!parent.fields.contains(name.name.name)) {

@@ -59,7 +59,7 @@ auto VariantResolver::operator()(const ObjectDeclaration& obj) const -> std::vec
                 }
 
                 auto& copyValue = std::get<ObjectDeclaration>(copy.value);
-                *copyValue.fields.at(i).value = std::move(var.value);
+                copyValue.fields.at(i).value = std::make_shared<FieldValue>(var.value);
                 mergeFlags(copy.setFlags, var.setFlags);
                 newResults.emplace_back(std::move(copy));
             }

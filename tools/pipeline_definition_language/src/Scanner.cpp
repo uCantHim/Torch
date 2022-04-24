@@ -120,7 +120,7 @@ void Scanner::scanStringLiteral()
     consume(); // Consume the closing " character
 
     const size_t len = current - start;
-    std::string val = source.substr(start, len);
+    std::string val = source.substr(start + 1, len - 2);
     addToken(TokenType::eLiteralString, std::move(val));
 }
 

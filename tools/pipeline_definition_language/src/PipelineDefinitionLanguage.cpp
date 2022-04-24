@@ -10,6 +10,7 @@
 #include "TypeChecker.h"
 #include "Compiler.h"
 #include "TorchCppWriter.h"
+#include "AstPrinter.h"
 
 
 
@@ -69,8 +70,7 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     }
 
     // Output
-    std::cout << "--- Compilation output ---\n\n";
-    TorchCppWriter writer;
+    TorchCppWriter writer(*errorReporter);
     writer.write(compileResult, std::cout);
 
     return errorReporter->hadError();

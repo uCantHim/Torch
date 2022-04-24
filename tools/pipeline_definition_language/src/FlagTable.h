@@ -41,6 +41,7 @@ public:
     void registerFlagType(const EnumTypeDef& def);
 
     auto getRef(const std::string& flagName, const std::string& bit) const -> VariantFlag;
+    auto getFlagType(size_t flagIndex) const -> std::string;
     auto getFlagBit(VariantFlag ref) const -> std::pair<std::string, std::string>;
 
     auto makeFlagDescriptions() const -> std::vector<FlagDesc>;

@@ -28,6 +28,16 @@ public:
     std::string message;
 };
 
+class CompilerError : PipelineLanguageCompilerError
+{
+public:
+};
+
+class IOError : PipelineLanguageCompilerError
+{
+public:
+};
+
 class InternalLogicError : public PipelineLanguageCompilerError
 {
 public:

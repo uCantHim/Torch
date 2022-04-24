@@ -8,8 +8,8 @@
 
 struct TypedFieldName
 {
-    Identifier type;
     Identifier name;
+    Identifier mappedName;
 };
 
 struct TypelessFieldName
@@ -18,6 +18,14 @@ struct TypelessFieldName
 };
 
 using FieldName = std::variant<TypelessFieldName, TypedFieldName>;
+
+inline auto getFieldName(const FieldName& name)
+{
+    return std::visit(
+        [](const auto& v) -> const std::string& { return v.name.name; },
+        name
+    );
+}
 
 struct FieldDefinition
 {

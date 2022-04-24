@@ -10,6 +10,7 @@
 #include "FlagTable.h"
 #include "IdentifierTable.h"
 #include "VariantResolver.h"
+#include "CompilerObjectRepresentation.h"
 
 class ErrorReporter;
 
@@ -20,27 +21,24 @@ public:
 
     auto compile() -> CompileResult;
 
-    void operator()(const TypeDef& def);
-    void operator()(const EnumTypeDef& def);
-
-    void operator()(const FieldDefinition&);
-    void operator()(const LiteralValue& val);
-    void operator()(const Identifier& id);
-    void operator()(const ObjectDeclaration& obj);
-    void operator()(const MatchExpression& expr);
-
 private:
-    auto getIdentifierID(const Identifier& id) -> uint;
+    void error(const Token& token, std::string message);
 
-    const std::vector<Stmt> statements;
+    auto expectField(const compiler::Object& obj, const std::string& field)
+        -> const compiler::FieldValueType&;
+    auto expectSingle(const compiler::FieldValueType& field) -> const compiler::Value&;
+    auto expectMap(const compiler::FieldValueType& field) -> const compiler::MapValue&;
+
+    auto expectLiteral(const compiler::Value& val) -> const compiler::Literal&;
+    auto expectObject(const compiler::Value& val) -> const compiler::Object&;
+
+    void compileShaders(const compiler::MapValue& val);
+    auto compileShader(const compiler::Object& obj) -> ShaderDesc;
+    void compilePipelines(const compiler::MapValue& val);
+    auto compilePipeline(const compiler::Object& obj) -> PipelineDesc;
+
+    compiler::ObjectConverter converter;
     CompileResult result;
-
-    IdentifierTable identifierTable;
-    FlagTable flagTable;
-    VariantResolver resolver;
-    std::unordered_map<TypeName, std::function<void(FieldValue&)>> typeCompileFuncs;
-
-    std::unordered_map<Identifier, FieldValue*> variables;
 
     ErrorReporter* errorReporter;
 };

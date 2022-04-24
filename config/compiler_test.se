@@ -1,19 +1,24 @@
 // Name of property of global object
 Meta:
-    BaseDir: "./sh\naders"
+    BaseDir: "./shaders"
 
 
 enum AnimationType:
     none,
     simple,
 
+enum Foo:
+    bar,
+    baz,
+    ban
 
-Shader drawable_deferred:
-    Source: "drawable/deferred.vert"
-    Variable animation: match AnimationType
-        none -> ""
-        simple -> "applyAnimation(...)"
+String vertexShaderPath: "config/test_second.vert"
 
+Shader drawable_deferred: match AnimationType
+    none ->
+        Source: vertexShaderPath
+    simple ->
+        Source: vertexShaderPath
 
 // Is equivalent to:
 Shader drawable_deferred_static:
@@ -25,12 +30,28 @@ Shader drawable_deferred_animated:
     Variable animation: "applyAnimation(...)"
 
 
+
+String variantPath: match Foo
+    bar -> "config/test.vert"
+    baz -> "config/test.vert"
+    ban -> "config/test.vert"
+
+Shader drawable_deferred_double_matched:
+    Source: variantPath
+    Variable animation: match AnimationType
+        none -> ""
+        simple -> "applyAnimation(...)"
+
+
 Pipeline drawable:
-    VertexShader: match AnimationType
-        none -> drawable_deferred_static
-        simple -> drawable_deferred_animated
-    VertexInput: match AnimationType
-        none -> meshVertex
-        simple -> skeletalVertex
-    // or:
-    VertexInput: meshVertex
+    Program:
+        VertexShader: match AnimationType
+            none ->
+                Source: "drawable/deferred.vert"
+                Variable animation: ""
+            simple -> drawable_deferred_animated
+    // VertexInput: match AnimationType
+    //     none -> meshVertex
+    //     simple -> skeletalVertex
+    // // or:
+    // VertexInput: meshVertex

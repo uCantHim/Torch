@@ -117,8 +117,8 @@ auto Parser::parseFieldName() -> std::variant<TypelessFieldName, TypedFieldName>
     if (check(TokenType::eIdentifier))
     {
         return TypedFieldName{
-            .type{ previous() },
-            .name{ consume() },
+            .name{ previous() },
+            .mappedName{ consume() },
         };
     }
 

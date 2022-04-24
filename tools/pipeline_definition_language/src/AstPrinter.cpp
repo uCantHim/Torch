@@ -36,14 +36,14 @@ void AstPrinter::operator()(FieldDefinition& field)
     printField(field);
 }
 
-void AstPrinter::operator()(LiteralValue&)
+void AstPrinter::operator()(LiteralValue& val)
 {
-    std::cout << "literal";
+    std::cout << "literal [" << val.value << "]";
 }
 
-void AstPrinter::operator()(Identifier&)
+void AstPrinter::operator()(Identifier& id)
 {
-    std::cout << "identifier";
+    std::cout << "identifier [" << id.name << "]";
 }
 
 void AstPrinter::operator()(ObjectDeclaration& val)
@@ -57,9 +57,18 @@ void AstPrinter::operator()(ObjectDeclaration& val)
     --indent;
 }
 
-void AstPrinter::operator()(MatchExpression&)
+void AstPrinter::operator()(MatchExpression& expr)
 {
-    std::cout << "match expression";
+    std::cout << "match on " << expr.matchedType.name << "\n";
+    ++indent;
+    for (auto& opt : expr.cases)
+    {
+        printIndent();
+        std::cout << opt.caseIdentifier.name << " -> ";
+        std::visit(*this, *opt.value);
+        std::cout << "\n";
+    }
+    --indent;
 }
 
 void AstPrinter::printField(FieldDefinition& field)

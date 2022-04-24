@@ -25,6 +25,11 @@ auto FlagTable::getRef(const std::string& flagName, const std::string& bit) cons
     return { .flagId=flagId, .flagBitId=flags.at(flagId).bitsToIndices.at(bit) };
 }
 
+auto FlagTable::getFlagType(size_t flagIndex) const -> std::string
+{
+    return flags.at(flagIndex).name;
+}
+
 auto FlagTable::getFlagBit(VariantFlag ref) const -> std::pair<std::string, std::string>
 {
     const auto& flag = flags.at(ref.flagId);

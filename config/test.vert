@@ -18,9 +18,7 @@ void main()
 {
     vec4 worldPos = model * vec4(vertexPosition, 1.0);
 
-    //$ Animation
-
-    //$ ViewTransform
+    //$ animation
 
     gl_Position = proj * worldPos;
 }
