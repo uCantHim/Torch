@@ -26,9 +26,14 @@ auto ObjectConverter::convert() -> Object
     return std::move(globalObject);
 }
 
-auto ObjectConverter::getFlagTable() -> FlagTable&
+auto ObjectConverter::getFlagTable() const -> const FlagTable&
 {
     return flagTable;
+}
+
+auto ObjectConverter::getIdentifierTable() const -> const IdentifierTable&
+{
+    return identifierTable;
 }
 
 void ObjectConverter::operator()(const TypeDef& def)
@@ -70,10 +75,9 @@ auto ObjectConverter::operator()(const LiteralValue& val) -> std::shared_ptr<Val
     return std::make_shared<Value>(Literal{ .value=val.value });
 }
 
-auto ObjectConverter::operator()(const Identifier&) -> std::shared_ptr<Value>
+auto ObjectConverter::operator()(const Identifier& id) -> std::shared_ptr<Value>
 {
-    throw InternalLogicError("AST contains an identifier after VariantResolver has been"
-                             " called on it. This should not be possible.");
+    return std::make_shared<Value>(Reference{ id.name });
 }
 
 auto ObjectConverter::operator()(const ObjectDeclaration& obj) -> std::shared_ptr<Value>

@@ -14,10 +14,7 @@ class IdentifierTable;
  */
 struct FieldValueVariant
 {
-    template<typename Visitor>
-    void visit(Visitor& vis);
-
-    std::vector<VariantFlag> setFlags;
+    VariantFlagSet setFlags;
     FieldValue value;  // Is guaranteed to be not a match expression
 };
 
@@ -42,8 +39,8 @@ public:
 private:
     static bool isVariantOfSameFlag(const FieldValueVariant& a,
                                     const FieldValueVariant& b);
-    static void mergeFlags(std::vector<VariantFlag>& dst,
-                           const std::vector<VariantFlag>& src);
+    static void mergeFlags(VariantFlagSet& dst,
+                           const VariantFlagSet& src);
 
     const FlagTable& flagTable;
     const IdentifierTable& identifierTable;

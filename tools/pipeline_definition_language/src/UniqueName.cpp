@@ -1,15 +1,17 @@
-#include "CompileResult.h"
+#include "UniqueName.h"
 
 #include <sstream>
 
 
 
 UniqueName::UniqueName(std::string str)
-    : uniqueName(std::move(str))
+    :
+    name(str),
+    uniqueName(std::move(str))
 {
 }
 
-UniqueName::UniqueName(std::string str, std::vector<VariantFlag> _flags)
+UniqueName::UniqueName(std::string str, VariantFlagSet _flags)
     :
     name(std::move(str)),
     flags(std::move(_flags))
@@ -34,7 +36,7 @@ bool UniqueName::hasFlags() const
     return !flags.empty();
 }
 
-auto UniqueName::getFlags() const -> const std::vector<VariantFlag>&
+auto UniqueName::getFlags() const -> const VariantFlagSet&
 {
     return flags;
 }

@@ -15,7 +15,13 @@ namespace compiler
     struct Literal;
     struct Object;
     struct Variated;
-    using Value = std::variant<Literal, Object, Variated>;
+    struct Reference;
+    using Value = std::variant<Literal, Object, Variated, Reference>;
+
+
+    //////////////////////////////
+    //  Field type definitions  //
+    //////////////////////////////
 
     struct SingleValue
     {
@@ -28,6 +34,11 @@ namespace compiler
     };
 
     using FieldValueType = std::variant<SingleValue, MapValue>;
+
+
+    //////////////////////////////
+    //  Value type definitions  //
+    //////////////////////////////
 
     struct Literal
     {
@@ -43,13 +54,22 @@ namespace compiler
     {
         struct Variant
         {
-            std::vector<VariantFlag> setFlags;
+            VariantFlagSet setFlags;
             std::shared_ptr<Value> value;
         };
 
         std::vector<Variant> variants;
     };
 
+    struct Reference
+    {
+        std::string name;
+    };
+
+
+    /**
+     * @brief Converts AST to semantically significant object representation
+     */
     class ObjectConverter
     {
     public:
@@ -57,7 +77,8 @@ namespace compiler
 
         auto convert() -> Object;
 
-        auto getFlagTable() -> FlagTable&;
+        auto getFlagTable() const -> const FlagTable&;
+        auto getIdentifierTable() const -> const IdentifierTable&;
 
         void operator()(const TypeDef& def);
         void operator()(const EnumTypeDef& def);

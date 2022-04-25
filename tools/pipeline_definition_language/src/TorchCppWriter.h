@@ -53,7 +53,10 @@ private:
     };
 
     static void writeIncludes(std::ostream& os);
+    void writeBanner(const std::string& msg, std::ostream& os);
 
+    template<typename T>
+    void write(const auto& map, std::ostream& os);
     void error(std::string message);
 
     auto openInputFile(const std::string& filename) -> std::ifstream;
@@ -62,12 +65,8 @@ private:
 
     template<typename T>
     auto makeGroupInfo(const VariantGroup<T>& group) -> VariantGroupRepr;
-    template<typename T>
-    auto makeStoredType() -> std::string;
     auto makeFlagBitsType(const std::string& flagName) -> std::string;
 
-    template<typename T>
-    auto makeValue(const T& value) -> std::string;
     auto makeGetterFunctionName(const std::string& name) -> std::string;
     auto makeReferenceCall(const UniqueName& name) -> std::string;
 
@@ -77,9 +76,28 @@ private:
     template<typename T>
     void writeGroup(const VariantGroup<T>& group, std::ostream& os);
     template<typename T>
-    void writeVariantStorageInit(const UniqueName& name, const T& val, std::ostream& os);
+    void writeGetterFunctionHead(const std::string& name, std::ostream& os);
+    template<typename T>
+    void writeGetterFunctionHead(const VariantGroup<T>& group, std::ostream& os);
     template<typename T>
     void writeGetterFunction(const VariantGroup<T>& group, std::ostream& os);
+
+
+    //////////////////////////////////////////
+    //  Implementations for specific types  //
+    //////////////////////////////////////////
+
+    template<typename T>
+    auto makeValue(const ObjectReference<T>& ref) -> std::string;
+    template<typename T>
+    void writeSingleStorageInit(const std::string& name, const T& value, std::ostream& os);
+
+    template<typename T>
+    auto makeStoredType() -> std::string;
+    template<typename T>
+    auto makeValue(const T& value) -> std::string;
+    template<typename T>
+    void writeVariantStorageInit(const UniqueName& name, const T& val, std::ostream& os);
 
     TorchCppWriterCreateInfo config;
     ErrorReporter* errorReporter;

@@ -30,8 +30,13 @@ auto VariantResolver::operator()(const LiteralValue& val) const -> std::vector<F
 auto VariantResolver::operator()(const Identifier& id) const -> std::vector<FieldValueVariant>
 {
     const FieldValue* referenced = identifierTable.get(id);
-    if (referenced != nullptr) {
-        return std::visit(*this, *referenced);
+    if (referenced != nullptr)
+    {
+        auto variants = std::visit(*this, *referenced);
+        for (auto& var : variants) {
+            var.value = id;
+        }
+        return variants;
     }
 
     throw InternalLogicError("Identifier \"" + id.name + "\" is not present in identifier table.");
@@ -109,8 +114,8 @@ bool VariantResolver::isVariantOfSameFlag(const FieldValueVariant& a, const Fiel
 }
 
 void VariantResolver::mergeFlags(
-    std::vector<VariantFlag>& dst,
-    const std::vector<VariantFlag>& src)
+    VariantFlagSet& dst,
+    const VariantFlagSet& src)
 {
     for (const auto& flag : src)
     {

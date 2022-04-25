@@ -26,23 +26,14 @@ auto TorchCppWriter::makeGroupInfo(const VariantGroup<T>& group) -> VariantGroup
 }
 
 template<typename T>
-auto TorchCppWriter::makeStoredType() -> std::string
-{
-    if constexpr (std::same_as<T, ShaderDesc>) {
-        return "fs::path";
-    }
-}
-
-template<>
-inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
-{
-    return "\"" + shader.source + ".spv\"";
-}
-
-template<typename T>
 void TorchCppWriter::writeSingle(const std::string& name, const T& value, std::ostream& os)
 {
-    os << makeStoredType<T>() << " " << name << " = " << makeValue(value) << ";";
+    writeSingleStorageInit(name, value, os);
+    os << nl;
+    writeGetterFunctionHead<T>(name, os);
+    os << nl << "{"
+       << ++nl << "return " << name << ";"
+       << --nl << "}";
 }
 
 template<typename T>
@@ -65,6 +56,77 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
     writeGetterFunction(group, os);
 }
 
+template<typename T>
+void TorchCppWriter::writeGetterFunctionHead(const std::string& name, std::ostream& os)
+{
+    os << "auto " << makeGetterFunctionName(name) << "() -> const " << makeStoredType<T>() << "&";
+}
+
+template<typename T>
+void TorchCppWriter::writeGetterFunctionHead(const VariantGroup<T>& group, std::ostream& os)
+{
+    VariantGroupRepr groupInfo = makeGroupInfo(group);
+
+    os << "auto " << makeGetterFunctionName(group.baseName) << "("
+       << "const " << groupInfo.combinedFlagType << "& flags"
+       << ") -> " << makeStoredType<T>() << "&";
+}
+
+template<typename T>
+void TorchCppWriter::writeGetterFunction(const VariantGroup<T>& group, std::ostream& os)
+{
+    VariantGroupRepr groupInfo = makeGroupInfo(group);
+
+    writeGetterFunctionHead(group, os);
+    os << nl << "{" << ++nl
+       << "return " << groupInfo.storageName << "[flags.toIndex()];"
+       << --nl << "}" << nl;
+}
+
+template<typename T>
+auto TorchCppWriter::makeValue(const ObjectReference<T>& ref) -> std::string
+{
+    return std::visit(VariantVisitor{
+        [&](const UniqueName& name) { return makeReferenceCall(name); },
+        [&](const T& value) { return makeValue(value); },
+    }, ref);
+}
+
+template<typename T>
+void TorchCppWriter::writeSingleStorageInit(
+    const std::string& name,
+    const T& value,
+    std::ostream& os)
+{
+    os << makeStoredType<T>() << " " << name << " = " << makeValue(value) << ";";
+}
+
+
+
+//////////////////////////
+//  Shader type writer  //
+//////////////////////////
+
+template<typename T>
+auto TorchCppWriter::makeStoredType() -> std::string
+{
+    if constexpr (std::same_as<T, ShaderDesc>) {
+        return "fs::path";
+    }
+    else if constexpr (std::same_as<T, ProgramDesc>) {
+        return "ProgramDefinitionData";
+    }
+    else if constexpr (std::same_as<T, PipelineDesc>) {
+        return "PipelineTemplate";
+    }
+}
+
+template<>
+inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
+{
+    return "\"" + shader.source + ".spv\"";
+}
+
 template<>
 inline void TorchCppWriter::writeVariantStorageInit(
     const UniqueName& name,
@@ -80,15 +142,84 @@ inline void TorchCppWriter::writeVariantStorageInit(
     outFile << code;
 }
 
-template<typename T>
-void TorchCppWriter::writeGetterFunction(const VariantGroup<T>& group, std::ostream& os)
-{
-    VariantGroupRepr groupInfo = makeGroupInfo(group);
 
-    os << "auto " << makeGetterFunctionName(group.baseName) << "("
-       << "const " << groupInfo.combinedFlagType << "& flags"
-       << ") -> " << makeStoredType<T>() << "&" << nl
-       << "{" << ++nl
-       << "return " << groupInfo.storageName << "[flags.toIndex()];"
-       << --nl << "}" << nl;
+
+///////////////////////////
+//  Program type writer  //
+///////////////////////////
+
+template<>
+inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
+{
+    std::stringstream ss;
+    auto writeStage = [this, &ss](const char* stage, const ObjectReference<ShaderDesc>& ref) {
+        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { loadShader(";
+        std::visit(VariantVisitor{
+            [&](const UniqueName& name) {
+                ss << makeReferenceCall(name);
+            },
+            [&](const ShaderDesc& shader) {
+                ss << makeValue(shader);
+            },
+        }, ref);
+        ss << "), {} },";
+    };
+
+    ss << "ProgramDefinitionData{" << ++nl
+       << ".stages={";
+    ++nl;
+    if (program.vert.has_value()) {
+        writeStage("Vertex", program.vert.value());
+    }
+    if (program.tesc.has_value()) {
+        writeStage("TessellationControl", program.tesc.value());
+    }
+    if (program.tese.has_value()) {
+        writeStage("TessellationEvaluation", program.tese.value());
+    }
+    if (program.geom.has_value()) {
+        writeStage("Geometry", program.geom.value());
+    }
+    if (program.frag.has_value()) {
+        writeStage("Fragment", program.frag.value());
+    }
+    ss << --nl << "}" << --nl << "}";
+
+    return ss.str();
+}
+
+template<>
+inline void TorchCppWriter::writeVariantStorageInit(
+    const UniqueName& name,
+    const ProgramDesc& program,
+    std::ostream& os)
+{
+    os << makeValue(program);
+}
+
+
+
+////////////////////////////
+//  Pipeline type writer  //
+////////////////////////////
+
+template<>
+inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::string
+{
+    std::stringstream ss;
+    ss << makeStoredType<PipelineDesc>() << "("
+       << ++nl << makeValue(pipeline.program) << ","
+       << nl << "{}"
+       << --nl << ")";
+
+    return ss.str();
+}
+
+template<>
+inline void TorchCppWriter::writeVariantStorageInit(
+    const UniqueName& name,
+    const PipelineDesc& pipeline,
+    std::ostream& os)
+{
+    os << makeValue(pipeline);
 }

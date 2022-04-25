@@ -6,6 +6,7 @@
 
 #include <ShaderDocument.h>
 
+#include "CompileResult.h"
 #include "Exceptions.h"
 
 
@@ -63,25 +64,36 @@ TorchCppWriter::TorchCppWriter(ErrorReporter& errorReporter, TorchCppWriterCreat
 {
 }
 
+template<typename T>
+void TorchCppWriter::write(const auto& map, std::ostream& os)
+{
+    for (const auto& [name, value] : map)
+    {
+        os << nl;
+        if (std::holds_alternative<VariantGroup<T>>(value)) {
+            writeGroup(std::get<VariantGroup<T>>(value), os);
+        }
+        else {
+            writeSingle(name, std::get<T>(value), os);
+        }
+        os << nl;
+    }
+}
+
 void TorchCppWriter::write(const CompileResult& result, std::ostream& os)
 {
     flagTable = &result.flagTable;
 
     writeIncludes(os);
-    os << nl;
+    writeBanner("Flag Types", os);
     writeFlags(result, os);
 
-    for (const auto& [name, shader] : result.shaders)
-    {
-        os << nl;
-        if (std::holds_alternative<VariantGroup<ShaderDesc>>(shader)) {
-            writeGroup(std::get<VariantGroup<ShaderDesc>>(shader), os);
-        }
-        else {
-            writeSingle(name, std::get<ShaderDesc>(shader), os);
-        }
-        os << nl;
-    }
+    writeBanner("Shaders", os);
+    write<ShaderDesc>(result.shaders, os);
+    writeBanner("Programs", os);
+    write<ProgramDesc>(result.programs, os);
+    writeBanner("Pipelines", os);
+    write<PipelineDesc>(result.pipelines, os);
 }
 
 void TorchCppWriter::writeIncludes(std::ostream& os)
@@ -94,6 +106,15 @@ void TorchCppWriter::writeIncludes(std::ostream& os)
        << "#include \"FlagCombination.h\"\n"
        << "using namespace trc;\n";
         ;
+}
+
+void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
+{
+    const size_t borderSize = 2 + 3 + msg.size() + 3 + 2;
+    os << nl << nl
+       << std::string(borderSize, '/') << nl
+       << "//   " << msg << "   //" << nl
+       << std::string(borderSize, '/') << nl;
 }
 
 auto TorchCppWriter::openInputFile(const std::string& filename) -> std::ifstream
@@ -137,6 +158,7 @@ auto TorchCppWriter::compileShader(const ShaderDesc& shader) -> std::string
 
 void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
 {
+    os << nl;
     for (const auto& flag : result.flagTable.makeFlagDescriptions())
     {
         os << "enum class " << makeFlagBitsType(flag.flagName) << "\n"
@@ -159,17 +181,18 @@ auto TorchCppWriter::makeGetterFunctionName(const std::string& name) -> std::str
 auto TorchCppWriter::makeReferenceCall(const UniqueName& name) -> std::string
 {
     if (!name.hasFlags()) {
-        return name.getBaseName();
+        return makeGetterFunctionName(name.getBaseName()) + "()";
     }
 
     std::stringstream ss;
     ss << makeGetterFunctionName(name.getBaseName()) << "(";
-    for (auto flag : name.getFlags())
+    for (size_t i = 0; auto flag : name.getFlags())
     {
         auto [type, bit] = flagTable->getFlagBit(flag);
-        ss << makeFlagBitsType(type) << "::" << bit << " | ";
+        ss << makeFlagBitsType(type) << "::" << bit;
+        if (++i < name.getFlags().size()) ss << " | ";
     }
-    ss << "\b\b)";
+    ss << ")";
 
     return ss.str();
 }

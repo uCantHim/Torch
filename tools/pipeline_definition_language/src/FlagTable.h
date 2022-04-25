@@ -28,6 +28,11 @@ namespace std
     };
 } // namespace std
 
+/**
+ * @brief A combination of different variant flags
+ */
+using VariantFlagSet = std::vector<VariantFlag>;
+
 class FlagTable
 {
 public:

@@ -1,6 +1,5 @@
 add_executable(pipeline_compiler main.cpp
     src/AstPrinter.cpp
-    src/CompileResult.cpp
     src/Compiler.cpp
     src/CompilerObjectRepresentation.cpp
     src/ErrorReporter.cpp
@@ -11,6 +10,7 @@ add_executable(pipeline_compiler main.cpp
     src/Scanner.cpp
     src/TorchCppWriter.cpp
     src/TypeChecker.cpp
+    src/UniqueName.cpp
     src/VariantResolver.cpp
 )
 

@@ -1,7 +1,5 @@
 #include "Compiler.h"
 
-#include <iostream>
-
 #include "Exceptions.h"
 #include "Util.h"
 
@@ -16,24 +14,76 @@ Compiler::Compiler(std::vector<Stmt> _statements, ErrorReporter& errorReporter)
 
 auto Compiler::compile() -> CompileResult
 {
-    auto globalObject = converter.convert();
+    globalObject = converter.convert();
 
-    auto it = globalObject.fields.find("Pipeline");
-    if (it != globalObject.fields.end()) {
-        compilePipelines(expectMap(it->second));
+    // Collect identifiers
+    for (const auto& [name, field] : globalObject.fields)
+    {
+        if (std::holds_alternative<compiler::MapValue>(field))
+        {
+            const auto& map = std::get<compiler::MapValue>(field);
+            for (const auto& [identifier, value] : map.values)
+            {
+                referenceTable.try_emplace(identifier, value);
+            }
+        }
     }
-    it = globalObject.fields.find("Shader");
+
+    // Compile objects
+    auto it = globalObject.fields.find("Shader");
     if (it != globalObject.fields.end()) {
-        compileShaders(expectMap(it->second));
+        result.shaders = compileMulti<ShaderDesc>(expectMap(it->second));
+    }
+    it = globalObject.fields.find("Program");
+    if (it != globalObject.fields.end()) {
+        result.programs = compileMulti<ProgramDesc>(expectMap(it->second));
+    }
+    it = globalObject.fields.find("Pipeline");
+    if (it != globalObject.fields.end()) {
+        result.pipelines = compileMulti<PipelineDesc>(expectMap(it->second));
     }
 
     result.flagTable = converter.getFlagTable();
     return result;
 }
 
+bool Compiler::isSubset(const VariantFlagSet& set, const VariantFlagSet& subset)
+{
+    std::unordered_set<VariantFlag> flags(subset.begin(), subset.end());
+    for (const auto& flag : set) {
+        flags.erase(flag);
+    }
+
+    return flags.empty();
+}
+
+auto Compiler::findVariant(
+    const compiler::Variated& val,
+    const VariantFlagSet& flags) -> const compiler::Variated::Variant*
+{
+    auto comp = [&flags](const auto& a){ return isSubset(flags, a.setFlags); };
+
+    auto it = std::find_if(val.variants.begin(), val.variants.end(), comp);
+    if (it == val.variants.end()) {
+        return nullptr;
+    }
+    return &*it;
+}
+
 void Compiler::error(const Token& token, std::string message)
 {
     errorReporter->error(Error{ .location=token.location, .message=std::move(message) });
+}
+
+auto Compiler::resolveReference(const compiler::Reference& ref) -> const compiler::Value&
+{
+    try {
+        return *referenceTable.at(ref.name);
+    }
+    catch (const std::out_of_range&) {
+        error({}, "Referenced value at identifier \"" + ref.name + "\" does not exist.");
+        throw CompilerError{};
+    }
 }
 
 auto Compiler::expectField(const compiler::Object& obj, const std::string& field)
@@ -43,6 +93,7 @@ auto Compiler::expectField(const compiler::Object& obj, const std::string& field
         return obj.fields.at(field);
     }
     catch (const std::out_of_range& err) {
+        error({}, "Expected field \"" + field + "\"");
         throw InternalLogicError(err.what());
     }
 }
@@ -57,45 +108,118 @@ auto Compiler::expectMap(const compiler::FieldValueType& field) -> const compile
     return std::get<compiler::MapValue>(field);
 }
 
+template<typename T>
+auto Compiler::expect(const compiler::Value& val) -> const T&
+{
+    const auto& newVal = [this, &val]() -> const compiler::Value& {
+        if (std::holds_alternative<compiler::Reference>(val)) {
+            return resolveReference(std::get<compiler::Reference>(val));
+        }
+        return val;
+    }();
+
+    if (std::holds_alternative<compiler::Variated>(newVal))
+    {
+        const auto& variated = std::get<compiler::Variated>(newVal);
+
+        assert(currentVariant != nullptr);
+        auto var = findVariant(variated, *currentVariant);
+        if (var == nullptr)
+        {
+            error({}, "Expected variant does not exist in the variated field.");
+            throw CompilerError{};
+        }
+        return expect<T>(*var->value);
+    }
+
+    try {
+        return std::get<T>(newVal);
+    }
+    catch (const std::bad_variant_access&) {
+        error({}, "Unexpected value type");
+        throw CompilerError{};
+    }
+}
+
 auto Compiler::expectLiteral(const compiler::Value& val) -> const compiler::Literal&
 {
-    return std::get<compiler::Literal>(val);
+    return expect<compiler::Literal>(val);
 }
 
 auto Compiler::expectObject(const compiler::Value& val) -> const compiler::Object&
 {
-    return std::get<compiler::Object>(val);
+    return expect<compiler::Object>(val);
 }
 
-void Compiler::compileShaders(const compiler::MapValue& val)
+template<typename T>
+auto Compiler::makeReference(const compiler::Value& val) -> ObjectReference<T>
 {
+    return std::visit(VariantVisitor{
+        [this](const compiler::Literal& lit) -> ObjectReference<T>
+        {
+            error({}, "Cannot create an artificial reference to a literal value \""
+                      + lit.value + "\".");
+            throw CompilerError{};
+            return UniqueName("");
+        },
+        [this](const compiler::Object& obj) -> ObjectReference<T> {
+            return compileSingle<T>(obj);
+        },
+        [this](const compiler::Variated& variated) -> ObjectReference<T>
+        {
+            auto var = findVariant(variated, *currentVariant);
+            return makeReference<T>(*var->value);
+        },
+        [this](const compiler::Reference& ref) -> ObjectReference<T>
+        {
+            auto val = resolveReference(ref);
+            if (std::holds_alternative<compiler::Variated>(val))
+            {
+                auto var = findVariant(std::get<compiler::Variated>(val), *currentVariant);
+                return UniqueName(ref.name, var->setFlags);
+            }
+            return UniqueName(ref.name);
+        },
+    }, val);
+}
+
+template<typename T>
+auto Compiler::compileMulti(const compiler::MapValue& val)
+    -> std::unordered_map<std::string, CompileResult::SingleOrVariant<T>>
+{
+    std::unordered_map<std::string, CompileResult::SingleOrVariant<T>> res;
     for (const auto& [name, value] : val.values)
     {
         if (std::holds_alternative<compiler::Variated>(*value))
         {
-            VariantGroup<ShaderDesc> shaders{ .baseName=name };
+            VariantGroup<T> items{ .baseName=name };
             for (const auto& var : std::get<compiler::Variated>(*value).variants)
             {
-                auto shader = compileShader(expectObject(*var.value));
-                shaders.variants.try_emplace(UniqueName(name, var.setFlags), std::move(shader));
+                currentVariant = &var.setFlags;
+                auto item = compileSingle<T>(expectObject(*var.value));
+                items.variants.try_emplace(UniqueName(name, var.setFlags), std::move(item));
             }
-            if (shaders.variants.empty()) {
+            if (items.variants.empty()) {
                 throw InternalLogicError("Variated value must have at least one variant");
             }
             // Collect all flag types
-            for (auto& flag : shaders.variants.begin()->first.getFlags()) {
-                shaders.flagTypes.emplace_back(flag.flagId);
+            for (auto& flag : items.variants.begin()->first.getFlags()) {
+                items.flagTypes.emplace_back(flag.flagId);
             }
-            result.shaders.try_emplace(name, std::move(shaders));
+            res.try_emplace(name, std::move(items));
         }
         else {
-            auto shader = compileShader(expectObject(*value));
-            result.shaders.try_emplace(name, std::move(shader));
+            currentVariant = nullptr;
+            auto item = compileSingle<T>(expectObject(*value));
+            res.try_emplace(name, std::move(item));
         }
     }
+
+    return res;
 }
 
-auto Compiler::compileShader(const compiler::Object& obj) -> ShaderDesc
+template<>
+auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderDesc
 {
     ShaderDesc res;
 
@@ -112,24 +236,33 @@ auto Compiler::compileShader(const compiler::Object& obj) -> ShaderDesc
     return res;
 }
 
-void Compiler::compilePipelines(const compiler::MapValue& val)
+template<>
+auto Compiler::compileSingle<ProgramDesc>(const compiler::Object& obj) -> ProgramDesc
 {
-    for (const auto& [name, value] : val.values)
-    {
-        if (std::holds_alternative<compiler::Variated>(*value))
-        {
-            for (const auto& var : std::get<compiler::Variated>(*value).variants)
-            {
-                auto pipeline = compilePipeline(expectObject(*var.value));
-            }
-        }
-        else {
-            auto pipeline = compilePipeline(expectObject(*value));
-        }
+    ProgramDesc prog;
+    if (obj.fields.contains("VertexShader")) {
+        prog.vert = makeReference<ShaderDesc>(expectSingle(expectField(obj, "VertexShader")));
     }
+    if (obj.fields.contains("TessControlShader")) {
+        prog.tesc = makeReference<ShaderDesc>(expectSingle(expectField(obj, "TessControlShader")));
+    }
+    if (obj.fields.contains("TessEvalShader")) {
+        prog.tese = makeReference<ShaderDesc>(expectSingle(expectField(obj, "TessEvalShader")));
+    }
+    if (obj.fields.contains("GeometryShader")) {
+        prog.geom = makeReference<ShaderDesc>(expectSingle(expectField(obj, "GeometryShader")));
+    }
+    if (obj.fields.contains("FragmentShader")) {
+        prog.frag = makeReference<ShaderDesc>(expectSingle(expectField(obj, "FragmentShader")));
+    }
+
+    return prog;
 }
 
-auto Compiler::compilePipeline(const compiler::Object& obj) -> PipelineDesc
+template<>
+auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> PipelineDesc
 {
-    return {};
+    return {
+        .program=makeReference<ProgramDesc>(expectSingle(expectField(obj, "Program")))
+    };
 }

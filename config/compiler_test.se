@@ -43,13 +43,18 @@ Shader drawable_deferred_double_matched:
         simple -> "applyAnimation(...)"
 
 
+Program drawableProgram:
+    VertexShader: match AnimationType
+        none ->
+            Source: "drawable/deferred.vert"
+            Variable animation: ""
+        simple -> drawable_deferred_animated
+    FragmentShader:
+        Source: "shaders/drawable/deferred.frag"
+
+
 Pipeline drawable:
-    Program:
-        VertexShader: match AnimationType
-            none ->
-                Source: "drawable/deferred.vert"
-                Variable animation: ""
-            simple -> drawable_deferred_animated
+    Program: drawableProgram
     // VertexInput: match AnimationType
     //     none -> meshVertex
     //     simple -> skeletalVertex
