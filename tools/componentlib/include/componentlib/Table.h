@@ -199,6 +199,30 @@ public:
     inline void clear() noexcept;
 
 public:
+    // ------------------------- //
+    //      Storage control      //
+    // ------------------------- //
+
+    /**
+     * @brief Reserve a minimum amount of storage space for elements
+     *
+     * @param size_t minSize Pre-allocate enough storage for `minSize`
+     *                       elements.
+     */
+    inline void reserve(size_t minSize);
+
+    /**
+     * @brief Reserve a minimum amount of storage space for elements and
+     *        keys separately
+     *
+     * @param size_t minSizeElems Pre-allocate enough storage for `minSize`
+     *                            elements.
+     * @param size_t minSizeKeys Pre-allocate enough storage for `minSize`
+     *                           keys.
+     */
+    inline void reserve(size_t minSizeElems, size_t minSizeKeys);
+
+public:
     // -------------------------- //
     //      Iterator classes      //
     // -------------------------- //

@@ -151,6 +151,19 @@ inline void Table<Component, Key>::clear() noexcept
 }
 
 template<typename Component, TableKey Key>
+inline void Table<Component, Key>::reserve(size_t minSize)
+{
+    reserve(minSize, minSize);
+}
+
+template<typename Component, TableKey Key>
+inline void Table<Component, Key>::reserve(size_t minSizeElems, size_t minSizeKeys)
+{
+    objects.reserve(minSizeElems);
+    indices.reserve(minSizeKeys);
+}
+
+template<typename Component, TableKey Key>
 inline auto Table<Component, Key>::begin() -> ValueIterator
 {
     return ValueIterator(objects.begin());
