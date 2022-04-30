@@ -186,6 +186,21 @@ bool TypeChecker::CheckValueType::operator()(const Identifier& id) const
     return std::visit(CheckValueType{ *this }, *it->second);
 }
 
+bool TypeChecker::CheckValueType::operator()(const ListDeclaration& list) const
+{
+    /**
+     * All values in the list must be of the expected type - we only have
+     * homogenous lists.
+     */
+
+    bool result{ true };
+    for (const auto& fieldValue : list.items) {
+        result = result && std::visit(*this, fieldValue);
+    }
+
+    return result;
+}
+
 bool TypeChecker::CheckValueType::operator()(const ObjectDeclaration& obj) const
 {
     if (!std::holds_alternative<ObjectType>(*expectedType)) {

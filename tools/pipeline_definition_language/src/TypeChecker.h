@@ -40,6 +40,7 @@ private:
 
         bool operator()(const LiteralValue&) const;
         bool operator()(const Identifier&) const;
+        bool operator()(const ListDeclaration&) const;
         bool operator()(const ObjectDeclaration&) const;
         bool operator()(const MatchExpression&) const;
 

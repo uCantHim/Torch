@@ -80,6 +80,16 @@ auto ObjectConverter::operator()(const Identifier& id) -> std::shared_ptr<Value>
     return std::make_shared<Value>(Reference{ id.name });
 }
 
+auto ObjectConverter::operator()(const ListDeclaration& list) -> std::shared_ptr<Value>
+{
+    List result;
+    for (const auto& item : list.items) {
+        result.values.emplace_back(std::visit(*this, item));
+    }
+
+    return std::make_shared<Value>(std::move(result));
+}
+
 auto ObjectConverter::operator()(const ObjectDeclaration& obj) -> std::shared_ptr<Value>
 {
     Object object;

@@ -26,6 +26,7 @@ private:
     auto parseFieldDef() -> FieldDefinition;
     auto parseFieldName() -> FieldName;
     auto parseFieldValue() -> FieldValue;
+    auto parseListDecl() -> ListDeclaration;
     auto parseObjectDecl() -> ObjectDeclaration;
     auto parseMatchExpr() -> MatchExpression;
     auto parseMatchCase() -> MatchCase;

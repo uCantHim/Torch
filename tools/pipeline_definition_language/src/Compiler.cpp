@@ -146,6 +146,11 @@ auto Compiler::expectLiteral(const compiler::Value& val) -> const compiler::Lite
     return expect<compiler::Literal>(val);
 }
 
+auto Compiler::expectList(const compiler::Value& val) -> const compiler::List&
+{
+    return expect<compiler::List>(val);
+}
+
 auto Compiler::expectObject(const compiler::Value& val) -> const compiler::Object&
 {
     return expect<compiler::Object>(val);
@@ -159,6 +164,12 @@ auto Compiler::makeReference(const compiler::Value& val) -> ObjectReference<T>
         {
             error({}, "Cannot create an artificial reference to a literal value \""
                       + lit.value + "\".");
+            throw CompilerError{};
+            return UniqueName("");
+        },
+        [this](const compiler::List&) -> ObjectReference<T>
+        {
+            error({}, "Cannot create an artificial reference to a list.");
             throw CompilerError{};
             return UniqueName("");
         },

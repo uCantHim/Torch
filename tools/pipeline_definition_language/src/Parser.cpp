@@ -149,6 +149,31 @@ auto Parser::parseFieldValue() -> FieldValue
     throw std::logic_error("The program can never reach this throw");
 }
 
+auto Parser::parseListDecl() -> ListDeclaration
+{
+    expect(TokenType::eLeftBracket, "Expected LEFT_BRACKET to begin a list declaration");
+
+    ListDeclaration list{ previous() };
+    while (!match(TokenType::eRightBracket))
+    {
+        match(TokenType::eNewline);  // Optional
+        match(TokenType::eIndent);  // Optional
+
+        list.items.emplace_back(parseFieldValue());
+
+        const bool hadComma = match(TokenType::eComma);
+        match(TokenType::eNewline);  // Optional
+        match(TokenType::eIndent);  // Optional
+        if (!hadComma)
+        {
+            expect(TokenType::eRightBracket, "Expected comma to separate list entries.");
+            break;
+        }
+    }
+
+    return list;
+}
+
 auto Parser::parseObjectDecl() -> ObjectDeclaration
 {
     expect(TokenType::eNewline, "Expected newline to begin an object declaration.");

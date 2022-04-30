@@ -33,6 +33,7 @@ public:
 
     auto operator()(const LiteralValue& val) const -> std::vector<FieldValueVariant>;
     auto operator()(const Identifier& id) const -> std::vector<FieldValueVariant>;
+    auto operator()(const ListDeclaration& list) const -> std::vector<FieldValueVariant>;
     auto operator()(const ObjectDeclaration& obj) const -> std::vector<FieldValueVariant>;
     auto operator()(const MatchExpression& expr) const -> std::vector<FieldValueVariant>;
 

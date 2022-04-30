@@ -42,6 +42,18 @@ auto VariantResolver::operator()(const Identifier& id) const -> std::vector<Fiel
     throw InternalLogicError("Identifier \"" + id.name + "\" is not present in identifier table.");
 }
 
+auto VariantResolver::operator()(const ListDeclaration& list) const -> std::vector<FieldValueVariant>
+{
+    std::vector<FieldValueVariant> results;
+    results.push_back({ {}, list });
+    for (const auto& item : list.items)
+    {
+
+    }
+
+    return results;
+}
+
 auto VariantResolver::operator()(const ObjectDeclaration& obj) const -> std::vector<FieldValueVariant>
 {
     std::vector<FieldValueVariant> results;

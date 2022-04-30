@@ -17,8 +17,11 @@ field-name   ->  IDENTIFIER
 
 field-value  ->  LITERAL
                | IDENTIFIER
+               | list-decl
                | object-decl
                | match-expr
+
+list-decl    -> "[" [field-value ("," field-value)*] "]"
 
 match-expr   -> "match" IDENTIFIER NEWLINE (INDENT match-case NEWLINE)+
 

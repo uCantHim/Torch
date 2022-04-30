@@ -20,6 +20,7 @@ struct StringType
 enum class FieldType
 {
     eSingleValue,
+    eList,
     eMap
 };
 

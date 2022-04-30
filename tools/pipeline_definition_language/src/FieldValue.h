@@ -4,12 +4,14 @@
 
 #include "Terminals.h"
 
-class ObjectDeclaration;
-class MatchExpression;
+struct ListDeclaration;
+struct ObjectDeclaration;
+struct MatchExpression;
 
 using FieldValue = std::variant<
     LiteralValue,
     Identifier,
+    ListDeclaration,
     ObjectDeclaration,
     MatchExpression
 >;

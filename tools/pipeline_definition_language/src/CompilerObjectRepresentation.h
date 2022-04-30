@@ -13,10 +13,11 @@
 namespace compiler
 {
     struct Literal;
+    struct List;
     struct Object;
     struct Variated;
     struct Reference;
-    using Value = std::variant<Literal, Object, Variated, Reference>;
+    using Value = std::variant<Literal, List, Object, Variated, Reference>;
 
 
     //////////////////////////////
@@ -43,6 +44,11 @@ namespace compiler
     struct Literal
     {
         std::string value;
+    };
+
+    struct List
+    {
+        std::vector<std::shared_ptr<Value>> values;
     };
 
     struct Object
@@ -87,6 +93,7 @@ namespace compiler
 
         auto operator()(const LiteralValue& val) -> std::shared_ptr<Value>;
         auto operator()(const Identifier& id) -> std::shared_ptr<Value>;
+        auto operator()(const ListDeclaration& list) -> std::shared_ptr<Value>;
         auto operator()(const ObjectDeclaration& obj) -> std::shared_ptr<Value>;
         auto operator()(const MatchExpression& expr) -> std::shared_ptr<Value>;
 

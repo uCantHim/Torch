@@ -38,6 +38,7 @@ private:
     template<typename T>
     auto expect(const compiler::Value& val) -> const T&;
     auto expectLiteral(const compiler::Value& val) -> const compiler::Literal&;
+    auto expectList(const compiler::Value& val) -> const compiler::List&;
     auto expectObject(const compiler::Value& val) -> const compiler::Object&;
 
     /**
