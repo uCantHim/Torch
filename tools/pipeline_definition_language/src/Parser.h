@@ -41,6 +41,22 @@ private:
     bool match(std::initializer_list<TokenType> types);
     void expect(TokenType type, std::string errorMessage);
 
+    /**
+     * True if either the next or the previous token is a newline.
+     * Consumes the newline in the first case.
+     */
+    bool matchNewline();
+
+    /**
+     * True if either the next or the previous token is a newline.
+     * Consumes the newline in the first case.
+     * This is necessary because multiple nested fields definitions end at
+     * the same newline token.
+     *
+     * Issues an error of no newline is found.
+     */
+    void expectNewline(std::string errorMessage);
+
     auto peekIndent() -> Indent;
     bool matchCurrentIndent();
     void increaseIndentLevel();

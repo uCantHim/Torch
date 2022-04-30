@@ -8,18 +8,18 @@ enum-decl    ->  "enum" IDENTIFIER ":" [NEWLINE INDENT] (IDENTIFIER "," [NEWLINE
 
 
 
-object-decl  ->  NEWLINE (INDENT field-def)+
+object-decl  ->  (NEWLINE INDENT field-def)+
 
-field-def    ->  field-name ":" field-value
+field-def    ->  field-name ":" field-value NEWLINE
 
 field-name   ->  IDENTIFIER
                | IDENTIFIER IDENTIFIER
 
-field-value  ->  LITERAL NEWLINE
-               | IDENTIFIER NEWLINE
+field-value  ->  LITERAL
+               | IDENTIFIER
                | object-decl
                | match-expr
 
 match-expr   -> "match" IDENTIFIER NEWLINE (INDENT match-case NEWLINE)+
 
-match-case   -> IDENTIFIER "->" field-value
+match-case   -> IDENTIFIER "->" field-value NEWLINE

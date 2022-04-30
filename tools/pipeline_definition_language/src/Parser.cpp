@@ -103,6 +103,7 @@ auto Parser::parseFieldDef() -> FieldDefinition
         error(peek(), "Expected ':' after field name.");
     }
     auto value = parseFieldValue();
+    expectNewline("Expected newline after field definition");
 
     return { .name=std::move(name), .value=std::make_unique<FieldValue>(std::move(value)) };
 }
@@ -130,17 +131,11 @@ auto Parser::parseFieldValue() -> FieldValue
     switch (peek().type)
     {
     case TokenType::eLiteralString:
-        return [this]{
-            LiteralValue result{ consume() };
-            expect(TokenType::eNewline, "Expected newline after literal value.");
-            return result;
-        }();
+        return LiteralValue{ consume() };
     case TokenType::eIdentifier:
-        return [this]{
-            Identifier result{ consume() };
-            expect(TokenType::eNewline, "Expected newline after identifier.");
-            return result;
-        }();
+        return Identifier{ consume() };
+    case TokenType::eLeftBracket:
+        return parseListDecl();
     case TokenType::eNewline:
         return parseObjectDecl();
     case TokenType::eMatch:
@@ -205,6 +200,7 @@ auto Parser::parseMatchCase() -> MatchCase
     Identifier identifier{ previous() };
     expect(TokenType::eRightArrow, "Expected RIGHT_ARROW ('->') in case expression.");
     auto fieldValue = parseFieldValue();
+    expectNewline("Expected newline after match case.");
 
     return MatchCase{
         .caseIdentifier={ std::move(identifier) },
@@ -272,6 +268,18 @@ bool Parser::match(std::initializer_list<TokenType> types)
 void Parser::expect(TokenType type, std::string errorMessage)
 {
     if (!match(type)) {
+        error(peek(), std::move(errorMessage));
+    }
+}
+
+bool Parser::matchNewline()
+{
+    return previous().type == TokenType::eNewline || match(TokenType::eNewline);
+}
+
+void Parser::expectNewline(std::string errorMessage)
+{
+    if (!matchNewline()) {
         error(peek(), std::move(errorMessage));
     }
 }
