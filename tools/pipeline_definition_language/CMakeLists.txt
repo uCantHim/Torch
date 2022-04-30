@@ -1,10 +1,10 @@
 add_executable(pipeline_compiler main.cpp
     src/AstPrinter.cpp
     src/Compiler.cpp
-    src/CompilerObjectRepresentation.cpp
     src/ErrorReporter.cpp
     src/FlagTable.cpp
     src/IdentifierTable.cpp
+    src/ObjectConverter.cpp
     src/Parser.cpp
     src/PipelineDefinitionLanguage.cpp
     src/Scanner.cpp

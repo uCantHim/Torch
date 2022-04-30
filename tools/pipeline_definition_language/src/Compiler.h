@@ -10,7 +10,7 @@
 #include "FlagTable.h"
 #include "IdentifierTable.h"
 #include "VariantResolver.h"
-#include "CompilerObjectRepresentation.h"
+#include "ObjectConverter.h"
 
 class ErrorReporter;
 
