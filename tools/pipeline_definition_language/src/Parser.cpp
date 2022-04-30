@@ -64,9 +64,7 @@ auto Parser::parseEnum() -> EnumTypeDef
     expect(TokenType::eEnum, "Expected ENUM to start enum definition.");
     expect(TokenType::eIdentifier, "Expected identifier.");
 
-    EnumTypeDef def{
-        .name=previous().lexeme,
-    };
+    EnumTypeDef def{ previous() };
     expect(TokenType::eColon, "Expected COLON after enum identifier.");
     match(TokenType::eNewline);
 
