@@ -29,7 +29,7 @@ Parser::Parser(std::vector<Token> _tokens, ErrorReporter& errorReporter)
 
 auto Parser::parseTokens() -> std::vector<Stmt>
 {
-    while (match({ TokenType::eNewline }));
+    while (match(TokenType::eNewline));
 
     try {
         std::vector<Stmt> result;
@@ -68,11 +68,11 @@ auto Parser::parseEnum() -> EnumTypeDef
         .name=previous().lexeme,
     };
     expect(TokenType::eColon, "Expected COLON after enum identifier.");
-    expect(TokenType::eNewline, "Expected newline.");
+    match(TokenType::eNewline);
 
     // Parse options
     increaseIndentLevel();
-    while (matchCurrentIndent() && !isAtEnd())
+    while ((check(TokenType::eIdentifier) || matchCurrentIndent()) && !isAtEnd())
     {
         expect(TokenType::eIdentifier, "Expected enum option.");
         auto [it, success] = def.options.emplace(previous().lexeme);
@@ -81,8 +81,8 @@ auto Parser::parseEnum() -> EnumTypeDef
         }
 
         // The last option is allowed to omit the comma
-        const bool hadComma = match({ TokenType::eComma });
-        expect(TokenType::eNewline, "Expected newline.");
+        const bool hadComma = match(TokenType::eComma);
+        match(TokenType::eNewline);
 
         if (!hadComma) break;
     }
@@ -98,7 +98,7 @@ auto Parser::parseEnum() -> EnumTypeDef
 auto Parser::parseFieldDef() -> FieldDefinition
 {
     auto name = parseFieldName();
-    if (!match({ TokenType::eColon }))
+    if (!match(TokenType::eColon))
     {
         error(peek(), "Expected ':' after field name.");
     }
@@ -109,7 +109,7 @@ auto Parser::parseFieldDef() -> FieldDefinition
 
 auto Parser::parseFieldName() -> std::variant<TypelessFieldName, TypedFieldName>
 {
-    if (!match({ TokenType::eIdentifier }))
+    if (!match(TokenType::eIdentifier))
     {
         error(peek(), "Expected identifier as a field name.");
     }
@@ -249,15 +249,21 @@ bool Parser::check(TokenType type) const
     return peek().type == type;
 }
 
+bool Parser::match(TokenType type)
+{
+    if (check(type))
+    {
+        consume();
+        return true;
+    }
+
+    return false;
+}
+
 bool Parser::match(std::initializer_list<TokenType> types)
 {
-    for (TokenType type : types)
-    {
-        if (check(type))
-        {
-            consume();
-            return true;
-        }
+    for (TokenType type : types) {
+        if (match(type)) return true;
     }
 
     return false;
@@ -265,7 +271,7 @@ bool Parser::match(std::initializer_list<TokenType> types)
 
 void Parser::expect(TokenType type, std::string errorMessage)
 {
-    if (!match({ type })) {
+    if (!match(type)) {
         error(peek(), std::move(errorMessage));
     }
 }

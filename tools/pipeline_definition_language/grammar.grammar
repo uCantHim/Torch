@@ -4,7 +4,7 @@ statement    ->  field-def | type-def
 
 type-def     ->  enum-decl
 
-enum-decl    ->  "enum" IDENTIFIER ":" NEWLINE (INDENT IDENTIFIER ",")+
+enum-decl    ->  "enum" IDENTIFIER ":" [NEWLINE INDENT] (IDENTIFIER "," [NEWLINE INDENT])+
 
 
 

@@ -37,6 +37,7 @@ private:
     auto previous() const -> const Token&;
     auto peek() const -> const Token&;
     bool check(TokenType type) const;
+    bool match(TokenType type);
     bool match(std::initializer_list<TokenType> types);
     void expect(TokenType type, std::string errorMessage);
 
