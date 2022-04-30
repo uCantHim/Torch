@@ -55,6 +55,8 @@ void Scanner::scanToken()
     {
     case ':': addToken(TokenType::eColon); break;
     case ',': addToken(TokenType::eComma); break;
+    case '[': addToken(TokenType::eLeftBracket); break;
+    case ']': addToken(TokenType::eRightBracket); break;
     case '-':
         if (match('>')) addToken(TokenType::eRightArrow);
         break;

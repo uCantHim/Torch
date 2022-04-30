@@ -10,7 +10,9 @@ enum class TokenType
     eMatch, eEnum,
 
     // Symbols
-    eIndent, eNewline, eColon, eRightArrow, eComma,
+    eIndent, eNewline,
+    eColon, eRightArrow, eComma,
+    eLeftBracket, eRightBracket,
 
     // Literals
     eIdentifier, eLiteralString,
@@ -37,6 +39,10 @@ inline auto to_string(TokenType type) -> std::string
         return "eRightArrow";
     case TokenType::eComma:
         return "eComma";
+    case TokenType::eLeftBracket:
+        return "eLeftBracket";
+    case TokenType::eRightBracket:
+        return "eRightBracket";
     case TokenType::eIdentifier:
         return "eIdentifier";
     case TokenType::eLiteralString:
