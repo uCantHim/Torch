@@ -10,6 +10,7 @@ add_executable(pipeline_compiler main.cpp
     src/Scanner.cpp
     src/TorchCppWriter.cpp
     src/TypeChecker.cpp
+    src/TypeConfiguration.cpp
     src/UniqueName.cpp
     src/VariantResolver.cpp
 )

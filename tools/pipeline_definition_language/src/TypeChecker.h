@@ -10,8 +10,6 @@ struct FileContents
     std::unordered_map<std::string, FieldValue> identifiersToValues;
 };
 
-auto makeDefaultTypeConfig() -> TypeConfiguration;
-
 class TypeChecker
 {
 public:

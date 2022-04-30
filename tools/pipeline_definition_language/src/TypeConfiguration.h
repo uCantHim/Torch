@@ -56,3 +56,5 @@ struct TypeConfiguration
 
     std::unordered_map<TypeName, TypeType> types;
 };
+
+auto makeDefaultTypeConfig() -> TypeConfiguration;
