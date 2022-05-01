@@ -1,5 +1,4 @@
 add_executable(pipeline_compiler main.cpp
-    src/AstPrinter.cpp
     src/Compiler.cpp
     src/ErrorReporter.cpp
     src/FlagTable.cpp
