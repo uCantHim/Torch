@@ -157,13 +157,39 @@ auto Compiler::expectObject(const compiler::Value& val) -> const compiler::Objec
 }
 
 template<typename T>
+auto Compiler::expect(const compiler::Literal& val) -> const T&
+{
+    try {
+        return std::get<T>(val.value);
+    }
+    catch (const std::bad_variant_access&) {
+        error({}, "Unexpected literal value type");
+        throw CompilerError{};
+    }
+}
+
+auto Compiler::expectString(const compiler::Literal& val) -> const std::string&
+{
+    return expect<std::string>(val);
+}
+
+auto Compiler::expectFloat(const compiler::Literal& val) -> double
+{
+    return expect<double>(val);
+}
+
+auto Compiler::expectInt(const compiler::Literal& val) -> int64_t
+{
+    return expect<int64_t>(val);
+}
+
+template<typename T>
 auto Compiler::makeReference(const compiler::Value& val) -> ObjectReference<T>
 {
     return std::visit(VariantVisitor{
-        [this](const compiler::Literal& lit) -> ObjectReference<T>
+        [this](const compiler::Literal&) -> ObjectReference<T>
         {
-            error({}, "Cannot create an artificial reference to a literal value \""
-                      + lit.value + "\".");
+            error({}, "Cannot create an artificial reference to a literal value.");
             throw CompilerError{};
             return UniqueName("");
         },
@@ -234,13 +260,13 @@ auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderD
 {
     ShaderDesc res;
 
-    res.source = expectLiteral(expectSingle(expectField(obj, "Source"))).value;
+    res.source = expectString(expectLiteral(expectSingle(expectField(obj, "Source"))));
     auto it = obj.fields.find("Variable");
     if (it != obj.fields.end())
     {
         for (const auto& [name, val] : expectMap(it->second).values)
         {
-            res.variables.try_emplace(name, expectLiteral(*val).value);
+            res.variables.try_emplace(name, expectString(expectLiteral(*val)));
         }
     }
 

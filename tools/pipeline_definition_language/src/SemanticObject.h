@@ -43,7 +43,7 @@ namespace compiler
 
     struct Literal
     {
-        std::string value;
+        std::variant<std::string, double, int64_t> value;
     };
 
     struct List

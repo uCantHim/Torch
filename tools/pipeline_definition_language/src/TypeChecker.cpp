@@ -56,12 +56,18 @@ auto TypeChecker::getToken(const FieldName& name) -> const Token&
 
 auto TypeChecker::getToken(const FieldValue& val) -> const Token&
 {
-    return std::visit([](const auto& v) -> const Token& { return v.token; }, val);
-}
-
-auto TypeChecker::getFieldName(const FieldName& name) -> const std::string&
-{
-    return std::visit([](const auto& v) -> const std::string& { return v.name.name; }, name);
+    return std::visit(
+        [](const auto& v) -> const Token&
+        {
+            if constexpr (requires{ v.token; }) {
+                return v.token;
+            }
+            else {
+                return getToken(v);
+            }
+        },
+        val
+    );
 }
 
 void TypeChecker::checkFieldDefinition(
@@ -122,10 +128,15 @@ TypeChecker::CheckValueType::CheckValueType(TypeType& expected, TypeChecker& sel
 
 bool TypeChecker::CheckValueType::operator()(const LiteralValue& val) const
 {
-    if (!std::holds_alternative<StringType>(*expectedType)) {
-        expectedTypeError(val.token, StringType::typeName);
-    }
-    return true;
+    return expectedTypeName == std::visit(VariantVisitor{
+        [](const StringLiteral&){ return stringTypeName; },
+        [](const NumberLiteral& val){
+            return std::visit(VariantVisitor{
+                [](const double&){ return floatTypeName; },
+                [](const int64_t&){ return intTypeName; },
+            }, val.value);
+        },
+    }, val);
 }
 
 bool TypeChecker::CheckValueType::operator()(const Identifier& id) const

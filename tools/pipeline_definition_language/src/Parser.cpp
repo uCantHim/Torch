@@ -129,7 +129,9 @@ auto Parser::parseFieldValue() -> FieldValue
     switch (peek().type)
     {
     case TokenType::eLiteralString:
-        return LiteralValue{ consume() };
+        return StringLiteral{ consume() };
+    case TokenType::eLiteralNumber:
+        return NumberLiteral{ consume() };
     case TokenType::eIdentifier:
         return Identifier{ consume() };
     case TokenType::eLeftBracket:

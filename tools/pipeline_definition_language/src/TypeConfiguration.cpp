@@ -7,6 +7,8 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
     return TypeConfiguration({
         // Fundamental string type
         { stringTypeName, StringType{} },
+        { floatTypeName, FloatType{} },
+        { intTypeName, IntType{} },
 
         // Type of the "global" object, which has both arbitrary field names
         // and some pre-defined fields (e.g. 'Meta')

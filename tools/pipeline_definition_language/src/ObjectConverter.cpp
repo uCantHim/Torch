@@ -1,6 +1,7 @@
 #include "ObjectConverter.h"
 
 #include "Exceptions.h"
+#include "Util.h"
 
 
 
@@ -72,7 +73,14 @@ void ObjectConverter::operator()(const FieldDefinition& def)
 
 auto ObjectConverter::operator()(const LiteralValue& val) -> std::shared_ptr<Value>
 {
-    return std::make_shared<Value>(Literal{ .value=val.value });
+    return std::make_shared<Value>(
+        std::visit(VariantVisitor{
+            [](const StringLiteral& val){ return Literal{ .value=val.value }; },
+            [](const NumberLiteral& val){
+                return std::visit([](auto&& val){ return Literal{ .value=val }; }, val.value);
+            },
+        }, val)
+    );
 }
 
 auto ObjectConverter::operator()(const Identifier& id) -> std::shared_ptr<Value>

@@ -9,12 +9,24 @@
 using TypeName = std::string;
 
 static const TypeName stringTypeName{ "String" };
+static const TypeName floatTypeName{ "Float" };
+static const TypeName intTypeName{ "Int" };
 static const TypeName globalObjectTypeName{ "__global" };
 static const TypeName undefinedObjectType{ "<undefined object>" };
 
 struct StringType
 {
     static inline TypeName typeName{ stringTypeName };
+};
+
+struct FloatType
+{
+    static inline TypeName typeName{ floatTypeName };
+};
+
+struct IntType
+{
+    static inline TypeName typeName{ intTypeName };
 };
 
 enum class FieldType
@@ -60,9 +72,16 @@ struct EnumType
 
 using TypeType = std::variant<
     StringType,
+    FloatType,
+    IntType,
     ObjectType,
     EnumType
 >;
+
+inline auto getTypeName(const TypeType& type) -> const TypeName&
+{
+    return std::visit([](auto&& v) -> const TypeName& { return v.typeName; }, type);
+}
 
 struct TypeConfiguration
 {

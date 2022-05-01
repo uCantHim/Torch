@@ -24,7 +24,6 @@ public:
 private:
     static auto getToken(const FieldName& name) -> const Token&;
     static auto getToken(const FieldValue& val) -> const Token&;
-    static auto getFieldName(const FieldName& name) -> const std::string&;
 
     auto inferType(const ObjectType& parent, const std::string& field) -> const ObjectType::Field&;
 

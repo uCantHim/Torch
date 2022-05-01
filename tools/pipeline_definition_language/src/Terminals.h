@@ -1,21 +1,36 @@
 #pragma once
 
 #include <string>
+#include <variant>
 
 #include "Token.h"
 
-/**
- * We only have string literal types
- */
-struct LiteralValue
+struct StringLiteral
 {
-    LiteralValue(Token _token)
+    StringLiteral(Token _token)
         : token(std::move(_token)), value(std::get<Token::StringValue>(token.value))
     {}
 
     Token token;
     std::string value;
 };
+
+struct NumberLiteral
+{
+    using NumberValue = Token::NumberValue;
+
+    NumberLiteral(Token _token)
+        : token(std::move(_token)), value(std::get<Token::NumberValue>(token.value))
+    {}
+
+    Token token;
+    NumberValue value;
+};
+
+using LiteralValue = std::variant<
+    StringLiteral,
+    NumberLiteral
+>;
 
 /**
  * @brief An identifier is just an arbitrary string name

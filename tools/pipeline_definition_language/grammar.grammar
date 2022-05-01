@@ -15,11 +15,13 @@ field-def    ->  field-name ":" field-value NEWLINE
 field-name   ->  IDENTIFIER
                | IDENTIFIER IDENTIFIER
 
-field-value  ->  LITERAL
+field-value  ->  literal
                | IDENTIFIER
                | list-decl
                | object-decl
                | match-expr
+
+literal      ->  NUMBER | STRING
 
 list-decl    -> "[" [field-value ("," field-value)*] "]"
 

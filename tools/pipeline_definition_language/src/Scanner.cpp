@@ -1,5 +1,7 @@
 #include "Scanner.h"
 
+#include <cmath>
+
 #include "ErrorReporter.h"
 
 
@@ -88,7 +90,10 @@ void Scanner::scanToken()
         scanIndent();
         break;
     default:
-        if (isAlpha(c)) {
+        if (isDigit(c)) {
+            scanNumberLiteral(c);
+        }
+        else if (isAlpha(c)) {
             scanIdentifier();
         }
         else {
@@ -124,6 +129,32 @@ void Scanner::scanStringLiteral()
     const size_t len = current - start;
     std::string val = source.substr(start + 1, len - 2);
     addToken(TokenType::eLiteralString, std::move(val));
+}
+
+void Scanner::scanNumberLiteral(char firstDigit)
+{
+    int64_t preComma = firstDigit - '0';
+    while (isDigit(peek()))
+    {
+        preComma = preComma * 10 + (consume() - '0');
+    }
+
+    double postComma = 0.0;
+    if (match('.'))
+    {
+        size_t count = 1;
+        while (isDigit(peek()))
+        {
+            postComma = postComma + (consume() - '0') * std::pow(0.1, count++);
+        }
+    }
+
+    if (postComma == 0.0) {
+        addToken(TokenType::eLiteralNumber, preComma);
+    }
+    else {
+        addToken(TokenType::eLiteralNumber, double(preComma) + postComma);
+    }
 }
 
 void Scanner::scanIdentifier()

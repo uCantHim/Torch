@@ -41,6 +41,12 @@ private:
     auto expectList(const compiler::Value& val) -> const compiler::List&;
     auto expectObject(const compiler::Value& val) -> const compiler::Object&;
 
+    template<typename T>
+    auto expect(const compiler::Literal& val) -> const T&;
+    auto expectString(const compiler::Literal& val) -> const std::string&;
+    auto expectFloat(const compiler::Literal& val) -> double;
+    auto expectInt(const compiler::Literal& val) -> int64_t;
+
     /**
      * Creates a reference from either an inline object or an actual
      * reference.

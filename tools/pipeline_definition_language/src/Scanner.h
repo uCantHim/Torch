@@ -19,6 +19,7 @@ private:
     bool isAtEnd() const;
     void scanToken();
     void scanStringLiteral();
+    void scanNumberLiteral(char firstDigit);
     void scanIdentifier();
     void scanIndent();
 

@@ -15,7 +15,7 @@ enum class TokenType
     eLeftBracket, eRightBracket,
 
     // Literals
-    eIdentifier, eLiteralString,
+    eIdentifier, eLiteralString, eLiteralNumber,
 
     // End of stream
     eEof,
@@ -47,6 +47,8 @@ inline auto to_string(TokenType type) -> std::string
         return "eIdentifier";
     case TokenType::eLiteralString:
         return "eLiteralString";
+    case TokenType::eLiteralNumber:
+        return "eLiteralNumber";
     case TokenType::eEof:
         return "eEof";
     }
@@ -65,7 +67,8 @@ struct Token
 {
     using IndentLevel = size_t;
     using StringValue = std::string;
-    using Value = std::variant<std::monostate, IndentLevel, StringValue>;
+    using NumberValue = std::variant<double, int64_t>;
+    using Value = std::variant<std::monostate, IndentLevel, StringValue, NumberValue>;
 
     TokenType type;
     std::string lexeme;
