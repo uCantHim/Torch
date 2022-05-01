@@ -73,9 +73,9 @@ auto Parser::parseEnum() -> EnumTypeDef
     while ((check(TokenType::eIdentifier) || matchCurrentIndent()) && !isAtEnd())
     {
         expect(TokenType::eIdentifier, "Expected enum option.");
-        auto [it, success] = def.options.emplace(previous().lexeme);
+        auto [it, success] = def.options.emplace(previous());
         if (!success) {
-            error(previous(), "Redefinition of enum option \"" + *it + "\".");
+            error(previous(), "Redefinition of enum option \"" + it->value + "\".");
         }
 
         // The last option is allowed to omit the comma

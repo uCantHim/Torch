@@ -25,7 +25,12 @@ void TypeParser::operator()(const TypeDef& def)
 
 void TypeParser::operator()(const EnumTypeDef& def)
 {
-    auto [it, success] = out->types.try_emplace(def.name, EnumType{ def.name, def.options });
+    EnumType type{ def.name };
+    for (const auto& opt : def.options) {
+        type.options.emplace(opt.value);
+    }
+
+    auto [it, success] = out->types.try_emplace(def.name, std::move(type));
     if (!success) {
         errorReporter->error(Error{
             .location=def.token.location,

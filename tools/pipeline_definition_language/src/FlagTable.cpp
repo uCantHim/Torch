@@ -12,8 +12,8 @@ void FlagTable::registerFlagType(const EnumTypeDef& def)
     for (const auto& opt : def.options)
     {
         const size_t bitId = flag.bits.size();
-        flag.bits.emplace_back(opt);
-        flag.bitsToIndices.try_emplace(opt, bitId);
+        flag.bits.emplace_back(opt.value);
+        flag.bitsToIndices.try_emplace(opt.value, bitId);
     }
 
     flagsToIndices.try_emplace(flag.name, flagId);
