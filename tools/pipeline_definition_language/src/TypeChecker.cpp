@@ -17,6 +17,8 @@ TypeChecker::TypeChecker(TypeConfiguration config, ErrorReporter& errorReporter)
 
 bool TypeChecker::check(const std::vector<Stmt>& statements)
 {
+    identifierTable = IdentifierCollector{}.collect(statements);
+
     bool hadError{ false };
     for (const auto& stmt : statements)
     {
@@ -45,13 +47,6 @@ void TypeChecker::operator()(const FieldDefinition& def)
 {
     const auto& globalObj = std::get<ObjectType>(this->config.types.at(globalObjectTypeName));
     checkFieldDefinition(globalObj, def, true);  // Allow arbitrary fields on the global object
-
-    // Statement is valid, add defined variable to lookup table
-    if (std::holds_alternative<TypedFieldName>(def.name))
-    {
-        const auto& field = std::get<TypedFieldName>(def.name);
-        identifierValues.try_emplace(field.mappedName, def.value.get());
-    }
 }
 
 auto TypeChecker::getToken(const FieldName& name) -> const Token&
@@ -112,10 +107,7 @@ void TypeChecker::checkFieldDefinition(
 
 void TypeChecker::error(const Token& token, std::string message)
 {
-    throw TypeError{
-        token,
-        std::move(message)
-    };
+    throw TypeError{ token, std::move(message) };
 }
 
 
@@ -138,19 +130,26 @@ bool TypeChecker::CheckValueType::operator()(const LiteralValue& val) const
 
 bool TypeChecker::CheckValueType::operator()(const Identifier& id) const
 {
+    // Enum types are being treated differently than other types
     if (std::holds_alternative<EnumType>(*expectedType))
     {
+        auto& type = std::get<EnumType>(*expectedType);
+        if (!type.hasOption(id.name))
+        {
+            self->error(id.token, "\"" + id.name + "\" is not a valid option of \""
+                                  + type.typeName + "\".");
+        }
         return true;
     }
 
     // Find identifier's type in lookup table
-    auto it = self->identifierValues.find(id);
-    if (it == self->identifierValues.end()) {
+    auto value = self->identifierTable.get(id);
+    if (value == nullptr) {
         self->error(id.token, "Use of undeclared identifier \"" + id.name + "\"");
     }
 
     // Check the referenced value
-    return std::visit(CheckValueType{ *this }, *it->second);
+    return std::visit(CheckValueType{ *this }, *value);
 }
 
 bool TypeChecker::CheckValueType::operator()(const ListDeclaration& list) const
@@ -177,13 +176,7 @@ bool TypeChecker::CheckValueType::operator()(const ObjectDeclaration& obj) const
     auto& objectType = std::get<ObjectType>(*expectedType);
     for (const auto& field : obj.fields)
     {
-        try {
-            self->checkFieldDefinition(objectType, field);
-        }
-        catch (const TypeError& err) {
-            // Replace generated error with the correct location
-            self->error(err.token, err.message);
-        }
+        self->checkFieldDefinition(objectType, field);
     }
 
     return true;
@@ -226,14 +219,8 @@ bool TypeChecker::CheckValueType::operator()(const MatchExpression& expr) const
         }
 
         // Check the type of the case's value
-        try {
-            if (!std::visit(CheckValueType{ *this }, *_case.value)) {
-                return false;
-            }
-        }
-        catch (const TypeError& err) {
-            // Replace generated error with the correct location
-            self->error(getToken(*_case.value), err.message);
+        if (!std::visit(CheckValueType{ *this }, *_case.value)) {
+            return false;
         }
     }
 

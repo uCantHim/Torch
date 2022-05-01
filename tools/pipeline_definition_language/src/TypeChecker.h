@@ -2,6 +2,7 @@
 
 #include "SyntaxElements.h"
 #include "TypeConfiguration.h"
+#include "IdentifierTable.h"
 
 class ErrorReporter;
 
@@ -53,15 +54,13 @@ private:
         const TypeType* const expectedType;
         const TypeName expectedTypeName;
         TypeChecker* const self;
-
-        const Token* currentToken;
     };
 
     /** @brief Register an error at the error reporter */
     void error(const Token& token, std::string message);
 
     TypeConfiguration config;
-    std::unordered_map<Identifier, FieldValue*> identifierValues;
+    IdentifierTable identifierTable;
 
     ErrorReporter* errorReporter;
 };
