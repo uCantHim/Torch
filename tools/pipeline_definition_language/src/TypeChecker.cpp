@@ -38,15 +38,7 @@ bool TypeChecker::check(const std::vector<Stmt>& statements)
 
 void TypeChecker::operator()(const TypeDef& def)
 {
-    std::visit(*this, def);
-}
-
-void TypeChecker::operator()(const EnumTypeDef& def)
-{
-    auto [it, success] = config.types.try_emplace(def.name, EnumType{ def.name, def.options });
-    if (!success) {
-        error({}, "Duplicate type definition.");
-    }
+    // Nothing
 }
 
 void TypeChecker::operator()(const FieldDefinition& def)

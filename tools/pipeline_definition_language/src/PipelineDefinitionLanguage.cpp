@@ -7,10 +7,10 @@
 #include "Exceptions.h"
 #include "Scanner.h"
 #include "Parser.h"
+#include "TypeParser.h"
 #include "TypeChecker.h"
 #include "Compiler.h"
 #include "TorchCppWriter.h"
-#include "AstPrinter.h"
 
 
 
@@ -52,7 +52,11 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     auto parseResult = parser.parseTokens();
 
     // Check types
-    TypeChecker typeChecker(makeDefaultTypeConfig(), *errorReporter);
+    auto typeConfig = makeDefaultTypeConfig();
+    TypeParser typeParser(typeConfig, *errorReporter);
+    typeParser.parse(parseResult);
+
+    TypeChecker typeChecker(std::move(typeConfig), *errorReporter);
     typeChecker.check(parseResult);
 
     // Don't try to compile if errors have occured thus far
