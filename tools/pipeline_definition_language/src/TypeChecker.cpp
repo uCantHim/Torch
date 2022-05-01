@@ -54,38 +54,60 @@ void TypeChecker::operator()(const FieldDefinition& def)
     }
 }
 
-void TypeChecker::checkFieldDefinition(
-    const ObjectType& parent,
-    const FieldDefinition& def,
-    const bool allowArbitraryFields)
+auto TypeChecker::getToken(const FieldName& name) -> const Token&
 {
-    TypeName expected = std::visit(VariantVisitor{
-        [&, this](const TypedFieldName& name){
-            if (!(allowArbitraryFields || parent.fields.contains(name.name.name))) {
-                error(name.name.token, "Invalid field name \"" + name.name.name + "\".");
-            }
-            return name.name.name;
-        },
-        [this, &parent](const TypelessFieldName& name){
-            if (!parent.fields.contains(name.name.name)) {
-                error(name.name.token, "Invalid field name \"" + name.name.name + "\".");
-            }
-            return parent.fields.at(name.name.name).storedType;
-        },
-    }, def.name);
-
-    if (!config.types.contains(expected)) {
-        error(getToken(*def.value), "Expected undefined type \"" + expected + "\".");
-    }
-
-    if (!std::visit(CheckValueType{ config.types.at(expected), *this }, *def.value)) {
-        error({}, "Encountered value of unexpected type.");
-    }
+    return std::visit([](const auto& v) -> const Token& { return v.name.token; }, name);
 }
 
 auto TypeChecker::getToken(const FieldValue& val) -> const Token&
 {
     return std::visit([](const auto& v) -> const Token& { return v.token; }, val);
+}
+
+auto TypeChecker::getFieldName(const FieldName& name) -> const std::string&
+{
+    return std::visit([](const auto& v) -> const std::string& { return v.name.name; }, name);
+}
+
+void TypeChecker::checkFieldDefinition(
+    const ObjectType& parent,
+    const FieldDefinition& def,
+    const bool allowArbitraryFields)
+{
+    const bool isMapFieldDef = std::holds_alternative<TypedFieldName>(def.name);
+
+    // Get field name and test if a field with that name exists in parent type
+    const auto& fieldName = getFieldName(def.name);
+    if (parent.hasField(fieldName))
+    {
+        if (isMapFieldDef && parent.getFieldType(fieldName) != FieldType::eMap)
+        {
+            error(getToken(def.name), "Can't assign map value to non-map field \"" + fieldName
+                                      + "\" on type \"" + parent.typeName + "\"");
+        }
+    }
+    // Test if field is always valid
+    else if (!(isMapFieldDef && allowArbitraryFields))
+    {
+        const auto& token = getToken(def.name);
+        error(token, "Invalid field name \"" + fieldName + "\" for type \"" + parent.typeName + "\"");
+    }
+
+    // Get the expected type for the field
+    const TypeName& expected = [&]{
+        if (parent.hasField(fieldName)) return parent.getRequiredType(fieldName);
+        return fieldName;
+    }();
+
+    // Test if type exists
+    if (!config.types.contains(expected)) {
+        error(getToken(*def.value), "Expected undefined type \"" + expected + "\".");
+    }
+
+    // Test if value is of the expected type
+    if (!std::visit(CheckValueType{ config.types.at(expected), *this }, *def.value)) {
+        error({}, "Encountered value of unexpected type.");
+    }
 }
 
 void TypeChecker::error(const Token& token, std::string message)
@@ -116,6 +138,11 @@ bool TypeChecker::CheckValueType::operator()(const LiteralValue& val) const
 
 bool TypeChecker::CheckValueType::operator()(const Identifier& id) const
 {
+    if (std::holds_alternative<EnumType>(*expectedType))
+    {
+        return true;
+    }
+
     // Find identifier's type in lookup table
     auto it = self->identifierValues.find(id);
     if (it == self->identifierValues.end()) {

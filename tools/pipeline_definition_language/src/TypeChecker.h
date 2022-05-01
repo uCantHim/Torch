@@ -21,6 +21,12 @@ public:
     void operator()(const FieldDefinition&);
 
 private:
+    static auto getToken(const FieldName& name) -> const Token&;
+    static auto getToken(const FieldValue& val) -> const Token&;
+    static auto getFieldName(const FieldName& name) -> const std::string&;
+
+    auto inferType(const ObjectType& parent, const std::string& field) -> const ObjectType::Field&;
+
     void checkFieldDefinition(const ObjectType& parent,
                               const FieldDefinition& def,
                               bool allowArbitraryFields = false);
@@ -50,8 +56,6 @@ private:
 
         const Token* currentToken;
     };
-
-    static auto getToken(const FieldValue& val) -> const Token&;
 
     /** @brief Register an error at the error reporter */
     void error(const Token& token, std::string message);

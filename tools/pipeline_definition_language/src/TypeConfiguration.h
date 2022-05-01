@@ -34,12 +34,28 @@ struct ObjectType
 
     TypeName typeName;
     std::unordered_map<std::string, Field> fields;
+
+    bool hasField(const std::string& fieldName) const {
+        return fields.contains(fieldName);
+    }
+
+    auto getRequiredType(const std::string& fieldName) const -> const TypeName& {
+        return fields.at(fieldName).storedType;
+    }
+
+    auto getFieldType(const std::string& fieldName) const -> FieldType {
+        return fields.at(fieldName).fieldType;
+    }
 };
 
 struct EnumType
 {
     TypeName typeName;
     std::unordered_set<std::string> options;
+
+    bool hasOption(const std::string& opt) const {
+        return options.contains(opt);
+    }
 };
 
 using TypeType = std::variant<
