@@ -190,7 +190,7 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
 
 template<>
 inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName& name,
+    const UniqueName&,
     const ProgramDesc& program,
     std::ostream& os)
 {
@@ -217,7 +217,7 @@ inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::stri
 
 template<>
 inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName& name,
+    const UniqueName&,
     const PipelineDesc& pipeline,
     std::ostream& os)
 {

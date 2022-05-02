@@ -7,6 +7,7 @@ add_subdirectory(shader_edit)
 add_subdirectory(pipeline_definition_language)
 add_subdirectory(pre_build_step)
 
+torch_default_compile_options(pipeline_compiler)
 set_target_properties(pipeline_compiler PROPERTIES
     OUTPUT_NAME compile-pipeline
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}

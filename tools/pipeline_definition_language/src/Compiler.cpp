@@ -229,7 +229,7 @@ auto Compiler::compileMulti(const compiler::MapValue& val)
     {
         if (std::holds_alternative<compiler::Variated>(*value))
         {
-            VariantGroup<T> items{ .baseName=name };
+            VariantGroup<T> items{ name };
             for (const auto& var : std::get<compiler::Variated>(*value).variants)
             {
                 currentVariant = &var.setFlags;

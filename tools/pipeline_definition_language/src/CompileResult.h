@@ -37,8 +37,10 @@ struct PipelineDesc
 template<typename T>
 struct VariantGroup
 {
-    std::vector<size_t> flagTypes;
+    explicit VariantGroup(std::string baseName) : baseName(std::move(baseName)) {}
+
     std::string baseName;
+    std::vector<size_t> flagTypes;
     std::unordered_map<UniqueName, T> variants;
 };
 
