@@ -133,9 +133,9 @@ inline void TorchCppWriter::writeVariantStorageInit(
     const ShaderDesc& shader,
     std::ostream& os)
 {
-    const std::string shaderFile = name.getUniqueName();
+    const std::string& shaderFile = name.getUniqueName();
 
-    os << makeStoredType<ShaderDesc>() << "{ " << makeValue(shader) << " }";
+    os << makeStoredType<ShaderDesc>() << "{ " << "\"" << shaderFile << ".spv\"" << " }";
 
     auto code = compileShader(shader);
     auto outFile = openOutputFile(shaderFile);
