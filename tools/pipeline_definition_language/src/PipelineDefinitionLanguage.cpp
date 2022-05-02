@@ -1,5 +1,6 @@
 #include "PipelineDefinitionLanguage.h"
 
+#include <vector>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -11,6 +12,37 @@
 #include "TypeChecker.h"
 #include "Compiler.h"
 #include "TorchCppWriter.h"
+
+
+
+auto loadStdlib(ErrorReporter& errorReporter) -> std::vector<Stmt>
+{
+    std::vector<Stmt> statements;
+
+    for (auto& entry : fs::directory_iterator(STDLIB_DIR))
+    {
+        if (!entry.is_regular_file()) continue;
+
+        std::ifstream file(entry.path());
+        if (!file.is_open()) {
+            throw std::runtime_error("Unable to open standard library file " + entry.path().string());
+        }
+        std::stringstream ss;
+        ss << file.rdbuf();
+
+        // Scan
+        Scanner scanner(ss.str(), errorReporter);
+        auto tokens = scanner.scanTokens();
+
+        // Parse
+        Parser parser(std::move(tokens), errorReporter);
+        auto parseResult = parser.parseTokens();
+
+        statements.insert(statements.begin(), parseResult.begin(), parseResult.end());
+    }
+
+    return statements;
+}
 
 
 
@@ -32,6 +64,10 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         std::cout << "\n[INTERNAL COMPILER ERROR]: " << err.message << "\n";
         exit(1);
     }
+    catch (const std::runtime_error& err) {
+        std::cout << "An error occured: " << err.what() << "\n" << "Exiting.";
+        exit(1);
+    }
 }
 
 bool PipelineDefinitionLanguage::compile(const fs::path& filename)
@@ -51,11 +87,19 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     Parser parser(std::move(tokens), *errorReporter);
     auto parseResult = parser.parseTokens();
 
-    // Check types
+    // Load standard library
+    auto stdlib = loadStdlib(*errorReporter);
+    if (errorReporter->hadError()) {
+        return true;
+    }
+    std::move(stdlib.begin(), stdlib.end(), std::back_inserter(parseResult));
+
+    // Load additional types defined in the input file
     auto typeConfig = makeDefaultTypeConfig();
     TypeParser typeParser(typeConfig, *errorReporter);
     typeParser.parse(parseResult);
 
+    // Check types
     TypeChecker typeChecker(std::move(typeConfig), *errorReporter);
     typeChecker.check(parseResult);
 

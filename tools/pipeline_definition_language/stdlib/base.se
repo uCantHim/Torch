@@ -1,0 +1,13 @@
+// Standard library
+
+enum Bool: true, false
+
+enum Format:
+    r32f, rg32f, rgb32f, rgba32f,
+    r32i, rg32i, rgb32i, rgba32i,
+    r32u, rg32u, rgb32u, rgba32u,
+    r16f, rg16f, rgb16f, rgba16f,
+    r16i, rg16i, rgb16i, rgba16i,
+    r16u, rg16u, rgb16u, rgba16u,
+    r8i, rg8i, rgb8i, rgba8i,
+    r8u, rg8u, rgb8u, rgba8u,

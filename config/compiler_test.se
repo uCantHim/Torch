@@ -52,11 +52,16 @@ Program drawableProgram:
     FragmentShader:
         Source: "shaders/drawable/deferred.frag"
 
+VertexAttribute drawableVertexAttributes: match AnimationType
+    none ->
+        // Binding: 0,
+        Locations: [rgb32f, rgb32f, rg32f, rgb32f,  // default attribs
+                    rgba32u, rgba32f]               // animation-specific attribs
+    simple ->
+        // Binding: 0,
+        Locations: [rgb32f, rgb32f, rg32f, rgb32f]
+
 
 Pipeline drawable:
     Program: drawableProgram
-    // VertexInput: match AnimationType
-    //     none -> meshVertex
-    //     simple -> skeletalVertex
-    // // or:
-    // VertexInput: meshVertex
+    VertexInput: [drawableVertexAttributes]
