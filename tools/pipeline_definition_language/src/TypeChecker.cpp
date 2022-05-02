@@ -17,7 +17,12 @@ TypeChecker::TypeChecker(TypeConfiguration config, ErrorReporter& errorReporter)
 
 bool TypeChecker::check(const std::vector<Stmt>& statements)
 {
-    identifierTable = IdentifierCollector{}.collect(statements);
+    try {
+        identifierTable = IdentifierCollector{ *errorReporter }.collect(statements);
+    }
+    catch (const std::invalid_argument& err) {
+        error({}, err.what());
+    }
 
     bool hadError{ false };
     for (const auto& stmt : statements)
@@ -107,7 +112,7 @@ void TypeChecker::checkFieldDefinition(
 
     // Test if value is of the expected type
     if (!std::visit(CheckValueType{ config.types.at(expected), *this }, *def.value)) {
-        error({}, "Encountered value of unexpected type.");
+        error(getToken(*def.value), "Encountered value of unexpected type.");
     }
 }
 
@@ -141,26 +146,31 @@ bool TypeChecker::CheckValueType::operator()(const LiteralValue& val) const
 
 bool TypeChecker::CheckValueType::operator()(const Identifier& id) const
 {
-    // Enum types are being treated differently than other types
-    if (std::holds_alternative<EnumType>(*expectedType))
+    if (!self->identifierTable.has(id))
     {
-        auto& type = std::get<EnumType>(*expectedType);
-        if (!type.hasOption(id.name))
-        {
-            self->error(id.token, "\"" + id.name + "\" is not a valid option of \""
-                                  + type.typeName + "\".");
-        }
-        return true;
-    }
-
-    // Find identifier's type in lookup table
-    auto value = self->identifierTable.get(id);
-    if (value == nullptr) {
         self->error(id.token, "Use of undeclared identifier \"" + id.name + "\"");
+        return false;
     }
 
-    // Check the referenced value
-    return std::visit(CheckValueType{ *this }, *value);
+    return std::visit(VariantVisitor{
+        [this, &id](const ValueReference& ref)
+        {
+            assert(ref.referencedValue != nullptr);
+            // Check the referenced value
+            return std::visit(CheckValueType{ *this }, *ref.referencedValue);
+        },
+        [this, &id](const TypeName& name) {
+            self->error(id.token, "Expected value but got typename \"" + name + "\".");
+            return false;
+        },
+        [this, &id](const DataConstructor& ctor)
+        {
+            if (expectedTypeName != ctor.constructedType) {
+                expectedTypeError(id.token, ctor.constructedType);
+            }
+            return true;
+        },
+    }, self->identifierTable.get(id));
 }
 
 bool TypeChecker::CheckValueType::operator()(const ListDeclaration& list) const

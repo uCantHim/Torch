@@ -7,7 +7,7 @@
 
 Compiler::Compiler(std::vector<Stmt> _statements, ErrorReporter& errorReporter)
     :
-    converter(std::move(_statements)),
+    converter(std::move(_statements), errorReporter),
     errorReporter(&errorReporter)
 {
 }

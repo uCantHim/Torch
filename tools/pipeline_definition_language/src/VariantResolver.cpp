@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "Exceptions.h"
+#include "Util.h"
 #include "IdentifierTable.h"
 
 
@@ -29,17 +30,29 @@ auto VariantResolver::operator()(const LiteralValue& val) const -> std::vector<F
 
 auto VariantResolver::operator()(const Identifier& id) const -> std::vector<FieldValueVariant>
 {
-    const FieldValue* referenced = identifierTable.get(id);
-    if (referenced != nullptr)
-    {
-        auto variants = std::visit(*this, *referenced);
-        for (auto& var : variants) {
-            var.value = id;
-        }
-        return variants;
+    if (!identifierTable.has(id)) {
+        throw InternalLogicError("Identifier \"" + id.name + "\" is not present in identifier table.");
     }
 
-    throw InternalLogicError("Identifier \"" + id.name + "\" is not present in identifier table.");
+    const IdentifierValue& referenced = identifierTable.get(id);
+    return std::visit(VariantVisitor{
+        [this, &id](const ValueReference& ref)
+        {
+            assert(ref.referencedValue != nullptr);
+            auto variants = std::visit(*this, *ref.referencedValue);
+            for (auto& var : variants) {
+                var.value = id;
+            }
+            return variants;
+        },
+        [](const TypeName&) -> std::vector<FieldValueVariant> {
+            throw InternalLogicError("Tried to resolve variants on an identifier value that"
+                                     " was a type name.");
+        },
+        [&id](const DataConstructor&) -> std::vector<FieldValueVariant> {
+            return { FieldValueVariant{ .setFlags={}, .value=id } };
+        },
+    }, referenced);
 }
 
 auto VariantResolver::operator()(const ListDeclaration& list) const -> std::vector<FieldValueVariant>

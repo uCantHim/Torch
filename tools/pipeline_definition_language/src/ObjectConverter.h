@@ -12,7 +12,7 @@ namespace compiler
     class ObjectConverter
     {
     public:
-        explicit ObjectConverter(std::vector<Stmt> statements);
+        ObjectConverter(std::vector<Stmt> statements, ErrorReporter& errorReporter);
 
         auto convert() -> Object;
 
@@ -36,6 +36,7 @@ namespace compiler
         void setValue(const TypelessFieldName& fieldName, std::shared_ptr<Value> value);
         void setValue(const TypedFieldName& name, std::shared_ptr<Value> value);
 
+        ErrorReporter* errorReporter;
         std::vector<Stmt> statements;
         Object globalObject;
 

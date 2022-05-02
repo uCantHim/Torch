@@ -8,11 +8,12 @@
 namespace compiler
 {
 
-ObjectConverter::ObjectConverter(std::vector<Stmt> _statements)
+ObjectConverter::ObjectConverter(std::vector<Stmt> _statements, ErrorReporter& errorReporter)
     :
+    errorReporter(&errorReporter),
     statements(std::move(_statements)),
     flagTable(FlagTypeCollector{}.collect(statements)),
-    identifierTable(IdentifierCollector{}.collect(statements)),
+    identifierTable(IdentifierCollector{ errorReporter }.collect(statements)),
     resolver(flagTable, identifierTable)
 {
 }
