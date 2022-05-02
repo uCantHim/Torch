@@ -65,10 +65,10 @@ struct TokenLocation
 
 struct Token
 {
-    using IndentLevel = size_t;
+    using IndentSpaces = size_t;
     using StringValue = std::string;
     using NumberValue = std::variant<double, int64_t>;
-    using Value = std::variant<std::monostate, IndentLevel, StringValue, NumberValue>;
+    using Value = std::variant<std::monostate, IndentSpaces, StringValue, NumberValue>;
 
     TokenType type;
     std::string lexeme;

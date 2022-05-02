@@ -315,7 +315,12 @@ auto Parser::peekIndent() -> Indent
         error(peek(), "Expected indent.");
     }
 
-    return std::get<Indent>(peek().value);
+    Indent spaces = std::get<Indent>(peek().value);
+    if (spaces % 4 != 0) {
+        error(peek(), "Indent must be exactly four spaces per indent level.");
+    }
+
+    return spaces / 4;
 }
 
 bool Parser::matchCurrentIndent()

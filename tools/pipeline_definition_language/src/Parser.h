@@ -18,7 +18,7 @@ public:
     auto parseTokens() -> std::vector<Stmt>;
 
 private:
-    using Indent = Token::IndentLevel;
+    using Indent = Token::IndentSpaces;
 
     auto parseStatement() -> Stmt;
 

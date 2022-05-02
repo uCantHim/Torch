@@ -179,12 +179,11 @@ void Scanner::scanIndent()
         consume();
     }
 
-    if (spaces % 4 == 0) {
-        addToken(TokenType::eIndent, Token::IndentLevel(spaces / 4));
+    if (peek() == '\t') {
+        error("Tabs are not allowed as indent! Use spaces instead.");
     }
-    else {
-        error("Indent must be exactly four spaces per indent level.");
-    }
+
+    addToken(TokenType::eIndent, Token::IndentSpaces(spaces));
 }
 
 void Scanner::error(std::string message)

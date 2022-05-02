@@ -82,6 +82,7 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     // Scan
     Scanner scanner(ss.str(), *errorReporter);
     auto tokens = scanner.scanTokens();
+    if (errorReporter->hadError()) return true;
 
     // Parse
     Parser parser(std::move(tokens), *errorReporter);
@@ -89,9 +90,7 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
 
     // Load standard library
     auto stdlib = loadStdlib(*errorReporter);
-    if (errorReporter->hadError()) {
-        return true;
-    }
+    if (errorReporter->hadError()) return true;
     std::move(stdlib.begin(), stdlib.end(), std::back_inserter(parseResult));
 
     // Load additional types defined in the input file
@@ -104,18 +103,14 @@ bool PipelineDefinitionLanguage::compile(const fs::path& filename)
     typeChecker.check(parseResult);
 
     // Don't try to compile if errors have occured thus far
-    if (errorReporter->hadError()) {
-        return true;
-    }
+    if (errorReporter->hadError()) return true;
 
     // Compile
     Compiler compiler(std::move(parseResult), *errorReporter);
     auto compileResult = compiler.compile();
 
     // Certainly don't output anything if errors have occured
-    if (errorReporter->hadError()) {
-        return true;
-    }
+    if (errorReporter->hadError()) return true;
 
     // Output
     TorchCppWriter writer(*errorReporter);
