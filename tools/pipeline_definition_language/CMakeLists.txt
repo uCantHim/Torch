@@ -5,6 +5,7 @@ add_executable(pipeline_compiler main.cpp
     src/IdentifierTable.cpp
     src/ObjectConverter.cpp
     src/Parser.cpp
+    src/PipelineDataWriter.cpp
     src/PipelineDefinitionLanguage.cpp
     src/Scanner.cpp
     src/TorchCppWriter.cpp

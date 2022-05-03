@@ -2,6 +2,91 @@
 
 #include "Exceptions.h"
 #include "Util.h"
+#include "PipelineDataWriter.h"
+
+
+
+auto translatePolygonMode(const std::string& str) -> PipelineDesc::Rasterization::PolygonMode
+{
+    using Mode = PipelineDesc::Rasterization::PolygonMode;
+    static std::unordered_map<std::string, Mode> map{
+        { "points", Mode::ePoint },
+        { "wireframe", Mode::eLine },
+        { "fill", Mode::eFill },
+    };
+
+    return map.at(str);
+}
+
+auto translateCullMode(const std::string& str) -> PipelineDesc::Rasterization::CullMode
+{
+    using Mode = PipelineDesc::Rasterization::CullMode;
+    static std::unordered_map<std::string, Mode> map{
+        { "cullNone", Mode::eNone },
+        { "cullFrontFace", Mode::eFront },
+        { "cullBackFace", Mode::eBack },
+        { "cullFrontAndBack", Mode::eBoth },
+    };
+
+    return map.at(str);
+}
+
+auto translateFaceWinding(const std::string& str) -> PipelineDesc::Rasterization::FaceWinding
+{
+    using Mode = PipelineDesc::Rasterization::FaceWinding;
+    static std::unordered_map<std::string, Mode> map{
+        { "clockwise", Mode::eClockwise },
+        { "counterClockwise", Mode::eCounterClockwise },
+    };
+
+    return map.at(str);
+}
+
+auto translateBlendFactor(const std::string& str) -> PipelineDesc::BlendAttachment::BlendFactor
+{
+    using Mode = PipelineDesc::BlendAttachment::BlendFactor;
+    static std::unordered_map<std::string, Mode> map{
+        { "one",                   Mode::eOne },
+        { "zero",                  Mode::eZero },
+        { "constantAlpha",         Mode::eConstantAlpha },
+        { "constantColor",         Mode::eConstantColor },
+        { "dstAlpha",              Mode::eDstAlpha },
+        { "dstColor",              Mode::eDstColor },
+        { "srcAlpha",              Mode::eSrcAlpha },
+        { "srcColor",              Mode::eSrcColor },
+        { "oneMinusConstantAlpha", Mode::eOneMinusConstantAlpha },
+        { "oneMinusConstantColor", Mode::eOneMinusConstantColor },
+        { "oneMinusDstAlpha",      Mode::eOneMinusDstAlpha },
+        { "oneMinusDstColor",      Mode::eOneMinusDstColor },
+        { "oneMinusSrcAlpha",      Mode::eOneMinusSrcAlpha },
+        { "oneMinusSrcColor",      Mode::eOneMinusSrcColor },
+    };
+
+    return map.at(str);
+}
+
+auto translateBlendOp(const std::string& str) -> PipelineDesc::BlendAttachment::BlendOp
+{
+    using Mode = PipelineDesc::BlendAttachment::BlendOp;
+    static std::unordered_map<std::string, Mode> map{
+        { "add", Mode::eAdd },
+    };
+
+    return map.at(str);
+}
+
+auto translateColorFlag(const std::string& flag) -> PipelineDesc::BlendAttachment::Color
+{
+    using Mode = PipelineDesc::BlendAttachment::Color;
+    static std::unordered_map<std::string, Mode> map{
+        { "red",   Mode::eR },
+        { "green", Mode::eG },
+        { "blue",  Mode::eB },
+        { "alpha", Mode::eA },
+    };
+
+    return map.at(flag);
+}
 
 
 
@@ -86,6 +171,11 @@ auto Compiler::resolveReference(const compiler::Reference& ref) -> const compile
     }
 }
 
+bool Compiler::hasField(const compiler::Object& obj, const std::string& field)
+{
+    return obj.fields.contains(field);
+}
+
 auto Compiler::expectField(const compiler::Object& obj, const std::string& field)
     -> const compiler::FieldValueType&
 {
@@ -106,6 +196,18 @@ auto Compiler::expectSingle(const compiler::FieldValueType& field) -> const comp
 auto Compiler::expectMap(const compiler::FieldValueType& field) -> const compiler::MapValue&
 {
     return std::get<compiler::MapValue>(field);
+}
+
+auto Compiler::expectSingle(const compiler::Object& obj, const std::string& field)
+    -> const compiler::Value&
+{
+    return expectSingle(expectField(obj, field));
+}
+
+auto Compiler::expectMap(const compiler::Object& obj, const std::string& field)
+    -> const compiler::MapValue&
+{
+    return expectMap(expectField(obj, field));
 }
 
 template<typename T>
@@ -168,19 +270,24 @@ auto Compiler::expect(const compiler::Literal& val) -> const T&
     }
 }
 
-auto Compiler::expectString(const compiler::Literal& val) -> const std::string&
+auto Compiler::expectString(const compiler::Value& val) -> const std::string&
 {
-    return expect<std::string>(val);
+    return expect<std::string>(expectLiteral(val));
 }
 
-auto Compiler::expectFloat(const compiler::Literal& val) -> double
+auto Compiler::expectFloat(const compiler::Value& val) -> double
 {
-    return expect<double>(val);
+    return expect<double>(expectLiteral(val));
 }
 
-auto Compiler::expectInt(const compiler::Literal& val) -> int64_t
+auto Compiler::expectInt(const compiler::Value& val) -> int64_t
 {
-    return expect<int64_t>(val);
+    return expect<int64_t>(expectLiteral(val));
+}
+
+auto Compiler::expectBool(const compiler::Value& val) -> bool
+{
+    return expectString(val) == "true";
 }
 
 template<typename T>
@@ -299,7 +406,151 @@ auto Compiler::compileSingle<ProgramDesc>(const compiler::Object& obj) -> Progra
 template<>
 auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> PipelineDesc
 {
+    // Compile vertex inputs
+    std::vector<PipelineDesc::VertexAttribute> vertexInput;
+    for (size_t binding = 0;
+         const auto& value : expectList(expectSingle(obj, "VertexInput")).values)
+    {
+        assert(value != nullptr);
+        const auto& in = expectObject(*value);
+        auto& out = vertexInput.emplace_back();
+
+        // Formats
+        size_t calcStride = 0;  // Calculate the canonical stride for later
+        for (const auto& opt : expectList(expectSingle(in, "Locations")).values)
+        {
+            assert(opt != nullptr);
+            auto& format = out.locationFormats.emplace_back(expectString((*opt)));
+            calcStride += util::getFormatByteSize(format);
+        }
+
+        // Binding (optional)
+        if (hasField(in, "Binding")) {
+            out.binding = expectInt(expectSingle(in, "Binding"));
+        }
+        else out.binding = binding;
+
+        // Stride (optional)
+        if (hasField(in, "Stride")) {
+            out.stride = expectInt(expectSingle(in, "Stride"));
+        }
+        else out.stride = calcStride;
+
+        ++binding;
+    }
+
+    // Compile input assembly state
+    PipelineDesc::InputAssembly inputAssembly;
+    if (hasField(obj, "PrimitiveTopology")) {
+        inputAssembly.primitiveTopology = expectString(expectSingle(obj, "PrimitiveTopology"));
+    }
+
+    // Compile rasterization state
+    PipelineDesc::Rasterization r;
+    if (hasField(obj, "FillMode")) {
+        r.polygonMode = translatePolygonMode(expectString(expectSingle(obj, "PolygonFillMode")));
+    }
+    if (hasField(obj, "CullMode")) {
+        r.cullMode = translateCullMode(expectString(expectSingle(obj, "CullMode")));
+    }
+    if (hasField(obj, "FaceWinding")) {
+        r.faceWinding = translateFaceWinding(expectString(expectSingle(obj, "FaceWinding")));
+    }
+    r.depthBiasEnable = hasField(obj, "DepthBiasConstant") || hasField(obj, "DepthBiasSlope");
+    if (hasField(obj, "DepthBiasConstant")) {
+        r.depthBiasConstantFactor = expectFloat(expectSingle(obj, "DepthBiasConstant"));
+    }
+    if (hasField(obj, "DepthBiasSlope")) {
+        r.depthBiasSlopeFactor = expectFloat(expectSingle(obj, "DepthBiasSlope"));
+    }
+    if (hasField(obj, "DepthBiasClamp")) {
+        r.depthBiasClamp = expectFloat(expectSingle(obj, "DepthBiasClamp"));
+    }
+    if (hasField(obj, "LineWidth")) {
+        r.lineWidth = expectFloat(expectSingle(obj, "LineWidth"));
+    }
+
+    // Compile multisampling
+    PipelineDesc::Multisampling multisampling;
+    if (hasField(obj, "Multisampling"))
+    {
+        const auto& in = expectObject(expectSingle(obj, "Multisampling"));
+        multisampling.samples = expectInt(expectSingle(in, "Samples"));
+        if (!std::unordered_set<size_t>{ 1, 2, 4, 8, 16 }.contains(multisampling.samples))
+        {
+            error({}, "Number of samples in a Multisampling structure must be either"
+                      " 1, 2, 4, 8, or 16!");
+        }
+    }
+
+    // Compile depth/stencil state
+    PipelineDesc::DepthStencil ds;
+    if (hasField(obj, "DepthTest")) {
+        ds.depthTestEnable = expectBool(expectSingle(obj, "DepthTest"));
+    }
+    if (hasField(obj, "DepthWrite")) {
+        ds.depthWriteEnable = expectBool(expectSingle(obj, "DepthWrite"));
+    }
+    if (hasField(obj, "StencilTest")) {
+        ds.stencilTestEnable = expectBool(expectSingle(obj, "StencilTest"));
+    }
+
+    // Compile color blend state
+    std::vector<PipelineDesc::BlendAttachment> blendAttachments;
+    if (hasField(obj, "DisableBlendAttachments")) {
+        blendAttachments.resize(expectInt(expectSingle(obj, "DisableBlendAttachments")));
+    }
+    else if (hasField(obj, "ColorBlendAttachments"))
+    {
+        for (const auto& item : expectList(expectSingle(obj, "ColorBlendAttachments")).values)
+        {
+            const auto& att = expectObject(*item);
+            auto str = [&, this](auto&& name){ return expectString(expectSingle(att, name)); };
+
+            auto& newAtt = blendAttachments.emplace_back();
+            if (hasField(att, "ColorBlending"))
+                newAtt.blendEnable = expectBool(expectSingle(att, "ColorBlending"));
+            if (hasField(att, "SrcColorFactor"))
+                newAtt.srcColorFactor = translateBlendFactor(str("SrcColorFactor"));
+            if (hasField(att, "DstColorFactor"))
+                newAtt.dstColorFactor = translateBlendFactor(str("DstColorFactor"));
+            if (hasField(att, "ColorBlendOp"))
+                newAtt.colorBlendOp = translateBlendOp(str("ColorBlendOp"));
+            if (hasField(att, "SrcAlphaFactor"))
+                newAtt.srcAlphaFactor = translateBlendFactor(str("SrcAlphaFactor"));
+            if (hasField(att, "DstAlphaFactor"))
+                newAtt.dstAlphaFactor = translateBlendFactor(str("DstAlphaFactor"));
+            if (hasField(att, "AlphaBlendOp"))
+                newAtt.alphaBlendOp = translateBlendOp(str("AlphaBlendOp"));
+
+            if (hasField(att, "ColorComponents"))
+            {
+                newAtt.colorComponentFlags = 0;
+                for (const auto& item : expectList(expectSingle(att, "ColorComponents")).values) {
+                    newAtt.colorComponentFlags |= translateColorFlag(expectString(*item));
+                }
+            }
+        }
+    }
+
+    // Compile dynamic states
+    std::vector<std::string> dynamicStates;
+    if (hasField(obj, "DynamicState"))
+    {
+        for (const auto& item : expectList(expectSingle(obj, "DynamicState")).values) {
+            dynamicStates.emplace_back(expectString(*item));
+        }
+    }
+
     return {
-        .program=makeReference<ProgramDesc>(expectSingle(expectField(obj, "Program")))
+        .program=makeReference<ProgramDesc>(expectSingle(obj, "Program")),
+        .vertexInput=std::move(vertexInput),
+        .inputAssembly={},
+        .tessellation={},
+        .rasterization=r,
+        .multisampling=multisampling,
+        .depthStencil=ds,
+        .blendAttachments=std::move(blendAttachments),
+        .dynamicStates=std::move(dynamicStates),
     };
 }

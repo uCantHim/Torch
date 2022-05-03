@@ -1,6 +1,7 @@
 #include "TorchCppWriter.h"
 
 #include "Util.h"
+#include "PipelineDataWriter.h"
 
 
 
@@ -209,7 +210,7 @@ inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::stri
     std::stringstream ss;
     ss << makeStoredType<PipelineDesc>() << "("
        << ++nl << makeValue(pipeline.program) << ","
-       << nl << "{}"
+       << nl << makePipelineDefinitionDataInit(pipeline, nl)
        << --nl << ")";
 
     return ss.str();

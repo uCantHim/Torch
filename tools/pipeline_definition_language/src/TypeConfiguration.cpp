@@ -47,7 +47,29 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
         { "VertexAttribute", ObjectType{
             .typeName="VertexAttribute",
             .fields={
+                { "Binding", { "Int" } },
+                { "Stride", { "Int" } },
+                { "InputRate", { "VertexInputRate" } },
                 { "Locations", { "Format", FieldType::eList } },
+            }
+        }},
+        { "Multisampling", ObjectType{
+            .typeName="Multisampling",
+            .fields={
+                { "Samples", { "Int" } },
+            }
+        }},
+        { "ColorBlendAttachment", ObjectType{
+            .typeName="ColorBlendAttachment",
+            .fields={
+                { "ColorBlending",   { "Bool" } },
+                { "SrcColorFactor",  { "BlendFactor" } },
+                { "DstColorFactor",  { "BlendFactor" } },
+                { "ColorBlendOp",    { "BlendOp" } },
+                { "SrcAlphaFactor",  { "BlendFactor" } },
+                { "DstAlphaFactor",  { "BlendFactor" } },
+                { "AlphaBlendOp",    { "BlendOp" } },
+                { "ColorComponents", { "ColorComponent", FieldType::eList } },
             }
         }},
         { "Pipeline", ObjectType{
@@ -55,7 +77,36 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
             .fields={
                 { "Base",    { "Pipeline" } },
                 { "Program", { "Program" } },
+
+                // Vertex input
                 { "VertexInput", { "VertexAttribute", FieldType::eList } },
+
+                // Input assembly
+                { "PrimitiveTopology", { "PrimitiveTopology" } },
+
+                // Rasterization
+                { "FillMode", { "PolygonFillMode" } },
+                { "CullMode", { "CullMode" } },
+                { "FaceWinding", { "FaceWinding" } },
+                { "DepthBiasConstant", { "Float" } },
+                { "DepthBiasSlope", { "Float" } },
+                { "DepthBiasClamp", { "Float" } },
+                { "LineWidth", { "Float" } },
+
+                // Multisampling
+                { "Multisampling", { "Multisampling" } },
+
+                // Depth/stencil state
+                { "DepthTest", { "Bool" } },
+                { "DepthWrite", { "Bool" } },
+                { "StencilTest", { "Bool" } },
+
+                // Color blending
+                { "DisableBlendAttachments", { "Int" } },
+                { "ColorBlendAttachments", { "ColorBlendAttachment", FieldType::eList } },
+
+                // Dynamic state
+                { "DynamicState", { "String", FieldType::eList } },
             }
         }},
     });

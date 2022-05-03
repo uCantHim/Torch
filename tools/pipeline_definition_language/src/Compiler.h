@@ -30,10 +30,15 @@ private:
     void error(const Token& token, std::string message);
 
     auto resolveReference(const compiler::Reference& ref) -> const compiler::Value&;
+    bool hasField(const compiler::Object& obj, const std::string& field);
     auto expectField(const compiler::Object& obj, const std::string& field)
         -> const compiler::FieldValueType&;
     auto expectSingle(const compiler::FieldValueType& field) -> const compiler::Value&;
     auto expectMap(const compiler::FieldValueType& field) -> const compiler::MapValue&;
+    auto expectSingle(const compiler::Object& obj, const std::string& field)
+        -> const compiler::Value&;
+    auto expectMap(const compiler::Object& obj, const std::string& field)
+        -> const compiler::MapValue&;
 
     template<typename T>
     auto expect(const compiler::Value& val) -> const T&;
@@ -43,9 +48,10 @@ private:
 
     template<typename T>
     auto expect(const compiler::Literal& val) -> const T&;
-    auto expectString(const compiler::Literal& val) -> const std::string&;
-    auto expectFloat(const compiler::Literal& val) -> double;
-    auto expectInt(const compiler::Literal& val) -> int64_t;
+    auto expectString(const compiler::Value& val) -> const std::string&;
+    auto expectFloat(const compiler::Value& val) -> double;
+    auto expectInt(const compiler::Value& val) -> int64_t;
+    auto expectBool(const compiler::Value& val) -> bool;
 
     /**
      * Creates a reference from either an inline object or an actual

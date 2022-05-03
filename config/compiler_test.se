@@ -52,16 +52,27 @@ Program drawableProgram:
     FragmentShader:
         Source: "shaders/drawable/deferred.frag"
 
-VertexAttribute drawableVertexAttributes: match AnimationType
-    none ->
-        // Binding: 0,
-        Locations: [rgb32f, rgb32f, rg32f, rgb32f,  // default attribs
-                    rgba32u, rgba32f]               // animation-specific attribs
-    simple ->
-        // Binding: 0,
-        Locations: [rgb32f, rgb32f, rg32f, rgb32f]
+VertexAttribute drawableVertexAttribute:
+    Binding: 0
+    InputRate: perVertex
+    Locations: match AnimationType
+        none -> [rgb32f, rgb32f, rg32f, rgb32f]
+        simple -> [rgb32f, rgb32f, rg32f, rgb32f,  // default attribs
+                   rgba32u, rgba32f]               // animation-specific attribs
 
+
+ColorBlendAttachment myBlendAttachment:
+    ColorBlending: true
+    SrcAlphaFactor: oneMinusDstAlpha
+    ColorComponents: match AnimationType
+        none -> [red, blue]
+        simple -> [alpha]
+
+ColorBlendAttachment disabledBlending:
+    ColorBlending: false
 
 Pipeline drawable:
     Program: drawableProgram
-    VertexInput: [drawableVertexAttributes]
+    VertexInput: [drawableVertexAttribute]
+    ColorBlendAttachments: [disabledBlending, myBlendAttachment, disabledBlending]
+    DynamicState: ["eFrontFace", "eScissor"]

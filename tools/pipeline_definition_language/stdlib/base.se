@@ -11,3 +11,49 @@ enum Format:
     r16u, rg16u, rgb16u, rgba16u,
     r8i, rg8i, rgb8i, rgba8i,
     r8u, rg8u, rgb8u, rgba8u,
+
+enum VertexInputRate:
+    perVertex,
+    perInstance
+
+enum PrimitiveTopology:
+    pointList,
+    lineList, lineListWithAdjacency,
+    lineStrip, lineStripWithAdjacency,
+
+    triangleList, triangleListWithAdjacency,
+    triangleStrip, triangleStripWithAdjacency,
+    triangleFan,
+
+    patchList,
+
+enum PolygonFillMode:
+    points,
+    wireframe,
+    fill
+
+enum CullMode:
+    cullNone,
+    cullFrontFace,
+    cullBackFace,
+    cullFrontAndBack
+
+enum FaceWinding:
+    clockwise,
+    counterClockwise
+
+enum BlendFactor:
+    one, zero,
+
+    constantAlpha, constantColor,
+    dstAlpha, dstColor,
+    srcAlpha, srcColor,
+
+    oneMinusConstantAlpha, oneMinusConstantColor,
+    oneMinusDstAlpha, oneMinusDstColor,
+    oneMinusSrcAlpha, oneMinusSrcColor,
+
+enum BlendOp: add
+
+enum ColorComponent:
+    red, green, blue, alpha
