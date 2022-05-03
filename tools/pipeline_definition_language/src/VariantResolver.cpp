@@ -59,9 +59,31 @@ auto VariantResolver::operator()(const ListDeclaration& list) const -> std::vect
 {
     std::vector<FieldValueVariant> results;
     results.push_back({ {}, list });
-    for (const auto& item : list.items)
+    for (size_t i = 0; const auto& item : list.items)
     {
+        auto variants = std::visit(*this, item);
+        std::vector<FieldValueVariant> newResults;
+        for (auto& list : results)
+        {
+            for (auto& var : variants)
+            {
+                auto copy = list;
 
+                // We don't add items for which the same flag type would be
+                // set to different flag bits
+                if (isVariantOfSameFlag(copy, var)) {
+                    continue;
+                }
+
+                auto& copyValue = std::get<ListDeclaration>(copy.value);
+                copyValue.items.at(i) = var.value;  // Set item of current copy to variant value
+                mergeFlags(copy.setFlags, var.setFlags);
+                newResults.emplace_back(std::move(copy));
+            }
+        }
+
+        std::swap(results, newResults);
+        ++i;
     }
 
     return results;

@@ -86,7 +86,21 @@ auto ObjectConverter::operator()(const LiteralValue& val) -> std::shared_ptr<Val
 
 auto ObjectConverter::operator()(const Identifier& id) -> std::shared_ptr<Value>
 {
-    return std::make_shared<Value>(Reference{ id.name });
+    return std::make_shared<Value>(
+        std::visit(VariantVisitor{
+            [&id](const ValueReference&) -> Value {
+                return Reference{ id.name };
+            },
+            [this](const TypeName&) -> Value {
+                error("Type name as identifier");
+                return {};
+            },
+            [](const DataConstructor& ctor) -> Value {
+                return Literal{ .value=ctor.dataName };
+            },
+        }, identifierTable.get(id))
+    );
+
 }
 
 auto ObjectConverter::operator()(const ListDeclaration& list) -> std::shared_ptr<Value>
