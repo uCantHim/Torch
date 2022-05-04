@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <functional>
 #include <sstream>
 #include <fstream>
 #include <filesystem>
@@ -25,14 +26,19 @@ auto operator<<(std::ostream& os, const LineWriter& nl) -> std::ostream&;
 struct TorchCppWriterCreateInfo
 {
     fs::path shaderInputDir{ "." };
-    fs::path shaderOutputDir{ "." };
+
+    /**
+     * @param std::string Shader GLSL code
+     * @param const fs::path& Shader output file path
+     */
+    std::function<void(std::string, const fs::path&)> generateShader;
 };
 
 class TorchCppWriter : public Writer
 {
 public:
     explicit TorchCppWriter(ErrorReporter& errorReporter,
-                            const TorchCppWriterCreateInfo& info = {});
+                            TorchCppWriterCreateInfo info = {});
 
     void write(const CompileResult& result, std::ostream& os) override;
     void write(const CompileResult& result, std::ostream& header, std::ostream& source) override;
@@ -64,7 +70,6 @@ private:
     void error(std::string message);
 
     auto openShaderFile(const std::string& filename) -> std::ifstream;
-    auto openOutputFile(const std::string& filename) -> std::ofstream;
     auto compileShader(const ShaderDesc& shader) -> std::string;
 
     template<typename T>
@@ -107,9 +112,8 @@ private:
     template<typename T>
     void writeVariantStorageInit(const UniqueName& name, const T& val, std::ostream& os);
 
-    CompileResult::Meta config;
-    fs::path shaderInputDir;
-    fs::path shaderOutputDir;
+    CompileResult::Meta meta;
+    TorchCppWriterCreateInfo config;
 
     ErrorReporter* errorReporter;
     LineWriter nl;

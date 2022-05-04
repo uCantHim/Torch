@@ -34,3 +34,20 @@ target_compile_definitions(pipeline_compiler PRIVATE
     STDLIB_DIR="${CMAKE_CURRENT_LIST_DIR}/stdlib/"
     FLAG_COMBINATION_HEADER="${CMAKE_CURRENT_LIST_DIR}/auxiliary/FlagCombination.h"
 )
+
+if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
+    if (NOT TARGET shaderc)
+        FetchContent_Declare(
+            shaderc
+            GIT_REPOSITORY https://github.com/google/shaderc
+            GIT_TAG        657c5ed2ba1714c0430895a274a94d6f2aeeab85
+            PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
+        )
+        option(SHADERC_SKIP_TESTS "" ON)
+        option(SHADERC_SKIP_EXAMPLES "" ON)
+        FetchContent_MakeAvailable(shaderc)
+    endif()
+
+    target_link_libraries(pipeline_compiler PRIVATE shaderc)
+    target_compile_definitions(pipeline_compiler PRIVATE HAS_SPIRV_COMPILER)
+endif ()

@@ -48,10 +48,9 @@ auto operator<<(std::ostream& os, const LineWriter& nl) -> std::ostream&
 
 TorchCppWriter::TorchCppWriter(
     ErrorReporter& errorReporter,
-    const TorchCppWriterCreateInfo& info)
+    TorchCppWriterCreateInfo info)
     :
-    shaderInputDir(info.shaderInputDir),
-    shaderOutputDir(info.shaderOutputDir),
+    config(std::move(info)),
     errorReporter(&errorReporter)
 {
 }
@@ -63,7 +62,7 @@ void TorchCppWriter::write(const CompileResult& result, std::ostream& os)
 
 void TorchCppWriter::write(const CompileResult& result, std::ostream& header, std::ostream& source)
 {
-    config = result.meta;
+    meta = result.meta;
     flagTable = &result.flagTable;
 
     writeHeaderIncludes(header);
@@ -75,8 +74,8 @@ void TorchCppWriter::write(const CompileResult& result, std::ostream& header, st
 
 void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
 {
-    if (config.enclosingNamespace.has_value()) {
-        os << nl << "namespace " << config.enclosingNamespace.value() << nl << "{";
+    if (meta.enclosingNamespace.has_value()) {
+        os << nl << "namespace " << meta.enclosingNamespace.value() << nl << "{";
     }
 
     writeBanner("Flag Types", os);
@@ -89,15 +88,15 @@ void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
     writeBanner("Pipelines", os);
     writeHeader<PipelineDesc>(result.pipelines, os);
 
-    if (config.enclosingNamespace.has_value()) {
-        os << nl << "} // namespace " << config.enclosingNamespace.value();
+    if (meta.enclosingNamespace.has_value()) {
+        os << nl << "} // namespace " << meta.enclosingNamespace.value();
     }
 }
 
 void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
 {
-    if (config.enclosingNamespace.has_value()) {
-        os << nl << "namespace " << config.enclosingNamespace.value() << nl << "{";
+    if (meta.enclosingNamespace.has_value()) {
+        os << nl << "namespace " << meta.enclosingNamespace.value() << nl << "{";
     }
 
     writeBanner("Shaders", os);
@@ -107,8 +106,8 @@ void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
     writeBanner("Pipelines", os);
     writeSource<PipelineDesc>(result.pipelines, os);
 
-    if (config.enclosingNamespace.has_value()) {
-        os << nl << "} // namespace " << config.enclosingNamespace.value();
+    if (meta.enclosingNamespace.has_value()) {
+        os << nl << "} // namespace " << meta.enclosingNamespace.value();
     }
 }
 
@@ -179,21 +178,10 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
 
 auto TorchCppWriter::openShaderFile(const std::string& filename) -> std::ifstream
 {
-    fs::path path{ shaderInputDir / filename };
+    fs::path path{ config.shaderInputDir / filename };
     std::ifstream file{ path };
     if (!file.is_open()) {
         throw InternalLogicError("Unable to open file " + path.string() + " for reading");
-    }
-
-    return file;
-}
-
-auto TorchCppWriter::openOutputFile(const std::string& filename) -> std::ofstream
-{
-    fs::path path{ shaderOutputDir / filename };
-    std::ofstream file{ path };
-    if (!file.is_open()) {
-        throw InternalLogicError("Unable to open file " + path.string() + " for writing");
     }
 
     return file;

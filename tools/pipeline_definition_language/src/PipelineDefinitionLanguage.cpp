@@ -1,6 +1,7 @@
 #include "PipelineDefinitionLanguage.h"
 
 #include <vector>
+#include <future>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -14,6 +15,10 @@
 #include "TypeChecker.h"
 #include "Compiler.h"
 #include "TorchCppWriter.h"
+
+#ifdef HAS_SPIRV_COMPILER
+#include "GenerateSpirv.h"
+#endif
 
 
 
@@ -59,6 +64,18 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         .help("Output directory. Generated files are stored here.");
     program.add_argument("-i", "--input")
         .help("Input directory. Shader file paths are interpreted relative to this path.");
+#ifdef HAS_SPIRV_COMPILER
+    program.add_argument("--spv")
+        .action([](auto&&){ outputAsSpirv = true; })
+        .help("Compile generated shader files to SPIRV.")
+        .default_value(false)
+        .implicit_value(true);
+#else
+    program.add_description(
+        "Compile with the CMake variable $PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES set to TRUE to "
+        "enable the option to compile generated shader files to SPIRV."
+    );
+#endif
 
     try {
         program.parse_args(argc, argv);
@@ -108,6 +125,8 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         std::cout << "An unexpected error occured: " << err.what() << "\n" << "Exiting.";
         exit(1);
     }
+
+    while (pendingShaderThreads > 0);
 }
 
 auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optional<CompileResult>
@@ -156,7 +175,7 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
 {
     TorchCppWriter writer(*errorReporter, {
         .shaderInputDir=inputDir,
-        .shaderOutputDir=outputDir
+        .generateShader=writeShader,
     });
 
     fs::path outFileName = outputDir / outputFileName;
@@ -177,4 +196,46 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
     std::ifstream inFile(FLAG_COMBINATION_HEADER);
     std::ofstream outFile(outputDir / "FlagCombination.h");
     outFile << inFile.rdbuf();
+}
+
+void PipelineDefinitionLanguage::writeShader(const std::string& code, const fs::path& shaderFileName)
+{
+    fs::path outPath{ outputDir / shaderFileName };
+
+    if (outputAsSpirv)
+    {
+        outPath += ".spv";
+#ifdef HAS_SPIRV_COMPILER
+        ++pendingShaderThreads;
+        std::thread([=]{
+            auto result = generateSpirv(code, shaderFileName);
+            if (result.GetNumErrors() > 0)
+            {
+                std::cerr << "An error occured during SPIRV compilation: " << result.GetErrorMessage();
+                throw CompilerError{};
+            }
+
+            std::ofstream file(outPath, std::ios::binary);
+            file.write(
+                reinterpret_cast<const char*>(result.begin()),
+                static_cast<std::streamsize>(
+                    (result.end() - result.begin()) * sizeof(decltype(result)::element_type)
+                )
+            );
+
+            --pendingShaderThreads;
+        }).detach();
+#else
+        throw InternalLogicError("Tried to compile to SPIRV without enabled capability."
+                                 " This should never happen.");
+#endif
+    }
+    else
+    {
+        std::ofstream file{ outPath };
+        if (!file.is_open()) {
+            throw InternalLogicError("Unable to open file " + outPath.string() + " for writing");
+        }
+        file << code;
+    }
 }

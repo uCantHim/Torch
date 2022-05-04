@@ -13,7 +13,7 @@ enum Foo:
 
 Shader drawableDeferredAnimated:
     Source: "drawable/deferred.vert"
-    Variable animation: "applyAnimation(...)"
+    Variable animation: "// applyAnimation(...)"
 
 
 
@@ -26,7 +26,7 @@ Shader drawableDeferredDoubleMatched:
     Source: variantPath
     Variable animation: match AnimationType
         none -> ""
-        simple -> "applyAnimation(...)"
+        simple -> "// applyAnimation(...)"
 
 
 Program drawableProgram:
