@@ -346,6 +346,6 @@ void Parser::increaseIndentLevel()
 
 void Parser::decreaseIndentLevel()
 {
+    assert(currentIndent > 0);
     --currentIndent;
-    assert(currentIndent >= 0);
 }

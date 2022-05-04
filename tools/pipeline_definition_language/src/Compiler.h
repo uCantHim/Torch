@@ -60,6 +60,8 @@ private:
     template<typename T>
     auto makeReference(const compiler::Value& val) -> ObjectReference<T>;
 
+    auto compileMeta(const compiler::Object& metaObj) -> CompileResult::Meta;
+
     template<typename T>
     auto compileMulti(const compiler::MapValue& val)
         -> std::unordered_map<std::string, CompileResult::SingleOrVariant<T>>;

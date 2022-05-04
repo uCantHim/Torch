@@ -115,6 +115,10 @@ auto Compiler::compile() -> CompileResult
     }
 
     // Compile objects
+    if (hasField(globalObject, "Meta")) {
+        result.meta = compileMeta(expectObject(expectSingle(globalObject, "Meta")));
+    }
+
     auto it = globalObject.fields.find("Shader");
     if (it != globalObject.fields.end()) {
         result.shaders = compileMulti<ShaderDesc>(expectMap(it->second));
@@ -325,6 +329,17 @@ auto Compiler::makeReference(const compiler::Value& val) -> ObjectReference<T>
             return UniqueName(ref.name);
         },
     }, val);
+}
+
+auto Compiler::compileMeta(const compiler::Object& metaObj) -> CompileResult::Meta
+{
+    CompileResult::Meta meta;
+
+    if (hasField(metaObj, "Namespace")) {
+        meta.enclosingNamespace = expectString(expectSingle(metaObj, "Namespace"));
+    }
+
+    return meta;
 }
 
 template<typename T>

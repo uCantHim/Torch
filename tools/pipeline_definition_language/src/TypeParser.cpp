@@ -25,7 +25,7 @@ void TypeParser::operator()(const TypeDef& def)
 
 void TypeParser::operator()(const EnumTypeDef& def)
 {
-    EnumType type{ def.name };
+    EnumType type{ .typeName=def.name, .options={} };
     for (const auto& opt : def.options) {
         type.options.emplace(opt.value);
     }

@@ -21,7 +21,7 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
         { "CompilerMetaData", ObjectType{
             .typeName="CompilerMetaData",
             .fields={
-                { "BaseDir", { stringTypeName } },
+                { "Namespace", { stringTypeName } },
             }
         }},
 

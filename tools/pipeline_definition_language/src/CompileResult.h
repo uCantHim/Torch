@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "FlagTable.h"
 #include "UniqueName.h"
@@ -148,8 +150,15 @@ struct VariantGroup
 
 struct CompileResult
 {
+    struct Meta
+    {
+        std::optional<std::string> enclosingNamespace;
+    };
+
     template<typename T>
     using SingleOrVariant = std::variant<T, VariantGroup<T>>;
+
+    Meta meta;
 
     FlagTable flagTable;
 

@@ -43,7 +43,7 @@ bool TypeChecker::check(const std::vector<Stmt>& statements)
     return hadError;
 }
 
-void TypeChecker::operator()(const TypeDef& def)
+void TypeChecker::operator()(const TypeDef&)
 {
     // Nothing
 }
