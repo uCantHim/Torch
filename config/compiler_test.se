@@ -1,6 +1,5 @@
-// Name of property of global object
 Meta:
-    BaseDir: "./shaders"
+    Namespace: "my_ns"
 
 
 enum AnimationType:
@@ -11,19 +10,6 @@ enum Foo:
     bar,
     baz,
     ban
-
-String vertexShaderPath: "config/test_second.vert"
-
-Shader drawableDeferred: match AnimationType
-    none ->
-        Source: vertexShaderPath
-    simple ->
-        Source: vertexShaderPath
-
-// Is equivalent to:
-Shader drawableDeferredStatic:
-    Source: "drawable/deferred.vert"
-    Variable animation: ""
 
 Shader drawableDeferredAnimated:
     Source: "drawable/deferred.vert"
@@ -53,8 +39,6 @@ Program drawableProgram:
         Source: "shaders/drawable/deferred.frag"
 
 VertexAttribute drawableVertexAttribute:
-    Binding: 0
-    InputRate: perVertex
     Locations: match AnimationType
         none -> [rgb32f, rgb32f, rg32f, rgb32f]
         simple -> [rgb32f, rgb32f, rg32f, rgb32f,  // default attribs

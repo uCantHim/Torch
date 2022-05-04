@@ -24,19 +24,18 @@ auto operator<<(std::ostream& os, const LineWriter& nl) -> std::ostream&;
 
 struct TorchCppWriterCreateInfo
 {
-    fs::path baseInputDir{ "." };
-    fs::path baseOutputDir{ "." };
-
-    std::optional<std::string> enclosingNamespace{ "test" };
+    fs::path shaderInputDir{ "." };
+    fs::path shaderOutputDir{ "." };
 };
 
 class TorchCppWriter : public Writer
 {
 public:
-    explicit TorchCppWriter(ErrorReporter& errorReporter, TorchCppWriterCreateInfo info = {});
+    explicit TorchCppWriter(ErrorReporter& errorReporter,
+                            const TorchCppWriterCreateInfo& info = {});
 
     void write(const CompileResult& result, std::ostream& os) override;
-    void write(const CompileResult& result, std::ostream& header, std::ostream& src) override;
+    void write(const CompileResult& result, std::ostream& header, std::ostream& source) override;
 
 private:
     struct VariantGroupRepr
@@ -64,7 +63,7 @@ private:
 
     void error(std::string message);
 
-    auto openInputFile(const std::string& filename) -> std::ifstream;
+    auto openShaderFile(const std::string& filename) -> std::ifstream;
     auto openOutputFile(const std::string& filename) -> std::ofstream;
     auto compileShader(const ShaderDesc& shader) -> std::string;
 
@@ -108,7 +107,10 @@ private:
     template<typename T>
     void writeVariantStorageInit(const UniqueName& name, const T& val, std::ostream& os);
 
-    TorchCppWriterCreateInfo config;
+    CompileResult::Meta config;
+    fs::path shaderInputDir;
+    fs::path shaderOutputDir;
+
     ErrorReporter* errorReporter;
     LineWriter nl;
 

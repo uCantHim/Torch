@@ -21,7 +21,7 @@ template<typename T>
 auto TorchCppWriter::makeGroupFlagUsingDecl(const VariantGroup<T>& group) -> std::string
 {
     std::stringstream ss;
-    ss << "using " << makeFlagsType(group) << " = FlagCombination<";
+    ss << "using " << makeFlagsType(group) << " = se::FlagCombination<";
     ++nl;
     for (size_t type : group.flagTypes) {
         ss << nl << makeFlagBitsType(flagTable->getFlagType(type)) << ",";
@@ -145,7 +145,8 @@ inline void TorchCppWriter::writeVariantStorageInit(
     const ShaderDesc& shader,
     std::ostream& os)
 {
-    const std::string& shaderFile = name.getUniqueName();
+    const std::string ext = fs::path{ shader.source }.extension();
+    const std::string& shaderFile = name.getUniqueName() + ext;
 
     os << makeStoredType<ShaderDesc>() << "{ " << "\"" << shaderFile << ".spv\"" << " }";
 

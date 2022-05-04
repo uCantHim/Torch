@@ -46,9 +46,12 @@ auto operator<<(std::ostream& os, const LineWriter& nl) -> std::ostream&
 
 
 
-TorchCppWriter::TorchCppWriter(ErrorReporter& errorReporter, TorchCppWriterCreateInfo info)
+TorchCppWriter::TorchCppWriter(
+    ErrorReporter& errorReporter,
+    const TorchCppWriterCreateInfo& info)
     :
-    config(std::move(info)),
+    shaderInputDir(info.shaderInputDir),
+    shaderOutputDir(info.shaderOutputDir),
     errorReporter(&errorReporter)
 {
 }
@@ -58,15 +61,16 @@ void TorchCppWriter::write(const CompileResult& result, std::ostream& os)
     write(result, os, os);
 }
 
-void TorchCppWriter::write(const CompileResult& result, std::ostream& header, std::ostream& src)
+void TorchCppWriter::write(const CompileResult& result, std::ostream& header, std::ostream& source)
 {
+    config = result.meta;
     flagTable = &result.flagTable;
 
     writeHeaderIncludes(header);
-    writeSourceIncludes(src);
+    writeSourceIncludes(source);
 
     writeHeader(result, header);
-    writeSource(result, src);
+    writeSource(result, source);
 }
 
 void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
@@ -151,16 +155,16 @@ void TorchCppWriter::writeSource(const auto& map, std::ostream& os)
 
 void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
 {
-    os << "#include \"FlagCombination.h\"\n"
+    os << "#include <filesystem>\n"
+       << "namespace fs = std::filesystem;\n"
+       << "\n"
+       << "#include \"FlagCombination.h\"\n"
         ;
 }
 
 void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
-       << "#include <filesystem>\n"
-       << "#include <array>\n"
-       << "namespace fs = std::filesystem;\n"
         ;
 }
 
@@ -173,9 +177,9 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
        << std::string(borderSize, '/') << nl;
 }
 
-auto TorchCppWriter::openInputFile(const std::string& filename) -> std::ifstream
+auto TorchCppWriter::openShaderFile(const std::string& filename) -> std::ifstream
 {
-    fs::path path{ config.baseInputDir / filename };
+    fs::path path{ shaderInputDir / filename };
     std::ifstream file{ path };
     if (!file.is_open()) {
         throw InternalLogicError("Unable to open file " + path.string() + " for reading");
@@ -186,7 +190,7 @@ auto TorchCppWriter::openInputFile(const std::string& filename) -> std::ifstream
 
 auto TorchCppWriter::openOutputFile(const std::string& filename) -> std::ofstream
 {
-    fs::path path{ config.baseOutputDir / filename };
+    fs::path path{ shaderOutputDir / filename };
     std::ofstream file{ path };
     if (!file.is_open()) {
         throw InternalLogicError("Unable to open file " + path.string() + " for writing");
@@ -197,7 +201,7 @@ auto TorchCppWriter::openOutputFile(const std::string& filename) -> std::ofstrea
 
 auto TorchCppWriter::compileShader(const ShaderDesc& shader) -> std::string
 {
-    std::ifstream source = openInputFile(shader.source);
+    std::ifstream source = openShaderFile(shader.source);
 
     shader_edit::ShaderDocument doc(source);
     for (const auto& [name, val] : shader.variables) {
