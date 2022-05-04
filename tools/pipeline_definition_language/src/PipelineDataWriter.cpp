@@ -2,22 +2,11 @@
 
 #include <sstream>
 
+#include "StringUtil.h"
 #include "CompileResult.h"
 #include "TorchCppWriter.h"
 
 
-
-auto capitalize(char c) -> char
-{
-    if (c >= 'a' && c <= 'z') return c - ('a' - 'A');
-    return c;
-}
-
-auto toLower(char c) -> char
-{
-    if (c >= 'A' && c <= 'Z') return c - ('A' - 'a');
-    return c;
-}
 
 auto util::convertFormat(const std::string& str) -> std::string
 {

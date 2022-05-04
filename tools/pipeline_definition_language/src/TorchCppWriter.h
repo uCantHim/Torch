@@ -27,7 +27,7 @@ struct TorchCppWriterCreateInfo
     fs::path baseInputDir{ "." };
     fs::path baseOutputDir{ "." };
 
-    std::optional<std::string> enclosingNamespace;
+    std::optional<std::string> enclosingNamespace{ "test" };
 };
 
 class TorchCppWriter : public Writer
@@ -36,13 +36,12 @@ public:
     explicit TorchCppWriter(ErrorReporter& errorReporter, TorchCppWriterCreateInfo info = {});
 
     void write(const CompileResult& result, std::ostream& os) override;
+    void write(const CompileResult& result, std::ostream& header, std::ostream& src) override;
 
 private:
     struct VariantGroupRepr
     {
         std::string combinedFlagType;
-        std::string usingDecl;
-
         std::string storageName;
     };
 
@@ -52,11 +51,17 @@ private:
         std::string initializer;
     };
 
-    static void writeIncludes(std::ostream& os);
+    void writeHeader(const CompileResult& result, std::ostream& os);
+    void writeSource(const CompileResult& result, std::ostream& os);
+    template<typename T>
+    void writeHeader(const auto& map, std::ostream& os);
+    template<typename T>
+    void writeSource(const auto& map, std::ostream& os);
+
+    static void writeHeaderIncludes(std::ostream& os);
+    static void writeSourceIncludes(std::ostream& os);
     void writeBanner(const std::string& msg, std::ostream& os);
 
-    template<typename T>
-    void write(const auto& map, std::ostream& os);
     void error(std::string message);
 
     auto openInputFile(const std::string& filename) -> std::ifstream;
@@ -65,6 +70,10 @@ private:
 
     template<typename T>
     auto makeGroupInfo(const VariantGroup<T>& group) -> VariantGroupRepr;
+    template<typename T>
+    auto makeGroupFlagUsingDecl(const VariantGroup<T>& group) -> std::string;
+    template<typename T>
+    auto makeFlagsType(const VariantGroup<T>& group) -> std::string;
     auto makeFlagBitsType(const std::string& flagName) -> std::string;
 
     auto makeGetterFunctionName(const std::string& name) -> std::string;

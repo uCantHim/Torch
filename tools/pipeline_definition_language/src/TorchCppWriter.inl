@@ -1,6 +1,7 @@
 #include "TorchCppWriter.h"
 
 #include "Util.h"
+#include "StringUtil.h"
 #include "PipelineDataWriter.h"
 
 
@@ -8,10 +9,19 @@
 template<typename T>
 auto TorchCppWriter::makeGroupInfo(const VariantGroup<T>& group) -> VariantGroupRepr
 {
-    std::string flagTypeName = group.baseName + "TypeFlags";
+    std::string flagTypeName = makeFlagsType(group);
 
+    return {
+        .combinedFlagType=std::move(flagTypeName),
+        .storageName=group.baseName + "Storage",
+    };
+}
+
+template<typename T>
+auto TorchCppWriter::makeGroupFlagUsingDecl(const VariantGroup<T>& group) -> std::string
+{
     std::stringstream ss;
-    ss << "using " << flagTypeName << " = FlagCombination<";
+    ss << "using " << makeFlagsType(group) << " = FlagCombination<";
     ++nl;
     for (size_t type : group.flagTypes) {
         ss << nl << makeFlagBitsType(flagTable->getFlagType(type)) << ",";
@@ -19,11 +29,13 @@ auto TorchCppWriter::makeGroupInfo(const VariantGroup<T>& group) -> VariantGroup
     ss.seekp(-1, std::ios_base::end);  // Remove trailing ',' character
     ss << --nl << ">;";
 
-    return {
-        .combinedFlagType=std::move(flagTypeName),
-        .usingDecl=ss.str(),
-        .storageName=group.baseName + "Storage",
-    };
+    return ss.str();
+}
+
+template<typename T>
+auto TorchCppWriter::makeFlagsType(const VariantGroup<T>& group) -> std::string
+{
+    return capitalize(group.baseName) + "TypeFlags";
 }
 
 template<typename T>
@@ -42,7 +54,6 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
 {
     auto groupInfo = makeGroupInfo(group);
 
-    os << groupInfo.usingDecl << nl;
     os << "std::array<" << makeStoredType<T>() << ", " << groupInfo.combinedFlagType << "::size()> "
        << groupInfo.storageName << "{";
     ++nl;

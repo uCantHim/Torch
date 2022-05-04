@@ -14,18 +14,18 @@ enum Foo:
 
 String vertexShaderPath: "config/test_second.vert"
 
-Shader drawable_deferred: match AnimationType
+Shader drawableDeferred: match AnimationType
     none ->
         Source: vertexShaderPath
     simple ->
         Source: vertexShaderPath
 
 // Is equivalent to:
-Shader drawable_deferred_static:
+Shader drawableDeferredStatic:
     Source: "drawable/deferred.vert"
     Variable animation: ""
 
-Shader drawable_deferred_animated:
+Shader drawableDeferredAnimated:
     Source: "drawable/deferred.vert"
     Variable animation: "applyAnimation(...)"
 
@@ -36,7 +36,7 @@ String variantPath: match Foo
     baz -> "config/test.vert"
     ban -> "config/test.vert"
 
-Shader drawable_deferred_double_matched:
+Shader drawableDeferredDoubleMatched:
     Source: variantPath
     Variable animation: match AnimationType
         none -> ""
@@ -48,7 +48,7 @@ Program drawableProgram:
         none ->
             Source: "drawable/deferred.vert"
             Variable animation: ""
-        simple -> drawable_deferred_animated
+        simple -> drawableDeferredAnimated
     FragmentShader:
         Source: "shaders/drawable/deferred.frag"
 

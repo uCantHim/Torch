@@ -11,17 +11,6 @@
 
 
 
-auto capitalize(std::string str)
-{
-    if (!str.empty() && str[0] >= 'a' && str[0] <= 'z') {
-        str[0] -= 32;
-    }
-
-    return str;
-}
-
-
-
 auto LineWriter::operator++() -> LineWriter&
 {
     ++indent;
@@ -64,8 +53,88 @@ TorchCppWriter::TorchCppWriter(ErrorReporter& errorReporter, TorchCppWriterCreat
 {
 }
 
+void TorchCppWriter::write(const CompileResult& result, std::ostream& os)
+{
+    write(result, os, os);
+}
+
+void TorchCppWriter::write(const CompileResult& result, std::ostream& header, std::ostream& src)
+{
+    flagTable = &result.flagTable;
+
+    writeHeaderIncludes(header);
+    writeSourceIncludes(src);
+
+    writeHeader(result, header);
+    writeSource(result, src);
+}
+
+void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
+{
+    if (config.enclosingNamespace.has_value()) {
+        os << nl << "namespace " << config.enclosingNamespace.value() << nl << "{";
+    }
+
+    writeBanner("Flag Types", os);
+    writeFlags(result, os);
+
+    writeBanner("Shaders", os);
+    writeHeader<ShaderDesc>(result.shaders, os);
+    writeBanner("Programs", os);
+    writeHeader<ProgramDesc>(result.programs, os);
+    writeBanner("Pipelines", os);
+    writeHeader<PipelineDesc>(result.pipelines, os);
+
+    if (config.enclosingNamespace.has_value()) {
+        os << nl << "} // namespace " << config.enclosingNamespace.value();
+    }
+}
+
+void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
+{
+    if (config.enclosingNamespace.has_value()) {
+        os << nl << "namespace " << config.enclosingNamespace.value() << nl << "{";
+    }
+
+    writeBanner("Shaders", os);
+    writeSource<ShaderDesc>(result.shaders, os);
+    writeBanner("Programs", os);
+    writeSource<ProgramDesc>(result.programs, os);
+    writeBanner("Pipelines", os);
+    writeSource<PipelineDesc>(result.pipelines, os);
+
+    if (config.enclosingNamespace.has_value()) {
+        os << nl << "} // namespace " << config.enclosingNamespace.value();
+    }
+}
+
 template<typename T>
-void TorchCppWriter::write(const auto& map, std::ostream& os)
+void TorchCppWriter::writeHeader(const auto& map, std::ostream& os)
+{
+    // Write group flag using declarations
+    for (const auto& [name, value] : map)
+    {
+        if (std::holds_alternative<VariantGroup<T>>(value)) {
+            os << nl << makeGroupFlagUsingDecl(std::get<VariantGroup<T>>(value));
+        }
+    }
+
+    // Write getter function headers
+    for (const auto& [name, value] : map)
+    {
+        os << nl;
+        if (std::holds_alternative<VariantGroup<T>>(value)) {
+            writeGetterFunctionHead(std::get<VariantGroup<T>>(value), os);
+        }
+        else {
+            writeGetterFunctionHead<T>(name, os);
+        }
+        os << ";" << nl;
+    }
+}
+
+template<typename T>
+void TorchCppWriter::writeSource(const auto& map, std::ostream& os)
 {
     for (const auto& [name, value] : map)
     {
@@ -80,31 +149,18 @@ void TorchCppWriter::write(const auto& map, std::ostream& os)
     }
 }
 
-void TorchCppWriter::write(const CompileResult& result, std::ostream& os)
+void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
 {
-    flagTable = &result.flagTable;
-
-    writeIncludes(os);
-    writeBanner("Flag Types", os);
-    writeFlags(result, os);
-
-    writeBanner("Shaders", os);
-    write<ShaderDesc>(result.shaders, os);
-    writeBanner("Programs", os);
-    write<ProgramDesc>(result.programs, os);
-    writeBanner("Pipelines", os);
-    write<PipelineDesc>(result.pipelines, os);
+    os << "#include \"FlagCombination.h\"\n"
+        ;
 }
 
-void TorchCppWriter::writeIncludes(std::ostream& os)
+void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
        << "#include <filesystem>\n"
        << "#include <array>\n"
        << "namespace fs = std::filesystem;\n"
-       << "\n"
-       << "#include \"FlagCombination.h\"\n"
-       << "using namespace trc;\n";
         ;
 }
 
@@ -158,9 +214,19 @@ auto TorchCppWriter::compileShader(const ShaderDesc& shader) -> std::string
 
 void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
 {
+    static std::unordered_set<std::string> hack{
+        "Bool",
+        "Format",
+        "VertexInputRate", "PrimitiveTopology",
+        "PolygonFillMode", "CullMode", "FaceWinding",
+        "BlendFactor", "BlendOp", "ColorComponent",
+    };
+
     os << nl;
     for (const auto& flag : result.flagTable.makeFlagDescriptions())
     {
+        if (hack.contains(flag.flagName)) continue;
+
         os << "enum class " << makeFlagBitsType(flag.flagName) << "\n"
            << "{";
         nl++;
