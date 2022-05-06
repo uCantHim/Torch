@@ -14,16 +14,9 @@ UniqueName::UniqueName(std::string str)
 UniqueName::UniqueName(std::string str, VariantFlagSet _flags)
     :
     name(std::move(str)),
-    flags(std::move(_flags))
+    flags(std::move(_flags)),
+    uniqueName(name + getUniqueExtension())
 {
-    std::stringstream ss;
-    ss << name;
-    for (auto [flag, bit] : flags)
-    {
-        ss << "_" << flag << ":" << bit;
-    }
-
-    uniqueName = ss.str();
 }
 
 auto UniqueName::hash() const -> size_t
@@ -49,4 +42,14 @@ auto UniqueName::getBaseName() const -> const std::string&
 auto UniqueName::getUniqueName() const -> const std::string&
 {
     return uniqueName;
+}
+
+auto UniqueName::getUniqueExtension() const -> std::string
+{
+    std::stringstream ss;
+    for (auto [flag, bit] : flags) {
+        ss << "_" << flag << ":" << bit;
+    }
+
+    return ss.str();
 }

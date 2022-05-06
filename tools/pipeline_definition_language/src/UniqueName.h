@@ -25,6 +25,7 @@ public:
     auto getFlags() const -> const VariantFlagSet&;
     auto getBaseName() const -> const std::string&;
     auto getUniqueName() const -> const std::string&;
+    auto getUniqueExtension() const -> std::string;
 
 private:
     std::string name;
