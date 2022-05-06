@@ -64,11 +64,11 @@ auto TypeChecker::getToken(const FieldValue& val) -> const Token&
     return std::visit(
         [](const auto& v) -> const Token&
         {
-            if constexpr (requires{ v.token; }) {
-                return v.token;
+            if constexpr (std::same_as<std::remove_cvref_t<decltype(v)>, LiteralValue>) {
+                return std::visit([](auto&& v) -> const Token& { return v.token; }, v);
             }
             else {
-                return getToken(v);
+                return v.token;
             }
         },
         val
