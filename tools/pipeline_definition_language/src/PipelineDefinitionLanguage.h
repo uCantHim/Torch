@@ -24,8 +24,9 @@ private:
 
     static inline std::atomic<size_t> pendingShaderThreads{ 0 };
 
-    static inline fs::path inputDir{ "." };
     static inline fs::path outputDir{ "." };
+    static inline fs::path shaderInputDir{ "." };
+    static inline fs::path shaderOutputDir{ "." };
     static inline fs::path outputFileName;
     static inline bool outputAsSpirv{ false };
     static inline bool generateHeader{ true };  // Not implemented; always true for now

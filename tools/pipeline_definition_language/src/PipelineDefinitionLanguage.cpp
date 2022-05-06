@@ -61,9 +61,17 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
     program.add_argument("file")
         .help("Input file");
     program.add_argument("-o", "--output")
-        .help("Output directory. Generated files are stored here.");
-    program.add_argument("-i", "--input")
+        .help("Output directory. Generated files are stored here. Use the --shader-output option "
+              "to declare a separate output directory for generated shader files.");
+    program.add_argument("--shader-input")
         .help("Input directory. Shader file paths are interpreted relative to this path.");
+    program.add_argument("--shader-output")
+        .action([](const std::string& arg){
+            fs::create_directories(arg);
+            shaderOutputDir = arg;
+        })
+        .help("Output directory for generated shader files.");
+
 #ifdef HAS_SPIRV_COMPILER
     program.add_argument("--spv")
         .action([](auto&&){ outputAsSpirv = true; })
@@ -81,7 +89,7 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         program.parse_args(argc, argv);
     }
     catch (const std::runtime_error& err) {
-        std::cerr << program;
+        std::cerr << err.what() << "\n" << program;
         exit(USAGE);
     }
 
@@ -95,16 +103,19 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
     if (auto val = program.present("-o"))
     {
         outputDir = *val;
+        if (!program.is_used("--shader-output")) {
+            shaderOutputDir = outputDir;
+        }
         outputFileName = filename.filename();
         fs::create_directories(outputDir);
     }
 
-    if (auto val = program.present("-i"))
+    if (auto val = program.present("--shader-input"))
     {
-        inputDir = *val;
-        if (!fs::is_directory(inputDir))
+        shaderInputDir = *val;
+        if (!fs::is_directory(shaderInputDir))
         {
-            std::cerr << inputDir << " is not a directory. Exiting.";
+            std::cerr << shaderInputDir << " is not a directory. Exiting.";
             exit(USAGE);
         }
     }
@@ -178,7 +189,7 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
 void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
 {
     TorchCppWriter writer(*errorReporter, {
-        .shaderInputDir=inputDir,
+        .shaderInputDir=shaderInputDir,
         .generateShader=writeShader,
         .writePlainData=writePlain,
     });
@@ -205,7 +216,7 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
 
 void PipelineDefinitionLanguage::writeShader(const std::string& code, const fs::path& shaderFileName)
 {
-    fs::path outPath{ outputDir / shaderFileName };
+    fs::path outPath{ shaderOutputDir / shaderFileName };
 
     if (outputAsSpirv)
     {
@@ -244,7 +255,7 @@ void PipelineDefinitionLanguage::writePlain(
     const std::string& data,
     const fs::path& filename)
 {
-    const fs::path outPath{ outputDir / filename };
+    const fs::path outPath{ shaderOutputDir / filename };
 
     std::ofstream file{ outPath };
     if (!file.is_open()) {
