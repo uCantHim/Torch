@@ -36,6 +36,9 @@ public:
 class IOError : PipelineLanguageCompilerError
 {
 public:
+    IOError(std::string message) : message(std::move(message)) {}
+
+    std::string message;
 };
 
 class InternalLogicError : public PipelineLanguageCompilerError

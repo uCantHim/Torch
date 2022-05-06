@@ -20,6 +20,7 @@ private:
     static void writeOutput(const CompileResult& result);
 
     static void writeShader(const std::string& code, const fs::path& outPath);
+    static void writePlain(const std::string& code, const fs::path& outPath);
 
     static inline std::atomic<size_t> pendingShaderThreads{ 0 };
 

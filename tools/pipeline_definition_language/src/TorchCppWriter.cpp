@@ -181,7 +181,7 @@ auto TorchCppWriter::openShaderFile(const std::string& filename) -> std::ifstrea
     fs::path path{ config.shaderInputDir / filename };
     std::ifstream file{ path };
     if (!file.is_open()) {
-        throw InternalLogicError("Unable to open file " + path.string() + " for reading");
+        throw IOError("Unable to open file " + path.string() + " for reading");
     }
 
     return file;

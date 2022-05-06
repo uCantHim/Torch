@@ -136,7 +136,23 @@ auto TorchCppWriter::makeStoredType() -> std::string
 template<>
 inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
 {
-    return "\"" + shader.source + ".spv\"";
+    return "\"" + shader.target + (shader.isIncludeFile ? "" : ".spv") + "\"";
+}
+
+template<>
+inline void TorchCppWriter::writeSingleStorageInit(
+    const std::string& name,
+    const ShaderDesc& shader,
+    std::ostream& os)
+{
+    os << makeStoredType<ShaderDesc>() << " " << name << " = " << makeValue(shader) << ";";
+
+    if (shader.isIncludeFile) {
+        config.writePlainData(compileShader(shader), shader.target);
+    }
+    else {
+        config.generateShader(compileShader(shader), shader.target);
+    }
 }
 
 template<>
@@ -145,13 +161,19 @@ inline void TorchCppWriter::writeVariantStorageInit(
     const ShaderDesc& shader,
     std::ostream& os)
 {
-    const std::string ext = fs::path{ shader.source }.extension();
-    const fs::path outFilePath = name.getUniqueName() + ext;
+    // Construct unique file path based on the source path
+    fs::path outFilePath = shader.target;
+    outFilePath.replace_extension(name.getUniqueExtension() + outFilePath.extension().string());
 
-    os << makeStoredType<ShaderDesc>() << "{ " << "\"" << outFilePath << ".spv\"" << " }";
-
-    auto code = compileShader(shader);
-    config.generateShader(std::move(code), outFilePath);
+    if (shader.isIncludeFile)
+    {
+        os << makeStoredType<ShaderDesc>() << "{ " << "\"" << outFilePath << "\"" << " }";
+        config.writePlainData(compileShader(shader), outFilePath);
+    }
+    else {
+        os << makeStoredType<ShaderDesc>() << "{ " << "\"" << outFilePath << ".spv\"" << " }";
+        config.generateShader(compileShader(shader), outFilePath);
+    }
 }
 
 

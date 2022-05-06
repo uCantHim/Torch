@@ -28,10 +28,18 @@ struct TorchCppWriterCreateInfo
     fs::path shaderInputDir{ "." };
 
     /**
+     * Write shader code to file. Apply shader specific rules, such as
+     * SPIRV conversion.
+     *
      * @param std::string Shader GLSL code
      * @param const fs::path& Shader output file path
      */
     std::function<void(std::string, const fs::path&)> generateShader;
+
+    /**
+     * Write the given data to a file while applying path prefixing rules.
+     */
+    std::function<void(std::string, const fs::path&)> writePlainData;
 };
 
 class TorchCppWriter : public Writer

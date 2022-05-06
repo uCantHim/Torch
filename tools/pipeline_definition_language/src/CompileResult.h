@@ -19,7 +19,11 @@ using ObjectReference = std::variant<UniqueName, T>;
 struct ShaderDesc
 {
     std::string source;
+    std::string target;
     std::unordered_map<std::string, std::string> variables;
+
+    // 'include files' are not compiled, but instead output as-is
+    bool isIncludeFile{ false };
 };
 
 struct ProgramDesc

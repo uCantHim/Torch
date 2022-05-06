@@ -383,6 +383,13 @@ auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderD
     ShaderDesc res;
 
     res.source = expectString(expectLiteral(expectSingle(expectField(obj, "Source"))));
+    if (hasField(obj, "Target")) {
+        res.target = expectString(expectSingle(obj, "Target"));
+    }
+    else {
+        res.target = res.source;
+    }
+
     auto it = obj.fields.find("Variable");
     if (it != obj.fields.end())
     {
@@ -391,6 +398,9 @@ auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderD
             res.variables.try_emplace(name, expectString(expectLiteral(*val)));
         }
     }
+
+    // HACK: Treat .glsl files as include-only
+    res.isIncludeFile = res.target.ends_with(".glsl");
 
     return res;
 }

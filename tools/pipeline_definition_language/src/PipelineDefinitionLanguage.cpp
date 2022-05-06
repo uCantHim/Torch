@@ -117,6 +117,10 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
 
         writeOutput(result.value());
     }
+    catch (const IOError& err) {
+        std::cout << "\nI/O Error: " << err.message << "\n";
+        exit(1);
+    }
     catch (const InternalLogicError& err) {
         std::cout << "\n[INTERNAL COMPILER ERROR]: " << err.message << "\n";
         exit(1);
@@ -176,6 +180,7 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
     TorchCppWriter writer(*errorReporter, {
         .shaderInputDir=inputDir,
         .generateShader=writeShader,
+        .writePlainData=writePlain,
     });
 
     fs::path outFileName = outputDir / outputFileName;
@@ -230,12 +235,20 @@ void PipelineDefinitionLanguage::writeShader(const std::string& code, const fs::
                                  " This should never happen.");
 #endif
     }
-    else
-    {
-        std::ofstream file{ outPath };
-        if (!file.is_open()) {
-            throw InternalLogicError("Unable to open file " + outPath.string() + " for writing");
-        }
-        file << code;
+    else {
+        writePlain(code, shaderFileName);
     }
+}
+
+void PipelineDefinitionLanguage::writePlain(
+    const std::string& data,
+    const fs::path& filename)
+{
+    const fs::path outPath{ outputDir / filename };
+
+    std::ofstream file{ outPath };
+    if (!file.is_open()) {
+        throw IOError("Unable to open file " + outPath.string() + " for writing");
+    }
+    file << data;
 }
