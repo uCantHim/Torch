@@ -1,6 +1,7 @@
 #include "PipelineDefinitionLanguage.h"
 
 #include <vector>
+#include <unordered_map>
 #include <future>
 #include <fstream>
 #include <iostream>
@@ -18,6 +19,7 @@
 
 #ifdef HAS_SPIRV_COMPILER
 #include "GenerateSpirv.h"
+#include "SpirvFileIncluder.h"
 #endif
 
 
@@ -54,6 +56,10 @@ auto loadStdlib(ErrorReporter& errorReporter) -> std::vector<Stmt>
 
 
 constexpr int USAGE{ 64 };
+
+#ifdef HAS_SPIRV_COMPILER
+shaderc::CompileOptions PipelineDefinitionLanguage::spirvOpts{};
+#endif
 
 void PipelineDefinitionLanguage::run(int argc, char** argv)
 {
@@ -192,6 +198,10 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
 
 void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
 {
+#ifdef HAS_SPIRV_COMPILER
+    spirvOpts.SetIncluder(std::make_unique<FileIncluder>(shaderInputDir));
+#endif
+
     TorchCppWriter writer(*errorReporter, {
         .shaderInputDir=shaderInputDir,
         .shaderOutputDir=shaderOutputDir,
@@ -232,7 +242,7 @@ void PipelineDefinitionLanguage::writeShader(
 #ifdef HAS_SPIRV_COMPILER
         ++pendingShaderThreads;
         std::thread([=]{
-            auto result = generateSpirv(code, shaderFileName);
+            auto result = generateSpirv(code, shaderFileName, spirvOpts);
             if (result.GetNumErrors() > 0)
             {
                 std::cerr << "An error occured during SPIRV compilation: " << result.GetErrorMessage();

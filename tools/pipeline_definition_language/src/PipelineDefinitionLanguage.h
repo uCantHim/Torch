@@ -9,6 +9,9 @@ namespace fs = std::filesystem;
 #include "ErrorReporter.h"
 #include "ShaderOutput.h"
 
+namespace shaderc{
+    class CompileOptions;
+}
 struct CompileResult;
 
 class PipelineDefinitionLanguage
@@ -26,6 +29,9 @@ private:
     static void writePlain(const std::string& code, const fs::path& outPath);
 
     static inline std::atomic<size_t> pendingShaderThreads{ 0 };
+#ifdef HAS_SPIRV_COMPILER
+    static shaderc::CompileOptions spirvOpts;
+#endif
 
     static inline fs::path outputDir{ "." };
     static inline fs::path shaderInputDir{ "." };
