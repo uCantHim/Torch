@@ -399,8 +399,25 @@ auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderD
         }
     }
 
-    // HACK: Treat .glsl files as include-only
-    res.isIncludeFile = res.target.ends_with(".glsl");
+    // If "TargetType" field is not set, the default output type set via
+    // command-line options will be used.
+    if (hasField(obj, "TargetType"))
+    {
+        if (expectString(expectSingle(obj, "TargetType")) == "spirv") {
+            res.outputType = ShaderOutputType::eSpirv;
+        }
+        else {
+            assert(expectString(expectSingle(obj, "TargetType")) == "glsl"
+                   && "Invalid enum field value; the compiler should forbid this.");
+            res.outputType = ShaderOutputType::eGlsl;
+        }
+    }
+    else {
+        // HACK: Treat .glsl files as include-only
+        if (res.target.ends_with(".glsl")) {
+            res.outputType = ShaderOutputType::eGlsl;
+        }
+    }
 
     return res;
 }

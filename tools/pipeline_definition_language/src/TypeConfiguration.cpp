@@ -30,8 +30,10 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
         { "Shader", ObjectType{
             .typeName="Shader",
             .fields={
-                { "Source",   { stringTypeName } },
-                { "Variable", { "Variable", FieldType::eMap } },
+                { "Source",     { stringTypeName } },
+                { "Target",     { stringTypeName } },
+                { "TargetType", { "ShaderTargetType" } },
+                { "Variable",   { "Variable", FieldType::eMap } },
             }
         }},
         { "Program", ObjectType{

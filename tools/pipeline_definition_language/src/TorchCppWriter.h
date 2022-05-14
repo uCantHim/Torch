@@ -8,6 +8,7 @@
 namespace fs = std::filesystem;
 
 #include "Writer.h"
+#include "ShaderOutput.h"
 
 class ErrorReporter;
 
@@ -26,6 +27,9 @@ auto operator<<(std::ostream& os, const LineWriter& nl) -> std::ostream&;
 struct TorchCppWriterCreateInfo
 {
     fs::path shaderInputDir{ "." };
+    fs::path shaderOutputDir{ "." };
+
+    ShaderOutputType defaultShaderOutput;
 
     /**
      * Write shader code to file. Apply shader specific rules, such as
@@ -33,13 +37,9 @@ struct TorchCppWriterCreateInfo
      *
      * @param std::string Shader GLSL code
      * @param const fs::path& Shader output file path
+     * @param ShaderOutputType The format in which the shader will be written
      */
-    std::function<void(std::string, const fs::path&)> generateShader;
-
-    /**
-     * Write the given data to a file while applying path prefixing rules.
-     */
-    std::function<void(std::string, const fs::path&)> writePlainData;
+    std::function<void(std::string, const fs::path&, ShaderOutputType)> generateShader;
 };
 
 class TorchCppWriter : public Writer
@@ -77,6 +77,8 @@ private:
 
     void error(std::string message);
 
+    auto getOutputType(const ShaderDesc& shader) -> ShaderOutputType;
+    auto getAdditionalFileExt(const ShaderDesc& shader) -> std::string;
     auto openShaderFile(const std::string& filename) -> std::ifstream;
     auto compileShader(const ShaderDesc& shader) -> std::string;
 

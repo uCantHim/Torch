@@ -74,7 +74,7 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
 
 #ifdef HAS_SPIRV_COMPILER
     program.add_argument("--spv")
-        .action([](auto&&){ outputAsSpirv = true; })
+        .action([](auto&&){ defaultShaderOutputType = ShaderOutputType::eSpirv; })
         .help("Compile generated shader files to SPIRV.")
         .default_value(false)
         .implicit_value(true);
@@ -190,8 +190,9 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
 {
     TorchCppWriter writer(*errorReporter, {
         .shaderInputDir=shaderInputDir,
+        .shaderOutputDir=shaderOutputDir,
+        .defaultShaderOutput=defaultShaderOutputType,
         .generateShader=writeShader,
-        .writePlainData=writePlain,
     });
 
     fs::path outFileName = outputDir / outputFileName;
@@ -214,11 +215,14 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
     outFile << inFile.rdbuf();
 }
 
-void PipelineDefinitionLanguage::writeShader(const std::string& code, const fs::path& shaderFileName)
+void PipelineDefinitionLanguage::writeShader(
+    const std::string& code,
+    const fs::path& shaderFileName,
+    ShaderOutputType outputType)
 {
     fs::path outPath{ shaderOutputDir / shaderFileName };
 
-    if (outputAsSpirv)
+    if (outputType == ShaderOutputType::eSpirv)
     {
         outPath += ".spv";
 #ifdef HAS_SPIRV_COMPILER

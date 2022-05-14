@@ -7,6 +7,7 @@
 namespace fs = std::filesystem;
 
 #include "ErrorReporter.h"
+#include "ShaderOutput.h"
 
 struct CompileResult;
 
@@ -19,7 +20,9 @@ private:
     static auto compile(const fs::path& filename) -> std::optional<CompileResult>;
     static void writeOutput(const CompileResult& result);
 
-    static void writeShader(const std::string& code, const fs::path& outPath);
+    static void writeShader(const std::string& code,
+                            const fs::path& outPath,
+                            ShaderOutputType type);
     static void writePlain(const std::string& code, const fs::path& outPath);
 
     static inline std::atomic<size_t> pendingShaderThreads{ 0 };
@@ -28,7 +31,7 @@ private:
     static inline fs::path shaderInputDir{ "." };
     static inline fs::path shaderOutputDir{ "." };
     static inline fs::path outputFileName;
-    static inline bool outputAsSpirv{ false };
+    static inline ShaderOutputType defaultShaderOutputType{ ShaderOutputType::eGlsl };
     static inline bool generateHeader{ true };  // Not implemented; always true for now
 
     static inline std::unique_ptr<ErrorReporter> errorReporter;

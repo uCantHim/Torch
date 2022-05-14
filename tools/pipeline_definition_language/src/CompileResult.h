@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 
 #include "FlagTable.h"
 #include "UniqueName.h"
+#include "ShaderOutput.h"
 
 /**
  * Either a reference of an inline object
@@ -22,8 +23,7 @@ struct ShaderDesc
     std::string target;
     std::unordered_map<std::string, std::string> variables;
 
-    // 'include files' are not compiled, but instead output as-is
-    bool isIncludeFile{ false };
+    std::optional<ShaderOutputType> outputType;
 };
 
 struct ProgramDesc

@@ -3,7 +3,7 @@
 #include <string>
 
 struct PipelineDesc;
-class LineWriter;
+struct LineWriter;
 
 namespace util
 {

@@ -176,6 +176,26 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
        << std::string(borderSize, '/') << nl;
 }
 
+auto TorchCppWriter::getOutputType(const ShaderDesc& shader) -> ShaderOutputType
+{
+    if (shader.outputType) {
+        return shader.outputType.value();
+    }
+    return config.defaultShaderOutput;
+}
+
+auto TorchCppWriter::getAdditionalFileExt(const ShaderDesc& shader) -> std::string
+{
+    switch (getOutputType(shader))
+    {
+    case ShaderOutputType::eGlsl:
+        return "";
+    case ShaderOutputType::eSpirv:
+        return ".spv";
+    }
+    throw std::logic_error("Invalid enum value in switch");
+}
+
 auto TorchCppWriter::openShaderFile(const std::string& filename) -> std::ifstream
 {
     fs::path path{ config.shaderInputDir / filename };
