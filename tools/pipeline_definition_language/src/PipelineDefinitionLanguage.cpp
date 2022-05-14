@@ -128,6 +128,10 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
 
         writeOutput(result.value());
     }
+    catch (const UsageError& err) {
+        std::cout << "Usage Error: " << err.message << "\nExiting.\n";
+        exit(USAGE);
+    }
     catch (const IOError& err) {
         std::cout << "\nI/O Error: " << err.message << "\n";
         exit(1);
@@ -246,8 +250,9 @@ void PipelineDefinitionLanguage::writeShader(
             --pendingShaderThreads;
         }).detach();
 #else
-        throw InternalLogicError("Tried to compile to SPIRV without enabled capability."
-                                 " This should never happen.");
+        throw UsageError("Unable to compile " + shaderFileName.string() + " to SPIRV.\n"
+                         "The pipeline compiler must be compiled with the SPIRV capability enabled"
+                         " to output shader files as SPIRV.");
 #endif
     }
     else {

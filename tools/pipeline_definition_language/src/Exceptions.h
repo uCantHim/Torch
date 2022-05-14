@@ -41,6 +41,14 @@ public:
     std::string message;
 };
 
+class UsageError : PipelineLanguageCompilerError
+{
+public:
+    UsageError(std::string message) : message(std::move(message)) {}
+
+    std::string message;
+};
+
 class InternalLogicError : public PipelineLanguageCompilerError
 {
 public:
