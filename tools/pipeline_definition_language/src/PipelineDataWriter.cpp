@@ -130,7 +130,7 @@ auto convertColorComponentFlags(uint flags) -> std::string
 auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl) -> std::string
 {
     std::stringstream ss;
-    ss << "PipelineDefinitionData{";
+    ss << "trc::PipelineDefinitionData{";
     ++nl;
 
     // Write input bindings
@@ -198,7 +198,8 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
     // Write depth/stencil
     const auto& ds = pipeline.depthStencil;
     ss << nl << ".depthStencil{" << std::boolalpha
-       << ++nl << ds.depthTestEnable << ", // depth test enable"
+       << ++nl << "{},"
+       << nl << ds.depthTestEnable << ", // depth test enable"
        << nl << ds.depthWriteEnable << ", // depth write enable"
        << nl << "vk::CompareOp::eLess, " << ds.depthBoundsTestEnable << ","
        << nl << ds.stencilTestEnable << ", // stencil test enable"
@@ -225,6 +226,7 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
            << --nl << "},";
     }
     ss << --nl << "},";
+    ss << ".colorBlending{},";
 
     // Write dynamic state
     ss << nl++ << ".dynamicStates{";
@@ -232,6 +234,7 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
         ss << nl << "vk::DynamicState::" << state << ",";
     }
     ss << --nl << "},";
+    ss << ".dynamicState{},";
 
     // End
     ss << --nl << "}";  // PipelineDefinitionData{

@@ -2,6 +2,8 @@
 #   Required tools   #
 ######################
 
+set(PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES TRUE)
+
 add_subdirectory(componentlib)
 add_subdirectory(shader_edit)
 add_subdirectory(pipeline_definition_language)

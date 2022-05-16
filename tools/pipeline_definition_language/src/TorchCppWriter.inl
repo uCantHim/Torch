@@ -126,17 +126,17 @@ auto TorchCppWriter::makeStoredType() -> std::string
         return "fs::path";
     }
     else if constexpr (std::same_as<T, ProgramDesc>) {
-        return "ProgramDefinitionData";
+        return "trc::ProgramDefinitionData";
     }
     else if constexpr (std::same_as<T, PipelineDesc>) {
-        return "PipelineTemplate";
+        return "trc::PipelineTemplate";
     }
 }
 
 template<>
 inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
 {
-    return "\"" + (config.shaderOutputDir / (shader.target + getAdditionalFileExt(shader))).string() + "\"";
+    return "\"" + shader.target + getAdditionalFileExt(shader) + "\"";
 }
 
 template<>
@@ -160,7 +160,7 @@ inline void TorchCppWriter::writeVariantStorageInit(
     outFilePath.replace_extension(name.getUniqueExtension() + outFilePath.extension().string());
 
     os << makeStoredType<ShaderDesc>() << "{ "
-        << "\"" << config.shaderOutputDir << outFilePath << getAdditionalFileExt(shader) << "\""
+        << "\"" << outFilePath << getAdditionalFileExt(shader) << "\""
         << " }";
     config.generateShader(compileShader(shader), shader.target, getOutputType(shader));
 }
@@ -176,7 +176,7 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
 {
     std::stringstream ss;
     auto writeStage = [this, &ss](const char* stage, const ObjectReference<ShaderDesc>& ref) {
-        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { loadShader(";
+        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { trc::internal::loadShader(";
         std::visit(VariantVisitor{
             [&](const UniqueName& name) {
                 ss << makeReferenceCall(name);
@@ -185,10 +185,10 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
                 ss << makeValue(shader);
             },
         }, ref);
-        ss << "), {} },";
+        ss << "), {} } },";
     };
 
-    ss << "ProgramDefinitionData{" << ++nl
+    ss << "trc::ProgramDefinitionData{" << ++nl
        << ".stages={";
     ++nl;
     if (program.vert.has_value()) {

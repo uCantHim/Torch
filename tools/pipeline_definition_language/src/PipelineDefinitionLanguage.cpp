@@ -209,17 +209,17 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
         .generateShader=writeShader,
     });
 
-    fs::path outFileName = outputDir / outputFileName;
+    fs::path outFilePath = outputDir / outputFileName;
     if (generateHeader)
     {
-        const fs::path headerName = outFileName.replace_extension(".h");
-        std::ofstream header(headerName);
-        std::ofstream source(outFileName.replace_extension(".cpp"));
+        const fs::path headerName = outputFileName.replace_extension(".h");
+        std::ofstream header(outputDir / headerName);
+        std::ofstream source(outFilePath.replace_extension(".cpp"));
         source << "#include " << headerName << "\n\n";
         writer.write(result, header, source);
     }
     else {
-        std::ofstream file(outFileName.replace_extension(".h"));
+        std::ofstream file(outFilePath.replace_extension(".h"));
         writer.write(result, file);
     }
 

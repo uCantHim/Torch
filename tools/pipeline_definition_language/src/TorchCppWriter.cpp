@@ -157,6 +157,8 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
     os << "#include <filesystem>\n"
        << "namespace fs = std::filesystem;\n"
        << "\n"
+       << "#include <trc/core/PipelineTemplate.h>"
+       << "\n"
        << "#include \"FlagCombination.h\"\n"
         ;
 }
@@ -164,6 +166,8 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
 void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
+       << "\n"
+       << "#include <trc/PipelineDefinitions.h>"
         ;
 }
 
