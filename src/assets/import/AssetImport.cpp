@@ -20,7 +20,7 @@ void linkAssetReferences(trc::ThirdPartyMeshImport& mesh)
 
 auto trc::loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData
 {
-    auto result = [&]
+    auto result = [&]() -> ThirdPartyFileImportData
     {
         if (filePath.extension() == ".fbx")
         {
@@ -38,6 +38,8 @@ auto trc::loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData
         throw DataImportError("[In loadAssets]: Unable to import data from " + filePath.string()
                               + " as Torch was built without Assimp");
 #endif
+
+        return {};
     }();
 
     for (auto& mesh : result.meshes)
