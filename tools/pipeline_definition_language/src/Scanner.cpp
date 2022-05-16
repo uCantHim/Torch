@@ -139,21 +139,18 @@ void Scanner::scanNumberLiteral(char firstDigit)
         preComma = preComma * 10 + (consume() - '0');
     }
 
-    double postComma = 0.0;
     if (match('.'))
     {
+        double postComma = 0.0;
         size_t count = 1;
         while (isDigit(peek()))
         {
             postComma = postComma + (consume() - '0') * std::pow(0.1, count++);
         }
-    }
-
-    if (postComma == 0.0) {
-        addToken(TokenType::eLiteralNumber, preComma);
+        addToken(TokenType::eLiteralNumber, double(preComma) + postComma);
     }
     else {
-        addToken(TokenType::eLiteralNumber, double(preComma) + postComma);
+        addToken(TokenType::eLiteralNumber, preComma);
     }
 }
 
