@@ -236,6 +236,7 @@ void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
         "VertexInputRate", "PrimitiveTopology",
         "PolygonFillMode", "CullMode", "FaceWinding",
         "BlendFactor", "BlendOp", "ColorComponent",
+        "ShaderTargetType",
     };
 
     os << nl;
@@ -255,6 +256,11 @@ void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
     }
 }
 
+auto TorchCppWriter::makeFlagsType(const UniqueName& name) -> std::string
+{
+    return capitalize(name.getBaseName()) + "TypeFlags";
+}
+
 auto TorchCppWriter::makeGetterFunctionName(const std::string& name) -> std::string
 {
     return "get" + capitalize(name);
@@ -268,11 +274,11 @@ auto TorchCppWriter::makeReferenceCall(const UniqueName& name) -> std::string
 
     std::stringstream ss;
     ss << makeGetterFunctionName(name.getBaseName()) << "(";
-    for (size_t i = 0; auto flag : name.getFlags())
+    ss << makeFlagsType(name) << "{}";
+    for (auto flag : name.getFlags())
     {
         auto [type, bit] = flagTable->getFlagBit(flag);
-        ss << makeFlagBitsType(type) << "::" << bit;
-        if (++i < name.getFlags().size()) ss << " | ";
+        ss << " | " << makeFlagBitsType(type) << "::" << bit;
     }
     ss << ")";
 

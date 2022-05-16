@@ -88,6 +88,7 @@ private:
     auto makeGroupFlagUsingDecl(const VariantGroup<T>& group) -> std::string;
     template<typename T>
     auto makeFlagsType(const VariantGroup<T>& group) -> std::string;
+    auto makeFlagsType(const UniqueName& name) -> std::string;
     auto makeFlagBitsType(const std::string& flagName) -> std::string;
 
     auto makeGetterFunctionName(const std::string& name) -> std::string;

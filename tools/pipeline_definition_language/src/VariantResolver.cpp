@@ -82,7 +82,9 @@ auto VariantResolver::operator()(const ListDeclaration& list) const -> std::vect
             }
         }
 
-        std::swap(results, newResults);
+        if (!newResults.empty()) {
+            std::swap(results, newResults);
+        }
         ++i;
     }
 
@@ -117,7 +119,9 @@ auto VariantResolver::operator()(const ObjectDeclaration& obj) const -> std::vec
             }
         }
 
-        std::swap(results, newResults);
+        if (!newResults.empty()) {
+            std::swap(results, newResults);
+        }
         ++i;
     }
 
@@ -153,7 +157,7 @@ bool VariantResolver::isVariantOfSameFlag(const FieldValueVariant& a, const Fiel
         for (auto& fb : b.setFlags)
         {
             if (fa.flagId == fb.flagId) {
-                return fa.flagBitId != fb.flagBitId;
+                return true;
             }
         }
     }

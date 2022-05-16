@@ -81,7 +81,7 @@ void TorchCppWriter::writeGetterFunctionHead(const VariantGroup<T>& group, std::
 
     os << "auto " << makeGetterFunctionName(group.baseName) << "("
        << "const " << groupInfo.combinedFlagType << "& flags"
-       << ") -> " << makeStoredType<T>() << "&";
+       << ") -> const " << makeStoredType<T>() << "&";
 }
 
 template<typename T>
@@ -160,7 +160,7 @@ inline void TorchCppWriter::writeVariantStorageInit(
     outFilePath.replace_extension(name.getUniqueExtension() + outFilePath.extension().string());
 
     os << makeStoredType<ShaderDesc>() << "{ "
-        << "\"" << outFilePath << getAdditionalFileExt(shader) << "\""
+        << "\"" << outFilePath.string() << getAdditionalFileExt(shader) << "\""
         << " }";
     config.generateShader(compileShader(shader), shader.target, getOutputType(shader));
 }

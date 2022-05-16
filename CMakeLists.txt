@@ -20,6 +20,7 @@ option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
 set(TORCH_EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(TORCH_SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
 set(TORCH_CONFIG_DIR ${CMAKE_CURRENT_LIST_DIR}/config)
+set(TORCH_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated-sources/include/trc)
 
 if (${TORCH_DEBUG})
     set(CMAKE_BUILD_TYPE DEBUG)
@@ -47,6 +48,13 @@ endif()
 add_subdirectory(torch_util)
 add_subdirectory(tools)
 add_subdirectory(shaders)
+
+# Mark generated files as such
+# Apparently, the GENERATED property cannot be propagated from an add_subdirectory
+# to the parent CMakeLists.txt...
+set_source_files_properties(
+    ${TORCH_GENERATED_DIR}/Pipelines.cpp GENERATED
+)
 
 # Library target
 add_library(torch)
