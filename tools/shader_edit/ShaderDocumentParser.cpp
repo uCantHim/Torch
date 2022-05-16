@@ -1,6 +1,7 @@
 #include "ShaderDocumentParser.h"
 
 #include <optional>
+#include <algorithm>
 #include <iostream>
 
 #include "StringUtil.h"

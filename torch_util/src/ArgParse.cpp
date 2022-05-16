@@ -1,6 +1,7 @@
 #include "trc_util/ArgParse.h"
 
 #include <stdexcept>
+#include <algorithm>
 
 
 

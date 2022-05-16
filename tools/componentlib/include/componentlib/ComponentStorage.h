@@ -85,8 +85,8 @@ using ConstructedType = typename ComponentCreateInfoTraits<T>::ConstructedCompon
 template<typename T>
 concept ComponentCreateInfo = requires {
     typename ConstructedType<T>;
-    HasValidComponentTraits<ConstructedType<T>>;
-    std::constructible_from<ConstructedType<T>, T>;
+    requires HasValidComponentTraits<ConstructedType<T>>;
+    requires std::constructible_from<ConstructedType<T>, T>;
 };
 
 /**

@@ -6,12 +6,13 @@
 namespace componentlib
 {
 
+/**
+ * T should also be constructible-from and convertible-to size_t, but
+ * this does not work when these functions are private with Table declared
+ * as a friend, which is the case for ComponentID.
+ */
 template<typename T>
-concept TableKey = requires {
-    std::convertible_to<T, std::size_t>;
-    std::constructible_from<T, std::size_t>;
-    std::equality_comparable<T>;
-};
+concept TableKey = std::equality_comparable<T>;
 
 template<typename T>
 struct TableTraits;

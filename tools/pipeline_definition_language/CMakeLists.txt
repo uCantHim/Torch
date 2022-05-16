@@ -4,7 +4,7 @@ project(TorchPipelineCompiler)
 FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse
-    GIT_TAG        6ba201e2100d12479b1ee00c4c1e07dd21c13ebf
+    GIT_TAG        f5ea927f6b3beae2ac924ffde27f570bb9a7d294
 )
 FetchContent_MakeAvailable(argparse)
 

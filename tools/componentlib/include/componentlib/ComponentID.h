@@ -45,7 +45,7 @@ struct ComponentID
     }
 
 private:
-    // Make GameObject able to be used as a Table<> key
+    // Make ComponentID able to be used as a Table<> key
     template<typename, TableKey> friend class Table;
     template<typename>           friend class TableKeyIterator;
 

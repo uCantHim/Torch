@@ -146,14 +146,12 @@ namespace trc::functional
          */
         template<typename Success, typename Error>
         inline auto maybe(Success success, Error error) -> decltype(std::declval<Error>()())
-            requires requires () {
-                std::invocable<Success, T>;
-                std::invocable<Error>;
-                std::same_as<
-                    std::invoke_result_t<Success, T>,
-                    std::invoke_result_t<Error>
-                >;
-            }
+            requires std::invocable<Success, T>
+                  && std::invocable<Error>
+                  && std::same_as<
+                         std::invoke_result_t<Success, T>,
+                         std::invoke_result_t<Error>
+                     >
         {
             if (hasValue()) {
                 return success(getValue());

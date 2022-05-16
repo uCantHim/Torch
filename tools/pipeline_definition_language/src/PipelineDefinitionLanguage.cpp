@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 
+#include <utility>  // for std::as_const used in argparse
 #include <argparse/argparse.hpp>
 
 #include "Exceptions.h"

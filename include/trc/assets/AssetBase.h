@@ -10,7 +10,7 @@ namespace trc
     template<typename T>
     concept AssetBaseType = requires {
         typename T::Registry;
-        std::semiregular<T>;
+        requires std::semiregular<T>;
     };
 
     /**
@@ -31,7 +31,6 @@ namespace trc
     template<AssetBaseType T>
         requires requires {
             typename AssetRegistryModule<T>::Handle;
-            std::semiregular<typename AssetRegistryModule<T>::Handle>;
         }
     using AssetHandle = typename AssetRegistryModule<T>::Handle;
 } // namespace trc
