@@ -214,15 +214,16 @@ bool TypeChecker::CheckValueType::operator()(const MatchExpression& expr) const
     }
 
     // Check if the matched type is an enum type
-    if (!std::holds_alternative<EnumType>(it->second))
+    const auto& typeType = it->second;
+    if (!std::holds_alternative<EnumType>(typeType))
     {
         self->error(expr.matchedType.token,
                     "Matching on non-enum type \"" + expr.matchedType.name + "\".");
     }
-    auto& enumType = std::get<EnumType>(it->second);
+    const auto& enumType = std::get<EnumType>(typeType);
 
     // Check individual cases
-    std::unordered_set<Identifier> matchedCases;
+    std::unordered_set<std::string> matchedCases;
     for (const auto& _case : expr.cases)
     {
         // Check the case enumerator
@@ -234,7 +235,7 @@ bool TypeChecker::CheckValueType::operator()(const MatchExpression& expr) const
         }
 
         // Check for duplicate matches
-        auto [_, success] = matchedCases.emplace(_case.caseIdentifier);
+        auto [_, success] = matchedCases.emplace(_case.caseIdentifier.name);
         if (!success) {
             self->error(_case.caseIdentifier.token, "Duplicate match on \"" + name + "\".");
         }
@@ -243,6 +244,18 @@ bool TypeChecker::CheckValueType::operator()(const MatchExpression& expr) const
         if (!std::visit(CheckValueType{ *this }, *_case.value)) {
             return false;
         }
+    }
+
+    // Check for exhaustiveness
+    if (matchedCases.size() < enumType.options.size())
+    {
+        std::string str{ "Non-exhaustive match. Unmatched cases: " };
+        for (const auto& opt : enumType.options) {
+            if (!matchedCases.contains(opt)) {
+                str += opt + ", ";
+            }
+        }
+        self->error(expr.token, str.substr(0, str.size() - 2));
     }
 
     return true;
