@@ -151,8 +151,6 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         std::cout << "An unexpected error occured: " << err.what() << "\n" << "Exiting.";
         exit(1);
     }
-
-    while (pendingShaderThreads > 0);
 }
 
 auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optional<CompileResult>
@@ -199,13 +197,8 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
     return compileResult;
 }
 
-
 void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
 {
-#ifdef HAS_SPIRV_COMPILER
-    spirvOpts.SetIncluder(std::make_unique<FileIncluder>(shaderInputDir));
-#endif
-
     TorchCppWriter writer(*errorReporter, {
         .shaderInputDir=shaderInputDir,
         .shaderOutputDir=shaderOutputDir,
@@ -231,6 +224,10 @@ void PipelineDefinitionLanguage::writeOutput(const CompileResult& result)
     std::ifstream inFile(FLAG_COMBINATION_HEADER);
     std::ofstream outFile(outputDir / "FlagCombination.h");
     outFile << inFile.rdbuf();
+
+#ifdef HAS_SPIRV_COMPILER
+    compileSpirvShaders();
+#endif
 }
 
 void PipelineDefinitionLanguage::writeShader(
@@ -238,31 +235,10 @@ void PipelineDefinitionLanguage::writeShader(
     const fs::path& shaderFileName,
     ShaderOutputType outputType)
 {
-    fs::path outPath{ shaderOutputDir / shaderFileName };
-
     if (outputType == ShaderOutputType::eSpirv)
     {
-        outPath += ".spv";
 #ifdef HAS_SPIRV_COMPILER
-        ++pendingShaderThreads;
-        std::thread([=]{
-            auto result = generateSpirv(code, shaderFileName, spirvOpts);
-            if (result.GetNumErrors() > 0)
-            {
-                std::cerr << "An error occured during SPIRV compilation: " << result.GetErrorMessage();
-                throw CompilerError{};
-            }
-
-            std::ofstream file(outPath, std::ios::binary);
-            file.write(
-                reinterpret_cast<const char*>(result.begin()),
-                static_cast<std::streamsize>(
-                    (result.end() - result.begin()) * sizeof(decltype(result)::element_type)
-                )
-            );
-
-            --pendingShaderThreads;
-        }).detach();
+        pendingSpirvCompilations.emplace_back(code, shaderFileName);
 #else
         throw UsageError("Unable to compile " + shaderFileName.string() + " to SPIRV.\n"
                          "The pipeline compiler must be compiled with the SPIRV capability enabled"
@@ -279,6 +255,7 @@ void PipelineDefinitionLanguage::writePlain(
     const fs::path& filename)
 {
     const fs::path outPath{ shaderOutputDir / filename };
+    fs::create_directories(outPath.parent_path());
 
     std::ofstream file{ outPath };
     if (!file.is_open()) {
@@ -286,3 +263,48 @@ void PipelineDefinitionLanguage::writePlain(
     }
     file << data;
 }
+
+#ifdef HAS_SPIRV_COMPILER
+void PipelineDefinitionLanguage::compileSpirvShaders()
+{
+    /**
+     * Use shaderOutputDir as primary include directory to consider previously
+     * generated shader files first in the include order.
+     */
+    spirvOpts.SetIncluder(std::make_unique<FileIncluder>(
+        shaderOutputDir,
+        std::vector<fs::path>{ shaderInputDir }
+    ));
+
+    #pragma omp parallel for schedule(dynamic)
+    for (const auto& info : pendingSpirvCompilations)
+    {
+        try {
+            compileToSpirv(info);
+        }
+        catch (const CompilerError&) {}
+    }
+}
+
+void PipelineDefinitionLanguage::compileToSpirv(const SpirvCompileInfo& info)
+{
+    const auto& [code, shaderFileName] = info;
+    const fs::path outPath{ shaderOutputDir / (shaderFileName.string() + ".spv") };
+    fs::create_directories(outPath.parent_path());
+
+    auto result = generateSpirv(code, shaderFileName, spirvOpts);
+    if (result.GetNumErrors() > 0)
+    {
+        std::cerr << "An error occured during SPIRV compilation: " << result.GetErrorMessage();
+        throw CompilerError{};
+    }
+
+    std::ofstream file(outPath, std::ios::binary);
+    file.write(
+        reinterpret_cast<const char*>(result.begin()),
+        static_cast<std::streamsize>(
+            (result.end() - result.begin()) * sizeof(decltype(result)::element_type)
+        )
+    );
+}
+#endif

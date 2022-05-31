@@ -14,6 +14,8 @@ struct Error
 class ErrorReporter
 {
 public:
+    virtual ~ErrorReporter() = default;
+
     void error(const Error& error);
     bool hadError() const;
 

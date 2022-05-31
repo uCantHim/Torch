@@ -165,7 +165,7 @@ inline void TorchCppWriter::writeVariantStorageInit(
     os << makeStoredType<ShaderDesc>() << "{ "
         << "\"" << outFilePath.string() << getAdditionalFileExt(shader) << "\""
         << " }";
-    config.generateShader(compileShader(shader), shader.target, getOutputType(shader));
+    config.generateShader(compileShader(shader), outFilePath, getOutputType(shader));
 }
 
 
@@ -285,8 +285,8 @@ inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::stri
        << ++nl << makeValue(pipeline.program) << ","
        << nl << makePipelineDefinitionDataInit(pipeline, nl)
        << --nl << "},"
-       << makeValue(pipeline.layout) << ","
-       << "trc::RenderPassName{ \"" << pipeline.renderPassName << "\" }"
+       << nl << makeValue(pipeline.layout) << ","
+       << nl << "trc::RenderPassName{ \"" << pipeline.renderPassName << "\" }"
        << --nl << ")";
 
     return ss.str();

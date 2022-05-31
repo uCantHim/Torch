@@ -50,4 +50,10 @@ if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
 
     target_link_libraries(pipeline_compiler PRIVATE shaderc)
     target_compile_definitions(pipeline_compiler PRIVATE HAS_SPIRV_COMPILER)
+
+    # OpenMP for parallel shader compilation because I'm lazy
+    find_package(OpenMP)
+    if (OpenMP_CXX_FOUND)
+        target_link_libraries(pipeline_compiler PRIVATE OpenMP::OpenMP_CXX)
+    endif ()
 endif ()

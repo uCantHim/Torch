@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <atomic>
+#include <vector>
 #include <optional>
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -30,7 +31,17 @@ private:
 
     static inline std::atomic<size_t> pendingShaderThreads{ 0 };
 #ifdef HAS_SPIRV_COMPILER
+    struct SpirvCompileInfo
+    {
+        std::string shaderCode;
+        fs::path outPath;
+    };
+
+    static void compileSpirvShaders();
+    static void compileToSpirv(const SpirvCompileInfo& info);
+
     static shaderc::CompileOptions spirvOpts;
+    static inline std::vector<SpirvCompileInfo> pendingSpirvCompilations;
 #endif
 
     static inline fs::path outputDir{ "." };

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <cassert>
 #include <cstring>
+
+#include <unordered_map>
+#include <mutex>
 #include <fstream>
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -10,13 +14,15 @@ namespace fs = std::filesystem;
 class FileIncluder : public shaderc::CompileOptions::IncluderInterface
 {
 public:
-    explicit FileIncluder(const fs::path& _basePath)
+    explicit FileIncluder(const fs::path& _basePath, std::vector<fs::path> additionalPaths = {})
+        :
+        includePaths(std::move(additionalPaths))
     {
         if (_basePath.is_absolute()) {
-            basePath = _basePath;
+            includePaths.insert(includePaths.begin(), _basePath);
         }
         else {
-            basePath = fs::current_path() / _basePath;
+            includePaths.insert(includePaths.begin(), fs::current_path() / _basePath);
         }
     }
 
@@ -33,17 +39,27 @@ public:
                     const char* requesting_source,
                     size_t) -> shaderc_include_result* override
     {
-        const fs::path path = [&]{
+        auto makeFullPath = [&](const fs::path& base) {
             if (type == shaderc_include_type::shaderc_include_type_relative) {
-                return basePath / fs::path{ requesting_source }.parent_path() / requested_source;
+                return base / fs::path{ requesting_source }.parent_path() / requested_source;
             }
-            return basePath / requested_source;
+            return base / requested_source;
+        };
+
+        // Test all available include paths
+        const fs::path path = [&]{
+            for (const auto& base : includePaths)
+            {
+                const auto path = makeFullPath(base);
+                if (fs::is_regular_file(path)) {
+                    return path;
+                }
+            }
+            return fs::path{};
         }();
 
         auto result = std::make_unique<shaderc_include_result>();
         auto res = result.get();
-        auto [it, success] = pendingResults.try_emplace(res, path, std::move(result));
-        assert(success);
 
         std::ifstream file(path);
         if (!file.is_open())
@@ -55,7 +71,15 @@ public:
             return res;
         }
 
-        auto& data = it->second;
+        // Insert pending include result into list
+        auto& data = [&]() -> IncludeResult& {
+            std::scoped_lock lock(pendingResultsLock);
+            auto [it, success] = pendingResults.try_emplace(res, path, std::move(result));
+            assert(success);
+
+            return it->second;
+        }();
+
         std::stringstream ss;
         ss << file.rdbuf();
         data.content = ss.str();
@@ -71,12 +95,13 @@ public:
     // Handles shaderc_include_result_release_fn callbacks.
     void ReleaseInclude(shaderc_include_result* data) override
     {
-        [[maybe_unused]]
-        size_t erased = pendingResults.erase(data);
-        assert(erased == 1);
+        std::scoped_lock lock(pendingResultsLock);
+        pendingResults.erase(data);
     }
 
 private:
-    fs::path basePath;
+    std::vector<fs::path> includePaths;
+
+    std::mutex pendingResultsLock;
     std::unordered_map<shaderc_include_result*, IncludeResult> pendingResults;
 };
