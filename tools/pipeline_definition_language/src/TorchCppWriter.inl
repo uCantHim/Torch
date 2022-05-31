@@ -128,8 +128,11 @@ auto TorchCppWriter::makeStoredType() -> std::string
     else if constexpr (std::same_as<T, ProgramDesc>) {
         return "trc::ProgramDefinitionData";
     }
+    else if constexpr (std::same_as<T, LayoutDesc>) {
+        return "trc::PipelineLayout::ID";
+    }
     else if constexpr (std::same_as<T, PipelineDesc>) {
-        return "trc::PipelineTemplate";
+        return "trc::Pipeline::ID";
     }
 }
 
@@ -222,6 +225,53 @@ inline void TorchCppWriter::writeVariantStorageInit(
 
 
 
+///////////////////////////////////
+//  Pipeline Layout type writer  //
+///////////////////////////////////
+
+template<>
+inline auto TorchCppWriter::makeValue(const LayoutDesc& layout) -> std::string
+{
+    std::stringstream ss;
+    ss << "trc::PipelineRegistry<trc::TorchRenderConfig>::registerPipelineLayout("
+       << "trc::PipelineLayoutTemplate{";
+
+    // Descriptors
+    ss << (++nl)++ << "{" << std::boolalpha;
+    for (const auto& desc : layout.descriptors) {
+        ss << nl << "{ { \"" << desc.name << "\" }, " << desc.isStatic << " },";
+    }
+    ss << --nl << "},";
+
+    // Push constants
+    ss << nl++ << "{";
+    for (const auto& [stage, pcs] : layout.pushConstantsPerStage)
+    {
+        auto stageBit = "vk::ShaderStageFlagBits::e" + capitalize(stage);
+        for (const auto& pc : pcs)
+        {
+            ss << nl << "{ vk::PushConstantRange(" << stageBit << ", "
+               << pc.offset << ", " << pc.size << "), std::nullopt },";
+        }
+    }
+    ss << --nl << "}";
+
+    // End
+    ss << --nl << "})";
+    return ss.str();
+}
+
+template<>
+inline void TorchCppWriter::writeVariantStorageInit(
+    const UniqueName&,
+    const LayoutDesc& layout,
+    std::ostream& os)
+{
+    os << makeValue(layout);
+}
+
+
+
 ////////////////////////////
 //  Pipeline type writer  //
 ////////////////////////////
@@ -230,9 +280,13 @@ template<>
 inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::string
 {
     std::stringstream ss;
-    ss << makeStoredType<PipelineDesc>() << "("
+    ss << "trc::PipelineRegistry<trc::TorchRenderConfig>::registerPipeline("
+       << ++nl << "trc::PipelineTemplate{"
        << ++nl << makeValue(pipeline.program) << ","
        << nl << makePipelineDefinitionDataInit(pipeline, nl)
+       << --nl << "},"
+       << makeValue(pipeline.layout) << ","
+       << "trc::RenderPassName{ \"" << pipeline.renderPassName << "\" }"
        << --nl << ")";
 
     return ss.str();

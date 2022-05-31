@@ -85,6 +85,8 @@ void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
     writeHeader<ShaderDesc>(result.shaders, os);
     writeBanner("Programs", os);
     writeHeader<ProgramDesc>(result.programs, os);
+    writeBanner("Layouts", os);
+    writeHeader<LayoutDesc>(result.layouts, os);
     writeBanner("Pipelines", os);
     writeHeader<PipelineDesc>(result.pipelines, os);
 
@@ -103,6 +105,8 @@ void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
     writeSource<ShaderDesc>(result.shaders, os);
     writeBanner("Programs", os);
     writeSource<ProgramDesc>(result.programs, os);
+    writeBanner("Layouts", os);
+    writeSource<LayoutDesc>(result.layouts, os);
     writeBanner("Pipelines", os);
     writeSource<PipelineDesc>(result.pipelines, os);
 
@@ -157,7 +161,9 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
     os << "#include <filesystem>\n"
        << "namespace fs = std::filesystem;\n"
        << "\n"
-       << "#include <trc/core/PipelineTemplate.h>"
+       << "#include <trc/core/PipelineTemplate.h>\n"
+       << "#include <trc/core/PipelineLayoutTemplate.h>\n"
+       << "#include <trc/core/PipelineRegistry.h>\n"
        << "\n"
        << "#include \"FlagCombination.h\"\n"
         ;
@@ -167,7 +173,8 @@ void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
        << "\n"
-       << "#include <trc/PipelineDefinitions.h>"
+       << "#include <trc/PipelineDefinitions.h>\n"
+       << "#include <trc/TorchRenderConfig.h>\n"
         ;
 }
 

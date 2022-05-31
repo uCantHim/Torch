@@ -189,7 +189,10 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
 
     // Compile
     Compiler compiler(std::move(parseResult), *errorReporter);
-    auto compileResult = compiler.compile();
+    CompileResult compileResult;
+    try {
+        compileResult = compiler.compile();
+    } catch (const CompilerError&) {}
 
     // Certainly don't output anything if errors have occured
     if (errorReporter->hadError()) return std::nullopt;

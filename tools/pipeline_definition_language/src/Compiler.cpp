@@ -127,6 +127,10 @@ auto Compiler::compile() -> CompileResult
     if (it != globalObject.fields.end()) {
         result.programs = compileMulti<ProgramDesc>(expectMap(it->second));
     }
+    it = globalObject.fields.find("Layout");
+    if (it != globalObject.fields.end()) {
+        result.layouts = compileMulti<LayoutDesc>(expectMap(it->second));
+    }
     it = globalObject.fields.find("Pipeline");
     if (it != globalObject.fields.end()) {
         result.pipelines = compileMulti<PipelineDesc>(expectMap(it->second));
@@ -188,7 +192,7 @@ auto Compiler::expectField(const compiler::Object& obj, const std::string& field
     }
     catch (const std::out_of_range& err) {
         error({}, "Expected field \"" + field + "\"");
-        throw InternalLogicError(err.what());
+        throw CompilerError{};
     }
 }
 
@@ -446,6 +450,51 @@ auto Compiler::compileSingle<ProgramDesc>(const compiler::Object& obj) -> Progra
 }
 
 template<>
+auto Compiler::compileSingle<LayoutDesc>(const compiler::Object& obj) -> LayoutDesc
+{
+    LayoutDesc layout;
+
+    // Descriptors
+    for (const auto& val : expectList(expectSingle(obj, "Descriptors")).values) {
+        layout.descriptors.emplace_back(expectString(*val), true);
+    }
+
+    // Push constant ranges
+    auto toPushConst = [this](auto&& val){
+        return LayoutDesc::PushConstantRange{
+            .offset=static_cast<size_t>(expectInt(expectSingle(expectObject(val), "Offset"))),
+            .size=static_cast<size_t>(expectInt(expectSingle(expectObject(val), "Size")))
+        };
+    };
+    if (hasField(obj, "VertexPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "VertexPushConstants")).values)
+            layout.pushConstantsPerStage["vertex"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "FragmentPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "FragmentPushConstants")).values)
+            layout.pushConstantsPerStage["fragment"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "TessControlPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "TessControlPushConstants")).values)
+            layout.pushConstantsPerStage["tessellationControl"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "TessEvalPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "TessEvalPushConstants")).values)
+            layout.pushConstantsPerStage["tessellationEvaluation"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "GeometryPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "GeometryPushConstants")).values)
+            layout.pushConstantsPerStage["geometry"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "ComputePushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "ComputePushConstants")).values)
+            layout.pushConstantsPerStage["compute"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "MeshPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "MeshPushConstants")).values)
+            layout.pushConstantsPerStage["mesh"].emplace_back(toPushConst(*val));
+    if (hasField(obj, "TaskPushConstants"))
+        for (const auto& val : expectList(expectSingle(obj, "TaskPushConstants")).values)
+            layout.pushConstantsPerStage["task"].emplace_back(toPushConst(*val));
+
+    return layout;
+}
+
+template<>
 auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> PipelineDesc
 {
     // Compile vertex inputs
@@ -585,6 +634,8 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
     }
 
     return {
+        .layout=makeReference<LayoutDesc>(expectSingle(obj, "Layout")),
+        .renderPassName=expectString(expectSingle(obj, "RenderPass")),
         .program=makeReference<ProgramDesc>(expectSingle(obj, "Program")),
         .vertexInput=std::move(vertexInput),
         .inputAssembly={},

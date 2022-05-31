@@ -35,6 +35,24 @@ struct ProgramDesc
     std::optional<ObjectReference<ShaderDesc>> frag;
 };
 
+struct LayoutDesc
+{
+    struct PushConstantRange
+    {
+        size_t offset;
+        size_t size;
+    };
+
+    struct Descriptor
+    {
+        std::string name;
+        bool isStatic{ true };
+    };
+
+    std::vector<Descriptor> descriptors;
+    std::unordered_map<std::string, std::vector<PushConstantRange>> pushConstantsPerStage;
+};
+
 struct PipelineDesc
 {
     struct VertexAttribute
@@ -131,6 +149,9 @@ struct PipelineDesc
         uint colorComponentFlags{ eR | eG | eB | eA };
     };
 
+    ObjectReference<LayoutDesc> layout;
+    std::string renderPassName;
+
     ObjectReference<ProgramDesc> program;
     std::vector<VertexAttribute> vertexInput{};
     InputAssembly inputAssembly{};
@@ -168,5 +189,6 @@ struct CompileResult
 
     std::unordered_map<std::string, SingleOrVariant<ShaderDesc>> shaders;
     std::unordered_map<std::string, SingleOrVariant<ProgramDesc>> programs;
+    std::unordered_map<std::string, SingleOrVariant<LayoutDesc>> layouts;
     std::unordered_map<std::string, SingleOrVariant<PipelineDesc>> pipelines;
 };
