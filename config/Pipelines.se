@@ -2,8 +2,17 @@ Meta:
     Namespace: "trc"
 
 
+enum AnimationType: none, boneAnim
+
+enum PipelineShadingType:
+    opaque,
+    transparent,
+    shadow
+
+
 Shader assetRegistryDescriptor:
-    Source: "asset_registry_descriptor.glsl"
+    Source: "asset_registry_descriptor_template.glsl"
+    Target: "asset_registry_descriptor.glsl"
     TargetType: glsl
 
     Variable material_descriptor_binding: "0"
@@ -15,21 +24,70 @@ Shader assetRegistryDescriptor:
 
 
 Shader drawableFragment:
-    Source: "../shaders/drawable/deferred.frag"
+    Source: match PipelineShadingType
+        opaque -> "drawable/deferred.frag"
+        transparent -> "drawable/transparent.frag"
+        shadow -> "empty.frag"
 
+Shader shadowVertex:
+    Source: match AnimationType
+        none -> "drawable/shadow.vert"
+        boneAnim -> "drawable/shadow_animated.vert"
+
+Shader defaultVertex:
+    Source: match AnimationType
+        none -> "drawable/deferred.vert"
+        boneAnim -> "drawable/deferred_animated.vert"
+
+Shader drawableVertex: match PipelineShadingType
+    opaque -> defaultVertex
+    transparent -> defaultVertex
+    shadow -> shadowVertex
 
 Program drawableProgram:
-    VertexShader:
-        Source: "../shaders/drawable/deferred.vert"
+    VertexShader: drawableVertex
     FragmentShader: drawableFragment
 
 
 VertexAttribute drawableVertexInput:
     Binding: 0
     InputRate: perVertex
-    Locations: [rgb32f, rgb32f, rg32f, rgb32f]
+    Locations: match AnimationType
+        none -> [rgb32f, rgb32f, rg32f, rgb32f]
+        boneAnim -> [rgb32f, rgb32f, rg32f, rgb32f, rgba32u, rgba32f]
 
+
+///////////////
+//  Layouts  //
+///////////////
+
+PushConstant drawablePushConstants:
+    Offset: 0
+    Size: 84
+    Default: "DrawablePushConstants{}"
+
+Layout drawableLayout:
+    Descriptors: match PipelineShadingType
+        opaque -> ["global_data", "asset_registry", "scene_data", "g_buffer"]
+        transparent -> ["global_data", "asset_registry", "scene_data", "g_buffer", "shadow"]
+        // shadow -> match AnimationType
+        //     none -> ["shadow"]
+        //     boneAnim -> ["shadow", "asset_registry"]
+        shadow -> ["shadow", "asset_registry"]
+
+    VertexPushConstants: [drawablePushConstants]
+
+
+////////////////
+//  Pipeline  //
+////////////////
 
 Pipeline drawablePipeline:
     Program: drawableProgram
+    Layout: drawableLayout
+    RenderPass: match PipelineShadingType
+        opaque -> "g_buffer"
+        transparent -> "transparency"
+        shadow -> "shadow"
     VertexInput: [drawableVertexInput]
+    DisableBlendAttachments: 3
