@@ -1,8 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <string>
+#include <vector>
+#include <unordered_set>
 #include <functional>
-#include <sstream>
 #include <fstream>
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -26,6 +28,8 @@ auto operator<<(std::ostream& os, const LineWriter& nl) -> std::ostream&;
 
 struct TorchCppWriterCreateInfo
 {
+    std::string compiledFileName;
+
     fs::path shaderInputDir{ "." };
     fs::path shaderOutputDir{ "." };
 
@@ -77,10 +81,29 @@ private:
 
     void error(std::string message);
 
+    ////////////////////////////////////
+    //  Dynamic initialization utils  //
+    ////////////////////////////////////
+
+    static auto collectDynamicInitCreateInfoMembers(const CompileResult& result)
+        -> std::unordered_set<std::pair<std::string, std::string>>;
+    auto makeDynamicInitCreateInfoName() const -> std::string;
+    void writeDynamicInitCreateInfoStruct(const CompileResult& result, std::ostream& os);
+    void writeDynamicInitFunctionHead(std::ostream& os);
+    void writeDynamicInitFunctionDef(std::ostream& os);
+
+    ////////////////////////////////////
+    //  Shader file generation utils  //
+    ////////////////////////////////////
+
     auto getOutputType(const ShaderDesc& shader) -> ShaderOutputType;
     auto getAdditionalFileExt(const ShaderDesc& shader) -> std::string;
     auto openShaderFile(const std::string& filename) -> std::ifstream;
     auto compileShader(const ShaderDesc& shader) -> std::string;
+
+    //////////////////////////////
+    //  Variant and flag utils  //
+    //////////////////////////////
 
     template<typename T>
     auto makeGroupInfo(const VariantGroup<T>& group) -> VariantGroupRepr;
@@ -90,6 +113,10 @@ private:
     auto makeFlagsType(const VariantGroup<T>& group) -> std::string;
     auto makeFlagsType(const UniqueName& name) -> std::string;
     auto makeFlagBitsType(const std::string& flagName) -> std::string;
+
+    /////////////////////////////
+    //  Getter function utils  //
+    /////////////////////////////
 
     auto makeGetterFunctionName(const std::string& name) -> std::string;
     auto makeReferenceCall(const UniqueName& name) -> std::string;
@@ -113,8 +140,6 @@ private:
 
     template<typename T>
     auto makeValue(const ObjectReference<T>& ref) -> std::string;
-    template<typename T>
-    void writeSingleStorageInit(const std::string& name, const T& value, std::ostream& os);
 
     template<typename T>
     auto makeStoredType() -> std::string;
@@ -124,12 +149,21 @@ private:
     void writeVariantStorageInit(const UniqueName& name, const T& val, std::ostream& os);
 
     CompileResult::Meta meta;
-    TorchCppWriterCreateInfo config;
+    const TorchCppWriterCreateInfo config;
 
     ErrorReporter* errorReporter;
     LineWriter nl;
 
     const FlagTable* flagTable;
+
+    /**
+     * A list of functions to call in the dynamic initialization function.
+     *
+     * Each group writes its own initialization function and adds it to
+     * this list.
+     */
+    std::vector<std::string> initFunctionNames;
+    std::atomic<size_t> nextInitFunctionNumber{ 0 };
 };
 
 #include "TorchCppWriter.inl"

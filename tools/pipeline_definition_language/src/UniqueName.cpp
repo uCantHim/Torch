@@ -34,6 +34,18 @@ auto UniqueName::getFlags() const -> const VariantFlagSet&
     return flags;
 }
 
+auto UniqueName::calcFlagIndex(const FlagTable& flagTable) const -> size_t
+{
+    uint32_t index{ 0 };
+    uint32_t totalMax{ 1 };
+    for (auto& flag : getFlags())
+    {
+        index += totalMax * flag.flagBitId;
+        totalMax *= flagTable.getNumFlagBits(flag);
+    }
+    return index;
+}
+
 auto UniqueName::getBaseName() const -> const std::string&
 {
     return name;

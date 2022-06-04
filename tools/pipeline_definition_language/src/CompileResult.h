@@ -41,6 +41,9 @@ struct LayoutDesc
     {
         size_t offset;
         size_t size;
+
+        /** Name of a dynamically initialized default value */
+        std::optional<std::string> defaultValueName;
     };
 
     struct Descriptor

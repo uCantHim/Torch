@@ -79,7 +79,7 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
             .fields={
                 { "Offset", { intTypeName } },
                 { "Size", { intTypeName } },
-                { "Default", { stringTypeName } },
+                { "DefaultValue", { stringTypeName } },
             }
         }},
         { "Layout", ObjectType{

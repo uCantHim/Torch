@@ -41,7 +41,21 @@ auto TorchCppWriter::makeFlagsType(const VariantGroup<T>& group) -> std::string
 template<typename T>
 void TorchCppWriter::writeSingle(const std::string& name, const T& value, std::ostream& os)
 {
-    writeSingleStorageInit(name, value, os);
+    // Write storage variable
+    os << makeStoredType<T>() << " " << name << ";";
+
+    // Write initialization function
+    const std::string initName{ "__init_value_" + name
+                                + "_" + std::to_string(++nextInitFunctionNumber) };
+    initFunctionNames.emplace_back(initName);
+
+    os << nl << "void " << initName
+       << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
+       << nl << "{"
+       << ++nl << name << " = " << makeValue(value) << ";"
+       << --nl << "}";
+
+    // Write getter function
     os << nl;
     writeGetterFunctionHead<T>(name, os);
     os << nl << "{"
@@ -54,17 +68,28 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
 {
     auto groupInfo = makeGroupInfo(group);
 
+    // Write storage array
     os << "std::array<" << makeStoredType<T>() << ", " << groupInfo.combinedFlagType << "::size()> "
-       << groupInfo.storageName << "{";
-    ++nl;
+       << groupInfo.storageName << ";" << nl;
+
+    // Write initialization function
+    const std::string initName{ "__init_variant_group_" + group.baseName
+                                + "_" + std::to_string(++nextInitFunctionNumber) };
+    initFunctionNames.emplace_back(initName);
+
+    os << nl << "void " << initName
+       << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
+       << nl++ << "{";
     for (const auto& [name, variant] : group.variants)
     {
-        os << nl;
+        os << nl
+           << groupInfo.storageName << ".at(" << name.calcFlagIndex(*flagTable) << ") = ";
         writeVariantStorageInit(name, variant, os);
-        os << ",";
+        os << ";";
     }
-    os << --nl << "};" << nl;
+    os << --nl << "}" << nl << nl;
 
+    // Write getter function
     writeGetterFunction(group, os);
 }
 
@@ -104,15 +129,6 @@ auto TorchCppWriter::makeValue(const ObjectReference<T>& ref) -> std::string
     }, ref);
 }
 
-template<typename T>
-void TorchCppWriter::writeSingleStorageInit(
-    const std::string& name,
-    const T& value,
-    std::ostream& os)
-{
-    os << makeStoredType<T>() << " " << name << " = " << makeValue(value) << ";";
-}
-
 
 
 //////////////////////////
@@ -139,17 +155,9 @@ auto TorchCppWriter::makeStoredType() -> std::string
 template<>
 inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
 {
-    return "\"" + shader.target + getAdditionalFileExt(shader) + "\"";
-}
-
-template<>
-inline void TorchCppWriter::writeSingleStorageInit(
-    const std::string& name,
-    const ShaderDesc& shader,
-    std::ostream& os)
-{
-    os << makeStoredType<ShaderDesc>() << " " << name << " = " << makeValue(shader) << ";";
     config.generateShader(compileShader(shader), shader.target, getOutputType(shader));
+
+    return "\"" + shader.target + getAdditionalFileExt(shader) + "\"";
 }
 
 template<>
@@ -163,8 +171,8 @@ inline void TorchCppWriter::writeVariantStorageInit(
     outFilePath.replace_extension(name.getUniqueExtension() + outFilePath.extension().string());
 
     os << makeStoredType<ShaderDesc>() << "{ "
-        << "\"" << outFilePath.string() << getAdditionalFileExt(shader) << "\""
-        << " }";
+       << "\"" << outFilePath.string() << getAdditionalFileExt(shader) << "\""
+       << " }";
     config.generateShader(compileShader(shader), outFilePath, getOutputType(shader));
 }
 
@@ -251,7 +259,11 @@ inline auto TorchCppWriter::makeValue(const LayoutDesc& layout) -> std::string
         for (const auto& pc : pcs)
         {
             ss << nl << "{ vk::PushConstantRange(" << stageBit << ", "
-               << pc.offset << ", " << pc.size << "), std::nullopt },";
+               << pc.offset << ", " << pc.size << "), ";
+            if (pc.defaultValueName.has_value()) {
+                ss << "info." << pc.defaultValueName.value();
+            }
+            ss << " },";
         }
     }
     ss << --nl << "}";

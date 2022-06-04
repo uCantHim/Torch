@@ -64,7 +64,7 @@ VertexAttribute drawableVertexInput:
 PushConstant drawablePushConstants:
     Offset: 0
     Size: 84
-    Default: "DrawablePushConstants{}"
+    DefaultValue: "drawablePushConstantDefaultValue"
 
 Layout drawableLayout:
     Descriptors: match PipelineShadingType

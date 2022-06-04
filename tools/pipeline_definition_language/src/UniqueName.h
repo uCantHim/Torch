@@ -23,6 +23,16 @@ public:
 
     bool hasFlags() const;
     auto getFlags() const -> const VariantFlagSet&;
+
+    /**
+     * Calculate the UniqueName's flag combination's unique index as is
+     * done in the resulting FlagCombination type.
+     *
+     * @param const FlagTable& flagTable The flag table at which the
+     *        UniqueName's flag type is registered.
+     */
+    auto calcFlagIndex(const FlagTable& flagTable) const -> size_t;
+
     auto getBaseName() const -> const std::string&;
     auto getUniqueName() const -> const std::string&;
     auto getUniqueExtension() const -> std::string;

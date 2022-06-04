@@ -78,6 +78,13 @@ void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
         os << nl << "namespace " << meta.enclosingNamespace.value() << nl << "{";
     }
 
+    // Write dynamic initialization stuff
+    os << nl << nl;
+    writeDynamicInitCreateInfoStruct(result, os);
+    os << nl << nl;
+    writeDynamicInitFunctionHead(os);
+    os << ";";
+
     writeBanner("Flag Types", os);
     writeFlags(result, os);
 
@@ -109,6 +116,11 @@ void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
     writeSource<LayoutDesc>(result.layouts, os);
     writeBanner("Pipelines", os);
     writeSource<PipelineDesc>(result.pipelines, os);
+
+    // Write at the end when all init callback names have been collected
+    os << nl << nl;
+    writeDynamicInitFunctionDef(os);
+    os << nl;
 
     if (meta.enclosingNamespace.has_value()) {
         os << nl << "} // namespace " << meta.enclosingNamespace.value();
@@ -187,6 +199,102 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
        << std::string(borderSize, '/') << nl;
 }
 
+namespace std
+{
+    template<>
+    struct hash<pair<string, string>>
+    {
+        auto operator()(const pair<string, string>& pair) const -> size_t {
+            return hash<string>{}(pair.first + pair.second);
+        }
+    };
+}
+
+auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& result)
+    -> std::unordered_set<std::pair<std::string, std::string>>
+{
+    std::unordered_set<std::pair<std::string, std::string>> members;
+
+    /** Collect all push constant default values from a layout description */
+    auto collectPushConstants = [&members](auto&& layout){
+        for (const auto& [stage, pcs] : layout.pushConstantsPerStage)
+        {
+            for (const auto& pc : pcs)
+            {
+                if (pc.defaultValueName.has_value()) {
+                    members.emplace("std::vector<std::byte>", pc.defaultValueName.value());
+                }
+            }
+        }
+    };
+    for (const auto& [_, layout] : result.layouts)
+    {
+        std::visit(VariantVisitor{
+            [&](const LayoutDesc& layout){ collectPushConstants(layout); },
+            [&](const VariantGroup<LayoutDesc>& group){
+                for (const auto& [_, layout] : group.variants) {
+                    collectPushConstants(layout);
+                }
+            },
+        }, layout);
+    }
+
+    return members;
+}
+
+auto TorchCppWriter::makeDynamicInitCreateInfoName() const -> std::string
+{
+    return capitalize(config.compiledFileName) + "CreateInfo";
+}
+
+void TorchCppWriter::writeDynamicInitCreateInfoStruct(
+    const CompileResult& result,
+    std::ostream& os)
+{
+    const auto members = collectDynamicInitCreateInfoMembers(result);
+
+    os << "struct " << makeDynamicInitCreateInfoName()
+       << nl << "{";
+
+    if (!members.empty())
+    {
+        // Write constructor head
+        os << (++nl)++ << makeDynamicInitCreateInfoName() << "(";
+        for (const auto& [type, member] : members) {
+            os << nl << "const " << type << "& _" << member << ",";
+        }
+        os.seekp(-1, std::ios::end);
+        os << ")" << nl << ":";
+        // Write constructor initialization
+        for (const auto& [_, member] : members) {
+            os << nl << member << "(_" << member << "),";
+        }
+        os.seekp(-1, std::ios::end);
+        os << --nl << "{}" << nl;
+    }
+
+    for (const auto& [type, member] : members) {
+        os << nl << type << " " << member << ";";
+    }
+    os << --nl << "};";
+}
+
+void TorchCppWriter::writeDynamicInitFunctionHead(std::ostream& os)
+{
+    os << "void init" << capitalize(config.compiledFileName)
+       << "(const " << makeDynamicInitCreateInfoName() << "& info)";
+}
+
+void TorchCppWriter::writeDynamicInitFunctionDef(std::ostream& os)
+{
+    writeDynamicInitFunctionHead(os);
+    os << nl++ << "{";
+    for (const auto& funcName : initFunctionNames) {
+        os << nl << funcName << "(info);";
+    }
+    os << --nl << "}";
+}
+
 auto TorchCppWriter::getOutputType(const ShaderDesc& shader) -> ShaderOutputType
 {
     if (shader.outputType) {
@@ -237,6 +345,8 @@ auto TorchCppWriter::compileShader(const ShaderDesc& shader) -> std::string
 
 void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
 {
+    // HACK: Hard-coded 'standard library' flag types that shall not be written
+    // to the generated file.
     static std::unordered_set<std::string> hack{
         "Bool",
         "Format",

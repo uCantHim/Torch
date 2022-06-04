@@ -49,6 +49,13 @@ public:
     auto getFlagType(size_t flagIndex) const -> std::string;
     auto getFlagBit(VariantFlag ref) const -> std::pair<std::string, std::string>;
 
+    /**
+     * @param VariantFlag flag
+     *
+     * @return size_t The number of flag bits in a flag type.
+     */
+    auto getNumFlagBits(VariantFlag flag) const -> size_t;
+
     auto makeFlagDescriptions() const -> std::vector<FlagDesc>;
 
 private:

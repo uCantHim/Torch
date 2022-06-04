@@ -36,6 +36,11 @@ auto FlagTable::getFlagBit(VariantFlag ref) const -> std::pair<std::string, std:
     return { flag.name, flag.bits.at(ref.flagBitId) };
 }
 
+auto FlagTable::getNumFlagBits(VariantFlag flag) const -> size_t
+{
+    return flags.at(flag.flagId).bits.size();
+}
+
 auto FlagTable::makeFlagDescriptions() const -> std::vector<FlagDesc>
 {
     std::vector<FlagDesc> result;

@@ -22,7 +22,7 @@ public:
 
 private:
     static auto compile(const fs::path& filename) -> std::optional<CompileResult>;
-    static void writeOutput(const CompileResult& result);
+    static void writeOutput(const std::string& uniqueName, const CompileResult& result);
 
     static void writeShader(const std::string& code,
                             const fs::path& outPath,
