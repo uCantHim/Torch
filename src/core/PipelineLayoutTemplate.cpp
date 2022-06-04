@@ -5,6 +5,16 @@
 
 
 
+trc::PushConstantDefaultValue::PushConstantDefaultValue(std::vector<std::byte> rawData)
+    :
+    _setAsDefault([](const std::any& value, PipelineLayout& layout, vk::PushConstantRange range){
+        auto data = std::any_cast<std::vector<std::byte>>(value);
+        layout.addDefaultPushConstantValue(range.offset, std::move(data), range.stageFlags);
+    }),
+    value(std::move(rawData))
+{
+}
+
 void trc::PushConstantDefaultValue::setAsDefault(
     PipelineLayout& layout,
     vk::PushConstantRange range) const

@@ -95,13 +95,35 @@ namespace trc
          */
         void addStaticDescriptorSet(ui32 descriptorIndex, DescriptorID id) noexcept;
 
+        /**
+         * @brief Set default data for a push constant range
+         *
+         * @param ui32 offset
+         * @param std::vector<std::byte> data Raw data
+         * @param vk::ShaderStageFlags stages All stages for which the data
+         *                                    should be set as default.
+         */
+        void addDefaultPushConstantValue(ui32 offset,
+                                         std::vector<std::byte> data,
+                                         vk::ShaderStageFlags stages);
+
+        /**
+         * @brief Set default data for a push constant range
+         *
+         * Set default data for the range `[offset, offset + sizeof(T)]`.
+         *
+         * @param ui32 offset
+         * @param T value
+         * @param vk::ShaderStageFlags stages All stages for which the data
+         *                                    should be set as default.
+         */
         template<typename T>
-        void addDefaultPushConstantValue(ui32 offset, T value, vk::ShaderStageFlags stages);
+        void addDefaultPushConstantValue(ui32 offset, const T& value, vk::ShaderStageFlags stages);
 
     private:
         vk::UniquePipelineLayout layout;
 
-        using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<uint8_t>>;
+        using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<std::byte>>;
         std::vector<PushConstantValue> defaultPushConstants;
         std::vector<std::pair<ui32, DescriptorID>> dynamicDescriptorSets;
         std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
@@ -133,15 +155,24 @@ namespace trc
 
 
 
-    template<typename T>
-    void PipelineLayout::addDefaultPushConstantValue(
+    inline void PipelineLayout::addDefaultPushConstantValue(
         ui32 offset,
-        T value,
+        std::vector<std::byte> data,
         vk::ShaderStageFlags stages)
     {
-        std::vector<uint8_t> defaultValue(sizeof(T));
-        memcpy(defaultValue.data(), &value, sizeof(T));
+        if (!data.empty()) {
+            defaultPushConstants.emplace_back(offset, stages, std::move(data));
+        }
+    }
 
+    template<typename T>
+    inline void PipelineLayout::addDefaultPushConstantValue(
+        ui32 offset,
+        const T& value,
+        vk::ShaderStageFlags stages)
+    {
+        std::vector<std::byte> defaultValue(sizeof(T));
+        memcpy(defaultValue.data(), &value, sizeof(T));
         defaultPushConstants.emplace_back(offset, stages, std::move(defaultValue));
     }
 } // namespace trc
