@@ -7,36 +7,12 @@
 layout (early_fragment_tests) in;
 
 // Buffers
-layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
-{
-    vec2 mousePos;
-    vec2 resolution;
-} global;
-
 layout (set = 1, binding = 0, std430) restrict readonly buffer MaterialBuffer
 {
     Material materials[];
 };
 
 layout (set = 1, binding = 1) uniform sampler2D textures[];
-
-layout (set = 3, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
-
-layout (set = 3, binding = 5) restrict buffer FragmentListAllocator
-{
-    uint nextFragmentListIndex;
-    uint maxFragmentListIndex;
-};
-
-layout (set = 3, binding = 6) restrict buffer FragmentList
-{
-    /**
-     * 0: A packed color
-     * 1: Fragment depth value
-     * 2: Next-pointer
-     */
-    uint fragmentList[][3];
-};
 
 // Input
 layout (location = 0) in VertexData
