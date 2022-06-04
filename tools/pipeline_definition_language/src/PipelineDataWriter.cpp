@@ -49,7 +49,7 @@ auto convert(PipelineDesc::Rasterization::PolygonMode mode)
     {
     case T::ePoint: return "vk::PolygonMode::ePoint";
     case T::eLine:  return "vk::PolygonMode::eLine";
-    case T::eFill:  return "vk::PolygonMode::ePoint";
+    case T::eFill:  return "vk::PolygonMode::eFill";
     }
     throw std::logic_error("");
 }
