@@ -159,7 +159,7 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
         }
     }
     ss << --nl << "},";  // .inputAttributes{
-    ss << nl << ".vertexInput{},";  // Is set automatically from the two previous attributes
+    ss << nl << ".vertexInput{},  // set by pipelines creation";
 
     // Write input assembly
     ss << nl << ".inputAssembly{ {}, " << "vk::PrimitiveTopology::"
@@ -170,7 +170,8 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
     ss << nl << ".tessellation{ {}, " << pipeline.tessellation.patchControlPoints << " },";
 
     // Write empty viewport properties for completeness
-    ss << nl << ".viewports{}," << nl << ".scissorRects{}," << nl << ".viewport{},";
+    ss << nl << ".viewports{}," << nl << ".scissorRects{},"
+       << nl << ".viewport{},  // set by pipeline creation";
 
     // Write rasterization
     const auto& r = pipeline.rasterization;
@@ -211,11 +212,6 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
     ss << nl++ << ".colorBlendAttachments{";
     for (const auto& att : pipeline.blendAttachments)
     {
-        if (!att.blendEnable)
-        {
-            ss << nl << "vk::PipelineColorBlendAttachmentState{ false },";
-            continue;
-        }
         ss << nl++ << "vk::PipelineColorBlendAttachmentState{"
            << nl << att.blendEnable << ","
            << nl << convert(att.srcColorFactor) << ", " << convert(att.dstColorFactor) << ", "
@@ -226,7 +222,7 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
            << --nl << "},";
     }
     ss << --nl << "},";
-    ss << ".colorBlending{},";
+    ss << ".colorBlending{},  // set by pipeline creation";
 
     // Write dynamic state
     ss << nl++ << ".dynamicStates{";
@@ -234,7 +230,7 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
         ss << nl << "vk::DynamicState::" << state << ",";
     }
     ss << --nl << "},";
-    ss << ".dynamicState{},";
+    ss << nl << ".dynamicState{},  // set by pipeline creation";
 
     // End
     ss << --nl << "}";  // PipelineDefinitionData{
