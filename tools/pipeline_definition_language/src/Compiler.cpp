@@ -461,13 +461,15 @@ auto Compiler::compileSingle<LayoutDesc>(const compiler::Object& obj) -> LayoutD
 
     // Push constant ranges
     auto toPushConst = [this](auto&& val){
-        return LayoutDesc::PushConstantRange{
+        LayoutDesc::PushConstantRange range{
             .offset=static_cast<size_t>(expectInt(expectSingle(expectObject(val), "Offset"))),
             .size=static_cast<size_t>(expectInt(expectSingle(expectObject(val), "Size"))),
-            .defaultValueName=hasField(expectObject(val), "DefaultValue")
-                ? expectString(expectSingle(expectObject(val), "DefaultValue"))
-                : std::optional<std::string>{ std::nullopt }
+            .defaultValueName=std::nullopt
         };
+        if (hasField(expectObject(val), "DefaultValue")) {
+            range.defaultValueName = expectString(expectSingle(expectObject(val), "DefaultValue"));
+        }
+        return range;
     };
     if (hasField(obj, "VertexPushConstants"))
         for (const auto& val : expectList(expectSingle(obj, "VertexPushConstants")).values)

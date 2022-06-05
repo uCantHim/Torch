@@ -2,8 +2,7 @@
 
 #include "Types.h"
 #include "core/Pipeline.h"
-
-#include <trc/Pipelines.h>
+#include "trc/Pipelines.h"  // Generated drawable pipeline definitions
 
 namespace trc
 {

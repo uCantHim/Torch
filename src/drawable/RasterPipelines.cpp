@@ -19,6 +19,12 @@ struct DrawablePushConstants
 
 auto getPipeline(DrawablePipelineTypeFlags flags) -> Pipeline::ID
 {
+    [[maybe_unused]]
+    static bool _init = []{
+        initPipelines({ DrawablePushConstants{} });
+        return true;
+    }();
+
     return getDrawablePipeline(flags);
 }
 

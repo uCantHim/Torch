@@ -18,7 +18,7 @@ namespace trc
         auto operator=(PushConstantDefaultValue&&) noexcept -> PushConstantDefaultValue& = default;
         ~PushConstantDefaultValue() = default;
 
-        explicit PushConstantDefaultValue(std::vector<std::byte> rawData);
+        PushConstantDefaultValue(std::vector<std::byte> rawData);
         template<typename T>
         PushConstantDefaultValue(T&& value);
 

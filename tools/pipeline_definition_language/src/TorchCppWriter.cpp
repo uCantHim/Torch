@@ -222,11 +222,13 @@ auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& re
             for (const auto& pc : pcs)
             {
                 if (pc.defaultValueName.has_value()) {
-                    members.emplace("std::vector<std::byte>", pc.defaultValueName.value());
+                    members.emplace("trc::PushConstantDefaultValue", pc.defaultValueName.value());
                 }
             }
         }
     };
+
+    // Collect push constants
     for (const auto& [_, layout] : result.layouts)
     {
         std::visit(VariantVisitor{
