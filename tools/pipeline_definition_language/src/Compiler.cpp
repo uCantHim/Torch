@@ -504,35 +504,33 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
 {
     // Compile vertex inputs
     std::vector<PipelineDesc::VertexAttribute> vertexInput;
-    for (size_t binding = 0;
-         const auto& value : expectList(expectSingle(obj, "VertexInput")).values)
+    if (hasField(obj, "VertexInput"))
     {
-        assert(value != nullptr);
-        const auto& in = expectObject(*value);
-        auto& out = vertexInput.emplace_back();
-
-        // Formats
-        size_t calcStride = 0;  // Calculate the canonical stride for later
-        for (const auto& opt : expectList(expectSingle(in, "Locations")).values)
+        for (size_t binding = 0;
+             const auto& value : expectList(expectSingle(obj, "VertexInput")).values)
         {
-            assert(opt != nullptr);
-            auto& format = out.locationFormats.emplace_back(expectString((*opt)));
-            calcStride += util::getFormatByteSize(format);
-        }
+            assert(value != nullptr);
+            const auto& in = expectObject(*value);
+            auto& out = vertexInput.emplace_back();
 
-        // Binding (optional)
-        if (hasField(in, "Binding")) {
-            out.binding = expectInt(expectSingle(in, "Binding"));
-        }
-        else out.binding = binding;
+            // Formats
+            size_t calcStride = 0;  // Calculate the canonical stride for later
+            for (const auto& opt : expectList(expectSingle(in, "Locations")).values)
+            {
+                assert(opt != nullptr);
+                auto& format = out.locationFormats.emplace_back(expectString((*opt)));
+                calcStride += util::getFormatByteSize(format);
+            }
 
-        // Stride (optional)
-        if (hasField(in, "Stride")) {
-            out.stride = expectInt(expectSingle(in, "Stride"));
-        }
-        else out.stride = calcStride;
+            // Binding (optional)
+            out.binding = hasField(in, "Binding") ? expectInt(expectSingle(in, "Binding"))
+                                                  : binding;
+            // Stride (optional)
+            out.stride = hasField(in, "Stride") ? expectInt(expectSingle(in, "Stride"))
+                                                : calcStride;
 
-        ++binding;
+            ++binding;
+        }
     }
 
     // Compile input assembly state
