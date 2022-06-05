@@ -26,7 +26,7 @@ auto LineWriter::operator++(int) -> LineWriter
 
 auto LineWriter::operator--() -> LineWriter&
 {
-    --indent;
+    if (indent > 0) --indent;
     return *this;
 }
 
