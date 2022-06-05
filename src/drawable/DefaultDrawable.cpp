@@ -42,19 +42,19 @@ void drawShadow(
     cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
 }
 
-auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> DrawablePipelineTypeFlags
+auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> pipelines::DrawablePipelineTypeFlags
 {
     using namespace se;
-    DrawablePipelineTypeFlags flags{
-        AnimationTypeFlagBits::none
-        | PipelineShadingTypeFlagBits::opaque
+    pipelines::DrawablePipelineTypeFlags flags{
+        pipelines::AnimationTypeFlagBits::none
+        | pipelines::PipelineShadingTypeFlagBits::opaque
     };
 
     if (info.transparent) {
-        flags |= PipelineShadingTypeFlagBits::transparent;
+        flags |= pipelines::PipelineShadingTypeFlagBits::transparent;
     }
     if (info.geo.get().hasRig()) {
-        flags |= AnimationTypeFlagBits::boneAnim;
+        flags |= pipelines::AnimationTypeFlagBits::boneAnim;
     }
 
     return flags;
@@ -132,7 +132,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
     {
         result.drawFunctions.emplace_back(
             shadowRenderStage, SubPass::ID(0),
-            getPipeline(getDrawablePipelineFlags(info) | PipelineShadingTypeFlagBits::shadow),
+            getPipeline(getDrawablePipelineFlags(info) | pipelines::PipelineShadingTypeFlagBits::shadow),
             drawShadow
         );
     }

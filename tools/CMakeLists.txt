@@ -7,7 +7,6 @@ set(PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES TRUE)
 add_subdirectory(componentlib)
 add_subdirectory(shader_edit)
 add_subdirectory(pipeline_definition_language)
-add_subdirectory(pre_build_step)
 
 torch_default_compile_options(pipeline_compiler)
 set_target_properties(pipeline_compiler PROPERTIES

@@ -1,5 +1,5 @@
 Meta:
-    Namespace: "trc"
+    Namespace: "trc::pipelines"
 
 
 enum AnimationType: none, boneAnim

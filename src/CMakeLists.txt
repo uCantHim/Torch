@@ -5,8 +5,6 @@ target_include_directories(torch PUBLIC
 target_sources(
     torch
     PRIVATE
-        ${CMAKE_BINARY_DIR}/generated-sources/include/trc/Pipelines.cpp
-
         AnimationEngine.cpp
         Camera.cpp
         DescriptorSetUtils.cpp

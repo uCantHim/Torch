@@ -49,13 +49,6 @@ add_subdirectory(torch_util)
 add_subdirectory(tools)
 add_subdirectory(shaders)
 
-# Mark generated files as such
-# Apparently, the GENERATED property cannot be propagated from an add_subdirectory
-# to the parent CMakeLists.txt...
-set_source_files_properties(
-    ${TORCH_GENERATED_DIR}/Pipelines.cpp GENERATED
-)
-
 # Library target
 add_library(torch)
 torch_default_compile_options(torch)
@@ -82,9 +75,6 @@ target_link_libraries(
         PNG::PNG
 )
 
-add_dependencies(compile_shaders pre_build_step)
-add_dependencies(torch compile_shaders pre_build_step)
-
 target_compile_definitions(torch
     PUBLIC
         TRC_COMPILE_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}"
@@ -97,22 +87,12 @@ target_compile_definitions(torch
         TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
 )
 
-# Protobuf headers and sources
-protobuf_generate_cpp(
-    TRC_PROTO_SRCS TRC_PROTO_HDRS
-    protobuf/vector_types.proto
-    protobuf/geometry.proto
-    protobuf/texture.proto
-    protobuf/material.proto
-    protobuf/rig.proto
-    protobuf/animation.proto
+# Pipeline generation
+include(tools/pre_build_step/CMakeLists.txt)
+_torch_compile_pipelines_cpp("DrawablePipelines")
 
-    protobuf/asset.proto
-    protobuf/asset_reference.proto
-)
-
-target_sources(torch PRIVATE ${TRC_PROTO_SRCS})
-target_include_directories(torch PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+# Protobuf generation
+include(protobuf/CMakeLists.txt)
 
 # Sources
 add_subdirectory(vk_base)

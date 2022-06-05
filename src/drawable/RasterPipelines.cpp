@@ -17,11 +17,11 @@ struct DrawablePushConstants
     float keyframeWeight{ 0.0f };
 };
 
-auto getPipeline(DrawablePipelineTypeFlags flags) -> Pipeline::ID
+auto getPipeline(pipelines::DrawablePipelineTypeFlags flags) -> Pipeline::ID
 {
     [[maybe_unused]]
     static bool _init = []{
-        initPipelines({ DrawablePushConstants{} });
+        pipelines::initDrawablePipelines({ DrawablePushConstants{} });
         return true;
     }();
 
