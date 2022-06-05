@@ -1,5 +1,7 @@
 #include "util/DeviceLocalDataWriter.h"
 
+#include <vkb/Barriers.h>
+
 #include "FrameRenderState.h"
 
 
@@ -52,6 +54,13 @@ void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderSta
         cmdBuf.copyBuffer(
             *write.stagingBuffer, write.dstBuffer, write.copyRegion
         );
+        vkb::bufferMemoryBarrier(
+            cmdBuf,
+            write.dstBuffer, write.copyRegion.dstOffset, write.copyRegion.size,
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands,
+            vk::AccessFlagBits::eTransferWrite,
+            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eMemoryRead
+        );
     }
 
     // Copy data to images
@@ -62,6 +71,16 @@ void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderSta
             write.dstImage,
             vk::ImageLayout::eTransferDstOptimal,
             write.copyRegion
+        );
+        auto& r = write.copyRegion.imageSubresource;
+        vkb::imageMemoryBarrier(
+            cmdBuf,
+            write.dstImage,
+            vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands,
+            vk::AccessFlagBits::eTransferWrite,
+            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eMemoryRead,
+            vk::ImageSubresourceRange(r.aspectMask, r.mipLevel, 1, r.baseArrayLayer, r.layerCount)
         );
     }
 
