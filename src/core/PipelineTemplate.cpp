@@ -93,6 +93,12 @@ void trc::PipelineTemplate::compileData()
 
 
 
+trc::ComputePipelineTemplate::ComputePipelineTemplate(std::string shaderCode)
+    :
+    shaderCode(std::move(shaderCode))
+{
+}
+
 void trc::ComputePipelineTemplate::setProgramCode(std::string code)
 {
     shaderCode = std::move(code);

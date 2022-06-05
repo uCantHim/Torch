@@ -105,6 +105,7 @@ namespace trc
     {
     public:
         ComputePipelineTemplate() = default;
+        explicit ComputePipelineTemplate(std::string shaderCode);
 
         void setProgramCode(std::string code);
 
