@@ -140,7 +140,7 @@ auto PipelineRegistry<T>::registerPipeline(
         );
     }
 
-    _registerPipelineFactory({ std::move(_template), layout });
+    return _registerPipelineFactory({ std::move(_template), layout });
 }
 
 template<RenderConfigType T>
