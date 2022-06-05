@@ -22,6 +22,8 @@ inline auto shaderKindFromExtension(const fs::path& path)
         return shaderc_shader_kind::shaderc_glsl_default_task_shader;
     if (ext == ".mesh")
         return shaderc_shader_kind::shaderc_glsl_default_mesh_shader;
+    if (ext == ".comp")
+        return shaderc_shader_kind::shaderc_glsl_default_compute_shader;
     if (ext == ".rgen")
         return shaderc_shader_kind::shaderc_glsl_default_raygen_shader;
     if (ext == ".rchit")

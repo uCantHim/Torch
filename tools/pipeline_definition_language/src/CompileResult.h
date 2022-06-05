@@ -166,6 +166,12 @@ struct PipelineDesc
     std::vector<std::string> dynamicStates{};
 };
 
+struct ComputePipelineDesc
+{
+    ObjectReference<LayoutDesc> layout;
+    ObjectReference<ShaderDesc> shader;
+};
+
 template<typename T>
 struct VariantGroup
 {
@@ -194,4 +200,5 @@ struct CompileResult
     std::unordered_map<std::string, SingleOrVariant<ProgramDesc>> programs;
     std::unordered_map<std::string, SingleOrVariant<LayoutDesc>> layouts;
     std::unordered_map<std::string, SingleOrVariant<PipelineDesc>> pipelines;
+    std::unordered_map<std::string, SingleOrVariant<ComputePipelineDesc>> computePipelines;
 };

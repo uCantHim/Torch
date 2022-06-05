@@ -147,7 +147,7 @@ auto TorchCppWriter::makeStoredType() -> std::string
     else if constexpr (std::same_as<T, LayoutDesc>) {
         return "trc::PipelineLayout::ID";
     }
-    else if constexpr (std::same_as<T, PipelineDesc>) {
+    else if constexpr (std::same_as<T, PipelineDesc> || std::same_as<T, ComputePipelineDesc>) {
         return "trc::Pipeline::ID";
     }
 }
@@ -308,6 +308,32 @@ template<>
 inline void TorchCppWriter::writeVariantStorageInit(
     const UniqueName&,
     const PipelineDesc& pipeline,
+    std::ostream& os)
+{
+    os << makeValue(pipeline);
+}
+
+
+
+////////////////////////////
+//  Pipeline type writer  //
+////////////////////////////
+
+template<>
+inline auto TorchCppWriter::makeValue(const ComputePipelineDesc& pipeline) -> std::string
+{
+    std::stringstream ss;
+    ss << "trc::PipelineRegistry<trc::TorchRenderConfig>::registerPipeline("
+       << ++nl << "trc::ComputePipelineTemplate(" << makeValue(pipeline.shader) << "),"
+       << nl << makeValue(pipeline.layout)
+       << --nl << ")";
+    return ss.str();
+}
+
+template<>
+inline void TorchCppWriter::writeVariantStorageInit(
+    const UniqueName&,
+    const ComputePipelineDesc& pipeline,
     std::ostream& os)
 {
     os << makeValue(pipeline);

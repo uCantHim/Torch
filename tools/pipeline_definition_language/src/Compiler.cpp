@@ -135,6 +135,10 @@ auto Compiler::compile() -> CompileResult
     if (it != globalObject.fields.end()) {
         result.pipelines = compileMulti<PipelineDesc>(expectMap(it->second));
     }
+    it = globalObject.fields.find("ComputePipeline");
+    if (it != globalObject.fields.end()) {
+        result.computePipelines = compileMulti<ComputePipelineDesc>(expectMap(it->second));
+    }
 
     result.flagTable = converter.getFlagTable();
     return result;
@@ -648,5 +652,14 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
         .depthStencil=ds,
         .blendAttachments=std::move(blendAttachments),
         .dynamicStates=std::move(dynamicStates),
+    };
+}
+
+template<>
+auto Compiler::compileSingle<ComputePipelineDesc>(const compiler::Object& obj) -> ComputePipelineDesc
+{
+    return {
+        .layout=makeReference<LayoutDesc>(expectSingle(obj, "Layout")),
+        .shader=makeReference<ShaderDesc>(expectSingle(obj, "Shader")),
     };
 }

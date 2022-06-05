@@ -137,5 +137,12 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
                 { "DynamicState", { "String", FieldType::eList } },
             }
         }},
+        { "ComputePipeline", ObjectType{
+            .typeName="ComputePipeline",
+            .fields={
+                { "Layout", { "Layout" } },
+                { "Shader", { "Shader" } },
+            }
+        }},
     });
 }

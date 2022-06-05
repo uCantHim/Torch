@@ -96,6 +96,8 @@ void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
     writeHeader<LayoutDesc>(result.layouts, os);
     writeBanner("Pipelines", os);
     writeHeader<PipelineDesc>(result.pipelines, os);
+    writeBanner("ComputePipelines", os);
+    writeHeader<ComputePipelineDesc>(result.computePipelines, os);
 
     if (meta.enclosingNamespace.has_value()) {
         os << nl << "} // namespace " << meta.enclosingNamespace.value();
@@ -116,6 +118,8 @@ void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
     writeSource<LayoutDesc>(result.layouts, os);
     writeBanner("Pipelines", os);
     writeSource<PipelineDesc>(result.pipelines, os);
+    writeBanner("ComputePipelines", os);
+    writeSource<ComputePipelineDesc>(result.computePipelines, os);
 
     // Write at the end when all init callback names have been collected
     os << nl << nl;
