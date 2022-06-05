@@ -82,16 +82,18 @@ auto vkb::DeviceMemory::allocate(
 
 void vkb::DeviceMemory::bindToBuffer(const Device& device, vk::Buffer buffer) const
 {
+    auto pad = [](auto val, auto pad){ auto r=val%pad; return r == 0 ? val : val + (pad - r); };
     const vk::DeviceSize align = device->getBufferMemoryRequirements(buffer).alignment;
-    const vk::DeviceSize paddedOffset = internal.baseOffset + (internal.baseOffset % align);
+    const vk::DeviceSize paddedOffset = pad(internal.baseOffset, align);
 
     device->bindBufferMemory(buffer, internal.memory, paddedOffset);
 }
 
 void vkb::DeviceMemory::bindToImage(const Device& device, vk::Image image) const
 {
+    auto pad = [](auto val, auto pad){ auto r=val%pad; return r == 0 ? val : val + (pad - r); };
     const vk::DeviceSize align = device->getImageMemoryRequirements(image).alignment;
-    const vk::DeviceSize paddedOffset = internal.baseOffset + (internal.baseOffset % align);
+    const vk::DeviceSize paddedOffset = pad(internal.baseOffset, align);
 
     device->bindImageMemory(image, internal.memory, paddedOffset);
 }
