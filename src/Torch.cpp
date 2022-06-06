@@ -7,6 +7,8 @@
 #include "experimental/ImguiIntegration.h"
 #endif
 #include "ray_tracing/RayTracing.h"
+#include "trc/DrawablePipelines.h"
+#include "trc/RasterPipelines.h"
 
 
 
@@ -23,6 +25,10 @@ void trc::init(const TorchInitInfo&)
     vkb::init();
 
     torchGlobalVulkanInstance = std::make_unique<vkb::VulkanInstance>();
+
+    // Init pipelines
+    pipelines::initDrawablePipelines({ DrawablePushConstants{} });
+    pipelines::initRasterPipelines({});
 }
 
 auto trc::getVulkanInstance() -> vkb::VulkanInstance&

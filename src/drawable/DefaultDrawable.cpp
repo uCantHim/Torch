@@ -1,9 +1,9 @@
 #include "drawable/DefaultDrawable.h"
 
-#include "TorchResources.h"
-#include "GBufferPass.h"
-#include "RenderPassShadow.h"
-#include "drawable/RasterPipelines.h"
+#include "trc/TorchResources.h"
+#include "trc/GBufferPass.h"
+#include "trc/RenderPassShadow.h"
+#include "trc/DrawablePipelines.h"
 
 
 
@@ -66,7 +66,7 @@ auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> pipelines::Draw
 
 auto trc::determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID
 {
-    return getPipeline(getDrawablePipelineFlags(info));
+    return getDrawablePipeline(getDrawablePipelineFlags(info));
 }
 
 auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
@@ -132,7 +132,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
     {
         result.drawFunctions.emplace_back(
             shadowRenderStage, SubPass::ID(0),
-            getPipeline(getDrawablePipelineFlags(info) | pipelines::PipelineShadingTypeFlagBits::shadow),
+            getDrawablePipeline(getDrawablePipelineFlags(info) | pipelines::PipelineShadingTypeFlagBits::shadow),
             drawShadow
         );
     }

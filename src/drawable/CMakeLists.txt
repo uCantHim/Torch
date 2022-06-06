@@ -4,5 +4,4 @@ target_sources(
         DefaultDrawable.cpp
         Drawable.cpp
         DrawableComponentScene.cpp
-        RasterPipelines.cpp
 )
