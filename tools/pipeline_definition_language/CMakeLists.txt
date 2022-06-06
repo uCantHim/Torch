@@ -28,6 +28,8 @@ add_executable(pipeline_compiler main.cpp
     src/VariantResolver.cpp
 )
 
+target_compile_features(pipeline_compiler PRIVATE cxx_std_20)
+
 target_include_directories(pipeline_compiler PRIVATE src)
 target_link_libraries(pipeline_compiler PRIVATE shader_compiler_lib argparse)
 
