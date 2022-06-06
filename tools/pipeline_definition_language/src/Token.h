@@ -7,7 +7,7 @@
 enum class TokenType
 {
     // Keywords
-    eMatch, eEnum,
+    eMatch, eEnum, eImport,
 
     // Symbols
     eIndent, eNewline,
@@ -29,6 +29,8 @@ inline auto to_string(TokenType type) -> std::string
         return "eMatch";
     case TokenType::eEnum:
         return "eEnum";
+    case TokenType::eImport:
+        return "eImport";
     case TokenType::eIndent:
         return "eIndent";
     case TokenType::eNewline:

@@ -19,6 +19,7 @@ namespace compiler
         auto getFlagTable() const -> const FlagTable&;
         auto getIdentifierTable() const -> const IdentifierTable&;
 
+        void operator()(const ImportStmt&) {}
         void operator()(const TypeDef& def);
         void operator()(const EnumTypeDef& def);
 

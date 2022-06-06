@@ -14,6 +14,7 @@ add_executable(pipeline_compiler main.cpp
     src/ErrorReporter.cpp
     src/FlagTable.cpp
     src/IdentifierTable.cpp
+    src/Importer.cpp
     src/ObjectConverter.cpp
     src/Parser.cpp
     src/PipelineDataWriter.cpp

@@ -1,14 +1,18 @@
 document     ->  statement*
 
-statement    ->  field-def | type-def
+statement    ->  field-def | type-def | import
+
+
+
+import       ->  "import" STRING
+
+
 
 type-def     ->  enum-decl
 
 enum-decl    ->  "enum" IDENTIFIER ":" [NEWLINE INDENT] (IDENTIFIER "," [NEWLINE INDENT])+
 
 
-
-object-decl  ->  (NEWLINE INDENT field-def)+
 
 field-def    ->  field-name ":" field-value NEWLINE
 
@@ -24,6 +28,8 @@ field-value  ->  literal
 literal      ->  NUMBER | STRING
 
 list-decl    -> "[" [field-value ("," field-value)*] "]"
+
+object-decl  ->  (NEWLINE INDENT field-def)+
 
 match-expr   -> "match" IDENTIFIER NEWLINE (INDENT match-case NEWLINE)+
 

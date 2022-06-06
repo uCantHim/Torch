@@ -9,6 +9,7 @@
 const std::unordered_map<std::string, TokenType> Scanner::keywords{
     { "match", TokenType::eMatch },
     { "enum", TokenType::eEnum },
+    { "import", TokenType::eImport },
 };
 
 

@@ -22,6 +22,7 @@ private:
 
     auto parseStatement() -> Stmt;
 
+    auto parseImport() -> ImportStmt;
     auto parseEnum() -> EnumTypeDef;
     auto parseFieldDef() -> FieldDefinition;
     auto parseFieldName() -> FieldName;

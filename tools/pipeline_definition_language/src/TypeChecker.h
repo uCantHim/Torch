@@ -18,6 +18,7 @@ public:
 
     bool check(const std::vector<Stmt>& statements);
 
+    void operator()(const ImportStmt&) {}
     void operator()(const TypeDef&);
     void operator()(const FieldDefinition&);
 

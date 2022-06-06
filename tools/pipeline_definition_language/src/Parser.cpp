@@ -52,11 +52,24 @@ auto Parser::parseStatement() -> Stmt
         return parseFieldDef();
     case TokenType::eEnum:
         return parseEnum();
+    case TokenType::eImport:
+        return parseImport();
     default:
         error(peek(), "Expected type definition or field definition.");
     }
 
     throw std::logic_error("This code can never be reached.");
+}
+
+auto Parser::parseImport() -> ImportStmt
+{
+    expect(TokenType::eImport, "Expected IMPORT to start import statement.");
+    expect(TokenType::eLiteralString, "Expected STRING.");
+    ImportStmt stmt{ previous() };
+
+    expectNewline("Expected NEWLINE after import statment.");
+
+    return stmt;
 }
 
 auto Parser::parseEnum() -> EnumTypeDef

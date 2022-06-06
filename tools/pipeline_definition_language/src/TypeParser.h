@@ -13,6 +13,7 @@ public:
 
     void parse(const std::vector<Stmt>& statements);
 
+    void operator()(const ImportStmt&) {}
     void operator()(const TypeDef& def);
     void operator()(const EnumTypeDef& def);
     void operator()(const FieldDefinition&);

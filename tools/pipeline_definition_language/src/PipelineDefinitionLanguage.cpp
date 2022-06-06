@@ -13,6 +13,7 @@
 #include "Exceptions.h"
 #include "Scanner.h"
 #include "Parser.h"
+#include "Importer.h"
 #include "TypeParser.h"
 #include "TypeChecker.h"
 #include "Compiler.h"
@@ -167,6 +168,10 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
     // Parse
     Parser parser(std::move(tokens), *errorReporter);
     auto parseResult = parser.parseTokens();
+
+    // Resolve import statements
+    auto imports = Importer{ filename, *errorReporter }.parseImports(parseResult);
+    std::move(imports.begin(), imports.end(), std::back_inserter(parseResult));
 
     // Load standard library
     auto stdlib = loadStdlib(*errorReporter);
