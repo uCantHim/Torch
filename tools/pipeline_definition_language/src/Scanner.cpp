@@ -98,7 +98,7 @@ void Scanner::scanToken()
             scanIdentifier();
         }
         else {
-            error("Unexpected character: '" + std::string(&c) + "'");
+            error("Unexpected character: '" + std::to_string(c) + "'");
         }
         break;
     };
