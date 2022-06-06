@@ -215,7 +215,9 @@ void PipelineDefinitionLanguage::writeOutput(
         const fs::path headerName = outputFileName.replace_extension(".h");
         std::ofstream header(outputDir / headerName);
         std::ofstream source(outFilePath.replace_extension(".cpp"));
+
         source << "#include " << headerName << "\n\n";
+        header << "#pragma once\n\n";
         writer.write(result, header, source);
     }
     else {
