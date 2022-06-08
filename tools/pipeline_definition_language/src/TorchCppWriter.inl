@@ -263,6 +263,9 @@ inline auto TorchCppWriter::makeValue(const LayoutDesc& layout) -> std::string
             if (pc.defaultValueName.has_value()) {
                 ss << "info." << pc.defaultValueName.value();
             }
+            else {
+                ss << "std::nullopt";
+            }
             ss << " },";
         }
     }
