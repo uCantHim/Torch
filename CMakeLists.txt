@@ -49,6 +49,12 @@ add_subdirectory(torch_util)
 add_subdirectory(tools)
 add_subdirectory(shaders)
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_LIST_DIR}/.git/hooks/pre-commit
+    COMMAND ln -svf ../../tools/git-hooks/pre-commit ${CMAKE_CURRENT_LIST_DIR}/.git/hooks/pre-commit
+)
+add_custom_target(install_git_hooks ALL DEPENDS ${CMAKE_CURRENT_LIST_DIR}/.git/hooks/pre-commit)
+
 # Library target
 add_library(torch)
 torch_default_compile_options(torch)
