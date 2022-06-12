@@ -201,7 +201,7 @@ auto VariantResolver::operator()(const MatchExpression& expr) const -> ValueVari
             // The flag type of this match expression is new for the case's subtree.
             for (auto& var : baseVariants)
             {
-                var.setFlags.emplace_back(currentOptFlag);
+                var.setFlags.emplace(currentOptFlag);
                 std::ranges::move(generateVariants(newFlagTypes, std::move(var)),
                                   std::back_inserter(results));
             }
@@ -249,7 +249,7 @@ auto VariantResolver::generateVariants(
                 const VariantFlag currentFlag{ flagType, flagBit };
 
                 auto copy = var;
-                copy.setFlags.emplace_back(currentFlag);
+                copy.setFlags.emplace(currentFlag);
                 newVariants.emplace_back(std::move(copy));
             }
         }
@@ -287,7 +287,7 @@ void VariantResolver::mergeFlags(
     for (const auto& flag : src)
     {
         if (std::ranges::find(dst, flag) == dst.end()) {
-            dst.emplace_back(flag);
+            dst.emplace(flag);
         }
     }
 }

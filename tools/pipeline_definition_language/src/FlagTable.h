@@ -5,33 +5,7 @@
 #include <unordered_map>
 
 #include "SyntaxElements.h"
-
-struct VariantFlag
-{
-    size_t flagId;
-    size_t flagBitId;
-
-    inline bool operator==(const VariantFlag& a) const {
-        return flagId == a.flagId && flagBitId == a.flagBitId;
-    }
-};
-
-namespace std
-{
-    template<>
-    struct hash<VariantFlag>
-    {
-        auto operator()(const VariantFlag& f) const -> size_t
-        {
-            return hash<size_t>{}((f.flagId << (sizeof(size_t) / 2)) + f.flagBitId);
-        }
-    };
-} // namespace std
-
-/**
- * @brief A combination of different variant flags
- */
-using VariantFlagSet = std::vector<VariantFlag>;
+#include "VariantFlagSet.h"
 
 class FlagTable
 {

@@ -25,6 +25,7 @@ add_library(pipeline_compiler_lib
     src/TypeConfiguration.cpp
     src/TypeParser.cpp
     src/UniqueName.cpp
+    src/VariantFlagSet.cpp
     src/VariantResolver.cpp
 )
 
