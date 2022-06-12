@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "../src/ErrorReporter.h"
-#include "../src/Scanner.h"
+#include "ErrorReporter.h"
+#include "Scanner.h"
 
 class TestErrorReporter : public ErrorReporter
 {

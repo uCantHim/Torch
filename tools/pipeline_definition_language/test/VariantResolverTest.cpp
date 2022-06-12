@@ -5,13 +5,12 @@
 #include <vector>
 #include <ranges>
 
-#include "../src/ErrorReporter.h"
-#include "../src/Scanner.h"
-#include "../src/Parser.h"
-#include "../src/FlagTable.h"
-#include "../src/IdentifierTable.h"
-#include "../src/VariantResolver.h"
-#include "VariantFlagSetHash.h"
+#include "ErrorReporter.h"
+#include "Scanner.h"
+#include "Parser.h"
+#include "FlagTable.h"
+#include "IdentifierTable.h"
+#include "VariantResolver.h"
 
 class TestErrorReporter : public ErrorReporter
 {
