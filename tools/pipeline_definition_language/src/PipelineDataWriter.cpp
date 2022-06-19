@@ -147,9 +147,9 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
     ss << --nl << "},";  // .inputBindings{
     // Write input attributes
     ss << nl++ << ".attributes{";
-    for (const auto& attrib : pipeline.vertexInput)
+    for (size_t loc = 0; const auto& attrib : pipeline.vertexInput)
     {
-        for (size_t loc = 0, offset = 0; const auto& format : attrib.locationFormats)
+        for (size_t offset = 0; const auto& format : attrib.locationFormats)
         {
             ss << nl << "vk::VertexInputAttributeDescription("
                << loc++ << ", " << attrib.binding << ", "
