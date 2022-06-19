@@ -7,6 +7,7 @@
 #include "ui/Window.h"
 #include "ui/torch/GuiRenderer.h"
 #include "PipelineDefinitions.h"
+#include "trc/GuiShaders.h"
 
 
 
@@ -20,8 +21,7 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
     -> Pipeline
 {
     return buildGraphicsPipeline()
-        .setProgram(internal::loadShader("/ui/line.vert.spv"),
-                    internal::loadShader("/ui/line.frag.spv"))
+        .setProgram(pipelines::getLine())
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
             { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
@@ -41,8 +41,7 @@ auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui
     -> Pipeline
 {
     return buildGraphicsPipeline()
-        .setProgram(internal::loadShader("/ui/quad.vert.spv"),
-                    internal::loadShader("/ui/quad.frag.spv"))
+        .setProgram(pipelines::getQuad())
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(QuadVertex), vk::VertexInputRate::eVertex),
             {
@@ -74,8 +73,7 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
     -> Pipeline
 {
     return buildGraphicsPipeline()
-        .setProgram(internal::loadShader("/ui/text.vert.spv"),
-                    internal::loadShader("/ui/text.frag.spv"))
+        .setProgram(pipelines::getText())
         .addVertexInputBinding(
             vk::VertexInputBindingDescription(0, sizeof(QuadVertex), vk::VertexInputRate::eVertex),
             {
@@ -200,6 +198,7 @@ trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, ::trc::Gui
     )),
     quadPipelineLayout(makePipelineLayout(device, {}, {})),
     textPipelineLayout(trc::makePipelineLayout(device, { *descLayout }, {})),
+    _init([]{ pipelines::initGuiShaders({}); return true; }()),
     linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
     quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
     textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),

@@ -4,15 +4,6 @@ file(GLOB SHADERS_GLSL
     # .
     compositing.comp
 
-    # ui
-    ui/image_blend.comp
-    ui/line.frag
-    ui/line.vert
-    ui/quad.frag
-    ui/quad.vert
-    ui/text.frag
-    ui/text.vert
-
     # ray tracing
     ray_tracing/anyhit.rahit
     ray_tracing/blue.rmiss

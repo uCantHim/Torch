@@ -143,6 +143,7 @@ endif ()
 
 # Custom GUI library
 if (${TORCH_INTEGRATE_GUI})
+    _torch_compile_pipelines_cpp("GuiShaders")
     add_subdirectory(src/ui)
 endif ()
 

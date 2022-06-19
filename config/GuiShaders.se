@@ -1,0 +1,23 @@
+Meta:
+    Namespace: "trc::ui_impl::pipelines"
+
+Program line:
+    VertexShader:
+        Source: "ui/line.vert"
+    FragmentShader:
+        Source: "ui/line.frag"
+
+Program quad:
+    VertexShader:
+        Source: "ui/quad.vert"
+    FragmentShader:
+        Source: "ui/quad.frag"
+
+Program text:
+    VertexShader:
+        Source: "ui/text.vert"
+    FragmentShader:
+        Source: "ui/text.frag"
+
+Shader imageBlend:
+    Source: "ui/image_blend.comp"
