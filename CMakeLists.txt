@@ -59,6 +59,8 @@ add_custom_target(install_git_hooks ALL DEPENDS ${CMAKE_CURRENT_LIST_DIR}/.git/h
 add_library(torch)
 torch_default_compile_options(torch)
 
+add_dependencies(torch compile_shaders)
+
 target_include_directories(torch
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include

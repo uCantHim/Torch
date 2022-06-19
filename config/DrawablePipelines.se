@@ -61,19 +61,26 @@ VertexAttribute drawableVertexInput:
 //  Layouts  //
 ///////////////
 
-PushConstant drawablePushConstants:
-    Offset: 0
-    Size: 84
-    DefaultValue: "drawablePushConstantDefaultValue"
+PushConstant drawablePushConstants: match PipelineShadingType
+    opaque ->
+        Offset: 0
+        Size: 84
+        DefaultValue: "drawablePushConstantDefaultValue"
+    transparent ->
+        Offset: 0
+        Size: 84
+        DefaultValue: "drawablePushConstantDefaultValue"
+    shadow ->
+        Offset: 0
+        Size: 84
 
 Layout drawableLayout:
     Descriptors: match PipelineShadingType
         opaque -> ["global_data", "asset_registry", "scene_data", "g_buffer"]
         transparent -> ["global_data", "asset_registry", "scene_data", "g_buffer", "shadow"]
-        // shadow -> match AnimationType
-        //     none -> ["shadow"]
-        //     boneAnim -> ["shadow", "asset_registry"]
-        shadow -> ["shadow", "asset_registry"]
+        shadow -> match AnimationType
+            none -> ["shadow"]
+            boneAnim -> ["shadow", "asset_registry"]
 
     VertexPushConstants: [drawablePushConstants]
 
@@ -90,4 +97,24 @@ Pipeline drawablePipeline:
         transparent -> "transparency"
         shadow -> "shadow"
     VertexInput: [drawableVertexInput]
-    DisableBlendAttachments: 3
+    DisableBlendAttachments: match PipelineShadingType
+        opaque -> 3
+        transparent -> 3
+        shadow -> 0
+
+    CullMode: match PipelineShadingType
+        opaque -> cullBackFace
+        transparent -> cullNone
+        shadow -> cullFrontFace
+    DepthWrite: match PipelineShadingType
+        opaque -> true
+        transparent -> false
+        shadow -> true
+    DepthBiasConstant: match PipelineShadingType
+        opaque -> 0.0
+        transparent -> 0.0
+        shadow -> 2.0
+    DepthBiasSlope: match PipelineShadingType
+        opaque -> 0.0
+        transparent -> 0.0
+        shadow -> 2.0
