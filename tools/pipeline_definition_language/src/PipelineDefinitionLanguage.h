@@ -48,8 +48,10 @@ private:
     static inline fs::path shaderInputDir{ "." };
     static inline fs::path shaderOutputDir{ "." };
     static inline fs::path outputFileName;
-    static inline ShaderOutputType defaultShaderOutputType{ ShaderOutputType::eGlsl };
     static inline bool generateHeader{ true };  // Not implemented; always true for now
+
+    static inline ShaderOutputType defaultShaderOutputType{ ShaderOutputType::eGlsl };
+    static inline std::vector<std::string> shaderCompileDefinitions;
 
     static inline std::unique_ptr<ErrorReporter> errorReporter;
 };

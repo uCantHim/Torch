@@ -86,6 +86,9 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         .help("Compile generated shader files to SPIRV.")
         .default_value(false)
         .implicit_value(true);
+    program.add_argument("--shader-macro")
+        .action([](const std::string& str){ shaderCompileDefinitions.emplace_back(str); })
+        .help("Additional macro definition passed to the SPIRV compiler.");
 #else
     program.add_description(
         "Compile with the CMake variable $PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES set to TRUE to "
@@ -285,6 +288,16 @@ void PipelineDefinitionLanguage::compileSpirvShaders()
         shaderOutputDir,
         std::vector<fs::path>{ shaderInputDir }
     ));
+    for (const auto& str : shaderCompileDefinitions)
+    {
+        auto pos = str.find('=');
+        if (pos == std::string::npos) {
+            spirvOpts.AddMacroDefinition(str);
+        }
+        else {
+            spirvOpts.AddMacroDefinition(str.substr(0, pos), str.substr(pos + 1));
+        }
+    }
 
     #pragma omp parallel for schedule(dynamic)
     for (const auto& info : pendingSpirvCompilations)
