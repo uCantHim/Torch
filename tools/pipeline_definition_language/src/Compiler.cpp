@@ -537,6 +537,9 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
             // Stride (optional)
             out.stride = hasField(in, "Stride") ? expectInt(expectSingle(in, "Stride"))
                                                 : calcStride;
+            out.inputRate = expectString(expectSingle(in, "InputRate")) == "perVertex"
+                ? PipelineDesc::VertexAttribute::InputRate::ePerVertex
+                : PipelineDesc::VertexAttribute::InputRate::ePerInstance;
 
             ++binding;
         }
