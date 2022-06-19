@@ -54,7 +54,7 @@ if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
         FetchContent_Declare(
             shaderc
             GIT_REPOSITORY https://github.com/google/shaderc
-            GIT_TAG        657c5ed2ba1714c0430895a274a94d6f2aeeab85
+            GIT_TAG        main
             PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
         )
 
