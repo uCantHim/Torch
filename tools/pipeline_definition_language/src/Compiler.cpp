@@ -459,8 +459,13 @@ auto Compiler::compileSingle<LayoutDesc>(const compiler::Object& obj) -> LayoutD
     LayoutDesc layout;
 
     // Descriptors
-    for (const auto& val : expectList(expectSingle(obj, "Descriptors")).values) {
-        layout.descriptors.emplace_back(expectString(*val), true);
+    for (const auto& val : expectList(expectSingle(obj, "Descriptors")).values)
+    {
+        auto& desc = expectObject(*val);
+        layout.descriptors.emplace_back(
+            expectString(expectSingle(desc, "Name")),
+            expectString(expectSingle(desc, "Type")) == "static"
+        );
     }
 
     // Push constant ranges

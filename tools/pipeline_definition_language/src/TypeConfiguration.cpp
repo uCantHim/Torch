@@ -46,6 +46,36 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
                 { "FragmentShader", { "Shader" } },
             }
         }},
+        { "Descriptor", ObjectType{
+            .typeName="Descriptor",
+            .fields={
+                { "Name", { stringTypeName } },
+                { "Type", { "DescriptorType" } },
+            }
+        }},
+        { "PushConstant", ObjectType{
+            .typeName="PushConstant",
+            .fields={
+                { "Offset", { intTypeName } },
+                { "Size", { intTypeName } },
+                { "DefaultValue", { stringTypeName } },
+            }
+        }},
+        { "Layout", ObjectType{
+            .typeName="Layout",
+            .fields={
+                { "Descriptors", { "Descriptor", FieldType::eList } },
+
+                { "VertexPushConstants",      { "PushConstant", FieldType::eList } },
+                { "FragmentPushConstants",    { "PushConstant", FieldType::eList } },
+                { "TessControlPushConstants", { "PushConstant", FieldType::eList } },
+                { "TessEvalPushConstants",    { "PushConstant", FieldType::eList } },
+                { "GeometryPushConstants",    { "PushConstant", FieldType::eList } },
+                { "ComputePushConstants",     { "PushConstant", FieldType::eList } },
+                { "MeshPushConstants",        { "PushConstant", FieldType::eList } },
+                { "TaskPushConstants",        { "PushConstant", FieldType::eList } },
+            }
+        }},
         { "VertexAttribute", ObjectType{
             .typeName="VertexAttribute",
             .fields={
@@ -72,29 +102,6 @@ auto makeDefaultTypeConfig() -> TypeConfiguration
                 { "DstAlphaFactor",  { "BlendFactor" } },
                 { "AlphaBlendOp",    { "BlendOp" } },
                 { "ColorComponents", { "ColorComponent", FieldType::eList } },
-            }
-        }},
-        { "PushConstant", ObjectType{
-            .typeName="PushConstant",
-            .fields={
-                { "Offset", { intTypeName } },
-                { "Size", { intTypeName } },
-                { "DefaultValue", { stringTypeName } },
-            }
-        }},
-        { "Layout", ObjectType{
-            .typeName="Layout",
-            .fields={
-                { "Descriptors", { "String", FieldType::eList } },
-
-                { "VertexPushConstants",      { "PushConstant", FieldType::eList } },
-                { "FragmentPushConstants",    { "PushConstant", FieldType::eList } },
-                { "TessControlPushConstants", { "PushConstant", FieldType::eList } },
-                { "TessEvalPushConstants",    { "PushConstant", FieldType::eList } },
-                { "GeometryPushConstants",    { "PushConstant", FieldType::eList } },
-                { "ComputePushConstants",     { "PushConstant", FieldType::eList } },
-                { "MeshPushConstants",        { "PushConstant", FieldType::eList } },
-                { "TaskPushConstants",        { "PushConstant", FieldType::eList } },
             }
         }},
         { "Pipeline", ObjectType{

@@ -4,6 +4,8 @@ enum Bool: true, false
 
 enum ShaderTargetType: glsl, spirv
 
+enum DescriptorType: static, dynamic
+
 enum Format:
     r32f, rg32f, rgb32f, rgba32f,
     r32i, rg32i, rgb32i, rgba32i,

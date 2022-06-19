@@ -360,6 +360,7 @@ void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
         "PolygonFillMode", "CullMode", "FaceWinding",
         "BlendFactor", "BlendOp", "ColorComponent",
         "ShaderTargetType",
+        "DescriptorType",
     };
 
     os << nl;

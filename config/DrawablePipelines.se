@@ -1,3 +1,5 @@
+import "Descriptors.se"
+
 Meta:
     Namespace: "trc::pipelines"
 
@@ -63,11 +65,11 @@ PushConstant drawablePushConstants: match PipelineShadingType
 
 Layout drawableLayout:
     Descriptors: match PipelineShadingType
-        opaque -> ["global_data", "asset_registry", "scene_data", "g_buffer"]
-        transparent -> ["global_data", "asset_registry", "scene_data", "g_buffer", "shadow"]
+        opaque -> [globalDataDesc, assetRegistryDesc, sceneDataDesc, gBufferDesc]
+        transparent -> [globalDataDesc, assetRegistryDesc, sceneDataDesc, gBufferDesc, shadowDesc]
         shadow -> match AnimationType
-            none -> ["shadow"]
-            boneAnim -> ["shadow", "asset_registry"]
+            none -> [shadowDesc]
+            boneAnim -> [shadowDesc, assetRegistryDesc]
 
     VertexPushConstants: [drawablePushConstants]
 

@@ -1,0 +1,23 @@
+Descriptor globalDataDesc:
+    Name: "global_data"
+    Type: static
+
+Descriptor assetRegistryDesc:
+    Name: "asset_registry"
+    Type: static
+
+Descriptor sceneDataDesc:
+    Name: "scene_data"
+    Type: static
+
+Descriptor gBufferDesc:
+    Name: "g_buffer"
+    Type: static
+
+Descriptor shadowDesc:
+    Name: "shadow"
+    Type: static
+
+Descriptor fontDesc:
+    Name: "fonts"
+    Type: dynamic
