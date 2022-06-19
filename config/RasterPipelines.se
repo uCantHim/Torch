@@ -1,0 +1,5 @@
+Meta:
+    Namespace: "trc::pipelines"
+
+Shader finalLightingShader:
+    Source: "final_lighting.comp"

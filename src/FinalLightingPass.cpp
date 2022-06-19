@@ -3,11 +3,12 @@
 #include <vkb/ShaderProgram.h>
 #include <vkb/Barriers.h>
 
-#include "core/PipelineLayoutBuilder.h"
-#include "core/ComputePipelineBuilder.h"
-#include "core/RenderTarget.h"
-#include "PipelineDefinitions.h"
-#include "TorchRenderConfig.h"
+#include "trc/core/PipelineLayoutBuilder.h"
+#include "trc/core/ComputePipelineBuilder.h"
+#include "trc/core/RenderTarget.h"
+#include "trc/PipelineDefinitions.h"
+#include "trc/TorchRenderConfig.h"
+#include "trc/RasterPipelines.h"
 
 
 
@@ -37,7 +38,7 @@ trc::FinalLightingPass::FinalLightingPass(
         .build(device, config)
     ),
     pipeline(buildComputePipeline()
-        .setProgram(internal::loadShader("/final_lighting.comp.spv"))
+        .setProgram(internal::loadShader(pipelines::getFinalLightingShader()))
         .build(device, layout)
     )
 {

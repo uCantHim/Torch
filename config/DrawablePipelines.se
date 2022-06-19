@@ -10,19 +10,6 @@ enum PipelineShadingType:
     shadow
 
 
-Shader assetRegistryDescriptor:
-    Source: "asset_registry_descriptor_template.glsl"
-    Target: "asset_registry_descriptor.glsl"
-    TargetType: glsl
-
-    Variable material_descriptor_binding: "0"
-    Variable texture_descriptor_binding: "1"
-    Variable geometry_index_descriptor_binding: "2"
-    Variable geometry_vertex_descriptor_binding: "3"
-    Variable animation_meta_descriptor_binding: "4"
-    Variable animation_data_descriptor_binding: "5"
-
-
 Shader drawableFragment:
     Source: match PipelineShadingType
         opaque -> "drawable/deferred.frag"
