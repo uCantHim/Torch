@@ -36,6 +36,7 @@ namespace trc
 
         auto setShader(vk::ShaderStageFlagBits stage, ShaderCode code) -> Self&;
 
+        auto setProgram(ProgramDefinitionData program) -> Self&;
         auto setProgram(ShaderCode vertex, ShaderCode fragment) -> Self&;
         auto setProgram(ShaderCode vertex, ShaderCode geom, ShaderCode fragment) -> Self&;
         auto setProgram(ShaderCode vertex, ShaderCode tesc, ShaderCode tese, ShaderCode fragment)

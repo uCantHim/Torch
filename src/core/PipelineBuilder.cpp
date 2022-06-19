@@ -40,6 +40,12 @@ auto trc::GraphicsPipelineBuilder::setShader(vk::ShaderStageFlagBits stage, Shad
     return *this;
 }
 
+auto trc::GraphicsPipelineBuilder::setProgram(ProgramDefinitionData _program) -> Self&
+{
+    program = std::move(_program);
+    return *this;
+}
+
 auto trc::GraphicsPipelineBuilder::setProgram(ShaderCode vertex, ShaderCode fragment) -> Self&
 {
     program.stages = {
