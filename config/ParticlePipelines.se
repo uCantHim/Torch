@@ -1,0 +1,64 @@
+import "Descriptors.se"
+
+Meta:
+    Namespace: "trc::pipelines::particle"
+
+enum AlphaBlendType: blend, discard
+
+Program particleProgram:
+    VertexShader:
+        Source: "particles/deferred.vert"
+    FragmentShader:
+        Source: match AlphaBlendType
+            blend -> "particles/alpha_blend.frag"
+            discard -> "particles/alpha_discard.frag"
+
+// Layout
+Layout particleLayout:
+    Descriptors: match AlphaBlendType
+        blend -> [globalDataDesc, assetRegistryDesc, gBufferDesc]
+        discard -> [globalDataDesc, assetRegistryDesc]
+
+// Vertex input attributes
+VertexAttribute perVertexAttrib:
+    Binding: 0
+    InputRate: perVertex
+    Locations: [rgb32f, rg32f, rgb32f]
+
+VertexAttribute perInstanceAttrib:
+    Binding: 1
+    InputRate: perInstance
+    Locations: [rgba32f, rgba32f, rgba32f, rgba32f, r32u]
+
+// Deferred (color) pipeline
+Pipeline particlePipeline:
+    RenderPass: match AlphaBlendType
+        blend -> "transparency"
+        discard -> "g_buffer"
+    Layout: particleLayout
+
+    Program: particleProgram
+    VertexInput: [perVertexAttrib, perInstanceAttrib]
+    CullMode: cullNone
+    DepthWrite: match AlphaBlendType
+        blend -> false
+        discard -> true
+    DisableBlendAttachments: 3
+
+PushConstant shadowPushConstant:
+    Offset: 0
+    Size: 4
+
+Pipeline particleShadowPipeline:
+    RenderPass: "shadow"
+    Layout:
+        Descriptors: [shadowDesc, globalDataDesc]
+        VertexPushConstants: [shadowPushConstant]
+
+    Program:
+        VertexShader:
+            Source: "particles/shadow.vert"
+        FragmentShader:
+            Source: "particles/shadow.frag"
+    VertexInput: [perVertexAttrib, perInstanceAttrib]
+    CullMode: cullNone

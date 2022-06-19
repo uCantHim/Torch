@@ -9,6 +9,8 @@
 #include "ray_tracing/RayTracing.h"
 #include "trc/DrawablePipelines.h"
 #include "trc/RasterPipelines.h"
+#include "trc/TextPipelines.h"
+#include "trc/ParticlePipelines.h"
 
 
 
@@ -29,6 +31,8 @@ void trc::init(const TorchInitInfo&)
     // Init pipelines
     pipelines::initDrawablePipelines({ DrawablePushConstants{} });
     pipelines::initRasterPipelines({});
+    pipelines::text::initTextPipelines({});
+    pipelines::particle::initParticlePipelines({});
 }
 
 auto trc::getVulkanInstance() -> vkb::VulkanInstance&

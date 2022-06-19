@@ -1,0 +1,35 @@
+import "Descriptors.se"
+
+Meta:
+    Namespace: "trc::pipelines::text"
+
+Program staticText:
+    VertexShader:
+        Source: "text/static_text.vert"
+    FragmentShader:
+        Source: "text/static_text.frag"
+
+PushConstant staticTextVertexPushConst:
+    Offset: 0
+    Size: 64  // sizeof(mat4)
+
+VertexAttribute staticTextPerVertex:
+    Binding: 0
+    InputRate: perVertex
+    Locations: [rgb32f, rg32f]
+
+VertexAttribute staticTextPerInstance:
+    Binding: 1
+    InputRate: perInstance
+    Locations: [rg32f, rg32f, rg32f, rg32f, r32f]
+
+Pipeline staticTextPipeline:
+    RenderPass: "transparency"
+    Layout:
+        Descriptors: [globalDataDesc, fontDesc, gBufferDesc]
+        VertexPushConstants: [staticTextVertexPushConst]
+
+    Program: staticText
+    VertexInput: [staticTextPerVertex, staticTextPerInstance]
+    CullMode: cullNone
+    DisableBlendAttachments: 3

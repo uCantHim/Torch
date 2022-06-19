@@ -1,38 +1,26 @@
 set(SHADER_IN_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 file(GLOB SHADERS_GLSL
-    "${SHADER_IN_DIR}/*.vert"  # vertex shader
-    "${SHADER_IN_DIR}/*.tesc"  # tesselation control shader
-    "${SHADER_IN_DIR}/*.tese"  # tesselation evaluation shader
-    "${SHADER_IN_DIR}/*.geom"  # geometry shader
-    "${SHADER_IN_DIR}/*.frag"  # fragment shader
-    "${SHADER_IN_DIR}/*.comp"  # compute shader
-    "${SHADER_IN_DIR}/*.mesh"  # mesh shader
-    "${SHADER_IN_DIR}/*.task"  # task shader
-    "${SHADER_IN_DIR}/*.rgen"  # ray generation shader
-    "${SHADER_IN_DIR}/*.rint"  # ray intersection shader
-    "${SHADER_IN_DIR}/*.rahit" # ray any hit shader
-    "${SHADER_IN_DIR}/*.rchit" # ray closest hit shader
-    "${SHADER_IN_DIR}/*.rmiss" # ray miss shader
-    "${SHADER_IN_DIR}/*.rcall" # ray callable shader
+    # .
+    compositing.comp
 
-    "${SHADER_IN_DIR}/**/*.vert"  # vertex shader
-    "${SHADER_IN_DIR}/**/*.tesc"  # tesselation control shader
-    "${SHADER_IN_DIR}/**/*.tese"  # tesselation evaluation shader
-    "${SHADER_IN_DIR}/**/*.geom"  # geometry shader
-    "${SHADER_IN_DIR}/**/*.frag"  # fragment shader
-    "${SHADER_IN_DIR}/**/*.comp"  # compute shader
-    "${SHADER_IN_DIR}/**/*.mesh"  # mesh shader
-    "${SHADER_IN_DIR}/**/*.task"  # task shader
-    "${SHADER_IN_DIR}/**/*.rgen"  # ray generation shader
-    "${SHADER_IN_DIR}/**/*.rint"  # ray intersection shader
-    "${SHADER_IN_DIR}/**/*.rahit" # ray any hit shader
-    "${SHADER_IN_DIR}/**/*.rchit" # ray closest hit shader
-    "${SHADER_IN_DIR}/**/*.rmiss" # ray miss shader
-    "${SHADER_IN_DIR}/**/*.rcall" # ray callable shader
+    # ui
+    ui/image_blend.comp
+    ui/line.frag
+    ui/line.vert
+    ui/quad.frag
+    ui/quad.vert
+    ui/text.frag
+    ui/text.vert
+
+    # ray tracing
+    ray_tracing/anyhit.rahit
+    ray_tracing/blue.rmiss
+    ray_tracing/reflect.rchit
+    ray_tracing/reflect.rgen
 )
 
-find_program(GLSLC glslc HINTS "${Vulkan_INCLUDE_DIRS}/../Bin")
+find_program(GLSLC glslc HINTS "${TORCH_EXECUTABLE_OUTPUT_PATH}")
 
 # A target that depends on all shaders
 add_custom_target(compile_shaders)
@@ -41,7 +29,7 @@ if (${GLSLC-NOTFOUND})
     message(WARNING "Failed to find glslc, will not be able to compile "
     "shaders through CMake. Possible fix: Vulkan SDK (re-)installation.")
 else()
-    message("-- Collecting shaders to compile")
+    message(STATUS "Collecting shaders to compile")
 
     foreach(IN_FILE ${SHADERS_GLSL})
         set(OUT_FILE "${IN_FILE}.spv")

@@ -7,6 +7,7 @@
 #include "TorchRenderConfig.h"
 #include "PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "TorchResources.h"
+#include "trc/ParticlePipelines.h"
 
 
 
@@ -79,7 +80,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(
         gBufferRenderStage,
         GBufferPass::SubPasses::gBuffer,
-        getAlphaDiscardPipeline(),
+        pipelines::particle::getParticlePipeline(pipelines::particle::AlphaBlendTypeFlagBits::discard),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
             auto [offset, count] = blendTypeSizes[Blend::eDiscardZeroAlpha];
@@ -96,7 +97,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     drawRegistrations[Blend::eAlphaBlend] = scene.registerDrawFunction(
         gBufferRenderStage,
         GBufferPass::SubPasses::transparency,
-        getAlphaBlendPipeline(),
+        pipelines::particle::getParticlePipeline(pipelines::particle::AlphaBlendTypeFlagBits::blend),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
         {
             auto [offset, count] = blendTypeSizes[Blend::eAlphaBlend];
@@ -187,24 +188,6 @@ void trc::ParticleCollection::update(const float timeDelta)
     );
 }
 
-auto trc::ParticleCollection::getAlphaDiscardPipeline() -> Pipeline::ID
-{
-    static auto id = makeParticleDrawAlphaDiscardPipeline();
-    return id;
-}
-
-auto trc::ParticleCollection::getAlphaBlendPipeline() -> Pipeline::ID
-{
-    static auto id = makeParticleDrawAlphaBlendPipeline();
-    return id;
-}
-
-auto trc::ParticleCollection::getShadowPipeline() -> Pipeline::ID
-{
-    static auto id = makeParticleShadowPipeline();
-    return id;
-}
-
 void trc::ParticleCollection::tickParticles(const float timeDelta)
 {
     const float frameTimeMs = timeDelta;
@@ -289,128 +272,4 @@ void trc::ParticleSpawn::spawnParticles()
         // This function is costly as well
         collection->addParticles(particles);
     });
-}
-
-
-
-//////////////////////////////////////
-//      Particle Draw Pipeline      //
-//////////////////////////////////////
-
-auto trc::ParticleCollection::makeParticleDrawAlphaDiscardPipeline() -> Pipeline::ID
-{
-    auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
-        .registerLayout<TorchRenderConfig>();
-
-    return buildGraphicsPipeline()
-        .setProgram(internal::loadShader("particles/deferred.vert.spv"),
-                    internal::loadShader("particles/alpha_discard.frag.spv"))
-        // (per-vertex) Vertex positions
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
-                                              vk::VertexInputRate::eVertex),
-            {
-                { 0, 0, vk::Format::eR32G32B32Sfloat, 0 },
-                { 1, 0, vk::Format::eR32G32Sfloat,    sizeof(vec3) },
-                { 2, 0, vk::Format::eR32G32B32Sfloat, sizeof(vec3) + sizeof(vec2) },
-            }
-        )
-        // (per-instance) Particle data
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(1, sizeof(ParticleDeviceData),
-                                              vk::VertexInputRate::eInstance),
-            {
-                { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
-                { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },
-                { 5, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 2 },
-                { 6, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 3 },
-                { 7, 1, vk::Format::eR32Uint, sizeof(mat4) },  // texture
-            }
-        )
-        .setCullMode(vk::CullModeFlagBits::eNone)
-        .disableBlendAttachments(3)
-        .registerPipeline<TorchRenderConfig>(
-            layout, RenderPassName{ TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
-        );
-}
-
-auto trc::ParticleCollection::makeParticleDrawAlphaBlendPipeline() -> Pipeline::ID
-{
-    auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::ASSET_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .registerLayout<TorchRenderConfig>();
-
-    return buildGraphicsPipeline()
-        .setProgram(internal::loadShader("particles/deferred.vert.spv"),
-                    internal::loadShader("particles/alpha_blend.frag.spv"))
-        // (per-vertex) Vertex positions
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
-                                              vk::VertexInputRate::eVertex),
-            {
-                { 0, 0, vk::Format::eR32G32B32Sfloat, 0 },
-                { 1, 0, vk::Format::eR32G32Sfloat,    sizeof(vec3) },
-                { 2, 0, vk::Format::eR32G32B32Sfloat, sizeof(vec3) + sizeof(vec2) },
-            }
-        )
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(1, sizeof(ParticleDeviceData),
-                                              vk::VertexInputRate::eInstance),
-            {
-                { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
-                { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },
-                { 5, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 2 },
-                { 6, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 3 },
-                { 7, 1, vk::Format::eR32Uint, sizeof(mat4) },  // texture
-            }
-        )
-        .setCullMode(vk::CullModeFlagBits::eNone)
-        .disableDepthWrite()
-        .registerPipeline<TorchRenderConfig>(
-            layout, RenderPassName{ TorchRenderConfig::TRANSPARENT_G_BUFFER_PASS }
-        );
-}
-
-auto trc::ParticleCollection::makeParticleShadowPipeline() -> Pipeline::ID
-{
-    auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addPushConstantRange(
-            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(ui32))
-        )
-        .registerLayout<TorchRenderConfig>();
-
-    return buildGraphicsPipeline()
-        .setProgram(internal::loadShader("particles/shadow.vert.spv"),
-                    internal::loadShader("particles/shadow.frag.spv"))
-        // (per-vertex) Vertex positions
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(ParticleVertex),
-                                              vk::VertexInputRate::eVertex),
-            {
-                { 0, 0, vk::Format::eR32G32B32Sfloat, 0 },
-                { 1, 0, vk::Format::eR32G32Sfloat,    sizeof(vec3) },
-                { 2, 0, vk::Format::eR32G32B32Sfloat, sizeof(vec3) + sizeof(vec2) },
-            }
-        )
-        // (per-instance) Particle model matrix
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(1, sizeof(ParticleDeviceData),
-                                              vk::VertexInputRate::eInstance),
-            {
-                { 3, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 0 },
-                { 4, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 1 },
-                { 5, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 2 },
-                { 6, 1, vk::Format::eR32G32B32A32Sfloat, sizeof(vec4) * 3 },
-            }
-        )
-        .setCullMode(vk::CullModeFlagBits::eNone)
-        .registerPipeline<TorchRenderConfig>(
-            layout, RenderPassName{ TorchRenderConfig::SHADOW_PASS }
-        );
 }

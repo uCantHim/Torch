@@ -1,12 +1,10 @@
 #include "text/Text.h"
 
-#include "core/PipelineRegistry.h"
-#include "core/PipelineBuilder.h"
-#include "core/PipelineLayoutBuilder.h"
-#include "text/UnicodeUtils.h"
-#include "TorchRenderConfig.h"
-#include "TorchResources.h"
-#include "PipelineDefinitions.h"
+#include "trc/text/UnicodeUtils.h"
+#include "trc/TorchRenderConfig.h"
+#include "trc/TorchResources.h"
+#include "trc/PipelineDefinitions.h"
+#include "trc/TextPipelines.h"
 
 
 
@@ -29,8 +27,6 @@ namespace trc
             { { 1, 1, 0 }, { 1, 1 } },
         };
     }
-
-    auto makeTextPipeline() -> Pipeline::ID;
 } // namespace trc
 
 
@@ -48,7 +44,7 @@ void trc::Text::attachToScene(SceneBase& scene)
     drawRegistration = scene.registerDrawFunction(
         gBufferRenderStage,
         GBufferPass::SubPasses::transparency,
-        getPipeline(),
+        pipelines::text::getStaticTextPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
             font->getDescriptor().bindDescriptorSet(
@@ -128,57 +124,4 @@ void trc::Text::print(const std::string& str)
     glyphBuffer.unmap();
 
     numLetters = str.size();
-}
-
-auto trc::Text::getPipeline() -> Pipeline::ID
-{
-    static auto id = makeTextPipeline();
-    return id;
-}
-
-
-
-auto trc::makeTextPipeline() -> Pipeline::ID
-{
-    auto layout = buildPipelineLayout()
-        .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::FONT_DESCRIPTOR }, false)
-        .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addPushConstantRange({ vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4) })
-        .registerLayout<TorchRenderConfig>();
-
-    // Can't access Text::LetterData struct from here
-    constexpr size_t LETTER_DATA_SIZE = sizeof(vec2) * 4 + sizeof(float);
-
-    return buildGraphicsPipeline()
-        .setProgram(
-            internal::loadShader("/text/static_text.vert.spv"),
-            internal::loadShader("/text/static_text.frag.spv")
-        )
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(0, sizeof(TextVertex), vk::VertexInputRate::eVertex),
-            {
-                { 0, 0, vk::Format::eR32G32B32Sfloat, 0 },
-                { 1, 0, vk::Format::eR32G32Sfloat,    sizeof(vec3) },
-            }
-        )
-        .addVertexInputBinding(
-            vk::VertexInputBindingDescription(1, LETTER_DATA_SIZE, vk::VertexInputRate::eInstance),
-            {
-                { 2, 1, vk::Format::eR32G32Sfloat, 0 },
-                { 3, 1, vk::Format::eR32G32Sfloat, sizeof(vec2) * 1 },
-                { 4, 1, vk::Format::eR32G32Sfloat, sizeof(vec2) * 2 },
-                { 5, 1, vk::Format::eR32G32Sfloat, sizeof(vec2) * 3 },
-                { 6, 1, vk::Format::eR32Sfloat,    sizeof(vec2) * 4 },
-            }
-        )
-        .setCullMode(vk::CullModeFlagBits::eNone)
-        .addViewport(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f))
-        .addScissorRect({ { 0, 0 }, { 1, 1 } })
-        .disableBlendAttachments(3)
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .registerPipeline<TorchRenderConfig>(
-            layout, RenderPassName{ TorchRenderConfig::TRANSPARENT_G_BUFFER_PASS }
-        );
 }

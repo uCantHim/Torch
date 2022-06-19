@@ -79,10 +79,6 @@ namespace trc
          */
         void update(float timeDelta);
 
-        static auto getAlphaDiscardPipeline() -> Pipeline::ID;
-        static auto getAlphaBlendPipeline() -> Pipeline::ID;
-        static auto getShadowPipeline() -> Pipeline::ID;
-
     private:
         /**
          * @brief Per-instance device data
@@ -92,10 +88,6 @@ namespace trc
             mat4 transform;
             ui32 textureIndex;
         };
-
-        static auto makeParticleDrawAlphaDiscardPipeline() -> Pipeline::ID;
-        static auto makeParticleDrawAlphaBlendPipeline() -> Pipeline::ID;
-        static auto makeParticleShadowPipeline() -> Pipeline::ID;
 
         /**
          * @brief Simulate particle physics

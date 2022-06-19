@@ -106,6 +106,8 @@ include(tools/pre_build_step/CMakeLists.txt)
 _torch_compile_pipelines_cpp("Common")
 _torch_compile_pipelines_cpp("DrawablePipelines")
 _torch_compile_pipelines_cpp("RasterPipelines")
+_torch_compile_pipelines_cpp("TextPipelines")
+_torch_compile_pipelines_cpp("ParticlePipelines")
 
 # Protobuf generation
 include(protobuf/CMakeLists.txt)

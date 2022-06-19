@@ -5,7 +5,6 @@
 #include <vkb/Buffer.h>
 
 #include "core/SceneBase.h"
-#include "core/Pipeline.h"
 #include "Node.h"
 #include "Font.h"
 
@@ -23,8 +22,6 @@ namespace trc
         void removeFromScene();
 
         void print(const std::string& str);
-
-        static auto getPipeline() -> Pipeline::ID;
 
     private:
         // Scale the text down to get a crisp resolution

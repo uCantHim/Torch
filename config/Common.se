@@ -9,3 +9,9 @@ Shader assetRegistryDescriptor:
     Variable geometry_vertex_descriptor_binding: "3"
     Variable animation_meta_descriptor_binding: "4"
     Variable animation_data_descriptor_binding: "5"
+
+Program empty:
+    VertexShader:
+        Source: "empty.vert"
+    FragmentShader:
+        Source: "empty.frag"
