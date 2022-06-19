@@ -1,3 +1,17 @@
+if (NOT TARGET gtest_main)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest
+        GIT_TAG main
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+    set(BUILD_GMOCK FALSE)
+    set(INSTALL_GTEST FALSE)
+    FetchContent_MakeAvailable(googletest)
+endif ()
+
 add_executable(UnitTests)
 
 target_sources(UnitTests
@@ -7,14 +21,6 @@ target_sources(UnitTests
 )
 
 target_link_libraries(UnitTests PRIVATE gtest_main torch)
-target_compile_options(UnitTests PRIVATE -O0 -g)
-target_compile_definitions(UnitTests PRIVATE
-    DATADIR="${CMAKE_CURRENT_LIST_DIR}/datadir"
-)
 
-if (${TORCH_BUILD_SHADER_COMPILER})
-    target_sources(UnitTests PRIVATE test_shader_edit.cpp)
-    target_link_libraries(UnitTests PRIVATE shader_compiler_lib)
-endif ()
-
+include(GoogleTest)
 gtest_discover_tests(UnitTests)

@@ -1,6 +1,11 @@
+cmake_minimum_required(VERSION 3.14)
 project(TorchPipelineCompiler)
 
+option(PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES "" ON)
+option(PIPELINE_COMPILER_BUILD_TESTS "" OFF)
+
 # Third-party
+include(FetchContent)
 FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse
@@ -30,6 +35,11 @@ add_library(pipeline_compiler_lib
 )
 
 target_compile_features(pipeline_compiler_lib PRIVATE cxx_std_20)
+target_compile_options(pipeline_compiler_lib PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-O0 -g>
+    $<$<NOT:$<CONFIG:Debug>>:-O2>
+)
 
 target_include_directories(pipeline_compiler_lib PRIVATE src)
 target_link_libraries(pipeline_compiler_lib PRIVATE shader_compiler_lib argparse)
@@ -47,11 +57,11 @@ if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
             GIT_TAG        657c5ed2ba1714c0430895a274a94d6f2aeeab85
             PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
         )
+
+        set(SHADERC_SKIP_TESTS ON)
+        set(SHADERC_SKIP_EXAMPLES ON)
         FetchContent_MakeAvailable(shaderc)
     endif()
-
-    option(SHADERC_SKIP_TESTS "" ON)
-    option(SHADERC_SKIP_EXAMPLES "" ON)
 
     target_link_libraries(pipeline_compiler_lib PRIVATE shaderc)
     target_compile_definitions(pipeline_compiler_lib PRIVATE HAS_SPIRV_COMPILER)
@@ -59,22 +69,14 @@ if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
     # OpenMP for parallel shader compilation because I'm lazy
     find_package(OpenMP)
     if (OpenMP_CXX_FOUND)
+        message(STATUS "Configuring pipeline compiler with OpenMP enabled.")
         target_link_libraries(pipeline_compiler_lib PRIVATE OpenMP::OpenMP_CXX)
+    else ()
+        message(STATUS "Configuring pipeline compiler without OpenMP enabled - shaders will be compiled sequentially.")
     endif ()
 endif ()
 
 if (${PIPELINE_COMPILER_BUILD_TESTS})
-    if (NOT TARGET googletest)
-        FetchContent_Declare(
-            googletest
-            GIT_REPOSITORY https://github.com/google/googletest
-            GIT_TAG main
-        )
-        # For Windows: Prevent overriding the parent project's compiler/linker settings
-        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        FetchContent_MakeAvailable(googletest)
-    endif ()
-
     add_subdirectory(test)
 endif ()
 
