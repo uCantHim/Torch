@@ -18,9 +18,5 @@ function(_torch_compile_pipelines_cpp FILE)
         VERBATIM
     )
 
-    target_sources(torch PRIVATE ${TORCH_GENERATED_DIR}/${FILE}.cpp)
-
-    # Create a dependency until manual shader compilation can be removed entirely
-    target_sources(trc_shader_dependency PRIVATE ${TORCH_GENERATED_DIR}/${FILE}.cpp)
-    add_dependencies(compile_shaders trc_shader_dependency)
+    target_sources(torch PRIVATE ${_OUT_DIR}/${FILE}.cpp)
 endfunction()

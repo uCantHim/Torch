@@ -53,7 +53,6 @@ endif()
 # Tools
 add_subdirectory(torch_util)
 add_subdirectory(tools)
-add_subdirectory(shaders)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_LIST_DIR}/.git/hooks/pre-commit
@@ -64,8 +63,6 @@ add_custom_target(install_git_hooks ALL DEPENDS ${CMAKE_CURRENT_LIST_DIR}/.git/h
 # Library target
 add_library(torch)
 torch_default_compile_options(torch)
-
-add_dependencies(torch compile_shaders)
 
 target_include_directories(torch
     PUBLIC
@@ -108,6 +105,7 @@ _torch_compile_pipelines_cpp("DrawablePipelines")
 _torch_compile_pipelines_cpp("RasterPipelines")
 _torch_compile_pipelines_cpp("TextPipelines")
 _torch_compile_pipelines_cpp("ParticlePipelines")
+_torch_compile_pipelines_cpp("RayShaders")
 
 # Protobuf generation
 include(protobuf/CMakeLists.txt)

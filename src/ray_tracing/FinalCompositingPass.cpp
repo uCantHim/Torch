@@ -3,12 +3,13 @@
 #include <vkb/ShaderProgram.h>
 #include <vkb/Barriers.h>
 
-#include "core/ComputePipelineBuilder.h"
 #include "trc_util/Util.h"
-#include "DescriptorSetUtils.h"
-#include "assets/AssetRegistry.h"
-#include "ray_tracing/RayPipelineBuilder.h"
-#include "PipelineDefinitions.h"
+#include "trc/core/ComputePipelineBuilder.h"
+#include "trc/DescriptorSetUtils.h"
+#include "trc/assets/AssetRegistry.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/PipelineDefinitions.h"
+#include "trc/RayShaders.h"
 
 
 
@@ -75,7 +76,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         {}
     ),
     computePipeline(buildComputePipeline()
-        .setProgram(internal::loadShader("/compositing.comp.spv"))
+        .setProgram(internal::loadShader(rt::shaders::getFinalCompositing()))
         .build(window.getDevice(), computePipelineLayout)
     )
 {

@@ -1,0 +1,14 @@
+Meta:
+    Namespace: "trc::rt::shaders"
+
+Shader anyhit:
+    Source: "ray_tracing/anyhit.rahit"
+Shader blueMiss:
+    Source: "ray_tracing/blue.rmiss"
+Shader reflectHit:
+    Source: "ray_tracing/reflect.rchit"
+Shader reflectRaygen:
+    Source: "ray_tracing/reflect.rgen"
+
+Shader finalCompositing:
+    Source: "compositing.comp"
