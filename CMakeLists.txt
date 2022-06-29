@@ -26,7 +26,7 @@ set(TORCH_SHADER_OUTPUT_DIR ${TORCH_SHADER_DIR})
 # set(TORCH_SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/generated-sources/shaders)
 
 set(TORCH_CONFIG_DIR ${CMAKE_CURRENT_LIST_DIR}/config)
-set(TORCH_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated-sources/include/trc)
+set(TORCH_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated-sources)
 
 if (${TORCH_DEBUG})
     set(CMAKE_BUILD_TYPE DEBUG)
@@ -100,12 +100,15 @@ target_compile_definitions(torch
 
 # Pipeline generation
 include(tools/pre_build_step/CMakeLists.txt)
-_torch_compile_pipelines_cpp("Common")
-_torch_compile_pipelines_cpp("DrawablePipelines")
-_torch_compile_pipelines_cpp("RasterPipelines")
-_torch_compile_pipelines_cpp("TextPipelines")
-_torch_compile_pipelines_cpp("ParticlePipelines")
-_torch_compile_pipelines_cpp("RayShaders")
+_torch_compile_pipelines_cpp(TARGET torch FILE "Common" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+_torch_compile_pipelines_cpp(TARGET torch FILE "DrawablePipelines" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+_torch_compile_pipelines_cpp(TARGET torch FILE "RasterPipelines" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+_torch_compile_pipelines_cpp(TARGET torch FILE "TextPipelines" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+_torch_compile_pipelines_cpp(TARGET torch FILE "ParticlePipelines" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+_torch_compile_pipelines_cpp(TARGET torch FILE "RayShaders" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+if (${TORCH_INTEGRATE_GUI})
+    _torch_compile_pipelines_cpp(TARGET torch FILE "GuiShaders" SHADER_DEPS ${TRC_SHADER_DEPENDENCIES})
+endif ()
 
 # Protobuf generation
 include(protobuf/CMakeLists.txt)
@@ -141,7 +144,6 @@ endif ()
 
 # Custom GUI library
 if (${TORCH_INTEGRATE_GUI})
-    _torch_compile_pipelines_cpp("GuiShaders")
     add_subdirectory(src/ui)
 endif ()
 

@@ -2,10 +2,13 @@
 #   Required tools   #
 ######################
 
+# Component library
+add_subdirectory(componentlib)
+
+# Pipeline compiler
 set(PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES TRUE)
 set(PIPELINE_COMPILER_BUILD_TESTS ${TORCH_BUILD_TEST})
 
-add_subdirectory(componentlib)
 add_subdirectory(shader_edit)
 add_subdirectory(pipeline_definition_language)
 

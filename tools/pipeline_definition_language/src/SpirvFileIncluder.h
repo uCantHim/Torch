@@ -40,8 +40,12 @@ public:
                     size_t) -> shaderc_include_result* override
     {
         auto makeFullPath = [&](const fs::path& base) {
-            if (type == shaderc_include_type::shaderc_include_type_relative) {
-                return base / fs::path{ requesting_source }.parent_path() / requested_source;
+            if (type == shaderc_include_type::shaderc_include_type_relative)
+            {
+                const auto parentPath = fs::path{ requesting_source }.parent_path();
+                if (!parentPath.is_absolute()) {
+                    return base / parentPath / requested_source;
+                }
             }
             return base / requested_source;
         };
