@@ -7,12 +7,13 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#ifdef HAS_SPIRV_COMPILER
+#include <shaderc/shaderc.hpp>
+#endif
+
 #include "ErrorReporter.h"
 #include "ShaderOutput.h"
 
-namespace shaderc{
-    class CompileOptions;
-}
 struct CompileResult;
 
 class PipelineDefinitionLanguage
@@ -42,6 +43,10 @@ private:
 
     static shaderc::CompileOptions spirvOpts;
     static inline std::vector<SpirvCompileInfo> pendingSpirvCompilations;
+
+    static inline shaderc_spirv_version spirvVersion{ shaderc_spirv_version_1_5 };
+    static inline shaderc_target_env targetEnv{ shaderc_target_env_vulkan };
+    static inline shaderc_env_version targetEnvVersion{ shaderc_env_version_vulkan_1_2 };
 #endif
 
     static inline fs::path outputDir{ "." };

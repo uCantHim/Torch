@@ -86,6 +86,57 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         .help("Compile generated shader files to SPIRV.")
         .default_value(false)
         .implicit_value(true);
+    program.add_argument("--spv-version")
+        .default_value(std::string("1.5"))
+        .required()
+        .action([](const std::string& arg)
+        {
+            std::unordered_map<std::string, shaderc_spirv_version> allowedVals{
+                { "1.0", shaderc_spirv_version_1_0 },
+                { "1.1", shaderc_spirv_version_1_1 },
+                { "1.2", shaderc_spirv_version_1_2 },
+                { "1.3", shaderc_spirv_version_1_3 },
+                { "1.4", shaderc_spirv_version_1_4 },
+                { "1.5", shaderc_spirv_version_1_5 },
+                { "1.6", shaderc_spirv_version_1_6 },
+            };
+            if (!allowedVals.contains(arg)) {
+                throw std::runtime_error(
+                    "Value " + arg + " is not allowed for argument '--spv-version'."
+                );
+            }
+            spirvVersion = allowedVals.at(arg);
+
+            return arg;
+        })
+        .help("SPIRV version. Must be one of 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6.");
+    program.add_argument("--spv-target-env")
+        .default_value("vulkan1.2")
+        .required()
+        .action([](const std::string& arg)
+        {
+            std::unordered_map<std::string, std::pair<shaderc_target_env, shaderc_env_version>> allowedVals{
+                { "vulkan1.0",     { shaderc_target_env_vulkan,        shaderc_env_version_vulkan_1_0 } },
+                { "vulkan1.1",     { shaderc_target_env_vulkan,        shaderc_env_version_vulkan_1_1 } },
+                { "vulkan1.2",     { shaderc_target_env_vulkan,        shaderc_env_version_vulkan_1_2 } },
+                { "vulkan1.3",     { shaderc_target_env_vulkan,        shaderc_env_version_vulkan_1_3 } },
+                { "opengl",        { shaderc_target_env_opengl,        shaderc_env_version_opengl_4_5 } },
+                { "opengl-compat", { shaderc_target_env_opengl_compat, shaderc_env_version_opengl_4_5 } },
+            };
+            if (!allowedVals.contains(arg)) {
+                throw std::runtime_error(
+                    "Value " + arg + " is not allowed for argument '--spv-version'."
+                );
+            }
+            auto [env, ver] = allowedVals.at(arg);
+            targetEnv = env;
+            targetEnvVersion = ver;
+
+            return arg;
+        })
+        .help("Target semantics for SPIRV compilation. "
+              "Must be one of vulkan1.0, vulkan1.1, vulkan1.2, vulkan1.3, opengl, opengl-compat."
+        );
     program.add_argument("--shader-macro")
         .action([](const std::string& str){ shaderCompileDefinitions.emplace_back(str); })
         .help("Additional macro definition passed to the SPIRV compiler.");
@@ -280,6 +331,9 @@ void PipelineDefinitionLanguage::writePlain(
 #ifdef HAS_SPIRV_COMPILER
 void PipelineDefinitionLanguage::compileSpirvShaders()
 {
+    spirvOpts.SetTargetSpirv(spirvVersion);
+    spirvOpts.SetTargetEnvironment(targetEnv, targetEnvVersion);
+
     /**
      * Use shaderOutputDir as primary include directory to consider previously
      * generated shader files first in the include order.
