@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <atomic>
 #include <vector>
 #include <optional>
 #include <filesystem>
@@ -23,14 +22,13 @@ public:
 
 private:
     static auto compile(const fs::path& filename) -> std::optional<CompileResult>;
-    static void writeOutput(const std::string& uniqueName, const CompileResult& result);
+    static void writeOutput(const fs::path& sourceFilePath, const CompileResult& result);
 
     static void writeShader(const std::string& code,
                             const fs::path& outPath,
                             ShaderOutputType type);
     static void writePlain(const std::string& code, const fs::path& outPath);
 
-    static inline std::atomic<size_t> pendingShaderThreads{ 0 };
 #ifdef HAS_SPIRV_COMPILER
     struct SpirvCompileInfo
     {

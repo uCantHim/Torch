@@ -188,7 +188,7 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         const auto result = compile(filename);
         if (!result) exit(1);
 
-        writeOutput(filename.filename().replace_extension(""), result.value());
+        writeOutput(filename, result.value());
     }
     catch (const UsageError& err) {
         std::cout << "Usage Error: " << err.message << "\nExiting.\n";
@@ -257,11 +257,11 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
 }
 
 void PipelineDefinitionLanguage::writeOutput(
-    const std::string& uniqueName,
+    const fs::path& sourceFilePath,
     const CompileResult& result)
 {
     TorchCppWriter writer(*errorReporter, {
-        .compiledFileName=uniqueName,
+        .compiledFileName=sourceFilePath.filename().replace_extension(""),
         .shaderInputDir=shaderInputDir,
         .shaderOutputDir=shaderOutputDir,
         .defaultShaderOutput=defaultShaderOutputType,
@@ -271,7 +271,7 @@ void PipelineDefinitionLanguage::writeOutput(
     fs::path outFilePath = outputDir / outputFileName;
     if (generateHeader)
     {
-        const fs::path headerName = outputFileName.replace_extension(".h");
+        const fs::path headerName = outFilePath.replace_extension(".h");
         std::ofstream header(outputDir / headerName);
         std::ofstream source(outFilePath.replace_extension(".cpp"));
 
