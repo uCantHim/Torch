@@ -16,6 +16,7 @@ FetchContent_MakeAvailable(argparse)
 # Compiler executable target
 add_library(pipeline_compiler_lib
     src/Compiler.cpp
+    src/CMakeDepfileWriter.cpp
     src/ErrorReporter.cpp
     src/FlagTable.cpp
     src/IdentifierTable.cpp

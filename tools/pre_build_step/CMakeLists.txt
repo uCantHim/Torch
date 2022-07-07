@@ -1,35 +1,3 @@
-file(GLOB TRC_SHADER_DEPENDENCIES
-    "${TORCH_SHADER_DIR}/*.vert"  # vertex shader
-    "${TORCH_SHADER_DIR}/*.tesc"  # tesselation control shader
-    "${TORCH_SHADER_DIR}/*.tese"  # tesselation evaluation shader
-    "${TORCH_SHADER_DIR}/*.geom"  # geometry shader
-    "${TORCH_SHADER_DIR}/*.frag"  # fragment shader
-    "${TORCH_SHADER_DIR}/*.comp"  # compute shader
-    "${TORCH_SHADER_DIR}/*.mesh"  # mesh shader
-    "${TORCH_SHADER_DIR}/*.task"  # task shader
-    "${TORCH_SHADER_DIR}/*.rgen"  # ray generation shader
-    "${TORCH_SHADER_DIR}/*.rint"  # ray intersection shader
-    "${TORCH_SHADER_DIR}/*.rahit" # ray any hit shader
-    "${TORCH_SHADER_DIR}/*.rchit" # ray closest hit shader
-    "${TORCH_SHADER_DIR}/*.rmiss" # ray miss shader
-    "${TORCH_SHADER_DIR}/*.rcall" # ray callable shader
-
-    "${TORCH_SHADER_DIR}/**/*.vert"  # vertex shader
-    "${TORCH_SHADER_DIR}/**/*.tesc"  # tesselation control shader
-    "${TORCH_SHADER_DIR}/**/*.tese"  # tesselation evaluation shader
-    "${TORCH_SHADER_DIR}/**/*.geom"  # geometry shader
-    "${TORCH_SHADER_DIR}/**/*.frag"  # fragment shader
-    "${TORCH_SHADER_DIR}/**/*.comp"  # compute shader
-    "${TORCH_SHADER_DIR}/**/*.mesh"  # mesh shader
-    "${TORCH_SHADER_DIR}/**/*.task"  # task shader
-    "${TORCH_SHADER_DIR}/**/*.rgen"  # ray generation shader
-    "${TORCH_SHADER_DIR}/**/*.rint"  # ray intersection shader
-    "${TORCH_SHADER_DIR}/**/*.rahit" # ray any hit shader
-    "${TORCH_SHADER_DIR}/**/*.rchit" # ray closest hit shader
-    "${TORCH_SHADER_DIR}/**/*.rmiss" # ray miss shader
-    "${TORCH_SHADER_DIR}/**/*.rcall" # ray callable shader
-)
-
 function (_torch_compile_pipelines_cpp)
     cmake_parse_arguments(
         ARG
@@ -50,17 +18,19 @@ function (_torch_compile_pipelines_cpp)
     endif ()
 
     set(_OUT_DIR "${TORCH_GENERATED_DIR}/include/trc")
+    set(_DEPFILE ${TORCH_GENERATED_DIR}/${ARG_FILE}_depfile)
     add_custom_command(
         OUTPUT
             ${_OUT_DIR}/${ARG_FILE}.cpp
         COMMAND pipeline_compiler ${TORCH_CONFIG_DIR}/${ARG_FILE}.se
             -o ${_OUT_DIR} --spv --spv-version 1.5 --spv-target-env vulkan1.2
             --shader-input ${TORCH_SHADER_DIR} --shader-output ${TORCH_SHADER_OUTPUT_DIR}
+            --depfile ${_DEPFILE}
             ${SHADER_MACROS}
         DEPENDS
             pipeline_compiler
             ${TORCH_CONFIG_DIR}/${ARG_FILE}.se
-            ${ARG_SHADER_DEPS}
+        DEPFILE ${_DEPFILE}
         VERBATIM
     )
 

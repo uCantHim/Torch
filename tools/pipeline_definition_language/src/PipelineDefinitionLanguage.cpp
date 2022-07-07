@@ -18,6 +18,7 @@
 #include "TypeChecker.h"
 #include "Compiler.h"
 #include "TorchCppWriter.h"
+#include "CMakeDepfileWriter.h"
 
 #ifdef HAS_SPIRV_COMPILER
 #include "GenerateSpirv.h"
@@ -79,6 +80,8 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
             shaderOutputDir = arg;
         })
         .help("Output directory for generated shader files.");
+    program.add_argument("--depfile")
+        .help("Generate a dependency file for the output files.");
 
 #ifdef HAS_SPIRV_COMPILER
     program.add_argument("--spv")
@@ -182,6 +185,8 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         }
     }
 
+    depfilePath = program.present("--depfile");
+
     // Init
     errorReporter = std::make_unique<DefaultErrorReporter>(std::cout);
     try {
@@ -282,6 +287,14 @@ void PipelineDefinitionLanguage::writeOutput(
     else {
         std::ofstream file(outFilePath.replace_extension(".h"));
         writer.write(result, file);
+    }
+
+    // Write dependency file
+    if (depfilePath)
+    {
+        std::ofstream depfile(*depfilePath);
+        CMakeDepfileWriter depfileWriter{ shaderInputDir, outFilePath.replace_extension(".cpp") };
+        depfileWriter.write(result, depfile);
     }
 
     // Copy helper files

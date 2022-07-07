@@ -53,6 +53,8 @@ private:
     static inline fs::path outputFileName;
     static inline bool generateHeader{ true };  // Not implemented; always true for now
 
+    static inline std::optional<fs::path> depfilePath;
+
     static inline ShaderOutputType defaultShaderOutputType{ ShaderOutputType::eGlsl };
     static inline std::vector<std::string> shaderCompileDefinitions;
 
