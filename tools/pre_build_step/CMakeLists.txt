@@ -1,9 +1,9 @@
-function (_torch_compile_pipelines_cpp)
+function (torch_compile_pipelines_cpp)
     cmake_parse_arguments(
         ARG
         ""
         "TARGET;FILE"
-        "SHADER_DEPS"
+        ""
         ${ARGN}
     )
     if (NOT ARG_FILE)
