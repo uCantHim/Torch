@@ -19,6 +19,21 @@ void gui::MainMenu::drawImGui()
     // Draw sub menus
     fileExplorer.drawImGui();
     assetEditor.drawImGui();
+
+    for (auto it = openWindows.begin(); it != openWindows.end(); /* nothing */)
+    {
+        if (!std::invoke(*it)) {
+            it = openWindows.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+void gui::MainMenu::openWindow(std::function<bool()> window)
+{
+    openWindows.emplace_back(std::move(window));
 }
 
 void gui::MainMenu::drawMainMenu()
