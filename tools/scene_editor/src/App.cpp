@@ -4,6 +4,8 @@
 #include <chrono>
 
 #include <trc_util/Timer.h>
+#include <argparse/argparse.hpp>
+#include <trc/util/TorchDirectories.h>
 
 #include "gui/ContextMenu.h"
 #include "DefaultAssets.h"
@@ -11,7 +13,7 @@
 
 
 
-App::App(int, char*[])
+App::App(int argc, char** argv)
     :
     trcTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
     torch(trc::initFull()),
@@ -25,6 +27,16 @@ App::App(int, char*[])
         throw trc::Exception("[In App::App]: Only one App object may exist at any give time.");
     }
     _app = this;
+
+    // Process command-line arguments
+    argparse::ArgumentParser parser;
+    parser.add_argument("--project-root")
+        .default_value(std::string{ "." })
+        .required()
+        .help("Root directory of the current project.");
+    parser.parse_args(argc, argv);
+
+    trc::util::setProjectDirectory(parser.get("--project-root"));
 
     // Initialize input
     vkb::Keyboard::init();
