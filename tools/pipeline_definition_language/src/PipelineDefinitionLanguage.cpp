@@ -72,6 +72,9 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
     program.add_argument("-o", "--output")
         .help("Output directory. Generated files are stored here. Use the --shader-output option "
               "to declare a separate output directory for generated shader files.");
+    program.add_argument("-I", "--include")
+        .action([](const std::string& arg) { includeDirs.emplace_back(arg); })
+        .help("Specify additional include directories.");
     program.add_argument("--shader-input")
         .help("Input directory. Shader file paths are interpreted relative to this path.");
     program.add_argument("--shader-output")
@@ -229,7 +232,9 @@ auto PipelineDefinitionLanguage::compile(const fs::path& filename) -> std::optio
     auto parseResult = parser.parseTokens();
 
     // Resolve import statements
-    auto imports = Importer{ filename, *errorReporter }.parseImports(parseResult);
+    auto includePaths = includeDirs;
+    includePaths.emplace_back(filename.parent_path());
+    auto imports = Importer{ includePaths, *errorReporter }.parseImports(parseResult);
     std::move(imports.begin(), imports.end(), std::back_inserter(parseResult));
 
     // Load standard library

@@ -48,6 +48,7 @@ private:
 #endif
 
     static inline fs::path outputDir{ "." };
+    static inline std::vector<fs::path> includeDirs;
     static inline fs::path shaderInputDir{ "." };
     static inline fs::path shaderOutputDir{ "." };
     static inline fs::path outputFileName;

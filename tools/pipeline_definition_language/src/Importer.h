@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+#include <vector>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -13,7 +15,7 @@ public:
     /**
      * @param fs::path filePath Path of the compiled file
      */
-    Importer(fs::path filePath, ErrorReporter& errorReporter);
+    Importer(std::vector<fs::path> includePaths, ErrorReporter& errorReporter);
 
     auto parseImports(const std::vector<Stmt>& statements) -> std::vector<Stmt>;
 
@@ -22,7 +24,9 @@ public:
     void operator()(const FieldDefinition&) {}
 
 private:
-    const fs::path filePath;
+    auto findFile(const std::string& importString) -> std::optional<fs::path>;
+
+    const std::vector<fs::path> includePaths;
     ErrorReporter* errorReporter;
 
     std::vector<Stmt> results;
