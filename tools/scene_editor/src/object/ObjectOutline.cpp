@@ -4,15 +4,19 @@
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/PipelineBuilder.h>
 #include <trc/drawable/DefaultDrawable.h>
+#include <trc/DrawablePipelines.h>
 
 #include "Scene.h"
 #include "DefaultAssets.h"
 
-
+using namespace se;  // For operator|
 
 auto getObjectOutlinePipeline() -> trc::Pipeline::ID
 {
-    static auto baseID = trc::getPipeline({});
+    static auto baseID = trc::pipelines::getDrawablePipeline(
+        trc::pipelines::PipelineShadingTypeFlagBits::opaque
+        | trc::pipelines::AnimationTypeFlagBits::none
+    );
     static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
 
     static auto hoverPipeline = trc::buildGraphicsPipeline(
@@ -36,7 +40,10 @@ auto getObjectOutlinePipeline() -> trc::Pipeline::ID
 
 auto getAnimatedObjectOutlinePipeline() -> trc::Pipeline::ID
 {
-    static auto baseID = trc::getPipeline(trc::PipelineAnimationTypeFlagBits::eAnimated);
+    static auto baseID = trc::pipelines::getDrawablePipeline(
+        trc::pipelines::PipelineShadingTypeFlagBits::opaque
+        | trc::pipelines::AnimationTypeFlagBits::boneAnim
+    );
     static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
 
     static auto hoverPipeline = trc::buildGraphicsPipeline(

@@ -4,12 +4,18 @@
 #include <trc/TorchResources.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/PipelineBuilder.h>
+#include <trc/DrawablePipelines.h>
 
 #include "DefaultAssets.h"
 
+using namespace se;  // For operator|
+
 auto getHitboxPipeline() -> trc::Pipeline::ID
 {
-    static auto baseID = trc::getPipeline({});
+    static auto baseID = trc::pipelines::getDrawablePipeline(
+        trc::pipelines::PipelineShadingTypeFlagBits::opaque
+        | trc::pipelines::AnimationTypeFlagBits::none
+    );
     static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
 
     static auto pipeline = trc::GraphicsPipelineBuilder(
