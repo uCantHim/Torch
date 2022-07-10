@@ -653,7 +653,7 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
         .renderPassName=expectString(expectSingle(obj, "RenderPass")),
         .program=makeReference<ProgramDesc>(expectSingle(obj, "Program")),
         .vertexInput=std::move(vertexInput),
-        .inputAssembly={},
+        .inputAssembly=std::move(inputAssembly),
         .tessellation={},
         .rasterization=r,
         .multisampling=multisampling,
