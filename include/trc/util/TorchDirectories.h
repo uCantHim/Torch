@@ -18,7 +18,7 @@ namespace trc::util
      * @throw std::invalid_argument if `path` is not a valid path to a
      *        directory.
      */
-    auto setProjectDirectory(fs::path newPath);
+    void setProjectDirectory(fs::path newPath);
 
     /**
      * @return fs::path A directory where Torch saves its assets.

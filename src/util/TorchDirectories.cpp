@@ -17,19 +17,9 @@ auto getProjectDirectory() -> fs::path
     return projectDirectory;
 }
 
-auto setProjectDirectory(fs::path newPath)
+void setProjectDirectory(fs::path newPath)
 {
     projectDirectory = std::move(newPath);
-
-#ifdef TRC_DEBUG
-    static bool firstExecution{ true };
-    if (!firstExecution)
-    {
-        std::cout << "-- Warning: Project directory has been set more than once. This is not "
-            << "recommended!\n";
-    }
-    firstExecution = false;
-#endif
 }
 
 auto getAssetStorageDirectory() -> fs::path
