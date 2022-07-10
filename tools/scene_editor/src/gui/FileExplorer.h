@@ -15,9 +15,9 @@ namespace gui
      *                         clicked on in the explorer. The path of the
      *                         clicked item is passed to the callback.
      */
-    extern void fileExplorer(const fs::path& currentPath,
-                             auto onFileClick,
-                             bool showHiddenFiles = false);
+    void fileExplorer(const fs::path& currentPath,
+                      auto onFileClick,
+                      bool showHiddenFiles = false);
 
     /**
      * @brief Class for a stand-alone file explorer window

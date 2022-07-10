@@ -8,6 +8,7 @@
 
 gui::MainMenu::MainMenu(App& app)
     :
+    fileExplorer(*this),
     assetEditor(app.getAssets())
 {
 }

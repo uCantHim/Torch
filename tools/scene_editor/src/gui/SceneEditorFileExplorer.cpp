@@ -1,30 +1,48 @@
 #include "SceneEditorFileExplorer.h"
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
+#include "MainMenu.h"
 #include "ContextMenu.h"
+#include "ImportDialog.h"
+
+namespace fs = std::filesystem;
 
 
 
-gui::FileContentsPreview::FileContentsPreview(fs::path filePath)
+namespace gui
 {
-    // Default callback for unknown file type
-    std::ifstream file(filePath);
-    if (file.is_open())
-    {
-        std::stringstream ss;
-        ss << file.rdbuf();
-        selectedFileName = filePath;
-        selectedFileContent = ss.str();
-    }
-    else {
-        selectedFileName = "";
-    }
-}
 
-void gui::FileContentsPreview::operator()()
+/**
+ * A preview window for text file content.
+ */
+struct FileContentsPreview
 {
-    // File preview popup
-    if (!selectedFileName.empty())
+    explicit FileContentsPreview(fs::path filePath)
     {
+        // Default callback for unknown file type
+        std::ifstream file(filePath);
+        if (file.is_open())
+        {
+            std::stringstream ss;
+            ss << file.rdbuf();
+            selectedFileName = filePath;
+            selectedFileContent = ss.str();
+        }
+        else {
+            selectedFileName = "";
+        }
+    }
+
+    bool operator()()
+    {
+        // File preview popup
+        if (selectedFileName.empty()) {
+            return false;
+        }
+
         // Begin transparent frame
         ig::PushStyleColor(ImGuiCol_TitleBg, ig::GetStyleColorVec4(ImGuiCol_WindowBg));
         ig::PushStyleColor(ImGuiCol_TitleBgActive, ig::GetStyleColorVec4(ImGuiCol_WindowBg));
@@ -32,78 +50,74 @@ void gui::FileContentsPreview::operator()()
         ig::Begin(selectedFileName.c_str(), &popupIsOpen, ImGuiWindowFlags_NoCollapse);
         ig::PopStyleColor(2);
 
+        // Show content
         ig::Separator();
         ig::Text("%s", selectedFileContent.c_str());
 
+        // End
         ig::End();
 
-        if (!popupIsOpen) {
-            selectedFileName = "";
+        return popupIsOpen;
+    }
+
+    fs::path selectedFileName;
+    std::string selectedFileContent;
+};
+
+/**
+ * Context menu for filesystem entries
+ */
+class FileContextMenu
+{
+public:
+    FileContextMenu(MainMenu& menu, fs::path path)
+        :
+        menu(menu),
+        filePath(std::move(path))
+    {}
+
+    void operator()()
+    {
+        if (ig::Button("Preview")) {
+            menu.openWindow(FileContentsPreview(filePath));
         }
-    }
-}
 
-
-
-gui::FbxFileContextMenu::FbxFileContextMenu(fs::path path)
-    :
-    filePath(std::move(path)),
-    initialPopupPos(vkb::Mouse::getPosition())
-{
-    assert(filePath.extension() == ".fbx");
-}
-
-void gui::FbxFileContextMenu::operator()()
-{
-    if (!isOpen) return;
-
-    trc::imgui::WindowGuard guard;
-    if (showImportDialog)
-    {
-        ig::Begin("FBX Import");
-        importDialog.drawImGui();
-    }
-    else
-    {
-        ig::SetNextWindowPos({ initialPopupPos.x, initialPopupPos.y });
-        util::beginContextMenuStyleWindow(filePath.c_str());
         if (ig::Button("Import"))
         {
-            importDialog.loadFrom(filePath);
-            showImportDialog = true;
+            menu.openWindow([importDialog = ImportDialog(filePath)]() mutable -> bool
+            {
+                trc::experimental::imgui::WindowGuard guard;
+                if (!ig::Begin("Import")) {
+                    return false;
+                }
+
+                importDialog.drawImGui();
+                if (ig::Button("Close")) {
+                    return false;
+                }
+                return true;
+            });
         }
     }
 
-    ig::Spacing();
-    if (ig::Button("close")) {
-        isOpen = false;
-    }
-}
+private:
+    MainMenu& menu;
+    fs::path filePath;
+};
 
 
 
-gui::SceneEditorFileExplorer::SceneEditorFileExplorer()
+SceneEditorFileExplorer::SceneEditorFileExplorer(MainMenu& menu)
     :
-    fileExplorer("File Explorer", [this](const fs::path& selectedFile) {
-        std::string ext = selectedFile.extension();
-        auto it = contextMenuFuncs.find(ext);
-        if (it != contextMenuFuncs.end())
-        {
-            currentContextFunc = it->second(selectedFile);
-        }
-        else
-        {
-            currentContextFunc = FileContentsPreview{ selectedFile };
-        }
-    }),
-    contextMenuFuncs({
-        { ".fbx", [](const fs::path& path) { return FbxFileContextMenu{ path }; } },
+    fileExplorer("File Explorer", [&menu](const fs::path& selectedFile) {
+        ContextMenu::show("Context", FileContextMenu(menu, selectedFile));
     })
 {
 }
 
-void gui::SceneEditorFileExplorer::drawImGui()
+void SceneEditorFileExplorer::drawImGui()
 {
     fileExplorer.drawImGui();
-    currentContextFunc();
 }
+
+} // namespace gui
