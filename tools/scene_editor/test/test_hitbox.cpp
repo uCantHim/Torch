@@ -4,9 +4,9 @@
 #include <glm/gtx/norm.hpp>
 using vec3 = glm::vec3;
 
-#include "Hitbox.cpp"
+#include "object/Hitbox.h"
 
-int main()
+TEST(HitboxTest, Capsule)
 {
     Capsule capsule(2.0f, 0.5f);
 
@@ -19,17 +19,15 @@ int main()
     vec3 out4{ 0.5f, 0.5f, 0.5f };
     vec3 out5{ 0.25f, 0.1f, 0.25f };
 
-    ASSERT_TRUE(isInCapsule(in, capsule));
-    ASSERT_TRUE(isInCapsule(in2, capsule));
-    ASSERT_TRUE(isInCapsule(in3, capsule));
-    ASSERT_TRUE(isInCapsule(vec3{ 0.0f, 1.9f, 0.0f }, capsule));
-    ASSERT_TRUE(!isInCapsule(out, capsule));
-    ASSERT_TRUE(!isInCapsule(vec3{ 0.0f, 3.0f, 0.0f }, capsule));
-    ASSERT_TRUE(!isInCapsule(vec3{ 0.0f, 4.0f, 0.0f }, capsule));
-    ASSERT_TRUE(!isInCapsule(out2, capsule));
-    ASSERT_TRUE(!isInCapsule(out3, capsule));
-    ASSERT_TRUE(!isInCapsule(out4, capsule));
-    ASSERT_TRUE(!isInCapsule(out5, capsule));
-
-    return 0;
+    ASSERT_TRUE(isInside(in, capsule));
+    ASSERT_TRUE(isInside(in2, capsule));
+    ASSERT_TRUE(isInside(in3, capsule));
+    ASSERT_TRUE(isInside(vec3{ 0.0f, 1.9f, 0.0f }, capsule));
+    ASSERT_TRUE(!isInside(out, capsule));
+    ASSERT_TRUE(!isInside(vec3{ 0.0f, 3.0f, 0.0f }, capsule));
+    ASSERT_TRUE(!isInside(vec3{ 0.0f, 4.0f, 0.0f }, capsule));
+    ASSERT_TRUE(!isInside(out2, capsule));
+    ASSERT_TRUE(!isInside(out3, capsule));
+    ASSERT_TRUE(!isInside(out4, capsule));
+    ASSERT_TRUE(!isInside(out5, capsule));
 }

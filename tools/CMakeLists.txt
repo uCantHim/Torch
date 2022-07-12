@@ -34,7 +34,7 @@ if (${TORCH_BUILD_SCENE_EDITOR})
 
     add_subdirectory(scene_editor)
 
-    set_target_properties(scene_editor PROPERTIES
+    set_target_properties(scene_editor_exe PROPERTIES
         OUTPUT_NAME scene_editor
         RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
     )
