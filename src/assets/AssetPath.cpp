@@ -11,15 +11,24 @@ trc::AssetPath::AssetPath(fs::path path)
                                     + path.string() + "\": " + "Path is empty.");
     }
 
-    path = path.lexically_normal();
+    if (path == "."
+        || path.string().ends_with("/")
+        || path.string().ends_with(fs::path::preferred_separator))
+    {
+        throw std::invalid_argument("Unable to construct unique asset path from \""
+                                    + path.string() + "\": " + "Path must not be a directory name.");
+    }
 
     // Replace any root directory names
     if (path.has_root_path()) {
         path = path.string().substr(path.root_path().string().size());
     }
 
+    path = path.lexically_normal();
+
     // Ensure that path is actually a subdirectory of the asset root
-    const auto isSubdir = !fs::path(".").lexically_relative(path).empty();
+    const auto isSubdir = !path.lexically_relative(fs::path("."))
+                           .string().starts_with("..");
     if (!isSubdir)
     {
         throw std::invalid_argument(
