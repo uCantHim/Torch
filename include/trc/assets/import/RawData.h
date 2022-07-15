@@ -10,14 +10,6 @@
 
 namespace trc
 {
-    /**
-     * @brief General data stored for every type of asset
-     */
-    struct AssetMetaData
-    {
-        std::string uniqueName;
-    };
-
     template<>
     struct AssetData<Geometry>
     {

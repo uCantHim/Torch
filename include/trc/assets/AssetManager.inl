@@ -44,9 +44,12 @@ inline void AssetManager::resolveReferences<Rig>(AssetData<Rig>& data)
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {
+    auto source = std::make_unique<InMemorySource<T>>(data);
+    auto name = source->getUniqueAssetName();
+
     return _createAsset<T>(
-        std::make_unique<InMemorySource<T>>(data),
-        AssetMetaData{ .uniqueName=generateUniqueName() }
+        std::move(source),
+        AssetMetaData{ .uniqueName=std::move(name) }
     );
 }
 
@@ -55,14 +58,27 @@ inline auto AssetManager::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T
 {
     return _createAsset<T>(
         std::move(source),
-        AssetMetaData{ .uniqueName=generateUniqueName() }
+        AssetMetaData{ .uniqueName=source->getUniqueAssetName() }
     );
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::load(const AssetPath& path) -> TypedAssetID<T>
 {
-    return _loadAsset<T>(path);
+    auto [it, success] = pathsToAssets.try_emplace(path);
+    if (!success)
+    {
+        // Asset from `path` has already been loaded
+        return std::any_cast<TypedAssetID<T>>(it->second);
+    }
+
+    const auto id = _createAsset<T>(
+        std::make_unique<AssetPathSource<T>>(path),
+        AssetMetaData{ .uniqueName=path.getUniquePath() }
+    );
+    it->second = id;
+
+    return id;
 }
 
 template<AssetBaseType T>
@@ -105,25 +121,6 @@ template<AssetBaseType T>
 inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 {
     return registry.getModule<T>();
-}
-
-template<AssetBaseType T>
-inline auto AssetManager::_loadAsset(const AssetPath& path) -> TypedAssetID<T>
-{
-    auto [it, success] = pathsToAssets.try_emplace(path);
-    if (!success)
-    {
-        // Asset from `path` has already been loaded
-        return std::any_cast<TypedAssetID<T>>(it->second);
-    }
-
-    const auto id = _createAsset<T>(
-        std::make_unique<AssetPathSource<T>>(path),
-        AssetMetaData{ .uniqueName=path.getUniquePath() }
-    );
-    it->second = id;
-
-    return id;
 }
 
 template<AssetBaseType T>

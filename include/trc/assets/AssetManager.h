@@ -1,9 +1,8 @@
 #pragma once
 
-#include <string>
-#include <atomic>
 #include <any>
 #include <filesystem>
+#include <string>
 
 #include <trc_util/data/ObjectId.h>
 
@@ -16,6 +15,14 @@
 namespace trc
 {
     /**
+     * @brief General data stored for every type of asset
+     */
+    struct AssetMetaData
+    {
+        std::string uniqueName;
+    };
+
+    /**
      * @brief Manages assets on a high level
      *
      * Loads and stores assets from/to disk and manages their storage
@@ -26,6 +33,20 @@ namespace trc
     class AssetManager : public AssetManagerInterface<AssetManager>
     {
     public:
+        AssetManager(const AssetManager&) = delete;
+        AssetManager(AssetManager&&) noexcept = delete;
+        AssetManager& operator=(const AssetManager&) = delete;
+        AssetManager& operator=(AssetManager&&) noexcept = delete;
+
+        ~AssetManager() = default;
+
+        /**
+         * @brief Constructor
+         *
+         * @param const Instance& instance
+         * @param const AssetRegistryCreateInfo& arInfo The AssetManager
+         *        automatically creates an AssetRegistry.
+         */
         AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo);
 
 
@@ -104,19 +125,18 @@ namespace trc
                 return data;
             }
 
+            auto getUniqueAssetName() -> std::string {
+                return source->getUniqueAssetName();
+            }
+
         private:
             AssetManager* manager;
             u_ptr<AssetSource<T>> source;
         };
 
-        std::atomic<ui32> uniqueNameIndex{ 0 };
-        auto generateUniqueName() -> std::string;
-
         template<AssetBaseType T>
         void resolveReferences(AssetData<T>& data);
 
-        template<AssetBaseType T>
-        auto _loadAsset(const AssetPath& path) -> TypedAssetID<T>;
         template<AssetBaseType T>
         auto _createAsset(u_ptr<AssetSource<T>> source, AssetMetaData meta) -> TypedAssetID<T>;
         auto _createBaseAsset(AssetMetaData meta) -> AssetID;

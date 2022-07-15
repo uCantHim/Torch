@@ -18,14 +18,6 @@ auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
     return registry;
 }
 
-auto trc::AssetManager::generateUniqueName() -> std::string
-{
-    std::stringstream ss;
-    ss << "_trc_generated_name__" << std::setw(5) << ++uniqueNameIndex;
-
-    return ss.str();
-}
-
 auto trc::AssetManager::_createBaseAsset(AssetMetaData meta) -> AssetID
 {
     // Generate unique asset ID

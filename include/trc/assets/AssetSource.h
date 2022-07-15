@@ -1,9 +1,14 @@
 #pragma once
 
+#include <atomic>
 #include <filesystem>
+#include <iomanip>
+#include <string>
+#include <sstream>
 
 #include "AssetBase.h"
 #include "AssetPath.h"
+#include "Types.h"
 
 namespace trc
 {
@@ -15,6 +20,8 @@ namespace trc
     public:
         virtual ~AssetSource() = default;
         virtual auto load() -> AssetData<T> = 0;
+
+        virtual auto getUniqueAssetName() -> std::string = 0;
     };
 
     /**
@@ -41,13 +48,16 @@ namespace trc
             : path(std::move(path))
         {}
 
-        auto load() -> AssetData<T> override
-        {
+        auto load() -> AssetData<T> override {
             return loadAssetData<T>(path.getFilesystemPath());
         }
 
+        auto getUniqueAssetName() -> std::string override {
+            return path.getUniquePath();
+        }
+
     private:
-        AssetPath path;
+        const AssetPath path;
     };
 
     template<AssetBaseType T>
@@ -58,12 +68,25 @@ namespace trc
             : data(std::move(data))
         {}
 
-        auto load() -> AssetData<T> override
-        {
+        auto load() -> AssetData<T> override {
             return data;
         }
 
+        auto getUniqueAssetName() -> std::string override {
+            return name;
+        }
+
     private:
-        AssetData<T> data;
+        static inline std::atomic<ui32> uniqueNameIndex{ 0 };
+
+        auto generateUniqueName() -> std::string
+        {
+            std::stringstream ss;
+            ss << "generated_asset_name_" << std::setw(5) << ++uniqueNameIndex;
+            return ss.str();
+        }
+
+        const AssetData<T> data;
+        const std::string name{ generateUniqueName() };
     };
 } // namespace trc
