@@ -1,17 +1,21 @@
 #pragma once
 
+#include <array>
+#include <string>
 #include <vector>
-#include <unordered_set>
+
+#include <trc/assets/Assets.h>
 
 #include "ImguiUtil.h"
 #include "MaterialEditor.h"
+#include "ProjectDirectory.h"
 
 namespace gui
 {
     class AssetEditor
     {
     public:
-        AssetEditor(trc::AssetManager& assetManager);
+        explicit AssetEditor(trc::AssetManager& assetManager);
 
         void drawImGui();
 
@@ -23,12 +27,15 @@ namespace gui
         };
 
         trc::AssetManager* assets;
+        ProjectDirectory dir;
+
+        void drawAssetList();
+        template<trc::AssetBaseType T>
+        void drawListEntry(const trc::AssetPath& path);
 
         void drawMaterialGui();
-        void drawMaterialList();
-        std::array<char, 512> matNameBuf{};
-        std::vector<MaterialStorage> materials;
 
+        std::array<char, 512> matNameBuf{};
         trc::MaterialID editedMaterial;
 
         // The edited material is a copy. A click on the save button

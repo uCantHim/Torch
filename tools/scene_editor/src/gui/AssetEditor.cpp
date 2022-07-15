@@ -1,13 +1,17 @@
 #include "AssetEditor.h"
 
+#include <trc/util/TorchDirectories.h>
+
 #include "App.h"
 
 
 
 gui::AssetEditor::AssetEditor(trc::AssetManager& assetManager)
     :
-    assets(&assetManager)
+    assets(&assetManager),
+    dir(trc::util::getAssetStorageDirectory())
 {
+    dir.foreach([this]<trc::AssetBaseType T>(auto&& path){ assets->load<T>(path); });
 }
 
 void gui::AssetEditor::drawImGui()
@@ -16,6 +20,7 @@ void gui::AssetEditor::drawImGui()
     trc::imgui::WindowGuard guard;
 
     drawMaterialGui();
+    drawAssetList();
 }
 
 void gui::AssetEditor::drawMaterialGui()
@@ -27,9 +32,12 @@ void gui::AssetEditor::drawMaterialGui()
         if (matName.empty()) return;
 
         try {
-            trc::MaterialID matId = assets->create(trc::MaterialData{});
-            materials.emplace_back(matNameBuf.data(), matId);
-            editedMaterial = matId;
+            // Create resource on disk
+            const trc::AssetPath path(matName);
+            dir.save(path, trc::MaterialData{});
+
+            // Create asset
+            editedMaterial = assets->load<trc::Material>(path);
             editedMaterialCopy = {}; // New material
         }
         catch (const trc::DuplicateKeyError& err) {
@@ -38,10 +46,6 @@ void gui::AssetEditor::drawMaterialGui()
     });
     ig::PopItemWidth();
 
-    // Show a material editor for every material that's being edited
-    if (ig::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
-        drawMaterialList();
-    }
     // Draw material editor
     if (editedMaterial)
     {
@@ -52,6 +56,13 @@ void gui::AssetEditor::drawMaterialGui()
                     editedMaterial.getDeviceID(),
                     [&](auto& mat) { mat = editedMaterialCopy; }
                 );
+
+                // Save changes on disk
+                dir.save(
+                    trc::AssetPath(editedMaterial.getMetaData().uniqueName),
+                    editedMaterialCopy
+                );
+
                 editedMaterial = trc::MaterialID::NONE;
             },
             [this]() {
@@ -62,18 +73,52 @@ void gui::AssetEditor::drawMaterialGui()
     }
 }
 
-void gui::AssetEditor::drawMaterialList()
+void gui::AssetEditor::drawAssetList()
 {
-    for (auto& mat : materials)
-    {
-        ig::PushID(mat.matId);
-        ig::Text("Material \"%s\"", mat.name.c_str());
-        ig::SameLine();
-        if (ig::Button("Edit"))
-        {
-            editedMaterial = mat.matId;
-            editedMaterialCopy = assets->getModule<trc::Material>().getData(mat.matId.getDeviceID());
-        }
-        ig::PopID();
+    // Show a material editor for every material that's being edited
+    if (ig::CollapsingHeader("Assets", ImGuiTreeNodeFlags_DefaultOpen)) {
+        dir.foreach(trc::util::VariantVisitor{
+            [this]<trc::AssetBaseType T>(const auto& path){ drawListEntry<T>(path); },
+        });
     }
+}
+
+template<>
+void gui::AssetEditor::drawListEntry<trc::Material>(const trc::AssetPath& path)
+{
+    const auto id = assets->getAsset<trc::Material>(path);
+
+    ig::PushID(id);
+    ig::Text("Material \"%s\"", id.getMetaData().uniqueName.c_str());
+    ig::SameLine();
+    if (ig::Button("Edit"))
+    {
+        editedMaterial = id;
+        editedMaterialCopy = assets->getModule<trc::Material>().getData(id.getDeviceID());
+    }
+    ig::PopID();
+}
+
+template<>
+void gui::AssetEditor::drawListEntry<trc::Geometry>(const trc::AssetPath& path)
+{
+    ig::Text("Geometry %s", path.getUniquePath().c_str());
+}
+
+template<>
+void gui::AssetEditor::drawListEntry<trc::Texture>(const trc::AssetPath& path)
+{
+    ig::Text("Texture %s", path.getUniquePath().c_str());
+}
+
+template<>
+void gui::AssetEditor::drawListEntry<trc::Rig>(const trc::AssetPath& path)
+{
+    ig::Text("Rig %s", path.getUniquePath().c_str());
+}
+
+template<>
+void gui::AssetEditor::drawListEntry<trc::Animation>(const trc::AssetPath& path)
+{
+    ig::Text("Animation %s", path.getUniquePath().c_str());
 }
