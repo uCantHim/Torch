@@ -129,6 +129,8 @@ auto ProjectDirectory::load(const trc::AssetPath& path) -> u_ptr<trc::AssetSourc
 template<trc::AssetBaseType T>
 void ProjectDirectory::save(const trc::AssetPath& path, const trc::AssetData<T>& data)
 {
+    fs::create_directories(path.getFilesystemPath().parent_path());
+
     std::scoped_lock lock(fileWriteLock);
     index.insert<T>(path);
     trc::saveToFile(data, path.getFilesystemPath());
