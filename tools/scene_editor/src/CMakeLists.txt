@@ -1,6 +1,9 @@
 target_sources(scene_editor PRIVATE
     App.cpp
+    AssetFileIndex.cpp
     DefaultAssets.cpp
+    Project.cpp
+    ProjectDirectory.cpp
     Scene.cpp
 )
 

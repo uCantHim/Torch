@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     fs::create_directories(trc::util::getAssetStorageDirectory());
 
     // Run scene editor
-    App app(argc, argv);
+    App app{ Project(trc::util::getProjectDirectory()) };
     app.run();
 
     return 0;

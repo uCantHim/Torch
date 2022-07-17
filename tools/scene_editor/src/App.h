@@ -5,6 +5,7 @@
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 
+#include "Project.h"
 #include "Scene.h"
 #include "gui/MainMenu.h"
 #include "input/InputState.h"
@@ -13,11 +14,13 @@ using namespace trc::basic_types;
 class App
 {
 public:
-    App(int argc, char* argv[]);
+    explicit App(Project project);
     ~App();
 
     void run();
     void end();
+
+    auto getProject() -> Project&;
 
     auto getTorch() -> trc::TorchStack&;
     auto getAssets() -> trc::AssetManager&;
@@ -32,12 +35,16 @@ public:
 private:
     static inline App* _app{ nullptr };
 
+    /** I try to limit the initialization hacks to only this single one */
+    bool initGlobalState;
+
     void init();
     void tick();
     bool doEnd{ false };
 
-    u_ptr<int, std::function<void(int*)>> trcTerminator;
+    Project project;
 
+    u_ptr<int, void(*)(int*)> torchTerminator;
     u_ptr<trc::TorchStack> torch;
     u_ptr<trc::imgui::ImguiRenderPass> imgui{ nullptr };
     trc::AssetManager* assetManager;

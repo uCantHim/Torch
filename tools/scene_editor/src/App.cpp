@@ -4,27 +4,38 @@
 #include <chrono>
 
 #include <trc_util/Timer.h>
+#include <trc/util/TorchDirectories.h>
 
 #include "gui/ContextMenu.h"
-#include "DefaultAssets.h"
 #include "input/KeyConfig.h"
+#include "DefaultAssets.h"
+#include "Project.h"
 
 
 
-App::App(int, char**)
+App::App(Project _project)
     :
-    trcTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
+    initGlobalState([this]() -> bool {
+        // Initialize global access
+        if (_app != nullptr) {
+            throw trc::Exception("[In App::App]: Only one App object may exist at any given time.");
+        }
+        _app = this;
+
+        return true;
+    }()),
+    project(std::move(_project)),
+    torchTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
     torch(trc::initFull()),
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
     assetManager(&torch->getAssetManager()),
     scene(*this),
     mainMenu(*this)
 {
-    // Initialize global access
-    if (_app != nullptr) {
-        throw trc::Exception("[In App::App]: Only one App object may exist at any give time.");
-    }
-    _app = this;
+    // Register all assets from disk at the AssetManager
+    project.getStorageDir().foreach([this]<trc::AssetBaseType T>(auto&& path) {
+        assetManager->load<T>(path);
+    });
 
     // Initialize input
     vkb::Keyboard::init();
@@ -107,6 +118,11 @@ void App::run()
 void App::end()
 {
     doEnd = true;
+}
+
+auto App::getProject() -> Project&
+{
+    return project;
 }
 
 auto App::getTorch() -> trc::TorchStack&
