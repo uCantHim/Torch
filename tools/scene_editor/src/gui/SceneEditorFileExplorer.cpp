@@ -84,7 +84,7 @@ public:
 
         if (ig::Button("Import"))
         {
-            menu.openWindow([importDialog = ImportDialog(filePath)]() mutable -> bool
+            menu.openWindow([importDialog = ImportDialog(filePath, menu.getApp())]() mutable -> bool
             {
                 trc::experimental::imgui::WindowGuard guard;
                 if (!ig::Begin("Import")) {

@@ -8,6 +8,7 @@
 
 gui::MainMenu::MainMenu(App& app)
     :
+    app(app),
     fileExplorer(*this),
     assetEditor(app.getAssets(), app.getProject().getStorageDir())
 {
@@ -30,6 +31,11 @@ void gui::MainMenu::drawImGui()
             ++it;
         }
     }
+}
+
+auto gui::MainMenu::getApp() -> App&
+{
+    return app;
 }
 
 void gui::MainMenu::openWindow(std::function<bool()> window)

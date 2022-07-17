@@ -7,15 +7,12 @@
 
 
 
-gui::ImportDialog::ImportDialog(const fs::path& filePath)
+gui::ImportDialog::ImportDialog(const fs::path& path, App& app)
+    :
+    app(app),
+    filePath(path),
+    importData(trc::loadAssets(path))
 {
-    loadFrom(filePath);
-}
-
-void gui::ImportDialog::loadFrom(const fs::path& fbxFilePath)
-{
-    filePath = fbxFilePath;
-    importData = trc::loadAssets(fbxFilePath);
 }
 
 void gui::ImportDialog::drawImGui()
@@ -67,11 +64,16 @@ void gui::ImportDialog::drawImGui()
             ig::Text("No rigs found");
         }
 
-        if (ig::Button("Import")) {
-            importGeometry(mesh);
-        }
-        if (ig::Button("Import and create in scene")) {
-            importAndCreateObject(mesh);
+        if (!imported.contains(mesh.name))
+        {
+            if (ig::Button("Import")) {
+                importGeometry(mesh);
+                imported.emplace(mesh.name);
+            }
+            if (ig::Button("Import and create in scene")) {
+                importAndCreateObject(mesh);
+                imported.emplace(mesh.name);
+            }
         }
 
         ig::TreePop();
@@ -80,15 +82,18 @@ void gui::ImportDialog::drawImGui()
 
 auto gui::ImportDialog::importGeometry(const trc::ThirdPartyMeshImport& mesh) -> trc::GeometryID
 {
-    const trc::GeometryID geo = App::get().getAssets().create(mesh.geometry);
-    App::get().addHitbox(geo, makeHitbox(mesh.geometry));
+    const trc::AssetPath path(mesh.name);
+    app.getProject().getStorageDir().save(path, mesh.geometry);
+
+    const auto geo = app.getAssets().load<trc::Geometry>(path);
+    app.addHitbox(geo, makeHitbox(mesh.geometry));
 
     return geo;
 }
 
 void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& mesh)
 {
-    auto& scene = App::get().getScene();
+    auto& scene = app.getScene();
 
     const auto geoId = importGeometry(mesh);
 

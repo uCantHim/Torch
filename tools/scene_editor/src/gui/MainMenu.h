@@ -19,12 +19,17 @@ namespace gui
         void drawImGui();
 
         auto getApp() -> App&;
-        auto getAssets() -> trc::AssetManager&;
 
+        /**
+         * @param bool() window Draw function. Returns false when window is
+         *        closed, in which case the function gets deleted.
+         */
         void openWindow(std::function<bool()> window);
 
     private:
         void drawMainMenu();
+
+        App& app;
 
         std::vector<std::function<bool()>> openWindows;
 
