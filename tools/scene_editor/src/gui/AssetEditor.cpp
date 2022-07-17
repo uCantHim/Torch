@@ -2,16 +2,15 @@
 
 #include <trc/util/TorchDirectories.h>
 
-#include "App.h"
+#include "ProjectDirectory.h"
 
 
 
-gui::AssetEditor::AssetEditor(trc::AssetManager& assetManager)
+gui::AssetEditor::AssetEditor(trc::AssetManager& assetManager, ProjectDirectory& assetDir)
     :
-    assets(&assetManager),
-    dir(trc::util::getAssetStorageDirectory())
+    assets(assetManager),
+    dir(assetDir)
 {
-    dir.foreach([this]<trc::AssetBaseType T>(auto&& path){ assets->load<T>(path); });
 }
 
 void gui::AssetEditor::drawImGui()
@@ -37,7 +36,7 @@ void gui::AssetEditor::drawMaterialGui()
             dir.save(path, trc::MaterialData{});
 
             // Create asset
-            editedMaterial = assets->load<trc::Material>(path);
+            editedMaterial = assets.load<trc::Material>(path);
             editedMaterialCopy = {}; // New material
         }
         catch (const trc::DuplicateKeyError& err) {
@@ -52,7 +51,7 @@ void gui::AssetEditor::drawMaterialGui()
         materialEditor("Material Editor", editedMaterialCopy,
             [this]() {
                 // Material has been saved
-                assets->getModule<trc::Material>().modify(
+                assets.getModule<trc::Material>().modify(
                     editedMaterial.getDeviceID(),
                     [&](auto& mat) { mat = editedMaterialCopy; }
                 );
@@ -76,7 +75,8 @@ void gui::AssetEditor::drawMaterialGui()
 void gui::AssetEditor::drawAssetList()
 {
     // Show a material editor for every material that's being edited
-    if (ig::CollapsingHeader("Assets", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ig::CollapsingHeader("Assets", ImGuiTreeNodeFlags_DefaultOpen))
+    {
         dir.foreach(trc::util::VariantVisitor{
             [this]<trc::AssetBaseType T>(const auto& path){ drawListEntry<T>(path); },
         });
@@ -86,7 +86,7 @@ void gui::AssetEditor::drawAssetList()
 template<>
 void gui::AssetEditor::drawListEntry<trc::Material>(const trc::AssetPath& path)
 {
-    const auto id = assets->getAsset<trc::Material>(path);
+    const auto id = assets.getAsset<trc::Material>(path);
 
     ig::PushID(id);
     ig::Text("Material \"%s\"", id.getMetaData().uniqueName.c_str());
@@ -94,7 +94,7 @@ void gui::AssetEditor::drawListEntry<trc::Material>(const trc::AssetPath& path)
     if (ig::Button("Edit"))
     {
         editedMaterial = id;
-        editedMaterialCopy = assets->getModule<trc::Material>().getData(id.getDeviceID());
+        editedMaterialCopy = assets.getModule<trc::Material>().getData(id.getDeviceID());
     }
     ig::PopID();
 }

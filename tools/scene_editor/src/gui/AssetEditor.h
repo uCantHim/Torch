@@ -8,14 +8,15 @@
 
 #include "ImguiUtil.h"
 #include "MaterialEditor.h"
-#include "ProjectDirectory.h"
+
+class ProjectDirectory;
 
 namespace gui
 {
     class AssetEditor
     {
     public:
-        explicit AssetEditor(trc::AssetManager& assetManager);
+        AssetEditor(trc::AssetManager& assetManager, ProjectDirectory& assetDir);
 
         void drawImGui();
 
@@ -26,8 +27,8 @@ namespace gui
             trc::MaterialID matId;
         };
 
-        trc::AssetManager* assets;
-        ProjectDirectory dir;
+        trc::AssetManager& assets;
+        ProjectDirectory& dir;
 
         void drawAssetList();
         template<trc::AssetBaseType T>

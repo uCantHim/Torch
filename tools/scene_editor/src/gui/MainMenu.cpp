@@ -9,7 +9,7 @@
 gui::MainMenu::MainMenu(App& app)
     :
     fileExplorer(*this),
-    assetEditor(app.getAssets())
+    assetEditor(app.getAssets(), app.getProject().getStorageDir())
 {
 }
 
