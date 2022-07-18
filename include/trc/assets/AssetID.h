@@ -142,6 +142,6 @@ namespace trc
     template<AssetBaseType T>
     auto TypedAssetID<T>::getMetaData() const -> const AssetMetaData&
     {
-        return manager->getAssetMetaData(*this);
+        return manager->getMetaData(*this);
     }
 } // namespace trc

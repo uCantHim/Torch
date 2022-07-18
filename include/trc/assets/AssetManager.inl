@@ -63,13 +63,11 @@ inline auto AssetManager::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T
 }
 
 template<AssetBaseType T>
-inline auto AssetManager::load(const AssetPath& path) -> TypedAssetID<T>
+inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
 {
     auto [it, success] = pathsToAssets.try_emplace(path);
-    if (!success)
-    {
-        // Asset from `path` has already been loaded
-        return std::any_cast<TypedAssetID<T>>(it->second);
+    if (!success) {
+        throw std::invalid_argument("Asset path \"" + path.getUniquePath() + "\" already exists.");
     }
 
     const auto id = _createAsset<T>(
@@ -82,16 +80,16 @@ inline auto AssetManager::load(const AssetPath& path) -> TypedAssetID<T>
 }
 
 template<AssetBaseType T>
-inline void AssetManager::destroyAsset(const TypedAssetID<T> id)
+inline void AssetManager::destroy(const TypedAssetID<T> id)
 {
-    assetIdPool.free(static_cast<AssetID::IndexType>(id.uniqueId));
-    assetMetaData.erase(id.uniqueId);
+    assetIdPool.free(static_cast<AssetID::IndexType>(id.getAssetID()));
+    assetMetaData.erase(id.getAssetID());
 
-    registry.remove(id.id);
+    registry.remove<T>(id.getDeviceID());
 }
 
 template<AssetBaseType T>
-inline auto AssetManager::getAsset(const AssetPath& path) const -> TypedAssetID<T>
+inline auto AssetManager::get(const AssetPath& path) const -> TypedAssetID<T>
 {
     auto it = pathsToAssets.find(path);
     if (it == pathsToAssets.end())
@@ -101,7 +99,7 @@ inline auto AssetManager::getAsset(const AssetPath& path) const -> TypedAssetID<
     }
 
     try {
-        return std::any_cast<TypedAssetID<T>>(it->second);
+        return std::any_cast<TypedAssetID<T>>(it->second.typedId);
     }
     catch (const std::bad_any_cast&)
     {
@@ -112,7 +110,7 @@ inline auto AssetManager::getAsset(const AssetPath& path) const -> TypedAssetID<
 }
 
 template<AssetBaseType T>
-inline auto AssetManager::getAssetMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
+inline auto AssetManager::getMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
 {
     return assetMetaData.at(id.getAssetID());
 }
@@ -120,7 +118,7 @@ inline auto AssetManager::getAssetMetaData(TypedAssetID<T> id) const -> const As
 template<AssetBaseType T>
 inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 {
-    return registry.getModule<T>();
+    return dynamic_cast<AssetRegistryModule<T>&>(registry.getModule<T>());
 }
 
 template<AssetBaseType T>

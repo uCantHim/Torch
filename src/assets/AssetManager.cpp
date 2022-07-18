@@ -8,6 +8,18 @@ trc::AssetManager::AssetManager(const Instance& instance, const AssetRegistryCre
 {
 }
 
+auto trc::AssetManager::getMetaData(const AssetPath& path) const -> const AssetMetaData&
+{
+    return assetMetaData.at(pathsToAssets.at(path).baseId);
+}
+
+void trc::AssetManager::destroy(const AssetPath& path)
+{
+    auto it = pathsToAssets.find(path);
+    it->second.destroy(*this);
+    pathsToAssets.erase(it);
+}
+
 bool trc::AssetManager::exists(const AssetPath& path) const
 {
     return pathsToAssets.contains(path);

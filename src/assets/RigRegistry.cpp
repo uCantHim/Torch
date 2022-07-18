@@ -2,35 +2,38 @@
 
 
 
-trc::RigRegistry::Handle::Handle(InternalStorage& storage)
+namespace trc
+{
+
+AssetHandle<Rig>::AssetHandle(InternalStorage& storage)
     :
     storage(&storage)
 {
 }
 
-auto trc::RigRegistry::Handle::getName() const noexcept -> const std::string&
+auto AssetHandle<Rig>::getName() const noexcept -> const std::string&
 {
     return storage->rigName;
 }
 
-auto trc::RigRegistry::Handle::getBoneByName(const std::string& name) const -> const RigData::Bone&
+auto AssetHandle<Rig>::getBoneByName(const std::string& name) const -> const RigData::Bone&
 {
     return storage->bones.at(storage->boneNames.at(name));
 }
 
-auto trc::RigRegistry::Handle::getAnimationCount() const noexcept -> ui32
+auto AssetHandle<Rig>::getAnimationCount() const noexcept -> ui32
 {
     return static_cast<ui32>(storage->animations.size());
 }
 
-auto trc::RigRegistry::Handle::getAnimation(ui32 index) const -> AnimationID
+auto AssetHandle<Rig>::getAnimation(ui32 index) const -> AnimationID
 {
     return storage->animations.at(index);
 }
 
 
 
-trc::RigRegistry::InternalStorage::InternalStorage(const RigData& data)
+AssetHandle<Rig>::InternalStorage::InternalStorage(const RigData& data)
     :
     rigName(data.name),
     bones(data.bones)
@@ -48,15 +51,15 @@ trc::RigRegistry::InternalStorage::InternalStorage(const RigData& data)
 
 
 
-trc::RigRegistry::RigRegistry(const AssetRegistryModuleCreateInfo&)
+RigRegistry::RigRegistry(const AssetRegistryModuleCreateInfo&)
 {
 }
 
-void trc::RigRegistry::update(vk::CommandBuffer, FrameRenderState&)
+void RigRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
 }
 
-auto trc::RigRegistry::add(u_ptr<AssetSource<Rig>> source) -> LocalID
+auto RigRegistry::add(u_ptr<AssetSource<Rig>> source) -> LocalID
 {
     const LocalID id{ rigIdPool.generate() };
     storage.emplace(id, std::make_unique<InternalStorage>(source->load()));
@@ -64,12 +67,14 @@ auto trc::RigRegistry::add(u_ptr<AssetSource<Rig>> source) -> LocalID
     return id;
 }
 
-void trc::RigRegistry::remove(LocalID id)
+void RigRegistry::remove(LocalID id)
 {
     storage.erase(id);
 }
 
-auto trc::RigRegistry::getHandle(LocalID id) -> Handle
+auto RigRegistry::getHandle(LocalID id) -> Handle
 {
     return Handle(*storage.get(id));
 }
+
+} // namespace trc

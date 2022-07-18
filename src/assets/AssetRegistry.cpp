@@ -39,45 +39,20 @@ trc::AssetRegistry::AssetRegistry(
     };
 
     // Add modules in the order in which they should be destroyed
-    modules.addModule<MaterialRegistry>(moduleCreateInfo);
-    modules.addModule<TextureRegistry>(moduleCreateInfo);
-    modules.addModule<GeometryRegistry>(moduleCreateInfo);
-    modules.addModule<RigRegistry>(moduleCreateInfo);
-    modules.addModule<AnimationRegistry>(moduleCreateInfo);
+    addModule<Material>(moduleCreateInfo);
+    addModule<Texture>(moduleCreateInfo);
+    addModule<Geometry>(moduleCreateInfo);
+    addModule<Rig>(moduleCreateInfo);
+    addModule<Animation>(moduleCreateInfo);
 
     // Create descriptors
     builder.build(device);
 
     // Add default assets
-    add(std::make_unique<InMemorySource<Material>>(MaterialData{ .doPerformLighting=false }));
-    add(std::make_unique<InMemorySource<Texture>>(
+    add<Material>(std::make_unique<InMemorySource<Material>>(MaterialData{ .doPerformLighting=false }));
+    add<Texture>(std::make_unique<InMemorySource<Texture>>(
         TextureData{ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels }
     ));
-}
-
-auto trc::AssetRegistry::add(u_ptr<AssetSource<Geometry>> src) -> LocalID<Geometry>
-{
-    return modules.get<AssetRegistryModule<Geometry>>().add(std::move(src));
-}
-
-auto trc::AssetRegistry::add(u_ptr<AssetSource<Material>> src) -> LocalID<Material>
-{
-    return modules.get<AssetRegistryModule<Material>>().add(std::move(src));
-}
-
-auto trc::AssetRegistry::add(u_ptr<AssetSource<Texture>> src) -> LocalID<Texture>
-{
-    return modules.get<AssetRegistryModule<Texture>>().add(std::move(src));
-}
-
-auto trc::AssetRegistry::add(u_ptr<AssetSource<Rig>> src) -> LocalID<Rig>
-{
-    return modules.get<AssetRegistryModule<Rig>>().add(std::move(src));
-}
-
-auto trc::AssetRegistry::add(u_ptr<AssetSource<Animation>> src) -> LocalID<Animation>
-{
-    return modules.get<AssetRegistryModule<Animation>>().add(std::move(src));
 }
 
 auto trc::AssetRegistry::getFonts() -> FontDataStorage&
@@ -126,9 +101,6 @@ auto trc::AssetRegistry::addDefaultValues(AssetRegistryCreateInfo info)
 
 void trc::AssetRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState)
 {
-    modules.foreach([cmdBuf, &frameState](AssetRegistryModuleInterface& mod)
-    {
-        mod.update(cmdBuf, frameState);
-    });
+    modules.update(cmdBuf, frameState);
     descSet->update(device);
 }

@@ -4,20 +4,23 @@
 
 
 
-trc::TextureRegistry::Handle::Handle(InternalStorage& s)
+namespace trc
+{
+
+AssetHandle<Texture>::AssetHandle(TextureRegistry::InternalStorage& s)
     :
     SharedCacheReference(s)
 {
 }
 
-auto trc::TextureRegistry::Handle::getDeviceIndex() const -> ui32
+auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
 {
     return cache->deviceIndex;
 }
 
 
 
-trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
+TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),
     config(info),
@@ -37,12 +40,12 @@ trc::TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
 {
 }
 
-void trc::TextureRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState)
+void TextureRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState)
 {
     dataWriter.update(cmdBuf, frameState);
 }
 
-auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
+auto TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
 {
     // Allocate ID
     const LocalID id(idPool.generate());
@@ -68,7 +71,7 @@ auto trc::TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
     return id;
 }
 
-void trc::TextureRegistry::remove(const LocalID id)
+void TextureRegistry::remove(const LocalID id)
 {
     std::scoped_lock lock(textureStorageLock);  // Unique ownership
 
@@ -77,14 +80,14 @@ void trc::TextureRegistry::remove(const LocalID id)
     idPool.free(index);
 }
 
-auto trc::TextureRegistry::getHandle(const LocalID id) -> Handle
+auto TextureRegistry::getHandle(const LocalID id) -> Handle
 {
     assert(textures.get(id) != nullptr);
 
     return Handle(*textures.get(id));
 }
 
-void trc::TextureRegistry::load(const LocalID id)
+void TextureRegistry::load(const LocalID id)
 {
     std::scoped_lock lock(textureStorageLock);
 
@@ -150,10 +153,12 @@ void trc::TextureRegistry::load(const LocalID id)
     );
 }
 
-void trc::TextureRegistry::unload(LocalID id)
+void TextureRegistry::unload(LocalID id)
 {
     std::scoped_lock lock(textureStorageLock);
     assert(textures.get(id) != nullptr);
 
     textures.get(id)->deviceData.reset();
 }
+
+} // namespace trc

@@ -26,11 +26,8 @@ namespace trc
     struct AssetData;
 
     /**
-     * @brief Typedef that retrieves an asset type's handle type
+     * @brief Has to be specialized for each asset type
      */
     template<AssetBaseType T>
-        requires requires {
-            typename AssetRegistryModule<T>::Handle;
-        }
-    using AssetHandle = typename AssetRegistryModule<T>::Handle;
+    class AssetHandle;
 } // namespace trc

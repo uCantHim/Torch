@@ -1,3 +1,9 @@
+/**
+ * Utilities for handling asset types at runtime.
+ *
+ * One day, I might think about a `registerAssetType(...)`-like mechanism where
+ * we can create new types of assets dynamically. For now, they remain hard-coded.
+ */
 #pragma once
 
 #include <concepts>
@@ -59,8 +65,6 @@ constexpr void fromDynamicType(Visitor&& vis, AssetType type, Args&&... args)
 template<typename Visitor>
 inline void deserializeAssetData(Visitor&& vis, const trc::serial::Asset& asset)
 {
-    vis.template operator()<trc::Geometry>();
-
     switch (asset.asset_type_case())
     {
     case trc::serial::Asset::AssetTypeCase::kGeometry:

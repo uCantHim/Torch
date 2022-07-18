@@ -6,7 +6,6 @@
 
 #include <trc_util/data/ObjectId.h>
 
-#include "AssetBaseTypes.h"
 #include "AssetPath.h"
 #include "AssetSource.h"
 #include "AssetRegistry.h"
@@ -71,15 +70,22 @@ namespace trc
 
         /**
          * @brief Load an asset in Torch's internal format
+         *
+         * @throw std::invalid_argument if `path` is already registered.
          */
         template<AssetBaseType T>
-        auto load(const AssetPath& path) -> TypedAssetID<T>;
+        auto create(const AssetPath& path) -> TypedAssetID<T>;
 
         /**
          * @brief Completely remove an asset from the asset manager
          */
         template<AssetBaseType T>
-        void destroyAsset(TypedAssetID<T> id);
+        void destroy(TypedAssetID<T> id);
+
+        /**
+         * @brief Completely remove an asset from the asset manager
+         */
+        void destroy(const AssetPath& path);
 
 
         ///////////////
@@ -89,10 +95,11 @@ namespace trc
         bool exists(const AssetPath& path) const;
 
         template<AssetBaseType T>
-        auto getAsset(const AssetPath& path) const -> TypedAssetID<T>;
+        auto get(const AssetPath& path) const -> TypedAssetID<T>;
 
         template<AssetBaseType T>
-        auto getAssetMetaData(TypedAssetID<T> id) const -> const AssetMetaData&;
+        auto getMetaData(TypedAssetID<T> id) const -> const AssetMetaData&;
+        auto getMetaData(const AssetPath& path) const -> const AssetMetaData&;
 
 
         /////////////////////////////////////
@@ -134,6 +141,27 @@ namespace trc
             u_ptr<AssetSource<T>> source;
         };
 
+        struct AssetStorage
+        {
+            AssetStorage() = default;
+
+            template<AssetBaseType T>
+            AssetStorage(TypedAssetID<T> id)
+                :
+                baseId(id.getAssetID()),
+                typedId(id),
+                destroy([id](AssetManager& am){ am.destroy<T>(id); })
+            {}
+
+            using AnyTypedID = std::any;
+
+            AssetID baseId;
+            AnyTypedID typedId;
+
+            /** Function for typeless `destroy(AssetPath)` call. */
+            std::function<void(AssetManager&)> destroy;
+        };
+
         template<AssetBaseType T>
         void resolveReferences(AssetData<T>& data);
 
@@ -149,8 +177,7 @@ namespace trc
         /** Stores high-level management-related metadata for all asset types */
         std::unordered_map<AssetID, AssetMetaData> assetMetaData;
 
-        using AnyTypedID = std::any;
-        std::unordered_map<AssetPath, AnyTypedID> pathsToAssets;
+        std::unordered_map<AssetPath, AssetStorage> pathsToAssets;
     };
 } // namespace trc
 

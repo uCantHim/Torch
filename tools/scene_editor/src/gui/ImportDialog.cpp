@@ -85,7 +85,7 @@ auto gui::ImportDialog::importGeometry(const trc::ThirdPartyMeshImport& mesh) ->
     const trc::AssetPath path(mesh.name);
     app.getProject().getStorageDir().save(path, mesh.geometry);
 
-    const auto geo = app.getAssets().load<trc::Geometry>(path);
+    const auto geo = app.getAssets().create<trc::Geometry>(path);
     app.addHitbox(geo, makeHitbox(mesh.geometry));
 
     return geo;

@@ -2,7 +2,10 @@
 
 
 
-trc::AnimationRegistry::Handle::Handle(const AnimationData& data, ui32 deviceIndex)
+namespace trc
+{
+
+AssetHandle<Animation>::AssetHandle(const AnimationData& data, ui32 deviceIndex)
     :
     id(deviceIndex),
     frameCount(data.frameCount),
@@ -11,25 +14,27 @@ trc::AnimationRegistry::Handle::Handle(const AnimationData& data, ui32 deviceInd
 {
 }
 
-auto trc::AnimationRegistry::Handle::getBufferIndex() const noexcept -> ui32
+auto AssetHandle<Animation>::getBufferIndex() const noexcept -> ui32
 {
     return id;
 }
 
-auto trc::AnimationRegistry::Handle::getFrameCount() const noexcept -> ui32
+auto AssetHandle<Animation>::getFrameCount() const noexcept -> ui32
 {
     return frameCount;
 }
 
-auto trc::AnimationRegistry::Handle::getDuration() const noexcept -> float
+auto AssetHandle<Animation>::getDuration() const noexcept -> float
 {
     return durationMs;
 }
 
-auto trc::AnimationRegistry::Handle::getFrameTime() const noexcept -> float
+auto AssetHandle<Animation>::getFrameTime() const noexcept -> float
 {
     return frameTimeMs;
 }
+
+} // namespace trc
 
 
 

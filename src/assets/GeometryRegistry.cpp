@@ -6,7 +6,39 @@
 
 
 
-trc::GeometryHandle::GeometryHandle(
+namespace trc
+{
+
+auto makeVertexData(const GeometryData& geo) -> std::vector<ui8>
+{
+    assert(geo.skeletalVertices.empty()
+           || geo.skeletalVertices.size() == geo.vertices.size());
+
+    std::vector<ui8> result;
+    result.resize(geo.vertices.size() * sizeof(MeshVertex)
+                  + geo.skeletalVertices.size() * sizeof(SkeletalVertex));
+
+    const bool hasSkel = !geo.skeletalVertices.empty();
+    const size_t vertSize = sizeof(MeshVertex) + hasSkel * sizeof(SkeletalVertex);
+    for (size_t i = 0; i < geo.vertices.size(); i++)
+    {
+        const size_t offset = i * vertSize;
+        memcpy(result.data() + offset, &geo.vertices.at(i), sizeof(MeshVertex));
+
+        if (hasSkel)
+        {
+            memcpy(result.data() + offset + sizeof(MeshVertex),
+                   &geo.skeletalVertices.at(i),
+                   sizeof(SkeletalVertex));
+        }
+    }
+
+    return result;
+}
+
+
+
+GeometryHandle::AssetHandle(
     vk::Buffer indices,
     ui32 numIndices,
     vk::IndexType indexType,
@@ -23,43 +55,43 @@ trc::GeometryHandle::GeometryHandle(
 {
 }
 
-void trc::GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
+void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
     cmdBuf.bindIndexBuffer(indexBuffer, 0, indexType);
     cmdBuf.bindVertexBuffers(binding, vertexBuffer, vk::DeviceSize(0));
 }
 
-auto trc::GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
+auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
 {
     return indexBuffer;
 }
 
-auto trc::GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
+auto GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
 {
     return vertexBuffer;
 }
 
-auto trc::GeometryHandle::getIndexCount() const noexcept -> ui32
+auto GeometryHandle::getIndexCount() const noexcept -> ui32
 {
     return numIndices;
 }
 
-auto trc::GeometryHandle::getIndexType() const noexcept -> vk::IndexType
+auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
 {
     return indexType;
 }
 
-auto trc::GeometryHandle::getVertexType() const noexcept -> VertexType
+auto GeometryHandle::getVertexType() const noexcept -> VertexType
 {
     return vertexType;
 }
 
-bool trc::GeometryHandle::hasRig() const
+bool GeometryHandle::hasRig() const
 {
     return rig.has_value();
 }
 
-auto trc::GeometryHandle::getRig() -> RigID
+auto GeometryHandle::getRig() -> RigID
 {
     if (!rig.has_value())
     {
@@ -73,39 +105,7 @@ auto trc::GeometryHandle::getRig() -> RigID
 
 
 
-namespace trc
-{
-    auto makeVertexData(const GeometryData& geo) -> std::vector<ui8>
-    {
-        assert(geo.skeletalVertices.empty()
-               || geo.skeletalVertices.size() == geo.vertices.size());
-
-        std::vector<ui8> result;
-        result.resize(geo.vertices.size() * sizeof(MeshVertex)
-                      + geo.skeletalVertices.size() * sizeof(SkeletalVertex));
-
-        const bool hasSkel = !geo.skeletalVertices.empty();
-        const size_t vertSize = sizeof(MeshVertex) + hasSkel * sizeof(SkeletalVertex);
-        for (size_t i = 0; i < geo.vertices.size(); i++)
-        {
-            const size_t offset = i * vertSize;
-            memcpy(result.data() + offset, &geo.vertices.at(i), sizeof(MeshVertex));
-
-            if (hasSkel)
-            {
-                memcpy(result.data() + offset + sizeof(MeshVertex),
-                       &geo.skeletalVertices.at(i),
-                       sizeof(SkeletalVertex));
-            }
-        }
-
-        return result;
-    }
-}
-
-
-
-trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
+GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
     :
     device(info.device),
     config({ info.geometryBufferUsage, info.enableRayTracing }),
@@ -135,12 +135,12 @@ trc::GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& inf
     );
 }
 
-void trc::GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
+void GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
 {
     dataWriter.update(cmdBuf, state);
 }
 
-auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
+auto GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
 {
     const LocalID id(idPool.generate());
 
@@ -159,14 +159,14 @@ auto trc::GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
     return id;
 }
 
-void trc::GeometryRegistry::remove(const LocalID id)
+void GeometryRegistry::remove(const LocalID id)
 {
     std::scoped_lock lock(storageLock);
     idPool.free(id);
     storage.at(id) = {};
 }
 
-auto trc::GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
+auto GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
 {
     std::unique_lock lock(storageLock);
     if (storage.at(id).deviceData == nullptr)
@@ -185,7 +185,7 @@ auto trc::GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
     );
 }
 
-void trc::GeometryRegistry::load(const LocalID id)
+void GeometryRegistry::load(const LocalID id)
 {
     std::scoped_lock lock(storageLock);
     assert(storage.at(id).source != nullptr);
@@ -246,8 +246,10 @@ void trc::GeometryRegistry::load(const LocalID id)
     }
 }
 
-void trc::GeometryRegistry::unload(LocalID id)
+void GeometryRegistry::unload(LocalID id)
 {
     std::scoped_lock lock(storageLock);
     storage.at(id).deviceData.reset();
 }
+
+} // namespace trc

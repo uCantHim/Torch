@@ -19,7 +19,8 @@ namespace trc
     /**
      * @brief Handle to a geometry stored in the asset registry
      */
-    class GeometryHandle
+    template<>
+    class AssetHandle<Geometry>
     {
     public:
         enum class VertexType : ui8
@@ -28,13 +29,13 @@ namespace trc
             eSkeletal = 1 << 1,
         };
 
-        GeometryHandle() = default;
-        GeometryHandle(const GeometryHandle&) = default;
-        GeometryHandle(GeometryHandle&&) noexcept = default;
-        ~GeometryHandle() = default;
+        AssetHandle() = default;
+        AssetHandle(const AssetHandle&) = default;
+        AssetHandle(AssetHandle&&) noexcept = default;
+        ~AssetHandle() = default;
 
-        auto operator=(const GeometryHandle&) -> GeometryHandle& = default;
-        auto operator=(GeometryHandle&&) noexcept -> GeometryHandle& = default;
+        auto operator=(const AssetHandle&) -> AssetHandle& = default;
+        auto operator=(AssetHandle&&) noexcept -> AssetHandle& = default;
 
         /**
          * @brief Bind vertex and index buffer
@@ -59,7 +60,7 @@ namespace trc
     private:
         friend class GeometryRegistry;
 
-        GeometryHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
+        AssetHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
                        vk::Buffer verts, VertexType vertexType,
                        std::optional<RigID> rig = std::nullopt);
 
@@ -80,16 +81,15 @@ namespace trc
     {
     public:
         using LocalID = TypedAssetID<Geometry>::LocalID;
-        using Handle = GeometryHandle;
 
         explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) final;
 
-        auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID;
-        void remove(LocalID id);
+        auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID override;
+        void remove(LocalID id) override;
 
-        auto getHandle(LocalID id) -> GeometryHandle;
+        auto getHandle(LocalID id) -> GeometryHandle override;
 
         void load(LocalID id) override;
         void unload(LocalID id) override;

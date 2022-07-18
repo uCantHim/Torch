@@ -13,58 +13,37 @@
 
 namespace trc
 {
-    class RigRegistry : public AssetRegistryModuleInterface
+    template<>
+    class AssetHandle<Rig>
     {
-    private:
-        struct InternalStorage;
-
     public:
-        class Handle
-        {
-        public:
-            /**
-             * @return const std::string& The rig's name
-             */
-            auto getName() const noexcept -> const std::string&;
+        /**
+         * @return const std::string& The rig's name
+         */
+        auto getName() const noexcept -> const std::string&;
 
-            /**
-             * @brief Query a bone from the rig
-             *
-             * @return const Bone&
-             * @throw std::out_of_range
-             */
-            auto getBoneByName(const std::string& name) const -> const RigData::Bone&;
+        /**
+         * @brief Query a bone from the rig
+         *
+         * @return const Bone&
+         * @throw std::out_of_range
+         */
+        auto getBoneByName(const std::string& name) const -> const RigData::Bone&;
 
-            /**
-             * @return ui32 The number of animations attached to the rig
-             */
-            auto getAnimationCount() const noexcept -> ui32;
+        /**
+         * @return ui32 The number of animations attached to the rig
+         */
+        auto getAnimationCount() const noexcept -> ui32;
 
-            /**
-             * @return AnimationID The animation at the specified index
-             * @throw std::out_of_range if index exceeds getAnimationCount()
-             */
-            auto getAnimation(ui32 index) const -> AnimationID;
-
-        private:
-            friend RigRegistry;
-            explicit Handle(InternalStorage& storage);
-
-            InternalStorage* storage;
-        };
-
-        using LocalID = TypedAssetID<Rig>::LocalID;
-
-        explicit RigRegistry(const AssetRegistryModuleCreateInfo& info);
-
-        void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
-
-        auto add(u_ptr<AssetSource<Rig>> source) -> LocalID;
-        void remove(LocalID id);
-
-        auto getHandle(LocalID id) -> Handle;
+        /**
+         * @return AnimationID The animation at the specified index
+         * @throw std::out_of_range if index exceeds getAnimationCount()
+         */
+        auto getAnimation(ui32 index) const -> AnimationID;
 
     private:
+        friend class RigRegistry;
+
         struct InternalStorage
         {
             InternalStorage(const RigData& data);
@@ -76,6 +55,28 @@ namespace trc
 
             std::vector<AnimationID> animations;
         };
+
+        explicit AssetHandle(InternalStorage& storage);
+
+        InternalStorage* storage;
+    };
+
+    class RigRegistry : public AssetRegistryModuleInterface<Rig>
+    {
+    public:
+        using LocalID = TypedAssetID<Rig>::LocalID;
+
+        explicit RigRegistry(const AssetRegistryModuleCreateInfo& info);
+
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
+
+        auto add(u_ptr<AssetSource<Rig>> source) -> LocalID override;
+        void remove(LocalID id) override;
+
+        auto getHandle(LocalID id) -> RigHandle override;
+
+    private:
+        using InternalStorage = AssetHandle<Rig>::InternalStorage;
 
         data::IdPool rigIdPool;
         componentlib::Table<u_ptr<InternalStorage>, LocalID> storage;

@@ -39,9 +39,15 @@ namespace trc
         }
 
         template<AssetBaseType T>
-        inline auto load(const AssetPath& path) -> TypedAssetID<T>
+        inline auto create(const AssetPath& path) -> TypedAssetID<T>
         {
-            return asDerived().template load<T>(path);
+            return asDerived().template create<T>(path);
+        }
+
+        template<AssetBaseType T>
+        inline void destroy(TypedAssetID<T> id)
+        {
+            asDerived().template destroy<T>(id);
         }
 
         inline bool exists(const AssetPath& path) const
@@ -50,15 +56,15 @@ namespace trc
         }
 
         template<AssetBaseType T>
-        inline auto getAsset(const AssetPath& path) const -> TypedAssetID<T>
+        inline auto get(const AssetPath& path) const -> TypedAssetID<T>
         {
-            return asDerived().template getAsset<T>(path);
+            return asDerived().template get<T>(path);
         }
 
         template<AssetBaseType T>
-        auto getAssetMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
+        auto getMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
         {
-            return asDerived().template getAssetMetaData(id);
+            return asDerived().template getMetaData(id);
         }
 
         template<AssetBaseType T>

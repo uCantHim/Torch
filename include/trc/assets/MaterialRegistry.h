@@ -16,33 +16,34 @@
 
 namespace trc
 {
-    class MaterialRegistry : public AssetRegistryModuleInterface
+    template<>
+    class AssetHandle<Material>
+    {
+    public:
+        auto getBufferIndex() const -> ui32 {
+            return id;
+        }
+
+    private:
+        friend class MaterialRegistry;
+        explicit AssetHandle(ui32 bufferIndex) : id(bufferIndex) {}
+
+        ui32 id;
+    };
+
+    class MaterialRegistry : public AssetRegistryModuleInterface<Material>
     {
     public:
         using LocalID = TypedAssetID<Material>::LocalID;
-
-        struct Handle
-        {
-        public:
-            auto getBufferIndex() const -> ui32 {
-                return id;
-            }
-
-        private:
-            friend class MaterialRegistry;
-            explicit Handle(ui32 bufferIndex) : id(bufferIndex) {}
-
-            ui32 id;
-        };
 
         MaterialRegistry(const AssetRegistryModuleCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
-        auto add(u_ptr<AssetSource<Material>> source) -> LocalID;
-        void remove(LocalID id);
+        auto add(u_ptr<AssetSource<Material>> source) -> LocalID override;
+        void remove(LocalID id) override;
 
-        auto getHandle(LocalID id) -> Handle;
+        auto getHandle(LocalID id) -> MaterialHandle override;
 
         auto getData(LocalID id) -> MaterialData;
         template<std::invocable<MaterialData&> F>

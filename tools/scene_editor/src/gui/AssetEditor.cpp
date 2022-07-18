@@ -36,7 +36,7 @@ void gui::AssetEditor::drawMaterialGui()
             dir.save(path, trc::MaterialData{});
 
             // Create asset
-            editedMaterial = assets.load<trc::Material>(path);
+            editedMaterial = assets.create<trc::Material>(path);
             editedMaterialCopy = {}; // New material
         }
         catch (const trc::DuplicateKeyError& err) {

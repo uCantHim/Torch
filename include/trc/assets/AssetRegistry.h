@@ -47,38 +47,66 @@ namespace trc
         explicit AssetRegistry(const Instance& instance,
                                const AssetRegistryCreateInfo& info = {});
 
-        auto add(u_ptr<AssetSource<Geometry>> geo) -> LocalID<Geometry>;
-        auto add(u_ptr<AssetSource<Material>> mat) -> LocalID<Material>;
-        auto add(u_ptr<AssetSource<Texture>> tex) -> LocalID<Texture>;
-        auto add(u_ptr<AssetSource<Rig>> rig) -> LocalID<Rig>;
-        auto add(u_ptr<AssetSource<Animation>> anim) -> LocalID<Animation>;
-
+        /**
+         * @brief Add an asset to the registry
+         */
         template<AssetBaseType T>
         auto add(u_ptr<AssetSource<T>> source) -> LocalID<T>;
 
+        /**
+         * @brief Retrive a handle to an asset's device data
+         *
+         * @throw std::out_of_range if no module for `T` has been registered
+         *        previously.
+         */
         template<AssetBaseType T>
         auto get(LocalID<T> key) -> AssetHandle<T>
         {
             return getModule<T>().getHandle(key);
         }
 
+        /**
+         * @brief Remove an asset from the registry
+         *
+         * @throw std::out_of_range if no module for `T` has been registered
+         *                          previously.
+         */
         template<AssetBaseType T>
         void remove(LocalID<T> id);
 
-        template<AssetBaseType T>
-            requires requires (AssetRegistryModule<T> mod) {
-                { mod.add(u_ptr<AssetSource<T>>{}) } -> std::same_as<LocalID<T>>;
-                { mod.remove(LocalID<T>{}) };
-            }
-        void addModule()
+        /**
+         * @brief Register a module at the asset registry
+         *
+         * A module is an object that manages device representation for a
+         * single type of asset. An example is the GeometryRegistry for
+         * geometries.
+         *
+         * Asset management is delegated to single modules, while the asset
+         * registry manages the modules and provides a single unified
+         * interface to them.
+         *
+         * @throw std::out_of_range if a module for `T` has already been
+         *                          registered.
+         */
+        template<AssetBaseType T, typename... Args>
+            requires requires { typename AssetRegistryModule<T>; }
+            && std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
+        void addModule(Args&&... args)
         {
-            modules.addModule<AssetRegistryModule<T>>();
+            modules.addModule<T>(std::forward<Args>(args)...);
         }
 
+        /**
+         * @throw std::out_of_range
+         */
         template<AssetBaseType T>
-        auto getModule() -> AssetRegistryModule<T>&;
+        auto getModule() -> AssetRegistryModuleInterface<T>&;
+
+        /**
+         * @throw std::out_of_range
+         */
         template<AssetBaseType T>
-        auto getModule() const -> const AssetRegistryModule<T>&;
+        auto getModule() const -> const AssetRegistryModuleInterface<T>&;
 
         auto getFonts() -> FontDataStorage&;
         auto getFonts() const -> const FontDataStorage&;
@@ -124,24 +152,24 @@ namespace trc
     template<AssetBaseType T>
     auto AssetRegistry::add(u_ptr<AssetSource<T>> source) -> LocalID<T>
     {
-        return modules.get<AssetRegistryModule<T>>().add(std::move(source));
+        return getModule<T>().add(std::move(source));
     }
 
     template<AssetBaseType T>
     inline void AssetRegistry::remove(LocalID<T> id)
     {
-        modules.get<AssetRegistryModule<T>>().remove(id);
+        getModule<T>().remove(id);
     }
 
     template<AssetBaseType T>
-    inline auto AssetRegistry::getModule() -> AssetRegistryModule<T>&
+    inline auto AssetRegistry::getModule() -> AssetRegistryModuleInterface<T>&
     {
-        return modules.get<AssetRegistryModule<T>>();
+        return modules.get<T>();
     }
 
     template<AssetBaseType T>
-    inline auto AssetRegistry::getModule() const -> const AssetRegistryModule<T>&
+    inline auto AssetRegistry::getModule() const -> const AssetRegistryModuleInterface<T>&
     {
-        return modules.get<AssetRegistryModule<T>>();
+        return modules.get<T>();
     }
 } // namespace trc

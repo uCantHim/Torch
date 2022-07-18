@@ -34,7 +34,7 @@ App::App(Project _project)
 {
     // Register all assets from disk at the AssetManager
     project.getStorageDir().foreach([this]<trc::AssetBaseType T>(auto&& path) {
-        assetManager->load<T>(path);
+        assetManager->create<T>(path);
     });
 
     // Initialize input

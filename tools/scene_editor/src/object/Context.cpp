@@ -123,7 +123,7 @@ public:
             ig::PopID();
             ig::SameLine(0.0f, 50.0f);
             auto anim = rig.getAnimation(i);
-            ig::Text("\"%s\"", scene->getAssets().getAssetMetaData(anim).uniqueName.c_str());
+            ig::Text("\"%s\"", scene->getAssets().getMetaData(anim).uniqueName.c_str());
         }
 
         ig::TreePop();

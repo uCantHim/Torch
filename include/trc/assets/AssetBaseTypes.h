@@ -35,6 +35,12 @@ namespace trc
         using Registry = AnimationRegistry;
     };
 
+    using GeometryHandle = AssetHandle<Geometry>;
+    using TextureHandle = AssetHandle<Texture>;
+    using MaterialHandle = AssetHandle<Material>;
+    using RigHandle = AssetHandle<Rig>;
+    using AnimationHandle = AssetHandle<Animation>;
+
     using GeometryData = AssetData<Geometry>;
     using TextureData = AssetData<Texture>;
     using MaterialData = AssetData<Material>;

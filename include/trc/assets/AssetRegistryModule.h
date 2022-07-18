@@ -20,22 +20,38 @@ namespace trc
     };
 
     /**
-     * @brief Interface for communication between asset registry and module
+     * @brief Type-agnostic part of an asset module's interface
      */
-    class AssetRegistryModuleInterface
+    class AssetRegistryModuleInterfaceCommon
     {
     public:
-        AssetRegistryModuleInterface() = default;
-        virtual ~AssetRegistryModuleInterface() = default;
+        AssetRegistryModuleInterfaceCommon() = default;
+        virtual ~AssetRegistryModuleInterfaceCommon() = default;
 
         virtual void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) = 0;
+    };
+
+    /**
+     * @brief Type-specific part of an asset module's interface
+     */
+    template<AssetBaseType T>
+    class AssetRegistryModuleInterface : public AssetRegistryModuleInterfaceCommon
+    {
+    public:
+        using LocalID = typename TypedAssetID<T>::LocalID;
+        using Handle = AssetHandle<T>;
+
+        virtual auto add(u_ptr<AssetSource<T>> source) -> LocalID = 0;
+        virtual void remove(LocalID id) = 0;
+
+        virtual auto getHandle(LocalID id) -> AssetHandle<T> = 0;
     };
 
     /**
      * @brief Implementation helper
      */
     template<AssetBaseType AssetType>
-    class AssetRegistryModuleCacheCrtpBase : public AssetRegistryModuleInterface
+    class AssetRegistryModuleCacheCrtpBase : public AssetRegistryModuleInterface<AssetType>
     {
         using Derived = AssetRegistryModule<AssetType>;
 
@@ -58,8 +74,20 @@ namespace trc
                 : asset(asset), registry(reg)
             {}
 
-            void inc();
-            void dec();
+            void inc()
+            {
+                if (++count == 1) {
+                    registry->load(asset);
+                }
+            }
+
+            void dec()
+            {
+                assert(count > 0);
+                if (--count == 0) {
+                    registry->unload(asset);
+                }
+            }
 
             ui32 count{ 0 };
             LocalID asset;
@@ -125,33 +153,4 @@ namespace trc
             CacheItem* cache;
         };
     };
-
-    template<typename T>
-    concept AssetRegistryModuleType = requires {
-        typename T::Handle;
-        requires std::derived_from<T, AssetRegistryModuleInterface>;
-    };
-
-
-
-    ///////////////////////
-    //  Implementations  //
-    ///////////////////////
-
-    template<AssetBaseType AssetType>
-    void AssetRegistryModuleCacheCrtpBase<AssetType>::CacheRefCounter::inc()
-    {
-        if (++count == 1) {
-            registry->load(asset);
-        }
-    }
-
-    template<AssetBaseType AssetType>
-    void AssetRegistryModuleCacheCrtpBase<AssetType>::CacheRefCounter::dec()
-    {
-        assert(count > 0);
-        if (--count == 0) {
-            registry->unload(asset);
-        }
-    }
 } // namespace trc

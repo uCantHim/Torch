@@ -150,7 +150,7 @@ namespace trc
                     // We can move the source here because `resolve` won't be executed
                     // again once the ID has been set
                     [&](u_ptr<AssetSource<T>>& src) { data->id = manager.create(std::move(src)); },
-                    [&](const AssetPath& path) { data->id = manager.load<T>(path); },
+                    [&](const AssetPath& path) { data->id = manager.create<T>(path); },
                     [](const std::monostate&) {}
                 },
                 data->dataSource

@@ -18,33 +18,21 @@ namespace trc
 {
     class TextureRegistry : public AssetRegistryModuleCacheCrtpBase<Texture>
     {
+        friend class AssetHandle<Texture>;
         struct InternalStorage;
 
     public:
         using LocalID = TypedAssetID<Texture>::LocalID;
-
-        /**
-         * @brief Engine-internal representation of a texture resource
-         */
-        class Handle : public SharedCacheReference<InternalStorage>
-        {
-        public:
-            auto getDeviceIndex() const -> ui32;
-
-        private:
-            friend TextureRegistry;
-            explicit Handle(InternalStorage& s);
-        };
 
     public:
         explicit TextureRegistry(const AssetRegistryModuleCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
-        auto add(u_ptr<AssetSource<Texture>> source) -> LocalID;
-        void remove(LocalID id);
+        auto add(u_ptr<AssetSource<Texture>> source) -> LocalID override;
+        void remove(LocalID id) override;
 
-        auto getHandle(LocalID id) -> Handle;
+        auto getHandle(LocalID id) -> TextureHandle override;
 
         void load(LocalID id) override;
         void unload(LocalID id) override;
@@ -79,5 +67,19 @@ namespace trc
         Table<u_ptr<InternalStorage>> textures;
 
         SharedDescriptorSet::Binding descBinding;
+    };
+
+    /**
+     * @brief Engine-internal representation of a texture resource
+     */
+    template<>
+    class AssetHandle<Texture> : public TextureRegistry::SharedCacheReference<TextureRegistry::InternalStorage>
+    {
+    public:
+        auto getDeviceIndex() const -> ui32;
+
+    private:
+        friend TextureRegistry;
+        explicit AssetHandle(TextureRegistry::InternalStorage& s);
     };
 } // namespace trc
