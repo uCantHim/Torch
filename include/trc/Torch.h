@@ -26,10 +26,35 @@ namespace trc
     /**
      * @brief Initialize Torch globally
      *
-     * Only required to be called once, before any other Torch
-     * functionality can be used.
+     * Required to be called once before any other Torch functionality can
+     * be used.
+     *
+     * Call `terminate` to de-initialize Torch. `init` can be called safely
+     * after a call to `terminate`.
+     *
+     * Creates a global Vulkan instance which will be used by Torch.
+     * Calling `init` will recreate this instance at every call, so don't
+     * call `init` as long as you still have Vulkan objects allocated.
+     * Preferably, don't ever call `init` a second time before calling
+     * `terminate`.
+     *
+     * Use `initFull` to initialize a complete default configuration of
+     * Torch with all required objects and services for rendering.
      */
     void init(const TorchInitInfo& info = {});
+
+    /**
+     * @brief Poll system events
+     */
+    void pollEvents();
+
+    /**
+     * @brief Destroy all resources allocated by Torch
+     *
+     * You should release all of your resources before calling this
+     * function.
+     */
+    void terminate();
 
     /**
      * Torch has a single global vk::Instance as the basis for all Torch
@@ -68,7 +93,7 @@ namespace trc
         auto getRenderConfig() -> TorchRenderConfig&;
 
         /**
-         * @brief Quickly create a draw configuration with default values
+         * @brief Create a draw configuration with default values
          *
          * @param Scene& scene The scene which to render with the new
          *                     configuration.
@@ -102,19 +127,4 @@ namespace trc
     auto initFull(const InstanceCreateInfo& instanceInfo = {},
                   const WindowCreateInfo& windowInfo = {}
                   ) -> u_ptr<TorchStack>;
-
-    /**
-     * @brief Poll system events
-     */
-    void pollEvents();
-
-    /**
-     * @brief Destroy all resources allocated by Torch
-     *
-     * Does call vkb::terminate for you!
-     *
-     * You should release all of your resources before calling this
-     * function.
-     */
-    void terminate();
 } // namespace trc

@@ -20,10 +20,6 @@ static inline trc::u_ptr<vkb::VulkanInstance> torchGlobalVulkanInstance{ nullptr
 
 void trc::init(const TorchInitInfo&)
 {
-    static bool init{ false };
-    if (init) return;
-    init = true;
-
     vkb::init();
 
     torchGlobalVulkanInstance = std::make_unique<vkb::VulkanInstance>();
@@ -33,6 +29,18 @@ void trc::init(const TorchInitInfo&)
     pipelines::initRasterPipelines({});
     pipelines::text::initTextPipelines({});
     pipelines::particle::initParticlePipelines({});
+}
+
+void trc::pollEvents()
+{
+    vkb::pollEvents();
+}
+
+void trc::terminate()
+{
+    torchGlobalVulkanInstance.reset();
+
+    vkb::terminate();
 }
 
 auto trc::getVulkanInstance() -> vkb::VulkanInstance&
@@ -70,18 +78,6 @@ auto trc::initFull(
     ) -> u_ptr<TorchStack>
 {
     return std::make_unique<TorchStack>(instanceInfo, windowInfo);
-}
-
-void trc::pollEvents()
-{
-    vkb::pollEvents();
-}
-
-void trc::terminate()
-{
-    torchGlobalVulkanInstance.reset();
-
-    vkb::terminate();
 }
 
 
