@@ -63,14 +63,14 @@ private:
     std::vector<HitboxData> hitboxes;
 };
 
-void saveToFile(const HitboxData& data, const trc::AssetPath& path)
+void saveAssetToFile(const HitboxData& data, const trc::AssetPath& path)
 {
     std::ofstream file(path.getFilesystemPath(), std::ios::binary);
     file.write(reinterpret_cast<const char*>(&data), sizeof(HitboxData));
 }
 
 template<>
-auto trc::loadAssetData<Hitbox>(const fs::path& path) -> HitboxData
+auto trc::loadAssetFromFile<Hitbox>(const fs::path& path) -> HitboxData
 {
     std::ifstream file(path, std::ios::binary);
     HitboxData data;
@@ -139,7 +139,7 @@ TEST_F(CustomAssetTest, CreateViaAssetPath)
     assets.getDeviceRegistry().addModule<Hitbox>();
 
     const trc::AssetPath path("hitbox_custom_asset.ta");
-    saveToFile(HitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 }, path);
+    saveAssetToFile(HitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 }, path);
     std::cout << "Path: " << path.getFilesystemPath() << "\n";
     ASSERT_TRUE(fs::is_regular_file(path.getFilesystemPath()));
 

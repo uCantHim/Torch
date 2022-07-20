@@ -29,7 +29,7 @@ namespace trc
      * load operation for it.
      */
     template<AssetBaseType T>
-    auto loadAssetData(const fs::path& path) -> AssetData<T>;
+    auto loadAssetFromFile(const fs::path& path) -> AssetData<T>;
 
     /**
      * @brief Loads data from a file
@@ -39,7 +39,7 @@ namespace trc
      */
     template<AssetBaseType T>
         requires requires (AssetPath path) {
-            { loadAssetData<T>(path.getFilesystemPath()) } -> std::same_as<AssetData<T>>;
+            { loadAssetFromFile<T>(path.getFilesystemPath()) } -> std::same_as<AssetData<T>>;
         }
     class AssetPathSource : public AssetSource<T>
     {
@@ -49,7 +49,7 @@ namespace trc
         {}
 
         auto load() -> AssetData<T> override {
-            return loadAssetData<T>(path.getFilesystemPath());
+            return loadAssetFromFile<T>(path.getFilesystemPath());
         }
 
         auto getUniqueAssetName() -> std::string override {

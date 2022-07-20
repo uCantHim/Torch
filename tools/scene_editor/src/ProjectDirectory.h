@@ -133,7 +133,7 @@ void ProjectDirectory::save(const trc::AssetPath& path, const trc::AssetData<T>&
 
     std::scoped_lock lock(fileWriteLock);
     index.insert<T>(path);
-    trc::saveToFile(data, path.getFilesystemPath());
+    trc::saveAssetToFile(data, path.getFilesystemPath());
 }
 
 template<trc::AssetBaseType T>

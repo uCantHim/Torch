@@ -1,6 +1,7 @@
 #include "assets/import/InternalFormat.h"
 
 #include <fstream>
+#include <stdexcept>
 
 #include "trc/assets/import/PNGConvert.h"
 #include "trc/assets/AssetSource.h"
@@ -9,18 +10,6 @@
 
 namespace trc
 {
-
-FileInputError::FileInputError(const fs::path& path)
-    : Exception("Unable to read from file " + path.string())
-{
-}
-
-FileOutputError::FileOutputError(const fs::path& path)
-    : Exception("Unable to write to file " + path.string())
-{
-}
-
-
 
 auto convert(vec4 vec) -> serial::vec4
 {
@@ -85,6 +74,9 @@ auto toRef(const serial::AssetReference& src)
 }
 
 
+
+namespace internal
+{
 
 auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
 {
@@ -353,9 +345,8 @@ template<std::derived_from<google::protobuf::Message> T>
 void writeToFile(const fs::path& filePath, const T& msg)
 {
     std::ofstream out(filePath, std::ios::binary | std::ios::trunc);
-    if (!out.is_open())
-    {
-        throw FileOutputError(filePath);
+    if (!out.is_open()) {
+        throw std::runtime_error("Unable to read from file " + filePath.string());
     }
 
     [[maybe_unused]]
@@ -375,9 +366,8 @@ template<std::derived_from<google::protobuf::Message> T>
 auto loadFromFile(const fs::path& filePath) -> T
 {
     std::ifstream in(filePath, std::ios::binary);
-    if (!in.is_open())
-    {
-        throw FileInputError(filePath);
+    if (!in.is_open()) {
+        throw std::runtime_error("Unable to read from file " + filePath.string());
     }
 
     T result;
@@ -394,41 +384,43 @@ auto loadAssetFromFile(const fs::path& path) -> serial::Asset
     return loadFromFile<trc::serial::Asset>(path);
 }
 
+} // namespace internal
 
 
-void saveToFile(const trc::GeometryData& data, const fs::path& path)
+
+void saveAssetToFile(const trc::GeometryData& data, const fs::path& path)
 {
     trc::serial::Asset asset;
-    *asset.mutable_geometry() = trc::serializeAssetData(data);
-    trc::writeAssetToFile(path, asset);
+    *asset.mutable_geometry() = internal::serializeAssetData(data);
+    internal::writeAssetToFile(path, asset);
 }
 
-void saveToFile(const trc::TextureData& data, const fs::path& path)
+void saveAssetToFile(const trc::TextureData& data, const fs::path& path)
 {
     trc::serial::Asset asset;
-    *asset.mutable_texture() = trc::serializeAssetData(data);
-    trc::writeAssetToFile(path, asset);
+    *asset.mutable_texture() = internal::serializeAssetData(data);
+    internal::writeAssetToFile(path, asset);
 }
 
-void saveToFile(const trc::MaterialData& data, const fs::path& path)
+void saveAssetToFile(const trc::MaterialData& data, const fs::path& path)
 {
     trc::serial::Asset asset;
-    *asset.mutable_material() = trc::serializeAssetData(data);
-    trc::writeAssetToFile(path, asset);
+    *asset.mutable_material() = internal::serializeAssetData(data);
+    internal::writeAssetToFile(path, asset);
 }
 
-void saveToFile(const trc::RigData& data, const fs::path& path)
+void saveAssetToFile(const trc::RigData& data, const fs::path& path)
 {
     trc::serial::Asset asset;
-    *asset.mutable_rig() = trc::serializeAssetData(data);
-    trc::writeAssetToFile(path, asset);
+    *asset.mutable_rig() = internal::serializeAssetData(data);
+    internal::writeAssetToFile(path, asset);
 }
 
-void saveToFile(const trc::AnimationData& data, const fs::path& path)
+void saveAssetToFile(const trc::AnimationData& data, const fs::path& path)
 {
     trc::serial::Asset asset;
-    *asset.mutable_animation() = trc::serializeAssetData(data);
-    trc::writeAssetToFile(path, asset);
+    *asset.mutable_animation() = internal::serializeAssetData(data);
+    internal::writeAssetToFile(path, asset);
 }
 
 } // namespace trc

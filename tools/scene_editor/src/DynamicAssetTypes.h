@@ -58,35 +58,3 @@ constexpr void fromDynamicType(Visitor&& vis, AssetType type, Args&&... args)
                                " This is a bug.");
     }
 }
-
-/**
- * @brief Load asset data from any type
- */
-template<typename Visitor>
-inline void deserializeAssetData(Visitor&& vis, const trc::serial::Asset& asset)
-{
-    switch (asset.asset_type_case())
-    {
-    case trc::serial::Asset::AssetTypeCase::kGeometry:
-        vis(trc::deserializeAssetData(asset.geometry()));
-        break;
-    case trc::serial::Asset::AssetTypeCase::kMaterial:
-        vis(trc::deserializeAssetData(asset.material()));
-        break;
-    case trc::serial::Asset::AssetTypeCase::kTexture:
-        vis(trc::deserializeAssetData(asset.texture()));
-        break;
-    case trc::serial::Asset::AssetTypeCase::kRig:
-        vis(trc::deserializeAssetData(asset.rig()));
-        break;
-    case trc::serial::Asset::AssetTypeCase::kAnimation:
-        vis(trc::deserializeAssetData(asset.animation()));
-        break;
-    case trc::serial::Asset::AssetTypeCase::ASSET_TYPE_NOT_SET:
-        throw std::logic_error("[In deserializeAssetData]: Asset type was ASSET_TYPE_NOT_SET."
-                               " This is a bug.");
-    default:
-        throw std::logic_error("[In deserializeAssetData]: Asset type was an unknown enum value."
-                               " This is a bug.");
-    }
-}
