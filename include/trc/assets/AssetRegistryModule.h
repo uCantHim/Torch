@@ -1,23 +1,11 @@
 #pragma once
 
 #include "VulkanInclude.h"
-#include "DescriptorSetUtils.h"
 #include "AssetID.h"
-#include "SharedDescriptorSet.h"
 
 namespace trc
 {
     class FrameRenderState;
-
-    struct AssetRegistryModuleCreateInfo
-    {
-        const vkb::Device& device;
-
-        SharedDescriptorSet::Builder* layoutBuilder;
-
-        vk::BufferUsageFlags geometryBufferUsage{};
-        bool enableRayTracing{ true };
-    };
 
     /**
      * @brief Type-agnostic part of an asset module's interface

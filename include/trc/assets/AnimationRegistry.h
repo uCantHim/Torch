@@ -10,6 +10,7 @@
 #include "AssetRegistryModule.h"
 #include "AssetBaseTypes.h"
 #include "AssetSource.h"
+#include "SharedDescriptorSet.h"
 #include "import/RawData.h"
 
 namespace trc
@@ -49,6 +50,12 @@ namespace trc
         float frameTimeMs;
     };
 
+    struct AnimationRegistryCreateInfo
+    {
+        const vkb::Device& device;
+        SharedDescriptorSet::Builder& descriptorBuilder;
+    };
+
     /**
      * @brief GPU storage for animation data and descriptors
      *
@@ -59,7 +66,7 @@ namespace trc
     public:
         using LocalID = TypedAssetID<Animation>::LocalID;
 
-        explicit AnimationRegistry(const AssetRegistryModuleCreateInfo& info);
+        explicit AnimationRegistry(const AnimationRegistryCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 

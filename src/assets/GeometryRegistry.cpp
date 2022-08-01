@@ -96,7 +96,7 @@ auto GeometryHandle::getRig() -> RigID
 
 
 
-GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
+GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
     :
     device(info.device),
     config({ info.geometryBufferUsage, info.enableRayTracing }),
@@ -106,20 +106,20 @@ GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
             allocFlags |= vk::MemoryAllocateFlagBits::eDeviceAddress;
         }
 
-        return vkb::MemoryPool(info.device, MEMORY_POOL_CHUNK_SIZE, allocFlags);
+        return vkb::MemoryPool(info.device, info.memoryPoolChunkSize, allocFlags);
     }()),
     dataWriter(info.device) /* , memoryPool.makeAllocator()) */
 {
-    indexDescriptorBinding = info.layoutBuilder->addBinding(
+    indexDescriptorBinding = info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
-        MAX_GEOMETRY_COUNT,
+        info.maxGeometries,
         rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
         vk::DescriptorBindingFlagBits::ePartiallyBound
             | vk::DescriptorBindingFlagBits::eUpdateAfterBind
     );
-    vertexDescriptorBinding = info.layoutBuilder->addBinding(
+    vertexDescriptorBinding = info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
-        MAX_GEOMETRY_COUNT,
+        info.maxGeometries,
         rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
         vk::DescriptorBindingFlagBits::ePartiallyBound
             | vk::DescriptorBindingFlagBits::eUpdateAfterBind
@@ -162,7 +162,7 @@ void GeometryRegistry::remove(const LocalID id)
 {
     std::scoped_lock lock(storageLock);
     idPool.free(id);
-    storage.at(id) = {};
+    storage.at(id).reset();
 }
 
 auto GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle

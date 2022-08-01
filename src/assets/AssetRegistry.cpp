@@ -9,6 +9,7 @@
 #include "assets/TextureRegistry.h"
 #include "assets/RigRegistry.h"
 #include "assets/AnimationRegistry.h"
+#include "assets/SharedDescriptorSet.h"
 
 
 
@@ -27,26 +28,25 @@ trc::AssetRegistry::AssetRegistry(
     :
     device(instance.getDevice()),
     config(addDefaultValues(info)),
-    descSet(new SharedDescriptorSet),
+    descSet(nullptr),
     fontData(instance)
 {
-    auto builder = descSet->build();
-    AssetRegistryModuleCreateInfo moduleCreateInfo{
-        .device=instance.getDevice(),
-        .layoutBuilder=&builder,
-        .geometryBufferUsage=config.geometryBufferUsage,
-        .enableRayTracing=config.enableRayTracing && instance.hasRayTracing(),
-    };
+    auto builder = SharedDescriptorSet::build();
 
     // Add modules in the order in which they should be destroyed
-    addModule<Material>(moduleCreateInfo);
-    addModule<Texture>(moduleCreateInfo);
-    addModule<Geometry>(moduleCreateInfo);
-    addModule<Rig>(moduleCreateInfo);
-    addModule<Animation>(moduleCreateInfo);
+    addModule<Material>(MaterialRegistryCreateInfo{ instance.getDevice(), builder });
+    addModule<Texture>(TextureRegistryCreateInfo{ instance.getDevice(), builder });
+    addModule<Geometry>(GeometryRegistryCreateInfo{
+        .device              = instance.getDevice(),
+        .descriptorBuilder   = builder,
+        .geometryBufferUsage = config.geometryBufferUsage,
+        .enableRayTracing    = config.enableRayTracing && instance.hasRayTracing(),
+    });
+    addModule<Rig>();
+    addModule<Animation>(AnimationRegistryCreateInfo{ instance.getDevice(), builder });
 
     // Create descriptors
-    builder.build(device);
+    descSet = builder.build(device);
 
     // Add default assets
     add<Material>(std::make_unique<InMemorySource<Material>>(MaterialData{ .doPerformLighting=false }));

@@ -8,14 +8,21 @@
 #include <trc_util/data/ObjectId.h>
 #include <componentlib/Table.h>
 
-#include "AssetBaseTypes.h"
 #include "import/RawData.h"
+#include "util/DeviceLocalDataWriter.h"
+#include "AssetBaseTypes.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
-#include "util/DeviceLocalDataWriter.h"
+#include "SharedDescriptorSet.h"
 
 namespace trc
 {
+    struct TextureRegistryCreateInfo
+    {
+        const vkb::Device& device;
+        SharedDescriptorSet::Builder& descriptorBuilder;
+    };
+
     class TextureRegistry : public AssetRegistryModuleCacheCrtpBase<Texture>
     {
         friend class AssetHandle<Texture>;
@@ -25,7 +32,7 @@ namespace trc
         using LocalID = TypedAssetID<Texture>::LocalID;
 
     public:
-        explicit TextureRegistry(const AssetRegistryModuleCreateInfo& info);
+        explicit TextureRegistry(const TextureRegistryCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
@@ -60,7 +67,6 @@ namespace trc
         static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 512 * 512 * 4 * 200;  // 200 512x512 images
 
         const vkb::Device& device;
-        const AssetRegistryModuleCreateInfo config;
         vkb::MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
 

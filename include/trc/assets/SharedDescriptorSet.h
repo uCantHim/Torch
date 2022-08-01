@@ -10,32 +10,45 @@
 
 namespace trc
 {
+    /**
+     * The SharedDescriptorSet is intended to be used as a collection of
+     * descriptor bindings that each 'belong' to a different service and
+     * are logically managed in an independent, decentralized manner.
+     *
+     * Changes to individual bindings are collectively executed in the
+     * `SharedDescriptorSet::update` method.
+     *
+     * Can only be created with the static `SharedDescriptorSet::build`
+     * function.
+     */
     class SharedDescriptorSet
     {
-    public:
-        class Builder;
+    private:
+        friend class Builder;
+        SharedDescriptorSet() = default;
 
+    public:
         SharedDescriptorSet(const SharedDescriptorSet&) = delete;
         SharedDescriptorSet(SharedDescriptorSet&&) = delete;
         auto operator=(const SharedDescriptorSet&) -> SharedDescriptorSet&;
         auto operator=(SharedDescriptorSet&&) -> SharedDescriptorSet&;
 
-        SharedDescriptorSet() = default;
         ~SharedDescriptorSet() = default;
 
+        class Builder;
+
         /**
-         * Allows to create the descriptor set via a builder.
-         *
-         * DescriptorSet is one of the rare types that don't initialize
-         * fully in the constructor, so this should be called before using
-         * the object.
+         * Build a descriptor set.
          */
-        auto build() -> Builder;
+        static auto build() -> Builder;
 
         auto getProvider() const -> const DescriptorProviderInterface&;
 
         /**
-         * Execute necessary descriptor updates
+         * Execute necessary descriptor updates.
+         *
+         * Updates can be enqueued for individual bindings with the
+         * `Binding::update` method.
          */
         void update(const vkb::Device& device);
 
@@ -72,7 +85,7 @@ namespace trc
         class Builder
         {
         public:
-            Builder(SharedDescriptorSet& set);
+            Builder();
 
             void addLayoutFlag(vk::DescriptorSetLayoutCreateFlags flags);
             void addPoolFlag(vk::DescriptorPoolCreateFlags flags);
@@ -82,12 +95,12 @@ namespace trc
                             vk::DescriptorBindingFlags flags = {})
                 -> Binding;
 
-            void build(const vkb::Device& device);
+            auto build(const vkb::Device& device) -> u_ptr<SharedDescriptorSet>;
 
         private:
             friend SharedDescriptorSet;
 
-            SharedDescriptorSet* set;
+            u_ptr<SharedDescriptorSet> set;
 
             vk::DescriptorSetLayoutCreateFlags layoutFlags;
             vk::DescriptorPoolCreateFlags poolFlags;

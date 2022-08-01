@@ -62,9 +62,9 @@ void trc::SharedDescriptorSet::Binding::update(
 /////////////////////////////
 
 
-trc::SharedDescriptorSet::Builder::Builder(SharedDescriptorSet& set)
+trc::SharedDescriptorSet::Builder::Builder()
     :
-    set(&set)
+    set(new SharedDescriptorSet)
 {
 }
 
@@ -91,9 +91,11 @@ auto trc::SharedDescriptorSet::Builder::addBinding(
     return Binding(*set, index);
 }
 
-void trc::SharedDescriptorSet::Builder::build(const vkb::Device& device)
+auto trc::SharedDescriptorSet::Builder::build(const vkb::Device& device)
+    -> u_ptr<SharedDescriptorSet>
 {
     set->build(device, *this);
+    return std::move(set);
 }
 
 
@@ -145,9 +147,7 @@ void trc::SharedDescriptorSet::build(const vkb::Device& device, const Builder& b
 
 auto trc::SharedDescriptorSet::build() -> Builder
 {
-    assert(bindings.empty() && "build() shall only be called once!");
-
-    return Builder{ *this };
+    return Builder{};
 }
 
 auto trc::SharedDescriptorSet::getProvider() const -> const DescriptorProviderInterface&

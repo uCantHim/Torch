@@ -31,12 +31,18 @@ namespace trc
         ui32 id;
     };
 
+    struct MaterialRegistryCreateInfo
+    {
+        const vkb::Device& device;
+        SharedDescriptorSet::Builder& descriptorBuilder;
+    };
+
     class MaterialRegistry : public AssetRegistryModuleInterface<Material>
     {
     public:
         using LocalID = TypedAssetID<Material>::LocalID;
 
-        MaterialRegistry(const AssetRegistryModuleCreateInfo& info);
+        explicit MaterialRegistry(const MaterialRegistryCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 

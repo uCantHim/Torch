@@ -38,7 +38,7 @@ auto AssetHandle<Animation>::getFrameTime() const noexcept -> float
 
 
 
-trc::AnimationRegistry::AnimationRegistry(const AssetRegistryModuleCreateInfo& info)
+trc::AnimationRegistry::AnimationRegistry(const AnimationRegistryCreateInfo& info)
     :
     device(info.device),
     animationMetaDataBuffer(
@@ -55,15 +55,15 @@ trc::AnimationRegistry::AnimationRegistry(const AssetRegistryModuleCreateInfo& i
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
-    info.layoutBuilder->addLayoutFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool);
-    info.layoutBuilder->addPoolFlag(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind);
-    metaBinding = info.layoutBuilder->addBinding(
+    info.descriptorBuilder.addLayoutFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool);
+    info.descriptorBuilder.addPoolFlag(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind);
+    metaBinding = info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
         1,
         vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
         vk::DescriptorBindingFlagBits::eUpdateAfterBind
     );
-    dataBinding = info.layoutBuilder->addBinding(
+    dataBinding = info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
         1,
         vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,

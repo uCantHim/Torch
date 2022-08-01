@@ -20,14 +20,13 @@ auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
 
 
 
-TextureRegistry::TextureRegistry(const AssetRegistryModuleCreateInfo& info)
+TextureRegistry::TextureRegistry(const TextureRegistryCreateInfo& info)
     :
     device(info.device),
-    config(info),
     memoryPool(device, MEMORY_POOL_CHUNK_SIZE),
     dataWriter(info.device),
     descBinding(
-        info.layoutBuilder->addBinding(
+        info.descriptorBuilder.addBinding(
             vk::DescriptorType::eCombinedImageSampler,
             MAX_TEXTURE_COUNT,
             vk::ShaderStageFlagBits::eAllGraphics

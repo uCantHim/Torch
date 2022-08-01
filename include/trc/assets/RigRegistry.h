@@ -66,7 +66,7 @@ namespace trc
     public:
         using LocalID = TypedAssetID<Rig>::LocalID;
 
-        explicit RigRegistry(const AssetRegistryModuleCreateInfo& info);
+        RigRegistry() = default;
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 

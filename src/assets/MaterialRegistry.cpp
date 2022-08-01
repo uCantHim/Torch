@@ -4,7 +4,7 @@
 
 
 
-trc::MaterialRegistry::MaterialRegistry(const AssetRegistryModuleCreateInfo& info)
+trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
     :
     materialBuffer(
         info.device,
@@ -12,7 +12,7 @@ trc::MaterialRegistry::MaterialRegistry(const AssetRegistryModuleCreateInfo& inf
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
-    descBinding(info.layoutBuilder->addBinding(
+    descBinding(info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
         1,
         vk::ShaderStageFlagBits::eAllGraphics

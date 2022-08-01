@@ -51,10 +51,6 @@ AssetHandle<Rig>::InternalStorage::InternalStorage(const RigData& data)
 
 
 
-RigRegistry::RigRegistry(const AssetRegistryModuleCreateInfo&)
-{
-}
-
 void RigRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
 }

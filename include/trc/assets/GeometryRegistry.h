@@ -13,10 +13,23 @@
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
 #include "Rig.h"
+#include "SharedDescriptorSet.h"
 #include "util/DeviceLocalDataWriter.h"
 
 namespace trc
 {
+    struct GeometryRegistryCreateInfo
+    {
+        const vkb::Device& device;
+        SharedDescriptorSet::Builder& descriptorBuilder;
+
+        vk::BufferUsageFlags geometryBufferUsage;
+        bool enableRayTracing;
+
+        ui32 memoryPoolChunkSize{ 200000000 };  // 200 MiB
+        size_t maxGeometries{ 5000 };
+    };
+
     /**
      * @brief
      */
@@ -31,7 +44,7 @@ namespace trc
 
         using LocalID = TypedAssetID<Geometry>::LocalID;
 
-        explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);
+        explicit GeometryRegistry(const GeometryRegistryCreateInfo& info);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) final;
 
@@ -74,9 +87,6 @@ namespace trc
         };
 
         using CacheItemRef = SharedCacheItem<InternalStorage>;
-
-        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
-        static constexpr ui32 MAX_GEOMETRY_COUNT = 5000;
 
         const vkb::Device& device;
         const Config config;
