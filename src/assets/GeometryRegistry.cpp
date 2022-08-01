@@ -38,69 +38,60 @@ auto makeVertexData(const GeometryData& geo) -> std::vector<ui8>
 
 
 
-GeometryHandle::AssetHandle(
-    vk::Buffer indices,
-    ui32 numIndices,
-    vk::IndexType indexType,
-    vk::Buffer verts,
-    VertexType vertexType,
-    std::optional<RigID> rig)
+GeometryHandle::AssetHandle(GeometryRegistry::CacheItemRef ref)
     :
-    indexBuffer(indices),
-    vertexBuffer(verts),
-    numIndices(numIndices),
-    indexType(indexType),
-    vertexType(vertexType),
-    rig(std::move(rig))
+    cacheRef(std::move(ref)),
+    data(cacheRef->deviceData.get())
 {
+    assert(data != nullptr);
 }
 
 void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
-    cmdBuf.bindIndexBuffer(indexBuffer, 0, indexType);
-    cmdBuf.bindVertexBuffers(binding, vertexBuffer, vk::DeviceSize(0));
+    cmdBuf.bindIndexBuffer(*data->indexBuf, 0, getIndexType());
+    cmdBuf.bindVertexBuffers(binding, *data->vertexBuf, vk::DeviceSize(0));
 }
 
 auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
 {
-    return indexBuffer;
+    return *data->indexBuf;
 }
 
 auto GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
 {
-    return vertexBuffer;
+    return *data->vertexBuf;
 }
 
 auto GeometryHandle::getIndexCount() const noexcept -> ui32
 {
-    return numIndices;
+    return data->numIndices;
 }
 
 auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
 {
-    return indexType;
+    return vk::IndexType::eUint32;
 }
 
 auto GeometryHandle::getVertexType() const noexcept -> VertexType
 {
-    return vertexType;
+    return data->vertexType;
 }
 
 bool GeometryHandle::hasRig() const
 {
-    return rig.has_value();
+    return cacheRef->rig.has_value();
 }
 
 auto GeometryHandle::getRig() -> RigID
 {
-    if (!rig.has_value())
+    if (!cacheRef->rig.has_value())
     {
         throw std::out_of_range(
             "[In GeometryHandle::getRig()]: Geometry has no rig associated with it!"
         );
     }
 
-    return rig.value();
+    return cacheRef->rig.value();
 }
 
 
@@ -138,6 +129,12 @@ GeometryRegistry::GeometryRegistry(const AssetRegistryModuleCreateInfo& info)
 void GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
 {
     dataWriter.update(cmdBuf, state);
+
+    std::scoped_lock lock(storageLock);
+    for (auto id : pendingUnloads) {
+        storage.at(id)->getItem().deviceData.reset();
+    }
+    pendingUnloads.clear();
 }
 
 auto GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
@@ -147,12 +144,14 @@ auto GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
     std::scoped_lock lock(storageLock);
     storage.emplace(
         id,
-        InternalStorage{
-            .deviceIndex = id,
-            .source = std::move(source),
-            .deviceData = nullptr,
-            .rig = std::nullopt,
-            .refCounter = std::make_unique<CacheRefCounter>(id, this),
+        new CacheItem<InternalStorage>{
+            InternalStorage{
+                .deviceIndex = id,
+                .source = std::move(source),
+                .deviceData = {},
+                .rig = std::nullopt
+            },
+            id, this
         }
     );
 
@@ -168,41 +167,30 @@ void GeometryRegistry::remove(const LocalID id)
 
 auto GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
 {
-    std::unique_lock lock(storageLock);
-    if (storage.at(id).deviceData == nullptr)
-    {
-        lock.unlock();
-        load(id);
-        lock.lock();
-    }
-
-    auto& data = *storage.at(id).deviceData;
-
-    return GeometryHandle(
-        *data.indexBuf, data.numIndices, vk::IndexType::eUint32,
-        *data.vertexBuf, data.vertexType,
-        storage.at(id).rig
-    );
+    assert(storage.at(id) != nullptr);
+    return GeometryHandle(CacheItemRef(*storage.at(id)));
 }
 
 void GeometryRegistry::load(const LocalID id)
 {
     std::scoped_lock lock(storageLock);
-    assert(storage.at(id).source != nullptr);
+    pendingUnloads.erase(id);
 
-    if (storage.at(id).deviceData != nullptr)
+    auto& item = storage.at(id)->getItem();
+    assert(item.source != nullptr);
+    if (item.deviceData != nullptr)
     {
         // Is already loaded
         return;
     }
 
-    auto data = storage.at(id).source->load();
+    auto data = item.source->load();
     data.indices = util::optimizeTriangleOrderingForsyth(data.indices);
     const auto vertexData = makeVertexData(data);
     const size_t indicesSize = data.indices.size() * sizeof(decltype(data.indices)::value_type);
     const size_t verticesSize = vertexData.size() * sizeof(decltype(vertexData)::value_type);
 
-    auto& deviceData = storage.at(id).deviceData;
+    auto& deviceData = item.deviceData;
     deviceData.reset(new InternalStorage::DeviceData{
         .indexBuf = {
             device,
@@ -226,12 +214,12 @@ void GeometryRegistry::load(const LocalID id)
         .numVertices = static_cast<ui32>(data.vertices.size()),
 
         .vertexType = data.skeletalVertices.empty()
-            ? InternalStorage::VertexType::eMesh
-            : InternalStorage::VertexType::eSkeletal,
+            ? VertexType::eMesh
+            : VertexType::eSkeletal,
     });
-    storage.at(id).rig = data.rig.empty()
+    item.rig = data.rig.empty()
         ? std::optional<RigID>(std::nullopt)
-        : data.rig.getID(),
+        : data.rig.getID();
 
     // Enqueue writes to the device-local vertex buffers
     dataWriter.write(*deviceData->indexBuf, 0, data.indices.data(), indicesSize);
@@ -240,7 +228,7 @@ void GeometryRegistry::load(const LocalID id)
     if (config.enableRayTracing)
     {
         // Enqueue writes to the descriptor set
-        const ui32 deviceIndex = storage.at(id).deviceIndex;
+        const ui32 deviceIndex = item.deviceIndex;
         indexDescriptorBinding.update(deviceIndex,  { *deviceData->indexBuf, 0, VK_WHOLE_SIZE });
         vertexDescriptorBinding.update(deviceIndex, { *deviceData->vertexBuf, 0, VK_WHOLE_SIZE });
     }
@@ -249,7 +237,7 @@ void GeometryRegistry::load(const LocalID id)
 void GeometryRegistry::unload(LocalID id)
 {
     std::scoped_lock lock(storageLock);
-    storage.at(id).deviceData.reset();
+    pendingUnloads.emplace(id);
 }
 
 } // namespace trc

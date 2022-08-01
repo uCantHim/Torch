@@ -7,15 +7,15 @@
 namespace trc
 {
 
-AssetHandle<Texture>::AssetHandle(TextureRegistry::InternalStorage& s)
+AssetHandle<Texture>::AssetHandle(TextureRegistry::CacheItemRef ref)
     :
-    SharedCacheReference(s)
+    cacheRef(std::move(ref))
 {
 }
 
 auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
 {
-    return cache->deviceIndex;
+    return cacheRef->deviceIndex;
 }
 
 
@@ -60,12 +60,14 @@ auto TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
     std::scoped_lock lock(textureStorageLock);  // Unique ownership
     textures.emplace(
         deviceIndex,
-        new InternalStorage{
-            CacheRefCounter(id, this),  // Base
-            deviceIndex,
-            std::move(source),
-            nullptr,
-        }
+        new CacheItem<InternalStorage>(
+            InternalStorage{
+                deviceIndex,
+                std::move(source),
+                nullptr
+            },
+            id, this
+        )
     );
 
     return id;
@@ -84,7 +86,7 @@ auto TextureRegistry::getHandle(const LocalID id) -> Handle
 {
     assert(textures.get(id) != nullptr);
 
-    return Handle(*textures.get(id));
+    return Handle(CacheItemRef(*textures.get(id)));
 }
 
 void TextureRegistry::load(const LocalID id)
@@ -92,10 +94,10 @@ void TextureRegistry::load(const LocalID id)
     std::scoped_lock lock(textureStorageLock);
 
     assert(textures.get(id) != nullptr);
-    assert(textures.get(id)->dataSource != nullptr);
-    assert(textures.get(id)->deviceData == nullptr);
+    assert(textures.get(id)->getItem().dataSource != nullptr);
+    assert(textures.get(id)->getItem().deviceData == nullptr);
 
-    auto& tex = *textures.get(id);
+    auto& tex = textures.get(id)->getItem();
     auto data = tex.dataSource->load();
 
     // Create image resource
@@ -158,7 +160,7 @@ void TextureRegistry::unload(LocalID id)
     std::scoped_lock lock(textureStorageLock);
     assert(textures.get(id) != nullptr);
 
-    textures.get(id)->deviceData.reset();
+    textures.get(id)->getItem().deviceData.reset();
 }
 
 } // namespace trc

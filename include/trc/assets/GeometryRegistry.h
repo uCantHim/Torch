@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <mutex>
+#include <unordered_set>
 
 #include <vkb/Buffer.h>
 #include <vkb/MemoryPool.h>
@@ -17,10 +18,9 @@
 namespace trc
 {
     /**
-     * @brief Handle to a geometry stored in the asset registry
+     * @brief
      */
-    template<>
-    class AssetHandle<Geometry>
+    class GeometryRegistry : public AssetRegistryModuleCacheCrtpBase<Geometry>
     {
     public:
         enum class VertexType : ui8
@@ -29,7 +29,86 @@ namespace trc
             eSkeletal = 1 << 1,
         };
 
-        AssetHandle() = default;
+        using LocalID = TypedAssetID<Geometry>::LocalID;
+
+        explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);
+
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) final;
+
+        auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID override;
+        void remove(LocalID id) override;
+
+        auto getHandle(LocalID id) -> GeometryHandle override;
+
+        void load(LocalID id) override;
+        void unload(LocalID id) override;
+
+    private:
+        friend class AssetHandle<Geometry>;
+
+        struct Config
+        {
+            vk::BufferUsageFlags geometryBufferUsage;
+            bool enableRayTracing;
+        };
+
+        /**
+         * GPU resources for geometry data
+         */
+        struct InternalStorage
+        {
+            struct DeviceData
+            {
+                vkb::Buffer indexBuf;
+                vkb::Buffer vertexBuf;
+                ui32 numIndices{ 0 };
+                ui32 numVertices{ 0 };
+
+                VertexType vertexType;
+            };
+
+            ui32 deviceIndex;
+            u_ptr<AssetSource<Geometry>> source;
+            u_ptr<DeviceData> deviceData{ nullptr };
+            std::optional<RigID> rig;
+        };
+
+        using CacheItemRef = SharedCacheItem<InternalStorage>;
+
+        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
+        static constexpr ui32 MAX_GEOMETRY_COUNT = 5000;
+
+        const vkb::Device& device;
+        const Config config;
+
+        data::IdPool idPool;
+        vkb::MemoryPool memoryPool;
+        DeviceLocalDataWriter dataWriter;
+
+        std::mutex storageLock;
+        data::IndexMap<LocalID::IndexType, u_ptr<CacheItem<InternalStorage>>> storage;
+
+        /**
+         * Assets scheduled for removal from memory.
+         * Buffers must only be destroyed after any deferred copy operations
+         * have completed.
+         */
+        std::unordered_set<LocalID> pendingUnloads;
+
+        SharedDescriptorSet::Binding indexDescriptorBinding;
+        SharedDescriptorSet::Binding vertexDescriptorBinding;
+    };
+
+    /**
+     * @brief Handle to a geometry stored in the asset registry
+     */
+    template<>
+    class AssetHandle<Geometry>
+    {
+    public:
+        using VertexType = GeometryRegistry::VertexType;
+
+        AssetHandle() = delete;
         AssetHandle(const AssetHandle&) = default;
         AssetHandle(AssetHandle&&) noexcept = default;
         ~AssetHandle() = default;
@@ -60,86 +139,9 @@ namespace trc
     private:
         friend class GeometryRegistry;
 
-        AssetHandle(vk::Buffer indices, ui32 numIndices, vk::IndexType indexType,
-                       vk::Buffer verts, VertexType vertexType,
-                       std::optional<RigID> rig = std::nullopt);
+        explicit AssetHandle(GeometryRegistry::CacheItemRef ref);
 
-        vk::Buffer indexBuffer;
-        vk::Buffer vertexBuffer;
-
-        ui32 numIndices{ 0 };
-        vk::IndexType indexType;
-        VertexType vertexType;
-
-        std::optional<RigID> rig;
-    };
-
-    /**
-     * @brief
-     */
-    class GeometryRegistry : public AssetRegistryModuleCacheCrtpBase<Geometry>
-    {
-    public:
-        using LocalID = TypedAssetID<Geometry>::LocalID;
-
-        explicit GeometryRegistry(const AssetRegistryModuleCreateInfo& info);
-
-        void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) final;
-
-        auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID override;
-        void remove(LocalID id) override;
-
-        auto getHandle(LocalID id) -> GeometryHandle override;
-
-        void load(LocalID id) override;
-        void unload(LocalID id) override;
-
-    private:
-        struct Config
-        {
-            vk::BufferUsageFlags geometryBufferUsage;
-            bool enableRayTracing;
-        };
-
-        /**
-         * GPU resources for geometry data
-         */
-        struct InternalStorage
-        {
-            using VertexType = GeometryHandle::VertexType;
-
-            struct DeviceData
-            {
-                vkb::Buffer indexBuf;
-                vkb::Buffer vertexBuf;
-                ui32 numIndices{ 0 };
-                ui32 numVertices{ 0 };
-
-                VertexType vertexType;
-            };
-
-            ui32 deviceIndex;
-            u_ptr<AssetSource<Geometry>> source;
-            u_ptr<DeviceData> deviceData;
-            std::optional<RigID> rig;
-
-            u_ptr<CacheRefCounter> refCounter;
-        };
-
-        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 200000000;  // 200 MiB
-        static constexpr ui32 MAX_GEOMETRY_COUNT = 5000;
-
-        const vkb::Device& device;
-        const Config config;
-
-        data::IdPool idPool;
-        vkb::MemoryPool memoryPool;
-        DeviceLocalDataWriter dataWriter;
-
-        std::mutex storageLock;
-        data::IndexMap<LocalID::IndexType, InternalStorage> storage;
-
-        SharedDescriptorSet::Binding indexDescriptorBinding;
-        SharedDescriptorSet::Binding vertexDescriptorBinding;
+        GeometryRegistry::CacheItemRef cacheRef;
+        GeometryRegistry::InternalStorage::DeviceData* data;
     };
 } // namespace trc

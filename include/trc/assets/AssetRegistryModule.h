@@ -48,7 +48,9 @@ namespace trc
     };
 
     /**
-     * @brief Implementation helper
+     * @brief Helper for dynamic asset load/unload mechanisms
+     *
+     * Defines the protected virtual methods `load` and `unload`.
      */
     template<AssetBaseType AssetType>
     class AssetRegistryModuleCacheCrtpBase : public AssetRegistryModuleInterface<AssetType>
@@ -59,6 +61,10 @@ namespace trc
         using LocalID = typename TypedAssetID<AssetType>::LocalID;
 
     protected:
+        /**
+         * Can't use concepts for CRTP, so use the constructor to ensure
+         * the correct inheritance pattern.
+         */
         AssetRegistryModuleCacheCrtpBase()
         {
             static_assert(std::derived_from<Derived, std::remove_reference_t<decltype(*this)>>);
@@ -68,20 +74,44 @@ namespace trc
         virtual void unload(LocalID id) = 0;
 
     protected:
-        struct CacheRefCounter
+        /**
+         * @brief Storage for data, associated with a reference counter
+         *
+         * Stores a data type T together with a `LocalID` and a reference
+         * count. Create references to the data through `SharedCacheItem`.
+         */
+        template<std::move_constructible T>
+        class CacheItem
         {
-            CacheRefCounter(LocalID asset, Derived* reg)
-                : asset(asset), registry(reg)
+        public:
+            CacheItem() = delete;
+            CacheItem(const CacheItem&) = delete;
+            CacheItem(CacheItem&&) noexcept = delete;
+            CacheItem& operator=(const CacheItem&) = delete;
+            CacheItem& operator=(CacheItem&&) noexcept = delete;
+
+            CacheItem(T item, LocalID asset, Derived* reg)
+                : item(std::move(item)), asset(asset), registry(reg)
             {}
 
-            void inc()
+            ~CacheItem() = default;
+
+            auto getItem() -> T& {
+                return item;
+            }
+
+            auto getItem() const -> const T& {
+                return item;
+            }
+
+            void incRefCount()
             {
                 if (++count == 1) {
                     registry->load(asset);
                 }
             }
 
-            void dec()
+            void decRefCount()
             {
                 assert(count > 0);
                 if (--count == 0) {
@@ -89,68 +119,91 @@ namespace trc
                 }
             }
 
+        private:
+            T item;
+
             ui32 count{ 0 };
             LocalID asset;
             Derived* registry;
         };
 
-        template<typename CacheItem>
-        class SharedCacheReference
+        /**
+         * Cannot reference no object, so move operations have copy
+         * semantics.
+         */
+        template<typename T>
+        class SharedCacheItem
         {
         public:
-            SharedCacheReference(CacheItem& cacheItem)
-                : cache(&cacheItem)
+            SharedCacheItem(CacheItem<T>& _cacheItem)
+                : cacheItem(&_cacheItem)
             {
-                cache->inc();
+                cacheItem->incRefCount();
             }
 
-            SharedCacheReference(const SharedCacheReference& other)
-                : cache(other.cache)
+            SharedCacheItem(const SharedCacheItem& other)
+                : cacheItem(other.cacheItem)
             {
-                cache->inc();
+                cacheItem->incRefCount();
             }
 
-            SharedCacheReference(SharedCacheReference&& other) noexcept
-                : cache(other.cache)
+            SharedCacheItem(SharedCacheItem&& other) noexcept
+                : cacheItem(other.cacheItem)
             {
-                cache->inc();
+                cacheItem->incRefCount();
             }
 
-            auto operator=(const SharedCacheReference& other) -> SharedCacheReference&
+            ~SharedCacheItem()
+            {
+                cacheItem->decRefCount();
+            }
+
+            auto operator*() -> T& {
+                return cacheItem->getItem();
+            }
+
+            auto operator*() const -> const T& {
+                return cacheItem->getItem();
+            }
+
+            auto operator->() -> T* {
+                return &cacheItem->getItem();
+            }
+
+            auto operator->() const -> const T* {
+                return &cacheItem->getItem();
+            }
+
+            auto operator=(const SharedCacheItem& other) -> SharedCacheItem&
             {
                 if (this != &other)
                 {
-                    if (cache != other.cache)
+                    if (cacheItem != other.cacheItem)
                     {
-                        cache->dec();
-                        cache = other.cache;
+                        cacheItem->decRefCount();
+                        cacheItem = other.cacheItem;
                     }
-                    cache->inc();
+                    cacheItem->incRefCount();
                 }
                 return *this;
             }
 
-            auto operator=(SharedCacheReference&& other) noexcept -> SharedCacheReference&
+            auto operator=(SharedCacheItem&& other) noexcept -> SharedCacheItem&
             {
                 if (this != &other)
                 {
-                    if (cache != other.cache)
+                    if (cacheItem != other.cacheItem)
                     {
-                        cache->dec();
-                        cache = other.cache;
+                        cacheItem->decRefCount();
+                        cacheItem = other.cacheItem;
                     }
-                    cache->inc();
+                    cacheItem->incRefCount();
                 }
                 return *this;
-            }
-
-            ~SharedCacheReference()
-            {
-                cache->dec();
             }
 
         protected:
-            CacheItem* cache;
+            CacheItem<T>* cacheItem;
         };
     };
 } // namespace trc
