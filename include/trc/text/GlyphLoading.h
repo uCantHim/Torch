@@ -44,11 +44,20 @@ namespace trc
     class Face
     {
     public:
+        Face(const Face&) = delete;
+        Face& operator=(const Face&) = delete;
+        Face& operator=(Face&&) noexcept = delete;
+
+        Face(Face&&) noexcept = default;
+        ~Face() noexcept = default;
+
         explicit Face(const fs::path& path, ui32 pixelSize = 40);
+        explicit Face(std::vector<std::byte> data, ui32 pixelSize = 40);
 
         auto loadGlyph(CharCode charCode) const -> GlyphMeta;
 
     private:
+        std::vector<std::byte> data;
         std::unique_ptr<FT_Face, std::function<void(FT_Face*)>> face;
         FT_Face _face{ *face };
 

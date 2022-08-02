@@ -1,44 +1,117 @@
 #pragma once
 
+#include <unordered_map>
+#include <vector>
+
+#include <vkb/Device.h>
 #include <vkb/MemoryPool.h>
 
-#include "../Types.h"
-#include "Font.h"
+#include "trc_util/data/ObjectId.h"
+#include "trc/Types.h"
+#include "trc/assets/AssetBase.h"
+#include "trc/assets/AssetRegistryModule.h"
+#include "trc/core/DescriptorProvider.h"
+#include "GlyphMap.h"
 
 namespace trc
 {
-    class Instance;
+    class FontDataStorage;
+
+    struct Font
+    {
+        using Registry = FontDataStorage;
+    };
+
+    template<>
+    struct AssetData<Font>
+    {
+        ui32 fontSize;
+        std::vector<std::byte> fontData;
+    };
+
+    using FontHandle = AssetHandle<Font>;
+
+    template<>
+    auto loadAssetFromFile<Font>(const fs::path& path) -> AssetData<Font>;
+
+    /**
+     * @brief Load font data from any font file
+     */
+    auto loadFont(const fs::path& path, ui32 fontSize) -> AssetData<Font>;
+
+    struct GlyphDrawData
+    {
+        vec2 texCoordLL; // lower left texture coordinate
+        vec2 texCoordUR; // upper right texture coordinate
+
+        vec2 size;
+
+        float bearingY;
+        float advance;
+    };
+
+    struct FontRegistryCreateInfo
+    {
+        const vkb::Device& device;
+        size_t maxFonts{ 50 };
+    };
 
     /**
      * @brief
      */
-    class FontDataStorage
+    class FontDataStorage : public AssetRegistryModuleCacheCrtpBase<Font>
     {
     public:
-        static constexpr ui32 MAX_FONTS = 200;
+        explicit FontDataStorage(const FontRegistryCreateInfo& createInfo);
 
-        /**
-         * @brief
-         *
-         * @param const Instance& instance
-         */
-        explicit FontDataStorage(const Instance& instance);
+        void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) override;
 
-        auto allocateGlyphMap() -> std::pair<GlyphMap*, DescriptorProvider>;
-        auto makeFont(const fs::path& filePath, ui32 fontSize = 18) -> Font;
+        auto add(u_ptr<AssetSource<Font>> source) -> LocalID override;
+        void remove(LocalID id) override;
+        auto getHandle(LocalID id) -> AssetHandle<Font> override;
+
+        void load(LocalID id) override;
+        void unload(LocalID id) override;
 
         auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
 
     private:
+        friend class AssetHandle<Font>;
+
         struct GlyphMapDescriptorSet
         {
             vk::UniqueImageView imageView;
             vk::UniqueDescriptorSet set;
         };
 
+        struct FontData
+        {
+            FontData(FontDataStorage& storage, Face face);
+
+            auto getGlyph(CharCode charCode) -> GlyphDrawData;
+
+            Face face;
+            GlyphMap* glyphMap;
+            DescriptorProvider descProvider;
+
+            // Meta
+            float lineBreakAdvance;
+
+            std::unordered_map<CharCode, GlyphDrawData> glyphs;
+        };
+
+        struct FontStorage
+        {
+            u_ptr<AssetSource<Font>> source;
+            u_ptr<FontData> font;
+            u_ptr<ReferenceCounter> refCounter;
+        };
+
+        auto allocateGlyphMap() -> std::pair<GlyphMap*, DescriptorProvider>;
         auto makeDescSet(GlyphMap& map) -> GlyphMapDescriptorSet;
 
-        const Instance& instance;
+        const vkb::Device& device;
+        data::IdPool idPool;
 
         // Storage GPU resources
         vkb::MemoryPool memoryPool;
@@ -47,6 +120,41 @@ namespace trc
 
         // Managed glyph maps
         std::vector<GlyphMap> glyphMaps;
+        std::vector<FontStorage> fonts;
         std::vector<GlyphMapDescriptorSet> glyphMapDescSets;
+    };
+
+    template<>
+    class AssetHandle<Font>
+    {
+    public:
+        AssetHandle() = delete;
+
+        AssetHandle(const AssetHandle&) = default;
+        AssetHandle(AssetHandle&&) noexcept = default;
+        AssetHandle& operator=(const AssetHandle&) = default;
+        AssetHandle& operator=(AssetHandle&&) noexcept = default;
+        ~AssetHandle() = default;
+
+        /**
+         * @brief Retrieve information about a glyph from the font
+         *
+         * Loads previously unused glyphs lazily.
+         */
+        auto getGlyph(CharCode charCode) -> GlyphDrawData;
+
+        /**
+         * @return float The amount of space between vertical lines of text
+         */
+        auto getLineBreakAdvance() const noexcept -> float;
+
+        auto getDescriptor() const -> const DescriptorProvider&;
+
+    private:
+        friend FontDataStorage;
+        explicit AssetHandle(FontDataStorage::FontStorage& storage);
+
+        FontDataStorage::SharedCacheReference cacheRef;
+        FontDataStorage::FontData* data;
     };
 } // namespace trc

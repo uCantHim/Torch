@@ -10,6 +10,7 @@
 #include "assets/RigRegistry.h"
 #include "assets/AnimationRegistry.h"
 #include "assets/SharedDescriptorSet.h"
+#include "text/FontDataStorage.h"
 
 
 
@@ -28,8 +29,7 @@ trc::AssetRegistry::AssetRegistry(
     :
     device(instance.getDevice()),
     config(addDefaultValues(info)),
-    descSet(nullptr),
-    fontData(instance)
+    descSet(nullptr)
 {
     auto builder = SharedDescriptorSet::build();
 
@@ -44,6 +44,7 @@ trc::AssetRegistry::AssetRegistry(
     });
     addModule<Rig>();
     addModule<Animation>(AnimationRegistryCreateInfo{ instance.getDevice(), builder });
+    addModule<Font>(FontRegistryCreateInfo{ instance.getDevice() });
 
     // Create descriptors
     descSet = builder.build(device);
@@ -53,16 +54,6 @@ trc::AssetRegistry::AssetRegistry(
     add<Texture>(std::make_unique<InMemorySource<Texture>>(
         TextureData{ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels }
     ));
-}
-
-auto trc::AssetRegistry::getFonts() -> FontDataStorage&
-{
-    return fontData;
-}
-
-auto trc::AssetRegistry::getFonts() const -> const FontDataStorage&
-{
-    return fontData;
 }
 
 auto trc::AssetRegistry::getUpdatePass() -> UpdatePass&

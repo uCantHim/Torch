@@ -6,6 +6,7 @@ protobuf_generate_cpp(
     protobuf/material.proto
     protobuf/rig.proto
     protobuf/animation.proto
+    protobuf/font.proto
 
     protobuf/asset.proto
     protobuf/asset_reference.proto

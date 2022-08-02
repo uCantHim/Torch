@@ -8,7 +8,7 @@ int main()
         auto torch = trc::initFull();
         auto& instance = torch->getInstance();
         auto& window = torch->getWindow();
-        auto& fonts = torch->getAssetManager().getDeviceRegistry().getFonts();
+        auto& assets = torch->getAssetManager();
 
         trc::Scene scene;
         trc::Camera camera;
@@ -18,9 +18,9 @@ int main()
 
         // Font stuff
 
-        trc::Font font(fonts, TRC_TEST_FONT_DIR"/gil.ttf", 60);
+        auto font = assets.create(trc::loadFont(TRC_TEST_FONT_DIR"/gil.ttf", 60));
 
-        trc::Text text(instance, font);
+        trc::Text text(instance, font.getDeviceDataHandle());
         text.print("^Hello{ | }\n ~World_!$ ✓");
         text.attachToScene(scene);
 

@@ -1,5 +1,8 @@
 #include "text/GlyphLoading.h"
 
+#include <fstream>
+#include <sstream>
+
 #include <glm/glm.hpp>
 
 
@@ -25,17 +28,39 @@ inline auto getFreetype() -> FT_Library
 
 trc::Face::Face(const fs::path& path, ui32 pixelSize)
     :
+    Face([&]{
+        if (!fs::is_regular_file(path)) {
+            throw std::runtime_error("Unable to load face: " + path.string() + " is not a file");
+        }
+
+        std::ifstream file(path);
+        std::stringstream ss;
+        ss << file.rdbuf();
+        auto str = ss.str();
+
+        std::vector<std::byte> result(str.size());
+        memcpy(result.data(), str.data(), str.size());
+
+        return result;
+    }(), pixelSize)
+{
+}
+
+trc::Face::Face(std::vector<std::byte> _data, ui32 pixelSize)
+    :
+    data(std::move(_data)),
     face(
         // Create the face
         [&] {
             FT_Face* face = new FT_Face;
 
-            if (!fs::is_regular_file(path)) {
-                throw std::runtime_error("Unable to load face: " + path.string() + " is not a file");
-            }
-
             // Create face
-            auto errorCode = FT_New_Face(getFreetype(), path.c_str(), 0, face);
+            auto errorCode = FT_New_Memory_Face(
+                getFreetype(),
+                reinterpret_cast<const FT_Byte*>(data.data()), data.size(),
+                0, face
+            );
+
             if (errorCode != 0) {
                 throw std::runtime_error("Unable to load font (" + std::to_string(errorCode) + ")");
             }

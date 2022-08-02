@@ -235,8 +235,8 @@ void run()
     cursor.scale(0.15f);
 
     // Text
-    trc::Font font = ar.getDeviceRegistry().getFonts().makeFont(TRC_TEST_FONT_DIR"/gil.ttf", 64);
-    trc::Text text{ instance, font };
+    auto font = ar.create(trc::loadFont(TRC_TEST_FONT_DIR"/gil.ttf", 64));
+    trc::Text text{ instance, font.getDeviceDataHandle() };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
     text.attachToScene(scene);

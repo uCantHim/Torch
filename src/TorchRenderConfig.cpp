@@ -37,7 +37,11 @@ trc::TorchRenderConfig::TorchRenderConfig(
     gBufferDescriptor(_window.getDevice(), _window),  // Don't update the descriptor sets yet!
     globalDataDescriptor(window),
     sceneDescriptor(window),
-    fontDataDescriptor(info.assetRegistry->getFonts().getDescriptorSetLayout(), {}),
+    fontDataDescriptor(
+        dynamic_cast<FontDataStorage&>(info.assetRegistry->getModule<Font>())
+            .getDescriptorSetLayout(),
+        {}
+    ),
     // Asset storage
     assetRegistry(info.assetRegistry),
     shadowPool(info.shadowPool)

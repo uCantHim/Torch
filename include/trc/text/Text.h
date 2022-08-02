@@ -16,7 +16,7 @@ namespace trc
     class Text : public Node
     {
     public:
-        Text(const Instance& instance, Font& font);
+        Text(const Instance& instance, FontHandle font);
 
         void attachToScene(SceneBase& scene);
         void removeFromScene();
@@ -28,7 +28,7 @@ namespace trc
         static constexpr float BASE_SCALING{ 0.075f };
 
         const Instance& instance;
-        Font* font;
+        FontHandle font;
 
         vkb::DeviceLocalBuffer vertexBuffer;
         SceneBase::UniqueRegistrationID drawRegistration;

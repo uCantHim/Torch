@@ -31,10 +31,10 @@ namespace trc
 
 
 
-trc::Text::Text(const Instance& instance, Font& font)
+trc::Text::Text(const Instance& instance, FontHandle font)
     :
     instance(instance),
-    font(&font),
+    font(font),
     vertexBuffer(instance.getDevice(), makeQuad(), vk::BufferUsageFlagBits::eVertexBuffer)
 {
 }
@@ -47,7 +47,7 @@ void trc::Text::attachToScene(SceneBase& scene)
         pipelines::text::getStaticTextPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
-            font->getDescriptor().bindDescriptorSet(
+            font.getDescriptor().bindDescriptorSet(
                 cmdBuf,
                 vk::PipelineBindPoint::eGraphics, *env.currentPipeline->getLayout(),
                 1
@@ -89,12 +89,12 @@ void trc::Text::print(const std::string& str)
     {
         if (c == '\n')
         {
-            penPosition.y -= font->getLineBreakAdvance();
+            penPosition.y -= font.getLineBreakAdvance();
             penPosition.x = 0.0f;
             return;  // continue
         }
 
-        auto g = font->getGlyph(c);
+        auto g = font.getGlyph(c);
 
         /**
          * These calculations are a little bit weird because Torch flips

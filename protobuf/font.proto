@@ -1,0 +1,8 @@
+syntax = "proto3";
+package trc.serial;
+
+message Font
+{
+    uint32 font_size = 1;
+    bytes font_data = 2;
+};

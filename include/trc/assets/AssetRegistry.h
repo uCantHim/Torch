@@ -18,7 +18,6 @@
 #include "AssetBaseTypes.h"
 #include "AssetSource.h"
 #include "import/RawData.h"
-#include "text/FontDataStorage.h"
 
 namespace trc
 {
@@ -108,9 +107,6 @@ namespace trc
         template<AssetBaseType T>
         auto getModule() const -> const AssetRegistryModuleInterface<T>&;
 
-        auto getFonts() -> FontDataStorage&;
-        auto getFonts() const -> const FontDataStorage&;
-
         auto getUpdatePass() -> UpdatePass&;
         auto getDescriptorSetProvider() const noexcept -> const DescriptorProviderInterface&;
 
@@ -139,12 +135,6 @@ namespace trc
 
         u_ptr<SharedDescriptorSet> descSet;
         u_ptr<AssetModuleUpdatePass> updateRenderPass{ new AssetModuleUpdatePass{ this } };
-
-
-        ////////////////////////////
-        // Additional asset storages
-
-        FontDataStorage fontData;
     };
 
 
