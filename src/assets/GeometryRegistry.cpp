@@ -38,33 +38,35 @@ auto makeVertexData(const GeometryData& geo) -> std::vector<ui8>
 
 
 
-GeometryHandle::AssetHandle(GeometryRegistry::CacheItemRef ref)
+GeometryHandle::AssetHandle(
+    GeometryRegistry::SharedCacheReference ref,
+    GeometryRegistry::InternalStorage& _data)
     :
     cacheRef(std::move(ref)),
-    data(cacheRef->deviceData.get())
+    storage(&_data)
 {
-    assert(data != nullptr);
+    assert(storage->deviceData != nullptr);
 }
 
 void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
-    cmdBuf.bindIndexBuffer(*data->indexBuf, 0, getIndexType());
-    cmdBuf.bindVertexBuffers(binding, *data->vertexBuf, vk::DeviceSize(0));
+    cmdBuf.bindIndexBuffer(*storage->deviceData->indexBuf, 0, getIndexType());
+    cmdBuf.bindVertexBuffers(binding, *storage->deviceData->vertexBuf, vk::DeviceSize(0));
 }
 
 auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
 {
-    return *data->indexBuf;
+    return *storage->deviceData->indexBuf;
 }
 
 auto GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
 {
-    return *data->vertexBuf;
+    return *storage->deviceData->vertexBuf;
 }
 
 auto GeometryHandle::getIndexCount() const noexcept -> ui32
 {
-    return data->numIndices;
+    return storage->deviceData->numIndices;
 }
 
 auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
@@ -74,24 +76,24 @@ auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
 
 auto GeometryHandle::getVertexType() const noexcept -> VertexType
 {
-    return data->vertexType;
+    return storage->deviceData->vertexType;
 }
 
 bool GeometryHandle::hasRig() const
 {
-    return cacheRef->rig.has_value();
+    return storage->rig.has_value();
 }
 
 auto GeometryHandle::getRig() -> RigID
 {
-    if (!cacheRef->rig.has_value())
+    if (!storage->rig.has_value())
     {
         throw std::out_of_range(
             "[In GeometryHandle::getRig()]: Geometry has no rig associated with it!"
         );
     }
 
-    return cacheRef->rig.value();
+    return storage->rig.value();
 }
 
 
@@ -132,7 +134,7 @@ void GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
 
     std::scoped_lock lock(storageLock);
     for (auto id : pendingUnloads) {
-        storage.at(id)->getItem().deviceData.reset();
+        storage.at(id)->deviceData.reset();
     }
     pendingUnloads.clear();
 }
@@ -144,14 +146,12 @@ auto GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
     std::scoped_lock lock(storageLock);
     storage.emplace(
         id,
-        new CacheItem<InternalStorage>{
-            InternalStorage{
-                .deviceIndex = id,
-                .source = std::move(source),
-                .deviceData = {},
-                .rig = std::nullopt
-            },
-            id, this
+        new InternalStorage{
+            .deviceIndex = id,
+            .source = std::move(source),
+            .deviceData = {},
+            .rig = std::nullopt,
+            .refCounter{ id, this }
         }
     );
 
@@ -168,7 +168,8 @@ void GeometryRegistry::remove(const LocalID id)
 auto GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
 {
     assert(storage.at(id) != nullptr);
-    return GeometryHandle(CacheItemRef(*storage.at(id)));
+    auto& data = *storage.at(id);
+    return GeometryHandle(SharedCacheReference(data.refCounter), data);
 }
 
 void GeometryRegistry::load(const LocalID id)
@@ -176,7 +177,7 @@ void GeometryRegistry::load(const LocalID id)
     std::scoped_lock lock(storageLock);
     pendingUnloads.erase(id);
 
-    auto& item = storage.at(id)->getItem();
+    auto& item = *storage.at(id);
     assert(item.source != nullptr);
     if (item.deviceData != nullptr)
     {

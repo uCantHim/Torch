@@ -57,9 +57,10 @@ namespace trc
             u_ptr<AssetSource<Texture>> dataSource;
 
             u_ptr<Data> deviceData{ nullptr };
+            u_ptr<ReferenceCounter> refCounter;
         };
 
-        using CacheItemRef = SharedCacheItem<InternalStorage>;
+        using CacheItemRef = SharedCacheReference;
         template<typename T>
         using Table = componentlib::Table<T, LocalID::IndexType>;
 
@@ -72,7 +73,7 @@ namespace trc
 
         data::IdPool idPool;
         std::shared_mutex textureStorageLock;
-        Table<u_ptr<CacheItem<InternalStorage>>> textures;
+        Table<InternalStorage> textures;
 
         SharedDescriptorSet::Binding descBinding;
     };
@@ -88,8 +89,9 @@ namespace trc
 
     private:
         friend TextureRegistry;
-        explicit AssetHandle(TextureRegistry::CacheItemRef r);
+        explicit AssetHandle(TextureRegistry::CacheItemRef r, ui32 deviceIndex);
 
         TextureRegistry::CacheItemRef cacheRef;
+        ui32 deviceIndex;
     };
 } // namespace trc

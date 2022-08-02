@@ -63,34 +63,24 @@ namespace trc
 
     protected:
         /**
-         * @brief Storage for data, associated with a reference counter
+         * @brief A reference counter
          *
-         * Stores a data type T together with a `LocalID` and a reference
-         * count. Create references to the data through `SharedCacheItem`.
+         * Create shared references through `SharedCacheReference`.
          */
-        template<std::move_constructible T>
-        class CacheItem
+        class ReferenceCounter
         {
         public:
-            CacheItem() = delete;
-            CacheItem(const CacheItem&) = delete;
-            CacheItem(CacheItem&&) noexcept = delete;
-            CacheItem& operator=(const CacheItem&) = delete;
-            CacheItem& operator=(CacheItem&&) noexcept = delete;
+            ReferenceCounter() = delete;
+            ReferenceCounter(const ReferenceCounter&) = delete;
+            ReferenceCounter(ReferenceCounter&&) noexcept = delete;
+            ReferenceCounter& operator=(const ReferenceCounter&) = delete;
+            ReferenceCounter& operator=(ReferenceCounter&&) noexcept = delete;
 
-            CacheItem(T item, LocalID asset, Derived* reg)
-                : item(std::move(item)), asset(asset), registry(reg)
+            ReferenceCounter(LocalID asset, Derived* reg)
+                : asset(asset), registry(reg)
             {}
 
-            ~CacheItem() = default;
-
-            auto getItem() -> T& {
-                return item;
-            }
-
-            auto getItem() const -> const T& {
-                return item;
-            }
+            ~ReferenceCounter() = default;
 
             void incRefCount()
             {
@@ -108,8 +98,6 @@ namespace trc
             }
 
         private:
-            T item;
-
             ui32 count{ 0 };
             LocalID asset;
             Derived* registry;
@@ -119,50 +107,33 @@ namespace trc
          * Cannot reference no object, so move operations have copy
          * semantics.
          */
-        template<typename T>
-        class SharedCacheItem
+        class SharedCacheReference
         {
         public:
-            SharedCacheItem(CacheItem<T>& _cacheItem)
+            SharedCacheReference(ReferenceCounter& _cacheItem)
                 : cacheItem(&_cacheItem)
             {
                 cacheItem->incRefCount();
             }
 
-            SharedCacheItem(const SharedCacheItem& other)
+            SharedCacheReference(const SharedCacheReference& other)
                 : cacheItem(other.cacheItem)
             {
                 cacheItem->incRefCount();
             }
 
-            SharedCacheItem(SharedCacheItem&& other) noexcept
+            SharedCacheReference(SharedCacheReference&& other) noexcept
                 : cacheItem(other.cacheItem)
             {
                 cacheItem->incRefCount();
             }
 
-            ~SharedCacheItem()
+            ~SharedCacheReference()
             {
                 cacheItem->decRefCount();
             }
 
-            auto operator*() -> T& {
-                return cacheItem->getItem();
-            }
-
-            auto operator*() const -> const T& {
-                return cacheItem->getItem();
-            }
-
-            auto operator->() -> T* {
-                return &cacheItem->getItem();
-            }
-
-            auto operator->() const -> const T* {
-                return &cacheItem->getItem();
-            }
-
-            auto operator=(const SharedCacheItem& other) -> SharedCacheItem&
+            auto operator=(const SharedCacheReference& other) -> SharedCacheReference&
             {
                 if (this != &other)
                 {
@@ -176,7 +147,7 @@ namespace trc
                 return *this;
             }
 
-            auto operator=(SharedCacheItem&& other) noexcept -> SharedCacheItem&
+            auto operator=(SharedCacheReference&& other) noexcept -> SharedCacheReference&
             {
                 if (this != &other)
                 {
@@ -191,7 +162,7 @@ namespace trc
             }
 
         protected:
-            CacheItem<T>* cacheItem;
+            ReferenceCounter* cacheItem;
         };
     };
 } // namespace trc

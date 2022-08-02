@@ -84,9 +84,9 @@ namespace trc
             u_ptr<AssetSource<Geometry>> source;
             u_ptr<DeviceData> deviceData{ nullptr };
             std::optional<RigID> rig;
-        };
 
-        using CacheItemRef = SharedCacheItem<InternalStorage>;
+            ReferenceCounter refCounter;
+        };
 
         const vkb::Device& device;
         const Config config;
@@ -96,7 +96,7 @@ namespace trc
         DeviceLocalDataWriter dataWriter;
 
         std::mutex storageLock;
-        data::IndexMap<LocalID::IndexType, u_ptr<CacheItem<InternalStorage>>> storage;
+        data::IndexMap<LocalID::IndexType, u_ptr<InternalStorage>> storage;
 
         /**
          * Assets scheduled for removal from memory.
@@ -149,9 +149,10 @@ namespace trc
     private:
         friend class GeometryRegistry;
 
-        explicit AssetHandle(GeometryRegistry::CacheItemRef ref);
+        explicit AssetHandle(GeometryRegistry::SharedCacheReference ref,
+                             GeometryRegistry::InternalStorage& data);
 
-        GeometryRegistry::CacheItemRef cacheRef;
-        GeometryRegistry::InternalStorage::DeviceData* data;
+        GeometryRegistry::SharedCacheReference cacheRef;
+        GeometryRegistry::InternalStorage* storage;
     };
 } // namespace trc

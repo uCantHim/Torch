@@ -7,15 +7,16 @@
 namespace trc
 {
 
-AssetHandle<Texture>::AssetHandle(TextureRegistry::CacheItemRef ref)
+AssetHandle<Texture>::AssetHandle(TextureRegistry::CacheItemRef ref, ui32 deviceIndex)
     :
-    cacheRef(std::move(ref))
+    cacheRef(std::move(ref)),
+    deviceIndex(deviceIndex)
 {
 }
 
 auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
 {
-    return cacheRef->deviceIndex;
+    return deviceIndex;
 }
 
 
@@ -59,14 +60,12 @@ auto TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
     std::scoped_lock lock(textureStorageLock);  // Unique ownership
     textures.emplace(
         deviceIndex,
-        new CacheItem<InternalStorage>(
-            InternalStorage{
-                deviceIndex,
-                std::move(source),
-                nullptr
-            },
-            id, this
-        )
+        InternalStorage{
+            deviceIndex,
+            std::move(source),
+            nullptr,
+            std::make_unique<ReferenceCounter>(id, this)
+        }
     );
 
     return id;
@@ -83,20 +82,18 @@ void TextureRegistry::remove(const LocalID id)
 
 auto TextureRegistry::getHandle(const LocalID id) -> Handle
 {
-    assert(textures.get(id) != nullptr);
-
-    return Handle(CacheItemRef(*textures.get(id)));
+    auto& data = textures.get(id);
+    return Handle(CacheItemRef(*data.refCounter), data.deviceIndex);
 }
 
 void TextureRegistry::load(const LocalID id)
 {
     std::scoped_lock lock(textureStorageLock);
 
-    assert(textures.get(id) != nullptr);
-    assert(textures.get(id)->getItem().dataSource != nullptr);
-    assert(textures.get(id)->getItem().deviceData == nullptr);
+    assert(textures.get(id).dataSource != nullptr);
+    assert(textures.get(id).deviceData == nullptr);
 
-    auto& tex = textures.get(id)->getItem();
+    auto& tex = textures.get(id);
     auto data = tex.dataSource->load();
 
     // Create image resource
@@ -157,9 +154,7 @@ void TextureRegistry::load(const LocalID id)
 void TextureRegistry::unload(LocalID id)
 {
     std::scoped_lock lock(textureStorageLock);
-    assert(textures.get(id) != nullptr);
-
-    textures.get(id)->getItem().deviceData.reset();
+    textures.get(id).deviceData.reset();
 }
 
 } // namespace trc
