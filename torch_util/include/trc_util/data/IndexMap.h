@@ -17,14 +17,15 @@ public:
     /**
      * Contructs a new value if the index is not yet occupied.
      */
-    auto operator[](Key key) noexcept -> Value&;
+    auto operator[](Key key) -> Value&;
 
     /**
      * Throws if the index is not yet occupied.
      */
-    auto operator[](Key key) const noexcept -> const Value&;
+    auto operator[](Key key) const -> const Value&;
 
     auto at(Key key) -> Value&;
+    auto at(Key key) const -> const Value&;
 
     template<typename ...Args>
     auto emplace(Key key, Args&&... args) -> Value&;

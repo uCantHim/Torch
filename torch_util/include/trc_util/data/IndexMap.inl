@@ -1,7 +1,5 @@
 #include "IndexMap.h"
 
-#include <cassert>
-
 
 
 template<typename Key, typename Value>
@@ -14,10 +12,8 @@ inline trc::data::IndexMap<Key, Value>::IndexMap()
 }
 
 template<typename Key, typename Value>
-inline auto trc::data::IndexMap<Key, Value>::operator[](Key key) noexcept -> Value&
+inline auto trc::data::IndexMap<Key, Value>::operator[](Key key) -> Value&
 {
-    assert(key >= 0);
-
     if (key >= static_cast<Key>(values.size())) {
         values.resize(key + 1);
     }
@@ -26,20 +22,20 @@ inline auto trc::data::IndexMap<Key, Value>::operator[](Key key) noexcept -> Val
 }
 
 template<typename Key, typename Value>
-inline auto trc::data::IndexMap<Key, Value>::operator[](Key key) const noexcept -> const Value&
+inline auto trc::data::IndexMap<Key, Value>::operator[](Key key) const -> const Value&
 {
-    assert(key < values.size());
-    assert(key >= 0);
-
     return values.at(key);
 }
 
 template<typename Key, typename Value>
 inline auto trc::data::IndexMap<Key, Value>::at(Key key) -> Value&
 {
-    assert(key < values.size());
-    assert(key >= 0);
+    return values.at(key);
+}
 
+template<typename Key, typename Value>
+inline auto trc::data::IndexMap<Key, Value>::at(Key key) const -> const Value&
+{
     return values.at(key);
 }
 
@@ -47,8 +43,6 @@ template<typename Key, typename Value>
 template<typename ...Args>
 inline auto trc::data::IndexMap<Key, Value>::emplace(Key key, Args&&... args) -> Value&
 {
-    assert(key >= 0);
-
     if (key >= values.size()) {
         values.resize(key + 1);
     }
@@ -60,9 +54,6 @@ inline auto trc::data::IndexMap<Key, Value>::emplace(Key key, Args&&... args) ->
 template<typename Key, typename Value>
 inline auto trc::data::IndexMap<Key, Value>::remove(Key key) -> Value
 {
-    assert(key < values.size());
-    assert(key >= 0);
-
     auto currentValue = std::move(values.at(key));
     values.at(key) = {};
 
