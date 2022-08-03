@@ -4,8 +4,9 @@ target_sources(UnitTests
     PRIVATE
         assets_tests/test_asset_path.cpp
         assets_tests/test_custom_asset.cpp
-        functional/test_maybe.cpp
+        core/test_scene_base.cpp
         data/test_object_pool.cpp
+        functional/test_maybe.cpp
 )
 
 target_link_libraries(UnitTests PRIVATE torch)
