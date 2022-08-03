@@ -70,7 +70,7 @@ namespace trc
          * semaphores.
          */
         vkb::FrameSpecific<vk::UniqueSemaphore> renderFinishedHostSignalSemaphores;
-        vkb::FrameSpecific<ui64> hostSemSignalValue;
+        vkb::FrameSpecific<ui64> renderFinishedHostSignalValue;
 
         async::ThreadPool threadPool;
 

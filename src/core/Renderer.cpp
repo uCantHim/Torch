@@ -52,7 +52,7 @@ trc::Renderer::Renderer(Window& _window)
     renderFinishedSemaphores(_window),
     frameInFlightFences(_window),
     renderFinishedHostSignalSemaphores(_window),
-    hostSemSignalValue(_window, [](ui32){ return 1; })
+    renderFinishedHostSignalValue(_window, [](ui32){ return 1; })
 {
     createSemaphores();
 
@@ -85,11 +85,11 @@ trc::Renderer::~Renderer()
 void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
 {
     // Wait for frame
-    auto fenceResult = device->waitForFences(**frameInFlightFences, true, UINT64_MAX);
+    const auto currentFrameFence = **frameInFlightFences;
+    const auto fenceResult = device->waitForFences(currentFrameFence, true, UINT64_MAX);
     if (fenceResult == vk::Result::eTimeout) {
         throw std::runtime_error("[In Renderer::drawFrame]: Timeout in waitForFences");
     }
-    device->resetFences(**frameInFlightFences);
 
     // Acquire image
     auto image = window->acquireImage(**imageAcquireSemaphores);
@@ -129,7 +129,7 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
         **renderFinishedSemaphores,
         **renderFinishedHostSignalSemaphores,
     };
-    const ui64 signalValues[]{ 0, *hostSemSignalValue };
+    const ui64 signalValues[]{ 0, *renderFinishedHostSignalValue };
     vk::StructureChain chain{
         vk::SubmitInfo(
             **imageAcquireSemaphores,
@@ -139,14 +139,16 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
         ),
         vk::TimelineSemaphoreSubmitInfo(0, nullptr, 2, signalValues)
     };
-    mainRenderQueue.submit(chain.get(), **frameInFlightFences);
+
+    device->resetFences(currentFrameFence);
+    mainRenderQueue.submit(chain.get(), currentFrameFence);
 
     // Dispatch asynchronous handler for when the frame has finished rendering
     threadPool.async(
         [
             this,
             sem=**renderFinishedHostSignalSemaphores,
-            val=*hostSemSignalValue,
+            val=*renderFinishedHostSignalValue,
             state=std::move(frameState)
         ]() mutable {
             auto result = device->waitSemaphores(vk::SemaphoreWaitInfo({}, sem, val), UINT64_MAX);
@@ -161,7 +163,7 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
         }
     );
 
-    ++*hostSemSignalValue;
+    ++*renderFinishedHostSignalValue;
 
     // Present frame
     if (!window->presentImage(image, *mainPresentQueue, { **renderFinishedSemaphores })) {
