@@ -2,6 +2,7 @@
 
 #include "core/Window.h"
 #include "core/DrawConfiguration.h"
+#include "text/Font.h"
 #include "trc_util/Timer.h"
 #include "TorchResources.h"
 #include "GBufferPass.h"
@@ -38,7 +39,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
     globalDataDescriptor(window),
     sceneDescriptor(window),
     fontDataDescriptor(
-        dynamic_cast<FontDataStorage&>(info.assetRegistry->getModule<Font>())
+        dynamic_cast<FontRegistry&>(info.assetRegistry->getModule<Font>())
             .getDescriptorSetLayout(),
         {}
     ),

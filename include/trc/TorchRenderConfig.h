@@ -17,7 +17,6 @@
 #include "SceneDescriptor.h"
 #include "ShadowPool.h"
 #include "assets/AssetRegistry.h"
-#include "text/FontDataStorage.h"
 
 namespace trc
 {
