@@ -1,8 +1,9 @@
 #pragma once
 
-#include <vector>
-#include <unordered_set>
 #include <functional>
+#include <shared_mutex>
+#include <unordered_set>
+#include <vector>
 
 #include <trc_util/data/IndexMap.h>
 
@@ -30,7 +31,7 @@ namespace trc
      * Allows registration of individual draw calls for specific pipelines.
      *
      * The concept of 'drawable objects' is not inherent in the scene, but
-     * can instead be implemented, for example, as a collection of draw
+     * can instead be implemented, for example as a collection of draw
      * functions with associated external state. This keeps the fundamental
      * render state incredibly flexible, as it does not make any assumptions
      * about the components and processing stages of complete renderable
@@ -61,7 +62,7 @@ namespace trc
                                   Pipeline::ID pipeline,
                                   ui32 i);
 
-                RenderStage::ID renderStageType;
+                RenderStage::ID renderStage;
                 SubPass::ID subPass;
                 Pipeline::ID pipeline;
                 ui32 indexInRegistrationArray;
@@ -156,6 +157,39 @@ namespace trc
         using UniqueRegistrationID = UniqueDrawableRegistrationId;
 
         /**
+         * A proxy to a vector of pipelines which also holds a lock.
+         */
+        class PipelineListProxy
+        {
+        public:
+            using const_iterator = std::vector<Pipeline::ID>::const_iterator;
+
+            PipelineListProxy() = delete;
+            PipelineListProxy(const PipelineListProxy&) = delete;
+            PipelineListProxy& operator=(const PipelineListProxy&) = delete;
+            PipelineListProxy& operator=(PipelineListProxy&&) noexcept = delete;
+
+            PipelineListProxy(PipelineListProxy&&) noexcept = default;
+            ~PipelineListProxy() = default;
+
+            auto begin() const -> const_iterator;
+            auto end() const -> const_iterator;
+
+            bool empty() const;
+            auto size() const -> size_t;
+
+        private:
+            friend class SceneBase;
+            PipelineListProxy(std::shared_lock<std::shared_mutex> lock,
+                          const std::vector<Pipeline::ID>& p)
+                : lock(std::move(lock)), pipelines(p)
+            {}
+
+            std::shared_lock<std::shared_mutex> lock;
+            const std::vector<Pipeline::ID>& pipelines;
+        };
+
+        /**
          * @brief Register a draw function at the scene.
          *
          * The draw function implements a draw call. It is always specific
@@ -173,7 +207,7 @@ namespace trc
          *         The plain (non-unique) ID consumes less memory.
          */
         auto registerDrawFunction(
-            RenderStage::ID renderStageType,
+            RenderStage::ID stage,
             SubPass::ID subpass,
             Pipeline::ID usedPipeline,
             DrawableFunction commandBufferRecordingFunction
@@ -190,10 +224,15 @@ namespace trc
         /**
          * @brief Get all pipelines used in a subpass
          *
+         * Locks the returned list of pipelines with a shared read-only
+         * lock. Adding new pipelines to the scene in the same thread that
+         * holds the returned `PipelineListProxy` object *will* result in a
+         * deadlock!
+         *
          * This function is invoked internally by the renderer.
          */
-        auto getPipelines(RenderStage::ID renderStageType, SubPass::ID subPass) const noexcept
-            -> const std::vector<Pipeline::ID>&;
+        auto iterPipelines(RenderStage::ID stage, SubPass::ID subPass) const noexcept
+            -> PipelineListProxy;
 
         /**
          * @brief Invoke all registered draw functions of a subpass and pipeline
@@ -210,23 +249,60 @@ namespace trc
         ) const;
 
     private:
+        template<typename T>
+        class LockedStorage
+        {
+        public:
+            LockedStorage(const LockedStorage&) = delete;
+            LockedStorage& operator=(const LockedStorage&) = delete;
+
+            LockedStorage() = default;
+            LockedStorage(LockedStorage&&) noexcept = default;
+            ~LockedStorage() noexcept = default;
+
+            LockedStorage& operator=(LockedStorage&&) noexcept = default;
+
+            auto read() const -> std::pair<const T&, std::shared_lock<std::shared_mutex>>;
+            auto write()      -> std::pair<T&, std::unique_lock<std::shared_mutex>>;
+
+        private:
+            mutable u_ptr<std::shared_mutex> mutex{ new std::shared_mutex };
+
+            // Must be a unique_ptr because a pipeline list could be moved
+            // while being accessed
+            u_ptr<T> data{ new T };
+        };
+
         template<typename T> using PerRenderStage = data::IndexMap<RenderStage::ID::IndexType, T>;
         template<typename T> using PerSubpass = data::IndexMap<SubPass::ID::IndexType, T>;
         template<typename T> using PerPipeline = data::IndexMap<Pipeline::ID::IndexType, T>;
 
-        /**
-         * Sorting the functions this way allows me to group all draw calls with
-         * the same pipelines together.
-         */
+        auto readDrawCalls(RenderStage::ID renderStage,
+                           SubPass::ID subPass,
+                           Pipeline::ID pipelineId) const
+            -> std::pair<
+                const std::vector<DrawableExecutionRegistration>&,
+                std::shared_lock<std::shared_mutex>
+            >;
+
+        auto writeDrawCalls(RenderStage::ID renderStage,
+                            SubPass::ID subPass,
+                            Pipeline::ID pipelineId)
+            -> std::pair<
+                std::vector<DrawableExecutionRegistration>&,
+                std::unique_lock<std::shared_mutex>
+            >;
+
+        mutable std::shared_mutex drawRegsMutex;
         PerRenderStage<
             PerSubpass<
                 PerPipeline<
-                    std::vector<DrawableExecutionRegistration>
+                    LockedStorage<std::vector<DrawableExecutionRegistration>>
                 >
             >
-        > drawableRegistrations;
+        > drawRegistrations;
 
-        // Pipeline storage
+        // Auxiliaries for pipeline management
         void tryInsertPipeline(RenderStage::ID renderStageType,
                                SubPass::ID subpass,
                                Pipeline::ID pipeline);
@@ -234,6 +310,8 @@ namespace trc
                             SubPass::ID subpass,
                             Pipeline::ID pipeline);
 
+        mutable std::shared_mutex uniquePipelinesMutex;
+        mutable std::shared_mutex uniquePipelinesVectorMutex;
         PerRenderStage<PerSubpass<std::unordered_set<Pipeline::ID>>> uniquePipelines;
         PerRenderStage<PerSubpass<std::vector<Pipeline::ID>>> uniquePipelinesVector;
     };

@@ -144,7 +144,7 @@ auto trc::RenderLayout::recordStage(
         const ui32 subPassCount = renderPass->getNumSubPasses();
         for (ui32 subPass = 0; subPass < subPassCount; subPass++)
         {
-            for (auto pipeline : scene.getPipelines(stage.id, SubPass::ID(subPass)))
+            for (auto pipeline : scene.iterPipelines(stage.id, SubPass::ID(subPass)))
             {
                 // Bind the current pipeline
                 auto& p = config.getPipeline(pipeline);
