@@ -1,9 +1,23 @@
 #include "assets/RigRegistry.h"
 
+#include "assets/AssetManager.h"
+
 
 
 namespace trc
 {
+
+void AssetData<Rig>::resolveReferences(AssetManager& man)
+{
+    for (auto& ref : animations)
+    {
+        if (!ref.empty()) {
+            ref.resolve(man);
+        }
+    }
+}
+
+
 
 AssetHandle<Rig>::AssetHandle(InternalStorage& storage)
     :

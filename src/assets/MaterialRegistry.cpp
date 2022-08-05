@@ -5,6 +5,18 @@
 
 
 
+void trc::AssetData<trc::Material>::resolveReferences(AssetManager& man)
+{
+    if (!albedoTexture.empty()) {
+        albedoTexture.resolve(man);
+    }
+    if (!normalTexture.empty()) {
+        normalTexture.resolve(man);
+    }
+}
+
+
+
 trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
     :
     materialBuffer(

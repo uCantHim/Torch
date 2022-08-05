@@ -33,6 +33,8 @@ namespace trc
         std::vector<VertexIndex> indices;
 
         AssetReference<Rig> rig{};
+
+        void resolveReferences(AssetManager& man);
     };
 
     struct GeometryRegistryCreateInfo

@@ -15,34 +15,6 @@ inline void AssetManager::resolveReferences(AssetData<T>& data)
     }
 }
 
-// template<>
-// inline void AssetManager::resolveReferences<Geometry>(AssetData<Geometry>& data)
-// {
-//     if (!data.rig.empty()) {
-//         data.rig.resolve(*this);
-//     }
-// }
-//
-// template<>
-// inline void AssetManager::resolveReferences<Material>(AssetData<Material>& data)
-// {
-//     if (!data.albedoTexture.empty()) {
-//         data.albedoTexture.resolve(*this);
-//     }
-//     if (!data.normalTexture.empty()) {
-//         data.normalTexture.resolve(*this);
-//     }
-// }
-//
-// template<>
-// inline void AssetManager::resolveReferences<Rig>(AssetData<Rig>& data)
-// {
-//     for (auto& ref : data.animations)
-//     {
-//         ref.resolve(*this);
-//     }
-// }
-
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {

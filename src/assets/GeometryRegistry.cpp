@@ -9,6 +9,15 @@
 namespace trc
 {
 
+void AssetData<Geometry>::resolveReferences(AssetManager& man)
+{
+    if (!rig.empty()) {
+        rig.resolve(man);
+    }
+}
+
+
+
 auto makeVertexData(const GeometryData& geo) -> std::vector<ui8>
 {
     assert(geo.skeletalVertices.empty()

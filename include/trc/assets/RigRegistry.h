@@ -36,6 +36,8 @@ namespace trc
 
         // A set of animations attached to the rig
         std::vector<AssetReference<Animation>> animations;
+
+        void resolveReferences(AssetManager& man);
     };
 
     template<>

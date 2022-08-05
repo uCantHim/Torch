@@ -8,6 +8,7 @@
 #include <trc_util/data/ObjectId.h>
 
 #include "Types.h"
+#include "AssetManagerInterface.h"
 #include "AssetReference.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
@@ -39,6 +40,8 @@ namespace trc
 
         AssetReference<Texture> albedoTexture{};
         AssetReference<Texture> normalTexture{};
+
+        void resolveReferences(AssetManager& man);
     };
 
     template<>
