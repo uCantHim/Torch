@@ -8,13 +8,34 @@
 
 #include "Types.h"
 #include "AssetRegistryModule.h"
-#include "AssetBaseTypes.h"
 #include "AssetSource.h"
 #include "SharedDescriptorSet.h"
-#include "import/RawData.h"
 
 namespace trc
 {
+    class AnimationRegistry;
+
+    struct Animation
+    {
+        using Registry = AnimationRegistry;
+    };
+
+    template<>
+    struct AssetData<Animation>
+    {
+        struct Keyframe
+        {
+            std::vector<mat4> boneMatrices;
+        };
+
+        std::string name;
+
+        ui32 frameCount{ 0 };
+        float durationMs{ 0.0f };
+        float frameTimeMs{ 0.0f };
+        std::vector<Keyframe> keyframes;
+    };
+
     template<>
     class AssetHandle<Animation>
     {
@@ -40,7 +61,7 @@ namespace trc
 
     private:
         friend class AnimationRegistry;
-        AssetHandle(const AnimationData& data, ui32 deviceIndex);
+        AssetHandle(const AssetData<Animation>& data, ui32 deviceIndex);
 
         /** Index in the AnimationDataStorage's large animation buffer */
         ui32 id;
@@ -49,6 +70,10 @@ namespace trc
         float durationMs;
         float frameTimeMs;
     };
+
+    using AnimationHandle = AssetHandle<Animation>;
+    using AnimationData = AssetData<Animation>;
+    using AnimationID = TypedAssetID<Animation>;
 
     struct AnimationRegistryCreateInfo
     {

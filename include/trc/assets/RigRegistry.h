@@ -6,13 +6,38 @@
 #include <trc_util/data/ObjectId.h>
 
 #include "Types.h"
-#include "AssetBaseTypes.h"
+#include "AnimationRegistry.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
-#include "import/RawData.h"
+#include "AssetReference.h"
 
 namespace trc
 {
+    class RigRegistry;
+
+    struct Rig
+    {
+        using Registry = RigRegistry;
+    };
+
+    template<>
+    struct AssetData<Rig>
+    {
+        struct Bone
+        {
+            std::string name;
+            mat4 inverseBindPoseMat;
+        };
+
+        std::string name;
+
+        // Indexed by per-vertex bone indices
+        std::vector<Bone> bones;
+
+        // A set of animations attached to the rig
+        std::vector<AssetReference<Animation>> animations;
+    };
+
     template<>
     class AssetHandle<Rig>
     {
@@ -28,7 +53,7 @@ namespace trc
          * @return const Bone&
          * @throw std::out_of_range
          */
-        auto getBoneByName(const std::string& name) const -> const RigData::Bone&;
+        auto getBoneByName(const std::string& name) const -> const AssetData<Rig>::Bone&;
 
         /**
          * @return ui32 The number of animations attached to the rig
@@ -46,11 +71,11 @@ namespace trc
 
         struct InternalStorage
         {
-            InternalStorage(const RigData& data);
+            InternalStorage(const AssetData<Rig>& data);
 
             std::string rigName;
 
-            std::vector<RigData::Bone> bones;
+            std::vector<AssetData<Rig>::Bone> bones;
             std::unordered_map<std::string, ui32> boneNames;
 
             std::vector<AnimationID> animations;
@@ -60,6 +85,10 @@ namespace trc
 
         InternalStorage* storage;
     };
+
+    using RigHandle = AssetHandle<Rig>;
+    using RigData = AssetData<Rig>;
+    using RigID = TypedAssetID<Rig>;
 
     class RigRegistry : public AssetRegistryModuleInterface<Rig>
     {

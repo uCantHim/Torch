@@ -11,7 +11,11 @@
 #include "animation.pb.h"
 #include "asset.pb.h"
 
-#include "RawData.h"
+#include "trc/assets/Animation.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
+#include "trc/assets/Rig.h"
+#include "trc/assets/Texture.h"
 
 namespace trc
 {
@@ -19,11 +23,11 @@ namespace trc
 
     namespace internal
     {
-        auto serializeAssetData(const GeometryData& data) -> serial::Geometry;
-        auto serializeAssetData(const TextureData& data)  -> serial::Texture;
-        auto serializeAssetData(const MaterialData& data)  -> serial::Material;
-        auto serializeAssetData(const RigData& data)  -> serial::Rig;
-        auto serializeAssetData(const AnimationData& data)  -> serial::Animation;
+        auto serializeAssetData(const AssetData<Geometry>& data) -> serial::Geometry;
+        auto serializeAssetData(const AssetData<Texture>& data)  -> serial::Texture;
+        auto serializeAssetData(const AssetData<Material>& data)  -> serial::Material;
+        auto serializeAssetData(const AssetData<Rig>& data)  -> serial::Rig;
+        auto serializeAssetData(const AssetData<Animation>& data)  -> serial::Animation;
 
         auto deserializeAssetData(const serial::Geometry& geo) -> GeometryData;
         auto deserializeAssetData(const serial::Texture& tex)  -> TextureData;

@@ -9,7 +9,7 @@
 #include <concepts>
 #include <stdexcept>
 
-#include <trc/assets/AssetBaseTypes.h>
+#include <trc/assets/Assets.h>
 #include <trc/assets/import/InternalFormat.h>
 
 enum class AssetType

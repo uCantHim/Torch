@@ -6,7 +6,10 @@
 #include <filesystem>
 
 #include "Types.h"
-#include "RawData.h"
+#include "assets/Animation.h"
+#include "assets/Geometry.h"
+#include "assets/Material.h"
+#include "assets/Rig.h"
 
 namespace trc
 {

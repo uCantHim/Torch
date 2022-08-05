@@ -2,7 +2,8 @@
 
 #include <vector>
 
-#include "RawData.h"
+#include "trc/Types.h"
+#include "trc/assets/TextureRegistry.h"
 
 namespace trc
 {

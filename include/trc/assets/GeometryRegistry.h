@@ -9,15 +9,32 @@
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
 
-#include "AssetBaseTypes.h"
+#include "util/DeviceLocalDataWriter.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
-#include "Rig.h"
+#include "RigRegistry.h"
 #include "SharedDescriptorSet.h"
-#include "util/DeviceLocalDataWriter.h"
+#include "Vertex.h"
 
 namespace trc
 {
+    class GeometryRegistry;
+
+    struct Geometry
+    {
+        using Registry = GeometryRegistry;
+    };
+
+    template<>
+    struct AssetData<Geometry>
+    {
+        std::vector<MeshVertex> vertices;
+        std::vector<SkeletalVertex> skeletalVertices;
+        std::vector<VertexIndex> indices;
+
+        AssetReference<Rig> rig{};
+    };
+
     struct GeometryRegistryCreateInfo
     {
         const vkb::Device& device;
@@ -51,7 +68,7 @@ namespace trc
         auto add(u_ptr<AssetSource<Geometry>> source) -> LocalID override;
         void remove(LocalID id) override;
 
-        auto getHandle(LocalID id) -> GeometryHandle override;
+        auto getHandle(LocalID id) -> AssetHandle<Geometry> override;
 
         void load(LocalID id) override;
         void unload(LocalID id) override;
@@ -155,4 +172,8 @@ namespace trc
         GeometryRegistry::SharedCacheReference cacheRef;
         GeometryRegistry::InternalStorage* storage;
     };
+
+    using GeometryHandle = AssetHandle<Geometry>;
+    using GeometryData = AssetData<Geometry>;
+    using GeometryID = TypedAssetID<Geometry>;
 } // namespace trc

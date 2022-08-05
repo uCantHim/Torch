@@ -8,14 +8,39 @@
 #include <trc_util/data/ObjectId.h>
 
 #include "Types.h"
-#include "AssetBaseTypes.h"
+#include "AssetReference.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
-#include "Texture.h"
-#include "import/RawData.h"
+#include "TextureRegistry.h"
 
 namespace trc
 {
+    class MaterialRegistry;
+
+    struct Material
+    {
+        using Registry = MaterialRegistry;
+    };
+
+    template<>
+    struct AssetData<Material>
+    {
+        vec3 color{ 0.0f, 0.0f, 0.0f };
+
+        vec4 ambientKoefficient{ 1.0f };
+        vec4 diffuseKoefficient{ 1.0f };
+        vec4 specularKoefficient{ 1.0f };
+
+        float shininess{ 1.0f };
+        float opacity{ 1.0f };
+        float reflectivity{ 0.0f };
+
+        bool doPerformLighting{ true };
+
+        AssetReference<Texture> albedoTexture{};
+        AssetReference<Texture> normalTexture{};
+    };
+
     template<>
     class AssetHandle<Material>
     {
@@ -30,6 +55,10 @@ namespace trc
 
         ui32 id;
     };
+
+    using MaterialHandle = AssetHandle<Material>;
+    using MaterialData = AssetData<Material>;
+    using MaterialID = TypedAssetID<Material>;
 
     struct MaterialRegistryCreateInfo
     {

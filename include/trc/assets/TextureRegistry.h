@@ -8,15 +8,27 @@
 #include <trc_util/data/ObjectId.h>
 #include <componentlib/Table.h>
 
-#include "import/RawData.h"
 #include "util/DeviceLocalDataWriter.h"
-#include "AssetBaseTypes.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
 #include "SharedDescriptorSet.h"
 
 namespace trc
 {
+    class TextureRegistry;
+
+    struct Texture
+    {
+        using Registry = TextureRegistry;
+    };
+
+    template<>
+    struct AssetData<Texture>
+    {
+        uvec2 size;
+        std::vector<glm::u8vec4> pixels;
+    };
+
     struct TextureRegistryCreateInfo
     {
         const vkb::Device& device;
@@ -39,7 +51,7 @@ namespace trc
         auto add(u_ptr<AssetSource<Texture>> source) -> LocalID override;
         void remove(LocalID id) override;
 
-        auto getHandle(LocalID id) -> TextureHandle override;
+        auto getHandle(LocalID id) -> AssetHandle<Texture> override;
 
         void load(LocalID id) override;
         void unload(LocalID id) override;
@@ -94,4 +106,8 @@ namespace trc
         TextureRegistry::CacheItemRef cacheRef;
         ui32 deviceIndex;
     };
+
+    using TextureHandle = AssetHandle<Texture>;
+    using TextureData = AssetData<Texture>;
+    using TextureID = TypedAssetID<Texture>;
 } // namespace trc

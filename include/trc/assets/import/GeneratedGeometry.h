@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RawData.h"
+#include "assets/Geometry.h"
 
 namespace trc
 {

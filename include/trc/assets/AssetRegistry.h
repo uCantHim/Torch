@@ -15,9 +15,7 @@
 #include "UpdatePass.h"
 #include "SharedDescriptorSet.h"
 #include "AssetRegistryModuleStorage.h"
-#include "AssetBaseTypes.h"
 #include "AssetSource.h"
-#include "import/RawData.h"
 
 namespace trc
 {

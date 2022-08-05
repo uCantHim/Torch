@@ -1,5 +1,6 @@
 #include "assets/MaterialRegistry.h"
 
+#include "trc/assets/AssetManager.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 
