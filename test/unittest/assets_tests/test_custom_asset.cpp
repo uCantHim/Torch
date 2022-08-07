@@ -25,6 +25,13 @@ struct trc::AssetData<Hitbox>
 {
     vec3 offset;
     float radius;
+
+    void serialize(std::ostream& os) const {
+        os.write(reinterpret_cast<const char*>(this), sizeof(AssetData<Hitbox>));
+    }
+    void deserialize(std::istream& is) {
+        is.read(reinterpret_cast<char*>(this), sizeof(AssetData<Hitbox>));
+    }
 };
 
 template<>
@@ -62,22 +69,6 @@ public:
 private:
     std::vector<HitboxData> hitboxes;
 };
-
-void saveAssetToFile(const HitboxData& data, const trc::AssetPath& path)
-{
-    std::ofstream file(path.getFilesystemPath(), std::ios::binary);
-    file.write(reinterpret_cast<const char*>(&data), sizeof(HitboxData));
-}
-
-template<>
-auto trc::loadAssetFromFile<Hitbox>(const fs::path& path) -> HitboxData
-{
-    std::ifstream file(path, std::ios::binary);
-    HitboxData data;
-    file.read(reinterpret_cast<char*>(&data), sizeof(HitboxData));
-
-    return data;
-}
 
 /**
  * The test
@@ -139,8 +130,11 @@ TEST_F(CustomAssetTest, CreateViaAssetPath)
     assets.getDeviceRegistry().addModule<Hitbox>();
 
     const trc::AssetPath path("hitbox_custom_asset.ta");
-    saveAssetToFile(HitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 }, path);
-    std::cout << "Path: " << path.getFilesystemPath() << "\n";
+    {
+        std::ofstream file(path.getFilesystemPath(), std::ios::binary);
+        HitboxData hitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 };
+        hitboxData.serialize(file);
+    }
     ASSERT_TRUE(fs::is_regular_file(path.getFilesystemPath()));
 
     auto id = assets.create<Hitbox>(path);

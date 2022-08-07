@@ -42,6 +42,9 @@ namespace trc
         AssetReference<Texture> normalTexture{};
 
         void resolveReferences(AssetManager& man);
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is);
     };
 
     template<>

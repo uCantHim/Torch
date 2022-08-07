@@ -35,6 +35,9 @@ namespace trc
         AssetReference<Rig> rig{};
 
         void resolveReferences(AssetManager& man);
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& os);
     };
 
     struct GeometryRegistryCreateInfo

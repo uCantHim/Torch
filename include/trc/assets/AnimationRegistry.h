@@ -34,6 +34,9 @@ namespace trc
         float durationMs{ 0.0f };
         float frameTimeMs{ 0.0f };
         std::vector<Keyframe> keyframes;
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is);
     };
 
     template<>

@@ -1,9 +1,25 @@
 #include "assets/MaterialRegistry.h"
 
+#include "geometry.pb.h"
 #include "trc/assets/AssetManager.h"
+#include "trc/assets/import/InternalFormat.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 
+
+void trc::AssetData<trc::Material>::serialize(std::ostream& os) const
+{
+    serial::Asset asset;
+    *asset.mutable_material() = internal::serializeAssetData(*this);
+    asset.SerializeToOstream(&os);
+}
+
+void trc::AssetData<trc::Material>::deserialize(std::istream& is)
+{
+    serial::Asset asset;
+    asset.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(asset.material());
+}
 
 void trc::AssetData<trc::Material>::resolveReferences(AssetManager& man)
 {

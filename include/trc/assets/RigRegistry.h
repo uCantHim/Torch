@@ -37,6 +37,9 @@ namespace trc
         // A set of animations attached to the rig
         std::vector<AssetReference<Animation>> animations;
 
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is);
+
         void resolveReferences(AssetManager& man);
     };
 

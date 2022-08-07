@@ -1,5 +1,7 @@
 #include "assets/GeometryRegistry.h"
 
+#include "geometry.pb.h"
+#include "assets/import/InternalFormat.h"
 #include "util/TriangleCacheOptimizer.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 #include "assets/AssetManager.h"
@@ -8,6 +10,20 @@
 
 namespace trc
 {
+
+void AssetData<Geometry>::serialize(std::ostream& os) const
+{
+    serial::Asset asset;
+    *asset.mutable_geometry() = internal::serializeAssetData(*this);
+    asset.SerializeToOstream(&os);
+}
+
+void AssetData<Geometry>::deserialize(std::istream& is)
+{
+    serial::Asset asset;
+    asset.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(asset.geometry());
+}
 
 void AssetData<Geometry>::resolveReferences(AssetManager& man)
 {

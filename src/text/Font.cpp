@@ -8,24 +8,28 @@
 namespace trc
 {
 
-template<>
-auto loadAssetFromFile<Font>(const fs::path& path) -> AssetData<Font>
+void AssetData<Font>::serialize(std::ostream& os) const
 {
-    std::ifstream file(path, std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("Unable to read from file " + path.string());
-    }
+    serial::Font font;
+    font.set_font_size(fontSize);
+    font.set_font_data(fontData.data(), fontData.size());
 
+    font.SerializeToOstream(&os);
+}
+
+void AssetData<Font>::deserialize(std::istream& is)
+{
     serial::Font data;
     [[maybe_unused]]
-    const bool success = data.ParseFromIstream(&file);
+    const bool success = data.ParseFromIstream(&is);
     assert(success && "Font data is corrupted. This is probably an engine bug.");
 
-    std::vector<std::byte> _data(data.font_data().size());
-    memcpy(_data.data(), data.font_data().data(), data.font_data().size());
-
-    return { .fontSize=data.font_size(), .fontData=std::move(_data) };
+    fontData.resize(data.font_data().size());
+    memcpy(fontData.data(), data.font_data().data(), data.font_data().size());
+    fontSize = data.font_size();
 }
+
+
 
 auto loadFont(const fs::path& path, ui32 fontSize) -> AssetData<Font>
 {

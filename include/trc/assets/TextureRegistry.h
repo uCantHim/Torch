@@ -27,6 +27,9 @@ namespace trc
     {
         uvec2 size;
         std::vector<glm::u8vec4> pixels;
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is);
     };
 
     struct TextureRegistryCreateInfo

@@ -1,9 +1,28 @@
 #include "assets/AnimationRegistry.h"
 
+#include "assets/import/InternalFormat.h"
+#include "animation.pb.h"
+
 
 
 namespace trc
 {
+
+void AssetData<Animation>::serialize(std::ostream& os) const
+{
+    serial::Asset asset;
+    *asset.mutable_animation() = internal::serializeAssetData(*this);
+    asset.SerializeToOstream(&os);
+}
+
+void AssetData<Animation>::deserialize(std::istream& is)
+{
+    serial::Asset asset;
+    asset.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(asset.animation());
+}
+
+
 
 AssetHandle<Animation>::AssetHandle(const AnimationData& data, ui32 deviceIndex)
     :

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <string>
 #include <sstream>
@@ -12,8 +12,6 @@
 
 namespace trc
 {
-    namespace fs = std::filesystem;
-
     template<AssetBaseType T>
     class AssetSource
     {
@@ -25,22 +23,9 @@ namespace trc
     };
 
     /**
-     * Implement/specialize this template for an asset type to define a
-     * load operation for it.
-     */
-    template<AssetBaseType T>
-    auto loadAssetFromFile(const fs::path& path) -> AssetData<T>;
-
-    /**
      * @brief Loads data from a file
-     *
-     * Uses a `loadAssetData` function that implements the loading and
-     * parsing from file.
      */
     template<AssetBaseType T>
-        requires requires (AssetPath path) {
-            { loadAssetFromFile<T>(path.getFilesystemPath()) } -> std::same_as<AssetData<T>>;
-        }
     class AssetPathSource : public AssetSource<T>
     {
     public:
@@ -48,8 +33,12 @@ namespace trc
             : path(std::move(path))
         {}
 
-        auto load() -> AssetData<T> override {
-            return loadAssetFromFile<T>(path.getFilesystemPath());
+        auto load() -> AssetData<T> override
+        {
+            std::fstream file(path.getFilesystemPath());
+            AssetData<T> data;
+            data.deserialize(file);
+            return data;
         }
 
         auto getUniqueAssetName() -> std::string override {

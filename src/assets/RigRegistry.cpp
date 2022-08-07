@@ -7,6 +7,20 @@
 namespace trc
 {
 
+void AssetData<Rig>::serialize(std::ostream& os) const
+{
+    serial::Asset asset;
+    *asset.mutable_rig() = internal::serializeAssetData(*this);
+    asset.SerializeToOstream(&os);
+}
+
+void AssetData<Rig>::deserialize(std::istream& is)
+{
+    serial::Asset asset;
+    asset.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(asset.rig());
+}
+
 void AssetData<Rig>::resolveReferences(AssetManager& man)
 {
     for (auto& ref : animations)

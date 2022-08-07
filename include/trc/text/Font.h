@@ -27,12 +27,12 @@ namespace trc
     {
         ui32 fontSize;
         std::vector<std::byte> fontData;
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is);
     };
 
     using FontHandle = AssetHandle<Font>;
-
-    template<>
-    auto loadAssetFromFile<Font>(const fs::path& path) -> AssetData<Font>;
 
     /**
      * @brief Load font data from any font file

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 namespace fs = std::filesystem;
 
@@ -133,7 +134,8 @@ void ProjectDirectory::save(const trc::AssetPath& path, const trc::AssetData<T>&
 
     std::scoped_lock lock(fileWriteLock);
     index.insert<T>(path);
-    trc::saveAssetToFile(data, path.getFilesystemPath());
+    std::ofstream file(path.getFilesystemPath(), std::ios::binary);
+    data.serialize(file);
 }
 
 template<trc::AssetBaseType T>

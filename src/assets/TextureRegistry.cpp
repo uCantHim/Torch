@@ -1,11 +1,29 @@
 #include "assets/TextureRegistry.h"
 
+#include "texture.pb.h"
+#include "assets/import/InternalFormat.h"
 #include "ray_tracing/RayPipelineBuilder.h"
 
 
 
 namespace trc
 {
+
+void AssetData<Texture>::serialize(std::ostream& os) const
+{
+    serial::Asset asset;
+    *asset.mutable_texture() = internal::serializeAssetData(*this);
+    asset.SerializeToOstream(&os);
+}
+
+void AssetData<Texture>::deserialize(std::istream& is)
+{
+    serial::Asset asset;
+    asset.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(asset.texture());
+}
+
+
 
 AssetHandle<Texture>::AssetHandle(TextureRegistry::CacheItemRef ref, ui32 deviceIndex)
     :
