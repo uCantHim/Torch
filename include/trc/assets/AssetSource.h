@@ -71,6 +71,7 @@ namespace trc
         auto generateUniqueName() -> std::string
         {
             std::stringstream ss;
+            ss.fill('0');
             ss << "generated_asset_name_" << std::setw(5) << ++uniqueNameIndex;
             return ss.str();
         }
