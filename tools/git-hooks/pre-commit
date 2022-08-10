@@ -56,3 +56,4 @@ fi
 ./build/tools/pipeline_definition_language/test/pipeline_compiler_test
 ./build/tools/scene_editor/test/unittest_scene_editor
 ./build/test/unittest/UnitTests
+./build/tools/componentlib/test/unittest_componentlib

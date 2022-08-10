@@ -18,7 +18,7 @@ function (link_gtest TARGET)
     if (${GTEST_FOUND})
         target_link_libraries(${TARGET} PRIVATE GTest::GTest GTest::Main)
     else ()
-        if (NOT TARGET gtest_main)
+        if (NOT TARGET GTest::gtest_main OR NOT TARGET GTest::gmock_main)
             FetchContent_Declare(
                 googletest
                 GIT_REPOSITORY https://github.com/google/googletest
@@ -27,11 +27,11 @@ function (link_gtest TARGET)
             # For Windows: Prevent overriding the parent project's compiler/linker settings
             set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-            set(BUILD_GMOCK FALSE)
+            set(BUILD_GMOCK TRUE)
             set(INSTALL_GTEST FALSE)
             FetchContent_MakeAvailable(googletest)
         endif ()
 
-        target_link_libraries(${TARGET} PRIVATE gtest_main)
+        target_link_libraries(${TARGET} PRIVATE GTest::gtest_main GTest::gmock_main)
     endif ()
 endfunction()
