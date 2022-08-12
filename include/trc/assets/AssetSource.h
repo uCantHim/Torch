@@ -19,7 +19,7 @@ namespace trc
         virtual ~AssetSource() = default;
         virtual auto load() -> AssetData<T> = 0;
 
-        virtual auto getUniqueAssetName() -> std::string = 0;
+        virtual auto getAssetName() -> std::string = 0;
     };
 
     /**
@@ -41,7 +41,7 @@ namespace trc
             return data;
         }
 
-        auto getUniqueAssetName() -> std::string override {
+        auto getAssetName() -> std::string override {
             return path.getUniquePath();
         }
 
@@ -61,14 +61,14 @@ namespace trc
             return data;
         }
 
-        auto getUniqueAssetName() -> std::string override {
+        auto getAssetName() -> std::string override {
             return name;
         }
 
     private:
         static inline std::atomic<ui32> uniqueNameIndex{ 0 };
 
-        auto generateUniqueName() -> std::string
+        auto generateName() -> std::string
         {
             std::stringstream ss;
             ss.fill('0');
@@ -77,6 +77,6 @@ namespace trc
         }
 
         const AssetData<T> data;
-        const std::string name{ generateUniqueName() };
+        const std::string name{ generateName() };
     };
 } // namespace trc

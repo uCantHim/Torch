@@ -19,36 +19,30 @@ template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {
     auto source = std::make_unique<InMemorySource<T>>(data);
-    auto name = source->getUniqueAssetName();
+    auto name = source->getAssetName();
 
-    return _createAsset<T>(
-        std::move(source),
-        AssetMetaData{ .uniqueName=std::move(name) }
-    );
+    return _createAsset<T>(std::move(source), AssetMetaData{ .name=std::move(name) });
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
 {
-    return _createAsset<T>(
-        std::move(source),
-        AssetMetaData{ .uniqueName=source->getUniqueAssetName() }
-    );
+    return _createAsset<T>(std::move(source), AssetMetaData{ .name=source->getAssetName() });
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
 {
-    auto [it, success] = pathsToAssets.try_emplace(path);
-    if (!success) {
+    if (pathsToAssets.contains(path)) {
         throw std::invalid_argument("Asset path \"" + path.getUniquePath() + "\" already exists.");
     }
 
     const auto id = _createAsset<T>(
         std::make_unique<AssetPathSource<T>>(path),
-        AssetMetaData{ .uniqueName=path.getUniquePath() }
+        AssetMetaData{ .name=path.getUniquePath(), .path=path }
     );
-    it->second = id;
+    auto [it, success] = pathsToAssets.try_emplace(path, id);
+    assert(success);
 
     return id;
 }

@@ -2,7 +2,10 @@
 
 #include <any>
 #include <filesystem>
+#include <functional>
+#include <optional>
 #include <string>
+#include <unordered_map>
 
 #include <trc_util/data/ObjectId.h>
 
@@ -18,7 +21,8 @@ namespace trc
      */
     struct AssetMetaData
     {
-        std::string uniqueName;
+        std::string name;
+        std::optional<AssetPath> path{ std::nullopt };
     };
 
     /**
@@ -132,8 +136,8 @@ namespace trc
                 return data;
             }
 
-            auto getUniqueAssetName() -> std::string {
-                return source->getUniqueAssetName();
+            auto getAssetName() -> std::string {
+                return source->getAssetName();
             }
 
         private:
@@ -143,8 +147,6 @@ namespace trc
 
         struct AssetStorage
         {
-            AssetStorage() = default;
-
             template<AssetBaseType T>
             AssetStorage(TypedAssetID<T> id)
                 :
