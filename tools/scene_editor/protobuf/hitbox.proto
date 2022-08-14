@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package serial;
+
+message Hitbox
+{
+    float sphere_radius = 1;
+    float sphere_pos_x = 2;
+    float sphere_pos_y = 3;
+    float sphere_pos_z = 4;
+
+    float capsule_height = 5;
+    float capsule_radius = 6;
+    float capsule_pos_x = 7;
+    float capsule_pos_y = 8;
+    float capsule_pos_z = 9;
+
+    string geometry_path = 10;
+}

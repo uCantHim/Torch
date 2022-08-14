@@ -14,6 +14,15 @@ target_link_libraries(scene_editor PUBLIC torch component argparse)
 
 add_subdirectory(src)
 
+# Compile protobuf sources
+protobuf_generate_cpp(
+    SCENE_EDITOR_PROTO_SRCS SCENE_EDITOR_PROTO_HDRS
+    protobuf/hitbox.proto
+)
+target_sources(scene_editor PRIVATE ${SCENE_EDITOR_PROTO_SRCS})
+target_include_directories(scene_editor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+# Include tests
 if (${SCENE_EDITOR_BUILD_TESTS})
     add_subdirectory(test)
 endif ()

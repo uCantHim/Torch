@@ -1,15 +1,45 @@
 #include "asset/HitboxAsset.h"
 
+#include "hitbox.pb.h"
+
 
 
 void trc::AssetData<HitboxAsset>::serialize(std::ostream& os) const
 {
-    os.write(reinterpret_cast<const char*>(this), sizeof(trc::AssetData<HitboxAsset>));
+    ::serial::Hitbox data;
+    data.set_sphere_radius(sphere.radius);
+    data.set_sphere_pos_x(sphere.position.x);
+    data.set_sphere_pos_y(sphere.position.y);
+    data.set_sphere_pos_z(sphere.position.z);
+
+    data.set_capsule_height(capsule.height);
+    data.set_capsule_radius(capsule.radius);
+    data.set_capsule_pos_x(capsule.position.x);
+    data.set_capsule_pos_y(capsule.position.y);
+    data.set_capsule_pos_z(capsule.position.z);
+
+    data.set_geometry_path(geometry.getAssetPath().getUniquePath());
+
+    data.SerializeToOstream(&os);
 }
 
 void trc::AssetData<HitboxAsset>::deserialize(std::istream& is)
 {
-    is.read(reinterpret_cast<char*>(this), sizeof(trc::AssetData<HitboxAsset>));
+    ::serial::Hitbox data;
+    data.ParseFromIstream(&is);
+
+    sphere.radius = data.sphere_radius();
+    sphere.position.x = data.sphere_pos_x();
+    sphere.position.y = data.sphere_pos_y();
+    sphere.position.z = data.sphere_pos_z();
+
+    capsule.height = data.capsule_height();
+    capsule.radius = data.capsule_radius();
+    capsule.position.x = data.capsule_pos_x();
+    capsule.position.y = data.capsule_pos_y();
+    capsule.position.z = data.capsule_pos_z();
+
+    geometry = trc::AssetPath(data.geometry_path());
 }
 
 void trc::AssetData<HitboxAsset>::resolveReferences(trc::AssetManager& man)
