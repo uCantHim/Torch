@@ -22,7 +22,6 @@ namespace gui
         void drawImGui();
 
     private:
-        auto importGeometry(const trc::ThirdPartyMeshImport& mesh) -> trc::GeometryID;
         void importAndCreateObject(const trc::ThirdPartyMeshImport& mesh);
 
         App& app;

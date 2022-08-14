@@ -4,6 +4,7 @@
 #include "App.h"
 #include "DefaultAssets.h"
 #include "object/Hitbox.h"
+#include "asset/ImportProcessor.h"
 
 
 
@@ -66,8 +67,14 @@ void gui::ImportDialog::drawImGui()
 
         if (!imported.contains(mesh.name))
         {
-            if (ig::Button("Import")) {
-                importGeometry(mesh);
+            if (ig::Button("Import"))
+            {
+                importAsset(
+                    mesh.geometry,
+                    trc::AssetPath(mesh.name),
+                    app.getAssets(),
+                    app.getProject().getStorageDir()
+                );
                 imported.emplace(mesh.name);
             }
             if (ig::Button("Import and create in scene")) {
@@ -80,22 +87,12 @@ void gui::ImportDialog::drawImGui()
     }
 }
 
-auto gui::ImportDialog::importGeometry(const trc::ThirdPartyMeshImport& mesh) -> trc::GeometryID
-{
-    const trc::AssetPath path(mesh.name);
-    app.getProject().getStorageDir().save(path, mesh.geometry);
-
-    const auto geo = app.getAssets().create<trc::Geometry>(path);
-    app.addHitbox(geo, makeHitbox(mesh.geometry));
-
-    return geo;
-}
-
 void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& mesh)
 {
     auto& scene = app.getScene();
 
-    const auto geoId = importGeometry(mesh);
+    const auto geoId = importAsset(mesh.geometry, trc::AssetPath(mesh.name),
+                                   app.getAssets(), app.getProject().getStorageDir());
 
     // Create object with default components
     const auto obj = scene.createDefaultObject({ geoId, g::mats().undefined });
