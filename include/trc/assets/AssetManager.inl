@@ -33,16 +33,25 @@ inline auto AssetManager::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
 {
-    if (pathsToAssets.contains(path)) {
-        throw std::invalid_argument("Asset path \"" + path.getUniquePath() + "\" already exists.");
+    auto it = pathsToAssets.find(path);
+    if (it != pathsToAssets.end())
+    {
+        try {
+            return std::any_cast<TypedAssetID<T>>(it->second.typedId);
+        }
+        catch (const std::bad_any_cast&)
+        {
+            throw std::invalid_argument("[In AssetManager::create]: Asset at path "
+                                        + path.getUniquePath() + " has a different type than "
+                                        " specified.");
+        }
     }
 
     const auto id = _createAsset<T>(
         std::make_unique<AssetPathSource<T>>(path),
         AssetMetaData{ .name=path.getUniquePath(), .path=path }
     );
-    auto [it, success] = pathsToAssets.try_emplace(path, id);
-    assert(success);
+    pathsToAssets.emplace(path, id);
 
     return id;
 }

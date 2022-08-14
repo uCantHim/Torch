@@ -75,7 +75,11 @@ namespace trc
         /**
          * @brief Load an asset in Torch's internal format
          *
-         * @throw std::invalid_argument if `path` is already registered.
+         * Returns the existing ID if the asset already exists in the
+         * AssetManager.
+         *
+         * @throw std::invalid_argument if an asset exists at `path` and is
+         *                              not of type `T`.
          */
         template<AssetBaseType T>
         auto create(const AssetPath& path) -> TypedAssetID<T>;
