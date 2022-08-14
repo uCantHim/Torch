@@ -2,12 +2,14 @@
 
 
 
-void trc::AssetData<HitboxAsset>::serialize(std::ostream& ) const
+void trc::AssetData<HitboxAsset>::serialize(std::ostream& os) const
 {
+    os.write(reinterpret_cast<const char*>(this), sizeof(trc::AssetData<HitboxAsset>));
 }
 
-void trc::AssetData<HitboxAsset>::deserialize(std::istream& )
+void trc::AssetData<HitboxAsset>::deserialize(std::istream& is)
 {
+    is.read(reinterpret_cast<char*>(this), sizeof(trc::AssetData<HitboxAsset>));
 }
 
 void trc::AssetData<HitboxAsset>::resolveReferences(trc::AssetManager& man)

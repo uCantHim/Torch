@@ -26,10 +26,6 @@ public:
     auto getAssets() -> trc::AssetManager&;
     auto getScene() -> Scene&;
 
-    // TODO: This is extremely temporary.
-    void addHitbox(trc::GeometryID geo, Hitbox hitbox);
-    auto getHitbox(trc::GeometryID geo) const -> const Hitbox&;
-
     static auto get() -> App&;
 
 private:
@@ -52,8 +48,6 @@ private:
 
     gui::MainMenu mainMenu;
     InputStateMachine inputState;
-
-    std::unordered_map<trc::GeometryID::LocalID, Hitbox> hitboxes;
 
     trc::Timer frameTimer;
 };

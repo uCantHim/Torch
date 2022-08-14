@@ -6,6 +6,7 @@
 #include <trc_util/Timer.h>
 #include <trc/util/TorchDirectories.h>
 
+#include "asset/HitboxAsset.h"
 #include "gui/ContextMenu.h"
 #include "input/KeyConfig.h"
 #include "DefaultAssets.h"
@@ -32,9 +33,17 @@ App::App(Project _project)
     scene(*this),
     mainMenu(*this)
 {
+    assetManager->getDeviceRegistry().addModule<HitboxAsset>();
+
     // Register all assets from disk at the AssetManager
     project.getStorageDir().foreach([this]<trc::AssetBaseType T>(auto&& path) {
-        assetManager->create<T>(path);
+        try {
+            assetManager->create<T>(path);
+        }
+        catch (const std::runtime_error& err) {
+            std::cout << "[Warning] Unable to load asset from " << path.getUniquePath()
+                << ": " << err.what() << "\n";
+        }
     });
 
     // Initialize input
@@ -77,12 +86,27 @@ App::App(Project _project)
 
     auto planeData = trc::makePlaneGeo(20, 20, 1, 1);
     auto gi = ar.create(planeData);
-    addHitbox(gi, makeHitbox(planeData));
+    auto hb = makeHitbox(planeData);
+    assetManager->create(HitboxData{
+        .sphere=hb.getSphere(),
+        .capsule=hb.getCapsule(),
+        .geometry=gi
+    });
     auto planeData1 = trc::makePlaneGeo(0.5f, 0.5f, 1, 1);
     auto gi1 = ar.create(planeData1);
-    addHitbox(gi1, makeHitbox(planeData1));
+    auto hb1 = makeHitbox(planeData1);
+    assetManager->create(HitboxData{
+        .sphere=hb1.getSphere(),
+        .capsule=hb1.getCapsule(),
+        .geometry=gi1
+    });
     auto cubeGeo = ar.create(trc::makeCubeGeo());
-    addHitbox(cubeGeo, makeHitbox(trc::makeCubeGeo()));
+    auto cubeHb = makeHitbox(trc::makeCubeGeo());
+    assetManager->create(HitboxData{
+        .sphere=cubeHb.getSphere(),
+        .capsule=cubeHb.getCapsule(),
+        .geometry=cubeGeo
+    });
 
     scene.createDefaultObject({ gi, mg });
 
@@ -139,16 +163,6 @@ auto App::getAssets() -> trc::AssetManager&
 auto App::getScene() -> Scene&
 {
     return scene;
-}
-
-void App::addHitbox(trc::GeometryID geo, Hitbox hitbox)
-{
-    hitboxes.try_emplace(geo.getDeviceID(), hitbox);
-}
-
-auto App::getHitbox(trc::GeometryID geo) const -> const Hitbox&
-{
-    return hitboxes.at(geo.getDeviceID());
 }
 
 void App::tick()

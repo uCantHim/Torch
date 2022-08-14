@@ -126,7 +126,9 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     node.attach(d);
     scene.getRoot().attach(node);
 
-    add<Hitbox>(obj, app->getHitbox(d.getGeometry()));
+    // Create hitbox component
+    auto& hitboxes = app->getAssets().getModule<HitboxAsset>();
+    add<Hitbox>(obj, hitboxes.getForGeometry(d.getGeometry()));
 
     return obj;
 }

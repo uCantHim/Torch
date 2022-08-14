@@ -11,6 +11,9 @@
 
 #include <trc/assets/Assets.h>
 #include <trc/assets/import/InternalFormat.h>
+#include <trc/text/Font.h>
+
+#include "asset/HitboxAsset.h"
 
 enum class AssetType
 {
@@ -19,6 +22,8 @@ enum class AssetType
     eTexture,
     eRig,
     eAnimation,
+    eFont,
+    eHitbox,
 
     eMaxEnum
 };
@@ -31,6 +36,8 @@ constexpr auto toDynamicType() -> AssetType
     if constexpr (std::same_as<T, trc::Texture>)   return AssetType::eTexture;
     if constexpr (std::same_as<T, trc::Rig>)       return AssetType::eRig;
     if constexpr (std::same_as<T, trc::Animation>) return AssetType::eAnimation;
+    if constexpr (std::same_as<T, trc::Font>)      return AssetType::eFont;
+    if constexpr (std::same_as<T, HitboxAsset>)     return AssetType::eHitbox;
 }
 
 template<typename Visitor, typename... Args>
@@ -52,6 +59,12 @@ constexpr void fromDynamicType(Visitor&& vis, AssetType type, Args&&... args)
         break;
     case AssetType::eAnimation:
         vis.template operator()<trc::Animation>(std::forward<Args>(args)...);
+        break;
+    case AssetType::eFont:
+        vis.template operator()<trc::Font>(std::forward<Args>(args)...);
+        break;
+    case AssetType::eHitbox:
+        vis.template operator()<HitboxAsset>(std::forward<Args>(args)...);
         break;
     default:
         throw std::logic_error("[In fromDynamicType]: Asset type was an unknown enum value."
