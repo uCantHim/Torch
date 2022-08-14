@@ -97,9 +97,10 @@ void Scene::openContextMenu()
 
 void Scene::selectHoveredObject()
 {
-    getHoveredObject() >> [&](SceneObject obj) {
-        objectSelection.selectObject(obj);
-    };
+    getHoveredObject().maybe(
+        [&](SceneObject obj) { objectSelection.selectObject(obj); },
+        [&]() { objectSelection.unselectObject(); }
+    );
 }
 
 auto Scene::getHoveredObject() -> trc::Maybe<SceneObject>
