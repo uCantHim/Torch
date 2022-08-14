@@ -6,8 +6,8 @@
 #include <trc/drawable/DefaultDrawable.h>
 #include <trc/DrawablePipelines.h>
 
+#include "asset/DefaultAssets.h"
 #include "Scene.h"
-#include "DefaultAssets.h"
 
 using namespace se;  // For operator|
 

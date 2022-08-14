@@ -6,7 +6,7 @@
 #include <trc/core/PipelineBuilder.h>
 #include <trc/DrawablePipelines.h>
 
-#include "DefaultAssets.h"
+#include "asset/DefaultAssets.h"
 
 using namespace se;  // For operator|
 

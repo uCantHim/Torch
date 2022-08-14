@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "AssetFileIndex.h"
+#include "asset/AssetFileIndex.h"
 
 using nlohmann::json;
 

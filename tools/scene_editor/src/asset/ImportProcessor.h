@@ -5,7 +5,7 @@
 #include <trc/assets/AssetBase.h>
 #include <trc/assets/AssetManager.h>
 
-#include "ProjectDirectory.h"
+#include "asset/ProjectDirectory.h"
 
 template<trc::AssetBaseType T>
 inline bool sanityCheck(const trc::AssetData<T>& data)

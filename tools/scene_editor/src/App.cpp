@@ -6,10 +6,10 @@
 #include <trc_util/Timer.h>
 #include <trc/util/TorchDirectories.h>
 
+#include "asset/DefaultAssets.h"
 #include "asset/HitboxAsset.h"
 #include "gui/ContextMenu.h"
 #include "input/KeyConfig.h"
-#include "DefaultAssets.h"
 #include "Project.h"
 
 
