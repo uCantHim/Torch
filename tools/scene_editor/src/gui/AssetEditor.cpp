@@ -2,14 +2,18 @@
 
 #include <trc/util/TorchDirectories.h>
 
+#include "ImguiUtil.h"
+#include "MaterialEditor.h"
 #include "ProjectDirectory.h"
+#include "App.h"
 
 
 
-gui::AssetEditor::AssetEditor(trc::AssetManager& assetManager, ProjectDirectory& assetDir)
+gui::AssetEditor::AssetEditor(App& _app)
     :
-    assets(assetManager),
-    dir(assetDir)
+    app(_app),
+    assets(_app.getAssets()),
+    dir(_app.getProject().getStorageDir())
 {
 }
 
@@ -20,6 +24,11 @@ void gui::AssetEditor::drawImGui()
 
     drawMaterialGui();
     drawAssetList();
+
+    for (auto& f : deferredFunctions) {
+        f(dir);
+    }
+    deferredFunctions.clear();
 }
 
 void gui::AssetEditor::drawMaterialGui()
@@ -58,7 +67,7 @@ void gui::AssetEditor::drawMaterialGui()
 
                 // Save changes on disk
                 dir.save(
-                    trc::AssetPath(editedMaterial.getMetaData().uniqueName),
+                    trc::AssetPath(editedMaterial.getMetaData().name),
                     editedMaterialCopy
                 );
 
@@ -75,50 +84,76 @@ void gui::AssetEditor::drawMaterialGui()
 void gui::AssetEditor::drawAssetList()
 {
     // Show a material editor for every material that's being edited
-    if (ig::CollapsingHeader("Assets", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ig::BeginListBox("Assets"))
     {
         dir.foreach(trc::util::VariantVisitor{
             [this]<trc::AssetBaseType T>(const auto& path){ drawListEntry<T>(path); },
         });
+        ig::EndListBox();
     }
 }
 
-template<>
-void gui::AssetEditor::drawListEntry<trc::Material>(const trc::AssetPath& path)
+template<trc::AssetBaseType T>
+void gui::AssetEditor::drawListEntry(const trc::AssetPath& path)
 {
-    const auto id = assets.getAsset<trc::Material>(path);
+    const auto unique = path.getUniquePath();
+    const auto label = assetTypeName<T> + std::string(" \"" + unique + "\"");
 
-    ig::PushID(id);
-    ig::Text("Material \"%s\"", id.getMetaData().uniqueName.c_str());
-    ig::SameLine();
+    ig::Selectable(label.c_str());
+    if (ig::BeginPopupContextItem())
+    {
+        drawEntryContextMenu<T>(path);
+        ig::EndPopup();
+    }
+    if (ig::IsItemHovered()) {
+        ig::SetTooltip(unique.c_str());
+    }
+}
+
+template<trc::AssetBaseType T>
+void gui::AssetEditor::drawEntryContextMenu(const trc::AssetPath& path)
+{
+    drawDefaultEntryContext(path);
+}
+
+template<>
+void gui::AssetEditor::drawEntryContextMenu<trc::Geometry>(const trc::AssetPath& path)
+{
+    if (ig::Button("Create in scene"))
+    {
+        const auto mat = assets.create(trc::MaterialData{ .color=vec4(1.0f) });
+        auto obj = app.getScene().createObject();
+        app.getScene().add<trc::Drawable>(obj, trc::Drawable(
+            assets.get<trc::Geometry>(path),
+            mat,
+            app.getScene().getDrawableScene()
+        ));
+    }
+    drawDefaultEntryContext(path);
+}
+
+template<>
+void gui::AssetEditor::drawEntryContextMenu<trc::Material>(const trc::AssetPath& path)
+{
     if (ig::Button("Edit"))
     {
+        const auto id = assets.get<trc::Material>(path);
         editedMaterial = id;
         editedMaterialCopy = assets.getModule<trc::Material>().getData(id.getDeviceID());
     }
-    ig::PopID();
+    drawDefaultEntryContext(path);
 }
 
-template<>
-void gui::AssetEditor::drawListEntry<trc::Geometry>(const trc::AssetPath& path)
+void gui::AssetEditor::drawDefaultEntryContext(const trc::AssetPath& path)
 {
-    ig::Text("Geometry %s", path.getUniquePath().c_str());
+    if (ig::Button("Delete"))
+    {
+        assets.destroy(path);
+        defer([path=path](auto& dir){ dir.remove(path); });
+    }
 }
 
-template<>
-void gui::AssetEditor::drawListEntry<trc::Texture>(const trc::AssetPath& path)
+void gui::AssetEditor::defer(std::function<void(ProjectDirectory&)> func)
 {
-    ig::Text("Texture %s", path.getUniquePath().c_str());
-}
-
-template<>
-void gui::AssetEditor::drawListEntry<trc::Rig>(const trc::AssetPath& path)
-{
-    ig::Text("Rig %s", path.getUniquePath().c_str());
-}
-
-template<>
-void gui::AssetEditor::drawListEntry<trc::Animation>(const trc::AssetPath& path)
-{
-    ig::Text("Animation %s", path.getUniquePath().c_str());
+    deferredFunctions.emplace_back(std::move(func));
 }
