@@ -48,6 +48,7 @@ target_link_libraries(pipeline_compiler_lib PRIVATE shader_compiler_lib argparse
 target_compile_definitions(pipeline_compiler_lib PRIVATE
     STDLIB_DIR="${CMAKE_CURRENT_LIST_DIR}/stdlib/"
     FLAG_COMBINATION_HEADER="${CMAKE_CURRENT_LIST_DIR}/auxiliary/FlagCombination.h"
+    UTILS_INCLUDE_FILE="${CMAKE_CURRENT_LIST_DIR}/auxiliary/PipelineCompilerUtils.cpp"
 )
 
 if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})

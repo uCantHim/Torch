@@ -1,8 +1,9 @@
 #include "TorchCppWriter.h"
 
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <set>
+#include <sstream>
 
 #include <ShaderDocument.h>
 
@@ -189,8 +190,9 @@ void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
        << "\n"
-       << "#include <trc/PipelineDefinitions.h>\n"
        << "#include <trc/TorchRenderConfig.h>\n"
+       << "\n"
+       << "#include \"PipelineCompilerUtils.cpp\"\n"
         ;
 }
 
@@ -215,9 +217,9 @@ namespace std
 }
 
 auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& result)
-    -> std::unordered_set<std::pair<std::string, std::string>>
+    -> std::set<std::pair<std::string, std::string>>
 {
-    std::unordered_set<std::pair<std::string, std::string>> members;
+    std::set<std::pair<std::string, std::string>> members;
 
     /** Collect all push constant default values from a layout description */
     auto collectPushConstants = [&members](auto&& layout){
@@ -262,26 +264,27 @@ void TorchCppWriter::writeDynamicInitCreateInfoStruct(
     os << "struct " << makeDynamicInitCreateInfoName()
        << nl << "{";
 
-    if (!members.empty())
-    {
-        // Write constructor head
-        os << (++nl)++ << makeDynamicInitCreateInfoName() << "(";
-        for (const auto& [type, member] : members) {
-            os << nl << "const " << type << "& _" << member << ",";
-        }
-        os.seekp(-1, std::ios::end);
-        os << ")" << nl << ":";
-        // Write constructor initialization
-        for (const auto& [_, member] : members) {
-            os << nl << member << "(_" << member << "),";
-        }
-        os.seekp(-1, std::ios::end);
-        os << --nl << "{}" << nl;
+    // Write constructor head
+    os << (++nl)++ << makeDynamicInitCreateInfoName() << "(";
+    for (const auto& [type, member] : members) {
+        os << nl << "const " << type << "& _" << member << ",";
     }
+    // Special member which is always present
+    os << nl << "fs::path _shaderInputDir = \"" << config.shaderOutputDir.string() << "\""
+       << ")" << nl << ":";
 
+    // Write constructor initialization
+    for (const auto& [_, member] : members) {
+        os << nl << member << "(_" << member << "),";
+    }
+    os << nl << "shaderInputDir(std::move(_shaderInputDir))";  // Special member
+    os << --nl << "{}" << nl;
+
+    // Write member definitions
     for (const auto& [type, member] : members) {
         os << nl << type << " " << member << ";";
     }
+    os << nl << "fs::path" << " " << "shaderInputDir" << ";";  // Special member
     os << --nl << "};";
 }
 

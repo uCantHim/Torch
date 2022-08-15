@@ -3,7 +3,7 @@
 #include <atomic>
 #include <string>
 #include <vector>
-#include <unordered_set>
+#include <set>
 #include <functional>
 #include <fstream>
 #include <filesystem>
@@ -85,8 +85,8 @@ private:
     //  Dynamic initialization utils  //
     ////////////////////////////////////
 
-    static auto collectDynamicInitCreateInfoMembers(const CompileResult& result)
-        -> std::unordered_set<std::pair<std::string, std::string>>;
+    auto collectDynamicInitCreateInfoMembers(const CompileResult& result)
+        -> std::set<std::pair<std::string, std::string>>;
     auto makeDynamicInitCreateInfoName() const -> std::string;
     void writeDynamicInitCreateInfoStruct(const CompileResult& result, std::ostream& os);
     void writeDynamicInitFunctionHead(std::ostream& os);
