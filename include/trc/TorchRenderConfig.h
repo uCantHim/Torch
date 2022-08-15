@@ -4,7 +4,7 @@
 
 #include "Types.h"
 #include "core/Instance.h"
-#include "core/RenderConfigCrtpBase.h"
+#include "core/RenderConfigImplHelper.h"
 #include "core/RenderPass.h"
 #include "core/SceneBase.h"
 #include "core/RenderGraph.h"
@@ -41,7 +41,7 @@ namespace trc
     /**
      * @brief
      */
-    class TorchRenderConfig : public RenderConfigCrtpBase<TorchRenderConfig>
+    class TorchRenderConfig : public RenderConfigImplHelper
     {
     public:
         /**

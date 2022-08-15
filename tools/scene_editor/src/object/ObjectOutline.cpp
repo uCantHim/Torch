@@ -15,10 +15,10 @@ auto getObjectOutlinePipeline() -> trc::Pipeline::ID
         trc::pipelines::PipelineShadingTypeFlagBits::opaque
         | trc::pipelines::AnimationTypeFlagBits::none
     );
-    static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
+    static auto layout = trc::PipelineRegistry::getPipelineLayout(baseID);
 
     static auto hoverPipeline = trc::buildGraphicsPipeline(
-            trc::PipelineRegistry<trc::TorchRenderConfig>::cloneGraphicsPipeline(baseID)
+            trc::PipelineRegistry::cloneGraphicsPipeline(baseID)
         )
         .setRasterization(
             vk::PipelineRasterizationStateCreateInfo(trc::DEFAULT_RASTERIZATION)
@@ -28,7 +28,7 @@ auto getObjectOutlinePipeline() -> trc::Pipeline::ID
         )
         .setCullMode(vk::CullModeFlagBits::eFront)
         .disableDepthWrite()
-        .registerPipeline<trc::TorchRenderConfig>(
+        .registerPipeline(
             layout,
             trc::RenderPassName{ trc::TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
         );
@@ -42,10 +42,10 @@ auto getAnimatedObjectOutlinePipeline() -> trc::Pipeline::ID
         trc::pipelines::PipelineShadingTypeFlagBits::opaque
         | trc::pipelines::AnimationTypeFlagBits::boneAnim
     );
-    static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
+    static auto layout = trc::PipelineRegistry::getPipelineLayout(baseID);
 
     static auto hoverPipeline = trc::buildGraphicsPipeline(
-            trc::PipelineRegistry<trc::TorchRenderConfig>::cloneGraphicsPipeline(baseID)
+            trc::PipelineRegistry::cloneGraphicsPipeline(baseID)
         )
         .setRasterization(
             vk::PipelineRasterizationStateCreateInfo(trc::DEFAULT_RASTERIZATION)
@@ -55,7 +55,7 @@ auto getAnimatedObjectOutlinePipeline() -> trc::Pipeline::ID
         )
         .setCullMode(vk::CullModeFlagBits::eFront)
         .disableDepthWrite()
-        .registerPipeline<trc::TorchRenderConfig>(
+        .registerPipeline(
             layout,
             trc::RenderPassName{ trc::TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
         );

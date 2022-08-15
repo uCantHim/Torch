@@ -137,7 +137,6 @@ namespace trc
          * @param RenderPassName renderPass Name of a render pass with
          *        which the pipeline will be compatible
          */
-        template<RenderConfigType T>
         auto registerPipeline(PipelineLayout::ID layout, const RenderPassName& renderPass) const
             -> Pipeline::ID;
 
@@ -150,14 +149,6 @@ namespace trc
     auto buildGraphicsPipeline(const PipelineTemplate& t) -> GraphicsPipelineBuilder;
 
 
-
-    template<RenderConfigType T>
-    auto GraphicsPipelineBuilder::registerPipeline(
-        PipelineLayout::ID layout,
-        const RenderPassName& renderPass) const -> Pipeline::ID
-    {
-        return PipelineRegistry<T>::registerPipeline(build(), layout, renderPass);
-    }
 
     template<typename T>
     inline auto GraphicsPipelineBuilder::setVertexSpecializationConstant(

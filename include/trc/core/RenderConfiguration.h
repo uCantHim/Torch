@@ -65,10 +65,4 @@ namespace trc
     protected:
         RenderLayout layout;
     };
-
-    /**
-     * @brief A type that implements RenderConfig
-     */
-    template<typename T>
-    concept RenderConfigType = std::derived_from<T, RenderConfig>;
 } // namespace trc

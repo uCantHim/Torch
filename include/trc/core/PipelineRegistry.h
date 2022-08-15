@@ -13,64 +13,18 @@
 
 namespace trc
 {
-    template<RenderConfigType T>
+    class PipelineStorage;
     class PipelineRegistry;
 
-    template<RenderConfigType T>
-    inline auto registerPipeline(PipelineTemplate t,
-                                 PipelineLayout::ID layout,
-                                 RenderPassName renderPass)
-        -> Pipeline::ID
-    {
-        return PipelineRegistry<T>::registerPipeline(std::move(t), layout, std::move(renderPass));
-    }
+    auto registerPipeline(PipelineTemplate t, PipelineLayout::ID layout, RenderPassName renderPass)
+        -> Pipeline::ID;
 
-    template<RenderConfigType T>
-    inline auto registerPipeline(ComputePipelineTemplate t,
-                                 PipelineLayout::ID layout)
-        -> Pipeline::ID
-    {
-        return PipelineRegistry<T>::registerPipeline(std::move(t), layout);
-    }
+    auto registerPipeline(ComputePipelineTemplate t, PipelineLayout::ID layout)
+        -> Pipeline::ID;
 
     /**
      * @brief
      */
-    template<typename T>
-    class PipelineStorage
-    {
-    private:
-        friend class PipelineRegistry<T>;
-        using FactoryType = typename PipelineRegistry<T>::PipelineFactory;
-
-        PipelineStorage(typename PipelineRegistry<T>::StorageAccessInterface interface,
-                        const Instance& instance,
-                        T& renderConfig);
-
-        void notifyNewPipeline(Pipeline::ID id,
-                               FactoryType& factory);
-
-    public:
-        auto get(Pipeline::ID pipeline) -> Pipeline&;
-        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
-
-        void recreateAll();
-
-    private:
-        auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
-
-        typename PipelineRegistry<T>::StorageAccessInterface registry;
-        const Instance& instance;
-        T* renderConfig;
-
-        std::vector<u_ptr<PipelineLayout>> layouts;
-        std::vector<u_ptr<Pipeline>> pipelines;
-    };
-
-    /**
-     * @brief
-     */
-    template<RenderConfigType T>
     class PipelineRegistry
     {
     public:
@@ -92,8 +46,8 @@ namespace trc
         /**
          * @brief Create a pipeline storage object
          */
-        static auto createStorage(const Instance& instance, T& renderConfig)
-            -> u_ptr<PipelineStorage<T>>;
+        static auto createStorage(const Instance& instance, RenderConfig& renderConfig)
+            -> u_ptr<PipelineStorage>;
 
         /**
          * @brief Creates pipeline objects from a stored template
@@ -108,18 +62,18 @@ namespace trc
             auto getLayout() const -> PipelineLayout::ID;
             auto getRenderPassName() const -> const RenderPassName&;
 
-            auto create(const Instance& instance, T& renderConfig, PipelineLayout& layout)
+            auto create(const Instance& instance, RenderConfig& renderConfig, PipelineLayout& layout)
                 -> Pipeline;
             auto clone() const -> std::variant<PipelineTemplate, ComputePipelineTemplate>;
 
         private:
             auto create(PipelineTemplate& p,
                         const Instance& instance,
-                        T& renderConfig,
+                        RenderConfig& renderConfig,
                         PipelineLayout& layout) const -> Pipeline;
             auto create(ComputePipelineTemplate& p,
                         const Instance& instance,
-                        T& renderConfig,
+                        RenderConfig& renderConfig,
                         PipelineLayout& layout) const -> Pipeline;
 
             PipelineLayout::ID layoutId;
@@ -136,7 +90,7 @@ namespace trc
             LayoutFactory() = default;
             explicit LayoutFactory(PipelineLayoutTemplate t);
 
-            auto create(const Instance& instance, T& renderConfig) -> PipelineLayout;
+            auto create(const Instance& instance, RenderConfig& renderConfig) -> PipelineLayout;
             auto clone() const -> PipelineLayoutTemplate;
 
         private:
@@ -153,10 +107,13 @@ namespace trc
 
             auto invokePipelineFactory(Pipeline::ID id,
                                        const Instance& instance,
-                                       T& renderConfig,
+                                       RenderConfig& renderConfig,
                                        PipelineLayout& layout)
                 -> Pipeline;
-            auto invokeLayoutFactory(PipelineLayout::ID id, const Instance& instance, T& renderConfig)
+
+            auto invokeLayoutFactory(PipelineLayout::ID id,
+                                     const Instance& instance,
+                                     RenderConfig& renderConfig)
                 -> PipelineLayout;
 
             template<std::invocable<PipelineFactory&> F>
@@ -170,9 +127,7 @@ namespace trc
 
         private:
             friend PipelineRegistry;
-            StorageAccessInterface(PipelineRegistry reg);
-
-            PipelineRegistry registry;
+            StorageAccessInterface() = default;
         };
 
     private:
@@ -189,9 +144,38 @@ namespace trc
         static inline std::vector<PipelineFactory> factories;
 
         static inline std::mutex storageLock;
-        static inline std::vector<PipelineStorage<T>*> storages;
+        static inline std::vector<PipelineStorage*> storages;
+    };
+
+    /**
+     * @brief
+     */
+    class PipelineStorage
+    {
+    private:
+        friend PipelineRegistry;
+        using FactoryType = typename PipelineRegistry::PipelineFactory;
+
+        PipelineStorage(typename PipelineRegistry::StorageAccessInterface interface,
+                        const Instance& instance,
+                        RenderConfig& renderConfig);
+
+        void notifyNewPipeline(Pipeline::ID id, FactoryType& factory);
+
+    public:
+        auto get(Pipeline::ID pipeline) -> Pipeline&;
+        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
+
+        void recreateAll();
+
+    private:
+        auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
+
+        typename PipelineRegistry::StorageAccessInterface registry;
+        const Instance& instance;
+        RenderConfig* renderConfig;
+
+        std::vector<u_ptr<PipelineLayout>> layouts;
+        std::vector<u_ptr<Pipeline>> pipelines;
     };
 } // namespace trc
-
-
-#include "PipelineRegistry.inl"

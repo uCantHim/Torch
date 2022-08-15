@@ -34,7 +34,6 @@ namespace trc
          *
          * @param PipelineLayout::ID layout The pipeline's layout
          */
-        template<RenderConfigType T>
         auto registerPipeline(PipelineLayout::ID layout) -> Pipeline::ID;
 
     private:
@@ -53,12 +52,5 @@ namespace trc
     {
         _template.setSpecializationConstant(constantId, std::forward<T>(data));
         return *this;
-    }
-
-    template<RenderConfigType T>
-    auto ComputePipelineBuilder::registerPipeline(PipelineLayout::ID layout)
-        -> Pipeline::ID
-    {
-        return PipelineRegistry<T>::registerPipeline(build(), layout);
     }
 } // namespace trc

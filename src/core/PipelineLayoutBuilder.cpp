@@ -74,6 +74,63 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
     return { std::move(descNames), pushConstants };
 }
 
+auto trc::PipelineLayoutBuilder::build(const vkb::Device& device, RenderConfig& renderConfig)
+    -> PipelineLayout
+{
+    // Collect descriptors
+    std::vector<vk::DescriptorSetLayout> descLayouts;
+    std::vector<std::pair<const DescriptorProviderInterface*, bool>> providers;
+    auto addProvider = [&](const DescriptorProviderInterface* p, bool b)
+    {
+        providers.emplace_back(p, b);
+        descLayouts.emplace_back(p->getDescriptorSetLayout());
+    };
+
+    for (const auto& def : descriptors)
+    {
+        if (std::holds_alternative<ProviderDefinition>(def))
+        {
+            auto [p, isStatic] = std::get<ProviderDefinition>(def);
+            addProvider(p, isStatic);
+        }
+        else {
+            const auto& descName = std::get<Descriptor>(def);
+            const auto id = renderConfig.getDescriptorID(descName.name);
+            addProvider(&renderConfig.getDescriptor(id), descName.isStatic);
+        }
+    }
+
+    // Collect push constant ranges
+    std::vector<vk::PushConstantRange> pcRanges;
+    for (const auto& pc : pushConstants) {
+        pcRanges.emplace_back(pc.range);
+    }
+
+    auto layout = makePipelineLayout(device, std::move(descLayouts), std::move(pcRanges));
+
+    // Set static descriptors and default push constant values
+    for (ui32 i = 0; const auto& [p, isStatic] : providers)
+    {
+        if (isStatic) {
+            layout.addStaticDescriptorSet(i, *p);
+        }
+        ++i;
+    }
+    for (const auto& pc : pushConstants)
+    {
+        if (pc.defaultValue.has_value()) {
+            pc.defaultValue.value().setAsDefault(layout, pc.range);
+        }
+    }
+
+    return layout;
+}
+
+auto trc::PipelineLayoutBuilder::registerLayout() const -> PipelineLayout::ID
+{
+    return PipelineRegistry::registerPipelineLayout(build());
+}
+
 
 
 auto trc::buildPipelineLayout() -> PipelineLayoutBuilder

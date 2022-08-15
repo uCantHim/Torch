@@ -190,8 +190,6 @@ void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
        << "\n"
-       << "#include <trc/TorchRenderConfig.h>\n"
-       << "\n"
        << "#include \"PipelineCompilerUtils.cpp\"\n"
         ;
 }

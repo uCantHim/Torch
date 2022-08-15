@@ -24,6 +24,12 @@ auto trc::ComputePipelineBuilder::build(const vkb::Device& device, PipelineLayou
     return makeComputePipeline(device, build(), layout);
 }
 
+auto trc::ComputePipelineBuilder::registerPipeline(PipelineLayout::ID layout)
+    -> Pipeline::ID
+{
+    return PipelineRegistry::registerPipeline(build(), layout);
+}
+
 
 
 auto trc::buildComputePipeline() -> ComputePipelineBuilder

@@ -14,13 +14,13 @@ auto getHitboxPipeline() -> trc::Pipeline::ID
         trc::pipelines::PipelineShadingTypeFlagBits::opaque
         | trc::pipelines::AnimationTypeFlagBits::none
     );
-    static auto layout = trc::PipelineRegistry<trc::TorchRenderConfig>::getPipelineLayout(baseID);
+    static auto layout = trc::PipelineRegistry::getPipelineLayout(baseID);
 
     static auto pipeline = trc::GraphicsPipelineBuilder(
-            trc::PipelineRegistry<trc::TorchRenderConfig>::cloneGraphicsPipeline(baseID)
+            trc::PipelineRegistry::cloneGraphicsPipeline(baseID)
         )
         .setPolygonMode(vk::PolygonMode::eLine)
-        .registerPipeline<trc::TorchRenderConfig>(
+        .registerPipeline(
             layout,
             trc::RenderPassName{ trc::TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
         );

@@ -13,9 +13,11 @@ target_sources(
         PipelineLayout.cpp
         PipelineLayoutBuilder.cpp
         PipelineLayoutTemplate.cpp
+        PipelineRegistry.cpp
         PipelineTemplate.cpp
         Renderer.cpp
         RenderConfiguration.cpp
+        RenderConfigImplHelper.cpp
         RenderGraph.cpp
         RenderLayout.cpp
         RenderPass.cpp

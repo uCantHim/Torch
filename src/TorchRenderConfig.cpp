@@ -28,7 +28,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
     const Window& _window,
     const TorchRenderConfigCreateInfo& info)
     :
-    RenderConfigCrtpBase(_window.getInstance(), RenderLayout(_window, info.renderGraph)),
+    RenderConfigImplHelper(_window.getInstance(), RenderLayout(_window, info.renderGraph)),
     window(_window),
     // Passes
     gBuffer(nullptr),

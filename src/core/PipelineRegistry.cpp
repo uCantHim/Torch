@@ -1,17 +1,33 @@
 #include "PipelineRegistry.h"
 
-#include <vkb/ShaderProgram.h>
+// #include <vkb/ShaderProgram.h>
 
 
 
 namespace trc
 {
 
-template<typename T>
-PipelineStorage<T>::PipelineStorage(
-    typename PipelineRegistry<T>::StorageAccessInterface  interface,
+auto registerPipeline(PipelineTemplate t,
+                             PipelineLayout::ID layout,
+                             RenderPassName renderPass)
+    -> Pipeline::ID
+{
+    return PipelineRegistry::registerPipeline(std::move(t), layout, std::move(renderPass));
+}
+
+auto registerPipeline(ComputePipelineTemplate t,
+                             PipelineLayout::ID layout)
+    -> Pipeline::ID
+{
+    return PipelineRegistry::registerPipeline(std::move(t), layout);
+}
+
+
+
+PipelineStorage::PipelineStorage(
+    typename PipelineRegistry::StorageAccessInterface interface,
     const Instance& instance,
-    T& renderConfig)
+    RenderConfig& renderConfig)
     :
     registry(interface),
     instance(instance),
@@ -19,15 +35,13 @@ PipelineStorage<T>::PipelineStorage(
 {
 }
 
-template<typename T>
-void PipelineStorage<T>::notifyNewPipeline(
+void PipelineStorage::notifyNewPipeline(
     Pipeline::ID,
     FactoryType&)
 {
 }
 
-template<typename T>
-auto PipelineStorage<T>::get(Pipeline::ID pipeline) -> Pipeline&
+auto PipelineStorage::get(Pipeline::ID pipeline) -> Pipeline&
 {
     if (pipeline >= pipelines.size()) {
         pipelines.resize(pipeline + 1);
@@ -43,8 +57,7 @@ auto PipelineStorage<T>::get(Pipeline::ID pipeline) -> Pipeline&
     return *pipelines.at(pipeline);
 }
 
-template<typename T>
-auto PipelineStorage<T>::getLayout(PipelineLayout::ID id) -> PipelineLayout&
+auto PipelineStorage::getLayout(PipelineLayout::ID id) -> PipelineLayout&
 {
     if (layouts.size() <= id || !layouts.at(id))
     {
@@ -57,8 +70,7 @@ auto PipelineStorage<T>::getLayout(PipelineLayout::ID id) -> PipelineLayout&
     return *layouts.at(id);
 }
 
-template<typename T>
-void PipelineStorage<T>::recreateAll()
+void PipelineStorage::recreateAll()
 {
     pipelines.clear();
     registry.foreachFactory([this](auto& factory) {
@@ -66,8 +78,7 @@ void PipelineStorage<T>::recreateAll()
     });
 }
 
-template<typename T>
-auto PipelineStorage<T>::createPipeline(FactoryType& factory) -> u_ptr<Pipeline>
+auto PipelineStorage::createPipeline(FactoryType& factory) -> u_ptr<Pipeline>
 {
     PipelineLayout& layout = getLayout(factory.getLayout());
     assert(layout);
@@ -81,8 +92,7 @@ auto PipelineStorage<T>::createPipeline(FactoryType& factory) -> u_ptr<Pipeline>
 //      Pipeline registry       //
 //////////////////////////////////
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::registerPipelineLayout(PipelineLayoutTemplate _template)
+auto PipelineRegistry::registerPipelineLayout(PipelineLayoutTemplate _template)
     -> PipelineLayout::ID
 {
     const auto id = _allocPipelineLayoutId();
@@ -94,8 +104,7 @@ auto PipelineRegistry<T>::registerPipelineLayout(PipelineLayoutTemplate _templat
     return id;
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate
+auto PipelineRegistry::clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate
 {
     if (id >= layoutFactories.size())
     {
@@ -108,8 +117,7 @@ auto PipelineRegistry<T>::clonePipelineLayout(PipelineLayout::ID id) -> Pipeline
     return layoutFactories.at(id).clone();
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::registerPipeline(
+auto PipelineRegistry::registerPipeline(
     PipelineTemplate _template,
     PipelineLayout::ID layout,
     RenderPassName renderPass
@@ -126,8 +134,7 @@ auto PipelineRegistry<T>::registerPipeline(
     return _registerPipelineFactory({ std::move(_template), layout, std::move(renderPass) });
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::registerPipeline(
+auto PipelineRegistry::registerPipeline(
     ComputePipelineTemplate _template,
     PipelineLayout::ID layout
     ) -> Pipeline::ID
@@ -143,8 +150,7 @@ auto PipelineRegistry<T>::registerPipeline(
     return _registerPipelineFactory({ std::move(_template), layout });
 }
 
-template<RenderConfigType T>
-inline auto PipelineRegistry<T>::_registerPipelineFactory(PipelineFactory newFactory) -> Pipeline::ID
+inline auto PipelineRegistry::_registerPipelineFactory(PipelineFactory newFactory) -> Pipeline::ID
 {
     const Pipeline::ID id{ _allocPipelineId() };
     assert(id < factories.size());
@@ -162,8 +168,7 @@ inline auto PipelineRegistry<T>::_registerPipelineFactory(PipelineFactory newFac
     return id;
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate
+auto PipelineRegistry::cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate
 {
     try {
         std::scoped_lock lock(factoryLock);
@@ -185,8 +190,7 @@ auto PipelineRegistry<T>::cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemp
     }
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate
+auto PipelineRegistry::cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate
 {
     try {
         std::scoped_lock lock(factoryLock);
@@ -208,8 +212,7 @@ auto PipelineRegistry<T>::cloneComputePipeline(Pipeline::ID id) -> ComputePipeli
     }
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID
+auto PipelineRegistry::getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID
 {
     if (id >= factories.size())
     {
@@ -223,16 +226,11 @@ auto PipelineRegistry<T>::getPipelineLayout(Pipeline::ID id) -> PipelineLayout::
     return factories.at(id).getLayout();
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::createStorage(const Instance& instance, T& renderConfig)
-    -> std::unique_ptr<PipelineStorage<T>>
+auto PipelineRegistry::createStorage(const Instance& instance, RenderConfig& renderConfig)
+    -> std::unique_ptr<PipelineStorage>
 {
-    u_ptr<PipelineStorage<T>> result{
-        new PipelineStorage<T>(
-            StorageAccessInterface{ PipelineRegistry<T>{} },
-            instance,
-            renderConfig
-        )
+    u_ptr<PipelineStorage> result{
+        new PipelineStorage(StorageAccessInterface{}, instance, renderConfig)
     };
 
     std::lock_guard lock(storageLock);
@@ -241,8 +239,7 @@ auto PipelineRegistry<T>::createStorage(const Instance& instance, T& renderConfi
     return result;
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::_allocPipelineLayoutId() -> PipelineLayout::ID
+auto PipelineRegistry::_allocPipelineLayoutId() -> PipelineLayout::ID
 {
     const PipelineLayout::ID id{ pipelineLayoutIdPool.generate() };
 
@@ -254,8 +251,7 @@ auto PipelineRegistry<T>::_allocPipelineLayoutId() -> PipelineLayout::ID
     return id;
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::_allocPipelineId() -> Pipeline::ID
+auto PipelineRegistry::_allocPipelineId() -> Pipeline::ID
 {
     const Pipeline::ID id{ pipelineIdPool.generate() };
 
@@ -273,44 +269,35 @@ auto PipelineRegistry<T>::_allocPipelineId() -> Pipeline::ID
 //      Storage access interface      //
 ////////////////////////////////////////
 
-template<RenderConfigType T>
-trc::PipelineRegistry<T>::StorageAccessInterface::StorageAccessInterface(PipelineRegistry reg)
-    : registry(reg)
-{
-}
-
-template<RenderConfigType T>
-auto trc::PipelineRegistry<T>::StorageAccessInterface::getPipelineLayout(Pipeline::ID id)
+auto trc::PipelineRegistry::StorageAccessInterface::getPipelineLayout(Pipeline::ID id)
     -> PipelineLayout::ID
 {
-    return registry.getPipelineLayout(id);
+    return PipelineRegistry::getPipelineLayout(id);
 }
 
-template<RenderConfigType T>
-auto trc::PipelineRegistry<T>::StorageAccessInterface::invokePipelineFactory(
+auto trc::PipelineRegistry::StorageAccessInterface::invokePipelineFactory(
     Pipeline::ID id,
     const Instance& instance,
-    T& renderConfig,
+    RenderConfig& renderConfig,
     PipelineLayout& layout)
     -> Pipeline
 {
-    std::scoped_lock lock(registry.factoryLock);
-    assert(id < registry.factories.size());
+    std::scoped_lock lock(PipelineRegistry::factoryLock);
+    assert(id < PipelineRegistry::factories.size());
 
-    return registry.factories.at(id).create(instance, renderConfig, layout);
+    return PipelineRegistry::factories.at(id).create(instance, renderConfig, layout);
 }
 
-template<RenderConfigType T>
-auto trc::PipelineRegistry<T>::StorageAccessInterface::invokeLayoutFactory(
+auto trc::PipelineRegistry::StorageAccessInterface::invokeLayoutFactory(
     PipelineLayout::ID id,
     const Instance& instance,
-    T& renderConfig)
+    RenderConfig& renderConfig)
     -> PipelineLayout
 {
-    std::scoped_lock lock(registry.layoutFactoryLock);
-    assert(id < registry.layoutFactories.size());
+    std::scoped_lock lock(PipelineRegistry::layoutFactoryLock);
+    assert(id < PipelineRegistry::layoutFactories.size());
 
-    return registry.layoutFactories.at(id).create(instance, renderConfig);
+    return PipelineRegistry::layoutFactories.at(id).create(instance, renderConfig);
 }
 
 
@@ -319,8 +306,7 @@ auto trc::PipelineRegistry<T>::StorageAccessInterface::invokeLayoutFactory(
 //      Pipeline/-layout factory      //
 ////////////////////////////////////////
 
-template<RenderConfigType T>
-PipelineRegistry<T>::PipelineFactory::PipelineFactory(
+PipelineRegistry::PipelineFactory::PipelineFactory(
     PipelineTemplate t,
     PipelineLayout::ID layout,
     RenderPassName rp)
@@ -331,8 +317,7 @@ PipelineRegistry<T>::PipelineFactory::PipelineFactory(
 {
 }
 
-template<RenderConfigType T>
-PipelineRegistry<T>::PipelineFactory::PipelineFactory(
+PipelineRegistry::PipelineFactory::PipelineFactory(
     ComputePipelineTemplate t,
     PipelineLayout::ID layout)
     :
@@ -342,22 +327,19 @@ PipelineRegistry<T>::PipelineFactory::PipelineFactory(
 {
 }
 
-template<RenderConfigType T>
-auto trc::PipelineRegistry<T>::PipelineFactory::getLayout() const -> PipelineLayout::ID
+auto trc::PipelineRegistry::PipelineFactory::getLayout() const -> PipelineLayout::ID
 {
     return layoutId;
 }
 
-template<RenderConfigType T>
-auto trc::PipelineRegistry<T>::PipelineFactory::getRenderPassName() const -> const RenderPassName&
+auto trc::PipelineRegistry::PipelineFactory::getRenderPassName() const -> const RenderPassName&
 {
     return renderPassName;
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::PipelineFactory::create(
+auto PipelineRegistry::PipelineFactory::create(
     const Instance& instance,
-    T& renderConfig,
+    RenderConfig& renderConfig,
     PipelineLayout& layout)
     -> Pipeline
 {
@@ -367,11 +349,10 @@ auto PipelineRegistry<T>::PipelineFactory::create(
     );
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::PipelineFactory::create(
+auto PipelineRegistry::PipelineFactory::create(
     PipelineTemplate& t,
     const Instance& instance,
-    T& renderConfig,
+    RenderConfig& renderConfig,
     PipelineLayout& layout
     ) const -> Pipeline
 {
@@ -381,19 +362,17 @@ auto PipelineRegistry<T>::PipelineFactory::create(
     return makeGraphicsPipeline(device, t, layout, renderPass, subPass);
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::PipelineFactory::create(
+auto PipelineRegistry::PipelineFactory::create(
     ComputePipelineTemplate& t,
     const Instance& instance,
-    T&,
+    RenderConfig&,
     PipelineLayout& layout
     ) const -> Pipeline
 {
     return makeComputePipeline(instance.getDevice(), t, layout);
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::PipelineFactory::clone() const
+auto PipelineRegistry::PipelineFactory::clone() const
     -> std::variant<PipelineTemplate, ComputePipelineTemplate>
 {
     return _template;
@@ -401,25 +380,23 @@ auto PipelineRegistry<T>::PipelineFactory::clone() const
 
 
 
-template<RenderConfigType T>
-PipelineRegistry<T>::LayoutFactory::LayoutFactory(PipelineLayoutTemplate t)
+PipelineRegistry::LayoutFactory::LayoutFactory(PipelineLayoutTemplate t)
     : _template(std::move(t))
 {
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::LayoutFactory::create(
+auto PipelineRegistry::LayoutFactory::create(
     const Instance& instance,
-    T& renderConfig)
+    RenderConfig& renderConfig)
     -> PipelineLayout
 {
     return makePipelineLayout(instance.getDevice(), _template, renderConfig);
 }
 
-template<RenderConfigType T>
-auto PipelineRegistry<T>::LayoutFactory::clone() const -> PipelineLayoutTemplate
+auto PipelineRegistry::LayoutFactory::clone() const -> PipelineLayoutTemplate
 {
     return _template;
 }
+
 
 } // namespace trc

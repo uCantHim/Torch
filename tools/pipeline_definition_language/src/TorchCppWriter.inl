@@ -242,7 +242,7 @@ template<>
 inline auto TorchCppWriter::makeValue(const LayoutDesc& layout) -> std::string
 {
     std::stringstream ss;
-    ss << "trc::PipelineRegistry<trc::TorchRenderConfig>::registerPipelineLayout("
+    ss << "trc::PipelineRegistry::registerPipelineLayout("
        << "trc::PipelineLayoutTemplate{";
 
     // Descriptors
@@ -296,7 +296,7 @@ template<>
 inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::string
 {
     std::stringstream ss;
-    ss << "trc::PipelineRegistry<trc::TorchRenderConfig>::registerPipeline("
+    ss << "trc::PipelineRegistry::registerPipeline("
        << ++nl << "trc::PipelineTemplate{"
        << ++nl << makeValue(pipeline.program) << ","
        << nl << makePipelineDefinitionDataInit(pipeline, nl)
@@ -327,7 +327,7 @@ template<>
 inline auto TorchCppWriter::makeValue(const ComputePipelineDesc& pipeline) -> std::string
 {
     std::stringstream ss;
-    ss << "trc::PipelineRegistry<trc::TorchRenderConfig>::registerPipeline("
+    ss << "trc::PipelineRegistry::registerPipeline("
        << ++nl << "trc::ComputePipelineTemplate(" << makeValue(pipeline.shader) << "),"
        << nl << makeValue(pipeline.layout)
        << --nl << ")";
