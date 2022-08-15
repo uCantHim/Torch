@@ -8,8 +8,6 @@
 
 #include "asset/DefaultAssets.h"
 
-using namespace se;  // For operator|
-
 auto getHitboxPipeline() -> trc::Pipeline::ID
 {
     static auto baseID = trc::pipelines::getDrawablePipeline(

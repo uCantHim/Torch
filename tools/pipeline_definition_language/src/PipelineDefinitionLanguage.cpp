@@ -9,6 +9,7 @@
 
 #include <utility>  // for std::as_const used in argparse
 #include <argparse/argparse.hpp>
+#include <ShaderDocument.h>
 
 #include "Exceptions.h"
 #include "Scanner.h"
@@ -302,14 +303,20 @@ void PipelineDefinitionLanguage::writeOutput(
         depfileWriter.write(result, depfile);
     }
 
-    // Copy helper files
-    std::ifstream inFile(FLAG_COMBINATION_HEADER);
-    std::ofstream outFile(outputDir / "FlagCombination.h");
-    outFile << inFile.rdbuf();
+    // Copy helper files to the output directory
+    copyHelperFiles();
 
 #ifdef HAS_SPIRV_COMPILER
     compileSpirvShaders();
 #endif
+}
+
+void PipelineDefinitionLanguage::copyHelperFiles()
+{
+    fs::copy(FLAG_COMBINATION_HEADER, outputDir / "FlagCombination.h",
+             fs::copy_options::overwrite_existing);
+    fs::copy(UTILS_INCLUDE_FILE, outputDir / "PipelineCompilerUtils.cpp",
+             fs::copy_options::overwrite_existing);
 }
 
 void PipelineDefinitionLanguage::writeShader(

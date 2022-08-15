@@ -23,6 +23,7 @@ public:
 private:
     static auto compile(const fs::path& filename) -> std::optional<CompileResult>;
     static void writeOutput(const fs::path& sourceFilePath, const CompileResult& result);
+    static void copyHelperFiles();
 
     static void writeShader(const std::string& code,
                             const fs::path& outPath,

@@ -9,8 +9,6 @@
 #include "asset/DefaultAssets.h"
 #include "Scene.h"
 
-using namespace se;  // For operator|
-
 auto getObjectOutlinePipeline() -> trc::Pipeline::ID
 {
     static auto baseID = trc::pipelines::getDrawablePipeline(

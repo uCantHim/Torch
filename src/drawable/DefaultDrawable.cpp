@@ -44,7 +44,6 @@ void drawShadow(
 
 auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> pipelines::DrawablePipelineTypeFlags
 {
-    using namespace se;
     pipelines::DrawablePipelineTypeFlags flags{
         pipelines::AnimationTypeFlagBits::none
         | pipelines::PipelineShadingTypeFlagBits::opaque

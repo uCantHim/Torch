@@ -2,6 +2,7 @@ enable_testing()
 
 add_executable(
     pipeline_compiler_test
+    FlagCombinationTest.cpp
     ScannerTest.cpp
     VariantFlagSetTest.cpp
     VariantResolverTest.cpp

@@ -21,7 +21,7 @@ template<typename T>
 auto TorchCppWriter::makeGroupFlagUsingDecl(const VariantGroup<T>& group) -> std::string
 {
     std::stringstream ss;
-    ss << "using " << makeFlagsType(group) << " = se::FlagCombination<";
+    ss << "using " << makeFlagsType(group) << " = FlagCombination<";
     ++nl;
     for (size_t type : group.flagTypes) {
         ss << nl << makeFlagBitsType(flagTable->getFlagType(type)) << ",";
