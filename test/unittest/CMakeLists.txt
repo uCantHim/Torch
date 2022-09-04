@@ -8,6 +8,7 @@ target_sources(UnitTests
         core/test_scene_base.cpp
         util_tests/test_object_pool.cpp
         util_tests/test_maybe.cpp
+        util_tests/test_threadsafe_queue.cpp
 )
 
 target_link_libraries(UnitTests PRIVATE torch)
