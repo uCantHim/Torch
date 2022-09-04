@@ -6,8 +6,8 @@ target_sources(UnitTests
         assets_tests/test_asset_reference.cpp
         assets_tests/test_custom_asset.cpp
         core/test_scene_base.cpp
-        data/test_object_pool.cpp
-        functional/test_maybe.cpp
+        util_tests/test_object_pool.cpp
+        util_tests/test_maybe.cpp
 )
 
 target_link_libraries(UnitTests PRIVATE torch)
