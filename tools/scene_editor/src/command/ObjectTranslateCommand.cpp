@@ -19,7 +19,8 @@ public:
             scene.getMousePosAtDepth(
                 scene.getCamera().calcScreenDepth(scene.get<ObjectBaseNode>(obj).getTranslation())
             )
-        )
+        ),
+        finalPos(originalPos)
     {}
 
     bool update(float) override

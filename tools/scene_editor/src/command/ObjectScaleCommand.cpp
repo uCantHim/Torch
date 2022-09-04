@@ -18,7 +18,8 @@ public:
         depth(scene.getCamera().calcScreenDepth(pivot)),
         // We divide by the original pivot distance later on, so it cannot be zero
         originalPivotDist(glm::max(0.001f, glm::distance(pivot, scene.getMousePosAtDepth(depth)))),
-        originalScaling(scene.get<ObjectBaseNode>(obj).getScale())
+        originalScaling(scene.get<ObjectBaseNode>(obj).getScale()),
+        finalScaling(originalScaling)
     {
     }
 
