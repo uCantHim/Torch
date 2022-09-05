@@ -43,7 +43,10 @@ target_compile_options(pipeline_compiler_lib PRIVATE
 )
 
 target_include_directories(pipeline_compiler_lib PRIVATE src)
-target_link_libraries(pipeline_compiler_lib PRIVATE shader_compiler_lib argparse)
+target_link_libraries(pipeline_compiler_lib
+    PRIVATE shader_compiler_lib argparse
+    PUBLIC torch_util
+)
 
 target_compile_definitions(pipeline_compiler_lib PRIVATE
     STDLIB_DIR="${CMAKE_CURRENT_LIST_DIR}/stdlib/"
@@ -67,15 +70,6 @@ if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
 
     target_link_libraries(pipeline_compiler_lib PRIVATE shaderc)
     target_compile_definitions(pipeline_compiler_lib PRIVATE HAS_SPIRV_COMPILER)
-
-    # OpenMP for parallel shader compilation because I'm lazy
-    find_package(OpenMP)
-    if (OpenMP_CXX_FOUND)
-        message(STATUS "Configuring pipeline compiler with OpenMP enabled.")
-        target_link_libraries(pipeline_compiler_lib PRIVATE OpenMP::OpenMP_CXX)
-    else ()
-        message(STATUS "Configuring pipeline compiler without OpenMP enabled - shaders will be compiled sequentially.")
-    endif ()
 endif ()
 
 if (${PIPELINE_COMPILER_BUILD_TESTS})

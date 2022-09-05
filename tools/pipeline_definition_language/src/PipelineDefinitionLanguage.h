@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 #ifdef HAS_SPIRV_COMPILER
 #include <shaderc/shaderc.hpp>
 #endif
+#include <trc_util/async/ThreadPool.h>
 
 #include "ErrorReporter.h"
 #include "ShaderOutput.h"
@@ -60,5 +61,6 @@ private:
     static inline ShaderOutputType defaultShaderOutputType{ ShaderOutputType::eGlsl };
     static inline std::vector<std::string> shaderCompileDefinitions;
 
+    static inline trc::async::ThreadPool threadPool;
     static inline std::unique_ptr<ErrorReporter> errorReporter;
 };

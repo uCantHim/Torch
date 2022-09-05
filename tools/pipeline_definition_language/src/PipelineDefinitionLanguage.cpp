@@ -378,14 +378,17 @@ void PipelineDefinitionLanguage::compileSpirvShaders()
         }
     }
 
-    #pragma omp parallel for schedule(dynamic)
+    std::vector<std::future<void>> futs;
     for (const auto& info : pendingSpirvCompilations)
     {
-        try {
-            compileToSpirv(info);
-        }
-        catch (const CompilerError&) {}
+        futs.emplace_back(threadPool.async([&info]{
+            try {
+                compileToSpirv(info);
+            }
+            catch (const CompilerError&) {}
+        }));
     }
+    for (auto& f : futs) f.wait();
 }
 
 void PipelineDefinitionLanguage::compileToSpirv(const SpirvCompileInfo& info)
