@@ -211,6 +211,4 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }
-
-    threadPool.trim();
 }

@@ -4,31 +4,32 @@
 #include <thread>
 #include <future>
 
+#include <trc_util/data/ThreadsafeQueue.h>
+
 namespace trc::async
 {
     class ThreadPool
     {
     public:
         ThreadPool(const ThreadPool&) = delete;
+        ThreadPool(ThreadPool&&) noexcept = delete;
         auto operator=(const ThreadPool&) -> ThreadPool& = delete;
+        auto operator=(ThreadPool&&) noexcept -> ThreadPool& = delete;
 
         /**
          * @brief Create a thread pool
          *
-         * Does not create any threads before work is submitted. Can have
-         * up to UINT32_MAX threads active at the same time.
+         * Creates a thread pool with `std::thread::hardware_concurrency()`
+         * worker threads.
          */
-        ThreadPool() = default;
+        ThreadPool();
 
         /**
          * @brief Create a thread pool
          *
-         * Does not create any threads before work is submitted.
-         *
-         * @param uint32_t maxThreads It could be a good idea to pass
-         *        std::thread::hardware_concurrency() here.
+         * @param uint32_t numThreads The number of worker threads in the pool
          */
-        explicit ThreadPool(uint32_t maxThreads);
+        explicit ThreadPool(uint32_t numThreads);
 
         /**
          * Waits until current work has been completed, then stops all
@@ -36,64 +37,26 @@ namespace trc::async
          */
         ~ThreadPool();
 
-        ThreadPool(ThreadPool&&) noexcept;
-        auto operator=(ThreadPool&&) noexcept -> ThreadPool&;
-
         /**
          * @brief Execute a function asynchronously with low overhead
          *
          * This function can run into a deadlock if the maximum worker
-         * count has been reached **and** no workers are idle **and** *if
+         * count has been reached **and** no workers are idle **and** if
          * no existing worker can finish its task before the task supplied
-         * to this function is completed*. In this case, this function
+         * to this function is completed. In this case, this function
          * would block indefinitely waiting for a worker to become
          * available and the work would never be executed.
          *
          * @return std::future Future with the result value of the executed
          *                     function.
+         * @throw std::invalid_argument if the pool has been created with
+         *                              a thread count of zero.
          */
         template<typename Func, typename ...Args>
             requires std::is_invocable_v<Func, Args...>
         auto async(Func&& func, Args&&... args) -> std::future<std::invoke_result_t<Func, Args...>>;
 
-        /**
-         * @brief Remove all idle threads
-         */
-        void trim();
-
     private:
-        /**
-         * A worker thread that can execute a single piece of work
-         * asynchronously.
-         */
-        class WorkerThread
-        {
-        public:
-            WorkerThread(std::function<void()> work, ThreadPool* pool);
-
-            void signalWork(std::function<void(void)> work);
-            bool isWorking() const;
-
-            /** Signal the thread to stop after completing its current work */
-            void stop();
-            /** Stop and join the thread. Returns after the thread has stopped. */
-            void join();
-
-        private:
-            ThreadPool* owningPool;
-            std::thread thread;
-            bool stopThread{ false };
-
-            std::function<void(void)> work;
-
-            bool hasWork{ false };
-            std::condition_variable cvar;
-            std::mutex mutex;
-        };
-
-        /** Spawn a new thread. Is called in execute(). */
-        auto spawnThread(std::function<void(void)> initialWork) -> WorkerThread&;
-
         /**
          * Execute a function asynchronously.
          *
@@ -102,14 +65,14 @@ namespace trc::async
          */
         void execute(std::function<void()> func);
 
-        // Maximum number of worker threads in the pool
-        uint32_t maxThreads{ UINT32_MAX };
+        struct Work
+        {
+            std::function<void()> work;
+            bool terminateThread;
+        };
 
-        // Use unique_ptrs to make the thread pool reliably movable
-        std::vector<std::unique_ptr<WorkerThread>> workers;
-        std::vector<WorkerThread*> idleWorkers;
-        std::mutex workerListLock;
-        std::mutex idleWorkerListLock;
+        std::vector<std::thread> workers;
+        data::ThreadsafeQueue<Work> workQueue;
     };
 
 

@@ -75,7 +75,7 @@ auto trc::RenderLayout::record(
     for (std::atomic<ui32> index = 0; const Stage& stage : stages)
     {
         vk::CommandBuffer cmdBuf = **commandBuffers.at(index++);
-        futures.emplace_back(threadPool.async([&, cmdBuf] {
+        futures.emplace_back(threadPool->async([&, cmdBuf] {
             return recordStage(cmdBuf, config, scene, state, stage);
         }));
     }

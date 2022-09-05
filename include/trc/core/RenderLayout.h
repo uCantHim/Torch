@@ -7,6 +7,7 @@
 #include <trc_util/async/ThreadPool.h>
 #include <trc_util/functional/Maybe.h>
 
+#include "trc/Types.h"
 #include "RenderStage.h"
 
 namespace trc
@@ -71,6 +72,6 @@ namespace trc
         std::vector<vk::UniqueCommandPool> commandPools;
         std::vector<vkb::FrameSpecific<vk::UniqueCommandBuffer>> commandBuffers;
 
-        async::ThreadPool threadPool;
+        u_ptr<async::ThreadPool> threadPool{ new async::ThreadPool };
     };
 } // namespace trc
