@@ -7,10 +7,18 @@ option(SCENE_EDITOR_BUILD_TESTS "Build unittests for the scene editor" ON)
 if (NOT TARGET argparse)
     message(FATAL_ERROR "argparse should be available from the pipeline compiler!")
 endif ()
+if (NOT TARGET nlohmann_json::nlohmann_json)
+    message(FATAL_ERROR "nlohmann-json should be available from the pipeline compiler!")
+endif ()
 
 add_library(scene_editor)
 torch_default_compile_options(scene_editor)
-target_link_libraries(scene_editor PUBLIC torch component argparse)
+target_link_libraries(scene_editor PUBLIC
+    torch
+    component
+    argparse
+    nlohmann_json::nlohmann_json
+)
 
 add_subdirectory(src)
 
