@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
+#include <mutex>
 #include <unordered_map>
+#include <vector>
 
 #include "RenderStage.h"
 #include "RenderPass.h"
@@ -48,6 +49,7 @@ namespace trc
         auto getDynamicRenderPasses(RenderStage::ID stage) -> const std::vector<RenderPass*>&;
 
     private:
+        std::mutex mutex;
         std::unordered_map<RenderStage::ID, std::vector<RenderPass*>> dynamicPasses;
     };
 } // namespace trc
