@@ -2,27 +2,16 @@
 
 #include <glm/detail/type_half.hpp>
 
-#include "Camera.h"
-
 
 
 trc::GBufferPass::GBufferPass(
     const vkb::Device& device,
-    const vkb::Swapchain& swapchain,
-    vkb::FrameSpecific<GBuffer>& gBuffer)
+    vkb::FrameSpecific<GBuffer>& _gBuffer)
     :
     RenderPass(makeVkRenderPass(device), NUM_SUBPASSES),
-    depthPixelReadBuffer(
-        device,
-        sizeof(float),
-        vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
-        | vk::MemoryPropertyFlagBits::eHostCoherent
-    ),
-    swapchain(swapchain),
-    gBuffer(gBuffer),
+    gBuffer(_gBuffer),
     framebufferSize(gBuffer->getSize()),
-    framebuffers(swapchain, [&](ui32 frameIndex)
+    framebuffers(gBuffer.getFrameClock(), [&](ui32 frameIndex)
     {
         const GBuffer& g = gBuffer.getAt(frameIndex);
 
@@ -98,22 +87,11 @@ void trc::GBufferPass::begin(
 void trc::GBufferPass::end(vk::CommandBuffer cmdBuf)
 {
     cmdBuf.endRenderPass();
-    copyMouseDataToBuffers(cmdBuf);
 }
 
 void trc::GBufferPass::setClearColor(const vec4 c)
 {
     clearValues[1] = vk::ClearColorValue(std::array<float, 4>{ c.r, c.g, c.b, c.a });
-}
-
-auto trc::GBufferPass::getMouseDepth() const noexcept -> float
-{
-    const ui32 depthValueD24S8 = depthBufMap[0];
-
-    // Don't ask me why 16 bit here, I think it should be 24. The result is
-    // correct when we use 65536 as depth 1.0 (maximum depth) though.
-    constexpr float maxFloat16 = 65536.0f;  // 2^16
-    return static_cast<float>(depthValueD24S8 >> 8) / maxFloat16;
 }
 
 auto trc::GBufferPass::makeVkRenderPass(const vkb::Device& device)
@@ -203,55 +181,5 @@ auto trc::GBufferPass::makeVkRenderPass(const vkb::Device& device)
 
     return device->createRenderPassUnique(
         vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
-    );
-}
-
-void trc::GBufferPass::copyMouseDataToBuffers(vk::CommandBuffer cmdBuf)
-{
-    vkb::Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
-    const ivec2 size{ depthImage.getSize() };
-    const ivec2 mousePos = glm::clamp(ivec2(swapchain.getMousePosition()), ivec2(0), size - 1);
-
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eEarlyFragmentTests
-        | vk::PipelineStageFlagBits::eLateFragmentTests,
-        vk::PipelineStageFlagBits::eTransfer,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-            vk::AccessFlagBits::eTransferRead,
-            vk::ImageLayout::eDepthStencilAttachmentOptimal,
-            vk::ImageLayout::eTransferSrcOptimal,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            *depthImage,
-            { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
-        )
-    );
-    cmdBuf.copyImageToBuffer(
-        *depthImage, vk::ImageLayout::eTransferSrcOptimal,
-        *depthPixelReadBuffer,
-        vk::BufferImageCopy(
-            0, // buffer offset
-            0, 0, // some weird 2D or 3D offsets, idk
-            vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eDepth, 0, 0, 1),
-            { mousePos.x, mousePos.y, 0 },
-            { 1, 1, 1 }
-        )
-    );
-    cmdBuf.pipelineBarrier(
-        vk::PipelineStageFlagBits::eTransfer,
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::DependencyFlagBits::eByRegion,
-        {}, {},
-        vk::ImageMemoryBarrier(
-            vk::AccessFlagBits::eTransferRead,
-            vk::AccessFlagBits::eShaderRead,
-            vk::ImageLayout::eTransferSrcOptimal,
-            vk::ImageLayout::eShaderReadOnlyOptimal,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-            *depthImage,
-            { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
-        )
     );
 }

@@ -1,14 +1,15 @@
 #include "TorchRenderConfig.h"
 
-#include "core/Window.h"
-#include "core/DrawConfiguration.h"
-#include "text/Font.h"
 #include "trc_util/Timer.h"
-#include "TorchResources.h"
-#include "GBufferPass.h"
-#include "PipelineDefinitions.h"  // TODO: Enums are here - remove this
+#include "trc/text/Font.h"
+#include "trc/core/DrawConfiguration.h"
+#include "trc/core/Window.h"
+#include "trc/TorchResources.h"
+#include "trc/GBufferPass.h"
 
 
+
+const trc::RenderStage mouseDepthReadStage;
 
 auto trc::makeDeferredRenderGraph() -> RenderGraph
 {
@@ -17,7 +18,8 @@ auto trc::makeDeferredRenderGraph() -> RenderGraph
     graph.first(resourceUpdateStage);
     graph.after(resourceUpdateStage, shadowRenderStage);
     graph.after(shadowRenderStage, gBufferRenderStage);
-    graph.after(gBufferRenderStage, finalLightingRenderStage);
+    graph.after(gBufferRenderStage, mouseDepthReadStage);
+    graph.after(mouseDepthReadStage, finalLightingRenderStage);
 
     return graph;
 }
@@ -105,6 +107,8 @@ void trc::TorchRenderConfig::setViewport(uvec2 offset, uvec2 size)
 {
     assert(finalLightingPass != nullptr);
 
+    viewportOffset = offset;
+    viewportSize = size;
     createGBuffer(size);
     finalLightingPass->setTargetArea(offset, size);
 }
@@ -201,7 +205,7 @@ auto trc::TorchRenderConfig::getShadowPool() const -> const ShadowPool&
 
 auto trc::TorchRenderConfig::getMouseDepth() const -> float
 {
-    return gBufferPass->getMouseDepth();
+    return mouseDepthReader->getMouseDepth();
 }
 
 auto trc::TorchRenderConfig::getMousePosAtDepth(const Camera& camera, const float depth) const
@@ -209,18 +213,21 @@ auto trc::TorchRenderConfig::getMousePosAtDepth(const Camera& camera, const floa
 {
     const vec2 mousePos = glm::clamp([this]() -> vec2 {
 #ifdef TRC_FLIP_Y_PROJECTION
-        return window.getMousePositionLowerLeft();
+        auto pos = window.getMousePositionLowerLeft();
+        pos.x -= viewportOffset.x;
+        pos.y -= window.getWindowSize().y - (viewportOffset.y + viewportSize.y);
+        return pos;
 #else
-        return window.getMousePosition();
+        return window.getMousePosition() - vec2(viewportOffset);
 #endif
-    }(), vec2(0.0f, 0.0f), vec2(window.getSize()) - 1.0f);
+    }(), vec2(0.0f, 0.0f), vec2(viewportSize) - 1.0f);
 
-    return camera.unproject(mousePos, depth, window.getSize());
+    return camera.unproject(mousePos, depth, viewportSize);
 }
 
 auto trc::TorchRenderConfig::getMouseWorldPos(const Camera& camera) const -> vec3
 {
-    return getMousePosAtDepth(camera, gBufferPass->getMouseDepth());
+    return getMousePosAtDepth(camera, mouseDepthReader->getMouseDepth());
 }
 
 void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
@@ -233,8 +240,18 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
 
     // Delete resources
     layout.removePass(gBufferRenderStage, *gBufferPass);
+    if (mouseDepthReader != nullptr)
+    {
+        layout.removePass(mouseDepthReadStage, *mouseDepthReader);
+        mouseDepthReader.reset();
+    }
     gBufferPass.reset();
     gBuffer.reset();
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        const float time = timer.reset();
+        std::cout << "GBuffer resources destroyed (" << time << " ms)\n";
+    }
 
     // Create new g-buffer
     gBuffer = std::make_unique<vkb::FrameSpecific<GBuffer>>(
@@ -249,7 +266,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     if constexpr (vkb::enableVerboseLogging)
     {
         const float time = timer.reset();
-        std::cout << "GBuffer recreated for new swapchain (" << time << " ms)\n";
+        std::cout << "GBuffer recreated (" << time << " ms)\n";
     }
 
     // Update g-buffer descriptor
@@ -261,17 +278,19 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
         std::cout << "GBuffer descriptor updated (" << time << " ms)\n";
     }
 
-    // Create new renderpass
-    gBufferPass = std::make_unique<GBufferPass>(
+    // Create new renderpasses
+    gBufferPass = std::make_unique<GBufferPass>(window.getDevice(), *gBuffer);
+    layout.addPass(gBufferRenderStage, *gBufferPass);
+    mouseDepthReader = std::make_unique<GBufferDepthReader>(
         window.getDevice(),
-        window.getSwapchain(),
+        [this]{ return window.getMousePosition() - vec2(viewportOffset); },
         *gBuffer
     );
-    layout.addPass(gBufferRenderStage, *gBufferPass);
+    layout.addPass(mouseDepthReadStage, *mouseDepthReader);
 
     if constexpr (vkb::enableVerboseLogging)
     {
         const float time = timer.reset();
-        std::cout << "Deferred renderpass recreated for new swapchain (" << time << " ms)\n";
+        std::cout << "Deferred renderpass recreated (" << time << " ms)\n";
     }
 }

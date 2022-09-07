@@ -8,8 +8,6 @@
 
 namespace trc
 {
-    class Camera;
-
     /**
      * @brief The main deferred renderpass
      *
@@ -32,8 +30,7 @@ namespace trc
         };
 
         GBufferPass(const vkb::Device& device,
-                           const vkb::Swapchain& swapchain,
-                           vkb::FrameSpecific<GBuffer>& gBuffer);
+                    vkb::FrameSpecific<GBuffer>& gBuffer);
 
         void begin(vk::CommandBuffer cmdBuf,
                    vk::SubpassContents subpassContents,
@@ -41,15 +38,6 @@ namespace trc
         void end(vk::CommandBuffer cmdBuf) override;
 
         void setClearColor(vec4 color);
-
-        /**
-         * @brief Get the depth of pixel under the mouse cursor
-         *
-         * @return float Depth of the pixel which contains the mouse cursor.
-         *               Is the last read depth value if the cursor is not
-         *               in a window.
-         */
-        auto getMouseDepth() const noexcept -> float;
 
         /**
          * @brief Make only a vk::RenderPass but don't allocate any
@@ -64,13 +52,7 @@ namespace trc
         static auto makeVkRenderPass(const vkb::Device& device) -> vk::UniqueRenderPass;
 
     private:
-        void copyMouseDataToBuffers(vk::CommandBuffer cmdBuf);
-        vkb::Buffer depthPixelReadBuffer;
-        ui32* depthBufMap{ depthPixelReadBuffer.map<ui32*>() };
-
-        const vkb::Swapchain& swapchain;
         vkb::FrameSpecific<GBuffer>& gBuffer;
-
         uvec2 framebufferSize;
         vkb::FrameSpecific<Framebuffer> framebuffers;
 

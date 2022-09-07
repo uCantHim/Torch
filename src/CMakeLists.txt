@@ -11,6 +11,7 @@ target_sources(
         FinalLightingPass.cpp
         Framebuffer.cpp
         GBuffer.cpp
+        GBufferDepthReader.cpp
         GBufferPass.cpp
         Light.cpp
         LightRegistry.cpp

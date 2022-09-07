@@ -3,17 +3,19 @@
 #include <vkb/event/Event.h>
 
 #include "Types.h"
+#include "core/DescriptorProviderWrapper.h"
 #include "core/Instance.h"
 #include "core/RenderConfigImplHelper.h"
+#include "core/RenderGraph.h"
 #include "core/RenderPass.h"
 #include "core/SceneBase.h"
-#include "core/RenderGraph.h"
-#include "core/DescriptorProviderWrapper.h"
+#include "core/Viewport.h"
 
-#include "GBufferPass.h"
-#include "RenderPassShadow.h"
 #include "FinalLightingPass.h"
+#include "GBufferDepthReader.h"
+#include "GBufferPass.h"
 #include "RenderDataDescriptor.h"
+#include "RenderPassShadow.h"
 #include "SceneDescriptor.h"
 #include "ShadowPool.h"
 #include "assets/AssetRegistry.h"
@@ -118,10 +120,13 @@ namespace trc
         void createGBuffer(uvec2 newSize);
 
         const Window& window;
+        ivec2 viewportOffset{ 0, 0 };
+        uvec2 viewportSize{ 1, 1 };
 
         // Default render passes
         u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;
         u_ptr<GBufferPass> gBufferPass;
+        u_ptr<GBufferDepthReader> mouseDepthReader;
         RenderPassShadow shadowPass;
         u_ptr<FinalLightingPass> finalLightingPass;
 
