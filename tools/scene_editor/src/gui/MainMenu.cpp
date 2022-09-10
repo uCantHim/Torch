@@ -10,7 +10,7 @@ gui::MainMenu::MainMenu(App& app)
     :
     app(app),
     fileExplorer(*this),
-    assetEditor(app)
+    assetEditor(*this)
 {
 }
 

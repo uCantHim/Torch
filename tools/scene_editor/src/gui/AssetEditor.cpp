@@ -20,11 +20,12 @@ template<> inline constexpr const char* assetTypeName<HitboxAsset>{ "Hitbox" };
 
 
 
-gui::AssetEditor::AssetEditor(App& _app)
+gui::AssetEditor::AssetEditor(MainMenu& menu)
     :
-    app(_app),
-    assets(_app.getAssets()),
-    dir(_app.getProject().getStorageDir())
+    app(menu.getApp()),
+    mainMenu(menu),
+    assets(app.getAssets()),
+    dir(app.getProject().getStorageDir())
 {
 }
 
@@ -44,55 +45,46 @@ void gui::AssetEditor::drawMaterialGui()
     ig::PushItemWidth(200);
     util::textInputWithButton("Add material", matNameBuf.data(), matNameBuf.size(), [this]()
     {
-        const std::string matName(matNameBuf.data());
+        std::string matName(matNameBuf.data());
         if (matName.empty()) return;
 
-        try {
-            // Create resource on disk
-            const trc::AssetPath path(matName);
-            dir.save(path, trc::MaterialData{});
+        // Create resource on disk
+        const trc::AssetPath path(std::move(matName));
+        if (dir.exists(path)) {
+            return;
+        }
 
-            // Create asset
-            editedMaterial = assets.create<trc::Material>(path);
-            editedMaterialCopy = {}; // New material
-        }
-        catch (const trc::DuplicateKeyError& err) {
-            // Nothing
-        }
+        // Create asset
+        auto newMat = assets.create<trc::Material>(path);
+        editMaterial(newMat);
     });
     ig::PopItemWidth();
 
-    // Draw material editor
-    if (editedMaterial)
+    if (strlen(matNameBuf.data()) && dir.exists(trc::AssetPath(matNameBuf.data())))
     {
-        materialEditor("Material Editor", editedMaterialCopy,
-            [this]() {
-                // Material has been saved
-                assets.getModule<trc::Material>().modify(
-                    editedMaterial.getDeviceID(),
-                    [&](auto& mat) { mat = editedMaterialCopy; }
-                );
-
-                // Save changes on disk
-                dir.save(
-                    trc::AssetPath(editedMaterial.getMetaData().name),
-                    editedMaterialCopy
-                );
-
-                editedMaterial = trc::MaterialID::NONE;
-            },
-            [this]() {
-                // Don't save; edit has been canceled
-                editedMaterial = trc::MaterialID::NONE;
-            }
-        );
+        ig::PushStyleColor(ImGuiCol_Text, 0xFF0000FF);
+        ig::Text("An asset already exists at the path!");
+        ig::PopStyleColor();
     }
+}
+
+void gui::AssetEditor::editMaterial(trc::MaterialID mat)
+{
+    mainMenu.openWindow(MaterialEditorWindow(
+        mat,
+        [this](trc::MaterialID mat, trc::MaterialData data) {
+            // Save changes to disk
+            dir.save(trc::AssetPath(mat.getMetaData().path.value()), data);
+        }
+    ));
 }
 
 void gui::AssetEditor::drawAssetList()
 {
+    ig::SetNextItemWidth(ig::GetWindowWidth());
+
     // Show a material editor for every material that's being edited
-    if (ig::BeginListBox("Assets"))
+    if (ig::BeginListBox("##assets"))
     {
         dir.foreach(trc::util::VariantVisitor{
             [this]<trc::AssetBaseType T>(const auto& path){ drawListEntry<T>(path); },
@@ -146,8 +138,7 @@ void gui::AssetEditor::drawEntryContextMenu<trc::Material>(const trc::AssetPath&
     if (ig::Button("Edit"))
     {
         const auto id = assets.get<trc::Material>(path);
-        editedMaterial = id;
-        editedMaterialCopy = assets.getModule<trc::Material>().getData(id.getDeviceID());
+        editMaterial(id);
     }
     drawDefaultEntryContext(path);
 }

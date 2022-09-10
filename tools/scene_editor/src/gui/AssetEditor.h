@@ -14,15 +14,18 @@ class App;
 
 namespace gui
 {
+    class MainMenu;
+
     class AssetEditor
     {
     public:
-        explicit AssetEditor(App& app);
+        explicit AssetEditor(MainMenu& menu);
 
         void drawImGui();
 
     private:
         App& app;
+        MainMenu& mainMenu;
         trc::AssetManager& assets;
         ProjectDirectory& dir;
 
@@ -34,13 +37,9 @@ namespace gui
         void drawDefaultEntryContext(const trc::AssetPath& path);
 
         void drawMaterialGui();
+        void editMaterial(trc::MaterialID mat);
 
         std::array<char, 512> matNameBuf{};
-        trc::MaterialID editedMaterial;
-
-        // The edited material is a copy. A click on the save button
-        // updates the actual material in the AssetRegistry.
-        trc::MaterialData editedMaterialCopy;
 
         void defer(std::function<void(ProjectDirectory&)> func);
         std::vector<std::function<void(ProjectDirectory&)>> deferredFunctions;
