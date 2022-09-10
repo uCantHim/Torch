@@ -109,7 +109,7 @@ private:
 
 SceneEditorFileExplorer::SceneEditorFileExplorer(MainMenu& menu)
     :
-    fileExplorer("File Explorer", [&menu](const fs::path& selectedFile) {
+    fileExplorer([&menu](const fs::path& selectedFile) {
         ContextMenu::show("Context", FileContextMenu(menu, selectedFile));
     })
 {

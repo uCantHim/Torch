@@ -33,6 +33,10 @@ App::App(Project _project)
     scene(*this),
     mainMenu(*this)
 {
+    vec2 size = torch->getWindow().getWindowSize();
+    torch->getRenderConfig().setViewport({ size.x * 0.25f, 0.0f }, size);
+    scene.getCamera().setAspect(size.x / size.y);
+
     assetManager->getDeviceRegistry().addModule<HitboxAsset>();
 
     // Register all assets from disk at the AssetManager

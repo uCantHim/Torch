@@ -25,12 +25,11 @@ namespace gui
     class FileExplorer
     {
     public:
-        FileExplorer(std::string title, std::function<void(const fs::path&)> fileClickCallback);
+        explicit FileExplorer(std::function<void(const fs::path&)> fileClickCallback);
 
         void drawImGui();
 
     private:
-        std::string title;
         std::function<void(const fs::path&)> fileClickCallback;
 
         // UI settings

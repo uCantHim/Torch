@@ -58,11 +58,8 @@ void fileExplorer(const fs::path& currentPath, auto onFileClick, bool showHidden
 
 
 
-FileExplorer::FileExplorer(
-    std::string title,
-    std::function<void(const fs::path&)> fileClickCallback)
+FileExplorer::FileExplorer(std::function<void(const fs::path&)> fileClickCallback)
     :
-    title(std::move(title)),
     fileClickCallback(std::move(fileClickCallback))
 {
 }
@@ -75,9 +72,6 @@ void FileExplorer::drawImGui()
         memcpy(result.data(), currentPath.data(), currentPath.size());
         return result;
     }()};
-
-    imGuiTryBegin(title.c_str());
-    trc::imgui::WindowGuard guard;
 
     ig::PushItemWidth(200);
     ig::InputText("Enter a directory path", directoryBuf.data(), 4096);

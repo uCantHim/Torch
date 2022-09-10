@@ -14,15 +14,6 @@ class App;
 
 namespace gui
 {
-    template<typename U> constexpr const char* assetTypeName{ "" };
-    template<> inline constexpr const char* assetTypeName<trc::Material>{ "Material" };
-    template<> inline constexpr const char* assetTypeName<trc::Geometry>{ "Geometry" };
-    template<> inline constexpr const char* assetTypeName<trc::Texture>{ "Texture" };
-    template<> inline constexpr const char* assetTypeName<trc::Rig>{ "Rig" };
-    template<> inline constexpr const char* assetTypeName<trc::Animation>{ "Animation" };
-    template<> inline constexpr const char* assetTypeName<trc::Font>{ "Font" };
-    template<> inline constexpr const char* assetTypeName<HitboxAsset>{ "Hitbox" };
-
     class AssetEditor
     {
     public:
