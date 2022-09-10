@@ -64,6 +64,9 @@ namespace trc
         auto getDeviceDataHandle() const;
         auto getMetaData() const -> const AssetMetaData&;
 
+        auto getAssetManager() -> AssetManagerFwd&;
+        auto getModule() -> AssetRegistryModule<T>&;
+
     private:
         /** ID that references metadata common to all assets */
         AssetID uniqueId{ AssetID::NONE };
@@ -143,5 +146,19 @@ namespace trc
     auto TypedAssetID<T>::getMetaData() const -> const AssetMetaData&
     {
         return manager->getMetaData(*this);
+    }
+
+    template<AssetBaseType T>
+    auto TypedAssetID<T>::getAssetManager() -> AssetManagerFwd&
+    {
+        assert(manager != nullptr);
+        return *manager;
+    }
+
+    template<AssetBaseType T>
+    auto TypedAssetID<T>::getModule() -> AssetRegistryModule<T>&
+    {
+        assert(manager != nullptr);
+        return manager->getModule<T>();
     }
 } // namespace trc
