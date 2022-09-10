@@ -12,12 +12,21 @@ namespace trc::experimental::imgui
 {
     struct WindowGuard
     {
+        WindowGuard() = default;
+
+        /**
+         * @brief Manually close the window
+         */
+        void close() {
+            guard.reset();
+        }
+
+    private:
         std::unique_ptr<int, std::function<void(int*)>> guard{
             &dummy,
             [](int*) { ig::End(); }
         };
 
-    private:
         static inline int dummy{ 0 };
     };
 
