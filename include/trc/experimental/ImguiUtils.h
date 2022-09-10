@@ -1,5 +1,9 @@
 #pragma once
 
+#include <concepts>
+#include <initializer_list>
+#include <utility>
+
 #include "ImguiIntegration.h"
 
 // End frame and issue return-statement immediately if Begin returns false
@@ -10,24 +14,52 @@
 
 namespace trc::experimental::imgui
 {
+    /**
+     * @brief RAII guard for ImGui windows
+     *
+     * Does *NOT* begin a window!
+     */
     struct WindowGuard
     {
+        WindowGuard(const WindowGuard&) = delete;
+        WindowGuard(WindowGuard&&) noexcept = delete;
+        WindowGuard& operator=(const WindowGuard&) = delete;
+        WindowGuard& operator=(WindowGuard&&) noexcept = delete;
+
         WindowGuard() = default;
+        ~WindowGuard() noexcept;
 
         /**
          * @brief Manually close the window
+         *
+         * Close a window before the guard's stack frame dies. ig::End()
+         * will not be called in the destructor if close() has been called
+         * first.
          */
-        void close() {
-            guard.reset();
-        }
+        void close();
 
     private:
-        std::unique_ptr<int, std::function<void(int*)>> guard{
-            &dummy,
-            [](int*) { ig::End(); }
-        };
+        bool closed{ false };
+    };
 
-        static inline int dummy{ 0 };
+    /**
+     * @brief RAII for ImGuiStyleVars
+     */
+    struct StyleVar
+    {
+    public:
+        StyleVar(const StyleVar&) = delete;
+        StyleVar(StyleVar&&) noexcept = delete;
+        StyleVar& operator=(const StyleVar&) = delete;
+        StyleVar& operator=(StyleVar&&) noexcept = delete;
+
+        explicit StyleVar(ImGuiStyleVar var, float value);
+        StyleVar(std::initializer_list<std::pair<ImGuiStyleVar, float>> vars);
+
+        ~StyleVar() noexcept;
+
+    private:
+        size_t numStyleVars;
     };
 
     /**
