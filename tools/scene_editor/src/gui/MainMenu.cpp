@@ -20,6 +20,7 @@ void gui::MainMenu::drawImGui()
     ig::SetNextWindowPos({ -1, -1 });
     ig::SetNextWindowSize({ windowSize.x * 0.25f, windowSize.y + 2 });
     ig::SetNextWindowBgAlpha(1.0f);
+    trc::imgui::StyleVar style(ImGuiStyleVar_WindowBorderSize, 0);
 
     int flags = ImGuiWindowFlags_NoResize
               | ImGuiWindowFlags_NoTitleBar
