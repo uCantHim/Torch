@@ -9,7 +9,6 @@
 #include "core/RenderGraph.h"
 #include "core/RenderPass.h"
 #include "core/SceneBase.h"
-#include "core/Viewport.h"
 
 #include "FinalLightingPass.h"
 #include "GBufferDepthReader.h"
