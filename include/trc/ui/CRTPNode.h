@@ -11,15 +11,19 @@ namespace trc::ui
     {
     public:
         CRTPNode(const CRTPNode&) = delete;
+        CRTPNode(CRTPNode&&) noexcept = default;
         auto operator=(const CRTPNode&) = delete;
+        auto operator=(CRTPNode&&) noexcept -> CRTPNode& = default;
 
         CRTPNode() {
             static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
         }
-        CRTPNode(CRTPNode&&) noexcept = default;
-        ~CRTPNode();
 
-        auto operator=(CRTPNode&&) noexcept -> CRTPNode& = default;
+        ~CRTPNode() noexcept {
+            if (parent != nullptr) {
+                parent->detach(static_cast<Derived&>(*this));
+            }
+        }
 
         void attach(Derived& child);
         void detach(Derived& child);

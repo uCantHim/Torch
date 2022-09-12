@@ -8,17 +8,17 @@
 
 trc::DeviceLocalDataWriter::DeviceLocalDataWriter(
     const vkb::Device& device,
-    const vkb::DeviceMemoryAllocator& alloc)
+    vkb::DeviceMemoryAllocator alloc)
     :
     device(device),
-    alloc(alloc)
+    alloc(std::move(alloc))
 {
     updateData.emplace_back(new PersistentUpdateStructures);
 }
 
 void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
 {
-    PersistentUpdateStructures* frame;
+    PersistentUpdateStructures* frame{ nullptr };
     {
         std::scoped_lock lock(updateDataLock);
 
@@ -107,7 +107,7 @@ void trc::DeviceLocalDataWriter::write(
     assert(size > 0);
 
     std::scoped_lock lock(updateDataLock);
-    getCurrentUpdateStruct().pendingBufferWrites.emplace_back(
+    getCurrentUpdateStruct().pendingBufferWrites.push_back({
         dst,
         vkb::Buffer(
             device,
@@ -117,7 +117,7 @@ void trc::DeviceLocalDataWriter::write(
             alloc
         ),
         vk::BufferCopy(0, dstOffset, size)
-    );
+    });
 }
 
 void trc::DeviceLocalDataWriter::write(
@@ -133,7 +133,7 @@ void trc::DeviceLocalDataWriter::write(
     assert(size > 0);
 
     std::scoped_lock lock(updateDataLock);
-    getCurrentUpdateStruct().pendingImageWrites.emplace_back(
+    getCurrentUpdateStruct().pendingImageWrites.push_back({
         dst,
         vkb::Buffer(
             device,
@@ -143,7 +143,7 @@ void trc::DeviceLocalDataWriter::write(
             alloc
         ),
         vk::BufferImageCopy(0, 0, 0, subres, dstOffset, dstExtent)
-    );
+    });
 }
 
 void trc::DeviceLocalDataWriter::barrierPreWrite(

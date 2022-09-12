@@ -13,6 +13,9 @@ public:
     /** @brief Enums are translated into these flag types */
     struct FlagDesc
     {
+        FlagDesc(std::string name, std::vector<std::string> bits)
+            : flagName(std::move(name)), flagBits(std::move(bits)) {}
+
         std::string flagName;
         std::vector<std::string> flagBits;
     };

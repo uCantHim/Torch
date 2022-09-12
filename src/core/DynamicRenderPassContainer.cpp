@@ -14,8 +14,13 @@ void trc::DynamicRenderPassContainer::addRenderPass(RenderStage::ID stage, Rende
 void trc::DynamicRenderPassContainer::removeRenderPass(RenderStage::ID stage, RenderPass& pass)
 {
     auto it = dynamicPasses.find(stage);
-    if (it != dynamicPasses.end()) {
-        std::ranges::remove_if(it->second, [&](auto el) { return el == &pass; });
+    if (it != dynamicPasses.end())
+    {
+        auto& vec = it->second;
+        auto end = std::remove_if(vec.begin(), vec.end(), [&](auto el) { return el == &pass; });
+        if (end != vec.end()) {
+            vec.erase(end, vec.end());
+        }
     }
 }
 

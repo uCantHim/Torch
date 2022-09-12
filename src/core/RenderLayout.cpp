@@ -26,7 +26,7 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
     stages.reserve(graph.size());
     for (const StageInfo& info : graph.stages)
     {
-        Stage& stage = stages.emplace_back(info.stage, info.renderPasses);
+        Stage& stage = stages.emplace_back(Stage{ info.stage, info.renderPasses, {}, {} });
         stageStorage[stage.id] = { &info, &stage };
     }
 

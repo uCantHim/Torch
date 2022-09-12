@@ -302,8 +302,8 @@ auto Table<Component, Key>::join(TableType& other)
     -> IteratorRange<JoinIterator<TableType>>
 {
     return IteratorRange(
-        JoinIterator(*this, other),
-        JoinIterator(
+        JoinIterator<TableType>(*this, other),
+        JoinIterator<TableType>(
             IteratorRange(keyEnd(), keyEnd()),
             IteratorRange(other.keyEnd(), other.keyEnd())
         )

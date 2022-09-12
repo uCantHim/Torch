@@ -60,6 +60,9 @@ namespace compiler
     {
         struct Variant
         {
+            Variant(VariantFlagSet set, std::shared_ptr<Value> val)
+                : setFlags(std::move(set)), value(std::move(val)) {}
+
             VariantFlagSet setFlags;
             std::shared_ptr<Value> value;
         };

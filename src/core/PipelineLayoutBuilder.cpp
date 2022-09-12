@@ -44,7 +44,7 @@ auto trc::PipelineLayoutBuilder::addPushConstantRange(
     std::optional<PushConstantDefaultValue> defaultValue
     ) -> Self&
 {
-    pushConstants.emplace_back(range, std::move(defaultValue));
+    pushConstants.push_back({ range, std::move(defaultValue) });
     return *this;
 }
 
@@ -71,7 +71,7 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
         descNames.emplace_back(std::get<Descriptor>(def));
     }
 
-    return { std::move(descNames), pushConstants };
+    return { descNames, pushConstants };
 }
 
 auto trc::PipelineLayoutBuilder::build(const vkb::Device& device, RenderConfig& renderConfig)
@@ -106,7 +106,7 @@ auto trc::PipelineLayoutBuilder::build(const vkb::Device& device, RenderConfig& 
         pcRanges.emplace_back(pc.range);
     }
 
-    auto layout = makePipelineLayout(device, std::move(descLayouts), std::move(pcRanges));
+    auto layout = makePipelineLayout(device, descLayouts, pcRanges);
 
     // Set static descriptors and default push constant values
     for (ui32 i = 0; const auto& [p, isStatic] : providers)

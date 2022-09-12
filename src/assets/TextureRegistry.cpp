@@ -141,7 +141,7 @@ void TextureRegistry::load(const LocalID id)
         vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
         { 0, 0, 0 },
         image.getExtent(),
-        data.pixels.data(), data.size.x * data.size.y * 4
+        data.pixels.data(), size_t{data.size.x} * size_t{data.size.y} * 4
     );
     dataWriter.barrierPostWrite(
         vk::PipelineStageFlagBits::eTransfer,
@@ -164,8 +164,7 @@ void TextureRegistry::load(const LocalID id)
 
     // Store resources
     tex.deviceData = std::make_unique<InternalStorage::Data>(
-        std::move(image),
-        std::move(imageView)
+        InternalStorage::Data{ std::move(image), std::move(imageView) }
     );
 }
 

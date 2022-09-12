@@ -12,6 +12,8 @@ class InputState;
 class CommandState
 {
 public:
+    virtual ~CommandState() = default;
+
     virtual bool update(float timeDelta) = 0;
     virtual void onExit() = 0;
 };

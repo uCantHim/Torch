@@ -338,8 +338,6 @@ void trc::rt::buildAccelerationStructures(
         );
     }
 
-    geoBuildInfos[0].pGeometries[0].geometry.triangles.vertexData;
-
     // Collect build ranges for all acceleration structures
     std::vector<const vk::AccelerationStructureBuildRangeInfoKHR*> buildRangePointers;
     std::vector<std::unique_ptr<std::vector<vk::AccelerationStructureBuildRangeInfoKHR>>> buildRanges;

@@ -17,7 +17,7 @@ namespace trc
     {
     public:
         explicit DeviceLocalDataWriter(const vkb::Device& device,
-                                       const vkb::DeviceMemoryAllocator& alloc
+                                       vkb::DeviceMemoryAllocator alloc
                                            = vkb::DefaultDeviceMemoryAllocator{});
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& state);

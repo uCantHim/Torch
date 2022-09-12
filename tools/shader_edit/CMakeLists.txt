@@ -1,5 +1,9 @@
 # Dependencies
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz)
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    GIT_TAG        master
+)
 FetchContent_MakeAvailable(json)
 
 # Library

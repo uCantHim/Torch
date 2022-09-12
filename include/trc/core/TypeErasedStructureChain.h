@@ -10,9 +10,17 @@ namespace trc
     template<typename T, typename ...Us>
     constexpr bool first_is = std::same_as<std::tuple_element_t<0, std::tuple<Us...>>, T>;
 
+    template<typename T>
+    inline constexpr bool first_is<T> = false;
+
     class TypeErasedStructureChain
     {
     public:
+        TypeErasedStructureChain(const TypeErasedStructureChain&) = delete;
+        TypeErasedStructureChain(TypeErasedStructureChain&&) noexcept = delete;
+        TypeErasedStructureChain& operator=(const TypeErasedStructureChain&) = delete;
+        TypeErasedStructureChain& operator=(TypeErasedStructureChain&&) noexcept = delete;
+
         TypeErasedStructureChain();
 
         /**

@@ -26,7 +26,7 @@ namespace trc
 
         Transformation(const Transformation& other) = default;
         Transformation(Transformation&& other) noexcept = default;
-        ~Transformation() = default;
+        virtual ~Transformation() = default;
 
         auto operator=(const Transformation& rhs) -> Transformation& = default;
         auto operator=(Transformation&& rhs) noexcept -> Transformation& = default;

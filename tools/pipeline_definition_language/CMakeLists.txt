@@ -9,7 +9,7 @@ include(FetchContent)
 FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse
-    GIT_TAG        f5ea927f6b3beae2ac924ffde27f570bb9a7d294
+    GIT_TAG        master
 )
 FetchContent_MakeAvailable(argparse)
 

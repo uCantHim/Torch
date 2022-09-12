@@ -40,14 +40,16 @@ struct ComponentID
 
     inline auto toString() const -> std::string
     {
-        if (*this == NONE) return "NONE";
-        else               return std::to_string(id);
+        if (*this == NONE) {
+            return "NONE";
+        }
+        return std::to_string(id);
     }
 
 private:
     // Make ComponentID able to be used as a Table<> key
     template<typename, TableKey> friend class Table;
-    template<typename>           friend class TableKeyIterator;
+    template<typename>           friend struct TableKeyIterator;
 
     template<typename, TableKey>
     friend class ComponentStorage;  // Required for ID allocation
@@ -73,19 +75,16 @@ inline auto operator<<(std::ostream& s, const ComponentID<T>& obj) -> std::ostre
 
 } // namespace componentlib
 
-namespace std
+template<typename T>
+struct std::hash<componentlib::ComponentID<T>>
 {
-    template<typename T>
-    struct hash<componentlib::ComponentID<T>>
-    {
-        size_t operator()(const componentlib::ComponentID<T>& obj) const noexcept {
-            return obj.id;
-        }
-    };
-
-    template<typename T>
-    inline auto to_string(const componentlib::ComponentID<T>& id) -> std::string
-    {
-        return id.toString();
+    size_t operator()(const componentlib::ComponentID<T>& obj) const noexcept {
+        return obj.id;
     }
+};
+
+template<typename T>
+inline auto to_string(const componentlib::ComponentID<T>& id) -> std::string
+{
+    return id.toString();
 }

@@ -106,7 +106,7 @@ void gui::AssetEditor::drawListEntry(const trc::AssetPath& path)
         ig::EndPopup();
     }
     if (ig::IsItemHovered()) {
-        ig::SetTooltip(unique.c_str());
+        ig::SetTooltip("%s", unique.c_str());
     }
 }
 

@@ -1,12 +1,15 @@
 #include "util/TriangleCacheOptimizer.h"
-#include "Types.h"
 
 #include "forsyth.cpp"
 
+#include "trc/Types.h"
 
 
-auto trc::util::optimizeTriangleOrderingForsyth(const std::vector<ui32>& indices)
-    -> std::vector<ui32>
+
+namespace trc::util
+{
+
+auto optimizeTriangleOrderingForsyth(const std::vector<ui32>& indices) -> std::vector<ui32>
 {
     assert(indices.size() % 3 == 0);
     ui32* result = reorderForsyth(indices.data(), indices.size() / 3, indices.size());
@@ -16,3 +19,5 @@ auto trc::util::optimizeTriangleOrderingForsyth(const std::vector<ui32>& indices
     delete[] result;
     return vec;
 }
+
+} // namespace trc::util

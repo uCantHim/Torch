@@ -121,19 +121,19 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
         .drawFunctions={},
     };
 
-    result.drawFunctions.emplace_back(
+    result.drawFunctions.push_back({
         gBufferRenderStage,
         deferredSubpass,
         pipeline,
         std::move(func)
-    );
+    });
     if (info.drawShadow)
     {
-        result.drawFunctions.emplace_back(
+        result.drawFunctions.push_back({
             shadowRenderStage, SubPass::ID(0),
             getDrawablePipeline(getDrawablePipelineFlags(info) | pipelines::PipelineShadingTypeFlagBits::shadow),
             drawShadow
-        );
+        });
     }
 
     return result;

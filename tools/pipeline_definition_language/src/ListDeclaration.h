@@ -2,7 +2,10 @@
 
 #include <vector>
 
+#include "Token.h"
 #include "FieldValue.h"
+#include "MatchExpression.h"
+#include "ObjectDeclaration.h"
 
 struct ListDeclaration
 {

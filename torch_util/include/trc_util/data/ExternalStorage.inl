@@ -25,13 +25,6 @@ trc::data::ExternalStorage<T>::ExternalStorage(
 }
 
 template<std::semiregular T>
-trc::data::ExternalStorage<T>::~ExternalStorage()
-{
-    set(T{});
-    staticDataStorage.free(dataId);
-}
-
-template<std::semiregular T>
 auto trc::data::ExternalStorage<T>::operator=(const ExternalStorage& rhs)
     -> ExternalStorage&
 {

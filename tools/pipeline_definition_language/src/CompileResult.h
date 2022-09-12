@@ -48,6 +48,8 @@ struct LayoutDesc
 
     struct Descriptor
     {
+        Descriptor(std::string name, bool isStatic) : name(std::move(name)), isStatic(isStatic) {}
+
         std::string name;
         bool isStatic{ true };
     };

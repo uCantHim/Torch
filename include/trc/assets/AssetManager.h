@@ -140,7 +140,7 @@ namespace trc
                 return data;
             }
 
-            auto getAssetName() -> std::string {
+            auto getAssetName() -> std::string override {
                 return source->getAssetName();
             }
 

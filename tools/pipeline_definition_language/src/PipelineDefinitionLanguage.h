@@ -34,6 +34,9 @@ private:
 #ifdef HAS_SPIRV_COMPILER
     struct SpirvCompileInfo
     {
+        SpirvCompileInfo(std::string code, fs::path out)
+            : shaderCode(std::move(code)), outPath(std::move(out)) {}
+
         std::string shaderCode;
         fs::path outPath;
     };

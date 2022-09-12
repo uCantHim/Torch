@@ -84,6 +84,9 @@ namespace shader_edit
 
         struct VarSpec
         {
+            VarSpec(std::string tag, std::string value)
+                : tag(std::move(tag)), value(std::move(value)) {}
+
             std::string tag;
             std::string value;
         };

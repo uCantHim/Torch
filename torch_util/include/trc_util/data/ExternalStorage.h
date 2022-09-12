@@ -41,7 +41,10 @@ namespace trc::data
         ExternalStorage() = default;
         ExternalStorage(const ExternalStorage& other);
         ExternalStorage(ExternalStorage&& other) noexcept;
-        ~ExternalStorage();
+        ~ExternalStorage() {
+            set(T{});
+            staticDataStorage.free(dataId);
+        }
 
         auto operator=(const ExternalStorage& rhs) -> ExternalStorage&;
         auto operator=(ExternalStorage&& rhs) noexcept -> ExternalStorage&;

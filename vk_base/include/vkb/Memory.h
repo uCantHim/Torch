@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "Device.h"
 
 namespace vkb
