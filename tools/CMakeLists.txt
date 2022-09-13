@@ -4,6 +4,7 @@
 
 # Component library
 add_subdirectory(componentlib)
+add_subdirectory(torch_util)
 
 # Pipeline compiler
 set(PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES TRUE)

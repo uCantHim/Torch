@@ -47,7 +47,6 @@ if (TARGET profiler)
 endif()
 
 # Tools
-add_subdirectory(torch_util)
 add_subdirectory(tools)
 
 # Library target
