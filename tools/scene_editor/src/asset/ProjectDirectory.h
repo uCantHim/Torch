@@ -11,13 +11,6 @@ using namespace trc::basic_types;
 
 #include "AssetFileIndex.h"
 
-template<trc::AssetBaseType T>
-struct AssetImportData
-{
-    std::string name;
-    trc::AssetData<T> data;
-};
-
 /**
  * Provides access to a project's resource files.
  *
@@ -58,10 +51,16 @@ public:
     /**
      * @brief Store an asset in the directory
      *
-     * Warning: Overwrites any file at `path`.
+     * @param const trc::AssetPath& path
+     * @param const trc::AssetData<T>& data
+     * @param bool overwrite If true, this operation overwrites any
+     *                       existing file with the given path.
+     *
+     * @return bool True if the operation has been successful. May be false
+     *              if `overwrite` is false and the file already exists.
      */
     template<trc::AssetBaseType T>
-    void save(const trc::AssetPath& path, const trc::AssetData<T>& data);
+    bool save(const trc::AssetPath& path, const trc::AssetData<T>& data, bool overwrite = true);
 
     /**
      * @brief Add an asset from an external file to the directory
@@ -128,14 +127,24 @@ auto ProjectDirectory::load(const trc::AssetPath& path) -> u_ptr<trc::AssetSourc
 }
 
 template<trc::AssetBaseType T>
-void ProjectDirectory::save(const trc::AssetPath& path, const trc::AssetData<T>& data)
+bool ProjectDirectory::save(
+    const trc::AssetPath& path,
+    const trc::AssetData<T>& data,
+    bool overwrite)
 {
-    fs::create_directories(path.getFilesystemPath().parent_path());
+    const auto fsPath = path.getFilesystemPath();
+    if (!overwrite && fs::is_regular_file(fsPath)) {
+        return false;
+    }
 
-    std::scoped_lock lock(fileWriteLock);
+    fs::create_directories(fsPath.parent_path());
+
     index.insert<T>(path);
-    std::ofstream file(path.getFilesystemPath(), std::ios::binary);
+    std::scoped_lock lock(fileWriteLock);
+    std::ofstream file(fsPath, std::ios::binary);
     data.serialize(file);
+
+    return true;
 }
 
 template<trc::AssetBaseType T>
