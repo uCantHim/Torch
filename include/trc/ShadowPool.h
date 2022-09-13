@@ -8,10 +8,10 @@
 #include "trc_util/data/ObjectId.h"
 
 #include "Types.h"
-#include "core/Instance.h"
+#include "core/Camera.h"
 #include "core/DescriptorProvider.h"
+#include "core/Instance.h"
 #include "Framebuffer.h"
-#include "Camera.h"
 #include "RenderPassShadow.h"
 
 namespace trc

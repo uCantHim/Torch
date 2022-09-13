@@ -5,12 +5,12 @@
 #include <trc_util/Timer.h>
 
 #include "Types.h"
+#include "core/Camera.h"
 #include "core/Instance.h"
-#include "core/Window.h"
 #include "core/DrawConfiguration.h"
 #include "core/RenderTarget.h"
+#include "core/Window.h"
 
-#include "Camera.h"
 #include "Scene.h"
 #include "TorchRenderConfig.h"
 #include "assets/Assets.h"
