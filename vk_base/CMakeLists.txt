@@ -42,6 +42,7 @@ target_link_libraries(
         Threads::Threads
         Vulkan::Vulkan
         ${GLFW_LIBRARIES}
+        torch_util
     PRIVATE
         PNG::PNG
 )

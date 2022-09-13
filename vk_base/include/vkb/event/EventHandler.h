@@ -1,11 +1,13 @@
 #pragma once
 
-#include <queue>
-#include <functional>
-#include <thread>
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <queue>
+#include <thread>
+
+#include <trc_util/data/ThreadsafeQueue.h>
 
 namespace vkb
 {
@@ -15,18 +17,21 @@ namespace vkb
         static void start();
         static void terminate();
 
-        static void notifyActiveHandler(void(*pollFunc)(void));
+    private:
+        template<typename T>
+        friend class EventHandler;
+
+        /**
+         * Registers a poll function at the event thread which will be
+         * called exactly once.
+         */
+        static void notifyActiveHandler(void(*pollFunc)());
 
     private:
         static inline bool shouldStop{ false };
-
         static inline std::thread thread;
-        static inline std::mutex activeHandlerListLock;
-        static inline std::queue<void(*)(void)> activeHandlers;
 
-        static inline std::condition_variable cvar;
-        static inline std::mutex cvarLock;
-        static inline bool cvarFlag{ false };
+        static inline trc::data::ThreadsafeQueue<void(*)(void)> pollFuncs;
     };
 
     template<typename EventType>

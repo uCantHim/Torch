@@ -14,18 +14,8 @@ void vkb::EventThread::start()
 
     thread = std::thread([]()
     {
-        while (!shouldStop)
-        {
-            std::unique_lock lock(cvarLock);
-            cvar.wait(lock, [] { return cvarFlag; });
-            cvarFlag = false;
-
-            std::scoped_lock listLock(activeHandlerListLock);
-            while (!activeHandlers.empty())
-            {
-                activeHandlers.front()();
-                activeHandlers.pop();
-            }
+        while (!shouldStop) {
+            pollFuncs.wait_pop()();
         }
     });
 
@@ -44,16 +34,7 @@ void vkb::EventThread::terminate()
     }
 }
 
-void vkb::EventThread::notifyActiveHandler(void(*pollFunc)(void))
+void vkb::EventThread::notifyActiveHandler(void(*pollFunc)())
 {
-    {
-        std::scoped_lock lock(activeHandlerListLock);
-        activeHandlers.emplace(pollFunc);
-    }
-
-    std::unique_lock cvLock(cvarLock);
-    cvarFlag = true;
-
-    cvLock.unlock();
-    cvar.notify_one();
+    pollFuncs.push(pollFunc);
 }
