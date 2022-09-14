@@ -63,33 +63,16 @@ inline void trc::ui::TransformNode<Derived>::setPos(float x, float y)
 }
 
 template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setPos(_pix x, _pix y)
+inline void trc::ui::TransformNode<Derived>::setPos(pix_or_norm x, pix_or_norm y)
 {
     localTransform.position = { x.value, y.value };
-    localTransform.posProp.format = Format::ePixel;
+    localTransform.posProp.format = { x.format, y.format };
 }
 
 template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setPos(_pix x, _norm y)
+inline void trc::ui::TransformNode<Derived>::setPos(Vec2D<pix_or_norm> v)
 {
-    localTransform.position = { x.value, y.value };
-    localTransform.posProp.format.x = Format::ePixel;
-    localTransform.posProp.format.y = Format::eNorm;
-}
-
-template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setPos(_norm x, _pix y)
-{
-    localTransform.position = { x.value, y.value };
-    localTransform.posProp.format.x = Format::eNorm;
-    localTransform.posProp.format.y = Format::ePixel;
-}
-
-template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setPos(_norm x, _norm y)
-{
-    localTransform.position = { x.value, y.value };
-    localTransform.posProp.format = Format::eNorm;
+    setPos(v.x, v.y);
 }
 
 template<typename Derived>
@@ -105,34 +88,16 @@ inline void trc::ui::TransformNode<Derived>::setSize(float x, float y)
 }
 
 template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setSize(_pix x, _pix y)
+inline void trc::ui::TransformNode<Derived>::setSize(pix_or_norm x, pix_or_norm y)
 {
     localTransform.size = { x.value, y.value };
-    localTransform.sizeProp.format = Format::ePixel;
+    localTransform.sizeProp.format = { x.format, y.format };
 }
 
 template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setSize(_pix x, _norm y)
+inline void trc::ui::TransformNode<Derived>::setSize(Vec2D<pix_or_norm> v)
 {
-    localTransform.size = { x.value, y.value };
-    localTransform.sizeProp.format.x = Format::ePixel;
-    localTransform.sizeProp.format.y = Format::eNorm;
-}
-
-template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setSize(_norm x, _pix y)
-{
-    localTransform.size = { x.value, y.value };
-    localTransform.sizeProp.format.x = Format::eNorm;
-    localTransform.sizeProp.format.y = Format::ePixel;
-}
-
-template<typename Derived>
-inline void trc::ui::TransformNode<Derived>::setSize(_norm x, _norm y)
-{
-    localTransform.size = { x.value, y.value };
-    localTransform.sizeProp.format = Format::eNorm;
-    localTransform.sizeProp.format = Format::eNorm;
+    setSize(v.x, v.y);
 }
 
 template<typename Derived>

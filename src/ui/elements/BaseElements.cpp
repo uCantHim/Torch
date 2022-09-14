@@ -23,47 +23,35 @@ void trc::ui::TextBase::setFontSize(ui32 fontSize)
 
 
 
-trc::ui::Paddable::Paddable(float x, float y, _2D<Format> format)
+trc::ui::Paddable::Paddable(float x, float y, Vec2D<Format> format)
     :
     padding(x, y),
     format(format)
 {
 }
 
-void trc::ui::Paddable::setPadding(vec2 pad, _2D<Format> format)
+void trc::ui::Paddable::setPadding(vec2 pad, Vec2D<Format> format)
 {
     padding = pad;
     this->format = format;
 }
 
-void trc::ui::Paddable::setPadding(float x, float y, _2D<Format> format)
+void trc::ui::Paddable::setPadding(float x, float y, Vec2D<Format> format)
 {
     padding = { x, y };
     this->format = format;
 }
 
-void trc::ui::Paddable::setPadding(_pix x, _pix y)
+void trc::ui::Paddable::setPadding(pix_or_norm x, pix_or_norm y)
 {
     padding = { x.value, y.value };
-    format = Format::ePixel;
+    format = { x.format, y.format };
 }
 
-void trc::ui::Paddable::setPadding(_pix x, _norm y)
+void trc::ui::Paddable::setPadding(Vec2D<pix_or_norm> v)
 {
-    padding = { x.value, y.value };
-    format = { Format::ePixel, Format::eNorm };
-}
-
-void trc::ui::Paddable::setPadding(_norm x, _pix y)
-{
-    padding = { x.value, y.value };
-    format = { Format::eNorm, Format::ePixel };
-}
-
-void trc::ui::Paddable::setPadding(_norm x, _norm y)
-{
-    padding = { x.value, y.value };
-    format = Format::eNorm;
+    padding = { v.x.value, v.y.value };
+    format = { v.x.format, v.y.format };
 }
 
 auto trc::ui::Paddable::getPadding() const -> vec2
@@ -71,7 +59,7 @@ auto trc::ui::Paddable::getPadding() const -> vec2
     return padding;
 }
 
-auto trc::ui::Paddable::getPaddingFormat() const -> _2D<Format>
+auto trc::ui::Paddable::getPaddingFormat() const -> Vec2D<Format>
 {
     return format;
 }

@@ -68,8 +68,8 @@ template<std::derived_from<event::MouseEvent> EventType>
 void Window::descendMouseEvent(EventType event)
 {
     static constexpr auto isInside = [](const vec2 point, const Transform& t) -> bool {
-        assert((t.posProp.format == _2D<Format>{ Format::eNorm, Format::eNorm }));
-        assert((t.sizeProp.format == _2D<Format>{ Format::eNorm, Format::eNorm }));
+        assert((t.posProp.format == Vec2D<Format>{ Format::eNorm, Format::eNorm }));
+        assert((t.sizeProp.format == Vec2D<Format>{ Format::eNorm, Format::eNorm }));
 
         const vec2 diff = point - t.position;
         return diff.x >= 0.0f

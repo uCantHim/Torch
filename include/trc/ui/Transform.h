@@ -17,28 +17,28 @@ namespace trc::ui
     };
 
     template<typename T>
-    struct _2D
+    struct Vec2D
     {
-        constexpr _2D() = default;
-        constexpr _2D(const _2D& val) = default;
-        constexpr _2D(_2D&& val) noexcept = default;
-        ~_2D() noexcept = default;
+        constexpr Vec2D() = default;
+        constexpr Vec2D(const Vec2D& val) = default;
+        constexpr Vec2D(Vec2D&& val) noexcept = default;
+        ~Vec2D() noexcept = default;
 
-        constexpr _2D(const T& val) : x(val), y(val) {}
-        constexpr _2D(const T& a, const T& b) : x(a), y(b) {}
+        constexpr Vec2D(const T& val) : x(val), y(val) {}
+        constexpr Vec2D(const T& a, const T& b) : x(a), y(b) {}
 
-        auto operator=(const _2D&) -> _2D& = default;
-        auto operator=(_2D&&) -> _2D& = default;
+        auto operator=(const Vec2D&) -> Vec2D& = default;
+        auto operator=(Vec2D&&) -> Vec2D& = default;
 
         // Assignment from single component
-        auto operator=(const T& rhs) -> _2D<T>&
+        auto operator=(const T& rhs) -> Vec2D<T>&
         {
             x = rhs;
             y = rhs;
             return *this;
         }
 
-        constexpr auto operator<=>(const _2D<T>&) const = default;
+        constexpr auto operator<=>(const Vec2D<T>&) const = default;
 
         T x;
         T y;
@@ -48,8 +48,8 @@ namespace trc::ui
     {
         struct Properties
         {
-            _2D<Format> format{ Format::eNorm };
-            _2D<Align> align{ Align::eRelative };
+            Vec2D<Format> format{ Format::eNorm };
+            Vec2D<Align> align{ Align::eRelative };
         };
 
         vec2 position{ 0.0f, 0.0f };
@@ -66,15 +66,35 @@ namespace trc::ui
     /**
      * Internal representation of a pixel value
      */
-    struct _pix {
+    struct _pix
+    {
         float value;
     };
 
     /**
      * Internal representation of a normalized value
      */
-    struct _norm {
+    struct _norm
+    {
         float value;
+    };
+
+    /**
+     * A pixel or normalized value decomposed into value and format
+     */
+    struct pix_or_norm
+    {
+        pix_or_norm(const pix_or_norm&) = default;
+        pix_or_norm(pix_or_norm&&) noexcept = default;
+        pix_or_norm& operator=(const pix_or_norm&) = default;
+        pix_or_norm& operator=(pix_or_norm&&) noexcept = default;
+        ~pix_or_norm() noexcept = default;
+
+        pix_or_norm(_pix v) : value(v.value), format(Format::ePixel) {}
+        pix_or_norm(_norm v) : value(v.value), format(Format::eNorm) {}
+
+        float value;
+        Format format;
     };
 
     namespace size_literals

@@ -33,18 +33,15 @@ namespace trc::ui
     {
     public:
         Paddable() = default;
-        Paddable(float x, float y, _2D<Format> format);
+        Paddable(float x, float y, Vec2D<Format> format);
 
-        void setPadding(vec2 pad, _2D<Format> format);
-        void setPadding(float x, float y, _2D<Format> format);
-
-        void setPadding(_pix x, _pix y);
-        void setPadding(_pix x, _norm y);
-        void setPadding(_norm x, _pix y);
-        void setPadding(_norm x, _norm y);
+        void setPadding(vec2 pad, Vec2D<Format> format);
+        void setPadding(float x, float y, Vec2D<Format> format);
+        void setPadding(pix_or_norm x, pix_or_norm y);
+        void setPadding(Vec2D<pix_or_norm> v);
 
         auto getPadding() const -> vec2;
-        auto getPaddingFormat() const -> _2D<Format>;
+        auto getPaddingFormat() const -> Vec2D<Format>;
 
     protected:
         /**
@@ -58,6 +55,6 @@ namespace trc::ui
 
     private:
         vec2 padding{ DefaultStyle::padding };
-        _2D<Format> format{ DefaultStyle::paddingFormat };
+        Vec2D<Format> format{ DefaultStyle::paddingFormat };
     };
 } // namespace trc::ui

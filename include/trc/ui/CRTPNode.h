@@ -57,17 +57,13 @@ namespace trc::ui
 
         void setPos(vec2 newPos);
         void setPos(float x, float y);
-        void setPos(_pix x, _pix y);
-        void setPos(_pix x, _norm y);
-        void setPos(_norm x, _pix y);
-        void setPos(_norm x, _norm y);
+        void setPos(pix_or_norm x, pix_or_norm y);
+        void setPos(Vec2D<pix_or_norm> v);
 
         void setSize(vec2 newSize);
         void setSize(float x, float y);
-        void setSize(_pix x, _pix y);
-        void setSize(_pix x, _norm y);
-        void setSize(_norm x, _pix y);
-        void setSize(_norm x, _norm y);
+        void setSize(pix_or_norm x, pix_or_norm y);
+        void setSize(Vec2D<pix_or_norm> v);
 
         auto getTransform() -> Transform;
         void setTransform(Transform newTransform);
