@@ -188,13 +188,13 @@ namespace trc::ui
         /**
          * @brief An element that does nothing
          */
-        struct Root : Element {
+        struct Root : Element
+        {
+            explicit Root(Window& window) : Element(window) {}
             void draw(DrawList&) override {}
         };
 
-        // This is a unique_ptr because I'm too lazy to implement all those
-        // move constructors.
-        u_ptr<Root> root{ new Root };
+        u_ptr<Root> root{ new Root(*this) };
     };
 
 } // namespace trc::ui

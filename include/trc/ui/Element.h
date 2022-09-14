@@ -64,6 +64,7 @@ namespace trc::ui
     protected:
         friend class Window;
 
+        /** The `window` member will be set by Window when it creates the element. */
         Element() = default;
         explicit Element(Window& window)
             : window(&window)
