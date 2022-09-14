@@ -22,6 +22,12 @@ set_target_properties(glslc_exe PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
 )
 
+# Other tools
+add_subdirectory(asset_convert)
+set_target_properties(convert-asset PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
+)
+
 
 ######################
 #   Optional tools   #
