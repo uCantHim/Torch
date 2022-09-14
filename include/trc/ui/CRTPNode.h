@@ -13,9 +13,9 @@ namespace trc::ui
     {
     public:
         CRTPNode(const CRTPNode&) = delete;
-        CRTPNode(CRTPNode&&) noexcept = default;
+        CRTPNode(CRTPNode&&) noexcept = delete;
         auto operator=(const CRTPNode&) = delete;
-        auto operator=(CRTPNode&&) noexcept -> CRTPNode& = default;
+        auto operator=(CRTPNode&&) noexcept -> CRTPNode& = delete;
 
         CRTPNode() {
             static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
