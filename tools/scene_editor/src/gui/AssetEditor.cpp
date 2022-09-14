@@ -1,9 +1,12 @@
 #include "AssetEditor.h"
 
+#include <concepts>
+
 #include <trc/util/TorchDirectories.h>
 
 #include "ImguiUtil.h"
 #include "MaterialEditor.h"
+#include "asset/ImportProcessor.h"
 #include "asset/ProjectDirectory.h"
 #include "App.h"
 
@@ -20,78 +23,93 @@ template<> inline constexpr const char* assetTypeName<HitboxAsset>{ "Hitbox" };
 
 
 
+auto findAvailableName(const ProjectDirectory& dir, trc::AssetPath path) -> trc::AssetPath
+{
+    if (!dir.exists(path)) return path;
+
+    auto ext = path.getFilesystemPath().extension().string();
+    auto name = path.getUniquePath().substr(0, path.getUniquePath().size() - ext.size());
+
+    size_t i{ 1 };
+    while (dir.exists(trc::AssetPath(name + "(" + std::to_string(i) + ")" + ext))) ++i;
+
+    return trc::AssetPath(name + "(" + std::to_string(i) + ")" + ext);
+}
+
+
+
+/**
+ * @return bool False if the popup has been closed. True while it is open.
+ */
+template<std::invocable<trc::AssetPath> Func>
+bool assetNameInputPopupModal(
+    const char* title,
+    const ProjectDirectory& dir,
+    Func&& onCreate
+    )
+{
+    ig::OpenPopup(title);
+    if (!ig::BeginPopupModal(title)) {
+        return true;
+    }
+
+    static char assetNameBuf[1024];
+    ig::InputText("Name", assetNameBuf, 1024);
+
+    bool validName = strlen(assetNameBuf);
+
+    // Create resource on disk
+    static bool overwrite{ false };
+    if (validName && dir.exists(trc::AssetPath(assetNameBuf)))
+    {
+        ig::PushStyleColor(ImGuiCol_Text, 0xFF00A0FF);
+        ig::Text("File %s already exists!", assetNameBuf);
+        ig::PopStyleColor();
+
+        ig::Checkbox("Overwrite?", &overwrite);
+        validName = overwrite;
+    }
+
+    if (!validName) ig::BeginDisabled();
+    const bool create = ig::Button("Create");
+    if (!validName) ig::EndDisabled();
+    if (create) {
+        onCreate(trc::AssetPath(assetNameBuf));
+    }
+
+    ig::SameLine();
+    const bool close = create
+                    || ig::Button("Cancel")
+                    || vkb::Keyboard::isPressed(vkb::Key::escape);
+    if (close)
+    {
+        // Clear static data
+        memset(assetNameBuf, 0, 1024);
+        overwrite = false;
+
+        // Close popup
+        ig::CloseCurrentPopup();
+        ig::EndPopup();
+        return false;
+    }
+
+    ig::EndPopup();
+    return true;
+}
+
+
 gui::AssetEditor::AssetEditor(MainMenu& menu)
     :
     app(menu.getApp()),
     mainMenu(menu),
     assets(app.getAssets()),
-    dir(app.getProject().getStorageDir()),
-    assetCreateMenu({
-        { "Material", [this]{
-            mainMenu.openWindow([this]() -> bool
-            {
-                ig::OpenPopup("Create Material");
-                if (!ig::BeginPopupModal("Create Material")) {
-                    return true;
-                }
-
-                static char matNameBuf[1024];
-                ig::InputText("Name", matNameBuf, 1024);
-
-                bool validName = strlen(matNameBuf);
-
-                // Create resource on disk
-                static bool overwrite{ false };
-                if (validName && dir.exists(trc::AssetPath(matNameBuf)))
-                {
-                    ig::PushStyleColor(ImGuiCol_Text, 0xFF00A0FF);
-                    ig::Text("File %s already exists!", matNameBuf);
-                    ig::PopStyleColor();
-
-                    ig::Checkbox("Overwrite?", &overwrite);
-                    validName = overwrite;
-                }
-
-                if (!validName) ig::BeginDisabled();
-                const bool create = ig::Button("Create");
-                if (!validName) ig::EndDisabled();
-                if (create)
-                {
-                    // Create asset
-                    const trc::AssetPath path(matNameBuf);
-                    auto newMat = assets.create<trc::Material>(path);
-                    dir.save<trc::Material>(path, {}, true);
-                    editMaterial(newMat);
-                }
-                ig::SameLine();
-                const bool close = create
-                                || ig::Button("Cancel")
-                                || vkb::Keyboard::isPressed(vkb::Key::escape);
-                if (close)
-                {
-                    // Clear static data
-                    memset(matNameBuf, 0, 1024);
-                    overwrite = false;
-
-                    // Close popup
-                    ig::CloseCurrentPopup();
-                    ig::EndPopup();
-                    return false;
-                }
-
-                ig::EndPopup();
-                return true;
-            });
-        } },
-        { "Texture",  []{} },
-        { "Geometry", []{} }
-    })
+    dir(app.getProject().getStorageDir())
 {
 }
 
 void gui::AssetEditor::drawImGui()
 {
-    drawMaterialGui();
+    drawAssetCreateButton();
     drawAssetList();
 
     for (auto& f : deferredFunctions) {
@@ -100,20 +118,71 @@ void gui::AssetEditor::drawImGui()
     deferredFunctions.clear();
 }
 
-void gui::AssetEditor::drawMaterialGui()
+void gui::AssetEditor::drawAssetCreateButton()
 {
+    static bool geoSelected{ false };
+    static bool texSelected{ false };
+
     if (ig::Button("Create Asset")) {
         ig::OpenPopup("##asset_create_selection");
     }
     if (ig::BeginPopup("##asset_create_selection"))
     {
-        for (auto& [name, create] : assetCreateMenu)
+        if (geoSelected || texSelected)
         {
-            if (ig::Selectable(name.c_str()))
+            if (ig::Button("<"))
             {
-                create();
-                ig::CloseCurrentPopup();
+                geoSelected = false;
+                ig::EndPopup();
+                return;
             }
+            ig::Separator();
+        }
+
+        if (geoSelected)
+        {
+            auto create = [this](std::string name, trc::GeometryData data)
+            {
+                const auto path = findAvailableName(dir, trc::AssetPath(std::move(name)));
+                importAsset(data, path, assets, dir);
+            };
+
+            if (ig::Selectable("Cube")) {
+                create("cube", trc::makeCubeGeo());
+            }
+            if (ig::Selectable("Sphere")) {
+                create("sphere", trc::makeSphereGeo());
+            }
+            if (ig::Selectable("Plane")) {
+                create("plane", trc::makePlaneGeo());
+            }
+            ig::Separator();
+            if (ig::Selectable("Import")) {}
+        }
+        else if (texSelected)
+        {
+            ig::Text("empty");
+        }
+        else
+        {
+            if (ig::Selectable("Material"))
+            {
+                mainMenu.openWindow([this]() -> bool
+                {
+                    return assetNameInputPopupModal(
+                        "Create Material",
+                        dir,
+                        [this](trc::AssetPath path) {
+                            auto newMat = assets.create<trc::Material>(path);
+                            dir.save<trc::Material>(path, {}, true);
+                            editMaterial(newMat);
+                        }
+                    );
+                });
+            }
+
+            ig::Selectable("Geometry", &geoSelected, ImGuiSelectableFlags_DontClosePopups);
+            ig::Selectable("Texture",  &texSelected, ImGuiSelectableFlags_DontClosePopups);
         }
         ig::EndPopup();
     }

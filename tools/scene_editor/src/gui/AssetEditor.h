@@ -29,6 +29,8 @@ namespace gui
         trc::AssetManager& assets;
         ProjectDirectory& dir;
 
+        void drawAssetCreateButton();
+
         void drawAssetList();
         template<trc::AssetBaseType T>
         void drawListEntry(const trc::AssetPath& path);
@@ -36,10 +38,7 @@ namespace gui
         void drawEntryContextMenu(const trc::AssetPath& path);
         void drawDefaultEntryContext(const trc::AssetPath& path);
 
-        void drawMaterialGui();
         void editMaterial(trc::MaterialID mat);
-
-        std::vector<std::pair<std::string, std::function<void()>>> assetCreateMenu;
 
         void defer(std::function<void(ProjectDirectory&)> func);
         std::vector<std::function<void(ProjectDirectory&)>> deferredFunctions;
