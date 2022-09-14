@@ -35,15 +35,16 @@ void gui::MainMenu::drawImGui()
     // Draw sub menus
     assetEditor.drawImGui();
 
-    for (auto it = openWindows.begin(); it != openWindows.end(); /* nothing */)
     {
-        if (!std::invoke(*it)) {
-            it = openWindows.erase(it);
-        }
-        else {
-            ++it;
+        auto range = openWindows.iter();
+        for (auto it = range.begin(); it != range.end(); ++it)
+        {
+            if (!std::invoke(*it)) {
+                openWindows.erase(it);
+            }
         }
     }
+    openWindows.update();
 
     // Show file explorer is separate window
     guard.close();

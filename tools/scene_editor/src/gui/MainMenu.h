@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <trc_util/data/DeferredInsertVector.h>
+
 #include "gui/ImguiUtil.h"
 #include "gui/AssetEditor.h"
 #include "gui/SceneEditorFileExplorer.h"
@@ -31,7 +33,7 @@ namespace gui
 
         App& app;
 
-        std::vector<std::function<bool()>> openWindows;
+        trc::data::DeferredInsertVector<std::function<bool()>> openWindows;
 
         gui::SceneEditorFileExplorer fileExplorer;
         gui::AssetEditor assetEditor;
