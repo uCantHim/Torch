@@ -9,7 +9,7 @@ namespace trc::ui
     protected:
         void draw(DrawList& drawList) override
         {
-            drawList.push_back(DrawInfo{ globalPos, globalSize, style, types::Quad{} });
+            drawList.push(types::Quad{}, *this);
         }
     };
 } // namespace trc::ui
