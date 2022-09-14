@@ -1,5 +1,8 @@
 #pragma once
 
+#include <variant>
+#include <vector>
+
 #include "trc/Types.h"
 #include "trc/text/GlyphLoading.h"
 #include "trc/ui/Style.h"
@@ -44,27 +47,25 @@ namespace trc::ui
         };
     }
 
-
-    using DrawType = std::variant<
-        types::NoType,
-        types::Line,
-        types::Quad,
-        types::Text
-    >;
-
-
     /**
      * All draw information for a gui element
      */
     struct DrawInfo
     {
+        using DrawType = std::variant<
+            types::NoType,
+            types::Line,
+            types::Quad,
+            types::Text
+        >;
+
         vec2 pos;
         vec2 size;
         ElementStyle style;
         DrawType type;
     };
 
-    using DrawList = std::vector<DrawInfo>;
+    class DrawList;
 
     class Drawable
     {

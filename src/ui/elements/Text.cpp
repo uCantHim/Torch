@@ -89,7 +89,7 @@ void trc::ui::Text::draw(DrawList& drawList)
     setSize(size);
     setSizeProperties({ .format=Format::eNorm, .align=Align::eAbsolute });
 
-    drawList.emplace_back(DrawInfo{
+    drawList.push_back(DrawInfo{
         .pos   = globalPos,
         .size  = globalSize,
         .style = this->style,
