@@ -26,6 +26,8 @@ public:
     auto getAssets() -> trc::AssetManager&;
     auto getScene() -> Scene&;
 
+    void setSceneViewport(vec2 offset, vec2 size);
+
     static auto get() -> App&;
 
 private:

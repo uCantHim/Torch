@@ -36,6 +36,7 @@ App::App(Project _project)
     vec2 size = torch->getWindow().getWindowSize();
     torch->getRenderConfig().setViewport({ size.x * 0.25f, 0.0f }, size);
     scene.getCamera().setAspect(size.x / size.y);
+    setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
 
     assetManager->getDeviceRegistry().addModule<HitboxAsset>();
 
@@ -167,6 +168,12 @@ auto App::getAssets() -> trc::AssetManager&
 auto App::getScene() -> Scene&
 {
     return scene;
+}
+
+void App::setSceneViewport(vec2 offset, vec2 size)
+{
+    torch->getRenderConfig().setViewport(offset, size);
+    scene.getCamera().setAspect(size.x / size.y);
 }
 
 void App::tick()
