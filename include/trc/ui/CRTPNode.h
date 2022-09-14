@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <trc_util/data/DeferredInsertVector.h>
+
 #include "trc/ui/Transform.h"
 
 namespace trc::ui
@@ -19,7 +21,8 @@ namespace trc::ui
             static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
         }
 
-        ~CRTPNode() noexcept {
+        ~CRTPNode() {
+            foreachChild([](Derived& c){ c.parent = nullptr; });
             if (parent != nullptr) {
                 parent->detach(static_cast<Derived&>(*this));
             }
@@ -27,14 +30,13 @@ namespace trc::ui
 
         void attach(Derived& child);
         void detach(Derived& child);
-        void clearChildren();
 
         template<std::invocable<Derived&> F>
         void foreachChild(F func);
 
     private:
         Derived* parent{ nullptr };
-        std::vector<Derived*> children;
+        data::DeferredInsertVector<Derived*> children;
     };
 
     template<typename Derived>

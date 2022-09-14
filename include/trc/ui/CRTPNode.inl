@@ -5,39 +5,35 @@
 template<typename Derived>
 inline void trc::ui::CRTPNode<Derived>::attach(Derived& child)
 {
-    children.push_back(&child);
+    children.emplace_back(&child);
     child.parent = static_cast<Derived*>(this);
 }
 
 template<typename Derived>
 inline void trc::ui::CRTPNode<Derived>::detach(Derived& child)
 {
-    for (auto it = children.begin(); it != children.end(); it++)
     {
-        if (*it == &child)
+        auto range = children.iter();
+        for (auto it = range.begin(); it != range.end(); it++)
         {
-            (*it)->parent = nullptr;
-            it = --children.erase(it);
+            if (*it == &child)
+            {
+                (*it)->parent = nullptr;
+                children.erase(it);
+            }
         }
     }
-}
-
-template<typename Derived>
-inline void trc::ui::CRTPNode<Derived>::clearChildren()
-{
-    for (auto child : children) {
-        child->parent = nullptr;
-    }
-    children.clear();
+    children.update();
 }
 
 template<typename Derived>
 template<std::invocable<Derived&> F>
 inline void trc::ui::CRTPNode<Derived>::foreachChild(F func)
 {
-    for (auto child : children) {
+    for (auto child : children.iter()) {
         func(*child);
     }
+    children.update();
 }
 
 
