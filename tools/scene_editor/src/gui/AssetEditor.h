@@ -39,7 +39,7 @@ namespace gui
         void drawMaterialGui();
         void editMaterial(trc::MaterialID mat);
 
-        std::array<char, 512> matNameBuf{};
+        std::vector<std::pair<std::string, std::function<void()>>> assetCreateMenu;
 
         void defer(std::function<void(ProjectDirectory&)> func);
         std::vector<std::function<void(ProjectDirectory&)>> deferredFunctions;

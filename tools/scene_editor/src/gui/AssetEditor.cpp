@@ -25,7 +25,67 @@ gui::AssetEditor::AssetEditor(MainMenu& menu)
     app(menu.getApp()),
     mainMenu(menu),
     assets(app.getAssets()),
-    dir(app.getProject().getStorageDir())
+    dir(app.getProject().getStorageDir()),
+    assetCreateMenu({
+        { "Material", [this]{
+            mainMenu.openWindow([this]() -> bool
+            {
+                ig::OpenPopup("Create Material");
+                if (!ig::BeginPopupModal("Create Material")) {
+                    return true;
+                }
+
+                static char matNameBuf[1024];
+                ig::InputText("Name", matNameBuf, 1024);
+
+                bool validName = strlen(matNameBuf);
+
+                // Create resource on disk
+                static bool overwrite{ false };
+                if (validName && dir.exists(trc::AssetPath(matNameBuf)))
+                {
+                    ig::PushStyleColor(ImGuiCol_Text, 0xFF00A0FF);
+                    ig::Text("File %s already exists!", matNameBuf);
+                    ig::PopStyleColor();
+
+                    ig::Checkbox("Overwrite?", &overwrite);
+                    validName = overwrite;
+                }
+
+                if (!validName) ig::BeginDisabled();
+                const bool create = ig::Button("Create");
+                if (!validName) ig::EndDisabled();
+                if (create)
+                {
+                    // Create asset
+                    const trc::AssetPath path(matNameBuf);
+                    auto newMat = assets.create<trc::Material>(path);
+                    dir.save<trc::Material>(path, {}, true);
+                    editMaterial(newMat);
+                }
+                ig::SameLine();
+                const bool close = create
+                                || ig::Button("Cancel")
+                                || vkb::Keyboard::isPressed(vkb::Key::escape);
+                if (close)
+                {
+                    // Clear static data
+                    memset(matNameBuf, 0, 1024);
+                    overwrite = false;
+
+                    // Close popup
+                    ig::CloseCurrentPopup();
+                    ig::EndPopup();
+                    return false;
+                }
+
+                ig::EndPopup();
+                return true;
+            });
+        } },
+        { "Texture",  []{} },
+        { "Geometry", []{} }
+    })
 {
 }
 
@@ -42,29 +102,20 @@ void gui::AssetEditor::drawImGui()
 
 void gui::AssetEditor::drawMaterialGui()
 {
-    ig::PushItemWidth(200);
-    util::textInputWithButton("Add material", matNameBuf.data(), matNameBuf.size(), [this]()
+    if (ig::Button("Create Asset")) {
+        ig::OpenPopup("##asset_create_selection");
+    }
+    if (ig::BeginPopup("##asset_create_selection"))
     {
-        std::string matName(matNameBuf.data());
-        if (matName.empty()) return;
-
-        // Create resource on disk
-        const trc::AssetPath path(std::move(matName));
-        if (dir.exists(path)) {
-            return;
+        for (auto& [name, create] : assetCreateMenu)
+        {
+            if (ig::Selectable(name.c_str()))
+            {
+                create();
+                ig::CloseCurrentPopup();
+            }
         }
-
-        // Create asset
-        auto newMat = assets.create<trc::Material>(path);
-        editMaterial(newMat);
-    });
-    ig::PopItemWidth();
-
-    if (strlen(matNameBuf.data()) && dir.exists(trc::AssetPath(matNameBuf.data())))
-    {
-        ig::PushStyleColor(ImGuiCol_Text, 0xFF0000FF);
-        ig::Text("An asset already exists at the path!");
-        ig::PopStyleColor();
+        ig::EndPopup();
     }
 }
 
@@ -74,7 +125,7 @@ void gui::AssetEditor::editMaterial(trc::MaterialID mat)
         mat,
         [this](trc::MaterialID mat, trc::MaterialData data) {
             // Save changes to disk
-            dir.save(trc::AssetPath(mat.getMetaData().path.value()), data);
+            dir.save(trc::AssetPath(mat.getMetaData().path.value()), data, true);
         }
     ));
 }
@@ -106,7 +157,7 @@ void gui::AssetEditor::drawListEntry(const trc::AssetPath& path)
         ig::EndPopup();
     }
     if (ig::IsItemHovered()) {
-        ig::SetTooltip("%s", unique.c_str());
+        ig::SetTooltip(unique.c_str());
     }
 }
 
