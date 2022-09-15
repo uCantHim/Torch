@@ -4,29 +4,20 @@
 
 
 
-trc::ui::Button::Button(std::string label)
+trc::ui::Button::Button(Window& window, std::string label)
+    :
+    Quad(window),
+    text(window.create<Text>())
 {
+    this->setSize(0.0f, 0.0f);
+    text.style.background = vec4(0, 0, 0, 1);
+    text.style.foreground = vec4(0, 0, 0, 1);
+    text.setFontSize(40);
+    attach(text);
     setLabel(std::move(label));
-}
-
-void trc::ui::Button::draw(DrawList& list)
-{
-    auto [text, size] = layoutText(label, fontIndex, window->pixelsToNorm(vec2(fontSize)));
-    const vec2 normPadding = getNormPadding(size, *window);
-
-    globalSize = size + normPadding * 2.0f;
-    Quad::draw(list);
-
-    // Draw text
-    list.push_back(DrawInfo{
-        .pos = globalPos + normPadding,
-        .size = globalSize,
-        .style = style,
-        .type = std::move(text)
-    });
 }
 
 void trc::ui::Button::setLabel(std::string newLabel)
 {
-    label = std::move(newLabel);
+    text.print(std::move(newLabel));
 }

@@ -93,7 +93,7 @@ int main()
         button.setPos(0.7_n, 0.8_n);
         button.style.background = vec4(1.0f, 1.0f, 0.2f, 1.0f);
         button.style.foreground = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        button.setPadding(0.5_n, 1.0_n);
+        button.style.padding.set(20.0f, 40.0f);
         button.setFontSize(40);
 
         // Also add a world-space object

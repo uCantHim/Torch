@@ -74,8 +74,15 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
 //      Text element      //
 // ---------------------- //
 
-trc::ui::Text::Text(std::string str, ui32 fontIndex, ui32 fontSize)
+trc::ui::Text::Text(Window& window)
     :
+    Element(window)
+{
+}
+
+trc::ui::Text::Text(Window& window, std::string str, ui32 fontIndex, ui32 fontSize)
+    :
+    Element(window),
     TextBase(fontIndex, fontSize)
 {
     print(std::move(str));

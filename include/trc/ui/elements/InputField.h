@@ -11,11 +11,11 @@
 
 namespace trc::ui
 {
-    class InputField : public Quad, public TextBase, public Paddable
+    class InputField : public Quad, public TextBase
     {
     public:
-        InputField();
-        InputField(ui32 fontIndex, ui32 fontSize);
+        explicit InputField(Window& window);
+        InputField(Window& window, ui32 fontIndex, ui32 fontSize);
 
         void draw(DrawList& drawList) override;
 

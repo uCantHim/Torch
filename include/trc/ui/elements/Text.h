@@ -38,11 +38,12 @@ namespace trc::ui
     auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling)
         -> std::pair<types::Text, vec2>;
 
-    class Text : public Element, TextBase
+    class Text : public Element, public TextBase
     {
     public:
-        Text() = default;
-        Text(std::string str,
+        explicit Text(Window& window);
+        Text(Window& window,
+             std::string str,
              ui32 fontIndex = DefaultStyle::font,
              ui32 fontSize = DefaultStyle::fontSize);
 

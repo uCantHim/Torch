@@ -118,20 +118,26 @@ auto trc::ui::Window::pixelsToNorm(vec2 p) const -> vec2
 void trc::ui::Window::realignElements()
 {
     using FuncType = std::function<std::pair<vec2, vec2>(Transform, Element&)>;
-    FuncType calcTransform = [&](Transform globalTransform, Element& elem)
+    FuncType calcTransform = [&](Transform parentTransform, Element& elem)
         -> std::pair<vec2, vec2>
     {
-        vec2 pos = globalTransform.position;
-        vec2 size = globalTransform.size;
-        elem.foreachChild([&, globalTransform](Element& child)
+        vec2 pos = parentTransform.position;
+        vec2 size = parentTransform.size;
+
+        // Apply padding
+        const vec2 padding = elem.style.padding.calcNormalizedPadding(*this);
+        parentTransform.position += padding;  // Offset all children by padding value
+
+        elem.foreachChild([&, parentTransform](Element& child)
         {
-            auto [cPos, cSize] = calcTransform(
-                concat(globalTransform, child.getTransform(), *this),
-                child
-            );
-            pos = glm::min(pos, cPos);
-            size = glm::max(size, cPos - globalTransform.position + cSize);
+            const auto childTransform = concat(parentTransform, child.getTransform(), *this);
+            const auto [childPos, childSize] = calcTransform(childTransform, child);
+
+            pos = glm::min(pos, childPos);
+            size = glm::max(size, childPos - parentTransform.position + childSize);
         });
+
+        size += padding * 2.0f;
 
         return { (elem.globalPos = pos), (elem.globalSize = size) };
     };

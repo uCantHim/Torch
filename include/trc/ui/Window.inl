@@ -55,6 +55,7 @@ inline auto ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
 template<GuiElement E, typename... Args>
 inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
 {
+    static_assert(std::is_constructible_v<E, Window&, Args...>);
     // Construct with Window in constructor if possible
     if constexpr (std::is_constructible_v<E, Window&, Args...>)
     {
@@ -80,9 +81,6 @@ template<std::derived_from<event::MouseEvent> EventType>
 void Window::descendMouseEvent(EventType event)
 {
     static constexpr auto isInside = [](const vec2 point, const Transform& t) -> bool {
-        assert((t.posProp.format == Vec2D<Format>{ Format::eNorm, Format::eNorm }));
-        assert((t.sizeProp.format == Vec2D<Format>{ Format::eNorm, Format::eNorm }));
-
         const vec2 diff = point - t.position;
         return diff.x >= 0.0f
             && diff.y >= 0.0f

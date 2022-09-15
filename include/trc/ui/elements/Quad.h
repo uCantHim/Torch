@@ -6,7 +6,9 @@ namespace trc::ui
 {
     class Quad : public Element
     {
-    protected:
+    public:
+        explicit Quad(Window& window) : Element(window) {}
+
         void draw(DrawList& drawList) override
         {
             drawList.push(types::Quad{}, *this);

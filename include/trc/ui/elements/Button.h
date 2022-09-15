@@ -2,39 +2,37 @@
 
 #include "trc/ui/elements/Quad.h"
 #include "trc/ui/elements/Text.h"
-#include "trc/ui/elements/BaseElements.h"
+#include "trc/ui/Window.h"
 
 namespace trc::ui
 {
-    class Button : public Quad, public TextBase, public Paddable
+    class Button : public Quad, public TextBase
     {
     public:
-        Button() = default;
-        explicit Button(std::string label);
-        template<std::invocable F>
-        Button(std::string label, F&& callback);
-        template<std::invocable<event::Click&> F>
-        Button(std::string label, F&& callback);
+        explicit Button(Window& window, std::string label);
 
-        void draw(DrawList& list) override;
+        template<std::invocable F>
+        Button(Window& window, std::string label, F&& callback);
+        template<std::invocable<event::Click&> F>
+        Button(Window& window, std::string label, F&& callback);
 
         void setLabel(std::string newLabel);
 
     private:
-        std::string label;
+        Text& text;
     };
 
 
 
     template<std::invocable F>
-    Button::Button(std::string label, F&& callback)
-        : Button(std::move(label), [callback](event::Click&) { callback(); })
+    Button::Button(Window& window, std::string label, F&& callback)
+        : Button(window, std::move(label), [callback](event::Click&) { callback(); })
     {
     }
 
     template<std::invocable<event::Click&> F>
-    Button::Button(std::string label, F&& callback)
-        : Button(std::move(label))
+    Button::Button(Window& window, std::string label, F&& callback)
+        : Button(window, std::move(label))
     {
         addEventListener(std::forward<F>(callback));
     }

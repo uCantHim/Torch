@@ -5,7 +5,9 @@
 
 
 
-trc::ui::InputField::InputField()
+trc::ui::InputField::InputField(Window& window)
+    :
+    Quad(window)
 {
     addEventListener([this](event::Click&) {
         focused = true;
@@ -20,7 +22,7 @@ trc::ui::InputField::InputField()
     addEventListener([this](event::KeyPress& e) {
         if (focused)
         {
-            auto& io = window->getIoConfig();
+            auto& io = this->window->getIoConfig();
             if (e.key == io.keyMap.backspace) {
                 removeCharacterLeft();
             }
@@ -40,9 +42,9 @@ trc::ui::InputField::InputField()
     });
 }
 
-trc::ui::InputField::InputField(ui32 fontIndex, ui32 fontSize)
+trc::ui::InputField::InputField(Window& window, ui32 fontIndex, ui32 fontSize)
     :
-    InputField()
+    InputField(window)
 {
     this->fontIndex = fontIndex;
     this->fontSize = fontSize;
@@ -54,17 +56,16 @@ void trc::ui::InputField::draw(DrawList& drawList)
 
     const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
     auto [text, textSize] = layoutText(inputChars, fontIndex, fontScaling);
-    const vec2 normPadding = getNormPadding(textSize, *window);
 
-    globalSize.y = textSize.y + normPadding.y * 2.0f;
+    globalSize.y = textSize.y;
     Quad::draw(drawList);
 
     // Set scissor rect size
-    text.displayBegin = globalPos.x + normPadding.x;
-    text.maxDisplayWidth = globalSize.x - normPadding.x * 2.0f;
+    text.displayBegin = globalPos.x;
+    text.maxDisplayWidth = globalSize.x;
 
     // Cursor position is necessary for text offset calculation
-    vec2 textPos{ globalPos + normPadding };
+    vec2 textPos{ globalPos };
     vec2 cursorPos = textPos;
     cursorPos.x += text.letters.at(cursorPosition).glyphOffset.x;
 

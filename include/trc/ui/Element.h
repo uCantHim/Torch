@@ -43,6 +43,7 @@ namespace trc::ui
     {
     protected:
         friend class Window;
+        friend class DrawList;
 
         vec2 globalPos;
         vec2 globalSize;
@@ -64,17 +65,12 @@ namespace trc::ui
     protected:
         friend class Window;
 
-        /** The `window` member will be set by Window when it creates the element. */
-        Element() = default;
-        explicit Element(Window& window)
-            : window(&window)
-        {}
+        explicit Element(Window& window) : window(&window) {}
 
+        /** TODO: This should be a reference */
         Window* window;
     };
 
     template<typename T>
-    concept GuiElement = requires {
-        std::is_base_of_v<Element, T>;
-    };
+    concept GuiElement = std::derived_from<T, Element>;
 } // namespace trc::ui

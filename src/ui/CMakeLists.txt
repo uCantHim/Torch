@@ -2,6 +2,7 @@ target_sources(
     torch PRIVATE
     DrawList.cpp
     FontRegistry.cpp
+    Style.cpp
     Transform.cpp
     Window.cpp
 )
