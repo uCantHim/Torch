@@ -40,10 +40,13 @@ namespace trc::ui
         auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
         auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
 
-        inline operator E&() &&;
-        inline auto makeRef() && -> E&;
-        inline auto makeShared() && -> SharedHandle;
-        inline auto makeUnique() && -> UniqueHandle;
+        operator E&() &&;
+        operator SharedHandle() &&;
+        operator UniqueHandle() &&;
+
+        auto makeRef() && -> E&;
+        auto makeShared() && -> SharedHandle;
+        auto makeUnique() && -> UniqueHandle;
 
     private:
         E* element;

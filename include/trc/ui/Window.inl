@@ -19,8 +19,20 @@ inline ElementHandleProxy<E>::operator E&() &&
     return *element;
 }
 
-template<GuiElement E>
-inline auto ElementHandleProxy<E>::makeRef() && -> E&
+template<trc::ui::GuiElement E>
+inline trc::ui::ElementHandleProxy<E>::operator SharedHandle() &&
+{
+    return std::move(*this).makeShared();
+}
+
+template<trc::ui::GuiElement E>
+inline trc::ui::ElementHandleProxy<E>::operator UniqueHandle() &&
+{
+    return std::move(*this).makeUnique();
+}
+
+template<trc::ui::GuiElement E>
+inline auto trc::ui::ElementHandleProxy<E>::makeRef() && -> E&
 {
     return *element;
 }
