@@ -13,8 +13,8 @@ namespace trc::ui
 
         // TODO: Position should be in pixels by default
         Vec2D<Format> positionFormat{ Format::eNorm };
-        Vec2D<Format> sizeFormat{ Format::ePixel };
-        Vec2D<Scale> scalingType{ Scale::eAbsolute };
+        Vec2D<Format> sizeFormat{ Format::eNorm };
+        Vec2D<Scale> scalingType{ Scale::eRelativeToParent };
     };
 
     class Window;

@@ -53,7 +53,7 @@ int main()
         child->addEventListener([](const ui::event::Click& e) {
             std::cout << "Click on second quad\n";
         });
-        child->style.background = vec4(1.0f, 0.0f, 1.0f, 1.0f );
+        child->style.background = vec4(1.0f, 0.0f, 1.0f, 1.0f);
         child->style.borderThickness = 2;
         child->style.borderColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
@@ -80,8 +80,9 @@ int main()
 
         // Input field
         auto input = window->create<ui::InputField>().makeUnique();
-        input->setSize(150_px, 40_px);
         input->setPos(0.1_n, 300_px);
+        input->setSize(150_px, 40_px);
+        input->setScaling(ui::Scale::eAbsolute);
         window->getRoot().attach(*input);
 
         // Button
