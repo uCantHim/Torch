@@ -4,9 +4,10 @@
 #include <vector>
 
 #include "trc/ui/Element.h"
+#include "trc/ui/elements/BaseElements.h"
+#include "trc/ui/elements/Line.h"
 #include "trc/ui/elements/Quad.h"
 #include "trc/ui/elements/Text.h"
-#include "trc/ui/elements/BaseElements.h"
 #include "trc/ui/event/InputEvent.h"
 
 namespace trc::ui
@@ -16,8 +17,6 @@ namespace trc::ui
     public:
         explicit InputField(Window& window);
         InputField(Window& window, ui32 fontIndex, ui32 fontSize);
-
-        void draw(DrawList& drawList) override;
 
         /**
          * @return std::string UTF-8 encoded string
@@ -43,6 +42,9 @@ namespace trc::ui
         void disableEventOnDelete();
 
     private:
+        void incCursorPos();
+        void decCursorPos();
+        void positionText();
         void inputCharacter(CharCode code);
         void removeCharacterLeft();
         void removeCharacterRight();
@@ -50,8 +52,12 @@ namespace trc::ui
         bool focused{ false };
         std::vector<CharCode> inputChars;
         ui32 cursorPosition{ 0 };
-        float lastTextOffset{ 0.0f };
+        float cursorPos{ 0.0f };
+        float textOffset{ 0.0f };
 
         bool eventOnDelete{ true };
+
+        Text& text;
+        Line& cursor;
     };
 } // namespace trc::ui

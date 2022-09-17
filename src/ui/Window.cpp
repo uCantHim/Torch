@@ -131,13 +131,19 @@ void trc::ui::Window::realignElements()
         elem.foreachChild([&, parentTransform](Element& child)
         {
             const auto childTransform = concat(parentTransform, child.getTransform(), *this);
-            const auto [childPos, childSize] = calcTransform(childTransform, child);
+            auto [childPos, childSize] = calcTransform(childTransform, child);
+
+            /**
+             * TODO: Never resize to fit children. Add default scissor rectangle to each
+             * element.
+             *
+             * Provide a flag that enables auto-resizing.
+             */
+            childSize += padding;
 
             pos = glm::min(pos, childPos);
-            size = glm::max(size, childPos - parentTransform.position + childSize);
+            size = glm::max(size, (childPos - pos) + childSize);
         });
-
-        size += padding * 2.0f;
 
         return { (elem.globalPos = pos), (elem.globalSize = size) };
     };

@@ -7,8 +7,16 @@
 
 trc::ui::InputField::InputField(Window& window)
     :
-    Quad(window)
+    Quad(window),
+    text(window.create<Text>()),
+    cursor(window.create<Line>())
 {
+    attach(text);
+    text.attach(cursor);
+    cursor.setSize(0.0f, 1.0f);
+    cursor.setSizeProperties({ Format::eNorm, { Align::eAbsolute, Align::eRelative } });
+    cursor.style.background=vec4(1.0f);
+
     addEventListener([this](event::Click&) {
         focused = true;
     });
@@ -29,11 +37,11 @@ trc::ui::InputField::InputField(Window& window)
             else if (e.key == io.keyMap.del) {
                 removeCharacterRight();
             }
-            else if (e.key == io.keyMap.arrowLeft && cursorPosition > 0) {
-                --cursorPosition;
+            else if (e.key == io.keyMap.arrowLeft) {
+                decCursorPos();
             }
-            else if (e.key == io.keyMap.arrowRight && cursorPosition < inputChars.size()) {
-                ++cursorPosition;
+            else if (e.key == io.keyMap.arrowRight) {
+                incCursorPos();
             }
             else if (e.key == io.keyMap.enter) {
                 //inputString += '\n';
@@ -50,64 +58,6 @@ trc::ui::InputField::InputField(Window& window, ui32 fontIndex, ui32 fontSize)
     this->fontSize = fontSize;
 }
 
-void trc::ui::InputField::draw(DrawList& drawList)
-{
-    using namespace std::chrono;
-
-    const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
-    auto [text, textSize] = layoutText(inputChars, fontIndex, fontScaling);
-
-    globalSize.y = textSize.y;
-    Quad::draw(drawList);
-
-    // Set scissor rect size
-    text.displayBegin = globalPos.x;
-    text.maxDisplayWidth = globalSize.x;
-
-    // Cursor position is necessary for text offset calculation
-    vec2 textPos{ globalPos };
-    vec2 cursorPos = textPos;
-    cursorPos.x += text.letters.at(cursorPosition).glyphOffset.x;
-
-    // Move the text if the cursor is out of bounds
-    {
-        float textOffset{ lastTextOffset };
-        const float displayEnd = text.displayBegin + text.maxDisplayWidth;
-        const float withLastOffset = cursorPos.x + lastTextOffset;
-        if (withLastOffset > displayEnd) {
-            // Cursor is out-of-bounds to the right
-            textOffset -= withLastOffset - displayEnd;
-        }
-        else if (withLastOffset < text.displayBegin) {
-            // Cursor is out-of-bounds to the left
-            textOffset += text.displayBegin - withLastOffset;
-        }
-
-        lastTextOffset = textOffset;
-        cursorPos.x += textOffset;
-        textPos.x += textOffset;
-    }
-
-    // Draw cursor line
-    if (focused)
-    {
-        drawList.push_back(DrawInfo{
-            .pos   = cursorPos,
-            .size  = { 0.0f, textSize.y },
-            .style = ElementStyle{ .background=vec4(1.0f) },
-            .type  = types::Line{ .width=1 }
-        });
-    }
-
-    // Draw text
-    drawList.push_back(DrawInfo{
-        .pos   = textPos,
-        .size  = textSize,
-        .style = this->style,
-        .type  = std::move(text)
-    });
-}
-
 auto trc::ui::InputField::getInputText() const -> std::string
 {
     return encodeUtf8(inputChars);
@@ -122,13 +72,59 @@ void trc::ui::InputField::clearInput()
 {
     inputChars.clear();
     cursorPosition = 0;
-    lastTextOffset = 0.0f;
+    textOffset = 0.0f;
+}
+
+void trc::ui::InputField::incCursorPos()
+{
+    if (cursorPosition < inputChars.size())
+    {
+        ++cursorPosition;
+        positionText();
+    }
+}
+
+void trc::ui::InputField::decCursorPos()
+{
+    if (cursorPosition > 0)
+    {
+        --cursorPosition;
+        positionText();
+    }
+}
+
+void trc::ui::InputField::positionText()
+{
+    if (!inputChars.empty())
+    {
+        const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
+        auto [text, _] = layoutText(inputChars, fontIndex, fontScaling);
+        cursorPos = textOffset + text.letters.at(cursorPosition).glyphOffset.x;
+    }
+    else {
+        cursorPos = 0.0f;
+    }
+
+    const float displayBegin = 0.0f;
+    const float displayEnd = globalSize.x;
+    if (cursorPos > displayEnd) {
+        // Cursor is out-of-bounds to the right
+        textOffset -= globalSize.x * 0.4f;
+    }
+    else if (cursorPos < displayBegin) {
+        // Cursor is out-of-bounds to the left
+        textOffset += globalSize.x * 0.4f;
+    }
+
+    text.setPos({ textOffset, Format::eNorm }, 0.0f);
+    cursor.setPos(0.0f, 0.0f);
 }
 
 void trc::ui::InputField::inputCharacter(CharCode code)
 {
     inputChars.insert(inputChars.begin() + cursorPosition, code);
-    cursorPosition++;
+    incCursorPos();
+    text.print({ inputChars.begin(), inputChars.end() });
 
     event::Input event(inputChars, code);
     notify(event);
@@ -138,7 +134,9 @@ void trc::ui::InputField::removeCharacterLeft()
 {
     if (cursorPosition != 0)
     {
-        inputChars.erase(inputChars.begin() + (--cursorPosition));
+        decCursorPos();
+        inputChars.erase(inputChars.begin() + cursorPosition);
+        text.print({ inputChars.begin(), inputChars.end() });
 
         if (eventOnDelete)
         {
@@ -154,6 +152,7 @@ void trc::ui::InputField::removeCharacterRight()
     {
         // Don't decrement cursor position after delete
         inputChars.erase(inputChars.begin() + cursorPosition);
+        text.print({ inputChars.begin(), inputChars.end() });
 
         if (eventOnDelete)
         {
