@@ -94,7 +94,7 @@ void trc::ui::Text::draw(DrawList& drawList)
     auto [text, size] = layoutText(printedText, fontIndex, scaling);
 
     setSize(size);
-    setSizeProperties({ .format=Format::eNorm, .align=Align::eAbsolute });
+    setSizing(Format::eNorm, Scale::eAbsolute);
 
     drawList.push_back(DrawInfo{
         .pos   = globalPos,

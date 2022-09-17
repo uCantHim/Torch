@@ -53,8 +53,8 @@ namespace trc::ui
             static_assert(std::is_base_of_v<TransformNode<Derived>, Derived>, "");
         }
 
-        auto getPos() -> vec2;
-        auto getSize() -> vec2;
+        auto getPos() const -> vec2;
+        auto getSize() const -> vec2;
 
         void setPos(vec2 newPos);
         void setPos(float x, float y);
@@ -69,10 +69,18 @@ namespace trc::ui
         auto getTransform() -> Transform;
         void setTransform(Transform newTransform);
 
-        auto getPositionProperties() -> Transform::Properties;
-        auto getSizeProperties() -> Transform::Properties;
-        auto setPositionProperties(Transform::Properties newProps);
-        auto setSizeProperties(Transform::Properties newProps);
+        auto getPositionFormat() const -> Vec2D<Format>;
+        auto getSizeFormat() const -> Vec2D<Format>;
+        auto getScaling() const -> Vec2D<Scale>;
+
+        void setPositionFormat(Vec2D<Format> newFormat);
+        void setSizeFormat(Vec2D<Format> newFormat);
+        void setScaling(Vec2D<Scale> newScaling);
+
+        /**
+         * @brief Set size-format and scaling type
+         */
+        void setSizing(Vec2D<Format> newFormat, Vec2D<Scale> newScaling);
 
     private:
         Transform localTransform;

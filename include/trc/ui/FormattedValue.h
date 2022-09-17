@@ -10,9 +10,9 @@ namespace trc::ui
         ePixel,
     };
 
-    enum class Align : ui8
+    enum class Scale : ui8
     {
-        eRelative,
+        eRelativeToParent,
         eAbsolute
     };
 

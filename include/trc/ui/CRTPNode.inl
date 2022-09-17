@@ -39,13 +39,13 @@ inline void trc::ui::CRTPNode<Derived>::foreachChild(F func)
 
 
 template<typename Derived>
-inline auto trc::ui::TransformNode<Derived>::getPos() -> vec2
+inline auto trc::ui::TransformNode<Derived>::getPos() const -> vec2
 {
     return localTransform.position;
 }
 
 template<typename Derived>
-inline auto trc::ui::TransformNode<Derived>::getSize() -> vec2
+inline auto trc::ui::TransformNode<Derived>::getSize() const -> vec2
 {
     return localTransform.size;
 }
@@ -66,7 +66,7 @@ template<typename Derived>
 inline void trc::ui::TransformNode<Derived>::setPos(pix_or_norm x, pix_or_norm y)
 {
     localTransform.position = { x.value, y.value };
-    localTransform.posProp.format = { x.format, y.format };
+    localTransform.positionFormat = { x.format, y.format };
 }
 
 template<typename Derived>
@@ -91,7 +91,7 @@ template<typename Derived>
 inline void trc::ui::TransformNode<Derived>::setSize(pix_or_norm x, pix_or_norm y)
 {
     localTransform.size = { x.value, y.value };
-    localTransform.sizeProp.format = { x.format, y.format };
+    localTransform.sizeFormat = { x.format, y.format };
 }
 
 template<typename Derived>
@@ -113,25 +113,46 @@ inline void trc::ui::TransformNode<Derived>::setTransform(Transform newTransform
 }
 
 template<typename Derived>
-inline auto trc::ui::TransformNode<Derived>::getPositionProperties() -> Transform::Properties
+inline auto trc::ui::TransformNode<Derived>::getPositionFormat() const -> Vec2D<Format>
 {
-    return localTransform.posProp;
+    return localTransform.positionFormat;
 }
 
 template<typename Derived>
-inline auto trc::ui::TransformNode<Derived>::getSizeProperties() -> Transform::Properties
+inline auto trc::ui::TransformNode<Derived>::getSizeFormat() const -> Vec2D<Format>
 {
-    return localTransform.sizeProp;
+    return localTransform.sizeFormat;
 }
 
 template<typename Derived>
-inline auto trc::ui::TransformNode<Derived>::setPositionProperties(Transform::Properties newProps)
+inline auto trc::ui::TransformNode<Derived>::getScaling() const -> Vec2D<Scale>
 {
-    localTransform.posProp = newProps;
+    return localTransform.scalingType;
 }
 
 template<typename Derived>
-inline auto trc::ui::TransformNode<Derived>::setSizeProperties(Transform::Properties newProps)
+inline void trc::ui::TransformNode<Derived>::setPositionFormat(Vec2D<Format> newProps)
 {
-    localTransform.sizeProp = newProps;
+    localTransform.positionFormat = newProps;
+}
+
+template<typename Derived>
+inline void trc::ui::TransformNode<Derived>::setSizeFormat(Vec2D<Format> newFormat)
+{
+    localTransform.sizeFormat = newFormat;
+}
+
+template<typename Derived>
+inline void trc::ui::TransformNode<Derived>::setScaling(Vec2D<Scale> newScaling)
+{
+    localTransform.scalingType = newScaling;
+}
+
+template<typename Derived>
+inline void trc::ui::TransformNode<Derived>::setSizing(
+    Vec2D<Format> newFormat,
+    Vec2D<Scale> newScaling)
+{
+    localTransform.sizeFormat = newFormat;
+    localTransform.scalingType = newScaling;
 }

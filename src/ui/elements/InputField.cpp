@@ -14,7 +14,7 @@ trc::ui::InputField::InputField(Window& window)
     attach(text);
     text.attach(cursor);
     cursor.setSize(0.0f, 1.0f);
-    cursor.setSizeProperties({ Format::eNorm, { Align::eAbsolute, Align::eRelative } });
+    cursor.setSizing(Format::eNorm, { Scale::eAbsolute, Scale::eRelativeToParent });
     cursor.style.background=vec4(1.0f);
 
     addEventListener([this](event::Click&) {

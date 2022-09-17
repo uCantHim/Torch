@@ -10,25 +10,16 @@ namespace trc::ui
     {
         return {
             .position = {
-                t.posProp.format.x == Format::ePixel ? (t.position.x / windowSize.x) : t.position.x,
-                t.posProp.format.y == Format::ePixel ? (t.position.y / windowSize.y) : t.position.y
+                t.positionFormat.x == Format::ePixel ? (t.position.x / windowSize.x) : t.position.x,
+                t.positionFormat.y == Format::ePixel ? (t.position.y / windowSize.y) : t.position.y
             },
             .size = {
-                t.sizeProp.format.x == Format::ePixel ? (t.size.x / windowSize.x) : t.size.x,
-                t.sizeProp.format.y == Format::ePixel ? (t.size.y / windowSize.y) : t.size.y
+                t.sizeFormat.x == Format::ePixel ? (t.size.x / windowSize.x) : t.size.x,
+                t.sizeFormat.y == Format::ePixel ? (t.size.y / windowSize.y) : t.size.y
             },
-            .posProp = {
-                { Format::eNorm, Format::eNorm },
-                t.posProp.align
-                //{ Format::eNorm, t.posProp.x.align },
-                //{ Format::eNorm, t.posProp.y.align }
-            },
-            .sizeProp = {
-                { Format::eNorm, Format::eNorm },
-                t.sizeProp.align
-                //{ Format::eNorm, t.sizeProp.x.align },
-                //{ Format::eNorm, t.sizeProp.y.align }
-            }
+            .positionFormat = { Format::eNorm, Format::eNorm },
+            .sizeFormat     = { Format::eNorm, Format::eNorm },
+            .scalingType    = t.scalingType
         };
     }
 }
@@ -36,6 +27,12 @@ namespace trc::ui
 auto trc::ui::concat(Transform parent, Transform child, const Window& window) noexcept
     -> Transform
 {
+    assert(!(
+        (child.scalingType.x == Scale::eRelativeToParent && child.sizeFormat.x == Format::ePixel)
+        || (child.scalingType.y == Scale::eRelativeToParent && child.sizeFormat.y == Format::ePixel)
+        )
+        && "A relative size in pixel values does not make any sense. Don't do that!");
+
     const vec2 windowSize = window.getSize();
 
     // Normalize pixel values
@@ -43,24 +40,17 @@ auto trc::ui::concat(Transform parent, Transform child, const Window& window) no
 
     return {
         .position = {
-            child.posProp.align.x == Align::eRelative
-                ? parent.position.x + child.position.x : child.position.x,
-            child.posProp.align.y == Align::eRelative
-                ? parent.position.y + child.position.y : child.position.y,
+            parent.position.x + child.position.x,
+            parent.position.y + child.position.y,
         },
         .size = {
-            child.sizeProp.align.x == Align::eRelative
+            child.scalingType.x == Scale::eRelativeToParent
                 ? parent.size.x * child.size.x : child.size.x,
-            child.sizeProp.align.y == Align::eRelative
+            child.scalingType.y == Scale::eRelativeToParent
                 ? parent.size.y * child.size.y : child.size.y,
         },
-        .posProp = {
-            { Format::eNorm, Format::eNorm },
-            { Align::eAbsolute, Align::eAbsolute },
-        },
-        .sizeProp = {
-            { Format::eNorm, Format::eNorm },
-            { Align::eAbsolute, Align::eAbsolute },
-        }
+        .positionFormat = { Format::eNorm, Format::eNorm },
+        .sizeFormat     = { Format::eNorm, Format::eNorm },
+        .scalingType    = { Scale::eAbsolute, Scale::eAbsolute },
     };
 }

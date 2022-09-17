@@ -139,10 +139,8 @@ void trc::ui::Window::realignElements()
              *
              * Provide a flag that enables auto-resizing.
              */
-            childSize += padding;
-
             pos = glm::min(pos, childPos);
-            size = glm::max(size, (childPos - pos) + childSize);
+            size = glm::max(size, (childPos - pos) + (childSize + padding));
         });
 
         return { (elem.globalPos = pos), (elem.globalSize = size) };
