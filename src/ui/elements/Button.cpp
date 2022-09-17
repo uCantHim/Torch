@@ -9,7 +9,7 @@ trc::ui::Button::Button(Window& window, std::string label)
     Quad(window),
     text(window.create<Text>())
 {
-    this->setSize(0.0f, 0.0f);
+    this->style.dynamicSize = true;
     text.style.background = vec4(0, 0, 0, 1);
     text.style.foreground = vec4(0, 0, 0, 1);
     text.setFontSize(40);

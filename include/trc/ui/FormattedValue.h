@@ -4,6 +4,14 @@
 
 namespace trc::ui
 {
+    /**
+     * Positions with Format::eNorm are treated as relative to the parent
+     * element's size.
+     *
+     * Example: An element with a Format::eNorm position of 0.1 and a 400
+     * pixels wide parent element will be offset by 40 pixels from the
+     * parent's origin.
+     */
     enum class Format : ui8
     {
         eNorm,

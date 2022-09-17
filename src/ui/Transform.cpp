@@ -35,13 +35,18 @@ auto trc::ui::concat(Transform parent, Transform child, const Window& window) no
 
     const vec2 windowSize = window.getSize();
 
+    const Vec2D<bool> relativePos = {
+        child.positionFormat.x == Format::eNorm,
+        child.positionFormat.x == Format::eNorm
+    };
+
     // Normalize pixel values
     child = toNorm(child, windowSize);
 
     return {
         .position = {
-            parent.position.x + child.position.x,
-            parent.position.y + child.position.y,
+            parent.position.x + (relativePos.x ? parent.size.x * child.position.x : child.position.x),
+            parent.position.y + (relativePos.y ? parent.size.y * child.position.y : child.position.y),
         },
         .size = {
             child.scalingType.x == Scale::eRelativeToParent

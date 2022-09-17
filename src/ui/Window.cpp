@@ -124,23 +124,22 @@ void trc::ui::Window::realignElements()
         vec2 pos = parentTransform.position;
         vec2 size = parentTransform.size;
 
+        if (elem.style.dynamicSize) {
+            size = vec2(0.0f);
+        }
+
         // Apply padding
         const vec2 padding = elem.style.padding.calcNormalizedPadding(*this);
-        parentTransform.position += padding;  // Offset all children by padding value
 
         elem.foreachChild([&, parentTransform](Element& child)
         {
-            const auto childTransform = concat(parentTransform, child.getTransform(), *this);
+            auto childTransform = concat(parentTransform, child.getTransform(), *this);
+            childTransform.position += padding;
             auto [childPos, childSize] = calcTransform(childTransform, child);
 
-            /**
-             * TODO: Never resize to fit children. Add default scissor rectangle to each
-             * element.
-             *
-             * Provide a flag that enables auto-resizing.
-             */
-            pos = glm::min(pos, childPos);
-            size = glm::max(size, (childPos - pos) + (childSize + padding));
+            if (elem.style.dynamicSize) {
+                size = glm::max(size, (childPos - pos) + (childSize + padding));
+            }
         });
 
         return { (elem.globalPos = pos), (elem.globalSize = size) };

@@ -22,7 +22,7 @@ namespace trc::ui
 
         static inline ui32 borderThickness{ 0 };
         static inline vec4 borderColor{ 0.8f, 0.8f, 1.0f, 1.0f };
-        static inline vec2 padding{ 8, 5 };
+        static inline vec2 padding{ 0, 0 };
 
         static inline ui32 font{ 0 };
         static inline ui32 fontSize{ 20 };
@@ -68,5 +68,14 @@ namespace trc::ui
         vec4 borderColor{ DefaultStyle::borderColor };
 
         Padding padding;
+
+        /**
+         * Automatically resize the element to fit children. Set the
+         * element's own size to zero.
+         *
+         * Note: If dynamicSize is enabled and all children have sizes
+         * relative to their parent, then all of their sizes will be zero.
+         */
+        bool dynamicSize{ false };
     };
 } // namespace trc::ui
