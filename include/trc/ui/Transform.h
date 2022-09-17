@@ -11,10 +11,10 @@ namespace trc::ui
         vec2 position{ 0.0f, 0.0f };
         vec2 size{ 1.0f, 1.0f };
 
-        // TODO: Position should be in pixels by default
         Vec2D<Format> positionFormat{ Format::eNorm };
+        Vec2D<Scale> positionScaling{ Scale::eRelativeToParent };
         Vec2D<Format> sizeFormat{ Format::eNorm };
-        Vec2D<Scale> scalingType{ Scale::eRelativeToParent };
+        Vec2D<Scale> sizeScaling{ Scale::eRelativeToParent };
     };
 
     class Window;

@@ -82,7 +82,7 @@ int main()
         auto input = window->create<ui::InputField>().makeUnique();
         input->setPos(0.1_n, 300_px);
         input->setSize(150_px, 40_px);
-        input->setScaling(ui::Scale::eAbsolute);
+        input->setSizeScaling(ui::Scale::eAbsolute);
         window->getRoot().attach(*input);
 
         // Button

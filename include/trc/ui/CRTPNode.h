@@ -71,11 +71,18 @@ namespace trc::ui
 
         auto getPositionFormat() const -> Vec2D<Format>;
         auto getSizeFormat() const -> Vec2D<Format>;
-        auto getScaling() const -> Vec2D<Scale>;
+        auto getPositionScaling() const -> Vec2D<Scale>;
+        auto getSizeScaling() const -> Vec2D<Scale>;
 
         void setPositionFormat(Vec2D<Format> newFormat);
         void setSizeFormat(Vec2D<Format> newFormat);
-        void setScaling(Vec2D<Scale> newScaling);
+        void setPositionScaling(Vec2D<Scale> newScaling);
+        void setSizeScaling(Vec2D<Scale> newScaling);
+
+        /**
+         * @brief Set position-format and scaling type
+         */
+        void setPositioning(Vec2D<Format> newFormat, Vec2D<Scale> newScaling);
 
         /**
          * @brief Set size-format and scaling type

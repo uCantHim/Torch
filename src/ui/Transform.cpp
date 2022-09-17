@@ -17,9 +17,10 @@ namespace trc::ui
                 t.sizeFormat.x == Format::ePixel ? (t.size.x / windowSize.x) : t.size.x,
                 t.sizeFormat.y == Format::ePixel ? (t.size.y / windowSize.y) : t.size.y
             },
-            .positionFormat = { Format::eNorm, Format::eNorm },
-            .sizeFormat     = { Format::eNorm, Format::eNorm },
-            .scalingType    = t.scalingType
+            .positionFormat  = { Format::eNorm, Format::eNorm },
+            .positionScaling = t.positionScaling,
+            .sizeFormat      = { Format::eNorm, Format::eNorm },
+            .sizeScaling     = t.sizeScaling
         };
     }
 }
@@ -28,16 +29,16 @@ auto trc::ui::concat(Transform parent, Transform child, const Window& window) no
     -> Transform
 {
     assert(!(
-        (child.scalingType.x == Scale::eRelativeToParent && child.sizeFormat.x == Format::ePixel)
-        || (child.scalingType.y == Scale::eRelativeToParent && child.sizeFormat.y == Format::ePixel)
+        (child.sizeScaling.x == Scale::eRelativeToParent && child.sizeFormat.x == Format::ePixel)
+        || (child.sizeScaling.y == Scale::eRelativeToParent && child.sizeFormat.y == Format::ePixel)
         )
         && "A relative size in pixel values does not make any sense. Don't do that!");
 
     const vec2 windowSize = window.getSize();
 
     const Vec2D<bool> relativePos = {
-        child.positionFormat.x == Format::eNorm,
-        child.positionFormat.x == Format::eNorm
+        !(child.positionFormat.x == Format::ePixel) && child.positionScaling.x == Scale::eRelativeToParent,
+        !(child.positionFormat.y == Format::ePixel) && child.positionScaling.y == Scale::eRelativeToParent
     };
 
     // Normalize pixel values
@@ -49,13 +50,14 @@ auto trc::ui::concat(Transform parent, Transform child, const Window& window) no
             parent.position.y + (relativePos.y ? parent.size.y * child.position.y : child.position.y),
         },
         .size = {
-            child.scalingType.x == Scale::eRelativeToParent
+            child.sizeScaling.x == Scale::eRelativeToParent
                 ? parent.size.x * child.size.x : child.size.x,
-            child.scalingType.y == Scale::eRelativeToParent
+            child.sizeScaling.y == Scale::eRelativeToParent
                 ? parent.size.y * child.size.y : child.size.y,
         },
-        .positionFormat = { Format::eNorm, Format::eNorm },
-        .sizeFormat     = { Format::eNorm, Format::eNorm },
-        .scalingType    = { Scale::eAbsolute, Scale::eAbsolute },
+        .positionFormat  = { Format::eNorm, Format::eNorm },
+        .positionScaling = { Scale::eAbsolute, Scale::eAbsolute },
+        .sizeFormat      = { Format::eNorm, Format::eNorm },
+        .sizeScaling     = { Scale::eAbsolute, Scale::eAbsolute },
     };
 }
