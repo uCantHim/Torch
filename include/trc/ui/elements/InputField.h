@@ -52,8 +52,7 @@ namespace trc::ui
         bool focused{ false };
         std::vector<CharCode> inputChars;
         ui32 cursorPosition{ 0 };
-        float cursorPos{ 0.0f };
-        float textOffset{ 0.0f };
+        vec2 textOffset{ 0.0f };
 
         bool eventOnDelete{ true };
 

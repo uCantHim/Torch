@@ -11,14 +11,25 @@ trc::ui::InputField::InputField(Window& window)
     text(window.create<Text>()),
     cursor(window.create<Line>())
 {
+    this->setSize(getSize().x, getFontHeightPixels(fontIndex) + 10);
+    this->style.padding.set(5, 0);
+
     attach(text);
-    text.attach(cursor);
-    cursor.setSize(0.0f, 1.0f);
-    cursor.setSizing(Format::eNorm, { Scale::eAbsolute, Scale::eRelativeToParent });
+    text.setPositionScaling(Scale::eAbsolute);
+    cursor.setPositionScaling(Scale::eAbsolute);
+    cursor.setSize(0.0f, getFontHeightPixels(fontIndex));
+    cursor.setSizing({ Format::eNorm, Format::ePixel }, Scale::eAbsolute);
     cursor.style.background=vec4(1.0f);
 
+    positionText();
+
     addEventListener([this](event::Click&) {
+        attach(cursor);
         focused = true;
+    });
+    window.getRoot().addEventListener([this](event::Click&) {
+        detach(cursor);
+        focused = false;
     });
 
     addEventListener([this](event::CharInput& e) {
@@ -72,7 +83,7 @@ void trc::ui::InputField::clearInput()
 {
     inputChars.clear();
     cursorPosition = 0;
-    textOffset = 0.0f;
+    textOffset = vec2(0.0f);
 }
 
 void trc::ui::InputField::incCursorPos()
@@ -95,29 +106,27 @@ void trc::ui::InputField::decCursorPos()
 
 void trc::ui::InputField::positionText()
 {
-    if (!inputChars.empty())
-    {
-        const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
-        auto [text, _] = layoutText(inputChars, fontIndex, fontScaling);
-        cursorPos = textOffset + text.letters.at(cursorPosition).glyphOffset.x;
-    }
-    else {
-        cursorPos = 0.0f;
-    }
+    textOffset.y = (globalSize.y - globalSize.y * getFontHeight(fontIndex)) * 0.5f;  // Center text
+
+    const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
+    auto [layout, size] = layoutText(inputChars, fontIndex, fontScaling);
+    float cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
 
     const float displayBegin = 0.0f;
     const float displayEnd = globalSize.x;
     if (cursorPos > displayEnd) {
         // Cursor is out-of-bounds to the right
-        textOffset -= globalSize.x * 0.4f;
+        textOffset.x -= globalSize.x * 0.4f;
+        cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
     }
     else if (cursorPos < displayBegin) {
         // Cursor is out-of-bounds to the left
-        textOffset += globalSize.x * 0.4f;
+        textOffset.x += globalSize.x * 0.4f;
+        cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
     }
 
-    text.setPos({ textOffset, Format::eNorm }, 0.0f);
-    cursor.setPos(0.0f, 0.0f);
+    text.setPos(textOffset);
+    cursor.setPos(cursorPos, textOffset.y);
 }
 
 void trc::ui::InputField::inputCharacter(CharCode code)
