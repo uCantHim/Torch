@@ -29,7 +29,7 @@ auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling
     const auto& face = FontRegistry::getFontInfo(fontIndex);
 
     vec2 glyphPos{ 0, face.maxAscendNorm };
-    vec2 textSize{ 0, face.maxAscendNorm + face.maxDescendNorm };
+    vec2 textSize{ 0, face.maxAscendNorm - face.maxDescendNorm };
     float currentLineWidth{ 0 };
 
     for (CharCode code : chars)
@@ -75,13 +75,13 @@ auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling
 auto getFontHeight(ui32 fontIndex) -> float
 {
     const auto& face = FontRegistry::getFontInfo(fontIndex);
-    return face.maxAscendNorm + face.maxDescendNorm;
+    return face.maxAscendNorm - face.maxDescendNorm;
 }
 
 auto getFontHeightPixels(ui32 fontIndex) -> float
 {
     const auto& face = FontRegistry::getFontInfo(fontIndex);
-    return face.maxAscend + face.maxDescend;
+    return face.maxAscend - face.maxDescend;
 }
 
 
