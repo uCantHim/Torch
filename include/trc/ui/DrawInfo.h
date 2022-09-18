@@ -24,22 +24,22 @@ namespace trc::ui
 
         struct Quad {};
 
-        struct LetterInfo
-        {
-            // Unicode character code
-            CharCode characterCode;
-
-            // Offset from text position
-            vec2 glyphOffset;
-            vec2 glyphSize;
-
-            // The glyph's bearing. Included here so that the
-            // implementation doesn't have to look it up.
-            float bearingY;
-        };
-
         struct Text
         {
+            struct LetterInfo
+            {
+                // Unicode character code
+                CharCode characterCode;
+
+                // Offset from text position
+                vec2 glyphOffset;
+                vec2 glyphSize;
+
+                // The glyph's bearing. Included here so that the
+                // implementation doesn't have to look it up.
+                float bearingY;
+            };
+
             ui32 fontIndex;
             std::vector<LetterInfo> letters;
             float displayBegin{ 0.0f }; // x-coordinate at which the scissor rect begins

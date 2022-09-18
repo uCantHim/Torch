@@ -8,14 +8,17 @@
 
 
 
-auto trc::ui::layoutText(const std::string& str, ::trc::ui32 fontIndex, ::trc::vec2 scaling)
-    -> std::pair<types::Text, ::trc::vec2>
+namespace trc::ui
+{
+
+auto layoutText(const std::string& str, ui32 fontIndex, vec2 scaling)
+    -> std::pair<types::Text, vec2>
 {
     return layoutText(decodeUtf8(str), fontIndex, scaling);
 }
 
-auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontIndex, ::trc::vec2 scaling)
-    -> std::pair<types::Text, ::trc::vec2>
+auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling)
+    -> std::pair<types::Text, vec2>
 {
     types::Text textInfo{
         .fontIndex = fontIndex,
@@ -26,7 +29,7 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
     const auto& face = FontRegistry::getFontInfo(fontIndex);
 
     vec2 glyphPos{ 0, face.maxAscendNorm };
-    vec2 textSize{ 0, face.maxLineHeightNorm };
+    vec2 textSize{ 0, face.maxAscendNorm + face.maxDescendNorm };
     float currentLineWidth{ 0 };
 
     for (CharCode code : chars)
@@ -44,7 +47,7 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
         }
 
         auto& glyph = FontRegistry::getGlyph(fontIndex, code);
-        textInfo.letters.emplace_back(types::LetterInfo{
+        textInfo.letters.emplace_back(types::Text::LetterInfo{
             .characterCode = code,
             .glyphOffset = glyphPos * scaling,
             .glyphSize = glyph.metaNormalized.size * scaling,
@@ -58,14 +61,27 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
     }
 
     // Add null-character at the end
-    textInfo.letters.emplace_back(types::LetterInfo{
+    auto nullChar = face.loadGlyph(0x00);
+    textInfo.letters.emplace_back(types::Text::LetterInfo{
         .characterCode = 0x00,
         .glyphOffset = glyphPos * scaling,
-        .glyphSize = vec2(0.0f),
-        .bearingY = 0.0f
+        .glyphSize = nullChar.metaNormalized.size * scaling,
+        .bearingY = nullChar.metaNormalized.bearingY * scaling.y
     });
 
     return { textInfo, textSize * scaling };
+}
+
+auto getFontHeight(ui32 fontIndex) -> float
+{
+    const auto& face = FontRegistry::getFontInfo(fontIndex);
+    return face.maxAscendNorm + face.maxDescendNorm;
+}
+
+auto getFontHeightPixels(ui32 fontIndex) -> float
+{
+    const auto& face = FontRegistry::getFontInfo(fontIndex);
+    return face.maxAscend + face.maxDescend;
 }
 
 
@@ -74,37 +90,52 @@ auto trc::ui::layoutText(const std::vector<CharCode>& chars, ::trc::ui32 fontInd
 //      Text element      //
 // ---------------------- //
 
-trc::ui::Text::Text(Window& window)
+Text::Text(Window& window)
+    :
+    Text(window, "")
+{
+}
+
+Text::Text(Window& window, std::string str, ui32 fontIndex, ui32 fontSize)
+    :
+    Element(window),
+    TextBase(fontIndex, fontSize),
+    textElem(window.create<Letters>())
+{
+    style.dynamicSize = true;
+
+    textElem.setSize(0.0f, getFontHeight(fontIndex));
+    textElem.setSizing(Format::eNorm, Scale::eAbsolute);
+    attach(textElem);
+
+    print(std::move(str));
+}
+
+void Text::print(std::string str)
+{
+    printedText = std::move(str);
+
+    vec2 scaling = window->pixelsToNorm(vec2(fontSize));
+    auto [text, size] = layoutText(printedText, fontIndex, scaling);
+
+    textElem.setSize(size);
+    textElem.setText(std::move(text));
+}
+
+Text::Letters::Letters(Window& window)
     :
     Element(window)
 {
 }
 
-trc::ui::Text::Text(Window& window, std::string str, ui32 fontIndex, ui32 fontSize)
-    :
-    Element(window),
-    TextBase(fontIndex, fontSize)
+void Text::Letters::draw(DrawList& drawList)
 {
-    print(std::move(str));
+    drawList.push(text, *this);
 }
 
-void trc::ui::Text::draw(DrawList& drawList)
+void Text::Letters::setText(types::Text newText)
 {
-    vec2 scaling = window->pixelsToNorm(vec2(fontSize));
-    auto [text, size] = layoutText(printedText, fontIndex, scaling);
-
-    setSize(size);
-    setSizing(Format::eNorm, Scale::eAbsolute);
-
-    drawList.push_back(DrawInfo{
-        .pos   = globalPos,
-        .size  = globalSize,
-        .style = this->style,
-        .type  = std::move(text)
-    });
+    text = std::move(newText);
 }
 
-void trc::ui::Text::print(std::string str)
-{
-    printedText = std::move(str);
-}
+} // namespace trc::ui

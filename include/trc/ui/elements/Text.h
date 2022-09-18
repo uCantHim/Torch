@@ -38,6 +38,16 @@ namespace trc::ui
     auto layoutText(const std::vector<CharCode>& chars, ui32 fontIndex, vec2 scaling)
         -> std::pair<types::Text, vec2>;
 
+    /**
+     * @return float The maximum glyph height of a font in screen coordinates
+     */
+    auto getFontHeight(ui32 fontIndex) -> float;
+
+    /**
+     * @return float The maximum glyph height of a font in screen coordinates
+     */
+    auto getFontHeightPixels(ui32 fontIndex) -> float;
+
     class Text : public Element, public TextBase
     {
     public:
@@ -47,11 +57,25 @@ namespace trc::ui
              ui32 fontIndex = DefaultStyle::font,
              ui32 fontSize = DefaultStyle::fontSize);
 
-        void draw(DrawList& drawList) override;
+        void draw(DrawList&) override {}
 
         void print(std::string str);
 
     private:
+        class Letters : public Element
+        {
+        public:
+            explicit Letters(Window& window);
+
+            void draw(DrawList& drawList) override;
+
+            void setText(types::Text newText);
+
+        private:
+            types::Text text;
+        };
+
         std::string printedText;
+        Letters& textElem;
     };
 } // namespace trc::ui
