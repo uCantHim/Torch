@@ -75,15 +75,14 @@ namespace trc::ui_impl
         trc::Pipeline textPipeline;
 
         // Plain line vertices
-        struct Line
+        struct LineData
         {
             vec2 start;
             vec2 end;
 
             vec4 color;
-            float width;
         };
-        std::vector<Line> lines;
+        DynamicBuffer<LineData> lineBuffer;
 
         // Plain quad resources
         struct QuadData

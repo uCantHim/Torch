@@ -26,12 +26,17 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
             vk::VertexInputBindingDescription(0, sizeof(vec2), vk::VertexInputRate::eVertex),
             { vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0) }
         )
+        .addVertexInputBinding(
+            vk::VertexInputBindingDescription(1, sizeof(LineData), vk::VertexInputRate::eInstance),
+            {
+                vk::VertexInputAttributeDescription(1, 1, vk::Format::eR32G32Sfloat, 0),
+                vk::VertexInputAttributeDescription(2, 1, vk::Format::eR32G32Sfloat, 8),
+                vk::VertexInputAttributeDescription(3, 1, vk::Format::eR32G32B32A32Sfloat, 16),
+            }
+        )
         .setPrimitiveTopology(vk::PrimitiveTopology::eLineList)
-        .addViewport({})
-        .addScissorRect({})
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
-        .addDynamicState(vk::DynamicState::eLineWidth)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, {}, {})
         .build(device, linePipelineLayout, renderPass, subPass);
@@ -202,9 +207,15 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
     linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
     quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
     textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),
-    quadBuffer(
+    lineBuffer(
         device,
         100, // Initial max number of quads
+        vk::BufferUsageFlagBits::eVertexBuffer,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+    ),
+    quadBuffer(
+        device,
+        100, // Initial max number of lines
         vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
@@ -246,10 +257,10 @@ trc::ui_impl::DrawCollector::~DrawCollector()
 
 void trc::ui_impl::DrawCollector::beginFrame()
 {
+    lineBuffer.clear();
     quadBuffer.clear();
     textRanges.clear();
     letterBuffer.clear();
-    lines.clear();
 }
 
 void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
@@ -277,25 +288,11 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
     cmdBuf.draw(6, quadBuffer.size(), 0, 0);
 
     // Draw all lines
-    if (!lines.empty())
-    {
-        auto layout = *linePipeline.getLayout();
-        linePipeline.bind(cmdBuf);
-        cmdBuf.setViewport(0, defaultViewport);
-        cmdBuf.setScissor(0, defaultScissor);
-
-        for (const auto& line : lines)
-        {
-            cmdBuf.pushConstants<vec2>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       0, { line.start, line.end });
-            cmdBuf.pushConstants<vec4>(layout, vk::ShaderStageFlagBits::eFragment,
-                                       16, line.color);
-            cmdBuf.setLineWidth(line.width);
-
-            cmdBuf.bindVertexBuffers(0, *lineUvBuffer, vk::DeviceSize(0));
-            cmdBuf.draw(2, 1, 0, 0);
-        }
-    }
+    linePipeline.bind(cmdBuf);
+    cmdBuf.setViewport(0, defaultViewport);
+    cmdBuf.setScissor(0, defaultScissor);
+    cmdBuf.bindVertexBuffers(0, { *lineUvBuffer, *lineBuffer }, { 0, 0 });
+    cmdBuf.draw(2, lineBuffer.size(), 0, 0);
 
     // Draw text
     if (!textRanges.empty())
@@ -359,17 +356,16 @@ void trc::ui_impl::DrawCollector::add(
 void trc::ui_impl::DrawCollector::add(
     vec2 pos, vec2 size,
     const ui::ElementStyle& elem,
-    const ui::types::Line& line)
+    const ui::types::Line&)
 {
     const vec4 color = std::holds_alternative<vec4>(elem.background)
         ? std::get<vec4>(elem.background)
         : vec4(1.0f);
 
-    lines.push_back({
+    lineBuffer.push({
         .start = pos,
         .end   = pos + size,
-        .color = color,
-        .width = static_cast<float>(line.width)
+        .color = color
     });
 }
 
@@ -426,13 +422,13 @@ void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyl
     const vec2 ur{ pos + size };
 
     // Left line
-    lines.push_back({ pos, { pos.x, ur.y }, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    lineBuffer.push({ pos, { pos.x, ur.y }, elem.borderColor });
     // Bottom line
-    lines.push_back({ pos, { ur.x, pos.y }, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    lineBuffer.push({ pos, { ur.x, pos.y }, elem.borderColor });
     // Right line
-    lines.push_back({ { ur.x, pos.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    lineBuffer.push({ { ur.x, pos.y }, ur, elem.borderColor });
     // Top line
-    lines.push_back({ { pos.x, ur.y }, ur, elem.borderColor, static_cast<float>(elem.borderThickness) });
+    lineBuffer.push({ { pos.x, ur.y }, ur, elem.borderColor });
 }
 
 void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)

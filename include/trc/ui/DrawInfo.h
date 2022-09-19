@@ -17,10 +17,11 @@ namespace trc::ui
     {
         struct NoType {};
 
-        struct Line
-        {
-            ui32 width{ 1 };
-        };
+        /**
+         * TODO: I can implement thick lines as quads if I want to add
+         * the line-width parameter again.
+         */
+        struct Line {};
 
         struct Quad {};
 

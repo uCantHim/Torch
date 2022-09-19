@@ -7,13 +7,11 @@ namespace trc::ui
     class Line : public Element
     {
     public:
-        explicit Line(Window& window);
+        explicit Line(Window& window) : Element(window) {}
 
-        void draw(DrawList& drawList) override;
-
-        void setWidth(ui32 newWidth);
-
-    private:
-        ui32 lineWidth{ 1 };
+        void draw(DrawList& drawList) override
+        {
+            drawList.push(types::Line{}, *this);
+        }
     };
 } // namespace trc::ui
