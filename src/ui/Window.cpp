@@ -27,6 +27,7 @@ trc::ui::Window::Window(WindowCreateInfo createInfo)
 
 trc::ui::Window::~Window()
 {
+    isDuringDelete = true;
     onWindowDestruction(*this);
 }
 
@@ -70,6 +71,7 @@ auto trc::ui::Window::getRoot() -> Element&
 
 void trc::ui::Window::destroy(Element& elem)
 {
+    if (isDuringDelete) return;
     drawableElements.erase(std::remove_if(
         drawableElements.begin(), drawableElements.end(),
         [&elem](u_ptr<Element>& e) { return e.get() == &elem; }

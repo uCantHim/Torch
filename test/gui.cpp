@@ -95,7 +95,7 @@ int main()
         button.style.background = vec4(1.0f, 1.0f, 0.2f, 1.0f);
         button.style.foreground = vec4(0.0f, 0.0f, 0.0f, 1.0f);
         button.style.padding.set(20.0f, 40.0f);
-        button.setFontSize(40);
+        button.style.fontSize = 40;
 
         // Also add a world-space object
         trc::Light light = scene.getLights().makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);

@@ -113,14 +113,15 @@ Text::Text(Window& window)
 Text::Text(Window& window, std::string str, ui32 fontIndex, ui32 fontSize)
     :
     Element(window),
-    TextBase(fontIndex, fontSize),
     textElem(window.create<Letters>())
 {
+    style.fontIndex = fontIndex;
+    style.fontSize = fontSize;
     style.dynamicSize = true;
 
-    textElem.setSize(0.0f, getFontHeight(fontIndex));
-    textElem.setSizing(Format::eNorm, Scale::eAbsolute);
-    attach(textElem);
+    textElem->setSize(0.0f, getFontHeight(fontIndex));
+    textElem->setSizing(Format::eNorm, Scale::eAbsolute);
+    attach(*textElem);
 
     print(std::move(str));
 }
@@ -129,11 +130,11 @@ void Text::print(std::string str)
 {
     printedText = std::move(str);
 
-    vec2 scaling = window->pixelsToNorm(vec2(fontSize));
-    auto [text, size] = layoutText(printedText, fontIndex, scaling);
+    vec2 scaling = window->pixelsToNorm(vec2(style.fontSize));
+    auto [text, size] = layoutText(printedText, style.fontIndex, scaling);
 
-    textElem.setSize(size);
-    textElem.setText(std::move(text));
+    textElem->setSize(size);
+    textElem->setText(std::move(text));
 }
 
 Text::Letters::Letters(Window& window)

@@ -19,7 +19,7 @@ namespace trc::ui
      * Typed shared handle for UI elements
      */
     template<GuiElement E>
-    using UniqueElementHandle = u_ptr<E, std::function<void(E*)>>;
+    using UniqueElement = u_ptr<E, std::function<void(E*)>>;
 
     /**
      * Temporary proxy that creates either an unmanaged reference or a
@@ -33,7 +33,7 @@ namespace trc::ui
 
     public:
         using SharedHandle = SharedElementHandle<E>;
-        using UniqueHandle = UniqueElementHandle<E>;
+        using UniqueHandle = UniqueElement<E>;
 
         ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
         ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
@@ -177,6 +177,25 @@ namespace trc::ui
         u_ptr<WindowBackend> windowBackend;
         IoConfig ioConfig;
 
+        /**
+         * A hack that temporarily prevents the problem of nested child-
+         * element deletes.
+         */
+        bool isDuringDelete{ false };
+
+        /**
+         * I need:
+         *  - no iterator invalidation during erase
+         *  - no iterator invalidation during insert
+         *
+         * I want:
+         *  - fast searches
+         *
+         * I do not need:
+         *  - Contiguous memory
+         *
+         * => Basically a pool-like thing that allows dynamic space increase
+         */
         std::vector<u_ptr<Element>> drawableElements;
         DrawList drawList;
 

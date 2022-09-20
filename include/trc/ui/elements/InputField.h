@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "trc/ui/Element.h"
-#include "trc/ui/elements/BaseElements.h"
+#include "trc/ui/Window.h"
 #include "trc/ui/elements/Line.h"
 #include "trc/ui/elements/Quad.h"
 #include "trc/ui/elements/Text.h"
@@ -12,7 +12,7 @@
 
 namespace trc::ui
 {
-    class InputField : public Quad, public TextBase
+    class InputField : public Quad
     {
     public:
         explicit InputField(Window& window);
@@ -58,7 +58,7 @@ namespace trc::ui
 
         bool eventOnDelete{ true };
 
-        Text& text;
-        Line& cursor;
+        UniqueElement<Text> text;
+        UniqueElement<Line> cursor;
     };
 } // namespace trc::ui

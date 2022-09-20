@@ -6,7 +6,7 @@
 
 namespace trc::ui
 {
-    class Button : public Quad, public TextBase
+    class Button : public Quad
     {
     public:
         explicit Button(Window& window, std::string label);
@@ -19,7 +19,7 @@ namespace trc::ui
         void setLabel(std::string newLabel);
 
     private:
-        Text& text;
+        UniqueElement<Text> text;
     };
 
 

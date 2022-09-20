@@ -64,6 +64,9 @@ namespace trc::ui
         std::variant<vec4, TextureInfo> background{ DefaultStyle::background };
         std::variant<vec4, TextureInfo> foreground{ DefaultStyle::textColor };
 
+        ui32 fontIndex{ DefaultStyle::font };
+        ui32 fontSize{ DefaultStyle::fontSize };
+
         ui32 borderThickness{ DefaultStyle::borderThickness };
         vec4 borderColor{ DefaultStyle::borderColor };
 

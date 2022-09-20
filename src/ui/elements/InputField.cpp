@@ -11,25 +11,25 @@ trc::ui::InputField::InputField(Window& window)
     text(window.create<Text>()),
     cursor(window.create<Line>())
 {
-    this->setSize(getSize().x, getFontHeightLatinPixels(fontIndex) + 10);
+    this->setSize(getSize().x, getFontHeightLatinPixels(style.fontIndex) + 10);
     this->style.padding.set(kPaddingPixels);
     this->style.restrictDrawArea = true;
 
-    attach(text);
-    text.setPositionScaling(Scale::eAbsolute);
-    cursor.setPositionScaling(Scale::eAbsolute);
-    cursor.setSize(0.0f, getFontHeightLatin(fontIndex));
-    cursor.setSizing({ Format::eNorm, Format::eNorm }, Scale::eAbsolute);
-    cursor.style.background=vec4(1.0f);
+    attach(*text);
+    text->setPositionScaling(Scale::eAbsolute);
+    cursor->setPositionScaling(Scale::eAbsolute);
+    cursor->setSize(0.0f, getFontHeightLatin(style.fontIndex));
+    cursor->setSizing({ Format::eNorm, Format::eNorm }, Scale::eAbsolute);
+    cursor->style.background=vec4(1.0f);
 
     positionText();
 
     addEventListener([this](event::Click&) {
-        attach(cursor);
+        attach(*cursor);
         focused = true;
     });
     window.getRoot().addEventListener([this](event::Click&) {
-        detach(cursor);
+        detach(*cursor);
         focused = false;
     });
 
@@ -66,8 +66,8 @@ trc::ui::InputField::InputField(Window& window, ui32 fontIndex, ui32 fontSize)
     :
     InputField(window)
 {
-    this->fontIndex = fontIndex;
-    this->fontSize = fontSize;
+    style.fontIndex = fontIndex;
+    style.fontSize = fontSize;
 }
 
 auto trc::ui::InputField::getInputText() const -> std::string
@@ -107,10 +107,11 @@ void trc::ui::InputField::decCursorPos()
 
 void trc::ui::InputField::positionText()
 {
-    textOffset.y = (globalSize.y - globalSize.y * getFontHeightLatin(fontIndex)) * 0.5f;  // Center text
+    // Center text
+    textOffset.y = (globalSize.y - globalSize.y * getFontHeightLatin(style.fontIndex)) * 0.5f;
 
-    const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
-    auto [layout, _] = layoutText(inputChars, fontIndex, fontScaling);
+    const vec2 fontScaling = window->pixelsToNorm(vec2(style.fontSize));
+    auto [layout, _] = layoutText(inputChars, style.fontIndex, fontScaling);
     const auto& currentLetter = layout.letters.at(cursorPosition);
     float cursorPos = textOffset.x + currentLetter.glyphOffset.x;
 
@@ -134,15 +135,15 @@ void trc::ui::InputField::positionText()
         }
     }
 
-    text.setPos(textOffset);
-    cursor.setPos(cursorPos, textOffset.y);
+    text->setPos(textOffset);
+    cursor->setPos(cursorPos, textOffset.y);
 }
 
 void trc::ui::InputField::inputCharacter(CharCode code)
 {
     inputChars.insert(inputChars.begin() + cursorPosition, code);
     incCursorPos();
-    text.print({ inputChars.begin(), inputChars.end() });
+    text->print({ inputChars.begin(), inputChars.end() });
 
     event::Input event(inputChars, code);
     notify(event);
@@ -154,7 +155,7 @@ void trc::ui::InputField::removeCharacterLeft()
     {
         decCursorPos();
         inputChars.erase(inputChars.begin() + cursorPosition);
-        text.print({ inputChars.begin(), inputChars.end() });
+        text->print({ inputChars.begin(), inputChars.end() });
 
         if (eventOnDelete)
         {
@@ -170,7 +171,7 @@ void trc::ui::InputField::removeCharacterRight()
     {
         // Don't decrement cursor position after delete
         inputChars.erase(inputChars.begin() + cursorPosition);
-        text.print({ inputChars.begin(), inputChars.end() });
+        text->print({ inputChars.begin(), inputChars.end() });
 
         if (eventOnDelete)
         {

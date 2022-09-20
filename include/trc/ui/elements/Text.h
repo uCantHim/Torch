@@ -3,8 +3,8 @@
 #include <string>
 
 #include "trc/ui/Element.h"
-#include "trc/ui/elements/BaseElements.h"
 #include "trc/ui/FontRegistry.h"
+#include "trc/ui/Window.h"
 
 namespace trc::ui
 {
@@ -68,7 +68,7 @@ namespace trc::ui
      */
     auto getFontHeightLatinPixels(ui32 fontIndex) -> float;
 
-    class Text : public Element, public TextBase
+    class Text : public Element
     {
     public:
         explicit Text(Window& window);
@@ -96,6 +96,6 @@ namespace trc::ui
         };
 
         std::string printedText;
-        Letters& textElem;
+        UniqueElement<Letters> textElem;
     };
 } // namespace trc::ui
