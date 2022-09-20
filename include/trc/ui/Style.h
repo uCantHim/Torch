@@ -77,5 +77,14 @@ namespace trc::ui
          * relative to their parent, then all of their sizes will be zero.
          */
         bool dynamicSize{ false };
+
+        /**
+         * Restrict draw area for all child elements.
+         *
+         * If this setting is enabled, a scissor rectangle of the element's
+         * size is set for all child elements, disallowing draws outside of
+         * the element's dimensions.
+         */
+        bool restrictDrawArea{ false };
     };
 } // namespace trc::ui

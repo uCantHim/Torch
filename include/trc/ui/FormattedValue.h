@@ -45,7 +45,7 @@ namespace trc::ui
      */
     struct pix_or_norm
     {
-        static constexpr Format globalDefaultFormat{ Format::ePixel };
+        static constexpr Format globalDefaultFormat{ Format::eNorm };
 
         pix_or_norm(const pix_or_norm&) = default;
         pix_or_norm(pix_or_norm&&) noexcept = default;

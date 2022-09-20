@@ -13,6 +13,7 @@ trc::ui::InputField::InputField(Window& window)
 {
     this->setSize(getSize().x, getFontHeightPixels(fontIndex) + 10);
     this->style.padding.set(5, 0);
+    this->style.restrictDrawArea = true;
 
     attach(text);
     text.setPositionScaling(Scale::eAbsolute);
@@ -109,7 +110,7 @@ void trc::ui::InputField::positionText()
     textOffset.y = (globalSize.y - globalSize.y * getFontHeight(fontIndex)) * 0.5f;  // Center text
 
     const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
-    auto [layout, size] = layoutText(inputChars, fontIndex, fontScaling);
+    auto [layout, _] = layoutText(inputChars, fontIndex, fontScaling);
     float cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
 
     const float displayBegin = 0.0f;

@@ -17,7 +17,8 @@ void trc::ui::initUserCallbacks(
 trc::ui::Window::Window(WindowCreateInfo createInfo)
     :
     onWindowDestruction(std::move(createInfo.onWindowDestruction)),
-    windowBackend(std::move(createInfo.windowBackend))
+    windowBackend(std::move(createInfo.windowBackend)),
+    drawList(*this)
 {
     assert(this->windowBackend != nullptr);
 
@@ -34,9 +35,25 @@ auto trc::ui::Window::draw() -> const DrawList&
     realignElements();
 
     drawList.clear();
-    traverse([this](Element& elem) {
+    std::function<void(Element&)> drawRecursive = [&](Element& elem)
+    {
+        if (elem.style.restrictDrawArea)
+        {
+            drawList.pushScissorRect(
+                { { elem.globalPos.x, Format::eNorm }, { elem.globalPos.y, Format::eNorm } },
+                { { elem.globalSize.x, Format::eNorm }, { elem.globalSize.y, Format::eNorm } }
+            );
+        }
+
         elem.draw(drawList);
-    });
+        elem.foreachChild(drawRecursive);
+
+        if (elem.style.restrictDrawArea) {
+            drawList.popScissorRect();
+        }
+    };
+
+    drawRecursive(*root);
 
     return drawList;
 }

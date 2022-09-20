@@ -15,8 +15,6 @@ namespace trc::ui
      */
     namespace types
     {
-        struct NoType {};
-
         /**
          * TODO: I can implement thick lines as quads if I want to add
          * the line-width parameter again.
@@ -43,27 +41,19 @@ namespace trc::ui
 
             ui32 fontIndex;
             std::vector<LetterInfo> letters;
-            float displayBegin{ 0.0f }; // x-coordinate at which the scissor rect begins
-            float maxDisplayWidth{ -1.0f }; // negative means unlimited
         };
     }
 
     /**
      * All draw information for a gui element
      */
+    template<typename T>
     struct DrawInfo
     {
-        using DrawType = std::variant<
-            types::NoType,
-            types::Line,
-            types::Quad,
-            types::Text
-        >;
-
         vec2 pos;
         vec2 size;
-        ElementStyle style;
-        DrawType type;
+        ElementStyle& style;
+        T elem;
     };
 
     class DrawList;

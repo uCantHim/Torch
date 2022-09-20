@@ -259,65 +259,98 @@ void trc::ui_impl::DrawCollector::beginFrame()
 {
     lineBuffer.clear();
     quadBuffer.clear();
-    textRanges.clear();
     letterBuffer.clear();
+    bufferRanges.clear();
 }
 
-void trc::ui_impl::DrawCollector::drawElement(const ui::DrawInfo& info)
+void trc::ui_impl::DrawCollector::draw(const ui::DrawList& drawList)
 {
-    std::visit([this, &info](auto type) {
-        add(info.pos, info.size, info.style, type);
-        if (info.style.borderThickness > 0) {
-            add(info.pos, info.size, info.style, _border{});
+    ui32 offsetQuads{ 0 };
+    ui32 offsetLines{ 0 };
+    ui32 offsetLetters{ 0 };
+    for (const auto& group : drawList)
+    {
+        bufferRanges.push_back({
+            .scissorOrigin=group.scissorRect.origin,
+            .scissorSize=group.scissorRect.size,
+            .quadOffset=offsetQuads,
+            .lineOffset=offsetLines,
+            .letterOffset=offsetLetters
+        });
+
+        for (const auto& info : group.quads)
+        {
+            add(info.pos, info.size, info.style, info.elem);
+            if (info.style.borderThickness > 0) {
+                add(info.pos, info.size, info.style, _border{});
+            }
         }
-    }, info.type);
+        for (const auto& info : group.lines)
+        {
+            add(info.pos, info.size, info.style, info.elem);
+            if (info.style.borderThickness > 0) {
+                add(info.pos, info.size, info.style, _border{});
+            }
+        }
+        for (const auto& info : group.texts)
+        {
+            add(info.pos, info.size, info.style, info.elem);
+            if (info.style.borderThickness > 0) {
+                add(info.pos, info.size, info.style, _border{});
+            }
+        }
+        offsetQuads   += bufferRanges.back().quadCount;
+        offsetLines   += bufferRanges.back().lineCount;
+        offsetLetters += bufferRanges.back().letterCount;
+    }
 }
 
 void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windowSizePixels)
 {
-    const uvec2 size = windowSizePixels;
-    const vk::Viewport defaultViewport(0, 0, size.x, size.y, 0.0f, 1.0f);
-    const vk::Rect2D defaultScissor({ 0, 0 }, { size.x, size.y });
+    const uvec2 windowSize = windowSizePixels;
+    const vk::Viewport defaultViewport(0, 0, windowSize.x, windowSize.y, 0.0f, 1.0f);
 
     // Draw all quads
     quadPipeline.bind(cmdBuf);
     cmdBuf.setViewport(0, defaultViewport);
-    cmdBuf.setScissor(0, defaultScissor);
-
     cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *quadBuffer }, { 0, 0 });
-    cmdBuf.draw(6, quadBuffer.size(), 0, 0);
+    for (const auto& buf : bufferRanges)
+    {
+        auto o = buf.scissorOrigin;
+        auto s = buf.scissorSize;
+        cmdBuf.setScissor(0, vk::Rect2D{ { o.x, o.y }, { s.x, s.y } });
+        cmdBuf.draw(6, buf.quadCount, 0, buf.quadOffset);
+    }
 
     // Draw all lines
     linePipeline.bind(cmdBuf);
     cmdBuf.setViewport(0, defaultViewport);
-    cmdBuf.setScissor(0, defaultScissor);
     cmdBuf.bindVertexBuffers(0, { *lineUvBuffer, *lineBuffer }, { 0, 0 });
-    cmdBuf.draw(2, lineBuffer.size(), 0, 0);
+    for (const auto& buf : bufferRanges)
+    {
+        auto o = buf.scissorOrigin;
+        auto s = buf.scissorSize;
+        cmdBuf.setScissor(0, vk::Rect2D{ { o.x, o.y }, { s.x, s.y } });
+        cmdBuf.draw(2, buf.lineCount, 0, buf.lineOffset);
+    }
 
     // Draw text
-    if (!textRanges.empty())
+    if (!fonts.empty() && fontDescSet)
     {
         textPipeline.bind(cmdBuf);
         cmdBuf.setViewport(0, defaultViewport);
-
         cmdBuf.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, *textPipeline.getLayout(),
             0, *fontDescSet, {}
         );
         cmdBuf.bindVertexBuffers(0, { *quadVertexBuffer, *letterBuffer }, { 0, 0 });
-    }
-
-    for (ui32 letterOffset{ 0 };
-         auto [offset, extent, numLetters] : textRanges)
-    {
-        cmdBuf.setScissor(0, vk::Rect2D(
-            { static_cast<i32>(offset.x * size.x), static_cast<i32>(offset.y * size.y) },
-            { static_cast<ui32>(extent.x * size.x), static_cast<ui32>(extent.y * size.y) }
-        ));
-
-        cmdBuf.draw(6, numLetters, 0, letterOffset);
-
-        letterOffset += numLetters;
+        for (const auto& buf : bufferRanges)
+        {
+            auto o = buf.scissorOrigin;
+            auto s = buf.scissorSize;
+            cmdBuf.setScissor(0, vk::Rect2D{ { o.x, o.y }, { s.x, s.y } });
+            cmdBuf.draw(6, buf.letterCount, 0, buf.letterOffset);
+        }
     }
 }
 
@@ -347,13 +380,6 @@ auto trc::ui_impl::DrawCollector::FontInfo::getGlyphUvs(wchar_t character)
 }
 
 void trc::ui_impl::DrawCollector::add(
-    vec2, vec2,
-    const ui::ElementStyle&,
-    const ui::types::NoType&)
-{
-}
-
-void trc::ui_impl::DrawCollector::add(
     vec2 pos, vec2 size,
     const ui::ElementStyle& elem,
     const ui::types::Line&)
@@ -367,6 +393,7 @@ void trc::ui_impl::DrawCollector::add(
         .end   = pos + size,
         .color = color
     });
+    ++bufferRanges.back().lineCount;
 }
 
 void trc::ui_impl::DrawCollector::add(
@@ -379,6 +406,7 @@ void trc::ui_impl::DrawCollector::add(
         : vec4(1.0f);
 
     quadBuffer.push({ pos, size, color });
+    ++bufferRanges.back().quadCount;
 }
 
 void trc::ui_impl::DrawCollector::add(
@@ -409,12 +437,7 @@ void trc::ui_impl::DrawCollector::add(
         });
     }
 
-    const float width = text.maxDisplayWidth < 0.0f ? 1.0f : text.maxDisplayWidth;
-    textRanges.push_back(TextRange{
-        .scissorOffset = { text.displayBegin, pos.y },
-        .scissorSize   = { width, 1.0f },
-        .numLetters = static_cast<ui32>(text.letters.size())
-    });
+    bufferRanges.back().letterCount += static_cast<ui32>(text.letters.size());
 }
 
 void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border)
@@ -429,6 +452,8 @@ void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyl
     lineBuffer.push({ { ur.x, pos.y }, ur, elem.borderColor });
     // Top line
     lineBuffer.push({ { pos.x, ur.y }, ur, elem.borderColor });
+
+    bufferRanges.back().lineCount += 4;
 }
 
 void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)

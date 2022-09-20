@@ -121,14 +121,6 @@ void trc::GuiRenderer::render(ui::Window& window, GuiRenderTarget& target)
     auto drawList = window.draw();
     if (drawList.empty()) return;
 
-    // Sort draw list by type of drawable
-    std::ranges::sort(
-        drawList,
-        [](const auto& a, const auto& b) {
-            return a.type.index() < b.type.index();
-        }
-    );
-
     cmdBuf->begin(vk::CommandBufferBeginInfo());
     target.getImage().barrier(
         *cmdBuf,
@@ -152,10 +144,7 @@ void trc::GuiRenderer::render(ui::Window& window, GuiRenderTarget& target)
 
     // Record all element commands
     collector.beginFrame();
-    for (const auto& info : drawList)
-    {
-        collector.drawElement(info);
-    }
+    collector.draw(drawList);
     collector.endFrame(*cmdBuf, size);
 
     cmdBuf->endRenderPass();

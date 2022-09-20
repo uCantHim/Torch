@@ -26,7 +26,7 @@ namespace trc::ui_impl
         ~DrawCollector();
 
         void beginFrame();
-        void drawElement(const ui::DrawInfo& info);
+        void draw(const ui::DrawList& drawList);
         void endFrame(vk::CommandBuffer cmdBuf, uvec2 windowSizePixels);
 
     private:
@@ -44,7 +44,6 @@ namespace trc::ui_impl
         /** @brief Internal drawable type representing a border around an element */
         struct _border {};
 
-        void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::NoType&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Line&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Quad&);
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, const ui::types::Text&);
@@ -137,7 +136,20 @@ namespace trc::ui_impl
             vec2 scissorSize;
             ui32 numLetters;
         };
-        std::vector<TextRange> textRanges;
         DynamicBuffer<LetterData> letterBuffer;
+
+        struct BufferRange
+        {
+            ivec2 scissorOrigin;
+            uvec2 scissorSize;
+
+            ui32 quadOffset{ 0 };
+            size_t quadCount{ 0 };
+            ui32 lineOffset{ 0 };
+            ui32 lineCount{ 0 };
+            ui32 letterOffset{ 0 };
+            ui32 letterCount{ 0 };
+        };
+        std::vector<BufferRange> bufferRanges;
     };
 } // namespace trc::ui_impl
