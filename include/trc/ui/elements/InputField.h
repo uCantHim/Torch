@@ -42,6 +42,8 @@ namespace trc::ui
         void disableEventOnDelete();
 
     private:
+        static constexpr vec2 kPaddingPixels{ 5, 5 };
+
         void incCursorPos();
         void decCursorPos();
         void positionText();

@@ -84,6 +84,20 @@ auto getFontHeightPixels(ui32 fontIndex) -> float
     return face.maxAscend - face.maxDescend;
 }
 
+auto getFontHeightLatin(ui32 fontIndex) -> float
+{
+    const auto& face = FontRegistry::getFontInfo(fontIndex);
+    return face.loadGlyph('A').metaNormalized.bearingY
+           + face.loadGlyph('g').metaNormalized.negBearingY;
+}
+
+auto getFontHeightLatinPixels(ui32 fontIndex) -> float
+{
+    const auto& face = FontRegistry::getFontInfo(fontIndex);
+    return face.loadGlyph('A').metaInPixels.bearingY
+           + face.loadGlyph('g').metaInPixels.negBearingY;
+}
+
 
 
 // ---------------------- //

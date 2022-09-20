@@ -11,15 +11,15 @@ trc::ui::InputField::InputField(Window& window)
     text(window.create<Text>()),
     cursor(window.create<Line>())
 {
-    this->setSize(getSize().x, getFontHeightPixels(fontIndex) + 10);
-    this->style.padding.set(5, 0);
+    this->setSize(getSize().x, getFontHeightLatinPixels(fontIndex) + 10);
+    this->style.padding.set(kPaddingPixels);
     this->style.restrictDrawArea = true;
 
     attach(text);
     text.setPositionScaling(Scale::eAbsolute);
     cursor.setPositionScaling(Scale::eAbsolute);
-    cursor.setSize(0.0f, getFontHeightPixels(fontIndex));
-    cursor.setSizing({ Format::eNorm, Format::ePixel }, Scale::eAbsolute);
+    cursor.setSize(0.0f, getFontHeightLatin(fontIndex));
+    cursor.setSizing({ Format::eNorm, Format::eNorm }, Scale::eAbsolute);
     cursor.style.background=vec4(1.0f);
 
     positionText();
@@ -107,23 +107,31 @@ void trc::ui::InputField::decCursorPos()
 
 void trc::ui::InputField::positionText()
 {
-    textOffset.y = (globalSize.y - globalSize.y * getFontHeight(fontIndex)) * 0.5f;  // Center text
+    textOffset.y = (globalSize.y - globalSize.y * getFontHeightLatin(fontIndex)) * 0.5f;  // Center text
 
     const vec2 fontScaling = window->pixelsToNorm(vec2(fontSize));
     auto [layout, _] = layoutText(inputChars, fontIndex, fontScaling);
-    float cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
+    const auto& currentLetter = layout.letters.at(cursorPosition);
+    float cursorPos = textOffset.x + currentLetter.glyphOffset.x;
 
-    const float displayBegin = 0.0f;
-    const float displayEnd = globalSize.x;
-    if (cursorPos > displayEnd) {
-        // Cursor is out-of-bounds to the right
-        textOffset.x -= globalSize.x * 0.4f;
-        cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
-    }
-    else if (cursorPos < displayBegin) {
-        // Cursor is out-of-bounds to the left
-        textOffset.x += globalSize.x * 0.4f;
-        cursorPos = textOffset.x + layout.letters.at(cursorPosition).glyphOffset.x;
+    const float padding = window->pixelsToNorm(kPaddingPixels).x;
+    const float displayBegin = padding;
+    const float displayEnd = globalSize.x - padding;
+    if (cursorPosition > 0)
+    {
+        const auto& prevLetter = layout.letters.at(cursorPosition - 1);
+        while (cursorPos > displayEnd)  // Cursor is out-of-bounds to the right
+        {
+            // Need the advance here, not the glyph size!
+            textOffset.x -= currentLetter.glyphOffset.x - prevLetter.glyphOffset.x;
+            cursorPos = textOffset.x + currentLetter.glyphOffset.x;
+        }
+        while (cursorPos < displayBegin)  // Cursor is out-of-bounds to the left
+        {
+            // Need the advance here, not the glyph size!
+            textOffset.x += currentLetter.glyphOffset.x - prevLetter.glyphOffset.x;
+            cursorPos = textOffset.x + currentLetter.glyphOffset.x;
+        }
     }
 
     text.setPos(textOffset);

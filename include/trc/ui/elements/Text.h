@@ -44,9 +44,29 @@ namespace trc::ui
     auto getFontHeight(ui32 fontIndex) -> float;
 
     /**
-     * @return float The maximum glyph height of a font in screen coordinates
+     * @return float The maximum glyph height of a font in pixels
      */
     auto getFontHeightPixels(ui32 fontIndex) -> float;
+
+    /**
+     * Calculate a more realistic (but heuristic!) value for a font's
+     * height when using standard latin letters.
+     *
+     * Loads two glyphs into memory.
+     *
+     * @return float The maximum glyph height of a font in screen coordinates
+     */
+    auto getFontHeightLatin(ui32 fontIndex) -> float;
+
+    /**
+     * Calculate a more realistic (but heuristic!) value for a font's
+     * height when using standard latin letters.
+     *
+     * Loads two glyphs into memory.
+     *
+     * @return float The maximum glyph height of a font in pixels
+     */
+    auto getFontHeightLatinPixels(ui32 fontIndex) -> float;
 
     class Text : public Element, public TextBase
     {
