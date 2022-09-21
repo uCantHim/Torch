@@ -28,6 +28,13 @@ namespace trc
     };
 
     /**
+     * @brief Create a Vulkan instance with default settings
+     */
+    auto makeDefaultTorchVulkanInstance(const std::string& appName = "A Torch application",
+                                        ui32 appVersion = 0)
+        -> u_ptr<vkb::VulkanInstance>;
+
+    /**
      * @brief The most basic structure needed to set up Torch
      *
      * This class contains a Vulkan instance as well as a device.

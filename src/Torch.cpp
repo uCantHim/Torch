@@ -22,7 +22,7 @@ void trc::init(const TorchInitInfo&)
 {
     vkb::init();
 
-    torchGlobalVulkanInstance = std::make_unique<vkb::VulkanInstance>();
+    torchGlobalVulkanInstance = makeDefaultTorchVulkanInstance();
 
     // Init pipelines
     pipelines::initDrawablePipelines({ DrawablePushConstants{} });

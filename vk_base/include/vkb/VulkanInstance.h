@@ -16,6 +16,16 @@ class VulkanInstance
 public:
     VulkanInstance();
 
+    /**
+     * @brief Constructor for non-default initialization values
+     *
+     * Hint: Create a version with the VK_MAKE_VERSION macro.
+     */
+    VulkanInstance(const std::string& appName, uint32_t appVersion,
+                   const std::string& engineName, uint32_t engineVersion,
+                   uint32_t vulkanApiVersion,
+                   std::vector<const char*> instanceExtensions);
+
     auto inline operator->() const noexcept -> const vk::Instance* {
         return &*instance;
     }

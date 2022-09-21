@@ -21,14 +21,32 @@ std::vector<const char*> getRequiredInstanceExtensions()
 
 
 vkb::VulkanInstance::VulkanInstance()
+    :
+    VulkanInstance(
+        "No application", VK_MAKE_VERSION(0, 0, 0),
+        "No engine", VK_MAKE_VERSION(0, 0, 0),
+        VK_API_VERSION_1_3,
+        {}
+    )
+{
+}
+
+vkb::VulkanInstance::VulkanInstance(
+    const std::string& appName,
+    uint32_t appVersion,
+    const std::string& engineName,
+    uint32_t engineVersion,
+    uint32_t vulkanApiVersion,
+    std::vector<const char*> instanceExtensions)
 {
     auto layers = getRequiredValidationLayers();
     auto extensions = getRequiredInstanceExtensions();
+    extensions.insert(extensions.end(), instanceExtensions.begin(), instanceExtensions.end());
 
     vk::ApplicationInfo appInfo(
-        "Improved Vulkan application", VK_MAKE_VERSION(1, 2, 0),
-        "No engine", VK_MAKE_VERSION(1, 2, 0),
-        VK_API_VERSION_1_2
+        appName.c_str(), appVersion,
+        engineName.c_str(), engineVersion,
+        vulkanApiVersion
     );
 
 #ifdef TRC_DEBUG

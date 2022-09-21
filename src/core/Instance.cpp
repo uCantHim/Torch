@@ -7,10 +7,23 @@
 
 
 
+auto trc::makeDefaultTorchVulkanInstance(const std::string& appName, ui32 appVersion)
+    -> u_ptr<vkb::VulkanInstance>
+{
+    return std::make_unique<vkb::VulkanInstance>(
+        appName, appVersion,
+        "Torch", VK_MAKE_VERSION(0, 0, 1),
+        VK_API_VERSION_1_3,
+        std::vector<const char*>{}
+    );
+}
+
+
+
 trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
     :
     // Create a new VkInstance if the _instance argument is VK_NULL_HANDLE
-    optionalLocalInstance(_instance ? nullptr : new vkb::VulkanInstance),
+    optionalLocalInstance(_instance ? nullptr : makeDefaultTorchVulkanInstance()),
     instance(_instance ? _instance : **optionalLocalInstance),
 
     physicalDevice([instance=this->instance] {
