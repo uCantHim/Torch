@@ -6,6 +6,8 @@
 
 #include <trc_util/Exception.h>
 
+#include "trc/util/Pathlet.h"
+
 namespace trc
 {
     namespace fs = std::filesystem;
@@ -64,19 +66,15 @@ namespace trc
 
     private:
         /** Path relative to the asset directory */
-        fs::path pathlet;
+        util::Pathlet pathlet;
     };
 } // namespace trc
 
-
-namespace std
+template<>
+struct std::hash<trc::AssetPath>
 {
-    template<>
-    struct hash<::trc::AssetPath>
+    auto operator()(const trc::AssetPath& path) const noexcept
     {
-        auto operator()(const ::trc::AssetPath& path) const noexcept
-        {
-            return hash<std::string>{}(path.getFilesystemPath());
-        }
-    };
-}
+        return hash<std::string>{}(path.getFilesystemPath());
+    }
+};
