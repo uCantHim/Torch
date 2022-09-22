@@ -68,6 +68,7 @@ target_link_libraries(
         torch_util
         component
         vk_base
+        spirv_compiler
         Freetype::Freetype
         protobuf::libprotobuf
         $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>

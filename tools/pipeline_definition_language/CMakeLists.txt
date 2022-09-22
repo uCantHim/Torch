@@ -55,20 +55,7 @@ target_compile_definitions(pipeline_compiler_lib PRIVATE
 )
 
 if (${PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES})
-    if (NOT TARGET shaderc)
-        FetchContent_Declare(
-            shaderc
-            GIT_REPOSITORY https://github.com/google/shaderc
-            GIT_TAG        main
-            PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
-        )
-
-        set(SHADERC_SKIP_TESTS ON)
-        set(SHADERC_SKIP_EXAMPLES ON)
-        FetchContent_MakeAvailable(shaderc)
-    endif()
-
-    target_link_libraries(pipeline_compiler_lib PRIVATE shaderc)
+    target_link_libraries(pipeline_compiler_lib PRIVATE spirv_compiler)
     target_compile_definitions(pipeline_compiler_lib PRIVATE HAS_SPIRV_COMPILER)
 endif ()
 

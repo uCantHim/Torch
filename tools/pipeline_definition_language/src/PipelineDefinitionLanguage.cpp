@@ -11,6 +11,11 @@
 #include <argparse/argparse.hpp>
 #include <ShaderDocument.h>
 
+#ifdef HAS_SPIRV_COMPILER
+#include <spirv/CompileSpirv.h>
+#include <spirv/FileIncluder.h>
+#endif
+
 #include "Exceptions.h"
 #include "Scanner.h"
 #include "Parser.h"
@@ -20,11 +25,6 @@
 #include "Compiler.h"
 #include "TorchCppWriter.h"
 #include "CMakeDepfileWriter.h"
-
-#ifdef HAS_SPIRV_COMPILER
-#include "GenerateSpirv.h"
-#include "SpirvFileIncluder.h"
-#endif
 
 
 
@@ -363,7 +363,7 @@ void PipelineDefinitionLanguage::compileSpirvShaders()
      * Use shaderOutputDir as primary include directory to consider previously
      * generated shader files first in the include order.
      */
-    spirvOpts.SetIncluder(std::make_unique<FileIncluder>(
+    spirvOpts.SetIncluder(std::make_unique<spirv::FileIncluder>(
         shaderOutputDir,
         std::vector<fs::path>{ shaderInputDir }
     ));
@@ -397,7 +397,7 @@ void PipelineDefinitionLanguage::compileToSpirv(const SpirvCompileInfo& info)
     const fs::path outPath{ shaderOutputDir / (shaderFileName.string() + ".spv") };
     fs::create_directories(outPath.parent_path());
 
-    auto result = generateSpirv(code, shaderFileName, spirvOpts);
+    auto result = spirv::generateSpirv(code, shaderFileName, spirvOpts);
     if (result.GetNumErrors() > 0)
     {
         std::cerr << "An error occured during SPIRV compilation: " << result.GetErrorMessage();

@@ -1,9 +1,9 @@
-#pragma once
+#include "spirv/CompileSpirv.h"
 
-#include <filesystem>
-namespace fs = std::filesystem;
 
-#include <shaderc/shaderc.hpp>
+
+namespace spirv
+{
 
 inline auto shaderKindFromExtension(const fs::path& path)
 {
@@ -38,9 +38,10 @@ inline auto shaderKindFromExtension(const fs::path& path)
     throw std::invalid_argument("Shader file extension \"" + ext.string() + "\" is invalid.");
 }
 
-inline auto generateSpirv(const std::string& code,
-                          const fs::path& inputFilePath,
-                          const shaderc::CompileOptions& opts = {})
+auto generateSpirv(
+    const std::string& code,
+    const fs::path& inputFilePath,
+    const shaderc::CompileOptions& opts)
     -> shaderc::SpvCompilationResult
 {
     shaderc::Compiler compiler;
@@ -53,3 +54,5 @@ inline auto generateSpirv(const std::string& code,
 
     return result;
 }
+
+} // namespace spirv
