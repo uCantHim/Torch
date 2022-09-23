@@ -79,7 +79,7 @@ target_link_libraries(
 target_compile_definitions(torch
     PUBLIC
         TRC_COMPILE_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}"
-        TRC_SHADER_DIR="${TORCH_SHADER_OUTPUT_DIR}"
+        TRC_SHADER_BINARY_DIR="${TORCH_SHADER_OUTPUT_DIR}"
 
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>

@@ -175,16 +175,16 @@ void run()
         }
     );
     auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(torch->getInstance())
-        .addRaygenGroup(TRC_SHADER_DIR"/test/raygen.rgen.spv")
+        .addRaygenGroup(TRC_SHADER_BINARY_DIR"/test/raygen.rgen.spv")
         .beginTableEntry()
-            .addMissGroup(TRC_SHADER_DIR"/test/miss_blue.rmiss.spv")
-            .addMissGroup(TRC_SHADER_DIR"/test/miss_orange.rmiss.spv")
+            .addMissGroup(TRC_SHADER_BINARY_DIR"/test/miss_blue.rmiss.spv")
+            .addMissGroup(TRC_SHADER_BINARY_DIR"/test/miss_orange.rmiss.spv")
         .endTableEntry()
         .addTrianglesHitGroup(
-            TRC_SHADER_DIR"/test/closesthit.rchit.spv",
-            TRC_SHADER_DIR"/test/anyhit.rahit.spv"
+            TRC_SHADER_BINARY_DIR"/test/closesthit.rchit.spv",
+            TRC_SHADER_BINARY_DIR"/test/anyhit.rahit.spv"
         )
-        .addCallableGroup(TRC_SHADER_DIR"/test/callable.rcall.spv")
+        .addCallableGroup(TRC_SHADER_BINARY_DIR"/test/callable.rcall.spv")
         .build(maxRecursionDepth, rayPipelineLayout);
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };

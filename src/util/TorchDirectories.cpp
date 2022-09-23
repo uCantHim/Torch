@@ -32,7 +32,7 @@ auto getShaderStorageDirectory() -> fs::path
 
 auto getInternalShaderStorageDirectory() -> fs::path
 {
-    return TRC_SHADER_DIR;
+    return TRC_SHADER_BINARY_DIR;
 }
 
 } // namespace trc::util
