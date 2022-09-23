@@ -7,6 +7,18 @@
 
 
 template<typename T>
+constexpr bool hasDynamicallyInitializedValue{ true };
+
+/**
+ * Disable delayed initialization for shaders because ShaderPath does not
+ * have a default constructor.
+ */
+template<>
+constexpr bool hasDynamicallyInitializedValue<ShaderDesc>{ false };
+
+
+
+template<typename T>
 auto TorchCppWriter::makeGroupInfo(const VariantGroup<T>& group) -> VariantGroupRepr
 {
     std::string flagTypeName = makeFlagsType(group);
@@ -42,18 +54,26 @@ template<typename T>
 void TorchCppWriter::writeSingle(const std::string& name, const T& value, std::ostream& os)
 {
     // Write storage variable
-    os << makeStoredType<T>() << " " << name << ";";
+    os << makeStoredType<T>() << " " << name;
 
-    // Write initialization function
-    const std::string initName{ "__init_value_" + name
-                                + "_" + std::to_string(++nextInitFunctionNumber) };
-    initFunctionNames.emplace_back(initName);
+    if constexpr (hasDynamicallyInitializedValue<T>)
+    {
+        os << ";";
 
-    os << nl << "void " << initName
-       << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
-       << nl << "{"
-       << ++nl << name << " = " << makeValue(value) << ";"
-       << --nl << "}";
+        // Write initialization function
+        const std::string initName{ "__init_value_" + name
+                                    + "_" + std::to_string(++nextInitFunctionNumber) };
+        initFunctionNames.emplace_back(initName);
+
+        os << nl << "void " << initName
+           << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
+           << nl << "{"
+           << ++nl << name << " = " << makeValue(value) << ";"
+           << --nl << "}";
+    }
+    else {
+        os << " = " << makeValue(value) << ";";
+    }
 
     // Write getter function
     os << nl;
@@ -70,24 +90,40 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
 
     // Write storage array
     os << "std::array<" << makeStoredType<T>() << ", " << groupInfo.combinedFlagType << "::size()> "
-       << groupInfo.storageName << ";" << nl;
+       << groupInfo.storageName;
 
-    // Write initialization function
-    const std::string initName{ "__init_variant_group_" + group.baseName
-                                + "_" + std::to_string(++nextInitFunctionNumber) };
-    initFunctionNames.emplace_back(initName);
-
-    os << nl << "void " << initName
-       << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
-       << nl++ << "{";
-    for (const auto& [name, variant] : group.variants)
+    if constexpr (hasDynamicallyInitializedValue<T>)
     {
-        os << nl
-           << groupInfo.storageName << ".at(" << name.calcFlagIndex(*flagTable) << ") = ";
-        writeVariantStorageInit(name, variant, os);
-        os << ";";
+        os << ";" << nl;
+
+        // Write initialization function
+        const std::string initName{ "__init_variant_group_" + group.baseName
+                                    + "_" + std::to_string(++nextInitFunctionNumber) };
+        initFunctionNames.emplace_back(initName);
+
+        os << nl << "void " << initName
+           << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
+           << nl++ << "{";
+        for (const auto& [name, variant] : group.variants)
+        {
+            os << nl
+               << groupInfo.storageName << ".at(" << name.calcFlagIndex(*flagTable) << ") = ";
+            writeVariantStorageInit(name, variant, os);
+            os << ";";
+        }
+        os << --nl << "}" << nl << nl;
     }
-    os << --nl << "}" << nl << nl;
+    else {
+        os << "{";
+        ++nl;
+        for (const auto& [name, variant] : group.variants)
+        {
+            os << nl;
+            writeVariantStorageInit(name, variant, os);
+            os << ",";
+        }
+        os << --nl << "};" << nl;
+    }
 
     // Write getter function
     writeGetterFunction(group, os);
@@ -139,7 +175,7 @@ template<typename T>
 auto TorchCppWriter::makeStoredType() -> std::string
 {
     if constexpr (std::same_as<T, ShaderDesc>) {
-        return "fs::path";
+        return "trc::ShaderPath";
     }
     else if constexpr (std::same_as<T, ProgramDesc>) {
         return "trc::ProgramDefinitionData";
@@ -157,7 +193,7 @@ inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
 {
     config.generateShader(compileShader(shader), shader.target, getOutputType(shader));
 
-    return "\"" + shader.target + getAdditionalFileExt(shader) + "\"";
+    return makeStoredType<ShaderDesc>() + "(\"" + shader.target + "\")";
 }
 
 template<>
@@ -171,7 +207,7 @@ inline void TorchCppWriter::writeVariantStorageInit(
     outFilePath.replace_extension(name.getUniqueExtension() + outFilePath.extension().string());
 
     os << makeStoredType<ShaderDesc>() << "{ "
-       << "\"" << outFilePath.string() << getAdditionalFileExt(shader) << "\""
+       << "\"" << outFilePath.string() << "\""
        << " }";
     config.generateShader(compileShader(shader), outFilePath, getOutputType(shader));
 }
@@ -187,8 +223,7 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
 {
     std::stringstream ss;
     auto writeStage = [this, &ss](const char* stage, const ObjectReference<ShaderDesc>& ref) {
-        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { loadShader("
-           << "info.shaderInputDir / ";
+        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { trc::internal::loadShader(";
         std::visit(VariantVisitor{
             [&](const UniqueName& name) {
                 ss << makeReferenceCall(name);

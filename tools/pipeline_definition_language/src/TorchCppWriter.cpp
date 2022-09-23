@@ -181,6 +181,7 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
        << "#include <trc/core/PipelineTemplate.h>\n"
        << "#include <trc/core/PipelineLayoutTemplate.h>\n"
        << "#include <trc/core/PipelineRegistry.h>\n"
+       << "#include <trc/ShaderPath.h>\n"
        << "\n"
        << "#include \"FlagCombination.h\"\n"
         ;
@@ -190,7 +191,7 @@ void TorchCppWriter::writeSourceIncludes(std::ostream& os)
 {
     os << "#include <array>\n"
        << "\n"
-       << "#include \"PipelineCompilerUtils.cpp\"\n"
+       << "#include <trc/PipelineDefinitions.h>\n"
         ;
 }
 
@@ -263,33 +264,38 @@ void TorchCppWriter::writeDynamicInitCreateInfoStruct(
        << nl << "{";
 
     // Write constructor head
-    os << (++nl)++ << makeDynamicInitCreateInfoName() << "(";
-    for (const auto& [type, member] : members) {
-        os << nl << "const " << type << "& _" << member << ",";
-    }
-    // Special member which is always present
-    os << nl << "fs::path _shaderInputDir = \"" << config.shaderOutputDir.string() << "\""
-       << ")" << nl << ":";
+    os << ++nl << makeDynamicInitCreateInfoName() << "(";
+    if (!members.empty())
+    {
+        ++nl;
+        for (const auto& [type, member] : members) {
+            os << nl << "const " << type << "& _" << member << ",";
+        }
+        os.seekp(-1, std::ios::end);
+        os << ")" << nl << ":";
 
-    // Write constructor initialization
-    for (const auto& [_, member] : members) {
-        os << nl << member << "(_" << member << "),";
+        // Write constructor initialization
+        for (const auto& [_, member] : members) {
+            os << nl << member << "(_" << member << "),";
+        }
+        os.seekp(-1, std::ios::end);
+        os << --nl << "{}" << nl;
     }
-    os << nl << "shaderInputDir(std::move(_shaderInputDir))";  // Special member
-    os << --nl << "{}" << nl;
+    else {
+        os << ") = default;";
+    }
 
     // Write member definitions
     for (const auto& [type, member] : members) {
         os << nl << type << " " << member << ";";
     }
-    os << nl << "fs::path" << " " << "shaderInputDir" << ";";  // Special member
     os << --nl << "};";
 }
 
 void TorchCppWriter::writeDynamicInitFunctionHead(std::ostream& os)
 {
     os << "void init" << capitalize(config.compiledFileName)
-       << "(const " << makeDynamicInitCreateInfoName() << "& info)";
+       << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)";
 }
 
 void TorchCppWriter::writeDynamicInitFunctionDef(std::ostream& os)
@@ -308,18 +314,6 @@ auto TorchCppWriter::getOutputType(const ShaderDesc& shader) -> ShaderOutputType
         return shader.outputType.value();
     }
     return config.defaultShaderOutput;
-}
-
-auto TorchCppWriter::getAdditionalFileExt(const ShaderDesc& shader) -> std::string
-{
-    switch (getOutputType(shader))
-    {
-    case ShaderOutputType::eGlsl:
-        return "";
-    case ShaderOutputType::eSpirv:
-        return ".spv";
-    }
-    throw std::logic_error("Invalid enum value in switch");
 }
 
 auto TorchCppWriter::openShaderFile(const std::string& filename) -> std::ifstream

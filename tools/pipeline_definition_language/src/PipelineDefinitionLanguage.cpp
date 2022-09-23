@@ -315,8 +315,6 @@ void PipelineDefinitionLanguage::copyHelperFiles()
 {
     fs::copy(FLAG_COMBINATION_HEADER, outputDir / "FlagCombination.h",
              fs::copy_options::overwrite_existing);
-    fs::copy(UTILS_INCLUDE_FILE, outputDir / "PipelineCompilerUtils.cpp",
-             fs::copy_options::overwrite_existing);
 }
 
 void PipelineDefinitionLanguage::writeShader(

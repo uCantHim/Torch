@@ -97,7 +97,6 @@ private:
     ////////////////////////////////////
 
     auto getOutputType(const ShaderDesc& shader) -> ShaderOutputType;
-    auto getAdditionalFileExt(const ShaderDesc& shader) -> std::string;
     auto openShaderFile(const std::string& filename) -> std::ifstream;
     auto compileShader(const ShaderDesc& shader) -> std::string;
 
