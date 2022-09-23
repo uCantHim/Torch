@@ -3,14 +3,13 @@
 #include <vkb/ShaderProgram.h>
 
 #include "util/TorchDirectories.h"
+#include "ShaderPath.h"
 
 
 
 auto trc::internal::loadShader(fs::path relPath) -> std::string
 {
-    if (relPath.is_absolute()) {
-        relPath = relPath.string().substr(1);
-    }
+    trc::ShaderPath path(relPath);
 
-    return vkb::readFile(util::getInternalShaderStorageDirectory() / relPath);
+    return vkb::readFile(util::getInternalShaderStorageDirectory() / path.getBinaryPath());
 }

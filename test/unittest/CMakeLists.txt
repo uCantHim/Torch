@@ -6,6 +6,7 @@ target_sources(UnitTests
         assets_tests/test_asset_reference.cpp
         assets_tests/test_custom_asset.cpp
         core/test_scene_base.cpp
+        test_shader_loader.cpp
         util_tests/test_object_pool.cpp
         util_tests/test_maybe.cpp
         util_tests/test_threadsafe_queue.cpp
@@ -14,7 +15,8 @@ target_sources(UnitTests
 
 target_link_libraries(UnitTests PRIVATE torch)
 target_compile_definitions(UnitTests PRIVATE
-    DATADIR="${CMAKE_CURRENT_BINARY_DIR}/datadir"
+    DATADIR="${CMAKE_CURRENT_LIST_DIR}/datadir"
+    TMPDIR="${CMAKE_CURRENT_BINARY_DIR}/tmpdir"
 )
 link_gtest(UnitTests)
 

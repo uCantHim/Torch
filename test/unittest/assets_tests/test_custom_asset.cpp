@@ -85,7 +85,7 @@ public:
         assets(instance, { .enableRayTracing=false }),
         deviceRegistry(assets.getDeviceRegistry())
     {
-        trc::util::setProjectDirectory(DATADIR);
+        trc::util::setProjectDirectory(TMPDIR);
         fs::create_directories(trc::util::getAssetStorageDirectory());
     }
 

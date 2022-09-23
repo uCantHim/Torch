@@ -1,7 +1,5 @@
 #include "util/TorchDirectories.h"
 
-#include <iostream>
-
 
 
 namespace trc::util
@@ -37,4 +35,4 @@ auto getInternalShaderStorageDirectory() -> fs::path
     return TRC_SHADER_DIR;
 }
 
-}
+} // namespace trc::util

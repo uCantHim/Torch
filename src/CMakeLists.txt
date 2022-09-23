@@ -20,6 +20,8 @@ target_sources(
         RenderPassShadow.cpp
         Scene.cpp
         SceneDescriptor.cpp
+        ShaderLoader.cpp
+        ShaderPath.cpp
         ShadowPool.cpp
         Torch.cpp
         TorchRenderConfig.cpp
