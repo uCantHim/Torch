@@ -181,8 +181,8 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
     // Create pipeline
     imguiPipelineLayout(trc::makePipelineLayout(swapchain.device, {}, {})),
     imguiPipeline(trc::buildGraphicsPipeline()
-        .setProgram(internal::loadShader("/empty.vert.spv"),
-                    internal::loadShader("/empty.frag.spv"))
+        .setProgram(internal::loadShader(ShaderPath("/empty.vert")),
+                    internal::loadShader(ShaderPath("/empty.frag")))
         .addViewport({})
         .addScissorRect({})
         .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
