@@ -31,6 +31,7 @@ auto FileIncluder::GetInclude(
             if (!parentPath.is_absolute()) {
                 return base / parentPath / requested_source;
             }
+            return parentPath / requested_source;
         }
         return base / requested_source;
     };
@@ -50,6 +51,15 @@ auto FileIncluder::GetInclude(
     auto result = std::make_unique<shaderc_include_result>();
     auto res = result.get();
 
+    // Insert pending include result into list
+    auto& data = [&]() -> IncludeResult& {
+        std::scoped_lock lock(pendingResultsLock);
+        auto [it, success] = pendingResults.try_emplace(res, path, std::move(result));
+        assert(success);
+
+        return it->second;
+    }();
+
     std::ifstream file(path);
     if (!file.is_open())
     {
@@ -59,15 +69,6 @@ auto FileIncluder::GetInclude(
         res->content_length = strlen(res->content);
         return res;
     }
-
-    // Insert pending include result into list
-    auto& data = [&]() -> IncludeResult& {
-        std::scoped_lock lock(pendingResultsLock);
-        auto [it, success] = pendingResults.try_emplace(res, path, std::move(result));
-        assert(success);
-
-        return it->second;
-    }();
 
     std::stringstream ss;
     ss << file.rdbuf();
