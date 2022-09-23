@@ -6,9 +6,9 @@
 #define ASSET_DESCRIPTOR_SET_BINDING 2
 #define LIGHT_DESCRIPTOR_SET 3
 #define LIGHT_DESCRIPTOR_BINDING 0
-#include "../asset_registry_descriptor.glsl"
+#include "asset_registry_descriptor.glsl"
 #include "hit_utils.glsl"
-#include "../lighting.glsl"
+#include "lighting.glsl"
 
 struct DrawableData
 {

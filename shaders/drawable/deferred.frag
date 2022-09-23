@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-#include "../material.glsl"
+#include "material.glsl"
 
 layout (early_fragment_tests) in;
 

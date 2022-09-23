@@ -53,7 +53,8 @@ auto ShaderLoader::tryLoad(const fs::path& includeDir, const ShaderPath& shaderP
     }
 
     if (!fs::is_regular_file(binPath)
-        || fs::last_write_time(srcPath) > fs::last_write_time(binPath))
+        || fs::last_write_time(srcPath) > fs::last_write_time(binPath)
+        || fs::file_size(binPath) == 0)
     {
         return compile(srcPath, binPath);
     }
@@ -74,7 +75,11 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> 
     opts.SetTargetSpirv(shaderc_spirv_version_1_5);
     opts.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan,
                               shaderc_env_version_vulkan_1_3);
-    opts.SetIncluder(std::make_unique<spirv::FileIncluder>(srcPath.parent_path()));
+
+    opts.SetIncluder(std::make_unique<spirv::FileIncluder>(
+        includePaths.front(),
+        std::vector<fs::path>{ includePaths.begin() + 1, includePaths.end() }
+    ));
     opts.SetOptimizationLevel(shaderc_optimization_level_performance);
 
     auto result = spirv::generateSpirv(vkb::readFile(srcPath), srcPath, opts);

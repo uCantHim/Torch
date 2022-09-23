@@ -1,7 +1,7 @@
 #version 460
 
 #define TRANSPARENCY_SET_INDEX 2
-#include "../transparency.glsl"
+#include "transparency.glsl"
 
 layout (early_fragment_tests) in;
 

@@ -3,15 +3,15 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 #define ASSET_DESCRIPTOR_SET_BINDING 1
-#include "../asset_registry_descriptor.glsl"
+#include "asset_registry_descriptor.glsl"
 
 #define LIGHT_DESCRIPTOR_SET 2
 #define LIGHT_DESCRIPTOR_BINDING 0
 #define SHADOW_DESCRIPTOR_SET_BINDING 4
-#include "../lighting.glsl"
+#include "lighting.glsl"
 
 #define TRANSPARENCY_SET_INDEX 3
-#include "../transparency.glsl"
+#include "transparency.glsl"
 
 // Compare early against the depth values from the opaque pass
 layout (early_fragment_tests) in;

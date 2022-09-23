@@ -2,7 +2,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 #define TRANSPARENCY_SET_INDEX 2
-#include "../transparency.glsl"
+#include "transparency.glsl"
 
 layout (early_fragment_tests) in;
 

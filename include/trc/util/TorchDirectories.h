@@ -31,8 +31,14 @@ namespace trc::util
     auto getShaderStorageDirectory() -> fs::path;
 
     /**
-     * @return fs::path Path to directory in which Torch's shaders are
-     *         stored.
+     * @return fs::path Path to directory in which Torch's shader sources
+     *         reside.
      */
     auto getInternalShaderStorageDirectory() -> fs::path;
+
+    /**
+     * @return fs::path Path to directory in which Torch's shader binaries
+     *         are stored.
+     */
+    auto getInternalShaderBinaryDirectory() -> fs::path;
 } // namespace trc
