@@ -317,23 +317,23 @@ void PipelineDefinitionLanguage::copyHelperFiles()
              fs::copy_options::overwrite_existing);
 }
 
-void PipelineDefinitionLanguage::writeShader(
-    const std::string& code,
-    const fs::path& shaderFileName,
-    ShaderOutputType outputType)
+void PipelineDefinitionLanguage::writeShader(const ShaderInfo& shader)
 {
-    if (outputType == ShaderOutputType::eSpirv)
+    assert(!shader.outputFileName.string().ends_with(".spv"));
+
+    // Always write the GLSL source code to a file, even when the shader
+    // will be compiled to SPIRV later.
+    writePlain(shader.glslCode, shader.outputFileName);
+
+    if (shader.outputType == ShaderOutputType::eSpirv)
     {
 #ifdef HAS_SPIRV_COMPILER
-        pendingSpirvCompilations.emplace_back(code, shaderFileName);
+        pendingSpirvCompilations.push_back({ shader.glslCode, shader.outputFileName });
 #else
         throw UsageError("Unable to compile " + shaderFileName.string() + " to SPIRV.\n"
                          "The pipeline compiler must be compiled with the SPIRV capability enabled"
                          " to output shader files as SPIRV.");
 #endif
-    }
-    else {
-        writePlain(code, shaderFileName);
     }
 }
 

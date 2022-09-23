@@ -43,7 +43,7 @@ struct TorchCppWriterCreateInfo
      * @param const fs::path& Shader output file path
      * @param ShaderOutputType The format in which the shader will be written
      */
-    std::function<void(std::string, const fs::path&, ShaderOutputType)> generateShader;
+    std::function<void(ShaderInfo)> generateShader;
 };
 
 class TorchCppWriter : public Writer

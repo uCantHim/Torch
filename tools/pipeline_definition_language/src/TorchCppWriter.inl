@@ -191,7 +191,7 @@ auto TorchCppWriter::makeStoredType() -> std::string
 template<>
 inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
 {
-    config.generateShader(compileShader(shader), shader.target, getOutputType(shader));
+    config.generateShader({ compileShader(shader), shader.target, getOutputType(shader) });
 
     return makeStoredType<ShaderDesc>() + "(\"" + shader.target + "\")";
 }
@@ -209,7 +209,7 @@ inline void TorchCppWriter::writeVariantStorageInit(
     os << makeStoredType<ShaderDesc>() << "{ "
        << "\"" << outFilePath.string() << "\""
        << " }";
-    config.generateShader(compileShader(shader), outFilePath, getOutputType(shader));
+    config.generateShader({ compileShader(shader), outFilePath, getOutputType(shader) });
 }
 
 

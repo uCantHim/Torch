@@ -26,17 +26,15 @@ private:
     static void writeOutput(const fs::path& sourceFilePath, const CompileResult& result);
     static void copyHelperFiles();
 
-    static void writeShader(const std::string& code,
-                            const fs::path& outPath,
-                            ShaderOutputType type);
+    /**
+     * Request creation of a shader file.
+     */
+    static void writeShader(const ShaderInfo& shader);
     static void writePlain(const std::string& code, const fs::path& outPath);
 
 #ifdef HAS_SPIRV_COMPILER
     struct SpirvCompileInfo
     {
-        SpirvCompileInfo(std::string code, fs::path out)
-            : shaderCode(std::move(code)), outPath(std::move(out)) {}
-
         std::string shaderCode;
         fs::path outPath;
     };
