@@ -11,12 +11,12 @@ ShaderPath::ShaderPath(fs::path path)
 {
 }
 
-auto ShaderPath::getSourcePath() const -> const util::Pathlet&
+auto ShaderPath::getSourceName() const -> const util::Pathlet&
 {
     return pathlet;
 }
 
-auto ShaderPath::getBinaryPath() const -> util::Pathlet
+auto ShaderPath::getBinaryName() const -> util::Pathlet
 {
     return pathlet.withExtension(".spv");
 }

@@ -11,5 +11,5 @@ auto trc::internal::loadShader(fs::path relPath) -> std::string
 {
     trc::ShaderPath path(relPath);
 
-    return vkb::readFile(util::getInternalShaderStorageDirectory() / path.getBinaryPath());
+    return vkb::readFile(util::getInternalShaderStorageDirectory() / path.getBinaryName());
 }

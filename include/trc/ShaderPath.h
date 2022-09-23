@@ -23,14 +23,14 @@ namespace trc
          * @return Pathlet The shader's path fragment relative to the
          *                 shader directory.
          */
-        auto getSourcePath() const -> const util::Pathlet&;
+        auto getSourceName() const -> const util::Pathlet&;
 
         /**
          * @return fs::path The file path of the corresponding SPIRV binary.
          *                  Is usually just the source path with a ".spv"
          *                  extension.
          */
-        auto getBinaryPath() const -> util::Pathlet;
+        auto getBinaryName() const -> util::Pathlet;
 
         auto operator<=>(const ShaderPath&) const = default;
 
@@ -44,6 +44,6 @@ struct std::hash<trc::ShaderPath>
 {
     auto operator()(const trc::ShaderPath& path) const noexcept
     {
-        return hash<trc::util::Pathlet>{}(path.getSourcePath());
+        return hash<trc::util::Pathlet>{}(path.getSourceName());
     }
 };

@@ -1,7 +1,7 @@
 #include "trc/ShaderLoader.h"
 
-#include <chrono>
 #include <fstream>
+#include <iostream>
 
 #include <vkb/ShaderProgram.h>
 #include <spirv/CompileSpirv.h>
@@ -40,14 +40,14 @@ auto ShaderLoader::load(ShaderPath shaderPath) -> std::string
     }
 
     throw std::out_of_range("[In ShaderLoader::load]: Shader source "
-                            + shaderPath.getSourcePath().string() + " not found.");
+                            + shaderPath.getSourceName().string() + " not found.");
 }
 
 auto ShaderLoader::tryLoad(const fs::path& includeDir, const ShaderPath& shaderPath)
     -> std::optional<std::string>
 {
-    const auto srcPath = includeDir / shaderPath.getSourcePath();
-    const auto binPath = outDir / shaderPath.getBinaryPath();
+    const auto srcPath = includeDir / shaderPath.getSourceName();
+    const auto binPath = outDir / shaderPath.getBinaryName();
     if (!fs::is_regular_file(srcPath)) {
         return std::nullopt;
     }
@@ -63,6 +63,10 @@ auto ShaderLoader::tryLoad(const fs::path& includeDir, const ShaderPath& shaderP
 
 auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> std::string
 {
+    if constexpr (vkb::enableVerboseLogging) {
+        std::cout << "Compiling shader " << srcPath << " to " << dstPath << "\n";
+    }
+
     shaderc::CompileOptions opts;
 #ifdef TRC_FLIP_Y_PROJECTION
     opts.AddMacroDefinition("TRC_FLIP_Y_AXIS");
