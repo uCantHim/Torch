@@ -1,31 +1,38 @@
 #pragma once
 
-#include <componentlib/Table.h>
+#include <componentlib/ComponentStorage.h>
 
+#include "AnimationEngine.h"
+#include "Transformation.h"
 #include "assets/Geometry.h"
 #include "assets/Material.h"
-#include "Transformation.h"
-#include "AnimationEngine.h"
 #include "ray_tracing/AccelerationStructure.h"
+#include "trc_util/data/ObjectId.h"
 
 namespace trc::drawcomp
 {
     struct RayComponent
     {
-        u_ptr<rt::BLAS> blas;  // TODO: Store BLAS in AssetRegistry and reference them here
-
-        GeometryID geo;
-        MaterialID mat;
-
+        GeometryHandle geo;
         Transformation::ID modelMatrixId;
-        AnimationEngine::ID anim;
+
+        ui32 drawableBufferIndex{ static_cast<ui32>(bufferIndexPool.generate()) };
+
+        static inline data::IdPool bufferIndexPool;
+
+        void onDelete(auto&, auto) {
+            bufferIndexPool.free(drawableBufferIndex);
+        }
     };
 } // namespace trc::drawcomp
 
-
-
 template<>
-struct componentlib::TableTraits<trc::drawcomp::RayComponent>
+struct componentlib::ComponentTraits<trc::drawcomp::RayComponent>
 {
-    using UniqueStorage = std::true_type;
+    void onDelete(auto& storage, auto id)
+    {
+        trc::drawcomp::RayComponent::bufferIndexPool.free(
+            storage.template get<trc::drawcomp::RayComponent>(id).drawableBufferIndex
+        );
+    }
 };

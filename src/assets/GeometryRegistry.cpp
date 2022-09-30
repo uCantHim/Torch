@@ -1,10 +1,11 @@
 #include "assets/GeometryRegistry.h"
 
 #include "geometry.pb.h"
+#include "assets/AssetManager.h"
 #include "assets/import/InternalFormat.h"
 #include "util/TriangleCacheOptimizer.h"
+#include "ray_tracing/AccelerationStructure.h"
 #include "ray_tracing/RayPipelineBuilder.h"
-#include "assets/AssetManager.h"
 
 
 
@@ -104,6 +105,12 @@ auto GeometryHandle::getVertexType() const noexcept -> VertexType
     return storage->deviceData->vertexType;
 }
 
+auto GeometryHandle::getVertexSize() const noexcept -> size_t
+{
+    return getVertexType() == VertexType::eMesh ? sizeof(MeshVertex)
+                                                : sizeof(MeshVertex) + sizeof(SkeletalVertex);
+}
+
 bool GeometryHandle::hasRig() const
 {
     return storage->rig.has_value();
@@ -121,11 +128,32 @@ auto GeometryHandle::getRig() -> RigID
     return storage->rig.value();
 }
 
+auto GeometryHandle::getDeviceIndex() const -> ui32
+{
+    return storage->deviceIndex;
+}
 
+bool GeometryHandle::hasAccelerationStructure() const
+{
+    return storage->blas != nullptr;
+}
+
+auto GeometryHandle::getAccelerationStructure() -> rt::BottomLevelAccelerationStructure&
+{
+    if (!hasAccelerationStructure())  {
+        throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
+                                 " structure for this geometry has not been created.");
+    }
+    return *storage->blas;
+}
+
+
+
+GeometryRegistry::InternalStorage::~InternalStorage() = default;
 
 GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
     :
-    device(info.device),
+    instance(info.instance),
     config({ info.geometryBufferUsage, info.enableRayTracing }),
     memoryPool([&] {
         vk::MemoryAllocateFlags allocFlags;
@@ -133,18 +161,18 @@ GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
             allocFlags |= vk::MemoryAllocateFlagBits::eDeviceAddress;
         }
 
-        return vkb::MemoryPool(info.device, info.memoryPoolChunkSize, allocFlags);
+        return vkb::MemoryPool(info.instance.getDevice(), info.memoryPoolChunkSize, allocFlags);
     }()),
-    dataWriter(info.device) /* , memoryPool.makeAllocator()) */
+    dataWriter(info.instance.getDevice()) /* , memoryPool.makeAllocator()) */
 {
-    indexDescriptorBinding = info.descriptorBuilder.addBinding(
+    vertexDescriptorBinding = info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
         info.maxGeometries,
         rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
         vk::DescriptorBindingFlagBits::ePartiallyBound
             | vk::DescriptorBindingFlagBits::eUpdateAfterBind
     );
-    vertexDescriptorBinding = info.descriptorBuilder.addBinding(
+    indexDescriptorBinding = info.descriptorBuilder.addBinding(
         vk::DescriptorType::eStorageBuffer,
         info.maxGeometries,
         rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
@@ -219,21 +247,19 @@ void GeometryRegistry::load(const LocalID id)
     auto& deviceData = item.deviceData;
     deviceData.reset(new InternalStorage::DeviceData{
         .indexBuf = {
-            device,
-            indicesSize,
+            instance.getDevice(),
+            data.indices,
             config.geometryBufferUsage
                 | vk::BufferUsageFlagBits::eIndexBuffer
                 | vk::BufferUsageFlagBits::eTransferDst,
-            vk::MemoryPropertyFlagBits::eDeviceLocal,
             memoryPool.makeAllocator()
         },
         .vertexBuf = {
-            device,
-            verticesSize,
+            instance.getDevice(),
+            vertexData,
             config.geometryBufferUsage
                 | vk::BufferUsageFlagBits::eVertexBuffer
                 | vk::BufferUsageFlagBits::eTransferDst,
-            vk::MemoryPropertyFlagBits::eDeviceLocal,
             memoryPool.makeAllocator()
         },
         .numIndices = static_cast<ui32>(data.indices.size()),
@@ -248,15 +274,15 @@ void GeometryRegistry::load(const LocalID id)
         : data.rig.getID();
 
     // Enqueue writes to the device-local vertex buffers
-    dataWriter.write(*deviceData->indexBuf, 0, data.indices.data(), indicesSize);
-    dataWriter.write(*deviceData->vertexBuf, 0, vertexData.data(), verticesSize);
+    //dataWriter.write(*deviceData->indexBuf, 0, data.indices.data(), indicesSize);
+    //dataWriter.write(*deviceData->vertexBuf, 0, vertexData.data(), verticesSize);
 
     if (config.enableRayTracing)
     {
         // Enqueue writes to the descriptor set
         const ui32 deviceIndex = item.deviceIndex;
-        indexDescriptorBinding.update(deviceIndex,  { *deviceData->indexBuf, 0, VK_WHOLE_SIZE });
         vertexDescriptorBinding.update(deviceIndex, { *deviceData->vertexBuf, 0, VK_WHOLE_SIZE });
+        indexDescriptorBinding.update(deviceIndex,  { *deviceData->indexBuf, 0, VK_WHOLE_SIZE });
     }
 }
 
@@ -264,6 +290,29 @@ void GeometryRegistry::unload(LocalID id)
 {
     std::scoped_lock lock(storageLock);
     pendingUnloads.emplace(id);
+}
+
+auto GeometryRegistry::makeAccelerationStructure(LocalID id) -> rt::BLAS&
+{
+    if (!config.enableRayTracing)
+    {
+        throw std::invalid_argument("[In GeometryRegistry::makeAccelerationStructure]: Tried to"
+                                    " query an acceleration structure, but ray tracing support is"
+                                    " not enabled!");
+    }
+
+    // Get handle before acquiring the lock in case the geometry is not currently loaded.
+    const auto geo = getHandle(id);
+
+    std::scoped_lock lock(storageLock);
+    auto& data = *storage.at(id);
+    if (!data.blas)
+    {
+        data.blas = std::make_unique<rt::BLAS>(instance, geo);
+        data.blas->build();
+    }
+
+    return *data.blas;
 }
 
 } // namespace trc

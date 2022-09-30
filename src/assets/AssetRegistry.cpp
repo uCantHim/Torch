@@ -37,7 +37,7 @@ trc::AssetRegistry::AssetRegistry(
     addModule<Material>(MaterialRegistryCreateInfo{ instance.getDevice(), builder });
     addModule<Texture>(TextureRegistryCreateInfo{ instance.getDevice(), builder });
     addModule<Geometry>(GeometryRegistryCreateInfo{
-        .device              = instance.getDevice(),
+        .instance            = instance,
         .descriptorBuilder   = builder,
         .geometryBufferUsage = config.geometryBufferUsage,
         .enableRayTracing    = config.enableRayTracing && instance.hasRayTracing(),

@@ -3,12 +3,11 @@
 
 #include <vkb/ImageUtils.h>
 #include <trc_util/Timer.h>
-#include <trc/Torch.h>
 #include <trc/DescriptorSetUtils.h>
-#include <trc/TorchResources.h>
 #include <trc/PipelineDefinitions.h>
+#include <trc/Torch.h>
+#include <trc/TorchResources.h>
 #include <trc/ray_tracing/RayTracing.h>
-#include <trc/drawable/DrawablePool.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -25,10 +24,9 @@ void run()
     auto& instance = torch->getInstance();
     auto& device = instance.getDevice();
     auto& window = torch->getWindow();
-    auto& ar = torch->getAssetRegistry();
+    auto& assets = torch->getAssetManager();
 
     auto scene = std::make_unique<trc::Scene>();
-    trc::DrawablePool pool(instance, { .maxInstances = 4000 }, *scene);
 
     // Camera
     trc::Camera camera;
@@ -37,45 +35,52 @@ void run()
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
     // Create some objects
-    auto sphere = pool.create({
-        trc::loadGeometry(TRC_TEST_ASSET_DIR"/sphere.fbx", ar).get(),
-        ar.add(trc::MaterialDeviceHandle{
-            .color=vec4(0.3f, 0.3f, 0.3f, 1),
-            .kSpecular=vec4(0.3f, 0.3f, 0.3f, 1),
-            .reflectivity=1.0f,
-        })
-    });
-    sphere->translate(-1.5f, 0.5f, 1.0f).setScale(0.2f);
+    trc::Drawable sphere(
+        trc::DrawableCreateInfo{
+            assets.create(trc::makeSphereGeo()),
+            assets.create(trc::MaterialData{
+                .color=vec4(0.8f, 0.3f, 0.6f, 1),
+                .specularKoefficient=vec4(0.3f, 0.3f, 0.3f, 1),
+                .reflectivity=1.0f,
+            }),
+            false, true, true, true
+        },
+        *scene
+    );
+    sphere.translate(-1.5f, 0.5f, 1.0f).setScale(0.2f);
     trc::Node sphereNode;
-    sphereNode.attach(*sphere);
+    sphereNode.attach(sphere);
     scene->getRoot().attach(sphereNode);
 
-    auto plane = pool.create({
-        ar.add(trc::makePlaneGeo()),
-        ar.add(trc::MaterialDeviceHandle{ .reflectivity=1.0f })
-    });
-    plane->rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
-        .translate(0.5f, 0.5f, -1.0f)
-        .setScale(3.0f, 1.0f, 1.7f);
+    trc::Drawable plane({
+        assets.create(trc::makePlaneGeo()),
+        assets.create(trc::MaterialData{ .reflectivity=0.9f }),
+        false, true, true, true
+    }, *scene);
+    plane.rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
+         .translate(0.5f, 0.5f, -1.0f)
+         .setScale(3.0f, 1.0f, 1.7f);
 
-    trc::GeometryID treeGeo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx", ar).get();
-    trc::MaterialID treeMat = ar.add(trc::MaterialDeviceHandle{ .color=vec4(0, 1, 0, 1) });
-    auto tree = pool.create({ treeGeo, treeMat });
-    tree->rotateX(-glm::half_pi<float>()).setScale(0.1f);
+    trc::GeometryID treeGeo = assets.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
+    trc::MaterialID treeMat = assets.create(trc::MaterialData{ .color=vec4(0, 1, 0, 1) });
+    trc::Drawable tree({ treeGeo, treeMat, false, true, true, true }, *scene);
 
-    auto floor = pool.create({
-        ar.add(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
-        ar.add(trc::MaterialDeviceHandle{
-            .kSpecular=vec4(0.2f),
-            .reflectivity=0.3f,
-            .diffuseTexture=ar.add(
-                trc::loadTexture(TRC_TEST_ASSET_DIR"/tex_pavement_grassy_albedo.tif")
+    tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
+
+    trc::Drawable floor({
+        assets.create(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
+        assets.create(trc::MaterialData{
+            .specularKoefficient=vec4(0.2f),
+            .reflectivity=0.45f,
+            .albedoTexture=assets.create(
+                trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
             ),
-            .bumpTexture=ar.add(
-                trc::loadTexture(TRC_TEST_ASSET_DIR"/tex_pavement_grassy_normal.tif")
+            .normalTexture=assets.create(
+                trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
             ),
-        })
-    });
+        }),
+        false, true, true, true
+    }, *scene);
 
     auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
     auto& shadow = scene->enableShadow(
@@ -88,13 +93,31 @@ void run()
 
     // --- Descriptor sets --- //
 
-    auto [tlasHandle, drawableBuf] = pool.getRayResources();
+    vkb::DeviceLocalBuffer drawableBuf(
+        device, scene->getRaySceneData(),
+        vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+    );
+
+    vkb::Buffer instanceBuf(
+        device, 500 * sizeof(trc::rt::GeometryInstance),
+        vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
+        | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+    );
+    auto data = instanceBuf.map<trc::rt::GeometryInstance*>();
+    const size_t numInstances = scene->writeTlasInstances(data);
+    instanceBuf.unmap();
+
+    trc::rt::TLAS tlas(instance, numInstances);
+    tlas.build(*instanceBuf, numInstances);
 
     auto tlasDescLayout = trc::buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
                     vk::ShaderStageFlagBits::eRaygenKHR)
         .addBinding(vk::DescriptorType::eStorageBuffer, 1, trc::rt::ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .buildUnique(instance.getDevice());
+        .build(instance.getDevice());
 
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
@@ -110,6 +133,7 @@ void run()
         { *descPool, 1, &*tlasDescLayout }
     )[0]);
 
+    const auto tlasHandle = *tlas;
     vk::StructureChain asWriteChain{
         vk::WriteDescriptorSet(
             *tlasDescSet, 0, 0, 1,
@@ -118,7 +142,7 @@ void run()
         ),
         vk::WriteDescriptorSetAccelerationStructureKHR(tlasHandle)
     };
-    vk::DescriptorBufferInfo bufferInfo(drawableBuf, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo bufferInfo(*drawableBuf, 0, VK_WHOLE_SIZE);
     vk::WriteDescriptorSet bufferWrite(
         *tlasDescSet, 1, 0, vk::DescriptorType::eStorageBuffer,
         {}, bufferInfo
@@ -153,10 +177,10 @@ void run()
     // Add the final compositing pass that merges rasterization and ray tracing results
     trc::rt::FinalCompositingPass compositing(
         window,
-        {
+        trc::rt::FinalCompositingPassCreateInfo{
             .gBuffer = &torch->getRenderConfig().getGBuffer(),
             .rayBuffer = &rayBuffer,
-            .assetRegistry = &ar,
+            .assetRegistry = &assets.getDeviceRegistry()
         }
     );
     layout.addPass(trc::rt::finalCompositingStage, compositing);
@@ -169,7 +193,7 @@ void run()
         {
             *tlasDescLayout,
             compositing.getInputImageDescriptor().getDescriptorSetLayout(),
-            ar.getDescriptorSetProvider().getDescriptorSetLayout(),
+            assets.getDeviceRegistry().getDescriptorSetProvider().getDescriptorSetLayout(),
             torch->getRenderConfig().getSceneDescriptorProvider().getDescriptorSetLayout(),
             torch->getShadowPool().getProvider().getDescriptorSetLayout(),
         },
@@ -180,14 +204,11 @@ void run()
     );
     auto [rayPipeline, shaderBindingTable] =
         trc::rt::buildRayTracingPipeline(instance)
-        .addRaygenGroup(TRC_SHADER_DIR"/ray_tracing/reflect.rgen.spv")
+        .addRaygenGroup("/ray_tracing/reflect.rgen")
         .beginTableEntry()
-            .addMissGroup(TRC_SHADER_DIR"/ray_tracing/blue.rmiss.spv")
+            .addMissGroup("/ray_tracing/blue.rmiss")
         .endTableEntry()
-        .addTrianglesHitGroup(
-            TRC_SHADER_DIR"/ray_tracing/reflect.rchit.spv",
-            TRC_SHADER_DIR"/ray_tracing/anyhit.rahit.spv"
-        )
+        .addTrianglesHitGroup("/ray_tracing/reflect.rchit", "/ray_tracing/anyhit.rahit")
         .build(maxRecursionDepth, rayPipelineLayout);
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
@@ -203,7 +224,7 @@ void run()
     auto& rayLayout = rayPipeline.getLayout();
     rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
     rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
-    rayLayout.addStaticDescriptorSet(2, ar.getDescriptorSetProvider());
+    rayLayout.addStaticDescriptorSet(2, assets.getDeviceRegistry().getDescriptorSetProvider());
     rayLayout.addStaticDescriptorSet(3, torch->getRenderConfig().getSceneDescriptorProvider());
     rayLayout.addStaticDescriptorSet(4, torch->getShadowPool().getProvider());
 
@@ -260,9 +281,12 @@ void run()
         static bool count{ false };
         if (e.key == vkb::Key::r)
         {
-            auto& mat = ar.get(floor->getMaterial());
-            mat.reflectivity = 0.3f * float(count);
-            ar.updateMaterials();
+            assets.getModule<trc::Material>().modify(
+                floor.getMaterial().getDeviceID(),
+                [](auto& mat) {
+                    mat.reflectivity = 0.3f * float(count);
+                }
+            );
             count = !count;
         }
     });
@@ -278,6 +302,12 @@ void run()
         sphereNode.rotateY(time / 1000.0f * 0.5f);
 
         scene->update(time);
+
+        auto data = instanceBuf.map<trc::rt::GeometryInstance*>();
+        const size_t numInstances = scene->writeTlasInstances(data);
+        instanceBuf.unmap();
+        tlas.build(*instanceBuf, numInstances);
+
         window.drawFrame(torch->makeDrawConfig(*scene, camera));
 
         frames++;

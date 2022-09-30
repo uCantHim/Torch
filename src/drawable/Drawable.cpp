@@ -32,19 +32,25 @@ Drawable::Drawable(
     geo(info.geo),
     mat(info.mat)
 {
-    auto geoHandle = info.geo.get();
-
-    auto raster = makeRasterData(info, pipeline);
-
-    // Model matrix ID and animation engine ID have to be set manually
-    raster.drawData.modelMatrixId = getGlobalTransformID();
-    if (geoHandle.hasRig())
+    if (info.rasterized)
     {
-        scene.makeAnimationEngine(id, geoHandle.getRig().getDeviceDataHandle());
-        raster.drawData.anim = scene.getAnimationEngine(id).getState();
+        auto geoHandle = info.geo.get();
+        auto raster = makeRasterData(info, pipeline);
+
+        // Model matrix ID and animation engine ID have to be set manually
+        raster.drawData.modelMatrixId = getGlobalTransformID();
+        if (geoHandle.hasRig())
+        {
+            scene.makeAnimationEngine(id, geoHandle.getRig().getDeviceDataHandle());
+            raster.drawData.anim = scene.getAnimationEngine(id).getState();
+        }
+
+        scene.makeRasterization(id, raster);
     }
 
-    scene.makeRasterization(id, raster);
+    if (info.rayTraced) {
+        scene.makeRaytracing(id, { info.geo, info.mat, getGlobalTransformID() });
+    }
 }
 
 Drawable::Drawable(Drawable&& other) noexcept

@@ -22,7 +22,7 @@ layout (set = 0, binding = 1, std430) restrict readonly buffer DrawableDataBuffe
 };
 
 hitAttributeEXT vec2 barycentricCoords;
-layout (location = 0) rayPayloadInEXT vec4 color;
+layout (location = 0) rayPayloadInEXT vec3 color;
 
 void main()
 {
@@ -47,5 +47,5 @@ void main()
         albedo = texture(textures[diffTexture], uv).rgb;
     }
 
-    color.xyz = calcLighting(albedo, hitPos, normal, gl_WorldRayOriginEXT, mat);
+    color = calcLighting(albedo, hitPos, normal, gl_WorldRayOriginEXT, mat);
 }

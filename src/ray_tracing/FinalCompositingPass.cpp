@@ -165,7 +165,7 @@ void trc::rt::FinalCompositingPass::begin(
         vk::ImageLayout::ePresentSrcKHR,         vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eComputeShader,
         vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderWrite,
-        vk::AccessFlagBits::eShaderRead,
+        vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderRead,
         vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 

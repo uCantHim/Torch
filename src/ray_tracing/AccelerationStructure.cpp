@@ -8,7 +8,7 @@
 
 
 auto trc::rt::internal::AccelerationStructureBase::operator*() const noexcept
-    -> vk::AccelerationStructureKHR
+    -> const vk::AccelerationStructureKHR&
 {
     return *accelerationStructure;
 }
@@ -125,11 +125,6 @@ trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
 
 void trc::rt::BottomLevelAccelerationStructure::build()
 {
-    static auto features = instance.getPhysicalDevice().physicalDevice.getFeatures2<
-        vk::PhysicalDeviceFeatures2,
-        vk::PhysicalDeviceAccelerationStructureFeaturesKHR
-    >().get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
-
     auto [buildRanges, buildRangePointers] = makeBuildRanges();
 
     // Create a temporary scratch buffer
@@ -139,6 +134,11 @@ void trc::rt::BottomLevelAccelerationStructure::build()
         vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
         vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
+
+    static auto features = instance.getPhysicalDevice().physicalDevice.getFeatures2<
+        vk::PhysicalDeviceFeatures2,
+        vk::PhysicalDeviceAccelerationStructureFeaturesKHR
+    >().get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
 
     // Decide whether the AS should be built on the host or on the device.
     // Build on the host if possible.
@@ -206,13 +206,6 @@ auto trc::rt::BottomLevelAccelerationStructure::makeBuildRanges() const noexcept
 
 
 trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
-    const ::trc::Instance& instance)
-    :
-    instance(instance)
-{
-}
-
-trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
     const ::trc::Instance& instance,
     ui32 maxInstances,
     const vkb::DeviceMemoryAllocator& alloc)
@@ -246,13 +239,40 @@ trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
 
 void trc::rt::TopLevelAccelerationStructure::build(
     vk::Buffer instanceBuffer,
-    ui32 numInstances,
-    ui32 offset)
+    const ui32 numInstances,
+    const ui32 offset)
 {
+    // Temporary scratch buffer
+    vkb::DeviceLocalBuffer scratchBuffer{
+        instance.getDevice(),
+        buildSizes.buildScratchSize,
+        nullptr,
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+    };
+
+    // Use new instance buffer
+    geometry.geometry.instances.data = instance.getDevice()->getBufferAddress(instanceBuffer);
+
+    vk::AccelerationStructureBuildRangeInfoKHR buildRange{
+        glm::min(numInstances, maxInstances),
+        offset,
+        0, 0
+    };
+
     instance.getDevice().executeCommandsSynchronously(
         vkb::QueueType::compute,
-        [&](vk::CommandBuffer cmdBuf) {
-            build(cmdBuf, instanceBuffer, numInstances, offset);
+        [&](vk::CommandBuffer cmdBuf)
+        {
+            cmdBuf.buildAccelerationStructuresKHR(
+                geoBuildInfo
+                    .setGeometries(geometry)
+                    .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+                    .setDstAccelerationStructure(*accelerationStructure)
+                    .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
+                { &buildRange },
+                instance.getDL()
+            );
         }
     );
 }

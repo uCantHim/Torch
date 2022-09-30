@@ -19,6 +19,10 @@
 namespace trc
 {
     class GeometryRegistry;
+    class Instance;
+    namespace rt {
+        class BottomLevelAccelerationStructure;
+    }
 
     struct Geometry
     {
@@ -42,7 +46,7 @@ namespace trc
 
     struct GeometryRegistryCreateInfo
     {
-        const vkb::Device& device;
+        const Instance& instance;
         SharedDescriptorSet::Builder& descriptorBuilder;
 
         vk::BufferUsageFlags geometryBufferUsage;
@@ -78,6 +82,15 @@ namespace trc
         void load(LocalID id) override;
         void unload(LocalID id) override;
 
+        /**
+         * @brief Create an acceleration structure for a geometry
+         *
+         * If an acceleration structure already exists for the given
+         * geometry, the function does not create a new structure, but
+         * returns the existing one.
+         */
+        auto makeAccelerationStructure(LocalID id) -> rt::BottomLevelAccelerationStructure&;
+
     private:
         friend class AssetHandle<Geometry>;
 
@@ -94,23 +107,28 @@ namespace trc
         {
             struct DeviceData
             {
-                vkb::Buffer indexBuf;
-                vkb::Buffer vertexBuf;
+                vkb::DeviceLocalBuffer indexBuf;
+                vkb::DeviceLocalBuffer vertexBuf;
                 ui32 numIndices{ 0 };
                 ui32 numVertices{ 0 };
 
                 VertexType vertexType;
             };
 
+            /** Declared as default in .cpp file for u_ptr to incomplete type BLAS */
+            ~InternalStorage();
+
             ui32 deviceIndex;
             u_ptr<AssetSource<Geometry>> source;
             u_ptr<DeviceData> deviceData{ nullptr };
             std::optional<RigID> rig;
 
+            u_ptr<rt::BottomLevelAccelerationStructure> blas{ nullptr };
+
             ReferenceCounter refCounter;
         };
 
-        const vkb::Device& device;
+        const Instance& instance;
         const Config config;
 
         data::IdPool idPool;
@@ -167,6 +185,26 @@ namespace trc
 
         bool hasRig() const;
         auto getRig() -> RigID;
+
+        /**
+         * The device index is only meaningful when ray tracing is enabled.
+         *
+         * @return ui32 The descriptor index at which the geometry data can
+         *         be accessed on the device.
+         */
+        auto getDeviceIndex() const -> ui32;
+
+        /**
+         * Create a geometry's acceleration structure with
+         * GeometryRegistry::makeAccelerationStructure.
+         */
+        bool hasAccelerationStructure() const;
+
+        /**
+         * @throw std::runtime_error if hasAccelerationStructure() returns
+         *        false.
+         */
+        auto getAccelerationStructure() -> rt::BottomLevelAccelerationStructure&;
 
     private:
         friend class GeometryRegistry;

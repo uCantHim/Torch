@@ -15,6 +15,8 @@
 #include "drawable/RasterizationComponent.h"
 #include "drawable/RaytracingComponent.h"
 
+#include "ray_tracing/GeometryUtils.h"
+
 namespace trc
 {
     class SceneBase;
@@ -33,6 +35,14 @@ namespace trc
 
         drawcomp::RasterComponent drawData;
         std::vector<DrawFunctionSpec> drawFunctions;
+    };
+
+    struct RayComponentCreateInfo
+    {
+        GeometryID geo;
+        MaterialID mat;
+
+        Transformation::ID transformation;
     };
 
     namespace drawcomp {
@@ -74,16 +84,25 @@ namespace trc
     class DrawableComponentScene
     {
     public:
+        struct DrawableRayData
+        {
+            ui32 geometryIndex;
+            ui32 materialIndex;
+        };
+
         DrawableComponentScene(SceneBase& base);
 
         void updateAnimations(float timeDelta);
+        auto writeTlasInstances(rt::GeometryInstance* instanceBuf) -> size_t;
+
+        auto getRaySceneData() const -> const std::vector<DrawableRayData>&;
 
         auto makeDrawable() -> DrawableID;
         auto makeDrawableUnique() -> UniqueDrawableID;
         void destroyDrawable(DrawableID drawable);
 
         void makeRasterization(DrawableID drawable, const RasterComponentCreateInfo& createInfo);
-        void makeRaytracing(DrawableID drawable);
+        void makeRaytracing(DrawableID drawable, const RayComponentCreateInfo& createInfo);
         void makeAnimationEngine(DrawableID drawable, RigHandle rig);
         void makeNode(DrawableID drawable);
 
@@ -102,5 +121,7 @@ namespace trc
 
         SceneBase* base;
         InternalStorage storage;
+
+        std::vector<DrawableRayData> drawableData;
     };
 } // namespace trc

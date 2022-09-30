@@ -5,9 +5,9 @@
 #include "material.glsl"
 
 layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
-layout (set = 1, binding = 0, rgba16) readonly uniform image2D gBufferNormal;
-layout (set = 1, binding = 1, r32ui) readonly uniform uimage2D gBufferAlbedo;
-layout (set = 1, binding = 2, r32ui) readonly uniform uimage2D gBufferMaterial;
+layout (set = 1, binding = 0, rgba16f) uniform restrict readonly image2D gBufferNormal;
+layout (set = 1, binding = 1, rgba8)   uniform restrict readonly image2D gBufferAlbedo;
+layout (set = 1, binding = 2, r32ui)   uniform restrict readonly uimage2D gBufferMaterial;
 layout (set = 1, binding = 3) uniform sampler2D gBufferDepth;
 
 layout (set = 1, binding = 4, rgba8) writeonly uniform image2D outputImage;
@@ -17,7 +17,7 @@ layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
     Material materials[];
 };
 
-layout (location = 0) rayPayloadEXT vec4 color;
+layout (location = 0) rayPayloadEXT vec3 color;
 
 layout (push_constant) uniform PushConstants
 {
@@ -27,6 +27,8 @@ layout (push_constant) uniform PushConstants
 
 vec3 worldPosFromDepth(vec2 normalPixelCoord, float depth)
 {
+    normalPixelCoord.y = 1.0 - normalPixelCoord.y;
+
     const vec4 clipSpace = vec4(normalPixelCoord * 2.0 - 1.0, depth, 1.0);
     const vec4 viewSpace = inverse(projMatrix) * clipSpace;
     const vec4 worldSpace = inverse(viewMatrix) * (viewSpace / viewSpace.w);
@@ -37,8 +39,8 @@ vec3 worldPosFromDepth(vec2 normalPixelCoord, float depth)
 
 void main()
 {
-    const vec2 normalPixelCoord = (vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy));
     const ivec2 texelCoord = ivec2(gl_LaunchIDEXT.xy);
+    const vec2 normalPixelCoord = (vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy));
 
     uint mat = imageLoad(gBufferMaterial, texelCoord).r;
     if (materials[mat].reflectivity <= 0.0f) {
@@ -50,12 +52,10 @@ void main()
 
     vec4 cameraPos = inverse(viewMatrix) * vec4(0, 0, 0, 1);
     vec3 rayOrigin = worldPos;
-    vec3 rayDirection = normalize(worldPos - cameraPos.xyz);
-    vec3 reflectedRay = reflect(rayDirection, imageLoad(gBufferNormal, texelCoord).xyz);
-    float minT = 0.01;
-    float maxT = 1000.0;
-
-    color = vec4(1, 1, 1, 1);
+    vec3 cameraRay = normalize(worldPos - cameraPos.xyz);
+    vec3 rayDirection = reflect(cameraRay, imageLoad(gBufferNormal, texelCoord).xyz);
+    float minT = 0.001;
+    float maxT = 10000.0;
 
     traceRayEXT(
         TLAS,         // top-level acceleration structure
@@ -66,10 +66,10 @@ void main()
         0,            // miss index
         rayOrigin,    // ray origin
         minT,         // ray min range
-        reflectedRay, // ray direction
+        rayDirection, // ray direction
         maxT,         // ray max range
         0             // payload location
     );
 
-    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), color);
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(color, materials[mat].reflectivity));
 }

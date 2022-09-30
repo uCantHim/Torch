@@ -1,6 +1,8 @@
-#include "drawable/DrawableComponentScene.h"
+#include "trc/drawable/DrawableComponentScene.h"
 
 using namespace trc::drawcomp;
+
+
 
 struct RasterRegistrations
 {
@@ -74,6 +76,28 @@ void trc::DrawableComponentScene::updateAnimations(const float timeDelta)
     }
 }
 
+auto trc::DrawableComponentScene::writeTlasInstances(rt::GeometryInstance* instanceBuf) -> size_t
+{
+    for (ui32 i = 0; auto ray : storage.get<RayComponent>())
+    {
+        instanceBuf[i] = rt::GeometryInstance(
+            ray.modelMatrixId.get(), ray.drawableBufferIndex,
+            0xff, 0,
+            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+            | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
+            ray.geo.getAccelerationStructure()
+        );
+        ++i;
+    }
+
+    return storage.get<RayComponent>().size();
+}
+
+auto trc::DrawableComponentScene::getRaySceneData() const -> const std::vector<DrawableRayData>&
+{
+    return drawableData;
+}
+
 auto trc::DrawableComponentScene::makeDrawable() -> DrawableID
 {
     return storage.createObject();
@@ -108,11 +132,27 @@ void trc::DrawableComponentScene::makeRasterization(
     }
 }
 
-void trc::DrawableComponentScene::makeRaytracing(DrawableID drawable)
+void trc::DrawableComponentScene::makeRaytracing(
+    DrawableID drawable,
+    const RayComponentCreateInfo& createInfo)
 {
-    throw std::runtime_error("Not implemented");
+    auto geo = createInfo.geo;
+    if (!geo.getDeviceDataHandle().hasAccelerationStructure()) {
+        geo.getModule().makeAccelerationStructure(geo.getDeviceID());
+    }
 
-    storage.add<RayComponent>(drawable);
+    auto& ray = storage.add<RayComponent>(drawable, RayComponent{
+        .geo = createInfo.geo.getDeviceDataHandle(),
+        .modelMatrixId = createInfo.transformation
+    });
+
+    if (ray.drawableBufferIndex >= drawableData.size()) {
+        drawableData.resize(ray.drawableBufferIndex + 1);
+    }
+    drawableData[ray.drawableBufferIndex] = DrawableRayData{
+        .geometryIndex=createInfo.geo.getDeviceDataHandle().getDeviceIndex(),
+        .materialIndex=createInfo.mat.getDeviceDataHandle().getBufferIndex()
+    };
 }
 
 void trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigHandle rig)

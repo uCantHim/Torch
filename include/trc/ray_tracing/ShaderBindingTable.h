@@ -6,7 +6,7 @@
 
 #include <vkb/Buffer.h>
 
-#include "Types.h"
+#include "trc/Types.h"
 
 namespace trc::rt
 {

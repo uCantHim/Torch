@@ -5,10 +5,10 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include "Types.h"
-#include "core/Instance.h"
-#include "core/Pipeline.h"
-#include "ray_tracing/ShaderBindingTable.h"
+#include "trc/Types.h"
+#include "trc/core/Instance.h"
+#include "trc/core/Pipeline.h"
+#include "trc/ray_tracing/ShaderBindingTable.h"
 
 namespace trc::rt
 {

@@ -15,7 +15,7 @@ namespace trc
         bool drawShadow{ true };
 
         bool rasterized{ true };
-        bool rayTraced{ true };
+        bool rayTraced{ false };
     };
 
     struct DrawablePushConstants

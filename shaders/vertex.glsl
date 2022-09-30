@@ -2,7 +2,7 @@
 
 struct Vertex
 {
-    float vals[19];
+    float vals[11];
 };
 
 #define GET_VERTEX_POS(v) vec3(v.vals[0], v.vals[1], v.vals[2])

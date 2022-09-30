@@ -29,7 +29,7 @@ namespace trc::rt
             /**
              * @return The underlying acceleration structure handle
              */
-            auto operator*() const noexcept -> vk::AccelerationStructureKHR;
+            auto operator*() const noexcept -> const vk::AccelerationStructureKHR&;
 
             auto getGeometryBuildInfo() const noexcept
                 -> const vk::AccelerationStructureBuildGeometryInfoKHR&;
@@ -84,7 +84,7 @@ namespace trc::rt
         /**
          * @brief Build the acceleration structure
          *
-         * It is advised to use vku::buildAccelerationStructures() to build
+         * It is advised to use buildAccelerationStructures() to build
          * multiple acceleration structures at once.
          */
         void build();
@@ -127,11 +127,6 @@ namespace trc::rt
     {
     public:
         /**
-         * @brief Does not initialize anything
-         */
-        explicit TopLevelAccelerationStructure(const Instance& instance);
-
-        /**
          * @brief Create a top level acceleration structure
          *
          * One must specify a maximum number of contained geometry instances at
@@ -141,7 +136,7 @@ namespace trc::rt
          * @param ui32 maxInstances The maximum number of geometry instances
          *                          in the TLAS
          */
-        explicit TopLevelAccelerationStructure(
+        TopLevelAccelerationStructure(
             const ::trc::Instance& instance,
             ui32 maxInstances,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});

@@ -28,7 +28,7 @@ void run()
 
     auto scene = std::make_unique<trc::Scene>();
     trc::Camera camera;
-    camera.lookAt({ 0, 2, 3 }, { 0, 0, 0 }, { 0, 1, 0 });
+    camera.lookAt({ 3, 2, 1 }, { 0, 0, 0 }, { 0, 1, 0 });
     auto size = swapchain.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
@@ -52,7 +52,8 @@ void run()
     // --- BLAS --- //
 
     BLAS triBlas{ instance, tri };
-    BLAS blas{ instance, geo.getDeviceDataHandle() };
+    auto geoHandle = geo.getDeviceDataHandle();
+    BLAS blas{ instance, geoHandle };
     trc::rt::buildAccelerationStructures(instance, { &blas, &triBlas });
 
 
@@ -175,16 +176,16 @@ void run()
         }
     );
     auto [rayPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(torch->getInstance())
-        .addRaygenGroup(TRC_SHADER_BINARY_DIR"/test/raygen.rgen.spv")
+        .addRaygenGroup("/test/raygen.rgen")
         .beginTableEntry()
-            .addMissGroup(TRC_SHADER_BINARY_DIR"/test/miss_blue.rmiss.spv")
-            .addMissGroup(TRC_SHADER_BINARY_DIR"/test/miss_orange.rmiss.spv")
+            .addMissGroup("/test/miss_blue.rmiss")
+            .addMissGroup("/test/miss_orange.rmiss")
         .endTableEntry()
         .addTrianglesHitGroup(
-            TRC_SHADER_BINARY_DIR"/test/closesthit.rchit.spv",
-            TRC_SHADER_BINARY_DIR"/test/anyhit.rahit.spv"
+            "/test/closesthit.rchit",
+            "/test/anyhit.rahit"
         )
-        .addCallableGroup(TRC_SHADER_BINARY_DIR"/test/callable.rcall.spv")
+        .addCallableGroup("/test/callable.rcall")
         .build(maxRecursionDepth, rayPipelineLayout);
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };

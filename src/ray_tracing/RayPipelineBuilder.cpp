@@ -3,6 +3,9 @@
 #include <vkb/Device.h>
 #include <vkb/ShaderProgram.h>
 
+#include "trc/ShaderPath.h"
+#include "trc/PipelineDefinitions.h"
+
 
 
 trc::rt::RayTracingPipelineBuilder::RayTracingPipelineBuilder(const ::trc::Instance& instance)
@@ -164,12 +167,8 @@ auto trc::rt::RayTracingPipelineBuilder::build(
 
 auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const fs::path& path) -> vk::ShaderModule
 {
-    if (!fs::is_regular_file(path)) {
-        throw std::runtime_error(path.string() + " is not a regular file");
-    }
-
     return *shaderModules.emplace_back(
-        vkb::makeShaderModule(device, vkb::readFile(path.string()))
+        vkb::makeShaderModule(device, internal::loadShader(ShaderPath(path)))
     );
 }
 

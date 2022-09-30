@@ -15,7 +15,7 @@ auto trc::rt::makeGeometryInfo(const vkb::Device& device, const GeometryHandle& 
             vk::AccelerationStructureGeometryTrianglesDataKHR(
                 vk::Format::eR32G32B32Sfloat,
                 device->getBufferAddress({ geo.getVertexBuffer() }),
-                sizeof(trc::MeshVertex),
+                geo.getVertexSize(),
                 geo.getIndexCount(), // max vertex
                 vk::IndexType::eUint32,
                 device->getBufferAddress({ geo.getIndexBuffer() }),
@@ -29,7 +29,7 @@ trc::rt::GeometryInstance::GeometryInstance(
     glm::mat3x4 transform,
     const BottomLevelAccelerationStructure& blas)
     :
-    transform(transform),
+    transform(glm::transpose(transform)),
     accelerationStructureAddress(blas.getDeviceAddress())
 {
 }
@@ -38,7 +38,7 @@ trc::rt::GeometryInstance::GeometryInstance(
     mat4 transform,
     const BottomLevelAccelerationStructure& blas)
     :
-    transform(transform),
+    transform(glm::transpose(transform)),
     accelerationStructureAddress(blas.getDeviceAddress())
 {
 }
@@ -51,7 +51,7 @@ trc::rt::GeometryInstance::GeometryInstance(
     vk::GeometryInstanceFlagsKHR flags,
     const BottomLevelAccelerationStructure& blas)
     :
-    transform(transform),
+    transform(glm::transpose(transform)),
     instanceCustomIndex(instanceCustomIndex),
     mask(mask),
     shaderBindingTableRecordOffset(shaderBindingTableRecordOffset),
@@ -68,7 +68,7 @@ trc::rt::GeometryInstance::GeometryInstance(
     vk::GeometryInstanceFlagsKHR flags,
     const BottomLevelAccelerationStructure& blas)
     :
-    transform(transform),
+    transform(glm::transpose(transform)),
     instanceCustomIndex(instanceCustomIndex),
     mask(mask),
     shaderBindingTableRecordOffset(shaderBindingTableRecordOffset),
