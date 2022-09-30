@@ -1,7 +1,8 @@
 #pragma once
 
-#include <ostream>
 #include <functional>
+#include <ostream>
+#include <stdexcept>
 
 #include "TableBase.h"
 
@@ -19,6 +20,17 @@ struct ComponentID
 
     constexpr ComponentID() = default;
     constexpr ComponentID(NoneType) : ComponentID() {}
+
+    /**
+     * @throw std::invalid_argument if `*this == NONE`.
+     */
+    constexpr explicit operator uint32_t() const
+    {
+        if (*this == NONE) {
+            throw std::invalid_argument("Unable to cast ComponentID that is NONE to uint32_t!");
+        }
+        return id;
+    }
 
     constexpr auto operator=(const NoneType&) -> ComponentID&
     {
@@ -57,8 +69,13 @@ private:
 
     explicit ComponentID(uint32_t _id) : id(_id) {}
 
-    operator uint32_t() const {
-        return id;
+    template<typename T> requires std::is_integral_v<T>
+    constexpr operator T() const
+    {
+        if (*this == NONE) {
+            throw std::invalid_argument("Unable to cast ComponentID that is NONE to uint32_t!");
+        }
+        return static_cast<T>(id);
     }
 
     uint32_t id{ UINT32_MAX };
