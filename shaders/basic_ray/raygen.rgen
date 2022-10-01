@@ -2,10 +2,9 @@
 #extension GL_EXT_ray_tracing : require
 
 layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
-layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
+layout (set = 0, binding = 1, rgba8) uniform image2D outputImage;
 
 layout (location = 0) rayPayloadEXT vec4 color;
-layout (location = 0) callableDataEXT vec4 callColor;
 
 layout (push_constant) uniform PushConstants
 {
@@ -30,25 +29,19 @@ void main()
 
     color = vec4(1, 1, 1, 1);
 
-    uvec2 id = uvec2(floor(gl_LaunchIDEXT.xy / 10));
-    uint missIndex = id.x % 2 * id.y % 2;
-
     traceRayEXT(
         TLAS,         // top-level acceleration structure
         0,            // ray flags
         0xff,         // cull mask
         0,            // sbt record offset
         0,            // sbt record stride
-        missIndex,    // miss index
+        0,            // miss index
         rayOrigin,    // ray origin
         minT,         // ray min range
         rayDirection, // ray direction
         maxT,         // ray max range
         0             // payload location
     );
-
-    callColor = vec4(1, 1, 1, 1);
-    executeCallableEXT(0, 0);
 
     imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), color);
 }

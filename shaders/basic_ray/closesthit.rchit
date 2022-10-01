@@ -3,8 +3,10 @@
 
 layout (location = 0) rayPayloadInEXT vec4 color;
 
+hitAttributeEXT vec2 bary;
+
 void main()
 {
     // Hit is green
-    color = vec4(0, 1, 0, 1);
+    color = vec4(bary.x, bary.y, 1.0 - bary.x - bary.y, 1);
 }

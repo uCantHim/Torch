@@ -26,8 +26,8 @@ target_link_libraries(TorchTest PUBLIC torch)
 add_executable(Font font.cpp)
 target_link_libraries(Font PUBLIC torch)
 
-add_executable(RayTracing ray_tracing.cpp)
-target_link_libraries(RayTracing PUBLIC torch)
+add_executable(BasicRay basic_ray.cpp)
+target_link_libraries(BasicRay PUBLIC torch)
 
 add_executable(RayTracingIntegration rt_integration.cpp)
 target_link_libraries(RayTracingIntegration PUBLIC torch)
