@@ -34,14 +34,7 @@ TEST(TestShaderLoader, AutomaticRecompilation)
     ASSERT_TRUE(fs::is_regular_file(shaderBinaryFile));
     ASSERT_TRUE(fs::last_write_time(shaderBinaryFile) > fs::last_write_time(datadir / "test.vert"));
 
-    shaderc::CompileOptions opts;
-#ifdef TRC_FLIP_Y_PROJECTION
-    opts.AddMacroDefinition("TRC_FLIP_Y_AXIS");
-#endif
-    opts.SetTargetSpirv(shaderc_spirv_version_1_5);
-    opts.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan,
-                              shaderc_env_version_vulkan_1_3);
-    opts.SetOptimizationLevel(shaderc_optimization_level_performance);
+    shaderc::CompileOptions opts = trc::ShaderLoader::makeDefaultOptions();
     auto truthRes = spirv::generateSpirv(read(datadir / "test.vert"), datadir / "test.vert", opts);
     std::string truth((char*)truthRes.begin(), (truthRes.end() - truthRes.begin()) * sizeof(uint32_t));
 

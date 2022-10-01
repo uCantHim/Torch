@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <spirv/CompileSpirv.h>
 
 #include "ShaderPath.h"
 
@@ -23,7 +24,11 @@ namespace trc
          *        directories.
          * @param fs::path Output directory for compiled SPIRV binaries.
          */
-        ShaderLoader(std::vector<fs::path> includePaths, fs::path binaryPath);
+        ShaderLoader(std::vector<fs::path> includePaths,
+                     fs::path binaryPath,
+                     shaderc::CompileOptions opts = makeDefaultOptions());
+
+        static auto makeDefaultOptions() -> shaderc::CompileOptions;
 
         auto load(ShaderPath shaderPath) -> std::string;
 
@@ -34,5 +39,7 @@ namespace trc
 
         std::vector<fs::path> includePaths;
         fs::path outDir;
+
+        shaderc::CompileOptions compileOpts;
     };
 } // namespace trc

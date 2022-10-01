@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include <vkb/ShaderProgram.h>
-#include <spirv/CompileSpirv.h>
 #include <spirv/FileIncluder.h>
 
 #include "trc/Types.h"
@@ -18,17 +17,39 @@ namespace trc
 {
 
 ShaderLoader::ShaderLoader(
-    std::vector<fs::path> includePaths,
-    fs::path binaryPath)
+    std::vector<fs::path> _includePaths,
+    fs::path binaryPath,
+    shaderc::CompileOptions opts)
     :
-    includePaths(std::move(includePaths)),
-    outDir(std::move(binaryPath))
+    includePaths(std::move(_includePaths)),
+    outDir(std::move(binaryPath)),
+    compileOpts(std::move(opts))
 {
     if (fs::exists(outDir) && !fs::is_directory(outDir)) {
         throw std::invalid_argument("[In ShaderLoader::ShaderLoader]: Object at binary directory"
                                     " path " + outDir.string() + " exists but is not a directory!");
     }
     fs::create_directories(outDir);
+
+    compileOpts.SetIncluder(std::make_unique<spirv::FileIncluder>(
+        includePaths.front(),
+        std::vector<fs::path>{ includePaths.begin() + 1, includePaths.end() }
+    ));
+}
+
+auto ShaderLoader::makeDefaultOptions() -> shaderc::CompileOptions
+{
+    shaderc::CompileOptions opts;
+
+#ifdef TRC_FLIP_Y_PROJECTION
+    opts.AddMacroDefinition("TRC_FLIP_Y_AXIS");
+#endif
+    opts.SetTargetSpirv(shaderc_spirv_version_1_5);
+    opts.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan,
+                              shaderc_env_version_vulkan_1_3);
+    opts.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+    return opts;
 }
 
 auto ShaderLoader::load(ShaderPath shaderPath) -> std::string
@@ -68,21 +89,7 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> 
         std::cout << "Compiling shader " << srcPath << " to " << dstPath << "\n";
     }
 
-    shaderc::CompileOptions opts;
-#ifdef TRC_FLIP_Y_PROJECTION
-    opts.AddMacroDefinition("TRC_FLIP_Y_AXIS");
-#endif
-    opts.SetTargetSpirv(shaderc_spirv_version_1_5);
-    opts.SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan,
-                              shaderc_env_version_vulkan_1_3);
-
-    opts.SetIncluder(std::make_unique<spirv::FileIncluder>(
-        includePaths.front(),
-        std::vector<fs::path>{ includePaths.begin() + 1, includePaths.end() }
-    ));
-    opts.SetOptimizationLevel(shaderc_optimization_level_performance);
-
-    auto result = spirv::generateSpirv(vkb::readFile(srcPath), srcPath, opts);
+    auto result = spirv::generateSpirv(vkb::readFile(srcPath), srcPath, compileOpts);
     if (result.GetCompilationStatus()
         != shaderc_compilation_status::shaderc_compilation_status_success)
     {
