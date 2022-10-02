@@ -137,24 +137,24 @@ auto trc::rt::RayTracingPipelineBuilder::build(
     const vkb::DeviceMemoryAllocator alloc
     ) -> std::pair<Pipeline, ShaderBindingTable>
 {
-	assert(pipelineStages.size() > 0);
+    assert(pipelineStages.size() > 0);
 
     // Create pipeline
-	auto pipeline = device->createRayTracingPipelineKHRUnique(
+    auto pipeline = device->createRayTracingPipelineKHRUnique(
         {}, // optional deferred operation
-		{}, // cache
-		vk::RayTracingPipelineCreateInfoKHR(
-			vk::PipelineCreateFlags(),
-			pipelineStages,
-			shaderGroups,
-			maxRecursionDepth, // max recursion depth
+        {}, // cache
+        vk::RayTracingPipelineCreateInfoKHR(
+            vk::PipelineCreateFlags(),
+            pipelineStages,
+            shaderGroups,
+            maxRecursionDepth, // max recursion depth
             nullptr, // pipeline library create info
             nullptr, // ray tracing pipeline interface create info
             nullptr, // dynamic state create info
-			*layout
-		),
-		nullptr, dl
-	).value;
+            *layout
+        ),
+        nullptr, dl
+    ).value;
 
     // Create shader binding table
     ShaderBindingTable sbt{ device, dl, *pipeline, sbtEntries, alloc };

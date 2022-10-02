@@ -26,9 +26,6 @@ namespace trc
         Pipeline& operator=(const Pipeline&) = delete;
 
         Pipeline(PipelineLayout& layout,
-                 vk::UniquePipeline pipeline,
-                 vk::PipelineBindPoint bindPoint);
-        Pipeline(PipelineLayout& layout,
                  UniquePipelineHandleType pipeline,
                  vk::PipelineBindPoint bindPoint);
         Pipeline(Pipeline&&) noexcept = default;

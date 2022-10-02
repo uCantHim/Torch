@@ -81,7 +81,7 @@ namespace trc::rt
             -> vk::RayTracingShaderGroupCreateInfoKHR&;
 
         const vkb::Device& device;
-        vk::DispatchLoaderDynamic dl;
+        const vk::DispatchLoaderDynamic& dl;
 
         // Need to be kept alive for the stage create infos
         std::vector<vk::UniqueShaderModule> shaderModules;

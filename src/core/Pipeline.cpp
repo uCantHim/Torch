@@ -6,21 +6,6 @@
 
 trc::Pipeline::Pipeline(
     PipelineLayout& layout,
-    vk::UniquePipeline pipeline,
-    vk::PipelineBindPoint bindPoint)
-    :
-    layout(&layout),
-    pipelineStorage(std::move(pipeline)),
-    pipeline(*std::get<vk::UniquePipeline>(pipelineStorage)),
-    bindPoint(bindPoint)
-{
-    if (!layout) {
-        throw Exception("[In Pipeline::Pipeline]: Specified layout is not a valid layout handle");
-    }
-}
-
-trc::Pipeline::Pipeline(
-    PipelineLayout& layout,
     UniquePipelineHandleType pipeline,
     vk::PipelineBindPoint bindPoint)
     :

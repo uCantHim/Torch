@@ -116,7 +116,10 @@ int main()
         vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
         vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, imageCount),
     };
-    auto pool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo({}, imageCount, sizes));
+    auto pool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+        imageCount, sizes
+    ));
 
     std::vector<vk::DescriptorSetLayout> descLayouts{ *descLayout, *descLayout, *descLayout };
     auto sets = device->allocateDescriptorSetsUnique(vk::DescriptorSetAllocateInfo(*pool, descLayouts));
@@ -218,6 +221,9 @@ int main()
 
         window.drawFrame(drawConfig);
     }
+
+    window.getRenderer().waitForAllFrames();
+    trc::terminate();
 
     return 0;
 }
