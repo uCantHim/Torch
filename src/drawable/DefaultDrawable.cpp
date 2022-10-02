@@ -52,7 +52,9 @@ auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> pipelines::Draw
     if (info.transparent) {
         flags |= pipelines::PipelineShadingTypeFlagBits::transparent;
     }
-    if (info.geo.get().hasRig()) {
+    if (info.geo.get().hasRig())
+    {
+        assert(info.geo.get().hasSkeleton() && "A geometry with a rig must also have a skeleton.");
         flags |= pipelines::AnimationTypeFlagBits::boneAnim;
     }
 

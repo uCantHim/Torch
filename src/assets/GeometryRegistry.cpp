@@ -35,35 +35,6 @@ void AssetData<Geometry>::resolveReferences(AssetManager& man)
 
 
 
-auto makeVertexData(const GeometryData& geo) -> std::vector<ui8>
-{
-    assert(geo.skeletalVertices.empty()
-           || geo.skeletalVertices.size() == geo.vertices.size());
-
-    std::vector<ui8> result;
-    result.resize(geo.vertices.size() * sizeof(MeshVertex)
-                  + geo.skeletalVertices.size() * sizeof(SkeletalVertex));
-
-    const bool hasSkel = !geo.skeletalVertices.empty();
-    const size_t vertSize = sizeof(MeshVertex) + hasSkel * sizeof(SkeletalVertex);
-    for (size_t i = 0; i < geo.vertices.size(); i++)
-    {
-        const size_t offset = i * vertSize;
-        memcpy(result.data() + offset, &geo.vertices.at(i), sizeof(MeshVertex));
-
-        if (hasSkel)
-        {
-            memcpy(result.data() + offset + sizeof(MeshVertex),
-                   &geo.skeletalVertices.at(i),
-                   sizeof(SkeletalVertex));
-        }
-    }
-
-    return result;
-}
-
-
-
 GeometryHandle::AssetHandle(
     GeometryRegistry::SharedCacheReference ref,
     GeometryRegistry::InternalStorage& _data)
@@ -77,7 +48,10 @@ GeometryHandle::AssetHandle(
 void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
     cmdBuf.bindIndexBuffer(*storage->deviceData->indexBuf, 0, getIndexType());
-    cmdBuf.bindVertexBuffers(binding, *storage->deviceData->vertexBuf, vk::DeviceSize(0));
+    cmdBuf.bindVertexBuffers(binding, *storage->deviceData->meshVertexBuf, 0ul);
+    if (hasSkeleton()) {
+        cmdBuf.bindVertexBuffers(binding + 1, *storage->deviceData->skeletalVertexBuf, 0ul);
+    }
 }
 
 auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
@@ -87,7 +61,12 @@ auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
 
 auto GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
 {
-    return *storage->deviceData->vertexBuf;
+    return *storage->deviceData->meshVertexBuf;
+}
+
+auto GeometryHandle::getSkeletalVertexBuffer() const noexcept -> vk::Buffer
+{
+    return *storage->deviceData->skeletalVertexBuf;
 }
 
 auto GeometryHandle::getIndexCount() const noexcept -> ui32
@@ -100,15 +79,19 @@ auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
     return vk::IndexType::eUint32;
 }
 
-auto GeometryHandle::getVertexType() const noexcept -> VertexType
-{
-    return storage->deviceData->vertexType;
-}
-
 auto GeometryHandle::getVertexSize() const noexcept -> size_t
 {
-    return getVertexType() == VertexType::eMesh ? sizeof(MeshVertex)
-                                                : sizeof(MeshVertex) + sizeof(SkeletalVertex);
+    return sizeof(MeshVertex);
+}
+
+auto GeometryHandle::getSkeletalVertexSize() const noexcept -> size_t
+{
+    return sizeof(SkeletalVertex);
+}
+
+bool GeometryHandle::hasSkeleton() const
+{
+    return storage->deviceData->hasSkeleton;
 }
 
 bool GeometryHandle::hasRig() const
@@ -240,9 +223,6 @@ void GeometryRegistry::load(const LocalID id)
 
     auto data = item.source->load();
     data.indices = util::optimizeTriangleOrderingForsyth(data.indices);
-    const auto vertexData = makeVertexData(data);
-    const size_t indicesSize = data.indices.size() * sizeof(decltype(data.indices)::value_type);
-    const size_t verticesSize = vertexData.size() * sizeof(decltype(vertexData)::value_type);
 
     auto& deviceData = item.deviceData;
     deviceData.reset(new InternalStorage::DeviceData{
@@ -254,34 +234,50 @@ void GeometryRegistry::load(const LocalID id)
                 | vk::BufferUsageFlagBits::eTransferDst,
             memoryPool.makeAllocator()
         },
-        .vertexBuf = {
+        .meshVertexBuf = {
             instance.getDevice(),
-            vertexData,
+            data.vertices,
             config.geometryBufferUsage
                 | vk::BufferUsageFlagBits::eVertexBuffer
                 | vk::BufferUsageFlagBits::eTransferDst,
             memoryPool.makeAllocator()
         },
+        .skeletalVertexBuf = {},
+
         .numIndices = static_cast<ui32>(data.indices.size()),
         .numVertices = static_cast<ui32>(data.vertices.size()),
-
-        .vertexType = data.skeletalVertices.empty()
-            ? VertexType::eMesh
-            : VertexType::eSkeletal,
     });
+
+    if (!data.skeletalVertices.empty())
+    {
+        deviceData->hasSkeleton = true;
+        deviceData->skeletalVertexBuf = {
+            instance.getDevice(),
+            data.skeletalVertices,
+            config.geometryBufferUsage
+                | vk::BufferUsageFlagBits::eVertexBuffer
+                | vk::BufferUsageFlagBits::eTransferDst,
+            memoryPool.makeAllocator()
+        };
+    }
+
     item.rig = data.rig.empty()
         ? std::optional<RigID>(std::nullopt)
         : data.rig.getID();
 
     // Enqueue writes to the device-local vertex buffers
-    //dataWriter.write(*deviceData->indexBuf, 0, data.indices.data(), indicesSize);
-    //dataWriter.write(*deviceData->vertexBuf, 0, vertexData.data(), verticesSize);
+    //const size_t indicesSize = data.indices.size() * sizeof(decltype(data.indices)::value_type);
+    //const size_t meshVerticesSize = data.vertices.size() * sizeof(decltype(data.vertices)::value_type);
+    //const size_t skelVerticesSize = data.vertices.size() * sizeof(decltype(data.vertices)::value_type);
+    //dataWriter.write(*deviceData->indexBuf,          0, data.indices.data(),  indicesSize);
+    //dataWriter.write(*deviceData->meshVertexBuf,     0, data.vertices.data(), meshVerticesSize);
+    //dataWriter.write(*deviceData->skeletalVertexBuf, 0, data.vertices.data(), skelVerticesSize);
 
     if (config.enableRayTracing)
     {
         // Enqueue writes to the descriptor set
         const ui32 deviceIndex = item.deviceIndex;
-        vertexDescriptorBinding.update(deviceIndex, { *deviceData->vertexBuf, 0, VK_WHOLE_SIZE });
+        vertexDescriptorBinding.update(deviceIndex, { *deviceData->meshVertexBuf, 0, VK_WHOLE_SIZE });
         indexDescriptorBinding.update(deviceIndex,  { *deviceData->indexBuf, 0, VK_WHOLE_SIZE });
     }
 }

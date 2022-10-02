@@ -38,12 +38,15 @@ Program drawableProgram:
     FragmentShader: drawableFragment
 
 
-VertexAttribute drawableVertexInput:
+VertexAttribute meshVertexInput:
     Binding: 0
     InputRate: perVertex
-    Locations: match AnimationType
-        none -> [rgb32f, rgb32f, rg32f, rgb32f]
-        boneAnim -> [rgb32f, rgb32f, rg32f, rgb32f, rgba32u, rgba32f]
+    Locations: [rgb32f, rgb32f, rg32f, rgb32f]
+
+VertexAttribute skeletalVertexInput:
+    Binding: 1
+    InputRate: perVertex
+    Locations: [rgba32u, rgba32f]
 
 
 ///////////////
@@ -85,7 +88,9 @@ Pipeline drawablePipeline:
         opaque -> "g_buffer"
         transparent -> "transparency"
         shadow -> "shadow"
-    VertexInput: [drawableVertexInput]
+    VertexInput: match AnimationType
+        none -> [meshVertexInput]
+        boneAnim -> [meshVertexInput, skeletalVertexInput]
     DisableBlendAttachments: match PipelineShadingType
         opaque -> 3
         transparent -> 3

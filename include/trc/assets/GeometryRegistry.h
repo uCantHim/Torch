@@ -62,12 +62,6 @@ namespace trc
     class GeometryRegistry : public AssetRegistryModuleCacheCrtpBase<Geometry>
     {
     public:
-        enum class VertexType : ui8
-        {
-            eMesh     = 1 << 0,
-            eSkeletal = 1 << 1,
-        };
-
         using LocalID = TypedAssetID<Geometry>::LocalID;
 
         explicit GeometryRegistry(const GeometryRegistryCreateInfo& info);
@@ -108,11 +102,12 @@ namespace trc
             struct DeviceData
             {
                 vkb::DeviceLocalBuffer indexBuf;
-                vkb::DeviceLocalBuffer vertexBuf;
+                vkb::DeviceLocalBuffer meshVertexBuf;
+                vkb::DeviceLocalBuffer skeletalVertexBuf;
                 ui32 numIndices{ 0 };
                 ui32 numVertices{ 0 };
 
-                VertexType vertexType;
+                bool hasSkeleton{ false };
             };
 
             /** Declared as default in .cpp file for u_ptr to incomplete type BLAS */
@@ -156,8 +151,6 @@ namespace trc
     class AssetHandle<Geometry>
     {
     public:
-        using VertexType = GeometryRegistry::VertexType;
-
         AssetHandle() = delete;
         AssetHandle(const AssetHandle&) = default;
         AssetHandle(AssetHandle&&) noexcept = default;
@@ -177,12 +170,20 @@ namespace trc
 
         auto getIndexBuffer() const noexcept -> vk::Buffer;
         auto getVertexBuffer() const noexcept -> vk::Buffer;
+
+        /**
+         * @return vk::Buffer VK_NULL_HANDLE if the geometry does not have
+         *         a skeleton.
+         */
+        auto getSkeletalVertexBuffer() const noexcept -> vk::Buffer;
+
         auto getIndexCount() const noexcept -> ui32;
 
         auto getIndexType() const noexcept -> vk::IndexType;
-        auto getVertexType() const noexcept -> VertexType;
         auto getVertexSize() const noexcept -> size_t;
+        auto getSkeletalVertexSize() const noexcept -> size_t;
 
+        bool hasSkeleton() const;
         bool hasRig() const;
         auto getRig() -> RigID;
 
