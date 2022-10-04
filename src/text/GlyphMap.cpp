@@ -19,10 +19,13 @@ trc::GlyphMap::GlyphMap(const vkb::Device& device, const vkb::DeviceMemoryAlloca
         alloc
     )
 {
-    image.changeLayout(device,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eShaderReadOnlyOptimal
-    );
+    // Set initial image layout
+    device.executeCommands(vkb::QueueType::graphics, [&](auto cmdBuf){
+        image.barrier(cmdBuf,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eShaderReadOnlyOptimal
+        );
+    });
 }
 
 auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle

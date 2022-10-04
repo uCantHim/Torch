@@ -84,20 +84,6 @@ namespace vkb
         auto getSize() const noexcept -> glm::uvec2;
         auto getExtent() const noexcept -> vk::Extent3D;
 
-        /**
-         * Change the image's layout in a dedicated command buffer
-         */
-        void changeLayout(const Device& device,
-                          vk::ImageLayout from, vk::ImageLayout to,
-                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
-        /**
-         * Record the image layout change to a command buffer
-         */
-        void changeLayout(vk::CommandBuffer cmdBuf,
-                          vk::ImageLayout from, vk::ImageLayout to,
-                          vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
         void barrier(vk::CommandBuffer cmdBuf,
                      vk::ImageLayout from, vk::ImageLayout to,
                      vk::PipelineStageFlags srcStages = vk::PipelineStageFlagBits::eAllCommands,

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+#include <stdexcept>
 #include <vector>
 
 #include "PhysicalDevice.h"
@@ -14,6 +16,13 @@ namespace vkb
 class Device
 {
 public:
+    Device(const Device&) = delete;
+    Device& operator=(const Device&) = delete;
+    Device& operator=(Device&&) noexcept = delete;
+
+    Device(Device&&) noexcept = default;
+    ~Device() = default;
+
     /**
      * @brief Create a logical device from a physical device
      *
@@ -48,12 +57,6 @@ public:
      */
     Device(const PhysicalDevice& physDevice, vk::UniqueDevice device);
 
-    Device(Device&&) noexcept = default;
-
-    Device(const Device&) = delete;
-    Device& operator=(const Device&) = delete;
-    Device& operator=(Device&&) noexcept = delete;
-
     auto operator->() const noexcept -> const vk::Device*;
     auto operator*() const noexcept -> vk::Device;
     auto get() const noexcept -> vk::Device;
@@ -64,91 +67,15 @@ public:
     auto getQueueManager() const noexcept -> const QueueManager&;
 
     /**
-     * @brief Create a temporary command buffer for graphics operations
+     * @brief Execute commands on the device
      *
-     * Allocates the command buffer from a pool with the reset and the
-     * transient flags set.
+     * Creates a transient command buffer, passes it to a function that
+     * records some commands, then submits it to an appropriate queue.
      *
-     * The command buffer CAN only be executed on a queue of the first
-     * graphics-capable queue family. To ensure that this is the case, you
-     * can use Device::executeGraphicsCommandBuffer(), which submits a
-     * command buffer to that specific queue.
-     *
-     * @param vk::CommandBufferLevel level Create a primary or a secondary
-     *                                     command buffer.
-     *
-     * @return vk::UniqueCommandBuffer A command buffer
+     * Only returns once all commands have finished executing.
      */
-    auto createGraphicsCommandBuffer(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const
-        -> vk::UniqueCommandBuffer;
-
-    /**
-     * @brief Execute a command buffer
-     *
-     * Executes a command buffer on the first queue of the first
-     * graphics-capable queue family.
-     *
-     * @param vk::CommandBuffer cmdBuf The command buffer to execute
-     */
-    void executeGraphicsCommandBuffer(vk::CommandBuffer cmdBuf) const;
-
-    /**
-     * @brief Execute a command buffer synchronously
-     *
-     * Creates a fence and waits for it to be signaled before the function
-     * returns.
-     *
-     * Executes the command buffer on the first queue of the first
-     * graphics-capable queue family.
-     *
-     * @param vk::CommandBuffer cmdBuf The command buffer to execute
-     */
-    void executeGraphicsCommandBufferSynchronously(vk::CommandBuffer cmdBuf) const;
-
-    /**
-     * @brief Create a temporary command buffer for transfer operations
-     *
-     * Allocates the command buffer from a pool with the reset and the
-     * transient flags set.
-     *
-     * The command buffer CAN only be executed on a queue of the first
-     * transfer-capable queue family. To ensure that this is the case, you
-     * can use Device::executeTransferCommandBuffer(), which submits a
-     * command buffer to that specific queue.
-     *
-     * @param vk::CommandBufferLevel level Create a primary or a secondary
-     *                                     command buffer.
-     *
-     * @return vk::UniqueCommandBuffer A command buffer
-     */
-    auto createTransferCommandBuffer(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const
-        -> vk::UniqueCommandBuffer;
-
-    /**
-     * @brief Execute a command buffer
-     *
-     * Executes a command buffer on the first queue of the first
-     * transfer-capable queue family.
-     *
-     * @param vk::CommandBuffer cmdBuf The command buffer to execute
-     */
-    void executeTransferCommandBuffer(vk::CommandBuffer cmdBuf) const;
-
-    /**
-     * @brief Execute a command buffer synchronously
-     *
-     * Creates a fence and waits for it to be signaled before the function
-     * returns.
-     *
-     * Executes the command buffer on the first queue of the first
-     * transfer-capable queue family.
-     *
-     * @param vk::CommandBuffer cmdBuf The command buffer to execute
-     */
-    void executeTransferCommandBufferSyncronously(vk::CommandBuffer cmdBuf) const;
-
     template<std::invocable<vk::CommandBuffer> F>
-    void executeCommandsSynchronously(QueueType queueType, F func) const;
+    void executeCommands(QueueType queueType, F func) const;
 
 private:
     const PhysicalDevice& physicalDevice;
@@ -156,31 +83,30 @@ private:
 
     QueueManager queueManager;
 
-    vk::UniqueCommandPool graphicsPool;
-    vk::UniqueCommandPool transferPool;
+    // Stores one command pool for each queue
+    std::vector<vk::UniqueCommandPool> commandPools;
 };
 
 template<std::invocable<vk::CommandBuffer> F>
-void Device::executeCommandsSynchronously(QueueType queueType, F func) const
+void Device::executeCommands(QueueType queueType, F func) const
 {
-    auto [queue, family] = queueManager.getAnyQueue(queueType);
-    auto pool = device->createCommandPoolUnique(vk::CommandPoolCreateInfo(
-        vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        family
-    ));
+    // Create a temporary fence
+    auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
 
+    // Get a suitable queue
+    auto [queue, family] = queueManager.getAnyQueue(queueType);
+
+    // Record commands
     auto cmdBuf = std::move(device->allocateCommandBuffersUnique({
-        *pool, vk::CommandBufferLevel::ePrimary, 1
+        *commandPools[family], vk::CommandBufferLevel::ePrimary, 1
     })[0]);
     cmdBuf->begin(vk::CommandBufferBeginInfo{});
     func(*cmdBuf);
     cmdBuf->end();
 
-    auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
-    queue.waitSubmit(
-        vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf),
-        *fence
-    );
+    queue.waitSubmit(vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf), *fence);
+
+    // Wait for the fence
     if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess)
     {
         throw std::runtime_error(

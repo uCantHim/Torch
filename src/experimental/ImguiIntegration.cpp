@@ -91,11 +91,9 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
         }
 
         // Upload fonts texture
-        auto oneTimeCmdBuf = device.createGraphicsCommandBuffer();
-        oneTimeCmdBuf->begin(vk::CommandBufferBeginInfo());
-        ImGui_ImplVulkan_CreateFontsTexture(*oneTimeCmdBuf);
-        oneTimeCmdBuf->end();
-        device.executeGraphicsCommandBufferSynchronously(*oneTimeCmdBuf);
+        device.executeCommands(vkb::QueueType::graphics, [](auto cmdBuf) {
+            ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
+        });
 
         imguiInitialized = true;
     }

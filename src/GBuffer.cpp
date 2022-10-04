@@ -41,9 +41,9 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     )
 {
     // Clear fragment head pointer image
-    device.executeCommandsSynchronously(vkb::QueueType::graphics, [this](auto cmdBuf)
+    device.executeCommands(vkb::QueueType::graphics, [this](auto cmdBuf)
     {
-        fragmentListHeadPointerImage.changeLayout(cmdBuf,
+        fragmentListHeadPointerImage.barrier(cmdBuf,
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eGeneral
         );
@@ -55,7 +55,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     });
 
     // Clear atomic counter buffer
-    device.executeCommandsSynchronously(vkb::QueueType::transfer, [&, this](vk::CommandBuffer cmdBuf)
+    device.executeCommands(vkb::QueueType::transfer, [&, this](vk::CommandBuffer cmdBuf)
     {
         const ui32 MAX_FRAGS = info.maxTransparentFragsPerPixel * info.size.x * info.size.y;
         cmdBuf.updateBuffer<ui32>(*fragmentListBuffer, 0, { 0, MAX_FRAGS, 0, });

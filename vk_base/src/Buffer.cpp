@@ -173,11 +173,7 @@ void vkb::copyBuffer(
     const vk::Buffer& dst, const vk::Buffer& src,
     vk::DeviceSize dstOffset, vk::DeviceSize srcOffset, vk::DeviceSize size)
 {
-    auto transferBuffer = device.createTransferCommandBuffer();
-
-    transferBuffer->begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    transferBuffer->copyBuffer(src, dst, vk::BufferCopy(srcOffset, dstOffset, size));
-    transferBuffer->end();
-
-    device.executeTransferCommandBufferSyncronously(*transferBuffer);
+    device.executeCommands(QueueType::transfer, [&](auto cmdBuf) {
+        cmdBuf.copyBuffer(src, dst, vk::BufferCopy(srcOffset, dstOffset, size));
+    });
 }

@@ -157,7 +157,7 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     }
     else
     {
-        instance.getDevice().executeCommandsSynchronously(
+        instance.getDevice().executeCommands(
             vkb::QueueType::compute,
             [&, &buildRangePointers=buildRangePointers](vk::CommandBuffer cmdBuf)
             {
@@ -260,7 +260,7 @@ void trc::rt::TopLevelAccelerationStructure::build(
         0, 0
     };
 
-    instance.getDevice().executeCommandsSynchronously(
+    instance.getDevice().executeCommands(
         vkb::QueueType::compute,
         [&](vk::CommandBuffer cmdBuf)
         {
@@ -383,7 +383,7 @@ void trc::rt::buildAccelerationStructures(
     }
     else
     {
-        instance.getDevice().executeCommandsSynchronously(
+        instance.getDevice().executeCommands(
             vkb::QueueType::compute,
             [&](vk::CommandBuffer cmdBuf)
             {

@@ -29,10 +29,11 @@ trc::GuiRenderTarget::GuiRenderTarget(
         return Framebuffer(device, renderPass, size, std::move(imageViews));
     }())
 {
-    image.changeLayout(
-        device,
-        vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
-    );
+    // Set initial image layout
+    device.executeCommands(vkb::QueueType::graphics, [&](auto cmdBuf)
+    {
+        image.barrier(cmdBuf, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+    });
 }
 
 auto trc::GuiRenderTarget::getSize() const -> uvec2
@@ -129,9 +130,13 @@ void trc::GuiRenderer::render(ui::Window& window, GuiRenderTarget& target)
     );
 
     cmdBuf->begin(vk::CommandBufferBeginInfo());
-    target.getImage().changeLayout(
+    target.getImage().barrier(
         *cmdBuf,
-        vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal
+        vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
+        vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        vk::AccessFlagBits::eShaderRead,
+        vk::AccessFlagBits::eColorAttachmentWrite
     );
 
     const uvec2 size = target.getSize();

@@ -134,26 +134,6 @@ namespace vkb
         vk::DeviceSize bufferSize{ 0 };
     };
 
-
-    /**
-     * A buffer intended for transfer operations.
-     *  - Host visible & coherent
-     *  - Transfer dst & src
-     */
-    class CopyBuffer : public Buffer
-    {
-    public:
-        CopyBuffer(const Device& device, vk::DeviceSize bufferSize)
-            : Buffer(
-                device,
-                bufferSize,
-                vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
-                vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-            )
-        {}
-    };
-
-
     /**
      * A high-performance device-local buffer.
      * Cannot be copied to or from, cannot be mapped. Thus, must and can only
@@ -164,6 +144,7 @@ namespace vkb
     public:
         using Buffer::barrier;
 
+        /** @brief Create an uninitialized buffer */
         DeviceLocalBuffer() = default;
 
         DeviceLocalBuffer(const Device& device,
@@ -189,12 +170,13 @@ namespace vkb
         }
     };
 
-
-
-    // ---------------------------- //
+    // ------------------------------ //
     //        Helper functions        //
-    // ---------------------------- //
+    // ------------------------------ //
 
+    /**
+     * @brief Copy data between buffers
+     */
     void copyBuffer(
         const Device& device,
         const vk::Buffer& dst, const vk::Buffer& src,

@@ -65,33 +65,6 @@ auto vkb::Image::getExtent() const noexcept -> vk::Extent3D
     return extent;
 }
 
-void vkb::Image::changeLayout(
-    const Device& device,
-    vk::ImageLayout from, vk::ImageLayout to,
-    vk::ImageSubresourceRange subRes)
-{
-    device.executeCommandsSynchronously(QueueType::graphics,
-        [=, this](vk::CommandBuffer cmdBuf) {
-            changeLayout(cmdBuf, from, to, subRes);
-        }
-    );
-}
-
-void vkb::Image::changeLayout(
-    vk::CommandBuffer cmdBuf,
-    vk::ImageLayout from, vk::ImageLayout to,
-    vk::ImageSubresourceRange subRes)
-{
-    barrier(cmdBuf,
-        from, to,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
-        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
-        subRes
-    );
-}
-
 void vkb::Image::barrier(
     vk::CommandBuffer cmdBuf,
     vk::ImageLayout from,
@@ -122,34 +95,31 @@ void vkb::Image::writeData(
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     );
 
-    auto cmdBuf = device->createGraphicsCommandBuffer();
-    cmdBuf->begin(vk::CommandBufferBeginInfo());
-
-    barrier(*cmdBuf,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eTransfer,
-        vk::AccessFlagBits::eMemoryWrite,
-        vk::AccessFlagBits::eMemoryWrite
-    );
-    const auto copyExtent = expandExtent(destArea.extent);
-    cmdBuf->copyBufferToImage(
-        *buf, *image,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::BufferImageCopy(0, 0, 0, destArea.subres, destArea.offset, copyExtent)
-    );
-    barrier(*cmdBuf,
-        vk::ImageLayout::eTransferDstOptimal,
-        finalLayout,
-        vk::PipelineStageFlagBits::eTransfer,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::AccessFlagBits::eMemoryWrite,
-        vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eMemoryRead
-    );
-
-    cmdBuf->end();
-    device->executeGraphicsCommandBufferSynchronously(*cmdBuf);
+    device->executeCommands(QueueType::transfer, [&](auto cmdBuf)
+    {
+        barrier(cmdBuf,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::PipelineStageFlagBits::eTransfer,
+            vk::AccessFlagBits::eMemoryWrite,
+            vk::AccessFlagBits::eMemoryWrite
+        );
+        const auto copyExtent = expandExtent(destArea.extent);
+        cmdBuf.copyBufferToImage(
+            *buf, *image,
+            vk::ImageLayout::eTransferDstOptimal,
+            vk::BufferImageCopy(0, 0, 0, destArea.subres, destArea.offset, copyExtent)
+        );
+        barrier(cmdBuf,
+            vk::ImageLayout::eTransferDstOptimal,
+            finalLayout,
+            vk::PipelineStageFlagBits::eTransfer,
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::AccessFlagBits::eMemoryWrite,
+            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eMemoryRead
+        );
+    });
 }
 
 auto vkb::Image::getMemory() const noexcept -> const DeviceMemory&
@@ -198,7 +168,7 @@ auto vkb::Image::createView(
     vk::ImageSubresourceRange subRes) const -> vk::UniqueImageView
 {
     return device->get().createImageViewUnique(
-        { {}, *image, viewType, viewFormat, componentMapping, std::move(subRes) }
+        { {}, *image, viewType, viewFormat, componentMapping, subRes }
     );
 }
 
