@@ -8,10 +8,24 @@ void trc::FrameRenderState::onRenderFinished(std::function<void()> func)
     renderFinishedCallbacks.emplace_back(std::move(func));
 }
 
+auto trc::FrameRenderState::makeTransientBuffer(
+    const vkb::Device& device,
+    size_t size,
+    vk::BufferUsageFlags usageFlags,
+    vk::MemoryPropertyFlags memoryFlags,
+    const vkb::DeviceMemoryAllocator& alloc) -> vkb::Buffer&
+{
+    std::scoped_lock lock(mutex);
+    return *transientBuffers.emplace_back(
+        std::make_unique<vkb::Buffer>(device, size, usageFlags, memoryFlags, alloc)
+    );
+}
+
 void trc::FrameRenderState::signalRenderFinished()
 {
     std::scoped_lock lock(mutex);
     for (auto& func : renderFinishedCallbacks) {
         func();
     }
+    transientBuffers.clear();
 }
