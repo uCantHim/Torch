@@ -51,32 +51,47 @@ int main()
     auto target = trc::makeRenderTarget(window);
     auto& device = instance.getDevice();
 
-    auto builder = trc::SharedDescriptorSet::build();
-    trc::GeometryRegistry geos(
-        trc::GeometryRegistryCreateInfo{
-            instance, builder,
-            vk::BufferUsageFlagBits::eShaderDeviceAddress
-                | vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR,
-            true, 1000000, 1
-        }
+    // Create a triangle geometry
+    trc::GeometryData geo{
+        .vertices={
+            trc::MeshVertex{ { -0.5f, -0.5f, 0.0f }, {}, {}, {} },
+            trc::MeshVertex{ { 0.5f,  -0.5f, 0.0f }, {}, {}, {} },
+            trc::MeshVertex{ { 0.0f,  0.5f,  0.0f }, {}, {}, {} },
+        },
+        .skeletalVertices={},
+        .indices={ 0, 1, 2 },
+    };
+    vkb::DeviceLocalBuffer vertBuf(
+        device, geo.vertices,
+        vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
+            | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+    );
+    vkb::DeviceLocalBuffer indexBuf(
+        device, geo.indices,
+        vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
+            | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     );
 
-    // Create a triangle geometry
-    auto triGeoId = geos.add(std::make_unique<trc::InMemorySource<trc::Geometry>>(
-        trc::GeometryData{
-            .vertices={
-                trc::MeshVertex{ { -0.5f, -0.5f, 0.0f }, {}, {}, {} },
-                trc::MeshVertex{ { 0.5f,  -0.5f, 0.0f }, {}, {}, {} },
-                trc::MeshVertex{ { 0.0f,  0.5f,  0.0f }, {}, {}, {} },
-            },
-            .skeletalVertices={},
-            .indices={ 0, 1, 2 },
-        }
-    ));
-    auto triGeo = geos.getHandle(triGeoId);
-
     // Botton-level acceleration structure
-    trc::rt::BottomLevelAccelerationStructure blas(instance, triGeo);
+    trc::rt::BottomLevelAccelerationStructure blas(
+        instance,
+        vk::AccelerationStructureGeometryKHR{ // Array of geometries in the AS
+            vk::GeometryTypeKHR::eTriangles,
+            vk::AccelerationStructureGeometryDataKHR{ // a union
+                vk::AccelerationStructureGeometryTrianglesDataKHR{
+                    vk::Format::eR32G32B32Sfloat,
+                    device->getBufferAddress({ *vertBuf }),
+                    sizeof(trc::MeshVertex),
+                    static_cast<ui32>(geo.indices.size()),
+                    vk::IndexType::eUint32,
+                    device->getBufferAddress({ *indexBuf }),
+                    nullptr // transform data
+                }
+            }
+        }
+    );
     blas.build();
 
     // Top-level acceleration structure

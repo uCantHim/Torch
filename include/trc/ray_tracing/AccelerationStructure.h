@@ -3,7 +3,6 @@
 #include <vkb/Buffer.h>
 
 #include "Types.h"
-#include "assets/Geometry.h"
 
 namespace trc {
     class Instance;
@@ -67,18 +66,14 @@ namespace trc::rt
          * @param GeometryID geo
          * @param const vkb::DeviceMemoryAllocator& alloc
          */
-        explicit BottomLevelAccelerationStructure(
+        BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
-            GeometryHandle geo,
+            vk::AccelerationStructureGeometryKHR geo,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
-        /**
-         * @param std::vector<GeometryID> geos
-         * @param const vkb::DeviceMemoryAllocator& alloc
-         */
-        explicit BottomLevelAccelerationStructure(
+        BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
-            std::vector<GeometryHandle> geos,
+            std::vector<vk::AccelerationStructureGeometryKHR> geos,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
         /**
@@ -88,6 +83,8 @@ namespace trc::rt
          * multiple acceleration structures at once.
          */
         void build();
+
+        void build(vk::CommandBuffer cmdBuf, vk::DeviceAddress scratchDataAddress);
 
         /**
          * Used to create instances from the acceleration structure
@@ -118,7 +115,6 @@ namespace trc::rt
         std::vector<ui32> primitiveCounts;
         ui64 deviceAddress;
     };
-
 
     /**
      * @brief A collection of geometry instances that can be raytraced

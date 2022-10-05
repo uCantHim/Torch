@@ -9,6 +9,7 @@
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
 
+#include "util/AccelerationStructureBuilder.h"
 #include "util/DeviceLocalDataWriter.h"
 #include "AssetRegistryModule.h"
 #include "AssetSource.h"
@@ -116,7 +117,7 @@ namespace trc
             ui32 deviceIndex;
             u_ptr<AssetSource<Geometry>> source;
             u_ptr<DeviceData> deviceData{ nullptr };
-            std::optional<RigID> rig;
+            std::optional<RigID> rig{ std::nullopt };
 
             u_ptr<rt::BottomLevelAccelerationStructure> blas{ nullptr };
 
@@ -129,6 +130,7 @@ namespace trc
         data::IdPool idPool;
         vkb::MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
+        AccelerationStructureBuilder accelerationStructureBuilder;
 
         std::mutex storageLock;
         data::IndexMap<LocalID::IndexType, u_ptr<InternalStorage>> storage;

@@ -3,7 +3,6 @@
 #include <vkb/MemoryPool.h>
 
 #include "core/Instance.h"
-#include "ray_tracing/GeometryUtils.h"
 
 
 
@@ -68,26 +67,24 @@ auto trc::rt::internal::AccelerationStructureBase::getBuildSize() const noexcept
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     const ::trc::Instance& instance,
-    GeometryHandle geo,
+    vk::AccelerationStructureGeometryKHR geo,
     const vkb::DeviceMemoryAllocator& alloc)
     :
-    BottomLevelAccelerationStructure(instance, std::vector<GeometryHandle>{ geo }, alloc)
+    BottomLevelAccelerationStructure(
+        instance,
+        std::vector<vk::AccelerationStructureGeometryKHR>{ geo },
+        alloc
+    )
 {
 }
 
 trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
     const ::trc::Instance& instance,
-    std::vector<GeometryHandle> geos,
+    std::vector<vk::AccelerationStructureGeometryKHR> geos,
     const vkb::DeviceMemoryAllocator& alloc)
     :
     instance(instance),
-    geometries([&] {
-        std::vector<vk::AccelerationStructureGeometryKHR> result;
-        for (GeometryHandle geo : geos) {
-            result.push_back(makeGeometryInfo(instance.getDevice(), geo));
-        }
-        return result;
-    }()),
+    geometries(std::move(geos)),
     primitiveCounts(
         [this]() -> std::vector<ui32>
         {
@@ -125,8 +122,6 @@ trc::rt::BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(
 
 void trc::rt::BottomLevelAccelerationStructure::build()
 {
-    auto [buildRanges, buildRangePointers] = makeBuildRanges();
-
     // Create a temporary scratch buffer
     vkb::DeviceLocalBuffer scratchBuffer{
         instance.getDevice(),
@@ -144,6 +139,8 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     // Build on the host if possible.
     if (features.accelerationStructureHostCommands)
     {
+        auto [_, buildRangePointers] = makeBuildRanges();
+
         [[maybe_unused]]
         vk::Result result = instance.getDevice()->buildAccelerationStructuresKHR(
             {}, // optional deferred operation
@@ -159,18 +156,26 @@ void trc::rt::BottomLevelAccelerationStructure::build()
     {
         instance.getDevice().executeCommands(
             vkb::QueueType::compute,
-            [&, &buildRangePointers=buildRangePointers](vk::CommandBuffer cmdBuf)
-            {
-                cmdBuf.buildAccelerationStructuresKHR(
-                    geoBuildInfo
-                        .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer }))
-                        .setDstAccelerationStructure(*accelerationStructure),
-                    buildRangePointers,
-                    instance.getDL()
-                );
+            [this, &scratchBuffer](vk::CommandBuffer cmdBuf) {
+                build(cmdBuf, instance.getDevice()->getBufferAddress({ *scratchBuffer }));
             }
         );
     }
+}
+
+void trc::rt::BottomLevelAccelerationStructure::build(
+    vk::CommandBuffer cmdBuf,
+    vk::DeviceAddress scratchDataAddress)
+{
+    auto [_, buildRangePointers] = makeBuildRanges();
+
+    cmdBuf.buildAccelerationStructuresKHR(
+        geoBuildInfo
+            .setScratchData(scratchDataAddress)
+            .setDstAccelerationStructure(*accelerationStructure),
+        buildRangePointers,
+        instance.getDL()
+    );
 }
 
 auto trc::rt::BottomLevelAccelerationStructure::getDeviceAddress() const noexcept -> ui64
