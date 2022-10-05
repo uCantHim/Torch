@@ -19,20 +19,14 @@ namespace trc::drawcomp
         ui32 drawableBufferIndex{ static_cast<ui32>(bufferIndexPool.generate()) };
 
         static inline data::IdPool bufferIndexPool;
-
-        void onDelete(auto&, auto) {
-            bufferIndexPool.free(drawableBufferIndex);
-        }
     };
 } // namespace trc::drawcomp
 
 template<>
 struct componentlib::ComponentTraits<trc::drawcomp::RayComponent>
 {
-    void onDelete(auto& storage, auto id)
+    void onDelete(auto& /*storage*/, auto /*id*/, trc::drawcomp::RayComponent ray)
     {
-        trc::drawcomp::RayComponent::bufferIndexPool.free(
-            storage.template get<trc::drawcomp::RayComponent>(id).drawableBufferIndex
-        );
+        trc::drawcomp::RayComponent::bufferIndexPool.free(ray.drawableBufferIndex);
     }
 };

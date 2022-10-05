@@ -17,12 +17,16 @@ namespace componentlib
  *
  * Create specializations for components to have functions called on
  * creation or destruction of those components. Possible callback names are
- * `onCreate` and `onDelete`. Both of them take the owning storage and the
- * object ID - `onCreate` also takes the created component.
+ * `onCreate` and `onDelete`. Both of them take the owning storage, the
+ * object ID, and the created/deleted object.
+ *
+ * Note that `onDelete`, if it is defined, takes the *already deleted*
+ * component as an *l-value*. At the time `onDelete` is called, the
+ * component does not exist in the table anymore.
  *
  * Example:
  *
- *     struct MyComponent : KeyComponent<MyComponent> {};
+ *     struct MyComponent {};
  *
  *     template<> struct ComponentTraits<MyComponent>
  *     {
@@ -31,7 +35,7 @@ namespace componentlib
  *             // ...
  *         }
  *
- *         void onDelete(MyStorage& storage, Key obj)
+ *         void onDelete(MyStorage& storage, Key obj, MyComponent comp)
  *         {
  *             MyComponent& c = storage.get<MyComponent>(obj);
  *             // ...
@@ -121,10 +125,16 @@ private:
     template<ComponentType C>
     static constexpr bool hasComponentDestructor =
         HasValidComponentTraits<C>
-        && requires (Derived& d, Key obj) { ComponentTraits<C>{}.onDelete(d, obj); };
+        && requires (Derived& d, Key obj, C c) { ComponentTraits<C>{}.onDelete(d, obj, std::move(c)); };
 
 public:
+    ComponentStorage(const ComponentStorage&) = delete;
+    ComponentStorage& operator=(const ComponentStorage&) = delete;
+
     ComponentStorage() = default;
+    ComponentStorage(ComponentStorage&&) noexcept = default;
+    ComponentStorage& operator=(ComponentStorage&&) noexcept = default;
+
     ~ComponentStorage();
 
     /**
@@ -279,25 +289,26 @@ public:
     template<ComponentType C>
     void remove(Key key)
     {
-        getTable<C>().erase(key);
+        auto comp = getTable<C>().erase(key);
+        if constexpr (hasComponentDestructor<C>) {
+            ComponentTraits<C>{}.onDelete(asDerived(), key, std::move(comp));
+        }
     }
 
     /**
      * @brief Remove and destroy a component
      */
     template<ComponentType C>
-    void tryRemove(Key key)
+    bool tryRemove(Key key)
     {
-        getTable<C>().try_erase(key);
-    }
-
-    /**
-     * @brief Remove and destroy a component
-     */
-    template<ComponentType C>
-    auto removeM(Key key) -> trc::Maybe<C>
-    {
-        return getTable<C>().erase_m(key);
+        if (auto comp = getTable<C>().try_erase(key))
+        {
+            if constexpr (hasComponentDestructor<C>) {
+                ComponentTraits<C>{}.onDelete(asDerived(), key, std::move(*comp));
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -385,7 +396,7 @@ inline auto ComponentStorage<Derived, Key>::createObject(Args&&... args) -> Key
 template<typename Derived, TableKey Key>
 inline void ComponentStorage<Derived, Key>::deleteObject(Key obj)
 {
-    for (auto func : componentDestructors.get(obj))
+    for (auto func : componentDestructors.erase(obj))
     {
         func(asDerived(), obj);
     }
@@ -511,18 +522,9 @@ inline void ComponentStorage<Derived, Key>::createDestructor(Key obj)
 {
     auto& destructors = componentDestructors.try_emplace(obj).first;
 
-    if constexpr (hasComponentDestructor<C>)
-    {
-        destructors.emplace_back([](Derived& storage, Key obj) {
-            ComponentTraits<C>{}.onDelete(storage, obj);
-            storage.template tryRemove<C>(obj);
-        });
-    }
-    else {
-        destructors.emplace_back([](Derived& storage, Key obj) {
-            storage.template tryRemove<C>(obj);
-        });
-    }
+    destructors.emplace_back([](Derived& storage, Key obj) {
+        storage.template tryRemove<C>(obj);
+    });
 }
 
 } // namespace componentlib
