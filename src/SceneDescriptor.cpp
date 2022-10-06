@@ -1,22 +1,30 @@
 #include "SceneDescriptor.h"
 
-#include "core/Window.h"
-#include "Scene.h"
-#include "ray_tracing/RayPipelineBuilder.h"
+#include "trc/DescriptorSetUtils.h"
+#include "trc/Scene.h"
+#include "trc/core/Window.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
-trc::SceneDescriptor::SceneDescriptor(const Window& window)
+trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
     :
-    window(window),
-    device(window.getDevice()),
+    instance(instance),
+    device(instance.getDevice()),
     lightBuffer(
-        window.getDevice(),
+        instance.getDevice(),
         util::sizeof_pad_16_v<LightData> * 128,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
-    lightBufferMap(lightBuffer.map())
+    lightBufferMap(lightBuffer.map()),
+    drawableBuf(
+        instance.getDevice(),
+        200 * sizeof(DrawableComponentScene::DrawableRayData),
+        vk::BufferUsageFlagBits::eStorageBuffer,
+        vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
+    ),
+    drawableBufferMap(drawableBuf.map<DrawableComponentScene::DrawableRayData*>())
 {
     createDescriptors();
     writeDescriptors();
@@ -33,7 +41,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
 
         // Create new buffer
         lightBuffer = vkb::Buffer(
-            window.getDevice(),
+            device,
             lights.getRequiredLightDataSize(),
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
@@ -50,6 +58,13 @@ void trc::SceneDescriptor::update(const Scene& scene)
 
     // Update light data
     lights.writeLightData(lightBufferMap);
+
+    // Update ray scene data
+    const auto& drawData = scene.getRaySceneData();
+    memcpy(drawableBufferMap,
+           drawData.data(),
+           drawData.size() * sizeof(DrawableComponentScene::DrawableRayData));
+    drawableBuf.flush();
 }
 
 auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProviderInterface&
@@ -61,28 +76,20 @@ void trc::SceneDescriptor::createDescriptors()
 {
     vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment
                                         | vk::ShaderStageFlagBits::eCompute;
-    if (window.getInstance().hasRayTracing()) {
+    if (instance.hasRayTracing()) {
         shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
     }
 
     // Layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
-        // Light buffer
-        { 0, vk::DescriptorType::eStorageBuffer, 1, shaderStages },
-    };
-    std::vector<vk::DescriptorBindingFlags> flags{
-        vk::DescriptorBindingFlagBits::eUpdateAfterBind,
-    };
-
-    vk::StructureChain chain{
-        vk::DescriptorSetLayoutCreateInfo(
-            vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool, layoutBindings
-        ),
-        vk::DescriptorSetLayoutBindingFlagsCreateInfo(flags),
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(
-        chain.get<vk::DescriptorSetLayoutCreateInfo>()
-    );
+    descLayout = buildDescriptorSetLayout()
+        .addFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool)
+        // Shadow data buffer
+        .addBinding(vk::DescriptorType::eStorageBuffer, 1, shaderStages,
+                    vk::DescriptorBindingFlagBits::eUpdateAfterBind)
+        // Ray tracing related drawable data buffer
+        .addBinding(vk::DescriptorType::eStorageBuffer, 1, shaderStages,
+                    vk::DescriptorBindingFlagBits::eUpdateAfterBind)
+        .build(device);
 
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
@@ -103,9 +110,11 @@ void trc::SceneDescriptor::createDescriptors()
 void trc::SceneDescriptor::writeDescriptors()
 {
     vk::DescriptorBufferInfo lightBufferInfo(*lightBuffer, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo drawableBufferInfo(*drawableBuf, 0, VK_WHOLE_SIZE);
 
     std::vector<vk::WriteDescriptorSet> writes = {
         { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },
+        { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &drawableBufferInfo },
     };
     device->updateDescriptorSets(writes, {});
 }

@@ -16,7 +16,7 @@ struct DrawableData
     uint mat;
 };
 
-layout (set = 0, binding = 1, std430) restrict readonly buffer DrawableDataBuffer
+layout (set = 3, binding = 1, std430) restrict readonly buffer DrawableDataBuffer
 {
     DrawableData drawables[];
 };

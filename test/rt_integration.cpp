@@ -10,6 +10,7 @@
 #include <trc/Torch.h>
 #include <trc/TorchResources.h>
 #include <trc/ray_tracing/RayTracing.h>
+#include <trc/ray_tracing/RaygenDescriptor.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -115,45 +116,6 @@ void run()
     trc::rt::TLAS tlas(instance, numInstances);
     tlas.build(*instanceBuf, numInstances);
 
-    auto tlasDescLayout = trc::buildDescriptorSetLayout()
-        .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1,
-                    vk::ShaderStageFlagBits::eRaygenKHR)
-        .addBinding(vk::DescriptorType::eStorageBuffer, 1, trc::rt::ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .build(instance.getDevice());
-
-    std::vector<vk::DescriptorPoolSize> poolSizes{
-        vk::DescriptorPoolSize(vk::DescriptorType::eAccelerationStructureKHR, 1),
-        vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1),
-    };
-    auto descPool = instance.getDevice()->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        1,
-        poolSizes
-    ));
-
-    auto tlasDescSet = std::move(instance.getDevice()->allocateDescriptorSetsUnique(
-        { *descPool, 1, &*tlasDescLayout }
-    )[0]);
-
-    const auto tlasHandle = *tlas;
-    vk::StructureChain asWriteChain{
-        vk::WriteDescriptorSet(
-            *tlasDescSet, 0, 0, 1,
-            vk::DescriptorType::eAccelerationStructureKHR,
-            {}, {}, {}
-        ),
-        vk::WriteDescriptorSetAccelerationStructureKHR(tlasHandle)
-    };
-    vk::DescriptorBufferInfo bufferInfo(*drawableBuf, 0, VK_WHOLE_SIZE);
-    vk::WriteDescriptorSet bufferWrite(
-        *tlasDescSet, 1, 0, vk::DescriptorType::eStorageBuffer,
-        {}, bufferInfo
-    );
-    instance.getDevice()->updateDescriptorSets(
-        { asWriteChain.get<vk::WriteDescriptorSet>(), bufferWrite },
-        {}
-    );
-
 
     // --- Output Images --- //
 
@@ -165,6 +127,21 @@ void run()
                 { window.getSize(), vk::ImageUsageFlagBits::eTransferSrc }
             );
         }
+    };
+
+    trc::rt::RaygenDescriptorPool raygenDescPool(instance, window.getFrameCount());
+    vkb::FrameSpecific<vk::UniqueDescriptorSet> tlasDescSet{
+        window,
+        [&](ui32 i) {
+            return raygenDescPool.allocateDescriptorSet(
+                tlas,
+                rayBuffer.getAt(i).getImageView(trc::rt::RayBuffer::Image::eReflections)
+            );
+        }
+    };
+    trc::FrameSpecificDescriptorProvider tlasDescProvider{
+        raygenDescPool.getDescriptorSetLayout(),
+        tlasDescSet
     };
 
 
@@ -197,7 +174,7 @@ void run()
     constexpr ui32 maxRecursionDepth{ 16 };
     auto rayPipelineLayout = trc::makePipelineLayout(device,
         {
-            *tlasDescLayout,
+            tlasDescProvider.getDescriptorSetLayout(),
             compositing.getInputImageDescriptor().getDescriptorSetLayout(),
             assets.getDeviceRegistry().getDescriptorSetProvider().getDescriptorSetLayout(),
             torch->getRenderConfig().getSceneDescriptorProvider().getDescriptorSetLayout(),
@@ -217,7 +194,6 @@ void run()
         .addTrianglesHitGroup("/ray_tracing/reflect.rchit", "/ray_tracing/anyhit.rahit")
         .build(maxRecursionDepth, rayPipelineLayout);
 
-    trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
     auto& rayLayout = rayPipeline.getLayout();
     rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
     rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());

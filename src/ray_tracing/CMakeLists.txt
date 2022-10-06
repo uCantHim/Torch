@@ -3,6 +3,7 @@ target_sources(
         AccelerationStructure.cpp
         FinalCompositingPass.cpp
         GeometryUtils.cpp
+        RaygenDescriptor.cpp
         RayBuffer.cpp
         RayPipelineBuilder.cpp
         RayTracingPass.cpp

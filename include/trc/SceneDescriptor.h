@@ -4,10 +4,10 @@
 
 #include "Types.h"
 #include "core/DescriptorProvider.h"
+#include "drawable/DrawableComponentScene.h"
 
 namespace trc
 {
-    class Window;
     class Instance;
     class Scene;
 
@@ -17,7 +17,7 @@ namespace trc
     class SceneDescriptor
     {
     public:
-        explicit SceneDescriptor(const Window& window);
+        explicit SceneDescriptor(const Instance& instance);
 
         void update(const Scene& scene);
 
@@ -44,7 +44,7 @@ namespace trc
         void createDescriptors();
         void writeDescriptors();
 
-        const Window& window;
+        const Instance& instance;
         const vkb::Device& device;
 
         vk::UniqueDescriptorSetLayout descLayout;
@@ -54,5 +54,7 @@ namespace trc
 
         vkb::Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping
+        vkb::Buffer drawableBuf;
+        DrawableComponentScene::DrawableRayData* drawableBufferMap;
     };
 } // namespace trc

@@ -5,12 +5,12 @@
 #include "material.glsl"
 
 layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
+layout (set = 0, binding = 1, rgba8) writeonly uniform image2D outputImage;
+
 layout (set = 1, binding = 0, rgba16f) uniform restrict readonly image2D gBufferNormal;
 layout (set = 1, binding = 1, rgba8)   uniform restrict readonly image2D gBufferAlbedo;
 layout (set = 1, binding = 2, r32ui)   uniform restrict readonly uimage2D gBufferMaterial;
 layout (set = 1, binding = 3) uniform sampler2D gBufferDepth;
-
-layout (set = 1, binding = 4, rgba8) writeonly uniform image2D outputImage;
 
 layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
 {
