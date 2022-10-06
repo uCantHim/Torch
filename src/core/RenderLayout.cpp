@@ -106,7 +106,6 @@ auto trc::RenderLayout::recordStage(
         // Don't record anything if not necessary
         if (stage.signalEvents.empty()) return {};
 
-        cmdBuf.reset({});
         cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
         for (auto event : stage.signalEvents) {
             cmdBuf.setEvent(event, vk::PipelineStageFlagBits::eAllCommands);
@@ -116,7 +115,6 @@ auto trc::RenderLayout::recordStage(
         return cmdBuf;
     }
 
-    cmdBuf.reset({});
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     // Wait for event dependencies

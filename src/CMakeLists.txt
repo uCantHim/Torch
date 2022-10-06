@@ -23,6 +23,7 @@ target_sources(
         ShaderLoader.cpp
         ShaderPath.cpp
         ShadowPool.cpp
+        TopLevelAccelerationStructureBuildPass.cpp
         Torch.cpp
         TorchRenderConfig.cpp
         Transformation.cpp

@@ -242,6 +242,11 @@ trc::rt::TopLevelAccelerationStructure::TopLevelAccelerationStructure(
     );
 }
 
+auto trc::rt::TopLevelAccelerationStructure::getMaxInstances() const -> ui32
+{
+    return maxInstances;
+}
+
 void trc::rt::TopLevelAccelerationStructure::build(
     vk::Buffer instanceBuffer,
     const ui32 numInstances,
@@ -256,27 +261,14 @@ void trc::rt::TopLevelAccelerationStructure::build(
         vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
-    // Use new instance buffer
-    geometry.geometry.instances.data = instance.getDevice()->getBufferAddress(instanceBuffer);
-
-    vk::AccelerationStructureBuildRangeInfoKHR buildRange{
-        glm::min(numInstances, maxInstances),
-        offset,
-        0, 0
-    };
-
     instance.getDevice().executeCommands(
         vkb::QueueType::compute,
         [&](vk::CommandBuffer cmdBuf)
         {
-            cmdBuf.buildAccelerationStructuresKHR(
-                geoBuildInfo
-                    .setGeometries(geometry)
-                    .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
-                    .setDstAccelerationStructure(*accelerationStructure)
-                    .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
-                { &buildRange },
-                instance.getDL()
+            build(
+                cmdBuf,
+                instance.getDevice()->getBufferAddress({ *scratchBuffer }),
+                instanceBuffer, numInstances, offset
             );
         }
     );
@@ -284,21 +276,44 @@ void trc::rt::TopLevelAccelerationStructure::build(
 
 void trc::rt::TopLevelAccelerationStructure::build(
     vk::CommandBuffer cmdBuf,
+    vk::DeviceAddress scratchMemoryAddress,
+    vk::Buffer instanceBuffer,
+    ui32 numInstances,
+    ui32 offset)
+{
+    updateOrBuild(
+        cmdBuf,
+        vk::BuildAccelerationStructureModeKHR::eBuild,
+        scratchMemoryAddress,
+        instanceBuffer, numInstances, offset
+    );
+}
+
+void trc::rt::TopLevelAccelerationStructure::update(
+    vk::CommandBuffer cmdBuf,
+    vk::DeviceAddress scratchMemoryAddress,
+    vk::Buffer instanceBuffer,
+    ui32 numInstances,
+    ui32 offset)
+{
+    updateOrBuild(
+        cmdBuf,
+        vk::BuildAccelerationStructureModeKHR::eUpdate,
+        scratchMemoryAddress,
+        instanceBuffer, numInstances, offset
+    );
+}
+
+void trc::rt::TopLevelAccelerationStructure::updateOrBuild(
+    vk::CommandBuffer cmdBuf,
+    vk::BuildAccelerationStructureModeKHR mode,
+    vk::DeviceAddress scratchMemoryAddress,
     vk::Buffer instanceBuffer,
     ui32 numInstances,
     ui32 offset)
 {
     // Use new instance buffer
     geometry.geometry.instances.data = instance.getDevice()->getBufferAddress(instanceBuffer);
-
-    // Create temporary scratch buffer
-    vkb::DeviceLocalBuffer scratchBuffer{
-        instance.getDevice(),
-        buildSizes.buildScratchSize,
-        nullptr,
-        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
-    };
 
     vk::AccelerationStructureBuildRangeInfoKHR buildRange{
         glm::min(numInstances, maxInstances),
@@ -308,10 +323,13 @@ void trc::rt::TopLevelAccelerationStructure::build(
 
     cmdBuf.buildAccelerationStructuresKHR(
         geoBuildInfo
+            .setFlags(vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace
+                      | vk::BuildAccelerationStructureFlagBitsKHR::eAllowUpdate)
             .setGeometries(geometry)
-            .setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+            .setMode(mode)
+            .setSrcAccelerationStructure(*accelerationStructure)
             .setDstAccelerationStructure(*accelerationStructure)
-            .setScratchData(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
+            .setScratchData(scratchMemoryAddress),
         { &buildRange },
         instance.getDL()
     );

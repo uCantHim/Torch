@@ -1,10 +1,12 @@
 #include <future>
 #include <iostream>
 
+#include <vkb/Barriers.h>
 #include <vkb/ImageUtils.h>
 #include <trc_util/Timer.h>
 #include <trc/DescriptorSetUtils.h>
 #include <trc/PipelineDefinitions.h>
+#include <trc/TopLevelAccelerationStructureBuildPass.h>
 #include <trc/Torch.h>
 #include <trc/TorchResources.h>
 #include <trc/ray_tracing/RayTracing.h>
@@ -185,6 +187,10 @@ void run()
     );
     layout.addPass(trc::rt::finalCompositingStage, compositing);
 
+    trc::TopLevelAccelerationStructureBuildPass tlasBuildPass(instance, tlas);
+    tlasBuildPass.setScene(*scene);
+    layout.addPass(trc::rt::finalCompositingStage, tlasBuildPass);
+
 
     // --- Ray Pipeline --- //
 
@@ -212,15 +218,6 @@ void run()
         .build(maxRecursionDepth, rayPipelineLayout);
 
     trc::DescriptorProvider tlasDescProvider{ *tlasDescLayout, *tlasDescSet };
-    trc::FrameSpecificDescriptorProvider reflectionImageProvider(
-        rayBuffer->getImageDescriptorLayout(),
-        {
-            window,
-            [&](ui32 i) {
-                return rayBuffer.getAt(i).getImageDescriptorSet(trc::rt::RayBuffer::eReflections);
-            }
-        }
-    );
     auto& rayLayout = rayPipeline.getLayout();
     rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
     rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
@@ -241,20 +238,16 @@ void run()
             vk::Image image = *rayBuffer->getImage(trc::rt::RayBuffer::eReflections);
 
             // Bring image into general layout
-            cmdBuf.pipelineBarrier(
+            vkb::imageMemoryBarrier(
+                cmdBuf,
+                image,
+                vk::ImageLayout::eUndefined,
+                vk::ImageLayout::eGeneral,
                 vk::PipelineStageFlagBits::eAllCommands,
                 vk::PipelineStageFlagBits::eRayTracingShaderKHR,
-                vk::DependencyFlagBits::eByRegion,
-                {}, {},
-                vk::ImageMemoryBarrier(
-                    {},
-                    vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-                    vk::ImageLayout::eUndefined,
-                    vk::ImageLayout::eGeneral,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-                )
+                vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
+                vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
             );
 
             rayPipeline.bind(cmdBuf);
@@ -272,6 +265,18 @@ void run()
                 window.getImageExtent().height,
                 1,
                 instance.getDL()
+            );
+
+            vkb::imageMemoryBarrier(
+                cmdBuf,
+                image,
+                vk::ImageLayout::eGeneral,
+                vk::ImageLayout::eGeneral,
+                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+                vk::PipelineStageFlagBits::eComputeShader,
+                vk::AccessFlagBits::eShaderWrite,
+                vk::AccessFlagBits::eShaderRead,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
             );
         }
     );
@@ -302,11 +307,6 @@ void run()
         sphereNode.rotateY(time / 1000.0f * 0.5f);
 
         scene->update(time);
-
-        auto data = instanceBuf.map<trc::rt::GeometryInstance*>();
-        const size_t numInstances = scene->writeTlasInstances(data);
-        instanceBuf.unmap();
-        tlas.build(*instanceBuf, numInstances);
 
         window.drawFrame(torch->makeDrawConfig(*scene, camera));
 

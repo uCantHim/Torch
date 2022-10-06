@@ -54,7 +54,7 @@ void main()
     vec3 rayOrigin = worldPos;
     vec3 cameraRay = normalize(worldPos - cameraPos.xyz);
     vec3 rayDirection = reflect(cameraRay, imageLoad(gBufferNormal, texelCoord).xyz);
-    float minT = 0.001;
+    float minT = 0.01;
     float maxT = 10000.0;
 
     traceRayEXT(

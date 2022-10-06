@@ -84,7 +84,7 @@ namespace trc::rt
          */
         void build();
 
-        void build(vk::CommandBuffer cmdBuf, vk::DeviceAddress scratchDataAddress);
+        void build(vk::CommandBuffer cmdBuf, vk::DeviceAddress scratchMemoryAddress);
 
         /**
          * Used to create instances from the acceleration structure
@@ -137,6 +137,8 @@ namespace trc::rt
             ui32 maxInstances,
             const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
 
+        auto getMaxInstances() const -> ui32;
+
         /**
          * @brief Build the TLAS from a buffer of GeometryInstance structs
          *
@@ -158,11 +160,36 @@ namespace trc::rt
          * @param ui32 offset Byte offset into instanceBuffer.
          */
         void build(vk::CommandBuffer cmdBuf,
+                   vk::DeviceAddress scratchMemoryAddress,
                    vk::Buffer instanceBuffer,
                    ui32 numInstances,
                    ui32 offset = 0);
 
+        /**
+         * @brief Update the TLAS from a buffer of GeometryInstance structs
+         *
+         * @param vk::Buffer instanceBuffer Buffer that contains instance
+         *        data formatted as vk::AccelerationStructureInstanceKHR
+         *        dictates.
+         * @param ui32 numInstance The number of instances to read from
+         *        instanceBuffer. Will be capped at the TLAS's maxInstances
+         *        number.
+         * @param ui32 offset Byte offset into instanceBuffer.
+         */
+        void update(vk::CommandBuffer cmdBuf,
+                    vk::DeviceAddress scratchMemoryAddress,
+                    vk::Buffer instanceBuffer,
+                    ui32 numInstances,
+                    ui32 offset = 0);
+
     private:
+        void updateOrBuild(vk::CommandBuffer cmdBuf,
+                           vk::BuildAccelerationStructureModeKHR mode,
+                           vk::DeviceAddress scratchMemoryAddress,
+                           vk::Buffer instanceBuffer,
+                           ui32 numInstances,
+                           ui32 offset);
+
         const Instance& instance;
 
         ui32 maxInstances;
