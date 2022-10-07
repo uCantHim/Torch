@@ -17,13 +17,13 @@ layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
     Material materials[];
 };
 
-layout (location = 0) rayPayloadEXT vec3 color;
-
-layout (push_constant) uniform PushConstants
+layout (set = 5, binding = 0) restrict readonly uniform CameraData
 {
     mat4 viewMatrix;
     mat4 projMatrix;
 };
+
+layout (location = 0) rayPayloadEXT vec3 color;
 
 vec3 worldPosFromDepth(vec2 normalPixelCoord, float depth)
 {
@@ -43,7 +43,9 @@ void main()
     const vec2 normalPixelCoord = (vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy));
 
     uint mat = imageLoad(gBufferMaterial, texelCoord).r;
-    if (materials[mat].reflectivity <= 0.0f) {
+    if (materials[mat].reflectivity <= 0.0f)
+    {
+        imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(0.0f));
         return;
     }
 

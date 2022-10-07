@@ -18,13 +18,13 @@ trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     lightBufferMap(lightBuffer.map()),
-    drawableBuf(
+    drawableDataBuf(
         instance.getDevice(),
         200 * sizeof(DrawableComponentScene::DrawableRayData),
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
     ),
-    drawableBufferMap(drawableBuf.map<DrawableComponentScene::DrawableRayData*>())
+    drawableBufferMap(drawableDataBuf.map<DrawableComponentScene::DrawableRayData*>())
 {
     createDescriptors();
     writeDescriptors();
@@ -61,10 +61,27 @@ void trc::SceneDescriptor::update(const Scene& scene)
 
     // Update ray scene data
     const auto& drawData = scene.getRaySceneData();
-    memcpy(drawableBufferMap,
-           drawData.data(),
-           drawData.size() * sizeof(DrawableComponentScene::DrawableRayData));
-    drawableBuf.flush();
+    const size_t drawDataSize = drawData.size() * sizeof(DrawableComponentScene::DrawableRayData);
+    if (drawDataSize > drawableDataBuf.size())
+    {
+        drawableDataBuf.unmap();
+        drawableDataBuf = vkb::Buffer(
+            instance.getDevice(),
+            drawableDataBuf.size() * 2,
+            vk::BufferUsageFlagBits::eStorageBuffer,
+            vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
+        );
+        drawableBufferMap = drawableDataBuf.map<DrawableComponentScene::DrawableRayData*>();
+
+        vk::DescriptorBufferInfo bufferInfo(*drawableDataBuf, 0, VK_WHOLE_SIZE);
+        std::vector<vk::WriteDescriptorSet> writes = {
+            { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &bufferInfo },
+        };
+        device->updateDescriptorSets(writes, {});
+    }
+
+    memcpy(drawableBufferMap, drawData.data(), drawDataSize);
+    drawableDataBuf.flush();
 }
 
 auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProviderInterface&
@@ -110,7 +127,7 @@ void trc::SceneDescriptor::createDescriptors()
 void trc::SceneDescriptor::writeDescriptors()
 {
     vk::DescriptorBufferInfo lightBufferInfo(*lightBuffer, 0, VK_WHOLE_SIZE);
-    vk::DescriptorBufferInfo drawableBufferInfo(*drawableBuf, 0, VK_WHOLE_SIZE);
+    vk::DescriptorBufferInfo drawableBufferInfo(*drawableDataBuf, 0, VK_WHOLE_SIZE);
 
     std::vector<vk::WriteDescriptorSet> writes = {
         { *descSet, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &lightBufferInfo },

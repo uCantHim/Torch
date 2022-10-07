@@ -8,6 +8,7 @@
 
 namespace trc {
     class AssetRegistry;
+    class RenderTarget;
 }
 
 namespace trc::rt
@@ -16,7 +17,6 @@ namespace trc::rt
     {
         vkb::FrameSpecific<GBuffer>* gBuffer{ nullptr };
         vkb::FrameSpecific<RayBuffer>* rayBuffer{ nullptr };
-        AssetRegistry* assetRegistry{ nullptr };
     };
 
     /**
@@ -30,7 +30,9 @@ namespace trc::rt
         /**
          * @brief
          */
-        FinalCompositingPass(const Window& window, const FinalCompositingPassCreateInfo& info);
+        FinalCompositingPass(const Instance& instance,
+                             const RenderTarget& output,
+                             const FinalCompositingPassCreateInfo& info);
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer cmdBuf) override;
@@ -46,7 +48,7 @@ namespace trc::rt
     private:
         static constexpr uvec3 COMPUTE_LOCAL_SIZE{ 10, 10, 1 };
 
-        const vkb::Swapchain& swapchain;
+        const RenderTarget& renderTarget;
         const uvec3 computeGroupSize;
 
         vk::UniqueDescriptorPool pool;

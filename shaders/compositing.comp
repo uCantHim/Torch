@@ -12,11 +12,6 @@ layout (set = 0, binding = 4, rgba8) readonly uniform image2D rayBufferReflectio
 
 layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
 
-layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
-{
-    Material materials[];
-};
-
 void main()
 {
     const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
@@ -24,14 +19,12 @@ void main()
     const vec4 rasterColor = imageLoad(outputImage, pixelCoords);
     vec4 color = rasterColor;
 
-    const uint mat = imageLoad(gBufferMaterial, pixelCoords).r;
-
-    // Apply reflections
-    if (materials[mat].reflectivity > 0.0f)
+    // The reflection image stores the reflecting material's
+    // reflectivity in the alpha channel
+    vec4 reflectColor = imageLoad(rayBufferReflection, pixelCoords);
+    if (reflectColor.a > 0.0f)
     {
-        vec4 reflectColor = imageLoad(rayBufferReflection, pixelCoords);
-        // Only mix colors if an object has been reflected (don't reflect the sky)
-        color = mix(rasterColor, reflectColor, materials[mat].reflectivity * reflectColor.a);
+        color = mix(rasterColor, reflectColor, reflectColor.a);
     }
 
     imageStore(outputImage, pixelCoords, color);

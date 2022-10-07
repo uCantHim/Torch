@@ -1,7 +1,7 @@
 #include "RenderDataDescriptor.h"
 
-#include "core/Window.h"
 #include "trc_util/Util.h"
+#include "trc/core/Window.h"
 
 
 
@@ -80,11 +80,15 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
         {
             0, vk::DescriptorType::eUniformBufferDynamic, 1,
-            vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute
+            vk::ShaderStageFlagBits::eAllGraphics
+                | vk::ShaderStageFlagBits::eCompute
+                | vk::ShaderStageFlagBits::eRaygenKHR
         },
         {
             1, vk::DescriptorType::eUniformBufferDynamic, 1,
-            vk::ShaderStageFlagBits::eAllGraphics | vk::ShaderStageFlagBits::eCompute
+            vk::ShaderStageFlagBits::eAllGraphics
+                | vk::ShaderStageFlagBits::eCompute
+                | vk::ShaderStageFlagBits::eRaygenKHR
         },
     };
     descLayout = device->createDescriptorSetLayoutUnique(

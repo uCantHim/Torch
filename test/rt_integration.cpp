@@ -70,11 +70,12 @@ void run()
 
     tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
 
+    constexpr float kFloorReflectivity{ 0.2f };
     trc::Drawable floor({
         assets.create(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
         assets.create(trc::MaterialData{
             .specularKoefficient=vec4(0.2f),
-            .reflectivity=0.45f,
+            .reflectivity=kFloorReflectivity,
             .albedoTexture=assets.create(
                 trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
             ),
@@ -94,13 +95,7 @@ void run()
     shadow.setProjectionMatrix(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f));
 
 
-    // --- Descriptor sets --- //
-
-    vkb::DeviceLocalBuffer drawableBuf(
-        device, scene->getRaySceneData(),
-        vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
-    );
+    // --- Create the TLAS --- //
 
     vkb::Buffer instanceBuf(
         device, 500 * sizeof(trc::rt::GeometryInstance),
@@ -117,7 +112,16 @@ void run()
     tlas.build(*instanceBuf, numInstances);
 
 
-    // --- Output Images --- //
+    // --- TLAS Update Pass --- //
+
+    auto& renderLayout = torch->getRenderConfig().getLayout();
+
+    trc::TopLevelAccelerationStructureBuildPass tlasBuildPass(instance, tlas);
+    tlasBuildPass.setScene(*scene);
+    renderLayout.addPass(trc::resourceUpdateStage, tlasBuildPass);
+
+
+    // --- Ray Tracing Pass --- //
 
     vkb::FrameSpecific<trc::rt::RayBuffer> rayBuffer{
         window,
@@ -129,134 +133,17 @@ void run()
         }
     };
 
-    trc::rt::RaygenDescriptorPool raygenDescPool(instance, window.getFrameCount());
-    vkb::FrameSpecific<vk::UniqueDescriptorSet> tlasDescSet{
-        window,
-        [&](ui32 i) {
-            return raygenDescPool.allocateDescriptorSet(
-                tlas,
-                rayBuffer.getAt(i).getImageView(trc::rt::RayBuffer::Image::eReflections)
-            );
-        }
-    };
-    trc::FrameSpecificDescriptorProvider tlasDescProvider{
-        raygenDescPool.getDescriptorSetLayout(),
-        tlasDescSet
-    };
-
-
-    // --- Render Pass --- //
-
-    auto& layout = torch->getRenderConfig().getLayout();
-
-    // Add the pass that renders reflections to an offscreen image
-    trc::RayTracingPass rayPass;
-    layout.addPass(trc::rt::rayTracingRenderStage, rayPass);
-
-    // Add the final compositing pass that merges rasterization and ray tracing results
-    trc::rt::FinalCompositingPass compositing(
-        window,
-        trc::rt::FinalCompositingPassCreateInfo{
-            .gBuffer = &torch->getRenderConfig().getGBuffer(),
-            .rayBuffer = &rayBuffer,
-            .assetRegistry = &assets.getDeviceRegistry()
-        }
+    trc::RayTracingPass rayPass(
+        instance,
+        torch->getRenderConfig(),
+        tlas,
+        std::move(rayBuffer),
+        torch->getRenderTarget()
     );
-    layout.addPass(trc::rt::finalCompositingStage, compositing);
-
-    trc::TopLevelAccelerationStructureBuildPass tlasBuildPass(instance, tlas);
-    tlasBuildPass.setScene(*scene);
-    layout.addPass(trc::rt::finalCompositingStage, tlasBuildPass);
+    renderLayout.addPass(trc::rt::rayTracingRenderStage, rayPass);
 
 
-    // --- Ray Pipeline --- //
-
-    constexpr ui32 maxRecursionDepth{ 16 };
-    auto rayPipelineLayout = trc::makePipelineLayout(device,
-        {
-            tlasDescProvider.getDescriptorSetLayout(),
-            compositing.getInputImageDescriptor().getDescriptorSetLayout(),
-            assets.getDeviceRegistry().getDescriptorSetProvider().getDescriptorSetLayout(),
-            torch->getRenderConfig().getSceneDescriptorProvider().getDescriptorSetLayout(),
-            torch->getShadowPool().getProvider().getDescriptorSetLayout(),
-        },
-        {
-            // View and projection matrices
-            { vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 },
-        }
-    );
-    auto [rayPipeline, shaderBindingTable] =
-        trc::rt::buildRayTracingPipeline(instance)
-        .addRaygenGroup("/ray_tracing/reflect.rgen")
-        .beginTableEntry()
-            .addMissGroup("/ray_tracing/blue.rmiss")
-        .endTableEntry()
-        .addTrianglesHitGroup("/ray_tracing/reflect.rchit", "/ray_tracing/anyhit.rahit")
-        .build(maxRecursionDepth, rayPipelineLayout);
-
-    auto& rayLayout = rayPipeline.getLayout();
-    rayLayout.addStaticDescriptorSet(0, tlasDescProvider);
-    rayLayout.addStaticDescriptorSet(1, compositing.getInputImageDescriptor());
-    rayLayout.addStaticDescriptorSet(2, assets.getDeviceRegistry().getDescriptorSetProvider());
-    rayLayout.addStaticDescriptorSet(3, torch->getRenderConfig().getSceneDescriptorProvider());
-    rayLayout.addStaticDescriptorSet(4, torch->getShadowPool().getProvider());
-
-
-    // --- Draw function --- //
-
-    rayPass.addRayFunction(
-        [
-            &,
-            &rayPipeline=rayPipeline,
-            &shaderBindingTable=shaderBindingTable
-        ](vk::CommandBuffer cmdBuf)
-        {
-            vk::Image image = *rayBuffer->getImage(trc::rt::RayBuffer::eReflections);
-
-            // Bring image into general layout
-            vkb::imageMemoryBarrier(
-                cmdBuf,
-                image,
-                vk::ImageLayout::eUndefined,
-                vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eAllCommands,
-                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
-                vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
-                vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
-
-            rayPipeline.bind(cmdBuf);
-            cmdBuf.pushConstants<mat4>(
-                *rayPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
-                0, { camera.getViewMatrix(), camera.getProjectionMatrix() }
-            );
-
-            cmdBuf.traceRaysKHR(
-                shaderBindingTable.getEntryAddress(0),
-                shaderBindingTable.getEntryAddress(1),
-                shaderBindingTable.getEntryAddress(2),
-                {},
-                window.getImageExtent().width,
-                window.getImageExtent().height,
-                1,
-                instance.getDL()
-            );
-
-            vkb::imageMemoryBarrier(
-                cmdBuf,
-                image,
-                vk::ImageLayout::eGeneral,
-                vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eShaderWrite,
-                vk::AccessFlagBits::eShaderRead,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
-        }
-    );
-
+    // --- Run the Application --- //
 
     vkb::on<vkb::KeyPressEvent>([&](auto& e) {
         static bool count{ false };
@@ -265,7 +152,7 @@ void run()
             assets.getModule<trc::Material>().modify(
                 floor.getMaterial().getDeviceID(),
                 [](auto& mat) {
-                    mat.reflectivity = 0.3f * float(count);
+                    mat.reflectivity = kFloorReflectivity * float(count);
                 }
             );
             count = !count;

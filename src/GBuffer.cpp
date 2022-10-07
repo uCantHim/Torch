@@ -206,24 +206,26 @@ trc::GBufferDescriptor::GBufferDescriptor(
             frameClock.getFrameCount(), poolSizes)
     );
 
+    auto shaderStages = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eRaygenKHR;
+
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
         // G-Buffer images
-        { 0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-        { 1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-        { 2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
-        { 3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute },
+        { 0, vk::DescriptorType::eStorageImage, 1, shaderStages },
+        { 1, vk::DescriptorType::eStorageImage, 1, shaderStages },
+        { 2, vk::DescriptorType::eStorageImage, 1, shaderStages },
+        { 3, vk::DescriptorType::eCombinedImageSampler, 1, shaderStages },
         // Fragment list head pointer image
         { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment
-                                                   | vk::ShaderStageFlagBits::eCompute },
+                                                   | shaderStages },
         // Fragment list allocator
         { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
-                                                    | vk::ShaderStageFlagBits::eCompute },
+                                                    | shaderStages },
         // Fragment list
         { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
-                                                    | vk::ShaderStageFlagBits::eCompute },
+                                                    | shaderStages },
         // Swapchain image
-        { 7, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute },
+        { 7, vk::DescriptorType::eStorageImage, 1, shaderStages },
     };
     descLayout = device->createDescriptorSetLayoutUnique(
         vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)

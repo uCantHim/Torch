@@ -59,12 +59,10 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
 
     // Ray tracing stages
     graph.after(finalLightingRenderStage, rt::rayTracingRenderStage);
-    graph.after(rt::rayTracingRenderStage, rt::finalCompositingStage);
     graph.require(rt::rayTracingRenderStage, resourceUpdateStage);
-    graph.require(rt::finalCompositingStage, finalLightingRenderStage);
-    graph.require(rt::finalCompositingStage, rt::rayTracingRenderStage);
+    graph.require(rt::rayTracingRenderStage, finalLightingRenderStage);
 
-    graph.after(rt::finalCompositingStage, guiRenderStage);
+    graph.after(rt::rayTracingRenderStage, guiRenderStage);
 #ifdef TRC_USE_IMGUI
     graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
 #endif

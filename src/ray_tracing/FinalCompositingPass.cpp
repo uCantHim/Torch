@@ -4,27 +4,29 @@
 #include <vkb/Barriers.h>
 
 #include "trc_util/Util.h"
-#include "trc/core/ComputePipelineBuilder.h"
 #include "trc/DescriptorSetUtils.h"
-#include "trc/assets/AssetRegistry.h"
-#include "trc/ray_tracing/RayPipelineBuilder.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/RayShaders.h"
+#include "trc/assets/AssetRegistry.h"
+#include "trc/core/ComputePipelineBuilder.h"
+#include "trc/core/RenderTarget.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
 trc::rt::FinalCompositingPass::FinalCompositingPass(
-    const Window& window,
+    const Instance& instance,
+    const RenderTarget& target,
     const FinalCompositingPassCreateInfo& info)
     :
     RenderPass({}, NUM_SUBPASSES),
-    swapchain(window.getSwapchain()),
+    renderTarget(target),
     computeGroupSize(uvec3(
-        glm::ceil(vec2(window.getSwapchain().getSize()) / vec2(COMPUTE_LOCAL_SIZE)),
+        glm::ceil(vec2(target.getSize()) / vec2(COMPUTE_LOCAL_SIZE)),
         1
     )),
     pool([&] {
-        const ui32 frameCount{ window.getSwapchain().getFrameCount() };
+        const ui32 frameCount{ target.getFrameClock().getFrameCount() };
         std::vector<vk::DescriptorPoolSize> poolSizes{
             // GBuffer images
             { vk::DescriptorType::eStorageImage, GBuffer::NUM_IMAGES * frameCount },
@@ -33,7 +35,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
             // Swapchain output image
             { vk::DescriptorType::eStorageImage, frameCount },
         };
-        return window.getDevice()->createDescriptorPoolUnique({
+        return instance.getDevice()->createDescriptorPoolUnique({
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             // Two distinct sets: one for inputs, one for output
             2 * frameCount,
@@ -54,49 +56,46 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         // Ray-Buffer bindings
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .build(window.getDevice())
+        .build(instance.getDevice())
     ),
     outputLayout(buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute)
-        .build(window.getDevice())
+        .build(instance.getDevice())
     ),
 
-    inputSets(window.getSwapchain()),
-    outputSets(window.getSwapchain()),
-    inputSetProvider({}, { window.getSwapchain() }),
-    outputSetProvider({}, { window.getSwapchain() }),
+    inputSets(target.getFrameClock()),
+    outputSets(target.getFrameClock()),
+    inputSetProvider({}, { target.getFrameClock() }),
+    outputSetProvider({}, { target.getFrameClock() }),
 
     computePipelineLayout(
-        window.getDevice(),
+        instance.getDevice(),
         {
             *inputLayout,
             *outputLayout,
-            info.assetRegistry->getDescriptorSetProvider().getDescriptorSetLayout()
         },
         {}
     ),
     computePipeline(buildComputePipeline()
         .setProgram(internal::loadShader(rt::shaders::getFinalCompositing()))
-        .build(window.getDevice(), computePipelineLayout)
+        .build(instance.getDevice(), computePipelineLayout)
     )
 {
     assert(info.gBuffer != nullptr);
     assert(info.rayBuffer != nullptr);
-    assert(info.assetRegistry != nullptr);
 
     computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
     computePipelineLayout.addStaticDescriptorSet(1, outputSetProvider);
-    computePipelineLayout.addStaticDescriptorSet(2, info.assetRegistry->getDescriptorSetProvider());
 
     inputSets = {
-        window.getSwapchain(),
+        target.getFrameClock(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
             auto set = std::move(
-                window.getDevice()->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
+                instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
             );
 
             vk::Sampler depthSampler = *depthSamplers.emplace_back(
-                window.getDevice()->createSamplerUnique(
+                instance.getDevice()->createSamplerUnique(
                     vk::SamplerCreateInfo(
                         {},
                         vk::Filter::eLinear, vk::Filter::eLinear,
@@ -128,22 +127,21 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
                 { *set, 3, 0, vk::DescriptorType::eCombinedImageSampler, depthImage },
                 { *set, 4, 0, vk::DescriptorType::eStorageImage, rayImages },
             };
-            window.getDevice()->updateDescriptorSets(writes, {});
+            instance.getDevice()->updateDescriptorSets(writes, {});
 
             return set;
         }
     };
     outputSets = {
-        window.getSwapchain(),
+        target.getFrameClock(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
             auto set = std::move(
-                window.getDevice()->allocateDescriptorSetsUnique({ *pool, *outputLayout })[0]
+                instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *outputLayout })[0]
             );
 
-            auto& swapchain = window.getSwapchain();
-            vk::DescriptorImageInfo imageInfo({}, swapchain.getImageView(i), vk::ImageLayout::eGeneral);
+            vk::DescriptorImageInfo imageInfo({}, target.getImageView(i), vk::ImageLayout::eGeneral);
             vk::WriteDescriptorSet write(*set, 0, 0, vk::DescriptorType::eStorageImage, imageInfo);
-            window.getDevice()->updateDescriptorSets(write, {});
+            instance.getDevice()->updateDescriptorSets(write, {});
 
             return set;
         }
@@ -161,11 +159,13 @@ void trc::rt::FinalCompositingPass::begin(
     // Swapchain image: ePresentSrcKHR -> eGeneral
     vkb::imageMemoryBarrier(
         cmdBuf,
-        swapchain.getImage(swapchain.getCurrentFrame()),
-        vk::ImageLayout::ePresentSrcKHR,         vk::ImageLayout::eGeneral,
-        vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eComputeShader,
-        vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderWrite,
-        vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eShaderRead,
+        renderTarget.getCurrentImage(),
+        vk::ImageLayout::ePresentSrcKHR,
+        vk::ImageLayout::eGeneral,
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::AccessFlagBits::eShaderWrite,
+        vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
         vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 
@@ -176,11 +176,13 @@ void trc::rt::FinalCompositingPass::begin(
     // Swapchain image: eGeneral -> ePresentSrcKHR
     vkb::imageMemoryBarrier(
         cmdBuf,
-        swapchain.getImage(swapchain.getCurrentFrame()),
-        vk::ImageLayout::eGeneral,                 vk::ImageLayout::ePresentSrcKHR,
-        vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eAllCommands,
+        renderTarget.getCurrentImage(),
+        vk::ImageLayout::eGeneral,
+        vk::ImageLayout::ePresentSrcKHR,
+        vk::PipelineStageFlagBits::eComputeShader,
+        vk::PipelineStageFlagBits::eAllCommands,
         vk::AccessFlagBits::eShaderWrite,
-        {},
+        vk::AccessFlagBits::eHostRead,
         vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
     );
 }

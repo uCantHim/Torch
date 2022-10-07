@@ -54,7 +54,7 @@ namespace trc
 
         vkb::Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping
-        vkb::Buffer drawableBuf;
+        vkb::Buffer drawableDataBuf;
         DrawableComponentScene::DrawableRayData* drawableBufferMap;
     };
 } // namespace trc

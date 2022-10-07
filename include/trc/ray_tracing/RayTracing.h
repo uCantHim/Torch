@@ -13,5 +13,4 @@
 namespace trc::rt
 {
     inline RenderStage rayTracingRenderStage{};
-    inline RenderStage finalCompositingStage{};
 } // namespace trc::rt
