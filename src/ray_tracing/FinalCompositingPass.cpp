@@ -17,10 +17,11 @@
 trc::rt::FinalCompositingPass::FinalCompositingPass(
     const Instance& instance,
     const RenderTarget& target,
-    const FinalCompositingPassCreateInfo& info)
+    const vkb::FrameSpecific<RayBuffer>& rayBuffer)
     :
     RenderPass({}, NUM_SUBPASSES),
-    renderTarget(target),
+    device(instance.getDevice()),
+    renderTarget(&target),
     computeGroupSize(uvec3(
         glm::ceil(vec2(target.getSize()) / vec2(COMPUTE_LOCAL_SIZE)),
         1
@@ -28,8 +29,6 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     pool([&] {
         const ui32 frameCount{ target.getFrameClock().getFrameCount() };
         std::vector<vk::DescriptorPoolSize> poolSizes{
-            // GBuffer images
-            { vk::DescriptorType::eStorageImage, GBuffer::NUM_IMAGES * frameCount },
             // RayBuffer images
             { vk::DescriptorType::eStorageImage, RayBuffer::NUM_IMAGES * frameCount },
             // Swapchain output image
@@ -44,15 +43,6 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     }()),
     // Layouts
     inputLayout(buildDescriptorSetLayout()
-        // G-Buffer bindings first
-        .addBinding(vk::DescriptorType::eStorageImage, 1,
-                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .addBinding(vk::DescriptorType::eStorageImage, 1,
-                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .addBinding(vk::DescriptorType::eStorageImage, 1,
-                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .addBinding(vk::DescriptorType::eCombinedImageSampler, 1,
-                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
         // Ray-Buffer bindings
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
@@ -81,9 +71,6 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         .build(instance.getDevice(), computePipelineLayout)
     )
 {
-    assert(info.gBuffer != nullptr);
-    assert(info.rayBuffer != nullptr);
-
     computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
     computePipelineLayout.addStaticDescriptorSet(1, outputSetProvider);
 
@@ -94,38 +81,13 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
                 instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
             );
 
-            vk::Sampler depthSampler = *depthSamplers.emplace_back(
-                instance.getDevice()->createSamplerUnique(
-                    vk::SamplerCreateInfo(
-                        {},
-                        vk::Filter::eLinear, vk::Filter::eLinear,
-                        vk::SamplerMipmapMode::eNearest,
-                        vk::SamplerAddressMode::eRepeat, // u
-                        vk::SamplerAddressMode::eRepeat, // v
-                        vk::SamplerAddressMode::eRepeat  // w
-                    )
-                )
-            );
-
-            auto& g = info.gBuffer->getAt(i);
-            auto& r = info.rayBuffer->getAt(i);
-            std::vector<vk::DescriptorImageInfo> gImages{
-                { {}, g.getImageView(GBuffer::eNormals),   vk::ImageLayout::eGeneral },
-                { {}, g.getImageView(GBuffer::eAlbedo),    vk::ImageLayout::eGeneral },
-                { {}, g.getImageView(GBuffer::eMaterials), vk::ImageLayout::eGeneral },
-            };
-            std::vector<vk::DescriptorImageInfo> depthImage{
-                { depthSampler, g.getImageView(GBuffer::eDepth), vk::ImageLayout::eShaderReadOnlyOptimal },
-            };
-
+            auto& r = rayBuffer.getAt(i);
             std::vector<vk::DescriptorImageInfo> rayImages{
                 { {}, r.getImageView(RayBuffer::eReflections), vk::ImageLayout::eGeneral },
             };
 
             std::vector<vk::WriteDescriptorSet> writes{
-                { *set, 0, 0, vk::DescriptorType::eStorageImage, gImages },
-                { *set, 3, 0, vk::DescriptorType::eCombinedImageSampler, depthImage },
-                { *set, 4, 0, vk::DescriptorType::eStorageImage, rayImages },
+                { *set, 0, 0, vk::DescriptorType::eStorageImage, rayImages },
             };
             instance.getDevice()->updateDescriptorSets(writes, {});
 
@@ -159,7 +121,7 @@ void trc::rt::FinalCompositingPass::begin(
     // Swapchain image: ePresentSrcKHR -> eGeneral
     vkb::imageMemoryBarrier(
         cmdBuf,
-        renderTarget.getCurrentImage(),
+        renderTarget->getCurrentImage(),
         vk::ImageLayout::ePresentSrcKHR,
         vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eComputeShader,
@@ -176,7 +138,7 @@ void trc::rt::FinalCompositingPass::begin(
     // Swapchain image: eGeneral -> ePresentSrcKHR
     vkb::imageMemoryBarrier(
         cmdBuf,
-        renderTarget.getCurrentImage(),
+        renderTarget->getCurrentImage(),
         vk::ImageLayout::eGeneral,
         vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits::eComputeShader,
@@ -191,8 +153,15 @@ void trc::rt::FinalCompositingPass::end(vk::CommandBuffer)
 {
 }
 
-auto trc::rt::FinalCompositingPass::getInputImageDescriptor() const
-    -> const DescriptorProviderInterface&
+void trc::rt::FinalCompositingPass::setRenderTarget(const RenderTarget& target)
 {
-    return inputSetProvider;
+    renderTarget = &target;
+    for (ui32 i = 0; i < outputSets.getFrameClock().getFrameCount(); ++i)
+    {
+        auto set = *outputSets.getAt(i);
+
+        vk::DescriptorImageInfo imageInfo({}, target.getImageView(i), vk::ImageLayout::eGeneral);
+        vk::WriteDescriptorSet write(set, 0, 0, vk::DescriptorType::eStorageImage, imageInfo);
+        device->updateDescriptorSets(write, {});
+    }
 }

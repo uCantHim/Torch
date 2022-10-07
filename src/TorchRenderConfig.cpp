@@ -1,11 +1,14 @@
 #include "TorchRenderConfig.h"
 
 #include "trc_util/Timer.h"
-#include "trc/text/Font.h"
+
+#include "trc/GBufferPass.h"
+#include "trc/Scene.h"
+#include "trc/TorchResources.h"
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/Window.h"
-#include "trc/TorchResources.h"
-#include "trc/GBufferPass.h"
+#include "trc/ray_tracing/RayTracing.h"
+#include "trc/text/Font.h"
 
 
 
@@ -32,6 +35,8 @@ trc::TorchRenderConfig::TorchRenderConfig(
     :
     RenderConfigImplHelper(_window.getInstance(), RenderLayout(_window, info.renderGraph)),
     window(_window),
+    renderTarget(&info.target),
+    enableRayTracing(info.enableRayTracing && _window.getInstance().hasRayTracing()),
     // Passes
     gBuffer(nullptr),
     gBufferPass(nullptr),
@@ -54,6 +59,17 @@ trc::TorchRenderConfig::TorchRenderConfig(
         throw std::invalid_argument(
             "Member assetRegistry in DeferredRenderCreateInfo may not be nullptr!"
         );
+    }
+
+    // Optionally create ray tracing resources
+    if (enableRayTracing)
+    {
+        tlas = std::make_unique<rt::TLAS>(_window.getInstance(), 5000);
+        tlasBuildPass = std::make_unique<TopLevelAccelerationStructureBuildPass>(
+            _window.getInstance(),
+            *tlas
+        );
+        layout.addPass(resourceUpdateStage, *tlasBuildPass);
     }
 
     // Create gbuffer for the first time
@@ -97,6 +113,9 @@ void trc::TorchRenderConfig::preDraw(const DrawConfig& draw)
     globalDataDescriptor.update(*draw.camera);
     sceneDescriptor.update(*draw.scene);
     shadowPool->update();
+    if (enableRayTracing) {
+        tlasBuildPass->setScene(*draw.scene);
+    }
 }
 
 void trc::TorchRenderConfig::postDraw(const DrawConfig&)
@@ -117,7 +136,11 @@ void trc::TorchRenderConfig::setRenderTarget(const RenderTarget& target)
 {
     assert(finalLightingPass != nullptr);
 
+    renderTarget = &target;
     finalLightingPass->setRenderTarget(window.getDevice(), target);
+    if (enableRayTracing) {
+        rayTracingPass->setRenderTarget(target);
+    }
 }
 
 void trc::TorchRenderConfig::setClearColor(vec4 color)
@@ -239,6 +262,11 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     trc::Timer timer;
 
     // Delete resources
+    if (enableRayTracing)
+    {
+        layout.removePass(rt::rayTracingRenderStage, *rayTracingPass);
+        rayTracingPass.reset();
+    }
     layout.removePass(gBufferRenderStage, *gBufferPass);
     if (mouseDepthReader != nullptr)
     {
@@ -287,6 +315,29 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
         *gBuffer
     );
     layout.addPass(mouseDepthReadStage, *mouseDepthReader);
+
+    if (enableRayTracing)
+    {
+        vkb::FrameSpecific<rt::RayBuffer> rayBuffer{
+            window,
+            [&](ui32) {
+                return trc::rt::RayBuffer(
+                    window.getDevice(),
+                    { window.getSize(), vk::ImageUsageFlagBits::eStorage }
+                );
+            }
+        };
+
+        assert(renderTarget != nullptr);
+        rayTracingPass = std::make_unique<RayTracingPass>(
+            window.getInstance(),
+            *this,
+            *tlas,
+            std::move(rayBuffer),
+            *renderTarget
+        );
+        layout.addPass(rt::rayTracingRenderStage, *rayTracingPass);
+    }
 
     if constexpr (vkb::enableVerboseLogging)
     {

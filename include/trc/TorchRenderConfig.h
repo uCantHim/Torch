@@ -17,7 +17,10 @@
 #include "RenderPassShadow.h"
 #include "SceneDescriptor.h"
 #include "ShadowPool.h"
+#include "TopLevelAccelerationStructureBuildPass.h"
 #include "assets/AssetRegistry.h"
+#include "ray_tracing/AccelerationStructure.h"
+#include "ray_tracing/RayTracingPass.h"
 
 namespace trc
 {
@@ -35,6 +38,7 @@ namespace trc
         ShadowPool* shadowPool;
 
         ui32 maxTransparentFragsPerPixel{ 3 };
+        bool enableRayTracing{ false };
     };
 
     auto makeDeferredRenderGraph() -> RenderGraph;
@@ -119,8 +123,11 @@ namespace trc
         void createGBuffer(uvec2 newSize);
 
         const Window& window;
+        const RenderTarget* renderTarget;
         ivec2 viewportOffset{ 0, 0 };
         uvec2 viewportSize{ 1, 1 };
+
+        const bool enableRayTracing;
 
         // Default render passes
         u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;
@@ -128,6 +135,11 @@ namespace trc
         u_ptr<GBufferDepthReader> mouseDepthReader;
         RenderPassShadow shadowPass;
         u_ptr<FinalLightingPass> finalLightingPass;
+
+        // Ray tracing stuff
+        u_ptr<rt::TLAS> tlas;
+        u_ptr<TopLevelAccelerationStructureBuildPass> tlasBuildPass;
+        u_ptr<RayTracingPass> rayTracingPass;
 
         // Descriptors
         GBufferDescriptor gBufferDescriptor;

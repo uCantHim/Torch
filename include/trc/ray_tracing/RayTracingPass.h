@@ -39,6 +39,8 @@ namespace trc
         void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override;
 
+        void setRenderTarget(const RenderTarget& target);
+
     private:
         struct RayTracingCall
         {

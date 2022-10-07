@@ -103,11 +103,12 @@ trc::TorchStack::TorchStack(
     renderConfig(
         window,
         TorchRenderConfigCreateInfo{
-            makeTorchRenderGraph(),
-            swapchainRenderTarget,
-            &assetManager.getDeviceRegistry(),
-            &shadowPool,
-            3  // max transparent frags
+            .renderGraph                 = makeTorchRenderGraph(),
+            .target                      = swapchainRenderTarget,
+            .assetRegistry               = &assetManager.getDeviceRegistry(),
+            .shadowPool                  = &shadowPool,
+            .maxTransparentFragsPerPixel = 3,
+            .enableRayTracing            = instanceInfo.enableRayTracing
         }
     ),
     swapchainRecreateListener(

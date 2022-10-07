@@ -18,14 +18,7 @@ using trc::rt::TLAS;
 
 void run()
 {
-    auto torch = trc::initFull(
-        trc::InstanceCreateInfo{ .enableRayTracing = true },
-        trc::WindowCreateInfo{
-            .swapchainCreateInfo={ .imageUsage=vk::ImageUsageFlagBits::eTransferDst }
-        }
-    );
-    auto& instance = torch->getInstance();
-    auto& device = instance.getDevice();
+    auto torch = trc::initFull(trc::InstanceCreateInfo{ .enableRayTracing = true });
     auto& window = torch->getWindow();
     auto& assets = torch->getAssetManager();
 
@@ -37,7 +30,9 @@ void run()
     auto size = window.getImageExtent();
     camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
-    // Create some objects
+
+    // --- Create a scene --- //
+
     trc::Drawable sphere(
         trc::DrawableCreateInfo{
             assets.create(trc::makeSphereGeo()),
@@ -95,55 +90,7 @@ void run()
     shadow.setProjectionMatrix(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f));
 
 
-    // --- Create the TLAS --- //
-
-    vkb::Buffer instanceBuf(
-        device, 500 * sizeof(trc::rt::GeometryInstance),
-        vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
-        | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
-    );
-    auto data = instanceBuf.map<trc::rt::GeometryInstance*>();
-    const size_t numInstances = scene->writeTlasInstances(data);
-    instanceBuf.unmap();
-
-    trc::rt::TLAS tlas(instance, numInstances);
-    tlas.build(*instanceBuf, numInstances);
-
-
-    // --- TLAS Update Pass --- //
-
-    auto& renderLayout = torch->getRenderConfig().getLayout();
-
-    trc::TopLevelAccelerationStructureBuildPass tlasBuildPass(instance, tlas);
-    tlasBuildPass.setScene(*scene);
-    renderLayout.addPass(trc::resourceUpdateStage, tlasBuildPass);
-
-
-    // --- Ray Tracing Pass --- //
-
-    vkb::FrameSpecific<trc::rt::RayBuffer> rayBuffer{
-        window,
-        [&](ui32) {
-            return trc::rt::RayBuffer(
-                device,
-                { window.getSize(), vk::ImageUsageFlagBits::eTransferSrc }
-            );
-        }
-    };
-
-    trc::RayTracingPass rayPass(
-        instance,
-        torch->getRenderConfig(),
-        tlas,
-        std::move(rayBuffer),
-        torch->getRenderTarget()
-    );
-    renderLayout.addPass(trc::rt::rayTracingRenderStage, rayPass);
-
-
-    // --- Run the Application --- //
+    // --- Set some keybindings --- //
 
     vkb::on<vkb::KeyPressEvent>([&](auto& e) {
         static bool count{ false };
@@ -159,16 +106,18 @@ void run()
         }
     });
 
+
+    // --- Run the Application --- //
+
     trc::Timer timer;
     trc::Timer frameTimer;
     int frames{ 0 };
     while (window.isOpen())
     {
-        vkb::pollEvents();
+        trc::pollEvents();
 
         const float time = timer.reset();
         sphereNode.rotateY(time / 1000.0f * 0.5f);
-
         scene->update(time);
 
         window.drawFrame(torch->makeDrawConfig(*scene, camera));

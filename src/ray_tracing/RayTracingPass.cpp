@@ -22,14 +22,7 @@ trc::RayTracingPass::RayTracingPass(
         instance,
         rt::RayBuffer::Image::NUM_IMAGES * rayBuffer.getFrameClock().getFrameCount()
     ),
-    compositingPass(
-        instance,
-        target,
-        trc::rt::FinalCompositingPassCreateInfo{
-            .gBuffer = &renderConfig.getGBuffer(),
-            .rayBuffer = &rayBuffer
-        }
-    )
+    compositingPass(instance, target, rayBuffer)
 {
     // ------------------------------- //
     //    Make reflections pipeline    //
@@ -118,6 +111,11 @@ void trc::RayTracingPass::begin(
 void trc::RayTracingPass::end(vk::CommandBuffer cmdBuf)
 {
     compositingPass.end(cmdBuf);
+}
+
+void trc::RayTracingPass::setRenderTarget(const RenderTarget& target)
+{
+    compositingPass.setRenderTarget(target);
 }
 
 void trc::RayTracingPass::addRayCall(RayTracingCall call)
