@@ -75,7 +75,7 @@ public:
      * Only returns once all commands have finished executing.
      */
     template<std::invocable<vk::CommandBuffer> F>
-    void executeCommands(QueueType queueType, F func) const;
+    void executeCommands(QueueType queueType, F func, uint64_t timeout = UINT64_MAX) const;
 
 private:
     const PhysicalDevice& physicalDevice;
@@ -88,7 +88,7 @@ private:
 };
 
 template<std::invocable<vk::CommandBuffer> F>
-void Device::executeCommands(QueueType queueType, F func) const
+void Device::executeCommands(QueueType queueType, F func, uint64_t timeout) const
 {
     // Create a temporary fence
     auto fence = device->createFenceUnique({ vk::FenceCreateFlags() });
@@ -107,10 +107,11 @@ void Device::executeCommands(QueueType queueType, F func) const
     queue.waitSubmit(vk::SubmitInfo(0, nullptr, nullptr, 1, &*cmdBuf), *fence);
 
     // Wait for the fence
-    if (device->waitForFences(*fence, true, UINT64_MAX) != vk::Result::eSuccess)
+    const auto res = device->waitForFences(*fence, true, timeout);
+    if (res != vk::Result::eSuccess)
     {
         throw std::runtime_error(
-            "Error while waiting for fence in Device::executeCommandsSynchronously"
+            "Error while waiting for fence in Device::executeCommands: " + vk::to_string(res)
         );
     }
 }
