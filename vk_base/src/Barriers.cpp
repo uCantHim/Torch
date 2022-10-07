@@ -2,6 +2,21 @@
 
 
 
+void vkb::barrier(vk::CommandBuffer cmdBuf, vk::ImageMemoryBarrier2 imageBarrier)
+{
+    cmdBuf.pipelineBarrier2({ vk::DependencyFlagBits::eByRegion, {}, {}, imageBarrier });
+}
+
+void vkb::barrier(vk::CommandBuffer cmdBuf, vk::BufferMemoryBarrier2 bufferBarrier)
+{
+    cmdBuf.pipelineBarrier2({ vk::DependencyFlagBits::eByRegion, {}, bufferBarrier, {} });
+}
+
+void vkb::barrier(vk::CommandBuffer cmdBuf, vk::MemoryBarrier2 memoryBarrier)
+{
+    cmdBuf.pipelineBarrier2({ vk::DependencyFlagBits::eByRegion, memoryBarrier, {}, {} });
+}
+
 void vkb::imageMemoryBarrier(
     vk::CommandBuffer cmdBuf,
     vk::Image image,

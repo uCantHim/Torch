@@ -4,6 +4,10 @@
 
 namespace vkb
 {
+    void barrier(vk::CommandBuffer cmdBuf, vk::ImageMemoryBarrier2 imageBarrier);
+    void barrier(vk::CommandBuffer cmdBuf, vk::BufferMemoryBarrier2 bufferBarrier);
+    void barrier(vk::CommandBuffer cmdBuf, vk::MemoryBarrier2 memoryBarrier);
+
     void imageMemoryBarrier(vk::CommandBuffer cmdBuf,
                             vk::Image image,
                             vk::ImageLayout from,
