@@ -45,8 +45,8 @@ int main()
 {
     vkb::init();
     vkb::VulkanInstance instance;
-    auto surface = vkb::makeSurface(*instance, {});
-    vkb::Device device(vkb::device_helpers::getOptimalPhysicalDevice(*instance, *surface.surface));
+    vkb::Surface surface(*instance);
+    vkb::Device device(vkb::findOptimalPhysicalDevice(*instance, surface.getVulkanSurface()));
 
     constexpr size_t memory{ 2000000000 };  // 2 GB
 

@@ -19,28 +19,24 @@ int main()
         vkb::VulkanInstance instance;
         log("Instance created");
 
-        auto surface = vkb::makeSurface(*instance, {});
-        log("Surface and window created");
-
         std::unique_ptr<vkb::PhysicalDevice> phys;
         try {
-            phys = std::make_unique<vkb::PhysicalDevice>(*instance, *surface.surface);
-            log("Optimal physical device found");
+            vkb::Surface surface(*instance, {});
+            log("Surface and window created");
 
-            surface.surface.reset();
-            log("Surface destroyed");
-            surface.window.reset();
-            log("Window destroyed");
+            phys = std::make_unique<vkb::PhysicalDevice>(*instance, surface.getVulkanSurface());
+            log("Optimal physical device found");
         }
         catch (const std::exception& err) {
             log("Physical device creation failed: " + std::string(err.what()));
             return 1;
         }
+        log("Surface and Window destroyed");
 
         vkb::Device device(*phys);
         log("Logical device created");
 
-        vkb::Swapchain swapchain(device, vkb::makeSurface(*instance, {}));
+        vkb::Swapchain swapchain(device, vkb::Surface(*instance, {}));
         log("Swapchain created");
 
 

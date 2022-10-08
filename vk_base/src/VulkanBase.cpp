@@ -9,8 +9,11 @@ void vkb::init(const VulkanBaseInitInfo& info)
     }
 
     // Init GLFW first
-    if (glfwInit() == GLFW_FALSE) {
-        throw std::runtime_error("Initialization of GLFW failed!\n");
+    if (glfwInit() == GLFW_FALSE)
+    {
+        const char* errorMsg{ nullptr };
+        glfwGetError(&errorMsg);
+        throw std::runtime_error("Initialization of GLFW failed: " + std::string(errorMsg));
     }
     if constexpr (vkb::enableVerboseLogging) {
         std::cout << "GLFW initialized successfully\n";

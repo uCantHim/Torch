@@ -4,8 +4,9 @@
 #include <chrono>
 using namespace std::chrono;
 
-#include "PhysicalDevice.h"
 #include "Device.h"
+#include "VulkanInstance.h"
+#include "PhysicalDevice.h"
 #include "VulkanDebug.h"
 #include "event/EventHandler.h"
 #include "event/InputEvents.h"
@@ -13,10 +14,8 @@ using namespace std::chrono;
 
 
 
-auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo info) -> Surface
+vkb::Surface::Surface(vk::Instance instance, const SurfaceCreateInfo& info)
 {
-    Surface result;
-
     // Create GLFW window
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_VISIBLE,   !info.hidden);
@@ -25,7 +24,7 @@ auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo info) -> Surface
     glfwWindowHint(GLFW_FLOATING,  info.floating);
     glfwWindowHint(GLFW_DECORATED, info.decorated);
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, info.transparentFramebuffer);
-    result.window = std::unique_ptr<GLFWwindow, Surface::WindowDeleter>(
+    window = std::unique_ptr<GLFWwindow, Surface::WindowDeleter>(
         glfwCreateWindow(
             info.windowSize.x, info.windowSize.y,
             info.windowTitle.c_str(),
@@ -36,33 +35,41 @@ auto vkb::makeSurface(vk::Instance instance, SurfaceCreateInfo info) -> Surface
         }
     );
 
-    if (result.window == nullptr)
+    if (window == nullptr)
     {
         const char* errorMsg{ nullptr };
         glfwGetError(&errorMsg);
-        throw std::runtime_error("[In makeSurface]: Unable to create a window: "
+        throw std::runtime_error("[In Surface::Surface]: Unable to create a window: "
                                  + std::string(errorMsg));
     }
-    GLFWwindow* _window = result.window.get();
+    GLFWwindow* _window = window.get();
 
     // Create Vulkan surface
-    VkSurfaceKHR _surface;
+    VkSurfaceKHR _surface{ VK_NULL_HANDLE };
     if (glfwCreateWindowSurface(instance, _window, nullptr, &_surface) != VK_SUCCESS)
     {
         const char* errorMsg{ nullptr };
         glfwGetError(&errorMsg);
-        throw std::runtime_error("[In makeSurface]: Unable to create window surface: "
+        throw std::runtime_error("[In Surface::Surface]: Unable to create window surface: "
                                  + std::string(errorMsg));
     }
-    result.surface = std::unique_ptr<vk::SurfaceKHR, Surface::SurfaceDeleter> {
+    surface = std::unique_ptr<vk::SurfaceKHR, Surface::SurfaceDeleter> {
         new vk::SurfaceKHR(_surface),
         [instance](vk::SurfaceKHR* oldSurface) {
             instance.destroySurfaceKHR(*oldSurface);
             delete oldSurface;
         }
     };
+}
 
-    return result;
+auto vkb::Surface::getGlfwWindow() -> GLFWwindow*
+{
+    return window.get();
+}
+
+auto vkb::Surface::getVulkanSurface() const -> vk::SurfaceKHR
+{
+    return *surface;
 }
 
 
@@ -126,8 +133,8 @@ auto findOptimalImageExtent(
         return extent;
     }
 
-    int width;
-    int height;
+    int width{ 0 };
+    int height{ 0 };
     glfwGetFramebufferSize(window, &width, &height);
 
     vk::Extent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
@@ -211,9 +218,7 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
     if (immediateSupported) {
         return vk::PresentModeKHR::eImmediate;
     }
-    else {
-        return vk::PresentModeKHR::eFifo;  // The only mode that is required to be supported
-    }
+    return vk::PresentModeKHR::eFifo;  // The only mode that is required to be supported
 }
 
 
@@ -226,7 +231,7 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
     :
     FrameClock([&device, &s, &info] {
         const auto& phys = device.getPhysicalDevice();
-        const auto capabilities = phys.getSwapchainSupport(*s.surface).surfaceCapabilities;
+        const auto capabilities = phys.getSwapchainSupport(s.getVulkanSurface()).surfaceCapabilities;
         const uint32_t minImages = capabilities.minImageCount;
         const uint32_t maxImages = capabilities.maxImageCount == 0  // 0 means no limit
                                    ? std::numeric_limits<uint32_t>::max()
@@ -246,8 +251,8 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
     }()),
     device(device),
     createInfo(info),
-    window(std::move(s.window)),
-    surface(std::move(s.surface)),
+    surface(std::move(s)),
+    window(surface.getGlfwWindow()),
     swapchainImageUsage([&info] {
         // Add necessary default usage flags
         auto usageFlags = info.imageUsage;
@@ -260,17 +265,16 @@ vkb::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
      * getSurfaceSupportKHR function be called on every surface before a
      * swapchain is created on it.
      */
-    if (!device.getPhysicalDevice().hasSurfaceSupport(*surface))
+    if (!device.getPhysicalDevice().hasSurfaceSupport(surface.getVulkanSurface()))
     {
         throw std::runtime_error(
-            "In Swapchain::Swapchain(): Physical device does not have surface"
-            " support for the specified surface! This means that none of the"
-            " device's queue families returned true from a call to"
-            " vkGetPhysicalDeviceSurfaceSupportKHR."
+            "In Swapchain::Swapchain(): Physical device does not have surface support for the"
+            " specified surface! This means that none of the device's queue families returned"
+            " true from a call to vkGetPhysicalDeviceSurfaceSupportKHR."
         );
     }
 
-    initGlfwCallbacks(window.get());
+    initGlfwCallbacks(surface.getGlfwWindow());
     createSwapchain(info);
 }
 
@@ -353,12 +357,12 @@ void vkb::Swapchain::setPresentMode(vk::PresentModeKHR newMode)
 
 auto vkb::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
 {
-    return window.get();
+    return window;
 }
 
 auto vkb::Swapchain::isOpen() const noexcept -> bool
 {
-    return !glfwWindowShouldClose(window.get());
+    return !glfwWindowShouldClose(window);
 }
 
 auto vkb::Swapchain::shouldClose() const noexcept -> bool
@@ -374,13 +378,13 @@ auto vkb::Swapchain::getSize() const noexcept -> glm::uvec2
 auto vkb::Swapchain::getWindowSize() const -> glm::uvec2
 {
     glm::ivec2 winSize;
-    glfwGetWindowSize(window.get(), &winSize.x, &winSize.y);
+    glfwGetWindowSize(window, &winSize.x, &winSize.y);
     return winSize;
 }
 
 void vkb::Swapchain::resize(uint32_t width, uint32_t height)
 {
-    glfwSetWindowSize(window.get(), width, height);
+    glfwSetWindowSize(window, width, height);
 
     // I don't have to recreate here. The next present will return an
     // out-of-date swapchain.
@@ -388,27 +392,27 @@ void vkb::Swapchain::resize(uint32_t width, uint32_t height)
 
 void vkb::Swapchain::maximize()
 {
-    glfwMaximizeWindow(window.get());
+    glfwMaximizeWindow(window);
 }
 
 void vkb::Swapchain::minimize()
 {
-    glfwIconifyWindow(window.get());
+    glfwIconifyWindow(window);
 }
 
 auto vkb::Swapchain::isMaximized() const -> bool
 {
-    return glfwGetWindowAttrib(window.get(), GLFW_MAXIMIZED);
+    return glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
 }
 
 auto vkb::Swapchain::isMinimized() const -> bool
 {
-    return glfwGetWindowAttrib(window.get(), GLFW_ICONIFIED);
+    return glfwGetWindowAttrib(window, GLFW_ICONIFIED);
 }
 
 void vkb::Swapchain::restore()
 {
-    glfwRestoreWindow(window.get());
+    glfwRestoreWindow(window);
 }
 
 auto vkb::Swapchain::getAspectRatio() const noexcept -> float
@@ -418,7 +422,7 @@ auto vkb::Swapchain::getAspectRatio() const noexcept -> float
 
 void vkb::Swapchain::forceAspectRatio(int32_t width, int32_t height)
 {
-    glfwSetWindowAspectRatio(window.get(), width, height);
+    glfwSetWindowAspectRatio(window, width, height);
 }
 
 void vkb::Swapchain::forceAspectRatio(const bool forced)
@@ -433,85 +437,85 @@ void vkb::Swapchain::forceAspectRatio(const bool forced)
 
 void vkb::Swapchain::hide()
 {
-    glfwHideWindow(window.get());
+    glfwHideWindow(window);
 }
 
 void vkb::Swapchain::show()
 {
-    glfwShowWindow(window.get());
+    glfwShowWindow(window);
 }
 
 void vkb::Swapchain::setUserResizeable(const bool resizeable)
 {
-    glfwSetWindowAttrib(window.get(), GLFW_RESIZABLE, resizeable);
+    glfwSetWindowAttrib(window, GLFW_RESIZABLE, resizeable);
 }
 
 auto vkb::Swapchain::isUserResizeable() const -> bool
 {
-    return glfwGetWindowAttrib(window.get(), GLFW_RESIZABLE);
+    return glfwGetWindowAttrib(window, GLFW_RESIZABLE);
 }
 
 void vkb::Swapchain::setDecorated(bool decorated)
 {
-    glfwSetWindowAttrib(window.get(), GLFW_DECORATED, decorated);
+    glfwSetWindowAttrib(window, GLFW_DECORATED, decorated);
 }
 
 auto vkb::Swapchain::getDecorated() const -> bool
 {
-    return glfwGetWindowAttrib(window.get(), GLFW_DECORATED);
+    return glfwGetWindowAttrib(window, GLFW_DECORATED);
 }
 
 void vkb::Swapchain::setFloating(bool floating)
 {
-    glfwSetWindowAttrib(window.get(), GLFW_FLOATING, floating);
+    glfwSetWindowAttrib(window, GLFW_FLOATING, floating);
 }
 
 auto vkb::Swapchain::getFloating() const -> bool
 {
-    return glfwGetWindowAttrib(window.get(), GLFW_FLOATING);
+    return glfwGetWindowAttrib(window, GLFW_FLOATING);
 }
 
 void vkb::Swapchain::setOpacity(float opacity)
 {
-    glfwSetWindowOpacity(window.get(), opacity);
+    glfwSetWindowOpacity(window, opacity);
 }
 
 auto vkb::Swapchain::getOpacity() const -> float
 {
-    return glfwGetWindowOpacity(window.get());
+    return glfwGetWindowOpacity(window);
 }
 
 auto vkb::Swapchain::getPosition() const -> glm::ivec2
 {
     glm::ivec2 pos;
-    glfwGetWindowPos(window.get(), &pos.x, &pos.y);
+    glfwGetWindowPos(window, &pos.x, &pos.y);
     return pos;
 }
 
 void vkb::Swapchain::setPosition(int32_t x, int32_t y)
 {
-    glfwSetWindowPos(window.get(), x, y);
+    glfwSetWindowPos(window, x, y);
 }
 
 void vkb::Swapchain::setTitle(const char* title)
 {
-    glfwSetWindowTitle(window.get(), title);
+    glfwSetWindowTitle(window, title);
 }
 
 auto vkb::Swapchain::getKeyState(Key key) const -> InputAction
 {
-    return static_cast<InputAction>(glfwGetKey(window.get(), static_cast<int>(key)));
+    return static_cast<InputAction>(glfwGetKey(window, static_cast<int>(key)));
 }
 
 auto vkb::Swapchain::getMouseButtonState(MouseButton button) const -> InputAction
 {
-    return static_cast<InputAction>(glfwGetMouseButton(window.get(), static_cast<int>(button)));
+    return static_cast<InputAction>(glfwGetMouseButton(window, static_cast<int>(button)));
 }
 
 auto vkb::Swapchain::getMousePosition() const -> glm::vec2
 {
     glm::dvec2 pos;
-    glfwGetCursorPos(window.get(), &pos.x, &pos.y);
+    glfwGetCursorPos(window, &pos.x, &pos.y);
 
     return pos;
 }
@@ -519,7 +523,7 @@ auto vkb::Swapchain::getMousePosition() const -> glm::vec2
 auto vkb::Swapchain::getMousePositionLowerLeft() const -> glm::vec2
 {
     glm::dvec2 pos;
-    glfwGetCursorPos(window.get(), &pos.x, &pos.y);
+    glfwGetCursorPos(window, &pos.x, &pos.y);
 
     return { pos.x, static_cast<double>(getSize().y) - pos.y };
 }
@@ -650,8 +654,8 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     const auto& physDevice = device.getPhysicalDevice();
 
     const auto [imageSharingMode, imageSharingQueueFamilies] = findOptimalImageSharingMode(physDevice);
-    const auto [capabilities, formats, presentModes] = physDevice.getSwapchainSupport(*surface);
-    const auto optimalImageExtent = findOptimalImageExtent(capabilities, window.get());
+    const auto [capabilities, formats, presentModes] = physDevice.getSwapchainSupport(surface.getVulkanSurface());
+    const auto optimalImageExtent = findOptimalImageExtent(capabilities, window);
     const auto optimalFormat      = findOptimalSurfaceFormat(formats);
     const auto optimalPresentMode = findOptimalSurfacePresentMode(presentModes, info.presentMode);
 
@@ -685,7 +689,7 @@ void vkb::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // Create the swapchain
     vk::SwapchainCreateInfoKHR createInfo(
         {},
-        *surface,
+        surface.getVulkanSurface(),
         numFrames,
         optimalFormat.format,
         optimalFormat.colorSpace,

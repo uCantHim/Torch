@@ -27,19 +27,13 @@ namespace trc
      * @brief Initialize Torch globally
      *
      * Required to be called once before any other Torch functionality can
-     * be used.
+     * be used. Calls to `init` before `terminate` has been called return
+     * immediately.
      *
-     * Call `terminate` to de-initialize Torch. `init` can be called safely
-     * after a call to `terminate`.
+     * Call `terminate` to de-initialize Torch.
      *
-     * Creates a global Vulkan instance which will be used by Torch.
-     * Calling `init` will recreate this instance at every call, so don't
-     * call `init` as long as you still have Vulkan objects allocated.
-     * Preferably, don't ever call `init` a second time before calling
-     * `terminate`.
-     *
-     * Use `initFull` to initialize a complete default configuration of
-     * Torch with all required objects and services for rendering.
+     * Use `initFull` instead to initialize a complete default configuration
+     * of Torch with all required objects and services for rendering.
      */
     void init(const TorchInitInfo& info = {});
 
@@ -55,15 +49,6 @@ namespace trc
      * function.
      */
     void terminate();
-
-    /**
-     * Torch has a single global vk::Instance as the basis for all Torch
-     * instances. Retrieve it with with function.
-     *
-     * @throws std::runtime_error if the instance has not been intitialized
-     *                            with trc::init.
-     */
-    auto getVulkanInstance() -> vkb::VulkanInstance&;
 
     auto makeTorchRenderGraph() -> RenderGraph;
 

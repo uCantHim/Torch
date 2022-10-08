@@ -8,7 +8,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
     :
     vkb::Swapchain(
         instance.getDevice(),
-        vkb::makeSurface(
+        vkb::Surface(
             instance.getVulkanInstance(),
             [&] {
                 info.surfaceCreateInfo.windowSize = info.size;
@@ -16,15 +16,9 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
                 return info.surfaceCreateInfo;
             }()
         ),
-        // Swapchain create info
-        [&] {
+        [&]() -> vkb::SwapchainCreateInfo {
             // Always specify the storage bit
             info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
-
-            // Additional flags currently only used for ray tracing
-            if (instance.hasRayTracing()) {
-                info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
-            }
             return info.swapchainCreateInfo;
         }()
     ),

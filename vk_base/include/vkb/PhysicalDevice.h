@@ -186,14 +186,14 @@ namespace vkb
         const std::string typeString;
     };
 
+    auto findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
+        -> std::vector<PhysicalDevice>;
+
+    auto findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
+        -> PhysicalDevice;
+
     namespace device_helpers
     {
-        auto findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
-            -> std::vector<PhysicalDevice>;
-
-        auto getOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
-            -> PhysicalDevice;
-
         bool isOptimalDevice(const PhysicalDevice& device);
 
         /**
@@ -215,5 +215,5 @@ namespace vkb
 
 namespace std
 {
-    extern auto to_string(vkb::QueueType queueType) -> std::string;
+    auto to_string(vkb::QueueType queueType) -> std::string;
 }

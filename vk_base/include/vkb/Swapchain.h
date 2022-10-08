@@ -17,11 +17,12 @@
 namespace vkb
 {
     class Device;
+    class VulkanInstance;
 
     struct SurfaceCreateInfo
     {
         glm::ivec2 windowSize{ 1920, 1080 };
-        std::string windowTitle;
+        std::string windowTitle{ "" };
 
         bool hidden{ false };
         bool maximized{ false };
@@ -31,19 +32,21 @@ namespace vkb
         bool transparentFramebuffer{ false };
     };
 
-    struct Surface
+    class Surface
     {
+    public:
+        Surface(vk::Instance instance, const SurfaceCreateInfo& info = {});
+
+        auto getGlfwWindow() -> GLFWwindow*;
+        auto getVulkanSurface() const -> vk::SurfaceKHR;
+
+    private:
         using WindowDeleter = std::function<void(GLFWwindow*)>;
         using SurfaceDeleter = std::function<void(vk::SurfaceKHR*)>;
 
         std::unique_ptr<GLFWwindow, WindowDeleter> window;
         std::unique_ptr<vk::SurfaceKHR, SurfaceDeleter> surface;
     };
-
-    /**
-     * @throw std::runtime_error if window- or surface creation fails
-     */
-    auto makeSurface(vk::Instance instance, SurfaceCreateInfo createInfo) -> Surface;
 
     /**
      * Call this once per frame.
@@ -356,8 +359,8 @@ namespace vkb
 
         SwapchainCreateInfo createInfo;
 
-        std::unique_ptr<GLFWwindow, Surface::WindowDeleter> window;
-        std::unique_ptr<vk::SurfaceKHR, Surface::SurfaceDeleter> surface;
+        Surface surface;
+        GLFWwindow* window;
 
         vk::UniqueSwapchainKHR swapchain;
         vk::Extent2D swapchainExtent;

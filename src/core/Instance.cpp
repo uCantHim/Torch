@@ -20,83 +20,37 @@ auto trc::makeDefaultTorchVulkanInstance(const std::string& appName, ui32 appVer
 
 
 
+trc::Instance::Instance(const InstanceCreateInfo& info)
+    :
+    optionalLocalInstance(makeDefaultTorchVulkanInstance()),
+    instance(**optionalLocalInstance),
+    physicalDevice([instance=this->instance] {
+        vkb::Surface surface(instance, { .hidden=true });
+        return new vkb::PhysicalDevice(instance, surface.getVulkanSurface());
+    }())
+{
+    auto [dev, rayFeatures] = makeDevice(info, *physicalDevice);
+    device = std::move(dev);
+    hasRayTracingFeatures = rayFeatures;
+
+    dynamicLoader = { instance, vkGetInstanceProcAddr, **device, vkGetDeviceProcAddr };
+}
+
 trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
     :
     // Create a new VkInstance if the _instance argument is VK_NULL_HANDLE
-    optionalLocalInstance(_instance ? nullptr : makeDefaultTorchVulkanInstance()),
-    instance(_instance ? _instance : **optionalLocalInstance),
-
+    optionalLocalInstance(nullptr),
+    instance(_instance),
     physicalDevice([instance=this->instance] {
-        vkb::Surface surface = vkb::makeSurface(
-            instance,
-            { .windowSize={ 1, 1 }, .windowTitle="", .hidden=true }
-        );
-        return new vkb::PhysicalDevice(instance, *surface.surface);
-    }()),
-    device([this, &info] {
-        void* deviceFeatureChain{ nullptr };
-        auto extensions = info.deviceExtensions;
-
-        // Ray tracing device features
-        auto features = physicalDevice->physicalDevice.getFeatures2<
-            vk::PhysicalDeviceFeatures2,
-
-            // Misc
-            vk::PhysicalDeviceTimelineSemaphoreFeatures,  // Vulkan 1.2
-
-            // Ray tracing
-            vk::PhysicalDeviceBufferDeviceAddressFeatures,
-            vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
-            vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
-        >();
-
-        // Append user provided features to the end
-        void* userPtr = info.deviceFeatures.getPNext();
-        features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>().setPNext(userPtr);
-
-        ///////////////////////////////
-        // Test for ray tracing support
-        auto as = features.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
-        auto ray = features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
-
-        if constexpr (vkb::enableVerboseLogging)
-        {
-            std::cout << "\nQuerying ray tracing support:\n";
-            std::cout << std::boolalpha
-                << "   Acceleration structure: " << (bool)as.accelerationStructure << "\n"
-                << "   Acceleration structure host commands: "
-                    << (bool)as.accelerationStructureHostCommands << "\n"
-                << "   Ray Tracing pipeline: " << (bool)ray.rayTracingPipeline << "\n"
-                << "   Trace rays indirect: " << (bool)ray.rayTracingPipelineTraceRaysIndirect << "\n"
-                << "   Ray traversal primitive culling: " << (bool)ray.rayTraversalPrimitiveCulling << "\n";
-        }
-
-        const bool rayTracingSupported = as.accelerationStructure && ray.rayTracingPipeline;
-        const bool enableRayTracing = info.enableRayTracing && rayTracingSupported;
-        if (!enableRayTracing)
-        {
-            features.unlink<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
-            features.unlink<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
-            features.unlink<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
-        }
-        else
-        {
-            this->rayTracingEnabled = true;
-
-            // Add device extensions
-            extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-            extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-            extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
-            extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-        }
-
-        // Require remaining features from device
-        deviceFeatureChain = features.get<vk::PhysicalDeviceFeatures2>().pNext;
-
-        return new vkb::Device(*physicalDevice, extensions, deviceFeatureChain);
-    }()),
-    dynamicLoader(instance, vkGetInstanceProcAddr)
+        vkb::Surface surface(instance, { .hidden=true });
+        return new vkb::PhysicalDevice(instance, surface.getVulkanSurface());
+    }())
 {
+    auto [dev, rayFeatures] = makeDevice(info, *physicalDevice);
+    device = std::move(dev);
+    hasRayTracingFeatures = rayFeatures;
+
+    dynamicLoader = { instance, vkGetInstanceProcAddr, **device, vkGetDeviceProcAddr };
 }
 
 trc::Instance::~Instance()
@@ -151,5 +105,74 @@ auto trc::Instance::makeWindow(const WindowCreateInfo& info) -> u_ptr<Window>
 
 bool trc::Instance::hasRayTracing() const
 {
-    return rayTracingEnabled;
+    return hasRayTracingFeatures;
+}
+
+auto trc::Instance::makeDevice(
+    const InstanceCreateInfo& info,
+    const vkb::PhysicalDevice& physicalDevice)
+    -> std::pair<u_ptr<vkb::Device>, bool>
+{
+
+    void* deviceFeatureChain{ nullptr };
+    auto extensions = info.deviceExtensions;
+
+    // Ray tracing device features
+    auto features = physicalDevice.physicalDevice.getFeatures2<
+        vk::PhysicalDeviceFeatures2,
+
+        // Misc
+        vk::PhysicalDeviceTimelineSemaphoreFeatures,  // Vulkan 1.2
+
+        // Ray tracing
+        vk::PhysicalDeviceBufferDeviceAddressFeatures,
+        vk::PhysicalDeviceAccelerationStructureFeaturesKHR,
+        vk::PhysicalDeviceRayTracingPipelineFeaturesKHR
+    >();
+
+    // Append user provided features to the end
+    void* userPtr = info.deviceFeatures.getPNext();
+    features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>().setPNext(userPtr);
+
+    ///////////////////////////////
+    // Test for ray tracing support
+    auto as = features.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
+    auto ray = features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
+
+    if constexpr (vkb::enableVerboseLogging)
+    {
+        std::cout << "\nQuerying ray tracing support:\n";
+        std::cout << std::boolalpha
+            << "   Acceleration structure: " << (bool)as.accelerationStructure << "\n"
+            << "   Acceleration structure host commands: "
+                << (bool)as.accelerationStructureHostCommands << "\n"
+            << "   Ray Tracing pipeline: " << (bool)ray.rayTracingPipeline << "\n"
+            << "   Trace rays indirect: " << (bool)ray.rayTracingPipelineTraceRaysIndirect << "\n"
+            << "   Ray traversal primitive culling: " << (bool)ray.rayTraversalPrimitiveCulling << "\n";
+    }
+
+    const bool rayTracingSupported = as.accelerationStructure && ray.rayTracingPipeline;
+    const bool enableRayTracing = info.enableRayTracing && rayTracingSupported;
+    if (!enableRayTracing)
+    {
+        features.unlink<vk::PhysicalDeviceBufferDeviceAddressFeatures>();
+        features.unlink<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
+        features.unlink<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
+    }
+    else
+    {
+        // Add device extensions
+        extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+        extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+        extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+    }
+
+    // Require remaining features from device
+    deviceFeatureChain = features.get<vk::PhysicalDeviceFeatures2>().pNext;
+
+    return {
+        std::make_unique<vkb::Device>(physicalDevice, extensions, deviceFeatureChain),
+        enableRayTracing
+    };
 }

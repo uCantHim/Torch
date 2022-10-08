@@ -1,14 +1,19 @@
 #pragma once
 
-namespace vkb {
-    class VulkanInstance;
+#include <string>
+#include <vector>
+
+#include <vkb/VulkanInstance.h>
+
+#include "trc/Types.h"
+#include "trc/VulkanInclude.h"
+#include "TypeErasedStructureChain.h"
+
+namespace vkb
+{
     class PhysicalDevice;
     class Device;
 }
-
-#include "trc/VulkanInclude.h"
-#include "trc/Types.h"
-#include "TypeErasedStructureChain.h"
 
 namespace trc
 {
@@ -48,17 +53,17 @@ namespace trc
         Instance(Instance&&) noexcept = default;
         auto operator=(Instance&&) noexcept -> Instance& = default;
 
+        explicit Instance(const InstanceCreateInfo& info = {});
+
         /**
          * @brief Create a Torch instance from a user-created vk::Instance
          *
          * @param const InstanceCreateInfo&
          * @param vk::Instance instance The Vulkan instance object used.
-         *        If this is VK_NULL_HANDLE, a new Vulkan instance is
-         *        created automatically.
          *        Warning: will not be destroyed when the trc::Instance
          *        object is destroyed!
          */
-        Instance(const InstanceCreateInfo& info = {}, vk::Instance instance = VK_NULL_HANDLE);
+        Instance(const InstanceCreateInfo& info, vk::Instance instance);
         ~Instance();
 
         auto getVulkanInstance() const -> vk::Instance;
@@ -76,7 +81,15 @@ namespace trc
         bool hasRayTracing() const;
 
     private:
-        bool rayTracingEnabled{ false };
+        /**
+         * @return The created device and a flag indicating whether ray
+         *         tracing is supported by the hardware.
+         */
+        static auto makeDevice(const InstanceCreateInfo& info,
+                          const vkb::PhysicalDevice& physicalDevice)
+            -> std::pair<u_ptr<vkb::Device>, bool>;
+
+        bool hasRayTracingFeatures{ false };
 
         u_ptr<vkb::VulkanInstance> optionalLocalInstance;
 

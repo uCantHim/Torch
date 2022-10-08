@@ -14,15 +14,14 @@
 
 
 
-static inline trc::u_ptr<vkb::VulkanInstance> torchGlobalVulkanInstance{ nullptr };
-
-
+static inline bool isInitialized{ false };
 
 void trc::init(const TorchInitInfo&)
 {
-    vkb::init();
+    if (isInitialized) return;
+    isInitialized = true;
 
-    torchGlobalVulkanInstance = makeDefaultTorchVulkanInstance();
+    vkb::init();
 
     // Init pipelines
     pipelines::initDrawablePipelines({ DrawablePushConstants{} });
@@ -38,18 +37,8 @@ void trc::pollEvents()
 
 void trc::terminate()
 {
-    torchGlobalVulkanInstance.reset();
-
     vkb::terminate();
-}
-
-auto trc::getVulkanInstance() -> vkb::VulkanInstance&
-{
-    if (torchGlobalVulkanInstance == nullptr) {
-        init();
-    }
-
-    return *torchGlobalVulkanInstance;
+    isInitialized = false;
 }
 
 auto trc::makeTorchRenderGraph() -> RenderGraph
@@ -75,6 +64,7 @@ auto trc::initFull(
     const WindowCreateInfo& windowInfo
     ) -> u_ptr<TorchStack>
 {
+    init();
     return std::make_unique<TorchStack>(instanceInfo, windowInfo);
 }
 
@@ -84,7 +74,7 @@ trc::TorchStack::TorchStack(
     const InstanceCreateInfo& instanceInfo,
     const WindowCreateInfo& windowInfo)
     :
-    instance(instanceInfo, *getVulkanInstance()),
+    instance(instanceInfo),
     window(instance, [&] {
         auto winInfo = windowInfo;
         if (instanceInfo.enableRayTracing) {

@@ -76,7 +76,7 @@ auto vkb::sortByCapabilities(const std::vector<QueueFamily>& families)
 
 vkb::PhysicalDevice::PhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
     :
-    PhysicalDevice(device_helpers::getOptimalPhysicalDevice(instance, surface))
+    PhysicalDevice(findOptimalPhysicalDevice(instance, surface))
 {
 }
 
@@ -264,7 +264,7 @@ uint32_t vkb::PhysicalDevice::findMemoryType(
 //        Helper functions      //
 // ---------------------------- //
 
-auto vkb::device_helpers::findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
+auto vkb::findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
     -> std::vector<PhysicalDevice>
 {
     auto availableDevices = instance.enumeratePhysicalDevices();
@@ -282,7 +282,7 @@ auto vkb::device_helpers::findAllPhysicalDevices(vk::Instance instance, vk::Surf
     return detectedDevices;
 }
 
-auto vkb::device_helpers::getOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
+auto vkb::findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
     -> PhysicalDevice
 {
     auto detectedDevices = findAllPhysicalDevices(instance, surface);
@@ -291,7 +291,7 @@ auto vkb::device_helpers::getOptimalPhysicalDevice(vk::Instance instance, vk::Su
     // The decision algorithm is not complex at all right now, but could be improved easily.
     for (const auto& device : detectedDevices)
     {
-        if (isOptimalDevice(device)) {
+        if (device_helpers::isOptimalDevice(device)) {
             if constexpr (enableVerboseLogging) {
                 std::cout << "Found optimal physical device: \"" << device.name << "\"!\n";
             }

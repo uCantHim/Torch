@@ -72,7 +72,7 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
 
             // Init ImGui for Vulkan
             ImGui_ImplVulkan_InitInfo igInfo{};
-            igInfo.Instance = *getVulkanInstance();
+            igInfo.Instance = window.getInstance().getVulkanInstance(),
             igInfo.PhysicalDevice = *device.getPhysicalDevice();
             igInfo.Device = *device;
             igInfo.QueueFamily = family;
