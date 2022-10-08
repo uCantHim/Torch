@@ -51,12 +51,13 @@ void main()
 
     const float depth = texture(gBufferDepth, normalPixelCoord).r;
     const vec3 worldPos = worldPosFromDepth(normalPixelCoord, depth);
+    const vec3 worldNormal = imageLoad(gBufferNormal, texelCoord).xyz;
 
     vec4 cameraPos = inverse(viewMatrix) * vec4(0, 0, 0, 1);
     vec3 rayOrigin = worldPos;
     vec3 cameraRay = normalize(worldPos - cameraPos.xyz);
-    vec3 rayDirection = reflect(cameraRay, imageLoad(gBufferNormal, texelCoord).xyz);
-    float minT = 0.01;
+    vec3 rayDirection = reflect(cameraRay, worldNormal);
+    float minT = 0.003 + 0.01 * (1.0 - dot(rayDirection, -cameraRay));
     float maxT = 10000.0;
 
     traceRayEXT(
