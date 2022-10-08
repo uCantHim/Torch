@@ -1,7 +1,7 @@
-#include "ShadowPool.h"
+#include "trc/ShadowPool.h"
 
-#include "core/Window.h"
-#include "ray_tracing/RayPipelineBuilder.h"
+#include "trc/core/Window.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
-#include "Types.h"
+#include "trc/Types.h"
 
 namespace trc {
     class Instance;
@@ -46,13 +46,13 @@ namespace trc::rt
             void create(const ::trc::Instance& instance,
                         vk::AccelerationStructureBuildGeometryInfoKHR buildInfo,
                         const vk::ArrayProxy<const ui32>& primitiveCount,
-                        const vkb::DeviceMemoryAllocator& alloc);
+                        const DeviceMemoryAllocator& alloc);
 
             UniqueAccelerationStructure accelerationStructure;
 
             vk::AccelerationStructureBuildGeometryInfoKHR geoBuildInfo;
             vk::AccelerationStructureBuildSizesInfoKHR buildSizes;
-            vkb::DeviceLocalBuffer accelerationStructureBuffer;
+            DeviceLocalBuffer accelerationStructureBuffer;
         };
     } // namespace internal
 
@@ -64,17 +64,17 @@ namespace trc::rt
     public:
         /**
          * @param GeometryID geo
-         * @param const vkb::DeviceMemoryAllocator& alloc
+         * @param const DeviceMemoryAllocator& alloc
          */
         BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
             vk::AccelerationStructureGeometryKHR geo,
-            const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
+            const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
 
         BottomLevelAccelerationStructure(
             const ::trc::Instance& instance,
             std::vector<vk::AccelerationStructureGeometryKHR> geos,
-            const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
+            const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
 
         /**
          * @brief Build the acceleration structure
@@ -135,7 +135,7 @@ namespace trc::rt
         TopLevelAccelerationStructure(
             const ::trc::Instance& instance,
             ui32 maxInstances,
-            const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
+            const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
 
         auto getMaxInstances() const -> ui32;
 
@@ -199,8 +199,8 @@ namespace trc::rt
          * The top level AS keeps the scratch buffer because it is updated
          * way more often than the bottom level AS
          */
-        //vkb::Buffer scratchBuffer;
-        //vkb::Buffer instanceBuffer;
+        //Buffer scratchBuffer;
+        //Buffer instanceBuffer;
     };
 
 

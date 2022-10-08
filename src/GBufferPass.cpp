@@ -1,12 +1,12 @@
-#include "GBufferPass.h"
+#include "trc/GBufferPass.h"
 
 #include <glm/detail/type_half.hpp>
 
 
 
 trc::GBufferPass::GBufferPass(
-    const vkb::Device& device,
-    vkb::FrameSpecific<GBuffer>& _gBuffer)
+    const Device& device,
+    FrameSpecific<GBuffer>& _gBuffer)
     :
     RenderPass(makeVkRenderPass(device), NUM_SUBPASSES),
     gBuffer(_gBuffer),
@@ -94,7 +94,7 @@ void trc::GBufferPass::setClearColor(const vec4 c)
     clearValues[1] = vk::ClearColorValue(std::array<float, 4>{ c.r, c.g, c.b, c.a });
 }
 
-auto trc::GBufferPass::makeVkRenderPass(const vkb::Device& device)
+auto trc::GBufferPass::makeVkRenderPass(const Device& device)
     -> vk::UniqueRenderPass
 {
     std::vector<vk::AttachmentDescription> attachments = {

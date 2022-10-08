@@ -8,7 +8,7 @@
 #include <nlohmann/json.hpp>
 #include <spirv/CompileSpirv.h>
 
-#include "ShaderPath.h"
+#include "trc/ShaderPath.h"
 
 namespace trc
 {

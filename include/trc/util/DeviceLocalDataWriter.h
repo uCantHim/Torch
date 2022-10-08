@@ -3,11 +3,11 @@
 #include <vector>
 #include <mutex>
 
-#include <vkb/Memory.h>
-#include <vkb/Buffer.h>
+#include "trc/base/Memory.h"
+#include "trc/base/Buffer.h"
 
-#include "VulkanInclude.h"
-#include "Types.h"
+#include "trc/VulkanInclude.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -16,9 +16,9 @@ namespace trc
     class DeviceLocalDataWriter
     {
     public:
-        explicit DeviceLocalDataWriter(const vkb::Device& device,
-                                       vkb::DeviceMemoryAllocator alloc
-                                           = vkb::DefaultDeviceMemoryAllocator{});
+        explicit DeviceLocalDataWriter(const Device& device,
+                                       DeviceMemoryAllocator alloc
+                                           = DefaultDeviceMemoryAllocator{});
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& state);
 
@@ -52,13 +52,13 @@ namespace trc
                               vk::ImageMemoryBarrier barrier);
 
     private:
-        const vkb::Device& device;
-        vkb::DeviceMemoryAllocator alloc;
+        const Device& device;
+        DeviceMemoryAllocator alloc;
 
         struct BufferWrite
         {
             vk::Buffer dstBuffer;
-            vkb::Buffer stagingBuffer;
+            Buffer stagingBuffer;
 
             vk::BufferCopy copyRegion;
         };
@@ -66,7 +66,7 @@ namespace trc
         struct ImageWrite
         {
             vk::Image dstImage;
-            vkb::Buffer stagingBuffer;
+            Buffer stagingBuffer;
 
             vk::BufferImageCopy copyRegion;
         };

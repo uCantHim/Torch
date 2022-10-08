@@ -1,7 +1,7 @@
-#include "PipelineLayoutTemplate.h"
+#include "trc/core/PipelineLayoutTemplate.h"
 
-#include "Pipeline.h"
-#include "core/DescriptorProvider.h"
+#include "trc/core/Pipeline.h"
+#include "trc/core/DescriptorProvider.h"
 
 
 
@@ -46,7 +46,7 @@ auto trc::PipelineLayoutTemplate::getPushConstants() const -> const std::vector<
 
 
 auto trc::makePipelineLayout(
-    const vkb::Device& device,
+    const Device& device,
     const PipelineLayoutTemplate& _template,
     const RenderConfig& renderConfig)
     -> PipelineLayout

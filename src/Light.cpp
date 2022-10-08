@@ -1,4 +1,4 @@
-#include "Light.h"
+#include "trc/Light.h"
 
 #include "trc_util/Util.h"
 

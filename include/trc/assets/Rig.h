@@ -1,4 +1,4 @@
 #pragma once
 
-#include "RigRegistry.h"
-#include "AssetManager.h"
+#include "trc/assets/RigRegistry.h"
+#include "trc/assets/AssetManager.h"

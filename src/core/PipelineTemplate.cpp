@@ -1,8 +1,8 @@
-#include "PipelineTemplate.h"
+#include "trc/core/PipelineTemplate.h"
 
-#include <vkb/ShaderProgram.h>
+#include "trc/base/ShaderProgram.h"
 
-#include "core/Instance.h"
+#include "trc/core/Instance.h"
 
 
 
@@ -23,10 +23,10 @@ auto trc::SpecializationConstantStorage::makeSpecializationInfo() const -> vk::S
 
 
 
-auto trc::ProgramDefinitionData::makeProgram(const vkb::Device& device) const
-    -> vkb::ShaderProgram
+auto trc::ProgramDefinitionData::makeProgram(const Device& device) const
+    -> ShaderProgram
 {
-    vkb::ShaderProgram program(device);
+    ShaderProgram program(device);
 
     for (const auto& [type, stage] : stages)
     {
@@ -123,7 +123,7 @@ auto trc::ComputePipelineTemplate::getEntryPoint() const -> const std::string&
 
 
 auto trc::makeGraphicsPipeline(
-    const vkb::Device& device,
+    const Device& device,
     const PipelineTemplate& _template,
     PipelineLayout& layout,
     vk::RenderPass renderPass,
@@ -133,7 +133,7 @@ auto trc::makeGraphicsPipeline(
     const ProgramDefinitionData& shader = _template.getProgramData();
 
     // Create a program from the shader code
-    vkb::ShaderProgram program = shader.makeProgram(device);
+    ShaderProgram program = shader.makeProgram(device);
 
     auto pipeline = device->createGraphicsPipelineUnique(
         {},
@@ -159,11 +159,11 @@ auto trc::makeGraphicsPipeline(
 }
 
 auto trc::makeComputePipeline(
-    const vkb::Device& device,
+    const Device& device,
     const ComputePipelineTemplate& _template,
     PipelineLayout& layout) -> Pipeline
 {
-    auto shaderModule = vkb::makeShaderModule(device, _template.getShaderCode());
+    auto shaderModule = makeShaderModule(device, _template.getShaderCode());
     auto pipeline = device->createComputePipelineUnique(
         {},
         vk::ComputePipelineCreateInfo(

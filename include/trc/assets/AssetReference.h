@@ -4,10 +4,10 @@
 
 #include <trc_util/Util.h>
 
-#include "AssetID.h"
-#include "AssetPath.h"
-#include "AssetManagerInterface.h"
-#include "AssetSource.h"  // This is not strictly necessary, a forward declaration works as well
+#include "trc/assets/AssetID.h"
+#include "trc/assets/AssetPath.h"
+#include "trc/assets/AssetManagerInterface.h"
+#include "trc/assets/AssetSource.h"  // This is not strictly necessary, a forward declaration works as well
 
 namespace trc
 {

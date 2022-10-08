@@ -1,7 +1,7 @@
-#include "ray_tracing/RayPipelineBuilder.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
-#include <vkb/Device.h>
-#include <vkb/ShaderProgram.h>
+#include "trc/base/Device.h"
+#include "trc/base/ShaderProgram.h"
 
 #include "trc/ShaderPath.h"
 #include "trc/PipelineDefinitions.h"
@@ -134,7 +134,7 @@ auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callab
 auto trc::rt::RayTracingPipelineBuilder::build(
     ui32 maxRecursionDepth,
     PipelineLayout& layout,
-    const vkb::DeviceMemoryAllocator alloc
+    const DeviceMemoryAllocator alloc
     ) -> std::pair<Pipeline, ShaderBindingTable>
 {
     assert(pipelineStages.size() > 0);
@@ -168,7 +168,7 @@ auto trc::rt::RayTracingPipelineBuilder::build(
 auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const fs::path& path) -> vk::ShaderModule
 {
     return *shaderModules.emplace_back(
-        vkb::makeShaderModule(device, internal::loadShader(ShaderPath(path)))
+        makeShaderModule(device, internal::loadShader(ShaderPath(path)))
     );
 }
 

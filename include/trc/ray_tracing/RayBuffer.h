@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vkb/Image.h>
+#include "trc/base/Image.h"
 
-#include "core/Window.h"
-#include "core/DescriptorProvider.h"
+#include "trc/core/Window.h"
+#include "trc/core/DescriptorProvider.h"
 
 namespace trc::rt
 {
@@ -12,7 +12,7 @@ namespace trc::rt
         uvec2 size;
         vk::ImageUsageFlags imageUsage;
 
-        const vkb::DeviceMemoryAllocator& alloc{ vkb::DefaultDeviceMemoryAllocator{} };
+        const DeviceMemoryAllocator& alloc{ DefaultDeviceMemoryAllocator{} };
     };
 
     class RayBuffer
@@ -25,13 +25,13 @@ namespace trc::rt
             NUM_IMAGES
         };
 
-        RayBuffer(const vkb::Device& device, const RayBufferCreateInfo& info);
+        RayBuffer(const Device& device, const RayBufferCreateInfo& info);
 
         auto getSize() const -> uvec2;
         auto getExtent() const -> vk::Extent2D;
 
-        auto getImage(Image imageType) -> vkb::Image&;
-        auto getImage(Image imageType) const -> const vkb::Image&;
+        auto getImage(Image imageType) -> trc::Image&;
+        auto getImage(Image imageType) const -> const trc::Image&;
         auto getImageView(Image imageType) const -> vk::ImageView;
 
         auto getImageDescriptor(Image imageType) const -> const DescriptorProvider&;
@@ -39,11 +39,11 @@ namespace trc::rt
         auto getImageDescriptorLayout() const -> vk::DescriptorSetLayout;
 
     private:
-        void createDescriptors(const vkb::Device& device);
+        void createDescriptors(const Device& device);
 
         const uvec2 size;
 
-        std::vector<vkb::Image> images;
+        std::vector<trc::Image> images;
         std::vector<vk::UniqueImageView> imageViews;
 
         vk::UniqueDescriptorSetLayout layout;

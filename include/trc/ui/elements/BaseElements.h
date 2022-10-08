@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Types.h"
-#include "ui/Style.h"
-#include "ui/Transform.h"
+#include "trc/Types.h"
+#include "trc/ui/Style.h"
+#include "trc/ui/Transform.h"
 
 namespace trc::ui
 {

@@ -4,8 +4,8 @@
 #include <vector>
 #include <any>
 
-#include "../Types.h"
-#include "RenderConfiguration.h"
+#include "trc/Types.h"
+#include "trc/core/RenderConfiguration.h"
 
 namespace trc
 {
@@ -65,7 +65,7 @@ namespace trc
     /**
      * @brief Create a pipeline layout from a template
      */
-    auto makePipelineLayout(const vkb::Device& device,
+    auto makePipelineLayout(const Device& device,
                             const PipelineLayoutTemplate& _template,
                             const RenderConfig& renderConfig
         ) -> PipelineLayout;

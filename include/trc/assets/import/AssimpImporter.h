@@ -2,11 +2,13 @@
 
 #include <filesystem>
 
-#include "AssetImportBase.h"
+#ifdef TRC_USE_ASSIMP
+#include <assimp/scene.h>
+#endif
+
+#include "trc/assets/import/AssetImportBase.h"
 
 #ifdef TRC_USE_ASSIMP
-
-#include <assimp/scene.h>
 
 namespace trc
 {

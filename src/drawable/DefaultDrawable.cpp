@@ -1,4 +1,4 @@
-#include "drawable/DefaultDrawable.h"
+#include "trc/drawable/DefaultDrawable.h"
 
 #include "trc/TorchResources.h"
 #include "trc/GBufferPass.h"
@@ -44,10 +44,9 @@ void drawShadow(
 
 auto getDrawablePipelineFlags(const DrawableCreateInfo& info) -> pipelines::DrawablePipelineTypeFlags
 {
-    pipelines::DrawablePipelineTypeFlags flags{
-        pipelines::AnimationTypeFlagBits::none
-        | pipelines::PipelineShadingTypeFlagBits::opaque
-    };
+    pipelines::DrawablePipelineTypeFlags flags;
+    flags |= pipelines::AnimationTypeFlagBits::none;
+    flags |= pipelines::PipelineShadingTypeFlagBits::opaque;
 
     if (info.transparent) {
         flags |= pipelines::PipelineShadingTypeFlagBits::transparent;

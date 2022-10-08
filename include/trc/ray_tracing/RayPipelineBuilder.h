@@ -70,8 +70,8 @@ namespace trc::rt
          */
         auto build(ui32 maxRecursionDepth,
                    PipelineLayout& layout,
-                   const vkb::DeviceMemoryAllocator alloc
-                       = vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress })
+                   const DeviceMemoryAllocator alloc
+                       = DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress })
             -> std::pair<Pipeline, ShaderBindingTable>;
 
     private:
@@ -80,7 +80,7 @@ namespace trc::rt
         auto addShaderGroup(vk::RayTracingShaderGroupTypeKHR type)
             -> vk::RayTracingShaderGroupCreateInfoKHR&;
 
-        const vkb::Device& device;
+        const Device& device;
         const vk::DispatchLoaderDynamic& dl;
 
         // Need to be kept alive for the stage create infos

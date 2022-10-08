@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Node.h"
-#include "assets/Geometry.h"
+#include "trc/Node.h"
+#include "trc/assets/Geometry.h"
 
-namespace vkb {
+namespace trc {
     class Device;
 }
 
@@ -11,7 +11,7 @@ namespace trc::rt
 {
     class BottomLevelAccelerationStructure;
 
-    auto makeGeometryInfo(const vkb::Device& device, const GeometryHandle& geo)
+    auto makeGeometryInfo(const Device& device, const GeometryHandle& geo)
         -> vk::AccelerationStructureGeometryKHR;
 
     struct GeometryInstance

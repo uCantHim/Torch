@@ -2,13 +2,13 @@
 
 #include <vector>
 
-#include <vkb/Device.h>
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/Device.h"
+#include "trc/base/FrameSpecificObject.h"
 #include <trc_util/async/ThreadPool.h>
 #include <trc_util/functional/Maybe.h>
 
 #include "trc/Types.h"
-#include "RenderStage.h"
+#include "trc/core/RenderStage.h"
 
 namespace trc
 {
@@ -70,7 +70,7 @@ namespace trc
 
         std::vector<vk::UniqueEvent> events;
         std::vector<vk::UniqueCommandPool> commandPools;
-        std::vector<vkb::FrameSpecific<vk::UniqueCommandBuffer>> commandBuffers;
+        std::vector<FrameSpecific<vk::UniqueCommandBuffer>> commandBuffers;
 
         u_ptr<async::ThreadPool> threadPool{ new async::ThreadPool };
     };

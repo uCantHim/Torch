@@ -1,10 +1,10 @@
-#include "ui/elements/Text.h"
+#include "trc/ui/elements/Text.h"
 
 #include <iostream>
 
-#include "text/UnicodeUtils.h"
-#include "ui/DrawInfo.h"
-#include "ui/Window.h"
+#include "trc/text/UnicodeUtils.h"
+#include "trc/ui/DrawInfo.h"
+#include "trc/ui/Window.h"
 
 
 

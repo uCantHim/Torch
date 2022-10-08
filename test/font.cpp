@@ -30,7 +30,7 @@ int main()
         // Main loop
         while (window.isOpen())
         {
-            vkb::pollEvents();
+            trc::pollEvents();
             window.drawFrame(torch->makeDrawConfig(scene, camera));
         }
 

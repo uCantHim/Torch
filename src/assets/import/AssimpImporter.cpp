@@ -1,6 +1,6 @@
 #ifdef TRC_USE_ASSIMP
 
-#include "assets/import/AssimpImporter.h"
+#include "trc/assets/import/AssimpImporter.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>

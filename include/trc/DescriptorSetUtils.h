@@ -2,9 +2,9 @@
 
 #include <vector>
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
-#include "Types.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -22,7 +22,7 @@ namespace trc
 
         auto getBindingCount() const -> size_t;
 
-        auto build(const vkb::Device& device) -> vk::UniqueDescriptorSetLayout;
+        auto build(const Device& device) -> vk::UniqueDescriptorSetLayout;
 
     private:
         vk::DescriptorSetLayoutCreateFlags layoutFlags;

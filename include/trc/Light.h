@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Types.h"
+#include "trc/Types.h"
 #include "trc_util/Padding.h"
 
 namespace trc

@@ -30,6 +30,7 @@ target_sources(
 )
 
 add_subdirectory(assets)
+add_subdirectory(base)
 add_subdirectory(core)
 add_subdirectory(drawable)
 add_subdirectory(experimental)

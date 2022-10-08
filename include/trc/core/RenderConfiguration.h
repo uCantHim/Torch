@@ -3,11 +3,11 @@
 #include <concepts>
 #include <unordered_map>
 
-#include "DescriptorRegistry.h"
-#include "RenderStage.h"
-#include "RenderPass.h"
-#include "Pipeline.h"
-#include "RenderLayout.h"
+#include "trc/core/DescriptorRegistry.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/Pipeline.h"
+#include "trc/core/RenderLayout.h"
 
 namespace trc
 {

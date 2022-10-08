@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/FrameSpecificObject.h"
 
-#include "core/RenderPass.h"
-#include "Framebuffer.h"
-#include "GBuffer.h"
+#include "trc/core/RenderPass.h"
+#include "trc/Framebuffer.h"
+#include "trc/GBuffer.h"
 
 namespace trc
 {
@@ -29,8 +29,8 @@ namespace trc
             static constexpr SubPass::ID transparency{ 1 };
         };
 
-        GBufferPass(const vkb::Device& device,
-                    vkb::FrameSpecific<GBuffer>& gBuffer);
+        GBufferPass(const Device& device,
+                    FrameSpecific<GBuffer>& gBuffer);
 
         void begin(vk::CommandBuffer cmdBuf,
                    vk::SubpassContents subpassContents,
@@ -46,15 +46,15 @@ namespace trc
          * Can be used to make dummy render passes, for example during
          * pipeline creation.
          *
-         * @param const vkb::Swapchain& swapchain Used to determine the
+         * @param const Swapchain& swapchain Used to determine the
          *        image format of the color attachment.
          */
-        static auto makeVkRenderPass(const vkb::Device& device) -> vk::UniqueRenderPass;
+        static auto makeVkRenderPass(const Device& device) -> vk::UniqueRenderPass;
 
     private:
-        vkb::FrameSpecific<GBuffer>& gBuffer;
+        FrameSpecific<GBuffer>& gBuffer;
         uvec2 framebufferSize;
-        vkb::FrameSpecific<Framebuffer> framebuffers;
+        FrameSpecific<Framebuffer> framebuffers;
 
         std::array<vk::ClearValue, 4> clearValues;
     };

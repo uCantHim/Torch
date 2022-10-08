@@ -1,4 +1,4 @@
-#include "SceneDescriptor.h"
+#include "trc/SceneDescriptor.h"
 
 #include "trc/DescriptorSetUtils.h"
 #include "trc/Scene.h"
@@ -40,7 +40,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
         lightBuffer.unmap();
 
         // Create new buffer
-        lightBuffer = vkb::Buffer(
+        lightBuffer = Buffer(
             device,
             lights.getRequiredLightDataSize(),
             vk::BufferUsageFlagBits::eStorageBuffer,
@@ -65,7 +65,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
     if (drawDataSize > drawableDataBuf.size())
     {
         drawableDataBuf.unmap();
-        drawableDataBuf = vkb::Buffer(
+        drawableDataBuf = Buffer(
             instance.getDevice(),
             drawableDataBuf.size() * 2,
             vk::BufferUsageFlagBits::eStorageBuffer,

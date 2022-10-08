@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vkb/Buffer.h>
-#include <vkb/Image.h>
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/Image.h"
+#include "trc/base/FrameSpecificObject.h"
 
-#include "Types.h"
-#include "core/DescriptorProvider.h"
+#include "trc/Types.h"
+#include "trc/core/DescriptorProvider.h"
 
 namespace trc
 {
@@ -28,13 +28,13 @@ namespace trc
             NUM_IMAGES
         };
 
-        GBuffer(const vkb::Device& device, const GBufferCreateInfo& size);
+        GBuffer(const Device& device, const GBufferCreateInfo& size);
 
         auto getSize() const -> uvec2;
         auto getExtent() const -> vk::Extent2D;
 
-        auto getImage(Image imageType) -> vkb::Image&;
-        auto getImage(Image imageType) const -> const vkb::Image&;
+        auto getImage(Image imageType) -> trc::Image&;
+        auto getImage(Image imageType) const -> const trc::Image&;
         auto getImageView(Image imageType) const -> vk::ImageView;
 
         struct TransparencyResources
@@ -83,15 +83,15 @@ namespace trc
 
         const uvec2 size;
         const vk::Extent2D extent;
-        std::vector<vkb::Image> images;
+        std::vector<trc::Image> images;
         std::vector<vk::UniqueImageView> imageViews;
 
         const ui32 ATOMIC_BUFFER_SECTION_SIZE;
         const ui32 FRAG_LIST_BUFFER_SIZE;
 
-        vkb::Image fragmentListHeadPointerImage;
+        trc::Image fragmentListHeadPointerImage;
         vk::UniqueImageView fragmentListHeadPointerImageView;
-        vkb::Buffer fragmentListBuffer;
+        Buffer fragmentListBuffer;
     };
 
     /**
@@ -113,24 +113,24 @@ namespace trc
         /**
          * @brief Create the descriptor
          */
-        GBufferDescriptor(const vkb::Device& device,
-                          const vkb::FrameClock& frameClock);
+        GBufferDescriptor(const Device& device,
+                          const FrameClock& frameClock);
 
         /**
          * @brief Create the descriptor and update the sets with resources
          */
-        GBufferDescriptor(const vkb::Device& device,
-                          const vkb::FrameSpecific<GBuffer>& gBuffer);
+        GBufferDescriptor(const Device& device,
+                          const FrameSpecific<GBuffer>& gBuffer);
 
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
-        void update(const vkb::Device& device,
-                    const vkb::FrameSpecific<GBuffer>& gBuffer);
+        void update(const Device& device,
+                    const FrameSpecific<GBuffer>& gBuffer);
 
     private:
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
-        vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
+        FrameSpecific<vk::UniqueDescriptorSet> descSets;
 
         FrameSpecificDescriptorProvider provider;
     };

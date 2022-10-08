@@ -5,11 +5,11 @@
 #include <variant>
 #include <mutex>
 
-#include "Instance.h"
-#include "Pipeline.h"
-#include "PipelineTemplate.h"
-#include "PipelineLayoutTemplate.h"
-#include "RenderConfiguration.h"
+#include "trc/core/Instance.h"
+#include "trc/core/Pipeline.h"
+#include "trc/core/PipelineLayoutTemplate.h"
+#include "trc/core/PipelineTemplate.h"
+#include "trc/core/RenderConfiguration.h"
 
 namespace trc
 {

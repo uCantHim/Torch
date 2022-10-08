@@ -3,10 +3,10 @@
 #include <string>
 #include <atomic>
 
-#include "trc_util/data/IndexMap.h"
+#include <trc_util/data/IndexMap.h>
 
-#include "Types.h"
-#include "text/GlyphLoading.h"
+#include "trc/Types.h"
+#include "trc/text/GlyphLoading.h"
 
 namespace trc::ui
 {

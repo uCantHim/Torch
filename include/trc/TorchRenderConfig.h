@@ -1,26 +1,26 @@
 #pragma once
 
-#include <vkb/event/Event.h>
+#include "trc/base/event/Event.h"
 
-#include "Types.h"
-#include "core/DescriptorProviderWrapper.h"
-#include "core/Instance.h"
-#include "core/RenderConfigImplHelper.h"
-#include "core/RenderGraph.h"
-#include "core/RenderPass.h"
-#include "core/SceneBase.h"
+#include "trc/Types.h"
+#include "trc/core/DescriptorProviderWrapper.h"
+#include "trc/core/Instance.h"
+#include "trc/core/RenderConfigImplHelper.h"
+#include "trc/core/RenderGraph.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/SceneBase.h"
 
-#include "FinalLightingPass.h"
-#include "GBufferDepthReader.h"
-#include "GBufferPass.h"
-#include "RenderDataDescriptor.h"
-#include "RenderPassShadow.h"
-#include "SceneDescriptor.h"
-#include "ShadowPool.h"
-#include "TopLevelAccelerationStructureBuildPass.h"
-#include "assets/AssetRegistry.h"
-#include "ray_tracing/AccelerationStructure.h"
-#include "ray_tracing/RayTracingPass.h"
+#include "trc/FinalLightingPass.h"
+#include "trc/GBufferDepthReader.h"
+#include "trc/GBufferPass.h"
+#include "trc/RenderDataDescriptor.h"
+#include "trc/RenderPassShadow.h"
+#include "trc/SceneDescriptor.h"
+#include "trc/ShadowPool.h"
+#include "trc/TopLevelAccelerationStructureBuildPass.h"
+#include "trc/assets/AssetRegistry.h"
+#include "trc/ray_tracing/AccelerationStructure.h"
+#include "trc/ray_tracing/RayTracingPass.h"
 
 namespace trc
 {
@@ -97,8 +97,8 @@ namespace trc
 
         void setClearColor(vec4 color);
 
-        auto getGBuffer() -> vkb::FrameSpecific<GBuffer>&;
-        auto getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&;
+        auto getGBuffer() -> FrameSpecific<GBuffer>&;
+        auto getGBuffer() const -> const FrameSpecific<GBuffer>&;
 
         auto getGBufferRenderPass() const -> const GBufferPass&;
         auto getCompatibleShadowRenderPass() const -> vk::RenderPass;
@@ -130,7 +130,7 @@ namespace trc
         const bool enableRayTracing;
 
         // Default render passes
-        u_ptr<vkb::FrameSpecific<GBuffer>> gBuffer;
+        u_ptr<FrameSpecific<GBuffer>> gBuffer;
         u_ptr<GBufferPass> gBufferPass;
         u_ptr<GBufferDepthReader> mouseDepthReader;
         RenderPassShadow shadowPass;

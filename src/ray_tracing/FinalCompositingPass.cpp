@@ -1,7 +1,7 @@
-#include "ray_tracing/FinalCompositingPass.h"
+#include "trc/ray_tracing/FinalCompositingPass.h"
 
-#include <vkb/ShaderProgram.h>
-#include <vkb/Barriers.h>
+#include "trc/base/ShaderProgram.h"
+#include "trc/base/Barriers.h"
 
 #include "trc_util/Util.h"
 #include "trc/DescriptorSetUtils.h"
@@ -17,7 +17,7 @@
 trc::rt::FinalCompositingPass::FinalCompositingPass(
     const Instance& instance,
     const RenderTarget& target,
-    const vkb::FrameSpecific<RayBuffer>& rayBuffer)
+    const FrameSpecific<RayBuffer>& rayBuffer)
     :
     RenderPass({}, NUM_SUBPASSES),
     device(instance.getDevice()),
@@ -119,7 +119,7 @@ void trc::rt::FinalCompositingPass::begin(
     FrameRenderState&)
 {
     // Swapchain image: ePresentSrcKHR -> eGeneral
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         renderTarget->getCurrentImage(),
         vk::ImageLayout::ePresentSrcKHR,
@@ -136,7 +136,7 @@ void trc::rt::FinalCompositingPass::begin(
     cmdBuf.dispatch(x, y, z);
 
     // Swapchain image: eGeneral -> ePresentSrcKHR
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         renderTarget->getCurrentImage(),
         vk::ImageLayout::eGeneral,

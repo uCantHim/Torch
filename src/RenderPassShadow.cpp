@@ -1,6 +1,6 @@
-#include "RenderPassShadow.h"
+#include "trc/RenderPassShadow.h"
 
-#include "core/Window.h"
+#include "trc/core/Window.h"
 
 
 
@@ -56,7 +56,7 @@ trc::RenderPassShadow::RenderPassShadow(
     resolution(info.resolution),
     shadowMatrixIndex(info.shadowIndex),
     depthImages(window.getSwapchain(), [&](ui32) {
-        return vkb::Image(
+        return Image(
             window.getDevice(),
             vk::ImageCreateInfo(
                 {},
@@ -112,7 +112,7 @@ auto trc::RenderPassShadow::getResolution() const noexcept -> uvec2
     return resolution;
 }
 
-auto trc::RenderPassShadow::getShadowImage(ui32 imageIndex) const -> const vkb::Image&
+auto trc::RenderPassShadow::getShadowImage(ui32 imageIndex) const -> const Image&
 {
     return depthImages.getAt(imageIndex);
 }

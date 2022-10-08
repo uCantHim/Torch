@@ -1,4 +1,4 @@
 #pragma once
 
-#include "MaterialRegistry.h"
-#include "AssetManager.h"
+#include "trc/assets/MaterialRegistry.h"
+#include "trc/assets/AssetManager.h"

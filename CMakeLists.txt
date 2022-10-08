@@ -34,13 +34,27 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Debug settings
 set(TORCH_DEBUG $<$<CONFIG:Debug>:ON>)
 
-# Required third-party
+# Third-party
 include(FetchContent)
 include(cmake/utils.cmake)
 
+find_package(Threads)
+find_package(PkgConfig REQUIRED) # For GLFW
+
+find_package(Vulkan REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw3)
+find_package(glm REQUIRED)
+find_package(PNG REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(PNG REQUIRED)
+
+FetchContent_Declare(
+    cimg
+    GIT_REPOSITORY https://github.com/dtschump/CImg.git
+    GIT_TAG        927fee511fe4fcc1ae5cdf2365a60048fe4ff935
+)
+FetchContent_MakeAvailable(cimg)
 
 if (TARGET profiler)
     set(HAS_PROFILER TRUE)
@@ -53,25 +67,34 @@ add_subdirectory(tools)
 add_library(torch)
 torch_default_compile_options(torch)
 
-target_include_directories(torch
+target_include_directories(
+    torch
     PUBLIC
+        ${Vulkan_INCLUDE_DIRS}
+        ${GLFW_INCLUDE_DIRS}
+        ${GLM_INCLUDE_DIRS}
+
         ${CMAKE_CURRENT_LIST_DIR}/include
-        ${CMAKE_CURRENT_LIST_DIR}/include/trc
+        ${TORCH_GENERATED_DIR}/include
+
     PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}/include/trc
-        ${CMAKE_CURRENT_LIST_DIR}/include/trc/core
+        ${cimg_SOURCE_DIR}
 )
 
 target_link_libraries(
     torch
     PUBLIC
-        torch_util
-        component
-        vk_base
-        spirv_compiler
+        Threads::Threads
+        Vulkan::Vulkan
+        ${GLFW_LIBRARIES}
         Freetype::Freetype
         protobuf::libprotobuf
         $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
+
+        torch_util
+        component
+        spirv_compiler
+
     PRIVATE
         PNG::PNG
 )
@@ -88,6 +111,10 @@ target_compile_definitions(torch
         TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
 )
 
+# Sources
+add_subdirectory(src)
+add_subdirectory(include/trc) # Precompiled headers
+
 # Pipeline generation
 include(tools/pre_build_step/CMakeLists.txt)
 torch_compile_pipelines_cpp(TARGET torch FILE "Common")
@@ -99,11 +126,6 @@ torch_compile_pipelines_cpp(TARGET torch FILE "RayShaders")
 
 # Protobuf generation
 include(protobuf/CMakeLists.txt)
-
-# Sources
-add_subdirectory(vk_base)
-add_subdirectory(src)
-add_subdirectory(include/trc) # Precompiled headers
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})

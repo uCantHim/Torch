@@ -1,4 +1,4 @@
-#include "TorchRenderConfig.h"
+#include "trc/TorchRenderConfig.h"
 
 #include "trc_util/Timer.h"
 
@@ -150,12 +150,12 @@ void trc::TorchRenderConfig::setClearColor(vec4 color)
     }
 }
 
-auto trc::TorchRenderConfig::getGBuffer() -> vkb::FrameSpecific<GBuffer>&
+auto trc::TorchRenderConfig::getGBuffer() -> FrameSpecific<GBuffer>&
 {
     return *gBuffer;
 }
 
-auto trc::TorchRenderConfig::getGBuffer() const -> const vkb::FrameSpecific<GBuffer>&
+auto trc::TorchRenderConfig::getGBuffer() const -> const FrameSpecific<GBuffer>&
 {
     return *gBuffer;
 }
@@ -275,14 +275,14 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     }
     gBufferPass.reset();
     gBuffer.reset();
-    if constexpr (vkb::enableVerboseLogging)
+    if constexpr (enableVerboseLogging)
     {
         const float time = timer.reset();
         std::cout << "GBuffer resources destroyed (" << time << " ms)\n";
     }
 
     // Create new g-buffer
-    gBuffer = std::make_unique<vkb::FrameSpecific<GBuffer>>(
+    gBuffer = std::make_unique<FrameSpecific<GBuffer>>(
         window.getSwapchain(),
         [this, newSize](ui32) {
             return GBuffer(
@@ -291,7 +291,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
             );
         }
     );
-    if constexpr (vkb::enableVerboseLogging)
+    if constexpr (enableVerboseLogging)
     {
         const float time = timer.reset();
         std::cout << "GBuffer recreated (" << time << " ms)\n";
@@ -300,7 +300,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     // Update g-buffer descriptor
     gBufferDescriptor.update(window.getDevice(), *gBuffer);
 
-    if constexpr (vkb::enableVerboseLogging)
+    if constexpr (enableVerboseLogging)
     {
         const float time = timer.reset();
         std::cout << "GBuffer descriptor updated (" << time << " ms)\n";
@@ -318,7 +318,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
 
     if (enableRayTracing)
     {
-        vkb::FrameSpecific<rt::RayBuffer> rayBuffer{
+        FrameSpecific<rt::RayBuffer> rayBuffer{
             window,
             [&](ui32) {
                 return trc::rt::RayBuffer(
@@ -339,7 +339,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
         layout.addPass(rt::rayTracingRenderStage, *rayTracingPass);
     }
 
-    if constexpr (vkb::enableVerboseLogging)
+    if constexpr (enableVerboseLogging)
     {
         const float time = timer.reset();
         std::cout << "Deferred renderpass recreated (" << time << " ms)\n";

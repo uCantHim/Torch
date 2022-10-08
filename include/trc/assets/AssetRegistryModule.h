@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VulkanInclude.h"
-#include "AssetID.h"
+#include "trc/VulkanInclude.h"
+#include "trc/assets/AssetID.h"
 
 namespace trc
 {

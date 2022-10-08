@@ -1,4 +1,4 @@
-#include "text/Text.h"
+#include "trc/text/Text.h"
 
 #include "trc/text/UnicodeUtils.h"
 #include "trc/TorchRenderConfig.h"
@@ -73,7 +73,7 @@ void trc::Text::print(const std::string& str)
     // Create new buffer if new text exceeds current size
     if (str.size() * sizeof(LetterData) > glyphBuffer.size())
     {
-        glyphBuffer = vkb::Buffer(
+        glyphBuffer = Buffer(
             instance.getDevice(),
             str.size() * sizeof(LetterData),
             vk::BufferUsageFlagBits::eVertexBuffer,

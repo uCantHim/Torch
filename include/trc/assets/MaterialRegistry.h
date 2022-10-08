@@ -2,17 +2,17 @@
 
 #include <unordered_set>
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 #include <trc_util/Padding.h>
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
 
-#include "Types.h"
-#include "AssetManagerInterface.h"
-#include "AssetReference.h"
-#include "AssetRegistryModule.h"
-#include "AssetSource.h"
-#include "TextureRegistry.h"
+#include "trc/Types.h"
+#include "trc/assets/AssetManagerInterface.h"
+#include "trc/assets/AssetReference.h"
+#include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/TextureRegistry.h"
 
 namespace trc
 {
@@ -68,7 +68,7 @@ namespace trc
 
     struct MaterialRegistryCreateInfo
     {
-        const vkb::Device& device;
+        const Device& device;
         SharedDescriptorSet::Builder& descriptorBuilder;
     };
 
@@ -134,7 +134,7 @@ namespace trc
         // Host and device data storage
         std::mutex materialStorageLock;
         std::vector<u_ptr<InternalStorage>> materials;
-        vkb::Buffer materialBuffer;
+        Buffer materialBuffer;
 
         // Descriptor
         SharedDescriptorSet::Binding descBinding;

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "core/Window.h"
-#include "core/RenderPass.h"
-#include "core/Pipeline.h"
-#include "GBuffer.h"
-#include "RayBuffer.h"
+#include "trc/GBuffer.h"
+#include "trc/core/Pipeline.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/Window.h"
+#include "trc/ray_tracing/RayBuffer.h"
 
 namespace trc {
     class AssetRegistry;
@@ -26,7 +26,7 @@ namespace trc::rt
          */
         FinalCompositingPass(const Instance& instance,
                              const RenderTarget& output,
-                             const vkb::FrameSpecific<RayBuffer>& rayBuffer);
+                             const FrameSpecific<RayBuffer>& rayBuffer);
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer cmdBuf) override;
@@ -36,7 +36,7 @@ namespace trc::rt
     private:
         static constexpr uvec3 COMPUTE_LOCAL_SIZE{ 10, 10, 1 };
 
-        const vkb::Device& device;
+        const Device& device;
 
         const RenderTarget* renderTarget;
         const uvec3 computeGroupSize;
@@ -55,8 +55,8 @@ namespace trc::rt
          * binding 0 (output image): image2D rgba8
          */
         vk::UniqueDescriptorSetLayout outputLayout;
-        vkb::FrameSpecific<vk::UniqueDescriptorSet> inputSets;
-        vkb::FrameSpecific<vk::UniqueDescriptorSet> outputSets;
+        FrameSpecific<vk::UniqueDescriptorSet> inputSets;
+        FrameSpecific<vk::UniqueDescriptorSet> outputSets;
 
         std::vector<vk::UniqueSampler> depthSamplers;
 

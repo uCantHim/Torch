@@ -1,6 +1,6 @@
-#include "Scene.h"
+#include "trc/Scene.h"
 
-#include "TorchResources.h"
+#include "trc/TorchResources.h"
 
 
 

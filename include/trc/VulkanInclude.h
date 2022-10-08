@@ -1,3 +1,3 @@
 #pragma once
 
-#include <vkb/VulkanInclude.h>
+#include <vulkan/vulkan.hpp>

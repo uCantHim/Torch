@@ -1,7 +1,7 @@
-#include "assets/AnimationRegistry.h"
+#include "trc/assets/AnimationRegistry.h"
 
-#include "assets/import/InternalFormat.h"
 #include "animation.pb.h"
+#include "trc/assets/import/InternalFormat.h"
 
 
 
@@ -141,14 +141,14 @@ auto trc::AnimationRegistry::makeAnimation(const AnimationData& data) -> ui32
     if ((animationBufferOffset + data.frameCount * newMeta.boneCount) * sizeof(mat4)
         > animationBuffer.size())
     {
-        vkb::Buffer newBuffer(
+        Buffer newBuffer(
             device,
             animationBuffer.size() * 2,
             vk::BufferUsageFlagBits::eStorageBuffer
             | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
             vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
         );
-        newBuffer.copyFrom(animationBuffer, vkb::BufferRegion(0, animationBuffer.size()));
+        newBuffer.copyFrom(animationBuffer, BufferRegion(0, animationBuffer.size()));
 
         animationBuffer = std::move(newBuffer);
 

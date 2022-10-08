@@ -1,8 +1,8 @@
 #pragma once
 
-#include "UpdatePass.h"
-#include "drawable/DrawableComponentScene.h"
-#include "ray_tracing/AccelerationStructure.h"
+#include "trc/UpdatePass.h"
+#include "trc/drawable/DrawableComponentScene.h"
+#include "trc/ray_tracing/AccelerationStructure.h"
 
 namespace trc
 {
@@ -21,9 +21,9 @@ namespace trc
 
         DrawableComponentScene* scene{ nullptr };
 
-        vkb::DeviceLocalBuffer scratchBuffer;
+        DeviceLocalBuffer scratchBuffer;
         const vk::DeviceAddress scratchMemoryAddress;
-        vkb::Buffer instanceBuildBuffer;
+        Buffer instanceBuildBuffer;
         /** Persistent mapping of instanceBuildBuffer */
         rt::GeometryInstance* instances;
     };

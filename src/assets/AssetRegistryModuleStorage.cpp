@@ -1,4 +1,4 @@
-#include "assets/AssetRegistryModuleStorage.h"
+#include "trc/assets/AssetRegistryModuleStorage.h"
 
 
 

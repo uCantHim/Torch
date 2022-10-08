@@ -183,7 +183,7 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
        << "#include <trc/core/PipelineRegistry.h>\n"
        << "#include <trc/ShaderPath.h>\n"
        << "\n"
-       << "#include \"FlagCombination.h\"\n"
+       << "#include \"trc/FlagCombination.h\"\n"
         ;
 }
 

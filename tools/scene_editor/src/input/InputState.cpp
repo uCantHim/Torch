@@ -107,7 +107,7 @@ InputStateMachine::InputStateMachine()
     };
 
     TopLevelCommand command;
-    executeCommand({ vkb::Key::unknown }, command);
+    executeCommand({ trc::Key::unknown }, command);
 }
 
 void InputStateMachine::update(const float timeDelta)

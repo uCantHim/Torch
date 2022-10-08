@@ -1,4 +1,4 @@
-#include "assets/import/InternalFormat.h"
+#include "trc/assets/import/InternalFormat.h"
 
 #include <fstream>
 #include <stdexcept>

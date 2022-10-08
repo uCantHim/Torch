@@ -1,16 +1,16 @@
 #include <future>
 #include <iostream>
 
-#include <vkb/Barriers.h>
-#include <vkb/ImageUtils.h>
-#include <trc_util/Timer.h>
 #include <trc/DescriptorSetUtils.h>
 #include <trc/PipelineDefinitions.h>
 #include <trc/TopLevelAccelerationStructureBuildPass.h>
 #include <trc/Torch.h>
 #include <trc/TorchResources.h>
+#include <trc/base/Barriers.h>
+#include <trc/base/ImageUtils.h>
 #include <trc/ray_tracing/RayTracing.h>
 #include <trc/ray_tracing/RaygenDescriptor.h>
+#include <trc_util/Timer.h>
 using namespace trc::basic_types;
 
 using trc::rt::BLAS;
@@ -92,9 +92,9 @@ void run()
 
     // --- Set some keybindings --- //
 
-    vkb::on<vkb::KeyPressEvent>([&](auto& e) {
+    trc::on<trc::KeyPressEvent>([&](auto& e) {
         static bool count{ false };
-        if (e.key == vkb::Key::r)
+        if (e.key == trc::Key::r)
         {
             assets.getModule<trc::Material>().modify(
                 floor.getMaterial().getDeviceID(),

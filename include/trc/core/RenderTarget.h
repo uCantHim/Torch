@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/FrameSpecificObject.h"
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
 
-namespace vkb {
+namespace trc {
     class Swapchain;
 }
 
@@ -22,7 +22,7 @@ namespace trc
 
     class RenderTarget;
 
-    auto makeRenderTarget(const vkb::Swapchain& swapchain) -> RenderTarget;
+    auto makeRenderTarget(const Swapchain& swapchain) -> RenderTarget;
 
     /**
      * The `imageUsage` parameter is in many cases unnecessary, unless you
@@ -44,12 +44,12 @@ namespace trc
         auto operator=(RenderTarget&&) noexcept -> RenderTarget& = default;
         ~RenderTarget() = default;
 
-        RenderTarget(const vkb::FrameClock& frameClock,
+        RenderTarget(const FrameClock& frameClock,
                      const vk::ArrayProxy<const vk::Image>& images,
                      const vk::ArrayProxy<const vk::ImageView>& imageViews,
                      const RenderTargetCreateInfo& createInfo);
 
-        auto getFrameClock() const -> const vkb::FrameClock&;
+        auto getFrameClock() const -> const FrameClock&;
 
         auto getCurrentImage() const -> vk::Image;
         auto getCurrentImageView() const -> vk::ImageView;
@@ -57,16 +57,16 @@ namespace trc
         auto getImage(ui32 frameIndex) const -> vk::Image;
         auto getImageView(ui32 frameIndex) const -> vk::ImageView;
 
-        auto getImages() const -> const vkb::FrameSpecific<vk::Image>&;
-        auto getImageViews() const -> const vkb::FrameSpecific<vk::ImageView>&;
+        auto getImages() const -> const FrameSpecific<vk::Image>&;
+        auto getImageViews() const -> const FrameSpecific<vk::ImageView>&;
 
         auto getSize() const -> uvec2;
         auto getFormat() const -> vk::Format;
         auto getImageUsage() const -> vk::ImageUsageFlags;
 
     private:
-        vkb::FrameSpecific<vk::Image> images;
-        vkb::FrameSpecific<vk::ImageView> imageViews;
+        FrameSpecific<vk::Image> images;
+        FrameSpecific<vk::ImageView> imageViews;
         uvec2 size;
         vk::Format format;
         vk::ImageUsageFlags usage;

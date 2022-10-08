@@ -3,16 +3,11 @@
 
 using namespace std::chrono;
 
-#include <vkb/Buffer.h>
-#include <vkb/Device.h>
-#include <vkb/MemoryPool.h>
-#include <vkb/Swapchain.h>
-#include <vkb/VulkanBase.h>
-#include <vkb/VulkanInstance.h>
+#include <trc/Torch.h>
 
-void runTest(const vkb::Device& device, size_t numBuffers, size_t memoryPerBuffer)
+void runTest(const trc::Device& device, size_t numBuffers, size_t memoryPerBuffer)
 {
-    std::vector<vkb::Buffer> buffers;
+    std::vector<trc::Buffer> buffers;
     buffers.reserve(numBuffers);
 
     auto memStart = system_clock::now();
@@ -24,7 +19,7 @@ void runTest(const vkb::Device& device, size_t numBuffers, size_t memoryPerBuffe
     auto memEnd = system_clock::now();
 
     buffers.clear();
-    vkb::MemoryPool pool(device, numBuffers * memoryPerBuffer);
+    trc::MemoryPool pool(device, numBuffers * memoryPerBuffer);
 
     auto poolStart = system_clock::now();
     for (size_t i = 0; i < numBuffers; i++)
@@ -43,10 +38,10 @@ void runTest(const vkb::Device& device, size_t numBuffers, size_t memoryPerBuffe
 
 int main()
 {
-    vkb::init();
-    vkb::VulkanInstance instance;
-    vkb::Surface surface(*instance);
-    vkb::Device device(vkb::findOptimalPhysicalDevice(*instance, surface.getVulkanSurface()));
+    trc::init();
+    trc::VulkanInstance instance;
+    trc::Surface surface(*instance);
+    trc::Device device(trc::findOptimalPhysicalDevice(*instance, surface.getVulkanSurface()));
 
     constexpr size_t memory{ 2000000000 };  // 2 GB
 
@@ -60,7 +55,7 @@ int main()
         std::cout << "\n";
     }
 
-    vkb::terminate();
+    trc::terminate();
 
     return 0;
 }

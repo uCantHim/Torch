@@ -1,14 +1,14 @@
-#include "Window.h"
+#include "trc/core/Window.h"
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
 
 
 trc::Window::Window(Instance& instance, WindowCreateInfo info)
     :
-    vkb::Swapchain(
+    Swapchain(
         instance.getDevice(),
-        vkb::Surface(
+        Surface(
             instance.getVulkanInstance(),
             [&] {
                 info.surfaceCreateInfo.windowSize = info.size;
@@ -16,7 +16,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
                 return info.surfaceCreateInfo;
             }()
         ),
-        [&]() -> vkb::SwapchainCreateInfo {
+        [&]() -> SwapchainCreateInfo {
             // Always specify the storage bit
             info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
             return info.swapchainCreateInfo;
@@ -25,7 +25,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
     instance(&instance),
     renderer(new Renderer(*this)),
     preRecreateListener(
-        vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto& e) {
+        on<PreSwapchainRecreateEvent>([this](auto& e) {
             if (e.swapchain == this)
             {
                 renderer->waitForAllFrames();
@@ -34,7 +34,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
         })
     ),
     recreateListener(
-        vkb::on<vkb::SwapchainRecreateEvent>([this](auto& e) {
+        on<SwapchainRecreateEvent>([this](auto& e) {
             if (e.swapchain == this) {
                 assert(renderer == nullptr);
                 renderer = std::make_unique<Renderer>(*this);
@@ -60,22 +60,22 @@ auto trc::Window::getInstance() const -> const Instance&
     return *instance;
 }
 
-auto trc::Window::getDevice() -> vkb::Device&
+auto trc::Window::getDevice() -> Device&
 {
     return instance->getDevice();
 }
 
-auto trc::Window::getDevice() const -> const vkb::Device&
+auto trc::Window::getDevice() const -> const Device&
 {
     return instance->getDevice();
 }
 
-auto trc::Window::getSwapchain() -> vkb::Swapchain&
+auto trc::Window::getSwapchain() -> Swapchain&
 {
     return *this;
 }
 
-auto trc::Window::getSwapchain() const -> const vkb::Swapchain&
+auto trc::Window::getSwapchain() const -> const Swapchain&
 {
     return *this;
 }

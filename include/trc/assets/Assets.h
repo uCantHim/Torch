@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "AssetManager.h"
-#include "Geometry.h"
-#include "Material.h"
-#include "Texture.h"
-#include "Rig.h"
-#include "Animation.h"
+#include "trc/assets/AssetManager.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
+#include "trc/assets/Texture.h"
+#include "trc/assets/Rig.h"
+#include "trc/assets/Animation.h"
 
-#include "import/AssetImport.h"
-#include "import/GeneratedGeometry.h"
+#include "trc/assets/import/AssetImport.h"
+#include "trc/assets/import/GeneratedGeometry.h"

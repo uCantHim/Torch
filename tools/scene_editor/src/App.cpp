@@ -52,32 +52,32 @@ App::App(Project _project)
     });
 
     // Initialize input
-    vkb::Keyboard::init();
-    vkb::Mouse::init();
-    vkb::on<vkb::KeyPressEvent>([this](const vkb::KeyPressEvent& e) {
-        inputState.notify({ e.key, e.mods, vkb::InputAction::press });
+    trc::Keyboard::init();
+    trc::Mouse::init();
+    trc::on<trc::KeyPressEvent>([this](const trc::KeyPressEvent& e) {
+        inputState.notify({ e.key, e.mods, trc::InputAction::press });
     });
-    vkb::on<vkb::KeyRepeatEvent>([this](const vkb::KeyRepeatEvent& e) {
-        inputState.notify({ e.key, e.mods, vkb::InputAction::repeat });
+    trc::on<trc::KeyRepeatEvent>([this](const trc::KeyRepeatEvent& e) {
+        inputState.notify({ e.key, e.mods, trc::InputAction::repeat });
     });
-    vkb::on<vkb::KeyReleaseEvent>([this](const vkb::KeyReleaseEvent& e) {
-        inputState.notify({ e.key, e.mods, vkb::InputAction::release });
+    trc::on<trc::KeyReleaseEvent>([this](const trc::KeyReleaseEvent& e) {
+        inputState.notify({ e.key, e.mods, trc::InputAction::release });
     });
-    vkb::on<vkb::MouseClickEvent>([this](const vkb::MouseClickEvent& e) {
-        inputState.notify({ e.button, e.mods, vkb::InputAction::press });
+    trc::on<trc::MouseClickEvent>([this](const trc::MouseClickEvent& e) {
+        inputState.notify({ e.button, e.mods, trc::InputAction::press });
     });
-    vkb::on<vkb::MouseReleaseEvent>([this](const vkb::MouseReleaseEvent& e) {
-        inputState.notify({ e.button, e.mods, vkb::InputAction::release });
+    trc::on<trc::MouseReleaseEvent>([this](const trc::MouseReleaseEvent& e) {
+        inputState.notify({ e.button, e.mods, trc::InputAction::release });
     });
 
     inputState.setKeyMap(makeKeyMap(*this,
         KeyConfig{
-            .closeApp = vkb::Key::escape,
-            .openContext = vkb::MouseButton::right,
-            .selectHoveredObject = vkb::MouseButton::left,
-            .translateObject = vkb::Key::g,
-            .scaleObject = vkb::Key::s,
-            .rotateObject = vkb::Key::r,
+            .closeApp = trc::Key::escape,
+            .openContext = trc::MouseButton::right,
+            .selectHoveredObject = trc::MouseButton::left,
+            .translateObject = trc::Key::g,
+            .scaleObject = trc::Key::s,
+            .rotateObject = trc::Key::r,
         }
     ));
 

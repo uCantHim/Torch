@@ -1,4 +1,4 @@
-#include "PipelineLayoutBuilder.h"
+#include "trc/core/PipelineLayoutBuilder.h"
 
 
 
@@ -74,7 +74,7 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
     return { descNames, pushConstants };
 }
 
-auto trc::PipelineLayoutBuilder::build(const vkb::Device& device, RenderConfig& renderConfig)
+auto trc::PipelineLayoutBuilder::build(const Device& device, RenderConfig& renderConfig)
     -> PipelineLayout
 {
     // Collect descriptors

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cassert>
-#include <string>
 #include <filesystem>
+#include <string>
 
 #include <trc_util/Exception.h>
 

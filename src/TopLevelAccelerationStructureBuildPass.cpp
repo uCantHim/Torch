@@ -1,6 +1,6 @@
 #include "trc/TopLevelAccelerationStructureBuildPass.h"
 
-#include <vkb/Barriers.h>
+#include "trc/base/Barriers.h"
 
 #include "trc/core/Instance.h"
 
@@ -20,7 +20,7 @@ TopLevelAccelerationStructureBuildPass::TopLevelAccelerationStructureBuildPass(
         glm::max(tlas.getBuildSize().buildScratchSize, tlas.getBuildSize().updateScratchSize),
         nullptr,
         vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     ),
     scratchMemoryAddress(instance.getDevice()->getBufferAddress({ *scratchBuffer })),
     instanceBuildBuffer(
@@ -29,7 +29,7 @@ TopLevelAccelerationStructureBuildPass::TopLevelAccelerationStructureBuildPass(
         vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
             | vk::BufferUsageFlagBits::eShaderDeviceAddress,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     ),
     instances(instanceBuildBuffer.map<rt::GeometryInstance*>())
 {
@@ -41,7 +41,7 @@ void TopLevelAccelerationStructureBuildPass::update(
 {
     if (scene != nullptr)
     {
-        vkb::bufferMemoryBarrier(
+        bufferMemoryBarrier(
             cmdBuf,
             *scratchBuffer, 0, VK_WHOLE_SIZE,
             vk::PipelineStageFlagBits::eAccelerationStructureBuildKHR,
@@ -49,7 +49,7 @@ void TopLevelAccelerationStructureBuildPass::update(
             vk::AccessFlagBits::eAccelerationStructureReadKHR,
             vk::AccessFlagBits::eAccelerationStructureReadKHR
         );
-        vkb::bufferMemoryBarrier(
+        bufferMemoryBarrier(
             cmdBuf,
             *instanceBuildBuffer, 0, VK_WHOLE_SIZE,
             vk::PipelineStageFlagBits::eHost,

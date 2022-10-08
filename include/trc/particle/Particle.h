@@ -4,16 +4,16 @@
 #include <mutex>
 
 #include <glm/gtc/quaternion.hpp>
-#include <vkb/Buffer.h>
-#include <vkb/MemoryPool.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/MemoryPool.h"
 
-#include "Types.h"
-#include "core/SceneBase.h"
-#include "core/PipelineTemplate.h"
+#include "trc/Types.h"
+#include "trc/core/SceneBase.h"
+#include "trc/core/PipelineTemplate.h"
 #include "trc_util/Timer.h"
 #include "trc_util/Util.h"
 #include "trc_util/async/ThreadPool.h"
-#include "Node.h"
+#include "trc/Node.h"
 
 namespace trc
 {
@@ -97,13 +97,13 @@ namespace trc
         const Instance& instance;
         const ui32 maxParticles;
 
-        vkb::MemoryPool memoryPool;
-        vkb::DeviceLocalBuffer vertexBuffer;
+        MemoryPool memoryPool;
+        DeviceLocalBuffer vertexBuffer;
 
         // GPU resources
         std::vector<Particle> particles;
-        vkb::Buffer particleDeviceDataStagingBuffer;
-        vkb::DeviceLocalBuffer particleDeviceDataBuffer;
+        Buffer particleDeviceDataStagingBuffer;
+        DeviceLocalBuffer particleDeviceDataBuffer;
 
         ParticleDeviceData* persistentParticleDeviceDataBuf;
 
@@ -124,7 +124,7 @@ namespace trc
         std::vector<Particle> newParticles;
 
         // Updater
-        vkb::ExclusiveQueue transferQueue;
+        ExclusiveQueue transferQueue;
         vk::UniqueFence transferFence;
         vk::UniqueCommandPool transferCmdPool;
         vk::UniqueCommandBuffer transferCmdBuf;

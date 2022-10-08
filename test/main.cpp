@@ -6,9 +6,8 @@ using namespace std::chrono;
 
 #include <glm/gtc/random.hpp>
 
-#include <vkb/ImageUtils.h>
-
 #include <trc/Torch.h>
+#include <trc/base/ImageUtils.h>
 #include <trc/particle/Particle.h>
 #include <trc/text/Text.h>
 using namespace trc::basic_types;
@@ -17,13 +16,13 @@ void run()
 {
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
-    vkb::on<vkb::SwapchainResizeEvent>([&](const auto& e) {
+    trc::on<trc::SwapchainResizeEvent>([&](const auto& e) {
         const auto extent = e.swapchain->getImageExtent();
         camera.setAspect(float(extent.width) / float(extent.height));
     });
 
-    vkb::Keyboard::init();
-    vkb::Mouse::init();
+    trc::Keyboard::init();
+    trc::Mouse::init();
 
     auto torch = trc::initFull();
     auto& ar = torch->getAssetManager();
@@ -196,8 +195,8 @@ void run()
 
 
     bool running{ true };
-    vkb::EventHandler<vkb::SwapchainCloseEvent>::addListener(
-        [&running](const vkb::SwapchainCloseEvent&) { running = false; }
+    trc::EventHandler<trc::SwapchainCloseEvent>::addListener(
+        [&running](const trc::SwapchainCloseEvent&) { running = false; }
     );
 
     std::thread particleUpdateThread([&]() {

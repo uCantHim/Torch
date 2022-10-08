@@ -1,12 +1,12 @@
 #ifdef TRC_USE_FBX_SDK
 
-#include "assets/import/FBXImporter.h"
+#include "trc/assets/import/FBXImporter.h"
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 using namespace std::chrono;
 
-#include <vkb/VulkanDebug.h>
+#include "trc/base/VulkanDebug.h"
 
 
 
@@ -16,7 +16,7 @@ public:
     template<typename T>
     inline auto operator<<(T&& t) -> FbxLogger&
     {
-        if constexpr (vkb::enableVerboseLogging) {
+        if constexpr (trc::enableVerboseLogging) {
             std::cout << t;
         }
         return *this;

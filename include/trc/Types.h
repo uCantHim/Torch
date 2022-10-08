@@ -96,10 +96,10 @@ namespace trc
  * namespace to avoid confusion.
  */
 #ifdef TRC_USE_VKB_NAMESPACE
-namespace vkb {}
+namespace trc {}
 
 namespace trc
 {
-    using namespace vkb;
+    using namespace trc;
 } // namespace trc
 #endif

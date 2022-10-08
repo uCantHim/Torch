@@ -5,9 +5,9 @@
 #include <optional>
 #include <functional>
 
-#include "../Types.h"
-#include "RenderStage.h"
-#include "RenderLayout.h"
+#include "trc/Types.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/RenderLayout.h"
 
 namespace trc
 {

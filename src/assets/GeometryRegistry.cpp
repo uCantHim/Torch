@@ -146,7 +146,7 @@ GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
             allocFlags |= vk::MemoryAllocateFlagBits::eDeviceAddress;
         }
 
-        return vkb::MemoryPool(info.instance.getDevice(), info.memoryPoolChunkSize, allocFlags);
+        return MemoryPool(info.instance.getDevice(), info.memoryPoolChunkSize, allocFlags);
     }()),
     dataWriter(info.instance.getDevice()),  /* , memoryPool.makeAllocator()) */
     accelerationStructureBuilder(info.instance)

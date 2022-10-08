@@ -2,11 +2,11 @@
 
 #include <componentlib/ComponentStorage.h>
 
-#include "AnimationEngine.h"
-#include "Transformation.h"
-#include "assets/Geometry.h"
-#include "assets/Material.h"
-#include "ray_tracing/AccelerationStructure.h"
+#include "trc/AnimationEngine.h"
+#include "trc/Transformation.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
+#include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc_util/data/ObjectId.h"
 
 namespace trc::drawcomp

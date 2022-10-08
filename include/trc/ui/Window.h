@@ -1,9 +1,9 @@
 #pragma once
 
-#include "IoConfig.h"
-#include "Element.h"
-#include "FontRegistry.h"
-#include "text/GlyphLoading.h"
+#include "trc/text/GlyphLoading.h"
+#include "trc/ui/Element.h"
+#include "trc/ui/FontRegistry.h"
+#include "trc/ui/IoConfig.h"
 
 namespace trc::ui
 {
@@ -197,6 +197,6 @@ namespace trc::ui
         u_ptr<Root> root{ new Root };
     };
 
-#include "Window.inl"
+#include "trc/ui/Window.inl"
 
 } // namespace trc::ui

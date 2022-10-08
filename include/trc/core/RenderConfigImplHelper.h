@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RenderConfiguration.h"
-#include "PipelineRegistry.h"
+#include "trc/core/RenderConfiguration.h"
+#include "trc/core/PipelineRegistry.h"
 
 namespace trc
 {

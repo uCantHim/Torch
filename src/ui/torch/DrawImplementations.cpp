@@ -1,12 +1,12 @@
-#include "ui/torch/DrawImplementations.h"
+#include "trc/ui/torch/DrawImplementations.h"
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
-#include "core/PipelineBuilder.h"
-#include "core/PipelineLayoutBuilder.h"
-#include "ui/Window.h"
-#include "ui/torch/GuiRenderer.h"
-#include "PipelineDefinitions.h"
+#include "trc/core/PipelineBuilder.h"
+#include "trc/core/PipelineLayoutBuilder.h"
+#include "trc/ui/Window.h"
+#include "trc/ui/torch/GuiRenderer.h"
+#include "trc/PipelineDefinitions.h"
 #include "trc/GuiShaders.h"
 
 
@@ -149,7 +149,7 @@ void trc::ui_impl::DrawCollector::initStaticResources()
 
 
 
-trc::ui_impl::DrawCollector::DrawCollector(const vkb::Device& device, ::trc::GuiRenderer& renderer)
+trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRenderer& renderer)
     :
     device(device),
     quadVertexBuffer(
@@ -325,7 +325,7 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
 }
 
 trc::ui_impl::DrawCollector::FontInfo::FontInfo(
-    const vkb::Device& device,
+    const Device& device,
     ui32 fontIndex,
     const GlyphCache& cache)
     :

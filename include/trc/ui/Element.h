@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include "Types.h"
-#include "CRTPNode.h"
-#include "DrawInfo.h"
-#include "event/Event.h"
-#include "event/InputEvent.h"
-#include "event/EventListenerRegistryBase.h"
+#include "trc/Types.h"
+#include "trc/ui/CRTPNode.h"
+#include "trc/ui/DrawInfo.h"
+#include "trc/ui/event/Event.h"
+#include "trc/ui/event/EventListenerRegistryBase.h"
+#include "trc/ui/event/InputEvent.h"
 
 namespace trc::ui
 {

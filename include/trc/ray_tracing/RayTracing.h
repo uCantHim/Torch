@@ -1,14 +1,14 @@
 #pragma once
 
-#include "core/RenderStage.h"
+#include "trc/core/RenderStage.h"
 
-#include "AccelerationStructure.h"
-#include "GeometryUtils.h"
-#include "RayPipelineBuilder.h"
-#include "ShaderBindingTable.h"
-#include "RayBuffer.h"
-#include "RayTracingPass.h"
-#include "FinalCompositingPass.h"
+#include "trc/ray_tracing/AccelerationStructure.h"
+#include "trc/ray_tracing/FinalCompositingPass.h"
+#include "trc/ray_tracing/GeometryUtils.h"
+#include "trc/ray_tracing/RayBuffer.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/ray_tracing/RayTracingPass.h"
+#include "trc/ray_tracing/ShaderBindingTable.h"
 
 namespace trc::rt
 {

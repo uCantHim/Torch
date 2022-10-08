@@ -2,11 +2,11 @@
 
 #include <string>
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
-#include "core/SceneBase.h"
-#include "Node.h"
-#include "Font.h"
+#include "trc/Node.h"
+#include "trc/core/SceneBase.h"
+#include "trc/text/Font.h"
 
 namespace trc
 {
@@ -30,7 +30,7 @@ namespace trc
         const Instance& instance;
         FontHandle font;
 
-        vkb::DeviceLocalBuffer vertexBuffer;
+        DeviceLocalBuffer vertexBuffer;
         SceneBase::UniqueRegistrationID drawRegistration;
 
         struct LetterData
@@ -41,7 +41,7 @@ namespace trc
             vec2 glyphSize;   // Normalized glyph size
             float bearingY;
         };
-        vkb::Buffer glyphBuffer;
+        Buffer glyphBuffer;
         ui32 numLetters{ 0 };
     };
 } // namespace trc

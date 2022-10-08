@@ -1,7 +1,7 @@
 #pragma once
 
-#include "PipelineLayout.h"
-#include "PipelineRegistry.h"
+#include "trc/core/PipelineLayout.h"
+#include "trc/core/PipelineRegistry.h"
 
 namespace trc
 {
@@ -27,7 +27,7 @@ namespace trc
          */
         auto build() const -> ComputePipelineTemplate;
 
-        auto build(const vkb::Device& device, PipelineLayout& layout) -> Pipeline;
+        auto build(const Device& device, PipelineLayout& layout) -> Pipeline;
 
         /**
          * @brief Build the pipeline and register it at a pipeline registry

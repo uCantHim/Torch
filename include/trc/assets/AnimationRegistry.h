@@ -2,14 +2,14 @@
 
 #include <mutex>
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 #include <componentlib/Table.h>
 #include <trc_util/data/ObjectId.h>
 
-#include "Types.h"
-#include "AssetRegistryModule.h"
-#include "AssetSource.h"
-#include "SharedDescriptorSet.h"
+#include "trc/Types.h"
+#include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/SharedDescriptorSet.h"
 
 namespace trc
 {
@@ -80,7 +80,7 @@ namespace trc
 
     struct AnimationRegistryCreateInfo
     {
-        const vkb::Device& device;
+        const Device& device;
         SharedDescriptorSet::Builder& descriptorBuilder;
     };
 
@@ -114,7 +114,7 @@ namespace trc
         static constexpr size_t MAX_ANIMATIONS = 300;
         static constexpr size_t ANIMATION_BUFFER_SIZE = 2000000;
 
-        const vkb::Device& device;
+        const Device& device;
 
         auto makeAnimation(const AnimationData& data) -> ui32;
 
@@ -127,8 +127,8 @@ namespace trc
         ui32 numAnimations{ 0 };
         ui32 animationBufferOffset{ 0 };
 
-        vkb::Buffer animationMetaDataBuffer;
-        vkb::Buffer animationBuffer;
+        Buffer animationMetaDataBuffer;
+        Buffer animationBuffer;
 
         SharedDescriptorSet::Binding metaBinding;
         SharedDescriptorSet::Binding dataBinding;

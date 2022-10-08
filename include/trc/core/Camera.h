@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Types.h"
-#include "Node.h"
+#include "trc/Node.h"
+#include "trc/Types.h"
 
 namespace trc
 {

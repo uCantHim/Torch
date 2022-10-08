@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
-#include "Light.h"
+#include "trc/Light.h"
 
 namespace trc
 {

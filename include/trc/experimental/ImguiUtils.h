@@ -4,7 +4,7 @@
 #include <initializer_list>
 #include <utility>
 
-#include "ImguiIntegration.h"
+#include "trc/experimental/ImguiIntegration.h"
 
 // End frame and issue return-statement immediately if Begin returns false
 #define imGuiTryBegin(title) if (!ImGui::Begin(title)) { ImGui::End(); return; }

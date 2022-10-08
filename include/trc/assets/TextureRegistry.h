@@ -2,16 +2,16 @@
 
 #include <shared_mutex>
 
-#include <vkb/Image.h>
-#include <vkb/MemoryPool.h>
+#include "trc/base/Image.h"
+#include "trc/base/MemoryPool.h"
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
 #include <componentlib/Table.h>
 
-#include "util/DeviceLocalDataWriter.h"
-#include "AssetRegistryModule.h"
-#include "AssetSource.h"
-#include "SharedDescriptorSet.h"
+#include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/SharedDescriptorSet.h"
+#include "trc/util/DeviceLocalDataWriter.h"
 
 namespace trc
 {
@@ -34,7 +34,7 @@ namespace trc
 
     struct TextureRegistryCreateInfo
     {
-        const vkb::Device& device;
+        const Device& device;
         SharedDescriptorSet::Builder& descriptorBuilder;
     };
 
@@ -64,7 +64,7 @@ namespace trc
         {
             struct Data
             {
-                vkb::Image image;
+                Image image;
                 vk::UniqueImageView imageView;
             };
 
@@ -82,8 +82,8 @@ namespace trc
         static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
         static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 512 * 512 * 4 * 200;  // 200 512x512 images
 
-        const vkb::Device& device;
-        vkb::MemoryPool memoryPool;
+        const Device& device;
+        MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
 
         data::IdPool idPool;

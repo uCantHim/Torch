@@ -3,18 +3,18 @@
 #include <mutex>
 #include <future>
 
-#include <vkb/Buffer.h>
-#include <vkb/Image.h>
-#include <vkb/FrameSpecificObject.h>
-#include <vkb/event/Event.h>
+#include <trc_util/Timer.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/FrameSpecificObject.h"
+#include "trc/base/Image.h"
+#include "trc/base/event/Event.h"
 
-#include "trc_util/Timer.h"
-#include "core/RenderStage.h"
-#include "core/RenderPass.h"
-#include "core/Pipeline.h"
-#include "Framebuffer.h"
-#include "ui/Window.h"
-#include "ui/torch/GuiRenderer.h"
+#include "trc/Framebuffer.h"
+#include "trc/core/Pipeline.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/RenderStage.h"
+#include "trc/ui/Window.h"
+#include "trc/ui/torch/GuiRenderer.h"
 
 namespace trc
 {
@@ -25,7 +25,7 @@ namespace trc
     class TorchWindowBackend : public ui::WindowBackend
     {
     public:
-        explicit TorchWindowBackend(const vkb::Swapchain& swapchain)
+        explicit TorchWindowBackend(const Swapchain& swapchain)
             : swapchain(swapchain)
         {}
 
@@ -35,7 +35,7 @@ namespace trc
         }
 
     private:
-        const vkb::Swapchain& swapchain;
+        const Swapchain& swapchain;
     };
 
     /**
@@ -48,8 +48,8 @@ namespace trc
     class GuiIntegrationPass : public RenderPass
     {
     public:
-        GuiIntegrationPass(const vkb::Device& device,
-                           const vkb::Swapchain& swapchain,
+        GuiIntegrationPass(const Device& device,
+                           const Swapchain& swapchain,
                            ui::Window& window,
                            GuiRenderer& renderer);
         ~GuiIntegrationPass();
@@ -58,8 +58,8 @@ namespace trc
         void end(vk::CommandBuffer) override;
 
     private:
-        const vkb::Device& device;
-        const vkb::Swapchain& swapchain;
+        const Device& device;
+        const Swapchain& swapchain;
 
         std::mutex renderLock;
         std::thread renderThread;
@@ -72,11 +72,11 @@ namespace trc
 
         vk::UniqueDescriptorPool blendDescPool;
         vk::UniqueDescriptorSetLayout blendDescLayout;
-        vkb::FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
+        FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
         PipelineLayout imageBlendPipelineLayout;
         Pipeline imageBlendPipeline;
 
-        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
+        UniqueListenerId<SwapchainRecreateEvent> swapchainRecreateListener;
     };
 
     struct GuiStack
@@ -86,18 +86,18 @@ namespace trc
         u_ptr<GuiRenderer> renderer;
         u_ptr<GuiIntegrationPass> renderPass;
 
-        vkb::UniqueListenerId<vkb::MouseClickEvent> mouseClickListener;
+        UniqueListenerId<MouseClickEvent> mouseClickListener;
 
-        vkb::UniqueListenerId<vkb::KeyPressEvent>   keyPressListener;
-        vkb::UniqueListenerId<vkb::KeyRepeatEvent>  keyRepeatListener;
-        vkb::UniqueListenerId<vkb::KeyReleaseEvent> keyReleaseListener;
-        vkb::UniqueListenerId<vkb::CharInputEvent>  charInputListener;
+        UniqueListenerId<KeyPressEvent>   keyPressListener;
+        UniqueListenerId<KeyRepeatEvent>  keyRepeatListener;
+        UniqueListenerId<KeyReleaseEvent> keyReleaseListener;
+        UniqueListenerId<CharInputEvent>  charInputListener;
     };
 
     /**
      * @brief Initialize the GUI implementation
      */
-    auto initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiStack;
+    auto initGui(Device& device, const Swapchain& swapchain) -> GuiStack;
 
     /**
      * @brief Insert gui renderpass into a render layout

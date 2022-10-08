@@ -1,11 +1,11 @@
-#include "ray_tracing/RayBuffer.h"
+#include "trc/ray_tracing/RayBuffer.h"
 
-#include "DescriptorSetUtils.h"
-#include "ray_tracing/RayPipelineBuilder.h"
+#include "trc/DescriptorSetUtils.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
-trc::rt::RayBuffer::RayBuffer(const vkb::Device& device, const RayBufferCreateInfo& info)
+trc::rt::RayBuffer::RayBuffer(const Device& device, const RayBufferCreateInfo& info)
     :
     size(info.size)
 {
@@ -38,12 +38,12 @@ auto trc::rt::RayBuffer::getExtent() const -> vk::Extent2D
     return { size.x, size.y };
 }
 
-auto trc::rt::RayBuffer::getImage(Image imageType) -> vkb::Image&
+auto trc::rt::RayBuffer::getImage(Image imageType) -> trc::Image&
 {
     return images.at(imageType);
 }
 
-auto trc::rt::RayBuffer::getImage(Image imageType) const -> const vkb::Image&
+auto trc::rt::RayBuffer::getImage(Image imageType) const -> const trc::Image&
 {
     return images.at(imageType);
 }
@@ -68,7 +68,7 @@ auto trc::rt::RayBuffer::getImageDescriptorLayout() const -> vk::DescriptorSetLa
     return *layout;
 }
 
-void trc::rt::RayBuffer::createDescriptors(const vkb::Device& device)
+void trc::rt::RayBuffer::createDescriptors(const Device& device)
 {
     assert(imageViews.size() == Image::NUM_IMAGES);
 

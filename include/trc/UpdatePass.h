@@ -2,8 +2,8 @@
 
 #include <functional>
 
-#include "core/RenderStage.h"
-#include "core/RenderPass.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/RenderPass.h"
 
 namespace trc
 {

@@ -3,11 +3,11 @@
 #include <array>
 #include <vector>
 
-#include <vkb/ShaderProgram.h>
+#include "trc/base/ShaderProgram.h"
 
-#include "../Types.h"
-#include "PipelineTemplate.h"
-#include "PipelineRegistry.h"
+#include "trc/Types.h"
+#include "trc/core/PipelineRegistry.h"
+#include "trc/core/PipelineTemplate.h"
 
 namespace trc
 {
@@ -124,7 +124,7 @@ namespace trc
          */
         auto build() const -> PipelineTemplate;
 
-        auto build(const vkb::Device& device,
+        auto build(const Device& device,
                    PipelineLayout& layout,
                    vk::RenderPass renderPass,
                    ui32 subPass)

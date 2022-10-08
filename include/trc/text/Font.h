@@ -3,15 +3,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include <vkb/Device.h>
-#include <vkb/MemoryPool.h>
+#include <trc_util/data/ObjectId.h>
+#include "trc/base/Device.h"
+#include "trc/base/MemoryPool.h"
 
-#include "trc_util/data/ObjectId.h"
 #include "trc/Types.h"
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/core/DescriptorProvider.h"
-#include "GlyphMap.h"
+#include "trc/text/GlyphMap.h"
 
 namespace trc
 {
@@ -52,7 +52,7 @@ namespace trc
 
     struct FontRegistryCreateInfo
     {
-        const vkb::Device& device;
+        const Device& device;
         size_t maxFonts{ 50 };
     };
 
@@ -110,11 +110,11 @@ namespace trc
         auto allocateGlyphMap() -> std::pair<GlyphMap*, DescriptorProvider>;
         auto makeDescSet(GlyphMap& map) -> GlyphMapDescriptorSet;
 
-        const vkb::Device& device;
+        const Device& device;
         data::IdPool idPool;
 
         // Storage GPU resources
-        vkb::MemoryPool memoryPool;
+        MemoryPool memoryPool;
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
 

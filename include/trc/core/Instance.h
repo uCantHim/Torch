@@ -3,13 +3,13 @@
 #include <string>
 #include <vector>
 
-#include <vkb/VulkanInstance.h>
+#include "trc/base/VulkanInstance.h"
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
-#include "TypeErasedStructureChain.h"
+#include "trc/core/TypeErasedStructureChain.h"
 
-namespace vkb
+namespace trc
 {
     class PhysicalDevice;
     class Device;
@@ -37,7 +37,7 @@ namespace trc
      */
     auto makeDefaultTorchVulkanInstance(const std::string& appName = "A Torch application",
                                         ui32 appVersion = 0)
-        -> u_ptr<vkb::VulkanInstance>;
+        -> u_ptr<VulkanInstance>;
 
     /**
      * @brief The most basic structure needed to set up Torch
@@ -68,10 +68,10 @@ namespace trc
 
         auto getVulkanInstance() const -> vk::Instance;
 
-        auto getPhysicalDevice() -> vkb::PhysicalDevice&;
-        auto getPhysicalDevice() const -> const vkb::PhysicalDevice&;
-        auto getDevice() -> vkb::Device&;
-        auto getDevice() const -> const vkb::Device&;
+        auto getPhysicalDevice() -> PhysicalDevice&;
+        auto getPhysicalDevice() const -> const PhysicalDevice&;
+        auto getDevice() -> Device&;
+        auto getDevice() const -> const Device&;
         auto getDL() -> vk::DispatchLoaderDynamic&;
         auto getDL() const -> const vk::DispatchLoaderDynamic&;
 
@@ -86,16 +86,16 @@ namespace trc
          *         tracing is supported by the hardware.
          */
         static auto makeDevice(const InstanceCreateInfo& info,
-                          const vkb::PhysicalDevice& physicalDevice)
-            -> std::pair<u_ptr<vkb::Device>, bool>;
+                          const PhysicalDevice& physicalDevice)
+            -> std::pair<u_ptr<Device>, bool>;
 
         bool hasRayTracingFeatures{ false };
 
-        u_ptr<vkb::VulkanInstance> optionalLocalInstance;
+        u_ptr<VulkanInstance> optionalLocalInstance;
 
         vk::Instance instance;
-        u_ptr<vkb::PhysicalDevice> physicalDevice;
-        u_ptr<vkb::Device> device;
+        u_ptr<PhysicalDevice> physicalDevice;
+        u_ptr<Device> device;
 
         vk::DispatchLoaderDynamic dynamicLoader;
     };

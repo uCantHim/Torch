@@ -1,6 +1,6 @@
-#include "assets/import/AssetImport.h"
+#include "trc/assets/import/AssetImport.h"
 
-#include <vkb/ImageUtils.h>
+#include "trc/base/ImageUtils.h"
 
 
 
@@ -66,7 +66,7 @@ auto trc::loadGeometry(const fs::path& filePath) -> GeometryData
 auto trc::loadTexture(const fs::path& filePath) -> TextureData
 {
     try {
-        auto image = vkb::loadImageData2D(filePath);
+        auto image = loadImageData2D(filePath);
         return {
             .size   = image.size,
             .pixels = std::move(image.pixels),

@@ -3,8 +3,9 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <concepts>
+
 #include <array>
+#include <concepts>
 #include <tuple>
 
 //$ FLAG_COMBINATION_NAMESPACE_BEGIN

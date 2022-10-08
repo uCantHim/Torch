@@ -1,4 +1,4 @@
 #pragma once
 
-#include "AnimationRegistry.h"
-#include "AssetManager.h"
+#include "trc/assets/AnimationRegistry.h"
+#include "trc/assets/AssetManager.h"

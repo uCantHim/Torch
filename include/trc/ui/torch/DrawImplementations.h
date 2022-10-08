@@ -2,15 +2,14 @@
 
 #include <map>
 
-#include <vkb/Buffer.h>
+#include <trc_util/data/IndexMap.h>
+#include "trc/base/Buffer.h"
 
-#include "trc_util/data/IndexMap.h"
-#include "core/Pipeline.h"
-#include "text/GlyphMap.h"
-#include "ui/torch/DynamicBuffer.h"
-
-#include "ui/DrawInfo.h"
-#include "ui/FontRegistry.h"
+#include "trc/core/Pipeline.h"
+#include "trc/text/GlyphMap.h"
+#include "trc/ui/DrawInfo.h"
+#include "trc/ui/FontRegistry.h"
+#include "trc/ui/torch/DynamicBuffer.h"
 
 namespace trc {
     class GuiRenderer;
@@ -23,7 +22,7 @@ namespace trc::ui_impl
     class DrawCollector
     {
     public:
-        DrawCollector(const vkb::Device& device, ::trc::GuiRenderer& renderer);
+        DrawCollector(const Device& device, ::trc::GuiRenderer& renderer);
         ~DrawCollector();
 
         void beginFrame();
@@ -52,9 +51,9 @@ namespace trc::ui_impl
         void add(vec2 pos, vec2 size, const ui::ElementStyle& elem, _border);
 
         // General resources
-        const vkb::Device& device;
-        vkb::DeviceLocalBuffer quadVertexBuffer;
-        vkb::DeviceLocalBuffer lineUvBuffer{
+        const Device& device;
+        DeviceLocalBuffer quadVertexBuffer;
+        DeviceLocalBuffer lineUvBuffer{
             device,
             std::vector<vec2>{ vec2(0.0f, 0.0f), vec2(1.0f, 1.0f) },
             vk::BufferUsageFlagBits::eVertexBuffer
@@ -100,7 +99,7 @@ namespace trc::ui_impl
         struct FontInfo
         {
         public:
-            explicit FontInfo(const vkb::Device& device, ui32 fontIndex, const GlyphCache& cache);
+            explicit FontInfo(const Device& device, ui32 fontIndex, const GlyphCache& cache);
 
             auto getGlyphUvs(wchar_t character) -> GlyphMap::UvRectangle;
 

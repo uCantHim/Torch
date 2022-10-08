@@ -1,9 +1,9 @@
-#include "drawable/Drawable.h"
+#include "trc/drawable/Drawable.h"
 
-#include "TorchResources.h"
-#include "GBufferPass.h"
-#include "RenderPassShadow.h"
-#include "drawable/DefaultDrawable.h"
+#include "trc/TorchResources.h"
+#include "trc/GBufferPass.h"
+#include "trc/RenderPassShadow.h"
+#include "trc/drawable/DefaultDrawable.h"
 
 
 

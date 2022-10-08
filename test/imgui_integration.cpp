@@ -20,7 +20,7 @@ int main()
 
         while (torch->getWindow().isOpen())
         {
-            vkb::pollEvents();
+            trc::pollEvents();
 
             trc::imgui::beginImguiFrame();
             ig::Begin("Window :D");

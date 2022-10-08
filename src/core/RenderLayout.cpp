@@ -1,15 +1,15 @@
-#include "core/RenderLayout.h"
+#include "trc/core/RenderLayout.h"
 
 #include <atomic>
 #include <ranges>
 #include <future>
 
-#include "core/Window.h"
-#include "core/RenderPass.h"
-#include "core/DrawConfiguration.h"
-#include "core/RenderConfiguration.h"
-#include "core/RenderGraph.h"
-#include "core/SceneBase.h"
+#include "trc/core/Window.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/DrawConfiguration.h"
+#include "trc/core/RenderConfiguration.h"
+#include "trc/core/RenderGraph.h"
+#include "trc/core/SceneBase.h"
 #include "trc_util/algorithm/VectorTransform.h"
 
 
@@ -17,7 +17,7 @@
 trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
 {
     using StageInfo = RenderGraph::StageInfo;
-    const vkb::Device& device = window.getDevice();
+    const Device& device = window.getDevice();
 
     // Store stages for second dependency pass
     std::unordered_map<RenderStage::ID, std::pair<const StageInfo*, Stage*>> stageStorage;

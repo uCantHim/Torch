@@ -1,7 +1,7 @@
-#include "text/Font.h"
+#include "trc/text/Font.h"
 
 #include "font.pb.h"
-#include "core/Instance.h"
+#include "trc/core/Instance.h"
 
 
 

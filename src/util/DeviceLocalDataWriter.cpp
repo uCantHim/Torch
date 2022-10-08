@@ -1,14 +1,14 @@
-#include "util/DeviceLocalDataWriter.h"
+#include "trc/util/DeviceLocalDataWriter.h"
 
-#include <vkb/Barriers.h>
+#include "trc/base/Barriers.h"
 
-#include "FrameRenderState.h"
+#include "trc/core/FrameRenderState.h"
 
 
 
 trc::DeviceLocalDataWriter::DeviceLocalDataWriter(
-    const vkb::Device& device,
-    vkb::DeviceMemoryAllocator alloc)
+    const Device& device,
+    DeviceMemoryAllocator alloc)
     :
     device(device),
     alloc(std::move(alloc))
@@ -54,7 +54,7 @@ void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderSta
         cmdBuf.copyBuffer(
             *write.stagingBuffer, write.dstBuffer, write.copyRegion
         );
-        vkb::bufferMemoryBarrier(
+        bufferMemoryBarrier(
             cmdBuf,
             write.dstBuffer, write.copyRegion.dstOffset, write.copyRegion.size,
             vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eAllCommands,
@@ -73,7 +73,7 @@ void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderSta
             write.copyRegion
         );
         auto& r = write.copyRegion.imageSubresource;
-        vkb::imageMemoryBarrier(
+        imageMemoryBarrier(
             cmdBuf,
             write.dstImage,
             vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferDstOptimal,
@@ -109,7 +109,7 @@ void trc::DeviceLocalDataWriter::write(
     std::scoped_lock lock(updateDataLock);
     getCurrentUpdateStruct().pendingBufferWrites.push_back({
         dst,
-        vkb::Buffer(
+        Buffer(
             device,
             size, src,
             vk::BufferUsageFlagBits::eTransferSrc,
@@ -135,7 +135,7 @@ void trc::DeviceLocalDataWriter::write(
     std::scoped_lock lock(updateDataLock);
     getCurrentUpdateStruct().pendingImageWrites.push_back({
         dst,
-        vkb::Buffer(
+        Buffer(
             device,
             size, src,
             vk::BufferUsageFlagBits::eTransferSrc,

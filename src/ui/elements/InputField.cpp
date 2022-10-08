@@ -1,7 +1,7 @@
-#include "ui/elements/InputField.h"
+#include "trc/ui/elements/InputField.h"
 
-#include "text/UnicodeUtils.h"
-#include "ui/Window.h"
+#include "trc/text/UnicodeUtils.h"
+#include "trc/ui/Window.h"
 
 
 

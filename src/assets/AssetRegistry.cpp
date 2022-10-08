@@ -1,16 +1,16 @@
-#include "assets/AssetRegistry.h"
+#include "trc/assets/AssetRegistry.h"
 
-#include <vkb/ImageUtils.h>
+#include "trc/base/ImageUtils.h"
 
-#include "core/Instance.h"
-#include "ray_tracing/RayPipelineBuilder.h"
-#include "assets/GeometryRegistry.h"
-#include "assets/MaterialRegistry.h"
-#include "assets/TextureRegistry.h"
-#include "assets/RigRegistry.h"
-#include "assets/AnimationRegistry.h"
-#include "assets/SharedDescriptorSet.h"
-#include "text/Font.h"
+#include "trc/assets/AnimationRegistry.h"
+#include "trc/assets/GeometryRegistry.h"
+#include "trc/assets/MaterialRegistry.h"
+#include "trc/assets/RigRegistry.h"
+#include "trc/assets/SharedDescriptorSet.h"
+#include "trc/assets/TextureRegistry.h"
+#include "trc/core/Instance.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/text/Font.h"
 
 
 
@@ -52,7 +52,7 @@ trc::AssetRegistry::AssetRegistry(
     // Add default assets
     add<Material>(std::make_unique<InMemorySource<Material>>(MaterialData{ .doPerformLighting=false }));
     add<Texture>(std::make_unique<InMemorySource<Texture>>(
-        TextureData{ { 1, 1 }, vkb::makeSinglePixelImageData(vec4(1.0f)).pixels }
+        TextureData{ { 1, 1 }, makeSinglePixelImageData(vec4(1.0f)).pixels }
     ));
 }
 

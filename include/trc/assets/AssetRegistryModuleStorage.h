@@ -6,8 +6,8 @@
 
 #include <componentlib/Table.h>
 
-#include "Types.h"
-#include "AssetRegistryModule.h"
+#include "trc/Types.h"
+#include "trc/assets/AssetRegistryModule.h"
 
 namespace trc
 {

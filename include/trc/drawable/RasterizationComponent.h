@@ -2,10 +2,10 @@
 
 #include <componentlib/Table.h>
 
-#include "assets/Geometry.h"
-#include "assets/Material.h"
-#include "Transformation.h"
-#include "AnimationEngine.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
+#include "trc/Transformation.h"
+#include "trc/AnimationEngine.h"
 
 namespace trc::drawcomp
 {

@@ -18,7 +18,7 @@ void gui::ContextMenu::drawImGui()
 void gui::ContextMenu::show(const std::string& title, std::function<void()> drawContents)
 {
     popupTitle = title;
-    popupPos = vkb::Mouse::getPosition();
+    popupPos = trc::Mouse::getPosition();
     contentsFunc = std::move(drawContents);
     open = true;
 }

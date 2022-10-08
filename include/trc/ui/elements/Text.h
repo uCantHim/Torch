@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include "ui/Element.h"
-#include "ui/elements/BaseElements.h"
-#include "ui/FontRegistry.h"
+#include "trc/ui/Element.h"
+#include "trc/ui/elements/BaseElements.h"
+#include "trc/ui/FontRegistry.h"
 
 namespace trc::ui
 {

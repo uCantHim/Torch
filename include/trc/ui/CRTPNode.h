@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Transform.h"
+#include "trc/ui/Transform.h"
 
 namespace trc::ui
 {
@@ -79,6 +79,6 @@ namespace trc::ui
         Transform localTransform;
     };
 
-#include "CRTPNode.inl"
+#include "trc/ui/CRTPNode.inl"
 
 } // namespace trc::ui

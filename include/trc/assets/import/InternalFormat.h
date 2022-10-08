@@ -4,12 +4,12 @@
 
 #include <trc_util/Exception.h>
 
-#include "geometry.pb.h"
-#include "texture.pb.h"
-#include "material.pb.h"
-#include "rig.pb.h"
 #include "animation.pb.h"
 #include "asset.pb.h"
+#include "geometry.pb.h"
+#include "material.pb.h"
+#include "rig.pb.h"
+#include "texture.pb.h"
 
 #include "trc/assets/Animation.h"
 #include "trc/assets/Geometry.h"

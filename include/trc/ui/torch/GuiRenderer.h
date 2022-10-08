@@ -1,26 +1,26 @@
 #pragma once
 
-#include <vkb/Buffer.h>
-#include <vkb/Image.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/Image.h"
 
-#include "Framebuffer.h"
-#include "ui/Window.h"
-#include "ui/torch/DrawImplementations.h"
+#include "trc/Framebuffer.h"
+#include "trc/ui/Window.h"
+#include "trc/ui/torch/DrawImplementations.h"
 
 namespace trc
 {
     class GuiRenderTarget
     {
     public:
-        GuiRenderTarget(const vkb::Device& device, vk::RenderPass renderPass, uvec2 size);
+        GuiRenderTarget(const Device& device, vk::RenderPass renderPass, uvec2 size);
 
         auto getSize() const -> uvec2;
 
-        auto getImage() -> vkb::Image&;
+        auto getImage() -> Image&;
         auto getFramebuffer() const -> const Framebuffer&;
 
     private:
-        vkb::Image image;
+        Image image;
         Framebuffer framebuffer;
     };
 
@@ -34,7 +34,7 @@ namespace trc
          * TODO: Don't let the GuiRenderer decide which queue to use, pass
          *       one as a parameter
          */
-        GuiRenderer(vkb::Device& device);
+        GuiRenderer(Device& device);
 
         /**
          * @brief Draw a gui window's contents to the Renderer's image
@@ -53,9 +53,9 @@ namespace trc
         auto getRenderPass() const -> vk::RenderPass;
 
     private:
-        const vkb::Device& device;
+        const Device& device;
 
-        vkb::ExclusiveQueue renderQueue;
+        ExclusiveQueue renderQueue;
         vk::UniqueFence renderFinishedFence;
         vk::UniqueCommandPool cmdPool;
         vk::UniqueCommandBuffer cmdBuf;

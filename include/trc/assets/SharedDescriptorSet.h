@@ -2,10 +2,10 @@
 
 #include <mutex>
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
-#include "VulkanInclude.h"
-#include "Types.h"
+#include "trc/Types.h"
+#include "trc/VulkanInclude.h"
 #include "trc/core/DescriptorProvider.h"
 
 namespace trc
@@ -50,7 +50,7 @@ namespace trc
          * Updates can be enqueued for individual bindings with the
          * `Binding::update` method.
          */
-        void update(const vkb::Device& device);
+        void update(const Device& device);
 
         class Binding
         {
@@ -95,7 +95,7 @@ namespace trc
                             vk::DescriptorBindingFlags flags = {})
                 -> Binding;
 
-            auto build(const vkb::Device& device) -> u_ptr<SharedDescriptorSet>;
+            auto build(const Device& device) -> u_ptr<SharedDescriptorSet>;
 
         private:
             friend SharedDescriptorSet;
@@ -108,7 +108,7 @@ namespace trc
         };
 
     private:
-        void build(const vkb::Device& device, const Builder& builder);
+        void build(const Device& device, const Builder& builder);
 
 
         /////////////////////////

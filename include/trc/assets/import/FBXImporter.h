@@ -2,17 +2,17 @@
 
 #ifdef TRC_USE_FBX_SDK
 
-#include <memory>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <functional>
-#include <optional>
 #include <filesystem>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <fbxsdk.h>
 
-#include "AssetImportBase.h"
+#include "trc/assets/import/AssetImportBase.h"
 
 namespace trc
 {

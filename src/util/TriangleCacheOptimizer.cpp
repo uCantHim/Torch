@@ -1,7 +1,6 @@
-#include "util/TriangleCacheOptimizer.h"
+#include "trc/util/TriangleCacheOptimizer.h"
 
 #include "forsyth.cpp"
-
 #include "trc/Types.h"
 
 

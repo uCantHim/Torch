@@ -1,12 +1,12 @@
-#include "ray_tracing/GeometryUtils.h"
+#include "trc/ray_tracing/GeometryUtils.h"
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
-#include "ray_tracing/AccelerationStructure.h"
+#include "trc/ray_tracing/AccelerationStructure.h"
 
 
 
-auto trc::rt::makeGeometryInfo(const vkb::Device& device, const GeometryHandle& geo)
+auto trc::rt::makeGeometryInfo(const Device& device, const GeometryHandle& geo)
     -> vk::AccelerationStructureGeometryKHR
 {
     return { // Array of geometries in the AS

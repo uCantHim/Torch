@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "text/UnicodeUtils.h"
-#include "ui/event/Event.h"
+#include "trc/text/UnicodeUtils.h"
+#include "trc/ui/event/Event.h"
 
 namespace trc::ui::event
 {

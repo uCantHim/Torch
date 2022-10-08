@@ -3,10 +3,10 @@
 #include <vector>
 #include <variant>
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
-#include "VulkanInclude.h"
-#include "Types.h"
+#include "trc/VulkanInclude.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -21,7 +21,7 @@ namespace trc
         vk::DescriptorBindingFlags bindingFlags{};  // optional, pNext
     };
 
-    inline auto makeDescriptorPool(const vkb::Device& device,
+    inline auto makeDescriptorPool(const Device& device,
                                    vk::DescriptorPoolCreateFlags createFlags,
                                    ui32 maxSets,
                                    const std::vector<DescriptorLayoutBindingInfo>& info)
@@ -42,7 +42,7 @@ namespace trc
         return device->createDescriptorPoolUnique({ createFlags, maxSets, poolSizes });
     }
 
-    inline auto makeDescriptorSetLayout(const vkb::Device& device,
+    inline auto makeDescriptorSetLayout(const Device& device,
                                         const std::vector<DescriptorLayoutBindingInfo>& info)
         -> vk::UniqueDescriptorSetLayout
     {

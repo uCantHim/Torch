@@ -30,7 +30,7 @@ auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap
     map.set(conf.rotateObject,    std::make_unique<ObjectRotateCommand>());
 
     // General stuff that I don't how to deal with
-    vkb::on<vkb::MouseClickEvent>([](auto&) { gui::ContextMenu::close(); });
+    trc::on<trc::MouseClickEvent>([](auto&) { gui::ContextMenu::close(); });
 
     return map;
 }

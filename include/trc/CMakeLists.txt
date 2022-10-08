@@ -1,7 +1,6 @@
 target_precompile_headers(torch
     INTERFACE
     Types.h
-    VulkanInclude.h
 
     core/Instance.h
     core/PipelineRegistry.h
@@ -9,5 +8,4 @@ target_precompile_headers(torch
 
     PRIVATE
     Types.h
-    VulkanInclude.h
 )

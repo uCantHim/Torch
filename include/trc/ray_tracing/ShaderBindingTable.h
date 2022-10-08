@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
 #include "trc/Types.h"
 
@@ -26,14 +26,14 @@ namespace trc::rt
          * @param std::vector<ui32> entrySizes One ui32 for each entry in
          *        the table. The number signals how many subsequent shader
          *        groups are present in the entry.
-         * @param const vkb::DeviceMemoryAllocator& alloc
+         * @param const DeviceMemoryAllocator& alloc
          */
         ShaderBindingTable(
-            const vkb::Device& device,
+            const Device& device,
             const vk::DispatchLoaderDynamic& dl,
             vk::Pipeline pipeline,
             std::vector<ui32> entrySizes,
-            const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{}
+            const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{}
         );
 
         /**
@@ -63,7 +63,7 @@ namespace trc::rt
          */
         struct GroupEntry
         {
-            vkb::DeviceLocalBuffer buffer;
+            DeviceLocalBuffer buffer;
             vk::StridedDeviceAddressRegionKHR address;
         };
 

@@ -1,4 +1,4 @@
-#include "DescriptorSetUtils.h"
+#include "trc/DescriptorSetUtils.h"
 
 
 
@@ -25,7 +25,7 @@ auto trc::DescriptorSetLayoutBuilder::getBindingCount() const -> size_t
     return bindings.size();
 }
 
-auto trc::DescriptorSetLayoutBuilder::build(const vkb::Device& device)
+auto trc::DescriptorSetLayoutBuilder::build(const Device& device)
     -> vk::UniqueDescriptorSetLayout
 {
     // VK_EXT_descriptor_indexing is included in 1.2

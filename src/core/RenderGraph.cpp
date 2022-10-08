@@ -1,6 +1,6 @@
-#include "RenderGraph.h"
+#include "trc/core/RenderGraph.h"
 
-#include "RenderPass.h"
+#include "trc/core/RenderPass.h"
 
 
 

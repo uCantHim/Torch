@@ -1,9 +1,9 @@
-#include "assets/MaterialRegistry.h"
+#include "trc/assets/MaterialRegistry.h"
 
 #include "geometry.pb.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/assets/import/InternalFormat.h"
-#include "ray_tracing/RayPipelineBuilder.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 

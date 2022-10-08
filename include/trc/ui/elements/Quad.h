@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Element.h"
+#include "trc/ui/Element.h"
 
 namespace trc::ui
 {

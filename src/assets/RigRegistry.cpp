@@ -1,6 +1,6 @@
-#include "assets/RigRegistry.h"
+#include "trc/assets/RigRegistry.h"
 
-#include "assets/AssetManager.h"
+#include "trc/assets/AssetManager.h"
 
 
 

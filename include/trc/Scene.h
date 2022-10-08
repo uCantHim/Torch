@@ -3,12 +3,12 @@
 #include <vector>
 #include <unordered_map>
 
-#include "Types.h"
-#include "core/SceneBase.h"
-#include "drawable/DrawableComponentScene.h"
-#include "LightRegistry.h"
-#include "ShadowPool.h"
-#include "Node.h"
+#include "trc/Types.h"
+#include "trc/core/SceneBase.h"
+#include "trc/drawable/DrawableComponentScene.h"
+#include "trc/LightRegistry.h"
+#include "trc/ShadowPool.h"
+#include "trc/Node.h"
 
 namespace trc
 {

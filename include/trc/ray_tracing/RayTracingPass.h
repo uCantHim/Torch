@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/FrameSpecificObject.h"
 
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderPass.h"
@@ -33,7 +33,7 @@ namespace trc
         RayTracingPass(const Instance& instance,
                        TorchRenderConfig& renderConfig,
                        const rt::TLAS& tlas,
-                       vkb::FrameSpecific<rt::RayBuffer> rayBuffer,
+                       FrameSpecific<rt::RayBuffer> rayBuffer,
                        const RenderTarget& target);
 
         void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
@@ -64,10 +64,10 @@ namespace trc
         const Instance& instance;
         const rt::TLAS& tlas;
 
-        vkb::FrameSpecific<rt::RayBuffer> rayBuffer;
+        FrameSpecific<rt::RayBuffer> rayBuffer;
 
         rt::RaygenDescriptorPool descriptorPool;
-        std::vector<vkb::FrameSpecific<vk::UniqueDescriptorSet>> descriptorSets;
+        std::vector<FrameSpecific<vk::UniqueDescriptorSet>> descriptorSets;
         std::vector<s_ptr<FrameSpecificDescriptorProvider>> descriptorProviders;
 
         std::vector<RayTracingCall> rayCalls;

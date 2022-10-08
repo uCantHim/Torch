@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Types.h"
-#include "Transform.h"
-#include "Style.h"
-#include "text/GlyphLoading.h"
+#include "trc/Types.h"
+#include "trc/text/GlyphLoading.h"
+#include "trc/ui/Style.h"
+#include "trc/ui/Transform.h"
 
 namespace trc::ui
 {

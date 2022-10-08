@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "RenderStage.h"
-#include "RenderPass.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/RenderPass.h"
 
 namespace trc
 {

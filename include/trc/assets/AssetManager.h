@@ -9,10 +9,10 @@
 
 #include <trc_util/data/ObjectId.h>
 
-#include "AssetPath.h"
-#include "AssetSource.h"
-#include "AssetRegistry.h"
-#include "AssetManagerInterface.h"
+#include "trc/assets/AssetManagerInterface.h"
+#include "trc/assets/AssetPath.h"
+#include "trc/assets/AssetRegistry.h"
+#include "trc/assets/AssetSource.h"
 
 namespace trc
 {
@@ -187,4 +187,4 @@ namespace trc
     };
 } // namespace trc
 
-#include "AssetManager.inl"
+#include "trc/assets/AssetManager.inl"

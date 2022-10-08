@@ -1,15 +1,15 @@
-#include "GBufferDepthReader.h"
+#include "trc/GBufferDepthReader.h"
 
-#include <vkb/Barriers.h>
+#include "trc/base/Barriers.h"
 
 #include "trc/core/Window.h"
 
 
 
 trc::GBufferDepthReader::GBufferDepthReader(
-    const vkb::Device& device,
+    const Device& device,
     std::function<vec2()> mousePosGetter,
-    vkb::FrameSpecific<GBuffer>& _gBuffer)
+    FrameSpecific<GBuffer>& _gBuffer)
     :
     getMousePos(std::move(mousePosGetter)),
     gBuffer(_gBuffer),
@@ -40,10 +40,10 @@ auto trc::GBufferDepthReader::getMouseDepth() const noexcept -> float
 
 void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
 {
-    vkb::Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
+    Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
     const ivec2 mousePos = glm::clamp(getMousePos(), vec2(0), vec2(depthImage.getSize()) - 1.0f);
 
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         *depthImage,
         vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -66,7 +66,7 @@ void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
             { 1, 1, 1 }
         )
     );
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         *depthImage,
         vk::ImageLayout::eTransferSrcOptimal,

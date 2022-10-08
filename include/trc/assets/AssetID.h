@@ -2,9 +2,9 @@
 
 #include <trc_util/data/TypesafeId.h>
 
-#include "Types.h"
-#include "AssetBase.h"
-#include "AssetManagerInterface.h"
+#include "trc/Types.h"
+#include "trc/assets/AssetBase.h"
+#include "trc/assets/AssetManagerInterface.h"
 
 namespace trc
 {

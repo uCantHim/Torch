@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ui/elements/Quad.h"
-#include "ui/elements/Text.h"
-#include "ui/elements/BaseElements.h"
+#include "trc/ui/elements/Quad.h"
+#include "trc/ui/elements/Text.h"
+#include "trc/ui/elements/BaseElements.h"
 
 namespace trc::ui
 {

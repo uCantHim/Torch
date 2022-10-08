@@ -1,4 +1,4 @@
-#include "core/DescriptorProvider.h"
+#include "trc/core/DescriptorProvider.h"
 
 
 
@@ -39,7 +39,7 @@ void trc::DescriptorProvider::setDescriptorSetLayout(vk::DescriptorSetLayout new
 
 trc::FrameSpecificDescriptorProvider::FrameSpecificDescriptorProvider(
     vk::DescriptorSetLayout layout,
-    vkb::FrameSpecific<vk::DescriptorSet> set)
+    FrameSpecific<vk::DescriptorSet> set)
     :
     layout(layout),
     set(std::move(set))
@@ -62,7 +62,7 @@ void trc::FrameSpecificDescriptorProvider::bindDescriptorSet(
 }
 
 void trc::FrameSpecificDescriptorProvider::setDescriptorSet(
-    vkb::FrameSpecific<vk::DescriptorSet> newSet)
+    FrameSpecific<vk::DescriptorSet> newSet)
 {
     set = std::move(newSet);
 }

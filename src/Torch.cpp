@@ -1,12 +1,12 @@
-#include "Torch.h"
+#include "trc/Torch.h"
 
-#include "UpdatePass.h"
-#include "TorchResources.h"
-#include "ui/torch/GuiIntegration.h"
+#include "trc/UpdatePass.h"
+#include "trc/TorchResources.h"
+#include "trc/ui/torch/GuiIntegration.h"
 #ifdef TRC_USE_IMGUI
-#include "experimental/ImguiIntegration.h"
+#include "trc/experimental/ImguiIntegration.h"
 #endif
-#include "ray_tracing/RayTracing.h"
+#include "trc/ray_tracing/RayTracing.h"
 #include "trc/DrawablePipelines.h"
 #include "trc/RasterPipelines.h"
 #include "trc/TextPipelines.h"
@@ -16,12 +16,25 @@
 
 static inline bool isInitialized{ false };
 
-void trc::init(const TorchInitInfo&)
+void trc::init(const TorchInitInfo& info)
 {
     if (isInitialized) return;
     isInitialized = true;
 
-    vkb::init();
+    if (info.startEventThread) {
+        EventThread::start();
+    }
+
+    // Init GLFW first
+    if (glfwInit() == GLFW_FALSE)
+    {
+        const char* errorMsg{ nullptr };
+        glfwGetError(&errorMsg);
+        throw std::runtime_error("Initialization of GLFW failed: " + std::string(errorMsg));
+    }
+    if constexpr (enableVerboseLogging) {
+        std::cout << "GLFW initialized successfully\n";
+    }
 
     // Init pipelines
     pipelines::initDrawablePipelines({ DrawablePushConstants{} });
@@ -32,12 +45,14 @@ void trc::init(const TorchInitInfo&)
 
 void trc::pollEvents()
 {
-    vkb::pollEvents();
+    glfwPollEvents();
 }
 
 void trc::terminate()
 {
-    vkb::terminate();
+    EventThread::terminate();
+    glfwTerminate();
+
     isInitialized = false;
 }
 
@@ -102,9 +117,9 @@ trc::TorchStack::TorchStack(
         }
     ),
     swapchainRecreateListener(
-        vkb::on<vkb::SwapchainRecreateEvent>(
+        on<SwapchainRecreateEvent>(
         [this]
-            (const vkb::SwapchainRecreateEvent& e)
+            (const SwapchainRecreateEvent& e)
         {
             if (e.swapchain == &window)
             {
@@ -125,7 +140,7 @@ trc::TorchStack::~TorchStack()
     window.getRenderer().waitForAllFrames();
 }
 
-auto trc::TorchStack::getDevice() -> vkb::Device&
+auto trc::TorchStack::getDevice() -> Device&
 {
     return instance.getDevice();
 }

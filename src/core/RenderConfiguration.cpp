@@ -1,4 +1,4 @@
-#include "RenderConfiguration.h"
+#include "trc/core/RenderConfiguration.h"
 
 
 

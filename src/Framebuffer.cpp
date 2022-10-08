@@ -1,9 +1,9 @@
-#include "Framebuffer.h"
+#include "trc/Framebuffer.h"
 
 
 
 trc::Framebuffer::Framebuffer(
-    const vkb::Device& device,
+    const Device& device,
     vk::RenderPass renderPass,
     const uvec2 size,
     std::vector<vk::UniqueImageView> attachments,
@@ -33,7 +33,7 @@ trc::Framebuffer::Framebuffer(
 }
 
 trc::Framebuffer::Framebuffer(
-    const vkb::Device& device,
+    const Device& device,
     vk::RenderPass renderPass,
     const uvec2 size,
     vk::FramebufferAttachmentsCreateInfo attachmentInfo)

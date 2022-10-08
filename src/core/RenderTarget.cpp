@@ -1,10 +1,10 @@
-#include "core/RenderTarget.h"
+#include "trc/core/RenderTarget.h"
 
-#include <vkb/Swapchain.h>
+#include "trc/base/Swapchain.h"
 
 
 
-auto trc::makeRenderTarget(const vkb::Swapchain& swapchain) -> RenderTarget
+auto trc::makeRenderTarget(const Swapchain& swapchain) -> RenderTarget
 {
     std::vector<vk::Image> images;
     std::vector<vk::ImageView> imageViews;
@@ -29,7 +29,7 @@ auto trc::makeRenderTarget(const vkb::Swapchain& swapchain) -> RenderTarget
 
 
 trc::RenderTarget::RenderTarget(
-    const vkb::FrameClock& frameClock,
+    const FrameClock& frameClock,
     const vk::ArrayProxy<const vk::Image>& images,
     const vk::ArrayProxy<const vk::ImageView>& imageViews,
     const RenderTargetCreateInfo& info)
@@ -42,7 +42,7 @@ trc::RenderTarget::RenderTarget(
 {
 }
 
-auto trc::RenderTarget::getFrameClock() const -> const vkb::FrameClock&
+auto trc::RenderTarget::getFrameClock() const -> const FrameClock&
 {
     return images.getFrameClock();
 }
@@ -67,12 +67,12 @@ auto trc::RenderTarget::getImageView(ui32 frameIndex) const -> vk::ImageView
     return imageViews.getAt(frameIndex);
 }
 
-auto trc::RenderTarget::getImages() const -> const vkb::FrameSpecific<vk::Image>&
+auto trc::RenderTarget::getImages() const -> const FrameSpecific<vk::Image>&
 {
     return images;
 }
 
-auto trc::RenderTarget::getImageViews() const -> const vkb::FrameSpecific<vk::ImageView>&
+auto trc::RenderTarget::getImageViews() const -> const FrameSpecific<vk::ImageView>&
 {
     return imageViews;
 }

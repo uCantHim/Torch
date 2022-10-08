@@ -3,7 +3,7 @@
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
 
-namespace vkb {
+namespace trc {
     class Swapchain;
 }
 
@@ -60,7 +60,7 @@ namespace trc
      * expected in an undefined layout and will be transformed into presentable
      * layout.
      */
-    auto makeDefaultSwapchainColorAttachment(const vkb::Swapchain& swapchain)
+    auto makeDefaultSwapchainColorAttachment(const Swapchain& swapchain)
         -> vk::AttachmentDescription;
 
     /**

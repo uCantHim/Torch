@@ -1,6 +1,6 @@
-#include "RenderPass.h"
+#include "trc/core/RenderPass.h"
 
-#include <vkb/Swapchain.h>
+#include "trc/base/Swapchain.h"
 
 
 
@@ -28,7 +28,7 @@ auto trc::RenderPass::getNumSubPasses() const noexcept -> ui32
 
 
 
-auto trc::makeDefaultSwapchainColorAttachment(const vkb::Swapchain& swapchain)
+auto trc::makeDefaultSwapchainColorAttachment(const Swapchain& swapchain)
     -> vk::AttachmentDescription
 {
     return vk::AttachmentDescription(

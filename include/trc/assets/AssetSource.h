@@ -6,9 +6,9 @@
 #include <string>
 #include <sstream>
 
-#include "AssetBase.h"
-#include "AssetPath.h"
-#include "Types.h"
+#include "trc/assets/AssetBase.h"
+#include "trc/assets/AssetPath.h"
+#include "trc/Types.h"
 
 namespace trc
 {

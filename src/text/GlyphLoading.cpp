@@ -1,4 +1,4 @@
-#include "text/GlyphLoading.h"
+#include "trc/text/GlyphLoading.h"
 
 #include <fstream>
 #include <sstream>

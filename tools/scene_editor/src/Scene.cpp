@@ -1,6 +1,6 @@
 #include "Scene.h"
 
-#include <vkb/event/WindowEvents.h>
+#include <trc/base/event/WindowEvents.h>
 
 #include "App.h"
 #include "gui/ContextMenu.h"
@@ -14,14 +14,14 @@ Scene::Scene(App& app)
     app(&app),
     objectSelection(*this)
 {
-    auto recalcProjMat = [this](const vkb::SwapchainResizeEvent& e)
+    auto recalcProjMat = [this](const trc::SwapchainResizeEvent& e)
     {
         auto size = e.swapchain->getImageExtent();
         camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 50.0f);
     };
     recalcProjMat({ { &app.getTorch().getWindow() } });
     camera.lookAt({ 5, 5, 5 }, { 0, 0, 0 }, { 0, 1, 0 });
-    vkb::on<vkb::SwapchainResizeEvent>(recalcProjMat);
+    trc::on<trc::SwapchainResizeEvent>(recalcProjMat);
 
     // Enable shadows for the sun
     sunLight = scene.getLights().makeSunLight(vec3(1, 1, 1), vec3(1, -1, -1), 0.6f);

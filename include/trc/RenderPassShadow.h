@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vkb/Image.h>
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/Image.h"
+#include "trc/base/FrameSpecificObject.h"
 
-#include "Types.h"
-#include "core/RenderPass.h"
-#include "Framebuffer.h"
+#include "trc/Types.h"
+#include "trc/core/RenderPass.h"
+#include "trc/Framebuffer.h"
 
 namespace trc
 {
@@ -50,14 +50,14 @@ namespace trc
          */
         auto getShadowMatrixIndex() const noexcept -> ui32;
 
-        auto getShadowImage(ui32 frameIndex) const -> const vkb::Image&;
+        auto getShadowImage(ui32 frameIndex) const -> const Image&;
         auto getShadowImageView(ui32 frameIndex) const -> vk::ImageView;
 
     private:
         const uvec2 resolution;
         ui32 shadowMatrixIndex;
 
-        vkb::FrameSpecific<vkb::Image> depthImages;
-        vkb::FrameSpecific<Framebuffer> framebuffers;
+        FrameSpecific<Image> depthImages;
+        FrameSpecific<Framebuffer> framebuffers;
     };
 } // namespace trc

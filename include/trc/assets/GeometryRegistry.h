@@ -4,18 +4,18 @@
 #include <mutex>
 #include <unordered_set>
 
-#include <vkb/Buffer.h>
-#include <vkb/MemoryPool.h>
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/MemoryPool.h"
 
-#include "util/AccelerationStructureBuilder.h"
-#include "util/DeviceLocalDataWriter.h"
-#include "AssetRegistryModule.h"
-#include "AssetSource.h"
-#include "RigRegistry.h"
-#include "SharedDescriptorSet.h"
-#include "Vertex.h"
+#include "trc/Vertex.h"
+#include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/RigRegistry.h"
+#include "trc/assets/SharedDescriptorSet.h"
+#include "trc/util/AccelerationStructureBuilder.h"
+#include "trc/util/DeviceLocalDataWriter.h"
 
 namespace trc
 {
@@ -102,9 +102,9 @@ namespace trc
         {
             struct DeviceData
             {
-                vkb::DeviceLocalBuffer indexBuf;
-                vkb::DeviceLocalBuffer meshVertexBuf;
-                vkb::DeviceLocalBuffer skeletalVertexBuf;
+                DeviceLocalBuffer indexBuf;
+                DeviceLocalBuffer meshVertexBuf;
+                DeviceLocalBuffer skeletalVertexBuf;
                 ui32 numIndices{ 0 };
                 ui32 numVertices{ 0 };
 
@@ -128,7 +128,7 @@ namespace trc
         const Config config;
 
         data::IdPool idPool;
-        vkb::MemoryPool memoryPool;
+        MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
         AccelerationStructureBuilder accelerationStructureBuilder;
 

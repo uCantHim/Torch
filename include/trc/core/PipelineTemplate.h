@@ -4,12 +4,12 @@
 #include <vector>
 #include <optional>
 
-#include "../Types.h"
-#include "DefaultPipelineValues.h"
-#include "PipelineLayout.h"
-#include "RenderConfiguration.h"
+#include "trc/Types.h"
+#include "trc/core/DefaultPipelineValues.h"
+#include "trc/core/PipelineLayout.h"
+#include "trc/core/RenderConfiguration.h"
 
-namespace vkb {
+namespace trc {
     class ShaderProgram;
 }
 
@@ -50,7 +50,7 @@ namespace trc
             SpecializationConstantStorage specConstants{};
         };
 
-        auto makeProgram(const vkb::Device& device) const -> vkb::ShaderProgram;
+        auto makeProgram(const Device& device) const -> ShaderProgram;
 
         std::unordered_map<vk::ShaderStageFlagBits, ShaderStage> stages;
     };
@@ -128,7 +128,7 @@ namespace trc
     /**
      * @brief Create a graphics pipeline from a template
      */
-    auto makeGraphicsPipeline(const vkb::Device& device,
+    auto makeGraphicsPipeline(const Device& device,
                               const PipelineTemplate& _template,
                               PipelineLayout& layout,
                               vk::RenderPass renderPass,
@@ -138,7 +138,7 @@ namespace trc
     /**
      * @brief Create a compute pipeline from a template
      */
-    auto makeComputePipeline(const vkb::Device& device,
+    auto makeComputePipeline(const Device& device,
                              const ComputePipelineTemplate& _template,
                              PipelineLayout& layout
         ) -> Pipeline;

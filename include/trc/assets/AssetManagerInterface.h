@@ -2,9 +2,9 @@
 
 #include <concepts>
 
-#include "Types.h"
-#include "AssetBase.h"
-#include "AssetSource.h"  // This is not strictly necessary, a forward declaration works
+#include "trc/Types.h"
+#include "trc/assets/AssetBase.h"
+#include "trc/assets/AssetSource.h"  // This is not strictly necessary, a forward declaration works
 
 namespace trc
 {

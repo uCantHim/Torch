@@ -1,6 +1,6 @@
-#include "Pipeline.h"
+#include "trc/core/Pipeline.h"
 
-#include <vkb/ShaderProgram.h>
+#include "trc/base/ShaderProgram.h"
 
 
 
@@ -70,13 +70,13 @@ auto trc::Pipeline::getLayout() const noexcept -> const PipelineLayout&
 
 
 auto trc::makeComputePipeline(
-    const vkb::Device& device,
+    const Device& device,
     PipelineLayout& layout,
     const std::string& code,
     vk::PipelineCreateFlags flags,
     const std::string& entryPoint) -> Pipeline
 {
-    auto shaderModule = vkb::makeShaderModule(device, code);
+    auto shaderModule = makeShaderModule(device, code);
     auto pipeline = device->createComputePipelineUnique(
         {},  // pipeline cache
         vk::ComputePipelineCreateInfo(

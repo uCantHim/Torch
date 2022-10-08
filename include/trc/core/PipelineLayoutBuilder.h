@@ -3,9 +3,9 @@
 #include <vector>
 #include <optional>
 
-#include "PipelineLayoutTemplate.h"
-#include "PipelineRegistry.h"
-#include "DescriptorProvider.h"
+#include "trc/core/PipelineLayoutTemplate.h"
+#include "trc/core/PipelineRegistry.h"
+#include "trc/core/DescriptorProvider.h"
 
 namespace trc
 {
@@ -98,7 +98,7 @@ namespace trc
         /**
          * @brief Build a pipeline layout
          */
-        auto build(const vkb::Device& device, RenderConfig& renderConfig) -> PipelineLayout;
+        auto build(const Device& device, RenderConfig& renderConfig) -> PipelineLayout;
 
         /**
          * @brief Build the layout and register it at a pipeline registry

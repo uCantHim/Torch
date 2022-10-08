@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/FrameSpecificObject.h"
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
@@ -49,7 +49,7 @@ namespace trc
     {
     public:
         FrameSpecificDescriptorProvider(vk::DescriptorSetLayout layout,
-                                        vkb::FrameSpecific<vk::DescriptorSet> set);
+                                        FrameSpecific<vk::DescriptorSet> set);
 
         /**
          * @brief Convert handle types to plain handles
@@ -57,7 +57,7 @@ namespace trc
         template<typename T>
             requires requires (T a) { { *a } -> std::convertible_to<vk::DescriptorSet>; }
         FrameSpecificDescriptorProvider(vk::DescriptorSetLayout layout,
-                                        vkb::FrameSpecific<T>& sets)
+                                        FrameSpecific<T>& sets)
             :
             FrameSpecificDescriptorProvider(
                 layout,
@@ -73,11 +73,11 @@ namespace trc
             ui32 setIndex
         ) const override;
 
-        void setDescriptorSet(vkb::FrameSpecific<vk::DescriptorSet> newSet);
+        void setDescriptorSet(FrameSpecific<vk::DescriptorSet> newSet);
         void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);
 
     private:
         vk::DescriptorSetLayout layout;
-        vkb::FrameSpecific<vk::DescriptorSet> set;
+        FrameSpecific<vk::DescriptorSet> set;
     };
 }

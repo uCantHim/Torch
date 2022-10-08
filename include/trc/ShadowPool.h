@@ -2,17 +2,17 @@
 
 #include <vector>
 
-#include <vkb/Buffer.h>
-#include <vkb/Image.h>
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/Image.h"
+#include "trc/base/FrameSpecificObject.h"
 #include "trc_util/data/ObjectId.h"
 
-#include "Types.h"
-#include "core/Camera.h"
-#include "core/DescriptorProvider.h"
-#include "core/Instance.h"
-#include "Framebuffer.h"
-#include "RenderPassShadow.h"
+#include "trc/Types.h"
+#include "trc/core/Camera.h"
+#include "trc/core/DescriptorProvider.h"
+#include "trc/core/Instance.h"
+#include "trc/Framebuffer.h"
+#include "trc/RenderPassShadow.h"
 
 namespace trc
 {
@@ -70,8 +70,8 @@ namespace trc
 
     private:
         const Window& window;
-        const vkb::Device& device;
-        const vkb::Swapchain& swapchain;
+        const Device& device;
+        const Swapchain& swapchain;
 
         struct Shadow
         {
@@ -87,7 +87,7 @@ namespace trc
         std::vector<u_ptr<Shadow>> shadows;
 
         void updateMatrixBuffer();
-        vkb::Buffer shadowMatrixBuffer;
+        Buffer shadowMatrixBuffer;
         mat4* shadowMatrixBufferMap;
 
         //////////////
@@ -97,7 +97,7 @@ namespace trc
 
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
-        vkb::FrameSpecific<vk::UniqueDescriptorSet> descSets;
+        FrameSpecific<vk::UniqueDescriptorSet> descSets;
         FrameSpecificDescriptorProvider provider;
     };
 } // namespace trc

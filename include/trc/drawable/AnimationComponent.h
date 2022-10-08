@@ -2,7 +2,7 @@
 
 #include <componentlib/Table.h>
 
-#include "AnimationEngine.h"
+#include "trc/AnimationEngine.h"
 
 namespace trc::drawcomp
 {

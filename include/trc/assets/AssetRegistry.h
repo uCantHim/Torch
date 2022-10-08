@@ -4,18 +4,18 @@
 #include <unordered_map>
 #include <atomic>
 
-#include <vkb/Image.h>
-#include <vkb/MemoryPool.h>
 #include <trc_util/Exception.h>
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/functional/Maybe.h>
+#include "trc/base/Image.h"
+#include "trc/base/MemoryPool.h"
 
-#include "Types.h"
-#include "core/DescriptorProvider.h"
-#include "UpdatePass.h"
-#include "SharedDescriptorSet.h"
-#include "AssetRegistryModuleStorage.h"
-#include "AssetSource.h"
+#include "trc/Types.h"
+#include "trc/UpdatePass.h"
+#include "trc/assets/AssetRegistryModuleStorage.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/SharedDescriptorSet.h"
+#include "trc/core/DescriptorProvider.h"
 
 namespace trc
 {
@@ -112,7 +112,7 @@ namespace trc
         static auto addDefaultValues(AssetRegistryCreateInfo info)
             -> AssetRegistryCreateInfo;
 
-        const vkb::Device& device;
+        const Device& device;
         const AssetRegistryCreateInfo config;
 
         AssetRegistryModuleStorage modules;

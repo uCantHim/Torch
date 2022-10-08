@@ -1,17 +1,17 @@
-#include "experimental/ImguiIntegration.h"
+#include "trc/experimental/ImguiIntegration.h"
 
 #include <unordered_map>
 
-#include <vkb/Barriers.h>
-#include <vkb/event/Event.h>
+#include "trc/base//Barriers.h"
+#include "trc/base//event/Event.h"
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "core/RenderLayout.h"
-#include "core/PipelineBuilder.h"
-#include "Torch.h"
-#include "TorchResources.h"
-#include "PipelineDefinitions.h"
+#include "trc/core/RenderLayout.h"
+#include "trc/core/PipelineBuilder.h"
+#include "trc/Torch.h"
+#include "trc/TorchResources.h"
+#include "trc/PipelineDefinitions.h"
 
 
 
@@ -67,7 +67,7 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
         );
 
         try {
-            auto [queue, family] = device.getQueueManager().getAnyQueue(vkb::QueueType::graphics);
+            auto [queue, family] = device.getQueueManager().getAnyQueue(QueueType::graphics);
             device.getQueueManager().reserveQueue(queue);
 
             // Init ImGui for Vulkan
@@ -84,14 +84,14 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
             igInfo.ImageCount = swapchain.getFrameCount();
             ImGui_ImplVulkan_Init(&igInfo, **renderPass);
         }
-        catch (const vkb::QueueReservedError& err)
+        catch (const QueueReservedError& err)
         {
             throw std::runtime_error("Unable to reserve graphics queue for ImGui: "
                                      + std::string(err.what()));
         }
 
         // Upload fonts texture
-        device.executeCommands(vkb::QueueType::graphics, [](auto cmdBuf) {
+        device.executeCommands(QueueType::graphics, [](auto cmdBuf) {
             ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
         });
 
@@ -131,7 +131,7 @@ void trc::experimental::imgui::beginImguiFrame()
 
 
 
-trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain& swapchain)
+trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swapchain)
     :
     RenderPass(
         [&swapchain]() -> vk::UniqueRenderPass
@@ -200,40 +200,40 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const vkb::Swapchain&
         it = callbackStorages.try_emplace(window).first;
     }
 
-    // Replace vkb's event callbacks
+    // Replace trc's event callbacks
     auto& storage = it->second;
 
-    storage.vkbCharCallback = glfwSetCharCallback(window,
+    storage.trcCharCallback = glfwSetCharCallback(window,
         [](GLFWwindow* window, unsigned int codepoint) {
             if (!ig::GetIO().WantCaptureKeyboard) {
-                callbackStorages.at(window).vkbCharCallback(window, codepoint);
+                callbackStorages.at(window).trcCharCallback(window, codepoint);
             }
         }
     );
-    storage.vkbKeyCallback = glfwSetKeyCallback(window,
+    storage.trcKeyCallback = glfwSetKeyCallback(window,
         [](GLFWwindow* window, int key, int scancode, int action, int mods) {
             if (!ig::GetIO().WantCaptureKeyboard) {
-                callbackStorages.at(window).vkbKeyCallback(window, key, scancode, action, mods);
+                callbackStorages.at(window).trcKeyCallback(window, key, scancode, action, mods);
             }
         }
     );
-    storage.vkbMouseButtonCallback = glfwSetMouseButtonCallback(window,
+    storage.trcMouseButtonCallback = glfwSetMouseButtonCallback(window,
         [](GLFWwindow* window, int button, int action, int mods) {
             if (!ig::GetIO().WantCaptureMouse) {
-                callbackStorages.at(window).vkbMouseButtonCallback(window, button, action, mods);
+                callbackStorages.at(window).trcMouseButtonCallback(window, button, action, mods);
             }
         }
     );
-    storage.vkbScrollCallback = glfwSetScrollCallback(window,
+    storage.trcScrollCallback = glfwSetScrollCallback(window,
         [](GLFWwindow* window, double xOffset, double yOffset) {
             if (!ig::GetIO().WantCaptureMouse) {
-                callbackStorages.at(window).vkbScrollCallback(window, xOffset, yOffset);
+                callbackStorages.at(window).trcScrollCallback(window, xOffset, yOffset);
             }
         }
     );
 
     createFramebuffers();
-    swapchainRecreateListener = vkb::on<vkb::SwapchainRecreateEvent>([this](auto& e) {
+    swapchainRecreateListener = on<SwapchainRecreateEvent>([this](auto& e) {
         if (e.swapchain != &this->swapchain) return;
         createFramebuffers();
     });
@@ -246,11 +246,11 @@ trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
     auto window = swapchain.getGlfwWindow();
     auto& storage = callbackStorages.at(window);
 
-    // Replace vkb's event callbacks
-    glfwSetCharCallback(window, storage.vkbCharCallback);
-    glfwSetKeyCallback(window, storage.vkbKeyCallback);
-    glfwSetMouseButtonCallback(window, storage.vkbMouseButtonCallback);
-    glfwSetScrollCallback(window, storage.vkbScrollCallback);
+    // Replace trc's event callbacks
+    glfwSetCharCallback(window, storage.trcCharCallback);
+    glfwSetKeyCallback(window, storage.trcKeyCallback);
+    glfwSetMouseButtonCallback(window, storage.trcMouseButtonCallback);
+    glfwSetScrollCallback(window, storage.trcScrollCallback);
 
     callbackStorages.erase(window);
     if (callbackStorages.empty())
@@ -268,7 +268,7 @@ void trc::experimental::imgui::ImguiRenderPass::begin(
 {
     // Bring swapchain image into eColorAttachmentOptimal layout. The final
     // lighting pass brings it into ePresentSrcKHR.
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         swapchain.getImage(swapchain.getCurrentFrame()),
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal,
@@ -276,7 +276,7 @@ void trc::experimental::imgui::ImguiRenderPass::begin(
         vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
         vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
-        vkb::DEFAULT_SUBRES_RANGE
+        DEFAULT_SUBRES_RANGE
     );
 
     cmdBuf.beginRenderPass(

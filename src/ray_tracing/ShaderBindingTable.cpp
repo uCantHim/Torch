@@ -1,4 +1,4 @@
-#include "ray_tracing/ShaderBindingTable.h"
+#include "trc/ray_tracing/ShaderBindingTable.h"
 
 #include <numeric>
 
@@ -7,11 +7,11 @@
 
 
 trc::rt::ShaderBindingTable::ShaderBindingTable(
-    const vkb::Device& device,
+    const Device& device,
     const vk::DispatchLoaderDynamic& dl,
     vk::Pipeline pipeline,
     std::vector<ui32> entrySizes,
-    const vkb::DeviceMemoryAllocator& alloc)
+    const DeviceMemoryAllocator& alloc)
 {
     const auto rayTracingProperties = device.getPhysicalDevice().physicalDevice.getProperties2<
         vk::PhysicalDeviceProperties2,
@@ -56,7 +56,7 @@ trc::rt::ShaderBindingTable::ShaderBindingTable(
             groupIndex++;
         }
 
-        vkb::DeviceLocalBuffer buffer{
+        DeviceLocalBuffer buffer{
             device,
             alignedHandleStorage,
             vk::BufferUsageFlagBits::eShaderBindingTableKHR

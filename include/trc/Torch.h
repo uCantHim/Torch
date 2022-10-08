@@ -1,27 +1,27 @@
 #pragma once
 
-#include <vkb/VulkanBase.h>
-
 #include <trc_util/Timer.h>
 
-#include "Types.h"
-#include "core/Camera.h"
-#include "core/Instance.h"
-#include "core/DrawConfiguration.h"
-#include "core/RenderTarget.h"
-#include "core/Window.h"
-
-#include "Scene.h"
-#include "TorchRenderConfig.h"
-#include "assets/Assets.h"
-#include "drawable/Drawable.h"
+#include "trc/Scene.h"
+#include "trc/TorchRenderConfig.h"
+#include "trc/Types.h"
+#include "trc/assets/Assets.h"
+#include "trc/core/Camera.h"
+#include "trc/core/DrawConfiguration.h"
+#include "trc/core/Instance.h"
+#include "trc/core/RenderTarget.h"
+#include "trc/core/Window.h"
+#include "trc/drawable/Drawable.h"
 
 namespace trc
 {
     /**
      * Reserved for future use, but empty for now.
      */
-    struct TorchInitInfo {};
+    struct TorchInitInfo
+    {
+        bool startEventThread{ true };
+    };
 
     /**
      * @brief Initialize Torch globally
@@ -69,7 +69,7 @@ namespace trc
                    const WindowCreateInfo& windowInfo = {});
         ~TorchStack();
 
-        auto getDevice() -> vkb::Device&;
+        auto getDevice() -> Device&;
         auto getInstance() -> Instance&;
         auto getWindow() -> Window&;
         auto getAssetManager() -> AssetManager&;
@@ -103,7 +103,7 @@ namespace trc
         RenderTarget swapchainRenderTarget;
         TorchRenderConfig renderConfig;
 
-        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
+        UniqueListenerId<SwapchainRecreateEvent> swapchainRecreateListener;
     };
 
     /**

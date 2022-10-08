@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ImguiIntegration.h"
+#include "trc/ImguiIntegration.h"
 
 namespace trc::experimental::imgui {
 

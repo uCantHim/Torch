@@ -5,11 +5,11 @@
 #include <trc/ui/torch/GuiIntegration.h>
 using namespace trc::basic_types;
 
-#include <ui/Window.h>
-#include <ui/elements/Quad.h>
-#include <ui/elements/Text.h>
-#include <ui/elements/InputField.h>
-#include <ui/elements/Button.h>
+#include <trc/ui/Window.h>
+#include <trc/ui/elements/Button.h>
+#include <trc/ui/elements/InputField.h>
+#include <trc/ui/elements/Quad.h>
+#include <trc/ui/elements/Text.h>
 namespace ui = trc::ui;
 using namespace ui::size_literals;
 
@@ -107,7 +107,7 @@ int main()
 
         while (swapchain.isOpen())
         {
-            vkb::pollEvents();
+            trc::pollEvents();
             torch->drawFrame(torch->makeDrawConfig(scene, camera));
         }
     }

@@ -1,8 +1,8 @@
-#include "text/GlyphMap.h"
+#include "trc/text/GlyphMap.h"
 
 
 
-trc::GlyphMap::GlyphMap(const vkb::Device& device, const vkb::DeviceMemoryAllocator& alloc)
+trc::GlyphMap::GlyphMap(const Device& device, const DeviceMemoryAllocator& alloc)
     :
     image(
         device,
@@ -20,7 +20,7 @@ trc::GlyphMap::GlyphMap(const vkb::Device& device, const vkb::DeviceMemoryAlloca
     )
 {
     // Set initial image layout
-    device.executeCommands(vkb::QueueType::graphics, [&](auto cmdBuf){
+    device.executeCommands(QueueType::graphics, [&](auto cmdBuf){
         image.barrier(cmdBuf,
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eShaderReadOnlyOptimal
@@ -49,7 +49,7 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
     image.writeData(
         data.data(),
         size.x * size.y,
-        vkb::ImageSize{ .offset={ offset.x, offset.y, 0 }, .extent={ size.x, size.y, 1 } },
+        ImageSize{ .offset={ offset.x, offset.y, 0 }, .extent={ size.x, size.y, 1 } },
         vk::ImageLayout::eShaderReadOnlyOptimal
     );
 
@@ -64,7 +64,7 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
     return { ll, ur };
 }
 
-auto trc::GlyphMap::getGlyphImage() -> vkb::Image&
+auto trc::GlyphMap::getGlyphImage() -> Image&
 {
     return image;
 }

@@ -3,10 +3,10 @@
 #include <vector>
 #include <tuple>
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
-#include "../Types.h"
-#include "DescriptorRegistry.h"
+#include "trc/Types.h"
+#include "trc/core/DescriptorRegistry.h"
 
 namespace trc
 {
@@ -34,7 +34,7 @@ namespace trc
         explicit
         PipelineLayout(vk::UniquePipelineLayout layout);
 
-        PipelineLayout(const vkb::Device& device,
+        PipelineLayout(const Device& device,
                        const vk::ArrayProxy<const vk::DescriptorSetLayout>& descriptors,
                        const vk::ArrayProxy<const vk::PushConstantRange>& pushConstants);
 
@@ -145,7 +145,7 @@ namespace trc
      * @return PipelineLayout
      */
     inline auto makePipelineLayout(
-        const vkb::Device& device,
+        const Device& device,
         const vk::ArrayProxy<const vk::DescriptorSetLayout>& descriptorSetLayouts,
         const vk::ArrayProxy<const vk::PushConstantRange>& pushConstantRanges)
         -> PipelineLayout

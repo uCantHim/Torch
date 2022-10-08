@@ -5,11 +5,11 @@
 #include <componentlib/Table.h>
 #include <trc_util/data/ObjectId.h>
 
-#include "Types.h"
-#include "AnimationRegistry.h"
-#include "AssetRegistryModule.h"
-#include "AssetSource.h"
-#include "AssetReference.h"
+#include "trc/Types.h"
+#include "trc/assets/AnimationRegistry.h"
+#include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/AssetReference.h"
 
 namespace trc
 {

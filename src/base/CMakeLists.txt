@@ -1,0 +1,21 @@
+add_subdirectory(event)
+
+target_sources(
+    torch
+    PRIVATE
+        Barriers.cpp
+        Buffer.cpp
+        Device.cpp
+        ExclusiveQueue.cpp
+        FrameClock.cpp
+        Image.cpp
+        ImageUtils.cpp
+        Memory.cpp
+        MemoryPool.cpp
+        PhysicalDevice.cpp
+        QueueManager.cpp
+        ShaderProgram.cpp
+        Swapchain.cpp
+        VulkanDebug.cpp
+        VulkanInstance.cpp
+)

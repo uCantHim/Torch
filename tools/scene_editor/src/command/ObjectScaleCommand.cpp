@@ -83,17 +83,17 @@ void ObjectScaleCommand::execute(CommandCall& call)
     {
         auto& state = call.setState(ObjectScaleState{ obj, scene });
 
-        call.on(vkb::Key::escape,        [&](auto&){ state.resetScaling(); });
-        call.on(vkb::MouseButton::right, [&](auto&){ state.resetScaling(); });
-        call.on(vkb::Key::enter,         [&](auto&){ state.applyScaling(); });
-        call.on(vkb::MouseButton::left,  [&](auto&){ state.applyScaling(); });
+        call.on(trc::Key::escape,        [&](auto&){ state.resetScaling(); });
+        call.on(trc::MouseButton::right, [&](auto&){ state.resetScaling(); });
+        call.on(trc::Key::enter,         [&](auto&){ state.applyScaling(); });
+        call.on(trc::MouseButton::left,  [&](auto&){ state.applyScaling(); });
 
         // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
-        call.on({ vkb::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ vkb::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ vkb::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ vkb::Key::x, vkb::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eX); });
-        call.on({ vkb::Key::z, vkb::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eY); });
-        call.on({ vkb::Key::y, vkb::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eZ); });
+        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
+        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
+        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
+        call.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eX); });
+        call.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eY); });
+        call.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eZ); });
     };
 }

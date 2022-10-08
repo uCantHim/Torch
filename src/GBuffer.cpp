@@ -1,12 +1,12 @@
-#include "GBuffer.h"
+#include "trc/GBuffer.h"
 
+#include "trc/DescriptorSetUtils.h"
+#include "trc/core/Camera.h"
 #include "trc_util/Padding.h"
-#include "DescriptorSetUtils.h"
-#include "Camera.h"
 
 
 
-trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
+trc::GBuffer::GBuffer(const Device& device, const GBufferCreateInfo& info)
     :
     size(info.size),
     extent(size.x, size.y),
@@ -26,7 +26,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst
         ),
-        vkb::DefaultDeviceMemoryAllocator()
+        DefaultDeviceMemoryAllocator()
     ),
     fragmentListHeadPointerImageView(
         fragmentListHeadPointerImage.createView(vk::ImageViewType::e2D, vk::Format::eR32Uint)
@@ -41,7 +41,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     )
 {
     // Clear fragment head pointer image
-    device.executeCommands(vkb::QueueType::graphics, [this](auto cmdBuf)
+    device.executeCommands(QueueType::graphics, [this](auto cmdBuf)
     {
         fragmentListHeadPointerImage.barrier(cmdBuf,
             vk::ImageLayout::eUndefined,
@@ -55,7 +55,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
     });
 
     // Clear atomic counter buffer
-    device.executeCommands(vkb::QueueType::transfer, [&, this](vk::CommandBuffer cmdBuf)
+    device.executeCommands(QueueType::transfer, [&, this](vk::CommandBuffer cmdBuf)
     {
         const ui32 MAX_FRAGS = info.maxTransparentFragsPerPixel * info.size.x * info.size.y;
         cmdBuf.updateBuffer<ui32>(*fragmentListBuffer, 0, { 0, MAX_FRAGS, 0, });
@@ -83,7 +83,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             colorUsage
         ),
-        vkb::DefaultDeviceMemoryAllocator()
+        DefaultDeviceMemoryAllocator()
     );
 
     // Albedo
@@ -95,7 +95,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             colorUsage
         ),
-        vkb::DefaultDeviceMemoryAllocator()
+        DefaultDeviceMemoryAllocator()
     );
 
     // Material
@@ -107,7 +107,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             colorUsage
         ),
-        vkb::DefaultDeviceMemoryAllocator()
+        DefaultDeviceMemoryAllocator()
     );
 
     // Depth
@@ -122,7 +122,7 @@ trc::GBuffer::GBuffer(const vkb::Device& device, const GBufferCreateInfo& info)
             vk::ImageTiling::eOptimal,
             depthUsage
         ),
-        vkb::DefaultDeviceMemoryAllocator()
+        DefaultDeviceMemoryAllocator()
     );
 
     imageViews.push_back(getImage(Image::eNormals).createView());
@@ -141,12 +141,12 @@ auto trc::GBuffer::getExtent() const -> vk::Extent2D
     return extent;
 }
 
-auto trc::GBuffer::getImage(Image imageType) -> vkb::Image&
+auto trc::GBuffer::getImage(Image imageType) -> trc::Image&
 {
     return images[imageType];
 }
 
-auto trc::GBuffer::getImage(Image imageType) const -> const vkb::Image&
+auto trc::GBuffer::getImage(Image imageType) const -> const trc::Image&
 {
     return images[imageType];
 }
@@ -188,8 +188,8 @@ void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
 // -------------------------------- //
 
 trc::GBufferDescriptor::GBufferDescriptor(
-    const vkb::Device& device,
-    const vkb::FrameClock& frameClock)
+    const Device& device,
+    const FrameClock& frameClock)
     :
     descSets(frameClock),
     provider({}, { frameClock }) // Doesn't have a default constructor
@@ -242,8 +242,8 @@ trc::GBufferDescriptor::GBufferDescriptor(
 }
 
 trc::GBufferDescriptor::GBufferDescriptor(
-    const vkb::Device& device,
-    const vkb::FrameSpecific<GBuffer>& gBuffer)
+    const Device& device,
+    const FrameSpecific<GBuffer>& gBuffer)
     :
     GBufferDescriptor(device, gBuffer.getFrameClock())
 {
@@ -257,8 +257,8 @@ auto trc::GBufferDescriptor::getProvider() const noexcept
 }
 
 void trc::GBufferDescriptor::update(
-    const vkb::Device& device,
-    const vkb::FrameSpecific<GBuffer>& gBuffer)
+    const Device& device,
+    const FrameSpecific<GBuffer>& gBuffer)
 {
     const ui32 frameCount = gBuffer.getFrameClock().getFrameCount();
     for (size_t frame = 0; frame < frameCount; frame++)

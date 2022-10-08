@@ -1,7 +1,7 @@
-#include "FinalLightingPass.h"
+#include "trc/FinalLightingPass.h"
 
-#include <vkb/ShaderProgram.h>
-#include <vkb/Barriers.h>
+#include "trc/base/ShaderProgram.h"
+#include "trc/base/Barriers.h"
 
 #include "trc/core/PipelineLayoutBuilder.h"
 #include "trc/core/ComputePipelineBuilder.h"
@@ -13,7 +13,7 @@
 
 
 trc::FinalLightingPass::FinalLightingPass(
-    const vkb::Device& device,
+    const Device& device,
     const RenderTarget& target,
     uvec2 offset,
     uvec2 size,
@@ -57,7 +57,7 @@ void trc::FinalLightingPass::begin(
     cmdBuf.pushConstants<vec2>(*layout, vk::ShaderStageFlagBits::eCompute,
                                0, { renderOffset, renderSize });
 
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         targetImage,
         vk::ImageLayout::eUndefined,
@@ -71,7 +71,7 @@ void trc::FinalLightingPass::begin(
 
     cmdBuf.dispatch(groupCount.x, groupCount.y, groupCount.z);
 
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         targetImage,
         vk::ImageLayout::eGeneral,
@@ -93,15 +93,15 @@ void trc::FinalLightingPass::setTargetArea(uvec2 offset, uvec2 size)
     groupCount = (uvec3(size, 1) + LOCAL_GROUP_SIZE - 1u) / LOCAL_GROUP_SIZE;
 }
 
-void trc::FinalLightingPass::setRenderTarget(const vkb::Device& device, const RenderTarget& target)
+void trc::FinalLightingPass::setRenderTarget(const Device& device, const RenderTarget& target)
 {
     renderTarget = &target;
     updateDescriptors(device, target);
 }
 
 void trc::FinalLightingPass::createDescriptors(
-    const vkb::Device& device,
-    const vkb::FrameClock& frameClock)
+    const Device& device,
+    const FrameClock& frameClock)
 {
     const ui32 numSets{ frameClock.getFrameCount() };
 
@@ -128,7 +128,7 @@ void trc::FinalLightingPass::createDescriptors(
 }
 
 void trc::FinalLightingPass::updateDescriptors(
-    const vkb::Device& device,
+    const Device& device,
     const RenderTarget& target)
 {
     for (ui32 i = 0; auto view : target.getImageViews())

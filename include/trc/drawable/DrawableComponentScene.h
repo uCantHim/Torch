@@ -5,17 +5,17 @@
 #include <componentlib/ComponentStorage.h>
 #include <componentlib/ComponentID.h>
 
-#include "core/RenderStage.h"
-#include "core/RenderPass.h"
-#include "core/Pipeline.h"
-#include "core/SceneBase.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/Pipeline.h"
+#include "trc/core/SceneBase.h"
 
-#include "drawable/NodeComponent.h"
-#include "drawable/AnimationComponent.h"
-#include "drawable/RasterizationComponent.h"
-#include "drawable/RaytracingComponent.h"
+#include "trc/drawable/NodeComponent.h"
+#include "trc/drawable/AnimationComponent.h"
+#include "trc/drawable/RasterizationComponent.h"
+#include "trc/drawable/RaytracingComponent.h"
 
-#include "ray_tracing/GeometryUtils.h"
+#include "trc/ray_tracing/GeometryUtils.h"
 
 namespace trc
 {

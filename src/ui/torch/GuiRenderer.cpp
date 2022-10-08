@@ -1,11 +1,11 @@
-#include "ui/torch/GuiRenderer.h"
+#include "trc/ui/torch/GuiRenderer.h"
 
-#include "ui/torch/DrawImplementations.h"
+#include "trc/ui/torch/DrawImplementations.h"
 
 
 
 trc::GuiRenderTarget::GuiRenderTarget(
-    const vkb::Device& device,
+    const Device& device,
     vk::RenderPass renderPass,
     uvec2 size)
     :
@@ -30,7 +30,7 @@ trc::GuiRenderTarget::GuiRenderTarget(
     }())
 {
     // Set initial image layout
-    device.executeCommands(vkb::QueueType::graphics, [&](auto cmdBuf)
+    device.executeCommands(QueueType::graphics, [&](auto cmdBuf)
     {
         image.barrier(cmdBuf, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
     });
@@ -41,7 +41,7 @@ auto trc::GuiRenderTarget::getSize() const -> uvec2
     return image.getSize();
 }
 
-auto trc::GuiRenderTarget::getImage() -> vkb::Image&
+auto trc::GuiRenderTarget::getImage() -> Image&
 {
     return image;
 }
@@ -53,7 +53,7 @@ auto trc::GuiRenderTarget::getFramebuffer() const -> const Framebuffer&
 
 
 
-trc::GuiRenderer::GuiRenderer(vkb::Device& device)
+trc::GuiRenderer::GuiRenderer(Device& device)
     :
     device(device),
     renderFinishedFence(device->createFenceUnique({})),
@@ -105,7 +105,7 @@ trc::GuiRenderer::GuiRenderer(vkb::Device& device)
     clearValue(vk::ClearColorValue(std::array<float, 4>{{ 0.0f, 0.0f, 0.0f, 0.0f }})),
     collector(device, *this)
 {
-    auto [queue, family] = device.getQueueManager().getAnyQueue(vkb::QueueType::graphics);
+    auto [queue, family] = device.getQueueManager().getAnyQueue(QueueType::graphics);
     cmdPool = device->createCommandPoolUnique(
         vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, family)
     );

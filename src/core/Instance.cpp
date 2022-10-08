@@ -1,16 +1,15 @@
-#include "core/Instance.h"
+#include "trc/core/Instance.h"
 
-#include <vkb/VulkanInstance.h>
-#include <vkb/Device.h>
-
-#include "Window.h"
+#include "trc/base/Device.h"
+#include "trc/base/VulkanInstance.h"
+#include "trc/core/Window.h"
 
 
 
 auto trc::makeDefaultTorchVulkanInstance(const std::string& appName, ui32 appVersion)
-    -> u_ptr<vkb::VulkanInstance>
+    -> u_ptr<VulkanInstance>
 {
-    return std::make_unique<vkb::VulkanInstance>(
+    return std::make_unique<VulkanInstance>(
         appName, appVersion,
         "Torch", VK_MAKE_VERSION(0, 0, 1),
         VK_API_VERSION_1_3,
@@ -25,8 +24,8 @@ trc::Instance::Instance(const InstanceCreateInfo& info)
     optionalLocalInstance(makeDefaultTorchVulkanInstance()),
     instance(**optionalLocalInstance),
     physicalDevice([instance=this->instance] {
-        vkb::Surface surface(instance, { .hidden=true });
-        return new vkb::PhysicalDevice(instance, surface.getVulkanSurface());
+        Surface surface(instance, { .hidden=true });
+        return new PhysicalDevice(instance, surface.getVulkanSurface());
     }())
 {
     auto [dev, rayFeatures] = makeDevice(info, *physicalDevice);
@@ -42,8 +41,8 @@ trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
     optionalLocalInstance(nullptr),
     instance(_instance),
     physicalDevice([instance=this->instance] {
-        vkb::Surface surface(instance, { .hidden=true });
-        return new vkb::PhysicalDevice(instance, surface.getVulkanSurface());
+        Surface surface(instance, { .hidden=true });
+        return new PhysicalDevice(instance, surface.getVulkanSurface());
     }())
 {
     auto [dev, rayFeatures] = makeDevice(info, *physicalDevice);
@@ -63,22 +62,22 @@ auto trc::Instance::getVulkanInstance() const -> vk::Instance
     return instance;
 }
 
-auto trc::Instance::getPhysicalDevice() -> vkb::PhysicalDevice&
+auto trc::Instance::getPhysicalDevice() -> PhysicalDevice&
 {
     return *physicalDevice;
 }
 
-auto trc::Instance::getPhysicalDevice() const -> const vkb::PhysicalDevice&
+auto trc::Instance::getPhysicalDevice() const -> const PhysicalDevice&
 {
     return *physicalDevice;
 }
 
-auto trc::Instance::getDevice() -> vkb::Device&
+auto trc::Instance::getDevice() -> Device&
 {
     return *device;
 }
 
-auto trc::Instance::getDevice() const -> const vkb::Device&
+auto trc::Instance::getDevice() const -> const Device&
 {
     return *device;
 }
@@ -110,8 +109,8 @@ bool trc::Instance::hasRayTracing() const
 
 auto trc::Instance::makeDevice(
     const InstanceCreateInfo& info,
-    const vkb::PhysicalDevice& physicalDevice)
-    -> std::pair<u_ptr<vkb::Device>, bool>
+    const PhysicalDevice& physicalDevice)
+    -> std::pair<u_ptr<Device>, bool>
 {
 
     void* deviceFeatureChain{ nullptr };
@@ -139,7 +138,7 @@ auto trc::Instance::makeDevice(
     auto as = features.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
     auto ray = features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
 
-    if constexpr (vkb::enableVerboseLogging)
+    if constexpr (enableVerboseLogging)
     {
         std::cout << "\nQuerying ray tracing support:\n";
         std::cout << std::boolalpha
@@ -172,7 +171,7 @@ auto trc::Instance::makeDevice(
     deviceFeatureChain = features.get<vk::PhysicalDeviceFeatures2>().pNext;
 
     return {
-        std::make_unique<vkb::Device>(physicalDevice, extensions, deviceFeatureChain),
+        std::make_unique<Device>(physicalDevice, extensions, deviceFeatureChain),
         enableRayTracing
     };
 }

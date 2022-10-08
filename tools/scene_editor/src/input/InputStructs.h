@@ -2,30 +2,30 @@
 
 #include <variant>
 
-#include <vkb/event/Keys.h>
+#include <trc/base/event/Keys.h>
 #include <trc/Types.h>
 using namespace trc::basic_types;
 
 struct KeyInput
 {
-    KeyInput(vkb::Key key);
-    KeyInput(vkb::Key key, vkb::KeyModFlags mods);
-    KeyInput(vkb::Key key, vkb::KeyModFlags mods, vkb::InputAction action);
+    KeyInput(trc::Key key);
+    KeyInput(trc::Key key, trc::KeyModFlags mods);
+    KeyInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action);
 
-    vkb::Key key;
-    vkb::KeyModFlags mod{ vkb::KeyModFlagBits::none };
-    vkb::InputAction action{ vkb::InputAction::press };
+    trc::Key key;
+    trc::KeyModFlags mod{ trc::KeyModFlagBits::none };
+    trc::InputAction action{ trc::InputAction::press };
 };
 
 struct MouseInput
 {
-    MouseInput(vkb::MouseButton button);
-    MouseInput(vkb::MouseButton button, vkb::KeyModFlags mods);
-    MouseInput(vkb::MouseButton button, vkb::KeyModFlags mods, vkb::InputAction action);
+    MouseInput(trc::MouseButton button);
+    MouseInput(trc::MouseButton button, trc::KeyModFlags mods);
+    MouseInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action);
 
-    vkb::MouseButton button;
-    vkb::KeyModFlags mod{ vkb::KeyModFlagBits::none };
-    vkb::InputAction action{ vkb::InputAction::press };
+    trc::MouseButton button;
+    trc::KeyModFlags mod{ trc::KeyModFlagBits::none };
+    trc::InputAction action{ trc::InputAction::press };
 };
 
 /**
@@ -42,13 +42,13 @@ struct VariantInput
     VariantInput(KeyInput in) : input(in) {}
     VariantInput(MouseInput in) : input(in) {}
 
-    VariantInput(vkb::Key key);
-    VariantInput(vkb::Key key, vkb::KeyModFlags mods);
-    VariantInput(vkb::Key key, vkb::KeyModFlags mods, vkb::InputAction action);
+    VariantInput(trc::Key key);
+    VariantInput(trc::Key key, trc::KeyModFlags mods);
+    VariantInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action);
 
-    VariantInput(vkb::MouseButton button);
-    VariantInput(vkb::MouseButton button, vkb::KeyModFlags mods);
-    VariantInput(vkb::MouseButton button, vkb::KeyModFlags mods, vkb::InputAction action);
+    VariantInput(trc::MouseButton button);
+    VariantInput(trc::MouseButton button, trc::KeyModFlags mods);
+    VariantInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action);
 
     template<typename T> requires keyOrMouseInput<T>
     bool is() const

@@ -1,6 +1,6 @@
-#include "PipelineLayout.h"
+#include "trc/core/PipelineLayout.h"
 
-#include "core/DescriptorProvider.h"
+#include "trc/core/DescriptorProvider.h"
 
 
 
@@ -11,7 +11,7 @@ trc::PipelineLayout::PipelineLayout(vk::UniquePipelineLayout layout)
 }
 
 trc::PipelineLayout::PipelineLayout(
-    const vkb::Device& device,
+    const Device& device,
     const vk::ArrayProxy<const vk::DescriptorSetLayout>& descriptors,
     const vk::ArrayProxy<const vk::PushConstantRange>& pushConstants)
     :

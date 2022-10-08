@@ -1,8 +1,8 @@
-#include "core/DescriptorRegistry.h"
+#include "trc/core/DescriptorRegistry.h"
 
 #include <trc_util/Exception.h>
 
-#include "DescriptorProvider.h"
+#include "trc/core/DescriptorProvider.h"
 
 
 

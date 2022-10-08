@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vkb/Image.h>
-#include <vkb/FrameClock.h>
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/Image.h"
+#include "trc/base/FrameClock.h"
+#include "trc/base/FrameSpecificObject.h"
 
-#include "AccelerationStructure.h"
+#include "trc/ray_tracing/AccelerationStructure.h"
 
 namespace trc::rt
 {
@@ -20,11 +20,11 @@ namespace trc::rt
             -> vk::UniqueDescriptorSet;
 
         auto allocateFrameSpecificDescriptorSet(const TLAS& tlas,
-                                                vkb::FrameSpecific<vk::ImageView> outputImageView)
-            -> vkb::FrameSpecific<vk::UniqueDescriptorSet>;
+                                                FrameSpecific<vk::ImageView> outputImageView)
+            -> FrameSpecific<vk::UniqueDescriptorSet>;
 
     private:
-        const vkb::Device& device;
+        const Device& device;
 
         vk::UniqueDescriptorPool pool;
         vk::UniqueDescriptorSetLayout layout;

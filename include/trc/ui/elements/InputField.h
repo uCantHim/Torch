@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "ui/Element.h"
-#include "ui/elements/Quad.h"
-#include "ui/elements/Text.h"
-#include "ui/elements/BaseElements.h"
-#include "ui/event/InputEvent.h"
+#include "trc/ui/Element.h"
+#include "trc/ui/elements/Quad.h"
+#include "trc/ui/elements/Text.h"
+#include "trc/ui/elements/BaseElements.h"
+#include "trc/ui/event/InputEvent.h"
 
 namespace trc::ui
 {

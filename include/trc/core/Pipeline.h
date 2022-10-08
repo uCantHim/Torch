@@ -2,10 +2,10 @@
 
 #include <variant>
 
-#include <vkb/Device.h>
+#include "trc/base/Device.h"
 
-#include "../Types.h"
-#include "PipelineLayout.h"
+#include "trc/Types.h"
+#include "trc/core/PipelineLayout.h"
 
 namespace trc
 {
@@ -73,7 +73,7 @@ namespace trc
      * @note No equivalent function exists for graphics pipelines because
      * their creation is much more complex.
      */
-    auto makeComputePipeline(const vkb::Device& device,
+    auto makeComputePipeline(const Device& device,
                              PipelineLayout& layout,
                              const std::string& code,
                              vk::PipelineCreateFlags flags = {},

@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <vkb/ShaderProgram.h>
+#include "trc/base/ShaderProgram.h"
 #include <spirv/FileIncluder.h>
 
 #include "trc/Types.h"
@@ -80,16 +80,16 @@ auto ShaderLoader::tryLoad(const fs::path& includeDir, const ShaderPath& shaderP
         return compile(srcPath, binPath);
     }
 
-    return vkb::readFile(binPath);
+    return readFile(binPath);
 }
 
 auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> std::string
 {
-    if constexpr (vkb::enableVerboseLogging) {
+    if constexpr (enableVerboseLogging) {
         std::cout << "Compiling shader " << srcPath << " to " << dstPath << "\n";
     }
 
-    auto result = spirv::generateSpirv(vkb::readFile(srcPath), srcPath, compileOpts);
+    auto result = spirv::generateSpirv(readFile(srcPath), srcPath, compileOpts);
     if (result.GetCompilationStatus()
         != shaderc_compilation_status::shaderc_compilation_status_success)
     {

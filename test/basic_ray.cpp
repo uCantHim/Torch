@@ -1,10 +1,8 @@
 #include <iostream>
 
-#include <vkb/Barriers.h>
-#include <vkb/VulkanBase.h>
-
 #include <trc/DescriptorSetUtils.h>
 #include <trc/Torch.h>
+#include <trc/base/Barriers.h>
 #include <trc/core/Instance.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/Window.h>
@@ -61,17 +59,17 @@ int main()
         .skeletalVertices={},
         .indices={ 0, 1, 2 },
     };
-    vkb::DeviceLocalBuffer vertBuf(
+    trc::DeviceLocalBuffer vertBuf(
         device, geo.vertices,
         vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
             | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        trc::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     );
-    vkb::DeviceLocalBuffer indexBuf(
+    trc::DeviceLocalBuffer indexBuf(
         device, geo.indices,
         vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
             | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        trc::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     );
 
     // Botton-level acceleration structure
@@ -106,11 +104,11 @@ int main()
             | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
         device->getAccelerationStructureAddressKHR({ *blas }, instance.getDL())
     );
-    vkb::DeviceLocalBuffer instancesBuffer{
+    trc::DeviceLocalBuffer instancesBuffer{
         device, sizeof(vk::AccelerationStructureInstanceKHR), &triInstance,
         vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR
             | vk::BufferUsageFlagBits::eShaderDeviceAddress,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        trc::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     };
 
     trc::rt::TopLevelAccelerationStructure tlas(instance, 1);
@@ -159,7 +157,7 @@ int main()
 
     trc::FrameSpecificDescriptorProvider provider(
         *descLayout,
-        vkb::FrameSpecific<vk::DescriptorSet>(window, [&](ui32 i){ return *sets[i]; })
+        trc::FrameSpecific<vk::DescriptorSet>(window, [&](ui32 i){ return *sets[i]; })
     );
 
     // Pipeline
@@ -188,7 +186,7 @@ int main()
     trc::UpdateFunctionPass rayPass(
         [&, &pipeline=pipeline](vk::CommandBuffer cmdBuf, trc::FrameRenderState&)
         {
-            vkb::imageMemoryBarrier(
+            trc::imageMemoryBarrier(
                 cmdBuf,
                 target.getCurrentImage(),
                 vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral,
@@ -209,7 +207,7 @@ int main()
                 target.getSize().x, target.getSize().y, 1,
                 instance.getDL()
             );
-            vkb::imageMemoryBarrier(
+            trc::imageMemoryBarrier(
                 cmdBuf,
                 target.getCurrentImage(),
                 vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR,
@@ -229,10 +227,10 @@ int main()
         .renderConfig=&renderConfig
     };
 
-    vkb::Keyboard::init();
-    while (!vkb::Keyboard::isPressed(vkb::Key::escape))
+    trc::Keyboard::init();
+    while (!trc::Keyboard::isPressed(trc::Key::escape))
     {
-        vkb::pollEvents();
+        trc::pollEvents();
 
         window.drawFrame(drawConfig);
     }

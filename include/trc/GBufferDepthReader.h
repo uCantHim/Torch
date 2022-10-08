@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vkb/Buffer.h>
-#include <vkb/FrameSpecificObject.h>
+#include "trc/base/Buffer.h"
+#include "trc/base/FrameSpecificObject.h"
 
-#include "GBuffer.h"
-#include "UpdatePass.h"
+#include "trc/GBuffer.h"
+#include "trc/UpdatePass.h"
 
 namespace trc
 {
@@ -14,9 +14,9 @@ namespace trc
     class GBufferDepthReader : public UpdatePass
     {
     public:
-        GBufferDepthReader(const vkb::Device& device,
+        GBufferDepthReader(const Device& device,
                            std::function<vec2()> mousePosGetter,
-                           vkb::FrameSpecific<GBuffer>& gBuffer);
+                           FrameSpecific<GBuffer>& gBuffer);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) override;
 
@@ -34,8 +34,8 @@ namespace trc
 
         std::function<vec2()> getMousePos;
 
-        vkb::FrameSpecific<GBuffer>& gBuffer;
-        vkb::Buffer depthPixelReadBuffer;
+        FrameSpecific<GBuffer>& gBuffer;
+        Buffer depthPixelReadBuffer;
         ui32* depthBufMap{ depthPixelReadBuffer.map<ui32*>() };
     };
 } // namespace trc

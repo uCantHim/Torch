@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
-#include "Types.h"
-#include "core/DescriptorProvider.h"
-#include "drawable/DrawableComponentScene.h"
+#include "trc/Types.h"
+#include "trc/core/DescriptorProvider.h"
+#include "trc/drawable/DrawableComponentScene.h"
 
 namespace trc
 {
@@ -45,16 +45,16 @@ namespace trc
         void writeDescriptors();
 
         const Instance& instance;
-        const vkb::Device& device;
+        const Device& device;
 
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet descSet;
         SceneDescriptorProvider provider{ *this };
 
-        vkb::Buffer lightBuffer;
+        Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping
-        vkb::Buffer drawableDataBuf;
+        Buffer drawableDataBuf;
         DrawableComponentScene::DrawableRayData* drawableBufferMap;
     };
 } // namespace trc

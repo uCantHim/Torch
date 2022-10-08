@@ -1,6 +1,6 @@
-#include "ray_tracing/RayTracingPass.h"
+#include "trc/ray_tracing/RayTracingPass.h"
 
-#include <vkb/Barriers.h>
+#include "trc/base/Barriers.h"
 
 #include "trc/TorchRenderConfig.h"
 #include "trc/core/PipelineLayoutBuilder.h"
@@ -11,7 +11,7 @@ trc::RayTracingPass::RayTracingPass(
     const Instance& instance,
     TorchRenderConfig& renderConfig,
     const rt::TLAS& tlas,
-    vkb::FrameSpecific<rt::RayBuffer> _rayBuffer,
+    FrameSpecific<rt::RayBuffer> _rayBuffer,
     const RenderTarget& target)
     :
     RenderPass({}, 0),
@@ -68,7 +68,7 @@ void trc::RayTracingPass::begin(
 {
     for (auto& call : rayCalls)
     {
-        vkb::barrier(cmdBuf,
+        barrier(cmdBuf,
             vk::ImageMemoryBarrier2(
                 vk::PipelineStageFlagBits2::eNone,
                 vk::AccessFlagBits2::eNone,
@@ -90,7 +90,7 @@ void trc::RayTracingPass::begin(
             rayBuffer->getSize().x, rayBuffer->getSize().y, 1,
             instance.getDL()
         );
-        vkb::barrier(cmdBuf,
+        barrier(cmdBuf,
             vk::ImageMemoryBarrier2(
                 vk::PipelineStageFlagBits2::eRayTracingShaderKHR,
                 vk::AccessFlagBits2::eShaderStorageWrite,

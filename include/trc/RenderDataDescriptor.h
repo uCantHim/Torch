@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vkb/Swapchain.h>
-#include <vkb/Buffer.h>
+#include "trc/base/Swapchain.h"
+#include "trc/base/Buffer.h"
 
-#include "core/DescriptorProvider.h"
-#include "core/Camera.h"
+#include "trc/core/DescriptorProvider.h"
+#include "trc/core/Camera.h"
 #include "trc_util/Padding.h"
 
 namespace trc
@@ -53,11 +53,11 @@ namespace trc
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorSet descSet;
 
-        const vkb::Device& device;
-        const vkb::Swapchain& swapchain;
+        const Device& device;
+        const Swapchain& swapchain;
         const ui32 BUFFER_SECTION_SIZE; // not static because it depends on physical device align
 
         /** Contains all descriptor data at dynamic offsets */
-        vkb::Buffer buffer;
+        Buffer buffer;
     };
 } // namespace trc

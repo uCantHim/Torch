@@ -3,7 +3,7 @@
 #include <string>
 #include <filesystem>
 
-#include "ShaderPath.h"
+#include "trc/ShaderPath.h"
 
 namespace trc::internal
 {

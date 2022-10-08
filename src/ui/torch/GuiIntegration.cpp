@@ -1,30 +1,30 @@
-#include "ui/torch/GuiIntegration.h"
+#include "trc/ui/torch/GuiIntegration.h"
 
-#include <vkb/Barriers.h>
-#include <vkb/ShaderProgram.h>
-#include <vkb/event/Event.h>
+#include "trc/base/Barriers.h"
+#include "trc/base/ShaderProgram.h"
+#include "trc/base/event/Event.h"
 
-#include "core/RenderLayout.h"
-#include "TorchResources.h"
-#include "PipelineDefinitions.h"
+#include "trc/core/RenderLayout.h"
+#include "trc/TorchResources.h"
+#include "trc/PipelineDefinitions.h"
 #include "trc/GuiShaders.h"
 
 
 
-auto trc::initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiStack
+auto trc::initGui(Device& device, const Swapchain& swapchain) -> GuiStack
 {
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
         .windowBackend=std::make_unique<trc::TorchWindowBackend>(swapchain),
         .keyMap = ui::KeyMapping{
-            .escape     = static_cast<int>(vkb::Key::escape),
-            .backspace  = static_cast<int>(vkb::Key::backspace),
-            .enter      = static_cast<int>(vkb::Key::enter),
-            .tab        = static_cast<int>(vkb::Key::tab),
-            .del        = static_cast<int>(vkb::Key::del),
-            .arrowLeft  = static_cast<int>(vkb::Key::arrow_left),
-            .arrowRight = static_cast<int>(vkb::Key::arrow_right),
-            .arrowUp    = static_cast<int>(vkb::Key::arrow_up),
-            .arrowDown  = static_cast<int>(vkb::Key::arrow_down),
+            .escape     = static_cast<int>(Key::escape),
+            .backspace  = static_cast<int>(Key::backspace),
+            .enter      = static_cast<int>(Key::enter),
+            .tab        = static_cast<int>(Key::tab),
+            .del        = static_cast<int>(Key::del),
+            .arrowLeft  = static_cast<int>(Key::arrow_left),
+            .arrowRight = static_cast<int>(Key::arrow_right),
+            .arrowUp    = static_cast<int>(Key::arrow_up),
+            .arrowDown  = static_cast<int>(Key::arrow_down),
         }
     });
     ui::Window* windowPtr = window.get();
@@ -38,9 +38,9 @@ auto trc::initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiSt
         .renderPass = std::move(renderPass),
 
         // Notify GUI of mouse clicks
-        .mouseClickListener = vkb::on<vkb::MouseClickEvent>(
-            [=](const vkb::MouseClickEvent& e) {
-                if (e.action == vkb::InputAction::press)
+        .mouseClickListener = on<MouseClickEvent>(
+            [=](const MouseClickEvent& e) {
+                if (e.action == InputAction::press)
                 {
                     vec2 pos = e.swapchain->getMousePosition();
                     windowPtr->signalMouseClick(pos.x, pos.y);
@@ -49,16 +49,16 @@ auto trc::initGui(vkb::Device& device, const vkb::Swapchain& swapchain) -> GuiSt
         ),
 
         // Notify GUI of key events
-        .keyPressListener = vkb::on<vkb::KeyPressEvent>([=](auto& e) {
+        .keyPressListener = on<KeyPressEvent>([=](auto& e) {
             windowPtr->signalKeyPress(static_cast<int>(e.key));
         }),
-        .keyRepeatListener = vkb::on<vkb::KeyRepeatEvent>([=](auto& e) {
+        .keyRepeatListener = on<KeyRepeatEvent>([=](auto& e) {
             windowPtr->signalKeyRepeat(static_cast<int>(e.key));
         }),
-        .keyReleaseListener = vkb::on<vkb::KeyReleaseEvent>([=](auto& e) {
+        .keyReleaseListener = on<KeyReleaseEvent>([=](auto& e) {
             windowPtr->signalKeyRelease(static_cast<int>(e.key));
         }),
-        .charInputListener = vkb::on<vkb::CharInputEvent>([=](auto& e) {
+        .charInputListener = on<CharInputEvent>([=](auto& e) {
             windowPtr->signalCharInput(e.character);
         })
     };
@@ -74,8 +74,8 @@ void trc::integrateGui(GuiStack& stack, RenderLayout& layout)
 
 
 trc::GuiIntegrationPass::GuiIntegrationPass(
-    const vkb::Device& device,
-    const vkb::Swapchain& swapchain,
+    const Device& device,
+    const Swapchain& swapchain,
     ui::Window& window,
     GuiRenderer& renderer)
     :
@@ -101,7 +101,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
             internal::loadShader(trc::ui_impl::pipelines::getImageBlend())
         )
     ),
-    swapchainRecreateListener(vkb::on<vkb::SwapchainRecreateEvent>([&](auto& e) {
+    swapchainRecreateListener(on<SwapchainRecreateEvent>([&](auto& e) {
         if (e.swapchain != &swapchain) return;
 
         renderTarget = GuiRenderTarget(device, renderer.getRenderPass(), window.getSize());
@@ -142,7 +142,7 @@ void trc::GuiIntegrationPass::begin(
     std::lock_guard lock(renderLock);
 
     auto swapchainImage = swapchain.getImage(swapchain.getCurrentFrame());
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         swapchainImage,
         vk::ImageLayout::ePresentSrcKHR,
@@ -151,7 +151,7 @@ void trc::GuiIntegrationPass::begin(
         vk::PipelineStageFlagBits::eComputeShader,
         vk::AccessFlagBits::eMemoryWrite,
         vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-        vkb::DEFAULT_SUBRES_RANGE
+        DEFAULT_SUBRES_RANGE
     );
 
     imageBlendPipeline.bind(cmdBuf);
@@ -163,7 +163,7 @@ void trc::GuiIntegrationPass::begin(
     constexpr float LOCAL_SIZE{ 10.0f };
     cmdBuf.dispatch(glm::ceil(x / LOCAL_SIZE), glm::ceil(y / LOCAL_SIZE), 1);
 
-    vkb::imageMemoryBarrier(
+    imageMemoryBarrier(
         cmdBuf,
         swapchainImage,
         vk::ImageLayout::eGeneral,
@@ -172,7 +172,7 @@ void trc::GuiIntegrationPass::begin(
         vk::PipelineStageFlagBits::eHost,
         vk::AccessFlagBits::eShaderWrite,
         vk::AccessFlagBits::eMemoryRead,
-        vkb::DEFAULT_SUBRES_RANGE
+        DEFAULT_SUBRES_RANGE
     );
 }
 

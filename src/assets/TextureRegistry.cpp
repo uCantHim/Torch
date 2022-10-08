@@ -1,8 +1,8 @@
-#include "assets/TextureRegistry.h"
+#include "trc/assets/TextureRegistry.h"
 
 #include "texture.pb.h"
-#include "assets/import/InternalFormat.h"
-#include "ray_tracing/RayPipelineBuilder.h"
+#include "trc/assets/import/InternalFormat.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
@@ -115,7 +115,7 @@ void TextureRegistry::load(const LocalID id)
     auto data = tex.dataSource->load();
 
     // Create image resource
-    vkb::Image image(
+    Image image(
         device, data.size.x, data.size.y,
         vk::Format::eR8G8B8A8Unorm,
         vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,

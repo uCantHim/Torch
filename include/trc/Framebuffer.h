@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vkb/Swapchain.h>
-#include <vkb/Image.h>
+#include "trc/base/Swapchain.h"
+#include "trc/base/Image.h"
 
-#include "Types.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -18,7 +18,7 @@ namespace trc
          * imageless framebuffer, use a constructor overload that accepts
          * a vk::FramebufferAttachmentsCreateInfo struct.
          *
-         * @param const vkb::Device& device
+         * @param const Device& device
          * @param vk::RenderPass renderPass The type of render pass that
          *        the framebuffer will be compatible with.
          * @param uvec2 size Size of the framebuffer in pixels
@@ -33,7 +33,7 @@ namespace trc
          *        ones from the `attachments` parameter. May be empty if
          *        `attachments` is non-empty.
          */
-        Framebuffer(const vkb::Device& device,
+        Framebuffer(const Device& device,
                     vk::RenderPass renderPass,
                     uvec2 size,
                     std::vector<vk::UniqueImageView> attachments = {},
@@ -42,12 +42,12 @@ namespace trc
         /**
          * @brief Create an imageless framebuffer
          *
-         * @param const vkb::Device& device
+         * @param const Device& device
          * @param vk::RenderPass renderPass The type of render pass that
          *        the framebuffer will be compatible with.
          * @param uvec2 size Size of the framebuffer in pixels
          */
-        Framebuffer(const vkb::Device& device,
+        Framebuffer(const Device& device,
                     vk::RenderPass renderPass,
                     uvec2 size,
                     vk::FramebufferAttachmentsCreateInfo attachmentInfo);

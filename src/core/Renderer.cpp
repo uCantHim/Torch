@@ -1,41 +1,43 @@
-#include "Renderer.h"
+#include "trc/core/Renderer.h"
 
 #include <trc_util/Util.h>
 #include <trc_util/Timer.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
-#include "Window.h"
-#include "DrawConfiguration.h"
-#include "RenderConfiguration.h"
-#include "TorchResources.h"
-#include "FrameRenderState.h"
+#include "trc/core/Window.h"
+#include "trc/core/DrawConfiguration.h"
+#include "trc/core/RenderConfiguration.h"
+#include "trc/core/FrameRenderState.h"
 
-#include "Scene.h"  // TODO: Remove reference to specialized type from core
-
+#include "trc/Scene.h"  // TODO: Remove reference to specialized type from core
 
 
-/**
- * Try to reserve a queue. Order:
- *  1. Reserve primary queue
- *  2. Reserve any queue
- *  3. Don't reserve, just return any queue
- */
-inline auto tryReserve(vkb::QueueManager& qm, vkb::QueueType type)
-    -> std::pair<vkb::ExclusiveQueue, vkb::QueueFamilyIndex>
+
+namespace trc
 {
-    if (qm.getPrimaryQueueCount(type) > 1)
+    /**
+     * Try to reserve a queue. Order:
+     *  1. Reserve primary queue
+     *  2. Reserve any queue
+     *  3. Don't reserve, just return any queue
+     */
+    inline auto tryReserve(QueueManager& qm, QueueType type)
+        -> std::pair<ExclusiveQueue, QueueFamilyIndex>
     {
-        return { qm.reservePrimaryQueue(type), qm.getPrimaryQueueFamily(type) };
-    }
-    else if (qm.getAnyQueueCount(type) > 1)
-    {
-        auto [queue, family] = qm.getAnyQueue(type);
-        return { qm.reserveQueue(queue), family };
-    }
-    else {
-        return qm.getAnyQueue(type);
-    }
-};
+        if (qm.getPrimaryQueueCount(type) > 1)
+        {
+            return { qm.reservePrimaryQueue(type), qm.getPrimaryQueueFamily(type) };
+        }
+        else if (qm.getAnyQueueCount(type) > 1)
+        {
+            auto [queue, family] = qm.getAnyQueue(type);
+            return { qm.reserveQueue(queue), family };
+        }
+        else {
+            return qm.getAnyQueue(type);
+        }
+    };
+} // namespace trc
 
 
 
@@ -57,11 +59,11 @@ trc::Renderer::Renderer(Window& _window)
 {
     createSemaphores();
 
-    vkb::QueueManager& qm = _window.getDevice().getQueueManager();
-    std::tie(mainRenderQueue, mainRenderQueueFamily) = tryReserve(qm, vkb::QueueType::graphics);
-    std::tie(mainPresentQueue, mainPresentQueueFamily) = tryReserve(qm, vkb::QueueType::presentation);
+    QueueManager& qm = _window.getDevice().getQueueManager();
+    std::tie(mainRenderQueue, mainRenderQueueFamily) = tryReserve(qm, QueueType::graphics);
+    std::tie(mainPresentQueue, mainPresentQueueFamily) = tryReserve(qm, QueueType::presentation);
 
-    if constexpr (vkb::enableVerboseLogging)
+    if constexpr (enableVerboseLogging)
     {
         std::cout << "--- Main render family for renderer: " << mainRenderQueueFamily << "\n";
         std::cout << "--- Main presentation family for renderer: " << mainPresentQueueFamily << "\n";

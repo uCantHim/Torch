@@ -1,6 +1,6 @@
 #pragma once
 
-#include "assets/Geometry.h"
+#include "trc/assets/Geometry.h"
 
 namespace trc
 {

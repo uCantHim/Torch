@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vkb/Buffer.h>
+#include "trc/base/Buffer.h"
 
-#include "Types.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -10,11 +10,11 @@ namespace trc
     struct DynamicBuffer
     {
     public:
-        DynamicBuffer(const vkb::Device& device,
+        DynamicBuffer(const Device& device,
                       ui32 initialSize,
                       vk::BufferUsageFlags usageFlags,
                       vk::MemoryPropertyFlags memoryProperties,
-                      const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{})
+                      const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{})
             :
             device(device),
             alloc(alloc),
@@ -56,19 +56,19 @@ namespace trc
         inline void reserve(ui32 newSize)
         {
             buffer.unmap();
-            vkb::Buffer newBuffer(device, newSize * sizeof(T), usageFlags, memoryProperties, alloc);
-            vkb::copyBuffer(device, *newBuffer, *buffer, 0, 0, buffer.size());
+            Buffer newBuffer(device, newSize * sizeof(T), usageFlags, memoryProperties, alloc);
+            copyBuffer(device, *newBuffer, *buffer, 0, 0, buffer.size());
             buffer = std::move(newBuffer);
             mappedBuf = reinterpret_cast<T*>(buffer.map());
         }
 
     private:
-        const vkb::Device& device;
-        const vkb::DeviceMemoryAllocator alloc;
+        const Device& device;
+        const DeviceMemoryAllocator alloc;
         const vk::BufferUsageFlags usageFlags;
         const vk::MemoryPropertyFlags memoryProperties;
 
-        vkb::Buffer buffer;
+        Buffer buffer;
         T* mappedBuf;
         ui32 currentOffset{ 0 };
     };

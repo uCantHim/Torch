@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include <vkb/Image.h>
+#include "trc/base/Image.h"
 
-#include "../Types.h"
-#include "GlyphLoading.h"
+#include "trc/Types.h"
+#include "trc/text/GlyphLoading.h"
 
 namespace trc
 {
@@ -23,8 +23,8 @@ namespace trc
             vec2 upperRight;
         };
 
-        GlyphMap(const vkb::Device& device,
-                 const vkb::DeviceMemoryAllocator& alloc = vkb::DefaultDeviceMemoryAllocator{});
+        GlyphMap(const Device& device,
+                 const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
 
         /**
          * @param const GlyphMeta& glyph A new glyph
@@ -37,14 +37,14 @@ namespace trc
         auto addGlyph(const GlyphMeta& glyph) -> UvRectangle;
 
         /**
-         * @return vkb::Image& The image that contains all glyphs
+         * @return Image& The image that contains all glyphs
          */
-        auto getGlyphImage() -> vkb::Image&;
+        auto getGlyphImage() -> Image&;
 
         /**
-         * @return vkb::Image& The image that contains all glyphs
+         * @return Image& The image that contains all glyphs
          */
-        auto getGlyphImage() const -> const vkb::Image&;
+        auto getGlyphImage() const -> const Image&;
 
     private:
         static constexpr ui32 MAP_WIDTH{ 5000 };
@@ -52,6 +52,6 @@ namespace trc
 
         ivec2 offset{ 0, 0 };
         ui32 maxHeight{ 0 };
-        vkb::Image image;
+        Image image;
     };
 } // namespace trc

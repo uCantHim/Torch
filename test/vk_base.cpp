@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-#include <vkb/VulkanBase.h>
+#include <trc/Torch.h>
 
 void log(auto v)
 {
@@ -13,18 +13,18 @@ void log(auto v)
 
 int main()
 {
-    vkb::init();
+    trc::init();
 
     {
-        vkb::VulkanInstance instance;
+        trc::VulkanInstance instance;
         log("Instance created");
 
-        std::unique_ptr<vkb::PhysicalDevice> phys;
+        std::unique_ptr<trc::PhysicalDevice> phys;
         try {
-            vkb::Surface surface(*instance, {});
+            trc::Surface surface(*instance, {});
             log("Surface and window created");
 
-            phys = std::make_unique<vkb::PhysicalDevice>(*instance, surface.getVulkanSurface());
+            phys = std::make_unique<trc::PhysicalDevice>(*instance, surface.getVulkanSurface());
             log("Optimal physical device found");
         }
         catch (const std::exception& err) {
@@ -33,10 +33,10 @@ int main()
         }
         log("Surface and Window destroyed");
 
-        vkb::Device device(*phys);
+        trc::Device device(*phys);
         log("Logical device created");
 
-        vkb::Swapchain swapchain(device, vkb::Surface(*instance, {}));
+        trc::Swapchain swapchain(device, trc::Surface(*instance, {}));
         log("Swapchain created");
 
 
@@ -54,7 +54,7 @@ int main()
         auto set = device->allocateDescriptorSetsUnique({ *pool, *layout });
     }
 
-    vkb::terminate();
+    trc::terminate();
 
     return 0;
 }

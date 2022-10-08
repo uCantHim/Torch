@@ -1,4 +1,4 @@
-#include "core/FrameRenderState.h"
+#include "trc/core/FrameRenderState.h"
 
 
 
@@ -9,15 +9,15 @@ void trc::FrameRenderState::onRenderFinished(std::function<void()> func)
 }
 
 auto trc::FrameRenderState::makeTransientBuffer(
-    const vkb::Device& device,
+    const Device& device,
     size_t size,
     vk::BufferUsageFlags usageFlags,
     vk::MemoryPropertyFlags memoryFlags,
-    const vkb::DeviceMemoryAllocator& alloc) -> vkb::Buffer&
+    const DeviceMemoryAllocator& alloc) -> Buffer&
 {
     std::scoped_lock lock(mutex);
     return *transientBuffers.emplace_back(
-        std::make_unique<vkb::Buffer>(device, size, usageFlags, memoryFlags, alloc)
+        std::make_unique<Buffer>(device, size, usageFlags, memoryFlags, alloc)
     );
 }
 

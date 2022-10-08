@@ -5,7 +5,7 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-#include "Types.h"
+#include "trc/Types.h"
 #include "trc_util/data/ExternalStorage.h"
 
 namespace trc

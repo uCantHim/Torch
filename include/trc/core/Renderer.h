@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vkb/ExclusiveQueue.h>
-#include <vkb/FrameSpecificObject.h>
-#include <vkb/PhysicalDevice.h>
 #include <trc_util/async/ThreadPool.h>
 
-#include "Instance.h"
+#include "trc/base/ExclusiveQueue.h"
+#include "trc/base/FrameSpecificObject.h"
+#include "trc/base/PhysicalDevice.h"
+#include "trc/core/Instance.h"
 
 namespace trc
 {
@@ -50,14 +50,14 @@ namespace trc
         };
 
         const Instance& instance;
-        vkb::Device& device;
+        Device& device;
         Window* window; // Must be non-const for presentImage
 
         // Synchronization
         void createSemaphores();
-        vkb::FrameSpecific<vk::UniqueSemaphore> imageAcquireSemaphores;
-        vkb::FrameSpecific<vk::UniqueSemaphore> renderFinishedSemaphores;
-        vkb::FrameSpecific<vk::UniqueFence> frameInFlightFences;
+        FrameSpecific<vk::UniqueSemaphore> imageAcquireSemaphores;
+        FrameSpecific<vk::UniqueSemaphore> renderFinishedSemaphores;
+        FrameSpecific<vk::UniqueFence> frameInFlightFences;
 
         /**
          * A timeline semaphore used to signal render completion to the host.
@@ -66,15 +66,15 @@ namespace trc
          * a timeline semaphore, but vkPresentKHR does not accept timeline
          * semaphores.
          */
-        vkb::FrameSpecific<vk::UniqueSemaphore> renderFinishedHostSignalSemaphores;
-        vkb::FrameSpecific<ui64> renderFinishedHostSignalValue;
+        FrameSpecific<vk::UniqueSemaphore> renderFinishedHostSignalSemaphores;
+        FrameSpecific<ui64> renderFinishedHostSignalValue;
 
         async::ThreadPool threadPool;
 
         // Queues and command collection
-        vkb::ExclusiveQueue mainRenderQueue;
-        vkb::QueueFamilyIndex mainRenderQueueFamily;
-        vkb::ExclusiveQueue mainPresentQueue;
-        vkb::QueueFamilyIndex mainPresentQueueFamily;
+        ExclusiveQueue mainRenderQueue;
+        QueueFamilyIndex mainRenderQueueFamily;
+        ExclusiveQueue mainPresentQueue;
+        QueueFamilyIndex mainPresentQueueFamily;
     };
 }

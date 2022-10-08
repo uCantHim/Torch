@@ -2,64 +2,64 @@
 
 
 
-KeyInput::KeyInput(vkb::Key key)
+KeyInput::KeyInput(trc::Key key)
     : key(key)
 {
 }
 
-KeyInput::KeyInput(vkb::Key key, vkb::KeyModFlags mods)
+KeyInput::KeyInput(trc::Key key, trc::KeyModFlags mods)
     : key(key), mod(mods)
 {
 }
 
-KeyInput::KeyInput(vkb::Key key, vkb::KeyModFlags mods, vkb::InputAction action)
+KeyInput::KeyInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
     : key(key), mod(mods), action(action)
 {
 }
 
-MouseInput::MouseInput(vkb::MouseButton button)
+MouseInput::MouseInput(trc::MouseButton button)
     : button(button)
 {
 }
 
-MouseInput::MouseInput(vkb::MouseButton button, vkb::KeyModFlags mods)
+MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods)
     : button(button), mod(mods)
 {
 }
 
-MouseInput::MouseInput(vkb::MouseButton button, vkb::KeyModFlags mods, vkb::InputAction action)
+MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action)
     : button(button), mod(mods), action(action)
 {
 }
 
 
 
-VariantInput::VariantInput(vkb::Key key)
+VariantInput::VariantInput(trc::Key key)
     : input(KeyInput(key))
 {
 }
 
-VariantInput::VariantInput(vkb::Key key, vkb::KeyModFlags mods)
+VariantInput::VariantInput(trc::Key key, trc::KeyModFlags mods)
     : input(KeyInput(key, mods))
 {
 }
 
-VariantInput::VariantInput(vkb::Key key, vkb::KeyModFlags mods, vkb::InputAction action)
+VariantInput::VariantInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
     : input(KeyInput(key, mods, action))
 {
 }
 
-VariantInput::VariantInput(vkb::MouseButton button)
+VariantInput::VariantInput(trc::MouseButton button)
     : input(MouseInput(button))
 {
 }
 
-VariantInput::VariantInput(vkb::MouseButton button, vkb::KeyModFlags mods)
+VariantInput::VariantInput(trc::MouseButton button, trc::KeyModFlags mods)
     : input(MouseInput(button, mods))
 {
 }
 
-VariantInput::VariantInput(vkb::MouseButton button, vkb::KeyModFlags mods, vkb::InputAction action)
+VariantInput::VariantInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action)
     : input(MouseInput(button, mods, action))
 {
 }

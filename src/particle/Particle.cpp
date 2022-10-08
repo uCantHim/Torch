@@ -1,12 +1,12 @@
-#include "particle/Particle.h"
+#include "trc/particle/Particle.h"
 
-#include "core/Instance.h"
+#include "trc/core/Instance.h"
 
-#include "core/PipelineLayoutBuilder.h"
-#include "core/PipelineBuilder.h"
-#include "TorchRenderConfig.h"
-#include "PipelineDefinitions.h" // For the SHADER_DIR constant
-#include "TorchResources.h"
+#include "trc/core/PipelineLayoutBuilder.h"
+#include "trc/core/PipelineBuilder.h"
+#include "trc/TorchRenderConfig.h"
+#include "trc/PipelineDefinitions.h" // For the SHADER_DIR constant
+#include "trc/TorchResources.h"
 #include "trc/ParticlePipelines.h"
 
 
@@ -62,7 +62,7 @@ trc::ParticleCollection::ParticleCollection(
     transferFence(instance.getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled }))
 {
     auto& dev = instance.getDevice();
-    auto [tq, tf] = dev.getQueueManager().getAnyQueue(vkb::QueueType::transfer);
+    auto [tq, tf] = dev.getQueueManager().getAnyQueue(QueueType::transfer);
     transferQueue = dev.getQueueManager().reserveQueue(tq);
     transferCmdPool = dev->createCommandPoolUnique({
         vk::CommandPoolCreateFlagBits::eResetCommandBuffer, tf

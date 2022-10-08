@@ -32,7 +32,7 @@ void run()
     config2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
 
     // Recreate render target when swapchain is recreated
-    vkb::on<vkb::SwapchainRecreateEvent>([&](auto) {
+    trc::on<trc::SwapchainRecreateEvent>([&](auto) {
         renderTarget = trc::makeRenderTarget(window);
         config1.setRenderTarget(renderTarget);
         config2.setRenderTarget(renderTarget);
@@ -71,7 +71,7 @@ void run()
     };
 
     trc::Timer timer;
-    while (window.isOpen() && window.getKeyState(vkb::Key::escape) != vkb::InputAction::press)
+    while (window.isOpen() && window.getKeyState(trc::Key::escape) != trc::InputAction::press)
     {
         trc::pollEvents();
 

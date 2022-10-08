@@ -1,4 +1,4 @@
-#include "core/DynamicRenderPassContainer.h"
+#include "trc/core/DynamicRenderPassContainer.h"
 
 #include <cassert>
 #include <ranges>

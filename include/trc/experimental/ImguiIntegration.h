@@ -1,12 +1,12 @@
 #pragma once
 
-#include <vkb/Swapchain.h>
+#include "trc/base//Swapchain.h"
 #include <imgui.h>
 
-#include "core/Window.h"
-#include "core/RenderStage.h"
-#include "core/RenderPass.h"
-#include "core/Pipeline.h"
+#include "trc/core/Window.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/Pipeline.h"
 
 namespace trc
 {
@@ -63,7 +63,7 @@ namespace trc::experimental::imgui
     public:
         static constexpr ui32 NUM_SUBPASSES = 1;
 
-        explicit ImguiRenderPass(const vkb::Swapchain& swapchain);
+        explicit ImguiRenderPass(const Swapchain& swapchain);
         ~ImguiRenderPass() override;
 
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
@@ -72,21 +72,21 @@ namespace trc::experimental::imgui
     private:
         struct CallbackStorage
         {
-            GLFWcharfun vkbCharCallback;
-            GLFWkeyfun vkbKeyCallback;
-            GLFWmousebuttonfun vkbMouseButtonCallback;
-            GLFWscrollfun vkbScrollCallback;
+            GLFWcharfun trcCharCallback;
+            GLFWkeyfun trcKeyCallback;
+            GLFWmousebuttonfun trcMouseButtonCallback;
+            GLFWscrollfun trcScrollCallback;
         };
 
         void createFramebuffers();
 
         static inline std::unordered_map<const GLFWwindow*, CallbackStorage> callbackStorages;
 
-        const vkb::Swapchain& swapchain;
+        const Swapchain& swapchain;
         PipelineLayout imguiPipelineLayout;
         Pipeline imguiPipeline;
-        vkb::FrameSpecific<vk::UniqueFramebuffer> framebuffers;
+        FrameSpecific<vk::UniqueFramebuffer> framebuffers;
 
-        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> swapchainRecreateListener;
+        UniqueListenerId<SwapchainRecreateEvent> swapchainRecreateListener;
     };
 } // namespace trc::experimental::imgui

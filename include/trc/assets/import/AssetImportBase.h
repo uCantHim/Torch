@@ -5,11 +5,11 @@
 #include <optional>
 #include <filesystem>
 
-#include "Types.h"
-#include "assets/Animation.h"
-#include "assets/Geometry.h"
-#include "assets/Material.h"
-#include "assets/Rig.h"
+#include "trc/Types.h"
+#include "trc/assets/Animation.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
+#include "trc/assets/Rig.h"
 
 namespace trc
 {

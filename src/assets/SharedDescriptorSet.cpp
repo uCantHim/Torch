@@ -1,4 +1,4 @@
-#include "assets/SharedDescriptorSet.h"
+#include "trc/assets/SharedDescriptorSet.h"
 
 
 
@@ -91,7 +91,7 @@ auto trc::SharedDescriptorSet::Builder::addBinding(
     return Binding(*set, index);
 }
 
-auto trc::SharedDescriptorSet::Builder::build(const vkb::Device& device)
+auto trc::SharedDescriptorSet::Builder::build(const Device& device)
     -> u_ptr<SharedDescriptorSet>
 {
     set->build(device, *this);
@@ -104,7 +104,7 @@ auto trc::SharedDescriptorSet::Builder::build(const vkb::Device& device)
 //  DescriptorSet  //
 /////////////////////
 
-void trc::SharedDescriptorSet::build(const vkb::Device& device, const Builder& builder)
+void trc::SharedDescriptorSet::build(const Device& device, const Builder& builder)
 {
     const ui32 numSets = 1;
 
@@ -156,7 +156,7 @@ auto trc::SharedDescriptorSet::getProvider() const -> const DescriptorProviderIn
     return *provider;
 }
 
-void trc::SharedDescriptorSet::update(const vkb::Device& device)
+void trc::SharedDescriptorSet::update(const Device& device)
 {
     std::scoped_lock lock(descriptorUpdateLock);
     if (!writes.empty())

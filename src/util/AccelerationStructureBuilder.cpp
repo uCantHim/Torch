@@ -2,7 +2,7 @@
 
 #include <trc_util/Padding.h>
 #include <trc_util/algorithm/VectorTransform.h>
-#include <vkb/Barriers.h>
+#include "trc/base/Barriers.h"
 
 #include "trc/core/FrameRenderState.h"
 #include "trc/core/Instance.h"
@@ -35,7 +35,7 @@ void trc::AccelerationStructureBuilder::dispatchBuilds(vk::CommandBuffer cmdBuf,
         totalScratchSize,
         vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vkb::DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
+        DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress }
     );
     const auto scratchMemoryAddress = instance.getDevice()->getBufferAddress({ *scratchBuffer });
 

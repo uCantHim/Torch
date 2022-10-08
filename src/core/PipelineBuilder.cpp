@@ -1,4 +1,4 @@
-#include "core/PipelineBuilder.h"
+#include "trc/core/PipelineBuilder.h"
 
 
 
@@ -306,7 +306,7 @@ auto trc::GraphicsPipelineBuilder::build() const -> PipelineTemplate
 }
 
 auto trc::GraphicsPipelineBuilder::build(
-    const vkb::Device& device,
+    const Device& device,
     PipelineLayout& layout,
     vk::RenderPass renderPass,
     ui32 subPass) -> Pipeline

@@ -100,18 +100,18 @@ void ObjectRotateCommand::execute(CommandCall& call)
     {
         auto& state = call.setState(ObjectRotateState{ obj, scene });
 
-        call.on(vkb::Key::escape,        [&](auto&){ state.resetRotation(); });
-        call.on(vkb::MouseButton::right, [&](auto&){ state.resetRotation(); });
-        call.on(vkb::Key::enter,         [&](auto&){ state.applyRotation(); });
-        call.on(vkb::MouseButton::left,  [&](auto&){ state.applyRotation(); });
+        call.on(trc::Key::escape,        [&](auto&){ state.resetRotation(); });
+        call.on(trc::MouseButton::right, [&](auto&){ state.resetRotation(); });
+        call.on(trc::Key::enter,         [&](auto&){ state.applyRotation(); });
+        call.on(trc::MouseButton::left,  [&](auto&){ state.applyRotation(); });
 
         // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
-        auto shift = vkb::KeyModFlagBits::shift;
-        call.on({ vkb::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ vkb::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ vkb::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ vkb::Key::x, shift }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ vkb::Key::z, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ vkb::Key::y, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
+        auto shift = trc::KeyModFlagBits::shift;
+        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
+        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
+        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
+        call.on({ trc::Key::x, shift }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
+        call.on({ trc::Key::z, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
+        call.on({ trc::Key::y, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
     };
 }

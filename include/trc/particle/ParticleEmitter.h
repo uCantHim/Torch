@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Particle.h"
+#include "trc/Particle.h"
 
 namespace trc
 {

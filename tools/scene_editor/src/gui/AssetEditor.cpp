@@ -80,7 +80,7 @@ bool assetNameInputPopupModal(
     ig::SameLine();
     const bool close = create
                     || ig::Button("Cancel")
-                    || vkb::Keyboard::isPressed(vkb::Key::escape);
+                    || trc::Keyboard::isPressed(trc::Key::escape);
     if (close)
     {
         // Clear static data

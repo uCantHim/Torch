@@ -2,7 +2,7 @@
 
 #include <componentlib/Table.h>
 
-#include "Node.h"
+#include "trc/Node.h"
 
 namespace trc::drawcomp
 {

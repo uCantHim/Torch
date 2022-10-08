@@ -2,11 +2,11 @@
 
 #include <string>
 
-#include <vkb/Swapchain.h>
-#include <vkb/event/Event.h>
+#include "trc/base/Swapchain.h"
+#include "trc/base/event/Event.h"
 
-#include "Instance.h"
-#include "Renderer.h"
+#include "trc/core/Instance.h"
+#include "trc/core/Renderer.h"
 
 namespace trc
 {
@@ -16,14 +16,14 @@ namespace trc
         ivec2 pos{ 0, 0 };
         std::string title{ "" };
 
-        vkb::SurfaceCreateInfo surfaceCreateInfo{};
-        vkb::SwapchainCreateInfo swapchainCreateInfo{};
+        SurfaceCreateInfo surfaceCreateInfo{};
+        SwapchainCreateInfo swapchainCreateInfo{};
     };
 
     /**
      * @brief
      */
-    class Window : public vkb::Swapchain
+    class Window : public Swapchain
     {
     public:
         /**
@@ -35,18 +35,18 @@ namespace trc
 
         auto getInstance() -> Instance&;
         auto getInstance() const -> const Instance&;
-        auto getDevice() -> vkb::Device&;
-        auto getDevice() const -> const vkb::Device&;
+        auto getDevice() -> Device&;
+        auto getDevice() const -> const Device&;
 
-        auto getSwapchain() -> vkb::Swapchain&;
-        auto getSwapchain() const -> const vkb::Swapchain&;
+        auto getSwapchain() -> Swapchain&;
+        auto getSwapchain() const -> const Swapchain&;
         auto getRenderer() -> Renderer&;
 
     private:
         Instance* instance;
 
         u_ptr<Renderer> renderer;
-        vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
-        vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> recreateListener;
+        UniqueListenerId<PreSwapchainRecreateEvent> preRecreateListener;
+        UniqueListenerId<SwapchainRecreateEvent> recreateListener;
     };
 } // namespace trc

@@ -4,9 +4,10 @@
 #include <vector>
 #include <filesystem>
 
-#include "trc_util/Exception.h"
-#include "AssimpImporter.h"
-#include "FBXImporter.h"
+#include <trc_util/Exception.h>
+
+#include "trc/assets/import/AssimpImporter.h"
+#include "trc/assets/import/FBXImporter.h"
 
 namespace trc
 {

@@ -1,6 +1,6 @@
-#include "AssetManager.h"
+#include "trc/assets/AssetManager.h"
 
-#include "import/InternalFormat.h"  // For the loadAssetData specializations
+#include "trc/assets/import/InternalFormat.h"  // For the loadAssetData specializations
 
 
 

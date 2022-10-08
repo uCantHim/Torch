@@ -53,8 +53,8 @@ auto RaygenDescriptorPool::allocateDescriptorSet(const TLAS& tlas, vk::ImageView
 
 auto RaygenDescriptorPool::allocateFrameSpecificDescriptorSet(
     const TLAS& tlas,
-    vkb::FrameSpecific<vk::ImageView> outputImageView)
-    -> vkb::FrameSpecific<vk::UniqueDescriptorSet>
+    FrameSpecific<vk::ImageView> outputImageView)
+    -> FrameSpecific<vk::UniqueDescriptorSet>
 {
     return {
         outputImageView.getFrameClock(),

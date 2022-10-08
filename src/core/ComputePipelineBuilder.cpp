@@ -1,4 +1,4 @@
-#include "core/ComputePipelineBuilder.h"
+#include "trc/core/ComputePipelineBuilder.h"
 
 
 
@@ -18,7 +18,7 @@ auto trc::ComputePipelineBuilder::build() const -> ComputePipelineTemplate
     return _template;
 }
 
-auto trc::ComputePipelineBuilder::build(const vkb::Device& device, PipelineLayout& layout)
+auto trc::ComputePipelineBuilder::build(const Device& device, PipelineLayout& layout)
     -> Pipeline
 {
     return makeComputePipeline(device, build(), layout);

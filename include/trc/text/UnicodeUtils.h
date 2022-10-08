@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "GlyphLoading.h"
+#include "trc/text/GlyphLoading.h"
 
 namespace trc
 {
