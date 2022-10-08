@@ -24,13 +24,20 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
     ),
     instance(&instance),
     renderer(new Renderer(*this)),
-    recreateListener(
-        vkb::on<vkb::SwapchainRecreateEvent>([this](auto& e) {
+    preRecreateListener(
+        vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto& e) {
             if (e.swapchain == this)
             {
-                // Create a new renderer to avoid the still mysterious crash on recreate
                 renderer->waitForAllFrames();
-                renderer.reset(new Renderer(*this));
+                renderer.reset();
+            }
+        })
+    ),
+    recreateListener(
+        vkb::on<vkb::SwapchainRecreateEvent>([this](auto& e) {
+            if (e.swapchain == this) {
+                assert(renderer == nullptr);
+                renderer = std::make_unique<Renderer>(*this);
             }
         })
     )

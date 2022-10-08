@@ -52,7 +52,8 @@ trc::Renderer::Renderer(Window& _window)
     renderFinishedSemaphores(_window),
     frameInFlightFences(_window),
     renderFinishedHostSignalSemaphores(_window),
-    renderFinishedHostSignalValue(_window, [](ui32){ return 1; })
+    renderFinishedHostSignalValue(_window, [](ui32){ return 1; }),
+    threadPool(_window.getFrameCount())
 {
     createSemaphores();
 
@@ -65,12 +66,6 @@ trc::Renderer::Renderer(Window& _window)
         std::cout << "--- Main render family for renderer: " << mainRenderQueueFamily << "\n";
         std::cout << "--- Main presentation family for renderer: " << mainPresentQueueFamily << "\n";
     }
-
-    swapchainRecreateListener = vkb::on<vkb::PreSwapchainRecreateEvent>([this](auto e) {
-        if (e.swapchain == window) {
-            waitForAllFrames();
-        }
-    }).makeUnique();
 }
 
 trc::Renderer::~Renderer()

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <vkb/PhysicalDevice.h>
-#include <vkb/FrameSpecificObject.h>
 #include <vkb/ExclusiveQueue.h>
-#include <vkb/event/Event.h>
+#include <vkb/FrameSpecificObject.h>
+#include <vkb/PhysicalDevice.h>
 #include <trc_util/async/ThreadPool.h>
 
 #include "Instance.h"
@@ -53,8 +52,6 @@ namespace trc
         const Instance& instance;
         vkb::Device& device;
         Window* window; // Must be non-const for presentImage
-
-        vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> swapchainRecreateListener;
 
         // Synchronization
         void createSemaphores();

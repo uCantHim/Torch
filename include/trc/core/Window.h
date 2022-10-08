@@ -3,6 +3,7 @@
 #include <string>
 
 #include <vkb/Swapchain.h>
+#include <vkb/event/Event.h>
 
 #include "Instance.h"
 #include "Renderer.h"
@@ -45,6 +46,7 @@ namespace trc
         Instance* instance;
 
         u_ptr<Renderer> renderer;
+        vkb::UniqueListenerId<vkb::PreSwapchainRecreateEvent> preRecreateListener;
         vkb::UniqueListenerId<vkb::SwapchainRecreateEvent> recreateListener;
     };
 } // namespace trc
