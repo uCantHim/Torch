@@ -14,6 +14,9 @@ add_subdirectory(unittest)
 add_executable(VkBaseTest vk_base.cpp)
 target_link_libraries(VkBaseTest PUBLIC vk_base)
 
+add_executable(BufferCreatePerformanceTest buffer_create_performance.cpp)
+target_link_libraries(BufferCreatePerformanceTest PUBLIC vk_base)
+
 add_executable(BasicSetup basic_setup.cpp)
 target_link_libraries(BasicSetup PUBLIC torch)
 
