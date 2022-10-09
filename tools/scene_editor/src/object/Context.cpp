@@ -41,7 +41,7 @@ public:
         auto& vis = scene->get<HitboxVisualization>(obj);
 
         if (!ig::CollapsingHeader("Hitbox")) return;
-        ig::TreePush();
+        ig::TreePush("##context_hitbox_dialog");
 
         ig::Text("Sphere");
         ig::TreePush("##context_hitbox_sphere_data");
@@ -102,7 +102,7 @@ public:
     void operator()()
     {
         if (!ig::CollapsingHeader("Animation")) return;
-        ig::TreePush();
+        ig::TreePush("##context_animation_dialog");
 
         if (!rigId)
         {

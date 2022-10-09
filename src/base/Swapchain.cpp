@@ -235,7 +235,7 @@ trc::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
         {
             throw std::runtime_error(
                 "[In Swapchain::Swapchain]: Image count of " + std::to_string(info.imageCount)
-                + " is not supported! The device support a minimum of " + std::to_string(minImages)
+                + " is not supported! The device supports a minimum of " + std::to_string(minImages)
                 + " and a maximum of " + std::to_string(maxImages) + "."
             );
         }

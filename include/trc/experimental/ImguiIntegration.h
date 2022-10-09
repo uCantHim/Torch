@@ -1,12 +1,11 @@
 #pragma once
 
-#include "trc/base//Swapchain.h"
 #include <imgui.h>
 
-#include "trc/core/Window.h"
-#include "trc/core/RenderStage.h"
+#include "trc/base/Swapchain.h"
 #include "trc/core/RenderPass.h"
-#include "trc/core/Pipeline.h"
+#include "trc/core/RenderStage.h"
+#include "trc/core/Window.h"
 
 namespace trc
 {
@@ -78,15 +77,8 @@ namespace trc::experimental::imgui
             GLFWscrollfun trcScrollCallback;
         };
 
-        void createFramebuffers();
-
         static inline std::unordered_map<const GLFWwindow*, CallbackStorage> callbackStorages;
 
         const Swapchain& swapchain;
-        PipelineLayout imguiPipelineLayout;
-        Pipeline imguiPipeline;
-        FrameSpecific<vk::UniqueFramebuffer> framebuffers;
-
-        UniqueListenerId<SwapchainRecreateEvent> swapchainRecreateListener;
     };
 } // namespace trc::experimental::imgui

@@ -24,7 +24,7 @@ void gui::ImportDialog::drawImGui()
     {
         // General information
         ig::Text("Imported mesh \"%s\"", mesh.name.c_str());
-        ig::TreePush();
+        ig::TreePush(&mesh);
 
         // Vertex information
         ig::Text("%lu vertices", ui64(mesh.geometry.indices.size()));
@@ -33,7 +33,7 @@ void gui::ImportDialog::drawImGui()
         ig::Text("%lu materials", ui64(mesh.materials.size()));
         if (!mesh.materials.empty())
         {
-            ig::TreePush();
+            ig::TreePush(&mesh.materials);
             for ([[maybe_unused]] const auto& material : mesh.materials)
             {
                 ig::Text("A material. More information coming soon.");
@@ -46,7 +46,7 @@ void gui::ImportDialog::drawImGui()
         {
             auto& rigData = mesh.rig.value();
             ig::Text("Rig \"%s\"", rigData.name.c_str());
-            ig::TreePush();
+            ig::TreePush(&rigData);
             ig::Text("%lu bones", ui64(rigData.bones.size()));
             ig::TreePop();
 
@@ -55,7 +55,7 @@ void gui::ImportDialog::drawImGui()
             for (const auto& anim : mesh.animations)
             {
                 ig::Text("Animation \"%s\"", anim.name.c_str());
-                ig::TreePush();
+                ig::TreePush(&anim);
                 ig::Text("Duration: %fms", anim.durationMs);
                 ig::Text("%u frames", anim.frameCount);
                 ig::TreePop();

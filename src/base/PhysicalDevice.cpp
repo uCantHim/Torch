@@ -1,7 +1,7 @@
 #include "trc/base/PhysicalDevice.h"
 
-#include <set>
 #include <iostream>
+#include <set>
 
 
 
@@ -162,8 +162,9 @@ auto trc::PhysicalDevice::createLogicalDevice(
     // Default device features
     vk::StructureChain deviceFeatures{
         vk::PhysicalDeviceFeatures2{},
-        vk::PhysicalDeviceSynchronization2Features{},
-        vk::PhysicalDeviceDescriptorIndexingFeatures{},
+        vk::PhysicalDeviceSynchronization2Features{},    // Vulkan 1.3
+        vk::PhysicalDeviceDynamicRenderingFeatures{},    // Vulkan 1.3
+        vk::PhysicalDeviceDescriptorIndexingFeatures{},  // Vulkan 1.2
     };
 
     // Add custom features

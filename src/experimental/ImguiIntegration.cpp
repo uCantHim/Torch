@@ -2,16 +2,15 @@
 
 #include <unordered_map>
 
-#include "trc/base//Barriers.h"
-#include "trc/base//event/Event.h"
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "trc/core/RenderLayout.h"
-#include "trc/core/PipelineBuilder.h"
-#include "trc/Torch.h"
-#include "trc/TorchResources.h"
 #include "trc/PipelineDefinitions.h"
+#include "trc/Torch.h"
+#include "trc/base/Barriers.h"
+#include "trc/base/event/Event.h"
+#include "trc/core/PipelineBuilder.h"
+#include "trc/core/RenderLayout.h"
 
 
 
@@ -71,18 +70,23 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
             device.getQueueManager().reserveQueue(queue);
 
             // Init ImGui for Vulkan
-            ImGui_ImplVulkan_InitInfo igInfo{};
-            igInfo.Instance = window.getInstance().getVulkanInstance(),
-            igInfo.PhysicalDevice = *device.getPhysicalDevice();
-            igInfo.Device = *device;
-            igInfo.QueueFamily = family;
-            igInfo.Queue = *queue;
-            igInfo.PipelineCache = {};
-            igInfo.DescriptorPool = *imguiDescPool;
-            igInfo.Allocator = nullptr;
-            igInfo.MinImageCount = swapchain.getFrameCount();
-            igInfo.ImageCount = swapchain.getFrameCount();
-            ImGui_ImplVulkan_Init(&igInfo, **renderPass);
+            ImGui_ImplVulkan_InitInfo igInfo{
+                .Instance              = window.getInstance().getVulkanInstance(),
+                .PhysicalDevice        = *device.getPhysicalDevice(),
+                .Device                = *device,
+                .QueueFamily           = family,
+                .Queue                 = *queue,
+                .PipelineCache         = VK_NULL_HANDLE,
+                .DescriptorPool        = *imguiDescPool,
+                .Subpass               = 0,
+                .MinImageCount         = swapchain.getFrameCount(),
+                .ImageCount            = swapchain.getFrameCount(),
+                .ColorAttachmentFormat = VkFormat(swapchain.getImageFormat()),
+                .MSAASamples           = VK_SAMPLE_COUNT_1_BIT,
+                .Allocator             = nullptr,
+                .CheckVkResultFn       = nullptr,
+            };
+            ImGui_ImplVulkan_Init(&igInfo, VK_NULL_HANDLE);
         }
         catch (const QueueReservedError& err)
         {
@@ -133,63 +137,8 @@ void trc::experimental::imgui::beginImguiFrame()
 
 trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swapchain)
     :
-    RenderPass(
-        [&swapchain]() -> vk::UniqueRenderPass
-        {
-            vk::AttachmentReference colorRef(0, vk::ImageLayout::eColorAttachmentOptimal);
-
-            std::vector<vk::AttachmentDescription> attachments{
-                vk::AttachmentDescription(
-                    {},
-                    swapchain.getImageFormat(),
-                    vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-                    vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR
-                )
-            };
-            std::vector<vk::SubpassDescription> subpasses{
-                vk::SubpassDescription(
-                    {}, vk::PipelineBindPoint::eGraphics,
-                    0, nullptr, // input attachments
-                    1, &colorRef,
-                    nullptr, // resolve attachments
-                    nullptr, // depth attachments
-                    0, nullptr // preserve attachments
-                ),
-            };
-            std::vector<vk::SubpassDependency> dependencies{
-                vk::SubpassDependency(
-                    VK_SUBPASS_EXTERNAL, 0,
-                    vk::PipelineStageFlagBits::eAllGraphics,
-                    vk::PipelineStageFlagBits::eAllGraphics,
-                    vk::AccessFlagBits::eColorAttachmentWrite,
-                    vk::AccessFlagBits::eInputAttachmentRead,
-                    vk::DependencyFlagBits::eByRegion
-                )
-            };
-
-            return swapchain.device->createRenderPassUnique(
-                vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
-            );
-        }(),
-        1 // subpass count
-    ),
-    swapchain(swapchain),
-    // Create pipeline
-    imguiPipelineLayout(trc::makePipelineLayout(swapchain.device, {}, {})),
-    imguiPipeline(trc::buildGraphicsPipeline()
-        .setProgram(internal::loadShader(ShaderPath("/empty.vert")),
-                    internal::loadShader(ShaderPath("/empty.frag")))
-        .addViewport({})
-        .addScissorRect({})
-        .addColorBlendAttachment(trc::DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
-        .setColorBlending({}, false, vk::LogicOp::eOr, {})
-        .addDynamicState(vk::DynamicState::eViewport)
-        .addDynamicState(vk::DynamicState::eScissor)
-        .build(swapchain.device, imguiPipelineLayout, *renderPass, 0)
-    ),
-    framebuffers(swapchain)
+    RenderPass({}, 0),
+    swapchain(swapchain)
 {
     auto window = swapchain.getGlfwWindow();
     auto it = callbackStorages.find(window);
@@ -231,12 +180,6 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swap
             }
         }
     );
-
-    createFramebuffers();
-    swapchainRecreateListener = on<SwapchainRecreateEvent>([this](auto& e) {
-        if (e.swapchain != &this->swapchain) return;
-        createFramebuffers();
-    });
 }
 
 trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
@@ -263,31 +206,38 @@ trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
 
 void trc::experimental::imgui::ImguiRenderPass::begin(
     vk::CommandBuffer cmdBuf,
-    vk::SubpassContents subpassContents,
+    vk::SubpassContents /*subpassContents*/,
     FrameRenderState&)
 {
     // Bring swapchain image into eColorAttachmentOptimal layout. The final
     // lighting pass brings it into ePresentSrcKHR.
-    imageMemoryBarrier(
-        cmdBuf,
-        swapchain.getImage(swapchain.getCurrentFrame()),
+    barrier(cmdBuf, vk::ImageMemoryBarrier2{
+        vk::PipelineStageFlagBits2::eComputeShader,
+        vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal,
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
-        vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
-        DEFAULT_SUBRES_RANGE
-    );
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        swapchain.getImage(swapchain.getCurrentFrame()),
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+    });
 
-    cmdBuf.beginRenderPass(
-        vk::RenderPassBeginInfo(
-            *renderPass,
-            **framebuffers,
-            { { 0, 0 }, swapchain.getImageExtent() },
-            {}
-        ),
-        subpassContents
-    );
+    vk::RenderingAttachmentInfo colorAttachment{
+        swapchain.getImageView(swapchain.getCurrentFrame()),
+        vk::ImageLayout::eColorAttachmentOptimal,
+        vk::ResolveModeFlagBits::eNone, VK_NULL_HANDLE, vk::ImageLayout::eUndefined,
+        vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore,
+        vk::ClearValue{}
+    };
+    vk::RenderingInfo renderInfo{
+        {},
+        { { 0, 0 }, swapchain.getImageExtent() },
+        1, 0,
+        colorAttachment,
+        nullptr, nullptr  // depth an stencil attachments
+    };
+
+    cmdBuf.beginRendering(renderInfo);
 
     // If imgui hasn't been begun yet, do it now.
     if (!imguiHasBegun) {
@@ -302,26 +252,16 @@ void trc::experimental::imgui::ImguiRenderPass::end(vk::CommandBuffer cmdBuf)
     ImGui_ImplVulkan_RenderDrawData(ig::GetDrawData(), cmdBuf, VK_NULL_HANDLE);
     imguiHasBegun = false;
 
-    cmdBuf.endRenderPass();
-}
+    cmdBuf.endRendering();
 
-void trc::experimental::imgui::ImguiRenderPass::createFramebuffers()
-{
-    framebuffers = {
-        swapchain,
-        [this](ui32 imageIndex) -> vk::UniqueFramebuffer
-        {
-            const vk::ImageView imageView = swapchain.getImageView(imageIndex);
-            const vk::Extent2D imageSize = swapchain.getImageExtent();
-
-            return swapchain.device->createFramebufferUnique(
-                vk::FramebufferCreateInfo(
-                    {},
-                    *renderPass,
-                    1, &imageView,
-                    imageSize.width, imageSize.height, 1
-                )
-            );
-        }
-    };
+    barrier(cmdBuf, vk::ImageMemoryBarrier2{
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::PipelineStageFlagBits2::eHost,
+        vk::AccessFlagBits2::eHostRead,
+        vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        swapchain.getImage(swapchain.getCurrentFrame()),
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+    });
 }

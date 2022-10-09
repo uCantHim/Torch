@@ -14,7 +14,6 @@ option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requir
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
-option(TORCH_BUILD_SHADER_COMPILER "Build Torch's custom shader compiler" OFF)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
 
 set(TORCH_EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -136,18 +135,18 @@ if (${TORCH_INTEGRATE_IMGUI})
 
     target_include_directories(
         imgui PUBLIC
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/backends
     )
     target_sources(
         imgui PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_draw.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_tables.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_widgets.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui_draw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui_tables.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui_widgets.cpp
 
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/backends/imgui_impl_glfw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/backends/imgui_impl_vulkan.cpp
     )
 endif ()
 
