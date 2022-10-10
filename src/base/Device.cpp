@@ -21,6 +21,11 @@ trc::Device::Device(
     const PhysicalDevice& physDevice,
     vk::UniqueDevice logicalDevice)
     :
+#ifdef TRC_DEBUG
+    vkSetDebugUtilsObjectNameEXT(
+        (PFN_vkSetDebugUtilsObjectNameEXT)logicalDevice->getProcAddr("vkSetDebugUtilsObjectNameEXT")
+    ),
+#endif
     physicalDevice(physDevice),
     device(std::move(logicalDevice)),
     queueManager(physDevice, *this)

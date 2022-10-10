@@ -77,7 +77,23 @@ public:
     template<std::invocable<vk::CommandBuffer> F>
     void executeCommands(QueueType queueType, F func, uint64_t timeout = UINT64_MAX) const;
 
+    /**
+     * @brief Set a debug name on a Vulkan object
+     *
+     * Does nothing when the TRC_DEBUG macro is not defined.
+     */
+    template<typename T>
+        requires requires {
+            typename T::NativeType;
+            requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
+        }
+    void setDebugName(T object, const char* name) const;
+
 private:
+#ifdef TRC_DEBUG
+    const PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
+#endif
+
     const PhysicalDevice& physicalDevice;
     vk::UniqueDevice device;
 
@@ -114,6 +130,26 @@ void Device::executeCommands(QueueType queueType, F func, uint64_t timeout) cons
             "Error while waiting for fence in Device::executeCommands: " + vk::to_string(res)
         );
     }
+}
+
+template<typename T>
+    requires requires {
+        typename T::NativeType;
+        requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
+    }
+void Device::setDebugName([[maybe_unused]] T object, [[maybe_unused]] const char* name) const
+{
+#ifdef TRC_DEBUG
+    assert(object);
+
+    VkDebugUtilsObjectNameInfoEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    info.objectType = VkObjectType(object.objectType);
+    info.objectHandle = (uint64_t)typename T::NativeType(object);
+    info.pObjectName = name;
+
+    vkSetDebugUtilsObjectNameEXT(*device, &info);
+#endif
 }
 
 } // namespace trc

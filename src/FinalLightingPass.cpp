@@ -44,6 +44,9 @@ trc::FinalLightingPass::FinalLightingPass(
 {
     setTargetArea(offset, size);
     setRenderTarget(device, target);
+
+    device.setDebugName(*layout, "Final lighting pipeline layout");
+    device.setDebugName(*pipeline, "Final lighting compute pipeline");
 }
 
 void trc::FinalLightingPass::begin(
