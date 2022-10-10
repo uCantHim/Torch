@@ -1,5 +1,7 @@
 #include "trc/Meshlet.h"
 
+#include <cstring>
+
 #include <trc_util/Padding.h>
 
 #include "trc/util/TriangleCacheOptimizer.h"
@@ -46,10 +48,11 @@ auto trc::makeMeshletIndices(const std::vector<ui32>& _indexBuffer, const Meshle
         {
             assert(numPrimVerts % 3 == 0);
 
-            // Create meshlet
+            // Add padding bytes
             for (ui32 i = 0; i < paddedNumPrimVerts - numPrimVerts; i++)
                 geo.primitiveIndices.emplace_back(0);
 
+            // Create meshlet
             geo.meshlets.emplace_back(MeshletDescription{
                 .vertexBegin = vertexBegin,
                 .primitiveBegin = primitiveBegin,
@@ -95,4 +98,48 @@ auto trc::makeMeshletIndices(const std::vector<ui32>& _indexBuffer, const Meshle
     }
 
     return geo;
+}
+
+auto trc::makeMeshletVertices(
+    const std::vector<MeshVertex>& vertices,
+    const std::vector<SkeletalVertex>& skeletalVertices,
+    const MeshletVertexDataInfo& info)
+    -> MeshletVertexData
+{
+    const ui32 numVerts = vertices.size();
+    const ui32 pad = info.bufferSectionAlignment;
+
+    ui32 totalSize{ 0 };
+    MeshletVertexData result{
+        .positionOffset   = 0,
+        .positionSize     = numVerts * static_cast<ui32>(sizeof(MeshVertex::position)),
+        .uvOffset         = (totalSize += util::pad(result.positionSize, pad)),
+        .uvSize           = numVerts * static_cast<ui32>(sizeof(MeshVertex::uv)),
+        .normalOffset     = (totalSize += util::pad(result.uvSize, pad)),
+        .normalSize       = numVerts * static_cast<ui32>(sizeof(MeshVertex::normal)),
+        .tangentOffset    = (totalSize += util::pad(result.normalSize, pad)),
+        .tangentSize      = numVerts * static_cast<ui32>(sizeof(MeshVertex::tangent)),
+        .boneIndexOffset  = (totalSize += util::pad(result.tangentSize, pad)),
+        .boneIndexSize    = numVerts * static_cast<ui32>(sizeof(SkeletalVertex::boneIndices)),
+        .boneWeightOffset = (totalSize += util::pad(result.boneIndexSize, pad)),
+        .boneWeightSize   = numVerts * static_cast<ui32>(sizeof(SkeletalVertex::boneWeights)),
+        .data = {},
+    };
+    totalSize += result.boneWeightSize;
+    result.data.resize(totalSize);
+
+    ui8* data = result.data.data();
+    for (ui32 i = 0; const auto& [p, n, uv, t] : vertices)
+    {
+        const auto& [bi, bw] = skeletalVertices.at(i);
+        memcpy(data + result.positionOffset   + i * sizeof(p),  &p,  sizeof(p));
+        memcpy(data + result.uvOffset         + i * sizeof(uv), &uv, sizeof(uv));
+        memcpy(data + result.normalOffset     + i * sizeof(n),  &n,  sizeof(n));
+        memcpy(data + result.tangentOffset    + i * sizeof(t),  &t,  sizeof(t));
+        memcpy(data + result.boneIndexOffset  + i * sizeof(bi), &bi, sizeof(bi));
+        memcpy(data + result.boneWeightOffset + i * sizeof(bw), &bw, sizeof(bw));
+        ++i;
+    }
+
+    return result;
 }
