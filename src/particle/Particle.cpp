@@ -6,7 +6,7 @@
 #include "trc/core/PipelineBuilder.h"
 #include "trc/TorchRenderConfig.h"
 #include "trc/PipelineDefinitions.h" // For the SHADER_DIR constant
-#include "trc/TorchResources.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/ParticlePipelines.h"
 
 

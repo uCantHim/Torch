@@ -1,6 +1,6 @@
 #include "trc/drawable/Drawable.h"
 
-#include "trc/TorchResources.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/GBufferPass.h"
 #include "trc/RenderPassShadow.h"
 #include "trc/drawable/DefaultDrawable.h"

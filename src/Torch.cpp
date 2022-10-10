@@ -1,16 +1,15 @@
 #include "trc/Torch.h"
 
+#include "trc/DrawablePipelines.h"
+#include "trc/ParticlePipelines.h"
+#include "trc/RasterPipelines.h"
+#include "trc/TextPipelines.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
-#include "trc/TorchResources.h"
 #include "trc/ui/torch/GuiIntegration.h"
 #ifdef TRC_USE_IMGUI
 #include "trc/experimental/ImguiIntegration.h"
 #endif
-#include "trc/ray_tracing/RayTracing.h"
-#include "trc/DrawablePipelines.h"
-#include "trc/RasterPipelines.h"
-#include "trc/TextPipelines.h"
-#include "trc/ParticlePipelines.h"
 
 
 
@@ -62,11 +61,11 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
     auto graph = makeDeferredRenderGraph();
 
     // Ray tracing stages
-    graph.after(finalLightingRenderStage, rt::rayTracingRenderStage);
-    graph.require(rt::rayTracingRenderStage, resourceUpdateStage);
-    graph.require(rt::rayTracingRenderStage, finalLightingRenderStage);
+    graph.after(finalLightingRenderStage, rayTracingRenderStage);
+    graph.require(rayTracingRenderStage, resourceUpdateStage);
+    graph.require(rayTracingRenderStage, finalLightingRenderStage);
 
-    graph.after(rt::rayTracingRenderStage, guiRenderStage);
+    graph.after(rayTracingRenderStage, guiRenderStage);
 #ifdef TRC_USE_IMGUI
     graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
 #endif

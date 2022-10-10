@@ -5,7 +5,7 @@
 #include "trc/base/event/Event.h"
 
 #include "trc/core/RenderLayout.h"
-#include "trc/TorchResources.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/GuiShaders.h"
 

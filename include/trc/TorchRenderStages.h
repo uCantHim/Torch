@@ -4,7 +4,11 @@
 
 namespace trc
 {
+    inline RenderStage resourceUpdateStage{};
+
     inline RenderStage gBufferRenderStage{};
-    inline RenderStage finalLightingRenderStage{};
     inline RenderStage shadowRenderStage{};
+    inline RenderStage finalLightingRenderStage{};
+
+    inline RenderStage rayTracingRenderStage{};
 } // namespace trc

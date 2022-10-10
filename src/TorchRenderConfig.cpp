@@ -4,10 +4,9 @@
 
 #include "trc/GBufferPass.h"
 #include "trc/Scene.h"
-#include "trc/TorchResources.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/Window.h"
-#include "trc/ray_tracing/RayTracing.h"
 #include "trc/text/Font.h"
 
 
@@ -264,7 +263,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     // Delete resources
     if (enableRayTracing)
     {
-        layout.removePass(rt::rayTracingRenderStage, *rayTracingPass);
+        layout.removePass(rayTracingRenderStage, *rayTracingPass);
         rayTracingPass.reset();
     }
     layout.removePass(gBufferRenderStage, *gBufferPass);
@@ -336,7 +335,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
             std::move(rayBuffer),
             *renderTarget
         );
-        layout.addPass(rt::rayTracingRenderStage, *rayTracingPass);
+        layout.addPass(rayTracingRenderStage, *rayTracingPass);
     }
 
     if constexpr (enableVerboseLogging)

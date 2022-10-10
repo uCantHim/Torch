@@ -1,15 +1,5 @@
 #pragma once
 
-#include "trc/base/event/Event.h"
-
-#include "trc/Types.h"
-#include "trc/core/DescriptorProviderWrapper.h"
-#include "trc/core/Instance.h"
-#include "trc/core/RenderConfigImplHelper.h"
-#include "trc/core/RenderGraph.h"
-#include "trc/core/RenderPass.h"
-#include "trc/core/SceneBase.h"
-
 #include "trc/FinalLightingPass.h"
 #include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
@@ -18,7 +8,15 @@
 #include "trc/SceneDescriptor.h"
 #include "trc/ShadowPool.h"
 #include "trc/TopLevelAccelerationStructureBuildPass.h"
+#include "trc/Types.h"
 #include "trc/assets/AssetRegistry.h"
+#include "trc/base/event/Event.h"
+#include "trc/core/DescriptorProviderWrapper.h"
+#include "trc/core/Instance.h"
+#include "trc/core/RenderConfigImplHelper.h"
+#include "trc/core/RenderGraph.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/SceneBase.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/RayTracingPass.h"
 

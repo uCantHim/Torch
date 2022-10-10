@@ -1,6 +1,6 @@
 #include "trc/Scene.h"
 
-#include "trc/TorchResources.h"
+#include "trc/TorchRenderStages.h"
 
 
 

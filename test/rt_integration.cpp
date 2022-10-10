@@ -5,10 +5,9 @@
 #include <trc/PipelineDefinitions.h>
 #include <trc/TopLevelAccelerationStructureBuildPass.h>
 #include <trc/Torch.h>
-#include <trc/TorchResources.h>
+#include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
 #include <trc/base/ImageUtils.h>
-#include <trc/ray_tracing/RayTracing.h>
 #include <trc/ray_tracing/RaygenDescriptor.h>
 #include <trc_util/Timer.h>
 using namespace trc::basic_types;

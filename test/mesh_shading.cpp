@@ -2,7 +2,7 @@
 #include <trc/Meshlet.h>
 #include <trc/PipelineDefinitions.h>
 #include <trc/Torch.h>
-#include <trc/TorchResources.h>
+#include <trc/TorchRenderStages.h>
 #include <trc/core/PipelineBuilder.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 using namespace trc::basic_types;

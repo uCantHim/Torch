@@ -2,7 +2,7 @@
 
 #include "trc/text/UnicodeUtils.h"
 #include "trc/TorchRenderConfig.h"
-#include "trc/TorchResources.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/TextPipelines.h"
 

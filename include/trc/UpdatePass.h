@@ -2,13 +2,10 @@
 
 #include <functional>
 
-#include "trc/core/RenderStage.h"
 #include "trc/core/RenderPass.h"
 
 namespace trc
 {
-    inline RenderStage resourceUpdateStage{};
-
     /**
      * @brief A render pass used for resource updates
      */
