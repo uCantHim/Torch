@@ -97,25 +97,15 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     std::vector<vk::CommandBuffer> commandBuffers;
     for (const auto& draw : draws)
     {
-        assert(draw.scene != nullptr);
-        assert(draw.camera != nullptr);
-        assert(draw.renderConfig != nullptr);
-
-        RenderConfig& renderConfig = *draw.renderConfig;
-
-        // Update
-        renderConfig.preDraw(draw);
+        const RenderConfig& renderConfig = draw.renderConfig;
 
         // Collect commands from scene
         auto cmdBufs = renderConfig.getLayout().record(
-            *draw.renderConfig,
-            *draw.scene,
+            draw.renderConfig,
+            draw.scene,
             *frameState
         );
         util::merge(commandBuffers, cmdBufs);
-
-        // Post-draw cleanup callback
-        renderConfig.postDraw(draw);
     }
 
     // Submit command buffers

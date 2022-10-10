@@ -65,8 +65,8 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
 
 auto trc::RenderLayout::record(
     RenderConfig& config,
-    SceneBase& scene,
-    FrameRenderState& state)
+    const SceneBase& scene,
+    FrameRenderState& state) const
     -> std::vector<vk::CommandBuffer>
 {
     std::vector<std::future<Maybe<vk::CommandBuffer>>> futures;
@@ -92,9 +92,9 @@ auto trc::RenderLayout::record(
 auto trc::RenderLayout::recordStage(
     vk::CommandBuffer cmdBuf,
     RenderConfig& config,
-    SceneBase& scene,
+    const SceneBase& scene,
     FrameRenderState& frameState,
-    const Stage& stage)
+    const Stage& stage) const
     -> Maybe<vk::CommandBuffer>
 {
     const auto renderPasses = util::merged(stage.renderPasses,

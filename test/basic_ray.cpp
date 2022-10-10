@@ -28,8 +28,6 @@ public:
         return graph;
     }
 
-    void preDraw(const trc::DrawConfig&) override {}
-    void postDraw(const trc::DrawConfig&) override {}
     void setViewport(uvec2, uvec2) override {}
     void setRenderTarget(const trc::RenderTarget&) override {}
 
@@ -222,9 +220,8 @@ int main()
     renderConfig.getLayout().addPass(renderConfig.kRayStage, rayPass);
 
     trc::DrawConfig drawConfig{
-        .scene=&scene,
-        .camera=&camera,
-        .renderConfig=&renderConfig
+        .scene=scene,
+        .renderConfig=renderConfig
     };
 
     trc::Keyboard::init();

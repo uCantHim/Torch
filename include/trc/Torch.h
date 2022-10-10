@@ -6,7 +6,7 @@
 #include "trc/TorchRenderConfig.h"
 #include "trc/Types.h"
 #include "trc/assets/Assets.h"
-#include "trc/core/Camera.h"
+#include "trc/Camera.h"
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/Instance.h"
 #include "trc/core/RenderTarget.h"
@@ -78,22 +78,11 @@ namespace trc
         auto getRenderConfig() -> TorchRenderConfig&;
 
         /**
-         * @brief Create a draw configuration with default values
-         *
-         * @param Scene& scene The scene which to render with the new
-         *                     configuration.
-         * @param Camera& camera The camera from which to render the scene.
-         *
-         * @return DrawConfig
-         */
-        auto makeDrawConfig(Scene& scene, Camera& camera) -> DrawConfig;
-
-        /**
          * @brief Draw a frame
          *
-         * Shortcut for `stack.window->drawFrame()`.
+         * Performs the required frame setup and -teardown tasks.
          */
-        void drawFrame(const DrawConfig& draw);
+        void drawFrame(const Camera& camera, const Scene& scene);
 
     private:
         Instance instance;

@@ -76,9 +76,10 @@ void trc::DrawableComponentScene::updateAnimations(const float timeDelta)
     }
 }
 
-auto trc::DrawableComponentScene::writeTlasInstances(rt::GeometryInstance* instanceBuf) -> size_t
+auto trc::DrawableComponentScene::writeTlasInstances(rt::GeometryInstance* instanceBuf) const
+    -> size_t
 {
-    for (ui32 i = 0; auto ray : storage.get<RayComponent>())
+    for (ui32 i = 0; const auto& ray : storage.get<RayComponent>())
     {
         instanceBuf[i] = rt::GeometryInstance(
             ray.modelMatrixId.get(), ray.drawableBufferIndex,

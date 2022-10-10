@@ -1,7 +1,7 @@
 #include "trc/GBuffer.h"
 
 #include "trc/DescriptorSetUtils.h"
-#include "trc/core/Camera.h"
+#include "trc/Camera.h"
 #include "trc_util/Padding.h"
 
 

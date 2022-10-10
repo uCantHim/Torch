@@ -10,13 +10,12 @@ using namespace trc::basic_types;
 int main()
 {
     {
-        ivec2 size{ 800, 600 };
-        ivec2 pos{ 100, 100 };
-        trc::WindowCreateInfo info{ .size=size, .pos=pos };
-        trc::TorchStack torch({}, info);
+        ivec2 windowSize{ 800, 600 };
+        ivec2 windowPos{ 100, 100 };
+        auto torch = trc::initFull({}, { .size=windowSize, .pos=windowPos });
 
-        auto& window = torch.getWindow();
-        auto imgui = trc::imgui::initImgui(window, torch.getRenderConfig().getLayout());
+        auto& window = torch->getWindow();
+        auto imgui = trc::imgui::initImgui(window, torch->getRenderConfig().getLayout());
 
         trc::Scene scene;
         trc::Camera camera;
@@ -35,11 +34,11 @@ int main()
             trc::imgui::beginImguiFrame();
             ig::Begin("Options");
             ig::PushItemWidth(100.0f);
-            ig::InputInt2("", &size.x);
+            ig::InputInt2("", &windowSize.x);
             ig::PopItemWidth();
             ig::SameLine();
             if (ig::Button("resize")) {
-                window.resize(size.x, size.y);
+                window.resize(windowSize.x, windowSize.y);
             }
             if (ig::Checkbox("Floating", &floating)) {
                 window.setFloating(floating);
@@ -82,7 +81,7 @@ int main()
                 window.show();
             }
 
-            window.drawFrame(torch.makeDrawConfig(scene, camera));
+            torch->drawFrame(camera, scene);
         }
     }
 

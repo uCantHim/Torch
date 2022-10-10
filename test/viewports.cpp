@@ -66,8 +66,8 @@ void run()
 
     // Create two draw configurations because we draw two viewports
     trc::DrawConfig drawConfigs[]{
-        { &scene, &camera1, &config1 },  // Viewport with perspective camera
-        { &scene, &camera2, &config2 },  // Viewport with orthogonal camera
+        { scene, config1 },
+        { scene, config2 },
     };
 
     trc::Timer timer;
@@ -76,6 +76,9 @@ void run()
         trc::pollEvents();
 
         cube.rotateY(timer.reset() * 0.001f);
+
+        config1.perFrameUpdate(camera1, scene);  // Viewport with perspective camera
+        config2.perFrameUpdate(camera2, scene);  // Viewport with orthogonal camera
 
         // Specify two draws
         window.drawFrame({ 2, drawConfigs });

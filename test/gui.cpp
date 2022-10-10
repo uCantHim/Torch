@@ -108,7 +108,7 @@ int main()
         while (swapchain.isOpen())
         {
             trc::pollEvents();
-            torch->drawFrame(torch->makeDrawConfig(scene, camera));
+            torch->drawFrame(camera, scene);
         }
     }
 

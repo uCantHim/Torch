@@ -251,7 +251,7 @@ void run()
         scene.update(frameTime);
         cursor.setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
 
-        torch->drawFrame(torch->makeDrawConfig(scene, camera));
+        torch->drawFrame(camera, scene);
 
         frames++;
         if (timer.duration() >= 1000)

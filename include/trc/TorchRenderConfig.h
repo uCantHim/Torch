@@ -87,8 +87,7 @@ namespace trc
          */
         TorchRenderConfig(const Window& window, const TorchRenderConfigCreateInfo& info);
 
-        void preDraw(const DrawConfig& draw) override;
-        void postDraw(const DrawConfig& draw) override;
+        void perFrameUpdate(const Camera& camera, const Scene& scene);
 
         void setViewport(uvec2 offset, uvec2 size) override;
         void setRenderTarget(const RenderTarget& newTarget) override;

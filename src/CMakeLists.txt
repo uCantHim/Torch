@@ -6,6 +6,7 @@ target_sources(
     torch
     PRIVATE
         AnimationEngine.cpp
+        Camera.cpp
         DescriptorSetUtils.cpp
         FinalLightingPass.cpp
         Framebuffer.cpp

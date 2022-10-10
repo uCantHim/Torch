@@ -1,13 +1,14 @@
 #pragma once
 
-#include <concepts>
+#include <functional>
+#include <string>
 #include <unordered_map>
 
 #include "trc/core/DescriptorRegistry.h"
-#include "trc/core/RenderStage.h"
-#include "trc/core/RenderPass.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderLayout.h"
+#include "trc/core/RenderPass.h"
+#include "trc/core/RenderStage.h"
 
 namespace trc
 {
@@ -52,15 +53,13 @@ namespace trc
         explicit RenderConfig(RenderLayout layout);
         virtual ~RenderConfig() = default;
 
-        virtual void preDraw(const DrawConfig& draw) = 0;
-        virtual void postDraw(const DrawConfig& draw) = 0;
-
         virtual void setViewport(uvec2 newOffset, uvec2 newSize) = 0;
         virtual void setRenderTarget(const RenderTarget& newTarget) = 0;
 
         virtual auto getPipeline(Pipeline::ID id) -> Pipeline& = 0;
 
         auto getLayout() -> RenderLayout&;
+        auto getLayout() const -> const RenderLayout&;
 
     protected:
         RenderLayout layout;

@@ -174,16 +174,8 @@ auto trc::TorchStack::getRenderConfig() -> TorchRenderConfig&
     return renderConfig;
 }
 
-auto trc::TorchStack::makeDrawConfig(Scene& scene, Camera& camera) -> DrawConfig
+void trc::TorchStack::drawFrame(const Camera& camera, const Scene& scene)
 {
-    return {
-        .scene        = &scene,
-        .camera       = &camera,
-        .renderConfig = &renderConfig
-    };
-}
-
-void trc::TorchStack::drawFrame(const DrawConfig& draw)
-{
-    window.drawFrame(draw);
+    renderConfig.perFrameUpdate(camera, scene);
+    window.drawFrame(DrawConfig{ .scene=scene, .renderConfig=renderConfig });
 }

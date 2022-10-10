@@ -1,7 +1,6 @@
 target_sources(
     torch
     PRIVATE
-        Camera.cpp
         ComputePipelineBuilder.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp

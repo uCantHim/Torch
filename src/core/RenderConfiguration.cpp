@@ -41,3 +41,8 @@ auto trc::RenderConfig::getLayout() -> RenderLayout&
 {
     return layout;
 }
+
+auto trc::RenderConfig::getLayout() const -> const RenderLayout&
+{
+    return layout;
+}

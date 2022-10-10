@@ -31,7 +31,7 @@ int main()
         while (window.isOpen())
         {
             trc::pollEvents();
-            window.drawFrame(torch->makeDrawConfig(scene, camera));
+            torch->drawFrame(camera, scene);
         }
 
         window.getRenderer().waitForAllFrames();

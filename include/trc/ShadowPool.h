@@ -8,7 +8,7 @@
 #include "trc_util/data/ObjectId.h"
 
 #include "trc/Types.h"
-#include "trc/core/Camera.h"
+#include "trc/Camera.h"
 #include "trc/core/DescriptorProvider.h"
 #include "trc/core/Instance.h"
 #include "trc/Framebuffer.h"

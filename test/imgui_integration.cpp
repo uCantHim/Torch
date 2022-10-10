@@ -27,7 +27,7 @@ int main()
             ig::Text("Hello World!");
             ig::End();
 
-            torch->drawFrame(torch->makeDrawConfig(scene, camera));
+            torch->drawFrame(camera, scene);
         }
     }
 

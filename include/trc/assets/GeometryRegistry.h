@@ -209,6 +209,12 @@ namespace trc
          */
         auto getAccelerationStructure() -> rt::BottomLevelAccelerationStructure&;
 
+        /**
+         * @throw std::runtime_error if hasAccelerationStructure() returns
+         *        false.
+         */
+        auto getAccelerationStructure() const -> const rt::BottomLevelAccelerationStructure&;
+
     private:
         friend class GeometryRegistry;
 

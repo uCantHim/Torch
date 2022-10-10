@@ -132,6 +132,15 @@ auto GeometryHandle::getAccelerationStructure() -> rt::BottomLevelAccelerationSt
     return *storage->blas;
 }
 
+auto GeometryHandle::getAccelerationStructure() const -> const rt::BottomLevelAccelerationStructure&
+{
+    if (!hasAccelerationStructure())  {
+        throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
+                                 " structure for this geometry has not been created.");
+    }
+    return *storage->blas;
+}
+
 
 
 GeometryRegistry::InternalStorage::~InternalStorage() = default;

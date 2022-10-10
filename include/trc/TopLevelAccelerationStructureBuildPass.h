@@ -13,13 +13,13 @@ namespace trc
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& frame) override;
 
-        void setScene(DrawableComponentScene& scene);
+        void setScene(const DrawableComponentScene& scene);
 
     private:
         const Instance& instance;
         rt::TLAS* tlas;
 
-        DrawableComponentScene* scene{ nullptr };
+        const DrawableComponentScene* scene{ nullptr };
 
         DeviceLocalBuffer scratchBuffer;
         const vk::DeviceAddress scratchMemoryAddress;

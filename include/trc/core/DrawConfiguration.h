@@ -2,8 +2,7 @@
 
 namespace trc
 {
-    class Scene;
-    class Camera;
+    class SceneBase;
     class RenderConfig;
 
     /**
@@ -11,9 +10,7 @@ namespace trc
      */
     struct DrawConfig
     {
-        Scene* scene;
-        Camera* camera;
-
-        RenderConfig* renderConfig;
+        const SceneBase& scene;
+        RenderConfig& renderConfig;
     };
 } // namespace trc

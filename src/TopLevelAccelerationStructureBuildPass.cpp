@@ -65,7 +65,7 @@ void TopLevelAccelerationStructureBuildPass::update(
     }
 }
 
-void TopLevelAccelerationStructureBuildPass::setScene(DrawableComponentScene& newScene)
+void TopLevelAccelerationStructureBuildPass::setScene(const DrawableComponentScene& newScene)
 {
     scene = &newScene;
 }

@@ -41,12 +41,12 @@ void trc::DynamicRenderPassContainer::clearDynamicRenderPasses(RenderStage::ID s
     }
 }
 
-auto trc::DynamicRenderPassContainer::getDynamicRenderPasses(RenderStage::ID stage)
-    -> const std::vector<RenderPass*>&
+auto trc::DynamicRenderPassContainer::getDynamicRenderPasses(RenderStage::ID stage) const
+    -> std::vector<RenderPass*>
 {
     std::scoped_lock lock(mutex);
     if (!dynamicPasses.contains(stage)) {
-        dynamicPasses.emplace(stage, std::vector<RenderPass*>{});
+        return {};
     }
     return dynamicPasses.at(stage);
 }

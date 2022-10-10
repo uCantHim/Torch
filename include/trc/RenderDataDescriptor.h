@@ -4,7 +4,7 @@
 #include "trc/base/Buffer.h"
 
 #include "trc/core/DescriptorProvider.h"
-#include "trc/core/Camera.h"
+#include "trc/Camera.h"
 #include "trc_util/Padding.h"
 
 namespace trc

@@ -2,32 +2,26 @@
 
 int main()
 {
+    // Initialize Torch
+    trc::init();
+
+    // Create a default Torch setup
+    trc::TorchStack torch;
+
+    // The things required to render something are
+    //   1. A scene
+    //   2. A camera
+    trc::Scene scene;
+    trc::Camera camera;
+
+    // Main loop
+    while (torch.getWindow().isOpen())
     {
-        // Initialize Torch
-        trc::TorchStack torch;
+        // Poll system events
+        trc::pollEvents();
 
-        // The things required to render something are
-        //   1. A scene
-        //   2. A camera
-        trc::Scene scene;
-        trc::Camera camera;
-
-        // We create a draw configuration that tells the renderer what to
-        // draw. We can create this object ourselves, but, since we will use
-        // default settings anyway, we let a utility function do it for us.
-        trc::DrawConfig drawConf = torch.makeDrawConfig(scene, camera);
-
-        // Main loop
-        while (torch.getWindow().isOpen())
-        {
-            // Poll system events
-            trc::pollEvents();
-
-            // Draw a frame
-            torch.drawFrame(drawConf);
-        }
-
-        // End of scope, the TorchStack object gets destroyed
+        // Draw a frame
+        torch.drawFrame(camera, scene);
     }
 
     // Call this after you've destroyed all Torch/Vulkan resources.

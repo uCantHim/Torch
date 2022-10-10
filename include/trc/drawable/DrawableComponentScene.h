@@ -93,7 +93,11 @@ namespace trc
         DrawableComponentScene(SceneBase& base);
 
         void updateAnimations(float timeDelta);
-        auto writeTlasInstances(rt::GeometryInstance* instanceBuf) -> size_t;
+
+        /**
+         * @return size_t Number of instances written to the buffer
+         */
+        auto writeTlasInstances(rt::GeometryInstance* instanceBuf) const -> size_t;
 
         auto getRaySceneData() const -> const std::vector<DrawableRayData>&;
 

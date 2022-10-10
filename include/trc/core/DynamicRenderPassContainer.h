@@ -46,10 +46,10 @@ namespace trc
          */
         void clearDynamicRenderPasses(RenderStage::ID stage);
 
-        auto getDynamicRenderPasses(RenderStage::ID stage) -> const std::vector<RenderPass*>&;
+        auto getDynamicRenderPasses(RenderStage::ID stage) const -> std::vector<RenderPass*>;
 
     private:
-        std::mutex mutex;
+        mutable std::mutex mutex;
         std::unordered_map<RenderStage::ID, std::vector<RenderPass*>> dynamicPasses;
     };
 } // namespace trc

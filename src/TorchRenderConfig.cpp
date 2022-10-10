@@ -106,19 +106,15 @@ trc::TorchRenderConfig::TorchRenderConfig(
     layout.addPass(resourceUpdateStage, assetRegistry->getUpdatePass());
 }
 
-void trc::TorchRenderConfig::preDraw(const DrawConfig& draw)
+void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& scene)
 {
     // Add final lighting function to scene
-    globalDataDescriptor.update(*draw.camera);
-    sceneDescriptor.update(*draw.scene);
+    globalDataDescriptor.update(camera);
+    sceneDescriptor.update(scene);
     shadowPool->update();
     if (enableRayTracing) {
-        tlasBuildPass->setScene(*draw.scene);
+        tlasBuildPass->setScene(scene);
     }
-}
-
-void trc::TorchRenderConfig::postDraw(const DrawConfig&)
-{
 }
 
 void trc::TorchRenderConfig::setViewport(uvec2 offset, uvec2 size)

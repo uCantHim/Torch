@@ -119,7 +119,7 @@ void run()
         sphereNode.rotateY(time / 1000.0f * 0.5f);
         scene->update(time);
 
-        window.drawFrame(torch->makeDrawConfig(*scene, camera));
+        torch->drawFrame(camera, *scene);
 
         frames++;
         if (frameTimer.duration() >= 1000.0f)

@@ -135,7 +135,7 @@ void run()
     while (window.isOpen())
     {
         trc::pollEvents();
-        torch->drawFrame(torch->makeDrawConfig(scene, camera));
+        torch->drawFrame(camera, scene);
     }
 
     window.getRenderer().waitForAllFrames();

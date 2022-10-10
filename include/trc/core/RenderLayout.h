@@ -37,7 +37,7 @@ namespace trc
 
         auto operator=(RenderLayout&&) noexcept -> RenderLayout& = default;
 
-        auto record(RenderConfig& config, SceneBase& scene, FrameRenderState& state)
+        auto record(RenderConfig& config, const SceneBase& scene, FrameRenderState& state) const
             -> std::vector<vk::CommandBuffer>;
 
         void addPass(RenderStage::ID stage, RenderPass& newPass);
@@ -59,9 +59,9 @@ namespace trc
          */
         auto recordStage(vk::CommandBuffer cmdBuf,
                          RenderConfig& config,
-                         SceneBase& scene,
+                         const SceneBase& scene,
                          FrameRenderState& frameState,
-                         const Stage& stage)
+                         const Stage& stage) const
             -> functional::Maybe<vk::CommandBuffer>;
 
         auto getStage(RenderStage::ID stage) -> Stage*;
