@@ -1,30 +1,31 @@
 #include "PipelineDefinitionLanguage.h"
 
-#include <vector>
-#include <unordered_map>
-#include <future>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <sstream>
-
+#include <unordered_map>
 #include <utility>  // for std::as_const used in argparse
+#include <vector>
+
 #include <argparse/argparse.hpp>
-#include <ShaderDocument.h>
 
 #ifdef HAS_SPIRV_COMPILER
 #include <spirv/CompileSpirv.h>
 #include <spirv/FileIncluder.h>
 #endif
 
-#include "Exceptions.h"
-#include "Scanner.h"
-#include "Parser.h"
-#include "Importer.h"
-#include "TypeParser.h"
-#include "TypeChecker.h"
-#include "Compiler.h"
-#include "TorchCppWriter.h"
 #include "CMakeDepfileWriter.h"
+#include "Compiler.h"
+#include "Exceptions.h"
+#include "Importer.h"
+#include "Parser.h"
+#include "Scanner.h"
+#include "ShaderDatabase.h"
+#include "TorchCppWriter.h"
+#include "TypeChecker.h"
+#include "TypeParser.h"
+#include "shader_tools/ShaderDocument.h"
 
 
 
@@ -86,6 +87,16 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
         .help("Output directory for generated shader files.");
     program.add_argument("--depfile")
         .help("Generate a dependency file for the output files.");
+    program.add_argument("--shader-db")
+        .help("Generate a database of shader permutations that are generated during compilation."
+              " This information can be used to replay generation without invoking the entire"
+              " pipeline compiler.");
+    program.add_argument("--shader-db-append")
+        .default_value(false)
+        .implicit_value(true)
+        .help("If present, if the --shader-db option is specified, append the generated shader"
+              " database to the file instead of overwriting it. This allows information from"
+              " multiple compilations to be merged together into a single database file.");
 
 #ifdef HAS_SPIRV_COMPILER
     program.add_argument("--spv")
@@ -190,6 +201,8 @@ void PipelineDefinitionLanguage::run(int argc, char** argv)
     }
 
     depfilePath = program.present("--depfile");
+    shaderDatabasePath = program.present("--shader-db");
+    appendToShaderDatabase = program.is_used("--shader-db-append");
 
     // Init
     errorReporter = std::make_unique<DefaultErrorReporter>(std::cout);
@@ -271,12 +284,32 @@ void PipelineDefinitionLanguage::writeOutput(
     const fs::path& sourceFilePath,
     const CompileResult& result)
 {
+    // Generate shaders first
+    const auto db = makeShaderDatabase(defaultShaderOutputType, result);
+    for (const auto& shader : db)  // Compile all shaders once by default
+    {
+        std::ifstream inFile(shaderInputDir / shader.at("source").get<std::string>());
+        shader_edit::ShaderDocument doc(inFile);
+        for (const auto& [key, val] : shader.at("variables").items()) {
+            doc.set(key, val.get<std::string>());
+        }
+
+        writeShader(ShaderInfo{
+            .glslCode=doc.compile(),
+            .outputFileName=shaderOutputDir / shader.at("target").get<std::string>(),
+            .outputType=shader.at("outputType").get<ShaderOutputType>(),
+        });
+    }
+    if (shaderDatabasePath) {
+        writeShaderDatabase(*shaderDatabasePath, db, appendToShaderDatabase);
+    }
+
+    // Generate pipeline files
     TorchCppWriter writer(*errorReporter, {
         .compiledFileName=sourceFilePath.filename().replace_extension(""),
         .shaderInputDir=shaderInputDir,
         .shaderOutputDir=shaderOutputDir,
-        .defaultShaderOutput=defaultShaderOutputType,
-        .generateShader=writeShader,
+        .defaultShaderOutput=defaultShaderOutputType
     });
 
     fs::path outFilePath = outputDir / outputFileName;

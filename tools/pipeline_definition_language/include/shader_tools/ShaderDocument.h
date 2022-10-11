@@ -1,8 +1,9 @@
 #pragma once
 
+#include <trc_util/Exception.h>
+
 #include "ShaderDocumentParser.h"
 #include "VariableValue.h"
-#include "trc_util/Exception.h"
 
 namespace shader_edit
 {
@@ -121,7 +122,7 @@ namespace shader_edit
             result.emplace_back(std::move(value));
         }
 
-        return permutate(docs, name, std::move(result));
+        return permutate(docs, name, result);
     }
 
     template<Renderable T>

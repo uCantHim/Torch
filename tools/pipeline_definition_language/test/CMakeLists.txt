@@ -9,10 +9,7 @@ add_executable(
     test_shader_edit.cpp
 )
 
-target_link_libraries(pipeline_compiler_test PRIVATE
-    shader_compiler_lib
-    pipeline_compiler_lib
-)
+target_link_libraries(pipeline_compiler_test PRIVATE pipeline_compiler_lib)
 link_gtest(pipeline_compiler_test)
 target_include_directories(pipeline_compiler_test PRIVATE ../src/)
 target_compile_definitions(pipeline_compiler_test PRIVATE

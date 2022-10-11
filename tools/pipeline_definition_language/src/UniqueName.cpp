@@ -4,6 +4,13 @@
 
 
 
+auto addUniqueExtension(fs::path file, const UniqueName& uniqueName) -> fs::path
+{
+    return file.replace_extension(uniqueName.getUniqueExtension() + file.extension().string());
+}
+
+
+
 UniqueName::UniqueName(std::string str)
     :
     name(str),

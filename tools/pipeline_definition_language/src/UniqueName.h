@@ -1,9 +1,18 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
+namespace fs = std::filesystem;
 
 #include "FlagTable.h"
+
+struct UniqueName;
+
+/**
+ * @brief Insert a unique extension into a file path to make it unique
+ */
+auto addUniqueExtension(fs::path file, const UniqueName& uniqueName) -> fs::path;
 
 struct UniqueName
 {

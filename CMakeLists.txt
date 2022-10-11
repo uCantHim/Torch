@@ -16,12 +16,13 @@ option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
 
+# Torch build variables
 set(TORCH_EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
-set(TORCH_SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
-set(TORCH_SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/generated-sources/shaders)
-
 set(TORCH_CONFIG_DIR ${CMAKE_CURRENT_LIST_DIR}/config)
 set(TORCH_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated-sources)
+set(TORCH_SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
+set(TORCH_SHADER_OUTPUT_DIR ${TORCH_GENERATED_DIR}/shaders)
+set(TORCH_INTERNAL_SHADER_DB ${TORCH_GENERATED_DIR}/shader-db.json)
 
 if (${TORCH_DEBUG})
     set(CMAKE_BUILD_TYPE DEBUG)
@@ -96,12 +97,14 @@ target_link_libraries(
 
     PRIVATE
         PNG::PNG
+        pipeline_compiler_lib
 )
 
 target_compile_definitions(torch
     PUBLIC
         TRC_COMPILE_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}"
         TRC_SHADER_BINARY_DIR="${TORCH_SHADER_OUTPUT_DIR}"
+        TRC_SHADER_DB="${TORCH_INTERNAL_SHADER_DB}"
 
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
@@ -115,7 +118,7 @@ add_subdirectory(src)
 add_subdirectory(include/trc) # Precompiled headers
 
 # Pipeline generation
-include(tools/pre_build_step/CMakeLists.txt)
+include(cmake/build_tools.cmake)
 torch_compile_pipelines_cpp(TARGET torch FILE "Common")
 torch_compile_pipelines_cpp(TARGET torch FILE "DrawablePipelines")
 torch_compile_pipelines_cpp(TARGET torch FILE "RasterPipelines")

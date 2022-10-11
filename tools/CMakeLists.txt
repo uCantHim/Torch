@@ -10,7 +10,6 @@ add_subdirectory(spirv_compiler)
 set(PIPELINE_COMPILER_ENABLE_SPIRV_FEATURES TRUE)
 set(PIPELINE_COMPILER_BUILD_TESTS ${TORCH_BUILD_TEST})
 
-add_subdirectory(shader_edit)
 add_subdirectory(pipeline_definition_language)
 
 torch_default_compile_options(pipeline_compiler_lib)

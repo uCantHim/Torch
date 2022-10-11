@@ -7,8 +7,8 @@
 #define LIGHT_DESCRIPTOR_SET 3
 #define LIGHT_DESCRIPTOR_BINDING 0
 #include "asset_registry_descriptor.glsl"
-#include "hit_utils.glsl"
 #include "lighting.glsl"
+#include "ray_tracing/hit_utils.glsl"
 
 struct DrawableData
 {

@@ -1,4 +1,4 @@
-#include "ShaderDocument.h"
+#include "shader_tools/ShaderDocument.h"
 
 #include <sstream>
 #include <iomanip>

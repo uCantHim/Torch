@@ -1,10 +1,10 @@
-#include "ShaderDocumentParser.h"
+#include "shader_tools/ShaderDocumentParser.h"
 
 #include <optional>
 #include <algorithm>
 #include <iostream>
 
-#include "StringUtil.h"
+#include <trc_util/StringManip.h>
 
 
 

@@ -25,7 +25,8 @@ function (torch_compile_pipelines_cpp)
         COMMAND pipeline_compiler ${TORCH_CONFIG_DIR}/${ARG_FILE}.se
             -o ${_OUT_DIR} --spv --spv-version 1.5 --spv-target-env vulkan1.2
             --shader-input ${TORCH_SHADER_DIR} --shader-output ${TORCH_SHADER_OUTPUT_DIR}
-            --depfile ${_DEPFILE}
+            --shader-db ${TORCH_INTERNAL_SHADER_DB}
+            --shader-db-append
             ${SHADER_MACROS}
         DEPENDS
             pipeline_compiler

@@ -2,8 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <ShaderDocumentParser.h>
-#include <ShaderDocument.h>
+#include "shader_tools/ShaderDocument.h"
 
 using namespace shader_edit;
 

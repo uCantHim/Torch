@@ -1,12 +1,16 @@
 #include "trc/ShaderLoader.h"
 
+#include <cstring>
+
 #include <fstream>
 #include <iostream>
 
-#include "trc/base/ShaderProgram.h"
+#include <nlohmann/json.hpp>
 #include <spirv/FileIncluder.h>
+#include <shader_tools/ShaderDocument.h>
 
 #include "trc/Types.h"
+#include "trc/base/ShaderProgram.h"
 #include "trc/util/TorchDirectories.h"
 
 namespace nl = nlohmann;
@@ -19,12 +23,30 @@ namespace trc
 ShaderLoader::ShaderLoader(
     std::vector<fs::path> _includePaths,
     fs::path binaryPath,
+    std::optional<fs::path> shaderDbFile,
     shaderc::CompileOptions opts)
     :
     includePaths(std::move(_includePaths)),
     outDir(std::move(binaryPath)),
     compileOpts(std::move(opts))
 {
+    if (shaderDbFile.has_value() && fs::is_regular_file(*shaderDbFile))
+    {
+        std::ifstream file(*shaderDbFile);
+        if (!file.is_open()) {
+            throw std::invalid_argument("[In ShaderLoader::ShaderLoader]: Unable to open shader"
+                                        " database " + shaderDbFile->string());
+        }
+
+        try {
+            shaderDatabase = ShaderDB(nl::json::parse(file));
+        }
+        catch (const nl::json::parse_error& err) {
+            throw std::invalid_argument("[In ShaderLoader::ShaderLoader]: Unable to load shader"
+                                        " database: " + std::string(err.what()));
+        }
+    }
+
     if (fs::exists(outDir) && !fs::is_directory(outDir)) {
         throw std::invalid_argument("[In ShaderLoader::ShaderLoader]: Object at binary directory"
                                     " path " + outDir.string() + " exists but is not a directory!");
@@ -54,37 +76,91 @@ auto ShaderLoader::makeDefaultOptions() -> shaderc::CompileOptions
 
 auto ShaderLoader::load(ShaderPath shaderPath) -> std::string
 {
-    for (const auto& includePath : includePaths)
+    /**
+     * The longest possible dependency chain is:
+     *
+     *     file  -->  GLSL source  -->  SPIRV code
+     *
+     * where `file` contains unset variables. This intermediate 'true' GLSL
+     * source is generated in `findFile` if it is outdated.
+     */
+
+    const auto srcPathOpt = findFile(shaderPath.getSourceName());
+    if (srcPathOpt)
     {
-        auto res = tryLoad(includePath, shaderPath);
-        if (res) return *res;
+        assert(fs::is_regular_file(*srcPathOpt));
+
+        const auto& srcPath = *srcPathOpt;
+        const auto binPath = outDir / shaderPath.getBinaryName();
+
+        if (binaryDirty(srcPath, binPath))
+        {
+            return compile(srcPath, binPath);
+        }
+
+        return readFile(binPath);
     }
 
     throw std::out_of_range("[In ShaderLoader::load]: Shader source "
                             + shaderPath.getSourceName().string() + " not found.");
 }
 
-auto ShaderLoader::tryLoad(const fs::path& includeDir, const ShaderPath& shaderPath)
-    -> std::optional<std::string>
+bool ShaderLoader::binaryDirty(const fs::path& srcPath, const fs::path& binPath)
 {
-    const auto srcPath = includeDir / shaderPath.getSourceName();
-    const auto binPath = outDir / shaderPath.getBinaryName();
-    if (!fs::is_regular_file(srcPath)) {
-        return std::nullopt;
-    }
-
-    if (!fs::is_regular_file(binPath)
+    return !fs::is_regular_file(binPath)
         || fs::last_write_time(srcPath) > fs::last_write_time(binPath)
-        || fs::file_size(binPath) == 0)
-    {
-        return compile(srcPath, binPath);
+        || fs::file_size(binPath) == 0;
+}
+
+auto ShaderLoader::findFile(const util::Pathlet& filePath) const -> std::optional<fs::path>
+{
+    auto find = [this](const util::Pathlet& filename) -> std::optional<fs::path> {
+        for (const auto& includePath : includePaths)
+        {
+            const auto file = includePath / filename;
+            if (fs::is_regular_file(file)) {
+                return file;
+            }
+        }
+        return std::nullopt;
+    };
+
+    if (auto res = find(filePath)) {
+        return res;
     }
 
-    return readFile(binPath);
+    // Source file not found - try to find a raw pre-variable-replacement version
+    if (shaderDatabase)
+    {
+        if (auto shader = shaderDatabase->get(filePath.string()))
+        {
+            auto rawSourcePath = find(shader->source);
+            if (!rawSourcePath) {
+                return std::nullopt;
+            }
+
+            std::ifstream rawSource(*rawSourcePath);
+            shader_edit::ShaderDocument doc(rawSource);
+            for (const auto& [key, val] : shader->variables) {
+                doc.set(key, val);
+            }
+
+            const auto outPath = outDir / filePath;
+            fs::create_directories(outPath.parent_path());
+            std::ofstream outFile(outPath);
+            outFile << doc.compile();
+
+            return outPath;
+        }
+    }
+
+    return std::nullopt;
 }
 
 auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> std::string
 {
+    assert(fs::is_regular_file(srcPath));
+
     if constexpr (enableVerboseLogging) {
         std::cout << "Compiling shader " << srcPath << " to " << dstPath << "\n";
     }
@@ -105,10 +181,33 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> 
         )
     );
 
+    fs::create_directories(dstPath.parent_path());
     std::ofstream file(dstPath, std::ios::binary);
     file << code;
 
     return code;
+}
+
+
+ShaderLoader::ShaderDB::ShaderDB(nl::json json)
+    :
+    db(std::move(json))
+{
+}
+
+auto ShaderLoader::ShaderDB::get(std::string_view path) const -> std::optional<ShaderInfo>
+{
+    auto it = db.find(path);
+    if (it != db.end())
+    {
+        return ShaderInfo{
+            .source=util::Pathlet(it->at("source").get_ref<const std::string&>()),
+            .target=util::Pathlet(it->at("target").get_ref<const std::string&>()),
+            .variables=it->at("variables").get<std::unordered_map<std::string, std::string>>()
+        };
+    }
+
+    return std::nullopt;
 }
 
 } // namespace trc

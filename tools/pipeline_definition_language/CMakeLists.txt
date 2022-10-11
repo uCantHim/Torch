@@ -12,6 +12,12 @@ FetchContent_Declare(
     GIT_TAG        master
 )
 FetchContent_MakeAvailable(argparse)
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    GIT_TAG        master
+)
+FetchContent_MakeAvailable(json)
 
 # Compiler executable target
 add_library(pipeline_compiler_lib
@@ -26,6 +32,7 @@ add_library(pipeline_compiler_lib
     src/PipelineDataWriter.cpp
     src/PipelineDefinitionLanguage.cpp
     src/Scanner.cpp
+    src/ShaderDatabase.cpp
     src/TorchCppWriter.cpp
     src/TypeChecker.cpp
     src/TypeConfiguration.cpp
@@ -33,6 +40,9 @@ add_library(pipeline_compiler_lib
     src/UniqueName.cpp
     src/VariantFlagSet.cpp
     src/VariantResolver.cpp
+    src/shader_tools/ShaderDocument.cpp
+    src/shader_tools/ShaderDocumentParser.cpp
+    src/shader_tools/VariableValue.cpp
 )
 
 target_compile_features(pipeline_compiler_lib PRIVATE cxx_std_20)
@@ -42,10 +52,13 @@ target_compile_options(pipeline_compiler_lib PRIVATE
     $<$<NOT:$<CONFIG:Debug>>:-O2>
 )
 
-target_include_directories(pipeline_compiler_lib PRIVATE src)
+target_include_directories(pipeline_compiler_lib PUBLIC include/)
 target_link_libraries(pipeline_compiler_lib
-    PRIVATE shader_compiler_lib argparse
-    PUBLIC torch_util
+    PRIVATE
+        argparse
+    PUBLIC
+        torch_util
+        nlohmann_json::nlohmann_json
 )
 
 target_compile_definitions(pipeline_compiler_lib PRIVATE

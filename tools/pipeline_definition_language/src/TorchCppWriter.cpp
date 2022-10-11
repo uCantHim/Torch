@@ -5,10 +5,9 @@
 #include <set>
 #include <sstream>
 
-#include <ShaderDocument.h>
-
 #include "CompileResult.h"
 #include "Exceptions.h"
+#include "shader_tools/ShaderDocument.h"
 
 
 
@@ -306,42 +305,6 @@ void TorchCppWriter::writeDynamicInitFunctionDef(std::ostream& os)
         os << nl << funcName << "(info);";
     }
     os << --nl << "}";
-}
-
-auto TorchCppWriter::getOutputType(const ShaderDesc& shader) -> ShaderOutputType
-{
-    if (shader.outputType) {
-        return shader.outputType.value();
-    }
-    return config.defaultShaderOutput;
-}
-
-auto TorchCppWriter::openShaderFile(const std::string& filename) -> std::ifstream
-{
-    fs::path path{ config.shaderInputDir / filename };
-    std::ifstream file{ path };
-    if (!file.is_open()) {
-        throw IOError("Unable to open file " + path.string() + " for reading");
-    }
-
-    return file;
-}
-
-auto TorchCppWriter::compileShader(const ShaderDesc& shader) -> std::string
-{
-    std::ifstream source = openShaderFile(shader.source);
-
-    shader_edit::ShaderDocument doc(source);
-    for (const auto& [name, val] : shader.variables) {
-        doc.set(name, val);
-    }
-
-    try {
-        return doc.compile();
-    }
-    catch (const shader_edit::CompileError& err) {
-        throw InternalLogicError(err.what());
-    }
 }
 
 void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)

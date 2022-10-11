@@ -34,16 +34,6 @@ struct TorchCppWriterCreateInfo
     fs::path shaderOutputDir{ "." };
 
     ShaderOutputType defaultShaderOutput;
-
-    /**
-     * Write shader code to file. Apply shader specific rules, such as
-     * SPIRV conversion.
-     *
-     * @param std::string Shader GLSL code
-     * @param const fs::path& Shader output file path
-     * @param ShaderOutputType The format in which the shader will be written
-     */
-    std::function<void(ShaderInfo)> generateShader;
 };
 
 class TorchCppWriter : public Writer
@@ -91,14 +81,6 @@ private:
     void writeDynamicInitCreateInfoStruct(const CompileResult& result, std::ostream& os);
     void writeDynamicInitFunctionHead(std::ostream& os);
     void writeDynamicInitFunctionDef(std::ostream& os);
-
-    ////////////////////////////////////
-    //  Shader file generation utils  //
-    ////////////////////////////////////
-
-    auto getOutputType(const ShaderDesc& shader) -> ShaderOutputType;
-    auto openShaderFile(const std::string& filename) -> std::ifstream;
-    auto compileShader(const ShaderDesc& shader) -> std::string;
 
     //////////////////////////////
     //  Variant and flag utils  //

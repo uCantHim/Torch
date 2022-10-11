@@ -16,7 +16,8 @@ auto trc::internal::loadShader(const ShaderPath& path) -> std::string
             util::getInternalShaderBinaryDirectory()
         },
         // Binary output directory:
-        util::getInternalShaderBinaryDirectory()
+        util::getInternalShaderBinaryDirectory(),
+        fs::path{ TRC_SHADER_DB }
     );
 
     return loader.load(path);
