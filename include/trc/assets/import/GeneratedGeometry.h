@@ -4,6 +4,8 @@
 
 namespace trc
 {
+    auto makeTriangleGeo() -> GeometryData;
+
     auto makePlaneGeo(
         float width = 1.0f,
         float height = 1.0f,
