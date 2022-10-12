@@ -38,11 +38,10 @@ set(TORCH_DEBUG $<$<CONFIG:Debug>:ON>)
 include(FetchContent)
 include(cmake/utils.cmake)
 
-find_package(Threads)
-find_package(PkgConfig REQUIRED) # For GLFW
+find_package(Threads REQUIRED)
 
 find_package(Vulkan REQUIRED)
-pkg_search_module(GLFW REQUIRED glfw3)
+find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(PNG REQUIRED)
 find_package(Freetype REQUIRED)
@@ -70,10 +69,6 @@ torch_default_compile_options(torch)
 target_include_directories(
     torch
     PUBLIC
-        ${Vulkan_INCLUDE_DIRS}
-        ${GLFW_INCLUDE_DIRS}
-        ${GLM_INCLUDE_DIRS}
-
         ${CMAKE_CURRENT_LIST_DIR}/include
         ${TORCH_GENERATED_DIR}/include
 
@@ -86,7 +81,8 @@ target_link_libraries(
     PUBLIC
         Threads::Threads
         Vulkan::Vulkan
-        ${GLFW_LIBRARIES}
+        glfw
+        glm
         Freetype::Freetype
         protobuf::libprotobuf
         $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>

@@ -13,6 +13,16 @@ int main()
     //   2. A camera
     trc::Scene scene;
     trc::Camera camera;
+    camera.makeOrthogonal(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+
+    auto& assets = torch.getAssetManager();
+
+    trc::GeometryID geo = assets.create(trc::makeTriangleGeo());
+    trc::MaterialID mat = assets.create(trc::MaterialData{
+        .color={ 0.392f, 0.624f, 0.82f },
+        .doPerformLighting=false,
+    });
+    trc::Drawable myDrawable(geo, mat, scene);
 
     // Main loop
     while (torch.getWindow().isOpen())

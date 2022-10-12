@@ -3,4 +3,4 @@
 	url = https://github.com/ocornut/imgui.git
 [submodule "external/imgui_dynamic_rendering"]
 	path = external/imgui_dynamic_rendering
-	url = git@github.com:uCantHim/imgui_dynamic_rendering.git
+	url = https://github.com/uCantHim/imgui_dynamic_rendering.git

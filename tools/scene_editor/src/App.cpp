@@ -192,7 +192,7 @@ void App::tick()
     mainMenu.drawImGui();
     gui::ContextMenu::drawImGui();
 
-    torch->drawFrame(torch->makeDrawConfig(scene.getDrawableScene(), scene.getCamera()));
+    torch->drawFrame(scene.getCamera(), scene.getDrawableScene());
 
     // Finalize
     static trc::Timer timer;
