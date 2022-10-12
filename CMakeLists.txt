@@ -4,6 +4,15 @@ if (UNIX AND NOT APPLE)
     set(LINUX TRUE)
 endif()
 
+if (WIN32)
+    if (POLICY CMP0091)
+        cmake_policy(SET CMP0091 NEW)
+    endif ()
+    if (POLICY CMP0077)
+        cmake_policy(SET CMP0077 NEW) # option() honors normal variables
+    endif ()
+endif (WIN32)
+
 project(Torch)
 
 # Options
@@ -37,31 +46,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(TORCH_DEBUG $<$<CONFIG:Debug>:ON>)
 
 # Third-party
-include(FetchContent)
-include(cmake/utils.cmake)
-
 find_package(Threads REQUIRED)
+include(cmake/utils.cmake)
+include(cmake/find_third_party.cmake) # Finds all required third-party dependencies
 
-find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
-find_package(PNG REQUIRED)
-find_package(Freetype REQUIRED)
-find_package(Protobuf REQUIRED)
-find_package(PNG REQUIRED)
-
-FetchContent_Declare(
-    cimg
-    GIT_REPOSITORY https://github.com/dtschump/CImg.git
-    GIT_TAG        927fee511fe4fcc1ae5cdf2365a60048fe4ff935
-)
-FetchContent_MakeAvailable(cimg)
-
-if (TARGET profiler)
-    set(HAS_PROFILER TRUE)
-endif()
-
-# Tools
+# In-project dependencies
 add_subdirectory(tools)
 
 # Library target
@@ -86,21 +75,23 @@ target_include_directories(
 target_link_libraries(
     torch
     PUBLIC
+        # third-party
         Threads::Threads
         Vulkan::Vulkan
         glfw
         glm
         Freetype::Freetype
         protobuf::libprotobuf
-        $<$<AND:$<BOOL:${HAS_PROFILER}>,$<CONFIG:Debug>>:profiler>
+        nlohmann_json::nlohmann_json
 
+        # first-party
         torch_util
         component
         spirv_compiler
 
     PRIVATE
         PNG::PNG
-        pipeline_compiler_lib
+        pipeline_compiler_lib  # for ShaderDocument
 )
 
 target_compile_definitions(torch
@@ -175,7 +166,7 @@ if (${TORCH_USE_FBX_SDK})
 endif ()
 
 # Optional assimp stuff
-find_package(assimp)
+find_package(assimp QUIET)
 if (${assimp_FOUND})
     target_link_libraries(torch PUBLIC ${ASSIMP_LIBRARIES})
     target_compile_definitions(torch PUBLIC TRC_USE_ASSIMP)

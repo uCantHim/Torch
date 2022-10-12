@@ -1,5 +1,4 @@
 add_executable(UnitTests)
-
 target_sources(UnitTests
     PRIVATE
         assets_tests/test_asset_path.cpp

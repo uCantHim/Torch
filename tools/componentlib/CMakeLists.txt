@@ -1,6 +1,6 @@
 set(COMPONENTLIB_BUILD_TESTS ${TORCH_BUILD_TEST})
 
-add_library(component STATIC
+add_library(component INTERFACE
     include/componentlib/TableBase.h
     include/componentlib/Table.h
     include/componentlib/Table.inl
@@ -11,9 +11,8 @@ add_library(component STATIC
     include/componentlib/TableUtils.h
     include/componentlib/ComponentStorage.h
 )
-torch_default_compile_options(component)
-target_include_directories(component PUBLIC include/)
-target_link_libraries(component PUBLIC torch_util)
+target_include_directories(component INTERFACE include/)
+target_link_libraries(component INTERFACE torch_util)
 set_target_properties(component PROPERTIES LINKER_LANGUAGE CXX)
 
 if (${COMPONENTLIB_BUILD_TESTS})

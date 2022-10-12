@@ -70,10 +70,13 @@ auto trc::util::splitString(const std::string& str, const std::string& delimiter
 
 void trc::util::removeEmpty(std::vector<std::string>& vec)
 {
-    for (auto it = vec.begin(); it != vec.end(); it++)
+    for (auto it = vec.begin(); it != vec.end(); /*nothing*/)
     {
         if (it->empty()) {
-            it = --vec.erase(it);
+            it = vec.erase(it);
+        }
+        else {
+            ++it;
         }
     }
 }

@@ -21,6 +21,8 @@ enum class TokenType
     eEof,
 };
 
+constexpr TokenType _token_type{ TokenType::eMatch };
+
 inline auto to_string(TokenType type) -> std::string
 {
     switch (type)

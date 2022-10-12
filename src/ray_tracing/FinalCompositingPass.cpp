@@ -3,7 +3,6 @@
 #include "trc/base/ShaderProgram.h"
 #include "trc/base/Barriers.h"
 
-#include "trc_util/Util.h"
 #include "trc/DescriptorSetUtils.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/RayShaders.h"
@@ -11,6 +10,7 @@
 #include "trc/core/ComputePipelineBuilder.h"
 #include "trc/core/RenderTarget.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/util/GlmStructuredBindings.h"
 
 
 

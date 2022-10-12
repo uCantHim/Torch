@@ -69,7 +69,7 @@ ShaderDatabaseGenerator::ShaderDatabaseGenerator(ShaderOutputType defaultOutputT
 
 void ShaderDatabaseGenerator::add(const UniqueName& name, ShaderDesc shader)
 {
-    shader.target = addUniqueExtension(shader.target, name);
+    shader.target = addUniqueExtension(shader.target, name).string();
     if (!shader.outputType) {
         shader.outputType = defaultOutputType;
     }

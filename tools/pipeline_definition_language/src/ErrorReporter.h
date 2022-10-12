@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
+#include <cstdint>
+
 #include <ostream>
+#include <string>
 
 #include "Token.h"
 
@@ -23,7 +25,7 @@ protected:
     virtual void reportError(const Error& error) = 0;
 
 private:
-    uint numErrors{ 0 };
+    uint32_t numErrors{ 0 };
 };
 
 class DefaultErrorReporter : public ErrorReporter

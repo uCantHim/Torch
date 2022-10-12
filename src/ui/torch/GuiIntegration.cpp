@@ -107,7 +107,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
         renderTarget = GuiRenderTarget(device, renderer.getRenderPass(), window.getSize());
         createDescriptorSets();
         writeDescriptorSets(renderTarget.getFramebuffer().getAttachmentView(0));
-    }))
+    }).makeUnique())
 {
     renderThread = std::thread([&, this] {
         while (!stopRenderThread)

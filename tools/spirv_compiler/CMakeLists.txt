@@ -1,15 +1,19 @@
 include(FetchContent)
 
 if (NOT TARGET shaderc)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
     FetchContent_Declare(
         shaderc
         GIT_REPOSITORY https://github.com/google/shaderc
         GIT_TAG        main
-        PATCH_COMMAND  ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
+        PATCH_COMMAND  python ${FETCHCONTENT_BASE_DIR}/shaderc-src/utils/git-sync-deps
     )
 
-    set(SHADERC_SKIP_TESTS ON)
-    set(SHADERC_SKIP_EXAMPLES ON)
+    option(SHADERC_SKIP_TESTS "" ON)
+    option(SHADERC_SKIP_EXAMPLES "" ON)
+    option(SHADERC_ENABLE_SHARED_CRT "" OFF)
+    option(ENABLE_CTEST "" OFF)
+    option(BUILD_TESTING "" OFF)
     FetchContent_MakeAvailable(shaderc)
 endif()
 

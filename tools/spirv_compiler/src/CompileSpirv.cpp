@@ -48,7 +48,7 @@ auto generateSpirv(
     auto result = compiler.CompileGlslToSpv(
         code,
         shaderKindFromExtension(inputFilePath),
-        inputFilePath.c_str(),
+        inputFilePath.string().c_str(),
         opts
     );
 

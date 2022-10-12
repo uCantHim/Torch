@@ -1,7 +1,8 @@
 #include "shader_tools/ShaderDocument.h"
 
-#include <sstream>
+#include <cstdint>
 #include <iomanip>
+#include <sstream>
 
 #include <trc_util/StringManip.h>
 
@@ -49,7 +50,7 @@ auto ShaderDocument::compile(bool allowUnsetVariables) const -> std::string
     /** A variable's location */
     struct Location
     {
-        uint line;
+        uint32_t line;
         size_t begin;
         size_t end;
     };

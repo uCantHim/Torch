@@ -142,7 +142,7 @@ namespace trc
         num_lock  = GLFW_MOD_NUM_LOCK,
     };
 
-    using KeyModFlags = vk::Flags<KeyModFlagBits>;
+    //using KeyModFlags = vk::Flags<KeyModFlagBits>;
 
     /**
      * These have the same numeric value as the corresponding GLFW defines.
@@ -175,52 +175,116 @@ namespace trc
     };
 } // namespace trc
 
-
-
-namespace vk
-{
-    template <>
-    struct FlagTraits<::trc::KeyModFlagBits>
-    {
-        static VULKAN_HPP_CONST_OR_CONSTEXPR bool isBitmask = true;
-
-        static VULKAN_HPP_CONST_OR_CONSTEXPR trc::KeyModFlags allFlags{
-             VkFlags(::trc::KeyModFlagBits::shift)
-             | VkFlags(::trc::KeyModFlagBits::control)
-             | VkFlags(::trc::KeyModFlagBits::alt)
-             | VkFlags(::trc::KeyModFlagBits::super)
-             | VkFlags(::trc::KeyModFlagBits::caps_lock)
-             | VkFlags(::trc::KeyModFlagBits::num_lock)
-        };
-    };
-} // namespace vk
-
 namespace trc
-{
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        KeyModFlags operator|( KeyModFlagBits bit0,
-                               KeyModFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
+{   
+    /**
+     * I don't want to deal with the API breaks in vulkan.hpp anymore, so
+     * here is a copy-pasted implementation of the Flags type:
+     */
+    class KeyModFlags
     {
-        return KeyModFlags( bit0 ) | bit1;
+    public:
+        using BitType = KeyModFlagBits;
+        using MaskType = std::underlying_type_t<BitType>;
+
+        constexpr KeyModFlags() noexcept = default;
+        constexpr KeyModFlags(BitType bit) noexcept : mask(static_cast<MaskType>(bit)) {}
+        constexpr explicit KeyModFlags(MaskType flags) noexcept : mask(flags) {}
+
+        auto operator<=>(const KeyModFlags&) const = default;
+
+        // logical operator
+        constexpr bool operator!() const VULKAN_HPP_NOEXCEPT
+        {
+            return !mask;
+        }
+
+        // bitwise operators
+        constexpr KeyModFlags operator&( KeyModFlags const & rhs ) const noexcept
+        {
+            return KeyModFlags( mask & rhs.mask );
+        }
+
+        constexpr KeyModFlags operator|( KeyModFlags const & rhs ) const noexcept
+        {
+            return KeyModFlags( mask | rhs.mask );
+        }
+
+        constexpr KeyModFlags operator^( KeyModFlags const & rhs ) const noexcept
+        {
+            return KeyModFlags( mask ^ rhs.mask );
+        }
+
+        constexpr KeyModFlags operator~() const noexcept
+        {
+            return KeyModFlags(mask ^ allFlags);
+        }
+
+        // assignment operators
+        constexpr KeyModFlags & operator=( KeyModFlags const & rhs ) noexcept = default;
+
+        constexpr KeyModFlags & operator|=( KeyModFlags const & rhs ) noexcept
+        {
+            mask |= rhs.mask;
+            return *this;
+        }
+
+        constexpr KeyModFlags & operator&=( KeyModFlags const & rhs ) noexcept
+        {
+            mask &= rhs.mask;
+            return *this;
+        }
+
+        constexpr KeyModFlags & operator^=( KeyModFlags const & rhs ) noexcept
+        {
+            mask ^= rhs.mask;
+            return *this;
+        }
+
+        // cast operators
+        explicit constexpr operator bool() const noexcept
+        {
+            return !!mask;
+        }
+
+        explicit constexpr operator MaskType() const VULKAN_HPP_NOEXCEPT
+        {
+            return mask;
+        }
+
+    private:
+        static constexpr MaskType allFlags{
+            static_cast<MaskType>(KeyModFlagBits::shift)
+            | static_cast<MaskType>(KeyModFlagBits::control)
+            | static_cast<MaskType>(KeyModFlagBits::alt)
+            | static_cast<MaskType>(KeyModFlagBits::super)
+            | static_cast<MaskType>(KeyModFlagBits::caps_lock)
+            | static_cast<MaskType>(KeyModFlagBits::num_lock)
+        };
+
+        MaskType mask{ 0 };
+    };
+
+    inline constexpr KeyModFlags operator|(KeyModFlagBits bit0,
+                                           KeyModFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
+    {
+        return KeyModFlags(bit0) | bit1;
     }
 
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        KeyModFlags operator&( KeyModFlagBits bit0,
-                               KeyModFlagBits bit1)VULKAN_HPP_NOEXCEPT
+    inline constexpr KeyModFlags operator&(KeyModFlagBits bit0,
+                                           KeyModFlagBits bit1)VULKAN_HPP_NOEXCEPT
     {
-        return KeyModFlags( bit0 ) & bit1;
+        return KeyModFlags(bit0) & bit1;
     }
 
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        KeyModFlags operator^( KeyModFlagBits bit0,
-                               KeyModFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
+    inline constexpr KeyModFlags operator^(KeyModFlagBits bit0,
+                                           KeyModFlagBits bit1 ) VULKAN_HPP_NOEXCEPT
     {
-        return KeyModFlags( bit0 ) ^ bit1;
+        return KeyModFlags(bit0) ^ bit1;
     }
 
-    VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR
-        KeyModFlags operator~( KeyModFlagBits bits ) VULKAN_HPP_NOEXCEPT
+    inline constexpr KeyModFlags operator~(KeyModFlagBits bits ) VULKAN_HPP_NOEXCEPT
     {
-        return ~( KeyModFlags( bits ) );
+        return ~(KeyModFlags(bits));
     }
 } // namespace trc

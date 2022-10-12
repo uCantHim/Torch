@@ -31,7 +31,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
                 renderer->waitForAllFrames();
                 renderer.reset();
             }
-        })
+        }).makeUnique()
     ),
     recreateListener(
         on<SwapchainRecreateEvent>([this](auto& e) {
@@ -39,7 +39,7 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
                 assert(renderer == nullptr);
                 renderer = std::make_unique<Renderer>(*this);
             }
-        })
+        }).makeUnique()
     )
 {
     setPosition(info.pos.x, info.pos.y);

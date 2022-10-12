@@ -183,7 +183,7 @@ namespace trc::ui
          * to their children.
          */
         template<std::invocable<Element&> F>
-        inline void traverse(F elemCallback);
+        void traverse(F elemCallback);
 
         /**
          * @brief An element that does nothing
@@ -197,6 +197,6 @@ namespace trc::ui
         u_ptr<Root> root{ new Root };
     };
 
-#include "trc/ui/Window.inl"
-
 } // namespace trc::ui
+
+#include "trc/ui/Window.inl"

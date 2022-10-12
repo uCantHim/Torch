@@ -31,7 +31,7 @@ function (torch_compile_pipelines_cpp)
         DEPENDS
             pipeline_compiler
             ${TORCH_CONFIG_DIR}/${ARG_FILE}.se
-        DEPFILE ${_DEPFILE}
+        #DEPFILE ${_DEPFILE}
         VERBATIM
     )
 

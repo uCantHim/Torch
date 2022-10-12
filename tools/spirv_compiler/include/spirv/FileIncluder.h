@@ -39,10 +39,10 @@ namespace spirv
     private:
         struct IncludeResult
         {
-            IncludeResult(fs::path fullPath, std::unique_ptr<shaderc_include_result> res)
-                : fullPath(std::move(fullPath)), result(std::move(res)) {}
+            IncludeResult(const fs::path& fullPath, std::unique_ptr<shaderc_include_result> res)
+                : fullPath(fullPath.string()), result(std::move(res)) {}
 
-            fs::path fullPath;
+            std::string fullPath;
             std::unique_ptr<shaderc_include_result> result;
             std::string content;
         };

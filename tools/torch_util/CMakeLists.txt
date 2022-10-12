@@ -20,6 +20,6 @@ if (WIN32)
     )
     FetchContent_MakeAvailable(semaphore)
 
-    target_sources(torch_util ${sempahore_SOURCE_DIR}/semaphore.c)
-    target_include_directories(torch_util ${sempahore_SOURCE_DIR})
+    target_sources(torch_util PRIVATE ${semaphore_SOURCE_DIR}/semaphore.c)
+    target_include_directories(torch_util PUBLIC ${semaphore_SOURCE_DIR})
 endif ()

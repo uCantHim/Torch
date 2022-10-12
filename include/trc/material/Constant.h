@@ -32,7 +32,7 @@ namespace trc
         auto datatype() const -> std::string;
         auto toString() const -> std::string;
 
-        template<typename T> requires (sizeof(T) <= sizeof(LargestType))
+        template<typename T> requires (sizeof(T) <= sizeof(Constant::LargestType))
         auto as() const -> T;
 
     private:

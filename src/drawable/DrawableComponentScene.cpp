@@ -50,7 +50,7 @@ trc::UniqueDrawableID::operator bool() const
     return id != DrawableID::NONE;
 }
 
-trc::UniqueDrawableID::operator DrawableID() const
+trc::UniqueDrawableID::operator trc::DrawableID() const
 {
     return id;
 }

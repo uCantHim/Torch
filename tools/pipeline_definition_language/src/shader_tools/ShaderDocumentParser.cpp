@@ -19,7 +19,7 @@ constexpr auto INLINE_VAR_DECL{ '$' };
 
 
 
-SyntaxError::SyntaxError(uint line, const std::string& error)
+SyntaxError::SyntaxError(uint32_t line, const std::string& error)
     :
     trc::Exception("[Syntax error in line " + std::to_string(line) + "]: " + error),
     line(line)
@@ -92,7 +92,7 @@ auto parseShader(std::vector<std::string> _lines) -> ParseResult
 {
     ParseResult result{ .lines=std::move(_lines) };
 
-    for (uint i = 0; auto& line : result.lines)
+    for (uint32_t i = 0; auto& line : result.lines)
     {
         // We want to split by spaces: Treat all tabs like spaces
         std::replace(line.begin(), line.end(), '\t', ' ');

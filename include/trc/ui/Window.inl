@@ -2,34 +2,37 @@
 
 
 
-template<trc::ui::GuiElement E>
-trc::ui::ElementHandleProxy<E>::ElementHandleProxy(E& element, Window& window)
+namespace trc::ui
+{
+
+template<GuiElement E>
+ElementHandleProxy<E>::ElementHandleProxy(E& element, Window& window)
     :
     element(&element),
     window(&window)
 {
 }
 
-template<trc::ui::GuiElement E>
-inline trc::ui::ElementHandleProxy<E>::operator E&() &&
+template<GuiElement E>
+inline ElementHandleProxy<E>::operator E&() &&
 {
     return *element;
 }
 
-template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleProxy<E>::makeRef() && -> E&
+template<GuiElement E>
+inline auto ElementHandleProxy<E>::makeRef() && -> E&
 {
     return *element;
 }
 
-template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleProxy<E>::makeShared() && -> SharedHandle
+template<GuiElement E>
+inline auto ElementHandleProxy<E>::makeShared() && -> SharedHandle
 {
     return SharedHandle(element, [window=window](E* elem) { window->destroy(*elem); });
 }
 
-template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
+template<GuiElement E>
+inline auto ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
 {
     return UniqueHandle(element, [window=window](E* elem) { window->destroy(*elem); });
 }
@@ -37,8 +40,8 @@ inline auto trc::ui::ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
 
 
 
-template<trc::ui::GuiElement E, typename... Args>
-inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleProxy<E>
+template<GuiElement E, typename... Args>
+inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
 {
     // Construct with Window in constructor if possible
     if constexpr (std::is_constructible_v<E, Window&, Args...>)
@@ -61,8 +64,8 @@ inline auto trc::ui::Window::create(Args&&... args) -> ElementHandleProxy<E>
     }
 }
 
-template<std::derived_from<trc::ui::event::MouseEvent> EventType>
-void trc::ui::Window::descendMouseEvent(EventType event)
+template<std::derived_from<event::MouseEvent> EventType>
+void Window::descendMouseEvent(EventType event)
 {
     static constexpr auto isInside = [](const vec2 point, const Transform& t) -> bool {
         assert((t.posProp.format == _2D<Format>{ Format::eNorm, Format::eNorm }));
@@ -81,11 +84,11 @@ void trc::ui::Window::descendMouseEvent(EventType event)
 }
 
 template<
-    std::derived_from<trc::ui::event::EventBase> EventType,
+    std::derived_from<event::EventBase> EventType,
     typename F
 >
-void trc::ui::Window::descendEvent(EventType event, F breakCondition)
-    requires std::is_same_v<bool, std::invoke_result_t<F, trc::ui::Element&>>
+void Window::descendEvent(EventType event, F breakCondition)
+    requires std::is_same_v<bool, std::invoke_result_t<F, Element&>>
 {
     std::function<void(Element&)> descend = [&](Element& e)
     {
@@ -99,8 +102,8 @@ void trc::ui::Window::descendEvent(EventType event, F breakCondition)
     descend(*root);
 }
 
-template<std::invocable<trc::ui::Element&> F>
-inline void trc::ui::Window::traverse(F elemCallback)
+template<std::invocable<Element&> F>
+void Window::traverse(F elemCallback)
 {
     std::function<void(Element&)> traverseElement = [&](Element& node)
     {
@@ -110,3 +113,5 @@ inline void trc::ui::Window::traverse(F elemCallback)
 
     traverseElement(*root);
 }
+
+} // namespace trc::ui

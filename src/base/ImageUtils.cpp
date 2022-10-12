@@ -47,7 +47,8 @@ auto trc::loadImageData2D(const fs::path& filePath) -> RawImageData
         throw std::runtime_error(filePath.string() + " is not a file");
     }
 
-    cimg::CImg<uint8_t> image(filePath.c_str());
+    const std::string path = filePath.string();
+    cimg::CImg<uint8_t> image(path.c_str());
     if (image.spectrum() == 3)  // Image does not have an alpha channel
     {
         image.channels(0, 3);

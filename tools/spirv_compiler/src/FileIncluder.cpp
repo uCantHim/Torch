@@ -75,7 +75,7 @@ auto FileIncluder::GetInclude(
     data.content = ss.str();
 
     res->source_name        = data.fullPath.c_str();
-    res->source_name_length = data.fullPath.string().size();
+    res->source_name_length = data.fullPath.size();
     res->content            = data.content.c_str();
     res->content_length     = data.content.size();
 

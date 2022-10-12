@@ -111,7 +111,7 @@ auto convert(PipelineDesc::BlendAttachment::BlendOp mode)
     throw std::logic_error("");
 }
 
-auto convertColorComponentFlags(uint flags) -> std::string
+auto convertColorComponentFlags(uint32_t flags) -> std::string
 {
     using Color = PipelineDesc::BlendAttachment::Color;
 

@@ -2,7 +2,13 @@
 
 #include <string>
 
+#if !defined (HAVE_STRUCT_TIMESPEC)
+#define _TIMESPEC_DEFINED
+#endif
 #include <semaphore.h>
+#if !defined (HAVE_STRUCT_TIMESPEC)
+#undef _TIMESPEC_DEFINED
+#endif
 
 namespace trc::util
 {

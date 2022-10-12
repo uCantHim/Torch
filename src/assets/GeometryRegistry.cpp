@@ -50,9 +50,9 @@ GeometryHandle::AssetHandle(
 void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
 {
     cmdBuf.bindIndexBuffer(*storage->deviceData->indexBuf, 0, getIndexType());
-    cmdBuf.bindVertexBuffers(binding, *storage->deviceData->meshVertexBuf, 0ul);
+    cmdBuf.bindVertexBuffers(binding, *storage->deviceData->meshVertexBuf, vk::DeviceSize(0));
     if (hasSkeleton()) {
-        cmdBuf.bindVertexBuffers(binding + 1, *storage->deviceData->skeletalVertexBuf, 0ul);
+        cmdBuf.bindVertexBuffers(binding + 1, *storage->deviceData->skeletalVertexBuf, vk::DeviceSize(0));
     }
 }
 

@@ -3,12 +3,21 @@
 #include <cstring>
 #include <stdexcept>
 
-// The following is done by https://github.com/DanielTillett/Simple-Windows-Posix-Semaphore
-// on windows
 #if defined (unix) || defined (__unix) || defined (__unix__) || defined (__APPLE__)
-#include <fcntl.h>
-#include <sys/stat.h>
-#endif
+    #include <fcntl.h>
+    #include <sys/stat.h>
+#else // if windows
+    #include <fcntl.h>
+    #include <sys/stat.h>
+    // Apparently, the following can actually happen (it happened on one of my machines):
+    // Use values from https://en.wikibooks.org/wiki/C_Programming/POSIX_Reference/sys/stat.h
+    #if !defined (S_IRUSR)
+        #define S_IRUSR 0x00400
+    #endif
+    #if !defined (S_IWUSR)
+        #define S_IWUSR 0x00200
+    #endif
+#endif // if windows
 
 #define NAME_MAX 255
 

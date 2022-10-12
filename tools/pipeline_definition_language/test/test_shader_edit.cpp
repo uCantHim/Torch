@@ -1,4 +1,7 @@
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -8,7 +11,7 @@ using namespace shader_edit;
 
 struct CustomLocation
 {
-    uint location;
+    uint32_t location;
 
     explicit operator std::string() const {
         return "layout (location = " + std::to_string(location) + ")";

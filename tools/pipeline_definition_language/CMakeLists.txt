@@ -12,12 +12,17 @@ FetchContent_Declare(
     GIT_TAG        master
 )
 FetchContent_MakeAvailable(argparse)
-FetchContent_Declare(
-    json
-    GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG        master
-)
-FetchContent_MakeAvailable(json)
+find_package(nlohmann_json)
+if (NOT nlohmann_json_FOUND)
+    FetchContent_Declare(
+        json
+        GIT_REPOSITORY https://github.com/nlohmann/json
+        GIT_TAG        master
+    )
+
+    set(JSON_BuildTests OFF CACHE INTERNAL "")
+    FetchContent_MakeAvailable(json)
+endif ()
 
 # Compiler executable target
 add_library(pipeline_compiler_lib
@@ -45,11 +50,7 @@ add_library(pipeline_compiler_lib
 )
 
 target_compile_features(pipeline_compiler_lib PRIVATE cxx_std_20)
-target_compile_options(pipeline_compiler_lib PRIVATE
-    -Wall -Wextra -Wpedantic
-    $<$<CONFIG:Debug>:-O0 -g>
-    $<$<NOT:$<CONFIG:Debug>>:-O2>
-)
+torch_default_compile_options(pipeline_compiler_lib)
 
 target_include_directories(pipeline_compiler_lib PUBLIC include/)
 target_link_libraries(pipeline_compiler_lib
@@ -77,5 +78,6 @@ endif ()
 
 # The actual pipeline compiler executable
 add_executable(pipeline_compiler main.cpp)
+torch_default_compile_options(pipeline_compiler)
 target_link_libraries(pipeline_compiler pipeline_compiler_lib)
 target_include_directories(pipeline_compiler PRIVATE src)

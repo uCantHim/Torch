@@ -305,8 +305,8 @@ void PipelineDefinitionLanguage::writeOutput(
     }
 
     // Generate pipeline files
-    TorchCppWriter writer(*errorReporter, {
-        .compiledFileName=sourceFilePath.filename().replace_extension(""),
+    TorchCppWriter writer(*errorReporter, TorchCppWriterCreateInfo{
+        .compiledFileName=sourceFilePath.filename().replace_extension("").string(),
         .shaderInputDir=shaderInputDir,
         .shaderOutputDir=shaderOutputDir,
         .defaultShaderOutput=defaultShaderOutputType
@@ -346,8 +346,11 @@ void PipelineDefinitionLanguage::writeOutput(
 
 void PipelineDefinitionLanguage::copyHelperFiles()
 {
-    fs::copy(FLAG_COMBINATION_HEADER, outputDir / "FlagCombination.h",
-             fs::copy_options::overwrite_existing);
+    // the fs::copy_options::overwrite_existing does not seem to work on windows
+    const auto target = outputDir / "FlagCombination.h";
+    if (!fs::is_regular_file(target)) {
+        fs::copy(FLAG_COMBINATION_HEADER, target, fs::copy_options::overwrite_existing);
+    }
 }
 
 void PipelineDefinitionLanguage::writeShader(const ShaderInfo& shader)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <istream>
 #include <string>
 #include <unordered_map>
@@ -12,13 +13,13 @@ namespace shader_edit
     class SyntaxError : public trc::Exception
     {
     public:
-        SyntaxError(uint line, const std::string& error);
+        SyntaxError(uint32_t line, const std::string& error);
 
-        /** @return uint The line in which the syntax error occured */
-        auto getLine() const -> uint;
+        /** @return uint32_t The line in which the syntax error occured */
+        auto getLine() const -> uint32_t;
 
     private:
-        uint line;
+        uint32_t line;
     };
 
     /**
@@ -35,7 +36,7 @@ namespace shader_edit
     {
         std::string name;
 
-        uint line{ UINT32_MAX };
+        uint32_t line{ UINT32_MAX };
         size_t firstChar{ 0 };
         size_t lastChar{ std::string::npos };
     };

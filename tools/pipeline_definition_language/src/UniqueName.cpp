@@ -67,7 +67,7 @@ auto UniqueName::getUniqueExtension() const -> std::string
 {
     std::stringstream ss;
     for (auto [flag, bit] : flags) {
-        ss << "_" << flag << ":" << bit;
+        ss << "_" << flag << "-" << bit;
     }
 
     return ss.str();

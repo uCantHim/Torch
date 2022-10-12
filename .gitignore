@@ -2,10 +2,12 @@ build/
 vulkan_logs/
 
 .vscode/
+.vs/
 .ccls-cache/
 .clangd/
 .cache/
 compile_commands.json
+CMakeSettings.json
 
 *.spv
 imgui.ini

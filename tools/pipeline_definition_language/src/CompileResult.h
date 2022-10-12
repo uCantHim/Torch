@@ -1,15 +1,17 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <optional>
+#include <cstdint>
+
 #include <filesystem>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 namespace fs = std::filesystem;
 
 #include "FlagTable.h"
-#include "UniqueName.h"
 #include "ShaderOutput.h"
+#include "UniqueName.h"
 
 /**
  * Either a reference or an inline object
@@ -135,7 +137,7 @@ struct PipelineDesc
 
         enum class BlendOp{ eAdd, };
 
-        enum Color : uint
+        enum Color : uint32_t
         {
             eR = 1 << 0,
             eG = 1 << 1,
@@ -151,7 +153,7 @@ struct PipelineDesc
         BlendFactor dstAlphaFactor{ BlendFactor::eZero };
         BlendOp alphaBlendOp{ BlendOp::eAdd };
 
-        uint colorComponentFlags{ eR | eG | eB | eA };
+        uint32_t colorComponentFlags{ eR | eG | eB | eA };
     };
 
     ObjectReference<LayoutDesc> layout;

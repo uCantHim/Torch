@@ -89,7 +89,7 @@ trc::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
     properties(device.getProperties()),
     features(device.getFeatures()),
     memoryProperties(device.getMemoryProperties()),
-    name(properties.deviceName),
+    name(properties.deviceName.begin(), properties.deviceName.end()),
     type(properties.deviceType),
     typeString(vk::to_string(properties.deviceType))
 {

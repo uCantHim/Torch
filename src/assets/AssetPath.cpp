@@ -32,5 +32,5 @@ auto trc::AssetPath::getFilesystemPath() const -> fs::path
 
 auto trc::AssetPath::getAssetName() const -> std::string
 {
-    return pathlet.filename().replace_extension("");
+    return pathlet.filename().replace_extension("").string();
 }

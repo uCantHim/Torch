@@ -24,7 +24,7 @@ void CMakeDepfileWriter::write(const CompileResult& result, std::ostream& os)
     for (const auto& [_, shader] : result.shaders)
     {
         auto handleShader = [this, &sources](const ShaderDesc& shader) {
-            sources.emplace_back(shaderInputDir / shader.source);
+            sources.emplace_back((shaderInputDir / shader.source).string());
         };
 
         std::visit(VariantVisitor{

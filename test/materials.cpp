@@ -267,7 +267,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
 
     auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 0 });
     auto vUv        = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{}, 1 });
-    auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, 2, true });
+    auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ ui32{}, 2, true });
     auto vTbnMat    = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat3{}, 3 });
 
     config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos);

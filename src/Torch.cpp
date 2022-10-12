@@ -128,7 +128,7 @@ trc::TorchStack::TorchStack(
                 renderConfig.setViewport({ 0, 0 }, newSize);
 
             }
-        })
+        }).makeUnique()
     )
 {
     renderConfig.setViewport({ 0, 0 }, window.getSize());

@@ -65,7 +65,7 @@ private:
 
     template<typename, TableKey>
     friend class ComponentStorage;  // Required for ID allocation
-    friend class std::hash<ComponentID>;
+    friend struct std::hash<ComponentID>;
 
     explicit ComponentID(uint32_t _id) : id(_id) {}
 

@@ -66,7 +66,7 @@ namespace trc
         static void pollEvents();
         static void updateListeners();
 
-        static inline std::atomic_flag isBeingPolled{ false };
+        static inline std::atomic_flag isBeingPolled = ATOMIC_FLAG_INIT;
         static inline std::mutex listenerListLock;
         static inline std::vector<std::unique_ptr<ListenerEntry>> listeners;
 
