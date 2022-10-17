@@ -1,0 +1,13 @@
+target_sources(
+    torch
+    PRIVATE
+        BasicType.cpp
+        Constant.cpp
+        MaterialCompiler.cpp
+        MaterialFunction.cpp
+        MaterialGraph.cpp
+        MaterialNode.cpp
+        ShaderCapabilities.cpp
+        ShaderCapabilityConfig.cpp
+        ShaderResourceInterface.cpp
+)
