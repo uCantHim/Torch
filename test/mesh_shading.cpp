@@ -116,7 +116,7 @@ void run()
     auto sun = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -0.3f, 0), 0.3f);
 
     // Object properties
-    auto mat = torch->getAssetManager().create(trc::MaterialData{ .specularKoefficient=vec4(0.0f) });
+    auto mat = torch->getAssetManager().create(trc::MaterialData{ .specularCoefficient=0.0f });
     mat4 modelMatrix = trc::Transformation{}.setScale(0.9f).translateY(0.5f).getTransformationMatrix();
 
     // Mesh draw function

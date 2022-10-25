@@ -28,11 +28,10 @@ namespace trc
     {
         vec3 color{ 0.0f, 0.0f, 0.0f };
 
-        vec4 ambientKoefficient{ 1.0f };
-        vec4 diffuseKoefficient{ 1.0f };
-        vec4 specularKoefficient{ 1.0f };
+        float specularCoefficient{ 1.0f };
+        float roughness{ 1.0f };
+        float metallicness{ 0.0f };
 
-        float shininess{ 1.0f };
         float opacity{ 1.0f };
         float reflectivity{ 0.0f };
 
@@ -108,11 +107,10 @@ namespace trc
 
             vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
 
-            vec4 kAmbient{ 1.0f };
-            vec4 kDiffuse{ 1.0f };
-            vec4 kSpecular{ 1.0f };
+            float kSpecular{ 1.0f };
+            float roughness{ 1.0f };
+            float metallicness{ 0.0f };
 
-            float shininess{ 1.0f };
             float reflectivity{ 0.0f };
 
             ui32 diffuseTexture{ NO_TEXTURE };
@@ -120,8 +118,6 @@ namespace trc
             ui32 bumpTexture{ NO_TEXTURE };
 
             bool32 performLighting{ true };
-
-            ui32 __padding[2]{ 0, 0 };
         };
 
         static_assert(util::sizeof_pad_16_v<MaterialDeviceData> == sizeof(MaterialDeviceData),

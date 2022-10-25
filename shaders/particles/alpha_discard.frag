@@ -17,7 +17,7 @@ layout (location = 0) in Vertex
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec4 outAlbedo;
-layout (location = 2) out uint outMaterial;
+layout (location = 2) out vec4 outMaterial;
 
 void main()
 {
@@ -28,5 +28,5 @@ void main()
 
     outNormal = vec3(0.0);
     outAlbedo = diffuseColor;
-    outMaterial = 0;
+    outMaterial = vec4(1.0f, 1.0f, 0.0f, 0.0f);
 }

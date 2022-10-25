@@ -54,25 +54,23 @@ void run()
     );
 
     auto matIdx = ar.create(trc::MaterialData{
-        .ambientKoefficient = vec4(1.0f),
-        .diffuseKoefficient = vec4(1.0f),
-        .specularKoefficient = vec4(1.0f),
-        .shininess = 2.0f,
+        .specularCoefficient = 1.0f,
+        .roughness = 0.05f,
         .albedoTexture = grassImgIdx,
         .normalTexture = stoneNormalTexIdx,
     });
 
     auto mapImport = trc::loadAssets(TRC_TEST_ASSET_DIR"/map.fbx");
     auto mapMat = mapImport.meshes[0].materials[0].data;
-    mapMat.ambientKoefficient = vec4(1.0f);
-    mapMat.diffuseKoefficient = vec4(1.0f);
-    mapMat.specularKoefficient = vec4(1.0f);
+    mapMat.specularCoefficient = 1.0f;
     mapMat.albedoTexture = stoneTexIdx;
     mapMat.normalTexture = stoneNormalTexIdx;
+    mapMat.roughness = 0.4f;
     auto mapMatIndex = ar.create(mapMat);
 
     trc::MaterialData treeMat{
         .color=vec4(0, 1, 0, 1),
+        .roughness=0.85f,
     };
     auto treeMatIdx = ar.create(treeMat);
 
@@ -110,7 +108,7 @@ void run()
 
     // Linda
     auto lindaMatIdx = ar.create(trc::MaterialData{
-        .specularKoefficient = vec4(0.0f),
+        .specularCoefficient = 0.0f,
         .albedoTexture = lindaDiffTexIdx
     });
 

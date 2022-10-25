@@ -9,11 +9,10 @@ struct Material
 {
     vec4 color;
 
-    vec4 kAmbient;
-    vec4 kDiffuse;
-    vec4 kSpecular;
+    float kSpecular;
+    float roughness;
+    float metallicness;
 
-    float shininess;
     float reflectivity;
 
     uint diffuseTexture;

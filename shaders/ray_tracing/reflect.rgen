@@ -9,7 +9,7 @@ layout (set = 0, binding = 1, rgba8) writeonly uniform image2D outputImage;
 
 layout (set = 1, binding = 0, rgba16f) uniform restrict readonly image2D gBufferNormal;
 layout (set = 1, binding = 1, rgba8)   uniform restrict readonly image2D gBufferAlbedo;
-layout (set = 1, binding = 2, r32ui)   uniform restrict readonly uimage2D gBufferMaterial;
+layout (set = 1, binding = 2, rgba8)   uniform restrict readonly image2D gBufferMaterial;
 layout (set = 1, binding = 3) uniform sampler2D gBufferDepth;
 
 layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
@@ -42,8 +42,9 @@ void main()
     const ivec2 texelCoord = ivec2(gl_LaunchIDEXT.xy);
     const vec2 normalPixelCoord = (vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy));
 
-    uint mat = imageLoad(gBufferMaterial, texelCoord).r;
-    if (materials[mat].reflectivity <= 0.0f)
+    // Use roughness as inverse reflectivity
+    float reflectivity = 1.0f - imageLoad(gBufferMaterial, texelCoord)[1];
+    if (reflectivity <= 0.0f)
     {
         imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(0.0f));
         return;
@@ -74,5 +75,5 @@ void main()
         0             // payload location
     );
 
-    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(color, materials[mat].reflectivity));
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(color, reflectivity));
 }

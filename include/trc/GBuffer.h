@@ -22,6 +22,17 @@ namespace trc
         {
             eNormals,
             eAlbedo,
+
+            /**
+             * The material image contains 4 8-bit unorm floats, with the
+             * following semantics:
+             *
+             * --------------------------------------------------------------------
+             * | 0-7                    | 8-15        | 16-23          | 24-31    |
+             * |------------------------|-------------|----------------|----------|
+             * | specular coefficient   | roughness   | metallicness   | unused   |
+             * --------------------------------------------------------------------
+             */
             eMaterials,
             eDepth,
 
@@ -100,7 +111,7 @@ namespace trc
      * Provides:
      *  - binding 0: storage image rgba16f  (normals)
      *  - binding 1: storage image r32ui    (albedo)
-     *  - binding 2: storage image r32ui    (materials)
+     *  - binding 2: storage image rgba8f   (material params)
      *  - binding 3: combined image sampler (depth)
      *
      *  - binding 4: storage image  (head pointer image)

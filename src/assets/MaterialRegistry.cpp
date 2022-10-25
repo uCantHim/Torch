@@ -131,10 +131,8 @@ auto trc::MaterialRegistry::getData(LocalID id) -> MaterialData
 trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const InternalStorage& data)
     :
     color(data.matData.color, data.matData.opacity),
-    kAmbient(data.matData.ambientKoefficient),
-    kDiffuse(data.matData.diffuseKoefficient),
-    kSpecular(data.matData.specularKoefficient),
-    shininess(data.matData.shininess),
+    kSpecular(data.matData.specularCoefficient),
+    roughness(data.matData.roughness),
     reflectivity(data.matData.reflectivity),
     diffuseTexture(data.albedoTex.has_value()
             ? data.albedoTex->getDeviceIndex()

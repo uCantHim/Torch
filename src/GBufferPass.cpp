@@ -112,9 +112,9 @@ auto trc::GBufferPass::makeVkRenderPass(const Device& device)
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral
         ),
-        // Material indices
+        // Material parameters
         vk::AttachmentDescription(
-            {}, vk::Format::eR32Uint, vk::SampleCountFlagBits::e1,
+            {}, vk::Format::eR8G8B8A8Unorm, vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
             vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral

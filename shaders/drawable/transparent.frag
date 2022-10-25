@@ -55,14 +55,19 @@ void main()
         diffuseColor = texture(textures[diffTex], vert.uv);
     }
 
-    if (diffuseColor.a > 0.0)
+    if (diffuseColor.a > 0.0 && materials[vert.material].performLighting)
     {
+        MaterialParams mat;
+        mat.kSpecular = materials[vert.material].kSpecular;
+        mat.roughness = materials[vert.material].roughness;
+        mat.metallicness = materials[vert.material].metallicness;
+
         vec3 color = calcLighting(
             diffuseColor.rgb,
             vert.worldPos,
             calcVertexNormal(),
             camera.inverseViewMatrix[3].xyz,
-            vert.material
+            mat
         );
 
         appendFragment(vec4(color, diffuseColor.a));

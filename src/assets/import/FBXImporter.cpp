@@ -473,10 +473,8 @@ auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<ThirdPartyMat
             FbxDouble3 amb = phongMat->Ambient;
             FbxDouble3 diff = phongMat->Diffuse;
             FbxDouble3 spec = phongMat->Specular;
-            newMat.data.ambientKoefficient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
-            newMat.data.diffuseKoefficient = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
-            newMat.data.specularKoefficient = vec4(spec.mData[0], spec.mData[1], spec.mData[2], 1.0f);
-            newMat.data.shininess = static_cast<float>(phongMat->Shininess);
+            newMat.data.specularCoefficient = phongMat->SpecularFactor;
+            newMat.data.roughness = static_cast<float>(phongMat->Shininess);
             newMat.data.opacity = static_cast<float>(1.0 - phongMat->TransparencyFactor);
             newMat.name = phongMat->GetName();
         }
@@ -491,10 +489,8 @@ auto trc::FBXImporter::loadMaterials(FbxMesh* mesh) -> std::vector<ThirdPartyMat
 
             FbxDouble3 amb = lambertMat->Ambient;
             FbxDouble3 diff = lambertMat->Diffuse;
-            newMat.data.ambientKoefficient = vec4(amb.mData[0], amb.mData[1], amb.mData[2], 1.0f);
-            newMat.data.diffuseKoefficient = vec4(diff.mData[0], diff.mData[1], diff.mData[2], 1.0f);
-            newMat.data.specularKoefficient = vec4(1.0f);
-            newMat.data.shininess = 1.0f; // Standard value
+            newMat.data.specularCoefficient = 1.0f;
+            newMat.data.roughness = 1.0f; // Standard value
             newMat.data.opacity = static_cast<float>(1.0 - lambertMat->TransparencyFactor);
             newMat.name = lambertMat->GetName();
         }

@@ -37,8 +37,8 @@ void run()
             assets.create(trc::makeSphereGeo()),
             assets.create(trc::MaterialData{
                 .color=vec4(0.8f, 0.3f, 0.6f, 1),
-                .specularKoefficient=vec4(0.3f, 0.3f, 0.3f, 1),
-                .reflectivity=1.0f,
+                .specularCoefficient=0.3f,
+                .roughness=0.0f,
             }),
             false, true, true, true
         },
@@ -51,7 +51,7 @@ void run()
 
     trc::Drawable plane({
         assets.create(trc::makePlaneGeo()),
-        assets.create(trc::MaterialData{ .reflectivity=0.9f }),
+        assets.create(trc::MaterialData{ .roughness=0.1f }),
         false, true, true, true
     }, *scene);
     plane.rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
@@ -68,8 +68,8 @@ void run()
     trc::Drawable floor({
         assets.create(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
         assets.create(trc::MaterialData{
-            .specularKoefficient=vec4(0.2f),
-            .reflectivity=kFloorReflectivity,
+            .specularCoefficient=0.2f,
+            .roughness=1.0f - kFloorReflectivity,
             .albedoTexture=assets.create(
                 trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
             ),
@@ -98,7 +98,7 @@ void run()
             assets.getModule<trc::Material>().modify(
                 floor.getMaterial().getDeviceID(),
                 [](auto& mat) {
-                    mat.reflectivity = kFloorReflectivity * float(count);
+                    mat.roughness = 1.0f - (kFloorReflectivity * float(count));
                 }
             );
             count = !count;

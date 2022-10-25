@@ -8,16 +8,15 @@ message Material
 {
     vec3 color = 1;
 
-    vec4 ambient_koefficient = 2;
-    vec4 diffuse_koefficient = 3;
-    vec4 specular_koefficient = 4;
+    float specular_koefficient = 2;
+    float roughness = 3;
+    float metallicness = 4;
 
-    float shininess = 5;
-    float opacity = 6;
-    float reflectivity = 7;
+    float opacity = 5;
+    float reflectivity = 6;
 
-    bool do_perform_lighting = 8;
+    bool do_perform_lighting = 7;
 
-    optional AssetReference albedo_texture = 9;
-    optional AssetReference normal_texture = 10;
+    optional AssetReference albedo_texture = 8;
+    optional AssetReference normal_texture = 9;
 }

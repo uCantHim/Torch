@@ -2,11 +2,8 @@
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-#define ASSET_DESCRIPTOR_SET_BINDING 1
-#include "asset_registry_descriptor.glsl"
-
-#define SHADOW_DESCRIPTOR_SET_BINDING 5
-#define LIGHT_DESCRIPTOR_SET 4
+#define SHADOW_DESCRIPTOR_SET_BINDING 4
+#define LIGHT_DESCRIPTOR_SET 3
 #define LIGHT_DESCRIPTOR_BINDING 0
 #include "lighting.glsl"
 
@@ -22,13 +19,13 @@ layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
-layout (set = 2, binding = 0, rgba16f) uniform restrict readonly image2D inNormal;
-layout (set = 2, binding = 1, rgba8)   uniform restrict readonly image2D inAlbedo;
-layout (set = 2, binding = 2, r32ui)   uniform restrict readonly uimage2D inMaterial;
-layout (set = 2, binding = 3) uniform sampler2D inDepth;
+layout (set = 1, binding = 0, rgba16f) uniform restrict readonly image2D inNormal;
+layout (set = 1, binding = 1, rgba8)   uniform restrict readonly image2D inAlbedo;
+layout (set = 1, binding = 2, rgba8)   uniform restrict readonly image2D inMaterial;
+layout (set = 1, binding = 3) uniform sampler2D inDepth;
 
-layout (set = 2, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
-layout (set = 2, binding = 6) restrict buffer FragmentList
+layout (set = 1, binding = 4, r32ui) uniform uimage2D fragmentListHeadPointer;
+layout (set = 1, binding = 6) restrict buffer FragmentList
 {
     /**
      * 0: A packed color
@@ -38,7 +35,7 @@ layout (set = 2, binding = 6) restrict buffer FragmentList
     uvec4 fragmentList[];
 };
 
-layout (set = 3, binding = 0, rgba8)  uniform restrict writeonly image2D outputImage;
+layout (set = 2, binding = 0, rgba8)  uniform restrict writeonly image2D outputImage;
 
 layout (push_constant) uniform PushConstants
 {
@@ -59,16 +56,25 @@ void main()
     ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
     coords = min(coords, ivec2(outputSize) - 1);
 
-    const uint matIndex = imageLoad(inMaterial, coords).r;
+    const vec4 material = imageLoad(inMaterial, coords);
     vec3 color = imageLoad(inAlbedo, coords).rgb;
 
-    color = calcLighting(
-        color,
-        worldPosFromDepth(coords, texelFetch(inDepth, coords, 0).r).xyz,
-        normalize(imageLoad(inNormal, coords).xyz),
-        camera.inverseViewMatrix[3].xyz,
-        matIndex
-    );
+    const bool performLighting = bool(material[3]);
+    if (performLighting)
+    {
+        MaterialParams mat;
+        mat.kSpecular = material[0];
+        mat.roughness = material[1];
+        mat.metallicness = material[2];
+
+        color = calcLighting(
+            color,
+            worldPosFromDepth(coords, texelFetch(inDepth, coords, 0).r).xyz,
+            normalize(imageLoad(inNormal, coords).xyz),
+            camera.inverseViewMatrix[3].xyz,
+            mat
+        );
+    }
 
     color = blendTransparent(coords, color);
 

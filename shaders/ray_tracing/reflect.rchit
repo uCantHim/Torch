@@ -47,5 +47,9 @@ void main()
         albedo = texture(textures[diffTexture], uv).rgb;
     }
 
-    color = calcLighting(albedo, hitPos, normal, gl_WorldRayOriginEXT, mat);
+    MaterialParams matParams;
+    matParams.kSpecular = materials[mat].kSpecular;
+    matParams.roughness = materials[mat].roughness;
+    matParams.metallicness = materials[mat].metallicness;
+    color = calcLighting(albedo, hitPos, normal, gl_WorldRayOriginEXT, matParams);
 }

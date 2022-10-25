@@ -25,7 +25,7 @@ layout (location = 0) in VertexData
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec4 outAlbedo;
-layout (location = 2) out uint outMaterial;
+layout (location = 2) out vec4 outMaterial;
 
 
 /////////////////////
@@ -39,7 +39,11 @@ void main()
 {
     outNormal = calcVertexNormal();
     outAlbedo = vec4(calcVertexColor(), 0.0);
-    outMaterial = vert.material;
+
+    outMaterial[0] = materials[vert.material].kSpecular;    // specular coefficient
+    outMaterial[1] = materials[vert.material].roughness;    // roughness
+    outMaterial[2] = materials[vert.material].metallicness;    // metallicness
+    outMaterial[3] = float(materials[vert.material].performLighting);
 }
 
 

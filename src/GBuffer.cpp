@@ -102,7 +102,7 @@ trc::GBuffer::GBuffer(const Device& device, const GBufferCreateInfo& info)
     images.emplace_back(
         device,
         vk::ImageCreateInfo(
-            {}, vk::ImageType::e2D, vk::Format::eR32Uint,
+            {}, vk::ImageType::e2D, vk::Format::eR8G8B8A8Unorm,
             vk::Extent3D{ extent, 1 },
             1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
             colorUsage

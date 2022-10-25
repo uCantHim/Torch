@@ -196,11 +196,10 @@ auto serializeAssetData(const MaterialData& data) -> trc::serial::Material
 
     *mat.mutable_color() = convert(data.color);
 
-    *mat.mutable_ambient_koefficient() = convert(data.ambientKoefficient);
-    *mat.mutable_diffuse_koefficient() = convert(data.diffuseKoefficient);
-    *mat.mutable_specular_koefficient() = convert(data.specularKoefficient);
+    mat.set_specular_koefficient(data.specularCoefficient);
+    mat.set_roughness(data.roughness);
+    mat.set_metallicness(data.metallicness);
 
-    mat.set_shininess(data.shininess);
     mat.set_opacity(data.opacity);
     mat.set_reflectivity(data.reflectivity);
 
@@ -220,10 +219,8 @@ auto deserializeAssetData(const trc::serial::Material& mat) -> MaterialData
 {
     MaterialData data{
         .color = convert(mat.color()),
-        .ambientKoefficient = convert(mat.ambient_koefficient()),
-        .diffuseKoefficient = convert(mat.diffuse_koefficient()),
-        .specularKoefficient = convert(mat.specular_koefficient()),
-        .shininess = mat.shininess(),
+        .specularCoefficient = mat.specular_koefficient(),
+        .roughness = mat.roughness(),
         .opacity = mat.opacity(),
         .reflectivity = mat.reflectivity(),
         .doPerformLighting = mat.do_perform_lighting(),
