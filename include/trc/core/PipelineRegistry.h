@@ -42,6 +42,7 @@ namespace trc
         static auto cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate;
         static auto cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate;
         static auto getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID;
+        static auto getPipelineRenderPass(Pipeline::ID id) -> RenderPassName;
 
         /**
          * @brief Create a pipeline storage object

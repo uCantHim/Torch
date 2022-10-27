@@ -226,6 +226,20 @@ auto PipelineRegistry::getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID
     return factories.at(id).getLayout();
 }
 
+auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id) -> RenderPassName
+{
+    if (id >= factories.size())
+    {
+        throw Exception(
+            "[In PipelineRegistry<>::getPipelineLayout]: Pipeline with ID \""
+            + std::to_string(id) + "\" does not exist in the registry!"
+        );
+    }
+
+    std::scoped_lock lock(factoryLock);
+    return factories.at(id).getRenderPassName();
+}
+
 auto PipelineRegistry::createStorage(const Instance& instance, RenderConfig& renderConfig)
     -> std::unique_ptr<PipelineStorage>
 {
