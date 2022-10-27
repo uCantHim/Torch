@@ -63,7 +63,7 @@ namespace trc
          * Search all include paths for a file. Try to look for it in the
          * shader database if no file can be found this way.
          */
-        auto findFile(const util::Pathlet& pathlet) const -> std::optional<fs::path>;
+        auto findShaderSource(const util::Pathlet& pathlet) const -> std::optional<fs::path>;
 
         auto compile(const fs::path& srcPath, const fs::path& dstPath) -> std::string;
 

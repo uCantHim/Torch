@@ -85,7 +85,7 @@ auto ShaderLoader::load(ShaderPath shaderPath) -> std::string
      * source is generated in `findFile` if it is outdated.
      */
 
-    const auto srcPathOpt = findFile(shaderPath.getSourceName());
+    const auto srcPathOpt = findShaderSource(shaderPath.getSourceName());
     if (srcPathOpt)
     {
         assert(fs::is_regular_file(*srcPathOpt));
@@ -112,8 +112,9 @@ bool ShaderLoader::binaryDirty(const fs::path& srcPath, const fs::path& binPath)
         || fs::file_size(binPath) == 0;
 }
 
-auto ShaderLoader::findFile(const util::Pathlet& filePath) const -> std::optional<fs::path>
+auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std::optional<fs::path>
 {
+    // Helper that searches all include paths for a file
     auto find = [this](const util::Pathlet& filename) -> std::optional<fs::path> {
         for (const auto& includePath : includePaths)
         {
@@ -125,33 +126,51 @@ auto ShaderLoader::findFile(const util::Pathlet& filePath) const -> std::optiona
         return std::nullopt;
     };
 
-    if (auto res = find(filePath)) {
-        return res;
-    }
-
-    // Source file not found - try to find a raw pre-variable-replacement version
+    // Try to find the file in the shader database. This uses additional
+    // information to regenerate the shader source if necessary.
     if (shaderDatabase)
     {
         if (auto shader = shaderDatabase->get(filePath.string()))
         {
             auto rawSourcePath = find(shader->source);
-            if (!rawSourcePath) {
+
+            // Regenerate the shader source if it does not exist or is outdated
+            auto dstFile = find(filePath);
+            if (rawSourcePath && (!dstFile || binaryDirty(*rawSourcePath, *dstFile)))
+            {
+                if constexpr (enableVerboseLogging) {
+                    std::cout << "Regenerate shader source " << filePath.string() << " from " << *rawSourcePath << "\n";
+                }
+
+                std::ifstream rawSource(*rawSourcePath);
+                shader_edit::ShaderDocument doc(rawSource);
+                for (const auto& [key, val] : shader->variables) {
+                    doc.set(key, val);
+                }
+
+                const auto outPath = outDir / filePath;
+                fs::create_directories(outPath.parent_path());
+                std::ofstream outFile(outPath);
+                outFile << doc.compile();
+
+                return outPath;
+            }
+            else if (dstFile) {
+                // File exists and is up-to-date. It might just be considered
+                // up-to-date because no raw source was found for comparison.
+                return *dstFile;
+            }
+            else {
+                // File does not exist and there is no way to regenerate it
                 return std::nullopt;
             }
-
-            std::ifstream rawSource(*rawSourcePath);
-            shader_edit::ShaderDocument doc(rawSource);
-            for (const auto& [key, val] : shader->variables) {
-                doc.set(key, val);
-            }
-
-            const auto outPath = outDir / filePath;
-            fs::create_directories(outPath.parent_path());
-            std::ofstream outFile(outPath);
-            outFile << doc.compile();
-
-            return outPath;
         }
+    }
+
+    // There is no shader database, so just try to find the file. Return
+    // nothing if it does not exist.
+    if (auto res = find(filePath)) {
+        return res;
     }
 
     return std::nullopt;
