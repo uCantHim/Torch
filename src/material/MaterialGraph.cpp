@@ -5,43 +5,6 @@
 namespace trc
 {
 
-class MaterialResultFunction : public MaterialFunction
-{
-public:
-    explicit MaterialResultFunction()
-        :
-        MaterialFunction({
-            .name="Material result node",
-            .inputs={ { "color", vec4{} }, },
-            .output={ "none", vec4{} }
-        }, {})
-    {
-    }
-
-    auto makeGlslCode(ShaderResourceInterface&) -> std::string override
-    {
-        return "RESULT NODE";
-    }
-};
-
-MaterialResultNode::MaterialResultNode()
-    : MaterialNode(std::make_unique<MaterialResultFunction>())
-{
-}
-
-void MaterialResultNode::setColor(MaterialNode* colorNode)
-{
-    setInput(Input::eColor, colorNode);
-}
-
-auto MaterialResultNode::getColorNode() -> MaterialNode*
-{
-    return getInputs().at(Input::eColor);
-}
-
-
-
-/** A temporary hack */
 class ConstantValueWrapperFunction : public MaterialFunction
 {
 public:
@@ -68,7 +31,6 @@ private:
     Constant value;
 };
 
-/** A temporary hack */
 class BuiltinValueWrapperFunction : public MaterialFunction
 {
 public:
@@ -127,11 +89,6 @@ private:
 };
 
 
-
-auto MaterialGraph::getResultNode() -> MaterialResultNode&
-{
-    return resultNode;
-}
 
 auto MaterialGraph::makeConstant(Constant constant) -> MaterialNode*
 {

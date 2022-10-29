@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "MaterialGraph.h"
+#include "MaterialOutputNode.h"
 #include "ShaderCapabilityConfig.h"
 #include "ShaderResourceInterface.h"
 #include "trc/Types.h"
@@ -34,10 +35,10 @@ namespace trc
     public:
         explicit MaterialCompiler(ShaderCapabilityConfig config);
 
-        auto compile(MaterialGraph& graph) -> MaterialCompileResult;
+        auto compile(MaterialOutputNode& root) -> MaterialCompileResult;
 
     private:
-        static auto compileFunctions(ShaderResourceInterface& resources, MaterialResultNode& mat)
+        static auto compileFunctions(ShaderResourceInterface& resources, MaterialOutputNode& mat)
             -> std::string;
 
         static auto call(MaterialNode* node) -> std::string;

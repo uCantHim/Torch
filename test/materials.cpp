@@ -17,6 +17,19 @@ int main()
         std::make_unique<trc::InMemorySource<trc::Texture>>(std::move(data))
     );
 
+    // Create output node
+    MaterialOutputNode out;
+    auto outNormal = out.addOutput(0, vec3{});
+    auto outAlbedo = out.addOutput(1, vec4{});
+    auto outMaterial = out.addOutput(2, vec4{});
+
+    auto inColor = out.addParameter(vec4{});
+    auto inNormal = out.addParameter(vec3{});
+    auto inRoughness = out.addParameter(float{});
+
+    out.linkOutput(inColor, outAlbedo, "");
+    out.linkOutput(inRoughness, outMaterial, "[1]");
+
     // Build a material graph
     MaterialGraph graph;
 
@@ -27,11 +40,12 @@ int main()
     auto alpha = graph.makeConstant(0.5f);
     auto mix = graph.makeFunction(Mix<4, float>{}, { color, texColor, alpha });
 
-    graph.getResultNode().setColor(mix);
+    out.setParameter(inColor, mix);
+    out.setParameter(inRoughness, graph.makeConstant(0.4f));
 
     // Compile the graph
     MaterialCompiler compiler(makeCapabiltyConfig());
-    auto shaderSource = compiler.compile(graph).fragmentGlslCode;
+    auto shaderSource = compiler.compile(out).fragmentGlslCode;
 
     std::cout << shaderSource << "\n";
 

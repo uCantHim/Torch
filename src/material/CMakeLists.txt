@@ -7,6 +7,7 @@ target_sources(
         MaterialFunction.cpp
         MaterialGraph.cpp
         MaterialNode.cpp
+        MaterialOutputNode.cpp
         ShaderCapabilities.cpp
         ShaderCapabilityConfig.cpp
         ShaderResourceInterface.cpp

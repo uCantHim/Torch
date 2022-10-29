@@ -11,11 +11,11 @@ MaterialCompiler::MaterialCompiler(ShaderCapabilityConfig config)
 {
 }
 
-auto MaterialCompiler::compile(MaterialGraph& graph) -> MaterialCompileResult
+auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileResult
 {
     ShaderResourceInterface resourceCompiler(config);
-    auto functionCode = compileFunctions(resourceCompiler, graph.getResultNode());
-    auto resources = resourceCompiler.compile();
+    const auto functionCode = compileFunctions(resourceCompiler, outNode);
+    const auto resources = resourceCompiler.compile();
 
     std::stringstream ss;
     ss << "#version 460\n";
@@ -26,16 +26,29 @@ auto MaterialCompiler::compile(MaterialGraph& graph) -> MaterialCompileResult
     ss << resources.getGlslCode() << "\n";
 
     // Write output variables
-    ss << "layout (location = 0) out vec4 outColor;\n";
+    for (const auto& [location, type] : outNode.getOutputs())
+    {
+        ss << "layout (location = " << location << ") out " << type.to_string()
+           << " fragmentOutput_" << location << ";\n";
+    }
     ss << "\n";
 
     // Write functions
     ss << std::move(functionCode) << "\n";
 
     // Write main
-    ss << "void main()\n{\n"
-       << "outColor = " << call(graph.getResultNode().getColorNode()) << ";"
-       << "\n}";
+    ss << "void main()\n{\n";
+    for (const auto& link : outNode.getOutputLinks())
+    {
+        auto paramNode = outNode.getParameter(link.param);
+        if (paramNode != nullptr)
+        {
+            const auto& [location, _] = outNode.getOutput(link.output);
+            ss << "fragmentOutput_" << location << link.outputAccessor
+               << " = " << call(paramNode) << ";\n";
+        }
+    }
+    ss << "\n}";
 
     return {
         .fragmentGlslCode=ss.str(),
@@ -45,7 +58,7 @@ auto MaterialCompiler::compile(MaterialGraph& graph) -> MaterialCompileResult
 
 auto MaterialCompiler::compileFunctions(
     ShaderResourceInterface& resources,
-    MaterialResultNode& mat) -> std::string
+    MaterialOutputNode& mat) -> std::string
 {
     std::unordered_map<std::string, MaterialFunction*> functions;
 
@@ -61,7 +74,12 @@ auto MaterialCompiler::compileFunctions(
     };
 
     // Collect all functions in the graph
-    collectFunctions(mat.getColorNode());
+    for (auto node : mat.getParameters())
+    {
+        if (node != nullptr) {
+            collectFunctions(node);
+        }
+    }
 
     // Compile functions to GLSL code
     std::stringstream ss;

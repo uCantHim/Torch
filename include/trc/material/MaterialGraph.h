@@ -13,26 +13,13 @@
 
 namespace trc
 {
-    class MaterialResultNode : public MaterialNode
-    {
-    public:
-        enum Input
-        {
-            eColor = 0,
-        };
-
-        MaterialResultNode();
-
-        void setColor(MaterialNode* colorNode);
-        auto getColorNode() -> MaterialNode*;
-    };
-
+    /**
+     * @brief A builder interface that creates MaterialNodes
+     */
     class MaterialGraph
     {
     public:
         MaterialGraph() = default;
-
-        auto getResultNode() -> MaterialResultNode&;
 
         auto makeConstant(Constant c) -> MaterialNode*;
         auto makeBuiltinConstant(Builtin type) -> MaterialNode*;
@@ -49,7 +36,6 @@ namespace trc
         auto makeNode(u_ptr<MaterialFunction> func, std::initializer_list<MaterialNode*> args)
             -> MaterialNode*;
 
-        MaterialResultNode resultNode;
         std::vector<u_ptr<MaterialNode>> nodes;
     };
 } // namespace trc

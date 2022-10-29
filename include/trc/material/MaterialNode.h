@@ -23,7 +23,7 @@ namespace trc
 
         explicit MaterialNode(u_ptr<MaterialFunction> func);
 
-    private:
+    protected:
         std::vector<MaterialNode*> inputs;
         u_ptr<MaterialFunction> function;
     };
