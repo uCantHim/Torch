@@ -1,5 +1,9 @@
 #include "TorchCppWriter.h"
 
+#include <algorithm>
+#include <ranges>
+#include <tuple>
+
 #include "Util.h"
 #include "StringUtil.h"
 #include "PipelineDataWriter.h"
@@ -116,10 +120,20 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
     else {
         os << "{";
         ++nl;
-        for (const auto& [name, variant] : group.variants)
+
+        // Sort variants by index
+        std::vector<std::tuple<uint32_t, const UniqueName*, const T*>> variantsAtIndex;
+        for (const auto& [name, variant] : group.variants) {
+            variantsAtIndex.emplace_back(name.calcFlagIndex(*flagTable), &name, &variant);
+        }
+        std::ranges::sort(variantsAtIndex,
+                          [](auto& a, auto& b){ return std::get<0>(a) < std::get<0>(b); });
+
+        // Write the sorted list of variants in an inline-initializer-list constructor
+        for (const auto& [_, name, variant] : variantsAtIndex)
         {
             os << nl;
-            writeVariantStorageInit(name, variant, os);
+            writeVariantStorageInit(*name, *variant, os);
             os << ",";
         }
         os << --nl << "};" << nl;

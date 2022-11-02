@@ -1,8 +1,9 @@
 #pragma once
 
-#include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
+#include <vector>
 
 #include "SyntaxElements.h"
 #include "FlagTable.h"

@@ -2,6 +2,7 @@ enable_testing()
 
 add_executable(
     pipeline_compiler_test
+    EnumTest.cpp
     FlagCombinationTest.cpp
     ScannerTest.cpp
     VariantFlagSetTest.cpp

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <unordered_set>
 
 #include "CompileResult.h"
 #include "Exceptions.h"
