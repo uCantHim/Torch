@@ -55,12 +55,34 @@ namespace trc
         auto compile() const -> ShaderResources;
 
     private:
+        using Resource = const ShaderCapabilityConfig::Resource*;
+
+        struct TranslateResource
+        {
+            auto operator()(const ShaderCapabilityConfig::DescriptorBinding& binding)
+                -> std::pair<std::string, std::string>;
+            auto operator()(const ShaderCapabilityConfig::VertexInput& in)
+                -> std::pair<std::string, std::string>;
+            auto operator()(const ShaderCapabilityConfig::PushConstant& pc)
+                -> std::pair<std::string, std::string>;
+
+        private:
+            auto getSetIndex(const std::string& set) -> ui32;
+            auto makeBindingIndex(const std::string& set) -> ui32;
+
+            ui32 nextSetIndex{ 0 };
+            std::unordered_map<std::string, ui32> setIndices;
+            std::unordered_map<std::string, ui32> bindingIndices;
+        };
+
         auto hardcoded_makeTextureAccessor(const std::string& textureIndexName) -> std::string;
         auto accessCapability(Capability capability) -> std::string;
 
         const ShaderCapabilityConfig& config;
-        std::unordered_map<Capability, std::string> capabilityCode;
-        std::unordered_map<Capability, std::string> accessors;
+
+        TranslateResource resourceTranslator;
+        std::unordered_map<Resource, std::string> resourceCode;
+        std::unordered_map<Capability, std::string> capabilityAccessors;
 
         ui32 nextConstantId{ 1 };
         std::unordered_map<std::string, Constant> constants;

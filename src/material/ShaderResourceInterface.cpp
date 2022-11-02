@@ -19,71 +19,63 @@ auto ShaderResources::getReferencedTextures() const -> const std::vector<Texture
 
 
 
-struct TranslateResource
+auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabilityConfig::DescriptorBinding& binding)
+    -> std::pair<std::string, std::string>
 {
-    auto operator()(const ShaderCapabilityConfig::DescriptorBinding& binding)
-        -> std::pair<std::string, std::string>
-    {
-        std::stringstream ss;
-        ss << "layout (set = " << getSetIndex(binding.setName)
-           << ", binding = " << makeBindingIndex(binding.setName);
-        if (binding.layoutQualifier) {
-            ss << ", " << *binding.layoutQualifier;
-        }
-        ss << ") " << binding.descriptorType << " " << binding.descriptorName;
-        if (binding.descriptorContent)
-        {
-            ss << "_Name\n"
-               << "{\n" << *binding.descriptorContent << "\n} "
-               << binding.descriptorName;
-        }
-        if (binding.isArray)
-        {
-            ss << "[";
-            if (binding.arrayCount > 0) ss << binding.arrayCount;
-            ss << "]";
-        }
-        ss << ";\n";
-
-        return { ss.str(), binding.descriptorName };
+    std::stringstream ss;
+    ss << "layout (set = " << getSetIndex(binding.setName)
+       << ", binding = " << makeBindingIndex(binding.setName);
+    if (binding.layoutQualifier) {
+        ss << ", " << *binding.layoutQualifier;
     }
-
-    auto operator()(const ShaderCapabilityConfig::VertexInput& in)
-        -> std::pair<std::string, std::string>
+    ss << ") " << binding.descriptorType << " " << binding.descriptorName;
+    if (binding.descriptorContent)
     {
-        auto code = "layout (location = 0) in VertexData\n{\n" + in.contents + "\n} vert;\n";
-        return { code, "vert" };
+        ss << "_Name\n"
+           << "{\n" << *binding.descriptorContent << "\n} "
+           << binding.descriptorName;
     }
-
-    auto operator()(const ShaderCapabilityConfig::PushConstant& pc)
-        -> std::pair<std::string, std::string>
+    if (binding.isArray)
     {
-        auto code = "layout (push_constant) uniform PushConstants\n{\n"
-                    + pc.contents
-                    + "\n} pushConstants;\n";
-        return { code, "pushConstants" };
+        ss << "[";
+        if (binding.arrayCount > 0) ss << binding.arrayCount;
+        ss << "]";
     }
+    ss << ";\n";
 
-private:
-    auto getSetIndex(const std::string& set) -> ui32
-    {
-        auto [it, success] = setIndices.try_emplace(set, nextSetIndex);
-        if (success) {
-            ++nextSetIndex;
-        }
-        return it->second;
+    return { ss.str(), binding.descriptorName };
+}
+
+auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabilityConfig::VertexInput& in)
+    -> std::pair<std::string, std::string>
+{
+    auto code = "layout (location = 0) in VertexData\n{\n" + in.contents + "\n} vert;\n";
+    return { code, "vert" };
+}
+
+auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabilityConfig::PushConstant& pc)
+    -> std::pair<std::string, std::string>
+{
+    auto code = "layout (push_constant) uniform PushConstants\n{\n"
+                + pc.contents
+                + "\n} pushConstants;\n";
+    return { code, "pushConstants" };
+}
+
+auto ShaderResourceInterface::TranslateResource::getSetIndex(const std::string& set) -> ui32
+{
+    auto [it, success] = setIndices.try_emplace(set, nextSetIndex);
+    if (success) {
+        ++nextSetIndex;
     }
+    return it->second;
+}
 
-    auto makeBindingIndex(const std::string& set) -> ui32
-    {
-        auto [it, _] = bindingIndices.try_emplace(set, 0);
-        return it->second++;
-    }
-
-    ui32 nextSetIndex{ 0 };
-    std::unordered_map<std::string, ui32> setIndices;
-    std::unordered_map<std::string, ui32> bindingIndices;
-};
+auto ShaderResourceInterface::TranslateResource::makeBindingIndex(const std::string& set) -> ui32
+{
+    auto [it, _] = bindingIndices.try_emplace(set, 0);
+    return it->second++;
+}
 
 
 
@@ -95,8 +87,6 @@ ShaderResourceInterface::ShaderResourceInterface(const ShaderCapabilityConfig& c
 
 auto ShaderResourceInterface::compile() const -> ShaderResources
 {
-    TranslateResource translator;
-
     std::stringstream ss;
 
     // Write specialization constants
@@ -106,7 +96,7 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     ss << "\n";
 
     // Write capability resources (descriptors, push constants, ...)
-    for (auto [capability, code] : capabilityCode) {
+    for (auto [resource, code] : resourceCode) {
         ss << code << "\n";
     }
 
@@ -168,15 +158,13 @@ auto ShaderResourceInterface::hardcoded_makeTextureAccessor(const std::string& t
 
 auto ShaderResourceInterface::accessCapability(Capability capability) -> std::string
 {
-    TranslateResource translator;
-
     if (auto res = config.getResource(capability))
     {
         assert(*res != nullptr);
-        auto [code, accessor] = std::visit(translator, **res);
+        auto [code, accessor] = std::visit(resourceTranslator, **res);
 
-        capabilityCode[capability] = std::move(code);
-        auto [it, success] = accessors.try_emplace(capability, std::move(accessor));
+        resourceCode[*res] = std::move(code);
+        auto [it, success] = capabilityAccessors.try_emplace(capability, std::move(accessor));
 
         return it->second;
     }

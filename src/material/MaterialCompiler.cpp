@@ -5,6 +5,35 @@
 namespace trc
 {
 
+MaterialCompileResult::MaterialCompileResult(
+    std::string fragmentCode,
+    std::vector<ShaderResources::TextureResource> specConstTextures,
+    std::unordered_map<ParameterID, std::string> paramResultVariableNames,
+    std::string outputReplacementVariableName)
+    :
+    fragmentGlslCode(std::move(fragmentCode)),
+    requiredTextures(std::move(specConstTextures)),
+    paramResultVariableNames(std::move(paramResultVariableNames)),
+    outputReplacementVariableName(std::move(outputReplacementVariableName))
+{
+}
+
+auto MaterialCompileResult::getParameterResultVariableName(ParameterID paramNode) const
+    -> std::optional<std::string>
+{
+    if (!paramResultVariableNames.contains(paramNode)) {
+        return std::nullopt;
+    }
+    return paramResultVariableNames.at(paramNode);
+}
+
+auto MaterialCompileResult::getOutputPlaceholderVariableName() const -> std::string
+{
+    return outputReplacementVariableName;
+}
+
+
+
 MaterialCompiler::MaterialCompiler(ShaderCapabilityConfig config)
     :
     config(std::move(config))
@@ -38,6 +67,22 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
 
     // Write main
     ss << "void main()\n{\n";
+
+    // Write calculated parameters to temporary variables
+    std::unordered_map<ParameterID, std::string> paramNames;
+    for (ui32 i = 0; const auto& param : outNode.getParameters())
+    {
+        if (param == nullptr) continue;
+
+        auto type = param->getFunction().getSignature().output.type;
+        auto [it, success] = paramNames.try_emplace(i, "materialParamResult_" + std::to_string(i));
+        assert(success);
+        ++i;
+
+        ss << type.to_string() << " " << it->second << " = " << call(param) << ";\n";
+    }
+
+    // Write intermediate parameter values to linked output locations
     for (const auto& link : outNode.getOutputLinks())
     {
         auto paramNode = outNode.getParameter(link.param);
@@ -45,14 +90,19 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
         {
             const auto& [location, _] = outNode.getOutput(link.output);
             ss << "fragmentOutput_" << location << link.outputAccessor
-               << " = " << call(paramNode) << ";\n";
+               << " = " << paramNames.at(link.param) << ";\n";
         }
     }
+
+    // Write footer
+    ss << "//$ FRAGMENT_SHADER_OUTPUT_PLACEHOLDER\n";
     ss << "\n}";
 
     return {
-        .fragmentGlslCode=ss.str(),
-        .requiredTextures=resources.getReferencedTextures(),
+        ss.str(),
+        resources.getReferencedTextures(),
+        std::move(paramNames),
+        "FRAGMENT_SHADER_OUTPUT_PLACEHOLDER"
     };
 }
 

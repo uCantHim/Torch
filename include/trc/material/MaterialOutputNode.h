@@ -24,21 +24,8 @@ namespace trc
     class MaterialOutputNode
     {
     public:
-        struct OutputID
-        {
-            friend class MaterialOutputNode;
-        private:
-            OutputID(ui32 i) : index(i) {}
-            ui32 index;
-        };
-
-        struct ParameterID
-        {
-            friend class MaterialOutputNode;
-        private:
-            ParameterID(ui32 i) : index(i) {}
-            ui32 index;
-        };
+        using ParameterID = ui32;
+        using OutputID = ui32;
 
         struct ParameterOutputLink
         {
@@ -105,4 +92,7 @@ namespace trc
         std::vector<ParameterOutputLink> paramOutputLinks;
         std::vector<OutputLocation> outputLocations;
     };
+
+    using ParameterID = MaterialOutputNode::ParameterID;
+    using OutputID = MaterialOutputNode::OutputID;
 } // namespace trc
