@@ -12,7 +12,7 @@ RenderConfigImplHelper::RenderConfigImplHelper(
     RenderConfig(std::move(layout))
 {
     if (pipelineStorage == nullptr) {
-        pipelineStorage = PipelineRegistry::createStorage(instance, *this);
+        pipelineStorage = PipelineRegistry::makeStorage(instance, *this);
     }
     ++instanceCount;
 }
