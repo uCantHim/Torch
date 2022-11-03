@@ -339,6 +339,16 @@ auto Compiler::makeReference(const compiler::Value& val) -> ObjectReference<T>
     }, val);
 }
 
+template<typename T>
+auto Compiler::makeOptReference(const compiler::Object& obj, const std::string& field)
+    -> std::optional<ObjectReference<T>>
+{
+    if (hasField(obj, field)) {
+        return makeReference<T>(expectSingle(obj, field));
+    }
+    return std::nullopt;
+}
+
 auto Compiler::compileMeta(const compiler::Object& metaObj) -> CompileResult::Meta
 {
     CompileResult::Meta meta;
@@ -648,10 +658,15 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
         }
     }
 
+    std::optional<std::string> renderPassName;
+    if (hasField(obj, "RenderPass")) {
+        renderPassName = expectString(expectSingle(obj, "RenderPass"));
+    }
+
     return {
         .layout=makeReference<LayoutDesc>(expectSingle(obj, "Layout")),
-        .renderPassName=expectString(expectSingle(obj, "RenderPass")),
-        .program=makeReference<ProgramDesc>(expectSingle(obj, "Program")),
+        .renderPassName=renderPassName,
+        .program=makeOptReference<ProgramDesc>(obj, "Program"),
         .vertexInput=std::move(vertexInput),
         .inputAssembly=std::move(inputAssembly),
         .tessellation={},

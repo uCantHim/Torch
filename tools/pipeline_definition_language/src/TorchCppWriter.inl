@@ -340,14 +340,16 @@ inline void TorchCppWriter::writeVariantStorageInit(
 template<>
 inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::string
 {
+    auto& prog = pipeline.program;
+
     std::stringstream ss;
     ss << "trc::PipelineRegistry::registerPipeline("
        << ++nl << "trc::PipelineTemplate{"
-       << ++nl << makeValue(pipeline.program) << ","
-       << nl << makePipelineDefinitionDataInit(pipeline, nl)
+       << ++nl << (prog ? makeValue(*prog) : "{}") << ","
+       <<   nl << makePipelineDefinitionDataInit(pipeline, nl)
        << --nl << "},"
-       << nl << makeValue(pipeline.layout) << ","
-       << nl << "trc::RenderPassName{ \"" << pipeline.renderPassName << "\" }"
+       <<   nl << makeValue(pipeline.layout) << ","
+       <<   nl << "trc::RenderPassName{ \"" << pipeline.renderPassName.value_or("") << "\" }"
        << --nl << ")";
 
     return ss.str();
