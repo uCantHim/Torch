@@ -33,6 +33,18 @@ Constant::Constant(double val)
     *reinterpret_cast<double*>(value.data()) = val;
 }
 
+Constant::Constant(BasicType type, std::array<std::byte, kMaxSize> data)
+    :
+    type(type),
+    value(data)
+{
+}
+
+auto Constant::getType() const -> BasicType
+{
+    return type;
+}
+
 auto Constant::datatype() const -> std::string
 {
     return type.to_string();
@@ -41,9 +53,9 @@ auto Constant::datatype() const -> std::string
 auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&
 {
     os << c.datatype() << "(" << std::boolalpha;
-    for (ui32 i = 0; i < c.type.channels; ++i)
+    for (ui8 i = 0; i < c.getType().channels; ++i)
     {
-        switch (c.type.type)
+        switch (c.getType().type)
         {
         case BasicType::Type::eBool:   os << c.as<glm::bvec4>()[i]; break;
         case BasicType::Type::eSint:   os << c.as<vec4>()[i]; break;
@@ -51,7 +63,7 @@ auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&
         case BasicType::Type::eFloat:  os << c.as<vec4>()[i]; break;
         case BasicType::Type::eDouble: os << c.as<glm::dvec4>()[i]; break;
         }
-        if (i < c.type.channels - 1) os << ", ";
+        if (i < c.getType().channels - 1) os << ", ";
     }
     os << ")";
 

@@ -13,7 +13,9 @@ namespace trc
 {
     struct Constant
     {
+    public:
         using LargestType = glm::dvec4;
+        static constexpr size_t kMaxSize{ sizeof(LargestType) };
 
         Constant(i32 val);
         Constant(ui32 val);
@@ -23,13 +25,17 @@ namespace trc
         template<int N, typename T> requires (N >= 1 && N <= 4)
         Constant(glm::vec<N, T> value);
 
+        Constant(BasicType type, std::array<std::byte, kMaxSize> data);
+
+        auto getType() const -> BasicType;
         auto datatype() const -> std::string;
 
         template<typename T> requires (sizeof(T) <= sizeof(LargestType))
         auto as() const -> T;
 
+    private:
         BasicType type;
-        std::array<std::byte, sizeof(LargestType)> value;
+        std::array<std::byte, kMaxSize> value;
     };
 
     auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&;

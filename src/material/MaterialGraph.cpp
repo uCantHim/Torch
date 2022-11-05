@@ -13,7 +13,7 @@ public:
         MaterialFunction({
             .name="ConstantWrapperFunc_" + val.datatype() + "_" + std::to_string(uniqueIndex++),
             .inputs={},
-            .output={ "constant", val.type }
+            .output={ "constant", val.getType() }
         }, {}),
         value(val)
     {

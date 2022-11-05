@@ -35,6 +35,10 @@ auto shortTypename(BasicType::Type type) -> std::string
 
 
 
+BasicType::BasicType(bool)
+    : type(Type::eBool), channels(1)
+{}
+
 BasicType::BasicType(i32)
     : type(Type::eSint), channels(1)
 {}
@@ -51,7 +55,7 @@ BasicType::BasicType(double)
     : type(Type::eDouble), channels(1)
 {}
 
-BasicType::BasicType(Type t, ui32 channels)
+BasicType::BasicType(Type t, ui8 channels)
     :
     type(t),
     channels(channels)
@@ -60,16 +64,37 @@ BasicType::BasicType(Type t, ui32 channels)
 
 auto BasicType::to_string() const -> std::string
 {
-    assert(channels > 0 && channels <= 4);
+    assert(channels > 0);
+    assert(channels <= 4 || (channels == 9 || channels == 16));
+
     switch (channels)
     {
     case 1: return longTypename(type);
     case 2: return shortTypename(type) + "vec2";
     case 3: return shortTypename(type) + "vec3";
     case 4: return shortTypename(type) + "vec4";
+    case 9: return shortTypename(type) + "mat3";
+    case 16: return shortTypename(type) + "mat4";
     }
 
     throw std::logic_error("");
+}
+
+auto BasicType::locations() const -> ui32
+{
+    constexpr auto typeSize = [](Type type) {
+        return type == Type::eDouble ? 2 : 1;
+    };
+    constexpr ui32 locationSize = 4;
+
+    // The formula doesn't work here because I'd need to pad a matrix's columns to
+    // 4 components. I want to have a channel count of 9 for the 3x3 matrix, so I
+    // employ this hack instead of using 12 channels for 3x3.
+    if (channels == 9) return 3 * typeSize(type);
+
+    // upper(size * channels / 4)
+    // where size is a single channel's size (either 'single' or 'double').
+    return (typeSize(type) * channels + (locationSize - 1)) / locationSize;
 }
 
 auto operator<<(std::ostream& os, const BasicType& t) -> std::ostream&

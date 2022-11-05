@@ -6,7 +6,7 @@ namespace trc
 {
     struct BasicType
     {
-        enum class Type
+        enum class Type : ui8
         {
             eBool,
             eSint,
@@ -24,12 +24,17 @@ namespace trc
         template<i32 N, typename T>
         BasicType(glm::vec<N, T>);
 
-        BasicType(Type t, ui32 channels);
+        template<i32 N, typename T>
+            requires ((N == 3 || N == 4) && (std::is_same_v<T, float> || std::is_same_v<T, double>))
+        BasicType(glm::mat<N, N, T>);
+
+        BasicType(Type t, ui8 channels);
 
         auto to_string() const -> std::string;
+        auto locations() const -> ui32;
 
         Type type;
-        ui32 channels;
+        ui8 channels;
     };
 
     auto operator<<(std::ostream& os, const BasicType& t) -> std::ostream&;
@@ -43,10 +48,14 @@ namespace trc
     template<> inline constexpr BasicType::Type toBasicTypeEnum<float>  = BasicType::Type::eFloat;
     template<> inline constexpr BasicType::Type toBasicTypeEnum<double> = BasicType::Type::eDouble;
 
-
-
     template<i32 N, typename T>
     BasicType::BasicType(glm::vec<N, T>)
         : type(toBasicTypeEnum<T>), channels(N)
+    {}
+
+    template<i32 N, typename T>
+        requires ((N == 3 || N == 4) && (std::is_same_v<T, float> || std::is_same_v<T, double>))
+    BasicType::BasicType(glm::mat<N, N, T>)
+        : type(toBasicTypeEnum<T>), channels(N * N)
     {}
 } // namespace trc
