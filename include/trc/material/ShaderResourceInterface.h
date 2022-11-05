@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -26,15 +27,29 @@ namespace trc
             ui32 specializationConstantIndex;
         };
 
+        struct ShaderInputInfo
+        {
+            ui32 location;
+            BasicType type;
+            std::string variableName;
+            std::string declCode;
+            Capability capability;
+        };
+
         ShaderResources() = default;
 
         auto getGlslCode() const -> const std::string&;
+        auto getShaderInputs() const
+            -> const std::vector<ShaderInputInfo>&;
+
         auto getReferencedTextures() const -> const std::vector<TextureResource>&;
 
     private:
         friend class ShaderResourceInterface;
 
         std::string code;
+        std::vector<ShaderInputInfo> requiredShaderInputs;
+
         std::vector<TextureResource> textures;
     };
 
@@ -61,8 +76,6 @@ namespace trc
         {
             auto operator()(const ShaderCapabilityConfig::DescriptorBinding& binding)
                 -> std::pair<std::string, std::string>;
-            auto operator()(const ShaderCapabilityConfig::VertexInput& in)
-                -> std::pair<std::string, std::string>;
             auto operator()(const ShaderCapabilityConfig::PushConstant& pc)
                 -> std::pair<std::string, std::string>;
 
@@ -73,6 +86,15 @@ namespace trc
             ui32 nextSetIndex{ 0 };
             std::unordered_map<std::string, ui32> setIndices;
             std::unordered_map<std::string, ui32> bindingIndices;
+        };
+
+        struct ShaderInputFactory
+        {
+            auto make(Capability capability, const ShaderCapabilityConfig::ShaderInput& in)
+                -> std::string;
+
+            ui32 nextShaderInputLocation{ 0 };
+            std::vector<ShaderResources::ShaderInputInfo> shaderInputs;
         };
 
         auto hardcoded_makeTextureAccessor(const std::string& textureIndexName) -> std::string;
@@ -92,5 +114,7 @@ namespace trc
         std::vector<std::pair<ui32, std::string>> specializationConstants;
         /** Map of pairs (index -> value) */
         std::unordered_map<ui32, TextureReference> specializationConstantTextures;
+
+        ShaderInputFactory shaderInput;
     };
 } // namespace trc

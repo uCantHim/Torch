@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include <trc_util/Util.h>
+
 
 
 namespace trc
@@ -15,6 +17,12 @@ auto ShaderResources::getGlslCode() const -> const std::string&
 auto ShaderResources::getReferencedTextures() const -> const std::vector<TextureResource>&
 {
     return textures;
+}
+
+auto ShaderResources::getShaderInputs() const
+    -> const std::vector<ShaderInputInfo>&
+{
+    return requiredShaderInputs;
 }
 
 
@@ -41,19 +49,13 @@ auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabili
         if (binding.arrayCount > 0) ss << binding.arrayCount;
         ss << "]";
     }
-    ss << ";\n";
+    ss << ";";
 
     return { ss.str(), binding.descriptorName };
 }
 
-auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabilityConfig::VertexInput& in)
-    -> std::pair<std::string, std::string>
-{
-    auto code = "layout (location = 0) in VertexData\n{\n" + in.contents + "\n} vert;\n";
-    return { code, "vert" };
-}
-
-auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabilityConfig::PushConstant& pc)
+auto ShaderResourceInterface::TranslateResource::operator()(
+    const ShaderCapabilityConfig::PushConstant& pc)
     -> std::pair<std::string, std::string>
 {
     auto code = "layout (push_constant) uniform PushConstants\n{\n"
@@ -79,6 +81,23 @@ auto ShaderResourceInterface::TranslateResource::makeBindingIndex(const std::str
 
 
 
+auto ShaderResourceInterface::ShaderInputFactory::make(
+    Capability capability,
+    const ShaderCapabilityConfig::ShaderInput& in) -> std::string
+{
+    const ui32 shaderInputLocation = nextShaderInputLocation++;
+    const std::string name = "shaderStageInput_" + std::to_string(shaderInputLocation);
+
+    // Make member code
+    std::stringstream ss;
+    ss << (in.flat ? "flat " : "") << in.type.to_string() << " " << name;
+    shaderInputs.push_back({ shaderInputLocation, in.type, name, ss.str(), capability });
+
+    return name;
+}
+
+
+
 ShaderResourceInterface::ShaderResourceInterface(const ShaderCapabilityConfig& config)
     :
     config(config)
@@ -99,6 +118,13 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     for (auto [resource, code] : resourceCode) {
         ss << code << "\n";
     }
+    ss << "\n";
+
+    // Write shader inputs
+    for (const auto& out : shaderInput.shaderInputs) {
+        ss << "layout (location = " << out.location << ") in " << out.declCode << ";\n";
+    }
+    ss << "\n";
 
     // Write constants
     for (const auto& [name, value] : constants) {
@@ -108,6 +134,7 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     // Create result value
     ShaderResources result;
     result.code = ss.str();
+    result.requiredShaderInputs = shaderInput.shaderInputs;
     for (const auto& [specIdx, texRef] : specializationConstantTextures)
     {
         result.textures.push_back(ShaderResources::TextureResource{
@@ -158,14 +185,23 @@ auto ShaderResourceInterface::hardcoded_makeTextureAccessor(const std::string& t
 
 auto ShaderResourceInterface::accessCapability(Capability capability) -> std::string
 {
-    if (auto res = config.getResource(capability))
+    if (auto resource = config.getResource(capability))
     {
-        assert(*res != nullptr);
-        auto [code, accessor] = std::visit(resourceTranslator, **res);
+        assert(*resource != nullptr);
 
-        resourceCode[*res] = std::move(code);
+        auto accessor = std::visit(util::VariantVisitor{
+            [this, capability](const ShaderCapabilityConfig::ShaderInput& v) {
+                auto accessor = shaderInput.make(capability, v);
+                return accessor;
+            },
+            [this, &resource](const auto& t){
+                auto [code, accessor] = resourceTranslator(t);
+                resourceCode[*resource] = std::move(code);
+                return accessor;
+            }
+        }, **resource);
+
         auto [it, success] = capabilityAccessors.try_emplace(capability, std::move(accessor));
-
         return it->second;
     }
     else {

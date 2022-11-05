@@ -6,13 +6,13 @@ namespace trc
 {
 
 MaterialCompileResult::MaterialCompileResult(
-    std::string fragmentCode,
-    std::vector<ShaderResources::TextureResource> specConstTextures,
+    std::string shaderCode,
+    ShaderResources resourceInfo,
     std::unordered_map<ParameterID, std::string> paramResultVariableNames,
     std::string outputReplacementVariableName)
     :
-    fragmentGlslCode(std::move(fragmentCode)),
-    requiredTextures(std::move(specConstTextures)),
+    shaderGlslCode(std::move(shaderCode)),
+    resources(std::move(resourceInfo)),
     paramResultVariableNames(std::move(paramResultVariableNames)),
     outputReplacementVariableName(std::move(outputReplacementVariableName))
 {
@@ -32,6 +32,17 @@ auto MaterialCompileResult::getOutputPlaceholderVariableName() const -> std::str
     return outputReplacementVariableName;
 }
 
+auto MaterialCompileResult::getRequiredTextures() const
+    -> const std::vector<ShaderResources::TextureResource>&
+{
+    return resources.getReferencedTextures();
+}
+
+auto MaterialCompileResult::getRequiredShaderInputs() const
+    -> const std::vector<ShaderResources::ShaderInputInfo>&
+{
+    return resources.getShaderInputs();
+}
 
 
 MaterialCompiler::MaterialCompiler(ShaderCapabilityConfig config)
@@ -58,7 +69,7 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
     for (const auto& [location, type] : outNode.getOutputs())
     {
         ss << "layout (location = " << location << ") out " << type.to_string()
-           << " fragmentOutput_" << location << ";\n";
+           << " shaderOutput_" << location << ";\n";
     }
     ss << "\n";
 
@@ -89,20 +100,20 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
         if (paramNode != nullptr)
         {
             const auto& [location, _] = outNode.getOutput(link.output);
-            ss << "fragmentOutput_" << location << link.outputAccessor
+            ss << "shaderOutput_" << location << link.outputAccessor
                << " = " << paramNames.at(link.param) << ";\n";
         }
     }
 
     // Write footer
-    ss << "//$ FRAGMENT_SHADER_OUTPUT_PLACEHOLDER\n";
+    ss << "//$ SHADER_OUTPUT_PLACEHOLDER\n";
     ss << "\n}";
 
     return {
         ss.str(),
-        resources.getReferencedTextures(),
+        resources,
         std::move(paramNames),
-        "FRAGMENT_SHADER_OUTPUT_PLACEHOLDER"
+        "SHADER_OUTPUT_PLACEHOLDER"
     };
 }
 

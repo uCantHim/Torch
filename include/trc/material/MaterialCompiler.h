@@ -26,7 +26,7 @@ namespace trc
 
         /**
          * The material compiler always writes a replacement variable at
-         * the end of the fragment shader's `main` function:
+         * the end of the shader's `main` function:
          *
          *     void main()
          *     {
@@ -41,7 +41,7 @@ namespace trc
          */
         auto getOutputPlaceholderVariableName() const -> std::string;
 
-        const std::string fragmentGlslCode;
+        const std::string shaderGlslCode;
 
         /**
          * Structs { <texture>, <spec-idx> }
@@ -50,17 +50,22 @@ namespace trc
          *
          *     specConstants[<spec-idx>] = <texture>.getDeviceIndex();
          */
-        std::vector<ShaderResources::TextureResource> requiredTextures;
+        auto getRequiredTextures() const -> const std::vector<ShaderResources::TextureResource>&;
+
+        auto getRequiredShaderInputs() const
+            -> const std::vector<ShaderResources::ShaderInputInfo>&;
 
     private:
         friend class MaterialCompiler;
 
         MaterialCompileResult(
-            std::string fragmentCode,
-            std::vector<ShaderResources::TextureResource> specConstTextures,
+            std::string shaderCode,
+            ShaderResources resourceInfo,
             std::unordered_map<ParameterID, std::string> paramResultVariableNames,
             std::string outputReplacementVariableName
         );
+
+        const ShaderResources resources;
 
         /**
          * Stores the names of temporary variables in which the computed
@@ -69,7 +74,7 @@ namespace trc
          */
         const std::unordered_map<ParameterID, std::string> paramResultVariableNames;
 
-        /** Placeholder variable (in the format `//$...`) after fragment outputs */
+        /** Placeholder variable (in the format `//$...`) after shader outputs */
         const std::string outputReplacementVariableName;
     };
 

@@ -43,9 +43,10 @@ namespace trc
             std::optional<std::string> descriptorContent;
         };
 
-        struct VertexInput
+        struct ShaderInput
         {
-            std::string contents;
+            BasicType type;
+            bool flat{ false };
         };
 
         struct PushConstant
@@ -55,7 +56,7 @@ namespace trc
 
         using Resource = std::variant<
             DescriptorBinding,
-            VertexInput,
+            ShaderInput,
             PushConstant
         >;
 
@@ -64,10 +65,16 @@ namespace trc
         auto addResource(Resource shaderResource) -> ResourceID;
         void linkCapability(Capability capability, ResourceID resource);
 
+        /**
+         * @return bool True if `capability` is linked to a resource
+         */
         bool hasCapability(Capability capability) const;
 
         /**
          * Don't insert new resources while holding a pointer to a resource!
+         *
+         * @return std::optional<const Resource*> None if `capability` is
+         *         not linked to a resource, otherwise the linked resource.
          */
         auto getResource(Capability capability) const -> std::optional<const Resource*>;
 
@@ -76,13 +83,10 @@ namespace trc
          *
          * @param std::string accessorCode Is relative to the backing
          *        resource's name.
-         *        For example, if the vertex UV is a member of the fragment
-         *        shader input struct, which might be called "vertData",
-         *        then the accessorCode could be set to ".uv" to produce
-         *        "vertData.uv".
          */
         void setConstantAccessor(Builtin constant, std::string accessorCode);
         auto getConstantAccessor(Builtin constant) const -> std::optional<std::string>;
+
         static auto getConstantCapability(Builtin constant) -> Capability;
         static auto getConstantType(Builtin constant) -> BasicType;
 

@@ -87,7 +87,7 @@ int main()
     // Create a pipeline
     PipelineVertexParams vert{ .animated=false };
     PipelineFragmentParams frag{
-        .transparent=true,
+        .transparent=false,
         .colorParam=inColor,
         .normalParam=inNormal,
         .roughnessParam=inRoughness
@@ -122,7 +122,7 @@ auto makeMaterial(MaterialOutputNode& materialNode,
     auto material = compiler.compile(materialNode);
 
     // Perform post-processing of the generated shader source
-    std::string fragmentCode = material.fragmentGlslCode;
+    std::string fragmentCode = material.shaderGlslCode;
     if (fragParams.transparent)
     {
         std::stringstream ss;
@@ -155,6 +155,33 @@ auto makeMaterial(MaterialOutputNode& materialNode,
         : pipelines::AnimationTypeFlagBits::none;
     const auto vertexCode = internal::loadShader(pipelines::getDrawableVertex(vertFlags));
 
+    ShaderCapabilityConfig conf;
+    auto vWorldPos  = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vUv        = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
+    auto vMatIdx    = conf.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, true });
+    auto vTangent   = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vBitangent = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vNormal    = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    conf.linkCapability(Capability::eVertexPosition, vWorldPos);
+    conf.linkCapability(Capability::eVertexUV, vUv);
+    conf.linkCapability(Capability::eVertexNormal, vNormal);
+
+    MaterialOutputNode vertNode;
+    MaterialGraph vertGraph;
+    for (const auto& out : material.getRequiredShaderInputs())
+    {
+        auto output = vertNode.addOutput(out.location, out.type);
+        auto param = vertNode.addParameter(out.type);
+        vertNode.linkOutput(param, output, "");
+
+        vertNode.setParameter(param, vertGraph.makeConstant(Constant{ out.type, {{ std::byte(0) }} }));
+    }
+
+    MaterialCompiler vertCompiler(conf);
+    auto vert = vertCompiler.compile(vertNode);
+    std::cout << "\n// --- vertex shader --- //\n"
+              << vert.shaderGlslCode;
+
     // Create result value
     MaterialRuntimeInfo result{
         .vertParams = vertParams,
@@ -167,7 +194,7 @@ auto makeMaterial(MaterialOutputNode& materialNode,
         },
         .textureReferences{}
     };
-    for (auto& [tex, specIdx] : material.requiredTextures) {
+    for (auto& [tex, specIdx] : material.getRequiredTextures()) {
         result.textureReferences.emplace_back(tex, specIdx);
     }
 
@@ -214,20 +241,16 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
     });
     config.linkCapability(Capability::eTextureSample, textureResource);
 
-    auto vertexInput = config.addResource(ShaderCapabilityConfig::VertexInput{
-        .contents=R"(
-    vec3 worldPos;
-    vec2 uv;
-    flat uint material;
-    mat3 tbn;
-        )"
-    });
-    config.linkCapability(Capability::eVertexNormal, vertexInput);
-    config.linkCapability(Capability::eVertexPosition, vertexInput);
-    config.linkCapability(Capability::eVertexUV, vertexInput);
-    config.setConstantAccessor(Builtin::eVertexNormal, ".tbn[2]");
-    config.setConstantAccessor(Builtin::eVertexPosition, ".worldPos");
-    config.setConstantAccessor(Builtin::eVertexUV, ".uv");
+    auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vUv        = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
+    auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, true });
+    auto vTangent   = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vBitangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vNormal    = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+
+    config.linkCapability(Capability::eVertexPosition, vWorldPos);
+    config.linkCapability(Capability::eVertexUV, vUv);
+    config.linkCapability(Capability::eVertexNormal, vNormal);
 
     return config;
 }
