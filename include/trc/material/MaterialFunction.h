@@ -25,17 +25,14 @@ namespace trc
     class MaterialFunction
     {
     public:
-        explicit MaterialFunction(Signature sig,
-                                  std::vector<Capability> requiredCapabilities);
+        explicit MaterialFunction(Signature sig);
         virtual ~MaterialFunction() = default;
 
         virtual auto makeGlslCode(ShaderResourceInterface& resources) -> std::string = 0;
 
         auto getSignature() const -> const Signature&;
-        auto getRequiredCapabilities() const -> const std::vector<Capability>&;
 
     private:
         const Signature signature;
-        const std::vector<Capability> requiredCapabilities;
     };
 } // namespace trc

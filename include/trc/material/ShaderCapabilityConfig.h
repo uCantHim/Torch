@@ -12,18 +12,6 @@
 
 namespace trc
 {
-    enum class Builtin
-    {
-        eVertexPosition,
-        eVertexNormal,
-        eVertexUV,
-
-        eTime,
-        eTimeDelta,
-
-        eNumBuiltinConstants,
-    };
-
     /**
      * Settings for shader generation
      */
@@ -78,17 +66,8 @@ namespace trc
          */
         auto getResource(Capability capability) const -> std::optional<const Resource*>;
 
-        /**
-         * Configure how a builtin constant can be accessed in the shader
-         *
-         * @param std::string accessorCode Is relative to the backing
-         *        resource's name.
-         */
-        void setConstantAccessor(Builtin constant, std::string accessorCode);
-        auto getConstantAccessor(Builtin constant) const -> std::optional<std::string>;
-
-        static auto getConstantCapability(Builtin constant) -> Capability;
-        static auto getConstantType(Builtin constant) -> BasicType;
+        void setCapabilityAccessor(Capability capability, std::string accessorCode);
+        auto getCapabilityAccessor(Capability capability) const -> std::optional<std::string>;
 
     private:
         struct BuiltinConstantInfo
@@ -97,13 +76,8 @@ namespace trc
             Capability capability;
         };
 
-        static const std::array<
-            BuiltinConstantInfo,
-            static_cast<size_t>(Builtin::eNumBuiltinConstants)
-        > builtinConstants;
-
         std::vector<Resource> resources;
         std::unordered_map<Capability, ResourceID> resourceFromCapability;
-        std::unordered_map<Builtin, std::string> accessorFromBuiltinConstant;
+        std::unordered_map<Capability, std::string> capabilityAccessors;
     };
 } // namespace trc

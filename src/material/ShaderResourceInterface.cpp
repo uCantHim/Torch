@@ -85,7 +85,8 @@ auto ShaderResourceInterface::ShaderInputFactory::make(
     Capability capability,
     const ShaderCapabilityConfig::ShaderInput& in) -> std::string
 {
-    const ui32 shaderInputLocation = nextShaderInputLocation++;
+    const ui32 shaderInputLocation = nextShaderInputLocation;
+    nextShaderInputLocation += in.type.locations();
     const std::string name = "shaderStageInput_" + std::to_string(shaderInputLocation);
 
     // Make member code
@@ -154,12 +155,6 @@ auto ShaderResourceInterface::makeScalarConstant(Constant constantValue) -> std:
     return name;
 }
 
-auto ShaderResourceInterface::queryConstant(Builtin constantType) -> std::string
-{
-    return accessCapability(config.getConstantCapability(constantType))
-         + config.getConstantAccessor(constantType).value_or("");
-}
-
 auto ShaderResourceInterface::queryTexture(TextureReference tex) -> std::string
 {
     auto [it, success] = specializationConstantTextures.try_emplace(nextSpecConstantIndex++, tex);
@@ -172,15 +167,15 @@ auto ShaderResourceInterface::queryTexture(TextureReference tex) -> std::string
     return hardcoded_makeTextureAccessor(specConstName);
 }
 
-auto ShaderResourceInterface::getConstantType(Builtin constant) -> BasicType
+auto ShaderResourceInterface::queryCapability(Capability capability) -> std::string
 {
-    return config.getConstantType(constant);
+    return accessCapability(capability);
 }
 
 auto ShaderResourceInterface::hardcoded_makeTextureAccessor(const std::string& textureIndexName)
     -> std::string
 {
-    return accessCapability(Capability::eTextureSample) + "[" + textureIndexName + "]";
+    return accessCapability(FragmentCapability::kTextureSample) + "[" + textureIndexName + "]";
 }
 
 auto ShaderResourceInterface::accessCapability(Capability capability) -> std::string
@@ -201,11 +196,15 @@ auto ShaderResourceInterface::accessCapability(Capability capability) -> std::st
             }
         }, **resource);
 
+        if (auto appendage = config.getCapabilityAccessor(capability)) {
+            accessor += *appendage;
+        }
+
         auto [it, success] = capabilityAccessors.try_emplace(capability, std::move(accessor));
         return it->second;
     }
     else {
-        throw std::runtime_error("Required shader capability " + to_string(capability)
+        throw std::runtime_error("Required shader capability " + capability.getString()
                                  + " is not implemented!");
     }
 }

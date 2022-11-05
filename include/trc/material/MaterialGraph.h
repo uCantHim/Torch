@@ -15,6 +15,9 @@ namespace trc
 {
     /**
      * @brief A builder interface that creates MaterialNodes
+     *
+     * This is mostly a pool that holds MaterialNodes. Provides convenience
+     * functions that create commonly used types of nodes.
      */
     class MaterialGraph
     {
@@ -22,7 +25,7 @@ namespace trc
         MaterialGraph() = default;
 
         auto makeConstant(Constant c) -> MaterialNode*;
-        auto makeBuiltinConstant(Builtin type) -> MaterialNode*;
+        auto makeCapabilityAccess(Capability capability, BasicType type) -> MaterialNode*;
 
         auto makeTextureSample(TextureReference tex, MaterialNode* uvs) -> MaterialNode*;
 

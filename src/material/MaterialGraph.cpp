@@ -14,7 +14,7 @@ public:
             .name="ConstantWrapperFunc_" + val.datatype() + "_" + std::to_string(uniqueIndex++),
             .inputs={},
             .output={ "constant", val.getType() }
-        }, {}),
+        }),
         value(val)
     {
     }
@@ -31,30 +31,27 @@ private:
     Constant value;
 };
 
-class BuiltinValueWrapperFunction : public MaterialFunction
+class CapabilityAccess : public MaterialFunction
 {
 public:
-    BuiltinValueWrapperFunction(Builtin builtin, BasicType type)
+    CapabilityAccess(Capability capability, BasicType type)
         :
-        MaterialFunction({
-            .name="BuiltinWrapperFunc_" + std::to_string(uniqueIndex++),
-            .inputs={},
-            .output={ "constant", type }
-        }, {}),
-        builtin(builtin)
-    {
-    }
+        MaterialFunction(
+            Signature{
+                "AccessCapability_" + capability.getString(),
+                {},
+                Param{ "plain_string", type } }
+        ),
+        capability(capability)
+    {}
 
     auto makeGlslCode(ShaderResourceInterface& resources) -> std::string override
     {
-        std::stringstream ss;
-        ss << "return " << resources.queryConstant(builtin) << ";";
-        return ss.str();
+        return "return " + resources.queryCapability(capability) + ";";
     }
 
 private:
-    static inline ui32 uniqueIndex{ 0 };
-    Builtin builtin;
+    Capability capability;
 };
 
 class TextureSampleFunction : public MaterialFunction
@@ -69,8 +66,7 @@ public:
                     { "uv", vec2{} },
                 },
                 .output={ "color", vec4{} },
-            },
-            { Capability::eTextureSample }
+            }
         ),
         texture(std::move(texture))
     {
@@ -95,15 +91,9 @@ auto MaterialGraph::makeConstant(Constant constant) -> MaterialNode*
     return makeNode(std::make_unique<ConstantValueWrapperFunction>(constant), {});
 }
 
-auto MaterialGraph::makeBuiltinConstant(Builtin constant) -> MaterialNode*
+auto MaterialGraph::makeCapabilityAccess(Capability capability, BasicType type) -> MaterialNode*
 {
-    return makeNode(
-        std::make_unique<BuiltinValueWrapperFunction>(
-            constant,
-            ShaderCapabilityConfig::getConstantType(constant)
-        ),
-        {}
-    );
+    return makeNode(std::make_unique<CapabilityAccess>(capability, type), {});
 }
 
 auto MaterialGraph::makeTextureSample(TextureReference tex, MaterialNode* uvs)

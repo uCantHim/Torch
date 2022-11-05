@@ -7,18 +7,6 @@
 namespace trc
 {
 
-const std::array<
-    ShaderCapabilityConfig::BuiltinConstantInfo,
-    static_cast<size_t>(Builtin::eNumBuiltinConstants)
-> ShaderCapabilityConfig::builtinConstants{{
-    { vec3{},  Capability::eVertexPosition,  },  // "VertexPos",    "worldPos", {},
-    { vec3{},  Capability::eVertexNormal,    },  // "VertexNormal", "tbn[2]",   {},
-    { vec2{},  Capability::eVertexUV,        },  // "VertexUVs",    "uv",       {},
-
-    { float{}, Capability::eTime,            },  // "Time",      "totalTime", {},
-    { float{}, Capability::eTimeDelta,       },  // "TimeDelta", "timeDelta", {},
-}};
-
 auto ShaderCapabilityConfig::addResource(Resource shaderResource) -> ResourceID
 {
     resources.emplace_back(std::move(shaderResource));
@@ -28,7 +16,12 @@ auto ShaderCapabilityConfig::addResource(Resource shaderResource) -> ResourceID
 void ShaderCapabilityConfig::linkCapability(Capability capability, ResourceID resource)
 {
     assert(resource < resources.size());
-    resourceFromCapability.try_emplace(capability, resource);
+
+    auto [_, success] = resourceFromCapability.try_emplace(capability, resource);
+    if (!success) {
+        throw std::invalid_argument("[In ShaderCapabilityConfig::linkCapability]: The capability"
+                                    " is already linked to a resource!");
+    }
 }
 
 bool ShaderCapabilityConfig::hasCapability(Capability capability) const
@@ -46,29 +39,19 @@ auto ShaderCapabilityConfig::getResource(Capability capability) const
     return std::nullopt;
 }
 
-void ShaderCapabilityConfig::setConstantAccessor(Builtin constant, std::string accessorCode)
+void ShaderCapabilityConfig::setCapabilityAccessor(Capability capability, std::string accessorCode)
 {
-    accessorFromBuiltinConstant.try_emplace(constant, std::move(accessorCode));
+    capabilityAccessors[capability] = std::move(accessorCode);
 }
 
-auto ShaderCapabilityConfig::getConstantAccessor(Builtin constant) const
+auto ShaderCapabilityConfig::getCapabilityAccessor(Capability capability) const
     -> std::optional<std::string>
 {
-    auto it = accessorFromBuiltinConstant.find(constant);
-    if (it != accessorFromBuiltinConstant.end()) {
+    auto it = capabilityAccessors.find(capability);
+    if (it != capabilityAccessors.end()) {
         return it->second;
     }
     return std::nullopt;
-}
-
-auto ShaderCapabilityConfig::getConstantCapability(Builtin constant) -> Capability
-{
-    return builtinConstants[static_cast<size_t>(constant)].capability;
-}
-
-auto ShaderCapabilityConfig::getConstantType(Builtin constant) -> BasicType
-{
-    return builtinConstants[static_cast<size_t>(constant)].type;
 }
 
 } // namespace trc

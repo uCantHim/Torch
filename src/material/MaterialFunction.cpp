@@ -5,21 +5,15 @@
 namespace trc
 {
 
-MaterialFunction::MaterialFunction(Signature sig, std::vector<Capability> requiredCapabilities)
+MaterialFunction::MaterialFunction(Signature sig)
     :
-    signature(std::move(sig)),
-    requiredCapabilities(std::move(requiredCapabilities))
+    signature(std::move(sig))
 {
 }
 
 auto MaterialFunction::getSignature() const -> const Signature&
 {
     return signature;
-}
-
-auto MaterialFunction::getRequiredCapabilities() const -> const std::vector<Capability>&
-{
-    return requiredCapabilities;
 }
 
 } // namespace trc

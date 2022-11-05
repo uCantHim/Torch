@@ -59,10 +59,16 @@ namespace trc
         explicit ShaderResourceInterface(const ShaderCapabilityConfig& config);
 
         auto makeScalarConstant(Constant constantValue) -> std::string;
-        auto queryConstant(Builtin constant) -> std::string;
         auto queryTexture(TextureReference tex) -> std::string;
 
-        auto getConstantType(Builtin constant) -> BasicType;
+        /**
+         * @brief Directly query a capability
+         *
+         * This might throw if the capability is not suited for direct
+         * access. An example is the texture sample capability, which
+         * requires an additional argument to be accessed.
+         */
+        auto queryCapability(Capability capability) -> std::string;
 
         /**
          * @brief Compile requested resources to shader code

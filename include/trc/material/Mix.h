@@ -21,7 +21,7 @@ namespace trc
                     { "x", float{} },
                 },
                 .output={ "result", glm::vec<N, T>{} }
-            }, {})
+            })
         {
         }
 

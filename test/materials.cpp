@@ -11,6 +11,7 @@
 #include <trc/drawable/DefaultDrawable.h>
 #include <trc/material/MaterialCompiler.h>
 #include <trc/material/Mix.h>
+#include <trc/material/VertexShader.h>
 
 using namespace trc;
 
@@ -39,6 +40,7 @@ struct MaterialRuntimeInfo
 };
 
 auto makeCapabiltyConfig() -> ShaderCapabilityConfig;
+auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig;
 auto makeMaterial(MaterialOutputNode& materialNode,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams) -> MaterialRuntimeInfo;
@@ -73,7 +75,7 @@ int main()
     // Build a material graph
     MaterialGraph graph;
 
-    auto uvs = graph.makeBuiltinConstant(Builtin::eVertexUV);
+    auto uvs = graph.makeCapabilityAccess(FragmentCapability::kVertexUV, vec2{});
     auto texColor = graph.makeTextureSample({ tex }, uvs);
 
     auto color = graph.makeConstant(vec4(1, 0, 0.5, 1));
@@ -81,7 +83,7 @@ int main()
     auto mix = graph.makeFunction(Mix<4, float>{}, { color, texColor, alpha });
 
     mat.setParameter(inColor, mix);
-    mat.setParameter(inNormal, graph.makeBuiltinConstant(Builtin::eVertexNormal));
+    mat.setParameter(inNormal, graph.makeCapabilityAccess(FragmentCapability::kVertexNormal, vec3{}));
     mat.setParameter(inRoughness, graph.makeConstant(0.4f));
 
     // Create a pipeline
@@ -155,17 +157,7 @@ auto makeMaterial(MaterialOutputNode& materialNode,
         : pipelines::AnimationTypeFlagBits::none;
     const auto vertexCode = internal::loadShader(pipelines::getDrawableVertex(vertFlags));
 
-    ShaderCapabilityConfig conf;
-    auto vWorldPos  = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vUv        = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
-    auto vMatIdx    = conf.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, true });
-    auto vTangent   = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vBitangent = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vNormal    = conf.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    conf.linkCapability(Capability::eVertexPosition, vWorldPos);
-    conf.linkCapability(Capability::eVertexUV, vUv);
-    conf.linkCapability(Capability::eVertexNormal, vNormal);
-
+    // Create a vertex shader with a graph
     MaterialOutputNode vertNode;
     MaterialGraph vertGraph;
     for (const auto& out : material.getRequiredShaderInputs())
@@ -174,10 +166,11 @@ auto makeMaterial(MaterialOutputNode& materialNode,
         auto param = vertNode.addParameter(out.type);
         vertNode.linkOutput(param, output, "");
 
-        vertNode.setParameter(param, vertGraph.makeConstant(Constant{ out.type, {{ std::byte(0) }} }));
+        auto inputNode = makeSourceForFragmentCapability(out.capability, out.type, vertGraph);
+        vertNode.setParameter(param, inputNode);
     }
 
-    MaterialCompiler vertCompiler(conf);
+    MaterialCompiler vertCompiler(makeVertexCapabilityConfig());
     auto vert = vertCompiler.compile(vertNode);
     std::cout << "\n// --- vertex shader --- //\n"
               << vert.shaderGlslCode;
@@ -239,18 +232,59 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
         .layoutQualifier=std::nullopt,
         .descriptorContent=std::nullopt,
     });
-    config.linkCapability(Capability::eTextureSample, textureResource);
+    config.linkCapability(FragmentCapability::kTextureSample, textureResource);
 
     auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
     auto vUv        = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
     auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, true });
-    auto vTangent   = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vBitangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vNormal    = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vTbnMat    = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat3{} });
 
-    config.linkCapability(Capability::eVertexPosition, vWorldPos);
-    config.linkCapability(Capability::eVertexUV, vUv);
-    config.linkCapability(Capability::eVertexNormal, vNormal);
+    config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos);
+    config.linkCapability(FragmentCapability::kVertexUV, vUv);
+    config.linkCapability(FragmentCapability::kVertexNormal, vTbnMat);
+
+    config.setCapabilityAccessor(FragmentCapability::kVertexNormal, "[2]");
+
+    return config;
+}
+
+auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig
+{
+    ShaderCapabilityConfig config;
+    config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="global_data",
+        .descriptorType="uniform",
+        .descriptorName="camera",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier="std140",
+        .descriptorContent=R"(
+            mat4 viewMatrix;
+            mat4 projMatrix;
+            mat4 inverseViewMatrix;
+            mat4 inverseProjMatrix;)"
+    });
+
+    config.addResource(ShaderCapabilityConfig::PushConstant{ R"(
+        mat4 modelMatrix;
+        uint materialIndex;)"
+    });
+
+    auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vUV      = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
+    auto vTangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    config.linkCapability(VertexCapability::kPosition, vPos);
+    config.linkCapability(VertexCapability::kNormal, vNormal);
+    config.linkCapability(VertexCapability::kTangent, vTangent);
+    config.linkCapability(VertexCapability::kUV, vUV);
+
+    auto vModelMatrix = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat4{} });
+    auto vViewMatrix = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat4{} });
+    auto vProjMatrix = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat4{} });
+    config.linkCapability(VertexCapability::kModelMatrix, vModelMatrix);
+    config.linkCapability(VertexCapability::kViewMatrix, vViewMatrix);
+    config.linkCapability(VertexCapability::kProjMatrix, vProjMatrix);
 
     return config;
 }
