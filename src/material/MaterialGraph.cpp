@@ -93,7 +93,14 @@ auto MaterialGraph::makeConstant(Constant constant) -> MaterialNode*
 
 auto MaterialGraph::makeCapabilityAccess(Capability capability, BasicType type) -> MaterialNode*
 {
-    return makeNode(std::make_unique<CapabilityAccess>(capability, type), {});
+    if (!cachedCapabilityNodes.contains(capability))
+    {
+        auto node = makeNode(std::make_unique<CapabilityAccess>(capability, type), {});
+        cachedCapabilityNodes.try_emplace(capability, node);
+    }
+
+    assert(cachedCapabilityNodes.at(capability) != nullptr);
+    return cachedCapabilityNodes.at(capability);
 }
 
 auto MaterialGraph::makeTextureSample(TextureReference tex, MaterialNode* uvs)

@@ -111,14 +111,18 @@ namespace trc
             std::vector<ShaderResources::ShaderInputInfo> shaderInputs;
         };
 
+        using Resource = const ShaderCapabilityConfig::ResourceData*;
+
         auto hardcoded_makeTextureAccessor(const std::string& textureIndexName) -> std::string;
         auto accessCapability(Capability capability) -> std::string;
+        auto accessResource(Capability capability, Resource resource) -> std::string;
 
         const ShaderCapabilityConfig& config;
 
         std::unordered_set<std::string> requiredExtensions;
         std::unordered_set<util::Pathlet> requiredIncludePaths;
 
+        std::unordered_map<Resource, std::string> resourceAccessors;
         std::unordered_map<Capability, std::string> capabilityAccessors;
 
         ui32 nextConstantId{ 1 };

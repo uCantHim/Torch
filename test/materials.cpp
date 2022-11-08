@@ -160,13 +160,14 @@ auto makeMaterial(MaterialOutputNode& materialNode,
     // Create a vertex shader with a graph
     MaterialOutputNode vertNode;
     MaterialGraph vertGraph;
+    VertexShaderBuilder vertBuilder(vertGraph);
     for (const auto& out : material.getRequiredShaderInputs())
     {
         auto output = vertNode.addOutput(out.location, out.type);
         auto param = vertNode.addParameter(out.type);
         vertNode.linkOutput(param, output, "");
 
-        auto inputNode = makeSourceForFragmentCapability(out.capability, out.type, vertGraph);
+        auto inputNode = vertBuilder.getFragmentCapabilityValue(out.capability, out.type);
         vertNode.setParameter(param, inputNode);
     }
 

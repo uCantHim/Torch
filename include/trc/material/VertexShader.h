@@ -18,8 +18,20 @@ namespace trc
         static constexpr Capability kProjMatrix{ "projMatrix" };
     };
 
-    auto makeSourceForFragmentCapability(Capability fragCapability,
-                                         BasicType type,
-                                         MaterialGraph& graph)
+    auto makeFragmentCapabilityComputation(Capability fragCapability,
+                                           BasicType type,
+                                           MaterialGraph& graph)
         -> MaterialNode*;
+
+    class VertexShaderBuilder
+    {
+    public:
+        explicit VertexShaderBuilder(MaterialGraph& graph);
+
+        auto getFragmentCapabilityValue(Capability fragCapability, BasicType type) -> MaterialNode*;
+
+    private:
+        MaterialGraph& graph;
+        std::unordered_map<Capability, MaterialNode*> values;
+    };
 } // namespace trc

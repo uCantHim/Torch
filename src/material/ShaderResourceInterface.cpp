@@ -208,37 +208,57 @@ auto ShaderResourceInterface::hardcoded_makeTextureAccessor(const std::string& t
 
 auto ShaderResourceInterface::accessCapability(Capability capability) -> std::string
 {
+    auto it = capabilityAccessors.find(capability);
+    if (it != capabilityAccessors.end()) {
+        return it->second;
+    }
+
+    // Capability has never been queried before; create the accessor now.
     if (auto resource = config.getResource(capability))
     {
-        assert(*resource != nullptr);
-        auto& res = **resource;
-
-        requiredExtensions.insert(res.extensions.begin(), res.extensions.end());
-        requiredIncludePaths.insert(res.includeFiles.begin(), res.includeFiles.end());
-
-        auto accessor = std::visit(util::VariantVisitor{
-            [this](const ShaderCapabilityConfig::DescriptorBinding& binding) {
-                return descriptorFactory.make(binding);
-            },
-            [this, capability](const ShaderCapabilityConfig::ShaderInput& v) {
-                return shaderInput.make(capability, v);
-            },
-            [this](const ShaderCapabilityConfig::PushConstant& pc) {
-                return pushConstantFactory.make(pc);
-            }
-        }, res.resourceType);
-
+        auto accessor = accessResource(capability, *resource);
         if (auto appendage = config.getCapabilityAccessor(capability)) {
             accessor += *appendage;
         }
 
         auto [it, success] = capabilityAccessors.try_emplace(capability, std::move(accessor));
+        assert(success && "The cache retrieval above should have given a result.");
         return it->second;
     }
-    else {
-        throw std::runtime_error("Required shader capability " + capability.getString()
-                                 + " is not implemented!");
+
+    throw std::runtime_error("Required shader capability " + capability.getString()
+                             + " is not implemented!");
+}
+
+auto ShaderResourceInterface::accessResource(Capability capability, Resource resource) -> std::string
+{
+    assert(resource != nullptr);
+
+    // Try to query the cached value
+    if (resourceAccessors.contains(resource)) {
+        return resourceAccessors.at(resource);
     }
+
+    // First resource access; create it.
+    auto& res = *resource;
+    requiredExtensions.insert(res.extensions.begin(), res.extensions.end());
+    requiredIncludePaths.insert(res.includeFiles.begin(), res.includeFiles.end());
+
+    auto accessor = std::visit(util::VariantVisitor{
+        [this](const ShaderCapabilityConfig::DescriptorBinding& binding) {
+            return descriptorFactory.make(binding);
+        },
+        [this, capability](const ShaderCapabilityConfig::ShaderInput& v) {
+            return shaderInput.make(capability, v);
+        },
+        [this](const ShaderCapabilityConfig::PushConstant& pc) {
+            return pushConstantFactory.make(pc);
+        }
+    }, res.resourceType);
+
+    auto [it, success] = resourceAccessors.try_emplace(resource, std::move(accessor));
+    assert(success);
+    return it->second;
 }
 
 } // namespace trc

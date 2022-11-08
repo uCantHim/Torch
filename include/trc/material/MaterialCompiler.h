@@ -86,11 +86,18 @@ namespace trc
         auto compile(MaterialOutputNode& root) -> MaterialCompileResult;
 
     private:
+        static bool hasCycles(const MaterialNode* root);
         static auto compileFunctions(ShaderResourceInterface& resources, MaterialOutputNode& mat)
             -> std::string;
 
-        static auto call(MaterialNode* node) -> std::string;
+        auto call(MaterialNode* node) -> std::string;
+        auto getResultIdentifier(MaterialNode* node) -> std::string;
+        auto makeIdentifier() -> std::string;
 
         ShaderCapabilityConfig config;
+
+        ui32 nextIdentifierId{ 0 };
+        std::unordered_map<const MaterialNode*, std::string> identifiers;
+        std::vector<std::string> identifierDecls;
     };
 } // namespace trc

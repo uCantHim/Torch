@@ -40,5 +40,6 @@ namespace trc
             -> MaterialNode*;
 
         std::vector<u_ptr<MaterialNode>> nodes;
+        std::unordered_map<Capability, MaterialNode*> cachedCapabilityNodes;
     };
 } // namespace trc

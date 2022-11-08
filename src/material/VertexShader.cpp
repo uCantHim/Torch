@@ -107,13 +107,37 @@ std::unordered_map<Capability, std::function<MaterialNode*(MaterialGraph&)>> gra
     }},
 };
 
-auto makeSourceForFragmentCapability(Capability fragCapability, BasicType type, MaterialGraph& graph)
+auto makeFragmentCapabilityComputation(Capability fragCapability, BasicType type, MaterialGraph& graph)
     -> MaterialNode*
 {
     if (graphFactories.contains(fragCapability)) {
         return graphFactories.at(fragCapability)(graph);
     }
     return graph.makeConstant({ type, {{ std::byte(0) }} });
+}
+
+
+
+VertexShaderBuilder::VertexShaderBuilder(MaterialGraph& graph)
+    :
+    graph(graph)
+{
+}
+
+auto VertexShaderBuilder::getFragmentCapabilityValue(
+    Capability fragCapability,
+    BasicType type
+    ) -> MaterialNode*
+{
+    if (!values.contains(fragCapability))
+    {
+        auto node = makeFragmentCapabilityComputation(fragCapability, type, graph);
+        values.try_emplace(fragCapability, node);
+        return node;
+    }
+
+    assert(values.at(fragCapability) != nullptr);
+    return values.at(fragCapability);
 }
 
 } // namespace trc

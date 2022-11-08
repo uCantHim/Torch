@@ -77,31 +77,49 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
     // Write main
     ss << "void main()\n{\n";
 
-    // Write calculated parameters to temporary variables
-    std::unordered_map<ParameterID, std::string> paramNames;
+    // Test parameter-subgraphs for cycles
     for (ui32 i = 0; const auto& param : outNode.getParameters())
     {
         if (param == nullptr) continue;
-
-        auto type = param->getFunction().getSignature().output.type;
-        auto [it, success] = paramNames.try_emplace(i, "materialParamResult_" + std::to_string(i));
-        assert(success);
-        ++i;
-
-        ss << type.to_string() << " " << it->second << " = " << call(param) << ";\n";
+        if (hasCycles(param)) {
+            throw std::runtime_error("[In MaterialCompiler::compile]: Detected cycle in node graph"
+                                     " of output node's parameter #" + std::to_string(i));
+        }
     }
 
-    // Write intermediate parameter values to linked output locations
+    // Generate code from the graph.
+    //
+    // Code generation creates single lines of identifier assignments that
+    // are written to the stream afterwards. This is done to ensure correct
+    // declaration order.
+    //
+    // Additional results are a map of identifier names to parameters for code
+    // post-processing, and an `outputCode` stream that contains assignments
+    // from parameter-value identifiers to the final shader output locations.
+    // This is written to the stream at the end of the main function.
+    std::unordered_map<ParameterID, std::string> paramNames;
+    std::stringstream outputCode;
     for (const auto& link : outNode.getOutputLinks())
     {
         auto paramNode = outNode.getParameter(link.param);
-        if (paramNode != nullptr)
-        {
-            const auto& [location, _] = outNode.getOutput(link.output);
-            ss << "shaderOutput_" << location << link.outputAccessor
-               << " = " << paramNames.at(link.param) << ";\n";
-        }
+        if (paramNode == nullptr) continue;
+
+        // This call generates code from the graph
+        const auto id = getResultIdentifier(paramNode);
+        paramNames.try_emplace(link.param, id);
+
+        // Generate assignment to output location
+        const auto& [location, _] = outNode.getOutput(link.output);
+        outputCode << "shaderOutput_" << location << link.outputAccessor << " = " << id << ";\n";
     }
+
+    // Write generated identifier assignments
+    for (const auto& str : identifierDecls) {
+        ss << str << "\n";
+    }
+
+    // Write code that assigns values to shader output locations
+    ss << outputCode.str();
 
     // Write footer
     ss << "//$ SHADER_OUTPUT_PLACEHOLDER\n";
@@ -113,6 +131,31 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
         std::move(paramNames),
         "SHADER_OUTPUT_PLACEHOLDER"
     };
+}
+
+bool MaterialCompiler::hasCycles(const MaterialNode* root)
+{
+    using NodeSet = std::unordered_set<const MaterialNode*>;
+    using FuncType = std::function<bool(const MaterialNode*, NodeSet&)>;
+
+    FuncType detectCycle = [&](const MaterialNode* node, NodeSet& seenNodes)
+    {
+        auto [it, success] = seenNodes.emplace(node);
+        if (!success) return true;
+
+        for (auto child : node->getInputs())
+        {
+            if (detectCycle(child, seenNodes)) {
+                return true;
+            }
+        }
+        seenNodes.erase(it);
+
+        return false;
+    };
+
+    NodeSet set;
+    return detectCycle(root, set);
 }
 
 auto MaterialCompiler::compileFunctions(
@@ -168,7 +211,7 @@ auto MaterialCompiler::call(MaterialNode* node) -> std::string
     ss << sig.name << "(";
     for (ui32 i = 0; i < sig.inputs.size(); ++i)
     {
-        ss << call(node->getInputs().at(i));
+        ss << getResultIdentifier(node->getInputs().at(i));
         if (i < sig.inputs.size() - 1) {
             ss << ", ";
         }
@@ -176,6 +219,33 @@ auto MaterialCompiler::call(MaterialNode* node) -> std::string
     ss << ")";
 
     return ss.str();
+}
+
+auto MaterialCompiler::getResultIdentifier(MaterialNode* node) -> std::string
+{
+    if (!identifiers.contains(node))
+    {
+        const auto valType = node->getFunction().getSignature().output.type;
+        const auto id = makeIdentifier();
+
+        std::stringstream ss;
+        ss << valType.to_string() << " " << id << " = " << call(node) << ";";
+        identifierDecls.emplace_back(ss.str());
+
+        // This must be done after compiling the function's call code with `call`
+        // because the arguments' identifiers have to be created first.
+        identifiers.try_emplace(node, id);
+
+        return id;
+    }
+
+    assert(!identifiers.at(node).empty());
+    return identifiers.at(node);
+}
+
+auto MaterialCompiler::makeIdentifier() -> std::string
+{
+    return "_id_" + std::to_string(nextIdentifierId++);
 }
 
 } // namespace trc
