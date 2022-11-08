@@ -225,6 +225,7 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
     ShaderCapabilityConfig config;
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName="asset_registry",
+        .bindingIndex=1,
         .descriptorType="uniform sampler2D",
         .descriptorName="textures",
         .isArray=true,
@@ -232,6 +233,7 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
         .layoutQualifier=std::nullopt,
         .descriptorContent=std::nullopt,
     });
+    config.addShaderExtension(textureResource, "GL_EXT_nonuniform_qualifier");
     config.linkCapability(FragmentCapability::kTextureSample, textureResource);
 
     auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
@@ -251,23 +253,24 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
 auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig
 {
     ShaderCapabilityConfig config;
-    config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+    auto cameraMatrices = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName="global_data",
+        .bindingIndex=0,
         .descriptorType="uniform",
         .descriptorName="camera",
         .isArray=false,
         .arrayCount=0,
         .layoutQualifier="std140",
-        .descriptorContent=R"(
-            mat4 viewMatrix;
-            mat4 projMatrix;
-            mat4 inverseViewMatrix;
-            mat4 inverseProjMatrix;)"
+        .descriptorContent=
+            "mat4 viewMatrix\n"
+            "mat4 projMatrix\n"
+            "mat4 inverseViewMatrix\n"
+            "mat4 inverseProjMatrix\n"
     });
 
-    config.addResource(ShaderCapabilityConfig::PushConstant{ R"(
-        mat4 modelMatrix;
-        uint materialIndex;)"
+    auto pushConstants = config.addResource(ShaderCapabilityConfig::PushConstant{
+        "mat4 modelMatrix;\n"
+        "uint materialIndex;"
     });
 
     auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
@@ -279,12 +282,12 @@ auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig
     config.linkCapability(VertexCapability::kTangent, vTangent);
     config.linkCapability(VertexCapability::kUV, vUV);
 
-    auto vModelMatrix = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat4{} });
-    auto vViewMatrix = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat4{} });
-    auto vProjMatrix = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat4{} });
-    config.linkCapability(VertexCapability::kModelMatrix, vModelMatrix);
-    config.linkCapability(VertexCapability::kViewMatrix, vViewMatrix);
-    config.linkCapability(VertexCapability::kProjMatrix, vProjMatrix);
+    config.linkCapability(VertexCapability::kModelMatrix, pushConstants);
+    config.linkCapability(VertexCapability::kViewMatrix, cameraMatrices);
+    config.linkCapability(VertexCapability::kProjMatrix, cameraMatrices);
+    config.setCapabilityAccessor(VertexCapability::kModelMatrix, ".modelMatrix");
+    config.setCapabilityAccessor(VertexCapability::kViewMatrix, ".viewMatrix");
+    config.setCapabilityAccessor(VertexCapability::kProjMatrix, ".projMatrix");
 
     return config;
 }

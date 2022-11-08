@@ -27,12 +27,12 @@ auto ShaderResources::getShaderInputs() const
 
 
 
-auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabilityConfig::DescriptorBinding& binding)
-    -> std::pair<std::string, std::string>
+auto ShaderResourceInterface::DescriptorBindingFactory::make(
+    const ShaderCapabilityConfig::DescriptorBinding& binding) -> std::string
 {
-    std::stringstream ss;
+    auto& ss = generatedCode;
     ss << "layout (set = " << getSetIndex(binding.setName)
-       << ", binding = " << makeBindingIndex(binding.setName);
+       << ", binding = " << binding.bindingIndex;
     if (binding.layoutQualifier) {
         ss << ", " << *binding.layoutQualifier;
     }
@@ -49,22 +49,27 @@ auto ShaderResourceInterface::TranslateResource::operator()(const ShaderCapabili
         if (binding.arrayCount > 0) ss << binding.arrayCount;
         ss << "]";
     }
-    ss << ";";
+    ss << ";\n";
 
-    return { ss.str(), binding.descriptorName };
+    return binding.descriptorName;
 }
 
-auto ShaderResourceInterface::TranslateResource::operator()(
-    const ShaderCapabilityConfig::PushConstant& pc)
-    -> std::pair<std::string, std::string>
+auto ShaderResourceInterface::DescriptorBindingFactory::getCode() const -> std::string
 {
-    auto code = "layout (push_constant) uniform PushConstants\n{\n"
-                + pc.contents
-                + "\n} pushConstants;\n";
-    return { code, "pushConstants" };
+    return generatedCode.str();
 }
 
-auto ShaderResourceInterface::TranslateResource::getSetIndex(const std::string& set) -> ui32
+auto ShaderResourceInterface::DescriptorBindingFactory::getOrderedDescriptorSets() const
+    -> std::vector<std::string>
+{
+    std::vector<std::string> vec(setIndices.size());
+    for (const auto& [set, idx] : setIndices) {
+        vec.at(idx) = set;
+    }
+    return vec;
+}
+
+auto ShaderResourceInterface::DescriptorBindingFactory::getSetIndex(const std::string& set) -> ui32
 {
     auto [it, success] = setIndices.try_emplace(set, nextSetIndex);
     if (success) {
@@ -73,10 +78,25 @@ auto ShaderResourceInterface::TranslateResource::getSetIndex(const std::string& 
     return it->second;
 }
 
-auto ShaderResourceInterface::TranslateResource::makeBindingIndex(const std::string& set) -> ui32
+
+
+auto ShaderResourceInterface::PushConstantFactory::make(
+    const ShaderCapabilityConfig::PushConstant& pc) -> std::string
 {
-    auto [it, _] = bindingIndices.try_emplace(set, 0);
-    return it->second++;
+    if (!code.empty()) {
+        throw std::runtime_error("[In PushConstantFactory::make]: At most one push constant"
+                                 " resource may be specified at the shader capability config!");
+    }
+
+    code = "layout (push_constant) uniform PushConstants\n{\n"
+                + pc.contents
+                + "\n} pushConstants;\n";
+    return "pushConstants";
+}
+
+auto ShaderResourceInterface::PushConstantFactory::getCode() const -> const std::string&
+{
+    return code;
 }
 
 
@@ -109,17 +129,25 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
 {
     std::stringstream ss;
 
+    for (const auto& ext : requiredExtensions) {
+        ss << "#extension " << ext << " : require\n";
+    }
+    for (const auto& path : requiredIncludePaths) {
+        ss << "#include \"" << path.string() << "\"\n";
+    }
+    ss << "\n";
+
     // Write specialization constants
     for (const auto& [index, name] : specializationConstants) {
         ss << "layout (constant_id = " << index << ") const uint " << name << " = 0;\n";
     }
     ss << "\n";
 
-    // Write capability resources (descriptors, push constants, ...)
-    for (auto [resource, code] : resourceCode) {
-        ss << code << "\n";
-    }
-    ss << "\n";
+    // Write descriptor sets
+    ss << descriptorFactory.getCode() << "\n";
+
+    // Write push constants
+    ss << pushConstantFactory.getCode() << "\n";
 
     // Write shader inputs
     for (const auto& out : shaderInput.shaderInputs) {
@@ -183,18 +211,22 @@ auto ShaderResourceInterface::accessCapability(Capability capability) -> std::st
     if (auto resource = config.getResource(capability))
     {
         assert(*resource != nullptr);
+        auto& res = **resource;
+
+        requiredExtensions.insert(res.extensions.begin(), res.extensions.end());
+        requiredIncludePaths.insert(res.includeFiles.begin(), res.includeFiles.end());
 
         auto accessor = std::visit(util::VariantVisitor{
-            [this, capability](const ShaderCapabilityConfig::ShaderInput& v) {
-                auto accessor = shaderInput.make(capability, v);
-                return accessor;
+            [this](const ShaderCapabilityConfig::DescriptorBinding& binding) {
+                return descriptorFactory.make(binding);
             },
-            [this, &resource](const auto& t){
-                auto [code, accessor] = resourceTranslator(t);
-                resourceCode[*resource] = std::move(code);
-                return accessor;
+            [this, capability](const ShaderCapabilityConfig::ShaderInput& v) {
+                return shaderInput.make(capability, v);
+            },
+            [this](const ShaderCapabilityConfig::PushConstant& pc) {
+                return pushConstantFactory.make(pc);
             }
-        }, **resource);
+        }, res.resourceType);
 
         if (auto appendage = config.getCapabilityAccessor(capability)) {
             accessor += *appendage;

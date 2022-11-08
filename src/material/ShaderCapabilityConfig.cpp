@@ -9,8 +9,18 @@ namespace trc
 
 auto ShaderCapabilityConfig::addResource(Resource shaderResource) -> ResourceID
 {
-    resources.emplace_back(std::move(shaderResource));
+    resources.push_back({ std::move(shaderResource), {}, {} });
     return resources.size() - 1;
+}
+
+void ShaderCapabilityConfig::addShaderExtension(ResourceID resource, std::string extensionName)
+{
+    resources.at(resource).extensions.emplace(std::move(extensionName));
+}
+
+void ShaderCapabilityConfig::addShaderInclude(ResourceID resource, util::Pathlet includePath)
+{
+    resources.at(resource).includeFiles.emplace(std::move(includePath));
 }
 
 void ShaderCapabilityConfig::linkCapability(Capability capability, ResourceID resource)
@@ -30,7 +40,7 @@ bool ShaderCapabilityConfig::hasCapability(Capability capability) const
 }
 
 auto ShaderCapabilityConfig::getResource(Capability capability) const
-    -> std::optional<const Resource*>
+    -> std::optional<const ResourceData*>
 {
     auto it = resourceFromCapability.find(capability);
     if (it != resourceFromCapability.end()) {

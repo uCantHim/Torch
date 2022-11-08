@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -76,22 +77,29 @@ namespace trc
         auto compile() const -> ShaderResources;
 
     private:
-        using Resource = const ShaderCapabilityConfig::Resource*;
-
-        struct TranslateResource
+        struct DescriptorBindingFactory
         {
-            auto operator()(const ShaderCapabilityConfig::DescriptorBinding& binding)
-                -> std::pair<std::string, std::string>;
-            auto operator()(const ShaderCapabilityConfig::PushConstant& pc)
-                -> std::pair<std::string, std::string>;
+            auto make(const ShaderCapabilityConfig::DescriptorBinding& binding) -> std::string;
+
+            auto getCode() const -> std::string;
+            auto getOrderedDescriptorSets() const -> std::vector<std::string>;
 
         private:
             auto getSetIndex(const std::string& set) -> ui32;
-            auto makeBindingIndex(const std::string& set) -> ui32;
 
             ui32 nextSetIndex{ 0 };
             std::unordered_map<std::string, ui32> setIndices;
-            std::unordered_map<std::string, ui32> bindingIndices;
+
+            std::stringstream generatedCode;
+        };
+
+        struct PushConstantFactory
+        {
+            auto make(const ShaderCapabilityConfig::PushConstant& pc) -> std::string;
+            auto getCode() const -> const std::string&;
+
+        private:
+            std::string code;
         };
 
         struct ShaderInputFactory
@@ -108,8 +116,9 @@ namespace trc
 
         const ShaderCapabilityConfig& config;
 
-        TranslateResource resourceTranslator;
-        std::unordered_map<Resource, std::string> resourceCode;
+        std::unordered_set<std::string> requiredExtensions;
+        std::unordered_set<util::Pathlet> requiredIncludePaths;
+
         std::unordered_map<Capability, std::string> capabilityAccessors;
 
         ui32 nextConstantId{ 1 };
@@ -121,6 +130,8 @@ namespace trc
         /** Map of pairs (index -> value) */
         std::unordered_map<ui32, TextureReference> specializationConstantTextures;
 
+        DescriptorBindingFactory descriptorFactory;
+        PushConstantFactory pushConstantFactory;
         ShaderInputFactory shaderInput;
     };
 } // namespace trc

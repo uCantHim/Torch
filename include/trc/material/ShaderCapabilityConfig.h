@@ -3,12 +3,14 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
 #include "BasicType.h"
 #include "ShaderCapabilities.h"
 #include "trc/Types.h"
+#include "trc/util/Pathlet.h"
 
 namespace trc
 {
@@ -21,6 +23,7 @@ namespace trc
         struct DescriptorBinding
         {
             std::string setName;
+            ui32 bindingIndex;
 
             std::string descriptorType;
             std::string descriptorName;
@@ -48,9 +51,21 @@ namespace trc
             PushConstant
         >;
 
+        /** A resource and its additional requirements */
+        struct ResourceData
+        {
+            Resource resourceType;
+
+            std::unordered_set<std::string> extensions;
+            std::unordered_set<util::Pathlet> includeFiles;
+        };
+
         using ResourceID = ui32;
 
         auto addResource(Resource shaderResource) -> ResourceID;
+        void addShaderExtension(ResourceID resource, std::string extensionName);
+        void addShaderInclude(ResourceID resouce, util::Pathlet includePath);
+
         void linkCapability(Capability capability, ResourceID resource);
 
         /**
@@ -64,7 +79,7 @@ namespace trc
          * @return std::optional<const Resource*> None if `capability` is
          *         not linked to a resource, otherwise the linked resource.
          */
-        auto getResource(Capability capability) const -> std::optional<const Resource*>;
+        auto getResource(Capability capability) const -> std::optional<const ResourceData*>;
 
         void setCapabilityAccessor(Capability capability, std::string accessorCode);
         auto getCapabilityAccessor(Capability capability) const -> std::optional<std::string>;
@@ -76,7 +91,7 @@ namespace trc
             Capability capability;
         };
 
-        std::vector<Resource> resources;
+        std::vector<ResourceData> resources;
         std::unordered_map<Capability, ResourceID> resourceFromCapability;
         std::unordered_map<Capability, std::string> capabilityAccessors;
     };

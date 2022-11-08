@@ -53,14 +53,12 @@ MaterialCompiler::MaterialCompiler(ShaderCapabilityConfig config)
 
 auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileResult
 {
-    ShaderResourceInterface resourceCompiler(config);
-    const auto functionCode = compileFunctions(resourceCompiler, outNode);
-    const auto resources = resourceCompiler.compile();
+    ShaderResourceInterface resourceInterface(config);
+    const auto functionCode = compileFunctions(resourceInterface, outNode);
+    const auto resources = resourceInterface.compile();
 
     std::stringstream ss;
     ss << "#version 460\n";
-    ss << "#extension GL_EXT_nonuniform_qualifier : require\n";
-    ss << "\n";
 
     // Write resources
     ss << resources.getGlslCode() << "\n";
