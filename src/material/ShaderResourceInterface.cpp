@@ -121,7 +121,9 @@ auto ShaderResourceInterface::ShaderInputFactory::make(
 
 ShaderResourceInterface::ShaderResourceInterface(const ShaderCapabilityConfig& config)
     :
-    config(config)
+    config(config),
+    requiredExtensions(config.getGlobalShaderExtensions()),
+    requiredIncludePaths(config.getGlobalShaderIncludes())
 {
 }
 
@@ -129,6 +131,9 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
 {
     std::stringstream ss;
 
+    for (const auto& [name, val] : requiredMacros) {
+        ss << "#define " << name << " (" << val.value_or("") << ")\n";
+    }
     for (const auto& ext : requiredExtensions) {
         ss << "#extension " << ext << " : require\n";
     }
@@ -243,6 +248,9 @@ auto ShaderResourceInterface::accessResource(Capability capability, Resource res
     auto& res = *resource;
     requiredExtensions.insert(res.extensions.begin(), res.extensions.end());
     requiredIncludePaths.insert(res.includeFiles.begin(), res.includeFiles.end());
+    for (const auto& [name, val] : res.macroDefinitions) {
+        requiredMacros.emplace_back(name, val);
+    }
 
     auto accessor = std::visit(util::VariantVisitor{
         [this](const ShaderCapabilityConfig::DescriptorBinding& binding) {

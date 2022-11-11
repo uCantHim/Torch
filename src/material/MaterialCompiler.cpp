@@ -113,6 +113,15 @@ auto MaterialCompiler::compile(MaterialOutputNode& outNode) -> MaterialCompileRe
         outputCode << "shaderOutput_" << location << link.outputAccessor << " = " << id << ";\n";
     }
 
+    // Write assignments to builtin variables (gl_Position, gl_FragDepth, ...)
+    for (const auto& [varName, param] : outNode.getBuiltinOutputs())
+    {
+        auto paramNode = outNode.getParameter(param);
+        if (paramNode != nullptr) {
+            outputCode << varName << " = " << getResultIdentifier(paramNode) << ";\n";
+        }
+    }
+
     // Write generated identifier assignments
     for (const auto& str : identifierDecls) {
         ss << str << "\n";

@@ -68,9 +68,9 @@ int main()
     auto inColor = mat.addParameter(vec4{});
     auto inNormal = mat.addParameter(vec3{});
     auto inRoughness = mat.addParameter(float{});
-    assert(inColor == InputParam::eColor);
-    assert(inNormal == InputParam::eNormal);
-    assert(inRoughness == InputParam::eRoughness);
+    assert(inColor.index == InputParam::eColor);
+    assert(inNormal.index == InputParam::eNormal);
+    assert(inRoughness.index == InputParam::eRoughness);
 
     // Build a material graph
     MaterialGraph graph;
@@ -80,7 +80,7 @@ int main()
 
     auto color = graph.makeConstant(vec4(1, 0, 0.5, 1));
     auto alpha = graph.makeConstant(0.5f);
-    auto mix = graph.makeFunction(Mix<4, float>{}, { color, texColor, alpha });
+    auto mix = graph.makeFunctionCall(Mix<4, float>{}, { color, texColor, alpha });
 
     mat.setParameter(inColor, mix);
     mat.setParameter(inNormal, graph.makeCapabilityAccess(FragmentCapability::kVertexNormal, vec3{}));
@@ -158,21 +158,9 @@ auto makeMaterial(MaterialOutputNode& materialNode,
     const auto vertexCode = internal::loadShader(pipelines::getDrawableVertex(vertFlags));
 
     // Create a vertex shader with a graph
-    MaterialOutputNode vertNode;
-    MaterialGraph vertGraph;
-    VertexShaderBuilder vertBuilder(vertGraph);
-    for (const auto& out : material.getRequiredShaderInputs())
-    {
-        auto output = vertNode.addOutput(out.location, out.type);
-        auto param = vertNode.addParameter(out.type);
-        vertNode.linkOutput(param, output, "");
+    VertexShaderBuilder vertBuilder(material, true);
+    auto vert = vertBuilder.buildVertexShader();
 
-        auto inputNode = vertBuilder.getFragmentCapabilityValue(out.capability, out.type);
-        vertNode.setParameter(param, inputNode);
-    }
-
-    MaterialCompiler vertCompiler(makeVertexCapabilityConfig());
-    auto vert = vertCompiler.compile(vertNode);
     std::cout << "\n// --- vertex shader --- //\n"
               << vert.shaderGlslCode;
 
@@ -247,48 +235,6 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
     config.linkCapability(FragmentCapability::kVertexNormal, vTbnMat);
 
     config.setCapabilityAccessor(FragmentCapability::kVertexNormal, "[2]");
-
-    return config;
-}
-
-auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig
-{
-    ShaderCapabilityConfig config;
-    auto cameraMatrices = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="global_data",
-        .bindingIndex=0,
-        .descriptorType="uniform",
-        .descriptorName="camera",
-        .isArray=false,
-        .arrayCount=0,
-        .layoutQualifier="std140",
-        .descriptorContent=
-            "mat4 viewMatrix\n"
-            "mat4 projMatrix\n"
-            "mat4 inverseViewMatrix\n"
-            "mat4 inverseProjMatrix\n"
-    });
-
-    auto pushConstants = config.addResource(ShaderCapabilityConfig::PushConstant{
-        "mat4 modelMatrix;\n"
-        "uint materialIndex;"
-    });
-
-    auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vUV      = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
-    auto vTangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    config.linkCapability(VertexCapability::kPosition, vPos);
-    config.linkCapability(VertexCapability::kNormal, vNormal);
-    config.linkCapability(VertexCapability::kTangent, vTangent);
-    config.linkCapability(VertexCapability::kUV, vUV);
-
-    config.linkCapability(VertexCapability::kModelMatrix, pushConstants);
-    config.linkCapability(VertexCapability::kViewMatrix, cameraMatrices);
-    config.linkCapability(VertexCapability::kProjMatrix, cameraMatrices);
-    config.setCapabilityAccessor(VertexCapability::kModelMatrix, ".modelMatrix");
-    config.setCapabilityAccessor(VertexCapability::kViewMatrix, ".viewMatrix");
-    config.setCapabilityAccessor(VertexCapability::kProjMatrix, ".projMatrix");
 
     return config;
 }

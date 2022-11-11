@@ -7,6 +7,28 @@
 namespace trc
 {
 
+void ShaderCapabilityConfig::addGlobalShaderExtension(std::string extensionName)
+{
+    globalExtensions.emplace(std::move(extensionName));
+}
+
+void ShaderCapabilityConfig::addGlobalShaderInclude(util::Pathlet includePath)
+{
+    globalIncludes.emplace(std::move(includePath));
+}
+
+auto ShaderCapabilityConfig::getGlobalShaderExtensions() const
+    -> const std::unordered_set<std::string>&
+{
+    return globalExtensions;
+}
+
+auto ShaderCapabilityConfig::getGlobalShaderIncludes() const
+    -> const std::unordered_set<util::Pathlet>&
+{
+    return globalIncludes;
+}
+
 auto ShaderCapabilityConfig::addResource(Resource shaderResource) -> ResourceID
 {
     resources.push_back({ std::move(shaderResource), {}, {} });
@@ -21,6 +43,14 @@ void ShaderCapabilityConfig::addShaderExtension(ResourceID resource, std::string
 void ShaderCapabilityConfig::addShaderInclude(ResourceID resource, util::Pathlet includePath)
 {
     resources.at(resource).includeFiles.emplace(std::move(includePath));
+}
+
+void ShaderCapabilityConfig::addMacro(
+    ResourceID resource,
+    std::string name,
+    std::optional<std::string> value)
+{
+    resources.at(resource).macroDefinitions.try_emplace(std::move(name), std::move(value));
 }
 
 void ShaderCapabilityConfig::linkCapability(Capability capability, ResourceID resource)

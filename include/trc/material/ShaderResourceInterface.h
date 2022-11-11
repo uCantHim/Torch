@@ -121,6 +121,7 @@ namespace trc
 
         std::unordered_set<std::string> requiredExtensions;
         std::unordered_set<util::Pathlet> requiredIncludePaths;
+        std::vector<std::pair<std::string, std::optional<std::string>>> requiredMacros;
 
         std::unordered_map<Resource, std::string> resourceAccessors;
         std::unordered_map<Capability, std::string> capabilityAccessors;

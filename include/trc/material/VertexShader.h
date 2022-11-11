@@ -4,6 +4,7 @@
 #include "MaterialGraph.h"
 #include "ShaderCapabilities.h"
 #include "ShaderResourceInterface.h"
+#include "MaterialCompiler.h"
 
 namespace trc
 {
@@ -16,22 +17,31 @@ namespace trc
         static constexpr Capability kModelMatrix{ "modelMatrix" };
         static constexpr Capability kViewMatrix{ "viewMatrix" };
         static constexpr Capability kProjMatrix{ "projMatrix" };
-    };
 
-    auto makeFragmentCapabilityComputation(Capability fragCapability,
-                                           BasicType type,
-                                           MaterialGraph& graph)
-        -> MaterialNode*;
+        static constexpr Capability kAnimIndex{ "animIndex" };
+        static constexpr Capability kAnimKeyframes{ "animKeyframes" };
+        static constexpr Capability kAnimFrameWeight{ "animFrameWeight" };
+    };
 
     class VertexShaderBuilder
     {
     public:
-        explicit VertexShaderBuilder(MaterialGraph& graph);
+        VertexShaderBuilder(MaterialCompileResult fragmentResult,
+                            bool animated);
 
-        auto getFragmentCapabilityValue(Capability fragCapability, BasicType type) -> MaterialNode*;
+        auto buildVertexShader() -> MaterialCompileResult;
 
     private:
-        MaterialGraph& graph;
+        using FragmentCapabilityFactory = std::function<MaterialNode*(MaterialGraph&)>;
+
+        static auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig;
+        auto getFragmentCapabilityValue(Capability fragCapability, BasicType type) -> MaterialNode*;
+
+        const std::unordered_map<Capability, FragmentCapabilityFactory> fragmentCapabilityFactories;
+
+        MaterialGraph graph;
+        MaterialCompileResult fragment;
+
         std::unordered_map<Capability, MaterialNode*> values;
     };
 } // namespace trc

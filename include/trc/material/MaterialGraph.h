@@ -30,7 +30,7 @@ namespace trc
         auto makeTextureSample(TextureReference tex, MaterialNode* uvs) -> MaterialNode*;
 
         template<std::derived_from<MaterialFunction> T>
-        auto makeFunction(T&& func, std::initializer_list<MaterialNode*> args) -> MaterialNode*
+        auto makeFunctionCall(T&& func, std::initializer_list<MaterialNode*> args) -> MaterialNode*
         {
             return makeNode(std::make_unique<T>(std::forward<T>(func)), args);
         }

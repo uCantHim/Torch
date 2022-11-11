@@ -58,13 +58,22 @@ namespace trc
 
             std::unordered_set<std::string> extensions;
             std::unordered_set<util::Pathlet> includeFiles;
+
+            /** Maps [name -> value?] */
+            std::unordered_map<std::string, std::optional<std::string>> macroDefinitions;
         };
 
         using ResourceID = ui32;
 
+        void addGlobalShaderExtension(std::string extensionName);
+        void addGlobalShaderInclude(util::Pathlet includePath);
+        auto getGlobalShaderExtensions() const -> const std::unordered_set<std::string>&;
+        auto getGlobalShaderIncludes() const -> const std::unordered_set<util::Pathlet>&;
+
         auto addResource(Resource shaderResource) -> ResourceID;
         void addShaderExtension(ResourceID resource, std::string extensionName);
-        void addShaderInclude(ResourceID resouce, util::Pathlet includePath);
+        void addShaderInclude(ResourceID resource, util::Pathlet includePath);
+        void addMacro(ResourceID resource, std::string name, std::optional<std::string> value);
 
         void linkCapability(Capability capability, ResourceID resource);
 
@@ -90,6 +99,9 @@ namespace trc
             BasicType type;
             Capability capability;
         };
+
+        std::unordered_set<std::string> globalExtensions;
+        std::unordered_set<util::Pathlet> globalIncludes;
 
         std::vector<ResourceData> resources;
         std::unordered_map<Capability, ResourceID> resourceFromCapability;
