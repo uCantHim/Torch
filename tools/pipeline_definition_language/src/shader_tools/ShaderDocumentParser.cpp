@@ -11,6 +11,10 @@
 namespace shader_edit
 {
 
+using trc::util::splitString;
+using trc::util::removeEmpty;
+using trc::util::readLines;
+
 constexpr auto VAR_DECL{ "//$" };
 constexpr auto INLINE_VAR_DECL{ "$" };
 
@@ -74,7 +78,7 @@ auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
 
 auto parseShader(std::istream& is) -> ParseResult
 {
-    return parseShader(toLines(is));
+    return parseShader(readLines(is));
 }
 
 auto parseShader(std::vector<std::string> _lines) -> ParseResult
