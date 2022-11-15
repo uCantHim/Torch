@@ -8,7 +8,9 @@ project(Torch)
 
 # Options
 option(TORCH_FLIP_Y_AXIS "Build Torch in a configuration that has Vulkan's negative y-axis flipped" ON)
+option(TORCH_BUILD_SHARED_LIBRARY "Build torch as a shared library" OFF)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
+option(TORCH_BUILD_EXAMPLES "Build examples" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
@@ -63,7 +65,12 @@ endif()
 add_subdirectory(tools)
 
 # Library target
-add_library(torch)
+set(TORCH_LIB_TYPE STATIC)
+if (TORCH_BUILD_SHARED_LIBRARY)
+    set(TORCH_LIB_TYPE SHARED)
+endif ()
+
+add_library(torch ${TORCH_LIB_TYPE})
 torch_default_compile_options(torch)
 
 target_include_directories(

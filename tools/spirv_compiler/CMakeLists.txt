@@ -14,6 +14,7 @@ if (NOT TARGET shaderc)
 endif()
 
 add_library(spirv_compiler)
+torch_default_compile_options(spirv_compiler)
 
 target_sources(spirv_compiler PRIVATE
     src/CompileSpirv.cpp
