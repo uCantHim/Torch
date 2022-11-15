@@ -18,6 +18,11 @@ MaterialCompileResult::MaterialCompileResult(
 {
 }
 
+auto MaterialCompileResult::getShaderGlslCode() const -> const std::string&
+{
+    return shaderGlslCode;
+}
+
 auto MaterialCompileResult::getParameterResultVariableName(ParameterID paramNode) const
     -> std::optional<std::string>
 {
@@ -43,6 +48,23 @@ auto MaterialCompileResult::getRequiredShaderInputs() const
 {
     return resources.getShaderInputs();
 }
+
+auto MaterialCompileResult::getRequiredDescriptorSets() const -> std::vector<std::string>
+{
+    return resources.getDescriptorSets();
+}
+
+auto MaterialCompileResult::getDescriptorIndexPlaceholder(const std::string& setName) const
+    -> std::optional<std::string>
+{
+    return resources.getDescriptorSetIndexPlaceholder(setName);
+}
+
+auto MaterialCompileResult::getRequiredPushConstantSize() const -> ui32
+{
+    return resources.getPushConstantSize();
+}
+
 
 
 MaterialCompiler::MaterialCompiler(ShaderCapabilityConfig config)

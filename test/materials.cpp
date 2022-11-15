@@ -1,4 +1,5 @@
 #include <cstring>
+
 #include <iostream>
 
 #include <shader_tools/ShaderDocument.h>
@@ -8,39 +9,17 @@
 #include <trc/Torch.h>
 #include <trc/assets/import/AssetImport.h>
 #include <trc/core/Pipeline.h>
+#include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/drawable/DefaultDrawable.h>
 #include <trc/material/MaterialCompiler.h>
 #include <trc/material/Mix.h>
 #include <trc/material/VertexShader.h>
+#include <trc/material/MaterialRuntime.h>
 
 using namespace trc;
 
-struct PipelineVertexParams
-{
-    bool animated;
-};
-
-struct PipelineFragmentParams
-{
-    bool transparent;
-    MaterialOutputNode::ParameterID colorParam;
-    MaterialOutputNode::ParameterID normalParam;
-    MaterialOutputNode::ParameterID roughnessParam;
-};
-
-struct MaterialRuntimeInfo
-{
-    auto makePipeline(AssetManager& assetManager) -> Pipeline::ID;
-
-    PipelineVertexParams vertParams;
-    PipelineFragmentParams fragParams;
-    ProgramDefinitionData program;
-
-    std::vector<std::pair<TextureReference, ui32>> textureReferences;
-};
-
-auto makeCapabiltyConfig() -> ShaderCapabilityConfig;
-auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig;
+auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
+auto makeDescriptorConfig() -> DescriptorConfig;
 auto makeMaterial(MaterialOutputNode& materialNode,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams) -> MaterialRuntimeInfo;
@@ -94,8 +73,12 @@ int main()
         .normalParam=inNormal,
         .roughnessParam=inRoughness
     };
-    MaterialRuntimeInfo materialInfo = makeMaterial(mat, vert, frag);
-    Pipeline::ID pipeline = materialInfo.makePipeline(assetManager);
+    MaterialRuntimeInfo materialRuntime = makeMaterial(mat, vert, frag);
+    Pipeline::ID pipeline = materialRuntime.makePipeline(assetManager);
+
+    std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
+    std::cout << "\n--- vertex shader ---\n";
+    std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eVertex);
 
     trc::terminate();
     return 0;
@@ -120,16 +103,14 @@ auto makeMaterial(MaterialOutputNode& materialNode,
     }
 
     // Compile the material graph
-    MaterialCompiler compiler(makeCapabiltyConfig());
+    MaterialCompiler compiler(makeFragmentCapabiltyConfig());
     auto material = compiler.compile(materialNode);
 
     // Perform post-processing of the generated shader source
-    std::string fragmentCode = material.shaderGlslCode;
+    std::string fragmentCode = material.getShaderGlslCode();
     if (fragParams.transparent)
     {
-        std::stringstream ss;
-        ss << std::move(fragmentCode);
-        shader_edit::ShaderDocument doc(ss);
+        shader_edit::ShaderDocument doc(fragmentCode);
 
         doc.set(material.getOutputPlaceholderVariableName(), R"(
     MaterialParams mat;
@@ -149,67 +130,25 @@ auto makeMaterial(MaterialOutputNode& materialNode,
         fragmentCode = doc.compile();
     }
 
-    std::cout << fragmentCode;
-
-    // Choose the appropriate vertex shader
-    const auto vertFlags = vertParams.animated
-        ? pipelines::AnimationTypeFlagBits::boneAnim
-        : pipelines::AnimationTypeFlagBits::none;
-    const auto vertexCode = internal::loadShader(pipelines::getDrawableVertex(vertFlags));
-
     // Create a vertex shader with a graph
     VertexShaderBuilder vertBuilder(material, true);
     auto vert = vertBuilder.buildVertexShader();
 
-    std::cout << "\n// --- vertex shader --- //\n"
-              << vert.shaderGlslCode;
-
     // Create result value
     MaterialRuntimeInfo result{
-        .vertParams = vertParams,
-        .fragParams = fragParams,
-        .program = {
-            .stages{
-                { vk::ShaderStageFlagBits::eVertex, { vertexCode } },
-                { vk::ShaderStageFlagBits::eFragment, { fragmentCode } },
-            }
-        },
-        .textureReferences{}
+        makeDescriptorConfig(),
+        vertParams,
+        fragParams,
+        {
+            { vk::ShaderStageFlagBits::eVertex, std::move(vert) },
+            { vk::ShaderStageFlagBits::eFragment, std::move(material) },
+        }
     };
-    for (auto& [tex, specIdx] : material.getRequiredTextures()) {
-        result.textureReferences.emplace_back(tex, specIdx);
-    }
 
     return result;
 }
 
-auto MaterialRuntimeInfo::makePipeline(AssetManager& assetManager) -> Pipeline::ID
-{
-    // Create the final program information
-    SpecializationConstantStorage fragmentSpecs;
-    for (auto& [tex, specIdx] : textureReferences)
-    {
-        AssetReference<Texture>& ref = tex.texture;
-        if (!ref.hasResolvedID()) {
-            ref.resolve(assetManager);
-        }
-        fragmentSpecs.set(specIdx, ref.getID().getDeviceDataHandle().getDeviceIndex());
-    }
-
-    const auto base = determineDrawablePipeline(DrawablePipelineInfo{
-        .animated=vertParams.animated,
-        .transparent=fragParams.transparent,
-    });
-    const auto layout = PipelineRegistry::getPipelineLayout(base);
-    const auto rp = PipelineRegistry::getPipelineRenderPass(base);
-    const auto basePipeline = PipelineRegistry::cloneGraphicsPipeline(base);
-
-    PipelineTemplate newPipeline{ program, basePipeline.getPipelineData() };
-
-    return PipelineRegistry::registerPipeline(newPipeline, layout, rp);
-}
-
-auto makeCapabiltyConfig() -> ShaderCapabilityConfig
+auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
 {
     ShaderCapabilityConfig config;
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
@@ -237,4 +176,13 @@ auto makeCapabiltyConfig() -> ShaderCapabilityConfig
     config.setCapabilityAccessor(FragmentCapability::kVertexNormal, "[2]");
 
     return config;
+}
+
+auto makeDescriptorConfig() -> DescriptorConfig
+{
+    DescriptorConfig conf;
+    conf.descriptorInfos.try_emplace("global_data", 0, true);
+    conf.descriptorInfos.try_emplace("asset_registry", 1, true);
+
+    return conf;
 }

@@ -25,13 +25,42 @@ auto ShaderResources::getShaderInputs() const
     return requiredShaderInputs;
 }
 
+auto ShaderResources::getDescriptorSets() const -> std::vector<std::string>
+{
+    std::vector<std::string> result;
+    result.reserve(descriptorSetIndexPlaceholders.size());
+    for (const auto& [name, _] : descriptorSetIndexPlaceholders) {
+        result.emplace_back(name);
+    }
+
+    return result;
+}
+
+auto ShaderResources::getDescriptorSetIndexPlaceholder(const std::string& setName) const
+    -> std::optional<std::string>
+{
+    auto it = descriptorSetIndexPlaceholders.find(setName);
+    if (it != descriptorSetIndexPlaceholders.end()) {
+        return it->second;
+    }
+    return std::nullopt;
+}
+
+auto ShaderResources::getPushConstantSize() const -> ui32
+{
+    return pushConstantSize;
+}
+
 
 
 auto ShaderResourceInterface::DescriptorBindingFactory::make(
     const ShaderCapabilityConfig::DescriptorBinding& binding) -> std::string
 {
+    const auto placeholder = getDescriptorSetPlaceholder(binding.setName);
+    descriptorSetPlaceholders.try_emplace(binding.setName, placeholder);
+
     auto& ss = generatedCode;
-    ss << "layout (set = " << getSetIndex(binding.setName)
+    ss << "layout (set = $" << placeholder << " "
        << ", binding = " << binding.bindingIndex;
     if (binding.layoutQualifier) {
         ss << ", " << *binding.layoutQualifier;
@@ -59,23 +88,17 @@ auto ShaderResourceInterface::DescriptorBindingFactory::getCode() const -> std::
     return generatedCode.str();
 }
 
-auto ShaderResourceInterface::DescriptorBindingFactory::getOrderedDescriptorSets() const
-    -> std::vector<std::string>
+auto ShaderResourceInterface::DescriptorBindingFactory::getDescriptorSets() const
+    -> std::unordered_map<std::string, std::string>
 {
-    std::vector<std::string> vec(setIndices.size());
-    for (const auto& [set, idx] : setIndices) {
-        vec.at(idx) = set;
-    }
-    return vec;
+    return descriptorSetPlaceholders;
 }
 
-auto ShaderResourceInterface::DescriptorBindingFactory::getSetIndex(const std::string& set) -> ui32
+auto ShaderResourceInterface::DescriptorBindingFactory::getDescriptorSetPlaceholder(
+    const std::string& set)
+    -> std::string
 {
-    auto [it, success] = setIndices.try_emplace(set, nextSetIndex);
-    if (success) {
-        ++nextSetIndex;
-    }
-    return it->second;
+    return set + "_DESCRIPTOR_SET_INDEX";
 }
 
 
@@ -176,6 +199,7 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
             .specializationConstantIndex=specIdx
         });
     }
+    result.descriptorSetIndexPlaceholders = descriptorFactory.getDescriptorSets();
 
     return result;
 }

@@ -8,6 +8,7 @@ target_sources(
         MaterialGraph.cpp
         MaterialNode.cpp
         MaterialOutputNode.cpp
+        MaterialRuntime.cpp
         ShaderCapabilityConfig.cpp
         ShaderResourceInterface.cpp
         VertexShader.cpp

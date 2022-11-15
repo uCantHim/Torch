@@ -18,6 +18,8 @@ namespace trc
      */
     struct MaterialCompileResult
     {
+        auto getShaderGlslCode() const -> const std::string&;
+
         /**
          * @brief Get the name of a material parameter's result variable
          */
@@ -41,8 +43,6 @@ namespace trc
          */
         auto getOutputPlaceholderVariableName() const -> std::string;
 
-        const std::string shaderGlslCode;
-
         /**
          * Structs { <texture>, <spec-idx> }
          *
@@ -55,6 +55,11 @@ namespace trc
         auto getRequiredShaderInputs() const
             -> const std::vector<ShaderResources::ShaderInputInfo>&;
 
+        auto getRequiredDescriptorSets() const -> std::vector<std::string>;
+        auto getDescriptorIndexPlaceholder(const std::string& setName) const
+            -> std::optional<std::string>;
+        auto getRequiredPushConstantSize() const -> ui32;
+
     private:
         friend class MaterialCompiler;
 
@@ -64,6 +69,8 @@ namespace trc
             std::unordered_map<ParameterID, std::string> paramResultVariableNames,
             std::string outputReplacementVariableName
         );
+
+        const std::string shaderGlslCode;
 
         const ShaderResources resources;
 

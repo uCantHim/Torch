@@ -45,6 +45,12 @@ namespace trc
 
         auto getReferencedTextures() const -> const std::vector<TextureResource>&;
 
+        auto getDescriptorSets() const -> std::vector<std::string>;
+        auto getDescriptorSetIndexPlaceholder(const std::string& setName) const
+            -> std::optional<std::string>;
+
+        auto getPushConstantSize() const -> ui32;
+
     private:
         friend class ShaderResourceInterface;
 
@@ -52,6 +58,8 @@ namespace trc
         std::vector<ShaderInputInfo> requiredShaderInputs;
 
         std::vector<TextureResource> textures;
+        std::unordered_map<std::string, std::string> descriptorSetIndexPlaceholders;
+        ui32 pushConstantSize;
     };
 
     class ShaderResourceInterface
@@ -82,14 +90,12 @@ namespace trc
             auto make(const ShaderCapabilityConfig::DescriptorBinding& binding) -> std::string;
 
             auto getCode() const -> std::string;
-            auto getOrderedDescriptorSets() const -> std::vector<std::string>;
+            auto getDescriptorSets() const -> std::unordered_map<std::string, std::string>;
 
         private:
-            auto getSetIndex(const std::string& set) -> ui32;
+            auto getDescriptorSetPlaceholder(const std::string& set) -> std::string;
 
-            ui32 nextSetIndex{ 0 };
-            std::unordered_map<std::string, ui32> setIndices;
-
+            std::unordered_map<std::string, std::string> descriptorSetPlaceholders;
             std::stringstream generatedCode;
         };
 

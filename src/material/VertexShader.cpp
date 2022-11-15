@@ -268,7 +268,7 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
     config.addShaderInclude(pushConstants, util::Pathlet("animation.glsl"));
     config.addMacro(pushConstants, "BONE_INDICES_INPUT_LOCATION", "4");
     config.addMacro(pushConstants, "BONE_WEIGHTS_INPUT_LOCATION", "5");
-    config.addMacro(pushConstants, "ASSET_DESCRIPTOR_SET_BINDING", "0");
+    config.addMacro(pushConstants, "ASSET_DESCRIPTOR_SET_BINDING", "1");
 
     auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
     auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
