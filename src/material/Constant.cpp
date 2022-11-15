@@ -1,5 +1,7 @@
 #include "trc/material/Constant.h"
 
+#include <sstream>
+
 
 
 namespace trc
@@ -50,6 +52,13 @@ auto Constant::datatype() const -> std::string
     return type.to_string();
 }
 
+auto Constant::toString() const -> std::string
+{
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
+}
+
 auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&
 {
     os << c.datatype() << "(" << std::boolalpha;
@@ -58,7 +67,7 @@ auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&
         switch (c.getType().type)
         {
         case BasicType::Type::eBool:   os << c.as<glm::bvec4>()[i]; break;
-        case BasicType::Type::eSint:   os << c.as<vec4>()[i]; break;
+        case BasicType::Type::eSint:   os << c.as<ivec4>()[i]; break;
         case BasicType::Type::eUint:   os << c.as<uvec4>()[i]; break;
         case BasicType::Type::eFloat:  os << c.as<vec4>()[i]; break;
         case BasicType::Type::eDouble: os << c.as<glm::dvec4>()[i]; break;

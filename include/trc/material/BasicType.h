@@ -30,6 +30,8 @@ namespace trc
 
         BasicType(Type t, ui8 channels);
 
+        auto operator<=>(const BasicType&) const = default;
+
         auto to_string() const -> std::string;
         auto locations() const -> ui32;
 

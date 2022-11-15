@@ -29,6 +29,7 @@ namespace trc
 
         auto getType() const -> BasicType;
         auto datatype() const -> std::string;
+        auto toString() const -> std::string;
 
         template<typename T> requires (sizeof(T) <= sizeof(LargestType))
         auto as() const -> T;
