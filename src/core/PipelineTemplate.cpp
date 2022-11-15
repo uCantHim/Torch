@@ -48,7 +48,6 @@ trc::PipelineTemplate::PipelineTemplate(ProgramDefinitionData program, PipelineD
     program(std::move(program)),
     data(std::move(pipeline))
 {
-    compileData();
 }
 
 auto trc::PipelineTemplate::getProgramData() const -> const ProgramDefinitionData&
@@ -59,36 +58,6 @@ auto trc::PipelineTemplate::getProgramData() const -> const ProgramDefinitionDat
 auto trc::PipelineTemplate::getPipelineData() const -> const PipelineDefinitionData&
 {
     return data;
-}
-
-void trc::PipelineTemplate::compileData()
-{
-    data.viewport = vk::PipelineViewportStateCreateInfo({}, data.viewports, data.scissorRects);
-
-    if (data.viewport.viewportCount == 0)
-    {
-        const auto& vp = data.viewports.emplace_back(vk::Viewport(0, 0, 1, 1, 0.0f, 1.0f));
-        data.viewport.setViewports(vp);
-        if (std::ranges::find(data.dynamicStates, vk::DynamicState::eViewport)
-                == data.dynamicStates.end())
-        {
-            data.dynamicStates.emplace_back(vk::DynamicState::eViewport);
-        }
-    }
-    if (data.viewport.scissorCount == 0)
-    {
-        const auto& sc = data.scissorRects.emplace_back(vk::Rect2D({ 0, 0 }, { 1, 1 }));
-        data.viewport.setScissors(sc);
-        if (std::ranges::find(data.dynamicStates, vk::DynamicState::eScissor)
-                == data.dynamicStates.end())
-        {
-            data.dynamicStates.emplace_back(vk::DynamicState::eScissor);
-        }
-    }
-
-    data.vertexInput = vk::PipelineVertexInputStateCreateInfo({}, data.inputBindings, data.attributes);
-    data.dynamicState = vk::PipelineDynamicStateCreateInfo({}, data.dynamicStates);
-    data.colorBlending.setAttachments(data.colorBlendAttachments);
 }
 
 
@@ -135,20 +104,49 @@ auto trc::makeGraphicsPipeline(
     // Create a program from the shader code
     ShaderProgram program = shader.makeProgram(device);
 
+    // Create some of the pipeline state info structs
+    // The structs that refer to other resources stored in the pipeline definition data
+    // are created here so that the definition data struct can be safely copied.
+    std::vector<vk::DynamicState> dynamicStates = def.dynamicStates;
+    vk::PipelineViewportStateCreateInfo viewport({}, def.viewports, def.scissorRects);
+    vk::PipelineVertexInputStateCreateInfo vertexInput({}, def.inputBindings, def.attributes);
+    auto colorBlending = def.colorBlending;
+    colorBlending.setAttachments(def.colorBlendAttachments);
+
+    // Set viewport/scissor as dynamic states if none are specified
+    vk::Viewport defaultViewport(0, 0, 1, 1, 0.0f, 1.0f);
+    vk::Rect2D defaultScissor({ 0, 0 }, { 1, 1 });
+    if (viewport.viewportCount == 0)
+    {
+        viewport.setViewports(defaultViewport);
+        if (std::ranges::find(dynamicStates, vk::DynamicState::eViewport) == dynamicStates.end()) {
+            dynamicStates.emplace_back(vk::DynamicState::eViewport);
+        }
+    }
+    if (viewport.scissorCount == 0)
+    {
+        viewport.setScissors(defaultScissor);
+        if (std::ranges::find(dynamicStates, vk::DynamicState::eScissor) == dynamicStates.end()) {
+            dynamicStates.emplace_back(vk::DynamicState::eScissor);
+        }
+    }
+    vk::PipelineDynamicStateCreateInfo dynamicState({}, dynamicStates);
+
+    // Create the pipeline
     auto pipeline = device->createGraphicsPipelineUnique(
         {},
         vk::GraphicsPipelineCreateInfo(
             {},
             program.getStageCreateInfo(),
-            &def.vertexInput,
+            &vertexInput,
             &def.inputAssembly,
             &def.tessellation,
-            &def.viewport,
+            &viewport,
             &def.rasterization,
             &def.multisampling,
             &def.depthStencil,
-            &def.colorBlending,
-            &def.dynamicState,
+            &colorBlending,
+            &dynamicState,
             *layout,
             renderPass, subPass,
             vk::Pipeline(), 0

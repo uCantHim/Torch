@@ -159,7 +159,6 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
         }
     }
     ss << --nl << "},";  // .inputAttributes{
-    ss << nl << ".vertexInput{},  // set by pipelines creation";
 
     // Write input assembly
     ss << nl << ".inputAssembly{ {}, " << "vk::PrimitiveTopology::"
@@ -170,8 +169,7 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
     ss << nl << ".tessellation{ {}, " << pipeline.tessellation.patchControlPoints << " },";
 
     // Write empty viewport properties for completeness
-    ss << nl << ".viewports{}," << nl << ".scissorRects{},"
-       << nl << ".viewport{},  // set by pipeline creation";
+    ss << nl << ".viewports{}," << nl << ".scissorRects{},";
 
     // Write rasterization
     const auto& r = pipeline.rasterization;
@@ -230,7 +228,6 @@ auto makePipelineDefinitionDataInit(const PipelineDesc& pipeline, LineWriter& nl
         ss << nl << "vk::DynamicState::" << state << ",";
     }
     ss << --nl << "},";
-    ss << nl << ".dynamicState{},  // set by pipeline creation";
 
     // End
     ss << --nl << "}";  // PipelineDefinitionData{

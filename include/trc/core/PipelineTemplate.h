@@ -59,7 +59,6 @@ namespace trc
     {
         std::vector<vk::VertexInputBindingDescription> inputBindings;
         std::vector<vk::VertexInputAttributeDescription> attributes;
-        vk::PipelineVertexInputStateCreateInfo vertexInput;
 
         vk::PipelineInputAssemblyStateCreateInfo inputAssembly{ DEFAULT_INPUT_ASSEMBLY };
 
@@ -67,7 +66,6 @@ namespace trc
 
         std::vector<vk::Viewport> viewports;
         std::vector<vk::Rect2D> scissorRects;
-        vk::PipelineViewportStateCreateInfo viewport;
 
         vk::PipelineRasterizationStateCreateInfo rasterization{ DEFAULT_RASTERIZATION };
         vk::PipelineMultisampleStateCreateInfo multisampling{ DEFAULT_MULTISAMPLING };
@@ -77,7 +75,6 @@ namespace trc
         vk::PipelineColorBlendStateCreateInfo colorBlending;
 
         std::vector<vk::DynamicState> dynamicStates;
-        vk::PipelineDynamicStateCreateInfo dynamicState;
     };
 
     /**
@@ -95,8 +92,6 @@ namespace trc
         auto getPipelineData() const -> const PipelineDefinitionData&;
 
     private:
-        void compileData();
-
         ProgramDefinitionData program;
         PipelineDefinitionData data;
     };
@@ -127,6 +122,10 @@ namespace trc
 
     /**
      * @brief Create a graphics pipeline from a template
+     *
+     * Adds viewport and scissor to the dynamic states automatically if
+     * no `vk::Viewport` or `vk::Rect2D` structs, respectively, are
+     * specified in the pipeline template.
      */
     auto makeGraphicsPipeline(const Device& device,
                               const PipelineTemplate& _template,
