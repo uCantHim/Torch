@@ -142,9 +142,12 @@ auto ShaderResourceInterface::ShaderInputFactory::make(
 
 
 
-ShaderResourceInterface::ShaderResourceInterface(const ShaderCapabilityConfig& config)
+ShaderResourceInterface::ShaderResourceInterface(
+    const ShaderCapabilityConfig& config,
+    ShaderCodeBuilder& codeBuilder)
     :
     config(config),
+    codeBuilder(&codeBuilder),
     requiredExtensions(config.getGlobalShaderExtensions()),
     requiredIncludePaths(config.getGlobalShaderIncludes())
 {
@@ -154,6 +157,9 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
 {
     std::stringstream ss;
 
+    for (const auto& [_, macro] : resourceMacros) {
+        ss << "#define " << macro.first << " " << macro.second << "\n";
+    }
     for (const auto& [name, val] : requiredMacros) {
         ss << "#define " << name << " (" << val.value_or("") << ")\n";
     }
@@ -183,11 +189,6 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     }
     ss << "\n";
 
-    // Write constants
-    for (const auto& [name, value] : constants) {
-        ss << "#define " << name << " (" << value << ")\n";
-    }
-
     // Create result value
     ShaderResources result;
     result.code = ss.str();
@@ -204,68 +205,37 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     return result;
 }
 
-auto ShaderResourceInterface::makeScalarConstant(Constant constantValue) -> std::string
-{
-    const auto name = "kConstant" + std::to_string(nextConstantId++) + "_" + constantValue.datatype();
-    constants.try_emplace(name, constantValue);
-
-    return name;
-}
-
-auto ShaderResourceInterface::queryTexture(TextureReference tex) -> std::string
+auto ShaderResourceInterface::queryTexture(TextureReference tex) -> code::Value
 {
     auto [it, success] = specializationConstantTextures.try_emplace(nextSpecConstantIndex++, tex);
     assert(success);
 
     auto [idx, _] = *it;
-    std::string specConstName = "kSpecConstant" + std::to_string(idx) + "_TextureIndex";
+    const std::string specConstName = "kSpecConstant" + std::to_string(idx) + "_TextureIndex";
     specializationConstants.emplace_back(idx, specConstName);
 
-    return hardcoded_makeTextureAccessor(specConstName);
+    return codeBuilder->makeArrayAccess(
+        queryCapability(FragmentCapability::kTextureSample),
+        codeBuilder->makeExternalIdentifier(specConstName)
+    );
 }
 
-auto ShaderResourceInterface::queryCapability(Capability capability) -> std::string
+auto ShaderResourceInterface::queryCapability(Capability capability) -> code::Value
 {
-    return accessCapability(capability);
-}
-
-auto ShaderResourceInterface::hardcoded_makeTextureAccessor(const std::string& textureIndexName)
-    -> std::string
-{
-    return accessCapability(FragmentCapability::kTextureSample) + "[" + textureIndexName + "]";
-}
-
-auto ShaderResourceInterface::accessCapability(Capability capability) -> std::string
-{
-    auto it = capabilityAccessors.find(capability);
-    if (it != capabilityAccessors.end()) {
-        return it->second;
+    for (auto id : config.getCapabilityResources(capability)) {
+        requireResource(capability, &config.getResource(id));
     }
 
-    // Capability has never been queried before; create the accessor now.
-    if (auto resource = config.getResource(capability))
-    {
-        auto accessor = accessResource(capability, *resource);
-        if (auto appendage = config.getCapabilityAccessor(capability)) {
-            accessor += *appendage;
-        }
-
-        auto [it, success] = capabilityAccessors.try_emplace(capability, std::move(accessor));
-        assert(success && "The cache retrieval above should have given a result.");
-        return it->second;
-    }
-
-    throw std::runtime_error("Required shader capability " + capability.getString()
-                             + " is not implemented!");
+    return config.accessCapability(capability);
 }
 
-auto ShaderResourceInterface::accessResource(Capability capability, Resource resource) -> std::string
+void ShaderResourceInterface::requireResource(Capability capability, Resource resource)
 {
     assert(resource != nullptr);
 
-    // Try to query the cached value
-    if (resourceAccessors.contains(resource)) {
-        return resourceAccessors.at(resource);
+    // Only add a resource once
+    if (resourceMacros.contains(resource)) {
+        return;
     }
 
     // First resource access; create it.
@@ -276,7 +246,7 @@ auto ShaderResourceInterface::accessResource(Capability capability, Resource res
         requiredMacros.emplace_back(name, val);
     }
 
-    auto accessor = std::visit(util::VariantVisitor{
+    auto accessorStr = std::visit(util::VariantVisitor{
         [this](const ShaderCapabilityConfig::DescriptorBinding& binding) {
             return descriptorFactory.make(binding);
         },
@@ -288,9 +258,7 @@ auto ShaderResourceInterface::accessResource(Capability capability, Resource res
         }
     }, res.resourceType);
 
-    auto [it, success] = resourceAccessors.try_emplace(resource, std::move(accessor));
-    assert(success);
-    return it->second;
+    resourceMacros.try_emplace(resource, res.resourceMacroName, accessorStr);
 }
 
 } // namespace trc

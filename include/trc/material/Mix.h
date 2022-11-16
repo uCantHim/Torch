@@ -1,33 +1,31 @@
 #pragma once
 
-#include <string>
+#include <vector>
 
 #include "BasicType.h"
-#include "MaterialFunction.h"
+#include "ShaderModuleBuilder.h"
 
 namespace trc
 {
     template<ui32 N, typename T>
-    class Mix : public MaterialFunction
+    class Mix : public ShaderFunction
     {
     public:
         explicit Mix()
             :
-            MaterialFunction({
-                .name="Mix",
-                .inputs={
-                    { "a", glm::vec<N, T>{} },
-                    { "b", glm::vec<N, T>{} },
-                    { "x", float{} },
-                },
-                .output={ "result", glm::vec<N, T>{} }
-            })
+            ShaderFunction(
+                "Mix",
+                FunctionType{
+                    { glm::vec<N, T>{}, glm::vec<N, T>{}, float{} },
+                    glm::vec<N, T>{}
+                }
+            )
         {
         }
 
-        auto makeGlslCode(ShaderResourceInterface&) -> std::string override
+        void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
         {
-            return "return mix(a, b, x);";
+            builder.makeReturn(builder.makeExternalCall("mix", args));
         }
     };
 } // namespace trc

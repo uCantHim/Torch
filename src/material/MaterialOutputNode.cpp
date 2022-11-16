@@ -1,7 +1,5 @@
 #include "trc/material/MaterialOutputNode.h"
 
-#include "trc/material/MaterialNode.h"
-
 
 
 namespace trc
@@ -37,26 +35,26 @@ void MaterialOutputNode::linkOutput(ParameterID param, BuiltinOutputID output)
     builtinOutputLinks.try_emplace(builtinOutputNames.at(output.index), param);
 }
 
-void MaterialOutputNode::setParameter(ParameterID param, MaterialNode* value)
+void MaterialOutputNode::setParameter(ParameterID param, code::Value value)
 {
-    const auto type = paramTypes.at(param.index);
-    if (type.channels != value->getFunction().getSignature().output.type.channels)
-    {
-        throw std::invalid_argument(
-            "[In MaterialResultNode::setParameter]: Parameter " + std::to_string(param.index)
-            + " has a channel count of " + std::to_string(type.channels) + ", which does not match"
-            " the channel count of the provided value.");
-    }
+    // const auto type = paramTypes.at(param.index);
+    // if (type.channels != value->getFunction().getType().output.type.channels)
+    // {
+    //     throw std::invalid_argument(
+    //         "[In MaterialResultNode::setParameter]: Parameter " + std::to_string(param.index)
+    //         + " has a channel count of " + std::to_string(type.channels) + ", which does not match"
+    //         " the channel count of the provided value.");
+    // }
 
     paramNodes.at(param.index) = value;
 }
 
-auto MaterialOutputNode::getParameter(ParameterID param) const -> MaterialNode*
+auto MaterialOutputNode::getParameter(ParameterID param) const -> code::Value
 {
     return paramNodes.at(param.index);
 }
 
-auto MaterialOutputNode::getParameters() const -> const std::vector<MaterialNode*>&
+auto MaterialOutputNode::getParameters() const -> const std::vector<code::Value>&
 {
     return paramNodes;
 }

@@ -16,11 +16,14 @@
 #include <trc/material/VertexShader.h>
 #include <trc/material/MaterialRuntime.h>
 
+#include <trc/material/ShaderModuleBuilder.h>
+
 using namespace trc;
 
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
 auto makeDescriptorConfig() -> DescriptorConfig;
-auto makeMaterial(MaterialOutputNode& materialNode,
+auto makeMaterial(ShaderModuleBuilder& builder,
+                  MaterialOutputNode& materialNode,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams) -> MaterialRuntimeInfo;
 
@@ -52,18 +55,18 @@ int main()
     assert(inRoughness.index == InputParam::eRoughness);
 
     // Build a material graph
-    MaterialGraph graph;
+    ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
 
-    auto uvs = graph.makeCapabilityAccess(FragmentCapability::kVertexUV, vec2{});
-    auto texColor = graph.makeTextureSample({ tex }, uvs);
+    auto uvs = builder.makeCapabilityAccess(FragmentCapability::kVertexUV);
+    auto texColor = builder.makeTextureSample({ tex }, uvs);
 
-    auto color = graph.makeConstant(vec4(1, 0, 0.5, 1));
-    auto alpha = graph.makeConstant(0.5f);
-    auto mix = graph.makeFunctionCall(Mix<4, float>{}, { color, texColor, alpha });
+    auto color = builder.makeConstant(vec4(1, 0, 0.5, 1));
+    auto alpha = builder.makeConstant(0.5f);
+    auto mix = builder.makeCall<Mix<4, float>>({ color, texColor, alpha });
 
     mat.setParameter(inColor, mix);
-    mat.setParameter(inNormal, graph.makeCapabilityAccess(FragmentCapability::kVertexNormal, vec3{}));
-    mat.setParameter(inRoughness, graph.makeConstant(0.4f));
+    mat.setParameter(inNormal, builder.makeCapabilityAccess(FragmentCapability::kVertexNormal));
+    mat.setParameter(inRoughness, builder.makeConstant(0.4f));
 
     // Create a pipeline
     PipelineVertexParams vert{ .animated=false };
@@ -73,7 +76,7 @@ int main()
         .normalParam=inNormal,
         .roughnessParam=inRoughness
     };
-    MaterialRuntimeInfo materialRuntime = makeMaterial(mat, vert, frag);
+    MaterialRuntimeInfo materialRuntime = makeMaterial(builder, mat, vert, frag);
     Pipeline::ID pipeline = materialRuntime.makePipeline(assetManager);
 
     std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
@@ -84,7 +87,8 @@ int main()
     return 0;
 }
 
-auto makeMaterial(MaterialOutputNode& materialNode,
+auto makeMaterial(ShaderModuleBuilder& builder,
+                  MaterialOutputNode& materialNode,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams) -> MaterialRuntimeInfo
 {
@@ -103,8 +107,8 @@ auto makeMaterial(MaterialOutputNode& materialNode,
     }
 
     // Compile the material graph
-    MaterialCompiler compiler(makeFragmentCapabiltyConfig());
-    auto material = compiler.compile(materialNode);
+    MaterialCompiler compiler;
+    auto material = compiler.compile(materialNode, builder);
 
     // Perform post-processing of the generated shader source
     std::string fragmentCode = material.getShaderGlslCode();
@@ -151,6 +155,8 @@ auto makeMaterial(MaterialOutputNode& materialNode,
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
 {
     ShaderCapabilityConfig config;
+    auto& code = config.getCodeBuilder();
+
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName="asset_registry",
         .bindingIndex=1,
@@ -162,18 +168,20 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         .descriptorContent=std::nullopt,
     });
     config.addShaderExtension(textureResource, "GL_EXT_nonuniform_qualifier");
-    config.linkCapability(FragmentCapability::kTextureSample, textureResource);
+    config.linkCapability(FragmentCapability::kTextureSample, textureResource, uint{});
 
     auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
     auto vUv        = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
     auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, true });
     auto vTbnMat    = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat3{} });
 
-    config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos);
-    config.linkCapability(FragmentCapability::kVertexUV, vUv);
-    config.linkCapability(FragmentCapability::kVertexNormal, vTbnMat);
-
-    config.setCapabilityAccessor(FragmentCapability::kVertexNormal, "[2]");
+    config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos, vec3{});
+    config.linkCapability(FragmentCapability::kVertexUV, vUv, vec2{});
+    config.linkCapability(
+        FragmentCapability::kVertexNormal,
+        code.makeArrayAccess(config.accessResource(vTbnMat), code.makeConstant(2)),
+        vec3{}, { vTbnMat }
+    );
 
     return config;
 }

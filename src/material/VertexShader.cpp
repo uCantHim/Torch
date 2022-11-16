@@ -8,121 +8,80 @@
 namespace trc
 {
 
-class Function : public MaterialFunction
-{
-public:
-    template<std::invocable<ShaderResourceInterface&> F>
-    Function(std::string name, F&& func, std::initializer_list<BasicType> params, BasicType resultType)
-        :
-        MaterialFunction(Signature{
-            std::move(name),
-            [&]{
-                std::vector<Param> result;
-                for (ui32 i = 0; auto type : params) {
-                    result.push_back({ "_" + std::to_string(i++), type });
-                }
-                return result;
-            }(),
-            Param{ "out", resultType }
-        }),
-        func(std::move(func))
-    {
-    }
-
-    auto makeGlslCode(ShaderResourceInterface& resources) -> std::string override
-    {
-        return func(resources);
-    }
-
-private:
-    std::function<std::string(ShaderResourceInterface&)> func;
-};
-
-class GlPosition : public MaterialFunction
+class GlPosition : public ShaderFunction
 {
 public:
     GlPosition()
         :
-        MaterialFunction(Signature{
+        ShaderFunction(
             "calcGlPosition",
-            { Param{ "worldPos", vec4{} } },
-            Param{ "out", vec4{} }
-        })
+            FunctionType{ { vec4{} }, vec4{} }
+        )
     {}
 
-    auto makeGlslCode(ShaderResourceInterface& resources) -> std::string
+    void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
     {
-        return "return "
-            + resources.queryCapability(VertexCapability::kProjMatrix)
-            + " * " + resources.queryCapability(VertexCapability::kViewMatrix)
-            + " * worldPos;";
+        auto viewproj = builder.makeMul(
+            builder.makeCapabilityAccess(VertexCapability::kProjMatrix),
+            builder.makeCapabilityAccess(VertexCapability::kViewMatrix)
+        );
+        builder.makeReturn(builder.makeMul(viewproj, args[0]));
     }
 };
 
-template<ui32 N>
-class MatrixApplication : public MaterialFunction
-{
-public:
-    using VecT = glm::vec<N, float>;
-    using MatT = glm::mat<N, N, float>;
-
-    MatrixApplication()
-        :
-        MaterialFunction(Signature{
-            "applyMatrix",
-            { Param{ "vector", VecT{} }, Param{ "matrix", MatT{} } },
-            Param{ "out", VecT{} }
-        })
-    {}
-
-    auto makeGlslCode(ShaderResourceInterface&) -> std::string override
-    {
-        return "return matrix * vector;";
-    }
-};
-
-class ApplyAnimation : public MaterialFunction
+class ApplyAnimation : public ShaderFunction
 {
 public:
     ApplyAnimation()
         :
-        MaterialFunction(Signature{
+        ShaderFunction(
             "applyAnimationTransform",
-            { Param{ "v", vec4{} }, },
-            Param{ "out", vec4{} }
-        })
+            FunctionType{ { vec4{} }, vec4{} }
+        )
     {}
 
-    auto makeGlslCode(ShaderResourceInterface& resources) -> std::string override
+    void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
     {
-        return "return applyAnimation("
-            + resources.queryCapability(VertexCapability::kAnimIndex)
-            + ", v"
-            + ", " + resources.queryCapability(VertexCapability::kAnimKeyframes)
-            + ", " + resources.queryCapability(VertexCapability::kAnimFrameWeight)
-            + ");";
+        auto anim = builder.makeCapabilityAccess(VertexCapability::kAnimIndex);
+        auto keyframes = builder.makeCapabilityAccess(VertexCapability::kAnimKeyframes);
+        auto weight = builder.makeCapabilityAccess(VertexCapability::kAnimFrameWeight);
+        auto res = builder.makeExternalCall("applyAnimation", { anim, args[0], keyframes, weight });
+        builder.makeReturn(res);
     }
 };
 
-class ToVec4 : public MaterialFunction
+class ToVec4 : public ShaderFunction
 {
 public:
-    explicit ToVec4(float w)
+    ToVec4()
         :
-        MaterialFunction(Signature{
-            "toVec4",
-            { Param{ "v", vec3{} }, },
-            Param{ "out", vec4{} }
-        }),
-        w(w)
+        ShaderFunction("toVec4", FunctionType{ { vec3{}, float{} }, vec4{} })
     {}
 
-    auto makeGlslCode(ShaderResourceInterface&) -> std::string override {
-        return "return vec4(v, " + std::to_string(w) + ");";
+    void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
+    {
+        builder.makeReturn(builder.makeExternalCall("vec4", args));
     }
+};
 
-private:
-    const float w;
+class NormalToWorldspace : public ShaderFunction
+{
+public:
+    NormalToWorldspace()
+        :
+        ShaderFunction("normalToWorldspace", FunctionType{ { vec4{} }, vec3{} })
+    {}
+
+    void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
+    {
+        auto model = builder.makeCapabilityAccess(VertexCapability::kModelMatrix);
+        auto tiModel = builder.makeExternalCall(
+            "transpose",
+            { builder.makeExternalCall("inverse", {model}) }
+        );
+        auto normal = builder.makeMemberAccess(builder.makeMul(tiModel, args[0]), "xyz");
+        builder.makeReturn(builder.makeExternalCall("normalize", { normal }));
+    }
 };
 
 
@@ -131,60 +90,50 @@ VertexShaderBuilder::VertexShaderBuilder(
     MaterialCompileResult fragmentResult,
     bool animated)
     :
-    fragmentCapabilityFactories({
-        { FragmentCapability::kVertexWorldPos, [animated](MaterialGraph& graph) -> MaterialNode* {
-            auto objPos = graph.makeCapabilityAccess(VertexCapability::kPosition, vec3{});
-            auto modelMat = graph.makeCapabilityAccess(VertexCapability::kModelMatrix, mat4{});
-            auto objPos4 = graph.makeFunctionCall(ToVec4(1.0f), { objPos });
-            if (animated) {
-                objPos4 = graph.makeFunctionCall(ApplyAnimation{}, { objPos4 });
-            }
-
-            auto worldPos = graph.makeFunctionCall(MatrixApplication<4>{}, { objPos4, modelMat });
-
-            return worldPos;
-        }},
-        { FragmentCapability::kVertexNormal, [animated](MaterialGraph& graph) -> MaterialNode* {
-            Function normalToWorldspace{
-                "calcWorldspaceNormal",
-                [](ShaderResourceInterface& res) {
-                    return "return normalize((transpose(inverse("
-                           + res.queryCapability(VertexCapability::kModelMatrix)
-                           + ")) * _0).xyz);";
-                },
-                { vec4{} }, vec3{}
-            };
-            auto normalObjspace = graph.makeCapabilityAccess(VertexCapability::kNormal, vec3{});
-            auto tangentObjspace = graph.makeCapabilityAccess(VertexCapability::kTangent, vec3{});
-            normalObjspace = graph.makeFunctionCall(ToVec4(0.0f), { normalObjspace });
-            tangentObjspace = graph.makeFunctionCall(ToVec4(0.0f), { tangentObjspace });
-            if (animated) {
-                normalObjspace = graph.makeFunctionCall(ApplyAnimation{}, { normalObjspace });
-                tangentObjspace = graph.makeFunctionCall(ApplyAnimation{}, { tangentObjspace });
-            }
-
-            auto normal = graph.makeFunctionCall(Function{ normalToWorldspace }, { normalObjspace });
-            auto tangent = graph.makeFunctionCall(Function{ normalToWorldspace }, { tangentObjspace });
-            auto bitangent = graph.makeFunctionCall(Function{
-                "calcBitangent",
-                [](ShaderResourceInterface&) { return "return cross(_0, _1);"; },
-                { vec3{}, vec3{} }, vec3{}
-            }, { normal, tangent });
-
-            auto tbn = graph.makeFunctionCall(Function{
-                "assembleMatrix",
-                [](ShaderResourceInterface&) { return "return mat3(_0, _1, _2);"; },
-                { vec3{}, vec3{}, vec3{} }, mat3{}
-            }, { tangent, bitangent, normal });
-
-            return tbn;
-        }},
-        { FragmentCapability::kVertexUV, [](MaterialGraph& graph) -> MaterialNode* {
-            return graph.makeCapabilityAccess(VertexCapability::kUV, vec2{});
-        }},
-    }),
-    fragment(std::move(fragmentResult))
+    fragment(std::move(fragmentResult)),
+    builder(makeVertexCapabilityConfig())
 {
+    fragCapabilityProviders = {
+        {
+            FragmentCapability::kVertexWorldPos,
+            [this, animated]() -> code::Value
+            {
+                auto objPos = builder.makeCapabilityAccess(VertexCapability::kPosition);
+                auto modelMat = builder.makeCapabilityAccess(VertexCapability::kModelMatrix);
+                auto objPos4 = builder.makeCall<ToVec4>({ objPos, builder.makeConstant(1.0f) });
+                if (animated) {
+                    objPos4 = builder.makeCall<ApplyAnimation>({ objPos4 });
+                }
+
+                auto worldPos = builder.makeMul(objPos4, modelMat);
+                return worldPos;
+            }()
+        },
+        {
+            FragmentCapability::kVertexNormal,
+            [this, animated]() -> code::Value {
+                auto zero = builder.makeConstant(0.0f);
+
+                auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
+                auto tangentObjspace = builder.makeCapabilityAccess(VertexCapability::kTangent);
+                normalObjspace = builder.makeCall<ToVec4>({ normalObjspace, zero });
+                tangentObjspace = builder.makeCall<ToVec4>({ tangentObjspace, zero });
+                if (animated) {
+                    normalObjspace = builder.makeCall<ApplyAnimation>({ normalObjspace });
+                    tangentObjspace = builder.makeCall<ApplyAnimation>({ tangentObjspace });
+                }
+
+                auto normal = builder.makeCall<NormalToWorldspace>({ normalObjspace });
+                auto tangent = builder.makeCall<NormalToWorldspace>({ tangentObjspace });
+                auto bitangent = builder.makeExternalCall("cross", { normal, tangent });
+
+                auto tbn = builder.makeExternalCall("mat3", { tangent, bitangent, normal });
+
+                return tbn;
+            }()
+        },
+        { FragmentCapability::kVertexUV, builder.makeCapabilityAccess(VertexCapability::kUV) }
+    };
 }
 
 auto VertexShaderBuilder::buildVertexShader() -> MaterialCompileResult
@@ -196,7 +145,7 @@ auto VertexShaderBuilder::buildVertexShader() -> MaterialCompileResult
         auto param = vertNode.addParameter(out.type);
         vertNode.linkOutput(param, output, "");
 
-        auto inputNode = getFragmentCapabilityValue(out.capability, out.type);
+        auto inputNode = fragCapabilityProviders.at(out.capability);
         vertNode.setParameter(param, inputNode);
     }
 
@@ -206,42 +155,19 @@ auto VertexShaderBuilder::buildVertexShader() -> MaterialCompileResult
     vertNode.linkOutput(glPosParam, glPosOut);
     vertNode.setParameter(
         glPosParam,
-        graph.makeFunctionCall(
-            GlPosition{},
-            { getFragmentCapabilityValue(FragmentCapability::kVertexWorldPos, vec4{}) }
+        builder.makeCall<GlPosition>(
+            { fragCapabilityProviders.at(FragmentCapability::kVertexWorldPos) }
         )
     );
 
-    MaterialCompiler vertCompiler(makeVertexCapabilityConfig());
-    return vertCompiler.compile(vertNode);
-}
-
-auto VertexShaderBuilder::getFragmentCapabilityValue(
-    Capability fragCapability,
-    BasicType type
-    ) -> MaterialNode*
-{
-    if (!values.contains(fragCapability))
-    {
-        MaterialNode* node;
-        if (fragmentCapabilityFactories.contains(fragCapability)) {
-            node = fragmentCapabilityFactories.at(fragCapability)(graph);
-        }
-        else {
-            node = graph.makeConstant({ type, {{ std::byte(0) }} });
-        }
-
-        values.try_emplace(fragCapability, node);
-        return node;
-    }
-
-    assert(values.at(fragCapability) != nullptr);
-    return values.at(fragCapability);
+    MaterialCompiler vertCompiler;
+    return vertCompiler.compile(vertNode, builder);
 }
 
 auto VertexShaderBuilder::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
 {
     ShaderCapabilityConfig config;
+    auto& code = config.getCodeBuilder();
 
     config.addGlobalShaderExtension("GL_GOOGLE_include_directive");
 
@@ -275,24 +201,39 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
     auto vUV      = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
     auto vTangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
 
-    config.linkCapability(VertexCapability::kPosition, vPos);
-    config.linkCapability(VertexCapability::kNormal, vNormal);
-    config.linkCapability(VertexCapability::kTangent, vTangent);
-    config.linkCapability(VertexCapability::kUV, vUV);
+    config.linkCapability(VertexCapability::kPosition, vPos, vec3{});
+    config.linkCapability(VertexCapability::kNormal, vNormal, vec3{});
+    config.linkCapability(VertexCapability::kTangent, vTangent, vec3{});
+    config.linkCapability(VertexCapability::kUV, vUV, vec2{});
 
-    config.linkCapability(VertexCapability::kModelMatrix, pushConstants);
-    config.linkCapability(VertexCapability::kViewMatrix, cameraMatrices);
-    config.linkCapability(VertexCapability::kProjMatrix, cameraMatrices);
-    config.setCapabilityAccessor(VertexCapability::kModelMatrix, ".modelMatrix");
-    config.setCapabilityAccessor(VertexCapability::kViewMatrix, ".viewMatrix");
-    config.setCapabilityAccessor(VertexCapability::kProjMatrix, ".projMatrix");
+    // Model matrix
+    auto pc = config.accessResource(pushConstants);
+    config.linkCapability(
+        VertexCapability::kModelMatrix,
+        code.makeMemberAccess(config.accessResource(pushConstants), "modelMatrix"),
+        mat4{},
+        { pushConstants }
+    );
 
-    config.linkCapability(VertexCapability::kAnimIndex,       pushConstants);
-    config.linkCapability(VertexCapability::kAnimKeyframes,   pushConstants);
-    config.linkCapability(VertexCapability::kAnimFrameWeight, pushConstants);
-    config.setCapabilityAccessor(VertexCapability::kAnimIndex,       ".animData.animation");
-    config.setCapabilityAccessor(VertexCapability::kAnimKeyframes,   ".animData.keyframes");
-    config.setCapabilityAccessor(VertexCapability::kAnimFrameWeight, ".animData.keyframeWeigth");
+    // Camera matrices
+    auto camera = config.accessResource(cameraMatrices);
+    config.linkCapability(VertexCapability::kViewMatrix,
+                          code.makeMemberAccess(camera, "viewMatrix"), mat4{},
+                          { cameraMatrices });
+    config.linkCapability(VertexCapability::kProjMatrix,
+                          code.makeMemberAccess(camera, "projMatrix"), mat4{},
+                          { cameraMatrices });
+
+    // Animation data
+    config.linkCapability(VertexCapability::kAnimIndex,
+                          code.makeMemberAccess(pc, "animData.animation"), uint{},
+                          { pushConstants });
+    config.linkCapability(VertexCapability::kAnimKeyframes,
+                          code.makeMemberAccess(pc, "animData.keyframes"), uvec2{},
+                          { pushConstants });
+    config.linkCapability(VertexCapability::kAnimFrameWeight,
+                          code.makeMemberAccess(pc, "animData.keyframeWeigth"), float{},
+                          { pushConstants });
 
     return config;
 }

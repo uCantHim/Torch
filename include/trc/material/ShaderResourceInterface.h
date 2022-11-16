@@ -9,6 +9,7 @@
 #include "Constant.h"
 #include "ShaderCapabilities.h"
 #include "ShaderCapabilityConfig.h"
+#include "ShaderCodePrimitives.h"
 #include "trc/assets/AssetReference.h"
 #include "trc/assets/Texture.h"
 
@@ -65,10 +66,10 @@ namespace trc
     class ShaderResourceInterface
     {
     public:
-        explicit ShaderResourceInterface(const ShaderCapabilityConfig& config);
+        ShaderResourceInterface(const ShaderCapabilityConfig& config,
+                                ShaderCodeBuilder& codeBuilder);
 
-        auto makeScalarConstant(Constant constantValue) -> std::string;
-        auto queryTexture(TextureReference tex) -> std::string;
+        auto queryTexture(TextureReference tex) -> code::Value;
 
         /**
          * @brief Directly query a capability
@@ -77,7 +78,7 @@ namespace trc
          * access. An example is the texture sample capability, which
          * requires an additional argument to be accessed.
          */
-        auto queryCapability(Capability capability) -> std::string;
+        auto queryCapability(Capability capability) -> code::Value;
 
         /**
          * @brief Compile requested resources to shader code
@@ -119,27 +120,22 @@ namespace trc
 
         using Resource = const ShaderCapabilityConfig::ResourceData*;
 
-        auto hardcoded_makeTextureAccessor(const std::string& textureIndexName) -> std::string;
-        auto accessCapability(Capability capability) -> std::string;
-        auto accessResource(Capability capability, Resource resource) -> std::string;
+        void requireResource(Capability capability, Resource resource);
 
         const ShaderCapabilityConfig& config;
+        ShaderCodeBuilder* codeBuilder;
 
         std::unordered_set<std::string> requiredExtensions;
         std::unordered_set<util::Pathlet> requiredIncludePaths;
         std::vector<std::pair<std::string, std::optional<std::string>>> requiredMacros;
-
-        std::unordered_map<Resource, std::string> resourceAccessors;
-        std::unordered_map<Capability, std::string> capabilityAccessors;
-
-        ui32 nextConstantId{ 1 };
-        std::unordered_map<std::string, Constant> constants;
 
         ui32 nextSpecConstantIndex{ 0 };
         /** Vector of pairs (index, name) */
         std::vector<std::pair<ui32, std::string>> specializationConstants;
         /** Map of pairs (index -> value) */
         std::unordered_map<ui32, TextureReference> specializationConstantTextures;
+
+        std::unordered_map<Resource, std::pair<std::string, std::string>> resourceMacros;
 
         DescriptorBindingFactory descriptorFactory;
         PushConstantFactory pushConstantFactory;

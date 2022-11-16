@@ -7,6 +7,11 @@
 namespace trc
 {
 
+auto ShaderCapabilityConfig::getCodeBuilder() -> ShaderCodeBuilder&
+{
+    return *codeBuilder;
+}
+
 void ShaderCapabilityConfig::addGlobalShaderExtension(std::string extensionName)
 {
     globalExtensions.emplace(std::move(extensionName));
@@ -31,18 +36,23 @@ auto ShaderCapabilityConfig::getGlobalShaderIncludes() const
 
 auto ShaderCapabilityConfig::addResource(Resource shaderResource) -> ResourceID
 {
-    resources.push_back({ std::move(shaderResource), {}, {} });
-    return resources.size() - 1;
+    const ResourceID id{ static_cast<ui32>(resources.size()) };
+    const std::string name = "_access_resource_" + std::to_string(id);
+
+    resources.emplace_back(new ResourceData{ std::move(shaderResource), name, {}, {}, {} });
+    resourceAccessors.try_emplace(id, codeBuilder->makeExternalIdentifier(name));
+
+    return id;
 }
 
 void ShaderCapabilityConfig::addShaderExtension(ResourceID resource, std::string extensionName)
 {
-    resources.at(resource).extensions.emplace(std::move(extensionName));
+    resources.at(resource)->extensions.emplace(std::move(extensionName));
 }
 
 void ShaderCapabilityConfig::addShaderInclude(ResourceID resource, util::Pathlet includePath)
 {
-    resources.at(resource).includeFiles.emplace(std::move(includePath));
+    resources.at(resource)->includeFiles.emplace(std::move(includePath));
 }
 
 void ShaderCapabilityConfig::addMacro(
@@ -50,48 +60,64 @@ void ShaderCapabilityConfig::addMacro(
     std::string name,
     std::optional<std::string> value)
 {
-    resources.at(resource).macroDefinitions.try_emplace(std::move(name), std::move(value));
+    resources.at(resource)->macroDefinitions.try_emplace(std::move(name), std::move(value));
 }
 
-void ShaderCapabilityConfig::linkCapability(Capability capability, ResourceID resource)
+auto ShaderCapabilityConfig::accessResource(ResourceID resource) const -> code::Value
+{
+    return resourceAccessors.at(resource);
+}
+
+auto ShaderCapabilityConfig::getResource(ResourceID resource) const -> const ResourceData&
 {
     assert(resource < resources.size());
+    return *resources.at(resource);
+}
 
-    auto [_, success] = resourceFromCapability.try_emplace(capability, resource);
+void ShaderCapabilityConfig::linkCapability(
+    Capability capability,
+    ResourceID resource,
+    BasicType type)
+{
+    return linkCapability(capability, accessResource(resource), type, { resource });
+}
+
+void ShaderCapabilityConfig::linkCapability(
+    Capability capability,
+    code::Value value,
+    BasicType type,
+    std::vector<ResourceID> resources)
+{
+    auto [_, success] = capabilityAccessors.try_emplace(capability, value);
     if (!success) {
         throw std::invalid_argument("[In ShaderCapabilityConfig::linkCapability]: The capability"
                                     " is already linked to a resource!");
     }
+
+    capabilityTypes.try_emplace(capability, type);
+    requiredResources.try_emplace(capability, resources.begin(), resources.end());
 }
 
 bool ShaderCapabilityConfig::hasCapability(Capability capability) const
 {
-    return resourceFromCapability.contains(capability);
+    return capabilityAccessors.contains(capability);
 }
 
-auto ShaderCapabilityConfig::getResource(Capability capability) const
-    -> std::optional<const ResourceData*>
+auto ShaderCapabilityConfig::accessCapability(Capability capability) const -> code::Value
 {
-    auto it = resourceFromCapability.find(capability);
-    if (it != resourceFromCapability.end()) {
-        return &resources.at(it->second);
-    }
-    return std::nullopt;
+    return capabilityAccessors.at(capability);
 }
 
-void ShaderCapabilityConfig::setCapabilityAccessor(Capability capability, std::string accessorCode)
+auto ShaderCapabilityConfig::getCapabilityType(Capability capability) const -> BasicType
 {
-    capabilityAccessors[capability] = std::move(accessorCode);
+    return capabilityTypes.at(capability);
 }
 
-auto ShaderCapabilityConfig::getCapabilityAccessor(Capability capability) const
-    -> std::optional<std::string>
+auto ShaderCapabilityConfig::getCapabilityResources(Capability capability) const
+    -> std::vector<ResourceID>
 {
-    auto it = capabilityAccessors.find(capability);
-    if (it != capabilityAccessors.end()) {
-        return it->second;
-    }
-    return std::nullopt;
+    auto& res = requiredResources.at(capability);
+    return { res.begin(), res.end() };
 }
 
 } // namespace trc

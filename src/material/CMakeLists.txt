@@ -4,12 +4,13 @@ target_sources(
         BasicType.cpp
         Constant.cpp
         MaterialCompiler.cpp
-        MaterialFunction.cpp
-        MaterialGraph.cpp
-        MaterialNode.cpp
         MaterialOutputNode.cpp
         MaterialRuntime.cpp
         ShaderCapabilityConfig.cpp
+        ShaderCodeBuilder.cpp
+        ShaderCodeCompiler.cpp
+        ShaderModuleBuilder.cpp
         ShaderResourceInterface.cpp
+        ShaderTypeChecker.cpp
         VertexShader.cpp
 )

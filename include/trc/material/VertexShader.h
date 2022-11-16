@@ -1,10 +1,9 @@
 #pragma once
 
-#include "MaterialFunction.h"
-#include "MaterialGraph.h"
-#include "ShaderCapabilities.h"
-#include "ShaderResourceInterface.h"
 #include "MaterialCompiler.h"
+#include "ShaderCapabilities.h"
+#include "ShaderModuleBuilder.h"
+#include "ShaderResourceInterface.h"
 
 namespace trc
 {
@@ -32,16 +31,11 @@ namespace trc
         auto buildVertexShader() -> MaterialCompileResult;
 
     private:
-        using FragmentCapabilityFactory = std::function<MaterialNode*(MaterialGraph&)>;
-
         static auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig;
-        auto getFragmentCapabilityValue(Capability fragCapability, BasicType type) -> MaterialNode*;
 
-        const std::unordered_map<Capability, FragmentCapabilityFactory> fragmentCapabilityFactories;
-
-        MaterialGraph graph;
         MaterialCompileResult fragment;
+        ShaderModuleBuilder builder;
 
-        std::unordered_map<Capability, MaterialNode*> values;
+        std::unordered_map<Capability, code::Value> fragCapabilityProviders;
     };
 } // namespace trc

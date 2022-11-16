@@ -9,11 +9,14 @@
 
 #include "BasicType.h"
 #include "ShaderCapabilities.h"
+#include "ShaderCodeBuilder.h"
 #include "trc/Types.h"
 #include "trc/util/Pathlet.h"
 
 namespace trc
 {
+    class ShaderCodeBuilder;
+
     /**
      * Settings for shader generation
      */
@@ -55,6 +58,7 @@ namespace trc
         struct ResourceData
         {
             Resource resourceType;
+            std::string resourceMacroName;
 
             std::unordered_set<std::string> extensions;
             std::unordered_set<util::Pathlet> includeFiles;
@@ -64,6 +68,8 @@ namespace trc
         };
 
         using ResourceID = ui32;
+
+        auto getCodeBuilder() -> ShaderCodeBuilder&;
 
         void addGlobalShaderExtension(std::string extensionName);
         void addGlobalShaderInclude(util::Pathlet includePath);
@@ -75,23 +81,23 @@ namespace trc
         void addShaderInclude(ResourceID resource, util::Pathlet includePath);
         void addMacro(ResourceID resource, std::string name, std::optional<std::string> value);
 
-        void linkCapability(Capability capability, ResourceID resource);
+        auto accessResource(ResourceID resource) const -> code::Value;
+        auto getResource(ResourceID resource) const -> const ResourceData&;
+
+        void linkCapability(Capability capability, ResourceID resource, BasicType type);
+        void linkCapability(Capability capability,
+                            code::Value value,
+                            BasicType type,
+                            std::vector<ResourceID> resources);
 
         /**
          * @return bool True if `capability` is linked to a resource
          */
         bool hasCapability(Capability capability) const;
 
-        /**
-         * Don't insert new resources while holding a pointer to a resource!
-         *
-         * @return std::optional<const Resource*> None if `capability` is
-         *         not linked to a resource, otherwise the linked resource.
-         */
-        auto getResource(Capability capability) const -> std::optional<const ResourceData*>;
-
-        void setCapabilityAccessor(Capability capability, std::string accessorCode);
-        auto getCapabilityAccessor(Capability capability) const -> std::optional<std::string>;
+        auto accessCapability(Capability capability) const -> code::Value;
+        auto getCapabilityType(Capability capability) const -> BasicType;
+        auto getCapabilityResources(Capability capability) const -> std::vector<ResourceID>;
 
     private:
         struct BuiltinConstantInfo
@@ -100,11 +106,16 @@ namespace trc
             Capability capability;
         };
 
+        u_ptr<ShaderCodeBuilder> codeBuilder{ new ShaderCodeBuilder };
+
         std::unordered_set<std::string> globalExtensions;
         std::unordered_set<util::Pathlet> globalIncludes;
 
-        std::vector<ResourceData> resources;
-        std::unordered_map<Capability, ResourceID> resourceFromCapability;
-        std::unordered_map<Capability, std::string> capabilityAccessors;
+        std::vector<u_ptr<ResourceData>> resources;
+        std::unordered_map<ResourceID, code::Value> resourceAccessors;
+
+        std::unordered_map<Capability, std::unordered_set<ResourceID>> requiredResources;
+        std::unordered_map<Capability, code::Value> capabilityAccessors;
+        std::unordered_map<Capability, BasicType> capabilityTypes;
     };
 } // namespace trc

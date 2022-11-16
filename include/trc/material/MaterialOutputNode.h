@@ -4,11 +4,10 @@
 #include <vector>
 
 #include "BasicType.h"
+#include "ShaderCodePrimitives.h"
 
 namespace trc
 {
-    class MaterialNode;
-
     /**
      * This object is used to build a fragment shader output interface.
      *
@@ -103,10 +102,10 @@ namespace trc
         /**
          * @brief Set a parameter's value
          */
-        void setParameter(ParameterID param, MaterialNode* value);
+        void setParameter(ParameterID param, code::Value value);
 
-        auto getParameter(ParameterID param) const -> MaterialNode*;
-        auto getParameters() const -> const std::vector<MaterialNode*>&;
+        auto getParameter(ParameterID param) const -> code::Value;
+        auto getParameters() const -> const std::vector<code::Value>&;
         auto getOutputLinks() const -> const std::vector<ParameterOutputLink>&;
         auto getOutput(OutputID output) const -> const OutputLocation&;
         auto getOutputs() const -> const std::vector<OutputLocation>&;
@@ -121,7 +120,7 @@ namespace trc
         auto getBuiltinOutputs() const -> const std::unordered_map<std::string, ParameterID>&;
 
     private:
-        std::vector<MaterialNode*> paramNodes;
+        std::vector<code::Value> paramNodes;
         std::vector<BasicType> paramTypes;
 
         std::vector<ParameterOutputLink> paramOutputLinks;

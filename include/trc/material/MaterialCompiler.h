@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "MaterialGraph.h"
 #include "MaterialOutputNode.h"
 #include "ShaderCapabilityConfig.h"
 #include "ShaderResourceInterface.h"
+#include "ShaderModuleBuilder.h"
 #include "trc/Types.h"
 
 namespace trc
@@ -88,23 +88,7 @@ namespace trc
     class MaterialCompiler
     {
     public:
-        explicit MaterialCompiler(ShaderCapabilityConfig config);
-
-        auto compile(MaterialOutputNode& root) -> MaterialCompileResult;
-
-    private:
-        static bool hasCycles(const MaterialNode* root);
-        static auto compileFunctions(ShaderResourceInterface& resources, MaterialOutputNode& mat)
-            -> std::string;
-
-        auto call(MaterialNode* node) -> std::string;
-        auto getResultIdentifier(MaterialNode* node) -> std::string;
-        auto makeIdentifier() -> std::string;
-
-        ShaderCapabilityConfig config;
-
-        ui32 nextIdentifierId{ 0 };
-        std::unordered_map<const MaterialNode*, std::string> identifiers;
-        std::vector<std::string> identifierDecls;
+        auto compile(MaterialOutputNode& root, ShaderModuleBuilder& builder)
+            -> MaterialCompileResult;
     };
 } // namespace trc
