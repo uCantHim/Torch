@@ -1,7 +1,9 @@
 #include "ShaderDatabase.h"
 
 #include <fstream>
+#include <mutex>
 
+#include <trc_util/InterProcessLock.h>
 #include <trc_util/Util.h>
 
 
@@ -26,6 +28,9 @@ auto makeShaderDatabase(ShaderOutputType defaultShaderOutputType, const CompileR
 
 void writeShaderDatabase(const fs::path& path, const nl::json& config, bool append)
 {
+    trc::util::InterProcessLock sem("/torch_pipeline_compiler_shader_db_lock");
+    std::scoped_lock lock(sem);
+
     if (!fs::is_regular_file(path) || !append)
     {
         std::ofstream file(path);
