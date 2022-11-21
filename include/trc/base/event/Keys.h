@@ -182,14 +182,15 @@ namespace vk
     template <>
     struct FlagTraits<::trc::KeyModFlagBits>
     {
-        enum : VkFlags
-        {
-            allFlags = VkFlags(::trc::KeyModFlagBits::shift)
-                       | VkFlags(::trc::KeyModFlagBits::control)
-                       | VkFlags(::trc::KeyModFlagBits::alt)
-                       | VkFlags(::trc::KeyModFlagBits::super)
-                       | VkFlags(::trc::KeyModFlagBits::caps_lock)
-                       | VkFlags(::trc::KeyModFlagBits::num_lock)
+        static VULKAN_HPP_CONST_OR_CONSTEXPR bool isBitmask = true;
+
+        static VULKAN_HPP_CONST_OR_CONSTEXPR trc::KeyModFlags allFlags{
+             VkFlags(::trc::KeyModFlagBits::shift)
+             | VkFlags(::trc::KeyModFlagBits::control)
+             | VkFlags(::trc::KeyModFlagBits::alt)
+             | VkFlags(::trc::KeyModFlagBits::super)
+             | VkFlags(::trc::KeyModFlagBits::caps_lock)
+             | VkFlags(::trc::KeyModFlagBits::num_lock)
         };
     };
 } // namespace vk

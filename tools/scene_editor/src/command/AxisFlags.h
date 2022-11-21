@@ -1,6 +1,7 @@
 #pragma once
 
 #include <trc/Types.h>
+#include <trc/VulkanInclude.h>
 using namespace trc::basic_types;
 
 enum class Axis : ui32
@@ -11,17 +12,15 @@ enum class Axis : ui32
     eZ = 1 << 2,
 };
 
-namespace vk
+template <>
+struct vk::FlagTraits<::Axis>
 {
-    template <>
-    struct FlagTraits<::Axis>
-    {
-        enum : VkFlags
-        {
-            allFlags = VkFlags(::Axis::eX) | VkFlags(::Axis::eY) | VkFlags(::Axis::eZ)
-        };
+    static VULKAN_HPP_CONST_OR_CONSTEXPR Flags<Axis> allFlags{
+        VkFlags(::Axis::eX)
+        | VkFlags(::Axis::eY)
+        | VkFlags(::Axis::eZ)
     };
-} // namespace vk
+};
 
 using AxisFlags = vk::Flags<Axis>;
 
