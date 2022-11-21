@@ -17,13 +17,10 @@ inline void materialEditor(const char* title,
     ig::PushItemWidth(250);
     ig::ColorEdit4("Color", &mat.color.r, ImGuiColorEditFlags_NoAlpha);
 
-    ig::ColorEdit4("Ambient coefficient", &mat.ambientKoefficient.r, ImGuiColorEditFlags_NoAlpha);
-    ig::ColorEdit4("Diffuse coefficient", &mat.diffuseKoefficient.r, ImGuiColorEditFlags_NoAlpha);
-    ig::ColorEdit4("Specular coefficient", &mat.specularKoefficient.r, ImGuiColorEditFlags_NoAlpha);
-
     ig::PushItemWidth(150);
-    ig::SliderFloat("Shininess", &mat.shininess, 0.0f, 64.0f);
-    ig::SliderFloat("Reflectivity", &mat.reflectivity, 0.0f, 1.0f);
+    ig::SliderFloat("Roughness", &mat.roughness, 0.0f, 1.0f);
+    ig::SliderFloat("Metallicness", &mat.metallicness, 0.0f, 1.0f);
+    ig::SliderFloat("Specular coefficient", &mat.specularCoefficient, 0.0f, 1.0f);
 
     ig::NewLine();
     ig::Text("Diffuse texture not implemented");

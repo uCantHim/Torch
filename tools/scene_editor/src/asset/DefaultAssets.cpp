@@ -23,7 +23,7 @@ void initDefaultAssets(trc::AssetManager& am)
 
     defaultMats.undefined = am.create(trc::MaterialData{
         .color=vec3(0.3f, 0.3f, 0.3f),
-        .specularKoefficient=vec4(0.0f)
+        .specularCoefficient=0.0f
     });
     defaultMats.objectHighlight = am.create(trc::MaterialData{
         .color=vec3(1.0f),
