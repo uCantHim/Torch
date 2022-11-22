@@ -4,6 +4,8 @@
 
 #include <trc_util/Util.h>
 
+#include "trc/material/FragmentShader.h"
+
 
 
 namespace trc
@@ -14,18 +16,18 @@ auto ShaderResources::getGlslCode() const -> const std::string&
     return code;
 }
 
-auto ShaderResources::getReferencedTextures() const -> const std::vector<TextureResource>&
+auto ShaderResources::getRequiredTextures() const -> const std::vector<TextureResource>&
 {
     return textures;
 }
 
-auto ShaderResources::getShaderInputs() const
+auto ShaderResources::getRequiredShaderInputs() const
     -> const std::vector<ShaderInputInfo>&
 {
     return requiredShaderInputs;
 }
 
-auto ShaderResources::getDescriptorSets() const -> std::vector<std::string>
+auto ShaderResources::getRequiredDescriptorSets() const -> std::vector<std::string>
 {
     std::vector<std::string> result;
     result.reserve(descriptorSetIndexPlaceholders.size());
@@ -36,7 +38,7 @@ auto ShaderResources::getDescriptorSets() const -> std::vector<std::string>
     return result;
 }
 
-auto ShaderResources::getDescriptorSetIndexPlaceholder(const std::string& setName) const
+auto ShaderResources::getDescriptorIndexPlaceholder(const std::string& setName) const
     -> std::optional<std::string>
 {
     auto it = descriptorSetIndexPlaceholders.find(setName);
@@ -49,6 +51,15 @@ auto ShaderResources::getDescriptorSetIndexPlaceholder(const std::string& setNam
 auto ShaderResources::getPushConstantSize() const -> ui32
 {
     return pushConstantSize;
+}
+
+auto ShaderResources::getPushConstantInfo(ResourceID resource) const
+    -> std::optional<PushConstantInfo>
+{
+    if (pushConstantInfos.contains(resource)) {
+        return pushConstantInfos.at(resource);
+    }
+    return std::nullopt;
 }
 
 
@@ -104,22 +115,38 @@ auto ShaderResourceInterface::DescriptorBindingFactory::getDescriptorSetPlacehol
 
 
 auto ShaderResourceInterface::PushConstantFactory::make(
+    ResourceID resource,
     const ShaderCapabilityConfig::PushConstant& pc) -> std::string
 {
-    if (!code.empty()) {
-        throw std::runtime_error("[In PushConstantFactory::make]: At most one push constant"
-                                 " resource may be specified at the shader capability config!");
-    }
+    assert(pc.byteSize > 0);
+    assert(!pc.typeName.empty());
 
-    code = "layout (push_constant) uniform PushConstants\n{\n"
-                + pc.contents
-                + "\n} pushConstants;\n";
-    return "pushConstants";
+    infos.try_emplace(resource, PushConstantInfo{ totalSize, pc.byteSize });
+
+    const std::string name = "_push_constant_" + std::to_string(totalSize);
+    totalSize += pc.byteSize;
+    code += pc.typeName + " " + name + ";\n";
+
+    return "pushConstants." + name;
 }
 
-auto ShaderResourceInterface::PushConstantFactory::getCode() const -> const std::string&
+auto ShaderResourceInterface::PushConstantFactory::getCode() const -> std::string
 {
-    return code;
+    if (!code.empty()) {
+        return "layout (push_constant) uniform PushConstants\n{\n" + code + "} pushConstants;\n";
+    }
+    return "";
+}
+
+auto ShaderResourceInterface::PushConstantFactory::getTotalSize() const -> ui32
+{
+    return totalSize;
+}
+
+auto ShaderResourceInterface::PushConstantFactory::getInfos() const
+    -> const std::unordered_map<ResourceID, PushConstantInfo>&
+{
+    return infos;
 }
 
 
@@ -128,8 +155,9 @@ auto ShaderResourceInterface::ShaderInputFactory::make(
     Capability capability,
     const ShaderCapabilityConfig::ShaderInput& in) -> std::string
 {
-    const ui32 shaderInputLocation = nextShaderInputLocation;
-    nextShaderInputLocation += in.type.locations();
+    // const ui32 shaderInputLocation = nextShaderInputLocation;
+    // nextShaderInputLocation += in.type.locations();
+    const ui32 shaderInputLocation = in.location;
     const std::string name = "shaderStageInput_" + std::to_string(shaderInputLocation);
 
     // Make member code
@@ -201,6 +229,8 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
         });
     }
     result.descriptorSetIndexPlaceholders = descriptorFactory.getDescriptorSets();
+    result.pushConstantSize = pushConstantFactory.getTotalSize();
+    result.pushConstantInfos = pushConstantFactory.getInfos();
 
     return result;
 }
@@ -223,23 +253,24 @@ auto ShaderResourceInterface::queryTexture(TextureReference tex) -> code::Value
 auto ShaderResourceInterface::queryCapability(Capability capability) -> code::Value
 {
     for (auto id : config.getCapabilityResources(capability)) {
-        requireResource(capability, &config.getResource(id));
+        requireResource(capability, id);
     }
 
     return config.accessCapability(capability);
 }
 
-void ShaderResourceInterface::requireResource(Capability capability, Resource resource)
+void ShaderResourceInterface::requireResource(
+    Capability capability,
+    ShaderCapabilityConfig::ResourceID resourceId)
 {
-    assert(resource != nullptr);
+    const auto& res = config.getResource(resourceId);
 
     // Only add a resource once
-    if (resourceMacros.contains(resource)) {
+    if (resourceMacros.contains(&res)) {
         return;
     }
 
     // First resource access; create it.
-    auto& res = *resource;
     requiredExtensions.insert(res.extensions.begin(), res.extensions.end());
     requiredIncludePaths.insert(res.includeFiles.begin(), res.includeFiles.end());
     for (const auto& [name, val] : res.macroDefinitions) {
@@ -253,12 +284,12 @@ void ShaderResourceInterface::requireResource(Capability capability, Resource re
         [this, capability](const ShaderCapabilityConfig::ShaderInput& v) {
             return shaderInput.make(capability, v);
         },
-        [this](const ShaderCapabilityConfig::PushConstant& pc) {
-            return pushConstantFactory.make(pc);
+        [this, resourceId](const ShaderCapabilityConfig::PushConstant& pc) {
+            return pushConstantFactory.make(resourceId, pc);
         }
     }, res.resourceType);
 
-    resourceMacros.try_emplace(resource, res.resourceMacroName, accessorStr);
+    resourceMacros.try_emplace(&res, res.resourceMacroName, accessorStr);
 }
 
 } // namespace trc

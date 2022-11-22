@@ -33,6 +33,11 @@ namespace trc
         auto operator<=>(const BasicType&) const = default;
 
         auto to_string() const -> std::string;
+
+        /** @return ui32 Size of the type in bytes */
+        auto size() const -> ui32;
+
+        /** @return ui32 The number of shader locations the type occupies */
         auto locations() const -> ui32;
 
         Type type;

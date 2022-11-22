@@ -54,12 +54,21 @@ TEST(TestBasicType, ConstructorFromType)
         3, 6,
         4, 8,
     };
+    const uint32_t sizes[]{
+        4, 4, 4, 4, 8,
+        8, 8, 8, 8, 16,
+        12, 12, 12, 12, 24,
+        16, 16, 16, 16, 32,
+        36, 72,
+        64, 128,
+    };
 
     for (int i = 0; i < 24; ++i)
     {
         ASSERT_EQ(basicTypes[i].channels, channels[i]);
         ASSERT_EQ(basicTypes[i].type, types[i]);
         ASSERT_EQ(basicTypes[i].to_string(), strings[i]);
+        ASSERT_EQ(basicTypes[i].size(),      sizes[i]);
         ASSERT_EQ(basicTypes[i].locations(), locations[i]);
     }
 }

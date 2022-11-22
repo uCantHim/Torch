@@ -7,6 +7,13 @@
 namespace trc
 {
 
+Constant::Constant(bool val)
+    :
+    type(BasicType::Type::eBool, 1)
+{
+    *reinterpret_cast<bool*>(value.data()) = val;
+}
+
 Constant::Constant(i32 val)
     :
     type(BasicType::Type::eSint, 1)

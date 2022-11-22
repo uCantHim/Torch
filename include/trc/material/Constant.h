@@ -17,6 +17,7 @@ namespace trc
         using LargestType = glm::dvec4;
         static constexpr size_t kMaxSize{ sizeof(LargestType) };
 
+        Constant(bool val);
         Constant(i32 val);
         Constant(ui32 val);
         Constant(float val);

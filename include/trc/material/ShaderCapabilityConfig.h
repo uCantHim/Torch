@@ -40,12 +40,19 @@ namespace trc
         struct ShaderInput
         {
             BasicType type;
+            ui32 location;
             bool flat{ false };
         };
 
         struct PushConstant
         {
-            std::string contents;
+            PushConstant(BasicType type)
+                : byteSize(type.size()), typeName(type.to_string()) {}
+            PushConstant(ui32 size, const std::string& typeName)
+                : byteSize(size), typeName(typeName) {}
+
+            ui32 byteSize;
+            std::string typeName;
         };
 
         using Resource = std::variant<

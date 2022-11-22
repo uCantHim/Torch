@@ -3,6 +3,8 @@
 #include <initializer_list>
 #include <unordered_map>
 
+#include "trc/material/FragmentShader.h"
+
 
 
 namespace trc
@@ -91,7 +93,8 @@ VertexShaderBuilder::VertexShaderBuilder(
     bool animated)
     :
     fragment(std::move(fragmentResult)),
-    builder(makeVertexCapabilityConfig())
+    configs(makeVertexCapabilityConfig()),
+    builder(std::move(configs.first))
 {
     fragCapabilityProviders = {
         {
@@ -110,7 +113,7 @@ VertexShaderBuilder::VertexShaderBuilder(
             }()
         },
         {
-            FragmentCapability::kVertexNormal,
+            FragmentCapability::kTangentToWorldSpaceMatrix,
             [this, animated]() -> code::Value {
                 auto zero = builder.makeConstant(0.0f);
 
@@ -136,7 +139,7 @@ VertexShaderBuilder::VertexShaderBuilder(
     };
 }
 
-auto VertexShaderBuilder::buildVertexShader() -> MaterialCompileResult
+auto VertexShaderBuilder::buildVertexShader() -> std::pair<MaterialCompileResult, MaterialRuntimeConfig>
 {
     MaterialOutputNode vertNode;
     for (const auto& out : fragment.getRequiredShaderInputs())
@@ -145,8 +148,19 @@ auto VertexShaderBuilder::buildVertexShader() -> MaterialCompileResult
         auto param = vertNode.addParameter(out.type);
         vertNode.linkOutput(param, output, "");
 
-        auto inputNode = fragCapabilityProviders.at(out.capability);
-        vertNode.setParameter(param, inputNode);
+        try {
+            auto inputNode = fragCapabilityProviders.at(out.capability);
+            vertNode.setParameter(param, inputNode);
+        }
+        catch (const std::out_of_range&)
+        {
+            if constexpr (enableVerboseLogging)
+            {
+                std::cout << "Warning: [In VertexShaderBuilder::buildVertexShader]: Fragment"
+                          << " capability \"" << out.capability.getString()
+                          << "\" is not implemented.\n";
+            }
+        }
     }
 
     // Always add the gl_Position output
@@ -161,10 +175,11 @@ auto VertexShaderBuilder::buildVertexShader() -> MaterialCompileResult
     );
 
     MaterialCompiler vertCompiler;
-    return vertCompiler.compile(vertNode, builder);
+    return { vertCompiler.compile(vertNode, builder), configs.second };
 }
 
-auto VertexShaderBuilder::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
+auto VertexShaderBuilder::makeVertexCapabilityConfig()
+    -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>
 {
     ShaderCapabilityConfig config;
     auto& code = config.getCodeBuilder();
@@ -186,34 +201,32 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
             "mat4 inverseProjMatrix;\n"
     });
 
-    auto pushConstants = config.addResource(ShaderCapabilityConfig::PushConstant{
-        "mat4 modelMatrix;\n"
-        "uint materialIndex;\n"
-        "AnimationPushConstantData animData;"
+    auto modelPc = config.addResource(ShaderCapabilityConfig::PushConstant{ mat4{} });
+    auto matIndexPc = config.addResource(ShaderCapabilityConfig::PushConstant{ uint{} });
+    auto animDataPc = config.addResource(ShaderCapabilityConfig::PushConstant{
+        sizeof(AnimationDeviceData), "AnimationPushConstantData"
     });
-    config.addShaderInclude(pushConstants, util::Pathlet("animation.glsl"));
-    config.addMacro(pushConstants, "BONE_INDICES_INPUT_LOCATION", "4");
-    config.addMacro(pushConstants, "BONE_WEIGHTS_INPUT_LOCATION", "5");
-    config.addMacro(pushConstants, "ASSET_DESCRIPTOR_SET_BINDING", "1");
+    config.addShaderInclude(animDataPc, util::Pathlet("animation.glsl"));
+    config.addMacro(animDataPc, "BONE_INDICES_INPUT_LOCATION", "4");
+    config.addMacro(animDataPc, "BONE_WEIGHTS_INPUT_LOCATION", "5");
+    config.addMacro(animDataPc, "ASSET_DESCRIPTOR_SET_BINDING", "1");
 
-    auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
-    auto vUV      = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{} });
-    auto vTangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{} });
+    auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 0 });
+    auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 1 });
+    auto vUV      = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{}, 2 });
+    auto vTangent = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 3 });
+    auto vBoneIndices = config.addResource(ShaderCapabilityConfig::ShaderInput{ uvec4{}, 4 });
+    auto vBoneWeights = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec4{}, 5 });
 
     config.linkCapability(VertexCapability::kPosition, vPos, vec3{});
     config.linkCapability(VertexCapability::kNormal, vNormal, vec3{});
     config.linkCapability(VertexCapability::kTangent, vTangent, vec3{});
     config.linkCapability(VertexCapability::kUV, vUV, vec2{});
+    config.linkCapability(VertexCapability::kBoneIndices, vBoneIndices, uvec4{});
+    config.linkCapability(VertexCapability::kBoneWeights, vBoneWeights, vec4{});
 
     // Model matrix
-    auto pc = config.accessResource(pushConstants);
-    config.linkCapability(
-        VertexCapability::kModelMatrix,
-        code.makeMemberAccess(config.accessResource(pushConstants), "modelMatrix"),
-        mat4{},
-        { pushConstants }
-    );
+    config.linkCapability(VertexCapability::kModelMatrix, modelPc, mat4{});
 
     // Camera matrices
     auto camera = config.accessResource(cameraMatrices);
@@ -225,17 +238,28 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
                           { cameraMatrices });
 
     // Animation data
+    auto animData = config.accessResource(animDataPc);
     config.linkCapability(VertexCapability::kAnimIndex,
-                          code.makeMemberAccess(pc, "animData.animation"), uint{},
-                          { pushConstants });
+                          code.makeMemberAccess(animData, "animation"), uint{},
+                          { animDataPc });
     config.linkCapability(VertexCapability::kAnimKeyframes,
-                          code.makeMemberAccess(pc, "animData.keyframes"), uvec2{},
-                          { pushConstants });
+                          code.makeMemberAccess(animData, "keyframes"), uvec2{},
+                          { animDataPc });
     config.linkCapability(VertexCapability::kAnimFrameWeight,
-                          code.makeMemberAccess(pc, "animData.keyframeWeigth"), float{},
-                          { pushConstants });
+                          code.makeMemberAccess(animData, "keyframeWeigth"), float{},
+                          { animDataPc });
 
-    return config;
+    // Create the descriptor config
+    MaterialRuntimeConfig conf;
+    conf.descriptorInfos.try_emplace("global_data", 0, true);
+    conf.descriptorInfos.try_emplace("asset_registry", 1, true);
+    conf.pushConstantIds = {
+        { DrawablePushConstIndex::eModelMatrix, modelPc },
+        { DrawablePushConstIndex::eMaterialData, matIndexPc },
+        { DrawablePushConstIndex::eAnimationData, animDataPc },
+    };
+
+    return { std::move(config), conf };
 }
 
 } // namespace trc

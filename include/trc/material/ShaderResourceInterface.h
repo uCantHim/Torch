@@ -23,6 +23,8 @@ namespace trc
     class ShaderResources
     {
     public:
+        using ResourceID = ShaderCapabilityConfig::ResourceID;
+
         struct TextureResource
         {
             TextureReference ref;
@@ -38,19 +40,41 @@ namespace trc
             Capability capability;
         };
 
+        struct PushConstantInfo
+        {
+            ui32 offset;
+            ui32 size;
+        };
+
         ShaderResources() = default;
 
         auto getGlslCode() const -> const std::string&;
-        auto getShaderInputs() const
+        auto getRequiredShaderInputs() const
             -> const std::vector<ShaderInputInfo>&;
 
-        auto getReferencedTextures() const -> const std::vector<TextureResource>&;
+        /**
+         * Structs { <texture>, <spec-idx> }
+         *
+         * The required operation at pipeline creation is:
+         *
+         *     specConstants[<spec-idx>] = <texture>.getDeviceIndex();
+         */
+        auto getRequiredTextures() const -> const std::vector<TextureResource>&;
 
-        auto getDescriptorSets() const -> std::vector<std::string>;
-        auto getDescriptorSetIndexPlaceholder(const std::string& setName) const
+        auto getRequiredDescriptorSets() const -> std::vector<std::string>;
+        auto getDescriptorIndexPlaceholder(const std::string& setName) const
             -> std::optional<std::string>;
 
+        /**
+         * @return ui32 Total size of the stage's push constants
+         */
         auto getPushConstantSize() const -> ui32;
+
+        /**
+         * @return nullopt if the resource ID does not exist or it is not
+         *         associated with an active push constant value.
+         */
+        auto getPushConstantInfo(ResourceID resource) const -> std::optional<PushConstantInfo>;
 
     private:
         friend class ShaderResourceInterface;
@@ -60,9 +84,14 @@ namespace trc
 
         std::vector<TextureResource> textures;
         std::unordered_map<std::string, std::string> descriptorSetIndexPlaceholders;
+
+        std::unordered_map<ResourceID, PushConstantInfo> pushConstantInfos;
         ui32 pushConstantSize;
     };
 
+    /**
+     * This collects and compiles resources for a single shader.
+     */
     class ShaderResourceInterface
     {
     public:
@@ -102,10 +131,21 @@ namespace trc
 
         struct PushConstantFactory
         {
-            auto make(const ShaderCapabilityConfig::PushConstant& pc) -> std::string;
-            auto getCode() const -> const std::string&;
+            using ResourceID = ShaderResources::ResourceID;
+            using PushConstantInfo = ShaderResources::PushConstantInfo;
+
+            auto make(ResourceID resource, const ShaderCapabilityConfig::PushConstant& pc)
+                -> std::string;
+
+            auto getTotalSize() const -> ui32;
+            auto getInfos() const -> const std::unordered_map<ResourceID, PushConstantInfo>&;
+
+            auto getCode() const -> std::string;
 
         private:
+            ui32 totalSize{ 0 };
+            std::unordered_map<ResourceID, PushConstantInfo> infos;
+
             std::string code;
         };
 
@@ -120,7 +160,7 @@ namespace trc
 
         using Resource = const ShaderCapabilityConfig::ResourceData*;
 
-        void requireResource(Capability capability, Resource resource);
+        void requireResource(Capability capability, ShaderCapabilityConfig::ResourceID resource);
 
         const ShaderCapabilityConfig& config;
         ShaderCodeBuilder* codeBuilder;

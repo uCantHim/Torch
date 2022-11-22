@@ -13,8 +13,8 @@ MaterialCompileResult::MaterialCompileResult(
     std::unordered_map<ParameterID, std::string> paramResultVariableNames,
     std::string outputReplacementVariableName)
     :
+    ShaderResources(std::move(resourceInfo)),
     shaderGlslCode(std::move(shaderCode)),
-    resources(std::move(resourceInfo)),
     paramResultVariableNames(std::move(paramResultVariableNames)),
     outputReplacementVariableName(std::move(outputReplacementVariableName))
 {
@@ -23,6 +23,11 @@ MaterialCompileResult::MaterialCompileResult(
 auto MaterialCompileResult::getShaderGlslCode() const -> const std::string&
 {
     return shaderGlslCode;
+}
+
+auto MaterialCompileResult::getResources() const -> const ShaderResources&
+{
+    return *this;
 }
 
 auto MaterialCompileResult::getParameterResultVariableName(ParameterID paramNode) const
@@ -37,34 +42,6 @@ auto MaterialCompileResult::getParameterResultVariableName(ParameterID paramNode
 auto MaterialCompileResult::getOutputPlaceholderVariableName() const -> std::string
 {
     return outputReplacementVariableName;
-}
-
-auto MaterialCompileResult::getRequiredTextures() const
-    -> const std::vector<ShaderResources::TextureResource>&
-{
-    return resources.getReferencedTextures();
-}
-
-auto MaterialCompileResult::getRequiredShaderInputs() const
-    -> const std::vector<ShaderResources::ShaderInputInfo>&
-{
-    return resources.getShaderInputs();
-}
-
-auto MaterialCompileResult::getRequiredDescriptorSets() const -> std::vector<std::string>
-{
-    return resources.getDescriptorSets();
-}
-
-auto MaterialCompileResult::getDescriptorIndexPlaceholder(const std::string& setName) const
-    -> std::optional<std::string>
-{
-    return resources.getDescriptorSetIndexPlaceholder(setName);
-}
-
-auto MaterialCompileResult::getRequiredPushConstantSize() const -> ui32
-{
-    return resources.getPushConstantSize();
 }
 
 

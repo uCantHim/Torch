@@ -6,6 +6,7 @@ target_sources(
         MaterialCompiler.cpp
         MaterialOutputNode.cpp
         MaterialRuntime.cpp
+        RuntimePushConstantHandler.cpp
         ShaderCapabilityConfig.cpp
         ShaderCodeBuilder.cpp
         ShaderCodeCompiler.cpp

@@ -16,9 +16,11 @@ namespace trc
     /**
      * Contains information required to build a material pipeline
      */
-    struct MaterialCompileResult
+    struct MaterialCompileResult : ShaderResources
     {
         auto getShaderGlslCode() const -> const std::string&;
+
+        auto getResources() const -> const ShaderResources&;
 
         /**
          * @brief Get the name of a material parameter's result variable
@@ -43,23 +45,6 @@ namespace trc
          */
         auto getOutputPlaceholderVariableName() const -> std::string;
 
-        /**
-         * Structs { <texture>, <spec-idx> }
-         *
-         * The required operation at pipeline creation is:
-         *
-         *     specConstants[<spec-idx>] = <texture>.getDeviceIndex();
-         */
-        auto getRequiredTextures() const -> const std::vector<ShaderResources::TextureResource>&;
-
-        auto getRequiredShaderInputs() const
-            -> const std::vector<ShaderResources::ShaderInputInfo>&;
-
-        auto getRequiredDescriptorSets() const -> std::vector<std::string>;
-        auto getDescriptorIndexPlaceholder(const std::string& setName) const
-            -> std::optional<std::string>;
-        auto getRequiredPushConstantSize() const -> ui32;
-
     private:
         friend class MaterialCompiler;
 
@@ -71,8 +56,6 @@ namespace trc
         );
 
         const std::string shaderGlslCode;
-
-        const ShaderResources resources;
 
         /**
          * Stores the names of temporary variables in which the computed

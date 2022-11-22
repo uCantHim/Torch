@@ -80,6 +80,12 @@ auto BasicType::to_string() const -> std::string
     throw std::logic_error("");
 }
 
+auto BasicType::size() const -> ui32
+{
+    const ui32 baseSize = type == Type::eDouble ? 8 : 4;
+    return channels * baseSize;
+}
+
 auto BasicType::locations() const -> ui32
 {
     constexpr auto typeSize = [](Type type) {
