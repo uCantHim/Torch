@@ -70,6 +70,11 @@ auto ShaderCodeBuilder::makeExternalIdentifier(const std::string& id) -> Value
     return makeValue(Identifier{ id });
 }
 
+auto ShaderCodeBuilder::makeNot(Value val) -> Value
+{
+    return makeValue(UnaryOperator{ "!", val });
+}
+
 auto ShaderCodeBuilder::makeAdd(Value lhs, Value rhs) -> Value
 {
     return makeValue(BinaryOperator{ .opName="+", .lhs=lhs, .rhs=rhs });

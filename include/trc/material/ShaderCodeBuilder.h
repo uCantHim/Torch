@@ -35,6 +35,8 @@ namespace trc
         auto makeExternalIdentifier(const std::string& id) -> Value;
         auto makeExternalCall(const std::string& funcName, std::vector<Value> args) -> Value;
 
+        /** @brief Create a unary boolean NOT operation */
+        auto makeNot(Value val) -> Value;
         auto makeAdd(Value lhs, Value rhs) -> Value;
         auto makeSub(Value lhs, Value rhs) -> Value;
         auto makeMul(Value lhs, Value rhs) -> Value;
