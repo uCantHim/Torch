@@ -121,9 +121,19 @@ auto ShaderBlockCompiler::operator()(const Return& v) -> std::string
     return "return";
 }
 
+auto ShaderBlockCompiler::operator()(const Assignment& v) -> std::string
+{
+    auto [id, lhsCode] = valueCompiler.compile(v.lhs);
+    auto [value, rhsCode] = valueCompiler.compile(v.rhs);
+
+    return lhsCode + rhsCode + id + " = " + value;
+}
+
 auto ShaderBlockCompiler::operator()(const FunctionCall& v) -> std::string
 {
-    return valueCompiler(v);
+    code::ValueT value{ v };
+    auto [call, preCode] = valueCompiler.compile(&value);
+    return preCode + call;
 }
 
 } // namespace trc

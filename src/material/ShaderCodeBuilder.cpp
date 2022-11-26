@@ -16,7 +16,7 @@ void ShaderCodeBuilder::startBlock(Function func)
 {
     // I could also do `functions.at(func->getName())->body` but that's
     // more expensive that casting const away.
-    blockStack.push((BlockT*)func->body);
+    blockStack.push((BlockT*)func->getBlock());
 }
 
 void ShaderCodeBuilder::endBlock()
@@ -58,11 +58,7 @@ auto ShaderCodeBuilder::makeArrayAccess(Value array, Value index) -> Value
 auto ShaderCodeBuilder::makeExternalCall(const std::string& funcName, std::vector<Value> args)
     -> Value
 {
-    auto [it, success] = builtinFunctions.try_emplace(
-        funcName,
-        std::make_unique<FunctionT>(FunctionT{ funcName, {}, nullptr, {} })
-    );
-    return makeCall(it->second.get(), std::move(args));
+    return makeCall(makeOrGetBuiltinFunction(funcName), std::move(args));
 }
 
 auto ShaderCodeBuilder::makeExternalIdentifier(const std::string& id) -> Value
@@ -112,13 +108,31 @@ auto ShaderCodeBuilder::makeFunction(
     return makeFunction(FunctionT{ name, std::move(type), block, std::move(argumentRefs) });
 }
 
-auto ShaderCodeBuilder::getFunction(const std::string& funcName) -> std::optional<Function>
+auto ShaderCodeBuilder::getFunction(const std::string& funcName) const -> std::optional<Function>
 {
     auto it = functions.find(funcName);
     if (it != functions.end()) {
         return it->second.get();
     }
     return std::nullopt;
+}
+
+void ShaderCodeBuilder::makeAssignment(code::Value lhs, code::Value rhs)
+{
+    makeStatement(code::Assignment{ .lhs=lhs, .rhs=rhs });
+}
+
+void ShaderCodeBuilder::makeCallStatement(Function func, std::vector<code::Value> args)
+{
+    makeStatement(code::FunctionCall{ func, std::move(args) });
+}
+
+void ShaderCodeBuilder::makeExternalCallStatement(
+    const std::string& funcName,
+    std::vector<code::Value> args)
+{
+    Function func = makeOrGetBuiltinFunction(funcName);
+    makeStatement(code::FunctionCall{ func, std::move(args) });
 }
 
 template<typename T>
@@ -140,6 +154,15 @@ void ShaderCodeBuilder::makeStatement(StmtT statement)
 auto ShaderCodeBuilder::makeFunction(FunctionT func) -> Function
 {
     auto [it, _] = functions.try_emplace(func.getName(), std::make_unique<FunctionT>(func));
+    return it->second.get();
+}
+
+auto ShaderCodeBuilder::makeOrGetBuiltinFunction(const std::string& funcName) -> Function
+{
+    auto [it, _] = builtinFunctions.try_emplace(
+        funcName,
+        std::make_unique<FunctionT>(FunctionT{ funcName, {}, nullptr, {} })
+    );
     return it->second.get();
 }
 
@@ -207,6 +230,11 @@ auto code::FunctionT::getType() const -> const FunctionType&
 auto code::FunctionT::getArgs() const -> const std::vector<Value>&
 {
     return argumentRefs;
+}
+
+auto code::FunctionT::getBlock() const -> Block
+{
+    return body;
 }
 
 } // namespace trc

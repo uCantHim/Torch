@@ -51,6 +51,7 @@ namespace trc
         auto compile(Block block) -> std::string;
 
         auto operator()(const code::Return& v) -> std::string;
+        auto operator()(const code::Assignment& v) -> std::string;
         auto operator()(const code::FunctionCall& v) -> std::string;
 
     private:

@@ -29,6 +29,11 @@ ShaderModuleBuilder::ShaderModuleBuilder(ShaderCapabilityConfig conf)
     config(std::move(conf)),
     resources(config, *this)
 {
+    // I can declare the main function like this because function declarations
+    // are always compiled in the reversed order in which they were created.
+    // Main is always the first function that is declared.
+    auto main = makeFunction("main", FunctionType{ {}, std::nullopt });
+    startBlock(main);
 }
 
 auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
@@ -49,6 +54,11 @@ auto ShaderModuleBuilder::getCapabilityConfig() const -> const ShaderCapabilityC
 auto ShaderModuleBuilder::compileResourceDecls() const -> ShaderResources
 {
     return resources.compile();
+}
+
+auto ShaderModuleBuilder::getPrimaryBlock() const -> Block
+{
+    return getFunction("main").value()->getBlock();
 }
 
 }

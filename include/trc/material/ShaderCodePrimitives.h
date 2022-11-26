@@ -39,9 +39,11 @@ namespace trc
         >;
 
         struct Return;
+        struct Assignment;
 
         using StmtT = std::variant<
             Return,
+            Assignment,
             FunctionCall // Re-use the Value-type struct as a statement
         >;
 
@@ -108,6 +110,12 @@ namespace trc
             std::optional<Value> val;
         };
 
+        struct Assignment
+        {
+            code::Value lhs;
+            code::Value rhs;
+        };
+
 
         // --- Function type --- //
 
@@ -119,6 +127,7 @@ namespace trc
             auto getType() const -> const FunctionType&;
 
             auto getArgs() const -> const std::vector<Value>&;
+            auto getBlock() const -> Block;
 
         private:
             friend class ::trc::ShaderCodeBuilder;

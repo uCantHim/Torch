@@ -43,7 +43,11 @@ namespace trc
         auto makeDiv(Value lhs, Value rhs) -> Value;
 
         auto makeFunction(const std::string& name, FunctionType type) -> Function;
-        auto getFunction(const std::string& name) -> std::optional<Function>;
+        auto getFunction(const std::string& name) const -> std::optional<Function>;
+
+        void makeAssignment(code::Value lhs, code::Value rhs);
+        void makeCallStatement(Function func, std::vector<code::Value> args);
+        void makeExternalCallStatement(const std::string& funcName, std::vector<code::Value> args);
 
         auto compileFunctionDecls() -> std::string;
 
@@ -59,16 +63,14 @@ namespace trc
         static auto compile(Value value) -> std::pair<std::string, std::string>;
         static auto compile(Block block) -> std::string;
 
-    private:
-        friend class ShaderValueCompiler;
-        friend class ShaderBlockCompiler;
-        friend class ShaderTypeChecker;
-
+    protected:
         template<typename T>
         auto makeValue(T&& val) -> Value;
         void makeStatement(code::StmtT statement);
         auto makeFunction(code::FunctionT func) -> Function;
+        auto makeOrGetBuiltinFunction(const std::string& funcName) -> Function;
 
+    private:
         std::vector<u_ptr<code::ValueT>> values;
         std::unordered_map<std::string, u_ptr<code::FunctionT>> functions;
         std::unordered_map<std::string, u_ptr<code::FunctionT>> builtinFunctions;

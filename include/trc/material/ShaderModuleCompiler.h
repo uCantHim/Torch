@@ -32,31 +32,13 @@ namespace trc
         auto getParameterName(ParameterID paramNode) const
             -> std::optional<std::string>;
 
-        /**
-         * The shader module compiler always writes a replacement variable
-         * at the end of the shader's `main` function:
-         *
-         *     void main()
-         *     {
-         *         ...
-         *
-         *         //$ POST_OUTPUT_VARIABLE
-         *     }
-         *
-         * This function queries this variable's name for post-processing
-         * purposes. (In the example above, this function would return the
-         * string "POST_OUTPUT_VARIABLE")
-         */
-        auto getOutputPlaceholderVariableName() const -> std::string;
-
     private:
         friend class ShaderModuleCompiler;
 
         ShaderModule(
             std::string shaderCode,
             ShaderResources resourceInfo,
-            std::unordered_map<ParameterID, std::string> paramResultVariableNames,
-            std::string outputReplacementVariableName
+            std::unordered_map<ParameterID, std::string> paramResultVariableNames
         );
 
         const std::string shaderGlslCode;
@@ -66,9 +48,6 @@ namespace trc
          * output parameters (inputs to the output node) reside.
          */
         const std::unordered_map<ParameterID, std::string> paramResultVariableNames;
-
-        /** Placeholder variable (in the format `//$...`) after shader outputs */
-        const std::string outputReplacementVariableName;
     };
 
     class ShaderModuleCompiler

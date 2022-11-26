@@ -45,10 +45,20 @@ namespace trc
         auto makeCapabilityAccess(Capability capability) -> Value;
         auto makeTextureSample(TextureReference tex, Value uvs) -> Value;
 
+        template<std::derived_from<ShaderFunction> T>
+            requires std::is_default_constructible_v<T>
+        void makeCallStatement(std::vector<code::Value> args);
+
         auto getCapabilityConfig() const -> const ShaderCapabilityConfig&;
         auto compileResourceDecls() const -> ShaderResources;
 
+        auto getPrimaryBlock() const -> Block;
+
     private:
+        template<std::derived_from<ShaderFunction> T>
+            requires std::is_default_constructible_v<T>
+        auto createFunctionDef() -> Function;
+
         ShaderCapabilityConfig config;
         ShaderResourceInterface resources;
     };
@@ -57,10 +67,10 @@ namespace trc
 
     template<std::derived_from<ShaderFunction> T>
         requires std::is_default_constructible_v<T>
-    auto ShaderModuleBuilder::makeCall(std::vector<Value> args) -> Value
+    auto ShaderModuleBuilder::createFunctionDef() -> Function
     {
         if (auto func = getFunction(T{}.getName())) {
-            return ShaderCodeBuilder::makeCall(*func, std::move(args));
+            return *func;
         }
 
         T funcBuilder;
@@ -69,6 +79,21 @@ namespace trc
         funcBuilder.build(*this, func->getArgs());
         endBlock();
 
-        return ShaderCodeBuilder::makeCall(func, args);
+        return func;
+    }
+
+    template<std::derived_from<ShaderFunction> T>
+        requires std::is_default_constructible_v<T>
+    auto ShaderModuleBuilder::makeCall(std::vector<Value> args) -> Value
+    {
+        return ShaderCodeBuilder::makeCall(createFunctionDef<T>(), args);
+    }
+
+    template<std::derived_from<ShaderFunction> T>
+        requires std::is_default_constructible_v<T>
+    void ShaderModuleBuilder::makeCallStatement(std::vector<code::Value> args)
+    {
+        Function func = createFunctionDef<T>();
+        makeStatement(code::FunctionCall{ func, std::move(args) });
     }
 } // namespace trc

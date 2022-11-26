@@ -18,21 +18,9 @@ auto ShaderOutputNode::addOutput(ui32 location, BasicType type) -> OutputID
     return { static_cast<ui32>(outputLocations.size() - 1) };
 }
 
-auto ShaderOutputNode::addBuiltinOutput(const std::string& outputName) -> BuiltinOutputID
-{
-    builtinOutputNames.emplace_back(outputName);
-    return { static_cast<ui32>(builtinOutputNames.size() - 1) };
-}
-
 void ShaderOutputNode::linkOutput(ParameterID param, OutputID output, std::string accessor)
 {
     paramOutputLinks.push_back({ param, output, accessor });
-}
-
-void ShaderOutputNode::linkOutput(ParameterID param, BuiltinOutputID output)
-{
-    assert(builtinOutputNames.size() > output.index);
-    builtinOutputLinks.try_emplace(builtinOutputNames.at(output.index), param);
 }
 
 void ShaderOutputNode::setParameter(ParameterID param, code::Value value)
@@ -63,12 +51,6 @@ auto ShaderOutputNode::getOutput(OutputID output) const -> const OutputLocation&
 auto ShaderOutputNode::getOutputs() const -> const std::vector<OutputLocation>&
 {
     return outputLocations;
-}
-
-auto ShaderOutputNode::getBuiltinOutputs() const
-    -> const std::unordered_map<std::string, ParameterID>&
-{
-    return builtinOutputLinks;
 }
 
 } // namespace trc

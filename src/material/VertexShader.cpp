@@ -17,7 +17,7 @@ public:
         :
         ShaderFunction(
             "calcGlPosition",
-            FunctionType{ { vec4{} }, vec4{} }
+            FunctionType{ { vec3{} }, vec4{} }
         )
     {}
 
@@ -27,7 +27,10 @@ public:
             builder.makeCapabilityAccess(VertexCapability::kProjMatrix),
             builder.makeCapabilityAccess(VertexCapability::kViewMatrix)
         );
-        builder.makeReturn(builder.makeMul(viewproj, args[0]));
+        builder.makeReturn(builder.makeMul(
+            viewproj,
+            builder.makeExternalCall("vec4", { args[0], builder.makeConstant(1.0f) })
+        ));
     }
 };
 
@@ -108,8 +111,8 @@ VertexShaderBuilder::VertexShaderBuilder(
                     objPos4 = builder.makeCall<ApplyAnimation>({ objPos4 });
                 }
 
-                auto worldPos = builder.makeMul(objPos4, modelMat);
-                return worldPos;
+                auto worldPos = builder.makeMul(modelMat, objPos4);
+                return builder.makeMemberAccess(worldPos, "xyz");
             }()
         },
         {
@@ -164,11 +167,8 @@ auto VertexShaderBuilder::buildVertexShader() -> std::pair<ShaderModule, Materia
     }
 
     // Always add the gl_Position output
-    const auto glPosOut = vertNode.addBuiltinOutput("gl_Position");
-    const auto glPosParam = vertNode.addParameter(vec4{});
-    vertNode.linkOutput(glPosParam, glPosOut);
-    vertNode.setParameter(
-        glPosParam,
+    builder.makeAssignment(
+        builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
             { fragCapabilityProviders.at(FragmentCapability::kVertexWorldPos) }
         )
