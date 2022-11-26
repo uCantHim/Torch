@@ -9,18 +9,12 @@
 namespace trc
 {
     /**
-     * This object is used to build a fragment shader output interface.
+     * This object is used to build a shader's output interface.
      *
-     * Parameters are inputs to the output node. Values for parameters
-     * are specified as MaterialNodes. This makes the material output node
-     * the root of the material graph.
-     *
-     * Outputs specify pipeline attachment locations to which parameter
-     * values can be written.
-     *
-     * Parameters can be linked to outputs.
+     * Parameters are specified as computed values, which can be linked to
+     * output locations.
      */
-    class MaterialOutputNode
+    class ShaderOutputNode
     {
     public:
         struct ParameterID
@@ -54,7 +48,7 @@ namespace trc
             BasicType type;
         };
 
-        MaterialOutputNode() = default;
+        ShaderOutputNode() = default;
 
         /**
          * @brief Create an input parameter
@@ -88,6 +82,16 @@ namespace trc
          *
          *     node.linkOutput(u, outUV, ".x");
          *     node.linkOutput(v, outUV, ".y");
+         *
+         * The generated code might look like this:
+         *
+         *     layout (location = 0) vec2 shaderOut;
+         *     void main()
+         *     {
+         *         // ... computes u and v
+         *         shaderOut.x = u;
+         *         shaderOut.y = v;
+         *     }
          *
          * @param ParameterID param  The parameter to link to an output.
          * @param OutputID    output The output to which to link.
@@ -128,12 +132,12 @@ namespace trc
 
         /** Stores existing outputs added via `addBuiltinOutput` */
         std::vector<std::string> builtinOutputNames;
-        /** Links material parameters to output names */
+        /** Links parameters to output names */
         std::unordered_map<std::string, ParameterID> builtinOutputLinks;
     };
 
-    using ParameterID = MaterialOutputNode::ParameterID;
-    using OutputID = MaterialOutputNode::OutputID;
+    using ParameterID = ShaderOutputNode::ParameterID;
+    using OutputID = ShaderOutputNode::OutputID;
 } // namespace trc
 
 template<>

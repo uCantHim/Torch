@@ -2,11 +2,12 @@
 
 #include <cassert>
 
+#include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-#include "MaterialOutputNode.h"
-#include "ShaderCapabilityConfig.h"
+#include "ShaderOutputNode.h"
 #include "ShaderResourceInterface.h"
 #include "ShaderModuleBuilder.h"
 #include "trc/Types.h"
@@ -14,23 +15,26 @@
 namespace trc
 {
     /**
-     * Contains information required to build a material pipeline
+     * Holds information about a compiled shader module.
      */
-    struct MaterialCompileResult : ShaderResources
+    struct ShaderModule : ShaderResources
     {
-        auto getShaderGlslCode() const -> const std::string&;
-
-        auto getResources() const -> const ShaderResources&;
+        auto getGlslCode() const -> const std::string&;
 
         /**
-         * @brief Get the name of a material parameter's result variable
+         * @brief Get the name of an output parameter's result variable
+         *
+         * Parameters specified at the module's ShaderOutputNode are
+         * computed in the shader. This method retrieves a GLSL variable
+         * name that refers to this final value before it is written to a
+         * shader output location.
          */
-        auto getParameterResultVariableName(ParameterID paramNode) const
+        auto getParameterName(ParameterID paramNode) const
             -> std::optional<std::string>;
 
         /**
-         * The material compiler always writes a replacement variable at
-         * the end of the shader's `main` function:
+         * The shader module compiler always writes a replacement variable
+         * at the end of the shader's `main` function:
          *
          *     void main()
          *     {
@@ -46,9 +50,9 @@ namespace trc
         auto getOutputPlaceholderVariableName() const -> std::string;
 
     private:
-        friend class MaterialCompiler;
+        friend class ShaderModuleCompiler;
 
-        MaterialCompileResult(
+        ShaderModule(
             std::string shaderCode,
             ShaderResources resourceInfo,
             std::unordered_map<ParameterID, std::string> paramResultVariableNames,
@@ -58,9 +62,8 @@ namespace trc
         const std::string shaderGlslCode;
 
         /**
-         * Stores the names of temporary variables in which the computed
-         * values of material parameters (input nodes to the output node)
-         * reside.
+         * Stores the names of variables in which the computed values of
+         * output parameters (inputs to the output node) reside.
          */
         const std::unordered_map<ParameterID, std::string> paramResultVariableNames;
 
@@ -68,10 +71,10 @@ namespace trc
         const std::string outputReplacementVariableName;
     };
 
-    class MaterialCompiler
+    class ShaderModuleCompiler
     {
     public:
-        auto compile(MaterialOutputNode& root, ShaderModuleBuilder& builder)
-            -> MaterialCompileResult;
+        auto compile(ShaderOutputNode& output, ShaderModuleBuilder& builder)
+            -> ShaderModule;
     };
 } // namespace trc

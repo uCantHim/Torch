@@ -13,16 +13,16 @@
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/drawable/DefaultDrawable.h>
 #include <trc/material/FragmentShader.h>
-#include <trc/material/MaterialCompiler.h>
 #include <trc/material/MaterialRuntime.h>
 #include <trc/material/Mix.h>
+#include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/VertexShader.h>
 
 using namespace trc;
 
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
 auto makeMaterial(ShaderModuleBuilder& builder,
-                  MaterialOutputNode& materialNode,
+                  ShaderOutputNode& materialNode,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams) -> MaterialRuntimeInfo;
 void run(MaterialRuntimeInfo material);
@@ -67,7 +67,7 @@ int main()
     ));
 
     // Create output node
-    MaterialOutputNode mat;
+    ShaderOutputNode mat;
     auto inColor = mat.addParameter(vec4{});
     auto inNormal = mat.addParameter(vec3{});
     auto inRoughness = mat.addParameter(float{});
@@ -124,7 +124,7 @@ int main()
 }
 
 auto makeMaterial(ShaderModuleBuilder& builder,
-                  MaterialOutputNode& materialNode,
+                  ShaderOutputNode& materialNode,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams) -> MaterialRuntimeInfo
 {
@@ -144,35 +144,41 @@ auto makeMaterial(ShaderModuleBuilder& builder,
     }
 
     // Compile the material graph
-    MaterialCompiler compiler;
-    auto material = compiler.compile(materialNode, builder);
+    ShaderModuleCompiler compiler;
+    auto fragModule = compiler.compile(materialNode, builder);
 
     // Perform post-processing of the generated shader source
-    std::string fragmentCode = material.getShaderGlslCode();
+    std::string fragmentCode = fragModule.getGlslCode();
     if (fragParams.transparent)
     {
+        auto specularValue = fragModule.getParameterName(fragParams.specularParam).value_or("1.0f");
+        auto roughnessValue = fragModule.getParameterName(fragParams.roughnessParam).value_or("1.0f");
+        auto metallicnessValue = fragModule.getParameterName(fragParams.metallicnessParam).value_or("0.0f");
+        std::string transparentOutput =
+            "MaterialParams mat;\n"
+            "mat.kSpecular = " + specularValue + ";\n"
+            + "mat.roughness = " + roughnessValue + ";\n"
+            + "mat.metallicness = " + metallicnessValue + ";\n"
+
+            + "vec4 color = " + fragModule.getParameterName(fragParams.colorParam).value() + ";\n"
+            + "if (" + fragModule.getParameterName(fragParams.emissiveParam).value() + ") {\n"
+            + "color.xyz = calcLighting("
+                + "color,\n"
+                + "vert.worldPos,\n"
+                + fragModule.getParameterName(fragParams.normalParam).value() + ",\n"
+                + "camera.inverseViewMatrix[3].xyz,\n"
+                + "mat);\n"
+            + "}\n"
+            + "appendFragment(color);";
+
         shader_edit::ShaderDocument doc(fragmentCode);
-
-        doc.set(material.getOutputPlaceholderVariableName(), R"(
-    MaterialParams mat;
-    mat.kSpecular = materials[vert.material].kSpecular;
-    mat.roughness = materials[vert.material].roughness;
-    mat.metallicness = materials[vert.material].metallicness;
-
-    vec3 color = calcLighting()"
-        + material.getParameterResultVariableName(fragParams.colorParam).value() + ",\n"
-        + "vert.worldPos,\n"
-        + material.getParameterResultVariableName(fragParams.normalParam).value() + ",\n"
-        + "camera.inverseViewMatrix[3].xyz,\n"
-        + "mat);\n"
-        + "appendFragment(vec4(color, diffuseColor.a));"
-        );
+        doc.set(fragModule.getOutputPlaceholderVariableName(), std::move(transparentOutput));
 
         fragmentCode = doc.compile();
     }
 
     // Create a vertex shader with a graph
-    VertexShaderBuilder vertBuilder(material, vertParams.animated);
+    VertexShaderBuilder vertBuilder(fragModule, vertParams.animated);
     auto [vert, runtimeConfig] = vertBuilder.buildVertexShader();
 
     // Create result value
@@ -182,7 +188,7 @@ auto makeMaterial(ShaderModuleBuilder& builder,
         fragParams,
         {
             { vk::ShaderStageFlagBits::eVertex, std::move(vert) },
-            { vk::ShaderStageFlagBits::eFragment, std::move(material) },
+            { vk::ShaderStageFlagBits::eFragment, std::move(fragModule) },
         }
     };
 

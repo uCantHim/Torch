@@ -3,9 +3,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "MaterialCompiler.h"
-#include "MaterialOutputNode.h"
 #include "RuntimeResourceHandler.h"
+#include "ShaderModuleCompiler.h"
+#include "ShaderOutputNode.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/PipelineLayoutTemplate.h"
 
@@ -23,10 +23,13 @@ namespace trc
     struct PipelineFragmentParams
     {
         bool transparent;
-        MaterialOutputNode::ParameterID colorParam;
-        MaterialOutputNode::ParameterID normalParam;
-        MaterialOutputNode::ParameterID roughnessParam;
-        MaterialOutputNode::ParameterID emissiveParam;
+        ShaderOutputNode::ParameterID colorParam;
+        ShaderOutputNode::ParameterID normalParam;
+
+        ShaderOutputNode::ParameterID specularParam;
+        ShaderOutputNode::ParameterID metallicnessParam;
+        ShaderOutputNode::ParameterID roughnessParam;
+        ShaderOutputNode::ParameterID emissiveParam;
     };
 
     struct MaterialRuntimeConfig
@@ -52,7 +55,7 @@ namespace trc
             const MaterialRuntimeConfig& runtimeConf,
             PipelineVertexParams vert,
             PipelineFragmentParams frag,
-            std::unordered_map<vk::ShaderStageFlagBits, MaterialCompileResult> stages
+            std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages
         );
 
         auto getShaderGlslCode(vk::ShaderStageFlagBits stage) const -> const std::string&;

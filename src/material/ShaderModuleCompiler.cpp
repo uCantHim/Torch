@@ -1,4 +1,4 @@
-#include "trc/material/MaterialCompiler.h"
+#include "trc/material/ShaderModuleCompiler.h"
 
 #include "trc/material/ShaderCodeCompiler.h"
 
@@ -7,7 +7,7 @@
 namespace trc
 {
 
-MaterialCompileResult::MaterialCompileResult(
+ShaderModule::ShaderModule(
     std::string shaderCode,
     ShaderResources resourceInfo,
     std::unordered_map<ParameterID, std::string> paramResultVariableNames,
@@ -20,17 +20,12 @@ MaterialCompileResult::MaterialCompileResult(
 {
 }
 
-auto MaterialCompileResult::getShaderGlslCode() const -> const std::string&
+auto ShaderModule::getGlslCode() const -> const std::string&
 {
     return shaderGlslCode;
 }
 
-auto MaterialCompileResult::getResources() const -> const ShaderResources&
-{
-    return *this;
-}
-
-auto MaterialCompileResult::getParameterResultVariableName(ParameterID paramNode) const
+auto ShaderModule::getParameterName(ParameterID paramNode) const
     -> std::optional<std::string>
 {
     if (!paramResultVariableNames.contains(paramNode)) {
@@ -39,15 +34,15 @@ auto MaterialCompileResult::getParameterResultVariableName(ParameterID paramNode
     return paramResultVariableNames.at(paramNode);
 }
 
-auto MaterialCompileResult::getOutputPlaceholderVariableName() const -> std::string
+auto ShaderModule::getOutputPlaceholderVariableName() const -> std::string
 {
     return outputReplacementVariableName;
 }
 
 
 
-auto MaterialCompiler::compile(MaterialOutputNode& outNode, ShaderModuleBuilder& builder)
-    -> MaterialCompileResult
+auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilder& builder)
+    -> ShaderModule
 {
     ShaderValueCompiler codeCompiler;
 

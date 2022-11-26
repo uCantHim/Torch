@@ -83,14 +83,11 @@ MaterialRuntimeInfo::MaterialRuntimeInfo(
     const MaterialRuntimeConfig& runtimeConf,
     PipelineVertexParams vert,
     PipelineFragmentParams frag,
-    std::unordered_map<vk::ShaderStageFlagBits, MaterialCompileResult> stages)
+    std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages)
     :
     vertParams(vert),
     fragParams(frag),
-    vertResourceHandler(
-        stages.at(vk::ShaderStageFlagBits::eVertex).getResources(),
-        runtimeConf
-    )
+    vertResourceHandler(stages.at(vk::ShaderStageFlagBits::eVertex), runtimeConf)
 {
     {
         // Collect required descriptor sets
@@ -117,7 +114,7 @@ MaterialRuntimeInfo::MaterialRuntimeInfo(
     for (const auto& [stage, shader] : stages)
     {
         // Set descriptor set indices in the shader source
-        shader_edit::ShaderDocument doc(shader.getShaderGlslCode());
+        shader_edit::ShaderDocument doc(shader.getGlslCode());
         for (const auto& setName : shader.getRequiredDescriptorSets())
         {
             auto varName = shader.getDescriptorIndexPlaceholder(setName);

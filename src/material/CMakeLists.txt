@@ -3,14 +3,14 @@ target_sources(
     PRIVATE
         BasicType.cpp
         Constant.cpp
-        MaterialCompiler.cpp
-        MaterialOutputNode.cpp
         MaterialRuntime.cpp
         RuntimePushConstantHandler.cpp
         ShaderCapabilityConfig.cpp
         ShaderCodeBuilder.cpp
         ShaderCodeCompiler.cpp
         ShaderModuleBuilder.cpp
+        ShaderModuleCompiler.cpp
+        ShaderOutputNode.cpp
         ShaderResourceInterface.cpp
         ShaderTypeChecker.cpp
         VertexShader.cpp

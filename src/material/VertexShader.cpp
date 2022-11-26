@@ -89,7 +89,7 @@ public:
 
 
 VertexShaderBuilder::VertexShaderBuilder(
-    MaterialCompileResult fragmentResult,
+    ShaderModule fragmentResult,
     bool animated)
     :
     fragment(std::move(fragmentResult)),
@@ -139,9 +139,9 @@ VertexShaderBuilder::VertexShaderBuilder(
     };
 }
 
-auto VertexShaderBuilder::buildVertexShader() -> std::pair<MaterialCompileResult, MaterialRuntimeConfig>
+auto VertexShaderBuilder::buildVertexShader() -> std::pair<ShaderModule, MaterialRuntimeConfig>
 {
-    MaterialOutputNode vertNode;
+    ShaderOutputNode vertNode;
     for (const auto& out : fragment.getRequiredShaderInputs())
     {
         auto output = vertNode.addOutput(out.location, out.type);
@@ -174,7 +174,7 @@ auto VertexShaderBuilder::buildVertexShader() -> std::pair<MaterialCompileResult
         )
     );
 
-    MaterialCompiler vertCompiler;
+    ShaderModuleCompiler vertCompiler;
     return { vertCompiler.compile(vertNode, builder), configs.second };
 }
 

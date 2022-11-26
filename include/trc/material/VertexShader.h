@@ -1,9 +1,9 @@
 #pragma once
 
-#include "MaterialCompiler.h"
 #include "MaterialRuntime.h"
 #include "ShaderCapabilities.h"
 #include "ShaderModuleBuilder.h"
+#include "ShaderModuleCompiler.h"
 #include "ShaderResourceInterface.h"
 
 namespace trc
@@ -37,16 +37,16 @@ namespace trc
     class VertexShaderBuilder
     {
     public:
-        VertexShaderBuilder(MaterialCompileResult fragmentResult,
+        VertexShaderBuilder(ShaderModule fragmentResult,
                             bool animated);
 
-        auto buildVertexShader() -> std::pair<MaterialCompileResult, MaterialRuntimeConfig>;
+        auto buildVertexShader() -> std::pair<ShaderModule, MaterialRuntimeConfig>;
 
     private:
         static auto makeVertexCapabilityConfig()
             -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>;
 
-        MaterialCompileResult fragment;
+        ShaderModule fragment;
 
         std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig> configs;
         ShaderModuleBuilder builder;
