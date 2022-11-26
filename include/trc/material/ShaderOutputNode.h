@@ -20,12 +20,22 @@ namespace trc
         struct ParameterID
         {
             auto operator<=>(const ParameterID&) const = default;
+
+        private:
+            friend class ShaderOutputNode;
+            friend struct ::std::hash<ParameterID>;
+            ParameterID(ui32 index) : index(index) {}
             ui32 index;
         };
 
         struct OutputID
         {
             auto operator<=>(const OutputID&) const = default;
+
+        private:
+            friend class ShaderOutputNode;
+            friend struct ::std::hash<OutputID>;
+            OutputID(ui32 index) : index(index) {}
             ui32 index;
         };
 
