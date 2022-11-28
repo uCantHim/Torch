@@ -40,10 +40,12 @@ namespace trc
 
         struct Return;
         struct Assignment;
+        struct IfStatement;
 
         using StmtT = std::variant<
             Return,
             Assignment,
+            IfStatement,
             FunctionCall // Re-use the Value-type struct as a statement
         >;
 
@@ -55,7 +57,7 @@ namespace trc
         };
 
         using Function = const FunctionT*;
-        using Block = const BlockT*;
+        using Block = BlockT*;
         using Value = const ValueT*;
 
 
@@ -114,6 +116,12 @@ namespace trc
         {
             code::Value lhs;
             code::Value rhs;
+        };
+
+        struct IfStatement
+        {
+            code::Value condition;
+            Block block;
         };
 
 

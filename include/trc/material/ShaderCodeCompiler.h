@@ -52,6 +52,7 @@ namespace trc
 
         auto operator()(const code::Return& v) -> std::string;
         auto operator()(const code::Assignment& v) -> std::string;
+        auto operator()(const code::IfStatement& v) -> std::string;
         auto operator()(const code::FunctionCall& v) -> std::string;
 
     private:

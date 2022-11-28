@@ -22,6 +22,7 @@ namespace trc
         using Value = code::Value;
 
         void startBlock(Function function);
+        void startBlock(Block block);
         void endBlock();
 
         void makeReturn();
@@ -42,12 +43,20 @@ namespace trc
         auto makeMul(Value lhs, Value rhs) -> Value;
         auto makeDiv(Value lhs, Value rhs) -> Value;
 
+        auto makeSmallerThan(Value lhs, Value rhs) -> Value;
+        auto makeGreaterThan(Value lhs, Value rhs) -> Value;
+        auto makeSmallerOrEqual(Value lhs, Value rhs) -> Value;
+        auto makeGreaterOrEqual(Value lhs, Value rhs) -> Value;
+        auto makeEqual(Value lhs, Value rhs) -> Value;
+        auto makeNotEqual(Value lhs, Value rhs) -> Value;
+
         auto makeFunction(const std::string& name, FunctionType type) -> Function;
         auto getFunction(const std::string& name) const -> std::optional<Function>;
 
         void makeAssignment(code::Value lhs, code::Value rhs);
         void makeCallStatement(Function func, std::vector<code::Value> args);
         void makeExternalCallStatement(const std::string& funcName, std::vector<code::Value> args);
+        auto makeIfStatement(Value condition) -> Block;
 
         auto compileFunctionDecls() -> std::string;
 

@@ -14,9 +14,12 @@ using namespace code;
 
 void ShaderCodeBuilder::startBlock(Function func)
 {
-    // I could also do `functions.at(func->getName())->body` but that's
-    // more expensive that casting const away.
-    blockStack.push((BlockT*)func->getBlock());
+    blockStack.push(func->getBlock());
+}
+
+void ShaderCodeBuilder::startBlock(Block block)
+{
+    blockStack.push(block);
 }
 
 void ShaderCodeBuilder::endBlock()
@@ -91,6 +94,36 @@ auto ShaderCodeBuilder::makeDiv(Value lhs, Value rhs) -> Value
     return makeValue(BinaryOperator{ .opName="/", .lhs=lhs, .rhs=rhs });
 }
 
+auto ShaderCodeBuilder::makeSmallerThan(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="<", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeGreaterThan(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName=">", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeSmallerOrEqual(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="<=", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeGreaterOrEqual(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName=">=", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeEqual(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="==", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeNotEqual(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="!=", .lhs=lhs, .rhs=rhs });
+}
+
 auto ShaderCodeBuilder::makeFunction(
     const std::string& name,
     FunctionType type) -> Function
@@ -133,6 +166,14 @@ void ShaderCodeBuilder::makeExternalCallStatement(
 {
     Function func = makeOrGetBuiltinFunction(funcName);
     makeStatement(code::FunctionCall{ func, std::move(args) });
+}
+
+auto ShaderCodeBuilder::makeIfStatement(Value condition) -> Block
+{
+    Block block = blocks.emplace_back(std::make_unique<BlockT>()).get();
+    makeStatement(IfStatement{ condition, block });
+
+    return block;
 }
 
 template<typename T>

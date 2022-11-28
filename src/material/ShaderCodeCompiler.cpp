@@ -129,6 +129,17 @@ auto ShaderBlockCompiler::operator()(const Assignment& v) -> std::string
     return lhsCode + rhsCode + id + " = " + value;
 }
 
+auto ShaderBlockCompiler::operator()(const IfStatement& v) -> std::string
+{
+    auto [id, preCode] = valueCompiler.compile(v.condition);
+    auto blockCode = compile(v.block);
+
+    return preCode
+        + "if (" + id + ")\n{\n"
+        + blockCode
+        + "}";
+}
+
 auto ShaderBlockCompiler::operator()(const FunctionCall& v) -> std::string
 {
     code::ValueT value{ v };

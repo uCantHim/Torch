@@ -38,6 +38,17 @@ auto ShaderTypeChecker::operator()(const code::BinaryOperator& v)
     -> std::optional<BasicType>
 {
     assert(!(getType(v.lhs) && getType(v.rhs)) || getType(v.lhs)->type == getType(v.rhs)->type);
+
+    if (v.opName == "<"
+        || v.opName == "<="
+        || v.opName == ">"
+        || v.opName == ">="
+        || v.opName == "=="
+        || v.opName == "!=")
+    {
+        return bool{};
+    }
+
     return getType(v.lhs);
 }
 
