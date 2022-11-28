@@ -116,8 +116,15 @@ auto ShaderCapabilityConfig::getCapabilityType(Capability capability) const -> B
 auto ShaderCapabilityConfig::getCapabilityResources(Capability capability) const
     -> std::vector<ResourceID>
 {
-    auto& res = requiredResources.at(capability);
-    return { res.begin(), res.end() };
+    auto it = requiredResources.find(capability);
+    if (it == requiredResources.end())
+    {
+        throw std::runtime_error("[In ShaderCapabilityConfig::getCapabilityResources]: Shader"
+                                 " capability \"" + capability.getString() + "\" has not been"
+                                 " defined.");
+    }
+
+    return { it->second.begin(), it->second.end() };
 }
 
 } // namespace trc

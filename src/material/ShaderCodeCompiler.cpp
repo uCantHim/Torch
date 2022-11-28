@@ -10,6 +10,12 @@ namespace trc
 
 using namespace code;
 
+ShaderValueCompiler::ShaderValueCompiler(bool inlineAll)
+    :
+    inlineAll(inlineAll)
+{
+}
+
 auto ShaderValueCompiler::compile(Value value) -> std::pair<std::string, std::string>
 {
     // visit creates the code that computes the returned identfier's value
@@ -23,6 +29,10 @@ auto ShaderValueCompiler::visit(Value val) -> std::string
     // This is the only time that std::visit is called directly, otherwise
     // we always call `this->visit`.
     auto code = std::visit(*this, *val);
+
+    if (inlineAll) {
+        return code;
+    }
 
     // Create a separate assignment to an intermediate variable. This
     // avoids duplicate computations if the same value is referenced

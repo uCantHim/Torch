@@ -117,6 +117,7 @@ namespace trc
 
         std::unordered_set<std::string> globalExtensions;
         std::unordered_set<util::Pathlet> globalIncludes;
+        std::unordered_set<util::Pathlet> postResourceIncludes;
 
         std::vector<u_ptr<ResourceData>> resources;
         std::unordered_map<ResourceID, code::Value> resourceAccessors;

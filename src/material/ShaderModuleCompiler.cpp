@@ -1,6 +1,7 @@
 #include "trc/material/ShaderModuleCompiler.h"
 
 #include "trc/material/ShaderCodeCompiler.h"
+#include "trc/util/TorchDirectories.h"
 
 
 
@@ -63,6 +64,13 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
 
     // Write resources
     ss << resources.getGlslCode() << "\n";
+
+    // Write additional includes
+    spirv::FileIncluder includer(
+        util::getInternalShaderBinaryDirectory(),
+        { util::getInternalShaderStorageDirectory() }
+    );
+    ss << builder.compileIncludedCode(includer);
 
     // Write shader output locations
     for (const auto& [location, type] : outNode.getOutputs())

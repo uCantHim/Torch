@@ -19,6 +19,9 @@ namespace trc
     public:
         using Value = ShaderCodeBuilder::Value;
 
+        ShaderValueCompiler() = default;
+        explicit ShaderValueCompiler(bool inlineAll);
+
         /**
          * @return std::pair<std::string, std::string> [indentifier, declaration code]
          */
@@ -36,6 +39,8 @@ namespace trc
         /** @return std::string Identifier name */
         auto visit(Value val) -> std::string;
         auto genIdentifier() -> std::string;
+
+        const bool inlineAll{ false };
 
         ui32 nextId{ 0 };
 

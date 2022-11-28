@@ -125,6 +125,8 @@ namespace trc
         private:
             auto getDescriptorSetPlaceholder(const std::string& set) -> std::string;
 
+            ui32 nextNameIndex{ 0 };
+
             std::unordered_map<std::string, std::string> descriptorSetPlaceholders;
             std::stringstream generatedCode;
         };

@@ -68,15 +68,19 @@ auto ShaderResourceInterface::DescriptorBindingFactory::make(
     const ShaderCapabilityConfig::DescriptorBinding& binding) -> std::string
 {
     const auto placeholder = getDescriptorSetPlaceholder(binding.setName);
-    descriptorSetPlaceholders.try_emplace(binding.setName, placeholder);
+    auto [_, success] = descriptorSetPlaceholders.try_emplace(binding.setName, placeholder);
+    if (success) {
+        generatedCode << "#define _" << placeholder << " $" << placeholder << "\n";
+    }
 
     auto& ss = generatedCode;
-    ss << "layout (set = $" << placeholder << " "
+    ss << "layout (set = _" << placeholder << " "
        << ", binding = " << binding.bindingIndex;
     if (binding.layoutQualifier) {
         ss << ", " << *binding.layoutQualifier;
     }
-    ss << ") " << binding.descriptorType << " " << binding.descriptorName;
+    ss << ") " << binding.descriptorType << " "
+       << (binding.descriptorName.empty() ? "_" + std::to_string(nextNameIndex++) : binding.descriptorName);
     if (binding.descriptorContent)
     {
         ss << "_Name\n"

@@ -1,8 +1,16 @@
 #pragma once
 
+#include <concepts>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <spirv/FileIncluder.h>
+
 #include "ShaderCapabilityConfig.h"
 #include "ShaderCodeBuilder.h"
 #include "ShaderResourceInterface.h"
+#include "trc/util/Pathlet.h"
 
 namespace trc
 {
@@ -49,8 +57,31 @@ namespace trc
             requires std::is_default_constructible_v<T>
         void makeCallStatement(std::vector<code::Value> args);
 
+        /**
+         * @brief Include external code into the module
+         *
+         * The file contents are included after the resource declarations.
+         * Multiple included files are included in the order in which
+         * `includeCode` was called.
+         *
+         * The include path is resolved at module compile time.
+         *
+         * Allows the specification of additional replacement variables in
+         * the included file and corresponding shader capabilities. The
+         * variables will be replaced by the accessor to the respective
+         * capability.
+         *
+         * @param util::Pathlet path The path to the included file
+         * @param map<string, Capability> Maps replacement-variable names
+         *                                to capabilities.
+         */
+        void includeCode(util::Pathlet path,
+                         std::unordered_map<std::string, Capability> varReplacements);
+
         auto getCapabilityConfig() const -> const ShaderCapabilityConfig&;
         auto compileResourceDecls() const -> ShaderResources;
+        auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
+            -> std::string;
 
         auto getPrimaryBlock() const -> Block;
 
@@ -61,6 +92,11 @@ namespace trc
 
         ShaderCapabilityConfig config;
         ShaderResourceInterface resources;
+
+        // Keep the includes in insertion order
+        std::vector<
+            std::pair<util::Pathlet, std::unordered_map<std::string, Value>>
+        > includedFiles;
     };
 
 
