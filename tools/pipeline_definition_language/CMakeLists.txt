@@ -42,7 +42,6 @@ add_library(pipeline_compiler_lib
     src/VariantResolver.cpp
     src/shader_tools/ShaderDocument.cpp
     src/shader_tools/ShaderDocumentParser.cpp
-    src/shader_tools/VariableValue.cpp
 )
 
 target_compile_features(pipeline_compiler_lib PRIVATE cxx_std_20)

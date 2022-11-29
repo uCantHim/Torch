@@ -1,12 +1,26 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include <istream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <trc_util/Exception.h>
 
 namespace shader_edit
 {
+    class SyntaxError : public trc::Exception
+    {
+    public:
+        SyntaxError(uint line, const std::string& error);
+
+        /** @return uint The line in which the syntax error occured */
+        auto getLine() const -> uint;
+
+    private:
+        uint line;
+    };
+
     /**
      * Shader variable syntax:
      *
@@ -33,6 +47,13 @@ namespace shader_edit
         std::unordered_map<std::string, ParsedVariable> variablesByName{};
     };
 
+    /**
+     * @throw SyntaxError if a syntax error is encountered
+     */
     auto parseShader(std::istream& is) -> ParseResult;
+
+    /**
+     * @throw SyntaxError if a syntax error is encountered
+     */
     auto parseShader(std::vector<std::string> lines) -> ParseResult;
 } // namespace shader_edit
