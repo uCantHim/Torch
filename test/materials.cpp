@@ -228,7 +228,7 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
         .descriptorContent=std::nullopt,
     });
     config.addShaderExtension(textureResource, "GL_EXT_nonuniform_qualifier");
-    config.linkCapability(FragmentCapability::kTextureSample, textureResource, uint{});
+    config.linkCapability(FragmentCapability::kTextureSample, textureResource);
 
     auto fragListPointerImageResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName="g_buffer",
@@ -265,21 +265,18 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
     config.linkCapability(
         FragmentCapability::kNextFragmentListIndex,
         code.makeMemberAccess(config.accessResource(fragListAllocResource), "nextFragmentListIndex"),
-        uint{},
         { fragListAllocResource }
     );
     config.linkCapability(
         FragmentCapability::kMaxFragmentListIndex,
         code.makeMemberAccess(config.accessResource(fragListAllocResource), "maxFragmentListIndex"),
-        uint{},
         { fragListAllocResource }
     );
     config.linkCapability(FragmentCapability::kFragmentListHeadPointerImage,
-                          fragListPointerImageResource, bool{});
+                          fragListPointerImageResource);
     config.linkCapability(
         FragmentCapability::kFragmentListBuffer,
         code.makeMemberAccess(config.accessResource(fragListResource), "fragmentList"),
-        uint{},
         { fragListResource }
     );
 
@@ -306,7 +303,6 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
     config.linkCapability(
         FragmentCapability::kShadowMatrices,
         code.makeMemberAccess(config.accessResource(shadowMatrixBufferResource), "shadowMatrices"),
-        bool{},
         { shadowMapsResource, shadowMatrixBufferResource }
     );
 
@@ -325,7 +321,7 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
             "Light lights[];"
     });
     config.addShaderInclude(lightBufferResource, util::Pathlet("material_utils/light.glsl"));
-    config.linkCapability(FragmentCapability::kLightBuffer, lightBufferResource, bool{});
+    config.linkCapability(FragmentCapability::kLightBuffer, lightBufferResource);
 
     auto cameraBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName="global_data",
@@ -350,7 +346,6 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
             ),
             "xyz"
         ),
-        vec3{},
         { cameraBufferResource }
     );
 
@@ -359,13 +354,13 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
     auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, 2, true });
     auto vTbnMat    = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat3{}, 3 });
 
-    config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos, vec3{});
-    config.linkCapability(FragmentCapability::kVertexUV, vUv, vec2{});
-    config.linkCapability(FragmentCapability::kTangentToWorldSpaceMatrix, vTbnMat, mat3{});
+    config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos);
+    config.linkCapability(FragmentCapability::kVertexUV, vUv);
+    config.linkCapability(FragmentCapability::kTangentToWorldSpaceMatrix, vTbnMat);
     config.linkCapability(
         FragmentCapability::kVertexNormal,
         code.makeArrayAccess(config.accessResource(vTbnMat), code.makeConstant(2)),
-        vec3{}, { vTbnMat }
+        { vTbnMat }
     );
 
     return {

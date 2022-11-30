@@ -76,16 +76,14 @@ auto ShaderCapabilityConfig::getResource(ResourceID resource) const -> const Res
 
 void ShaderCapabilityConfig::linkCapability(
     Capability capability,
-    ResourceID resource,
-    BasicType type)
+    ResourceID resource)
 {
-    return linkCapability(capability, accessResource(resource), type, { resource });
+    return linkCapability(capability, accessResource(resource), { resource });
 }
 
 void ShaderCapabilityConfig::linkCapability(
     Capability capability,
     code::Value value,
-    BasicType type,
     std::vector<ResourceID> resources)
 {
     auto [_, success] = capabilityAccessors.try_emplace(capability, value);
@@ -94,7 +92,6 @@ void ShaderCapabilityConfig::linkCapability(
                                     " is already linked to a resource!");
     }
 
-    capabilityTypes.try_emplace(capability, type);
     requiredResources.try_emplace(capability, resources.begin(), resources.end());
 }
 
@@ -106,11 +103,6 @@ bool ShaderCapabilityConfig::hasCapability(Capability capability) const
 auto ShaderCapabilityConfig::accessCapability(Capability capability) const -> code::Value
 {
     return capabilityAccessors.at(capability);
-}
-
-auto ShaderCapabilityConfig::getCapabilityType(Capability capability) const -> BasicType
-{
-    return capabilityTypes.at(capability);
 }
 
 auto ShaderCapabilityConfig::getCapabilityResources(Capability capability) const

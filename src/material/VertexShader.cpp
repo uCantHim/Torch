@@ -236,8 +236,8 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig()
         .descriptorContent="mat4 boneMatrices[];"
     });
     config.addShaderInclude(animMeta, util::Pathlet("material_utils/animation_data.glsl"));
-    config.linkCapability(VertexCapability::kAnimMetaBuffer, animMeta, bool{});
-    config.linkCapability(VertexCapability::kAnimDataBuffer, animBuffer, bool{});
+    config.linkCapability(VertexCapability::kAnimMetaBuffer, animMeta);
+    config.linkCapability(VertexCapability::kAnimDataBuffer, animBuffer);
 
     auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 0 });
     auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 1 });
@@ -246,35 +246,35 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig()
     auto vBoneIndices = config.addResource(ShaderCapabilityConfig::ShaderInput{ uvec4{}, 4 });
     auto vBoneWeights = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec4{}, 5 });
 
-    config.linkCapability(VertexCapability::kPosition, vPos, vec3{});
-    config.linkCapability(VertexCapability::kNormal, vNormal, vec3{});
-    config.linkCapability(VertexCapability::kTangent, vTangent, vec3{});
-    config.linkCapability(VertexCapability::kUV, vUV, vec2{});
-    config.linkCapability(VertexCapability::kBoneIndices, vBoneIndices, uvec4{});
-    config.linkCapability(VertexCapability::kBoneWeights, vBoneWeights, vec4{});
+    config.linkCapability(VertexCapability::kPosition, vPos);
+    config.linkCapability(VertexCapability::kNormal, vNormal);
+    config.linkCapability(VertexCapability::kTangent, vTangent);
+    config.linkCapability(VertexCapability::kUV, vUV);
+    config.linkCapability(VertexCapability::kBoneIndices, vBoneIndices);
+    config.linkCapability(VertexCapability::kBoneWeights, vBoneWeights);
 
     // Model matrix
-    config.linkCapability(VertexCapability::kModelMatrix, modelPc, mat4{});
+    config.linkCapability(VertexCapability::kModelMatrix, modelPc);
 
     // Camera matrices
     auto camera = config.accessResource(cameraMatrices);
     config.linkCapability(VertexCapability::kViewMatrix,
-                          code.makeMemberAccess(camera, "viewMatrix"), mat4{},
+                          code.makeMemberAccess(camera, "viewMatrix"),
                           { cameraMatrices });
     config.linkCapability(VertexCapability::kProjMatrix,
-                          code.makeMemberAccess(camera, "projMatrix"), mat4{},
+                          code.makeMemberAccess(camera, "projMatrix"),
                           { cameraMatrices });
 
     // Animation data
     auto animData = config.accessResource(animDataPc);
     config.linkCapability(VertexCapability::kAnimIndex,
-                          code.makeMemberAccess(animData, "animation"), uint{},
+                          code.makeMemberAccess(animData, "animation"),
                           { animDataPc });
     config.linkCapability(VertexCapability::kAnimKeyframes,
-                          code.makeMemberAccess(animData, "keyframes"), uvec2{},
+                          code.makeMemberAccess(animData, "keyframes"),
                           { animDataPc });
     config.linkCapability(VertexCapability::kAnimFrameWeight,
-                          code.makeMemberAccess(animData, "keyframeWeigth"), float{},
+                          code.makeMemberAccess(animData, "keyframeWeigth"),
                           { animDataPc });
 
     // Create the descriptor config

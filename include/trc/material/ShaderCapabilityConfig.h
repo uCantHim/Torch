@@ -91,10 +91,9 @@ namespace trc
         auto accessResource(ResourceID resource) const -> code::Value;
         auto getResource(ResourceID resource) const -> const ResourceData&;
 
-        void linkCapability(Capability capability, ResourceID resource, BasicType type);
+        void linkCapability(Capability capability, ResourceID resource);
         void linkCapability(Capability capability,
                             code::Value value,
-                            BasicType type,
                             std::vector<ResourceID> resources);
 
         /**
@@ -103,7 +102,6 @@ namespace trc
         bool hasCapability(Capability capability) const;
 
         auto accessCapability(Capability capability) const -> code::Value;
-        auto getCapabilityType(Capability capability) const -> BasicType;
         auto getCapabilityResources(Capability capability) const -> std::vector<ResourceID>;
 
     private:
@@ -124,6 +122,5 @@ namespace trc
 
         std::unordered_map<Capability, std::unordered_set<ResourceID>> requiredResources;
         std::unordered_map<Capability, code::Value> capabilityAccessors;
-        std::unordered_map<Capability, BasicType> capabilityTypes;
     };
 } // namespace trc
