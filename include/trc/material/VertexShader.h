@@ -25,6 +25,8 @@ namespace trc
         static constexpr Capability kAnimIndex{ "animIndex" };
         static constexpr Capability kAnimKeyframes{ "animKeyframes" };
         static constexpr Capability kAnimFrameWeight{ "animFrameWeight" };
+        static constexpr Capability kAnimMetaBuffer{ "animMetaBuffer" };
+        static constexpr Capability kAnimDataBuffer{ "animDataBuffer" };
     };
 
     enum DrawablePushConstIndex : ui32

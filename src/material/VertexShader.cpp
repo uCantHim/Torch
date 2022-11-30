@@ -107,7 +107,14 @@ VertexShaderBuilder::VertexShaderBuilder(
                 auto objPos = builder.makeCapabilityAccess(VertexCapability::kPosition);
                 auto modelMat = builder.makeCapabilityAccess(VertexCapability::kModelMatrix);
                 auto objPos4 = builder.makeCall<ToVec4>({ objPos, builder.makeConstant(1.0f) });
-                if (animated) {
+                if (animated)
+                {
+                    builder.includeCode(util::Pathlet("material_utils/animation.glsl"), {
+                        { "animationMetaDataDescriptorName", VertexCapability::kAnimMetaBuffer },
+                        { "animationDataDescriptorName", VertexCapability::kAnimDataBuffer },
+                        { "vertexBoneIndicesAttribName", VertexCapability::kBoneIndices },
+                        { "vertexBoneWeightsAttribName", VertexCapability::kBoneWeights },
+                    });
                     objPos4 = builder.makeCall<ApplyAnimation>({ objPos4 });
                 }
 
@@ -206,10 +213,31 @@ auto VertexShaderBuilder::makeVertexCapabilityConfig()
     auto animDataPc = config.addResource(ShaderCapabilityConfig::PushConstant{
         sizeof(AnimationDeviceData), "AnimationPushConstantData"
     });
-    config.addShaderInclude(animDataPc, util::Pathlet("animation.glsl"));
-    config.addMacro(animDataPc, "BONE_INDICES_INPUT_LOCATION", "4");
-    config.addMacro(animDataPc, "BONE_WEIGHTS_INPUT_LOCATION", "5");
-    config.addMacro(animDataPc, "ASSET_DESCRIPTOR_SET_BINDING", "1");
+    config.addShaderInclude(animDataPc, util::Pathlet("material_utils/animation_data.glsl"));
+
+    auto animMeta = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="asset_registry",
+        .bindingIndex=4,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="AnimationMetaDataDescriptor",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier="std430",
+        .descriptorContent="AnimationMetaData metas[];"
+    });
+    auto animBuffer = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="asset_registry",
+        .bindingIndex=5,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="AnimationDataDescriptor",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier="std140",
+        .descriptorContent="mat4 boneMatrices[];"
+    });
+    config.addShaderInclude(animMeta, util::Pathlet("material_utils/animation_data.glsl"));
+    config.linkCapability(VertexCapability::kAnimMetaBuffer, animMeta, bool{});
+    config.linkCapability(VertexCapability::kAnimDataBuffer, animBuffer, bool{});
 
     auto vPos     = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 0 });
     auto vNormal  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 1 });
