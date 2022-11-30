@@ -91,15 +91,12 @@ public:
 
 
 
-VertexShaderBuilder::VertexShaderBuilder(
-    ShaderModule fragmentResult,
-    bool animated)
+VertexModule::VertexModule(bool animated)
     :
-    fragment(std::move(fragmentResult)),
     configs(makeVertexCapabilityConfig()),
     builder(std::move(configs.first))
 {
-    fragCapabilityProviders = {
+    fragmentInputProviders = {
         {
             FragmentCapability::kVertexWorldPos,
             [this, animated]() -> code::Value
@@ -149,7 +146,8 @@ VertexShaderBuilder::VertexShaderBuilder(
     };
 }
 
-auto VertexShaderBuilder::buildVertexShader() -> std::pair<ShaderModule, MaterialRuntimeConfig>
+auto VertexModule::build(const ShaderModule& fragment)
+    -> std::pair<ShaderModule, MaterialRuntimeConfig>
 {
     ShaderOutputNode vertNode;
     for (const auto& out : fragment.getRequiredShaderInputs())
@@ -159,7 +157,7 @@ auto VertexShaderBuilder::buildVertexShader() -> std::pair<ShaderModule, Materia
         vertNode.linkOutput(param, output, "");
 
         try {
-            auto inputNode = fragCapabilityProviders.at(out.capability);
+            auto inputNode = fragmentInputProviders.at(out.capability);
             vertNode.setParameter(param, inputNode);
         }
         catch (const std::out_of_range&)
@@ -177,7 +175,7 @@ auto VertexShaderBuilder::buildVertexShader() -> std::pair<ShaderModule, Materia
     builder.makeAssignment(
         builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
-            { fragCapabilityProviders.at(FragmentCapability::kVertexWorldPos) }
+            { fragmentInputProviders.at(FragmentCapability::kVertexWorldPos) }
         )
     );
 
@@ -185,7 +183,7 @@ auto VertexShaderBuilder::buildVertexShader() -> std::pair<ShaderModule, Materia
     return { vertCompiler.compile(vertNode, builder), configs.second };
 }
 
-auto VertexShaderBuilder::makeVertexCapabilityConfig()
+auto VertexModule::makeVertexCapabilityConfig()
     -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>
 {
     ShaderCapabilityConfig config;

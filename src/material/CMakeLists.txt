@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
         BasicType.cpp
         Constant.cpp
+        FragmentShader.cpp
         MaterialRuntime.cpp
         RuntimePushConstantHandler.cpp
         ShaderCapabilityConfig.cpp

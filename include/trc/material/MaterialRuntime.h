@@ -23,13 +23,6 @@ namespace trc
     struct PipelineFragmentParams
     {
         bool transparent;
-        ShaderOutputNode::ParameterID colorParam;
-        ShaderOutputNode::ParameterID normalParam;
-
-        ShaderOutputNode::ParameterID specularParam;
-        ShaderOutputNode::ParameterID metallicnessParam;
-        ShaderOutputNode::ParameterID roughnessParam;
-        ShaderOutputNode::ParameterID emissiveParam;
     };
 
     struct MaterialRuntimeConfig

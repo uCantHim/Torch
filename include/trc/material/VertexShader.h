@@ -10,23 +10,23 @@ namespace trc
 {
     struct VertexCapability
     {
-        static constexpr Capability kPosition{ "vertexPosition" };
-        static constexpr Capability kNormal{ "vertexNormal" };
-        static constexpr Capability kTangent{ "vertexTangent" };
-        static constexpr Capability kUV{ "vertexUV" };
+        static constexpr Capability kPosition{ "vert_vertexPosition" };
+        static constexpr Capability kNormal{ "vert_vertexNormal" };
+        static constexpr Capability kTangent{ "vert_vertexTangent" };
+        static constexpr Capability kUV{ "vert_vertexUV" };
 
-        static constexpr Capability kBoneIndices{ "boneIndices" };
-        static constexpr Capability kBoneWeights{ "boneWeights" };
+        static constexpr Capability kBoneIndices{ "vert_boneIndices" };
+        static constexpr Capability kBoneWeights{ "vert_boneWeights" };
 
-        static constexpr Capability kModelMatrix{ "modelMatrix" };
-        static constexpr Capability kViewMatrix{ "viewMatrix" };
-        static constexpr Capability kProjMatrix{ "projMatrix" };
+        static constexpr Capability kModelMatrix{ "vert_modelMatrix" };
+        static constexpr Capability kViewMatrix{ "vert_viewMatrix" };
+        static constexpr Capability kProjMatrix{ "vert_projMatrix" };
 
-        static constexpr Capability kAnimIndex{ "animIndex" };
-        static constexpr Capability kAnimKeyframes{ "animKeyframes" };
-        static constexpr Capability kAnimFrameWeight{ "animFrameWeight" };
-        static constexpr Capability kAnimMetaBuffer{ "animMetaBuffer" };
-        static constexpr Capability kAnimDataBuffer{ "animDataBuffer" };
+        static constexpr Capability kAnimIndex{ "vert_animIndex" };
+        static constexpr Capability kAnimKeyframes{ "vert_animKeyframes" };
+        static constexpr Capability kAnimFrameWeight{ "vert_animFrameWeight" };
+        static constexpr Capability kAnimMetaBuffer{ "vert_animMetaBuffer" };
+        static constexpr Capability kAnimDataBuffer{ "vert_animDataBuffer" };
     };
 
     enum DrawablePushConstIndex : ui32
@@ -36,23 +36,21 @@ namespace trc
         eAnimationData,
     };
 
-    class VertexShaderBuilder
+    class VertexModule
     {
     public:
-        VertexShaderBuilder(ShaderModule fragmentResult,
-                            bool animated);
+        explicit VertexModule(bool animated);
 
-        auto buildVertexShader() -> std::pair<ShaderModule, MaterialRuntimeConfig>;
+        auto build(const ShaderModule& fragment)
+            -> std::pair<ShaderModule, MaterialRuntimeConfig>;
 
     private:
         static auto makeVertexCapabilityConfig()
             -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>;
 
-        ShaderModule fragment;
-
         std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig> configs;
         ShaderModuleBuilder builder;
 
-        std::unordered_map<Capability, code::Value> fragCapabilityProviders;
+        std::unordered_map<Capability, code::Value> fragmentInputProviders;
     };
 } // namespace trc

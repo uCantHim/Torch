@@ -2,6 +2,8 @@
 
 #include "ShaderCapabilities.h"
 #include "ShaderModuleBuilder.h"
+#include "ShaderOutputNode.h"
+#include "ShaderModuleCompiler.h"
 
 namespace trc
 {
@@ -25,5 +27,36 @@ namespace trc
         static constexpr Capability kFragmentListBuffer{ "frag_fragListBuffer" };
         static constexpr Capability kShadowMatrices{ "frag_shadowMatrixBuffer" };
         static constexpr Capability kLightBuffer{ "frag_lightDataBuffer" };
+    };
+
+    class FragmentModule
+    {
+    public:
+        static constexpr size_t kNumParams{ 6 };
+
+        enum class Parameter : size_t
+        {
+            eColor,
+            eNormal,
+            eSpecularFactor,
+            eMetallicness,
+            eRoughness,
+            eEmissive,
+        };
+
+        explicit FragmentModule(ShaderCapabilityConfig config);
+
+        void setParameter(Parameter param, code::Value value);
+        auto getBuilder() -> ShaderModuleBuilder&;
+
+        auto build(bool transparent) -> ShaderModule;
+
+    private:
+        void fillDefaultValues();
+
+        ShaderModuleBuilder builder;
+
+        std::array<std::optional<ParameterID>, kNumParams> parameters;
+        ShaderOutputNode output;
     };
 } // namespace trc

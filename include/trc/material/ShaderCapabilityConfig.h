@@ -111,13 +111,13 @@ namespace trc
             Capability capability;
         };
 
-        u_ptr<ShaderCodeBuilder> codeBuilder{ new ShaderCodeBuilder };
+        s_ptr<ShaderCodeBuilder> codeBuilder{ new ShaderCodeBuilder };
 
         std::unordered_set<std::string> globalExtensions;
         std::unordered_set<util::Pathlet> globalIncludes;
         std::unordered_set<util::Pathlet> postResourceIncludes;
 
-        std::vector<u_ptr<ResourceData>> resources;
+        std::vector<s_ptr<ResourceData>> resources;
         std::unordered_map<ResourceID, code::Value> resourceAccessors;
 
         std::unordered_map<Capability, std::unordered_set<ResourceID>> requiredResources;

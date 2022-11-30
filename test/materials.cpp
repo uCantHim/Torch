@@ -22,18 +22,11 @@ using namespace trc;
 
 auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>;
 auto makeMaterial(ShaderModuleBuilder& builder,
-                  ShaderOutputNode& materialNode,
+                  ShaderModule fragmentModule,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams,
                   MaterialRuntimeConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo;
 void run(MaterialRuntimeInfo material);
-
-enum InputParam
-{
-    eColor,
-    eNormal,
-    eRoughness,
-};
 
 class TangentToWorldspace : public ShaderFunction
 {
@@ -67,18 +60,10 @@ int main()
         loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     ));
 
-    // Create output node
-    ShaderOutputNode mat;
-    auto inColor = mat.addParameter(vec4{});
-    auto inNormal = mat.addParameter(vec3{});
-    auto inSpecularFactor = mat.addParameter(float{});
-    auto inMetallicness = mat.addParameter(float{});
-    auto inRoughness = mat.addParameter(float{});
-    auto inEmissive = mat.addParameter(bool{});
-
     // Build a material graph
     auto [capabilityConfig, runtimeConfig] = makeFragmentCapabiltyConfig();
-    ShaderModuleBuilder builder(std::move(capabilityConfig));
+    FragmentModule fragmentModule(capabilityConfig);
+    ShaderModuleBuilder& builder = fragmentModule.getBuilder();
 
     auto uvs = builder.makeCapabilityAccess(FragmentCapability::kVertexUV);
     auto texColor = builder.makeTextureSample({ tex }, uvs);
@@ -90,6 +75,7 @@ int main()
     });
     auto c = builder.makeConstant(0.5f);
     auto mix = builder.makeCall<Mix<4, float>>({ color, texColor, c });
+    builder.makeAssignment(builder.makeMemberAccess(mix, "a"), builder.makeConstant(0.3f));
 
     auto sampledNormal = builder.makeMemberAccess(
         builder.makeTextureSample({ normalMap }, uvs),
@@ -97,12 +83,13 @@ int main()
     );
     auto normal = builder.makeCall<TangentToWorldspace>({ sampledNormal });
 
-    mat.setParameter(inColor, mix);
-    mat.setParameter(inNormal, normal);
-    mat.setParameter(inSpecularFactor, builder.makeConstant(1.0f));
-    mat.setParameter(inMetallicness, builder.makeConstant(0.0f));
-    mat.setParameter(inRoughness, builder.makeConstant(0.4f));
-    mat.setParameter(inEmissive,
+    using Param = FragmentModule::Parameter;
+    fragmentModule.setParameter(Param::eColor, mix);
+    fragmentModule.setParameter(Param::eNormal, normal);
+    fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
+    fragmentModule.setParameter(Param::eMetallicness, builder.makeConstant(0.0f));
+    fragmentModule.setParameter(Param::eRoughness, builder.makeConstant(0.4f));
+    fragmentModule.setParameter(Param::eEmissive,
         builder.makeExternalCall(
             "float",
             { builder.makeNot(builder.makeConstant(false)) }  // performLighting flag
@@ -110,17 +97,15 @@ int main()
     );
 
     // Create a pipeline
-    PipelineVertexParams vert{ .animated=false };
-    PipelineFragmentParams frag{
-        .transparent=true,
-        .colorParam=inColor,
-        .normalParam=inNormal,
-        .specularParam=inSpecularFactor,
-        .metallicnessParam=inMetallicness,
-        .roughnessParam=inRoughness,
-        .emissiveParam=inEmissive
-    };
-    MaterialRuntimeInfo materialRuntime = makeMaterial(builder, mat, vert, frag, runtimeConfig);
+    PipelineVertexParams vertSettings{ .animated=false };
+    PipelineFragmentParams fragSettings{ .transparent=true };
+    MaterialRuntimeInfo materialRuntime = makeMaterial(
+        builder,
+        fragmentModule.build(fragSettings.transparent),
+        vertSettings,
+        fragSettings,
+        runtimeConfig
+    );
 
     std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
     std::cout << "\n--- vertex shader ---\n";
@@ -133,68 +118,14 @@ int main()
 }
 
 auto makeMaterial(ShaderModuleBuilder& builder,
-                  ShaderOutputNode& materialNode,
+                  ShaderModule fragModule,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams,
                   MaterialRuntimeConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo
 {
-    // Add attachment outputs if the material is not transparent, in which
-    // case we calculate shading immediately and append the result to the
-    // fragment list
-    if (!fragParams.transparent)
-    {
-        auto outNormal = materialNode.addOutput(0, vec3{});
-        auto outAlbedo = materialNode.addOutput(1, vec4{});
-        auto outMaterial = materialNode.addOutput(2, vec4{});
-
-        materialNode.linkOutput(fragParams.colorParam, outAlbedo, "");
-        materialNode.linkOutput(fragParams.normalParam, outNormal, "");
-        materialNode.linkOutput(fragParams.specularParam,     outMaterial, "[0]");
-        materialNode.linkOutput(fragParams.roughnessParam,    outMaterial, "[1]");
-        materialNode.linkOutput(fragParams.metallicnessParam, outMaterial, "[2]");
-        materialNode.linkOutput(fragParams.emissiveParam,     outMaterial, "[3]");
-    }
-    else {
-        builder.includeCode(util::Pathlet("material_utils/append_fragment.glsl"), {
-            { "nextFragmentListIndex",   FragmentCapability::kNextFragmentListIndex },
-            { "maxFragmentListIndex",    FragmentCapability::kMaxFragmentListIndex },
-            { "fragmentListHeadPointer", FragmentCapability::kFragmentListHeadPointerImage },
-            { "fragmentList",            FragmentCapability::kFragmentListBuffer },
-        });
-        builder.includeCode(util::Pathlet("material_utils/shadow.glsl"), {
-            { "shadowMatrixBufferName", FragmentCapability::kShadowMatrices },
-        });
-        builder.includeCode(util::Pathlet("material_utils/lighting.glsl"), {
-            { "lightBufferName", FragmentCapability::kLightBuffer },
-        });
-
-        auto color = materialNode.getParameter(fragParams.colorParam);
-        auto lightedColor = builder.makeExternalCall("calcLighting", {
-            builder.makeMemberAccess(color, "xyz"),
-            builder.makeCapabilityAccess(FragmentCapability::kVertexWorldPos),
-            materialNode.getParameter(fragParams.normalParam),
-            builder.makeCapabilityAccess(FragmentCapability::kCameraWorldPos),
-            builder.makeExternalCall("MaterialParams", {
-                materialNode.getParameter(fragParams.specularParam),
-                materialNode.getParameter(fragParams.roughnessParam),
-                materialNode.getParameter(fragParams.metallicnessParam),
-            })
-        });
-        builder.makeExternalCallStatement("appendFragment", {
-            builder.makeExternalCall("vec4", {
-                lightedColor,
-                builder.makeConstant(0.3f)
-            })
-        });
-    }
-
-    // Compile the material graph
-    ShaderModuleCompiler compiler;
-    auto fragModule = compiler.compile(materialNode, builder);
-
     // Create a vertex shader with a graph
-    VertexShaderBuilder vertBuilder(fragModule, vertParams.animated);
-    auto [vertModule, runtimeConfig] = vertBuilder.buildVertexShader();
+    VertexModule vertBuilder(vertParams.animated);
+    auto [vertModule, runtimeConfig] = vertBuilder.build(fragModule);
 
     runtimeConfig = mergeRuntimeConfigs(runtimeConfig, fragmentRuntimeConfig);
 
@@ -380,8 +311,6 @@ void run(MaterialRuntimeInfo material)
     auto torch = trc::initFull();
     auto& assetManager = torch->getAssetManager();
 
-    Pipeline::ID pipeline = material.makePipeline(assetManager);
-
     Scene scene;
     Camera camera;
     camera.makePerspective(16.0f / 9.0f, 45.0f, 0.01f, 100.0f);
@@ -395,6 +324,8 @@ void run(MaterialRuntimeInfo material)
     // Create drawable
     GeometryHandle geoHandle = geo.getDeviceDataHandle();
     trc::Node node;
+
+    Pipeline::ID pipeline = material.makePipeline(assetManager);
     const RuntimePushConstantHandler& runtime = material.getPushConstantHandler();
 
     scene.registerDrawFunction(
