@@ -35,33 +35,6 @@ auto shortTypename(BasicType::Type type) -> std::string
 
 
 
-BasicType::BasicType(bool)
-    : type(Type::eBool), channels(1)
-{}
-
-BasicType::BasicType(i32)
-    : type(Type::eSint), channels(1)
-{}
-
-BasicType::BasicType(ui32)
-    : type(Type::eUint), channels(1)
-{}
-
-BasicType::BasicType(float)
-    : type(Type::eFloat), channels(1)
-{}
-
-BasicType::BasicType(double)
-    : type(Type::eDouble), channels(1)
-{}
-
-BasicType::BasicType(Type t, ui8 channels)
-    :
-    type(t),
-    channels(channels)
-{
-}
-
 auto BasicType::to_string() const -> std::string
 {
     assert(channels > 0);
