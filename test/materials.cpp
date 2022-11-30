@@ -20,11 +20,12 @@
 
 using namespace trc;
 
-auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
+auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>;
 auto makeMaterial(ShaderModuleBuilder& builder,
                   ShaderOutputNode& materialNode,
                   PipelineVertexParams vertParams,
-                  PipelineFragmentParams fragParams) -> MaterialRuntimeInfo;
+                  PipelineFragmentParams fragParams,
+                  MaterialRuntimeConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo;
 void run(MaterialRuntimeInfo material);
 
 enum InputParam
@@ -70,21 +71,25 @@ int main()
     ShaderOutputNode mat;
     auto inColor = mat.addParameter(vec4{});
     auto inNormal = mat.addParameter(vec3{});
+    auto inSpecularFactor = mat.addParameter(float{});
+    auto inMetallicness = mat.addParameter(float{});
     auto inRoughness = mat.addParameter(float{});
     auto inEmissive = mat.addParameter(bool{});
-    assert(inColor.index == InputParam::eColor);
-    assert(inNormal.index == InputParam::eNormal);
-    assert(inRoughness.index == InputParam::eRoughness);
 
     // Build a material graph
-    ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
+    auto [capabilityConfig, runtimeConfig] = makeFragmentCapabiltyConfig();
+    ShaderModuleBuilder builder(std::move(capabilityConfig));
 
     auto uvs = builder.makeCapabilityAccess(FragmentCapability::kVertexUV);
     auto texColor = builder.makeTextureSample({ tex }, uvs);
 
-    auto color = builder.makeConstant(vec4(1, 0, 0.5, 1));
-    auto alpha = builder.makeConstant(0.5f);
-    auto mix = builder.makeCall<Mix<4, float>>({ color, texColor, alpha });
+    auto color = builder.makeCall<Mix<4, float>>({
+        builder.makeConstant(vec4(1, 0, 0, 1)),
+        builder.makeConstant(vec4(0, 0, 1, 1)),
+        builder.makeExternalCall("length", { uvs }),
+    });
+    auto c = builder.makeConstant(0.5f);
+    auto mix = builder.makeCall<Mix<4, float>>({ color, texColor, c });
 
     auto sampledNormal = builder.makeMemberAccess(
         builder.makeTextureSample({ normalMap }, uvs),
@@ -94,6 +99,8 @@ int main()
 
     mat.setParameter(inColor, mix);
     mat.setParameter(inNormal, normal);
+    mat.setParameter(inSpecularFactor, builder.makeConstant(1.0f));
+    mat.setParameter(inMetallicness, builder.makeConstant(0.0f));
     mat.setParameter(inRoughness, builder.makeConstant(0.4f));
     mat.setParameter(inEmissive,
         builder.makeExternalCall(
@@ -105,13 +112,15 @@ int main()
     // Create a pipeline
     PipelineVertexParams vert{ .animated=false };
     PipelineFragmentParams frag{
-        .transparent=false,
+        .transparent=true,
         .colorParam=inColor,
         .normalParam=inNormal,
+        .specularParam=inSpecularFactor,
+        .metallicnessParam=inMetallicness,
         .roughnessParam=inRoughness,
         .emissiveParam=inEmissive
     };
-    MaterialRuntimeInfo materialRuntime = makeMaterial(builder, mat, vert, frag);
+    MaterialRuntimeInfo materialRuntime = makeMaterial(builder, mat, vert, frag, runtimeConfig);
 
     std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
     std::cout << "\n--- vertex shader ---\n";
@@ -126,7 +135,8 @@ int main()
 auto makeMaterial(ShaderModuleBuilder& builder,
                   ShaderOutputNode& materialNode,
                   PipelineVertexParams vertParams,
-                  PipelineFragmentParams fragParams) -> MaterialRuntimeInfo
+                  PipelineFragmentParams fragParams,
+                  MaterialRuntimeConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo
 {
     // Add attachment outputs if the material is not transparent, in which
     // case we calculate shading immediately and append the result to the
@@ -139,47 +149,54 @@ auto makeMaterial(ShaderModuleBuilder& builder,
 
         materialNode.linkOutput(fragParams.colorParam, outAlbedo, "");
         materialNode.linkOutput(fragParams.normalParam, outNormal, "");
-        materialNode.linkOutput(fragParams.roughnessParam, outMaterial, "[1]");
-        materialNode.linkOutput(fragParams.emissiveParam, outMaterial, "[3]");
+        materialNode.linkOutput(fragParams.specularParam,     outMaterial, "[0]");
+        materialNode.linkOutput(fragParams.roughnessParam,    outMaterial, "[1]");
+        materialNode.linkOutput(fragParams.metallicnessParam, outMaterial, "[2]");
+        materialNode.linkOutput(fragParams.emissiveParam,     outMaterial, "[3]");
+    }
+    else {
+        builder.includeCode(util::Pathlet("material_utils/append_fragment.glsl"), {
+            { "nextFragmentListIndex",   FragmentCapability::kNextFragmentListIndex },
+            { "maxFragmentListIndex",    FragmentCapability::kMaxFragmentListIndex },
+            { "fragmentListHeadPointer", FragmentCapability::kFragmentListHeadPointerImage },
+            { "fragmentList",            FragmentCapability::kFragmentListBuffer },
+        });
+        builder.includeCode(util::Pathlet("material_utils/shadow.glsl"), {
+            { "shadowMatrixBufferName", FragmentCapability::kShadowMatrices },
+        });
+        builder.includeCode(util::Pathlet("material_utils/lighting.glsl"), {
+            { "lightBufferName", FragmentCapability::kLightBuffer },
+        });
+
+        auto color = materialNode.getParameter(fragParams.colorParam);
+        auto lightedColor = builder.makeExternalCall("calcLighting", {
+            builder.makeMemberAccess(color, "xyz"),
+            builder.makeCapabilityAccess(FragmentCapability::kVertexWorldPos),
+            materialNode.getParameter(fragParams.normalParam),
+            builder.makeCapabilityAccess(FragmentCapability::kCameraWorldPos),
+            builder.makeExternalCall("MaterialParams", {
+                materialNode.getParameter(fragParams.specularParam),
+                materialNode.getParameter(fragParams.roughnessParam),
+                materialNode.getParameter(fragParams.metallicnessParam),
+            })
+        });
+        builder.makeExternalCallStatement("appendFragment", {
+            builder.makeExternalCall("vec4", {
+                lightedColor,
+                builder.makeConstant(0.3f)
+            })
+        });
     }
 
     // Compile the material graph
     ShaderModuleCompiler compiler;
     auto fragModule = compiler.compile(materialNode, builder);
 
-    // Perform post-processing of the generated shader source
-    std::string fragmentCode = fragModule.getGlslCode();
-    if (fragParams.transparent)
-    {
-        auto specularValue = fragModule.getParameterName(fragParams.specularParam).value_or("1.0f");
-        auto roughnessValue = fragModule.getParameterName(fragParams.roughnessParam).value_or("1.0f");
-        auto metallicnessValue = fragModule.getParameterName(fragParams.metallicnessParam).value_or("0.0f");
-        std::string transparentOutput =
-            "MaterialParams mat;\n"
-            "mat.kSpecular = " + specularValue + ";\n"
-            + "mat.roughness = " + roughnessValue + ";\n"
-            + "mat.metallicness = " + metallicnessValue + ";\n"
-
-            + "vec4 color = " + fragModule.getParameterName(fragParams.colorParam).value() + ";\n"
-            + "if (" + fragModule.getParameterName(fragParams.emissiveParam).value() + ") {\n"
-            + "color.xyz = calcLighting("
-                + "color,\n"
-                + "vert.worldPos,\n"
-                + fragModule.getParameterName(fragParams.normalParam).value() + ",\n"
-                + "camera.inverseViewMatrix[3].xyz,\n"
-                + "mat);\n"
-            + "}\n"
-            + "appendFragment(color);";
-
-        shader_edit::ShaderDocument doc(fragmentCode);
-        doc.set(fragModule.getOutputPlaceholderVariableName(), std::move(transparentOutput));
-
-        fragmentCode = doc.compile();
-    }
-
     // Create a vertex shader with a graph
     VertexShaderBuilder vertBuilder(fragModule, vertParams.animated);
-    auto [vert, runtimeConfig] = vertBuilder.buildVertexShader();
+    auto [vertModule, runtimeConfig] = vertBuilder.buildVertexShader();
+
+    runtimeConfig = mergeRuntimeConfigs(runtimeConfig, fragmentRuntimeConfig);
 
     // Create result value
     MaterialRuntimeInfo result{
@@ -187,7 +204,7 @@ auto makeMaterial(ShaderModuleBuilder& builder,
         vertParams,
         fragParams,
         {
-            { vk::ShaderStageFlagBits::eVertex, std::move(vert) },
+            { vk::ShaderStageFlagBits::eVertex, std::move(vertModule) },
             { vk::ShaderStageFlagBits::eFragment, std::move(fragModule) },
         }
     };
@@ -195,7 +212,7 @@ auto makeMaterial(ShaderModuleBuilder& builder,
     return result;
 }
 
-auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
+auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>
 {
     ShaderCapabilityConfig config;
     auto& code = config.getCodeBuilder();
@@ -213,6 +230,130 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     config.addShaderExtension(textureResource, "GL_EXT_nonuniform_qualifier");
     config.linkCapability(FragmentCapability::kTextureSample, textureResource, uint{});
 
+    auto fragListPointerImageResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="g_buffer",
+        .bindingIndex=4,
+        .descriptorType="uniform uimage2D",
+        .descriptorName="fragmentListHeadPointer",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier="r32ui",
+        .descriptorContent=std::nullopt,
+    });
+    auto fragListAllocResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="g_buffer",
+        .bindingIndex=5,
+        .descriptorType="restrict buffer",
+        .descriptorName="FragmentListAllocator",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent=
+            "uint nextFragmentListIndex;\n"
+            "uint maxFragmentListIndex;"
+    });
+    auto fragListResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="g_buffer",
+        .bindingIndex=6,
+        .descriptorType="restrict buffer",
+        .descriptorName="FragmentListBuffer",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent="uvec4 fragmentList[];",
+    });
+    config.linkCapability(
+        FragmentCapability::kNextFragmentListIndex,
+        code.makeMemberAccess(config.accessResource(fragListAllocResource), "nextFragmentListIndex"),
+        uint{},
+        { fragListAllocResource }
+    );
+    config.linkCapability(
+        FragmentCapability::kMaxFragmentListIndex,
+        code.makeMemberAccess(config.accessResource(fragListAllocResource), "maxFragmentListIndex"),
+        uint{},
+        { fragListAllocResource }
+    );
+    config.linkCapability(FragmentCapability::kFragmentListHeadPointerImage,
+                          fragListPointerImageResource, bool{});
+    config.linkCapability(
+        FragmentCapability::kFragmentListBuffer,
+        code.makeMemberAccess(config.accessResource(fragListResource), "fragmentList"),
+        uint{},
+        { fragListResource }
+    );
+
+    auto shadowMatrixBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="shadow",
+        .bindingIndex=0,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="ShadowMatrixBuffer",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent="mat4 shadowMatrices[];",
+    });
+    auto shadowMapsResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="shadow",
+        .bindingIndex=1,
+        .descriptorType="uniform sampler2D",
+        .descriptorName="shadowMaps",
+        .isArray=true,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent=std::nullopt,
+    });
+    config.linkCapability(
+        FragmentCapability::kShadowMatrices,
+        code.makeMemberAccess(config.accessResource(shadowMatrixBufferResource), "shadowMatrices"),
+        bool{},
+        { shadowMapsResource, shadowMatrixBufferResource }
+    );
+
+    auto lightBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="scene_data",
+        .bindingIndex=0,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="LightBuffer",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent=
+            "uint numSunLights;"
+            "uint numPointLights;"
+            "uint numAmbientLights;"
+            "Light lights[];"
+    });
+    config.addShaderInclude(lightBufferResource, util::Pathlet("material_utils/light.glsl"));
+    config.linkCapability(FragmentCapability::kLightBuffer, lightBufferResource, bool{});
+
+    auto cameraBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+        .setName="global_data",
+        .bindingIndex=0,
+        .descriptorType="uniform",
+        .descriptorName="camera",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier="std140",
+        .descriptorContent=
+            "mat4 viewMatrix;\n"
+            "mat4 projMatrix;\n"
+            "mat4 inverseViewMatrix;\n"
+            "mat4 inverseProjMatrix;\n"
+    });
+    config.linkCapability(
+        FragmentCapability::kCameraWorldPos,
+        code.makeMemberAccess(
+            code.makeArrayAccess(
+                code.makeMemberAccess(config.accessResource(cameraBufferResource), "viewMatrix"),
+                code.makeConstant(2)
+            ),
+            "xyz"
+        ),
+        vec3{},
+        { cameraBufferResource }
+    );
+
     auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 0 });
     auto vUv        = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{}, 1 });
     auto vMaterial  = config.addResource(ShaderCapabilityConfig::ShaderInput{ uint{}, 2, true });
@@ -227,7 +368,16 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         vec3{}, { vTbnMat }
     );
 
-    return config;
+    return {
+        std::move(config),
+        MaterialRuntimeConfig{
+            .descriptorInfos{
+                { "scene_data", MaterialRuntimeConfig::DescriptorInfo{ 2, true } },
+                { "g_buffer", MaterialRuntimeConfig::DescriptorInfo{ 3, true } },
+                { "shadow", MaterialRuntimeConfig::DescriptorInfo{ 4, true } },
+            }
+        }
+    };
 }
 
 void run(MaterialRuntimeInfo material)
@@ -253,7 +403,7 @@ void run(MaterialRuntimeInfo material)
     const RuntimePushConstantHandler& runtime = material.getPushConstantHandler();
 
     scene.registerDrawFunction(
-        gBufferRenderStage, GBufferPass::SubPasses::gBuffer,
+        gBufferRenderStage, GBufferPass::SubPasses::transparency,
         pipeline,
         [&](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
