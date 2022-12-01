@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "trc/base/PhysicalDevice.h"
@@ -89,6 +90,18 @@ public:
         }
     void setDebugName(T object, const char* name) const;
 
+    /**
+     * @brief Set a debug name on a Vulkan object
+     *
+     * Does nothing when the TRC_DEBUG macro is not defined.
+     */
+    template<typename T>
+        requires requires {
+            typename T::NativeType;
+            requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
+        }
+    void setDebugName(T object, const std::string& name) const;
+
 private:
 #ifdef TRC_DEBUG
     const PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
@@ -150,6 +163,16 @@ void Device::setDebugName([[maybe_unused]] T object, [[maybe_unused]] const char
 
     vkSetDebugUtilsObjectNameEXT(*device, &info);
 #endif
+}
+
+template<typename T>
+    requires requires {
+        typename T::NativeType;
+        requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
+    }
+void Device::setDebugName(T object, const std::string& name) const
+{
+    setDebugName(std::forward<T>(object), name.c_str());
 }
 
 } // namespace trc
