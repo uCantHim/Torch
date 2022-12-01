@@ -73,8 +73,6 @@ namespace trc
 
         // Queues and command collection
         ExclusiveQueue mainRenderQueue;
-        QueueFamilyIndex mainRenderQueueFamily;
         ExclusiveQueue mainPresentQueue;
-        QueueFamilyIndex mainPresentQueueFamily;
     };
 }

@@ -21,20 +21,19 @@ namespace trc
      *  2. Reserve any queue
      *  3. Don't reserve, just return any queue
      */
-    inline auto tryReserve(QueueManager& qm, QueueType type)
-        -> std::pair<ExclusiveQueue, QueueFamilyIndex>
+    inline auto tryReserve(QueueManager& qm, QueueType type) -> ExclusiveQueue
     {
         if (qm.getPrimaryQueueCount(type) > 1)
         {
-            return { qm.reservePrimaryQueue(type), qm.getPrimaryQueueFamily(type) };
+            return qm.reservePrimaryQueue(type);
         }
         else if (qm.getAnyQueueCount(type) > 1)
         {
             auto [queue, family] = qm.getAnyQueue(type);
-            return { qm.reserveQueue(queue), family };
+            return qm.reserveQueue(queue);
         }
         else {
-            return qm.getAnyQueue(type);
+            return qm.getAnyQueue(type).first;
         }
     };
 } // namespace trc
@@ -60,14 +59,11 @@ trc::Renderer::Renderer(Window& _window)
     createSemaphores();
 
     QueueManager& qm = _window.getDevice().getQueueManager();
-    std::tie(mainRenderQueue, mainRenderQueueFamily) = tryReserve(qm, QueueType::graphics);
-    std::tie(mainPresentQueue, mainPresentQueueFamily) = tryReserve(qm, QueueType::presentation);
+    mainRenderQueue = tryReserve(qm, QueueType::graphics);
+    mainPresentQueue = tryReserve(qm, QueueType::presentation);
 
-    if constexpr (enableVerboseLogging)
-    {
-        std::cout << "--- Main render family for renderer: " << mainRenderQueueFamily << "\n";
-        std::cout << "--- Main presentation family for renderer: " << mainPresentQueueFamily << "\n";
-    }
+    device.setDebugName(*mainRenderQueue, "main render graphics queue");
+    device.setDebugName(*mainPresentQueue, "main present queue");
 }
 
 trc::Renderer::~Renderer()
@@ -128,7 +124,7 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     };
 
     device->resetFences(currentFrameFence);
-    mainRenderQueue.submit(chain.get(), currentFrameFence);
+    mainRenderQueue.waitSubmit(chain.get(), currentFrameFence);
 
     // Dispatch asynchronous handler for when the frame has finished rendering
     threadPool.async(
@@ -186,6 +182,19 @@ void trc::Renderer::createSemaphores()
             );
         }
     };
+
+    for (ui32 i = 0; auto& sem : imageAcquireSemaphores) {
+        device.setDebugName(*sem, "image-acquire semaphore (frame #" + std::to_string(i++) + ")");
+    }
+    for (ui32 i = 0; auto& sem : renderFinishedSemaphores) {
+        device.setDebugName(*sem, "render-finished semaphore (frame #" + std::to_string(i++));
+    }
+    for (ui32 i = 0; auto& sem : renderFinishedHostSignalSemaphores) {
+        device.setDebugName(*sem, "host-signal-on-render-finished semaphore (frame #" + std::to_string(i++) + ")");
+    }
+    for (ui32 i = 0; auto& fence : frameInFlightFences) {
+        device.setDebugName(*fence, "frame-in-flight fence (frame #" + std::to_string(i++) + ")");
+    }
 }
 
 void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
@@ -198,4 +207,6 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     if (result == vk::Result::eTimeout) {
         std::cout << "Timeout in Renderer::waitForAllFrames!\n";
     }
+
+    device->waitIdle();
 }
