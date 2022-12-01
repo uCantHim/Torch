@@ -137,6 +137,7 @@ if (${TORCH_INTEGRATE_IMGUI})
     target_compile_definitions(torch PUBLIC TRC_USE_IMGUI)
 
     add_library(imgui)
+    torch_default_compile_options(imgui)
     target_link_libraries(torch PUBLIC imgui)
 
     target_include_directories(
