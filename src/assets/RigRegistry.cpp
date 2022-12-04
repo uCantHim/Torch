@@ -1,6 +1,7 @@
 #include "trc/assets/RigRegistry.h"
 
 #include "trc/assets/AssetManager.h"
+#include "trc/assets/import/InternalFormat.h"
 
 
 

@@ -1,7 +1,5 @@
 #include "trc/assets/AssetManager.h"
 
-#include "trc/assets/import/InternalFormat.h"  // For the loadAssetData specializations
-
 
 
 namespace trc
