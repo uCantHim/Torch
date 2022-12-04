@@ -10,12 +10,10 @@
 #include <vector>
 
 #include "ShaderResourceInterface.h"
-#include "trc/drawable/Drawable.h"
+#include "trc/VulkanInclude.h"
 
 namespace trc
 {
-    struct MaterialRuntimeConfig;
-
     /**
      * @brief Calculates push constant offsets
      *
@@ -25,8 +23,7 @@ namespace trc
     class RuntimePushConstantHandler
     {
     public:
-        RuntimePushConstantHandler(const ShaderResources& resources,
-                                   const MaterialRuntimeConfig& conf);
+        explicit RuntimePushConstantHandler(const ShaderResources& resources);
 
         template<typename T>
         void pushConstants(vk::CommandBuffer cmdBuf,
@@ -49,6 +46,8 @@ namespace trc
     {
         assert(offsets.size() > pushConstantId);
         assert(offsets[pushConstantId] != std::numeric_limits<ui32>::max());
+        assert(pushConstantId == offsets.size() - 1
+               || (offsets[pushConstantId + 1] + offsets[pushConstantId]) == sizeof(T));
 
         cmdBuf.pushConstants<T>(layout, vk::ShaderStageFlagBits::eVertex,
                                 offsets[pushConstantId], value);

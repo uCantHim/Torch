@@ -25,7 +25,7 @@ namespace trc
         bool transparent;
     };
 
-    struct MaterialRuntimeConfig
+    struct ShaderDescriptorConfig
     {
         struct DescriptorInfo
         {
@@ -36,16 +36,15 @@ namespace trc
         };
 
         std::unordered_map<std::string, DescriptorInfo> descriptorInfos;
-        std::vector<std::pair<ui32, ResourceID>> pushConstantIds;
     };
 
-    auto mergeRuntimeConfigs(const MaterialRuntimeConfig& a, const MaterialRuntimeConfig& b)
-        -> MaterialRuntimeConfig;
+    auto mergeDescriptorConfigs(const ShaderDescriptorConfig& a, const ShaderDescriptorConfig& b)
+        -> ShaderDescriptorConfig;
 
     struct MaterialRuntimeInfo
     {
         MaterialRuntimeInfo(
-            const MaterialRuntimeConfig& runtimeConf,
+            const ShaderDescriptorConfig& runtimeConf,
             PipelineVertexParams vert,
             PipelineFragmentParams frag,
             std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages
@@ -75,7 +74,7 @@ namespace trc
          */
         static auto makeLayout(const std::unordered_set<std::string>& descriptorSets,
                                const std::vector<vk::PushConstantRange>& pushConstants,
-                               const MaterialRuntimeConfig& descConf) -> PipelineLayoutTemplate;
+                               const ShaderDescriptorConfig& descConf) -> PipelineLayoutTemplate;
 
         PipelineVertexParams vertParams;
         PipelineFragmentParams fragParams;

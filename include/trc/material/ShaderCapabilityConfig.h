@@ -46,13 +46,15 @@ namespace trc
 
         struct PushConstant
         {
-            PushConstant(BasicType type)
-                : byteSize(type.size()), typeName(type.to_string()) {}
-            PushConstant(ui32 size, const std::string& typeName)
-                : byteSize(size), typeName(typeName) {}
+            PushConstant(BasicType type, ui32 userId)
+                : byteSize(type.size()), typeName(type.to_string()), userId(userId) {}
+            PushConstant(ui32 size, const std::string& typeName, ui32 userId)
+                : byteSize(size), typeName(typeName), userId(userId) {}
 
             ui32 byteSize;
             std::string typeName;
+
+            ui32 userId;
         };
 
         using Resource = std::variant<

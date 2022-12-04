@@ -44,6 +44,8 @@ namespace trc
         {
             ui32 offset;
             ui32 size;
+
+            ui32 userId;
         };
 
         ShaderResources() = default;
@@ -75,6 +77,8 @@ namespace trc
          *         associated with an active push constant value.
          */
         auto getPushConstantInfo(ResourceID resource) const -> std::optional<PushConstantInfo>;
+
+        auto getPushConstants() const -> std::vector<PushConstantInfo>;
 
     private:
         friend class ShaderResourceInterface;

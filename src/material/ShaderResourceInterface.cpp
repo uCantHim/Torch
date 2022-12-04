@@ -62,6 +62,17 @@ auto ShaderResources::getPushConstantInfo(ResourceID resource) const
     return std::nullopt;
 }
 
+auto ShaderResources::getPushConstants() const -> std::vector<PushConstantInfo>
+{
+    std::vector<PushConstantInfo> result;
+    result.reserve(pushConstantInfos.size());
+    for (const auto& [_, pc] : pushConstantInfos) {
+        result.emplace_back(pc);
+    }
+
+    return result;
+}
+
 
 
 auto ShaderResourceInterface::DescriptorBindingFactory::make(
@@ -125,7 +136,7 @@ auto ShaderResourceInterface::PushConstantFactory::make(
     assert(pc.byteSize > 0);
     assert(!pc.typeName.empty());
 
-    infos.try_emplace(resource, PushConstantInfo{ totalSize, pc.byteSize });
+    infos.try_emplace(resource, PushConstantInfo{ totalSize, pc.byteSize, pc.userId });
 
     const std::string name = "_push_constant_" + std::to_string(totalSize);
     totalSize += pc.byteSize;

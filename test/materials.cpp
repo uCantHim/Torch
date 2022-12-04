@@ -20,12 +20,13 @@
 
 using namespace trc;
 
-auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>;
+auto makeDescriptorConfig() -> ShaderDescriptorConfig;
+auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
 auto makeMaterial(ShaderModuleBuilder& builder,
                   ShaderModule fragmentModule,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams,
-                  MaterialRuntimeConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo;
+                  ShaderDescriptorConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo;
 void run(MaterialRuntimeInfo material);
 
 class TangentToWorldspace : public ShaderFunction
@@ -61,7 +62,7 @@ int main()
     ));
 
     // Build a material graph
-    auto [capabilityConfig, runtimeConfig] = makeFragmentCapabiltyConfig();
+    auto capabilityConfig = makeFragmentCapabiltyConfig();
     FragmentModule fragmentModule(capabilityConfig);
     ShaderModuleBuilder& builder = fragmentModule.getBuilder();
 
@@ -104,7 +105,7 @@ int main()
         fragmentModule.build(fragSettings.transparent),
         vertSettings,
         fragSettings,
-        runtimeConfig
+        makeDescriptorConfig()
     );
 
     std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
@@ -121,17 +122,15 @@ auto makeMaterial(ShaderModuleBuilder& builder,
                   ShaderModule fragModule,
                   PipelineVertexParams vertParams,
                   PipelineFragmentParams fragParams,
-                  MaterialRuntimeConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo
+                  ShaderDescriptorConfig descriptorConfig) -> MaterialRuntimeInfo
 {
     // Create a vertex shader with a graph
     VertexModule vertBuilder(vertParams.animated);
-    auto [vertModule, runtimeConfig] = vertBuilder.build(fragModule);
-
-    runtimeConfig = mergeRuntimeConfigs(runtimeConfig, fragmentRuntimeConfig);
+    auto vertModule = vertBuilder.build(fragModule);
 
     // Create result value
     MaterialRuntimeInfo result{
-        runtimeConfig,
+        descriptorConfig,
         vertParams,
         fragParams,
         {
@@ -143,7 +142,20 @@ auto makeMaterial(ShaderModuleBuilder& builder,
     return result;
 }
 
-auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>
+auto makeDescriptorConfig() -> ShaderDescriptorConfig
+{
+    return ShaderDescriptorConfig{
+        .descriptorInfos{
+            { "global_data",    { 0, true } },
+            { "asset_registry", { 1, true } },
+            { "scene_data",     { 2, true } },
+            { "g_buffer",       { 3, true } },
+            { "shadow",         { 4, true } },
+        }
+    };
+}
+
+auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
 {
     ShaderCapabilityConfig config;
     auto& code = config.getCodeBuilder();
@@ -294,16 +306,7 @@ auto makeFragmentCapabiltyConfig() -> std::pair<ShaderCapabilityConfig, Material
         { vTbnMat }
     );
 
-    return {
-        std::move(config),
-        MaterialRuntimeConfig{
-            .descriptorInfos{
-                { "scene_data", MaterialRuntimeConfig::DescriptorInfo{ 2, true } },
-                { "g_buffer", MaterialRuntimeConfig::DescriptorInfo{ 3, true } },
-                { "shadow", MaterialRuntimeConfig::DescriptorInfo{ 4, true } },
-            }
-        }
-    };
+    return config;
 }
 
 void run(MaterialRuntimeInfo material)

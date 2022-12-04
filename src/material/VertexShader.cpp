@@ -3,6 +3,7 @@
 #include <initializer_list>
 #include <unordered_map>
 
+#include "trc/AnimationEngine.h"
 #include "trc/material/FragmentShader.h"
 
 
@@ -93,8 +94,7 @@ public:
 
 VertexModule::VertexModule(bool animated)
     :
-    configs(makeVertexCapabilityConfig()),
-    builder(std::move(configs.first))
+    builder(makeVertexCapabilityConfig())
 {
     fragmentInputProviders = {
         {
@@ -146,8 +146,7 @@ VertexModule::VertexModule(bool animated)
     };
 }
 
-auto VertexModule::build(const ShaderModule& fragment)
-    -> std::pair<ShaderModule, MaterialRuntimeConfig>
+auto VertexModule::build(const ShaderModule& fragment) -> ShaderModule
 {
     ShaderOutputNode vertNode;
     for (const auto& out : fragment.getRequiredShaderInputs())
@@ -180,11 +179,10 @@ auto VertexModule::build(const ShaderModule& fragment)
     );
 
     ShaderModuleCompiler vertCompiler;
-    return { vertCompiler.compile(vertNode, builder), configs.second };
+    return vertCompiler.compile(vertNode, builder);
 }
 
-auto VertexModule::makeVertexCapabilityConfig()
-    -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>
+auto VertexModule::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
 {
     ShaderCapabilityConfig config;
     auto& code = config.getCodeBuilder();
@@ -206,10 +204,12 @@ auto VertexModule::makeVertexCapabilityConfig()
             "mat4 inverseProjMatrix;\n"
     });
 
-    auto modelPc = config.addResource(ShaderCapabilityConfig::PushConstant{ mat4{} });
-    auto matIndexPc = config.addResource(ShaderCapabilityConfig::PushConstant{ uint{} });
+    auto modelPc = config.addResource(ShaderCapabilityConfig::PushConstant{
+        mat4{}, DrawablePushConstIndex::eModelMatrix
+    });
     auto animDataPc = config.addResource(ShaderCapabilityConfig::PushConstant{
-        sizeof(AnimationDeviceData), "AnimationPushConstantData"
+        sizeof(AnimationDeviceData), "AnimationPushConstantData",
+        DrawablePushConstIndex::eAnimationData
     });
     config.addShaderInclude(animDataPc, util::Pathlet("material_utils/animation_data.glsl"));
 
@@ -275,17 +275,7 @@ auto VertexModule::makeVertexCapabilityConfig()
                           code.makeMemberAccess(animData, "keyframeWeigth"),
                           { animDataPc });
 
-    // Create the descriptor config
-    MaterialRuntimeConfig conf;
-    conf.descriptorInfos.try_emplace("global_data", 0, true);
-    conf.descriptorInfos.try_emplace("asset_registry", 1, true);
-    conf.pushConstantIds = {
-        { DrawablePushConstIndex::eModelMatrix, modelPc },
-        { DrawablePushConstIndex::eMaterialData, matIndexPc },
-        { DrawablePushConstIndex::eAnimationData, animDataPc },
-    };
-
-    return { std::move(config), conf };
+    return config;
 }
 
 } // namespace trc

@@ -41,14 +41,11 @@ namespace trc
     public:
         explicit VertexModule(bool animated);
 
-        auto build(const ShaderModule& fragment)
-            -> std::pair<ShaderModule, MaterialRuntimeConfig>;
+        auto build(const ShaderModule& fragment) -> ShaderModule;
 
     private:
-        static auto makeVertexCapabilityConfig()
-            -> std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig>;
+        static auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig;
 
-        std::pair<ShaderCapabilityConfig, MaterialRuntimeConfig> configs;
         ShaderModuleBuilder builder;
 
         std::unordered_map<Capability, code::Value> fragmentInputProviders;

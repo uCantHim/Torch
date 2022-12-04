@@ -17,10 +17,10 @@
 namespace trc
 {
 
-auto mergeRuntimeConfigs(const MaterialRuntimeConfig& a, const MaterialRuntimeConfig& b)
-    -> MaterialRuntimeConfig
+auto mergeDescriptorConfigs(const ShaderDescriptorConfig& a, const ShaderDescriptorConfig& b)
+    -> ShaderDescriptorConfig
 {
-    MaterialRuntimeConfig result{ a };
+    ShaderDescriptorConfig result{ a };
 
     // Merge descriptor infos
     for (const auto& [name, info] : b.descriptorInfos)
@@ -31,19 +31,6 @@ auto mergeRuntimeConfigs(const MaterialRuntimeConfig& a, const MaterialRuntimeCo
             throw std::runtime_error("[In mergeRuntimeConfigs]: Descriptor set \"" + name + "\""
                                      " has multiple conflicting definitions.");
         }
-    }
-
-    // Merge push constant infos
-    for (const auto& [pc, resource] : b.pushConstantIds)
-    {
-        auto pred = [pc=pc, r=resource](auto& a) -> bool { return a.first == pc && a.second != r; };
-        if (std::ranges::find_if(result.pushConstantIds, pred) != result.pushConstantIds.end())
-        {
-            throw std::runtime_error("[In mergeRuntimeConfigs]: Push constant "
-                                     + std::to_string(pc) + " has conflicting definitions of "
-                                     "corresponding resource IDs.");
-        }
-        result.pushConstantIds.emplace_back(pc, resource);
     }
 
     return result;
@@ -80,14 +67,14 @@ auto shaderStageToExtension(vk::ShaderStageFlagBits stage) -> std::string
 
 
 MaterialRuntimeInfo::MaterialRuntimeInfo(
-    const MaterialRuntimeConfig& runtimeConf,
+    const ShaderDescriptorConfig& runtimeConf,
     PipelineVertexParams vert,
     PipelineFragmentParams frag,
     std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages)
     :
     vertParams(vert),
     fragParams(frag),
-    vertResourceHandler(stages.at(vk::ShaderStageFlagBits::eVertex), runtimeConf)
+    vertResourceHandler(stages.at(vk::ShaderStageFlagBits::eVertex))
 {
     {
         // Collect required descriptor sets
@@ -140,7 +127,7 @@ auto MaterialRuntimeInfo::getShaderGlslCode(vk::ShaderStageFlagBits stage) const
 auto MaterialRuntimeInfo::makeLayout(
     const std::unordered_set<std::string>& descriptorSets,
     const std::vector<vk::PushConstantRange>& pushConstantRanges,
-    const MaterialRuntimeConfig& descConf)
+    const ShaderDescriptorConfig& descConf)
     -> PipelineLayoutTemplate
 {
     /** Compare descriptor sets based on their preferred index */
