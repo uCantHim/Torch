@@ -14,6 +14,7 @@
 #include <trc/drawable/DefaultDrawable.h>
 #include <trc/material/FragmentShader.h>
 #include <trc/material/MaterialRuntime.h>
+#include <trc/material/MaterialStorage.h>
 #include <trc/material/Mix.h>
 #include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/VertexShader.h>
@@ -22,11 +23,6 @@ using namespace trc;
 
 auto makeDescriptorConfig() -> ShaderDescriptorConfig;
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
-auto makeMaterial(ShaderModuleBuilder& builder,
-                  ShaderModule fragmentModule,
-                  PipelineVertexParams vertParams,
-                  PipelineFragmentParams fragParams,
-                  ShaderDescriptorConfig fragmentRuntimeConfig) -> MaterialRuntimeInfo;
 void run(MaterialRuntimeInfo material);
 
 class TangentToWorldspace : public ShaderFunction
@@ -98,15 +94,16 @@ int main()
     );
 
     // Create a pipeline
-    PipelineVertexParams vertSettings{ .animated=false };
-    PipelineFragmentParams fragSettings{ .transparent=true };
-    MaterialRuntimeInfo materialRuntime = makeMaterial(
-        builder,
-        fragmentModule.build(fragSettings.transparent),
-        vertSettings,
-        fragSettings,
-        makeDescriptorConfig()
-    );
+    PipelineVertexParams vertParams{ .animated=false };
+    PipelineFragmentParams fragParams{ .transparent=true };
+
+    MaterialStorage storage;
+    auto materialId = storage.registerMaterial({
+        .fragmentModule=fragmentModule.build(fragParams.transparent),
+        .descriptorConfig=makeDescriptorConfig(),
+        .fragmentInfo=fragParams
+    });
+    MaterialRuntimeInfo& materialRuntime = storage.getMaterial(materialId, vertParams);
 
     std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
     std::cout << "\n--- vertex shader ---\n";
@@ -116,30 +113,6 @@ int main()
 
     trc::terminate();
     return 0;
-}
-
-auto makeMaterial(ShaderModuleBuilder& builder,
-                  ShaderModule fragModule,
-                  PipelineVertexParams vertParams,
-                  PipelineFragmentParams fragParams,
-                  ShaderDescriptorConfig descriptorConfig) -> MaterialRuntimeInfo
-{
-    // Create a vertex shader with a graph
-    VertexModule vertBuilder(vertParams.animated);
-    auto vertModule = vertBuilder.build(fragModule);
-
-    // Create result value
-    MaterialRuntimeInfo result{
-        descriptorConfig,
-        vertParams,
-        fragParams,
-        {
-            { vk::ShaderStageFlagBits::eVertex, std::move(vertModule) },
-            { vk::ShaderStageFlagBits::eFragment, std::move(fragModule) },
-        }
-    };
-
-    return result;
 }
 
 auto makeDescriptorConfig() -> ShaderDescriptorConfig

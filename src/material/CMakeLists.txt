@@ -5,6 +5,7 @@ target_sources(
         Constant.cpp
         FragmentShader.cpp
         MaterialRuntime.cpp
+        MaterialStorage.cpp
         RuntimePushConstantHandler.cpp
         ShaderCapabilityConfig.cpp
         ShaderCodeBuilder.cpp
