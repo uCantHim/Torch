@@ -153,7 +153,7 @@ namespace trc
         assert(data.size() < minSize);
 
         data.resize(minSize);
-        memcpy(data.data(), &value, sizeof(T));
+        memcpy(data.data() + offset, &value, sizeof(T));
 
         // Add map entry
         entries.emplace_back(vk::SpecializationMapEntry(constantId, offset, sizeof(T)));

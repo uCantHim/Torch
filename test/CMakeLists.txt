@@ -52,3 +52,6 @@ if (TORCH_BUILD_EXAMPLES)
         target_link_libraries(Gui PUBLIC torch)
     endif()
 endif ()
+
+add_executable(Materials materials.cpp)
+target_link_libraries(Materials PUBLIC torch pipeline_compiler_lib)

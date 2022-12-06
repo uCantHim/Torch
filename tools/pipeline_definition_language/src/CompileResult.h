@@ -12,7 +12,7 @@ namespace fs = std::filesystem;
 #include "ShaderOutput.h"
 
 /**
- * Either a reference of an inline object
+ * Either a reference or an inline object
  */
 template<typename T>
 using ObjectReference = std::variant<UniqueName, T>;
@@ -155,9 +155,9 @@ struct PipelineDesc
     };
 
     ObjectReference<LayoutDesc> layout;
-    std::string renderPassName;
+    std::optional<std::string> renderPassName;
 
-    ObjectReference<ProgramDesc> program;
+    std::optional<ObjectReference<ProgramDesc>> program;
     std::vector<VertexAttribute> vertexInput{};
     InputAssembly inputAssembly{};
     Tessellation tessellation{};

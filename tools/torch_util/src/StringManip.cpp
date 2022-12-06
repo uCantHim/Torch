@@ -2,8 +2,17 @@
 
 
 
-auto shader_edit::toLines(std::istream& is) -> std::vector<std::string>
+auto trc::util::readLines(std::istream& is) -> std::vector<std::string>
 {
+    /**
+     * The line
+     *
+     *    std::getline(is, result.emplace_back())
+     *
+     * as the loop condition would be much more elegant, but then I always
+     * get a trailing empty line.
+     */
+
     std::vector<std::string> result;
     std::string str;
     while (std::getline(is, str)) {
@@ -13,7 +22,7 @@ auto shader_edit::toLines(std::istream& is) -> std::vector<std::string>
     return result;
 }
 
-auto shader_edit::splitString(const std::string& to_str, const char delimiter)
+auto trc::util::splitString(const std::string& to_str, const char delimiter)
     -> std::vector<std::string>
 {
     std::vector<std::string> result;
@@ -27,7 +36,7 @@ auto shader_edit::splitString(const std::string& to_str, const char delimiter)
     return result;
 }
 
-auto shader_edit::splitString(const std::string& str, const std::string& delimiter)
+auto trc::util::splitString(const std::string& str, const std::string& delimiter)
     -> std::vector<std::string>
 {
     std::vector<std::string> result;
@@ -59,7 +68,7 @@ auto shader_edit::splitString(const std::string& str, const std::string& delimit
 }
 
 
-void shader_edit::removeEmpty(std::vector<std::string>& vec)
+void trc::util::removeEmpty(std::vector<std::string>& vec)
 {
     for (auto it = vec.begin(); it != vec.end(); it++)
     {

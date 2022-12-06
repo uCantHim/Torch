@@ -47,7 +47,7 @@ namespace trc
         /**
          * @brief Create a pipeline storage object
          */
-        static auto createStorage(const Instance& instance, RenderConfig& renderConfig)
+        static auto makeStorage(const Instance& instance, RenderConfig& renderConfig)
             -> u_ptr<PipelineStorage>;
 
         /**

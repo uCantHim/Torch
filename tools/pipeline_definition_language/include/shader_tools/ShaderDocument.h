@@ -22,6 +22,7 @@ namespace shader_edit
         ShaderDocument() = default;
 
         explicit ShaderDocument(std::istream& is);
+        explicit ShaderDocument(const std::string& str);
         explicit ShaderDocument(ParseResult parseResult);
 
         /**
@@ -45,12 +46,16 @@ namespace shader_edit
         /**
          * @brief Compile variable settings into one or more documents
          *
+         * @param bool allowUnsetVariables If false, throw an exception if
+         *        the document has one or more variables for which no value
+         *        has been set via `set` or `permutate`.
+         *
          * @return std::vector<std::string> Array of documents as strings
          * @throw CompileError if one or more variables in the shader file
          *                     have not been set via either `set` or
          *                     `permutate`.
          */
-        auto compile() const -> std::string;
+        auto compile(bool allowUnsetVariables = false) const -> std::string;
 
     private:
         /** Stores the entire document and all variables discovered during parsing. */

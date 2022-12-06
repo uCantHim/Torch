@@ -1,5 +1,9 @@
 #include "TorchCppWriter.h"
 
+#include <algorithm>
+#include <ranges>
+#include <tuple>
+
 #include "Util.h"
 #include "StringUtil.h"
 #include "PipelineDataWriter.h"
@@ -116,10 +120,20 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
     else {
         os << "{";
         ++nl;
-        for (const auto& [name, variant] : group.variants)
+
+        // Sort variants by index
+        std::vector<std::tuple<uint32_t, const UniqueName*, const T*>> variantsAtIndex;
+        for (const auto& [name, variant] : group.variants) {
+            variantsAtIndex.emplace_back(name.calcFlagIndex(*flagTable), &name, &variant);
+        }
+        std::ranges::sort(variantsAtIndex,
+                          [](auto& a, auto& b){ return std::get<0>(a) < std::get<0>(b); });
+
+        // Write the sorted list of variants in an inline-initializer-list constructor
+        for (const auto& [_, name, variant] : variantsAtIndex)
         {
             os << nl;
-            writeVariantStorageInit(name, variant, os);
+            writeVariantStorageInit(*name, *variant, os);
             os << ",";
         }
         os << --nl << "};" << nl;
@@ -326,14 +340,16 @@ inline void TorchCppWriter::writeVariantStorageInit(
 template<>
 inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::string
 {
+    auto& prog = pipeline.program;
+
     std::stringstream ss;
     ss << "trc::PipelineRegistry::registerPipeline("
        << ++nl << "trc::PipelineTemplate{"
-       << ++nl << makeValue(pipeline.program) << ","
-       << nl << makePipelineDefinitionDataInit(pipeline, nl)
+       << ++nl << (prog ? makeValue(*prog) : "{}") << ","
+       <<   nl << makePipelineDefinitionDataInit(pipeline, nl)
        << --nl << "},"
-       << nl << makeValue(pipeline.layout) << ","
-       << nl << "trc::RenderPassName{ \"" << pipeline.renderPassName << "\" }"
+       <<   nl << makeValue(pipeline.layout) << ","
+       <<   nl << "trc::RenderPassName{ \"" << pipeline.renderPassName.value_or("") << "\" }"
        << --nl << ")";
 
     return ss.str();

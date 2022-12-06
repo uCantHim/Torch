@@ -3,6 +3,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <trc_util/StringManip.h>
+
 
 
 namespace shader_edit
@@ -10,6 +12,11 @@ namespace shader_edit
 
 ShaderDocument::ShaderDocument(std::istream& is)
     : ShaderDocument(parseShader(is))
+{
+}
+
+ShaderDocument::ShaderDocument(const std::string& str)
+    : ShaderDocument(parseShader(trc::util::splitString(str, '\n')))
 {
 }
 
@@ -37,7 +44,7 @@ auto ShaderDocument::permutate(const std::string& name, std::vector<VariableValu
     return result;
 }
 
-auto ShaderDocument::compile() const -> std::string
+auto ShaderDocument::compile(bool allowUnsetVariables) const -> std::string
 {
     /** A variable's location */
     struct Location
@@ -70,7 +77,7 @@ auto ShaderDocument::compile() const -> std::string
     }
 
     // Ensure that all variables have been set
-    if (!remainingVars.empty())
+    if (!allowUnsetVariables && !remainingVars.empty())
     {
         std::stringstream ss;
         ss << "[In Document::compile]: Unable to compile document - not all variables have"

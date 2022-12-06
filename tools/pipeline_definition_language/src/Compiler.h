@@ -60,6 +60,11 @@ private:
     template<typename T>
     auto makeReference(const compiler::Value& val) -> ObjectReference<T>;
 
+    /** Create a reference in a field is present, or nothing otherwise. */
+    template<typename T>
+    auto makeOptReference(const compiler::Object& obj, const std::string& field)
+        -> std::optional<ObjectReference<T>>;
+
     auto compileMeta(const compiler::Object& metaObj) -> CompileResult::Meta;
 
     template<typename T>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string>
-#include <unordered_set>
 #include <variant>
+#include <vector>
 
 #include "Token.h"
 
@@ -39,7 +39,7 @@ struct EnumTypeDef
     Token token;
 
     std::string name;
-    std::unordered_set<EnumOption> options;
+    std::vector<EnumOption> options;
 };
 
 using TypeDef = std::variant<

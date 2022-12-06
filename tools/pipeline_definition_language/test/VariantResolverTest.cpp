@@ -24,12 +24,12 @@ public:
     VariantResolverTest()
     {
         EnumTypeDef fooEnum(Token{ .type=TokenType::eEnum, .lexeme="foo_enum" });
-        fooEnum.options.emplace(Token{ .type=TokenType::eIdentifier, .lexeme="foo_0" });
-        fooEnum.options.emplace(Token{ .type=TokenType::eIdentifier, .lexeme="foo_1" });
-        fooEnum.options.emplace(Token{ .type=TokenType::eIdentifier, .lexeme="foo_2" });
+        fooEnum.options.emplace_back(Token{ .type=TokenType::eIdentifier, .lexeme="foo_0" });
+        fooEnum.options.emplace_back(Token{ .type=TokenType::eIdentifier, .lexeme="foo_1" });
+        fooEnum.options.emplace_back(Token{ .type=TokenType::eIdentifier, .lexeme="foo_2" });
         EnumTypeDef barEnum(Token{ .type=TokenType::eEnum, .lexeme="bar_enum" });
-        barEnum.options.emplace(Token{ .type=TokenType::eIdentifier, .lexeme="bar_0" });
-        barEnum.options.emplace(Token{ .type=TokenType::eIdentifier, .lexeme="bar_1" });
+        barEnum.options.emplace_back(Token{ .type=TokenType::eIdentifier, .lexeme="bar_0" });
+        barEnum.options.emplace_back(Token{ .type=TokenType::eIdentifier, .lexeme="bar_1" });
 
         flagTable.registerFlagType(fooEnum);
         flagTable.registerFlagType(barEnum);

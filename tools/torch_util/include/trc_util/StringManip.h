@@ -5,14 +5,14 @@
 #include <istream>
 #include <sstream>
 
-namespace shader_edit
+namespace trc::util
 {
     /**
      * @brief Read lines from a stream
      *
      * @return std::vector<std::string> An array of lines
      */
-    auto toLines(std::istream& is) -> std::vector<std::string>;
+    auto readLines(std::istream& is) -> std::vector<std::string>;
 
     /**
      * @brief Split a string
@@ -41,4 +41,4 @@ namespace shader_edit
      * @brief Remove empty strings from a list of strings
      */
     void removeEmpty(std::vector<std::string>& vec);
-} // namespace shader_edit
+} // namespace trc::util

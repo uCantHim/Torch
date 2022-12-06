@@ -45,8 +45,8 @@ void drawShadow(
 auto getDrawablePipelineFlags(DrawablePipelineInfo info) -> pipelines::DrawablePipelineTypeFlags
 {
     pipelines::DrawablePipelineTypeFlags flags;
-    flags |= pipelines::AnimationTypeFlagBits::none;
-    flags |= pipelines::PipelineShadingTypeFlagBits::opaque;
+    assert(flags.get<pipelines::AnimationTypeFlagBits>() == pipelines::AnimationTypeFlagBits::none);
+    assert(flags.get<pipelines::PipelineShadingTypeFlagBits>() == pipelines::PipelineShadingTypeFlagBits::opaque);
 
     if (info.transparent) {
         flags |= pipelines::PipelineShadingTypeFlagBits::transparent;

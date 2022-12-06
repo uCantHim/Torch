@@ -1,8 +1,7 @@
 #include "shader_tools/ShaderDocumentParser.h"
 
-#include <optional>
 #include <algorithm>
-#include <iostream>
+#include <optional>
 
 #include <trc_util/StringManip.h>
 
@@ -11,23 +10,21 @@
 namespace shader_edit
 {
 
+using trc::util::splitString;
+using trc::util::removeEmpty;
+using trc::util::readLines;
+
 constexpr auto VAR_DECL{ "//$" };
-constexpr auto INLINE_VAR_DECL{ "$" };
+constexpr auto INLINE_VAR_DECL{ '$' };
 
 
 
-class SyntaxError : public std::exception
+SyntaxError::SyntaxError(uint line, const std::string& error)
+    :
+    trc::Exception("[Syntax error in line " + std::to_string(line) + "]: " + error),
+    line(line)
 {
-public:
-    SyntaxError(std::string error) : str(std::move(error)) {}
-
-    auto what() const noexcept -> const char* override {
-        return str.c_str();
-    }
-
-private:
-    std::string str;
-};
+}
 
 
 
@@ -45,26 +42,40 @@ auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
     {
         // Parse name
         if (split.size() < 2) {
-            throw SyntaxError("Expected variable name, found none");
+            throw std::runtime_error("Expected variable name, found none");
         }
 
         return ParsedVariable{ .name=split.at(NAME_POS) };
     }
 
     // Test if line contains inline variable
-    for (const auto& chunk : split)
+    for (size_t first = 0; const char c : line)
     {
-        const bool isInlineVar = !chunk.empty() && chunk.starts_with(INLINE_VAR_DECL);
-        if (isInlineVar)
+        if (c == INLINE_VAR_DECL)
         {
-            const std::string varName = chunk.substr(1);
-            if (varName.empty()) {
-                throw SyntaxError("Expected variable name, found none");
+            ++first;
+            size_t last{ line.size() };
+            for (size_t i = first; i < last; ++i)
+            {
+                const char c = line[i];
+                const bool alpha   = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+                const bool num     = c >= '0' && c <= '9';
+                const bool special = c == '_';
+                if (!(alpha || num || special))
+                {
+                    last = i;
+                    break;
+                }
             }
 
-            const size_t first = line.find(chunk);
-            return ParsedVariable{ .name=varName, .firstChar=first, .lastChar=first + chunk.size() };
+            const std::string varName = line.substr(first, last - first);
+            if (varName.empty()) {
+                throw std::runtime_error("Expected variable name, found none");
+            }
+
+            return ParsedVariable{ .name=varName, .firstChar=first - 1, .lastChar=last };
         }
+        ++first;
     }
 
     return std::nullopt;
@@ -74,7 +85,7 @@ auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
 
 auto parseShader(std::istream& is) -> ParseResult
 {
-    return parseShader(toLines(is));
+    return parseShader(readLines(is));
 }
 
 auto parseShader(std::vector<std::string> _lines) -> ParseResult
@@ -94,11 +105,8 @@ auto parseShader(std::vector<std::string> _lines) -> ParseResult
                 result.variablesByName.try_emplace(var->name, std::move(var.value()));
             }
         }
-        catch (const SyntaxError& err)
-        {
-            std::stringstream ss;
-            ss << "[Syntax error in line " << i << "]: " << err.what();
-            throw SyntaxError(ss.str());
+        catch (const std::runtime_error& err) {
+            throw SyntaxError(i, err.what());
         }
         ++i;
     }

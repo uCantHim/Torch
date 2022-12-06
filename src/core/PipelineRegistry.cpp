@@ -240,7 +240,7 @@ auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id) -> RenderPassName
     return factories.at(id).getRenderPassName();
 }
 
-auto PipelineRegistry::createStorage(const Instance& instance, RenderConfig& renderConfig)
+auto PipelineRegistry::makeStorage(const Instance& instance, RenderConfig& renderConfig)
     -> std::unique_ptr<PipelineStorage>
 {
     u_ptr<PipelineStorage> result{

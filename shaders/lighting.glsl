@@ -28,6 +28,9 @@ LightValue blinnPhong(vec3 toLight, vec3 toEye, vec3 normal, float roughness)
 
     const vec3 halfway = normalize(toLight + toEye);
     const float reflectAngle = max(0.0, dot(halfway, normal));
+
+    // Roughness can't be 0
+    roughness = max(roughness, 0.001f);
     result.specular = vec3(
         pow(reflectAngle, 4.0f / roughness)                    // Specular highlight
         * (((1.0f / roughness) + 2.0) / (2.0 * 3.1415926535))  // Specular gamma correction

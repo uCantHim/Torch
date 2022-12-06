@@ -1,6 +1,8 @@
 #include "Parser.h"
 
 #include <cassert>
+#include <algorithm>
+#include <ranges>
 
 #include "Exceptions.h"
 #include "ErrorReporter.h"
@@ -86,10 +88,12 @@ auto Parser::parseEnum() -> EnumTypeDef
     while ((check(TokenType::eIdentifier) || matchCurrentIndent()) && !isAtEnd())
     {
         expect(TokenType::eIdentifier, "Expected enum option.");
-        auto [it, success] = def.options.emplace(previous());
-        if (!success) {
+        const EnumOption newOpt(previous());
+        auto it = std::ranges::find(def.options, newOpt);
+        if (it != def.options.end()) {
             error(previous(), "Redefinition of enum option \"" + it->value + "\".");
         }
+        def.options.emplace_back(newOpt);
 
         // The last option is allowed to omit the comma
         const bool hadComma = match(TokenType::eComma);
