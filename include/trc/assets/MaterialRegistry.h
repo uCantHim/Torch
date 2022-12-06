@@ -1,8 +1,12 @@
 #pragma once
 
-#include <unordered_set>
+#include <concepts>
+#include <iostream>
+#include <mutex>
+#include <optional>
+#include <unordered_map>
+#include <vector>
 
-#include "trc/base/Buffer.h"
 #include <trc_util/Padding.h>
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
@@ -13,6 +17,9 @@
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
 #include "trc/assets/TextureRegistry.h"
+#include "trc/base/Buffer.h"
+
+#include "trc/material/MaterialStorage.h"
 
 namespace trc
 {
@@ -26,6 +33,7 @@ namespace trc
     template<>
     struct AssetData<Material>
     {
+        // v old data
         vec3 color{ 0.0f, 0.0f, 0.0f };
 
         float specularCoefficient{ 1.0f };
@@ -39,6 +47,9 @@ namespace trc
 
         AssetReference<Texture> albedoTexture{};
         AssetReference<Texture> normalTexture{};
+        // ^ old data
+
+        std::optional<MaterialInfo> createInfo{ std::nullopt };
 
         void resolveReferences(AssetManager& man);
 
@@ -50,15 +61,29 @@ namespace trc
     class AssetHandle<Material>
     {
     public:
-        auto getBufferIndex() const -> ui32 {
-            return id;
+        bool isTransparent() const {
+            return storage->getFragmentParams(baseId).transparent;
+        }
+
+        auto getRuntime(PipelineVertexParams params) -> MaterialRuntimeInfo&
+        {
+            assert(storage != nullptr);
+            return storage->getRuntime(baseId, params);
+        }
+
+        auto getRuntime(PipelineVertexParams params) const -> const MaterialRuntimeInfo&
+        {
+            assert(storage != nullptr);
+            return storage->getRuntime(baseId, params);
         }
 
     private:
         friend class MaterialRegistry;
-        explicit AssetHandle(ui32 bufferIndex) : id(bufferIndex) {}
+        AssetHandle(MatID id, MaterialStorage& storage)
+            : baseId(id), storage(&storage) {}
 
-        ui32 id;
+        MatID baseId;
+        MaterialStorage* storage;
     };
 
     using MaterialHandle = AssetHandle<Material>;
@@ -85,72 +110,15 @@ namespace trc
 
         auto getHandle(LocalID id) -> MaterialHandle override;
 
-        auto getData(LocalID id) -> MaterialData;
-        template<std::invocable<MaterialData&> F>
-        void modify(LocalID id, F&& func);
-
     private:
-        static constexpr ui32 NO_TEXTURE = UINT32_MAX;
-
-        struct InternalStorage
-        {
-            ui32 bufferIndex;
-            MaterialData matData;
-            std::optional<AssetHandle<Texture>> albedoTex;
-            std::optional<AssetHandle<Texture>> normalTex;
-        };
-
-        struct MaterialDeviceData
-        {
-            MaterialDeviceData() = default;
-            MaterialDeviceData(const InternalStorage& data);
-
-            vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
-
-            float kSpecular{ 1.0f };
-            float roughness{ 1.0f };
-            float metallicness{ 0.0f };
-
-            float reflectivity{ 0.0f };
-
-            ui32 diffuseTexture{ NO_TEXTURE };
-            ui32 specularTexture{ NO_TEXTURE };
-            ui32 bumpTexture{ NO_TEXTURE };
-
-            bool32 performLighting{ true };
-        };
-
-        static_assert(util::sizeof_pad_16_v<MaterialDeviceData> == sizeof(MaterialDeviceData),
-                      "MaterialDeviceData struct must be padded to 16 bytes for std430!");
-
-        static constexpr ui32 MATERIAL_BUFFER_DEFAULT_SIZE = sizeof(MaterialDeviceData) * 100;
-
         data::IdPool idPool;
+        std::unordered_map<LocalID, MatID> materialIds;
 
-        // Host and device data storage
         std::mutex materialStorageLock;
-        std::vector<u_ptr<InternalStorage>> materials;
+        MaterialStorage storage;
         Buffer materialBuffer;
 
         // Descriptor
         SharedDescriptorSet::Binding descBinding;
-
-        // Device data updates
-        std::mutex changedMaterialsLock;
-        std::unordered_set<LocalID> changedMaterials;
     };
-
-
-    template<std::invocable<MaterialData&> F>
-    void MaterialRegistry::modify(const LocalID id, F&& func)
-    {
-        {
-            std::scoped_lock lock(materialStorageLock);
-            func(materials.at(id)->matData);
-        }
-        {
-            std::scoped_lock lock(changedMaterialsLock);
-            changedMaterials.emplace(id);
-        }
-    }
 } // namespace trc

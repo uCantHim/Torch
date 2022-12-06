@@ -16,15 +16,8 @@ Drawable::Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& 
 {
 }
 
-Drawable::Drawable(const DrawableCreateInfo& info, DrawableComponentScene& scene)
-    :
-    Drawable(info, determineDrawablePipeline(info), scene)
-{
-}
-
 Drawable::Drawable(
     const DrawableCreateInfo& info,
-    Pipeline::ID pipeline,
     DrawableComponentScene& scene)
     :
     scene(&scene),
@@ -34,9 +27,14 @@ Drawable::Drawable(
 {
     if (info.rasterized)
     {
-        auto geoHandle = info.geo.get();
-        auto raster = makeRasterData(info, pipeline);
+        MaterialHandle matHandle = info.mat.getDeviceDataHandle();
+        GeometryHandle geoHandle = info.geo.getDeviceDataHandle();
 
+        auto nonconstMat = info.mat;
+        auto pipeline = matHandle.getRuntime({ .animated=geoHandle.hasRig() }).makePipeline(
+            static_cast<AssetManager&>(nonconstMat.getAssetManager())
+        );
+        RasterComponentCreateInfo raster = makeDefaultDrawableRasterization(info, pipeline);
         // Model matrix ID and animation engine ID have to be set manually
         raster.drawData.modelMatrixId = getGlobalTransformID();
         if (geoHandle.hasRig())
@@ -117,14 +115,6 @@ void Drawable::removeFromScene()
         scene->destroyDrawable(id);
         id = DrawableID::NONE;
     }
-}
-
-auto Drawable::makeRasterData(
-    const DrawableCreateInfo& info,
-    Pipeline::ID gBufferPipeline
-    ) -> RasterComponentCreateInfo
-{
-    return makeDefaultDrawableRasterization(info, gBufferPipeline);
 }
 
 } // namespace trc

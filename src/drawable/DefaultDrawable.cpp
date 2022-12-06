@@ -5,6 +5,9 @@
 #include "trc/RenderPassShadow.h"
 #include "trc/DrawablePipelines.h"
 
+#include "trc/material/MaterialRuntime.h"
+#include "trc/material/VertexShader.h" // For the DrawablePushConstIndex enum
+
 
 
 namespace trc
@@ -69,7 +72,10 @@ auto trc::determineDrawablePipeline(DrawablePipelineInfo info) -> Pipeline::ID
 
 auto trc::determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID
 {
-    return determineDrawablePipeline({ info.geo.get().hasRig(), info.transparent });
+    return determineDrawablePipeline({
+        info.geo.getDeviceDataHandle().hasRig(),
+        info.mat.getDeviceDataHandle().isTransparent()
+    });
 }
 
 auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
@@ -79,64 +85,49 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
                                         const DrawEnvironment&,
                                         vk::CommandBuffer)>;
 
-    FuncType func;
-    if (info.geo.get().hasRig())
-    {
-        func = [](auto& data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-            data.geo.bindVertices(cmdBuf, 0);
+    GeometryHandle geo = info.geo.getDeviceDataHandle();
+    MaterialHandle mat = info.mat.getDeviceDataHandle();
+    RasterComponentCreateInfo result{
+        .drawData={ .geo=geo, .mat=mat, .modelMatrixId={}, .anim={} },
+        .drawFunctions={},
+    };
 
-            auto layout = *env.currentPipeline->getLayout();
-            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                       data.modelMatrixId.get());
-            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data.mat.getBufferIndex()));
-            cmdBuf.pushConstants<AnimationDeviceData>(
-                layout, vk::ShaderStageFlagBits::eVertex, sizeof(mat4) + sizeof(ui32),
+    const bool animated = geo.hasRig();
+    const bool transparent = mat.isTransparent();
+
+    FuncType gbufferDraw = [animated](const drawcomp::RasterComponent& data,
+                                      const DrawEnvironment& env,
+                                      vk::CommandBuffer cmdBuf)
+    {
+        auto layout = *env.currentPipeline->getLayout();
+        auto& material = data.mat.getRuntime({ animated }).getPushConstantHandler();
+        material.pushConstants(cmdBuf, layout, DrawablePushConstIndex::eModelMatrix,
+                               data.modelMatrixId.get());
+        if (animated)
+        {
+            material.pushConstants(
+                cmdBuf, layout, DrawablePushConstIndex::eAnimationData,
                 data.anim.get()
             );
+        }
 
-            cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
-        };
-    }
-    else
-    {
-        func = [](auto& data, const DrawEnvironment& env, vk::CommandBuffer cmdBuf) {
-            data.geo.bindVertices(cmdBuf, 0);
-
-            auto layout = *env.currentPipeline->getLayout();
-            cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                                       data.modelMatrixId.get());
-            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eVertex,
-                                       sizeof(mat4), static_cast<ui32>(data.mat.getBufferIndex()));
-            cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
-        };
-    }
-
-    auto deferredSubpass = info.transparent ? GBufferPass::SubPasses::transparency
-                                            : GBufferPass::SubPasses::gBuffer;
-
-    RasterComponentCreateInfo result{
-        .drawData={
-            .geo=info.geo.getDeviceDataHandle(),
-            .mat=info.mat.getDeviceDataHandle(),
-            .modelMatrixId={},  // None
-            .anim={},
-        },
-        .drawFunctions={},
+        data.geo.bindVertices(cmdBuf, 0);
+        cmdBuf.drawIndexed(data.geo.getIndexCount(), 1, 0, 0, 0);
     };
 
     result.drawFunctions.push_back({
         gBufferRenderStage,
-        deferredSubpass,
+        transparent ? GBufferPass::SubPasses::transparency
+                         : GBufferPass::SubPasses::gBuffer,
         pipeline,
-        std::move(func)
+        std::move(gbufferDraw)
     });
     if (info.drawShadow)
     {
         result.drawFunctions.push_back({
             shadowRenderStage, SubPass::ID(0),
             getDrawablePipeline(
-                getDrawablePipelineFlags({ info.geo.getDeviceDataHandle().hasRig(), info.transparent })
+                getDrawablePipelineFlags({ geo.hasRig(), transparent })
                 | pipelines::PipelineShadingTypeFlagBits::shadow
             ),
             drawShadow

@@ -43,7 +43,10 @@ namespace trc
     {
     public:
         auto registerMaterial(MaterialInfo info) -> MatID;
-        auto getMaterial(MatID id, PipelineVertexParams params) -> MaterialRuntimeInfo&;
+        void removeMaterial(MatID id);
+
+        auto getFragmentParams(MatID id) const -> const PipelineFragmentParams&;
+        auto getRuntime(MatID id, PipelineVertexParams params) -> MaterialRuntimeInfo&;
 
     private:
         class MaterialFactory
@@ -53,7 +56,13 @@ namespace trc
 
             explicit MaterialFactory(MaterialInfo info);
 
+            auto getInfo() const -> const MaterialInfo&;
             auto getOrMake(MaterialKey specialization) -> MaterialRuntimeInfo&;
+
+            /**
+             * Free all material runtimes. Keep the create info in storage.
+             */
+            void clear();
 
         private:
             MaterialInfo materialCreateInfo;

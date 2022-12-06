@@ -4,10 +4,6 @@ using namespace trc::drawcomp;
 
 
 
-struct RasterRegistrations
-{
-    std::vector<trc::SceneBase::UniqueRegistrationID> regs;
-};
 
 
 
@@ -51,6 +47,11 @@ trc::UniqueDrawableID::operator bool() const
 }
 
 trc::UniqueDrawableID::operator trc::DrawableID() const
+{
+    return id;
+}
+
+auto trc::UniqueDrawableID::operator*() const -> DrawableID
 {
     return id;
 }
@@ -104,7 +105,7 @@ auto trc::DrawableComponentScene::makeDrawable() -> DrawableID
     return storage.createObject();
 }
 
-auto trc::DrawableComponentScene::makeDrawableUnique() -> UniqueDrawableID
+auto trc::DrawableComponentScene::makeUniqueDrawable() -> UniqueDrawableID
 {
     return { *this, storage.createObject() };
 }
@@ -119,8 +120,14 @@ void trc::DrawableComponentScene::makeRasterization(
     const RasterComponentCreateInfo& createInfo)
 {
     RasterComponent& comp = storage.add<RasterComponent>(drawable, createInfo.drawData);
-    RasterRegistrations& reg = storage.add<RasterRegistrations>(drawable);
 
+    // Create a storage for the draw functions with automatic lifetime
+    struct RasterRegistrations
+    {
+        std::vector<trc::SceneBase::UniqueRegistrationID> regs;
+    };
+
+    RasterRegistrations& reg = storage.add<RasterRegistrations>(drawable);
     for (const auto& f : createInfo.drawFunctions)
     {
         reg.regs.emplace_back(base->registerDrawFunction(
@@ -137,13 +144,14 @@ void trc::DrawableComponentScene::makeRaytracing(
     DrawableID drawable,
     const RayComponentCreateInfo& createInfo)
 {
-    auto geo = createInfo.geo;
-    if (!geo.getDeviceDataHandle().hasAccelerationStructure()) {
-        geo.getModule().makeAccelerationStructure(geo.getDeviceID());
+    auto geoId = createInfo.geo;
+    auto geo = geoId.getDeviceDataHandle();
+    if (!geo.hasAccelerationStructure()) {
+        geoId.getModule().makeAccelerationStructure(geoId.getDeviceID());
     }
 
     auto& ray = storage.add<RayComponent>(drawable, RayComponent{
-        .geo = createInfo.geo.getDeviceDataHandle(),
+        .geo = geo,
         .modelMatrixId = createInfo.transformation
     });
 
@@ -151,19 +159,21 @@ void trc::DrawableComponentScene::makeRaytracing(
         drawableData.resize(ray.drawableBufferIndex + 1);
     }
     drawableData[ray.drawableBufferIndex] = DrawableRayData{
-        .geometryIndex=createInfo.geo.getDeviceDataHandle().getDeviceIndex(),
-        .materialIndex=createInfo.mat.getDeviceDataHandle().getBufferIndex()
+        .geometryIndex=geo.getDeviceIndex(),
+        .materialIndex=0,
     };
 }
 
-void trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigHandle rig)
+auto trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigHandle rig)
+    -> AnimationEngine&
 {
-    storage.add<AnimationComponent>(drawable, rig);
+    return storage.add<AnimationComponent>(drawable, rig).engine;
 }
 
-void trc::DrawableComponentScene::makeNode(DrawableID drawable)
+auto trc::DrawableComponentScene::makeNode(DrawableID drawable)
+    -> Node&
 {
-    storage.add<NodeComponent>(drawable);
+    return storage.add<NodeComponent>(drawable).node;
 }
 
 bool trc::DrawableComponentScene::hasRasterization(DrawableID drawable) const

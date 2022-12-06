@@ -40,7 +40,7 @@ void run()
                 .specularCoefficient=0.3f,
                 .roughness=0.0f,
             }),
-            false, true, true, true
+            true, true, true
         },
         *scene
     );
@@ -52,7 +52,7 @@ void run()
     trc::Drawable plane({
         assets.create(trc::makePlaneGeo()),
         assets.create(trc::MaterialData{ .roughness=0.1f }),
-        false, true, true, true
+        true, true, true
     }, *scene);
     plane.rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
          .translate(0.5f, 0.5f, -1.0f)
@@ -60,7 +60,7 @@ void run()
 
     trc::GeometryID treeGeo = assets.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
     trc::MaterialID treeMat = assets.create(trc::MaterialData{ .color=vec4(0, 1, 0, 1) });
-    trc::Drawable tree({ treeGeo, treeMat, false, true, true, true }, *scene);
+    trc::Drawable tree({ treeGeo, treeMat, true, true, true }, *scene);
 
     tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
 
@@ -77,7 +77,7 @@ void run()
                 trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
             ),
         }),
-        false, true, true, true
+        true, true, true
     }, *scene);
 
     auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
@@ -95,12 +95,12 @@ void run()
         static bool count{ false };
         if (e.key == trc::Key::r)
         {
-            assets.getModule<trc::Material>().modify(
-                floor.getMaterial().getDeviceID(),
-                [](auto& mat) {
-                    mat.roughness = 1.0f - (kFloorReflectivity * float(count));
-                }
-            );
+            //assets.getModule<trc::Material>().modify(
+            //    floor.getMaterial().getDeviceID(),
+            //    [](auto& mat) {
+            //        mat.roughness = 1.0f - (kFloorReflectivity * float(count));
+            //    }
+            //);
             count = !count;
         }
     });

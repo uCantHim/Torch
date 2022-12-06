@@ -71,6 +71,7 @@ namespace trc
 
         operator bool() const;
         operator DrawableID() const;
+        auto operator*() const -> DrawableID;
         auto get() const -> DrawableID;
 
     private:
@@ -102,13 +103,13 @@ namespace trc
         auto getRaySceneData() const -> const std::vector<DrawableRayData>&;
 
         auto makeDrawable() -> DrawableID;
-        auto makeDrawableUnique() -> UniqueDrawableID;
+        auto makeUniqueDrawable() -> UniqueDrawableID;
         void destroyDrawable(DrawableID drawable);
 
         void makeRasterization(DrawableID drawable, const RasterComponentCreateInfo& createInfo);
         void makeRaytracing(DrawableID drawable, const RayComponentCreateInfo& createInfo);
-        void makeAnimationEngine(DrawableID drawable, RigHandle rig);
-        void makeNode(DrawableID drawable);
+        auto makeAnimationEngine(DrawableID drawable, RigHandle rig) -> AnimationEngine&;
+        auto makeNode(DrawableID drawable) -> Node&;
 
         bool hasRasterization(DrawableID drawable) const;
         bool hasRaytracing(DrawableID drawable) const;

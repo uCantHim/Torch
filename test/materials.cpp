@@ -23,7 +23,7 @@ using namespace trc;
 
 auto makeDescriptorConfig() -> ShaderDescriptorConfig;
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
-void run(MaterialRuntimeInfo material);
+void run(MaterialInfo material);
 
 class TangentToWorldspace : public ShaderFunction
 {
@@ -97,19 +97,13 @@ int main()
     PipelineVertexParams vertParams{ .animated=false };
     PipelineFragmentParams fragParams{ .transparent=true };
 
-    MaterialStorage storage;
-    auto materialId = storage.registerMaterial({
+    MaterialInfo matCreateInfo{
         .fragmentModule=fragmentModule.build(fragParams.transparent),
         .descriptorConfig=makeDescriptorConfig(),
         .fragmentInfo=fragParams
-    });
-    MaterialRuntimeInfo& materialRuntime = storage.getMaterial(materialId, vertParams);
+    };
 
-    std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eFragment);
-    std::cout << "\n--- vertex shader ---\n";
-    std::cout << materialRuntime.getShaderGlslCode(vk::ShaderStageFlagBits::eVertex);
-
-    run(std::move(materialRuntime));
+    run(matCreateInfo);
 
     trc::terminate();
     return 0;
@@ -282,9 +276,12 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     return config;
 }
 
-void run(MaterialRuntimeInfo material)
+void run(MaterialInfo materialCreateInfo)
 {
-    auto torch = trc::initFull();
+    std::cout << materialCreateInfo.fragmentModule.getGlslCode() << "\n\n";
+    std::cout << VertexModule(false).build(materialCreateInfo.fragmentModule).getGlslCode() << "\n\n";
+
+    auto torch = trc::initFull(trc::InstanceCreateInfo{ .enableRayTracing=false });
     auto& assetManager = torch->getAssetManager();
 
     Scene scene;
@@ -296,35 +293,16 @@ void run(MaterialRuntimeInfo material)
 
     // Load resources
     auto geo = assetManager.create(makeCubeGeo());
+    auto mat = assetManager.create(trc::MaterialData{ .createInfo=materialCreateInfo });
 
     // Create drawable
-    GeometryHandle geoHandle = geo.getDeviceDataHandle();
-    trc::Node node;
-
-    Pipeline::ID pipeline = material.makePipeline(assetManager);
-    const RuntimePushConstantHandler& runtime = material.getPushConstantHandler();
-
-    scene.registerDrawFunction(
-        gBufferRenderStage, GBufferPass::SubPasses::transparency,
-        pipeline,
-        [&](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
-        {
-            auto layout = *env.currentPipeline->getLayout();
-            runtime.pushConstants(
-                cmdBuf, layout,
-                DrawablePushConstIndex::eModelMatrix, node.getGlobalTransform()
-            );
-
-            geoHandle.bindVertices(cmdBuf, 0);
-            cmdBuf.drawIndexed(geoHandle.getIndexCount(), 1, 0, 0, 0);
-        }
-    );
+    trc::Drawable drawable(geo, mat, scene);
 
     trc::Timer timer;
     while (torch->getWindow().isOpen())
     {
         trc::pollEvents();
-        node.setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
+        drawable.setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
 
         torch->drawFrame(camera, scene);
     }

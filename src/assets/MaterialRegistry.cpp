@@ -2,33 +2,22 @@
 
 #include "geometry.pb.h"
 #include "trc/assets/AssetManager.h"
-#include "trc/assets/import/InternalFormat.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
-void trc::AssetData<trc::Material>::serialize(std::ostream& os) const
+void trc::AssetData<trc::Material>::serialize(std::ostream&) const
 {
-    serial::Asset asset;
-    *asset.mutable_material() = internal::serializeAssetData(*this);
-    asset.SerializeToOstream(&os);
+    throw std::runtime_error("MaterialData::serialize not implemented!");
 }
 
-void trc::AssetData<trc::Material>::deserialize(std::istream& is)
+void trc::AssetData<trc::Material>::deserialize(std::istream&)
 {
-    serial::Asset asset;
-    asset.ParseFromIstream(&is);
-    *this = internal::deserializeAssetData(asset.material());
+    throw std::runtime_error("MaterialData::deserialize not implemented!");
 }
 
-void trc::AssetData<trc::Material>::resolveReferences(AssetManager& man)
+void trc::AssetData<trc::Material>::resolveReferences(AssetManager&)
 {
-    if (!albedoTexture.empty()) {
-        albedoTexture.resolve(man);
-    }
-    if (!normalTexture.empty()) {
-        normalTexture.resolve(man);
-    }
 }
 
 
@@ -37,7 +26,7 @@ trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
     :
     materialBuffer(
         info.device,
-        MATERIAL_BUFFER_DEFAULT_SIZE,  // Default material buffer size
+        std::vector<std::byte>(100, std::byte{0x00}),
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
@@ -54,55 +43,20 @@ trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
 
 void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
-    if (materialBuffer.size() < sizeof(MaterialDeviceData) * materials.size())
-    {
-        throw std::runtime_error("[In MaterialRegistry::update]: Material buffer is too small!");
-    }
-
-    // Execute necessary material updates
-    std::scoped_lock lock(changedMaterialsLock);
-    if (!changedMaterials.empty())
-    {
-        std::scoped_lock _lock(materialStorageLock);
-
-        auto buf = materialBuffer.map<MaterialDeviceData*>();
-        for (const LocalID id : changedMaterials)
-        {
-            const auto& mat = materials.at(id);
-            buf[mat->bufferIndex] = *mat;
-        }
-        materialBuffer.unmap();
-    }
-    changedMaterials.clear();
 }
 
 auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 {
     const LocalID id(idPool.generate());
-    const ui32 bufferIndex{ id };
 
     auto data = source->load();
+    if (!data.createInfo.has_value()) {
+        return id;
+    }
 
     std::scoped_lock lock(materialStorageLock);
-    if (materials.size() <= id) {
-        materials.resize(id + 1);
-    }
-    materials.emplace(
-        materials.begin() + id,
-        new InternalStorage{
-            .bufferIndex = bufferIndex,
-            .matData = data,
-            .albedoTex = data.albedoTexture.hasResolvedID()
-                ? data.albedoTexture.getID().getDeviceDataHandle()
-                : std::optional<AssetHandle<Texture>>{},
-            .normalTex = data.normalTexture.hasResolvedID()
-                ? data.normalTexture.getID().getDeviceDataHandle()
-                : std::optional<AssetHandle<Texture>>{},
-        }
-    );
-
-    std::scoped_lock _lock(changedMaterialsLock);
-    changedMaterials.emplace(id);
+    auto storageId = storage.registerMaterial(*data.createInfo);
+    materialIds.emplace(id, storageId);
 
     return id;
 }
@@ -110,37 +64,12 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 void trc::MaterialRegistry::remove(LocalID id)
 {
     std::scoped_lock lock(materialStorageLock);
-    materials.at(id).reset();
+    storage.removeMaterial(materialIds.at(id));
     idPool.free(id);
 }
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
     std::scoped_lock lock(materialStorageLock);
-    return Handle(materials.at(id)->bufferIndex);
-}
-
-auto trc::MaterialRegistry::getData(LocalID id) -> MaterialData
-{
-    std::scoped_lock lock(materialStorageLock);
-    return materials.at(id)->matData;
-}
-
-
-
-trc::MaterialRegistry::MaterialDeviceData::MaterialDeviceData(const InternalStorage& data)
-    :
-    color(data.matData.color, data.matData.opacity),
-    kSpecular(data.matData.specularCoefficient),
-    roughness(data.matData.roughness),
-    reflectivity(data.matData.reflectivity),
-    diffuseTexture(data.albedoTex.has_value()
-            ? data.albedoTex->getDeviceIndex()
-            : NO_TEXTURE),
-    specularTexture(NO_TEXTURE),
-    bumpTexture(data.normalTex.has_value()
-            ? data.normalTex->getDeviceIndex()
-            : NO_TEXTURE),
-    performLighting(data.matData.doPerformLighting)
-{
+    return Handle{ materialIds.at(id), storage };
 }

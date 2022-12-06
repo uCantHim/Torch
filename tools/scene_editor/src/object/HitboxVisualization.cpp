@@ -1,10 +1,11 @@
 #include "HitboxVisualization.h"
 
+#include <trc/DrawablePipelines.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
-#include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/PipelineBuilder.h>
-#include <trc/DrawablePipelines.h>
+#include <trc/core/PipelineLayoutBuilder.h>
+#include <trc/drawable/DefaultDrawable.h>
 
 #include "asset/DefaultAssets.h"
 
@@ -28,28 +29,38 @@ auto getHitboxPipeline() -> trc::Pipeline::ID
     return pipeline;
 }
 
-auto makeHitboxDrawable(trc::Scene& scene, const Sphere& sphere) -> trc::Drawable
+auto makeHitboxDrawable(trc::Scene& scene, const Sphere& sphere) -> trc::UniqueDrawableID
 {
-    trc::Drawable result(
-        { g::geos().sphere, g::mats().undefined, false, false },
-        getHitboxPipeline(),
-        scene
-    );
-    result.setScale(sphere.radius);
+    auto drawable = scene.makeUniqueDrawable();
 
-    return result;
+    trc::Node& node = scene.makeNode(drawable);
+    node.setScale(sphere.radius);
+
+    auto rasterComponent = trc::makeDefaultDrawableRasterization(
+        { g::geos().sphere, g::mats().undefined, false, false },
+        getHitboxPipeline()
+    );
+    rasterComponent.drawData.modelMatrixId = node.getGlobalTransformID();
+    scene.makeRasterization(drawable, std::move(rasterComponent));
+
+    return drawable;
 }
 
-auto makeHitboxDrawable(trc::Scene& scene, const Capsule& caps) -> trc::Drawable
+auto makeHitboxDrawable(trc::Scene& scene, const Capsule& caps) -> trc::UniqueDrawableID
 {
-    trc::Drawable result(
-        { g::geos().sphere, g::mats().undefined, false, false },
-        getHitboxPipeline(),
-        scene
-    );
-    result.setScale(caps.radius, caps.height, caps.radius);
+    auto drawable = scene.makeUniqueDrawable();
 
-    return result;
+    trc::Node& node = scene.makeNode(drawable);
+    node.setScale(caps.radius, caps.height, caps.radius);
+
+    auto rasterComponent = trc::makeDefaultDrawableRasterization(
+        { g::geos().sphere, g::mats().undefined, false, false },
+        getHitboxPipeline()
+    );
+    rasterComponent.drawData.modelMatrixId = node.getGlobalTransformID();
+    scene.makeRasterization(drawable, std::move(rasterComponent));
+
+    return drawable;
 }
 
 
@@ -62,20 +73,20 @@ HitboxVisualization::HitboxVisualization(trc::Scene& scene)
 
 void HitboxVisualization::removeFromScene()
 {
-    sphereDrawable.removeFromScene();
-    capsuleDrawable.removeFromScene();
+    scene->destroyDrawable(sphereDrawable);
+    scene->destroyDrawable(capsuleDrawable);
 }
 
 void HitboxVisualization::enableSphere(const Sphere& sphere)
 {
     sphereDrawable = makeHitboxDrawable(*scene, sphere);
-    attach(sphereDrawable);
+    attach(scene->getNode(sphereDrawable));
     showSphere = true;
 }
 
 void HitboxVisualization::disableSphere()
 {
-    sphereDrawable.removeFromScene();
+    scene->destroyDrawable(sphereDrawable);
     showSphere = false;
 }
 
@@ -87,13 +98,13 @@ bool HitboxVisualization::isSphereEnabled() const
 void HitboxVisualization::enableCapsule(const Capsule& capsule)
 {
     capsuleDrawable = makeHitboxDrawable(*scene, capsule);
-    attach(capsuleDrawable);
+    attach(scene->getNode(capsuleDrawable));
     showCapsule = true;
 }
 
 void HitboxVisualization::disableCapsule()
 {
-    capsuleDrawable.removeFromScene();
+    scene->destroyDrawable(capsuleDrawable);
     showCapsule = false;
 }
 

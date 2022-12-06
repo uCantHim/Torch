@@ -20,13 +20,6 @@ namespace trc
 
         Drawable(const DrawableCreateInfo& info, DrawableComponentScene& scene);
 
-        /**
-         * @brief Create a drawable with a custom pipeline for the g-buffer pass
-         */
-        Drawable(const DrawableCreateInfo& info,
-                 Pipeline::ID gBufferPipeline,
-                 DrawableComponentScene& scene);
-
         /** @brief Legacy constructor */
         Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& scene);
 
@@ -59,10 +52,6 @@ namespace trc
         void removeFromScene();
 
     private:
-        static auto makeRasterData(const DrawableCreateInfo& info,
-                                   Pipeline::ID gBufferPipeline)
-            -> RasterComponentCreateInfo;
-
         DrawableComponentScene* scene;
         DrawableID id;
 

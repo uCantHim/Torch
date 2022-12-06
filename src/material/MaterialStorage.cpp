@@ -14,10 +14,20 @@ auto MaterialStorage::registerMaterial(MaterialInfo info) -> MatID
     return id;
 }
 
-auto MaterialStorage::getMaterial(MatID id, PipelineVertexParams params) -> MaterialRuntimeInfo&
+void MaterialStorage::removeMaterial(MatID id)
 {
     assert(id < materialFactories.size());
+    materialFactories.at(id).clear();
+}
 
+auto MaterialStorage::getFragmentParams(MatID id) const -> const PipelineFragmentParams&
+{
+    return materialFactories.at(id).getInfo().fragmentInfo;
+}
+
+auto MaterialStorage::getRuntime(MatID id, PipelineVertexParams params) -> MaterialRuntimeInfo&
+{
+    assert(id < materialFactories.size());
     return materialFactories.at(id).getOrMake({ .vertexParams=params });
 }
 
@@ -27,6 +37,11 @@ MaterialStorage::MaterialFactory::MaterialFactory(MaterialInfo info)
     :
     materialCreateInfo(info)
 {
+}
+
+auto MaterialStorage::MaterialFactory::getInfo() const -> const MaterialInfo&
+{
+    return materialCreateInfo;
 }
 
 auto MaterialStorage::MaterialFactory::getOrMake(MaterialKey specialization) -> MaterialRuntimeInfo&
@@ -50,6 +65,11 @@ auto MaterialStorage::MaterialFactory::getOrMake(MaterialKey specialization) -> 
     }
 
     return *it->second;
+}
+
+void MaterialStorage::MaterialFactory::clear()
+{
+    runtimes.clear();
 }
 
 }

@@ -67,7 +67,7 @@ auto shaderStageToExtension(vk::ShaderStageFlagBits stage) -> std::string
 
 
 MaterialRuntimeInfo::MaterialRuntimeInfo(
-    const ShaderDescriptorConfig& runtimeConf,
+    const ShaderDescriptorConfig& descriptorConf,
     PipelineVertexParams vert,
     PipelineFragmentParams frag,
     std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages)
@@ -94,7 +94,7 @@ MaterialRuntimeInfo::MaterialRuntimeInfo(
             }
         }
 
-        layoutTemplate = makeLayout(descriptorSets, pcRanges, runtimeConf);
+        layoutTemplate = makeLayout(descriptorSets, pcRanges, descriptorConf);
     }
 
     // Post-process shader sources
@@ -106,7 +106,7 @@ MaterialRuntimeInfo::MaterialRuntimeInfo(
         {
             auto varName = shader.getDescriptorIndexPlaceholder(setName);
             assert(varName.has_value());
-            doc.set(*varName, runtimeConf.descriptorInfos.at(setName).index);
+            doc.set(*varName, descriptorConf.descriptorInfos.at(setName).index);
         }
         auto [it, success] = shaderStages.try_emplace(
             stage,
@@ -191,6 +191,7 @@ auto MaterialRuntimeInfo::makePipeline(AssetManager& assetManager) -> Pipeline::
                                                   ProgramDefinitionData::ShaderStage{ spirv });
         auto& specs = it->second.specConstants;
 
+        // Set the program's specialization constants
         textureHandles.reserve(data.textures.size());
         for (const auto& [specIdx, tex] : data.textures)
         {

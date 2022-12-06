@@ -1,6 +1,6 @@
 #pragma once
 
-#include <trc/drawable/Drawable.h>
+#include <trc/drawable/DrawableComponentScene.h>
 
 #include "Hitbox.h"
 
@@ -32,8 +32,8 @@ private:
 
     bool showSphere{ false };
     bool showCapsule{ false };
-    trc::Drawable sphereDrawable;
-    trc::Drawable capsuleDrawable;
+    trc::UniqueDrawableID sphereDrawable;
+    trc::UniqueDrawableID capsuleDrawable;
 };
 
 template<>

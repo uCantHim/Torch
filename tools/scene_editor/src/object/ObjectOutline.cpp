@@ -67,7 +67,7 @@ auto getAnimatedObjectOutlinePipeline() -> trc::Pipeline::ID
 
 ObjectOutline::ObjectOutline(Scene& _scene, SceneObject obj, Type outlineType)
     :
-    drawable(_scene.getDrawableScene().makeDrawableUnique())
+    drawable(_scene.getDrawableScene().makeUniqueDrawable())
 {
     auto& scene = _scene.getDrawableScene();
     auto& d = _scene.get<trc::Drawable>(obj);

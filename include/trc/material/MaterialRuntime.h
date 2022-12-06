@@ -44,7 +44,7 @@ namespace trc
     struct MaterialRuntimeInfo
     {
         MaterialRuntimeInfo(
-            const ShaderDescriptorConfig& runtimeConf,
+            const ShaderDescriptorConfig& descriptorConf,
             PipelineVertexParams vert,
             PipelineFragmentParams frag,
             std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages
@@ -53,6 +53,7 @@ namespace trc
         auto getShaderGlslCode(vk::ShaderStageFlagBits stage) const -> const std::string&;
 
         auto makePipeline(AssetManager& assetManager) -> Pipeline::ID;
+        void resolveTextureReferences(AssetManager& assetManager);
 
         auto getPushConstantHandler() const -> const RuntimePushConstantHandler&;
 

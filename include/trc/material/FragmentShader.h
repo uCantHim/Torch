@@ -39,8 +39,8 @@ namespace trc
             eColor,
             eNormal,
             eSpecularFactor,
-            eMetallicness,
             eRoughness,
+            eMetallicness,
             eEmissive,
         };
 
