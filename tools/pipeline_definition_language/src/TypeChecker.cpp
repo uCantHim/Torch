@@ -111,8 +111,11 @@ void TypeChecker::checkFieldDefinition(
     }
 
     // Test if value is of the expected type
-    if (!std::visit(CheckValueType{ config.types.at(expected), *this }, *def.value)) {
-        error(getToken(*def.value), "Encountered value of unexpected type.");
+    if (!std::visit(CheckValueType{ config.types.at(expected), *this }, *def.value))
+    {
+        error(getToken(*def.value),
+              "Expected value of type \"" + getTypeName(config.types.at(expected))
+              + "\" for field \"" + fieldName + "\".");
     }
 }
 
@@ -123,10 +126,10 @@ void TypeChecker::error(const Token& token, std::string message)
 
 
 
-TypeChecker::CheckValueType::CheckValueType(TypeType& expected, TypeChecker& self)
+TypeChecker::CheckValueType::CheckValueType(const TypeType& expected, TypeChecker& self)
     :
     expectedType(&expected),
-    expectedTypeName(std::visit([](auto& a){ return a.typeName; }, expected)),
+    expectedTypeName(getTypeName(expected)),
     self(&self)
 {
 }
@@ -153,7 +156,7 @@ bool TypeChecker::CheckValueType::operator()(const Identifier& id) const
     }
 
     return std::visit(VariantVisitor{
-        [this, &id](const ValueReference& ref)
+        [this](const ValueReference& ref)
         {
             assert(ref.referencedValue != nullptr);
             // Check the referenced value

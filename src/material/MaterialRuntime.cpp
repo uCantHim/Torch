@@ -108,7 +108,10 @@ MaterialRuntimeInfo::MaterialRuntimeInfo(
             assert(varName.has_value());
             doc.set(*varName, runtimeConf.descriptorInfos.at(setName).index);
         }
-        auto [it, success] = shaderStages.try_emplace(stage, doc.compile(true));
+        auto [it, success] = shaderStages.try_emplace(
+            stage,
+            ShaderStageInfo{ .glslCode=doc.compile(true) }
+        );
 
         // Store texture references
         assert(success);
@@ -151,7 +154,7 @@ auto MaterialRuntimeInfo::makeLayout(
         pushConstants.push_back({ range, {} });
     }
 
-    PipelineLayoutTemplate layout(std::move(descriptors), std::move(pushConstants));
+    PipelineLayoutTemplate layout(descriptors, pushConstants);
     return layout;
 }
 
@@ -184,7 +187,8 @@ auto MaterialRuntimeInfo::makePipeline(AssetManager& assetManager) -> Pipeline::
             )
         );
 
-        auto [it, _] = program.stages.try_emplace(stage, spirv);
+        auto [it, _] = program.stages.try_emplace(stage,
+                                                  ProgramDefinitionData::ShaderStage{ spirv });
         auto& specs = it->second.specConstants;
 
         textureHandles.reserve(data.textures.size());

@@ -27,7 +27,7 @@ inline auto Table<Component, Key>::data() const -> const Component*
 template<typename Component, TableKey Key>
 inline bool Table<Component, Key>::has(Key key) const
 {
-    return indices.size() > key && indices.at(static_cast<size_t>(key)) != NONE;
+    return indices.size() > static_cast<size_t>(key) && indices.at(static_cast<size_t>(key)) != NONE;
 }
 
 template<typename Component, TableKey Key>
@@ -98,8 +98,8 @@ template<typename ...Args>
     requires std::constructible_from<Component, Args&&...>
 inline auto Table<Component, Key>::try_emplace(Key key, Args&&... args) -> std::pair<Component&, bool>
 {
-    if (key >= indices.size()) {
-        indices.resize(key + 1, NONE);
+    if (static_cast<size_t>(key) >= indices.size()) {
+        indices.resize(static_cast<size_t>(key) + 1, NONE);
     }
 
     auto& index = _index_at_key(key);

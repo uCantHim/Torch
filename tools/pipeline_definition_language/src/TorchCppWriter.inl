@@ -11,14 +11,14 @@
 
 
 template<typename T>
-constexpr bool hasDynamicallyInitializedValue{ true };
+inline constexpr bool hasDynamicallyInitializedValue{ true };
 
 /**
  * Disable delayed initialization for shaders because ShaderPath does not
  * have a default constructor.
  */
 template<>
-constexpr bool hasDynamicallyInitializedValue<ShaderDesc>{ false };
+inline constexpr bool hasDynamicallyInitializedValue<ShaderDesc>{ false };
 
 
 

@@ -40,7 +40,7 @@ private:
      */
     struct CheckValueType
     {
-        CheckValueType(TypeType& expected, TypeChecker& self);
+        CheckValueType(const TypeType& expected, TypeChecker& self);
 
         bool operator()(const LiteralValue&) const;
         bool operator()(const Identifier&) const;

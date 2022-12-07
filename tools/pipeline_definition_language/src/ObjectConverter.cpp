@@ -91,8 +91,8 @@ auto ObjectConverter::operator()(const Identifier& id) -> std::shared_ptr<Value>
             [&id](const ValueReference&) -> Value {
                 return Reference{ id.name };
             },
-            [this](const TypeName&) -> Value {
-                error("Type name as identifier");
+            [this, &id](const TypeName&) -> Value {
+                error(id.token, "Type name as identifier");
                 return {};
             },
             [](const DataConstructor& ctor) -> Value {
@@ -134,8 +134,9 @@ auto ObjectConverter::operator()(const MatchExpression&) -> std::shared_ptr<Valu
                              " called on it. This should not be possible.");
 }
 
-void ObjectConverter::error(std::string message)
+void ObjectConverter::error(const Token& token, std::string message)
 {
+    errorReporter->error(Error{ token.location, message });
     throw InternalLogicError(std::move(message));
 }
 
@@ -149,7 +150,7 @@ void ObjectConverter::setValue(
     );
 
     if (!success) {
-        error("Duplicate object property \"" + fieldName.name.name + "\".");
+        error(fieldName.name.token, "Duplicate object property \"" + fieldName.name.name + "\".");
     }
 }
 
@@ -163,7 +164,8 @@ void ObjectConverter::setValue(
 
     auto [_1, success] = map.values.try_emplace(mapName.name, value);
     if (!success) {
-        error("Duplicate entry \"" + mapName.name + "\" in field \"" + fieldName.name + "\".");
+        error(mapName.token,
+              "Duplicate entry \"" + mapName.name + "\" in field \"" + fieldName.name + "\".");
     }
 }
 

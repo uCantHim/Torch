@@ -16,17 +16,17 @@ static const TypeName undefinedObjectType{ "<undefined object>" };
 
 struct StringType
 {
-    static inline TypeName typeName{ stringTypeName };
+    const TypeName typeName{ stringTypeName };
 };
 
 struct FloatType
 {
-    static inline TypeName typeName{ floatTypeName };
+    const TypeName typeName{ floatTypeName };
 };
 
 struct IntType
 {
-    static inline TypeName typeName{ intTypeName };
+    const TypeName typeName{ intTypeName };
 };
 
 enum class FieldType

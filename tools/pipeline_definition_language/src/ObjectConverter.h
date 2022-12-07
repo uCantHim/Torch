@@ -32,7 +32,7 @@ namespace compiler
         auto operator()(const MatchExpression& expr) -> std::shared_ptr<Value>;
 
     private:
-        void error(std::string message);
+        void error(const Token& token, std::string message);
 
         void setValue(const TypelessFieldName& fieldName, std::shared_ptr<Value> value);
         void setValue(const TypedFieldName& name, std::shared_ptr<Value> value);
