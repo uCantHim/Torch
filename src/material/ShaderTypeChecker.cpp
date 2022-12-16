@@ -37,8 +37,6 @@ auto ShaderTypeChecker::operator()(const code::UnaryOperator& v)
 auto ShaderTypeChecker::operator()(const code::BinaryOperator& v)
     -> std::optional<BasicType>
 {
-    assert(!(getType(v.lhs) && getType(v.rhs)) || getType(v.lhs)->type == getType(v.rhs)->type);
-
     if (v.opName == "<"
         || v.opName == "<="
         || v.opName == ">"
@@ -49,7 +47,10 @@ auto ShaderTypeChecker::operator()(const code::BinaryOperator& v)
         return bool{};
     }
 
-    return getType(v.lhs);
+    // Just get the right-hand-side operand's type because that's correct in
+    // the case of matrix-vector multiplication:
+    //     mat3(1.0f) * vec3(1, 2, 3) -> vec3
+    return getType(v.rhs);
 }
 
 auto ShaderTypeChecker::operator()(const code::MemberAccess&)
