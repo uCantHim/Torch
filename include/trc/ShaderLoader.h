@@ -32,7 +32,7 @@ namespace trc
 
         static auto makeDefaultOptions() -> shaderc::CompileOptions;
 
-        auto load(ShaderPath shaderPath) -> std::string;
+        auto load(ShaderPath shaderPath) const -> std::string;
 
     private:
         struct ShaderDB
@@ -65,7 +65,7 @@ namespace trc
          */
         auto findShaderSource(const util::Pathlet& pathlet) const -> std::optional<fs::path>;
 
-        auto compile(const fs::path& srcPath, const fs::path& dstPath) -> std::string;
+        auto compile(const fs::path& srcPath, const fs::path& dstPath) const -> std::string;
 
         std::optional<ShaderDB> shaderDatabase;
         std::vector<fs::path> includePaths;

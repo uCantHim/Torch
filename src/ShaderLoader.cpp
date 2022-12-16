@@ -74,7 +74,7 @@ auto ShaderLoader::makeDefaultOptions() -> shaderc::CompileOptions
     return opts;
 }
 
-auto ShaderLoader::load(ShaderPath shaderPath) -> std::string
+auto ShaderLoader::load(ShaderPath shaderPath) const -> std::string
 {
     /**
      * The longest possible dependency chain is:
@@ -175,7 +175,7 @@ auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std:
     return std::nullopt;
 }
 
-auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> std::string
+auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) const -> std::string
 {
     assert(fs::is_regular_file(srcPath));
 
