@@ -1,8 +1,12 @@
 #pragma once
 
-#include "trc/VulkanInclude.h"
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
 
-#include "trc/base/VulkanDebug.h"
+#include "trc/VulkanInclude.h"
+#include "VulkanDebug.h"
 
 namespace trc
 {

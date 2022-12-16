@@ -6,6 +6,7 @@
 #include "trc/TextPipelines.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
+#include "trc/base/Logging.h"
 #include "trc/ui/torch/GuiIntegration.h"
 #ifdef TRC_USE_IMGUI
 #include "trc/experimental/ImguiIntegration.h"
@@ -31,9 +32,7 @@ void trc::init(const TorchInitInfo& info)
         glfwGetError(&errorMsg);
         throw std::runtime_error("Initialization of GLFW failed: " + std::string(errorMsg));
     }
-    if constexpr (enableVerboseLogging) {
-        std::cout << "GLFW initialized successfully\n";
-    }
+    log::info << "GLFW initialized successfully\n";
 
     // Init pipelines
     pipelines::initDrawablePipelines({ DrawablePushConstants{} });

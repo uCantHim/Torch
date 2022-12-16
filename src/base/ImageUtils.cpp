@@ -5,6 +5,8 @@
 #include <CImg.h>
 namespace cimg = cimg_library;
 
+#include "trc/base/Logging.h"
+
 
 
 auto trc::makeSinglePixelImageData(glm::vec4 color) -> RawImageData

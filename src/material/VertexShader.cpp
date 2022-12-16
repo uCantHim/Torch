@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "trc/AnimationEngine.h"
+#include "trc/base/Logging.h"
 #include "trc/material/FragmentShader.h"
 
 
@@ -161,12 +162,9 @@ auto VertexModule::build(const ShaderModule& fragment) -> ShaderModule
         }
         catch (const std::out_of_range&)
         {
-            if constexpr (enableVerboseLogging)
-            {
-                std::cout << "Warning: [In VertexShaderBuilder::buildVertexShader]: Fragment"
-                          << " capability \"" << out.capability.getString()
-                          << "\" is not implemented.\n";
-            }
+            log::warn << "Warning: [In VertexShaderBuilder::buildVertexShader]: Fragment"
+                      << " capability \"" << out.capability.getString()
+                      << "\" is not implemented.\n";
         }
     }
 

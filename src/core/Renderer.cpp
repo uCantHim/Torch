@@ -4,6 +4,7 @@
 #include <trc_util/Timer.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
+#include "trc/base/Logging.h"
 #include "trc/core/Window.h"
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/RenderConfiguration.h"
@@ -205,7 +206,7 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     }
     auto result = device->waitForFences(fences, true, timeoutNs);
     if (result == vk::Result::eTimeout) {
-        std::cout << "Timeout in Renderer::waitForAllFrames!\n";
+        log::error << "Timeout in Renderer::waitForAllFrames!\n";
     }
 
     device->waitIdle();

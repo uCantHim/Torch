@@ -1,10 +1,10 @@
 #pragma once
 
 #include <array>
+#include <string>
 #include <vector>
 
 #include "trc/VulkanInclude.h"
-#include "trc/base/VulkanDebug.h"
 
 namespace trc
 {

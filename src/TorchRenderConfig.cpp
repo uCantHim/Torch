@@ -5,6 +5,7 @@
 #include "trc/GBufferPass.h"
 #include "trc/Scene.h"
 #include "trc/TorchRenderStages.h"
+#include "trc/base/Logging.h"
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/Window.h"
 #include "trc/text/Font.h"
@@ -270,11 +271,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     }
     gBufferPass.reset();
     gBuffer.reset();
-    if constexpr (enableVerboseLogging)
-    {
-        const float time = timer.reset();
-        std::cout << "GBuffer resources destroyed (" << time << " ms)\n";
-    }
+    log::info << "GBuffer resources destroyed (" << timer.reset() << " ms)\n";
 
     // Create new g-buffer
     gBuffer = std::make_unique<FrameSpecific<GBuffer>>(
@@ -286,20 +283,11 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
             );
         }
     );
-    if constexpr (enableVerboseLogging)
-    {
-        const float time = timer.reset();
-        std::cout << "GBuffer recreated (" << time << " ms)\n";
-    }
+    log::info << "GBuffer recreated (" << timer.reset() << " ms)\n";
 
     // Update g-buffer descriptor
     gBufferDescriptor.update(window.getDevice(), *gBuffer);
-
-    if constexpr (enableVerboseLogging)
-    {
-        const float time = timer.reset();
-        std::cout << "GBuffer descriptor updated (" << time << " ms)\n";
-    }
+    log::info << "GBuffer descriptor updated (" << timer.reset() << " ms)\n";
 
     // Create new renderpasses
     gBufferPass = std::make_unique<GBufferPass>(window.getDevice(), *gBuffer);
@@ -334,9 +322,5 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
         layout.addPass(rayTracingRenderStage, *rayTracingPass);
     }
 
-    if constexpr (enableVerboseLogging)
-    {
-        const float time = timer.reset();
-        std::cout << "Deferred renderpass recreated (" << time << " ms)\n";
-    }
+    log::info << "Deferred renderpass recreated (" << timer.reset() << " ms)\n";
 }

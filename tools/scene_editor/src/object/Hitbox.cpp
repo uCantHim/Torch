@@ -1,10 +1,10 @@
 #include "Hitbox.h"
 
-#include <iostream>
+#include <limits>
 
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
-#include <trc/base/VulkanDebug.h>
+#include <trc/base/Logging.h>
 
 
 
@@ -29,10 +29,10 @@ auto makeHitbox(const trc::GeometryData& geo) -> Hitbox
     const float xzRadius = distance(xz(lowerPoint), xz(maxAbsCoords));
     Capsule capsule(height, xzRadius, lowerPoint);
 
-    if constexpr (trc::enableVerboseLogging)
+    // Logging
     {
         vec3 m = sphere.position;
-        std::cout << "Generated hitbox for geometry with "
+        trc::log::info << "Generated hitbox for geometry with "
             << "sphere [m = (" << m.x << ", " << m.y << ", " << m.z << "), r = " << sphere.radius
             << "] and capsule [r = " << capsule.radius << ", h = " << capsule.height << "]"
             << "\n";

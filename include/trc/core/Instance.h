@@ -3,10 +3,9 @@
 #include <string>
 #include <vector>
 
-#include "trc/base/VulkanInstance.h"
-
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
+#include "trc/base/VulkanInstance.h"
 #include "trc/core/TypeErasedStructureChain.h"
 
 namespace trc

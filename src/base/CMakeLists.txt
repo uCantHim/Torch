@@ -10,6 +10,7 @@ target_sources(
         FrameClock.cpp
         Image.cpp
         ImageUtils.cpp
+        Logging.cpp
         Memory.cpp
         MemoryPool.cpp
         PhysicalDevice.cpp

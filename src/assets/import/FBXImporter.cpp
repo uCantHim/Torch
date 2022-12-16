@@ -3,10 +3,9 @@
 #include "trc/assets/import/FBXImporter.h"
 
 #include <chrono>
-#include <iostream>
 using namespace std::chrono;
 
-#include "trc/base/VulkanDebug.h"
+#include "trc/base/Logging.h"
 
 
 
@@ -16,9 +15,7 @@ public:
     template<typename T>
     inline auto operator<<(T&& t) -> FbxLogger&
     {
-        if constexpr (trc::enableVerboseLogging) {
-            std::cout << t;
-        }
+        trc::log::info << std::forward<T>(t);
         return *this;
     }
 };

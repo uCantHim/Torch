@@ -5,22 +5,17 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+#include "Logging.h"
 #include "trc/VulkanInclude.h"
 
 namespace trc
 {
 
 #ifdef TRC_DEBUG
-constexpr auto VKB_DEBUG = true;
+constexpr auto TRC_DEBUG_BUILD = true;
 #else
-constexpr auto VKB_DEBUG = false;
+constexpr auto TRC_DEBUG_BUILD = false;
 #endif
-
-/**
- * Various vulkan-related methods print a lot of information
- * if this is enabled.
- */
-constexpr bool enableVerboseLogging = VKB_DEBUG;
 
 auto getRequiredValidationLayers() -> std::vector<const char*>;
 

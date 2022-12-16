@@ -1,8 +1,10 @@
 #include "trc/base/MemoryPool.h"
 
-#include <iostream>
+#include <stdexcept>
 
 #include <glm/glm.hpp>
+
+#include "trc/base/Logging.h"
 
 
 
@@ -70,10 +72,8 @@ void trc::ManagedMemoryChunk::releaseMemory(
         nextMemoryOffset -= memorySize;
     }
 
-    if constexpr (enableVerboseLogging) {
-        std::cout << "(ManagedMemoryChunk): Free " << memorySize << " bytes at offset "
-            << memoryOffset << "\n";
-    }
+    log::info << "(ManagedMemoryChunk): Free " << memorySize << " bytes at offset "
+              << memoryOffset << "\n";
 }
 
 
@@ -88,17 +88,13 @@ trc::MemoryPool::MemoryPool(
     memoryAllocateFlags(memoryAllocateFlags),
     chunksPerMemoryType(device.getPhysicalDevice().memoryProperties.memoryTypeCount)
 {
-    if constexpr (trc::enableVerboseLogging) {
-        std::cout << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.\n";
-    }
+    log::info << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.\n";
 }
 
 auto trc::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
     -> DeviceMemory
 {
-    if constexpr (enableVerboseLogging) {
-        std::cout << "(MemoryPool): Request " << requirements.size << " bytes of memory\n";
-    }
+    log::info << "(MemoryPool): Request " << requirements.size << " bytes of memory\n";
 
     uint32_t typeIndex = device->getPhysicalDevice().findMemoryType(
         requirements.memoryTypeBits,
@@ -115,10 +111,8 @@ auto trc::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             // Create a new memory chunk for the required memory type index.
             const size_t newChunkSize = glm::max(chunkSize, requirements.size);
 
-            if constexpr (enableVerboseLogging) {
-                std::cout << "(MemoryPool): Allocate a new chunk of " << newChunkSize << " bytes"
-                    << " and memory type " << typeIndex << "\n";
-            }
+            log::info << "(MemoryPool): Allocate a new chunk of " << newChunkSize << " bytes"
+                      << " and memory type " << typeIndex << "\n";
 
             return chunks.emplace_back(
                 memoryAllocateFlags
@@ -129,10 +123,8 @@ auto trc::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
 
         if (chunks[i]->getRemainingSize() >= requirements.size)
         {
-            if constexpr (enableVerboseLogging) {
-                std::cout << "(MemoryPool): Allocate " << requirements.size << " from chunk "
-                    << i << " (" << chunks[i]->getRemainingSize() << " bytes remaining)\n";
-            }
+            log::info << "(MemoryPool): Allocate " << requirements.size << " from chunk "
+                      << i << " (" << chunks[i]->getRemainingSize() << " bytes remaining)\n";
             return chunks.at(i)->allocateMemory(requirements);
         }
 

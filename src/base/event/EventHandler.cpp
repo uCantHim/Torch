@@ -1,9 +1,6 @@
 #include "trc/base/event/EventHandler.h"
 
-#include <iostream>
-#include <thread>
-
-#include "trc/base/VulkanDebug.h"
+#include "trc/base/Logging.h"
 
 
 
@@ -19,9 +16,7 @@ void trc::EventThread::start()
         }
     });
 
-    if constexpr (enableVerboseLogging) {
-        std::cout << "--- Event thread started\n";
-    }
+    log::info << "--- Event thread started\n";
 }
 
 void trc::EventThread::terminate()

@@ -1,7 +1,9 @@
 #include "trc/base/PhysicalDevice.h"
 
-#include <iostream>
 #include <set>
+
+#include "trc/base/Logging.h"
+#include "trc/base/VulkanDebug.h"  // for list of required validation layers
 
 
 
@@ -94,29 +96,26 @@ trc::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
     typeString(vk::to_string(properties.deviceType))
 {
     // Logging
-    if constexpr (enableVerboseLogging)
-    {
-        std::cout << "\nFound device \"" << name << "\" (" << typeString << "):\n";
+    log::info << "\nFound device \"" << name << "\" (" << typeString << "):\n";
 
-        // Print queue family info
-        std::cout << queueFamilies.size() << " queue families:\n";
-        for (const auto& fam : queueFamilies)
-        {
-            std::cout << " - Queue family #" << fam.index << "\n";
-            std::cout << "\t" << fam.queueCount << " queues\n";
-            if (fam.isCapable(QueueType::graphics))
-                std::cout << "\tgraphics capable\n";
-            if (fam.isCapable(QueueType::compute))
-                std::cout << "\tcompute capable\n";
-            if (fam.isCapable(QueueType::transfer))
-                std::cout << "\ttransfer capable\n";
-            if (fam.isCapable(QueueType::sparseMemory))
-                std::cout << "\tsparse memory capable\n";
-            if (fam.isCapable(QueueType::protectedMemory))
-                std::cout << "\tprotected memory capable\n";
-            if (fam.isCapable(QueueType::presentation))
-                std::cout << "\tpresentation capable\n";
-        }
+    // Print queue family info
+    log::info << queueFamilies.size() << " queue families:\n";
+    for (const auto& fam : queueFamilies)
+    {
+        log::info << " - Queue family #" << fam.index << "\n";
+        log::info << "\t" << fam.queueCount << " queues\n";
+        if (fam.isCapable(QueueType::graphics))
+            log::info << "\tgraphics capable\n";
+        if (fam.isCapable(QueueType::compute))
+            log::info << "\tcompute capable\n";
+        if (fam.isCapable(QueueType::transfer))
+            log::info << "\ttransfer capable\n";
+        if (fam.isCapable(QueueType::sparseMemory))
+            log::info << "\tsparse memory capable\n";
+        if (fam.isCapable(QueueType::protectedMemory))
+            log::info << "\tprotected memory capable\n";
+        if (fam.isCapable(QueueType::presentation))
+            log::info << "\tpresentation capable\n";
     }
 }
 
@@ -191,21 +190,21 @@ auto trc::PhysicalDevice::createLogicalDevice(
 
     auto result = physicalDevice.createDeviceUnique(chain.get<vk::DeviceCreateInfo>());
 
-    if constexpr (enableVerboseLogging)
+    // Logging
     {
-        std::cout << "\nLogical device created from physical device \"" << name << "\"\n";
+        log::info << "\nLogical device created from physical device \"" << name << "\"\n";
 
-        std::cout << "   Enabled device extensions:\n";
+        log::info << "   Enabled device extensions:\n";
         for (const auto& name : deviceExtensions) {
-            std::cout << "    - " << name << "\n";
+            log::info << "    - " << name << "\n";
         }
 
-        std::cout << "   Enabled device features:\n";
+        log::info << "   Enabled device features:\n";
         constexpr auto pNextOffset = offsetof(vk::PhysicalDeviceFeatures2, pNext);
         uint8_t* feature = reinterpret_cast<uint8_t*>(&deviceFeatures.get<vk::PhysicalDeviceFeatures2>());
         while (feature != nullptr)
         {
-            std::cout << "    - " << vk::to_string(*(vk::StructureType*)feature) << "\n";
+            log::info << "    - " << vk::to_string(*(vk::StructureType*)feature) << "\n";
             feature = (uint8_t*) *(uint64_t*)(feature + pNextOffset);
         }
     }
@@ -292,17 +291,15 @@ auto trc::findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surfac
     // The decision algorithm is not complex at all right now, but could be improved easily.
     for (const auto& device : detectedDevices)
     {
-        if (device_helpers::isOptimalDevice(device)) {
-            if constexpr (enableVerboseLogging) {
-                std::cout << "Found optimal physical device: \"" << device.name << "\"!\n";
-            }
+        if (device_helpers::isOptimalDevice(device))
+        {
+            log::info << "Found optimal physical device: \"" << device.name << "\"!\n";
             return device;
         }
-        if constexpr (enableVerboseLogging) {
-            std::cout << device.name << " is a suboptimal physical device.\n";
-        }
+        log::info << device.name << " is a suboptimal physical device.\n";
     }
 
+    log::error << "Fatal error: Unable to find a physical device that meets the criteria!\n";
     throw std::runtime_error("Unable to find a physical device that meets the criteria.");
 }
 

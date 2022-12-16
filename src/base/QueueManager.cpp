@@ -1,9 +1,8 @@
 #include "trc/base/QueueManager.h"
 
-#include <iostream>
-
-#include "trc/base/VulkanDebug.h"
 #include "trc/base/Device.h"
+#include "trc/base/Logging.h"
+#include "trc/base/VulkanDebug.h"
 
 
 
@@ -107,19 +106,19 @@ trc::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
         }
     }
 
-    if constexpr (enableVerboseLogging)
+    // Logging
     {
-        std::cout << "\nQueue manager created for logical device.\n";
+        log::info << "\nQueue manager created for logical device.\n";
         for (int i = 0; i < static_cast<int>(QueueType::numQueueTypes); i++)
         {
             if (primaryQueueFamilies[i] != UINT32_MAX)
             {
-                std::cout << "   Chose queue family " << primaryQueueFamilies[i]
+                log::info << "   Chose queue family " << primaryQueueFamilies[i]
                     << " as the primary " << std::to_string(QueueType(i)) << " queue family.\n";
             }
             else
             {
-                std::cout << "   No queue family found with " << std::to_string(QueueType(i))
+                log::warn << "   No queue family found with " << std::to_string(QueueType(i))
                     << " support.\n";
             }
         }

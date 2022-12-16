@@ -1,8 +1,8 @@
 #include "trc/base/VulkanInstance.h"
 
-#include <iostream>
-
 #include <GLFW/glfw3.h>
+
+#include "trc/base/VulkanDebug.h"
 
 
 
@@ -12,7 +12,7 @@ std::vector<const char*> getRequiredInstanceExtensions()
     auto requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
     std::vector<const char*> extensions(requiredExtensions, requiredExtensions + requiredExtensionCount);
 
-    if constexpr (trc::VKB_DEBUG) {
+    if constexpr (trc::TRC_DEBUG_BUILD) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
@@ -64,19 +64,14 @@ trc::VulkanInstance::VulkanInstance(
 
     instance = vk::createInstanceUnique(chain.get());
 
-    if constexpr (enableVerboseLogging)
-    {
-        std::cout << "Vulkan instance created successfully.\n";
-
-        std::cout << "   Enabled validation layers:\n";
-        for (const auto& name : layers) {
-            std::cout << "    - " << name << "\n";
-        }
-
-        std::cout << "   Enabled instance extensions:\n";
-        for (const auto& name : extensions) {
-            std::cout << "    - " << name << "\n";
-        }
+    log::info << "Vulkan instance created successfully.\n";
+    log::info << "   Enabled validation layers:\n";
+    for (const auto& name : layers) {
+        log::info << "    - " << name << "\n";
+    }
+    log::info << "   Enabled instance extensions:\n";
+    for (const auto& name : extensions) {
+        log::info << "    - " << name << "\n";
     }
 
     debug = std::make_unique<VulkanDebug>(*instance);

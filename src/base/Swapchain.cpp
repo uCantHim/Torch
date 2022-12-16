@@ -5,9 +5,10 @@
 using namespace std::chrono;
 
 #include "trc/base/Device.h"
-#include "trc/base/VulkanInstance.h"
+#include "trc/base/Logging.h"
 #include "trc/base/PhysicalDevice.h"
 #include "trc/base/VulkanDebug.h"
+#include "trc/base/VulkanInstance.h"
 #include "trc/base/event/EventHandler.h"
 #include "trc/base/event/InputEvents.h"
 #include "trc/base/event/WindowEvents.h"
@@ -144,34 +145,26 @@ auto findOptimalImageExtent(
 auto findOptimalSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats)
     -> vk::SurfaceFormatKHR
 {
-    if constexpr (trc::enableVerboseLogging)
+    trc::log::info << "   Possible surface formats: ";
+    for (const auto& format : formats)
     {
-        std::cout << "   Possible surface formats: ";
-        for (const auto& format : formats)
-        {
-            std::cout << "(" << vk::to_string(format.format) << " - "
-                << vk::to_string(format.colorSpace) << "), ";
-        }
-        std::cout << "\b\b \n";
+        trc::log::info << "(" << vk::to_string(format.format) << " - "
+            << vk::to_string(format.colorSpace) << "), ";
     }
+    trc::log::info << "\b\b \n";
 
     for (const auto& format : formats)
     {
         if (format.format == vk::Format::eR8G8B8A8Unorm
             && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
         {
-            if constexpr (trc::enableVerboseLogging)
-            {
-                std::cout << "   Found optimal surface format \"" << vk::to_string(format.format)
-                    << "\" in the color space \"" << vk::to_string(format.colorSpace) << "\"\n";
-            }
+            trc::log::info << "   Found optimal surface format \"" << vk::to_string(format.format)
+                << "\" in the color space \"" << vk::to_string(format.colorSpace) << "\"\n";
             return format;
         }
     }
 
-    if constexpr (trc::enableVerboseLogging) {
-        std::cout << "   Picked suboptimal surface format.\n";
-    }
+    trc::log::info << "   Picked suboptimal surface format.\n";
     return formats[0];
 }
 
@@ -179,23 +172,18 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
                                    vk::PresentModeKHR preferredMode = vk::PresentModeKHR::eMailbox)
     -> vk::PresentModeKHR
 {
-    if constexpr (trc::enableVerboseLogging)
-    {
-        std::cout << "   Possible present modes: ";
-        for (const auto& mode : presentModes) {
-            std::cout << vk::to_string(mode) << ", ";
-        }
-        std::cout << "\b\b \n";
+    trc::log::info << "   Possible present modes: ";
+    for (const auto& mode : presentModes) {
+        trc::log::info << vk::to_string(mode) << ", ";
     }
+    trc::log::info << "\b\b \n";
 
     bool immediateSupported{ false };
     for (const auto& mode : presentModes)
     {
         if (mode == preferredMode)
         {
-            if constexpr (trc::enableVerboseLogging) {
-                std::cout << "   Using preferred present mode: " << vk::to_string(mode) << "\n";
-            }
+            trc::log::info << "   Using preferred present mode: " << vk::to_string(mode) << "\n";
             return mode;
         }
 
@@ -204,10 +192,7 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
         }
     }
 
-    if constexpr (trc::enableVerboseLogging) {
-        std::cout << "   Preferred present mode is not supported\n";
-    }
-
+    trc::log::info << "   Preferred present mode is not supported!\n";
     if (immediateSupported) {
         return vk::PresentModeKHR::eImmediate;
     }
@@ -277,8 +262,8 @@ auto trc::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> uint32
     if (result.result == vk::Result::eErrorOutOfDateKHR)
     {
         // Recreate swapchain?
-        std::cout << "--- Image acquisition threw error! Investigate this since I have not"
-            << " decied what to do here! (in Swapchain::acquireImage())\n";
+        log::error << "--- Image acquisition threw error! Investigate this since I have not"
+                   << " decided what to do here! (in Swapchain::acquireImage())\n";
     }
     return result.value;
 }
@@ -292,15 +277,13 @@ bool trc::Swapchain::presentImage(
 
     try {
         auto result = queue.presentKHR(presentInfo);
-        if (result == vk::Result::eSuboptimalKHR && enableVerboseLogging) {
-            std::cout << "--- Swapchain has become suboptimal. Do nothing.\n";
+        if (result == vk::Result::eSuboptimalKHR) {
+            log::info << "--- Swapchain has become suboptimal. Do nothing.\n";
         }
     }
     catch (const vk::OutOfDateKHRError&)
     {
-        if constexpr (enableVerboseLogging) {
-            std::cout << "\n--- Swapchain has become invalid, create a new one.\n";
-        }
+        log::info << "\n--- Swapchain has become invalid, create a new one.\n";
         createSwapchain(createInfo);
         return false;
     }
@@ -633,10 +616,7 @@ void trc::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 {
     std::scoped_lock lock(swapchainRecreateLock);
-
-    if constexpr (enableVerboseLogging) {
-        std::cout << "\nStarting swapchain creation\n";
-    }
+    log::info << "\nStarting swapchain creation\n";
 
     // Signal start of recreation
     // This allows objects depending on the swapchain to prepare the
@@ -712,21 +692,21 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
         imageViews.emplace_back(createImageView(i));
     }
 
-    if constexpr (enableVerboseLogging)
+    // Logging
     {
         auto duration = duration_cast<milliseconds>(system_clock::now() - timerStart).count();
 
-        std::cout << "Swapchain created (" << duration << " ms):\n";
+        log::info << "Swapchain created (" << duration << " ms):\n";
 
-        std::cout << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")\n";
-        std::cout << "   Images: " << numFrames << "\n";
-        std::cout << "   Format: " << vk::to_string(optimalFormat.format)
+        log::info << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")\n";
+        log::info << "   Images: " << numFrames << "\n";
+        log::info << "   Format: " << vk::to_string(optimalFormat.format)
             << ", Color Space: " << vk::to_string(optimalFormat.colorSpace) << "\n";
-        std::cout << "   Image usage: " << vk::to_string(createInfo.imageUsage) << "\n";
-        std::cout << "   Image sharing mode: " << vk::to_string(imageSharingMode) << "\n";
-        std::cout << "   Present mode: " << vk::to_string(optimalPresentMode) << "\n";
+        log::info << "   Image usage: " << vk::to_string(createInfo.imageUsage) << "\n";
+        log::info << "   Image sharing mode: " << vk::to_string(imageSharingMode) << "\n";
+        log::info << "   Present mode: " << vk::to_string(optimalPresentMode) << "\n";
 
-        std::cout << "\nRecreating swapchain-dependent resources...\n";
+        log::info << "\nRecreating swapchain-dependent resources...\n";
     }
 
     // Signal that recreation is finished.
@@ -734,9 +714,7 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // resources.
     EventHandler<SwapchainRecreateEvent>::notifySync({ {this} });
 
-    if constexpr (enableVerboseLogging) {
-        std::cout << "Swapchain-dependent resource creation completed.\n";
-    }
+    log::info << "Swapchain-dependent resource creation completed.\n";
 }
 
 auto trc::Swapchain::createImageView(uint32_t imageIndex) const -> vk::UniqueImageView

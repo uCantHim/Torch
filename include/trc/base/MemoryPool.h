@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "trc/base/Memory.h"

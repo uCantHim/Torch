@@ -1,6 +1,7 @@
 #include "trc/core/Instance.h"
 
 #include "trc/base/Device.h"
+#include "trc/base/Logging.h"
 #include "trc/base/VulkanInstance.h"
 #include "trc/core/Window.h"
 
@@ -138,10 +139,10 @@ auto trc::Instance::makeDevice(
     auto as = features.get<vk::PhysicalDeviceAccelerationStructureFeaturesKHR>();
     auto ray = features.get<vk::PhysicalDeviceRayTracingPipelineFeaturesKHR>();
 
-    if constexpr (enableVerboseLogging)
+    // Logging
     {
-        std::cout << "\nQuerying ray tracing support:\n";
-        std::cout << std::boolalpha
+        log::info << "\nQuerying ray tracing support:\n";
+        log::info << std::boolalpha
             << "   Acceleration structure: " << (bool)as.accelerationStructure << "\n"
             << "   Acceleration structure host commands: "
                 << (bool)as.accelerationStructureHostCommands << "\n"

@@ -5,6 +5,7 @@
 
 #include "trc/assets/import/PNGConvert.h"
 #include "trc/assets/AssetSource.h"
+#include "trc/base/Logging.h"
 
 
 
@@ -256,7 +257,7 @@ auto serializeAssetData(const RigData& data)  -> serial::Rig
             assignRef(out.add_animations(), ref);
         }
         else {
-            std::cout << "Warning: During rig asset serialization: RigData contains reference to"
+            log::warn << "Warning: During rig asset serialization: RigData contains reference to"
                 " an asset without an asset path - the reference will not be included in the"
                 " serialized output!\n";
         }

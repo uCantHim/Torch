@@ -1,13 +1,13 @@
 #include "trc/ui/torch/DrawImplementations.h"
 
+#include "trc/GuiShaders.h"
+#include "trc/PipelineDefinitions.h"
 #include "trc/base/Buffer.h"
-
+#include "trc/base/Logging.h"
 #include "trc/core/PipelineBuilder.h"
 #include "trc/core/PipelineLayoutBuilder.h"
 #include "trc/ui/Window.h"
 #include "trc/ui/torch/GuiRenderer.h"
-#include "trc/PipelineDefinitions.h"
-#include "trc/GuiShaders.h"
 
 
 
@@ -439,7 +439,7 @@ void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyp
 {
     auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
     if (!success) {
-        std::cout << "Unable to add font of index " << fontIndex << "\n";
+        log::warn << "Unable to add font of index " << fontIndex << "\n";
         return;
     }
 

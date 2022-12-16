@@ -3,13 +3,13 @@
 #include <cstring>
 
 #include <fstream>
-#include <iostream>
 
 #include <nlohmann/json.hpp>
 #include <spirv/FileIncluder.h>
 #include <shader_tools/ShaderDocument.h>
 
 #include "trc/Types.h"
+#include "trc/base/Logging.h"
 #include "trc/base/ShaderProgram.h"
 #include "trc/util/TorchDirectories.h"
 
@@ -138,9 +138,8 @@ auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std:
             auto dstFile = find(filePath);
             if (rawSourcePath && (!dstFile || binaryDirty(*rawSourcePath, *dstFile)))
             {
-                if constexpr (enableVerboseLogging) {
-                    std::cout << "Regenerate shader source " << filePath.string() << " from " << *rawSourcePath << "\n";
-                }
+                log::info << "Regenerate shader source " << filePath.string()
+                          << " from " << *rawSourcePath << "\n";
 
                 std::ifstream rawSource(*rawSourcePath);
                 shader_edit::ShaderDocument doc(rawSource);
@@ -180,9 +179,7 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) -> 
 {
     assert(fs::is_regular_file(srcPath));
 
-    if constexpr (enableVerboseLogging) {
-        std::cout << "Compiling shader " << srcPath << " to " << dstPath << "\n";
-    }
+    log::info << "Compiling shader " << srcPath << " to " << dstPath << "\n";
 
     auto result = spirv::generateSpirv(readFile(srcPath), srcPath, compileOpts);
     if (result.GetCompilationStatus()

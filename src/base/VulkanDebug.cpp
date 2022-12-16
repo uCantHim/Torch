@@ -1,13 +1,12 @@
 #include "trc/base/VulkanDebug.h"
 
 #include <optional>
-#include <iostream>
 
 
 
 auto trc::getRequiredValidationLayers() -> std::vector<const char*>
 {
-    if constexpr (!VKB_DEBUG) {
+    if constexpr (!TRC_DEBUG_BUILD) {
         return {};
     }
 
@@ -50,7 +49,7 @@ trc::VulkanDebug::VulkanDebug(vk::Instance instance)
     instance(instance),
     dispatcher(instance, vkGetInstanceProcAddr)
 {
-    if constexpr (!VKB_DEBUG) {
+    if constexpr (!TRC_DEBUG_BUILD) {
         return;
     }
 
@@ -98,9 +97,9 @@ void trc::VulkanDebug::vulkanDebugCallback(
     switch (messageSeverity)
     {
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-        std::cerr << "A Vulkan " << vk::to_string(messageType) << " error occured."
+        log::error << "A Vulkan " << vk::to_string(messageType) << " error occured."
             << " Check the error log for additional details.\n";
-        std::cerr << callbackData.pMessage << "\n";
+        log::error << callbackData.pMessage << "\n";
 
         ss << "A Vulkan " + vk::to_string(messageType) + " error occured:\n";
         ss << callbackData.pMessage << "\n";
@@ -118,7 +117,7 @@ void trc::VulkanDebug::vulkanDebugCallback(
         break;
 
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-        std::cout << "A warning occured: " << callbackData.pMessage << "\n";
+        log::warn << "A warning occured: " << callbackData.pMessage << "\n";
         vkWarningLog << "A " + vk::to_string(messageType) + " warning occured:\n";
         vkWarningLog << callbackData.pMessage << "\n";
         break;

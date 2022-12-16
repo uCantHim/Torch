@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -8,6 +9,8 @@
 
 namespace trc
 {
+    namespace fs = std::filesystem;
+
     struct RawImageData
     {
         glm::uvec2 size;
