@@ -76,7 +76,7 @@ private:
     ////////////////////////////////////
 
     auto collectDynamicInitCreateInfoMembers(const CompileResult& result)
-        -> std::set<std::pair<std::string, std::string>>;
+        -> std::vector<std::pair<std::string, std::string>>;
     auto makeDynamicInitCreateInfoName() const -> std::string;
     void writeDynamicInitCreateInfoStruct(const CompileResult& result, std::ostream& os);
     void writeDynamicInitFunctionHead(std::ostream& os);

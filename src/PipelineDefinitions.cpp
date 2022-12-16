@@ -8,7 +8,7 @@
 
 
 
-auto trc::internal::loadShader(const ShaderPath& path) -> std::string
+auto trc::internal::getShaderLoader() -> const ShaderLoader&
 {
     static ShaderLoader loader(
         {
@@ -20,5 +20,10 @@ auto trc::internal::loadShader(const ShaderPath& path) -> std::string
         fs::path{ TRC_SHADER_DB }
     );
 
-    return loader.load(path);
+    return loader;
+}
+
+auto trc::internal::loadShader(const ShaderPath& path) -> std::string
+{
+    return getShaderLoader().load(path);
 }

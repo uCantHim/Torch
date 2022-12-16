@@ -181,6 +181,7 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
        << "#include <trc/core/PipelineTemplate.h>\n"
        << "#include <trc/core/PipelineLayoutTemplate.h>\n"
        << "#include <trc/core/PipelineRegistry.h>\n"
+       << "#include <trc/ShaderLoader.h>\n"
        << "#include <trc/ShaderPath.h>\n"
        << "\n"
        << "#include \"trc/FlagCombination.h\"\n"
@@ -216,18 +217,28 @@ namespace std
 }
 
 auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& result)
-    -> std::set<std::pair<std::string, std::string>>
+    -> std::vector<std::pair<std::string, std::string>>
 {
-    std::set<std::pair<std::string, std::string>> members;
+    // Need the members to be sorted, that's why I have a vector *and* a set.
+    std::set<std::pair<std::string, std::string>> uniques;
+    std::vector<std::pair<std::string, std::string>> members;
+
+    // A ShaderLoader is always a member of the create info struct
+    members.emplace_back("trc::ShaderLoader&", "shaderLoader");
 
     /** Collect all push constant default values from a layout description */
-    auto collectPushConstants = [&members](auto&& layout){
+    auto collectPushConstants = [&members, &uniques](auto&& layout){
         for (const auto& [stage, pcs] : layout.pushConstantsPerStage)
         {
             for (const auto& pc : pcs)
             {
-                if (pc.defaultValueName.has_value()) {
-                    members.emplace("trc::PushConstantDefaultValue", pc.defaultValueName.value());
+                if (pc.defaultValueName.has_value())
+                {
+                    auto pair = std::make_pair("trc::PushConstantDefaultValue",
+                                               pc.defaultValueName.value());
+                    if (uniques.emplace(pair).second) {
+                        members.emplace_back(pair);
+                    }
                 }
             }
         }
@@ -263,31 +274,10 @@ void TorchCppWriter::writeDynamicInitCreateInfoStruct(
     os << "struct " << makeDynamicInitCreateInfoName()
        << nl << "{";
 
-    // Write constructor head
-    os << ++nl << makeDynamicInitCreateInfoName() << "(";
-    if (!members.empty())
-    {
-        ++nl;
-        for (const auto& [type, member] : members) {
-            os << nl << "const " << type << "& _" << member << ",";
-        }
-        os.seekp(-1, std::ios::end);
-        os << ")" << nl << ":";
-
-        // Write constructor initialization
-        for (const auto& [_, member] : members) {
-            os << nl << member << "(_" << member << "),";
-        }
-        os.seekp(-1, std::ios::end);
-        os << --nl << "{}" << nl;
-    }
-    else {
-        os << ") = default;";
-    }
-
     // Write member definitions
+    ++nl;
     for (const auto& [type, member] : members) {
-        os << nl << type << " " << member << ";";
+        os << nl << "const " << type << " " << member << ";";
     }
     os << --nl << "};";
 }

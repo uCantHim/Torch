@@ -2,6 +2,7 @@
 
 #include "trc/DrawablePipelines.h"
 #include "trc/ParticlePipelines.h"
+#include "trc/PipelineDefinitions.h"
 #include "trc/RasterPipelines.h"
 #include "trc/TextPipelines.h"
 #include "trc/TorchRenderStages.h"
@@ -35,10 +36,13 @@ void trc::init(const TorchInitInfo& info)
     log::info << "GLFW initialized successfully\n";
 
     // Init pipelines
-    pipelines::initDrawablePipelines({ DrawablePushConstants{} });
-    pipelines::initRasterPipelines({});
-    pipelines::text::initTextPipelines({});
-    pipelines::particle::initParticlePipelines({});
+    pipelines::initDrawablePipelines({
+        .shaderLoader=internal::getShaderLoader(),
+        .drawablePushConstantDefaultValue=DrawablePushConstants{}
+    });
+    pipelines::initRasterPipelines({ internal::getShaderLoader() });
+    pipelines::text::initTextPipelines({ internal::getShaderLoader() });
+    pipelines::particle::initParticlePipelines({ internal::getShaderLoader() });
 }
 
 void trc::pollEvents()

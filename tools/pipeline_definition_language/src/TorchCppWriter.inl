@@ -233,7 +233,7 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
 {
     std::stringstream ss;
     auto writeStage = [this, &ss](const char* stage, const ObjectReference<ShaderDesc>& ref) {
-        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { trc::internal::loadShader(";
+        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { info.shaderLoader.load(";
         std::visit(VariantVisitor{
             [&](const UniqueName& name) {
                 ss << makeReferenceCall(name);
