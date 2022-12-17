@@ -65,14 +65,26 @@ auto FontRegistry::FontData::getGlyph(CharCode charCode) -> GlyphDrawData
     if (it == glyphs.end())
     {
         GlyphMeta newGlyph = face.loadGlyph(charCode);
-
         auto tex = glyphMap->addGlyph(newGlyph);
+
+        /**
+         * Torch flips the y-axis with the projection matrix. The glyph data,
+         * however, is calculated with the text origin in the upper-left corner.
+         */
+#ifdef TRC_FLIP_Y_PROJECTION
+        std::swap(tex.lowerLeft.y, tex.upperRight.y);
+        newGlyph.metaNormalized.bearingY = newGlyph.metaNormalized.size.y
+                                           - newGlyph.metaNormalized.bearingY;
+#endif
+
         it = glyphs.try_emplace(
             charCode,
             GlyphDrawData{
-                tex.lowerLeft, tex.upperRight,
-                newGlyph.metaNormalized.size,
-                newGlyph.metaNormalized.bearingY, newGlyph.metaNormalized.advance
+                .texCoordLL = tex.lowerLeft,
+                .texCoordUR = tex.upperRight,
+                .size       = newGlyph.metaNormalized.size,
+                .bearingY   = newGlyph.metaNormalized.bearingY,
+                .advance    = newGlyph.metaNormalized.advance
             }
         ).first;
     }

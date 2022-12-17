@@ -96,20 +96,6 @@ void trc::Text::print(const std::string& str)
 
         auto g = font.getGlyph(c);
 
-        /**
-         * These calculations are a little bit weird because Torch flips
-         * the y-axis with the projection matrix. The glyph data, however,
-         * is calculated with the text origin in the upper-left corner.
-         */
-#ifdef TRC_FLIP_Y_PROJECTION
-        buf[i++] = LetterData{
-            .texCoordLL=vec2(g.texCoordLL.x, g.texCoordUR.y),
-            .texCoordUR=vec2(g.texCoordUR.x, g.texCoordLL.y),
-            .glyphOffset=penPosition,
-            .glyphSize=g.size,
-            .bearingY=g.size.y - g.bearingY
-        };
-#else
         buf[i++] = LetterData{
             .texCoordLL=g.texCoordLL,
             .texCoordUR=g.texCoordUR,
@@ -117,8 +103,6 @@ void trc::Text::print(const std::string& str)
             .glyphSize=g.size,
             .bearingY=g.bearingY
         };
-#endif
-
         penPosition.x += g.advance;
     });
     glyphBuffer.unmap();
