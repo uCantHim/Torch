@@ -7,6 +7,8 @@
 #include <ranges>
 #include <vector>
 
+#include "trc_util/algorithm/IteratorRange.h"
+
 namespace trc::data
 {
     template<typename T>
@@ -21,29 +23,6 @@ namespace trc::data
 
         using iterator        = typename std::vector<T>::iterator;
         using const_iterator  = typename std::vector<T>::const_iterator;
-
-        struct GuardedRange
-        {
-        public:
-            auto begin() -> iterator {
-                return first;
-            }
-
-            auto end() -> iterator {
-                return last;
-            }
-
-        private:
-            friend class DeferredInsertVector<T>;
-
-            GuardedRange(iterator first, iterator last, std::unique_lock<std::mutex> lock)
-                : first(std::move(first)), last(std::move(last)),lock(std::move(lock))
-            {}
-
-            iterator first;
-            iterator last;
-            std::unique_lock<std::mutex> lock;
-        };
 
         /**
          * @brief Apply all pending modifications
@@ -84,7 +63,7 @@ namespace trc::data
          * @return GuardedRange A range. Holds a lock on the container's
          *                      storage for the range object's lifetime.
          */
-        auto iter() -> GuardedRange;
+        auto iter() -> algorithm::GuardedRange<iterator, std::mutex>;
 
     private:
         std::mutex modificationsLock;
