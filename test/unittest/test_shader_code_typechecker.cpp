@@ -145,16 +145,53 @@ TEST_F(TestShaderCodeTypechecker, UnaryOperatorTypeIsOperandType)
     }
 }
 
-TEST_F(TestShaderCodeTypechecker, BinaryOperatorTypeIsSecondOperandType)
+TEST_F(TestShaderCodeTypechecker, BinaryOperatorSimpleTypes)
 {
-    const auto lhs = builder.makeConstant(glm::dvec3{});
-    for (const auto& type : kAllBasicTypes)
+    // Create cross product of types
+    std::vector<std::array<BasicType, 3>> config;
+    for (const auto& lhs : kAllBasicTypes)
     {
-        auto rhs = builder.makeConstant(Constant(type, {{ std::byte(0) }}));
-        ASSERT_EQ(type, check(code::BinaryOperator{ "+", lhs, rhs }));
+        for (const auto& rhs : kAllBasicTypes)
+        {
+            config.push_back({ lhs, rhs, rhs });
+            // Result type is lhs if (rhs < lhs)
+            if (lhs.channels <= 4 && rhs.channels <= 4 && lhs.channels >= rhs.channels) {
+                config.back()[2] = lhs;
+            }
+        }
+    }
 
-        auto func = builder.makeFunction(type.to_string(), FunctionType{ {}, type });
-        auto call = builder.makeCall(func, {});
-        ASSERT_EQ(type, check(code::BinaryOperator{ ",", lhs, call }));
+    for (const auto& [lhs, rhs, resultType] : config)
+    {
+        auto lhsVal = builder.makeConstant(Constant(lhs, {{ std::byte(0) }}));
+        auto rhsVal = builder.makeConstant(Constant(rhs, {{ std::byte(0) }}));
+        ASSERT_EQ(resultType, check(code::BinaryOperator{ "+", lhsVal, rhsVal }));
+    }
+}
+
+TEST_F(TestShaderCodeTypechecker, BinaryOperatorBooleanOperators)
+{
+    // Create cross product of types
+    std::vector<std::array<BasicType, 3>> config;
+    for (const auto& lhs : kAllBasicTypes)
+    {
+        for (const auto& rhs : kAllBasicTypes)
+        {
+            config.push_back({ lhs, rhs, rhs });
+            // Larger type is result type
+            if (lhs.locations() == 1 && lhs.channels > rhs.channels) {
+                config.back()[2] = lhs;
+            }
+        }
+    }
+
+    for (auto opName : { "<", ">", "<=", ">=", "==", "!=" })
+    {
+        for (const auto& [lhs, rhs, resultType] : config)
+        {
+            auto lhsVal = builder.makeConstant(Constant(lhs, {{ std::byte(0) }}));
+            auto rhsVal = builder.makeConstant(Constant(rhs, {{ std::byte(0) }}));
+            ASSERT_EQ(bool{}, check(code::BinaryOperator{ opName, lhsVal, rhsVal }));
+        }
     }
 }

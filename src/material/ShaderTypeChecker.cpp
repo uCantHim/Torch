@@ -47,6 +47,24 @@ auto ShaderTypeChecker::operator()(const code::BinaryOperator& v)
         return bool{};
     }
 
+    const auto r = getType(v.rhs);
+    const auto l = getType(v.lhs);
+
+    // No type checking can be performed if either of the operands has an
+    // undefined type
+    if (!l || !r) {
+        return std::nullopt;
+    }
+
+    // If none of the types is a matrix, return the bigger of the two types
+    if (l->channels <= 4 && r->channels <= 4)
+    {
+        if (l->channels < r->channels) {
+            return r;
+        }
+        return l;
+    }
+
     // Just get the right-hand-side operand's type because that's correct in
     // the case of matrix-vector multiplication:
     //     mat3(1.0f) * vec3(1, 2, 3) -> vec3
