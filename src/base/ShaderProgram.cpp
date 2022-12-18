@@ -90,19 +90,6 @@ auto trc::ShaderProgram::getStageCreateInfo() const &
 
 
 
-auto trc::readFile(const fs::path& path) -> std::string
-{
-    std::ifstream file(path, std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("[In readFile]: Unable to open file " + path.string());
-    }
-
-    std::stringstream buf;
-    buf << file.rdbuf();
-
-    return buf.str();
-}
-
 auto trc::makeShaderModule(const trc::Device& device, const std::string& code)
     -> vk::UniqueShaderModule
 {

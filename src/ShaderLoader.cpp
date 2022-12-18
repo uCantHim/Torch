@@ -5,8 +5,9 @@
 #include <fstream>
 
 #include <nlohmann/json.hpp>
-#include <spirv/FileIncluder.h>
 #include <shader_tools/ShaderDocument.h>
+#include <spirv/FileIncluder.h>
+#include <trc_util/Util.h>
 
 #include "trc/Types.h"
 #include "trc/base/Logging.h"
@@ -98,7 +99,7 @@ auto ShaderLoader::load(ShaderPath shaderPath) const -> std::string
             return compile(srcPath, binPath);
         }
 
-        return readFile(binPath);
+        return util::readFile(binPath);
     }
 
     throw std::out_of_range("[In ShaderLoader::load]: Shader source "
@@ -181,7 +182,7 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) con
 
     log::info << "Compiling shader " << srcPath << " to " << dstPath << "\n";
 
-    auto result = spirv::generateSpirv(readFile(srcPath), srcPath, compileOpts);
+    auto result = spirv::generateSpirv(util::readFile(srcPath), srcPath, compileOpts);
     if (result.GetCompilationStatus()
         != shaderc_compilation_status::shaderc_compilation_status_success)
     {

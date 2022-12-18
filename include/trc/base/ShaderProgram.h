@@ -45,11 +45,6 @@ namespace trc
     };
 
     /**
-     * @brief Read the contents of a file to a string
-     */
-    auto readFile(const fs::path& path) -> std::string;
-
-    /**
      * @brief Create a shader module from shader code
      */
     auto makeShaderModule(const trc::Device& device, const std::string& code)

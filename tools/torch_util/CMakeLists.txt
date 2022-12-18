@@ -5,6 +5,7 @@ add_library(torch_util STATIC
     src/InterProcessLock.cpp
     src/StringManip.cpp
     src/Timer.cpp
+    src/Util.cpp
     src/async/ThreadPool.cpp
     src/data/ObjectId.cpp
 )
