@@ -3,12 +3,14 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 #include <spirv/CompileSpirv.h>
 
 #include "trc/ShaderPath.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -32,7 +34,7 @@ namespace trc
 
         static auto makeDefaultOptions() -> shaderc::CompileOptions;
 
-        auto load(ShaderPath shaderPath) const -> std::string;
+        auto load(ShaderPath shaderPath) const -> std::vector<ui32>;
 
     private:
         struct ShaderDB
@@ -65,7 +67,7 @@ namespace trc
          */
         auto findShaderSource(const util::Pathlet& pathlet) const -> std::optional<fs::path>;
 
-        auto compile(const fs::path& srcPath, const fs::path& dstPath) const -> std::string;
+        auto compile(const fs::path& srcPath, const fs::path& dstPath) const -> std::vector<ui32>;
 
         std::optional<ShaderDB> shaderDatabase;
         std::vector<fs::path> includePaths;

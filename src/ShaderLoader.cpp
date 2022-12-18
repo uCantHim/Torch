@@ -14,12 +14,12 @@
 #include "trc/base/ShaderProgram.h"
 #include "trc/util/TorchDirectories.h"
 
-namespace nl = nlohmann;
-
 
 
 namespace trc
 {
+
+namespace nl = nlohmann;
 
 ShaderLoader::ShaderLoader(
     std::vector<fs::path> _includePaths,
@@ -75,7 +75,7 @@ auto ShaderLoader::makeDefaultOptions() -> shaderc::CompileOptions
     return opts;
 }
 
-auto ShaderLoader::load(ShaderPath shaderPath) const -> std::string
+auto ShaderLoader::load(ShaderPath shaderPath) const -> std::vector<ui32>
 {
     /**
      * The longest possible dependency chain is:
@@ -99,7 +99,7 @@ auto ShaderLoader::load(ShaderPath shaderPath) const -> std::string
             return compile(srcPath, binPath);
         }
 
-        return util::readFile(binPath);
+        return readSpirvFile(binPath);
     }
 
     throw std::out_of_range("[In ShaderLoader::load]: Shader source "
@@ -176,7 +176,8 @@ auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std:
     return std::nullopt;
 }
 
-auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) const -> std::string
+auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) const
+    -> std::vector<ui32>
 {
     assert(fs::is_regular_file(srcPath));
 
@@ -191,16 +192,11 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) con
                                  + result.GetErrorMessage());
     }
 
-    std::string code(
-        reinterpret_cast<const char*>(result.begin()),
-        static_cast<std::streamsize>(
-            (result.end() - result.begin()) * sizeof(decltype(result)::element_type)
-        )
-    );
+    std::vector<ui32> code{ result.cbegin(), result.cend() };
 
     fs::create_directories(dstPath.parent_path());
     std::ofstream file(dstPath, std::ios::binary);
-    file << code;
+    file.write(reinterpret_cast<char*>(code.data()), code.size() * sizeof(ui32));
 
     return code;
 }

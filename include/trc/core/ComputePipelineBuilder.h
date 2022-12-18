@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+
+#include "trc/Types.h"
 #include "trc/core/PipelineLayout.h"
 #include "trc/core/PipelineRegistry.h"
 
@@ -12,7 +15,7 @@ namespace trc
     {
     public:
         using Self = ComputePipelineBuilder;
-        using ShaderCode = std::string;
+        using ShaderCode = std::vector<ui32>;
 
         ComputePipelineBuilder() = default;
         explicit ComputePipelineBuilder(const ComputePipelineTemplate& _template);

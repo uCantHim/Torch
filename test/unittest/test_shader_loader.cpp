@@ -8,17 +8,10 @@ namespace fs = std::filesystem;
 
 #include <spirv/CompileSpirv.h>
 #include <trc/ShaderLoader.h>
+#include <trc/base/ShaderProgram.h>
+#include <trc_util/Util.h>
 
 const fs::path datadir = DATADIR / fs::path{ "test_shader_loader" };
-
-auto read(const fs::path& path) -> std::string
-{
-    std::ifstream file(path);
-    std::stringstream result;
-    result << file.rdbuf();
-
-    return result.str();
-}
 
 TEST(TestShaderLoader, AutomaticRecompilation)
 {
@@ -35,11 +28,15 @@ TEST(TestShaderLoader, AutomaticRecompilation)
     ASSERT_TRUE(fs::last_write_time(shaderBinaryFile) > fs::last_write_time(datadir / "test.vert"));
 
     shaderc::CompileOptions opts = trc::ShaderLoader::makeDefaultOptions();
-    auto truthRes = spirv::generateSpirv(read(datadir / "test.vert"), datadir / "test.vert", opts);
-    std::string truth((char*)truthRes.begin(), (truthRes.end() - truthRes.begin()) * sizeof(uint32_t));
+    auto truthRes = spirv::generateSpirv(
+        trc::util::readFile(datadir / "test.vert"),
+        datadir / "test.vert",
+        opts
+    );
+    const std::vector<uint32_t> truth(truthRes.begin(), truthRes.end());
 
     ASSERT_EQ(code, truth);
-    ASSERT_EQ(read(shaderBinaryFile), truth);
+    ASSERT_EQ(trc::readSpirvFile(shaderBinaryFile), truth);
 
     // Compiled shader is cached and not compiled a second time
     const auto cacheTime = std::chrono::file_clock::now();

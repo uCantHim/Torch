@@ -75,7 +75,7 @@ namespace trc
      */
     auto makeComputePipeline(const Device& device,
                              PipelineLayout& layout,
-                             const std::string& code,
+                             const std::vector<ui32>& code,
                              vk::PipelineCreateFlags flags = {},
                              const std::string& entryPoint = "main") -> Pipeline;
 } // namespace trc

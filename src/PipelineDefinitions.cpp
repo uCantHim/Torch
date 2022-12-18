@@ -23,7 +23,7 @@ auto trc::internal::getShaderLoader() -> const ShaderLoader&
     return loader;
 }
 
-auto trc::internal::loadShader(const ShaderPath& path) -> std::string
+auto trc::internal::loadShader(const ShaderPath& path) -> std::vector<ui32>
 {
     return getShaderLoader().load(path);
 }

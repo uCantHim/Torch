@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <vector>
 
 #include "trc/base/ShaderProgram.h"
@@ -15,7 +16,7 @@ namespace trc
     {
     public:
         using Self = GraphicsPipelineBuilder;
-        using ShaderCode = std::string;
+        using ShaderCode = std::vector<ui32>;
 
         GraphicsPipelineBuilder() = default;
         explicit GraphicsPipelineBuilder(const PipelineTemplate& _template);

@@ -1,17 +1,27 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "trc/base/Device.h"
 
 namespace trc
 {
+    namespace fs = std::filesystem;
+
+    /**
+     * @brief Read a file into a std::vector<uint32_t>
+     *
+     * @throw std::runtime_error if the file cannot be opened or the file's
+     *        size is not a multiple of four.
+     */
+    auto readSpirvFile(const fs::path& path) -> std::vector<uint32_t>;
+
     /**
      * @brief Create a shader module from shader code
      */
-    auto makeShaderModule(const trc::Device& device, const std::string& code)
+    auto makeShaderModule(const trc::Device& device, const std::vector<uint32_t>& code)
         -> vk::UniqueShaderModule;
 
     class ShaderProgram
@@ -19,9 +29,9 @@ namespace trc
     public:
         explicit ShaderProgram(const trc::Device& device);
 
-        void addStage(vk::ShaderStageFlagBits type, const std::string& shaderCode);
+        void addStage(vk::ShaderStageFlagBits type, std::vector<uint32_t> shaderCode);
         void addStage(vk::ShaderStageFlagBits type,
-                      const std::string& shaderCode,
+                      std::vector<uint32_t> shaderCode,
                       vk::SpecializationInfo specializationInfo);
 
         void setSpecialization(vk::ShaderStageFlagBits stage, vk::SpecializationInfo info);
@@ -40,6 +50,8 @@ namespace trc
 
     private:
         const Device& device;
+
+        std::vector<std::vector<uint32_t>> shaderCodes;
 
         std::vector<vk::UniqueShaderModule> modules;
         std::vector<std::unique_ptr<vk::SpecializationInfo>> specInfos;

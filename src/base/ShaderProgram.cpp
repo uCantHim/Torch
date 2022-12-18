@@ -5,17 +5,33 @@
 
 
 
-auto trc::makeShaderModule(const trc::Device& device, const std::string& code)
+auto trc::readSpirvFile(const fs::path& path) -> std::vector<uint32_t>
+{
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        throw std::runtime_error("[In readSpirvFile]: Unable to open file " + path.string());
+    }
+
+    const auto fileSize = file.tellg();
+    if (fileSize % sizeof(uint32_t) != 0)
+    {
+        throw std::runtime_error("[In readSpirvFile]: File size is not a multiple of 4: file is"
+                                 " not a valid SPIRV file!");
+    }
+
+    std::vector<uint32_t> result(fileSize / sizeof(uint32_t));
+    file.seekg(0);
+    file.read(reinterpret_cast<char*>(result.data()), fileSize);
+
+    return result;
+}
+
+auto trc::makeShaderModule(const trc::Device& device, const std::vector<uint32_t>& code)
     -> vk::UniqueShaderModule
 {
     assert(!code.empty());
 
-    vk::ShaderModuleCreateInfo info(
-        vk::ShaderModuleCreateFlags(),
-        code.size(),
-        reinterpret_cast<const uint32_t*>(code.data())
-    );
-
+    vk::ShaderModuleCreateInfo info({}, code.size() * sizeof(uint32_t), code.data());
     return device->createShaderModuleUnique(info);
 }
 
@@ -27,15 +43,16 @@ trc::ShaderProgram::ShaderProgram(const trc::Device& device)
 {
 }
 
-void trc::ShaderProgram::addStage(vk::ShaderStageFlagBits type, const std::string& shaderCode)
+void trc::ShaderProgram::addStage(vk::ShaderStageFlagBits type, std::vector<uint32_t> shaderCode)
 {
-    auto& mod = modules.emplace_back(makeShaderModule(device, shaderCode));
+    const auto& code = shaderCodes.emplace_back(std::move(shaderCode));
+    const auto& mod = modules.emplace_back(makeShaderModule(device, code));
     createInfos.emplace_back(vk::PipelineShaderStageCreateInfo({}, type, *mod, "main", nullptr));
 }
 
 void trc::ShaderProgram::addStage(
     vk::ShaderStageFlagBits type,
-    const std::string& shaderCode,
+    std::vector<uint32_t> shaderCode,
     vk::SpecializationInfo specializationInfo)
 {
     addStage(type, shaderCode);

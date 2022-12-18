@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <filesystem>
+#include <vector>
 
 #include "trc/ShaderPath.h"
+#include "trc/Types.h"
 
 namespace trc
 {
@@ -13,5 +13,5 @@ namespace trc
 namespace trc::internal
 {
     auto getShaderLoader() -> const ShaderLoader&;
-    auto loadShader(const ShaderPath& path) -> std::string;
+    auto loadShader(const ShaderPath& path) -> std::vector<ui32>;
 } // namespace trc::internal

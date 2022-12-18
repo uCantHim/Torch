@@ -61,18 +61,18 @@ auto trc::PipelineTemplate::getPipelineData() const -> const PipelineDefinitionD
 
 
 
-trc::ComputePipelineTemplate::ComputePipelineTemplate(std::string shaderCode)
+trc::ComputePipelineTemplate::ComputePipelineTemplate(std::vector<ui32> shaderCode)
     :
     shaderCode(std::move(shaderCode))
 {
 }
 
-void trc::ComputePipelineTemplate::setProgramCode(std::string code)
+void trc::ComputePipelineTemplate::setProgramCode(std::vector<ui32> code)
 {
     shaderCode = std::move(code);
 }
 
-auto trc::ComputePipelineTemplate::getShaderCode() const -> const std::string&
+auto trc::ComputePipelineTemplate::getShaderCode() const -> const std::vector<ui32>&
 {
     return shaderCode;
 }

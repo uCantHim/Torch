@@ -72,7 +72,7 @@ auto trc::Pipeline::getLayout() const noexcept -> const PipelineLayout&
 auto trc::makeComputePipeline(
     const Device& device,
     PipelineLayout& layout,
-    const std::string& code,
+    const std::vector<ui32>& code,
     vk::PipelineCreateFlags flags,
     const std::string& entryPoint) -> Pipeline
 {

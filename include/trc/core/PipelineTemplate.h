@@ -46,7 +46,7 @@ namespace trc
     {
         struct ShaderStage
         {
-            std::string code;
+            std::vector<ui32> code;
             SpecializationConstantStorage specConstants{};
         };
 
@@ -100,9 +100,9 @@ namespace trc
     {
     public:
         ComputePipelineTemplate() = default;
-        explicit ComputePipelineTemplate(std::string shaderCode);
+        explicit ComputePipelineTemplate(std::vector<ui32> shaderCode);
 
-        void setProgramCode(std::string code);
+        void setProgramCode(std::vector<ui32> code);
 
         template<typename T>
         inline void setSpecializationConstant(ui32 constantId, T&& data)
@@ -110,12 +110,12 @@ namespace trc
             specConstants.set(constantId, std::forward<T>(data));
         }
 
-        auto getShaderCode() const -> const std::string&;
+        auto getShaderCode() const -> const std::vector<ui32>&;
         auto getSpecializationConstants() const -> const SpecializationConstantStorage&;
         auto getEntryPoint() const -> const std::string&;
 
     private:
-        std::string shaderCode;
+        std::vector<ui32> shaderCode;
         SpecializationConstantStorage specConstants;
         std::string entryPoint{ "main" };
     };

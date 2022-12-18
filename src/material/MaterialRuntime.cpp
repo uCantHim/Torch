@@ -180,15 +180,10 @@ auto MaterialRuntimeInfo::makePipeline(AssetManager& assetManager) -> Pipeline::
                                      " source " + ext + " to SPIRV: "
                                      + result.GetErrorMessage());
         }
-        std::string spirv(
-            reinterpret_cast<const char*>(result.begin()),
-            static_cast<std::streamsize>(
-                (result.end() - result.begin()) * sizeof(decltype(result)::element_type)
-            )
-        );
 
-        auto [it, _] = program.stages.try_emplace(stage,
-                                                  ProgramDefinitionData::ShaderStage{ spirv });
+        ProgramDefinitionData::ShaderStage stageInfo{ .code{ result.begin(), result.end() } };
+        auto [it, _] = program.stages.try_emplace(stage, std::move(stageInfo));
+
         auto& specs = it->second.specConstants;
 
         // Set the program's specialization constants
