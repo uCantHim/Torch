@@ -5,25 +5,18 @@
 
 
 
-trc::ShaderProgram::ShaderStageInfo::ShaderStageInfo(
-    vk::ShaderStageFlagBits type,
-    const std::string& code)
-    :
-    type(type),
-    shaderCode(code),
-    specializationInfo(std::nullopt)
+auto trc::makeShaderModule(const trc::Device& device, const std::string& code)
+    -> vk::UniqueShaderModule
 {
-}
+    assert(!code.empty());
 
-trc::ShaderProgram::ShaderStageInfo::ShaderStageInfo(
-    vk::ShaderStageFlagBits type,
-    const std::string& code,
-    vk::SpecializationInfo spec)
-    :
-    type(type),
-    shaderCode(code),
-    specializationInfo(spec)
-{
+    vk::ShaderModuleCreateInfo info(
+        vk::ShaderModuleCreateFlags(),
+        code.size(),
+        reinterpret_cast<const uint32_t*>(code.data())
+    );
+
+    return device->createShaderModuleUnique(info);
 }
 
 
@@ -34,37 +27,24 @@ trc::ShaderProgram::ShaderProgram(const trc::Device& device)
 {
 }
 
-trc::ShaderProgram::ShaderProgram(
-    const trc::Device& device,
-    const vk::ArrayProxy<const ShaderStageInfo>& stages)
-    :
-    device(device)
+void trc::ShaderProgram::addStage(vk::ShaderStageFlagBits type, const std::string& shaderCode)
 {
-    for (const auto& stage : stages)
-    {
-        addStage(stage);
-    }
+    auto& mod = modules.emplace_back(makeShaderModule(device, shaderCode));
+    createInfos.emplace_back(vk::PipelineShaderStageCreateInfo({}, type, *mod, "main", nullptr));
 }
 
-void trc::ShaderProgram::addStage(const ShaderStageInfo& stage)
+void trc::ShaderProgram::addStage(
+    vk::ShaderStageFlagBits type,
+    const std::string& shaderCode,
+    vk::SpecializationInfo specializationInfo)
 {
-    auto& mod = modules.emplace_back(makeShaderModule(device, stage.shaderCode));
+    addStage(type, shaderCode);
 
-    vk::SpecializationInfo* specInfo{ nullptr };
-    if (stage.specializationInfo.has_value())
-    {
-        specInfo = specInfos.emplace_back(
-            new vk::SpecializationInfo(stage.specializationInfo.value())
-        ).get();
-    }
-
-    createInfos.emplace_back(vk::PipelineShaderStageCreateInfo(
-        {},
-        stage.type,
-        *mod,
-        "main",
-        specInfo
-    ));
+    // Set the specialization info on the newly created stage
+    vk::SpecializationInfo* specInfo = specInfos.emplace_back(
+        new vk::SpecializationInfo(specializationInfo)
+    ).get();
+    createInfos.back().setPSpecializationInfo(specInfo);
 }
 
 void trc::ShaderProgram::setSpecialization(
@@ -86,26 +66,4 @@ auto trc::ShaderProgram::getStageCreateInfo() const &
     -> const std::vector<vk::PipelineShaderStageCreateInfo>&
 {
     return createInfos;
-}
-
-
-
-auto trc::makeShaderModule(const trc::Device& device, const std::string& code)
-    -> vk::UniqueShaderModule
-{
-    return makeShaderModule(*device, code);
-}
-
-auto trc::makeShaderModule(vk::Device device, const std::string& code)
-    -> vk::UniqueShaderModule
-{
-    assert(!code.empty());
-
-    vk::ShaderModuleCreateInfo info(
-        vk::ShaderModuleCreateFlags(),
-        code.size(),
-        reinterpret_cast<const uint32_t*>(code.data())
-    );
-
-    return device.createShaderModuleUnique(info);
 }

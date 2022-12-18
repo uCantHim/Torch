@@ -1,39 +1,41 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <optional>
-#include <filesystem>
 
 #include "trc/base/Device.h"
 
 namespace trc
 {
-    namespace fs = std::filesystem;
+    /**
+     * @brief Create a shader module from shader code
+     */
+    auto makeShaderModule(const trc::Device& device, const std::string& code)
+        -> vk::UniqueShaderModule;
 
     class ShaderProgram
     {
     public:
-        struct ShaderStageInfo
-        {
-            ShaderStageInfo(vk::ShaderStageFlagBits type, const std::string& code);
-            ShaderStageInfo(vk::ShaderStageFlagBits type,
-                            const std::string& code,
-                            vk::SpecializationInfo spec);
+        explicit ShaderProgram(const trc::Device& device);
 
-            vk::ShaderStageFlagBits type;
-            const std::string& shaderCode;
-            std::optional<vk::SpecializationInfo> specializationInfo{ std::nullopt };
-        };
+        void addStage(vk::ShaderStageFlagBits type, const std::string& shaderCode);
+        void addStage(vk::ShaderStageFlagBits type,
+                      const std::string& shaderCode,
+                      vk::SpecializationInfo specializationInfo);
 
-        explicit
-        ShaderProgram(const trc::Device& device);
-        ShaderProgram(const trc::Device& device,
-                      const vk::ArrayProxy<const ShaderStageInfo>& stages);
-
-        void addStage(const ShaderStageInfo& stage);
         void setSpecialization(vk::ShaderStageFlagBits stage, vk::SpecializationInfo info);
 
+        /**
+         * @brief Retrieve program information for pipeline creation
+         *
+         * As programs are never really explicitly created 'objects' in
+         * Vulkan, this returns the collection of shader modules that has
+         * been created by previous calls to `ShaderProgram::addStage`.
+         *
+         * The user must ensure that the returned reference (or a copy of
+         * its value) never outlives the `ShaderProgram` object.
+         */
         auto getStageCreateInfo() const & -> const std::vector<vk::PipelineShaderStageCreateInfo>&;
 
     private:
@@ -43,16 +45,4 @@ namespace trc
         std::vector<std::unique_ptr<vk::SpecializationInfo>> specInfos;
         std::vector<vk::PipelineShaderStageCreateInfo> createInfos;
     };
-
-    /**
-     * @brief Create a shader module from shader code
-     */
-    auto makeShaderModule(const trc::Device& device, const std::string& code)
-        -> vk::UniqueShaderModule;
-
-    /**
-     * @brief Create a shader module from shader code
-     */
-    auto makeShaderModule(vk::Device device, const std::string& code)
-        -> vk::UniqueShaderModule;
 } // namespace trc

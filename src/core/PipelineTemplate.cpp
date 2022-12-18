@@ -1,7 +1,6 @@
 #include "trc/core/PipelineTemplate.h"
 
 #include "trc/base/ShaderProgram.h"
-
 #include "trc/core/Instance.h"
 
 
@@ -31,10 +30,10 @@ auto trc::ProgramDefinitionData::makeProgram(const Device& device) const
     for (const auto& [type, stage] : stages)
     {
         if (stage.specConstants.empty()) {
-            program.addStage({ type, stage.code });
+            program.addStage(type, stage.code);
         }
         else {
-            program.addStage({ type, stage.code, stage.specConstants.makeSpecializationInfo() });
+            program.addStage(type, stage.code, stage.specConstants.makeSpecializationInfo());
         }
     }
 
