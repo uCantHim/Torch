@@ -1,7 +1,6 @@
 #include "trc/assets/import/InternalFormat.h"
 
-#include <fstream>
-#include <stdexcept>
+#include <string>
 
 #include "trc/assets/import/PNGConvert.h"
 #include "trc/assets/AssetSource.h"
@@ -191,7 +190,7 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
     return data;
 }
 
-auto serializeAssetData(const MaterialData& data) -> trc::serial::Material
+auto serializeAssetData(const SimpleMaterialData& data) -> trc::serial::Material
 {
     trc::serial::Material mat;
 
@@ -216,9 +215,9 @@ auto serializeAssetData(const MaterialData& data) -> trc::serial::Material
     return mat;
 }
 
-auto deserializeAssetData(const trc::serial::Material& mat) -> MaterialData
+auto deserializeAssetData(const trc::serial::Material& mat) -> SimpleMaterialData
 {
-    MaterialData data{
+    SimpleMaterialData data{
         .color = convert(mat.color()),
         .specularCoefficient = mat.specular_koefficient(),
         .roughness = mat.roughness(),

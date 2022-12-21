@@ -1,5 +1,6 @@
 #include "trc/material/MaterialStorage.h"
 
+#include "trc/drawable/DefaultDrawable.h"
 #include "trc/material/VertexShader.h"
 
 
@@ -7,10 +8,32 @@
 namespace trc
 {
 
-auto MaterialStorage::registerMaterial(MaterialInfo info) -> MatID
+auto makeMaterialProgramSpecialization(
+    ShaderModule fragmentModule,
+    const MaterialSpecializationInfo& specialization)
+    -> std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>
+{
+    VertexModule vertexShader(specialization.animated);
+    ShaderModule vertexModule = vertexShader.build(fragmentModule);
+
+    return {
+        { vk::ShaderStageFlagBits::eVertex,   std::move(vertexModule) },
+        { vk::ShaderStageFlagBits::eFragment, std::move(fragmentModule) },
+    };
+}
+
+
+
+MaterialStorage::MaterialStorage(const ShaderDescriptorConfig& descriptorConfig)
+    :
+    descriptorConfig(descriptorConfig)
+{
+}
+
+auto MaterialStorage::registerMaterial(MaterialBaseInfo info) -> MatID
 {
     MatID id = materialFactories.size();
-    materialFactories.emplace_back(std::move(info));
+    materialFactories.emplace_back(this, std::move(info));
     return id;
 }
 
@@ -20,56 +43,67 @@ void MaterialStorage::removeMaterial(MatID id)
     materialFactories.at(id).clear();
 }
 
-auto MaterialStorage::getFragmentParams(MatID id) const -> const PipelineFragmentParams&
+auto MaterialStorage::getBaseMaterial(MatID id) const -> const MaterialBaseInfo&
 {
-    return materialFactories.at(id).getInfo().fragmentInfo;
+    if (materialFactories.size() <= id) {
+        throw std::out_of_range("[In MaterialStorage::getBaseMaterial]: No material exists at the"
+                                " given ID " + std::to_string(id));
+    }
+
+    return materialFactories.at(id).getBase();
 }
 
-auto MaterialStorage::getRuntime(MatID id, PipelineVertexParams params) -> MaterialRuntimeInfo&
+auto MaterialStorage::specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime&
 {
-    assert(id < materialFactories.size());
+    if (materialFactories.size() <= id) {
+        throw std::out_of_range("[In MaterialStorage::specialize]: No material exists at the"
+                                " given ID " + std::to_string(id));
+    }
+
     return materialFactories.at(id).getOrMake({ .vertexParams=params });
 }
 
 
 
-MaterialStorage::MaterialFactory::MaterialFactory(MaterialInfo info)
+MaterialStorage::MaterialSpecializer::MaterialSpecializer(
+    const MaterialStorage* storage,
+    MaterialBaseInfo info)
     :
-    materialCreateInfo(info)
+    storage(storage),
+    baseMaterial(info)
 {
 }
 
-auto MaterialStorage::MaterialFactory::getInfo() const -> const MaterialInfo&
+auto MaterialStorage::MaterialSpecializer::getBase() const -> const MaterialBaseInfo&
 {
-    return materialCreateInfo;
+    return baseMaterial;
 }
 
-auto MaterialStorage::MaterialFactory::getOrMake(MaterialKey specialization) -> MaterialRuntimeInfo&
+auto MaterialStorage::MaterialSpecializer::getOrMake(MaterialKey specialization) -> MaterialRuntime&
 {
-    auto [it, success] = runtimes.try_emplace(specialization, nullptr);
+    auto [it, success] = specializations.try_emplace(specialization, nullptr);
     if (success)
     {
-        VertexModule vertModuleBuilder(specialization.vertexParams.animated);
-        auto vertModule = vertModuleBuilder.build(materialCreateInfo.fragmentModule);
-        auto fragModule = materialCreateInfo.fragmentModule;
+        auto stages = makeMaterialProgramSpecialization(baseMaterial.fragmentModule,
+                                                        specialization.vertexParams);
 
-        it->second.reset(new MaterialRuntimeInfo(
-            materialCreateInfo.descriptorConfig,
-            specialization.vertexParams,
-            materialCreateInfo.fragmentInfo,
-            {
-                { vk::ShaderStageFlagBits::eVertex, std::move(vertModule) },
-                { vk::ShaderStageFlagBits::eFragment, std::move(fragModule) },
-            }
-        ));
+        Pipeline::ID basePipeline = determineDrawablePipeline(DrawablePipelineInfo{
+            .animated=specialization.vertexParams.animated,
+            .transparent=baseMaterial.transparent,
+        });
+        it->second = std::make_unique<MaterialRuntime>(
+            MaterialShaderProgram(std::move(stages), storage->descriptorConfig)
+            .makeRuntime(basePipeline)
+        );
     }
 
+    assert(it->second != nullptr);
     return *it->second;
 }
 
-void MaterialStorage::MaterialFactory::clear()
+void MaterialStorage::MaterialSpecializer::clear()
 {
-    runtimes.clear();
+    specializations.clear();
 }
 
 }

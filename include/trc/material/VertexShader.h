@@ -1,6 +1,5 @@
 #pragma once
 
-#include "MaterialRuntime.h"
 #include "ShaderCapabilities.h"
 #include "ShaderModuleBuilder.h"
 #include "ShaderModuleCompiler.h"

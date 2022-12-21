@@ -100,7 +100,7 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
                                       vk::CommandBuffer cmdBuf)
     {
         auto layout = *env.currentPipeline->getLayout();
-        auto& material = data.mat.getRuntime({ animated }).getPushConstantHandler();
+        auto& material = data.mat.getRuntime({ animated });
         material.pushConstants(cmdBuf, layout, DrawablePushConstIndex::eModelMatrix,
                                data.modelMatrixId.get());
         if (animated)

@@ -5,18 +5,29 @@
 #include <vector>
 
 #include "MaterialRuntime.h"
+#include "MaterialShaderProgram.h"
 #include "trc/Types.h"
 
 namespace trc
 {
-    struct MaterialInfo
+    /**
+     * The user-defined material information from which implementation-
+     * specific specializations can be generated.
+     */
+    struct MaterialBaseInfo
     {
         ShaderModule fragmentModule;
-        ShaderDescriptorConfig descriptorConfig;
-        PipelineFragmentParams fragmentInfo;
+        bool transparent;
     };
 
-    using MatID = ui32;
+    /**
+     * Information for *internal* specialization of materials that is not
+     * exposed to the user, but performed automatically.
+     */
+    struct MaterialSpecializationInfo
+    {
+        bool animated;
+    };
 
     struct MaterialKey
     {
@@ -24,7 +35,7 @@ namespace trc
             return vertexParams.animated == rhs.vertexParams.animated;
         }
 
-        PipelineVertexParams vertexParams;
+        MaterialSpecializationInfo vertexParams;
     };
 }
 
@@ -39,25 +50,36 @@ struct std::hash<trc::MaterialKey>
 
 namespace trc
 {
+    /**
+     * @brief Create a full shader program from basic material information
+     */
+    auto makeMaterialProgramSpecialization(ShaderModule fragmentModule,
+                                           const MaterialSpecializationInfo& info)
+        -> std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
+
     class MaterialStorage
     {
     public:
-        auto registerMaterial(MaterialInfo info) -> MatID;
+        using MatID = ui32;
+
+        explicit MaterialStorage(const ShaderDescriptorConfig& descriptorConfig);
+
+        auto registerMaterial(MaterialBaseInfo info) -> MatID;
         void removeMaterial(MatID id);
 
-        auto getFragmentParams(MatID id) const -> const PipelineFragmentParams&;
-        auto getRuntime(MatID id, PipelineVertexParams params) -> MaterialRuntimeInfo&;
+        auto getBaseMaterial(MatID id) const -> const MaterialBaseInfo&;
+        auto specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime&;
 
     private:
-        class MaterialFactory
+        class MaterialSpecializer
         {
         public:
-            MaterialFactory(MaterialFactory&&) = default;
+            MaterialSpecializer(MaterialSpecializer&&) = default;
 
-            explicit MaterialFactory(MaterialInfo info);
+            MaterialSpecializer(const MaterialStorage* storage, MaterialBaseInfo info);
 
-            auto getInfo() const -> const MaterialInfo&;
-            auto getOrMake(MaterialKey specialization) -> MaterialRuntimeInfo&;
+            auto getBase() const -> const MaterialBaseInfo&;
+            auto getOrMake(MaterialKey specialization) -> MaterialRuntime&;
 
             /**
              * Free all material runtimes. Keep the create info in storage.
@@ -65,10 +87,14 @@ namespace trc
             void clear();
 
         private:
-            MaterialInfo materialCreateInfo;
-            std::unordered_map<MaterialKey, u_ptr<MaterialRuntimeInfo>> runtimes;
+            const MaterialStorage* storage;
+            MaterialBaseInfo baseMaterial;
+
+            std::unordered_map<MaterialKey, u_ptr<MaterialRuntime>> specializations;
         };
 
-        std::vector<MaterialFactory> materialFactories;
+        const ShaderDescriptorConfig descriptorConfig;
+
+        std::vector<MaterialSpecializer> materialFactories;
     };
 } // namespace trc

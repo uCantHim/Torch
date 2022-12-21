@@ -30,10 +30,7 @@ Drawable::Drawable(
         MaterialHandle matHandle = info.mat.getDeviceDataHandle();
         GeometryHandle geoHandle = info.geo.getDeviceDataHandle();
 
-        auto nonconstMat = info.mat;
-        auto pipeline = matHandle.getRuntime({ .animated=geoHandle.hasRig() }).makePipeline(
-            static_cast<AssetManager&>(nonconstMat.getAssetManager())
-        );
+        auto pipeline = matHandle.getRuntime({ .animated=geoHandle.hasRig() }).getPipeline();
         RasterComponentCreateInfo raster = makeDefaultDrawableRasterization(info, pipeline);
         // Model matrix ID and animation engine ID have to be set manually
         raster.drawData.modelMatrixId = getGlobalTransformID();

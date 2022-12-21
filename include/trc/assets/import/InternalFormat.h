@@ -1,9 +1,5 @@
 #pragma once
 
-#include <filesystem>
-
-#include <trc_util/Exception.h>
-
 #include "animation.pb.h"
 #include "asset.pb.h"
 #include "geometry.pb.h"
@@ -19,19 +15,17 @@
 
 namespace trc
 {
-    namespace fs = std::filesystem;
-
     namespace internal
     {
         auto serializeAssetData(const AssetData<Geometry>& data) -> serial::Geometry;
         auto serializeAssetData(const AssetData<Texture>& data)  -> serial::Texture;
-        auto serializeAssetData(const AssetData<Material>& data)  -> serial::Material;
+        auto serializeAssetData(const SimpleMaterialData& data)  -> serial::Material;
         auto serializeAssetData(const AssetData<Rig>& data)  -> serial::Rig;
         auto serializeAssetData(const AssetData<Animation>& data)  -> serial::Animation;
 
         auto deserializeAssetData(const serial::Geometry& geo) -> GeometryData;
         auto deserializeAssetData(const serial::Texture& tex)  -> TextureData;
-        auto deserializeAssetData(const serial::Material& mat) -> MaterialData;
+        auto deserializeAssetData(const serial::Material& mat) -> SimpleMaterialData;
         auto deserializeAssetData(const serial::Rig& rig) -> RigData;
         auto deserializeAssetData(const serial::Animation& anim) -> AnimationData;
     }

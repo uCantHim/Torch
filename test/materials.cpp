@@ -21,9 +21,8 @@
 
 using namespace trc;
 
-auto makeDescriptorConfig() -> ShaderDescriptorConfig;
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
-void run(MaterialInfo material);
+void run(MaterialData material);
 
 class TangentToWorldspace : public ShaderFunction
 {
@@ -94,32 +93,13 @@ int main()
     );
 
     // Create a pipeline
-    PipelineVertexParams vertParams{ .animated=false };
-    PipelineFragmentParams fragParams{ .transparent=true };
+    const bool transparent{ true };
+    MaterialData materialData{ fragmentModule.build(transparent), transparent };
 
-    MaterialInfo matCreateInfo{
-        .fragmentModule=fragmentModule.build(fragParams.transparent),
-        .descriptorConfig=makeDescriptorConfig(),
-        .fragmentInfo=fragParams
-    };
-
-    run(matCreateInfo);
+    run(materialData);
 
     trc::terminate();
     return 0;
-}
-
-auto makeDescriptorConfig() -> ShaderDescriptorConfig
-{
-    return ShaderDescriptorConfig{
-        .descriptorInfos{
-            { "global_data",    { 0, true } },
-            { "asset_registry", { 1, true } },
-            { "scene_data",     { 2, true } },
-            { "g_buffer",       { 3, true } },
-            { "shadow",         { 4, true } },
-        }
-    };
 }
 
 auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
@@ -276,10 +256,10 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     return config;
 }
 
-void run(MaterialInfo materialCreateInfo)
+void run(MaterialData materialData)
 {
-    std::cout << materialCreateInfo.fragmentModule.getGlslCode() << "\n\n";
-    std::cout << VertexModule(false).build(materialCreateInfo.fragmentModule).getGlslCode() << "\n\n";
+    std::cout << materialData.fragmentModule.getGlslCode() << "\n\n";
+    std::cout << VertexModule(false).build(materialData.fragmentModule).getGlslCode() << "\n\n";
 
     auto torch = trc::initFull(trc::InstanceCreateInfo{ .enableRayTracing=false });
     auto& assetManager = torch->getAssetManager();
@@ -293,7 +273,7 @@ void run(MaterialInfo materialCreateInfo)
 
     // Load resources
     auto geo = assetManager.create(makeCubeGeo());
-    auto mat = assetManager.create(trc::MaterialData{ .createInfo=materialCreateInfo });
+    auto mat = assetManager.create(std::move(materialData));
 
     // Create drawable
     trc::Drawable drawable(geo, mat, scene);

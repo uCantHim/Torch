@@ -19,6 +19,12 @@ namespace trc
      */
     struct ShaderModule : ShaderResources
     {
+        ShaderModule(const ShaderModule&) = default;
+        ShaderModule(ShaderModule&&) = default;
+        ShaderModule& operator=(const ShaderModule&) noexcept = default;
+        ShaderModule& operator=(ShaderModule&&) noexcept = default;
+        ~ShaderModule() noexcept = default;
+
         auto getGlslCode() const -> const std::string&;
 
         /**
@@ -41,13 +47,13 @@ namespace trc
             std::unordered_map<ParameterID, std::string> paramResultVariableNames
         );
 
-        const std::string shaderGlslCode;
+        std::string shaderGlslCode;
 
         /**
          * Stores the names of variables in which the computed values of
          * output parameters (inputs to the output node) reside.
          */
-        const std::unordered_map<ParameterID, std::string> paramResultVariableNames;
+        std::unordered_map<ParameterID, std::string> paramResultVariableNames;
     };
 
     class ShaderModuleCompiler

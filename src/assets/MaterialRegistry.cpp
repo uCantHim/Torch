@@ -6,6 +6,13 @@
 
 
 
+trc::AssetData<trc::Material>::AssetData(ShaderModule fragModule, bool transparent)
+    :
+    fragmentModule(std::move(fragModule)),
+    transparent(transparent)
+{
+}
+
 void trc::AssetData<trc::Material>::serialize(std::ostream&) const
 {
     throw std::runtime_error("MaterialData::serialize not implemented!");
@@ -16,14 +23,20 @@ void trc::AssetData<trc::Material>::deserialize(std::istream&)
     throw std::runtime_error("MaterialData::deserialize not implemented!");
 }
 
-void trc::AssetData<trc::Material>::resolveReferences(AssetManager&)
+void trc::AssetData<trc::Material>::resolveReferences(AssetManager& assetManager)
 {
+    for (const auto& tex : fragmentModule.getRequiredTextures())
+    {
+        auto mut = tex.ref.texture;
+        mut.resolve(assetManager);
+    }
 }
 
 
 
 trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
     :
+    storage(info.descriptorConfig),
     materialBuffer(
         info.device,
         std::vector<std::byte>(100, std::byte{0x00}),
@@ -47,16 +60,13 @@ void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 
 auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 {
-    const LocalID id(idPool.generate());
-
     auto data = source->load();
-    if (!data.createInfo.has_value()) {
-        return id;
-    }
 
     std::scoped_lock lock(materialStorageLock);
-    auto storageId = storage.registerMaterial(*data.createInfo);
-    materialIds.emplace(id, storageId);
+    LocalID id = LocalID(storage.registerMaterial({
+        .fragmentModule=data.fragmentModule,
+        .transparent=data.transparent,
+    }));
 
     return id;
 }
@@ -64,12 +74,11 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 void trc::MaterialRegistry::remove(LocalID id)
 {
     std::scoped_lock lock(materialStorageLock);
-    storage.removeMaterial(materialIds.at(id));
-    idPool.free(id);
+    storage.removeMaterial(id);
 }
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
     std::scoped_lock lock(materialStorageLock);
-    return Handle{ materialIds.at(id), storage };
+    return Handle{ id, storage };
 }

@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <trc_util/Padding.h>
-#include <trc_util/data/IndexMap.h>
 #include <trc_util/data/ObjectId.h>
 
 #include "trc/Types.h"
@@ -33,23 +32,11 @@ namespace trc
     template<>
     struct AssetData<Material>
     {
-        // v old data
-        vec3 color{ 0.0f, 0.0f, 0.0f };
+        AssetData(ShaderModule fragModule, bool transparent);
 
-        float specularCoefficient{ 1.0f };
-        float roughness{ 1.0f };
-        float metallicness{ 0.0f };
+        ShaderModule fragmentModule;
 
-        float opacity{ 1.0f };
-        float reflectivity{ 0.0f };
-
-        bool doPerformLighting{ true };
-
-        AssetReference<Texture> albedoTexture{};
-        AssetReference<Texture> normalTexture{};
-        // ^ old data
-
-        std::optional<MaterialInfo> createInfo{ std::nullopt };
+        bool transparent{ false };
 
         void resolveReferences(AssetManager& man);
 
@@ -62,27 +49,21 @@ namespace trc
     {
     public:
         bool isTransparent() const {
-            return storage->getFragmentParams(baseId).transparent;
+            return storage->getBaseMaterial(baseId).transparent;
         }
 
-        auto getRuntime(PipelineVertexParams params) -> MaterialRuntimeInfo&
+        auto getRuntime(MaterialSpecializationInfo params) const -> const MaterialRuntime&
         {
             assert(storage != nullptr);
-            return storage->getRuntime(baseId, params);
-        }
-
-        auto getRuntime(PipelineVertexParams params) const -> const MaterialRuntimeInfo&
-        {
-            assert(storage != nullptr);
-            return storage->getRuntime(baseId, params);
+            return storage->specialize(baseId, params);
         }
 
     private:
         friend class MaterialRegistry;
-        AssetHandle(MatID id, MaterialStorage& storage)
+        AssetHandle(ui32 id, MaterialStorage& storage)
             : baseId(id), storage(&storage) {}
 
-        MatID baseId;
+        ui32 baseId;
         MaterialStorage* storage;
     };
 
@@ -94,6 +75,8 @@ namespace trc
     {
         const Device& device;
         SharedDescriptorSet::Builder& descriptorBuilder;
+
+        ShaderDescriptorConfig descriptorConfig;
     };
 
     class MaterialRegistry : public AssetRegistryModuleInterface<Material>
@@ -111,11 +94,9 @@ namespace trc
         auto getHandle(LocalID id) -> MaterialHandle override;
 
     private:
-        data::IdPool idPool;
-        std::unordered_map<LocalID, MatID> materialIds;
-
         std::mutex materialStorageLock;
         MaterialStorage storage;
+
         Buffer materialBuffer;
 
         // Descriptor

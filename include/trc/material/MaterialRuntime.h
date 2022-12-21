@@ -1,13 +1,11 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
+#include <vector>
 
-#include "RuntimeResourceHandler.h"
-#include "ShaderModuleCompiler.h"
-#include "ShaderOutputNode.h"
+#include "ShaderCapabilityConfig.h"
+#include "ShaderResourceInterface.h"
+#include "trc/assets/Texture.h"
 #include "trc/core/Pipeline.h"
-#include "trc/core/PipelineLayoutTemplate.h"
 
 namespace trc
 {
@@ -15,75 +13,42 @@ namespace trc
 
     using ResourceID = ShaderCapabilityConfig::ResourceID;
 
-    struct PipelineVertexParams
+    struct MaterialRuntime
     {
-        bool animated;
-    };
+        MaterialRuntime(Pipeline::ID pipeline,
+                        std::vector<ShaderResources::PushConstantInfo> pushConstantConfig,
+                        std::vector<TextureHandle> loadedTextures);
 
-    struct PipelineFragmentParams
-    {
-        bool transparent;
-    };
+        auto getPipeline() const -> Pipeline::ID;
 
-    struct ShaderDescriptorConfig
-    {
-        struct DescriptorInfo
-        {
-            auto operator<=>(const DescriptorInfo&) const = default;
-
-            ui32 index;
-            bool isStatic;
-        };
-
-        std::unordered_map<std::string, DescriptorInfo> descriptorInfos;
-    };
-
-    auto mergeDescriptorConfigs(const ShaderDescriptorConfig& a, const ShaderDescriptorConfig& b)
-        -> ShaderDescriptorConfig;
-
-    struct MaterialRuntimeInfo
-    {
-        MaterialRuntimeInfo(
-            const ShaderDescriptorConfig& descriptorConf,
-            PipelineVertexParams vert,
-            PipelineFragmentParams frag,
-            std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages
-        );
-
-        auto getShaderGlslCode(vk::ShaderStageFlagBits stage) const -> const std::string&;
-
-        auto makePipeline(AssetManager& assetManager) -> Pipeline::ID;
-        void resolveTextureReferences(AssetManager& assetManager);
-
-        auto getPushConstantHandler() const -> const RuntimePushConstantHandler&;
+        template<typename T>
+        void pushConstants(vk::CommandBuffer cmdBuf,
+                           vk::PipelineLayout layout,
+                           ui32 pushConstantId,
+                           T&& value) const;
 
     private:
-        struct ShaderStageInfo
-        {
-            std::string glslCode;
-            std::unordered_map<ui32, TextureReference> textures;
-        };
+        Pipeline::ID pipeline;
+        std::vector<TextureHandle> loadedTextures;
 
-        /**
-         * TODO Currently not implemented properly:
-         *
-         *  - non-static descriptor sets at runtime. Would require a
-         *    mechanism like the RuntimePushConstantHandler for descriptor
-         *    sets
-         *
-         *  - push constant ranges for different shader stages
-         */
-        static auto makeLayout(const std::unordered_set<std::string>& descriptorSets,
-                               const std::vector<vk::PushConstantRange>& pushConstants,
-                               const ShaderDescriptorConfig& descConf) -> PipelineLayoutTemplate;
-
-        PipelineVertexParams vertParams;
-        PipelineFragmentParams fragParams;
-
-        PipelineLayoutTemplate layoutTemplate;
-        std::unordered_map<vk::ShaderStageFlagBits, ShaderStageInfo> shaderStages;
-
-        std::vector<TextureHandle> textureHandles;
-        RuntimePushConstantHandler vertResourceHandler;
+        std::vector<ui32> pcOffsets;
     };
+
+
+
+    template<typename T>
+    void MaterialRuntime::pushConstants(
+        vk::CommandBuffer cmdBuf,
+        vk::PipelineLayout layout,
+        ui32 pushConstantId,
+        T&& value) const
+    {
+        assert(pcOffsets.size() > pushConstantId);
+        assert(pcOffsets[pushConstantId] != std::numeric_limits<ui32>::max());
+        assert(pushConstantId == pcOffsets.size() - 1
+               || (pcOffsets[pushConstantId + 1] + pcOffsets[pushConstantId]) == sizeof(T));
+
+        cmdBuf.pushConstants<T>(layout, vk::ShaderStageFlagBits::eVertex,
+                                pcOffsets[pushConstantId], value);
+    }
 } // namespace trc

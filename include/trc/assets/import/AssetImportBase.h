@@ -18,7 +18,7 @@ namespace trc
     struct ThirdPartyMaterialImport
     {
         std::string name;
-        MaterialData data;
+        SimpleMaterialData data;
     };
 
     struct ThirdPartyMeshImport
