@@ -15,5 +15,6 @@ target_sources(
         ShaderOutputNode.cpp
         ShaderResourceInterface.cpp
         ShaderTypeChecker.cpp
+        TorchMaterialSettings.cpp
         VertexShader.cpp
 )

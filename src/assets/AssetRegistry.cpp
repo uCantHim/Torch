@@ -9,30 +9,9 @@
 #include "trc/assets/SharedDescriptorSet.h"
 #include "trc/assets/TextureRegistry.h"
 #include "trc/core/Instance.h"
-#include "trc/material/MaterialShaderProgram.h"
+#include "trc/material/TorchMaterialSettings.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 #include "trc/text/Font.h"
-#include "trc/TorchRenderConfig.h"
-
-
-
-namespace trc
-{
-
-auto makeDescriptorConfig() -> ShaderDescriptorConfig
-{
-    return ShaderDescriptorConfig{
-        .descriptorInfos{
-            { TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR, { 0, true } },
-            { TorchRenderConfig::ASSET_DESCRIPTOR,       { 1, true } },
-            { TorchRenderConfig::SCENE_DESCRIPTOR,       { 2, true } },
-            { TorchRenderConfig::G_BUFFER_DESCRIPTOR,    { 3, true } },
-            { TorchRenderConfig::SHADOW_DESCRIPTOR,      { 4, true } },
-        }
-    };
-}
-
-} // namespace trc
 
 
 
@@ -56,7 +35,11 @@ trc::AssetRegistry::AssetRegistry(
     auto builder = SharedDescriptorSet::build();
 
     // Add modules in the order in which they should be destroyed
-    addModule<Material>(MaterialRegistryCreateInfo{ instance.getDevice(), builder, makeDescriptorConfig() });
+    addModule<Material>(MaterialRegistryCreateInfo{
+        .device=instance.getDevice(),
+        .descriptorBuilder=builder,
+        .descriptorConfig=makeShaderDescriptorConfig()
+    });
     addModule<Texture>(TextureRegistryCreateInfo{ instance.getDevice(), builder });
     addModule<Geometry>(GeometryRegistryCreateInfo{
         .instance            = instance,
