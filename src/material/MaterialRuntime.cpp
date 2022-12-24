@@ -5,21 +5,11 @@
 namespace trc
 {
 
-MaterialRuntime::MaterialRuntime(
-    Pipeline::ID pipeline,
-    std::vector<ShaderResources::PushConstantInfo> pushConstantConfig,
-    std::vector<TextureHandle> loadedTextures)
+MaterialRuntime::MaterialRuntime(Pipeline::ID pipeline, s_ptr<std::vector<ui32>> pcOffsets)
     :
     pipeline(pipeline),
-    loadedTextures(std::move(loadedTextures))
+    pcOffsets(pcOffsets)
 {
-    constexpr ui32 alloc = std::numeric_limits<ui32>::max();
-
-    for (auto [offset, size, userId] : pushConstantConfig)
-    {
-        pcOffsets.resize(glm::max(size_t{userId + 1}, pcOffsets.size()), alloc);
-        pcOffsets[userId] = offset;
-    }
 }
 
 auto MaterialRuntime::getPipeline() const -> Pipeline::ID

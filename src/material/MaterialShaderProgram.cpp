@@ -50,8 +50,21 @@ namespace trc
 
 MaterialShaderProgram::MaterialShaderProgram(
     std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
+    Pipeline::ID basePipeline,
     const ShaderDescriptorConfig& descriptorConfig)
+    :
+    basePipeline(basePipeline)
 {
+    // Debug assertion
+    for (const auto& [_, mod] : stages)
+    {
+        for (const auto& tex : mod.getRequiredTextures())
+        {
+            assert(tex.ref.texture.hasResolvedID()
+                   && "Textures must be resolved before being passed into MaterialShaderProgram!");
+        }
+    }
+
     layout = makeLayout(stages, descriptorConfig);
     program = makeProgram(stages, layout);
 
@@ -70,31 +83,16 @@ auto MaterialShaderProgram::getLayout() const -> const PipelineLayoutTemplate&
     return layout;
 }
 
-auto MaterialShaderProgram::makeRuntime(Pipeline::ID basePipeline) -> MaterialRuntime
+auto MaterialShaderProgram::makeRuntime() -> MaterialRuntime
 {
-    // Load textures and set specialization constants
-    std::vector<TextureHandle> loadedTextures;
-
-    auto& fragmentStage = program.stages.at(vk::ShaderStageFlagBits::eFragment);
-    for (auto& [specIdx, texRef] : specializationTextures)
-    {
-        // Load texture asset
-        assert(texRef.texture.hasResolvedID());
-        auto& tex = loadedTextures.emplace_back(texRef.texture.getID().getDeviceDataHandle());
-
-        // Set specialization constant
-        fragmentStage.specConstants.set(specIdx, tex.getDeviceIndex());
+    if (pipeline == Pipeline::ID::NONE) {
+        initPipeline();
     }
+    assert(pipeline != Pipeline::ID::NONE);
+    assert(loadedTextures.size() == specializationTextures.size());
+    assert(runtimePcOffsets != nullptr);
 
-    // Create pipeline
-    const auto base = PipelineRegistry::cloneGraphicsPipeline(basePipeline);
-    Pipeline::ID pipeline = PipelineRegistry::registerPipeline(
-        PipelineTemplate{ program, base.getPipelineData() },
-        PipelineRegistry::registerPipelineLayout(layout),
-        PipelineRegistry::getPipelineRenderPass(basePipeline)
-    );
-
-    return MaterialRuntime(pipeline, pushConstantConfig, std::move(loadedTextures));
+    return MaterialRuntime(pipeline, runtimePcOffsets);
 }
 
 auto MaterialShaderProgram::compileShader(
@@ -209,6 +207,44 @@ auto MaterialShaderProgram::makeLayout(
     PipelineLayoutTemplate layout(std::move(descriptors), std::move(pushConstants));
 
     return layout;
+}
+
+void MaterialShaderProgram::initPipeline()
+{
+    assert(pipeline == Pipeline::ID::NONE
+        && "Must only call initPipeline if none of the runtime resource have been initialized.");
+    assert(loadedTextures.empty()
+        && "Must only call initPipeline if none of the runtime resource have been initialized.");
+    assert(runtimePcOffsets != nullptr);
+    assert(runtimePcOffsets->empty()
+        && "Must only call initPipeline if none of the runtime resource have been initialized.");
+
+    constexpr ui32 alloc = std::numeric_limits<ui32>::max();
+    for (auto [offset, size, userId] : pushConstantConfig)
+    {
+        runtimePcOffsets->resize(glm::max(size_t{userId + 1}, runtimePcOffsets->size()), alloc);
+        runtimePcOffsets->at(userId) = offset;
+    }
+
+    // Load textures and set specialization constants
+    auto& fragmentStage = program.stages.at(vk::ShaderStageFlagBits::eFragment);
+    for (auto& [specIdx, texRef] : specializationTextures)
+    {
+        // Load texture asset
+        assert(texRef.texture.hasResolvedID());
+        auto& tex = loadedTextures.emplace_back(texRef.texture.getID().getDeviceDataHandle());
+
+        // Set specialization constant
+        fragmentStage.specConstants.set(specIdx, tex.getDeviceIndex());
+    }
+
+    // Create pipeline
+    const auto base = PipelineRegistry::cloneGraphicsPipeline(basePipeline);
+    pipeline = PipelineRegistry::registerPipeline(
+        PipelineTemplate{ program, base.getPipelineData() },
+        PipelineRegistry::registerPipelineLayout(layout),
+        PipelineRegistry::getPipelineRenderPass(basePipeline)
+    );
 }
 
 } // namespace trc

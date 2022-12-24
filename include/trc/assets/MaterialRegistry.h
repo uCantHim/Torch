@@ -52,7 +52,7 @@ namespace trc
             return storage->getBaseMaterial(baseId).transparent;
         }
 
-        auto getRuntime(MaterialSpecializationInfo params) const -> const MaterialRuntime&
+        auto getRuntime(MaterialSpecializationInfo params) const -> MaterialRuntime
         {
             assert(storage != nullptr);
             return storage->specialize(baseId, params);

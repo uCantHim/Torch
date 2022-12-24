@@ -15,9 +15,7 @@ namespace trc
 
     struct MaterialRuntime
     {
-        MaterialRuntime(Pipeline::ID pipeline,
-                        std::vector<ShaderResources::PushConstantInfo> pushConstantConfig,
-                        std::vector<TextureHandle> loadedTextures);
+        MaterialRuntime(Pipeline::ID pipeline, s_ptr<std::vector<ui32>> pcOffsets);
 
         auto getPipeline() const -> Pipeline::ID;
 
@@ -29,9 +27,7 @@ namespace trc
 
     private:
         Pipeline::ID pipeline;
-        std::vector<TextureHandle> loadedTextures;
-
-        std::vector<ui32> pcOffsets;
+        s_ptr<std::vector<ui32>> pcOffsets;
     };
 
 
@@ -43,12 +39,12 @@ namespace trc
         ui32 pushConstantId,
         T&& value) const
     {
-        assert(pcOffsets.size() > pushConstantId);
-        assert(pcOffsets[pushConstantId] != std::numeric_limits<ui32>::max());
-        assert(pushConstantId == pcOffsets.size() - 1
-               || (pcOffsets[pushConstantId + 1] + pcOffsets[pushConstantId]) == sizeof(T));
+        assert(pcOffsets->size() > pushConstantId);
+        assert(pcOffsets->at(pushConstantId) != std::numeric_limits<ui32>::max());
+        assert(pushConstantId == pcOffsets->size() - 1
+               || (pcOffsets->at(pushConstantId + 1) - pcOffsets->at(pushConstantId)) == sizeof(T));
 
         cmdBuf.pushConstants<T>(layout, vk::ShaderStageFlagBits::eVertex,
-                                pcOffsets[pushConstantId], value);
+                                pcOffsets->at(pushConstantId), value);
     }
 } // namespace trc

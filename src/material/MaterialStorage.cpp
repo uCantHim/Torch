@@ -53,7 +53,7 @@ auto MaterialStorage::getBaseMaterial(MatID id) const -> const MaterialBaseInfo&
     return materialFactories.at(id).getBase();
 }
 
-auto MaterialStorage::specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime&
+auto MaterialStorage::specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime
 {
     if (materialFactories.size() <= id) {
         throw std::out_of_range("[In MaterialStorage::specialize]: No material exists at the"
@@ -79,7 +79,7 @@ auto MaterialStorage::MaterialSpecializer::getBase() const -> const MaterialBase
     return baseMaterial;
 }
 
-auto MaterialStorage::MaterialSpecializer::getOrMake(MaterialKey specialization) -> MaterialRuntime&
+auto MaterialStorage::MaterialSpecializer::getOrMake(MaterialKey specialization) -> MaterialRuntime
 {
     auto [it, success] = specializations.try_emplace(specialization, nullptr);
     if (success)
@@ -91,14 +91,15 @@ auto MaterialStorage::MaterialSpecializer::getOrMake(MaterialKey specialization)
             .animated=specialization.vertexParams.animated,
             .transparent=baseMaterial.transparent,
         });
-        it->second = std::make_unique<MaterialRuntime>(
-            MaterialShaderProgram(std::move(stages), storage->descriptorConfig)
-            .makeRuntime(basePipeline)
+        it->second = std::make_unique<MaterialShaderProgram>(
+            std::move(stages),
+            basePipeline,
+            storage->descriptorConfig
         );
     }
 
     assert(it->second != nullptr);
-    return *it->second;
+    return it->second->makeRuntime();
 }
 
 void MaterialStorage::MaterialSpecializer::clear()

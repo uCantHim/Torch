@@ -68,7 +68,7 @@ namespace trc
         void removeMaterial(MatID id);
 
         auto getBaseMaterial(MatID id) const -> const MaterialBaseInfo&;
-        auto specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime&;
+        auto specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime;
 
     private:
         class MaterialSpecializer
@@ -79,7 +79,7 @@ namespace trc
             MaterialSpecializer(const MaterialStorage* storage, MaterialBaseInfo info);
 
             auto getBase() const -> const MaterialBaseInfo&;
-            auto getOrMake(MaterialKey specialization) -> MaterialRuntime&;
+            auto getOrMake(MaterialKey specialization) -> MaterialRuntime;
 
             /**
              * Free all material runtimes. Keep the create info in storage.
@@ -90,7 +90,7 @@ namespace trc
             const MaterialStorage* storage;
             MaterialBaseInfo baseMaterial;
 
-            std::unordered_map<MaterialKey, u_ptr<MaterialRuntime>> specializations;
+            std::unordered_map<MaterialKey, u_ptr<MaterialShaderProgram>> specializations;
         };
 
         const ShaderDescriptorConfig descriptorConfig;

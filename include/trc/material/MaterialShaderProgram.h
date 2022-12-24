@@ -32,11 +32,12 @@ namespace trc
     {
     public:
         MaterialShaderProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
+                              Pipeline::ID basePipeline,
                               const ShaderDescriptorConfig& descriptorConfig);
 
         auto getLayout() const -> const PipelineLayoutTemplate&;
 
-        auto makeRuntime(Pipeline::ID basePipeline) -> MaterialRuntime;
+        auto makeRuntime() -> MaterialRuntime;
 
     private:
         using ShaderStageMap = std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
@@ -66,11 +67,18 @@ namespace trc
                                const ShaderDescriptorConfig& descConf)
             -> PipelineLayoutTemplate;
 
+        void initPipeline();
+
         /** The program does not yet contain specialization constants! */
         ProgramDefinitionData program;
         PipelineLayoutTemplate layout;
 
+        Pipeline::ID basePipeline;
         std::vector<ShaderResources::PushConstantInfo> pushConstantConfig;
         std::vector<std::pair<ui32, TextureReference>> specializationTextures;
+
+        Pipeline::ID pipeline{ Pipeline::ID::NONE };
+        s_ptr<std::vector<ui32>> runtimePcOffsets{ new std::vector<ui32> };
+        std::vector<TextureHandle> loadedTextures;
     };
 }
