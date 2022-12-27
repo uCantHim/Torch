@@ -24,8 +24,8 @@ namespace trc
     struct TypedAssetID
     {
     public:
-                           /* Hard */
-        using LocalID = data::TypesafeID<T, /* AssetRegistryModule<T>, */ ui32>;
+        using LocalID = typename AssetTypeTraits<T>::LocalID;
+        using Handle = typename AssetTypeTraits<T>::Handle;
 
         TypedAssetID() = default;
         TypedAssetID(AssetID base, LocalID type, AssetManagerFwd& man)
@@ -60,8 +60,8 @@ namespace trc
         /** @return AssetID Local ID for type-specific asset data */
         auto getDeviceID() const -> LocalID;
 
-        auto get() const;
-        auto getDeviceDataHandle() const;
+        auto get() const -> Handle;
+        auto getDeviceDataHandle() const -> Handle;
         auto getMetaData() const -> const AssetMetaData&;
 
         auto getAssetManager() -> AssetManagerFwd&;
@@ -125,13 +125,13 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    auto TypedAssetID<T>::get() const
+    auto TypedAssetID<T>::get() const -> Handle
     {
         return getDeviceDataHandle();
     }
 
     template<AssetBaseType T>
-    auto TypedAssetID<T>::getDeviceDataHandle() const
+    auto TypedAssetID<T>::getDeviceDataHandle() const -> Handle
     {
         if (manager == nullptr)
         {

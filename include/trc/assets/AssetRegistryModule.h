@@ -26,13 +26,13 @@ namespace trc
     class AssetRegistryModuleInterface : public AssetRegistryModuleInterfaceCommon
     {
     public:
-        using LocalID = typename TypedAssetID<T>::LocalID;
-        using Handle = AssetHandle<T>;
+        using LocalID = typename AssetTypeTraits<T>::LocalID;
+        using Handle = typename AssetTypeTraits<T>::Handle;
 
         virtual auto add(u_ptr<AssetSource<T>> source) -> LocalID = 0;
         virtual void remove(LocalID id) = 0;
 
-        virtual auto getHandle(LocalID id) -> AssetHandle<T> = 0;
+        virtual auto getHandle(LocalID id) -> Handle = 0;
     };
 
     /**

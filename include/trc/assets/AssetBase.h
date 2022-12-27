@@ -4,6 +4,10 @@
 #include <istream>
 #include <ostream>
 
+#include <trc_util/data/TypesafeId.h>
+
+#include "trc/Types.h"
+
 namespace trc
 {
     template<typename T>
@@ -53,5 +57,17 @@ namespace trc
         requires requires (const AssetData<T> data, std::ostream& os) {
             { data.serialize(os) } -> std::same_as<void>;
         };
+    };
+
+    template<AssetBaseType T>
+    struct AssetTypeTraits
+    {
+    public:
+                           /* Hard */
+        using LocalID = data::TypesafeID<T, /* AssetRegistryModule<T>, */ ui32>;
+
+        using Data = AssetData<T>;
+        using Handle = AssetHandle<T>;
+        using Registry = typename T::Registry;
     };
 } // namespace trc
