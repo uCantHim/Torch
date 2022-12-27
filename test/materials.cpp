@@ -8,6 +8,7 @@
 #include <trc/PipelineDefinitions.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
+#include <trc/assets/SimpleMaterial.h>
 #include <trc/assets/import/AssetImport.h>
 #include <trc/core/Pipeline.h>
 #include <trc/core/PipelineLayoutBuilder.h>
@@ -121,8 +122,15 @@ void run(MaterialData materialData)
     auto geo = assetManager.create(makeCubeGeo());
     auto mat = assetManager.create(std::move(materialData));
 
+    auto tri = assetManager.create(makeTriangleGeo());
+    auto simpleMat = assetManager.create(makeMaterial(SimpleMaterialData{ .color=vec3(0, 1, 0.3f) }));
+
     // Create drawable
     trc::Drawable drawable(geo, mat, scene);
+    trc::Drawable triangle(tri, simpleMat, scene);
+    triangle.translate(-1.4f, 0.75f, -0.3f)
+            .rotateY(0.2f * glm::pi<float>())
+            .setScaleX(3.0f);
 
     trc::Timer timer;
     while (torch->getWindow().isOpen())

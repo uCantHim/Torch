@@ -10,6 +10,7 @@ target_sources(
         MaterialRegistry.cpp
         RigRegistry.cpp
         SharedDescriptorSet.cpp
+        SimpleMaterial.cpp
         TextureRegistry.cpp
 )
 
