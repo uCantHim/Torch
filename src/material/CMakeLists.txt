@@ -2,6 +2,7 @@ target_sources(
     torch
     PRIVATE
         BasicType.cpp
+        CommonShaderFunctions.cpp
         Constant.cpp
         FragmentShader.cpp
         MaterialRuntime.cpp

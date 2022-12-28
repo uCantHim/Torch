@@ -13,10 +13,10 @@
 #include <trc/core/Pipeline.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/drawable/DefaultDrawable.h>
+#include <trc/material/CommonShaderFunctions.h>
 #include <trc/material/FragmentShader.h>
 #include <trc/material/MaterialRuntime.h>
 #include <trc/material/MaterialStorage.h>
-#include <trc/material/Mix.h>
 #include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/TorchMaterialSettings.h>
 #include <trc/material/VertexShader.h>
@@ -24,29 +24,6 @@
 using namespace trc;
 
 void run(MaterialData material);
-
-class TangentToWorldspace : public ShaderFunction
-{
-public:
-    TangentToWorldspace()
-        : ShaderFunction("TangentspaceToWorldspace", FunctionType{ { vec3{} }, vec3{} })
-    {
-    }
-
-    void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
-    {
-        auto movedInterval = builder.makeSub(
-            builder.makeMul(args[0], builder.makeConstant(2.0f)),
-            builder.makeConstant(1.0f)
-        );
-        builder.makeReturn(
-            builder.makeMul(
-                builder.makeCapabilityAccess(FragmentCapability::kTangentToWorldSpaceMatrix),
-                movedInterval
-            )
-        );
-    }
-};
 
 int main()
 {
