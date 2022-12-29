@@ -203,7 +203,7 @@ auto serializeAssetData(const SimpleMaterialData& data) -> trc::serial::Material
     mat.set_opacity(data.opacity);
     mat.set_reflectivity(data.reflectivity);
 
-    mat.set_do_perform_lighting(data.doPerformLighting);
+    mat.set_emissive(data.emissive);
 
     if (data.albedoTexture.hasAssetPath()) {
         assignRef(mat.mutable_albedo_texture(), data.albedoTexture);
@@ -223,7 +223,7 @@ auto deserializeAssetData(const trc::serial::Material& mat) -> SimpleMaterialDat
         .roughness = mat.roughness(),
         .opacity = mat.opacity(),
         .reflectivity = mat.reflectivity(),
-        .doPerformLighting = mat.do_perform_lighting(),
+        .emissive = mat.emissive(),
 
         .albedoTexture = {},
         .normalTexture = {},

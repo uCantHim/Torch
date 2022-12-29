@@ -15,7 +15,7 @@ message Material
     float opacity = 5;
     float reflectivity = 6;
 
-    bool do_perform_lighting = 7;
+    bool emissive = 7;
 
     optional AssetReference albedo_texture = 8;
     optional AssetReference normal_texture = 9;

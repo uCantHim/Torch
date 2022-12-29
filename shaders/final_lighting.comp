@@ -59,8 +59,8 @@ void main()
     const vec4 material = imageLoad(inMaterial, coords);
     vec3 color = imageLoad(inAlbedo, coords).rgb;
 
-    const bool performLighting = bool(material[3]);
-    if (performLighting)
+    const bool emissive = bool(material[3]);
+    if (!emissive)
     {
         MaterialParams mat;
         mat.kSpecular = material[0];

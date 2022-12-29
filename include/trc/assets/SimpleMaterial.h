@@ -34,7 +34,7 @@ namespace trc
         float opacity{ 1.0f };
         float reflectivity{ 0.0f };
 
-        bool doPerformLighting{ true };
+        bool emissive{ false };
 
         AssetReference<Texture> albedoTexture{};
         AssetReference<Texture> normalTexture{};
