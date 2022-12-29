@@ -37,14 +37,12 @@ layout (set = 1, binding = 0) uniform CameraData
 layout (push_constant) uniform PushConstants
 {
     mat4 model;
-    uint material;
 };
 
 layout (location = 0) out VertexData
 {
     vec3 normal;
     vec3 color;
-    flat uint material;
 } vertexOut[];
 
 const uint NUM_COLORS = 8;
@@ -82,7 +80,6 @@ void main()
 
         vertexOut[v].normal = GET_VERTEX_NORMAL(vertices[vertIndex]);
         vertexOut[v].color = colorTable[meshletID % NUM_COLORS];
-        vertexOut[v].material = material;
     }
 
 

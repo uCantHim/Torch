@@ -23,9 +23,10 @@
 
 using namespace trc;
 
-void run(MaterialData material);
-
-int main()
+/**
+ * Manually create a material by specifying fragment shader calculations
+ */
+auto createMaterial() -> MaterialData
 {
     AssetReference<Texture> tex(std::make_unique<InMemorySource<Texture>>(
         loadTexture(TRC_TEST_ASSET_DIR"/lena.png")
@@ -63,60 +64,52 @@ int main()
     fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
     fragmentModule.setParameter(Param::eMetallicness, builder.makeConstant(0.0f));
     fragmentModule.setParameter(Param::eRoughness, builder.makeConstant(0.4f));
-    fragmentModule.setParameter(Param::eEmissive,
-        builder.makeExternalCall(
-            "float",
-            { builder.makeNot(builder.makeConstant(false)) }  // performLighting flag
-        )
-    );
 
     // Create a pipeline
     const bool transparent{ true };
     MaterialData materialData{ fragmentModule.build(transparent), transparent };
 
-    run(materialData);
-
-    trc::terminate();
-    return 0;
+    return materialData;
 }
 
-void run(MaterialData materialData)
+int main()
 {
-    std::cout << materialData.fragmentModule.getGlslCode() << "\n\n";
-    std::cout << VertexModule(false).build(materialData.fragmentModule).getGlslCode() << "\n\n";
+    const auto materialData = createMaterial();
 
-    auto torch = trc::initFull(trc::InstanceCreateInfo{ .enableRayTracing=false });
+    // Initialize Torch
+    auto torch = initFull(InstanceCreateInfo{ .enableRayTracing=false });
     auto& assetManager = torch->getAssetManager();
 
-    Scene scene;
     Camera camera;
-    camera.makePerspective(16.0f / 9.0f, 45.0f, 0.01f, 100.0f);
+    camera.makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.01f, 100.0f);
     camera.lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
 
+    Scene scene;
     scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Load resources
-    auto geo = assetManager.create(makeCubeGeo());
-    auto mat = assetManager.create(std::move(materialData));
+    auto cubeGeo = assetManager.create(makeCubeGeo());
+    auto cubeMat = assetManager.create(std::move(materialData));
 
-    auto tri = assetManager.create(makeTriangleGeo());
-    auto simpleMat = assetManager.create(makeMaterial(SimpleMaterialData{ .color=vec3(0, 1, 0.3f) }));
+    auto triGeo = assetManager.create(makeTriangleGeo());
+    auto triMat = assetManager.create(makeMaterial(SimpleMaterialData{ .color=vec3(0, 1, 0.3f) }));
 
     // Create drawable
-    trc::Drawable drawable(geo, mat, scene);
-    trc::Drawable triangle(tri, simpleMat, scene);
+    Drawable cube(cubeGeo, cubeMat, scene);
+    Drawable triangle(triGeo, triMat, scene);
     triangle.translate(-1.4f, 0.75f, -0.3f)
             .rotateY(0.2f * glm::pi<float>())
             .setScaleX(3.0f);
 
-    trc::Timer timer;
+    Timer timer;
     while (torch->getWindow().isOpen())
     {
-        trc::pollEvents();
-        drawable.setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
+        pollEvents();
+        cube.setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
 
         torch->drawFrame(camera, scene);
     }
 
-    trc::terminate();
+    terminate();
+    return 0;
 }

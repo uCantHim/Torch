@@ -53,12 +53,12 @@ void run()
         trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
-    auto matIdx = ar.create(trc::MaterialData{
+    auto matIdx = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
         .specularCoefficient = 1.0f,
         .roughness = 0.05f,
         .albedoTexture = grassImgIdx,
         .normalTexture = stoneNormalTexIdx,
-    });
+    }));
 
     auto mapImport = trc::loadAssets(TRC_TEST_ASSET_DIR"/map.fbx");
     auto mapMat = mapImport.meshes[0].materials[0].data;
@@ -66,13 +66,13 @@ void run()
     mapMat.albedoTexture = stoneTexIdx;
     mapMat.normalTexture = stoneNormalTexIdx;
     mapMat.roughness = 0.4f;
-    auto mapMatIndex = ar.create(mapMat);
+    auto mapMatIndex = ar.create(trc::makeMaterial(mapMat));
 
-    trc::MaterialData treeMat{
+    trc::SimpleMaterialData treeMat{
         .color=vec4(0, 1, 0, 1),
         .roughness=0.85f,
     };
-    auto treeMatIdx = ar.create(treeMat);
+    auto treeMatIdx = ar.create(trc::makeMaterial(treeMat));
 
     // ------------------
 
@@ -107,10 +107,10 @@ void run()
     hoodedBoi.getAnimationEngine().playAnimation(0);
 
     // Linda
-    auto lindaMatIdx = ar.create(trc::MaterialData{
+    auto lindaMatIdx = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
         .specularCoefficient = 0.0f,
         .albedoTexture = lindaDiffTexIdx
-    });
+    }));
 
     trc::Drawable linda({ lindaGeoIndex, lindaMatIdx }, scene);
     linda.setScale(0.3f).translateX(-1.0f);
@@ -118,12 +118,13 @@ void run()
 
     // Images
     auto planeGeo = ar.create(trc::makePlaneGeo());
-    auto transparentImg = ar.create(trc::MaterialData{
-        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png"))
-    });
-    auto opaqueImg = ar.create(trc::MaterialData{
+    auto transparentImg = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
+        .opacity=0.0f,  // Enable transparency
+        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png")),
+    }));
+    auto opaqueImg = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
         .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
-    });
+    }));
     trc::Drawable img({ planeGeo, transparentImg, true }, scene);
     img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
     trc::Drawable img2({ planeGeo, opaqueImg, false }, scene);
@@ -214,7 +215,9 @@ void run()
 
     // Generated cube geo
     auto cubeGeoIdx = ar.create<trc::Geometry>({ trc::makeCubeGeo() });
-    auto cubeMatIdx = ar.create<trc::Material>({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f });
+    auto cubeMatIdx = ar.create<trc::Material>(
+        trc::makeMaterial({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f })
+    );
     trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
     cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
@@ -227,7 +230,9 @@ void run()
     });
 
     // Thing at cursor
-    auto cursorCubeMat = ar.create(trc::MaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f });
+    auto cursorCubeMat = ar.create(trc::makeMaterial(
+        trc::SimpleMaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f }
+    ));
     trc::Drawable cursor({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
     cursor.scale(0.15f);
 

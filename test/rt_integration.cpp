@@ -35,11 +35,11 @@ void run()
     trc::Drawable sphere(
         trc::DrawableCreateInfo{
             assets.create(trc::makeSphereGeo()),
-            assets.create(trc::MaterialData{
+            assets.create(trc::makeMaterial({
                 .color=vec4(0.8f, 0.3f, 0.6f, 1),
                 .specularCoefficient=0.3f,
                 .roughness=0.0f,
-            }),
+            })),
             true, true, true
         },
         *scene
@@ -51,7 +51,7 @@ void run()
 
     trc::Drawable plane({
         assets.create(trc::makePlaneGeo()),
-        assets.create(trc::MaterialData{ .roughness=0.1f }),
+        assets.create(trc::makeMaterial({ .roughness=0.1f })),
         true, true, true
     }, *scene);
     plane.rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
@@ -59,7 +59,7 @@ void run()
          .setScale(3.0f, 1.0f, 1.7f);
 
     trc::GeometryID treeGeo = assets.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
-    trc::MaterialID treeMat = assets.create(trc::MaterialData{ .color=vec4(0, 1, 0, 1) });
+    trc::MaterialID treeMat = assets.create(trc::makeMaterial({ .color=vec4(0, 1, 0, 1) }));
     trc::Drawable tree({ treeGeo, treeMat, true, true, true }, *scene);
 
     tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
@@ -67,7 +67,7 @@ void run()
     constexpr float kFloorReflectivity{ 0.2f };
     trc::Drawable floor({
         assets.create(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
-        assets.create(trc::MaterialData{
+        assets.create(trc::makeMaterial({
             .specularCoefficient=0.2f,
             .roughness=1.0f - kFloorReflectivity,
             .albedoTexture=assets.create(
@@ -76,7 +76,7 @@ void run()
             .normalTexture=assets.create(
                 trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
             ),
-        }),
+        })),
         true, true, true
     }, *scene);
 

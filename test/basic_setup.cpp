@@ -18,10 +18,10 @@ int main()
     auto& assets = torch.getAssetManager();
 
     trc::GeometryID geo = assets.create(trc::makeTriangleGeo());
-    trc::MaterialID mat = assets.create(trc::MaterialData{
+    trc::MaterialID mat = assets.create(trc::makeMaterial(trc::SimpleMaterialData{
         .color={ 0.392f, 0.624f, 0.82f },
         .doPerformLighting=false,
-    });
+    }));
     trc::Drawable myDrawable(geo, mat, scene);
 
     // Main loop

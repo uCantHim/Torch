@@ -8,7 +8,6 @@ layout (location = 0) in VertexData
 {
     vec3 normal;
     vec3 color;
-    flat uint material;
 } vertexIn;
 
 void main()

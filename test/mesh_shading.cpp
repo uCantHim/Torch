@@ -116,7 +116,6 @@ void run()
     auto sun = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -0.3f, 0), 0.3f);
 
     // Object properties
-    auto mat = torch->getAssetManager().create(trc::MaterialData{ .specularCoefficient=0.0f });
     mat4 modelMatrix = trc::Transformation{}.setScale(0.9f).translateY(0.5f).getTransformationMatrix();
 
     // Mesh draw function
@@ -127,7 +126,6 @@ void run()
             auto layout = *env.currentPipeline->getLayout();
             cmdBuf.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, 0, *set, {});
             cmdBuf.pushConstants<mat4>(layout, vk::ShaderStageFlagBits::eMeshNV, 0, modelMatrix);
-            cmdBuf.pushConstants<ui32>(layout, vk::ShaderStageFlagBits::eMeshNV, 64, ui32(mat));
             cmdBuf.drawMeshTasksNV(meshlets.meshlets.size(), 0, torch->getInstance().getDL());
         }
     );
