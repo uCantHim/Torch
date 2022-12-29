@@ -179,7 +179,9 @@ auto ShaderCodeBuilder::makeIfStatement(Value condition) -> Block
 template<typename T>
 auto ShaderCodeBuilder::makeValue(T&& val) -> Value
 {
-    return values.emplace_back(std::make_unique<ValueT>(std::forward<T>(val))).get();
+    return values.emplace_back(std::make_unique<ValueT>(
+        ValueT{ .value=std::forward<T>(val), .typeAnnotation=std::nullopt }
+    )).get();
 }
 
 void ShaderCodeBuilder::makeStatement(StmtT statement)
@@ -207,6 +209,11 @@ auto ShaderCodeBuilder::makeOrGetBuiltinFunction(const std::string& funcName) ->
     return it->second.get();
 }
 
+void ShaderCodeBuilder::annotateType(Value val, BasicType type)
+{
+    ((ValueT*)val)->typeAnnotation = type;
+}
+
 auto ShaderCodeBuilder::compileFunctionDecls() -> std::string
 {
     std::string res;
@@ -219,8 +226,8 @@ auto ShaderCodeBuilder::compileFunctionDecls() -> std::string
         for (ui32 i = 0; const auto& argType : type.argTypes)
         {
             Value arg = func->getArgs()[i];
-            assert(std::holds_alternative<Identifier>(*arg));
-            res += argType.to_string() + " " + std::get<Identifier>(*arg).name;
+            assert(std::holds_alternative<Identifier>(arg->value));
+            res += argType.to_string() + " " + std::get<Identifier>(arg->value).name;
             if (++i < type.argTypes.size()) {
                 res += ", ";
             }

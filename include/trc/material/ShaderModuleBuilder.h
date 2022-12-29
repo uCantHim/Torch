@@ -53,6 +53,14 @@ namespace trc
         auto makeCapabilityAccess(Capability capability) -> Value;
         auto makeTextureSample(TextureReference tex, Value uvs) -> Value;
 
+        /**
+         * @brief Create a function call statement
+         *
+         * Since the generated instruction is not an expression, it will
+         * never be optimized away if the result is not used. Use this to
+         * call functions that are purely used for side effects, e.g. image
+         * stores.
+         */
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
         void makeCallStatement(std::vector<code::Value> args);
@@ -78,7 +86,19 @@ namespace trc
         void includeCode(util::Pathlet path,
                          std::unordered_map<std::string, Capability> varReplacements);
 
+        struct Settings
+        {
+            bool earlyFragmentTests{ false };
+        };
+
+        /**
+         * Generate an instruction in the shader that enables early
+         * fragment tests.
+         */
+        void enableEarlyFragmentTest();
+
         auto getCapabilityConfig() const -> const ShaderCapabilityConfig&;
+        auto getSettings() const -> const Settings&;
         auto compileResourceDecls() const -> ShaderResources;
         auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
             -> std::string;
@@ -91,6 +111,7 @@ namespace trc
         auto createFunctionDef() -> Function;
 
         ShaderCapabilityConfig config;
+        Settings shaderSettings;
         ShaderResourceInterface resources;
 
         // Keep the includes in insertion order

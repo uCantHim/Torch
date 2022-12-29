@@ -96,6 +96,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         .layoutQualifier=std::nullopt,
         .descriptorContent=std::nullopt,
     });
+    config.addShaderExtension(shadowMapsResource, "GL_EXT_nonuniform_qualifier");
     config.linkCapability(
         FragmentCapability::kShadowMatrices,
         code.makeMemberAccess(config.accessResource(shadowMatrixBufferResource), "shadowMatrices"),

@@ -61,5 +61,8 @@ namespace trc
     public:
         auto compile(ShaderOutputNode& output, ShaderModuleBuilder& builder)
             -> ShaderModule;
+
+    private:
+        static auto compileSettings(const ShaderModuleBuilder::Settings& settings) -> std::string;
     };
 } // namespace trc

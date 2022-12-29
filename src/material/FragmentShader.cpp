@@ -85,6 +85,7 @@ auto FragmentModule::build(bool transparent) -> ShaderModule
         });
 
         auto color = getParam(Parameter::eColor);
+        builder.annotateType(color, vec4{});
 
         {
             //auto ifBlock = builder.makeIfStatement(getParam(Parameter::eEmissive));
@@ -106,6 +107,8 @@ auto FragmentModule::build(bool transparent) -> ShaderModule
 
         builder.makeExternalCallStatement("appendFragment", { color });
     }
+
+    builder.enableEarlyFragmentTest();
 
     return ShaderModuleCompiler{}.compile(output, builder);
 }

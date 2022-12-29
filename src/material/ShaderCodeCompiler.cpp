@@ -28,7 +28,7 @@ auto ShaderValueCompiler::visit(Value val) -> std::string
 {
     // This is the only time that std::visit is called directly, otherwise
     // we always call `this->visit`.
-    auto code = std::visit(*this, *val);
+    auto code = std::visit(*this, val->value);
 
     if (inlineAll) {
         return code;
@@ -152,7 +152,7 @@ auto ShaderBlockCompiler::operator()(const IfStatement& v) -> std::string
 
 auto ShaderBlockCompiler::operator()(const FunctionCall& v) -> std::string
 {
-    code::ValueT value{ v };
+    code::ValueT value{ .value=v, .typeAnnotation=std::nullopt };
     auto [call, preCode] = valueCompiler.compile(&value);
     return preCode + call;
 }

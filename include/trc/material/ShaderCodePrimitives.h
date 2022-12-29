@@ -28,15 +28,7 @@ namespace trc
         struct MemberAccess;
         struct ArrayAccess;
 
-        using ValueT = std::variant<
-            Literal,
-            Identifier,
-            FunctionCall,
-            UnaryOperator,
-            BinaryOperator,
-            MemberAccess,
-            ArrayAccess
-        >;
+        struct ValueT;
 
         struct Return;
         struct Assignment;
@@ -102,6 +94,21 @@ namespace trc
         {
             Value lhs;
             Value index;
+        };
+
+        struct ValueT
+        {
+            std::variant<
+                Literal,
+                Identifier,
+                FunctionCall,
+                UnaryOperator,
+                BinaryOperator,
+                MemberAccess,
+                ArrayAccess
+            > value;
+
+            std::optional<BasicType> typeAnnotation;
         };
 
 

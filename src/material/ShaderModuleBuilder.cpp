@@ -68,9 +68,19 @@ void ShaderModuleBuilder::includeCode(
     }
 }
 
+void ShaderModuleBuilder::enableEarlyFragmentTest()
+{
+    shaderSettings.earlyFragmentTests = true;
+}
+
 auto ShaderModuleBuilder::getCapabilityConfig() const -> const ShaderCapabilityConfig&
 {
     return config;
+}
+
+auto ShaderModuleBuilder::getSettings() const -> const Settings&
+{
+    return shaderSettings;
 }
 
 auto ShaderModuleBuilder::compileResourceDecls() const -> ShaderResources

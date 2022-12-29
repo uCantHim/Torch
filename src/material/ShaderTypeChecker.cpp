@@ -7,7 +7,11 @@ namespace trc
 
 auto ShaderTypeChecker::getType(Value value) -> std::optional<BasicType>
 {
-    return std::visit(*this, *value);
+    if (value->typeAnnotation) {
+        return *value->typeAnnotation;
+    }
+
+    return std::visit(*this, value->value);
 }
 
 auto ShaderTypeChecker::operator()(const code::Literal& v)
@@ -80,7 +84,7 @@ auto ShaderTypeChecker::operator()(const code::MemberAccess&)
 auto ShaderTypeChecker::operator()(const code::ArrayAccess& v)
     -> std::optional<BasicType>
 {
-    return std::visit(*this, *v.lhs);
+    return getType(v.lhs);
 }
 
 } // namespace trc

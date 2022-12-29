@@ -41,8 +41,7 @@ namespace trc
     {
         assert(pcOffsets->size() > pushConstantId);
         assert(pcOffsets->at(pushConstantId) != std::numeric_limits<ui32>::max());
-        assert(pushConstantId == pcOffsets->size() - 1
-               || (pcOffsets->at(pushConstantId + 1) - pcOffsets->at(pushConstantId)) == sizeof(T));
+        assert(pushConstantId < pcOffsets->size());
 
         cmdBuf.pushConstants<T>(layout, vk::ShaderStageFlagBits::eVertex,
                                 pcOffsets->at(pushConstantId), value);

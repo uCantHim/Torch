@@ -62,6 +62,9 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
     std::stringstream ss;
     ss << "#version 460\n";
 
+    // Write additional module settings
+    ss << compileSettings(builder.getSettings());
+
     // Write resources
     ss << resources.getGlslCode() << "\n";
 
@@ -89,6 +92,17 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
         resources,
         {}
     };
+}
+
+auto ShaderModuleCompiler::compileSettings(const ShaderModuleBuilder::Settings& settings)
+    -> std::string
+{
+    std::string result;
+    if (settings.earlyFragmentTests) {
+        result += "layout (early_fragment_tests) in;\n";
+    }
+
+    return result;
 }
 
 } // namespace trc

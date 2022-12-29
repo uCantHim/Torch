@@ -97,6 +97,27 @@ VertexModule::VertexModule(bool animated)
     :
     builder(makeVertexCapabilityConfig())
 {
+    auto tbn = [this, animated]() -> code::Value {
+        auto zero = builder.makeConstant(0.0f);
+
+        auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
+        auto tangentObjspace = builder.makeCapabilityAccess(VertexCapability::kTangent);
+        normalObjspace = builder.makeCall<ToVec4>({ normalObjspace, zero });
+        tangentObjspace = builder.makeCall<ToVec4>({ tangentObjspace, zero });
+        if (animated) {
+            normalObjspace = builder.makeCall<ApplyAnimation>({ normalObjspace });
+            tangentObjspace = builder.makeCall<ApplyAnimation>({ tangentObjspace });
+        }
+
+        auto normal = builder.makeCall<NormalToWorldspace>({ normalObjspace });
+        auto tangent = builder.makeCall<NormalToWorldspace>({ tangentObjspace });
+        auto bitangent = builder.makeExternalCall("cross", { normal, tangent });
+
+        auto tbn = builder.makeExternalCall("mat3", { tangent, bitangent, normal });
+
+        return tbn;
+    }();
+
     fragmentInputProviders = {
         {
             FragmentCapability::kVertexWorldPos,
@@ -120,30 +141,9 @@ VertexModule::VertexModule(bool animated)
                 return builder.makeMemberAccess(worldPos, "xyz");
             }()
         },
-        {
-            FragmentCapability::kTangentToWorldSpaceMatrix,
-            [this, animated]() -> code::Value {
-                auto zero = builder.makeConstant(0.0f);
-
-                auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
-                auto tangentObjspace = builder.makeCapabilityAccess(VertexCapability::kTangent);
-                normalObjspace = builder.makeCall<ToVec4>({ normalObjspace, zero });
-                tangentObjspace = builder.makeCall<ToVec4>({ tangentObjspace, zero });
-                if (animated) {
-                    normalObjspace = builder.makeCall<ApplyAnimation>({ normalObjspace });
-                    tangentObjspace = builder.makeCall<ApplyAnimation>({ tangentObjspace });
-                }
-
-                auto normal = builder.makeCall<NormalToWorldspace>({ normalObjspace });
-                auto tangent = builder.makeCall<NormalToWorldspace>({ tangentObjspace });
-                auto bitangent = builder.makeExternalCall("cross", { normal, tangent });
-
-                auto tbn = builder.makeExternalCall("mat3", { tangent, bitangent, normal });
-
-                return tbn;
-            }()
-        },
-        { FragmentCapability::kVertexUV, builder.makeCapabilityAccess(VertexCapability::kUV) }
+        { FragmentCapability::kTangentToWorldSpaceMatrix, tbn },
+        { FragmentCapability::kVertexUV, builder.makeCapabilityAccess(VertexCapability::kUV) },
+        { FragmentCapability::kVertexNormal, tbn },
     };
 }
 
@@ -164,7 +164,7 @@ auto VertexModule::build(const ShaderModule& fragment) -> ShaderModule
         {
             log::warn << "Warning: [In VertexShaderBuilder::buildVertexShader]: Fragment"
                       << " capability \"" << out.capability.getString()
-                      << "\" is not implemented.\n";
+                      << "\" is requested but not implemented.\n";
         }
     }
 

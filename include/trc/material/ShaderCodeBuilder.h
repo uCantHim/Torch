@@ -58,6 +58,8 @@ namespace trc
         void makeExternalCallStatement(const std::string& funcName, std::vector<code::Value> args);
         auto makeIfStatement(Value condition) -> Block;
 
+        void annotateType(Value val, BasicType type);
+
         auto compileFunctionDecls() -> std::string;
 
         /**
