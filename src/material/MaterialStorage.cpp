@@ -8,12 +8,31 @@
 namespace trc
 {
 
+MaterialKey::MaterialKey(MaterialSpecializationInfo info)
+{
+    if (info.animated) {
+        flags |= Flags::Animated::eTrue;
+    }
+}
+
+MaterialKey::MaterialKey(MaterialSpecializationFlags flags)
+    : flags(flags)
+{}
+
+bool MaterialKey::operator==(const MaterialKey& rhs) const
+{
+    return flags.toIndex() == rhs.flags.toIndex();
+}
+
+
+
 auto makeMaterialProgramSpecialization(
     ShaderModule fragmentModule,
-    const MaterialSpecializationInfo& specialization)
+    const MaterialKey& specialization)
     -> std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>
 {
-    ShaderModule vertexModule = VertexModule{ specialization.animated }.build(fragmentModule);
+    const bool animated = specialization.flags.has(MaterialKey::Flags::Animated::eTrue);
+    ShaderModule vertexModule = VertexModule{ animated }.build(fragmentModule);
 
     return {
         { vk::ShaderStageFlagBits::eVertex,   std::move(vertexModule) },
@@ -52,14 +71,14 @@ auto MaterialStorage::getBaseMaterial(MatID id) const -> const MaterialBaseInfo&
     return materialFactories.at(id).getBase();
 }
 
-auto MaterialStorage::specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime
+auto MaterialStorage::specialize(MatID id, MaterialKey key) -> MaterialRuntime
 {
     if (materialFactories.size() <= id) {
         throw std::out_of_range("[In MaterialStorage::specialize]: No material exists at the"
                                 " given ID " + std::to_string(id));
     }
 
-    return materialFactories.at(id).getOrMake({ .vertexParams=params });
+    return materialFactories.at(id).getOrMake(key);
 }
 
 
@@ -84,10 +103,10 @@ auto MaterialStorage::MaterialSpecializer::getOrMake(MaterialKey specialization)
     if (success)
     {
         auto stages = makeMaterialProgramSpecialization(baseMaterial.fragmentModule,
-                                                        specialization.vertexParams);
+                                                        specialization.flags);
 
         Pipeline::ID basePipeline = determineDrawablePipeline(DrawablePipelineInfo{
-            .animated=specialization.vertexParams.animated,
+            .animated=specialization.flags & MaterialKey::Flags::Animated::eTrue,
             .transparent=baseMaterial.transparent,
         });
         it->second = std::make_unique<MaterialShaderProgram>(

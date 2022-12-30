@@ -6,6 +6,7 @@
 
 #include "MaterialRuntime.h"
 #include "MaterialShaderProgram.h"
+#include "trc/FlagCombination.h"
 #include "trc/Types.h"
 
 namespace trc
@@ -29,32 +30,42 @@ namespace trc
         bool animated;
     };
 
+    /**
+     * Can be created from MaterialSpecializationInfo or directly from its
+     * flag combination type
+     */
     struct MaterialKey
     {
-        bool operator==(const MaterialKey& rhs) const {
-            return vertexParams.animated == rhs.vertexParams.animated;
-        }
+        struct Flags
+        {
+            enum class Animated{ eFalse, eTrue, eMaxEnum };
+        };
 
-        MaterialSpecializationInfo vertexParams;
+        using MaterialSpecializationFlags = FlagCombination<
+            Flags::Animated
+        >;
+
+        struct Hash
+        {
+            constexpr auto operator()(const trc::MaterialKey& key) const -> size_t {
+                return key.flags.toIndex();
+            }
+        };
+
+        MaterialKey() = default;
+        MaterialKey(MaterialSpecializationInfo info);
+        MaterialKey(MaterialSpecializationFlags flags);
+
+        bool operator==(const MaterialKey& rhs) const;
+
+        MaterialSpecializationFlags flags;
     };
-}
 
-template<>
-struct std::hash<trc::MaterialKey>
-{
-    auto operator()(const trc::MaterialKey& key) const -> size_t
-    {
-        return std::hash<bool>{}(key.vertexParams.animated);
-    }
-};
-
-namespace trc
-{
     /**
      * @brief Create a full shader program from basic material information
      */
     auto makeMaterialProgramSpecialization(ShaderModule fragmentModule,
-                                           const MaterialSpecializationInfo& info)
+                                           const MaterialKey& info)
         -> std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
 
     class MaterialStorage
@@ -68,7 +79,7 @@ namespace trc
         void removeMaterial(MatID id);
 
         auto getBaseMaterial(MatID id) const -> const MaterialBaseInfo&;
-        auto specialize(MatID id, MaterialSpecializationInfo params) -> MaterialRuntime;
+        auto specialize(MatID id, MaterialKey key) -> MaterialRuntime;
 
     private:
         class MaterialSpecializer
@@ -87,10 +98,13 @@ namespace trc
             void clear();
 
         private:
+            using Key = MaterialKey;
+            using Hash = MaterialKey::Hash;
+
             const MaterialStorage* storage;
             MaterialBaseInfo baseMaterial;
 
-            std::unordered_map<MaterialKey, u_ptr<MaterialShaderProgram>> specializations;
+            std::unordered_map<Key, u_ptr<MaterialShaderProgram>, Hash> specializations;
         };
 
         const ShaderDescriptorConfig descriptorConfig;
