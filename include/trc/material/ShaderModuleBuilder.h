@@ -44,7 +44,7 @@ namespace trc
     class ShaderModuleBuilder : public ShaderCodeBuilder
     {
     public:
-        explicit ShaderModuleBuilder(ShaderCapabilityConfig conf);
+        explicit ShaderModuleBuilder(const ShaderCapabilityConfig& conf);
 
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
@@ -110,7 +110,7 @@ namespace trc
             requires std::is_default_constructible_v<T>
         auto createFunctionDef() -> Function;
 
-        ShaderCapabilityConfig config;
+        const ShaderCapabilityConfig config;
         Settings shaderSettings;
         ShaderResourceInterface resources;
 

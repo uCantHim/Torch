@@ -42,8 +42,7 @@ void SimpleMaterialData::deserialize(std::istream& is)
 
 auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
 {
-    FragmentModule frag(makeFragmentCapabiltyConfig());
-    auto& builder = frag.getBuilder();
+    ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
 
     code::Value color = builder.makeConstant(vec4(data.color, data.opacity));;
     if (!data.albedoTexture.empty())
@@ -66,6 +65,7 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
         });
     }
 
+    FragmentModule frag;
     frag.setParameter(FragmentModule::Parameter::eColor,          color);
     frag.setParameter(FragmentModule::Parameter::eNormal,         normal);
     frag.setParameter(FragmentModule::Parameter::eSpecularFactor, builder.makeConstant(data.specularCoefficient));
@@ -78,7 +78,7 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
 
     const bool transparent = data.opacity < 1.0f;
 
-    return MaterialData{ frag.build(transparent), transparent };
+    return MaterialData{ frag.build(std::move(builder), transparent), transparent };
 }
 
 

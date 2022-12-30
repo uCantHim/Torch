@@ -36,9 +36,7 @@ auto createMaterial() -> MaterialData
     ));
 
     // Build a material graph
-    auto capabilityConfig = makeFragmentCapabiltyConfig();
-    FragmentModule fragmentModule(capabilityConfig);
-    ShaderModuleBuilder& builder = fragmentModule.getBuilder();
+    ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
 
     auto uvs = builder.makeCapabilityAccess(FragmentCapability::kVertexUV);
     auto texColor = builder.makeTextureSample({ tex }, uvs);
@@ -59,6 +57,7 @@ auto createMaterial() -> MaterialData
     auto normal = builder.makeCall<TangentToWorldspace>({ sampledNormal });
 
     using Param = FragmentModule::Parameter;
+    FragmentModule fragmentModule;
     fragmentModule.setParameter(Param::eColor, mix);
     fragmentModule.setParameter(Param::eNormal, normal);
     fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
@@ -67,7 +66,7 @@ auto createMaterial() -> MaterialData
 
     // Create a pipeline
     const bool transparent{ true };
-    MaterialData materialData{ fragmentModule.build(transparent), transparent };
+    MaterialData materialData{ fragmentModule.build(std::move(builder), transparent), transparent };
 
     return materialData;
 }

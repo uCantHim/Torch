@@ -14,12 +14,6 @@ constexpr std::array<BasicType, FragmentModule::kNumParams> paramTypes{{
     bool{},
 }};
 
-FragmentModule::FragmentModule(ShaderCapabilityConfig config)
-    :
-    builder(std::move(config))
-{
-}
-
 void FragmentModule::setParameter(Parameter param, code::Value value)
 {
     const size_t index = static_cast<size_t>(param);
@@ -31,15 +25,17 @@ void FragmentModule::setParameter(Parameter param, code::Value value)
     output.setParameter(*p, value);
 }
 
-auto FragmentModule::getBuilder() -> ShaderModuleBuilder&
-{
-    return builder;
-}
-
-auto FragmentModule::build(bool transparent) -> ShaderModule
+auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> ShaderModule
 {
     // Ensure that every required parameter exists and has a value
-    fillDefaultValues();
+    fillDefaultValues(builder);
+
+    // Cast the emissive value (bool) to float.
+    auto emissiveParam = *parameters[static_cast<size_t>(Parameter::eEmissive)];
+    output.setParameter(
+        emissiveParam,
+        builder.makeExternalCall("float", { output.getParameter(emissiveParam) })
+    );
 
     if (!transparent)
     {
@@ -110,12 +106,12 @@ auto FragmentModule::build(bool transparent) -> ShaderModule
 
     builder.enableEarlyFragmentTest();
 
-    return ShaderModuleCompiler{}.compile(output, builder);
+    return ShaderModuleCompiler{}.compile(output, std::move(builder));
 }
 
-void FragmentModule::fillDefaultValues()
+void FragmentModule::fillDefaultValues(ShaderModuleBuilder& builder)
 {
-    auto tryFill = [this](Parameter param, Constant constant) {
+    auto tryFill = [&](Parameter param, Constant constant) {
         assert(constant.getType() == paramTypes[static_cast<size_t>(param)]);
 
         const size_t index = static_cast<size_t>(param);

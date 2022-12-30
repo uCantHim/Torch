@@ -44,17 +44,14 @@ namespace trc
             eEmissive,
         };
 
-        explicit FragmentModule(ShaderCapabilityConfig config);
+        FragmentModule() = default;
 
         void setParameter(Parameter param, code::Value value);
-        auto getBuilder() -> ShaderModuleBuilder&;
 
-        auto build(bool transparent) -> ShaderModule;
+        auto build(ShaderModuleBuilder moduleCode, bool transparent) -> ShaderModule;
 
     private:
-        void fillDefaultValues();
-
-        ShaderModuleBuilder builder;
+        void fillDefaultValues(ShaderModuleBuilder& builder);
 
         std::array<std::optional<ParameterID>, kNumParams> parameters;
         ShaderOutputNode output;

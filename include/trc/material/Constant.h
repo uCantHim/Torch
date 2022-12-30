@@ -40,8 +40,6 @@ namespace trc
         std::array<std::byte, kMaxSize> value;
     };
 
-    auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&;
-
     template<int N, typename T>
         requires (N >= 1 && N <= 4)
     Constant::Constant(glm::vec<N, T> val)

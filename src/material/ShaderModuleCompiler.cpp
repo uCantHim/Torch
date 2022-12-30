@@ -35,7 +35,7 @@ auto ShaderModule::getParameterName(ParameterID paramNode) const
 
 
 
-auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilder& builder)
+auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilder builder)
     -> ShaderModule
 {
     // Generate assignments of parameter values to output locations

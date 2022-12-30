@@ -28,7 +28,7 @@ auto ShaderFunction::getType() const -> const FunctionType&
 
 
 
-ShaderModuleBuilder::ShaderModuleBuilder(ShaderCapabilityConfig conf)
+ShaderModuleBuilder::ShaderModuleBuilder(const ShaderCapabilityConfig& conf)
     :
     config(std::move(conf)),
     resources(config, *this)

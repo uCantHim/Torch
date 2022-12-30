@@ -59,7 +59,7 @@ namespace trc
     class ShaderModuleCompiler
     {
     public:
-        auto compile(ShaderOutputNode& output, ShaderModuleBuilder& builder)
+        auto compile(ShaderOutputNode& output, ShaderModuleBuilder builder)
             -> ShaderModule;
 
     private:

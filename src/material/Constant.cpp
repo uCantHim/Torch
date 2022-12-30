@@ -61,29 +61,26 @@ auto Constant::datatype() const -> std::string
 
 auto Constant::toString() const -> std::string
 {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
-}
+    std::string res;
+    const size_t minCapacity = 4 + 2 + getType().channels * 3;
+    res.reserve(minCapacity);
 
-auto operator<<(std::ostream& os, const Constant& c) -> std::ostream&
-{
-    os << c.datatype() << "(" << std::boolalpha;
-    for (ui8 i = 0; i < c.getType().channels; ++i)
+    res += datatype() + "(";
+    for (ui8 i = 0; i < getType().channels; ++i)
     {
-        switch (c.getType().type)
+        switch (getType().type)
         {
-        case BasicType::Type::eBool:   os << c.as<glm::bvec4>()[i]; break;
-        case BasicType::Type::eSint:   os << c.as<ivec4>()[i]; break;
-        case BasicType::Type::eUint:   os << c.as<uvec4>()[i]; break;
-        case BasicType::Type::eFloat:  os << c.as<vec4>()[i]; break;
-        case BasicType::Type::eDouble: os << c.as<glm::dvec4>()[i]; break;
+        case BasicType::Type::eBool:   res += std::to_string(as<glm::bvec4>()[i]); break;
+        case BasicType::Type::eSint:   res += std::to_string(as<ivec4>()[i]); break;
+        case BasicType::Type::eUint:   res += std::to_string(as<uvec4>()[i]); break;
+        case BasicType::Type::eFloat:  res += std::to_string(as<vec4>()[i]); break;
+        case BasicType::Type::eDouble: res += std::to_string(as<glm::dvec4>()[i]); break;
         }
-        if (i < c.getType().channels - 1) os << ", ";
+        if (i < getType().channels - 1) res += ", ";
     }
-    os << ")";
+    res += ")";
 
-    return os;
+    return res;
 }
 
 } // namespace trc

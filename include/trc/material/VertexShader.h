@@ -40,7 +40,7 @@ namespace trc
     public:
         explicit VertexModule(bool animated);
 
-        auto build(const ShaderModule& fragment) -> ShaderModule;
+        auto build(const ShaderModule& fragment) && -> ShaderModule;
 
     private:
         static auto makeVertexCapabilityConfig() -> ShaderCapabilityConfig;

@@ -13,8 +13,7 @@ auto makeMaterialProgramSpecialization(
     const MaterialSpecializationInfo& specialization)
     -> std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>
 {
-    VertexModule vertexShader(specialization.animated);
-    ShaderModule vertexModule = vertexShader.build(fragmentModule);
+    ShaderModule vertexModule = VertexModule{ specialization.animated }.build(fragmentModule);
 
     return {
         { vk::ShaderStageFlagBits::eVertex,   std::move(vertexModule) },
