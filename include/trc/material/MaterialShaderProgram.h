@@ -25,57 +25,52 @@ namespace trc
         std::unordered_map<std::string, DescriptorInfo> descriptorInfos;
     };
 
+    struct MaterialProgramData
+    {
+        struct PushConstantRange
+        {
+            ui32 offset;
+            ui32 size;
+            vk::ShaderStageFlags shaderStages;
+
+            ui32 userId;
+        };
+
+        std::unordered_map<vk::ShaderStageFlagBits, std::vector<ui32>> spirvCode;
+
+        std::vector<std::pair<ui32, AssetReference<Texture>>> textures;
+        std::vector<PushConstantRange> pushConstants;
+        std::vector<PipelineLayoutTemplate::Descriptor> descriptorSets;
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is);
+    };
+
+    /**
+     * @brief Create a shader program from a set of shader modules
+     */
+    auto makeMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>)
+        -> MaterialProgramData;
+
     /**
      * @brief A complete specialization of a base fragment shader
      */
     class MaterialShaderProgram
     {
     public:
-        MaterialShaderProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
-                              Pipeline::ID basePipeline,
-                              const ShaderDescriptorConfig& descriptorConfig);
+        MaterialShaderProgram(const MaterialProgramData& data, Pipeline::ID basePipeline);
 
         auto getLayout() const -> const PipelineLayoutTemplate&;
-
-        auto makeRuntime() -> MaterialRuntime;
+        auto makeRuntime() const -> MaterialRuntime;
 
     private:
         using ShaderStageMap = std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
 
-        /** @throw std::runtime_error if compilation fails */
-        static auto compileShader(vk::ShaderStageFlagBits shaderStage, const std::string& glslCode)
-            -> std::vector<ui32>;
-
-        /** Compile GLSL source to SPIRV */
-        static auto makeProgram(const ShaderStageMap& stages,
-                                const PipelineLayoutTemplate& layout)
-            -> ProgramDefinitionData;
-
-        /**
-         * Collect resources and create a pipeline layout for the shader
-         * module.
-         *
-         * TODO Currently not implemented properly:
-         *
-         *  - non-static descriptor sets at runtime. Would require a
-         *    mechanism like the RuntimePushConstantHandler for descriptor
-         *    sets
-         *
-         *  - push constant ranges for different shader stages
-         */
-        static auto makeLayout(const ShaderStageMap& stages,
-                               const ShaderDescriptorConfig& descConf)
-            -> PipelineLayoutTemplate;
-
-        void initPipeline();
-
-        /** The program does not yet contain specialization constants! */
-        ProgramDefinitionData program;
-        PipelineLayoutTemplate layout;
+        static auto makeLayout(const MaterialProgramData& data) -> PipelineLayoutTemplate;
+        static auto makePipeline(const MaterialProgramData& data) -> Pipeline::ID;
 
         Pipeline::ID basePipeline;
-        std::vector<ShaderResources::PushConstantInfo> pushConstantConfig;
-        std::vector<std::pair<ui32, TextureReference>> specializationTextures;
+        PipelineLayoutTemplate layout;
 
         Pipeline::ID pipeline{ Pipeline::ID::NONE };
         s_ptr<std::vector<ui32>> runtimePcOffsets{ new std::vector<ui32> };

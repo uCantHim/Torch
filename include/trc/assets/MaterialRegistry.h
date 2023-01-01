@@ -17,8 +17,7 @@
 #include "trc/assets/AssetSource.h"
 #include "trc/assets/TextureRegistry.h"
 #include "trc/base/Buffer.h"
-
-#include "trc/material/MaterialStorage.h"
+#include "trc/material/MaterialSpecialization.h"
 
 namespace trc
 {
@@ -32,39 +31,16 @@ namespace trc
     template<>
     struct AssetData<Material>
     {
+        AssetData() = default;
         AssetData(ShaderModule fragModule, bool transparent);
 
-        ShaderModule fragmentModule;
-
+        std::unordered_map<MaterialKey, MaterialProgramData> programs;
         bool transparent{ false };
 
         void resolveReferences(AssetManager& man);
 
         void serialize(std::ostream& os) const;
         void deserialize(std::istream& is);
-    };
-
-    template<>
-    class AssetHandle<Material>
-    {
-    public:
-        bool isTransparent() const {
-            return storage->getBaseMaterial(baseId).transparent;
-        }
-
-        auto getRuntime(MaterialSpecializationInfo params) const -> MaterialRuntime
-        {
-            assert(storage != nullptr);
-            return storage->specialize(baseId, params);
-        }
-
-    private:
-        friend class MaterialRegistry;
-        AssetHandle(ui32 id, MaterialStorage& storage)
-            : baseId(id), storage(&storage) {}
-
-        ui32 baseId;
-        MaterialStorage* storage;
     };
 
     using MaterialHandle = AssetHandle<Material>;
@@ -94,12 +70,56 @@ namespace trc
         auto getHandle(LocalID id) -> MaterialHandle override;
 
     private:
+        friend Handle;
+
+        struct Storage
+        {
+            auto getSpecialization(const MaterialKey& key) const -> MaterialRuntime
+            {
+                assert(runtimePrograms.at(key.flags.toIndex()) != nullptr);
+                return runtimePrograms.at(key.flags.toIndex())->makeRuntime();
+            }
+
+            MaterialData data;
+            std::array<
+                u_ptr<const MaterialShaderProgram>,
+                MaterialKey::MaterialSpecializationFlags::size()
+            > runtimePrograms;
+        };
+
+        const ShaderDescriptorConfig descriptorConfig;
+
         std::mutex materialStorageLock;
-        MaterialStorage storage;
+        data::IdPool localIdPool;
+        data::IndexMap<LocalID, u_ptr<Storage>> storage;
 
         Buffer materialBuffer;
 
         // Descriptor
         SharedDescriptorSet::Binding descBinding;
+    };
+
+    template<>
+    class AssetHandle<Material>
+    {
+    public:
+        bool isTransparent() const
+        {
+            assert(storage != nullptr);
+            return storage->data.transparent;
+        }
+
+        auto getRuntime(MaterialSpecializationInfo params) const -> MaterialRuntime
+        {
+            assert(storage != nullptr);
+            return storage->getSpecialization(params);
+        }
+
+    private:
+        friend class MaterialRegistry;
+        AssetHandle(MaterialRegistry::Storage& storage)
+            : storage(&storage) {}
+
+        MaterialRegistry::Storage* storage;
     };
 } // namespace trc

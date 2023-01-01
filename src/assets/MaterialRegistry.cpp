@@ -3,14 +3,22 @@
 #include "geometry.pb.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/drawable/DefaultDrawable.h"
 
 
 
 trc::AssetData<trc::Material>::AssetData(ShaderModule fragModule, bool transparent)
     :
-    fragmentModule(std::move(fragModule)),
     transparent(transparent)
 {
+    auto specialize = [this, &fragModule](const MaterialSpecializationInfo& info)
+    {
+        programs[MaterialKey{ info }]
+            = makeMaterialProgram(makeMaterialSpecialization(fragModule, info));
+    };
+
+    specialize(MaterialSpecializationInfo{ .animated=false });
+    specialize(MaterialSpecializationInfo{ .animated=true });
 }
 
 void trc::AssetData<trc::Material>::serialize(std::ostream&) const
@@ -25,10 +33,11 @@ void trc::AssetData<trc::Material>::deserialize(std::istream&)
 
 void trc::AssetData<trc::Material>::resolveReferences(AssetManager& assetManager)
 {
-    for (const auto& tex : fragmentModule.getRequiredTextures())
+    for (auto& [_, program] : programs)
     {
-        auto mut = tex.ref.texture;
-        mut.resolve(assetManager);
+        for (auto& [_, ref] : program.textures) {
+            ref.resolve(assetManager);
+        }
     }
 }
 
@@ -36,7 +45,7 @@ void trc::AssetData<trc::Material>::resolveReferences(AssetManager& assetManager
 
 trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
     :
-    storage(info.descriptorConfig),
+    descriptorConfig(info.descriptorConfig),
     materialBuffer(
         info.device,
         std::vector<std::byte>(100, std::byte{0x00}),
@@ -60,13 +69,27 @@ void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 
 auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 {
-    auto data = source->load();
-
     std::scoped_lock lock(materialStorageLock);
-    LocalID id = LocalID(storage.registerMaterial({
-        .fragmentModule=data.fragmentModule,
-        .transparent=data.transparent,
-    }));
+    const LocalID id{ localIdPool.generate() };
+    auto& mat = *storage.emplace(id, new Storage{
+        .data=source->load(),
+        .runtimePrograms={ nullptr }
+    });
+
+    // Create all runtime programs
+    for (const auto& [key, program] : mat.data.programs)
+    {
+        Pipeline::ID basePipeline = determineDrawablePipeline(DrawablePipelineInfo{
+            .animated=key.flags.has(MaterialKey::Flags::Animated::eTrue),
+            .transparent=mat.data.transparent
+        });
+        mat.runtimePrograms.at(key.flags.toIndex())
+            = std::make_unique<MaterialShaderProgram>(program, basePipeline);
+
+        auto rt = mat.runtimePrograms.at(key.flags.toIndex())->makeRuntime();
+        auto _rt = mat.getSpecialization(key);
+        assert(rt.getPipeline() != Pipeline::ID::NONE);
+    }
 
     return id;
 }
@@ -74,11 +97,16 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 void trc::MaterialRegistry::remove(LocalID id)
 {
     std::scoped_lock lock(materialStorageLock);
-    storage.removeMaterial(id);
+    assert(storage.size() > id);
+
+    storage[id] = {};
+    localIdPool.free(id);
 }
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
     std::scoped_lock lock(materialStorageLock);
-    return Handle{ id, storage };
+    assert(storage.size() > id);
+
+    return Handle{ *storage.at(id) };
 }
