@@ -13,7 +13,7 @@ message Asset
     {
         Geometry geometry = 1;
         Texture texture = 2;
-        Material material = 3;
+        SimpleMaterial material = 3;
         Rig rig = 4;
         Animation animation = 5;
     }

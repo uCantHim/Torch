@@ -190,9 +190,9 @@ auto deserializeAssetData(const trc::serial::Texture& tex) -> TextureData
     return data;
 }
 
-auto serializeAssetData(const SimpleMaterialData& data) -> trc::serial::Material
+auto serializeAssetData(const SimpleMaterialData& data) -> trc::serial::SimpleMaterial
 {
-    trc::serial::Material mat;
+    trc::serial::SimpleMaterial mat;
 
     *mat.mutable_color() = convert(data.color);
 
@@ -215,7 +215,7 @@ auto serializeAssetData(const SimpleMaterialData& data) -> trc::serial::Material
     return mat;
 }
 
-auto deserializeAssetData(const trc::serial::Material& mat) -> SimpleMaterialData
+auto deserializeAssetData(const trc::serial::SimpleMaterial& mat) -> SimpleMaterialData
 {
     SimpleMaterialData data{
         .color = convert(mat.color()),

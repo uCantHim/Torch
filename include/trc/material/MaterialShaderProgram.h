@@ -7,6 +7,7 @@
 #include "MaterialRuntime.h"
 #include "ShaderModuleCompiler.h"
 #include "ShaderResourceInterface.h"
+#include "material_shader_program.pb.h"
 #include "trc/core/PipelineLayoutTemplate.h"
 #include "trc/core/PipelineTemplate.h"
 
@@ -42,6 +43,8 @@ namespace trc
         std::vector<PushConstantRange> pushConstants;
         std::vector<PipelineLayoutTemplate::Descriptor> descriptorSets;
 
+        auto serialize() const -> serial::ShaderProgram;
+        void deserialize(const serial::ShaderProgram& program);
         void serialize(std::ostream& os) const;
         void deserialize(std::istream& is);
     };

@@ -19,13 +19,13 @@ namespace trc
     {
         auto serializeAssetData(const AssetData<Geometry>& data) -> serial::Geometry;
         auto serializeAssetData(const AssetData<Texture>& data)  -> serial::Texture;
-        auto serializeAssetData(const SimpleMaterialData& data)  -> serial::Material;
+        auto serializeAssetData(const SimpleMaterialData& data)  -> serial::SimpleMaterial;
         auto serializeAssetData(const AssetData<Rig>& data)  -> serial::Rig;
         auto serializeAssetData(const AssetData<Animation>& data)  -> serial::Animation;
 
         auto deserializeAssetData(const serial::Geometry& geo) -> GeometryData;
         auto deserializeAssetData(const serial::Texture& tex)  -> TextureData;
-        auto deserializeAssetData(const serial::Material& mat) -> SimpleMaterialData;
+        auto deserializeAssetData(const serial::SimpleMaterial& mat) -> SimpleMaterialData;
         auto deserializeAssetData(const serial::Rig& rig) -> RigData;
         auto deserializeAssetData(const serial::Animation& anim) -> AnimationData;
     }

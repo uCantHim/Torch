@@ -8,6 +8,8 @@ protobuf_generate_cpp(
     protobuf/animation.proto
     protobuf/font.proto
 
+    protobuf/material_shader_program.proto
+
     protobuf/asset.proto
     protobuf/asset_reference.proto
 )

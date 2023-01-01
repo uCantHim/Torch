@@ -1,6 +1,6 @@
 #include "trc/assets/MaterialRegistry.h"
 
-#include "geometry.pb.h"
+#include "material.pb.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 #include "trc/drawable/DefaultDrawable.h"
@@ -21,14 +21,39 @@ trc::AssetData<trc::Material>::AssetData(ShaderModule fragModule, bool transpare
     specialize(MaterialSpecializationInfo{ .animated=true });
 }
 
-void trc::AssetData<trc::Material>::serialize(std::ostream&) const
+void trc::AssetData<trc::Material>::serialize(std::ostream& os) const
 {
-    throw std::runtime_error("MaterialData::serialize not implemented!");
+    serial::Material mat;
+    mat.mutable_settings()->set_transparent(transparent);
+    for (const auto& [key, program] : programs)
+    {
+        auto newSpec = mat.add_specializations();
+        *newSpec->mutable_shader_program() = program.serialize();
+        newSpec->set_animated(key.flags.has(MaterialKey::Flags::Animated::eTrue));
+    }
+
+    mat.SerializeToOstream(&os);
 }
 
-void trc::AssetData<trc::Material>::deserialize(std::istream&)
+void trc::AssetData<trc::Material>::deserialize(std::istream& is)
 {
-    throw std::runtime_error("MaterialData::deserialize not implemented!");
+    serial::Material mat;
+    mat.ParseFromIstream(&is);
+
+    // Parse settings
+    transparent = mat.settings().transparent();
+
+    // Parse specializations
+    programs.clear();
+    for (const auto& spec : mat.specializations())
+    {
+        MaterialProgramData program;
+        program.deserialize(spec.shader_program());
+        programs.try_emplace(
+            MaterialSpecializationInfo{ .animated=spec.animated() },
+            std::move(program)
+        );
+    }
 }
 
 void trc::AssetData<trc::Material>::resolveReferences(AssetManager& assetManager)

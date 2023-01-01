@@ -3,8 +3,9 @@ package trc.serial;
 
 import "vector_types.proto";
 import "asset_reference.proto";
+import "material_shader_program.proto";
 
-message Material
+message SimpleMaterial
 {
     vec3 color = 1;
 
@@ -19,4 +20,21 @@ message Material
 
     optional AssetReference albedo_texture = 8;
     optional AssetReference normal_texture = 9;
+}
+
+message Material
+{
+    message Settings
+    {
+        bool transparent = 1;
+    }
+
+    message Specialization
+    {
+        ShaderProgram shader_program = 1;
+        bool animated = 2;
+    }
+
+    Settings settings = 1;
+    repeated Specialization specializations = 2;
 }

@@ -10,8 +10,10 @@
 #include <spirv/CompileSpirv.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
-#include "trc/VulkanInclude.h"
+#include "material_shader_program.pb.h"
 #include "trc/ShaderLoader.h"
+#include "trc/VulkanInclude.h"
+#include "trc/assets/import/InternalFormat.h"
 #include "trc/base/Logging.h"
 #include "trc/core/PipelineRegistry.h"
 #include "trc/material/TorchMaterialSettings.h"
@@ -219,14 +221,98 @@ auto makeMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModul
     return data;
 }
 
-void MaterialProgramData::serialize(std::ostream&) const
+auto MaterialProgramData::serialize() const -> serial::ShaderProgram
 {
-    throw std::logic_error("Not implemented");
+    serial::ShaderProgram prog;
+    for (const auto& [stage, mod] : spirvCode)
+    {
+        auto newModule = prog.add_shader_modules();
+        newModule->set_spirv_code(mod.data(), mod.size() * sizeof(ui32));
+        newModule->set_stage(static_cast<serial::ShaderStageBit>(stage));
+    }
+
+    for (const auto& range : pushConstants)
+    {
+        auto pc = prog.add_push_constants();
+        pc->set_offset(range.offset);
+        pc->set_size(range.size);
+        pc->set_shader_stage_flags(static_cast<ui32>(range.shaderStages));
+        pc->set_user_id(range.userId);
+    }
+
+    for (const auto& desc : descriptorSets)
+    {
+        auto newSet = prog.add_descriptor_sets();
+        newSet->set_name(desc.name.identifier);
+        newSet->set_is_static(desc.isStatic);
+    }
+
+    for (const auto& [idx, ref] : textures)
+    {
+        if (!ref.hasAssetPath())
+        {
+            log::warn << "[In MaterialProgramData::serialize]:"
+                         " Tried to serialize a texture reference without an asset path."
+                         " The texture will be excluded from the serialized result.\n";
+            continue;
+        }
+
+        serial::AssetReference newRef;
+        newRef.set_unique_path(ref.getAssetPath().getUniquePath());
+        prog.mutable_textures()->emplace(idx, std::move(newRef));
+    }
+
+    return prog;
 }
 
-void MaterialProgramData::deserialize(std::istream&)
+void MaterialProgramData::deserialize(const serial::ShaderProgram& prog)
 {
-    throw std::logic_error("Not implemented");
+    *this = {};  // Clear all data
+
+    for (const auto& mod : prog.shader_modules())
+    {
+        auto [it, _] = spirvCode.try_emplace(static_cast<vk::ShaderStageFlagBits>(mod.stage()));
+        auto& code = it->second;
+
+        assert(mod.spirv_code().size() % sizeof(ui32) == 0);
+        code.resize(mod.spirv_code().size() / sizeof(ui32));
+        memcpy(code.data(), mod.spirv_code().data(), mod.spirv_code().size());
+    }
+
+    for (const auto& range : prog.push_constants())
+    {
+        pushConstants.push_back({
+            .offset=range.offset(),
+            .size=range.size(),
+            .shaderStages=vk::ShaderStageFlags(range.shader_stage_flags()),
+            .userId=range.user_id()
+        });
+    }
+
+    for (const auto& desc : prog.descriptor_sets())
+    {
+        descriptorSets.push_back(PipelineLayoutTemplate::Descriptor{
+            .name=DescriptorName{ desc.name() },
+            .isStatic=desc.is_static()
+        });
+    }
+
+    for (const auto& [idx, ref] : prog.textures())
+    {
+        textures.emplace_back(idx, AssetReference<Texture>(AssetPath(ref.unique_path())));
+    }
+}
+
+void MaterialProgramData::serialize(std::ostream& os) const
+{
+    serialize().SerializeToOstream(&os);
+}
+
+void MaterialProgramData::deserialize(std::istream& is)
+{
+    serial::ShaderProgram prog;
+    prog.ParseFromIstream(&is);
+    deserialize(prog);
 }
 
 
