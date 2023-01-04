@@ -8,10 +8,11 @@ target_sources(UnitTests
         test_basic_type.cpp
         test_shader_code_typechecker.cpp
         test_shader_loader.cpp
-        util_tests/test_object_pool.cpp
         util_tests/test_maybe.cpp
-        util_tests/test_threadsafe_queue.cpp
+        util_tests/test_memory_stream.cpp
+        util_tests/test_object_pool.cpp
         util_tests/test_thread_pool.cpp
+        util_tests/test_threadsafe_queue.cpp
 )
 
 target_link_libraries(UnitTests PRIVATE torch)

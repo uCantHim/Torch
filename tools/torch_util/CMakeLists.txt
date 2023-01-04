@@ -3,6 +3,7 @@ project(torch_util_lib)
 add_library(torch_util STATIC
     src/ArgParse.cpp
     src/InterProcessLock.cpp
+    src/MemoryStream.cpp
     src/StringManip.cpp
     src/Timer.cpp
     src/Util.cpp
