@@ -85,9 +85,9 @@ App::App(Project _project)
     initDefaultAssets(*assetManager);
 
     auto& ar = getAssets();
-    auto mg = ar.create(trc::MaterialData{ .color=vec4(0, 0.6, 0, 1), .specularCoefficient=0.0f });
-    auto mr = ar.create(trc::MaterialData{ .color=vec4(1, 0, 0, 1) });
-    auto mo = ar.create(trc::MaterialData{ .color=vec4(1, 0.35f, 0, 1) });
+    auto mg = ar.create(trc::makeMaterial({ .color=vec4(0, 0.6, 0, 1), .specularCoefficient=0.0f }));
+    auto mr = ar.create(trc::makeMaterial({ .color=vec4(1, 0, 0, 1) }));
+    auto mo = ar.create(trc::makeMaterial({ .color=vec4(1, 0.35f, 0, 1) }));
 
     auto planeData = trc::makePlaneGeo(20, 20, 1, 1);
     auto gi = ar.create(planeData);

@@ -38,8 +38,6 @@ namespace gui
         void drawEntryContextMenu(const trc::AssetPath& path);
         void drawDefaultEntryContext(const trc::AssetPath& path);
 
-        void editMaterial(trc::MaterialID mat);
-
         void defer(std::function<void(ProjectDirectory&)> func);
         std::vector<std::function<void(ProjectDirectory&)>> deferredFunctions;
     };

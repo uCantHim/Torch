@@ -21,18 +21,18 @@ void initDefaultAssets(trc::AssetManager& am)
     defaultGeos.cube = am.create(trc::makeCubeGeo());
     defaultGeos.sphere = am.create(trc::makeSphereGeo());
 
-    defaultMats.undefined = am.create(trc::MaterialData{
+    defaultMats.undefined = am.create(trc::makeMaterial({
         .color=vec3(0.3f, 0.3f, 0.3f),
         .specularCoefficient=0.0f
-    });
-    defaultMats.objectHighlight = am.create(trc::MaterialData{
+    }));
+    defaultMats.objectHighlight = am.create(trc::makeMaterial({
         .color=vec3(1.0f),
-        .doPerformLighting=false,
-    });
-    defaultMats.objectSelect = am.create(trc::MaterialData{
+        .emissive=false,
+    }));
+    defaultMats.objectSelect = am.create(trc::makeMaterial({
         .color=vec3(1.0f, 0.8f, 0.0f),
-        .doPerformLighting=false,
-    });
+        .emissive=false,
+    }));
 }
 
 auto g::geos() -> const DefaultGeometries&

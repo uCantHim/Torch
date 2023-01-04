@@ -5,7 +5,6 @@
 #include <trc/util/TorchDirectories.h>
 
 #include "ImguiUtil.h"
-#include "MaterialEditor.h"
 #include "asset/ImportProcessor.h"
 #include "asset/ProjectDirectory.h"
 #include "App.h"
@@ -165,38 +164,11 @@ void gui::AssetEditor::drawAssetCreateButton()
         }
         else
         {
-            if (ig::Selectable("Material"))
-            {
-                mainMenu.openWindow([this]() -> bool
-                {
-                    return assetNameInputPopupModal(
-                        "Create Material",
-                        dir,
-                        [this](trc::AssetPath path) {
-                            auto newMat = assets.create<trc::Material>(path);
-                            dir.save<trc::Material>(path, {}, true);
-                            editMaterial(newMat);
-                        }
-                    );
-                });
-            }
-
             ig::Selectable("Geometry", &geoSelected, ImGuiSelectableFlags_DontClosePopups);
             ig::Selectable("Texture",  &texSelected, ImGuiSelectableFlags_DontClosePopups);
         }
         ig::EndPopup();
     }
-}
-
-void gui::AssetEditor::editMaterial(trc::MaterialID mat)
-{
-    mainMenu.openWindow(MaterialEditorWindow(
-        mat,
-        [this](trc::MaterialID mat, trc::MaterialData data) {
-            // Save changes to disk
-            dir.save(trc::AssetPath(mat.getMetaData().path.value()), data, true);
-        }
-    ));
 }
 
 void gui::AssetEditor::drawAssetList()
@@ -241,7 +213,8 @@ void gui::AssetEditor::drawEntryContextMenu<trc::Geometry>(const trc::AssetPath&
 {
     if (ig::Button("Create in scene"))
     {
-        const auto mat = assets.create(trc::MaterialData{ .color=vec4(1.0f) });
+        static const auto mat = assets.create(trc::makeMaterial({ .color=vec4(1.0f) }));
+
         auto obj = app.getScene().createObject();
         app.getScene().add<trc::Drawable>(obj, trc::Drawable(
             assets.get<trc::Geometry>(path),
@@ -255,11 +228,6 @@ void gui::AssetEditor::drawEntryContextMenu<trc::Geometry>(const trc::AssetPath&
 template<>
 void gui::AssetEditor::drawEntryContextMenu<trc::Material>(const trc::AssetPath& path)
 {
-    if (ig::Button("Edit"))
-    {
-        const auto id = assets.get<trc::Material>(path);
-        editMaterial(id);
-    }
     drawDefaultEntryContext(path);
 }
 
