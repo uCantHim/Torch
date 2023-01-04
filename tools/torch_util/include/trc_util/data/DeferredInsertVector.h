@@ -180,7 +180,7 @@ namespace trc::data
     }
 
     template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::iter() -> GuardedRange
+    auto DeferredInsertVector<T>::iter() -> algorithm::GuardedRange<iterator, std::mutex>
     {
         std::unique_lock lock(itemsLock);
         return { items.begin(), items.end(), std::move(lock) };
