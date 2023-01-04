@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include <iostream>
+#include <sstream>
 
 #include <shader_tools/ShaderDocument.h>
 #include <spirv/CompileSpirv.h>
@@ -11,20 +12,33 @@
 #include <trc/material/FragmentShader.h>
 #include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/TorchMaterialSettings.h>
+#include <trc/util/TorchDirectories.h>
 
 using namespace trc;
 
 /**
+ * @brief Import a texture and store it in Torch's internal texture format
+ */
+auto importTexture(fs::path filePath) -> AssetPath
+{
+    const AssetPath path(filePath.filename().replace_extension(".ta"));
+    std::ofstream outFile(path.getFilesystemPath());
+    loadTexture(filePath).serialize(outFile);
+
+    return path;
+}
+
+/**
  * Manually create a material by specifying fragment shader calculations
  */
-auto createMaterial() -> MaterialData
+auto createMaterial(AssetManager& assetManager) -> MaterialData
 {
-    AssetReference<Texture> tex(std::make_unique<InMemorySource<Texture>>(
-        loadTexture(TRC_TEST_ASSET_DIR"/lena.png")
-    ));
-    AssetReference<Texture> normalMap(std::make_unique<InMemorySource<Texture>>(
-        loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
-    ));
+    trc::util::setProjectDirectory(TRC_TEST_ASSET_DIR"/..");
+
+    const auto lenaPath = importTexture(TRC_TEST_ASSET_DIR"/lena.png");
+    const auto stonePath = importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif");
+    AssetReference<Texture> tex(lenaPath);
+    AssetReference<Texture> normalMap(stonePath);
 
     // Build a material graph
     ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
@@ -64,8 +78,6 @@ auto createMaterial() -> MaterialData
 
 int main()
 {
-    const auto materialData = createMaterial();
-
     // Initialize Torch
     auto torch = initFull(InstanceCreateInfo{ .enableRayTracing=false });
     auto& assetManager = torch->getAssetManager();
@@ -76,6 +88,19 @@ int main()
 
     Scene scene;
     scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
+
+    // Create a fancy material
+    auto materialData = createMaterial(assetManager);
+
+    // Demonstrate serialization and deserialization
+    {
+        std::stringstream stream;
+        materialData.serialize(stream);
+        stream.flush();
+
+        materialData = {};
+        materialData.deserialize(stream);
+    }
 
     // Load resources
     auto cubeGeo = assetManager.create(makeCubeGeo());
