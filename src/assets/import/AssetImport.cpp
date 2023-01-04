@@ -72,9 +72,9 @@ auto trc::loadTexture(const fs::path& filePath) -> TextureData
             .pixels = std::move(image.pixels),
         };
     }
-    catch (...)
+    catch (const std::runtime_error& err)
     {
         throw DataImportError("[In loadTexture]: Unable to import texture from "
-                              + filePath.string());
+                              + filePath.string() + ": " + err.what());
     }
 }
