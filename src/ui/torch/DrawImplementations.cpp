@@ -131,29 +131,6 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
 
 
 
-void trc::ui_impl::DrawCollector::initStaticResources()
-{
-    static bool initialized{ false };
-    if (initialized) return;
-    initialized = true;
-
-    // Set up resource loading callbacks
-    ui::initUserCallbacks(
-        // Callback on font load
-        [] (ui32 fontIndex, const GlyphCache& cache)
-        {
-            existingFonts.emplace_back(fontIndex, cache);
-            for (auto collector : existingCollectors) {
-                collector->addFont(fontIndex, cache);
-            }
-        },
-        // Callback on image load
-        [](auto) {}
-    );
-}
-
-
-
 trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRenderer& renderer)
     :
     device(device),
@@ -226,8 +203,6 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     )
 {
-    initStaticResources();
-
     // Create descriptor pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
         vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 30),
@@ -240,19 +215,6 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
             poolSizes
         )
     );
-
-    existingCollectors.push_back(this);
-    for (auto& [i, cache] : existingFonts) {
-        addFont(i, cache);
-    }
-}
-
-trc::ui_impl::DrawCollector::~DrawCollector()
-{
-    auto it = std::find(existingCollectors.begin(), existingCollectors.end(), this);
-    if (it != existingCollectors.end()) {
-        existingCollectors.erase(it);
-    }
 }
 
 void trc::ui_impl::DrawCollector::beginFrame()
@@ -354,13 +316,29 @@ void trc::ui_impl::DrawCollector::endFrame(vk::CommandBuffer cmdBuf, uvec2 windo
     }
 }
 
+void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, GlyphCache& cache)
+{
+    auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, cache);
+    if (!success) {
+        log::warn << "Unable to add font of index " << fontIndex
+                  << ": a font already exists at the same index.\n";
+        return;
+    }
+
+    // Force-load a standard set of glyphs
+    for (wchar_t c = 32; c < 128; c++) {
+        it->second.getGlyphUvs(c);
+    }
+    updateFontDescriptor();
+}
+
 trc::ui_impl::DrawCollector::FontInfo::FontInfo(
     const Device& device,
     ui32 fontIndex,
-    const GlyphCache& cache)
+    GlyphCache& cache)
     :
     fontIndex(fontIndex),
-    glyphCache(cache),
+    glyphCache(&cache),
     glyphMap(new GlyphMap(device)),
     imageView(glyphMap->getGlyphImage().createView(vk::ImageViewType::e2D, vk::Format::eR8Unorm))
 {
@@ -372,7 +350,7 @@ auto trc::ui_impl::DrawCollector::FontInfo::getGlyphUvs(wchar_t character)
     auto& [isLoaded, uvs] = glyphTextureCoords[character];
     if (!isLoaded)
     {
-        uvs = glyphMap->addGlyph(ui::FontRegistry::getGlyph(fontIndex, character));
+        uvs = glyphMap->addGlyph(glyphCache->getGlyph(character));
         isLoaded = true;
     }
 
@@ -454,21 +432,6 @@ void trc::ui_impl::DrawCollector::add(vec2 pos, vec2 size, const ui::ElementStyl
     lineBuffer.push({ { pos.x, ur.y }, ur, elem.borderColor });
 
     bufferRanges.back().lineCount += 4;
-}
-
-void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyphCache)
-{
-    auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
-    if (!success) {
-        log::warn << "Unable to add font of index " << fontIndex << "\n";
-        return;
-    }
-
-    // Force-load a standard set of glyphs
-    for (wchar_t c = 32; c < 256; c++) {
-        it->second.getGlyphUvs(c);
-    }
-    updateFontDescriptor();
 }
 
 void trc::ui_impl::DrawCollector::updateFontDescriptor()

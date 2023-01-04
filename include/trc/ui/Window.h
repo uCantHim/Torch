@@ -1,8 +1,11 @@
 #pragma once
 
-#include "trc/text/GlyphLoading.h"
+#include <concepts>
+#include <functional>
+#include <vector>
+
 #include "trc/ui/Element.h"
-#include "trc/ui/FontRegistry.h"
+#include "trc/ui/FontLoader.h"
 #include "trc/ui/IoConfig.h"
 
 namespace trc::ui
@@ -53,16 +56,6 @@ namespace trc::ui
         Window* window;
     };
 
-    /**
-     * @brief Initialize global callbacks to the user
-     *
-     * The user is notified when a resource is loaded, for example. These
-     * callbacks are usually set by the active backend that has to manage
-     * its versions of loaded resources.
-     */
-    void initUserCallbacks(std::function<void(ui32, const GlyphCache&)> onFontLoad,
-                           std::function<void(ui32)>                    onImageLoad);
-
     class WindowBackend
     {
     public:
@@ -74,6 +67,7 @@ namespace trc::ui
     struct WindowCreateInfo
     {
         u_ptr<WindowBackend> windowBackend;
+        FontLoader& fontLoader;
         std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
 
         KeyMapping keyMap;
@@ -133,6 +127,7 @@ namespace trc::ui
 
         auto getIoConfig() -> IoConfig&;
         auto getIoConfig() const -> const IoConfig&;
+        auto getFontLayouter() -> FontLayouter&;
 
         /**
          * Calculate the absolute pixel values of a normalized point
@@ -175,6 +170,7 @@ namespace trc::ui
         void realignElements();
 
         u_ptr<WindowBackend> windowBackend;
+        FontLayouter fontLayouter;
         IoConfig ioConfig;
 
         /**

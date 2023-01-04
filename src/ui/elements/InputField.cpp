@@ -1,7 +1,6 @@
 #include "trc/ui/elements/InputField.h"
 
 #include "trc/text/UnicodeUtils.h"
-#include "trc/ui/Window.h"
 
 
 
@@ -11,14 +10,14 @@ trc::ui::InputField::InputField(Window& window)
     text(window.create<Text>()),
     cursor(window.create<Line>())
 {
-    this->setSize(getSize().x, getFontHeightLatinPixels(style.fontIndex) + 10);
+    this->setSize(getSize().x, window.getFontLayouter().getFontHeightLatinPixels(style.fontIndex) + 10);
     this->style.padding.set(kPaddingPixels);
     this->style.restrictDrawArea = true;
 
     attach(*text);
     text->setPositionScaling(Scale::eAbsolute);
     cursor->setPositionScaling(Scale::eAbsolute);
-    cursor->setSize(0.0f, getFontHeightLatin(style.fontIndex));
+    cursor->setSize(0.0f, window.getFontLayouter().getFontHeightLatin(style.fontIndex));
     cursor->setSizing({ Format::eNorm, Format::eNorm }, Scale::eAbsolute);
     cursor->style.background=vec4(1.0f);
 
@@ -108,10 +107,10 @@ void trc::ui::InputField::decCursorPos()
 void trc::ui::InputField::positionText()
 {
     // Center text
-    textOffset.y = (globalSize.y - globalSize.y * getFontHeightLatin(style.fontIndex)) * 0.5f;
+    textOffset.y = (globalSize.y - globalSize.y * window->getFontLayouter().getFontHeightLatin(style.fontIndex)) * 0.5f;
 
     const vec2 fontScaling = window->pixelsToNorm(vec2(style.fontSize));
-    auto [layout, _] = layoutText(inputChars, style.fontIndex, fontScaling);
+    auto [layout, _] = window->getFontLayouter().layoutText(inputChars, style.fontIndex, fontScaling);
     const auto& currentLetter = layout.letters.at(cursorPosition);
     float cursorPos = textOffset.x + currentLetter.glyphOffset.x;
 

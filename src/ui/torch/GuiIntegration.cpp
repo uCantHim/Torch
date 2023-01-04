@@ -11,10 +11,44 @@
 
 
 
+trc::TorchGuiFontLoaderBackend::TorchGuiFontLoaderBackend(GuiRenderer& renderer)
+    : renderer(&renderer)
+{
+}
+
+auto trc::TorchGuiFontLoaderBackend::loadFont(const fs::path& file, ui32 fontSize) -> ui32
+{
+    const ui32 fontIndex = nextFontIndex++;
+    auto& cache = fonts.emplace(fontIndex, new GlyphCache(Face(file, fontSize)));
+
+    renderer->notifyNewFont(fontIndex, *cache);
+
+    return fontIndex;
+}
+
+auto trc::TorchGuiFontLoaderBackend::getFontInfo(ui32 fontIndex) -> const Face&
+{
+    assert(fonts.at(fontIndex) != nullptr);
+    return fonts.at(fontIndex)->getFace();
+}
+
+auto trc::TorchGuiFontLoaderBackend::getGlyph(ui32 fontIndex, CharCode character)
+    -> const GlyphMeta&
+{
+    assert(fonts.at(fontIndex) != nullptr);
+    return fonts.at(fontIndex)->getGlyph(character);
+}
+
+
+
 auto trc::initGui(Device& device, const Swapchain& swapchain) -> GuiStack
 {
+    auto renderer = std::make_unique<GuiRenderer>(device);
+    auto fontLoader = std::make_unique<TorchGuiFontLoaderBackend>(*renderer);
+
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
         .windowBackend=std::make_unique<trc::TorchWindowBackend>(swapchain),
+        .fontLoader=*fontLoader,
         .keyMap = ui::KeyMapping{
             .escape     = static_cast<int>(Key::escape),
             .backspace  = static_cast<int>(Key::backspace),
@@ -29,13 +63,13 @@ auto trc::initGui(Device& device, const Swapchain& swapchain) -> GuiStack
     });
     ui::Window* windowPtr = window.get();
 
-    auto renderer = std::make_unique<GuiRenderer>(device);
     auto renderPass = std::make_unique<GuiIntegrationPass>(device, swapchain, *window, *renderer);
 
     return {
         .window = std::move(window),
         .renderer = std::move(renderer),
         .renderPass = std::move(renderPass),
+        .fontLoader = std::move(fontLoader),
 
         // Notify GUI of mouse clicks
         .mouseClickListener = on<MouseClickEvent>(

@@ -165,3 +165,8 @@ auto trc::GuiRenderer::getRenderPass() const -> vk::RenderPass
 {
     return *renderPass;
 }
+
+void trc::GuiRenderer::notifyNewFont(ui32 fontIndex, GlyphCache& cache)
+{
+    collector.addFont(fontIndex, cache);
+}

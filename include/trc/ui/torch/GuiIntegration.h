@@ -1,15 +1,17 @@
 #pragma once
 
-#include <mutex>
+#include <atomic>
 #include <future>
+#include <mutex>
 
 #include <trc_util/Timer.h>
+#include <trc_util/data/IndexMap.h>
+
+#include "trc/Framebuffer.h"
 #include "trc/base/Buffer.h"
 #include "trc/base/FrameSpecificObject.h"
 #include "trc/base/Image.h"
 #include "trc/base/event/Event.h"
-
-#include "trc/Framebuffer.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/RenderStage.h"
@@ -31,11 +33,27 @@ namespace trc
 
         auto getSize() -> vec2 override
         {
-            return { swapchain.getImageExtent().width, swapchain.getImageExtent().height };
+            return vec2{swapchain.getWindowSize()};
         }
 
     private:
         const Swapchain& swapchain;
+    };
+
+    class TorchGuiFontLoaderBackend : public ui::FontLoader
+    {
+    public:
+        explicit TorchGuiFontLoaderBackend(GuiRenderer& renderer);
+
+        auto loadFont(const fs::path& file, ui32 fontSize) -> ui32 override;
+        auto getFontInfo(ui32 fontIndex) -> const Face& override;
+        auto getGlyph(ui32 fontIndex, CharCode character) -> const GlyphMeta& override;
+
+    private:
+        std::atomic<ui32> nextFontIndex{ 0 };
+        data::IndexMap<ui32, u_ptr<GlyphCache>> fonts;
+
+        GuiRenderer* renderer;
     };
 
     /**
@@ -85,6 +103,7 @@ namespace trc
 
         u_ptr<GuiRenderer> renderer;
         u_ptr<GuiIntegrationPass> renderPass;
+        u_ptr<TorchGuiFontLoaderBackend> fontLoader;
 
         UniqueListenerId<MouseClickEvent> mouseClickListener;
 

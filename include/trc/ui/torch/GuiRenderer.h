@@ -52,6 +52,8 @@ namespace trc
 
         auto getRenderPass() const -> vk::RenderPass;
 
+        void notifyNewFont(ui32 fontIndex, GlyphCache& cache);
+
     private:
         const Device& device;
 

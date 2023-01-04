@@ -3,12 +3,12 @@
 #include <map>
 
 #include <trc_util/data/IndexMap.h>
-#include "trc/base/Buffer.h"
 
+#include "trc/base/Buffer.h"
 #include "trc/core/Pipeline.h"
 #include "trc/text/GlyphMap.h"
 #include "trc/ui/DrawInfo.h"
-#include "trc/ui/FontRegistry.h"
+#include "trc/ui/FontLoader.h"
 #include "trc/ui/torch/DynamicBuffer.h"
 
 namespace trc {
@@ -23,20 +23,15 @@ namespace trc::ui_impl
     {
     public:
         DrawCollector(const Device& device, ::trc::GuiRenderer& renderer);
-        ~DrawCollector();
+        ~DrawCollector() = default;
 
         void beginFrame();
         void draw(const ui::DrawList& drawList);
         void endFrame(vk::CommandBuffer cmdBuf, uvec2 windowSizePixels);
 
+        void addFont(ui32 fontIndex, GlyphCache& cache);
+
     private:
-        static void initStaticResources();
-
-        // A list of all existing collectors to notify them about newly loaded resources
-        static inline std::vector<DrawCollector*> existingCollectors;
-        // Save previously loaded fonts for collectors constructed later on
-        static inline std::vector<std::pair<ui32, const GlyphCache&>> existingFonts;
-
         auto makeLinePipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
         auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
         auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
@@ -97,23 +92,17 @@ namespace trc::ui_impl
         struct FontInfo
         {
         public:
-            explicit FontInfo(const Device& device, ui32 fontIndex, const GlyphCache& cache);
+            explicit FontInfo(const Device& device, ui32 fontIndex, GlyphCache& cache);
 
             auto getGlyphUvs(wchar_t character) -> GlyphMap::UvRectangle;
 
             ui32 fontIndex;
-            const GlyphCache& glyphCache;
+            GlyphCache* glyphCache;
             std::unique_ptr<GlyphMap> glyphMap;
             vk::UniqueImageView imageView;
             data::IndexMap<wchar_t, std::pair<bool, GlyphMap::UvRectangle>> glyphTextureCoords;
         };
 
-        /**
-         * @brief Add a font
-         *
-         * @param ui32 fontIndex The font's index in the ui::FontRegistry
-         */
-        void addFont(ui32 fontIndex, const GlyphCache& glyphCache);
         std::map<ui32, FontInfo> fonts; // std::map is terrible, but IndexMap is not iterable
 
         struct LetterData

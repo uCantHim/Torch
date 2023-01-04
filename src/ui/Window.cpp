@@ -1,16 +1,6 @@
 #include "trc/ui/Window.h"
 
 #include <ranges>
-#include <iostream>
-
-
-
-void trc::ui::initUserCallbacks(
-    std::function<void(trc::basic_types::ui32, const GlyphCache&)> onFontLoad,
-    std::function<void(trc::basic_types::ui32)>)
-{
-    FontRegistry::setFontAddCallback(std::move(onFontLoad));
-}
 
 
 
@@ -18,6 +8,7 @@ trc::ui::Window::Window(WindowCreateInfo createInfo)
     :
     onWindowDestruction(std::move(createInfo.onWindowDestruction)),
     windowBackend(std::move(createInfo.windowBackend)),
+    fontLayouter(createInfo.fontLoader),
     drawList(*this)
 {
     assert(this->windowBackend != nullptr);
@@ -122,6 +113,11 @@ auto trc::ui::Window::getIoConfig() -> IoConfig&
 auto trc::ui::Window::getIoConfig() const -> const IoConfig&
 {
     return ioConfig;
+}
+
+auto trc::ui::Window::getFontLayouter() -> FontLayouter&
+{
+    return fontLayouter;
 }
 
 auto trc::ui::Window::normToPixels(vec2 p) const -> vec2
