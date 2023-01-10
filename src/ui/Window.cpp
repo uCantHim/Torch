@@ -146,10 +146,11 @@ void trc::ui::Window::realignElements()
         // Apply padding
         const vec2 padding = elem.style.padding.calcNormalizedPadding(*this);
 
+        parentTransform.position += padding;
+        parentTransform.size -= padding * 2.0f;
         elem.foreachChild([&, parentTransform](Element& child)
         {
             auto childTransform = concat(parentTransform, child.getTransform(), *this);
-            childTransform.position += padding;
             auto [childPos, childSize] = calcTransform(childTransform, child);
 
             if (elem.style.dynamicSize) {

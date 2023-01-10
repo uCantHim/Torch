@@ -16,10 +16,9 @@ trc::ui::InputField::InputField(Window& window)
 
     attach(*text);
     text->setPositionScaling(Scale::eAbsolute);
-    cursor->setPositionScaling(Scale::eAbsolute);
-    cursor->setSize(0.0f, window.getFontLayouter().getFontHeightLatin(style.fontIndex));
-    cursor->setSizing({ Format::eNorm, Format::eNorm }, Scale::eAbsolute);
     cursor->style.background=vec4(1.0f);
+    cursor->setPositioning(Format::eNorm, Scale::eAbsolute);
+    cursor->setSize(0.0f, 1.0f);
 
     positionText();
 
@@ -110,13 +109,14 @@ void trc::ui::InputField::positionText()
     textOffset.y = (globalSize.y - globalSize.y * window->getFontLayouter().getFontHeightLatin(style.fontIndex)) * 0.5f;
 
     const vec2 fontScaling = window->pixelsToNorm(vec2(style.fontSize));
-    auto [layout, _] = window->getFontLayouter().layoutText(inputChars, style.fontIndex, fontScaling);
+    const auto [layout, _] = window->getFontLayouter().layoutText(inputChars, style.fontIndex, fontScaling);
+
     const auto& currentLetter = layout.letters.at(cursorPosition);
     float cursorPos = textOffset.x + currentLetter.glyphOffset.x;
 
-    const float padding = window->pixelsToNorm(kPaddingPixels).x;
-    const float displayBegin = padding;
-    const float displayEnd = globalSize.x - padding;
+    const float padding = style.padding.calcNormalizedPadding(*window).x;
+    const float displayBegin = 0;
+    const float displayEnd = globalSize.x - padding * 2.0f;
     if (cursorPosition > 0)
     {
         const auto& prevLetter = layout.letters.at(cursorPosition - 1);
@@ -135,7 +135,7 @@ void trc::ui::InputField::positionText()
     }
 
     text->setPos(textOffset);
-    cursor->setPos(cursorPos, textOffset.y);
+    cursor->setPos(cursorPos, 0.0f);
 }
 
 void trc::ui::InputField::inputCharacter(CharCode code)
