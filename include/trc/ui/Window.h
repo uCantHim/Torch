@@ -31,38 +31,6 @@ namespace trc::ui
     template<GuiElement E>
     using UniqueElement = u_ptr<E, _ElementDeleter<E>>;
 
-    /**
-     * Temporary proxy that creates either an unmanaged reference or a
-     * smart handle (i.e. unique or shared).
-     */
-    template<GuiElement E>
-    class ElementHandleProxy
-    {
-        friend class Window;
-        ElementHandleProxy(E& element, Window& window);
-
-    public:
-        using SharedHandle = SharedElement<E>;
-        using UniqueHandle = UniqueElement<E>;
-
-        ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
-        ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
-        auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
-        auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
-
-        operator E&() &&;
-        operator SharedHandle() &&;
-        operator UniqueHandle() &&;
-
-        auto makeRef() && -> E&;
-        auto makeShared() && -> SharedHandle;
-        auto makeUnique() && -> UniqueHandle;
-
-    private:
-        E* element;
-        Window* window;
-    };
-
     class WindowBackend
     {
     public:
@@ -109,7 +77,19 @@ namespace trc::ui
          * @brief Create an element
          */
         template<GuiElement E, typename... Args>
-        inline auto create(Args&&... args) -> ElementHandleProxy<E>;
+        inline auto make(Args&&... args) -> E*;
+
+        /**
+         * @brief Create an element
+         */
+        template<GuiElement E, typename... Args>
+        inline auto makeUnique(Args&&... args) -> UniqueElement<E>;
+
+        /**
+         * @brief Create an element
+         */
+        template<GuiElement E, typename... Args>
+        inline auto makeShared(Args&&... args) -> SharedElement<E>;
 
         /**
          * @brief Destroy an element

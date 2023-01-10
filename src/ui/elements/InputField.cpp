@@ -7,8 +7,8 @@
 trc::ui::InputField::InputField(Window& window)
     :
     Quad(window),
-    text(window.create<Text>()),
-    cursor(window.create<Line>())
+    text(window.makeUnique<Text>()),
+    cursor(window.makeUnique<Line>())
 {
     this->setSize(getSize().x, window.getFontLayouter().getFontHeightLatinPixels(style.fontIndex) + 10);
     this->style.padding.set(kPaddingPixels);

@@ -14,7 +14,7 @@ Text::Text(Window& window)
 Text::Text(Window& window, std::string str, ui32 fontIndex, ui32 fontSize)
     :
     Element(window),
-    textElem(window.create<Letters>())
+    textElem(window.makeUnique<Letters>())
 {
     style.fontIndex = fontIndex;
     style.fontSize = fontSize;

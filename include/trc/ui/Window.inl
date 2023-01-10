@@ -5,55 +5,8 @@
 namespace trc::ui
 {
 
-template<GuiElement E>
-ElementHandleProxy<E>::ElementHandleProxy(E& element, Window& window)
-    :
-    element(&element),
-    window(&window)
-{
-}
-
-template<GuiElement E>
-inline ElementHandleProxy<E>::operator E&() &&
-{
-    return *element;
-}
-
-template<trc::ui::GuiElement E>
-inline trc::ui::ElementHandleProxy<E>::operator SharedHandle() &&
-{
-    return std::move(*this).makeShared();
-}
-
-template<trc::ui::GuiElement E>
-inline trc::ui::ElementHandleProxy<E>::operator UniqueHandle() &&
-{
-    return std::move(*this).makeUnique();
-}
-
-template<trc::ui::GuiElement E>
-inline auto trc::ui::ElementHandleProxy<E>::makeRef() && -> E&
-{
-    return *element;
-}
-
-template<GuiElement E>
-inline auto ElementHandleProxy<E>::makeShared() && -> SharedHandle
-{
-    return SharedHandle(element, _ElementDeleter<E>{ window });
-}
-
-template<GuiElement E>
-inline auto ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
-{
-    return UniqueHandle(element, _ElementDeleter<E>{ window });
-}
-
-
-
-
 template<GuiElement E, typename... Args>
-inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
+inline auto Window::make(Args&&... args) -> E*
 {
     static_assert(std::is_constructible_v<E, Window&, Args...>);
     // Construct with Window in constructor if possible
@@ -63,7 +16,7 @@ inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
             *drawableElements.emplace_back(new E(*this, std::forward<Args>(args)...))
         );
 
-        return { newElem, *this };
+        return &newElem;
     }
     // Construct with args only and set window member later
     else
@@ -73,8 +26,22 @@ inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
         );
         newElem.window = this;
 
-        return { newElem, *this };
+        return &newElem;
     }
+}
+
+template<GuiElement E, typename... Args>
+inline auto Window::makeUnique(Args&&... args) -> UniqueElement<E>
+{
+    auto elem = make<E>(std::forward<Args>(args)...);
+    return UniqueElement<E>{ elem, _ElementDeleter<E>{ this } };
+}
+
+template<GuiElement E, typename... Args>
+inline auto Window::makeShared(Args&&... args) -> SharedElement<E>
+{
+    auto elem = make<E>(std::forward<Args>(args)...);
+    return SharedElement<E>{ elem, _ElementDeleter<E>{ this } };
 }
 
 template<std::derived_from<event::MouseEvent> EventType>

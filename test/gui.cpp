@@ -37,7 +37,7 @@ int main()
         const ui32 font = guiStack.fontLoader->loadFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 40);
 
         // Create some gui elements
-        auto quad = window->create<ui::Quad>().makeUnique();
+        auto quad = window->makeUnique<ui::Quad>();
         window->getRoot().attach(*quad);
         quad->setPos(0.5f, 0.0f);
         quad->setSize(0.1f, 0.15f);
@@ -47,7 +47,7 @@ int main()
             std::cout << "Click on first quad\n";
         });
 
-        auto child = window->create<ui::Quad>().makeUnique();
+        auto child = window->makeUnique<ui::Quad>();
         quad->attach(*child);
         child->setPos(0.15f, 0.4f);
         child->addEventListener([](const ui::event::Click& e) {
@@ -58,44 +58,44 @@ int main()
         child->style.borderColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
         // Text element with line breaks
-        auto text = window->create<ui::Text>(
+        auto text = window->makeUnique<ui::Text>(
             "Hello World! and some more text…"
             "\n»this line« contains some cool special characters: “µ” · ħŋſđðſđ"
             "\nNewlines working: ∞",
             font, 30
-        ).makeUnique();
+        );
         window->getRoot().attach(*text);
         text->setPos(0.2f, 0.6f);
 
         // Multiple text elements with different font sizes
         for (float i = 0.0f; ui32 fontSize : { 20, 28, 32, 40, 48, })
         {
-            auto& el = window->create<ui::Text>(
+            auto el = window->makeUnique<ui::Text>(
                 "Placeholdertext for font size " + std::to_string(fontSize) + "! :D",
                 font, fontSize
-            ).makeRef();
-            window->getRoot().attach(el);
-            el.setPos(0.4f, 0.1f + (i += 0.05f));
+            );
+            window->getRoot().attach(*el);
+            el->setPos(0.4f, 0.1f + (i += 0.05f));
         }
 
         // Input field
-        auto input = window->create<ui::InputField>().makeUnique();
+        auto input = window->makeUnique<ui::InputField>();
         input->setPos(0.1_n, 300_px);
         input->setSize(150_px, 40_px);
         input->setSizeScaling(ui::Scale::eAbsolute);
         window->getRoot().attach(*input);
 
         // Button
-        auto& button = window->create<ui::Button>(
+        auto button = window->makeUnique<ui::Button>(
             "Click me!",
             []() { std::cout << "I've been clicked :D\n"; }
-        ).makeRef();
-        window->getRoot().attach(button);
-        button.setPos(0.7_n, 0.8_n);
-        button.style.background = vec4(1.0f, 1.0f, 0.2f, 1.0f);
-        button.style.foreground = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        button.style.padding.set(20.0f, 40.0f);
-        button.style.fontSize = 40;
+        );
+        window->getRoot().attach(*button);
+        button->setPos(0.7_n, 0.8_n);
+        button->style.background = vec4(1.0f, 1.0f, 0.2f, 1.0f);
+        button->style.foreground = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        button->style.padding.set(20.0f, 40.0f);
+        button->style.fontSize = 40;
 
         // Also add a world-space object
         trc::Light light = scene.getLights().makeSunLight(vec3(1.0f), vec3(0, -1, -1), 0.4f);

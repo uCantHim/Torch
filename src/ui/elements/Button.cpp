@@ -7,7 +7,7 @@
 trc::ui::Button::Button(Window& window, std::string label)
     :
     Quad(window),
-    text(window.create<Text>())
+    text(window.makeUnique<Text>())
 {
     this->style.dynamicSize = true;
     text->style.background = vec4(0, 0, 0, 1);
