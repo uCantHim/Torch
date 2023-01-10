@@ -12,17 +12,24 @@ namespace trc::ui
 {
     class Window;
 
-    /**
-     * Typed unique handle for UI elements
-     */
     template<GuiElement E>
-    using SharedElementHandle = s_ptr<E>;
+    struct _ElementDeleter
+    {
+        void operator()(E* elem);
+        Window* window;
+    };
 
     /**
      * Typed shared handle for UI elements
      */
     template<GuiElement E>
-    using UniqueElement = u_ptr<E, std::function<void(E*)>>;
+    using SharedElement = s_ptr<E>;
+
+    /**
+     * Typed unique handle for UI elements
+     */
+    template<GuiElement E>
+    using UniqueElement = u_ptr<E, _ElementDeleter<E>>;
 
     /**
      * Temporary proxy that creates either an unmanaged reference or a
@@ -35,7 +42,7 @@ namespace trc::ui
         ElementHandleProxy(E& element, Window& window);
 
     public:
-        using SharedHandle = SharedElementHandle<E>;
+        using SharedHandle = SharedElement<E>;
         using UniqueHandle = UniqueElement<E>;
 
         ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
@@ -215,6 +222,13 @@ namespace trc::ui
         u_ptr<Root> root{ new Root(*this) };
     };
 
+
+
+    template<GuiElement E>
+    void _ElementDeleter<E>::operator()(E* elem)
+    {
+        window->destroy(*elem);
+    }
 } // namespace trc::ui
 
 #include "trc/ui/Window.inl"

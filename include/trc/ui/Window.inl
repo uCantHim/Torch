@@ -40,13 +40,13 @@ inline auto trc::ui::ElementHandleProxy<E>::makeRef() && -> E&
 template<GuiElement E>
 inline auto ElementHandleProxy<E>::makeShared() && -> SharedHandle
 {
-    return SharedHandle(element, [window=window](E* elem) { window->destroy(*elem); });
+    return SharedHandle(element, _ElementDeleter<E>{ window });
 }
 
 template<GuiElement E>
 inline auto ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
 {
-    return UniqueHandle(element, [window=window](E* elem) { window->destroy(*elem); });
+    return UniqueHandle(element, _ElementDeleter<E>{ window });
 }
 
 
