@@ -65,7 +65,7 @@ namespace trc::ui
         auto operator=(Window&&) -> Window& = delete;
 
         /**
-         * Calculate global transformatio, then build a list of DrawInfos
+         * Calculate global transformations, then build a list of DrawInfos
          * from all elements in the tree.
          */
         auto draw() -> const DrawList&;

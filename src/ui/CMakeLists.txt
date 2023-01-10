@@ -1,5 +1,6 @@
 target_sources(
     torch PRIVATE
+    CRTPNode.cpp
     DrawList.cpp
     FontLoader.cpp
     Style.cpp

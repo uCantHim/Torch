@@ -18,16 +18,8 @@ namespace trc::ui
         auto operator=(const CRTPNode&) = delete;
         auto operator=(CRTPNode&&) noexcept -> CRTPNode& = delete;
 
-        CRTPNode() {
-            static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
-        }
-
-        ~CRTPNode() {
-            foreachChild([](Derived& c){ c.parent = nullptr; });
-            if (parent != nullptr) {
-                parent->detach(static_cast<Derived&>(*this));
-            }
-        }
+        CRTPNode();
+        ~CRTPNode();
 
         void attach(Derived& child);
         void detach(Derived& child);
@@ -40,19 +32,9 @@ namespace trc::ui
         data::DeferredInsertVector<Derived*> children;
     };
 
-    template<typename Derived>
-    class TransformNode : public CRTPNode<Derived>
+    class PublicTransformInterface
     {
     public:
-        /**
-         * Can't use concepts with CRTP because neither the derived type
-         * nor the parent type are complete at concept resolution time, so
-         * I use static_assert instead.
-         */
-        TransformNode() {
-            static_assert(std::is_base_of_v<TransformNode<Derived>, Derived>, "");
-        }
-
         auto getPos() const -> vec2;
         auto getSize() const -> vec2;
 
@@ -89,10 +71,73 @@ namespace trc::ui
          */
         void setSizing(Vec2D<Format> newFormat, Vec2D<Scale> newScaling);
 
-    private:
+    protected:
         Transform localTransform;
     };
 
-#include "trc/ui/CRTPNode.inl"
+    template<typename Derived>
+    class TransformNode : public CRTPNode<Derived>
+                        , public PublicTransformInterface
+    {
+    public:
+        /**
+         * Can't use concepts with CRTP because neither the derived type
+         * nor the parent type are complete at concept resolution time, so
+         * I use static_assert instead.
+         */
+        TransformNode() {
+            static_assert(std::is_base_of_v<TransformNode<Derived>, Derived>, "");
+        }
+    };
 
+
+
+    template<typename Derived>
+    CRTPNode<Derived>::CRTPNode()
+    {
+        static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
+    }
+
+    template<typename Derived>
+    CRTPNode<Derived>::~CRTPNode()
+    {
+        foreachChild([](Derived& c){ c.parent = nullptr; });
+        if (parent != nullptr) {
+            parent->detach(static_cast<Derived&>(*this));
+        }
+    }
+
+    template<typename Derived>
+    inline void CRTPNode<Derived>::attach(Derived& child)
+    {
+        children.emplace_back(&child);
+        child.parent = static_cast<Derived*>(this);
+    }
+
+    template<typename Derived>
+    inline void CRTPNode<Derived>::detach(Derived& child)
+    {
+        {
+            auto range = children.iter();
+            for (auto it = range.begin(); it != range.end(); it++)
+            {
+                if (*it == &child)
+                {
+                    (*it)->parent = nullptr;
+                    children.erase(it);
+                }
+            }
+        }
+        children.update();
+    }
+
+    template<typename Derived>
+    template<std::invocable<Derived&> F>
+    inline void CRTPNode<Derived>::foreachChild(F func)
+    {
+        for (auto child : children.iter()) {
+            func(*child);
+        }
+        children.update();
+    }
 } // namespace trc::ui
