@@ -24,12 +24,7 @@ void CommandCall::onRelease(std::function<void()>)
     throw trc::Exception("Not implemented");
 }
 
-void CommandCall::on(KeyInput input, u_ptr<InputCommand> cmd)
-{
-    state->keyMap.set(input, std::move(cmd));
-}
-
-void CommandCall::on(MouseInput input, u_ptr<InputCommand> cmd)
+void CommandCall::on(VariantInput input, u_ptr<InputCommand> cmd)
 {
     state->keyMap.set(input, std::move(cmd));
 }

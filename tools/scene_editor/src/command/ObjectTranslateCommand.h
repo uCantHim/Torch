@@ -5,7 +5,10 @@
 class ObjectTranslateCommand : public InputCommand
 {
 public:
-    ObjectTranslateCommand() = default;
+    explicit ObjectTranslateCommand(App& app);
 
     void execute(CommandCall& call) override;
+
+private:
+    App* app;
 };

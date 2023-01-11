@@ -10,6 +10,9 @@ struct KeyConfig
     VariantInput openContext;
     VariantInput selectHoveredObject;
 
+    VariantInput cameraMove;
+    VariantInput cameraRotate;
+
     VariantInput translateObject;
     VariantInput scaleObject;
     VariantInput rotateObject;

@@ -17,10 +17,13 @@ Scene::Scene(App& app)
     auto recalcProjMat = [this](const trc::SwapchainResizeEvent& e)
     {
         auto size = e.swapchain->getImageExtent();
-        camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 50.0f);
+        camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 200.0f);
     };
     recalcProjMat({ { &app.getTorch().getWindow() } });
-    camera.lookAt({ 5, 5, 5 }, { 0, 0, 0 }, { 0, 1, 0 });
+
+    scene.getRoot().attach(cameraViewNode);
+    cameraViewNode.attach(camera);
+    cameraViewNode.setFromMatrix(glm::lookAt(vec3(5, 5, 5), vec3(0, 0, 0), vec3(0, 1, 0)));
     trc::on<trc::SwapchainResizeEvent>(recalcProjMat);
 
     // Enable shadows for the sun

@@ -10,22 +10,27 @@
 class ObjectTranslateState : public CommandState
 {
 public:
-    ObjectTranslateState(SceneObject obj, Scene& scene)
+    ObjectTranslateState(SceneObject obj, App& app)
         :
         obj(obj),
-        scene(&scene),
-        originalPos(scene.get<ObjectBaseNode>(obj).getTranslation()),
-        originalMousePos(
-            scene.getMousePosAtDepth(
-                scene.getCamera().calcScreenDepth(scene.get<ObjectBaseNode>(obj).getTranslation())
-            )
-        ),
+        app(&app),
+        scene(&app.getScene()),
+        originalPos(scene->get<ObjectBaseNode>(obj).getTranslation()),
         finalPos(originalPos)
     {}
 
     bool update(float) override
     {
-        scene->get<ObjectBaseNode>(obj).setTranslation(getNewPos());
+        const auto now = trc::Mouse::getPosition();
+        const vec2 windowSize = app->getTorch().getWindow().getWindowSize();
+        const auto diff = (now - originalMousePos) / windowSize * kDragSpeed;
+
+        const auto& camera = scene->getCamera();
+        const vec3 worldDiff = glm::inverse(camera.getViewMatrix()) * vec4(diff.x, -diff.y, 0, 0);
+        finalPos = originalPos + worldDiff * lockedAxis;
+
+        scene->get<ObjectBaseNode>(obj).setTranslation(finalPos);
+
         return terminate;
     }
 
@@ -36,7 +41,6 @@ public:
 
     void applyPlacement()
     {
-        finalPos = getNewPos();
         terminate = true;
     }
 
@@ -52,33 +56,31 @@ public:
     }
 
 private:
-    auto getNewPos() const -> vec3
-    {
-        const float depth = scene->getCamera().calcScreenDepth(
-            scene->get<ObjectBaseNode>(obj).getTranslation()
-        );
-        const vec3 diff = scene->getMousePosAtDepth(depth) - originalMousePos;
-
-        return originalPos + diff * lockedAxis;
-    }
+    static constexpr float kDragSpeed{ 10.0f };
 
     const SceneObject obj;
+    App* app;
     Scene* scene;
 
     const vec3 originalPos;
-    const vec3 originalMousePos;
+    const vec2 originalMousePos{ trc::Mouse::getPosition() };
     vec3 finalPos;
 
     vec3 lockedAxis{ 1, 1, 1 };
     bool terminate{ false };
 };
 
+ObjectTranslateCommand::ObjectTranslateCommand(App& app)
+    : app(&app)
+{
+}
+
 void ObjectTranslateCommand::execute(CommandCall& call)
 {
     auto& scene = App::get().getScene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectTranslateState{ obj, scene });
+        auto& state = call.setState(ObjectTranslateState{ obj, *app });
 
         call.on(trc::Key::escape,        [&](auto&){ state.resetPlacement(); });
         call.on(trc::MouseButton::right, [&](auto&){ state.resetPlacement(); });

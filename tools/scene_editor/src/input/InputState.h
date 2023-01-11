@@ -38,13 +38,10 @@ public:
     void onRepeat(std::function<void()> func);
     void onRelease(std::function<void()> func);
 
-    void on(KeyInput input, u_ptr<InputCommand> cmd);
-    void on(MouseInput input, u_ptr<InputCommand> cmd);
+    void on(VariantInput input, u_ptr<InputCommand> cmd);
 
     template<std::invocable<CommandCall&> T>
-    void on(KeyInput input, T&& func);
-    template<std::invocable<CommandCall&> T>
-    void on(MouseInput input, T&& func);
+    void on(VariantInput input, T&& func);
 
     template<std::derived_from<CommandState> T>
     auto setState(T&& t) -> T&;
@@ -142,13 +139,7 @@ private:
 
 
 template<std::invocable<CommandCall&> T>
-void CommandCall::on(KeyInput input, T&& func)
-{
-    on(input, std::make_unique<FunctionalInputCommand<T>>(std::forward<T>(func)));
-}
-
-template<std::invocable<CommandCall&> T>
-void CommandCall::on(MouseInput input, T&& func)
+void CommandCall::on(VariantInput input, T&& func)
 {
     on(input, std::make_unique<FunctionalInputCommand<T>>(std::forward<T>(func)));
 }

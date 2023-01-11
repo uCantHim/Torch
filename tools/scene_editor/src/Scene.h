@@ -46,6 +46,7 @@ private:
 
     App* app;
 
+    trc::Node cameraViewNode;
     trc::Camera camera;
     trc::Scene scene;
     trc::Light sunLight;
