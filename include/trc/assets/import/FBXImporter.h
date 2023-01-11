@@ -60,7 +60,6 @@ namespace trc
         static void loadUVs(FbxMesh* mesh, GeometryData& result);
         static void loadNormals(FbxMesh* mesh, GeometryData& result);
         static void loadTangents(FbxMesh* mesh, GeometryData& result);
-        static void computeTangents(GeometryData& result);
 
         static auto loadMaterials(FbxMesh* mesh) -> std::vector<ThirdPartyMaterialImport>;
 

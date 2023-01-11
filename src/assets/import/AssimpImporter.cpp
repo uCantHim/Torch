@@ -5,6 +5,9 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+#include "trc/assets/import/GeometryTransformations.h"
+#include "trc/base/Logging.h"
+
 
 
 inline auto toVec4(aiColor4D c) -> trc::basic_types::vec4
@@ -54,18 +57,42 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPa
     for (ui32 i = 0; i < scene->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[i];
+        if (mesh == nullptr) continue;
+        if (!mesh->HasPositions() || !mesh->HasNormals())
+        {
+            log::error << "Unable to import mesh #" << i
+                       << ": Mesh has no positions or no normals.\n";
+            continue;
+        }
+
         ThirdPartyMeshImport& newMesh = result.emplace_back();
         auto& meshData = newMesh.geometry;
+
+        const bool hasUVs = mesh->HasTextureCoords(0);
+        const bool hasTangents = mesh->HasTangentsAndBitangents();
 
         // Load vertices
         for (ui32 v = 0; v < mesh->mNumVertices; v++)
         {
-            meshData.vertices.emplace_back(
-                toVec3(mesh->mVertices[v]),                // position
-                toVec3(mesh->mNormals[v]),                 // normal
-                vec2(toVec3(mesh->mTextureCoords[0][v])),  // uv
-                toVec3(mesh->mTangents[v])                 // tangent
+            auto& vert = meshData.vertices.emplace_back(
+                toVec3(mesh->mVertices[v]),   // position
+                toVec3(mesh->mNormals[v]),    // normal
+                vec2{},                       // uv
+                vec3{}                        // tangent
             );
+            if (hasUVs)      vert.uv = vec2(toVec3(mesh->mTextureCoords[0][v]));
+            if (hasTangents) vert.tangent = toVec3(mesh->mTangents[v]);
+        }
+
+        // Compute tangents if not present in the imported data
+        if (!hasTangents)
+        {
+            if (hasUVs) {
+                computeTangents(meshData);
+            }
+            else {
+                log::warn << "Unable to compute tangents: Mesh has no texture coordinates.\n";
+            }
         }
 
         // Load indices

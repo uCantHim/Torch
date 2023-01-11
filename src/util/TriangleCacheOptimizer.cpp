@@ -2,6 +2,7 @@
 
 #include "forsyth.cpp"
 #include "trc/Types.h"
+#include "trc/base/Logging.h"
 
 
 
@@ -10,7 +11,14 @@ namespace trc::util
 
 auto optimizeTriangleOrderingForsyth(const std::vector<ui32>& indices) -> std::vector<ui32>
 {
-    assert(indices.size() % 3 == 0);
+    if (indices.size() % 3 != 0)
+    {
+        log::warn << "Unable to optimize triangle ordering: number of indices ("
+                  << indices.size() << ") is not a multiple of three. This can occur when the"
+                  << " mesh is not properly triangulated.";
+        return indices;
+    }
+
     ui32* result = reorderForsyth(indices.data(), indices.size() / 3, indices.size());
     if (result == nullptr)
     {

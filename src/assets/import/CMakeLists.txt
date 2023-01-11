@@ -3,6 +3,7 @@ target_sources(torch PRIVATE
     AssimpImporter.cpp
     FBXImporter.cpp
     GeneratedGeometry.cpp
+    GeometryTransformations.cpp
     InternalFormat.cpp
     PNGConvert.cpp
 )
