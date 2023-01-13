@@ -15,6 +15,10 @@ if (NOT TARGET shaderc)
     option(ENABLE_CTEST "" OFF)
     option(BUILD_TESTING "" OFF)
     FetchContent_MakeAvailable(shaderc)
+
+    # Always set optimization flag on SPIRV parser because otherwise the SPIRV
+    # compile performance in debug builds would be unbearably bad.
+    target_compile_options(MachineIndependent PUBLIC -O2)
 endif()
 
 add_library(spirv_compiler)

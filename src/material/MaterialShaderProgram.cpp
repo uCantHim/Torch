@@ -8,6 +8,7 @@
 
 #include <shader_tools/ShaderDocument.h>
 #include <spirv/CompileSpirv.h>
+#include <trc_util/Timer.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "material_shader_program.pb.h"
@@ -91,7 +92,8 @@ auto compileProgram(
     std::unordered_map<vk::ShaderStageFlagBits, std::vector<ui32>> result;
     for (const auto& [stage, mod] : stages)
     {
-        log::info << "Compiling GLSL code for " << vk::to_string(stage) << " stage to SPIRV\n";
+        log::info << "Compiling GLSL code for " << vk::to_string(stage) << " stage to SPIRV";
+        Timer timer;
 
         // Set descriptor indices in the shader code
         shader_edit::ShaderDocument doc(mod.getGlslCode());
@@ -107,9 +109,11 @@ auto compileProgram(
         // Try to compile to SPIRV
         try {
             result.emplace(stage, compileShader(stage, doc.compile()));
+            log::info << " (" << timer.reset() << " ms)\n";
         }
         catch (const std::runtime_error& err)
         {
+            log::info << " (error)\n";
             log::error << "[In makeMaterialProgram]: Unable to compile shader code for stage "
                        << vk::to_string(stage) << " to SPIRV: " << err.what() << "\n";
             log::error << "  >>> Tried to compile the following shader code:\n\n"
