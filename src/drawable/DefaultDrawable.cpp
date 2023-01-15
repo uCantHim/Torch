@@ -78,6 +78,17 @@ auto trc::determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline:
     });
 }
 
+auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info)
+    -> RasterComponentCreateInfo
+{
+    return makeDefaultDrawableRasterization(
+        info,
+        info.mat.getDeviceDataHandle().getRuntime({
+            .animated=info.geo.getDeviceDataHandle().hasRig()
+        }).getPipeline()
+    );
+}
+
 auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
     -> RasterComponentCreateInfo
 {
@@ -92,13 +103,14 @@ auto trc::makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipel
         .drawFunctions={},
     };
 
-    const bool animated = geo.hasRig();
     const bool transparent = mat.isTransparent();
 
-    FuncType gbufferDraw = [animated](const drawcomp::RasterComponent& data,
-                                      const DrawEnvironment& env,
-                                      vk::CommandBuffer cmdBuf)
+    FuncType gbufferDraw = [](const drawcomp::RasterComponent& data,
+                              const DrawEnvironment& env,
+                              vk::CommandBuffer cmdBuf)
     {
+        const bool animated = data.anim != AnimationEngine::ID::NONE;
+
         auto layout = *env.currentPipeline->getLayout();
         auto material = data.mat.getRuntime({ animated });
         material.pushConstants(cmdBuf, layout, DrawablePushConstIndex::eModelMatrix,

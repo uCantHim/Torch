@@ -1,5 +1,7 @@
 #include "trc/AnimationEngine.h"
 
+#include "trc/base/Logging.h"
+
 
 
 trc::AnimationEngine::AnimationEngine(RigHandle rig)
@@ -48,8 +50,14 @@ void trc::AnimationEngine::playAnimation(ui32 index)
         resetAnimationTime();
     }
     catch (const std::out_of_range& err) {
-        // Do nothing
+        log::warn << "Unable to play animation at index " << index << ": does not exist.\n";
     }
+}
+
+void trc::AnimationEngine::playAnimation(trc::AnimationHandle anim)
+{
+    currentAnimation = anim;
+    resetAnimationTime();
 }
 
 auto trc::AnimationEngine::getState() const -> ID

@@ -17,6 +17,8 @@ namespace trc
     auto determineDrawablePipeline(DrawablePipelineInfo info) -> Pipeline::ID;
     auto determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID;
 
+    auto makeDefaultDrawableRasterization(const DrawableCreateInfo& info)
+        -> RasterComponentCreateInfo;
     auto makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
         -> RasterComponentCreateInfo;
 } // namespace trc
