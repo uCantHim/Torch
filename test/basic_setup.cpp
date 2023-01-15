@@ -20,7 +20,7 @@ int main()
     trc::GeometryID geo = assets.create(trc::makeTriangleGeo());
     trc::MaterialID mat = assets.create(trc::makeMaterial(trc::SimpleMaterialData{
         .color={ 0.392f, 0.624f, 0.82f },
-        .emissive=false,
+        .emissive=true,
     }));
     trc::Drawable myDrawable(geo, mat, scene);
 
