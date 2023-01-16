@@ -396,9 +396,12 @@ inline auto ComponentStorage<Derived, Key>::createObject(Args&&... args) -> Key
 template<typename Derived, TableKey Key>
 inline void ComponentStorage<Derived, Key>::deleteObject(Key obj)
 {
-    for (auto func : componentDestructors.erase(obj))
+    if (auto destructors = componentDestructors.try_erase(obj))
     {
-        func(asDerived(), obj);
+        for (auto func : *destructors)
+        {
+            func(asDerived(), obj);
+        }
     }
 
     objectIdPool.free(obj);
