@@ -8,6 +8,7 @@ target_sources(UnitTests
         test_basic_type.cpp
         test_shader_code_typechecker.cpp
         test_shader_loader.cpp
+        util_tests/test_deferred_insert_vector.cpp
         util_tests/test_maybe.cpp
         util_tests/test_memory_stream.cpp
         util_tests/test_object_pool.cpp

@@ -5,6 +5,7 @@
 #include <functional>
 #include <mutex>
 #include <ranges>
+#include <shared_mutex>
 #include <vector>
 
 #include "trc_util/algorithm/IteratorRange.h"
@@ -29,16 +30,19 @@ namespace trc::data
          */
         void update();
 
-        auto size() const -> size_t;
+        auto size() const -> size_type;
         bool empty() const;
-        auto capacity() const -> size_t;
 
-        void reserve(size_t newCapacity);
+        /**
+         * @return bool True if no modifications are pending
+         */
+        bool none_pending() const;
 
-        auto at(size_t i) -> T&;
-        auto at(size_t i) const -> const T&;
-        auto operator[](size_t i) -> T&;
-        auto operator[](size_t i) const -> const T&;
+        auto capacity() const -> size_type;
+        void reserve(size_type newCapacity);
+
+        auto at(size_type i) -> reference;
+        auto at(size_type i) const -> const_reference;
 
         /**
          * @brief Construct an element in-place at the end of the container
@@ -63,14 +67,14 @@ namespace trc::data
          * @return GuardedRange A range. Holds a lock on the container's
          *                      storage for the range object's lifetime.
          */
-        auto iter() -> algorithm::GuardedRange<iterator, std::mutex>;
+        auto iter() -> algorithm::GuardedRange<iterator, std::shared_mutex>;
 
     private:
-        std::mutex modificationsLock;
+        mutable std::mutex modificationsLock;
         std::vector<T> newItems;
         std::vector<const_iterator> erasedItems;
 
-        std::mutex itemsLock;
+        mutable std::shared_mutex itemsLock;
         std::vector<T> items;
     };
 
@@ -80,6 +84,7 @@ namespace trc::data
         std::scoped_lock lock(modificationsLock, itemsLock);
 
         // Erase items
+        std::ranges::unique(erasedItems);
         for (auto it : erasedItems) {
             items.erase(it);
         }
@@ -92,59 +97,52 @@ namespace trc::data
     }
 
     template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::size() const -> size_t
+    auto DeferredInsertVector<T>::size() const -> size_type
     {
-        std::scoped_lock lock(itemsLock);
+        std::shared_lock lock(itemsLock);
         return items.size();
     }
 
     template<typename T> requires std::move_constructible<T>
     bool DeferredInsertVector<T>::empty() const
     {
-        std::scoped_lock lock(itemsLock);
+        std::shared_lock lock(itemsLock);
         return items.empty();
     }
 
     template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::capacity() const -> size_t
+    bool DeferredInsertVector<T>::none_pending() const
     {
-        std::scoped_lock lock(itemsLock);
+        std::scoped_lock lock(modificationsLock);
+        return newItems.empty() && erasedItems.empty();
+    }
+
+    template<typename T> requires std::move_constructible<T>
+    auto DeferredInsertVector<T>::capacity() const -> size_type
+    {
+        std::shared_lock lock(itemsLock);
         return items.capacity();
     }
 
     template<typename T> requires std::move_constructible<T>
-    void DeferredInsertVector<T>::reserve(size_t newCapacity)
+    void DeferredInsertVector<T>::reserve(size_type newCapacity)
     {
         std::scoped_lock lock(itemsLock);
         items.reserve(newCapacity);
     }
 
     template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::at(size_t i) -> T&
+    auto DeferredInsertVector<T>::at(size_type i) -> reference
     {
-        std::scoped_lock lock(itemsLock);
+        std::shared_lock lock(itemsLock);
         return items.at(i);
     }
 
     template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::at(size_t i) const -> const T&
+    auto DeferredInsertVector<T>::at(size_type i) const -> const_reference
     {
-        std::scoped_lock lock(itemsLock);
+        std::shared_lock lock(itemsLock);
         return items.at(i);
-    }
-
-    template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::operator[](size_t i) -> T&
-    {
-        std::scoped_lock lock(itemsLock);
-        return items[i];
-    }
-
-    template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::operator[](size_t i) const -> const T&
-    {
-        std::scoped_lock lock(itemsLock);
-        return items[i];
     }
 
     template<typename T> requires std::move_constructible<T>
@@ -173,6 +171,8 @@ namespace trc::data
         }
 
         std::scoped_lock lock(modificationsLock);
+
+        // Keep list of erased items sorted in reverse order
         erasedItems.insert(
             std::ranges::upper_bound(erasedItems, pos, std::greater<const_iterator>{}),
             pos
@@ -180,7 +180,7 @@ namespace trc::data
     }
 
     template<typename T> requires std::move_constructible<T>
-    auto DeferredInsertVector<T>::iter() -> algorithm::GuardedRange<iterator, std::mutex>
+    auto DeferredInsertVector<T>::iter() -> algorithm::GuardedRange<iterator, std::shared_mutex>
     {
         std::unique_lock lock(itemsLock);
         return { items.begin(), items.end(), std::move(lock) };
