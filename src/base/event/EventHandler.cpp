@@ -22,9 +22,9 @@ void trc::EventThread::start()
 void trc::EventThread::terminate()
 {
     shouldStop = true;
-    notifyActiveHandler([]{});
-
-    if (thread.joinable()) {
+    if (thread.joinable())
+    {
+        notifyActiveHandler([]{});
         thread.join();
     }
 }

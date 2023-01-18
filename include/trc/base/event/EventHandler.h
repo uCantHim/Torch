@@ -1,12 +1,16 @@
 #pragma once
 
 #include <atomic>
+#include <algorithm>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <ranges>
 #include <thread>
+#include <vector>
 
+#include <trc_util/data/DeferredInsertVector.h>
 #include <trc_util/data/ThreadsafeQueue.h>
 
 namespace trc
@@ -49,8 +53,6 @@ namespace trc
 
         private:
             std::function<void(const EventType&)> callback;
-            uint32_t id{ ++nextId };
-            static inline std::atomic<uint32_t> nextId;
         };
 
     public:
@@ -64,19 +66,14 @@ namespace trc
 
     private:
         static void pollEvents();
-        static void updateListeners();
 
         static inline std::atomic_flag isBeingPolled = ATOMIC_FLAG_INIT;
-        static inline std::mutex listenerListLock;
-        static inline std::vector<std::unique_ptr<ListenerEntry>> listeners;
 
-        static inline std::mutex newListenersLock;
-        static inline std::vector<std::unique_ptr<ListenerEntry>> newListeners;
-        static inline std::mutex removedListenersLock;
+        static inline trc::data::DeferredInsertVector<std::unique_ptr<ListenerEntry>> listeners;
+        static inline std::mutex removedListenersListLock;
         static inline std::vector<ListenerId> removedListeners;
 
-        static inline std::mutex queueProducerLock;
-        static inline std::queue<EventType> eventQueue;
+        static inline trc::data::ThreadsafeQueue<EventType> eventQueue;
     };
 
     /**
@@ -110,13 +107,10 @@ namespace trc
     template<typename EventType>
     void EventHandler<EventType>::notify(EventType event)
     {
-        if (listeners.empty() && newListeners.empty()) return;
+        if (listeners.empty() && listeners.none_pending()) return;
 
         // Add event to queue
-        {
-            std::scoped_lock lock(queueProducerLock);
-            eventQueue.emplace(std::move(event));
-        }
+        eventQueue.emplace(std::move(event));
 
         // Notify the event thread that the handler has new events and is
         // ready to be processed
@@ -128,10 +122,9 @@ namespace trc
     template<typename EventType>
     void EventHandler<EventType>::notifySync(EventType event)
     {
-        updateListeners();
+        listeners.update();
 
-        std::lock_guard lock(listenerListLock);
-        for (auto& listener : listeners)
+        for (auto& listener : listeners.iter())
         {
             listener->callback(event);
         }
@@ -141,67 +134,49 @@ namespace trc
     auto EventHandler<EventType>::addListener(std::function<void(const EventType&)> newListener)
         -> ListenerId
     {
-        std::lock_guard lock(newListenersLock);
-        return newListeners.emplace_back(new ListenerEntry(std::move(newListener))).get();
+        auto listener = std::make_unique<ListenerEntry>(std::move(newListener));
+        auto ptr = listener.get();
+        listeners.emplace_back(std::move(listener));
+
+        return ptr;
     }
 
     template<typename EventType>
     void EventHandler<EventType>::removeListener(ListenerId listener)
     {
-        std::lock_guard lock(removedListenersLock);
+        // Can't use the deferred insert vector directly for removes because
+        // I'd have to search it for the removed listener's index, which
+        // would require a lock on the vector. That means I'd still get a
+        // deadlock if `removeListener` was called from another listener.
+        std::scoped_lock lock(removedListenersListLock);
         removedListeners.emplace_back(listener);
     }
 
     template<typename EventType>
     void EventHandler<EventType>::pollEvents()
     {
-        updateListeners();
+        {
+            auto range = listeners.iter();
+            std::scoped_lock lock(removedListenersListLock);
+            for (ListenerId id : removedListeners)
+            {
+                auto it = std::ranges::find_if(range, [&](auto& entry) { return entry.get() == id; });
+                if (it != range.end()) {
+                    listeners.erase(it);
+                }
+            }
+            removedListeners.clear();
+        }
+        listeners.update();
 
         // Now poll events
-        std::lock_guard lock(listenerListLock);
-        while (!eventQueue.empty())
+        while (auto event = eventQueue.try_pop())
         {
-            const auto& event = eventQueue.front();
-            for (auto& listener : listeners)
-            {
-                listener->callback(event);
+            for (auto& listener : listeners.iter()) {
+                listener->callback(*event);
             }
-
-            eventQueue.pop();
         }
 
         isBeingPolled.clear();
-    }
-
-    template<typename EventType>
-    void EventHandler<EventType>::updateListeners()
-    {
-        // Add and remove listeners now in order to avoid deadlocks when
-        // adding a listener inside of another listener's callback
-        if (!newListeners.empty() || !removedListeners.empty())
-        {
-            std::scoped_lock lock(listenerListLock, newListenersLock, removedListenersLock);
-
-            // Add any new listeners
-            while (!newListeners.empty())
-            {
-                listeners.emplace_back(std::move(newListeners.back()));
-                newListeners.pop_back();
-            }
-
-            // Remove any old listeners
-            while (!removedListeners.empty())
-            {
-                auto it = std::remove_if(
-                    listeners.begin(), listeners.end(),
-                    [&](auto& entry) { return entry->id == removedListeners.back()->id; }
-                );
-                if (it != listeners.end())
-                {
-                    listeners.erase(it);
-                    removedListeners.pop_back();
-                }
-            }
-        }
     }
 } // namespace trc

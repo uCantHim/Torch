@@ -6,6 +6,7 @@ target_sources(UnitTests
         assets_tests/test_custom_asset.cpp
         core/test_scene_base.cpp
         test_basic_type.cpp
+        test_event_handler.cpp
         test_shader_code_typechecker.cpp
         test_shader_loader.cpp
         util_tests/test_deferred_insert_vector.cpp
