@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <vector>
 
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 
 #include "Table.h"
 #include "ComponentBase.h"
@@ -321,7 +323,7 @@ private:
     //  Basic table-handling and storage  //
     ////////////////////////////////////////
 
-    trc::data::IdPool objectIdPool;
+    trc::data::IdPool<uint64_t> objectIdPool;
 
     using Del = std::function<void(void*)>;
     mutable std::vector<std::unique_ptr<void, Del>> tables;

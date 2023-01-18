@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 #include <trc_util/data/IndexMap.h>
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 #include "trc/base/Buffer.h"
 #include "trc/base/MemoryPool.h"
 
@@ -127,7 +127,7 @@ namespace trc
         const Instance& instance;
         const Config config;
 
-        data::IdPool idPool;
+        data::IdPool<ui64> idPool;
         MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
         AccelerationStructureBuilder accelerationStructureBuilder;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <trc_util/data/TypesafeId.h>
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 
 namespace trc
 {
@@ -27,7 +27,7 @@ namespace trc
         }
 
     private:
-        static inline data::IdPool idPool;
+        static inline data::IdPool<ui64> idPool;
 
         ID id{ idPool.generate() };
     };

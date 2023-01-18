@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 #include "trc/base/Device.h"
 #include "trc/base/MemoryPool.h"
 
@@ -111,7 +111,7 @@ namespace trc
         auto makeDescSet(GlyphMap& map) -> GlyphMapDescriptorSet;
 
         const Device& device;
-        data::IdPool idPool;
+        data::IdPool<ui64> idPool;
 
         // Storage GPU resources
         MemoryPool memoryPool;

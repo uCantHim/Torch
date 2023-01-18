@@ -5,7 +5,7 @@
 #include "trc/base/Buffer.h"
 #include "trc/base/Image.h"
 #include "trc/base/FrameSpecificObject.h"
-#include "trc_util/data/ObjectId.h"
+#include "trc_util/data/IdPool.h"
 
 #include "trc/Types.h"
 #include "trc/Camera.h"
@@ -83,7 +83,7 @@ namespace trc
             RenderPassShadow renderPass;
         };
 
-        data::IdPool shadowIdPool;
+        data::IdPool<ui64> shadowIdPool;
         std::vector<u_ptr<Shadow>> shadows;
 
         void updateMatrixBuffer();

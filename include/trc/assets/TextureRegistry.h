@@ -5,7 +5,7 @@
 #include "trc/base/Image.h"
 #include "trc/base/MemoryPool.h"
 #include <trc_util/data/IndexMap.h>
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 #include <componentlib/Table.h>
 
 #include "trc/assets/AssetRegistryModule.h"
@@ -86,7 +86,7 @@ namespace trc
         MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
 
-        data::IdPool idPool;
+        data::IdPool<ui64> idPool;
         std::shared_mutex textureStorageLock;
         Table<InternalStorage> textures;
 

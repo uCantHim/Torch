@@ -27,12 +27,12 @@ struct TestComponent
 template<>
 struct componentlib::ComponentTraits<TestComponent>
 {
-    static void onCreate(TestSceneType& /*scene*/, Object /*obj*/, TestComponent& c)
+    static void onCreate(TestSceneType& /*scene*/, Object /*obj*/, TestComponent& /*c*/)
     {
         created = true;
     }
 
-    static void onDelete(TestSceneType& /*scene*/, Object /*obj*/, TestComponent c)
+    static void onDelete(TestSceneType& /*scene*/, Object /*obj*/, TestComponent /*c*/)
     {
         destroyed = true;
     }

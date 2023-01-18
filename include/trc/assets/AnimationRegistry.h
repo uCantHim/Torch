@@ -4,7 +4,7 @@
 
 #include "trc/base/Buffer.h"
 #include <componentlib/Table.h>
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 
 #include "trc/Types.h"
 #include "trc/assets/AssetRegistryModule.h"
@@ -120,7 +120,7 @@ namespace trc
 
         // Host resources
         componentlib::Table<AnimationHandle, LocalID> storage;
-        data::IdPool animIdPool;
+        data::IdPool<ui64> animIdPool;
 
         // Device memory management
         std::mutex animationCreateLock;

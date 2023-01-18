@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 
 #include "trc/assets/AssetManagerInterface.h"
 #include "trc/assets/AssetPath.h"
@@ -178,7 +178,7 @@ namespace trc
         /** Handles device representations of assets */
         AssetRegistry registry;
 
-        data::IdPool assetIdPool;
+        data::IdPool<ui64> assetIdPool;
 
         /** Stores high-level management-related metadata for all asset types */
         std::unordered_map<AssetID, AssetMetaData> assetMetaData;

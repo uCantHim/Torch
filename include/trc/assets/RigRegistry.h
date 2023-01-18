@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <componentlib/Table.h>
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 
 #include "trc/Types.h"
 #include "trc/assets/AnimationRegistry.h"
@@ -112,7 +112,7 @@ namespace trc
     private:
         using InternalStorage = AssetHandle<Rig>::InternalStorage;
 
-        data::IdPool rigIdPool;
+        data::IdPool<ui64> rigIdPool;
         componentlib::Table<u_ptr<InternalStorage>, LocalID> storage;
     };
 } // namespace trc

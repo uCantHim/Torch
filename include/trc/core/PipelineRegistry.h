@@ -137,8 +137,8 @@ namespace trc
         static inline auto _allocPipelineId() -> Pipeline::ID;
         static inline auto _registerPipelineFactory(PipelineFactory factory) -> Pipeline::ID;
 
-        static inline data::IdPool pipelineLayoutIdPool;
-        static inline data::IdPool pipelineIdPool;
+        static inline data::IdPool<ui64> pipelineLayoutIdPool;
+        static inline data::IdPool<ui64> pipelineIdPool;
 
         static inline std::mutex layoutFactoryLock;
         static inline std::vector<LayoutFactory> layoutFactories;

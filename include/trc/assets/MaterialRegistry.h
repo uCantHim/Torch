@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <trc_util/Padding.h>
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 
 #include "trc/Types.h"
 #include "trc/assets/AssetManagerInterface.h"
@@ -90,7 +90,7 @@ namespace trc
         const ShaderDescriptorConfig descriptorConfig;
 
         std::mutex materialStorageLock;
-        data::IdPool localIdPool;
+        data::IdPool<ui64> localIdPool;
         data::IndexMap<LocalID, u_ptr<Storage>> storage;
 
         Buffer materialBuffer;

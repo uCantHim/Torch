@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <variant>
 
-#include <trc_util/data/ObjectId.h>
+#include <trc_util/data/IdPool.h>
 #include <trc_util/data/IndexMap.h>
 
 #include "trc/Types.h"
@@ -79,7 +79,7 @@ namespace trc
     private:
         static auto tryInsertName(const DescriptorName& name) -> DescriptorID;
 
-        static inline data::IdPool descriptorIdPool;
+        static inline data::IdPool<ui64> descriptorIdPool;
         static inline std::unordered_map<std::string, DescriptorID> idPerName;
 
         data::IndexMap<DescriptorID, const DescriptorProviderInterface*> descriptorProviders;

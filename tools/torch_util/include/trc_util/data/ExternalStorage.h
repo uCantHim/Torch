@@ -1,11 +1,11 @@
 #pragma once
 
-#include <type_traits>
-#include <vector>
+#include <concepts>
 #include <mutex>
+#include <vector>
 
+#include "IdPool.h"
 #include "TypesafeId.h"
-#include "ObjectId.h"
 
 namespace trc::data
 {
@@ -71,7 +71,7 @@ namespace trc::data
             void set(ID id, T value);
 
         private:
-            IdPool idGenerator;
+            IdPool<uint32_t> idGenerator;
             std::mutex lock;
             std::vector<T> objects;
         };

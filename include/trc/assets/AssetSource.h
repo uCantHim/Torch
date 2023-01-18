@@ -6,9 +6,10 @@
 #include <string>
 #include <sstream>
 
+#include "trc/Types.h"
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetPath.h"
-#include "trc/Types.h"
+#include "trc/base/Logging.h"
 
 namespace trc
 {
@@ -35,7 +36,21 @@ namespace trc
 
         auto load() -> AssetData<T> override
         {
+            if (!fs::is_regular_file(path.getFilesystemPath()))
+            {
+                log::error << "Unable to load asset data from " << path.getFilesystemPath()
+                           << ": File does not exist.\n";
+                return {};
+            }
+
             std::fstream file(path.getFilesystemPath());
+            if (!file.is_open())
+            {
+                log::error << "Unable to load asset data from " << path.getFilesystemPath()
+                           << ": Unable to open file (" << file.exceptions() << ")\n";
+                return {};
+            }
+
             AssetData<T> data;
             data.deserialize(file);
             return data;

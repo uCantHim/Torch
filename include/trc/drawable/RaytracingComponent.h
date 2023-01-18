@@ -7,7 +7,7 @@
 #include "trc/assets/Geometry.h"
 #include "trc/assets/Material.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
-#include "trc_util/data/ObjectId.h"
+#include "trc_util/data/IdPool.h"
 
 namespace trc::drawcomp
 {
@@ -18,7 +18,7 @@ namespace trc::drawcomp
 
         ui32 drawableBufferIndex{ static_cast<ui32>(bufferIndexPool.generate()) };
 
-        static inline data::IdPool bufferIndexPool;
+        static inline data::IdPool<ui64> bufferIndexPool;
     };
 } // namespace trc::drawcomp
 

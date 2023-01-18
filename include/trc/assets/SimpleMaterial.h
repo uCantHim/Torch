@@ -83,7 +83,7 @@ namespace trc
         AssetManager* assetManager;
         MaterialID baseMaterialId;
 
-        data::IdPool localIdPool;
+        data::IdPool<ui64> localIdPool;
         std::unordered_map<LocalID, MaterialID> baseMaterials;
     };
 } // namespace trc

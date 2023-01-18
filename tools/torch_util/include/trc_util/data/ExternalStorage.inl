@@ -63,7 +63,7 @@ inline void trc::data::ExternalStorage<T>::set(T value)
 template<std::semiregular T>
 auto trc::data::ExternalStorage<T>::RegularDataStorage::create() -> ID
 {
-    const ui32 id = ui32(idGenerator.generate());
+    const uint32_t id = idGenerator.generate();
     if (objects.size() <= id)
     {
         std::lock_guard lk(lock);
