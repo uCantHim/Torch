@@ -10,6 +10,7 @@
 #include "trc/core/PipelineLayoutTemplate.h"
 #include "trc/core/PipelineTemplate.h"
 #include "trc/core/RenderConfiguration.h"
+#include "trc_util/data/SafeVector.h"
 
 namespace trc
 {
@@ -143,9 +144,6 @@ namespace trc
         static inline std::vector<LayoutFactory> layoutFactories;
         static inline std::mutex factoryLock;
         static inline std::vector<PipelineFactory> factories;
-
-        static inline std::mutex storageLock;
-        static inline std::vector<PipelineStorage*> storages;
     };
 
     /**
@@ -153,6 +151,22 @@ namespace trc
      */
     class PipelineStorage
     {
+    public:
+        PipelineStorage(const PipelineStorage&) = delete;
+        PipelineStorage(PipelineStorage&&) noexcept = delete;
+        PipelineStorage& operator=(const PipelineStorage&) = delete;
+        PipelineStorage& operator=(PipelineStorage&&) noexcept = delete;
+
+        ~PipelineStorage() noexcept = default;
+
+        auto get(Pipeline::ID pipeline) -> Pipeline&;
+        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
+
+        /**
+         * @brief Destroy all pipelines and pipeline layouts
+         */
+        void clear();
+
     private:
         friend PipelineRegistry;
         using FactoryType = typename PipelineRegistry::PipelineFactory;
@@ -161,22 +175,13 @@ namespace trc
                         const Instance& instance,
                         RenderConfig& renderConfig);
 
-        void notifyNewPipeline(Pipeline::ID id, FactoryType& factory);
-
-    public:
-        auto get(Pipeline::ID pipeline) -> Pipeline&;
-        auto getLayout(PipelineLayout::ID id) -> PipelineLayout&;
-
-        void recreateAll();
-
-    private:
         auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
 
         typename PipelineRegistry::StorageAccessInterface registry;
         const Instance& instance;
         RenderConfig* renderConfig;
 
-        std::vector<u_ptr<PipelineLayout>> layouts;
-        std::vector<u_ptr<Pipeline>> pipelines;
+        util::SafeVector<PipelineLayout, 20> layouts;
+        util::SafeVector<Pipeline, 20> pipelines;
     };
 } // namespace trc

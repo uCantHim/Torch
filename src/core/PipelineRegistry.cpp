@@ -35,47 +35,37 @@ PipelineStorage::PipelineStorage(
 {
 }
 
-void PipelineStorage::notifyNewPipeline(
-    Pipeline::ID,
-    FactoryType&)
-{
-}
-
 auto PipelineStorage::get(Pipeline::ID pipeline) -> Pipeline&
 {
-    if (pipeline >= pipelines.size()) {
-        pipelines.resize(pipeline + 1);
-    }
-
-    if (pipelines.at(pipeline) == nullptr)
+    if (!pipelines.contains(pipeline))
     {
+        assert(renderConfig != nullptr);
+
         auto& layout = getLayout(registry.getPipelineLayout(pipeline));
-        pipelines.at(pipeline) = std::make_unique<Pipeline>(
+        pipelines.emplace(
+            pipeline,
             registry.invokePipelineFactory(pipeline, instance, *renderConfig, layout)
         );
     }
-    return *pipelines.at(pipeline);
+
+    return pipelines.at(pipeline);
 }
 
 auto PipelineStorage::getLayout(PipelineLayout::ID id) -> PipelineLayout&
 {
-    if (layouts.size() <= id || !layouts.at(id))
+    if (!layouts.contains(id))
     {
-        layouts.resize(std::max(static_cast<size_t>(id + 1), layouts.size()));
-        layouts.at(id) = std::make_unique<PipelineLayout>(
-            registry.invokeLayoutFactory(id, instance, *renderConfig)
-        );
+        assert(renderConfig != nullptr);
+        layouts.emplace(id, registry.invokeLayoutFactory(id, instance, *renderConfig));
     }
 
-    return *layouts.at(id);
+    return layouts.at(id);
 }
 
-void PipelineStorage::recreateAll()
+void PipelineStorage::clear()
 {
     pipelines.clear();
-    registry.foreachFactory([this](auto& factory) {
-        pipelines.emplace_back(createPipeline(factory));
-    });
+    layouts.clear();
 }
 
 auto PipelineStorage::createPipeline(FactoryType& factory) -> u_ptr<Pipeline>
@@ -155,15 +145,10 @@ inline auto PipelineRegistry::_registerPipelineFactory(PipelineFactory newFactor
     const Pipeline::ID id{ _allocPipelineId() };
     assert(id < factories.size());
 
-    std::scoped_lock lock(factoryLock, storageLock);
+    std::scoped_lock lock(factoryLock);
 
     // Create a new factory
-    auto& factory = *factories.emplace(factories.begin() + id, std::move(newFactory));
-
-    // Notiy existing storages
-    for (auto storage : storages) {
-        storage->notifyNewPipeline(id, factory);
-    }
+    *factories.emplace(factories.begin() + id, std::move(newFactory));
 
     return id;
 }
@@ -243,14 +228,9 @@ auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id) -> RenderPassName
 auto PipelineRegistry::makeStorage(const Instance& instance, RenderConfig& renderConfig)
     -> std::unique_ptr<PipelineStorage>
 {
-    u_ptr<PipelineStorage> result{
+    return u_ptr<PipelineStorage>{
         new PipelineStorage(StorageAccessInterface{}, instance, renderConfig)
     };
-
-    std::lock_guard lock(storageLock);
-    storages.push_back(result.get());
-
-    return result;
 }
 
 auto PipelineRegistry::_allocPipelineLayoutId() -> PipelineLayout::ID
