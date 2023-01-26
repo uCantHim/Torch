@@ -86,6 +86,28 @@ auto Scene::getMouseWorldPos() const -> vec3
     return app->getTorch().getRenderConfig().getMouseWorldPos(camera);
 }
 
+auto Scene::createObject() -> SceneObject
+{
+    auto obj = ComponentStorage::createObject();
+    add<ObjectMetadata>(obj, ObjectMetadata{ .id=obj, .name="_unnamed_" });
+
+    return obj;
+}
+
+void Scene::deleteObject(SceneObject obj)
+{
+    ComponentStorage::deleteObject(obj);
+}
+
+auto Scene::iterObjects() const
+    -> trc::algorithm::IteratorRange<componentlib::Table<ObjectMetadata, SceneObject>::const_iterator>
+{
+    using const_iterator = componentlib::Table<ObjectMetadata, SceneObject>::const_iterator;
+
+    const auto& meta = get<ObjectMetadata>();
+    return trc::algorithm::IteratorRange<const_iterator>{ meta.begin(), meta.end() };
+}
+
 void Scene::openContextMenu()
 {
     if (objectSelection.hasHoveredObject())
@@ -120,6 +142,26 @@ auto Scene::getSelectedObject() -> trc::Maybe<SceneObject>
         return objectSelection.getSelectedObject();
     }
     return {};
+}
+
+void Scene::selectObject(SceneObject obj)
+{
+    if (obj == SceneObject::NONE) {
+        objectSelection.unselectObject();
+    }
+    else {
+        objectSelection.selectObject(obj);
+    }
+}
+
+void Scene::hoverObject(SceneObject obj)
+{
+    if (obj == SceneObject::NONE) {
+        objectSelection.unhoverObject();
+    }
+    else {
+        objectSelection.hoverObject(obj);
+    }
 }
 
 auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
