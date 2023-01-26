@@ -6,12 +6,15 @@
 #include "command/ObjectScaleCommand.h"
 #include "command/ObjectTranslateCommand.h"
 #include "gui/ContextMenu.h"
+#include "object/Context.h"
 
 
 
-void openContextMenu()
+void openContextMenu(Scene& scene)
 {
-    App::get().getScene().openContextMenu();
+    scene.getHoveredObject() >> [&](SceneObject obj) {
+        gui::ContextMenu::show("object " + obj.toString(), makeContext(scene, obj));
+    };
 }
 
 void selectHoveredObject()
@@ -24,8 +27,13 @@ auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap
     KeyMap map;
 
     map.set(conf.closeApp,            makeInputCommand([&]{ app.end(); }));
-    map.set(conf.openContext,         makeInputCommand(openContextMenu));
+    map.set(conf.openContext,         makeInputCommand([&]{ openContextMenu(app.getScene()); }));
     map.set(conf.selectHoveredObject, makeInputCommand(selectHoveredObject));
+    map.set(conf.deleteHoveredObject, makeInputCommand([&app](){
+        app.getScene().getSelectedObject() >> [&](SceneObject obj) {
+            app.getScene().deleteObject(obj);
+        };
+    }));
 
     map.set(conf.cameraRotate, std::make_unique<CameraRotateCommand>(app));
     map.set(conf.cameraMove,   std::make_unique<CameraMoveCommand>(app));

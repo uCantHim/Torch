@@ -9,6 +9,7 @@ struct KeyConfig
     VariantInput closeApp;
     VariantInput openContext;
     VariantInput selectHoveredObject;
+    VariantInput deleteHoveredObject;
 
     VariantInput cameraMove;
     VariantInput cameraRotate;

@@ -75,6 +75,7 @@ App::App(Project _project)
             .closeApp = trc::Key::escape,
             .openContext = trc::MouseButton::right,
             .selectHoveredObject = trc::MouseButton::left,
+            .deleteHoveredObject = trc::Key::del,
             .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
             .cameraRotate = trc::MouseButton::middle,
             .translateObject = trc::Key::g,
