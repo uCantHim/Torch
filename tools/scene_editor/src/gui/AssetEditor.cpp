@@ -215,8 +215,7 @@ void gui::AssetEditor::drawEntryContextMenu<trc::Geometry>(const trc::AssetPath&
     {
         static const auto mat = assets.create(trc::makeMaterial({ .color=vec4(1.0f) }));
 
-        auto obj = app.getScene().createObject();
-        app.getScene().add<trc::Drawable>(obj, trc::Drawable(
+        app.getScene().createDefaultObject(trc::Drawable(
             assets.get<trc::Geometry>(path),
             mat,
             app.getScene().getDrawableScene()

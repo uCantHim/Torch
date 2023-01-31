@@ -28,7 +28,7 @@ void ObjectSelection::hoverObject(SceneObject obj)
 void ObjectSelection::unhoverObject()
 {
     if (hoveredObject != SceneObject::NONE) {
-        scene->remove<ObjectHoverOutline>(hoveredObject);
+        scene->tryRemove<ObjectHoverOutline>(hoveredObject);
     }
 
     hoveredObject = SceneObject::NONE;
@@ -58,7 +58,7 @@ void ObjectSelection::selectObject(SceneObject obj)
 void ObjectSelection::unselectObject()
 {
     if (selectedObject != SceneObject::NONE) {
-        scene->remove<ObjectSelectOutline>(selectedObject);
+        scene->tryRemove<ObjectSelectOutline>(selectedObject);
     }
 
     selectedObject = SceneObject::NONE;
