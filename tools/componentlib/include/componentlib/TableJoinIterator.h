@@ -2,11 +2,14 @@
 
 #include <iostream>
 
+#include <trc_util/algorithm/IteratorRange.h>
+
 #include "TableIterators.h"
-#include "IteratorRange.h"
 
 namespace componentlib
 {
+
+using trc::algorithm::IteratorRange;
 
 /**
  * @brief An iterator that dynamically joins two tables
@@ -23,16 +26,6 @@ struct TableJoinIterator
 
     using KeyIteratorT = TableKeyIterator<TableT>;
     using KeyIteratorU = TableKeyIterator<TableU>;
-
-    using value_type = std::pair<T*, U*>;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    /**
-     * I don't have bidirectionality because I couldn't figure out how to
-     * decrement the past-the-end iterator.
-     */
-    using iterator_category = std::forward_iterator_tag;
 
     /**
      * A structure representing a single row in a join of two tables
@@ -53,6 +46,23 @@ struct TableJoinIterator
         const T& t;
         const U& u;
     };
+
+    using difference_type = size_t;
+    using value_type = RowJoin;
+    using reference = RowJoin;
+
+    /**
+     * I don't have bidirectionality because I couldn't figure out how to
+     * decrement the past-the-end iterator.
+     */
+    using iterator_category = std::forward_iterator_tag;
+
+    TableJoinIterator(const TableJoinIterator&) = default;
+    TableJoinIterator(TableJoinIterator&&) noexcept = default;
+    ~TableJoinIterator() = default;
+
+    TableJoinIterator& operator=(const TableJoinIterator&) = default;
+    TableJoinIterator& operator=(TableJoinIterator&&) noexcept = default;
 
     /**
      * @brief Construct a join iterator over to tables from their beginning
@@ -77,8 +87,6 @@ struct TableJoinIterator
             it_u = std::end(u);
         }
     }
-
-    ~TableJoinIterator() = default;
 
     // Prefix
     auto operator++() -> TableJoinIterator&

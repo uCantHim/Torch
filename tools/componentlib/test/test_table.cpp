@@ -138,7 +138,6 @@ TEST(TableTest, JoinEmpty)
     ASSERT_TRUE(createJoin(t1, t2).empty());
 
     std::vector<std::pair<int, int>> result;
-    auto it = result.begin();
     for (auto [_, i, j] : t1.join(t2)) {
         result.emplace_back(i, j);
     }
@@ -161,9 +160,9 @@ TEST(TableTest, ConstIteratorsCompileTime)
 {
     const Table<int> t;
 
-    for (auto k : t.keys()) {}
-    for (auto v : t.values()) {}
-    for (auto [k, v] : t.items()) {}
+    for ([[maybe_unused]] auto k : t.keys()) {}
+    for ([[maybe_unused]] auto v : t.values()) {}
+    for ([[maybe_unused]] auto [k, v] : t.items()) {}
 }
 
 struct Bar
@@ -180,10 +179,10 @@ struct componentlib::TableTraits<Bar>
 
 TEST(TableTest, UniqueStorage)
 {
-    static_assert(std::same_as<Bar,      Table<Bar>::value_type>, "");
-    static_assert(std::same_as<Bar&,     Table<Bar>::reference>, "");
-    static_assert(std::same_as<Bar*,     Table<Bar>::pointer>, "");
-    static_assert(std::same_as<uint32_t, Table<Bar>::key_type>, "");
+    static_assert(std::same_as<Bar,      Table<Bar>::value_type>);
+    static_assert(std::same_as<Bar&,     Table<Bar>::reference>);
+    static_assert(std::same_as<Bar*,     Table<Bar>::pointer>);
+    static_assert(std::same_as<uint32_t, Table<Bar>::key_type>);
 
     Table<Bar> table;
 

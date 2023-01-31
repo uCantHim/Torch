@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 
+#include <trc_util/algorithm/IteratorRange.h>
 #include <trc_util/functional/Maybe.h>
 namespace trc {
     using functional::Maybe;
@@ -13,10 +14,11 @@ namespace trc {
 
 #include "TableIterators.h"
 #include "TableJoinIterator.h"
-#include "IteratorRange.h"
 
 namespace componentlib
 {
+
+using trc::algorithm::IteratorRange;
 
 /**
  * @brief Specializable struct that can declare options for table contents
