@@ -1,12 +1,13 @@
 #include "Context.h"
 
-#include <vector>
 #include <functional>
+#include <vector>
 
 #include "Scene.h"
 #include "Hitbox.h"
 #include "HitboxVisualization.h"
 #include "gui/ImguiUtil.h"
+#include "gui/ContextMenu.h"
 
 
 
@@ -40,7 +41,7 @@ public:
     {
         auto& vis = scene->get<HitboxVisualization>(obj);
 
-        if (!ig::CollapsingHeader("Hitbox")) return;
+        if (!ig::CollapsingHeader("Hitbox ")) return;
         ig::TreePush("##context_hitbox_dialog");
 
         ig::Text("Sphere");
@@ -101,7 +102,7 @@ public:
 
     void operator()()
     {
-        if (!ig::CollapsingHeader("Animation")) return;
+        if (!ig::CollapsingHeader("Animation ")) return;
         ig::TreePush("##context_animation_dialog");
 
         if (!rigId)
@@ -146,5 +147,19 @@ auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>
         func.add(AnimationDialog(obj, scene));
     };
 
+    func.add([&scene, obj]{
+        ig::Spacing();
+        if (ig::Button("Delete"))
+        {
+            scene.deleteObject(obj);
+            gui::ContextMenu::close();
+        }
+    });
+
     return func;
+}
+
+void drawObjectContextMenu(Scene& scene, SceneObject obj)
+{
+    std::invoke(makeContext(scene, obj));
 }

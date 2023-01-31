@@ -5,8 +5,9 @@
 
 #include <trc_util/data/DeferredInsertVector.h>
 
-#include "gui/ImguiUtil.h"
 #include "gui/AssetEditor.h"
+#include "gui/ImguiUtil.h"
+#include "gui/ObjectBrowser.h"
 #include "gui/SceneEditorFileExplorer.h"
 
 class App;
@@ -37,5 +38,6 @@ namespace gui
 
         gui::SceneEditorFileExplorer fileExplorer;
         gui::AssetEditor assetEditor;
+        gui::ObjectBrowser objectBrowser;
     };
 } // namespace gui

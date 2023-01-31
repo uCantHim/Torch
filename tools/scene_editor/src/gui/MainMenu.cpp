@@ -10,7 +10,8 @@ gui::MainMenu::MainMenu(App& app)
     :
     app(app),
     fileExplorer(*this),
-    assetEditor(*this)
+    assetEditor(*this),
+    objectBrowser(*this)
 {
 }
 
@@ -34,6 +35,7 @@ void gui::MainMenu::drawImGui()
 
     // Draw sub menus
     assetEditor.drawImGui();
+    objectBrowser.drawImGui();
 
     {
         auto range = openWindows.iter();
