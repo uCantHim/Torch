@@ -26,11 +26,11 @@ TEST(SafeVectorTest, BasicValidityTests)
     ASSERT_FALSE(vec.contains(4));
     ASSERT_FALSE(vec.contains(1234));
 
-    ASSERT_THROW(vec.at(0), std::out_of_range);
+    ASSERT_THROW(vec.at(0), trc::data::InvalidElementAccess);
     ASSERT_NO_THROW(vec.at(2));
 
     ASSERT_NO_THROW(vec.erase(2));
-    ASSERT_THROW(vec.erase(2), std::out_of_range);
+    ASSERT_NO_THROW(vec.erase(2));
 
     ASSERT_NO_THROW(vec.emplace(15));
     ASSERT_NO_THROW(vec.emplace(15));
@@ -72,7 +72,7 @@ TEST(SafeVectorTest, CorrectDestruction)
     // Erase correctly calls the destructor
     vec.erase(3);
     ASSERT_EQ(count, 1);
-    ASSERT_THROW(vec.erase(3), std::out_of_range);
+    ASSERT_NO_THROW(vec.erase(3));
     ASSERT_EQ(count, 1);
 
     // Emplace into previously occupied location does not destroy the element twice
@@ -109,40 +109,6 @@ TEST(SafeVectorTest, MemorySafety)
     ASSERT_EQ(ref1.i, 42);
     ASSERT_EQ(ref2.i, -3210);
     ASSERT_EQ(vec.at(kChunkSize).i, 800);
-}
-
-TEST(SafeVectorTest, ThreadsafeResize)
-{
-    constexpr size_t kChunkSize{ 5 };
-    constexpr size_t kNumThreads{ 60 };
-    constexpr size_t kIterationsPerThread{ 2000 };
-
-    auto kernel = [](SafeVector<std::string, kChunkSize>& vec, size_t offset)
-    {
-        for (size_t i = 0; i < kIterationsPerThread; ++i)
-        {
-            const size_t chunk = i * kNumThreads + offset;
-            vec.emplace(chunk * kChunkSize);
-        }
-    };
-
-    SafeVector<std::string, kChunkSize> vec;
-
-    std::vector<std::future<void>> futures;
-    futures.reserve(kNumThreads);
-    for (size_t i = 0; i < kNumThreads; ++i) {
-        futures.emplace_back(std::async(kernel, std::ref(vec), i));
-    }
-    for (auto& f : futures) f.wait();
-
-    for (size_t i = 0; i < kIterationsPerThread * kNumThreads; ++i)
-    {
-        ASSERT_TRUE(vec.contains(i * kChunkSize + 0));
-        ASSERT_FALSE(vec.contains(i * kChunkSize + 1));
-        ASSERT_FALSE(vec.contains(i * kChunkSize + 2));
-        ASSERT_FALSE(vec.contains(i * kChunkSize + 3));
-        ASSERT_FALSE(vec.contains(i * kChunkSize + 4));
-    }
 }
 
 TEST(SafeVectorTest, Clear)
@@ -182,4 +148,83 @@ TEST(SafeVectorTest, Clear)
         ASSERT_EQ(destructorCount, 1);
     } // end of scope
     ASSERT_EQ(destructorCount, 1);
+}
+
+TEST(SafeVectorTest, ThreadsafeResize)
+{
+    constexpr size_t kChunkSize{ 5 };
+    constexpr size_t kNumThreads{ 60 };
+    constexpr size_t kIterationsPerThread{ 2000 };
+
+    auto kernel = [](SafeVector<std::string, kChunkSize>& vec, size_t offset)
+    {
+        for (size_t i = 0; i < kIterationsPerThread; ++i)
+        {
+            const size_t chunk = i * kNumThreads + offset;
+            vec.emplace(chunk * kChunkSize);
+        }
+    };
+
+    SafeVector<std::string, kChunkSize> vec;
+
+    std::vector<std::future<void>> futures;
+    futures.reserve(kNumThreads);
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        futures.emplace_back(std::async(kernel, std::ref(vec), i));
+    }
+    for (auto& f : futures) f.wait();
+
+    for (size_t i = 0; i < kIterationsPerThread * kNumThreads; ++i)
+    {
+        ASSERT_TRUE(vec.contains(i * kChunkSize + 0));
+        ASSERT_FALSE(vec.contains(i * kChunkSize + 1));
+        ASSERT_FALSE(vec.contains(i * kChunkSize + 2));
+        ASSERT_FALSE(vec.contains(i * kChunkSize + 3));
+        ASSERT_FALSE(vec.contains(i * kChunkSize + 4));
+    }
+}
+
+TEST(SafeVectorTest, MultithreadedEmplaceErase)
+{
+    /**
+     * This just ensures that a random mixture of emplaces and erases from
+     * multiple concurrent threads does not cause crashes. I'm too lazy to
+     * implement a more sophisticated test for this.
+     */
+
+    constexpr size_t kChunkSize{ 5 };
+    static const size_t kNumThreads{ std::thread::hardware_concurrency() * 2 };
+    constexpr size_t kIterationsPerThread{ 20000 };
+
+    auto emplaceKernel = [](SafeVector<std::string, kChunkSize>& vec, size_t offset)
+    {
+        for (size_t i = 0; i < kIterationsPerThread; ++i)
+        {
+            const size_t chunk = i * kNumThreads + offset;
+            vec.emplace(chunk * kChunkSize);
+        }
+    };
+    auto eraseKernel = [](SafeVector<std::string, kChunkSize>& vec, size_t offset)
+    {
+        for (size_t i = 0; i < kIterationsPerThread; ++i)
+        {
+            const size_t chunk = i * kNumThreads + offset;
+            vec.erase(chunk * kChunkSize);
+        }
+    };
+
+    SafeVector<std::string, kChunkSize> vec;
+
+    std::vector<std::future<void>> futures;
+    futures.reserve(kNumThreads);
+    for (size_t i = 0; i < kNumThreads; ++i)
+    {
+        if (i % 2 == 0) {
+            futures.emplace_back(std::async(emplaceKernel, std::ref(vec), i));
+        }
+        else {
+            futures.emplace_back(std::async(eraseKernel, std::ref(vec), i));
+        }
+    }
+    for (auto& f : futures) f.wait();
 }
