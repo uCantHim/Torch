@@ -51,7 +51,7 @@ public:
     auto getForGeometry(trc::GeometryID geo) -> HitboxHandle;
 
 private:
-    trc::data::IdPool idPool;
+    trc::data::IdPool<ui32> idPool;
     componentlib::Table<HitboxHandle, LocalID> hitboxes;
     componentlib::Table<LocalID, trc::GeometryID> perGeometry;
 };

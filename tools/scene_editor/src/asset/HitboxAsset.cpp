@@ -62,6 +62,7 @@ auto HitboxRegistry::add(u_ptr<trc::AssetSource<HitboxAsset>> source) -> LocalID
 void HitboxRegistry::remove(LocalID id)
 {
     hitboxes.erase(id);
+    idPool.free(id);
 }
 
 auto HitboxRegistry::getHandle(LocalID id) -> HitboxHandle
