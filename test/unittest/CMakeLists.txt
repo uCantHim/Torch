@@ -13,6 +13,7 @@ target_sources(UnitTests
         util_tests/test_maybe.cpp
         util_tests/test_memory_stream.cpp
         util_tests/test_object_pool.cpp
+        util_tests/test_optional_storage.cpp
         util_tests/test_safe_vector.cpp
         util_tests/test_thread_pool.cpp
         util_tests/test_threadsafe_queue.cpp
