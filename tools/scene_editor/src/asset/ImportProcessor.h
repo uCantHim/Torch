@@ -43,7 +43,7 @@ inline auto importAsset(const trc::AssetData<T>& data,
     // Ensure that the asset path is unique
     int i = 1;
     while (dir.exists(dst)) {
-        dst = trc::AssetPath(dst.getUniquePath() + "__" + std::to_string(i++));
+        dst = trc::AssetPath(dst.string() + "__" + std::to_string(i++));
     }
 
     // Create physical storage in ProjectDirectory and logical asset in AssetManager
@@ -71,7 +71,7 @@ inline void postProcessing(const trc::AssetData<trc::Geometry>& data,
         .capsule=hitbox.getCapsule(),
         .geometry=geoPath
     };
-    const trc::AssetPath path(geoPath.getUniquePath() + "_hitbox");
+    const trc::AssetPath path(geoPath.string() + "_hitbox");
 
     dir.save(path, hitboxData);
     man.create<HitboxAsset>(path);

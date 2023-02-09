@@ -1,67 +1,44 @@
 #pragma once
 
+#include <cassert>
+
 #include <atomic>
 #include <fstream>
 #include <iomanip>
+#include <optional>
 #include <string>
 #include <sstream>
 
 #include "trc/Types.h"
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetPath.h"
+#include "trc/assets/AssetType.h"
 #include "trc/base/Logging.h"
+#include "trc/util/TorchDirectories.h"
 
 namespace trc
 {
+    /**
+     * @brief General data stored for every type of asset
+     */
+    struct AssetMetadata
+    {
+        std::string name;
+        AssetType type;
+        std::optional<AssetPath> path{ std::nullopt };
+    };
+
+    /**
+     * @brief An interface that creates/loads data for a specific asset type
+     */
     template<AssetBaseType T>
     class AssetSource
     {
     public:
         virtual ~AssetSource() = default;
+
         virtual auto load() -> AssetData<T> = 0;
-
-        virtual auto getAssetName() -> std::string = 0;
-    };
-
-    /**
-     * @brief Loads data from a file
-     */
-    template<AssetBaseType T>
-    class AssetPathSource : public AssetSource<T>
-    {
-    public:
-        explicit AssetPathSource(AssetPath path)
-            : path(std::move(path))
-        {}
-
-        auto load() -> AssetData<T> override
-        {
-            if (!fs::is_regular_file(path.getFilesystemPath()))
-            {
-                log::error << "Unable to load asset data from " << path.getFilesystemPath()
-                           << ": File does not exist.\n";
-                return {};
-            }
-
-            std::fstream file(path.getFilesystemPath());
-            if (!file.is_open())
-            {
-                log::error << "Unable to load asset data from " << path.getFilesystemPath()
-                           << ": Unable to open file (" << file.exceptions() << ")\n";
-                return {};
-            }
-
-            AssetData<T> data;
-            data.deserialize(file);
-            return data;
-        }
-
-        auto getAssetName() -> std::string override {
-            return path.getUniquePath();
-        }
-
-    private:
-        const AssetPath path;
+        virtual auto getMetadata() -> AssetMetadata = 0;
     };
 
     template<AssetBaseType T>
@@ -69,21 +46,25 @@ namespace trc
     {
     public:
         explicit InMemorySource(AssetData<T> data)
-            : data(std::move(data))
+            : data(std::move(data)), name(generateName())
+        {}
+
+        InMemorySource(AssetData<T> data, std::string assetName)
+            : data(std::move(data)), name(std::move(assetName))
         {}
 
         auto load() -> AssetData<T> override {
             return data;
         }
 
-        auto getAssetName() -> std::string override {
-            return name;
+        auto getMetadata() -> AssetMetadata override {
+            return { .name=name, .type=AssetType::make<T>(), .path=std::nullopt };
         }
 
     private:
         static inline std::atomic<ui32> uniqueNameIndex{ 0 };
 
-        auto generateName() -> std::string
+        static auto generateName() -> std::string
         {
             std::stringstream ss;
             ss.fill('0');
@@ -92,6 +73,6 @@ namespace trc
         }
 
         const AssetData<T> data;
-        const std::string name{ generateName() };
+        const std::string name;
     };
 } // namespace trc

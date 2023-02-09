@@ -3,10 +3,13 @@ target_sources(UnitTests
     PRIVATE
         assets_tests/test_asset_path.cpp
         assets_tests/test_asset_reference.cpp
+        assets_tests/test_asset_storage.cpp
+        assets_tests/test_asset_type.cpp
         assets_tests/test_custom_asset.cpp
         core/test_scene_base.cpp
         test_basic_type.cpp
         test_event_handler.cpp
+        test_filesystem_data_storage.cpp
         test_shader_code_typechecker.cpp
         test_shader_loader.cpp
         util_tests/test_deferred_insert_vector.cpp
@@ -18,6 +21,7 @@ target_sources(UnitTests
         util_tests/test_thread_pool.cpp
         util_tests/test_threadsafe_queue.cpp
 )
+target_include_directories(UnitTests PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries(UnitTests PRIVATE torch)
 target_compile_definitions(UnitTests PRIVATE

@@ -262,7 +262,7 @@ auto MaterialProgramData::serialize() const -> serial::ShaderProgram
         }
 
         serial::AssetReference newRef;
-        newRef.set_unique_path(ref.getAssetPath().getUniquePath());
+        newRef.set_unique_path(ref.getAssetPath().string());
         prog.mutable_textures()->emplace(idx, std::move(newRef));
     }
 

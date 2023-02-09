@@ -3,7 +3,10 @@
 #include <trc/assets/AssetReference.h>
 #include <trc/assets/Geometry.h>
 #include <trc/core/Instance.h>
+#include <trc/util/FilesystemDataStorage.h>
 #include <trc/Torch.h>
+
+#include "test_utils.h"
 
 using T = trc::Geometry;
 
@@ -32,9 +35,11 @@ TEST(AssetReferenceTest, FromAssetPath)
 
 TEST(AssetReferenceTest, FromAssetID)
 {
+    trc::log::info.setOutputStream(nullStream);
+
     trc::init();
     trc::Instance instance{};
-    trc::AssetManager man(instance, {});
+    trc::AssetManager man(std::make_shared<NullDataStorage>(), instance, {});
 
     trc::GeometryID id = man.create(trc::GeometryData{});
     trc::AssetReference<T> ref(id);
@@ -50,13 +55,20 @@ TEST(AssetReferenceTest, FromAssetID)
 
 TEST(AssetReferenceTest, ResolveReference)
 {
+    trc::log::info.setOutputStream(nullStream);
+
     trc::init();
     trc::Instance instance{};
-    trc::AssetManager man(instance, {});
+    trc::AssetManager man(
+        std::make_shared<trc::FilesystemDataStorage>(testing::TempDir()),
+        instance, {}
+    );
 
-    trc::AssetPath path("my/asset/file.txt");
+    const trc::AssetPath path("my/asset/file.txt");
+    man.getAssetStorage().store(path, trc::makeCubeGeo());
+
     trc::AssetReference<T> ref(path);
-    ref.resolve(man);
+    ASSERT_NO_THROW(ref.resolve(man));
 
     ASSERT_FALSE(ref.empty());
     ASSERT_TRUE(ref.hasAssetPath());

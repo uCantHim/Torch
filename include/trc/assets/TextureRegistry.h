@@ -20,6 +20,10 @@ namespace trc
     struct Texture
     {
         using Registry = TextureRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_tex";
+        }
     };
 
     template<>

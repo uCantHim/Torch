@@ -3,6 +3,7 @@
 #include <concepts>
 #include <istream>
 #include <ostream>
+#include <string_view>
 
 #include <trc_util/data/TypesafeId.h>
 
@@ -48,8 +49,20 @@ namespace trc
      */
     template<typename T>
     concept AssetBaseType = requires {
-        typename T::Registry;
+        // Don't do funny business with `T`. It's just supposed to provide
+        // static definitions.
         requires std::semiregular<T>;
+
+        // T must define a type `Registry`. This is the device registry
+        // implementation for the asset type.
+        typename T::Registry;
+
+        // T must define a constexpr function `name` that returns a unique
+        // string identifier for the asset type.
+        { T::name() } -> std::same_as<std::string_view>;
+        T::name().length() > 0;  // Also requires that T::name is indeed constexpr
+
+        // The template `AssetData<>` must be specialized for `T`.
         requires IsCompleteType<AssetData<T>>;
         requires requires (AssetData<T> data, std::istream& is) {
             { data.deserialize(is) } -> std::same_as<void>;
@@ -60,7 +73,7 @@ namespace trc
     };
 
     template<AssetBaseType T>
-    struct AssetTypeTraits
+    struct AssetBaseTypeTraits
     {
     public:
                            /* Hard */

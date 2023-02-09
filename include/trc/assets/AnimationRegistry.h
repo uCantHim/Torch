@@ -18,6 +18,10 @@ namespace trc
     struct Animation
     {
         using Registry = AnimationRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_anim";
+        }
     };
 
     template<>

@@ -26,8 +26,8 @@ auto findAvailableName(const ProjectDirectory& dir, trc::AssetPath path) -> trc:
 {
     if (!dir.exists(path)) return path;
 
-    auto ext = path.getFilesystemPath().extension().string();
-    auto name = path.getUniquePath().substr(0, path.getUniquePath().size() - ext.size());
+    auto ext = (trc::util::getAssetStorageDirectory() / path.string()).extension().string();
+    auto name = path.string().substr(0, path.string().size() - ext.size());
 
     size_t i{ 1 };
     while (dir.exists(trc::AssetPath(name + "(" + std::to_string(i) + ")" + ext))) ++i;
@@ -188,7 +188,7 @@ void gui::AssetEditor::drawAssetList()
 template<trc::AssetBaseType T>
 void gui::AssetEditor::drawListEntry(const trc::AssetPath& path)
 {
-    const auto unique = path.getUniquePath();
+    const auto unique = path.string();
     const auto label = assetTypeName<T> + std::string(" \"" + unique + "\"");
 
     ig::Selectable(label.c_str());

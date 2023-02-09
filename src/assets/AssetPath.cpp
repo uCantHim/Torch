@@ -1,36 +1,32 @@
 #include "trc/assets/AssetPath.h"
 
-#include "trc/util/TorchDirectories.h"
 
 
+namespace trc
+{
 
-trc::AssetPath::AssetPath(fs::path path)
-    :
-    pathlet(std::move(path))
+AssetPath::AssetPath(fs::path path)
+    : AssetPath(util::Pathlet(std::move(path)))
+{
+}
+
+AssetPath::AssetPath(util::Pathlet path)
+    : Pathlet(std::move(path))
 {
     // Ensure that path is actually a subdirectory of the asset root
-    const auto isSubdir = !fs::path{ pathlet.string() }.lexically_relative(fs::path("."))
+    const auto isSubdir = !fs::path{ string() }.lexically_relative(fs::path("."))
                            .string().starts_with("..");
     if (!isSubdir)
     {
         throw std::invalid_argument(
             "Unable to construct unique asset path from \"" + path.string() + "\": "
-            + "Path is outside of asset root directory "
-            + util::getAssetStorageDirectory().string());
+            "Path is not lexically relative to the logical asset root.");
     }
 }
 
-auto trc::AssetPath::getUniquePath() const -> std::string
+auto AssetPath::getAssetName() const -> std::string
 {
-    return pathlet.string();
+    return filename().replace_extension("").string();
 }
 
-auto trc::AssetPath::getFilesystemPath() const -> fs::path
-{
-    return util::getAssetStorageDirectory() / pathlet;
-}
-
-auto trc::AssetPath::getAssetName() const -> std::string
-{
-    return pathlet.filename().replace_extension("").string();
-}
+} // namespace trc

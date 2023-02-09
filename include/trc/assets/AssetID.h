@@ -8,8 +8,6 @@
 
 namespace trc
 {
-    struct AssetMetaData;
-
     struct _AssetIdTypeTag {};
 
     /**
@@ -24,8 +22,8 @@ namespace trc
     struct TypedAssetID
     {
     public:
-        using LocalID = typename AssetTypeTraits<T>::LocalID;
-        using Handle = typename AssetTypeTraits<T>::Handle;
+        using LocalID = typename AssetBaseTypeTraits<T>::LocalID;
+        using Handle = typename AssetBaseTypeTraits<T>::Handle;
 
         TypedAssetID() = default;
         TypedAssetID(AssetID base, LocalID type, AssetManagerFwd& man)
@@ -62,7 +60,7 @@ namespace trc
 
         auto get() const -> Handle;
         auto getDeviceDataHandle() const -> Handle;
-        auto getMetaData() const -> const AssetMetaData&;
+        auto getMetaData() const -> const AssetMetadata&;
 
         auto getAssetManager() -> AssetManagerFwd&;
         auto getModule() -> AssetRegistryModule<T>&;
@@ -143,7 +141,7 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    auto TypedAssetID<T>::getMetaData() const -> const AssetMetaData&
+    auto TypedAssetID<T>::getMetaData() const -> const AssetMetadata&
     {
         return manager->getMetaData(*this);
     }

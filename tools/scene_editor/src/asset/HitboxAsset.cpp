@@ -18,7 +18,7 @@ void trc::AssetData<HitboxAsset>::serialize(std::ostream& os) const
     data.set_capsule_pos_y(capsule.position.y);
     data.set_capsule_pos_z(capsule.position.z);
 
-    data.set_geometry_path(geometry.getAssetPath().getUniquePath());
+    data.set_geometry_path(geometry.getAssetPath().string());
 
     data.SerializeToOstream(&os);
 }

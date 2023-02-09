@@ -107,24 +107,26 @@ public:
     void foreach(Visitor&& vis);
 
 private:
+    static auto getFilesystemPath(const trc::AssetPath& path) -> fs::path;
+
     const fs::path root;
 
     AssetFileIndex index;
     std::mutex fileWriteLock;
 };
 
-template<trc::AssetBaseType T>
-auto ProjectDirectory::load(const trc::AssetPath& path) -> u_ptr<trc::AssetSource<T>>
-{
-    if (!index.contains(path)) {
-        throw std::out_of_range(path.getUniquePath() + " is not a registered asset.");
-    }
-    if (index.getType(path) != toDynamicType<T>()) {
-        throw std::invalid_argument("Unmatching type requested from " + path.getUniquePath());
-    }
-
-    return std::make_unique<trc::AssetPathSource<T>>(path);
-}
+// template<trc::AssetBaseType T>
+// auto ProjectDirectory::load(const trc::AssetPath& path) -> u_ptr<trc::AssetSource<T>>
+// {
+//     if (!index.contains(path)) {
+//         throw std::out_of_range(path.string() + " is not a registered asset.");
+//     }
+//     if (!index.getType(path)->is<T>()) {
+//         throw std::invalid_argument("Unmatching type requested from " + path.string());
+//     }
+//
+//     return std::make_unique<trc::AssetPathSource<T>>(path);
+// }
 
 template<trc::AssetBaseType T>
 bool ProjectDirectory::save(
@@ -132,7 +134,7 @@ bool ProjectDirectory::save(
     const trc::AssetData<T>& data,
     bool overwrite)
 {
-    const auto fsPath = path.getFilesystemPath();
+    const auto fsPath = getFilesystemPath(path);
     if (!overwrite && fs::is_regular_file(fsPath)) {
         return false;
     }

@@ -9,6 +9,7 @@
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
 #include "trc/ui/torch/GuiIntegration.h"
+#include "trc/util/FilesystemDataStorage.h"
 #ifdef TRC_USE_IMGUI
 #include "trc/experimental/ImguiIntegration.h"
 #endif
@@ -100,6 +101,7 @@ trc::TorchStack::TorchStack(
         return winInfo;
     }()),
     assetManager(
+        std::make_shared<FilesystemDataStorage>(util::getAssetStorageDirectory()),
         instance,
         AssetRegistryCreateInfo{
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()

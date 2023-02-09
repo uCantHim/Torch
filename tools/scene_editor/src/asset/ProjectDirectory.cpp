@@ -31,10 +31,10 @@ bool ProjectDirectory::exists(const trc::AssetPath& path) const
 void ProjectDirectory::move(const trc::AssetPath& from, const trc::AssetPath& to)
 {
     if (!index.contains(from)) {
-        throw std::invalid_argument(from.getUniquePath() + " is not a registered asset.");
+        throw std::invalid_argument(from.string() + " is not a registered asset.");
     }
     if (index.contains(to)) {
-        throw std::invalid_argument("Asset already exists at " + to.getUniquePath());
+        throw std::invalid_argument("Asset already exists at " + to.string());
     }
 
     const auto type = *index.getType(from);
@@ -43,16 +43,21 @@ void ProjectDirectory::move(const trc::AssetPath& from, const trc::AssetPath& to
     // Add new index entry
     fromDynamicType([this, &to]<trc::AssetBaseType T>(){ index.insert<T>(to); }, type);
 
-    fs::rename(from.getFilesystemPath(), to.getFilesystemPath());
+    fs::rename(getFilesystemPath(from), getFilesystemPath(to));
 }
 
 void ProjectDirectory::remove(const trc::AssetPath& path)
 {
     if (!index.contains(path)) {
-        throw std::out_of_range(path.getUniquePath() + " is not a registered asset.");
+        throw std::out_of_range(path.string() + " is not a registered asset.");
     }
 
     std::scoped_lock lock(fileWriteLock);
     index.erase(path);
-    fs::remove(path.getFilesystemPath());
+    fs::remove(getFilesystemPath(path));
+}
+
+auto ProjectDirectory::getFilesystemPath(const trc::AssetPath& path) -> fs::path
+{
+    return trc::util::getAssetStorageDirectory() / path;
 }

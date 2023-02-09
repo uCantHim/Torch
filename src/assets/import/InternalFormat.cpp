@@ -64,7 +64,7 @@ template<typename T>
 void assignRef(serial::AssetReference* dst, const AssetReference<T>& src)
 {
     assert(src.hasAssetPath());
-    *dst->mutable_unique_path() = src.getAssetPath().getUniquePath();
+    *dst->mutable_unique_path() = src.getAssetPath().string();
 }
 
 template<typename T>

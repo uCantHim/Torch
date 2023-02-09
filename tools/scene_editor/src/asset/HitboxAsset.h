@@ -11,6 +11,9 @@ class HitboxRegistry;
 struct HitboxAsset
 {
     using Registry = HitboxRegistry;
+    static consteval auto name() -> std::string_view {
+        return "hitbox";
+    }
 };
 
 template<>

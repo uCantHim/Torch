@@ -12,6 +12,10 @@ namespace trc
     struct SimpleMaterial
     {
         using Registry = SimpleMaterialRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_smat";
+        }
     };
 
     /**

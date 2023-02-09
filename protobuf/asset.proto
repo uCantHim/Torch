@@ -7,6 +7,18 @@ import "material.proto";
 import "rig.proto";
 import "animation.proto";
 
+message AssetType
+{
+    string name = 1;
+}
+
+message AssetMetadata
+{
+    string name = 1;
+    AssetType type = 2;
+    optional string path = 3;
+}
+
 message Asset
 {
     oneof asset_type

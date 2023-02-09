@@ -39,9 +39,9 @@ namespace trc
     {
     public:
         template<AssetBaseType T>
-        using LocalID = typename AssetTypeTraits<T>::LocalID;
+        using LocalID = typename AssetBaseTypeTraits<T>::LocalID;
         template<AssetBaseType T>
-        using Handle = typename AssetTypeTraits<T>::Handle;
+        using Handle = typename AssetBaseTypeTraits<T>::Handle;
 
         explicit AssetRegistry(const Instance& instance,
                                const AssetRegistryCreateInfo& info = {});

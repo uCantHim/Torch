@@ -4,12 +4,14 @@
 #include <fstream>
 #include <sstream>
 
-#include <trc/assets/AssetBase.h>
-#include <trc/assets/AssetRegistryModule.h>
-#include <trc/assets/AssetManager.h>
-#include <trc/core/Instance.h>
-#include <trc/util/TorchDirectories.h>
 #include <trc/Torch.h>
+#include <trc/assets/AssetBase.h>
+#include <trc/assets/AssetManager.h>
+#include <trc/assets/AssetRegistryModule.h>
+#include <trc/core/Instance.h>
+#include <trc/util/FilesystemDataStorage.h>
+
+#include "test_utils.h"
 
 using namespace trc::basic_types;
 
@@ -18,6 +20,9 @@ class HitboxRegistry;
 struct Hitbox
 {
     using Registry = HitboxRegistry;
+    static consteval auto name() -> std::string_view {
+        return "test_hitbox";
+    }
 };
 
 template<>
@@ -79,14 +84,16 @@ public:
     CustomAssetTest()
         :
         instance([]{
+            trc::log::info.setOutputStream(nullStream);
             trc::init();
             return trc::Instance(trc::InstanceCreateInfo{ .enableRayTracing=false });
         }()),
-        assets(instance, { .enableRayTracing=false }),
+        assets(
+            std::make_shared<trc::FilesystemDataStorage>(TMPDIR),
+            instance, { .enableRayTracing=false }
+        ),
         deviceRegistry(assets.getDeviceRegistry())
     {
-        trc::util::setProjectDirectory(TMPDIR);
-        fs::create_directories(trc::util::getAssetStorageDirectory());
     }
 
     ~CustomAssetTest() {
@@ -131,11 +138,9 @@ TEST_F(CustomAssetTest, CreateViaAssetPath)
 
     const trc::AssetPath path("hitbox_custom_asset.ta");
     {
-        std::ofstream file(path.getFilesystemPath(), std::ios::binary);
         HitboxData hitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 };
-        hitboxData.serialize(file);
+        assets.getAssetStorage().store(path, hitboxData);
     }
-    ASSERT_TRUE(fs::is_regular_file(path.getFilesystemPath()));
 
     auto id = assets.create<Hitbox>(path);
     ASSERT_TRUE(assets.exists(path));

@@ -1,5 +1,14 @@
 #include <trc/Torch.h>
+#include <trc/util/FilesystemDataStorage.h>
 using namespace trc::basic_types;
+
+class NullDataStorage : public trc::DataStorage
+{
+public:
+    auto read(const path& path) -> std::shared_ptr<std::istream> override { return nullptr; }
+    auto write(const path& path) -> std::shared_ptr<std::ostream> override { return nullptr; }
+    bool remove(const path& path) override { return false; }
+};
 
 void run()
 {
@@ -10,7 +19,7 @@ void run()
     trc::Window window(instance);
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
-    trc::AssetManager assets(instance, {});
+    trc::AssetManager assets(std::make_shared<NullDataStorage>(), instance, {});
     trc::ShadowPool shadows(window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 });
 
     // Create one render configuration for each viewport.

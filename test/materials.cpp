@@ -17,22 +17,17 @@
 using namespace trc;
 
 /**
- * @brief Import a texture and store it in Torch's internal texture format
- */
-auto importTexture(fs::path filePath) -> AssetPath
-{
-    const AssetPath path(filePath.filename().replace_extension(".ta"));
-    std::ofstream outFile(path.getFilesystemPath());
-    loadTexture(filePath).serialize(outFile);
-
-    return path;
-}
-
-/**
  * Manually create a material by specifying fragment shader calculations
  */
 auto createMaterial(AssetManager& assetManager) -> MaterialData
 {
+    auto importTexture = [&](fs::path filePath) -> AssetPath
+    {
+        const AssetPath path(filePath.filename().replace_extension(".ta"));
+        assetManager.getAssetStorage().store(path, loadTexture(filePath));
+        return path;
+    };
+
     trc::util::setProjectDirectory(TRC_TEST_ASSET_DIR"/..");
 
     const auto lenaPath = importTexture(TRC_TEST_ASSET_DIR"/lena.png");

@@ -18,6 +18,10 @@ namespace trc
     struct Rig
     {
         using Registry = RigRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_rig";
+        }
     };
 
     template<>

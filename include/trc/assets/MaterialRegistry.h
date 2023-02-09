@@ -26,6 +26,10 @@ namespace trc
     struct Material
     {
         using Registry = MaterialRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_mat";
+        }
     };
 
     template<>

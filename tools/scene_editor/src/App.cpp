@@ -46,7 +46,7 @@ App::App(Project _project)
             assetManager->create<T>(path);
         }
         catch (const std::runtime_error& err) {
-            std::cout << "[Warning] Unable to load asset from " << path.getUniquePath()
+            std::cout << "[Warning] Unable to load asset from " << path.string()
                 << ": " << err.what() << "\n";
         }
     });

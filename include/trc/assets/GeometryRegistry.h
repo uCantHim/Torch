@@ -28,6 +28,10 @@ namespace trc
     struct Geometry
     {
         using Registry = GeometryRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_geo";
+        }
     };
 
     template<>

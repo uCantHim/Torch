@@ -3,7 +3,6 @@
 #include <any>
 #include <filesystem>
 #include <functional>
-#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -13,18 +12,10 @@
 #include "trc/assets/AssetPath.h"
 #include "trc/assets/AssetRegistry.h"
 #include "trc/assets/AssetSource.h"
+#include "trc/assets/AssetStorage.h"
 
 namespace trc
 {
-    /**
-     * @brief General data stored for every type of asset
-     */
-    struct AssetMetaData
-    {
-        std::string name;
-        std::optional<AssetPath> path{ std::nullopt };
-    };
-
     /**
      * @brief Manages assets on a high level
      *
@@ -46,11 +37,15 @@ namespace trc
         /**
          * @brief Constructor
          *
+         * @param s_ptr<DataStorage> assetDataStorage The storage from
+         *        where the AssetManager will load asset data .
          * @param const Instance& instance
          * @param const AssetRegistryCreateInfo& arInfo The AssetManager
          *        automatically creates an AssetRegistry.
          */
-        AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo);
+        AssetManager(s_ptr<DataStorage> assetDataStorage,
+                     const Instance& instance,
+                     const AssetRegistryCreateInfo& arInfo);
 
 
         //////////////////////
@@ -106,8 +101,8 @@ namespace trc
         auto get(const AssetPath& path) const -> TypedAssetID<T>;
 
         template<AssetBaseType T>
-        auto getMetaData(TypedAssetID<T> id) const -> const AssetMetaData&;
-        auto getMetaData(const AssetPath& path) const -> const AssetMetaData&;
+        auto getMetaData(TypedAssetID<T> id) const -> const AssetMetadata&;
+        auto getMetaData(const AssetPath& path) const -> const AssetMetadata&;
 
 
         /////////////////////////////////////
@@ -115,6 +110,7 @@ namespace trc
         /////////////////////////////////////
 
         auto getDeviceRegistry() -> AssetRegistry&;
+        auto getAssetStorage() -> AssetStorage&;
 
         template<AssetBaseType T>
         auto getModule() -> AssetRegistryModule<T>&;
@@ -140,8 +136,8 @@ namespace trc
                 return data;
             }
 
-            auto getAssetName() -> std::string override {
-                return source->getAssetName();
+            auto getMetadata() -> AssetMetadata override {
+                return source->getMetadata();
             }
 
         private:
@@ -149,10 +145,10 @@ namespace trc
             u_ptr<AssetSource<T>> source;
         };
 
-        struct AssetStorage
+        struct InternalStorage
         {
             template<AssetBaseType T>
-            AssetStorage(TypedAssetID<T> id)
+            InternalStorage(TypedAssetID<T> id)
                 :
                 baseId(id.getAssetID()),
                 typedId(id),
@@ -172,18 +168,19 @@ namespace trc
         void resolveReferences(AssetData<T>& data);
 
         template<AssetBaseType T>
-        auto _createAsset(u_ptr<AssetSource<T>> source, AssetMetaData meta) -> TypedAssetID<T>;
-        auto _createBaseAsset(AssetMetaData meta) -> AssetID;
+        auto _createAsset(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>;
+        auto _createBaseAsset(AssetMetadata meta) -> AssetID;
 
         /** Handles device representations of assets */
         AssetRegistry registry;
+        AssetStorage dataStorage;
 
-        data::IdPool<ui64> assetIdPool;
+        data::IdPool<ui32> assetIdPool;
 
         /** Stores high-level management-related metadata for all asset types */
-        std::unordered_map<AssetID, AssetMetaData> assetMetaData;
+        std::unordered_map<AssetID, AssetMetadata> assetMetaData;
 
-        std::unordered_map<AssetPath, AssetStorage> pathsToAssets;
+        std::unordered_map<AssetPath, InternalStorage> pathsToAssets;
     };
 } // namespace trc
 

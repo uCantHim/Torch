@@ -2,13 +2,17 @@
 
 
 
-trc::AssetManager::AssetManager(const Instance& instance, const AssetRegistryCreateInfo& arInfo)
+trc::AssetManager::AssetManager(
+    s_ptr<DataStorage> assetDataStorage,
+    const Instance& instance,
+    const AssetRegistryCreateInfo& arInfo)
     :
-    registry(instance, arInfo)
+    registry(instance, arInfo),
+    dataStorage(assetDataStorage)
 {
 }
 
-auto trc::AssetManager::getMetaData(const AssetPath& path) const -> const AssetMetaData&
+auto trc::AssetManager::getMetaData(const AssetPath& path) const -> const AssetMetadata&
 {
     return assetMetaData.at(pathsToAssets.at(path).baseId);
 }
@@ -33,7 +37,12 @@ auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
     return registry;
 }
 
-auto trc::AssetManager::_createBaseAsset(AssetMetaData meta) -> AssetID
+auto trc::AssetManager::getAssetStorage() -> AssetStorage&
+{
+    return dataStorage;
+}
+
+auto trc::AssetManager::_createBaseAsset(AssetMetadata meta) -> AssetID
 {
     // Generate unique asset ID
     const AssetID id(assetIdPool.generate());

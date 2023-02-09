@@ -14,7 +14,6 @@ namespace trc
     struct TypedAssetID;
 
     class AssetManager;
-    struct AssetMetaData;
 
     template<typename Derived>
     class AssetManagerInterface
@@ -62,7 +61,7 @@ namespace trc
         }
 
         template<AssetBaseType T>
-        auto getMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
+        auto getMetaData(TypedAssetID<T> id) const -> const AssetMetadata&
         {
             return asDerived().template getMetaData(id);
         }

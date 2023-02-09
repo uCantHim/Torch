@@ -16,16 +16,13 @@ inline void AssetManager::resolveReferences(AssetData<T>& data)
 template<AssetBaseType T>
 inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
 {
-    auto source = std::make_unique<InMemorySource<T>>(data);
-    auto name = source->getAssetName();
-
-    return _createAsset<T>(std::move(source), AssetMetaData{ .name=std::move(name) });
+    return _createAsset<T>(std::make_unique<InMemorySource<T>>(data));
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
 {
-    return _createAsset<T>(std::move(source), AssetMetaData{ .name=source->getAssetName() });
+    return _createAsset<T>(std::move(source));
 }
 
 template<AssetBaseType T>
@@ -40,15 +37,12 @@ inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
         catch (const std::bad_any_cast&)
         {
             throw std::invalid_argument("[In AssetManager::create]: Asset at path "
-                                        + path.getUniquePath() + " has a different type than "
+                                        + path.string() + " has a different type than "
                                         " specified.");
         }
     }
 
-    const auto id = _createAsset<T>(
-        std::make_unique<AssetPathSource<T>>(path),
-        AssetMetaData{ .name=path.getUniquePath(), .path=path }
-    );
+    const auto id = _createAsset<T>(dataStorage.loadDeferred<T>(path));
     pathsToAssets.emplace(path, id);
 
     return id;
@@ -70,7 +64,7 @@ inline auto AssetManager::get(const AssetPath& path) const -> TypedAssetID<T>
     if (it == pathsToAssets.end())
     {
         throw std::runtime_error("[In AssetManager::getAsset]: Asset at path "
-                                 + path.getUniquePath() + " does not exist");
+                                 + path.string() + " does not exist");
     }
 
     try {
@@ -79,13 +73,13 @@ inline auto AssetManager::get(const AssetPath& path) const -> TypedAssetID<T>
     catch (const std::bad_any_cast&)
     {
         throw std::runtime_error("[In AssetManager::getAsset]: Asset at path "
-                                 + path.getUniquePath() + " does not match the type specified in"
+                                 + path.string() + " does not match the type specified in"
                                  " the function's template parameter");
     }
 }
 
 template<AssetBaseType T>
-inline auto AssetManager::getMetaData(TypedAssetID<T> id) const -> const AssetMetaData&
+inline auto AssetManager::getMetaData(TypedAssetID<T> id) const -> const AssetMetadata&
 {
     return assetMetaData.at(id.getAssetID());
 }
@@ -97,11 +91,11 @@ inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 }
 
 template<AssetBaseType T>
-inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source, AssetMetaData meta)
+inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source)
     -> TypedAssetID<T>
 {
     // Create general asset information
-    const auto assetId = _createBaseAsset(std::move(meta));
+    const auto assetId = _createBaseAsset(source->getMetadata());
 
     // Create device resource
     u_ptr<AssetSource<T>> internalSource{ new InternalAssetSource<T>(*this, std::move(source)) };

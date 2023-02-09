@@ -23,7 +23,7 @@ namespace nlohmann
 
         static void to_json(json& j, const trc::AssetPath& path)
         {
-            j = path.getUniquePath();
+            j = path.string();
         }
     };
 }
@@ -63,6 +63,20 @@ void AssetFileIndex::load(std::istream& is)
     }
     catch (const nl::json::parse_error&) {
         throw std::runtime_error("[In AssetFileIndex::load]: Input does not contain valid JSON.");
+    }
+
+
+    return;
+
+    for (auto it = index.begin(); it != index.end(); /*nothing*/)
+    {
+        const auto& [path, _] = *it;
+        if (!fs::is_regular_file(trc::util::getAssetStorageDirectory() / path.string())) {
+            it = index.erase(it);
+        }
+        else {
+            ++it;
+        }
     }
 }
 

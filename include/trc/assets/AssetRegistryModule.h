@@ -26,8 +26,8 @@ namespace trc
     class AssetRegistryModuleInterface : public AssetRegistryModuleInterfaceCommon
     {
     public:
-        using LocalID = typename AssetTypeTraits<T>::LocalID;
-        using Handle = typename AssetTypeTraits<T>::Handle;
+        using LocalID = typename AssetBaseTypeTraits<T>::LocalID;
+        using Handle = typename AssetBaseTypeTraits<T>::Handle;
 
         virtual auto add(u_ptr<AssetSource<T>> source) -> LocalID = 0;
         virtual void remove(LocalID id) = 0;

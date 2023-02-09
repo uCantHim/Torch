@@ -20,6 +20,10 @@ namespace trc
     struct Font
     {
         using Registry = FontRegistry;
+
+        static consteval auto name() -> std::string_view {
+            return "torch_font";
+        }
     };
 
     template<>

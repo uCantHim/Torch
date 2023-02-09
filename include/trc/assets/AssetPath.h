@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <filesystem>
+#include <functional>
+#include <stdexcept>
 #include <string>
-
-#include <trc_util/Exception.h>
 
 #include "trc/util/Pathlet.h"
 
@@ -18,14 +17,14 @@ namespace trc
      * A logical path to an internal asset file, relative to the asset
      * storage directory. Can be converted to a filesystem path.
      */
-    class AssetPath
+    class AssetPath : public util::Pathlet
     {
     public:
         AssetPath(const AssetPath&) = default;
         AssetPath(AssetPath&&) noexcept = default;
         AssetPath& operator=(const AssetPath&) = default;
         AssetPath& operator=(AssetPath&&) noexcept = default;
-        ~AssetPath() = default;
+        ~AssetPath() noexcept = default;
 
         /**
          * @param fs::path path Can be one of the following:
@@ -40,15 +39,9 @@ namespace trc
         explicit AssetPath(fs::path path);
 
         /**
-         * @return std::string A string that identifies an asset uniquely
-         *                     based on its storage path.
+         * @brief Construct from a valid pathlet
          */
-        auto getUniquePath() const -> std::string;
-
-        /**
-         * @return fs::path An absolute path to the asset file
-         */
-        auto getFilesystemPath() const -> fs::path;
+        explicit AssetPath(util::Pathlet path);
 
         /**
          * @brief Retrieve an asset's name.
@@ -63,10 +56,6 @@ namespace trc
         auto getAssetName() const -> std::string;
 
         auto operator<=>(const AssetPath&) const = default;
-
-    private:
-        /** Path relative to the asset directory */
-        util::Pathlet pathlet;
     };
 } // namespace trc
 
@@ -75,6 +64,6 @@ struct std::hash<trc::AssetPath>
 {
     auto operator()(const trc::AssetPath& path) const noexcept
     {
-        return hash<std::string>{}(path.getFilesystemPath().string());
+        return hash<std::string>{}(path.string());
     }
 };
