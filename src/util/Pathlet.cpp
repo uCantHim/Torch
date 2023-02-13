@@ -46,6 +46,11 @@ auto Pathlet::filename() const -> fs::path
     return pathlet.filename();
 }
 
+auto Pathlet::replaceExtension(const std::string& newExt) const -> Pathlet
+{
+    return Pathlet(fs::path{ pathlet }.replace_extension(newExt));
+}
+
 auto Pathlet::withExtension(const std::string& ext) const -> Pathlet
 {
     return Pathlet(string() + ext);

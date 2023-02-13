@@ -69,4 +69,61 @@ auto AssetStorage::deserializeMetadata(std::istream& is) -> AssetMetadata
     return meta;
 }
 
+auto AssetStorage::begin() -> iterator
+{
+    return AssetIterator(storage->begin(), storage->end());
+}
+
+auto AssetStorage::end() -> iterator
+{
+    return AssetIterator(storage->end(), storage->end());
+}
+
+
+
+AssetStorage::AssetIterator::AssetIterator(
+    DataStorage::iterator _begin,
+    DataStorage::iterator _end)
+    :
+    iter(std::move(_begin)),
+    end(std::move(_end))
+{
+    step();
+}
+
+auto AssetStorage::AssetIterator::operator*() const -> const_reference
+{
+    return *currentPath;
+}
+
+auto AssetStorage::AssetIterator::operator->() const -> const_pointer
+{
+    return &*currentPath;
+}
+
+auto AssetStorage::AssetIterator::operator++() -> AssetIterator&
+{
+    ++iter;
+    step();
+    return *this;
+}
+
+bool AssetStorage::AssetIterator::operator==(const AssetIterator& other) const
+{
+    return iter == other.iter;
+}
+
+bool AssetStorage::AssetIterator::isMetaFile(const util::Pathlet& path)
+{
+    return path.filename().extension() == ".meta";
+}
+
+void AssetStorage::AssetIterator::step()
+{
+    while (iter != end && !isMetaFile(*iter)) ++iter;
+    if (iter != end) {
+        currentPath = AssetPath(iter->replaceExtension(""));
+    }
+}
+
 } // namespace trc

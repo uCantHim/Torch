@@ -52,7 +52,7 @@ namespace trc
             return end();
         }
 
-        auto end() -> iterator {
+        virtual auto end() -> iterator {
             return iterator{ nullptr };
         }
 
@@ -75,13 +75,22 @@ namespace trc
             inline auto operator->() const -> const_pointer { return iter->operator->(); }
 
             inline auto operator++() -> iterator& { ++*iter; return *this; }
-            inline auto operator--() -> iterator& { --*iter; return *this; }
 
-            inline bool operator==(const iterator& other) const { return *iter == *other.iter; }
-            inline bool operator!=(const iterator& other) const { return *iter != *other.iter; };
+            inline bool operator==(const iterator& other) const
+            {
+                if (iter == nullptr || other.iter == nullptr) {
+                    return iter == other.iter;
+                }
+                return *iter == *other.iter;
+            }
 
-        private:
-            friend class DataStorage;
+            inline bool operator!=(const iterator& other) const
+            {
+                if (iter == nullptr || other.iter == nullptr) {
+                    return iter != other.iter;
+                }
+                return *iter != *other.iter;
+            }
 
             explicit iterator(u_ptr<EntryIterator> iter) : iter(std::move(iter)) {}
             u_ptr<EntryIterator> iter;
@@ -105,10 +114,9 @@ namespace trc
             virtual auto operator->() -> pointer = 0;
             virtual auto operator->() const -> const_pointer = 0;
 
-            // Only define prefix increment/decrement because postfix must
-            // return a value type, which is not possible for abstract classes
+            // Only define prefix increment because postfix must return a
+            // value type, which is not possible for abstract classes
             virtual auto operator++() -> EntryIterator& = 0;
-            virtual auto operator--() -> EntryIterator& = 0;
 
             virtual bool operator==(const EntryIterator&) const = 0;
             virtual bool operator!=(const EntryIterator&) const = default;

@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include <gtest/gtest.h>
 
 #include <trc/assets/AssetStorage.h>
@@ -102,4 +104,56 @@ TEST_F(AssetStorageTest, OverwriteData)
     ASSERT_TRUE(storage.store(path, trc::RigData{}));
     ASSERT_TRUE(storage.getMetadata(path).has_value());
     ASSERT_TRUE(storage.getMetadata(path)->type.is<trc::Rig>());
+}
+
+TEST_F(AssetStorageTest, EmptyIterator)
+{
+    const auto newRoot = rootDir / "asset_storage_empty_iterator_test";
+    fs::create_directories(newRoot);
+    trc::AssetStorage storage(std::make_shared<trc::FilesystemDataStorage>(newRoot));
+
+    ASSERT_TRUE(storage.begin() == storage.end());
+    ASSERT_NO_THROW(for (const auto& path : storage););
+}
+
+TEST_F(AssetStorageTest, Iterator)
+{
+    std::unordered_map<trc::AssetPath, trc::GeometryData> items{
+        { trc::AssetPath("/cube"), trc::makeCubeGeo() },
+        { trc::AssetPath("/triangle.geo"), trc::makeTriangleGeo() },
+        { trc::AssetPath("/nested/stuff.ta"), trc::makeCubeGeo() },
+        { trc::AssetPath("/nested/sphere"), trc::makeSphereGeo() },
+        { trc::AssetPath("/nested/bar/baz_data"), trc::makeCubeGeo() },
+        { trc::AssetPath("/nested/bar/troll_ext.meta"), trc::makeCubeGeo() },
+        { trc::AssetPath("/cube2.data"), trc::makeCubeGeo() },
+    };
+
+    const auto newRoot = rootDir / "asset_storage_iterator_test";
+    fs::create_directories(newRoot);
+    trc::AssetStorage storage(std::make_shared<trc::FilesystemDataStorage>(newRoot));
+
+    // Initialize storage
+    for (const auto& [path, data] : items) {
+        ASSERT_TRUE(storage.store(path, data));
+    }
+
+    // Iterate over assets
+    for (const trc::AssetPath& path : storage)
+    {
+        ASSERT_TRUE(items.contains(path));
+
+        auto meta = storage.getMetadata(path);
+        ASSERT_TRUE(meta.has_value());
+        ASSERT_TRUE(meta->type.is<trc::Geometry>());
+        ASSERT_EQ(*meta->path, path);
+
+        auto data = storage.load<trc::Geometry>(path);
+        ASSERT_TRUE(data.has_value());
+        ASSERT_EQ(data->indices, items.at(path).indices);
+        ASSERT_EQ(data->vertices.size(), items.at(path).vertices.size());
+        ASSERT_TRUE(data->rig.empty());
+
+        items.erase(path);
+    }
+    ASSERT_TRUE(items.empty());
 }

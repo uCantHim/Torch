@@ -50,6 +50,35 @@ namespace trc
 
         bool remove(const AssetPath& path);
 
+        struct AssetIterator
+        {
+            using const_reference = const AssetPath&;
+            using const_pointer = const AssetPath*;
+
+            AssetIterator(DataStorage::iterator begin, DataStorage::iterator end);
+
+            auto operator*() const -> const_reference;
+            auto operator->() const -> const_pointer;
+
+            auto operator++() -> AssetIterator&;
+
+            bool operator==(const AssetIterator& other) const;
+            bool operator!=(const AssetIterator& other) const = default;
+
+        private:
+            static bool isMetaFile(const util::Pathlet& path);
+            void step();
+
+            DataStorage::iterator iter;
+            DataStorage::iterator end;
+            std::optional<AssetPath> currentPath;
+        };
+
+        using iterator = AssetIterator;
+
+        auto begin() -> iterator;
+        auto end() -> iterator;
+
     private:
         static auto makeMetaPath(const AssetPath& path) -> util::Pathlet;
         static auto makeDataPath(const AssetPath& path) -> util::Pathlet;

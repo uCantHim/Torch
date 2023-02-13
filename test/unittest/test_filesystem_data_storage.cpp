@@ -1,4 +1,7 @@
 #include <cstdlib>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <trc/util/FilesystemDataStorage.h>
@@ -12,6 +15,12 @@ protected:
 
     static inline fs::path rootDir{ makeTempDir() };
 };
+
+TEST_F(FilesystemDataStorageTest, InvalidDirectoryThrows)
+{
+    ASSERT_THROW(trc::FilesystemDataStorage(rootDir / "does/not/exist"), std::invalid_argument);
+    ASSERT_NO_THROW(trc::FilesystemDataStorage{rootDir});
+}
 
 TEST_F(FilesystemDataStorageTest, ReadWrite)
 {
@@ -81,4 +90,52 @@ TEST_F(FilesystemDataStorageTest, NestedPaths)
 
     // foo.file is already a file, so treating it as a directory should fail
     ASSERT_FALSE(storage.write(trc::util::Pathlet("/nested/dir/foo.file/mydata")));
+}
+
+TEST_F(FilesystemDataStorageTest, Iterator)
+{
+    std::vector<trc::util::Pathlet> paths{
+        trc::util::Pathlet{ "/foo" },
+        trc::util::Pathlet{ "/bar" },
+        trc::util::Pathlet{ "/dir/file" },
+        trc::util::Pathlet{ "/dir/deep/nested/file2.ext" },
+        trc::util::Pathlet{ "/foobar/file.3" },
+        trc::util::Pathlet{ "/foobar/file.4" },
+        trc::util::Pathlet{ "/baz" },
+    };
+
+    fs::create_directories(rootDir / "iterator_test");
+    trc::FilesystemDataStorage storage(rootDir / "iterator_test");
+
+    // Test empty
+    ASSERT_EQ(storage.begin(), storage.end());
+    ASSERT_NO_THROW(for (auto& _ : storage););
+
+    // Populate storage
+    for (const auto& path : paths) {
+        *storage.write(path) << "Hello! This is a file at \"" + path.string() + "\".";
+    }
+
+    // Collect all files in storage
+    std::vector<trc::util::Pathlet> collectedPaths;
+    for (const trc::util::Pathlet& path : storage) {
+        collectedPaths.emplace_back(path);
+    }
+
+    std::ranges::sort(paths);
+    std::ranges::sort(collectedPaths);
+    ASSERT_EQ(paths, collectedPaths);
+
+    // A second time, with one removed element
+    collectedPaths.clear();
+    storage.remove(paths[2]);
+    for (const trc::util::Pathlet& path : storage) {
+        collectedPaths.emplace_back(path);
+    }
+
+    std::ranges::sort(paths);
+    std::ranges::sort(collectedPaths);
+    ASSERT_NE(paths, collectedPaths);
+    paths.erase(paths.begin() + 2);
+    ASSERT_EQ(paths, collectedPaths);
 }
