@@ -10,16 +10,15 @@ namespace trc
 
 void AssetData<Rig>::serialize(std::ostream& os) const
 {
-    serial::Asset asset;
-    *asset.mutable_rig() = internal::serializeAssetData(*this);
-    asset.SerializeToOstream(&os);
+    serial::Rig rig = internal::serializeAssetData(*this);
+    rig.SerializeToOstream(&os);
 }
 
 void AssetData<Rig>::deserialize(std::istream& is)
 {
-    serial::Asset asset;
-    asset.ParseFromIstream(&is);
-    *this = internal::deserializeAssetData(asset.rig());
+    serial::Rig rig;
+    rig.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(rig);
 }
 
 void AssetData<Rig>::resolveReferences(AssetManager& man)

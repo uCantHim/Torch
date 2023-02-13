@@ -16,16 +16,15 @@ namespace trc
 
 void AssetData<Geometry>::serialize(std::ostream& os) const
 {
-    serial::Asset asset;
-    *asset.mutable_geometry() = internal::serializeAssetData(*this);
-    asset.SerializeToOstream(&os);
+    serial::Geometry geo = internal::serializeAssetData(*this);
+    geo.SerializeToOstream(&os);
 }
 
 void AssetData<Geometry>::deserialize(std::istream& is)
 {
-    serial::Asset asset;
-    asset.ParseFromIstream(&is);
-    *this = internal::deserializeAssetData(asset.geometry());
+    serial::Geometry geo;
+    geo.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(geo);
 }
 
 void AssetData<Geometry>::resolveReferences(AssetManager& man)

@@ -11,16 +11,15 @@ namespace trc
 
 void AssetData<Texture>::serialize(std::ostream& os) const
 {
-    serial::Asset asset;
-    *asset.mutable_texture() = internal::serializeAssetData(*this);
-    asset.SerializeToOstream(&os);
+    serial::Texture tex = internal::serializeAssetData(*this);
+    tex.SerializeToOstream(&os);
 }
 
 void AssetData<Texture>::deserialize(std::istream& is)
 {
-    serial::Asset asset;
-    asset.ParseFromIstream(&is);
-    *this = internal::deserializeAssetData(asset.texture());
+    serial::Texture tex;
+    tex.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(tex);
 }
 
 

@@ -26,16 +26,15 @@ void SimpleMaterialData::resolveReferences(AssetManager& man)
 
 void SimpleMaterialData::serialize(std::ostream& os) const
 {
-    serial::Asset asset;
-    *asset.mutable_material() = internal::serializeAssetData(*this);
-    asset.SerializeToOstream(&os);
+    serial::SimpleMaterial mat = internal::serializeAssetData(*this);
+    mat.SerializeToOstream(&os);
 }
 
 void SimpleMaterialData::deserialize(std::istream& is)
 {
-    serial::Asset asset;
-    asset.ParseFromIstream(&is);
-    *this = internal::deserializeAssetData(asset.material());
+    serial::SimpleMaterial mat;
+    mat.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(mat);
 }
 
 

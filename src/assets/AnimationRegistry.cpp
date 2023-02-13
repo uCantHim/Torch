@@ -10,16 +10,15 @@ namespace trc
 
 void AssetData<Animation>::serialize(std::ostream& os) const
 {
-    serial::Asset asset;
-    *asset.mutable_animation() = internal::serializeAssetData(*this);
-    asset.SerializeToOstream(&os);
+    serial::Animation anim = internal::serializeAssetData(*this);
+    anim.SerializeToOstream(&os);
 }
 
 void AssetData<Animation>::deserialize(std::istream& is)
 {
-    serial::Asset asset;
-    asset.ParseFromIstream(&is);
-    *this = internal::deserializeAssetData(asset.animation());
+    serial::Animation anim;
+    anim.ParseFromIstream(&is);
+    *this = internal::deserializeAssetData(anim);
 }
 
 
