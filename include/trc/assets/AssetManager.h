@@ -13,6 +13,9 @@
 #include "trc/assets/AssetRegistry.h"
 #include "trc/assets/AssetSource.h"
 #include "trc/assets/AssetStorage.h"
+#include "trc/assets/AssetTraits.h"
+#include "trc/assets/AssetTypeMap.h"
+#include "trc/assets/DefaultTraits.h"
 
 namespace trc
 {
@@ -88,6 +91,12 @@ namespace trc
         /**
          * @brief Completely remove an asset from the asset manager
          */
+        template<AssetBaseType T>
+        void destroy(AssetID id);
+
+        /**
+         * @brief Completely remove an asset from the asset manager
+         */
         void destroy(const AssetPath& path);
 
 
@@ -114,6 +123,21 @@ namespace trc
 
         template<AssetBaseType T>
         auto getModule() -> AssetRegistryModule<T>&;
+
+
+        ////////////////////
+        //  Asset traits  //
+        ////////////////////
+
+        template<AssetBaseType Asset, AssetTraitT Trait>
+        auto getTrait() -> Trait& {
+            return getTrait<Trait>(AssetType::make<Asset>());
+        }
+
+        template<AssetTraitT Trait>
+        auto getTrait(const AssetType& type) -> Trait& {
+            return assetTraits.getTrait<Trait>(type);
+        }
 
     private:
         /**
@@ -145,27 +169,10 @@ namespace trc
             u_ptr<AssetSource<T>> source;
         };
 
-        struct InternalStorage
-        {
-            template<AssetBaseType T>
-            InternalStorage(TypedAssetID<T> id)
-                :
-                baseId(id.getAssetID()),
-                typedId(id),
-                destroy([id](AssetManager& am){ am.destroy<T>(id); })
-            {}
-
-            using AnyTypedID = std::any;
-
-            AssetID baseId;
-            AnyTypedID typedId;
-
-            /** Function for typeless `destroy(AssetPath)` call. */
-            std::function<void(AssetManager&)> destroy;
-        };
-
         template<AssetBaseType T>
         void resolveReferences(AssetData<T>& data);
+        template<AssetBaseType T>
+        void registerDefaultTraits(TraitStorage& traits);
 
         template<AssetBaseType T>
         auto _createAsset(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>;
@@ -174,13 +181,20 @@ namespace trc
         /** Handles device representations of assets */
         AssetRegistry registry;
         AssetStorage dataStorage;
+        TraitStorage assetTraits;
+
+        struct AssetInfo
+        {
+            AssetID baseId;
+            std::any typedId;
+
+            AssetMetadata metadata;
+        };
 
         data::IdPool<ui32> assetIdPool;
+        util::SafeVector<AssetInfo> assetInformation;
 
-        /** Stores high-level management-related metadata for all asset types */
-        std::unordered_map<AssetID, AssetMetadata> assetMetaData;
-
-        std::unordered_map<AssetPath, InternalStorage> pathsToAssets;
+        std::unordered_map<AssetPath, AssetID> pathsToAssets;
     };
 } // namespace trc
 

@@ -31,19 +31,21 @@ inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
     auto it = pathsToAssets.find(path);
     if (it != pathsToAssets.end())
     {
+        const auto& info = assetInformation.at(ui32{it->second});
         try {
-            return std::any_cast<TypedAssetID<T>>(it->second.typedId);
+            return std::any_cast<TypedAssetID<T>>(info.typedId);
         }
         catch (const std::bad_any_cast&)
         {
-            throw std::invalid_argument("[In AssetManager::create]: Asset at path "
-                                        + path.string() + " has a different type than "
-                                        " specified.");
+            throw std::invalid_argument(
+                "[In AssetManager::create(const AssetPath&)]: Tried to create asset of type "
+                + AssetType::make<T>().getName() + " at " + path.string() + ", but asset with"
+                " type " + info.metadata.type.getName() + " already exists at this path.");
         }
     }
 
     const auto id = _createAsset<T>(dataStorage.loadDeferred<T>(path));
-    pathsToAssets.emplace(path, id);
+    pathsToAssets.emplace(path, id.getAssetID());
 
     return id;
 }
@@ -51,10 +53,16 @@ inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
 template<AssetBaseType T>
 inline void AssetManager::destroy(const TypedAssetID<T> id)
 {
-    assetIdPool.free(static_cast<AssetID::IndexType>(id.getAssetID()));
-    assetMetaData.erase(id.getAssetID());
-
     registry.remove<T>(id.getDeviceID());
+    assetInformation.erase(ui32{ id.getAssetID() });
+
+    assetIdPool.free(ui32{ id.getAssetID() });
+}
+
+template<AssetBaseType T>
+inline void AssetManager::destroy(const AssetID id)
+{
+    destroy(std::any_cast<TypedAssetID<T>>(assetInformation.at(ui32{id}).typedId));
 }
 
 template<AssetBaseType T>
@@ -67,27 +75,35 @@ inline auto AssetManager::get(const AssetPath& path) const -> TypedAssetID<T>
                                  + path.string() + " does not exist");
     }
 
+    const auto& info = assetInformation.at(ui32{it->second});
     try {
-        return std::any_cast<TypedAssetID<T>>(it->second.typedId);
+        return std::any_cast<TypedAssetID<T>>(info.typedId);
     }
     catch (const std::bad_any_cast&)
     {
-        throw std::runtime_error("[In AssetManager::getAsset]: Asset at path "
-                                 + path.string() + " does not match the type specified in"
-                                 " the function's template parameter");
+        throw std::runtime_error("[In AssetManager::get(const AssetPath&)]: Requested asset of "
+                                 "type " + AssetType::make<T>().getName() + ", but Asset at path "
+                                 + path.string() + " has type " + info.metadata.type.getName());
     }
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::getMetaData(TypedAssetID<T> id) const -> const AssetMetadata&
 {
-    return assetMetaData.at(id.getAssetID());
+    return assetInformation.at(ui32{ id.getAssetID() }).metadata;
 }
 
 template<AssetBaseType T>
 inline auto AssetManager::getModule() -> AssetRegistryModule<T>&
 {
     return dynamic_cast<AssetRegistryModule<T>&>(registry.getModule<T>());
+}
+
+template<AssetBaseType T>
+inline void AssetManager::registerDefaultTraits(TraitStorage& traits)
+{
+    const AssetType type = AssetType::make<T>();
+    traits.registerTrait<ManagerTraits>(type, std::make_unique<ManagerTraitsImpl<T>>());
 }
 
 template<AssetBaseType T>
@@ -101,7 +117,11 @@ inline auto AssetManager::_createAsset(u_ptr<AssetSource<T>> source)
     u_ptr<AssetSource<T>> internalSource{ new InternalAssetSource<T>(*this, std::move(source)) };
     const auto localId = registry.add(std::move(internalSource));
 
-    return TypedAssetID<T>{ assetId, localId, *this };
+    // Create typed asset ID
+    TypedAssetID<T> typedId{ assetId, localId, *this };
+    assetInformation.at(ui32{assetId}).typedId = typedId;
+
+    return typedId;
 }
 
 } // namespace trc

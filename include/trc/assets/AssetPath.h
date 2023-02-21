@@ -64,6 +64,6 @@ struct std::hash<trc::AssetPath>
 {
     auto operator()(const trc::AssetPath& path) const noexcept
     {
-        return hash<std::string>{}(path.string());
+        return hash<trc::util::Pathlet>{}(path);
     }
 };
