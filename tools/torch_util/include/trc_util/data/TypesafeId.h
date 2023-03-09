@@ -10,12 +10,12 @@ namespace trc::data
 /**
  * A more typesafe ID type
  */
-template<typename _TypeTag, std::integral IdType = uint32_t>
+template<typename TypeTag, std::integral IdType = uint32_t>
 class TypesafeID
 {
 public:
     /** The type for which the template is specialized */
-    using Type = _TypeTag;
+    using Type = TypeTag;
     /** The ID's numeric type, e.g. uint32_t */
     using IndexType = IdType;
 
@@ -49,7 +49,7 @@ public:
         return static_cast<T>(_id);
     }
 
-    constexpr auto operator<=>(const TypesafeID<_TypeTag, IdType>&) const = default;
+    constexpr auto operator<=>(const TypesafeID<TypeTag, IdType>&) const = default;
 
     constexpr bool operator==(const NoneType&) const {
         return _isNone();
@@ -59,7 +59,7 @@ public:
         return !_isNone();
     }
 
-    inline auto operator=(const NoneType&)
+    inline auto operator=(const NoneType&) -> TypesafeID&
     {
         _setNone();
         return *this;
@@ -83,14 +83,14 @@ private:
  * @tparam Friend The only type that can construct a HardTypesafeID from
  *                a numeric value.
  */
-template<typename _TypeTag, typename Friend, std::integral IdType = uint32_t>
+template<typename TypeTag, typename Friend, std::integral IdType = uint32_t>
 class HardTypesafeID
 {
 public:
     friend Friend;
 
     /** The type for which the template is specialized */
-    using Type = _TypeTag;
+    using Type = TypeTag;
     /** The ID's numeric type, e.g. uint32_t */
     using IndexType = IdType;
 
@@ -114,7 +114,7 @@ public:
     /**
      * @brief Set the ID to NONE
      */
-    inline auto operator=(const NoneType&)
+    inline auto operator=(const NoneType&) -> HardTypesafeID&
     {
         _setNone();
         return *this;
@@ -161,31 +161,32 @@ private:
 
 } // namespace trc::data
 
-
-namespace std
+/**
+ * @brief std::hash specialization for TypesafeID<> template
+ */
+template<typename ClassType, typename IdType>
+    requires requires(IdType a) {
+        { std::hash<IdType>{}(a) } -> std::convertible_to<size_t>;
+    }
+struct std::hash<trc::data::TypesafeID<ClassType, IdType>>
 {
-    /**
-     * @brief std::hash specialization for TypesafeID<> template
-     */
-    template<typename ClassType, typename IdType> requires requires { std::hash<IdType>{}; }
-    struct hash<trc::data::TypesafeID<ClassType, IdType>>
-    {
-        size_t operator()(const trc::data::TypesafeID<ClassType, IdType>& id) const noexcept {
-            return hash<IdType>{}(id);
-        }
-    };
+    size_t operator()(const trc::data::TypesafeID<ClassType, IdType>& id) const noexcept {
+        return hash<IdType>{}(id);
+    }
+};
 
-    /**
-     * @brief std::hash specialization for HardTypesafeID<> template
-     */
-    template<typename ClassType, typename Friend, typename IdType>
-        requires requires { std::hash<IdType>{}; }
-    struct hash<trc::data::HardTypesafeID<ClassType, Friend, IdType>>
+/**
+ * @brief std::hash specialization for HardTypesafeID<> template
+ */
+template<typename ClassType, typename Friend, typename IdType>
+    requires requires(IdType a) {
+        { std::hash<IdType>{}(a) } -> std::convertible_to<size_t>;
+    }
+struct std::hash<trc::data::HardTypesafeID<ClassType, Friend, IdType>>
+{
+    size_t operator()(const trc::data::HardTypesafeID<ClassType, Friend, IdType>& id)
+        const noexcept
     {
-        size_t operator()(const trc::data::HardTypesafeID<ClassType, Friend, IdType>& id)
-            const noexcept
-        {
-            return id.hash();
-        }
-    };
-} // namespace std
+        return id.hash();
+    }
+};
