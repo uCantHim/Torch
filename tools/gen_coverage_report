@@ -1,0 +1,10 @@
+#!/usr/bin/env fish
+#
+# 1. Build torch in debug mode. This enables all required gcov flags.
+# 2. Run the program for which you want to get coverage.
+# 3. Run this script to generate a graphical report with lcov.
+
+lcov --capture --directory build/ --exclude '/usr/include/*' --output-file code_coverage.info -rc lcov_branch_coverage=1
+genhtml code_coverage.info --branch-coverage --output-directory code_coverage_report
+
+open code_coverage_report/index.html

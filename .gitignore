@@ -12,5 +12,8 @@ CMakeSettings.json
 *.spv
 imgui.ini
 
+code_coverage.info
+code_coverage_report/
+
 todo_list.md
 notes_to_self.md

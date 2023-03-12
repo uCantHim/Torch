@@ -79,5 +79,5 @@ endif ()
 # The actual pipeline compiler executable
 add_executable(pipeline_compiler main.cpp)
 torch_default_compile_options(pipeline_compiler)
-target_link_libraries(pipeline_compiler pipeline_compiler_lib)
+target_link_libraries(pipeline_compiler PRIVATE pipeline_compiler_lib)
 target_include_directories(pipeline_compiler PRIVATE src)
