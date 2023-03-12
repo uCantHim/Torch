@@ -65,7 +65,7 @@ TEST(AssetReferenceTest, ResolveReference)
     );
 
     const trc::AssetPath path("my/asset/file.txt");
-    man.getAssetStorage().store(path, trc::makeCubeGeo());
+    man.getDataStorage().store(path, trc::makeCubeGeo());
 
     trc::AssetReference<T> ref(path);
     ASSERT_NO_THROW(ref.resolve(man));
@@ -75,7 +75,7 @@ TEST(AssetReferenceTest, ResolveReference)
     ASSERT_TRUE(ref.hasResolvedID());
     ASSERT_NO_THROW(ref.getAssetPath());
     ASSERT_NO_THROW(ref.getID());
-    ASSERT_EQ(man.get<trc::Geometry>(path), ref.getID());
+    ASSERT_EQ(man.getAs<trc::Geometry>(path), ref.getID());
 
     trc::terminate();
 }

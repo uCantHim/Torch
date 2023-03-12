@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
         AnimationRegistry.cpp
         AssetManager.cpp
+        AssetManagerBase.cpp
         AssetPath.cpp
         AssetRegistry.cpp
         AssetRegistryModuleStorage.cpp

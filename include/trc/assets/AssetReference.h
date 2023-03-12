@@ -1,12 +1,15 @@
 #pragma once
 
+#include <memory>
+#include <optional>
+#include <stdexcept>
 #include <variant>
 
 #include <trc_util/Util.h>
 
 #include "trc/assets/AssetID.h"
 #include "trc/assets/AssetPath.h"
-#include "trc/assets/AssetManagerInterface.h"
+#include "trc/assets/AssetManager.h"
 #include "trc/assets/AssetSource.h"  // This is not strictly necessary, a forward declaration works as well
 
 namespace trc
@@ -68,13 +71,13 @@ namespace trc
          * asset manager and stores it the reference. Loads the referenced
          * asset if it has not been loaded before.
          */
-        void resolve(AssetManagerFwd& manager);
+        void resolve(AssetManager& manager);
 
     private:
         struct SharedData
         {
             std::variant<std::monostate, AssetPath, u_ptr<AssetSource<T>>> dataSource;
-            TypedAssetID<T> id;
+            std::optional<TypedAssetID<T>> id;
         };
 
         s_ptr<SharedData> data{ nullptr };
@@ -135,7 +138,7 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    void AssetReference<T>::resolve(AssetManagerFwd& manager)
+    void AssetReference<T>::resolve(AssetManager& manager)
     {
         if (!hasResolvedID())
         {
@@ -161,7 +164,7 @@ namespace trc
     template<AssetBaseType T>
     bool AssetReference<T>::hasResolvedID() const
     {
-        return data != nullptr && data->id.getAssetID() != AssetID::NONE;
+        return data != nullptr && data->id.has_value();
     }
 
     template<AssetBaseType T>
@@ -173,6 +176,6 @@ namespace trc
                                      " a valid asset ID");
         }
 
-        return data->id;
+        return *data->id;
     }
 } // namespace trc

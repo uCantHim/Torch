@@ -8,6 +8,7 @@
 #include <trc_util/data/IdPool.h>
 #include <componentlib/Table.h>
 
+#include "trc/assets/AssetManager.h"  // For TypedAssetID
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
 #include "trc/assets/SharedDescriptorSet.h"
@@ -46,9 +47,6 @@ namespace trc
     {
         friend class AssetHandle<Texture>;
         struct InternalStorage;
-
-    public:
-        using LocalID = TypedAssetID<Texture>::LocalID;
 
     public:
         explicit TextureRegistry(const TextureRegistryCreateInfo& info);

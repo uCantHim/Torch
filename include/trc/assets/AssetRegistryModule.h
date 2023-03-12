@@ -1,7 +1,8 @@
 #pragma once
 
 #include "trc/VulkanInclude.h"
-#include "trc/assets/AssetID.h"
+#include "trc/assets/AssetBase.h"
+#include "trc/assets/AssetSource.h"
 
 namespace trc
 {
@@ -46,7 +47,7 @@ namespace trc
         using Derived = AssetRegistryModule<AssetType>;
 
     public:
-        using LocalID = typename TypedAssetID<AssetType>::LocalID;
+        using LocalID = typename AssetBaseTypeTraits<AssetType>::LocalID;
 
     protected:
         /**

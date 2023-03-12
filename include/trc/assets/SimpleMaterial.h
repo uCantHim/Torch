@@ -55,39 +55,4 @@ namespace trc
      * @brief Create a material from SimpleMaterialData
      */
     auto makeMaterial(const SimpleMaterialData& data) -> MaterialData;
-
-    template<>
-    class AssetHandle<SimpleMaterial>
-    {
-    public:
-        inline auto getMaterial() -> MaterialID {
-            return baseMat;
-        }
-
-    private:
-        friend class SimpleMaterialRegistry;
-        explicit AssetHandle(MaterialID baseMat) : baseMat(baseMat) {}
-
-        MaterialID baseMat;
-    };
-
-    class SimpleMaterialRegistry : public AssetRegistryModuleInterface<SimpleMaterial>
-    {
-    public:
-        explicit SimpleMaterialRegistry(AssetManager& assetManager);
-
-        void update(vk::CommandBuffer, FrameRenderState&) override {};
-
-        auto add(u_ptr<AssetSource<SimpleMaterial>> source) -> LocalID override;
-        void remove(LocalID id) override;
-
-        auto getHandle(LocalID id) -> Handle override;
-
-    private:
-        AssetManager* assetManager;
-        MaterialID baseMaterialId;
-
-        data::IdPool<ui64> localIdPool;
-        std::unordered_map<LocalID, MaterialID> baseMaterials;
-    };
 } // namespace trc

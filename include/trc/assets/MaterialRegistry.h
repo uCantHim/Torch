@@ -11,7 +11,6 @@
 #include <trc_util/data/IdPool.h>
 
 #include "trc/Types.h"
-#include "trc/assets/AssetManagerInterface.h"
 #include "trc/assets/AssetReference.h"
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"

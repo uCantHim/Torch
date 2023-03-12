@@ -80,33 +80,4 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
     return MaterialData{ frag.build(std::move(builder), transparent), transparent };
 }
 
-
-
-SimpleMaterialRegistry::SimpleMaterialRegistry(AssetManager& assetManager)
-    :
-    assetManager(&assetManager)
-{
-}
-
-auto SimpleMaterialRegistry::add(u_ptr<AssetSource<SimpleMaterial>> source) -> LocalID
-{
-    const auto matId = assetManager->create(makeMaterial(source->load()));
-    LocalID id{ static_cast<ui32>(localIdPool.generate()) };
-    baseMaterials.emplace(id, matId);
-
-    return id;
-}
-
-void SimpleMaterialRegistry::remove(LocalID id)
-{
-    assetManager->destroy(baseMaterials[id]);
-    baseMaterials.erase(id);
-    localIdPool.free(static_cast<ui32>(id));
-}
-
-auto SimpleMaterialRegistry::getHandle(LocalID id) -> Handle
-{
-    return AssetHandle<SimpleMaterial>{ baseMaterials[id] };
-}
-
 } // namespace trc

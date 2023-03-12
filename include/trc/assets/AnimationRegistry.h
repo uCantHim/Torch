@@ -7,6 +7,7 @@
 #include <trc_util/data/IdPool.h>
 
 #include "trc/Types.h"
+#include "trc/assets/AssetID.h"
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
 #include "trc/assets/SharedDescriptorSet.h"

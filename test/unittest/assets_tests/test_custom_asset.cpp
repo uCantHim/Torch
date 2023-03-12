@@ -89,7 +89,7 @@ public:
             return trc::Instance(trc::InstanceCreateInfo{ .enableRayTracing=false });
         }()),
         assets(
-            std::make_shared<trc::FilesystemDataStorage>(TMPDIR),
+            std::make_shared<trc::FilesystemDataStorage>(root),
             instance, { .enableRayTracing=false }
         ),
         deviceRegistry(assets.getDeviceRegistry())
@@ -99,6 +99,8 @@ public:
     ~CustomAssetTest() {
         trc::terminate();
     }
+
+    static inline fs::path root{ makeTempDir() };
 
     trc::Instance instance;
     trc::AssetManager assets;
@@ -113,8 +115,8 @@ TEST_F(CustomAssetTest, CreateAndDestroy)
     std::vector<trc::TypedAssetID<Hitbox>> ids;
     ASSERT_NO_THROW(ids.emplace_back(assets.create(HitboxData{ vec3(0.0f), 4 })));
     ASSERT_NO_THROW(ids.emplace_back(assets.create(HitboxData{ vec3(5.432f), 77 })));
-    ASSERT_NO_THROW(assets.getMetaData(ids[0]));
-    ASSERT_NO_THROW(assets.getMetaData(ids[1]));
+    ASSERT_NO_THROW(assets.getMetadata(ids[0]));
+    ASSERT_NO_THROW(assets.getMetadata(ids[1]));
 
     auto hitboxes = module.getHitboxes();
     ASSERT_EQ(hitboxes.size(), 2);
@@ -139,7 +141,7 @@ TEST_F(CustomAssetTest, CreateViaAssetPath)
     const trc::AssetPath path("hitbox_custom_asset.ta");
     {
         HitboxData hitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 };
-        assets.getAssetStorage().store(path, hitboxData);
+        assets.getDataStorage().store(path, hitboxData);
     }
 
     auto id = assets.create<Hitbox>(path);

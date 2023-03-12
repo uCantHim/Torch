@@ -10,7 +10,7 @@ trc::AssetManager::AssetManager(
     const Instance& instance,
     const AssetRegistryCreateInfo& arInfo)
     :
-    registry(instance, arInfo),
+    AssetManagerBase(instance, arInfo),
     dataStorage(assetDataStorage)
 {
     registerDefaultTraits<Material>(assetTraits);
@@ -21,10 +21,24 @@ trc::AssetManager::AssetManager(
     registerDefaultTraits<Font>(assetTraits);
 }
 
-auto trc::AssetManager::getMetaData(const AssetPath& path) const -> const AssetMetadata&
+auto trc::AssetManager::getMetadata(const AssetPath& path) const -> const AssetMetadata&
 {
-    const ui32 index = ui32{pathsToAssets.at(path)};
-    return assetInformation.at(index).metadata;
+    return getMetadata(pathsToAssets.at(path));
+}
+
+auto trc::AssetManager::create(const AssetPath& path) -> std::optional<AssetID>
+{
+    const auto meta = dataStorage.getMetadata(path);
+    if (!meta.has_value()) {
+        return std::nullopt;
+    }
+
+    return getTrait<ManagerTraits>(meta->type).create(*this, path, dataStorage);
+}
+
+void trc::AssetManager::destroy(AssetID id)
+{
+    getTrait<ManagerTraits>(getAssetType(id)).destroy(*this, id);
 }
 
 void trc::AssetManager::destroy(const AssetPath& path)
@@ -32,12 +46,7 @@ void trc::AssetManager::destroy(const AssetPath& path)
     auto it = pathsToAssets.find(path);
     if (it != pathsToAssets.end())
     {
-        const AssetID id = it->second;
-        const AssetType& type = assetInformation.at(ui32{id}).metadata.type;
-
-        getTrait<ManagerTraits>(type).destroy(*this, id);
-
-        assetInformation.erase(ui32{id});
+        destroy(it->second);
         pathsToAssets.erase(it);
     }
 }
@@ -47,26 +56,7 @@ bool trc::AssetManager::exists(const AssetPath& path) const
     return pathsToAssets.contains(path);
 }
 
-auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
-{
-    return registry;
-}
-
-auto trc::AssetManager::getAssetStorage() -> AssetStorage&
+auto trc::AssetManager::getDataStorage() -> AssetStorage&
 {
     return dataStorage;
-}
-
-auto trc::AssetManager::_createBaseAsset(AssetMetadata meta) -> AssetID
-{
-    // Generate unique asset ID
-    const AssetID id(assetIdPool.generate());
-
-    // Create meta data
-    assetInformation.emplace(
-        ui32{id},
-        AssetInfo{ id, std::any{}, std::move(meta) }
-    );
-
-    return id;
 }
