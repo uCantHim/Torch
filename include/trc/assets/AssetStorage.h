@@ -41,9 +41,17 @@ namespace trc
          *
          * The created asset source must outlive the AssetStorage by which
          * it was created.
+         *
+         * Temporarily loads the metadata at `path` into memory to check whether
+         * asset exists and it has the requested type.
+         *
+         * @return optional<u_ptr<AssetSource<T>>> A source object that allows
+         *         loading the asset at `path` at a later time.
+         *         Returns nullopt if the storage does not contain an asset at
+         *         `path` or if the asset at `path` is not of type `T`.
          */
         template<AssetBaseType T>
-        auto loadDeferred(const AssetPath& path) -> u_ptr<AssetSource<T>>;
+        auto loadDeferred(const AssetPath& path) -> std::optional<u_ptr<AssetSource<T>>>;
 
         template<AssetBaseType T>
         bool store(const AssetPath& path, const AssetData<T>& data);
@@ -122,7 +130,7 @@ namespace trc
                            << ": path not found in the asset storage.\n";
                 throw AssetLoadError(path, "Metadata not found in storage.");
             }
-            return *meta;
+            return std::move(*meta);
         }
 
     private:
@@ -134,14 +142,8 @@ namespace trc
     auto AssetStorage::load(const AssetPath& path) -> std::optional<AssetData<T>>
     {
         // Ensure that the correct type of asset is stored at `path`
-        if (auto metaStream = storage->read(makeMetaPath(path)))
-        {
-            auto meta = deserializeMetadata(*metaStream);
-            if (!meta.type.is<T>()) {
-                return std::nullopt;
-            }
-        }
-        else {
+        const auto meta = getMetadata(path);
+        if (!meta || meta->type != AssetType::make<T>()) {
             return std::nullopt;
         }
 
@@ -158,8 +160,14 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    auto AssetStorage::loadDeferred(const AssetPath& path) -> u_ptr<AssetSource<T>>
+    auto AssetStorage::loadDeferred(const AssetPath& path) -> std::optional<u_ptr<AssetSource<T>>>
     {
+        // Ensure that the correct type of asset is stored at `path`
+        const auto meta = getMetadata(path);
+        if (!meta || meta->type != AssetType::make<T>()) {
+            return std::nullopt;
+        }
+
         return std::make_unique<AssetStorageSource<T>>(path, *this);
     }
 
@@ -168,7 +176,18 @@ namespace trc
     {
         auto dataStream = storage->write(makeDataPath(path));
         auto metaStream = storage->write(makeMetaPath(path));
-        if (dataStream == nullptr || metaStream == nullptr) {
+        if (dataStream == nullptr || metaStream == nullptr)
+        {
+            if (dataStream != metaStream)
+            {
+                log::debug << "[In AssetStorage::store]: If the data path of an asset does not"
+                    " exist in the data storage, then the metadata path should not exist either,"
+                    " and vice-versa. However, this is not the case. [For asset path "
+                    << path.string() << std::boolalpha
+                    << ": <meta-path> -> " << !!metaStream
+                    << ", <data-path> -> " << !!dataStream << "]"
+                    ". Investigate whether this is an issue.";
+            }
             return false;
         }
 

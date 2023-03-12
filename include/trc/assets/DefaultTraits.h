@@ -12,7 +12,9 @@ namespace trc
     public:
         virtual auto create(AssetManagerBase& manager,
                             const AssetPath& path,
-                            AssetStorage& storage) -> AssetID = 0;
+                            AssetStorage& storage)
+            -> std::optional<AssetID> = 0;
+
         virtual void destroy(AssetManagerBase& manager, AssetID id) = 0;
     };
 
@@ -21,9 +23,12 @@ namespace trc
     {
     public:
         auto create(AssetManagerBase& manager, const AssetPath& path, AssetStorage& storage)
-            -> AssetID override
+            -> std::optional<AssetID> override
         {
-            return manager.create<T>(storage.loadDeferred<T>(path));
+            if (auto source = storage.loadDeferred<T>(path)) {
+                return manager.create<T>(std::move(*source));
+            }
+            return std::nullopt;
         }
 
         void destroy(AssetManagerBase& manager, AssetID id) override
