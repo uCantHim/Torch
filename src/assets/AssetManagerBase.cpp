@@ -5,6 +5,14 @@
 namespace trc
 {
 
+InvalidAssetIdError::InvalidAssetIdError(ui32 id, std::string_view reason)
+    :
+    Exception(
+        "Asset ID " + std::to_string(id) + " is invalid"
+        + (reason.empty() ? "." : (": " + std::string(reason)))
+    )
+{}
+
 AssetManagerBase::AssetManagerBase(
     const Instance& instance,
     const AssetRegistryCreateInfo& deviceRegistryCreateInfo)
@@ -15,7 +23,11 @@ AssetManagerBase::AssetManagerBase(
 
 auto AssetManagerBase::getMetadata(AssetID id) const -> const AssetMetadata&
 {
-    assert(assetInformation.contains(ui32{id}));
+    if (!assetInformation.contains(ui32{id})) {
+        throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
+                                            " - has the asset already been destroyed?");
+    }
+
     return assetInformation.at(ui32{id}).getMetadata();
 }
 

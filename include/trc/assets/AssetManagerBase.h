@@ -45,12 +45,18 @@ namespace trc
         bool operator==(const TypedAssetID&) const noexcept;
         bool operator!=(const TypedAssetID&) const noexcept = default;
 
-        ////////////////
-        //  Asset access
-
-        /** @return AssetID Global ID for type-agnostic asset data */
+        /**
+         * This ID is unique among different asset types.
+         *
+         * @return AssetID Global ID for type-agnostic asset data
+         */
         auto getAssetID() const -> AssetID;
-        /** @return AssetID Local ID for type-specific asset data */
+
+        /**
+         * This ID is NOT unique among different asset types.
+         *
+         * @return AssetID Local ID for type-specific asset data
+         */
         auto getDeviceID() const -> LocalID;
 
         auto get() const -> Handle;
@@ -68,6 +74,34 @@ namespace trc
         LocalID id;
 
         AssetManagerBase* manager;
+    };
+
+    /**
+     * @brief An exception that is thrown if an AssetID is used in a context
+     *        where it is invalid.
+     *
+     * It is generally not easy to make an AssetID invalid because only the
+     * AssetManagerBase can create them, and it only ever creates valid ones.
+     * The only case where an AssetID can be invalid is if it is used after the
+     * asset which it references was destroyed.
+     *
+     * # Example
+     * @code
+     *  auto id = assetManager.create<Geometry>(myDataSource);
+     *  assetManager.destroy(id);
+     *  try {
+     *      assetManager.getHandle(id);
+     *      assert(false);
+     *  }
+     *  catch (const InvalidAssetIdError&) {
+     *      assert(true);
+     *  }
+     * @endcode
+     */
+    class InvalidAssetIdError : public Exception
+    {
+    public:
+        explicit InvalidAssetIdError(ui32 id, std::string_view reason = "");
     };
 
     /**
@@ -93,29 +127,91 @@ namespace trc
                          const AssetRegistryCreateInfo& deviceRegistryCreateInfo);
 
         /**
+         * @brief Create an asset
+         *
+         * Registers an asset at the asset manager.
+         *
+         * An asset is defined by an asset source object, which is a mechanism
+         * to load an asset's data and metadata lazily.
+         *
+         * Whether or not the data is actually loaded lazily or immediately when
+         * `AssetManagerBase::create` is called is determined by the underlying
+         * `AssetRegistryModule` implementation for the asset type `T`.
+         *
+         * @tparam T The type of asset to create.
+         * @param u_ptr<AssetSource<T>> A source for the new asset's data. Must
+         *        not be nullptr.
+         *
          * @throw std::invalid_argument if `dataSource == nullptr`.
          */
         template<AssetBaseType T>
         auto create(u_ptr<AssetSource<T>> dataSource) -> TypedAssetID<T>;
 
         /**
+         * @brief Remove an asset from the asset manager
+         *
+         * Remove an asset and destroy all associated resources, including the
+         * asset's device data in particular.
+         *
+         * This function takes a typeless AssetID and an explicit type
+         * specification via template parameter. This is an unsafe interface
+         * intended for internal use.
+         *
          * @throw std::invalid_argument if the existing asset with ID `id` is
          *                              not of type `T`.
+         * @throw InvalidAssetIdError if `id` is invalid.
          */
         template<AssetBaseType T>
         void destroy(AssetID id);
 
+        /**
+         * @brief Remove an asset from the asset manager
+         *
+         * Remove an asset and destroy all associated resources, including the
+         * asset's device data in particular.
+         *
+         * @throw InvalidAssetIdError if `id` is invalid.
+         */
+        template<AssetBaseType T>
+        void destroy(TypedAssetID<T> id);
+
+        /**
+         * @brief Try to cast a typeless asset ID to a typed ID
+         *
+         * @return optional<TypedAssetID<T>> A TypedAssetID if the asset at `id`
+         *         is indeed of the specified type `T`, or nullopt otherwise.
+         * @throw InvalidAssetIdError if `id` is invalid.
+         */
         template<AssetBaseType T>
         auto getAs(AssetID id) const -> std::optional<TypedAssetID<T>>;
+
+        /**
+         * @brief Get a handle to an asset's device resources
+         *
+         * Forces the underlying `AssetRegistryModule` of asset type `T` to load
+         * the asset's data and create a device representation if the asset is
+         * loaded lazily.
+         *
+         * @return AssetHandle<T> the respective device implementation of asset
+         *         type `T`.
+         * @throw InvalidAssetIdError if `id` is invalid.
+         */
         template<AssetBaseType T>
         auto getHandle(TypedAssetID<T> id) -> AssetHandle<T>;
 
+        /**
+         * @brief Query metadata for an asset
+         *
+         * @throw InvalidAssetIdError if `id` is invalid.
+         */
         auto getMetadata(AssetID id) const -> const AssetMetadata&;
 
         /**
          * @brief Retrieve an asset's dynamic type information
          *
          * A shortcut for `assetManager.getMetadata(id).type`.
+         *
+         * @throw InvalidAssetIdError if `id` is invalid.
          */
         auto getAssetType(AssetID id) const -> const AssetType&;
 
@@ -153,9 +249,9 @@ namespace trc
         };
 
         /**
-         * This is the asset source passed to the asset registry.
+         * @brief An internal asset source used by the AssetManagerBase
          *
-         * It resolves any asset references when loading its data.
+         * First resolves any asset references before loading an asset's data.
          */
         template<AssetBaseType T>
         class InternalAssetSource : public AssetSource<T>
@@ -255,26 +351,38 @@ namespace trc
     template<AssetBaseType T>
     auto AssetManagerBase::create(u_ptr<AssetSource<T>> _dataSource) -> TypedAssetID<T>
     {
+        using LocalID = typename AssetBaseTypeTraits<T>::LocalID;
+
+        // Assert correctness of resources
         if (_dataSource == nullptr) {
             throw std::invalid_argument("[In AssetManagerBase::create]: Argument `dataSource` must"
                                         " not be nullptr!");
         }
-        using LocalID = typename AssetBaseTypeTraits<T>::LocalID;
 
+        // Create the internal reference-resolving source
         u_ptr<AssetSource<T>> source = std::make_unique<InternalAssetSource<T>>(
             *this,
             std::move(_dataSource)
         );
+
+        // Test for the correct asset type. This is ok because we need to load
+        // the metadata anyway.
         AssetMetadata meta = source->getMetadata();
+        if (meta.type != AssetType::make<T>())
+        {
+            throw std::invalid_argument(
+                "[In AssetManagerBase::create]: Expected asset source to point to an asset of"
+                " type" + AssetType::make<T>().getName() + ", but metadata specified the type "
+                + meta.type.getName() + "."
+            );
+        }
 
         const AssetID id{ assetIdPool.generate() };
         const LocalID localId = deviceRegistry.add(std::move(source));
         const TypedAssetID<T> typedId{ id, localId, *this };
 
-        assetInformation.emplace(
-            ui32{id},
-            AssetInfo{ std::move(meta), typedId }
-        );
+        assert(!assetInformation.contains(ui32{id}));
+        assetInformation.emplace(ui32{id}, AssetInfo{ std::move(meta), typedId });
 
         return typedId;
     }
@@ -282,7 +390,11 @@ namespace trc
     template<AssetBaseType T>
     void AssetManagerBase::destroy(AssetID id)
     {
-        assert(assetInformation.contains(ui32{id}));
+        if (!assetInformation.contains(ui32{id})) {
+            throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
+                                                " - possible double free?");
+        }
+
         if (!getAs<T>(id))
         {
             throw std::invalid_argument(
@@ -299,16 +411,30 @@ namespace trc
     }
 
     template<AssetBaseType T>
+    void AssetManagerBase::destroy(TypedAssetID<T> id)
+    {
+        destroy<T>(id.getAssetID());
+    }
+
+    template<AssetBaseType T>
     auto AssetManagerBase::getAs(AssetID id) const -> std::optional<TypedAssetID<T>>
     {
-        assert(assetInformation.contains(ui32{id}));
+        if (!assetInformation.contains(ui32{id})) {
+            throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
+                                                " - has the asset already been destroyed?");
+        }
+
         return assetInformation.at(ui32{id}).asType<T>();
     }
 
     template<AssetBaseType T>
     auto AssetManagerBase::getHandle(TypedAssetID<T> id) -> AssetHandle<T>
     {
-        assert(assetInformation.contains(ui32{id.getAssetID()}));
+        if (const ui32 _id{id.getAssetID()}; !assetInformation.contains(_id)) {
+            throw InvalidAssetIdError(_id, "No asset with this ID exists in the asset manager"
+                                           " - has the asset already been destroyed?");
+        }
+
         return deviceRegistry.get<T>(id.getDeviceID());
     }
 

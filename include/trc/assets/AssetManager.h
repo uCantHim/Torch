@@ -21,12 +21,10 @@
 namespace trc
 {
     /**
-     * @brief Manages assets on a high level
-     *
-     * Loads and stores assets from/to disk and manages their storage
-     * location on disk. Manages access to asset data in RAM.
-     *
-     * Does not manage device data!
+     * If an object exists but some kind of parameters are invalid, we return
+     * std::optional.
+     * If the object at an ID/path or other kind of reference does not exist,
+     * we throw.
      */
     class AssetManager : public AssetManagerBase
     {
@@ -74,11 +72,15 @@ namespace trc
          * Returns the existing ID if the asset already exists in the
          * AssetManager.
          *
+         * @return TypedAssetID<T> If an asset with the same path already exists
+         *         when this method is called, this is the existing asset's ID.
+         *         Returns nullopt if the data storage does not contain an
+         *         object at `path`.
          * @throw std::invalid_argument if an asset exists at `path` and is
          *                              not of type `T`.
          */
         template<AssetBaseType T>
-        auto create(const AssetPath& path) -> TypedAssetID<T>;
+        auto create(const AssetPath& path) -> std::optional<TypedAssetID<T>>;
 
         /**
          * @brief Create an asset from a path
@@ -108,7 +110,8 @@ namespace trc
          * @return AssetID The typeless ID of the generated asset. If an asset
          *         with the same path already exists when this method is called,
          *         this is the existing asset's ID.
-         *         Returns nullopt if no data exists at `path`.
+         *         Returns nullopt if the data storage does not contain an
+         *         object at `path`.
          *
          * @throw if the type specified in the stored metadata is not registered
          *        at the asset manager.
@@ -136,7 +139,7 @@ namespace trc
         bool exists(const AssetPath& path) const;
 
         template<AssetBaseType T>
-        auto getAs(const AssetPath& path) const -> TypedAssetID<T>;
+        auto getAs(const AssetPath& path) const -> std::optional<TypedAssetID<T>>;
 
         auto getMetadata(const AssetPath& path) const -> const AssetMetadata&;
 
@@ -181,10 +184,10 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    inline auto AssetManager::create(const AssetPath& path) -> TypedAssetID<T>
+    inline auto AssetManager::create(const AssetPath& path) -> std::optional<TypedAssetID<T>>
     {
-        auto it = pathsToAssets.find(path);
-        if (it != pathsToAssets.end())
+        if (auto it = pathsToAssets.find(path);
+            it != pathsToAssets.end())
         {
             try {
                 return *getAs<T>(it->second);
@@ -194,18 +197,24 @@ namespace trc
                 throw std::invalid_argument(
                     "[In AssetManager::create(const AssetPath&)]: Tried to create asset of type "
                     + AssetType::make<T>().getName() + " at " + path.string() + ", but asset with"
-                    " type " + getAssetType(it->second).getName() + " already exists at this path.");
+                    " type " + getAssetType(it->second).getName() + " already exists at this path."
+                );
             }
         }
 
-        const auto id = create<T>(dataStorage.loadDeferred<T>(path));
+        auto source = dataStorage.loadDeferred<T>(path);
+        if (!source) {
+            return std::nullopt;
+        }
+
+        const auto id = create<T>(std::move(*source));
         pathsToAssets.emplace(path, id.getAssetID());
 
         return id;
     }
 
     template<AssetBaseType T>
-    inline auto AssetManager::getAs(const AssetPath& path) const -> TypedAssetID<T>
+    inline auto AssetManager::getAs(const AssetPath& path) const -> std::optional<TypedAssetID<T>>
     {
         auto it = pathsToAssets.find(path);
         if (it == pathsToAssets.end())
