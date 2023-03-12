@@ -41,6 +41,7 @@ namespace trc
         constexpr auto enableDebugLogging = false;
 #endif
 
+        extern Logger<enableDebugLogging> debug;
         extern Logger<enableDebugLogging> info;
         extern Logger<enableDebugLogging> warn;
         extern Logger<true>               error;
