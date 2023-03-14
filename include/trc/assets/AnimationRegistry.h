@@ -86,7 +86,8 @@ namespace trc
     struct AnimationRegistryCreateInfo
     {
         const Device& device;
-        SharedDescriptorSet::Builder& descriptorBuilder;
+        SharedDescriptorSet::Binding metadataDescBinding;
+        SharedDescriptorSet::Binding dataDescBinding;
     };
 
     /**

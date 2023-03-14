@@ -50,20 +50,12 @@ namespace trc
     using MaterialData = AssetData<Material>;
     using MaterialID = TypedAssetID<Material>;
 
-    struct MaterialRegistryCreateInfo
-    {
-        const Device& device;
-        SharedDescriptorSet::Builder& descriptorBuilder;
-
-        ShaderDescriptorConfig descriptorConfig;
-    };
-
     class MaterialRegistry : public AssetRegistryModuleInterface<Material>
     {
     public:
         using LocalID = TypedAssetID<Material>::LocalID;
 
-        explicit MaterialRegistry(const MaterialRegistryCreateInfo& info);
+        MaterialRegistry() = default;
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
@@ -90,16 +82,9 @@ namespace trc
             > runtimePrograms;
         };
 
-        const ShaderDescriptorConfig descriptorConfig;
-
         std::mutex materialStorageLock;
         data::IdPool<ui64> localIdPool;
         data::IndexMap<LocalID, u_ptr<Storage>> storage;
-
-        Buffer materialBuffer;
-
-        // Descriptor
-        SharedDescriptorSet::Binding descBinding;
     };
 
     template<>

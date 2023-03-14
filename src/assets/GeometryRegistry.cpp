@@ -157,22 +157,10 @@ GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
         return MemoryPool(info.instance.getDevice(), info.memoryPoolChunkSize, allocFlags);
     }()),
     dataWriter(info.instance.getDevice()),  /* , memoryPool.makeAllocator()) */
-    accelerationStructureBuilder(info.instance)
+    accelerationStructureBuilder(info.instance),
+    indexDescriptorBinding(info.indexDescriptorBinding),
+    vertexDescriptorBinding(info.vertexDescriptorBinding)
 {
-    vertexDescriptorBinding = info.descriptorBuilder.addBinding(
-        vk::DescriptorType::eStorageBuffer,
-        info.maxGeometries,
-        rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
-        vk::DescriptorBindingFlagBits::ePartiallyBound
-            | vk::DescriptorBindingFlagBits::eUpdateAfterBind
-    );
-    indexDescriptorBinding = info.descriptorBuilder.addBinding(
-        vk::DescriptorType::eStorageBuffer,
-        info.maxGeometries,
-        rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
-        vk::DescriptorBindingFlagBits::ePartiallyBound
-            | vk::DescriptorBindingFlagBits::eUpdateAfterBind
-    );
 }
 
 void GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frame)

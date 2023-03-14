@@ -41,19 +41,9 @@ auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
 TextureRegistry::TextureRegistry(const TextureRegistryCreateInfo& info)
     :
     device(info.device),
-    memoryPool(device, MEMORY_POOL_CHUNK_SIZE),
+    memoryPool(info.device, MEMORY_POOL_CHUNK_SIZE),
     dataWriter(info.device),
-    descBinding(
-        info.descriptorBuilder.addBinding(
-            vk::DescriptorType::eCombinedImageSampler,
-            MAX_TEXTURE_COUNT,
-            vk::ShaderStageFlagBits::eAllGraphics
-                | vk::ShaderStageFlagBits::eCompute
-                | rt::ALL_RAY_PIPELINE_STAGE_FLAGS,
-            vk::DescriptorBindingFlagBits::ePartiallyBound
-                | vk::DescriptorBindingFlagBits::eUpdateAfterBind
-        )
-    )
+    descBinding(info.textureDescBinding)
 {
 }
 

@@ -88,12 +88,10 @@ public:
             trc::init();
             return trc::Instance(trc::InstanceCreateInfo{ .enableRayTracing=false });
         }()),
-        assets(
-            std::make_shared<trc::FilesystemDataStorage>(root),
-            instance, { .enableRayTracing=false }
-        ),
+        assets(std::make_shared<trc::FilesystemDataStorage>(root)),
         deviceRegistry(assets.getDeviceRegistry())
     {
+        assets.getDeviceRegistry().addModule<Hitbox>(std::make_unique<HitboxRegistry>());
     }
 
     ~CustomAssetTest() {
@@ -109,7 +107,6 @@ public:
 
 TEST_F(CustomAssetTest, CreateAndDestroy)
 {
-    assets.getDeviceRegistry().addModule<Hitbox>();
     auto& module = assets.getModule<Hitbox>();
 
     std::vector<trc::TypedAssetID<Hitbox>> ids;
@@ -136,8 +133,6 @@ TEST_F(CustomAssetTest, UnregisteredModuleThrows)
 
 TEST_F(CustomAssetTest, CreateViaAssetPath)
 {
-    assets.getDeviceRegistry().addModule<Hitbox>();
-
     const trc::AssetPath path("hitbox_custom_asset.ta");
     {
         HitboxData hitboxData{ .offset=vec3(1, 2.5, 4.5), .radius=1234.56 };

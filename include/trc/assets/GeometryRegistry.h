@@ -52,7 +52,8 @@ namespace trc
     struct GeometryRegistryCreateInfo
     {
         const Instance& instance;
-        SharedDescriptorSet::Builder& descriptorBuilder;
+        SharedDescriptorSet::Binding indexDescriptorBinding;
+        SharedDescriptorSet::Binding vertexDescriptorBinding;
 
         vk::BufferUsageFlags geometryBufferUsage;
         bool enableRayTracing;

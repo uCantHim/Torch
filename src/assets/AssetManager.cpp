@@ -5,12 +5,8 @@
 
 
 
-trc::AssetManager::AssetManager(
-    s_ptr<DataStorage> assetDataStorage,
-    const Instance& instance,
-    const AssetRegistryCreateInfo& arInfo)
+trc::AssetManager::AssetManager(s_ptr<DataStorage> assetDataStorage)
     :
-    AssetManagerBase(instance, arInfo),
     dataStorage(assetDataStorage)
 {
     registerDefaultTraits<Material>(assetTraits);

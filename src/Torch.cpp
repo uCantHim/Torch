@@ -101,11 +101,7 @@ trc::TorchStack::TorchStack(
         return winInfo;
     }()),
     assetManager(
-        std::make_shared<FilesystemDataStorage>(util::getAssetStorageDirectory()),
-        instance,
-        AssetRegistryCreateInfo{
-            .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
-        }
+        std::make_shared<FilesystemDataStorage>(util::getAssetStorageDirectory())
     ),
     shadowPool(window, ShadowPoolCreateInfo{ .maxShadowMaps=200 }),
     swapchainRenderTarget(makeRenderTarget(window)),

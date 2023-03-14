@@ -4,6 +4,7 @@
 
 #include "trc/GBufferPass.h"
 #include "trc/Scene.h"
+#include "trc/TorchImplementation.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/base/Logging.h"
 #include "trc/core/DrawConfiguration.h"
@@ -45,11 +46,16 @@ trc::TorchRenderConfig::TorchRenderConfig(
     gBufferDescriptor(_window.getDevice(), _window),  // Don't update the descriptor sets yet!
     globalDataDescriptor(window),
     sceneDescriptor(window.getInstance()),
-    fontDataDescriptor(
-        dynamic_cast<FontRegistry&>(info.assetRegistry->getModule<Font>())
-            .getDescriptorSetLayout(),
-        {}
-    ),
+    assetDescriptor(impl::makeDefaultAssetModules(
+        _window.getInstance(),
+        *info.assetRegistry,
+        AssetDescriptorCreateInfo{
+            // TODO: Put these settings into a global configuration object
+            .maxGeometries = 5000,
+            .maxTextures = 2000,
+        }
+    )),
+    fontDataDescriptor(info.assetRegistry->getModule<Font>().getDescriptorSetLayout(), {}),
     // Asset storage
     assetRegistry(info.assetRegistry),
     shadowPool(info.shadowPool)
@@ -112,6 +118,7 @@ void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& s
     // Add final lighting function to scene
     globalDataDescriptor.update(camera);
     sceneDescriptor.update(scene);
+    assetDescriptor.update(window.getDevice());
     shadowPool->update();
     if (enableRayTracing) {
         tlasBuildPass->setScene(scene);
@@ -193,7 +200,7 @@ auto trc::TorchRenderConfig::getShadowDescriptorProvider() const
 auto trc::TorchRenderConfig::getAssetDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return assetRegistry->getDescriptorSetProvider();
+    return assetDescriptor;
 }
 
 auto trc::TorchRenderConfig::getFontDescriptorProvider() const

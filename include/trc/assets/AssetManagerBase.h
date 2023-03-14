@@ -5,6 +5,8 @@
 #include <any>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
 #include <trc_util/data/IdPool.h>
 #include <trc_util/data/SafeVector.h>
@@ -123,8 +125,8 @@ namespace trc
 
         ~AssetManagerBase() = default;
 
-        AssetManagerBase(const Instance& instance,
-                         const AssetRegistryCreateInfo& deviceRegistryCreateInfo);
+        // TODO: Pass AssetRegistry as a shared_ptr
+        AssetManagerBase() = default;
 
         /**
          * @brief Create an asset

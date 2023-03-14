@@ -1,5 +1,6 @@
 #pragma once
 
+#include "trc/AssetDescriptor.h"
 #include "trc/FinalLightingPass.h"
 #include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
@@ -142,6 +143,7 @@ namespace trc
         GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
         SceneDescriptor sceneDescriptor;
+        AssetDescriptor assetDescriptor;
 
         DescriptorProvider fontDataDescriptor;
 

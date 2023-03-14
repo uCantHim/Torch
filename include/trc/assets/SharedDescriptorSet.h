@@ -1,6 +1,9 @@
 #pragma once
 
 #include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "trc/base/Device.h"
 
@@ -55,12 +58,21 @@ namespace trc
         class Binding
         {
         public:
-            Binding() = default;
+            /**
+             * Can only be constructed by `SharedDescriptorSet::Builder`.
+             */
+            Binding() = delete;
+
             Binding(const Binding&) = default;
             Binding(Binding&&) = default;
             auto operator=(const Binding&) -> Binding& = default;
             auto operator=(Binding&&) -> Binding& = default;
             ~Binding() = default;
+
+            /**
+             * @return ui32 The binding's index in the shared descriptor set
+             */
+            auto getBindingIndex() const -> ui32;
 
             void update(ui32 arrayElem, vk::DescriptorBufferInfo buffer);
             void update(ui32 firstArrayElem,
@@ -76,9 +88,9 @@ namespace trc
 
         private:
             friend Builder;
-            Binding(SharedDescriptorSet& set, ui32 bindingIndex);
+            Binding(s_ptr<SharedDescriptorSet> set, ui32 bindingIndex);
 
-            SharedDescriptorSet* set{ nullptr };
+            s_ptr<SharedDescriptorSet> set;
             ui32 bindingIndex;
         };
 
@@ -95,16 +107,28 @@ namespace trc
                             vk::DescriptorBindingFlags flags = {})
                 -> Binding;
 
-            auto build(const Device& device) -> u_ptr<SharedDescriptorSet>;
+            /**
+             * @brief Finalize and return the SharedDescriptorSet
+             *
+             * May only be called once per builder object.
+             *
+             * @throw std::runtime_error if `build` is called multiple times on
+             *        the same builder.
+             */
+            auto build(const Device& device) -> s_ptr<SharedDescriptorSet>;
 
         private:
             friend SharedDescriptorSet;
 
-            u_ptr<SharedDescriptorSet> set;
-
             vk::DescriptorSetLayoutCreateFlags layoutFlags;
             vk::DescriptorPoolCreateFlags poolFlags;
             std::vector<vk::DescriptorBindingFlags> bindingFlags;
+
+            std::vector<vk::DescriptorSetLayoutBinding> bindings;
+
+            // Created with the builder so it can be passed to the constructor
+            // of `Binding` objects when they are created.
+            s_ptr<SharedDescriptorSet> set;
         };
 
     private:

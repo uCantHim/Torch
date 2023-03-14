@@ -33,7 +33,7 @@ trc::RayTracingPass::RayTracingPass(
         trc::buildPipelineLayout()
         .addDescriptor(tlasDescProvider, true)
         .addDescriptor(renderConfig.getGBufferDescriptorProvider(), true)
-        .addDescriptor(renderConfig.getAssets().getDescriptorSetProvider(), true)
+        .addDescriptor(renderConfig.getAssetDescriptorProvider(), true)
         .addDescriptor(renderConfig.getSceneDescriptorProvider(), true)
         .addDescriptor(renderConfig.getShadowDescriptorProvider(), true)
         .addDescriptor(renderConfig.getGlobalDataDescriptorProvider(), true)

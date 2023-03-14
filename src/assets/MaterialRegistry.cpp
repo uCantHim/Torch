@@ -68,26 +68,6 @@ void trc::AssetData<trc::Material>::resolveReferences(AssetManager& assetManager
 
 
 
-trc::MaterialRegistry::MaterialRegistry(const MaterialRegistryCreateInfo& info)
-    :
-    descriptorConfig(info.descriptorConfig),
-    materialBuffer(
-        info.device,
-        std::vector<std::byte>(100, std::byte{0x00}),
-        vk::BufferUsageFlagBits::eStorageBuffer,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    ),
-    descBinding(info.descriptorBuilder.addBinding(
-        vk::DescriptorType::eStorageBuffer,
-        1,
-        vk::ShaderStageFlagBits::eAllGraphics
-            | vk::ShaderStageFlagBits::eCompute
-            | rt::ALL_RAY_PIPELINE_STAGE_FLAGS
-    ))
-{
-    descBinding.update(0, { *materialBuffer, 0, VK_WHOLE_SIZE });
-}
-
 void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
 }

@@ -1,40 +1,16 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <atomic>
-
-#include <trc_util/Exception.h>
-#include <trc_util/data/IndexMap.h>
-#include <trc_util/functional/Maybe.h>
-#include "trc/base/Image.h"
-#include "trc/base/MemoryPool.h"
+#include <concepts>
+#include <stdexcept>
 
 #include "trc/Types.h"
 #include "trc/UpdatePass.h"
+#include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetRegistryModuleStorage.h"
 #include "trc/assets/AssetSource.h"
-#include "trc/assets/SharedDescriptorSet.h"
-#include "trc/core/DescriptorProvider.h"
 
 namespace trc
 {
-    class Instance;
-
-    class DuplicateKeyError : public Exception {};
-    class KeyNotFoundError : public Exception {};
-
-    struct AssetRegistryCreateInfo
-    {
-        vk::BufferUsageFlags geometryBufferUsage{};
-
-        vk::ShaderStageFlags materialDescriptorStages{};
-        vk::ShaderStageFlags textureDescriptorStages{};
-        vk::ShaderStageFlags geometryDescriptorStages{};
-
-        bool enableRayTracing{ true };
-    };
-
     class AssetRegistry
     {
     public:
@@ -43,8 +19,7 @@ namespace trc
         template<AssetBaseType T>
         using Handle = typename AssetBaseTypeTraits<T>::Handle;
 
-        explicit AssetRegistry(const Instance& instance,
-                               const AssetRegistryCreateInfo& info = {});
+        AssetRegistry() = default;
 
         /**
          * @brief Add an asset to the registry
@@ -76,47 +51,35 @@ namespace trc
         /**
          * @brief Register a module at the asset registry
          *
-         * A module is an object that manages device representation for a
-         * single type of asset. An example is the GeometryRegistry for
+         * A module is an object that implements the device representation for
+         * a single type of asset. An example is the GeometryRegistry for
          * geometries.
          *
          * Asset management is delegated to single modules, while the asset
-         * registry manages the modules and provides a single unified
-         * interface to them.
+         * registry manages the modules and provides central access to them.
          *
          * @throw std::out_of_range if a module for `T` has already been
          *                          registered.
          */
-        template<AssetBaseType T, typename... Args>
-            requires requires { typename AssetRegistryModule<T>; }
-            && std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
-        void addModule(Args&&... args)
-        {
-            modules.addModule<T>(std::forward<Args>(args)...);
-        }
+        template<AssetBaseType T>
+            requires std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
+        void addModule(u_ptr<AssetRegistryModule<T>> assetModuleImpl);
 
         /**
          * @throw std::out_of_range
          */
         template<AssetBaseType T>
-        auto getModule() -> AssetRegistryModuleInterface<T>&;
+        auto getModule() -> AssetRegistryModule<T>&;
 
         /**
          * @throw std::out_of_range
          */
         template<AssetBaseType T>
-        auto getModule() const -> const AssetRegistryModuleInterface<T>&;
+        auto getModule() const -> const AssetRegistryModule<T>&;
 
         auto getUpdatePass() -> UpdatePass&;
-        auto getDescriptorSetProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
-        static auto addDefaultValues(AssetRegistryCreateInfo info)
-            -> AssetRegistryCreateInfo;
-
-        const Device& device;
-        const AssetRegistryCreateInfo config;
-
         AssetRegistryModuleStorage modules;
 
 
@@ -133,14 +96,13 @@ namespace trc
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState);
 
-        u_ptr<SharedDescriptorSet> descSet;
         u_ptr<AssetModuleUpdatePass> updateRenderPass{ new AssetModuleUpdatePass{ this } };
     };
 
 
 
     template<AssetBaseType T>
-    auto AssetRegistry::add(u_ptr<AssetSource<T>> source) -> LocalID<T>
+    inline auto AssetRegistry::add(u_ptr<AssetSource<T>> source) -> LocalID<T>
     {
         return getModule<T>().add(std::move(source));
     }
@@ -152,14 +114,21 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    inline auto AssetRegistry::getModule() -> AssetRegistryModuleInterface<T>&
+        requires std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
+    inline void AssetRegistry::addModule(u_ptr<AssetRegistryModule<T>> assetModuleImpl)
     {
-        return modules.get<T>();
+        modules.addModule<T>(std::move(assetModuleImpl));
     }
 
     template<AssetBaseType T>
-    inline auto AssetRegistry::getModule() const -> const AssetRegistryModuleInterface<T>&
+    inline auto AssetRegistry::getModule() -> AssetRegistryModule<T>&
     {
-        return modules.get<T>();
+        return dynamic_cast<AssetRegistryModule<T>&>(modules.get<T>());
+    }
+
+    template<AssetBaseType T>
+    inline auto AssetRegistry::getModule() const -> const AssetRegistryModule<T>&
+    {
+        return dynamic_cast<const AssetRegistryModule<T>&>(modules.get<T>());
     }
 } // namespace trc

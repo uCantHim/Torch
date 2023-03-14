@@ -19,7 +19,7 @@ void run()
     trc::Window window(instance);
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
-    trc::AssetManager assets(std::make_shared<NullDataStorage>(), instance, {});
+    trc::AssetManager assets(std::make_shared<NullDataStorage>());
     trc::ShadowPool shadows(window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 });
 
     // Create one render configuration for each viewport.

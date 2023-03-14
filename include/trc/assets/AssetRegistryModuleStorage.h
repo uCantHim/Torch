@@ -30,10 +30,9 @@ namespace trc
         /**
          * @brief Register a module for T
          */
-        template<AssetBaseType T, typename ...Args>
-            requires std::constructible_from<AssetRegistryModule<T>, Args...>
-                  && std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
-        void addModule(Args&&... args);
+        template<AssetBaseType T>
+            requires std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
+        void addModule(u_ptr<AssetRegistryModule<T>> assetModuleImpl);
 
         /**
          * @return bool True if a module for type T has been registered.
@@ -70,10 +69,9 @@ namespace trc
 
 
 
-    template<AssetBaseType T, typename ...Args>
-        requires std::constructible_from<AssetRegistryModule<T>, Args...>
-              && std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
-    void AssetRegistryModuleStorage::addModule(Args&&... args)
+    template<AssetBaseType T>
+        requires std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
+    void AssetRegistryModuleStorage::addModule(u_ptr<AssetRegistryModule<T>> assetModuleImpl)
     {
         std::scoped_lock lock(entriesLock);
         if (hasModule<T>()) {
@@ -81,10 +79,7 @@ namespace trc
                                     " type already exitsts.");
         }
 
-        entries.emplace(
-            StaticIndex<T>::index,
-            std::make_unique<AssetRegistryModule<T>>(std::forward<Args>(args)...)
-        );
+        entries.emplace(StaticIndex<T>::index, std::move(assetModuleImpl));
     }
 
     template<AssetBaseType T>

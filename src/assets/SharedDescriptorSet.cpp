@@ -6,11 +6,17 @@
 //  DescriptorSet Binding  //
 /////////////////////////////
 
-trc::SharedDescriptorSet::Binding::Binding(SharedDescriptorSet& set, ui32 bindingIndex)
+trc::SharedDescriptorSet::Binding::Binding(s_ptr<SharedDescriptorSet> set, ui32 bindingIndex)
     :
-    set(&set),
+    set(set),
     bindingIndex(bindingIndex)
 {
+    assert(set != nullptr);
+}
+
+auto trc::SharedDescriptorSet::Binding::getBindingIndex() const -> ui32
+{
+    return bindingIndex;
 }
 
 void trc::SharedDescriptorSet::Binding::update(ui32 arrayElem, vk::DescriptorBufferInfo buffer)
@@ -84,16 +90,23 @@ auto trc::SharedDescriptorSet::Builder::addBinding(
     vk::ShaderStageFlags stages,
     vk::DescriptorBindingFlags flags) -> Binding
 {
-    const ui32 index = static_cast<ui32>(set->bindings.size());
-    set->bindings.emplace_back(index, type, count, stages);
+    const ui32 index = static_cast<ui32>(bindings.size());
+    bindings.emplace_back(index, type, count, stages);
     bindingFlags.emplace_back(flags);
 
-    return Binding(*set, index);
+    return Binding(set, index);
 }
 
 auto trc::SharedDescriptorSet::Builder::build(const Device& device)
-    -> u_ptr<SharedDescriptorSet>
+    -> s_ptr<SharedDescriptorSet>
 {
+    if (set == nullptr)
+    {
+        throw std::runtime_error(
+            "[In SharedDescriptorSet::Builder::build]: `build` was called multiple times."
+            " The `build` method may only be called once on any builder object!");
+    }
+
     set->build(device, *this);
     return std::move(set);
 }
@@ -111,7 +124,7 @@ void trc::SharedDescriptorSet::build(const Device& device, const Builder& builde
     // Create descriptor layout
     // VK_EXT_descriptor_indexing is included in 1.2
     vk::StructureChain chain{
-        vk::DescriptorSetLayoutCreateInfo(builder.layoutFlags, bindings),
+        vk::DescriptorSetLayoutCreateInfo(builder.layoutFlags, builder.bindings),
         vk::DescriptorSetLayoutBindingFlagsCreateInfo(builder.bindingFlags)
     };
 
@@ -119,7 +132,7 @@ void trc::SharedDescriptorSet::build(const Device& device, const Builder& builde
 
     // Create descriptor pool
     std::vector<vk::DescriptorPoolSize> poolSizes;
-    for (const auto& binding : bindings) {
+    for (const auto& binding : builder.bindings) {
         poolSizes.emplace_back(binding.descriptorType, binding.descriptorCount);
     }
 

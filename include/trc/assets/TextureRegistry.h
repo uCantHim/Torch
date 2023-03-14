@@ -40,7 +40,7 @@ namespace trc
     struct TextureRegistryCreateInfo
     {
         const Device& device;
-        SharedDescriptorSet::Builder& descriptorBuilder;
+        SharedDescriptorSet::Binding textureDescBinding;
     };
 
     class TextureRegistry : public AssetRegistryModuleCacheCrtpBase<Texture>

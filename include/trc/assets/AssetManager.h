@@ -1,9 +1,7 @@
 #pragma once
 
-#include <any>
-#include <filesystem>
-#include <functional>
-#include <string>
+#include <optional>
+#include <stdexcept>
 #include <unordered_map>
 
 #include <trc_util/data/IdPool.h>
@@ -45,9 +43,7 @@ namespace trc
          * @param const AssetRegistryCreateInfo& arInfo The AssetManager
          *        automatically creates an AssetRegistry.
          */
-        AssetManager(s_ptr<DataStorage> assetDataStorage,
-                     const Instance& instance,
-                     const AssetRegistryCreateInfo& arInfo);
+        explicit AssetManager(s_ptr<DataStorage> assetDataStorage);
 
 
         //////////////////////

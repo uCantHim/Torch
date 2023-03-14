@@ -24,7 +24,7 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     auto importTexture = [&](fs::path filePath) -> AssetPath
     {
         const AssetPath path(filePath.filename().replace_extension(".ta"));
-        assetManager.getAssetStorage().store(path, loadTexture(filePath));
+        assetManager.getDataStorage().store(path, loadTexture(filePath));
         return path;
     };
 

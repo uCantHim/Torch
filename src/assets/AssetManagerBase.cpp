@@ -13,14 +13,6 @@ InvalidAssetIdError::InvalidAssetIdError(ui32 id, std::string_view reason)
     )
 {}
 
-AssetManagerBase::AssetManagerBase(
-    const Instance& instance,
-    const AssetRegistryCreateInfo& deviceRegistryCreateInfo)
-    :
-    deviceRegistry(instance, deviceRegistryCreateInfo)
-{
-}
-
 auto AssetManagerBase::getMetadata(AssetID id) const -> const AssetMetadata&
 {
     if (!assetInformation.contains(ui32{id})) {

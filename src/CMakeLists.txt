@@ -6,6 +6,7 @@ target_sources(
     torch
     PRIVATE
         AnimationEngine.cpp
+        AssetDescriptor.cpp
         Camera.cpp
         DescriptorSetUtils.cpp
         FinalLightingPass.cpp
@@ -27,6 +28,7 @@ target_sources(
         ShadowPool.cpp
         TopLevelAccelerationStructureBuildPass.cpp
         Torch.cpp
+        TorchImplementation.cpp
         TorchRenderConfig.cpp
         Transformation.cpp
 )

@@ -71,23 +71,10 @@ trc::AnimationRegistry::AnimationRegistry(const AnimationRegistryCreateInfo& inf
         vk::BufferUsageFlagBits::eStorageBuffer
         | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
-    )
+    ),
+    metaBinding(info.metadataDescBinding),
+    dataBinding(info.dataDescBinding)
 {
-    info.descriptorBuilder.addLayoutFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool);
-    info.descriptorBuilder.addPoolFlag(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind);
-    metaBinding = info.descriptorBuilder.addBinding(
-        vk::DescriptorType::eStorageBuffer,
-        1,
-        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-        vk::DescriptorBindingFlagBits::eUpdateAfterBind
-    );
-    dataBinding = info.descriptorBuilder.addBinding(
-        vk::DescriptorType::eStorageBuffer,
-        1,
-        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-        vk::DescriptorBindingFlagBits::eUpdateAfterBind
-    );
-
     metaBinding.update(0, { *animationMetaDataBuffer, 0, VK_WHOLE_SIZE });
     dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
 }
