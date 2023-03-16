@@ -3,6 +3,7 @@ target_sources(UnitTests
     PRIVATE
         assets_tests/test_asset_path.cpp
         assets_tests/test_asset_reference.cpp
+        assets_tests/test_asset_registry_module_storage.cpp
         assets_tests/test_asset_storage.cpp
         assets_tests/test_asset_type.cpp
         assets_tests/test_custom_asset.cpp

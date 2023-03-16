@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include <componentlib/Table.h>
+#include <trc_util/data/TypeMap.h>
 
 #include "trc/Types.h"
 #include "trc/assets/AssetRegistryModule.h"
@@ -29,6 +30,12 @@ namespace trc
 
         /**
          * @brief Register a module for T
+         *
+         * @param assetModuleImpl The module to register. Must not be nullptr.
+         *
+         * @throw std::out_of_range if a module for asset type `T` is already
+         *        registered.
+         * @throw std::invalid_argument if `assetModuleImpl` is nullptr.
          */
         template<AssetBaseType T>
             requires std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
@@ -52,16 +59,7 @@ namespace trc
         void update(vk::CommandBuffer cmdBuf, FrameRenderState& state);
 
     private:
-        struct StaticIndexPool
-        {
-            static inline ui32 nextIndex{ 0 };
-        };
-
-        template<typename T>
-        struct StaticIndex
-        {
-            static inline const ui32 index{ StaticIndexPool::nextIndex++ };
-        };
+        using TypeIndex = data::TypeIndexAllocator<AssetRegistryModuleStorage>;
 
         std::mutex entriesLock;
         componentlib::Table<u_ptr<AssetRegistryModuleInterfaceCommon>> entries;
@@ -73,20 +71,25 @@ namespace trc
         requires std::derived_from<AssetRegistryModule<T>, AssetRegistryModuleInterface<T>>
     void AssetRegistryModuleStorage::addModule(u_ptr<AssetRegistryModule<T>> assetModuleImpl)
     {
+        if (assetModuleImpl == nullptr) {
+            throw std::invalid_argument("[In AssetRegistryModuleStorage::addModule]: The argument"
+                                        " `assetModuleImpl` must not be nullptr.");
+        }
+
         std::scoped_lock lock(entriesLock);
         if (hasModule<T>()) {
             throw std::out_of_range("[In AssetRegistryModuleStorage::addModule]: A module for this"
                                     " type already exitsts.");
         }
 
-        entries.emplace(StaticIndex<T>::index, std::move(assetModuleImpl));
+        entries.emplace(TypeIndex::get<T>(), std::move(assetModuleImpl));
     }
 
     template<AssetBaseType T>
     bool AssetRegistryModuleStorage::hasModule() const
     {
-        return entries.has(StaticIndex<T>::index)
-            && entries.get(StaticIndex<T>::index) != nullptr;
+        return entries.has(TypeIndex::get<T>())
+            && entries.get(TypeIndex::get<T>()) != nullptr;
     }
 
     template<AssetBaseType T>
@@ -97,11 +100,11 @@ namespace trc
         {
             throw std::out_of_range(
                 "[In AssetRegistryModuleStorage::get]: Requested asset registry module type (static"
-                " index " + std::to_string(StaticIndex<T>::index) + ") does not exist in the module"
+                " index " + std::to_string(TypeIndex::get<T>()) + ") does not exist in the module"
                 " storage!"
             );
         }
 
-        return dynamic_cast<AssetRegistryModuleInterface<T>&>(*entries.get(StaticIndex<T>::index));
+        return dynamic_cast<AssetRegistryModuleInterface<T>&>(*entries.get(TypeIndex::get<T>()));
     }
 } // namespace trc
