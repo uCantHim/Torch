@@ -1,5 +1,7 @@
 #include "trc/assets/AssetManager.h"
 
+#include <source_location>
+
 #include "trc/assets/Assets.h"
 #include "trc/assets/DefaultTraits.h"
 
@@ -9,6 +11,8 @@ trc::AssetManager::AssetManager(s_ptr<DataStorage> assetDataStorage)
     :
     dataStorage(assetDataStorage)
 {
+    assert(assetDataStorage != nullptr);
+
     registerDefaultTraits<Material>(assetTraits);
     registerDefaultTraits<Texture>(assetTraits);
     registerDefaultTraits<Geometry>(assetTraits);
@@ -29,12 +33,24 @@ auto trc::AssetManager::create(const AssetPath& path) -> std::optional<AssetID>
         return std::nullopt;
     }
 
-    return getTrait<ManagerTraits>(meta->type).create(*this, path, dataStorage);
+    if (auto trait = getTrait<ManagerTraits>(meta->type)) {
+        return trait->get().create(*this, path, dataStorage);
+    }
+    else {
+        return std::nullopt;
+    }
 }
 
 void trc::AssetManager::destroy(AssetID id)
 {
-    getTrait<ManagerTraits>(getAssetType(id)).destroy(*this, id);
+    if (auto trait = getTrait<ManagerTraits>(getAssetType(id))) {
+        trait->get().destroy(*this, id);
+    }
+    else {
+        log::warn << "[In " << std::source_location::current().function_name() << "]: "
+                  << "Tried to destroy asset, but no implementation for the ManagerTraits trait"
+                  << " is registered for asset type " << getAssetType(id).getName() << ".\n";
+    }
 }
 
 void trc::AssetManager::destroy(const AssetPath& path)

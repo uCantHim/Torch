@@ -25,7 +25,9 @@ namespace trc
         auto create(AssetManagerBase& manager, const AssetPath& path, AssetStorage& storage)
             -> std::optional<AssetID> override
         {
-            if (auto source = storage.loadDeferred<T>(path)) {
+            if (auto source = storage.loadDeferred<T>(path))
+            {
+                assert(*source != nullptr);
                 return manager.create<T>(std::move(*source));
             }
             return std::nullopt;

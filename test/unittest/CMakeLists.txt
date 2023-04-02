@@ -5,6 +5,7 @@ target_sources(UnitTests
         assets_tests/test_asset_reference.cpp
         assets_tests/test_asset_registry_module_storage.cpp
         assets_tests/test_asset_storage.cpp
+        assets_tests/test_asset_trait_storage.cpp
         assets_tests/test_asset_type.cpp
         assets_tests/test_custom_asset.cpp
         core/test_scene_base.cpp

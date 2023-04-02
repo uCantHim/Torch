@@ -114,6 +114,10 @@ namespace trc
      *
      * Enforces strongly typed interfaces where required. Abstractions can be
      * built that handle typing automatically (e.g. via `AssetType`).
+     *
+     * Any function that takes an `AssetID` or a `TypedAssetID<>` may throw
+     * `InvalidAssetIdError`. This can only happen if an asset ID is used after
+     * it has been freed via `AssetManagerBase::destroy(id)`.
      */
     class AssetManagerBase
     {
@@ -152,8 +156,8 @@ namespace trc
         /**
          * @brief Remove an asset from the asset manager
          *
-         * Remove an asset and destroy all associated resources, including the
-         * asset's device data in particular.
+         * Remove an asset and destroy all associated resources, particularly
+         * the asset's device data.
          *
          * This function takes a typeless AssetID and an explicit type
          * specification via template parameter. This is an unsafe interface
@@ -169,8 +173,8 @@ namespace trc
         /**
          * @brief Remove an asset from the asset manager
          *
-         * Remove an asset and destroy all associated resources, including the
-         * asset's device data in particular.
+         * Remove an asset and destroy all associated resources, particularly
+         * the asset's device data.
          *
          * @throw InvalidAssetIdError if `id` is invalid.
          */
@@ -217,9 +221,19 @@ namespace trc
          */
         auto getAssetType(AssetID id) const -> const AssetType&;
 
+        /**
+         * @throw std::out_of_range if no module for asset type `T` is
+         *        registered.
+         */
         template<AssetBaseType T>
         auto getModule() -> AssetRegistryModule<T>&;
 
+        /**
+         * @brief Access the device-data registry
+         *
+         * One should normally not access the device registry directly. Use the
+         * asset manager's interface to manipulate assets instead.
+         */
         auto getDeviceRegistry() -> AssetRegistry&;
 
     private:
@@ -278,6 +292,14 @@ namespace trc
             AssetManagerBase* manager;
             u_ptr<AssetSource<T>> source;
         };
+
+        /**
+         * Assert that an asset ID exists in the storage. Failing the test means
+         * that `id` has become invalid, and `InvalidAssetIdError` is thrown.
+         *
+         * @throw InvalidAssetIdError
+         */
+        void assertExists(AssetID id, std::string_view hint) const;
 
         template<AssetBaseType T>
         void resolveReferences(AssetData<T>& data);
@@ -392,11 +414,7 @@ namespace trc
     template<AssetBaseType T>
     void AssetManagerBase::destroy(AssetID id)
     {
-        if (!assetInformation.contains(ui32{id})) {
-            throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
-                                                " - possible double free?");
-        }
-
+        assertExists(id, "possible double free?");
         if (!getAs<T>(id))
         {
             throw std::invalid_argument(
@@ -421,22 +439,14 @@ namespace trc
     template<AssetBaseType T>
     auto AssetManagerBase::getAs(AssetID id) const -> std::optional<TypedAssetID<T>>
     {
-        if (!assetInformation.contains(ui32{id})) {
-            throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
-                                                " - has the asset already been destroyed?");
-        }
-
+        assertExists(id, "has the asset already been destroyed?");
         return assetInformation.at(ui32{id}).asType<T>();
     }
 
     template<AssetBaseType T>
     auto AssetManagerBase::getHandle(TypedAssetID<T> id) -> AssetHandle<T>
     {
-        if (const ui32 _id{id.getAssetID()}; !assetInformation.contains(_id)) {
-            throw InvalidAssetIdError(_id, "No asset with this ID exists in the asset manager"
-                                           " - has the asset already been destroyed?");
-        }
-
+        assertExists(id, "has the asset already been destroyed?");
         return deviceRegistry.get<T>(id.getDeviceID());
     }
 

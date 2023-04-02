@@ -1,18 +1,59 @@
 #include <gtest/gtest.h>
 
+#include <trc/assets/AssetManager.h>
 #include <trc/assets/AssetReference.h>
-#include <trc/assets/Geometry.h>
-#include <trc/core/Instance.h>
 #include <trc/util/FilesystemDataStorage.h>
-#include <trc/Torch.h>
+#include <trc_util/MemoryStream.h>
 
+#include "dummy_asset_type.h"
 #include "test_utils.h"
 
-using T = trc::Geometry;
-
-TEST(AssetReferenceTest, EmptyReference)
+/**
+ * A simple in-memory implementation of trc::DataStorage. We use this to store
+ * data at asset paths.
+ */
+class MemoryStorage : public trc::DataStorage
 {
-    trc::AssetReference<T> ref;
+public:
+    auto read(const path& path) -> s_ptr<std::istream> override {
+        auto it = storage.find(path);
+        if (it == storage.end()) {
+            return nullptr;
+        }
+
+        auto& data = it->second;
+        return std::make_shared<trc::util::MemoryStream>((char*)data.data(), data.size());
+    }
+
+    auto write(const path& path) -> s_ptr<std::ostream> override {
+        auto [it, success] = storage.try_emplace(path, std::vector<std::byte>(1000000));
+        auto& data = it->second;
+        return std::make_shared<trc::util::MemoryStream>((char*)data.data(), data.size());
+    }
+
+    bool remove(const path& path) override {
+        return storage.erase(path) > 0;
+    }
+private:
+    std::unordered_map<path, std::vector<std::byte>> storage;
+};
+
+class AssetReferenceTest : public testing::Test
+{
+protected:
+    AssetReferenceTest()
+        :
+        manager(std::make_shared<MemoryStorage>())
+    {
+        manager.registerAssetType<DummyAsset>(std::make_unique<DummyRegistry>());
+    }
+
+    trc::AssetManager manager;
+};
+
+TEST_F(AssetReferenceTest, EmptyReference)
+{
+    trc::AssetReference<DummyAsset> ref;
 
     ASSERT_TRUE(ref.empty());
     ASSERT_FALSE(ref.hasAssetPath());
@@ -21,10 +62,10 @@ TEST(AssetReferenceTest, EmptyReference)
     ASSERT_THROW(ref.getID(), std::runtime_error);
 }
 
-TEST(AssetReferenceTest, FromAssetPath)
+TEST_F(AssetReferenceTest, FromAssetPath)
 {
     trc::AssetPath path("my/asset/file.txt");
-    trc::AssetReference<T> ref(path);
+    trc::AssetReference<DummyAsset> ref(path);
 
     ASSERT_FALSE(ref.empty());
     ASSERT_TRUE(ref.hasAssetPath());
@@ -33,49 +74,30 @@ TEST(AssetReferenceTest, FromAssetPath)
     ASSERT_THROW(ref.getID(), std::runtime_error);
 }
 
-TEST(AssetReferenceTest, FromAssetID)
+TEST_F(AssetReferenceTest, FromAssetID)
 {
-    trc::log::info.setOutputStream(nullStream);
-
-    trc::init();
-    trc::Instance instance{};
-    trc::AssetManager man(std::make_shared<NullDataStorage>(), instance, {});
-
-    trc::GeometryID id = man.create(trc::GeometryData{});
-    trc::AssetReference<T> ref(id);
+    DummyID id = manager.create(DummyData{});
+    trc::AssetReference<DummyAsset> ref(id);
 
     ASSERT_FALSE(ref.empty());
     ASSERT_FALSE(ref.hasAssetPath());
     ASSERT_TRUE(ref.hasResolvedID());
     ASSERT_THROW(ref.getAssetPath(), std::runtime_error);
     ASSERT_NO_THROW(ref.getID());
-
-    trc::terminate();
 }
 
-TEST(AssetReferenceTest, ResolveReference)
+TEST_F(AssetReferenceTest, ResolveReference)
 {
-    trc::log::info.setOutputStream(nullStream);
+    const trc::AssetPath path("/my/asset/file.txt");
+    manager.getDataStorage().store(path, DummyData{});
 
-    trc::init();
-    trc::Instance instance{};
-    trc::AssetManager man(
-        std::make_shared<trc::FilesystemDataStorage>(testing::TempDir()),
-        instance, {}
-    );
-
-    const trc::AssetPath path("my/asset/file.txt");
-    man.getDataStorage().store(path, trc::makeCubeGeo());
-
-    trc::AssetReference<T> ref(path);
-    ASSERT_NO_THROW(ref.resolve(man));
+    trc::AssetReference<DummyAsset> ref(path);
+    ASSERT_NO_THROW(ref.resolve(manager));
 
     ASSERT_FALSE(ref.empty());
     ASSERT_TRUE(ref.hasAssetPath());
     ASSERT_TRUE(ref.hasResolvedID());
     ASSERT_NO_THROW(ref.getAssetPath());
     ASSERT_NO_THROW(ref.getID());
-    ASSERT_EQ(man.getAs<trc::Geometry>(path), ref.getID());
-
-    trc::terminate();
+    ASSERT_EQ(manager.getAs<DummyAsset>(path), ref.getID());
 }

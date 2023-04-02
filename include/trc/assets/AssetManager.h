@@ -19,6 +19,10 @@
 namespace trc
 {
     /**
+     * An extension of `AssetManagerBase` that adds automatically-typed
+     * interfaces that allow asset lookup and destruction via the typeless
+     * `AssetID` without explicit specification of the asset's expected type.
+     *
      * If an object exists but some kind of parameters are invalid, we return
      * std::optional.
      * If the object at an ID/path or other kind of reference does not exist,
@@ -44,6 +48,20 @@ namespace trc
          *        automatically creates an AssetRegistry.
          */
         explicit AssetManager(s_ptr<DataStorage> assetDataStorage);
+
+        /**
+         * @brief Register a new asset type at the asset manager
+         *
+         * Sets up all default traits for `T`.
+         *
+         * @param u_ptr<AssetRegistryModule<T>> assetModule The device module
+         *        implementation for `T`. Must not be nullptr.
+         *
+         * @throw std::invalid_argument if `assetModule` is nullptr.
+         * @throw std::out_of_range if `T` has already been registered.
+         */
+        template<AssetBaseType T>
+        void registerAssetType(u_ptr<AssetRegistryModule<T>> assetModule);
 
 
         //////////////////////
@@ -115,12 +133,22 @@ namespace trc
         auto create(const AssetPath& path) -> std::optional<AssetID>;
 
         /**
-         * @brief Completely remove an asset from the asset manager
+         * @brief Remove an asset from the asset manager
+         *
+         * Remove an asset and destroy all associated resources, particularly
+         * the asset's device data.
+         *
+         * This version of `destroy` uses the `ManagerTraits` asset trait.
          */
         void destroy(AssetID id);
 
         /**
-         * @brief Completely remove an asset from the asset manager
+         * @brief Remove an asset from the asset manager
+         *
+         * Remove an asset and destroy all associated resources, particularly
+         * the asset's device data.
+         *
+         * This version of `destroy` uses the `ManagerTraits` asset trait.
          */
         void destroy(const AssetPath& path);
 
@@ -144,6 +172,10 @@ namespace trc
         //  Access to the data storage  //
         //////////////////////////////////
 
+        /**
+         * @return AssetStorage& The storage object that the AssetManager
+         *                       uses to store data at asset paths.
+         */
         auto getDataStorage() -> AssetStorage&;
 
 
@@ -151,19 +183,85 @@ namespace trc
         //  Asset traits  //
         ////////////////////
 
-        template<AssetBaseType Asset, AssetTraitT Trait>
-        auto getTrait() -> Trait& {
+        /**
+         * @brief Access an implementation of a trait for an asset type
+         */
+        template<AssetTraitT Trait, AssetBaseType Asset>
+        auto getTrait() noexcept
+            -> std::optional<std::reference_wrapper<Trait>>
+        {
             return getTrait<Trait>(AssetType::make<Asset>());
         }
 
+        /**
+         * @brief Access an implementation of a trait for an asset type
+         */
         template<AssetTraitT Trait>
-        auto getTrait(const AssetType& type) -> Trait& {
+        auto getTrait(const AssetType& type) noexcept
+            -> std::optional<std::reference_wrapper<Trait>>
+        {
             return assetTraits.getTrait<Trait>(type);
+        }
+
+        /**
+         * @brief Register a trait implementation
+         *
+         * For an asset type A (e.g. trc::Geometry), register an implementation
+         * of an asset trait type T.
+         *
+         * @tparam T The asset trait type for which to register an
+         *         implementation. This parameter must be specified explicitly.
+         * @tparam Asset The asset type for which to register the trait
+         *         implementation.
+         * @tparam Impl Deduced from function parameter `trait`.
+         *
+         * @param u_ptr<Impl> trait The implementation of trait type `T`. Must
+         *        not be nullptr.
+         *
+         * @throw std::invalid_argument if `trait` is nullptr.
+         * @throw std::out_of_range if `Asset` already has an implementation of
+         *        `T`.
+         *
+         * # Example
+         * @code
+         *  class Greeter : public trc::AssetTrait
+         *  {
+         *  public:
+         *      virtual auto greet() -> std::string = 0;
+         *  }
+         *
+         *  class GeometryGreeter : public Greeter
+         *  {
+         *  public:
+         *      auto greet() -> std::string override {
+         *          return "Hello! I am geometry :D";
+         *      }
+         *  };
+         *
+         *  const auto geoType = AssetType::make<trc::Geometry>();
+         *  manager.registerTrait<Greeter>(geoType, std::make_unique<GeometryGreeter>());
+         *
+         *  std::cout << manager.getTrait<Greeter>(geoType).greet();
+         * @endcode
+         */
+        template<AssetTraitT T, AssetBaseType Asset, std::derived_from<T> Impl>
+        void registerTrait(u_ptr<Impl> trait)
+        {
+            const AssetType type = AssetType::make<Asset>();
+            if (assetTraits.getTrait<T>(type).has_value())
+            {
+                throw std::out_of_range(
+                    "[In AssetManager::registerTrait]: Asset type " + type.getName()
+                    + " already has an implementation of trait T [T = " + typeid(T).name() + "]"
+                );
+            }
+
+            assetTraits.registerTrait<T>(type);
         }
 
     private:
         template<AssetBaseType T>
-        void registerDefaultTraits(TraitStorage& traits);
+        static void registerDefaultTraits(TraitStorage& traits);
 
         AssetStorage dataStorage;
         TraitStorage assetTraits;
@@ -199,7 +297,11 @@ namespace trc
         }
 
         auto source = dataStorage.loadDeferred<T>(path);
-        if (!source) {
+        if (!source)
+        {
+            log::debug << "[In AssetManager::create(const AssetPath&)]: Unable to load data from"
+                          " data storage (path: " << path.string() << ");"
+                          " returning std::nullopt.\n";
             return std::nullopt;
         }
 
@@ -237,6 +339,13 @@ namespace trc
 
 namespace trc
 {
+    template<AssetBaseType T>
+    void AssetManager::registerAssetType(u_ptr<AssetRegistryModule<T>> assetModule)
+    {
+        getDeviceRegistry().addModule<T>(std::move(assetModule));
+        registerDefaultTraits<T>(assetTraits);
+    }
+
     template<AssetBaseType T>
     inline void AssetManager::registerDefaultTraits(TraitStorage& traits)
     {

@@ -15,11 +15,7 @@ InvalidAssetIdError::InvalidAssetIdError(ui32 id, std::string_view reason)
 
 auto AssetManagerBase::getMetadata(AssetID id) const -> const AssetMetadata&
 {
-    if (!assetInformation.contains(ui32{id})) {
-        throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
-                                            " - has the asset already been destroyed?");
-    }
-
+    assertExists(id, "has the asset already been destroyed?");
     return assetInformation.at(ui32{id}).getMetadata();
 }
 
@@ -31,6 +27,14 @@ auto AssetManagerBase::getAssetType(AssetID id) const -> const AssetType&
 auto AssetManagerBase::getDeviceRegistry() -> AssetRegistry&
 {
     return deviceRegistry;
+}
+
+void AssetManagerBase::assertExists(AssetID id, std::string_view hint) const
+{
+    if (!assetInformation.contains(ui32{id})) {
+        throw InvalidAssetIdError(ui32{id}, "No asset with this ID exists in the asset manager"
+                                            " - " + std::string(hint));
+    }
 }
 
 } // namespace trc
