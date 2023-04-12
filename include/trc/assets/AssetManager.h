@@ -100,6 +100,9 @@ namespace trc
          *
          * Asset data imported by this method will permanently stay in host
          * memory until the asset is destroyed.
+         *
+         * @throw std::out_of_range if no device registry module for asset type
+         *                          `T` is registered.
          */
         template<AssetBaseType T>
         auto create(const AssetData<T>& data) -> TypedAssetID<T>;
@@ -114,8 +117,8 @@ namespace trc
          *         when this method is called, this is the existing asset's ID.
          *         Returns nullopt if the data storage does not contain an
          *         object at `path`.
-         * @throw std::invalid_argument if an asset exists at `path` and is
-         *                              not of type `T`.
+         * @throw std::invalid_argument if an asset at `path` is already registered
+         *                              and is not of type `T`.
          */
         template<AssetBaseType T>
         auto create(const AssetPath& path) -> std::optional<TypedAssetID<T>>;
@@ -151,8 +154,8 @@ namespace trc
          *         Returns nullopt if the data storage does not contain an
          *         object at `path`.
          *
-         * @throw if the type specified in the stored metadata is not registered
-         *        at the asset manager.
+         * @throw std::out_of_range if the type specified in the stored metadata
+         *                          is not registered at the asset manager.
          */
         auto create(const AssetPath& path) -> std::optional<AssetID>;
 
@@ -186,6 +189,16 @@ namespace trc
 
         bool exists(const AssetPath& path) const;
 
+        /**
+         * @brief Get an asset from its asset path
+         *
+         * @tparam T Try to interpret the asset as `T`. Returns std::nullopt if
+         *           the data at `path` is of another type.
+         *
+         * @return std::optional<TypedAssetID> Returns an ID if an asset with
+         *         asset path `path` exists and its metadata indicated that it
+         *         is of the specified type `T`. Returns std::nullopt otherwise.
+         */
         template<AssetBaseType T>
         auto getAs(const AssetPath& path) const -> std::optional<TypedAssetID<T>>;
 
@@ -330,6 +343,11 @@ namespace trc
     template<AssetBaseType T>
     auto AssetManager::create(u_ptr<AssetSource<T>> dataSource) -> TypedAssetID<T>
     {
+        if (dataSource == nullptr) {
+            throw std::invalid_argument("[In AssetManager::create(AssetSource)]: Argument "
+                                        " `dataSource` must not be nullptr!");
+        }
+
         // Create the internal reference-resolving source
         u_ptr<AssetSource<T>> wrapper = std::make_unique<InternalAssetSource<T>>(
             *this,
@@ -352,7 +370,7 @@ namespace trc
             it != pathsToAssets.end())
         {
             try {
-                return *getAs<T>(it->second);
+                return getAs<T>(it->second).value();
             }
             catch (const std::bad_optional_access&)
             {
@@ -383,22 +401,15 @@ namespace trc
     inline auto AssetManager::getAs(const AssetPath& path) const -> std::optional<TypedAssetID<T>>
     {
         auto it = pathsToAssets.find(path);
-        if (it == pathsToAssets.end())
-        {
-            throw std::runtime_error("[In AssetManager::getAsset]: Asset at path "
-                                     + path.string() + " does not exist");
+        if (it == pathsToAssets.end()) {
+            return std::nullopt;
         }
 
         try {
-            return *getAs<T>(it->second);
+            return getAs<T>(it->second).value();
         }
-        catch (const std::bad_optional_access&)
-        {
-            throw std::runtime_error(
-                "[In AssetManager::get(const AssetPath&)]: Requested asset of type "
-                + AssetType::make<T>().getName() + ", but Asset at path " + path.string()
-                + " has type " + getAssetType(it->second).getName()
-            );
+        catch (const std::bad_optional_access&) {
+            return std::nullopt;
         }
     }
 
@@ -426,6 +437,13 @@ namespace trc
     inline void AssetManager::registerDefaultTraits(TraitStorage& traits)
     {
         const AssetType type = AssetType::make<T>();
-        traits.registerTrait<ManagerTraits>(type, std::make_unique<ManagerTraitsImpl<T>>());
+        try {
+            traits.registerTrait<ManagerTraits>(type, std::make_unique<ManagerTraitsImpl<T>>());
+        }
+        catch (const std::out_of_range&) {
+            log::warn << "[In AssetManager::registerDefaultTraits]: An implementation of"
+                         " ManagerTraits is already registered for asset type " + type.getName()
+                         + ". The default implementation will not be registered.";
+        }
     }
 } // namespace trc

@@ -1,8 +1,9 @@
 #pragma once
 
+#include <optional>
+
 #include "trc/assets/AssetBase.h"
-#include "trc/assets/AssetManagerBase.h"
-#include "trc/assets/AssetStorage.h"
+#include "trc/assets/AssetManager.h"
 #include "trc/assets/AssetTraits.h"
 
 namespace trc
@@ -10,9 +11,8 @@ namespace trc
     class ManagerTraits : public AssetTrait
     {
     public:
-        virtual auto create(AssetManagerBase& manager,
-                            const AssetPath& path,
-                            AssetStorage& storage)
+        virtual auto create(AssetManager& manager,
+                            const AssetPath& path)
             -> std::optional<AssetID> = 0;
 
         virtual void destroy(AssetManagerBase& manager, AssetID id) = 0;
@@ -22,13 +22,11 @@ namespace trc
     class ManagerTraitsImpl : public ManagerTraits
     {
     public:
-        auto create(AssetManagerBase& manager, const AssetPath& path, AssetStorage& storage)
+        auto create(AssetManager& manager, const AssetPath& path)
             -> std::optional<AssetID> override
         {
-            if (auto source = storage.loadDeferred<T>(path))
-            {
-                assert(*source != nullptr);
-                return manager.create<T>(std::move(*source));
+            if (auto id = manager.create<T>(path)) {
+                return id->getAssetID();
             }
             return std::nullopt;
         }

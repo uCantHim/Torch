@@ -1,6 +1,8 @@
 add_executable(UnitTests)
 target_sources(UnitTests
     PRIVATE
+        assets_tests/test_asset_manager.cpp
+        assets_tests/test_asset_manager_base.cpp
         assets_tests/test_asset_path.cpp
         assets_tests/test_asset_reference.cpp
         assets_tests/test_asset_registry_module_storage.cpp

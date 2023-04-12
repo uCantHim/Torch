@@ -147,6 +147,8 @@ namespace trc
          *        not be nullptr.
          *
          * @throw std::invalid_argument if `dataSource == nullptr`.
+         * @throw std::out_of_range if no asset registry module is registered
+         *                          for asset type `T`.
          */
         template<AssetBaseType T>
         auto create(u_ptr<AssetSource<T>> dataSource) -> TypedAssetID<T>;
@@ -349,6 +351,15 @@ namespace trc
                                         " not be nullptr!");
         }
 
+        // Assert that a device module for `T` exists
+        if (!deviceRegistry.hasModule<T>())
+        {
+            throw std::out_of_range(
+                "[In AssetManagerBase::create]: No device registry module is registered for"
+                " asset type " + AssetType::make<T>().getName()
+            );
+        }
+
         // Test for the correct asset type. This is ok because we need to load
         // the metadata anyway.
         AssetMetadata meta = source->getMetadata();
@@ -361,8 +372,8 @@ namespace trc
             );
         }
 
-        const AssetID id{ assetIdPool.generate() };
         const LocalID localId = deviceRegistry.add(std::move(source));
+        const AssetID id{ assetIdPool.generate() };
         const TypedAssetID<T> typedId{ id, localId, *this };
 
         assert(!assetInformation.contains(ui32{id}));

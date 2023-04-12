@@ -34,10 +34,20 @@ auto trc::AssetManager::create(const AssetPath& path) -> std::optional<AssetID>
     }
 
     if (auto trait = getTrait<ManagerTraits>(meta->type)) {
-        return trait->get().create(*this, path, dataStorage);
+        return trait->get().create(*this, path);
     }
     else {
-        return std::nullopt;
+        throw std::out_of_range(
+            "[In " + std::string(std::source_location::current().function_name()) + "]:"
+            " asset data at the specified path (" + path.string() + ") is of type "
+            + meta->type.getName() + ", which is not registered at the asset manager."
+
+            " Specifically, an implementation of the ManagerTraits asset trait must specified for"
+            " any asset type that the manager is supposed to handle. Use"
+            " `AssetManager::registerAssetType` to register this trait automatically (recommended)"
+            " or `AssetManager::registerTrait` to register an asset trait manually. The latter"
+            " option is only recommended for custom asset traits."
+        );
     }
 }
 

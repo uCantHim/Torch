@@ -6,7 +6,11 @@
 #include <trc/assets/TextureRegistry.h>
 #include <trc/core/FrameRenderState.h>
 
-#include "dummy_asset_type.h"
+#include "define_asset_type.h"
+
+DEFINE_ASSET_TYPE(DummyAsset, DummyRegistry);
+using DummyID = trc::TypedAssetID<DummyAsset>;
+using DummyData = trc::AssetData<DummyAsset>;
 
 class AssetRegistryModuleStorageTest : public testing::Test
 {

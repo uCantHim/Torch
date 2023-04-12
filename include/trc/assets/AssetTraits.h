@@ -79,6 +79,7 @@ namespace trc
          * @endcode
          */
         template<AssetTraitT T, std::derived_from<T> Impl>
+            requires (!std::same_as<T, Impl>)
         void registerTrait(const AssetType& type, u_ptr<Impl> trait);
 
         /**
@@ -105,6 +106,7 @@ namespace trc
 
 
     template<AssetTraitT T, std::derived_from<T> Impl>
+        requires (!std::same_as<T, Impl>)
     void TraitStorage::registerTrait(const AssetType& type, u_ptr<Impl> trait)
     {
         if (trait == nullptr) {
@@ -114,6 +116,9 @@ namespace trc
 
         auto [vec, _] = traits.try_emplace(type);
         vec.emplace(TypeIndex::get<T>(), std::move(trait));
+
+        assert(getTrait<T>(type).has_value());
+        assert(dynamic_cast<Impl*>(&getTrait<T>(type)->get()) != nullptr);
     }
 
     template<AssetTraitT T>
