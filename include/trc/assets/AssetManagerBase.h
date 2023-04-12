@@ -127,10 +127,8 @@ namespace trc
         AssetManagerBase& operator=(const AssetManagerBase&) = delete;
         AssetManagerBase& operator=(AssetManagerBase&&) noexcept = delete;
 
-        ~AssetManagerBase() = default;
-
-        // TODO: Pass AssetRegistry as a shared_ptr
         AssetManagerBase() = default;
+        ~AssetManagerBase() = default;
 
         /**
          * @brief Create an asset
@@ -265,44 +263,12 @@ namespace trc
         };
 
         /**
-         * @brief An internal asset source used by the AssetManagerBase
-         *
-         * First resolves any asset references before loading an asset's data.
-         */
-        template<AssetBaseType T>
-        class InternalAssetSource : public AssetSource<T>
-        {
-        public:
-            InternalAssetSource(AssetManagerBase& man, u_ptr<AssetSource<T>> impl)
-                : manager(&man), source(std::move(impl)) {}
-
-            auto load() -> AssetData<T> override
-            {
-                auto data = source->load();
-                manager->resolveReferences<T>(data);
-
-                return data;
-            }
-
-            auto getMetadata() -> AssetMetadata override {
-                return source->getMetadata();
-            }
-
-        private:
-            AssetManagerBase* manager;
-            u_ptr<AssetSource<T>> source;
-        };
-
-        /**
          * Assert that an asset ID exists in the storage. Failing the test means
          * that `id` has become invalid, and `InvalidAssetIdError` is thrown.
          *
          * @throw InvalidAssetIdError
          */
         void assertExists(AssetID id, std::string_view hint) const;
-
-        template<AssetBaseType T>
-        void resolveReferences(AssetData<T>& data);
 
         data::IdPool<ui32> assetIdPool;
         util::SafeVector<AssetInfo> assetInformation;
@@ -373,21 +339,15 @@ namespace trc
 
 
     template<AssetBaseType T>
-    auto AssetManagerBase::create(u_ptr<AssetSource<T>> _dataSource) -> TypedAssetID<T>
+    auto AssetManagerBase::create(u_ptr<AssetSource<T>> source) -> TypedAssetID<T>
     {
         using LocalID = typename AssetBaseTypeTraits<T>::LocalID;
 
         // Assert correctness of resources
-        if (_dataSource == nullptr) {
+        if (source == nullptr) {
             throw std::invalid_argument("[In AssetManagerBase::create]: Argument `dataSource` must"
                                         " not be nullptr!");
         }
-
-        // Create the internal reference-resolving source
-        u_ptr<AssetSource<T>> source = std::make_unique<InternalAssetSource<T>>(
-            *this,
-            std::move(_dataSource)
-        );
 
         // Test for the correct asset type. This is ok because we need to load
         // the metadata anyway.
@@ -454,13 +414,5 @@ namespace trc
     auto AssetManagerBase::getModule() -> AssetRegistryModule<T>&
     {
         return dynamic_cast<AssetRegistryModule<T>&>(getDeviceRegistry().getModule<T>());
-    }
-
-    template<AssetBaseType T>
-    void AssetManagerBase::resolveReferences(AssetData<T>& data)
-    {
-        if constexpr (requires{ data.resolveReferences(*this); }) {
-            data.resolveReferences(*this);
-        }
     }
 } // namespace trc

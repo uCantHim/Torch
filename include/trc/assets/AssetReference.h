@@ -15,7 +15,7 @@
 namespace trc
 {
     /**
-     * @brief Reference to a specific asset type
+     * @brief Reference to an asset of a specific type
      *
      * References are always optional, i.e. they can point to no object.
      *

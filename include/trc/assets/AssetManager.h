@@ -68,8 +68,32 @@ namespace trc
         //  Asset creation  //
         //////////////////////
 
-        using AssetManagerBase::create;
+        // Don't import the AssetManagerBase's `create`, but instead redeclare
+        // it and wrap the asset source into a reference-resolving wrapper.
+        //using AssetManagerBase::create;
+
         using AssetManagerBase::destroy;
+
+        /**
+         * @brief Create an asset
+         *
+         * Registers an asset at the asset manager.
+         *
+         * An asset is defined by an asset source object, which is a mechanism
+         * to load an asset's data and metadata lazily.
+         *
+         * Whether or not the data is actually loaded lazily or immediately when
+         * `AssetManagerBase::create` is called is determined by the underlying
+         * `AssetRegistryModule` implementation for the asset type `T`.
+         *
+         * @tparam T The type of asset to create.
+         * @param u_ptr<AssetSource<T>> A source for the new asset's data. Must
+         *        not be nullptr.
+         *
+         * @throw std::invalid_argument if `dataSource == nullptr`.
+         */
+        template<AssetBaseType T>
+        auto create(u_ptr<AssetSource<T>> dataSource) -> TypedAssetID<T>;
 
         /**
          * @brief Create an asset from in-memory data
@@ -260,8 +284,40 @@ namespace trc
         }
 
     private:
+        /**
+         * @brief An internal asset source used by the AssetManagerBase
+         *
+         * First resolves any asset references before loading an asset's data.
+         */
+        template<AssetBaseType T>
+        class InternalAssetSource : public AssetSource<T>
+        {
+        public:
+            InternalAssetSource(AssetManager& man, u_ptr<AssetSource<T>> impl)
+                : manager(&man), source(std::move(impl)) {}
+
+            auto load() -> AssetData<T> override
+            {
+                auto data = source->load();
+                manager->resolveReferences<T>(data);
+
+                return data;
+            }
+
+            auto getMetadata() -> AssetMetadata override {
+                return source->getMetadata();
+            }
+
+        private:
+            AssetManager* manager;
+            u_ptr<AssetSource<T>> source;
+        };
+
         template<AssetBaseType T>
         static void registerDefaultTraits(TraitStorage& traits);
+
+        template<AssetBaseType T>
+        void resolveReferences(AssetData<T>& data);
 
         AssetStorage dataStorage;
         TraitStorage assetTraits;
@@ -270,6 +326,18 @@ namespace trc
     };
 
 
+
+    template<AssetBaseType T>
+    auto AssetManager::create(u_ptr<AssetSource<T>> dataSource) -> TypedAssetID<T>
+    {
+        // Create the internal reference-resolving source
+        u_ptr<AssetSource<T>> wrapper = std::make_unique<InternalAssetSource<T>>(
+            *this,
+            std::move(dataSource)
+        );
+
+        return AssetManagerBase::create(std::move(wrapper));
+    }
 
     template<AssetBaseType T>
     inline auto AssetManager::create(const AssetData<T>& data) -> TypedAssetID<T>
@@ -331,6 +399,14 @@ namespace trc
                 + AssetType::make<T>().getName() + ", but Asset at path " + path.string()
                 + " has type " + getAssetType(it->second).getName()
             );
+        }
+    }
+
+    template<AssetBaseType T>
+    void AssetManager::resolveReferences(AssetData<T>& data)
+    {
+        if constexpr (requires{ data.resolveReferences(*this); }) {
+            data.resolveReferences(*this);
         }
     }
 } // namespace trc
