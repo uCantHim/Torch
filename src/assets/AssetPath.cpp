@@ -14,7 +14,7 @@ AssetPath::AssetPath(util::Pathlet path)
     : Pathlet(std::move(path))
 {
     // Ensure that path is actually a subdirectory of the asset root
-    const auto isSubdir = !fs::path{ string() }.lexically_relative(fs::path("."))
+    const auto isSubdir = !filesystemPath("").lexically_relative(fs::path("."))
                            .string().starts_with("..");
     if (!isSubdir)
     {
