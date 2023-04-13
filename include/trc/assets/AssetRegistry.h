@@ -77,6 +77,13 @@ namespace trc
         template<AssetBaseType T>
         auto getModule() const -> const AssetRegistryModule<T>&;
 
+        /**
+         * @return bool True if a module for asset type `T` is currently
+         *              registered at the AssetRegistry, false otherwise.
+         */
+        template<AssetBaseType T>
+        bool hasModule() const noexcept;
+
         auto getUpdatePass() -> UpdatePass&;
 
     private:
@@ -130,5 +137,11 @@ namespace trc
     inline auto AssetRegistry::getModule() const -> const AssetRegistryModule<T>&
     {
         return dynamic_cast<const AssetRegistryModule<T>&>(modules.get<T>());
+    }
+
+    template<AssetBaseType T>
+    inline bool AssetRegistry::hasModule() const noexcept
+    {
+        return modules.hasModule<T>();
     }
 } // namespace trc
