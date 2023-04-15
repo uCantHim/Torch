@@ -206,7 +206,7 @@ void trc::Renderer::waitForAllFrames(ui64 timeoutNs)
     }
     auto result = device->waitForFences(fences, true, timeoutNs);
     if (result == vk::Result::eTimeout) {
-        log::error << "Timeout in Renderer::waitForAllFrames!\n";
+        log::error << "Timeout in Renderer::waitForAllFrames!";
     }
 
     device->waitIdle();

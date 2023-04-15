@@ -16,7 +16,7 @@ void trc::EventThread::start()
         }
     });
 
-    log::info << "--- Event thread started\n";
+    log::info << "--- Event thread started";
 }
 
 void trc::EventThread::terminate()

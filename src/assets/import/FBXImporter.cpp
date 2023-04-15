@@ -3,6 +3,7 @@
 #include "trc/assets/import/FBXImporter.h"
 
 #include <chrono>
+#include <sstream>
 using namespace std::chrono;
 
 #include "trc/assets/import/GeometryTransformations.h"
@@ -13,12 +14,21 @@ using namespace std::chrono;
 class FbxLogger
 {
 public:
+    void startLog() {
+        ss.clear();
+    }
+    void endLog() {
+        trc::log::info << "FBX import information:\n" << ss.rdbuf();
+    }
+
     template<typename T>
     inline auto operator<<(T&& t) -> FbxLogger&
     {
-        trc::log::info << std::forward<T>(t);
+        ss << std::forward<T>(t);
         return *this;
     }
+
+    std::stringstream ss;
 };
 
 namespace trc
@@ -45,13 +55,14 @@ namespace trc
         return mat;
     }
 
-    static FbxLogger fbxLog;
+    FbxLogger fbxLog;
 } // namespace trc
 
 
 
 auto trc::FBXImporter::load(const fs::path& path) -> ThirdPartyFileImportData
 {
+    fbxLog.startLog();
     init();
 
     time_point<system_clock, milliseconds> start = time_point_cast<milliseconds>(system_clock::now());
@@ -98,9 +109,10 @@ auto trc::FBXImporter::load(const fs::path& path) -> ThirdPartyFileImportData
 
     auto elapsed_milliseconds = duration_cast<milliseconds>(system_clock::now() - start).count();
     fbxLog << "\nFile loaded in " << elapsed_milliseconds << "ms.\n";
-    fbxLog << "++++++++++++++++++++++++++++++++++\n";
+    fbxLog << "++++++++++++++++++++++++++++++++++";
 
     scene->Destroy();
+    fbxLog.endLog();
 
     return result;
 }
@@ -139,7 +151,7 @@ auto trc::FBXImporter::loadSceneFromFile(const std::string& path) -> std::option
         return std::nullopt;
     }
 
-    fbxLog << "\n++++++++++++++++++++++++++++++++++\n";
+    fbxLog << "++++++++++++++++++++++++++++++++++\n";
     fbxLog << "Loading scene from file " << path << "...\n";
 
     FbxImporter* importer = FbxImporter::Create(fbx_memory_manager, "");

@@ -99,7 +99,7 @@ void trc::VulkanDebug::vulkanDebugCallback(
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
         log::error << "A Vulkan " << vk::to_string(messageType) << " error occured."
             << " Check the error log for additional details.\n";
-        log::error << callbackData.pMessage << "\n";
+        log::error << callbackData.pMessage;
 
         ss << "A Vulkan " + vk::to_string(messageType) + " error occured:\n";
         ss << callbackData.pMessage << "\n";
@@ -117,7 +117,7 @@ void trc::VulkanDebug::vulkanDebugCallback(
         break;
 
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-        log::warn << "A warning occured: " << callbackData.pMessage << "\n";
+        log::warn << "A warning occured: " << callbackData.pMessage;
         vkWarningLog << "A " + vk::to_string(messageType) + " warning occured:\n";
         vkWarningLog << callbackData.pMessage << "\n";
         break;

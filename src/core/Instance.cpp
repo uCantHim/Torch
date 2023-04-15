@@ -141,14 +141,12 @@ auto trc::Instance::makeDevice(
 
     // Logging
     {
-        log::info << "\nQuerying ray tracing support:\n";
-        log::info << std::boolalpha
-            << "   Acceleration structure: " << (bool)as.accelerationStructure << "\n"
-            << "   Acceleration structure host commands: "
-                << (bool)as.accelerationStructureHostCommands << "\n"
-            << "   Ray Tracing pipeline: " << (bool)ray.rayTracingPipeline << "\n"
-            << "   Trace rays indirect: " << (bool)ray.rayTracingPipelineTraceRaysIndirect << "\n"
-            << "   Ray traversal primitive culling: " << (bool)ray.rayTraversalPrimitiveCulling << "\n";
+        log::info << "Querying ray tracing support:" << std::boolalpha;
+        log::info << "   Acceleration structure: " << (bool)as.accelerationStructure;
+        log::info << "   Acceleration structure host commands: " << (bool)as.accelerationStructureHostCommands;
+        log::info << "   Ray Tracing pipeline: " << (bool)ray.rayTracingPipeline;
+        log::info << "   Trace rays indirect: " << (bool)ray.rayTracingPipelineTraceRaysIndirect;
+        log::info << "   Ray traversal primitive culling: " << (bool)ray.rayTraversalPrimitiveCulling;
     }
 
     const bool rayTracingSupported = as.accelerationStructure && ray.rayTracingPipeline;

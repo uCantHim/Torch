@@ -96,26 +96,26 @@ trc::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR su
     typeString(vk::to_string(properties.deviceType))
 {
     // Logging
-    log::info << "\nFound device \"" << name << "\" (" << typeString << "):\n";
+    log::info << "Found device \"" << name << "\" (" << typeString << "):";
 
     // Print queue family info
-    log::info << queueFamilies.size() << " queue families:\n";
+    log::info << queueFamilies.size() << " queue families:";
     for (const auto& fam : queueFamilies)
     {
-        log::info << " - Queue family #" << fam.index << "\n";
-        log::info << "\t" << fam.queueCount << " queues\n";
+        log::info << " - Queue family #" << fam.index;
+        log::info << "\t" << fam.queueCount << " queues";
         if (fam.isCapable(QueueType::graphics))
-            log::info << "\tgraphics capable\n";
+            log::info << "\tgraphics capable";
         if (fam.isCapable(QueueType::compute))
-            log::info << "\tcompute capable\n";
+            log::info << "\tcompute capable";
         if (fam.isCapable(QueueType::transfer))
-            log::info << "\ttransfer capable\n";
+            log::info << "\ttransfer capable";
         if (fam.isCapable(QueueType::sparseMemory))
-            log::info << "\tsparse memory capable\n";
+            log::info << "\tsparse memory capable";
         if (fam.isCapable(QueueType::protectedMemory))
-            log::info << "\tprotected memory capable\n";
+            log::info << "\tprotected memory capable";
         if (fam.isCapable(QueueType::presentation))
-            log::info << "\tpresentation capable\n";
+            log::info << "\tpresentation capable";
     }
 }
 
@@ -192,19 +192,19 @@ auto trc::PhysicalDevice::createLogicalDevice(
 
     // Logging
     {
-        log::info << "\nLogical device created from physical device \"" << name << "\"\n";
+        log::info << "Logical device created from physical device \"" << name << "\"";
 
-        log::info << "   Enabled device extensions:\n";
+        log::info << "   Enabled device extensions:";
         for (const auto& name : deviceExtensions) {
-            log::info << "    - " << name << "\n";
+            log::info << "    - " << name;
         }
 
-        log::info << "   Enabled device features:\n";
+        log::info << "   Enabled device features:";
         constexpr auto pNextOffset = offsetof(vk::PhysicalDeviceFeatures2, pNext);
         uint8_t* feature = reinterpret_cast<uint8_t*>(&deviceFeatures.get<vk::PhysicalDeviceFeatures2>());
         while (feature != nullptr)
         {
-            log::info << "    - " << vk::to_string(*(vk::StructureType*)feature) << "\n";
+            log::info << "    - " << vk::to_string(*(vk::StructureType*)feature);
             feature = (uint8_t*) *(uint64_t*)(feature + pNextOffset);
         }
     }
@@ -293,13 +293,13 @@ auto trc::findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surfac
     {
         if (device_helpers::isOptimalDevice(device))
         {
-            log::info << "Found optimal physical device: \"" << device.name << "\"!\n";
+            log::info << "Found optimal physical device: \"" << device.name << "\"!";
             return device;
         }
-        log::info << device.name << " is a suboptimal physical device.\n";
+        log::info << device.name << " is a suboptimal physical device.";
     }
 
-    log::error << "Fatal error: Unable to find a physical device that meets the criteria!\n";
+    log::error << "Fatal error: Unable to find a physical device that meets the criteria!";
     throw std::runtime_error("Unable to find a physical device that meets the criteria.");
 }
 

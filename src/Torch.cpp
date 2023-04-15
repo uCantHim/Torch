@@ -34,7 +34,7 @@ void trc::init(const TorchInitInfo& info)
         glfwGetError(&errorMsg);
         throw std::runtime_error("Initialization of GLFW failed: " + std::string(errorMsg));
     }
-    log::info << "GLFW initialized successfully\n";
+    log::info << "GLFW initialized successfully";
 
     // Init pipelines
     pipelines::initDrawablePipelines({

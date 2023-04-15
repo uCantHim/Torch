@@ -11,12 +11,12 @@ void computeTangents(GeometryData& result)
 {
     if (result.indices.empty() || result.indices.size() % 3 != 0)
     {
-        log::error << "Failed to compute tangents. Mesh has no indices or the mesh is not triangulated.\n";
+        log::error << "Failed to compute tangents. Mesh has no indices or the mesh is not triangulated.";
         return;
     }
     if (result.vertices.empty())
     {
-        log::error << "Failed to compute tangents. The mesh has no vertices.\n";
+        log::error << "Failed to compute tangents. The mesh has no vertices.";
         return;
     }
 
@@ -71,7 +71,7 @@ void computeTangents(GeometryData& result)
         // with a simple cross product. Seems better than an additional vertex attribute.
     }
 
-    log::info << result.indices.size() << " tangents and bitangents computed.\n";
+    log::info << result.indices.size() << " tangents and bitangents computed.";
 }
 
 } // namespace trc

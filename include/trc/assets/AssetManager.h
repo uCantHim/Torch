@@ -385,7 +385,7 @@ namespace trc
         auto source = dataStorage.loadDeferred<T>(path);
         if (!source)
         {
-            log::debug << "[In AssetManager::create(const AssetPath&)]: Unable to load data from"
+            log::debug << log::here() << ": Unable to load data from"
                           " data storage (path: " << path.string() << ");"
                           " returning std::nullopt.\n";
             return std::nullopt;

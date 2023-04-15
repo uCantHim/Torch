@@ -181,7 +181,7 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) con
 {
     assert(fs::is_regular_file(srcPath));
 
-    log::info << "Compiling shader " << srcPath << " to " << dstPath << "\n";
+    log::info << "Compiling shader " << srcPath << " to " << dstPath;
 
     auto result = spirv::generateSpirv(util::readFile(srcPath), srcPath, compileOpts);
     if (result.GetCompilationStatus()

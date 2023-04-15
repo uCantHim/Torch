@@ -439,7 +439,7 @@ void trc::ui_impl::DrawCollector::addFont(ui32 fontIndex, const GlyphCache& glyp
 {
     auto [it, success] = fonts.try_emplace(fontIndex, device, fontIndex, glyphCache);
     if (!success) {
-        log::warn << "Unable to add font of index " << fontIndex << "\n";
+        log::warn << "Unable to add font of index " << fontIndex;
         return;
     }
 

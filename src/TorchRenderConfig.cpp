@@ -278,7 +278,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     }
     gBufferPass.reset();
     gBuffer.reset();
-    log::info << "GBuffer resources destroyed (" << timer.reset() << " ms)\n";
+    log::info << "GBuffer resources destroyed (" << timer.reset() << " ms)";
 
     // Create new g-buffer
     gBuffer = std::make_unique<FrameSpecific<GBuffer>>(
@@ -290,11 +290,11 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
             );
         }
     );
-    log::info << "GBuffer recreated (" << timer.reset() << " ms)\n";
+    log::info << "GBuffer recreated (" << timer.reset() << " ms)";
 
     // Update g-buffer descriptor
     gBufferDescriptor.update(window.getDevice(), *gBuffer);
-    log::info << "GBuffer descriptor updated (" << timer.reset() << " ms)\n";
+    log::info << "GBuffer descriptor updated (" << timer.reset() << " ms)";
 
     // Create new renderpasses
     gBufferPass = std::make_unique<GBufferPass>(window.getDevice(), *gBuffer);
@@ -329,5 +329,5 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
         layout.addPass(rayTracingRenderStage, *rayTracingPass);
     }
 
-    log::info << "Deferred renderpass recreated (" << timer.reset() << " ms)\n";
+    log::info << "Deferred renderpass recreated (" << timer.reset() << " ms)";
 }

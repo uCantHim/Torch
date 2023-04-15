@@ -50,7 +50,7 @@ void trc::AnimationEngine::playAnimation(ui32 index)
         resetAnimationTime();
     }
     catch (const std::out_of_range& err) {
-        log::warn << "Unable to play animation at index " << index << ": does not exist.\n";
+        log::warn << "Unable to play animation at index " << index << ": does not exist.";
     }
 }
 

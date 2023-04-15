@@ -72,8 +72,7 @@ void trc::ManagedMemoryChunk::releaseMemory(
         nextMemoryOffset -= memorySize;
     }
 
-    log::info << "(ManagedMemoryChunk): Free " << memorySize << " bytes at offset "
-              << memoryOffset << "\n";
+    log::info << "(ManagedMemoryChunk): Free " << memorySize << " bytes at offset " << memoryOffset;
 }
 
 
@@ -88,13 +87,13 @@ trc::MemoryPool::MemoryPool(
     memoryAllocateFlags(memoryAllocateFlags),
     chunksPerMemoryType(device.getPhysicalDevice().memoryProperties.memoryTypeCount)
 {
-    log::info << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.\n";
+    log::info << "Memory pool created for " << chunksPerMemoryType.size() << " memory types.";
 }
 
 auto trc::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::MemoryRequirements requirements)
     -> DeviceMemory
 {
-    log::info << "(MemoryPool): Request " << requirements.size << " bytes of memory\n";
+    log::info << "(MemoryPool): Request " << requirements.size << " bytes of memory";
 
     uint32_t typeIndex = device->getPhysicalDevice().findMemoryType(
         requirements.memoryTypeBits,
@@ -112,7 +111,7 @@ auto trc::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
             const size_t newChunkSize = glm::max(chunkSize, requirements.size);
 
             log::info << "(MemoryPool): Allocate a new chunk of " << newChunkSize << " bytes"
-                      << " and memory type " << typeIndex << "\n";
+                      << " and memory type " << typeIndex;
 
             return chunks.emplace_back(
                 memoryAllocateFlags
@@ -124,7 +123,7 @@ auto trc::MemoryPool::allocateMemory(vk::MemoryPropertyFlags properties, vk::Mem
         if (chunks[i]->getRemainingSize() >= requirements.size)
         {
             log::info << "(MemoryPool): Allocate " << requirements.size << " from chunk "
-                      << i << " (" << chunks[i]->getRemainingSize() << " bytes remaining)\n";
+                      << i << " (" << chunks[i]->getRemainingSize() << " bytes remaining)";
             return chunks.at(i)->allocateMemory(requirements);
         }
 

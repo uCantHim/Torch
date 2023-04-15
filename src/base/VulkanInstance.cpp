@@ -64,14 +64,14 @@ trc::VulkanInstance::VulkanInstance(
 
     instance = vk::createInstanceUnique(chain.get());
 
-    log::info << "Vulkan instance created successfully.\n";
-    log::info << "   Enabled validation layers:\n";
+    log::info << "Vulkan instance created successfully.";
+    log::info << "   Enabled validation layers:";
     for (const auto& name : layers) {
-        log::info << "    - " << name << "\n";
+        log::info << "    - " << name;
     }
-    log::info << "   Enabled instance extensions:\n";
+    log::info << "   Enabled instance extensions:";
     for (const auto& name : extensions) {
-        log::info << "    - " << name << "\n";
+        log::info << "    - " << name;
     }
 
     debug = std::make_unique<VulkanDebug>(*instance);

@@ -145,13 +145,16 @@ auto findOptimalImageExtent(
 auto findOptimalSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats)
     -> vk::SurfaceFormatKHR
 {
-    trc::log::info << "   Possible surface formats: ";
-    for (const auto& format : formats)
+    if constexpr (trc::log::enableDebugLogging)
     {
-        trc::log::info << "(" << vk::to_string(format.format) << " - "
-            << vk::to_string(format.colorSpace) << "), ";
-    }
-    trc::log::info << "\b\b \n";
+        auto line = trc::log::info << "   Possible surface formats: ";
+        for (const auto& format : formats)
+        {
+            line << "(" << vk::to_string(format.format) << " - "
+                 << vk::to_string(format.colorSpace) << "), ";
+        }
+        line << "\b\b ";
+    } // logging
 
     for (const auto& format : formats)
     {
@@ -159,12 +162,12 @@ auto findOptimalSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats)
             && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
         {
             trc::log::info << "   Found optimal surface format \"" << vk::to_string(format.format)
-                << "\" in the color space \"" << vk::to_string(format.colorSpace) << "\"\n";
+                << "\" in the color space \"" << vk::to_string(format.colorSpace) << "\"";
             return format;
         }
     }
 
-    trc::log::info << "   Picked suboptimal surface format.\n";
+    trc::log::info << "   Picked suboptimal surface format.";
     return formats[0];
 }
 
@@ -172,18 +175,21 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
                                    vk::PresentModeKHR preferredMode = vk::PresentModeKHR::eMailbox)
     -> vk::PresentModeKHR
 {
-    trc::log::info << "   Possible present modes: ";
-    for (const auto& mode : presentModes) {
-        trc::log::info << vk::to_string(mode) << ", ";
-    }
-    trc::log::info << "\b\b \n";
+    if constexpr (trc::log::enableDebugLogging)
+    {
+        auto line = trc::log::info << "   Possible present modes: ";
+        for (const auto& mode : presentModes) {
+            line << vk::to_string(mode) << ", ";
+        }
+        line << "\b\b ";
+    } // logging
 
     bool immediateSupported{ false };
     for (const auto& mode : presentModes)
     {
         if (mode == preferredMode)
         {
-            trc::log::info << "   Using preferred present mode: " << vk::to_string(mode) << "\n";
+            trc::log::info << "   Using preferred present mode: " << vk::to_string(mode);
             return mode;
         }
 
@@ -192,7 +198,7 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
         }
     }
 
-    trc::log::info << "   Preferred present mode is not supported!\n";
+    trc::log::info << "   Preferred present mode is not supported!";
     if (immediateSupported) {
         return vk::PresentModeKHR::eImmediate;
     }
@@ -263,7 +269,7 @@ auto trc::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> uint32
     {
         // Recreate swapchain?
         log::error << "--- Image acquisition threw error! Investigate this since I have not"
-                   << " decided what to do here! (in Swapchain::acquireImage())\n";
+                   << " decided what to do here! (in Swapchain::acquireImage())";
     }
     return result.value;
 }
@@ -278,12 +284,12 @@ bool trc::Swapchain::presentImage(
     try {
         auto result = queue.presentKHR(presentInfo);
         if (result == vk::Result::eSuboptimalKHR) {
-            log::info << "--- Swapchain has become suboptimal. Do nothing.\n";
+            log::info << "--- Swapchain has become suboptimal. Do nothing.";
         }
     }
     catch (const vk::OutOfDateKHRError&)
     {
-        log::info << "\n--- Swapchain has become invalid, create a new one.\n";
+        log::info << "--- Swapchain has become invalid, create a new one.";
         createSwapchain(createInfo);
         return false;
     }
@@ -616,7 +622,7 @@ void trc::Swapchain::initGlfwCallbacks(GLFWwindow* window)
 void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 {
     std::scoped_lock lock(swapchainRecreateLock);
-    log::info << "\nStarting swapchain creation\n";
+    log::info << "Starting swapchain creation";
 
     // Signal start of recreation
     // This allows objects depending on the swapchain to prepare the
@@ -696,17 +702,17 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     {
         auto duration = duration_cast<milliseconds>(system_clock::now() - timerStart).count();
 
-        log::info << "Swapchain created (" << duration << " ms):\n";
+        log::info << "Swapchain created (" << duration << " ms):";
 
-        log::info << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")\n";
-        log::info << "   Images: " << numFrames << "\n";
+        log::info << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")";
+        log::info << "   Images: " << numFrames;
         log::info << "   Format: " << vk::to_string(optimalFormat.format)
-            << ", Color Space: " << vk::to_string(optimalFormat.colorSpace) << "\n";
-        log::info << "   Image usage: " << vk::to_string(createInfo.imageUsage) << "\n";
-        log::info << "   Image sharing mode: " << vk::to_string(imageSharingMode) << "\n";
-        log::info << "   Present mode: " << vk::to_string(optimalPresentMode) << "\n";
+            << ", Color Space: " << vk::to_string(optimalFormat.colorSpace);
+        log::info << "   Image usage: " << vk::to_string(createInfo.imageUsage);
+        log::info << "   Image sharing mode: " << vk::to_string(imageSharingMode);
+        log::info << "   Present mode: " << vk::to_string(optimalPresentMode);
 
-        log::info << "\nRecreating swapchain-dependent resources...\n";
+        log::info << "Recreating swapchain-dependent resources...";
     }
 
     // Signal that recreation is finished.
@@ -714,7 +720,7 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // resources.
     EventHandler<SwapchainRecreateEvent>::notifySync({ {this} });
 
-    log::info << "Swapchain-dependent resource creation completed.\n";
+    log::info << "Swapchain-dependent resource creation completed.";
 }
 
 auto trc::Swapchain::createImageView(uint32_t imageIndex) const -> vk::UniqueImageView

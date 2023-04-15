@@ -108,18 +108,18 @@ trc::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
 
     // Logging
     {
-        log::info << "\nQueue manager created for logical device.\n";
+        log::info << "Queue manager created for logical device.";
         for (int i = 0; i < static_cast<int>(QueueType::numQueueTypes); i++)
         {
             if (primaryQueueFamilies[i] != UINT32_MAX)
             {
                 log::info << "   Chose queue family " << primaryQueueFamilies[i]
-                    << " as the primary " << std::to_string(QueueType(i)) << " queue family.\n";
+                    << " as the primary " << std::to_string(QueueType(i)) << " queue family.";
             }
             else
             {
-                log::warn << "   No queue family found with " << std::to_string(QueueType(i))
-                    << " support.\n";
+                log::info << "   No queue family found with " << std::to_string(QueueType(i))
+                    << " support.";
             }
         }
     }

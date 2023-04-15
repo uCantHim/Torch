@@ -91,7 +91,7 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPa
                 computeTangents(meshData);
             }
             else {
-                log::warn << "Unable to compute tangents: Mesh has no texture coordinates.\n";
+                log::warn << "Unable to compute tangents: Mesh has no texture coordinates.";
             }
         }
 
