@@ -120,6 +120,7 @@ auto trc::SharedDescriptorSet::Builder::build(const Device& device)
 void trc::SharedDescriptorSet::build(const Device& device, const Builder& builder)
 {
     const ui32 numSets = 1;
+    bindings = builder.bindings;
 
     // Create descriptor layout
     // VK_EXT_descriptor_indexing is included in 1.2
