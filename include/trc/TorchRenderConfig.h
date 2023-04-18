@@ -90,8 +90,8 @@ namespace trc
 
         void perFrameUpdate(const Camera& camera, const Scene& scene);
 
-        void setViewport(uvec2 offset, uvec2 size) override;
-        void setRenderTarget(const RenderTarget& newTarget) override;
+        void setViewport(uvec2 offset, uvec2 size);
+        void setRenderTarget(const RenderTarget& newTarget);
 
         void setClearColor(vec4 color);
 

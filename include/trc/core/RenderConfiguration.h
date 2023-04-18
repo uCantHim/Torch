@@ -53,9 +53,6 @@ namespace trc
         explicit RenderConfig(RenderLayout layout);
         virtual ~RenderConfig() = default;
 
-        virtual void setViewport(uvec2 newOffset, uvec2 newSize) = 0;
-        virtual void setRenderTarget(const RenderTarget& newTarget) = 0;
-
         virtual auto getPipeline(Pipeline::ID id) -> Pipeline& = 0;
 
         auto getLayout() -> RenderLayout&;

@@ -28,9 +28,6 @@ public:
         return graph;
     }
 
-    void setViewport(uvec2, uvec2) override {}
-    void setRenderTarget(const trc::RenderTarget&) override {}
-
     auto getPipeline(trc::Pipeline::ID) -> trc::Pipeline& override {
         assert(false);
         return *((trc::Pipeline*)nullptr);
