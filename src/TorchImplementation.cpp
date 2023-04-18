@@ -69,11 +69,11 @@ auto makeDefaultAssetModules(
     ));
     registry.addModule<Geometry>(std::make_unique<GeometryRegistry>(
         GeometryRegistryCreateInfo{
-            .instance            = instance,
-            .indexDescriptorBinding = desc.getBinding(AssetDescriptorBinding::eGeometryIndexBuffers),
+            .instance                = instance,
+            .indexDescriptorBinding  = desc.getBinding(AssetDescriptorBinding::eGeometryIndexBuffers),
             .vertexDescriptorBinding = desc.getBinding(AssetDescriptorBinding::eGeometryVertexBuffers),
-            .geometryBufferUsage = config.geometryBufferUsage,
-            .enableRayTracing    = instance.hasRayTracing(),
+            .geometryBufferUsage     = config.geometryBufferUsage,
+            .enableRayTracing        = instance.hasRayTracing(),
         }
     ));
     registry.addModule<Rig>(std::make_unique<RigRegistry>());
@@ -84,7 +84,12 @@ auto makeDefaultAssetModules(
             .dataDescBinding = desc.getBinding(AssetDescriptorBinding::eAnimationData),
         }
     ));
-    registry.addModule<Font>(std::make_unique<FontRegistry>(FontRegistryCreateInfo{ device }));
+    registry.addModule<Font>(std::make_unique<FontRegistry>(
+        FontRegistryCreateInfo{
+            .device = device,
+            .glyphMapBinding = desc.getBinding(AssetDescriptorBinding::eGlyphMapSamplers)
+        }
+    ));
 
     // Add default assets
     registry.add<Texture>(std::make_unique<InMemorySource<Texture>>(

@@ -46,18 +46,8 @@ trc::TorchRenderConfig::TorchRenderConfig(
     gBufferDescriptor(_window.getDevice(), _window),  // Don't update the descriptor sets yet!
     globalDataDescriptor(window),
     sceneDescriptor(window.getInstance()),
-    assetDescriptor(impl::makeDefaultAssetModules(
-        _window.getInstance(),
-        *info.assetRegistry,
-        AssetDescriptorCreateInfo{
-            // TODO: Put these settings into a global configuration object
-            .maxGeometries = 5000,
-            .maxTextures = 2000,
-        }
-    )),
-    fontDataDescriptor(info.assetRegistry->getModule<Font>().getDescriptorSetLayout(), {}),
+    assetDescriptor(info.assetDescriptor),
     // Asset storage
-    assetRegistry(info.assetRegistry),
     shadowPool(info.shadowPool)
 {
     if (info.assetRegistry == nullptr)
@@ -84,7 +74,6 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // Define named descriptors
     addDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR }, getGlobalDataDescriptorProvider());
     addDescriptor(DescriptorName{ ASSET_DESCRIPTOR },       getAssetDescriptorProvider());
-    addDescriptor(DescriptorName{ FONT_DESCRIPTOR },        getFontDescriptorProvider());
     addDescriptor(DescriptorName{ SCENE_DESCRIPTOR },       getSceneDescriptorProvider());
     addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getGBufferDescriptorProvider());
     addDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },      getShadowDescriptorProvider());
@@ -110,7 +99,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
     );
     layout.addPass(finalLightingRenderStage, *finalLightingPass);
 
-    layout.addPass(resourceUpdateStage, assetRegistry->getUpdatePass());
+    layout.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
 }
 
 void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& scene)
@@ -118,7 +107,7 @@ void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& s
     // Add final lighting function to scene
     globalDataDescriptor.update(camera);
     sceneDescriptor.update(scene);
-    assetDescriptor.update(window.getDevice());
+    assetDescriptor->update(window.getDevice());
     shadowPool->update();
     if (enableRayTracing) {
         tlasBuildPass->setScene(scene);
@@ -200,23 +189,7 @@ auto trc::TorchRenderConfig::getShadowDescriptorProvider() const
 auto trc::TorchRenderConfig::getAssetDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return assetDescriptor;
-}
-
-auto trc::TorchRenderConfig::getFontDescriptorProvider() const
-    -> const DescriptorProviderInterface&
-{
-    return fontDataDescriptor;
-}
-
-auto trc::TorchRenderConfig::getAssets() -> AssetRegistry&
-{
-    return *assetRegistry;
-}
-
-auto trc::TorchRenderConfig::getAssets() const -> const AssetRegistry&
-{
-    return *assetRegistry;
+    return *assetDescriptor;
 }
 
 auto trc::TorchRenderConfig::getShadowPool() -> ShadowPool&

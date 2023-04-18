@@ -34,6 +34,7 @@ namespace trc
         const RenderTarget& target;
 
         AssetRegistry* assetRegistry;
+        s_ptr<AssetDescriptor> assetDescriptor;
         ShadowPool* shadowPool;
 
         ui32 maxTransparentFragsPerPixel{ 3 };
@@ -57,11 +58,6 @@ namespace trc
          * All of the asset registry's data
          */
         static constexpr auto ASSET_DESCRIPTOR{ "asset_registry" };
-
-        /**
-         * Font bitmaps
-         */
-        static constexpr auto FONT_DESCRIPTOR{ "fonts" };
 
         /**
          * Lights
@@ -106,10 +102,7 @@ namespace trc
         auto getGBufferDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getShadowDescriptorProvider() const -> const DescriptorProviderInterface&;
         auto getAssetDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getFontDescriptorProvider() const -> const DescriptorProviderInterface&;
 
-        auto getAssets() -> AssetRegistry&;
-        auto getAssets() const -> const AssetRegistry&;
         auto getShadowPool() -> ShadowPool&;
         auto getShadowPool() const -> const ShadowPool&;
 
@@ -143,12 +136,9 @@ namespace trc
         GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
         SceneDescriptor sceneDescriptor;
-        AssetDescriptor assetDescriptor;
-
-        DescriptorProvider fontDataDescriptor;
+        s_ptr<AssetDescriptor> assetDescriptor;
 
         // Data & Assets
-        AssetRegistry* assetRegistry;
         ShadowPool* shadowPool;
     };
 } // namespace trc

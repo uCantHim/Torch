@@ -2,6 +2,7 @@
 
 #include "font.pb.h"
 #include "trc/core/Instance.h"
+#include "trc/AssetDescriptor.h"
 
 
 
@@ -50,13 +51,113 @@ auto loadFont(const fs::path& path, ui32 fontSize) -> AssetData<Font>
 
 
 
-FontRegistry::FontData::FontData(FontRegistry& storage, Face _face)
+AssetHandle<Font>::AssetHandle(FontRegistry::FontStorage& storage)
+    :
+    cacheRef(*storage.refCounter),
+    data(storage.font.get())
+{
+}
+
+auto AssetHandle<Font>::getGlyph(CharCode charCode) -> GlyphDrawData
+{
+    return data->getGlyph(charCode);
+}
+
+auto AssetHandle<Font>::getLineBreakAdvance() const noexcept -> float
+{
+    return data->lineBreakAdvance;
+}
+
+auto AssetHandle<Font>::getDescriptorIndex() const -> ui32
+{
+    return data->deviceData->descriptorIndex;
+}
+
+
+
+trc::FontRegistry::FontRegistry(const FontRegistryCreateInfo& info)
+    :
+    device(info.device),
+    memoryPool(device, info.glyphMapMemoryPoolSize),
+    descBinding(info.glyphMapBinding)
+{
+}
+
+void FontRegistry::update(vk::CommandBuffer, FrameRenderState&)
+{
+}
+
+auto FontRegistry::add(u_ptr<AssetSource<Font>> source) -> LocalID
+{
+    const LocalID id(idPool.generate());
+    if (fonts.size() <= id) {
+        fonts.resize(id + 1);
+    }
+    fonts.at(id).source = std::move(source);
+    fonts.at(id).refCounter = std::make_unique<ReferenceCounter>(id, this);
+
+    return id;
+}
+
+void FontRegistry::remove(LocalID id)
+{
+    fonts.at(id).source.reset();
+    fonts.at(id).refCounter.reset();
+    fonts.at(id).font.reset();
+    idPool.free(id);
+}
+
+auto FontRegistry::getHandle(LocalID id) -> AssetHandle<Font>
+{
+    return AssetHandle<Font>(fonts.at(id));
+}
+
+void FontRegistry::load(LocalID id)
+{
+    auto& storage = fonts.at(id);
+    assert(storage.source != nullptr);
+
+    if (storage.font == nullptr)
+    {
+        // Create a glyph map
+        auto deviceData = std::make_unique<FontDeviceData>(FontDeviceData{
+            .glyphMap{ device, memoryPool.makeAllocator() },
+            .descriptorIndex=static_cast<ui32>(id)
+        });
+        deviceData->glyphImageView = deviceData->glyphMap.getGlyphImage().createView();
+
+        // Add the new glyph map to the descriptor
+        descBinding.update(
+            deviceData->descriptorIndex,
+            vk::DescriptorImageInfo{
+                deviceData->glyphMap.getGlyphImage().getDefaultSampler(),
+                *deviceData->glyphImageView,
+                vk::ImageLayout::eShaderReadOnlyOptimal,
+            }
+        );
+
+        // Load host data and store the font
+        auto hostData = storage.source->load();
+        storage.font = std::make_unique<FontData>(
+            Face(std::move(hostData.fontData), hostData.fontSize),
+            std::move(deviceData)
+        );
+    }
+}
+
+void FontRegistry::unload(LocalID id)
+{
+    fonts.at(id).font.reset();
+}
+
+
+
+FontRegistry::FontData::FontData(Face _face, u_ptr<FontDeviceData> _deviceData)
     :
     face(std::move(_face)),
-    descProvider({}, {}),
+    deviceData(std::move(_deviceData)),
     lineBreakAdvance(static_cast<float>(face.lineSpace) / static_cast<float>(face.maxGlyphHeight))
 {
-    std::tie(glyphMap, descProvider) = storage.allocateGlyphMap();
 }
 
 auto FontRegistry::FontData::getGlyph(CharCode charCode) -> GlyphDrawData
@@ -65,7 +166,7 @@ auto FontRegistry::FontData::getGlyph(CharCode charCode) -> GlyphDrawData
     if (it == glyphs.end())
     {
         GlyphMeta newGlyph = face.loadGlyph(charCode);
-        auto tex = glyphMap->addGlyph(newGlyph);
+        auto tex = deviceData->glyphMap.addGlyph(newGlyph);
 
         /**
          * Torch flips the y-axis with the projection matrix. The glyph data,
@@ -90,137 +191,6 @@ auto FontRegistry::FontData::getGlyph(CharCode charCode) -> GlyphDrawData
     }
 
     return it->second;
-}
-
-
-
-AssetHandle<Font>::AssetHandle(FontRegistry::FontStorage& storage)
-    :
-    cacheRef(*storage.refCounter),
-    data(storage.font.get())
-{
-}
-
-auto AssetHandle<Font>::getGlyph(CharCode charCode) -> GlyphDrawData
-{
-    return data->getGlyph(charCode);
-}
-
-auto AssetHandle<Font>::getLineBreakAdvance() const noexcept -> float
-{
-    return data->lineBreakAdvance;
-}
-
-auto AssetHandle<Font>::getDescriptor() const -> const DescriptorProvider&
-{
-    return data->descProvider;
-}
-
-
-
-trc::FontRegistry::FontRegistry(const FontRegistryCreateInfo& info)
-    :
-    device(info.device),
-    memoryPool(device, 50000000)
-{
-    // Create descriptor set layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
-        { 0, vk::DescriptorType::eCombinedImageSampler, 1,
-          vk::ShaderStageFlagBits::eFragment }
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
-    );
-
-    // Create descriptor pool
-    std::vector<vk::DescriptorPoolSize> poolSizes{
-        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1)
-    };
-    descPool = device->createDescriptorPoolUnique({
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1, poolSizes
-    });
-}
-
-void FontRegistry::update(vk::CommandBuffer, FrameRenderState&)
-{
-}
-
-auto FontRegistry::add(u_ptr<AssetSource<Font>> source) -> LocalID
-{
-    const LocalID id(idPool.generate());
-    if (fonts.size() <= id) {
-        fonts.resize(id + 1);
-    }
-    fonts.at(id).source = std::move(source);
-    fonts.at(id).refCounter.reset(new ReferenceCounter(id, this));
-
-    return id;
-}
-
-void FontRegistry::remove(LocalID id)
-{
-    fonts.at(id).source.reset();
-    fonts.at(id).font.reset();
-    idPool.free(id);
-}
-
-auto FontRegistry::getHandle(LocalID id) -> AssetHandle<Font>
-{
-    return AssetHandle<Font>(fonts.at(id));
-}
-
-void FontRegistry::load(LocalID id)
-{
-    auto& storage = fonts.at(id);
-    assert(storage.source != nullptr);
-
-    if (storage.font == nullptr)
-    {
-        auto data = storage.source->load();
-        storage.font.reset(new FontData(*this, Face(std::move(data.fontData), data.fontSize)));
-    }
-}
-
-void FontRegistry::unload(LocalID id)
-{
-    fonts.at(id).font.reset();
-}
-
-auto trc::FontRegistry::allocateGlyphMap() -> std::pair<GlyphMap*, DescriptorProvider>
-{
-    auto& map = glyphMaps.emplace_back(device, memoryPool.makeAllocator());
-    auto& set = glyphMapDescSets.emplace_back(makeDescSet(map));
-
-    return { &map, DescriptorProvider{ *descLayout, *set.set } };
-}
-
-auto trc::FontRegistry::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
-{
-    return *descLayout;
-}
-
-auto trc::FontRegistry::makeDescSet(GlyphMap& glyphMap) -> GlyphMapDescriptorSet
-{
-    auto imageView = glyphMap.getGlyphImage().createView();
-    auto set = std::move(device->allocateDescriptorSetsUnique(
-        vk::DescriptorSetAllocateInfo(*descPool, 1, &*descLayout)
-    )[0]);
-
-    vk::DescriptorImageInfo glyphImageInfo(
-        glyphMap.getGlyphImage().getDefaultSampler(),
-        *imageView,
-        vk::ImageLayout::eShaderReadOnlyOptimal
-    );
-    std::vector<vk::WriteDescriptorSet> writes{
-        { *set, 0, 0, 1, vk::DescriptorType::eCombinedImageSampler, &glyphImageInfo },
-    };
-
-    device->updateDescriptorSets(writes, {});
-
-    return {
-        std::move(imageView),
-        std::move(set)
-    };
 }
 
 } // namespace trc

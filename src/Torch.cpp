@@ -5,6 +5,7 @@
 #include "trc/PipelineDefinitions.h"
 #include "trc/RasterPipelines.h"
 #include "trc/TextPipelines.h"
+#include "trc/TorchImplementation.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
@@ -111,6 +112,18 @@ trc::TorchStack::TorchStack(
             .renderGraph                 = makeTorchRenderGraph(),
             .target                      = swapchainRenderTarget,
             .assetRegistry               = &assetManager.getDeviceRegistry(),
+            .assetDescriptor             = std::make_shared<AssetDescriptor>(
+                impl::makeDefaultAssetModules(
+                    instance,
+                    assetManager.getDeviceRegistry(),
+                    AssetDescriptorCreateInfo{
+                        // TODO: Put these settings into a global configuration object
+                        .maxGeometries = 5000,
+                        .maxTextures = 2000,
+                        .maxFonts = 50,
+                    }
+                )
+            ),
             .shadowPool                  = &shadowPool,
             .maxTransparentFragsPerPixel = 3,
             .enableRayTracing            = instanceInfo.enableRayTracing

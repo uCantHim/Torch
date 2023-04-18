@@ -38,6 +38,15 @@ AssetDescriptor::AssetDescriptor(const Device& device, const AssetDescriptorCrea
             | vk::DescriptorBindingFlagBits::eUpdateAfterBind
     ));
 
+    // Font related bindings
+    bindings.emplace(AssetDescriptorBinding::eGlyphMapSamplers, builder.addBinding(
+        vk::DescriptorType::eCombinedImageSampler,
+        info.maxFonts,
+        vk::ShaderStageFlagBits::eFragment,
+        vk::DescriptorBindingFlagBits::ePartiallyBound
+            | vk::DescriptorBindingFlagBits::eUpdateAfterBind
+    ));
+
     // Animation related bindings
     bindings.emplace(AssetDescriptorBinding::eAnimationMetadata, builder.addBinding(
         vk::DescriptorType::eStorageBuffer,

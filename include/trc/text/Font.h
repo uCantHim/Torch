@@ -10,6 +10,7 @@
 #include "trc/Types.h"
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/SharedDescriptorSet.h"
 #include "trc/core/DescriptorProvider.h"
 #include "trc/text/GlyphMap.h"
 
@@ -57,7 +58,9 @@ namespace trc
     struct FontRegistryCreateInfo
     {
         const Device& device;
-        size_t maxFonts{ 50 };
+        SharedDescriptorSet::Binding glyphMapBinding;
+
+        size_t glyphMapMemoryPoolSize{ 20000000 };
     };
 
     /**
@@ -77,26 +80,24 @@ namespace trc
         void load(LocalID id) override;
         void unload(LocalID id) override;
 
-        auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
-
     private:
         friend class AssetHandle<Font>;
 
-        struct GlyphMapDescriptorSet
+        struct FontDeviceData
         {
-            vk::UniqueImageView imageView;
-            vk::UniqueDescriptorSet set;
+            GlyphMap glyphMap;
+            vk::UniqueImageView glyphImageView;
+            ui32 descriptorIndex;
         };
 
         struct FontData
         {
-            FontData(FontRegistry& storage, Face face);
+            FontData(Face face, u_ptr<FontDeviceData> deviceData);
 
             auto getGlyph(CharCode charCode) -> GlyphDrawData;
 
             Face face;
-            GlyphMap* glyphMap;
-            DescriptorProvider descProvider;
+            u_ptr<FontDeviceData> deviceData;
 
             // Meta
             float lineBreakAdvance;
@@ -111,21 +112,15 @@ namespace trc
             u_ptr<ReferenceCounter> refCounter;
         };
 
-        auto allocateGlyphMap() -> std::pair<GlyphMap*, DescriptorProvider>;
-        auto makeDescSet(GlyphMap& map) -> GlyphMapDescriptorSet;
-
         const Device& device;
         data::IdPool<ui64> idPool;
 
         // Storage GPU resources
         MemoryPool memoryPool;
-        vk::UniqueDescriptorSetLayout descLayout;
-        vk::UniqueDescriptorPool descPool;
+        SharedDescriptorSet::Binding descBinding;
 
         // Managed glyph maps
-        std::vector<GlyphMap> glyphMaps;
         std::vector<FontStorage> fonts;
-        std::vector<GlyphMapDescriptorSet> glyphMapDescSets;
     };
 
     template<>
@@ -152,7 +147,11 @@ namespace trc
          */
         auto getLineBreakAdvance() const noexcept -> float;
 
-        auto getDescriptor() const -> const DescriptorProvider&;
+        /**
+         * @return ui32 An index that specifies the font's glyph map image
+         *              in the glyph map descriptor.
+         */
+        auto getDescriptorIndex() const -> ui32;
 
     private:
         friend FontRegistry;

@@ -17,7 +17,3 @@ Descriptor gBufferDesc:
 Descriptor shadowDesc:
     Name: "shadow"
     Type: static
-
-Descriptor fontDesc:
-    Name: "fonts"
-    Type: dynamic

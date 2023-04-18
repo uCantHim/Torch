@@ -15,7 +15,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
 
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName="asset_registry",
-        .bindingIndex=1,
+        .bindingIndex=2,
         .descriptorType="uniform sampler2D",
         .descriptorName="textures",
         .isArray=true,

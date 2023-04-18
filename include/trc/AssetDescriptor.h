@@ -19,6 +19,9 @@ namespace trc
         // The maximum number of texture samplers that may exist in the
         // descriptor.
         ui32 maxTextures;
+
+        // The maximum number of glyph maps that may exist in the descriptor.
+        ui32 maxFonts;
     };
 
     enum class AssetDescriptorBinding
@@ -34,6 +37,10 @@ namespace trc
         // An array of samplers. Contains one sampler for each registered
         // texture.
         eTextureSamplers,
+
+        // An array of samplers. Contains one sampler for each registered
+        // glyph map.
+        eGlyphMapSamplers,
 
         // A buffer that holds information about the data layout in the
         // `AssetDescriptorBinding::eAnimationData` binding.

@@ -20,10 +20,13 @@ layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
 layout (push_constant) uniform PushConstants {
     // Model matrix of the whole text string
     mat4 modelMatrix;
+    // Font's index in the glyph map descriptor
+    uint textureIndex;
 };
 
 layout (location = 0) out Vertex {
     sample vec2 uv;
+    flat uint textureIndex;
 } vert;
 
 void main()
@@ -34,4 +37,5 @@ void main()
     gl_Position = camera.projMatrix * camera.viewMatrix * modelMatrix * vec4(vertPos, 1.0);
 
     vert.uv = texCoordLL + vertexUvCoord * (texCoordUR - texCoordLL);
+    vert.textureIndex = textureIndex;
 }

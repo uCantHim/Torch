@@ -11,7 +11,7 @@ Program staticText:
 
 PushConstant staticTextVertexPushConst:
     Offset: 0
-    Size: 64  // sizeof(mat4)
+    Size: 68  // sizeof(mat4) + sizeof(ui32)
 
 VertexAttribute staticTextPerVertex:
     Binding: 0
@@ -26,7 +26,7 @@ VertexAttribute staticTextPerInstance:
 Pipeline staticTextPipeline:
     RenderPass: "transparency"
     Layout:
-        Descriptors: [globalDataDesc, fontDesc, gBufferDesc]
+        Descriptors: [globalDataDesc, assetRegistryDesc, gBufferDesc]
         VertexPushConstants: [staticTextVertexPushConst]
 
     Program: staticText

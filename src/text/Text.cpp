@@ -47,14 +47,13 @@ void trc::Text::attachToScene(SceneBase& scene)
         pipelines::text::getStaticTextPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
-            font.getDescriptor().bindDescriptorSet(
-                cmdBuf,
-                vk::PipelineBindPoint::eGraphics, *env.currentPipeline->getLayout(),
-                1
-            );
             cmdBuf.pushConstants<mat4>(
                 *env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
                 0, glm::scale(getGlobalTransform(), vec3(BASE_SCALING))
+            );
+            cmdBuf.pushConstants<ui32>(
+                *env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
+                sizeof(mat4), font.getDescriptorIndex()
             );
 
             cmdBuf.bindVertexBuffers(0, { *vertexBuffer, *glyphBuffer }, { 0, 0 });

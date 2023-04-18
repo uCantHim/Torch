@@ -1,4 +1,5 @@
 #include <trc/Torch.h>
+#include <trc/TorchImplementation.h>
 #include <trc/util/FilesystemDataStorage.h>
 using namespace trc::basic_types;
 
@@ -22,6 +23,19 @@ void run()
     trc::AssetManager assets(std::make_shared<NullDataStorage>());
     trc::ShadowPool shadows(window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 });
 
+    auto assetDescriptor = std::make_shared<trc::AssetDescriptor>(
+        trc::impl::makeDefaultAssetModules(
+            instance,
+            assets.getDeviceRegistry(),
+            trc::AssetDescriptorCreateInfo{
+                // TODO: Put these settings into a global configuration object
+                .maxGeometries = 5000,
+                .maxTextures = 2000,
+                .maxFonts = 50,
+            }
+        )
+    );
+
     // Create one render configuration for each viewport.
     // This also means that it would be possible to use different rendering
     // techniques for individual viewports; for example, one viewport could
@@ -31,6 +45,7 @@ void run()
         .renderGraph=trc::makeDeferredRenderGraph(),
         .target=renderTarget,
         .assetRegistry=&assets.getDeviceRegistry(),
+        .assetDescriptor=assetDescriptor,
         .shadowPool=&shadows
     };
     trc::TorchRenderConfig config1(window, info);

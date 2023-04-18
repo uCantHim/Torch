@@ -10,21 +10,18 @@ struct AnimationMetaData
     uint boneCount;
 };
 
-#define MAT_BINDING $material_descriptor_binding
 #define TEX_BINDING $texture_descriptor_binding
+#define FONT_BINDING $font_descriptor_binding
 #define GEO_VERT_BINDING $geometry_vertex_descriptor_binding
 #define GEO_INDEX_BINDING $geometry_index_descriptor_binding
 #define ANIM_META_BINDING $animation_meta_descriptor_binding
 #define ANIM_DATA_BINDING $animation_data_descriptor_binding
 
-layout (set = ASSET_DESCRIPTOR_SET_BINDING, binding = MAT_BINDING, std430)
-    restrict readonly buffer Materials
-{
-    Material materials[];
-};
-
 layout (set = ASSET_DESCRIPTOR_SET_BINDING, binding = TEX_BINDING)
     uniform sampler2D textures[];
+
+layout (set = ASSET_DESCRIPTOR_SET_BINDING, binding = FONT_BINDING)
+    uniform sampler2D glyphTextures[];
 
 layout (set = ASSET_DESCRIPTOR_SET_BINDING, binding = GEO_VERT_BINDING, std430)
     restrict readonly buffer VertexBuffers
