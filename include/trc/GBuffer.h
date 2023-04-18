@@ -105,18 +105,57 @@ namespace trc
         Buffer fragmentListBuffer;
     };
 
+    enum class GBufferDescriptorBinding
+    {
+        // Storage image containing one surface normal per pixel
+        //
+        // GLSL format: `rgba16f image2D`
+        eNormalImage,
+
+        // Storage image containing one albedo (unshaded color) value per pixel
+        //
+        // GLSL format: `rgba8 image2D`
+        eAlbedoImage,
+
+        // Storage image containing all material parameters required for shading
+        // per pixel
+        //
+        // GLSL format: `rgba8 image2D`
+        eMaterialParamsImage,
+
+        // 2D sampler over the depth buffer
+        //
+        // GLSL format: `sampler2D`
+        eDepthImage,
+
+        // Storage image containing the pixels' pointer to the start of its
+        // linked list of transparent fragments.
+        //
+        // GLSL format: `r32ui uimage2D`
+        eTpFragHeadPointerImage,
+
+        // Very small storage buffer containing two integer values; one used as
+        // an atomic counter and one as a constant upper bound for that index
+        // (maximum number of entries in the list).
+        //
+        // Used to allocate entries in the fragment list during the collection
+        // of transparent fragments.
+        //
+        // GLSL format: `buffer { uint nextIndex; uint maxIndex; }`
+        eTpFragListEntryAllocator,
+
+        // Storage buffer containing all transparent fragments in the frame.
+        // Initially indexed by the contents of the head pointer image.
+        //
+        // GLSL format: `buffer { uvec4 fragmentList[]; }`
+        eTpFragListBuffer,
+    };
+
     /**
      * @brief Resources and descriptor set for deferred renderpasses
      *
-     * Provides:
-     *  - binding 0: storage image rgba16f  (normals)
-     *  - binding 1: storage image r32ui    (albedo)
-     *  - binding 2: storage image rgba8f   (material params)
-     *  - binding 3: combined image sampler (depth)
-     *
-     *  - binding 4: storage image  (head pointer image)
-     *  - binding 5: storage buffer (allocator)
-     *  - binding 6: storage buffer (fragment list)
+     * See `GBufferDescriptorBinding` for a list of bindings provided by this
+     * descriptor.
      */
     class GBufferDescriptor
     {
@@ -133,10 +172,12 @@ namespace trc
         GBufferDescriptor(const Device& device,
                           const FrameSpecific<GBuffer>& gBuffer);
 
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
-
         void update(const Device& device,
                     const FrameSpecific<GBuffer>& gBuffer);
+
+        auto getBindingIndex(GBufferDescriptorBinding binding) const -> ui32;
+
+        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
     private:
         vk::UniqueDescriptorPool descPool;

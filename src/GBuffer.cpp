@@ -40,6 +40,10 @@ trc::GBuffer::GBuffer(const Device& device, const GBufferCreateInfo& info)
         vk::MemoryPropertyFlagBits::eDeviceLocal
     )
 {
+    device.setDebugName(*fragmentListHeadPointerImage, "G-Buffer fragment list head pointer image");
+    device.setDebugName(*fragmentListHeadPointerImageView, "G-Buffer fragment list head pointer image view");
+    device.setDebugName(*fragmentListBuffer, "G-Buffer fragment list buffer");
+
     // Clear fragment head pointer image
     device.executeCommands(QueueType::graphics, [this](auto cmdBuf)
     {
@@ -129,6 +133,11 @@ trc::GBuffer::GBuffer(const Device& device, const GBufferCreateInfo& info)
     imageViews.push_back(getImage(Image::eAlbedo).createView());
     imageViews.push_back(getImage(Image::eMaterials).createView());
     imageViews.push_back(getImage(Image::eDepth).createView(vk::ImageAspectFlagBits::eDepth));
+
+    device.setDebugName(*images.at(Image::eNormals), "G-Buffer normal image");
+    device.setDebugName(*images.at(Image::eAlbedo), "G-Buffer albedo image");
+    device.setDebugName(*images.at(Image::eMaterials), "G-Buffer material index image");
+    device.setDebugName(*images.at(Image::eDepth), "G-Buffer depth image");
 }
 
 auto trc::GBuffer::getSize() const -> uvec2
@@ -200,36 +209,33 @@ trc::GBufferDescriptor::GBufferDescriptor(
         { vk::DescriptorType::eStorageBuffer, 2 },
         { vk::DescriptorType::eCombinedImageSampler, 1 },
     };
-    descPool = device->createDescriptorPoolUnique(
-        vk::DescriptorPoolCreateInfo(
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            frameClock.getFrameCount(), poolSizes)
-    );
+    descPool = device->createDescriptorPoolUnique({
+        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+        frameClock.getFrameCount(),
+        poolSizes
+    });
 
     auto shaderStages = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eRaygenKHR;
 
     // Layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings = {
+    descLayout = buildDescriptorSetLayout()
         // G-Buffer images
-        { 0, vk::DescriptorType::eStorageImage, 1, shaderStages },
-        { 1, vk::DescriptorType::eStorageImage, 1, shaderStages },
-        { 2, vk::DescriptorType::eStorageImage, 1, shaderStages },
-        { 3, vk::DescriptorType::eCombinedImageSampler, 1, shaderStages },
+        .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
+        .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
+        .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
+        .addBinding(vk::DescriptorType::eCombinedImageSampler, 1, shaderStages)
         // Fragment list head pointer image
-        { 4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment
-                                                   | shaderStages },
+        .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eFragment
+                                                          | shaderStages)
         // Fragment list allocator
-        { 5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
-                                                    | shaderStages },
+        .addBinding(vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
+                                                           | shaderStages)
         // Fragment list
-        { 6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
-                                                    | shaderStages },
+        .addBinding(vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eFragment
+                                                           | shaderStages)
         // Swapchain image
-        { 7, vk::DescriptorType::eStorageImage, 1, shaderStages },
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings)
-    );
+        .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
+        .build(device);
 
     // Sets
     std::vector<vk::DescriptorSetLayout> layouts(frameClock.getFrameCount(), *descLayout);
@@ -248,12 +254,6 @@ trc::GBufferDescriptor::GBufferDescriptor(
     GBufferDescriptor(device, gBuffer.getFrameClock())
 {
     update(device, gBuffer);
-}
-
-auto trc::GBufferDescriptor::getProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return provider;
 }
 
 void trc::GBufferDescriptor::update(
@@ -302,4 +302,15 @@ void trc::GBufferDescriptor::update(
 
         device->updateDescriptorSets(writes, {});
     }
+}
+
+auto trc::GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding binding) const -> ui32
+{
+    return static_cast<ui32>(binding);
+}
+
+auto trc::GBufferDescriptor::getProvider() const noexcept
+    -> const DescriptorProviderInterface&
+{
+    return provider;
 }

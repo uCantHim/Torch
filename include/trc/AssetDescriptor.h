@@ -28,26 +28,38 @@ namespace trc
     {
         // Ray-tracing specific. An array of index buffers. Contains an index
         // buffer for each registered geometry.
+        //
+        // GLSL format: `std430 buffer { uint indices[]; }`
         eGeometryIndexBuffers,
 
         // Ray-tracing specific. An array of vertex buffers. Contains a vertex
         // buffer for each registered geometry.
+        //
+        // GLSL format: `std430 buffer { Vertex vertices[]; }`
         eGeometryVertexBuffers,
 
         // An array of samplers. Contains one sampler for each registered
         // texture.
+        //
+        // GLSL format: `sampler2D[]`
         eTextureSamplers,
 
         // An array of samplers. Contains one sampler for each registered
         // glyph map.
+        //
+        // GLSL format: `sampler2D[]`
         eGlyphMapSamplers,
 
         // A buffer that holds information about the data layout in the
         // `AssetDescriptorBinding::eAnimationData` binding.
+        //
+        // GLSL format: `std430 buffer { AnimationMetaData meta[]; }`
         eAnimationMetadata,
 
         // A large buffer that holds bone transformation matrices for all
         // animations.
+        //
+        // GLSL format: `std140 buffer { mat4 boneMatrices[]; }`
         eAnimationData,
     };
 
