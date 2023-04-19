@@ -53,15 +53,6 @@ auto ShaderResources::getPushConstantSize() const -> ui32
     return pushConstantSize;
 }
 
-auto ShaderResources::getPushConstantInfo(ResourceID resource) const
-    -> std::optional<PushConstantInfo>
-{
-    if (pushConstantInfos.contains(resource)) {
-        return pushConstantInfos.at(resource);
-    }
-    return std::nullopt;
-}
-
 auto ShaderResources::getPushConstants() const -> std::vector<PushConstantInfo>
 {
     std::vector<PushConstantInfo> result;
@@ -71,6 +62,15 @@ auto ShaderResources::getPushConstants() const -> std::vector<PushConstantInfo>
     }
 
     return result;
+}
+
+auto ShaderResources::getPushConstantInfo(ResourceID resource) const
+    -> std::optional<PushConstantInfo>
+{
+    if (pushConstantInfos.contains(resource)) {
+        return pushConstantInfos.at(resource);
+    }
+    return std::nullopt;
 }
 
 

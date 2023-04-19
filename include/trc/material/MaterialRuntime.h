@@ -1,18 +1,14 @@
 #pragma once
 
+#include <limits>
 #include <vector>
 
-#include "ShaderCapabilityConfig.h"
-#include "ShaderResourceInterface.h"
-#include "trc/assets/Texture.h"
+#include "trc/Types.h"
+#include "trc/VulkanInclude.h"
 #include "trc/core/Pipeline.h"
 
 namespace trc
 {
-    class AssetManager;
-
-    using ResourceID = ShaderCapabilityConfig::ResourceID;
-
     struct MaterialRuntime
     {
         MaterialRuntime(Pipeline::ID pipeline, s_ptr<std::vector<ui32>> pcOffsets);

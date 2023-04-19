@@ -44,6 +44,13 @@ namespace trc
     class ShaderModuleBuilder : public ShaderCodeBuilder
     {
     public:
+        ShaderModuleBuilder(const ShaderModuleBuilder&) = delete;
+        ShaderModuleBuilder& operator=(const ShaderModuleBuilder&) = delete;
+        ShaderModuleBuilder& operator=(ShaderModuleBuilder&&) noexcept = delete;
+
+        ShaderModuleBuilder(ShaderModuleBuilder&&) noexcept = default;
+        ~ShaderModuleBuilder() noexcept = default;
+
         explicit ShaderModuleBuilder(const ShaderCapabilityConfig& conf);
 
         template<std::derived_from<ShaderFunction> T>

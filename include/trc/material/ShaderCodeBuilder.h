@@ -21,6 +21,15 @@ namespace trc
         using Block = code::Block;
         using Value = code::Value;
 
+        ShaderCodeBuilder(const ShaderCodeBuilder&) = delete;
+        ShaderCodeBuilder& operator=(const ShaderCodeBuilder&) = delete;
+
+        ShaderCodeBuilder() = default;
+        ShaderCodeBuilder(ShaderCodeBuilder&&) noexcept = default;
+        ~ShaderCodeBuilder() noexcept = default;
+
+        ShaderCodeBuilder& operator=(ShaderCodeBuilder&&) noexcept = default;
+
         void startBlock(Function function);
         void startBlock(Block block);
         void endBlock();

@@ -20,6 +20,16 @@ namespace trc
         AssetReference<Texture> texture;
     };
 
+    /**
+     * @brief A collection of resources used by a shader module
+     *
+     * This is a result of shader module generation. A `ShaderResources` object
+     * defines all resources used by a shader module and can generate shader
+     * code that defines these resources correctly.
+     *
+     * Additionally, it provides an interface for inspection of the requested
+     * resources' properties.
+     */
     class ShaderResources
     {
     public:
@@ -28,15 +38,30 @@ namespace trc
         struct TextureResource
         {
             TextureReference ref;
+
+            // The index of the specialization constant that will hold the
+            // texture's runtime index.
             ui32 specializationConstantIndex;
         };
 
         struct ShaderInputInfo
         {
+            // The input data's input location as in
+            // `layout (location = X) in ...`
             ui32 location;
+
+            // Data type of the shader input.
             BasicType type;
+
+            // Name of the shader input variable in the generated shader code.
             std::string variableName;
+
+            // The declaration code for the resource.
+            // Usually only used internally.
             std::string declCode;
+
+            // The capability in the corresponding `ShaderCapabilityConfig`
+            // that defines this shader input.
             Capability capability;
         };
 
@@ -45,12 +70,33 @@ namespace trc
             ui32 offset;
             ui32 size;
 
+            // The push constant value's runtime handle as specified by the user.
+            //
+            // Used to interface with `MaterialRuntime::pushConstants`.
             ui32 userId;
         };
 
         ShaderResources() = default;
 
+        /**
+         * @brief Get all resource definitions as GLSL code
+         *
+         * This is only the code for the shader module's resource definitions
+         * (descriptor set declarations, shader input locations, ...), NOT the
+         * full code of the shader module! The shader logic and the resources
+         * it uses are decoupled and handled by `ShaderCodeBuilder` and
+         * `ShaderResourceInterface`, respectively.
+         *
+         * @return const std::string&
+         */
         auto getGlslCode() const -> const std::string&;
+
+        /**
+         * @brief Query required shader inputs
+         *
+         * @return std::vector<ShaderInputInfo> A list of all input locations
+         *                                      required by the shader module.
+         */
         auto getRequiredShaderInputs() const
             -> const std::vector<ShaderInputInfo>&;
 
@@ -63,7 +109,44 @@ namespace trc
          */
         auto getRequiredTextures() const -> const std::vector<TextureResource>&;
 
+        /**
+         * @brief Query a list of all descriptor sets required by this shader
+         *        module
+         *
+         * Descriptor sets are defined by a string identifier.
+         *
+         * @return std::vector<std::string> All descriptor sets used by the
+         *                                  shader module. Entries are always
+         *                                  unique, but unordered.
+         */
         auto getRequiredDescriptorSets() const -> std::vector<std::string>;
+
+        /**
+         * @brief Get the index-placeholder variable for a descriptor set
+         *
+         * Because descriptor set indices are generated *after* shader code
+         * generation, the resource code (`ShaderResources::getGlslCode`)
+         * contains placeholder variables for these indices. They can be found
+         * and replaced with the `ShaderDocument` utility.
+         *
+         * # Example
+         *
+         * ```cpp
+         * #include <shader_tools/ShaderDocument.h>
+         *
+         * ShaderResources res = ...;
+         *
+         * shader_edit::ShaderDocument doc(res.getGlslCode());
+         * doc.set(*res.getDescriptorIndexPlaceholder("my_desc_set"), 0);
+         * doc.set(*res.getDescriptorIndexPlaceholder("second_set"), 1);
+         *
+         * auto resourceCode = doc.compile();
+         * ```
+         *
+         * @return std::optional<std::string> The name of `setName`'s placeholder
+         *         variable. nullopt if the descriptor set `setName` is not
+         *         required by this shader module.
+         */
         auto getDescriptorIndexPlaceholder(const std::string& setName) const
             -> std::optional<std::string>;
 
@@ -73,12 +156,18 @@ namespace trc
         auto getPushConstantSize() const -> ui32;
 
         /**
+         * @return std::vector<PushConstantInfo> All push constants used by the
+         *                                       shader module.
+         */
+        auto getPushConstants() const -> std::vector<PushConstantInfo>;
+
+        /**
+         * @brief Query information about a specific push constant resource
+         *
          * @return nullopt if the resource ID does not exist or it is not
          *         associated with an active push constant value.
          */
         auto getPushConstantInfo(ResourceID resource) const -> std::optional<PushConstantInfo>;
-
-        auto getPushConstants() const -> std::vector<PushConstantInfo>;
 
     private:
         friend class ShaderResourceInterface;
@@ -94,7 +183,13 @@ namespace trc
     };
 
     /**
-     * This collects and compiles resources for a single shader.
+     * @brief Interface to a shader module's resources
+     *
+     * Ties the `ShaderCapabilityConfig` and the `ShaderCodeBuilder` together.
+     *
+     * The code builder can query capabilities in the form of code values.
+     * `ShaderResourceInterface` collects all resources queried this way and
+     * finally generates the shader code that defines these resources.
      */
     class ShaderResourceInterface
     {

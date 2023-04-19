@@ -26,6 +26,9 @@ namespace trc
         std::unordered_map<std::string, DescriptorInfo> descriptorInfos;
     };
 
+    /**
+     * @brief A serializable representation of a full shader program
+     */
     struct MaterialProgramData
     {
         struct PushConstantRange
@@ -56,7 +59,7 @@ namespace trc
         -> MaterialProgramData;
 
     /**
-     * @brief A complete specialization of a base fragment shader
+     * @brief A complete shader program with a pipeline and a runtime
      */
     class MaterialShaderProgram
     {
@@ -70,9 +73,7 @@ namespace trc
         using ShaderStageMap = std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
 
         static auto makeLayout(const MaterialProgramData& data) -> PipelineLayoutTemplate;
-        static auto makePipeline(const MaterialProgramData& data) -> Pipeline::ID;
 
-        Pipeline::ID basePipeline;
         PipelineLayoutTemplate layout;
 
         Pipeline::ID pipeline{ Pipeline::ID::NONE };

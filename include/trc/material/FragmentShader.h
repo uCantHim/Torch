@@ -29,6 +29,29 @@ namespace trc
         static constexpr Capability kLightBuffer{ "frag_lightDataBuffer" };
     };
 
+    /**
+     * @brief Torch's implementation of a configurable fragment shader
+     *
+     * The fragment module has a set of output parameters that are passed to the
+     * lighting algorithm. The fragment shader calculates values for these
+     * parameters.
+     *
+     * Set shader code expressions as parameters with the function
+     * `FragmentModule::setParameter`.
+     *
+     * # Example
+     *
+     * ```cpp
+     * ShaderModuleBuilder builder{ myConfig };
+     * FragmentModule frag;
+     * frag.setParameter(
+     *     FragmentModule::Parameter::eColor,
+     *     builder.makeConstant(vec4{ 1, 0.5, 0, 1.0f })
+     * );
+     *
+     * auto shaderModule = frag.build(std::move(builder), false);
+     * ```
+     */
     class FragmentModule
     {
     public:
@@ -46,8 +69,25 @@ namespace trc
 
         FragmentModule() = default;
 
+        /**
+         * @brief Set a value for one of the module's output parameters
+         *
+         * @param Parameter param   The parameter for which to set a value.
+         * @param code::Value value A shader code expression that calculates a
+         *                          value for `param`.
+         */
         void setParameter(Parameter param, code::Value value);
 
+        /**
+         * @brief Compile the module description to a shader module
+         *
+         * @param ShaderModuleBuilder moduleCode The code builder with which
+         *        the shader code used in `FragmentModule::setParameter` was
+         *        generated.
+         * @param bool transparent An additional setting for the fragment
+         *        shader. Set to `true` if the shader is used for transparent
+         *        objects.
+         */
         auto build(ShaderModuleBuilder moduleCode, bool transparent) -> ShaderModule;
 
     private:
