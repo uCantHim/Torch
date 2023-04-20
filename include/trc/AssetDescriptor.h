@@ -88,7 +88,9 @@ namespace trc
         /**
          * @return ui32 The specified binding's index in the descriptor set.
          */
-        auto getBindingIndex(AssetDescriptorBinding binding) const -> ui32;
+        static constexpr auto getBindingIndex(AssetDescriptorBinding binding) -> ui32 {
+            return static_cast<ui32>(binding);
+        }
 
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(

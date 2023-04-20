@@ -175,9 +175,14 @@ namespace trc
         void update(const Device& device,
                     const FrameSpecific<GBuffer>& gBuffer);
 
-        auto getBindingIndex(GBufferDescriptorBinding binding) const -> ui32;
-
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+
+        /**
+         * @return ui32 The specified binding's index in the descriptor set.
+         */
+        static constexpr auto getBindingIndex(GBufferDescriptorBinding binding) -> ui32 {
+            return static_cast<ui32>(binding);
+        }
 
     private:
         vk::UniqueDescriptorPool descPool;

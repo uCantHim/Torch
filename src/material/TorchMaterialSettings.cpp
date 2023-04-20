@@ -1,5 +1,7 @@
 #include "trc/material/TorchMaterialSettings.h"
 
+#include "trc/AssetDescriptor.h"
+#include "trc/GBuffer.h"
 #include "trc/TorchRenderConfig.h"
 #include "trc/material/FragmentShader.h"
 
@@ -14,8 +16,8 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     auto& code = config.getCodeBuilder();
 
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="asset_registry",
-        .bindingIndex=2,
+        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eTextureSamplers),
         .descriptorType="uniform sampler2D",
         .descriptorName="textures",
         .isArray=true,
@@ -27,8 +29,8 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     config.linkCapability(FragmentCapability::kTextureSample, textureResource);
 
     auto fragListPointerImageResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="g_buffer",
-        .bindingIndex=4,
+        .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
+        .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragHeadPointerImage),
         .descriptorType="uniform uimage2D",
         .descriptorName="fragmentListHeadPointer",
         .isArray=false,
@@ -37,8 +39,8 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         .descriptorContent=std::nullopt,
     });
     auto fragListAllocResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="g_buffer",
-        .bindingIndex=5,
+        .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
+        .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragListEntryAllocator),
         .descriptorType="restrict buffer",
         .descriptorName="FragmentListAllocator",
         .isArray=false,
@@ -49,8 +51,8 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
             "uint maxFragmentListIndex;"
     });
     auto fragListResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="g_buffer",
-        .bindingIndex=6,
+        .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
+        .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragListBuffer),
         .descriptorType="restrict buffer",
         .descriptorName="FragmentListBuffer",
         .isArray=false,
@@ -77,7 +79,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     );
 
     auto shadowMatrixBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="shadow",
+        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="restrict readonly buffer",
         .descriptorName="ShadowMatrixBuffer",
@@ -87,7 +89,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         .descriptorContent="mat4 shadowMatrices[];",
     });
     auto shadowMapsResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="shadow",
+        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
         .bindingIndex=1,
         .descriptorType="uniform sampler2D",
         .descriptorName="shadowMaps",
@@ -104,7 +106,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     );
 
     auto lightBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="scene_data",
+        .setName=TorchRenderConfig::SCENE_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="restrict readonly buffer",
         .descriptorName="LightBuffer",
@@ -121,7 +123,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
     config.linkCapability(FragmentCapability::kLightBuffer, lightBufferResource);
 
     auto cameraBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName="global_data",
+        .setName=TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="uniform",
         .descriptorName="camera",

@@ -62,6 +62,17 @@ AssetDescriptor::AssetDescriptor(const Device& device, const AssetDescriptorCrea
     ));
 
     descSet = builder.build(device);
+
+    // Assert that the descriptors have been added in the correct order
+    auto assertIndex = [this](AssetDescriptorBinding binding) {
+        assert(bindings.at(binding).getBindingIndex() == getBindingIndex(binding));
+    };
+    assertIndex(AssetDescriptorBinding::eGeometryIndexBuffers);
+    assertIndex(AssetDescriptorBinding::eGeometryVertexBuffers);
+    assertIndex(AssetDescriptorBinding::eTextureSamplers);
+    assertIndex(AssetDescriptorBinding::eGlyphMapSamplers);
+    assertIndex(AssetDescriptorBinding::eAnimationMetadata);
+    assertIndex(AssetDescriptorBinding::eAnimationData);
 }
 
 void AssetDescriptor::update(const Device& device)
@@ -77,11 +88,6 @@ auto AssetDescriptor::getBinding(AssetDescriptorBinding binding) -> Binding
 auto AssetDescriptor::getBinding(AssetDescriptorBinding binding) const -> const Binding
 {
     return bindings.at(binding);
-}
-
-auto AssetDescriptor::getBindingIndex(AssetDescriptorBinding binding) const -> ui32
-{
-    return bindings.at(binding).getBindingIndex();
 }
 
 auto AssetDescriptor::getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout

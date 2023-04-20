@@ -304,11 +304,6 @@ void trc::GBufferDescriptor::update(
     }
 }
 
-auto trc::GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding binding) const -> ui32
-{
-    return static_cast<ui32>(binding);
-}
-
 auto trc::GBufferDescriptor::getProvider() const noexcept
     -> const DescriptorProviderInterface&
 {
