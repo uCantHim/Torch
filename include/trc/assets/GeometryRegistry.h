@@ -1,19 +1,19 @@
 #pragma once
 
 #include <optional>
-#include <mutex>
 #include <unordered_set>
 
-#include <trc_util/data/IndexMap.h>
 #include <trc_util/data/IdPool.h>
-#include "trc/base/Buffer.h"
-#include "trc/base/MemoryPool.h"
+#include <trc_util/data/SafeVector.h>
 
 #include "trc/Vertex.h"
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
+#include "trc/assets/DeviceDataCache.h"
 #include "trc/assets/RigRegistry.h"
 #include "trc/assets/SharedDescriptorSet.h"
+#include "trc/base/Buffer.h"
+#include "trc/base/MemoryPool.h"
 #include "trc/util/AccelerationStructureBuilder.h"
 #include "trc/util/DeviceLocalDataWriter.h"
 
@@ -65,7 +65,7 @@ namespace trc
     /**
      * @brief
      */
-    class GeometryRegistry : public AssetRegistryModuleCacheCrtpBase<Geometry>
+    class GeometryRegistry : public AssetRegistryModuleInterface<Geometry>
     {
     public:
         using LocalID = TypedAssetID<Geometry>::LocalID;
@@ -78,9 +78,6 @@ namespace trc
         void remove(LocalID id) override;
 
         auto getHandle(LocalID id) -> AssetHandle<Geometry> override;
-
-        void load(LocalID id) override;
-        void unload(LocalID id) override;
 
         /**
          * @brief Create an acceleration structure for a geometry
@@ -100,34 +97,28 @@ namespace trc
             bool enableRayTracing;
         };
 
-        /**
-         * GPU resources for geometry data
-         */
-        struct InternalStorage
+        struct DeviceData
         {
-            struct DeviceData
-            {
-                DeviceLocalBuffer indexBuf;
-                DeviceLocalBuffer meshVertexBuf;
-                DeviceLocalBuffer skeletalVertexBuf;
-                ui32 numIndices{ 0 };
-                ui32 numVertices{ 0 };
-
-                bool hasSkeleton{ false };
-            };
-
-            /** Declared as default in .cpp file for u_ptr to incomplete type BLAS */
-            ~InternalStorage();
-
             ui32 deviceIndex;
-            u_ptr<AssetSource<Geometry>> source;
-            u_ptr<DeviceData> deviceData{ nullptr };
+
+            DeviceLocalBuffer indexBuf;
+            DeviceLocalBuffer meshVertexBuf;
+            DeviceLocalBuffer skeletalVertexBuf;
+            ui32 numIndices{ 0 };
+            ui32 numVertices{ 0 };
+
+            bool hasSkeleton{ false };
             std::optional<RigID> rig{ std::nullopt };
 
+            // Must be a unique_ptr instead of std::optional because rt::BLAS is
+            // not move-constructible.
             u_ptr<rt::BottomLevelAccelerationStructure> blas{ nullptr };
-
-            ReferenceCounter refCounter;
         };
+
+        auto loadDeviceData(LocalID id) -> DeviceData;
+        void freeDeviceData(LocalID id, DeviceData data);
+
+        void postProcess(LocalID id, AssetData<Geometry>& data);
 
         const Instance& instance;
         const Config config;
@@ -137,15 +128,15 @@ namespace trc
         DeviceLocalDataWriter dataWriter;
         AccelerationStructureBuilder accelerationStructureBuilder;
 
-        std::mutex storageLock;
-        data::IndexMap<LocalID::IndexType, u_ptr<InternalStorage>> storage;
+        util::SafeVector<u_ptr<AssetSource<Geometry>>> dataSources;
+        DeviceDataCache<DeviceData> deviceDataStorage;
 
         /**
          * Assets scheduled for removal from memory.
          * Buffers must only be destroyed after any deferred copy operations
          * have completed.
          */
-        std::unordered_set<LocalID> pendingUnloads;
+        std::vector<DeviceData> pendingUnloads;
 
         SharedDescriptorSet::Binding indexDescriptorBinding;
         SharedDescriptorSet::Binding vertexDescriptorBinding;
@@ -222,12 +213,11 @@ namespace trc
 
     private:
         friend class GeometryRegistry;
+        using DeviceDataHandle = DeviceDataCache<GeometryRegistry::DeviceData>::CacheEntryHandle;
 
-        explicit AssetHandle(GeometryRegistry::SharedCacheReference ref,
-                             GeometryRegistry::InternalStorage& data);
+        explicit AssetHandle(DeviceDataHandle deviceData);
 
-        GeometryRegistry::SharedCacheReference cacheRef;
-        GeometryRegistry::InternalStorage* storage;
+        DeviceDataHandle deviceData;
     };
 
     using GeometryHandle = AssetHandle<Geometry>;

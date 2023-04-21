@@ -10,6 +10,7 @@ target_sources(UnitTests
         assets_tests/test_asset_trait_storage.cpp
         assets_tests/test_asset_type.cpp
         assets_tests/test_custom_asset.cpp
+        assets_tests/test_device_data_cache.cpp
         core/test_scene_base.cpp
         test_basic_type.cpp
         test_event_handler.cpp

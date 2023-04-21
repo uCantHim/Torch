@@ -24,25 +24,15 @@ void AssetData<Texture>::deserialize(std::istream& is)
 
 
 
-AssetHandle<Texture>::AssetHandle(TextureRegistry::CacheItemRef ref, ui32 deviceIndex)
-    :
-    cacheRef(std::move(ref)),
-    deviceIndex(deviceIndex)
-{
-}
-
-auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
-{
-    return deviceIndex;
-}
-
-
-
 TextureRegistry::TextureRegistry(const TextureRegistryCreateInfo& info)
     :
     device(info.device),
     memoryPool(info.device, MEMORY_POOL_CHUNK_SIZE),
     dataWriter(info.device),
+    deviceDataStorage(DataCache::makeLoader(
+        [this](ui32 id){ return loadDeviceData(LocalID{ id }); },
+        [this](ui32 id, DeviceData data){ freeDeviceData(LocalID{ id }, std::move(data)); }
+    )),
     descBinding(info.textureDescBinding)
 {
 }
@@ -64,44 +54,33 @@ auto TextureRegistry::add(u_ptr<AssetSource<Texture>> source) -> LocalID
     }
 
     // Store texture
-    std::scoped_lock lock(textureStorageLock);  // Unique ownership
-    textures.emplace(
-        deviceIndex,
-        InternalStorage{
-            deviceIndex,
-            std::move(source),
-            nullptr,
-            std::make_unique<ReferenceCounter>(id, this)
-        }
-    );
+    std::scoped_lock lock(sourceStorageLock);  // Unique ownership
+    dataSources.emplace(id, std::move(source));
 
     return id;
 }
 
 void TextureRegistry::remove(const LocalID id)
 {
-    std::scoped_lock lock(textureStorageLock);  // Unique ownership
-
-    const LocalID::IndexType index(id);
-    textures.erase(index);
-    idPool.free(index);
+    std::scoped_lock lock(sourceStorageLock);  // Unique ownership
+    dataSources.erase(id);
+    idPool.free(id);
 }
 
 auto TextureRegistry::getHandle(const LocalID id) -> Handle
 {
-    auto& data = textures.get(id);
-    return Handle(CacheItemRef(*data.refCounter), data.deviceIndex);
+    return Handle{ deviceDataStorage.get(id) };
 }
 
-void TextureRegistry::load(const LocalID id)
+auto TextureRegistry::loadDeviceData(const LocalID id) -> DeviceData
 {
-    std::scoped_lock lock(textureStorageLock);
+    std::shared_lock lock(sourceStorageLock);  // Shared ownership as we only read here
 
-    assert(textures.get(id).dataSource != nullptr);
-    assert(textures.get(id).deviceData == nullptr);
+    assert(dataSources.has(id));
+    assert(dataSources.get(id) != nullptr);
 
-    auto& tex = textures.get(id);
-    auto data = tex.dataSource->load();
+    const ui32 deviceIndex = ui32{id};
+    const auto data = dataSources.get(id)->load();
 
     // Create image resource
     Image image(
@@ -147,20 +126,34 @@ void TextureRegistry::load(const LocalID id)
 
     // Create descriptor info
     descBinding.update(
-        tex.deviceIndex,
+        deviceIndex,
         { image.getDefaultSampler(), *imageView, vk::ImageLayout::eShaderReadOnlyOptimal }
     );
 
     // Store resources
-    tex.deviceData = std::make_unique<InternalStorage::Data>(
-        InternalStorage::Data{ std::move(image), std::move(imageView) }
-    );
+    return DeviceData{
+        .deviceIndex = deviceIndex,
+        .image       = std::move(image),
+        .imageView   = std::move(imageView)
+    };
 }
 
-void TextureRegistry::unload(LocalID id)
+void TextureRegistry::freeDeviceData(const LocalID /*id*/, DeviceData /*data*/)
 {
-    std::scoped_lock lock(textureStorageLock);
-    textures.get(id).deviceData.reset();
+}
+
+
+
+AssetHandle<Texture>::AssetHandle(DataHandle handle)
+    :
+    cacheRef(handle),
+    deviceIndex(handle->deviceIndex)
+{
+}
+
+auto AssetHandle<Texture>::getDeviceIndex() const -> ui32
+{
+    return deviceIndex;
 }
 
 } // namespace trc

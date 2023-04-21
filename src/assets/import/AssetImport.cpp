@@ -1,6 +1,7 @@
 #include "trc/assets/import/AssetImport.h"
 
 #include "trc/base/ImageUtils.h"
+#include "trc/base/Logging.h"
 
 
 
@@ -77,4 +78,24 @@ auto trc::loadTexture(const fs::path& filePath) -> TextureData
         throw DataImportError("[In loadTexture]: Unable to import texture from "
                               + filePath.string() + ": " + err.what());
     }
+}
+
+auto trc::loadFont(const fs::path& path, ui32 fontSize) -> AssetData<Font>
+{
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open())
+    {
+        log::error << log::here() << ": Unable to import font from file " << path
+                   << " because the file cannot be opened in read-only mode.";
+        throw DataImportError("Unable to read from file " + path.string());
+    }
+
+    std::stringstream ss;
+    ss << file.rdbuf();
+    auto data = ss.str();
+
+    std::vector<std::byte> _data(data.size());
+    memcpy(_data.data(), data.data(), data.size());
+
+    return { .fontSize=fontSize, .fontData=std::move(_data) };
 }

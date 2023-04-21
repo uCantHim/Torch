@@ -1,17 +1,22 @@
 #pragma once
 
+#include <istream>
+#include <ostream>
 #include <shared_mutex>
+#include <string_view>
+#include <vector>
 
-#include "trc/base/Image.h"
-#include "trc/base/MemoryPool.h"
+#include <componentlib/Table.h>
 #include <trc_util/data/IndexMap.h>
 #include <trc_util/data/IdPool.h>
-#include <componentlib/Table.h>
 
 #include "trc/assets/AssetManager.h"  // For TypedAssetID
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
+#include "trc/assets/DeviceDataCache.h"
 #include "trc/assets/SharedDescriptorSet.h"
+#include "trc/base/Image.h"
+#include "trc/base/MemoryPool.h"
 #include "trc/util/DeviceLocalDataWriter.h"
 
 namespace trc
@@ -43,7 +48,7 @@ namespace trc
         SharedDescriptorSet::Binding textureDescBinding;
     };
 
-    class TextureRegistry : public AssetRegistryModuleCacheCrtpBase<Texture>
+    class TextureRegistry : public AssetRegistryModuleInterface<Texture>
     {
         friend class AssetHandle<Texture>;
         struct InternalStorage;
@@ -58,39 +63,33 @@ namespace trc
 
         auto getHandle(LocalID id) -> AssetHandle<Texture> override;
 
-        void load(LocalID id) override;
-        void unload(LocalID id) override;
-
     private:
-        struct InternalStorage
+        struct DeviceData
         {
-            struct Data
-            {
-                Image image;
-                vk::UniqueImageView imageView;
-            };
-
             ui32 deviceIndex;
-            u_ptr<AssetSource<Texture>> dataSource;
 
-            u_ptr<Data> deviceData{ nullptr };
-            u_ptr<ReferenceCounter> refCounter;
+            Image image;
+            vk::UniqueImageView imageView;
         };
 
-        using CacheItemRef = SharedCacheReference;
         template<typename T>
         using Table = componentlib::Table<T, LocalID::IndexType>;
+        using DataCache = DeviceDataCache<DeviceData>;
 
         static constexpr ui32 MAX_TEXTURE_COUNT = 2000;  // For static descriptor size
-        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 512 * 512 * 4 * 200;  // 200 512x512 images
+        static constexpr ui32 MEMORY_POOL_CHUNK_SIZE = 512 * 512 * 4 * 30;  // 30 512x512 images
+
+        auto loadDeviceData(LocalID id) -> DeviceData;
+        void freeDeviceData(LocalID id, DeviceData data);
 
         const Device& device;
         MemoryPool memoryPool;
         DeviceLocalDataWriter dataWriter;
 
         data::IdPool<ui64> idPool;
-        std::shared_mutex textureStorageLock;
-        Table<InternalStorage> textures;
+        std::shared_mutex sourceStorageLock;
+        Table<u_ptr<AssetSource<Texture>>> dataSources;
+        DataCache deviceDataStorage;
 
         SharedDescriptorSet::Binding descBinding;
     };
@@ -106,9 +105,11 @@ namespace trc
 
     private:
         friend TextureRegistry;
-        explicit AssetHandle(TextureRegistry::CacheItemRef r, ui32 deviceIndex);
+        using DataHandle = TextureRegistry::DataCache::CacheEntryHandle;
 
-        TextureRegistry::CacheItemRef cacheRef;
+        explicit AssetHandle(DataHandle handle);
+
+        DataHandle cacheRef;
         ui32 deviceIndex;
     };
 

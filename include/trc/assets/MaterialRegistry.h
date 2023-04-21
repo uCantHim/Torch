@@ -2,13 +2,13 @@
 
 #include <concepts>
 #include <iostream>
-#include <mutex>
 #include <optional>
 #include <unordered_map>
 #include <vector>
 
 #include <trc_util/Padding.h>
 #include <trc_util/data/IdPool.h>
+#include <trc_util/data/SafeVector.h>
 
 #include "trc/Types.h"
 #include "trc/assets/AssetReference.h"
@@ -82,9 +82,8 @@ namespace trc
             > runtimePrograms;
         };
 
-        std::mutex materialStorageLock;
         data::IdPool<ui64> localIdPool;
-        data::IndexMap<LocalID, u_ptr<Storage>> storage;
+        util::SafeVector<Storage> storage;
     };
 
     template<>

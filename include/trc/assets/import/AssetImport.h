@@ -8,6 +8,7 @@
 
 #include "trc/assets/import/AssimpImporter.h"
 #include "trc/assets/import/FBXImporter.h"
+#include "trc/text/Font.h"
 
 namespace trc
 {
@@ -41,5 +42,23 @@ namespace trc
      */
     auto loadGeometry(const fs::path& filePath) -> GeometryData;
 
+    /**
+     * @brief Load a texture from an image file
+     *
+     * @throw DataImportError if an image cannot be loaded from `filePath`. This
+     *                        might happen if the file format is not supported
+     *                        or if the file cannot be opened.
+     */
     auto loadTexture(const fs::path& filePath) -> TextureData;
+
+    /**
+     * @brief Load font data from any font file
+     *
+     * The operation is supported as long as Freetype supports the format of the
+     * file at `path`.
+     *
+     * @throw DataImportError if `path` cannot be opened as a file in read
+     *                           mode.
+     */
+    auto loadFont(const fs::path& path, ui32 fontSize) -> FontData;
 } // namespace trc

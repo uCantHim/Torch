@@ -4,13 +4,14 @@
 #include <vector>
 
 #include <trc_util/data/IdPool.h>
-#include "trc/base/Device.h"
-#include "trc/base/MemoryPool.h"
 
 #include "trc/Types.h"
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetRegistryModule.h"
+#include "trc/assets/DeviceDataCache.h"
 #include "trc/assets/SharedDescriptorSet.h"
+#include "trc/base/Device.h"
+#include "trc/base/MemoryPool.h"
 #include "trc/core/DescriptorProvider.h"
 #include "trc/text/GlyphMap.h"
 
@@ -38,11 +39,7 @@ namespace trc
     };
 
     using FontHandle = AssetHandle<Font>;
-
-    /**
-     * @brief Load font data from any font file
-     */
-    auto loadFont(const fs::path& path, ui32 fontSize) -> AssetData<Font>;
+    using FontData = AssetData<Font>;
 
     struct GlyphDrawData
     {
@@ -66,7 +63,7 @@ namespace trc
     /**
      * @brief
      */
-    class FontRegistry : public AssetRegistryModuleCacheCrtpBase<Font>
+    class FontRegistry : public AssetRegistryModuleInterface<Font>
     {
     public:
         explicit FontRegistry(const FontRegistryCreateInfo& createInfo);
@@ -77,50 +74,36 @@ namespace trc
         void remove(LocalID id) override;
         auto getHandle(LocalID id) -> AssetHandle<Font> override;
 
-        void load(LocalID id) override;
-        void unload(LocalID id) override;
-
     private:
         friend class AssetHandle<Font>;
 
-        struct FontDeviceData
+        struct DeviceData
         {
-            GlyphMap glyphMap;
-            vk::UniqueImageView glyphImageView;
-            ui32 descriptorIndex;
-        };
-
-        struct FontData
-        {
-            FontData(Face face, u_ptr<FontDeviceData> deviceData);
+            DeviceData(Face face, ui32 deviceIndex, GlyphMap glyphMap);
 
             auto getGlyph(CharCode charCode) -> GlyphDrawData;
 
+            ui32 descriptorIndex;
+
+            GlyphMap glyphMap;
+            vk::UniqueImageView glyphImageView;
+
             Face face;
-            u_ptr<FontDeviceData> deviceData;
-
-            // Meta
             float lineBreakAdvance;
-
             std::unordered_map<CharCode, GlyphDrawData> glyphs;
         };
 
-        struct FontStorage
-        {
-            u_ptr<AssetSource<Font>> source;
-            u_ptr<FontData> font;
-            u_ptr<ReferenceCounter> refCounter;
-        };
+        auto loadDeviceData(LocalID id) -> DeviceData;
+        void freeDeviceData(LocalID id, DeviceData data);
 
         const Device& device;
         data::IdPool<ui64> idPool;
 
-        // Storage GPU resources
         MemoryPool memoryPool;
         SharedDescriptorSet::Binding descBinding;
 
-        // Managed glyph maps
-        std::vector<FontStorage> fonts;
+        std::vector<u_ptr<AssetSource<Font>>> fonts;
+        DeviceDataCache<DeviceData> deviceDataStorage;
     };
 
     template<>
@@ -155,9 +138,10 @@ namespace trc
 
     private:
         friend FontRegistry;
-        explicit AssetHandle(FontRegistry::FontStorage& storage);
+        using DataHandle = DeviceDataCache<FontRegistry::DeviceData>::CacheEntryHandle;
 
-        FontRegistry::SharedCacheReference cacheRef;
-        FontRegistry::FontData* data;
+        explicit AssetHandle(DataHandle handle) : data(handle) {}
+
+        DataHandle data;
     };
 } // namespace trc

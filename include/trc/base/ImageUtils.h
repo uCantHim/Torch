@@ -29,6 +29,9 @@ namespace trc
                               const DeviceMemoryAllocator& allocator = DefaultDeviceMemoryAllocator()
         ) -> Image;
 
+    /**
+     * @throw std::runtime_error if something goes wrong.
+     */
     auto loadImageData2D(const fs::path& filePath) -> RawImageData;
 
     /**

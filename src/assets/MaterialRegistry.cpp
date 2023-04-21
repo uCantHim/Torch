@@ -74,9 +74,8 @@ void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 
 auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 {
-    std::scoped_lock lock(materialStorageLock);
     const LocalID id{ localIdPool.generate() };
-    auto& mat = *storage.emplace(id, new Storage{
+    auto& mat = storage.emplace(id, Storage{
         .data=source->load(),
         .runtimePrograms={ nullptr }
     });
@@ -101,17 +100,15 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 
 void trc::MaterialRegistry::remove(LocalID id)
 {
-    std::scoped_lock lock(materialStorageLock);
-    assert(storage.size() > id);
+    assert(storage.contains(id));
 
-    storage[id] = {};
+    storage.erase(id);
     localIdPool.free(id);
 }
 
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
-    std::scoped_lock lock(materialStorageLock);
-    assert(storage.size() > id);
+    assert(storage.contains(id));
 
-    return Handle{ *storage.at(id) };
+    return Handle{ storage.at(id) };
 }

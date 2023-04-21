@@ -36,114 +36,6 @@ void AssetData<Geometry>::resolveReferences(AssetManager& man)
 
 
 
-GeometryHandle::AssetHandle(
-    GeometryRegistry::SharedCacheReference ref,
-    GeometryRegistry::InternalStorage& _data)
-    :
-    cacheRef(std::move(ref)),
-    storage(&_data)
-{
-    assert(storage->deviceData != nullptr);
-}
-
-void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
-{
-    cmdBuf.bindIndexBuffer(*storage->deviceData->indexBuf, 0, getIndexType());
-    cmdBuf.bindVertexBuffers(binding, *storage->deviceData->meshVertexBuf, vk::DeviceSize(0));
-    if (hasSkeleton()) {
-        cmdBuf.bindVertexBuffers(binding + 1, *storage->deviceData->skeletalVertexBuf, vk::DeviceSize(0));
-    }
-}
-
-auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
-{
-    return *storage->deviceData->indexBuf;
-}
-
-auto GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
-{
-    return *storage->deviceData->meshVertexBuf;
-}
-
-auto GeometryHandle::getSkeletalVertexBuffer() const noexcept -> vk::Buffer
-{
-    return *storage->deviceData->skeletalVertexBuf;
-}
-
-auto GeometryHandle::getIndexCount() const noexcept -> ui32
-{
-    return storage->deviceData->numIndices;
-}
-
-auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
-{
-    return vk::IndexType::eUint32;
-}
-
-auto GeometryHandle::getVertexSize() const noexcept -> size_t
-{
-    return sizeof(MeshVertex);
-}
-
-auto GeometryHandle::getSkeletalVertexSize() const noexcept -> size_t
-{
-    return sizeof(SkeletalVertex);
-}
-
-bool GeometryHandle::hasSkeleton() const
-{
-    return storage->deviceData->hasSkeleton;
-}
-
-bool GeometryHandle::hasRig() const
-{
-    return storage->rig.has_value();
-}
-
-auto GeometryHandle::getRig() -> RigID
-{
-    if (!storage->rig.has_value())
-    {
-        throw std::out_of_range(
-            "[In GeometryHandle::getRig()]: Geometry has no rig associated with it!"
-        );
-    }
-
-    return storage->rig.value();
-}
-
-auto GeometryHandle::getDeviceIndex() const -> ui32
-{
-    return storage->deviceIndex;
-}
-
-bool GeometryHandle::hasAccelerationStructure() const
-{
-    return storage->blas != nullptr;
-}
-
-auto GeometryHandle::getAccelerationStructure() -> rt::BottomLevelAccelerationStructure&
-{
-    if (!hasAccelerationStructure())  {
-        throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
-                                 " structure for this geometry has not been created.");
-    }
-    return *storage->blas;
-}
-
-auto GeometryHandle::getAccelerationStructure() const -> const rt::BottomLevelAccelerationStructure&
-{
-    if (!hasAccelerationStructure())  {
-        throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
-                                 " structure for this geometry has not been created.");
-    }
-    return *storage->blas;
-}
-
-
-
-GeometryRegistry::InternalStorage::~InternalStorage() = default;
-
 GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
     :
     instance(info.instance),
@@ -158,6 +50,10 @@ GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
     }()),
     dataWriter(info.instance.getDevice()),  /* , memoryPool.makeAllocator()) */
     accelerationStructureBuilder(info.instance),
+    deviceDataStorage(DeviceDataCache<DeviceData>::makeLoader(
+        [this](ui32 id){ return loadDeviceData(LocalID{ id }); },
+        [this](ui32 id, DeviceData data){ freeDeviceData(LocalID{ id }, std::move(data)); }
+    )),
     indexDescriptorBinding(info.indexDescriptorBinding),
     vertexDescriptorBinding(info.vertexDescriptorBinding)
 {
@@ -168,67 +64,42 @@ void GeometryRegistry::update(vk::CommandBuffer cmdBuf, FrameRenderState& frame)
     dataWriter.update(cmdBuf, frame);
     accelerationStructureBuilder.dispatchBuilds(cmdBuf, frame);
 
-    std::scoped_lock lock(storageLock);
-    for (auto id : pendingUnloads) {
-        storage.at(id)->deviceData.reset();
-    }
     pendingUnloads.clear();
 }
 
 auto GeometryRegistry::add(u_ptr<AssetSource<Geometry>> source) -> LocalID
 {
     const LocalID id(idPool.generate());
-
-    std::scoped_lock lock(storageLock);
-    storage.emplace(
-        id,
-        new InternalStorage{
-            .deviceIndex = id,
-            .source = std::move(source),
-            .deviceData = {},
-            .rig = std::nullopt,
-            .refCounter{ id, this }
-        }
-    );
+    dataSources.emplace(id, std::move(source));
 
     return id;
 }
 
 void GeometryRegistry::remove(const LocalID id)
 {
-    std::scoped_lock lock(storageLock);
+    dataSources.erase(id);
     idPool.free(id);
-    storage.at(id).reset();
 }
 
 auto GeometryRegistry::getHandle(const LocalID id) -> GeometryHandle
 {
-    assert(storage.at(id) != nullptr);
-    auto& data = *storage.at(id);
-    return GeometryHandle(SharedCacheReference(data.refCounter), data);
+    assert(dataSources.contains(id));
+    return GeometryHandle{ deviceDataStorage.get(id) };
 }
 
-void GeometryRegistry::load(const LocalID id)
+auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
 {
-    std::scoped_lock lock(storageLock);
-    pendingUnloads.erase(id);
+    assert(dataSources.contains(id));
+    assert(dataSources.at(id) != nullptr);
 
-    auto& item = *storage.at(id);
-    assert(item.source != nullptr);
-    if (item.deviceData != nullptr)
-    {
-        // Is already loaded
-        return;
-    }
-
-    auto data = item.source->load();
-    data.indices = util::optimizeTriangleOrderingForsyth(data.indices);
+    auto data = dataSources.at(id)->load();
+    postProcess(id, data);
 
     const size_t indicesSize = data.indices.size() * sizeof(decltype(data.indices)::value_type);
     const size_t meshVerticesSize = data.vertices.size() * sizeof(decltype(data.vertices)::value_type);
 
-    auto& deviceData = item.deviceData;
-    deviceData.reset(new InternalStorage::DeviceData{
+    auto deviceData = DeviceData{
+        .deviceIndex = ui32{id},
         .indexBuf = {
             instance.getDevice(),
             indicesSize, nullptr,
@@ -249,18 +120,19 @@ void GeometryRegistry::load(const LocalID id)
 
         .numIndices = static_cast<ui32>(data.indices.size()),
         .numVertices = static_cast<ui32>(data.vertices.size()),
-    });
+    };
 
     // Enqueue writes to the device-local vertex buffers
-    dataWriter.write(*deviceData->indexBuf,      0, data.indices.data(),  indicesSize);
-    dataWriter.write(*deviceData->meshVertexBuf, 0, data.vertices.data(), meshVerticesSize);
+    dataWriter.write(*deviceData.indexBuf,      0, data.indices.data(),  indicesSize);
+    dataWriter.write(*deviceData.meshVertexBuf, 0, data.vertices.data(), meshVerticesSize);
 
     if (!data.skeletalVertices.empty())
     {
-        deviceData->hasSkeleton = true;
+        deviceData.hasSkeleton = true;
 
-        const size_t skelVerticesSize = data.vertices.size() * sizeof(decltype(data.vertices)::value_type);
-        deviceData->skeletalVertexBuf = {
+        const size_t skelVerticesSize = data.skeletalVertices.size()
+                                        * sizeof(decltype(data.skeletalVertices)::value_type);
+        deviceData.skeletalVertexBuf = {
             instance.getDevice(),
             skelVerticesSize, nullptr,
             config.geometryBufferUsage
@@ -268,13 +140,14 @@ void GeometryRegistry::load(const LocalID id)
                 | vk::BufferUsageFlagBits::eTransferDst,
             memoryPool.makeAllocator()
         };
-        dataWriter.write(*deviceData->skeletalVertexBuf, 0, data.skeletalVertices.data(), skelVerticesSize);
+        dataWriter.write(*deviceData.skeletalVertexBuf, 0, data.skeletalVertices.data(), skelVerticesSize);
     }
 
     if (!data.rig.empty())
     {
-        assert(!data.skeletalVertices.empty() && "A geometry with a rig must also have a skeleton.");
-        item.rig = data.rig.getID();
+        assert(!data.skeletalVertices.empty() && deviceData.hasSkeleton
+                && "A geometry with a rig must also have a skeleton.");
+        deviceData.rig = data.rig.getID();
     }
 
     if (config.enableRayTracing)
@@ -293,7 +166,7 @@ void GeometryRegistry::load(const LocalID id)
                 vk::AccessFlagBits::eMemoryWrite,
                 vk::AccessFlagBits::eShaderRead,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-                *deviceData->indexBuf, 0, VK_WHOLE_SIZE
+                *deviceData.indexBuf, 0, VK_WHOLE_SIZE
             )
         );
         dataWriter.barrierPostWrite(
@@ -303,21 +176,56 @@ void GeometryRegistry::load(const LocalID id)
                 vk::AccessFlagBits::eMemoryWrite,
                 vk::AccessFlagBits::eShaderRead,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-                *deviceData->meshVertexBuf, 0, VK_WHOLE_SIZE
+                *deviceData.meshVertexBuf, 0, VK_WHOLE_SIZE
             )
         );
 
         // Enqueue writes to the descriptor set
-        const ui32 deviceIndex = item.deviceIndex;
-        vertexDescriptorBinding.update(deviceIndex, { *deviceData->meshVertexBuf, 0, VK_WHOLE_SIZE });
-        indexDescriptorBinding.update(deviceIndex,  { *deviceData->indexBuf, 0, VK_WHOLE_SIZE });
+        const ui32 deviceIndex = deviceData.deviceIndex;
+        vertexDescriptorBinding.update(deviceIndex, { *deviceData.meshVertexBuf, 0, VK_WHOLE_SIZE });
+        indexDescriptorBinding.update(deviceIndex,  { *deviceData.indexBuf, 0, VK_WHOLE_SIZE });
     }
+
+#ifdef TRC_DEBUG
+    // Set some debug information
+    auto meta = dataSources.at(id)->getMetadata();
+    instance.getDevice().setDebugName(
+        *deviceData.indexBuf,
+        "Geometry index buffer for \"" + meta.name + "\""
+        + " (local ID = " + std::to_string(id) + ")"
+    );
+    instance.getDevice().setDebugName(
+        *deviceData.meshVertexBuf,
+        "Geometry mesh-vertex buffer for \"" + meta.name + "\""
+        + " (local ID = " + std::to_string(id) + ")"
+    );
+    if (deviceData.hasSkeleton)
+    {
+        instance.getDevice().setDebugName(
+            *deviceData.skeletalVertexBuf,
+            "Geometry skeletal-vertex buffer for \"" + meta.name + "\""
+            + " (local ID = " + std::to_string(id) + ")"
+        );
+    }
+#endif
+
+    return deviceData;
 }
 
-void GeometryRegistry::unload(LocalID id)
+void GeometryRegistry::freeDeviceData(LocalID /*id*/, DeviceData data)
 {
-    std::scoped_lock lock(storageLock);
-    pendingUnloads.emplace(id);
+    pendingUnloads.emplace_back(std::move(data));
+}
+
+void GeometryRegistry::postProcess(LocalID id, AssetData<Geometry>& data)
+{
+    try {
+        data.indices = util::optimizeTriangleOrderingForsyth(data.indices);
+    }
+    catch (const std::invalid_argument& err) {
+        log::warn << log::here() << ": Unable to optimize triangle order for geometry \""
+                  << dataSources.at(id)->getMetadata().name << "\". (" << err.what() << ")";
+    }
 }
 
 auto GeometryRegistry::makeAccelerationStructure(LocalID id) -> rt::BLAS&
@@ -330,17 +238,120 @@ auto GeometryRegistry::makeAccelerationStructure(LocalID id) -> rt::BLAS&
     }
 
     // Get handle before acquiring the lock in case the geometry is not currently loaded.
-    const auto geo = getHandle(id);
-
-    std::scoped_lock lock(storageLock);
-    auto& data = *storage.at(id);
-    if (!data.blas)
+    auto handle = getHandle(id);
+    auto geo = deviceDataStorage.get(id);
+    if (!geo->blas)
     {
-        data.blas = std::make_unique<rt::BLAS>(instance, rt::makeGeometryInfo(instance.getDevice(), geo));
-        accelerationStructureBuilder.build(*data.blas);
+        geo->blas = std::make_unique<rt::BLAS>(
+            instance,
+            rt::makeGeometryInfo(instance.getDevice(), handle)
+        );
+        accelerationStructureBuilder.build(*geo->blas);
     }
 
-    return *data.blas;
+    return *geo->blas;
+}
+
+
+
+GeometryHandle::AssetHandle(DeviceDataHandle deviceData)
+    :
+    deviceData(deviceData)
+{
+}
+
+void GeometryHandle::bindVertices(vk::CommandBuffer cmdBuf, ui32 binding) const
+{
+    cmdBuf.bindIndexBuffer(*deviceData->indexBuf, 0, getIndexType());
+    cmdBuf.bindVertexBuffers(binding, *deviceData->meshVertexBuf, vk::DeviceSize(0));
+    if (hasSkeleton()) {
+        cmdBuf.bindVertexBuffers(binding + 1, *deviceData->skeletalVertexBuf, vk::DeviceSize(0));
+    }
+}
+
+auto GeometryHandle::getIndexBuffer() const noexcept -> vk::Buffer
+{
+    return *deviceData->indexBuf;
+}
+
+auto GeometryHandle::getVertexBuffer() const noexcept -> vk::Buffer
+{
+    return *deviceData->meshVertexBuf;
+}
+
+auto GeometryHandle::getSkeletalVertexBuffer() const noexcept -> vk::Buffer
+{
+    return *deviceData->skeletalVertexBuf;
+}
+
+auto GeometryHandle::getIndexCount() const noexcept -> ui32
+{
+    return deviceData->numIndices;
+}
+
+auto GeometryHandle::getIndexType() const noexcept -> vk::IndexType
+{
+    return vk::IndexType::eUint32;
+}
+
+auto GeometryHandle::getVertexSize() const noexcept -> size_t
+{
+    return sizeof(MeshVertex);
+}
+
+auto GeometryHandle::getSkeletalVertexSize() const noexcept -> size_t
+{
+    return sizeof(SkeletalVertex);
+}
+
+bool GeometryHandle::hasSkeleton() const
+{
+    return deviceData->hasSkeleton;
+}
+
+bool GeometryHandle::hasRig() const
+{
+    return deviceData->rig.has_value();
+}
+
+auto GeometryHandle::getRig() -> RigID
+{
+    if (!deviceData->rig.has_value())
+    {
+        throw std::out_of_range(
+            "[In GeometryHandle::getRig()]: Geometry has no rig associated with it!"
+        );
+    }
+
+    return deviceData->rig.value();
+}
+
+auto GeometryHandle::getDeviceIndex() const -> ui32
+{
+    return deviceData->deviceIndex;
+}
+
+bool GeometryHandle::hasAccelerationStructure() const
+{
+    return deviceData->blas != nullptr;
+}
+
+auto GeometryHandle::getAccelerationStructure() -> rt::BottomLevelAccelerationStructure&
+{
+    if (!hasAccelerationStructure())  {
+        throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
+                                 " structure for this geometry has not been created.");
+    }
+    return *deviceData->blas;
+}
+
+auto GeometryHandle::getAccelerationStructure() const -> const rt::BottomLevelAccelerationStructure&
+{
+    if (!hasAccelerationStructure())  {
+        throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
+                                 " structure for this geometry has not been created.");
+    }
+    return *deviceData->blas;
 }
 
 } // namespace trc
