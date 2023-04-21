@@ -76,11 +76,15 @@ trc::AnimationRegistry::AnimationRegistry(const AnimationRegistryCreateInfo& inf
     dataBinding(info.dataDescBinding)
 {
     metaBinding.update(0, { *animationMetaDataBuffer, 0, VK_WHOLE_SIZE });
-    dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
 }
 
 void trc::AnimationRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
+    if (animBufferNeedsDescriptorUpdate)
+    {
+        dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
+        animBufferNeedsDescriptorUpdate = false;
+    }
 }
 
 auto trc::AnimationRegistry::add(u_ptr<AssetSource<Animation>> source) -> LocalID
@@ -137,8 +141,7 @@ auto trc::AnimationRegistry::makeAnimation(const AnimationData& data) -> ui32
         newBuffer.copyFrom(animationBuffer, BufferRegion(0, animationBuffer.size()));
 
         animationBuffer = std::move(newBuffer);
-
-        dataBinding.update(0, { *animationBuffer, 0, VK_WHOLE_SIZE });
+        animBufferNeedsDescriptorUpdate = true;
     }
 
     // Copy animation into buffer

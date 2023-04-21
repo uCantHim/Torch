@@ -48,6 +48,10 @@ namespace trc
     class AssetHandle<Animation>
     {
     public:
+        /**
+         * @return ui32 The index of the animation's first bone matrix in the
+         *              large animation data buffer
+         */
         auto getBufferIndex() const noexcept -> ui32;
 
         /**
@@ -92,8 +96,6 @@ namespace trc
 
     /**
      * @brief GPU storage for animation data and descriptors
-     *
-     * Can create animation handles.
      */
     class AnimationRegistry : public AssetRegistryModuleInterface<Animation>
     {
@@ -120,9 +122,9 @@ namespace trc
         static constexpr size_t MAX_ANIMATIONS = 300;
         static constexpr size_t ANIMATION_BUFFER_SIZE = 2000000;
 
-        const Device& device;
-
         auto makeAnimation(const AnimationData& data) -> ui32;
+
+        const Device& device;
 
         // Host resources
         componentlib::Table<AnimationHandle, LocalID> storage;
@@ -135,6 +137,15 @@ namespace trc
 
         Buffer animationMetaDataBuffer;
         Buffer animationBuffer;
+
+        /**
+         * True if the animation data buffer has changed and needs to be rebound
+         * to the descriptor binding.
+         *
+         * This is to avoid duplicate descriptor updates of which one contains
+         * the old buffer which is already destroyed.
+         */
+        bool animBufferNeedsDescriptorUpdate{ true };
 
         SharedDescriptorSet::Binding metaBinding;
         SharedDescriptorSet::Binding dataBinding;
