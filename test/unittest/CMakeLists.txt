@@ -17,6 +17,7 @@ target_sources(UnitTests
         test_filesystem_data_storage.cpp
         test_shader_code_typechecker.cpp
         test_shader_loader.cpp
+        util_tests/test_external_storage.cpp
         util_tests/test_deferred_insert_vector.cpp
         util_tests/test_maybe.cpp
         util_tests/test_memory_stream.cpp
