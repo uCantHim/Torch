@@ -37,6 +37,18 @@ namespace trc::rt
                          vk::GeometryInstanceFlagsKHR flags,
                          const BottomLevelAccelerationStructure& blas);
 
+        /**
+         * @brief Set the instance's transformation matrix
+         *
+         * Use this to modify the transformation matrix to apply necessary
+         * operations to the matrix before storing it.
+         *
+         * The transformation matrix must be transposed to fit the format that
+         * Vulkan (i.e. VK_EXT_acceleration_structure) expects. This function
+         * does just that.
+         */
+        void setTransform(const mat4& t);
+
         glm::mat3x4 transform;
         ui32 instanceCustomIndex : 24 { 0 };
         ui8 mask : 8 { 0xff };

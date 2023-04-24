@@ -20,11 +20,11 @@ trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
     lightBufferMap(lightBuffer.map()),
     drawableDataBuf(
         instance.getDevice(),
-        200 * sizeof(DrawableComponentScene::DrawableRayData),
+        200 * sizeof(DrawableComponentScene::RayInstanceData),
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
     ),
-    drawableBufferMap(drawableDataBuf.map<DrawableComponentScene::DrawableRayData*>())
+    drawableBufferMap(drawableDataBuf.map<DrawableComponentScene::RayInstanceData*>())
 {
     createDescriptors();
     writeDescriptors();
@@ -60,18 +60,17 @@ void trc::SceneDescriptor::update(const Scene& scene)
     lights.writeLightData(lightBufferMap);
 
     // Update ray scene data
-    const auto& drawData = scene.getRaySceneData();
-    const size_t drawDataSize = drawData.size() * sizeof(DrawableComponentScene::DrawableRayData);
-    if (drawDataSize > drawableDataBuf.size())
+    const size_t dataSize = scene.getMaxRayDeviceDataSize();
+    if (dataSize > drawableDataBuf.size())
     {
         drawableDataBuf.unmap();
         drawableDataBuf = Buffer(
             instance.getDevice(),
-            drawableDataBuf.size() * 2,
+            glm::max(dataSize, drawableDataBuf.size() * 2),
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
         );
-        drawableBufferMap = drawableDataBuf.map<DrawableComponentScene::DrawableRayData*>();
+        drawableBufferMap = drawableDataBuf.map<DrawableComponentScene::RayInstanceData*>();
 
         vk::DescriptorBufferInfo bufferInfo(*drawableDataBuf, 0, VK_WHOLE_SIZE);
         std::vector<vk::WriteDescriptorSet> writes = {
@@ -80,7 +79,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
         device->updateDescriptorSets(writes, {});
     }
 
-    memcpy(drawableBufferMap, drawData.data(), drawDataSize);
+    scene.writeRayDeviceData(drawableBufferMap, dataSize);
     drawableDataBuf.flush();
 }
 

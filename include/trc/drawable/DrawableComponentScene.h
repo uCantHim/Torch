@@ -5,6 +5,10 @@
 #include <componentlib/ComponentStorage.h>
 #include <componentlib/ComponentID.h>
 
+#include "trc/Transformation.h"
+
+#include "trc/assets/Geometry.h"
+
 #include "trc/core/RenderStage.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/Pipeline.h"
@@ -13,7 +17,6 @@
 #include "trc/drawable/NodeComponent.h"
 #include "trc/drawable/AnimationComponent.h"
 #include "trc/drawable/RasterizationComponent.h"
-#include "trc/drawable/RaytracingComponent.h"
 
 #include "trc/ray_tracing/GeometryUtils.h"
 
@@ -85,7 +88,7 @@ namespace trc
     class DrawableComponentScene
     {
     public:
-        struct DrawableRayData
+        struct RayInstanceData
         {
             ui32 geometryIndex;
             ui32 materialIndex;
@@ -94,13 +97,51 @@ namespace trc
         DrawableComponentScene(SceneBase& base);
 
         void updateAnimations(float timeDelta);
+        void updateRayData();
 
         /**
-         * @return size_t Number of instances written to the buffer
+         * @brief Get the maximum size of ray-instance device data
+         *
+         * @return size_t The minimum required size for buffers passed to
+         *                `DrawableComponentScene::writeRayDeviceData` to hold
+         *                all ray-instance data.
          */
-        auto writeTlasInstances(rt::GeometryInstance* instanceBuf) const -> size_t;
+        auto getMaxRayDeviceDataSize() const -> size_t;
 
-        auto getRaySceneData() const -> const std::vector<DrawableRayData>&;
+        /**
+         * @return ui32 The current number of ray-traced objects. Any buffer
+         *              passed to `DrawableComponentScene::writeTlasInstances`
+         *              should be at least big enough to hold this many
+         *              `rt::GeometryInstance` objects.
+         */
+        auto getMaxRayGeometryInstances() const -> ui32;
+
+        /**
+         * @param rt::GeometryInstance* instanceBuf The memory to which to write
+         *        the geometry instance data.
+         * @param ui32 maxInstances Restricts the maximum number of instances
+         *        written to the buffer. Used as a safeguard against possible
+         *        out-of-bounds writes. The caller *should* size `instanceBuf`
+         *        appropriately with information from
+         *        `DrawableComponentScene::getMaxRayGeometryInstances`.
+         *
+         * @return ui32 Number of instances written to the buffer
+         */
+        auto writeTlasInstances(rt::GeometryInstance* instanceBuf, ui32 maxInstances) const
+            -> ui32;
+
+        /**
+         * @param void* deviceDataBuf
+         * @param size_t maxSize Restricts the maximum number of bytes written
+         *        to the buffer. Used as a safeguard against possible out-of-
+         *        bounds writes. The caller *should* size `instanceBuf`
+         *        appropriately with information from
+         *        `DrawableComponentScene::getMaxRayDeviceDataSize`.
+         *
+         * @return size_t Number of bytes actually written to `deviceDataBuf`.
+         */
+        auto writeRayDeviceData(void* deviceDataBuf, size_t maxSize) const
+            -> size_t;
 
         auto makeDrawable() -> DrawableID;
         auto makeUniqueDrawable() -> UniqueDrawableID;
@@ -117,16 +158,80 @@ namespace trc
         bool hasNode(DrawableID drawable) const;
 
         auto getRasterization(DrawableID drawable) -> const drawcomp::RasterComponent&;
-        auto getRaytracing(DrawableID drawable) -> const drawcomp::RayComponent&;
         auto getAnimationEngine(DrawableID drawable) -> AnimationEngine&;
         auto getNode(DrawableID drawable) -> Node&;
 
     private:
-        struct InternalStorage : componentlib::ComponentStorage<InternalStorage, DrawableID> {};
+        template<componentlib::ComponentType T>
+        friend struct componentlib::ComponentTraits;
+
+        struct RayComponent
+        {
+            Transformation::ID modelMatrix;
+            GeometryHandle geo;  // Keep the geometry alive
+            ui32 materialIndex;
+
+            ui32 instanceDataIndex;
+        };
+
+        struct InternalStorage : componentlib::ComponentStorage<InternalStorage, DrawableID>
+        {
+            auto allocateRayInstance(RayInstanceData data) -> ui32;
+            void freeRayInstance(ui32 index);
+
+            data::IdPool<ui32> rayInstanceIdPool;
+
+            /**
+             * Other than the rt::GeometryInstance data (the format of which is
+             * restricted by Vulkan), the custom per-instance data does not have
+             * to be tightly packed, but requires constant indices instead.
+             */
+            data::IndexMap<ui32, RayInstanceData> rayInstances;
+        };
 
         SceneBase* base;
         InternalStorage storage;
-
-        std::vector<DrawableRayData> drawableData;
     };
 } // namespace trc
+
+template<>
+struct componentlib::ComponentTraits<trc::DrawableComponentScene::RayComponent>
+{
+    void onCreate(trc::DrawableComponentScene::InternalStorage& storage,
+                  trc::DrawableID drawable,
+                  trc::DrawableComponentScene::RayComponent& ray)
+    {
+        // Allocate a user data structure
+        //
+        // This data is referenced by geometry instances via the instanceCustomIndex
+        // property and defines auxiliary information that Torch needs to draw
+        // ray traced objects.
+        ray.instanceDataIndex = storage.allocateRayInstance(
+            trc::DrawableComponentScene::RayInstanceData{
+                .geometryIndex=ray.geo.getDeviceIndex(),
+                .materialIndex=ray.materialIndex,
+            }
+        );
+
+        // Allocate a geometry instance
+        //
+        // This data communicates definitions of ray traced object to Vulkan.
+        storage.add<trc::rt::GeometryInstance>(drawable,
+            trc::rt::GeometryInstance(
+                trc::mat4{ 1.0f },
+                ray.instanceDataIndex,
+                0xff, 0,
+                vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+                | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
+                ray.geo.getAccelerationStructure()
+            )
+        );
+    }
+
+    void onDelete(trc::DrawableComponentScene::InternalStorage& storage,
+                  auto /*id*/,
+                  trc::DrawableComponentScene::RayComponent ray)
+    {
+        storage.freeRayInstance(ray.instanceDataIndex);
+    }
+};

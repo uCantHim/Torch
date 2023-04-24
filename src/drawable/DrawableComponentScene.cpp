@@ -77,27 +77,53 @@ void trc::DrawableComponentScene::updateAnimations(const float timeDelta)
     }
 }
 
-auto trc::DrawableComponentScene::writeTlasInstances(rt::GeometryInstance* instanceBuf) const
-    -> size_t
+void trc::DrawableComponentScene::updateRayData()
 {
-    for (ui32 i = 0; const auto& ray : storage.get<RayComponent>())
-    {
-        instanceBuf[i] = rt::GeometryInstance(
-            ray.modelMatrixId.get(), ray.drawableBufferIndex,
-            0xff, 0,
-            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-            | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
-            ray.geo.getAccelerationStructure()
-        );
-        ++i;
-    }
+    // const auto join = storage.get<rt::GeometryInstance>().join(storage.get<NodeComponent>());
+    // for (const auto& [_, geoInstance, node] : join)
+    // {
+    //     geoInstance.setTransform(node.node.getGlobalTransform());
+    // }
 
-    return storage.get<RayComponent>().size();
+    const auto join = storage.get<rt::GeometryInstance>().join(storage.get<RayComponent>());
+    for (const auto& [_, geoInstance, ray] : join)
+    {
+        geoInstance.setTransform(ray.modelMatrix.get());
+    }
 }
 
-auto trc::DrawableComponentScene::getRaySceneData() const -> const std::vector<DrawableRayData>&
+auto trc::DrawableComponentScene::getMaxRayDeviceDataSize() const -> size_t
 {
-    return drawableData;
+    return sizeof(RayInstanceData) * storage.rayInstances.size();
+}
+
+auto trc::DrawableComponentScene::getMaxRayGeometryInstances() const -> ui32
+{
+    return storage.get<rt::GeometryInstance>().size();
+}
+
+auto trc::DrawableComponentScene::writeTlasInstances(
+    rt::GeometryInstance* instanceBuf,
+    const ui32 maxInstances) const
+    -> ui32
+{
+    const size_t numInstances = glm::min(size_t{maxInstances},
+                                         storage.get<rt::GeometryInstance>().size());
+    const size_t size = numInstances * sizeof(rt::GeometryInstance);
+    memcpy(instanceBuf, storage.get<rt::GeometryInstance>().data(), size);
+
+    return numInstances;
+}
+
+auto trc::DrawableComponentScene::writeRayDeviceData(
+    void* deviceDataBuf,
+    size_t maxSize) const
+    -> size_t
+{
+    const size_t size = glm::min(maxSize, storage.rayInstances.size() * sizeof(RayInstanceData));
+    memcpy(deviceDataBuf, storage.rayInstances.data(), size);
+
+    return size;
 }
 
 auto trc::DrawableComponentScene::makeDrawable() -> DrawableID
@@ -150,18 +176,12 @@ void trc::DrawableComponentScene::makeRaytracing(
         geoId.getModule().makeAccelerationStructure(geoId.getDeviceID());
     }
 
-    auto& ray = storage.add<RayComponent>(drawable, RayComponent{
+    storage.add<RayComponent>(drawable, RayComponent{
+        .modelMatrix = createInfo.transformation,
         .geo = geo,
-        .modelMatrixId = createInfo.transformation
+        .materialIndex = 0,
+        .instanceDataIndex = {} // Set by ComponentTraits::onCreate
     });
-
-    if (ray.drawableBufferIndex >= drawableData.size()) {
-        drawableData.resize(ray.drawableBufferIndex + 1);
-    }
-    drawableData[ray.drawableBufferIndex] = DrawableRayData{
-        .geometryIndex=geo.getDeviceIndex(),
-        .materialIndex=0,
-    };
 }
 
 auto trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigHandle rig)
@@ -202,14 +222,6 @@ auto trc::DrawableComponentScene::getRasterization(DrawableID drawable)
     return storage.get<RasterComponent>(drawable);
 }
 
-auto trc::DrawableComponentScene::getRaytracing(DrawableID drawable)
-    -> const drawcomp::RayComponent&
-{
-    throw std::runtime_error("Not implemented");
-
-    return storage.get<RayComponent>(drawable);
-}
-
 auto trc::DrawableComponentScene::getNode(DrawableID drawable) -> Node&
 {
     auto result = storage.tryGet<NodeComponent>(drawable);
@@ -230,4 +242,18 @@ auto trc::DrawableComponentScene::getAnimationEngine(DrawableID drawable) -> Ani
 
     throw std::out_of_range("[In DrawableComponentScene::getAnimationEngine]: Drawable does not"
                             " have an animation component!");
+}
+
+
+
+auto trc::DrawableComponentScene::InternalStorage::allocateRayInstance(RayInstanceData data) -> ui32
+{
+    const ui32 index = rayInstanceIdPool.generate();
+    rayInstances[index] = data;
+    return index;
+}
+
+void trc::DrawableComponentScene::InternalStorage::freeRayInstance(ui32 index)
+{
+    rayInstanceIdPool.free(index);
 }

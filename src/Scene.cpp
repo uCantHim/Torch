@@ -13,13 +13,11 @@ trc::Scene::Scene()
 
 void trc::Scene::update(const float timeDelta)
 {
-    updateAnimations(timeDelta);
-    updateTransforms();
-}
-
-void trc::Scene::updateTransforms()
-{
+    // Update transformations in the node tree
     root.updateAsRoot();
+
+    DrawableComponentScene::updateAnimations(timeDelta);
+    DrawableComponentScene::updateRayData();
 }
 
 auto trc::Scene::getRoot() noexcept -> Node&

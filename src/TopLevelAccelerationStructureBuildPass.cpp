@@ -58,7 +58,7 @@ void TopLevelAccelerationStructureBuildPass::update(
             vk::AccessFlagBits::eShaderRead
         );
 
-        const size_t numInstances = scene->writeTlasInstances(instances);
+        const size_t numInstances = scene->writeTlasInstances(instances, tlas->getMaxInstances());
         instanceBuildBuffer.flush();
 
         tlas->build(cmdBuf, scratchMemoryAddress, *instanceBuildBuffer, numInstances);

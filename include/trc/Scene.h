@@ -77,11 +77,6 @@ namespace trc
         void disableShadow(Light light);
 
     private:
-        /**
-         * @brief Traverse the node tree and update the transform of each node
-         */
-        void updateTransforms();
-
         Node root;
 
         LightRegistry lightRegistry;

@@ -76,3 +76,8 @@ trc::rt::GeometryInstance::GeometryInstance(
     accelerationStructureAddress(blas.getDeviceAddress())
 {
 }
+
+void trc::rt::GeometryInstance::setTransform(const mat4& t)
+{
+    transform = glm::transpose(t);
+}
