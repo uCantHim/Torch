@@ -35,6 +35,13 @@ public:
     auto size() const noexcept -> size_t;
     void reserve(size_t size);
 
+    auto data() -> Value* {
+        return values.data();
+    }
+    auto data() const -> const Value* {
+        return values.data();
+    }
+
     auto begin() {
         return values.begin();
     }
