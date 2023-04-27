@@ -7,7 +7,7 @@
 trc::Scene::Scene()
     :
     SceneBase(),
-    DrawableComponentScene(static_cast<SceneBase&>(*this))
+    DrawableScene(static_cast<SceneBase&>(*this))
 {
 }
 
@@ -16,8 +16,8 @@ void trc::Scene::update(const float timeDelta)
     // Update transformations in the node tree
     root.updateAsRoot();
 
-    DrawableComponentScene::updateAnimations(timeDelta);
-    DrawableComponentScene::updateRayData();
+    DrawableScene::updateAnimations(timeDelta);
+    DrawableScene::updateRayData();
 }
 
 auto trc::Scene::getRoot() noexcept -> Node&

@@ -11,17 +11,10 @@ namespace trc
     public:
         Drawable(const Drawable&) = delete;
         auto operator=(const Drawable&) -> Drawable& = delete;
+        auto operator=(Drawable&&) noexcept -> Drawable& = delete;
 
-        Drawable() = default;
-        Drawable(Drawable&&) noexcept;
-        ~Drawable();
-
-        auto operator=(Drawable&&) noexcept -> Drawable&;
-
-        Drawable(const DrawableCreateInfo& info, DrawableComponentScene& scene);
-
-        /** @brief Legacy constructor */
-        Drawable(GeometryID geo, MaterialID material, DrawableComponentScene& scene);
+        Drawable(Drawable&&) noexcept = default;
+        ~Drawable() noexcept = default;
 
         auto getGeometry() const -> GeometryID;
         auto getMaterial() const -> MaterialID;
@@ -46,12 +39,14 @@ namespace trc
          */
         auto getAnimationEngine() const -> const AnimationEngine&;
 
-        /**
-         * @brief Remove the Drawable from the scene it is attached to
-         */
-        void removeFromScene();
-
     private:
+        friend class DrawableScene;
+
+        Drawable(DrawableID id,
+                 DrawableComponentScene& scene,
+                 GeometryID geometry,
+                 MaterialID material);
+
         DrawableComponentScene* scene;
         DrawableID id;
 

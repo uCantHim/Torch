@@ -3,17 +3,17 @@
 #include <vector>
 #include <unordered_map>
 
+#include "trc/LightRegistry.h"
+#include "trc/Node.h"
+#include "trc/ShadowPool.h"
 #include "trc/Types.h"
 #include "trc/core/SceneBase.h"
-#include "trc/drawable/DrawableComponentScene.h"
-#include "trc/LightRegistry.h"
-#include "trc/ShadowPool.h"
-#include "trc/Node.h"
+#include "trc/drawable/DrawableScene.h"
 
 namespace trc
 {
     class Scene : public SceneBase
-                , public DrawableComponentScene
+                , public DrawableScene
     {
     public:
         Scene(const Scene&) = delete;

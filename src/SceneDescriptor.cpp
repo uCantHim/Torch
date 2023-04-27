@@ -60,7 +60,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
     lights.writeLightData(lightBufferMap);
 
     // Update ray scene data
-    const size_t dataSize = scene.getMaxRayDeviceDataSize();
+    const size_t dataSize = scene.getDrawableInternals().getMaxRayDeviceDataSize();
     if (dataSize > drawableDataBuf.size())
     {
         drawableDataBuf.unmap();
@@ -79,7 +79,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
         device->updateDescriptorSets(writes, {});
     }
 
-    scene.writeRayDeviceData(drawableBufferMap, dataSize);
+    scene.getDrawableInternals().writeRayDeviceData(drawableBufferMap, dataSize);
     drawableDataBuf.flush();
 }
 

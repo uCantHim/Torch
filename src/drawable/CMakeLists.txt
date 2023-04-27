@@ -4,4 +4,5 @@ target_sources(
         DefaultDrawable.cpp
         Drawable.cpp
         DrawableComponentScene.cpp
+        DrawableScene.cpp
 )

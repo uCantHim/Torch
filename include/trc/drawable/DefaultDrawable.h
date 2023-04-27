@@ -1,8 +1,11 @@
 #pragma once
 
+#include "trc/AnimationEngine.h"
 #include "trc/DrawablePipelines.h"
-#include "trc/drawable/DrawableStructs.h"
-#include "trc/drawable/DrawableComponentScene.h"
+#include "trc/Transformation.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
+#include "trc/core/SceneBase.h"
 
 namespace trc
 {
@@ -10,15 +13,22 @@ namespace trc
     {
         bool animated;
         bool transparent;
+
+        auto toPipelineFlags() const -> pipelines::DrawablePipelineTypeFlags;
+        auto determineGBufferPipeline() const -> Pipeline::ID;
+        auto determineShadowPipeline() const -> Pipeline::ID;
     };
 
-    auto getDrawablePipelineFlags(DrawablePipelineInfo info) -> pipelines::DrawablePipelineTypeFlags;
+    struct DrawableRasterDrawInfo
+    {
+        GeometryHandle geo;
+        MaterialHandle mat;
+        MaterialRuntime matRuntime;
 
-    auto determineDrawablePipeline(DrawablePipelineInfo info) -> Pipeline::ID;
-    auto determineDrawablePipeline(const DrawableCreateInfo& info) -> Pipeline::ID;
+        Transformation::ID modelMatrixId;
+        AnimationEngine::ID anim;
+    };
 
-    auto makeDefaultDrawableRasterization(const DrawableCreateInfo& info)
-        -> RasterComponentCreateInfo;
-    auto makeDefaultDrawableRasterization(const DrawableCreateInfo& info, Pipeline::ID pipeline)
-        -> RasterComponentCreateInfo;
+    auto makeGBufferDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> DrawableFunction;
+    auto makeShadowDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> DrawableFunction;
 } // namespace trc

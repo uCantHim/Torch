@@ -22,7 +22,7 @@ int main()
         .color={ 0.392f, 0.624f, 0.82f },
         .emissive=true,
     }));
-    trc::Drawable myDrawable(geo, mat, scene);
+    auto myDrawable = scene.makeDrawable({ geo, mat });
 
     // Main loop
     while (torch.getWindow().isOpen())

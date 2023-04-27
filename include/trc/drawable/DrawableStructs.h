@@ -11,8 +11,6 @@ namespace trc
         GeometryID geo;
         MaterialID mat;
 
-        bool drawShadow{ true };
-
         bool rasterized{ true };
         bool rayTraced{ false };
     };

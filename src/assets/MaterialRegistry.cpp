@@ -83,10 +83,10 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
     // Create all runtime programs
     for (const auto& [key, program] : mat.data.programs)
     {
-        Pipeline::ID basePipeline = determineDrawablePipeline(DrawablePipelineInfo{
+        Pipeline::ID basePipeline = DrawablePipelineInfo{
             .animated=key.flags.has(MaterialKey::Flags::Animated::eTrue),
             .transparent=mat.data.transparent
-        });
+        }.determineGBufferPipeline();
         mat.runtimePrograms.at(key.flags.toIndex())
             = std::make_unique<MaterialShaderProgram>(program, basePipeline);
 

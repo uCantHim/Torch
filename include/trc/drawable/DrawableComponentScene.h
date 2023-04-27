@@ -8,6 +8,7 @@
 #include "trc/Transformation.h"
 
 #include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
 
 #include "trc/core/RenderStage.h"
 #include "trc/core/RenderPass.h"
@@ -16,7 +17,6 @@
 
 #include "trc/drawable/NodeComponent.h"
 #include "trc/drawable/AnimationComponent.h"
-#include "trc/drawable/RasterizationComponent.h"
 
 #include "trc/ray_tracing/GeometryUtils.h"
 
@@ -26,18 +26,11 @@ namespace trc
 
     struct RasterComponentCreateInfo
     {
-        struct DrawFunctionSpec
-        {
-            RenderStage::ID stage;
-            SubPass::ID subPass;
-            Pipeline::ID pipeline;
-            std::function<
-                void(drawcomp::RasterComponent&, const DrawEnvironment&, vk::CommandBuffer)
-            > func;
-        };
+        GeometryID geo;
+        MaterialID mat;
 
-        drawcomp::RasterComponent drawData;
-        std::vector<DrawFunctionSpec> drawFunctions;
+        Transformation::ID modelMatrixId;
+        AnimationEngine::ID anim;
     };
 
     struct RayComponentCreateInfo
@@ -144,12 +137,12 @@ namespace trc
             -> size_t;
 
         auto makeDrawable() -> DrawableID;
-        auto makeUniqueDrawable() -> UniqueDrawableID;
+        auto makeDrawableUnique() -> UniqueDrawableID;
         void destroyDrawable(DrawableID drawable);
 
         void makeRasterization(DrawableID drawable, const RasterComponentCreateInfo& createInfo);
         void makeRaytracing(DrawableID drawable, const RayComponentCreateInfo& createInfo);
-        auto makeAnimationEngine(DrawableID drawable, RigHandle rig) -> AnimationEngine&;
+        auto makeAnimationEngine(DrawableID drawable, RigID rig) -> AnimationEngine&;
         auto makeNode(DrawableID drawable) -> Node&;
 
         bool hasRasterization(DrawableID drawable) const;
@@ -157,7 +150,6 @@ namespace trc
         bool hasAnimation(DrawableID drawable) const;
         bool hasNode(DrawableID drawable) const;
 
-        auto getRasterization(DrawableID drawable) -> const drawcomp::RasterComponent&;
         auto getAnimationEngine(DrawableID drawable) -> AnimationEngine&;
         auto getNode(DrawableID drawable) -> Node&;
 

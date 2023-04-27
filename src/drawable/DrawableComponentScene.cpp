@@ -1,9 +1,10 @@
 #include "trc/drawable/DrawableComponentScene.h"
 
+#include "trc/TorchRenderStages.h"
+#include "trc/GBufferPass.h"
+#include "trc/drawable/DefaultDrawable.h"
+
 using namespace trc::drawcomp;
-
-
-
 
 
 
@@ -131,7 +132,7 @@ auto trc::DrawableComponentScene::makeDrawable() -> DrawableID
     return storage.createObject();
 }
 
-auto trc::DrawableComponentScene::makeUniqueDrawable() -> UniqueDrawableID
+auto trc::DrawableComponentScene::makeDrawableUnique() -> UniqueDrawableID
 {
     return { *this, storage.createObject() };
 }
@@ -145,25 +146,48 @@ void trc::DrawableComponentScene::makeRasterization(
     const DrawableID drawable,
     const RasterComponentCreateInfo& createInfo)
 {
-    RasterComponent& comp = storage.add<RasterComponent>(drawable, createInfo.drawData);
+    auto geoHandle = createInfo.geo.getDeviceDataHandle();
+    auto matHandle = createInfo.mat.getDeviceDataHandle();
+
+    const DrawablePipelineInfo pipelineInfo{
+        .animated=geoHandle.hasRig(),
+        .transparent=matHandle.isTransparent(),
+    };
+
+    auto drawInfo = std::make_shared<DrawableRasterDrawInfo>(DrawableRasterDrawInfo{
+        .geo=geoHandle,
+        .mat=matHandle,
+        .matRuntime=matHandle.getRuntime({
+            .animated=geoHandle.hasRig(),
+        }),
+        .modelMatrixId=createInfo.modelMatrixId,
+        .anim=createInfo.anim,
+    });
 
     // Create a storage for the draw functions with automatic lifetime
     struct RasterRegistrations
     {
         std::vector<trc::SceneBase::UniqueRegistrationID> regs;
     };
+    auto& drawFuncs = storage.add<RasterRegistrations>(drawable).regs;
 
-    RasterRegistrations& reg = storage.add<RasterRegistrations>(drawable);
-    for (const auto& f : createInfo.drawFunctions)
-    {
-        reg.regs.emplace_back(base->registerDrawFunction(
-            f.stage, f.subPass, f.pipeline,
-            [&comp, func=f.func](auto& env, auto cmdBuf)
-            {
-                func(comp, env, cmdBuf);
-            }
-        ).makeUnique());
-    }
+    using SubPasses = GBufferPass::SubPasses;
+    drawFuncs.emplace_back(
+        base->registerDrawFunction(
+            gBufferRenderStage,
+            pipelineInfo.transparent ? SubPasses::transparency : SubPasses::gBuffer,
+            drawInfo->matRuntime.getPipeline(),
+            makeGBufferDrawFunction(drawInfo)
+        )
+    );
+    drawFuncs.emplace_back(
+        base->registerDrawFunction(
+            shadowRenderStage,
+            SubPass::ID(0),
+            pipelineInfo.determineShadowPipeline(),
+            makeShadowDrawFunction(drawInfo)
+        )
+    );
 }
 
 void trc::DrawableComponentScene::makeRaytracing(
@@ -184,21 +208,16 @@ void trc::DrawableComponentScene::makeRaytracing(
     });
 }
 
-auto trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigHandle rig)
+auto trc::DrawableComponentScene::makeAnimationEngine(DrawableID drawable, RigID rig)
     -> AnimationEngine&
 {
-    return storage.add<AnimationComponent>(drawable, rig).engine;
+    return storage.add<AnimationComponent>(drawable, rig.getDeviceDataHandle()).engine;
 }
 
 auto trc::DrawableComponentScene::makeNode(DrawableID drawable)
     -> Node&
 {
     return storage.add<NodeComponent>(drawable).node;
-}
-
-bool trc::DrawableComponentScene::hasRasterization(DrawableID drawable) const
-{
-    return storage.has<RasterComponent>(drawable);
 }
 
 bool trc::DrawableComponentScene::hasRaytracing(DrawableID drawable) const
@@ -214,12 +233,6 @@ bool trc::DrawableComponentScene::hasAnimation(DrawableID drawable) const
 bool trc::DrawableComponentScene::hasNode(DrawableID drawable) const
 {
     return storage.has<NodeComponent>(drawable);
-}
-
-auto trc::DrawableComponentScene::getRasterization(DrawableID drawable)
-    -> const drawcomp::RasterComponent&
-{
-    return storage.get<RasterComponent>(drawable);
 }
 
 auto trc::DrawableComponentScene::getNode(DrawableID drawable) -> Node&
