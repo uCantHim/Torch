@@ -96,6 +96,7 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
     os << "std::array<" << makeStoredType<T>() << ", " << groupInfo.combinedFlagType << "::size()> "
        << groupInfo.storageName;
 
+    // Write data initialization
     if constexpr (hasDynamicallyInitializedValue<T>)
     {
         os << ";" << nl;
@@ -233,7 +234,7 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
 {
     std::stringstream ss;
     auto writeStage = [this, &ss](const char* stage, const ObjectReference<ShaderDesc>& ref) {
-        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { info.shaderLoader.load(";
+        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { shaderLoader.load(";
         std::visit(VariantVisitor{
             [&](const UniqueName& name) {
                 ss << makeReferenceCall(name);

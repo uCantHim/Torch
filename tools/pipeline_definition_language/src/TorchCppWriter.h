@@ -32,6 +32,7 @@ struct TorchCppWriterCreateInfo
 
     fs::path shaderInputDir{ "." };
     fs::path shaderOutputDir{ "." };
+    std::optional<fs::path> shaderDatabasePath;
 
     ShaderOutputType defaultShaderOutput;
 };
@@ -68,6 +69,7 @@ private:
     static void writeHeaderIncludes(std::ostream& os);
     static void writeSourceIncludes(std::ostream& os);
     void writeBanner(const std::string& msg, std::ostream& os);
+    void writeStaticData(std::ostream& os);
 
     void error(std::string message);
 

@@ -309,6 +309,7 @@ void PipelineDefinitionLanguage::writeOutput(
         .compiledFileName=sourceFilePath.filename().replace_extension("").string(),
         .shaderInputDir=shaderInputDir,
         .shaderOutputDir=shaderOutputDir,
+        .shaderDatabasePath=shaderDatabasePath,
         .defaultShaderOutput=defaultShaderOutputType
     });
 

@@ -39,12 +39,11 @@ void trc::init(const TorchInitInfo& info)
 
     // Init pipelines
     pipelines::initDrawablePipelines({
-        .shaderLoader=internal::getShaderLoader(),
         .drawablePushConstantDefaultValue=DrawablePushConstants{}
     });
-    pipelines::initRasterPipelines({ internal::getShaderLoader() });
-    pipelines::text::initTextPipelines({ internal::getShaderLoader() });
-    pipelines::particle::initParticlePipelines({ internal::getShaderLoader() });
+    pipelines::initRasterPipelines({});
+    pipelines::text::initTextPipelines({});
+    pipelines::particle::initParticlePipelines({});
 }
 
 void trc::pollEvents()

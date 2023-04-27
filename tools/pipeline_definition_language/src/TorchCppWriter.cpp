@@ -107,6 +107,10 @@ void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
 
 void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
 {
+    os << nl;
+    writeStaticData(os);
+    os << nl;
+
     if (meta.enclosingNamespace.has_value()) {
         os << nl << "namespace " << meta.enclosingNamespace.value() << nl << "{";
     }
@@ -181,7 +185,6 @@ void TorchCppWriter::writeHeaderIncludes(std::ostream& os)
        << "#include <trc/core/PipelineTemplate.h>\n"
        << "#include <trc/core/PipelineLayoutTemplate.h>\n"
        << "#include <trc/core/PipelineRegistry.h>\n"
-       << "#include <trc/ShaderLoader.h>\n"
        << "#include <trc/ShaderPath.h>\n"
        << "\n"
        << "#include \"trc/FlagCombination.h\"\n"
@@ -193,6 +196,7 @@ void TorchCppWriter::writeSourceIncludes(std::ostream& os)
     os << "#include <array>\n"
        << "\n"
        << "#include <trc/PipelineDefinitions.h>\n"
+       << "#include <trc/ShaderLoader.h>\n"
         ;
 }
 
@@ -205,16 +209,31 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
        << std::string(borderSize, '/') << nl;
 }
 
-namespace std
+void TorchCppWriter::writeStaticData(std::ostream& os)
 {
-    template<>
-    struct hash<pair<string, string>>
-    {
-        auto operator()(const pair<string, string>& pair) const -> size_t {
-            return hash<string>{}(pair.first + pair.second);
-        }
-    };
+    os << "static trc::ShaderLoader shaderLoader("
+       // Shader source (input) directories:
+       << ++nl << "{ " << config.shaderInputDir << ", " << config.shaderOutputDir << " },"
+       // Shader binary (output) directory:
+       <<   nl << config.shaderOutputDir;
+
+    // Optional path to a shader database
+    if (config.shaderDatabasePath) {
+        os << "," << nl << config.shaderDatabasePath.value();
+    }
+
+    os << --nl << ");";
 }
+
+
+
+template<>
+struct std::hash<std::pair<std::string, std::string>>
+{
+    auto operator()(const pair<string, string>& pair) const -> size_t {
+        return hash<string>{}(pair.first + pair.second);
+    }
+};
 
 auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& result)
     -> std::vector<std::pair<std::string, std::string>>
@@ -222,9 +241,6 @@ auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& re
     // Need the members to be sorted, that's why I have a vector *and* a set.
     std::set<std::pair<std::string, std::string>> uniques;
     std::vector<std::pair<std::string, std::string>> members;
-
-    // A ShaderLoader is always a member of the create info struct
-    members.emplace_back("trc::ShaderLoader&", "shaderLoader");
 
     /** Collect all push constant default values from a layout description */
     auto collectPushConstants = [&members, &uniques](auto&& layout){

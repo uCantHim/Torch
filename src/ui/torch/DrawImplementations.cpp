@@ -1,7 +1,6 @@
 #include "trc/ui/torch/DrawImplementations.h"
 
 #include "trc/GuiShaders.h"
-#include "trc/PipelineDefinitions.h"
 #include "trc/base/Buffer.h"
 #include "trc/base/Logging.h"
 #include "trc/core/PipelineBuilder.h"
@@ -198,7 +197,7 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
     )),
     quadPipelineLayout(makePipelineLayout(device, {}, {})),
     textPipelineLayout(trc::makePipelineLayout(device, { *descLayout }, {})),
-    _init([]{ pipelines::initGuiShaders({ internal::getShaderLoader() }); return true; }()),
+    _init([]{ pipelines::initGuiShaders({}); return true; }()),
     linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
     quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
     textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),
