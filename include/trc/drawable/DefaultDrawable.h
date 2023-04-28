@@ -14,8 +14,7 @@ namespace trc
         bool animated;
         bool transparent;
 
-        auto toPipelineFlags() const -> pipelines::DrawablePipelineTypeFlags;
-        auto determineGBufferPipeline() const -> Pipeline::ID;
+        auto toPipelineFlags() const -> pipelines::DrawableBasePipelineTypeFlags;
         auto determineShadowPipeline() const -> Pipeline::ID;
     };
 

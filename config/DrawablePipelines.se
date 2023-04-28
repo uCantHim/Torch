@@ -9,33 +9,22 @@ enum AnimationType: none, boneAnim
 enum PipelineShadingType:
     opaque,
     transparent,
-    shadow
 
-
-Shader drawableFragment:
-    Source: match PipelineShadingType
-        opaque -> "drawable/deferred.frag"
-        transparent -> "drawable/transparent.frag"
-        shadow -> "empty.frag"
 
 Shader shadowVertex:
     Source: match AnimationType
         none -> "drawable/shadow.vert"
         boneAnim -> "drawable/shadow_animated.vert"
 
-Shader defaultVertex:
-    Source: match AnimationType
-        none -> "drawable/deferred.vert"
-        boneAnim -> "drawable/deferred_animated.vert"
+Shader emptyVertex:
+    Source: "empty.vert"
 
-Shader drawableVertex: match PipelineShadingType
-    opaque -> defaultVertex
-    transparent -> defaultVertex
-    shadow -> shadowVertex
+Shader emptyFragment:
+    Source: "empty.frag"
 
-Program drawableProgram:
-    VertexShader: drawableVertex
-    FragmentShader: drawableFragment
+Program drawableShadowProgram:
+    VertexShader: shadowVertex
+    FragmentShader: emptyFragment
 
 
 VertexAttribute meshVertexInput:
@@ -53,62 +42,50 @@ VertexAttribute skeletalVertexInput:
 //  Layouts  //
 ///////////////
 
-PushConstant drawablePushConstants: match PipelineShadingType
-    opaque ->
-        Offset: 0
-        Size: 84
-        DefaultValue: "drawablePushConstantDefaultValue"
-    transparent ->
-        Offset: 0
-        Size: 84
-        DefaultValue: "drawablePushConstantDefaultValue"
-    shadow ->
-        Offset: 0
-        Size: 84
-
-Layout drawableLayout:
-    Descriptors: match PipelineShadingType
-        opaque -> [globalDataDesc, assetRegistryDesc, sceneDataDesc, gBufferDesc]
-        transparent -> [globalDataDesc, assetRegistryDesc, sceneDataDesc, gBufferDesc, shadowDesc]
-        shadow -> match AnimationType
-            none -> [shadowDesc]
-            boneAnim -> [shadowDesc, assetRegistryDesc]
-
-    VertexPushConstants: [drawablePushConstants]
+PushConstant drawableShadowPushConstants:
+    Offset: 0
+    Size: 84
 
 
 ////////////////
 //  Pipeline  //
 ////////////////
 
-Pipeline drawablePipeline:
-    Program: drawableProgram
-    Layout: drawableLayout
+Pipeline drawableBasePipeline:
+    Program:
+        VertexShader: emptyVertex
+        FragmentShader: emptyFragment
+    Layout:
+        Descriptors: []
+        VertexPushConstants: []
     RenderPass: match PipelineShadingType
         opaque -> "g_buffer"
         transparent -> "transparency"
-        shadow -> "shadow"
+
     VertexInput: match AnimationType
         none -> [meshVertexInput]
         boneAnim -> [meshVertexInput, skeletalVertexInput]
-    DisableBlendAttachments: match PipelineShadingType
-        opaque -> 3
-        transparent -> 3
-        shadow -> 0
-
+    DisableBlendAttachments: 3
     CullMode: match PipelineShadingType
         opaque -> cullBackFace
         transparent -> cullNone
-        shadow -> cullFrontFace
     DepthWrite: match PipelineShadingType
         opaque -> true
         transparent -> false
-        shadow -> true
-    DepthBiasConstant: match PipelineShadingType
-        opaque -> 0.0
-        transparent -> 0.0
-        shadow -> 2.0
-    DepthBiasSlope: match PipelineShadingType
-        opaque -> 0.0
-        transparent -> 0.0
-        shadow -> 2.0
+
+Pipeline drawableShadowPipeline:
+    Program: drawableShadowProgram
+    Layout:
+        Descriptors: match AnimationType
+            none -> [shadowDesc]
+            boneAnim -> [shadowDesc, assetRegistryDesc]
+        VertexPushConstants: [drawableShadowPushConstants]
+    RenderPass: "shadow"
+    VertexInput: match AnimationType
+        none -> [meshVertexInput]
+        boneAnim -> [meshVertexInput, skeletalVertexInput]
+
+    DisableBlendAttachments: 0
+    CullMode: cullFrontFace
+    DepthBiasConstant: 2.0
+    DepthBiasSlope: 2.0

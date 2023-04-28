@@ -38,9 +38,7 @@ void trc::init(const TorchInitInfo& info)
     log::info << "GLFW initialized successfully";
 
     // Init pipelines
-    pipelines::initDrawablePipelines({
-        .drawablePushConstantDefaultValue=DrawablePushConstants{}
-    });
+    pipelines::initDrawablePipelines({});
     pipelines::initRasterPipelines({});
     pipelines::text::initTextPipelines({});
     pipelines::particle::initParticlePipelines({});

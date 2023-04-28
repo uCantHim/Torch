@@ -13,9 +13,9 @@
 namespace trc
 {
 
-auto DrawablePipelineInfo::toPipelineFlags() const -> pipelines::DrawablePipelineTypeFlags
+auto DrawablePipelineInfo::toPipelineFlags() const -> pipelines::DrawableBasePipelineTypeFlags
 {
-    pipelines::DrawablePipelineTypeFlags flags;
+    pipelines::DrawableBasePipelineTypeFlags flags;
     assert(flags.get<pipelines::AnimationTypeFlagBits>() == pipelines::AnimationTypeFlagBits::none);
     assert(flags.get<pipelines::PipelineShadingTypeFlagBits>() == pipelines::PipelineShadingTypeFlagBits::opaque);
 
@@ -29,14 +29,9 @@ auto DrawablePipelineInfo::toPipelineFlags() const -> pipelines::DrawablePipelin
     return flags;
 }
 
-auto DrawablePipelineInfo::determineGBufferPipeline() const -> Pipeline::ID
-{
-    return getDrawablePipeline(toPipelineFlags());
-}
-
 auto DrawablePipelineInfo::determineShadowPipeline() const -> Pipeline::ID
 {
-    return getDrawablePipeline(toPipelineFlags() | pipelines::PipelineShadingTypeFlagBits::shadow);
+    return pipelines::getDrawableShadowPipeline(toPipelineFlags());
 }
 
 auto makeGBufferDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> DrawableFunction

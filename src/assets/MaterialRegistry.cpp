@@ -1,9 +1,10 @@
 #include "trc/assets/MaterialRegistry.h"
 
 #include "material.pb.h"
+#include "trc/DrawablePipelines.h"
 #include "trc/assets/AssetManager.h"
-#include "trc/ray_tracing/RayPipelineBuilder.h"
 #include "trc/drawable/DefaultDrawable.h"
+#include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
@@ -83,12 +84,16 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
     // Create all runtime programs
     for (const auto& [key, program] : mat.data.programs)
     {
-        Pipeline::ID basePipeline = DrawablePipelineInfo{
+        const DrawablePipelineInfo info{
             .animated=key.flags.has(MaterialKey::Flags::Animated::eTrue),
             .transparent=mat.data.transparent
-        }.determineGBufferPipeline();
-        mat.runtimePrograms.at(key.flags.toIndex())
-            = std::make_unique<MaterialShaderProgram>(program, basePipeline);
+        };
+        Pipeline::ID basePipeline = pipelines::getDrawableBasePipeline(info.toPipelineFlags());
+
+        mat.runtimePrograms.at(key.flags.toIndex()) = std::make_unique<MaterialShaderProgram>(
+            program,
+            basePipeline
+        );
 
         auto rt = mat.runtimePrograms.at(key.flags.toIndex())->makeRuntime();
         auto _rt = mat.getSpecialization(key);
