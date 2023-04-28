@@ -69,7 +69,6 @@ namespace trc::ui_impl
         trc::PipelineLayout linePipelineLayout;
         trc::PipelineLayout quadPipelineLayout;
         trc::PipelineLayout textPipelineLayout;
-        bool _init;
         trc::Pipeline linePipeline;
         trc::Pipeline quadPipeline;
         trc::Pipeline textPipeline;

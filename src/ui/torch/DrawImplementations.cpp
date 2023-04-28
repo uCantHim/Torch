@@ -197,7 +197,6 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
     )),
     quadPipelineLayout(makePipelineLayout(device, {}, {})),
     textPipelineLayout(trc::makePipelineLayout(device, { *descLayout }, {})),
-    _init([]{ pipelines::initGuiShaders({}); return true; }()),
     linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
     quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
     textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),

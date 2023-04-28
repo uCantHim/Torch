@@ -11,18 +11,6 @@
 
 
 template<typename T>
-inline constexpr bool hasDynamicallyInitializedValue{ true };
-
-/**
- * Disable delayed initialization for shaders because ShaderPath does not
- * have a default constructor.
- */
-template<>
-inline constexpr bool hasDynamicallyInitializedValue<ShaderDesc>{ false };
-
-
-
-template<typename T>
 auto TorchCppWriter::makeGroupInfo(const VariantGroup<T>& group) -> VariantGroupRepr
 {
     std::string flagTypeName = makeFlagsType(group);
@@ -58,26 +46,7 @@ template<typename T>
 void TorchCppWriter::writeSingle(const std::string& name, const T& value, std::ostream& os)
 {
     // Write storage variable
-    os << makeStoredType<T>() << " " << name;
-
-    if constexpr (hasDynamicallyInitializedValue<T>)
-    {
-        os << ";";
-
-        // Write initialization function
-        const std::string initName{ "__init_value_" + name
-                                    + "_" + std::to_string(++nextInitFunctionNumber) };
-        initFunctionNames.emplace_back(initName);
-
-        os << nl << "void " << initName
-           << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
-           << nl << "{"
-           << ++nl << name << " = " << makeValue(value) << ";"
-           << --nl << "}";
-    }
-    else {
-        os << " = " << makeValue(value) << ";";
-    }
+    os << makeStoredType<T>() << " " << name << " = " << makeValue(value) << ";";
 
     // Write getter function
     os << nl;
@@ -97,48 +66,25 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
        << groupInfo.storageName;
 
     // Write data initialization
-    if constexpr (hasDynamicallyInitializedValue<T>)
+    os << "{";
+    ++nl;
+
+    // Sort variants by index
+    std::vector<std::tuple<uint32_t, const UniqueName*, const T*>> variantsAtIndex;
+    for (const auto& [name, variant] : group.variants) {
+        variantsAtIndex.emplace_back(name.calcFlagIndex(*flagTable), &name, &variant);
+    }
+    std::ranges::sort(variantsAtIndex,
+                      [](auto& a, auto& b){ return std::get<0>(a) < std::get<0>(b); });
+
+    // Write the sorted list of variants in an inline-initializer-list constructor
+    for (const auto& [_, name, variant] : variantsAtIndex)
     {
-        os << ";" << nl;
-
-        // Write initialization function
-        const std::string initName{ "__init_variant_group_" + group.baseName
-                                    + "_" + std::to_string(++nextInitFunctionNumber) };
-        initFunctionNames.emplace_back(initName);
-
-        os << nl << "void " << initName
-           << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)"
-           << nl++ << "{";
-        for (const auto& [name, variant] : group.variants)
-        {
-            os << nl
-               << groupInfo.storageName << ".at(" << name.calcFlagIndex(*flagTable) << ") = ";
-            writeVariantStorageInit(name, variant, os);
-            os << ";";
-        }
-        os << --nl << "}" << nl << nl;
+        os << nl;
+        writeVariantStorageInit(*name, *variant, os);
+        os << ",";
     }
-    else {
-        os << "{";
-        ++nl;
-
-        // Sort variants by index
-        std::vector<std::tuple<uint32_t, const UniqueName*, const T*>> variantsAtIndex;
-        for (const auto& [name, variant] : group.variants) {
-            variantsAtIndex.emplace_back(name.calcFlagIndex(*flagTable), &name, &variant);
-        }
-        std::ranges::sort(variantsAtIndex,
-                          [](auto& a, auto& b){ return std::get<0>(a) < std::get<0>(b); });
-
-        // Write the sorted list of variants in an inline-initializer-list constructor
-        for (const auto& [_, name, variant] : variantsAtIndex)
-        {
-            os << nl;
-            writeVariantStorageInit(*name, *variant, os);
-            os << ",";
-        }
-        os << --nl << "};" << nl;
-    }
+    os << --nl << "};" << nl;
 
     // Write getter function
     writeGetterFunction(group, os);
@@ -308,7 +254,7 @@ inline auto TorchCppWriter::makeValue(const LayoutDesc& layout) -> std::string
             ss << nl << "{ vk::PushConstantRange(" << stageBit << ", "
                << pc.offset << ", " << pc.size << "), ";
             if (pc.defaultValueName.has_value()) {
-                ss << "info." << pc.defaultValueName.value();
+                ss << pc.defaultValueName.value() << "{}";
             }
             else {
                 ss << "std::nullopt";

@@ -73,16 +73,6 @@ private:
 
     void error(std::string message);
 
-    ////////////////////////////////////
-    //  Dynamic initialization utils  //
-    ////////////////////////////////////
-
-    auto collectDynamicInitCreateInfoMembers(const CompileResult& result)
-        -> std::vector<std::pair<std::string, std::string>>;
-    auto makeDynamicInitCreateInfoName() const -> std::string;
-    void writeDynamicInitCreateInfoStruct(const CompileResult& result, std::ostream& os);
-    void writeDynamicInitFunctionHead(std::ostream& os);
-    void writeDynamicInitFunctionDef(std::ostream& os);
 
     //////////////////////////////
     //  Variant and flag utils  //
@@ -96,6 +86,7 @@ private:
     auto makeFlagsType(const VariantGroup<T>& group) -> std::string;
     auto makeFlagsType(const UniqueName& name) -> std::string;
     auto makeFlagBitsType(const std::string& flagName) -> std::string;
+
 
     /////////////////////////////
     //  Getter function utils  //

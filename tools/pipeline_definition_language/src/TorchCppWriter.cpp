@@ -81,10 +81,6 @@ void TorchCppWriter::writeHeader(const CompileResult& result, std::ostream& os)
 
     // Write dynamic initialization stuff
     os << nl << nl;
-    writeDynamicInitCreateInfoStruct(result, os);
-    os << nl << nl;
-    writeDynamicInitFunctionHead(os);
-    os << ";";
 
     writeBanner("Flag Types", os);
     writeFlags(result, os);
@@ -125,11 +121,6 @@ void TorchCppWriter::writeSource(const CompileResult& result, std::ostream& os)
     writeSource<PipelineDesc>(result.pipelines, os);
     writeBanner("ComputePipelines", os);
     writeSource<ComputePipelineDesc>(result.computePipelines, os);
-
-    // Write at the end when all init callback names have been collected
-    os << nl << nl;
-    writeDynamicInitFunctionDef(os);
-    os << nl;
 
     if (meta.enclosingNamespace.has_value()) {
         os << nl << "} // namespace " << meta.enclosingNamespace.value();
@@ -234,85 +225,6 @@ struct std::hash<std::pair<std::string, std::string>>
         return hash<string>{}(pair.first + pair.second);
     }
 };
-
-auto TorchCppWriter::collectDynamicInitCreateInfoMembers(const CompileResult& result)
-    -> std::vector<std::pair<std::string, std::string>>
-{
-    // Need the members to be sorted, that's why I have a vector *and* a set.
-    std::set<std::pair<std::string, std::string>> uniques;
-    std::vector<std::pair<std::string, std::string>> members;
-
-    /** Collect all push constant default values from a layout description */
-    auto collectPushConstants = [&members, &uniques](auto&& layout){
-        for (const auto& [stage, pcs] : layout.pushConstantsPerStage)
-        {
-            for (const auto& pc : pcs)
-            {
-                if (pc.defaultValueName.has_value())
-                {
-                    auto pair = std::make_pair("trc::PushConstantDefaultValue",
-                                               pc.defaultValueName.value());
-                    if (uniques.emplace(pair).second) {
-                        members.emplace_back(pair);
-                    }
-                }
-            }
-        }
-    };
-
-    // Collect push constants
-    for (const auto& [_, layout] : result.layouts)
-    {
-        std::visit(VariantVisitor{
-            [&](const LayoutDesc& layout){ collectPushConstants(layout); },
-            [&](const VariantGroup<LayoutDesc>& group){
-                for (const auto& [_, layout] : group.variants) {
-                    collectPushConstants(layout);
-                }
-            },
-        }, layout);
-    }
-
-    return members;
-}
-
-auto TorchCppWriter::makeDynamicInitCreateInfoName() const -> std::string
-{
-    return capitalize(config.compiledFileName) + "CreateInfo";
-}
-
-void TorchCppWriter::writeDynamicInitCreateInfoStruct(
-    const CompileResult& result,
-    std::ostream& os)
-{
-    const auto members = collectDynamicInitCreateInfoMembers(result);
-
-    os << "struct " << makeDynamicInitCreateInfoName()
-       << nl << "{";
-
-    // Write member definitions
-    ++nl;
-    for (const auto& [type, member] : members) {
-        os << nl << "const " << type << " " << member << ";";
-    }
-    os << --nl << "};";
-}
-
-void TorchCppWriter::writeDynamicInitFunctionHead(std::ostream& os)
-{
-    os << "void init" << capitalize(config.compiledFileName)
-       << "([[maybe_unused]] const " << makeDynamicInitCreateInfoName() << "& info)";
-}
-
-void TorchCppWriter::writeDynamicInitFunctionDef(std::ostream& os)
-{
-    writeDynamicInitFunctionHead(os);
-    os << nl++ << "{";
-    for (const auto& funcName : initFunctionNames) {
-        os << nl << funcName << "(info);";
-    }
-    os << --nl << "}";
-}
 
 void TorchCppWriter::writeFlags(const CompileResult& result, std::ostream& os)
 {

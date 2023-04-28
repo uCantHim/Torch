@@ -1,10 +1,6 @@
 #include "trc/Torch.h"
 
-#include "trc/DrawablePipelines.h"
-#include "trc/ParticlePipelines.h"
 #include "trc/PipelineDefinitions.h"
-#include "trc/RasterPipelines.h"
-#include "trc/TextPipelines.h"
 #include "trc/TorchImplementation.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
@@ -36,12 +32,6 @@ void trc::init(const TorchInitInfo& info)
         throw std::runtime_error("Initialization of GLFW failed: " + std::string(errorMsg));
     }
     log::info << "GLFW initialized successfully";
-
-    // Init pipelines
-    pipelines::initDrawablePipelines({});
-    pipelines::initRasterPipelines({});
-    pipelines::text::initTextPipelines({});
-    pipelines::particle::initParticlePipelines({});
 }
 
 void trc::pollEvents()
