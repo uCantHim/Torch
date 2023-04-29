@@ -5,4 +5,6 @@ target_sources(
         Drawable.cpp
         DrawableComponentScene.cpp
         DrawableScene.cpp
+        RasterComponent.cpp
+        RayComponent.cpp
 )

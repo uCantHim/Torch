@@ -110,7 +110,7 @@ void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& s
     assetDescriptor->update(window.getDevice());
     shadowPool->update();
     if (enableRayTracing) {
-        tlasBuildPass->setScene(scene.getDrawableInternals());
+        tlasBuildPass->setScene(scene.getComponentInternals());
     }
 }
 

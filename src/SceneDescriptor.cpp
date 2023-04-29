@@ -24,7 +24,7 @@ trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
     ),
-    drawableBufferMap(drawableDataBuf.map<DrawableComponentScene::RayInstanceData*>())
+    drawableBufferMap(drawableDataBuf.map<std::byte*>())
 {
     createDescriptors();
     writeDescriptors();
@@ -60,7 +60,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
     lights.writeLightData(lightBufferMap);
 
     // Update ray scene data
-    const size_t dataSize = scene.getDrawableInternals().getMaxRayDeviceDataSize();
+    const size_t dataSize = scene.getComponentInternals().getMaxRayDeviceDataSize();
     if (dataSize > drawableDataBuf.size())
     {
         drawableDataBuf.unmap();
@@ -70,7 +70,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
         );
-        drawableBufferMap = drawableDataBuf.map<DrawableComponentScene::RayInstanceData*>();
+        drawableBufferMap = drawableDataBuf.map<std::byte*>();
 
         vk::DescriptorBufferInfo bufferInfo(*drawableDataBuf, 0, VK_WHOLE_SIZE);
         std::vector<vk::WriteDescriptorSet> writes = {
@@ -79,7 +79,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
         device->updateDescriptorSets(writes, {});
     }
 
-    scene.getDrawableInternals().writeRayDeviceData(drawableBufferMap, dataSize);
+    scene.getComponentInternals().writeRayDeviceData(drawableBufferMap, dataSize);
     drawableDataBuf.flush();
 }
 

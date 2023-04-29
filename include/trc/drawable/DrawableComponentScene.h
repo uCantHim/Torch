@@ -4,81 +4,28 @@
 
 #include <componentlib/ComponentStorage.h>
 #include <componentlib/ComponentID.h>
-
-#include "trc/Transformation.h"
-
-#include "trc/assets/Geometry.h"
-#include "trc/assets/Material.h"
+#include <trc_util/data/IdPool.h>
+#include <trc_util/data/IndexMap.h>
 
 #include "trc/core/RenderStage.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/Pipeline.h"
-#include "trc/core/SceneBase.h"
-
-#include "trc/drawable/NodeComponent.h"
-#include "trc/drawable/AnimationComponent.h"
-
 #include "trc/ray_tracing/GeometryUtils.h"
 
 namespace trc
 {
     class SceneBase;
 
-    struct RasterComponentCreateInfo
-    {
-        GeometryID geo;
-        MaterialID mat;
-
-        Transformation::ID modelMatrixId;
-        AnimationEngine::ID anim;
-    };
-
-    struct RayComponentCreateInfo
-    {
-        GeometryID geo;
-        MaterialID mat;
-
-        Transformation::ID transformation;
-    };
-
     namespace drawcomp {
         struct _DrawableIdTypeTag {};
     }
     using DrawableID = componentlib::ComponentID<drawcomp::_DrawableIdTypeTag>;
 
-    class DrawableComponentScene;
-
-    /**
-     * @brief A move-only unique wrapper for DrawableID
-     *
-     * Calls scene.destroyDrawable(this) on destruction.
-     */
-    struct UniqueDrawableID
-    {
-    public:
-        UniqueDrawableID(const UniqueDrawableID&) = delete;
-        auto operator=(const UniqueDrawableID&) noexcept -> UniqueDrawableID& = delete;
-
-        UniqueDrawableID() = default;
-        UniqueDrawableID(DrawableComponentScene& scene, DrawableID id);
-        UniqueDrawableID(UniqueDrawableID&& other) noexcept;
-        auto operator=(UniqueDrawableID&& other) noexcept -> UniqueDrawableID&;
-        ~UniqueDrawableID() noexcept;
-
-        operator bool() const;
-        operator DrawableID() const;
-        auto operator*() const -> DrawableID;
-        auto get() const -> DrawableID;
-
-    private:
-        DrawableComponentScene* scene{ nullptr };
-        DrawableID id;
-    };
-
     /**
      * @brief
      */
     class DrawableComponentScene
+        : public componentlib::ComponentStorage<DrawableComponentScene, DrawableID>
     {
     public:
         struct RayInstanceData
@@ -88,6 +35,8 @@ namespace trc
         };
 
         DrawableComponentScene(SceneBase& base);
+
+        auto getSceneBase() -> SceneBase&;
 
         void updateAnimations(float timeDelta);
         void updateRayData();
@@ -136,94 +85,36 @@ namespace trc
         auto writeRayDeviceData(void* deviceDataBuf, size_t maxSize) const
             -> size_t;
 
-        auto makeDrawable() -> DrawableID;
-        auto makeDrawableUnique() -> UniqueDrawableID;
-        void destroyDrawable(DrawableID drawable);
+        /**
+         * @brief A more expressive name for `createObject`
+         */
+        inline auto makeDrawable() -> DrawableID {
+            return createObject();
+        }
 
-        void makeRasterization(DrawableID drawable, const RasterComponentCreateInfo& createInfo);
-        void makeRaytracing(DrawableID drawable, const RayComponentCreateInfo& createInfo);
-        auto makeAnimationEngine(DrawableID drawable, RigID rig) -> AnimationEngine&;
-        auto makeNode(DrawableID drawable) -> Node&;
-
-        bool hasRasterization(DrawableID drawable) const;
-        bool hasRaytracing(DrawableID drawable) const;
-        bool hasAnimation(DrawableID drawable) const;
-        bool hasNode(DrawableID drawable) const;
-
-        auto getAnimationEngine(DrawableID drawable) -> AnimationEngine&;
-        auto getNode(DrawableID drawable) -> Node&;
+        /**
+         * @brief A more expressive name for `deleteObject`
+         */
+        inline void destroyDrawable(DrawableID drawable) {
+            deleteObject(drawable);
+        }
 
     private:
         template<componentlib::ComponentType T>
         friend struct componentlib::ComponentTraits;
 
-        struct RayComponent
-        {
-            Transformation::ID modelMatrix;
-            GeometryHandle geo;  // Keep the geometry alive
-            ui32 materialIndex;
-
-            ui32 instanceDataIndex;
-        };
-
-        struct InternalStorage : componentlib::ComponentStorage<InternalStorage, DrawableID>
-        {
-            auto allocateRayInstance(RayInstanceData data) -> ui32;
-            void freeRayInstance(ui32 index);
-
-            data::IdPool<ui32> rayInstanceIdPool;
-
-            /**
-             * Other than the rt::GeometryInstance data (the format of which is
-             * restricted by Vulkan), the custom per-instance data does not have
-             * to be tightly packed, but requires constant indices instead.
-             */
-            data::IndexMap<ui32, RayInstanceData> rayInstances;
-        };
+        auto allocateRayInstance(RayInstanceData data) -> ui32;
+        void freeRayInstance(ui32 index);
 
         SceneBase* base;
-        InternalStorage storage;
+
+        data::IdPool<ui32> rayInstanceIdPool;
+
+        /**
+         * Other than the rt::GeometryInstance data (the format of which is
+         * restricted by Vulkan), the custom per-instance data does not have
+         * to be tightly packed, but requires constant indices instead.
+         */
+        data::IndexMap<ui32, RayInstanceData> rayInstances;
     };
 } // namespace trc
-
-template<>
-struct componentlib::ComponentTraits<trc::DrawableComponentScene::RayComponent>
-{
-    void onCreate(trc::DrawableComponentScene::InternalStorage& storage,
-                  trc::DrawableID drawable,
-                  trc::DrawableComponentScene::RayComponent& ray)
-    {
-        // Allocate a user data structure
-        //
-        // This data is referenced by geometry instances via the instanceCustomIndex
-        // property and defines auxiliary information that Torch needs to draw
-        // ray traced objects.
-        ray.instanceDataIndex = storage.allocateRayInstance(
-            trc::DrawableComponentScene::RayInstanceData{
-                .geometryIndex=ray.geo.getDeviceIndex(),
-                .materialIndex=ray.materialIndex,
-            }
-        );
-
-        // Allocate a geometry instance
-        //
-        // This data communicates definitions of ray traced object to Vulkan.
-        storage.add<trc::rt::GeometryInstance>(drawable,
-            trc::rt::GeometryInstance(
-                trc::mat4{ 1.0f },
-                ray.instanceDataIndex,
-                0xff, 0,
-                vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-                | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
-                ray.geo.getAccelerationStructure()
-            )
-        );
-    }
-
-    void onDelete(trc::DrawableComponentScene::InternalStorage& storage,
-                  auto /*id*/,
-                  trc::DrawableComponentScene::RayComponent ray)
-    {
-        storage.freeRayInstance(ray.instanceDataIndex);
-    }
-};

@@ -7,16 +7,24 @@
 #include "trc/Types.h"
 #include "trc/drawable/Drawable.h"
 #include "trc/drawable/DrawableComponentScene.h"
+#include "trc/drawable/DrawableStructs.h"
 
 namespace trc
 {
-    // struct DrawableHandle
-    // {
-    //     auto operator->() -> Drawable*;
-    //     auto operator->() const -> const Drawable*;
-    // };
-
-    using DrawableHandle = s_ptr<Drawable>;
+    /**
+     * @brief A shared handle to a drawable object
+     *
+     * # Example
+     * ```cpp
+     *
+     * Scene scene;
+     * Drawable myDrawable = scene.makeDrawable({ myGeo, myMat });
+     * ```
+     *
+     * @note I can extend this to a custom struct with an overloaded `operator->`
+     * if a more sophisticated interface is required.
+     */
+    using Drawable = s_ptr<DrawableObj>;
 
     class DrawableScene
     {
@@ -30,15 +38,15 @@ namespace trc
             components.updateRayData();
         }
 
-        auto makeDrawable(const DrawableCreateInfo& createInfo) -> DrawableHandle;
+        auto makeDrawable(const DrawableCreateInfo& createInfo) -> Drawable;
 
-        auto getDrawableInternals() const -> const DrawableComponentScene& {
+        auto getComponentInternals() const -> const DrawableComponentScene& {
             return components;
         }
 
     private:
         DrawableComponentScene components;
 
-        util::SafeVector<Drawable> drawables;
+        util::SafeVector<DrawableObj> drawables;
     };
 } // namespace trc

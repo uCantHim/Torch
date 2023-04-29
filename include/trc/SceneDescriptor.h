@@ -55,6 +55,6 @@ namespace trc
         Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping
         Buffer drawableDataBuf;
-        DrawableComponentScene::RayInstanceData* drawableBufferMap;
+        std::byte* drawableBufferMap;
     };
 } // namespace trc

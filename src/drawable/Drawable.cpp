@@ -1,16 +1,13 @@
 #include "trc/drawable/Drawable.h"
 
-#include "trc/TorchRenderStages.h"
-#include "trc/GBufferPass.h"
-#include "trc/RenderPassShadow.h"
-#include "trc/drawable/DefaultDrawable.h"
+#include "trc/drawable/AnimationComponent.h"
 
 
 
 namespace trc
 {
 
-Drawable::Drawable(
+DrawableObj::DrawableObj(
     DrawableID id,
     DrawableComponentScene& scene,
     GeometryID geometry,
@@ -23,29 +20,27 @@ Drawable::Drawable(
 {
 }
 
-auto Drawable::getGeometry() const -> GeometryID
+auto DrawableObj::getGeometry() const -> GeometryID
 {
     return geo;
 }
 
-auto Drawable::getMaterial() const -> MaterialID
+auto DrawableObj::getMaterial() const -> MaterialID
 {
     return mat;
 }
 
-bool Drawable::isAnimated() const
+bool DrawableObj::isAnimated() const
 {
-    return scene->hasAnimation(id);
+    return scene->has<AnimationComponent>(id);
 }
 
-auto Drawable::getAnimationEngine() -> AnimationEngine&
+auto DrawableObj::getAnimationEngine() -> std::optional<AnimationEngine*>
 {
-    return scene->getAnimationEngine(id);
-}
-
-auto Drawable::getAnimationEngine() const -> const AnimationEngine&
-{
-    return scene->getAnimationEngine(id);
+    if (auto comp = scene->tryGet<AnimationComponent>(id)) {
+        return &comp.value()->engine;
+    }
+    return std::nullopt;
 }
 
 } // namespace trc

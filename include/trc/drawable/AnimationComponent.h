@@ -3,12 +3,17 @@
 #include <componentlib/Table.h>
 
 #include "trc/AnimationEngine.h"
+#include "trc/assets/Rig.h"
 
-namespace trc::drawcomp
+namespace trc
 {
     struct AnimationComponent
     {
-        AnimationComponent(RigHandle rig) : rig(rig), engine(rig) {}
+        explicit AnimationComponent(RigID rig)
+            :
+            rig(rig.getDeviceDataHandle()),
+            engine(this->rig)
+        {}
 
         RigHandle rig;
         AnimationEngine engine;
@@ -20,7 +25,7 @@ namespace trc::drawcomp
  * user
  */
 template<>
-struct componentlib::TableTraits<trc::drawcomp::AnimationComponent>
+struct componentlib::TableTraits<trc::AnimationComponent>
 {
     using UniqueStorage = std::true_type;
 };

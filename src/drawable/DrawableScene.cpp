@@ -1,6 +1,9 @@
 #include "trc/drawable/DrawableScene.h"
 
+#include "trc/drawable/AnimationComponent.h"
 #include "trc/drawable/DefaultDrawable.h"
+#include "trc/drawable/RasterComponent.h"
+#include "trc/drawable/RayComponent.h"
 
 
 
@@ -13,13 +16,13 @@ DrawableScene::DrawableScene(SceneBase& baseScene)
 {
 }
 
-auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> DrawableHandle
+auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
 {
     const DrawableID id = components.makeDrawable();
 
-    std::shared_ptr<Drawable> drawable(
-        &drawables.emplace(ui32{id}, Drawable{ id, components, info.geo, info.mat }),
-        [this](Drawable* drawable) {
+    std::shared_ptr<DrawableObj> drawable(
+        &drawables.emplace(ui32{id}, DrawableObj{ id, components, info.geo, info.mat }),
+        [this](DrawableObj* drawable) {
             drawables.erase(ui32{drawable->id});
             components.destroyDrawable(drawable->id);
         }
@@ -28,22 +31,25 @@ auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> DrawableHand
     // Create a rasterization component
     if (info.rasterized)
     {
-        AnimationEngine::ID animState{};
-        if (auto geo=info.geo.getDeviceDataHandle(); geo.hasRig()) {
-            animState = components.makeAnimationEngine(id, geo.getRig()).getState();
-        }
+        auto geo = info.geo.getDeviceDataHandle();
 
-        components.makeRasterization(id, RasterComponentCreateInfo{
+        components.add<RasterComponent>(id, RasterComponentCreateInfo{
             .geo=info.geo,
             .mat=info.mat,
             .modelMatrixId=drawable->getGlobalTransformID(),
-            .anim=animState,
+            .anim=geo.hasRig()
+                ? components.add<AnimationComponent>(id, geo.getRig()).engine.getState()
+                : AnimationEngine::ID{}
         });
     }
 
     // Create a ray tracing component
-    if (info.rayTraced) {
-        components.makeRaytracing(id, { info.geo, info.mat, drawable->getGlobalTransformID() });
+    if (info.rayTraced)
+    {
+        components.add<RayComponent>(
+            id,
+            RayComponentCreateInfo{ info.geo, info.mat, drawable->getGlobalTransformID() }
+        );
     }
 
     return drawable;

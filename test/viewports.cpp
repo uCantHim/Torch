@@ -82,10 +82,10 @@ void run()
     auto redMat = assets.create<trc::Material>(trc::makeMaterial({ .color=vec4(1, 0.3f, 0, 1) }));
 
     // Create an inclined plane and a rotating cube
-    auto plane = scene.makeDrawable({ planeGeo, greenMat });
+    trc::Drawable plane = scene.makeDrawable({ planeGeo, greenMat });
     plane->rotateX(glm::radians(45.0f)).rotateY(glm::radians(-45.0f)).translate(0.5f, -0.5f, -1.5f);
 
-    auto cube = scene.makeDrawable({ cubeGeo, redMat });
+    trc::Drawable cube = scene.makeDrawable({ cubeGeo, redMat });
     cube->scale(0.7f);
 
     // Create two draw configurations because we draw two viewports

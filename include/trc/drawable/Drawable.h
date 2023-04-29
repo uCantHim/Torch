@@ -1,51 +1,46 @@
 #pragma once
 
-#include "trc/RasterPipelines.h"
+#include <optional>
+
+#include "trc/AnimationEngine.h"
+#include "trc/Node.h"
+#include "trc/assets/Geometry.h"
+#include "trc/assets/Material.h"
 #include "trc/drawable/DrawableComponentScene.h"
-#include "trc/drawable/DrawableStructs.h"
 
 namespace trc
 {
-    class Drawable : public Node
+    class DrawableObj : public Node
     {
     public:
-        Drawable(const Drawable&) = delete;
-        auto operator=(const Drawable&) -> Drawable& = delete;
-        auto operator=(Drawable&&) noexcept -> Drawable& = delete;
+        DrawableObj(const DrawableObj&) = delete;
+        auto operator=(const DrawableObj&) -> DrawableObj& = delete;
+        auto operator=(DrawableObj&&) noexcept -> DrawableObj& = delete;
 
-        Drawable(Drawable&&) noexcept = default;
-        ~Drawable() noexcept = default;
+        DrawableObj(DrawableObj&&) noexcept = default;
+        ~DrawableObj() noexcept = default;
 
         auto getGeometry() const -> GeometryID;
         auto getMaterial() const -> MaterialID;
 
         /**
-         * @return bool True if the drawable has a rig and an animation
-         *              engine. False otherwise.
+         * @return bool True if the drawable has an animation engine.
+         *              False otherwise.
          */
         bool isAnimated() const;
 
         /**
-         * @return AnimationEngine& Always returns an animation engine, even
-         *                          if the geometry doesn't have a rig.
-         * @throw std::out_of_range if the drawable is not animated.
+         * @return std::optional<AnimationEngine*>
          */
-        auto getAnimationEngine() -> AnimationEngine&;
-
-        /**
-         * @return AnimationEngine& Always returns an animation engine, even
-         *                          if the geometry doesn't have a rig.
-         * @throw std::out_of_range if the drawable is not animated.
-         */
-        auto getAnimationEngine() const -> const AnimationEngine&;
+        auto getAnimationEngine() -> std::optional<AnimationEngine*>;
 
     private:
         friend class DrawableScene;
 
-        Drawable(DrawableID id,
-                 DrawableComponentScene& scene,
-                 GeometryID geometry,
-                 MaterialID material);
+        DrawableObj(DrawableID id,
+                    DrawableComponentScene& scene,
+                    GeometryID geometry,
+                    MaterialID material);
 
         DrawableComponentScene* scene;
         DrawableID id;

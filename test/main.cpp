@@ -89,7 +89,7 @@ void run()
     scene.getRoot().attach(skeletonNode);
 
     const trc::DrawableCreateInfo skelCreateInfo{ skeletonGeoIndex, matIdx };
-    std::vector<s_ptr<trc::Drawable>> skeletons;
+    std::vector<s_ptr<trc::DrawableObj>> skeletons;
     for (int i = 0; i < 50; i++)
     {
         auto& inst = *skeletons.emplace_back(scene.makeDrawable(skelCreateInfo));
@@ -98,13 +98,13 @@ void run()
             .translate(glm::cos(angle), 0.0f, glm::sin(angle))
             .rotateY(-glm::half_pi<float>() - angle);
         scene.getRoot().attach(inst);
-        inst.getAnimationEngine().playAnimation(0);
+        inst.getAnimationEngine().value()->playAnimation(0);
     }
 
     // Hooded boi
     auto hoodedBoi = scene.makeDrawable({ hoodedBoiGeoIndex, mapMatIndex });
     hoodedBoi->setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    hoodedBoi->getAnimationEngine().playAnimation(0);
+    hoodedBoi->getAnimationEngine().value()->playAnimation(0);
 
     // Linda
     auto lindaMatIdx = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
@@ -114,7 +114,7 @@ void run()
 
     auto linda = scene.makeDrawable({ lindaGeoIndex, lindaMatIdx });
     linda->setScale(0.3f).translateX(-1.0f);
-    linda->getAnimationEngine().playAnimation(0);
+    linda->getAnimationEngine().value()->playAnimation(0);
 
     // Images
     auto planeGeo = ar.create(trc::makePlaneGeo());
@@ -152,7 +152,7 @@ void run()
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 200;
-    std::vector<s_ptr<trc::Drawable>> trees;
+    std::vector<s_ptr<trc::DrawableObj>> trees;
     for (ui32 i = 0; i < NUM_TREES; i++)
     {
         auto& tree = *trees.emplace_back(scene.makeDrawable({ treeGeoIndex, treeMatIdx }));
