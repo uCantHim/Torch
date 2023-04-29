@@ -78,8 +78,8 @@ void run()
 
     trc::Scene scene;
 
-    trc::Drawable grass({ grassGeoIndex, matIdx }, scene);
-    grass.setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
+    auto grass = scene.makeDrawable({ grassGeoIndex, matIdx });
+    grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     // Animated skeleton
     trc::Node skeletonNode;
@@ -87,12 +87,12 @@ void run()
                 .translate(1.0f, 0.0f, 0.0f)
                 .rotateY(-glm::half_pi<float>());
     scene.getRoot().attach(skeletonNode);
-    std::vector<u_ptr<trc::Drawable>> skeletons;
-    trc::DrawableCreateInfo skelCreateInfo{ skeletonGeoIndex, matIdx };
 
+    const trc::DrawableCreateInfo skelCreateInfo{ skeletonGeoIndex, matIdx };
+    std::vector<s_ptr<trc::Drawable>> skeletons;
     for (int i = 0; i < 50; i++)
     {
-        auto& inst = *skeletons.emplace_back(new trc::Drawable(skelCreateInfo, scene));
+        auto& inst = *skeletons.emplace_back(scene.makeDrawable(skelCreateInfo));
         const float angle = glm::two_pi<float>() / 50 * i;
         inst.scale(0.02f).translateZ(1.2f)
             .translate(glm::cos(angle), 0.0f, glm::sin(angle))
@@ -102,9 +102,9 @@ void run()
     }
 
     // Hooded boi
-    trc::Drawable hoodedBoi({ hoodedBoiGeoIndex, mapMatIndex }, scene);
-    hoodedBoi.setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
-    hoodedBoi.getAnimationEngine().playAnimation(0);
+    auto hoodedBoi = scene.makeDrawable({ hoodedBoiGeoIndex, mapMatIndex });
+    hoodedBoi->setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
+    hoodedBoi->getAnimationEngine().playAnimation(0);
 
     // Linda
     auto lindaMatIdx = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
@@ -112,9 +112,9 @@ void run()
         .albedoTexture = lindaDiffTexIdx
     }));
 
-    trc::Drawable linda({ lindaGeoIndex, lindaMatIdx }, scene);
-    linda.setScale(0.3f).translateX(-1.0f);
-    linda.getAnimationEngine().playAnimation(0);
+    auto linda = scene.makeDrawable({ lindaGeoIndex, lindaMatIdx });
+    linda->setScale(0.3f).translateX(-1.0f);
+    linda->getAnimationEngine().playAnimation(0);
 
     // Images
     auto planeGeo = ar.create(trc::makePlaneGeo());
@@ -125,14 +125,14 @@ void run()
     auto opaqueImg = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
         .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     }));
-    trc::Drawable img({ planeGeo, transparentImg, true }, scene);
-    img.translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
-    trc::Drawable img2({ planeGeo, opaqueImg, false }, scene);
-    img2.translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
+    auto img = scene.makeDrawable({ planeGeo, transparentImg });
+    img->translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
+    auto img2 = scene.makeDrawable({ planeGeo, opaqueImg });
+    img2->translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
 
     // Generated plane geo
     auto myPlaneGeoIndex = ar.create(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
-    trc::Drawable plane({ myPlaneGeoIndex, mapMatIndex }, scene);
+    auto plane = scene.makeDrawable({ myPlaneGeoIndex, mapMatIndex });
 
     trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
     [[maybe_unused]]
@@ -152,10 +152,10 @@ void run()
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 200;
-    std::vector<u_ptr<trc::Drawable>> trees;
+    std::vector<s_ptr<trc::Drawable>> trees;
     for (ui32 i = 0; i < NUM_TREES; i++)
     {
-        auto& tree = *trees.emplace_back(new trc::Drawable({ treeGeoIndex, treeMatIdx }, scene));
+        auto& tree = *trees.emplace_back(scene.makeDrawable({ treeGeoIndex, treeMatIdx }));
         tree.setScale(0.1f).rotateX(glm::radians(-90.0f))
             .setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f)
             .setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
@@ -218,14 +218,14 @@ void run()
     auto cubeMatIdx = ar.create<trc::Material>(
         trc::makeMaterial({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f })
     );
-    trc::Drawable cube({ cubeGeoIdx, cubeMatIdx, true }, scene);
-    cube.translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
+    auto cube = scene.makeDrawable({ cubeGeoIdx, cubeMatIdx });
+    cube->translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
     std::thread cubeRotateThread([&cube, &running]() {
         while (running)
         {
             std::this_thread::sleep_for(10ms);
-            cube.rotateY(glm::radians(0.5f));
+            cube->rotateY(glm::radians(0.5f));
         }
     });
 
@@ -233,8 +233,8 @@ void run()
     auto cursorCubeMat = ar.create(trc::makeMaterial(
         trc::SimpleMaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f }
     ));
-    trc::Drawable cursor({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat, true, false }, scene);
-    cursor.scale(0.15f);
+    auto cursor = scene.makeDrawable({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat });
+    cursor->scale(0.15f);
 
     // Text
     auto font = ar.create(trc::loadFont(TRC_TEST_FONT_DIR"/gil.ttf", 64));
@@ -252,7 +252,7 @@ void run()
 
         const float frameTime = frameTimer.reset();
         scene.update(frameTime);
-        cursor.setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
+        cursor->setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
 
         torch->drawFrame(camera, scene);
 

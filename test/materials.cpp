@@ -105,9 +105,9 @@ int main()
     auto triMat = assetManager.create(makeMaterial(SimpleMaterialData{ .color=vec3(0, 1, 0.3f) }));
 
     // Create drawable
-    Drawable cube(cubeGeo, cubeMat, scene);
-    Drawable triangle(triGeo, triMat, scene);
-    triangle.translate(-1.4f, 0.75f, -0.3f)
+    auto cube = scene.makeDrawable({ cubeGeo, cubeMat });
+    auto triangle = scene.makeDrawable({ triGeo, triMat });
+    triangle->translate(-1.4f, 0.75f, -0.3f)
             .rotateY(0.2f * glm::pi<float>())
             .setScaleX(3.0f);
 
@@ -115,7 +115,7 @@ int main()
     while (torch->getWindow().isOpen())
     {
         pollEvents();
-        cube.setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
+        cube->setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
 
         torch->drawFrame(camera, scene);
     }

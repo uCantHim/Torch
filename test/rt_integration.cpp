@@ -32,40 +32,36 @@ void run()
 
     // --- Create a scene --- //
 
-    trc::Drawable sphere(
-        trc::DrawableCreateInfo{
-            assets.create(trc::makeSphereGeo()),
-            assets.create(trc::makeMaterial({
-                .color=vec4(0.8f, 0.3f, 0.6f, 1),
-                .specularCoefficient=0.3f,
-                .roughness=0.0f,
-            })),
-            true, true, true
-        },
-        *scene
-    );
-    sphere.translate(-1.5f, 0.5f, 1.0f).setScale(0.2f);
+    auto sphere = scene->makeDrawable(trc::DrawableCreateInfo{
+        assets.create(trc::makeSphereGeo()),
+        assets.create(trc::makeMaterial({
+            .color=vec4(0.8f, 0.3f, 0.6f, 1),
+            .specularCoefficient=0.3f,
+            .roughness=0.0f,
+        })),
+        true, true
+    });
+    sphere->translate(-1.5f, 0.5f, 1.0f).setScale(0.2f);
     trc::Node sphereNode;
-    sphereNode.attach(sphere);
+    sphereNode.attach(*sphere);
     scene->getRoot().attach(sphereNode);
 
-    trc::Drawable plane({
+    auto plane = scene->makeDrawable({
         assets.create(trc::makePlaneGeo()),
         assets.create(trc::makeMaterial({ .roughness=0.1f })),
-        true, true, true
-    }, *scene);
-    plane.rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
+        true, true
+    });
+    plane->rotate(glm::radians(90.0f), glm::radians(-15.0f), 0.0f)
          .translate(0.5f, 0.5f, -1.0f)
          .setScale(3.0f, 1.0f, 1.7f);
 
     trc::GeometryID treeGeo = assets.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
     trc::MaterialID treeMat = assets.create(trc::makeMaterial({ .color=vec4(0, 1, 0, 1) }));
-    trc::Drawable tree({ treeGeo, treeMat, true, true, true }, *scene);
-
-    tree.rotateX(-glm::half_pi<float>()).setScale(0.1f);
+    auto tree = scene->makeDrawable({ treeGeo, treeMat, true, true });
+    tree->rotateX(-glm::half_pi<float>()).setScale(0.1f);
 
     constexpr float kFloorReflectivity{ 0.2f };
-    trc::Drawable floor({
+    auto floor = scene->makeDrawable({
         assets.create(trc::makePlaneGeo(50.0f, 50.0f, 60, 60)),
         assets.create(trc::makeMaterial({
             .specularCoefficient=0.2f,
@@ -77,8 +73,8 @@ void run()
                 trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
             ),
         })),
-        true, true, true
-    }, *scene);
+        true, true
+    });
 
     auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
     auto& shadow = scene->enableShadow(

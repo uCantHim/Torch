@@ -82,11 +82,11 @@ void run()
     auto redMat = assets.create<trc::Material>(trc::makeMaterial({ .color=vec4(1, 0.3f, 0, 1) }));
 
     // Create an inclined plane and a rotating cube
-    trc::Drawable plane(planeGeo, greenMat, scene);
-    plane.rotateX(glm::radians(45.0f)).rotateY(glm::radians(-45.0f)).translate(0.5f, -0.5f, -1.5f);
+    auto plane = scene.makeDrawable({ planeGeo, greenMat });
+    plane->rotateX(glm::radians(45.0f)).rotateY(glm::radians(-45.0f)).translate(0.5f, -0.5f, -1.5f);
 
-    trc::Drawable cube(cubeGeo, redMat, scene);
-    cube.scale(0.7f);
+    auto cube = scene.makeDrawable({ cubeGeo, redMat });
+    cube->scale(0.7f);
 
     // Create two draw configurations because we draw two viewports
     trc::DrawConfig drawConfigs[]{
@@ -99,7 +99,7 @@ void run()
     {
         trc::pollEvents();
 
-        cube.rotateY(timer.reset() * 0.001f);
+        cube->rotateY(timer.reset() * 0.001f);
 
         config1.perFrameUpdate(camera1, scene);  // Viewport with perspective camera
         config2.perFrameUpdate(camera2, scene);  // Viewport with orthogonal camera
