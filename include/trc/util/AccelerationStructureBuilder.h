@@ -17,7 +17,7 @@ namespace trc
 
         void dispatchBuilds(vk::CommandBuffer cmdBuf, FrameRenderState& frame);
 
-        void build(rt::BottomLevelAccelerationStructure& blas);
+        void enqueue(rt::BottomLevelAccelerationStructure& blas);
 
     private:
         struct BuildInfo

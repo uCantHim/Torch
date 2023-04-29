@@ -152,6 +152,14 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
 
     if (config.enableRayTracing)
     {
+        // Create acceleration structure
+        deviceData.blas = std::make_unique<rt::BLAS>(
+            instance,
+            makeAccelerationStructureGeometryInfo(instance.getDevice(), deviceData),
+            memoryPool.makeAllocator()
+        );
+        accelerationStructureBuilder.enqueue(*deviceData.blas);
+
         // Synchronize the deferred writes to vertex and index data with
         // reads during acceleration structure builds. The AS might not
         // even be built in the same frame/command buffer, but it is easier
@@ -228,28 +236,29 @@ void GeometryRegistry::postProcess(LocalID id, AssetData<Geometry>& data)
     }
 }
 
-auto GeometryRegistry::makeAccelerationStructure(LocalID id) -> rt::BLAS&
+auto GeometryRegistry::makeAccelerationStructureGeometryInfo(
+    const Device& device,
+    const DeviceData& data)
+    -> vk::AccelerationStructureGeometryKHR
 {
-    if (!config.enableRayTracing)
-    {
-        throw std::invalid_argument("[In GeometryRegistry::makeAccelerationStructure]: Tried to"
-                                    " query an acceleration structure, but ray tracing support is"
-                                    " not enabled!");
-    }
+    assert(*data.meshVertexBuf);
+    assert(*data.indexBuf);
+    assert(data.numIndices > 0);
 
-    // Get handle before acquiring the lock in case the geometry is not currently loaded.
-    auto handle = getHandle(id);
-    auto geo = deviceDataStorage.get(id);
-    if (!geo->blas)
-    {
-        geo->blas = std::make_unique<rt::BLAS>(
-            instance,
-            rt::makeGeometryInfo(instance.getDevice(), handle)
-        );
-        accelerationStructureBuilder.build(*geo->blas);
-    }
-
-    return *geo->blas;
+    return { // Array of geometries in the AS
+        vk::GeometryTypeKHR::eTriangles,
+        vk::AccelerationStructureGeometryDataKHR{ // a union
+            vk::AccelerationStructureGeometryTrianglesDataKHR(
+                vk::Format::eR32G32B32Sfloat,
+                device->getBufferAddress({ *data.meshVertexBuf }),
+                sizeof(MeshVertex),
+                data.numIndices, // max vertex
+                vk::IndexType::eUint32,
+                device->getBufferAddress({ *data.indexBuf }),
+                nullptr // transform data
+            )
+        }
+    };
 }
 
 
@@ -340,8 +349,11 @@ auto GeometryHandle::getAccelerationStructure() -> rt::BottomLevelAccelerationSt
 {
     if (!hasAccelerationStructure())  {
         throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
-                                 " structure for this geometry has not been created.");
+                                 " structure for this geometry has not been created. This is most"
+                                 " likely the case because ray tracing support has not been"
+                                 " enabled on the geometry registry.");
     }
+
     return *deviceData->blas;
 }
 
@@ -349,8 +361,11 @@ auto GeometryHandle::getAccelerationStructure() const -> const rt::BottomLevelAc
 {
     if (!hasAccelerationStructure())  {
         throw std::runtime_error("[In GeometryHandle::getAccelerationStructure]: The acceleration"
-                                 " structure for this geometry has not been created.");
+                                 " structure for this geometry has not been created. This is most"
+                                 " likely the case because ray tracing support has not been"
+                                 " enabled on the geometry registry.");
     }
+
     return *deviceData->blas;
 }
 

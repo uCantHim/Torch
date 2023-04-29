@@ -196,8 +196,13 @@ void trc::DrawableComponentScene::makeRaytracing(
 {
     auto geoId = createInfo.geo;
     auto geo = geoId.getDeviceDataHandle();
-    if (!geo.hasAccelerationStructure()) {
-        geoId.getModule().makeAccelerationStructure(geoId.getDeviceID());
+    if (!geo.hasAccelerationStructure())
+    {
+        log::warn << log::here() << ": Tried to create a ray tracing component for drawable "
+                  << ui32{drawable} << ", but the associated geometry " << geoId.getMetadata().name
+                  << " does not have an acceleration structure."
+                  << " The ray tracing component will not be created.";
+        return;
     }
 
     storage.add<RayComponent>(drawable, RayComponent{

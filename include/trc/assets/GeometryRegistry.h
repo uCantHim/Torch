@@ -79,15 +79,6 @@ namespace trc
 
         auto getHandle(LocalID id) -> AssetHandle<Geometry> override;
 
-        /**
-         * @brief Create an acceleration structure for a geometry
-         *
-         * If an acceleration structure already exists for the given
-         * geometry, the function does not create a new structure, but
-         * returns the existing one.
-         */
-        auto makeAccelerationStructure(LocalID id) -> rt::BottomLevelAccelerationStructure&;
-
     private:
         friend class AssetHandle<Geometry>;
 
@@ -119,6 +110,10 @@ namespace trc
         void freeDeviceData(LocalID id, DeviceData data);
 
         void postProcess(LocalID id, AssetData<Geometry>& data);
+
+        static auto makeAccelerationStructureGeometryInfo(const Device& device,
+                                                          const DeviceData& data)
+            -> vk::AccelerationStructureGeometryKHR;
 
         const Instance& instance;
         const Config config;

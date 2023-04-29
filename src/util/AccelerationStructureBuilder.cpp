@@ -58,7 +58,7 @@ void trc::AccelerationStructureBuilder::dispatchBuilds(vk::CommandBuffer cmdBuf,
     totalScratchSize = 0;
 }
 
-void trc::AccelerationStructureBuilder::build(rt::BottomLevelAccelerationStructure& blas)
+void trc::AccelerationStructureBuilder::enqueue(rt::BottomLevelAccelerationStructure& blas)
 {
     std::scoped_lock lock(pendingAsLock);
 
