@@ -1,8 +1,10 @@
 #include "trc/GBuffer.h"
 
+#include <trc_util/Padding.h>
+
 #include "trc/DescriptorSetUtils.h"
 #include "trc/Camera.h"
-#include "trc_util/Padding.h"
+#include "trc/base/Barriers.h"
 
 
 
@@ -47,10 +49,15 @@ trc::GBuffer::GBuffer(const Device& device, const GBufferCreateInfo& info)
     // Clear fragment head pointer image
     device.executeCommands(QueueType::graphics, [this](auto cmdBuf)
     {
-        fragmentListHeadPointerImage.barrier(cmdBuf,
+        barrier(cmdBuf, vk::ImageMemoryBarrier2{
+            vk::PipelineStageFlagBits2::eHost, vk::AccessFlagBits2::eNone,
+            vk::PipelineStageFlagBits2::eClear, vk::AccessFlagBits2::eTransferWrite,
             vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eGeneral
-        );
+            vk::ImageLayout::eGeneral,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *fragmentListHeadPointerImage,
+            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        });
         cmdBuf.clearColorImage(
             *fragmentListHeadPointerImage, vk::ImageLayout::eGeneral,
             vk::ClearColorValue(std::array<ui32, 4>{ ~0u }),
@@ -184,9 +191,9 @@ void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
         cmdBuf,
         0, sizeof(ui32),
         vk::PipelineStageFlagBits::eTransfer,
-        vk::PipelineStageFlagBits::eAllCommands,
+        vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eComputeShader,
         vk::AccessFlagBits::eTransferWrite,
-        vk::AccessFlagBits::eShaderRead
+        vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite
     );
 }
 

@@ -50,6 +50,10 @@ namespace trc
         static constexpr ui32 MAP_WIDTH{ 5000 };
         static constexpr ui32 MAP_HEIGHT{ 1000 };
 
+        void writeDataToImage(const std::vector<ui8>& data, const ImageSize& dstArea);
+
+        const Device& device;
+
         ivec2 offset{ 0, 0 };
         ui32 maxHeight{ 0 };
         Image image;

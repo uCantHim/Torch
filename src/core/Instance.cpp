@@ -17,6 +17,7 @@ auto trc::makeDefaultTorchVulkanInstance(const std::string& appName, ui32 appVer
             .engineName       = "Torch",
             .engineVersion    = VK_MAKE_VERSION(0, 0, 1),
             .vulkanApiVersion = VK_API_VERSION_1_3,
+            .enabledValidationFeatures={}
         }
     );
 }

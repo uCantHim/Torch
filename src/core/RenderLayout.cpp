@@ -26,22 +26,8 @@ trc::RenderLayout::RenderLayout(const Window& window, const RenderGraph& graph)
     stages.reserve(graph.size());
     for (const StageInfo& info : graph.stages)
     {
-        Stage& stage = stages.emplace_back(Stage{ info.stage, info.renderPasses, {}, {} });
+        Stage& stage = stages.emplace_back(Stage{ info.stage, info.renderPasses });
         stageStorage[stage.id] = { &info, &stage };
-    }
-
-    // Create dependencies
-    for (auto [id, data] : stageStorage)
-    {
-        auto [info, stage] = data;
-        for (RenderStage::ID waitStage : info->waitDependencies)
-        {
-            vk::Event event = *events.emplace_back(
-                device->createEventUnique({ vk::EventCreateFlagBits::eDeviceOnlyKHR })
-            );
-            stageStorage.at(waitStage).second->signalEvents.emplace_back(event);
-            stage->waitEvents.emplace_back(event);
-        }
     }
 
     // Create command buffers
@@ -100,36 +86,12 @@ auto trc::RenderLayout::recordStage(
     const auto renderPasses = util::merged(stage.renderPasses,
                                            scene.getDynamicRenderPasses(stage.id));
 
-    // Only signal outgoing events if no renderpasses are specified
-    if (renderPasses.empty())
-    {
-        // Don't record anything if not necessary
-        if (stage.signalEvents.empty()) return {};
-
-        cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-        for (auto event : stage.signalEvents) {
-            cmdBuf.setEvent(event, vk::PipelineStageFlagBits::eAllCommands);
-        }
-        cmdBuf.end();
-
-        return cmdBuf;
+    // Don't record anything if no renderpasses are specified.
+    if (renderPasses.empty()) {
+        return {};
     }
 
     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-
-    // Wait for event dependencies
-    if (!stage.waitEvents.empty())
-    {
-        cmdBuf.waitEvents(
-            stage.waitEvents,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eAllCommands,
-            {}, {}, {}
-        );
-    }
-    for (auto event : stage.waitEvents) {
-        cmdBuf.resetEvent(event, vk::PipelineStageFlagBits::eAllCommands);
-    }
 
     // Record render passes
     for (auto renderPass : renderPasses)
@@ -162,11 +124,6 @@ auto trc::RenderLayout::recordStage(
         }
 
         renderPass->end(cmdBuf);
-    }
-
-    // Signal outgoing dependencies
-    for (auto event : stage.signalEvents) {
-        cmdBuf.setEvent(event, vk::PipelineStageFlagBits::eAllCommands);
     }
 
     cmdBuf.end();

@@ -2,17 +2,17 @@
 
 
 
-void trc::barrier(vk::CommandBuffer cmdBuf, vk::ImageMemoryBarrier2 imageBarrier)
+void trc::barrier(vk::CommandBuffer cmdBuf, const vk::ImageMemoryBarrier2& imageBarrier)
 {
     cmdBuf.pipelineBarrier2({ vk::DependencyFlagBits::eByRegion, {}, {}, imageBarrier });
 }
 
-void trc::barrier(vk::CommandBuffer cmdBuf, vk::BufferMemoryBarrier2 bufferBarrier)
+void trc::barrier(vk::CommandBuffer cmdBuf, const vk::BufferMemoryBarrier2& bufferBarrier)
 {
     cmdBuf.pipelineBarrier2({ vk::DependencyFlagBits::eByRegion, {}, bufferBarrier, {} });
 }
 
-void trc::barrier(vk::CommandBuffer cmdBuf, vk::MemoryBarrier2 memoryBarrier)
+void trc::barrier(vk::CommandBuffer cmdBuf, const vk::MemoryBarrier2& memoryBarrier)
 {
     cmdBuf.pipelineBarrier2({ vk::DependencyFlagBits::eByRegion, memoryBarrier, {}, {} });
 }

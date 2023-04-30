@@ -1,9 +1,13 @@
 #include "trc/text/GlyphMap.h"
 
+#include "trc/base/Barriers.h"
+#include "trc/base/Buffer.h"
+
 
 
 trc::GlyphMap::GlyphMap(const Device& device, const DeviceMemoryAllocator& alloc)
     :
+    device(device),
     image(
         device,
         vk::ImageCreateInfo(
@@ -21,10 +25,14 @@ trc::GlyphMap::GlyphMap(const Device& device, const DeviceMemoryAllocator& alloc
 {
     // Set initial image layout
     device.executeCommands(QueueType::graphics, [&](auto cmdBuf){
-        image.barrier(cmdBuf,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eShaderReadOnlyOptimal
-        );
+        barrier(cmdBuf, vk::ImageMemoryBarrier2{
+            vk::PipelineStageFlagBits2::eHost, vk::AccessFlagBits2::eNone,
+            vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eFragmentShader,
+            vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        });
     });
 }
 
@@ -46,11 +54,9 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
         throw std::out_of_range("No more space in glyph map!");
     }
 
-    image.writeData(
-        data.data(),
-        size.x * size.y,
-        ImageSize{ .offset={ offset.x, offset.y, 0 }, .extent={ size.x, size.y, 1 } },
-        vk::ImageLayout::eShaderReadOnlyOptimal
+    writeDataToImage(
+        data,
+        ImageSize{ .offset={ offset.x, offset.y, 0 }, .extent={ size.x, size.y, 1 } }
     );
 
     GLM_CONSTEXPR vec2 mapSize{ MAP_WIDTH, MAP_HEIGHT };
@@ -67,4 +73,36 @@ auto trc::GlyphMap::addGlyph(const GlyphMeta& glyph) -> UvRectangle
 auto trc::GlyphMap::getGlyphImage() -> Image&
 {
     return image;
+}
+
+void trc::GlyphMap::writeDataToImage(const std::vector<ui8>& data, const ImageSize& dstArea)
+{
+    Buffer buffer(
+        device, data,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+    );
+
+    device.executeCommands(QueueType::transfer, [&](vk::CommandBuffer cmdBuf) {
+        constexpr auto externalStages = vk::PipelineStageFlagBits2::eTransfer;
+        constexpr auto externalAccess = vk::AccessFlagBits2::eTransferWrite;
+
+        barrier(cmdBuf, vk::ImageMemoryBarrier2{
+            externalStages, externalAccess,
+            vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+            vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferDstOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        });
+
+        image.writeData(cmdBuf, *buffer, dstArea);
+
+        barrier(cmdBuf, vk::ImageMemoryBarrier2{
+            vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+            externalStages, externalAccess,
+            vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        });
+    });
 }

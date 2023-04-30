@@ -1,5 +1,6 @@
 #include "trc/ui/torch/GuiRenderer.h"
 
+#include "trc/base/Barriers.h"
 #include "trc/ui/torch/DrawImplementations.h"
 
 
@@ -32,7 +33,14 @@ trc::GuiRenderTarget::GuiRenderTarget(
     // Set initial image layout
     device.executeCommands(QueueType::graphics, [&](auto cmdBuf)
     {
-        image.barrier(cmdBuf, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+        barrier(cmdBuf, vk::ImageMemoryBarrier2{
+            vk::PipelineStageFlagBits2::eHost, vk::AccessFlagBits2::eNone,
+            vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            vk::AccessFlagBits2::eColorAttachmentWrite,
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            *image, vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        });
     });
 }
 
@@ -130,14 +138,15 @@ void trc::GuiRenderer::render(ui::Window& window, GuiRenderTarget& target)
     );
 
     cmdBuf->begin(vk::CommandBufferBeginInfo());
-    target.getImage().barrier(
-        *cmdBuf,
+    barrier(*cmdBuf, vk::ImageMemoryBarrier2{
+        vk::PipelineStageFlagBits2::eBottomOfPipe,
+        vk::AccessFlagBits2::eNone,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        vk::AccessFlagBits::eShaderRead,
-        vk::AccessFlagBits::eColorAttachmentWrite
-    );
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        *target.getImage(), vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+    });
 
     const uvec2 size = target.getSize();
     cmdBuf->beginRenderPass(

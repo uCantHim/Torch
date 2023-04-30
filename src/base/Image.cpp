@@ -1,7 +1,7 @@
 #include "trc/base/Image.h"
 
-#include "trc/base/Buffer.h"
 #include "trc/base/Barriers.h"
+#include "trc/base/Buffer.h"
 
 
 
@@ -65,61 +65,42 @@ auto trc::Image::getExtent() const noexcept -> vk::Extent3D
     return extent;
 }
 
-void trc::Image::barrier(
-    vk::CommandBuffer cmdBuf,
-    vk::ImageLayout from,
-    vk::ImageLayout to,
-    vk::PipelineStageFlags srcStages,
-    vk::PipelineStageFlags dstStages,
-    vk::AccessFlags srcAccess,
-    vk::AccessFlags dstAccess,
-    vk::ImageSubresourceRange subRes)
-{
-    imageMemoryBarrier(cmdBuf,
-        *image, from, to,
-        srcStages, dstStages, srcAccess, dstAccess,
-        subRes
-    );
-}
-
 void trc::Image::writeData(
     const void* srcData,
     size_t srcSize,
-    ImageSize destArea,
-    vk::ImageLayout finalLayout)
+    const ImageSize& destArea,
+    const DeviceMemoryAllocator& alloc)
 {
     Buffer buf(
         *device,
         srcSize, srcData,
         vk::BufferUsageFlagBits::eTransferSrc,
-        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
+        alloc
     );
 
     device->executeCommands(QueueType::transfer, [&](auto cmdBuf)
     {
-        barrier(cmdBuf,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eTransferDstOptimal,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eTransfer,
-            vk::AccessFlagBits::eMemoryWrite,
-            vk::AccessFlagBits::eMemoryWrite
-        );
         const auto copyExtent = expandExtent(destArea.extent);
         cmdBuf.copyBufferToImage(
             *buf, *image,
             vk::ImageLayout::eTransferDstOptimal,
             vk::BufferImageCopy(0, 0, 0, destArea.subres, destArea.offset, copyExtent)
         );
-        barrier(cmdBuf,
-            vk::ImageLayout::eTransferDstOptimal,
-            finalLayout,
-            vk::PipelineStageFlagBits::eTransfer,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::AccessFlagBits::eMemoryWrite,
-            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eMemoryRead
-        );
     });
+}
+
+void trc::Image::writeData(
+    vk::CommandBuffer cmdBuf,
+    vk::Buffer srcData,
+    const ImageSize& destArea)
+{
+    const auto copyExtent = expandExtent(destArea.extent);
+    cmdBuf.copyBufferToImage(
+        srcData, *image,
+        vk::ImageLayout::eTransferDstOptimal,
+        vk::BufferImageCopy(0, 0, 0, destArea.subres, destArea.offset, copyExtent)
+    );
 }
 
 auto trc::Image::getMemory() const noexcept -> const DeviceMemory&

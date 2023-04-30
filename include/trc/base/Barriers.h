@@ -4,9 +4,9 @@
 
 namespace trc
 {
-    void barrier(vk::CommandBuffer cmdBuf, vk::ImageMemoryBarrier2 imageBarrier);
-    void barrier(vk::CommandBuffer cmdBuf, vk::BufferMemoryBarrier2 bufferBarrier);
-    void barrier(vk::CommandBuffer cmdBuf, vk::MemoryBarrier2 memoryBarrier);
+    void barrier(vk::CommandBuffer cmdBuf, const vk::ImageMemoryBarrier2& imageBarrier);
+    void barrier(vk::CommandBuffer cmdBuf, const vk::BufferMemoryBarrier2& bufferBarrier);
+    void barrier(vk::CommandBuffer cmdBuf, const vk::MemoryBarrier2& memoryBarrier);
 
     void imageMemoryBarrier(vk::CommandBuffer cmdBuf,
                             vk::Image image,

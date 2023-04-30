@@ -84,20 +84,26 @@ namespace trc
         auto getSize() const noexcept -> glm::uvec2;
         auto getExtent() const noexcept -> vk::Extent3D;
 
-        void barrier(vk::CommandBuffer cmdBuf,
-                     vk::ImageLayout from, vk::ImageLayout to,
-                     vk::PipelineStageFlags srcStages = vk::PipelineStageFlagBits::eAllCommands,
-                     vk::PipelineStageFlags dstStages = vk::PipelineStageFlagBits::eAllCommands,
-                     vk::AccessFlags srcAccess = vk::AccessFlagBits::eMemoryRead
-                                                 | vk::AccessFlagBits::eMemoryWrite,
-                     vk::AccessFlags dstAccess = vk::AccessFlagBits::eMemoryRead
-                                                 | vk::AccessFlagBits::eMemoryWrite,
-                     vk::ImageSubresourceRange subRes = DEFAULT_SUBRES_RANGE);
-
+        /**
+         * Create a transient buffer for the image write and copy data to the
+         * image's device-local memory.
+         *
+         * The image *must* be in `vk::ImageLayout::eTransferDstOptimal`.
+         *
+         * @param const DeviceMemoryAllocator& alloc An allocator for the
+         *        transfer buffer's memory.
+         */
         void writeData(const void* srcData,
                        size_t srcSize,
-                       ImageSize destArea,
-                       vk::ImageLayout finalLayout = vk::ImageLayout::eGeneral);
+                       const ImageSize& destArea,
+                       const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
+
+        /**
+         * The image *must* be in `vk::ImageLayout::eTransferDstOptimal`.
+         */
+        void writeData(vk::CommandBuffer cmdBuf,
+                       vk::Buffer srcData,
+                       const ImageSize& destArea);
 
         auto getMemory() const noexcept -> const DeviceMemory&;
 

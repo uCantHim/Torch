@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include "trc/base/Device.h"
-#include "trc/base/FrameSpecificObject.h"
 #include <trc_util/async/ThreadPool.h>
 #include <trc_util/functional/Maybe.h>
 
 #include "trc/Types.h"
+#include "trc/base/Device.h"
+#include "trc/base/FrameSpecificObject.h"
 #include "trc/core/RenderStage.h"
 
 namespace trc
@@ -48,9 +48,6 @@ namespace trc
         {
             RenderStage::ID id;
             std::vector<RenderPass*> renderPasses;
-
-            std::vector<vk::Event> signalEvents;
-            std::vector<vk::Event> waitEvents;
         };
 
         /**
@@ -68,7 +65,6 @@ namespace trc
 
         std::vector<Stage> stages;
 
-        std::vector<vk::UniqueEvent> events;
         std::vector<vk::UniqueCommandPool> commandPools;
         std::vector<FrameSpecific<vk::UniqueCommandBuffer>> commandBuffers;
 
