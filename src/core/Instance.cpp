@@ -11,10 +11,13 @@ auto trc::makeDefaultTorchVulkanInstance(const std::string& appName, ui32 appVer
     -> u_ptr<VulkanInstance>
 {
     return std::make_unique<VulkanInstance>(
-        appName, appVersion,
-        "Torch", VK_MAKE_VERSION(0, 0, 1),
-        VK_API_VERSION_1_3,
-        std::vector<const char*>{}
+        VulkanInstanceCreateInfo{
+            .appName          = appName,
+            .appVersion       = appVersion,
+            .engineName       = "Torch",
+            .engineVersion    = VK_MAKE_VERSION(0, 0, 1),
+            .vulkanApiVersion = VK_API_VERSION_1_3,
+        }
     );
 }
 

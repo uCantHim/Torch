@@ -21,6 +21,11 @@ option(TORCH_BUILD_SHARED_LIBRARY "Build torch as a shared library" OFF)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_BUILD_EXAMPLES "Build examples" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
+option(TORCH_DEBUG_THROW_ON_VALIDATION_ERROR
+       "Throw a std::runtime_error from the Vulkan debug callback if a validation error occurs.
+       Log all information but do not throw if set to OFF."
+       OFF
+)
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
@@ -100,11 +105,13 @@ target_compile_definitions(torch
         TRC_SHADER_BINARY_DIR="${TORCH_SHADER_OUTPUT_DIR}"
         TRC_SHADER_DB="${TORCH_INTERNAL_SHADER_DB}"
 
+        # Torch configuration macros
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
-        $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
 
-    INTERFACE
-        TRC_USE_VKB_NAMESPACE  # Integrate vkb into trc when building for the user
+        # Debug settings
+        $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
+        $<$<BOOL:${TORCH_DEBUG_THROW_ON_VALIDATION_ERROR}>:TRC_DEBUG_THROW_ON_VALIDATION_ERROR>
+        TRC_DEBUG_VULKAN_LOGS_DIR="vulkan_logs"
 )
 
 # Sources

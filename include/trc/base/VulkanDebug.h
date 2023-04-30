@@ -1,8 +1,9 @@
 #pragma once
 
-#include <vector>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <memory>
+#include <vector>
 namespace fs = std::filesystem;
 
 #include "Logging.h"
@@ -19,6 +20,18 @@ constexpr auto TRC_DEBUG_BUILD = false;
 
 auto getRequiredValidationLayers() -> std::vector<const char*>;
 
+/**
+ * @brief A Vulkan debug configuration
+ *
+ * Is an empty object if TRC_DEBUG is not defined.
+ *
+ * Respects the macro definition `TRC_DEBUG_THROW_ON_VALIDATION_ERROR`, as well
+ * as the following environment variables:
+ *   - 'TORCH_DEBUG_LOG_DIR': Directory in which Vulkan debug logs are written.
+ *    Default is './vulkan_logs'.
+ *   - 'TORCH_DEBUG_THROW_ON_VALIDATION_ERROR': Vulkan validation errors throw a
+ *    `std::runtime_error` if this variable is set to any value.
+ */
 class VulkanDebug
 {
 public:
@@ -31,21 +44,28 @@ public:
     ~VulkanDebug() noexcept = default;
 
 private:
-    const vk::Instance instance; // Required for messenger destruction
-    vk::DispatchLoaderDynamic dispatcher;
-    vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> debugMessenger;
+    struct VulkanDebugLogger
+    {
+        VulkanDebugLogger();
 
-    static inline const bool _init = []() -> bool {
-        if (!fs::is_directory("vulkan_logs")) {
-            fs::create_directory("vulkan_logs");
-        }
-        return true;
-    }();
+        fs::path debugLogDir{ TRC_DEBUG_VULKAN_LOGS_DIR };
+        bool throwOnValidationError;
 
-    static inline std::ofstream vkErrorLog  { "vulkan_logs/vulkan_error.log" };
-    static inline std::ofstream vkWarningLog{ "vulkan_logs/vulkan_warning.log" };
-    static inline std::ofstream vkInfoLog   { "vulkan_logs/vulkan_info.log" };
-    static inline std::ofstream vkVerboseLog{ "vulkan_logs/vulkan_verbose.log" };
+        std::ofstream vkErrorLogFile;
+        std::ofstream vkWarningLogFile;
+        std::ofstream vkInfoLogFile;
+        std::ofstream vkVerboseLogFile;
+        Logger<true> vkErrorLog{ vkErrorLogFile };
+        Logger<true> vkWarningLog{ vkWarningLogFile };
+        Logger<true> vkInfoLog{ vkInfoLogFile };
+        Logger<true> vkVerboseLog{ vkVerboseLogFile };
+
+        void vulkanDebugCallback(
+            vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            vk::DebugUtilsMessageTypeFlagsEXT messageType,
+            const vk::DebugUtilsMessengerCallbackDataEXT& callbackData
+        );
+    };
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL vulkanDebugCallbackWrapper(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -53,12 +73,14 @@ private:
         const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
         void* userData
     );
-    static void vulkanDebugCallback(
-        vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        vk::DebugUtilsMessageTypeFlagsEXT messageType,
-        const vk::DebugUtilsMessengerCallbackDataEXT& callbackData,
-        void* userData
-    );
+
+#ifdef TRC_DEBUG
+    const vk::Instance instance; // Required for messenger destruction
+    vk::DispatchLoaderDynamic dispatcher;
+    vk::UniqueHandle<vk::DebugUtilsMessengerEXT, vk::DispatchLoaderDynamic> debugMessenger;
+
+    std::unique_ptr<VulkanDebugLogger> debugLogger;
+#endif
 };
 
 } // namespace trc

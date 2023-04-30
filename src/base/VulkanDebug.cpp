@@ -1,6 +1,9 @@
 #include "trc/base/VulkanDebug.h"
 
-#include <optional>
+#include <cassert>
+#include <cstdlib>
+
+#include <stdexcept>
 
 
 
@@ -45,14 +48,12 @@ auto trc::getRequiredValidationLayers() -> std::vector<const char*>
 
 
 trc::VulkanDebug::VulkanDebug(vk::Instance instance)
+#ifdef TRC_DEBUG
     :
     instance(instance),
-    dispatcher(instance, vkGetInstanceProcAddr)
+    dispatcher(instance, vkGetInstanceProcAddr),
+    debugLogger(std::make_unique<VulkanDebugLogger>())
 {
-    if constexpr (!TRC_DEBUG_BUILD) {
-        return;
-    }
-
     vk::DebugUtilsMessengerCreateInfoEXT createInfo(
         {}, // Create flags
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
@@ -61,15 +62,20 @@ trc::VulkanDebug::VulkanDebug(vk::Instance instance)
         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
         ,
         vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+        | vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
         | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
         | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
         ,
         vulkanDebugCallbackWrapper,
-        nullptr
+        debugLogger.get()
     );
 
     debugMessenger = instance.createDebugUtilsMessengerEXTUnique(createInfo, nullptr, dispatcher);
 }
+#else
+{
+}
+#endif
 
 VKAPI_ATTR VkBool32 VKAPI_CALL trc::VulkanDebug::vulkanDebugCallbackWrapper(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -77,57 +83,95 @@ VKAPI_ATTR VkBool32 VKAPI_CALL trc::VulkanDebug::vulkanDebugCallbackWrapper(
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void* userData)
 {
-    vulkanDebugCallback(
+    assert(userData != nullptr);
+    static_cast<VulkanDebugLogger*>(userData)->vulkanDebugCallback(
         vk::DebugUtilsMessageSeverityFlagBitsEXT(messageSeverity),
         vk::DebugUtilsMessageTypeFlagBitsEXT(messageType),
-        vk::DebugUtilsMessengerCallbackDataEXT(*callbackData),
-        userData
+        vk::DebugUtilsMessengerCallbackDataEXT(*callbackData)
     );
 
+    // "The application *should* always return VK_FALSE. The VK_TRUE value is
+    // reserved for use in layer development."
     return VK_FALSE;
 }
 
-void trc::VulkanDebug::vulkanDebugCallback(
+
+
+trc::VulkanDebug::VulkanDebugLogger::VulkanDebugLogger()
+    :
+#ifdef TRC_DEBUG_THROW_ON_VALIDATION_ERROR
+    throwOnValidationError(true)
+#else
+    throwOnValidationError(std::getenv("TORCH_DEBUG_THROW_ON_VALIDATION_ERROR") != nullptr)
+#endif
+{
+    if (auto str = std::getenv("TORCH_DEBUG_LOG_DIR"); str != nullptr) {
+        debugLogDir = str;
+    }
+
+    vkErrorLogFile   = { debugLogDir / "vulkan_error.log" };
+    vkWarningLogFile = { debugLogDir / "vulkan_warning.log" };
+    vkInfoLogFile    = { debugLogDir / "vulkan_info.log" };
+    vkVerboseLogFile = { debugLogDir / "vulkan_verbose.log" };
+
+    vkErrorLog   = Logger<true>{ vkErrorLogFile, log::makeDefaultLogHeader("ERROR") };
+    vkWarningLog = Logger<true>{ vkWarningLogFile, log::makeDefaultLogHeader("WARNING") };
+    vkInfoLog    = Logger<true>{ vkInfoLogFile, log::makeDefaultLogHeader("INFO") };
+    vkVerboseLog = Logger<true>{ vkVerboseLogFile, log::makeDefaultLogHeader("VERBOSE") };
+
+    if (!fs::is_directory(debugLogDir)) {
+        fs::create_directories(debugLogDir);
+    }
+}
+
+void trc::VulkanDebug::VulkanDebugLogger::vulkanDebugCallback(
     vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     vk::DebugUtilsMessageTypeFlagsEXT messageType,
-    const vk::DebugUtilsMessengerCallbackDataEXT& callbackData,
-    void*)
+    const vk::DebugUtilsMessengerCallbackDataEXT& callbackData)
 {
-    std::stringstream ss;
     switch (messageSeverity)
     {
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-        log::error << "A Vulkan " << vk::to_string(messageType) << " error occured."
-            << " Check the error log for additional details.\n";
-        log::error << callbackData.pMessage;
+        log::error << "A Vulkan " << vk::to_string(messageType) << " error occured: "
+                   << callbackData.pMessage;
 
-        ss << "A Vulkan " + vk::to_string(messageType) + " error occured:\n";
-        ss << callbackData.pMessage << "\n";
-        ss << "Involved objects:\n";
+        vkErrorLog << "A Vulkan " + vk::to_string(messageType) + " error occured:";
+        vkErrorLog << callbackData.pMessage;
+        vkErrorLog << "Involved objects:";
         for (uint32_t i = 0; i < callbackData.objectCount; i++)
         {
             auto& obj = callbackData.pObjects[i];
-            ss << " - " << obj.objectHandle << "(" << vk::to_string(obj.objectType) << "): "
-                << (obj.pObjectName != nullptr ? obj.pObjectName : "")
-                << "\n";
+            vkErrorLog << " - " << obj.objectHandle << " (" << vk::to_string(obj.objectType) << ")"
+                       << " [" << (obj.pObjectName != nullptr ? obj.pObjectName : "") << "]";
         }
 
-        vkErrorLog << ss.rdbuf();
-        throw std::runtime_error("A Vulkan " + vk::to_string(messageType) + " error occured");
+        if (throwOnValidationError) {
+            throw std::runtime_error("A Vulkan " + vk::to_string(messageType) + " error occured.");
+        }
         break;
 
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-        log::warn << "A warning occured: " << callbackData.pMessage;
-        vkWarningLog << "A " + vk::to_string(messageType) + " warning occured:\n";
-        vkWarningLog << callbackData.pMessage << "\n";
+        log::warn << "A Vulkan " << vk::to_string(messageType) << " warning occured: "
+                  << callbackData.pMessage;
+
+        vkWarningLog << "A " + vk::to_string(messageType) + " warning occured:";
+        vkWarningLog << callbackData.pMessage;
+        vkWarningLog << "Involved objects:";
+        for (uint32_t i = 0; i < callbackData.objectCount; i++)
+        {
+            auto& obj = callbackData.pObjects[i];
+            vkWarningLog << " - " << obj.objectHandle
+                         << " (" << vk::to_string(obj.objectType) << ")"
+                         << " [" << (obj.pObjectName != nullptr ? obj.pObjectName : "") << "]";
+        }
         break;
 
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-        vkInfoLog << callbackData.pMessage << "\n";
+        vkInfoLog << callbackData.pMessage;
         break;
 
     case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-        vkVerboseLog << callbackData.pMessage << "\n";
+        vkVerboseLog << callbackData.pMessage;
         break;
 
     default:

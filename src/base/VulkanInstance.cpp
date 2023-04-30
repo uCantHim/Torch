@@ -1,64 +1,95 @@
+// If I enable vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
+// I get very weird WRITE-AFTER-WRITE hazard errors that are, how I see it,
+// not sensible.
+//
+// The following code reproduces the error for an image layout change before a
+// clear command:
+//
+// ```c++
+//    trc::Image image(device, 20, 20);
+
+//    device.executeCommands(trc::QueueType::graphics, [&](vk::CommandBuffer cmdBuf)
+//    {
+//        const vk::ImageMemoryBarrier2 imageBarrier(
+//            vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eTransferWrite,
+//            vk::PipelineStageFlagBits2::eClear, vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eMemoryWrite,
+//            vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+//            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+//            *image,
+//            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+//        );
+//        cmdBuf.pipelineBarrier2(
+//            vk::DependencyInfo{
+//                vk::DependencyFlagBits::eByRegion,
+//                {}, {}, imageBarrier
+//            }
+//        );
+
+//        cmdBuf.clearColorImage(
+//            *image,
+//            vk::ImageLayout::eTransferDstOptimal,
+//            vk::ClearColorValue(0, 0, 0, 0),
+//            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+//        );
+//    });
+// ```
+
 #include "trc/base/VulkanInstance.h"
 
-#include <GLFW/glfw3.h>
+#include <cassert>
 
+#include <GLFW/glfw3.h>
+#include <trc_util/algorithm/VectorTransform.h>
+
+#include "trc/base/Logging.h"
 #include "trc/base/VulkanDebug.h"
 
 
 
 std::vector<const char*> getRequiredInstanceExtensions()
 {
+    std::vector<const char*> extensions;
+
     uint32_t requiredExtensionCount = 0;
     auto requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
-    std::vector<const char*> extensions(requiredExtensions, requiredExtensions + requiredExtensionCount);
-
-    if constexpr (trc::TRC_DEBUG_BUILD) {
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    if (requiredExtensions == nullptr)
+    {
+        trc::log::error << trc::log::here() << ": The current machine does not support the minimal"
+            " required set of Vulkan extensions. Surface creation will not be possible.";
     }
+    else {
+        assert(requiredExtensionCount > 0);
+        extensions = { requiredExtensions, requiredExtensions + requiredExtensionCount };
+    }
+
+#ifdef TRC_DEBUG
+    extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 
     return extensions;
 }
 
-
-trc::VulkanInstance::VulkanInstance()
-    :
-    VulkanInstance(
-        "No application", VK_MAKE_VERSION(0, 0, 0),
-        "No engine", VK_MAKE_VERSION(0, 0, 0),
-        VK_API_VERSION_1_3,
-        {}
-    )
+trc::VulkanInstance::VulkanInstance(const VulkanInstanceCreateInfo& createInfo)
 {
-}
-
-trc::VulkanInstance::VulkanInstance(
-    const std::string& appName,
-    uint32_t appVersion,
-    const std::string& engineName,
-    uint32_t engineVersion,
-    uint32_t vulkanApiVersion,
-    std::vector<const char*> instanceExtensions)
-{
-    auto layers = getRequiredValidationLayers();
-    auto extensions = getRequiredInstanceExtensions();
-    extensions.insert(extensions.end(), instanceExtensions.begin(), instanceExtensions.end());
-
-    vk::ApplicationInfo appInfo(
-        appName.c_str(), appVersion,
-        engineName.c_str(), engineVersion,
-        vulkanApiVersion
+    const auto layers = getRequiredValidationLayers();
+    const auto extensions = trc::util::merged(
+        getRequiredInstanceExtensions(),
+        createInfo.instanceExtensions
     );
 
-#ifdef TRC_DEBUG
-    vk::ValidationFeatureEnableEXT enables[] {
-        vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
-    };
-#endif
+    const vk::ApplicationInfo appInfo(
+        createInfo.appName.c_str(), createInfo.appVersion,
+        createInfo.engineName.c_str(), createInfo.engineVersion,
+        createInfo.vulkanApiVersion
+    );
 
     vk::StructureChain chain{
         vk::InstanceCreateInfo({}, &appInfo, layers, extensions),
 #ifdef TRC_DEBUG
-        vk::ValidationFeaturesEXT(1, enables),
+        vk::ValidationFeaturesEXT(
+            createInfo.enabledValidationFeatures,
+            createInfo.disabledValidationFeatures
+        ),
 #endif
     };
 
