@@ -27,6 +27,11 @@ namespace trc::log
         std::string_view severity;
     };
 
+    auto makeDefaultLogHeader(std::string_view messageSeverity) -> std::function<std::string()>
+    {
+        return DefaultLogHeader{ messageSeverity };
+    }
+
     Logger<enableDebugLogging> debug(std::cout, DefaultLogHeader{ "DEBUG" });
     Logger<enableDebugLogging> info(std::cout, DefaultLogHeader{ "INFO" });
     Logger<enableDebugLogging> warn(std::cout, DefaultLogHeader{ "WARNING" });

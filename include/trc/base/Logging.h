@@ -58,11 +58,11 @@ namespace trc
         };
 
         Logger(const Logger&) = delete;
-        Logger(Logger&&) = delete;
         Logger& operator=(const Logger&) = delete;
-        Logger& operator=(Logger&&) = delete;
 
         ~Logger() = default;
+        Logger(Logger&&) noexcept = default;
+        Logger& operator=(Logger&&) noexcept = default;
 
         explicit Logger(std::ostream& os) : stream(&os) {}
         Logger(std::ostream& os, std::function<std::string()> header)
@@ -111,5 +111,22 @@ namespace trc
         {
             return loc;
         }
+
+        /**
+         * @brief Create a default log header function
+         *
+         * The header prints the current time and a message severity.
+         *
+         * @param std::string_view messageSeverity
+         *
+         * # Example
+         * ```cpp
+         *
+         * std::ofstream myLogFile{ "/var/log/my_log.txt" };
+         * Logger<true> myLog{ myLogFile, log::makeDefaultLogHeader("ERROR") };
+         * ```
+         */
+        auto makeDefaultLogHeader(std::string_view messageSeverity)
+            -> std::function<std::string()>;
     }
 } // namespace trc
