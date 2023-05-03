@@ -21,7 +21,7 @@ if (NOT TARGET shaderc)
     target_compile_options(MachineIndependent PUBLIC -O2)
 endif()
 
-add_library(spirv_compiler)
+add_library(spirv_compiler SHARED)
 torch_default_compile_options(spirv_compiler)
 
 target_sources(spirv_compiler PRIVATE
