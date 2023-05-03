@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "trc/AnimationEngine.h"
+#include "trc/AssetDescriptor.h"
 #include "trc/base/Logging.h"
 #include "trc/material/FragmentShader.h"
 
@@ -214,7 +215,7 @@ auto VertexModule::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
 
         auto animMeta = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
             .setName="asset_registry",
-            .bindingIndex=4,
+            .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eAnimationMetadata),
             .descriptorType="restrict readonly buffer",
             .descriptorName="AnimationMetaDataDescriptor",
             .isArray=false,
@@ -224,7 +225,7 @@ auto VertexModule::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
         });
         auto animBuffer = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
             .setName="asset_registry",
-            .bindingIndex=5,
+            .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eAnimationData),
             .descriptorType="restrict readonly buffer",
             .descriptorName="AnimationDataDescriptor",
             .isArray=false,

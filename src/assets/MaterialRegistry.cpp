@@ -4,6 +4,7 @@
 #include "trc/DrawablePipelines.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/drawable/DefaultDrawable.h"
+#include "trc/material/TorchMaterialSettings.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
@@ -14,8 +15,10 @@ trc::AssetData<trc::Material>::AssetData(ShaderModule fragModule, bool transpare
 {
     auto specialize = [this, &fragModule](const MaterialSpecializationInfo& info)
     {
-        programs[MaterialKey{ info }]
-            = makeMaterialProgram(makeMaterialSpecialization(fragModule, info));
+        programs[MaterialKey{ info }] = makeMaterialProgram(
+            makeMaterialSpecialization(fragModule, info),
+            makeShaderDescriptorConfig()
+        );
     };
 
     specialize(MaterialSpecializationInfo{ .animated=false });

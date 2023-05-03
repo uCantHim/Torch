@@ -55,7 +55,8 @@ namespace trc
     /**
      * @brief Create a shader program from a set of shader modules
      */
-    auto makeMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>)
+    auto makeMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> modules,
+                             const ShaderDescriptorConfig& descConfig)
         -> MaterialProgramData;
 
     /**

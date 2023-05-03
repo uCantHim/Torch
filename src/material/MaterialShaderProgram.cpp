@@ -17,7 +17,6 @@
 #include "trc/assets/import/InternalFormat.h"
 #include "trc/base/Logging.h"
 #include "trc/core/PipelineRegistry.h"
-#include "trc/material/TorchMaterialSettings.h"
 #include "trc/util/TorchDirectories.h"
 
 
@@ -154,16 +153,34 @@ auto collectDescriptorSets(const ShaderStageMap& stages, const ShaderDescriptorC
     -> std::vector<PipelineLayoutTemplate::Descriptor>
 {
     // Collect required descriptor sets
-    std::unordered_set<std::string> uniqueDescriptorSets;
+    std::unordered_set<std::string> requiredDescriptorSets;
     for (const auto& [_, shader] : stages)
     {
         const auto& sets = shader.getRequiredDescriptorSets();
-        uniqueDescriptorSets.insert(sets.begin(), sets.end());
+        requiredDescriptorSets.insert(sets.begin(), sets.end());
+    }
+
+    // Check that all required descriptor sets are defined
+    int i = 0;
+    for (auto it = requiredDescriptorSets.begin(); it != requiredDescriptorSets.end(); /**/)
+    {
+        const std::string& setName = *it;
+        if (!descConfig.descriptorInfos.contains(setName))
+        {
+            log::error << log::here() << ": Shader program requires the descriptor set \""
+                       << setName << "\", but no descriptor set with that name is defined in the"
+                       << " ShaderDescriptorConfig object passed to makeMaterialProgram.";
+            it = requiredDescriptorSets.erase(it);
+        }
+        else {
+            log::debug << "set = " << i++ << " : " << setName;
+            ++it;
+        }
     }
 
     // Assign descriptor sets to their respective indices
     std::vector<PipelineLayoutTemplate::Descriptor> result;
-    for (const auto& name : uniqueDescriptorSets)
+    for (const auto& name : requiredDescriptorSets)
     {
         const bool isStatic = descConfig.descriptorInfos.at(name).isStatic;
         result.push_back({ DescriptorName{ std::move(name) }, isStatic });
@@ -212,14 +229,16 @@ auto collectPushConstants(const ShaderStageMap& stages)
     return pcRanges;
 }
 
-auto makeMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages)
+auto makeMaterialProgram(
+    std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
+    const ShaderDescriptorConfig& descConfig)
     -> MaterialProgramData
 {
     MaterialProgramData data;
 
     data.textures = collectTextures(stages);
     data.pushConstants = collectPushConstants(stages);
-    data.descriptorSets = collectDescriptorSets(stages, makeShaderDescriptorConfig());
+    data.descriptorSets = collectDescriptorSets(stages, descConfig);
 
     data.spirvCode = compileProgram(stages, data.descriptorSets);
 
