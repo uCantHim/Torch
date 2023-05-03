@@ -1,17 +1,18 @@
 #version 460
+#extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-//layout (early_fragment_tests) in;
-
-layout (set = 1, binding = 1) uniform sampler2D textures[];
+#define ASSET_DESCRIPTOR_SET_BINDING 1
+#include "asset_registry_descriptor.glsl"
 
 ///////////////////
 //      Main     //
 ///////////////////
 
-layout (location = 0) in Vertex
+layout (location = 0) in VertexData
 {
     vec2 uv;
+    vec3 normal;
     flat uint textureIndex;
 } vert;
 
@@ -26,7 +27,7 @@ void main()
         discard;
     }
 
-    outNormal = vec3(0.0);
+    outNormal = vert.normal;
     outAlbedo = diffuseColor;
     outMaterial = vec4(1.0f, 1.0f, 0.0f, 0.0f);
 }

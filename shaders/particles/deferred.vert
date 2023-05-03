@@ -19,6 +19,7 @@ layout (set = 0, binding = 0, std140) restrict readonly uniform CameraBuffer
 layout (location = 0) out Vertex
 {
     vec2 uv;
+    vec3 normal;
     flat uint textureIndex;
 } vert;
 
@@ -30,5 +31,6 @@ void main()
 
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;
     vert.uv = vertexUv;
+    vert.normal = (camera.projMatrix * camera.viewMatrix * inverse(transpose(modelMatrix)) * vec4(vertexNormal, 0.0f)).xyz;
     vert.textureIndex = textureIndex;
 }

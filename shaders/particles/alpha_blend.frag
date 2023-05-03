@@ -1,20 +1,22 @@
 #version 460
 #extension GL_EXT_nonuniform_qualifier : require
 
+#define ASSET_DESCRIPTOR_SET_BINDING 1
+#include "asset_registry_descriptor.glsl"
+
 #define TRANSPARENCY_SET_INDEX 2
 #include "transparency.glsl"
 
 layout (early_fragment_tests) in;
 
-layout (set = 1, binding = 1) uniform sampler2D textures[];
-
 ///////////////////
 //      Main     //
 ///////////////////
 
-layout (location = 0) in Vertex
+layout (location = 0) in VertexData
 {
     vec2 uv;
+    vec3 normal;  // unused
     flat uint textureIndex;
 } vert;
 
