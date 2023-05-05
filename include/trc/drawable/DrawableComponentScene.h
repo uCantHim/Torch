@@ -15,11 +15,33 @@
 namespace trc
 {
     class SceneBase;
+    class DrawableComponentScene;
 
     namespace drawcomp {
         struct _DrawableIdTypeTag {};
     }
     using DrawableID = componentlib::ComponentID<drawcomp::_DrawableIdTypeTag>;
+
+    struct UniqueDrawableID
+    {
+        UniqueDrawableID(const UniqueDrawableID&) = delete;
+        UniqueDrawableID& operator=(const UniqueDrawableID&) = delete;
+
+        UniqueDrawableID(UniqueDrawableID&&) noexcept;
+        UniqueDrawableID& operator=(UniqueDrawableID&&) noexcept;
+        ~UniqueDrawableID() noexcept;
+
+        UniqueDrawableID() = default;
+        UniqueDrawableID(DrawableID drawable, DrawableComponentScene& scene);
+
+        constexpr auto operator*() const -> DrawableID {
+            return id;
+        }
+
+    private:
+        DrawableID id{ DrawableID::NONE };
+        DrawableComponentScene* scene{ nullptr };
+    };
 
     /**
      * @brief
@@ -90,6 +112,10 @@ namespace trc
          */
         inline auto makeDrawable() -> DrawableID {
             return createObject();
+        }
+
+        inline auto makeDrawableUnique() -> UniqueDrawableID {
+            return UniqueDrawableID{ makeDrawable(), *this };
         }
 
         /**

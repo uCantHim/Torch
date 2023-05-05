@@ -7,7 +7,6 @@
 #include "trc/Types.h"
 #include "trc/drawable/Drawable.h"
 #include "trc/drawable/DrawableComponentScene.h"
-#include "trc/drawable/DrawableStructs.h"
 
 namespace trc
 {
@@ -26,6 +25,15 @@ namespace trc
      */
     using Drawable = s_ptr<DrawableObj>;
 
+    struct DrawableCreateInfo
+    {
+        GeometryID geo;
+        MaterialID mat;
+
+        bool rasterized{ true };
+        bool rayTraced{ false };
+    };
+
     class DrawableScene
     {
     public:
@@ -39,6 +47,10 @@ namespace trc
         }
 
         auto makeDrawable(const DrawableCreateInfo& createInfo) -> Drawable;
+
+        auto getComponentInternals() -> DrawableComponentScene& {
+            return components;
+        }
 
         auto getComponentInternals() const -> const DrawableComponentScene& {
             return components;

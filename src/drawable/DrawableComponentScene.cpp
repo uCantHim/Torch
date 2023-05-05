@@ -5,6 +5,44 @@
 
 
 
+namespace trc
+{
+
+UniqueDrawableID::UniqueDrawableID(DrawableID drawable, DrawableComponentScene& scene)
+    :
+    id(drawable),
+    scene(&scene)
+{
+}
+
+UniqueDrawableID::UniqueDrawableID(UniqueDrawableID&& other) noexcept
+    :
+    id(other.id),
+    scene(other.scene)
+{
+    other.id = DrawableID::NONE;
+    other.scene = nullptr;
+}
+
+UniqueDrawableID& UniqueDrawableID::operator=(UniqueDrawableID&& other) noexcept
+{
+    std::swap(id, other.id);
+    std::swap(scene, other.scene);
+    return *this;
+}
+
+UniqueDrawableID::~UniqueDrawableID() noexcept
+{
+    if (id != DrawableID::NONE && scene != nullptr)
+    {
+        scene->destroyDrawable(id);
+    }
+}
+
+} // namespace trc
+
+
+
 trc::DrawableComponentScene::DrawableComponentScene(SceneBase& base)
     :
     base(&base)
