@@ -22,10 +22,19 @@ namespace trc
 
         /**
          * @param ui32 constantId ID of the specialization constant
-         * @param ui32 offset Offset of `data`
+         * @param T&   value      Data for the specialization constant
          */
         template<typename T>
         void set(ui32 constantId, T&& value);
+
+        /**
+         * @brief Set raw data for a specialization constant
+         *
+         * @param ui32   constantId ID of the specialization constant
+         * @param void*  data       Data for the specialization constant
+         * @param size_t size       Size of `data`
+         */
+        void set(ui32 constantId, const void* data, size_t size);
 
         bool empty() const;
 

@@ -20,6 +20,20 @@ auto trc::SpecializationConstantStorage::makeSpecializationInfo() const -> vk::S
     };
 }
 
+void trc::SpecializationConstantStorage::set(ui32 constantId, const void* dataPtr, size_t size)
+{
+    // Copy new entry's data
+    const ui32 offset = data.size();
+    const ui32 minSize = offset + size;
+    assert(data.size() < minSize);
+
+    data.resize(minSize);
+    memcpy(data.data() + offset, dataPtr, size);
+
+    // Add map entry
+    entries.emplace_back(vk::SpecializationMapEntry(constantId, offset, size));
+}
+
 
 
 auto trc::ProgramDefinitionData::makeProgram(const Device& device) const
