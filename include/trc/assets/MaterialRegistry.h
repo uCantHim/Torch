@@ -32,7 +32,7 @@ namespace trc
     };
 
     template<>
-    struct AssetData<Material>
+    struct AssetData<Material> : public ShaderRuntimeConstantDeserializer
     {
         AssetData() = default;
         AssetData(ShaderModule fragModule, bool transparent);
@@ -44,6 +44,12 @@ namespace trc
 
         void serialize(std::ostream& os) const;
         void deserialize(std::istream& is);
+
+    private:
+        auto deserialize(const std::string& data)
+            -> std::optional<s_ptr<ShaderRuntimeConstant>> override;
+
+        std::vector<AssetReference<Texture>> textures;
     };
 
     using MaterialHandle = AssetHandle<Material>;

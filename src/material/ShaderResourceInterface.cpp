@@ -16,15 +16,16 @@ auto ShaderResources::getGlslCode() const -> const std::string&
     return code;
 }
 
-auto ShaderResources::getRequiredTextures() const -> const std::vector<TextureResource>&
-{
-    return textures;
-}
-
 auto ShaderResources::getRequiredShaderInputs() const
     -> const std::vector<ShaderInputInfo>&
 {
     return requiredShaderInputs;
+}
+
+auto ShaderResources::getSpecializationConstants() const
+    -> const std::vector<SpecializationConstantInfo>&
+{
+    return specConstants;
 }
 
 auto ShaderResources::getRequiredDescriptorSets() const -> std::vector<std::string>
@@ -236,10 +237,10 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     ShaderResources result;
     result.code = ss.str();
     result.requiredShaderInputs = shaderInput.shaderInputs;
-    for (const auto& [specIdx, texRef] : specializationConstantTextures)
+    for (const auto& [specIdx, value] : specializationConstantValues)
     {
-        result.textures.push_back(ShaderResources::TextureResource{
-            .ref=texRef,
+        result.specConstants.push_back(ShaderResources::SpecializationConstantInfo{
+            .value=value,
             .specializationConstantIndex=specIdx
         });
     }
@@ -250,21 +251,6 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     return result;
 }
 
-auto ShaderResourceInterface::queryTexture(TextureReference tex) -> code::Value
-{
-    auto [it, success] = specializationConstantTextures.try_emplace(nextSpecConstantIndex++, tex);
-    assert(success);
-
-    auto [idx, _] = *it;
-    const std::string specConstName = "kSpecConstant" + std::to_string(idx) + "_TextureIndex";
-    specializationConstants.emplace_back(idx, specConstName);
-
-    return codeBuilder->makeArrayAccess(
-        queryCapability(FragmentCapability::kTextureSample),
-        codeBuilder->makeExternalIdentifier(specConstName)
-    );
-}
-
 auto ShaderResourceInterface::queryCapability(Capability capability) -> code::Value
 {
     for (auto id : config.getCapabilityResources(capability)) {
@@ -272,6 +258,22 @@ auto ShaderResourceInterface::queryCapability(Capability capability) -> code::Va
     }
 
     return config.accessCapability(capability);
+}
+
+auto ShaderResourceInterface::makeSpecConstant(s_ptr<ShaderRuntimeConstant> value) -> code::Value
+{
+    auto [it, success] = specializationConstantValues.try_emplace(nextSpecConstantIndex++, value);
+    assert(success);
+
+    const auto& [idx, _] = *it;
+    const std::string specConstName = "kSpecConstant" + std::to_string(idx) + "_RuntimeValue";
+    specializationConstants.emplace_back(idx, specConstName);
+
+    // Create the shader code value
+    auto id = codeBuilder->makeExternalIdentifier(specConstName);
+    codeBuilder->annotateType(id, value->getType());
+
+    return id;
 }
 
 void ShaderResourceInterface::requireResource(

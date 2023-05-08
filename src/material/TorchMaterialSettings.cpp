@@ -3,6 +3,7 @@
 #include "trc/AssetDescriptor.h"
 #include "trc/GBuffer.h"
 #include "trc/TorchRenderConfig.h"
+#include "trc/base/Logging.h"
 #include "trc/material/FragmentShader.h"
 
 
@@ -175,6 +176,40 @@ auto makeShaderDescriptorConfig() -> ShaderDescriptorConfig
             { TorchRenderConfig::SHADOW_DESCRIPTOR,      { 4, true } },
         }
     };
+}
+
+
+
+RuntimeTextureIndex::RuntimeTextureIndex(AssetReference<Texture> texture)
+    :
+    ShaderRuntimeConstant(ui32{}),
+    texture(std::move(texture))
+{
+}
+
+auto RuntimeTextureIndex::loadData() -> std::vector<std::byte>
+{
+    assert(texture.hasResolvedID());
+
+    runtimeHandle = texture.getID().getDeviceDataHandle();
+    const ui32 index = runtimeHandle->getDeviceIndex();
+    return {
+        reinterpret_cast<const std::byte*>(&index),
+        reinterpret_cast<const std::byte*>(&index) + 4
+    };
+}
+
+auto RuntimeTextureIndex::serialize() const -> std::string
+{
+    if (!texture.hasAssetPath())
+    {
+        log::warn << log::here()
+                  << ": Tried to serialize a texture reference without an asset path."
+                     " This will cause a fatal error during de-serialization.";
+        return "";
+    }
+
+    return texture.getAssetPath().string();
 }
 
 } // namespace trc

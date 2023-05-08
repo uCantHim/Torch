@@ -46,19 +46,23 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
     code::Value color = builder.makeConstant(vec4(data.color, data.opacity));;
     if (!data.albedoTexture.empty())
     {
-        color = builder.makeTextureSample(
-            TextureReference{ data.albedoTexture },
+        color = builder.makeCall<TextureSample>({
+            builder.makeSpecializationConstant(
+                std::make_shared<RuntimeTextureIndex>(data.albedoTexture)
+            ),
             builder.makeCapabilityAccess(FragmentCapability::kVertexUV)
-        );
+        });
     }
 
     code::Value normal = builder.makeCapabilityAccess(FragmentCapability::kVertexNormal);;
     if (!data.normalTexture.empty())
     {
-        auto sampledNormal = builder.makeTextureSample(
-            TextureReference{ data.normalTexture },
+        auto sampledNormal = builder.makeCall<TextureSample>({
+            builder.makeSpecializationConstant(
+                std::make_shared<RuntimeTextureIndex>(data.normalTexture)
+            ),
             builder.makeCapabilityAccess(FragmentCapability::kVertexUV)
-        );
+        });
         normal = builder.makeCall<TangentToWorldspace>({
             builder.makeMemberAccess(sampledNormal, "rgb")
         });

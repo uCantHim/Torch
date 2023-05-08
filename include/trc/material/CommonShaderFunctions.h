@@ -3,7 +3,9 @@
 #include <vector>
 
 #include "BasicType.h"
+#include "FragmentShader.h"
 #include "ShaderModuleBuilder.h"
+#include "trc/assets/AssetReference.h"
 
 namespace trc
 {
@@ -22,6 +24,25 @@ namespace trc
 
         void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override {
             builder.makeReturn(builder.makeExternalCall("mix", args));
+        }
+    };
+
+    class TextureSample : public ShaderFunction
+    {
+    public:
+        TextureSample()
+            : ShaderFunction("sampleTexture2D", FunctionType{ { ui32{}, vec2{} }, vec4{} })
+        {}
+
+        void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
+        {
+            auto textures = builder.makeCapabilityAccess(FragmentCapability::kTextureSample);
+            builder.makeReturn(
+                builder.makeExternalCall(
+                    "texture",
+                    { builder.makeArrayAccess(textures, args.at(0)), args.at(1) }
+                )
+            );
         }
     };
 

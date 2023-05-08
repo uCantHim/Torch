@@ -1,8 +1,6 @@
 syntax = "proto3";
 package trc.serial;
 
-import "asset_reference.proto";
-
 // The enum values/indices are the integer values of the corresponding
 // Vulkan flag bits
 enum ShaderStageBit
@@ -31,8 +29,12 @@ message ShaderProgram
 {
     message ShaderModule
     {
-        bytes spirv_code = 1;
         ShaderStageBit stage = 2;
+
+        bytes spirv_code = 1;
+
+        // Maps specialization constant indices to their serialized runtime value
+        map<uint32, bytes> specialization_constants = 3;
     }
 
     message PushConstantRange
@@ -53,7 +55,4 @@ message ShaderProgram
 
     repeated PushConstantRange push_constants = 2;
     repeated Descriptor descriptor_sets = 4;
-
-    // Maps specialization constant indices to textures
-    map<uint32, AssetReference> textures = 5;
 }

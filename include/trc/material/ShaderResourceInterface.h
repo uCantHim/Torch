@@ -10,16 +10,10 @@
 #include "ShaderCapabilities.h"
 #include "ShaderCapabilityConfig.h"
 #include "ShaderCodePrimitives.h"
-#include "trc/assets/AssetReference.h"
-#include "trc/assets/Texture.h"
+#include "ShaderRuntimeConstant.h"
 
 namespace trc
 {
-    struct TextureReference
-    {
-        AssetReference<Texture> texture;
-    };
-
     /**
      * @brief A collection of resources used by a shader module
      *
@@ -35,12 +29,12 @@ namespace trc
     public:
         using ResourceID = ShaderCapabilityConfig::ResourceID;
 
-        struct TextureResource
+        struct SpecializationConstantInfo
         {
-            TextureReference ref;
+            s_ptr<ShaderRuntimeConstant> value;
 
             // The index of the specialization constant that will hold the
-            // texture's runtime index.
+            // runtime data.
             ui32 specializationConstantIndex;
         };
 
@@ -101,13 +95,13 @@ namespace trc
             -> const std::vector<ShaderInputInfo>&;
 
         /**
-         * Structs { <texture>, <spec-idx> }
+         * Structs { <value>, <spec-idx> }
          *
          * The required operation at pipeline creation is:
          *
-         *     specConstants[<spec-idx>] = <texture>.getDeviceIndex();
+         *     specConstants[<spec-idx>] = <value>->loadData();
          */
-        auto getRequiredTextures() const -> const std::vector<TextureResource>&;
+        auto getSpecializationConstants() const -> const std::vector<SpecializationConstantInfo>&;
 
         /**
          * @brief Query a list of all descriptor sets required by this shader
@@ -175,7 +169,7 @@ namespace trc
         std::string code;
         std::vector<ShaderInputInfo> requiredShaderInputs;
 
-        std::vector<TextureResource> textures;
+        std::vector<SpecializationConstantInfo> specConstants;
         std::unordered_map<std::string, std::string> descriptorSetIndexPlaceholders;
 
         std::unordered_map<ResourceID, PushConstantInfo> pushConstantInfos;
@@ -197,8 +191,6 @@ namespace trc
         ShaderResourceInterface(const ShaderCapabilityConfig& config,
                                 ShaderCodeBuilder& codeBuilder);
 
-        auto queryTexture(TextureReference tex) -> code::Value;
-
         /**
          * @brief Directly query a capability
          *
@@ -207,6 +199,8 @@ namespace trc
          * requires an additional argument to be accessed.
          */
         auto queryCapability(Capability capability) -> code::Value;
+
+        auto makeSpecConstant(s_ptr<ShaderRuntimeConstant> value) -> code::Value;
 
         /**
          * @brief Compile requested resources to shader code
@@ -274,7 +268,7 @@ namespace trc
         /** Vector of pairs (index, name) */
         std::vector<std::pair<ui32, std::string>> specializationConstants;
         /** Map of pairs (index -> value) */
-        std::unordered_map<ui32, TextureReference> specializationConstantTextures;
+        std::unordered_map<ui32, s_ptr<ShaderRuntimeConstant>> specializationConstantValues;
 
         std::unordered_map<Resource, std::pair<std::string, std::string>> resourceMacros;
 

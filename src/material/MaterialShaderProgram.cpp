@@ -125,30 +125,6 @@ auto compileProgram(
     return result;
 }
 
-auto collectTextures(const ShaderStageMap& stages)
-    -> std::vector<std::pair<ui32, AssetReference<Texture>>>
-{
-    std::vector<std::pair<ui32, AssetReference<Texture>>> result;
-    for (const auto& [stage, mod] : stages)
-    {
-        for (const auto& texture : mod.getRequiredTextures()) {
-            result.emplace_back(texture.specializationConstantIndex, texture.ref.texture);
-        }
-    }
-
-#ifndef _NDEBUG
-    // Ensure that specialization constant indices are unique
-    for (auto it = result.begin(); it != result.end(); ++it)
-    {
-        auto found = std::find_if(it + 1, result.end(),
-                                  [idx=it->first](const auto& pair){ return pair.first == idx; });
-        assert(found == result.end() && "Specialization constant index is not unique!");
-    }
-#endif
-
-    return result;
-}
-
 auto collectDescriptorSets(const ShaderStageMap& stages, const ShaderDescriptorConfig& descConfig)
     -> std::vector<PipelineLayoutTemplate::Descriptor>
 {
@@ -161,7 +137,6 @@ auto collectDescriptorSets(const ShaderStageMap& stages, const ShaderDescriptorC
     }
 
     // Check that all required descriptor sets are defined
-    int i = 0;
     for (auto it = requiredDescriptorSets.begin(); it != requiredDescriptorSets.end(); /**/)
     {
         const std::string& setName = *it;
@@ -173,7 +148,6 @@ auto collectDescriptorSets(const ShaderStageMap& stages, const ShaderDescriptorC
             it = requiredDescriptorSets.erase(it);
         }
         else {
-            log::debug << "set = " << i++ << " : " << setName;
             ++it;
         }
     }
@@ -229,14 +203,46 @@ auto collectPushConstants(const ShaderStageMap& stages)
     return pcRanges;
 }
 
-auto makeMaterialProgram(
+auto MaterialProgramData::makeLayout() const -> PipelineLayoutTemplate
+{
+    using Hash = decltype([](vk::ShaderStageFlags flags){ return static_cast<ui32>(flags); });
+
+    std::unordered_map<vk::ShaderStageFlags, vk::PushConstantRange, Hash> perStage;
+    for (const auto& range : pushConstants)
+    {
+        auto [it, _] = perStage.try_emplace(range.shaderStages,
+                                            vk::PushConstantRange(range.shaderStages, 0, 0));
+        vk::PushConstantRange& totalRange = it->second;
+        totalRange.size += range.size;
+    }
+
+    std::vector<PipelineLayoutTemplate::PushConstant> pushConstants;
+    for (const auto& [stage, range] : perStage)
+    {
+        pushConstants.push_back({
+            .range=range,
+            .defaultValue=std::nullopt
+        });
+    }
+
+    return PipelineLayoutTemplate{ descriptorSets, std::move(pushConstants) };
+}
+
+auto linkMaterialProgram(
     std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
     const ShaderDescriptorConfig& descConfig)
     -> MaterialProgramData
 {
     MaterialProgramData data;
 
-    data.textures = collectTextures(stages);
+    // Collect specialization constants
+    for (const auto& [stage, mod] : stages)
+    {
+        auto& specs = data.specConstants.try_emplace(stage).first->second;
+        for (const auto& spec : mod.getSpecializationConstants()) {
+            specs.emplace_back(spec.specializationConstantIndex, spec.value);
+        }
+    }
     data.pushConstants = collectPushConstants(stages);
     data.descriptorSets = collectDescriptorSets(stages, descConfig);
 
@@ -253,6 +259,13 @@ auto MaterialProgramData::serialize() const -> serial::ShaderProgram
         auto newModule = prog.add_shader_modules();
         newModule->set_spirv_code(mod.data(), mod.size() * sizeof(ui32));
         newModule->set_stage(static_cast<serial::ShaderStageBit>(stage));
+
+        if (specConstants.contains(stage))
+        {
+            for (const auto& [idx, val] : specConstants.at(stage)) {
+                newModule->mutable_specialization_constants()->emplace(idx, val->serialize());
+            }
+        }
     }
 
     for (const auto& range : pushConstants)
@@ -271,25 +284,12 @@ auto MaterialProgramData::serialize() const -> serial::ShaderProgram
         newSet->set_is_static(desc.isStatic);
     }
 
-    for (const auto& [idx, ref] : textures)
-    {
-        if (!ref.hasAssetPath())
-        {
-            log::warn << "[In MaterialProgramData::serialize]:"
-                         " Tried to serialize a texture reference without an asset path."
-                         " The texture will be excluded from the serialized result.\n";
-            continue;
-        }
-
-        serial::AssetReference newRef;
-        newRef.set_unique_path(ref.getAssetPath().string());
-        prog.mutable_textures()->emplace(idx, std::move(newRef));
-    }
-
     return prog;
 }
 
-void MaterialProgramData::deserialize(const serial::ShaderProgram& prog)
+void MaterialProgramData::deserialize(
+    const serial::ShaderProgram& prog,
+    ShaderRuntimeConstantDeserializer& deserializer)
 {
     *this = {};  // Clear all data
 
@@ -301,6 +301,22 @@ void MaterialProgramData::deserialize(const serial::ShaderProgram& prog)
         assert(mod.spirv_code().size() % sizeof(ui32) == 0);
         code.resize(mod.spirv_code().size() / sizeof(ui32));
         memcpy(code.data(), mod.spirv_code().data(), mod.spirv_code().size());
+
+        if (!mod.specialization_constants().empty())
+        {
+            auto& specs = specConstants.try_emplace(it->first).first->second;
+            for (const auto& [idx, value] : mod.specialization_constants())
+            {
+                if (auto runtimeConst = deserializer.deserialize(value)) {
+                    specs.emplace_back(idx, runtimeConst.value());
+                }
+                else {
+                    log::warn << log::here()
+                        << ": Deserialization of shader runtime value at specialization constant"
+                        << " index " << idx << " failed: deserializer returned std::nullopt.";
+                }
+            }
+        }
     }
 
     for (const auto& range : prog.push_constants())
@@ -320,11 +336,6 @@ void MaterialProgramData::deserialize(const serial::ShaderProgram& prog)
             .isStatic=desc.is_static()
         });
     }
-
-    for (const auto& [idx, ref] : prog.textures())
-    {
-        textures.emplace_back(idx, AssetReference<Texture>(AssetPath(ref.unique_path())));
-    }
 }
 
 void MaterialProgramData::serialize(std::ostream& os) const
@@ -332,31 +343,26 @@ void MaterialProgramData::serialize(std::ostream& os) const
     serialize().SerializeToOstream(&os);
 }
 
-void MaterialProgramData::deserialize(std::istream& is)
+void MaterialProgramData::deserialize(
+    std::istream& is,
+    ShaderRuntimeConstantDeserializer& deserializer)
 {
     serial::ShaderProgram prog;
     prog.ParseFromIstream(&is);
-    deserialize(prog);
+    deserialize(prog, deserializer);
 }
 
 
 
 MaterialShaderProgram::MaterialShaderProgram(
     const MaterialProgramData& data,
-    Pipeline::ID basePipeline)
+    const PipelineDefinitionData& pipelineConfig,
+    const trc::RenderPassName& renderPass)
     :
-    layout(makeLayout(data))
+    layoutTemplate(data.makeLayout()),
+    layout(PipelineRegistry::registerPipelineLayout(layoutTemplate))
 {
-#ifndef _NDEBUG
-    // Debug assertion
-    for (const auto& [_, tex] : data.textures)
-    {
-        assert(tex.hasResolvedID()
-               && "Textures must be resolved before being passed into MaterialShaderProgram!");
-    }
-#endif
-
-    assert(basePipeline != Pipeline::ID::NONE);
+    assert(layout != PipelineLayout::ID::NONE);
     assert(runtimePcOffsets != nullptr);
 
     // Create shader program
@@ -365,25 +371,28 @@ MaterialShaderProgram::MaterialShaderProgram(
         program.stages.emplace(stage, ProgramDefinitionData::ShaderStage{ code });
     }
 
-    // Load textures and set specialization constants
-    auto& fragmentStage = program.stages.at(vk::ShaderStageFlagBits::eFragment);
-    for (const auto& [specIdx, texRef] : data.textures)
+    // Load and set specialization constants
+    for (const auto& [stageType, specs] : data.specConstants)
     {
-        // Load texture asset
-        assert(texRef.hasResolvedID());
-        auto& tex = loadedTextures.emplace_back(texRef.getID().getDeviceDataHandle());
+        auto& stage = program.stages.at(stageType);
+        for (const auto& [specIdx, specValue] : specs)
+        {
+            // Store the value provider (in case it want to keep some data alive)
+            runtimeValues.emplace_back(specValue);
 
-        // Set specialization constant
-        fragmentStage.specConstants.set(specIdx, tex.getDeviceIndex());
+            // Set specialization constant
+            const auto data = specValue->loadData();
+            assert(data.size() == specValue->getType().size());
+
+            stage.specConstants.set(specIdx, data.data(), data.size());
+        }
     }
-    assert(loadedTextures.size() == data.textures.size());
 
     // Create pipeline
-    const auto base = PipelineRegistry::cloneGraphicsPipeline(basePipeline);
     pipeline = PipelineRegistry::registerPipeline(
-        PipelineTemplate{ program, base.getPipelineData() },
-        PipelineRegistry::registerPipelineLayout(layout),
-        PipelineRegistry::getPipelineRenderPass(basePipeline)
+        PipelineTemplate{ program, pipelineConfig },
+        layout,
+        renderPass
     );
 
     // Create runtime push constant offsets
@@ -397,7 +406,7 @@ MaterialShaderProgram::MaterialShaderProgram(
 
 auto MaterialShaderProgram::getLayout() const -> const PipelineLayoutTemplate&
 {
-    return layout;
+    return layoutTemplate;
 }
 
 auto MaterialShaderProgram::makeRuntime() const -> MaterialRuntime
@@ -406,33 +415,6 @@ auto MaterialShaderProgram::makeRuntime() const -> MaterialRuntime
     assert(runtimePcOffsets != nullptr);
 
     return MaterialRuntime(pipeline, runtimePcOffsets);
-}
-
-auto MaterialShaderProgram::makeLayout(const MaterialProgramData& data) -> PipelineLayoutTemplate
-{
-    using Hash = decltype([](vk::ShaderStageFlags flags){ return static_cast<ui32>(flags); });
-
-    std::unordered_map<vk::ShaderStageFlags, vk::PushConstantRange, Hash> perStage;
-    for (const auto& range : data.pushConstants)
-    {
-        auto [it, _] = perStage.try_emplace(range.shaderStages,
-                                            vk::PushConstantRange(range.shaderStages, 0, 0));
-        vk::PushConstantRange& totalRange = it->second;
-        totalRange.size += range.size;
-    }
-
-    std::vector<PipelineLayoutTemplate::PushConstant> pushConstants;
-    for (const auto& [stage, range] : perStage)
-    {
-        pushConstants.push_back({
-            .range=range,
-            .defaultValue=std::nullopt
-        });
-    }
-
-    PipelineLayoutTemplate layout(data.descriptorSets, std::move(pushConstants));
-
-    return layout;
 }
 
 } // namespace trc

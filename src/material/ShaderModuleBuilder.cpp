@@ -1,5 +1,7 @@
 #include "trc/material/ShaderModuleBuilder.h"
 
+#include <ranges>
+
 #include <shader_tools/ShaderDocument.h>
 
 #include "trc/material/ShaderCodeCompiler.h"
@@ -45,9 +47,9 @@ auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
     return resources.queryCapability(capability);
 }
 
-auto ShaderModuleBuilder::makeTextureSample(TextureReference tex, Value uvs) -> Value
+auto ShaderModuleBuilder::makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> value) -> Value
 {
-    return makeExternalCall("texture", { resources.queryTexture(tex), uvs });
+    return resources.makeSpecConstant(std::move(value));
 }
 
 void ShaderModuleBuilder::includeCode(

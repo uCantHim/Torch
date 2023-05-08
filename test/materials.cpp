@@ -39,7 +39,10 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
 
     auto uvs = builder.makeCapabilityAccess(FragmentCapability::kVertexUV);
-    auto texColor = builder.makeTextureSample({ tex }, uvs);
+    auto texColor = builder.makeCall<TextureSample>({
+        builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(tex)),
+        uvs
+    });
 
     auto color = builder.makeCall<Mix<4, float>>({
         builder.makeConstant(vec4(1, 0, 0, 1)),
@@ -51,7 +54,10 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     builder.makeAssignment(builder.makeMemberAccess(mix, "a"), builder.makeConstant(0.3f));
 
     auto sampledNormal = builder.makeMemberAccess(
-        builder.makeTextureSample({ normalMap }, uvs),
+        builder.makeCall<TextureSample>({
+            builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(normalMap)),
+            uvs
+        }),
         "rgb"
     );
     auto normal = builder.makeCall<TangentToWorldspace>({ sampledNormal });

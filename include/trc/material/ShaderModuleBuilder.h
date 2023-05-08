@@ -10,6 +10,7 @@
 #include "ShaderCapabilityConfig.h"
 #include "ShaderCodeBuilder.h"
 #include "ShaderResourceInterface.h"
+#include "ShaderRuntimeConstant.h"
 #include "trc/util/Pathlet.h"
 
 namespace trc
@@ -39,7 +40,9 @@ namespace trc
 
     /**
      * An extension of ShaderCodeBuilder with additional functionality to
-     * create shader resources.
+     * create and access shader resources.
+     *
+     * Builds complete shader modules.
      */
     class ShaderModuleBuilder : public ShaderCodeBuilder
     {
@@ -58,7 +61,16 @@ namespace trc
         auto makeCall(std::vector<Value> args) -> Value;
 
         auto makeCapabilityAccess(Capability capability) -> Value;
-        auto makeTextureSample(TextureReference tex, Value uvs) -> Value;
+
+        /**
+         * @brief Create a specialization constant with a runtime value
+         *
+         * @param s_ptr<ShaderRuntimeConstant> value The specialization
+         *        constant's value, determined at runtime.
+         *
+         * @return code::Value
+         */
+        auto makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> value) -> Value;
 
         /**
          * @brief Create a function call statement

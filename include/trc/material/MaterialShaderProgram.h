@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -7,6 +8,7 @@
 #include "MaterialRuntime.h"
 #include "ShaderModuleCompiler.h"
 #include "ShaderResourceInterface.h"
+#include "ShaderRuntimeConstant.h"
 #include "material_shader_program.pb.h"
 #include "trc/core/PipelineLayoutTemplate.h"
 #include "trc/core/PipelineTemplate.h"
@@ -28,6 +30,26 @@ namespace trc
 
     /**
      * @brief A serializable representation of a full shader program
+     *
+     * Create `MaterialProgramData` structs with `linkMaterialProgram`. This
+     * function performs quite complicated logic to collect and merge
+     * information from a set of shader modules and one should never edit
+     * `MaterialProgramData`'s fields manually.
+     *
+     * # Example
+     * ```cpp
+     *
+     * ShaderModule myVertexModule = ...;
+     * ShaderModule myFragmentModule = ...;
+     *
+     * MaterialProgramData myProgram = linkMaterialProgram(
+     *     {
+     *         { vk::ShaderStageFlagBits::eVertex, std::move(myVertexModule) },
+     *         { vk::ShaderStageFlagBits::eFragment, std::move(myVertexModule) },
+     *     },
+     *     myDescriptorConfig
+     * );
+     * ```
      */
     struct MaterialProgramData
     {
@@ -42,20 +64,36 @@ namespace trc
 
         std::unordered_map<vk::ShaderStageFlagBits, std::vector<ui32>> spirvCode;
 
-        std::vector<std::pair<ui32, AssetReference<Texture>>> textures;
+        std::unordered_map<
+            vk::ShaderStageFlagBits,
+            std::vector<std::pair<ui32, s_ptr<ShaderRuntimeConstant>>>
+        > specConstants;
         std::vector<PushConstantRange> pushConstants;
         std::vector<PipelineLayoutTemplate::Descriptor> descriptorSets;
 
+        /**
+         * @brief Create a pipeline layout configuration for the shader program
+         *
+         * The program knows everything that's necessary to create a pipeline
+         * layout compatible to it.
+         *
+         * @return PipelineLayoutTemplate
+         */
+        auto makeLayout() const -> PipelineLayoutTemplate;
+
         auto serialize() const -> serial::ShaderProgram;
-        void deserialize(const serial::ShaderProgram& program);
+        void deserialize(const serial::ShaderProgram& program,
+                         ShaderRuntimeConstantDeserializer& deserializer);
+
         void serialize(std::ostream& os) const;
-        void deserialize(std::istream& is);
+        void deserialize(std::istream& is,
+                         ShaderRuntimeConstantDeserializer& deserializer);
     };
 
     /**
      * @brief Create a shader program from a set of shader modules
      */
-    auto makeMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> modules,
+    auto linkMaterialProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> modules,
                              const ShaderDescriptorConfig& descConfig)
         -> MaterialProgramData;
 
@@ -65,7 +103,9 @@ namespace trc
     class MaterialShaderProgram
     {
     public:
-        MaterialShaderProgram(const MaterialProgramData& data, Pipeline::ID basePipeline);
+        MaterialShaderProgram(const MaterialProgramData& data,
+                              const PipelineDefinitionData& pipelineConfig,
+                              const trc::RenderPassName& renderPass);
 
         auto getLayout() const -> const PipelineLayoutTemplate&;
         auto makeRuntime() const -> MaterialRuntime;
@@ -73,12 +113,11 @@ namespace trc
     private:
         using ShaderStageMap = std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
 
-        static auto makeLayout(const MaterialProgramData& data) -> PipelineLayoutTemplate;
-
-        PipelineLayoutTemplate layout;
+        PipelineLayoutTemplate layoutTemplate;
+        PipelineLayout::ID layout;
 
         Pipeline::ID pipeline{ Pipeline::ID::NONE };
         s_ptr<std::vector<ui32>> runtimePcOffsets{ new std::vector<ui32> };
-        std::vector<TextureHandle> loadedTextures;
+        std::vector<s_ptr<ShaderRuntimeConstant>> runtimeValues;  // Just keep the objects alive
     };
 }

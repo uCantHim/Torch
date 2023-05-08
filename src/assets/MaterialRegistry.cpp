@@ -15,7 +15,7 @@ trc::AssetData<trc::Material>::AssetData(ShaderModule fragModule, bool transpare
 {
     auto specialize = [this, &fragModule](const MaterialSpecializationInfo& info)
     {
-        programs[MaterialKey{ info }] = makeMaterialProgram(
+        programs[MaterialKey{ info }] = linkMaterialProgram(
             makeMaterialSpecialization(fragModule, info),
             makeShaderDescriptorConfig()
         );
@@ -52,7 +52,7 @@ void trc::AssetData<trc::Material>::deserialize(std::istream& is)
     for (const auto& spec : mat.specializations())
     {
         MaterialProgramData program;
-        program.deserialize(spec.shader_program());
+        program.deserialize(spec.shader_program(), *this);
         programs.try_emplace(
             MaterialSpecializationInfo{ .animated=spec.animated() },
             std::move(program)
@@ -60,14 +60,27 @@ void trc::AssetData<trc::Material>::deserialize(std::istream& is)
     }
 }
 
+auto trc::AssetData<trc::Material>::deserialize(const std::string& data)
+    -> std::optional<s_ptr<ShaderRuntimeConstant>>
+{
+    try {
+        // For now, we only have texture references as runtime constants.
+        AssetReference<Texture> ref{ AssetPath(data) };
+        textures.emplace_back(ref);
+        return std::make_shared<RuntimeTextureIndex>(ref);
+    }
+    catch (const std::invalid_argument&) {
+        // Happens if AssetPath constructor fails
+        return std::nullopt;
+    }
+}
+
 void trc::AssetData<trc::Material>::resolveReferences(AssetManager& assetManager)
 {
-    for (auto& [_, program] : programs)
-    {
-        for (auto& [_, ref] : program.textures) {
-            ref.resolve(assetManager);
-        }
+    for (auto& ref : textures) {
+        ref.resolve(assetManager);
     }
+    textures.clear();
 }
 
 
@@ -95,7 +108,8 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 
         mat.runtimePrograms.at(key.flags.toIndex()) = std::make_unique<MaterialShaderProgram>(
             program,
-            basePipeline
+            PipelineRegistry::cloneGraphicsPipeline(basePipeline).getPipelineData(),
+            PipelineRegistry::getPipelineRenderPass(basePipeline)
         );
 
         auto rt = mat.runtimePrograms.at(key.flags.toIndex())->makeRuntime();
