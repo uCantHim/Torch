@@ -138,10 +138,6 @@ namespace trc
          * An asset is defined by an asset source object, which is a mechanism
          * to load an asset's data and metadata lazily.
          *
-         * Whether or not the data is actually loaded lazily or immediately when
-         * `AssetManagerBase::create` is called is determined by the underlying
-         * `AssetRegistryModule` implementation for the asset type `T`.
-         *
          * @tparam T The type of asset to create.
          * @param u_ptr<AssetSource<T>> A source for the new asset's data. Must
          *        not be nullptr.
@@ -235,6 +231,26 @@ namespace trc
          * asset manager's interface to manipulate assets instead.
          */
         auto getDeviceRegistry() -> AssetRegistry&;
+
+    protected:
+        /**
+         * This is a quick and dirty solution for the problem that the
+         * AssetManager has to remove auxiliary data in the case that an
+         * asset was added via `create(AssetPath)`, but destroyed with
+         * `destroy(AssetID)`.
+         *
+         * I found two alternatives:
+         *  1. Use a general `ComponentStorage` object in `AssetManager` to
+         *  store a component for each asset with a custom destructor that
+         *  removes the remaining meta information.
+         *  2. Overload all `AssetManagerBase::destroy` functions statically
+         *  in `AssetManager` in the same fashion as I did in
+         *  `AssetManager::create<T>(u_ptr<AssetSource<T>>)`. This is kind of
+         *  tedious with the multiple overloads in `AssetManagerBase`.
+         *
+         * See `AssetManager::beforeAssetDestroy` for details.
+         */
+        virtual void beforeAssetDestroy(AssetID /*asset*/) {}
 
     private:
         struct AssetInfo
@@ -394,6 +410,8 @@ namespace trc
                 " type " + getAssetType(id).getName() + "."
             );
         }
+
+        beforeAssetDestroy(id);
 
         const auto typedId = *getAs<T>(id);
         deviceRegistry.remove<T>(typedId.getDeviceID());

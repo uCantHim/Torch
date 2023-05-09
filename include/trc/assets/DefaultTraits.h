@@ -15,7 +15,7 @@ namespace trc
                             const AssetPath& path)
             -> std::optional<AssetID> = 0;
 
-        virtual void destroy(AssetManagerBase& manager, AssetID id) = 0;
+        virtual void destroy(AssetManager& manager, AssetID id) = 0;
     };
 
     template<AssetBaseType T>
@@ -31,7 +31,7 @@ namespace trc
             return std::nullopt;
         }
 
-        void destroy(AssetManagerBase& manager, AssetID id) override
+        void destroy(AssetManager& manager, AssetID id) override
         {
             manager.destroy<T>(id);
         }

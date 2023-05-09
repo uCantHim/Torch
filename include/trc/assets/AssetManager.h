@@ -23,10 +23,15 @@ namespace trc
      * interfaces that allow asset lookup and destruction via the typeless
      * `AssetID` without explicit specification of the asset's expected type.
      *
-     * If an object exists but some kind of parameters are invalid, we return
-     * std::optional.
-     * If the object at an ID/path or other kind of reference does not exist,
-     * we throw.
+     * It is important to note that, while `AssetManager` accesses a
+     * `DataStorage` to load asset data, it does not manage objects in the
+     * storage. It never writes new objects to the storage, nor does it delete
+     * objects from it. Thus, the `AssetPath`-based interface always expects
+     * objects at the specified path to be available in the storage (i.e. the
+     * user must have added them via `AssetStorage::store` beforehand).
+     * Likewise, `AssetManager::destroy(AssetPath)` merely removes the reference
+     * to the asset (`AssetManager` 'forgets' about the asset), but does not
+     * delete data in the storage.
      */
     class AssetManager : public AssetManagerBase
     {
@@ -199,7 +204,10 @@ namespace trc
         template<AssetBaseType T>
         auto getAs(const AssetPath& path) const -> std::optional<TypedAssetID<T>>;
 
-        auto getMetadata(const AssetPath& path) const -> const AssetMetadata&;
+        /**
+         * @return const AssetMetadata* nullptr if nothing exists at `path`.
+         */
+        auto getMetadata(const AssetPath& path) const -> const AssetMetadata*;
 
 
         //////////////////////////////////
@@ -219,22 +227,29 @@ namespace trc
 
         /**
          * @brief Access an implementation of a trait for an asset type
+         *
+         * @return Trait* nullptr if no implementation of `Trait` is registered
+         *                for type `Asset`.
          */
         template<AssetTraitT Trait, AssetBaseType Asset>
-        auto getTrait() noexcept
-            -> std::optional<std::reference_wrapper<Trait>>
+        auto getTrait() noexcept -> Trait*
         {
             return getTrait<Trait>(AssetType::make<Asset>());
         }
 
         /**
          * @brief Access an implementation of a trait for an asset type
+         *
+         * @return Trait* nullptr if no implementation of `Trait` is registered
+         *                for `type`.
          */
         template<AssetTraitT Trait>
-        auto getTrait(const AssetType& type) noexcept
-            -> std::optional<std::reference_wrapper<Trait>>
+        auto getTrait(const AssetType& type) noexcept -> Trait*
         {
-            return assetTraits.getTrait<Trait>(type);
+            if (auto trait = assetTraits.getTrait<Trait>(type)) {
+                return &trait.value().get();
+            }
+            return nullptr;
         }
 
         /**
@@ -290,7 +305,7 @@ namespace trc
                 );
             }
 
-            assetTraits.registerTrait<T>(type);
+            assetTraits.registerTrait<T>(type, std::move(trait));
         }
 
     private:
@@ -329,10 +344,13 @@ namespace trc
         template<AssetBaseType T>
         void resolveReferences(AssetData<T>& data);
 
+        void beforeAssetDestroy(AssetID asset) override;
+
         AssetStorage dataStorage;
         TraitStorage assetTraits;
 
         std::unordered_map<AssetPath, AssetID> pathsToAssets;
+        std::unordered_map<AssetID, AssetPath> assetsToPaths;
     };
 
 
@@ -390,6 +408,7 @@ namespace trc
 
         const auto id = create<T>(std::move(*source));
         pathsToAssets.emplace(path, id.getAssetID());
+        assetsToPaths.emplace(id.getAssetID(), path);
 
         return id;
     }

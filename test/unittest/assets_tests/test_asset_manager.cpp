@@ -239,6 +239,21 @@ TEST_F(AssetManagerTest, CreateUnregisteredAssetTypeFails)
     ASSERT_NO_THROW(assets.create(path));
 }
 
+TEST_F(AssetManagerTest, DestroyFromIdRemovesPath)
+{
+    const trc::AssetPath path("/bar/first_asset");
+    storage.store(path, BarData{});
+
+    const trc::AssetID id = assets.create(path).value();
+    assets.destroy(id);
+
+    ASSERT_FALSE(assets.exists(path));
+    ASSERT_THROW(assets.getAs<Bar>(id), trc::InvalidAssetIdError);
+    ASSERT_FALSE(assets.getAs<Bar>(path));
+    ASSERT_THROW(assets.destroy<Bar>(id), trc::InvalidAssetIdError);
+    ASSERT_NO_THROW(assets.destroy(path));
+}
+
 TEST_F(AssetManagerTest, ResolveReferences)
 {
     assets.registerAssetType<ReferencingAsset>(std::make_unique<ReferencingAssetRegistry>());
