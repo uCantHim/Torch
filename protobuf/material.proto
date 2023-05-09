@@ -22,11 +22,39 @@ message SimpleMaterial
     optional AssetReference normal_texture = 9;
 }
 
+// The enum values/indices are the integer values of the corresponding
+// Vulkan flag bits
+enum PolygonMode
+{
+    FILL = 0;
+    LINE = 1;
+    POINT = 2;
+}
+
+enum CullMode
+{
+    NONE           = 0x00;
+    FRONT          = 0x01;
+    BACK           = 0x02;
+    FRONT_AND_BACK = 0x03;
+}
+
 message Material
 {
     message Settings
     {
         bool transparent = 1;
+
+        optional PolygonMode polygon_mode = 2;
+        optional float line_width = 3;
+
+        optional CullMode cull_mode = 4;
+        optional bool front_face_clockwise = 5;
+
+        optional bool depth_write = 6;
+        optional bool depth_test = 7;
+        optional float depth_bias_constant_factor = 8;
+        optional float depth_bias_slope_factor = 9;
     }
 
     message Specialization

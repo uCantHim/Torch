@@ -38,7 +38,17 @@ namespace trc
         AssetData(ShaderModule fragModule, bool transparent);
 
         std::unordered_map<MaterialKey, MaterialProgramData> programs;
+
         bool transparent{ false };
+        std::optional<vk::PolygonMode> polygonMode;
+        std::optional<float> lineWidth;
+        std::optional<vk::CullModeFlags> cullMode;
+        std::optional<vk::FrontFace> frontFace;
+
+        std::optional<bool> depthWrite;
+        std::optional<bool> depthTest;
+        std::optional<float> depthBiasConstantFactor;
+        std::optional<float> depthBiasSlopeFactor;
 
         void resolveReferences(AssetManager& man);
 

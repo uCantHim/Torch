@@ -28,13 +28,31 @@ trc::AssetData<trc::Material>::AssetData(ShaderModule fragModule, bool transpare
 void trc::AssetData<trc::Material>::serialize(std::ostream& os) const
 {
     serial::Material mat;
-    mat.mutable_settings()->set_transparent(transparent);
     for (const auto& [key, program] : programs)
     {
         auto newSpec = mat.add_specializations();
         *newSpec->mutable_shader_program() = program.serialize();
         newSpec->set_animated(key.flags.has(MaterialKey::Flags::Animated::eTrue));
     }
+
+    auto settings = mat.mutable_settings();
+    settings->set_transparent(transparent);
+    if (polygonMode) settings->set_polygon_mode(serial::PolygonMode(*polygonMode));
+    if (lineWidth) settings->set_line_width(*lineWidth);
+    if (cullMode)
+    {
+        serial::CullMode cm = serial::CullMode::NONE;
+        if (*cullMode == vk::CullModeFlagBits::eFrontAndBack) cm = serial::CullMode::FRONT_AND_BACK;
+        else if (*cullMode == vk::CullModeFlagBits::eFront) cm = serial::CullMode::FRONT;
+        else if (*cullMode == vk::CullModeFlagBits::eBack) cm = serial::CullMode::BACK;
+        settings->set_cull_mode(cm);
+    }
+    if (frontFace) settings->set_front_face_clockwise(*frontFace == vk::FrontFace::eClockwise);
+
+    if (depthWrite) settings->set_depth_write(*depthWrite);
+    if (depthTest) settings->set_depth_test(*depthTest);
+    if (depthBiasConstantFactor) settings->set_depth_bias_constant_factor(*depthBiasConstantFactor);
+    if (depthBiasSlopeFactor) settings->set_depth_bias_slope_factor(*depthBiasSlopeFactor);
 
     mat.SerializeToOstream(&os);
 }
@@ -45,7 +63,20 @@ void trc::AssetData<trc::Material>::deserialize(std::istream& is)
     mat.ParseFromIstream(&is);
 
     // Parse settings
-    transparent = mat.settings().transparent();
+    const auto& settings = mat.settings();
+    transparent = settings.transparent();
+    if (settings.has_polygon_mode()) polygonMode = vk::PolygonMode(settings.polygon_mode());
+    if (settings.has_line_width()) lineWidth = settings.line_width();
+    if (settings.has_cull_mode()) cullMode = vk::CullModeFlags(settings.cull_mode());
+    if (settings.has_front_face_clockwise())
+    {
+        frontFace = settings.front_face_clockwise() ? vk::FrontFace::eClockwise
+                                                    : vk::FrontFace::eCounterClockwise;
+    }
+    if (settings.has_depth_write()) depthWrite = settings.depth_write();
+    if (settings.has_depth_test()) depthTest = settings.depth_test();
+    if (settings.has_depth_bias_constant_factor()) depthBiasConstantFactor = settings.depth_bias_constant_factor();
+    if (settings.has_depth_bias_slope_factor()) depthBiasSlopeFactor = settings.depth_bias_slope_factor();
 
     // Parse specializations
     programs.clear();
@@ -106,15 +137,21 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
         };
         Pipeline::ID basePipeline = pipelines::getDrawableBasePipeline(info.toPipelineFlags());
 
+        // Set some pipeline configuration parameters
+        auto pipeline = PipelineRegistry::cloneGraphicsPipeline(basePipeline).getPipelineData();
+        if (mat.data.polygonMode) {
+            pipeline.rasterization.setPolygonMode(*mat.data.polygonMode);
+        }
+        if (mat.data.lineWidth) {
+            pipeline.rasterization.setLineWidth(*mat.data.lineWidth);
+        }
+
+        // Create the runtime program
         mat.runtimePrograms.at(key.flags.toIndex()) = std::make_unique<MaterialShaderProgram>(
             program,
-            PipelineRegistry::cloneGraphicsPipeline(basePipeline).getPipelineData(),
+            pipeline,
             PipelineRegistry::getPipelineRenderPass(basePipeline)
         );
-
-        auto rt = mat.runtimePrograms.at(key.flags.toIndex())->makeRuntime();
-        auto _rt = mat.getSpecialization(key);
-        assert(rt.getPipeline() != Pipeline::ID::NONE);
     }
 
     return id;
