@@ -17,7 +17,7 @@ using trc::rt::TLAS;
 
 void run()
 {
-    auto torch = trc::initFull(trc::InstanceCreateInfo{ .enableRayTracing = true });
+    auto torch = trc::initFull({}, trc::InstanceCreateInfo{ .enableRayTracing = true });
     auto& window = torch->getWindow();
     auto& assets = torch->getAssetManager();
 

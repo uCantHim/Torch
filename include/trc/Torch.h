@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include <trc_util/Timer.h>
 
 #include "trc/Scene.h"
@@ -16,7 +18,6 @@
 namespace trc
 {
     /**
-     * Reserved for future use, but empty for now.
      */
     struct TorchInitInfo
     {
@@ -53,6 +54,15 @@ namespace trc
     auto makeTorchRenderGraph() -> RenderGraph;
 
     /**
+     * @brief Configuration for the `TorchStack` created by `initFull`
+     */
+    struct TorchStackCreateInfo
+    {
+        fs::path projectRootDir{ TRC_COMPILE_ROOT_DIR"/torch_project_root" };
+        fs::path assetStorageDir{ projectRootDir / "assets" };
+    };
+
+    /**
      * @brief A collection of objects required to render stuff
      *
      * It is certainly possible to create all of these yourself. This is
@@ -65,7 +75,8 @@ namespace trc
         auto operator=(const TorchStack&) -> TorchStack& = delete;
         auto operator=(TorchStack&&) noexcept -> TorchStack& = delete;
 
-        TorchStack(const InstanceCreateInfo& instanceInfo = {},
+        TorchStack(const TorchStackCreateInfo& torchConfig = {},
+                   const InstanceCreateInfo& instanceInfo = {},
                    const WindowCreateInfo& windowInfo = {});
         ~TorchStack();
 
@@ -98,7 +109,8 @@ namespace trc
     /**
      * @brief Create a full default configuration of Torch
      */
-    auto initFull(const InstanceCreateInfo& instanceInfo = {},
+    auto initFull(const TorchStackCreateInfo& torchConfig = {},
+                  const InstanceCreateInfo& instanceInfo = {},
                   const WindowCreateInfo& windowInfo = {}
                   ) -> u_ptr<TorchStack>;
 } // namespace trc

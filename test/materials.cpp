@@ -12,7 +12,6 @@
 #include <trc/material/FragmentShader.h>
 #include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/TorchMaterialSettings.h>
-#include <trc/util/TorchDirectories.h>
 
 using namespace trc;
 
@@ -27,8 +26,6 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
         assetManager.getDataStorage().store(path, loadTexture(filePath));
         return path;
     };
-
-    trc::util::setProjectDirectory(TRC_TEST_ASSET_DIR"/..");
 
     const auto lenaPath = importTexture(TRC_TEST_ASSET_DIR"/lena.png");
     const auto stonePath = importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif");
@@ -80,7 +77,10 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
 int main()
 {
     // Initialize Torch
-    auto torch = initFull(InstanceCreateInfo{ .enableRayTracing=false });
+    auto torch = initFull(
+        TorchStackCreateInfo{ .projectRootDir=TRC_TEST_ASSET_DIR"/.." },
+        InstanceCreateInfo{ .enableRayTracing=false }
+    );
     auto& assetManager = torch->getAssetManager();
 
     Camera camera;

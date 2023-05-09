@@ -43,9 +43,6 @@ namespace trc
          *
          * @param s_ptr<DataStorage> assetDataStorage The storage from
          *        where the AssetManager will load asset data.
-         * @param const Instance& instance
-         * @param const AssetRegistryCreateInfo& arInfo The AssetManager
-         *        automatically creates an AssetRegistry.
          */
         explicit AssetManager(s_ptr<DataStorage> assetDataStorage);
 

@@ -66,17 +66,19 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
 }
 
 auto trc::initFull(
+    const TorchStackCreateInfo& torchConfig,
     const InstanceCreateInfo& instanceInfo,
     const WindowCreateInfo& windowInfo
     ) -> u_ptr<TorchStack>
 {
     init();
-    return std::make_unique<TorchStack>(instanceInfo, windowInfo);
+    return std::make_unique<TorchStack>(torchConfig, instanceInfo, windowInfo);
 }
 
 
 
 trc::TorchStack::TorchStack(
+    const TorchStackCreateInfo& torchConfig,
     const InstanceCreateInfo& instanceInfo,
     const WindowCreateInfo& windowInfo)
     :
@@ -88,9 +90,10 @@ trc::TorchStack::TorchStack(
         }
         return winInfo;
     }()),
-    assetManager(
-        std::make_shared<FilesystemDataStorage>(util::getAssetStorageDirectory())
-    ),
+    assetManager([&torchConfig]{
+        fs::create_directories(torchConfig.assetStorageDir);
+        return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
+    }()),
     shadowPool(window, ShadowPoolCreateInfo{ .maxShadowMaps=200 }),
     swapchainRenderTarget(makeRenderTarget(window)),
     renderConfig(

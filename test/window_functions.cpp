@@ -12,7 +12,7 @@ int main()
     {
         ivec2 windowSize{ 800, 600 };
         ivec2 windowPos{ 100, 100 };
-        auto torch = trc::initFull({}, { .size=windowSize, .pos=windowPos });
+        auto torch = trc::initFull({}, {}, { .size=windowSize, .pos=windowPos });
 
         auto& window = torch->getWindow();
         auto imgui = trc::imgui::initImgui(window, torch->getRenderConfig().getLayout());

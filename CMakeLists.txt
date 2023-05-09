@@ -102,6 +102,7 @@ target_link_libraries(
 target_compile_definitions(torch
     PUBLIC
         TRC_COMPILE_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}"
+        TRC_SHADER_STORAGE_DIR="${TORCH_SHADER_DIR}"
         TRC_SHADER_BINARY_DIR="${TORCH_SHADER_OUTPUT_DIR}"
         TRC_SHADER_DB="${TORCH_INTERNAL_SHADER_DB}"
 

@@ -40,9 +40,9 @@ void run()
 
 
 
-    auto torch = trc::initFull(trc::InstanceCreateInfo{
+    auto torch = trc::initFull({}, trc::InstanceCreateInfo{
         .deviceExtensions={ VK_NV_MESH_SHADER_EXTENSION_NAME },
-        .deviceFeatures=trc::TypeErasedStructureChain{ vk::PhysicalDeviceMeshShaderFeaturesNV{} },
+        .deviceFeatures={ vk::PhysicalDeviceMeshShaderFeaturesNV{} },
     });
     const trc::Device& device = torch->getDevice();
     trc::Window& window = torch->getWindow();
