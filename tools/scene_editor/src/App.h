@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 
@@ -14,7 +12,7 @@ using namespace trc::basic_types;
 class App
 {
 public:
-    explicit App(Project project);
+    explicit App(const fs::path& projectRootDir);
     ~App();
 
     void run();
@@ -40,13 +38,13 @@ private:
     void tick();
     bool doEnd{ false };
 
-    Project project;
-
     u_ptr<int, void(*)(int*)> torchTerminator;
     u_ptr<trc::TorchStack> torch;
-    u_ptr<trc::imgui::ImguiRenderPass> imgui{ nullptr };
+    u_ptr<trc::imgui::ImguiRenderPass> imgui;
     trc::AssetManager* assetManager;
     Scene scene;
+
+    Project project;
 
     gui::MainMenu mainMenu;
     InputStateMachine inputState;

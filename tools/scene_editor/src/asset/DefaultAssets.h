@@ -17,6 +17,7 @@ namespace g
         trc::MaterialID undefined;
         trc::MaterialID objectHighlight;
         trc::MaterialID objectSelect;
+        trc::MaterialID objectHitbox;
     };
 
     auto geos() -> const DefaultGeometries&;

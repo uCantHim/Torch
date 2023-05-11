@@ -4,10 +4,10 @@
 
 #include <trc/util/TorchDirectories.h>
 
+#include "App.h"
+#include "AssetEditorListEntryTrait.h"
 #include "ImguiUtil.h"
 #include "asset/ImportProcessor.h"
-#include "asset/ProjectDirectory.h"
-#include "App.h"
 
 
 
@@ -22,17 +22,20 @@ template<> inline constexpr const char* assetTypeName<HitboxAsset>{ "Hitbox" };
 
 
 
-auto findAvailableName(const ProjectDirectory& dir, trc::AssetPath path) -> trc::AssetPath
+auto findAvailableName(const trc::AssetManager& assets, trc::AssetPath path) -> trc::AssetPath
 {
-    if (!dir.exists(path)) return path;
+    if (!assets.exists(path)) return path;
 
-    auto ext = (trc::util::getAssetStorageDirectory() / path.string()).extension().string();
-    auto name = path.string().substr(0, path.string().size() - ext.size());
+    auto ext = path.filesystemPath("").extension().string();
+    auto name = path.replaceExtension("").string();
 
     size_t i{ 1 };
-    while (dir.exists(trc::AssetPath(name + "(" + std::to_string(i) + ")" + ext))) ++i;
+    do {
+        path = trc::AssetPath(name + "(" + std::to_string(i) + ")" + ext);
+        ++i;
+    } while (assets.exists(path));
 
-    return trc::AssetPath(name + "(" + std::to_string(i) + ")" + ext);
+    return path;
 }
 
 
@@ -43,7 +46,7 @@ auto findAvailableName(const ProjectDirectory& dir, trc::AssetPath path) -> trc:
 template<std::invocable<trc::AssetPath> Func>
 bool assetNameInputPopupModal(
     const char* title,
-    const ProjectDirectory& dir,
+    const trc::AssetManager& dir,
     Func&& onCreate
     )
 {
@@ -101,20 +104,28 @@ gui::AssetEditor::AssetEditor(MainMenu& menu)
     :
     app(menu.getApp()),
     mainMenu(menu),
-    assets(app.getAssets()),
-    dir(app.getProject().getStorageDir())
+    assets(app.getAssets())
 {
+    // I can't define function templates here :'(
+#define registerTrait(T) ( \
+    assets.registerTrait<AssetEditorListEntryGui, T>( \
+        std::make_unique<AssetEditorListEntryGuiImpl<T>>() \
+    ) \
+    )
+
+    registerTrait(trc::Geometry);
+    registerTrait(trc::Texture);
+    registerTrait(trc::Material);
+    registerTrait(trc::Animation);
+    registerTrait(trc::Rig);
+    registerTrait(trc::Font);
+    registerTrait(HitboxAsset);
 }
 
 void gui::AssetEditor::drawImGui()
 {
     drawAssetCreateButton();
     drawAssetList();
-
-    for (auto& f : deferredFunctions) {
-        f(dir);
-    }
-    deferredFunctions.clear();
 }
 
 void gui::AssetEditor::drawAssetCreateButton()
@@ -142,8 +153,8 @@ void gui::AssetEditor::drawAssetCreateButton()
         {
             auto create = [this](std::string name, trc::GeometryData data)
             {
-                const auto path = findAvailableName(dir, trc::AssetPath(std::move(name)));
-                importAsset(data, path, assets, dir);
+                const auto path = findAvailableName(assets, trc::AssetPath(std::move(name)));
+                importAsset(data, path, assets);
             };
 
             if (ig::Selectable("Cube")) {
@@ -178,68 +189,36 @@ void gui::AssetEditor::drawAssetList()
     // Show a material editor for every material that's being edited
     if (ig::BeginListBox("##assets"))
     {
-        dir.foreach(trc::util::VariantVisitor{
-            [this]<trc::AssetBaseType T>(const auto& path){ drawListEntry<T>(path); },
-        });
+        for (const auto& path : assets.getDataStorage()) {
+            drawListEntry(path);
+        }
         ig::EndListBox();
     }
 }
 
-template<trc::AssetBaseType T>
 void gui::AssetEditor::drawListEntry(const trc::AssetPath& path)
 {
+    assert(assets.exists(path));
+    assert(assets.getMetadata(path));
+
     const auto unique = path.string();
-    const auto label = assetTypeName<T> + std::string(" \"" + unique + "\"");
+    const auto type = assets.getMetadata(path)->type;
+    const auto label = type.getName() + " \"" + unique + "\"";
 
     ig::Selectable(label.c_str());
     if (ig::BeginPopupContextItem())
     {
-        drawEntryContextMenu<T>(path);
+        if (auto trait = assets.getTrait<AssetEditorListEntryGui>(type)) {
+            trait->drawImGui(assets, path);
+        }
+        else {
+            trc::log::error << trc::log::here() << ": AssetEditorListEntryGui trait is not"
+                            << " registered for " << type.getName();
+        }
+
         ig::EndPopup();
     }
     if (ig::IsItemHovered()) {
-        ig::SetTooltip(unique.c_str());
+        ig::SetTooltip("%s", unique.c_str());
     }
-}
-
-template<trc::AssetBaseType T>
-void gui::AssetEditor::drawEntryContextMenu(const trc::AssetPath& path)
-{
-    drawDefaultEntryContext(path);
-}
-
-template<>
-void gui::AssetEditor::drawEntryContextMenu<trc::Geometry>(const trc::AssetPath& path)
-{
-    if (ig::Button("Create in scene"))
-    {
-        static const auto mat = assets.create(trc::makeMaterial({ .color=vec4(1.0f) }));
-
-        app.getScene().createDefaultObject(trc::Drawable(
-            assets.get<trc::Geometry>(path),
-            mat,
-            app.getScene().getDrawableScene()
-        ));
-    }
-    drawDefaultEntryContext(path);
-}
-
-template<>
-void gui::AssetEditor::drawEntryContextMenu<trc::Material>(const trc::AssetPath& path)
-{
-    drawDefaultEntryContext(path);
-}
-
-void gui::AssetEditor::drawDefaultEntryContext(const trc::AssetPath& path)
-{
-    if (ig::Button("Delete"))
-    {
-        assets.destroy(path);
-        defer([path=path](auto& dir){ dir.remove(path); });
-    }
-}
-
-void gui::AssetEditor::defer(std::function<void(ProjectDirectory&)> func)
-{
-    deferredFunctions.emplace_back(std::move(func));
 }

@@ -169,19 +169,19 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     auto obj = createObject();
     auto& node = add<ObjectBaseNode>(obj);
     auto& d = add<trc::Drawable>(obj, std::move(drawable));
-    node.attach(d);
+    node.attach(*d);
     scene.getRoot().attach(node);
 
     // Create hitbox component
     auto& hitboxes = app->getAssets().getModule<HitboxAsset>();
-    add<Hitbox>(obj, hitboxes.getForGeometry(d.getGeometry()));
+    add<Hitbox>(obj, hitboxes.getForGeometry(d->getGeometry()));
 
     return obj;
 }
 
-auto Scene::createDefaultObject(trc::DrawableCreateInfo createInfo) -> SceneObject
+auto Scene::createDefaultObject(const trc::DrawableCreateInfo& createInfo) -> SceneObject
 {
-    return createDefaultObject(trc::Drawable(createInfo, getDrawableScene()));
+    return createDefaultObject(getDrawableScene().makeDrawable(createInfo));
 }
 
 void Scene::calcObjectHover()

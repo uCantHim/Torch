@@ -34,7 +34,7 @@ public:
         : scene(&scene), obj(obj), hitbox(hitbox)
     {
         auto& vis = scene.add<HitboxVisualization>(obj, scene.getDrawableScene());
-        scene.get<trc::Drawable>(obj).attach(vis);
+        scene.get<trc::Drawable>(obj)->attach(vis);
     }
 
     void operator()()
@@ -96,7 +96,13 @@ public:
         :
         obj(obj),
         scene(&scene),
-        rigId(scene.get<trc::Drawable>(obj).getGeometry().get().getRig())
+        rig([&]() -> std::optional<trc::RigHandle> {
+            auto geo = scene.get<trc::Drawable>(obj)->getGeometry().getDeviceDataHandle();
+            if (geo.hasRig()) {
+                return geo.getRig().getDeviceDataHandle();
+            }
+            return std::nullopt;
+        }())
     {
     }
 
@@ -105,26 +111,25 @@ public:
         if (!ig::CollapsingHeader("Animation ")) return;
         ig::TreePush("##context_animation_dialog");
 
-        if (!rigId)
+        if (!rig)
         {
             ig::Text("No rig attached");
             ig::TreePop();
             return;
         }
 
-        auto rig = rigId.getDeviceDataHandle();
-        ig::Text("%i animations", rig.getAnimationCount());
-        for (ui32 i = 0; i < rig.getAnimationCount(); i++)
+        ig::Text("%i animations", rig->getAnimationCount());
+        for (ui32 i = 0; i < rig->getAnimationCount(); i++)
         {
             ig::PushID(i);
             if (ig::Button("Play"))
             {
-                scene->get<trc::Drawable>(obj).getAnimationEngine().playAnimation(i);
+                scene->get<trc::Drawable>(obj)->getAnimationEngine().value()->playAnimation(i);
             }
             ig::PopID();
             ig::SameLine(0.0f, 50.0f);
-            auto anim = rig.getAnimation(i);
-            ig::Text("\"%s\"", scene->getAssets().getMetaData(anim).name.c_str());
+            auto anim = rig->getAnimation(i);
+            ig::Text("\"%s\"", scene->getAssets().getMetadata(anim).name.c_str());
         }
 
         ig::TreePop();
@@ -133,7 +138,7 @@ public:
 private:
     const SceneObject obj;
     Scene* scene;
-    const trc::RigID rigId;
+    std::optional<trc::RigHandle> rig;
 };
 
 auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>
@@ -143,7 +148,7 @@ auto makeContext(Scene& scene, SceneObject obj) -> std::function<void()>
     scene.getM<Hitbox>(obj) >> [&](Hitbox hitbox) {
         func.add(HitboxDialog(hitbox, scene, obj));
     };
-    if (scene.get<trc::Drawable>(obj).isAnimated()) {
+    if (scene.get<trc::Drawable>(obj)->isAnimated()) {
         func.add(AnimationDialog(obj, scene));
     };
 

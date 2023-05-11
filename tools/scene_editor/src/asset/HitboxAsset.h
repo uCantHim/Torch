@@ -56,5 +56,5 @@ public:
 private:
     trc::data::IdPool<ui32> idPool;
     componentlib::Table<HitboxHandle, LocalID> hitboxes;
-    componentlib::Table<LocalID, trc::GeometryID> perGeometry;
+    componentlib::Table<LocalID, trc::GeometryID::LocalID> perGeometry;
 };

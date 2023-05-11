@@ -54,7 +54,7 @@ auto HitboxRegistry::add(u_ptr<trc::AssetSource<HitboxAsset>> source) -> LocalID
     const LocalID id(idPool.generate());
     const auto data = source->load();
     hitboxes.emplace(id, data.sphere, data.capsule);
-    perGeometry.emplace(data.geometry.getID(), id);
+    perGeometry.emplace(data.geometry.getID().getDeviceID(), id);
 
     return id;
 }
@@ -72,5 +72,5 @@ auto HitboxRegistry::getHandle(LocalID id) -> HitboxHandle
 
 auto HitboxRegistry::getForGeometry(trc::GeometryID geo) -> HitboxHandle
 {
-    return hitboxes.get(perGeometry.get(geo));
+    return hitboxes.get(perGeometry.get(geo.getDeviceID()));
 }

@@ -69,12 +69,7 @@ void gui::ImportDialog::drawImGui()
         {
             if (ig::Button("Import"))
             {
-                importAsset(
-                    mesh.geometry,
-                    trc::AssetPath(mesh.name),
-                    app.getAssets(),
-                    app.getProject().getStorageDir()
-                );
+                importAsset(mesh.geometry, trc::AssetPath(mesh.name), app.getAssets());
                 imported.emplace(mesh.name);
             }
             if (ig::Button("Import and create in scene")) {
@@ -91,15 +86,14 @@ void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& m
 {
     auto& scene = app.getScene();
 
-    const auto geoId = importAsset(mesh.geometry, trc::AssetPath(mesh.name),
-                                   app.getAssets(), app.getProject().getStorageDir());
+    const auto geoId = importAsset(mesh.geometry, trc::AssetPath(mesh.name), app.getAssets());
 
     // Create object with default components
     const auto obj = scene.createDefaultObject({ geoId, g::mats().undefined });
 
     auto& d = scene.get<trc::Drawable>(obj);
-    d.setFromMatrix(mesh.globalTransform);
-    if (d.isAnimated()) {
-        d.getAnimationEngine().playAnimation(0);
+    d->setFromMatrix(mesh.globalTransform);
+    if (d->isAnimated()) {
+        d->getAnimationEngine().value()->playAnimation(0);
     }
 }

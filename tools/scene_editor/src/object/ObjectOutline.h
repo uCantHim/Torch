@@ -1,6 +1,6 @@
 #pragma once
 
-#include <trc/drawable/Drawable.h>
+#include <trc/drawable/DrawableScene.h>
 
 #include "SceneObject.h"
 
@@ -24,8 +24,7 @@ private:
     static auto toMaterial(Type type) -> trc::MaterialID;
     static constexpr float OUTLINE_SCALE{ 1.02f };
 
-    u_ptr<trc::Node> node{ new trc::Node };
-    trc::UniqueDrawableID drawable;
+    trc::Drawable drawable;
 };
 
 class ObjectHoverOutline : public ObjectOutline

@@ -1,13 +1,14 @@
 #pragma once
 
-#include "asset/ProjectDirectory.h"
+#include <trc/assets/AssetStorage.h>
+
+using namespace trc::basic_types;
 
 class Project;
 
 namespace g
 {
     auto project() -> Project&;
-    auto assetStore() -> ProjectDirectory&;
 }
 
 class Project
@@ -15,18 +16,15 @@ class Project
 public:
     Project(const Project&) = delete;
     Project& operator=(const Project&) = delete;
+    Project& operator=(Project&&) noexcept = delete;
 
     Project(Project&&) noexcept = default;
-    Project& operator=(Project&&) noexcept = default;
     ~Project() = default;
 
-    explicit Project(const fs::path& rootDir);
+    explicit Project(trc::AssetStorage& assetStorage);
 
-    auto getRootDirectory() const -> const fs::path&;
-
-    auto getStorageDir() -> ProjectDirectory&;
+    auto getStorageDir() -> trc::AssetStorage&;
 
 private:
-    fs::path rootDir;
-    u_ptr<ProjectDirectory> storageDir;
+    trc::AssetStorage& assetStorage;
 };

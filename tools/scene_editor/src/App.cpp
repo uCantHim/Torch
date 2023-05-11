@@ -1,10 +1,11 @@
 #include "App.h"
 
-#include <thread>
 #include <chrono>
+#include <memory>
+#include <thread>
 
+#include <trc/base/Logging.h>
 #include <trc_util/Timer.h>
-#include <trc/util/TorchDirectories.h>
 
 #include "asset/DefaultAssets.h"
 #include "asset/HitboxAsset.h"
@@ -14,7 +15,7 @@
 
 
 
-App::App(Project _project)
+App::App(const fs::path& projectRootDir)
     :
     initGlobalState([this]() -> bool {
         // Initialize global access
@@ -25,12 +26,16 @@ App::App(Project _project)
 
         return true;
     }()),
-    project(std::move(_project)),
     torchTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
-    torch(trc::initFull()),
+    torch(trc::initFull(
+        trc::TorchStackCreateInfo{ .projectRootDir=projectRootDir },
+        trc::InstanceCreateInfo{},
+        trc::WindowCreateInfo{}
+    )),
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
     assetManager(&torch->getAssetManager()),
     scene(*this),
+    project(assetManager->getDataStorage()),
     mainMenu(*this)
 {
     vec2 size = torch->getWindow().getWindowSize();
@@ -38,18 +43,18 @@ App::App(Project _project)
     scene.getCamera().setAspect(size.x / size.y);
     setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
 
-    assetManager->getDeviceRegistry().addModule<HitboxAsset>();
+    assetManager->registerAssetType<HitboxAsset>(std::make_unique<HitboxRegistry>());
 
     // Register all assets from disk at the AssetManager
-    project.getStorageDir().foreach([this]<trc::AssetBaseType T>(auto&& path) {
-        try {
-            assetManager->create<T>(path);
+    for (const trc::AssetPath& path : assetManager->getDataStorage())
+    {
+        auto asset = assetManager->create(path);
+        if (!asset)
+        {
+            trc::log::warn << trc::log::here()
+                           << ": Unable to load asset from " << path.string() << ".";
         }
-        catch (const std::runtime_error& err) {
-            std::cout << "[Warning] Unable to load asset from " << path.string()
-                << ": " << err.what() << "\n";
-        }
-    });
+    }
 
     // Initialize input
     trc::Keyboard::init();

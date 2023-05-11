@@ -68,7 +68,7 @@ public:
     void hoverObject(SceneObject obj);
 
     auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
-    auto createDefaultObject(trc::DrawableCreateInfo createInfo) -> SceneObject;
+    auto createDefaultObject(const trc::DrawableCreateInfo& createInfo) -> SceneObject;
 
 private:
     void calcObjectHover();

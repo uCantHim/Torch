@@ -1,8 +1,8 @@
 #include <filesystem>
+#include <string>
 namespace fs = std::filesystem;
 
 #include <argparse/argparse.hpp>
-#include <trc/util/TorchDirectories.h>
 
 #include "App.h"
 
@@ -16,11 +16,10 @@ int main(int argc, char* argv[])
         .help("Root directory of the current project.");
     parser.parse_args(argc, argv);
 
-    trc::util::setProjectDirectory(parser.get("--project-root"));
-    fs::create_directories(trc::util::getAssetStorageDirectory());
+    const fs::path projectDir{ parser.get("--project-root") };
 
     // Run scene editor
-    App app{ Project(trc::util::getProjectDirectory()) };
+    App app{ projectDir };
     app.run();
 
     return 0;
