@@ -29,7 +29,6 @@ option(TORCH_DEBUG_THROW_ON_VALIDATION_ERROR
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
 option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
-option(TORCH_OPTIMIZE_SHADERS "Enable optimization for shader compilation" ON)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
 
 # Torch build variables
