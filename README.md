@@ -61,7 +61,9 @@ I'll work on the Windows build in those moments when I want to feel pain.
 
 ### CMake options
 
- - `TORCH_BUILD_TEST`: Control if tests should be built. Default is `OFF`.
+ - `TORCH_BUILD_TEST`: Control if tests should be built. Default is `ON`.
+
+ - `TORCH_BUILD_EXAMPLES`: Control if tests should be built. Default is `ON`.
 
  - `TORCH_DEBUG`: Control if Torch should be built in debug configuration. Default is `OFF`.
 
@@ -105,11 +107,13 @@ int main()
     auto& assets = torch.getAssetManager();
 
     trc::GeometryID geo = assets.create(trc::makeTriangleGeo());
-    trc::MaterialID mat = assets.create(trc::MaterialData{
-        .color={ 0.392f, 0.624f, 0.82f },
-        .doPerformLighting=false,
-    });
-    trc::Drawable myDrawable(geo, mat, scene);
+    trc::MaterialID mat = assets.create(trc::makeMaterial(
+        trc::SimpleMaterialData{
+            .color={ 0.392f, 0.624f, 0.82f },
+            .emissive=true,
+        }
+    ));
+    trc::Drawable myDrawable = scene.makeDrawable({ geo, mat });
 
     // Main loop
     while (torch.getWindow().isOpen())
