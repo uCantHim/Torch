@@ -76,6 +76,7 @@ trc::AnimationRegistry::AnimationRegistry(const AnimationRegistryCreateInfo& inf
     dataBinding(info.dataDescBinding)
 {
     metaBinding.update(0, { *animationMetaDataBuffer, 0, VK_WHOLE_SIZE });
+    dataBinding.update(0, { *animationMetaDataBuffer, 0, VK_WHOLE_SIZE });
 }
 
 void trc::AnimationRegistry::update(vk::CommandBuffer, FrameRenderState&)
