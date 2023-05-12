@@ -139,12 +139,16 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
 
         // Set some pipeline configuration parameters
         auto pipeline = PipelineRegistry::cloneGraphicsPipeline(basePipeline).getPipelineData();
-        if (mat.data.polygonMode) {
-            pipeline.rasterization.setPolygonMode(*mat.data.polygonMode);
-        }
-        if (mat.data.lineWidth) {
-            pipeline.rasterization.setLineWidth(*mat.data.lineWidth);
-        }
+        auto& d = mat.data;
+        auto& r = pipeline.rasterization;
+        if (mat.data.polygonMode) r.setPolygonMode(*mat.data.polygonMode);
+        if (mat.data.lineWidth) r.setLineWidth(*mat.data.lineWidth);
+        if (d.cullMode) r.setCullMode(*d.cullMode);
+        if (d.frontFace) r.setFrontFace(*d.frontFace);
+        if (d.depthWrite) pipeline.depthStencil.setDepthWriteEnable(*d.depthWrite);
+        if (d.depthTest) pipeline.depthStencil.setDepthTestEnable(*d.depthTest);
+        if (d.depthBiasConstantFactor) r.setDepthBiasConstantFactor(*d.depthBiasConstantFactor);
+        if (d.depthBiasSlopeFactor) r.setDepthBiasSlopeFactor(*d.depthBiasSlopeFactor);
 
         // Create the runtime program
         mat.runtimePrograms.at(key.flags.toIndex()) = std::make_unique<MaterialShaderProgram>(
