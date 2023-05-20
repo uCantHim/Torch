@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cassert>
 #include <concepts>
 #include <memory>
-#include <mutex>
 #include <shared_mutex>
 #include <vector>
+
+#include "trc_util/async/AccessGuard.h"
 
 namespace trc::data
 {
@@ -22,8 +24,6 @@ namespace trc::data
         requires std::is_default_constructible_v<T>
     class ElementLockableVector
     {
-        struct Element;
-
     public:
         using value_type = T;
         using reference = T&;
@@ -32,35 +32,12 @@ namespace trc::data
         using const_pointer = const T*;
         using size_type = size_t;
 
-        struct ReadAccess
-        {
-            auto operator*() const & -> const_reference { return elem->value; }
-            auto operator->() const -> const_pointer { return &elem->value; }
+    private:
+        using Element = async::AccessGuard<value_type>;
 
-        private:
-            friend ElementLockableVector;
-            ReadAccess(std::shared_ptr<const Element> elem)
-                : lock(elem->mutex), elem(std::move(elem))
-            {}
-
-            std::shared_lock<std::shared_mutex> lock;
-            std::shared_ptr<const Element> elem;
-        };
-
-        struct WriteAccess
-        {
-            auto operator*() & -> reference { return elem->value; }
-            auto operator->() -> pointer { return &elem->value; }
-
-        private:
-            friend ElementLockableVector;
-            WriteAccess(std::shared_ptr<Element> elem)
-                : lock(elem->mutex), elem(std::move(elem))
-            {}
-
-            std::unique_lock<std::shared_mutex> lock;
-            std::shared_ptr<Element> elem;
-        };
+    public:
+        using ReadAccess = typename Element::ReadAccess;
+        using WriteAccess = typename Element::WriteAccess;
 
         auto size() const -> size_type
         {
@@ -72,7 +49,7 @@ namespace trc::data
          */
         auto read(size_type index) const -> ReadAccess
         {
-            return { getElem(index) };
+            return getElem(index)->read();
         }
 
         /**
@@ -80,7 +57,7 @@ namespace trc::data
          */
         auto write(size_type index) -> WriteAccess
         {
-            return { getElem(index) };
+            return getElem(index)->modify();
         }
 
         /**
@@ -94,6 +71,7 @@ namespace trc::data
          *                          current size is greater than `newSize`.
          */
         void resize_to_fit(size_type newSize)
+            requires std::is_default_constructible_v<value_type>
         {
             if (newSize > size())
             {
@@ -108,27 +86,40 @@ namespace trc::data
          * @brief Destroy all elements in the container
          *
          * This *can* be called without invalidating existing references to
-         * elements. These elements will be deleted once all locks on them
-         * are released.
+         * elements, although the calling thread will block until all locks on
+         * all elements have been released.
          */
         void clear()
         {
-            std::scoped_lock lock(listLock);
-            elems.clear();
+            std::vector<std::shared_ptr<Element>> oldElems;
+
+            // Empty the list of elements by moving it
+            {
+                std::scoped_lock lock(listLock);
+                auto oldElems = std::move(elems);
+                assert(elems.empty());
+            }
+
+            // Now safely deconstruct the elements. The ElementLockableVector
+            // remains available for use in other threads during this.
+
+            // First acquire exclusive access to each element once. This is
+            // sufficient because the elements are no longer reachable from
+            // anywhere else.
+            for (auto& el : oldElems) {
+                el->modify();
+            }
+
+            // All elements get deleted once we go out of scope. No mutex is
+            // held anymore.
         }
 
     private:
-        struct Element
-        {
-            mutable std::shared_mutex mutex;
-            value_type value;
-        };
-
         auto getElem(size_type index) -> std::shared_ptr<Element>
         {
             std::shared_lock lock(listLock);
             if (index >= elems.size()) {
-                throw std::out_of_range("");
+                throw std::out_of_range("[In ElementLockableVector::getElem]: Index out of range.");
             }
 
             return elems.at(index);
@@ -138,7 +129,7 @@ namespace trc::data
         {
             std::shared_lock lock(listLock);
             if (index >= elems.size()) {
-                throw std::out_of_range("");
+                throw std::out_of_range("[In ElementLockableVector::getElem]: Index out of range.");
             }
 
             return elems.at(index);
