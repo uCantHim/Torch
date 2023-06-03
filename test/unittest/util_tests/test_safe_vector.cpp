@@ -1,4 +1,9 @@
+#include <algorithm>
+#include <atomic>
 #include <future>
+#include <numeric>
+#include <random>
+#include <ranges>
 #include <string>
 #include <thread>
 #include <vector>
@@ -29,13 +34,36 @@ TEST(SafeVectorTest, BasicValidityTests)
     ASSERT_THROW(vec.at(0), trc::data::InvalidElementAccess);
     ASSERT_NO_THROW(vec.at(2));
 
-    ASSERT_NO_THROW(vec.erase(2));
-    ASSERT_NO_THROW(vec.erase(2));
+    ASSERT_TRUE(vec.erase(2));
+    ASSERT_FALSE(vec.erase(2));
 
     ASSERT_NO_THROW(vec.emplace(15));
     ASSERT_NO_THROW(vec.emplace(15));
-    ASSERT_NO_THROW(vec.erase(15));
+    ASSERT_TRUE(vec.erase(15));
     ASSERT_NO_THROW(vec.emplace(15));
+}
+
+TEST(SafeVectorTest, TryEmplace)
+{
+    SafeVector<double> vec;
+
+    ASSERT_FLOAT_EQ(vec.emplace(0, 4.3), 4.3);
+    ASSERT_FLOAT_EQ(vec.emplace(1, 4.3), 4.3);
+    ASSERT_FLOAT_EQ(vec.emplace(2, 4.3), 4.3);
+    ASSERT_FLOAT_EQ(vec.emplace(5, 4.3), 4.3);
+
+    auto [a, s] = vec.try_emplace(4, -17);
+    ASSERT_FLOAT_EQ(a, -17);
+    ASSERT_TRUE(s);
+    ASSERT_FALSE(vec.try_emplace(4, 23).second);
+    ASSERT_FALSE(vec.try_emplace(5, 0).second);
+    ASSERT_FALSE(vec.try_emplace(0, 89.67).second);
+    ASSERT_FLOAT_EQ(vec.try_emplace(4, -1).first, -17);
+    ASSERT_FLOAT_EQ(vec.try_emplace(5, -1).first, 4.3);
+    ASSERT_FLOAT_EQ(vec.try_emplace(0, -1).first, 4.3);
+
+    ASSERT_TRUE(vec.erase(0));
+    ASSERT_TRUE(vec.try_emplace(0, 89.67).second);
 }
 
 TEST(SafeVectorTest, AutoResize)
@@ -184,47 +212,201 @@ TEST(SafeVectorTest, ThreadsafeResize)
     }
 }
 
-TEST(SafeVectorTest, MultithreadedEmplaceErase)
+TEST(SafeVectorTest, ConcurrentEmplaceErase)
 {
-    /**
-     * This just ensures that a random mixture of emplaces and erases from
-     * multiple concurrent threads does not cause crashes. I'm too lazy to
-     * implement a more sophisticated test for this.
-     */
+    constexpr size_t kNumElems{ 200000 };
+    constexpr size_t kChunkSize{ 200 };
+    constexpr size_t kNumThreads{ 10 };
 
-    constexpr size_t kChunkSize{ 5 };
-    static const size_t kNumThreads{ std::thread::hardware_concurrency() * 2 };
-    constexpr size_t kIterationsPerThread{ 20000 };
-
-    auto emplaceKernel = [](SafeVector<std::string, kChunkSize>& vec, size_t offset)
-    {
-        for (size_t i = 0; i < kIterationsPerThread; ++i)
-        {
-            const size_t chunk = i * kNumThreads + offset;
-            vec.emplace(chunk * kChunkSize);
-        }
-    };
-    auto eraseKernel = [](SafeVector<std::string, kChunkSize>& vec, size_t offset)
-    {
-        for (size_t i = 0; i < kIterationsPerThread; ++i)
-        {
-            const size_t chunk = i * kNumThreads + offset;
-            vec.erase(chunk * kChunkSize);
-        }
-    };
-
+    std::random_device dev;
     SafeVector<std::string, kChunkSize> vec;
 
+    // Generate random index ranges
+    std::array<std::array<size_t, kNumElems>, kNumThreads / 2> randomIndices;
+    for (size_t i = 0; i < kNumThreads / 2; ++i)
+    {
+        auto& indices = randomIndices[i];
+        std::iota(indices.begin(), indices.end(), 0);
+        std::ranges::shuffle(indices, std::mt19937{ dev() });
+    }
+
+    auto emplacer = [&](auto begin, auto end) {
+        for (auto it = begin; it != end; ++it) {
+            vec.emplace(*it, "foo+bar");
+        }
+    };
+
+    auto eraser = [&]{
+        std::mt19937 rgen(dev());
+        std::uniform_int_distribution<size_t> dist(0, kNumElems);
+
+        std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+        for (int i = 0; i < kNumElems; ++i) {
+            vec.erase(dist(rgen));
+        }
+    };
+
     std::vector<std::future<void>> futures;
-    futures.reserve(kNumThreads);
     for (size_t i = 0; i < kNumThreads; ++i)
     {
-        if (i % 2 == 0) {
-            futures.emplace_back(std::async(emplaceKernel, std::ref(vec), i));
-        }
-        else {
-            futures.emplace_back(std::async(eraseKernel, std::ref(vec), i));
+        auto& indices = randomIndices.at(i / 2);
+        futures.emplace_back(std::async(
+            emplacer,
+            indices.begin() + (i % 2) * (kNumElems / 2),
+            indices.begin() + ((i % 2) + 1) * (kNumElems / 2)
+        ));
+        futures.emplace_back(std::async(eraser));
+    }
+
+    for (auto& fut : futures) {
+        fut.wait();
+    }
+}
+
+TEST(SafeVectorTest, Iterator)
+{
+    constexpr size_t kNumElems = 200000;
+    constexpr size_t kChunkSize = 50;
+
+    SafeVector<int, kChunkSize> vec;
+    vec.reserve(kNumElems);
+
+    // Fill vector
+    for (size_t i = 0; i < kNumElems; ++i) {
+        vec.emplace(i, 42);
+    }
+
+    // Non-const iterator
+    int sum{ 0 };
+    for (int& elem : vec) sum += elem;
+
+    // Const iterator
+    int csum{ 0 };
+    for (const int& elem : std::as_const(vec)) csum += elem;
+
+    // cbegin, cend
+    ASSERT_EQ(vec.cbegin(), std::as_const(vec).begin());
+    ASSERT_EQ(vec.cend(), std::as_const(vec).end());
+    int csum2{ 0 };
+    for (auto it = vec.cbegin(); it != vec.cend(); it++) {
+        csum2 += *it;
+    }
+
+    const int truth = static_cast<int>(kNumElems) * 42;
+    ASSERT_EQ(truth, sum);
+    ASSERT_EQ(truth, csum);
+}
+
+TEST(SafeVectorTest, IteratorDeadlock)
+{
+    constexpr size_t kNumElems{ 10000 };
+
+    SafeVector<int> vec;
+    for (int i = 1; i <= kNumElems; ++i) {
+        vec.emplace(i, i);
+    }
+
+    // No deadlock occurs when accessing the vector while iterating over it
+    for (int i : vec)
+    {
+        if (i % 2 == 0)
+        {
+            vec.erase(i);
+            vec.emplace(i - 1, 444);
         }
     }
+
+    const int truth{ kNumElems / 2 * 444 };
+    int sum{ 0 };
+    for (int i : vec) sum += i;
+
+    ASSERT_EQ(sum, truth);
+}
+
+TEST(SafeVectorTest, AtomicAccess)
+{
+    constexpr size_t kNumElems{ 20000 };
+    constexpr size_t kNumThreads{ 10 };
+
+    using T = std::array<uint64_t, 300>;
+    SafeVector<T> vec;
+
+    std::random_device dev;
+    std::atomic<bool> terminate{ false };
+
+    auto writer = [&](uint64_t val) {
+        std::mt19937 rgen(dev());
+        std::uniform_int_distribution<size_t> dist(0, kNumElems);
+        while (!terminate)
+        {
+            const size_t index = dist(rgen);
+            vec.applyAtomically(index, [val](T& arr) {
+                for (uint64_t& i : arr) i = val;
+            });
+        }
+    };
+
+    ASSERT_THROW(vec.copyAtomically(42), std::out_of_range);
+    ASSERT_THROW(vec.applyAtomically(42, [](T&) {}), std::out_of_range);
+    ASSERT_THROW(std::as_const(vec).applyAtomically(42, [](const T&) {}), std::out_of_range);
+
+    // Fill vector
+    for (size_t i = 0; i < kNumElems; ++i) {
+        vec.emplace(i);
+    }
+
+    ASSERT_NO_THROW(vec.copyAtomically(42));
+    ASSERT_NO_THROW(vec.applyAtomically(42, [](T&) {}));
+    ASSERT_EQ(vec.applyAtomically(42, [](T&) { return "foo"; }), "foo");
+    ASSERT_EQ(
+        std::as_const(vec).applyAtomically(
+            42,
+            [](const T&) { return std::make_pair(2, 1); }
+        ),
+        std::make_pair(2, 1)
+    );
+
+    // Multiple concurrent writers
+    std::vector<std::future<void>> futures;
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        futures.emplace_back(std::async(writer, i * 3));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    terminate = true;
+    for (auto& f : futures) f.wait();
+
+    // Ensure that arrays were never written partially
+    for (const T& arr : vec)
+    {
+        for (uint64_t val : arr) {
+            ASSERT_EQ(val, arr[0]);
+        }
+    }
+
+    // Again, this time with atomic copies
+    futures.clear();
+    terminate = false;
+
+    std::mt19937 rgen(dev());
+    std::uniform_int_distribution<uint64_t> dist(0, kNumElems);
+
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        futures.emplace_back(std::async(writer, dist(rgen) * 2));
+    }
+
+    futures.emplace_back(std::async([&]{
+        while (!terminate)
+        {
+            const size_t index = dist(rgen);
+            T copy = vec.copyAtomically(index);
+
+            // Array is uniform
+            for (uint64_t val : copy) ASSERT_EQ(val, copy[0]);
+        }
+    }));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    terminate = true;
     for (auto& f : futures) f.wait();
 }
