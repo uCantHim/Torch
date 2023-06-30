@@ -6,17 +6,17 @@ class App;
 
 struct KeyConfig
 {
-    VariantInput closeApp;
-    VariantInput openContext;
-    VariantInput selectHoveredObject;
-    VariantInput deleteHoveredObject;
+    UserInput closeApp;
+    UserInput openContext;
+    UserInput selectHoveredObject;
+    UserInput deleteHoveredObject;
 
-    VariantInput cameraMove;
-    VariantInput cameraRotate;
+    UserInput cameraMove;
+    UserInput cameraRotate;
 
-    VariantInput translateObject;
-    VariantInput scaleObject;
-    VariantInput rotateObject;
+    UserInput translateObject;
+    UserInput scaleObject;
+    UserInput rotateObject;
 };
 
 auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap;

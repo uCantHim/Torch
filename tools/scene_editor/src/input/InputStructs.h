@@ -34,21 +34,21 @@ struct MouseInput
  * A std::hash specialization is defined which invokes the correct hash
  * function for MouseInput or KeyInput.
  */
-struct VariantInput
+struct UserInput
 {
     template<typename T>
     static constexpr bool keyOrMouseInput = std::same_as<T, KeyInput> || std::same_as<T, MouseInput>;
 
-    VariantInput(KeyInput in) : input(in) {}
-    VariantInput(MouseInput in) : input(in) {}
+    UserInput(KeyInput in) : input(in) {}
+    UserInput(MouseInput in) : input(in) {}
 
-    VariantInput(trc::Key key);
-    VariantInput(trc::Key key, trc::KeyModFlags mods);
-    VariantInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action);
+    UserInput(trc::Key key);
+    UserInput(trc::Key key, trc::KeyModFlags mods);
+    UserInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action);
 
-    VariantInput(trc::MouseButton button);
-    VariantInput(trc::MouseButton button, trc::KeyModFlags mods);
-    VariantInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action);
+    UserInput(trc::MouseButton button);
+    UserInput(trc::MouseButton button, trc::KeyModFlags mods);
+    UserInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action);
 
     template<typename T> requires keyOrMouseInput<T>
     bool is() const
@@ -103,9 +103,9 @@ struct std::hash<MouseInput>
 };
 
 template<>
-struct std::hash<VariantInput>
+struct std::hash<UserInput>
 {
-    inline auto operator()(const VariantInput& val) const noexcept
+    inline auto operator()(const UserInput& val) const noexcept
     {
         return std::visit(
             [](auto&& val) { return std::hash<std::decay_t<decltype(val)>>{}(val); },

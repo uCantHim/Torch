@@ -25,7 +25,7 @@ class CommandCall
 {
 private:
     friend class InputState;
-    CommandCall(VariantInput input, InputState& state);
+    CommandCall(UserInput input, InputState& state);
     ~CommandCall() = default;
 
 public:
@@ -38,16 +38,16 @@ public:
     void onRepeat(std::function<void()> func);
     void onRelease(std::function<void()> func);
 
-    void on(VariantInput input, u_ptr<InputCommand> cmd);
+    void on(UserInput input, u_ptr<InputCommand> cmd);
 
     template<std::invocable<CommandCall&> T>
-    void on(VariantInput input, T&& func);
+    void on(UserInput input, T&& func);
 
     template<std::derived_from<CommandState> T>
     auto setState(T&& t) -> T&;
     auto setState(u_ptr<CommandState> state) -> CommandState&;
 
-    auto getProvokingInput() const -> const VariantInput&;
+    auto getProvokingInput() const -> const UserInput&;
 
 private:
     template<typename T>
@@ -62,7 +62,7 @@ private:
         };
     };
 
-    VariantInput input;
+    UserInput input;
     InputState* state;
 };
 
@@ -88,7 +88,7 @@ public:
     /**
      * @brief Create state for a command and execute it
      */
-    InputState(VariantInput input, InputCommand& command);
+    InputState(UserInput input, InputCommand& command);
 
     auto update(float timeDelta) -> Status;
     void exit();
@@ -127,7 +127,7 @@ public:
     void setKeyMap(KeyMap map);
 
 private:
-    void executeCommand(VariantInput input, InputCommand& cmd);
+    void executeCommand(UserInput input, InputCommand& cmd);
 
     void push(u_ptr<InputState> state);
     void pop();
@@ -139,7 +139,7 @@ private:
 
 
 template<std::invocable<CommandCall&> T>
-void CommandCall::on(VariantInput input, T&& func)
+void CommandCall::on(UserInput input, T&& func)
 {
     on(input, std::make_unique<FunctionalInputCommand<T>>(std::forward<T>(func)));
 }

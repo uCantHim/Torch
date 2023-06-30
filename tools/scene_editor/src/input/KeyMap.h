@@ -16,10 +16,10 @@ class KeyMap
 public:
     KeyMap() = default;
 
-    auto get(VariantInput input) -> InputCommand*;
+    auto get(UserInput input) -> InputCommand*;
 
-    void set(VariantInput input, u_ptr<InputCommand> cmd);
-    void unset(VariantInput input);
+    void set(UserInput input, u_ptr<InputCommand> cmd);
+    void unset(UserInput input);
 
     void clear();
 

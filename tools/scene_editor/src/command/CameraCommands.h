@@ -40,8 +40,8 @@ public:
 
     void execute(CommandCall& call) override
     {
-        constexpr auto invert = [](const VariantInput& input) -> VariantInput {
-            return std::visit([](auto state) -> VariantInput {
+        constexpr auto invert = [](const UserInput& input) -> UserInput {
+            return std::visit([](auto state) -> UserInput {
                 state.action = trc::InputAction::release;
                 return state;
             }, input.input);
@@ -94,8 +94,8 @@ public:
 
     void execute(CommandCall& call) override
     {
-        constexpr auto invert = [](const VariantInput& input) -> VariantInput {
-            return std::visit([](auto state) -> VariantInput {
+        constexpr auto invert = [](const UserInput& input) -> UserInput {
+            return std::visit([](auto state) -> UserInput {
                 state.action = trc::InputAction::release;
                 return state;
             }, input.input);

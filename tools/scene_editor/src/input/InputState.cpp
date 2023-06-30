@@ -2,7 +2,7 @@
 
 
 
-CommandCall::CommandCall(VariantInput input, InputState& state)
+CommandCall::CommandCall(UserInput input, InputState& state)
     :
     input(input),
     state(&state)
@@ -24,7 +24,7 @@ void CommandCall::onRelease(std::function<void()>)
     throw trc::Exception("Not implemented");
 }
 
-void CommandCall::on(VariantInput input, u_ptr<InputCommand> cmd)
+void CommandCall::on(UserInput input, u_ptr<InputCommand> cmd)
 {
     state->keyMap.set(input, std::move(cmd));
 }
@@ -37,14 +37,14 @@ auto CommandCall::setState(u_ptr<CommandState> newState) -> CommandState&
     return ref;
 }
 
-auto CommandCall::getProvokingInput() const -> const VariantInput&
+auto CommandCall::getProvokingInput() const -> const UserInput&
 {
     return input;
 }
 
 
 
-InputState::InputState(VariantInput input, InputCommand& command)
+InputState::InputState(UserInput input, InputCommand& command)
     :
     call(input, *this)
 {
@@ -142,7 +142,7 @@ void InputStateMachine::setKeyMap(KeyMap map)
     top().setKeyMap(std::move(map));
 }
 
-void InputStateMachine::executeCommand(VariantInput input, InputCommand& cmd)
+void InputStateMachine::executeCommand(UserInput input, InputCommand& cmd)
 {
     push(std::make_unique<InputState>(input, cmd));
 }

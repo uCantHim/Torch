@@ -34,32 +34,32 @@ MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods, trc::Inpu
 
 
 
-VariantInput::VariantInput(trc::Key key)
+UserInput::UserInput(trc::Key key)
     : input(KeyInput(key))
 {
 }
 
-VariantInput::VariantInput(trc::Key key, trc::KeyModFlags mods)
+UserInput::UserInput(trc::Key key, trc::KeyModFlags mods)
     : input(KeyInput(key, mods))
 {
 }
 
-VariantInput::VariantInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
+UserInput::UserInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
     : input(KeyInput(key, mods, action))
 {
 }
 
-VariantInput::VariantInput(trc::MouseButton button)
+UserInput::UserInput(trc::MouseButton button)
     : input(MouseInput(button))
 {
 }
 
-VariantInput::VariantInput(trc::MouseButton button, trc::KeyModFlags mods)
+UserInput::UserInput(trc::MouseButton button, trc::KeyModFlags mods)
     : input(MouseInput(button, mods))
 {
 }
 
-VariantInput::VariantInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action)
+UserInput::UserInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action)
     : input(MouseInput(button, mods, action))
 {
 }
