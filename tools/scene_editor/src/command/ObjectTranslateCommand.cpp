@@ -1,20 +1,19 @@
 #include "ObjectTranslateCommand.h"
 
-#include "App.h"
+#include "AxisFlags.h"
+#include "Globals.h"
 #include "Scene.h"
 #include "input/InputState.h"
-#include "AxisFlags.h"
 
 
 
 class ObjectTranslateState : public CommandState
 {
 public:
-    ObjectTranslateState(SceneObject obj, App& app)
+    ObjectTranslateState(SceneObject obj)
         :
         obj(obj),
-        app(&app),
-        scene(&app.getScene()),
+        scene(&g::scene()),
         originalPos(scene->get<ObjectBaseNode>(obj).getTranslation()),
         finalPos(originalPos)
     {}
@@ -22,7 +21,7 @@ public:
     bool update(float) override
     {
         const auto now = trc::Mouse::getPosition();
-        const vec2 windowSize = app->getTorch().getWindow().getWindowSize();
+        const vec2 windowSize = g::torch().getWindow().getWindowSize();
         const auto diff = (now - originalMousePos) / windowSize * kDragSpeed;
 
         const auto& camera = scene->getCamera();
@@ -59,7 +58,6 @@ private:
     static constexpr float kDragSpeed{ 10.0f };
 
     const SceneObject obj;
-    App* app;
     Scene* scene;
 
     const vec3 originalPos;
@@ -77,10 +75,10 @@ ObjectTranslateCommand::ObjectTranslateCommand(App& app)
 
 void ObjectTranslateCommand::execute(CommandCall& call)
 {
-    auto& scene = App::get().getScene();
+    auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectTranslateState{ obj, *app });
+        auto& state = call.setState(ObjectTranslateState{ obj });
 
         call.on(trc::Key::escape,        [&](auto&){ state.resetPlacement(); });
         call.on(trc::MouseButton::right, [&](auto&){ state.resetPlacement(); });

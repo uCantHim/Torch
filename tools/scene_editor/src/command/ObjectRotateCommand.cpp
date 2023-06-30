@@ -1,9 +1,9 @@
 #include "ObjectRotateCommand.h"
 
-#include "App.h"
+#include "AxisFlags.h"
+#include "Globals.h"
 #include "Scene.h"
 #include "input/InputState.h"
-#include "AxisFlags.h"
 
 
 
@@ -95,7 +95,7 @@ private:
 
 void ObjectRotateCommand::execute(CommandCall& call)
 {
-    auto& scene = App::get().getScene();
+    auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
         auto& state = call.setState(ObjectRotateState{ obj, scene });

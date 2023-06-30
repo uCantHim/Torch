@@ -1,6 +1,6 @@
 #include "KeyConfig.h"
 
-#include "App.h"
+#include "Globals.h"
 #include "command/CameraCommands.h"
 #include "command/ObjectRotateCommand.h"
 #include "command/ObjectScaleCommand.h"
@@ -19,7 +19,7 @@ void openContextMenu(Scene& scene)
 
 void selectHoveredObject()
 {
-    App::get().getScene().selectHoveredObject();
+    g::scene().selectHoveredObject();
 }
 
 auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap

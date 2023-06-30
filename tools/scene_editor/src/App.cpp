@@ -11,7 +11,6 @@
 #include "asset/HitboxAsset.h"
 #include "gui/ContextMenu.h"
 #include "input/KeyConfig.h"
-#include "Project.h"
 
 
 
@@ -35,7 +34,6 @@ App::App(const fs::path& projectRootDir)
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
     assetManager(&torch->getAssetManager()),
     scene(*this),
-    project(assetManager->getDataStorage()),
     mainMenu(*this)
 {
     vec2 size = torch->getWindow().getWindowSize();
@@ -155,11 +153,6 @@ void App::run()
 void App::end()
 {
     doEnd = true;
-}
-
-auto App::getProject() -> Project&
-{
-    return project;
 }
 
 auto App::getTorch() -> trc::TorchStack&

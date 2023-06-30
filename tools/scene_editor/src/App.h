@@ -3,7 +3,6 @@
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 
-#include "Project.h"
 #include "Scene.h"
 #include "gui/MainMenu.h"
 #include "input/InputState.h"
@@ -17,8 +16,6 @@ public:
 
     void run();
     void end();
-
-    auto getProject() -> Project&;
 
     auto getTorch() -> trc::TorchStack&;
     auto getAssets() -> trc::AssetManager&;
@@ -43,8 +40,6 @@ private:
     u_ptr<trc::imgui::ImguiRenderPass> imgui;
     trc::AssetManager* assetManager;
     Scene scene;
-
-    Project project;
 
     gui::MainMenu mainMenu;
     InputStateMachine inputState;

@@ -1,6 +1,6 @@
 target_sources(scene_editor PRIVATE
     App.cpp
-    Project.cpp
+    Globals.cpp
     Scene.cpp
 )
 
