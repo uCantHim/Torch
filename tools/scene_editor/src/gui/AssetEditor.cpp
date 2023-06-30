@@ -106,20 +106,19 @@ gui::AssetEditor::AssetEditor(MainMenu& menu)
     mainMenu(menu),
     assets(app.getAssets())
 {
-    // I can't define function templates here :'(
-#define registerTrait(T) ( \
-    assets.registerTrait<AssetEditorListEntryGui, T>( \
-        std::make_unique<AssetEditorListEntryGuiImpl<T>>() \
-    ) \
-    )
+    auto registerTrait = [this]<typename T>(T&&) {
+        assets.registerTrait<AssetEditorListEntryGui, T>(
+            std::make_unique<AssetEditorListEntryGuiImpl<T>>()
+        );
+    };
 
-    registerTrait(trc::Geometry);
-    registerTrait(trc::Texture);
-    registerTrait(trc::Material);
-    registerTrait(trc::Animation);
-    registerTrait(trc::Rig);
-    registerTrait(trc::Font);
-    registerTrait(HitboxAsset);
+    registerTrait(trc::Geometry{});
+    registerTrait(trc::Texture{});
+    registerTrait(trc::Material{});
+    registerTrait(trc::Animation{});
+    registerTrait(trc::Rig{});
+    registerTrait(trc::Font{});
+    registerTrait(HitboxAsset{});
 }
 
 void gui::AssetEditor::drawImGui()
