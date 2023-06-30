@@ -26,9 +26,9 @@ public:
 
         const auto& camera = scene->getCamera();
         const vec3 worldDiff = glm::inverse(camera.getViewMatrix()) * vec4(diff.x, -diff.y, 0, 0);
-        finalPos = originalPos + worldDiff * lockedAxis;
+        newPos = originalPos + worldDiff * lockedAxis;
 
-        scene->get<ObjectBaseNode>(obj).setTranslation(finalPos);
+        scene->get<ObjectBaseNode>(obj).setTranslation(newPos);
 
         return terminate;
     }
@@ -40,12 +40,12 @@ public:
 
     void applyPlacement()
     {
+        finalPos = newPos;
         terminate = true;
     }
 
     void resetPlacement()
     {
-        finalPos = originalPos;
         terminate = true;
     }
 
@@ -62,6 +62,7 @@ private:
 
     const vec3 originalPos;
     const vec2 originalMousePos{ trc::Mouse::getPosition() };
+    vec3 newPos;
     vec3 finalPos;
 
     vec3 lockedAxis{ 1, 1, 1 };
