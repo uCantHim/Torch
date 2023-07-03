@@ -74,11 +74,15 @@ void trc::AssetManager::destroy(const AssetPath& path)
 
 void trc::AssetManager::beforeAssetDestroy(AssetID asset)
 {
-    auto it = assetsToPaths.find(asset);
-    if (it != assetsToPaths.end())
-    {
-        pathsToAssets.erase(it->second);
-        assetsToPaths.erase(it);
+    try {
+        auto path = assetsToPaths.copyAtomically(toIndex(asset));
+        pathsToAssets.erase(path);
+        assetsToPaths.erase(toIndex(asset));
+    }
+    catch (const std::out_of_range&) {
+        // Asset with the specified ID does not exist (copyAtomically failed).
+        // Perhaps I should throw an InvalidAssetIdError here, but I don't know
+        // the implications of this so I won't.
     }
 }
 

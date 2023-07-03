@@ -37,4 +37,14 @@ void AssetManagerBase::assertExists(AssetID id, std::string_view hint) const
     }
 }
 
+auto AssetManagerBase::begin() const -> const_iterator
+{
+    return assetInformation.begin();
+}
+
+auto AssetManagerBase::end() const -> const_iterator
+{
+    return assetInformation.end();
+}
+
 } // namespace trc

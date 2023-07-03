@@ -122,6 +122,43 @@ namespace trc
     class AssetManagerBase
     {
     public:
+        /**
+         * @brief Access to all relevant information about an asset
+         */
+        struct AssetInfo
+        {
+            template<AssetBaseType T>
+            AssetInfo(AssetMetadata meta, TypedAssetID<T> id)
+                : metadata(std::move(meta)), baseId(id.getAssetID()), typedId(id)
+            {}
+
+            template<AssetBaseType T>
+            auto asType() const -> std::optional<TypedAssetID<T>>
+            {
+                try {
+                    return std::any_cast<TypedAssetID<T>>(typedId);
+                }
+                catch (const std::bad_any_cast&) {
+                    return std::nullopt;
+                }
+            }
+
+            inline auto getAssetID() const -> AssetID {
+                return baseId;
+            }
+
+            inline auto getMetadata() const -> const AssetMetadata& {
+                return metadata;
+            }
+
+        private:
+            AssetMetadata metadata;
+            AssetID baseId;
+            std::any typedId;
+        };
+
+        using const_iterator = util::SafeVector<AssetInfo>::const_iterator;
+
         AssetManagerBase(const AssetManagerBase&) = delete;
         AssetManagerBase(AssetManagerBase&&) noexcept = delete;
         AssetManagerBase& operator=(const AssetManagerBase&) = delete;
@@ -217,6 +254,9 @@ namespace trc
          */
         auto getAssetType(AssetID id) const -> const AssetType&;
 
+        auto begin() const -> const_iterator;
+        auto end() const -> const_iterator;
+
         /**
          * @throw std::out_of_range if no module for asset type `T` is
          *        registered.
@@ -252,33 +292,10 @@ namespace trc
          */
         virtual void beforeAssetDestroy(AssetID /*asset*/) {}
 
-    private:
-        struct AssetInfo
-        {
-            template<AssetBaseType T>
-            AssetInfo(AssetMetadata meta, TypedAssetID<T> id)
-                : metadata(std::move(meta)), typedId(id)
-            {}
-
-            template<AssetBaseType T>
-            auto asType() const -> std::optional<TypedAssetID<T>>
-            {
-                try {
-                    return std::any_cast<TypedAssetID<T>>(typedId);
-                }
-                catch (const std::bad_any_cast&) {
-                    return std::nullopt;
-                }
-            }
-
-            auto getMetadata() const -> const AssetMetadata& {
-                return metadata;
-            }
-
-        private:
-            AssetMetadata metadata;
-            std::any typedId;
-        };
+    protected:
+        static constexpr auto toIndex(AssetID id) noexcept -> ui32 {
+            return ui32{id};
+        }
 
         /**
          * Assert that an asset ID exists in the storage. Failing the test means
@@ -288,6 +305,7 @@ namespace trc
          */
         void assertExists(AssetID id, std::string_view hint) const;
 
+    private:
         data::IdPool<ui32> assetIdPool;
         util::SafeVector<AssetInfo> assetInformation;
 

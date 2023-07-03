@@ -9,6 +9,10 @@ DEFINE_ASSET_TYPE(DummyAsset, DummyRegistry);
 using DummyID = trc::TypedAssetID<DummyAsset>;
 using DummyData = trc::AssetData<DummyAsset>;
 
+DEFINE_ASSET_TYPE(Foo, FooRegistry);
+using FooID = trc::TypedAssetID<Foo>;
+using FooData = trc::AssetData<Foo>;
+
 ///////////////////////////////////////
 ///     Declare the test class      ///
 ///////////////////////////////////////
@@ -19,6 +23,7 @@ protected:
     AssetManagerBaseTest()
     {
         assets.getDeviceRegistry().addModule<DummyAsset>(std::make_unique<DummyRegistry>());
+        assets.getDeviceRegistry().addModule<Foo>(std::make_unique<FooRegistry>());
     }
 
     trc::AssetManagerBase assets;
@@ -116,4 +121,40 @@ TEST_F(AssetManagerBaseTest, DestroyAsset)
     ASSERT_THROW(assets.getAs<DummyAsset>(foo.getAssetID()), trc::InvalidAssetIdError);
 
     ASSERT_NO_THROW(assets.destroy(baz));
+}
+
+TEST_F(AssetManagerBaseTest, IterAssets)
+{
+    static_assert(std::is_const_v<std::remove_reference_t<decltype(*assets.begin())>>);
+
+    ui32 count{ 0 };
+
+    for (auto& _ : assets) {
+        ++count;
+    }
+    ASSERT_EQ(count, 0);
+
+    assets.create<DummyAsset>(std::make_unique<MyAssetSource>("hello world"));
+    assets.create<Foo>(std::make_unique<trc::InMemorySource<Foo>>(FooData{}));
+    assets.create<DummyAsset>(std::make_unique<trc::InMemorySource<DummyAsset>>(DummyData{}));
+    for (auto& asset : assets)
+    {
+        switch(count)
+        {
+        case 0:
+            ASSERT_TRUE(asset.asType<DummyAsset>());
+            ASSERT_FALSE(asset.getMetadata().path);
+            break;
+        case 1:
+            ASSERT_TRUE(asset.asType<Foo>());
+            ASSERT_FALSE(asset.getMetadata().path);
+            break;
+        case 2:
+            ASSERT_TRUE(asset.asType<DummyAsset>());
+            ASSERT_FALSE(asset.getMetadata().path);
+            break;
+        }
+        ++count;
+    }
+    ASSERT_EQ(count, 3);
 }

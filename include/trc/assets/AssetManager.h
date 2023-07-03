@@ -350,7 +350,7 @@ namespace trc
         TraitStorage assetTraits;
 
         std::unordered_map<AssetPath, AssetID> pathsToAssets;
-        std::unordered_map<AssetID, AssetPath> assetsToPaths;
+        util::SafeVector<AssetPath> assetsToPaths;
     };
 
 
@@ -408,7 +408,7 @@ namespace trc
 
         const auto id = create<T>(std::move(*source));
         pathsToAssets.emplace(path, id.getAssetID());
-        assetsToPaths.emplace(id.getAssetID(), path);
+        assetsToPaths.emplace(toIndex(id.getAssetID()), path);
 
         return id;
     }
