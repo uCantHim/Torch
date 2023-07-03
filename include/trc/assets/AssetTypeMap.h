@@ -21,8 +21,7 @@ namespace trc
         template<AssetBaseType T>
         inline auto at() -> reference
         {
-            std::shared_lock lock(mutex);
-            return get(AssetType::make<T>());
+            return at(AssetType::make<T>());
         }
 
         inline auto at(const AssetType& type) -> reference
