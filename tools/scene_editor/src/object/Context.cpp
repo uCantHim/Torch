@@ -3,11 +3,12 @@
 #include <functional>
 #include <vector>
 
-#include "Scene.h"
+#include "Globals.h"
 #include "Hitbox.h"
 #include "HitboxVisualization.h"
-#include "gui/ImguiUtil.h"
+#include "Scene.h"
 #include "gui/ContextMenu.h"
+#include "gui/ImguiUtil.h"
 
 
 
@@ -129,7 +130,7 @@ public:
             ig::PopID();
             ig::SameLine(0.0f, 50.0f);
             auto anim = rig->getAnimation(i);
-            ig::Text("\"%s\"", scene->getAssets().getMetadata(anim).name.c_str());
+            ig::Text("\"%s\"", g::assets().manager().getMetadata(anim).name.c_str());
         }
 
         ig::TreePop();

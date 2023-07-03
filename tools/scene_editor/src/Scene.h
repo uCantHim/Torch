@@ -24,7 +24,6 @@ public:
     void loadFromFile();
 
     auto getTorch() -> trc::TorchStack&;
-    auto getAssets() -> trc::AssetManager&;
     auto getCamera() -> trc::Camera&;
     auto getCamera() const -> const trc::Camera&;
     auto getDrawableScene() -> trc::Scene&;

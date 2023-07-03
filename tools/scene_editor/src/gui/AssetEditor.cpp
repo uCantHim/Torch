@@ -7,7 +7,6 @@
 #include "App.h"
 #include "AssetEditorListEntryTrait.h"
 #include "ImguiUtil.h"
-#include "asset/ImportProcessor.h"
 
 
 
@@ -102,9 +101,9 @@ bool assetNameInputPopupModal(
 
 gui::AssetEditor::AssetEditor(MainMenu& menu)
     :
-    app(menu.getApp()),
     mainMenu(menu),
-    assets(app.getAssets())
+    assets(g::assets().manager()),
+    inventory(g::assets())
 {
     auto registerTrait = [this]<typename T>(T&&) {
         assets.registerTrait<AssetEditorListEntryGui, T>(
@@ -142,6 +141,7 @@ void gui::AssetEditor::drawAssetCreateButton()
             if (ig::Button("<"))
             {
                 geoSelected = false;
+                texSelected = false;
                 ig::EndPopup();
                 return;
             }
@@ -153,7 +153,7 @@ void gui::AssetEditor::drawAssetCreateButton()
             auto create = [this](std::string name, trc::GeometryData data)
             {
                 const auto path = findAvailableName(assets, trc::AssetPath(std::move(name)));
-                importAsset(data, path, assets);
+                inventory.import(path, data);
             };
 
             if (ig::Selectable("Cube")) {
@@ -188,36 +188,43 @@ void gui::AssetEditor::drawAssetList()
     // Show a material editor for every material that's being edited
     if (ig::BeginListBox("##assets"))
     {
-        for (const auto& path : assets.getDataStorage()) {
-            drawListEntry(path);
+        for (const auto& asset : inventory) {
+            drawListEntry(asset);
         }
         ig::EndListBox();
     }
 }
 
-void gui::AssetEditor::drawListEntry(const trc::AssetPath& path)
+void gui::AssetEditor::drawListEntry(const trc::AssetManager::AssetInfo& info)
 {
-    assert(assets.exists(path));
-    assert(assets.getMetadata(path));
+    const auto& meta = info.getMetadata();
 
-    const auto unique = path.string();
-    const auto type = assets.getMetadata(path)->type;
-    const auto label = type.getName() + " \"" + unique + "\"";
+    const auto label = "[" + meta.type.getName() + "] " + meta.name
+                       + "##" + std::to_string(reinterpret_cast<uintptr_t>(&info));
+    auto listEntryTrait = assets.getTrait<AssetEditorListEntryGui>(meta.type);
 
     ig::Selectable(label.c_str());
     if (ig::BeginPopupContextItem())
     {
-        if (auto trait = assets.getTrait<AssetEditorListEntryGui>(type)) {
-            trait->drawImGui(assets, path);
+        if (listEntryTrait)
+        {
+            if (const auto& path = meta.path) {
+                listEntryTrait->drawImGui(inventory, *path);
+            }
+            else {
+                listEntryTrait->drawImGui(inventory, info.getAssetID());
+            }
         }
         else {
             trc::log::error << trc::log::here() << ": AssetEditorListEntryGui trait is not"
-                            << " registered for " << type.getName();
+                            << " registered for " << meta.type.getName();
         }
 
         ig::EndPopup();
     }
-    if (ig::IsItemHovered()) {
-        ig::SetTooltip("%s", unique.c_str());
+    if (ig::IsItemHovered())
+    {
+        const auto assetPathStr = meta.path ? "\"" + meta.path->string() + "\"" : "<pathless>";
+        ig::SetTooltip("Full path: %s", assetPathStr.c_str());
     }
 }

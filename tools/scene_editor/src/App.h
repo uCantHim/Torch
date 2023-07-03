@@ -18,7 +18,7 @@ public:
     void end();
 
     auto getTorch() -> trc::TorchStack&;
-    auto getAssets() -> trc::AssetManager&;
+    auto getAssets() -> AssetInventory&;
     auto getScene() -> Scene&;
 
     void setSceneViewport(vec2 offset, vec2 size);
@@ -38,7 +38,7 @@ private:
     u_ptr<int, void(*)(int*)> torchTerminator;
     u_ptr<trc::TorchStack> torch;
     u_ptr<trc::imgui::ImguiRenderPass> imgui;
-    trc::AssetManager* assetManager;
+    AssetInventory assetInventory;
     Scene scene;
 
     gui::MainMenu mainMenu;

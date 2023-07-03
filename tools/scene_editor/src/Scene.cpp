@@ -51,11 +51,6 @@ auto Scene::getTorch() -> trc::TorchStack&
     return app->getTorch();
 }
 
-auto Scene::getAssets() -> trc::AssetManager&
-{
-    return app->getAssets();
-}
-
 auto Scene::getCamera() -> trc::Camera&
 {
     return camera;
@@ -173,7 +168,7 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     scene.getRoot().attach(node);
 
     // Create hitbox component
-    auto& hitboxes = app->getAssets().getModule<HitboxAsset>();
+    auto& hitboxes = app->getAssets().manager().getModule<HitboxAsset>();
     add<Hitbox>(obj, hitboxes.getForGeometry(d->getGeometry()));
 
     return obj;

@@ -6,25 +6,32 @@
 
 #include <trc/assets/Assets.h>
 
+using namespace trc::basic_types;
+
 class App;
+class AssetInventory;
 
 namespace gui
 {
     namespace fs = std::filesystem;
 
+    /**
+     * @brief Loads assets from a file and shows a dialog that allows the user
+     *        to import them selectively.
+     */
     class ImportDialog
     {
     public:
-        ImportDialog(const fs::path& filePath, App& app);
+        explicit ImportDialog(const fs::path& filePath);
 
         void loadFrom(const fs::path& fbxFilePath);
 
         void drawImGui();
 
     private:
-        void importAndCreateObject(const trc::ThirdPartyMeshImport& mesh);
+        bool importAndCreateObject(const trc::ThirdPartyMeshImport& mesh);
+        void createObject(trc::GeometryID geo, mat4 transform);
 
-        App& app;
         fs::path filePath;
         trc::ThirdPartyFileImportData importData;
 

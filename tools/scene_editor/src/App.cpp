@@ -32,7 +32,7 @@ App::App(const fs::path& projectRootDir)
         trc::WindowCreateInfo{}
     )),
     imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
-    assetManager(&torch->getAssetManager()),
+    assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
     scene(*this),
     mainMenu(*this)
 {
@@ -40,19 +40,6 @@ App::App(const fs::path& projectRootDir)
     torch->getRenderConfig().setViewport({ size.x * 0.25f, 0.0f }, size);
     scene.getCamera().setAspect(size.x / size.y);
     setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
-
-    assetManager->registerAssetType<HitboxAsset>(std::make_unique<HitboxRegistry>());
-
-    // Register all assets from disk at the AssetManager
-    for (const trc::AssetPath& path : assetManager->getDataStorage())
-    {
-        auto asset = assetManager->create(path);
-        if (!asset)
-        {
-            trc::log::warn << trc::log::here()
-                           << ": Unable to load asset from " << path.string() << ".";
-        }
-    }
 
     // Initialize input
     trc::Keyboard::init();
@@ -87,10 +74,30 @@ App::App(const fs::path& projectRootDir)
         }
     ));
 
-    // Create resources
-    initDefaultAssets(*assetManager);
+    // Initialize assets
+    torch->getAssetManager().registerAssetType<HitboxAsset>(std::make_unique<HitboxRegistry>());
+    assetInventory.detectAssetsFromStorage();
 
-    auto& ar = getAssets();
+    auto preproc = [](AssetInventory& inventory,
+                      const trc::AssetPath& geoPath,
+                      const trc::AssetData<trc::Geometry>& data)
+    {
+        const auto hitbox = makeHitbox(data);
+        HitboxData hitboxData{
+            .sphere=hitbox.getSphere(),
+            .capsule=hitbox.getCapsule(),
+            .geometry=geoPath
+        };
+        const trc::AssetPath path(geoPath.string() + "_hitbox");
+
+        inventory.import(path, hitboxData);
+    };
+    assetInventory.registerImportProcessor<trc::Geometry>(preproc);
+
+    // Create default resources
+    auto& ar = torch->getAssetManager();
+    initDefaultAssets(ar);
+
     auto mg = ar.create(trc::makeMaterial({ .color=vec4(0, 0.6, 0, 1), .specularCoefficient=0.0f }));
     auto mr = ar.create(trc::makeMaterial({ .color=vec4(1, 0, 0, 1) }));
     auto mo = ar.create(trc::makeMaterial({ .color=vec4(1, 0.35f, 0, 1) }));
@@ -98,7 +105,7 @@ App::App(const fs::path& projectRootDir)
     auto planeData = trc::makePlaneGeo(20, 20, 1, 1);
     auto gi = ar.create(planeData);
     auto hb = makeHitbox(planeData);
-    assetManager->create(HitboxData{
+    ar.create(HitboxData{
         .sphere=hb.getSphere(),
         .capsule=hb.getCapsule(),
         .geometry=gi
@@ -106,14 +113,14 @@ App::App(const fs::path& projectRootDir)
     auto planeData1 = trc::makePlaneGeo(0.5f, 0.5f, 1, 1);
     auto gi1 = ar.create(planeData1);
     auto hb1 = makeHitbox(planeData1);
-    assetManager->create(HitboxData{
+    ar.create(HitboxData{
         .sphere=hb1.getSphere(),
         .capsule=hb1.getCapsule(),
         .geometry=gi1
     });
     auto cubeGeo = ar.create(trc::makeCubeGeo());
     auto cubeHb = makeHitbox(trc::makeCubeGeo());
-    assetManager->create(HitboxData{
+    ar.create(HitboxData{
         .sphere=cubeHb.getSphere(),
         .capsule=cubeHb.getCapsule(),
         .geometry=cubeGeo
@@ -160,10 +167,9 @@ auto App::getTorch() -> trc::TorchStack&
     return *torch;
 }
 
-auto App::getAssets() -> trc::AssetManager&
+auto App::getAssets() -> AssetInventory&
 {
-    assert(assetManager != nullptr);
-    return *assetManager;
+    return assetInventory;
 }
 
 auto App::getScene() -> Scene&

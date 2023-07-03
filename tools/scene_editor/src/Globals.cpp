@@ -6,6 +6,11 @@
 
 namespace g
 {
+    auto assets() -> AssetInventory&
+    {
+        return App::get().getAssets();
+    }
+
     auto scene() -> Scene&
     {
         return App::get().getScene();

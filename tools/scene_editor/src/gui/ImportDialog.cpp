@@ -1,16 +1,15 @@
 #include "ImportDialog.h"
 
-#include "asset/DefaultAssets.h"
-#include "asset/ImportProcessor.h"
-#include "object/Hitbox.h"
 #include "App.h"
+#include "Globals.h"
 #include "ImguiUtil.h"
+#include "asset/DefaultAssets.h"
+#include "object/Hitbox.h"
 
 
 
-gui::ImportDialog::ImportDialog(const fs::path& path, App& app)
+gui::ImportDialog::ImportDialog(const fs::path& path)
     :
-    app(app),
     filePath(path),
     importData(trc::loadAssets(path))
 {
@@ -69,12 +68,16 @@ void gui::ImportDialog::drawImGui()
         {
             if (ig::Button("Import"))
             {
-                importAsset(mesh.geometry, trc::AssetPath(mesh.name), app.getAssets());
+                g::assets().import(trc::AssetPath(mesh.name), mesh.geometry);
                 imported.emplace(mesh.name);
             }
-            if (ig::Button("Import and create in scene")) {
-                importAndCreateObject(mesh);
-                imported.emplace(mesh.name);
+            if (ig::Button("Import and create in scene"))
+            {
+                const auto geoId = g::assets().import(trc::AssetPath(mesh.name), mesh.geometry);
+                if (geoId) {
+                    createObject(*geoId, mesh.globalTransform);
+                    imported.emplace(mesh.name);
+                }
             }
         }
 
@@ -82,17 +85,15 @@ void gui::ImportDialog::drawImGui()
     }
 }
 
-void gui::ImportDialog::importAndCreateObject(const trc::ThirdPartyMeshImport& mesh)
+void gui::ImportDialog::createObject(trc::GeometryID geo, mat4 transform)
 {
-    auto& scene = app.getScene();
-
-    const auto geoId = importAsset(mesh.geometry, trc::AssetPath(mesh.name), app.getAssets());
+    auto& scene = g::scene();
 
     // Create object with default components
-    const auto obj = scene.createDefaultObject({ geoId, g::mats().undefined });
+    const auto obj = scene.createDefaultObject({ geo, g::mats().undefined });
 
     auto& d = scene.get<trc::Drawable>(obj);
-    d->setFromMatrix(mesh.globalTransform);
+    d->setFromMatrix(transform);
     if (d->isAnimated()) {
         d->getAnimationEngine().value()->playAnimation(0);
     }

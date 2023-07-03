@@ -7,6 +7,7 @@
 #include <trc/assets/AssetStorage.h>
 #include <trc/text/Font.h>
 
+#include "asset/AssetInventory.h"
 #include "asset/HitboxAsset.h"
 
 class App;
@@ -23,13 +24,13 @@ namespace gui
         void drawImGui();
 
     private:
-        App& app;
         MainMenu& mainMenu;
         trc::AssetManager& assets;
+        AssetInventory& inventory;
 
         void drawAssetCreateButton();
 
         void drawAssetList();
-        void drawListEntry(const trc::AssetPath& path);
+        void drawListEntry(const trc::AssetManager::AssetInfo& info);
     };
 } // namespace gui
