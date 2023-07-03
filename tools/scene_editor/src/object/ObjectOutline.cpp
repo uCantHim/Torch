@@ -14,6 +14,7 @@ ObjectOutline::ObjectOutline(Scene& _scene, SceneObject obj, Type outlineType)
         .geo = d->getGeometry(),
         .mat = toMaterial(outlineType),
     });
+    drawable->setScale(OUTLINE_SCALE);
 
     d->attach(*drawable);
 }

@@ -33,7 +33,7 @@ void initDefaultAssets(trc::AssetManager& am)
         .objectHighlight = am.create([]{
             auto mat = trc::makeMaterial({
                 .color=vec3(1.0f),
-                .emissive=false,
+                .emissive=true,
             });
             mat.depthBiasConstantFactor = 3.0f;
             mat.depthBiasSlopeFactor = 3.0f;
@@ -45,7 +45,7 @@ void initDefaultAssets(trc::AssetManager& am)
         .objectSelect = am.create([]{
             auto mat = trc::makeMaterial({
                 .color=vec3(1.0f, 0.8f, 0.0f),
-                .emissive=false,
+                .emissive=true,
             });
             mat.depthBiasConstantFactor = 3.0f;
             mat.depthBiasSlopeFactor = 3.0f;
