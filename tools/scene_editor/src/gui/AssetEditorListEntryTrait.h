@@ -16,13 +16,6 @@ namespace gui
     public:
         virtual void drawImGui(AssetInventory& assets, const trc::AssetPath& path) = 0;
 
-        virtual void drawImGui(AssetInventory& assets, trc::AssetID id)
-        {
-            if (ig::Button("Delete")) {
-                assets.manager().destroy(id);
-            }
-        }
-
         static void drawDefault(AssetInventory& assets, const trc::AssetPath& path)
         {
             if (ig::Button("Delete")) {

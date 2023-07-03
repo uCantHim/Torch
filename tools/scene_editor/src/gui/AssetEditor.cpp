@@ -204,24 +204,26 @@ void gui::AssetEditor::drawListEntry(const trc::AssetManager::AssetInfo& info)
     auto listEntryTrait = assets.getTrait<AssetEditorListEntryGui>(meta.type);
 
     ig::Selectable(label.c_str());
-    if (ig::BeginPopupContextItem())
+    if (const auto& path = meta.path)
     {
-        if (listEntryTrait)
+        if (ig::BeginPopupContextItem())
         {
-            if (const auto& path = meta.path) {
+            if (listEntryTrait) {
                 listEntryTrait->drawImGui(inventory, *path);
             }
             else {
-                listEntryTrait->drawImGui(inventory, info.getAssetID());
+                trc::log::error << trc::log::here() << ": AssetEditorListEntryGui trait is not"
+                                << " registered for " << meta.type.getName();
             }
-        }
-        else {
-            trc::log::error << trc::log::here() << ": AssetEditorListEntryGui trait is not"
-                            << " registered for " << meta.type.getName();
-        }
 
-        ig::EndPopup();
+            ig::EndPopup();
+        }
     }
+    else {
+        // The asset does not have a path - this is equivalent to it
+        // being an internally used in-memory asset.
+    }
+
     if (ig::IsItemHovered())
     {
         const auto assetPathStr = meta.path ? "\"" + meta.path->string() + "\"" : "<pathless>";
