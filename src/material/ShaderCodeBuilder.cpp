@@ -105,6 +105,21 @@ auto ShaderCodeBuilder::makeDiv(Value lhs, Value rhs) -> Value
     return makeValue(BinaryOperator{ .opName="/", .lhs=lhs, .rhs=rhs });
 }
 
+auto ShaderCodeBuilder::makeAnd(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="&&", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeOr(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="||", .lhs=lhs, .rhs=rhs });
+}
+
+auto ShaderCodeBuilder::makeXor(Value lhs, Value rhs) -> Value
+{
+    return makeValue(BinaryOperator{ .opName="^^", .lhs=lhs, .rhs=rhs });
+}
+
 auto ShaderCodeBuilder::makeSmallerThan(Value lhs, Value rhs) -> Value
 {
     return makeValue(BinaryOperator{ .opName="<", .lhs=lhs, .rhs=rhs });

@@ -102,6 +102,10 @@ namespace trc
         auto makeMul(Value lhs, Value rhs) -> Value;
         auto makeDiv(Value lhs, Value rhs) -> Value;
 
+        auto makeAnd(Value lhs, Value rhs) -> Value;
+        auto makeOr(Value lhs, Value rhs) -> Value;
+        auto makeXor(Value lhs, Value rhs) -> Value;
+
         auto makeSmallerThan(Value lhs, Value rhs) -> Value;
         auto makeGreaterThan(Value lhs, Value rhs) -> Value;
         auto makeSmallerOrEqual(Value lhs, Value rhs) -> Value;
