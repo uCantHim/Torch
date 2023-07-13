@@ -66,6 +66,7 @@ void run()
     mapMat.albedoTexture = stoneTexIdx;
     mapMat.normalTexture = stoneNormalTexIdx;
     mapMat.roughness = 0.4f;
+    mapMat.opacity = 1.0f;
     auto mapMatIndex = ar.create(trc::makeMaterial(mapMat));
 
     trc::SimpleMaterialData treeMat{
