@@ -83,25 +83,36 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
         auto color = getParam(Parameter::eColor);
         builder.annotateType(color, vec4{});
 
-        {
-            //auto ifBlock = builder.makeIfStatement(getParam(Parameter::eEmissive));
-            //builder.startBlock(ifBlock);
-            auto lightedColor = builder.makeExternalCall("calcLighting", {
-                builder.makeMemberAccess(color, "xyz"),
-                builder.makeCapabilityAccess(FragmentCapability::kVertexWorldPos),
-                getParam(Parameter::eNormal),
-                builder.makeCapabilityAccess(FragmentCapability::kCameraWorldPos),
-                builder.makeExternalCall("MaterialParams", {
-                    getParam(Parameter::eSpecularFactor),
-                    getParam(Parameter::eRoughness),
-                    getParam(Parameter::eMetallicness),
-                })
-            });
-            builder.makeAssignment(builder.makeMemberAccess(color, "rgb"), lightedColor);
-            //builder.endBlock();
-        }
+        auto alpha = builder.makeMemberAccess(color, "a");
+        auto doLighting = builder.makeNot(builder.makeCast<bool>(getParam(Parameter::eEmissive)));
+        auto isVisible = builder.makeGreaterThan(alpha, builder.makeConstant(0.0f));
+        auto cond = builder.makeAnd(isVisible, doLighting);
 
+        color = builder.makeConditional(
+            cond,
+            // if true:
+            builder.makeConstructor<vec4>(
+                builder.makeExternalCall("calcLighting", {
+                    builder.makeMemberAccess(color, "xyz"),
+                    builder.makeCapabilityAccess(FragmentCapability::kVertexWorldPos),
+                    getParam(Parameter::eNormal),
+                    builder.makeCapabilityAccess(FragmentCapability::kCameraWorldPos),
+                    builder.makeExternalCall("MaterialParams", {
+                        getParam(Parameter::eSpecularFactor),
+                        getParam(Parameter::eRoughness),
+                        getParam(Parameter::eMetallicness),
+                    })
+                }),
+                builder.makeMemberAccess(color, "a")
+            ),
+            // if false:
+            color
+        );
+
+        // Only create the fragment if the alpha is not zero
+        builder.startBlock(builder.makeIfStatement(isVisible));
         builder.makeExternalCallStatement("appendFragment", { color });
+        builder.endBlock();
     }
 
     builder.enableEarlyFragmentTest();

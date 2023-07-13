@@ -138,4 +138,19 @@ auto ShaderTypeChecker::operator()(const code::ArrayAccess& v)
     return inferType(v.lhs);
 }
 
+auto ShaderTypeChecker::operator()(const code::Conditional& cond)
+    -> std::optional<TypeInferenceResult>
+{
+    // We should raise an error if the two cases of the conditional don't have
+    // the same type, but we don't have such a mechanism right now.
+
+    const auto l = inferType(cond.ifTrue);
+    const auto r = inferType(cond.ifFalse);
+    if (l && r && (*l == *r)) {
+        return l;
+    }
+
+    return std::nullopt;
+}
+
 } // namespace trc

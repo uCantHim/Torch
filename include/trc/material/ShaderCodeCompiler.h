@@ -34,6 +34,7 @@ namespace trc
         auto operator()(const code::BinaryOperator& v) -> std::string;
         auto operator()(const code::MemberAccess& v) -> std::string;
         auto operator()(const code::ArrayAccess& v) -> std::string;
+        auto operator()(const code::Conditional& v) -> std::string;
 
     private:
         /** @return std::string Identifier name */

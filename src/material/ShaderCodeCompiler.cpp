@@ -101,12 +101,19 @@ auto ShaderValueCompiler::operator()(const BinaryOperator& v) -> std::string
 
 auto ShaderValueCompiler::operator()(const MemberAccess& v) -> std::string
 {
+    // Not calling this->visit on the right hand side operand is done so on
+    // purpose.
     return "(" + visit(v.lhs) + "." + (*this)(v.rhs) + ")";
 }
 
 auto ShaderValueCompiler::operator()(const ArrayAccess& v) -> std::string
 {
     return visit(v.lhs) + "[" + visit(v.index) + "]";
+}
+
+auto ShaderValueCompiler::operator()(const code::Conditional& v) -> std::string
+{
+    return "(" + visit(v.condition) + " ? " + visit(v.ifTrue) + " : " + visit(v.ifFalse) + ")";
 }
 
 

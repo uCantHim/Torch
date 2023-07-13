@@ -113,9 +113,15 @@ namespace trc
         auto makeEqual(Value lhs, Value rhs) -> Value;
         auto makeNotEqual(Value lhs, Value rhs) -> Value;
 
+        auto makeConditional(Value cond, Value ifTrue, Value ifFalse) -> Value;
+
         auto makeFunction(const std::string& name, FunctionType type) -> Function;
         auto getFunction(const std::string& name) const -> std::optional<Function>;
 
+        /**
+         * Only use this for assignments with side-effects, such as assigning
+         * to gl_Position.
+         */
         void makeAssignment(code::Value lhs, code::Value rhs);
         void makeCallStatement(Function func, std::vector<code::Value> args);
         void makeExternalCallStatement(const std::string& funcName, std::vector<code::Value> args);

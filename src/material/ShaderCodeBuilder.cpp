@@ -150,6 +150,11 @@ auto ShaderCodeBuilder::makeNotEqual(Value lhs, Value rhs) -> Value
     return makeValue(BinaryOperator{ .opName="!=", .lhs=lhs, .rhs=rhs });
 }
 
+auto ShaderCodeBuilder::makeConditional(Value cond, Value ifTrue, Value ifFalse) -> Value
+{
+    return makeValue(Conditional{ .condition=cond, .ifTrue=ifTrue, .ifFalse=ifFalse });
+}
+
 auto ShaderCodeBuilder::makeFunction(
     const std::string& name,
     FunctionType type) -> Function

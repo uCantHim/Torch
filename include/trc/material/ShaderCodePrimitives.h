@@ -82,6 +82,7 @@ namespace trc
         struct BinaryOperator;
         struct MemberAccess;
         struct ArrayAccess;
+        struct Conditional;
 
         struct ValueT;
 
@@ -152,6 +153,13 @@ namespace trc
             Value index;
         };
 
+        struct Conditional
+        {
+            Value condition;
+            Value ifTrue;
+            Value ifFalse;
+        };
+
         struct ValueT
         {
             std::variant<
@@ -161,7 +169,8 @@ namespace trc
                 UnaryOperator,
                 BinaryOperator,
                 MemberAccess,
-                ArrayAccess
+                ArrayAccess,
+                Conditional
             > value;
 
             std::optional<Type> typeAnnotation;
