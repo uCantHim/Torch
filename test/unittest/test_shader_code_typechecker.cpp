@@ -39,7 +39,7 @@ TEST_F(TestShaderCodeTypechecker, LiteralType)
 
     // Use the generic function that accepts the variant
     for (const auto& constant : constants) {
-        ASSERT_EQ(check.getType(builder.makeConstant(constant)), constant.getType());
+        ASSERT_EQ(check.inferType(builder.makeConstant(constant)), constant.getType());
     }
 }
 
@@ -52,7 +52,7 @@ TEST_F(TestShaderCodeTypechecker, IdentifierType)
     ASSERT_FALSE(check(code::Identifier{ .name="%" }));
     ASSERT_FALSE(check(code::Identifier{ .name="hello_world" }));
 
-    ASSERT_FALSE(check.getType(builder.makeExternalIdentifier("bar")));
+    ASSERT_FALSE(check.inferType(builder.makeExternalIdentifier("bar")));
 }
 
 TEST_F(TestShaderCodeTypechecker, FunctionCallType)
@@ -61,7 +61,7 @@ TEST_F(TestShaderCodeTypechecker, FunctionCallType)
     {
         auto func = builder.makeFunction(type.to_string(), FunctionType{ {}, type });
         ASSERT_EQ(type, check(code::FunctionCall{ func, {} }));
-        ASSERT_EQ(type, check.getType(builder.makeCall(func, {})));
+        ASSERT_EQ(type, check.inferType(builder.makeCall(func, {})));
     }
 }
 
@@ -73,19 +73,19 @@ TEST_F(TestShaderCodeTypechecker, FunctionCallTypeIsArgumentInvariant)
         auto func = builder.makeFunction(type.to_string(), funcType);
 
         ASSERT_EQ(type, check(code::FunctionCall{ func, {} }));
-        ASSERT_EQ(type, check.getType(builder.makeCall(func, {})));
+        ASSERT_EQ(type, check.inferType(builder.makeCall(func, {})));
     }
 }
 
 TEST_F(TestShaderCodeTypechecker, SimpleMemberAccess)
 {
     auto id = builder.makeExternalIdentifier("foo");
-    ASSERT_FALSE(check.getType(builder.makeMemberAccess(id, "bar")));
+    ASSERT_FALSE(check.inferType(builder.makeMemberAccess(id, "bar")));
 
     for (const auto& t : kAllBasicTypes)
     {
         auto value = builder.makeConstant(uvec2{});
-        ASSERT_FALSE(check.getType(builder.makeMemberAccess(value, "xy")));
+        ASSERT_FALSE(check.inferType(builder.makeMemberAccess(value, "xy")));
     }
 }
 
@@ -93,25 +93,25 @@ TEST_F(TestShaderCodeTypechecker, SimpleArrayAccess)
 {
     // An external identifier never has a type
     auto id = builder.makeExternalIdentifier("foo");
-    ASSERT_FALSE(check.getType(builder.makeArrayAccess(id, builder.makeConstant(3))));
+    ASSERT_FALSE(check.inferType(builder.makeArrayAccess(id, builder.makeConstant(3))));
 
     auto expr = builder.makeMul(builder.makeConstant(2), builder.makeConstant(13));
     for (const auto& t : kAllBasicTypes)
     {
         auto arr = builder.makeConstant(Constant(t, {{ std::byte(0) }}));
-        ASSERT_EQ(t, check.getType(builder.makeArrayAccess(arr, expr)));
+        ASSERT_EQ(t, check.inferType(builder.makeArrayAccess(arr, expr)));
     }
 }
 
 TEST_F(TestShaderCodeTypechecker, ComplexArrayAccess)
 {
-    ASSERT_FALSE(check.getType(
+    ASSERT_FALSE(check.inferType(
         builder.makeArrayAccess(
             builder.makeExternalCall("foo", { builder.makeConstant(8u) }),
             builder.makeConstant(42)
         )
     ));
-    ASSERT_EQ(BasicType(double{}), check.getType(
+    ASSERT_EQ(BasicType(double{}), check.inferType(
         builder.makeArrayAccess(
             builder.makeConstant(2.71828),
             builder.makeExternalIdentifier("array_access_with_no_type")
@@ -122,7 +122,7 @@ TEST_F(TestShaderCodeTypechecker, ComplexArrayAccess)
     for (const auto& type : kAllBasicTypes)
     {
         auto func = builder.makeFunction("bar_" + type.to_string(), FunctionType{ {}, type });
-        ASSERT_EQ(type, check.getType(
+        ASSERT_EQ(type, check.inferType(
             builder.makeArrayAccess(builder.makeCall(func, {}), index)
         ));
     }
@@ -134,7 +134,7 @@ TEST_F(TestShaderCodeTypechecker, UnaryOperatorTypeIsOperandType)
     {
         auto c = builder.makeConstant(Constant(type, {{ std::byte(0) }}));
         ASSERT_EQ(type, check(code::UnaryOperator{ "-", c }));
-        ASSERT_EQ(type, check.getType(builder.makeNot(c)));
+        ASSERT_EQ(type, check.inferType(builder.makeNot(c)));
 
         auto func = builder.makeFunction(type.to_string(), FunctionType{ {}, type });
         auto call = builder.makeCall(func, {});
@@ -191,7 +191,7 @@ TEST_F(TestShaderCodeTypechecker, BinaryOperatorBooleanOperators)
         {
             auto lhsVal = builder.makeConstant(Constant(lhs, {{ std::byte(0) }}));
             auto rhsVal = builder.makeConstant(Constant(rhs, {{ std::byte(0) }}));
-            ASSERT_EQ(bool{}, check(code::BinaryOperator{ opName, lhsVal, rhsVal }));
+            ASSERT_EQ(BasicType{ bool{} }, check(code::BinaryOperator{ opName, lhsVal, rhsVal }));
         }
     }
 }

@@ -1,5 +1,6 @@
 #include "trc/material/ShaderCodeBuilder.h"
 
+#include <source_location>
 #include <sstream>
 
 #include "trc/material/ShaderCodeCompiler.h"
@@ -56,6 +57,16 @@ auto ShaderCodeBuilder::makeMemberAccess(Value val, const std::string& member) -
 auto ShaderCodeBuilder::makeArrayAccess(Value array, Value index) -> Value
 {
     return makeValue(ArrayAccess{ .lhs=array, .index=index });
+}
+
+auto ShaderCodeBuilder::makeCast(BasicType to, Value from) -> Value
+{
+    return makeConstructor(to, { from });
+}
+
+auto ShaderCodeBuilder::makeConstructor(Type type, const std::vector<Value>& args) -> Value
+{
+    return makeExternalCall(code::types::to_string(type), args);
 }
 
 auto ShaderCodeBuilder::makeExternalCall(const std::string& funcName, std::vector<Value> args)
@@ -209,9 +220,50 @@ auto ShaderCodeBuilder::makeOrGetBuiltinFunction(const std::string& funcName) ->
     return it->second.get();
 }
 
+auto ShaderCodeBuilder::makeStructType(
+    const std::string& name,
+    const std::vector<std::pair<Type, std::string>>& fields)
+    -> StructType
+{
+    auto [it, success] = structTypes.try_emplace(
+        name,
+        new types::StructType{ .name=name, .fields=fields }
+    );
+
+    if (!success) {
+        throw std::runtime_error(
+            "[In " + std::string(std::source_location::current().function_name()) + "]: "
+            "Tried to create a struct type \"" + name + "\", but a type with this name"
+            " already exists."
+        );
+    }
+
+    return it->second.get();
+}
+
 void ShaderCodeBuilder::annotateType(Value val, BasicType type)
 {
     ((ValueT*)val)->typeAnnotation = type;
+}
+
+void ShaderCodeBuilder::annotateType(Value val, StructType type)
+{
+    ((ValueT*)val)->typeAnnotation = type;
+}
+
+auto ShaderCodeBuilder::compileTypeDecls() -> std::string
+{
+    std::string res;
+    for (const auto& [name, type] : structTypes)
+    {
+        res += "struct " + name + "{\n";
+        for (const auto& [fieldType, fieldName] : type->fields) {
+            res += "    " + types::to_string(fieldType) + " " + fieldName + ";\n";
+        }
+        res += "};\n";
+    }
+
+    return res;
 }
 
 auto ShaderCodeBuilder::compileFunctionDecls() -> std::string

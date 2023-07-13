@@ -75,9 +75,7 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
     frag.setParameter(FragmentModule::Parameter::eRoughness,      builder.makeConstant(data.roughness));
     frag.setParameter(FragmentModule::Parameter::eMetallicness,   builder.makeConstant(data.metallicness));
     frag.setParameter(FragmentModule::Parameter::eEmissive,
-                      builder.makeExternalCall("float", {
-                          builder.makeConstant(data.emissive)
-                      }));
+                      builder.makeCast<float>(builder.makeConstant(data.emissive)));
 
     const bool transparent = data.opacity < 1.0f;
 

@@ -3,6 +3,8 @@
 #include <variant>
 #include <vector>
 
+#include <trc_util/Util.h>
+
 #include "BasicType.h"
 #include "Constant.h"
 #include "ShaderCapabilities.h"
@@ -17,6 +19,59 @@ namespace trc
         std::vector<BasicType> argTypes;
         std::optional<BasicType> returnType;
     };
+
+    namespace code::types
+    {
+        struct StructType;
+
+        /**
+         * @brief Any type; either a basic type or a structure type
+         */
+        using TypeT = std::variant<
+            BasicType,
+            const StructType*
+        >;
+
+        struct StructType
+        {
+            std::string name;
+            std::vector<std::pair<TypeT, std::string>> fields;
+
+            auto to_string() const -> const std::string& { return name; }
+            auto getName() const -> const std::string& { return name; }
+
+            /**
+             * @brief Calculate the type's size in bytes
+             */
+            auto size() const -> ui32
+            {
+                ui32 size{ 0 };
+                for (const auto& [type, _] : fields)
+                {
+                    size += std::visit(util::VariantVisitor{
+                        [](const BasicType& type)  { return type.size(); },
+                        [](const StructType* type) { return type->size(); }
+                    }, type);
+                }
+
+                return size;
+            }
+        };
+
+        /**
+         * @brief Get a type's name
+         */
+        inline auto to_string(const TypeT& type)
+        {
+            return std::visit(
+                util::VariantVisitor{
+                    [](BasicType type)         { return type.to_string(); },
+                    [](const StructType* type) { return type->to_string(); }
+                },
+                type
+            );
+        }
+    } // namespace code::types
 
     namespace code
     {
@@ -51,6 +106,7 @@ namespace trc
         using Function = const FunctionT*;
         using Block = BlockT*;
         using Value = const ValueT*;
+        using Type = types::TypeT;
 
 
         // --- Value types --- //
@@ -108,7 +164,7 @@ namespace trc
                 ArrayAccess
             > value;
 
-            std::optional<BasicType> typeAnnotation;
+            std::optional<Type> typeAnnotation;
         };
 
 

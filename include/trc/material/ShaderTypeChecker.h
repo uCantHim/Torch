@@ -12,15 +12,37 @@ class ShaderTypeChecker
 public:
     using Value = ShaderCodeBuilder::Value;
 
-    auto getType(Value value) -> std::optional<BasicType>;
+    struct TypeInferenceResult
+    {
+        using Type = ShaderCodeBuilder::Type;
+        using StructType = ShaderCodeBuilder::StructType;
 
-    auto operator()(const code::Literal& v) -> std::optional<BasicType>;
-    auto operator()(const code::Identifier& v) -> std::optional<BasicType>;
-    auto operator()(const code::FunctionCall& v) -> std::optional<BasicType>;
-    auto operator()(const code::UnaryOperator& v) -> std::optional<BasicType>;
-    auto operator()(const code::BinaryOperator& v) -> std::optional<BasicType>;
-    auto operator()(const code::MemberAccess& v) -> std::optional<BasicType>;
-    auto operator()(const code::ArrayAccess& v) -> std::optional<BasicType>;
+        TypeInferenceResult(const Type& type) : type(type) {}
+        TypeInferenceResult(BasicType type) : type(type) {}
+        TypeInferenceResult(StructType type) : type(type) {}
+
+        /** @return std::string The type's name as a string. */
+        auto to_string() const -> std::string;
+
+        bool isBasicType() const;
+        bool isStructType() const;
+
+        bool operator==(const TypeInferenceResult& other) const {
+            return type == other.type;
+        }
+
+        Type type;
+    };
+
+    auto inferType(Value value) -> std::optional<TypeInferenceResult>;
+
+    auto operator()(const code::Literal& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::Identifier& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::FunctionCall& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::UnaryOperator& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::BinaryOperator& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::MemberAccess& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::ArrayAccess& v) -> std::optional<TypeInferenceResult>;
 };
 
 } // namespace trc

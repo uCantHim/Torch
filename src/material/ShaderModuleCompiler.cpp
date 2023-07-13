@@ -55,8 +55,9 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
     }
 
     // Generate resource and function declarations
-    auto functionDeclCode = builder.compileFunctionDecls();
-    auto resources = builder.compileResourceDecls();
+    const auto typeDeclCode = builder.compileTypeDecls();
+    const auto functionDeclCode = builder.compileFunctionDecls();
+    const auto resources = builder.compileResourceDecls();
 
     // Build shader file
     std::stringstream ss;
@@ -64,6 +65,9 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
 
     // Write additional module settings
     ss << compileSettings(builder.getSettings());
+
+    // Write type definitions
+    ss << std::move(typeDeclCode) << "\n";
 
     // Write resources
     ss << resources.getGlslCode() << "\n";

@@ -20,6 +20,9 @@ namespace trc
         using Function = code::Function;
         using Block = code::Block;
         using Value = code::Value;
+        using Type = code::Type;
+
+        using StructType = const code::types::StructType*;
 
         ShaderCodeBuilder(const ShaderCodeBuilder&) = delete;
         ShaderCodeBuilder& operator=(const ShaderCodeBuilder&) = delete;
@@ -41,6 +44,53 @@ namespace trc
         auto makeCall(Function func, std::vector<Value> args) -> Value;
         auto makeMemberAccess(Value val, const std::string& member) -> Value;
         auto makeArrayAccess(Value array, Value index) -> Value;
+
+        /**
+         * @brief Cast a value to a basic type
+         *
+         * @tparam CastTo A type to which to cast the value. `BasicType` must be
+         *                constructible from an object of type `CastTo`.
+         * @param Value from The value that is cast to `CastTo`.
+         *
+         * @return Value The value resulting from the cast expression.
+         *
+         * # Example
+         *
+         * ```cpp
+         * auto myVec = builder.makeCast<vec3>(myFloat);
+         * ```
+         */
+        template<typename CastTo>
+        inline auto makeCast(Value from) -> Value {
+            return makeCast(BasicType{ CastTo{} }, from);
+        }
+
+        /**
+         * @brief Cast a value to a basic type
+         *
+         * @param Value     from The value to cast to another type.
+         * @param BasicType to   The type to which to cast the value.
+         *
+         * @return Value The value resulting from the cast expression.
+         */
+        auto makeCast(BasicType to, Value from) -> Value;
+
+        template<typename Constructed, typename ...Args>
+            requires (std::same_as<Value, std::remove_reference_t<Args>> && ...)
+        auto makeConstructor(Args&&... args) -> Value {
+            return makeConstructor(BasicType{ Constructed{} }, std::forward<Args>(args)...);
+        }
+
+        template<typename ...Args>
+            requires (std::same_as<Value, std::remove_reference_t<Args>> && ...)
+        auto makeConstructor(Type type, Args&&... args) -> Value;
+
+        template<typename Constructed>
+        auto makeConstructor(const std::vector<Value>& args) -> Value {
+            return makeConstructor(BasicType{ Constructed{} }, args);
+        }
+
+        auto makeConstructor(Type type, const std::vector<Value>& args) -> Value;
 
         auto makeExternalIdentifier(const std::string& id) -> Value;
         auto makeExternalCall(const std::string& funcName, std::vector<Value> args) -> Value;
@@ -67,8 +117,14 @@ namespace trc
         void makeExternalCallStatement(const std::string& funcName, std::vector<code::Value> args);
         auto makeIfStatement(Value condition) -> Block;
 
-        void annotateType(Value val, BasicType type);
+        auto makeStructType(const std::string& name,
+                            const std::vector<std::pair<Type, std::string>>& fields)
+            -> StructType;
 
+        void annotateType(Value val, BasicType type);
+        void annotateType(Value val, StructType type);
+
+        auto compileTypeDecls() -> std::string;
         auto compileFunctionDecls() -> std::string;
 
         /**
@@ -95,6 +151,8 @@ namespace trc
         std::unordered_map<std::string, u_ptr<code::FunctionT>> functions;
         std::unordered_map<std::string, u_ptr<code::FunctionT>> builtinFunctions;
 
+        std::unordered_map<std::string, u_ptr<code::types::StructType>> structTypes;
+
         std::vector<u_ptr<code::BlockT>> blocks;
 
         /**
@@ -104,4 +162,13 @@ namespace trc
          */
         std::stack<code::BlockT*> blockStack;
     };
+
+
+
+    template<typename ...Args>
+        requires (std::same_as<ShaderCodeBuilder::Value, std::remove_reference_t<Args>> && ...)
+    inline auto ShaderCodeBuilder::makeConstructor(Type type, Args&&... args) -> Value
+    {
+        return makeConstructor(type, { std::forward<Args>(args)... });
+    }
 } // namespace trc

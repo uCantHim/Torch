@@ -34,7 +34,7 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
     auto emissiveParam = *parameters[static_cast<size_t>(Parameter::eEmissive)];
     output.setParameter(
         emissiveParam,
-        builder.makeExternalCall("float", { output.getParameter(emissiveParam) })
+        builder.makeCast<float>(output.getParameter(emissiveParam))
     );
 
     if (!transparent)

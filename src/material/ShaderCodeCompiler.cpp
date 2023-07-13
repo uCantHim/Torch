@@ -40,7 +40,7 @@ auto ShaderValueCompiler::visit(Value val) -> std::string
     //
     // This only works if the type checker is able to determine a type for
     // the expression! (we don't have `auto` in GLSL)
-    if (auto type = ShaderTypeChecker{}.getType(val))
+    if (auto type = ShaderTypeChecker{}.inferType(val))
     {
         auto [it, success] = valueIdentifiers.try_emplace(val);
         if (!success) {

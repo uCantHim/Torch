@@ -32,7 +32,7 @@ public:
         );
         builder.makeReturn(builder.makeMul(
             viewproj,
-            builder.makeExternalCall("vec4", { args[0], builder.makeConstant(1.0f) })
+            builder.makeConstructor<vec4>(args[0], builder.makeConstant(1.0f))
         ));
     }
 };
@@ -55,20 +55,6 @@ public:
         auto weight = builder.makeCapabilityAccess(VertexCapability::kAnimFrameWeight);
         auto res = builder.makeExternalCall("applyAnimation", { anim, args[0], keyframes, weight });
         builder.makeReturn(res);
-    }
-};
-
-class ToVec4 : public ShaderFunction
-{
-public:
-    ToVec4()
-        :
-        ShaderFunction("toVec4", FunctionType{ { vec3{}, float{} }, vec4{} })
-    {}
-
-    void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
-    {
-        builder.makeReturn(builder.makeExternalCall("vec4", args));
     }
 };
 
@@ -103,8 +89,8 @@ VertexModule::VertexModule(bool animated)
 
         auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
         auto tangentObjspace = builder.makeCapabilityAccess(VertexCapability::kTangent);
-        normalObjspace = builder.makeCall<ToVec4>({ normalObjspace, zero });
-        tangentObjspace = builder.makeCall<ToVec4>({ tangentObjspace, zero });
+        normalObjspace = builder.makeConstructor<vec4>(normalObjspace, zero);
+        tangentObjspace = builder.makeConstructor<vec4>(tangentObjspace, zero);
         if (animated) {
             normalObjspace = builder.makeCall<ApplyAnimation>({ normalObjspace });
             tangentObjspace = builder.makeCall<ApplyAnimation>({ tangentObjspace });
@@ -114,7 +100,7 @@ VertexModule::VertexModule(bool animated)
         auto tangent = builder.makeCall<NormalToWorldspace>({ tangentObjspace });
         auto bitangent = builder.makeExternalCall("cross", { normal, tangent });
 
-        auto tbn = builder.makeExternalCall("mat3", { tangent, bitangent, normal });
+        auto tbn = builder.makeConstructor<mat3>(tangent, bitangent, normal);
 
         return tbn;
     }();
@@ -126,7 +112,7 @@ VertexModule::VertexModule(bool animated)
             {
                 auto objPos = builder.makeCapabilityAccess(VertexCapability::kPosition);
                 auto modelMat = builder.makeCapabilityAccess(VertexCapability::kModelMatrix);
-                auto objPos4 = builder.makeCall<ToVec4>({ objPos, builder.makeConstant(1.0f) });
+                auto objPos4 = builder.makeConstructor<vec4>(objPos, builder.makeConstant(1.0f));
                 if (animated)
                 {
                     builder.includeCode(util::Pathlet("material_utils/animation.glsl"), {
