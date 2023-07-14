@@ -288,26 +288,30 @@ auto ShaderCodeBuilder::compileTypeDecls() -> std::string
 
 auto ShaderCodeBuilder::compileFunctionDecls() -> std::string
 {
+    std::string forwardDecls;
     std::string res;
     for (const auto& [name, func] : functions)
     {
         auto& type = func->getType();
-        res += (type.returnType ? type.returnType->to_string() : "void")
-            + " " + func->getName() + "(";
+        auto funcHead = (type.returnType ? type.returnType->to_string() : "void")
+                         + " " + func->getName() + "(";
 
         for (ui32 i = 0; const auto& argType : type.argTypes)
         {
             Value arg = func->getArgs()[i];
             assert(std::holds_alternative<Identifier>(arg->value));
-            res += argType.to_string() + " " + std::get<Identifier>(arg->value).name;
+            funcHead += argType.to_string() + " " + std::get<Identifier>(arg->value).name;
             if (++i < type.argTypes.size()) {
-                res += ", ";
+                funcHead += ", ";
             }
         }
-        res += ")\n{\n" + compile(func->body) + "}\n";
+        funcHead += ")";
+
+        forwardDecls += funcHead + ";\n";
+        res += funcHead + "\n{\n" + compile(func->body) + "}\n";
     }
 
-    return res;
+    return forwardDecls + res;
 }
 
 auto ShaderCodeBuilder::compile(Value value) -> std::pair<std::string, std::string>
