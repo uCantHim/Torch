@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstring>
 #include <functional>
 #include <string>
+#include <string_view>
 
 namespace trc
 {
@@ -13,15 +13,15 @@ namespace trc
         constexpr Capability(const char* str) : str(str) {}
 
         auto getString() const -> std::string {
-            return str;
+            return std::string(str);
         }
 
         bool operator==(const Capability& other) const {
-            return strcmp(str, other.str) == 0;
+            return str == other.str;
         }
 
     private:
-        const char* str;
+        std::string_view str;
     };
 } // namespace trc
 
@@ -30,6 +30,6 @@ struct std::hash<trc::Capability>
 {
     auto operator()(const trc::Capability& capability) const -> size_t
     {
-        return hash<std::string>{}(capability.getString());
+        return hash<std::string_view>{}(capability.getString());
     }
 };
