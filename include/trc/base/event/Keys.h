@@ -176,7 +176,7 @@ namespace trc
 } // namespace trc
 
 namespace trc
-{   
+{
     /**
      * I don't want to deal with the API breaks in vulkan.hpp anymore, so
      * here is a copy-pasted implementation of the Flags type:
@@ -221,8 +221,6 @@ namespace trc
         }
 
         // assignment operators
-        constexpr KeyModFlags & operator=( KeyModFlags const & rhs ) noexcept = default;
-
         constexpr KeyModFlags & operator|=( KeyModFlags const & rhs ) noexcept
         {
             mask |= rhs.mask;

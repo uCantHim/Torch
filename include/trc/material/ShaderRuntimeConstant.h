@@ -101,6 +101,8 @@ namespace trc
     class ShaderRuntimeConstantDeserializer
     {
     public:
+        virtual ~ShaderRuntimeConstantDeserializer() = default;
+
         /**
          * @return std::optional<s_ptr<ShaderRuntimeConstant>> std::nullopt if
          *         deserialization fails, otherwise a non-null pointer to a

@@ -12,6 +12,8 @@ namespace trc
 
 namespace trc::internal
 {
+    using namespace trc::basic_types;
+
     auto getShaderLoader() -> const ShaderLoader&;
     auto loadShader(const ShaderPath& path) -> std::vector<ui32>;
 } // namespace trc::internal

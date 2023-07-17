@@ -84,7 +84,7 @@ namespace trc::data
         std::scoped_lock lock(modificationsLock, itemsLock);
 
         // Erase items
-        std::ranges::unique(erasedItems);
+        std::unique(erasedItems.begin(), erasedItems.end());
         for (auto it : erasedItems) {
             items.erase(it);
         }

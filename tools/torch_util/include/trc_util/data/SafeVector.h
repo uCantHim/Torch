@@ -230,7 +230,11 @@ namespace trc::util
          * @throw std::out_of_range if no element exists at index `index`.
          */
         auto copyAtomically(size_type index) const -> value_type
-            requires std::copy_constructible<value_type>;
+            requires std::copy_constructible<value_type>
+        {
+            auto chunk = chunks.read(_chunk_index(index));
+            return value_type{ chunk->at(_elem_index(index)) };
+        }
 
         /**
          * @brief Perform an atomic operation on the element currently
@@ -248,7 +252,16 @@ namespace trc::util
          */
         template<std::invocable<reference> F>
         auto applyAtomically(size_type index, F&& func)
-            -> std::invoke_result_t<F, reference>;
+            -> std::invoke_result_t<F, reference>
+        {
+            auto chunk = chunks.write(_chunk_index(index));
+            if constexpr (std::same_as<void, std::invoke_result_t<F, reference>>) {
+                func(chunk->at(_elem_index(index)));
+            }
+            else {
+                return func(chunk->at(_elem_index(index)));
+            }
+        }
 
         /**
          * @brief Perform an atomic operation on the element currently
@@ -266,7 +279,16 @@ namespace trc::util
          */
         template<std::invocable<const_reference> F>
         auto applyAtomically(size_type index, F&& func) const
-            -> std::invoke_result_t<F, const_reference>;
+            -> std::invoke_result_t<F, const_reference>
+        {
+            auto chunk = chunks.read(_chunk_index(index));
+            if constexpr (std::same_as<void, std::invoke_result_t<F, reference>>) {
+                func(chunk->at(_elem_index(index)));
+            }
+            else {
+                return func(chunk->at(_elem_index(index)));
+            }
+        }
 
         auto begin()        -> iterator;
         auto begin()  const -> const_iterator;
@@ -433,42 +455,6 @@ namespace trc::util
     };
 
 
-
-    template<typename T, size_t ChunkSize>
-    auto SafeVector<T, ChunkSize>::copyAtomically(const size_type index) const -> value_type
-        requires std::copy_constructible<typename SafeVector<T, ChunkSize>::value_type>
-    {
-        auto chunk = chunks.read(_chunk_index(index));
-        return value_type{ chunk->at(_elem_index(index)) };
-    }
-
-    template<typename T, size_t ChunkSize>
-    template<std::invocable<typename SafeVector<T, ChunkSize>::reference> F>
-    auto SafeVector<T, ChunkSize>::applyAtomically(const size_type index, F&& func)
-        -> std::invoke_result_t<F, reference>
-    {
-        auto chunk = chunks.write(_chunk_index(index));
-        if constexpr (std::same_as<void, std::invoke_result_t<F, reference>>) {
-            func(chunk->at(_elem_index(index)));
-        }
-        else {
-            return func(chunk->at(_elem_index(index)));
-        }
-    }
-
-    template<typename T, size_t ChunkSize>
-    template<std::invocable<typename SafeVector<T, ChunkSize>::const_reference> F>
-    auto SafeVector<T, ChunkSize>::applyAtomically(const size_type index, F&& func) const
-        -> std::invoke_result_t<F, const_reference>
-    {
-        auto chunk = chunks.read(_chunk_index(index));
-        if constexpr (std::same_as<void, std::invoke_result_t<F, reference>>) {
-            func(chunk->at(_elem_index(index)));
-        }
-        else {
-            return func(chunk->at(_elem_index(index)));
-        }
-    }
 
     template<typename T, size_t ChunkSize>
     auto SafeVector<T, ChunkSize>::begin() -> iterator
