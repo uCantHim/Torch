@@ -47,10 +47,10 @@ namespace trc
     class ShaderModuleBuilder : public ShaderCodeBuilder
     {
     public:
-        ShaderModuleBuilder(const ShaderModuleBuilder&) = delete;
         ShaderModuleBuilder& operator=(const ShaderModuleBuilder&) = delete;
         ShaderModuleBuilder& operator=(ShaderModuleBuilder&&) noexcept = delete;
 
+        ShaderModuleBuilder(const ShaderModuleBuilder&) = default;
         ShaderModuleBuilder(ShaderModuleBuilder&&) noexcept = default;
         ~ShaderModuleBuilder() noexcept = default;
 
@@ -122,6 +122,11 @@ namespace trc
         auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
             -> std::string;
 
+        /**
+         * @brief Get the module's primary block
+         *
+         * This is the "main"-function of the module.
+         */
         auto getPrimaryBlock() const -> Block;
 
     private:
@@ -129,7 +134,7 @@ namespace trc
             requires std::is_default_constructible_v<T>
         auto createFunctionDef() -> Function;
 
-        const ShaderCapabilityConfig config;
+        s_ptr<const ShaderCapabilityConfig> config;
         Settings shaderSettings;
         ShaderResourceInterface resources;
 
@@ -150,7 +155,7 @@ namespace trc
         }
 
         T funcBuilder;
-        auto func = makeFunction(funcBuilder.getName(), funcBuilder.getType());
+        auto func = makeOrGetFunction(funcBuilder.getName(), funcBuilder.getType());
         startBlock(func);
         funcBuilder.build(*this, func->getArgs());
         endBlock();

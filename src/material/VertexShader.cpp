@@ -156,12 +156,14 @@ auto VertexModule::build(const ShaderModule& fragment) && -> ShaderModule
     }
 
     // Always add the gl_Position output
+    builder.startBlock(builder.getPrimaryBlock());
     builder.makeAssignment(
         builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
             { fragmentInputProviders.at(FragmentCapability::kVertexWorldPos) }
         )
     );
+    builder.endBlock();
 
     ShaderModuleCompiler vertCompiler;
     return vertCompiler.compile(vertNode, std::move(builder));

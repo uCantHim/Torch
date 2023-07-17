@@ -48,7 +48,10 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     });
     auto c = builder.makeConstant(0.5f);
     auto mix = builder.makeCall<Mix<4, float>>({ color, texColor, c });
-    builder.makeAssignment(builder.makeMemberAccess(mix, "a"), builder.makeConstant(0.3f));
+    mix = builder.makeConstructor<vec4>(
+        builder.makeMemberAccess(mix, "rgb"),
+        builder.makeConstant(0.3f)
+    );
 
     auto sampledNormal = builder.makeMemberAccess(
         builder.makeCall<TextureSample>({

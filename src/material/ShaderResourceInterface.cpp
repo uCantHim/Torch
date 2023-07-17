@@ -82,37 +82,37 @@ auto ShaderResourceInterface::DescriptorBindingFactory::make(
     const auto placeholder = getDescriptorSetPlaceholder(binding.setName);
     auto [_, success] = descriptorSetPlaceholders.try_emplace(binding.setName, placeholder);
     if (success) {
-        generatedCode << "#define _" << placeholder << " $" << placeholder << "\n";
+        generatedCode += "#define _" + placeholder + " $" + placeholder + "\n";
     }
 
     auto& ss = generatedCode;
-    ss << "layout (set = _" << placeholder << " "
-       << ", binding = " << binding.bindingIndex;
+    ss += "layout (set = _" + placeholder + " "
+       + ", binding = " + std::to_string(binding.bindingIndex);
     if (binding.layoutQualifier) {
-        ss << ", " << *binding.layoutQualifier;
+        ss += ", " + *binding.layoutQualifier;
     }
-    ss << ") " << binding.descriptorType << " "
-       << (binding.descriptorName.empty() ? "_" + std::to_string(nextNameIndex++) : binding.descriptorName);
+    ss += ") " + binding.descriptorType + " "
+       + (binding.descriptorName.empty() ? "_" + std::to_string(nextNameIndex++) : binding.descriptorName);
     if (binding.descriptorContent)
     {
-        ss << "_Name\n"
-           << "{\n" << *binding.descriptorContent << "\n} "
-           << binding.descriptorName;
+        ss += "_Name\n"
+           "{\n" + *binding.descriptorContent + "\n} "
+           + binding.descriptorName;
     }
     if (binding.isArray)
     {
-        ss << "[";
-        if (binding.arrayCount > 0) ss << binding.arrayCount;
-        ss << "]";
+        ss += "[";
+        if (binding.arrayCount > 0) ss += binding.arrayCount;
+        ss += "]";
     }
-    ss << ";\n";
+    ss += ";\n";
 
     return binding.descriptorName;
 }
 
-auto ShaderResourceInterface::DescriptorBindingFactory::getCode() const -> std::string
+auto ShaderResourceInterface::DescriptorBindingFactory::getCode() const -> const std::string&
 {
-    return generatedCode.str();
+    return generatedCode;
 }
 
 auto ShaderResourceInterface::DescriptorBindingFactory::getDescriptorSets() const

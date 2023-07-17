@@ -109,9 +109,13 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
             color
         );
 
+        builder.startBlock(builder.getPrimaryBlock());
+
         // Only create the fragment if the alpha is not zero
         builder.startBlock(builder.makeIfStatement(isVisible));
         builder.makeExternalCallStatement("appendFragment", { color });
+        builder.endBlock();
+
         builder.endBlock();
     }
 

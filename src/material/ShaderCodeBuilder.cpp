@@ -155,18 +155,22 @@ auto ShaderCodeBuilder::makeConditional(Value cond, Value ifTrue, Value ifFalse)
     return makeValue(Conditional{ .condition=cond, .ifTrue=ifTrue, .ifFalse=ifFalse });
 }
 
-auto ShaderCodeBuilder::makeFunction(
+auto ShaderCodeBuilder::makeOrGetFunction(
     const std::string& name,
     FunctionType type) -> Function
 {
-    auto block = blocks.emplace_back(std::make_unique<BlockT>()).get();
+    if (functions.contains(name)) {
+        return functions.at(name).get();
+    }
+
+    auto block = blocks.emplace_back(std::make_shared<BlockT>()).get();
 
     // Create argument identifiers
     std::vector<Value> argumentRefs;
     for (ui32 i = 0; i < type.argTypes.size(); ++i)
     {
         std::string argName = "_arg_" + std::to_string(i);
-        argumentRefs.emplace_back(makeValue(Identifier{ .name=std::move(argName) }));
+        argumentRefs.emplace_back(makeExternalIdentifier(argName));
     }
 
     return makeFunction(FunctionT{ name, std::move(type), block, std::move(argumentRefs) });
@@ -201,7 +205,7 @@ void ShaderCodeBuilder::makeExternalCallStatement(
 
 auto ShaderCodeBuilder::makeIfStatement(Value condition) -> Block
 {
-    Block block = blocks.emplace_back(std::make_unique<BlockT>()).get();
+    Block block = blocks.emplace_back(std::make_shared<BlockT>()).get();
     makeStatement(IfStatement{ condition, block });
 
     return block;
@@ -210,7 +214,7 @@ auto ShaderCodeBuilder::makeIfStatement(Value condition) -> Block
 template<typename T>
 auto ShaderCodeBuilder::makeValue(T&& val) -> Value
 {
-    return values.emplace_back(std::make_unique<ValueT>(
+    return values.emplace_back(std::make_shared<ValueT>(
         ValueT{ .value=std::forward<T>(val), .typeAnnotation=std::nullopt }
     )).get();
 }
@@ -227,7 +231,7 @@ void ShaderCodeBuilder::makeStatement(StmtT statement)
 
 auto ShaderCodeBuilder::makeFunction(FunctionT func) -> Function
 {
-    auto [it, _] = functions.try_emplace(func.getName(), std::make_unique<FunctionT>(func));
+    auto [it, _] = functions.try_emplace(func.getName(), std::make_shared<FunctionT>(func));
     return it->second.get();
 }
 
@@ -235,7 +239,7 @@ auto ShaderCodeBuilder::makeOrGetBuiltinFunction(const std::string& funcName) ->
 {
     auto [it, _] = builtinFunctions.try_emplace(
         funcName,
-        std::make_unique<FunctionT>(FunctionT{ funcName, {}, nullptr, {} })
+        std::make_shared<FunctionT>(FunctionT{ funcName, {}, nullptr, {} })
     );
     return it->second.get();
 }

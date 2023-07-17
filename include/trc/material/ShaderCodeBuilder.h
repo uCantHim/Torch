@@ -24,10 +24,10 @@ namespace trc
 
         using StructType = const code::types::StructType*;
 
-        ShaderCodeBuilder(const ShaderCodeBuilder&) = delete;
         ShaderCodeBuilder& operator=(const ShaderCodeBuilder&) = delete;
 
         ShaderCodeBuilder() = default;
+        ShaderCodeBuilder(const ShaderCodeBuilder&) = default;
         ShaderCodeBuilder(ShaderCodeBuilder&&) noexcept = default;
         ~ShaderCodeBuilder() noexcept = default;
 
@@ -115,7 +115,7 @@ namespace trc
 
         auto makeConditional(Value cond, Value ifTrue, Value ifFalse) -> Value;
 
-        auto makeFunction(const std::string& name, FunctionType type) -> Function;
+        auto makeOrGetFunction(const std::string& name, FunctionType type) -> Function;
         auto getFunction(const std::string& name) const -> std::optional<Function>;
 
         /**
@@ -157,13 +157,13 @@ namespace trc
         auto makeOrGetBuiltinFunction(const std::string& funcName) -> Function;
 
     private:
-        std::vector<u_ptr<code::ValueT>> values;
-        std::unordered_map<std::string, u_ptr<code::FunctionT>> functions;
-        std::unordered_map<std::string, u_ptr<code::FunctionT>> builtinFunctions;
+        std::vector<s_ptr<code::ValueT>> values;
+        std::unordered_map<std::string, s_ptr<code::FunctionT>> functions;
+        std::unordered_map<std::string, s_ptr<code::FunctionT>> builtinFunctions;
 
-        std::unordered_map<std::string, u_ptr<code::types::StructType>> structTypes;
+        std::unordered_map<std::string, s_ptr<code::types::StructType>> structTypes;
 
-        std::vector<u_ptr<code::BlockT>> blocks;
+        std::vector<s_ptr<code::BlockT>> blocks;
 
         /**
          * The block stack does not necessarily signify block nesting in

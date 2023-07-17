@@ -212,7 +212,7 @@ namespace trc
         {
             auto make(const ShaderCapabilityConfig::DescriptorBinding& binding) -> std::string;
 
-            auto getCode() const -> std::string;
+            auto getCode() const -> const std::string&;
             auto getDescriptorSets() const -> std::unordered_map<std::string, std::string>;
 
         private:
@@ -221,7 +221,7 @@ namespace trc
             ui32 nextNameIndex{ 0 };
 
             std::unordered_map<std::string, std::string> descriptorSetPlaceholders;
-            std::stringstream generatedCode;
+            std::string generatedCode;
         };
 
         struct PushConstantFactory

@@ -1,5 +1,11 @@
 #pragma once
 
+#include <cassert>
+
+#include <ostream>
+#include <string>
+#include <type_traits>
+
 #include "trc/Types.h"
 
 namespace trc
@@ -78,17 +84,23 @@ namespace trc
     template<i32 N, typename T>
     constexpr BasicType::BasicType(glm::vec<N, T>)
         : type(toBasicTypeEnum<T>), channels(N)
-    {}
+    {
+        assert(channels > 0);
+    }
 
     template<i32 N, typename T>
         requires ((N == 3 || N == 4) && (std::is_same_v<T, float> || std::is_same_v<T, double>))
     constexpr BasicType::BasicType(glm::mat<N, N, T>)
         : type(toBasicTypeEnum<T>), channels(N * N)
-    {}
+    {
+        assert(channels > 0);
+    }
 
     constexpr BasicType::BasicType(Type t, ui8 channels)
         :
         type(t),
         channels(channels)
-    {}
+    {
+        assert(channels > 0);
+    }
 } // namespace trc

@@ -32,14 +32,10 @@ auto ShaderFunction::getType() const -> const FunctionType&
 
 ShaderModuleBuilder::ShaderModuleBuilder(const ShaderCapabilityConfig& conf)
     :
-    config(std::move(conf)),
-    resources(config, *this)
+    config(std::make_unique<const ShaderCapabilityConfig>(conf)),
+    resources(*config, *this)
 {
-    // I can declare the main function like this because function declarations
-    // are always compiled in the reversed order in which they were created.
-    // Main is always the first function that is declared.
-    auto main = makeFunction("main", FunctionType{ {}, std::nullopt });
-    startBlock(main);
+    makeOrGetFunction("main", FunctionType{ {}, std::nullopt });
 }
 
 auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
@@ -77,7 +73,7 @@ void ShaderModuleBuilder::enableEarlyFragmentTest()
 
 auto ShaderModuleBuilder::getCapabilityConfig() const -> const ShaderCapabilityConfig&
 {
-    return config;
+    return *config;
 }
 
 auto ShaderModuleBuilder::getSettings() const -> const Settings&

@@ -38,6 +38,8 @@ auto ShaderModule::getParameterName(ParameterID paramNode) const
 auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilder builder)
     -> ShaderModule
 {
+    builder.startBlock(builder.getPrimaryBlock());
+
     // Generate assignments of parameter values to output locations
     for (const auto& link : outNode.getOutputLinks())
     {
@@ -53,6 +55,7 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
             value
         );
     }
+    builder.endBlock();
 
     // Generate resource and function declarations
     const auto typeDeclCode = builder.compileTypeDecls();

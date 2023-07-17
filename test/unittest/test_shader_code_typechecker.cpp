@@ -59,7 +59,7 @@ TEST_F(TestShaderCodeTypechecker, FunctionCallType)
 {
     for (const auto& type : kAllBasicTypes)
     {
-        auto func = builder.makeFunction(type.to_string(), FunctionType{ {}, type });
+        auto func = builder.makeOrGetFunction(type.to_string(), FunctionType{ {}, type });
         ASSERT_EQ(type, check(code::FunctionCall{ func, {} }));
         ASSERT_EQ(type, check.inferType(builder.makeCall(func, {})));
     }
@@ -70,7 +70,7 @@ TEST_F(TestShaderCodeTypechecker, FunctionCallTypeIsArgumentInvariant)
     for (const auto& type : kAllBasicTypes)
     {
         const FunctionType funcType{ { uvec2{}, float{} }, type };
-        auto func = builder.makeFunction(type.to_string(), funcType);
+        auto func = builder.makeOrGetFunction(type.to_string(), funcType);
 
         ASSERT_EQ(type, check(code::FunctionCall{ func, {} }));
         ASSERT_EQ(type, check.inferType(builder.makeCall(func, {})));
@@ -121,7 +121,7 @@ TEST_F(TestShaderCodeTypechecker, ComplexArrayAccess)
     auto index = builder.makeConstant(0);
     for (const auto& type : kAllBasicTypes)
     {
-        auto func = builder.makeFunction("bar_" + type.to_string(), FunctionType{ {}, type });
+        auto func = builder.makeOrGetFunction("bar_" + type.to_string(), FunctionType{ {}, type });
         ASSERT_EQ(type, check.inferType(
             builder.makeArrayAccess(builder.makeCall(func, {}), index)
         ));
@@ -136,7 +136,7 @@ TEST_F(TestShaderCodeTypechecker, UnaryOperatorTypeIsOperandType)
         ASSERT_EQ(type, check(code::UnaryOperator{ "-", c }));
         ASSERT_EQ(type, check.inferType(builder.makeNot(c)));
 
-        auto func = builder.makeFunction(type.to_string(), FunctionType{ {}, type });
+        auto func = builder.makeOrGetFunction(type.to_string(), FunctionType{ {}, type });
         auto call = builder.makeCall(func, {});
         ASSERT_EQ(type, check(code::UnaryOperator{ ",", call }));
 
