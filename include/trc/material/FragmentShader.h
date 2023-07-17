@@ -2,7 +2,7 @@
 
 #include "ShaderCapabilities.h"
 #include "ShaderModuleBuilder.h"
-#include "ShaderOutputNode.h"
+#include "ShaderOutputInterface.h"
 #include "ShaderModuleCompiler.h"
 
 namespace trc
@@ -90,10 +90,12 @@ namespace trc
          */
         auto build(ShaderModuleBuilder moduleCode, bool transparent) -> ShaderModule;
 
+        auto buildCallableShader() -> ShaderModule;
+
     private:
         void fillDefaultValues(ShaderModuleBuilder& builder);
 
-        std::array<std::optional<ParameterID>, kNumParams> parameters;
-        ShaderOutputNode output;
+        std::array<std::optional<code::Value>, kNumParams> parameters;
+        ShaderOutputInterface output;
     };
 } // namespace trc

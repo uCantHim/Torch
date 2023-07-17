@@ -35,7 +35,6 @@ ShaderModuleBuilder::ShaderModuleBuilder(const ShaderCapabilityConfig& conf)
     config(std::make_unique<const ShaderCapabilityConfig>(conf)),
     resources(*config, *this)
 {
-    makeOrGetFunction("main", FunctionType{ {}, std::nullopt });
 }
 
 auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
@@ -46,6 +45,23 @@ auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
 auto ShaderModuleBuilder::makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> value) -> Value
 {
     return resources.makeSpecConstant(std::move(value));
+}
+
+auto ShaderModuleBuilder::makeOutputLocation(ui32 location, BasicType type) -> Value
+{
+    const std::string name{ "_shaderOutput_" + std::to_string(location) };
+
+    auto [it, success] = outputLocations.try_emplace(location, type, name);
+    if (!success && it->second.first != type)
+    {
+        throw std::invalid_argument(
+            "[In ShaderModuleBuilder::makeOutputLocation]: Output at location "
+            + std::to_string(location) + " is already declared with the type "
+            + it->second.first.to_string() + " (provided type was " + type.to_string() + ")"
+        );
+    }
+
+    return makeExternalIdentifier(name);
 }
 
 void ShaderModuleBuilder::includeCode(
@@ -86,6 +102,19 @@ auto ShaderModuleBuilder::compileResourceDecls() const -> ShaderResources
     return resources.compile();
 }
 
+auto ShaderModuleBuilder::compileOutputLocations() const -> std::string
+{
+    std::string res;
+    for (const auto& [location, pair] : outputLocations)
+    {
+        const auto& [type, name] = pair;
+        res += "layout (location = " + std::to_string(location) + ")"
+               " out " + type.to_string() + " " + name + ";\n";
+    }
+
+    return res;
+}
+
 auto ShaderModuleBuilder::compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
     -> std::string
 {
@@ -116,11 +145,6 @@ auto ShaderModuleBuilder::compileIncludedCode(shaderc::CompileOptions::IncluderI
     }
 
     return result;
-}
-
-auto ShaderModuleBuilder::getPrimaryBlock() const -> Block
-{
-    return getFunction("main").value()->getBlock();
 }
 
 }

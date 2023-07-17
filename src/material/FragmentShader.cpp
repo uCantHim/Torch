@@ -5,24 +5,10 @@
 namespace trc
 {
 
-constexpr std::array<BasicType, FragmentModule::kNumParams> paramTypes{{
-    vec4{},
-    vec3{},
-    float{},
-    float{},
-    float{},
-    bool{},
-}};
-
 void FragmentModule::setParameter(Parameter param, code::Value value)
 {
     const size_t index = static_cast<size_t>(param);
-
-    auto& p = parameters[index];
-    if (!p) {
-        p = output.addParameter(paramTypes[index]);
-    }
-    output.setParameter(*p, value);
+    parameters[index] = value;
 }
 
 auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> ShaderModule
@@ -32,39 +18,39 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
 
     // Cast the emissive value (bool) to float.
     auto emissiveParam = *parameters[static_cast<size_t>(Parameter::eEmissive)];
-    output.setParameter(
-        emissiveParam,
-        builder.makeCast<float>(output.getParameter(emissiveParam))
-    );
+    setParameter(Parameter::eEmissive, builder.makeCast<float>(emissiveParam));
 
     if (!transparent)
     {
-        static constexpr std::array<const char*, FragmentModule::kNumParams> paramAccessors{{
-            "", "", "[0]", "[1]", "[2]", "[3]",
+        static constexpr std::array<std::string_view, FragmentModule::kNumParams> paramAccessors{{
+            "", "", "x", "y", "z", "w",
         }};
 
-        auto linkOutput = [this](Parameter param, OutputID out) {
+        auto storeOutput = [this, &builder](Parameter param, code::Value out) {
             const size_t index = static_cast<size_t>(param);
             assert(parameters[index].has_value());
 
-            output.linkOutput(*parameters[index], out, paramAccessors[index]);
+            if (!paramAccessors[index].empty()) {
+                out = builder.makeMemberAccess(out, std::string(paramAccessors[index]));
+            }
+            output.makeStore(out, *parameters[index]);
         };
 
-        auto outNormal = output.addOutput(0, vec3{});
-        auto outAlbedo = output.addOutput(1, vec4{});
-        auto outMaterial = output.addOutput(2, vec4{});
+        auto outNormal = builder.makeOutputLocation(0, vec3{});
+        auto outAlbedo = builder.makeOutputLocation(1, vec4{});
+        auto outMaterial = builder.makeOutputLocation(2, vec4{});
 
-        linkOutput(Parameter::eColor, outAlbedo);
-        linkOutput(Parameter::eNormal, outNormal);
-        linkOutput(Parameter::eSpecularFactor, outMaterial);
-        linkOutput(Parameter::eMetallicness, outMaterial);
-        linkOutput(Parameter::eRoughness, outMaterial);
-        linkOutput(Parameter::eEmissive, outMaterial);
+        storeOutput(Parameter::eColor, outAlbedo);
+        storeOutput(Parameter::eNormal, outNormal);
+        storeOutput(Parameter::eSpecularFactor, outMaterial);
+        storeOutput(Parameter::eMetallicness, outMaterial);
+        storeOutput(Parameter::eRoughness, outMaterial);
+        storeOutput(Parameter::eEmissive, outMaterial);
     }
     else {
         auto getParam = [this](Parameter param) {
             assert(parameters[static_cast<size_t>(param)].has_value());
-            return output.getParameter(*parameters[static_cast<size_t>(param)]);
+            return *parameters[static_cast<size_t>(param)];
         };
 
         builder.includeCode(util::Pathlet("material_utils/append_fragment.glsl"), {
@@ -109,14 +95,9 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
             color
         );
 
-        builder.startBlock(builder.getPrimaryBlock());
-
-        // Only create the fragment if the alpha is not zero
-        builder.startBlock(builder.makeIfStatement(isVisible));
-        builder.makeExternalCallStatement("appendFragment", { color });
-        builder.endBlock();
-
-        builder.endBlock();
+        // TODO: Ideally, we only call this if `isVisible` evaluates to true,
+        // though we don't have a mechanism for conditional output yet.
+        output.makeBuiltinCall("appendFragment", { color });
     }
 
     builder.enableEarlyFragmentTest();
@@ -127,13 +108,9 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
 void FragmentModule::fillDefaultValues(ShaderModuleBuilder& builder)
 {
     auto tryFill = [&](Parameter param, Constant constant) {
-        assert(constant.getType() == paramTypes[static_cast<size_t>(param)]);
-
         const size_t index = static_cast<size_t>(param);
-        if (!parameters[index])
-        {
-            parameters[index] = output.addParameter(paramTypes[index]);
-            output.setParameter(*parameters[index], builder.makeConstant(constant));
+        if (!parameters[index]) {
+            parameters[index] = builder.makeConstant(constant);
         }
     };
 

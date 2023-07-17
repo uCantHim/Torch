@@ -136,37 +136,32 @@ VertexModule::VertexModule(bool animated)
 
 auto VertexModule::build(const ShaderModule& fragment) && -> ShaderModule
 {
-    ShaderOutputNode vertNode;
+    ShaderOutputInterface shaderOutput;
     for (const auto& out : fragment.getRequiredShaderInputs())
     {
-        auto output = vertNode.addOutput(out.location, out.type);
-        auto param = vertNode.addParameter(out.type);
-        vertNode.linkOutput(param, output, "");
+        auto loc = builder.makeOutputLocation(out.location, out.type);
 
         try {
             auto inputNode = fragmentInputProviders.at(out.capability);
-            vertNode.setParameter(param, inputNode);
+            shaderOutput.makeStore(loc, inputNode);
         }
         catch (const std::out_of_range&)
         {
             log::warn << "Warning: [In VertexShaderBuilder::buildVertexShader]: Fragment"
                       << " capability \"" << out.capability.getString()
-                      << "\" is requested but not implemented.\n";
+                      << "\" is requested as an output but not implemented.\n";
         }
     }
 
     // Always add the gl_Position output
-    builder.startBlock(builder.getPrimaryBlock());
-    builder.makeAssignment(
+    shaderOutput.makeStore(
         builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
             { fragmentInputProviders.at(FragmentCapability::kVertexWorldPos) }
         )
     );
-    builder.endBlock();
 
-    ShaderModuleCompiler vertCompiler;
-    return vertCompiler.compile(vertNode, std::move(builder));
+    return ShaderModuleCompiler{}.compile(shaderOutput, std::move(builder));
 }
 
 auto VertexModule::makeVertexCapabilityConfig() -> ShaderCapabilityConfig

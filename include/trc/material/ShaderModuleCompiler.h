@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ShaderOutputNode.h"
+#include "ShaderOutputInterface.h"
 #include "ShaderResourceInterface.h"
 #include "ShaderModuleBuilder.h"
 #include "trc/Types.h"
@@ -27,39 +27,27 @@ namespace trc
 
         auto getGlslCode() const -> const std::string&;
 
-        /**
-         * @brief Get the name of an output parameter's result variable
-         *
-         * Parameters specified at the module's ShaderOutputNode are
-         * computed in the shader. This method retrieves a GLSL variable
-         * name that refers to this final value before it is written to a
-         * shader output location.
-         */
-        auto getParameterName(ParameterID paramNode) const
-            -> std::optional<std::string>;
-
     private:
         friend class ShaderModuleCompiler;
 
-        ShaderModule(
-            std::string shaderCode,
-            ShaderResources resourceInfo,
-            std::unordered_map<ParameterID, std::string> paramResultVariableNames
-        );
+        ShaderModule(std::string shaderCode, ShaderResources resourceInfo);
 
         std::string shaderGlslCode;
-
-        /**
-         * Stores the names of variables in which the computed values of
-         * output parameters (inputs to the output node) reside.
-         */
-        std::unordered_map<ParameterID, std::string> paramResultVariableNames;
     };
 
     class ShaderModuleCompiler
     {
     public:
-        auto compile(ShaderOutputNode& output, ShaderModuleBuilder builder)
+        /**
+         * @brief Compile a full shader module
+         *
+         * Compile resource requirements, function definitions, and output value
+         * declarations into a shader module.
+         *
+         * Queries or creates a function "main" and appends output code
+         * (assignments, function calls, ...) to it's block.
+         */
+        auto compile(const ShaderOutputInterface& output, ShaderModuleBuilder builder)
             -> ShaderModule;
 
     private:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -28,6 +29,8 @@ namespace trc
         ShaderFunction(const std::string& name, FunctionType signature);
         virtual ~ShaderFunction() = default;
 
+        // TODO (maybe): Don't require the function to create a return statement - return
+        // the returned value from this function.
         virtual void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) = 0;
 
         auto getName() const -> const std::string&;
@@ -71,6 +74,14 @@ namespace trc
          * @return code::Value
          */
         auto makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> value) -> Value;
+
+        /**
+         * @throw std::invalid_argument if `location` is already defined with a
+         *                              conflicting type.
+         */
+        auto makeOutputLocation(ui32 location, BasicType type) -> Value;
+
+        using ShaderCodeBuilder::makeCallStatement;
 
         /**
          * @brief Create a function call statement
@@ -118,16 +129,14 @@ namespace trc
 
         auto getCapabilityConfig() const -> const ShaderCapabilityConfig&;
         auto getSettings() const -> const Settings&;
+
         auto compileResourceDecls() const -> ShaderResources;
+
+        /** Append this to the resource declaration code */
+        auto compileOutputLocations() const -> std::string;
+
         auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
             -> std::string;
-
-        /**
-         * @brief Get the module's primary block
-         *
-         * This is the "main"-function of the module.
-         */
-        auto getPrimaryBlock() const -> Block;
 
     private:
         template<std::derived_from<ShaderFunction> T>
@@ -137,6 +146,9 @@ namespace trc
         s_ptr<const ShaderCapabilityConfig> config;
         Settings shaderSettings;
         ShaderResourceInterface resources;
+
+        /** Maps [location -> { type, name }] */
+        std::unordered_map<ui32, std::pair<BasicType, std::string>> outputLocations;
 
         // Keep the includes in insertion order
         std::vector<

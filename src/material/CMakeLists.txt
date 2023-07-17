@@ -13,7 +13,7 @@ target_sources(
         ShaderCodeCompiler.cpp
         ShaderModuleBuilder.cpp
         ShaderModuleCompiler.cpp
-        ShaderOutputNode.cpp
+        ShaderOutputInterface.cpp
         ShaderResourceInterface.cpp
         ShaderTypeChecker.cpp
         TorchMaterialSettings.cpp

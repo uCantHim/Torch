@@ -275,7 +275,7 @@ void ShaderCodeBuilder::annotateType(Value val, StructType type)
     ((ValueT*)val)->typeAnnotation = type;
 }
 
-auto ShaderCodeBuilder::compileTypeDecls() -> std::string
+auto ShaderCodeBuilder::compileTypeDecls() const -> std::string
 {
     std::string res;
     for (const auto& [name, type] : structTypes)
@@ -290,7 +290,7 @@ auto ShaderCodeBuilder::compileTypeDecls() -> std::string
     return res;
 }
 
-auto ShaderCodeBuilder::compileFunctionDecls() -> std::string
+auto ShaderCodeBuilder::compileFunctionDecls() const -> std::string
 {
     std::string forwardDecls;
     std::string res;

@@ -5,7 +5,6 @@
 #include "BasicType.h"
 #include "FragmentShader.h"
 #include "ShaderModuleBuilder.h"
-#include "trc/assets/AssetReference.h"
 
 namespace trc
 {

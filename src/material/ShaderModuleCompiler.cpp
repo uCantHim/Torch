@@ -10,12 +10,10 @@ namespace trc
 
 ShaderModule::ShaderModule(
     std::string shaderCode,
-    ShaderResources resourceInfo,
-    std::unordered_map<ParameterID, std::string> paramResultVariableNames)
+    ShaderResources resourceInfo)
     :
     ShaderResources(std::move(resourceInfo)),
-    shaderGlslCode(std::move(shaderCode)),
-    paramResultVariableNames(std::move(paramResultVariableNames))
+    shaderGlslCode(std::move(shaderCode))
 {
 }
 
@@ -24,37 +22,17 @@ auto ShaderModule::getGlslCode() const -> const std::string&
     return shaderGlslCode;
 }
 
-auto ShaderModule::getParameterName(ParameterID paramNode) const
-    -> std::optional<std::string>
-{
-    if (!paramResultVariableNames.contains(paramNode)) {
-        return std::nullopt;
-    }
-    return paramResultVariableNames.at(paramNode);
-}
 
 
-
-auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilder builder)
+auto ShaderModuleCompiler::compile(
+    const ShaderOutputInterface& outputs,
+    ShaderModuleBuilder builder)
     -> ShaderModule
 {
-    builder.startBlock(builder.getPrimaryBlock());
-
-    // Generate assignments of parameter values to output locations
-    for (const auto& link : outNode.getOutputLinks())
-    {
-        auto value = outNode.getParameter(link.param);
-        if (value == nullptr) continue;
-
-        // Generate assignment to output location
-        const auto& [location, _] = outNode.getOutput(link.output);
-        builder.makeAssignment(
-            builder.makeExternalIdentifier(
-                "shaderOutput_" + std::to_string(location) + link.outputAccessor
-            ),
-            value
-        );
-    }
+    // Create and build the main function
+    auto main = builder.makeOrGetFunction("main", FunctionType{ {}, std::nullopt });
+    builder.startBlock(main);
+    outputs.buildStatements(builder);
     builder.endBlock();
 
     // Generate resource and function declarations
@@ -67,38 +45,27 @@ auto ShaderModuleCompiler::compile(ShaderOutputNode& outNode, ShaderModuleBuilde
     ss << "#version 460\n";
 
     // Write additional module settings
-    ss << compileSettings(builder.getSettings());
+    ss << compileSettings(builder.getSettings()) << "\n";
 
     // Write type definitions
     ss << std::move(typeDeclCode) << "\n";
 
     // Write resources
     ss << resources.getGlslCode() << "\n";
+    ss << builder.compileOutputLocations() << "\n";
 
     // Write additional includes
     spirv::FileIncluder includer(
         util::getInternalShaderBinaryDirectory(),
         { util::getInternalShaderStorageDirectory() }
     );
-    ss << builder.compileIncludedCode(includer);
-
-    // Write shader output locations
-    for (const auto& [location, type] : outNode.getOutputs())
-    {
-        ss << "layout (location = " << location << ") out " << type.to_string()
-           << " shaderOutput_" << location << ";\n";
-    }
-    ss << "\n";
+    ss << builder.compileIncludedCode(includer) << "\n";
 
     // Write function definitions
     // This also writes the main function.
-    ss << std::move(functionDeclCode) << "\n";
+    ss << std::move(functionDeclCode);
 
-    return {
-        ss.str(),
-        resources,
-        {}
-    };
+    return { ss.str(), resources };
 }
 
 auto ShaderModuleCompiler::compileSettings(const ShaderModuleBuilder::Settings& settings)

@@ -134,8 +134,8 @@ namespace trc
         void annotateType(Value val, BasicType type);
         void annotateType(Value val, StructType type);
 
-        auto compileTypeDecls() -> std::string;
-        auto compileFunctionDecls() -> std::string;
+        auto compileTypeDecls() const -> std::string;
+        auto compileFunctionDecls() const -> std::string;
 
         /**
          * @return pair [<identifier>, <code>] where <identifier> is a GLSL
