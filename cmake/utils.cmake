@@ -4,14 +4,17 @@ function (torch_default_compile_options TARGET)
     if (NOT MSVC)
         target_compile_options(${TARGET} PRIVATE -fPIC)
         target_compile_options(${TARGET} PRIVATE
-            $<$<CONFIG:Debug>:-O0 -g -fprofile-arcs -ftest-coverage --coverage>
+            $<$<CONFIG:Debug>:-O0 -g>
             $<$<NOT:$<CONFIG:Debug>>:-O2>
         )
         target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic)
-        target_link_options(${TARGET} PRIVATE
-            $<$<CONFIG:Debug>:--coverage>
-        )
-        target_link_libraries(${TARGET} PRIVATE gcov)
+
+        # Generate code coverage when using GCC
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:-fprofile-arcs -ftest-coverage --coverage>)
+            target_link_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:--coverage>)
+            target_link_libraries(${TARGET} PRIVATE gcov)
+        endif ()
     else()
         target_compile_options(${TARGET} PRIVATE /W4)
         if (POLICY CMP0091)
