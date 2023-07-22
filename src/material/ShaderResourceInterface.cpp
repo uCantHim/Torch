@@ -74,6 +74,11 @@ auto ShaderResources::getPushConstantInfo(ResourceID resource) const
     return std::nullopt;
 }
 
+auto ShaderResources::getRequiredPayloads() const -> const std::vector<PayloadInfo>&
+{
+    return requiredPayloads;
+}
+
 
 
 auto ShaderResourceInterface::DescriptorBindingFactory::make(
@@ -134,14 +139,14 @@ auto ShaderResourceInterface::PushConstantFactory::make(
     ResourceID resource,
     const ShaderCapabilityConfig::PushConstant& pc) -> std::string
 {
-    assert(pc.byteSize > 0);
-    assert(!pc.typeName.empty());
+    const auto byteSize = code::types::getTypeSize(pc.type);
+    assert(byteSize > 0);
 
-    infos.try_emplace(resource, PushConstantInfo{ totalSize, pc.byteSize, pc.userId });
+    infos.try_emplace(resource, PushConstantInfo{ totalSize, byteSize, pc.userId });
 
     const std::string name = "_push_constant_" + std::to_string(totalSize);
-    totalSize += pc.byteSize;
-    code += pc.typeName + " " + name + ";\n";
+    totalSize += byteSize;
+    code += code::types::to_string(pc.type) + " " + name + ";\n";
 
     return "pushConstants." + name;
 }
@@ -182,6 +187,60 @@ auto ShaderResourceInterface::ShaderInputFactory::make(
     shaderInputs.push_back({ shaderInputLocation, in.type, name, ss.str(), capability });
 
     return name;
+}
+
+
+
+auto ShaderResourceInterface::RayPayloadFactory::make(
+    Capability requestingCapability,
+    const ShaderCapabilityConfig::RayPayload& pl)
+    -> std::string
+{
+    std::string payloadIdentifier = "_ray_payload_" + std::to_string(nextNameIndex++);
+    std::string locationPlaceholder = payloadIdentifier + "_LOCATION_PLACEHOLDER";
+
+    payloads.push_back({
+        .type=pl.type,
+        .capability=requestingCapability,
+        .locationPlaceholder=locationPlaceholder
+    });
+
+    code +=
+        "layout (location = $" + locationPlaceholder + ") " +
+        (pl.callableData ? "callableData" : "rayPayload") + (pl.incoming ? "In" : "") + "EXT"
+        + " " + code::types::to_string(pl.type)
+        + payloadIdentifier
+        + ";\n";
+
+    return payloadIdentifier;
+}
+
+auto ShaderResourceInterface::RayPayloadFactory::getCode() const -> const std::string&
+{
+    return code;
+}
+
+auto ShaderResourceInterface::RayPayloadFactory::getPayloads() const
+    -> const std::vector<PayloadInfo>&
+{
+    return payloads;
+}
+
+
+
+auto ShaderResourceInterface::HitAttributeFactory::make(
+    const ShaderCapabilityConfig::HitAttribute& att)
+    -> std::string
+{
+    const std::string identifier = " _hit_attribute_" + std::to_string(nextNameIndex++);
+    code += "hitAttributeEXT " + code::types::to_string(att.type) + identifier;
+
+    return identifier;
+}
+
+auto ShaderResourceInterface::HitAttributeFactory::getCode() const -> const std::string&
+{
+    return code;
 }
 
 
@@ -233,10 +292,17 @@ auto ShaderResourceInterface::compile() const -> ShaderResources
     }
     ss << "\n";
 
+    // Write ray payloads
+    ss << rayPayloadFactory.getCode() << "\n";
+
+    // Write hit attributes
+    ss << hitAttributeFactory.getCode() << "\n";
+
     // Create result value
     ShaderResources result;
     result.code = ss.str();
     result.requiredShaderInputs = shaderInput.shaderInputs;
+    result.requiredPayloads = rayPayloadFactory.getPayloads();
     for (const auto& [specIdx, value] : specializationConstantValues)
     {
         result.specConstants.push_back(ShaderResources::SpecializationConstantInfo{
@@ -303,6 +369,12 @@ void ShaderResourceInterface::requireResource(
         },
         [this, resourceId](const ShaderCapabilityConfig::PushConstant& pc) {
             return pushConstantFactory.make(resourceId, pc);
+        },
+        [this, capability](const ShaderCapabilityConfig::RayPayload& pl) {
+            return rayPayloadFactory.make(capability, pl);
+        },
+        [this](const ShaderCapabilityConfig::HitAttribute& att) {
+            return hitAttributeFactory.make(att);
         }
     }, res.resourceType);
 

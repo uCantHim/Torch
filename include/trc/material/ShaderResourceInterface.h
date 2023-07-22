@@ -70,6 +70,17 @@ namespace trc
             ui32 userId;
         };
 
+        struct PayloadInfo
+        {
+            code::Type type;
+
+            // The capability that requested this resource
+            Capability capability;
+
+            // Name of the placeholder variable for the payload's location
+            std::string locationPlaceholder;
+        };
+
         ShaderResources() = default;
 
         /**
@@ -163,11 +174,15 @@ namespace trc
          */
         auto getPushConstantInfo(ResourceID resource) const -> std::optional<PushConstantInfo>;
 
+        auto getRequiredPayloads() const -> const std::vector<PayloadInfo>&;
+
     private:
         friend class ShaderResourceInterface;
 
         std::string code;
+
         std::vector<ShaderInputInfo> requiredShaderInputs;
+        std::vector<PayloadInfo> requiredPayloads;
 
         std::vector<SpecializationConstantInfo> specConstants;
         std::unordered_map<std::string, std::string> descriptorSetIndexPlaceholders;
@@ -253,6 +268,36 @@ namespace trc
             std::vector<ShaderResources::ShaderInputInfo> shaderInputs;
         };
 
+        struct RayPayloadFactory
+        {
+            using ResourceID = ShaderCapabilityConfig::ResourceID;
+            using PayloadInfo = ShaderResources::PayloadInfo;
+
+            /** @return std::string The generated identifier for the payload */
+            auto make(Capability capability, const ShaderCapabilityConfig::RayPayload& pl)
+                -> std::string;
+
+            auto getCode() const -> const std::string&;
+            auto getPayloads() const -> const std::vector<PayloadInfo>&;
+
+        private:
+            ui32 nextNameIndex{ 0 };
+
+            std::vector<PayloadInfo> payloads;
+            std::string code;
+        };
+
+        struct HitAttributeFactory
+        {
+            auto make(const ShaderCapabilityConfig::HitAttribute& att) -> std::string;
+
+            auto getCode() const -> const std::string&;
+
+        private:
+            ui32 nextNameIndex{ 0 };
+            std::string code;
+        };
+
         using Resource = const ShaderCapabilityConfig::ResourceData*;
 
         void requireResource(Capability capability, ShaderCapabilityConfig::ResourceID resource);
@@ -275,5 +320,7 @@ namespace trc
         DescriptorBindingFactory descriptorFactory;
         PushConstantFactory pushConstantFactory;
         ShaderInputFactory shaderInput;
+        RayPayloadFactory rayPayloadFactory;
+        HitAttributeFactory hitAttributeFactory;
     };
 } // namespace trc

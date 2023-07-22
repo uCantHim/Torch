@@ -63,21 +63,34 @@ namespace trc
 
         struct PushConstant
         {
-            PushConstant(BasicType type, ui32 userId)
-                : byteSize(type.size()), typeName(type.to_string()), userId(userId) {}
-            PushConstant(ui32 size, const std::string& typeName, ui32 userId)
-                : byteSize(size), typeName(typeName), userId(userId) {}
+            PushConstant(code::Type type, ui32 userId)
+                : type(type), userId(userId) {}
 
-            ui32 byteSize;
-            std::string typeName;
-
+            code::Type type;
             ui32 userId;
+        };
+
+        struct RayPayload
+        {
+            code::Type type;
+
+            bool incoming{ false };
+
+            // Is the payload a rayPayload or a callableData storage class?
+            bool callableData{ false };
+        };
+
+        struct HitAttribute
+        {
+            BasicType type;
         };
 
         using Resource = std::variant<
             DescriptorBinding,
             ShaderInput,
-            PushConstant
+            PushConstant,
+            RayPayload,
+            HitAttribute
         >;
 
         /** A resource and its additional requirements */

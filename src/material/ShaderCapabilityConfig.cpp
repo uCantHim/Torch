@@ -87,12 +87,15 @@ void ShaderCapabilityConfig::linkCapability(
     std::vector<ResourceID> resources)
 {
     auto [_, success] = capabilityAccessors.try_emplace(capability, value);
-    if (!success) {
-        throw std::invalid_argument("[In ShaderCapabilityConfig::linkCapability]: The capability"
-                                    " is already linked to a resource!");
+    if (!success)
+    {
+        throw std::invalid_argument(
+            "[In ShaderCapabilityConfig::linkCapability]: The capability \""
+            + capability.getString() + "\" is already linked to a resource!");
     }
 
-    requiredResources.try_emplace(capability, resources.begin(), resources.end());
+    auto res = requiredResources.try_emplace(capability, resources.begin(), resources.end());
+    assert(res.second);
 }
 
 bool ShaderCapabilityConfig::hasCapability(Capability capability) const
@@ -111,9 +114,9 @@ auto ShaderCapabilityConfig::getCapabilityResources(Capability capability) const
     auto it = requiredResources.find(capability);
     if (it == requiredResources.end())
     {
-        throw std::runtime_error("[In ShaderCapabilityConfig::getCapabilityResources]: Shader"
-                                 " capability \"" + capability.getString() + "\" has not been"
-                                 " defined.");
+        throw std::runtime_error(
+            "[In ShaderCapabilityConfig::getCapabilityResources]: Shader capability \""
+            + capability.getString() + "\" has not been defined.");
     }
 
     return { it->second.begin(), it->second.end() };
