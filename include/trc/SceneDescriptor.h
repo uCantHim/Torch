@@ -13,6 +13,7 @@ namespace trc
 
     /**
      * binding 0: Lights (uniform buffer)
+     * binding 1: Ray drawable data (storage buffer)
      */
     class SceneDescriptor
     {
