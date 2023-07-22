@@ -5,7 +5,6 @@
 #include "trc/base/Logging.h"
 #include "trc/material/CommonShaderFunctions.h"
 #include "trc/material/FragmentShader.h"
-#include "trc/material/ShaderCapabilityConfig.h"
 #include "trc/material/TorchMaterialSettings.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
@@ -41,7 +40,7 @@ void SimpleMaterialData::deserialize(std::istream& is)
 
 auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
 {
-    ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
+    ShaderModuleBuilder builder;
 
     code::Value color = builder.makeConstant(vec4(data.color, data.opacity));;
     if (!data.albedoTexture.empty())
@@ -50,18 +49,18 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
             builder.makeSpecializationConstant(
                 std::make_shared<RuntimeTextureIndex>(data.albedoTexture)
             ),
-            builder.makeCapabilityAccess(FragmentCapability::kVertexUV)
+            builder.makeCapabilityAccess(MaterialCapability::kVertexUV)
         });
     }
 
-    code::Value normal = builder.makeCapabilityAccess(FragmentCapability::kVertexNormal);;
+    code::Value normal = builder.makeCapabilityAccess(MaterialCapability::kVertexNormal);;
     if (!data.normalTexture.empty())
     {
         auto sampledNormal = builder.makeCall<TextureSample>({
             builder.makeSpecializationConstant(
                 std::make_shared<RuntimeTextureIndex>(data.normalTexture)
             ),
-            builder.makeCapabilityAccess(FragmentCapability::kVertexUV)
+            builder.makeCapabilityAccess(MaterialCapability::kVertexUV)
         });
         normal = builder.makeCall<TangentToWorldspace>({
             builder.makeMemberAccess(sampledNormal, "rgb")

@@ -33,9 +33,9 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     AssetReference<Texture> normalMap(stonePath);
 
     // Build a material graph
-    ShaderModuleBuilder builder(makeFragmentCapabiltyConfig());
+    ShaderModuleBuilder builder;
 
-    auto uvs = builder.makeCapabilityAccess(FragmentCapability::kVertexUV);
+    auto uvs = builder.makeCapabilityAccess(MaterialCapability::kVertexUV);
     auto texColor = builder.makeCall<TextureSample>({
         builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(tex)),
         uvs
@@ -69,6 +69,14 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
     fragmentModule.setParameter(Param::eMetallicness, builder.makeConstant(0.0f));
     fragmentModule.setParameter(Param::eRoughness, builder.makeConstant(0.4f));
+
+    {
+        Timer timer;
+        fragmentModule.buildClosesthitShader(builder);
+        const auto time = timer.reset();
+        std::cout << "--- Also generated a closest hit shader for the material"
+                     " in " << time << " ms\n";
+    }
 
     // Create a pipeline
     const bool transparent{ true };

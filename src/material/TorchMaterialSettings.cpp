@@ -11,11 +11,58 @@
 namespace trc
 {
 
-auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
+void addLightingRequirements(ShaderCapabilityConfig& config)
 {
-    ShaderCapabilityConfig config;
-    auto& code = config.getCodeBuilder();
+    using DescriptorBinding = ShaderCapabilityConfig::DescriptorBinding;
+    auto& builder = config.getCodeBuilder();
 
+    auto shadowMatrixBufferResource = config.addResource(DescriptorBinding{
+        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
+        .bindingIndex=0,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="ShadowMatrixBuffer",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent="mat4 shadowMatrices[];",
+    });
+    auto shadowMapsResource = config.addResource(DescriptorBinding{
+        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
+        .bindingIndex=1,
+        .descriptorType="uniform sampler2D",
+        .descriptorName="shadowMaps",
+        .isArray=true,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent=std::nullopt,
+    });
+    config.addShaderExtension(shadowMapsResource, "GL_EXT_nonuniform_qualifier");
+    config.linkCapability(
+        FragmentCapability::kShadowMatrices,
+        builder.makeMemberAccess(config.accessResource(shadowMatrixBufferResource), "shadowMatrices"),
+        { shadowMapsResource, shadowMatrixBufferResource }
+    );
+
+    auto lightBufferResource = config.addResource(DescriptorBinding{
+        .setName=TorchRenderConfig::SCENE_DESCRIPTOR,
+        .bindingIndex=0,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="LightBuffer",
+        .isArray=false,
+        .arrayCount=0,
+        .layoutQualifier=std::nullopt,
+        .descriptorContent=
+            "uint numSunLights;"
+            "uint numPointLights;"
+            "uint numAmbientLights;"
+            "Light lights[];"
+    });
+    config.addShaderInclude(lightBufferResource, util::Pathlet("material_utils/light.glsl"));
+    config.linkCapability(FragmentCapability::kLightBuffer, lightBufferResource);
+}
+
+void addTextureSampleRequirements(ShaderCapabilityConfig& config)
+{
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
         .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eTextureSamplers),
@@ -27,9 +74,21 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         .descriptorContent=std::nullopt,
     });
     config.addShaderExtension(textureResource, "GL_EXT_nonuniform_qualifier");
-    config.linkCapability(FragmentCapability::kTextureSample, textureResource);
+    config.linkCapability(MaterialCapability::kTextureSample, textureResource);
+}
 
-    auto fragListPointerImageResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+auto makeFragmentCapabilityConfig() -> ShaderCapabilityConfig
+{
+    using ShaderInput = ShaderCapabilityConfig::ShaderInput;
+    using DescriptorBinding = ShaderCapabilityConfig::DescriptorBinding;
+
+    ShaderCapabilityConfig config;
+    auto& code = config.getCodeBuilder();
+
+    addTextureSampleRequirements(config);
+    addLightingRequirements(config);
+
+    auto fragListPointerImageResource = config.addResource(DescriptorBinding{
         .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
         .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragHeadPointerImage),
         .descriptorType="uniform uimage2D",
@@ -39,7 +98,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         .layoutQualifier="r32ui",
         .descriptorContent=std::nullopt,
     });
-    auto fragListAllocResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+    auto fragListAllocResource = config.addResource(DescriptorBinding{
         .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
         .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragListEntryAllocator),
         .descriptorType="restrict buffer",
@@ -51,7 +110,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
             "uint nextFragmentListIndex;\n"
             "uint maxFragmentListIndex;"
     });
-    auto fragListResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+    auto fragListResource = config.addResource(DescriptorBinding{
         .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
         .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragListBuffer),
         .descriptorType="restrict buffer",
@@ -79,51 +138,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         { fragListResource }
     );
 
-    auto shadowMatrixBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
-        .bindingIndex=0,
-        .descriptorType="restrict readonly buffer",
-        .descriptorName="ShadowMatrixBuffer",
-        .isArray=false,
-        .arrayCount=0,
-        .layoutQualifier=std::nullopt,
-        .descriptorContent="mat4 shadowMatrices[];",
-    });
-    auto shadowMapsResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
-        .bindingIndex=1,
-        .descriptorType="uniform sampler2D",
-        .descriptorName="shadowMaps",
-        .isArray=true,
-        .arrayCount=0,
-        .layoutQualifier=std::nullopt,
-        .descriptorContent=std::nullopt,
-    });
-    config.addShaderExtension(shadowMapsResource, "GL_EXT_nonuniform_qualifier");
-    config.linkCapability(
-        FragmentCapability::kShadowMatrices,
-        code.makeMemberAccess(config.accessResource(shadowMatrixBufferResource), "shadowMatrices"),
-        { shadowMapsResource, shadowMatrixBufferResource }
-    );
-
-    auto lightBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName=TorchRenderConfig::SCENE_DESCRIPTOR,
-        .bindingIndex=0,
-        .descriptorType="restrict readonly buffer",
-        .descriptorName="LightBuffer",
-        .isArray=false,
-        .arrayCount=0,
-        .layoutQualifier=std::nullopt,
-        .descriptorContent=
-            "uint numSunLights;"
-            "uint numPointLights;"
-            "uint numAmbientLights;"
-            "Light lights[];"
-    });
-    config.addShaderInclude(lightBufferResource, util::Pathlet("material_utils/light.glsl"));
-    config.linkCapability(FragmentCapability::kLightBuffer, lightBufferResource);
-
-    auto cameraBufferResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
+    auto cameraBufferResource = config.addResource(DescriptorBinding{
         .setName=TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="uniform",
@@ -138,7 +153,7 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
             "mat4 inverseProjMatrix;\n"
     });
     config.linkCapability(
-        FragmentCapability::kCameraWorldPos,
+        MaterialCapability::kCameraWorldPos,
         code.makeMemberAccess(
             code.makeArrayAccess(
                 code.makeMemberAccess(config.accessResource(cameraBufferResource), "viewMatrix"),
@@ -149,17 +164,151 @@ auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig
         { cameraBufferResource }
     );
 
-    auto vWorldPos  = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec3{}, 0 });
-    auto vUv        = config.addResource(ShaderCapabilityConfig::ShaderInput{ vec2{}, 1 });
-    auto vTbnMat    = config.addResource(ShaderCapabilityConfig::ShaderInput{ mat3{}, 3 });
+    auto vWorldPos  = config.addResource(ShaderInput{ vec3{}, 0 });
+    auto vUv        = config.addResource(ShaderInput{ vec2{}, 1 });
+    auto vTbnMat    = config.addResource(ShaderInput{ mat3{}, 3 });
 
-    config.linkCapability(FragmentCapability::kVertexWorldPos, vWorldPos);
-    config.linkCapability(FragmentCapability::kVertexUV, vUv);
-    config.linkCapability(FragmentCapability::kTangentToWorldSpaceMatrix, vTbnMat);
+    config.linkCapability(MaterialCapability::kVertexWorldPos, vWorldPos);
+    config.linkCapability(MaterialCapability::kVertexUV, vUv);
+    config.linkCapability(MaterialCapability::kTangentToWorldSpaceMatrix, vTbnMat);
     config.linkCapability(
-        FragmentCapability::kVertexNormal,
+        MaterialCapability::kVertexNormal,
         code.makeArrayAccess(config.accessResource(vTbnMat), code.makeConstant(2)),
         { vTbnMat }
+    );
+
+    return config;
+}
+
+auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
+{
+    // ------------------------------------------------------------------------
+    // Capabilities specific to the callable shader variant
+    // ------------------------------------------------------------------------
+
+    using Descriptor = ShaderCapabilityConfig::DescriptorBinding;
+    using RayPayload = ShaderCapabilityConfig::RayPayload;
+
+    namespace cap = RayHitCapability;
+
+    ShaderCapabilityConfig config;
+    auto& builder = config.getCodeBuilder();
+
+    // ------------------------------------------------------------------------
+    // Global settings for ray tracing shader modules
+
+    config.addGlobalShaderExtension("GL_EXT_ray_tracing");
+    config.addGlobalShaderInclude(util::Pathlet("/ray_tracing/hit_utils.glsl"));
+
+    // ------------------------------------------------------------------------
+    // Define internal capabilities in `RayHitCapability`, i.e. access to
+    // payload data.
+
+    auto drawableDataBuf = config.addResource(Descriptor{
+        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .bindingIndex=1,
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="DrawableDataBuffer",
+        .isArray=false,
+        .layoutQualifier="std430",
+        .descriptorContent="DrawableData drawables[];"
+    });
+    config.linkCapability(RayHitCapability::kGeometryIndex,
+        builder.makeArrayAccess(
+            builder.makeMemberAccess(config.accessResource(drawableDataBuf), "drawables"),
+            builder.makeExternalIdentifier("gl_InstanceCustomIndexEXT")
+        ),
+        { drawableDataBuf }
+    );
+
+    auto baryHitAttr = config.addResource(ShaderCapabilityConfig::HitAttribute{ vec2{} });
+    auto baryX = builder.makeMemberAccess(config.accessResource(baryHitAttr), "x");
+    auto baryY = builder.makeMemberAccess(config.accessResource(baryHitAttr), "y");
+    config.linkCapability(RayHitCapability::kBarycentricCoords,
+        builder.makeConstructor<vec3>(
+            builder.makeSub(builder.makeConstant(1.0f), builder.makeSub(baryX, baryY)),
+            baryX,
+            baryY
+        ),
+        { baryHitAttr }
+    );
+
+    auto outputPayload = config.addResource(RayPayload{ .type=vec3{}, .incoming=true });
+    config.linkCapability(RayHitCapability::kOutColor, outputPayload);
+
+    // ------------------------------------------------------------------------
+    // Define user-exposed capabilities in `MaterialCapability`. These are
+    // also implemented by the fragment shader capability configuration and
+    // should implement the same semantics here.
+
+    addTextureSampleRequirements(config);
+    addLightingRequirements(config);
+
+    auto indexBufs = config.addResource(Descriptor{
+        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eGeometryIndexBuffers),
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="GeometryIndexBuffers",
+        .isArray=true,
+        .arrayCount=0,
+        .layoutQualifier="std430",
+        .descriptorContent="uint indices[];"
+    });
+    auto vertexBufs = config.addResource(Descriptor{
+        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eGeometryVertexBuffers),
+        .descriptorType="restrict readonly buffer",
+        .descriptorName="GeometryVertexBuffers",
+        .isArray=true,
+        .arrayCount=0,
+        .layoutQualifier="std430",
+        .descriptorContent="Vertex vertices[];"
+    });
+    config.addShaderInclude(indexBufs, util::Pathlet("/vertex.glsl"));
+
+    config.linkCapability(MaterialCapability::kVertexUV,
+        builder.makeCast<vec2>(builder.makeExternalCall("calcHitUv", {
+            config.accessCapability(cap::kBarycentricCoords),
+            config.accessCapability(cap::kGeometryIndex),
+        })),
+        { indexBufs, vertexBufs }
+    );
+    config.linkCapability(MaterialCapability::kVertexNormal,
+        builder.makeCast<vec3>(builder.makeExternalCall("calcHitNormal", {
+            config.accessCapability(cap::kBarycentricCoords),
+            config.accessCapability(cap::kGeometryIndex),
+            builder.makeExternalIdentifier("gl_PrimitiveID"),
+        })),
+        { indexBufs, vertexBufs }
+    );
+
+    // Implement world position capability
+    auto worldPosCalculation = builder.makeExternalCall("calcHitWorldPos", {});
+    builder.annotateType(worldPosCalculation, vec3{});
+    config.linkCapability(MaterialCapability::kVertexWorldPos, worldPosCalculation, {});
+
+    // Implement tangentspace-to-worldspace matrix capability
+    auto tangent = builder.makeCast<vec3>(builder.makeExternalCall("calcHitTangent", {
+        config.accessCapability(cap::kBarycentricCoords),
+        config.accessCapability(cap::kGeometryIndex),
+        builder.makeExternalIdentifier("gl_PrimitiveID"),
+    }));
+    config.linkCapability(MaterialCapability::kTangentToWorldSpaceMatrix,
+        builder.makeConstructor<mat3>(
+            tangent,
+            builder.makeExternalCall("cross", {
+                tangent,
+                config.accessCapability(MaterialCapability::kVertexNormal),
+            }),
+            config.accessCapability(MaterialCapability::kVertexNormal)
+        ),
+        {} // No additional resources
+    );
+
+    config.linkCapability(
+        MaterialCapability::kCameraWorldPos,
+        builder.makeExternalIdentifier("gl_WorldRayOriginEXT"),
+        {}
     );
 
     return config;

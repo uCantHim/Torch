@@ -35,7 +35,7 @@ namespace trc
 
         void build(ShaderModuleBuilder& builder, std::vector<code::Value> args) override
         {
-            auto textures = builder.makeCapabilityAccess(FragmentCapability::kTextureSample);
+            auto textures = builder.makeCapabilityAccess(MaterialCapability::kTextureSample);
             builder.makeReturn(
                 builder.makeExternalCall(
                     "texture",

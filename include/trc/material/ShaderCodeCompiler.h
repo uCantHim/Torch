@@ -9,6 +9,17 @@
 namespace trc
 {
     class ShaderResourceInterface;
+    class ShaderRuntimeConstant;
+
+    class ResourceResolver
+    {
+    public:
+        virtual ~ResourceResolver() noexcept = default;
+
+        virtual auto resolveCapabilityAccess(Capability cap) -> code::Value = 0;
+        virtual auto resolveRuntimeConstantAccess(s_ptr<ShaderRuntimeConstant> c)
+            -> code::Value = 0;
+    };
 
     /**
      * Use the same ShaderValueCompiler object to compile multiple values
@@ -19,8 +30,7 @@ namespace trc
     public:
         using Value = ShaderCodeBuilder::Value;
 
-        ShaderValueCompiler() = default;
-        explicit ShaderValueCompiler(bool inlineAll);
+        explicit ShaderValueCompiler(ResourceResolver& resolver, bool inlineAll = false);
 
         /**
          * @return std::pair<std::string, std::string> [indentifier, declaration code]
@@ -35,6 +45,8 @@ namespace trc
         auto operator()(const code::MemberAccess& v) -> std::string;
         auto operator()(const code::ArrayAccess& v) -> std::string;
         auto operator()(const code::Conditional& v) -> std::string;
+        auto operator()(const code::CapabilityAccess& v) -> std::string;
+        auto operator()(const code::RuntimeConstant& v) -> std::string;
 
     private:
         /** @return std::string Identifier name */
@@ -42,6 +54,7 @@ namespace trc
         auto genIdentifier() -> std::string;
 
         const bool inlineAll{ false };
+        ResourceResolver* resolver;
 
         ui32 nextId{ 0 };
 
@@ -53,6 +66,8 @@ namespace trc
     {
     public:
         using Block = code::Block;
+
+        explicit ShaderBlockCompiler(ResourceResolver& resolver);
 
         auto compile(Block block) -> std::string;
 

@@ -37,19 +37,27 @@ void main()
     const uint mat = drawables[drawableId].mat;
 
     const vec3 hitPos = gl_WorldRayOriginEXT + gl_HitTEXT * gl_WorldRayDirectionEXT;
-    const vec3 normal = calcHitNormal(baryCoords, geo, mat);
-    const vec2 uv = calcHitUv(baryCoords, geo);
+    const vec3 normal = calcHitNormal(baryCoords, geo, gl_PrimitiveID);
+    const vec2 uv = calcHitUv(baryCoords, geo, gl_PrimitiveID);
 
-    vec3 albedo = materials[mat].color.rgb;
-    // Use diffuse texture if available
-    uint diffTexture = materials[mat].diffuseTexture;
-    if (diffTexture != NO_TEXTURE) {
-        albedo = texture(textures[diffTexture], uv).rgb;
-    }
+    const uint sbtRecordIndex = mat;
 
-    MaterialParams matParams;
-    matParams.kSpecular = materials[mat].kSpecular;
-    matParams.roughness = materials[mat].roughness;
-    matParams.metallicness = materials[mat].metallicness;
-    color = calcLighting(albedo, hitPos, normal, gl_WorldRayOriginEXT, matParams);
+    /**
+     * Perform calculations of material parameters here
+     */
+    vec3 albedo = vec3(1);
+
+    MaterialParams params;
+    params.kSpecular = 1.0f;
+    params.roughness = 1.0f;
+    params.metallicness = 0.0f;
+    /** */
+
+    color = calcLighting(
+        albedo,
+        hitPos,
+        normal,
+        gl_WorldRayOriginEXT,
+        params
+    );
 }

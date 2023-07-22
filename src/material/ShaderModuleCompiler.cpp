@@ -24,9 +24,55 @@ auto ShaderModule::getGlslCode() const -> const std::string&
 
 
 
+/**
+ * The resource resolver used internally by the shader module compiler.
+ *
+ * Builds a ShaderResources object from capability/resource queries.
+ */
+class CapabilityConfigResourceResolver : public ResourceResolver
+{
+public:
+    CapabilityConfigResourceResolver(
+        const ShaderCapabilityConfig& conf,
+        ShaderCodeBuilder& builder)
+        :
+        resources(conf, builder)
+    {}
+
+    auto resolveCapabilityAccess(Capability cap) -> code::Value override {
+        return resources.queryCapability(cap);
+    }
+
+    auto resolveRuntimeConstantAccess(s_ptr<ShaderRuntimeConstant> c) -> code::Value override
+    {
+        auto [it, success] = existingRuntimeConstants.try_emplace(c);
+        if (success)
+        {
+            auto value = resources.makeSpecConstant(c);
+            it->second = value;
+            return value;
+        }
+
+        return it->second;
+    }
+
+    auto buildResources() -> ShaderResources {
+        return resources.compile();
+    }
+
+private:
+    ShaderResourceInterface resources;
+
+    // Used to de-duplicate creations of runtime constants.
+    std::unordered_map<s_ptr<ShaderRuntimeConstant>, code::Value> existingRuntimeConstants;
+};
+
+
+
 auto ShaderModuleCompiler::compile(
     const ShaderOutputInterface& outputs,
-    ShaderModuleBuilder builder)
+    ShaderModuleBuilder builder,
+    const ShaderCapabilityConfig& caps)
     -> ShaderModule
 {
     // Create and build the main function
@@ -36,9 +82,17 @@ auto ShaderModuleCompiler::compile(
     builder.endBlock();
 
     // Generate resource and function declarations
-    const auto typeDeclCode = builder.compileTypeDecls();
-    const auto functionDeclCode = builder.compileFunctionDecls();
-    const auto resources = builder.compileResourceDecls();
+    auto resolver = std::make_unique<CapabilityConfigResourceResolver>(caps, builder);
+    spirv::FileIncluder includer(
+        util::getInternalShaderBinaryDirectory(),
+        { util::getInternalShaderStorageDirectory() }
+    );
+
+    auto includedCode = builder.compileIncludedCode(includer, *resolver);
+    auto typeDeclCode = builder.compileTypeDecls();
+    auto functionDeclCode = builder.compileFunctionDecls(*resolver);  // Compiles all code
+    auto resources = resolver->buildResources();  // Finalizes definitions of resources
+                                                  // required by the compiled shader code
 
     // Build shader file
     std::stringstream ss;
@@ -55,11 +109,7 @@ auto ShaderModuleCompiler::compile(
     ss << builder.compileOutputLocations() << "\n";
 
     // Write additional includes
-    spirv::FileIncluder includer(
-        util::getInternalShaderBinaryDirectory(),
-        { util::getInternalShaderStorageDirectory() }
-    );
-    ss << builder.compileIncludedCode(includer) << "\n";
+    ss << includedCode << "\n";
 
     // Write function definitions
     // This also writes the main function.

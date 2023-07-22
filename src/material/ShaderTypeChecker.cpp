@@ -2,6 +2,8 @@
 
 #include <trc_util/Util.h>
 
+#include "trc/material/ShaderRuntimeConstant.h"
+
 
 
 namespace trc
@@ -151,6 +153,18 @@ auto ShaderTypeChecker::operator()(const code::Conditional& cond)
     }
 
     return std::nullopt;
+}
+
+auto ShaderTypeChecker::operator()(const code::CapabilityAccess&)
+    -> std::optional<TypeInferenceResult>
+{
+    return std::nullopt;
+}
+
+auto ShaderTypeChecker::operator()(const code::RuntimeConstant& v)
+    -> std::optional<TypeInferenceResult>
+{
+    return v.runtimeValue->getType();
 }
 
 } // namespace trc

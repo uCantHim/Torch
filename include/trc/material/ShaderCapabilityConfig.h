@@ -45,9 +45,14 @@ namespace trc
             std::string setName;
             ui32 bindingIndex;
 
-            std::string descriptorType;
-            std::string descriptorName;
-            bool isArray;
+            std::string descriptorType; // TODO: This is not self-explanatory. It
+                                        // is supposed to be set to 'buffer' or
+                                        // 'uniform sampler2D' or something like this.
+            std::string descriptorName; // TODO: I think this one is useless; it
+                                        // can be generated automatically.
+            bool isArray;  // TODO: Add an array type to code::Type?
+
+            // An array count of 0 means that the length is runtime dependent.
             ui32 arrayCount{ 0 };
 
             std::optional<std::string> layoutQualifier;

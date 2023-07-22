@@ -47,7 +47,9 @@ namespace trc
          * Queries or creates a function "main" and appends output code
          * (assignments, function calls, ...) to it's block.
          */
-        auto compile(const ShaderOutputInterface& output, ShaderModuleBuilder builder)
+        static auto compile(const ShaderOutputInterface& output,
+                            ShaderModuleBuilder builder,
+                            const ShaderCapabilityConfig& caps)
             -> ShaderModule;
 
     private:

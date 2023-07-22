@@ -21,6 +21,7 @@ namespace trc
         }
 
     private:
+        friend std::hash<Capability>;
         std::string_view str;
     };
 } // namespace trc
@@ -30,6 +31,6 @@ struct std::hash<trc::Capability>
 {
     auto operator()(const trc::Capability& capability) const -> size_t
     {
-        return hash<std::string_view>{}(capability.getString());
+        return hash<std::string_view>{}(capability.str);
     }
 };

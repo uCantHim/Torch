@@ -66,7 +66,9 @@ auto ShaderCodeBuilder::makeCast(BasicType to, Value from) -> Value
 
 auto ShaderCodeBuilder::makeConstructor(Type type, const std::vector<Value>& args) -> Value
 {
-    return makeExternalCall(code::types::to_string(type), args);
+    auto res = makeExternalCall(code::types::to_string(type), args);
+    annotateType(res, type);
+    return res;
 }
 
 auto ShaderCodeBuilder::makeExternalCall(const std::string& funcName, std::vector<Value> args)
@@ -160,10 +162,10 @@ auto ShaderCodeBuilder::makeOrGetFunction(
     FunctionType type) -> Function
 {
     if (functions.contains(name)) {
-        return functions.at(name).get();
+        return functions.at(name);
     }
 
-    auto block = blocks.emplace_back(std::make_shared<BlockT>()).get();
+    auto block = blocks.emplace_back(std::make_shared<BlockT>());
 
     // Create argument identifiers
     std::vector<Value> argumentRefs;
@@ -180,7 +182,7 @@ auto ShaderCodeBuilder::getFunction(const std::string& funcName) const -> std::o
 {
     auto it = functions.find(funcName);
     if (it != functions.end()) {
-        return it->second.get();
+        return it->second;
     }
     return std::nullopt;
 }
@@ -205,18 +207,10 @@ void ShaderCodeBuilder::makeExternalCallStatement(
 
 auto ShaderCodeBuilder::makeIfStatement(Value condition) -> Block
 {
-    Block block = blocks.emplace_back(std::make_shared<BlockT>()).get();
+    Block block = blocks.emplace_back(std::make_shared<BlockT>());
     makeStatement(IfStatement{ condition, block });
 
     return block;
-}
-
-template<typename T>
-auto ShaderCodeBuilder::makeValue(T&& val) -> Value
-{
-    return values.emplace_back(std::make_shared<ValueT>(
-        ValueT{ .value=std::forward<T>(val), .typeAnnotation=std::nullopt }
-    )).get();
 }
 
 void ShaderCodeBuilder::makeStatement(StmtT statement)
@@ -232,7 +226,7 @@ void ShaderCodeBuilder::makeStatement(StmtT statement)
 auto ShaderCodeBuilder::makeFunction(FunctionT func) -> Function
 {
     auto [it, _] = functions.try_emplace(func.getName(), std::make_shared<FunctionT>(func));
-    return it->second.get();
+    return it->second;
 }
 
 auto ShaderCodeBuilder::makeOrGetBuiltinFunction(const std::string& funcName) -> Function
@@ -241,7 +235,7 @@ auto ShaderCodeBuilder::makeOrGetBuiltinFunction(const std::string& funcName) ->
         funcName,
         std::make_shared<FunctionT>(FunctionT{ funcName, {}, nullptr, {} })
     );
-    return it->second.get();
+    return it->second;
 }
 
 auto ShaderCodeBuilder::makeStructType(
@@ -265,14 +259,9 @@ auto ShaderCodeBuilder::makeStructType(
     return it->second.get();
 }
 
-void ShaderCodeBuilder::annotateType(Value val, BasicType type)
+void ShaderCodeBuilder::annotateType(Value val, Type type)
 {
-    ((ValueT*)val)->typeAnnotation = type;
-}
-
-void ShaderCodeBuilder::annotateType(Value val, StructType type)
-{
-    ((ValueT*)val)->typeAnnotation = type;
+    ((ValueT*)val.get())->typeAnnotation = type;
 }
 
 auto ShaderCodeBuilder::compileTypeDecls() const -> std::string
@@ -290,7 +279,7 @@ auto ShaderCodeBuilder::compileTypeDecls() const -> std::string
     return res;
 }
 
-auto ShaderCodeBuilder::compileFunctionDecls() const -> std::string
+auto ShaderCodeBuilder::compileFunctionDecls(ResourceResolver& resolver) const -> std::string
 {
     std::string forwardDecls;
     std::string res;
@@ -312,22 +301,21 @@ auto ShaderCodeBuilder::compileFunctionDecls() const -> std::string
         funcHead += ")";
 
         forwardDecls += funcHead + ";\n";
-        res += funcHead + "\n{\n" + compile(func->body) + "}\n";
+        res += funcHead + "\n{\n" + compile(func->body, resolver) + "}\n";
     }
 
     return forwardDecls + res;
 }
 
-auto ShaderCodeBuilder::compile(Value value) -> std::pair<std::string, std::string>
+auto ShaderCodeBuilder::compile(Value value, ResourceResolver& resolver)
+    -> std::pair<std::string, std::string>
 {
-    ShaderValueCompiler compiler;
-    return compiler.compile(value);
+    return ShaderValueCompiler{ resolver }.compile(value);
 }
 
-auto ShaderCodeBuilder::compile(Block block) -> std::string
+auto ShaderCodeBuilder::compile(Block block, ResourceResolver& resolver) -> std::string
 {
-    ShaderBlockCompiler compiler;
-    return compiler.compile(block);
+    return ShaderBlockCompiler{ resolver }.compile(block);
 }
 
 
@@ -335,7 +323,7 @@ auto ShaderCodeBuilder::compile(Block block) -> std::string
 code::FunctionT::FunctionT(
     const std::string& _name,
     FunctionType _type,
-    BlockT* body,
+    Block body,
     std::vector<Value> argRefs)
     :
     name(_name),

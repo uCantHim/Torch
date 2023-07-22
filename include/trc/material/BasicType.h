@@ -53,7 +53,7 @@ namespace trc
     auto operator<<(std::ostream& os, const BasicType& t) -> std::ostream&;
 
     template<typename T>
-    constexpr BasicType::Type toBasicTypeEnum = BasicType::Type::eFloat;
+    BasicType::Type toBasicTypeEnum;
 
     template<> inline constexpr BasicType::Type toBasicTypeEnum<bool>   = BasicType::Type::eBool;
     template<> inline constexpr BasicType::Type toBasicTypeEnum<i32>    = BasicType::Type::eSint;

@@ -10,9 +10,10 @@ namespace trc
 
 using namespace code;
 
-ShaderValueCompiler::ShaderValueCompiler(bool inlineAll)
+ShaderValueCompiler::ShaderValueCompiler(ResourceResolver& resolver, bool inlineAll)
     :
-    inlineAll(inlineAll)
+    inlineAll(inlineAll),
+    resolver(&resolver)
 {
 }
 
@@ -116,7 +117,23 @@ auto ShaderValueCompiler::operator()(const code::Conditional& v) -> std::string
     return "(" + visit(v.condition) + " ? " + visit(v.ifTrue) + " : " + visit(v.ifFalse) + ")";
 }
 
+auto ShaderValueCompiler::operator()(const code::CapabilityAccess& v) -> std::string
+{
+    return visit(resolver->resolveCapabilityAccess(v.capability));
+}
 
+auto ShaderValueCompiler::operator()(const code::RuntimeConstant& v) -> std::string
+{
+    return visit(resolver->resolveRuntimeConstantAccess(v.runtimeValue));
+}
+
+
+
+ShaderBlockCompiler::ShaderBlockCompiler(ResourceResolver& resolver)
+    :
+    valueCompiler(resolver)
+{
+}
 
 auto ShaderBlockCompiler::compile(Block block) -> std::string
 {
@@ -160,7 +177,7 @@ auto ShaderBlockCompiler::operator()(const IfStatement& v) -> std::string
 auto ShaderBlockCompiler::operator()(const FunctionCall& v) -> std::string
 {
     code::ValueT value{ .value=v, .typeAnnotation=std::nullopt };
-    auto [call, preCode] = valueCompiler.compile(&value);
+    auto [call, preCode] = valueCompiler.compile(std::make_shared<code::ValueT>(value));
     return preCode + call;
 }
 

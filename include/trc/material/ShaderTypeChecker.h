@@ -44,6 +44,8 @@ public:
     auto operator()(const code::MemberAccess& v) -> std::optional<TypeInferenceResult>;
     auto operator()(const code::ArrayAccess& v) -> std::optional<TypeInferenceResult>;
     auto operator()(const code::Conditional& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::CapabilityAccess& v) -> std::optional<TypeInferenceResult>;
+    auto operator()(const code::RuntimeConstant& v) -> std::optional<TypeInferenceResult>;
 };
 
 } // namespace trc

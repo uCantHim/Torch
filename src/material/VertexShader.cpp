@@ -81,8 +81,6 @@ public:
 
 
 VertexModule::VertexModule(bool animated)
-    :
-    builder(makeVertexCapabilityConfig())
 {
     auto tbn = [this, animated]() -> code::Value {
         auto zero = builder.makeConstant(0.0f);
@@ -107,7 +105,7 @@ VertexModule::VertexModule(bool animated)
 
     fragmentInputProviders = {
         {
-            FragmentCapability::kVertexWorldPos,
+            MaterialCapability::kVertexWorldPos,
             [this, animated]() -> code::Value
             {
                 auto objPos = builder.makeCapabilityAccess(VertexCapability::kPosition);
@@ -128,9 +126,9 @@ VertexModule::VertexModule(bool animated)
                 return builder.makeMemberAccess(worldPos, "xyz");
             }()
         },
-        { FragmentCapability::kTangentToWorldSpaceMatrix, tbn },
-        { FragmentCapability::kVertexUV, builder.makeCapabilityAccess(VertexCapability::kUV) },
-        { FragmentCapability::kVertexNormal, tbn },
+        { MaterialCapability::kTangentToWorldSpaceMatrix, tbn },
+        { MaterialCapability::kVertexUV, builder.makeCapabilityAccess(VertexCapability::kUV) },
+        { MaterialCapability::kVertexNormal, tbn },
     };
 }
 
@@ -157,11 +155,15 @@ auto VertexModule::build(const ShaderModule& fragment) && -> ShaderModule
     shaderOutput.makeStore(
         builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
-            { fragmentInputProviders.at(FragmentCapability::kVertexWorldPos) }
+            { fragmentInputProviders.at(MaterialCapability::kVertexWorldPos) }
         )
     );
 
-    return ShaderModuleCompiler{}.compile(shaderOutput, std::move(builder));
+    return ShaderModuleCompiler{}.compile(
+        shaderOutput,
+        std::move(builder),
+        makeVertexCapabilityConfig()
+    );
 }
 
 auto VertexModule::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
@@ -191,7 +193,11 @@ auto VertexModule::makeVertexCapabilityConfig() -> ShaderCapabilityConfig
             mat4{}, DrawablePushConstIndex::eModelMatrix
         });
         auto animDataPc = config.addResource(ShaderCapabilityConfig::PushConstant{
-            sizeof(AnimationDeviceData), "AnimationPushConstantData",
+            code.makeStructType("AnimationPushConstantData", {
+                { uint{}, "animation" },
+                { uvec2{}, "keyframes" },
+                { float{}, "keyframeWeigth" },
+            }),
             DrawablePushConstIndex::eAnimationData
         });
         config.addShaderInclude(animDataPc, util::Pathlet("material_utils/animation_data.glsl"));

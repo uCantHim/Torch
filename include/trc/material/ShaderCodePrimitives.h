@@ -13,6 +13,7 @@
 namespace trc
 {
     class ShaderCodeBuilder;
+    class ShaderRuntimeConstant;
 
     struct FunctionType
     {
@@ -65,8 +66,22 @@ namespace trc
         {
             return std::visit(
                 util::VariantVisitor{
-                    [](BasicType type)         { return type.to_string(); },
-                    [](const StructType* type) { return type->to_string(); }
+                    [](BasicType type)         -> std::string { return type.to_string(); },
+                    [](const StructType* type) -> std::string { return type->to_string(); }
+                },
+                type
+            );
+        }
+
+        /**
+         * @brief Get a type's size in bytes
+         */
+        inline auto getTypeSize(const TypeT& type)
+        {
+            return std::visit(
+                util::VariantVisitor{
+                    [](BasicType type)         { return type.size(); },
+                    [](const StructType* type) { return type->size(); }
                 },
                 type
             );
@@ -83,6 +98,15 @@ namespace trc
         struct MemberAccess;
         struct ArrayAccess;
         struct Conditional;
+
+        // vvv These are a bit special as they *should* live outside of the core
+        //     shader code building functionality: They relate more to resources
+        //     used by a shader module than to shader code itself. They still
+        //     live here because I was not able to think of a better way to make
+        //     the shader code tree independent of a specific capability config.
+        struct CapabilityAccess;
+        struct RuntimeConstant;
+        // ^^^
 
         struct ValueT;
 
@@ -104,9 +128,9 @@ namespace trc
             std::vector<StmtT> statements;
         };
 
-        using Function = const FunctionT*;
-        using Block = BlockT*;
-        using Value = const ValueT*;
+        using Function = s_ptr<const FunctionT>;
+        using Block = s_ptr<BlockT>;
+        using Value = s_ptr<const ValueT>;
         using Type = types::TypeT;
 
 
@@ -160,6 +184,16 @@ namespace trc
             Value ifFalse;
         };
 
+        struct CapabilityAccess
+        {
+            Capability capability;
+        };
+
+        struct RuntimeConstant
+        {
+            s_ptr<ShaderRuntimeConstant> runtimeValue;
+        };
+
         struct ValueT
         {
             std::variant<
@@ -170,7 +204,9 @@ namespace trc
                 BinaryOperator,
                 MemberAccess,
                 ArrayAccess,
-                Conditional
+                Conditional,
+                CapabilityAccess,
+                RuntimeConstant
             > value;
 
             std::optional<Type> typeAnnotation;
@@ -214,13 +250,13 @@ namespace trc
 
             FunctionT(const std::string& _name,
                       FunctionType _type,
-                      BlockT* body,
+                      Block body,
                       std::vector<Value> argRefs);
 
             std::string name;
             FunctionType type;
 
-            BlockT* body;
+            Block body;
             std::vector<Value> argumentRefs;
         };
     } // namespace code

@@ -377,7 +377,7 @@ MaterialShaderProgram::MaterialShaderProgram(
         auto& stage = program.stages.at(stageType);
         for (const auto& [specIdx, specValue] : specs)
         {
-            // Store the value provider (in case it want to keep some data alive)
+            // Store the value provider (in case it wants to keep some data alive)
             runtimeValues.emplace_back(specValue);
 
             // Set specialization constant

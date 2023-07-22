@@ -14,6 +14,8 @@
 
 namespace trc
 {
+    class ResourceResolver;
+
     class ShaderCodeBuilder
     {
     public:
@@ -131,11 +133,10 @@ namespace trc
                             const std::vector<std::pair<Type, std::string>>& fields)
             -> StructType;
 
-        void annotateType(Value val, BasicType type);
-        void annotateType(Value val, StructType type);
+        void annotateType(Value val, Type type);
 
         auto compileTypeDecls() const -> std::string;
-        auto compileFunctionDecls() const -> std::string;
+        auto compileFunctionDecls(ResourceResolver& resolver) const -> std::string;
 
         /**
          * @return pair [<identifier>, <code>] where <identifier> is a GLSL
@@ -146,8 +147,10 @@ namespace trc
          *         <code> *must* precede any use of <identifier> in subsequent
          *         code.
          */
-        static auto compile(Value value) -> std::pair<std::string, std::string>;
-        static auto compile(Block block) -> std::string;
+        static auto compile(Value value, ResourceResolver& resolver)
+            -> std::pair<std::string, std::string>;
+        static auto compile(Block block, ResourceResolver& resolver)
+            -> std::string;
 
     protected:
         template<typename T>
@@ -157,20 +160,19 @@ namespace trc
         auto makeOrGetBuiltinFunction(const std::string& funcName) -> Function;
 
     private:
-        std::vector<s_ptr<code::ValueT>> values;
-        std::unordered_map<std::string, s_ptr<code::FunctionT>> functions;
-        std::unordered_map<std::string, s_ptr<code::FunctionT>> builtinFunctions;
+        std::unordered_map<std::string, Function> functions;
+        std::unordered_map<std::string, Function> builtinFunctions;
 
         std::unordered_map<std::string, s_ptr<code::types::StructType>> structTypes;
 
-        std::vector<s_ptr<code::BlockT>> blocks;
+        std::vector<Block> blocks;
 
         /**
          * The block stack does not necessarily signify block nesting in
          * the code - it just remembers which block is currently being
          * operated on when creating statements.
          */
-        std::stack<code::BlockT*> blockStack;
+        std::stack<Block> blockStack;
     };
 
 
@@ -180,5 +182,13 @@ namespace trc
     inline auto ShaderCodeBuilder::makeConstructor(Type type, Args&&... args) -> Value
     {
         return makeConstructor(type, { std::forward<Args>(args)... });
+    }
+
+    template<typename T>
+    inline auto ShaderCodeBuilder::makeValue(T&& val) -> Value
+    {
+        return std::make_shared<code::ValueT>(
+            code::ValueT{ .value=std::forward<T>(val), .typeAnnotation=std::nullopt }
+        );
     }
 } // namespace trc

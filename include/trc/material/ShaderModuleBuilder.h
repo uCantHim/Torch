@@ -8,7 +8,7 @@
 
 #include <spirv/FileIncluder.h>
 
-#include "ShaderCapabilityConfig.h"
+#include "ShaderCapabilities.h"
 #include "ShaderCodeBuilder.h"
 #include "ShaderResourceInterface.h"
 #include "ShaderRuntimeConstant.h"
@@ -16,6 +16,7 @@
 
 namespace trc
 {
+    class ShaderCapabilityConfig;
     class ShaderModuleBuilder;
 
     /**
@@ -57,7 +58,7 @@ namespace trc
         ShaderModuleBuilder(ShaderModuleBuilder&&) noexcept = default;
         ~ShaderModuleBuilder() noexcept = default;
 
-        explicit ShaderModuleBuilder(const ShaderCapabilityConfig& conf);
+        ShaderModuleBuilder() = default;
 
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
@@ -127,15 +128,13 @@ namespace trc
          */
         void enableEarlyFragmentTest();
 
-        auto getCapabilityConfig() const -> const ShaderCapabilityConfig&;
         auto getSettings() const -> const Settings&;
-
-        auto compileResourceDecls() const -> ShaderResources;
 
         /** Append this to the resource declaration code */
         auto compileOutputLocations() const -> std::string;
 
-        auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
+        auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer,
+                                 ResourceResolver& resolver)
             -> std::string;
 
     private:
@@ -143,9 +142,7 @@ namespace trc
             requires std::is_default_constructible_v<T>
         auto createFunctionDef() -> Function;
 
-        s_ptr<const ShaderCapabilityConfig> config;
         Settings shaderSettings;
-        ShaderResourceInterface resources;
 
         /** Maps [location -> { type, name }] */
         std::unordered_map<ui32, std::pair<BasicType, std::string>> outputLocations;

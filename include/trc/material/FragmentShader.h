@@ -7,27 +7,56 @@
 
 namespace trc
 {
-    struct FragmentCapability
+    /**
+     * A collection of capabilities intended to be used by shader code
+     * implementing material calculations: 'user code' if you will.
+     */
+    namespace MaterialCapability
     {
-        static constexpr Capability kVertexWorldPos{ "frag_vertexWorldPos" };
-        static constexpr Capability kVertexNormal{ "frag_vertexNormal" };
-        static constexpr Capability kVertexUV{ "frag_vertexUV" };
-        static constexpr Capability kTangentToWorldSpaceMatrix{ "frag_tangentToWorld" };
+        constexpr Capability kVertexWorldPos{ "trc_mat_vertexWorldPos" };
+        constexpr Capability kVertexNormal{ "trc_mat_vertexNormal" };
+        constexpr Capability kVertexUV{ "trc_mat_vertexUV" };
+        constexpr Capability kTangentToWorldSpaceMatrix{ "trc_mat_tangentToWorld" };
 
-        static constexpr Capability kCameraWorldPos{ "frag_cameraWorldPos" };
+        constexpr Capability kCameraWorldPos{ "trc_mat_cameraWorldPos" };
 
-        static constexpr Capability kTime{ "frag_currentTime" };
-        static constexpr Capability kTimeDelta{ "frag_frameTime" };
+        constexpr Capability kTime{ "trc_mat_currentTime" };
+        constexpr Capability kTimeDelta{ "trc_mat_frameTime" };
 
-        static constexpr Capability kTextureSample{ "frag_textureSample" };
+        /**
+         * Gives access to an array of texture samplers. The array shall be
+         * indexed via the index obtained from `TextureHandle::getDeviceIndex`.
+         *
+         * Use the `TextureSample` shader function as a default implementation.
+         */
+        constexpr Capability kTextureSample{ "trc_mat_textureSample" };
+    } // namespace MaterialCapability
 
-        static constexpr Capability kNextFragmentListIndex{ "frag_allocFragListIndex" };
-        static constexpr Capability kMaxFragmentListIndex{ "frag_maxFragListIndex" };
-        static constexpr Capability kFragmentListHeadPointerImage{ "frag_fragListPointerImage" };
-        static constexpr Capability kFragmentListBuffer{ "frag_fragListBuffer" };
-        static constexpr Capability kShadowMatrices{ "frag_shadowMatrixBuffer" };
-        static constexpr Capability kLightBuffer{ "frag_lightDataBuffer" };
-    };
+    /**
+     * Capabilities for internal use in fragment shaders generated from material
+     * descriptions.
+     */
+    namespace FragmentCapability
+    {
+        constexpr Capability kNextFragmentListIndex{ "frag_allocFragListIndex" };
+        constexpr Capability kMaxFragmentListIndex{ "frag_maxFragListIndex" };
+        constexpr Capability kFragmentListHeadPointerImage{ "frag_fragListPointerImage" };
+        constexpr Capability kFragmentListBuffer{ "frag_fragListBuffer" };
+        constexpr Capability kShadowMatrices{ "frag_shadowMatrixBuffer" };
+        constexpr Capability kLightBuffer{ "frag_lightDataBuffer" };
+    } // namespace FragmentCapability
+
+    /**
+     * Capabilities for internal use in callable shaders generated from material
+     * descriptions.
+     */
+    namespace RayHitCapability
+    {
+        constexpr Capability kBarycentricCoords{ "rcall_baryCoords" };
+        constexpr Capability kGeometryIndex{ "rcall_geoIndex" };
+
+        constexpr Capability kOutColor{ "rcall_colorOutput" };
+    } // namespace RayHitCapability
 
     /**
      * @brief Torch's implementation of a configurable fragment shader
@@ -87,15 +116,20 @@ namespace trc
          * @param bool transparent An additional setting for the fragment
          *        shader. Set to `true` if the shader is used for transparent
          *        objects.
+         *
+         * @throw std::invalid_argument if a required parameter has not been set
+         *                              beforehand.
          */
         auto build(ShaderModuleBuilder moduleCode, bool transparent) -> ShaderModule;
 
-        auto buildCallableShader() -> ShaderModule;
+        auto buildClosesthitShader(ShaderModuleBuilder builder) -> ShaderModule;
 
     private:
+        /** @throw std::invalid_argument */
+        auto getParamValue(Parameter param) -> code::Value;
+
         void fillDefaultValues(ShaderModuleBuilder& builder);
 
         std::array<std::optional<code::Value>, kNumParams> parameters;
-        ShaderOutputInterface output;
     };
 } // namespace trc

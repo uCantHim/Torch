@@ -19,7 +19,20 @@ namespace trc
      *                                Torch's material system for standard
      *                                drawable objects.
      */
-    auto makeFragmentCapabiltyConfig() -> ShaderCapabilityConfig;
+    auto makeFragmentCapabilityConfig() -> ShaderCapabilityConfig;
+
+    /**
+     * @brief Create a configuration that implements all capabilities that Torch
+     *        provides to shaders in the `MaterialCapability` namespace.
+     *
+     * Also implements all capabilities in `RayHitCapability` for internal
+     * use.
+     *
+     * @return ShaderCapabilityConfig A configuration for callable shaders in
+     *                                Torch's material system for standard
+     *                                drawable objects.
+     */
+    auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig;
 
     /**
      * @brief Create an object that defines all possibly existing descriptors

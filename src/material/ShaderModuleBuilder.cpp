@@ -30,21 +30,15 @@ auto ShaderFunction::getType() const -> const FunctionType&
 
 
 
-ShaderModuleBuilder::ShaderModuleBuilder(const ShaderCapabilityConfig& conf)
-    :
-    config(std::make_unique<const ShaderCapabilityConfig>(conf)),
-    resources(*config, *this)
-{
-}
-
 auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
 {
-    return resources.queryCapability(capability);
+    return makeValue(code::CapabilityAccess{ capability });
 }
 
-auto ShaderModuleBuilder::makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> value) -> Value
+auto ShaderModuleBuilder::makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> constant)
+    -> Value
 {
-    return resources.makeSpecConstant(std::move(value));
+    return makeValue(code::RuntimeConstant{ constant });
 }
 
 auto ShaderModuleBuilder::makeOutputLocation(ui32 location, BasicType type) -> Value
@@ -87,19 +81,9 @@ void ShaderModuleBuilder::enableEarlyFragmentTest()
     shaderSettings.earlyFragmentTests = true;
 }
 
-auto ShaderModuleBuilder::getCapabilityConfig() const -> const ShaderCapabilityConfig&
-{
-    return *config;
-}
-
 auto ShaderModuleBuilder::getSettings() const -> const Settings&
 {
     return shaderSettings;
-}
-
-auto ShaderModuleBuilder::compileResourceDecls() const -> ShaderResources
-{
-    return resources.compile();
 }
 
 auto ShaderModuleBuilder::compileOutputLocations() const -> std::string
@@ -115,7 +99,9 @@ auto ShaderModuleBuilder::compileOutputLocations() const -> std::string
     return res;
 }
 
-auto ShaderModuleBuilder::compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
+auto ShaderModuleBuilder::compileIncludedCode(
+    shaderc::CompileOptions::IncluderInterface& includer,
+    ResourceResolver& resolver)
     -> std::string
 {
     std::string result;
@@ -137,7 +123,7 @@ auto ShaderModuleBuilder::compileIncludedCode(shaderc::CompileOptions::IncluderI
         shader_edit::ShaderDocument doc(file);
         for (const auto& [name, value] : vars)
         {
-            auto [id, code] = ShaderValueCompiler{ true }.compile(value);
+            auto [id, code] = ShaderValueCompiler{ resolver, true }.compile(value);
             doc.set(name, id);
         }
 

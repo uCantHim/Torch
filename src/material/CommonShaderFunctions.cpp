@@ -19,7 +19,7 @@ namespace trc
         );
         builder.makeReturn(
             builder.makeMul(
-                builder.makeCapabilityAccess(FragmentCapability::kTangentToWorldSpaceMatrix),
+                builder.makeCapabilityAccess(MaterialCapability::kTangentToWorldSpaceMatrix),
                 movedInterval
             )
         );
