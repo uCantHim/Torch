@@ -164,9 +164,10 @@ int main()
         .build(instance.getDevice(), renderConfig);
 
     auto [pipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(instance)
-        .addRaygenGroup("basic_ray/raygen.rgen")
-        .addMissGroup("basic_ray/miss.rmiss")
-        .addTrianglesHitGroup("basic_ray/closesthit.rchit", "basic_ray/anyhit.rahit")
+        .addRaygenGroup(trc::ShaderPath("basic_ray/raygen.rgen"))
+        .addMissGroup(trc::ShaderPath("basic_ray/miss.rmiss"))
+        .addTrianglesHitGroup(trc::ShaderPath("basic_ray/closesthit.rchit"),
+                              trc::ShaderPath("basic_ray/anyhit.rahit"))
         .build(16, layout);
     auto& sbt = shaderBindingTable;
 

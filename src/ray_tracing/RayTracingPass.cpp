@@ -1,8 +1,8 @@
 #include "trc/ray_tracing/RayTracingPass.h"
 
-#include "trc/base/Barriers.h"
-
+#include "trc/RayShaders.h"
 #include "trc/TorchRenderConfig.h"
+#include "trc/base/Barriers.h"
 #include "trc/core/PipelineLayoutBuilder.h"
 
 
@@ -42,11 +42,11 @@ trc::RayTracingPass::RayTracingPass(
 
     auto [reflectPipeline, reflectShaderBindingTable] =
         trc::rt::buildRayTracingPipeline(instance)
-        .addRaygenGroup("/ray_tracing/reflect.rgen")
+        .addRaygenGroup(rt::shaders::getReflectRaygen())
         .beginTableEntry()
-            .addMissGroup("/ray_tracing/blue.rmiss")
+            .addMissGroup(rt::shaders::getBlueMiss())
         .endTableEntry()
-        .addTrianglesHitGroup("/ray_tracing/reflect.rchit", "/ray_tracing/anyhit.rahit")
+        .addTrianglesHitGroup(rt::shaders::getReflectHit(), rt::shaders::getAnyhit())
         .build(kMaxReccursionDepth, *reflectPipelineLayout);
 
     addRayCall({

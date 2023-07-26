@@ -37,7 +37,7 @@ auto trc::rt::RayTracingPipelineBuilder::endTableEntry() -> Self&
     return *this;
 }
 
-auto trc::rt::RayTracingPipelineBuilder::addRaygenGroup(const fs::path& raygenPath) -> Self&
+auto trc::rt::RayTracingPipelineBuilder::addRaygenGroup(const ShaderPath& raygenPath) -> Self&
 {
     auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eGeneral);
 
@@ -48,7 +48,7 @@ auto trc::rt::RayTracingPipelineBuilder::addRaygenGroup(const fs::path& raygenPa
     return *this;
 }
 
-auto trc::rt::RayTracingPipelineBuilder::addMissGroup(const fs::path& missPath) -> Self&
+auto trc::rt::RayTracingPipelineBuilder::addMissGroup(const ShaderPath& missPath) -> Self&
 {
     auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eGeneral);
 
@@ -60,22 +60,22 @@ auto trc::rt::RayTracingPipelineBuilder::addMissGroup(const fs::path& missPath) 
 }
 
 auto trc::rt::RayTracingPipelineBuilder::addTrianglesHitGroup(
-    const fs::path& closestHitPath,
-    const fs::path& anyHitPath) -> Self&
+    std::optional<ShaderPath> closestHitPath,
+    std::optional<ShaderPath> anyHitPath) -> Self&
 {
     auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup);
 
-    if (!closestHitPath.empty())
+    if (closestHitPath.has_value())
     {
-        auto chitModule = addShaderModule(closestHitPath);
+        auto chitModule = addShaderModule(*closestHitPath);
         group.closestHitShader = addPipelineStage(
             chitModule,
             vk::ShaderStageFlagBits::eClosestHitKHR
         );
     }
-    if (!anyHitPath.empty())
+    if (anyHitPath.has_value())
     {
-        auto ahitModule = addShaderModule(anyHitPath);
+        auto ahitModule = addShaderModule(*anyHitPath);
         group.anyHitShader = addPipelineStage(
             ahitModule,
             vk::ShaderStageFlagBits::eAnyHitKHR
@@ -86,31 +86,31 @@ auto trc::rt::RayTracingPipelineBuilder::addTrianglesHitGroup(
 }
 
 auto trc::rt::RayTracingPipelineBuilder::addProceduralHitGroup(
-    const fs::path& intersectionPath,
-    const fs::path& closestHitPath,
-    const fs::path& anyHitPath) -> Self&
+    std::optional<ShaderPath> intersectionPath,
+    std::optional<ShaderPath> closestHitPath,
+    std::optional<ShaderPath> anyHitPath) -> Self&
 {
     auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eProceduralHitGroup);
 
-    if (!intersectionPath.empty())
+    if (intersectionPath.has_value())
     {
-        auto intersectionModule = addShaderModule(intersectionPath);
+        auto intersectionModule = addShaderModule(*intersectionPath);
         group.intersectionShader = addPipelineStage(
             intersectionModule,
             vk::ShaderStageFlagBits::eIntersectionKHR
         );
     }
-    if (!closestHitPath.empty())
+    if (closestHitPath.has_value())
     {
-        auto chitModule = addShaderModule(closestHitPath);
+        auto chitModule = addShaderModule(*closestHitPath);
         group.closestHitShader = addPipelineStage(
             chitModule,
             vk::ShaderStageFlagBits::eClosestHitKHR
         );
     }
-    if (!anyHitPath.empty())
+    if (anyHitPath.has_value())
     {
-        auto ahitModule = addShaderModule(anyHitPath);
+        auto ahitModule = addShaderModule(*anyHitPath);
         group.anyHitShader = addPipelineStage(
             ahitModule,
             vk::ShaderStageFlagBits::eAnyHitKHR
@@ -120,7 +120,7 @@ auto trc::rt::RayTracingPipelineBuilder::addProceduralHitGroup(
     return *this;
 }
 
-auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const fs::path& callablePath) -> Self&
+auto trc::rt::RayTracingPipelineBuilder::addCallableGroup(const ShaderPath& callablePath) -> Self&
 {
     auto& group = addShaderGroup(vk::RayTracingShaderGroupTypeKHR::eGeneral);
 
@@ -165,11 +165,10 @@ auto trc::rt::RayTracingPipelineBuilder::build(
     };
 }
 
-auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const fs::path& path) -> vk::ShaderModule
+auto trc::rt::RayTracingPipelineBuilder::addShaderModule(const ShaderPath& path)
+    -> vk::ShaderModule
 {
-    return *shaderModules.emplace_back(
-        makeShaderModule(device, internal::loadShader(ShaderPath(path)))
-    );
+    return *shaderModules.emplace_back(makeShaderModule(device, internal::loadShader(path)));
 }
 
 auto trc::rt::RayTracingPipelineBuilder::addPipelineStage(

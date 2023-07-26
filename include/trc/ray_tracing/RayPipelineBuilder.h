@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
+#include <optional>
+#include <utility>
 #include <vector>
-#include <filesystem>
-namespace fs = std::filesystem;
 
+#include "trc/ShaderPath.h"
 #include "trc/Types.h"
 #include "trc/core/Instance.h"
 #include "trc/core/Pipeline.h"
@@ -49,14 +49,14 @@ namespace trc::rt
          */
         auto endTableEntry() -> Self&;
 
-        auto addRaygenGroup(const fs::path& raygenPath) -> Self&;
-        auto addMissGroup(const fs::path& missPath) -> Self&;
-        auto addTrianglesHitGroup(const fs::path& closestHitPath,
-                                  const fs::path& anyHitPath) -> Self&;
-        auto addProceduralHitGroup(const fs::path& intersectionPath,
-                                   const fs::path& closestHitPath,
-                                   const fs::path& anyHitPath) -> Self&;
-        auto addCallableGroup(const fs::path& callablePath) -> Self&;
+        auto addRaygenGroup(const ShaderPath& raygenPath) -> Self&;
+        auto addMissGroup(const ShaderPath& missPath) -> Self&;
+        auto addTrianglesHitGroup(std::optional<ShaderPath> closestHitPath,
+                                  std::optional<ShaderPath> anyHitPath) -> Self&;
+        auto addProceduralHitGroup(std::optional<ShaderPath> intersectionPath,
+                                   std::optional<ShaderPath> closestHitPath,
+                                   std::optional<ShaderPath> anyHitPath) -> Self&;
+        auto addCallableGroup(const ShaderPath& callablePath) -> Self&;
 
         /**
          * @brief Use settings to build a pipeline and a shader binding table
@@ -75,7 +75,7 @@ namespace trc::rt
             -> std::pair<Pipeline, ShaderBindingTable>;
 
     private:
-        auto addShaderModule(const fs::path& path) -> vk::ShaderModule;
+        auto addShaderModule(const ShaderPath& path) -> vk::ShaderModule;
         auto addPipelineStage(vk::ShaderModule _module, vk::ShaderStageFlagBits stage) -> ui32;
         auto addShaderGroup(vk::RayTracingShaderGroupTypeKHR type)
             -> vk::RayTracingShaderGroupCreateInfoKHR&;
