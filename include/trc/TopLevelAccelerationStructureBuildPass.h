@@ -16,7 +16,6 @@ namespace trc
         void setScene(const DrawableComponentScene& scene);
 
     private:
-        const Instance& instance;
         rt::TLAS* tlas;
 
         const DrawableComponentScene* scene{ nullptr };

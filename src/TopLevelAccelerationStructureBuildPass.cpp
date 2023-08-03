@@ -13,7 +13,6 @@ TopLevelAccelerationStructureBuildPass::TopLevelAccelerationStructureBuildPass(
     const Instance& instance,
     rt::TLAS& tlas)
     :
-    instance(instance),
     tlas(&tlas),
     scratchBuffer(
         instance.getDevice(),

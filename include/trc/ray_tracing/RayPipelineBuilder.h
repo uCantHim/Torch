@@ -50,13 +50,25 @@ namespace trc::rt
         auto endTableEntry() -> Self&;
 
         auto addRaygenGroup(const ShaderPath& raygenPath) -> Self&;
+        auto addRaygenGroup(const std::vector<ui32>& raygenCode) -> Self&;
+
         auto addMissGroup(const ShaderPath& missPath) -> Self&;
+        auto addMissGroup(const std::vector<ui32>& missCode) -> Self&;
+
         auto addTrianglesHitGroup(std::optional<ShaderPath> closestHitPath,
                                   std::optional<ShaderPath> anyHitPath) -> Self&;
+        auto addTrianglesHitGroup(std::optional<std::vector<ui32>> closestHitCode,
+                                  std::optional<std::vector<ui32>> anyHitCode) -> Self&;
+
         auto addProceduralHitGroup(std::optional<ShaderPath> intersectionPath,
                                    std::optional<ShaderPath> closestHitPath,
                                    std::optional<ShaderPath> anyHitPath) -> Self&;
+        auto addProceduralHitGroup(std::optional<std::vector<ui32>> intersectionCode,
+                                   std::optional<std::vector<ui32>> closestHitCode,
+                                   std::optional<std::vector<ui32>> anyHitCode) -> Self&;
+
         auto addCallableGroup(const ShaderPath& callablePath) -> Self&;
+        auto addCallableGroup(const std::vector<ui32>& callableCode) -> Self&;
 
         /**
          * @brief Use settings to build a pipeline and a shader binding table
@@ -75,7 +87,9 @@ namespace trc::rt
             -> std::pair<Pipeline, ShaderBindingTable>;
 
     private:
-        auto addShaderModule(const ShaderPath& path) -> vk::ShaderModule;
+        static auto loadShader(const ShaderPath& path) -> std::vector<ui32>;
+
+        auto addShaderModule(const std::vector<ui32>& code) -> vk::ShaderModule;
         auto addPipelineStage(vk::ShaderModule _module, vk::ShaderStageFlagBits stage) -> ui32;
         auto addShaderGroup(vk::RayTracingShaderGroupTypeKHR type)
             -> vk::RayTracingShaderGroupCreateInfoKHR&;
