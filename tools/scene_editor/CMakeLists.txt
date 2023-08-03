@@ -11,7 +11,7 @@ if (NOT TARGET nlohmann_json::nlohmann_json)
     message(FATAL_ERROR "nlohmann-json should be available from the pipeline compiler!")
 endif ()
 
-add_library(scene_editor)
+add_library(scene_editor SHARED)
 torch_default_compile_options(scene_editor)
 target_link_libraries(scene_editor PUBLIC
     torch
