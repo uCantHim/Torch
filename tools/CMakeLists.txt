@@ -27,6 +27,7 @@ add_subdirectory(asset_convert)
 set_target_properties(convert-asset PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
 )
+add_subdirectory(asset_inspect)
 
 
 ######################
