@@ -49,6 +49,11 @@ int main(const int argc, const char** argv)
               " that Torch's format converter supports your file type but it is not detected"
               " correctly, then specify its type manually.");
 
+    program.add_argument("--dry-run", "-n")
+        .default_value(false)
+        .implicit_value(true)
+        .help("Only print contents of input files, don't convert or output anything.");
+
     program.add_argument("-o")
         .help("Name of the output file. Used as a name for the output directory if"
               " multiple assets are exported from a single file; this is the case with"
@@ -167,32 +172,31 @@ void convertGeometry(
     const fs::path& outPath,
     argparse::ArgumentParser& args)
 {
+    const bool dryRun = args.get<bool>("dry-run");
+
     const bool exportRigs = args.get<bool>("rigs");
     const bool exportAnimations = args.get<bool>("animations");
     const bool exportMaterials = args.get<bool>("materials");
 
-    trc::ThirdPartyFileImportData data;
-    try {
-        data = trc::loadAssets(input);
-        if (data.meshes.empty())
-        {
-            std::cout << "Nothing to import. Exiting.";
-            return;
-        }
-    }
-    catch (const trc::DataImportError& err) {
-        std::cout << "Unable to import geometries from " << input << ": " << err.what() << "\n";
-        exit(1);
+    trc::ThirdPartyFileImportData data = trc::loadAssets(input);
+    if (data.meshes.empty())
+    {
+        std::cout << "Nothing to import. Exiting.";
+        return;
     }
 
-    std::cout << "Loaded " << data.meshes.size() << " meshes:\n";
-    for (const auto& mesh : data.meshes)
+    if (dryRun)
     {
-        std::cout << " - " << mesh.name << " ("
-                  << mesh.materials.size() << " materials, "
-                  << mesh.animations.size() << " animations, "
-                  << (mesh.rig.has_value() ? "1 rig" : "no rig")
-                  << ")\n";
+        std::cout << input << " contains " << data.meshes.size() << " meshes:\n";
+        for (const auto& mesh : data.meshes)
+        {
+            std::cout << " - " << mesh.name << " ("
+                      << mesh.materials.size() << " materials, "
+                      << mesh.animations.size() << " animations, "
+                      << (mesh.rig.has_value() ? "1 rig" : "no rig")
+                      << ")\n";
+        }
+        return;
     }
 
     // Output logic for geometries is a bit complex because one file might
@@ -247,18 +251,39 @@ void convertGeometry(
     std::cout << "Exported data from " << input << " to " << outPath << ".\n";
 }
 
-void convertTexture(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&)
+void convertTexture(
+    const fs::path& input,
+    const fs::path& outPath,
+    argparse::ArgumentParser& args)
 {
+    const bool dryRun = args.get<bool>("dry-run");
+
+    const auto tex = trc::loadTexture(input);
+    if (dryRun)
+    {
+        std::cout << input << " contains an image of size "
+                  << tex.size.x << "x" << tex.size.y << ".\n";
+        return;
+    }
+
     std::ofstream file(outPath);
-    trc::loadTexture(input).serialize(file);
+    tex.serialize(file);
     std::cout << "Exported texture " << input << " to " << outPath << ".\n";
 }
 
 void convertFont(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser& args)
 {
+    const bool dryRun = args.get<bool>("dry-run");
     const uint size = args.get<uint>("font-size");
 
+    const auto font = trc::loadFont(input, size);
+    if (dryRun)
+    {
+        std::cout << input << " contains a font.\n";
+        return;
+    }
+
     std::ofstream file(outPath);
-    trc::loadFont(input, size).serialize(file);
+    font.serialize(file);
     std::cout << "Exported font " << input << " (size " << size << ") to " << outPath << ".\n";
 }
