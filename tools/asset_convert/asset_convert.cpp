@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <format>
 
 #include <argparse/argparse.hpp>
 #include <trc/assets/import/AssetImport.h>
@@ -9,11 +10,12 @@
 
 namespace fs = std::filesystem;
 
-using ConverterFunc = void(*)(const fs::path&, fs::path, argparse::ArgumentParser&);
+using ConverterFunc = void(*)(const fs::path&, const fs::path&, argparse::ArgumentParser&);
 
-void convertGeometry(const fs::path& input, fs::path outPath, argparse::ArgumentParser&);
-void convertTexture(const fs::path& input, fs::path outPath, argparse::ArgumentParser&);
-void convertFont(const fs::path& input, fs::path outPath, argparse::ArgumentParser&);
+void inferConversionType(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&);
+void convertGeometry(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&);
+void convertTexture(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&);
+void convertFont(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&);
 
 int main(const int argc, const char** argv)
 {
@@ -21,21 +23,28 @@ int main(const int argc, const char** argv)
     program.add_argument("file");
 
     program.add_argument("--type")
-        .default_value(convertGeometry)
+        .default_value(inferConversionType)
         .action([&](const std::string& arg) -> ConverterFunc {
             using Set = std::unordered_set<std::string>;
             if (Set{ "geo", "geometry", "geometries" }.contains(arg)) {
                 return convertGeometry;
             }
-            else if (Set{ "tex", "texture" }.contains(arg)) {
+            if (Set{ "tex", "texture" }.contains(arg)) {
                 return convertTexture;
             }
-            else if (Set{ "font" }.contains(arg)) {
+            if (Set{ "font" }.contains(arg)) {
                 return convertFont;
             }
-            throw std::runtime_error("Value not allowed for '--type' argument.");
+            else if (Set{ "auto", "default" }.contains(arg)) {
+                return inferConversionType;
+            }
+            throw std::runtime_error(std::format("Value not allowed for '--type' argument: {}", arg));
         })
-        .help("Allowed values are 'geometry', 'texture', 'font'.");
+        .help("Allowed values are 'auto' (default), 'geometry', 'texture', 'font'. Note that the"
+              " 'auto' feature, which tries to infer the file's format automatically, detects"
+              " fewer file formats than can actually be processed by this tool. If you are sure"
+              " that Torch's format converter supports your file type but it is not detected"
+              " correctly, then specify its type manually.");
 
     program.add_argument("--font-size")
         .default_value(18)
@@ -80,7 +89,29 @@ int main(const int argc, const char** argv)
     return 0;
 }
 
-void convertGeometry(const fs::path& input, fs::path /*outPath*/, argparse::ArgumentParser&)
+void inferConversionType(
+    const fs::path& input,
+    const fs::path& outPath,
+    argparse::ArgumentParser& args)
+{
+    using StrSet = std::unordered_set<std::string>;
+
+    const auto ext = input.extension().string();
+    if (StrSet{ ".fbx", ".obj", ".dae" }.contains(ext)) {
+        convertGeometry(input, outPath, args);
+    }
+    else if (StrSet{ ".png", ".jpg", ".jpeg", ".tif", ".bmp" }.contains(ext)) {
+        convertTexture(input, outPath, args);
+    }
+    else if (StrSet{ ".ttf", ".otf" }.contains(ext)) {
+        convertFont(input, outPath, args);
+    }
+    else {
+        throw std::invalid_argument(std::format("Unable to detect file type of {}.", input.string()));
+    }
+}
+
+void convertGeometry(const fs::path& input, const fs::path& /*outPath*/, argparse::ArgumentParser&)
 {
     trc::ThirdPartyFileImportData data;
     try {
@@ -105,16 +136,18 @@ void convertGeometry(const fs::path& input, fs::path /*outPath*/, argparse::Argu
                   << (mesh.rig.has_value() ? "1 rig" : "no rig")
                   << ")\n";
     }
+
+    std::cout << "\nThis is a test build. No data was actually written to file.\n";
 }
 
-void convertTexture(const fs::path& input, fs::path outPath, argparse::ArgumentParser&)
+void convertTexture(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&)
 {
     std::ofstream file(outPath);
     trc::loadTexture(input).serialize(file);
     std::cout << "Stored texture " << input << " at " << outPath << "\n";
 }
 
-void convertFont(const fs::path& input, fs::path outPath, argparse::ArgumentParser& args)
+void convertFont(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser& args)
 {
     const uint size = args.get<uint>("--font-size");
 
