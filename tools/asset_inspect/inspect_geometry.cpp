@@ -4,6 +4,7 @@
 #include <trc/Torch.h>
 
 #include "display_utils.h"
+#include "load_utils.h"
 
 constexpr auto kInvalidUsageExitcode{ 64 };
 
@@ -49,41 +50,22 @@ int main(int argc, const char* argv[])
         exit(kInvalidUsageExitcode);
     }
 
-    trc::GeometryData geo;
-
     // Try to open file
     const auto inputFile = program.get("file");
-    if (!fs::is_regular_file(inputFile))
-    {
-        std::cout << "Error: " << inputFile << " is not a regular file. Exiting.\n";
-        exit(1);
-    }
-
-    std::ifstream file(inputFile, std::ios::binary);
-    if (!file.is_open())
-    {
-        std::cout << "Error: Unable to open file " << inputFile << ". Exiting.\n";
-        exit(1);
-    }
-
-    // Try to parse geometry from file
-    try {
-        geo.deserialize(file);
-    }
-    catch (const std::exception& err) {
-        std::cout << "Error: Unable to parse geometry file " << inputFile << ": "
-                  << err.what() << ". Exiting.\n";
+    auto geo = tryLoad<trc::Geometry>(inputFile);
+    if (!geo) {
+        std::cout << "Error: " << geo.error() << ". Exiting.\n";
         exit(1);
     }
 
     // Process geometry with the applicable output methods
     if (!program.get<bool>("--no-text")) {
-        printInfo(geo);
+        printInfo(*geo);
     }
     if (!program.get<bool>("--no-display"))
     {
         const auto maxDuration = program.present<float>("--display-duration");
-        display(geo, maxDuration.value_or(std::numeric_limits<float>::max()));
+        display(*geo, maxDuration.value_or(std::numeric_limits<float>::max()));
     }
 
     return 0;
