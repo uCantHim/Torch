@@ -5,17 +5,13 @@
 #include <ostream>
 #include <string_view>
 
+#include <trc_util/TypeUtils.h>
 #include <trc_util/data/TypesafeId.h>
 
 #include "trc/Types.h"
 
 namespace trc
 {
-    template<typename T>
-    concept IsCompleteType = requires {
-        sizeof(T);
-    };
-
     /**
      * @brief Typedef that retrieves an asset type's registry module
      */
@@ -63,7 +59,7 @@ namespace trc
         T::name().length() > 0;  // Also requires that T::name is indeed constexpr
 
         // The template `AssetData<>` must be specialized for `T`.
-        requires IsCompleteType<AssetData<T>>;
+        requires util::CompleteType<AssetData<T>>;
         requires requires (AssetData<T> data, std::istream& is) {
             { data.deserialize(is) } -> std::same_as<void>;
         };

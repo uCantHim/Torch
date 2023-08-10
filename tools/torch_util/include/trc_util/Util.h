@@ -7,9 +7,6 @@ namespace trc::util
 {
     namespace fs = std::filesystem;
 
-    template<typename... Ts> struct VariantVisitor : Ts... { using Ts::operator()...; };
-    template<typename... Ts> VariantVisitor(Ts...) -> VariantVisitor<Ts...>;
-
     /**
      * @brief Read the contents of a file into a string
      *

@@ -3,7 +3,7 @@
 #include <variant>
 #include <vector>
 
-#include <trc_util/Util.h>
+#include <trc_util/TypeUtils.h>
 
 #include "BasicType.h"
 #include "Constant.h"

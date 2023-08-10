@@ -4,7 +4,7 @@
 #include <mutex>
 
 #include <trc_util/InterProcessLock.h>
-#include <trc_util/Util.h>
+#include <trc_util/TypeUtils.h>
 
 
 
