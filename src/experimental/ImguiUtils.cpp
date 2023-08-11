@@ -1,5 +1,8 @@
 #include "trc/experimental/ImguiUtils.h"
 
+namespace ig = ImGui;
+
+
 
 namespace trc::experimental::imgui
 {

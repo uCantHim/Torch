@@ -12,6 +12,8 @@
 #include "trc/core/PipelineBuilder.h"
 #include "trc/core/RenderLayout.h"
 
+namespace ig = ImGui;
+
 
 
 namespace
@@ -21,8 +23,6 @@ namespace
 
     bool imguiHasBegun{ false };
 } // anonymous namespace
-
-
 
 auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
     -> trc::u_ptr<ImguiRenderPass>
@@ -81,8 +81,9 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
                 .Subpass               = 0,
                 .MinImageCount         = swapchain.getFrameCount(),
                 .ImageCount            = swapchain.getFrameCount(),
-                .ColorAttachmentFormat = VkFormat(swapchain.getImageFormat()),
                 .MSAASamples           = VK_SAMPLE_COUNT_1_BIT,
+                .UseDynamicRendering   = true,
+                .ColorAttachmentFormat = VkFormat(swapchain.getImageFormat()),
                 .Allocator             = nullptr,
                 .CheckVkResultFn       = nullptr,
             };

@@ -89,6 +89,8 @@ namespace trc::experimental::imgui
         Func callback,
         bool clearBufferOnCallback = true)
     {
+        namespace ig = ImGui;
+
         ig::PushID(label);
         if (ig::InputText("", buf, bufSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
             callback();

@@ -1,6 +1,3 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "external/imgui_dynamic_rendering"]
-	path = external/imgui_dynamic_rendering
-	url = https://github.com/uCantHim/imgui_dynamic_rendering.git

@@ -140,18 +140,18 @@ if (${TORCH_INTEGRATE_IMGUI})
 
     target_include_directories(
         imgui PUBLIC
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/backends
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends
     )
     target_sources(
         imgui PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui_draw.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui_tables.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/imgui_widgets.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_draw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_tables.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/imgui_widgets.cpp
 
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/backends/imgui_impl_glfw.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/external/imgui_dynamic_rendering/backends/imgui_impl_vulkan.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
     )
 endif ()
 

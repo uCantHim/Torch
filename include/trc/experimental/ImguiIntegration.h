@@ -14,8 +14,6 @@ namespace trc
 
 namespace trc::experimental::imgui
 {
-    namespace ig = ImGui;
-
     class ImguiRenderPass;
 
     inline RenderStage imguiRenderStage{};
