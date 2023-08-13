@@ -2,7 +2,47 @@
 
 
 
-void gui::util::beginContextMenuStyleWindow(const char* label)
+namespace gui::util
+{
+
+WindowGuard::~WindowGuard() noexcept
+{
+    if (!closed) {
+        ig::End();
+    }
+}
+
+void WindowGuard::close()
+{
+    ig::End();
+    closed = true;
+}
+
+
+
+StyleVar::StyleVar(ImGuiStyleVar var, const float value)
+    :
+    numStyleVars(1)
+{
+    ig::PushStyleVar(var, value);
+}
+
+StyleVar::StyleVar(std::initializer_list<std::pair<ImGuiStyleVar, float>> vars)
+    :
+    numStyleVars(vars.size())
+{
+    for (auto [var, value] : vars) {
+        ig::PushStyleVar(var, value);
+    }
+}
+
+StyleVar::~StyleVar() noexcept
+{
+    ig::PopStyleVar(numStyleVars);
+    numStyleVars = 0;
+}
+
+void beginContextMenuStyleWindow(const char* label)
 {
     // Transparent frame
     ig::PushStyleColor(ImGuiCol_TitleBg, ig::GetStyleColorVec4(ImGuiCol_WindowBg));
@@ -14,3 +54,5 @@ void gui::util::beginContextMenuStyleWindow(const char* label)
     ig::Begin(label, nullptr, flags);
     ig::PopStyleColor(3);
 }
+
+} // namespace gui::util

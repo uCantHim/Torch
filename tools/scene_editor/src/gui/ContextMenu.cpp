@@ -9,7 +9,7 @@ void gui::ContextMenu::drawImGui()
         // Set popup position to mouse cursor
         ig::SetNextWindowPos({ popupPos.x, popupPos.y });
         util::beginContextMenuStyleWindow(popupTitle.c_str());
-        trc::imgui::WindowGuard guard;
+        gui::util::WindowGuard guard;
 
         contentsFunc();
     }

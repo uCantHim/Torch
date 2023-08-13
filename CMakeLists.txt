@@ -27,7 +27,7 @@ option(TORCH_DEBUG_THROW_ON_VALIDATION_ERROR
        OFF
 )
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
-option(TORCH_INTEGRATE_IMGUI "Use imgui integration" OFF)
+option(TORCH_INTEGRATE_IMGUI "Build ImGui integration library" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
 
@@ -132,12 +132,8 @@ include(protobuf/CMakeLists.txt)
 
 # Imgui integration
 if (${TORCH_INTEGRATE_IMGUI})
-    target_compile_definitions(torch PUBLIC TRC_USE_IMGUI)
-
     add_library(imgui)
     torch_default_compile_options(imgui)
-    target_link_libraries(torch PUBLIC imgui)
-
     target_include_directories(
         imgui PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui
@@ -153,6 +149,8 @@ if (${TORCH_INTEGRATE_IMGUI})
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
         ${CMAKE_CURRENT_LIST_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
     )
+
+    add_subdirectory(tools/torch_imgui)
 endif ()
 
 # Custom GUI library

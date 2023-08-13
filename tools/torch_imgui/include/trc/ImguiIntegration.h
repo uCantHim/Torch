@@ -2,21 +2,15 @@
 
 #include <imgui.h>
 
-#include "trc/base/Swapchain.h"
-#include "trc/core/RenderPass.h"
-#include "trc/core/RenderStage.h"
-#include "trc/core/Window.h"
-
-namespace trc
-{
-    class RenderLayout;
-}
+#include <trc/base/Swapchain.h>
+#include <trc/core/RenderGraph.h>
+#include <trc/core/RenderPass.h>
+#include <trc/core/RenderStage.h>
+#include <trc/core/Window.h>
 
 namespace trc::experimental::imgui
 {
     class ImguiRenderPass;
-
-    inline RenderStage imguiRenderStage{};
 
     /**
      * @brief Initialize imgui integration and set up render graph
@@ -28,12 +22,12 @@ namespace trc::experimental::imgui
      * Call this function for each window on which you want to use imgui.
      *
      * @param Window& window The window on which to enable imgui
-     * @param RenderLayout& layout Adds imgui render pass to the render
-     *                             layout.
+     * @param RenderGraph& graph Adds imgui render stage and -pass to the
+     *                           render graph.
      */
-    extern auto initImgui(Window& window, RenderLayout& layout) -> u_ptr<ImguiRenderPass>;
+    auto initImgui(Window& window, RenderGraph& graph) -> u_ptr<ImguiRenderPass>;
 
-    extern void terminateImgui();
+    void terminateImgui();
 
     /**
      * @brief Begin ImGui command recording
@@ -50,7 +44,7 @@ namespace trc::experimental::imgui
      * Imgui frame. If you want to, you can call beginImguiFrame() as the first
      * thing in your main loop.
      */
-    extern void beginImguiFrame();
+    void beginImguiFrame();
 
     /**
      * @brief RenderPass for Imgui

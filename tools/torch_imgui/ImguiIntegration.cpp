@@ -1,4 +1,4 @@
-#include "trc/experimental/ImguiIntegration.h"
+#include "trc/ImguiIntegration.h"
 
 #include <unordered_map>
 
@@ -7,10 +7,10 @@
 
 #include "trc/PipelineDefinitions.h"
 #include "trc/Torch.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/base/Barriers.h"
 #include "trc/base/event/Event.h"
 #include "trc/core/PipelineBuilder.h"
-#include "trc/core/RenderLayout.h"
 
 namespace ig = ImGui;
 
@@ -18,20 +18,23 @@ namespace ig = ImGui;
 
 namespace
 {
+    const trc::RenderStage imguiRenderStage = trc::RenderStage::make();
+
     vk::UniqueDescriptorPool imguiDescPool;
     bool imguiInitialized{ false };
 
     bool imguiHasBegun{ false };
 } // anonymous namespace
 
-auto trc::experimental::imgui::initImgui(Window& window, RenderLayout& layout)
+auto trc::experimental::imgui::initImgui(Window& window, RenderGraph& graph)
     -> trc::u_ptr<ImguiRenderPass>
 {
     auto& device = window.getDevice();
     auto& swapchain = window.getSwapchain();
 
     auto renderPass = std::make_unique<ImguiRenderPass>(swapchain);
-    layout.addPass(imguiRenderStage, *renderPass);
+    graph.after(rayTracingRenderStage, imguiRenderStage);
+    graph.addPass(imguiRenderStage, *renderPass);
 
     // Initialize global imgui stuff
     if (!imguiInitialized)

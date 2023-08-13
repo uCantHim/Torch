@@ -41,10 +41,10 @@ if (TORCH_BUILD_EXAMPLES)
 
     if (${TORCH_INTEGRATE_IMGUI})
         add_executable(ImGui imgui_integration.cpp)
-        target_link_libraries(ImGui PUBLIC torch)
+        target_link_libraries(ImGui PUBLIC torch torch-imgui)
 
         add_executable(Window window_functions.cpp)
-        target_link_libraries(Window PUBLIC torch)
+        target_link_libraries(Window PUBLIC torch torch-imgui)
     endif ()
 
     if (${TORCH_INTEGRATE_GUI})

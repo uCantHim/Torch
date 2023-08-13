@@ -15,6 +15,7 @@ add_library(scene_editor SHARED)
 torch_default_compile_options(scene_editor)
 target_link_libraries(scene_editor PUBLIC
     torch
+    torch-imgui
     component
     argparse
     nlohmann_json::nlohmann_json
