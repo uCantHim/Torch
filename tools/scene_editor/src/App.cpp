@@ -31,7 +31,7 @@ App::App(const fs::path& projectRootDir)
         trc::InstanceCreateInfo{},
         trc::WindowCreateInfo{}
     )),
-    imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout())),
+    imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getRenderGraph())),
     assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
     scene(*this),
     mainMenu(*this)

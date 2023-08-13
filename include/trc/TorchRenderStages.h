@@ -4,11 +4,12 @@
 
 namespace trc
 {
-    inline RenderStage resourceUpdateStage{};
+    inline RenderStage resourceUpdateStage = RenderStage::make();
 
-    inline RenderStage gBufferRenderStage{};
-    inline RenderStage shadowRenderStage{};
-    inline RenderStage finalLightingRenderStage{};
+    inline RenderStage gBufferRenderStage = RenderStage::make();
+    inline RenderStage shadowRenderStage = RenderStage::make();
+    inline RenderStage mouseDepthReadStage = RenderStage::make();
+    inline RenderStage finalLightingRenderStage = RenderStage::make();
 
-    inline RenderStage rayTracingRenderStage{};
+    inline RenderStage rayTracingRenderStage = RenderStage::make();
 } // namespace trc

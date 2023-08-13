@@ -6,7 +6,7 @@
 
 #include "trc/core/DescriptorRegistry.h"
 #include "trc/core/Pipeline.h"
-#include "trc/core/RenderLayout.h"
+#include "trc/core/RenderGraph.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/RenderStage.h"
 
@@ -50,15 +50,15 @@ namespace trc
                        , public DescriptorRegistry
     {
     public:
-        explicit RenderConfig(RenderLayout layout);
+        explicit RenderConfig(RenderGraph graph);
         virtual ~RenderConfig() = default;
 
         virtual auto getPipeline(Pipeline::ID id) -> Pipeline& = 0;
 
-        auto getLayout() -> RenderLayout&;
-        auto getLayout() const -> const RenderLayout&;
+        auto getRenderGraph() -> RenderGraph&;
+        auto getRenderGraph() const -> const RenderGraph&;
 
     protected:
-        RenderLayout layout;
+        RenderGraph renderGraph;
     };
 } // namespace trc

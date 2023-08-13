@@ -5,11 +5,7 @@
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
-#include "trc/ui/torch/GuiIntegration.h"
 #include "trc/util/FilesystemDataStorage.h"
-#ifdef TRC_USE_IMGUI
-#include "trc/experimental/ImguiIntegration.h"
-#endif
 
 
 
@@ -47,24 +43,6 @@ void trc::terminate()
     isInitialized = false;
 }
 
-auto trc::makeTorchRenderGraph() -> RenderGraph
-{
-    // Create render graph
-    auto graph = makeDeferredRenderGraph();
-
-    // Ray tracing stages
-    graph.after(finalLightingRenderStage, rayTracingRenderStage);
-    graph.require(rayTracingRenderStage, resourceUpdateStage);
-    graph.require(rayTracingRenderStage, finalLightingRenderStage);
-
-    graph.after(rayTracingRenderStage, guiRenderStage);
-#ifdef TRC_USE_IMGUI
-    graph.after(guiRenderStage, experimental::imgui::imguiRenderStage);
-#endif
-
-    return graph;
-}
-
 auto trc::initFull(
     const TorchStackCreateInfo& torchConfig,
     const InstanceCreateInfo& instanceInfo,
@@ -99,7 +77,6 @@ trc::TorchStack::TorchStack(
     renderConfig(
         window,
         TorchRenderConfigCreateInfo{
-            .renderGraph                 = makeTorchRenderGraph(),
             .target                      = swapchainRenderTarget,
             .assetRegistry               = &assetManager.getDeviceRegistry(),
             .assetDescriptor             = std::make_shared<AssetDescriptor>(

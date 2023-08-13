@@ -1,13 +1,12 @@
 #include <iostream>
 
 #include <trc/Torch.h>
-#include <trc/experimental/ImguiIntegration.h>
-#include <trc/experimental/ImguiUtils.h>
-namespace ig = ImGui;
+#include <trc/ImguiIntegration.h>
 
 namespace trc {
     namespace imgui = experimental::imgui;
 }
+namespace ig = ImGui;
 
 int main()
 {
@@ -16,7 +15,7 @@ int main()
         trc::Scene scene;
         trc::Camera camera;
 
-        auto imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getLayout());
+        auto imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getRenderGraph());
 
         while (torch->getWindow().isOpen())
         {

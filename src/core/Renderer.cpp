@@ -50,6 +50,7 @@ trc::Renderer::Renderer(Window& _window)
     instance(_window.getInstance()),
     device(_window.getDevice()),
     window(&_window),
+    cmdRecorder(_window.getDevice(), _window),
     imageAcquireSemaphores(_window),
     renderFinishedSemaphores(_window),
     frameInFlightFences(_window),
@@ -88,22 +89,11 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
     // Acquire image
     auto image = window->acquireImage(**imageAcquireSemaphores);
 
-    // Record commands
+    // Create frame-local auxiliary objects
     auto frameState = std::make_shared<FrameRenderState>();
 
-    std::vector<vk::CommandBuffer> commandBuffers;
-    for (const auto& draw : draws)
-    {
-        const RenderConfig& renderConfig = draw.renderConfig;
-
-        // Collect commands from scene
-        auto cmdBufs = renderConfig.getLayout().record(
-            draw.renderConfig,
-            draw.scene,
-            *frameState
-        );
-        util::merge(commandBuffers, cmdBufs);
-    }
+    // Record all draw commands from all scenes to draw
+    auto cmdBufs = cmdRecorder.record(draws, *frameState);
 
     // Submit command buffers
     vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eComputeShader
@@ -118,7 +108,7 @@ void trc::Renderer::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
         vk::SubmitInfo(
             **imageAcquireSemaphores,
             waitStage,
-            commandBuffers,
+            cmdBufs,
             signalSemaphores
         ),
         vk::TimelineSemaphoreSubmitInfo(0, nullptr, 2, signalValues)

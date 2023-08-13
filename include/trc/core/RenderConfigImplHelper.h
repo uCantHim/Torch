@@ -1,7 +1,10 @@
 #pragma once
 
-#include "trc/core/RenderConfiguration.h"
+#include <atomic>
+
+#include "trc/core/Instance.h"
 #include "trc/core/PipelineRegistry.h"
+#include "trc/core/RenderConfiguration.h"
 
 namespace trc
 {
@@ -14,7 +17,7 @@ namespace trc
     class RenderConfigImplHelper : public RenderConfig
     {
     public:
-        RenderConfigImplHelper(const Instance& instance, RenderLayout layout);
+        RenderConfigImplHelper(const Instance& instance, RenderGraph graph);
         ~RenderConfigImplHelper();
 
         auto getPipeline(Pipeline::ID id) -> Pipeline& override;

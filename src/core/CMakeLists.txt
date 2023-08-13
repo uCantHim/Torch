@@ -1,6 +1,7 @@
 target_sources(
     torch
     PRIVATE
+        CommandRecorder.cpp
         ComputePipelineBuilder.cpp
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
@@ -19,7 +20,6 @@ target_sources(
         RenderConfiguration.cpp
         RenderConfigImplHelper.cpp
         RenderGraph.cpp
-        RenderLayout.cpp
         RenderPass.cpp
         RenderTarget.cpp
         SceneBase.cpp

@@ -5,6 +5,7 @@
 #include "trc/base/ExclusiveQueue.h"
 #include "trc/base/FrameSpecificObject.h"
 #include "trc/base/PhysicalDevice.h"
+#include "trc/core/CommandRecorder.h"
 #include "trc/core/Instance.h"
 
 namespace trc
@@ -52,6 +53,8 @@ namespace trc
         const Instance& instance;
         Device& device;
         Window* window; // Must be non-const for presentImage
+
+        CommandRecorder cmdRecorder;
 
         // Synchronization
         void createSemaphores();

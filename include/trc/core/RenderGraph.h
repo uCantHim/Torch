@@ -7,7 +7,6 @@
 
 #include "trc/Types.h"
 #include "trc/core/RenderStage.h"
-#include "trc/core/RenderLayout.h"
 
 namespace trc
 {
@@ -23,9 +22,22 @@ namespace trc
      */
     class RenderGraph
     {
-        friend class RenderLayout;
-
     public:
+        struct StageInfo
+        {
+            RenderStage::ID stage;
+            std::vector<RenderPass*> renderPasses;
+
+            std::vector<RenderStage::ID> waitDependencies;
+        };
+
+        RenderGraph() = default;
+        RenderGraph(const RenderGraph&) = default;
+        RenderGraph(RenderGraph&&) noexcept = default;
+        RenderGraph& operator=(const RenderGraph&) = default;
+        RenderGraph& operator=(RenderGraph&&) noexcept = default;
+        ~RenderGraph() noexcept = default;
+
         void first(RenderStage::ID newStage);
         void before(RenderStage::ID nextStage, RenderStage::ID newStage);
         void after(RenderStage::ID prevStage, RenderStage::ID newStage);
@@ -54,20 +66,15 @@ namespace trc
          */
         auto size() const noexcept -> size_t;
 
+        // TODO
+        auto getStages() const -> const std::vector<StageInfo>& {
+            return stages;
+        }
+
         void addPass(RenderStage::ID stage, RenderPass& newPass);
         void removePass(RenderStage::ID stage, RenderPass& pass);
 
-        auto compile(const Window& window) const -> RenderLayout;
-
     private:
-        struct StageInfo
-        {
-            RenderStage::ID stage;
-            std::vector<RenderPass*> renderPasses;
-
-            std::vector<RenderStage::ID> waitDependencies;
-        };
-
         using StageIterator = typename std::vector<StageInfo>::iterator;
         using StageConstIterator = typename std::vector<StageInfo>::const_iterator;
 

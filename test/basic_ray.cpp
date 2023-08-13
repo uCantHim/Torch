@@ -16,7 +16,7 @@ class BasicRayConfig : public trc::RenderConfig
 public:
     explicit BasicRayConfig(const trc::Window& window)
         :
-        trc::RenderConfig(trc::RenderLayout(window, makeRenderGraph()))
+        trc::RenderConfig(makeRenderGraph())
     {
     }
 
@@ -33,7 +33,7 @@ public:
         return *((trc::Pipeline*)nullptr);
     }
 
-    static inline const trc::RenderStage kRayStage;
+    static inline const trc::RenderStage kRayStage = trc::RenderStage::make();
 };
 
 int main()
@@ -215,7 +215,7 @@ int main()
             );
         }
     );
-    renderConfig.getLayout().addPass(renderConfig.kRayStage, rayPass);
+    renderConfig.getRenderGraph().addPass(renderConfig.kRayStage, rayPass);
 
     trc::DrawConfig drawConfig{
         .scene=scene,

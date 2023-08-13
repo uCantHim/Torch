@@ -30,7 +30,6 @@ namespace trc
      */
     struct TorchRenderConfigCreateInfo
     {
-        RenderGraph renderGraph;
         const RenderTarget& target;
 
         AssetRegistry* assetRegistry;
@@ -41,7 +40,7 @@ namespace trc
         bool enableRayTracing{ false };
     };
 
-    auto makeDeferredRenderGraph() -> RenderGraph;
+    auto makeTorchRenderGraph() -> RenderGraph;
 
     /**
      * @brief

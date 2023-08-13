@@ -31,18 +31,18 @@ auto trc::RenderPassRegistry::getRenderPass(const RenderPassName& name) const
 
 
 
-trc::RenderConfig::RenderConfig(RenderLayout layout)
+trc::RenderConfig::RenderConfig(RenderGraph layout)
     :
-    layout(std::move(layout))
+    renderGraph(std::move(layout))
 {
 }
 
-auto trc::RenderConfig::getLayout() -> RenderLayout&
+auto trc::RenderConfig::getRenderGraph() -> RenderGraph&
 {
-    return layout;
+    return renderGraph;
 }
 
-auto trc::RenderConfig::getLayout() const -> const RenderLayout&
+auto trc::RenderConfig::getRenderGraph() const -> const RenderGraph&
 {
-    return layout;
+    return renderGraph;
 }

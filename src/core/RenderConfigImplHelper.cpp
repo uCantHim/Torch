@@ -7,9 +7,9 @@ namespace trc
 
 RenderConfigImplHelper::RenderConfigImplHelper(
     const Instance& instance,
-    RenderLayout layout)
+    RenderGraph graph)
     :
-    RenderConfig(std::move(layout))
+    RenderConfig(std::move(graph))
 {
     if (pipelineStorage == nullptr) {
         pipelineStorage = PipelineRegistry::makeStorage(instance, *this);

@@ -1,5 +1,5 @@
 #include <trc/Torch.h>
-#include <trc/experimental/ImguiIntegration.h>
+#include <trc/ImguiIntegration.h>
 #include <imgui.h>
 namespace trc {
     namespace imgui = experimental::imgui;
@@ -15,7 +15,7 @@ int main()
         auto torch = trc::initFull({}, {}, { .size=windowSize, .pos=windowPos });
 
         auto& window = torch->getWindow();
-        auto imgui = trc::imgui::initImgui(window, torch->getRenderConfig().getLayout());
+        auto imgui = trc::imgui::initImgui(window, torch->getRenderConfig().getRenderGraph());
 
         trc::Scene scene;
         trc::Camera camera;

@@ -10,20 +10,28 @@
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/Window.h"
 #include "trc/text/Font.h"
+#include "trc/ui/torch/GuiIntegration.h"
 
 
 
-const trc::RenderStage mouseDepthReadStage;
-
-auto trc::makeDeferredRenderGraph() -> RenderGraph
+auto trc::makeTorchRenderGraph() -> RenderGraph
 {
     RenderGraph graph;
 
+    // Deferred rendering stages
     graph.first(resourceUpdateStage);
     graph.after(resourceUpdateStage, shadowRenderStage);
     graph.after(shadowRenderStage, gBufferRenderStage);
     graph.after(gBufferRenderStage, mouseDepthReadStage);
     graph.after(mouseDepthReadStage, finalLightingRenderStage);
+
+    // Ray tracing stages
+    graph.after(finalLightingRenderStage, rayTracingRenderStage);
+    graph.require(rayTracingRenderStage, resourceUpdateStage);
+    graph.require(rayTracingRenderStage, finalLightingRenderStage);
+
+    // Gui stage
+    graph.after(rayTracingRenderStage, guiRenderStage);
 
     return graph;
 }
@@ -34,7 +42,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
     const Window& _window,
     const TorchRenderConfigCreateInfo& info)
     :
-    RenderConfigImplHelper(_window.getInstance(), RenderLayout(_window, info.renderGraph)),
+    RenderConfigImplHelper(_window.getInstance(), makeTorchRenderGraph()),
     window(_window),
     renderTarget(&info.target),
     enableRayTracing(info.enableRayTracing && _window.getInstance().hasRayTracing()),
@@ -65,7 +73,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
             _window.getInstance(),
             *tlas
         );
-        layout.addPass(resourceUpdateStage, *tlasBuildPass);
+        renderGraph.addPass(resourceUpdateStage, *tlasBuildPass);
     }
 
     // Create gbuffer for the first time
@@ -97,9 +105,9 @@ trc::TorchRenderConfig::TorchRenderConfig(
     finalLightingPass = std::make_unique<FinalLightingPass>(
         window.getDevice(), info.target, uvec2(0, 0), uvec2(1, 1), *this
     );
-    layout.addPass(finalLightingRenderStage, *finalLightingPass);
+    renderGraph.addPass(finalLightingRenderStage, *finalLightingPass);
 
-    layout.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
+    renderGraph.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
 }
 
 void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& scene)
@@ -240,13 +248,13 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     // Delete resources
     if (enableRayTracing)
     {
-        layout.removePass(rayTracingRenderStage, *rayTracingPass);
+        renderGraph.removePass(rayTracingRenderStage, *rayTracingPass);
         rayTracingPass.reset();
     }
-    layout.removePass(gBufferRenderStage, *gBufferPass);
+    renderGraph.removePass(gBufferRenderStage, *gBufferPass);
     if (mouseDepthReader != nullptr)
     {
-        layout.removePass(mouseDepthReadStage, *mouseDepthReader);
+        renderGraph.removePass(mouseDepthReadStage, *mouseDepthReader);
         mouseDepthReader.reset();
     }
     gBufferPass.reset();
@@ -271,13 +279,13 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
 
     // Create new renderpasses
     gBufferPass = std::make_unique<GBufferPass>(window.getDevice(), *gBuffer);
-    layout.addPass(gBufferRenderStage, *gBufferPass);
+    renderGraph.addPass(gBufferRenderStage, *gBufferPass);
     mouseDepthReader = std::make_unique<GBufferDepthReader>(
         window.getDevice(),
         [this]{ return window.getMousePosition() - vec2(viewportOffset); },
         *gBuffer
     );
-    layout.addPass(mouseDepthReadStage, *mouseDepthReader);
+    renderGraph.addPass(mouseDepthReadStage, *mouseDepthReader);
 
     if (enableRayTracing)
     {
@@ -299,7 +307,7 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
             std::move(rayBuffer),
             *renderTarget
         );
-        layout.addPass(rayTracingRenderStage, *rayTracingPass);
+        renderGraph.addPass(rayTracingRenderStage, *rayTracingPass);
     }
 
     log::info << "Deferred renderpass recreated (" << timer.reset() << " ms)";

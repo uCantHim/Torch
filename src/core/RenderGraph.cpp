@@ -11,24 +11,21 @@ void trc::RenderGraph::first(RenderStage::ID newStage)
 
 void trc::RenderGraph::before(RenderStage::ID nextStage, RenderStage::ID newStage)
 {
-    auto stage = findStage(nextStage);
-    if (stage.has_value()) {
+    if (auto stage = findStage(nextStage)) {
         insert(stage.value(), newStage);
     }
 }
 
 void trc::RenderGraph::after(RenderStage::ID prevStage, RenderStage::ID newStage)
 {
-    auto stage = findStage(prevStage);
-    if (stage.has_value()) {
+    if (auto stage = findStage(prevStage)) {
         insert(++stage.value(), newStage);
     }
 }
 
 void trc::RenderGraph::require(RenderStage::ID stage, RenderStage::ID requiredStage)
 {
-    auto it = findStage(stage);
-    if (it.has_value()) {
+    if (auto it = findStage(stage)) {
         it.value()->waitDependencies.emplace_back(requiredStage);
     }
 }
@@ -54,17 +51,15 @@ void trc::RenderGraph::addPass(RenderStage::ID stage, RenderPass& newPass)
 
 void trc::RenderGraph::removePass(RenderStage::ID stage, RenderPass& pass)
 {
-    auto it = findStage(stage);
-    if (it.has_value())
+    if (auto it = findStage(stage))
     {
         auto& renderPasses = it.value()->renderPasses;
-        renderPasses.erase(std::remove(renderPasses.begin(), renderPasses.end(), &pass));
-    }
-}
 
-auto trc::RenderGraph::compile(const Window& window) const -> RenderLayout
-{
-    return RenderLayout(window, *this);
+        auto removed = std::remove(renderPasses.begin(), renderPasses.end(), &pass);
+        if (removed != renderPasses.end()) {
+            renderPasses.erase(removed);
+        }
+    }
 }
 
 auto trc::RenderGraph::findStage(RenderStage::ID stage) -> std::optional<StageIterator>

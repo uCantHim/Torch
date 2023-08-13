@@ -42,7 +42,6 @@ void run()
     // use the standard deferred rendering algorithm while the other uses
     // ray tracing.
     trc::TorchRenderConfigCreateInfo info{
-        .renderGraph=trc::makeDeferredRenderGraph(),
         .target=renderTarget,
         .assetRegistry=&assets.getDeviceRegistry(),
         .assetDescriptor=assetDescriptor,

@@ -20,7 +20,7 @@ namespace trc
 {
     class RenderLayout;
 
-    inline RenderStage guiRenderStage{};
+    inline RenderStage guiRenderStage = RenderStage::make();
 
     class TorchWindowBackend : public ui::WindowBackend
     {
