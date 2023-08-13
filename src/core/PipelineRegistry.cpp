@@ -42,7 +42,7 @@ auto PipelineStorage::get(Pipeline::ID pipeline) -> Pipeline&
         assert(renderConfig != nullptr);
 
         auto& layout = getLayout(registry.getPipelineLayout(pipeline));
-        pipelines.emplace(
+        pipelines.try_emplace(
             pipeline,
             registry.invokePipelineFactory(pipeline, instance, *renderConfig, layout)
         );
@@ -56,7 +56,7 @@ auto PipelineStorage::getLayout(PipelineLayout::ID id) -> PipelineLayout&
     if (!layouts.contains(id))
     {
         assert(renderConfig != nullptr);
-        layouts.emplace(id, registry.invokeLayoutFactory(id, instance, *renderConfig));
+        layouts.try_emplace(id, registry.invokeLayoutFactory(id, instance, *renderConfig));
     }
 
     return layouts.at(id);

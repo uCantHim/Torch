@@ -118,15 +118,6 @@ namespace trc
                                      RenderConfig& renderConfig)
                 -> PipelineLayout;
 
-            template<std::invocable<PipelineFactory&> F>
-            static void foreachFactory(F&& func)
-            {
-                std::scoped_lock lock(factoryLock);
-                for (auto& factory : factories) {
-                    func(factory);
-                }
-            }
-
         private:
             friend PipelineRegistry;
             StorageAccessInterface() = default;
