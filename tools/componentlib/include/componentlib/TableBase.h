@@ -17,7 +17,7 @@ concept TableKey = std::equality_comparable<T>;
 template<typename T>
 struct TableTraits;
 
-template<typename Component, TableKey Key = uint32_t>
+template<typename T, TableKey Key = uint32_t>
 class Table;
 
 } // namespace componentlib

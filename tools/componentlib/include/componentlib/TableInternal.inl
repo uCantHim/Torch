@@ -2,20 +2,20 @@
 
 
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::_index_at_key(Key key) -> IndexType&
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::_index_at_key(Key key) -> IndexType&
 {
     return indices.at(static_cast<size_t>(key));
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::_index_at_key(Key key) const -> const IndexType&
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::_index_at_key(Key key) const -> const IndexType&
 {
     return indices.at(static_cast<size_t>(key));
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::_do_get(IndexType index) -> Component&
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::_do_get(IndexType index) -> reference
 {
     if constexpr (stableStorage) {
         return *objects.at(index);
@@ -25,8 +25,8 @@ inline auto Table<Component, Key>::_do_get(IndexType index) -> Component&
     }
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::_do_get(IndexType index) const -> const Component&
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::_do_get(IndexType index) const -> const_reference
 {
     if constexpr (stableStorage) {
         return *objects.at(index);
@@ -36,15 +36,15 @@ inline auto Table<Component, Key>::_do_get(IndexType index) const -> const Compo
     }
 }
 
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 template<typename ...Args>
-inline auto Table<Component, Key>::_do_emplace(IndexType index, Args&&... args) -> Component&
+inline auto Table<T, Key>::_do_emplace(IndexType index, Args&&... args) -> reference
 {
     if constexpr (stableStorage)
     {
         return **objects.emplace(
             objects.begin() + index,
-            new Component(std::forward<Args>(args)...)
+            new value_type(std::forward<Args>(args)...)
         );
     }
     else
@@ -56,16 +56,16 @@ inline auto Table<Component, Key>::_do_emplace(IndexType index, Args&&... args) 
     }
 }
 
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 template<typename ...Args>
-inline auto Table<Component, Key>::_do_emplace_back(Args&&... args)
-    -> std::pair<IndexType, Component&>
+inline auto Table<T, Key>::_do_emplace_back(Args&&... args)
+    -> std::pair<IndexType, reference>
 {
     if constexpr (stableStorage)
     {
         return {
             objects.size(),
-            *objects.emplace_back(new Component(std::forward<Args>(args)...))
+            *objects.emplace_back(new value_type(std::forward<Args>(args)...))
         };
     }
     else
@@ -77,14 +77,14 @@ inline auto Table<Component, Key>::_do_emplace_back(Args&&... args)
     }
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::_do_erase_unsafe(Key key) -> Component
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::_do_erase_unsafe(Key key) -> value_type
 {
     auto indexIt = indices.begin() + static_cast<size_t>(key);
 
     // Unstably remove object
     std::swap(objects.at(*indexIt), objects.back());
-    Component result = [this] {
+    value_type result = [this] {
         if constexpr (stableStorage) {
             return std::move(*objects.back());
         }

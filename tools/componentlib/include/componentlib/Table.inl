@@ -6,44 +6,44 @@
 //      Table implementations       //
 // -------------------------------- //
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::size() const -> size_t
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::size() const -> size_t
 {
     return objects.size();
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::data() -> Component*
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::data() -> pointer
 {
     return objects.data();
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::data() const -> const Component*
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::data() const -> const_pointer
 {
     return objects.data();
 }
 
-template<typename Component, TableKey Key>
-inline bool Table<Component, Key>::has(Key key) const
+template<typename T, TableKey Key>
+inline bool Table<T, Key>::has(Key key) const
 {
     return indices.size() > static_cast<size_t>(key) && indices.at(static_cast<size_t>(key)) != NONE;
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::get(Key key) -> Component&
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::get(Key key) -> reference
 {
     return _do_get(_index_at_key(key));
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::get(Key key) const -> const Component&
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::get(Key key) const -> const_reference
 {
     return _do_get(_index_at_key(key));
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::try_get(Key key) -> std::optional<Component*>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::try_get(Key key) -> std::optional<pointer>
 {
     if (!has(key)) {
         return std::nullopt;
@@ -52,8 +52,8 @@ inline auto Table<Component, Key>::try_get(Key key) -> std::optional<Component*>
     return &get(key);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::try_get(Key key) const -> std::optional<const Component*>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::try_get(Key key) const -> std::optional<const_pointer>
 {
     if (!has(key)) {
         return std::nullopt;
@@ -62,8 +62,8 @@ inline auto Table<Component, Key>::try_get(Key key) const -> std::optional<const
     return &get(key);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::get_m(Key key) -> trc::Maybe<Component&>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::get_m(Key key) -> trc::Maybe<reference>
 {
     if (!has(key)) {
         return {};
@@ -71,8 +71,8 @@ inline auto Table<Component, Key>::get_m(Key key) -> trc::Maybe<Component&>
     return get(key);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::get_m(Key key) const -> trc::Maybe<const Component&>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::get_m(Key key) const -> trc::Maybe<const_reference>
 {
     if (!has(key)) {
         return {};
@@ -80,10 +80,10 @@ inline auto Table<Component, Key>::get_m(Key key) const -> trc::Maybe<const Comp
     return get(key);
 }
 
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 template<typename ...Args>
-    requires std::constructible_from<Component, Args&&...>
-inline auto Table<Component, Key>::emplace(Key key, Args&&... args) -> Component&
+    requires std::constructible_from<T, Args&&...>
+inline auto Table<T, Key>::emplace(Key key, Args&&... args) -> reference
 {
     auto [result, success] = try_emplace(key, std::forward<Args>(args)...);
     if (!success) {
@@ -93,10 +93,10 @@ inline auto Table<Component, Key>::emplace(Key key, Args&&... args) -> Component
     return result;
 }
 
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 template<typename ...Args>
-    requires std::constructible_from<Component, Args&&...>
-inline auto Table<Component, Key>::try_emplace(Key key, Args&&... args) -> std::pair<Component&, bool>
+    requires std::constructible_from<T, Args&&...>
+inline auto Table<T, Key>::try_emplace(Key key, Args&&... args) -> std::pair<reference, bool>
 {
     if (static_cast<size_t>(key) >= indices.size()) {
         indices.resize(static_cast<size_t>(key) + 1, NONE);
@@ -112,8 +112,8 @@ inline auto Table<Component, Key>::try_emplace(Key key, Args&&... args) -> std::
     return { obj, true };
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::erase(Key key) -> Component
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::erase(Key key) -> value_type
 {
     if (!has(key)) {
         throw std::out_of_range("In Table<>::erase: No object exists at key "
@@ -123,8 +123,8 @@ inline auto Table<Component, Key>::erase(Key key) -> Component
     return _do_erase_unsafe(key);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::try_erase(Key key) noexcept -> std::optional<Component>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::try_erase(Key key) noexcept -> std::optional<value_type>
 {
     if (!has(key)) {
         return std::nullopt;
@@ -133,8 +133,8 @@ inline auto Table<Component, Key>::try_erase(Key key) noexcept -> std::optional<
     return _do_erase_unsafe(key);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::erase_m(Key key) noexcept -> trc::Maybe<Component>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::erase_m(Key key) noexcept -> trc::Maybe<value_type>
 {
     if (!has(key)) {
         return {};
@@ -143,106 +143,106 @@ inline auto Table<Component, Key>::erase_m(Key key) noexcept -> trc::Maybe<Compo
     return _do_erase_unsafe(key);
 }
 
-template<typename Component, TableKey Key>
-inline void Table<Component, Key>::clear() noexcept
+template<typename T, TableKey Key>
+inline void Table<T, Key>::clear() noexcept
 {
     objects.clear();
     indices.clear();
 }
 
-template<typename Component, TableKey Key>
-inline void Table<Component, Key>::reserve(size_t minSize)
+template<typename T, TableKey Key>
+inline void Table<T, Key>::reserve(size_t minSize)
 {
     reserve(minSize, minSize);
 }
 
-template<typename Component, TableKey Key>
-inline void Table<Component, Key>::reserve(size_t minSizeElems, size_t minSizeKeys)
+template<typename T, TableKey Key>
+inline void Table<T, Key>::reserve(size_t minSizeElems, size_t minSizeKeys)
 {
     objects.reserve(minSizeElems);
     indices.reserve(minSizeKeys);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::begin() -> ValueIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::begin() -> ValueIterator
 {
     return ValueIterator(objects.begin());
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::begin() const -> ConstValueIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::begin() const -> ConstValueIterator
 {
     return ConstValueIterator(objects.begin());
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::end() -> ValueIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::end() -> ValueIterator
 {
     return ValueIterator(objects.end());
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::end() const -> ConstValueIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::end() const -> ConstValueIterator
 {
     return ConstValueIterator(objects.end());
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::keyBegin() -> KeyIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::keyBegin() -> KeyIterator
 {
     return KeyIterator(indices.begin(), *this);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::keyBegin() const -> ConstKeyIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::keyBegin() const -> ConstKeyIterator
 {
     return ConstKeyIterator(indices.begin(), *this);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::keyEnd() -> KeyIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::keyEnd() -> KeyIterator
 {
     return KeyIterator(indices.end(), *this);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::keyEnd() const -> ConstKeyIterator
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::keyEnd() const -> ConstKeyIterator
 {
     return ConstKeyIterator(indices.end(), *this);
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::values() -> IteratorRange<ValueIterator>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::values() -> IteratorRange<ValueIterator>
 {
     return { begin(), end() };
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::values() const -> IteratorRange<ConstValueIterator>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::values() const -> IteratorRange<ConstValueIterator>
 {
     return { begin(), end() };
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::keys() -> IteratorRange<KeyIterator>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::keys() -> IteratorRange<KeyIterator>
 {
     return { keyBegin(), keyEnd() };
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::keys() const -> IteratorRange<ConstKeyIterator>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::keys() const -> IteratorRange<ConstKeyIterator>
 {
     return { keyBegin(), keyEnd() };
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::items() -> IteratorRange<PairIterator>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::items() -> IteratorRange<PairIterator>
 {
     return { PairIterator(keyBegin()), PairIterator(keyEnd()) };
 }
 
-template<typename Component, TableKey Key>
-inline auto Table<Component, Key>::items() const -> IteratorRange<ConstPairIterator>
+template<typename T, TableKey Key>
+inline auto Table<T, Key>::items() const -> IteratorRange<ConstPairIterator>
 {
     return { ConstPairIterator(keyBegin()), ConstPairIterator(keyEnd()) };
 }

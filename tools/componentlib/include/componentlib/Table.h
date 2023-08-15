@@ -54,18 +54,23 @@ struct TableTraits
  * Of course, this will probably trade memory contiguousness for convenient
  * usage.
  */
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 class Table
 {
 public:
-    using value_type = Component;
-    using reference = value_type&;
-    using pointer = value_type*;
+    using value_type = T;
+    using reference = T&;
+    using const_reference = const T&;
+    using pointer = T*;
+    using const_pointer = const T*;
+
+    using size_type = size_t;
+
     using key_type = Key;
 
 private:
     static constexpr bool stableStorage = requires {
-        typename TableTraits<Component>::UniqueStorage;
+        typename TableTraits<T>::UniqueStorage;
     };
     using StoredType = std::conditional_t<stableStorage, std::unique_ptr<value_type>, value_type>;
 
@@ -82,14 +87,14 @@ public:
      *
      * @return pointer A pointer to the address of the first element
      */
-    auto data() -> Component*;
+    auto data() -> pointer;
 
     /**
      * @brief Access the table's raw data
      *
      * @return pointer A pointer to the address of the first element
      */
-    auto data() const -> const Component*;
+    auto data() const -> const_pointer;
 
 public:
     // ------------------------ //
@@ -113,7 +118,7 @@ public:
      * @throw std::out_of_range if no object with key `key` exists in the
      *                          table.
      */
-    inline auto get(Key key) -> Component&;
+    inline auto get(Key key) -> reference;
 
     /**
      * @param Key key
@@ -121,13 +126,13 @@ public:
      * @throw std::out_of_range if no object with key `key` exists in the
      *                          table.
      */
-    inline auto get(Key key) const -> const Component&;
+    inline auto get(Key key) const -> const_reference;
 
-    inline auto try_get(Key key) -> std::optional<Component*>;
-    inline auto try_get(Key key) const -> std::optional<const Component*>;
+    inline auto try_get(Key key) -> std::optional<pointer>;
+    inline auto try_get(Key key) const -> std::optional<const_pointer>;
 
-    inline auto get_m(Key key) -> trc::Maybe<Component&>;
-    inline auto get_m(Key key) const -> trc::Maybe<const Component&>;
+    inline auto get_m(Key key) -> trc::Maybe<reference>;
+    inline auto get_m(Key key) const -> trc::Maybe<const_reference>;
 
 public:
     // --------------------------- //
@@ -141,8 +146,8 @@ public:
      * overwritten.
      */
     template<typename ...Args>
-        requires std::constructible_from<Component, Args&&...>
-    inline auto emplace(Key key, Args&&... args) -> Component&;
+        requires std::constructible_from<value_type, Args&&...>
+    inline auto emplace(Key key, Args&&... args) -> reference;
 
     /**
      * @brief Try to insert an object at a specific key
@@ -150,13 +155,13 @@ public:
      * Constructs the object in-place. Does not overwrite existing objects
      * at `key`.
      *
-     * @return std::pair<Component&, bool> The new object and `true` if the
+     * @return std::pair<reference, bool> The new object and `true` if the
      *         insertion was successful. The existing object and `false`
      *         otherwise.
      */
     template<typename ...Args>
-        requires std::constructible_from<Component, Args&&...>
-    inline auto try_emplace(Key key, Args&&... args) -> std::pair<Component&, bool>;
+        requires std::constructible_from<value_type, Args&&...>
+    inline auto try_emplace(Key key, Args&&... args) -> std::pair<reference, bool>;
 
 public:
     // ------------------------- //
@@ -168,10 +173,10 @@ public:
      *
      * @param Key key
      *
-     * @return Component The erased object at key `key`.
+     * @return T The erased object at key `key`.
      * @throw std::out_of_range if no object exists at key `key`
      */
-    inline auto erase(Key key) -> Component;
+    inline auto erase(Key key) -> value_type;
 
     /**
      * @brief Try to erase an object
@@ -180,20 +185,20 @@ public:
      *
      * Does nothing if no object with the specified key exists.
      *
-     * @return std::optional<Component> The erased Component if an object
+     * @return std::optional<T> The erased T if an object
      *                                  was erased, nullopt otherwise.
      */
-    inline auto try_erase(Key key) noexcept -> std::optional<Component>;
+    inline auto try_erase(Key key) noexcept -> std::optional<value_type>;
 
     /**
      * @brief Try to erase an object
      *
      * @param Key key
      *
-     * @return trc::Maybe<Component> Nothing if no object was erased, the
+     * @return trc::Maybe<T> Nothing if no object was erased, the
      *                               erased object otherwise.
      */
-    inline auto erase_m(Key key) noexcept -> trc::Maybe<Component>;
+    inline auto erase_m(Key key) noexcept -> trc::Maybe<value_type>;
 
     /**
      * @brief Erase all objects and keys from the table
@@ -230,18 +235,18 @@ public:
     // -------------------------- //
 
     // iterator types
-    using ValueIterator = TableValueIterator<Table<Component, Key>>;
-    using KeyIterator = TableKeyIterator<Table<Component, Key>>;
-    using PairIterator = TablePairIterator<Table<Component, Key>>;
+    using ValueIterator = TableValueIterator<Table<T, Key>>;
+    using KeyIterator = TableKeyIterator<Table<T, Key>>;
+    using PairIterator = TablePairIterator<Table<T, Key>>;
     template<typename Other>
-    using JoinIterator = TableJoinIterator<Table<Component, Key>, Other>;
+    using JoinIterator = TableJoinIterator<Table<T, Key>, Other>;
 
     // const-iterator types
-    using ConstValueIterator = const TableValueIterator<const Table<Component, Key>>;
-    using ConstKeyIterator = const TableKeyIterator<const Table<Component, Key>>;
-    using ConstPairIterator = const TablePairIterator<const Table<Component, Key>>;
+    using ConstValueIterator = const TableValueIterator<const Table<T, Key>>;
+    using ConstKeyIterator = const TableKeyIterator<const Table<T, Key>>;
+    using ConstPairIterator = const TablePairIterator<const Table<T, Key>>;
     template<typename Other>
-    using ConstJoinIterator = const TableJoinIterator<Table<Component, Key>, Other>;
+    using ConstJoinIterator = const TableJoinIterator<Table<T, Key>, Other>;
 
     friend ValueIterator;
     friend ConstValueIterator;
@@ -286,21 +291,21 @@ private:
 
     inline auto _index_at_key(Key key) -> IndexType&;
     inline auto _index_at_key(Key key) const -> const IndexType&;
-    inline auto _do_get(IndexType index) -> Component&;
-    inline auto _do_get(IndexType index) const -> const Component&;
+    inline auto _do_get(IndexType index) -> reference;
+    inline auto _do_get(IndexType index) const -> const_reference;
     template<typename ...Args>
-    inline auto _do_emplace(IndexType index, Args&&... args) -> Component&;
+    inline auto _do_emplace(IndexType index, Args&&... args) -> reference;
     template<typename ...Args>
-    inline auto _do_emplace_back(Args&&... args) -> std::pair<IndexType, Component&>;
-    inline auto _do_erase_unsafe(Key key) -> Component;
+    inline auto _do_emplace_back(Args&&... args) -> std::pair<IndexType, reference>;
+    inline auto _do_erase_unsafe(Key key) -> value_type;
 
     std::vector<StoredType> objects;
     std::vector<IndexType> indices;
 };
 
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 template<typename TableType>
-auto Table<Component, Key>::join(TableType& other)
+auto Table<T, Key>::join(TableType& other)
     -> IteratorRange<JoinIterator<TableType>>
 {
     return IteratorRange(
@@ -312,9 +317,9 @@ auto Table<Component, Key>::join(TableType& other)
     );
 }
 
-template<typename Component, TableKey Key>
+template<typename T, TableKey Key>
 template<typename TableType>
-auto Table<Component, Key>::join(const TableType& other) const
+auto Table<T, Key>::join(const TableType& other) const
     -> IteratorRange<ConstJoinIterator<TableType>>
 {
     return IteratorRange(
