@@ -406,21 +406,22 @@ inline void ComponentStorage<Derived, Key>::deleteObject(Key obj)
         }
     }
 
-    objectIdPool.free(obj);
+    objectIdPool.free(static_cast<uint32_t>(obj));
 }
 
 template<typename Derived, TableKey Key>
 template<ComponentType C>
 inline auto ComponentStorage<Derived, Key>::getTable() -> Table<C, TableKeyType>&
 {
-    // This is probably the first and only point of instantiation for the template
+    // This is, together with the const-variant of this function, the only
+    // point of instantiation for the template
     using Base = ComponentBase<C>;
 
-    if (tables.size() <= Base::id) {
-        tables.resize(Base::id + 1);
+    if (tables.size() <= Base::getComponentId()) {
+        tables.resize(Base::getComponentId() + 1);
     }
 
-    auto& el = tables.at(Base::id);
+    auto& el = tables.at(Base::getComponentId());
     if (el == nullptr)
     {
         el = std::unique_ptr<Table<C, TableKeyType>, Del>(
@@ -439,11 +440,11 @@ inline auto ComponentStorage<Derived, Key>::getTable() const -> const Table<C, T
     // This is probably the first and only point of instantiation for the template
     using Base = ComponentBase<C>;
 
-    if (tables.size() <= Base::id) {
-        tables.resize(Base::id + 1);
+    if (tables.size() <= Base::getComponentId()) {
+        tables.resize(Base::getComponentId() + 1);
     }
 
-    auto& el = tables.at(Base::id);
+    auto& el = tables.at(Base::getComponentId());
     if (el == nullptr)
     {
         el = std::unique_ptr<Table<C, TableKeyType>, Del>(

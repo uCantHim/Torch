@@ -24,8 +24,8 @@ struct TableJoinIterator
     using KeyT = typename TableT::key_type;
     using KeyU = typename TableU::key_type;
 
-    using KeyIteratorT = TableKeyIterator<TableT>;
-    using KeyIteratorU = TableKeyIterator<TableU>;
+    using KeyIteratorT = typename TableT::KeyIterator;
+    using KeyIteratorU = typename TableU::KeyIterator;
 
     /**
      * A structure representing a single row in a join of two tables

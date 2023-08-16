@@ -79,7 +79,7 @@ auto trc::DrawableComponentScene::getMaxRayDeviceDataSize() const -> size_t
 
 auto trc::DrawableComponentScene::getMaxRayGeometryInstances() const -> ui32
 {
-    return get<rt::GeometryInstance>().size();
+    return rayInstances.size();
 }
 
 auto trc::DrawableComponentScene::writeTlasInstances(
@@ -87,10 +87,17 @@ auto trc::DrawableComponentScene::writeTlasInstances(
     const ui32 maxInstances) const
     -> ui32
 {
-    const size_t numInstances = glm::min(size_t{maxInstances},
-                                         get<rt::GeometryInstance>().size());
-    const size_t size = numInstances * sizeof(rt::GeometryInstance);
-    memcpy(instanceBuf, get<rt::GeometryInstance>().data(), size);
+    size_t numInstances = 0;
+    for (const auto& inst : get<rt::GeometryInstance>())
+    {
+        if (numInstances >= maxInstances) {
+            break;
+        }
+        instanceBuf[numInstances] = inst;
+        ++numInstances;
+    }
+
+    assert(numInstances <= maxInstances);
 
     return numInstances;
 }

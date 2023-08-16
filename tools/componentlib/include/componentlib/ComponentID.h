@@ -21,15 +21,19 @@ struct ComponentID
     constexpr ComponentID() = default;
     constexpr ComponentID(NoneType) : ComponentID() {}
 
+    explicit ComponentID(uint32_t _id) : id(_id) {}
+
     /**
      * @throw std::invalid_argument if `*this == NONE`.
      */
-    constexpr explicit operator uint32_t() const
+    template<typename T> requires std::constructible_from<T, uint32_t>
+                               && std::is_integral_v<T>
+    constexpr explicit operator T() const
     {
         if (*this == NONE) {
-            throw std::invalid_argument("Unable to cast ComponentID that is NONE to uint32_t!");
+            throw std::invalid_argument("Unable to cast ComponentID that is NONE to a number!");
         }
-        return id;
+        return T{id};
     }
 
     constexpr auto operator=(const NoneType&) -> ComponentID&
@@ -59,24 +63,9 @@ struct ComponentID
     }
 
 private:
-    // Make ComponentID able to be used as a Table<> key
-    template<typename, TableKey> friend class Table;
-    template<typename>           friend struct TableKeyIterator;
-
-    template<typename, TableKey>
-    friend class ComponentStorage;  // Required for ID allocation
-    friend struct std::hash<ComponentID>;
-
-    explicit ComponentID(uint32_t _id) : id(_id) {}
-
-    template<typename T> requires std::is_integral_v<T>
-    constexpr operator T() const
-    {
-        if (*this == NONE) {
-            throw std::invalid_argument("Unable to cast ComponentID that is NONE to uint32_t!");
-        }
-        return static_cast<T>(id);
-    }
+    // template<typename, TableKey>
+    // friend class ComponentStorage;  // Required for ID allocation
+    // friend struct std::hash<ComponentID>;
 
     uint32_t id{ UINT32_MAX };
 };

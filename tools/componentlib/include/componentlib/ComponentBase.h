@@ -24,8 +24,9 @@ private:
 template<typename Derived>
 struct ComponentBase
 {
-    template<typename, TableKey>
-    friend class ComponentStorage;
+    static auto getComponentId() -> uint64_t {
+        return id;
+    }
 
 private:
     static inline const uint64_t id{ ComponentCrtpBaseIdProvider::nextId++ };
@@ -34,11 +35,8 @@ private:
 /**
  * @brief Ensures that a type is a valid component type
  *
- * The constraint used to be `std::derived_from<T, ComponentBase<T>>`, but
- * that doesn't permit plug-and-play for any random type, which I want to
- * have. Especially for third-party types we'd have to create a new class
- * that inherits from the type, but then constructors and other special
- * functions don't work anymore, etc..
+ * It turns out that we don't really need any restrictions, so this is
+ * currently a placeholder.
  */
 template<typename T>
 concept ComponentType = true;

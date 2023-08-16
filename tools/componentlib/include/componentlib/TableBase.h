@@ -12,12 +12,14 @@ namespace componentlib
  * as a friend, which is the case for ComponentID.
  */
 template<typename T>
-concept TableKey = std::equality_comparable<T>;
+concept TableKey = std::equality_comparable<T>
+                && std::constructible_from<T, std::size_t>
+                && requires (T a) { static_cast<std::size_t>(a); };
 
 template<typename T>
 struct TableTraits;
 
-template<typename T, TableKey Key = uint32_t>
+template<typename T, TableKey Key, typename>
 class Table;
 
 } // namespace componentlib

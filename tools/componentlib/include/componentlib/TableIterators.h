@@ -1,9 +1,8 @@
 #pragma once
 
+#include <concepts>
 #include <iterator>
-#include <vector>
-
-#include "TableBase.h"
+#include <type_traits>
 
 namespace componentlib
 {
@@ -11,20 +10,17 @@ namespace componentlib
 template<typename TableType>
 struct TablePairIterator;
 
-template<typename T>
-constexpr bool isConst = !std::is_same_v<T, std::remove_cv_t<T>>;
-
 /**
- * @brief Iterator over keys in a table
+ * @brief Iterator over key/value pairs in a table
  */
 template<typename TableType>
-struct TableValueIterator
+struct TablePairIterator
 {
 private:
-    using VectorIterator = std::conditional_t<
+    using KeyIterator = std::conditional_t<
         std::is_const_v<TableType>,
-        typename std::vector<typename TableType::StoredType>::const_iterator,
-        typename std::vector<typename TableType::StoredType>::iterator
+        typename TableType::ConstKeyIterator,
+        typename TableType::KeyIterator
     >;
 
 public:
@@ -35,126 +31,11 @@ public:
 
     using difference_type = size_t;
 
-    // Bidirectional for now. LegacyRandomAccessIterator is much more complex
-    using iterator_category = std::bidirectional_iterator_tag;
-
-    TableValueIterator() = default;
-    explicit
-    TableValueIterator(VectorIterator it);
-
-    TableValueIterator(const TableValueIterator&) = default;
-    auto operator=(const TableValueIterator&) -> TableValueIterator& = default;
-    TableValueIterator(TableValueIterator&&) noexcept = default;
-    auto operator=(TableValueIterator&&) noexcept -> TableValueIterator& = default;
-
-    ~TableValueIterator() = default;
-
-    // Prefix
-    auto operator++() -> TableValueIterator&;
-    // Postfix
-    auto operator++(int) -> TableValueIterator;
-
-    // Prefix
-    auto operator--() -> TableValueIterator&;
-    // Postfix
-    auto operator--(int) -> TableValueIterator;
-
-    auto operator*()       -> value_type&
-        requires (!std::is_const_v<TableType>);
-    auto operator*() const -> const value_type&;
-    auto operator->()       -> value_type*
-        requires (!std::is_const_v<TableType>);
-    auto operator->() const -> const value_type*;
-
-    bool operator==(const TableValueIterator& a) const;
-    bool operator!=(const TableValueIterator& a) const;
-
-    void swap(TableValueIterator& other);
-
-private:
-    auto getCurrentRef() -> value_type&;
-    auto getCurrentRef() const -> const value_type&;
-    VectorIterator it;
-};
-/**
- * @brief Iterator over keys in a table
- */
-template<typename TableType>
-struct TableKeyIterator
-{
-    using value_type = typename TableType::value_type;
-    using conditionally_const_value_type
-        = std::conditional_t<isConst<TableType>, const value_type, value_type>;
-    using key_type = typename TableType::key_type;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    using difference_type = size_t;
-
-    // Bidirectional for now. LegacyRandomAccessIterator is much more complex
-    using iterator_category = std::bidirectional_iterator_tag;
-
-    TableKeyIterator() = default;
-    TableKeyIterator(typename std::vector<size_t>::const_iterator it, TableType& table);
-
-    TableKeyIterator(const TableKeyIterator&) = default;
-    auto operator=(const TableKeyIterator&) -> TableKeyIterator& = default;
-    TableKeyIterator(TableKeyIterator&&) noexcept = default;
-    auto operator=(TableKeyIterator&&) noexcept -> TableKeyIterator& = default;
-
-    ~TableKeyIterator() = default;
-
-    // Prefix
-    auto operator++() -> TableKeyIterator&;
-    // Postfix
-    auto operator++(int) -> TableKeyIterator;
-
-    // Prefix
-    auto operator--() -> TableKeyIterator&;
-    // Postfix
-    auto operator--(int) -> TableKeyIterator;
-
-    auto operator*()       -> key_type&;
-    auto operator*() const -> const key_type&;
-    auto operator->()       -> key_type*;
-    auto operator->() const -> const key_type*;
-
-    bool operator==(const TableKeyIterator& a) const;
-    bool operator!=(const TableKeyIterator& a) const;
-
-    void swap(TableKeyIterator& other);
-
-    /**
-     * @brief Query the value at the iterator's current key
-     *
-     * @return Component
-     */
-    auto queryValue() -> conditionally_const_value_type&;
-
-private:
-    inline void incrementCurrentKey();
-    inline void decrementCurrentKey();
-
-    typename std::vector<size_t>::const_iterator it;
-    TableType* table;
-
-    key_type currentKey;
-};
-
-/**
- * @brief Iterator over key/value pairs in a table
- */
-template<typename TableType>
-struct TablePairIterator
-{
-    using value_type = typename TableType::value_type;
-    using conditionally_const_value_type
-        = typename TableKeyIterator<TableType>::conditionally_const_value_type;
-    using key_type = typename TableType::key_type;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    using difference_type = size_t;
+    using conditionally_const_value_type = std::conditional_t<
+        std::is_const_v<TableType>,
+        const value_type,
+        value_type
+    >;
 
     // Bidirectional for now. LegacyRandomAccessIterator is much more complex
     using iterator_category = std::bidirectional_iterator_tag;
@@ -166,7 +47,7 @@ struct TablePairIterator
     };
 
     TablePairIterator() = default;
-    explicit TablePairIterator(TableKeyIterator<TableType> it);
+    explicit TablePairIterator(KeyIterator it);
 
     TablePairIterator(const TablePairIterator&) = default;
     auto operator=(const TablePairIterator&) -> TablePairIterator& = default;
@@ -194,10 +75,80 @@ struct TablePairIterator
     void swap(TablePairIterator& other);
 
 private:
-    TableKeyIterator<TableType> keyIt;
+    KeyIterator keyIt;
 };
 
 
-#include "TableIterators.inl"
+
+// ----------------------- //
+//      Pair Iterator      //
+// ----------------------- //
+
+template<typename TableType>
+inline TablePairIterator<TableType>::TablePairIterator(KeyIterator it)
+    :
+    keyIt(it)
+{
+}
+
+template<typename TableType>
+inline auto TablePairIterator<TableType>::operator*() -> KeyValuePair
+{
+    return { *keyIt, keyIt.queryValue() };
+}
+
+template<typename TableType>
+inline auto TablePairIterator<TableType>::operator*() const -> const KeyValuePair
+{
+    return { *keyIt, keyIt.queryValue() };
+}
+
+template<typename TableType>
+inline auto TablePairIterator<TableType>::operator++() -> TablePairIterator&
+{
+    ++keyIt;
+    return *this;
+}
+
+template<typename TableType>
+inline auto TablePairIterator<TableType>::operator++(int) -> TablePairIterator
+{
+    auto result = *this;
+    ++*this;
+    return result;
+}
+
+template<typename TableType>
+inline auto TablePairIterator<TableType>::operator--() -> TablePairIterator&
+{
+    --keyIt;
+    return *this;
+}
+
+template<typename TableType>
+inline auto TablePairIterator<TableType>::operator--(int) -> TablePairIterator
+{
+    auto result = *this;
+    --*this;
+    return result;
+}
+
+template<typename TableType>
+inline bool TablePairIterator<TableType>::operator==(const TablePairIterator& other) const
+{
+    return other.keyIt == keyIt;
+}
+
+template<typename TableType>
+inline bool TablePairIterator<TableType>::operator!=(const TablePairIterator& other) const
+{
+    return other.keyIt != keyIt;
+}
+
+template<typename TableType>
+inline void TablePairIterator<TableType>::swap(TablePairIterator& other)
+{
+    std::swap(other.keyIt, keyIt);
+}
 
 } // namespace componentlib

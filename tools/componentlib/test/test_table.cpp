@@ -55,6 +55,33 @@ TEST(TableTest, KeyIterator)
     ASSERT_THAT(keys, testing::ElementsAre(1, 3, 7, 8));
 }
 
+TEST(TableTest, PairIterator)
+{
+    constexpr int kNumElems = 2000;
+
+    Table<std::string> table;
+    for (int i = 0; i < kNumElems; ++i) {
+        table.emplace(i, "elem #" + std::to_string(i));
+    }
+    for (int i = 0; i < kNumElems; ++i)
+    {
+        if (i % 2 == 1) {
+            table.erase(i);
+        }
+    }
+
+    int i = 0;
+    for (const auto& [key, str] : table.items())
+    {
+        ASSERT_EQ(i * 2, key);
+        ASSERT_EQ(str, "elem #" + std::to_string(i * 2));
+        ASSERT_EQ(str, "elem #" + std::to_string(key));
+        ++i;
+    }
+
+    ASSERT_EQ(i, kNumElems / 2);
+}
+
 TEST(TableTest, TwoTableJoin)
 {
     Table<int> table;
