@@ -26,7 +26,7 @@ using trc::algorithm::IteratorRange;
  * Database-style table interface. May be backed by different implementations
  * based on the tradeoffs you want to make.
  */
-template<typename T, typename Key = uint32_t, typename Impl = IndirectTableImpl<T, Key>>
+template<typename T, typename Key = uint32_t, typename Impl = StableTableImpl<T, Key>>
 class Table
 {
 public:

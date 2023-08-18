@@ -6,21 +6,27 @@
 
 #include <trc_util/data/IdPool.h>
 
-#include "Table.h"
 #include "ComponentBase.h"
+#include "Table.h"
 
 namespace componentlib
 {
 
 /**
- * @brief Declares callbacks for component construction and deletion
+ * @brief Declares additional settings for a component type
  *
- * @tparam T The type of component for which callbacks are being defined
+ * @tparam T The type of component for which the specialization is declared.
  *
- * Create specializations for components to have functions called on
- * creation or destruction of those components. Possible callback names are
- * `onCreate` and `onDelete`. Both of them take the owning storage, the
- * object ID, and the created/deleted object.
+ * Specializations may define a `TableImpl<KeyT>` template. This template
+ * defines the `Table<>` implementation to use for the specialization's
+ * component type. As hinted above, this template has one type parameter, which
+ * is the key type for the table. If no such template is defined,
+ * `DefaultComponentTableImpl<T, KeyT>` is used instead.
+ *
+ * Define specializations of this template to define callbacks for creation or
+ * destruction of components. Possible callbacks are `onCreate` and `onDelete`.
+ * Both of them take the owning storage, the object ID, and the created/deleted
+ * object.
  *
  * Note that `onDelete`, if it is defined, takes the *already deleted*
  * component as an *l-value*. At the time `onDelete` is called, the
@@ -32,6 +38,9 @@ namespace componentlib
  *
  *     template<> struct ComponentTraits<MyComponent>
  *     {
+ *         template<typename KeyT>
+ *         using TableImpl = StableTableImpl<MyComponent, KeyT>;
+ *
  *         void onCreate(MyStorage& storage, Key obj, MyComponent& comp)
  *         {
  *             // ...
@@ -46,6 +55,9 @@ namespace componentlib
  */
 template<ComponentType T>
 struct ComponentTraits;
+
+template<ComponentType T, typename KeyT>
+using DefaultComponentTableImpl = StableTableImpl<T, KeyT>;
 
 /**
  * This structure only exists to make the use of the `ComponentStorage::createObject`
@@ -118,6 +130,24 @@ class ComponentStorage
 {
 private:
     using TableKeyType = Key;
+
+    // Table implementation type for components that use the default definition
+    template<ComponentType C>
+    struct TableImpl {
+        using Type = DefaultComponentTableImpl<C, TableKeyType>;
+    };
+
+    // Table implementation type for component traits that define a TableImpl
+    // template.
+    template<ComponentType C>
+        requires requires { typename ComponentTraits<C>::template TableImpl<TableKeyType>; }
+    struct TableImpl<C> {
+        using Type = typename ComponentTraits<C>::template TableImpl<TableKeyType>;
+    };
+
+    // The type of table used for a component type
+    template<ComponentType C>
+    using TableType = Table<C, TableKeyType, typename TableImpl<C>::Type>;
 
     template<ComponentType C>
     static constexpr bool hasComponentConstructor =
@@ -253,7 +283,7 @@ public:
      * Useful for iterating over all components of a type
      */
     template<ComponentType C>
-    inline auto get() -> Table<C, TableKeyType>&
+    inline auto get() -> TableType<C>&
     {
         return getTable<C>();
     }
@@ -264,7 +294,7 @@ public:
      * Useful for iterating over all components of a type
      */
     template<ComponentType C>
-    inline auto get() const -> const Table<C, TableKeyType>&
+    inline auto get() const -> const TableType<C>&
     {
         return getTable<C>();
     }
@@ -275,7 +305,7 @@ public:
      * Useful for iterating over all components of a type
      */
     template<ComponentType C>
-    inline auto getTable() -> Table<C, TableKeyType>&;
+    inline auto getTable() -> TableType<C>&;
 
     /**
      * @brief Get the underlying table for a component
@@ -283,7 +313,7 @@ public:
      * Useful for iterating over all components of a type
      */
     template<ComponentType C>
-    inline auto getTable() const -> const Table<C, TableKeyType>&;
+    inline auto getTable() const -> const TableType<C>&;
 
     /**
      * @brief Remove and destroy a component
@@ -323,7 +353,7 @@ private:
     //  Basic table-handling and storage  //
     ////////////////////////////////////////
 
-    trc::data::IdPool<uint64_t> objectIdPool;
+    trc::data::IdPool<size_t> objectIdPool;
 
     using Del = std::function<void(void*)>;
     mutable std::vector<std::unique_ptr<void, Del>> tables;
@@ -411,7 +441,7 @@ inline void ComponentStorage<Derived, Key>::deleteObject(Key obj)
 
 template<typename Derived, TableKey Key>
 template<ComponentType C>
-inline auto ComponentStorage<Derived, Key>::getTable() -> Table<C, TableKeyType>&
+inline auto ComponentStorage<Derived, Key>::getTable() -> TableType<C>&
 {
     // This is, together with the const-variant of this function, the only
     // point of instantiation for the template
@@ -424,18 +454,18 @@ inline auto ComponentStorage<Derived, Key>::getTable() -> Table<C, TableKeyType>
     auto& el = tables.at(Base::getComponentId());
     if (el == nullptr)
     {
-        el = std::unique_ptr<Table<C, TableKeyType>, Del>(
-            new Table<C, TableKeyType>(),
-            [](void* ptr) { delete static_cast<Table<C, TableKeyType>*>(ptr); }
+        el = std::unique_ptr<TableType<C>, Del>(
+            new TableType<C>(),
+            [](void* ptr) { delete static_cast<TableType<C>*>(ptr); }
         );
     }
 
-    return *static_cast<Table<C, TableKeyType>*>(el.get());
+    return *static_cast<TableType<C>*>(el.get());
 }
 
 template<typename Derived, TableKey Key>
 template<ComponentType C>
-inline auto ComponentStorage<Derived, Key>::getTable() const -> const Table<C, TableKeyType>&
+inline auto ComponentStorage<Derived, Key>::getTable() const -> const TableType<C>&
 {
     // This is probably the first and only point of instantiation for the template
     using Base = ComponentBase<C>;
@@ -447,13 +477,13 @@ inline auto ComponentStorage<Derived, Key>::getTable() const -> const Table<C, T
     auto& el = tables.at(Base::getComponentId());
     if (el == nullptr)
     {
-        el = std::unique_ptr<Table<C, TableKeyType>, Del>(
-            new Table<C, TableKeyType>(),
-            [](void* ptr) { delete static_cast<Table<C, TableKeyType>*>(ptr); }
+        el = std::unique_ptr<TableType<C>, Del>(
+            new TableType<C>(),
+            [](void* ptr) { delete static_cast<TableType<C>*>(ptr); }
         );
     }
 
-    return *static_cast<const Table<C, TableKeyType>*>(el.get());
+    return *static_cast<const TableType<C>*>(el.get());
 }
 
 template<typename Derived, TableKey Key>
