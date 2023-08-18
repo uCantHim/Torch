@@ -22,7 +22,7 @@ namespace componentlib
      * Useful for concurrent work *if* space (i.e. chunk memory) is allocated
      * beforehand via `reserve`.
      */
-    template<typename T, TableKey Key>
+    template<typename T, TableKey Key, size_t ChunkSize = 64>
     class StableTableImpl
     {
     public:
@@ -107,7 +107,7 @@ namespace componentlib
             { std::declval<ConstKeyIterator>().operator->() }   -> std::same_as<const key_type*>;
         });
 
-        static constexpr size_type kChunkSize = 40;
+        static constexpr size_type kChunkSize = ChunkSize;
 
         static constexpr auto chunkIndex(key_type index) -> size_type {
             return static_cast<size_type>(index) / kChunkSize;
@@ -123,8 +123,8 @@ namespace componentlib
 
 
 
-    template<typename T, TableKey Key>
-    void StableTableImpl<T, Key>::reserve(size_type minElems)
+    template<typename T, TableKey Key, size_t ChunkSize>
+    void StableTableImpl<T, Key, ChunkSize>::reserve(size_type minElems)
     {
         const size_type size = (minElems / kChunkSize) + 1;
         for (size_type i = chunks.size(); i < size; ++i) {
@@ -132,16 +132,16 @@ namespace componentlib
         }
     }
 
-    template<typename T, TableKey Key>
-    bool StableTableImpl<T, Key>::contains(key_type key) const
+    template<typename T, TableKey Key, size_t ChunkSize>
+    bool StableTableImpl<T, Key, ChunkSize>::contains(key_type key) const
     {
         const size_type chunk = chunkIndex(key);
         const size_type elem = elemIndex(key);
         return chunks.size() > chunk && chunks.at(chunk)->valid(elem);
     }
 
-    template<typename T, TableKey Key>
-    auto StableTableImpl<T, Key>::at(key_type key) -> pointer
+    template<typename T, TableKey Key, size_t ChunkSize>
+    auto StableTableImpl<T, Key, ChunkSize>::at(key_type key) -> pointer
     {
         if (!contains(key)) {
             return nullptr;
@@ -149,8 +149,8 @@ namespace componentlib
         return &chunks.at(chunkIndex(key))->at(elemIndex(key));
     }
 
-    template<typename T, TableKey Key>
-    auto StableTableImpl<T, Key>::at(key_type key) const -> const_pointer
+    template<typename T, TableKey Key, size_t ChunkSize>
+    auto StableTableImpl<T, Key, ChunkSize>::at(key_type key) const -> const_pointer
     {
         if (!contains(key)) {
             return nullptr;
@@ -158,9 +158,9 @@ namespace componentlib
         return &chunks.at(chunkIndex(key))->at(elemIndex(key));
     }
 
-    template<typename T, TableKey Key>
+    template<typename T, TableKey Key, size_t ChunkSize>
     template<typename ...Args>
-    auto StableTableImpl<T, Key>::emplace(key_type key, Args&&... args) -> reference
+    auto StableTableImpl<T, Key, ChunkSize>::emplace(key_type key, Args&&... args) -> reference
     {
         reserve(key);
 
@@ -169,8 +169,8 @@ namespace componentlib
         return chunks.at(chunk)->emplace(elem, std::forward<Args>(args)...);
     }
 
-    template<typename T, TableKey Key>
-    bool StableTableImpl<T, Key>::erase(key_type key)
+    template<typename T, TableKey Key, size_t ChunkSize>
+    bool StableTableImpl<T, Key, ChunkSize>::erase(key_type key)
     {
         if (contains(key))
         {
@@ -182,8 +182,8 @@ namespace componentlib
         return false;
     }
 
-    template<typename T, TableKey Key>
-    void StableTableImpl<T, Key>::clear()
+    template<typename T, TableKey Key, size_t ChunkSize>
+    void StableTableImpl<T, Key, ChunkSize>::clear()
     {
         chunks = {};
     }

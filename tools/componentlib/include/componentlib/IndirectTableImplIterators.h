@@ -23,15 +23,20 @@ private:
     >;
 
 public:
-    using value_type = typename TableType::value_type;
-    using key_type = typename TableType::key_type;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    using difference_type = size_t;
-
     // Bidirectional for now. LegacyRandomAccessIterator is much more complex
     using iterator_category = std::bidirectional_iterator_tag;
+
+    using value_type = typename TableType::value_type;
+    using conditionally_const_value_type = std::conditional_t<
+        std::is_const_v<TableType>,
+        std::add_const_t<value_type>,
+        value_type
+    >;
+    using reference = conditionally_const_value_type&;
+    using pointer = conditionally_const_value_type*;
+    using key_type = typename TableType::key_type;
+
+    using difference_type = size_t;
 
     IndirectTableValueIterator() = default;
     explicit
@@ -54,12 +59,8 @@ public:
     // Postfix
     auto operator--(int) -> IndirectTableValueIterator;
 
-    auto operator*()       -> value_type&
-        requires (!std::is_const_v<TableType>);
-    auto operator*() const -> const value_type&;
-    auto operator->()       -> value_type*
-        requires (!std::is_const_v<TableType>);
-    auto operator->() const -> const value_type*;
+    auto operator*() -> reference;
+    auto operator->() -> pointer;
 
     bool operator==(const IndirectTableValueIterator& a) const;
     bool operator!=(const IndirectTableValueIterator& a) const;
@@ -76,17 +77,15 @@ private:
 template<typename TableType>
 struct IndirectTableKeyIterator
 {
-    using value_type = typename TableType::value_type;
-    using conditionally_const_value_type
-        = std::conditional_t<std::is_const_v<TableType>, const value_type, value_type>;
-    using key_type = typename TableType::key_type;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    using difference_type = size_t;
-
     // Bidirectional for now. LegacyRandomAccessIterator is much more complex
     using iterator_category = std::bidirectional_iterator_tag;
+
+    using value_type = typename TableType::key_type;
+    using key_type = typename TableType::key_type;
+    using reference = const key_type&;
+    using pointer = const key_type*;
+
+    using difference_type = size_t;
 
     IndirectTableKeyIterator() = default;
     IndirectTableKeyIterator(typename std::vector<size_t>::const_iterator it, TableType& table);
@@ -108,22 +107,24 @@ struct IndirectTableKeyIterator
     // Postfix
     auto operator--(int) -> IndirectTableKeyIterator;
 
-    auto operator*()       -> key_type&;
-    auto operator*() const -> const key_type&;
-    auto operator->()       -> key_type*;
-    auto operator->() const -> const key_type*;
+    auto operator*() -> reference;
+    auto operator->() -> pointer;
 
     bool operator==(const IndirectTableKeyIterator& a) const;
     bool operator!=(const IndirectTableKeyIterator& a) const;
 
     void swap(IndirectTableKeyIterator& other);
 
+    using ref_to_table_value_type = std::conditional_t<std::is_const_v<TableType>,
+                                                       typename TableType::const_reference,
+                                                       typename TableType::reference>;
+
     /**
      * @brief Query the value at the iterator's current key
      *
      * @return Component
      */
-    auto queryValue() -> conditionally_const_value_type&;
+    auto queryValue() -> ref_to_table_value_type&;
 
 private:
     inline void incrementCurrentKey();
@@ -149,27 +150,13 @@ inline IndirectTableValueIterator<TableType>::IndirectTableValueIterator(VectorI
 }
 
 template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::operator*() -> value_type&
-    requires (!std::is_const_v<TableType>)
+inline auto IndirectTableValueIterator<TableType>::operator*() -> reference
 {
     return *it;
 }
 
 template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::operator*() const -> const value_type&
-{
-    return *it;
-}
-
-template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::operator->() -> value_type*
-    requires (!std::is_const_v<TableType>)
-{
-    return &*it;
-}
-
-template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::operator->() const -> const value_type*
+inline auto IndirectTableValueIterator<TableType>::operator->() -> pointer
 {
     return &*it;
 }
@@ -245,25 +232,13 @@ inline IndirectTableKeyIterator<TableType>::IndirectTableKeyIterator(
 }
 
 template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::operator*() -> key_type&
+inline auto IndirectTableKeyIterator<TableType>::operator*() -> reference
 {
     return currentKey;
 }
 
 template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::operator*() const -> const key_type&
-{
-    return currentKey;
-}
-
-template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::operator->() -> key_type*
-{
-    return &currentKey;
-}
-
-template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::operator->() const -> const key_type*
+inline auto IndirectTableKeyIterator<TableType>::operator->() -> pointer
 {
     return &currentKey;
 }
@@ -326,7 +301,7 @@ inline void IndirectTableKeyIterator<TableType>::swap(IndirectTableKeyIterator& 
 }
 
 template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::queryValue() -> conditionally_const_value_type&
+inline auto IndirectTableKeyIterator<TableType>::queryValue() -> ref_to_table_value_type&
 {
     assert(table->at(currentKey) != nullptr);
     return *table->at(currentKey);

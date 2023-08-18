@@ -10,22 +10,8 @@ namespace componentlib
     class StableTableIterator
     {
     public:
-        using iterator_category = std::forward_iterator_tag;
-
-        using value_type = typename TableType::value_type;
-        using reference = typename TableType::reference;
-        using const_reference = typename TableType::const_reference;
-        using pointer = typename TableType::pointer;
-        using const_pointer = typename TableType::const_pointer;
         using key_type = typename TableType::key_type;
-
         using size_type = typename TableType::size_type;
-
-        using conditionally_const_value_type = std::conditional_t<
-            std::is_const_v<TableType>,
-            const typename TableType::value_type,
-            typename TableType::value_type
-        >;
 
         StableTableIterator(TableType& _table, key_type keyPos)
             :
@@ -70,24 +56,32 @@ namespace componentlib
     };
 
     template<typename TableType>
-    struct StableTableValueIterator
-        : public StableTableIterator<TableType>
+    struct StableTableValueIterator : public StableTableIterator<TableType>
     {
-        using Base = StableTableIterator<TableType>;
-        using key_type = typename Base::key_type;
+        using iterator_category = std::forward_iterator_tag;
 
-        using typename Base::conditionally_const_value_type;
+        using Base = StableTableIterator<TableType>;
+
+        using value_type = typename TableType::value_type;
+        using conditionally_const_value_type = std::conditional_t<
+            std::is_const_v<TableType>,
+            std::add_const_t<value_type>,
+            value_type
+        >;
+        using reference = conditionally_const_value_type&;
+        using pointer = conditionally_const_value_type*;
+        using typename Base::key_type;
 
         StableTableValueIterator(TableType& table, key_type key) : Base(table, key) {}
 
-        auto operator*() -> conditionally_const_value_type&
+        auto operator*() -> reference
         {
             assert(Base::table->contains(Base::key));
             assert(Base::table->at(Base::key) != nullptr);
             return *Base::table->at(Base::key);
         }
 
-        auto operator->() -> conditionally_const_value_type*
+        auto operator->() -> pointer
         {
             assert(Base::table->contains(Base::key));
             return Base::table->at(Base::key);
@@ -96,31 +90,36 @@ namespace componentlib
     };
 
     template<typename TableType>
-    struct StableTableKeyIterator
-        : public StableTableIterator<TableType>
+    struct StableTableKeyIterator : public StableTableIterator<TableType>
     {
-        using Base = StableTableIterator<TableType>;
-        using key_type = typename Base::key_type;
+        using iterator_category = std::forward_iterator_tag;
 
-        using typename Base::conditionally_const_value_type;
+        using Base = StableTableIterator<TableType>;
+
+        using typename Base::key_type;
+        using value_type = key_type;
+        using reference = const key_type&;
+        using pointer = const key_type*;
 
         StableTableKeyIterator(TableType& table, key_type key) : Base(table, key) {}
 
-        auto operator*() -> const key_type&
+        auto operator*() -> reference
         {
             assert(Base::table->contains(Base::key));
             assert(Base::table->at(Base::key) != nullptr);
             return Base::key;
         }
 
-        auto operator->() -> const key_type*
+        auto operator->() -> pointer
         {
             assert(Base::table->contains(Base::key));
             return &Base::key;
 
         }
 
-        auto queryValue() -> conditionally_const_value_type&
+        auto queryValue() -> std::conditional_t<std::is_const_v<TableType>,
+                                                typename TableType::const_reference,
+                                                typename TableType::reference>
         {
             return *Base::table->at(Base::key);
         }
