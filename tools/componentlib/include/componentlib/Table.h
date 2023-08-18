@@ -22,38 +22,8 @@ namespace componentlib
 using trc::algorithm::IteratorRange;
 
 /**
- * @brief Specializable struct that can declare options for table contents
- *
- * Options:
- *
- *  - Declare a type `UniqueStorage` in your specialization to store
- *    elements as unique_ptrs (instead of value types) in the table.
- */
-template<typename T>
-struct TableTraits
-{
-    // struct UniqueStorage {};
-};
-
-/**
- * Efficiently iterable, contiguous, index-based, database-style table.
- *
- * Manipulating operations may change memory addresses of elements. If you
- * want to take permanent pointers to objects stored in the table, declare a
- * type `UniqueStorage` in a specialized template instance of `TableTraits`
- * with your type T. This will cause instances of `Table<T>` to store their
- * elements as `std::unique_ptr<T>` instead of plain `T`s.
- *
- * Example:
- *
- *     template<>
- *     struct TableTraits<YourType>
- *     {
- *         struct UniqueStorage {};
- *     };
- *
- * Of course, this will probably trade memory contiguousness for convenient
- * usage.
+ * Database-style table interface. May be backed by different implementations
+ * based on the tradeoffs you want to make.
  */
 template<typename T, TableKey Key = uint32_t, typename Impl = IndirectTableImpl<T, Key>>
 class Table

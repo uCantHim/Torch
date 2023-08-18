@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <limits>
 #include <memory>
@@ -115,16 +116,6 @@ namespace componentlib
         auto keyEnd()   const -> ConstKeyIterator { return ConstKeyIterator(indices.end(), *this); }
 
     private:
-        static constexpr bool stableStorage = requires {
-            typename TableTraits<T>::UniqueStorage;
-        };
-
-        using StoredType = std::conditional_t<
-            stableStorage,
-            std::unique_ptr<value_type>,
-            value_type
-        >;
-
         /** Indirection index that indicates that a key does not exist */
         static constexpr size_type NONE = std::numeric_limits<size_type>::max();
 
@@ -137,7 +128,7 @@ namespace componentlib
         auto _do_emplace_back(Args&&... args) -> std::pair<size_type, reference>;
         auto _do_erase_unsafe(key_type key) -> value_type;
 
-        std::vector<StoredType> objects;
+        std::vector<value_type> objects;
         std::vector<size_type> indices;
     };
 
@@ -152,43 +143,23 @@ namespace componentlib
     template<typename T, TableKey Key>
     inline auto IndirectTableImpl<T, Key>::_do_get(size_type index) -> reference
     {
-        if constexpr (stableStorage) {
-            return *objects.at(index);
-        }
-        else {
-            return objects.at(index);
-        }
+        return objects.at(index);
     }
 
     template<typename T, TableKey Key>
     inline auto IndirectTableImpl<T, Key>::_do_get(size_type index) const -> const_reference
     {
-        if constexpr (stableStorage) {
-            return *objects.at(index);
-        }
-        else {
-            return objects.at(index);
-        }
+        return objects.at(index);
     }
 
     template<typename T, TableKey Key>
     template<typename ...Args>
     inline auto IndirectTableImpl<T, Key>::_do_emplace(size_type index, Args&&... args) -> reference
     {
-        if constexpr (stableStorage)
-        {
-            return **objects.emplace(
-                objects.begin() + index,
-                new value_type(std::forward<Args>(args)...)
-            );
-        }
-        else
-        {
-            return *objects.emplace(
-                objects.begin() + index,
-                std::forward<Args>(args)...
-            );
-        }
+        return *objects.emplace(
+            objects.begin() + index,
+            std::forward<Args>(args)...
+        );
     }
 
     template<typename T, TableKey Key>
@@ -196,20 +167,10 @@ namespace componentlib
     inline auto IndirectTableImpl<T, Key>::_do_emplace_back(Args&&... args)
         -> std::pair<size_type, reference>
     {
-        if constexpr (stableStorage)
-        {
-            return {
-                objects.size(),
-                *objects.emplace_back(new value_type(std::forward<Args>(args)...))
-            };
-        }
-        else
-        {
-            return {
-                objects.size(),
-                objects.emplace_back(std::forward<Args>(args)...)
-            };
-        }
+        return {
+            objects.size(),
+            objects.emplace_back(std::forward<Args>(args)...)
+        };
     }
 
     template<typename T, TableKey Key>
@@ -219,14 +180,7 @@ namespace componentlib
 
         // Unstably remove object
         std::swap(objects.at(index), objects.back());
-        value_type result = [this] {
-            if constexpr (stableStorage) {
-                return std::move(*objects.back());
-            }
-            else {
-                return std::move(objects.back());
-            }
-        }();
+        value_type result = std::move(objects.back());
         objects.pop_back();
 
         // Flag object as not existing and modify index that pointed at the moved object

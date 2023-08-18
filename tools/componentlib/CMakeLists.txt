@@ -1,16 +1,20 @@
 set(COMPONENTLIB_BUILD_TESTS ${TORCH_BUILD_TEST})
 
 add_library(component INTERFACE
-    include/componentlib/TableBase.h
+    include/componentlib/ComponentBase.h
+    include/componentlib/ComponentID.h
+    include/componentlib/ComponentStorage.h
+    include/componentlib/IndirectTableImpl.h
+    include/componentlib/IndirectTableImplIterators.h
+    include/componentlib/StableTableImpl.h
+    include/componentlib/StableTableImplIterators.h
     include/componentlib/Table.h
-    include/componentlib/Table.inl
-    include/componentlib/TableInternal.inl
+    include/componentlib/TableBase.h
     include/componentlib/TableIterators.h
-    include/componentlib/TableIterators.inl
     include/componentlib/TableJoinIterator.h
     include/componentlib/TableUtils.h
-    include/componentlib/ComponentStorage.h
 )
+
 target_include_directories(component INTERFACE include/)
 target_link_libraries(component INTERFACE torch_util)
 set_target_properties(component PROPERTIES LINKER_LANGUAGE CXX)

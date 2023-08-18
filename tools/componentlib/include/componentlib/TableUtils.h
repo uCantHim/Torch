@@ -19,9 +19,10 @@ namespace componentlib
 template<
     typename T, typename U,          // Table object types
     typename TKey, typename UKey,    // Table key types
+    typename TImpl, typename UImpl,
     std::invocable<TKey, T&, U&> F   // Callback type
 >
-inline void join(Table<T, TKey>& t, Table<U, UKey>& u, F func)
+inline void join(Table<T, TKey, TImpl>& t, Table<U, UKey, UImpl>& u, F&& func)
 {
     for (auto [key, t_v, u_v] : t.join(u))
     {
@@ -40,11 +41,12 @@ inline void join(Table<T, TKey>& t, Table<U, UKey>& u, F func)
  * @param F func   Callback
  */
 template<
-    typename T, typename U,       // Table object types
-    std::invocable<T&, U&> F,     // Callback type
-    typename TKey, typename UKey  // Table key types
+    typename T, typename U,          // Table object types
+    typename TKey, typename UKey,    // Table key types
+    typename TImpl, typename UImpl,
+    std::invocable<T&, U&> F         // Callback type
 >
-inline void join(Table<T, TKey>& t, Table<U, UKey>& u, F func)
+inline void join(Table<T, TKey, TImpl>& t, Table<U, UKey, UImpl>& u, F&& func)
 {
     join(t, u, [&func](auto, T& t, U& u) { func(t, u); });
 }

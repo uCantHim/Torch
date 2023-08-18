@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <concepts>
 #include <iterator>
 #include <type_traits>
@@ -17,8 +18,8 @@ struct IndirectTableValueIterator
 private:
     using VectorIterator = std::conditional_t<
         std::is_const_v<TableType>,
-        typename std::vector<typename TableType::StoredType>::const_iterator,
-        typename std::vector<typename TableType::StoredType>::iterator
+        typename std::vector<typename TableType::value_type>::const_iterator,
+        typename std::vector<typename TableType::value_type>::iterator
     >;
 
 public:
@@ -66,8 +67,6 @@ public:
     void swap(IndirectTableValueIterator& other);
 
 private:
-    auto getCurrentRef() -> value_type&;
-    auto getCurrentRef() const -> const value_type&;
     VectorIterator it;
 };
 
@@ -153,26 +152,26 @@ template<typename TableType>
 inline auto IndirectTableValueIterator<TableType>::operator*() -> value_type&
     requires (!std::is_const_v<TableType>)
 {
-    return getCurrentRef();
+    return *it;
 }
 
 template<typename TableType>
 inline auto IndirectTableValueIterator<TableType>::operator*() const -> const value_type&
 {
-    return getCurrentRef();
+    return *it;
 }
 
 template<typename TableType>
 inline auto IndirectTableValueIterator<TableType>::operator->() -> value_type*
     requires (!std::is_const_v<TableType>)
 {
-    return &getCurrentRef();
+    return &*it;
 }
 
 template<typename TableType>
 inline auto IndirectTableValueIterator<TableType>::operator->() const -> const value_type*
 {
-    return &getCurrentRef();
+    return &*it;
 }
 
 template<typename TableType>
@@ -221,28 +220,6 @@ template<typename TableType>
 inline void IndirectTableValueIterator<TableType>::swap(IndirectTableValueIterator& other)
 {
     std::swap(other.it, it);
-}
-
-template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::getCurrentRef() -> value_type&
-{
-    if constexpr (TableType::stableStorage) {
-        return **it;
-    }
-    else {
-        return *it;
-    }
-}
-
-template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::getCurrentRef() const -> const value_type&
-{
-    if constexpr (TableType::stableStorage) {
-        return **it;
-    }
-    else {
-        return *it;
-    }
 }
 
 
@@ -358,23 +335,13 @@ inline auto IndirectTableKeyIterator<TableType>::queryValue() -> conditionally_c
 template<typename TableType>
 inline void IndirectTableKeyIterator<TableType>::incrementCurrentKey()
 {
-    if constexpr (requires { ++currentKey; }) {
-        ++currentKey;
-    }
-    else {
-        currentKey = key_type(static_cast<size_t>(currentKey) + 1);
-    }
+    currentKey = key_type(static_cast<size_t>(currentKey) + 1);
 }
 
 template<typename TableType>
 inline void IndirectTableKeyIterator<TableType>::decrementCurrentKey()
 {
-    if constexpr (requires { --currentKey; }) {
-        --currentKey;
-    }
-    else {
-        currentKey = key_type(static_cast<size_t>(currentKey) - 1);
-    }
+    currentKey = key_type(static_cast<size_t>(currentKey) - 1);
 }
 
 } // namespace componentlib

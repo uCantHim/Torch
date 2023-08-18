@@ -37,16 +37,6 @@ struct TableJoinIterator
         U& u;
     };
 
-    /**
-     * A structure representing a single row in a join of two tables
-     */
-    struct ConstRowJoin
-    {
-        const KeyT key;
-        const T& t;
-        const U& u;
-    };
-
     using difference_type = size_t;
     using value_type = RowJoin;
     using reference = RowJoin;
@@ -75,16 +65,24 @@ struct TableJoinIterator
      * @brief Construct a join iterator from two key iterators
      */
     TableJoinIterator(IteratorRange<KeyIteratorT> t, IteratorRange<KeyIteratorU> u)
-        : it_t(std::begin(t)), it_u(std::begin(u))
+        :
+        it_t(std::begin(t)), it_u(std::begin(u)),
+        end_t(std::end(t)), end_u(std::end(u))
     {
-        while (it_t != std::end(t) && *it_t < *it_u) ++it_t;
-        while (it_u != std::end(u) && *it_u < *it_t) ++it_u;
+        // Try to catch `u` up to `t`
+        while (it_t != std::end(t) && it_u != std::end(u) && *it_u < *it_t) ++it_u;
 
         // If one of the iterators is end, set both to end
         if (it_t == std::end(t) || it_u == std::end(u))
         {
             it_t = std::end(t);
             it_u = std::end(u);
+            return;
+        }
+
+        // `u` is larger than `t`. Try to find the next join pair.
+        if (*it_t != *it_u) {
+            findNextMatch();
         }
     }
 
@@ -108,14 +106,9 @@ struct TableJoinIterator
         return { *it_t, it_t.queryValue(), it_u.queryValue() };
     }
 
-    auto operator*() const -> ConstRowJoin
-    {
-        return { *it_t, it_t.table->get(*it_t), it_u.table->get(*it_u) };
-    }
-
     bool operator==(const TableJoinIterator& other) const
     {
-        return it_t == other.it_t || it_u == other.it_u;
+        return it_t == other.it_t && it_u == other.it_u;
     }
 
     bool operator!=(const TableJoinIterator& other) const
@@ -127,21 +120,44 @@ struct TableJoinIterator
     {
         std::swap(it_t, other.it_t);
         std::swap(it_u, other.it_u);
+        std::swap(end_t, other.end_t);
+        std::swap(end_u, other.end_u);
     }
 
 private:
     void findNextMatch()
     {
+        // Ensure correctness of the implementation
+        assert((it_t == end_t && it_u == end_u)
+            || (it_t != end_t && it_u != end_u));
+
+        // A courtesy to detect disallowed usage
+        assert(it_t != end_t && "Tried to increment a past-the-end iterator.");
+
         do {
-            ++it_u;
-            while (*it_t < *it_u) {
-                ++it_t;
+            // First, increment `t`.
+            ++it_t;
+            if (it_t == end_t)  // If either is `end`, set both to `end`.
+            {
+                it_u = end_u;
+                break;
             }
-        } while (*it_t != *it_u);
+
+            // Now try to catch `u` up to `t`.
+            while (it_u != end_u && *it_u < *it_t) ++it_u;
+            if (it_u == end_u)  // If either is `end`, set both to `end`.
+            {
+                it_t = end_t;
+                break;
+            }
+        } while (*it_u != *it_t);
     }
 
     KeyIteratorT it_t;
     KeyIteratorU it_u;
+
+    KeyIteratorT end_t;
+    KeyIteratorU end_u;
 };
 
 } // namespace componentlib

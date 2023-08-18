@@ -1,3 +1,4 @@
+#include <unordered_set>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -6,7 +7,9 @@ namespace t = testing;
 
 #include <componentlib/Table.h>
 #include <componentlib/TableUtils.h>
-using namespace componentlib;
+
+template<typename Value>
+using Table = componentlib::Table<Value, uint32_t, TABLE_IMPL_TEMPLATE<Value, uint32_t>>;
 
 auto createJoin(auto& a, auto& b)
 {
@@ -36,7 +39,44 @@ auto createJoinIt(auto& a, auto& b)
 
 
 
-TEST(TableTest, KeyIterator)
+TEST(TABLE_TEST_NAME, Iterator)
+{
+    constexpr int kNumElems = 3000;
+
+    const std::unordered_set<std::string> set = []{
+        std::unordered_set<std::string> set;
+        for (int i = 0; i < kNumElems; ++i) {
+            set.emplace("elem #" + std::to_string(i));
+        }
+        return set;
+    }();
+
+    Table<std::string> table;
+    std::unordered_set<std::string> truth;
+    for (int i = 0; const auto& str : set)
+    {
+        if (i % 2 == 0) {
+            table.emplace(i, str);
+            truth.emplace(str);
+        }
+        if (i % 5 == 0) {
+            if (table.try_erase(i)) {
+                truth.erase(str);
+            }
+        }
+        ++i;
+    }
+
+    // Verify
+    std::unordered_set<std::string> test;
+    for (const std::string& str : table) {
+        test.emplace(str);
+    }
+
+    ASSERT_EQ(truth, test);
+}
+
+TEST(TABLE_TEST_NAME, KeyIterator)
 {
     Table<int> table;
     table.emplace(4, 42);
@@ -49,13 +89,13 @@ TEST(TableTest, KeyIterator)
     table.emplace(3, 20);
 
     std::vector<uint32_t> keys;
-    for (auto it = table.keyBegin(); it != table.keyEnd(); it++) {
+    for (auto it = table.keyBegin(); it != table.keyEnd(); ++it) {
         keys.push_back(*it);
     }
     ASSERT_THAT(keys, testing::ElementsAre(1, 3, 7, 8));
 }
 
-TEST(TableTest, PairIterator)
+TEST(TABLE_TEST_NAME, PairIterator)
 {
     constexpr int kNumElems = 2000;
 
@@ -82,7 +122,7 @@ TEST(TableTest, PairIterator)
     ASSERT_EQ(i, kNumElems / 2);
 }
 
-TEST(TableTest, TwoTableJoin)
+TEST(TABLE_TEST_NAME, TwoTableJoin)
 {
     Table<int> table;
     table.emplace(4, 42);
@@ -110,7 +150,7 @@ TEST(TableTest, TwoTableJoin)
     );
 }
 
-TEST(TableTest, JoinIterator)
+TEST(TABLE_TEST_NAME, JoinIterator)
 {
     Table<int> table1;
     table1.emplace(4, 42);
@@ -159,19 +199,16 @@ TEST(TableTest, JoinIterator)
     );
 }
 
-TEST(TableTest, JoinEmpty)
+TEST(TABLE_TEST_NAME, JoinEmpty)
 {
     Table<int> t1, t2;
     ASSERT_TRUE(createJoin(t1, t2).empty());
-
-    std::vector<std::pair<int, int>> result;
-    for (auto [_, i, j] : t1.join(t2)) {
-        result.emplace_back(i, j);
-    }
-    ASSERT_TRUE(result.empty());
+    ASSERT_TRUE(createJoin(t2, t1).empty());
+    ASSERT_TRUE(createJoinIt(t1, t2).empty());
+    ASSERT_TRUE(createJoinIt(t2, t1).empty());
 }
 
-TEST(TableTest, JoinOneEmpty)
+TEST(TABLE_TEST_NAME, JoinOneEmpty)
 {
     Table<int> t1;
     Table<int> t2;
@@ -183,49 +220,11 @@ TEST(TableTest, JoinOneEmpty)
     ASSERT_TRUE(createJoinIt(t2, t1).empty());
 }
 
-TEST(TableTest, ConstIteratorsCompileTime)
+TEST(TABLE_TEST_NAME, ConstIteratorsCompileTime)
 {
     const Table<int> t;
 
     for ([[maybe_unused]] auto k : t.keys()) {}
     for ([[maybe_unused]] auto v : t.values()) {}
     for ([[maybe_unused]] auto [k, v] : t.items()) {}
-}
-
-struct Bar
-{
-    int i{ 0 };
-    float f{ 2.71828f };
-};
-
-template<>
-struct componentlib::TableTraits<Bar>
-{
-    struct UniqueStorage{};
-};
-
-TEST(TableTest, UniqueStorage)
-{
-    static_assert(std::same_as<Bar,      Table<Bar>::value_type>);
-    static_assert(std::same_as<Bar&,     Table<Bar>::reference>);
-    static_assert(std::same_as<Bar*,     Table<Bar>::pointer>);
-    static_assert(std::same_as<uint32_t, Table<Bar>::key_type>);
-
-    Table<Bar> table;
-
-    std::vector<Bar*> ptrs;
-    ptrs.emplace_back(&table.emplace(0));
-    ptrs.emplace_back(&table.emplace(1));
-    ptrs.emplace_back(&table.emplace(42));
-    ptrs.emplace_back(&table.emplace(6));
-
-    table.erase(1);
-    ptrs.erase(ptrs.begin() + 1);
-
-    for (Bar* bar : ptrs)
-    {
-        ASSERT_TRUE(bar != nullptr);
-        ASSERT_EQ(bar->i, 0);
-        ASSERT_FLOAT_EQ(bar->f, 2.71828f);
-    }
 }
