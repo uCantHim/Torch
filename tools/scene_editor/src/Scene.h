@@ -81,9 +81,3 @@ private:
 
     ObjectSelection objectSelection;
 };
-
-template<>
-struct componentlib::TableTraits<trc::Drawable>
-{
-    using UniqueStorage = std::true_type;
-};

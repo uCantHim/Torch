@@ -19,13 +19,3 @@ namespace trc
         AnimationEngine engine;
     };
 } // namespace trc::drawcomp
-
-/**
- * Because a pointer to the AnimationEngine will probably be exposed to the
- * user
- */
-template<>
-struct componentlib::TableTraits<trc::AnimationComponent>
-{
-    using UniqueStorage = std::true_type;
-};

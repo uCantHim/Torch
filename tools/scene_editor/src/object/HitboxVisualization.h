@@ -35,9 +35,3 @@ private:
     std::optional<trc::Drawable> sphereDrawable;
     std::optional<trc::Drawable> capsuleDrawable;
 };
-
-template<>
-struct componentlib::TableTraits<HitboxVisualization>
-{
-    using UniqueStorage = std::true_type;
-};

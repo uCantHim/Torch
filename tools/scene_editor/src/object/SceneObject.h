@@ -27,9 +27,3 @@ struct ObjectBaseNode : componentlib::ComponentBase<ObjectBaseNode>
                       , trc::Node
 {
 };
-
-template<>
-struct componentlib::TableTraits<ObjectBaseNode>
-{
-    using UniqueStorage = std::true_type;
-};
