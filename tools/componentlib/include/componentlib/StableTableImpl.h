@@ -162,7 +162,7 @@ namespace componentlib
     template<typename ...Args>
     auto StableTableImpl<T, Key, ChunkSize>::emplace(key_type key, Args&&... args) -> reference
     {
-        reserve(key);
+        reserve(static_cast<size_type>(key));
 
         const size_type chunk = chunkIndex(key);
         const size_type elem = elemIndex(key);

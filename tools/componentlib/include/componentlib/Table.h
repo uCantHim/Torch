@@ -13,6 +13,7 @@ namespace trc {
 }
 
 #include "IndirectTableImpl.h"
+#include "StableTableImpl.h"
 #include "TableIterators.h"
 #include "TableJoinIterator.h"
 
@@ -25,7 +26,7 @@ using trc::algorithm::IteratorRange;
  * Database-style table interface. May be backed by different implementations
  * based on the tradeoffs you want to make.
  */
-template<typename T, TableKey Key = uint32_t, typename Impl = IndirectTableImpl<T, Key>>
+template<typename T, typename Key = uint32_t, typename Impl = IndirectTableImpl<T, Key>>
 class Table
 {
 public:
@@ -46,6 +47,12 @@ public:
     explicit Table(Args&&... args)
         : impl(std::forward<Args>(args)...)
     {}
+
+    Table(const Table&) requires std::copy_constructible<Impl> = default;
+    Table(Table&&) noexcept requires std::move_constructible<Impl> = default;
+    Table& operator=(const Table&) requires std::is_copy_assignable_v<Impl> = default;
+    Table& operator=(Table&&) noexcept requires std::is_move_assignable_v<Impl> = default;
+    ~Table() noexcept requires std::destructible<Impl> = default;
 
 public:
     // ------------------------ //
@@ -230,13 +237,13 @@ private:
 //      Table implementations       //
 // -------------------------------- //
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline bool Table<T, Key, Impl>::has(key_type key) const
 {
     return impl.contains(key);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::get(key_type key) -> reference
 {
     if (pointer val = impl.at(key)) {
@@ -245,7 +252,7 @@ inline auto Table<T, Key, Impl>::get(key_type key) -> reference
     throw std::out_of_range("");
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::get(key_type key) const -> const_reference
 {
     if (const_pointer val = impl.at(key)) {
@@ -254,7 +261,7 @@ inline auto Table<T, Key, Impl>::get(key_type key) const -> const_reference
     throw std::out_of_range("");
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::try_get(key_type key) -> std::optional<pointer>
 {
     if (!has(key)) {
@@ -264,7 +271,7 @@ inline auto Table<T, Key, Impl>::try_get(key_type key) -> std::optional<pointer>
     return &get(key);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::try_get(key_type key) const -> std::optional<const_pointer>
 {
     if (!has(key)) {
@@ -274,7 +281,7 @@ inline auto Table<T, Key, Impl>::try_get(key_type key) const -> std::optional<co
     return &get(key);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::get_m(Key key) -> trc::Maybe<reference>
 {
     if (!has(key)) {
@@ -283,7 +290,7 @@ inline auto Table<T, Key, Impl>::get_m(Key key) -> trc::Maybe<reference>
     return get(key);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::get_m(Key key) const -> trc::Maybe<const_reference>
 {
     if (!has(key)) {
@@ -292,7 +299,7 @@ inline auto Table<T, Key, Impl>::get_m(Key key) const -> trc::Maybe<const_refere
     return get(key);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 template<typename ...Args>
     requires std::constructible_from<T, Args&&...>
 inline auto Table<T, Key, Impl>::emplace(key_type key, Args&&... args) -> reference
@@ -300,7 +307,7 @@ inline auto Table<T, Key, Impl>::emplace(key_type key, Args&&... args) -> refere
     return impl.emplace(key, std::forward<Args>(args)...);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 template<typename ...Args>
     requires std::constructible_from<T, Args&&...>
 inline auto Table<T, Key, Impl>::try_emplace(key_type key, Args&&... args) -> std::pair<reference, bool>
@@ -312,7 +319,7 @@ inline auto Table<T, Key, Impl>::try_emplace(key_type key, Args&&... args) -> st
     return { impl.emplace(key, std::forward<Args>(args)...), true };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::erase(Key key) -> value_type
 {
     if (!impl.contains(key)) {
@@ -325,7 +332,7 @@ inline auto Table<T, Key, Impl>::erase(Key key) -> value_type
     return ret;
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::try_erase(Key key) noexcept -> std::optional<value_type>
 {
     if (!impl.contains(key)) {
@@ -337,7 +344,7 @@ inline auto Table<T, Key, Impl>::try_erase(Key key) noexcept -> std::optional<va
     return ret;
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::erase_m(Key key) noexcept -> trc::Maybe<value_type>
 {
     if (!impl.contains(key)) {
@@ -349,103 +356,103 @@ inline auto Table<T, Key, Impl>::erase_m(Key key) noexcept -> trc::Maybe<value_t
     return ret;
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline void Table<T, Key, Impl>::clear() noexcept
 {
     impl.clear();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline void Table<T, Key, Impl>::reserve(size_t minSize)
 {
     impl.reserve(minSize);
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::begin() -> ValueIterator
 {
     return impl.valueBegin();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::begin() const -> ConstValueIterator
 {
     return impl.valueBegin();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::end() -> ValueIterator
 {
     return impl.valueEnd();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::end() const -> ConstValueIterator
 {
     return impl.valueEnd();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::keyBegin() -> KeyIterator
 {
     return impl.keyBegin();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::keyBegin() const -> ConstKeyIterator
 {
     return impl.keyBegin();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::keyEnd() -> KeyIterator
 {
     return impl.keyEnd();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::keyEnd() const -> ConstKeyIterator
 {
     return impl.keyEnd();
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::values() -> IteratorRange<ValueIterator>
 {
     return { begin(), end() };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::values() const -> IteratorRange<ConstValueIterator>
 {
     return { begin(), end() };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::keys() -> IteratorRange<KeyIterator>
 {
     return { keyBegin(), keyEnd() };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::keys() const -> IteratorRange<ConstKeyIterator>
 {
     return { keyBegin(), keyEnd() };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::items() -> IteratorRange<PairIterator>
 {
     return { PairIterator(keyBegin()), PairIterator(keyEnd()) };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::items() const -> IteratorRange<ConstPairIterator>
 {
     return { ConstPairIterator(keyBegin()), ConstPairIterator(keyEnd()) };
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 template<typename TableType>
 auto Table<T, Key, Impl>::join(TableType& other)
     -> IteratorRange<JoinIterator<TableType>>
@@ -459,7 +466,7 @@ auto Table<T, Key, Impl>::join(TableType& other)
     );
 }
 
-template<typename T, TableKey Key, typename Impl>
+template<typename T, typename Key, typename Impl>
 template<typename TableType>
 auto Table<T, Key, Impl>::join(const TableType& other) const
     -> IteratorRange<ConstJoinIterator<TableType>>

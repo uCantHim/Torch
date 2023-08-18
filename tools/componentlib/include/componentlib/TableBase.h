@@ -16,7 +16,7 @@ concept TableKey = std::equality_comparable<T>
                 && std::constructible_from<T, std::size_t>
                 && requires (T a) { static_cast<std::size_t>(a); };
 
-template<typename T, TableKey Key, typename>
+template<typename T, typename Key, typename>
 class Table;
 
 } // namespace componentlib
