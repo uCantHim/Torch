@@ -2,6 +2,8 @@
 #   Required tools   #
 ######################
 
+set(COMPONENTLIB_BUILD_TESTS ${TORCH_BUILD_TEST})
+
 add_subdirectory(componentlib)
 add_subdirectory(torch_util)
 add_subdirectory(spirv_compiler)

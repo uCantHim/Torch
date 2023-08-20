@@ -1,4 +1,4 @@
-set(COMPONENTLIB_BUILD_TESTS ${TORCH_BUILD_TEST})
+option(COMPONENTLIB_BUILD_TESTS "Built tests for componentlib" ON)
 
 add_library(component INTERFACE
     include/componentlib/ComponentBase.h
