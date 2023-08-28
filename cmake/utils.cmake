@@ -10,7 +10,7 @@ function (torch_default_compile_options TARGET)
         target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic)
 
         # Generate code coverage when using GCC
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        if (${TORCH_GENERATE_CODE_COVERAGE} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             target_compile_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:-fprofile-arcs -ftest-coverage --coverage>)
             target_link_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:--coverage>)
             target_link_libraries(${TARGET} PRIVATE gcov)

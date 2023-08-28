@@ -19,6 +19,7 @@ project(Torch)
 option(TORCH_FLIP_Y_AXIS "Build Torch in a configuration that has Vulkan's negative y-axis flipped" ON)
 option(TORCH_BUILD_SHARED_LIBRARY "Build torch as a shared library" OFF)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
+option(TORCH_GENERATE_CODE_COVERAGE "Enable compiler flags to generate coverage information with gcov. Only affects GCC." OFF)
 option(TORCH_BUILD_EXAMPLES "Build examples" ON)
 option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
 option(TORCH_DEBUG_THROW_ON_VALIDATION_ERROR
