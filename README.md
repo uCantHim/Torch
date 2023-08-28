@@ -113,7 +113,7 @@ int main()
             .emissive=true,
         }
     ));
-    trc::Drawable myDrawable = scene.makeDrawable({ geo, mat });
+    auto myDrawable = scene.makeDrawable({ geo, mat });
 
     // Main loop
     while (torch.getWindow().isOpen())
