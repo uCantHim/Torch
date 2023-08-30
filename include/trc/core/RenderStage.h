@@ -4,6 +4,11 @@
 
 namespace trc
 {
+    struct RenderStage;
+
+    /** @brief Create a unique render stage */
+    auto makeRenderStage() -> RenderStage;
+
     /**
      * Create render stages via `RenderStage::make`, which allocates a unique
      * ID to the stage.
@@ -36,4 +41,8 @@ namespace trc
         RenderStage(ID id) : id(id) {}
         ID id;
     };
+
+    inline auto makeRenderStage() -> RenderStage {
+        return RenderStage::make();
+    }
 } // namespace trc
