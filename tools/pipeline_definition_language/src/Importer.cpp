@@ -1,6 +1,7 @@
 #include "Importer.h"
 
 #include <fstream>
+#include <sstream>
 
 #include "ErrorReporter.h"
 #include "Scanner.h"

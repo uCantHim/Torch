@@ -1,5 +1,6 @@
 #include "trc_util/InterProcessLock.h"
 
+#include <cerrno>
 #include <cstring>
 #include <stdexcept>
 

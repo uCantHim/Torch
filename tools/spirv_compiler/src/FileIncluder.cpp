@@ -1,5 +1,7 @@
 #include "spirv/FileIncluder.h"
 
+#include <sstream>
+
 
 
 namespace spirv

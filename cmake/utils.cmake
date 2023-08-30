@@ -7,7 +7,7 @@ function (torch_default_compile_options TARGET)
             $<$<CONFIG:Debug>:-O0 -g>
             $<$<NOT:$<CONFIG:Debug>>:-O2>
         )
-        target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic)
+        target_compile_options(${TARGET} PRIVATE -Wall -Wextra)
 
         # Generate code coverage when using GCC
         if (${TORCH_GENERATE_CODE_COVERAGE} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

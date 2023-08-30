@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <sstream>
 #include <tuple>
 
 #include "Util.h"
