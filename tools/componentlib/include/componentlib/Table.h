@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cassert>
-#include <limits>
 #include <concepts>
-#include <vector>
+#include <functional>  // for std::reference_wrapper
+#include <limits>
 #include <optional>
+#include <vector>
 
 #include <trc_util/algorithm/IteratorRange.h>
 #include <trc_util/functional/Maybe.h>
@@ -68,7 +69,7 @@ public:
      * @return bool True if an object with key `key` exists in the table,
      *              false otherwise.
      */
-    inline bool has(key_type key) const;
+    inline bool contains(key_type key) const;
 
     /**
      * @param Key key
@@ -86,8 +87,8 @@ public:
      */
     inline auto get(key_type key) const -> const_reference;
 
-    inline auto try_get(key_type key) -> std::optional<pointer>;
-    inline auto try_get(key_type key) const -> std::optional<const_pointer>;
+    inline auto try_get(key_type key) -> std::optional<std::reference_wrapper<value_type>>;
+    inline auto try_get(key_type key) const -> std::optional<std::reference_wrapper<const value_type>>;
 
     inline auto get_m(key_type key) -> trc::Maybe<reference>;
     inline auto get_m(key_type key) const -> trc::Maybe<const_reference>;
@@ -238,7 +239,7 @@ private:
 // -------------------------------- //
 
 template<typename T, typename Key, typename Impl>
-inline bool Table<T, Key, Impl>::has(key_type key) const
+inline bool Table<T, Key, Impl>::contains(key_type key) const
 {
     return impl.contains(key);
 }
@@ -262,29 +263,31 @@ inline auto Table<T, Key, Impl>::get(key_type key) const -> const_reference
 }
 
 template<typename T, typename Key, typename Impl>
-inline auto Table<T, Key, Impl>::try_get(key_type key) -> std::optional<pointer>
+inline auto Table<T, Key, Impl>::try_get(key_type key)
+    -> std::optional<std::reference_wrapper<value_type>>
 {
-    if (!has(key)) {
+    if (!contains(key)) {
         return std::nullopt;
     }
 
-    return &get(key);
+    return get(key);
 }
 
 template<typename T, typename Key, typename Impl>
-inline auto Table<T, Key, Impl>::try_get(key_type key) const -> std::optional<const_pointer>
+inline auto Table<T, Key, Impl>::try_get(key_type key) const
+    -> std::optional<std::reference_wrapper<const value_type>>
 {
-    if (!has(key)) {
+    if (!contains(key)) {
         return std::nullopt;
     }
 
-    return &get(key);
+    return get(key);
 }
 
 template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::get_m(Key key) -> trc::Maybe<reference>
 {
-    if (!has(key)) {
+    if (!contains(key)) {
         return {};
     }
     return get(key);
@@ -293,7 +296,7 @@ inline auto Table<T, Key, Impl>::get_m(Key key) -> trc::Maybe<reference>
 template<typename T, typename Key, typename Impl>
 inline auto Table<T, Key, Impl>::get_m(Key key) const -> trc::Maybe<const_reference>
 {
-    if (!has(key)) {
+    if (!contains(key)) {
         return {};
     }
     return get(key);

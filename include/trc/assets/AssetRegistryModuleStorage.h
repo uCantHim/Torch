@@ -88,7 +88,7 @@ namespace trc
     template<AssetBaseType T>
     bool AssetRegistryModuleStorage::hasModule() const
     {
-        return entries.has(TypeIndex::get<T>())
+        return entries.contains(TypeIndex::get<T>())
             && entries.get(TypeIndex::get<T>()) != nullptr;
     }
 

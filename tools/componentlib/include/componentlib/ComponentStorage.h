@@ -208,7 +208,7 @@ public:
     template<ComponentType C>
     inline auto has(Key key) const -> bool
     {
-        return getTable<C>().has(key);
+        return getTable<C>().contains(key);
     }
 
     /**
@@ -239,7 +239,7 @@ public:
      * @return trc::Maybe<C&>
      */
     template<ComponentType C>
-    inline auto tryGet(Key key) -> std::optional<C*>
+    inline auto tryGet(Key key) -> std::optional<std::reference_wrapper<C>>
     {
         return getTable<C>().try_get(key);
     }
@@ -250,7 +250,7 @@ public:
      * @return trc::Maybe<C&>
      */
     template<ComponentType C>
-    inline auto tryGet(Key key) const -> std::optional<const C*>
+    inline auto tryGet(Key key) const -> std::optional<std::reference_wrapper<const C>>
     {
         return getTable<C>().try_get(key);
     }

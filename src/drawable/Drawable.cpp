@@ -38,7 +38,7 @@ bool DrawableObj::isAnimated() const
 auto DrawableObj::getAnimationEngine() -> std::optional<AnimationEngine*>
 {
     if (auto comp = scene->tryGet<AnimationComponent>(id)) {
-        return &comp.value()->engine;
+        return &comp->get().engine;
     }
     return std::nullopt;
 }

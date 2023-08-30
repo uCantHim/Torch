@@ -76,7 +76,7 @@ auto TextureRegistry::loadDeviceData(const LocalID id) -> DeviceData
 {
     std::shared_lock lock(sourceStorageLock);  // Shared ownership as we only read here
 
-    assert(dataSources.has(id));
+    assert(dataSources.contains(id));
     assert(dataSources.get(id) != nullptr);
 
     const ui32 deviceIndex = ui32{id};
