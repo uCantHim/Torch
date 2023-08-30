@@ -53,7 +53,7 @@ auto trc::DescriptorRegistry::getDescriptorLayout(const DescriptorName& name) co
     }
 }
 
-auto trc::DescriptorRegistry::getDescriptorID(const DescriptorName& name) -> DescriptorID
+auto trc::DescriptorRegistry::getDescriptorID(const DescriptorName& name) const -> DescriptorID
 {
     auto it = idPerName.find(name.identifier);
     if (it != idPerName.end())

@@ -1,8 +1,8 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <unordered_map>
-#include <variant>
 
 #include <trc_util/data/IdPool.h>
 #include <trc_util/data/IndexMap.h>
@@ -24,14 +24,6 @@ namespace trc
 
     struct _DescriptorIdTypeTag {};
     using DescriptorID = data::TypesafeID<_DescriptorIdTypeTag, ui32>;
-
-    struct _DescriptorDefinition
-    {
-        DescriptorName name;
-
-        vk::DescriptorSetLayout layout;
-        std::function<vk::DescriptorSetLayout()> layoutGetter;
-    };
 
     /**
      * @brief Maps names to descriptors
@@ -69,7 +61,7 @@ namespace trc
         /**
          * Static usage at pipeline layout creation
          */
-        static auto getDescriptorID(const DescriptorName& name) -> DescriptorID;
+        auto getDescriptorID(const DescriptorName& name) const -> DescriptorID;
 
         /**
          * Dynamic usage during command recording
@@ -77,10 +69,10 @@ namespace trc
         auto getDescriptor(DescriptorID id) const -> const DescriptorProviderInterface&;
 
     private:
-        static auto tryInsertName(const DescriptorName& name) -> DescriptorID;
+        auto tryInsertName(const DescriptorName& name) -> DescriptorID;
 
-        static inline data::IdPool<ui64> descriptorIdPool;
-        static inline std::unordered_map<std::string, DescriptorID> idPerName;
+        data::IdPool<ui64> descriptorIdPool;
+        std::unordered_map<std::string, DescriptorID> idPerName;
 
         data::IndexMap<DescriptorID, const DescriptorProviderInterface*> descriptorProviders;
     };
