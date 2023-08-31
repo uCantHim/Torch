@@ -70,6 +70,14 @@ private:
     template<typename T>
     auto compileMulti(const compiler::MapValue& val)
         -> std::unordered_map<std::string, CompileResult::SingleOrVariant<T>>;
+
+    /**
+     * Compile a typeless object definition into a simplified object type.
+     *
+     * Every object defined anywhere in the compiled source (also those defined
+     * as an inline object reference or variated object collection) passes
+     * through this function at some point.
+     */
     template<typename T>
     auto compileSingle(const compiler::Object& obj) -> T;
 

@@ -205,4 +205,14 @@ struct CompileResult
     std::unordered_map<std::string, SingleOrVariant<LayoutDesc>> layouts;
     std::unordered_map<std::string, SingleOrVariant<PipelineDesc>> pipelines;
     std::unordered_map<std::string, SingleOrVariant<ComputePipelineDesc>> computePipelines;
+
+    /**
+     * Contains all shader modules defined in the compiled source. These are
+     * individual shader files, *not* shader objects in the language as the
+     * `shaders` member.
+     *
+     * Is used to collect and compile all shader sources, even those defined
+     * by an inline object reference, during shader database generation.
+     */
+    std::vector<ShaderDesc> allShaderModules;
 };

@@ -12,17 +12,10 @@ auto makeShaderDatabase(ShaderOutputType defaultShaderOutputType, const CompileR
     -> nl::json
 {
     ShaderDatabaseGenerator configGen(defaultShaderOutputType);
-    for (const auto& [name, shaders] : result.shaders)
-    {
-        std::visit(trc::util::VariantVisitor{
-            [&, name=name](const ShaderDesc& shader) { configGen.add(UniqueName(name), shader); },
-            [&](const VariantGroup<ShaderDesc>& shaders) {
-                for (const auto& [name, shader] : shaders.variants) {
-                    configGen.add(name, shader);
-                }
-            },
-        }, shaders);
+    for (const auto& shader : result.allShaderModules) {
+        configGen.add(UniqueName(shader.target), shader);
     }
+
     return configGen.makeConfig();
 }
 

@@ -437,6 +437,9 @@ auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderD
         }
     }
 
+    // Special treatment of shader objects:
+    result.allShaderModules.emplace_back(res);
+
     return res;
 }
 
