@@ -4,7 +4,7 @@
 #include "trc/base/ShaderProgram.h"
 #include "trc/base/event/Event.h"
 
-#include "trc/core/RenderLayout.h"
+#include "trc/core/RenderGraph.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/GuiShaders.h"
@@ -66,9 +66,9 @@ auto trc::initGui(Device& device, const Swapchain& swapchain) -> GuiStack
 
 
 
-void trc::integrateGui(GuiStack& stack, RenderLayout& layout)
+void trc::integrateGui(GuiStack& stack, RenderGraph& graph)
 {
-    layout.addPass(trc::guiRenderStage, *stack.renderPass);
+    graph.addPass(trc::guiRenderStage, *stack.renderPass);
 }
 
 

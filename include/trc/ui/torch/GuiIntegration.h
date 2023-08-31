@@ -18,9 +18,9 @@
 
 namespace trc
 {
-    class RenderLayout;
+    class RenderGraph;
 
-    inline RenderStage guiRenderStage = RenderStage::make();
+    inline RenderStage guiRenderStage = makeRenderStage();
 
     class TorchWindowBackend : public ui::WindowBackend
     {
@@ -102,5 +102,5 @@ namespace trc
     /**
      * @brief Insert gui renderpass into a render layout
      */
-    void integrateGui(GuiStack& stack, RenderLayout& layout);
+    void integrateGui(GuiStack& stack, RenderGraph& graph);
 } // namespace trc
