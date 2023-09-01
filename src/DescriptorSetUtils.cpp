@@ -1,10 +1,24 @@
 #include "trc/DescriptorSetUtils.h"
 
+#include <unordered_map>
+
 
 
 auto trc::DescriptorSetLayoutBuilder::addFlag(vk::DescriptorSetLayoutCreateFlagBits flags)
     -> Self&
 {
+    switch (flags)
+    {
+    case vk::DescriptorSetLayoutCreateFlagBits::eHostOnlyPoolEXT:
+        this->poolFlags |= vk::DescriptorPoolCreateFlagBits::eHostOnlyEXT;
+        break;
+    case vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool:
+        this->poolFlags |= vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
+        break;
+    default:
+        break;
+    }
+
     this->layoutFlags |= flags;
     return *this;
 }
@@ -35,4 +49,29 @@ auto trc::DescriptorSetLayoutBuilder::build(const Device& device)
     };
 
     return device->createDescriptorSetLayoutUnique(chain.get());
+}
+
+auto trc::DescriptorSetLayoutBuilder::buildPool(
+    const Device& device,
+    const ui32 maxSets,
+    const vk::DescriptorPoolCreateFlags flags)
+    -> vk::UniqueDescriptorPool
+{
+    std::unordered_map<vk::DescriptorType, ui32> descTypes;
+    for (const auto& binding : bindings)
+    {
+        auto [it, _] = descTypes.try_emplace(binding.descriptorType, 0);
+        it->second += binding.descriptorCount;
+    }
+
+    std::vector<vk::DescriptorPoolSize> poolSizes;
+    for (const auto& [type, count] : descTypes) {
+        poolSizes.emplace_back(type, count);
+    }
+
+    return device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo{
+        poolFlags | flags,
+        maxSets,
+        poolSizes
+    });
 }
