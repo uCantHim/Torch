@@ -1,0 +1,71 @@
+// Hello!
+
+Descriptor cameraDesc:
+    Name: "material_editor_camera_descriptor"
+    Type: static
+
+Descriptor textureDesc:
+    Name: "material_editor_texture_descriptor"
+    Type: dynamic
+
+// Shader program for a generic graphical primitive in the material graph
+Program graphElementProgram:
+    VertexShader:
+        Source: "graph_element.vert"
+    FragmentShader:
+        Source: "graph_element.frag"
+
+VertexAttribute vertexPositions:
+    Binding: 0
+    InputRate: perVertex
+    Locations: [rg32f]
+
+VertexAttribute vertexUvCoords:
+    Binding: 1
+    InputRate: perVertex
+    Locations: [rg32f]
+
+VertexAttribute instanceDimensions:
+    Binding: 2
+    InputRate: perInstance
+    Locations: [rgba32f]
+
+VertexAttribute instanceUvs:
+    Binding: 3
+    InputRate: perInstance
+    Locations: [rgba32f]
+
+VertexAttribute instanceColors:
+    Binding: 4
+    InputRate: perInstance
+    Locations: [rgba32f]
+
+ColorBlendAttachment blending:
+    ColorBlending: true
+    SrcColorFactor: srcAlpha
+    DstColorFactor: oneMinusSrcAlpha
+    ColorBlendOp: add
+    SrcAlphaFactor: srcAlpha
+    DstAlphaFactor: oneMinusSrcAlpha
+    AlphaBlendOp: add
+
+// Base pipeline for graphical primitives in the material graph
+Pipeline graphElemPipeline:
+    Program: graphElementProgram
+    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceUvs, instanceColors]
+    Layout:
+        Descriptors: [cameraDesc, textureDesc]
+    RenderPass: "material_editor_forward_renderpass"
+    CullMode: cullNone
+    ColorBlendAttachments: [blending]
+
+Pipeline linePipeline:
+    Program: graphElementProgram
+    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceUvs, instanceColors]
+    Layout:
+        Descriptors: [cameraDesc, textureDesc]
+    RenderPass: "material_editor_forward_renderpass"
+    PrimitiveTopology: lineList
+    LineWidth: 2.0
+    CullMode: cullNone
+    DisableBlendAttachments: 1
