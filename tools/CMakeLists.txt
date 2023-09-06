@@ -38,6 +38,7 @@ if (${TORCH_BUILD_SCENE_EDITOR})
         message(FATAL_ERROR "ImGui integration must be enabled to build the scene editor")
     endif ()
 
+    add_subdirectory(material_editor)
     add_subdirectory(scene_editor)
 
     set_target_properties(scene_editor_exe PROPERTIES
