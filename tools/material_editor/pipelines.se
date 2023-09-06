@@ -1,0 +1,40 @@
+// Hello!
+
+Descriptor cameraDesc:
+    Name: "material_editor_camera_descriptor"
+    Type: static
+
+// Shader program for a generic graphical primitive in the material graph
+Program graphElementProgram:
+    VertexShader:
+        Source: "graph_element.vert"
+    FragmentShader:
+        Source: "graph_element.frag"
+
+VertexAttribute vertexPositions:
+    Binding: 0
+    InputRate: perVertex
+    Locations: [rg32f]
+
+VertexAttribute vertexUvCoords:
+    Binding: 1
+    InputRate: perVertex
+    Locations: [rg32f]
+
+VertexAttribute instanceDimensions:
+    Binding: 2
+    InputRate: perInstance
+    Locations: [rgba32f]
+
+VertexAttribute instanceColors:
+    Binding: 3
+    InputRate: perInstance
+    Locations: [rgba32f]
+
+// Base pipeline for graphical primitives in the material graph
+Pipeline graphElemPipeline:
+    Program: graphElementProgram
+    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceColors]
+    Layout:
+        Descriptors: [cameraDesc]
+    RenderPass: "material_editor_forward_renderpass"
