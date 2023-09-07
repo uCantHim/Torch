@@ -2,11 +2,13 @@
 
 #include <optional>
 
+#include <trc/ImguiIntegration.h>
 #include <trc/core/Instance.h>
 #include <trc/core/RenderConfigImplHelper.h>
 #include <trc/core/RenderConfiguration.h>
 #include <trc/core/RenderStage.h>
 #include <trc/core/RenderTarget.h>
+#include <trc/ui/torch/GuiIntegration.h>
 
 using namespace trc::basic_types;
 
@@ -35,10 +37,10 @@ public:
                              const MaterialEditorRenderingInfo& info,
                              trc::RenderConfig& renderConfig);
 
-
     void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, trc::FrameRenderState&) override;
     void end(vk::CommandBuffer cmdBuf) override;
 
+    void setViewport(ivec2 offset, uvec2 size);
     auto getRenderer() -> MaterialGraphRenderer&;
 
 private:
@@ -47,7 +49,7 @@ private:
     trc::RenderConfig* renderConfig;
 
     const trc::RenderTarget* renderTarget;
-    const uvec2 renderArea;
+    vk::Rect2D area;
     std::optional<vk::ImageMemoryBarrier2> renderTargetBarrier;
     vk::ImageLayout finalLayout;
 
@@ -71,14 +73,18 @@ public:
     static constexpr auto kCameraDescriptor{ "material_editor_camera_descriptor" };
 
     MaterialEditorRenderConfig(const trc::RenderTarget& renderTarget,
-                               const trc::Instance& instance,
+                               trc::Window& window,
                                const MaterialEditorRenderingInfo& info = {});
 
     void update(const trc::Camera& camera, const GraphRenderData& data);
+
+    void setViewport(ivec2 offset, uvec2 size);
 
     auto getCameraDescriptor() const -> const trc::DescriptorProviderInterface&;
 
 private:
     CameraDescriptor cameraDesc;
     MaterialEditorRenderPass renderPass;
+
+    u_ptr<trc::imgui::ImguiRenderPass> imgui;
 };

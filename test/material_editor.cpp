@@ -1,6 +1,7 @@
 #include <trc/Torch.h>
 
 #include <GraphScene.h>
+#include <MaterialEditorGui.h>
 #include <MaterialEditorRenderConfig.h>
 
 int main()
@@ -13,7 +14,7 @@ int main()
 
     MaterialEditorRenderConfig config{
         renderTarget,
-        instance,
+        window,
         MaterialEditorRenderingInfo{
             .renderTargetBarrier=vk::ImageMemoryBarrier2{
                 vk::PipelineStageFlagBits2::eAllCommands,
@@ -32,6 +33,8 @@ int main()
     GraphScene materialGraph;
     materialGraph.makeNode();
 
+    MaterialEditorGui gui{ window, std::make_shared<GraphManipulator>(materialGraph) };
+
     while (window.isOpen() && !window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
@@ -40,6 +43,8 @@ int main()
         const auto renderData = buildRenderData(materialGraph.graph, materialGraph.layout);
 
         // Draw a frame
+        gui.drawGui();
+
         config.update(camera, renderData);
         window.drawFrame(trc::DrawConfig{
             .scene=scene,
