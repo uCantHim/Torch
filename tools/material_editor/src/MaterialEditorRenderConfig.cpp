@@ -13,7 +13,7 @@ MaterialEditorRenderPass::MaterialEditorRenderPass(
     trc::RenderPass(vk::UniqueRenderPass{VK_NULL_HANDLE}, 1),
     renderConfig(&config),
     renderTarget(&target),
-    renderArea(target.getSize()),
+    area{ { 0, 0 }, { target.getSize().x, target.getSize().y } },
     renderTargetBarrier(info.renderTargetBarrier),
     finalLayout(info.finalLayout),
     renderer(device, target.getFrameClock())
@@ -41,7 +41,6 @@ void MaterialEditorRenderPass::begin(
         vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
         kClearValue
     };
-    const vk::Rect2D area{ { 0, 0 }, { renderArea.x, renderArea.y } };
     vk::RenderingInfo info{
         vk::RenderingFlags{},
         area,
@@ -55,6 +54,7 @@ void MaterialEditorRenderPass::begin(
     cmdBuf.beginRendering(info);
 
     cmdBuf.setScissor(0, area);
+    // Flip the viewport
     cmdBuf.setViewport(0, vk::Viewport{
         static_cast<float>(area.offset.x), static_cast<float>(area.offset.y + area.extent.height),
         static_cast<float>(area.extent.width), -static_cast<float>(area.extent.height),
@@ -81,6 +81,11 @@ void MaterialEditorRenderPass::end(vk::CommandBuffer cmdBuf)
     });
 }
 
+void MaterialEditorRenderPass::setViewport(ivec2 offset, uvec2 size)
+{
+    area = vk::Rect2D{ { offset.x, offset.y }, { size.x, size.y } };
+}
+
 auto MaterialEditorRenderPass::getRenderer() -> MaterialGraphRenderer&
 {
     return renderer;
@@ -90,12 +95,12 @@ auto MaterialEditorRenderPass::getRenderer() -> MaterialGraphRenderer&
 
 MaterialEditorRenderConfig::MaterialEditorRenderConfig(
     const trc::RenderTarget& renderTarget,
-    const trc::Instance& instance,
+    trc::Window& window,
     const MaterialEditorRenderingInfo& info)
     :
-    trc::RenderConfigImplHelper(instance, trc::RenderGraph{}),
-    cameraDesc(renderTarget.getFrameClock(), instance.getDevice()),
-    renderPass(renderTarget, instance.getDevice(), info, *this)
+    trc::RenderConfigImplHelper(window.getInstance(), trc::RenderGraph{}),
+    cameraDesc(renderTarget.getFrameClock(), window.getDevice()),
+    renderPass(renderTarget, window.getDevice(), info, *this)
 {
     addDescriptor(trc::DescriptorName{ kCameraDescriptor }, cameraDesc);
     addRenderPass(
@@ -104,7 +109,14 @@ MaterialEditorRenderConfig::MaterialEditorRenderConfig(
     );
 
     getRenderGraph().first(kMainRenderStage);
+    getRenderGraph().after(kMainRenderStage, trc::imgui::imguiRenderStage);
     getRenderGraph().addPass(kMainRenderStage, renderPass);
+    imgui = trc::imgui::initImgui(window, getRenderGraph());
+}
+
+void MaterialEditorRenderConfig::setViewport(ivec2 offset, uvec2 size)
+{
+    renderPass.setViewport(offset, size);
 }
 
 void MaterialEditorRenderConfig::update(const trc::Camera& camera, const GraphRenderData& data)

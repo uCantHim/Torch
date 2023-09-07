@@ -3,19 +3,22 @@ cmake_minimum_required(VERSION 3.14)
 add_library(libmaterial_editor)
 
 torch_default_compile_options(libmaterial_editor)
-target_link_libraries(libmaterial_editor PUBLIC torch component)
+target_link_libraries(libmaterial_editor PUBLIC torch torch-imgui component)
 
 target_sources(
     libmaterial_editor
     PRIVATE
         src/CameraDescriptor.cpp
         src/GraphLayout.cpp
+        src/GraphManipulator.cpp
         src/GraphRenderer.cpp
+        src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialGraph.cpp
 )
 target_include_directories(libmaterial_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
 
+# Build pipeline sources
 set(PIPELINE_SRC_DIR "${CMAKE_BINARY_DIR}/material_editor-generated/pipelines")
 set(PIPELINE_SRC ${PIPELINE_SRC_DIR}/pipelines.cpp)
 add_custom_command(
