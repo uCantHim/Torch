@@ -4,11 +4,12 @@
 
 #include <trc_util/Timer.h>
 
+#include "trc/Camera.h"
 #include "trc/Scene.h"
 #include "trc/TorchRenderConfig.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/Types.h"
 #include "trc/assets/Assets.h"
-#include "trc/Camera.h"
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/Instance.h"
 #include "trc/core/RenderTarget.h"

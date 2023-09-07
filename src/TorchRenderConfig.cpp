@@ -30,8 +30,11 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
     graph.require(rayTracingRenderStage, resourceUpdateStage);
     graph.require(rayTracingRenderStage, finalLightingRenderStage);
 
+    // Post-processing
+    graph.after(rayTracingRenderStage, postProcessingRenderStage);
+
     // Gui stage
-    graph.after(rayTracingRenderStage, guiRenderStage);
+    graph.after(postProcessingRenderStage, guiRenderStage);
 
     return graph;
 }
