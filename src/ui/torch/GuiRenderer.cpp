@@ -61,7 +61,7 @@ auto trc::GuiRenderTarget::getFramebuffer() const -> const Framebuffer&
 
 
 
-trc::GuiRenderer::GuiRenderer(Device& device)
+trc::GuiRenderer::GuiRenderer(const Device& device)
     :
     device(device),
     renderFinishedFence(device->createFenceUnique({})),
@@ -121,7 +121,7 @@ trc::GuiRenderer::GuiRenderer(Device& device)
         vk::CommandBufferAllocateInfo(*cmdPool, vk::CommandBufferLevel::ePrimary, 1)
     )[0]);
 
-    renderQueue = device.getQueueManager().reserveQueue(queue);
+    renderQueue = queue;
 }
 
 void trc::GuiRenderer::render(ui::Window& window, GuiRenderTarget& target)

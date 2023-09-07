@@ -28,7 +28,7 @@ int main()
         camera.makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
 
         // Initialize GUI
-        auto guiStack = trc::initGui(torch->getDevice(), swapchain);
+        auto guiStack = trc::initGui(torch->getDevice(), torch->getRenderTarget());
         ui::Window* window = guiStack.window.get();
         trc::integrateGui(guiStack, torch->getRenderConfig().getRenderGraph());
 

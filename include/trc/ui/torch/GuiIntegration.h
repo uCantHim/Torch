@@ -1,18 +1,20 @@
 #pragma once
 
-#include <mutex>
 #include <future>
+#include <mutex>
+#include <thread>
 
 #include <trc_util/Timer.h>
+
+#include "trc/Framebuffer.h"
 #include "trc/base/Buffer.h"
 #include "trc/base/FrameSpecificObject.h"
 #include "trc/base/Image.h"
 #include "trc/base/event/Event.h"
-
-#include "trc/Framebuffer.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/RenderStage.h"
+#include "trc/core/RenderTarget.h"
 #include "trc/ui/Window.h"
 #include "trc/ui/torch/GuiRenderer.h"
 
@@ -25,17 +27,16 @@ namespace trc
     class TorchWindowBackend : public ui::WindowBackend
     {
     public:
-        explicit TorchWindowBackend(const Swapchain& swapchain)
-            : swapchain(swapchain)
+        explicit TorchWindowBackend(const RenderTarget& renderTarget)
+            : renderTarget(renderTarget)
         {}
 
-        auto getSize() -> vec2 override
-        {
-            return { swapchain.getImageExtent().width, swapchain.getImageExtent().height };
+        auto getSize() -> vec2 override {
+            return renderTarget.getSize();
         }
 
     private:
-        const Swapchain& swapchain;
+        const RenderTarget& renderTarget;
     };
 
     /**
@@ -49,7 +50,7 @@ namespace trc
     {
     public:
         GuiIntegrationPass(const Device& device,
-                           const Swapchain& swapchain,
+                           const RenderTarget& renderTarget,
                            ui::Window& window,
                            GuiRenderer& renderer);
         ~GuiIntegrationPass();
@@ -59,7 +60,7 @@ namespace trc
 
     private:
         const Device& device;
-        const Swapchain& swapchain;
+        const RenderTarget& target;
 
         std::mutex renderLock;
         std::thread renderThread;
@@ -97,7 +98,7 @@ namespace trc
     /**
      * @brief Initialize the GUI implementation
      */
-    auto initGui(Device& device, const Swapchain& swapchain) -> GuiStack;
+    auto initGui(const Device& device, const RenderTarget& renderTarget) -> GuiStack;
 
     /**
      * @brief Insert gui renderpass into a render layout

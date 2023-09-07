@@ -1,20 +1,20 @@
 #include "trc/ui/torch/GuiIntegration.h"
 
+#include "trc/GuiShaders.h"
+#include "trc/PipelineDefinitions.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/base/Barriers.h"
 #include "trc/base/ShaderProgram.h"
 #include "trc/base/event/Event.h"
-
 #include "trc/core/RenderGraph.h"
-#include "trc/TorchRenderStages.h"
-#include "trc/PipelineDefinitions.h"
-#include "trc/GuiShaders.h"
+#include "trc/util/GlmStructuredBindings.h"
 
 
 
-auto trc::initGui(Device& device, const Swapchain& swapchain) -> GuiStack
+auto trc::initGui(const Device& device, const RenderTarget& renderTarget) -> GuiStack
 {
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
-        .windowBackend=std::make_unique<trc::TorchWindowBackend>(swapchain),
+        .windowBackend=std::make_unique<trc::TorchWindowBackend>(renderTarget),
         .keyMap = ui::KeyMapping{
             .escape     = static_cast<int>(Key::escape),
             .backspace  = static_cast<int>(Key::backspace),
@@ -30,7 +30,7 @@ auto trc::initGui(Device& device, const Swapchain& swapchain) -> GuiStack
     ui::Window* windowPtr = window.get();
 
     auto renderer = std::make_unique<GuiRenderer>(device);
-    auto renderPass = std::make_unique<GuiIntegrationPass>(device, swapchain, *window, *renderer);
+    auto renderPass = std::make_unique<GuiIntegrationPass>(device, renderTarget, *window, *renderer);
 
     return {
         .window = std::move(window),
@@ -75,13 +75,13 @@ void trc::integrateGui(GuiStack& stack, RenderGraph& graph)
 
 trc::GuiIntegrationPass::GuiIntegrationPass(
     const Device& device,
-    const Swapchain& swapchain,
+    const RenderTarget& _renderTarget,
     ui::Window& window,
     GuiRenderer& renderer)
     :
     RenderPass({}, 1),
     device(device),
-    swapchain(swapchain),
+    target(_renderTarget),
     renderTarget(device, renderer.getRenderPass(), window.getSize()),
     blendDescLayout([&] {
         std::vector<vk::DescriptorSetLayoutBinding> bindings{
@@ -92,7 +92,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
         };
         return device->createDescriptorSetLayoutUnique({ {}, bindings });
     }()),
-    blendDescSets(swapchain),
+    blendDescSets(_renderTarget.getFrameClock()),
     // Compute pipeline
     imageBlendPipelineLayout(makePipelineLayout(device, { *blendDescLayout }, {})),
     imageBlendPipeline(
@@ -101,9 +101,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
             internal::loadShader(trc::ui_impl::pipelines::getImageBlend())
         )
     ),
-    swapchainRecreateListener(on<SwapchainRecreateEvent>([&](auto& e) {
-        if (e.swapchain != &swapchain) return;
-
+    swapchainRecreateListener(on<SwapchainRecreateEvent>([&](auto&) {
         renderTarget = GuiRenderTarget(device, renderer.getRenderPass(), window.getSize());
         createDescriptorSets();
         writeDescriptorSets(renderTarget.getFramebuffer().getAttachmentView(0));
@@ -141,10 +139,10 @@ void trc::GuiIntegrationPass::begin(
 {
     std::lock_guard lock(renderLock);
 
-    auto swapchainImage = swapchain.getImage(swapchain.getCurrentFrame());
+    auto image = target.getCurrentImage();
     imageMemoryBarrier(
         cmdBuf,
-        swapchainImage,
+        image,
         vk::ImageLayout::ePresentSrcKHR,
         vk::ImageLayout::eGeneral,
         vk::PipelineStageFlagBits::eAllGraphics,
@@ -159,13 +157,13 @@ void trc::GuiIntegrationPass::begin(
         vk::PipelineBindPoint::eCompute, *imageBlendPipeline.getLayout(),
         0, **blendDescSets, {}
     );
-    const auto [x, y] = swapchain.getImageExtent();
+    auto [x, y] = vec2(target.getSize());
     constexpr float LOCAL_SIZE{ 10.0f };
     cmdBuf.dispatch(glm::ceil(x / LOCAL_SIZE), glm::ceil(y / LOCAL_SIZE), 1);
 
     imageMemoryBarrier(
         cmdBuf,
-        swapchainImage,
+        image,
         vk::ImageLayout::eGeneral,
         vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits::eComputeShader,
@@ -182,25 +180,27 @@ void trc::GuiIntegrationPass::end(vk::CommandBuffer)
 
 void trc::GuiIntegrationPass::createDescriptorSets()
 {
-    blendDescSets = { swapchain };
+    const auto& clock = target.getFrameClock();
+
+    blendDescSets = { clock };
     blendDescPool.reset();
 
     // Descriptor pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
         { vk::DescriptorType::eStorageImage, 1 }, // Render result image
-        { vk::DescriptorType::eStorageImage, swapchain.getFrameCount() }, // Swapchain images
+        { vk::DescriptorType::eStorageImage, clock.getFrameCount() }, // Swapchain images
     };
     blendDescPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            swapchain.getFrameCount(),
+            clock.getFrameCount(),
             poolSizes
         )
     );
 
     // Descriptor sets
     blendDescSets = {
-        swapchain,
+        clock,
         [this](ui32) -> vk::UniqueDescriptorSet {
             return std::move(device->allocateDescriptorSetsUnique(
                 { *blendDescPool, *blendDescLayout }
@@ -211,11 +211,11 @@ void trc::GuiIntegrationPass::createDescriptorSets()
 
 void trc::GuiIntegrationPass::writeDescriptorSets(vk::ImageView srcImage)
 {
-    for (ui32 i = 0; i < swapchain.getFrameCount(); i++)
+    for (ui32 i = 0; i < target.getFrameClock().getFrameCount(); i++)
     {
         vk::DescriptorSet set = *blendDescSets.getAt(i);
 
-        auto view = swapchain.getImageView(i);
+        auto view = target.getImageView(i);
         vk::DescriptorImageInfo swapchainImageInfo({}, view, vk::ImageLayout::eGeneral);
         vk::DescriptorImageInfo renderResultImageInfo({}, srcImage, vk::ImageLayout::eGeneral);
         std::vector<vk::WriteDescriptorSet> writes{

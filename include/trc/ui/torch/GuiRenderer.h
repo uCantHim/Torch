@@ -34,7 +34,7 @@ namespace trc
          * TODO: Don't let the GuiRenderer decide which queue to use, pass
          *       one as a parameter
          */
-        GuiRenderer(Device& device);
+        explicit GuiRenderer(const Device& device);
 
         /**
          * @brief Draw a gui window's contents to the Renderer's image
