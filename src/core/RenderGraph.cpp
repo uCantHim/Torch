@@ -9,10 +9,19 @@ void trc::RenderGraph::first(RenderStage::ID newStage)
     insert(stages.begin(), newStage);
 }
 
+void trc::RenderGraph::last(RenderStage::ID newStage)
+{
+    stages.emplace_back(newStage);
+}
+
 void trc::RenderGraph::before(RenderStage::ID nextStage, RenderStage::ID newStage)
 {
     if (auto stage = findStage(nextStage)) {
         insert(stage.value(), newStage);
+    }
+    else {
+        throw std::out_of_range("[In RenderGraph::before]: Unable to insert the new render stage:"
+                                " Succeeding stage is not present in the render graph.");
     }
 }
 
@@ -20,6 +29,10 @@ void trc::RenderGraph::after(RenderStage::ID prevStage, RenderStage::ID newStage
 {
     if (auto stage = findStage(prevStage)) {
         insert(++stage.value(), newStage);
+    }
+    else {
+        throw std::out_of_range("[In RenderGraph::before]: Unable to insert the new render stage:"
+                                " Preceeding stage is not present in the render graph.");
     }
 }
 
@@ -43,9 +56,13 @@ auto trc::RenderGraph::size() const noexcept -> size_t
 void trc::RenderGraph::addPass(RenderStage::ID stage, RenderPass& newPass)
 {
     auto it = findStage(stage);
-    if (it.has_value())
-    {
+    if (it.has_value()) {
         it.value()->renderPasses.push_back(&newPass);
+    }
+    else {
+        throw std::out_of_range("[In RenderGraph::addPass]: Tried to add a render pass to"
+                                " render stage " + std::to_string(stage) + ", which is not"
+                                " present in the graph.");
     }
 }
 

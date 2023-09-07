@@ -39,7 +39,16 @@ namespace trc
         ~RenderGraph() noexcept = default;
 
         void first(RenderStage::ID newStage);
+        void last(RenderStage::ID newStage);
+
+        /**
+         * @throw std::out_of_range if `nextStage` is not present in the graph.
+         */
         void before(RenderStage::ID nextStage, RenderStage::ID newStage);
+
+        /**
+         * @throw std::out_of_range if `prevStage` is not present in the graph.
+         */
         void after(RenderStage::ID prevStage, RenderStage::ID newStage);
 
         /**
@@ -47,6 +56,8 @@ namespace trc
          *
          * All commands in `requiredStage` must have completed execution
          * before any command in `stage` can be executed.
+         *
+         * TODO: This is currently not functional.
          *
          * @param RenderStage::ID stage
          * @param RenderStage::ID requiredStage
@@ -71,6 +82,10 @@ namespace trc
             return stages;
         }
 
+        /**
+         * @throw std::out_of_range if `stage` is not present in the render
+         *        graph.
+         */
         void addPass(RenderStage::ID stage, RenderPass& newPass);
         void removePass(RenderStage::ID stage, RenderPass& pass);
 
