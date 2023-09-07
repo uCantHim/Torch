@@ -12,12 +12,15 @@ namespace trc::imgui
 {
     class ImguiRenderPass;
 
+    inline RenderStage imguiRenderStage = trc::makeRenderStage();
+
     /**
      * @brief Initialize imgui integration and set up render graph
      *
-     * This function fully initializes imgui and sets a render graph up to
-     * use imgui. You can call beginImguiFrame() and use ImGui functionality
-     * after a call to this function.
+     * This function fully initializes imgui and adds a render pass to the
+     * `trc::imgui::imguiRenderStage` render stage. The user must insert this
+     * stage somewhere into the render graph. You can call beginImguiFrame()
+     * and use ImGui functionality after a call to this function.
      *
      * Call this function for each window on which you want to use imgui.
      *

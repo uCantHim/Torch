@@ -31,11 +31,14 @@ App::App(const fs::path& projectRootDir)
         trc::InstanceCreateInfo{},
         trc::WindowCreateInfo{}
     )),
-    imgui(trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getRenderGraph())),
     assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
     scene(*this),
     mainMenu(*this)
 {
+    torch->getRenderConfig().getRenderGraph().after(trc::postProcessingRenderStage,
+                                                    trc::imgui::imguiRenderStage);
+    imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getRenderGraph());
+
     vec2 size = torch->getWindow().getWindowSize();
     torch->getRenderConfig().setViewport({ size.x * 0.25f, 0.0f }, size);
     scene.getCamera().setAspect(size.x / size.y);

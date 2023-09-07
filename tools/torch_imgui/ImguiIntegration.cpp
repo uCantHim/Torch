@@ -18,8 +18,6 @@ namespace ig = ImGui;
 
 namespace
 {
-    const trc::RenderStage imguiRenderStage = trc::RenderStage::make();
-
     vk::UniqueDescriptorPool imguiDescPool;
     bool imguiInitialized{ false };
 
@@ -33,7 +31,6 @@ auto trc::imgui::initImgui(Window& window, RenderGraph& graph)
     auto& swapchain = window.getSwapchain();
 
     auto renderPass = std::make_unique<ImguiRenderPass>(swapchain);
-    graph.after(rayTracingRenderStage, imguiRenderStage);
     graph.addPass(imguiRenderStage, *renderPass);
 
     // Initialize global imgui stuff

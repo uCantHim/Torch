@@ -12,7 +12,9 @@ int main()
         trc::Scene scene;
         trc::Camera camera;
 
-        auto imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getRenderGraph());
+        auto& renderGraph = torch->getRenderConfig().getRenderGraph();
+        renderGraph.after(trc::postProcessingRenderStage, trc::imgui::imguiRenderStage);
+        auto imgui = trc::imgui::initImgui(torch->getWindow(), renderGraph);
 
         while (torch->getWindow().isOpen())
         {
