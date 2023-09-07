@@ -1,16 +1,18 @@
 #pragma once
 
-#include <vector>
+#include <concepts>
 
 #include "trc/Types.h"
 #include "trc/ui/CRTPNode.h"
-#include "trc/ui/DrawInfo.h"
 #include "trc/ui/event/Event.h"
 #include "trc/ui/event/EventListenerRegistryBase.h"
 #include "trc/ui/event/InputEvent.h"
+#include "trc/ui/Window.h"
 
 namespace trc::ui
 {
+    class Element;
+
     template<typename ...EventTypes>
     struct InheritEventListener : public EventListenerRegistryBase<EventTypes>...
     {
@@ -59,6 +61,17 @@ namespace trc::ui
     public:
         ElementStyle style;
 
+        /**
+         * @brief Create a UI element and attach it as a child
+         */
+        template<GuiElement E, typename ...Args>
+        auto createChild(Args&&... args) -> E&
+        {
+            E& elem = window->create<E>(std::forward<Args>(args)...).makeRef();
+            this->attach(elem);
+            return elem;
+        }
+
     protected:
         friend class Window;
 
@@ -70,8 +83,78 @@ namespace trc::ui
         Window* window;
     };
 
-    template<typename T>
-    concept GuiElement = requires {
-        std::is_base_of_v<Element, T>;
+    /**
+     * Typed unique handle for UI elements
+     */
+    template<GuiElement E>
+    using SharedElementHandle = s_ptr<E>;
+
+    /**
+     * Typed shared handle for UI elements
+     */
+    template<GuiElement E>
+    using UniqueElementHandle = u_ptr<E, std::function<void(E*)>>;
+
+    /**
+     * Temporary proxy that creates either an unmanaged reference or a
+     * smart handle (i.e. unique or shared).
+     */
+    template<GuiElement E>
+    class ElementHandleProxy
+    {
+        friend class Window;
+        ElementHandleProxy(E& element, Window& window);
+
+    public:
+        using SharedHandle = SharedElementHandle<E>;
+        using UniqueHandle = UniqueElementHandle<E>;
+
+        ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
+        ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
+        auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
+        auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
+
+        inline operator E&() &&;
+        inline auto makeRef() && -> E&;
+        inline auto makeShared() && -> SharedHandle;
+        inline auto makeUnique() && -> UniqueHandle;
+
+    private:
+        E* element;
+        Window* window;
     };
+
+
+
+    template<GuiElement E>
+    ElementHandleProxy<E>::ElementHandleProxy(E& element, Window& window)
+        :
+        element(&element),
+        window(&window)
+    {
+    }
+
+    template<GuiElement E>
+    inline ElementHandleProxy<E>::operator E&() &&
+    {
+        return *element;
+    }
+
+    template<GuiElement E>
+    inline auto ElementHandleProxy<E>::makeRef() && -> E&
+    {
+        return *element;
+    }
+
+    template<GuiElement E>
+    inline auto ElementHandleProxy<E>::makeShared() && -> SharedHandle
+    {
+        return SharedHandle(element, [window=window](E* elem) { window->destroy(*elem); });
+    }
+
+    template<GuiElement E>
+    inline auto ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
+    {
+        return UniqueHandle(element, [window=window](E* elem) { window->destroy(*elem); });
+    }
 } // namespace trc::ui

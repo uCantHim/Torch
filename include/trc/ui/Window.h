@@ -1,54 +1,21 @@
 #pragma once
 
 #include "trc/text/GlyphLoading.h"
-#include "trc/ui/Element.h"
+#include "trc/ui/DrawInfo.h"
 #include "trc/ui/FontRegistry.h"
 #include "trc/ui/IoConfig.h"
+#include "trc/ui/event/Event.h"
 
 namespace trc::ui
 {
+    class Element;
     class Window;
 
-    /**
-     * Typed unique handle for UI elements
-     */
+    template<typename T>
+    concept GuiElement = std::derived_from<T, Element>;
+
     template<GuiElement E>
-    using SharedElementHandle = s_ptr<E>;
-
-    /**
-     * Typed shared handle for UI elements
-     */
-    template<GuiElement E>
-    using UniqueElementHandle = u_ptr<E, std::function<void(E*)>>;
-
-    /**
-     * Temporary proxy that creates either an unmanaged reference or a
-     * smart handle (i.e. unique or shared).
-     */
-    template<GuiElement E>
-    class ElementHandleProxy
-    {
-        friend class Window;
-        ElementHandleProxy(E& element, Window& window);
-
-    public:
-        using SharedHandle = SharedElementHandle<E>;
-        using UniqueHandle = UniqueElementHandle<E>;
-
-        ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
-        ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
-        auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
-        auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
-
-        inline operator E&() &&;
-        inline auto makeRef() && -> E&;
-        inline auto makeShared() && -> SharedHandle;
-        inline auto makeUnique() && -> UniqueHandle;
-
-    private:
-        E* element;
-        Window* window;
-    };
+    class ElementHandleProxy;
 
     /**
      * @brief Initialize global callbacks to the user
@@ -185,18 +152,33 @@ namespace trc::ui
         template<std::invocable<Element&> F>
         void traverse(F elemCallback);
 
-        /**
-         * @brief An element that does nothing
-         */
-        struct Root : Element {
-            void draw(DrawList&) override {}
-        };
-
-        // This is a unique_ptr because I'm too lazy to implement all those
-        // move constructors.
-        u_ptr<Root> root{ new Root };
+        // The root element
+        u_ptr<Element> root;
     };
 
-} // namespace trc::ui
 
-#include "trc/ui/Window.inl"
+
+    template<GuiElement E, typename... Args>
+    inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
+    {
+        // Construct with Window in constructor if possible
+        if constexpr (std::is_constructible_v<E, Window&, Args...>)
+        {
+            E& newElem = static_cast<E&>(
+                *drawableElements.emplace_back(new E(*this, std::forward<Args>(args)...))
+            );
+
+            return { newElem, *this };
+        }
+        // Construct with args only and set window member later
+        else
+        {
+            E& newElem = static_cast<E&>(
+                *drawableElements.emplace_back(new E(std::forward<Args>(args)...))
+            );
+            newElem.window = this;
+
+            return { newElem, *this };
+        }
+    }
+} // namespace trc::ui
