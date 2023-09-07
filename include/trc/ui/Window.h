@@ -70,17 +70,13 @@ namespace trc::ui
 
         /**
          * @brief Create an element
+         *
+         * The new element is not attached to anything. If you want it to
+         * be drawn, attach it to the window's root element
+         * (`Window::getRoot()`) or to any of the root's child elements.
          */
         template<GuiElement E, typename... Args>
-        inline auto create(Args&&... args) -> ElementHandleProxy<E>;
-
-        /**
-         * @brief Destroy an element
-         *
-         * @param Element& elem The element to destroy. Must have been
-         *        created at the same window.
-         */
-        void destroy(Element& elem);
+        auto create(Args&&... args) -> s_ptr<E>;
 
         /**
          * @brief Signal to the window that a mouse click has occured
@@ -141,7 +137,6 @@ namespace trc::ui
         u_ptr<WindowBackend> windowBackend;
         IoConfig ioConfig;
 
-        std::vector<u_ptr<Element>> drawableElements;
         DrawList drawList;
 
         /**
@@ -159,26 +154,18 @@ namespace trc::ui
 
 
     template<GuiElement E, typename... Args>
-    inline auto Window::create(Args&&... args) -> ElementHandleProxy<E>
+    inline auto Window::create(Args&&... args) -> s_ptr<E>
     {
         // Construct with Window in constructor if possible
-        if constexpr (std::is_constructible_v<E, Window&, Args...>)
-        {
-            E& newElem = static_cast<E&>(
-                *drawableElements.emplace_back(new E(*this, std::forward<Args>(args)...))
-            );
-
-            return { newElem, *this };
+        if constexpr (std::is_constructible_v<E, Window&, Args...>) {
+            return std::make_shared<E>(*this, std::forward<Args>(args)...);
         }
         // Construct with args only and set window member later
-        else
-        {
-            E& newElem = static_cast<E&>(
-                *drawableElements.emplace_back(new E(std::forward<Args>(args)...))
-            );
-            newElem.window = this;
+        else {
+            auto newElem = std::make_shared<E>(std::forward<Args>(args)...);
+            newElem->window = this;
 
-            return { newElem, *this };
+            return newElem;
         }
     }
 } // namespace trc::ui

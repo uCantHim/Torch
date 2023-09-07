@@ -11,6 +11,7 @@
  * @brief An element that does nothing.
  */
 struct Root : trc::ui::Element {
+    Root(trc::ui::Window& win) : Element(win) {}
     void draw(trc::ui::DrawList&) override {}
 };
 
@@ -27,7 +28,7 @@ trc::ui::Window::Window(WindowCreateInfo createInfo)
     :
     onWindowDestruction(std::move(createInfo.onWindowDestruction)),
     windowBackend(std::move(createInfo.windowBackend)),
-    root(new Root{})
+    root(new Root{ *this })
 {
     assert(this->windowBackend != nullptr);
 
@@ -59,14 +60,6 @@ auto trc::ui::Window::getSize() const -> vec2
 auto trc::ui::Window::getRoot() -> Element&
 {
     return *root;
-}
-
-void trc::ui::Window::destroy(Element& elem)
-{
-    drawableElements.erase(std::remove_if(
-        drawableElements.begin(), drawableElements.end(),
-        [&elem](u_ptr<Element>& e) { return e.get() == &elem; }
-    ));
 }
 
 void trc::ui::Window::signalMouseClick(float posPixelsX, float posPixelsY)

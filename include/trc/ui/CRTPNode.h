@@ -1,7 +1,9 @@
 #pragma once
 
+#include <concepts>
 #include <vector>
 
+#include "trc/Types.h"
 #include "trc/ui/Transform.h"
 
 namespace trc::ui
@@ -16,25 +18,27 @@ namespace trc::ui
         auto operator=(CRTPNode&&) noexcept -> CRTPNode& = default;
 
         CRTPNode() {
-            static_assert(std::is_base_of_v<CRTPNode<Derived>, Derived>, "");
+            static_assert(std::derived_from<Derived, CRTPNode<Derived>>, "");
         }
 
         ~CRTPNode() noexcept {
             if (parent != nullptr) {
-                parent->detach(static_cast<Derived&>(*this));
+                parent->detach(static_cast<Derived*>(this));
             }
         }
 
-        void attach(Derived& child);
-        void detach(Derived& child);
+        void attach(s_ptr<Derived> child);
+        void detach(s_ptr<Derived> child);
         void clearChildren();
 
         template<std::invocable<Derived&> F>
         void foreachChild(F func);
 
     private:
+        void detach(Derived* child);
+
         Derived* parent{ nullptr };
-        std::vector<Derived*> children;
+        std::vector<s_ptr<Derived>> children;
     };
 
     template<typename Derived>
@@ -47,7 +51,7 @@ namespace trc::ui
          * I use static_assert instead.
          */
         TransformNode() {
-            static_assert(std::is_base_of_v<TransformNode<Derived>, Derived>, "");
+            static_assert(std::derived_from<Derived, TransformNode<Derived>>, "");
         }
 
         auto getPos() -> vec2;

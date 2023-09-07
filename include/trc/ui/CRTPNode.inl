@@ -3,21 +3,28 @@
 
 
 template<typename Derived>
-inline void trc::ui::CRTPNode<Derived>::attach(Derived& child)
+inline void trc::ui::CRTPNode<Derived>::attach(s_ptr<Derived> child)
 {
-    children.push_back(&child);
-    child.parent = static_cast<Derived*>(this);
+    children.push_back(child);
+    child->parent = static_cast<Derived*>(this);
 }
 
 template<typename Derived>
-inline void trc::ui::CRTPNode<Derived>::detach(Derived& child)
+inline void trc::ui::CRTPNode<Derived>::detach(s_ptr<Derived> child)
 {
-    for (auto it = children.begin(); it != children.end(); it++)
+    detach(child.get());
+}
+
+template<typename Derived>
+inline void trc::ui::CRTPNode<Derived>::detach(Derived* child)
+{
+    for (auto it = children.begin(); it != children.end(); ++it)
     {
-        if (*it == &child)
+        if (it->get() == child)
         {
             (*it)->parent = nullptr;
-            it = --children.erase(it);
+            children.erase(it);
+            return;
         }
     }
 }

@@ -65,9 +65,9 @@ namespace trc::ui
          * @brief Create a UI element and attach it as a child
          */
         template<GuiElement E, typename ...Args>
-        auto createChild(Args&&... args) -> E&
+        auto createChild(Args&&... args) -> s_ptr<E>
         {
-            E& elem = window->create<E>(std::forward<Args>(args)...).makeRef();
+            auto elem = window->create<E>(std::forward<Args>(args)...);
             this->attach(elem);
             return elem;
         }
@@ -82,79 +82,4 @@ namespace trc::ui
 
         Window* window;
     };
-
-    /**
-     * Typed unique handle for UI elements
-     */
-    template<GuiElement E>
-    using SharedElementHandle = s_ptr<E>;
-
-    /**
-     * Typed shared handle for UI elements
-     */
-    template<GuiElement E>
-    using UniqueElementHandle = u_ptr<E, std::function<void(E*)>>;
-
-    /**
-     * Temporary proxy that creates either an unmanaged reference or a
-     * smart handle (i.e. unique or shared).
-     */
-    template<GuiElement E>
-    class ElementHandleProxy
-    {
-        friend class Window;
-        ElementHandleProxy(E& element, Window& window);
-
-    public:
-        using SharedHandle = SharedElementHandle<E>;
-        using UniqueHandle = UniqueElementHandle<E>;
-
-        ElementHandleProxy(const ElementHandleProxy<E>&) = delete;
-        ElementHandleProxy(ElementHandleProxy<E>&&) noexcept = delete;
-        auto operator=(const ElementHandleProxy<E>&) -> ElementHandleProxy<E>& = delete;
-        auto operator=(ElementHandleProxy<E>&&) noexcept -> ElementHandleProxy<E>& = delete;
-
-        inline operator E&() &&;
-        inline auto makeRef() && -> E&;
-        inline auto makeShared() && -> SharedHandle;
-        inline auto makeUnique() && -> UniqueHandle;
-
-    private:
-        E* element;
-        Window* window;
-    };
-
-
-
-    template<GuiElement E>
-    ElementHandleProxy<E>::ElementHandleProxy(E& element, Window& window)
-        :
-        element(&element),
-        window(&window)
-    {
-    }
-
-    template<GuiElement E>
-    inline ElementHandleProxy<E>::operator E&() &&
-    {
-        return *element;
-    }
-
-    template<GuiElement E>
-    inline auto ElementHandleProxy<E>::makeRef() && -> E&
-    {
-        return *element;
-    }
-
-    template<GuiElement E>
-    inline auto ElementHandleProxy<E>::makeShared() && -> SharedHandle
-    {
-        return SharedHandle(element, [window=window](E* elem) { window->destroy(*elem); });
-    }
-
-    template<GuiElement E>
-    inline auto ElementHandleProxy<E>::makeUnique() && -> UniqueHandle
-    {
-        return UniqueHandle(element, [window=window](E* elem) { window->destroy(*elem); });
-    }
 } // namespace trc::ui
