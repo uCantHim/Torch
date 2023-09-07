@@ -8,7 +8,7 @@
 #include <trc/core/RenderStage.h>
 #include <trc/core/Window.h>
 
-namespace trc::experimental::imgui
+namespace trc::imgui
 {
     class ImguiRenderPass;
 
@@ -73,4 +73,4 @@ namespace trc::experimental::imgui
 
         const Swapchain& swapchain;
     };
-} // namespace trc::experimental::imgui
+} // namespace trc::imgui

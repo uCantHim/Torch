@@ -26,7 +26,7 @@ namespace
     bool imguiHasBegun{ false };
 } // anonymous namespace
 
-auto trc::experimental::imgui::initImgui(Window& window, RenderGraph& graph)
+auto trc::imgui::initImgui(Window& window, RenderGraph& graph)
     -> trc::u_ptr<ImguiRenderPass>
 {
     auto& device = window.getDevice();
@@ -112,7 +112,7 @@ auto trc::experimental::imgui::initImgui(Window& window, RenderGraph& graph)
     return renderPass;
 }
 
-void trc::experimental::imgui::terminateImgui()
+void trc::imgui::terminateImgui()
 {
     if (imguiInitialized)
     {
@@ -125,7 +125,7 @@ void trc::experimental::imgui::terminateImgui()
     }
 }
 
-void trc::experimental::imgui::beginImguiFrame()
+void trc::imgui::beginImguiFrame()
 {
     if (!imguiHasBegun)
     {
@@ -139,7 +139,7 @@ void trc::experimental::imgui::beginImguiFrame()
 
 
 
-trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swapchain)
+trc::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swapchain)
     :
     RenderPass({}, 0),
     swapchain(swapchain)
@@ -186,7 +186,7 @@ trc::experimental::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swap
     );
 }
 
-trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
+trc::imgui::ImguiRenderPass::~ImguiRenderPass()
 {
     swapchain.device->waitIdle();
 
@@ -208,7 +208,7 @@ trc::experimental::imgui::ImguiRenderPass::~ImguiRenderPass()
     }
 }
 
-void trc::experimental::imgui::ImguiRenderPass::begin(
+void trc::imgui::ImguiRenderPass::begin(
     vk::CommandBuffer cmdBuf,
     vk::SubpassContents /*subpassContents*/,
     FrameRenderState&)
@@ -249,7 +249,7 @@ void trc::experimental::imgui::ImguiRenderPass::begin(
     }
 }
 
-void trc::experimental::imgui::ImguiRenderPass::end(vk::CommandBuffer cmdBuf)
+void trc::imgui::ImguiRenderPass::end(vk::CommandBuffer cmdBuf)
 {
     ig::EndFrame();
     ig::Render();

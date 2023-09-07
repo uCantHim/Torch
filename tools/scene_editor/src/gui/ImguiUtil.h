@@ -8,9 +8,6 @@
 #include <trc/ImguiIntegration.h>
 using namespace trc::basic_types;
 
-namespace trc {
-    namespace imgui = experimental::imgui;
-}
 namespace ig = ImGui;
 
 // End frame and issue return-statement immediately if Begin returns false

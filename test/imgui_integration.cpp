@@ -3,9 +3,6 @@
 #include <trc/Torch.h>
 #include <trc/ImguiIntegration.h>
 
-namespace trc {
-    namespace imgui = experimental::imgui;
-}
 namespace ig = ImGui;
 
 int main()

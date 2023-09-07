@@ -1,11 +1,9 @@
 #include <trc/Torch.h>
 #include <trc/ImguiIntegration.h>
 #include <imgui.h>
-namespace trc {
-    namespace imgui = experimental::imgui;
-}
-namespace ig = ImGui;
+
 using namespace trc::basic_types;
+namespace ig = ImGui;
 
 int main()
 {
