@@ -28,7 +28,7 @@ void MaterialEditorGui::drawGui()
                      | ImGuiWindowFlags_NoTitleBar;
     if (ig::Begin("##matedit-menu", nullptr, flags))
     {
-        // Apply resizes on the right window border
+        // Apply resizes only on the right window border
         if (ig::GetWindowPos().x == 0) {
             menuBarSize.x = ig::GetWindowWidth();
         }
@@ -36,4 +36,32 @@ void MaterialEditorGui::drawGui()
         ig::Text("Hello menu! :D");
         ig::End();
     }
+
+    // Context menu
+    const auto popupFlags = ImGuiWindowFlags_NoMove
+                          | ImGuiWindowFlags_NoResize
+                          | ImGuiWindowFlags_NoDecoration
+                          | ImGuiWindowFlags_NoTitleBar;
+    if (contextMenuIsOpen)
+    {
+        ig::SetNextWindowPos({ contextMenuPos.x, contextMenuPos.y });
+        ig::PushStyleVar(ImGuiStyleVar_Alpha, kContextMenuAlpha);
+        if (ig::Begin("##matedit-context-menu", nullptr, popupFlags))
+        {
+            ig::Text("Hello popup!");
+            ig::End();
+        }
+        ig::PopStyleVar();
+    }
+}
+
+void MaterialEditorGui::openContextMenu(vec2 position)
+{
+    contextMenuPos = position;
+    contextMenuIsOpen = true;
+}
+
+void MaterialEditorGui::closeContextMenu()
+{
+    contextMenuIsOpen = false;
 }
