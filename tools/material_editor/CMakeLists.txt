@@ -9,6 +9,7 @@ target_sources(
     libmaterial_editor
     PRIVATE
         src/CameraDescriptor.cpp
+        src/Controls.cpp
         src/GraphLayout.cpp
         src/GraphManipulator.cpp
         src/GraphRenderer.cpp

@@ -1,6 +1,7 @@
 #include <trc/Torch.h>
 
 #include <GraphScene.h>
+#include <Controls.h>
 #include <MaterialEditorGui.h>
 #include <MaterialEditorRenderConfig.h>
 
@@ -28,16 +29,19 @@ int main()
 
     trc::SceneBase scene;
     trc::Camera camera;
-    camera.makeOrthogonal(-1.0f, 1.0f, -1.0f, 1.0f, -10.0f, 10.0f);
+    camera.makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
 
     GraphScene materialGraph;
     materialGraph.makeNode();
 
     MaterialEditorGui gui{ window, std::make_shared<GraphManipulator>(materialGraph) };
+    MaterialEditorControls controls{ window, gui, camera };
 
     while (window.isOpen() && !window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
+
+        controls.update();
 
         // Generate renderable data from graph
         const auto renderData = buildRenderData(materialGraph.graph, materialGraph.layout);
