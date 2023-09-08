@@ -4,13 +4,21 @@
 #include <trc/base/event/InputState.h>
 #include <trc/core/Window.h>
 
+#include "MaterialEditorGui.h"
+
 
 
 struct MouseDragEvent
 {
+    // Position of the mouse when dragging started in pixel coordinates.
+    // `currentMousePos - initialMousePos` is the total distance dragged.
     vec2 initialMousePos;
+
+    // Current position of the mouse in pixel coordinates.
     vec2 currentMousePos;
 
+    // Distance moved by this event relative to the mouse position after the
+    // last mouse drag event in pixel coordinates.
     vec2 dragIncrement;
 };
 
@@ -75,6 +83,8 @@ MaterialEditorControls::MaterialEditorControls(
     trc::Camera& camera)
 {
     constexpr float kZoomStep{ 0.15f };
+    constexpr trc::Key kCancelKey{ trc::Key::escape };
+    constexpr trc::MouseButton kContextMenuOpenKey{ trc::MouseButton::right };
 
     trc::Keyboard::init();
     trc::Mouse::init();
@@ -94,6 +104,20 @@ MaterialEditorControls::MaterialEditorControls(
         const float max = 1.0f + static_cast<float>(e.zoomLevel) * kZoomStep;
         camera.makeOrthogonal(min, max, min, max, -10.0f, 10.0f);
         cameraSize = { max - min, max - min };
+    });
+
+    trc::on<trc::MouseClickEvent>([&gui](auto&& e) {
+        if (e.button == kContextMenuOpenKey) {
+            gui.openContextMenu(trc::Mouse::getPosition());
+        }
+        else {
+            gui.closeContextMenu();
+        }
+    });
+    trc::on<trc::KeyPressEvent>([&gui](auto&& e) {
+        if (e.key == kCancelKey) {
+            gui.closeContextMenu();
+        }
     });
 }
 
