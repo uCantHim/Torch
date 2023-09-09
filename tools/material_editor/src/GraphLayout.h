@@ -13,8 +13,8 @@ namespace graph
     constexpr vec2 kMinNodeSize{ 0.4f, 0.6f };
 
     constexpr vec2 kSocketSize{ 0.15f, 0.15f };
-    constexpr float kSocketSpacingHorizontal{ kSocketSize.x * 4 };
-    constexpr float kSocketSpacingVertical{ kSocketSize.y / 2 };
+    constexpr float kSocketSpacingHorizontal{ kSocketSize.x * 4.0f };
+    constexpr float kSocketSpacingVertical{ kSocketSize.y / 2.0f };
 } // namespace graph
 
 struct Hitbox

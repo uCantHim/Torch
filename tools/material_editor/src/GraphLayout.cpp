@@ -11,10 +11,10 @@ auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
     vec2 extent{ 0.0f, 0.0f };
 
     extent.y = maxVerticalSockets * graph::kSocketSize.y
-                + (maxVerticalSockets - 1) * graph::kSocketSpacingVertical;
+             + maxVerticalSockets == 0 ? 0 : (maxVerticalSockets - 1) * graph::kSocketSpacingVertical;
     extent.x = static_cast<float>(!inputs.empty()) * graph::kSocketSize.y
-                + graph::kSocketSpacingHorizontal
-                + static_cast<float>(!outputs.empty()) * graph::kSocketSize.y;
+             + graph::kSocketSpacingHorizontal
+             + static_cast<float>(!outputs.empty()) * graph::kSocketSize.y;
 
     extent = glm::max(extent, graph::kMinNodeSize);
 
