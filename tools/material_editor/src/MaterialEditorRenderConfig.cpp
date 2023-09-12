@@ -54,10 +54,9 @@ void MaterialEditorRenderPass::begin(
     cmdBuf.beginRendering(info);
 
     cmdBuf.setScissor(0, area);
-    // Flip the viewport
     cmdBuf.setViewport(0, vk::Viewport{
-        static_cast<float>(area.offset.x), static_cast<float>(area.offset.y + area.extent.height),
-        static_cast<float>(area.extent.width), -static_cast<float>(area.extent.height),
+        static_cast<float>(area.offset.x), static_cast<float>(area.offset.y),
+        static_cast<float>(area.extent.width), static_cast<float>(area.extent.height),
         0.0f, 1.0f
     });
 
