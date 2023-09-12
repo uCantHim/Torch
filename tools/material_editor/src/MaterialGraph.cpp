@@ -20,6 +20,18 @@ auto MaterialGraph::makeSocket(Socket newSock) -> SocketID
     return id;
 }
 
+void MaterialGraph::linkSockets(SocketID a, SocketID b)
+{
+    link.emplace(a, b);
+    link.emplace(b, a);
+}
+
+void MaterialGraph::unlinkSockets(SocketID a)
+{
+    link.erase(link.get(a));
+    link.erase(a);
+}
+
 void MaterialGraph::removeNode(NodeID id)
 {
     if (id == outputNode) {
@@ -29,9 +41,13 @@ void MaterialGraph::removeNode(NodeID id)
 
     /** Remove a socket and its link (if it has any) from the graph */
     auto removeSocket = [this](SocketID sock) {
-        assert(!link.contains(sock) ^ (link.contains(sock) && !link.contains(link.get(sock)))
-               && "The material graph must be unidirectional!");
-        link.try_erase(sock);
+        if (link.contains(sock))
+        {
+            const auto linkedSock = link.get(sock);
+            assert(link.contains(linkedSock));
+            link.erase(sock);
+            link.erase(linkedSock);
+        }
         socketInfo.erase(sock);
     };
 
@@ -44,4 +60,18 @@ void MaterialGraph::removeNode(NodeID id)
 
     inputSockets.erase(id);
     outputSockets.erase(id);
+}
+
+void createSockets(NodeID node, MaterialGraph& graph, const trc::FunctionType& type)
+{
+    for (const auto& argType : type.argTypes)
+    {
+        auto sock = graph.makeSocket({ .type=argType, .name="arg_name" });
+        graph.inputSockets.get(node).emplace_back(sock);
+    }
+    if (type.returnType)
+    {
+        auto sock = graph.makeSocket({ .type=type.returnType.value(), .name="ret_name" });
+        graph.outputSockets.get(node).emplace_back(sock);
+    }
 }

@@ -14,6 +14,7 @@ namespace graph
 
     constexpr vec2 kSocketSize{ 0.15f, 0.15f };
     constexpr float kSocketSpacingHorizontal{ kSocketSize.x * 4.0f };
+    // The 'vertical' spacing also acts as a left/right padding
     constexpr float kSocketSpacingVertical{ kSocketSize.y / 2.0f };
 } // namespace graph
 
@@ -32,8 +33,12 @@ struct Hitbox
 struct GraphLayout
 {
     Table<Hitbox, NodeID> nodeSize;
+
+    // Socket positions are relative to their node's position
     Table<Hitbox, SocketID> socketSize;
 };
+
+void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout);
 
 /**
  * @brief Calculate a node's size

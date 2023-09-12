@@ -1,4 +1,5 @@
 #include <trc/Torch.h>
+#include <trc/material/CommonShaderFunctions.h>
 
 #include <GraphScene.h>
 #include <Controls.h>
@@ -32,7 +33,7 @@ int main()
     camera.makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
 
     GraphScene materialGraph;
-    materialGraph.makeNode();
+    materialGraph.makeNode(std::make_shared<trc::Mix<3, float>>());
 
     MaterialEditorGui gui{ window, std::make_shared<GraphManipulator>(materialGraph) };
     MaterialEditorControls controls{ window, gui, camera };
