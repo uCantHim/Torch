@@ -1,5 +1,7 @@
 #include "GraphRenderer.h"
 
+#include <algorithm>
+#include <numeric>
 #include <ranges>
 
 #include <trc_util/algorithm/VectorTransform.h>
@@ -9,42 +11,49 @@
 
 void GraphRenderData::pushNode(vec2 pos, vec2 size, vec4 color)
 {
-    nodeDimensions.emplace_back(pos, size);
-    nodeColors.emplace_back(color);
+    quads.dimensions.emplace_back(pos, size);
+    quads.colors.emplace_back(color);
 }
 
 void GraphRenderData::pushSocket(vec2 pos, vec2 size, vec4 color)
 {
-    socketDimensions.emplace_back(pos, size);
-    socketColors.emplace_back(color);
+    quads.dimensions.emplace_back(pos, size);
+    quads.colors.emplace_back(color);
 }
 
-void GraphRenderData::pushLink(vec2 /*from*/, vec2 /*to*/)
+void GraphRenderData::pushLink(vec2 from, vec2 to, vec4 color)
 {
+    lines.dimensions.emplace_back(from, to - from);
+    lines.colors.emplace_back(color);
+}
+
+void GraphRenderData::pushBorder(vec2 pos, vec2 size, vec4 color)
+{
+    lines.dimensions.emplace_back(pos, vec2{ size.x, 0.0f });
+    lines.dimensions.emplace_back(pos, vec2{ 0.0f, size.y });
+    lines.dimensions.emplace_back(pos + size, vec2{ -size.x, 0.0f });
+    lines.dimensions.emplace_back(pos + size, vec2{ 0.0f, -size.y });
+    lines.colors.emplace_back(color);
+    lines.colors.emplace_back(color);
+    lines.colors.emplace_back(color);
+    lines.colors.emplace_back(color);
 }
 
 void GraphRenderData::clear()
 {
-    nodeDimensions.clear();
-    nodeColors.clear();
-    socketDimensions.clear();
-    socketColors.clear();
+    quads.dimensions.clear();
+    quads.colors.clear();
+    lines.dimensions.clear();
+    lines.colors.clear();
 }
 
 auto buildRenderData(const MaterialGraph& graph, const GraphLayout& layout) -> GraphRenderData
 {
-    constexpr vec4 kNodeColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-
     GraphRenderData res;
-    for (const auto& [node, sockets] : graph.inputSockets.items())
+    for (const auto& [node, _] : graph.nodeInfo.items())
     {
         const auto& [pos, size] = layout.nodeSize.get(node);
-        res.pushNode(pos, size, kNodeColor);
-    }
-    for (const auto& [node, sockets] : graph.outputSockets.items())
-    {
-        const auto& [pos, size] = layout.nodeSize.get(node);
-        res.pushNode(pos, size, kNodeColor);
+        res.pushNode(pos, size, graph::kNodeColor);
     }
 
     return res;
@@ -73,12 +82,12 @@ MaterialGraphRenderer::MaterialGraphRenderer(const trc::Device& device, const tr
         []{
             return std::vector<vec2>{
                 // Vertex locations
-                { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f },
-                { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f },
+                { 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f },
+                { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f },
 
                 // UV coordinates
-                { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f },
-                { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f },
+                { 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f },
+                { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f },
             };
         }(),
         vk::BufferUsageFlagBits::eVertexBuffer
@@ -86,6 +95,7 @@ MaterialGraphRenderer::MaterialGraphRenderer(const trc::Device& device, const tr
     indexBuf(device, std::vector<uint32_t>{ 0, 1, 2, 3, 4, 5 }, vk::BufferUsageFlagBits::eIndexBuffer),
     deviceData(clock, [&](auto){
         DeviceData res{
+            .drawCmds={},
             .dimensionBuf=makeVertBuf(device, kElemDimSize * 2000),
             .colorBuf=makeVertBuf(device, kElemColorSize * 2000),
             .dimensions=nullptr,
@@ -103,13 +113,18 @@ MaterialGraphRenderer::MaterialGraphRenderer(const trc::Device& device, const tr
 
 void MaterialGraphRenderer::uploadData(const GraphRenderData& data)
 {
-    assert(data.nodeColors.size() == data.nodeDimensions.size());
-    assert(data.socketColors.size() == data.socketDimensions.size());
-
+    assert(data.quads.colors.size() == data.quads.dimensions.size());
+    assert(data.lines.colors.size() == data.lines.dimensions.size());
 
     auto& dst = *deviceData;
+    dst.drawCmds.clear();
 
-    const size_t numElems = data.nodeDimensions.size() + data.socketDimensions.size();
+    // Modify this if you add a new type of primitive
+    auto primitives = { data.quads, data.lines };
+
+    auto counts = primitives | std::views::transform([](auto&& el){ return el.dimensions.size(); });
+    const size_t numElems = std::accumulate(counts.begin(), counts.end(), 0);
+
     const size_t dimBufSize = numElems * kElemDimSize;
     const size_t colorBufSize = numElems * kElemColorSize;
     if (dst.dimensionBuf.size() < dimBufSize)
@@ -125,12 +140,27 @@ void MaterialGraphRenderer::uploadData(const GraphRenderData& data)
         dst.colors = dst.colorBuf.map<vec4*>();
     }
 
-    dst.numNodes = data.nodeDimensions.size();
-    dst.numSockets = data.socketDimensions.size();
-    memcpy(dst.dimensions,                               data.nodeDimensions.data(),   dst.numNodes * kElemDimSize);
-    memcpy(dst.dimensions + dst.numNodes * kElemDimSize, data.socketDimensions.data(), dst.numSockets * kElemDimSize);
-    memcpy(dst.colors,                                 data.nodeColors.data(),   dst.numNodes * kElemColorSize);
-    memcpy(dst.colors + dst.numNodes * kElemColorSize, data.socketColors.data(), dst.numSockets * kElemColorSize);
+    // Copy primitive data to device
+    size_t offsetElems{ 0 };
+    for (const auto& prim : primitives)
+    {
+        const auto& draw = dst.drawCmds.emplace_back(DeviceData::DrawCmd{
+            .indexCount    = prim.geometryType == GraphRenderData::Geometry::eQuad ? 6u : 2u,
+            .instanceCount = static_cast<ui32>(prim.dimensions.size()),
+            .pipeline      = prim.geometryType == GraphRenderData::Geometry::eQuad
+                             ? getGraphElemPipeline()
+                             : getLinePipeline(),
+        });
+
+        memcpy(dst.dimensions + offsetElems,
+               prim.dimensions.data(),
+               prim.dimensions.size() * kElemDimSize);
+        memcpy(dst.colors + offsetElems,
+               prim.colors.data(),
+               prim.colors.size() * kElemColorSize);
+        offsetElems += draw.instanceCount;
+    }
+    assert(numElems == offsetElems);
 
     dst.dimensionBuf.flush();
     dst.colorBuf.flush();
@@ -140,25 +170,24 @@ void MaterialGraphRenderer::draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& co
 {
     const auto& data = *deviceData;
 
-    conf.getPipeline(getGraphElemPipeline()).bind(cmdBuf, conf);
-
     cmdBuf.bindVertexBuffers(0,
         { *vertexBuf,       *vertexBuf },
         { kVertexPosOffset, kVertexUvOffset }
     );
     cmdBuf.bindIndexBuffer(*indexBuf, 0, vk::IndexType::eUint32);
 
-    // Draw nodes
-    cmdBuf.bindVertexBuffers(2,
-        { *data.dimensionBuf, *data.colorBuf },
-        { 0, 0 }
-    );
-    cmdBuf.drawIndexed(6, data.numNodes, 0, 0, 0);
+    size_t offset{ 0 };
+    for (const auto& draw : data.drawCmds)
+    {
+        if (draw.instanceCount == 0) continue;
 
-    // Draw sockets
-    cmdBuf.bindVertexBuffers(2,
-        { *data.dimensionBuf, *data.colorBuf },
-        { kElemDimSize * data.numNodes, kElemColorSize * data.numNodes }
-    );
-    cmdBuf.drawIndexed(6, data.numSockets, 0, 0, 0);
+        conf.getPipeline(draw.pipeline).bind(cmdBuf, conf);
+
+        cmdBuf.bindVertexBuffers(2,
+            { *data.dimensionBuf,    *data.colorBuf },
+            { kElemDimSize * offset, kElemColorSize * offset }
+        );
+        cmdBuf.drawIndexed(draw.indexCount, draw.instanceCount, 0, 0, 0);
+        offset += draw.instanceCount;
+    }
 }
