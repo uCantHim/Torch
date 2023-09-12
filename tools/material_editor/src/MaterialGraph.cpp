@@ -5,6 +5,7 @@
 auto MaterialGraph::makeNode() -> NodeID
 {
     NodeID id{ nodeId.generate() };
+    nodeInfo.emplace(id);
     inputSockets.emplace(id);
     outputSockets.emplace(id);
 

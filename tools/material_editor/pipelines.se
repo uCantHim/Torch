@@ -38,3 +38,12 @@ Pipeline graphElemPipeline:
     Layout:
         Descriptors: [cameraDesc]
     RenderPass: "material_editor_forward_renderpass"
+
+Pipeline linePipeline:
+    Program: graphElementProgram
+    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceColors]
+    Layout:
+        Descriptors: [cameraDesc]
+    RenderPass: "material_editor_forward_renderpass"
+    PrimitiveTopology: lineList
+    LineWidth: 2.0
