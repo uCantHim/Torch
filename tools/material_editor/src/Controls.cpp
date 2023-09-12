@@ -96,7 +96,7 @@ MaterialEditorControls::MaterialEditorControls(
     static vec2 cameraSize{ 1.0f, 1.0f };
 
     trc::on<MouseDragEvent>([&](auto&& e) {
-        const vec2 move = (e.dragIncrement * vec2(1, -1)) / vec2(window.getSize());
+        const vec2 move = e.dragIncrement / vec2(window.getSize());
         camera.translate(vec3(move * cameraSize, 0.0f));
     });
     trc::on<ZoomEvent>([&camera](const ZoomEvent& e) {

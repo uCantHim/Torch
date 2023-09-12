@@ -38,6 +38,7 @@ Pipeline graphElemPipeline:
     Layout:
         Descriptors: [cameraDesc]
     RenderPass: "material_editor_forward_renderpass"
+    CullMode: cullNone
 
 Pipeline linePipeline:
     Program: graphElementProgram
@@ -47,3 +48,4 @@ Pipeline linePipeline:
     RenderPass: "material_editor_forward_renderpass"
     PrimitiveTopology: lineList
     LineWidth: 2.0
+    CullMode: cullNone
