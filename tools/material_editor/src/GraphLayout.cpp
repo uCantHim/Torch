@@ -2,6 +2,24 @@
 
 
 
+void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
+{
+    vec2 socketPos{ graph::kSocketSpacingVertical, graph::kSocketSpacingVertical };
+    for (const auto sock : graph.inputSockets.get(node))
+    {
+        layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
+        socketPos.y += graph::kSocketSize.y + graph::kSocketSpacingVertical;
+    }
+
+    socketPos.x += graph::kSocketSize.x + graph::kSocketSpacingHorizontal;
+    socketPos.y = graph::kSocketSpacingVertical;
+    for (const auto sock : graph.outputSockets.get(node))
+    {
+        layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
+        socketPos.y += graph::kSocketSize.y + graph::kSocketSpacingVertical;
+    }
+}
+
 auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
 {
     const auto& inputs = graph.inputSockets.get(node);
@@ -11,10 +29,10 @@ auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
     vec2 extent{ 0.0f, 0.0f };
 
     extent.y = maxVerticalSockets * graph::kSocketSize.y
-             + maxVerticalSockets == 0 ? 0 : (maxVerticalSockets - 1) * graph::kSocketSpacingVertical;
-    extent.x = static_cast<float>(!inputs.empty()) * graph::kSocketSize.y
+             + (maxVerticalSockets + 1) * graph::kSocketSpacingVertical;
+    extent.x = (!inputs.empty() ? (graph::kSocketSize.y + graph::kSocketSpacingVertical) : 0)
              + graph::kSocketSpacingHorizontal
-             + static_cast<float>(!outputs.empty()) * graph::kSocketSize.y;
+             + (!outputs.empty() ? graph::kSocketSize.y + graph::kSocketSpacingVertical : 0);
 
     extent = glm::max(extent, graph::kMinNodeSize);
 

@@ -56,6 +56,9 @@ struct MaterialGraph
     auto makeNode() -> NodeID;
     auto makeSocket(Socket newSock) -> SocketID;
 
+    void linkSockets(SocketID a, SocketID b);
+    void unlinkSockets(SocketID a);
+
     /**
      * @brief Remove a node and all associated objects from the graph
      *
@@ -68,3 +71,8 @@ private:
     trc::data::IdPool<uint32_t> nodeId;
     trc::data::IdPool<uint32_t> socketId;
 };
+
+/**
+ * @brief Create sockets for a node based on a function signature
+ */
+void createSockets(NodeID node, MaterialGraph& graph, const trc::FunctionType& type);
