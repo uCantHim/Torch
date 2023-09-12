@@ -13,6 +13,7 @@ target_sources(
         src/GraphLayout.cpp
         src/GraphManipulator.cpp
         src/GraphRenderer.cpp
+        src/GraphScene.cpp
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialGraph.cpp

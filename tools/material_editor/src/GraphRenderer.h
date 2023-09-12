@@ -11,6 +11,7 @@
 namespace graph
 {
     constexpr vec4 kNodeColor{ 0.025f, 0.025f, 0.025f, 1.0f };
+    constexpr vec4 kSocketColor{ 0.8f, 0.2f, 0.2f, 1.0f };
     constexpr vec4 kHighlightColor{ 1.0f, 0.7f, 0.2f, 1.0f };
     constexpr vec4 kSelectColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 } // namespace graph

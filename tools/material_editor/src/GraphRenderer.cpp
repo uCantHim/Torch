@@ -54,6 +54,16 @@ auto buildRenderData(const MaterialGraph& graph, const GraphLayout& layout) -> G
     {
         const auto& [pos, size] = layout.nodeSize.get(node);
         res.pushNode(pos, size, graph::kNodeColor);
+        for (const auto& sock : graph.inputSockets.get(node))
+        {
+            const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
+            res.pushSocket(pos + sockPos, sockSize, graph::kSocketColor);
+        }
+        for (const auto& sock : graph.outputSockets.get(node))
+        {
+            const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
+            res.pushSocket(pos + sockPos, sockSize, graph::kSocketColor);
+        }
     }
 
     return res;
