@@ -567,7 +567,7 @@ auto Compiler::compileSingle<PipelineDesc>(const compiler::Object& obj) -> Pipel
     // Compile rasterization state
     PipelineDesc::Rasterization r;
     if (hasField(obj, "FillMode")) {
-        r.polygonMode = translatePolygonMode(expectString(expectSingle(obj, "PolygonFillMode")));
+        r.polygonMode = translatePolygonMode(expectString(expectSingle(obj, "FillMode")));
     }
     if (hasField(obj, "CullMode")) {
         r.cullMode = translateCullMode(expectString(expectSingle(obj, "CullMode")));
