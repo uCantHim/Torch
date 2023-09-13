@@ -5,7 +5,7 @@
 #include <trc/base/FrameSpecificObject.h>
 #include <trc/base/Buffer.h>
 
-#include "GraphLayout.h"
+#include "GraphScene.h"
 #include "MaterialGraph.h"
 
 namespace graph
@@ -46,7 +46,7 @@ struct GraphRenderData
 /**
  * @brief Compile a material graph into a renderable representation
  */
-auto buildRenderData(const MaterialGraph& graph, const GraphLayout& layout) -> GraphRenderData;
+auto buildRenderData(const GraphScene& graph) -> GraphRenderData;
 
 class MaterialGraphRenderer
 {
