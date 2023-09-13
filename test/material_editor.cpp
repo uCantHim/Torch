@@ -42,10 +42,10 @@ int main()
     {
         trc::pollEvents();
 
-        controls.update();
+        controls.update(materialGraph);
 
         // Generate renderable data from graph
-        const auto renderData = buildRenderData(materialGraph.graph, materialGraph.layout);
+        const auto renderData = buildRenderData(materialGraph);
 
         // Draw a frame
         gui.drawGui();
