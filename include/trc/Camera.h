@@ -143,8 +143,15 @@ namespace trc
 
         /**
          * @brief Calculate world coordinates from screen coordinates
+         *
+         * @param vec2 screenPos    Coordinates inside the camera's viewport
+         *                          expressed in pixels, i.e. integers in the
+         *                          range `[0, screenSize)`.
+         * @param float screenDepth Value of the z-coordinate at `screenPos`,
+         *                          i.e. a float in the range `[0, 1]`.
+         * @param float screenSize  Size of the camera's viewport in pixels.
          */
-        auto unproject(vec2 screenPos, float screenDepth, uvec2 viewportSize) const -> vec3;
+        auto unproject(vec2 screenPos, float screenDepth, uvec2 screenSize) const -> vec3;
 
         /**
          * @brief Calculate a world position's projected screen depth
