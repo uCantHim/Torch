@@ -47,9 +47,34 @@ void GraphRenderData::clear()
     lines.colors.clear();
 }
 
-auto buildRenderData(const MaterialGraph& graph, const GraphLayout& layout) -> GraphRenderData
+void renderHighlightBorders(
+    const GraphInteraction& interaction,
+    const GraphLayout& layout,
+    GraphRenderData& res)
 {
+    // Create border for the currently hovered element
+    if (interaction.hoveredNode)
+    {
+        const auto [pos, size] = layout.nodeSize.get(*interaction.hoveredNode);
+        res.pushBorder(pos, size, graph::kHighlightColor);
+    }
+
+    // Create borders for all selected elements
+    for (const auto node : interaction.selectedNodes)
+    {
+        const auto [pos, size] = layout.nodeSize.get(node);
+        res.pushBorder(pos, size, graph::kSelectColor);
+    }
+}
+
+auto buildRenderData(const GraphScene& scene) -> GraphRenderData
+{
+    const auto& graph = scene.graph;
+    const auto& layout = scene.layout;
+
     GraphRenderData res;
+
+    // Render nodes and sockets
     for (const auto& [node, _] : graph.nodeInfo.items())
     {
         const auto& [pos, size] = layout.nodeSize.get(node);
@@ -65,6 +90,9 @@ auto buildRenderData(const MaterialGraph& graph, const GraphLayout& layout) -> G
             res.pushSocket(pos + sockPos, sockSize, graph::kSocketColor);
         }
     }
+
+    // Render user interaction
+    renderHighlightBorders(scene.interaction, layout, res);
 
     return res;
 }

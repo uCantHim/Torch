@@ -22,6 +22,15 @@ struct MouseDragEvent
     vec2 dragIncrement;
 };
 
+/**
+ * @brief A mouse movement that is not a MouseDragEvent
+ */
+struct MouseMoveEvent
+{
+    // Current position of the mouse in pixel coordinates.
+    vec2 mousePos;
+};
+
 struct ZoomEvent
 {
     // 0 indicates no deviation from default zoom.
@@ -61,6 +70,9 @@ void registerMouseDragEventGenerator()
                 currentMousePos = trc::Mouse::getPosition();
                 trc::fire(MouseDragEvent{ initialMousePos, currentMousePos, inc });
             }
+            else {
+                trc::fire(MouseMoveEvent{ currentMousePos });
+            }
         }
     });
 }
@@ -81,6 +93,9 @@ MaterialEditorControls::MaterialEditorControls(
     trc::Window& window,
     MaterialEditorGui& gui,
     trc::Camera& camera)
+    :
+    window(&window),
+    camera(&camera)
 {
     constexpr float kZoomStep{ 0.15f };
     constexpr trc::Key kCancelKey{ trc::Key::escape };
@@ -121,6 +136,9 @@ MaterialEditorControls::MaterialEditorControls(
     });
 }
 
-void MaterialEditorControls::update()
+void MaterialEditorControls::update(GraphScene& graph)
 {
+    const vec2 worldPos = camera->unproject(trc::Mouse::getPosition(), 0.0f, window->getSize());
+    auto [node, socket] = graph.findHover(worldPos);
+    graph.interaction.hoveredNode = node;
 }
