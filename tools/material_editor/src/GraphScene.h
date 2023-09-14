@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "MaterialGraph.h"
+#include "MaterialNode.h"
 #include "GraphInteraction.h"
 #include "GraphLayout.h"
 
@@ -17,7 +18,7 @@ struct GraphScene
     // Graph state regarding user interaction
     GraphInteraction interaction;
 
-    auto makeNode(s_ptr<trc::ShaderFunction> func) -> NodeID;
+    auto makeNode(NodeDescription desc) -> NodeID;
 
     /**
      * @brief Remove a node and all its sockets from the graph and the layout

@@ -17,6 +17,7 @@ target_sources(
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialGraph.cpp
+        src/MaterialNode.cpp
 )
 target_include_directories(libmaterial_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
 
