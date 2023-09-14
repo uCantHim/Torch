@@ -64,6 +64,8 @@ namespace trc
             requires std::is_default_constructible_v<T>
         auto makeCall(std::vector<Value> args) -> Value;
 
+        auto makeCall(ShaderFunction& func, std::vector<Value> args) -> Value;
+
         auto makeCapabilityAccess(Capability capability) -> Value;
 
         /**
@@ -95,6 +97,16 @@ namespace trc
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
         void makeCallStatement(std::vector<code::Value> args);
+
+        /**
+         * @brief Create a function call statement
+         *
+         * Since the generated instruction is not an expression, it will
+         * never be optimized away if the result is not used. Use this to
+         * call functions that are purely used for side effects, e.g. image
+         * stores.
+         */
+        void makeCallStatement(ShaderFunction& func, std::vector<code::Value> args);
 
         /**
          * @brief Include external code into the module
@@ -140,7 +152,8 @@ namespace trc
     private:
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
-        auto createFunctionDef() -> Function;
+        auto getOrMakeFunctionDef() -> Function;
+        auto getOrMakeFunctionDef(ShaderFunction& func) -> Function;
 
         Settings shaderSettings;
 
@@ -157,33 +170,24 @@ namespace trc
 
     template<std::derived_from<ShaderFunction> T>
         requires std::is_default_constructible_v<T>
-    auto ShaderModuleBuilder::createFunctionDef() -> Function
+    auto ShaderModuleBuilder::getOrMakeFunctionDef() -> Function
     {
-        if (auto func = getFunction(T{}.getName())) {
-            return *func;
-        }
-
         T funcBuilder;
-        auto func = makeOrGetFunction(funcBuilder.getName(), funcBuilder.getType());
-        startBlock(func);
-        funcBuilder.build(*this, func->getArgs());
-        endBlock();
-
-        return func;
+        return getOrMakeFunctionDef(funcBuilder);
     }
 
     template<std::derived_from<ShaderFunction> T>
         requires std::is_default_constructible_v<T>
     auto ShaderModuleBuilder::makeCall(std::vector<Value> args) -> Value
     {
-        return ShaderCodeBuilder::makeCall(createFunctionDef<T>(), args);
+        return ShaderCodeBuilder::makeCall(getOrMakeFunctionDef<T>(), std::move(args));
     }
 
     template<std::derived_from<ShaderFunction> T>
         requires std::is_default_constructible_v<T>
     void ShaderModuleBuilder::makeCallStatement(std::vector<code::Value> args)
     {
-        Function func = createFunctionDef<T>();
-        makeStatement(code::FunctionCall{ func, std::move(args) });
+        T func;
+        makeCallStatement(func, std::move(args));
     }
 } // namespace trc

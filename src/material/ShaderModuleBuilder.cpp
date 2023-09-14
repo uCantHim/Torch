@@ -30,6 +30,16 @@ auto ShaderFunction::getType() const -> const FunctionType&
 
 
 
+auto ShaderModuleBuilder::makeCall(ShaderFunction& func, std::vector<Value> args) -> Value
+{
+    return ShaderCodeBuilder::makeCall(getOrMakeFunctionDef(func), std::move(args));
+}
+
+void ShaderModuleBuilder::makeCallStatement(ShaderFunction& func, std::vector<code::Value> args)
+{
+    makeStatement(code::FunctionCall{ getOrMakeFunctionDef(func), std::move(args) });
+}
+
 auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
 {
     return makeValue(code::CapabilityAccess{ capability });
@@ -131,6 +141,20 @@ auto ShaderModuleBuilder::compileIncludedCode(
     }
 
     return result;
+}
+
+auto ShaderModuleBuilder::getOrMakeFunctionDef(ShaderFunction& funcBuilder) -> Function
+{
+    if (auto func = getFunction(funcBuilder.getName())) {
+        return *func;
+    }
+
+    auto func = makeOrGetFunction(funcBuilder.getName(), funcBuilder.getType());
+    startBlock(func);
+    funcBuilder.build(*this, func->getArgs());
+    endBlock();
+
+    return func;
 }
 
 }
