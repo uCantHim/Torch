@@ -41,6 +41,7 @@ public:
     void end(vk::CommandBuffer cmdBuf) override;
 
     void setViewport(ivec2 offset, uvec2 size);
+    void setRenderTarget(const trc::RenderTarget& newTarget);
     auto getRenderer() -> MaterialGraphRenderer&;
 
 private:
@@ -79,6 +80,7 @@ public:
     void update(const trc::Camera& camera, const GraphRenderData& data);
 
     void setViewport(ivec2 offset, uvec2 size);
+    void setRenderTarget(const trc::RenderTarget& newTarget);
 
     auto getCameraDescriptor() const -> const trc::DescriptorProviderInterface&;
 

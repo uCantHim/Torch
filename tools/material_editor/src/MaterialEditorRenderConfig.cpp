@@ -85,6 +85,11 @@ void MaterialEditorRenderPass::setViewport(ivec2 offset, uvec2 size)
     area = vk::Rect2D{ { offset.x, offset.y }, { size.x, size.y } };
 }
 
+void MaterialEditorRenderPass::setRenderTarget(const trc::RenderTarget& newTarget)
+{
+    renderTarget = &newTarget;
+}
+
 auto MaterialEditorRenderPass::getRenderer() -> MaterialGraphRenderer&
 {
     return renderer;
@@ -116,6 +121,11 @@ MaterialEditorRenderConfig::MaterialEditorRenderConfig(
 void MaterialEditorRenderConfig::setViewport(ivec2 offset, uvec2 size)
 {
     renderPass.setViewport(offset, size);
+}
+
+void MaterialEditorRenderConfig::setRenderTarget(const trc::RenderTarget& newTarget)
+{
+    renderPass.setRenderTarget(newTarget);
 }
 
 void MaterialEditorRenderConfig::update(const trc::Camera& camera, const GraphRenderData& data)

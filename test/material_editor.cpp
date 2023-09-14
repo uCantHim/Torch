@@ -27,6 +27,11 @@ int main()
             .finalLayout=vk::ImageLayout::ePresentSrcKHR
         }
     };
+    trc::on<trc::SwapchainRecreateEvent>([&](auto&&) {
+        renderTarget = trc::makeRenderTarget(window);
+        config.setRenderTarget(renderTarget);
+        config.setViewport({ 0, 0 }, renderTarget.getSize());
+    });
 
     trc::SceneBase scene;
     trc::Camera camera;
