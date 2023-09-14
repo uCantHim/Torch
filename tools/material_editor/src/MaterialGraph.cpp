@@ -2,10 +2,10 @@
 
 
 
-auto MaterialGraph::makeNode() -> NodeID
+auto MaterialGraph::makeNode(Node node) -> NodeID
 {
     NodeID id{ nodeId.generate() };
-    nodeInfo.emplace(id);
+    nodeInfo.emplace(id, node);
     inputSockets.emplace(id);
     outputSockets.emplace(id);
 
@@ -65,20 +65,18 @@ void MaterialGraph::removeNode(NodeID id)
     nodeInfo.erase(id);
 }
 
-void createSockets(NodeID node, MaterialGraph& graph, const trc::FunctionType& type)
+
+
+void createSockets(NodeID node, MaterialGraph& graph, const NodeDescription& desc)
 {
-    for (const auto& argType : type.argTypes)
+    for (const auto& arg : desc.inputs)
     {
-        auto sock = graph.makeSocket({ .parentNode=node, .type=argType, .name="arg_name" });
+        auto sock = graph.makeSocket({ .parentNode=node, .desc=arg });
         graph.inputSockets.get(node).emplace_back(sock);
     }
-    if (type.returnType)
+    if (desc.output)
     {
-        auto sock = graph.makeSocket({
-            .parentNode=node,
-            .type=type.returnType.value(),
-            .name="ret_name"
-        });
+        auto sock = graph.makeSocket({ .parentNode=node, .desc=*desc.output });
         graph.outputSockets.get(node).emplace_back(sock);
     }
 }
