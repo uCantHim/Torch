@@ -11,7 +11,9 @@ void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
         socketPos.y += graph::kSocketSize.y + graph::kSocketSpacingVertical;
     }
 
-    socketPos.x += graph::kSocketSize.x + graph::kSocketSpacingHorizontal;
+    socketPos.x += (!graph.inputSockets.get(node).empty()) ? graph::kSocketSize.x
+                                                           : -graph::kSocketSpacingVertical;
+    socketPos.x += graph::kSocketSpacingHorizontal;
     socketPos.y = graph::kSocketSpacingVertical;
     for (const auto sock : graph.outputSockets.get(node))
     {
