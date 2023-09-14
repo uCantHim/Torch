@@ -62,6 +62,7 @@ void MaterialGraph::removeNode(NodeID id)
 
     inputSockets.erase(id);
     outputSockets.erase(id);
+    nodeInfo.erase(id);
 }
 
 void createSockets(NodeID node, MaterialGraph& graph, const trc::FunctionType& type)
