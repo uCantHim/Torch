@@ -26,6 +26,8 @@ struct Node
 
 struct Socket
 {
+    NodeID parentNode;
+
     trc::BasicType type;
     std::string name;
 };
