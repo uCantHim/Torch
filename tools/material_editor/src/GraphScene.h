@@ -20,6 +20,13 @@ struct GraphScene
     auto makeNode(s_ptr<trc::ShaderFunction> func) -> NodeID;
 
     /**
+     * @brief Remove a node and all its sockets from the graph and the layout
+     *
+     * Does not touch the `interaction` structure.
+     */
+    void removeNode(NodeID node);
+
+    /**
      * @return pair<node, socket> A node and a socket, if any of the respective
      *                            entity is hovered. If a socket is returned,
      *                            then the node is the one to which the socket

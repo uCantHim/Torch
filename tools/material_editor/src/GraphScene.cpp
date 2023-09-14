@@ -15,6 +15,16 @@ auto GraphScene::makeNode(s_ptr<trc::ShaderFunction> func) -> NodeID
     return id;
 }
 
+void GraphScene::removeNode(NodeID node)
+{
+    auto sockets = { graph.inputSockets.get(node), graph.outputSockets.get(node) };
+    for (auto sock : sockets | std::views::join) {
+        layout.socketSize.erase(sock);
+    }
+    layout.nodeSize.erase(node);
+    graph.removeNode(node);
+}
+
 auto GraphScene::findHoveredNode(const vec2 pos) const -> std::optional<NodeID>
 {
     for (const auto node : graph.nodeInfo.keys())

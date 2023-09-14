@@ -3,6 +3,7 @@
 #include <trc/base/event/Event.h>
 #include <trc/base/event/InputState.h>
 #include <trc/core/Window.h>
+#include <trc_util/Timer.h>
 
 #include "MaterialEditorGui.h"
 
@@ -30,8 +31,16 @@ struct MouseState
     std::optional<Drag> drag;
 };
 
+struct KeyboardState
+{
+    bool didDelete{ false };
+    bool didSelectAll{ false };
+    bool didUnselectAll{ false };
+};
+
 auto updateMouse() -> MouseState;
 auto updateZoom() -> ZoomState;
+auto updateKeyboard() -> KeyboardState;
 
 ZoomState globalZoomState{ 0 };
 
@@ -44,7 +53,8 @@ MaterialEditorControls::MaterialEditorControls(
     const MaterialEditorControlsCreateInfo& info)
     :
     window(&window),
-    camera(&camera)
+    camera(&camera),
+    gui(&gui)
 {
     constexpr trc::Key kCancelKey{ trc::Key::escape };
     constexpr trc::MouseButton kContextMenuOpenKey{ trc::MouseButton::right };
@@ -80,12 +90,36 @@ void MaterialEditorControls::update(GraphScene& graph)
 
     const auto mouseState = updateMouse();
     const auto zoomState = updateZoom();
+    const auto kbState = updateKeyboard();
 
     // Calculate hover
     const vec2 worldPos = camera->unproject(mouseState.currentMousePos, 0.0f, window->getSize());
     auto [node, hoveredSocket] = graph.findHover(worldPos);
     graph.interaction.hoveredNode = node;
     graph.interaction.hoveredSocket = hoveredSocket;
+
+    // Receive keyboard input
+    if (!mouseState.drag)
+    {
+        if (kbState.didDelete)
+        {
+            auto& selected = graph.interaction.selectedNodes;
+            if (node && selected.contains(*node)) {
+                graph.interaction.hoveredNode.reset();
+            }
+            for (auto node : selected) {
+                graph.removeNode(node);
+            }
+            selected.clear();
+        }
+        if (kbState.didSelectAll) {
+            graph.interaction.selectedNodes = { graph.graph.nodeInfo.keyBegin(),
+                                                graph.graph.nodeInfo.keyEnd() };
+        }
+        if (kbState.didUnselectAll) {
+            graph.interaction.selectedNodes.clear();
+        }
+    }
 
     // Calculate node selection based on hover information
     if (mouseState.wasPressed && node)
@@ -209,4 +243,34 @@ auto updateMouse() -> MouseState
 auto updateZoom() -> ZoomState
 {
     return globalZoomState;
+}
+
+auto updateKeyboard() -> KeyboardState
+{
+    constexpr float kMillisWithingDoubleClick{ 200 };
+    constexpr trc::Key kDeleteKey{ trc::Key::del };
+    constexpr trc::Key kSelectAllKey{ trc::Key::a };
+
+    KeyboardState res;
+
+    // Delete all selected nodes
+    if (trc::Keyboard::wasPressed(kDeleteKey))
+    {
+        res.didDelete = true;
+    }
+
+    // Select all nodes
+    static trc::Timer timeSinceSelectAll;
+    if (trc::Keyboard::wasPressed(kSelectAllKey))
+    {
+        if (timeSinceSelectAll.duration() <= kMillisWithingDoubleClick) {
+            res.didUnselectAll = true;
+        }
+        else {
+            res.didSelectAll = true;
+            timeSinceSelectAll.reset();
+        }
+    }
+
+    return res;
 }

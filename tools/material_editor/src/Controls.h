@@ -33,6 +33,7 @@ public:
 private:
     trc::Window* window;
     trc::Camera* camera;
+    MaterialEditorGui* gui;
 
     // Scale camera drag distance by size of the orthogonal camera
     vec2 cameraViewportSize{ 1.0f, 1.0f };
