@@ -8,117 +8,53 @@
 
 
 
-struct MouseDragEvent
+struct ZoomState
 {
-    // Position of the mouse when dragging started in pixel coordinates.
-    // `currentMousePos - initialMousePos` is the total distance dragged.
-    vec2 initialMousePos;
-
-    // Current position of the mouse in pixel coordinates.
-    vec2 currentMousePos;
-
-    // Distance moved by this event relative to the mouse position after the
-    // last mouse drag event in pixel coordinates.
-    vec2 dragIncrement;
-};
-
-/**
- * @brief A mouse movement that is not a MouseDragEvent
- */
-struct MouseMoveEvent
-{
-    // Current position of the mouse in pixel coordinates.
-    vec2 mousePos;
-};
-
-struct ZoomEvent
-{
-    // 0 indicates no deviation from default zoom.
-    // Negative values mean zoomed in, positive ones zoomed out.
     i32 zoomLevel{ 0 };
 };
 
-void registerMouseDragEventGenerator()
+struct MouseState
 {
-    constexpr trc::MouseButton kDragButton{ trc::MouseButton::left };
-    constexpr ui32 kFramesUntilDrag{ 5 };
+    struct Drag
+    {
+        vec2 initialMousePos{ 0, 0 };
+        vec2 dragIncrement{ 0, 0 };
+    };
 
-    static ui32 framesMoved{ 0 };
-    static vec2 initialMousePos{ 0, 0 };
-    static vec2 currentMousePos{ 0, 0 };
+    vec2 currentMousePos{ 0, 0 };
+    bool wasPressed{ false };  // True if the primary mouse button was pressed at all
+    bool wasClicked{ false };  // True if the primary mouse button was pressed and released
+                               // without dragging the mouse
 
-    trc::on<trc::MouseClickEvent>([](const auto& e) {
-        if (e.button == kDragButton)
-        {
-            framesMoved = 0;
-            initialMousePos = trc::Mouse::getPosition();
-            currentMousePos = initialMousePos;
-        }
-    });
-    trc::on<trc::MouseReleaseEvent>([](const auto& e) {
-        if (e.button == kDragButton) {
-            framesMoved = 0;
-        }
-    });
-    trc::on<trc::MouseMoveEvent>([](const auto&) {
-        if (trc::Mouse::isPressed(kDragButton))
-        {
-            ++framesMoved;
-            if (framesMoved >= kFramesUntilDrag)
-            {
-                const vec2 inc = trc::Mouse::getPosition() - currentMousePos;
-                currentMousePos = trc::Mouse::getPosition();
-                trc::fire(MouseDragEvent{ initialMousePos, currentMousePos, inc });
-            }
-            else {
-                trc::fire(MouseMoveEvent{ currentMousePos });
-            }
-        }
-    });
-}
+    std::optional<Drag> drag;
+};
 
-void registerZoomEventGenerator()
-{
-    static i32 zoomLevel{ 0 };
+auto updateMouse() -> MouseState;
+auto updateZoom() -> ZoomState;
 
-    trc::on<trc::ScrollEvent>([](const trc::ScrollEvent& e) {
-        zoomLevel += e.yOffset < 0.0f ? 1 : -1;
-        trc::fire(ZoomEvent{ zoomLevel });
-    });
-}
+ZoomState globalZoomState{ 0 };
 
 
 
 MaterialEditorControls::MaterialEditorControls(
     trc::Window& window,
     MaterialEditorGui& gui,
-    trc::Camera& camera)
+    trc::Camera& camera,
+    const MaterialEditorControlsCreateInfo& info)
     :
     window(&window),
     camera(&camera)
 {
-    constexpr float kZoomStep{ 0.15f };
     constexpr trc::Key kCancelKey{ trc::Key::escape };
     constexpr trc::MouseButton kContextMenuOpenKey{ trc::MouseButton::right };
 
     trc::Keyboard::init();
     trc::Mouse::init();
+    globalZoomState.zoomLevel = info.initialZoomLevel;
 
-    registerMouseDragEventGenerator();
-    registerZoomEventGenerator();
-
-    // Scale camera drag distance by size of the orthogonal camera
-    static vec2 cameraSize{ 1.0f, 1.0f };
-
-    trc::on<MouseDragEvent>([&](auto&& e) {
-        const vec2 move = e.dragIncrement / vec2(window.getSize());
-        camera.translate(vec3(move * cameraSize, 0.0f));
-    });
-    trc::on<ZoomEvent>([&camera](const ZoomEvent& e) {
-        const float min = 0.0f - static_cast<float>(e.zoomLevel) * kZoomStep;
-        const float max = 1.0f + static_cast<float>(e.zoomLevel) * kZoomStep;
-        camera.makeOrthogonal(min, max, min, max, -10.0f, 10.0f);
-        cameraSize = { max - min, max - min };
+    trc::on<trc::ScrollEvent>([](const trc::ScrollEvent& e) {
+        globalZoomState.zoomLevel += e.yOffset < 0.0f ? 1 : -1;
+        globalZoomState.zoomLevel = glm::max(0, globalZoomState.zoomLevel);
     });
 
     trc::on<trc::MouseClickEvent>([&gui](auto&& e) {
@@ -138,7 +74,112 @@ MaterialEditorControls::MaterialEditorControls(
 
 void MaterialEditorControls::update(GraphScene& graph)
 {
-    const vec2 worldPos = camera->unproject(trc::Mouse::getPosition(), 0.0f, window->getSize());
+    constexpr float kZoomStep{ 0.15f };
+    constexpr trc::Key kChainSelectionModKey{ trc::Key::left_shift };
+
+    const auto mouseState = updateMouse();
+    const auto zoomState = updateZoom();
+
+    // Calculate hovered node
+    const vec2 worldPos = camera->unproject(mouseState.currentMousePos, 0.0f, window->getSize());
     auto [node, socket] = graph.findHover(worldPos);
     graph.interaction.hoveredNode = node;
+
+    if (mouseState.wasPressed && node)
+    {
+        auto& selected = graph.interaction.selectedNodes;
+
+        if (trc::Keyboard::isPressed(kChainSelectionModKey))
+        {
+            // Toggle hovered node's existence in the set of selected nodes
+            if (selected.contains(*node)) {
+                selected.erase(*node);
+            }
+            else {
+                selected.emplace(*node);
+            }
+        }
+        else {
+            selected.clear();
+            selected.emplace(*node);
+        }
+    }
+    if (mouseState.wasClicked && !node) {
+        graph.interaction.selectedNodes.clear();
+    }
+
+    // Movement via dragging
+    if (mouseState.drag)
+    {
+        const vec2 move = (mouseState.drag->dragIncrement / vec2(window->getSize()))
+                          * cameraViewportSize;
+
+        if (graph.interaction.hoveredNode)
+        {
+            // If at least one node is hovered, move the entire selection
+            for (const NodeID node : graph.interaction.selectedNodes) {
+                graph.layout.nodeSize.get(node).origin += move;
+            }
+        }
+        else {
+            camera->translate(vec3(move, 0.0f));
+        }
+    }
+
+    // Camera zoom
+    const float zoomLevel = static_cast<float>(glm::max(zoomState.zoomLevel, 0));
+    const float min = 0.0f - zoomLevel * kZoomStep;
+    const float max = 1.0f + zoomLevel * kZoomStep;
+    camera->makeOrthogonal(min, max, min, max, -10.0f, 10.0f);
+    cameraViewportSize = { max - min, max - min };
+}
+
+auto updateMouse() -> MouseState
+{
+    constexpr trc::MouseButton kDragButton{ trc::MouseButton::left };
+    constexpr ui32 kFramesUntilDrag{ 5 };
+
+    static ui32 framesMoved{ 0 };
+    static vec2 initialMousePos{ 0, 0 };
+    static vec2 prevMousePos{ 0, 0 };
+
+    MouseState res{
+        .currentMousePos = trc::Mouse::getPosition(),
+        .drag = std::nullopt,
+    };
+
+    if (trc::Mouse::wasPressed(kDragButton))
+    {
+        framesMoved = 0;
+        initialMousePos = trc::Mouse::getPosition();
+        res.wasPressed = true;
+    }
+    if (trc::Mouse::wasReleased(kDragButton))
+    {
+        if (framesMoved < kFramesUntilDrag) {
+            res.wasClicked = true;
+        }
+        framesMoved = 0;
+    }
+
+    // Test if mouse was moved
+    if (trc::Mouse::wasMoved() && trc::Mouse::isPressed(kDragButton))
+    {
+        ++framesMoved;
+        if (framesMoved >= kFramesUntilDrag)
+        {
+            res.drag = MouseState::Drag{
+                .initialMousePos = initialMousePos,
+                .dragIncrement = trc::Mouse::getPosition() - prevMousePos,
+            };
+        }
+    }
+    prevMousePos = trc::Mouse::getPosition();
+
+    return res;
+}
+
+auto updateZoom() -> ZoomState
+{
+    return globalZoomState;
 }
