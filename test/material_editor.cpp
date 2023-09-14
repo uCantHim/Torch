@@ -41,7 +41,7 @@ int main()
     materialGraph.makeNode(std::make_shared<trc::Mix<3, float>>());
 
     MaterialEditorGui gui{ window, std::make_shared<GraphManipulator>(materialGraph) };
-    MaterialEditorControls controls{ window, gui, camera };
+    MaterialEditorControls controls{ window, gui, camera, { .initialZoomLevel=5 } };
 
     while (window.isOpen() && !window.isPressed(trc::Key::escape))
     {
