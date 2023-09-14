@@ -23,6 +23,7 @@ struct MouseState
 
     vec2 currentMousePos{ 0, 0 };
     bool wasPressed{ false };  // True if the primary mouse button was pressed at all
+    bool wasReleased{ false };  // True if the primary mouse button was released
     bool wasClicked{ false };  // True if the primary mouse button was pressed and released
                                // without dragging the mouse
 
@@ -80,11 +81,13 @@ void MaterialEditorControls::update(GraphScene& graph)
     const auto mouseState = updateMouse();
     const auto zoomState = updateZoom();
 
-    // Calculate hovered node
+    // Calculate hover
     const vec2 worldPos = camera->unproject(mouseState.currentMousePos, 0.0f, window->getSize());
-    auto [node, socket] = graph.findHover(worldPos);
+    auto [node, hoveredSocket] = graph.findHover(worldPos);
     graph.interaction.hoveredNode = node;
+    graph.interaction.hoveredSocket = hoveredSocket;
 
+    // Calculate node selection based on hover information
     if (mouseState.wasPressed && node)
     {
         auto& selected = graph.interaction.selectedNodes;
@@ -109,7 +112,17 @@ void MaterialEditorControls::update(GraphScene& graph)
     }
 
     // Movement via dragging
-    if (mouseState.drag)
+    static std::optional<SocketID> draggedSocket;
+    if (hoveredSocket && mouseState.wasPressed)
+    {
+        if (graph.graph.link.contains(*hoveredSocket)) {
+            graph.graph.unlinkSockets(*hoveredSocket);
+        }
+        draggedSocket = *hoveredSocket;
+    }
+
+    // Mouse drag while not dragging a link from a socket
+    if (mouseState.drag && !draggedSocket)
     {
         const vec2 move = (mouseState.drag->dragIncrement / vec2(window->getSize()))
                           * cameraViewportSize;
@@ -124,6 +137,19 @@ void MaterialEditorControls::update(GraphScene& graph)
         else {
             camera->translate(vec3(move, 0.0f));
         }
+    }
+
+    // Resolve creation of links between sockets
+    if (mouseState.wasReleased)
+    {
+        if (draggedSocket && hoveredSocket && draggedSocket != hoveredSocket)
+        {
+            if (graph.graph.link.contains(*hoveredSocket)) {
+                graph.graph.unlinkSockets(*hoveredSocket);
+            }
+            graph.graph.linkSockets(*draggedSocket, *hoveredSocket);
+        }
+        draggedSocket.reset();
     }
 
     // Camera zoom
@@ -156,6 +182,7 @@ auto updateMouse() -> MouseState
     }
     if (trc::Mouse::wasReleased(kDragButton))
     {
+        res.wasReleased = true;
         if (framesMoved < kFramesUntilDrag) {
             res.wasClicked = true;
         }

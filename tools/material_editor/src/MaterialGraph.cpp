@@ -14,6 +14,8 @@ auto MaterialGraph::makeNode() -> NodeID
 
 auto MaterialGraph::makeSocket(Socket newSock) -> SocketID
 {
+    assert(newSock.parentNode != NodeID::NONE && "A socket must have a parent node!");
+
     SocketID id{ socketId.generate() };
     socketInfo.emplace(id, newSock);
 
@@ -66,12 +68,16 @@ void createSockets(NodeID node, MaterialGraph& graph, const trc::FunctionType& t
 {
     for (const auto& argType : type.argTypes)
     {
-        auto sock = graph.makeSocket({ .type=argType, .name="arg_name" });
+        auto sock = graph.makeSocket({ .parentNode=node, .type=argType, .name="arg_name" });
         graph.inputSockets.get(node).emplace_back(sock);
     }
     if (type.returnType)
     {
-        auto sock = graph.makeSocket({ .type=type.returnType.value(), .name="ret_name" });
+        auto sock = graph.makeSocket({
+            .parentNode=node,
+            .type=type.returnType.value(),
+            .name="ret_name"
+        });
         graph.outputSockets.get(node).emplace_back(sock);
     }
 }
