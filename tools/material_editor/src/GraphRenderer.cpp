@@ -47,6 +47,37 @@ void GraphRenderData::clear()
     lines.colors.clear();
 }
 
+void renderNodes(
+    const GraphScene& scene,
+    GraphRenderData& res)
+{
+    auto calcSocketColor = [&scene](SocketID sock) -> vec4 {
+        if (sock == scene.interaction.hoveredSocket) {
+            return graph::applyColorModifier(graph::kSocketColor, graph::kHighlightColorModifier);
+        }
+        return graph::kSocketColor;
+    };
+
+    const auto& graph = scene.graph;
+    const auto& layout = scene.layout;
+
+    for (const auto& [node, _] : graph.nodeInfo.items())
+    {
+        const auto& [nodePos, nodeSize] = layout.nodeSize.get(node);
+        res.pushNode(nodePos, nodeSize, graph::kNodeColor);
+        for (const auto& sock : graph.inputSockets.get(node))
+        {
+            const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
+            res.pushSocket(nodePos + sockPos, sockSize, calcSocketColor(sock));
+        }
+        for (const auto& sock : graph.outputSockets.get(node))
+        {
+            const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
+            res.pushSocket(nodePos + sockPos, sockSize, calcSocketColor(sock));
+        }
+    }
+}
+
 void renderHighlightBorders(
     const GraphInteraction& interaction,
     const GraphLayout& layout,
@@ -67,31 +98,35 @@ void renderHighlightBorders(
     }
 }
 
+void renderSocketLinks(
+    const MaterialGraph& graph,
+    const GraphLayout& layout,
+    GraphRenderData& res)
+{
+    auto calcGlobalSocketPos = [&](SocketID sock) -> vec2 {
+        const auto node = graph.socketInfo.get(sock).parentNode;
+        const vec2 nodePos = layout.nodeSize.get(node).origin;
+        return layout.socketSize.get(sock).origin + nodePos;
+    };
+
+    for (const auto& [from, to] : graph.link.items())
+    {
+        const auto sizeFrom = layout.socketSize.get(from).extent;
+        const auto sizeTo = layout.socketSize.get(to).extent;
+        const vec2 a = calcGlobalSocketPos(from) + sizeFrom * 0.5f;
+        const vec2 b = calcGlobalSocketPos(to) + sizeTo * 0.5f;
+        res.pushLink(a, b, graph::kLinkColor);
+    }
+}
+
 auto buildRenderData(const GraphScene& scene) -> GraphRenderData
 {
     const auto& graph = scene.graph;
     const auto& layout = scene.layout;
 
     GraphRenderData res;
-
-    // Render nodes and sockets
-    for (const auto& [node, _] : graph.nodeInfo.items())
-    {
-        const auto& [pos, size] = layout.nodeSize.get(node);
-        res.pushNode(pos, size, graph::kNodeColor);
-        for (const auto& sock : graph.inputSockets.get(node))
-        {
-            const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
-            res.pushSocket(pos + sockPos, sockSize, graph::kSocketColor);
-        }
-        for (const auto& sock : graph.outputSockets.get(node))
-        {
-            const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
-            res.pushSocket(pos + sockPos, sockSize, graph::kSocketColor);
-        }
-    }
-
-    // Render user interaction
+    renderNodes(scene, res);
+    renderSocketLinks(graph, layout, res);
     renderHighlightBorders(scene.interaction, layout, res);
 
     return res;

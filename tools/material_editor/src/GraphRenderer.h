@@ -12,8 +12,23 @@ namespace graph
 {
     constexpr vec4 kNodeColor{ 0.025f, 0.025f, 0.025f, 1.0f };
     constexpr vec4 kSocketColor{ 0.8f, 0.2f, 0.2f, 1.0f };
+    constexpr vec4 kLinkColor{ 0.8f, 0.8f, 0.8f, 1.0f };
+
     constexpr vec4 kHighlightColor{ 1.0f, 0.7f, 0.2f, 1.0f };
     constexpr vec4 kSelectColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+    // Color multiplier to highlight things by brightnening them
+    constexpr float kHighlightColorModifier{ 1.8f };
+
+    /**
+     * Apply a multiplicative modifier to a color, keeping the color channels
+     * in the bounds [0, 1].
+     */
+    constexpr auto applyColorModifier(auto color, float mod) -> decltype(color)
+    {
+        using vec = decltype(color);
+        return glm::clamp(color * mod, vec(0.0f), vec(1.0f));
+    }
 } // namespace graph
 
 /**
