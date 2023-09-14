@@ -10,6 +10,8 @@
 #include <trc_util/data/IdPool.h>
 #include <trc_util/data/TypesafeId.h>
 
+#include "MaterialNode.h"
+
 using namespace trc::basic_types;
 
 struct Socket;
@@ -21,15 +23,14 @@ using componentlib::Table;
 
 struct Node
 {
-    s_ptr<trc::ShaderFunction> computation;
+    NodeDescription desc;
 };
 
 struct Socket
 {
     NodeID parentNode;
 
-    trc::BasicType type;
-    std::string name;
+    NodeValue desc;
 };
 
 /**
@@ -55,7 +56,7 @@ struct MaterialGraph
      */
     Table<SocketID, SocketID> link;
 
-    auto makeNode() -> NodeID;
+    auto makeNode(Node node) -> NodeID;
     auto makeSocket(Socket newSock) -> SocketID;
 
     void linkSockets(SocketID a, SocketID b);
@@ -77,4 +78,4 @@ private:
 /**
  * @brief Create sockets for a node based on a function signature
  */
-void createSockets(NodeID node, MaterialGraph& graph, const trc::FunctionType& type);
+void createSockets(NodeID node, MaterialGraph& graph, const NodeDescription& desc);

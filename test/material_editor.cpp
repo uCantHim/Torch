@@ -38,7 +38,7 @@ int main()
     camera.makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
 
     GraphScene materialGraph;
-    materialGraph.makeNode(std::make_shared<trc::Mix<3, float>>());
+    materialGraph.makeNode(makeNodeDescription(std::make_shared<trc::Mix<3, float>>()));
 
     MaterialEditorGui gui{ window, std::make_shared<GraphManipulator>(materialGraph) };
     MaterialEditorControls controls{ window, gui, camera, { .initialZoomLevel=5 } };
