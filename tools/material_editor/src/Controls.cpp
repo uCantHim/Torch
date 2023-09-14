@@ -128,10 +128,10 @@ void MaterialEditorControls::update(GraphScene& graph)
 
     // Camera zoom
     const float zoomLevel = static_cast<float>(glm::max(zoomState.zoomLevel, 0));
-    const float min = 0.0f - zoomLevel * kZoomStep;
-    const float max = 1.0f + zoomLevel * kZoomStep;
-    camera->makeOrthogonal(min, max, min, max, -10.0f, 10.0f);
-    cameraViewportSize = { max - min, max - min };
+    const vec2 x = { 0.0f - zoomLevel * kZoomStep, 1.0f + zoomLevel * kZoomStep };
+    const vec2 y = x / window->getAspectRatio();
+    camera->makeOrthogonal(x[0], x[1], y[0], y[1], -10.0f, 10.0f);
+    cameraViewportSize = { x[1] - x[0], y[1] - y[0] };
 }
 
 auto updateMouse() -> MouseState
