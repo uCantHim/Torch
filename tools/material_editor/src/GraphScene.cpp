@@ -17,11 +17,20 @@ auto GraphScene::makeNode(NodeDescription desc) -> NodeID
 
 void GraphScene::removeNode(NodeID node)
 {
+    // Remove from layout
     auto sockets = { graph.inputSockets.get(node), graph.outputSockets.get(node) };
     for (auto sock : sockets | std::views::join) {
         layout.socketSize.erase(sock);
     }
     layout.nodeSize.erase(node);
+
+    // Remove from interaction info
+    if (interaction.hoveredNode == node) {
+        interaction.hoveredNode.reset();
+    }
+    interaction.selectedNodes.erase(node);
+
+    // Remove from graph topology
     graph.removeNode(node);
 }
 

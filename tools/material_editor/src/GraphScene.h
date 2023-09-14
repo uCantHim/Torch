@@ -22,8 +22,6 @@ struct GraphScene
 
     /**
      * @brief Remove a node and all its sockets from the graph and the layout
-     *
-     * Does not touch the `interaction` structure.
      */
     void removeNode(NodeID node);
 

@@ -104,11 +104,9 @@ void MaterialEditorControls::update(GraphScene& graph)
         if (kbState.didDelete)
         {
             auto& selected = graph.interaction.selectedNodes;
-            if (node && selected.contains(*node)) {
-                graph.interaction.hoveredNode.reset();
-            }
-            for (auto node : selected) {
-                graph.removeNode(node);
+            // Can't iterate over `selected` as `removeNode` modifies that set
+            while (!selected.empty()) {
+                graph.removeNode(*selected.begin());
             }
             selected.clear();
         }
