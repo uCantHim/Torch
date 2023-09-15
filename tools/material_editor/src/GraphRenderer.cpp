@@ -119,6 +119,13 @@ void renderSocketLinks(
     }
 }
 
+void renderSelectionBox(const GraphInteraction& interaction, GraphRenderData& res)
+{
+    if (auto& box = interaction.multiSelectBox) {
+        res.pushBorder(box->origin, box->extent, graph::kSelectColor);
+    }
+}
+
 auto buildRenderData(const GraphScene& scene) -> GraphRenderData
 {
     const auto& graph = scene.graph;
@@ -128,6 +135,7 @@ auto buildRenderData(const GraphScene& scene) -> GraphRenderData
     renderNodes(scene, res);
     renderSocketLinks(graph, layout, res);
     renderHighlightBorders(scene.interaction, layout, res);
+    renderSelectionBox(scene.interaction, res);
 
     return res;
 }
