@@ -42,7 +42,7 @@ void GraphManipulator::reapplyLastUndoneAction()
     if (!undoneActionHistory.empty())
     {
         auto action = pop_from(undoneActionHistory);
-        action->undo(graph);
+        action->apply(graph);
         actionHistory.emplace(std::move(action));
     }
 }
