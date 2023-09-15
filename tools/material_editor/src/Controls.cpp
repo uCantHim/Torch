@@ -5,6 +5,7 @@
 #include <trc/core/Window.h>
 #include <trc_util/Timer.h>
 
+#include "ManipulationActions.h"
 #include "MaterialEditorGui.h"
 
 
@@ -40,6 +41,9 @@ struct MouseState
 
 struct KeyboardState
 {
+    bool didUndo{ false };
+    bool didRedo{ false };
+
     bool didDelete{ false };
     bool didSelectAll{ false };
     bool didUnselectAll{ false };
@@ -90,10 +94,12 @@ MaterialEditorControls::MaterialEditorControls(
     });
 }
 
-void MaterialEditorControls::update(GraphScene& graph)
+void MaterialEditorControls::update(GraphScene& graph, GraphManipulator& manip)
 {
     constexpr float kZoomStep{ 0.15f };
     constexpr trc::Key kChainSelectionModKey{ trc::Key::left_shift };
+
+    static std::optional<SocketID> draggedSocket;
 
     const auto [mousePos, selectButton, cameraButton] = updateMouse();
     const auto zoomState = updateZoom();
@@ -106,16 +112,25 @@ void MaterialEditorControls::update(GraphScene& graph)
     const vec2 worldPos = camera->unproject(mousePos, 0.0f, window->getSize());
     auto [hoveredNode, hoveredSocket] = graph.findHover(worldPos);
 
+    // Only result in graphical hover highlight when we're not doing
+    // something else while hovering
+    graph.interaction.hoveredNode = anyDragActive ? std::nullopt : hoveredNode;
+    graph.interaction.hoveredSocket = (anyDragActive && !draggedSocket) ? std::nullopt : hoveredSocket;
+
     // Receive keyboard input
-    if (anyDragActive)
+    if (!anyDragActive)
     {
+        if (kbState.didUndo) manip.undoLastAction();
+        if (kbState.didRedo) manip.reapplyLastUndoneAction();
+
         if (kbState.didDelete)
         {
             auto& selected = graph.interaction.selectedNodes;
-            // Can't iterate over `selected` as `removeNode` modifies that set
-            while (!selected.empty()) {
-                graph.removeNode(*selected.begin());
-            }
+            manip.applyAction(std::make_unique<action::MultiAction>(
+                selected | std::views::transform(
+                    [](NodeID node){ return std::make_unique<action::RemoveNode>(node); }
+                )
+            ));
             selected.clear();
         }
         if (kbState.didSelectAll) {
@@ -152,7 +167,6 @@ void MaterialEditorControls::update(GraphScene& graph)
     }
 
     // Click on a hovered socket
-    static std::optional<SocketID> draggedSocket;
     if (hoveredSocket && selectButton.wasPressed)
     {
         if (graph.graph.link.contains(*hoveredSocket)) {
@@ -202,7 +216,6 @@ void MaterialEditorControls::update(GraphScene& graph)
     if (cameraButton.drag)
     {
         const vec2 move = toWorldDir(cameraButton.drag->dragIncrement);
-        std::cout << "Move camera by " << move.x << ", " << move.y << "\n";
         camera->translate(vec3(move, 0.0f));
     }
 
@@ -225,11 +238,6 @@ void MaterialEditorControls::update(GraphScene& graph)
     const vec2 y = x / window->getAspectRatio();
     camera->makeOrthogonal(x[0], x[1], y[0], y[1], -10.0f, 10.0f);
     cameraViewportSize = { x[1] - x[0], y[1] - y[0] };
-
-    // Only result in graphical hover highlight when we're not doing
-    // something else while hovering
-    graph.interaction.hoveredNode = anyDragActive ? std::nullopt : hoveredNode;
-    graph.interaction.hoveredSocket = (anyDragActive && !draggedSocket) ? std::nullopt : hoveredSocket;
 }
 
 auto MaterialEditorControls::toWorldPos(vec2 screenPos) const -> vec2
@@ -331,10 +339,24 @@ auto updateZoom() -> ZoomState
 auto updateKeyboard() -> KeyboardState
 {
     constexpr float kMillisWithingDoubleClick{ 200 };
+    constexpr trc::Key kUndoKey{ trc::Key::z };
+    constexpr trc::Key kUndoKeyMod{ trc::Key::left_ctrl };
+    constexpr trc::Key kRedoKeyMod{ trc::Key::left_shift };
     constexpr trc::Key kDeleteKey{ trc::Key::del };
     constexpr trc::Key kSelectAllKey{ trc::Key::a };
 
     KeyboardState res;
+
+    // Undo/redo
+    if (trc::Keyboard::wasPressed(kUndoKey) && trc::Keyboard::isPressed(kUndoKeyMod))
+    {
+        if (trc::Keyboard::isPressed(kRedoKeyMod)) {
+            res.didRedo = true;
+        }
+        else {
+            res.didUndo = true;
+        }
+    }
 
     // Delete all selected nodes
     if (trc::Keyboard::wasPressed(kDeleteKey))
