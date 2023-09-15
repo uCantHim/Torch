@@ -43,6 +43,8 @@ auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
 
 bool isInside(vec2 point, const Hitbox& hb)
 {
-    return point.x > hb.origin.x && point.x < hb.origin.x + hb.extent.x
-        && point.y > hb.origin.y && point.y < hb.origin.y + hb.extent.y;
+    const vec2 ll = glm::min(hb.origin, hb.origin + hb.extent);
+    const vec2 ur = glm::max(hb.origin, hb.origin + hb.extent);
+    return point.x > ll.x && point.x < ur.x
+        && point.y > ll.y && point.y < ur.y;
 }

@@ -36,9 +36,9 @@ void GraphScene::removeNode(NodeID node)
 
 auto GraphScene::findHoveredNode(const vec2 pos) const -> std::optional<NodeID>
 {
-    for (const auto node : graph.nodeInfo.keys())
+    for (const auto [node, hitbox] : layout.nodeSize.items())
     {
-        if (isInside(pos, layout.nodeSize.get(node))) {
+        if (isInside(pos, hitbox)) {
             return node;
         }
     }
