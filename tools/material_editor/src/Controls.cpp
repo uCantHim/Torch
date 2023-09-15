@@ -14,7 +14,7 @@ struct ZoomState
     i32 zoomLevel{ 0 };
 };
 
-struct MouseState
+struct ButtonState
 {
     struct Drag
     {
@@ -22,13 +22,20 @@ struct MouseState
         vec2 dragIncrement{ 0, 0 };
     };
 
-    vec2 currentMousePos{ 0, 0 };
-    bool wasPressed{ false };  // True if the primary mouse button was pressed at all
+    bool wasPressed{ false };   // True if the primary mouse button was pressed at all
+    bool wasClicked{ false };   // True if the primary mouse button was pressed and released
+                                // without dragging the mouse
     bool wasReleased{ false };  // True if the primary mouse button was released
-    bool wasClicked{ false };  // True if the primary mouse button was pressed and released
-                               // without dragging the mouse
 
-    std::optional<Drag> drag;
+    std::optional<Drag> drag{ std::nullopt };
+};
+
+struct MouseState
+{
+    vec2 currentMousePos{ 0, 0 };
+
+    ButtonState selectButton;  // Primary mouse button
+    ButtonState cameraMoveButton;
 };
 
 struct KeyboardState
@@ -88,18 +95,19 @@ void MaterialEditorControls::update(GraphScene& graph)
     constexpr float kZoomStep{ 0.15f };
     constexpr trc::Key kChainSelectionModKey{ trc::Key::left_shift };
 
-    const auto mouseState = updateMouse();
+    const auto [mousePos, selectButton, cameraButton] = updateMouse();
     const auto zoomState = updateZoom();
     const auto kbState = updateKeyboard();
 
+    // Derived states
+    const bool anyDragActive = selectButton.drag || cameraButton.drag;
+
     // Calculate hover
-    const vec2 worldPos = camera->unproject(mouseState.currentMousePos, 0.0f, window->getSize());
-    auto [node, hoveredSocket] = graph.findHover(worldPos);
-    graph.interaction.hoveredNode = node;
-    graph.interaction.hoveredSocket = hoveredSocket;
+    const vec2 worldPos = camera->unproject(mousePos, 0.0f, window->getSize());
+    auto [hoveredNode, hoveredSocket] = graph.findHover(worldPos);
 
     // Receive keyboard input
-    if (!mouseState.drag)
+    if (anyDragActive)
     {
         if (kbState.didDelete)
         {
@@ -120,32 +128,32 @@ void MaterialEditorControls::update(GraphScene& graph)
     }
 
     // Calculate node selection based on hover information
-    if (mouseState.wasPressed && node)
+    if (selectButton.wasClicked && hoveredNode)
     {
         auto& selected = graph.interaction.selectedNodes;
 
         if (trc::Keyboard::isPressed(kChainSelectionModKey))
         {
             // Toggle hovered node's existence in the set of selected nodes
-            if (selected.contains(*node)) {
-                selected.erase(*node);
+            if (selected.contains(*hoveredNode)) {
+                selected.erase(*hoveredNode);
             }
             else {
-                selected.emplace(*node);
+                selected.emplace(*hoveredNode);
             }
         }
         else {
             selected.clear();
-            selected.emplace(*node);
+            selected.emplace(*hoveredNode);
         }
     }
-    if (mouseState.wasClicked && !node) {
+    if (selectButton.wasClicked && !hoveredNode) {
         graph.interaction.selectedNodes.clear();
     }
 
-    // Movement via dragging
+    // Click on a hovered socket
     static std::optional<SocketID> draggedSocket;
-    if (hoveredSocket && mouseState.wasPressed)
+    if (hoveredSocket && selectButton.wasPressed)
     {
         if (graph.graph.link.contains(*hoveredSocket)) {
             graph.graph.unlinkSockets(*hoveredSocket);
@@ -154,25 +162,52 @@ void MaterialEditorControls::update(GraphScene& graph)
     }
 
     // Mouse drag while not dragging a link from a socket
-    if (mouseState.drag && !draggedSocket)
+    if (selectButton.drag && !draggedSocket)
     {
-        const vec2 move = (mouseState.drag->dragIncrement / vec2(window->getSize()))
-                          * cameraViewportSize;
-
-        if (graph.interaction.hoveredNode)
+        // Move selected nodes around
+        if (hoveredNode && !graph.interaction.multiSelectBox)
         {
+            auto& selection = graph.interaction.selectedNodes;
+            // Special case: Create new selection if the mouse tries to drag
+            // a non-selected node.
+            if (!selection.contains(*hoveredNode))
+            {
+                selection.clear();
+                selection.emplace(*hoveredNode);
+            }
+
             // If at least one node is hovered, move the entire selection
-            for (const NodeID node : graph.interaction.selectedNodes) {
+            const vec2 move = toWorldDir(selectButton.drag->dragIncrement);
+            for (const NodeID node : selection) {
                 graph.layout.nodeSize.get(node).origin += move;
             }
         }
+        // Drag a multi-select box
         else {
-            camera->translate(vec3(move, 0.0f));
+            const vec2 boxPos = toWorldPos(selectButton.drag->initialMousePos);
+            const vec2 boxSize = toWorldPos(mousePos) - boxPos;
+            const Hitbox box{ boxPos, boxSize };
+            graph.interaction.multiSelectBox = box;
+            selectNodesInArea(box, graph, false);
         }
     }
 
+    // Resolve a multi-select box that's currently being dragged
+    if (selectButton.wasReleased && graph.interaction.multiSelectBox)
+    {
+        selectNodesInArea(*graph.interaction.multiSelectBox, graph, false);
+        graph.interaction.multiSelectBox.reset();
+    }
+
+    if (cameraButton.drag)
+    {
+        const vec2 move = toWorldDir(cameraButton.drag->dragIncrement);
+        std::cout << "Move camera by " << move.x << ", " << move.y << "\n";
+        camera->translate(vec3(move, 0.0f));
+    }
+
     // Resolve creation of links between sockets
-    if (mouseState.wasReleased)
+    if (selectButton.wasReleased)
     {
         if (draggedSocket && hoveredSocket && draggedSocket != hoveredSocket)
         {
@@ -190,50 +225,100 @@ void MaterialEditorControls::update(GraphScene& graph)
     const vec2 y = x / window->getAspectRatio();
     camera->makeOrthogonal(x[0], x[1], y[0], y[1], -10.0f, 10.0f);
     cameraViewportSize = { x[1] - x[0], y[1] - y[0] };
+
+    // Only result in graphical hover highlight when we're not doing
+    // something else while hovering
+    graph.interaction.hoveredNode = anyDragActive ? std::nullopt : hoveredNode;
+    graph.interaction.hoveredSocket = (anyDragActive && !draggedSocket) ? std::nullopt : hoveredSocket;
 }
+
+auto MaterialEditorControls::toWorldPos(vec2 screenPos) const -> vec2
+{
+    return camera->unproject(screenPos, 0.0f, window->getSize());
+}
+
+auto MaterialEditorControls::toWorldDir(vec2 screenPos) const -> vec2
+{
+    return (screenPos / vec2(window->getSize())) * cameraViewportSize;
+}
+
+void MaterialEditorControls::selectNodesInArea(Hitbox area, GraphScene& graph, bool append)
+{
+    if (!append) {
+        graph.interaction.selectedNodes.clear();
+    }
+
+    for (const auto& [node, hitbox] : graph.layout.nodeSize.items())
+    {
+        const vec2 midPoint = hitbox.origin + hitbox.extent * 0.5f;
+        if (isInside(midPoint, area)) {
+            graph.interaction.selectedNodes.emplace(node);
+        }
+    }
+}
+
+
 
 auto updateMouse() -> MouseState
 {
-    constexpr trc::MouseButton kDragButton{ trc::MouseButton::left };
+    constexpr trc::MouseButton kCameraMoveButton{ trc::MouseButton::middle };
+    constexpr trc::MouseButton kSelectButton{ trc::MouseButton::left };
     constexpr ui32 kFramesUntilDrag{ 5 };
 
-    static ui32 framesMoved{ 0 };
-    static vec2 initialMousePos{ 0, 0 };
-    static vec2 prevMousePos{ 0, 0 };
+    struct ButtonUpdater
+    {
+        ButtonUpdater(trc::MouseButton button) : button(button) {}
 
-    MouseState res{
-        .currentMousePos = trc::Mouse::getPosition(),
-        .drag = std::nullopt,
+        auto update(const bool mouseWasMoved) -> ButtonState
+        {
+            ButtonState res{
+                .wasPressed=trc::Mouse::wasPressed(button),
+                .wasReleased=trc::Mouse::wasReleased(button),
+            };
+
+            if (res.wasPressed)
+            {
+                framesMoved = 0;
+                initialMousePos = trc::Mouse::getPosition();
+            }
+            if (res.wasReleased)
+            {
+                if (framesMoved < kFramesUntilDrag) {
+                    res.wasClicked = true;
+                }
+                framesMoved = 0;
+            }
+
+            // Test if mouse was moved
+            if (mouseWasMoved) ++framesMoved;
+            if ((framesMoved >= kFramesUntilDrag) && trc::Mouse::isPressed(button))
+            {
+                res.drag = ButtonState::Drag{
+                    .initialMousePos = initialMousePos,
+                    .dragIncrement = trc::Mouse::getPosition() - prevMousePos,
+                };
+            }
+            prevMousePos = trc::Mouse::getPosition();
+
+            return res;
+        }
+
+        trc::MouseButton button;
+
+        ui32 framesMoved{ 0 };
+        vec2 initialMousePos{ 0, 0 };
+        vec2 prevMousePos{ 0, 0 };
     };
 
-    if (trc::Mouse::wasPressed(kDragButton))
-    {
-        framesMoved = 0;
-        initialMousePos = trc::Mouse::getPosition();
-        res.wasPressed = true;
-    }
-    if (trc::Mouse::wasReleased(kDragButton))
-    {
-        res.wasReleased = true;
-        if (framesMoved < kFramesUntilDrag) {
-            res.wasClicked = true;
-        }
-        framesMoved = 0;
-    }
+    static ButtonUpdater cameraButton{ kCameraMoveButton };
+    static ButtonUpdater selectButton{ kSelectButton };
 
-    // Test if mouse was moved
-    if (trc::Mouse::wasMoved() && trc::Mouse::isPressed(kDragButton))
-    {
-        ++framesMoved;
-        if (framesMoved >= kFramesUntilDrag)
-        {
-            res.drag = MouseState::Drag{
-                .initialMousePos = initialMousePos,
-                .dragIncrement = trc::Mouse::getPosition() - prevMousePos,
-            };
-        }
-    }
-    prevMousePos = trc::Mouse::getPosition();
+    const bool mouseWasMoved = trc::Mouse::wasMoved();
+    MouseState res{
+        .currentMousePos = trc::Mouse::getPosition(),
+        .selectButton = selectButton.update(mouseWasMoved),
+        .cameraMoveButton = cameraButton.update(mouseWasMoved),
+    };
 
     return res;
 }
