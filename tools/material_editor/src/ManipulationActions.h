@@ -59,14 +59,17 @@ namespace action
 
         void apply(GraphScene& graph) override {
             desc = graph.graph.nodeInfo.get(node).desc;
+            nodePos = graph.layout.nodeSize.get(node).origin;
             graph.removeNode(node);
         }
         void undo(GraphScene& graph) override {
             node = graph.makeNode(desc);
+            graph.layout.nodeSize.get(node).origin = nodePos;
         }
 
         NodeID node;
         NodeDescription desc;
+        vec2 nodePos;
     };
 
     struct MoveNode : public GraphManipAction

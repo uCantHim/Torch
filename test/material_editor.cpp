@@ -40,14 +40,15 @@ int main()
     GraphScene materialGraph;
     materialGraph.makeNode(makeNodeDescription(std::make_shared<trc::Mix<3, float>>()));
 
-    MaterialEditorGui gui{ window, std::make_shared<GraphManipulator>(materialGraph) };
+    auto manip = std::make_shared<GraphManipulator>(materialGraph);
+    MaterialEditorGui gui{ window, manip };
     MaterialEditorControls controls{ window, gui, camera, { .initialZoomLevel=5 } };
 
     while (window.isOpen() && !window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
 
-        controls.update(materialGraph);
+        controls.update(materialGraph, *manip);
 
         // Generate renderable data from graph
         const auto renderData = buildRenderData(materialGraph);
