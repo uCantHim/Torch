@@ -1,5 +1,8 @@
 #pragma once
 
+#include <trc/base/event/Event.h>
+#include <trc/core/Window.h>
+
 #include "GraphManipulator.h"
 
 class MaterialEditorGui
@@ -15,7 +18,10 @@ public:
 private:
     static constexpr float kContextMenuAlpha{ 0.85f };
 
-    const trc::Window* window;
+    void drawMainMenuContents();
+
+    trc::UniqueListenerId<trc::SwapchainResizeEvent> onResize;
+
     s_ptr<GraphManipulator> graph;
 
     vec2 menuBarSize;

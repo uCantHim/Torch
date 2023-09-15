@@ -66,3 +66,21 @@ auto makeNodeDescription(s_ptr<trc::ShaderFunction> func) -> NodeDescription
 
     return desc;
 }
+
+auto getMaterialNodes() -> const std::vector<NodeDescription>&
+{
+    static std::vector<NodeDescription> allNodes{
+        NodeDescription{
+            .name = "White",
+            .technicalName = "matedit_fun_white",
+            .description = "Just a while color",
+            .computation = [](trc::ShaderModuleBuilder& builder, auto&&) {
+                return builder.makeConstant(vec4(1.0f));
+            },
+            .inputs{},
+            .output = NodeValue{ vec4{}, "Color", "A color value" },
+        },
+    };
+
+    return allNodes;
+}
