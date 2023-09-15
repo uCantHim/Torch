@@ -4,17 +4,24 @@
 #include <imgui.h>
 namespace ig = ImGui;
 
+#include "ManipulationActions.h"
+#include "MaterialNode.h"
+
 
 
 MaterialEditorGui::MaterialEditorGui(
     const trc::Window& window,
     s_ptr<GraphManipulator> graphManip)
     :
-    window(&window),
     graph(graphManip)
 {
-    const vec2 windowSize = window.getSize();
-    menuBarSize = { windowSize.x * 0.2f, windowSize.y };
+    menuBarSize = { window.getSize().x * 0.2f, window.getSize().y };
+
+    trc::on<trc::SwapchainResizeEvent>([&, this](auto& e) {
+        if (e.swapchain == &window) {
+            menuBarSize = { window.getSize().x * 0.2f, window.getSize().y };
+        }
+    });
 }
 
 void MaterialEditorGui::drawGui()
@@ -33,7 +40,7 @@ void MaterialEditorGui::drawGui()
             menuBarSize.x = ig::GetWindowWidth();
         }
 
-        ig::Text("Hello menu! :D");
+        drawMainMenuContents();
         ig::End();
     }
 
@@ -64,4 +71,19 @@ void MaterialEditorGui::openContextMenu(vec2 position)
 void MaterialEditorGui::closeContextMenu()
 {
     contextMenuIsOpen = false;
+}
+
+void MaterialEditorGui::drawMainMenuContents()
+{
+    ig::Text("Hello menu! :D");
+    ig::Separator();
+
+    for (const auto& desc : getMaterialNodes())
+    {
+        if (ig::Button("Create")) {
+            graph->applyAction(std::make_unique<action::CreateNode>(desc));
+        }
+        ig::SameLine();
+        ig::Text("%s", desc.name.c_str());
+    }
 }
