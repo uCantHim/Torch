@@ -37,3 +37,8 @@ auto makeShaderFunctionSignature(const NodeDescription& nodeDesc) -> trc::Functi
 auto makeShaderFunction(const NodeDescription& nodeDesc) -> s_ptr<trc::ShaderFunction>;
 
 auto makeNodeDescription(s_ptr<trc::ShaderFunction> func) -> NodeDescription;
+
+/**
+ * @return A list of all implemented material node types
+ */
+auto getMaterialNodes() -> const std::vector<NodeDescription>&;
