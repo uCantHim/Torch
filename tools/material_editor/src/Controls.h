@@ -31,6 +31,16 @@ public:
     void update(GraphScene& graph);
 
 private:
+    auto toWorldPos(vec2 screenPos) const -> vec2;
+    auto toWorldDir(vec2 screenPos) const -> vec2;
+
+    /**
+     * @param bool append If true, add selected nodes to the current selection.
+     *                    Otherwise overwrite the current selection with nodes
+     *                    in the selection area.
+     */
+    void selectNodesInArea(Hitbox area, GraphScene& graph, bool append);
+
     trc::Window* window;
     trc::Camera* camera;
     MaterialEditorGui* gui;
