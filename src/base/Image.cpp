@@ -119,7 +119,13 @@ auto trc::Image::getDefaultSampler() const -> vk::Sampler
                 vk::SamplerMipmapMode::eLinear,
                 vk::SamplerAddressMode::eRepeat,
                 vk::SamplerAddressMode::eRepeat,
-                vk::SamplerAddressMode::eRepeat
+                vk::SamplerAddressMode::eRepeat,
+                0.0f,                                             // mip LOD bias
+                true, 8.0f,                                       // anisotropy
+                false, vk::CompareOp::eNever,                     // depth compare
+                0.0f, 0.0f,                                       // min/max LOD
+                vk::BorderColor::eFloatOpaqueWhite,
+                false                                             // unnormalized coordinates?
             )
         );
     }
