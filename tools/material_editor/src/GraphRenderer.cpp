@@ -39,6 +39,12 @@ void GraphRenderData::pushBorder(vec2 pos, vec2 size, vec4 color)
     lines.colors.emplace_back(color);
 }
 
+void GraphRenderData::pushSeparator(vec2 pos, float size, vec4 color)
+{
+    lines.dimensions.emplace_back(pos, vec2(size, 0.0f));
+    lines.colors.emplace_back(color);
+}
+
 void GraphRenderData::clear()
 {
     quads.dimensions.clear();
@@ -65,6 +71,9 @@ void renderNodes(
     {
         const auto& [nodePos, nodeSize] = layout.nodeSize.get(node);
         res.pushNode(nodePos, nodeSize, graph::kNodeColor);
+        res.pushSeparator(nodePos + vec2(0.0f, graph::kNodeHeaderHeight),
+                          nodeSize.x,
+                          graph::kSeparatorColor);
         for (const auto& sock : graph.inputSockets.get(node))
         {
             const auto& [sockPos, sockSize] = layout.socketSize.get(sock);

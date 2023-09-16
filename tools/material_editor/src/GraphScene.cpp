@@ -8,9 +8,12 @@ auto GraphScene::makeNode(NodeDescription desc) -> NodeID
 {
     const NodeID id = graph.makeNode({ desc });
 
+    // Create objects
     createSockets(id, graph, desc);
-    layoutSockets(id, graph, layout);
+
+    // Layout objects
     layout.nodeSize.emplace(id, vec2(0.0f), calcNodeSize(id, graph));
+    layoutSockets(id, graph, layout);
 
     return id;
 }

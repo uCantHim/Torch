@@ -4,21 +4,23 @@
 
 void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
 {
-    vec2 socketPos{ graph::kSocketSpacingVertical, graph::kSocketSpacingVertical };
+    const vec2 nodeSize = layout.nodeSize.get(node).extent;
+
+    // Layout input sockets
+    vec2 socketPos = graph::kNodeContentStart;
     for (const auto sock : graph.inputSockets.get(node))
     {
         layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
-        socketPos.y += graph::kSocketSize.y + graph::kSocketSpacingVertical;
+        socketPos.y += graph::kSocketSize.y + graph::kPadding;
     }
 
-    socketPos.x += (!graph.inputSockets.get(node).empty()) ? graph::kSocketSize.x
-                                                           : -graph::kSocketSpacingVertical;
-    socketPos.x += graph::kSocketSpacingHorizontal;
-    socketPos.y = graph::kSocketSpacingVertical;
+    // Layout output socket
+    socketPos.x = nodeSize.x - graph::kPadding - graph::kSocketSize.x;
+    socketPos.y = graph::kNodeContentStart.y;
     for (const auto sock : graph.outputSockets.get(node))
     {
         layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
-        socketPos.y += graph::kSocketSize.y + graph::kSocketSpacingVertical;
+        socketPos.y += graph::kSocketSize.y + graph::kPadding;
     }
 }
 
@@ -30,15 +32,21 @@ auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
 
     vec2 extent{ 0.0f, 0.0f };
 
-    extent.y = maxVerticalSockets * graph::kSocketSize.y
-             + (maxVerticalSockets + 1) * graph::kSocketSpacingVertical;
-    extent.x = (!inputs.empty() ? (graph::kSocketSize.y + graph::kSocketSpacingVertical) : 0)
+    extent.y = graph::kNodeHeaderHeight
+             + maxVerticalSockets * graph::kSocketSize.y
+             + (maxVerticalSockets + 1) * graph::kPadding;
+    extent.x = (!inputs.empty() ? (graph::kSocketSize.y + graph::kPadding) : 0)
              + graph::kSocketSpacingHorizontal
-             + (!outputs.empty() ? graph::kSocketSize.y + graph::kSocketSpacingVertical : 0);
+             + (!outputs.empty() ? graph::kSocketSize.y + graph::kPadding : 0);
 
     extent = glm::max(extent, graph::kMinNodeSize);
 
     return extent;
+}
+
+auto calcTitleTextPos(NodeID node, const GraphLayout& layout) -> vec2
+{
+    return layout.nodeSize.get(node).origin + vec2(graph::kPadding);
 }
 
 bool isInside(vec2 point, const Hitbox& hb)
