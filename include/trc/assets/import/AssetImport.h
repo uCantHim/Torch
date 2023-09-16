@@ -54,6 +54,8 @@ namespace trc
     /**
      * @brief Load font data from any font file
      *
+     * See the `FontData` struct for documentation on how to use the result.
+     *
      * The operation is supported as long as Freetype supports the format of the
      * file at `path`.
      *

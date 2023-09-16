@@ -39,6 +39,30 @@ namespace trc
     };
 
     using FontHandle = AssetHandle<Font>;
+
+    /**
+     * This struct can be used in the following ways:
+     *     - Register it at a `FontRegistry` to create an asset via Torch's
+     *       asset system.
+     *     - Use the data manually.
+     *
+     * The following steps can be taken to use fonts manually:
+     *     1. Create a `Face` object from the font data:
+     *        `Face face{ data.fontData, data.fontSize };`
+     *        This object allows you to access individual glyphs of the font. It
+     *        also contains meta information about the font.
+     *     2. Load the glyph you want to render: `auto g = face.loadGlyph('A');`
+     *        Glyphs contains pixel data as well as size information. The latter
+     *        is always available in pixel units and normalized float units.
+     *        Normalized coordinates don't depend on the loaded font size.
+     *     3. Create a `GlyphMap` object: `GlyphMap map{ device };`
+     *        This object is an image on the device that allows you to store
+     *        glyphs in it.
+     *     4. Upload your glyph to the glyph map: `auto pos = map.addGlyph(g);`
+     *        The result is a rectangle that specifies the glyph's position and
+     *        size in the glyph map. You can derive UV coordinates from this
+     *        rectangle.
+     */
     using FontData = AssetData<Font>;
 
     struct GlyphDrawData
