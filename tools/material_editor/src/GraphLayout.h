@@ -10,12 +10,16 @@ using namespace trc::basic_types;
  */
 namespace graph
 {
+    constexpr float kPadding{ 0.075f };
+
     constexpr vec2 kMinNodeSize{ 0.4f, 0.6f };
 
-    constexpr vec2 kSocketSize{ 0.15f, 0.15f };
+    constexpr vec2 kSocketSize{ kPadding * 2.0f };
     constexpr float kSocketSpacingHorizontal{ kSocketSize.x * 4.0f };
-    // The 'vertical' spacing also acts as a left/right padding
-    constexpr float kSocketSpacingVertical{ kSocketSize.y / 2.0f };
+
+    constexpr float kTextHeight{ kPadding * 2.0f };
+    constexpr float kNodeHeaderHeight{ kTextHeight + kPadding * 2.0f };
+    constexpr vec2 kNodeContentStart{ kPadding, kPadding + kNodeHeaderHeight };
 } // namespace graph
 
 struct Hitbox
@@ -52,6 +56,8 @@ void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
  * @return vec2 The node's size
  */
 auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2;
+
+auto calcTitleTextPos(NodeID node, const GraphLayout& layout) -> vec2;
 
 /**
  * @return bool True if `point` is inside of `hitbox`, false otherwise.
