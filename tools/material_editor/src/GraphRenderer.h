@@ -38,6 +38,15 @@ namespace graph
  */
 struct GraphRenderData
 {
+    struct DrawGroup;
+
+    GraphRenderData() {
+        beginGroup();
+    }
+
+    void beginGroup();
+    auto curGroup() -> DrawGroup&;
+
     void pushNode(vec2 pos, vec2 size, vec4 color);
     void pushSocket(vec2 pos, vec2 size, vec4 color);
     void pushLink(vec2 from, vec2 to, vec4 color);
@@ -58,8 +67,13 @@ struct GraphRenderData
         std::vector<vec4> colors{};
     };
 
-    Primitive quads{ .geometryType=Geometry::eQuad };
-    Primitive lines{ .geometryType=Geometry::eLine };
+    struct DrawGroup
+    {
+        Primitive quads{ .geometryType=Geometry::eQuad };
+        Primitive lines{ .geometryType=Geometry::eLine };
+    };
+
+    std::vector<DrawGroup> items;
 };
 
 /**
@@ -101,6 +115,10 @@ private:
         vec4* dimensions;
         vec4* colors;
     };
+
+    static void ensureBufferSize(const GraphRenderData& renderData,
+                                 DeviceData& deviceData,
+                                 const trc::Device& device);
 
     const trc::Device& device;
 
