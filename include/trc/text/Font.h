@@ -79,8 +79,13 @@ namespace trc
     struct FontRegistryCreateInfo
     {
         const Device& device;
+
+        // The descriptor binding that will contain glyph map images. Must be
+        // an array of image samplers.
         SharedDescriptorSet::Binding glyphMapBinding;
 
+        // The font registry allocates glyph maps from a memory pool. This
+        // setting controls the size of that pool in bytes.
         size_t glyphMapMemoryPoolSize{ 20000000 };
     };
 

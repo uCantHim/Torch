@@ -12,10 +12,10 @@ namespace cimg = cimg_library;
 auto trc::makeSinglePixelImageData(glm::vec4 color) -> RawImageData
 {
     glm::u8vec4 normalizedUnsigned{
-        static_cast<uint8_t>(color.r * 128.0f),
-        static_cast<uint8_t>(color.g * 128.0f),
-        static_cast<uint8_t>(color.b * 128.0f),
-        static_cast<uint8_t>(color.a * 128.0f),
+        static_cast<uint8_t>(color.r * 255.0f),
+        static_cast<uint8_t>(color.g * 255.0f),
+        static_cast<uint8_t>(color.b * 255.0f),
+        static_cast<uint8_t>(color.a * 255.0f),
     };
 
     return { { 1, 1 }, { normalizedUnsigned } };
