@@ -9,48 +9,58 @@
 #include "pipelines.h"
 
 
+void GraphRenderData::beginGroup()
+{
+    items.emplace_back();
+}
+
+auto GraphRenderData::curGroup() -> DrawGroup&
+{
+    return items.back();
+}
+
 void GraphRenderData::pushNode(vec2 pos, vec2 size, vec4 color)
 {
-    quads.dimensions.emplace_back(pos, size);
-    quads.colors.emplace_back(color);
+    curGroup().quads.dimensions.emplace_back(pos, size);
+    curGroup().quads.colors.emplace_back(color);
 }
 
 void GraphRenderData::pushSocket(vec2 pos, vec2 size, vec4 color)
 {
-    quads.dimensions.emplace_back(pos, size);
-    quads.colors.emplace_back(color);
+    curGroup().quads.dimensions.emplace_back(pos, size);
+    curGroup().quads.colors.emplace_back(color);
 }
 
 void GraphRenderData::pushLink(vec2 from, vec2 to, vec4 color)
 {
-    lines.dimensions.emplace_back(from, to - from);
-    lines.colors.emplace_back(color);
+    curGroup().lines.dimensions.emplace_back(from, to - from);
+    curGroup().lines.colors.emplace_back(color);
 }
 
 void GraphRenderData::pushBorder(vec2 pos, vec2 size, vec4 color)
 {
-    lines.dimensions.emplace_back(pos, vec2{ size.x, 0.0f });
-    lines.dimensions.emplace_back(pos, vec2{ 0.0f, size.y });
-    lines.dimensions.emplace_back(pos + size, vec2{ -size.x, 0.0f });
-    lines.dimensions.emplace_back(pos + size, vec2{ 0.0f, -size.y });
-    lines.colors.emplace_back(color);
-    lines.colors.emplace_back(color);
-    lines.colors.emplace_back(color);
-    lines.colors.emplace_back(color);
+    curGroup().lines.dimensions.emplace_back(pos, vec2{ size.x, 0.0f });
+    curGroup().lines.dimensions.emplace_back(pos, vec2{ 0.0f, size.y });
+    curGroup().lines.dimensions.emplace_back(pos + size, vec2{ -size.x, 0.0f });
+    curGroup().lines.dimensions.emplace_back(pos + size, vec2{ 0.0f, -size.y });
+    curGroup().lines.colors.emplace_back(color);
+    curGroup().lines.colors.emplace_back(color);
+    curGroup().lines.colors.emplace_back(color);
+    curGroup().lines.colors.emplace_back(color);
 }
 
 void GraphRenderData::pushSeparator(vec2 pos, float size, vec4 color)
 {
-    lines.dimensions.emplace_back(pos, vec2(size, 0.0f));
-    lines.colors.emplace_back(color);
+    curGroup().lines.dimensions.emplace_back(pos, vec2(size, 0.0f));
+    curGroup().lines.colors.emplace_back(color);
 }
 
 void GraphRenderData::clear()
 {
-    quads.dimensions.clear();
-    quads.colors.clear();
-    lines.dimensions.clear();
-    lines.colors.clear();
+    curGroup().quads.dimensions.clear();
+    curGroup().quads.colors.clear();
+    curGroup().lines.dimensions.clear();
+    curGroup().lines.colors.clear();
 }
 
 void renderNodes(
@@ -69,6 +79,8 @@ void renderNodes(
 
     for (const auto& [node, _] : graph.nodeInfo.items())
     {
+        res.beginGroup();
+
         const auto& [nodePos, nodeSize] = layout.nodeSize.get(node);
         res.pushNode(nodePos, nodeSize, graph::kNodeColor);
         res.pushSeparator(nodePos + vec2(0.0f, graph::kNodeHeaderHeight),
@@ -84,26 +96,13 @@ void renderNodes(
             const auto& [sockPos, sockSize] = layout.socketSize.get(sock);
             res.pushSocket(nodePos + sockPos, sockSize, calcSocketColor(sock));
         }
-    }
-}
 
-void renderHighlightBorders(
-    const GraphInteraction& interaction,
-    const GraphLayout& layout,
-    GraphRenderData& res)
-{
-    // Create border for the currently hovered element
-    if (interaction.hoveredNode)
-    {
-        const auto [pos, size] = layout.nodeSize.get(*interaction.hoveredNode);
-        res.pushBorder(pos, size, graph::kHighlightColor);
-    }
-
-    // Create borders for all selected elements
-    for (const auto node : interaction.selectedNodes)
-    {
-        const auto [pos, size] = layout.nodeSize.get(node);
-        res.pushBorder(pos, size, graph::kSelectColor);
+        if (scene.interaction.selectedNodes.contains(node)) {
+            res.pushBorder(nodePos, nodeSize, graph::kSelectColor);
+        }
+        else if (scene.interaction.hoveredNode == node) {
+            res.pushBorder(nodePos, nodeSize, graph::kHighlightColor);
+        }
     }
 }
 
@@ -118,6 +117,7 @@ void renderSocketLinks(
         return layout.socketSize.get(sock).origin + nodePos;
     };
 
+    res.beginGroup();
     for (const auto& [from, to] : graph.link.items())
     {
         const auto sizeFrom = layout.socketSize.get(from).extent;
@@ -130,6 +130,7 @@ void renderSocketLinks(
 
 void renderSelectionBox(const GraphInteraction& interaction, GraphRenderData& res)
 {
+    res.beginGroup();
     if (auto& box = interaction.multiSelectBox) {
         res.pushBorder(box->origin, box->extent, graph::kSelectColor);
     }
@@ -143,7 +144,6 @@ auto buildRenderData(const GraphScene& scene) -> GraphRenderData
     GraphRenderData res;
     renderNodes(scene, res);
     renderSocketLinks(graph, layout, res);
-    renderHighlightBorders(scene.interaction, layout, res);
     renderSelectionBox(scene.interaction, res);
 
     return res;
@@ -203,57 +203,79 @@ MaterialGraphRenderer::MaterialGraphRenderer(const trc::Device& device, const tr
 
 void MaterialGraphRenderer::uploadData(const GraphRenderData& data)
 {
-    assert(data.quads.colors.size() == data.quads.dimensions.size());
-    assert(data.lines.colors.size() == data.lines.dimensions.size());
+    constexpr auto getIndexCount = [](GraphRenderData::Geometry g) {
+        return g == GraphRenderData::Geometry::eQuad ? 6u : 2u;
+    };
+    constexpr auto getPipeline = [](GraphRenderData::Geometry g) {
+        return g == GraphRenderData::Geometry::eQuad
+               ? getGraphElemPipeline()
+               : getLinePipeline();
+    };
 
-    auto& dst = *deviceData;
-    dst.drawCmds.clear();
+    auto& dev = *deviceData;
+    dev.drawCmds.clear();
 
-    // Modify this if you add a new type of primitive
-    auto primitives = { data.quads, data.lines };
+    ensureBufferSize(data, dev, device);
 
-    auto counts = primitives | std::views::transform([](auto&& el){ return el.dimensions.size(); });
-    const size_t numElems = std::accumulate(counts.begin(), counts.end(), 0);
+    size_t totalOffset{ 0 };  // Offset into the vertex buffers in number of primitives
+    for (const auto& data : data.items)
+    {
+        assert(data.quads.colors.size() == data.quads.dimensions.size());
+        assert(data.lines.colors.size() == data.lines.dimensions.size());
+
+        // Modify this if you add a new type of primitive
+        auto primitives = { data.quads, data.lines };
+
+        // Copy primitive data to device
+        for (const auto& prim : primitives)
+        {
+            const auto& draw = dev.drawCmds.emplace_back(DeviceData::DrawCmd{
+                .indexCount    = getIndexCount(prim.geometryType),
+                .instanceCount = static_cast<ui32>(prim.dimensions.size()),
+                .pipeline      = getPipeline(prim.geometryType),
+            });
+
+            memcpy(dev.dimensions + totalOffset,
+                   prim.dimensions.data(),
+                   prim.dimensions.size() * kElemDimSize);
+            memcpy(dev.colors + totalOffset,
+                   prim.colors.data(),
+                   prim.colors.size() * kElemColorSize);
+            totalOffset += draw.instanceCount;
+        }
+    }
+
+    dev.dimensionBuf.flush();
+    dev.colorBuf.flush();
+}
+
+void MaterialGraphRenderer::ensureBufferSize(
+    const GraphRenderData& renderData,
+    DeviceData& dev,
+    const trc::Device& device)
+{
+    size_t numElems{ 0 };
+    for (const auto& cmd : renderData.items)
+    {
+        auto primitives = { cmd.lines, cmd.quads };
+        auto counts = primitives | std::views::transform([](auto&& el){ return el.dimensions.size(); });
+        numElems += std::accumulate(counts.begin(), counts.end(), 0);
+    }
 
     const size_t dimBufSize = numElems * kElemDimSize;
     const size_t colorBufSize = numElems * kElemColorSize;
-    if (dst.dimensionBuf.size() < dimBufSize)
+    if (dev.dimensionBuf.size() < dimBufSize)
     {
-        assert(dst.colorBuf.size() < colorBufSize);
+        assert(dev.colorBuf.size() < colorBufSize);
 
-        dst.dimensionBuf.unmap();
-        dst.colorBuf.unmap();
+        dev.dimensionBuf.unmap();
+        dev.colorBuf.unmap();
 
-        dst.dimensionBuf = makeVertBuf(device, dimBufSize);
-        dst.colorBuf = makeVertBuf(device, colorBufSize);
-        dst.dimensions = dst.dimensionBuf.map<vec4*>();
-        dst.colors = dst.colorBuf.map<vec4*>();
+        dev.dimensionBuf = makeVertBuf(device, dimBufSize);
+        dev.colorBuf = makeVertBuf(device, colorBufSize);
+        dev.dimensions = dev.dimensionBuf.map<vec4*>();
+        dev.colors = dev.colorBuf.map<vec4*>();
     }
-
-    // Copy primitive data to device
-    size_t offsetElems{ 0 };
-    for (const auto& prim : primitives)
-    {
-        const auto& draw = dst.drawCmds.emplace_back(DeviceData::DrawCmd{
-            .indexCount    = prim.geometryType == GraphRenderData::Geometry::eQuad ? 6u : 2u,
-            .instanceCount = static_cast<ui32>(prim.dimensions.size()),
-            .pipeline      = prim.geometryType == GraphRenderData::Geometry::eQuad
-                             ? getGraphElemPipeline()
-                             : getLinePipeline(),
-        });
-
-        memcpy(dst.dimensions + offsetElems,
-               prim.dimensions.data(),
-               prim.dimensions.size() * kElemDimSize);
-        memcpy(dst.colors + offsetElems,
-               prim.colors.data(),
-               prim.colors.size() * kElemColorSize);
-        offsetElems += draw.instanceCount;
-    }
-    assert(numElems == offsetElems);
-
-    dst.dimensionBuf.flush();
-    dst.colorBuf.flush();
 }
 
 void MaterialGraphRenderer::draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& conf)
