@@ -14,6 +14,8 @@ namespace graph
     constexpr vec4 kSocketColor{ 0.8f, 0.2f, 0.2f, 1.0f };
     constexpr vec4 kLinkColor{ 0.8f, 0.8f, 0.8f, 1.0f };
 
+    constexpr vec4 kSeparatorColor{ vec3(kNodeColor) * 3.0f, 1.0f };
+
     constexpr vec4 kHighlightColor{ 1.0f, 0.7f, 0.2f, 1.0f };
     constexpr vec4 kSelectColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -39,7 +41,9 @@ struct GraphRenderData
     void pushNode(vec2 pos, vec2 size, vec4 color);
     void pushSocket(vec2 pos, vec2 size, vec4 color);
     void pushLink(vec2 from, vec2 to, vec4 color);
+
     void pushBorder(vec2 pos, vec2 size, vec4 color);
+    void pushSeparator(vec2 pos, float size, vec4 color);
 
     void clear();
 
