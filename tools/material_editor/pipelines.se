@@ -4,6 +4,10 @@ Descriptor cameraDesc:
     Name: "material_editor_camera_descriptor"
     Type: static
 
+Descriptor textureDesc:
+    Name: "material_editor_texture_descriptor"
+    Type: dynamic
+
 // Shader program for a generic graphical primitive in the material graph
 Program graphElementProgram:
     VertexShader:
@@ -26,25 +30,30 @@ VertexAttribute instanceDimensions:
     InputRate: perInstance
     Locations: [rgba32f]
 
-VertexAttribute instanceColors:
+VertexAttribute instanceUvs:
     Binding: 3
+    InputRate: perInstance
+    Locations: [rgba32f]
+
+VertexAttribute instanceColors:
+    Binding: 4
     InputRate: perInstance
     Locations: [rgba32f]
 
 // Base pipeline for graphical primitives in the material graph
 Pipeline graphElemPipeline:
     Program: graphElementProgram
-    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceColors]
+    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceUvs, instanceColors]
     Layout:
-        Descriptors: [cameraDesc]
+        Descriptors: [cameraDesc, textureDesc]
     RenderPass: "material_editor_forward_renderpass"
     CullMode: cullNone
 
 Pipeline linePipeline:
     Program: graphElementProgram
-    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceColors]
+    VertexInput: [vertexPositions, vertexUvCoords, instanceDimensions, instanceUvs, instanceColors]
     Layout:
-        Descriptors: [cameraDesc]
+        Descriptors: [cameraDesc, textureDesc]
     RenderPass: "material_editor_forward_renderpass"
     PrimitiveTopology: lineList
     LineWidth: 2.0

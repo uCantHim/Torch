@@ -16,7 +16,7 @@ MaterialEditorRenderPass::MaterialEditorRenderPass(
     area{ { 0, 0 }, { target.getSize().x, target.getSize().y } },
     renderTargetBarrier(info.renderTargetBarrier),
     finalLayout(info.finalLayout),
-    renderer(device, target.getFrameClock())
+    renderer(device, target.getFrameClock(), info.fontImage)
 {
 }
 
@@ -107,6 +107,8 @@ MaterialEditorRenderConfig::MaterialEditorRenderConfig(
     renderPass(renderTarget, window.getDevice(), info, *this)
 {
     addDescriptor(trc::DescriptorName{ kCameraDescriptor }, cameraDesc);
+    addDescriptor(trc::DescriptorName{ kTextureDescriptor },
+                  renderPass.getRenderer().getTextureDescriptor());
     addRenderPass(
         trc::RenderPassName{ kForwardRenderpass },
         [this]() -> RenderPassDefinition { return { *renderPass, 0 }; }
