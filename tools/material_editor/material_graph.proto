@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package graph;
+
+message MaterialNode
+{
+    // Signifies the type of node. Corresponds to `NodeDescription`'s
+    // `id` field.
+    string id = 1;
+}
+
+// A node's index is its index in the `MaterialGraph::nodes` array.
+//
+// Socket indices in a node are counted from 0 for the first input socket up to
+// (inputSockets + outputSockets - 1) for the last output socket
+message SocketLink
+{
+    uint32 src_node_index = 1;
+    uint32 src_socket_index = 2;
+    uint32 dst_node_index = 3;
+    uint32 dst_socket_index = 4;
+}
+
+message MaterialGraph
+{
+    repeated MaterialNode nodes = 1;
+    repeated float node_pos_x = 3;
+    repeated float node_pos_y = 4;
+
+    repeated SocketLink links = 2;
+}

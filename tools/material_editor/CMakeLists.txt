@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-add_library(libmaterial_editor)
+add_library(libmaterial_editor SHARED)
 
 torch_default_compile_options(libmaterial_editor)
 target_link_libraries(libmaterial_editor PUBLIC torch torch-imgui component)
@@ -14,12 +14,21 @@ target_sources(
         src/GraphManipulator.cpp
         src/GraphRenderer.cpp
         src/GraphScene.cpp
+        src/GraphSerializer.cpp
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialGraph.cpp
         src/MaterialNode.cpp
 )
 target_include_directories(libmaterial_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
+
+# Build protobuf sources
+protobuf_generate_cpp(
+    MEDIT_PROTO_SRCS MEDIT_PROTO_HDRS
+    "${CMAKE_CURRENT_LIST_DIR}/material_graph.proto"
+)
+target_sources(libmaterial_editor PRIVATE ${MEDIT_PROTO_SRCS})
+target_include_directories(libmaterial_editor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Build pipeline sources
 set(PIPELINE_SRC_DIR "${CMAKE_BINARY_DIR}/material_editor-generated/pipelines")

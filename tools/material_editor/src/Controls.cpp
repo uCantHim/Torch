@@ -1,10 +1,13 @@
 #include "Controls.h"
 
+#include <fstream>
+
 #include <trc/base/event/Event.h>
 #include <trc/base/event/InputState.h>
 #include <trc/core/Window.h>
 #include <trc_util/Timer.h>
 
+#include "GraphSerializer.h"
 #include "ManipulationActions.h"
 #include "MaterialEditorGui.h"
 
@@ -47,6 +50,8 @@ struct KeyboardState
     bool didDelete{ false };
     bool didSelectAll{ false };
     bool didUnselectAll{ false };
+
+    bool didSave{ false };
 };
 
 auto updateMouse() -> MouseState;
@@ -139,6 +144,11 @@ void MaterialEditorControls::update(GraphScene& graph, GraphManipulator& manip)
         }
         if (kbState.didUnselectAll) {
             graph.interaction.selectedNodes.clear();
+        }
+
+        if (kbState.didSave) {
+            std::ofstream file(".matedit_save", std::ios::binary);
+            serializeGraph(graph, file);
         }
     }
 
@@ -344,6 +354,8 @@ auto updateKeyboard() -> KeyboardState
     constexpr trc::Key kRedoKeyMod{ trc::Key::left_shift };
     constexpr trc::Key kDeleteKey{ trc::Key::del };
     constexpr trc::Key kSelectAllKey{ trc::Key::a };
+    constexpr trc::Key kSaveKey{ trc::Key::s };
+    constexpr trc::Key kSaveKeyMod{ trc::Key::left_ctrl };
 
     KeyboardState res;
 
@@ -375,6 +387,10 @@ auto updateKeyboard() -> KeyboardState
             res.didSelectAll = true;
             timeSinceSelectAll.reset();
         }
+    }
+
+    if (trc::Keyboard::wasPressed(kSaveKey) && trc::Keyboard::isPressed(kSaveKeyMod)) {
+        res.didSave = true;
     }
 
     return res;

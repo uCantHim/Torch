@@ -78,11 +78,13 @@ void MaterialEditorGui::drawMainMenuContents()
     ig::Text("Hello menu! :D");
     ig::Separator();
 
-    for (const auto& desc : getMaterialNodes())
+    for (const auto& [_, desc] : getMaterialNodes())
     {
+        ig::PushID(&desc);
         if (ig::Button("Create")) {
             graph->applyAction(std::make_unique<action::CreateNode>(desc));
         }
+        ig::PopID();
         ig::SameLine();
         ig::Text("%s", desc.name.c_str());
     }

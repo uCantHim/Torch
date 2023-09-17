@@ -3,6 +3,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <trc/material/BasicType.h>
@@ -25,7 +26,7 @@ using NodeComputationBuilder
 struct NodeDescription
 {
     std::string name;
-    std::string technicalName;
+    std::string id;  // A unique string identifier corresponding to the node's type
     std::string description;
     NodeComputationBuilder computation;
 
@@ -39,6 +40,7 @@ auto makeShaderFunction(const NodeDescription& nodeDesc) -> s_ptr<trc::ShaderFun
 auto makeNodeDescription(s_ptr<trc::ShaderFunction> func) -> NodeDescription;
 
 /**
- * @return A list of all implemented material node types
+ * @return A list of all implemented material node types.
+ *         Maps [node-id -> node].
  */
-auto getMaterialNodes() -> const std::vector<NodeDescription>&;
+auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription>&;

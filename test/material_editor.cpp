@@ -1,11 +1,12 @@
 #include <trc/Torch.h>
 #include <trc/material/CommonShaderFunctions.h>
 
-#include <GraphScene.h>
 #include <Controls.h>
+#include <Font.h>
+#include <GraphScene.h>
+#include <GraphSerializer.h>
 #include <MaterialEditorGui.h>
 #include <MaterialEditorRenderConfig.h>
-#include <Font.h>
 
 int main()
 {
@@ -43,7 +44,12 @@ int main()
     camera.makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
 
     GraphScene materialGraph;
-    materialGraph.makeNode(makeNodeDescription(std::make_shared<trc::Mix<3, float>>()));
+    if (std::ifstream file = std::ifstream(".matedit_save", std::ios::binary))
+    {
+        if (auto graph = parseGraph(file)) {
+            materialGraph = std::move(*graph);
+        }
+    }
 
     auto manip = std::make_shared<GraphManipulator>(materialGraph);
     MaterialEditorGui gui{ window, manip };
