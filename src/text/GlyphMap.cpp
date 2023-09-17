@@ -75,6 +75,11 @@ auto trc::GlyphMap::getGlyphImage() -> Image&
     return image;
 }
 
+auto trc::GlyphMap::getGlyphImage() const -> const Image&
+{
+    return image;
+}
+
 void trc::GlyphMap::writeDataToImage(const std::vector<ui8>& data, const ImageSize& dstArea)
 {
     Buffer buffer(
