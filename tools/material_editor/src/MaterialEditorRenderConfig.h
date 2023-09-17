@@ -8,6 +8,7 @@
 #include <trc/core/RenderConfiguration.h>
 #include <trc/core/RenderStage.h>
 #include <trc/core/RenderTarget.h>
+#include <trc/text/Font.h>
 #include <trc/ui/torch/GuiIntegration.h>
 
 using namespace trc::basic_types;
@@ -17,6 +18,8 @@ using namespace trc::basic_types;
 
 struct MaterialEditorRenderingInfo
 {
+    const trc::Image& fontImage;
+
     // A barrier on the render target inserted before rendering to it.
     //
     // The barrier must bring the image into the color attachment optimal
@@ -72,10 +75,11 @@ public:
 
     static constexpr auto kForwardRenderpass{ "material_editor_forward_renderpass" };
     static constexpr auto kCameraDescriptor{ "material_editor_camera_descriptor" };
+    static constexpr auto kTextureDescriptor{ "material_editor_texture_descriptor" };
 
     MaterialEditorRenderConfig(const trc::RenderTarget& renderTarget,
                                trc::Window& window,
-                               const MaterialEditorRenderingInfo& info = {});
+                               const MaterialEditorRenderingInfo& info);
 
     void update(const trc::Camera& camera, const GraphRenderData& data);
 
@@ -86,6 +90,10 @@ public:
 
 private:
     CameraDescriptor cameraDesc;
+    s_ptr<trc::SharedDescriptorSet> textureDesc;
+    s_ptr<trc::FontRegistry> fontRegistry;
+    std::optional<trc::FontHandle> font;
+
     MaterialEditorRenderPass renderPass;
 
     u_ptr<trc::imgui::ImguiRenderPass> imgui;
