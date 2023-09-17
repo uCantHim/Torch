@@ -5,6 +5,7 @@
 #include <Controls.h>
 #include <MaterialEditorGui.h>
 #include <MaterialEditorRenderConfig.h>
+#include <Font.h>
 
 int main()
 {
@@ -14,10 +15,14 @@ int main()
     trc::Window window{ instance };
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
+    const auto fontPath = TRC_TEST_FONT_DIR"/gil.ttf";
+    Font font{ window.getDevice(), trc::loadFont(fontPath, 64) };
+
     MaterialEditorRenderConfig config{
         renderTarget,
         window,
         MaterialEditorRenderingInfo{
+            .fontImage=font.getTexture(),
             .renderTargetBarrier=vk::ImageMemoryBarrier2{
                 vk::PipelineStageFlagBits2::eAllCommands,
                 vk::AccessFlagBits2::eHostWrite | vk::AccessFlagBits2::eHostRead,
@@ -51,7 +56,7 @@ int main()
         controls.update(materialGraph, *manip);
 
         // Generate renderable data from graph
-        const auto renderData = buildRenderData(materialGraph);
+        const auto renderData = buildRenderData(materialGraph, font);
 
         // Draw a frame
         gui.drawGui();
