@@ -2,7 +2,7 @@
 
 
 
-void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
+void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout)
 {
     const vec2 nodeSize = layout.nodeSize.get(node).extent;
 
@@ -24,7 +24,7 @@ void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
     }
 }
 
-auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
+auto calcNodeSize(NodeID node, const GraphTopology& graph) -> vec2
 {
     const auto& inputs = graph.inputSockets.get(node);
     const auto& outputs = graph.outputSockets.get(node);
@@ -47,6 +47,13 @@ auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2
 auto calcTitleTextPos(NodeID node, const GraphLayout& layout) -> vec2
 {
     return layout.nodeSize.get(node).origin + vec2(graph::kPadding);
+}
+
+auto calcSocketGlobalPos(SocketID socket, const GraphTopology& graph, const GraphLayout& layout)
+    -> vec2
+{
+    return layout.socketSize.get(socket).origin
+         + layout.nodeSize.get(graph.socketInfo.get(socket).parentNode).origin;
 }
 
 bool isInside(vec2 point, const Hitbox& hb)

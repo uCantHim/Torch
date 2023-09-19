@@ -76,7 +76,7 @@ auto parseGraph(std::istream& is) -> std::optional<GraphScene>
 
     // Create nodes
     std::unordered_map<ui32, NodeID> nodeIds;
-    for (ui32 i = 0; const auto& node : in.nodes())
+    for (i32 i = 0; const auto& node : in.nodes())
     {
         if (!getMaterialNodes().contains(node.id()))
         {

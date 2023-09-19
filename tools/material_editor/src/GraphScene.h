@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "MaterialGraph.h"
+#include "GraphTopology.h"
 #include "MaterialNode.h"
 #include "GraphInteraction.h"
 #include "GraphLayout.h"
@@ -10,7 +10,7 @@
 struct GraphScene
 {
     // Graph topology
-    MaterialGraph graph;
+    GraphTopology graph;
 
     // Graph geometry
     GraphLayout layout;
