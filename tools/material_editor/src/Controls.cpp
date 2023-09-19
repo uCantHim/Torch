@@ -123,7 +123,7 @@ ZoomState globalZoomState{ 0 };
 
 struct CreateLinkState : ControlState
 {
-    CreateLinkState(SocketID from, MaterialGraph& graph)
+    CreateLinkState(SocketID from, GraphTopology& graph)
         : draggedSocket(from)
     {
         if (graph.link.contains(from)) {

@@ -3,7 +3,7 @@
 #include <optional>
 #include <unordered_set>
 
-#include "MaterialGraph.h"
+#include "GraphTopology.h"
 #include "GraphLayout.h"
 
 struct GraphInteraction

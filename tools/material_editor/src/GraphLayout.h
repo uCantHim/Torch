@@ -3,7 +3,7 @@
 #include <trc/Types.h>
 using namespace trc::basic_types;
 
-#include "MaterialGraph.h"
+#include "GraphTopology.h"
 
 /**
  * Contains global constants about graph layouting
@@ -42,7 +42,7 @@ struct GraphLayout
     Table<Hitbox, SocketID> socketSize;
 };
 
-void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout);
+void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout);
 
 /**
  * @brief Calculate a node's size
@@ -55,9 +55,12 @@ void layoutSockets(NodeID node, const MaterialGraph& graph, GraphLayout& layout)
  *
  * @return vec2 The node's size
  */
-auto calcNodeSize(NodeID node, const MaterialGraph& graph) -> vec2;
+auto calcNodeSize(NodeID node, const GraphTopology& graph) -> vec2;
 
 auto calcTitleTextPos(NodeID node, const GraphLayout& layout) -> vec2;
+
+auto calcSocketGlobalPos(SocketID socket, const GraphTopology& graph, const GraphLayout& layout)
+    -> vec2;
 
 /**
  * @return bool True if `point` is inside of `hitbox`, false otherwise.

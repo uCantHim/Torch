@@ -36,7 +36,7 @@ struct Socket
 /**
  * @brief Topological information about a material graph
  */
-struct MaterialGraph
+struct GraphTopology
 {
     NodeID outputNode;
 
@@ -78,4 +78,4 @@ private:
 /**
  * @brief Create sockets for a node based on a function signature
  */
-void createSockets(NodeID node, MaterialGraph& graph, const NodeDescription& desc);
+void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& desc);
