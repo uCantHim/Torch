@@ -152,7 +152,7 @@ void renderNodes(
 }
 
 void renderSocketLinks(
-    const MaterialGraph& graph,
+    const GraphTopology& graph,
     const GraphLayout& layout,
     GraphRenderData& res)
 {

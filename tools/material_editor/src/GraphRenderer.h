@@ -7,7 +7,7 @@
 
 #include "Font.h"
 #include "GraphScene.h"
-#include "MaterialGraph.h"
+#include "GraphTopology.h"
 
 namespace graph
 {

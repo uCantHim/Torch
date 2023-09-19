@@ -15,9 +15,9 @@ target_sources(
         src/GraphRenderer.cpp
         src/GraphScene.cpp
         src/GraphSerializer.cpp
+        src/GraphTopology.cpp
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
-        src/MaterialGraph.cpp
         src/MaterialNode.cpp
 )
 target_include_directories(libmaterial_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
