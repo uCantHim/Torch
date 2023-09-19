@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <stack>
 
 #include <trc/Camera.h>
 using namespace trc::basic_types;
@@ -8,6 +9,7 @@ using namespace trc::basic_types;
 #include "GraphManipulator.h"
 #include "GraphScene.h"
 
+class ControlState;
 class MaterialEditorGui;
 
 struct MaterialEditorControlsCreateInfo
@@ -18,10 +20,19 @@ struct MaterialEditorControlsCreateInfo
 class MaterialEditorControls
 {
 public:
+    MaterialEditorControls(const MaterialEditorControls&) = delete;
+    MaterialEditorControls(MaterialEditorControls&&) noexcept = delete;
+    MaterialEditorControls& operator=(const MaterialEditorControls&) = delete;
+    MaterialEditorControls& operator=(MaterialEditorControls&&) noexcept = delete;
+
     MaterialEditorControls(trc::Window& window,
                            MaterialEditorGui& gui,
                            trc::Camera& camera,
                            const MaterialEditorControlsCreateInfo& info = {});
+
+    // Need to declare this because otherwise u_ptr<ControlState>::~u_ptr would
+    // be required, but ControlState is incomplete.
+    ~MaterialEditorControls() noexcept;
 
     /**
      * @brief Calculate user interaction with the material graph
@@ -32,20 +43,11 @@ public:
     void update(GraphScene& graph, GraphManipulator& manip);
 
 private:
-    auto toWorldPos(vec2 screenPos) const -> vec2;
-    auto toWorldDir(vec2 screenPos) const -> vec2;
-
-    /**
-     * @param bool append If true, add selected nodes to the current selection.
-     *                    Otherwise overwrite the current selection with nodes
-     *                    in the selection area.
-     */
-    void selectNodesInArea(Hitbox area, GraphScene& graph, bool append);
-
     trc::Window* window;
     trc::Camera* camera;
     MaterialEditorGui* gui;
 
-    // Scale camera drag distance by size of the orthogonal camera
     vec2 cameraViewportSize{ 1.0f, 1.0f };
+
+    std::stack<u_ptr<ControlState>> stateStack;
 };
