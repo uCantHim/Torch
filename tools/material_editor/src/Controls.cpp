@@ -1,12 +1,15 @@
 #include "Controls.h"
 
+#include <cassert>
 #include <fstream>
+#include <variant>
 
 #include <trc/base/event/Event.h>
 #include <trc/base/event/InputState.h>
 #include <trc/core/Window.h>
 #include <trc_util/Timer.h>
 
+#include "ControlState.h"
 #include "GraphSerializer.h"
 #include "ManipulationActions.h"
 #include "MaterialEditorGui.h"
@@ -18,24 +21,24 @@ struct ZoomState
     i32 zoomLevel{ 0 };
 };
 
-struct ButtonState
-{
-    struct Drag
-    {
-        vec2 initialMousePos{ 0, 0 };
-        vec2 dragIncrement{ 0, 0 };
-    };
-
-    bool wasPressed{ false };   // True if the primary mouse button was pressed at all
-    bool wasClicked{ false };   // True if the primary mouse button was pressed and released
-                                // without dragging the mouse
-    bool wasReleased{ false };  // True if the primary mouse button was released
-
-    std::optional<Drag> drag{ std::nullopt };
-};
-
 struct MouseState
 {
+    struct ButtonState
+    {
+        struct Drag
+        {
+            vec2 initialMousePos{ 0, 0 };
+            vec2 dragIncrement{ 0, 0 };
+        };
+
+        bool wasPressed{ false };   // True if the primary mouse button was pressed at all
+        bool wasClicked{ false };   // True if the primary mouse button was pressed and released
+                                    // without dragging the mouse
+        bool wasReleased{ false };  // True if the primary mouse button was released
+
+        std::optional<Drag> drag{ std::nullopt };
+    };
+
     vec2 currentMousePos{ 0, 0 };
 
     ButtonState selectButton;  // Primary mouse button
@@ -54,11 +57,296 @@ struct KeyboardState
     bool didSave{ false };
 };
 
+struct ControlInput
+{
+    KeyboardState kbState;
+    MouseState mouseState;
+    ZoomState zoomState;
+
+    std::optional<NodeID> hoveredNode;
+    std::optional<SocketID> hoveredSocket;
+
+    const trc::Window* window;
+    const trc::Camera* camera;
+
+    // Scale camera drag distance by size of the orthogonal camera
+    const vec2 cameraViewportSize{ 1.0f, 1.0f };
+
+    auto toWorldPos(vec2 screenPos) const -> vec2 {
+        return camera->unproject(screenPos, 0.0f, window->getSize());
+    }
+    auto toWorldDir(vec2 screenPos) const -> vec2 {
+        return (screenPos / vec2(window->getSize())) * cameraViewportSize;
+    }
+};
+
+struct ControlOutput
+{
+    GraphScene& graph;
+    GraphManipulator& manip;
+
+    trc::Camera* camera;
+    vec2 cameraViewportSize{ 1.0f, 1.0f };
+
+    void setCameraProjection(float l, float r, float b, float t, float near, float far)
+    {
+        camera->makeOrthogonal(l, r, b, t, near, far);
+        cameraViewportSize = { r - l, t - b };
+    }
+
+    /**
+     * @param bool append If true, add selected nodes to the current selection.
+     *                    Otherwise overwrite the current selection with nodes
+     *                    in the selection area.
+     */
+    void selectNodesInArea(Hitbox area, bool append)
+    {
+        if (!append) {
+            graph.interaction.selectedNodes.clear();
+        }
+
+        for (const auto& [node, hitbox] : graph.layout.nodeSize.items())
+        {
+            const vec2 midPoint = hitbox.origin + hitbox.extent * 0.5f;
+            if (isInside(midPoint, area)) {
+                graph.interaction.selectedNodes.emplace(node);
+            }
+        }
+    }
+};
+
 auto updateMouse() -> MouseState;
 auto updateZoom() -> ZoomState;
 auto updateKeyboard() -> KeyboardState;
 
 ZoomState globalZoomState{ 0 };
+
+struct CreateLinkState : ControlState
+{
+    CreateLinkState(SocketID from, MaterialGraph& graph)
+        : draggedSocket(from)
+    {
+        if (graph.link.contains(from)) {
+            graph.unlinkSockets(from);
+        }
+    }
+
+    SocketID draggedSocket;
+
+    auto update(const ControlInput& in, ControlOutput& out)
+        -> StateResult override
+    {
+        auto& graph = out.graph.graph;
+        auto& selectButton = in.mouseState.selectButton;
+
+        // Resolve creation of links between sockets
+        if (selectButton.wasReleased)
+        {
+            // If, during button release, a socket is hovered, link that socket
+            // to the original one.
+            if (in.hoveredSocket && draggedSocket != in.hoveredSocket)
+            {
+                if (graph.link.contains(*in.hoveredSocket)) {
+                    graph.unlinkSockets(*in.hoveredSocket);
+                }
+                graph.linkSockets(draggedSocket, *in.hoveredSocket);
+            }
+            return PopState{};
+        }
+
+        return NoAction{};
+    }
+};
+
+struct MoveCameraState : ControlState
+{
+    auto update(const ControlInput& in, ControlOutput& out)
+        -> StateResult override
+    {
+        const auto& cameraButton = in.mouseState.cameraMoveButton;
+        if (!cameraButton.drag) {
+            return PopState{};
+        }
+
+        const vec2 move = in.toWorldDir(cameraButton.drag->dragIncrement);
+        out.camera->translate(vec3(move, 0.0f));
+
+        return NoAction{};
+    }
+};
+
+struct MoveSelectedNodesState : ControlState
+{
+    auto update(const ControlInput& in, ControlOutput& out)
+        -> StateResult override
+    {
+        const auto& selectButton = in.mouseState.selectButton;
+        if (!selectButton.drag) {
+            return PopState{};
+        }
+
+        const auto& selection = out.graph.interaction.selectedNodes;
+        auto& layout = out.graph.layout;
+
+        // If at least one node is hovered, move the entire selection
+        const vec2 move = in.toWorldDir(selectButton.drag->dragIncrement);
+        for (const NodeID node : selection) {
+            layout.nodeSize.get(node).origin += move;
+        }
+
+        return NoAction{};
+    }
+};
+
+struct MultiSelectState : ControlState
+{
+    auto update(const ControlInput& in, ControlOutput& out)
+        -> StateResult override
+    {
+        const auto& selectButton = in.mouseState.selectButton;
+        auto& graph = out.graph;
+        if (!selectButton.drag)
+        {
+            graph.interaction.multiSelectBox.reset();
+            return PopState{};
+        }
+
+        const vec2 boxPos = in.toWorldPos(selectButton.drag->initialMousePos);
+        const vec2 boxSize = in.toWorldPos(in.mouseState.currentMousePos) - boxPos;
+        const Hitbox box{ boxPos, boxSize };
+        graph.interaction.multiSelectBox = box;
+        out.selectNodesInArea(box, false);
+
+        return NoAction{};
+    }
+};
+
+struct DefaultControlState : ControlState
+{
+    auto update(const ControlInput& in, ControlOutput& out)
+        -> StateResult override
+    {
+        constexpr float kZoomStep{ 0.15f };
+        constexpr trc::Key kChainSelectionModKey{ trc::Key::left_shift };
+
+        const auto& kbState = in.kbState;
+        const auto& mouseState = in.mouseState;
+        const auto& zoomState = in.zoomState;
+        auto& graph = out.graph;
+
+        // Process keyboard input
+        if (auto action = processKeyboardInput(kbState, out.graph, out.manip)) {
+            return std::move(action.value());
+        }
+
+        // Calculate hover
+        const vec2 worldPos = in.toWorldPos(mouseState.currentMousePos);
+        auto [hoveredNode, hoveredSocket] = graph.findHover(worldPos);
+
+        // Process mouse input
+        if (mouseState.selectButton.wasClicked)
+        {
+            auto& selection = graph.interaction.selectedNodes;
+
+            // If the user clicked on a linked socket, unlink it.
+            // Otherwise, if the user clicked on a node, select it.
+            // Otherwise unselect all nodes.
+            if (hoveredSocket && graph.graph.link.contains(*hoveredSocket)) {
+                graph.graph.unlinkSockets(*hoveredSocket);
+            }
+            else if (hoveredNode)
+            {
+                if (!trc::Keyboard::isPressed(kChainSelectionModKey)) {
+                    selection.clear();
+                }
+
+                // Toggle hovered node's existence in the set of selected nodes
+                if (selection.contains(*hoveredNode)) {
+                    selection.erase(*hoveredNode);
+                }
+                else {
+                    selection.emplace(*hoveredNode);
+                }
+            }
+            else {
+                selection.clear();
+            }
+        }
+
+        if (mouseState.selectButton.drag)
+        {
+            if (hoveredSocket) {
+                return PushState{ std::make_unique<CreateLinkState>(*hoveredSocket, graph.graph) };
+            }
+            else if (hoveredNode)
+            {
+                auto& selection = graph.interaction.selectedNodes;
+
+                // Special case: Create new selection if the mouse tries to drag
+                // a non-selected node.
+                if (!selection.contains(*hoveredNode))
+                {
+                    selection.clear();
+                    selection.emplace(*hoveredNode);
+                }
+                return PushState{ std::make_unique<MoveSelectedNodesState>() };
+            }
+            else {
+                return PushState{ std::make_unique<MultiSelectState>() };
+            }
+        }
+
+        if (mouseState.cameraMoveButton.drag) {
+            return PushState{ std::make_unique<MoveCameraState>() };
+        }
+
+        // Camera zoom
+        const float zoomLevel = static_cast<float>(glm::max(zoomState.zoomLevel, 0));
+        const vec2 x = { 0.0f - zoomLevel * kZoomStep, 1.0f + zoomLevel * kZoomStep };
+        const vec2 y = x / in.window->getAspectRatio();
+        out.setCameraProjection(x[0], x[1], y[0], y[1], -10.0f, 10.0f);
+
+        // Write output state
+        graph.interaction.hoveredNode = hoveredNode;
+        graph.interaction.hoveredSocket = hoveredSocket;
+
+        return NoAction{};
+    }
+
+    static auto processKeyboardInput(const KeyboardState& kbState,
+                                     GraphScene& graph,
+                                     GraphManipulator& manip)
+        -> std::optional<StateResult>
+    {
+        if (kbState.didUndo) manip.undoLastAction();
+        if (kbState.didRedo) manip.reapplyLastUndoneAction();
+
+        if (kbState.didDelete)
+        {
+            auto& selected = graph.interaction.selectedNodes;
+            manip.applyAction(std::make_unique<action::MultiAction>(
+                selected | std::views::transform(
+                    [](NodeID node){ return std::make_unique<action::RemoveNode>(node); }
+                )
+            ));
+            selected.clear();
+        }
+        if (kbState.didSelectAll) {
+            graph.interaction.selectedNodes = { graph.graph.nodeInfo.keyBegin(),
+                                                graph.graph.nodeInfo.keyEnd() };
+        }
+        if (kbState.didUnselectAll) {
+            graph.interaction.selectedNodes.clear();
+        }
+
+        if (kbState.didSave) {
+            std::ofstream file(".matedit_save", std::ios::binary);
+            serializeGraph(graph, file);
+        }
+
+        return std::nullopt;
+    }
+};
 
 
 
@@ -97,182 +385,49 @@ MaterialEditorControls::MaterialEditorControls(
             gui.closeContextMenu();
         }
     });
+
+    stateStack.push(std::make_unique<DefaultControlState>());
 }
+
+MaterialEditorControls::~MaterialEditorControls() noexcept = default;
 
 void MaterialEditorControls::update(GraphScene& graph, GraphManipulator& manip)
 {
-    constexpr float kZoomStep{ 0.15f };
-    constexpr trc::Key kChainSelectionModKey{ trc::Key::left_shift };
+    assert(!stateStack.empty());
 
-    static std::optional<SocketID> draggedSocket;
+    // Update/receive user input
+    ControlInput in{
+        .kbState=updateKeyboard(),
+        .mouseState=updateMouse(),
+        .zoomState=updateZoom(),
+        .hoveredNode{}, .hoveredSocket{},
+        .window=window,
+        .camera=camera,
+        .cameraViewportSize=cameraViewportSize,
+    };
+    ControlOutput out{
+        .graph=graph,
+        .manip=manip,
+        .camera=camera,
+        .cameraViewportSize=cameraViewportSize,
+    };
 
-    const auto [mousePos, selectButton, cameraButton] = updateMouse();
-    const auto zoomState = updateZoom();
-    const auto kbState = updateKeyboard();
+    // Prepare pre-calculated input to the control state
+    auto hoverResult = graph.findHover(in.toWorldPos(in.mouseState.currentMousePos));
+    std::tie(in.hoveredNode, in.hoveredSocket) = hoverResult;
 
-    // Derived states
-    const bool anyDragActive = selectButton.drag || cameraButton.drag;
+    // Run the currently active control state
+    auto result = stateStack.top()->update(in, out);
 
-    // Calculate hover
-    const vec2 worldPos = camera->unproject(mousePos, 0.0f, window->getSize());
-    auto [hoveredNode, hoveredSocket] = graph.findHover(worldPos);
+    // Perform requested state transitions
+    std::visit(trc::util::VariantVisitor{
+        [this](PushState& push){ stateStack.push(std::move(push.newState)); },
+        [this](PopState&){ stateStack.pop(); assert(!stateStack.empty()); },
+        [](NoAction&){},
+    }, result);
 
-    // Only result in graphical hover highlight when we're not doing
-    // something else while hovering
-    graph.interaction.hoveredNode = anyDragActive ? std::nullopt : hoveredNode;
-    graph.interaction.hoveredSocket = (anyDragActive && !draggedSocket) ? std::nullopt : hoveredSocket;
-
-    // Receive keyboard input
-    if (!anyDragActive)
-    {
-        if (kbState.didUndo) manip.undoLastAction();
-        if (kbState.didRedo) manip.reapplyLastUndoneAction();
-
-        if (kbState.didDelete)
-        {
-            auto& selected = graph.interaction.selectedNodes;
-            manip.applyAction(std::make_unique<action::MultiAction>(
-                selected | std::views::transform(
-                    [](NodeID node){ return std::make_unique<action::RemoveNode>(node); }
-                )
-            ));
-            selected.clear();
-        }
-        if (kbState.didSelectAll) {
-            graph.interaction.selectedNodes = { graph.graph.nodeInfo.keyBegin(),
-                                                graph.graph.nodeInfo.keyEnd() };
-        }
-        if (kbState.didUnselectAll) {
-            graph.interaction.selectedNodes.clear();
-        }
-
-        if (kbState.didSave) {
-            std::ofstream file(".matedit_save", std::ios::binary);
-            serializeGraph(graph, file);
-        }
-    }
-
-    // Calculate node selection based on hover information
-    if (selectButton.wasClicked && hoveredNode)
-    {
-        auto& selected = graph.interaction.selectedNodes;
-
-        if (trc::Keyboard::isPressed(kChainSelectionModKey))
-        {
-            // Toggle hovered node's existence in the set of selected nodes
-            if (selected.contains(*hoveredNode)) {
-                selected.erase(*hoveredNode);
-            }
-            else {
-                selected.emplace(*hoveredNode);
-            }
-        }
-        else {
-            selected.clear();
-            selected.emplace(*hoveredNode);
-        }
-    }
-    if (selectButton.wasClicked && !hoveredNode) {
-        graph.interaction.selectedNodes.clear();
-    }
-
-    // Click on a hovered socket
-    if (hoveredSocket && selectButton.wasPressed)
-    {
-        if (graph.graph.link.contains(*hoveredSocket)) {
-            graph.graph.unlinkSockets(*hoveredSocket);
-        }
-        draggedSocket = *hoveredSocket;
-    }
-
-    // Mouse drag while not dragging a link from a socket
-    if (selectButton.drag && !draggedSocket)
-    {
-        // Move selected nodes around
-        if (hoveredNode && !graph.interaction.multiSelectBox)
-        {
-            auto& selection = graph.interaction.selectedNodes;
-            // Special case: Create new selection if the mouse tries to drag
-            // a non-selected node.
-            if (!selection.contains(*hoveredNode))
-            {
-                selection.clear();
-                selection.emplace(*hoveredNode);
-            }
-
-            // If at least one node is hovered, move the entire selection
-            const vec2 move = toWorldDir(selectButton.drag->dragIncrement);
-            for (const NodeID node : selection) {
-                graph.layout.nodeSize.get(node).origin += move;
-            }
-        }
-        // Drag a multi-select box
-        else {
-            const vec2 boxPos = toWorldPos(selectButton.drag->initialMousePos);
-            const vec2 boxSize = toWorldPos(mousePos) - boxPos;
-            const Hitbox box{ boxPos, boxSize };
-            graph.interaction.multiSelectBox = box;
-            selectNodesInArea(box, graph, false);
-        }
-    }
-
-    // Resolve a multi-select box that's currently being dragged
-    if (selectButton.wasReleased && graph.interaction.multiSelectBox)
-    {
-        selectNodesInArea(*graph.interaction.multiSelectBox, graph, false);
-        graph.interaction.multiSelectBox.reset();
-    }
-
-    if (cameraButton.drag)
-    {
-        const vec2 move = toWorldDir(cameraButton.drag->dragIncrement);
-        camera->translate(vec3(move, 0.0f));
-    }
-
-    // Resolve creation of links between sockets
-    if (selectButton.wasReleased)
-    {
-        if (draggedSocket && hoveredSocket && draggedSocket != hoveredSocket)
-        {
-            if (graph.graph.link.contains(*hoveredSocket)) {
-                graph.graph.unlinkSockets(*hoveredSocket);
-            }
-            graph.graph.linkSockets(*draggedSocket, *hoveredSocket);
-        }
-        draggedSocket.reset();
-    }
-
-    // Camera zoom
-    const float zoomLevel = static_cast<float>(glm::max(zoomState.zoomLevel, 0));
-    const vec2 x = { 0.0f - zoomLevel * kZoomStep, 1.0f + zoomLevel * kZoomStep };
-    const vec2 y = x / window->getAspectRatio();
-    camera->makeOrthogonal(x[0], x[1], y[0], y[1], -10.0f, 10.0f);
-    cameraViewportSize = { x[1] - x[0], y[1] - y[0] };
-}
-
-auto MaterialEditorControls::toWorldPos(vec2 screenPos) const -> vec2
-{
-    return camera->unproject(screenPos, 0.0f, window->getSize());
-}
-
-auto MaterialEditorControls::toWorldDir(vec2 screenPos) const -> vec2
-{
-    return (screenPos / vec2(window->getSize())) * cameraViewportSize;
-}
-
-void MaterialEditorControls::selectNodesInArea(Hitbox area, GraphScene& graph, bool append)
-{
-    if (!append) {
-        graph.interaction.selectedNodes.clear();
-    }
-
-    for (const auto& [node, hitbox] : graph.layout.nodeSize.items())
-    {
-        const vec2 midPoint = hitbox.origin + hitbox.extent * 0.5f;
-        if (isInside(midPoint, area)) {
-            graph.interaction.selectedNodes.emplace(node);
-        }
-    }
+    // Post-process output
+    this->cameraViewportSize = out.cameraViewportSize;
 }
 
 
@@ -287,9 +442,9 @@ auto updateMouse() -> MouseState
     {
         ButtonUpdater(trc::MouseButton button) : button(button) {}
 
-        auto update(const bool mouseWasMoved) -> ButtonState
+        auto update(const bool mouseWasMoved) -> MouseState::ButtonState
         {
-            ButtonState res{
+            MouseState::ButtonState res{
                 .wasPressed=trc::Mouse::wasPressed(button),
                 .wasReleased=trc::Mouse::wasReleased(button),
             };
@@ -311,7 +466,7 @@ auto updateMouse() -> MouseState
             if (mouseWasMoved) ++framesMoved;
             if ((framesMoved >= kFramesUntilDrag) && trc::Mouse::isPressed(button))
             {
-                res.drag = ButtonState::Drag{
+                res.drag = MouseState::ButtonState::Drag{
                     .initialMousePos = initialMousePos,
                     .dragIncrement = trc::Mouse::getPosition() - prevMousePos,
                 };
