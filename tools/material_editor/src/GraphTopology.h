@@ -30,7 +30,7 @@ struct Socket
 {
     NodeID parentNode;
 
-    NodeValue desc;
+    NodeComputation::ArgDesc desc;
 };
 
 /**

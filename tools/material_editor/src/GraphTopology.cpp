@@ -69,14 +69,14 @@ void GraphTopology::removeNode(NodeID id)
 
 void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& desc)
 {
-    for (const auto& arg : desc.inputs)
+    for (const auto& arg : desc.computation.arguments)
     {
         auto sock = graph.makeSocket({ .parentNode=node, .desc=arg });
         graph.inputSockets.get(node).emplace_back(sock);
     }
-    if (desc.output)
+    if (desc.computation.hasOutputValue())
     {
-        auto sock = graph.makeSocket({ .parentNode=node, .desc=*desc.output });
+        auto sock = graph.makeSocket({ .parentNode=node, .desc{ "Output", "" } });
         graph.outputSockets.get(node).emplace_back(sock);
     }
 }
