@@ -23,6 +23,8 @@ message SocketLink
 
 message MaterialGraph
 {
+    uint32 output_node = 5;
+
     repeated MaterialNode nodes = 1;
     repeated float node_pos_x = 3;
     repeated float node_pos_y = 4;

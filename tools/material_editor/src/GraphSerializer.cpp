@@ -40,6 +40,7 @@ void serializeGraph(const GraphScene& scene, std::ostream& os)
         out.add_node_pos_x(pos.x);
         out.add_node_pos_y(pos.y);
     }
+    out.set_output_node(nodeIndices.at(graph.outputNode));
 
     // Serialize links
     for (const auto [from, to] : graph.link.items())
@@ -71,7 +72,7 @@ auto parseGraph(std::istream& is) -> std::optional<GraphScene>
     auto getSocket = [&](NodeID node, ui32 index) {
         return index < res.graph.inputSockets.get(node).size()
             ? res.graph.inputSockets.get(node).at(index)
-            : res.graph.outputSockets.get(node).at(index);
+            : res.graph.outputSockets.get(node).at(index - res.graph.inputSockets.get(node).size());
     };
 
     // Create nodes
@@ -92,6 +93,7 @@ auto parseGraph(std::istream& is) -> std::optional<GraphScene>
         nodeIds.try_emplace(i, id);
         ++i;
     }
+    res.graph.outputNode = nodeIds.at(in.output_node());
 
     // Create socket links
     for (const auto& link : in.links())
