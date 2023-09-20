@@ -12,11 +12,15 @@ namespace trc
 {
     struct BasicType
     {
+        /**
+         * Is ordered in a way that numerical comparison of the enum values
+         * reflects supertype-relations among the types.
+         */
         enum class Type : ui8
         {
             eBool,
-            eSint,
             eUint,
+            eSint,
             eFloat,
             eDouble,
         };
