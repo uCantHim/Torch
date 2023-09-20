@@ -51,6 +51,11 @@ int main()
         }
     }
 
+    // The graph must contain an output node. Create one if none exists.
+    if (materialGraph.graph.outputNode == NodeID::NONE) {
+        materialGraph.graph.outputNode = materialGraph.makeNode(getOutputNode());
+    }
+
     auto manip = std::make_shared<GraphManipulator>(materialGraph);
     MaterialEditorGui gui{ window, manip };
     MaterialEditorControls controls{ window, gui, camera, { .initialZoomLevel=5 } };
