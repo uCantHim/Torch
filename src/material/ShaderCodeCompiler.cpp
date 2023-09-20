@@ -10,6 +10,13 @@ namespace trc
 
 using namespace code;
 
+ShaderValueCompiler::ShaderValueCompiler(bool inlineAll)
+    :
+    inlineAll(inlineAll),
+    resolver(nullptr)
+{
+}
+
 ShaderValueCompiler::ShaderValueCompiler(ResourceResolver& resolver, bool inlineAll)
     :
     inlineAll(inlineAll),
@@ -119,11 +126,23 @@ auto ShaderValueCompiler::operator()(const code::Conditional& v) -> std::string
 
 auto ShaderValueCompiler::operator()(const code::CapabilityAccess& v) -> std::string
 {
+    if (resolver == nullptr) {
+        throw std::runtime_error("[In ShaderValueCompiler::compile]: Unable to compile a value"
+                                 " of type `CapabilityAccess` as no resource resolver has been"
+                                 " specified for the compiler. Pass a resolver to the compiler's"
+                                 " constructor to enable code generation for capability accesses.");
+    }
     return visit(resolver->resolveCapabilityAccess(v.capability));
 }
 
 auto ShaderValueCompiler::operator()(const code::RuntimeConstant& v) -> std::string
 {
+    if (resolver == nullptr) {
+        throw std::runtime_error("[In ShaderValueCompiler::compile]: Unable to compile a value"
+                                 " of type `RuntimeConstant` as no resource resolver has been"
+                                 " specified for the compiler. Pass a resolver to the compiler's"
+                                 " constructor to enable code generation for runtime constants.");
+    }
     return visit(resolver->resolveRuntimeConstantAccess(v.runtimeValue));
 }
 

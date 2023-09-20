@@ -30,6 +30,26 @@ namespace trc
     public:
         using Value = ShaderCodeBuilder::Value;
 
+        /**
+         * Construct a value compiler without a resource resolver. `compile`
+         * will throw `std::runtime_error` if it encounters either a
+         * `CapabilityAccess` or a `RuntimeConstant` value as it has no way to
+         * to generate code for them.
+         *
+         * This is useful for testing purposes or implementations of code
+         * builders that don't make use of capabilities.
+         */
+        explicit ShaderValueCompiler(bool inlineAll = false);
+
+        /**
+         * Construct a value compiler with a resource resolver. It will be able
+         * to handle all types of values.
+         *
+         * Use the default implementation `CapabilityConfigResourceResolver` for
+         * a resolver that resolves resources based on a `ShaderCapabilityConfig`
+         * object. See `CapabilityConfigResourceResolver`'s documentation for
+         * more information.
+         */
         explicit ShaderValueCompiler(ResourceResolver& resolver, bool inlineAll = false);
 
         /**
@@ -67,6 +87,20 @@ namespace trc
     public:
         using Block = code::Block;
 
+        /**
+         * Construct a block compiler without a resource resolver. `compile`
+         * will throw `std::runtime_error` if it encounters either a
+         * `CapabilityAccess` or a `RuntimeConstant` value as it has no way to
+         * to generate code for them.
+         *
+         * This is useful for testing purposes or implementations of code
+         * builders that don't make use of capabilities.
+         */
+        ShaderBlockCompiler() = default;
+
+        /**
+         * Construct a block compiler with a resource resolver.
+         */
         explicit ShaderBlockCompiler(ResourceResolver& resolver);
 
         auto compile(Block block) -> std::string;
