@@ -7,9 +7,13 @@
 #include <trc/base/event/Event.h>
 #include <trc/base/event/InputState.h>
 #include <trc/core/Window.h>
+#include <trc/material/ShaderCodeCompiler.h>
+#include <trc/material/ShaderModuleCompiler.h>
+#include <trc/material/TorchMaterialSettings.h>
 #include <trc_util/Timer.h>
 
 #include "ControlState.h"
+#include "GraphCompiler.h"
 #include "GraphSerializer.h"
 #include "ManipulationActions.h"
 #include "MaterialEditorGui.h"
@@ -318,6 +322,33 @@ struct DefaultControlState : ControlState
                                      GraphManipulator& manip)
         -> std::optional<StateResult>
     {
+        if (trc::Keyboard::wasPressed(trc::Key::m))
+        {
+            trc::ShaderModuleBuilder builder;
+            auto res = compileMaterialGraph(builder, graph.graph);
+            if (res)
+            {
+                auto caps = trc::makeFragmentCapabilityConfig();
+                trc::ShaderValueCompiler compiler{ true };
+
+                std::cout << "Successfully compiled the material graph:\n";
+                for (const auto& [name, value] : res->values)
+                {
+                    if (value)
+                    {
+                        std::cout << "Parameter \"" << name << "\": "
+                                  << compiler.compile(value).first << "\n";
+                    }
+                    else {
+                        std::cout << "Parameter \"" << name << "\" not set.\n";
+                    }
+                }
+            }
+            else {
+                std::cout << "Error when compiling material graph.\n";
+            }
+        }
+
         if (kbState.didUndo) manip.undoLastAction();
         if (kbState.didRedo) manip.reapplyLastUndoneAction();
 
@@ -342,6 +373,7 @@ struct DefaultControlState : ControlState
         if (kbState.didSave) {
             std::ofstream file(".matedit_save", std::ios::binary);
             serializeGraph(graph, file);
+            std::cout << "Saved.\n";
         }
 
         return std::nullopt;

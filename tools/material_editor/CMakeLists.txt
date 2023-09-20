@@ -10,6 +10,7 @@ target_sources(
     PRIVATE
         src/CameraDescriptor.cpp
         src/Controls.cpp
+        src/GraphCompiler.cpp
         src/GraphLayout.cpp
         src/GraphManipulator.cpp
         src/GraphRenderer.cpp
@@ -19,6 +20,7 @@ target_sources(
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialNode.cpp
+        src/Typing.cpp
 )
 target_include_directories(libmaterial_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
 
