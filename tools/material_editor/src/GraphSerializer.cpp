@@ -15,17 +15,6 @@ void serializeGraph(const GraphScene& scene, std::ostream& os)
     const auto& graph = scene.graph;
     const auto& layout = scene.layout;
 
-    auto findSocketIndex = [&](SocketID socket) {
-        const auto node = graph.socketInfo.get(socket).parentNode;
-        const auto sockets = { graph.inputSockets.get(node), graph.outputSockets.get(node) };
-        for (ui32 i = 0; auto sock : sockets | std::views::join)
-        {
-            if (sock == socket) return i;
-            ++i;
-        }
-        throw std::logic_error("Socket not found in its parent node.");
-    };
-
     std::unordered_map<NodeID, ui32> nodeIndices;
     graph::MaterialGraph out;
 
@@ -50,9 +39,9 @@ void serializeGraph(const GraphScene& scene, std::ostream& os)
 
         auto link = out.add_links();
         link->set_src_node_index(nodeIndices.at(srcNode));
-        link->set_src_socket_index(findSocketIndex(from));
+        link->set_src_socket_index(findSocketIndex(graph, from));
         link->set_dst_node_index(nodeIndices.at(dstNode));
-        link->set_dst_socket_index(findSocketIndex(to));
+        link->set_dst_socket_index(findSocketIndex(graph, to));
     }
 
     if (!out.SerializeToOstream(&os)) {
@@ -69,11 +58,6 @@ auto parseGraph(std::istream& is) -> std::optional<GraphScene>
 
 
     GraphScene res;
-    auto getSocket = [&](NodeID node, ui32 index) {
-        return index < res.graph.inputSockets.get(node).size()
-            ? res.graph.inputSockets.get(node).at(index)
-            : res.graph.outputSockets.get(node).at(index - res.graph.inputSockets.get(node).size());
-    };
 
     // Create nodes
     std::unordered_map<ui32, NodeID> nodeIds;
@@ -99,8 +83,8 @@ auto parseGraph(std::istream& is) -> std::optional<GraphScene>
     for (const auto& link : in.links())
     {
         res.graph.linkSockets(
-            getSocket(nodeIds.at(link.src_node_index()), link.src_socket_index()),
-            getSocket(nodeIds.at(link.dst_node_index()), link.dst_socket_index())
+            getIthSocket(res.graph, nodeIds.at(link.src_node_index()), link.src_socket_index()),
+            getIthSocket(res.graph, nodeIds.at(link.dst_node_index()), link.dst_socket_index())
         );
     }
 
