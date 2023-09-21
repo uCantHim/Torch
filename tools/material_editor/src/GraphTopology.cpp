@@ -69,14 +69,40 @@ void GraphTopology::removeNode(NodeID id)
 
 void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& desc)
 {
-    for (const auto& arg : desc.computation.arguments)
+    for (const auto& arg : desc.inputs)
     {
         auto sock = graph.makeSocket({ .parentNode=node, .desc=arg });
         graph.inputSockets.get(node).emplace_back(sock);
     }
-    if (desc.computation.hasOutputValue())
+    for (const auto& out : desc.outputs)
     {
-        auto sock = graph.makeSocket({ .parentNode=node, .desc{ "Output", "" } });
+        auto sock = graph.makeSocket({ .parentNode=node, .desc{ out.desc } });
         graph.outputSockets.get(node).emplace_back(sock);
+        graph.outputComputation.emplace(sock, out);
     }
+}
+
+auto getIthSocket(const GraphTopology& graph, NodeID node, ui32 index) -> SocketID
+{
+    return index < graph.inputSockets.get(node).size()
+        ? graph.inputSockets.get(node).at(index)
+        : graph.outputSockets.get(node).at(index - graph.inputSockets.get(node).size());
+}
+
+auto findSocketIndex(const GraphTopology& graph, SocketID socket) -> ui32
+{
+    const auto node = graph.socketInfo.get(socket).parentNode;
+    const auto sockets = { graph.inputSockets.get(node), graph.outputSockets.get(node) };
+    for (ui32 i = 0; auto sock : sockets | std::views::join)
+    {
+        if (sock == socket) return i;
+        ++i;
+    }
+
+    throw std::logic_error("Socket not found in its parent node.");
+}
+
+bool isOutputSocket(const GraphTopology& graph, SocketID socket)
+{
+    return graph.outputComputation.contains(socket);
 }
