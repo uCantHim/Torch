@@ -26,6 +26,15 @@ struct TypedValue
     trc::BasicType type;
 };
 
+/**
+ * Description/documentation of an argument
+ */
+struct ArgDescription
+{
+    std::string name;
+    std::string description;
+};
+
 struct NodeComputation
 {
     /**
@@ -38,27 +47,12 @@ struct NodeComputation
     using ComputationBuilder
         = std::function<code::Value(trc::ShaderModuleBuilder&, const std::vector<code::Value>&)>;
 
-    /**
-     * Description/documentation of an argument
-     */
-    struct ArgDesc
-    {
-        std::string name;
-        std::string description;
-    };
-
-    bool hasOutputValue() const {
-        return resultType.has_value() || !resultInfluencingArgs.empty();
-    }
-
-    std::vector<ArgDesc> arguments;
-    std::vector<TypeConstraint> argumentTypes;
+    ArgDescription desc;
 
     /**
-     * A list of pairs of arguments whose types must be equal at build time.
+     * If this is nullopt, `resultInfluencingArgs` must have at least one entry.
+     * Otherwise we can't determine a result type for the computation.
      */
-    std::vector<std::pair<ui32, ui32>> typeCorrelatedArguments;
-
     std::optional<trc::BasicType> resultType;
 
     /**
@@ -75,11 +69,26 @@ struct NodeComputation
 
 struct NodeDescription
 {
+    bool hasOutputValue() const {
+        return !outputs.empty();
+    }
+
     std::string name;
     std::string id;  // A unique string identifier corresponding to the node's type
     std::string description;
 
-    NodeComputation computation;
+    std::vector<ArgDescription> inputs;
+    std::vector<TypeConstraint> inputTypes;
+
+    /**
+     * A list of pairs of arguments whose types must be equal at build time.
+     */
+    std::vector<std::pair<ui32, ui32>> inputTypeCorrelations;
+
+    /**
+     * Each output receives all inputs
+     */
+    std::vector<NodeComputation> outputs;
 };
 
 auto makeShaderFunctionSignature(const NodeDescription& nodeDesc) -> trc::FunctionType;

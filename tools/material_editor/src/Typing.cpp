@@ -15,6 +15,19 @@ auto max(trc::BasicType a, trc::BasicType b)
     return trc::BasicType{ std::max(a.type, b.type), std::max(a.channels, b.channels) };
 }
 
+TypeRange::TypeRange(const trc::BasicType& t)
+{
+    *this = makeEq(t);
+}
+
+TypeRange::TypeRange(trc::BasicType::Type t, ui8 minChannels, ui8 maxChannels)
+    :
+    underlyingTypeUpperBound(t),
+    minChannels(minChannels),
+    maxChannels(maxChannels)
+{
+}
+
 bool TypeRange::isConstructibleFrom(trc::BasicType srcType) const
 {
     return srcType.type < underlyingTypeUpperBound
@@ -29,34 +42,53 @@ auto TypeRange::findMinCommonType(trc::BasicType type) const -> std::optional<tr
     return std::nullopt;
 }
 
+auto TypeRange::getUpperBoundType() const -> trc::BasicType
+{
+    return { underlyingTypeUpperBound, maxChannels };
+}
+
 auto TypeRange::makeEq(trc::BasicType type) -> TypeRange
 {
-    return { .underlyingTypeUpperBound=type.type, .minChannels=type.channels, .maxChannels=type.channels };
+    return { type.type, type.channels, type.channels };
 }
 
 auto TypeRange::makeMax(trc::BasicType upperBound) -> TypeRange
 {
-    return {
-        .underlyingTypeUpperBound=upperBound.type,
-        .minChannels=1,
-        .maxChannels=upperBound.channels
-    };
+    return { upperBound.type, 1, upperBound.channels };
 }
 
 auto TypeRange::makeClamp(trc::BasicType lowerBound, trc::BasicType upperBound) -> TypeRange
 {
     assert(lowerBound.channels <= upperBound.channels);
     return {
-        .underlyingTypeUpperBound=std::max(lowerBound.type, upperBound.type),
-        .minChannels=lowerBound.channels,
-        .maxChannels=upperBound.channels
+        std::max(lowerBound.type, upperBound.type),
+        lowerBound.channels,
+        upperBound.channels
     };
 }
 
 bool satisfies(trc::BasicType type, const TypeConstraint& constraint)
 {
-    return std::visit(trc::util::VariantVisitor{
-        [=](const trc::BasicType& t){ return type == t; },
-        [=](const TypeRange& r){ return r.isConstructibleFrom(type); },
-    }, constraint);
+    return constraint.isConstructibleFrom(type);
+}
+
+auto intersect(const TypeRange& a, const TypeRange& b) -> std::optional<TypeRange>
+{
+    if (a.maxChannels < b.minChannels || b.maxChannels < a.minChannels) {
+        return std::nullopt;
+    }
+
+    return TypeRange{
+        std::min(a.underlyingTypeUpperBound, b.underlyingTypeUpperBound),
+        std::max(a.minChannels, b.minChannels),
+        std::min(a.maxChannels, b.maxChannels),
+    };
+}
+
+auto toConcreteType(const TypeConstraint& c) -> std::optional<trc::BasicType>
+{
+    if (c.minChannels == c.maxChannels) {
+        return trc::BasicType{ c.underlyingTypeUpperBound, c.minChannels };
+    }
+    return std::nullopt;
 }

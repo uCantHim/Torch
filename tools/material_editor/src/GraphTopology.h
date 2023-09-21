@@ -29,8 +29,7 @@ struct Node
 struct Socket
 {
     NodeID parentNode;
-
-    NodeComputation::ArgDesc desc;
+    ArgDescription desc;
 };
 
 /**
@@ -49,6 +48,11 @@ struct GraphTopology
      * Every valid socket ID has an associated entry in the `socketInfo` table.
      */
     Table<Socket, SocketID> socketInfo;
+
+    /**
+     * Sockets only have an entry here if they are output sockets.
+     */
+    Table<NodeComputation, SocketID> outputComputation;
 
     /**
      * Links between sockets are defined as entries in the `link` table. If a
@@ -79,3 +83,16 @@ private:
  * @brief Create sockets for a node based on a function signature
  */
 void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& desc);
+
+/**
+ * @return SocketID The `index`-th socket, counting both input and output
+ *                  sockets.
+ */
+auto getIthSocket(const GraphTopology& graph, NodeID node, ui32 index) -> SocketID;
+
+/**
+ * @brief Find a socket's index in its parent node's set of sockets
+ */
+auto findSocketIndex(const GraphTopology& graph, SocketID socket) -> ui32;
+
+bool isOutputSocket(const GraphTopology& graph, SocketID socket);
