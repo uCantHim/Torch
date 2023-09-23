@@ -53,48 +53,55 @@ auto makeDefaultDescriptorUsageSettings(const bool enableRayTracing)
 auto makeDefaultAssetModules(
     const Instance& instance,
     AssetRegistry& registry,
-    const AssetDescriptorCreateInfo& descriptorCreateInfo) -> AssetDescriptor
+    const AssetDescriptorCreateInfo& descriptorCreateInfo) -> s_ptr<AssetDescriptor>
 {
     const Device& device = instance.getDevice();
     const auto config = makeDefaultDescriptorUsageSettings(instance.hasRayTracing());
-    AssetDescriptor desc(device, descriptorCreateInfo);
+    auto desc = std::make_shared<AssetDescriptor>(device, descriptorCreateInfo);
 
-    // Add modules in the order in which they should be destroyed
-    registry.addModule<Material>(std::make_unique<MaterialRegistry>());
-    registry.addModule<Texture>(std::make_unique<TextureRegistry>(
-        TextureRegistryCreateInfo{
-            device,
-            desc.getBinding(AssetDescriptorBinding::eTextureSamplers)
-        }
-    ));
-    registry.addModule<Geometry>(std::make_unique<GeometryRegistry>(
-        GeometryRegistryCreateInfo{
-            .instance                = instance,
-            .indexDescriptorBinding  = desc.getBinding(AssetDescriptorBinding::eGeometryIndexBuffers),
-            .vertexDescriptorBinding = desc.getBinding(AssetDescriptorBinding::eGeometryVertexBuffers),
-            .geometryBufferUsage     = config.geometryBufferUsage,
-            .enableRayTracing        = instance.hasRayTracing(),
-        }
-    ));
-    registry.addModule<Rig>(std::make_unique<RigRegistry>());
-    registry.addModule<Animation>(std::make_unique<AnimationRegistry>(
-        AnimationRegistryCreateInfo{
-            .device = device,
-            .metadataDescBinding = desc.getBinding(AssetDescriptorBinding::eAnimationMetadata),
-            .dataDescBinding = desc.getBinding(AssetDescriptorBinding::eAnimationData),
-        }
-    ));
-    registry.addModule<Font>(std::make_unique<FontRegistry>(
-        FontRegistryCreateInfo{
-            .device = device,
-            .glyphMapBinding = desc.getBinding(AssetDescriptorBinding::eGlyphMapSamplers)
-        }
-    ));
+    try {
+        // Add modules in the order in which they should be destroyed
+        registry.addModule<Material>(std::make_unique<MaterialRegistry>());
+        registry.addModule<Texture>(std::make_unique<TextureRegistry>(
+            TextureRegistryCreateInfo{
+                device,
+                desc->getBinding(AssetDescriptorBinding::eTextureSamplers)
+            }
+        ));
+        registry.addModule<Geometry>(std::make_unique<GeometryRegistry>(
+            GeometryRegistryCreateInfo{
+                .instance                = instance,
+                .indexDescriptorBinding  = desc->getBinding(AssetDescriptorBinding::eGeometryIndexBuffers),
+                .vertexDescriptorBinding = desc->getBinding(AssetDescriptorBinding::eGeometryVertexBuffers),
+                .geometryBufferUsage     = config.geometryBufferUsage,
+                .enableRayTracing        = instance.hasRayTracing(),
+            }
+        ));
+        registry.addModule<Rig>(std::make_unique<RigRegistry>());
+        registry.addModule<Animation>(std::make_unique<AnimationRegistry>(
+            AnimationRegistryCreateInfo{
+                .device = device,
+                .metadataDescBinding = desc->getBinding(AssetDescriptorBinding::eAnimationMetadata),
+                .dataDescBinding = desc->getBinding(AssetDescriptorBinding::eAnimationData),
+            }
+        ));
+        registry.addModule<Font>(std::make_unique<FontRegistry>(
+            FontRegistryCreateInfo{
+                .device = device,
+                .glyphMapBinding = desc->getBinding(AssetDescriptorBinding::eGlyphMapSamplers)
+            }
+        ));
 
-    // Add default assets
-    registry.add<Texture>(std::make_unique<InMemorySource<Texture>>(
-        TextureData{ { 1, 1 }, makeSinglePixelImageData(vec4(1.0f)).pixels }
-    ));
+        // Add default assets
+        registry.add<Texture>(std::make_unique<InMemorySource<Texture>>(
+            TextureData{ { 1, 1 }, makeSinglePixelImageData(vec4(1.0f)).pixels }
+        ));
+    }
+    catch (std::out_of_range& err) {
+        throw std::invalid_argument("[In makeDefaultAssetModules]: Don't call this function"
+                                    " more than once for the same asset registry!"
+                                    " (Internal error: " + std::string(err.what()));
+    }
 
     return desc;
 }

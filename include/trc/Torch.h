@@ -52,13 +52,13 @@ namespace trc
      */
     void terminate();
 
-    auto makeTorchRenderGraph() -> RenderGraph;
-
     /**
      * @brief Configuration for the `TorchStack` created by `initFull`
      */
     struct TorchStackCreateInfo
     {
+        // TODO: Make these optional. Create in-memory asset storage if these
+        // are not provided.
         fs::path projectRootDir{ TRC_COMPILE_ROOT_DIR"/torch_project_root" };
         fs::path assetStorageDir{ projectRootDir / "assets" };
     };
@@ -100,7 +100,6 @@ namespace trc
         Instance instance;
         Window window;
         AssetManager assetManager;
-        ShadowPool shadowPool;
         RenderTarget swapchainRenderTarget;
         TorchRenderConfig renderConfig;
 

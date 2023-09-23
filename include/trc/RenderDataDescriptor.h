@@ -29,7 +29,7 @@ namespace trc
     class GlobalRenderDataDescriptor : public DescriptorProviderInterface
     {
     public:
-        GlobalRenderDataDescriptor(const Window& window);
+        GlobalRenderDataDescriptor(const Device& device, const FrameClock& frameClock);
 
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
@@ -54,7 +54,7 @@ namespace trc
         vk::UniqueDescriptorSet descSet;
 
         const Device& device;
-        const Swapchain& swapchain;
+        const FrameClock& frameClock;
         const ui32 BUFFER_SECTION_SIZE; // not static because it depends on physical device align
 
         /** Contains all descriptor data at dynamic offsets */

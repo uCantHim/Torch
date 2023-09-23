@@ -42,24 +42,26 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
 
 
 trc::TorchRenderConfig::TorchRenderConfig(
-    const Window& _window,
+    const Instance& instance,
     const TorchRenderConfigCreateInfo& info)
     :
-    RenderConfigImplHelper(_window.getInstance(), makeTorchRenderGraph()),
-    window(_window),
+    RenderConfigImplHelper(instance, makeTorchRenderGraph()),
+    instance(instance),
+    device(instance.getDevice()),
     renderTarget(&info.target),
-    enableRayTracing(info.enableRayTracing && _window.getInstance().hasRayTracing()),
+    enableRayTracing(info.enableRayTracing && instance.hasRayTracing()),
+    mousePosGetter(info.mousePosGetter),
+    // Resources
+    shadowPool(instance.getDevice(), info.target.getFrameClock(), { .maxShadowMaps=50 }),
     // Passes
     gBuffer(nullptr),
     gBufferPass(nullptr),
-    shadowPass(window, { .shadowIndex=0, .resolution=uvec2(1, 1) }),
+    shadowPass(device, info.target.getFrameClock(), { .shadowIndex=0, .resolution=uvec2(1, 1) }),
     // Descriptors
-    gBufferDescriptor(_window.getDevice(), _window),  // Don't update the descriptor sets yet!
-    globalDataDescriptor(window),
-    sceneDescriptor(window.getInstance()),
-    assetDescriptor(info.assetDescriptor),
-    // Asset storage
-    shadowPool(info.shadowPool)
+    gBufferDescriptor(device, info.target.getFrameClock()),  // Don't update the descriptor sets yet!
+    globalDataDescriptor(device, info.target.getFrameClock()),
+    sceneDescriptor(instance),
+    assetDescriptor(info.assetDescriptor)
 {
     if (info.assetRegistry == nullptr)
     {
@@ -71,11 +73,8 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // Optionally create ray tracing resources
     if (enableRayTracing)
     {
-        tlas = std::make_unique<rt::TLAS>(_window.getInstance(), 5000);
-        tlasBuildPass = std::make_unique<TopLevelAccelerationStructureBuildPass>(
-            _window.getInstance(),
-            *tlas
-        );
+        tlas = std::make_unique<rt::TLAS>(instance, 5000);
+        tlasBuildPass = std::make_unique<TopLevelAccelerationStructureBuildPass>(instance, *tlas);
         renderGraph.addPass(resourceUpdateStage, *tlasBuildPass);
     }
 
@@ -106,7 +105,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // The final lighting pass wants to create a pipeline layout, so it has
     // to be created after the descriptors have been defined.
     finalLightingPass = std::make_unique<FinalLightingPass>(
-        window.getDevice(), info.target, uvec2(0, 0), uvec2(1, 1), *this
+        device, info.target, uvec2(0, 0), uvec2(1, 1), *this
     );
     renderGraph.addPass(finalLightingRenderStage, *finalLightingPass);
 
@@ -118,8 +117,8 @@ void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& s
     // Add final lighting function to scene
     globalDataDescriptor.update(camera);
     sceneDescriptor.update(scene);
-    assetDescriptor->update(window.getDevice());
-    shadowPool->update();
+    assetDescriptor->update(device);
+    shadowPool.update();
     if (enableRayTracing) {
         tlasBuildPass->setScene(scene.getComponentInternals());
     }
@@ -140,7 +139,7 @@ void trc::TorchRenderConfig::setRenderTarget(const RenderTarget& target)
     assert(finalLightingPass != nullptr);
 
     renderTarget = &target;
-    finalLightingPass->setRenderTarget(window.getDevice(), target);
+    finalLightingPass->setRenderTarget(device, target);
     if (enableRayTracing) {
         rayTracingPass->setRenderTarget(target);
     }
@@ -194,7 +193,7 @@ auto trc::TorchRenderConfig::getGBufferDescriptorProvider() const
 auto trc::TorchRenderConfig::getShadowDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return shadowPool->getProvider();
+    return shadowPool.getProvider();
 }
 
 auto trc::TorchRenderConfig::getAssetDescriptorProvider() const
@@ -205,12 +204,12 @@ auto trc::TorchRenderConfig::getAssetDescriptorProvider() const
 
 auto trc::TorchRenderConfig::getShadowPool() -> ShadowPool&
 {
-    return *shadowPool;
+    return shadowPool;
 }
 
 auto trc::TorchRenderConfig::getShadowPool() const -> const ShadowPool&
 {
-    return *shadowPool;
+    return shadowPool;
 }
 
 auto trc::TorchRenderConfig::getMouseDepth() const -> float
@@ -223,9 +222,8 @@ auto trc::TorchRenderConfig::getMousePosAtDepth(const Camera& camera, const floa
 {
     const vec2 mousePos = glm::clamp([this]() -> vec2 {
 #ifdef TRC_FLIP_Y_PROJECTION
-        auto pos = window.getMousePositionLowerLeft();
-        pos.x -= viewportOffset.x;
-        pos.y -= window.getWindowSize().y - (viewportOffset.y + viewportSize.y);
+        auto pos = mousePosGetter() - vec2(viewportOffset);
+        pos.y = viewportSize.y - pos.y;
         return pos;
 #else
         return window.getMousePosition() - vec2(viewportOffset);
@@ -266,10 +264,10 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
 
     // Create new g-buffer
     gBuffer = std::make_unique<FrameSpecific<GBuffer>>(
-        window.getSwapchain(),
+        renderTarget->getFrameClock(),
         [this, newSize](ui32) {
             return GBuffer(
-                window.getDevice(),
+                device,
                 GBufferCreateInfo{ .size=newSize, .maxTransparentFragsPerPixel=3 }
             );
         }
@@ -277,15 +275,15 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     log::info << "GBuffer recreated (" << timer.reset() << " ms)";
 
     // Update g-buffer descriptor
-    gBufferDescriptor.update(window.getDevice(), *gBuffer);
+    gBufferDescriptor.update(device, *gBuffer);
     log::info << "GBuffer descriptor updated (" << timer.reset() << " ms)";
 
     // Create new renderpasses
-    gBufferPass = std::make_unique<GBufferPass>(window.getDevice(), *gBuffer);
+    gBufferPass = std::make_unique<GBufferPass>(device, *gBuffer);
     renderGraph.addPass(gBufferRenderStage, *gBufferPass);
     mouseDepthReader = std::make_unique<GBufferDepthReader>(
-        window.getDevice(),
-        [this]{ return window.getMousePosition() - vec2(viewportOffset); },
+        device,
+        [this]{ return mousePosGetter() - vec2(viewportOffset); },
         *gBuffer
     );
     renderGraph.addPass(mouseDepthReadStage, *mouseDepthReader);
@@ -293,18 +291,18 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     if (enableRayTracing)
     {
         FrameSpecific<rt::RayBuffer> rayBuffer{
-            window,
+            renderTarget->getFrameClock(),
             [&](ui32) {
                 return trc::rt::RayBuffer(
-                    window.getDevice(),
-                    { window.getSize(), vk::ImageUsageFlagBits::eStorage }
+                    device,
+                    { renderTarget->getSize(), vk::ImageUsageFlagBits::eStorage }
                 );
             }
         };
 
         assert(renderTarget != nullptr);
         rayTracingPass = std::make_unique<RayTracingPass>(
-            window.getInstance(),
+            instance,
             *this,
             *tlas,
             std::move(rayBuffer),

@@ -5,17 +5,19 @@
 
 
 
-trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(const Window& window)
+trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(
+    const Device& device,
+    const FrameClock& frameClock)
     :
-    device(window.getDevice()),
-    swapchain(window.getSwapchain()),
+    device(device),
+    frameClock(frameClock),
     BUFFER_SECTION_SIZE(util::pad(
         CAMERA_DATA_SIZE + SWAPCHAIN_DATA_SIZE,
         device.getPhysicalDevice().properties.limits.minUniformBufferOffsetAlignment
     )),
     buffer(
-        window.getDevice(),
-        BUFFER_SECTION_SIZE * swapchain.getFrameCount(),
+        device,
+        BUFFER_SECTION_SIZE * frameClock.getFrameCount(),
         vk::BufferUsageFlagBits::eUniformBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     )
@@ -35,7 +37,7 @@ void trc::GlobalRenderDataDescriptor::bindDescriptorSet(
     vk::PipelineLayout pipelineLayout,
     ui32 setIndex) const
 {
-    const ui32 dynamicOffset = BUFFER_SECTION_SIZE * swapchain.getCurrentFrame();
+    const ui32 dynamicOffset = BUFFER_SECTION_SIZE * frameClock.getCurrentFrame();
     cmdBuf.bindDescriptorSets(
         bindPoint, pipelineLayout,
         setIndex, *descSet,
@@ -45,7 +47,7 @@ void trc::GlobalRenderDataDescriptor::bindDescriptorSet(
 
 void trc::GlobalRenderDataDescriptor::update(const Camera& camera)
 {
-    const ui32 currentFrame = swapchain.getCurrentFrame();
+    const ui32 currentFrame = frameClock.getCurrentFrame();
 
     // Camera matrices
     auto mats = buffer.map<mat4*>(BUFFER_SECTION_SIZE * currentFrame, CAMERA_DATA_SIZE);
@@ -59,8 +61,10 @@ void trc::GlobalRenderDataDescriptor::update(const Camera& camera)
     auto buf = buffer.map<vec2*>(
         BUFFER_SECTION_SIZE * currentFrame + CAMERA_DATA_SIZE, SWAPCHAIN_DATA_SIZE
     );
-    buf[0] = swapchain.getMousePosition();
-    buf[1] = vec2(swapchain.getSize());
+                          // TODO: We really need an abstraction of windows into event targets
+                          // or viewports, or something like that
+    buf[0] = vec2(0.0f);  // swapchain.getMousePosition();
+    buf[1] = vec2(0.0f);  // vec2(swapchain.getSize());
     buffer.unmap();
 }
 
@@ -73,7 +77,7 @@ void trc::GlobalRenderDataDescriptor::createDescriptors()
     descPool = device->createDescriptorPoolUnique(
         vk::DescriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            swapchain.getFrameCount(),
+            frameClock.getFrameCount(),
             poolSizes
     ));
 

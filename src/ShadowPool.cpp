@@ -5,20 +5,26 @@
 
 
 
-trc::ShadowPool::Shadow::Shadow(const Window& window, ui32 index, uvec2 size)
+trc::ShadowPool::Shadow::Shadow(
+    const Device& device,
+    const FrameClock& clock,
+    ui32 index,
+    uvec2 size)
     :
     index(index),
-    renderPass(window, { .shadowIndex=index, .resolution=size })
+    renderPass(device, clock, { .shadowIndex=index, .resolution=size })
 {
 }
 
 
 
-trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
+trc::ShadowPool::ShadowPool(
+    const Device& device,
+    const FrameClock& clock,
+    ShadowPoolCreateInfo info)
     :
-    window(window),
-    device(window.getDevice()),
-    swapchain(window.getSwapchain()),
+    device(device),
+    clock(clock),
     shadows(info.maxShadowMaps),  // Resize shadow vector to maximum size
 
     // Must be a storage buffer rather than a uniform buffer because it has
@@ -30,8 +36,8 @@ trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
         | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     shadowMatrixBufferMap(shadowMatrixBuffer.map<mat4*>()),
-    descSets(window.getSwapchain()),
-    provider({}, { window.getSwapchain() })
+    descSets(clock),
+    provider({}, { clock })
 {
     if (info.maxShadowMaps == 0)
     {
@@ -40,7 +46,7 @@ trc::ShadowPool::ShadowPool(const Window& window, ShadowPoolCreateInfo info)
     }
 
     createDescriptors(info.maxShadowMaps);
-    for (ui32 i = 0; i < swapchain.getFrameCount(); i++) {
+    for (ui32 i = 0; i < clock.getFrameCount(); i++) {
         writeDescriptors(i);
     }
 }
@@ -62,11 +68,11 @@ auto trc::ShadowPool::allocateShadow(const ShadowCreateInfo& info) -> ShadowMap
         );
     }
 
-    shadows.at(id).reset(new Shadow(window, id, info.shadowMapResolution));
+    shadows.at(id).reset(new Shadow(device, clock, id, info.shadowMapResolution));
     Shadow& shadow = *shadows.at(id);
 
     // Update all descriptors
-    for (ui32 i = 0; i < swapchain.getFrameCount(); i++) {
+    for (ui32 i = 0; i < clock.getFrameCount(); i++) {
         writeDescriptors(i);
     }
     updateMatrixBuffer();
@@ -100,9 +106,6 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
     auto shaderStages = vk::ShaderStageFlagBits::eVertex
                         | vk::ShaderStageFlagBits::eFragment
                         | vk::ShaderStageFlagBits::eCompute;
-    if (window.getInstance().hasRayTracing()) {
-        shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
-    }
 
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
@@ -132,12 +135,12 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
     };
     descPool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        swapchain.getFrameCount(), // max num sets
+        clock.getFrameCount(), // max num sets
         poolSizes
     ));
 
     // Sets
-    const ui32 numSets = swapchain.getFrameCount();
+    const ui32 numSets = clock.getFrameCount();
     const std::vector<ui32> max(numSets, maxShadowMaps);
     const std::vector<vk::DescriptorSetLayout> layouts(numSets, *descLayout);
     vk::StructureChain descSetAllocateChain{
@@ -145,7 +148,7 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
         vk::DescriptorSetVariableDescriptorCountAllocateInfo(numSets, max.data()),
     };
     descSets = {
-        swapchain,
+        clock,
         device->allocateDescriptorSetsUnique(
             descSetAllocateChain.get<vk::DescriptorSetAllocateInfo>()
         )
@@ -162,7 +165,7 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
     });
 
     provider.setDescriptorSetLayout(*descLayout);
-    provider.setDescriptorSet({ swapchain, [&](ui32 i) { return *descSets.getAt(i); } });
+    provider.setDescriptorSet({ clock, [&](ui32 i) { return *descSets.getAt(i); } });
 }
 
 void trc::ShadowPool::writeDescriptors(ui32 frameIndex)

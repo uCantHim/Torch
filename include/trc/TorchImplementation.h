@@ -12,10 +12,14 @@ namespace trc::impl
 {
     /**
      * Register all of Torch's assets at an AssetRegistry and create the
-     * corresponding asset descriptor set.
+     * corresponding asset descriptor set. This may only be done once for an
+     * `AssetRegistry` object.
+     *
+     * @throw std::invalid_argument if `makeDefaultAssetModules` has already
+     *                              been called on `registry`.
      */
     auto makeDefaultAssetModules(const Instance& instance,
                                  AssetRegistry& registry,
                                  const AssetDescriptorCreateInfo& descriptorCreateInfo)
-        -> AssetDescriptor;
+        -> s_ptr<AssetDescriptor>;
 } // namespace trc::impl

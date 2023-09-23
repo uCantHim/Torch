@@ -72,28 +72,25 @@ trc::TorchStack::TorchStack(
         fs::create_directories(torchConfig.assetStorageDir);
         return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
     }()),
-    shadowPool(window, ShadowPoolCreateInfo{ .maxShadowMaps=200 }),
     swapchainRenderTarget(makeRenderTarget(window)),
     renderConfig(
-        window,
+        instance,
         TorchRenderConfigCreateInfo{
             .target                      = swapchainRenderTarget,
             .assetRegistry               = &assetManager.getDeviceRegistry(),
-            .assetDescriptor             = std::make_shared<AssetDescriptor>(
-                impl::makeDefaultAssetModules(
-                    instance,
-                    assetManager.getDeviceRegistry(),
-                    AssetDescriptorCreateInfo{
-                        // TODO: Put these settings into a global configuration object
-                        .maxGeometries = 5000,
-                        .maxTextures = 2000,
-                        .maxFonts = 50,
-                    }
-                )
+            .assetDescriptor             = makeDefaultAssetModules(
+                instance,
+                assetManager.getDeviceRegistry(),
+                AssetDescriptorCreateInfo{
+                    // TODO: Put these settings into a global configuration object
+                    .maxGeometries = 5000,
+                    .maxTextures = 2000,
+                    .maxFonts = 50,
+                }
             ),
-            .shadowPool                  = &shadowPool,
             .maxTransparentFragsPerPixel = 3,
-            .enableRayTracing            = instanceInfo.enableRayTracing
+            .enableRayTracing            = instanceInfo.enableRayTracing,
+            .mousePosGetter              = [&]{ return window.getMousePositionLowerLeft(); },
         }
     ),
     swapchainRecreateListener(
@@ -142,7 +139,7 @@ auto trc::TorchStack::getAssetManager() -> AssetManager&
 
 auto trc::TorchStack::getShadowPool() -> ShadowPool&
 {
-    return shadowPool;
+    return renderConfig.getShadowPool();
 }
 
 auto trc::TorchStack::getRenderTarget() -> RenderTarget&

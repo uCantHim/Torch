@@ -27,10 +27,15 @@ namespace trc
     {
     public:
         /**
-         * @param const Window& window
+         * @param const Device& device
+         * @param const FrameClock& clock A frame clock for the shadow images.
+         *                                Is usually the same clock used for
+         *                                the rest of the render pipeline.
          * @param const ShadowPassCreateInfo& info
          */
-        RenderPassShadow(const Window& window, const ShadowPassCreateInfo& info);
+        RenderPassShadow(const Device& device,
+                         const FrameClock& clock,
+                         const ShadowPassCreateInfo& info);
 
         /**
          * Updates the shadow matrix in the descriptor and starts the

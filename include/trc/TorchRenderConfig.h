@@ -9,6 +9,7 @@
 #include "trc/SceneDescriptor.h"
 #include "trc/ShadowPool.h"
 #include "trc/TopLevelAccelerationStructureBuildPass.h"
+#include "trc/TorchImplementation.h"
 #include "trc/Types.h"
 #include "trc/assets/AssetRegistry.h"
 #include "trc/base/event/Event.h"
@@ -32,15 +33,30 @@ namespace trc
     {
         const RenderTarget& target;
 
+        // The registry's update pass is added to the render configuration
         AssetRegistry* assetRegistry;
+
+        // The instance that makes an AssetRegistry's data available to the
+        // device. Create this descriptor, which contains information about
+        // Torch's default assets, via `makeDefaultAssetModules`. This function
+        // registers all asset modules that are necessary to use Torch's default
+        // assets at an asset registry and builds a descriptor for their data.
+        //
+        // One asset descriptor can be used for multiple render configurations.
         s_ptr<AssetDescriptor> assetDescriptor;
-        ShadowPool* shadowPool;
 
         ui32 maxTransparentFragsPerPixel{ 3 };
         bool enableRayTracing{ false };
+
+        // A function that returns the current mouse position. Used to read the
+        // depth value at the current mouse position for use in
+        // `TorchRenderConfig::getMouseWorldPos`.
+        std::function<vec2()> mousePosGetter{ []{ return vec2(0.0f); } };
     };
 
     auto makeTorchRenderGraph() -> RenderGraph;
+
+    using impl::makeDefaultAssetModules;
 
     /**
      * @brief
@@ -81,7 +97,7 @@ namespace trc
         /**
          * @brief
          */
-        TorchRenderConfig(const Window& window, const TorchRenderConfigCreateInfo& info);
+        TorchRenderConfig(const Instance& instance, const TorchRenderConfigCreateInfo& info);
 
         void perFrameUpdate(const Camera& camera, const Scene& scene);
 
@@ -112,12 +128,17 @@ namespace trc
     private:
         void createGBuffer(uvec2 newSize);
 
-        const Window& window;
+        const Instance& instance;
+        const Device& device;
         const RenderTarget* renderTarget;
         ivec2 viewportOffset{ 0, 0 };
         uvec2 viewportSize{ 1, 1 };
 
         const bool enableRayTracing;
+        const std::function<vec2()> mousePosGetter;
+
+        // Internal resources
+        ShadowPool shadowPool;
 
         // Default render passes
         u_ptr<FrameSpecific<GBuffer>> gBuffer;
@@ -136,8 +157,5 @@ namespace trc
         GlobalRenderDataDescriptor globalDataDescriptor;
         SceneDescriptor sceneDescriptor;
         s_ptr<AssetDescriptor> assetDescriptor;
-
-        // Data & Assets
-        ShadowPool* shadowPool;
     };
 } // namespace trc

@@ -5,7 +5,8 @@
 
 
 trc::RenderPassShadow::RenderPassShadow(
-    const Window& window,
+    const Device& device,
+    const FrameClock& clock,
     const ShadowPassCreateInfo& info)
     :
     RenderPass(
@@ -47,7 +48,7 @@ trc::RenderPassShadow::RenderPassShadow(
                 ),
             };
 
-            return window.getDevice()->createRenderPassUnique(
+            return device->createRenderPassUnique(
                 vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
             );
         }(),
@@ -55,9 +56,9 @@ trc::RenderPassShadow::RenderPassShadow(
     ),
     resolution(info.resolution),
     shadowMatrixIndex(info.shadowIndex),
-    depthImages(window.getSwapchain(), [&](ui32) {
+    depthImages(clock, [&](ui32) {
         return Image(
-            window.getDevice(),
+            device,
             vk::ImageCreateInfo(
                 {},
                 vk::ImageType::e2D,
@@ -70,11 +71,10 @@ trc::RenderPassShadow::RenderPassShadow(
             )
         );
     }),
-    framebuffers(window.getSwapchain(), [&](ui32 i) {
+    framebuffers(clock, [&](ui32 i) {
         std::vector<vk::UniqueImageView> views;
         views.push_back(depthImages.getAt(i).createView(vk::ImageAspectFlagBits::eDepth));
-
-        return Framebuffer(window.getDevice(), *renderPass, resolution, { std::move(views) });
+        return Framebuffer(device, *renderPass, resolution, { std::move(views) });
     })
 {
 }

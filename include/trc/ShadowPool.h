@@ -53,7 +53,7 @@ namespace trc
         /**
          * @brief
          */
-        ShadowPool(const Window& window, ShadowPoolCreateInfo info);
+        ShadowPool(const Device& device, const FrameClock& clock, ShadowPoolCreateInfo info);
 
         /**
          * @brief Update shadow matrices
@@ -69,13 +69,12 @@ namespace trc
         auto getProvider() const -> const DescriptorProviderInterface&;
 
     private:
-        const Window& window;
         const Device& device;
-        const Swapchain& swapchain;
+        const FrameClock& clock;
 
         struct Shadow
         {
-            Shadow(const Window& window, ui32 index, uvec2 size);
+            Shadow(const Device& device, const FrameClock& clock, ui32 index, uvec2 size);
 
             ui32 index;
 
