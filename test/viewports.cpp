@@ -1,14 +1,7 @@
 #include <trc/Torch.h>
 #include <trc/TorchImplementation.h>
+#include <trc/util/NullDataStorage.h>
 using namespace trc::basic_types;
-
-class NullDataStorage : public trc::DataStorage
-{
-public:
-    auto read(const path& path) -> std::shared_ptr<std::istream> override { return nullptr; }
-    auto write(const path& path) -> std::shared_ptr<std::ostream> override { return nullptr; }
-    bool remove(const path& path) override { return false; }
-};
 
 void run()
 {
@@ -19,7 +12,7 @@ void run()
     trc::Window window(instance);
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
-    trc::AssetManager assets(std::make_shared<NullDataStorage>());
+    trc::AssetManager assets(std::make_shared<trc::NullDataStorage>());
 
     auto assetDescriptor = trc::makeDefaultAssetModules(
         instance,
