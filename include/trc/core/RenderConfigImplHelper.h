@@ -1,7 +1,5 @@
 #pragma once
 
-#include <atomic>
-
 #include "trc/core/Instance.h"
 #include "trc/core/PipelineRegistry.h"
 #include "trc/core/RenderConfiguration.h"
@@ -18,13 +16,11 @@ namespace trc
     {
     public:
         RenderConfigImplHelper(const Instance& instance, RenderGraph graph);
-        ~RenderConfigImplHelper();
 
         auto getPipeline(Pipeline::ID id) -> Pipeline& override;
         auto getPipelineStorage() -> PipelineStorage&;
 
     private:
-        static inline std::atomic<ui32> instanceCount{ 0 };
-        static inline u_ptr<PipelineStorage> pipelineStorage{ nullptr };
+        u_ptr<PipelineStorage> pipelineStorage;
     };
 } // namespace trc
