@@ -1,5 +1,6 @@
 #include <trc/Torch.h>
 #include <trc/material/CommonShaderFunctions.h>
+#include <trc/util/NullDataStorage.h>
 
 #include <Controls.h>
 #include <Font.h>
@@ -7,6 +8,7 @@
 #include <GraphSerializer.h>
 #include <MaterialEditorGui.h>
 #include <MaterialEditorRenderConfig.h>
+#include <MaterialPreview.h>
 
 int main()
 {
@@ -18,6 +20,20 @@ int main()
 
     const auto fontPath = TRC_TEST_FONT_DIR"/gil.ttf";
     Font font{ window.getDevice(), trc::loadFont(fontPath, 64) };
+
+    // -------------------------------------------------------------------------
+    // Material preview viewport:
+
+    MaterialPreview preview{ instance, renderTarget };
+
+    preview.setViewport({ window.getSize().x - 350 - 20, 20 }, { 350, 350 });
+    trc::on<trc::SwapchainRecreateEvent>([&](auto&&) {
+        preview.setRenderTarget(renderTarget);
+        preview.setViewport({ renderTarget.getSize().x - 350 - 20, 20 }, { 350, 350 });
+    });
+
+    // -------------------------------------------------------------------------
+    // Material graph viewport:
 
     MaterialEditorRenderConfig config{
         renderTarget,
@@ -42,6 +58,9 @@ int main()
     trc::SceneBase scene;
     trc::Camera camera;
     camera.makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
+
+    // -------------------------------------------------------------------------
+    // Material graph data:
 
     GraphScene materialGraph;
     if (std::ifstream file = std::ifstream(".matedit_save", std::ios::binary))
@@ -73,9 +92,13 @@ int main()
         gui.drawGui();
 
         config.update(camera, renderData);
-        window.drawFrame(trc::DrawConfig{
-            .scene=scene,
-            .renderConfig=config,
+        preview.update();
+        window.drawFrame({
+            trc::DrawConfig{
+                .scene=scene,
+                .renderConfig=config,
+            },
+            preview.getDrawConfig()
         });
     }
 

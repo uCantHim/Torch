@@ -20,6 +20,7 @@ target_sources(
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialNode.cpp
+        src/MaterialPreview.cpp
         src/Typing.cpp
 )
 target_include_directories(libmaterial_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
