@@ -19,10 +19,25 @@ concept FlagBitsType = requires {
 /**
  * @brief A combination of different flag types
  *
- * Combines different flag enums of which only one value can be set at
- * any time.
+ * Combines different flag enums, each of which are semantically exclusive
+ * flags, i.e. for each enum, only one flag value can be active at any time.
+ * Each combination of flag enums gets assigned one unique index in the flag
+ * combination.
  *
- * Can be evaluated entirely at compile time.
+ * All functionality of `FlagCombination` is evaluable at compile time.
+ *
+ * Example:
+ * ```
+ * enum class CameraMode{ eOrthogonal, ePerspective, eMaxEnum };
+ * enum class RenderMode{ eForward, eDeferred, eMaxEnum };
+ *
+ * // A combination of my configuration flags:
+ * using Settings = FlagCombination<CameraMode, RenderMode>;
+ * auto myMode = Settings{} | CameraMode::ePerspective | RenderMode::eDeferred;
+ * ```
+ *
+ * @tparam FlagBitsType... Ts The enum types combined by the `FlagCombination`.
+ *                            Each `T` must have an enum value `T::eMaxEnum`.
  */
 template<FlagBitsType ...Ts>
 class FlagCombination
