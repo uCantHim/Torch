@@ -30,7 +30,7 @@ namespace trc
         void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override {}
 
-        void setTargetArea(uvec2 offset, uvec2 size);
+        void setTargetArea(ivec2 offset, uvec2 size);
         void setRenderTarget(const Device& device, const RenderTarget& target);
 
     private:

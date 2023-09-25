@@ -124,7 +124,7 @@ void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& s
     }
 }
 
-void trc::TorchRenderConfig::setViewport(uvec2 offset, uvec2 size)
+void trc::TorchRenderConfig::setViewport(ivec2 offset, uvec2 size)
 {
     assert(finalLightingPass != nullptr);
 

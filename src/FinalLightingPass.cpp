@@ -86,7 +86,7 @@ void trc::FinalLightingPass::begin(
     );
 }
 
-void trc::FinalLightingPass::setTargetArea(uvec2 offset, uvec2 size)
+void trc::FinalLightingPass::setTargetArea(ivec2 offset, uvec2 size)
 {
     constexpr glm::uvec3 LOCAL_GROUP_SIZE{ 16, 16, 1 };
 
