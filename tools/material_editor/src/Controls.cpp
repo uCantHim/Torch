@@ -14,7 +14,6 @@
 
 #include "ControlState.h"
 #include "GraphCompiler.h"
-#include "GraphSerializer.h"
 #include "ManipulationActions.h"
 #include "MaterialEditorGui.h"
 
@@ -79,7 +78,7 @@ struct ControlInput
     auto toWorldPos(vec2 screenPos) const -> vec2 {
         return camera->unproject(screenPos, 0.0f, window->getSize());
     }
-    auto toWorldDir(vec2 screenPos) const -> vec2 {
+    auto toScreenDir(vec2 screenPos) const -> vec2 {
         return (screenPos / vec2(window->getSize())) * cameraViewportSize;
     }
 };
@@ -87,7 +86,7 @@ struct ControlInput
 struct ControlOutput
 {
     GraphScene& graph;
-    GraphManipulator& manip;
+    MaterialEditorCommands& manip;
 
     trc::Camera* camera;
     vec2 cameraViewportSize{ 1.0f, 1.0f };
@@ -172,7 +171,7 @@ struct MoveCameraState : ControlState
             return PopState{};
         }
 
-        const vec2 move = in.toWorldDir(cameraButton.drag->dragIncrement);
+        const vec2 move = in.toScreenDir(cameraButton.drag->dragIncrement);
         out.camera->translate(vec3(move, 0.0f));
 
         return NoAction{};
@@ -193,7 +192,7 @@ struct MoveSelectedNodesState : ControlState
         auto& layout = out.graph.layout;
 
         // If at least one node is hovered, move the entire selection
-        const vec2 move = in.toWorldDir(selectButton.drag->dragIncrement);
+        const vec2 move = in.toScreenDir(selectButton.drag->dragIncrement);
         for (const NodeID node : selection) {
             layout.nodeSize.get(node).origin += move;
         }
@@ -319,34 +318,11 @@ struct DefaultControlState : ControlState
 
     static auto processKeyboardInput(const KeyboardState& kbState,
                                      GraphScene& graph,
-                                     GraphManipulator& manip)
+                                     MaterialEditorCommands& manip)
         -> std::optional<StateResult>
     {
-        if (trc::Keyboard::wasPressed(trc::Key::m))
-        {
-            trc::ShaderModuleBuilder builder;
-            auto res = compileMaterialGraph(builder, graph.graph);
-            if (res)
-            {
-                auto caps = trc::makeFragmentCapabilityConfig();
-                trc::ShaderValueCompiler compiler{ true };
-
-                std::cout << "Successfully compiled the material graph:\n";
-                for (const auto& [name, value] : res->values)
-                {
-                    if (value)
-                    {
-                        std::cout << "Parameter \"" << name << "\": "
-                                  << compiler.compile(value).first << "\n";
-                    }
-                    else {
-                        std::cout << "Parameter \"" << name << "\" not set.\n";
-                    }
-                }
-            }
-            else {
-                std::cout << "Error when compiling material graph.\n";
-            }
+        if (trc::Keyboard::wasPressed(trc::Key::m)) {
+            manip.compileMaterial();
         }
 
         if (kbState.didUndo) manip.undoLastAction();
@@ -371,9 +347,7 @@ struct DefaultControlState : ControlState
         }
 
         if (kbState.didSave) {
-            std::ofstream file(".matedit_save", std::ios::binary);
-            serializeGraph(graph, file);
-            std::cout << "Saved.\n";
+            manip.saveGraphToCurrentFile();
         }
 
         return std::nullopt;
@@ -423,7 +397,7 @@ MaterialEditorControls::MaterialEditorControls(
 
 MaterialEditorControls::~MaterialEditorControls() noexcept = default;
 
-void MaterialEditorControls::update(GraphScene& graph, GraphManipulator& manip)
+void MaterialEditorControls::update(GraphScene& graph, MaterialEditorCommands& manip)
 {
     assert(!stateStack.empty());
 

@@ -6,8 +6,8 @@
 #include <trc/Camera.h>
 using namespace trc::basic_types;
 
-#include "GraphManipulator.h"
 #include "GraphScene.h"
+#include "MaterialEditorCommands.h"
 
 class ControlState;
 class MaterialEditorGui;
@@ -40,7 +40,7 @@ public:
      * Modifies `GraphScene::interaction` according to user input. Modifies
      * `GraphScene::layout` if nodes have been moved around.
      */
-    void update(GraphScene& graph, GraphManipulator& manip);
+    void update(GraphScene& graph, MaterialEditorCommands& manip);
 
 private:
     trc::Window* window;

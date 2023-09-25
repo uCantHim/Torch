@@ -3,12 +3,12 @@
 #include <trc/base/event/Event.h>
 #include <trc/core/Window.h>
 
-#include "GraphManipulator.h"
+#include "MaterialEditorCommands.h"
 
 class MaterialEditorGui
 {
 public:
-    MaterialEditorGui(const trc::Window& window, s_ptr<GraphManipulator> graphManip);
+    MaterialEditorGui(const trc::Window& window, MaterialEditorCommands& commands);
 
     void drawGui();
 
@@ -22,7 +22,7 @@ private:
 
     trc::UniqueListenerId<trc::SwapchainResizeEvent> onResize;
 
-    s_ptr<GraphManipulator> graph;
+    MaterialEditorCommands& graph;
 
     vec2 menuBarSize;
 
