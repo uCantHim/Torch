@@ -11,9 +11,9 @@ namespace ig = ImGui;
 
 MaterialEditorGui::MaterialEditorGui(
     const trc::Window& window,
-    s_ptr<GraphManipulator> graphManip)
+    MaterialEditorCommands& commands)
     :
-    graph(graphManip)
+    graph(commands)
 {
     menuBarSize = { window.getSize().x * 0.2f, window.getSize().y };
 
@@ -82,7 +82,7 @@ void MaterialEditorGui::drawMainMenuContents()
     {
         ig::PushID(&desc);
         if (ig::Button("Create")) {
-            graph->applyAction(std::make_unique<action::CreateNode>(desc));
+            graph.applyAction(std::make_unique<action::CreateNode>(desc));
         }
         ig::PopID();
         ig::SameLine();

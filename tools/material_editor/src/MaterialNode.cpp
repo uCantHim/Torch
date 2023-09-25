@@ -63,6 +63,17 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
                 },
             }},
         }},
+        { "matedit_fun_simple_value", NodeDescription{
+            .name = "Constant Value",
+            .id = "matedit_fun_simple_value",
+            .description = "A constant value",
+            .outputs = { NodeComputation{
+                .resultType=float{},
+                .builder=[](trc::ShaderModuleBuilder& builder, auto&&) {
+                    return builder.makeConstant(0.0f);
+                },
+            }},
+        }},
         { "matedit_fun_mix", NodeDescription{
             .name = "Mix",
             .id = "matedit_fun_mix",

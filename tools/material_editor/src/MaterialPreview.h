@@ -18,6 +18,9 @@ public:
     void setViewport(ivec2 offset, uvec2 size);
     void setRenderTarget(const trc::RenderTarget& newTarget);
 
+    /**
+     * @brief Create and display a new material in the preview
+     */
     void makeMaterial(trc::MaterialData data);
 
 private:

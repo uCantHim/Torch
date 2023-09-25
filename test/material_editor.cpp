@@ -6,6 +6,7 @@
 #include <Font.h>
 #include <GraphScene.h>
 #include <GraphSerializer.h>
+#include <MaterialEditorCommands.h>
 #include <MaterialEditorGui.h>
 #include <MaterialEditorRenderConfig.h>
 #include <MaterialPreview.h>
@@ -75,15 +76,15 @@ int main()
         materialGraph.graph.outputNode = materialGraph.makeNode(getOutputNode());
     }
 
-    auto manip = std::make_shared<GraphManipulator>(materialGraph);
-    MaterialEditorGui gui{ window, manip };
+    MaterialEditorCommands commands{ materialGraph, preview };
+    MaterialEditorGui gui{ window, commands };
     MaterialEditorControls controls{ window, gui, camera, { .initialZoomLevel=5 } };
 
     while (window.isOpen() && !window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
 
-        controls.update(materialGraph, *manip);
+        controls.update(materialGraph, commands);
 
         // Generate renderable data from graph
         const auto renderData = buildRenderData(materialGraph, font);
