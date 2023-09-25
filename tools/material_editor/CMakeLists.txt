@@ -17,6 +17,7 @@ target_sources(
         src/GraphScene.cpp
         src/GraphSerializer.cpp
         src/GraphTopology.cpp
+        src/MaterialEditorCommands.cpp
         src/MaterialEditorGui.cpp
         src/MaterialEditorRenderConfig.cpp
         src/MaterialNode.cpp
