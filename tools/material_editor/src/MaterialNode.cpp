@@ -27,9 +27,8 @@ auto makeNodeDescription(s_ptr<trc::ShaderFunction> func) -> NodeDescription
         .id = func->getName(),
         .description = noDescription,
         .inputs{},
-        .inputTypes{},
         .inputTypeCorrelations{},
-        .outputs = { NodeComputation{
+        .outputs = { ComputedValue{
             .resultType=func->getType().returnType,
             .builder=[func](trc::ShaderModuleBuilder& builder, std::vector<code::Value> args)
                 -> code::Value
@@ -41,8 +40,9 @@ auto makeNodeDescription(s_ptr<trc::ShaderFunction> func) -> NodeDescription
 
     for (ui32 i = 0; auto inType : func->getType().argTypes)
     {
-        desc.inputs.emplace_back("arg" + std::to_string(i++), noDescription);
-        desc.inputTypes.emplace_back(TypeRange::makeEq(inType));
+        desc.inputs.emplace_back("arg" + std::to_string(i++),
+                                 noDescription,
+                                 TypeRange::makeEq(inType));
     }
 
     return desc;
@@ -56,7 +56,7 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .name = "White",
             .id = "matedit_fun_white",
             .description = "Just a while color",
-            .outputs = { NodeComputation{
+            .outputs = { ComputedValue{
                 .resultType=vec4{},
                 .builder=[](trc::ShaderModuleBuilder& builder, auto&&) {
                     return builder.makeConstant(vec4(1.0f));
@@ -67,11 +67,20 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .name = "Constant Value",
             .id = "matedit_fun_simple_value",
             .description = "A constant value",
-            .outputs = { NodeComputation{
+            .outputs = { ComputedValue{
                 .resultType=float{},
                 .builder=[](trc::ShaderModuleBuilder& builder, auto&&) {
                     return builder.makeConstant(0.0f);
                 },
+            }},
+        }},
+        { "matedit_fun_float_value", NodeDescription{
+            .name = "Float",
+            .id = "matedit_fun_float_value",
+            .description = "A constant floating-point value",
+            .outputs = { ConstantValue{
+                .value{ 0.0f },
+                .type=UserInputType::eFloat,
             }},
         }},
         { "matedit_fun_mix", NodeDescription{
@@ -79,13 +88,13 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .id = "matedit_fun_mix",
             .description = "Linearly interpolate two values",
             .inputs{
-                { "Value A", "A numerical value." },
-                { "Value B", "Another numerical value." },
-                { "Factor", "The interpolation factor with which the values are combined." },
+                { "Value A", "A numerical value.",       TypeRange::makeMax(vec4{}) },
+                { "Value B", "Another numerical value.", TypeRange::makeMax(vec4{}) },
+                { "Factor", "The interpolation factor with which the values are combined.",
+                  float{} },
             },
-            .inputTypes{ TypeRange::makeMax(vec4{}), TypeRange::makeMax(vec4{}), float{} },
             .inputTypeCorrelations{ { 0, 1 } },
-            .outputs = { NodeComputation{
+            .outputs = { ComputedValue{
                 .resultInfluencingArgs{ 0, 1 },
                 .builder=makeBuilder(trc::Mix<4, float>{}),
             }},
@@ -111,20 +120,18 @@ auto getOutputNode() -> const NodeDescription&
         .id = "matedit_canonical_output_node",
         .description = "The output parameters of the material.",
         .inputs{
-            { "Albedo", "A base color value." },
-            { "Normal", "The shaded object's surface normal." },
-            { "Specular Factor (shinyness)", "A factor that scales the sharpness of specular reflections." },
-            { "Roughness", "A factor that scales how rough the material looks." },
-            { "Metallicness", "A factor that scales how metallic-ish the material looks. Note: Currently not implemented." },
-            { "Emissive", "Is the material emissive?" },
-        },
-        .inputTypes{
-            TypeRange::makeMax(paramTypes[0]),
-            TypeRange::makeMax(paramTypes[1]),
-            TypeRange::makeMax(paramTypes[2]),
-            TypeRange::makeMax(paramTypes[3]),
-            TypeRange::makeMax(paramTypes[4]),
-            TypeRange::makeMax(paramTypes[5]),
+            { "Albedo", "A base color value.",
+              TypeRange::makeMax(paramTypes[0]) },
+            { "Normal", "The shaded object's surface normal.",
+              TypeRange::makeMax(paramTypes[1]) },
+            { "Specular Factor (shinyness)", "A factor that scales the sharpness of specular reflections.",
+              TypeRange::makeMax(paramTypes[2]) },
+            { "Roughness", "A factor that scales how rough the material looks.",
+              TypeRange::makeMax(paramTypes[3]) },
+            { "Metallicness", "A factor that scales how metallic-ish the material looks. Note: Currently not implemented.",
+              TypeRange::makeMax(paramTypes[4]) },
+            { "Emissive", "Is the material emissive?",
+              TypeRange::makeMax(paramTypes[5]) },
         },
     };
 

@@ -68,6 +68,7 @@ struct ControlInput
 
     std::optional<NodeID> hoveredNode;
     std::optional<SocketID> hoveredSocket;
+    std::optional<SocketID> hoveredInputField;
 
     const trc::Window* window;
     const trc::Camera* camera;
@@ -244,7 +245,7 @@ struct DefaultControlState : ControlState
 
         // Calculate hover
         const vec2 worldPos = in.toWorldPos(mouseState.currentMousePos);
-        auto [hoveredNode, hoveredSocket] = graph.findHover(worldPos);
+        auto [hoveredNode, hoveredSocket, hoveredDeco] = graph.findHover(worldPos);
 
         // Process mouse input
         if (mouseState.selectButton.wasClicked)
@@ -420,7 +421,9 @@ void MaterialEditorControls::update(GraphScene& graph, MaterialEditorCommands& m
 
     // Prepare pre-calculated input to the control state
     auto hoverResult = graph.findHover(in.toWorldPos(in.mouseState.currentMousePos));
-    std::tie(in.hoveredNode, in.hoveredSocket) = hoverResult;
+    in.hoveredNode = hoverResult.hoveredNode;
+    in.hoveredSocket = hoverResult.hoveredSocket;
+    in.hoveredInputField = hoverResult.hoveredInputField;
 
     // Run the currently active control state
     auto result = stateStack.top()->update(in, out);

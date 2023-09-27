@@ -14,28 +14,38 @@
 using namespace trc::basic_types;
 namespace code = trc::code;
 
-/**
- * @brief A concrete value generated during graph compilation.
- *
- * Nodes receive these and compile them to a typed output value, considering
- * type constraints.
- */
-struct TypedValue
+enum class UserInputType
 {
-    code::Value value;
-    trc::BasicType type;
+    eFloat,
+    eRgb,
+    eRgba,
+    // eVec2,
+    // eVec3,
 };
 
 /**
- * Description/documentation of an argument
+ * @brief Get the shader type corresponding to a user input field type
  */
-struct ArgDescription
+constexpr auto getConstantType(UserInputType f) -> trc::BasicType;
+
+struct NodeInputLink
 {
     std::string name;
     std::string description;
+
+    TypeConstraint type;
 };
 
-struct NodeComputation
+struct ConstantValue
+{
+    std::string name;
+    std::string description;
+
+    trc::Constant value;
+    UserInputType type;  // TODO (maybe): Make this optional?
+};
+
+struct ComputedValue
 {
     /**
      * A function that builds the code for an expression.
@@ -47,7 +57,8 @@ struct NodeComputation
     using ComputationBuilder
         = std::function<code::Value(trc::ShaderModuleBuilder&, const std::vector<code::Value>&)>;
 
-    ArgDescription desc;
+    std::string name;
+    std::string description;
 
     /**
      * If this is nullopt, `resultInfluencingArgs` must have at least one entry.
@@ -67,6 +78,11 @@ struct NodeComputation
     ComputationBuilder builder;
 };
 
+/**
+ * A value that output sockets can have.
+ */
+using NodeOutputValue = std::variant<ComputedValue, ConstantValue>;
+
 struct NodeDescription
 {
     bool hasOutputValue() const {
@@ -77,8 +93,7 @@ struct NodeDescription
     std::string id;  // A unique string identifier corresponding to the node's type
     std::string description;
 
-    std::vector<ArgDescription> inputs;
-    std::vector<TypeConstraint> inputTypes;
+    std::vector<NodeInputLink> inputs;
 
     /**
      * A list of pairs of arguments whose types must be equal at build time.
@@ -88,7 +103,7 @@ struct NodeDescription
     /**
      * Each output receives all inputs
      */
-    std::vector<NodeComputation> outputs;
+    std::vector<NodeOutputValue> outputs;
 };
 
 auto makeShaderFunctionSignature(const NodeDescription& nodeDesc) -> trc::FunctionType;
@@ -106,3 +121,17 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
  * @return The canonical output node for any material
  */
 auto getOutputNode() -> const NodeDescription&;
+
+
+
+// -----------------------------------------------------------------------------
+// Implementations
+
+constexpr auto getConstantType(UserInputType f) -> trc::BasicType
+{
+    switch (f) {
+        case UserInputType::eFloat: return float{};
+        case UserInputType::eRgb: return vec3{};
+        case UserInputType::eRgba: return vec4{};
+    }
+}

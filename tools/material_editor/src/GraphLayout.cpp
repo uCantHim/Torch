@@ -20,24 +20,47 @@ void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout)
     for (const auto sock : graph.outputSockets.get(node))
     {
         layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
+        if (graph.socketDecoration.contains(sock))
+        {
+            auto pos = socketPos;
+            pos.x -= graph::kTextInputFieldSize.x + graph::kPadding;
+            layout.decorationSize.emplace(sock, pos, graph::kTextInputFieldSize);
+        }
         socketPos.y += graph::kSocketSize.y + graph::kPadding;
     }
 }
 
+auto calcSocketSize(SocketID sock, const GraphTopology& graph) -> vec2
+{
+    vec2 size = graph::kSocketSize;
+    if (graph.socketDecoration.contains(sock)) {
+        size.x += graph::kTextInputFieldSize.x + graph::kPadding;
+    }
+
+    return size;
+}
+
 auto calcNodeSize(NodeID node, const GraphTopology& graph) -> vec2
 {
+    using namespace std::placeholders;
+
     const auto& inputs = graph.inputSockets.get(node);
     const auto& outputs = graph.outputSockets.get(node);
     const size_t maxVerticalSockets = glm::max(inputs.size(), outputs.size());
 
-    vec2 extent{ 0.0f, 0.0f };
+    const auto _calcSocketSize = std::bind(calcSocketSize, _1, std::ref(graph));
+    auto inputSizes = inputs | std::views::transform(_calcSocketSize)
+                             | std::views::transform([](auto&& v){ return v.x; });
+    auto outputSizes = outputs | std::views::transform(_calcSocketSize)
+                               | std::views::transform([](auto&& v){ return v.x; });
 
+    vec2 extent{ 0.0f, 0.0f };
     extent.y = graph::kNodeHeaderHeight
              + maxVerticalSockets * graph::kSocketSize.y
              + (maxVerticalSockets + 1) * graph::kPadding;
-    extent.x = (!inputs.empty() ? (graph::kSocketSize.y + graph::kPadding) : 0)
+    extent.x = (!inputs.empty() ? (*std::ranges::max_element(inputSizes) + graph::kPadding) : 0)
              + graph::kSocketSpacingHorizontal
-             + (!outputs.empty() ? graph::kSocketSize.y + graph::kPadding : 0);
+             + (!outputs.empty() ? (*std::ranges::max_element(outputSizes) + graph::kPadding) : 0);
 
     extent = glm::max(extent, graph::kMinNodeSize);
 

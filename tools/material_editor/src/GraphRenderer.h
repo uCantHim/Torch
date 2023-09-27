@@ -55,6 +55,9 @@ struct GraphRenderData
     void pushText(vec2 pos, float scale, std::string_view str, vec4 color, Font& font);
     void pushLetter(vec2 pos, float scale, trc::CharCode c, vec4 color, Font& font);
 
+    void pushTextInputField(vec2 pos, vec2 size, vec4 color);
+    void pushColorInputField(vec2 pos, vec2 size, vec4 color);
+
     void pushBorder(vec2 pos, vec2 size, vec4 color);
     void pushSeparator(vec2 pos, float size, vec4 color);
 

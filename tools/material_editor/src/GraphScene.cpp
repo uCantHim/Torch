@@ -10,6 +10,7 @@ auto GraphScene::makeNode(NodeDescription desc) -> NodeID
 
     // Create objects
     createSockets(id, graph, desc);
+    createInputFields(interaction, id, graph);
 
     // Layout objects
     layout.nodeSize.emplace(id, vec2(0.0f), calcNodeSize(id, graph));
@@ -49,8 +50,7 @@ auto GraphScene::findHoveredNode(const vec2 pos) const -> std::optional<NodeID>
     return std::nullopt;
 }
 
-auto GraphScene::findHover(const vec2 pos) const
-    -> std::pair<std::optional<NodeID>, std::optional<SocketID>>
+auto GraphScene::findHover(const vec2 pos) const -> GraphHoverInfo
 {
     // Node hitboxes act as a broadphase for socket hitboxes
     if (auto node = findHoveredNode(pos))
@@ -62,12 +62,19 @@ auto GraphScene::findHover(const vec2 pos) const
         {
             const auto& hitbox = layout.socketSize.get(sock);
             if (isInside(pos, { hitbox.origin + nodePos, hitbox.extent })) {
-                return { node, sock };
+                return { node, sock, std::nullopt };
             }
         }
 
-        return { node, std::nullopt };
+        for (const auto& [sock, hitbox] : layout.decorationSize.items())
+        {
+            if (isInside(pos, { hitbox.origin + nodePos, hitbox.extent })) {
+                return { node, std::nullopt, sock };
+            }
+        }
+
+        return { node, std::nullopt, std::nullopt };
     }
 
-    return { std::nullopt, std::nullopt };
+    return { std::nullopt, std::nullopt, std::nullopt };
 }

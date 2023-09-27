@@ -20,6 +20,12 @@ namespace graph
     constexpr float kTextHeight{ kPadding * 2.0f };
     constexpr float kNodeHeaderHeight{ kTextHeight + kPadding * 2.0f };
     constexpr vec2 kNodeContentStart{ kPadding, kPadding + kNodeHeaderHeight };
+
+    // Padding from input field border to its contained text
+    constexpr float kInputFieldInnerPadding{ kTextHeight * 0.1f };
+
+    constexpr float kInputTextHeight{ kTextHeight * 0.8f };
+    constexpr vec2 kTextInputFieldSize{ kSocketSize.x * 3.5f, kTextHeight };
 } // namespace graph
 
 struct Hitbox
@@ -40,9 +46,19 @@ struct GraphLayout
 
     // Socket positions are relative to their node's position
     Table<Hitbox, SocketID> socketSize;
+
+    // Socket decoration positions are relative to their node's position
+    Table<Hitbox, SocketID> decorationSize;
 };
 
 void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout);
+
+/**
+ * @brief Calculate a socket's size with all decorations
+ *
+ * Calculates the size of a socket and its socket decoration, if it has any.
+ */
+auto calcSocketSize(SocketID sock, const GraphTopology& graph) -> vec2;
 
 /**
  * @brief Calculate a node's size

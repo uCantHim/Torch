@@ -85,6 +85,7 @@ int main()
         trc::pollEvents();
 
         controls.update(materialGraph, commands);
+        updateOutputValues(materialGraph.interaction, materialGraph.graph);
 
         // Generate renderable data from graph
         const auto renderData = buildRenderData(materialGraph, font);
