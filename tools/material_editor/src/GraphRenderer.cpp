@@ -79,6 +79,17 @@ void GraphRenderData::pushLetter(vec2 pos, float scale, trc::CharCode c, vec4 co
     curGroup().glyphs.colors.emplace_back(color);
 }
 
+void GraphRenderData::pushTextInputField(vec2 pos, vec2 size, vec4 color)
+{
+    curGroup().quads.pushItem({ pos, size }, kDefaultUv, color);
+    pushBorder(pos, size, graph::kLinkColor);
+}
+
+void GraphRenderData::pushColorInputField(vec2 pos, vec2 size, vec4 /*color*/)
+{
+    pushSocket(pos, size, vec4(0.8f, 1.0f, 0.3f, 1.0f));
+}
+
 void GraphRenderData::pushBorder(vec2 pos, vec2 size, vec4 color)
 {
     curGroup().lines.pushItem({ pos, vec2{ size.x, 0.0f } },         kDefaultUv, color);
@@ -173,6 +184,23 @@ void renderSocketLinks(
     }
 }
 
+void renderInputFields(
+    const GraphTopology& graph,
+    const GraphLayout& layout,
+    Font& font,
+    GraphRenderData& res)
+{
+    for (const auto& [sock, field] : graph.socketDecoration.items())
+    {
+        const auto [nodePos, _] = layout.nodeSize.get(graph.socketInfo.get(sock).parentNode);
+        const auto [pos, size] = layout.decorationSize.get(sock);
+        const vec2 contentPos = pos + graph::kInputFieldInnerPadding;
+        res.pushTextInputField(nodePos + pos, size, graph::kSeparatorColor);
+        res.pushText(nodePos + contentPos, graph::kInputTextHeight,
+                     "dummy", graph::kTextColor, font);
+    }
+}
+
 void renderSelectionBox(const GraphInteraction& interaction, GraphRenderData& res)
 {
     res.beginGroup();
@@ -189,6 +217,7 @@ auto buildRenderData(const GraphScene& scene, Font& font) -> GraphRenderData
     GraphRenderData res;
     renderNodes(scene, font, res);
     renderSocketLinks(graph, layout, res);
+    renderInputFields(graph, layout, font, res);
     renderSelectionBox(scene.interaction, res);
 
     return res;

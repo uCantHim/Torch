@@ -7,6 +7,13 @@
 #include "GraphInteraction.h"
 #include "GraphLayout.h"
 
+struct GraphHoverInfo
+{
+    std::optional<NodeID> hoveredNode;
+    std::optional<SocketID> hoveredSocket;
+    std::optional<SocketID> hoveredInputField;
+};
+
 struct GraphScene
 {
     // Graph topology
@@ -31,7 +38,7 @@ struct GraphScene
      *                            then the node is the one to which the socket
      *                            belongs.
      */
-    auto findHover(vec2 position) const -> std::pair<std::optional<NodeID>, std::optional<SocketID>>;
+    auto findHover(vec2 position) const -> GraphHoverInfo;
 
 private:
     auto findHoveredNode(vec2 position) const -> std::optional<NodeID>;

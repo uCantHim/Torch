@@ -23,6 +23,12 @@ namespace code = trc::code;
  */
 auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeConstraint>;
 
+/**
+ * @brief Query or create a computation builder for an output value
+ */
+auto getComputationBuilder(const NodeOutputValue& value)
+    -> ComputedValue::ComputationBuilder;
+
 struct GraphOutput
 {
     std::unordered_map<std::string, code::Value> values;
