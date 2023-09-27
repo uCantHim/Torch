@@ -3,8 +3,21 @@
 #include <functional>
 
 #include "Typing.h"
+#include "Util.h"
 
 
+
+auto getComputationBuilder(const NodeOutputValue& value) -> ComputedValue::ComputationBuilder
+{
+    using Ret = ComputedValue::ComputationBuilder;
+
+    return std::visit(trc::util::VariantVisitor{
+        [](const ComputedValue& v) -> Ret { return v.builder; },
+        [](const ConstantValue& v) -> Ret {
+            return [c=v.value](auto&& builder, auto&&) { return builder.makeConstant(c); };
+        }
+    }, value);
+}
 
 auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeConstraint>
 {
@@ -12,10 +25,14 @@ auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeC
 
     const NodeID parentNode = graph.socketInfo.get(sock).parentNode;
 
-    if (auto _out = graph.outputComputation.try_get(sock))
+    if (auto _out = graph.outputValue.try_get(sock))
     {
         // Socket is an output socket
-        auto& out = _out->get();
+        if (auto constVal = try_get<ConstantValue>(_out->get())) {
+            return getConstantType(constVal->type);
+        }
+
+        auto& out = std::get<ComputedValue>(_out->get());
         if (out.resultType) {
             return TypeRange::makeEq(*out.resultType);
         }
@@ -46,7 +63,7 @@ auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeC
     if (auto linked = graph.link.try_get(sock))
     {
         const ui32 socketIndex = findSocketIndex(graph, sock);
-        auto baseConstraint = graph.nodeInfo.get(parentNode).desc.inputTypes.at(socketIndex);
+        auto baseConstraint = graph.nodeInfo.get(parentNode).desc.inputs.at(socketIndex).type;
         if (auto linkedConstraint = inferType(graph, *linked)) {
             return intersect(baseConstraint, *linkedConstraint);
         }
@@ -110,14 +127,14 @@ auto buildInputValues(
         }
 
         const auto inputSocket = graph.link.get(sock);
-        if (!graph.outputComputation.contains(inputSocket))
+        if (!graph.outputValue.contains(inputSocket))
         {
             throw GraphValidationError("Input socket is connected to a socket that is not an"
                                        " output socket!");
         }
 
         const auto inputNode = graph.socketInfo.get(inputSocket).parentNode;
-        const auto& buildFunc = graph.outputComputation.get(inputSocket).builder;
+        const auto& buildFunc = getComputationBuilder(graph.outputValue.get(inputSocket));
         const auto args = buildInputValues(builder, graph, inputNode);
         res.emplace_back(buildFunc(builder, args));
     }
@@ -162,7 +179,7 @@ auto compileMaterialGraph(trc::ShaderModuleBuilder& builder, const GraphTopology
     GraphOutput res;
     auto values = buildInputValues(builder, graph, graph.outputNode, false);
     for (ui32 i = 0; const auto& sock : graph.inputSockets.get(graph.outputNode)) {
-        res.values.try_emplace(graph.socketInfo.get(sock).desc.name, values.at(i++));
+        res.values.try_emplace(graph.socketInfo.get(sock).name, values.at(i++));
     }
 
     return res;

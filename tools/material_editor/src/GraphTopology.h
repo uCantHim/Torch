@@ -29,8 +29,21 @@ struct Node
 struct Socket
 {
     NodeID parentNode;
-    ArgDescription desc;
+    std::string name;
+    std::string description;
 };
+
+struct NumberInputField
+{
+    float value;
+};
+
+struct ColorInputField
+{
+    vec4 value;
+};
+
+using InputElement = std::variant<NumberInputField, ColorInputField>;
 
 /**
  * @brief Topological information about a material graph
@@ -50,9 +63,14 @@ struct GraphTopology
     Table<Socket, SocketID> socketInfo;
 
     /**
-     * Sockets only have an entry here if they are output sockets.
+     * Sockets have an entry here if they are output sockets.
      */
-    Table<NodeComputation, SocketID> outputComputation;
+    Table<NodeOutputValue, SocketID> outputValue;
+
+    /**
+     * Sockets have an entry here if they have an associated decoration element.
+     */
+    Table<InputElement, SocketID> socketDecoration;
 
     /**
      * Links between sockets are defined as entries in the `link` table. If a
@@ -94,5 +112,3 @@ auto getIthSocket(const GraphTopology& graph, NodeID node, ui32 index) -> Socket
  * @brief Find a socket's index in its parent node's set of sockets
  */
 auto findSocketIndex(const GraphTopology& graph, SocketID socket) -> ui32;
-
-bool isOutputSocket(const GraphTopology& graph, SocketID socket);

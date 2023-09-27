@@ -1,5 +1,7 @@
 #include "GraphTopology.h"
 
+#include "Util.h"
+
 
 
 auto GraphTopology::makeNode(Node node) -> NodeID
@@ -71,14 +73,29 @@ void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& des
 {
     for (const auto& arg : desc.inputs)
     {
-        auto sock = graph.makeSocket({ .parentNode=node, .desc=arg });
+        auto sock = graph.makeSocket({ node, arg.name, arg.description });
         graph.inputSockets.get(node).emplace_back(sock);
     }
-    for (const auto& out : desc.outputs)
+    for (const auto& outVal : desc.outputs)
     {
-        auto sock = graph.makeSocket({ .parentNode=node, .desc{ out.desc } });
+        auto sock = graph.makeSocket({ node, access(outVal, name), access(outVal, description) });
         graph.outputSockets.get(node).emplace_back(sock);
-        graph.outputComputation.emplace(sock, out);
+        graph.outputValue.emplace(sock, outVal);
+
+        // Create a user input field for constant values
+        if (auto constVal = try_get<ConstantValue>(outVal))
+        {
+            switch (constVal->type)
+            {
+            case UserInputType::eFloat:
+                graph.socketDecoration.emplace(sock, NumberInputField{});
+                break;
+            case UserInputType::eRgb:
+            case UserInputType::eRgba:
+                graph.socketDecoration.emplace(sock, ColorInputField{});
+                break;
+            }
+        }
     }
 }
 
@@ -100,9 +117,4 @@ auto findSocketIndex(const GraphTopology& graph, SocketID socket) -> ui32
     }
 
     throw std::logic_error("Socket not found in its parent node.");
-}
-
-bool isOutputSocket(const GraphTopology& graph, SocketID socket)
-{
-    return graph.outputComputation.contains(socket);
 }
