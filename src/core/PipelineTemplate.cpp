@@ -104,12 +104,16 @@ auto trc::ComputePipelineTemplate::getEntryPoint() const -> const std::string&
 
 
 
-auto trc::makeGraphicsPipeline(
+namespace trc
+{
+
+auto makeGraphicsPipeline(
     const Device& device,
     const PipelineTemplate& _template,
     PipelineLayout& layout,
     vk::RenderPass renderPass,
-    ui32 subPass) -> Pipeline
+    ui32 subPass,
+    const vk::PipelineRenderingCreateInfo& renderingInfo) -> Pipeline
 {
     const PipelineDefinitionData& def = _template.getPipelineData();
     const ProgramDefinitionData& shader = _template.getProgramData();
@@ -146,8 +150,7 @@ auto trc::makeGraphicsPipeline(
     vk::PipelineDynamicStateCreateInfo dynamicState({}, dynamicStates);
 
     // Create the pipeline
-    auto pipeline = device->createGraphicsPipelineUnique(
-        {},
+    vk::StructureChain createInfoChain{
         vk::GraphicsPipelineCreateInfo(
             {},
             program.getStageCreateInfo(),
@@ -163,10 +166,37 @@ auto trc::makeGraphicsPipeline(
             *layout,
             renderPass, subPass,
             vk::Pipeline(), 0
-        )
-    ).value;
+        ),
+        renderingInfo
+    };
+    if (renderPass != VK_NULL_HANDLE) {
+        createInfoChain.unlink<vk::PipelineRenderingCreateInfo>();
+    }
+
+    auto pipeline = device->createGraphicsPipelineUnique({}, createInfoChain.get()).value;
 
     return Pipeline{ layout, std::move(pipeline), vk::PipelineBindPoint::eGraphics };
+}
+
+} // namespace trc
+
+auto trc::makeGraphicsPipeline(
+    const Device& device,
+    const PipelineTemplate& _template,
+    PipelineLayout& layout,
+    vk::RenderPass renderPass,
+    ui32 subPass) -> Pipeline
+{
+    return makeGraphicsPipeline(device, _template, layout, renderPass, subPass, {});
+}
+
+auto trc::makeGraphicsPipeline(
+    const Device& device,
+    const PipelineTemplate& _template,
+    PipelineLayout& layout,
+    const vk::PipelineRenderingCreateInfo& renderingInfo) -> Pipeline
+{
+    return makeGraphicsPipeline(device, _template, layout, {}, {}, renderingInfo);
 }
 
 auto trc::makeComputePipeline(

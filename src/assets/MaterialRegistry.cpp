@@ -138,23 +138,25 @@ auto trc::MaterialRegistry::add(u_ptr<AssetSource<Material>> source) -> LocalID
         Pipeline::ID basePipeline = pipelines::getDrawableBasePipeline(info.toPipelineFlags());
 
         // Set some pipeline configuration parameters
-        auto pipeline = PipelineRegistry::cloneGraphicsPipeline(basePipeline).getPipelineData();
+        auto [tmpl, renderPass] = PipelineRegistry::cloneGraphicsPipeline(basePipeline);
+        auto pipelineData = tmpl.getPipelineData();
+
         auto& d = mat.data;
-        auto& r = pipeline.rasterization;
+        auto& r = pipelineData.rasterization;
         if (mat.data.polygonMode) r.setPolygonMode(*mat.data.polygonMode);
         if (mat.data.lineWidth) r.setLineWidth(*mat.data.lineWidth);
         if (d.cullMode) r.setCullMode(*d.cullMode);
         if (d.frontFace) r.setFrontFace(*d.frontFace);
-        if (d.depthWrite) pipeline.depthStencil.setDepthWriteEnable(*d.depthWrite);
-        if (d.depthTest) pipeline.depthStencil.setDepthTestEnable(*d.depthTest);
+        if (d.depthWrite) pipelineData.depthStencil.setDepthWriteEnable(*d.depthWrite);
+        if (d.depthTest) pipelineData.depthStencil.setDepthTestEnable(*d.depthTest);
         if (d.depthBiasConstantFactor) r.setDepthBiasConstantFactor(*d.depthBiasConstantFactor);
         if (d.depthBiasSlopeFactor) r.setDepthBiasSlopeFactor(*d.depthBiasSlopeFactor);
 
         // Create the runtime program
         mat.runtimePrograms.at(key.flags.toIndex()) = std::make_unique<MaterialShaderProgram>(
             program,
-            pipeline,
-            PipelineRegistry::getPipelineRenderPass(basePipeline)
+            pipelineData,
+            renderPass
         );
     }
 

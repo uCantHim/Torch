@@ -1,25 +1,26 @@
 #include "trc/core/PipelineRegistry.h"
 
-// #include "trc/base/ShaderProgram.h"
+#include <cassert>
+
+#include "trc_util/TypeUtils.h"
 
 
 
 namespace trc
 {
 
-auto registerPipeline(PipelineTemplate t,
-                             PipelineLayout::ID layout,
-                             RenderPassName renderPass)
-    -> Pipeline::ID
+InvalidPipelineType::InvalidPipelineType(
+    std::source_location loc,
+    const std::string& whatHappened,
+    vk::PipelineBindPoint expected,
+    vk::PipelineBindPoint actual)
+    :
+    Exception(
+        "[In " + std::string(loc.function_name()) + "]: " + whatHappened
+        + ": Expected pipeline of type " + vk::to_string(expected)
+        + ", but got " + vk::to_string(actual)
+    )
 {
-    return PipelineRegistry::registerPipeline(std::move(t), layout, std::move(renderPass));
-}
-
-auto registerPipeline(ComputePipelineTemplate t,
-                             PipelineLayout::ID layout)
-    -> Pipeline::ID
-{
-    return PipelineRegistry::registerPipeline(std::move(t), layout);
 }
 
 
@@ -110,7 +111,7 @@ auto PipelineRegistry::clonePipelineLayout(PipelineLayout::ID id) -> PipelineLay
 auto PipelineRegistry::registerPipeline(
     PipelineTemplate _template,
     PipelineLayout::ID layout,
-    RenderPassName renderPass
+    const RenderPassDefinition& renderPass
     ) -> Pipeline::ID
 {
     if (layout >= layoutFactories.size())
@@ -121,7 +122,12 @@ auto PipelineRegistry::registerPipeline(
         );
     }
 
-    return _registerPipelineFactory({ std::move(_template), layout, std::move(renderPass) });
+    return std::visit(
+        [&](auto&& info){
+            return _registerPipelineFactory({ std::move(_template), layout, info });
+        },
+        renderPass
+    );
 }
 
 auto PipelineRegistry::registerPipeline(
@@ -153,11 +159,13 @@ inline auto PipelineRegistry::_registerPipelineFactory(PipelineFactory newFactor
     return id;
 }
 
-auto PipelineRegistry::cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate
+auto PipelineRegistry::cloneGraphicsPipeline(Pipeline::ID id)
+    -> std::pair<PipelineTemplate, RenderPassDefinition>
 {
     try {
         std::scoped_lock lock(factoryLock);
-        return std::get<PipelineTemplate>(factories.at(id).clone());
+        auto [t, i] = std::get<PipelineFactory::GraphicsPipelineInfo>(factories.at(id).clone());
+        return { std::move(t), std::move(i) };
     }
     catch (const std::out_of_range&)
     {
@@ -168,9 +176,10 @@ auto PipelineRegistry::cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplat
     }
     catch (const std::bad_variant_access&)
     {
-        throw Exception(
-            "[In PipelineRegistry<>::cloneGraphicsPipeline]: Pipeline with ID \""
-            + std::to_string(id) + "\" is not a graphics pipeline!"
+        throw InvalidPipelineType(
+            std::source_location::current(),
+            "Unable to clone pipeline with ID " + std::to_string(id),
+            vk::PipelineBindPoint::eGraphics, vk::PipelineBindPoint::eCompute
         );
     }
 }
@@ -190,9 +199,10 @@ auto PipelineRegistry::cloneComputePipeline(Pipeline::ID id) -> ComputePipelineT
     }
     catch (const std::bad_variant_access&)
     {
-        throw Exception(
-            "[In PipelineRegistry<>::cloneComputePipeline]: Pipeline with ID \""
-            + std::to_string(id) + "\" is not a compute pipeline!"
+        throw InvalidPipelineType(
+            std::source_location::current(),
+            "Unable to clone pipeline with ID " + std::to_string(id),
+            vk::PipelineBindPoint::eCompute, vk::PipelineBindPoint::eGraphics
         );
     }
 }
@@ -211,7 +221,8 @@ auto PipelineRegistry::getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID
     return factories.at(id).getLayout();
 }
 
-auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id) -> RenderPassName
+auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id)
+    -> std::optional<RenderPassDefinition>
 {
     if (id >= factories.size())
     {
@@ -222,7 +233,10 @@ auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id) -> RenderPassName
     }
 
     std::scoped_lock lock(factoryLock);
-    return factories.at(id).getRenderPassName();
+    if (auto info = factories.at(id).getRenderPassCompatInfo()) {
+        return *info;
+    }
+    return std::nullopt;
 }
 
 auto PipelineRegistry::makeStorage(const Instance& instance, RenderConfig& renderConfig)
@@ -306,8 +320,23 @@ PipelineRegistry::PipelineFactory::PipelineFactory(
     RenderPassName rp)
     :
     layoutId(layout),
-    renderPassName(std::move(rp)),
-    _template(std::move(t))
+    _template(GraphicsPipelineInfo{
+        .tmpl=std::move(t),
+        .renderPassCompatInfo=std::move(rp)
+    })
+{
+}
+
+PipelineRegistry::PipelineFactory::PipelineFactory(
+    PipelineTemplate t,
+    PipelineLayout::ID layout,
+    RenderPassCompatInfo rp)
+    :
+    layoutId(layout),
+    _template(GraphicsPipelineInfo{
+        .tmpl=std::move(t),
+        .renderPassCompatInfo=std::move(rp)
+    })
 {
 }
 
@@ -316,7 +345,6 @@ PipelineRegistry::PipelineFactory::PipelineFactory(
     PipelineLayout::ID layout)
     :
     layoutId(layout),
-    renderPassName({}),
     _template(std::move(t))
 {
 }
@@ -326,9 +354,14 @@ auto trc::PipelineRegistry::PipelineFactory::getLayout() const -> PipelineLayout
     return layoutId;
 }
 
-auto trc::PipelineRegistry::PipelineFactory::getRenderPassName() const -> const RenderPassName&
+auto trc::PipelineRegistry::PipelineFactory::getRenderPassCompatInfo() const
+    -> const std::variant<RenderPassName, RenderPassCompatInfo>*
 {
-    return renderPassName;
+    if (!std::holds_alternative<GraphicsPipelineInfo>(_template)) {
+        return nullptr;
+    }
+
+    return &std::get<GraphicsPipelineInfo>(_template).renderPassCompatInfo;
 }
 
 auto PipelineRegistry::PipelineFactory::create(
@@ -337,39 +370,85 @@ auto PipelineRegistry::PipelineFactory::create(
     PipelineLayout& layout)
     -> Pipeline
 {
-    return std::visit(
-        [&](auto& t) { return create(t, instance, renderConfig, layout); },
-        _template
-    );
-}
+    // Create either a graphics pipeline or a compute pipeline
+    return std::visit(util::VariantVisitor{
+        [&, this](GraphicsPipelineInfo& info)
+        {
+            // Obtain the render pass compatibility information. Either resolve
+            // a render pass reference via the render config, or retrieve the
+            // direct information object from our own storage.
+            const auto& rpCompat = std::visit(util::VariantVisitor{
+                [&](const RenderPassName& ref){
+                    try {
+                        return renderConfig.getRenderPass(ref);
+                    }
+                    catch (const Exception&) {
+                        throw std::runtime_error(
+                            "[In PipelineFactory::create]: Failed to create a pipeline because its"
+                            " render pass compatibility information was specified as a reference"
+                            " name \"" + ref + "\", but that reference has no render pass"
+                            " registered at the render pass registry."
+                        );
+                    }
+                },
+                [](const RenderPassCompatInfo& def){ return def; },
+            }, info.renderPassCompatInfo);
 
-auto PipelineRegistry::PipelineFactory::create(
-    PipelineTemplate& t,
-    const Instance& instance,
-    RenderConfig& renderConfig,
-    PipelineLayout& layout
-    ) const -> Pipeline
-{
-    const auto& device = instance.getDevice();
-    auto [renderPass, subPass] = renderConfig.getRenderPass(renderPassName);
-
-    return makeGraphicsPipeline(device, t, layout, renderPass, subPass);
-}
-
-auto PipelineRegistry::PipelineFactory::create(
-    ComputePipelineTemplate& t,
-    const Instance& instance,
-    RenderConfig&,
-    PipelineLayout& layout
-    ) const -> Pipeline
-{
-    return makeComputePipeline(instance.getDevice(), t, layout);
+            return std::visit(
+                [&](auto& compatInfo){ return create(info.tmpl, compatInfo, instance, layout); },
+                rpCompat
+            );
+        },
+        [&](ComputePipelineTemplate& t){
+            return create(t, instance, layout);
+        },
+    }, _template);
 }
 
 auto PipelineRegistry::PipelineFactory::clone() const
-    -> std::variant<PipelineTemplate, ComputePipelineTemplate>
+    -> std::variant<GraphicsPipelineInfo, ComputePipelineTemplate>
 {
     return _template;
+}
+
+/** Internal function */
+auto PipelineRegistry::PipelineFactory::create(
+    PipelineTemplate& t,
+    const RenderPassInfo& compatInfo,
+    const Instance& instance,
+    PipelineLayout& layout
+    ) -> Pipeline
+{
+    const auto& device = instance.getDevice();
+    const auto& [renderPass, subPass] = compatInfo;
+    return makeGraphicsPipeline(device, t, layout, renderPass, subPass);
+}
+
+/** Internal function */
+auto PipelineRegistry::PipelineFactory::create(
+    PipelineTemplate& p,
+    const DynamicRenderingInfo& compatInfo,
+    const Instance& instance,
+    PipelineLayout& layout) -> Pipeline
+{
+    vk::PipelineRenderingCreateInfo renderingInfo{
+        compatInfo.viewMask,
+        compatInfo.colorAttachmentFormats,
+        compatInfo.depthAttachmentFormat,
+        compatInfo.stencilAttachmentFormat
+    };
+
+    return makeGraphicsPipeline(instance.getDevice(), p, layout, renderingInfo);
+}
+
+/** Internal function */
+auto PipelineRegistry::PipelineFactory::create(
+    ComputePipelineTemplate& t,
+    const Instance& instance,
+    PipelineLayout& layout
+    ) -> Pipeline
+{
+    return makeComputePipeline(instance.getDevice(), t, layout);
 }
 
 

@@ -105,7 +105,7 @@ namespace trc
     public:
         MaterialShaderProgram(const MaterialProgramData& data,
                               const PipelineDefinitionData& pipelineConfig,
-                              const trc::RenderPassName& renderPass);
+                              const RenderPassDefinition& renderPass);
 
         auto getLayout() const -> const PipelineLayoutTemplate&;
         auto makeRuntime() const -> MaterialRuntime;
@@ -120,4 +120,4 @@ namespace trc
         s_ptr<std::vector<ui32>> runtimePcOffsets{ new std::vector<ui32> };
         std::vector<s_ptr<ShaderRuntimeConstant>> runtimeValues;  // Just keep the objects alive
     };
-}
+} // namespace trc

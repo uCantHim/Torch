@@ -91,15 +91,15 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // Define named render passes
     addRenderPass(
         RenderPassName{ OPAQUE_G_BUFFER_PASS },
-        [&]{ return RenderPassDefinition{ *getGBufferRenderPass(), 0 }; }
+        [&]{ return RenderPassInfo{ *getGBufferRenderPass(), 0 }; }
     );
     addRenderPass(
         RenderPassName{ TRANSPARENT_G_BUFFER_PASS },
-        [&]{ return RenderPassDefinition{ *getGBufferRenderPass(), 1 }; }
+        [&]{ return RenderPassInfo{ *getGBufferRenderPass(), 1 }; }
     );
     addRenderPass(
         RenderPassName{ SHADOW_PASS },
-        [&]{ return RenderPassDefinition{ getCompatibleShadowRenderPass(), 0 }; }
+        [&]{ return RenderPassInfo{ getCompatibleShadowRenderPass(), 0 }; }
     );
 
     // The final lighting pass wants to create a pipeline layout, so it has

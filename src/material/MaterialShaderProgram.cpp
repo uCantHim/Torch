@@ -357,7 +357,7 @@ void MaterialProgramData::deserialize(
 MaterialShaderProgram::MaterialShaderProgram(
     const MaterialProgramData& data,
     const PipelineDefinitionData& pipelineConfig,
-    const trc::RenderPassName& renderPass)
+    const RenderPassDefinition& renderPass)
     :
     layoutTemplate(data.makeLayout()),
     layout(PipelineRegistry::registerPipelineLayout(layoutTemplate))

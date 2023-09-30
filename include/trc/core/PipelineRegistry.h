@@ -1,9 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <functional>
-#include <variant>
 #include <mutex>
+#include <optional>
+#include <source_location>
+#include <variant>
+#include <vector>
 
 #include "trc/core/Instance.h"
 #include "trc/core/Pipeline.h"
@@ -15,13 +16,19 @@
 namespace trc
 {
     class PipelineStorage;
-    class PipelineRegistry;
 
-    auto registerPipeline(PipelineTemplate t, PipelineLayout::ID layout, RenderPassName renderPass)
-        -> Pipeline::ID;
-
-    auto registerPipeline(ComputePipelineTemplate t, PipelineLayout::ID layout)
-        -> Pipeline::ID;
+    /**
+     * @brief Error thrown by `PipelineRegistry` if an operation is requested
+     *        for the wrong type of pipeline.
+     */
+    class InvalidPipelineType : Exception
+    {
+    public:
+        InvalidPipelineType(std::source_location loc,
+                            const std::string& whatHappened,
+                            vk::PipelineBindPoint expected,
+                            vk::PipelineBindPoint actual);
+    };
 
     /**
      * @brief
@@ -29,21 +36,81 @@ namespace trc
     class PipelineRegistry
     {
     public:
+        /**
+         * @brief Register a template for a pipeline layout
+         */
         static auto registerPipelineLayout(PipelineLayoutTemplate _template) -> PipelineLayout::ID;
+
+        /**
+         * @brief Clone a pipeline layout template as a basis for a new one
+         */
         static auto clonePipelineLayout(PipelineLayout::ID id) -> PipelineLayoutTemplate;
 
+        /**
+         * @brief Register a template for a graphics pipeline
+         *
+         * One must provide additional render pass compatibility information
+         * when creating a graphics pipeline.
+         *
+         * This can be a render pass object for traditional render pass-based
+         * rendering via the `RenderPassInfo` struct. Alternatively, for use
+         * with `VK_KHR_dynamic_rendering`, we can omit the render pass object
+         * and instead provide attachment information via a
+         * `DynamicRenderingInfo` struct.
+         *
+         * As a third option, we can specify either of the two previous options
+         * via a reference name. That name will be used during creation of the
+         * pipeline object (may be lazy) to query the respective information
+         * from the `RenderPassRegistry` used at that time.
+         */
         static auto registerPipeline(PipelineTemplate pipelineTemplate,
                                      PipelineLayout::ID layout,
-                                     RenderPassName renderPass)
+                                     const RenderPassDefinition& renderPass)
             -> Pipeline::ID;
+
+        /**
+         * @brief Register a template for a compute pipeline
+         */
         static auto registerPipeline(ComputePipelineTemplate pipelineTemplate,
                                      PipelineLayout::ID layout)
             -> Pipeline::ID;
 
-        static auto cloneGraphicsPipeline(Pipeline::ID id) -> PipelineTemplate;
+        /**
+         * @brief Clone a graphics pipeline template as a basis for a new one
+         *
+         * @param Pipeline::ID id The pipeline to clone
+         *
+         * @return std::pair<PipelineTemplate, RenderPassDefinition>
+         * @throw InvalidPipelineType if `id` does not refer to a graphics
+         *        pipeline.
+         */
+        static auto cloneGraphicsPipeline(Pipeline::ID id)
+            -> std::pair<PipelineTemplate, RenderPassDefinition>;
+
+        /**
+         * @brief Clone a compute pipeline template as a basis for a new one
+         *
+         * @throw InvalidPipelineType if `id` does not refer to a compute
+         *        pipeline.
+         */
         static auto cloneComputePipeline(Pipeline::ID id) -> ComputePipelineTemplate;
+
+        /**
+         * @brief Query a pipeline's layout
+         */
         static auto getPipelineLayout(Pipeline::ID id) -> PipelineLayout::ID;
-        static auto getPipelineRenderPass(Pipeline::ID id) -> RenderPassName;
+
+        /**
+         * The returned compatibility information may be either a reference to
+         * a render pass registered at a `RenderPassRegistry`, or a concrete
+         * object with that information. You can resolve the result value to a
+         * concrete object with the `resolveRenderPass` helper function.
+         *
+         * @return Render pass compatibility information about the pipeline,
+         *         *if* it is a graphics pipeline. Otherwise nothing.
+         */
+        static auto getPipelineRenderPass(Pipeline::ID id)
+            -> std::optional<RenderPassDefinition>;
 
         /**
          * @brief Create a pipeline storage object
@@ -59,28 +126,52 @@ namespace trc
         public:
             PipelineFactory() = default;
             PipelineFactory(PipelineTemplate t, PipelineLayout::ID layout, RenderPassName rp);
+            PipelineFactory(PipelineTemplate t, PipelineLayout::ID layout, RenderPassCompatInfo r);
             PipelineFactory(ComputePipelineTemplate t, PipelineLayout::ID layout);
 
-            auto getLayout() const -> PipelineLayout::ID;
-            auto getRenderPassName() const -> const RenderPassName&;
+            struct GraphicsPipelineInfo
+            {
+                PipelineTemplate tmpl;
+                std::variant<RenderPassName, RenderPassCompatInfo> renderPassCompatInfo;
+            };
 
-            auto create(const Instance& instance, RenderConfig& renderConfig, PipelineLayout& layout)
+            auto getLayout() const -> PipelineLayout::ID;
+
+            /**
+             * @return nullptr if the factory has no render pass compatibility
+             *         information. This can only happen if the factory produces
+             *         a compute pipeline.
+             */
+            auto getRenderPassCompatInfo() const
+                -> const std::variant<RenderPassName, RenderPassCompatInfo>*;
+
+            /**
+             * @brief Invoke the factory to create its pipeline
+             */
+            auto create(const Instance& instance,
+                        RenderConfig& renderConfig,
+                        PipelineLayout& layout)
                 -> Pipeline;
-            auto clone() const -> std::variant<PipelineTemplate, ComputePipelineTemplate>;
+
+            auto clone() const -> std::variant<GraphicsPipelineInfo, ComputePipelineTemplate>;
 
         private:
-            auto create(PipelineTemplate& p,
-                        const Instance& instance,
-                        RenderConfig& renderConfig,
-                        PipelineLayout& layout) const -> Pipeline;
-            auto create(ComputePipelineTemplate& p,
-                        const Instance& instance,
-                        RenderConfig& renderConfig,
-                        PipelineLayout& layout) const -> Pipeline;
+            static auto create(PipelineTemplate& p,
+                               const RenderPassInfo& compatInfo,
+                               const Instance& instance,
+                               PipelineLayout& layout) -> Pipeline;
+
+            static auto create(PipelineTemplate& p,
+                               const DynamicRenderingInfo& compatInfo,
+                               const Instance& instance,
+                               PipelineLayout& layout) -> Pipeline;
+
+            static auto create(ComputePipelineTemplate& p,
+                               const Instance& instance,
+                               PipelineLayout& layout) -> Pipeline;
 
             PipelineLayout::ID layoutId;
-            RenderPassName renderPassName;
-            std::variant<PipelineTemplate, ComputePipelineTemplate> _template;
+            std::variant<GraphicsPipelineInfo, ComputePipelineTemplate> _template;
         };
 
         /**
@@ -138,7 +229,10 @@ namespace trc
     };
 
     /**
-     * @brief
+     * @brief A container for concrete instances of pipelines
+     *
+     * Pipeline templates registered at the pipeline registry are instantiated
+     * and stored by `PipelineStorage` objects.
      */
     class PipelineStorage
     {

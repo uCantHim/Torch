@@ -95,6 +95,10 @@ namespace trc
     {
     public:
         PipelineTemplate() = default;
+
+        /**
+         * @brief Create a pipeline template
+         */
         PipelineTemplate(ProgramDefinitionData program, PipelineDefinitionData pipeline);
 
         auto getProgramData() const -> const ProgramDefinitionData&;
@@ -141,6 +145,21 @@ namespace trc
                               PipelineLayout& layout,
                               vk::RenderPass renderPass,
                               ui32 subPass
+        ) -> Pipeline;
+
+    /**
+     * @brief Create a graphics pipeline from a template
+     *
+     * Create the pipeline for dynamic rendering, without a render pass.
+     *
+     * Adds viewport and scissor to the dynamic states automatically if
+     * no `vk::Viewport` or `vk::Rect2D` structs, respectively, are
+     * specified in the pipeline template.
+     */
+    auto makeGraphicsPipeline(const Device& device,
+                              const PipelineTemplate& _template,
+                              PipelineLayout& layout,
+                              const vk::PipelineRenderingCreateInfo& renderingInfo
         ) -> Pipeline;
 
     /**
