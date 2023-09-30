@@ -1,10 +1,33 @@
 #pragma once
 
+#include <stdexcept>
+#include <unordered_map>
+
 #include <trc/core/Window.h>
 #include <trc/text/Font.h>
 #include <trc/text/GlyphMap.h>
 
 using namespace trc::basic_types;
+
+class Font;
+
+/**
+ * @return Font& The material editor's canonical font for natural-language,
+ *               descriptive text.
+ * @throw std::out_of_range if the font has not been set.
+ */
+auto getTextFont() -> Font&;
+
+/**
+ * @return Font& The material editor's canonical monospaced font. Used for
+ *               numeric values or other text with syntax restrictions.
+ * @throw std::out_of_range if the font has not been set.
+ */
+auto getMonoFont() -> Font&;
+
+void setGlobalTextFont(Font font);
+void setGlobalMonoFont(Font font);
+void destroyGlobalFonts();
 
 struct GlyphData
 {
@@ -16,6 +39,8 @@ struct GlyphData
 class Font : public trc::Face
 {
 public:
+    Font(Font&&) noexcept = default;
+
     Font(const trc::Device& device, const trc::FontData& data)
         :
         Face(data.fontData, data.fontSize),

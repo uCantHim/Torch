@@ -18,8 +18,6 @@ using namespace trc::basic_types;
 
 struct MaterialEditorRenderingInfo
 {
-    const trc::Image& fontImage;
-
     // A barrier on the render target inserted before rendering to it.
     //
     // The barrier must bring the image into the color attachment optimal

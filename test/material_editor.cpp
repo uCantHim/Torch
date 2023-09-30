@@ -20,7 +20,9 @@ int main()
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
     const auto fontPath = TRC_TEST_FONT_DIR"/gil.ttf";
-    Font font{ window.getDevice(), trc::loadFont(fontPath, 64) };
+    const auto monoFontPath = TRC_TEST_FONT_DIR"/hack_mono.ttf";
+    setGlobalTextFont(Font{ window.getDevice(), trc::loadFont(fontPath, 64) });
+    setGlobalMonoFont(Font{ window.getDevice(), trc::loadFont(monoFontPath, 64) });
 
     // -------------------------------------------------------------------------
     // Material preview viewport:
@@ -40,7 +42,6 @@ int main()
         renderTarget,
         window,
         MaterialEditorRenderingInfo{
-            .fontImage=font.getTexture(),
             .renderTargetBarrier=vk::ImageMemoryBarrier2{
                 vk::PipelineStageFlagBits2::eAllCommands,
                 vk::AccessFlagBits2::eHostWrite | vk::AccessFlagBits2::eHostRead,
@@ -88,7 +89,7 @@ int main()
         updateOutputValues(materialGraph.interaction, materialGraph.graph);
 
         // Generate renderable data from graph
-        const auto renderData = buildRenderData(materialGraph, font);
+        const auto renderData = buildRenderData(materialGraph);
 
         // Draw a frame
         gui.drawGui();
@@ -104,6 +105,7 @@ int main()
         });
     }
 
+    destroyGlobalFonts();
     trc::terminate();
 
     return 0;
