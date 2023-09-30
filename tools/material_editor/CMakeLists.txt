@@ -10,6 +10,7 @@ target_sources(
     PRIVATE
         src/CameraDescriptor.cpp
         src/Controls.cpp
+        src/Font.cpp
         src/GraphCompiler.cpp
         src/GraphInteraction.cpp
         src/GraphLayout.cpp
