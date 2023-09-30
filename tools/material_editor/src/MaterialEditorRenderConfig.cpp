@@ -109,7 +109,12 @@ MaterialEditorRenderConfig::MaterialEditorRenderConfig(
     addDescriptor(trc::DescriptorName{ kCameraDescriptor }, cameraDesc);
     addDescriptor(trc::DescriptorName{ kTextureDescriptor },
                   renderPass.getRenderer().getTextureDescriptor());
-    addRenderPass(kForwardRenderpass, *renderPass, 0);
+    addRenderPass(kForwardRenderpass, trc::DynamicRenderingInfo{
+        .viewMask=0x00,
+        .colorAttachmentFormats{ renderTarget.getFormat() },
+        .depthAttachmentFormat{},
+        .stencilAttachmentFormat{},
+    });
 
     getRenderGraph().first(kMainRenderStage);
     getRenderGraph().after(kMainRenderStage, trc::imgui::imguiRenderStage);

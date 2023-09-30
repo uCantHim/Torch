@@ -40,6 +40,15 @@ VertexAttribute instanceColors:
     InputRate: perInstance
     Locations: [rgba32f]
 
+ColorBlendAttachment blending:
+    ColorBlending: true
+    SrcColorFactor: srcAlpha
+    DstColorFactor: oneMinusSrcAlpha
+    ColorBlendOp: add
+    SrcAlphaFactor: srcAlpha
+    DstAlphaFactor: oneMinusSrcAlpha
+    AlphaBlendOp: add
+
 // Base pipeline for graphical primitives in the material graph
 Pipeline graphElemPipeline:
     Program: graphElementProgram
@@ -48,6 +57,7 @@ Pipeline graphElemPipeline:
         Descriptors: [cameraDesc, textureDesc]
     RenderPass: "material_editor_forward_renderpass"
     CullMode: cullNone
+    ColorBlendAttachments: [blending]
 
 Pipeline linePipeline:
     Program: graphElementProgram
@@ -58,3 +68,4 @@ Pipeline linePipeline:
     PrimitiveTopology: lineList
     LineWidth: 2.0
     CullMode: cullNone
+    DisableBlendAttachments: 1
