@@ -24,6 +24,9 @@ namespace graph
     // Color multiplier to highlight things by brightnening them
     constexpr float kHighlightColorModifier{ 1.8f };
 
+    constexpr vec4 kInputFieldBackgroundColor{ vec3(kNodeColor) * 2.0f, 1.0f };
+    constexpr vec4 kInputFieldBorderColor{ kSeparatorColor };
+
     /**
      * Apply a multiplicative modifier to a color, keeping the color channels
      * in the bounds [0, 1].
@@ -52,7 +55,7 @@ struct GraphRenderData
     void pushNode(vec2 pos, vec2 size, vec4 color);
     void pushSocket(vec2 pos, vec2 size, vec4 color);
     void pushLink(vec2 from, vec2 to, vec4 color);
-    void pushText(vec2 pos, float scale, std::string_view str, vec4 color, Font& font);
+    void pushText(vec2 pos, float scale, vec4 color, std::string_view str, Font& font);
     void pushLetter(vec2 pos, float scale, trc::CharCode c, vec4 color, Font& font);
 
     void pushTextInputField(vec2 pos, vec2 size, vec4 color);
@@ -94,14 +97,13 @@ struct GraphRenderData
 /**
  * @brief Compile a material graph into a renderable representation
  */
-auto buildRenderData(const GraphScene& graph, Font& font) -> GraphRenderData;
+auto buildRenderData(const GraphScene& graph) -> GraphRenderData;
 
 class MaterialGraphRenderer
 {
 public:
     MaterialGraphRenderer(const trc::Device& device,
-                          const trc::FrameClock& clock,
-                          const trc::Image& fontImage);
+                          const trc::FrameClock& clock);
 
     void uploadData(const GraphRenderData& data);
     void draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& conf);

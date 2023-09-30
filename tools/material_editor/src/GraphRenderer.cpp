@@ -9,12 +9,13 @@
 #include <trc/base/ImageUtils.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
+#include "Font.h"
 #include "pipelines.h"
+
+
 
 // Get an iterable list of all types of primitives in a draw group
 #define allPrimitives(group) { (group).quads, (group).glyphs, (group).lines }
-
-
 
 void GraphRenderData::Primitive::pushItem(vec4 dim, vec4 uvDim, vec4 color)
 {
@@ -55,7 +56,7 @@ void GraphRenderData::pushLink(vec2 from, vec2 to, vec4 color)
     curGroup().lines.pushItem({ from, to - from }, kDefaultUv, color);
 }
 
-void GraphRenderData::pushText(vec2 pos, float scale, std::string_view str, vec4 color, Font& font)
+void GraphRenderData::pushText(vec2 pos, float scale, vec4 color, std::string_view str, Font& font)
 {
     for (char c : str)
     {
@@ -118,7 +119,6 @@ void GraphRenderData::clear()
 
 void renderNodes(
     const GraphScene& scene,
-    Font& font,
     GraphRenderData& res)
 {
     auto calcSocketColor = [&scene](SocketID sock) -> vec4 {
@@ -138,7 +138,8 @@ void renderNodes(
         const auto& [nodePos, nodeSize] = layout.nodeSize.get(node);
         const vec2 titlePos = calcTitleTextPos(node, layout);
         res.pushNode(nodePos, nodeSize, graph::kNodeColor);
-        res.pushText(titlePos, graph::kTextHeight, nodeInfo.desc.name, graph::kTextColor, font);
+        res.pushText(titlePos, graph::kTextHeight, graph::kTextColor,
+                     nodeInfo.desc.name, getTextFont());
         res.pushSeparator(nodePos + vec2(0.0f, graph::kNodeHeaderHeight),
                           nodeSize.x,
                           graph::kSeparatorColor);
@@ -187,17 +188,21 @@ void renderSocketLinks(
 void renderInputFields(
     const GraphTopology& graph,
     const GraphLayout& layout,
-    Font& font,
     GraphRenderData& res)
 {
     for (const auto& [sock, field] : graph.socketDecoration.items())
     {
         const auto [nodePos, _] = layout.nodeSize.get(graph.socketInfo.get(sock).parentNode);
         const auto [pos, size] = layout.decorationSize.get(sock);
-        const vec2 contentPos = pos + graph::kInputFieldInnerPadding;
-        res.pushTextInputField(nodePos + pos, size, graph::kSeparatorColor);
-        res.pushText(nodePos + contentPos, graph::kInputTextHeight,
-                     "dummy", graph::kTextColor, font);
+        std::visit(trc::util::VariantVisitor{
+            [&](const NumberInputField& f){
+                const vec2 contentPos = pos + graph::kInputFieldInnerPadding;
+                res.pushTextInputField(nodePos + pos, size, graph::kInputFieldBackgroundColor);
+                res.pushText(nodePos + contentPos, graph::kInputTextHeight,
+                             graph::kTextColor, "dummy", getTextFont());
+            },
+            [&](const ColorInputField& f){},
+        }, field);
     }
 }
 
@@ -209,15 +214,15 @@ void renderSelectionBox(const GraphInteraction& interaction, GraphRenderData& re
     }
 }
 
-auto buildRenderData(const GraphScene& scene, Font& font) -> GraphRenderData
+auto buildRenderData(const GraphScene& scene) -> GraphRenderData
 {
     const auto& graph = scene.graph;
     const auto& layout = scene.layout;
 
     GraphRenderData res;
-    renderNodes(scene, font, res);
+    renderNodes(scene, res);
     renderSocketLinks(graph, layout, res);
-    renderInputFields(graph, layout, font, res);
+    renderInputFields(graph, layout, res);
     renderSelectionBox(scene.interaction, res);
 
     return res;
@@ -240,8 +245,7 @@ auto makeVertBuf(const trc::Device& device, size_t size) -> trc::Buffer
 
 MaterialGraphRenderer::MaterialGraphRenderer(
     const trc::Device& device,
-    const trc::FrameClock& clock,
-    const trc::Image& fontImage)
+    const trc::FrameClock& clock)
     :
     device(device),
     descProvider({}, {}),
@@ -301,7 +305,7 @@ MaterialGraphRenderer::MaterialGraphRenderer(
         .descSet{},
     };
     textures[fontTextureIndex] = Texture{
-        .imageView=fontImage.createView(vk::ImageAspectFlagBits::eColor),
+        .imageView=getTextFont().getTexture().createView(vk::ImageAspectFlagBits::eColor),
         .sampler=device->createSamplerUnique(
             vk::SamplerCreateInfo{ {}, vk::Filter::eLinear, vk::Filter::eLinear, }
         ),
