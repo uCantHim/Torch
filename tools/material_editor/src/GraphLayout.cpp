@@ -1,5 +1,7 @@
 #include "GraphLayout.h"
 
+#include "Font.h"
+
 
 
 void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout)
@@ -54,14 +56,22 @@ auto calcNodeSize(NodeID node, const GraphTopology& graph) -> vec2
     auto outputSizes = outputs | std::views::transform(_calcSocketSize)
                                | std::views::transform([](auto&& v){ return v.x; });
 
+    // Calculate node size to fit its sockets
     vec2 extent{ 0.0f, 0.0f };
     extent.y = graph::kNodeHeaderHeight
-             + maxVerticalSockets * graph::kSocketSize.y
-             + (maxVerticalSockets + 1) * graph::kPadding;
+             + static_cast<float>(maxVerticalSockets) * graph::kSocketSize.y
+             + static_cast<float>(maxVerticalSockets + 1) * graph::kPadding;
     extent.x = (!inputs.empty() ? (*std::ranges::max_element(inputSizes) + graph::kPadding) : 0)
              + graph::kSocketSpacingHorizontal
              + (!outputs.empty() ? (*std::ranges::max_element(outputSizes) + graph::kPadding) : 0);
 
+    // Possibly rescale node to fit its title text in width
+    const float nodeTitleWidth = calcTextSize(graph.nodeInfo.get(node).desc.name,
+                                              graph::kTextHeight,
+                                              getTextFont()).x;
+    extent.x = glm::max(extent.x, nodeTitleWidth + graph::kPadding * 2.0f);
+
+    // Fallback constraint in case something weird happens
     extent = glm::max(extent, graph::kMinNodeSize);
 
     return extent;
