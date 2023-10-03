@@ -42,3 +42,17 @@ void destroyGlobalFonts()
     globalTextFont.reset();
     globalMonoFont.reset();
 }
+
+auto calcTextSize(std::string_view str, float scaling, Font& font) -> vec2
+{
+    const float maxGlyphHeight = font.maxAscendNorm + glm::abs(font.maxDescendNorm);
+
+    vec2 size{ 0.0f, scaling * maxGlyphHeight };
+    for (char c : str)
+    {
+        const auto& meta = font.getMetadata(c).metaNormalized;
+        size.x += meta.advance * scaling;
+    }
+
+    return size;
+}
