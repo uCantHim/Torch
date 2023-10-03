@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <string_view>
 #include <unordered_map>
 
 #include <trc/core/Window.h>
@@ -10,6 +11,11 @@
 using namespace trc::basic_types;
 
 class Font;
+
+/**
+ * @brief Calculate the size of rendered text
+ */
+auto calcTextSize(std::string_view str, float scaling, Font& font) -> vec2;
 
 /**
  * @return Font& The material editor's canonical font for natural-language,
