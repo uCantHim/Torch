@@ -87,11 +87,11 @@ void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& des
         {
             switch (constVal->type)
             {
-            case UserInputType::eFloat:
+            case ConstantValueType::eFloat:
                 graph.socketDecoration.emplace(sock, NumberInputField{});
                 break;
-            case UserInputType::eRgb:
-            case UserInputType::eRgba:
+            case ConstantValueType::eRgb:
+            case ConstantValueType::eRgba:
                 graph.socketDecoration.emplace(sock, ColorInputField{});
                 break;
             }

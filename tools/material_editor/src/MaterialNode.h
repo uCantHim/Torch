@@ -14,7 +14,7 @@
 using namespace trc::basic_types;
 namespace code = trc::code;
 
-enum class UserInputType
+enum class ConstantValueType
 {
     eFloat,
     eRgb,
@@ -26,7 +26,7 @@ enum class UserInputType
 /**
  * @brief Get the shader type corresponding to a user input field type
  */
-constexpr auto getConstantType(UserInputType f) -> trc::BasicType;
+constexpr auto getConstantType(ConstantValueType f) -> trc::BasicType;
 
 struct NodeInputLink
 {
@@ -42,7 +42,7 @@ struct ConstantValue
     std::string description;
 
     trc::Constant value;
-    UserInputType type;  // TODO (maybe): Make this optional?
+    ConstantValueType type;  // TODO (maybe): Make this optional?
 };
 
 struct ComputedValue
@@ -127,11 +127,11 @@ auto getOutputNode() -> const NodeDescription&;
 // -----------------------------------------------------------------------------
 // Implementations
 
-constexpr auto getConstantType(UserInputType f) -> trc::BasicType
+constexpr auto getConstantType(ConstantValueType f) -> trc::BasicType
 {
     switch (f) {
-        case UserInputType::eFloat: return float{};
-        case UserInputType::eRgb: return vec3{};
-        case UserInputType::eRgba: return vec4{};
+        case ConstantValueType::eFloat: return float{};
+        case ConstantValueType::eRgb: return vec3{};
+        case ConstantValueType::eRgba: return vec4{};
     }
 }

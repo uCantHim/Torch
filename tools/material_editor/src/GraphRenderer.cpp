@@ -199,7 +199,19 @@ void renderInputFields(
                 const vec2 contentPos = pos + graph::kInputFieldInnerPadding;
                 res.pushTextInputField(nodePos + pos, size, graph::kInputFieldBackgroundColor);
                 res.pushText(nodePos + contentPos, graph::kInputTextHeight,
-                             graph::kTextColor, "dummy", getTextFont());
+                             graph::kTextColor, f.literalInput, getTextFont());
+
+                if (f.selected)
+                {
+                    const vec2 textSize = calcTextSize(f.literalInput,
+                                                       graph::kInputTextHeight,
+                                                       getTextFont());
+                    res.curGroup().lines.pushItem(
+                        { nodePos + contentPos + vec2(textSize.x, 0), vec2(0, textSize.y) },
+                        GraphRenderData::kDefaultUv,
+                        graph::kTextColor
+                    );
+                }
             },
             [&](const ColorInputField& f){},
         }, field);

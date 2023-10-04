@@ -80,7 +80,7 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .description = "A constant floating-point value",
             .outputs = { ConstantValue{
                 .value{ 0.0f },
-                .type=UserInputType::eFloat,
+                .type=ConstantValueType::eFloat,
             }},
         }},
         { "matedit_fun_mix", NodeDescription{
