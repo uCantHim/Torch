@@ -35,7 +35,10 @@ struct Socket
 
 struct NumberInputField
 {
-    float value;
+    std::string literalInput;
+
+    // True if the text inside the input field is selected
+    bool selected{ false };
 };
 
 struct ColorInputField

@@ -12,7 +12,6 @@ target_sources(
         src/Controls.cpp
         src/Font.cpp
         src/GraphCompiler.cpp
-        src/GraphInteraction.cpp
         src/GraphLayout.cpp
         src/GraphManipulator.cpp
         src/GraphRenderer.cpp

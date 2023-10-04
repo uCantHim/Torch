@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <fstream>
+#include <mutex>
 #include <variant>
 
 #include <trc/base/event/Event.h>
@@ -50,6 +51,13 @@ struct MouseState
 
 struct KeyboardState
 {
+    /**
+     * True if the canonical 'exit' key was pressed.
+     * This means that the currently active context should exit and return to
+     * its parent state.
+     */
+    bool didExit{ false };
+
     bool didUndo{ false };
     bool didRedo{ false };
 
@@ -225,6 +233,68 @@ struct MultiSelectState : ControlState
     }
 };
 
+struct InputTextFieldState : ControlState
+{
+    InputTextFieldState(SocketID inputField)
+        :
+        inputField(inputField),
+        charInputHandler(trc::on<trc::CharInputEvent>(
+            [this](const trc::CharInputEvent& e){
+                std::scoped_lock lock{ strLock };
+                inputString += static_cast<char>(e.character);
+            }
+        )),
+        backspacePress(trc::on<trc::KeyPressEvent>(
+            [this](const auto& e){
+                if (e.key == trc::Key::backspace && !inputString.empty()) {
+                    std::scoped_lock lock{ strLock };
+                    inputString.pop_back();
+                }
+            }
+        )),
+        backspaceRepeat(trc::on<trc::KeyRepeatEvent>(
+            [this](const auto& e){
+                if (e.key == trc::Key::backspace && !inputString.empty()) {
+                    std::scoped_lock lock{ strLock };
+                    inputString.pop_back();
+                }
+            }
+        ))
+    {}
+
+    auto update(const ControlInput& in, ControlOutput& out)
+        -> StateResult override
+    {
+        auto& graph = out.graph.graph;
+        assert(std::holds_alternative<NumberInputField>(graph.socketDecoration.get(inputField)));
+
+        auto& field = std::get<NumberInputField>(graph.socketDecoration.get(inputField));
+        field.selected = true;
+
+        // Set field's content to the user input string
+        std::scoped_lock lock{ strLock };
+        field.literalInput = inputString;
+
+        // Exit condition: unselect the input field with a click or a generic
+        // exit command
+        if ((in.mouseState.selectButton.wasClicked && in.hoveredInputField != inputField)
+            || in.kbState.didExit)
+        {
+            field.selected = false;
+            return PopState{};
+        }
+        return NoAction{};
+    }
+
+    const SocketID inputField;
+    trc::UniqueListenerId<trc::CharInputEvent> charInputHandler;
+    trc::UniqueListenerId<trc::KeyPressEvent> backspacePress;
+    trc::UniqueListenerId<trc::KeyRepeatEvent> backspaceRepeat;
+
+    std::mutex strLock;
+    std::string inputString;
+};
+
 struct DefaultControlState : ControlState
 {
     auto update(const ControlInput& in, ControlOutput& out)
@@ -232,6 +302,8 @@ struct DefaultControlState : ControlState
     {
         constexpr float kZoomStep{ 0.15f };
         constexpr trc::Key kChainSelectionModKey{ trc::Key::left_shift };
+
+        assert(!(in.hoveredSocket.has_value() && in.hoveredInputField.has_value()));
 
         const auto& kbState = in.kbState;
         const auto& mouseState = in.mouseState;
@@ -255,7 +327,19 @@ struct DefaultControlState : ControlState
             // If the user clicked on a linked socket, unlink it.
             // Otherwise, if the user clicked on a node, select it.
             // Otherwise unselect all nodes.
-            if (hoveredSocket && graph.graph.link.contains(*hoveredSocket)) {
+            if (hoveredDeco)
+            {
+                assert(graph.graph.socketDecoration.contains(*hoveredDeco));
+                std::cout << "Deco is hovered\n";
+                return std::visit(trc::util::VariantVisitor{
+                    [&](const NumberInputField&) -> StateResult {
+                        std::cout << "push input state\n";
+                        return PushState{ std::make_unique<InputTextFieldState>(*hoveredDeco) };
+                    },
+                    [](const ColorInputField&) -> StateResult { return NoAction{}; }
+                }, graph.graph.socketDecoration.get(*hoveredDeco));
+            }
+            else if (hoveredSocket && graph.graph.link.contains(*hoveredSocket)) {
                 graph.graph.unlinkSockets(*hoveredSocket);
             }
             else if (hoveredNode)
@@ -513,6 +597,7 @@ auto updateZoom() -> ZoomState
 auto updateKeyboard() -> KeyboardState
 {
     constexpr float kMillisWithingDoubleClick{ 200 };
+    constexpr trc::Key kExitCurrentStateKey{ trc::Key::escape };
     constexpr trc::Key kUndoKey{ trc::Key::z };
     constexpr trc::Key kUndoKeyMod{ trc::Key::left_ctrl };
     constexpr trc::Key kRedoKeyMod{ trc::Key::left_shift };
@@ -522,6 +607,8 @@ auto updateKeyboard() -> KeyboardState
     constexpr trc::Key kSaveKeyMod{ trc::Key::left_ctrl };
 
     KeyboardState res;
+
+    res.didExit = trc::Keyboard::wasPressed(kExitCurrentStateKey);
 
     // Undo/redo
     if (trc::Keyboard::wasPressed(kUndoKey) && trc::Keyboard::isPressed(kUndoKeyMod))
@@ -535,10 +622,7 @@ auto updateKeyboard() -> KeyboardState
     }
 
     // Delete all selected nodes
-    if (trc::Keyboard::wasPressed(kDeleteKey))
-    {
-        res.didDelete = true;
-    }
+    res.didDelete = trc::Keyboard::wasPressed(kDeleteKey);
 
     // Select all nodes
     static trc::Timer timeSinceSelectAll;
