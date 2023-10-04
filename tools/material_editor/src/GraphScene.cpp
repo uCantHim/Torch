@@ -10,7 +10,6 @@ auto GraphScene::makeNode(NodeDescription desc) -> NodeID
 
     // Create objects
     createSockets(id, graph, desc);
-    createInputFields(interaction, id, graph);
 
     // Layout objects
     layout.nodeSize.emplace(id, vec2(0.0f), calcNodeSize(id, graph));
@@ -64,12 +63,14 @@ auto GraphScene::findHover(const vec2 pos) const -> GraphHoverInfo
             if (isInside(pos, { hitbox.origin + nodePos, hitbox.extent })) {
                 return { node, sock, std::nullopt };
             }
-        }
 
-        for (const auto& [sock, hitbox] : layout.decorationSize.items())
-        {
-            if (isInside(pos, { hitbox.origin + nodePos, hitbox.extent })) {
-                return { node, std::nullopt, sock };
+            // Now test for hover of the socket's decoration element
+            if (auto decoration = layout.decorationSize.try_get(sock))
+            {
+                const auto& hitbox = decoration->get();
+                if (isInside(pos, { hitbox.origin + nodePos, hitbox.extent })) {
+                    return { node, std::nullopt, sock };
+                }
             }
         }
 
