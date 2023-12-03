@@ -25,7 +25,7 @@ namespace graph
     constexpr float kInputFieldInnerPadding{ kTextHeight * 0.1f };
 
     constexpr float kInputTextHeight{ kTextHeight * 0.8f };
-    constexpr vec2 kTextInputFieldSize{ kSocketSize.x * 3.5f, kTextHeight };
+    constexpr vec2 kTextInputFieldSize{ kSocketSize.x * 3.0f, kTextHeight };
 } // namespace graph
 
 struct Hitbox

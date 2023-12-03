@@ -14,6 +14,12 @@ void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout)
     {
         layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
         socketPos.y += graph::kSocketSize.y + graph::kPadding;
+
+        if (graph.socketDecoration.contains(sock))
+        {
+            auto pos = socketPos + vec2(graph::kSocketSize.x + graph::kPadding, 0.0f);
+            layout.decorationSize.emplace(sock, pos, graph::kTextInputFieldSize);
+        }
     }
 
     // Layout output socket
@@ -24,8 +30,7 @@ void layoutSockets(NodeID node, const GraphTopology& graph, GraphLayout& layout)
         layout.socketSize.emplace(sock, socketPos, graph::kSocketSize);
         if (graph.socketDecoration.contains(sock))
         {
-            auto pos = socketPos;
-            pos.x -= graph::kTextInputFieldSize.x + graph::kPadding;
+            auto pos = socketPos - vec2(graph::kTextInputFieldSize.x + graph::kPadding, 0.0f);
             layout.decorationSize.emplace(sock, pos, graph::kTextInputFieldSize);
         }
         socketPos.y += graph::kSocketSize.y + graph::kPadding;

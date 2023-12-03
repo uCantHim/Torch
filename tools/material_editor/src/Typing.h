@@ -10,6 +10,27 @@
 using namespace trc::basic_types;
 
 /**
+ * @brief A value's type on the abstraction level of material node inputs
+ *        and outputs.
+ */
+enum class SemanticType
+{
+    eRgb,
+    eRgba,
+
+    eFloat,
+    eVec2,
+    eVec3,
+};
+
+/**
+ * @brief Get the shader type corresponding to a user input field type
+ */
+constexpr auto toShaderType(SemanticType t) -> trc::BasicType;
+
+constexpr auto toSemanticType(trc::BasicType t) -> SemanticType;
+
+/**
  * @brief Subtype relationship among basic types
  */
 auto operator<=>(const trc::BasicType::Type a, const trc::BasicType::Type b)
@@ -24,9 +45,15 @@ struct TypeRange
     TypeRange() = default;
 
     TypeRange(const trc::BasicType& t);
+
     template<std::convertible_to<trc::BasicType> T>
         requires (!std::same_as<std::decay_t<T>, trc::BasicType>)
     TypeRange(T&& t) : TypeRange(trc::BasicType{ t }) {}
+
+    /**
+     * @brief Create a type range that matches a high-level type exactly
+     */
+    TypeRange(SemanticType type) : TypeRange(toShaderType(type)) {}
 
     TypeRange(trc::BasicType::Type t, ui8 minChannels, ui8 maxChannels);
 
@@ -68,3 +95,36 @@ auto intersect(const TypeRange& a, const TypeRange& b) -> std::optional<TypeRang
  * @brief Test if a type constraint results in a single possible type
  */
 auto toConcreteType(const TypeConstraint& constr) -> std::optional<trc::BasicType>;
+
+
+
+// -----------------------------------------------------------------------------
+// Implementations
+
+constexpr auto toShaderType(SemanticType f) -> trc::BasicType
+{
+    switch (f) {
+        case SemanticType::eRgb: return vec3{};
+        case SemanticType::eRgba: return vec4{};
+        case SemanticType::eFloat: return float{};
+        case SemanticType::eVec2: return vec2{};
+        case SemanticType::eVec3: return vec3{};
+    }
+}
+
+constexpr auto toSemanticType(trc::BasicType t) -> SemanticType
+{
+    if (t.type >= trc::BasicType::Type::eFloat)
+    {
+        switch (t.channels)
+        {
+        case 1: return SemanticType::eFloat;
+        case 2: return SemanticType::eVec2;
+        case 3: return SemanticType::eVec3;
+        default: break;
+        }
+    }
+
+    throw std::logic_error("Unable to convert basic type " + trc::code::types::to_string(t)
+                           + " to a semantic type.");
+}
