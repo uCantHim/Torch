@@ -7,7 +7,7 @@
 
 
 
-auto getComputationBuilder(const NodeOutputValue& value) -> ComputedValue::ComputationBuilder
+auto getComputationBuilder(const NodeOutput& value) -> ComputedValue::ComputationBuilder
 {
     using Ret = ComputedValue::ComputationBuilder;
 
@@ -29,12 +29,12 @@ auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeC
     {
         // Socket is an output socket
         if (auto constVal = try_get<ConstantValue>(_out->get())) {
-            return getConstantType(constVal->type);
+            return toShaderType(constVal->type);
         }
 
         auto& out = std::get<ComputedValue>(_out->get());
         if (out.resultType) {
-            return TypeRange::makeEq(*out.resultType);
+            return TypeRange(*out.resultType);
         }
         if (out.resultInfluencingArgs.empty()) {
             return std::nullopt;
@@ -107,6 +107,78 @@ auto convertTo(
     return builder.makeConstructor(dstType, defaultArgs);
 }
 
+// Forward declaration for a recursive call in `makeInputSocketValue`.
+/**
+ * @brief Create the value of an output socket
+ */
+auto makeOutputSocketValue(
+    trc::ShaderModuleBuilder& builder,
+    const SocketID sock,
+    const GraphTopology& graph) -> std::optional<code::Value>;
+
+/**
+ * @brief Create the value of an input socket
+ */
+auto makeInputSocketValue(
+    trc::ShaderModuleBuilder& builder,
+    const SocketID sock,
+    const GraphTopology& graph) -> std::optional<code::Value>
+{
+    assert(!graph.outputValue.contains(sock)
+           && "Input sockets shall not have associated output values.");
+
+    // First, try to get a value from a linked socket.
+    if (auto linkedSocket = graph.link.try_get(sock)) {
+        return makeOutputSocketValue(builder, *linkedSocket, graph);
+    }
+
+    // Then, try to get a value from a user input field.
+    if (auto inputField = graph.socketDecoration.try_get(sock))
+    {
+        return std::visit(trc::util::VariantVisitor{
+            [&](const NumberInputField& f){ return builder.makeConstant(std::stof(f.literalInput)); },
+            [&](const ColorInputField& f){ return builder.makeConstant(f.value); },
+        }, inputField->get());
+    }
+
+    // No value is defined for the socket.
+    return std::nullopt;
+}
+
+auto makeOutputSocketValue(
+    trc::ShaderModuleBuilder& builder,
+    const SocketID sock,
+    const GraphTopology& graph) -> std::optional<code::Value>
+{
+    // Correctness validation
+    if (!graph.outputValue.contains(sock))
+    {
+        throw GraphValidationError("Input socket is connected to a socket that is not an"
+                                   " output socket!");
+    }
+
+    const auto node = graph.socketInfo.get(sock).parentNode;
+
+    // Create input values
+    std::vector<code::Value> args;
+    for (const SocketID inputSock : graph.inputSockets.get(node))
+    {
+        if (auto value = makeInputSocketValue(builder, inputSock, graph)) {
+            args.emplace_back(*value);
+        }
+        else {
+            throw std::runtime_error("Required input socket does not have a value.");
+        }
+    }
+
+    // Create the output value based on the input values
+    const auto& buildFunc = getComputationBuilder(graph.outputValue.get(sock));
+    return buildFunc(builder, args);
+}
+
+/**
+ * @brief Build the values for all input sockets of a node
+ */
 auto buildInputValues(
     trc::ShaderModuleBuilder& builder,
     const GraphTopology& graph,
@@ -117,26 +189,15 @@ auto buildInputValues(
     std::vector<code::Value> res;
     for (const SocketID sock : graph.inputSockets.get(node))
     {
-        if (!graph.link.contains(sock))
-        {
-            if (requireInputs) {
-                throw std::runtime_error("Required input socket is not linked to any node.");
-            }
+        if (auto value = makeInputSocketValue(builder, sock, graph)) {
+            res.emplace_back(*value);
+        }
+        else if (!requireInputs) {
             res.emplace_back(nullptr);
-            continue;
         }
-
-        const auto inputSocket = graph.link.get(sock);
-        if (!graph.outputValue.contains(inputSocket))
-        {
-            throw GraphValidationError("Input socket is connected to a socket that is not an"
-                                       " output socket!");
+        else {
+            throw std::runtime_error("Required input socket is not linked to any node.");
         }
-
-        const auto inputNode = graph.socketInfo.get(inputSocket).parentNode;
-        const auto& buildFunc = getComputationBuilder(graph.outputValue.get(inputSocket));
-        const auto args = buildInputValues(builder, graph, inputNode);
-        res.emplace_back(buildFunc(builder, args));
     }
 
     return res;
@@ -150,6 +211,7 @@ auto compileMaterialGraph(trc::ShaderModuleBuilder& builder, const GraphTopology
                                    " node.");
     }
 
+    // Debug logging during development
     auto inputs = graph.inputSockets.get(graph.outputNode)
                   | std::views::transform([&](auto s){ return graph.link.try_get(s); })
                   | std::views::transform([&](auto s){ return s ? inferType(graph, *s) : std::nullopt; });
@@ -176,8 +238,10 @@ auto compileMaterialGraph(trc::ShaderModuleBuilder& builder, const GraphTopology
         ++i;
     }
 
+    // Create all output values of the graph's root node
     GraphOutput res;
     auto values = buildInputValues(builder, graph, graph.outputNode, false);
+    assert(values.size() == graph.inputSockets.get(graph.outputNode).size());
     for (ui32 i = 0; const auto& sock : graph.inputSockets.get(graph.outputNode)) {
         res.values.try_emplace(graph.socketInfo.get(sock).name, values.at(i++));
     }

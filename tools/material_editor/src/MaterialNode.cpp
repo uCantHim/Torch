@@ -18,36 +18,6 @@ auto makeBuilder(F&& func)
     };
 }
 
-auto makeNodeDescription(s_ptr<trc::ShaderFunction> func) -> NodeDescription
-{
-    constexpr const char* noDescription = "no description :(";
-
-    NodeDescription desc{
-        .name = func->getName(),
-        .id = func->getName(),
-        .description = noDescription,
-        .inputs{},
-        .inputTypeCorrelations{},
-        .outputs = { ComputedValue{
-            .resultType=func->getType().returnType,
-            .builder=[func](trc::ShaderModuleBuilder& builder, std::vector<code::Value> args)
-                -> code::Value
-            {
-                return builder.makeCall(*func, std::move(args));
-            },
-        }},
-    };
-
-    for (ui32 i = 0; auto inType : func->getType().argTypes)
-    {
-        desc.inputs.emplace_back("arg" + std::to_string(i++),
-                                 noDescription,
-                                 TypeRange::makeEq(inType));
-    }
-
-    return desc;
-}
-
 auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription>&
 {
     static std::unordered_map<std::string, NodeDescription> allNodes{
@@ -57,7 +27,7 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .id = "matedit_fun_white",
             .description = "Just a while color",
             .outputs = { ComputedValue{
-                .resultType=vec4{},
+                .resultType=SemanticType::eRgba,
                 .builder=[](trc::ShaderModuleBuilder& builder, auto&&) {
                     return builder.makeConstant(vec4(1.0f));
                 },
@@ -68,7 +38,7 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .id = "matedit_fun_simple_value",
             .description = "A constant value",
             .outputs = { ComputedValue{
-                .resultType=float{},
+                .resultType=SemanticType::eFloat,
                 .builder=[](trc::ShaderModuleBuilder& builder, auto&&) {
                     return builder.makeConstant(0.0f);
                 },
@@ -80,7 +50,7 @@ auto getMaterialNodes() -> const std::unordered_map<std::string, NodeDescription
             .description = "A constant floating-point value",
             .outputs = { ConstantValue{
                 .value{ 0.0f },
-                .type=ConstantValueType::eFloat,
+                .type=SemanticType::eFloat,
             }},
         }},
         { "matedit_fun_mix", NodeDescription{
