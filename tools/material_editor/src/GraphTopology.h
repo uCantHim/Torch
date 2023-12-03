@@ -68,7 +68,7 @@ struct GraphTopology
     /**
      * Sockets have an entry here if they are output sockets.
      */
-    Table<NodeOutputValue, SocketID> outputValue;
+    Table<NodeOutput, SocketID> outputValue;
 
     /**
      * Sockets have an entry here if they have an associated decoration element.

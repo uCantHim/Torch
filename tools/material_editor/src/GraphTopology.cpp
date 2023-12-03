@@ -71,6 +71,22 @@ void GraphTopology::removeNode(NodeID id)
 
 void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& desc)
 {
+    auto makeInputField = [&](SemanticType type) -> InputElement
+    {
+        switch (type)
+        {
+        case SemanticType::eFloat:
+            return NumberInputField{};
+            break;
+        case SemanticType::eRgb:
+        case SemanticType::eRgba:
+            return ColorInputField{};
+            break;
+        default:
+            assert(false && "Not implemented.");
+        }
+    };
+
     for (const auto& arg : desc.inputs)
     {
         auto sock = graph.makeSocket({ node, arg.name, arg.description });
@@ -83,18 +99,8 @@ void createSockets(NodeID node, GraphTopology& graph, const NodeDescription& des
         graph.outputValue.emplace(sock, outVal);
 
         // Create a user input field for constant values
-        if (auto constVal = try_get<ConstantValue>(outVal))
-        {
-            switch (constVal->type)
-            {
-            case ConstantValueType::eFloat:
-                graph.socketDecoration.emplace(sock, NumberInputField{});
-                break;
-            case ConstantValueType::eRgb:
-            case ConstantValueType::eRgba:
-                graph.socketDecoration.emplace(sock, ColorInputField{});
-                break;
-            }
+        if (auto constVal = try_get<ConstantValue>(outVal)) {
+            graph.socketDecoration.emplace(sock, makeInputField(constVal->type));
         }
     }
 }

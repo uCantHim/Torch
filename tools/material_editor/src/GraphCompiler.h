@@ -26,7 +26,7 @@ auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeC
 /**
  * @brief Query or create a computation builder for an output value
  */
-auto getComputationBuilder(const NodeOutputValue& value)
+auto getComputationBuilder(const NodeOutput& value)
     -> ComputedValue::ComputationBuilder;
 
 struct GraphOutput
