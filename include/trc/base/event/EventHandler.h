@@ -2,19 +2,34 @@
 
 #include <atomic>
 #include <algorithm>
-#include <condition_variable>
 #include <functional>
 #include <mutex>
-#include <queue>
-#include <ranges>
 #include <thread>
 #include <vector>
 
 #include <trc_util/data/DeferredInsertVector.h>
 #include <trc_util/data/ThreadsafeQueue.h>
 
+#include "trc/base/InputProcessor.h"
+
 namespace trc
 {
+    class Swapchain;
+
+    /**
+     * @brief An input processor that generates events at the `EventHandler`
+     */
+    class InputEventSpawner : public InputProcessor
+    {
+    public:
+        void onCharInput(Swapchain&, uint32_t charcode) override;
+        void onKeyInput(Swapchain&, Key key, InputAction action, KeyModFlags mods) override;
+        void onMouseInput(Swapchain&, MouseButton button, InputAction action, KeyModFlags mods) override;
+        void onMouseMove(Swapchain&, double x, double y) override;
+        void onMouseScroll(Swapchain&, double xOffset, double yOffset) override;
+        void onWindowClose(Swapchain&) override;
+    };
+
     class EventThread
     {
     public:
@@ -59,7 +74,6 @@ namespace trc
         using ListenerId = const ListenerEntry*;
 
         static void notify(EventType event);
-        static void notifySync(EventType event);
 
         static auto addListener(std::function<void(const EventType&)> newListener) -> ListenerId;
         static void removeListener(ListenerId listener);
@@ -116,17 +130,6 @@ namespace trc
         // ready to be processed
         if (!isBeingPolled.test_and_set()) {
             EventThread::notifyActiveHandler(pollEvents);
-        }
-    }
-
-    template<typename EventType>
-    void EventHandler<EventType>::notifySync(EventType event)
-    {
-        listeners.update();
-
-        for (auto& listener : listeners.iter())
-        {
-            listener->callback(event);
         }
     }
 

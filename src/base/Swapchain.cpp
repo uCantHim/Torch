@@ -1,17 +1,14 @@
 #include "trc/base/Swapchain.h"
 
-#include <stdexcept>
+#include <cassert>
 #include <chrono>
+#include <stdexcept>
 using namespace std::chrono;
 
 #include "trc/base/Device.h"
 #include "trc/base/Logging.h"
 #include "trc/base/PhysicalDevice.h"
-#include "trc/base/VulkanDebug.h"
-#include "trc/base/VulkanInstance.h"
 #include "trc/base/event/EventHandler.h"
-#include "trc/base/event/InputEvents.h"
-#include "trc/base/event/WindowEvents.h"
 
 
 
@@ -211,7 +208,11 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
 //        Swapchain class       //
 // ---------------------------- //
 
-trc::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreateInfo& info)
+trc::Swapchain::Swapchain(
+    const Device& device,
+    Surface s,
+    s_ptr<InputProcessor> inputProcessor,
+    const SwapchainCreateInfo& info)
     :
     FrameClock([&device, &s, &info] {
         const auto& phys = device.getPhysicalDevice();
@@ -237,13 +238,14 @@ trc::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
     createInfo(info),
     surface(std::move(s)),
     window(surface.getGlfwWindow()),
+    inputProcessor(inputProcessor),
     swapchainImageUsage([&info] {
         // Add necessary default usage flags
-        auto usageFlags = info.imageUsage;
-        usageFlags |= vk::ImageUsageFlagBits::eColorAttachment;
-        return usageFlags;
+        return info.imageUsage | vk::ImageUsageFlagBits::eColorAttachment;
     }())
 {
+    assert(this->inputProcessor != nullptr);
+
     /**
      * This call also has practical significance: Vulkan requires that the
      * getSurfaceSupportKHR function be called on every surface before a
@@ -258,8 +260,51 @@ trc::Swapchain::Swapchain(const Device& device, Surface s, const SwapchainCreate
         );
     }
 
-    initGlfwCallbacks(surface.getGlfwWindow());
+    glfwSetWindowUserPointer(window, this);
+
+    // Register input event callbacks
+    static auto getSwapchain = [](auto window) -> Swapchain& {
+        return *static_cast<Swapchain*>(glfwGetWindowUserPointer(window));
+    };
+
+    glfwSetCharCallback(window, [](auto win, auto c){
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onCharInput(sc, c);
+    });
+    glfwSetKeyCallback(window, [](auto win, int key, int, int action, int mods){
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onKeyInput(sc,
+                                      static_cast<Key>(key),
+                                      static_cast<InputAction>(action),
+                                      KeyModFlags(mods));
+    });
+    glfwSetCursorPosCallback(window, [](auto win, double xpos, double ypos){
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onMouseMove(sc, xpos, ypos);
+    });
+    glfwSetMouseButtonCallback(window, [](auto win, int button, int action, int mods){
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onMouseInput(sc,
+                                        static_cast<MouseButton>(button),
+                                        static_cast<InputAction>(action),
+                                        KeyModFlags(mods));
+    });
+    glfwSetScrollCallback(window, [](auto win, double xoff, double yoff){
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onMouseScroll(sc, xoff, yoff);
+    });
+    glfwSetWindowCloseCallback(window, [](auto win){
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onWindowClose(sc);
+    });
+
+    // Create the Vulkan swapchain object
     createSwapchain(info);
+}
+
+auto trc::Swapchain::getDevice() const -> const Device&
+{
+    return device;
 }
 
 auto trc::Swapchain::acquireImage(vk::Semaphore signalSemaphore) const -> uint32_t
@@ -296,6 +341,23 @@ bool trc::Swapchain::presentImage(
 
     FrameClock::endFrame();
     return true;
+}
+
+void trc::Swapchain::addCallbackBeforeSwapchainRecreate(
+    std::function<void(Swapchain&)> recreateCallback)
+{
+    beforeRecreateCallbacks.add(std::move(recreateCallback));
+}
+
+void trc::Swapchain::addCallbackAfterSwapchainRecreate(
+    std::function<void(Swapchain&)> recreateCallback)
+{
+    afterRecreateCallbacks.add(std::move(recreateCallback));
+}
+
+void trc::Swapchain::addCallbackOnResize(std::function<void(Swapchain&)> resizeCallback)
+{
+    resizeCallbacks.add(std::move(resizeCallback));
 }
 
 auto trc::Swapchain::getImageExtent() const noexcept -> vk::Extent2D
@@ -340,6 +402,11 @@ void trc::Swapchain::setPresentMode(vk::PresentModeKHR newMode)
 auto trc::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
 {
     return window;
+}
+
+void trc::Swapchain::setInputProcessor(s_ptr<InputProcessor> proc)
+{
+    inputProcessor = proc;
 }
 
 auto trc::Swapchain::isOpen() const noexcept -> bool
@@ -522,99 +589,6 @@ auto trc::Swapchain::isPressed(MouseButton button) const -> bool
 
 
 
-//////////////////////
-//  Callback stuff  //
-//////////////////////
-
-void onChar(GLFWwindow* window, unsigned int codepoint)
-{
-    auto swapchain = static_cast<trc::Swapchain*>(glfwGetWindowUserPointer(window));
-    trc::EventHandler<trc::CharInputEvent>::notify({ swapchain, codepoint });
-}
-
-void onKey(GLFWwindow* window, int key, int, int action, int mods)
-{
-    auto swapchain = static_cast<trc::Swapchain*>(glfwGetWindowUserPointer(window));
-    switch(action)
-    {
-    case GLFW_PRESS:
-        trc::EventHandler<trc::KeyPressEvent>::notify(
-            { swapchain, static_cast<trc::Key>(key), trc::KeyModFlags(mods) }
-        );
-        break;
-    case GLFW_RELEASE:
-        trc::EventHandler<trc::KeyReleaseEvent>::notify(
-            { swapchain, static_cast<trc::Key>(key), trc::KeyModFlags(mods) }
-        );
-        break;
-    case GLFW_REPEAT:
-        trc::EventHandler<trc::KeyRepeatEvent>::notify(
-            { swapchain, static_cast<trc::Key>(key), trc::KeyModFlags(mods) }
-        );
-        break;
-    default:
-        throw std::logic_error("");
-    };
-}
-
-void onMouseMove(GLFWwindow* window, double xpos, double ypos)
-{
-    auto swapchain = static_cast<trc::Swapchain*>(glfwGetWindowUserPointer(window));
-    trc::EventHandler<trc::MouseMoveEvent>::notify(
-        { swapchain, static_cast<float>(xpos), static_cast<float>(ypos) }
-    );
-}
-
-void onMouseClick(GLFWwindow* window, int button, int action, int mods)
-{
-    auto swapchain = static_cast<trc::Swapchain*>(glfwGetWindowUserPointer(window));
-    switch (action)
-    {
-    case GLFW_PRESS:
-        trc::EventHandler<trc::MouseClickEvent>::notify(
-            { swapchain, static_cast<trc::MouseButton>(button), trc::KeyModFlags(mods) }
-        );
-        break;
-    case GLFW_RELEASE:
-        trc::EventHandler<trc::MouseReleaseEvent>::notify(
-            { swapchain, static_cast<trc::MouseButton>(button), trc::KeyModFlags(mods) }
-        );
-        break;
-    default:
-        throw std::logic_error("");
-    }
-}
-
-void onScroll(GLFWwindow* window, double xOffset, double yOffset)
-{
-    auto swapchain = static_cast<trc::Swapchain*>(glfwGetWindowUserPointer(window));
-    trc::EventHandler<trc::ScrollEvent>::notify(
-        { swapchain, static_cast<float>(xOffset), static_cast<float>(yOffset) }
-    );
-}
-
-void onClose(GLFWwindow* window)
-{
-    auto swapchain = static_cast<trc::Swapchain*>(glfwGetWindowUserPointer(window));
-    trc::EventHandler<trc::SwapchainCloseEvent>::notify({ {swapchain} });
-}
-
-void trc::Swapchain::initGlfwCallbacks(GLFWwindow* window)
-{
-    glfwSetWindowUserPointer(window, this);
-
-    // Actually, I can use lambdas here, but I find this more clean now
-    glfwSetCharCallback(window, onChar);
-    glfwSetKeyCallback(window, onKey);
-    glfwSetCursorPosCallback(window, onMouseMove);
-    glfwSetMouseButtonCallback(window, onMouseClick);
-    glfwSetScrollCallback(window, onScroll);
-
-    glfwSetWindowCloseCallback(window, onClose);
-}
-
-
-
 //////////////////////////
 //  Swapchain creation  //
 //////////////////////////
@@ -627,7 +601,7 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // Signal start of recreation
     // This allows objects depending on the swapchain to prepare the
     // recreate, like locking resources.
-    EventHandler<PreSwapchainRecreateEvent>::notifySync({ {this} });
+    beforeRecreateCallbacks.call(*this);
 
     const auto timerStart = system_clock::now();
     const auto& physDevice = device.getPhysicalDevice();
@@ -707,7 +681,7 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
         log::info << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")";
         log::info << "   Images: " << numFrames;
         log::info << "   Format: " << vk::to_string(optimalFormat.format)
-            << ", Color Space: " << vk::to_string(optimalFormat.colorSpace);
+                  << ", Color Space: " << vk::to_string(optimalFormat.colorSpace);
         log::info << "   Image usage: " << vk::to_string(createInfo.imageUsage);
         log::info << "   Image sharing mode: " << vk::to_string(imageSharingMode);
         log::info << "   Present mode: " << vk::to_string(optimalPresentMode);
@@ -718,7 +692,8 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // Signal that recreation is finished.
     // Objects depending on the swapchain should now recreate their
     // resources.
-    EventHandler<SwapchainRecreateEvent>::notifySync({ {this} });
+    afterRecreateCallbacks.call(*this);
+    resizeCallbacks.call(*this);
 
     log::info << "Swapchain-dependent resource creation completed.";
 }

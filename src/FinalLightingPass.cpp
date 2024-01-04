@@ -64,7 +64,7 @@ void trc::FinalLightingPass::begin(
         targetImage,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eGeneral,
-        vk::PipelineStageFlagBits::eComputeShader,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::PipelineStageFlagBits::eComputeShader,
         {},
         vk::AccessFlagBits::eShaderWrite,

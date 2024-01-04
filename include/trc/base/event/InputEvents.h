@@ -5,6 +5,14 @@
 
 namespace trc
 {
+    /**
+     * Dispatched when the OS requests the window to close.
+     */
+    struct SwapchainCloseEvent
+    {
+        const Swapchain* swapchain;
+    };
+
     ///////////////////////////
     //      Key Events       //
     ///////////////////////////

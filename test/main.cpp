@@ -14,13 +14,6 @@ using namespace trc::basic_types;
 
 void run()
 {
-    trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
-    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
-    trc::on<trc::SwapchainResizeEvent>([&](const auto& e) {
-        const auto extent = e.swapchain->getImageExtent();
-        camera.setAspect(float(extent.width) / float(extent.height));
-    });
-
     trc::Keyboard::init();
     trc::Mouse::init();
 
@@ -28,6 +21,13 @@ void run()
     auto& ar = torch->getAssetManager();
     auto& instance = torch->getInstance();
     const auto& device = instance.getDevice();
+
+    trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
+    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
+    torch->getWindow().addCallbackOnResize([&camera](trc::Swapchain& swapchain) {
+        const auto extent = swapchain.getImageExtent();
+        camera.setAspect(float(extent.width) / float(extent.height));
+    });
 
     // ------------------
     // Random test things

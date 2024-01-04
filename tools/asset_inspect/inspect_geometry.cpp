@@ -122,8 +122,8 @@ void display(const trc::GeometryData& geo, float maxDuration)
     camera.lookAt(camPos, camTarget, trc::vec3(0, 1, 0));
 
     // Set up user interaction
-    trc::on<trc::SwapchainResizeEvent>([&](auto&& e){
-        camera.setAspect(e.swapchain->getAspectRatio());
+    torch->getWindow().addCallbackOnResize([&camera](trc::Swapchain& swapchain){
+        camera.setAspect(swapchain.getAspectRatio());
     });
 
     trc::on<trc::CharInputEvent>([&](const trc::CharInputEvent& e) {

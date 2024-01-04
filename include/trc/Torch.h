@@ -102,8 +102,6 @@ namespace trc
         AssetManager assetManager;
         RenderTarget swapchainRenderTarget;
         TorchRenderConfig renderConfig;
-
-        UniqueListenerId<SwapchainRecreateEvent> swapchainRecreateListener;
     };
 
     /**

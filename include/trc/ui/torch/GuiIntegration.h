@@ -1,16 +1,11 @@
 #pragma once
 
-#include <future>
 #include <mutex>
 #include <thread>
 
 #include <trc_util/Timer.h>
 
-#include "trc/Framebuffer.h"
-#include "trc/base/Buffer.h"
 #include "trc/base/FrameSpecificObject.h"
-#include "trc/base/Image.h"
-#include "trc/base/event/Event.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/RenderStage.h"
@@ -50,17 +45,18 @@ namespace trc
     {
     public:
         GuiIntegrationPass(const Device& device,
-                           const RenderTarget& renderTarget,
-                           ui::Window& window,
-                           GuiRenderer& renderer);
+                           RenderTarget renderTarget,
+                           ui::Window& window);
         ~GuiIntegrationPass();
 
         void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override;
 
+        void setRenderTarget(RenderTarget renderTarget);
+
     private:
         const Device& device;
-        const RenderTarget& target;
+        RenderTarget target;
 
         std::mutex renderLock;
         std::thread renderThread;
@@ -69,39 +65,29 @@ namespace trc
         void createDescriptorSets();
         void writeDescriptorSets(vk::ImageView srcImage);
 
-        GuiRenderTarget renderTarget;
+        GuiRenderer renderer;
+        GuiRenderTarget guiImage;
 
         vk::UniqueDescriptorPool blendDescPool;
         vk::UniqueDescriptorSetLayout blendDescLayout;
         FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
         PipelineLayout imageBlendPipelineLayout;
         Pipeline imageBlendPipeline;
-
-        UniqueListenerId<SwapchainRecreateEvent> swapchainRecreateListener;
-    };
-
-    struct GuiStack
-    {
-        u_ptr<ui::Window> window;
-
-        u_ptr<GuiRenderer> renderer;
-        u_ptr<GuiIntegrationPass> renderPass;
-
-        UniqueListenerId<MouseClickEvent> mouseClickListener;
-
-        UniqueListenerId<KeyPressEvent>   keyPressListener;
-        UniqueListenerId<KeyRepeatEvent>  keyRepeatListener;
-        UniqueListenerId<KeyReleaseEvent> keyReleaseListener;
-        UniqueListenerId<CharInputEvent>  charInputListener;
     };
 
     /**
      * @brief Initialize the GUI implementation
+     *
+     * Creates a key map for the `ui::Window` that maps Torch's key definitions
+     * in `trc/base/event/Keys.h` to key events for the window.
      */
-    auto initGui(const Device& device, const RenderTarget& renderTarget) -> GuiStack;
+    auto makeGui(const Device& device, const RenderTarget& renderTarget)
+        -> std::pair<u_ptr<ui::Window>, u_ptr<GuiIntegrationPass>>;
 
     /**
      * @brief Insert gui renderpass into a render layout
+     *
+     * Inserts the render pass into the graph at the `trc::guiRenderStage` stage.
      */
-    void integrateGui(GuiStack& stack, RenderGraph& graph);
+    void integrateGui(GuiIntegrationPass& renderPass, RenderGraph& graph);
 } // namespace trc

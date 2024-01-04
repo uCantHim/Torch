@@ -92,23 +92,15 @@ trc::TorchStack::TorchStack(
             .enableRayTracing            = instanceInfo.enableRayTracing,
             .mousePosGetter              = [&]{ return window.getMousePositionLowerLeft(); },
         }
-    ),
-    swapchainRecreateListener(
-        on<SwapchainRecreateEvent>(
-        [this]
-            (const SwapchainRecreateEvent& e)
-        {
-            if (e.swapchain == &window)
-            {
-                const uvec2 newSize = e.swapchain->getSize();
-                swapchainRenderTarget = makeRenderTarget(*e.swapchain);
-                renderConfig.setRenderTarget(swapchainRenderTarget);
-                renderConfig.setViewport({ 0, 0 }, newSize);
-
-            }
-        }).makeUnique()
     )
 {
+    window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
+        const uvec2 newSize = window.getSize();
+        swapchainRenderTarget = makeRenderTarget(window);
+        renderConfig.setRenderTarget(swapchainRenderTarget);
+        renderConfig.setViewport({ 0, 0 }, newSize);
+    });
+
     renderConfig.setViewport({ 0, 0 }, window.getSize());
 }
 

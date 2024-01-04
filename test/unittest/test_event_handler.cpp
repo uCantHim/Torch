@@ -58,22 +58,7 @@ TEST_F(EventHandlerTest, EventThreadStartStop)
     EventThread::terminate();
 }
 
-TEST_F(EventHandlerTest, SynchronousEvent)
-{
-    int count{ 0 };
-    addListener<int>([&count](int){ ++count; });
-    EventHandler<int>::notifySync(0);
-    ASSERT_EQ(count, 1);
-
-    int sum{ 0 };
-    addListener<int>([&sum](int i){ sum += i; });
-    EventHandler<int>::notifySync(30);
-    EventHandler<int>::notifySync(12);
-    ASSERT_EQ(count, 3);
-    ASSERT_EQ(sum, 42);
-}
-
-TEST_F(EventHandlerTest, AsynchronousEvent)
+TEST_F(EventHandlerTest, SimpleEvent)
 {
     int count{ 0 };
     int sum{ 111 };

@@ -12,6 +12,7 @@
 
 #include "trc/base/event/Keys.h"
 #include "trc/base/FrameClock.h"
+#include "trc/base/InputProcessor.h"
 
 namespace trc
 {
@@ -95,8 +96,15 @@ namespace trc
         /**
          * @brief Construct a swapchain
          */
-        Swapchain(const Device& device, Surface s, const SwapchainCreateInfo& info = {});
+        Swapchain(const Device& device,
+                  Surface s,
+                  s_ptr<InputProcessor> inputProcessor,
+                  const SwapchainCreateInfo& info = {});
+
         ~Swapchain() = default;
+
+        auto getDevice() const -> const Device&;
+
 
 
         /////////////////////////////////////////
@@ -120,6 +128,36 @@ namespace trc
         bool presentImage(uint32_t image,
                           vk::Queue queue,
                           const std::vector<vk::Semaphore>& waitSemaphores);
+
+        /**
+         * Register a callback for when the swapchain is required to be
+         * recreated, but before any resources are freed.
+         *
+         * Multiple calls to this function will register and call all of the
+         * specified callbacks.
+         */
+        void addCallbackBeforeSwapchainRecreate(std::function<void(Swapchain&)> recreateCallback);
+
+        /**
+         * Register a callback for after the swapchain has been recreated.
+         *
+         * Multiple calls to this function will register and call all of the
+         * specified callbacks.
+         */
+        void addCallbackAfterSwapchainRecreate(std::function<void(Swapchain&)> recreateCallback);
+
+        /**
+         * Register a callback for when the swapchain is resized. This callback
+         * happens at the same stage of swapchain recreation as the
+         * `afterSwapchainRecreate` callback, but is guaranteed to be called
+         * after all `afterSwapchainRecreate` callbacks have been called. This
+         * is useful when the callback requires all swapchain-dependent
+         * resources to be fully (re-)initialized at the time it is called.
+         *
+         * Multiple calls to this function will register and call all of the
+         * specified callbacks.
+         */
+        void addCallbackOnResize(std::function<void(Swapchain&)> resizeCallback);
 
         /**
          * Query the **swapchain image size** in pixels via getSize or
@@ -186,6 +224,8 @@ namespace trc
          * @return GLFWwindow* The GLFW window handle of the swapchain's surface
          */
         auto getGlfwWindow() const noexcept -> GLFWwindow*;
+
+        void setInputProcessor(s_ptr<InputProcessor> proc);
 
         /**
          * Is the same as `!shouldClose()`.
@@ -338,8 +378,26 @@ namespace trc
     public:
         const Device& device;
 
+    protected:
+        template<typename CallbackT>
+        class CallbackStorage
+        {
+        public:
+            void add(CallbackT cb) { callbacks.emplace_back(std::move(cb)); }
+
+            template<typename ...Args> requires std::invocable<CallbackT, Args...>
+            void call(Args&&... args)
+            {
+                for (auto& cb : callbacks) {
+                    cb(std::forward<Args>(args)...);
+                }
+            }
+
+        private:
+            std::vector<CallbackT> callbacks;
+        };
+
     private:
-        void initGlfwCallbacks(GLFWwindow* window);
         void createSwapchain(const SwapchainCreateInfo& info);
 
         /**
@@ -353,6 +411,11 @@ namespace trc
 
         Surface surface;
         GLFWwindow* window;
+
+        s_ptr<InputProcessor> inputProcessor;
+        CallbackStorage<std::function<void(Swapchain&)>> beforeRecreateCallbacks;
+        CallbackStorage<std::function<void(Swapchain&)>> afterRecreateCallbacks;
+        CallbackStorage<std::function<void(Swapchain&)>> resizeCallbacks;  // stage 2 after recreate
 
         vk::UniqueSwapchainKHR swapchain;
         vk::Extent2D swapchainExtent;

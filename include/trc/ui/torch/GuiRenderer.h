@@ -1,6 +1,5 @@
 #pragma once
 
-#include "trc/base/Buffer.h"
 #include "trc/base/Image.h"
 
 #include "trc/Framebuffer.h"

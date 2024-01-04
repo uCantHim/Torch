@@ -142,8 +142,6 @@ namespace trc
         num_lock  = GLFW_MOD_NUM_LOCK,
     };
 
-    //using KeyModFlags = vk::Flags<KeyModFlagBits>;
-
     /**
      * These have the same numeric value as the corresponding GLFW defines.
      */

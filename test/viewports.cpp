@@ -43,8 +43,8 @@ void run()
     config2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
 
     // Recreate render target when swapchain is recreated
-    trc::on<trc::SwapchainRecreateEvent>([&](auto) {
-        renderTarget = trc::makeRenderTarget(window);
+    window.addCallbackOnResize([&](trc::Swapchain& swapchain) {
+        renderTarget = trc::makeRenderTarget(swapchain);
         config1.setRenderTarget(renderTarget);
         config2.setRenderTarget(renderTarget);
     });

@@ -25,30 +25,3 @@ auto trc::RenderPass::getNumSubPasses() const noexcept -> ui32
 {
     return numSubpasses;
 }
-
-
-
-auto trc::makeDefaultSwapchainColorAttachment(const Swapchain& swapchain)
-    -> vk::AttachmentDescription
-{
-    return vk::AttachmentDescription(
-        vk::AttachmentDescriptionFlags(),
-        swapchain.getImageFormat(),
-        vk::SampleCountFlagBits::e1,
-        vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
-        vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
-        vk::ImageLayout::eUndefined, vk::ImageLayout::ePresentSrcKHR
-    );
-}
-
-auto trc::makeDefaultDepthStencilAttachment() -> vk::AttachmentDescription
-{
-    return vk::AttachmentDescription(
-        vk::AttachmentDescriptionFlags(),
-        vk::Format::eD24UnormS8Uint,
-        vk::SampleCountFlagBits::e1,
-        vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // load/store ops
-        vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
-        vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
-    );
-}

@@ -1,6 +1,7 @@
 #include "trc/core/Window.h"
 
 #include "trc/base/Device.h"
+#include "trc/base/event/EventHandler.h"
 
 
 
@@ -16,6 +17,16 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
                 return info.surfaceCreateInfo;
             }()
         ),
+        [&info]() -> s_ptr<InputProcessor> {
+            if (info.inputProcessor == nullptr)
+            {
+                log::warn << log::here() << "Field `inputProcessor` of `WindowCreateInfo` is"
+                                            " nullptr. Using `InputEventSpawner` as a default"
+                                            " input processor.";
+                return std::make_shared<InputEventSpawner>();
+            }
+            return info.inputProcessor;
+        }(),
         [&]() -> SwapchainCreateInfo {
             // Always specify the storage bit
             info.swapchainCreateInfo.imageUsage |= vk::ImageUsageFlagBits::eStorage;
@@ -23,25 +34,17 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
         }()
     ),
     instance(&instance),
-    renderer(new Renderer(*this)),
-    preRecreateListener(
-        on<PreSwapchainRecreateEvent>([this](auto& e) {
-            if (e.swapchain == this)
-            {
-                renderer->waitForAllFrames();
-                renderer.reset();
-            }
-        }).makeUnique()
-    ),
-    recreateListener(
-        on<SwapchainRecreateEvent>([this](auto& e) {
-            if (e.swapchain == this) {
-                assert(renderer == nullptr);
-                renderer = std::make_unique<Renderer>(*this);
-            }
-        }).makeUnique()
-    )
+    renderer(std::make_unique<Renderer>(*this))
 {
+    addCallbackBeforeSwapchainRecreate([this](Swapchain&) {
+        renderer->waitForAllFrames();
+        renderer.reset();
+    });
+    addCallbackAfterSwapchainRecreate([this](Swapchain&) {
+        assert(renderer == nullptr);
+        renderer = std::make_unique<Renderer>(*this);
+    });
+
     setPosition(info.pos.x, info.pos.y);
 }
 

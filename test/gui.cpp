@@ -28,10 +28,32 @@ int main()
         camera.makePerspective(float(width) / float(height), 45.0f, 0.1f, 100.0f);
 
         // Initialize GUI
-        auto guiStack = trc::initGui(torch->getDevice(), torch->getRenderTarget());
-        ui::Window* window = guiStack.window.get();
-        trc::integrateGui(guiStack, torch->getRenderConfig().getRenderGraph());
+        auto [window, renderPass] = trc::makeGui(torch->getDevice(), torch->getRenderTarget());
+        trc::integrateGui(*renderPass, torch->getRenderConfig().getRenderGraph());
 
+        torch->getWindow().addCallbackOnResize([&](trc::Swapchain&) {
+            renderPass->setRenderTarget(trc::makeRenderTarget(torch->getWindow()));
+        });
+
+        // Notify GUI of mouse clicks
+        trc::on<trc::MouseClickEvent>([&](const trc::MouseClickEvent& e) {
+            vec2 pos = e.swapchain->getMousePosition();
+            window->signalMouseClick(pos.x, pos.y);
+        });
+
+        // Notify GUI of key events
+        trc::on<trc::KeyPressEvent>([&](auto& e) {
+            window->signalKeyPress(static_cast<int>(e.key));
+        });
+        trc::on<trc::KeyRepeatEvent>([&](auto& e) {
+            window->signalKeyRepeat(static_cast<int>(e.key));
+        });
+        trc::on<trc::KeyReleaseEvent>([&](auto& e) {
+            window->signalKeyRelease(static_cast<int>(e.key));
+        });
+        trc::on<trc::CharInputEvent>([&](auto& e) {
+            window->signalCharInput(e.character);
+        });
 
         // Now, after intialization, is it possible to load fonts
         const ui32 font = ui::FontRegistry::addFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 40);

@@ -2,16 +2,14 @@
 
 #include "trc/GuiShaders.h"
 #include "trc/PipelineDefinitions.h"
-#include "trc/TorchRenderStages.h"
 #include "trc/base/Barriers.h"
-#include "trc/base/ShaderProgram.h"
-#include "trc/base/event/Event.h"
 #include "trc/core/RenderGraph.h"
 #include "trc/util/GlmStructuredBindings.h"
 
 
 
-auto trc::initGui(const Device& device, const RenderTarget& renderTarget) -> GuiStack
+auto trc::makeGui(const Device& device, const RenderTarget& renderTarget)
+    -> std::pair<u_ptr<ui::Window>, u_ptr<GuiIntegrationPass>>
 {
     auto window = std::make_unique<ui::Window>(ui::WindowCreateInfo{
         .windowBackend=std::make_unique<trc::TorchWindowBackend>(renderTarget),
@@ -27,62 +25,29 @@ auto trc::initGui(const Device& device, const RenderTarget& renderTarget) -> Gui
             .arrowDown  = static_cast<int>(Key::arrow_down),
         }
     });
-    ui::Window* windowPtr = window.get();
 
-    auto renderer = std::make_unique<GuiRenderer>(device);
-    auto renderPass = std::make_unique<GuiIntegrationPass>(device, renderTarget, *window, *renderer);
+    auto renderPass = std::make_unique<GuiIntegrationPass>(device, renderTarget, *window);
 
-    return {
-        .window = std::move(window),
-        .renderer = std::move(renderer),
-        .renderPass = std::move(renderPass),
-
-        // Notify GUI of mouse clicks
-        .mouseClickListener = on<MouseClickEvent>(
-            [=](const MouseClickEvent& e) {
-                if (e.action == InputAction::press)
-                {
-                    vec2 pos = e.swapchain->getMousePosition();
-                    windowPtr->signalMouseClick(pos.x, pos.y);
-                }
-            }
-        ),
-
-        // Notify GUI of key events
-        .keyPressListener = on<KeyPressEvent>([=](auto& e) {
-            windowPtr->signalKeyPress(static_cast<int>(e.key));
-        }),
-        .keyRepeatListener = on<KeyRepeatEvent>([=](auto& e) {
-            windowPtr->signalKeyRepeat(static_cast<int>(e.key));
-        }),
-        .keyReleaseListener = on<KeyReleaseEvent>([=](auto& e) {
-            windowPtr->signalKeyRelease(static_cast<int>(e.key));
-        }),
-        .charInputListener = on<CharInputEvent>([=](auto& e) {
-            windowPtr->signalCharInput(e.character);
-        })
-    };
+    return { std::move(window), std::move(renderPass) };
 }
 
-
-
-void trc::integrateGui(GuiStack& stack, RenderGraph& graph)
+void trc::integrateGui(GuiIntegrationPass& renderPass, RenderGraph& graph)
 {
-    graph.addPass(trc::guiRenderStage, *stack.renderPass);
+    graph.addPass(trc::guiRenderStage, renderPass);
 }
 
 
 
 trc::GuiIntegrationPass::GuiIntegrationPass(
     const Device& device,
-    const RenderTarget& _renderTarget,
-    ui::Window& window,
-    GuiRenderer& renderer)
+    RenderTarget renderTarget,
+    ui::Window& window)
     :
     RenderPass({}, 1),
     device(device),
-    target(_renderTarget),
-    renderTarget(device, renderer.getRenderPass(), window.getSize()),
+    target(renderTarget),
+    renderer(device),
+    guiImage(device, renderer.getRenderPass(), window.getSize()),
     blendDescLayout([&] {
         std::vector<vk::DescriptorSetLayoutBinding> bindings{
             vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1,
@@ -92,7 +57,7 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
         };
         return device->createDescriptorSetLayoutUnique({ {}, bindings });
     }()),
-    blendDescSets(_renderTarget.getFrameClock()),
+    blendDescSets(renderTarget.getFrameClock()),
     // Compute pipeline
     imageBlendPipelineLayout(makePipelineLayout(device, { *blendDescLayout }, {})),
     imageBlendPipeline(
@@ -100,26 +65,20 @@ trc::GuiIntegrationPass::GuiIntegrationPass(
             device, imageBlendPipelineLayout,
             internal::loadShader(trc::ui_impl::pipelines::getImageBlend())
         )
-    ),
-    swapchainRecreateListener(on<SwapchainRecreateEvent>([&](auto&) {
-        renderTarget = GuiRenderTarget(device, renderer.getRenderPass(), window.getSize());
-        createDescriptorSets();
-        writeDescriptorSets(renderTarget.getFramebuffer().getAttachmentView(0));
-    }).makeUnique())
+    )
 {
     renderThread = std::thread([&, this] {
         while (!stopRenderThread)
         {
             {
                 std::lock_guard lock(renderLock);
-                renderer.render(window, renderTarget);
+                renderer.render(window, guiImage);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     });
 
-    createDescriptorSets();
-    writeDescriptorSets(renderTarget.getFramebuffer().getAttachmentView(0));
+    setRenderTarget(renderTarget);
 }
 
 trc::GuiIntegrationPass::~GuiIntegrationPass()
@@ -176,6 +135,16 @@ void trc::GuiIntegrationPass::begin(
 
 void trc::GuiIntegrationPass::end(vk::CommandBuffer)
 {
+}
+
+void trc::GuiIntegrationPass::setRenderTarget(RenderTarget newTarget)
+{
+    std::scoped_lock lock(renderLock);
+
+    target = newTarget;
+    guiImage = GuiRenderTarget(device, renderer.getRenderPass(), newTarget.getSize());
+    createDescriptorSets();
+    writeDescriptorSets(guiImage.getFramebuffer().getAttachmentView(0));
 }
 
 void trc::GuiIntegrationPass::createDescriptorSets()

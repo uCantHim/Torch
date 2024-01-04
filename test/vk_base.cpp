@@ -36,7 +36,9 @@ int main()
         trc::Device device(*phys);
         log("Logical device created");
 
-        trc::Swapchain swapchain(device, trc::Surface(*instance, {}));
+        trc::Swapchain swapchain(device,
+                                 trc::Surface(*instance, {}),
+                                 std::make_shared<trc::NullInputProcessor>());
         log("Swapchain created");
 
 

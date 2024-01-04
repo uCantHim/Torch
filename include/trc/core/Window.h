@@ -3,8 +3,6 @@
 #include <string>
 
 #include "trc/base/Swapchain.h"
-#include "trc/base/event/Event.h"
-
 #include "trc/core/Instance.h"
 #include "trc/core/Renderer.h"
 
@@ -18,6 +16,8 @@ namespace trc
 
         SurfaceCreateInfo surfaceCreateInfo{};
         SwapchainCreateInfo swapchainCreateInfo{};
+
+        s_ptr<InputProcessor> inputProcessor{ nullptr };
     };
 
     /**
@@ -46,7 +46,5 @@ namespace trc
         Instance* instance;
 
         u_ptr<Renderer> renderer;
-        UniqueListenerId<PreSwapchainRecreateEvent> preRecreateListener;
-        UniqueListenerId<SwapchainRecreateEvent> recreateListener;
     };
 } // namespace trc
