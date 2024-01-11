@@ -9,7 +9,7 @@
 #include "trc/Types.h"
 #include "trc/assets/Geometry.h"
 #include "trc/assets/Material.h"
-#include "trc/core/SceneBase.h"
+#include "trc/RasterSceneBase.h"
 #include "trc/drawable/DefaultDrawable.h"
 #include "trc/drawable/DrawableComponentScene.h"
 
@@ -40,7 +40,7 @@ namespace trc
 
         // These handles keep the draw functions alive until the component is
         // destroyed.
-        std::vector<trc::SceneBase::UniqueRegistrationID> drawFuncs;
+        std::vector<trc::RasterSceneBase::UniqueRegistrationID> drawFuncs;
     };
 } // namespace trc
 

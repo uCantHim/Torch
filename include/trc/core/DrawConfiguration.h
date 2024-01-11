@@ -2,7 +2,7 @@
 
 namespace trc
 {
-    class SceneBase;
+    class RasterSceneBase;
     class RenderConfig;
 
     /**
@@ -10,7 +10,7 @@ namespace trc
      */
     struct DrawConfig
     {
-        const SceneBase& scene;
+        const RasterSceneBase& scene;
         RenderConfig& renderConfig;
     };
 } // namespace trc

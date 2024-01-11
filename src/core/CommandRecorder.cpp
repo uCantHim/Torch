@@ -11,7 +11,7 @@
 #include "trc/core/DrawConfiguration.h"
 #include "trc/core/RenderConfiguration.h"
 #include "trc/core/RenderGraph.h"
-#include "trc/core/SceneBase.h"
+#include "trc/RasterSceneBase.h"
 #include "trc_util/algorithm/VectorTransform.h"
 
 
@@ -97,7 +97,7 @@ auto trc::CommandRecorder::record(
 auto trc::CommandRecorder::recordStage(
     vk::CommandBuffer cmdBuf,
     RenderConfig& config,
-    const SceneBase& scene,
+    const RasterSceneBase& scene,
     FrameRenderState& frameState,
     const RenderGraph::StageInfo& stage) const
     -> std::optional<vk::CommandBuffer>

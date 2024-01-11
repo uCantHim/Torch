@@ -43,13 +43,13 @@ UniqueDrawableID::~UniqueDrawableID() noexcept
 
 
 
-trc::DrawableComponentScene::DrawableComponentScene(SceneBase& base)
+trc::DrawableComponentScene::DrawableComponentScene(RasterSceneBase& base)
     :
     base(&base)
 {
 }
 
-auto trc::DrawableComponentScene::getSceneBase() -> SceneBase&
+auto trc::DrawableComponentScene::getSceneBase() -> RasterSceneBase&
 {
     assert(base != nullptr);
     return *base;

@@ -74,7 +74,7 @@ trc::ParticleCollection::ParticleCollection(
     particles.reserve(maxParticles);
 }
 
-void trc::ParticleCollection::attachToScene(SceneBase& scene)
+void trc::ParticleCollection::attachToScene(RasterSceneBase& scene)
 {
     // Alpha discard pipeline
     drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(

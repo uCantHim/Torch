@@ -6,8 +6,8 @@
 
 trc::Scene::Scene()
     :
-    SceneBase(),
-    DrawableScene(static_cast<SceneBase&>(*this))
+    RasterSceneBase(),
+    DrawableScene(static_cast<RasterSceneBase&>(*this))
 {
 }
 

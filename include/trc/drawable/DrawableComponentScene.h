@@ -14,7 +14,7 @@
 
 namespace trc
 {
-    class SceneBase;
+    class RasterSceneBase;
     class DrawableComponentScene;
 
     namespace drawcomp {
@@ -56,9 +56,9 @@ namespace trc
             ui32 materialIndex;
         };
 
-        DrawableComponentScene(SceneBase& base);
+        DrawableComponentScene(RasterSceneBase& base);
 
-        auto getSceneBase() -> SceneBase&;
+        auto getSceneBase() -> RasterSceneBase&;
 
         void updateAnimations(float timeDelta);
         void updateRayData();
@@ -132,7 +132,7 @@ namespace trc
         auto allocateRayInstance(RayInstanceData data) -> ui32;
         void freeRayInstance(ui32 index);
 
-        SceneBase* base;
+        RasterSceneBase* base;
 
         data::IdPool<ui32> rayInstanceIdPool;
 

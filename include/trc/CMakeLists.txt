@@ -4,7 +4,7 @@ target_precompile_headers(torch
 
     core/Instance.h
     core/PipelineRegistry.h
-    core/SceneBase.h
+    RasterSceneBase.h
 
     PRIVATE
     Types.h

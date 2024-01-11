@@ -39,7 +39,7 @@ trc::Text::Text(const Instance& instance, FontHandle font)
 {
 }
 
-void trc::Text::attachToScene(SceneBase& scene)
+void trc::Text::attachToScene(RasterSceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
         gBufferRenderStage,

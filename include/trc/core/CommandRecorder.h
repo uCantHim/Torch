@@ -18,7 +18,7 @@ namespace trc
     class RenderPass;
     class RenderGraph;
     class RenderConfig;
-    class SceneBase;
+    class RasterSceneBase;
     class FrameRenderState;
 
     /**
@@ -57,7 +57,7 @@ namespace trc
          */
         auto recordStage(vk::CommandBuffer cmdBuf,
                          RenderConfig& config,
-                         const SceneBase& scene,
+                         const RasterSceneBase& scene,
                          FrameRenderState& frameState,
                          const RenderGraph::StageInfo& stage) const
             -> std::optional<vk::CommandBuffer>;

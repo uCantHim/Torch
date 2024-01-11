@@ -7,12 +7,12 @@
 #include "trc/Node.h"
 #include "trc/ShadowPool.h"
 #include "trc/Types.h"
-#include "trc/core/SceneBase.h"
+#include "trc/RasterSceneBase.h"
 #include "trc/drawable/DrawableScene.h"
 
 namespace trc
 {
-    class Scene : public SceneBase
+    class Scene : public RasterSceneBase
                 , public DrawableScene
     {
     public:

@@ -18,7 +18,6 @@
 #include "trc/core/RenderConfigImplHelper.h"
 #include "trc/core/RenderGraph.h"
 #include "trc/core/RenderPass.h"
-#include "trc/core/SceneBase.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/RayTracingPass.h"
 

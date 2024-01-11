@@ -11,10 +11,10 @@ target_sources(UnitTests
         assets_tests/test_asset_type.cpp
         assets_tests/test_custom_asset.cpp
         assets_tests/test_device_data_cache.cpp
-        core/test_scene_base.cpp
         test_basic_type.cpp
         test_event_handler.cpp
         test_filesystem_data_storage.cpp
+        test_raster_scene_base.cpp
         test_shader_code_typechecker.cpp
         test_shader_loader.cpp
         util_tests/test_external_storage.cpp

@@ -3,24 +3,24 @@
 
 #include <gtest/gtest.h>
 
-#include <trc/core/SceneBase.h>
+#include <trc/RasterSceneBase.h>
 using namespace trc;
 
-TEST(SceneBaseTest, ConstructDestruct)
+TEST(RasterSceneBaseTest, ConstructDestruct)
 {
-    SceneBase scene;
+    RasterSceneBase scene;
 }
 
-TEST(SceneBaseTest, DrawFunctionExecution)
+TEST(RasterSceneBaseTest, DrawFunctionExecution)
 {
-    SceneBase scene;
+    RasterSceneBase scene;
 
     std::vector<RenderStage::ID> s{ RenderStage::ID(0), RenderStage::ID(1), RenderStage::ID(2) };
     std::vector<SubPass::ID>     u{ SubPass::ID(0), SubPass::ID(1), SubPass::ID(2) };
     std::vector<Pipeline::ID>    p{ Pipeline::ID(0), Pipeline::ID(5), Pipeline::ID(42),
                                     Pipeline::ID(7777), Pipeline::ID(108) };
 
-    std::vector<SceneBase::RegistrationID> regs;
+    std::vector<RasterSceneBase::RegistrationID> regs;
     regs.reserve(1000);
 
     size_t numExecuted{ 0 };
@@ -83,9 +83,9 @@ TEST(SceneBaseTest, DrawFunctionExecution)
     ASSERT_EQ(numExecuted, 0);
 }
 
-TEST(SceneBaseTest, ThreadSafeRegistration)
+TEST(RasterSceneBaseTest, ThreadSafeRegistration)
 {
-    SceneBase scene;
+    RasterSceneBase scene;
 
     std::vector<RenderStage::ID> s{ RenderStage::ID(0), RenderStage::ID(2), RenderStage::ID(4) };
     std::vector<SubPass::ID>     u{ SubPass::ID(0), SubPass::ID(1), SubPass::ID(2) };

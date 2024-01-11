@@ -5,7 +5,7 @@
 #include "trc/Transformation.h"
 #include "trc/assets/Geometry.h"
 #include "trc/assets/Material.h"
-#include "trc/core/SceneBase.h"
+#include "trc/RasterSceneBase.h"
 
 namespace trc
 {

@@ -19,6 +19,7 @@ target_sources(
         Meshlet.cpp
         Node.cpp
         PipelineDefinitions.cpp
+        RasterSceneBase.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
         Scene.cpp

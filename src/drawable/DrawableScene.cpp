@@ -10,7 +10,7 @@
 namespace trc
 {
 
-DrawableScene::DrawableScene(SceneBase& baseScene)
+DrawableScene::DrawableScene(RasterSceneBase& baseScene)
     :
     components(baseScene)
 {

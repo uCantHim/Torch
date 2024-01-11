@@ -37,7 +37,7 @@ namespace trc
     class DrawableScene
     {
     public:
-        explicit DrawableScene(SceneBase& base);
+        explicit DrawableScene(RasterSceneBase& base);
 
         void updateAnimations(float timeDelta) {
             components.updateAnimations(timeDelta);
