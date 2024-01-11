@@ -20,8 +20,14 @@ namespace trc
      *     --> Probably not, since it might not even be a swapchain image
      */
 
+    /**
+     * @brief A reference to image resources to which Torch can draw.
+     */
     class RenderTarget;
 
+    /**
+     * @brief Helper to create a render target that points to a swapchain.
+     */
     auto makeRenderTarget(const Swapchain& swapchain) -> RenderTarget;
 
     /**

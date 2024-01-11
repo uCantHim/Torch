@@ -1,13 +1,10 @@
 #pragma once
 
-#include "trc/GBuffer.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderPass.h"
-#include "trc/core/Window.h"
 #include "trc/ray_tracing/RayBuffer.h"
 
 namespace trc {
-    class AssetRegistry;
     class RenderTarget;
 }
 
@@ -24,7 +21,7 @@ namespace trc::rt
         /**
          * @brief
          */
-        FinalCompositingPass(const Instance& instance,
+        FinalCompositingPass(const Device& device,
                              const RenderTarget& output,
                              const FrameSpecific<RayBuffer>& rayBuffer);
 

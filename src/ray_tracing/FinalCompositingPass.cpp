@@ -1,12 +1,10 @@
 #include "trc/ray_tracing/FinalCompositingPass.h"
 
-#include "trc/base/ShaderProgram.h"
 #include "trc/base/Barriers.h"
 
 #include "trc/DescriptorSetUtils.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/RayShaders.h"
-#include "trc/assets/AssetRegistry.h"
 #include "trc/core/ComputePipelineBuilder.h"
 #include "trc/core/RenderTarget.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
@@ -15,12 +13,12 @@
 
 
 trc::rt::FinalCompositingPass::FinalCompositingPass(
-    const Instance& instance,
+    const Device& device,
     const RenderTarget& target,
     const FrameSpecific<RayBuffer>& rayBuffer)
     :
     RenderPass({}, NUM_SUBPASSES),
-    device(instance.getDevice()),
+    device(device),
     renderTarget(&target),
     computeGroupSize(uvec3(
         glm::ceil(vec2(target.getSize()) / vec2(COMPUTE_LOCAL_SIZE)),
@@ -34,7 +32,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
             // Swapchain output image
             { vk::DescriptorType::eStorageImage, frameCount },
         };
-        return instance.getDevice()->createDescriptorPoolUnique({
+        return device->createDescriptorPoolUnique({
             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             // Two distinct sets: one for inputs, one for output
             2 * frameCount,
@@ -46,11 +44,11 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         // Ray-Buffer bindings
         .addBinding(vk::DescriptorType::eStorageImage, 1,
                     vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .build(instance.getDevice())
+        .build(device)
     ),
     outputLayout(buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute)
-        .build(instance.getDevice())
+        .build(device)
     ),
 
     inputSets(target.getFrameClock()),
@@ -59,7 +57,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     outputSetProvider({}, { target.getFrameClock() }),
 
     computePipelineLayout(
-        instance.getDevice(),
+        device,
         {
             *inputLayout,
             *outputLayout,
@@ -68,7 +66,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
     ),
     computePipeline(buildComputePipeline()
         .setProgram(internal::loadShader(rt::shaders::getFinalCompositing()))
-        .build(instance.getDevice(), computePipelineLayout)
+        .build(device, computePipelineLayout)
     )
 {
     computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
@@ -78,7 +76,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         target.getFrameClock(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
             auto set = std::move(
-                instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
+                device->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
             );
 
             auto& r = rayBuffer.getAt(i);
@@ -89,7 +87,7 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
             std::vector<vk::WriteDescriptorSet> writes{
                 { *set, 0, 0, vk::DescriptorType::eStorageImage, rayImages },
             };
-            instance.getDevice()->updateDescriptorSets(writes, {});
+            device->updateDescriptorSets(writes, {});
 
             return set;
         }
@@ -98,12 +96,12 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         target.getFrameClock(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
             auto set = std::move(
-                instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *outputLayout })[0]
+                device->allocateDescriptorSetsUnique({ *pool, *outputLayout })[0]
             );
 
             vk::DescriptorImageInfo imageInfo({}, target.getImageView(i), vk::ImageLayout::eGeneral);
             vk::WriteDescriptorSet write(*set, 0, 0, vk::DescriptorType::eStorageImage, imageInfo);
-            instance.getDevice()->updateDescriptorSets(write, {});
+            device->updateDescriptorSets(write, {});
 
             return set;
         }
