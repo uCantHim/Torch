@@ -1,4 +1,3 @@
-#include <future>
 #include <iostream>
 
 #include <trc/DescriptorSetUtils.h>
@@ -8,6 +7,7 @@
 #include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
 #include <trc/base/ImageUtils.h>
+#include <trc/base/event/Event.h>
 #include <trc/ray_tracing/RaygenDescriptor.h>
 #include <trc_util/Timer.h>
 using namespace trc::basic_types;

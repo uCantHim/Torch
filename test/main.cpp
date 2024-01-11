@@ -1,15 +1,15 @@
-#include <chrono>
-using namespace std::chrono;
 #include <iostream>
-#include <fstream>
 #include <thread>
 
 #include <glm/gtc/random.hpp>
 
 #include <trc/Torch.h>
 #include <trc/base/ImageUtils.h>
+#include <trc/base/event/Event.h>
 #include <trc/particle/Particle.h>
 #include <trc/text/Text.h>
+
+using namespace std::chrono_literals;
 using namespace trc::basic_types;
 
 void run()

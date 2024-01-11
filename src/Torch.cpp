@@ -5,6 +5,7 @@
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
+#include "trc/base/event/EventHandler.h"
 #include "trc/util/FilesystemDataStorage.h"
 
 

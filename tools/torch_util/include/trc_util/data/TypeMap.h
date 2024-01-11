@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include <atomic>
-#include <vector>
 
 namespace trc::data
 {

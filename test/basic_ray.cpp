@@ -1,8 +1,7 @@
-#include <iostream>
-
 #include <trc/DescriptorSetUtils.h>
 #include <trc/Torch.h>
 #include <trc/base/Barriers.h>
+#include <trc/base/event/Event.h>
 #include <trc/core/Instance.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/Window.h>
