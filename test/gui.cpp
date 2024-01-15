@@ -22,7 +22,7 @@ int main()
         auto& swapchain = torch->getWindow();
         auto& ar = torch->getAssetManager();
 
-        trc::Scene scene;
+        trc::RasterSceneModule scene;
         trc::Camera camera;
         const auto [width, height] = swapchain.getImageExtent();
         camera.lookAt(vec3(0, 2, 4), vec3(0, 0, 0), vec3(0, 1, 0));

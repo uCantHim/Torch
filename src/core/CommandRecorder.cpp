@@ -1,38 +1,36 @@
 #include "trc/core/CommandRecorder.h"
 
-#include <algorithm>
 #include <future>
-#include <numeric>
-#include <ranges>
-#include <stdexcept>
 
-#include "trc/core/Window.h"
-#include "trc/core/RenderPass.h"
-#include "trc/core/DrawConfiguration.h"
-#include "trc/core/RenderConfiguration.h"
-#include "trc/core/RenderGraph.h"
-#include "trc/RasterSceneBase.h"
-#include "trc_util/algorithm/VectorTransform.h"
+#include "trc/core/Frame.h"
+#include "trc/core/Task.h"
 
 
 
-trc::CommandRecorder::CommandRecorder(const Device& device, const FrameClock& frameClock)
+trc::CommandRecorder::CommandRecorder(
+    const Device& device,
+    const FrameClock& frameClock,
+    async::ThreadPool* threadPool)
     :
     device(&device),
-    perFrameObjects(frameClock)
+    perFrameObjects(frameClock),
+    threadPool(threadPool)
 {
 }
 
-auto trc::CommandRecorder::record(
-    const vk::ArrayProxy<const DrawConfig>& draws,
-    FrameRenderState& state)
-    -> std::vector<vk::CommandBuffer>
+auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
 {
     const size_t numThreads = [&]{
         size_t res{ 0 };
-        for (const auto& draw : draws) res += draw.renderConfig.getRenderGraph().size();
+        for (const auto& vp : frame.getViewports()) {
+            for (const auto& stage : vp.taskQueue.tasks) {
+                res += stage.size();
+            }
+        }
         return res;
     }();
+    std::cout << "[CommandRecorder]: Recording task commands with " << numThreads << " threads.\n";
+
     const Device& device = *this->device;
 
     auto& resources = perFrameObjects.get();
@@ -65,18 +63,31 @@ auto trc::CommandRecorder::record(
     }
 
     // Dispatch command buffer recorder threads.
-    std::vector<std::future<std::optional<vk::CommandBuffer>>> futures;
+    std::vector<std::future<vk::CommandBuffer>> futures;
     futures.reserve(numThreads);
 
-    for (ui32 threadIndex = 0; const auto& draw : draws)
+    for (ui32 threadIndex = 0; auto& vp : frame.getViewports())
     {
-        for (const auto& stage : draw.renderConfig.getRenderGraph().getStages())
+        for (auto [stage, tasks] : vp.taskQueue.tasks.items())
         {
-            vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
-            futures.emplace_back(threadPool->async([&, cmdBuf] {
-                return recordStage(cmdBuf, draw.renderConfig, draw.scene, state, stage);
-            }));
+            if (tasks.empty()) {
+                continue;
+            }
 
+            vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
+
+            // Record all tasks in the stage's task queue
+            futures.emplace_back(threadPool->async([&, cmdBuf]() -> vk::CommandBuffer {
+                cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+                for (auto& task : tasks)
+                {
+                    TaskEnvironment env{ &frame, stage, vp.viewport, vp.scene };
+                    task->record(cmdBuf, env);
+                }
+                cmdBuf.end();
+
+                return cmdBuf;
+            }));
             ++threadIndex;
         }
     }
@@ -84,69 +95,9 @@ auto trc::CommandRecorder::record(
     // Join threads.
     // Insert recorded command buffers *in order*.
     std::vector<vk::CommandBuffer> result;
-    for (auto& f : futures)
-    {
-        if (auto cmdBuf = f.get()) {
-            result.emplace_back(*cmdBuf);
-        };
+    for (auto& f : futures) {
+        result.emplace_back(f.get());
     }
 
     return result;
-}
-
-auto trc::CommandRecorder::recordStage(
-    vk::CommandBuffer cmdBuf,
-    RenderConfig& config,
-    const RasterSceneBase& scene,
-    FrameRenderState& frameState,
-    const RenderGraph::StageInfo& stage) const
-    -> std::optional<vk::CommandBuffer>
-{
-    const auto renderStageId = stage.stage;
-    const auto renderPasses = util::merged(stage.renderPasses,
-                                           scene.getDynamicRenderPasses(renderStageId));
-
-    // Don't record anything if no renderpasses are specified.
-    if (renderPasses.empty()) {
-        return {};
-    }
-
-    cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-
-    // Record render passes
-    for (auto renderPass : renderPasses)
-    {
-        assert(renderPass != nullptr);
-
-        renderPass->begin(cmdBuf, vk::SubpassContents::eInline, frameState);
-
-        // Record all commands
-        const ui32 subPassCount = renderPass->getNumSubPasses();
-        for (ui32 subPass = 0; subPass < subPassCount; subPass++)
-        {
-            for (auto pipeline : scene.iterPipelines(renderStageId, SubPass::ID(subPass)))
-            {
-                // Bind the current pipeline
-                auto& p = config.getPipeline(pipeline);
-                p.bind(cmdBuf, config);
-
-                // Record commands for all objects with this pipeline
-                scene.invokeDrawFunctions(
-                    renderStageId, *renderPass, SubPass::ID(subPass),
-                    pipeline, p,
-                    cmdBuf
-                );
-            }
-
-            if (subPass < subPassCount - 1) {
-                cmdBuf.nextSubpass(vk::SubpassContents::eInline);
-            }
-        }
-
-        renderPass->end(cmdBuf);
-    }
-
-    cmdBuf.end();
-
-    return cmdBuf;
 }

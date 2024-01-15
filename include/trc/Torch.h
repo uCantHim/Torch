@@ -5,16 +5,14 @@
 #include <trc_util/Timer.h>
 
 #include "trc/Camera.h"
-#include "trc/Scene.h"
 #include "trc/TorchRenderConfig.h"
-#include "trc/TorchRenderStages.h"
 #include "trc/Types.h"
 #include "trc/assets/Assets.h"
-#include "trc/core/DrawConfiguration.h"
+#include "trc/core/Frame.h"
 #include "trc/core/Instance.h"
 #include "trc/core/RenderTarget.h"
+#include "trc/core/SwapchainRenderer.h"
 #include "trc/core/Window.h"
-#include "trc/drawable/Drawable.h"
 
 namespace trc
 {
@@ -94,7 +92,7 @@ namespace trc
          *
          * Performs the required frame setup and -teardown tasks.
          */
-        void drawFrame(const Camera& camera, const Scene& scene);
+        void drawFrame(const Camera& camera, SceneBase& scene);
 
     private:
         Instance instance;
@@ -102,6 +100,8 @@ namespace trc
         AssetManager assetManager;
         RenderTarget swapchainRenderTarget;
         TorchRenderConfig renderConfig;
+
+        SwapchainRenderer frameSubmitter;
     };
 
     /**

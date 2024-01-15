@@ -15,7 +15,7 @@ int main()
         auto& window = torch->getWindow();
         auto imgui = trc::imgui::initImgui(window, torch->getRenderConfig().getRenderGraph());
 
-        trc::Scene scene;
+        trc::RasterSceneModule scene;
         trc::Camera camera;
 
         bool floating{ false };

@@ -23,7 +23,7 @@ trc::RayComponent::RayComponent(const RayComponentCreateInfo& info)
 
 void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
     trc::DrawableComponentScene& storage,
-    trc::DrawableID drawable,
+    trc::DrawableID /*drawable*/,
     trc::RayComponent& ray)
 {
     // Allocate a user data structure
@@ -35,21 +35,11 @@ void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
         trc::DrawableComponentScene::RayInstanceData{
             .geometryIndex=ray.geo.getDeviceIndex(),
             .materialIndex=ray.materialIndex,
-        }
-    );
-
-    // Allocate a geometry instance
-    //
-    // This data communicates definitions of ray traced object to Vulkan.
-    storage.add<trc::rt::GeometryInstance>(drawable,
-        trc::rt::GeometryInstance(
-            trc::mat4{ 1.0f },
-            ray.instanceDataIndex,
-            0xff, 0,
-            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-            | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
-            ray.geo.getAccelerationStructure()
-        )
+        },
+        0xff, 0,
+        vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+        | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
+        ray.geo.getAccelerationStructure()
     );
 }
 

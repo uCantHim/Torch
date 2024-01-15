@@ -8,7 +8,6 @@
 #include <trc_util/data/IndexMap.h>
 
 #include "trc/Types.h"
-#include "trc/core/DynamicRenderPassContainer.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/RenderPass.h"
 #include "trc/core/RenderStage.h"
@@ -37,7 +36,7 @@ namespace trc
      * about the components and processing stages of complete renderable
      * entities.
      */
-    class RasterSceneBase : public DynamicRenderPassContainer
+    class RasterSceneBase
     {
     public:
         RasterSceneBase(const RasterSceneBase&) = delete;

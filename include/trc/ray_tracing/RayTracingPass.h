@@ -14,8 +14,8 @@
 
 namespace trc
 {
+    class RenderConfig;
     class RenderTarget;
-    class TorchRenderConfig;
 
     /**
      * @brief A renderpass that does nothing
@@ -31,15 +31,14 @@ namespace trc
         ~RayTracingPass() = default;
 
         RayTracingPass(const Instance& instance,
-                       TorchRenderConfig& renderConfig,
+                       RenderConfig& renderConfig,
                        const rt::TLAS& tlas,
-                       FrameSpecific<rt::RayBuffer> rayBuffer,
-                       const RenderTarget& target);
+                       const FrameSpecific<rt::RayBuffer>* rayBuffer);
 
         void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
         void end(vk::CommandBuffer) override;
 
-        void setRenderTarget(const RenderTarget& target);
+        void setRayBuffer(const FrameSpecific<rt::RayBuffer>* rayBuffer);
 
     private:
         struct RayTracingCall
@@ -57,22 +56,18 @@ namespace trc
         };
 
         void addRayCall(RayTracingCall call);
-        auto makeDescriptor(rt::RayBuffer::Image image) -> const DescriptorProviderInterface&;
 
         static constexpr ui32 kMaxReccursionDepth{ 16 };
 
         const Instance& instance;
         const rt::TLAS& tlas;
 
-        FrameSpecific<rt::RayBuffer> rayBuffer;
+        const FrameSpecific<rt::RayBuffer>* rayBuffer;
 
         rt::RaygenDescriptorPool descriptorPool;
         std::vector<FrameSpecific<vk::UniqueDescriptorSet>> descriptorSets;
-        std::vector<s_ptr<FrameSpecificDescriptorProvider>> descriptorProviders;
+        std::vector<FrameSpecificDescriptorProvider> descriptorProviders;
 
         std::vector<RayTracingCall> rayCalls;
-
-        // Final image compositing
-        rt::FinalCompositingPass compositingPass;
     };
 } // namespace trc

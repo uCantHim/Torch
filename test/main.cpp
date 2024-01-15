@@ -77,7 +77,7 @@ void run()
 
     // ------------------
 
-    trc::Scene scene;
+    trc::RasterSceneModule scene;
 
     auto grass = scene.makeDrawable({ grassGeoIndex, matIdx });
     grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);

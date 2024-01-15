@@ -6,7 +6,7 @@ target_sources(
         DescriptorProvider.cpp
         DescriptorProviderWrapper.cpp
         DescriptorRegistry.cpp
-        DynamicRenderPassContainer.cpp
+        Frame.cpp
         FrameRenderState.cpp
         Instance.cpp
         Pipeline.cpp
@@ -23,6 +23,7 @@ target_sources(
         RenderPass.cpp
         RenderTarget.cpp
         SceneBase.cpp
+        SwapchainRenderer.cpp
         TypeErasedStructureChain.cpp
         Window.cpp
 )

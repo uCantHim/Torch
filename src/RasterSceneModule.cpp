@@ -1,46 +1,34 @@
-#include "trc/Scene.h"
-
-#include "trc/TorchRenderStages.h"
+#include "trc/RasterSceneModule.h"
 
 
 
-trc::Scene::Scene()
-    :
-    RasterSceneBase(),
-    DrawableScene(static_cast<RasterSceneBase&>(*this))
-{
-}
-
-void trc::Scene::update(const float timeDelta)
+void trc::RasterSceneModule::update()
 {
     // Update transformations in the node tree
     root.updateAsRoot();
-
-    DrawableScene::updateAnimations(timeDelta);
-    DrawableScene::updateRayData();
 }
 
-auto trc::Scene::getRoot() noexcept -> Node&
+auto trc::RasterSceneModule::getRoot() noexcept -> Node&
 {
     return root;
 }
 
-auto trc::Scene::getRoot() const noexcept -> const Node&
+auto trc::RasterSceneModule::getRoot() const noexcept -> const Node&
 {
     return root;
 }
 
-auto trc::Scene::getLights() noexcept -> LightRegistry&
+auto trc::RasterSceneModule::getLights() noexcept -> LightRegistry&
 {
     return lightRegistry;
 }
 
-auto trc::Scene::getLights() const noexcept -> const LightRegistry&
+auto trc::RasterSceneModule::getLights() const noexcept -> const LightRegistry&
 {
     return lightRegistry;
 }
 
-auto trc::Scene::enableShadow(
+auto trc::RasterSceneModule::enableShadow(
     Light light,
     const ShadowCreateInfo& shadowInfo,
     ShadowPool& shadowPool
@@ -74,7 +62,7 @@ auto trc::Scene::enableShadow(
         light.addShadowMap(shadow.index);
 
         // Add the dynamic render pass
-        addRenderPass(shadowRenderStage, *shadow.renderPass);
+        shadowPasses.emplace(shadow.renderPass);
 
         // Use lookAt for sun lights
         if (light.getType() == LightData::Type::eSunLight && length(light.getDirection()) > 0.0f)
@@ -88,7 +76,7 @@ auto trc::Scene::enableShadow(
     return newEntry;
 }
 
-void trc::Scene::disableShadow(Light light)
+void trc::RasterSceneModule::disableShadow(Light light)
 {
     auto it = shadowNodes.find(light);
     if (it != shadowNodes.end())
@@ -97,7 +85,7 @@ void trc::Scene::disableShadow(Light light)
 
         // Remove all render passes
         for (auto& shadow : it->second.shadows) {
-            removeRenderPass(shadowRenderStage, *shadow.renderPass);
+            shadowPasses.erase(shadow.renderPass);
         }
 
         shadowNodes.erase(it);

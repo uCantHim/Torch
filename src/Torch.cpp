@@ -93,7 +93,8 @@ trc::TorchStack::TorchStack(
             .enableRayTracing            = instanceInfo.enableRayTracing,
             .mousePosGetter              = [&]{ return window.getMousePositionLowerLeft(); },
         }
-    )
+    ),
+    frameSubmitter(instance.getDevice(), window)
 {
     window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
         const uvec2 newSize = window.getSize();
@@ -107,7 +108,7 @@ trc::TorchStack::TorchStack(
 
 trc::TorchStack::~TorchStack()
 {
-    window.getRenderer().waitForAllFrames();
+    frameSubmitter.waitForAllFrames();
 }
 
 auto trc::TorchStack::getDevice() -> Device&
@@ -145,8 +146,12 @@ auto trc::TorchStack::getRenderConfig() -> TorchRenderConfig&
     return renderConfig;
 }
 
-void trc::TorchStack::drawFrame(const Camera& camera, const Scene& scene)
+void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
 {
+    auto frame = std::make_unique<Frame>(&instance.getDevice());
+
     renderConfig.perFrameUpdate(camera, scene);
-    window.drawFrame(DrawConfig{ .scene=scene, .renderConfig=renderConfig });
+    frame->addViewport(renderConfig, scene);
+
+    frameSubmitter.renderFrame(std::move(frame));
 }

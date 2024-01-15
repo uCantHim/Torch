@@ -39,23 +39,19 @@ UniqueDrawableID::~UniqueDrawableID() noexcept
     }
 }
 
-} // namespace trc
-
-
-
-trc::DrawableComponentScene::DrawableComponentScene(RasterSceneBase& base)
+DrawableComponentScene::DrawableComponentScene(RasterSceneBase& base)
     :
     base(&base)
 {
 }
 
-auto trc::DrawableComponentScene::getSceneBase() -> RasterSceneBase&
+auto DrawableComponentScene::getSceneBase() -> RasterSceneBase&
 {
     assert(base != nullptr);
     return *base;
 }
 
-void trc::DrawableComponentScene::updateAnimations(const float timeDelta)
+void DrawableComponentScene::updateAnimations(const float timeDelta)
 {
     for (auto& anim : get<AnimationComponent>())
     {
@@ -63,64 +59,11 @@ void trc::DrawableComponentScene::updateAnimations(const float timeDelta)
     }
 }
 
-void trc::DrawableComponentScene::updateRayData()
+void DrawableComponentScene::updateRayInstances()
 {
-    const auto join = get<rt::GeometryInstance>().join(get<RayComponent>());
-    for (const auto& [_, geoInstance, ray] : join)
-    {
-        geoInstance.setTransform(ray.modelMatrix.get());
+    for (const auto& ray : get<RayComponent>()) {
+        setInstanceTransform(ray.instanceDataIndex, ray.modelMatrix.get());
     }
 }
 
-auto trc::DrawableComponentScene::getMaxRayDeviceDataSize() const -> size_t
-{
-    return sizeof(RayInstanceData) * rayInstances.size();
-}
-
-auto trc::DrawableComponentScene::getMaxRayGeometryInstances() const -> ui32
-{
-    return rayInstances.size();
-}
-
-auto trc::DrawableComponentScene::writeTlasInstances(
-    rt::GeometryInstance* instanceBuf,
-    const ui32 maxInstances) const
-    -> ui32
-{
-    size_t numInstances = 0;
-    for (const auto& inst : get<rt::GeometryInstance>())
-    {
-        if (numInstances >= maxInstances) {
-            break;
-        }
-        instanceBuf[numInstances] = inst;
-        ++numInstances;
-    }
-
-    assert(numInstances <= maxInstances);
-
-    return numInstances;
-}
-
-auto trc::DrawableComponentScene::writeRayDeviceData(
-    void* deviceDataBuf,
-    size_t maxSize) const
-    -> size_t
-{
-    const size_t size = glm::min(maxSize, rayInstances.size() * sizeof(RayInstanceData));
-    memcpy(deviceDataBuf, rayInstances.data(), size);
-
-    return size;
-}
-
-auto trc::DrawableComponentScene::allocateRayInstance(RayInstanceData data) -> ui32
-{
-    const ui32 index = rayInstanceIdPool.generate();
-    rayInstances[index] = data;
-    return index;
-}
-
-void trc::DrawableComponentScene::freeRayInstance(ui32 index)
-{
-    rayInstanceIdPool.free(index);
-}
+} // namespace trc

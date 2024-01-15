@@ -21,7 +21,7 @@ void run()
     auto& window = torch->getWindow();
     auto& assets = torch->getAssetManager();
 
-    auto scene = std::make_unique<trc::Scene>();
+    auto scene = std::make_unique<trc::RasterSceneModule>();
 
     // Camera
     trc::Camera camera;

@@ -20,9 +20,10 @@ target_sources(
         Node.cpp
         PipelineDefinitions.cpp
         RasterSceneBase.cpp
+        RasterSceneModule.cpp
+        RaySceneModule.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
-        Scene.cpp
         SceneDescriptor.cpp
         ShaderLoader.cpp
         ShaderPath.cpp

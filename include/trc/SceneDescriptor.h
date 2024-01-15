@@ -1,15 +1,17 @@
 #pragma once
 
-#include "trc/base/Buffer.h"
+#include <cstddef>
 
 #include "trc/Types.h"
+#include "trc/base/Buffer.h"
 #include "trc/core/DescriptorProvider.h"
-#include "trc/drawable/DrawableComponentScene.h"
 
 namespace trc
 {
     class Instance;
-    class Scene;
+    class RasterSceneModule;
+    class RaySceneModule;
+    class SceneBase;
 
     /**
      * binding 0: Lights (uniform buffer)
@@ -20,7 +22,7 @@ namespace trc
     public:
         explicit SceneDescriptor(const Instance& instance);
 
-        void update(const Scene& scene);
+        void update(const SceneBase& scene);
 
         auto getProvider() const noexcept -> const DescriptorProviderInterface&;
 
@@ -44,6 +46,9 @@ namespace trc
 
         void createDescriptors();
         void writeDescriptors();
+
+        void updateRasterData(const RasterSceneModule& scene);
+        void updateRayData(const RaySceneModule& scene);
 
         const Instance& instance;
         const Device& device;

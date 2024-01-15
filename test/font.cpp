@@ -10,7 +10,7 @@ int main()
         auto& window = torch->getWindow();
         auto& assets = torch->getAssetManager();
 
-        trc::Scene scene;
+        trc::RasterSceneModule scene;
         trc::Camera camera;
         camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
         camera.setDepthBounds(0.1f, 100.0f);

@@ -171,7 +171,7 @@ int main()
     auto& sbt = shaderBindingTable;
 
     // Other stuff
-    trc::Scene scene;
+    trc::RasterSceneModule scene;
     trc::Camera camera;
     camera.lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
 

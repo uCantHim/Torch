@@ -1,7 +1,9 @@
 #include "trc/SceneDescriptor.h"
 
 #include "trc/DescriptorSetUtils.h"
-#include "trc/Scene.h"
+#include "trc/RasterSceneModule.h"
+#include "trc/RaySceneModule.h"
+#include "trc/core/SceneBase.h"
 #include "trc/core/Window.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
@@ -20,7 +22,7 @@ trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
     lightBufferMap(lightBuffer.map()),
     drawableDataBuf(
         instance.getDevice(),
-        200 * sizeof(DrawableComponentScene::RayInstanceData),
+        200 * sizeof(RaySceneModule::RayInstanceData),
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
     ),
@@ -30,7 +32,13 @@ trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
     writeDescriptors();
 }
 
-void trc::SceneDescriptor::update(const Scene& scene)
+void trc::SceneDescriptor::update(const SceneBase& scene)
+{
+    updateRasterData(scene.getModule<RasterSceneModule>());
+    updateRayData(scene.getModule<RaySceneModule>());
+}
+
+void trc::SceneDescriptor::updateRasterData(const RasterSceneModule& scene)
 {
     const auto& lights = scene.getLights();
 
@@ -58,9 +66,11 @@ void trc::SceneDescriptor::update(const Scene& scene)
 
     // Update light data
     lights.writeLightData(lightBufferMap);
+}
 
-    // Update ray scene data
-    const size_t dataSize = scene.getComponentInternals().getMaxRayDeviceDataSize();
+void trc::SceneDescriptor::updateRayData(const RaySceneModule& scene)
+{
+    const size_t dataSize = scene.getMaxRayDeviceDataSize();
     if (dataSize > drawableDataBuf.size())
     {
         drawableDataBuf.unmap();
@@ -79,7 +89,7 @@ void trc::SceneDescriptor::update(const Scene& scene)
         device->updateDescriptorSets(writes, {});
     }
 
-    scene.getComponentInternals().writeRayDeviceData(drawableBufferMap, dataSize);
+    scene.writeRayDeviceData(drawableBufferMap, dataSize);
     drawableDataBuf.flush();
 }
 

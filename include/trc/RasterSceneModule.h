@@ -5,26 +5,32 @@
 
 #include "trc/LightRegistry.h"
 #include "trc/Node.h"
+#include "trc/RasterSceneBase.h"
 #include "trc/ShadowPool.h"
 #include "trc/Types.h"
-#include "trc/RasterSceneBase.h"
-#include "trc/drawable/DrawableScene.h"
+#include "trc/core/SceneModule.h"
 
 namespace trc
 {
-    class Scene : public RasterSceneBase
-                , public DrawableScene
+    class RasterSceneModule : public SceneModule,
+                              public RasterSceneBase
     {
     public:
-        Scene(const Scene&) = delete;
-        Scene(Scene&&) noexcept = delete;
-        auto operator=(const Scene&) -> Scene& = delete;
-        auto operator=(Scene&&) noexcept -> Scene& = delete;
+        RasterSceneModule(const RasterSceneModule&) = delete;
+        RasterSceneModule(RasterSceneModule&&) noexcept = delete;
+        auto operator=(const RasterSceneModule&) -> RasterSceneModule& = delete;
+        auto operator=(RasterSceneModule&&) noexcept -> RasterSceneModule& = delete;
 
-        Scene();
-        ~Scene() = default;
+        RasterSceneModule() = default;
+        ~RasterSceneModule() = default;
 
-        void update(float timeDelta);
+        /**
+         * @brief Update node transformations
+         */
+        void update();
+
+        // TODO: Is this necessary?
+        void createTasks(TaskQueue& /*taskQueue*/) override {}
 
         auto getRoot() noexcept -> Node&;
         auto getRoot() const noexcept -> const Node&;
@@ -48,7 +54,7 @@ namespace trc
             }
 
         private:
-            friend Scene;
+            friend RasterSceneModule;
 
             std::vector<ShadowMap> shadows;
         };
@@ -76,10 +82,13 @@ namespace trc
          */
         void disableShadow(Light light);
 
+        auto getShadowPasses() -> const std::unordered_set<RenderPass*>;
+
     private:
         Node root;
 
         LightRegistry lightRegistry;
         std::unordered_map<Light, ShadowNode> shadowNodes;
+        std::unordered_set<RenderPass*> shadowPasses;
     };
 } // namespace trc

@@ -9,7 +9,7 @@ int main()
 {
     {
         auto torch = trc::initFull();
-        trc::Scene scene;
+        trc::RasterSceneModule scene;
         trc::Camera camera;
 
         auto& renderGraph = torch->getRenderConfig().getRenderGraph();

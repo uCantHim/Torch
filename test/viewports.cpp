@@ -50,7 +50,7 @@ void run()
     });
 
     // Render the same scene to both viewports, but from different cameras
-    trc::Scene scene;
+    trc::RasterSceneModule scene;
     trc::Camera camera1;
     trc::Camera camera2;
 

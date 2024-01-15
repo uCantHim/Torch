@@ -112,7 +112,7 @@ void run()
     camera.makePerspective(float(window.getSize().x) / float(window.getSize().y), 45.0f, 0.1f, 100.0f);
 
     // Scene setup
-    trc::Scene scene;
+    trc::RasterSceneModule scene;
     auto sun = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -0.3f, 0), 0.3f);
 
     // Object properties

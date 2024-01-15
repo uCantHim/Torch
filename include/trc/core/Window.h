@@ -3,11 +3,11 @@
 #include <string>
 
 #include "trc/base/Swapchain.h"
-#include "trc/core/Instance.h"
-#include "trc/core/Renderer.h"
 
 namespace trc
 {
+    class Instance;
+
     struct WindowCreateInfo
     {
         uvec2 size{ 1920, 1080 };
@@ -20,18 +20,10 @@ namespace trc
         s_ptr<InputProcessor> inputProcessor{ nullptr };
     };
 
-    /**
-     * @brief
-     */
     class Window : public Swapchain
     {
     public:
-        /**
-         * @brief
-         */
         explicit Window(Instance& instance, WindowCreateInfo info = {});
-
-        void drawFrame(const vk::ArrayProxy<const DrawConfig>& draws);
 
         auto getInstance() -> Instance&;
         auto getInstance() const -> const Instance&;
@@ -40,11 +32,8 @@ namespace trc
 
         auto getSwapchain() -> Swapchain&;
         auto getSwapchain() const -> const Swapchain&;
-        auto getRenderer() -> Renderer&;
 
     private:
         Instance* instance;
-
-        u_ptr<Renderer> renderer;
     };
 } // namespace trc

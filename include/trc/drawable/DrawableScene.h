@@ -1,7 +1,5 @@
 #pragma once
 
-#include <atomic>
-
 #include <trc_util/data/SafeVector.h>
 
 #include "trc/Types.h"
@@ -42,8 +40,9 @@ namespace trc
         void updateAnimations(float timeDelta) {
             components.updateAnimations(timeDelta);
         }
+
         void updateRayData() {
-            components.updateRayData();
+            components.updateRayInstances();
         }
 
         auto makeDrawable(const DrawableCreateInfo& createInfo) -> Drawable;

@@ -11,7 +11,7 @@ int main()
     // The things required to render something are
     //   1. A scene
     //   2. A camera
-    trc::Scene scene;
+    trc::RasterSceneModule scene;
     trc::Camera camera;
     camera.makeOrthogonal(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
 

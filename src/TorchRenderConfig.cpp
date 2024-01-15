@@ -3,13 +3,12 @@
 #include "trc_util/Timer.h"
 
 #include "trc/GBufferPass.h"
-#include "trc/Scene.h"
+#include "trc/RasterSceneModule.h"
 #include "trc/TorchImplementation.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/base/Logging.h"
-#include "trc/core/DrawConfiguration.h"
+#include "trc/core/SceneBase.h"
 #include "trc/core/Window.h"
-#include "trc/text/Font.h"
 #include "trc/ui/torch/GuiIntegration.h"
 
 
@@ -25,13 +24,8 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
     graph.after(gBufferRenderStage, mouseDepthReadStage);
     graph.after(mouseDepthReadStage, finalLightingRenderStage);
 
-    // Ray tracing stages
-    graph.after(finalLightingRenderStage, rayTracingRenderStage);
-    graph.require(rayTracingRenderStage, resourceUpdateStage);
-    graph.require(rayTracingRenderStage, finalLightingRenderStage);
-
     // Post-processing
-    graph.after(rayTracingRenderStage, postProcessingRenderStage);
+    graph.after(finalLightingRenderStage, postProcessingRenderStage);
 
     // Gui stage
     graph.after(postProcessingRenderStage, guiRenderStage);
@@ -49,7 +43,6 @@ trc::TorchRenderConfig::TorchRenderConfig(
     instance(instance),
     device(instance.getDevice()),
     renderTarget(&info.target),
-    enableRayTracing(info.enableRayTracing && instance.hasRayTracing()),
     mousePosGetter(info.mousePosGetter),
     // Resources
     shadowPool(instance.getDevice(), info.target.getFrameClock(), { .maxShadowMaps=50 }),
@@ -68,14 +61,6 @@ trc::TorchRenderConfig::TorchRenderConfig(
         throw std::invalid_argument(
             "Member assetRegistry in DeferredRenderCreateInfo may not be nullptr!"
         );
-    }
-
-    // Optionally create ray tracing resources
-    if (enableRayTracing)
-    {
-        tlas = std::make_unique<rt::TLAS>(instance, 5000);
-        tlasBuildPass = std::make_unique<TopLevelAccelerationStructureBuildPass>(instance, *tlas);
-        renderGraph.addPass(resourceUpdateStage, *tlasBuildPass);
     }
 
     // Create gbuffer for the first time
@@ -112,16 +97,13 @@ trc::TorchRenderConfig::TorchRenderConfig(
     renderGraph.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
 }
 
-void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const Scene& scene)
+void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const SceneBase& scene)
 {
     // Add final lighting function to scene
     globalDataDescriptor.update(camera);
     sceneDescriptor.update(scene);
     assetDescriptor->update(device);
     shadowPool.update();
-    if (enableRayTracing) {
-        tlasBuildPass->setScene(scene.getComponentInternals());
-    }
 }
 
 void trc::TorchRenderConfig::setViewport(ivec2 offset, uvec2 size)
@@ -140,9 +122,6 @@ void trc::TorchRenderConfig::setRenderTarget(const RenderTarget& target)
 
     renderTarget = &target;
     finalLightingPass->setRenderTarget(device, target);
-    if (enableRayTracing) {
-        rayTracingPass->setRenderTarget(target);
-    }
 }
 
 void trc::TorchRenderConfig::setClearColor(vec4 color)
@@ -247,11 +226,6 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     trc::Timer timer;
 
     // Delete resources
-    if (enableRayTracing)
-    {
-        renderGraph.removePass(rayTracingRenderStage, *rayTracingPass);
-        rayTracingPass.reset();
-    }
     renderGraph.removePass(gBufferRenderStage, *gBufferPass);
     if (mouseDepthReader != nullptr)
     {
@@ -287,29 +261,6 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
         *gBuffer
     );
     renderGraph.addPass(mouseDepthReadStage, *mouseDepthReader);
-
-    if (enableRayTracing)
-    {
-        FrameSpecific<rt::RayBuffer> rayBuffer{
-            renderTarget->getFrameClock(),
-            [&](ui32) {
-                return trc::rt::RayBuffer(
-                    device,
-                    { renderTarget->getSize(), vk::ImageUsageFlagBits::eStorage }
-                );
-            }
-        };
-
-        assert(renderTarget != nullptr);
-        rayTracingPass = std::make_unique<RayTracingPass>(
-            instance,
-            *this,
-            *tlas,
-            std::move(rayBuffer),
-            *renderTarget
-        );
-        renderGraph.addPass(rayTracingRenderStage, *rayTracingPass);
-    }
 
     log::info << "Deferred renderpass recreated (" << timer.reset() << " ms)";
 }

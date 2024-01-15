@@ -8,18 +8,16 @@
 #include "trc/RenderPassShadow.h"
 #include "trc/SceneDescriptor.h"
 #include "trc/ShadowPool.h"
-#include "trc/TopLevelAccelerationStructureBuildPass.h"
 #include "trc/TorchImplementation.h"
 #include "trc/Types.h"
 #include "trc/assets/AssetRegistry.h"
 #include "trc/core/Instance.h"
 #include "trc/core/RenderConfigImplHelper.h"
 #include "trc/core/RenderGraph.h"
-#include "trc/ray_tracing/AccelerationStructure.h"
-#include "trc/ray_tracing/RayTracingPass.h"
 
 namespace trc
 {
+    class SceneBase;
     class Window;
 
     /**
@@ -95,7 +93,7 @@ namespace trc
          */
         TorchRenderConfig(const Instance& instance, const TorchRenderConfigCreateInfo& info);
 
-        void perFrameUpdate(const Camera& camera, const Scene& scene);
+        void perFrameUpdate(const Camera& camera, const SceneBase& scene);
 
         void setViewport(ivec2 offset, uvec2 size);
         void setRenderTarget(const RenderTarget& newTarget);
@@ -130,7 +128,6 @@ namespace trc
         ivec2 viewportOffset{ 0, 0 };
         uvec2 viewportSize{ 1, 1 };
 
-        const bool enableRayTracing;
         const std::function<vec2()> mousePosGetter;
 
         // Internal resources
@@ -142,11 +139,6 @@ namespace trc
         u_ptr<GBufferDepthReader> mouseDepthReader;
         RenderPassShadow shadowPass;
         u_ptr<FinalLightingPass> finalLightingPass;
-
-        // Ray tracing stuff
-        u_ptr<rt::TLAS> tlas;
-        u_ptr<TopLevelAccelerationStructureBuildPass> tlasBuildPass;
-        u_ptr<RayTracingPass> rayTracingPass;
 
         // Descriptors
         GBufferDescriptor gBufferDescriptor;

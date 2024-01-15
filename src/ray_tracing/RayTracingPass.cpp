@@ -1,5 +1,7 @@
 #include "trc/ray_tracing/RayTracingPass.h"
 
+#include <cassert>
+
 #include "trc/RayShaders.h"
 #include "trc/TorchRenderConfig.h"
 #include "trc/base/Barriers.h"
@@ -9,34 +11,33 @@
 
 trc::RayTracingPass::RayTracingPass(
     const Instance& instance,
-    TorchRenderConfig& renderConfig,
+    RenderConfig& renderConfig,
     const rt::TLAS& tlas,
-    FrameSpecific<rt::RayBuffer> _rayBuffer,
-    const RenderTarget& target)
+    const FrameSpecific<rt::RayBuffer>* _rayBuffer)
     :
     RenderPass({}, 0),
     instance(instance),
     tlas(tlas),
-    rayBuffer(std::move(_rayBuffer)),
+    rayBuffer(_rayBuffer),
     descriptorPool(
         instance,
-        rt::RayBuffer::Image::NUM_IMAGES * rayBuffer.getFrameClock().getFrameCount()
-    ),
-    compositingPass(instance, target, rayBuffer)
+        rt::RayBuffer::Image::NUM_IMAGES * rayBuffer->getFrameClock().getFrameCount()
+    )
 {
+    assert(_rayBuffer != nullptr);
+
     // ------------------------------- //
     //    Make reflections pipeline    //
     // ------------------------------- //
 
-    auto& tlasDescProvider = makeDescriptor(rt::RayBuffer::Image::eReflections);
     auto reflectPipelineLayout = std::make_unique<PipelineLayout>(
         trc::buildPipelineLayout()
-        .addDescriptor(tlasDescProvider, true)
-        .addDescriptor(renderConfig.getGBufferDescriptorProvider(), true)
-        .addDescriptor(renderConfig.getAssetDescriptorProvider(), true)
-        .addDescriptor(renderConfig.getSceneDescriptorProvider(), true)
-        .addDescriptor(renderConfig.getShadowDescriptorProvider(), true)
-        .addDescriptor(renderConfig.getGlobalDataDescriptorProvider(), true)
+        .addDescriptor(descriptorProviders.at(rt::RayBuffer::Image::eReflections), true)
+        .addDescriptor(DescriptorName{TorchRenderConfig::G_BUFFER_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{TorchRenderConfig::ASSET_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{TorchRenderConfig::SCENE_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{TorchRenderConfig::SHADOW_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR}, true)
         .build(instance.getDevice(), renderConfig)
     );
 
@@ -77,7 +78,7 @@ void trc::RayTracingPass::begin(
                 vk::ImageLayout::eUndefined,
                 vk::ImageLayout::eGeneral,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-                *rayBuffer->getImage(call.outputImage),
+                *rayBuffer->get().getImage(call.outputImage),
                 vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
             )
         );
@@ -87,7 +88,7 @@ void trc::RayTracingPass::begin(
             call.sbt->getEntryAddress(call.missTableIndex),
             call.sbt->getEntryAddress(call.hitTableIndex),
             call.sbt->getEntryAddress(call.callableTableIndex),
-            rayBuffer->getSize().x, rayBuffer->getSize().y, 1,
+            rayBuffer->get().getSize().x, rayBuffer->get().getSize().y, 1,
             instance.getDL()
         );
         barrier(cmdBuf,
@@ -99,47 +100,46 @@ void trc::RayTracingPass::begin(
                 vk::ImageLayout::eGeneral,
                 vk::ImageLayout::eGeneral,
                 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-                *rayBuffer->getImage(call.outputImage),
+                *rayBuffer->get().getImage(call.outputImage),
                 vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
             )
         );
     }
-
-    compositingPass.begin(cmdBuf, subpassContents, frameState);
 }
 
-void trc::RayTracingPass::end(vk::CommandBuffer cmdBuf)
+void trc::RayTracingPass::end(vk::CommandBuffer)
 {
-    compositingPass.end(cmdBuf);
 }
 
-void trc::RayTracingPass::setRenderTarget(const RenderTarget& target)
+void trc::RayTracingPass::setRayBuffer(const FrameSpecific<rt::RayBuffer>* newRayBuffer)
 {
-    compositingPass.setRenderTarget(target);
+    descriptorProviders.resize(
+        rt::RayBuffer::Image::NUM_IMAGES,
+        FrameSpecificDescriptorProvider{ {}, newRayBuffer->getFrameClock() }
+    );
+
+    this->rayBuffer = newRayBuffer;
+    for (ui32 i = 0; auto img : { rt::RayBuffer::Image::eReflections, })
+    {
+        auto& set = descriptorSets.emplace_back(
+            rayBuffer->getFrameClock(),
+            [&](ui32 i) {
+                return descriptorPool.allocateDescriptorSet(
+                    tlas,
+                    rayBuffer->getAt(i).getImageView(img)
+                );
+            }
+        );
+
+        descriptorProviders.at(i).setDescriptorSet({
+            rayBuffer->getFrameClock(),
+            [&set](ui32 i){ return *set.getAt(i); }
+        });
+        ++i;
+    }
 }
 
 void trc::RayTracingPass::addRayCall(RayTracingCall call)
 {
     rayCalls.emplace_back(std::move(call));
-}
-
-auto trc::RayTracingPass::makeDescriptor(rt::RayBuffer::Image rayBufferImage)
-    -> const DescriptorProviderInterface&
-{
-    auto& set = descriptorSets.emplace_back(
-        rayBuffer.getFrameClock(),
-        [&](ui32 i) {
-            return descriptorPool.allocateDescriptorSet(
-                tlas,
-                rayBuffer.getAt(i).getImageView(rayBufferImage)
-            );
-        }
-    );
-
-    return *descriptorProviders.emplace_back(
-        std::make_shared<trc::FrameSpecificDescriptorProvider>(
-            descriptorPool.getDescriptorSetLayout(),
-            set
-        )
-    );
 }
