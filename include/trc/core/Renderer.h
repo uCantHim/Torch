@@ -2,6 +2,7 @@
 
 #include <trc_util/async/ThreadPool.h>
 
+#include "trc/Types.h"
 #include "trc/base/Device.h"
 #include "trc/base/ExclusiveQueue.h"
 #include "trc/base/FrameSpecificObject.h"

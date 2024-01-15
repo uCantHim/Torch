@@ -7,6 +7,7 @@
 #include <trc_util/algorithm/IteratorRange.h>
 #include <trc_util/data/TypeMap.h>
 
+#include "trc/Types.h"
 #include "trc/core/SceneModule.h"
 
 namespace trc
