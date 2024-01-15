@@ -21,6 +21,7 @@ target_sources(
         RenderConfigImplHelper.cpp
         RenderGraph.cpp
         RenderPass.cpp
+        RenderPassRegistry.cpp
         RenderTarget.cpp
         SceneBase.cpp
         SwapchainRenderer.cpp
