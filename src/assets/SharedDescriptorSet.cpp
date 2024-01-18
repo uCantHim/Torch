@@ -6,9 +6,9 @@
 //  DescriptorSet Binding  //
 /////////////////////////////
 
-trc::SharedDescriptorSet::Binding::Binding(s_ptr<SharedDescriptorSet> set, ui32 bindingIndex)
+trc::SharedDescriptorSet::Binding::Binding(s_ptr<SharedDescriptorSet> _set, ui32 bindingIndex)
     :
-    set(set),
+    set(std::move(_set)),
     bindingIndex(bindingIndex)
 {
     assert(set != nullptr);
@@ -94,7 +94,7 @@ auto trc::SharedDescriptorSet::Builder::addBinding(
     bindings.emplace_back(index, type, count, stages);
     bindingFlags.emplace_back(flags);
 
-    return Binding(set, index);
+    return { set, index };
 }
 
 auto trc::SharedDescriptorSet::Builder::build(const Device& device)
@@ -148,7 +148,6 @@ void trc::SharedDescriptorSet::build(const Device& device, const Builder& builde
     set = std::move(sets.at(0));
 
     provider->setDescriptorSet(*set);
-    provider->setDescriptorSetLayout(*layout);
 
     // Update descriptor sets
     // It is possible to specify descriptor updates during building.
@@ -164,10 +163,15 @@ auto trc::SharedDescriptorSet::build() -> Builder
     return Builder{};
 }
 
-auto trc::SharedDescriptorSet::getProvider() const -> const DescriptorProviderInterface&
+auto trc::SharedDescriptorSet::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
+{
+    return *layout;
+}
+
+auto trc::SharedDescriptorSet::getProvider() const -> s_ptr<const DescriptorProviderInterface>
 {
     assert(provider != nullptr);
-    return *provider;
+    return provider;
 }
 
 void trc::SharedDescriptorSet::update(const Device& device)

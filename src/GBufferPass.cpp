@@ -6,6 +6,41 @@
 
 
 
+namespace trc
+{
+
+void description(const Device& device)
+{
+    vk::UniqueRenderPass rp = GBufferPass::makeVkRenderPass(device);
+}
+
+void resources(const Device& device, const FrameClock& clock, const uvec2 size, vk::RenderPass renderPass)
+{
+    GBufferCreateInfo createInfo{ .size=size, .maxTransparentFragsPerPixel=2 };
+
+    // The actual image resources
+    FrameSpecific<GBuffer> gBuffer{ clock, device, createInfo };
+
+    // Binding the images to the pipeline
+    FrameSpecific<Framebuffer> framebuffer{
+        gBuffer.getFrameClock(),
+        [&](ui32 frameIndex)
+        {
+            const GBuffer& g = gBuffer.getAt(frameIndex);
+            std::vector<vk::ImageView> views{
+                g.getImageView(GBuffer::eNormals),
+                g.getImageView(GBuffer::eAlbedo),
+                g.getImageView(GBuffer::eMaterials),
+                g.getImageView(GBuffer::eDepth),
+            };
+
+            return Framebuffer(device, renderPass, size, {}, std::move(views));
+        }
+    };
+}
+
+} // namespace trc
+
 trc::GBufferPass::GBufferPass(
     const Device& device,
     FrameSpecific<GBuffer>& _gBuffer)

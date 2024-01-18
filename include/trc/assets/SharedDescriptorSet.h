@@ -32,11 +32,11 @@ namespace trc
 
     public:
         SharedDescriptorSet(const SharedDescriptorSet&) = delete;
-        SharedDescriptorSet(SharedDescriptorSet&&) = delete;
+        SharedDescriptorSet(SharedDescriptorSet&&) noexcept = delete;
         auto operator=(const SharedDescriptorSet&) -> SharedDescriptorSet&;
-        auto operator=(SharedDescriptorSet&&) -> SharedDescriptorSet&;
+        auto operator=(SharedDescriptorSet&&) noexcept -> SharedDescriptorSet&;
 
-        ~SharedDescriptorSet() = default;
+        ~SharedDescriptorSet() noexcept = default;
 
         class Builder;
 
@@ -45,7 +45,8 @@ namespace trc
          */
         static auto build() -> Builder;
 
-        auto getProvider() const -> const DescriptorProviderInterface&;
+        auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
+        auto getProvider() const -> s_ptr<const DescriptorProviderInterface>;
 
         /**
          * Execute necessary descriptor updates.
@@ -141,7 +142,7 @@ namespace trc
         vk::UniqueDescriptorSetLayout layout;
         vk::UniqueDescriptorPool pool;
         vk::UniqueDescriptorSet set;
-        u_ptr<DescriptorProvider> provider{ new DescriptorProvider({}, {}) };
+        s_ptr<DescriptorProvider> provider{ new DescriptorProvider{{}} };
 
         std::vector<vk::DescriptorSetLayoutBinding> bindings;
 
@@ -155,8 +156,9 @@ namespace trc
             auto operator=(const UpdateContainer&) -> UpdateContainer& = delete;
 
             UpdateContainer() = default;
-            UpdateContainer(UpdateContainer&&) = default;
-            auto operator=(UpdateContainer&&) -> UpdateContainer& = default;
+            UpdateContainer(UpdateContainer&&) noexcept = default;
+            auto operator=(UpdateContainer&&) noexcept -> UpdateContainer& = default;
+            ~UpdateContainer() noexcept = default;
 
             UpdateContainer(const vk::ArrayProxy<const vk::DescriptorBufferInfo>& buffers)
                 : bufferInfos(buffers.begin(), buffers.end()), imageInfos(), bufferViews() {}

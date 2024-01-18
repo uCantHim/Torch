@@ -57,8 +57,8 @@ namespace trc::rt
 
         std::vector<vk::UniqueSampler> depthSamplers;
 
-        FrameSpecificDescriptorProvider inputSetProvider;
-        FrameSpecificDescriptorProvider outputSetProvider;
+        s_ptr<FrameSpecificDescriptorProvider> inputSetProvider;
+        s_ptr<FrameSpecificDescriptorProvider> outputSetProvider;
 
         PipelineLayout computePipelineLayout;
         Pipeline computePipeline;

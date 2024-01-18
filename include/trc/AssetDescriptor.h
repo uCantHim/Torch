@@ -92,7 +92,7 @@ namespace trc
             return static_cast<ui32>(binding);
         }
 
-        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,

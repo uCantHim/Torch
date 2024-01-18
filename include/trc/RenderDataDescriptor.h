@@ -31,7 +31,7 @@ namespace trc
     public:
         GlobalRenderDataDescriptor(const Device& device, const FrameClock& frameClock);
 
-        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,

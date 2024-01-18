@@ -66,7 +66,7 @@ namespace trc
 
         rt::RaygenDescriptorPool descriptorPool;
         std::vector<FrameSpecific<vk::UniqueDescriptorSet>> descriptorSets;
-        std::vector<FrameSpecificDescriptorProvider> descriptorProviders;
+        std::vector<s_ptr<FrameSpecificDescriptorProvider>> descriptorProviders;
 
         std::vector<RayTracingCall> rayCalls;
     };

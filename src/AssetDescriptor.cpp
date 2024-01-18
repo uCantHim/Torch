@@ -92,7 +92,7 @@ auto AssetDescriptor::getBinding(AssetDescriptorBinding binding) const -> const 
 
 auto AssetDescriptor::getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout
 {
-    return descSet->getProvider().getDescriptorSetLayout();
+    return descSet->getDescriptorSetLayout();
 }
 
 void AssetDescriptor::bindDescriptorSet(
@@ -101,7 +101,7 @@ void AssetDescriptor::bindDescriptorSet(
     vk::PipelineLayout pipelineLayout,
     ui32 setIndex) const
 {
-    descSet->getProvider().bindDescriptorSet(cmdBuf, bindPoint, pipelineLayout, setIndex);
+    descSet->getProvider()->bindDescriptorSet(cmdBuf, bindPoint, pipelineLayout, setIndex);
 }
 
 } // namespace trc

@@ -67,7 +67,7 @@ namespace trc
      */
     auto makePipelineLayout(const Device& device,
                             const PipelineLayoutTemplate& _template,
-                            const RenderConfig& renderConfig
+                            const DescriptorRegistry& descRegistry
         ) -> PipelineLayout;
 
 

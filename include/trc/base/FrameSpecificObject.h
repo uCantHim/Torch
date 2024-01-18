@@ -30,6 +30,16 @@ namespace trc
         {}
 
         /**
+         * @brief Construct all objects with the same set of arguments
+         */
+        template<typename ...Args>
+            requires std::constructible_from<R, Args...>
+        FrameSpecific(const FrameClock& frameClock, Args&&... args)
+            :
+            FrameSpecific(frameClock, [&](uint32_t){ return R{ args... }; })
+        {}
+
+        /**
          * @param const FrameClock& frameClock The frameClock
          * @param std::function<R(uint32_t)> func: A constructor function
          *        for the object. Is called for every frame in the frame

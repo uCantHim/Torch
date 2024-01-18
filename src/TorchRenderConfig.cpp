@@ -67,11 +67,16 @@ trc::TorchRenderConfig::TorchRenderConfig(
     createGBuffer({ 1, 1 });
 
     // Define named descriptors
-    addDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR }, getGlobalDataDescriptorProvider());
-    addDescriptor(DescriptorName{ ASSET_DESCRIPTOR },       getAssetDescriptorProvider());
-    addDescriptor(DescriptorName{ SCENE_DESCRIPTOR },       getSceneDescriptorProvider());
-    addDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },    getGBufferDescriptorProvider());
-    addDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },      getShadowDescriptorProvider());
+    defineDescriptor(DescriptorName{ ASSET_DESCRIPTOR },
+                     assetDescriptor->getDescriptorSetLayout());
+    defineDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR },
+                     globalDataDescriptor.getDescriptorSetLayout());
+    defineDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },
+                     gBufferDescriptor.getDescriptorSetLayout());
+    defineDescriptor(DescriptorName{ SCENE_DESCRIPTOR },
+                     sceneDescriptor.getDescriptorSetLayout());
+    defineDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },
+                     shadowPool.getDescriptorSetLayout());
 
     // Define named render passes
     addRenderPass(
@@ -160,19 +165,19 @@ auto trc::TorchRenderConfig::getGlobalDataDescriptorProvider() const
 auto trc::TorchRenderConfig::getSceneDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return sceneDescriptor.getProvider();
+    return sceneDescriptor;
 }
 
 auto trc::TorchRenderConfig::getGBufferDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return gBufferDescriptor.getProvider();
+    return gBufferDescriptor;
 }
 
 auto trc::TorchRenderConfig::getShadowDescriptorProvider() const
     -> const DescriptorProviderInterface&
 {
-    return shadowPool.getProvider();
+    return shadowPool;
 }
 
 auto trc::TorchRenderConfig::getAssetDescriptorProvider() const

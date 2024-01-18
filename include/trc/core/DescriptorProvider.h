@@ -12,7 +12,6 @@ namespace trc
     public:
         virtual ~DescriptorProviderInterface() = default;
 
-        virtual auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout = 0;
         virtual void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,
@@ -24,9 +23,8 @@ namespace trc
     class DescriptorProvider : public DescriptorProviderInterface
     {
     public:
-        DescriptorProvider(vk::DescriptorSetLayout layout, vk::DescriptorSet set);
+        explicit DescriptorProvider(vk::DescriptorSet set);
 
-        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,
@@ -35,10 +33,8 @@ namespace trc
         ) const override;
 
         void setDescriptorSet(vk::DescriptorSet newSet);
-        void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);
 
     private:
-        vk::DescriptorSetLayout layout;
         vk::DescriptorSet set;
     };
 
@@ -48,24 +44,20 @@ namespace trc
     class FrameSpecificDescriptorProvider : public DescriptorProviderInterface
     {
     public:
-        FrameSpecificDescriptorProvider(vk::DescriptorSetLayout layout,
-                                        FrameSpecific<vk::DescriptorSet> set);
+        explicit FrameSpecificDescriptorProvider(FrameSpecific<vk::DescriptorSet> set);
 
         /**
          * @brief Convert handle types to plain handles
          */
         template<typename T>
             requires requires (T a) { { *a } -> std::convertible_to<vk::DescriptorSet>; }
-        FrameSpecificDescriptorProvider(vk::DescriptorSetLayout layout,
-                                        FrameSpecific<T>& sets)
+        FrameSpecificDescriptorProvider(FrameSpecific<T>& sets)
             :
             FrameSpecificDescriptorProvider(
-                layout,
                 { sets.getFrameClock(), [&](ui32 i) { return *sets.getAt(i); } }
             )
         {}
 
-        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,
@@ -74,10 +66,8 @@ namespace trc
         ) const override;
 
         void setDescriptorSet(FrameSpecific<vk::DescriptorSet> newSet);
-        void setDescriptorSetLayout(vk::DescriptorSetLayout newLayout);
 
     private:
-        vk::DescriptorSetLayout layout;
         FrameSpecific<vk::DescriptorSet> set;
     };
 }

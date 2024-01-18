@@ -207,8 +207,7 @@ trc::GBufferDescriptor::GBufferDescriptor(
     const Device& device,
     const FrameClock& frameClock)
     :
-    descSets(frameClock),
-    provider({}, { frameClock }) // Doesn't have a default constructor
+    descSets(frameClock)
 {
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
@@ -248,10 +247,7 @@ trc::GBufferDescriptor::GBufferDescriptor(
     std::vector<vk::DescriptorSetLayout> layouts(frameClock.getFrameCount(), *descLayout);
     descSets = { frameClock, device->allocateDescriptorSetsUnique({ *descPool, layouts }) };
 
-    provider = {
-        *descLayout,
-        { frameClock, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
-    };
+    provider = std::make_shared<FrameSpecificDescriptorProvider>(descSets);
 }
 
 trc::GBufferDescriptor::GBufferDescriptor(
@@ -311,8 +307,16 @@ void trc::GBufferDescriptor::update(
     }
 }
 
-auto trc::GBufferDescriptor::getProvider() const noexcept
-    -> const DescriptorProviderInterface&
+auto trc::GBufferDescriptor::getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout
 {
-    return provider;
+    return *descLayout;
+}
+
+void trc::GBufferDescriptor::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, **descSets, {});
 }

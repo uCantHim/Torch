@@ -93,9 +93,24 @@ void trc::SceneDescriptor::updateRayData(const RaySceneModule& scene)
     drawableDataBuf.flush();
 }
 
-auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProviderInterface&
+auto trc::SceneDescriptor::getDescriptorSetLayout() const noexcept
+    -> vk::DescriptorSetLayout
 {
-    return provider;
+    return *descLayout;
+}
+
+void trc::SceneDescriptor::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(
+        bindPoint,
+        pipelineLayout,
+        setIndex, *descSet,
+        {}
+    );
 }
 
 void trc::SceneDescriptor::createDescriptors()
@@ -143,31 +158,4 @@ void trc::SceneDescriptor::writeDescriptors()
         { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &drawableBufferInfo },
     };
     device->updateDescriptorSets(writes, {});
-}
-
-
-
-trc::SceneDescriptor::SceneDescriptorProvider::SceneDescriptorProvider(
-    const SceneDescriptor& descriptor)
-    : descriptor(descriptor)
-{}
-
-auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSetLayout() const noexcept
-    -> vk::DescriptorSetLayout
-{
-    return *descriptor.descLayout;
-}
-
-void trc::SceneDescriptor::SceneDescriptorProvider::bindDescriptorSet(
-    vk::CommandBuffer cmdBuf,
-    vk::PipelineBindPoint bindPoint,
-    vk::PipelineLayout pipelineLayout,
-    ui32 setIndex) const
-{
-    cmdBuf.bindDescriptorSets(
-        bindPoint,
-        pipelineLayout,
-        setIndex, *descriptor.descSet,
-        {}
-    );
 }

@@ -18,13 +18,14 @@ trc::RayTracingPass::RayTracingPass(
     RenderPass({}, 0),
     instance(instance),
     tlas(tlas),
-    rayBuffer(_rayBuffer),
     descriptorPool(
         instance,
-        rt::RayBuffer::Image::NUM_IMAGES * rayBuffer->getFrameClock().getFrameCount()
+        rt::RayBuffer::Image::NUM_IMAGES * _rayBuffer->getFrameClock().getFrameCount()
     )
 {
     assert(_rayBuffer != nullptr);
+
+    setRayBuffer(_rayBuffer);
 
     // ------------------------------- //
     //    Make reflections pipeline    //
@@ -32,7 +33,8 @@ trc::RayTracingPass::RayTracingPass(
 
     auto reflectPipelineLayout = std::make_unique<PipelineLayout>(
         trc::buildPipelineLayout()
-        .addDescriptor(descriptorProviders.at(rt::RayBuffer::Image::eReflections), true)
+        .addStaticDescriptor(descriptorPool.getDescriptorSetLayout(),
+                             descriptorProviders.at(rt::RayBuffer::Image::eReflections))
         .addDescriptor(DescriptorName{TorchRenderConfig::G_BUFFER_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{TorchRenderConfig::ASSET_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{TorchRenderConfig::SCENE_DESCRIPTOR}, true)
@@ -64,8 +66,8 @@ trc::RayTracingPass::RayTracingPass(
 
 void trc::RayTracingPass::begin(
     vk::CommandBuffer cmdBuf,
-    vk::SubpassContents subpassContents,
-    FrameRenderState& frameState)
+    vk::SubpassContents /*subpassContents*/,
+    FrameRenderState& /*frameState*/)
 {
     for (auto& call : rayCalls)
     {
@@ -113,13 +115,8 @@ void trc::RayTracingPass::end(vk::CommandBuffer)
 
 void trc::RayTracingPass::setRayBuffer(const FrameSpecific<rt::RayBuffer>* newRayBuffer)
 {
-    descriptorProviders.resize(
-        rt::RayBuffer::Image::NUM_IMAGES,
-        FrameSpecificDescriptorProvider{ {}, newRayBuffer->getFrameClock() }
-    );
-
     this->rayBuffer = newRayBuffer;
-    for (ui32 i = 0; auto img : { rt::RayBuffer::Image::eReflections, })
+    for (auto img : { rt::RayBuffer::Image::eReflections, })
     {
         auto& set = descriptorSets.emplace_back(
             rayBuffer->getFrameClock(),
@@ -131,11 +128,7 @@ void trc::RayTracingPass::setRayBuffer(const FrameSpecific<rt::RayBuffer>* newRa
             }
         );
 
-        descriptorProviders.at(i).setDescriptorSet({
-            rayBuffer->getFrameClock(),
-            [&set](ui32 i){ return *set.getAt(i); }
-        });
-        ++i;
+        descriptorProviders.emplace_back(std::make_shared<FrameSpecificDescriptorProvider>(set));
     }
 }
 

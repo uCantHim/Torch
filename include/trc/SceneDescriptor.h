@@ -17,33 +17,21 @@ namespace trc
      * binding 0: Lights (uniform buffer)
      * binding 1: Ray drawable data (storage buffer)
      */
-    class SceneDescriptor
+    class SceneDescriptor : public DescriptorProviderInterface
     {
     public:
         explicit SceneDescriptor(const Instance& instance);
 
         void update(const SceneBase& scene);
 
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
+        void bindDescriptorSet(vk::CommandBuffer cmdBuf,
+                               vk::PipelineBindPoint bindPoint,
+                               vk::PipelineLayout pipelineLayout,
+                               ui32 setIndex
+                               ) const override;
 
     private:
-        class SceneDescriptorProvider : public DescriptorProviderInterface
-        {
-        public:
-            explicit SceneDescriptorProvider(const SceneDescriptor& descriptor);
-
-            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
-            void bindDescriptorSet(
-                vk::CommandBuffer cmdBuf,
-                vk::PipelineBindPoint bindPoint,
-                vk::PipelineLayout pipelineLayout,
-                ui32 setIndex
-            ) const override;
-
-        private:
-            const SceneDescriptor& descriptor;
-        };
-
         void createDescriptors();
         void writeDescriptors();
 
@@ -56,7 +44,6 @@ namespace trc
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet descSet;
-        SceneDescriptorProvider provider{ *this };
 
         Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping

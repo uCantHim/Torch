@@ -1,14 +1,12 @@
 #include "trc/FinalLightingPass.h"
 
-#include "trc/base/ShaderProgram.h"
-#include "trc/base/Barriers.h"
-
-#include "trc/core/PipelineLayoutBuilder.h"
-#include "trc/core/ComputePipelineBuilder.h"
-#include "trc/core/RenderTarget.h"
 #include "trc/PipelineDefinitions.h"
-#include "trc/TorchRenderConfig.h"
 #include "trc/RasterPipelines.h"
+#include "trc/TorchRenderConfig.h"
+#include "trc/base/Barriers.h"
+#include "trc/core/ComputePipelineBuilder.h"
+#include "trc/core/PipelineLayoutBuilder.h"
+#include "trc/core/RenderTarget.h"
 
 
 
@@ -23,14 +21,14 @@ trc::FinalLightingPass::FinalLightingPass(
     renderTarget(&target),
     renderConfig(&config),
     descSets(target.getFrameClock()),
-    provider([&]() -> FrameSpecificDescriptorProvider {
+    provider([&]{
         createDescriptors(device, target.getFrameClock());
-        return { *descLayout, descSets };
+        return std::make_shared<FrameSpecificDescriptorProvider>(descSets);
     }()),
     layout(buildPipelineLayout()
         .addDescriptor(DescriptorName{ TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::G_BUFFER_DESCRIPTOR }, true)
-        .addDescriptor(provider, true)
+        .addStaticDescriptor(*descLayout, provider)
         .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eCompute, 0, sizeof(vec2) * 2 })

@@ -1,5 +1,7 @@
 #include "trc/core/PipelineLayout.h"
 
+#include <cassert>
+
 #include "trc/core/DescriptorProvider.h"
 
 
@@ -54,7 +56,9 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
     }
     for (const auto& [index, id] : dynamicDescriptorSets)
     {
-        registry.getDescriptor(id).bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
+        auto provider = registry.getDescriptor(id);
+        assert(provider != nullptr);
+        provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }
 }
 
@@ -68,9 +72,9 @@ void trc::PipelineLayout::bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf
 
 void trc::PipelineLayout::addStaticDescriptorSet(
     ui32 descriptorIndex,
-    const DescriptorProviderInterface& provider) noexcept
+    s_ptr<const DescriptorProviderInterface> provider) noexcept
 {
-    staticDescriptorSets.emplace_back(descriptorIndex, &provider);
+    staticDescriptorSets.emplace_back(descriptorIndex, provider);
 }
 
 void trc::PipelineLayout::addStaticDescriptorSet(ui32 descriptorIndex, DescriptorID id) noexcept

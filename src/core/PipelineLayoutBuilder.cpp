@@ -1,5 +1,9 @@
 #include "trc/core/PipelineLayoutBuilder.h"
 
+#include <trc_util/TypeUtils.h>
+
+#include "trc/core/DescriptorRegistry.h"
+
 
 
 trc::PipelineLayoutBuilder::PipelineLayoutBuilder(const PipelineLayoutTemplate& t)
@@ -30,12 +34,17 @@ auto trc::PipelineLayoutBuilder::addDescriptorIf(
     return *this;
 }
 
-auto trc::PipelineLayoutBuilder::addDescriptor(
-    const DescriptorProviderInterface& provider,
-    bool hasStaticSet
-    ) -> Self&
+auto trc::PipelineLayoutBuilder::addStaticDescriptor(
+    vk::DescriptorSetLayout descLayout,
+    s_ptr<const DescriptorProviderInterface> provider) -> Self&
 {
-    descriptors.emplace_back(ProviderDefinition{ &provider, hasStaticSet });
+    descriptors.emplace_back(ProviderDefinition{ descLayout, std::move(provider) });
+    return *this;
+}
+
+auto trc::PipelineLayoutBuilder::addDynamicDescriptor(vk::DescriptorSetLayout descLayout) -> Self&
+{
+    descriptors.emplace_back(descLayout);
     return *this;
 }
 
@@ -74,30 +83,20 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
     return { descNames, pushConstants };
 }
 
-auto trc::PipelineLayoutBuilder::build(const Device& device, RenderConfig& renderConfig)
+auto trc::PipelineLayoutBuilder::build(const Device& device, DescriptorRegistry& descRegistry)
     -> PipelineLayout
 {
-    // Collect descriptors
+    // Collect descriptor set layouts
     std::vector<vk::DescriptorSetLayout> descLayouts;
-    std::vector<std::pair<const DescriptorProviderInterface*, bool>> providers;
-    auto addProvider = [&](const DescriptorProviderInterface* p, bool b)
-    {
-        providers.emplace_back(p, b);
-        descLayouts.emplace_back(p->getDescriptorSetLayout());
-    };
-
     for (const auto& def : descriptors)
     {
-        if (std::holds_alternative<ProviderDefinition>(def))
-        {
-            auto [p, isStatic] = std::get<ProviderDefinition>(def);
-            addProvider(p, isStatic);
-        }
-        else {
-            const auto& descName = std::get<Descriptor>(def);
-            const auto id = renderConfig.getDescriptorID(descName.name);
-            addProvider(&renderConfig.getDescriptor(id), descName.isStatic);
-        }
+        descLayouts.emplace_back(
+            std::visit(util::VariantVisitor{
+                [&](const Descriptor& desc) { return descRegistry.getDescriptorLayout(desc.name); },
+                [&](const vk::DescriptorSetLayout& layout) { return layout; },
+                [&](const ProviderDefinition& def) { return std::get<0>(def); },
+            }, def)
+        );
     }
 
     // Collect push constant ranges
@@ -108,14 +107,23 @@ auto trc::PipelineLayoutBuilder::build(const Device& device, RenderConfig& rende
 
     auto layout = makePipelineLayout(device, descLayouts, pcRanges);
 
-    // Set static descriptors and default push constant values
-    for (ui32 i = 0; const auto& [p, isStatic] : providers)
+    // Set statically-bound descriptors
+    for (ui32 i = 0; const auto& def : descriptors)
     {
-        if (isStatic) {
-            layout.addStaticDescriptorSet(i, *p);
-        }
+        std::visit(util::VariantVisitor{
+            [&](const Descriptor& desc) {
+                layout.addStaticDescriptorSet(i, descRegistry.getDescriptorID(desc.name));
+            },
+            [&](const vk::DescriptorSetLayout& /*layout*/) { /* Is a dynamically-bound set */ },
+            [&](const ProviderDefinition& def) {
+                const auto& [_, provider] = def;
+                layout.addStaticDescriptorSet(i, provider);
+            },
+        }, def);
         ++i;
     }
+
+    // Set default push constant values
     for (const auto& pc : pushConstants)
     {
         if (pc.defaultValue.has_value()) {

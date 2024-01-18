@@ -4,7 +4,6 @@ target_sources(
         CommandRecorder.cpp
         ComputePipelineBuilder.cpp
         DescriptorProvider.cpp
-        DescriptorProviderWrapper.cpp
         DescriptorRegistry.cpp
         Frame.cpp
         FrameRenderState.cpp

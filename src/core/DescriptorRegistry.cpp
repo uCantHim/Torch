@@ -1,5 +1,7 @@
 #include "trc/core/DescriptorRegistry.h"
 
+#include <cassert>
+
 #include <trc_util/Exception.h>
 
 #include "trc/core/DescriptorProvider.h"
@@ -19,58 +21,79 @@ auto trc::DescriptorRegistry::tryInsertName(const DescriptorName& name) -> Descr
     return id;
 }
 
-auto trc::DescriptorRegistry::addDescriptor(
-    DescriptorName name,
-    const DescriptorProviderInterface& provider)
-    -> DescriptorID
+void trc::DescriptorRegistry::defineDescriptor(
+    const DescriptorName& name,
+    vk::DescriptorSetLayout layout)
 {
-    DescriptorID id = tryInsertName(name);
+    assert(layout != VK_NULL_HANDLE);
 
-    if (descriptorProviders[id] != nullptr)
+    const DescriptorID id = tryInsertName(name);
+    if (descriptorSetLayouts[id] != VK_NULL_HANDLE)
     {
         throw Exception(
-            "[In DescriptorRegistry::addDescriptor]: "
+            "[In DescriptorRegistry::defineDescriptor]: "
             "Descriptor with name " + name.identifier + " is already defined!"
         );
     }
-    descriptorProviders[id] = &provider;
+    descriptorSetLayouts[id] = layout;
+}
 
-    return id;
+void trc::DescriptorRegistry::provideDescriptor(
+    const DescriptorName& name,
+    s_ptr<const DescriptorProviderInterface> provider)
+{
+    try {
+        const DescriptorID id = idPerName.at(name.identifier);
+        descriptorProviders[id] = std::move(provider);
+    }
+    catch (const std::out_of_range&) {
+        throw Exception(
+            "[In DescriptorRegistry::provideDescriptor]: "
+            "No descriptor with the name \"" + name.identifier + "\" is defined."
+        );
+    }
 }
 
 auto trc::DescriptorRegistry::getDescriptorLayout(const DescriptorName& name) const
     -> vk::DescriptorSetLayout
 {
     try {
-        return getDescriptor(getDescriptorID(name)).getDescriptorSetLayout();
+        const DescriptorID id = idPerName.at(name.identifier);
+        assert(descriptorSetLayouts[id] != VK_NULL_HANDLE);
+        return descriptorSetLayouts[id];
     }
-    catch (const Exception&)
+    catch (const std::out_of_range&)
     {
         throw Exception(
             "[In DescriptorRegistry::getDescriptorLayout]: "
-            "No descriptor with the name \"" + name.identifier + "\" has been defined."
+            "No descriptor with the name \"" + name.identifier + "\" is defined."
         );
     }
 }
 
 auto trc::DescriptorRegistry::getDescriptorID(const DescriptorName& name) const -> DescriptorID
 {
-    auto it = idPerName.find(name.identifier);
-    if (it != idPerName.end())
-    {
-        return it->second;
+    try {
+        return idPerName.at(name.identifier);
     }
-
-    throw Exception(
-        "[In DescriptorRegistry::getDescriptor]: "
-        "No descriptor with the name \"" + name.identifier + "\" has been defined."
-    );
+    catch (const std::out_of_range&) {
+        throw Exception(
+            "[In DescriptorRegistry::getDescriptorID]: "
+            "No descriptor with the name \"" + name.identifier + "\" is defined."
+        );
+    }
 }
 
 auto trc::DescriptorRegistry::getDescriptor(DescriptorID id) const
-    -> const DescriptorProviderInterface&
+    -> s_ptr<const DescriptorProviderInterface>
 {
     assert(id < descriptorProviders.size());
-    assert(descriptorProviders[id] != nullptr);
-    return *descriptorProviders[id];
+
+    if (descriptorProviders[id] == nullptr) {
+        throw Exception("[In DescriptorRegistry::getDescriptor]: The descriptor with ID #"
+                        + std::to_string(id) + " has no associated descriptor provider! Call"
+                        " DescriptorRegistry::provideDescriptor before using that descriptor"
+                        " in a pipeline bind.");
+    }
+    return descriptorProviders[id];
 }

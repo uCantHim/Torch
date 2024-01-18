@@ -42,38 +42,62 @@ namespace trc
     class DescriptorRegistry
     {
     public:
-        struct DescriptorDefinition
-        {
-            vk::DescriptorSetLayout layout;
-        };
+        /**
+         * @brief Create a descriptor definition
+         *
+         * @param vk::DescriptorSetLayout layout The descriptor's layout. Must
+         *                                       not be `VK_NULL_HANDLE`.
+         */
+        void defineDescriptor(const DescriptorName& name, vk::DescriptorSetLayout layout);
+                              // TODO: Do I want this as an argument?
+                              //s_ptr<const DescriptorProviderInterface> setProvider)
 
         /**
-         * @brief Register a descriptor
+         * @brief Set a descriptor set provider for a descriptor
+         *
+         * The descriptor provider is used dynamically when pipelines are bound
+         * to a command buffer which reference a descriptor statically via a
+         * `DescriptorName` handle.
+         *
+         * @throw Exception if no descriptor with the name `name` is defined at
+         *                  the descriptor registry.
          */
-        auto addDescriptor(DescriptorName name, const DescriptorProviderInterface& provider)
-            -> DescriptorID;
+        void provideDescriptor(const DescriptorName& name,
+                               s_ptr<const DescriptorProviderInterface> provider);
 
         /**
          * Static usage during pipeline layout creation
+         *
+         * @throw Exception if no descriptor with the name `name` is defined at
+         *                  the descriptor registry.
          */
         auto getDescriptorLayout(const DescriptorName& name) const -> vk::DescriptorSetLayout;
 
         /**
-         * Static usage at pipeline layout creation
+         * Descriptor IDs are used internally by pipeline layouts to store
+         * references to statically used descriptor sets.
+         *
+         * @throw Exception if no descriptor with the name `name` is defined at
+         *                  the descriptor registry.
          */
         auto getDescriptorID(const DescriptorName& name) const -> DescriptorID;
 
         /**
-         * Dynamic usage during command recording
+         * Used internally during command recording/pipeline binding.
+         *
+         * @throw Exception if no descriptor provider is set for the descriptor
+         *                  at `id`.
          */
-        auto getDescriptor(DescriptorID id) const -> const DescriptorProviderInterface&;
+        auto getDescriptor(DescriptorID id) const -> s_ptr<const DescriptorProviderInterface>;
 
     private:
+        auto getId(const DescriptorName& name) -> DescriptorID;
         auto tryInsertName(const DescriptorName& name) -> DescriptorID;
 
-        data::IdPool<ui64> descriptorIdPool;
+        data::IdPool<ui32> descriptorIdPool;
         std::unordered_map<std::string, DescriptorID> idPerName;
 
-        data::IndexMap<DescriptorID, const DescriptorProviderInterface*> descriptorProviders;
+        data::IndexMap<DescriptorID, vk::DescriptorSetLayout> descriptorSetLayouts;
+        data::IndexMap<DescriptorID, s_ptr<const DescriptorProviderInterface>> descriptorProviders;
     };
 } // namespace trc

@@ -53,25 +53,13 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
 
     inputSets(target.getFrameClock()),
     outputSets(target.getFrameClock()),
-    inputSetProvider({}, { target.getFrameClock() }),
-    outputSetProvider({}, { target.getFrameClock() }),
 
-    computePipelineLayout(
-        device,
-        {
-            *inputLayout,
-            *outputLayout,
-        },
-        {}
-    ),
+    computePipelineLayout(device, { *inputLayout, *outputLayout, }, {}),
     computePipeline(buildComputePipeline()
         .setProgram(internal::loadShader(rt::shaders::getFinalCompositing()))
         .build(device, computePipelineLayout)
     )
 {
-    computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
-    computePipelineLayout.addStaticDescriptorSet(1, outputSetProvider);
-
     inputSets = {
         target.getFrameClock(),
         [&](ui32 i) -> vk::UniqueDescriptorSet {
@@ -107,8 +95,11 @@ trc::rt::FinalCompositingPass::FinalCompositingPass(
         }
     };
 
-    inputSetProvider = { *inputLayout, inputSets };
-    outputSetProvider = { *outputLayout, outputSets };
+    inputSetProvider = std::make_shared<FrameSpecificDescriptorProvider>(inputSets);
+    outputSetProvider = std::make_shared<FrameSpecificDescriptorProvider>(outputSets);
+
+    computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
+    computePipelineLayout.addStaticDescriptorSet(1, outputSetProvider);
 }
 
 void trc::rt::FinalCompositingPass::begin(

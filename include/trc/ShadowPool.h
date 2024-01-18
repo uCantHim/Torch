@@ -2,17 +2,17 @@
 
 #include <vector>
 
-#include "trc/base/Buffer.h"
-#include "trc/base/Image.h"
-#include "trc/base/FrameSpecificObject.h"
+#include <componentlib/Table.h>
+
 #include "trc_util/data/IdPool.h"
 
-#include "trc/Types.h"
 #include "trc/Camera.h"
+#include "trc/RenderPassShadow.h"
+#include "trc/Types.h"
+#include "trc/base/Buffer.h"
+#include "trc/base/FrameSpecificObject.h"
 #include "trc/core/DescriptorProvider.h"
 #include "trc/core/Instance.h"
-#include "trc/Framebuffer.h"
-#include "trc/RenderPassShadow.h"
 
 namespace trc
 {
@@ -24,8 +24,8 @@ namespace trc
     struct ShadowMap
     {
         ui32 index;
-        RenderPassShadow* renderPass;
-        Camera* camera;
+        s_ptr<RenderPassShadow> renderPass;
+        s_ptr<Camera> camera;
     };
 
     /**
@@ -47,7 +47,7 @@ namespace trc
     /**
      * @brief
      */
-    class ShadowPool
+    class ShadowPool : public DescriptorProviderInterface
     {
     public:
         /**
@@ -66,7 +66,13 @@ namespace trc
         auto allocateShadow(const ShadowCreateInfo& info) -> ShadowMap;
         void freeShadow(const ShadowMap& info);
 
-        auto getProvider() const -> const DescriptorProviderInterface&;
+        auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
+        void bindDescriptorSet(
+            vk::CommandBuffer cmdBuf,
+            vk::PipelineBindPoint bindPoint,
+            vk::PipelineLayout pipelineLayout,
+            ui32 setIndex
+        ) const override;
 
     private:
         const Device& device;
@@ -78,12 +84,13 @@ namespace trc
 
             ui32 index;
 
-            Camera camera;
-            RenderPassShadow renderPass;
+            s_ptr<Camera> camera;
+            s_ptr<RenderPassShadow> renderPass;
         };
 
-        data::IdPool<ui64> shadowIdPool;
-        std::vector<u_ptr<Shadow>> shadows;
+        const ui32 kMaxShadowMaps;
+        data::IdPool<ui32> shadowIdPool;
+        componentlib::Table<u_ptr<Shadow>> shadows;
 
         void updateMatrixBuffer();
         Buffer shadowMatrixBuffer;
@@ -97,6 +104,5 @@ namespace trc
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
         FrameSpecific<vk::UniqueDescriptorSet> descSets;
-        FrameSpecificDescriptorProvider provider;
     };
 } // namespace trc

@@ -53,9 +53,10 @@ auto trc::rt::RayBuffer::getImageView(Image imageType) const -> vk::ImageView
     return *imageViews.at(imageType);
 }
 
-auto trc::rt::RayBuffer::getImageDescriptor(Image imageType) const -> const DescriptorProvider&
+auto trc::rt::RayBuffer::getImageDescriptor(Image imageType) const
+    -> s_ptr<const DescriptorProvider>
 {
-    return *singleImageProviders.at(imageType);
+    return singleImageProviders.at(imageType);
 }
 
 auto trc::rt::RayBuffer::getImageDescriptorSet(Image imageType) const -> vk::DescriptorSet
@@ -93,6 +94,6 @@ void trc::rt::RayBuffer::createDescriptors(const Device& device)
         vk::WriteDescriptorSet write(*set, 0, 0, vk::DescriptorType::eStorageImage, imageInfo);
         device->updateDescriptorSets(write, {});
 
-        singleImageProviders.emplace_back(new DescriptorProvider(*layout, *set));
+        singleImageProviders.emplace_back(std::make_shared<DescriptorProvider>(*set));
     }
 }

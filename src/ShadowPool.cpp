@@ -1,8 +1,5 @@
 #include "trc/ShadowPool.h"
 
-#include "trc/core/Window.h"
-#include "trc/ray_tracing/RayPipelineBuilder.h"
-
 
 
 trc::ShadowPool::Shadow::Shadow(
@@ -12,7 +9,11 @@ trc::ShadowPool::Shadow::Shadow(
     uvec2 size)
     :
     index(index),
-    renderPass(device, clock, { .shadowIndex=index, .resolution=size })
+    renderPass(std::make_shared<RenderPassShadow>(
+        device,
+        clock,
+        ShadowPassCreateInfo{ .shadowIndex=index, .resolution=size }
+    ))
 {
 }
 
@@ -25,8 +26,7 @@ trc::ShadowPool::ShadowPool(
     :
     device(device),
     clock(clock),
-    shadows(info.maxShadowMaps),  // Resize shadow vector to maximum size
-
+    kMaxShadowMaps(info.maxShadowMaps),
     // Must be a storage buffer rather than a uniform buffer because it has
     // a dynamically sized array in GLSL.
     shadowMatrixBuffer(
@@ -36,8 +36,7 @@ trc::ShadowPool::ShadowPool(
         | vk::MemoryPropertyFlagBits::eHostCoherent
     ),
     shadowMatrixBufferMap(shadowMatrixBuffer.map<mat4*>()),
-    descSets(clock),
-    provider({}, { clock })
+    descSets(clock)
 {
     if (info.maxShadowMaps == 0)
     {
@@ -59,17 +58,19 @@ void trc::ShadowPool::update()
 auto trc::ShadowPool::allocateShadow(const ShadowCreateInfo& info) -> ShadowMap
 {
     const ui32 id = shadowIdPool.generate();
-    if (id > shadows.size())
+    if (id > kMaxShadowMaps)
     {
         shadowIdPool.free(id);
         throw std::out_of_range(
             "[In ShadowPool::allocateShadow]: Unable to allocate shadow - the maximum of "
-            + std::to_string(shadows.size()) + " shadows is exceeded!"
+            + std::to_string(kMaxShadowMaps) + " shadows is exceeded!"
         );
     }
 
-    shadows.at(id).reset(new Shadow(device, clock, id, info.shadowMapResolution));
-    Shadow& shadow = *shadows.at(id);
+    auto& shadow = shadows.emplace(
+        id,
+        std::make_unique<Shadow>(device, clock, id, info.shadowMapResolution)
+    );
 
     // Update all descriptors
     for (ui32 i = 0; i < clock.getFrameCount(); i++) {
@@ -79,14 +80,23 @@ auto trc::ShadowPool::allocateShadow(const ShadowCreateInfo& info) -> ShadowMap
 
     return {
         .index      = id,
-        .renderPass = &shadow.renderPass,
-        .camera     = &shadow.camera
+        .renderPass = shadow->renderPass,
+        .camera     = shadow->camera
     };
 }
 
-auto trc::ShadowPool::getProvider() const -> const DescriptorProviderInterface&
+auto trc::ShadowPool::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
 {
-    return provider;
+    return *descLayout;
+}
+
+void trc::ShadowPool::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, **descSets, {});
 }
 
 void trc::ShadowPool::updateMatrixBuffer()
@@ -96,7 +106,7 @@ void trc::ShadowPool::updateMatrixBuffer()
         if (shadow == nullptr) continue;
 
         const auto& cam = shadow->camera;
-        const mat4 viewProj = cam.getProjectionMatrix() * cam.getViewMatrix();
+        const mat4 viewProj = cam->getProjectionMatrix() * cam->getViewMatrix();
         shadowMatrixBufferMap[shadow->index] = viewProj;
     }
 }
@@ -163,9 +173,6 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
 
         device->updateDescriptorSets(writes, {});
     });
-
-    provider.setDescriptorSetLayout(*descLayout);
-    provider.setDescriptorSet({ clock, [&](ui32 i) { return *descSets.getAt(i); } });
 }
 
 void trc::ShadowPool::writeDescriptors(ui32 frameIndex)
@@ -180,8 +187,8 @@ void trc::ShadowPool::writeDescriptors(ui32 frameIndex)
         if (shadow == nullptr) continue;
 
         auto& pass = shadow->renderPass;
-        auto imageView = pass.getShadowImageView(frameIndex);
-        auto sampler = pass.getShadowImage(frameIndex).getDefaultSampler();
+        auto imageView = pass->getShadowImageView(frameIndex);
+        auto sampler = pass->getShadowImage(frameIndex).getDefaultSampler();
         imageInfos.emplace_back(sampler, imageView, vk::ImageLayout::eShaderReadOnlyOptimal);
     }
 

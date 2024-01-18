@@ -2,9 +2,9 @@
 
 #include "trc/base/FrameSpecificObject.h"
 
-#include "trc/core/RenderPass.h"
+#include "trc/core/DescriptorProvider.h"
 #include "trc/core/Pipeline.h"
-#include "trc/GBuffer.h"
+#include "trc/core/RenderPass.h"
 
 namespace trc
 {
@@ -19,7 +19,6 @@ namespace trc
     public:
         FinalLightingPass(FinalLightingPass&&) noexcept = default;
         auto operator=(FinalLightingPass&&) noexcept -> FinalLightingPass& = default;
-        ~FinalLightingPass() noexcept = default;
 
         FinalLightingPass(const Device& device,
                           const RenderTarget& target,
@@ -43,7 +42,7 @@ namespace trc
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
         FrameSpecific<vk::UniqueDescriptorSet> descSets;
-        FrameSpecificDescriptorProvider provider;
+        s_ptr<FrameSpecificDescriptorProvider> provider;
 
         PipelineLayout layout;
         Pipeline pipeline;

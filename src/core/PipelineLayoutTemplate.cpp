@@ -48,13 +48,13 @@ auto trc::PipelineLayoutTemplate::getPushConstants() const -> const std::vector<
 auto trc::makePipelineLayout(
     const Device& device,
     const PipelineLayoutTemplate& _template,
-    const RenderConfig& renderConfig)
+    const DescriptorRegistry& descRegistry)
     -> PipelineLayout
 {
     std::vector<vk::DescriptorSetLayout> descLayouts;
     for (const auto& desc : _template.getDescriptors())
     {
-        descLayouts.emplace_back(renderConfig.getDescriptorLayout(desc.name));
+        descLayouts.emplace_back(descRegistry.getDescriptorLayout(desc.name));
     }
 
     std::vector<vk::PushConstantRange> pushConstantRanges;
@@ -70,7 +70,7 @@ auto trc::makePipelineLayout(
     for (ui32 i = 0; auto& desc : _template.getDescriptors())
     {
         if (desc.isStatic) {
-            layout.addStaticDescriptorSet(i, renderConfig.getDescriptorID(desc.name));
+            layout.addStaticDescriptorSet(i, descRegistry.getDescriptorID(desc.name));
         }
         ++i;
     }
