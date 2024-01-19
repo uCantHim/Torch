@@ -8,7 +8,6 @@
 
 namespace trc
 {
-    class Instance;
     class RasterSceneModule;
     class RaySceneModule;
     class SceneBase;
@@ -20,7 +19,7 @@ namespace trc
     class SceneDescriptor : public DescriptorProviderInterface
     {
     public:
-        explicit SceneDescriptor(const Instance& instance);
+        explicit SceneDescriptor(const Device& device);
 
         void update(const SceneBase& scene);
 
@@ -38,7 +37,6 @@ namespace trc
         void updateRasterData(const RasterSceneModule& scene);
         void updateRayData(const RaySceneModule& scene);
 
-        const Instance& instance;
         const Device& device;
 
         vk::UniqueDescriptorSetLayout descLayout;

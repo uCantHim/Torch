@@ -9,19 +9,18 @@
 
 
 
-trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
+trc::SceneDescriptor::SceneDescriptor(const Device& device)
     :
-    instance(instance),
-    device(instance.getDevice()),
+    device(device),
     lightBuffer(
-        instance.getDevice(),
+        device,
         util::sizeof_pad_16_v<LightData> * 128,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     lightBufferMap(lightBuffer.map()),
     drawableDataBuf(
-        instance.getDevice(),
+        device,
         200 * sizeof(RaySceneModule::RayInstanceData),
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
@@ -75,7 +74,7 @@ void trc::SceneDescriptor::updateRayData(const RaySceneModule& scene)
     {
         drawableDataBuf.unmap();
         drawableDataBuf = Buffer(
-            instance.getDevice(),
+            device,
             glm::max(dataSize, drawableDataBuf.size() * 2),
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
@@ -116,10 +115,8 @@ void trc::SceneDescriptor::bindDescriptorSet(
 void trc::SceneDescriptor::createDescriptors()
 {
     vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment
-                                        | vk::ShaderStageFlagBits::eCompute;
-    if (instance.hasRayTracing()) {
-        shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
-    }
+                                        | vk::ShaderStageFlagBits::eCompute
+                                        | rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
 
     // Layout
     descLayout = buildDescriptorSetLayout()
