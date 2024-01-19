@@ -4,6 +4,7 @@
 
 #include <componentlib/Table.h>
 
+#include "trc/Types.h"
 #include "trc/VulkanInclude.h"
 #include "trc/core/RenderStage.h"
 
@@ -26,6 +27,7 @@ namespace trc
     class Task
     {
     public:
+        virtual ~Task() noexcept = default;
         virtual void record(vk::CommandBuffer cmdBuf, TaskEnvironment& env) = 0;
     };
 

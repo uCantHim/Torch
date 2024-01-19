@@ -7,11 +7,15 @@
 
 namespace trc
 {
+    class ResourceConfig : public RenderPassRegistry
+                         , public DescriptorRegistry
+    {
+    };
+
     /**
      * @brief A configuration of an entire render cycle
      */
-    class RenderConfig : public RenderPassRegistry
-                       , public DescriptorRegistry
+    class RenderConfig : public ResourceConfig
     {
     public:
         explicit RenderConfig(RenderGraph graph);

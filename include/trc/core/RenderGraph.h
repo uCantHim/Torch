@@ -11,7 +11,6 @@
 namespace trc
 {
     class Window;
-    class RenderPass;
 
     /**
      * @brief Declares the layout of a complete render pathway
@@ -26,8 +25,6 @@ namespace trc
         struct StageInfo
         {
             RenderStage::ID stage;
-            std::vector<RenderPass*> renderPasses;
-
             std::vector<RenderStage::ID> waitDependencies;
         };
 
@@ -81,13 +78,6 @@ namespace trc
         auto getStages() const -> const std::vector<StageInfo>& {
             return stages;
         }
-
-        /**
-         * @throw std::out_of_range if `stage` is not present in the render
-         *        graph.
-         */
-        void addPass(RenderStage::ID stage, RenderPass& newPass);
-        void removePass(RenderStage::ID stage, RenderPass& pass);
 
     private:
         using StageIterator = typename std::vector<StageInfo>::iterator;

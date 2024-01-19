@@ -1,0 +1,56 @@
+#include "trc/RasterTasks.h"
+
+#include "trc/RasterSceneModule.h"
+#include "trc/core/Frame.h"
+#include "trc/core/RenderConfiguration.h"
+#include "trc/core/SceneBase.h"
+
+
+
+namespace trc
+{
+
+RenderPassDrawTask::RenderPassDrawTask(s_ptr<RenderPass> renderPass)
+    :
+    renderPass(std::move(renderPass))
+{
+    if (renderPass == nullptr) {
+        throw std::invalid_argument("[In RenderPassDrawTask::RenderPassDrawTask]: Render pass"
+                                    " must not be nullptr!");
+    }
+}
+
+void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
+{
+    const RasterSceneModule& scene = env.scene->getModule<RasterSceneModule>();
+    const auto stage = env.renderStage;
+
+    renderPass->begin(cmdBuf, vk::SubpassContents::eInline, *env.frame);
+
+    // Record all commands
+    const ui32 subPassCount = renderPass->getNumSubPasses();
+    for (ui32 subPass = 0; subPass < subPassCount; subPass++)
+    {
+        for (auto pipeline : scene.iterPipelines(stage, SubPass::ID(subPass)))
+        {
+            // Bind the current pipeline
+            auto& p = env.renderConfig->getPipeline(pipeline);
+            p.bind(cmdBuf, *env.renderConfig);
+
+            // Record commands for all objects with this pipeline
+            scene.invokeDrawFunctions(
+                stage, *renderPass, SubPass::ID(subPass),
+                pipeline, p,
+                cmdBuf
+            );
+        }
+
+        if (subPass < subPassCount - 1) {
+            cmdBuf.nextSubpass(vk::SubpassContents::eInline);
+        }
+    }
+
+    renderPass->end(cmdBuf);
+}
+
+} // namespace trc

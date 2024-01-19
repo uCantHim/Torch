@@ -82,13 +82,15 @@ namespace trc
          */
         void disableShadow(Light light);
 
-        auto getShadowPasses() -> const std::unordered_set<RenderPass*>;
+        auto getShadowPasses() -> const std::unordered_set<s_ptr<RenderPass>>& {
+            return shadowPasses;
+        }
 
     private:
         Node root;
 
         LightRegistry lightRegistry;
         std::unordered_map<Light, ShadowNode> shadowNodes;
-        std::unordered_set<RenderPass*> shadowPasses;
+        std::unordered_set<s_ptr<RenderPass>> shadowPasses;
     };
 } // namespace trc

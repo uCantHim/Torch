@@ -12,7 +12,4 @@ namespace trc
     inline RenderStage finalLightingRenderStage = RenderStage::make();
 
     inline RenderStage rayTracingRenderStage = RenderStage::make();
-
-    // The last render stage in Torch's default render graph
-    inline RenderStage postProcessingRenderStage = RenderStage::make();
 } // namespace trc

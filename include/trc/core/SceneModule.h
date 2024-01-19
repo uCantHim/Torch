@@ -9,6 +9,7 @@ namespace trc
     class SceneModule
     {
     public:
+        virtual ~SceneModule() noexcept = default;
         virtual void createTasks(TaskQueue& taskQueue) = 0;
     };
 

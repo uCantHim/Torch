@@ -3,7 +3,6 @@
 #include "trc_util/Timer.h"
 
 #include "trc/GBufferPass.h"
-#include "trc/RasterSceneModule.h"
 #include "trc/TorchImplementation.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/base/Logging.h"
@@ -24,11 +23,8 @@ auto trc::makeTorchRenderGraph() -> RenderGraph
     graph.after(gBufferRenderStage, mouseDepthReadStage);
     graph.after(mouseDepthReadStage, finalLightingRenderStage);
 
-    // Post-processing
-    graph.after(finalLightingRenderStage, postProcessingRenderStage);
-
     // Gui stage
-    graph.after(postProcessingRenderStage, guiRenderStage);
+    graph.after(finalLightingRenderStage, guiRenderStage);
 
     return graph;
 }
@@ -53,7 +49,7 @@ trc::TorchRenderConfig::TorchRenderConfig(
     // Descriptors
     gBufferDescriptor(device, info.target.getFrameClock()),  // Don't update the descriptor sets yet!
     globalDataDescriptor(device, info.target.getFrameClock()),
-    sceneDescriptor(instance),
+    sceneDescriptor(instance.getDevice()),
     assetDescriptor(info.assetDescriptor)
 {
     if (info.assetRegistry == nullptr)
@@ -97,9 +93,9 @@ trc::TorchRenderConfig::TorchRenderConfig(
     finalLightingPass = std::make_unique<FinalLightingPass>(
         device, info.target, uvec2(0, 0), uvec2(1, 1), *this
     );
-    renderGraph.addPass(finalLightingRenderStage, *finalLightingPass);
+    //renderGraph.addPass(finalLightingRenderStage, *finalLightingPass);
 
-    renderGraph.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
+    //renderGraph.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
 }
 
 void trc::TorchRenderConfig::perFrameUpdate(const Camera& camera, const SceneBase& scene)
@@ -231,12 +227,12 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     trc::Timer timer;
 
     // Delete resources
-    renderGraph.removePass(gBufferRenderStage, *gBufferPass);
-    if (mouseDepthReader != nullptr)
-    {
-        renderGraph.removePass(mouseDepthReadStage, *mouseDepthReader);
-        mouseDepthReader.reset();
-    }
+    //renderGraph.removePass(gBufferRenderStage, *gBufferPass);
+    //if (mouseDepthReader != nullptr)
+    //{
+    //    renderGraph.removePass(mouseDepthReadStage, *mouseDepthReader);
+    //    mouseDepthReader.reset();
+    //}
     gBufferPass.reset();
     gBuffer.reset();
     log::info << "GBuffer resources destroyed (" << timer.reset() << " ms)";
@@ -258,14 +254,14 @@ void trc::TorchRenderConfig::createGBuffer(const uvec2 newSize)
     log::info << "GBuffer descriptor updated (" << timer.reset() << " ms)";
 
     // Create new renderpasses
-    gBufferPass = std::make_unique<GBufferPass>(device, *gBuffer);
-    renderGraph.addPass(gBufferRenderStage, *gBufferPass);
-    mouseDepthReader = std::make_unique<GBufferDepthReader>(
-        device,
-        [this]{ return mousePosGetter() - vec2(viewportOffset); },
-        *gBuffer
-    );
-    renderGraph.addPass(mouseDepthReadStage, *mouseDepthReader);
+    //gBufferPass = std::make_unique<GBufferPass>(device, *gBuffer);
+    //renderGraph.addPass(gBufferRenderStage, *gBufferPass);
+    //mouseDepthReader = std::make_unique<GBufferDepthReader>(
+    //    device,
+    //    [this]{ return mousePosGetter() - vec2(viewportOffset); },
+    //    *gBuffer
+    //);
+    //renderGraph.addPass(mouseDepthReadStage, *mouseDepthReader);
 
     log::info << "Deferred renderpass recreated (" << timer.reset() << " ms)";
 }

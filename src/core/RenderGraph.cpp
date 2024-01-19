@@ -1,7 +1,5 @@
 #include "trc/core/RenderGraph.h"
 
-#include "trc/core/RenderPass.h"
-
 
 
 void trc::RenderGraph::first(RenderStage::ID newStage)
@@ -53,32 +51,6 @@ auto trc::RenderGraph::size() const noexcept -> size_t
     return stages.size();
 }
 
-void trc::RenderGraph::addPass(RenderStage::ID stage, RenderPass& newPass)
-{
-    auto it = findStage(stage);
-    if (it.has_value()) {
-        it.value()->renderPasses.push_back(&newPass);
-    }
-    else {
-        throw std::out_of_range("[In RenderGraph::addPass]: Tried to add a render pass to"
-                                " render stage " + std::to_string(stage) + ", which is not"
-                                " present in the graph.");
-    }
-}
-
-void trc::RenderGraph::removePass(RenderStage::ID stage, RenderPass& pass)
-{
-    if (auto it = findStage(stage))
-    {
-        auto& renderPasses = it.value()->renderPasses;
-
-        auto removed = std::remove(renderPasses.begin(), renderPasses.end(), &pass);
-        if (removed != renderPasses.end()) {
-            renderPasses.erase(removed);
-        }
-    }
-}
-
 auto trc::RenderGraph::findStage(RenderStage::ID stage) -> std::optional<StageIterator>
 {
     for (auto it = stages.begin(); it !=stages.end(); ++it)
@@ -106,5 +78,5 @@ auto trc::RenderGraph::findStage(RenderStage::ID stage) const -> std::optional<S
 void trc::RenderGraph::insert(StageIterator next, RenderStage::ID newStage)
 {
     assert(!contains(newStage));
-    stages.insert(next, StageInfo{ .stage=newStage, .renderPasses={}, .waitDependencies={} });
+    stages.insert(next, StageInfo{ .stage=newStage, .waitDependencies={} });
 }

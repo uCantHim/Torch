@@ -19,8 +19,10 @@ target_sources(
         Meshlet.cpp
         Node.cpp
         PipelineDefinitions.cpp
+        RasterPlugin.cpp
         RasterSceneBase.cpp
         RasterSceneModule.cpp
+        RasterTasks.cpp
         RaySceneModule.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
