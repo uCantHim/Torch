@@ -9,51 +9,7 @@ trc::RenderPassShadow::RenderPassShadow(
     const FrameClock& clock,
     const ShadowPassCreateInfo& info)
     :
-    RenderPass(
-        [&]()
-        {
-            std::vector<vk::AttachmentDescription> attachments{
-                vk::AttachmentDescription(
-                    {},
-                    vk::Format::eD24UnormS8Uint,
-                    vk::SampleCountFlagBits::e1,
-                    vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-                    vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
-                    vk::ImageLayout::eUndefined,
-                    vk::ImageLayout::eShaderReadOnlyOptimal
-                )
-            };
-
-            vk::AttachmentReference depthRef(0, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-            std::vector<vk::SubpassDescription> subpasses{
-                vk::SubpassDescription(
-                    {},
-                    vk::PipelineBindPoint::eGraphics,
-                    0, nullptr,
-                    0, nullptr,
-                    nullptr,
-                    &depthRef
-                ),
-            };
-
-            std::vector<vk::SubpassDependency> dependencies{
-                vk::SubpassDependency(
-                    VK_SUBPASS_EXTERNAL, 0,
-                    vk::PipelineStageFlagBits::eAllCommands,
-                    vk::PipelineStageFlagBits::eAllGraphics,
-                    vk::AccessFlags(),
-                    vk::AccessFlagBits::eDepthStencilAttachmentWrite
-                    | vk::AccessFlagBits::eDepthStencilAttachmentRead,
-                    vk::DependencyFlagBits::eByRegion
-                ),
-            };
-
-            return device->createRenderPassUnique(
-                vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
-            );
-        }(),
-        1
-    ),
+    RenderPass(makeVkRenderPass(device), 1),
     resolution(info.resolution),
     shadowMatrixIndex(info.shadowIndex),
     depthImages(clock, [&](ui32) {
@@ -125,4 +81,47 @@ auto trc::RenderPassShadow::getShadowImageView(ui32 imageIndex) const -> vk::Ima
 auto trc::RenderPassShadow::getShadowMatrixIndex() const noexcept -> ui32
 {
     return shadowMatrixIndex;
+}
+
+auto trc::RenderPassShadow::makeVkRenderPass(const Device& device) -> vk::UniqueRenderPass
+{
+    std::vector<vk::AttachmentDescription> attachments{
+        vk::AttachmentDescription(
+            {},
+            vk::Format::eD24UnormS8Uint,
+            vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+            vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eShaderReadOnlyOptimal
+        )
+    };
+
+    vk::AttachmentReference depthRef(0, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+    std::vector<vk::SubpassDescription> subpasses{
+        vk::SubpassDescription(
+            {},
+            vk::PipelineBindPoint::eGraphics,
+            0, nullptr,
+            0, nullptr,
+            nullptr,
+            &depthRef
+        ),
+    };
+
+    std::vector<vk::SubpassDependency> dependencies{
+        vk::SubpassDependency(
+            VK_SUBPASS_EXTERNAL, 0,
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::PipelineStageFlagBits::eAllGraphics,
+            vk::AccessFlags(),
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite
+            | vk::AccessFlagBits::eDepthStencilAttachmentRead,
+            vk::DependencyFlagBits::eByRegion
+        ),
+    };
+
+    return device->createRenderPassUnique(
+        vk::RenderPassCreateInfo({}, attachments, subpasses, dependencies)
+    );
 }

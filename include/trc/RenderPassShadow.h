@@ -58,6 +58,8 @@ namespace trc
         auto getShadowImage(ui32 frameIndex) const -> const Image&;
         auto getShadowImageView(ui32 frameIndex) const -> vk::ImageView;
 
+        static auto makeVkRenderPass(const Device& device) -> vk::UniqueRenderPass;
+
     private:
         const uvec2 resolution;
         ui32 shadowMatrixIndex;
