@@ -6,16 +6,18 @@
 #include <variant>
 #include <vector>
 
+#include "trc/core/DescriptorRegistry.h"
 #include "trc/core/Instance.h"
 #include "trc/core/Pipeline.h"
 #include "trc/core/PipelineLayoutTemplate.h"
 #include "trc/core/PipelineTemplate.h"
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/RenderPassRegistry.h"
 #include "trc_util/data/SafeVector.h"
 
 namespace trc
 {
     class PipelineStorage;
+    class ResourceConfig;
 
     /**
      * @brief Error thrown by `PipelineRegistry` if an operation is requested
@@ -115,7 +117,7 @@ namespace trc
         /**
          * @brief Create a pipeline storage object
          */
-        static auto makeStorage(const Instance& instance, RenderConfig& renderConfig)
+        static auto makeStorage(const Instance& instance, ResourceConfig& resourceConfig)
             -> u_ptr<PipelineStorage>;
 
         /**
@@ -149,7 +151,7 @@ namespace trc
              * @brief Invoke the factory to create its pipeline
              */
             auto create(const Instance& instance,
-                        RenderConfig& renderConfig,
+                        ResourceConfig& resourceConfig,
                         PipelineLayout& layout)
                 -> Pipeline;
 
@@ -183,7 +185,7 @@ namespace trc
             LayoutFactory() = default;
             explicit LayoutFactory(PipelineLayoutTemplate t);
 
-            auto create(const Instance& instance, RenderConfig& renderConfig) -> PipelineLayout;
+            auto create(const Instance& instance, ResourceConfig& resourceConfig) -> PipelineLayout;
             auto clone() const -> PipelineLayoutTemplate;
 
         private:
@@ -200,13 +202,13 @@ namespace trc
 
             auto invokePipelineFactory(Pipeline::ID id,
                                        const Instance& instance,
-                                       RenderConfig& renderConfig,
+                                       ResourceConfig& resourceConfig,
                                        PipelineLayout& layout)
                 -> Pipeline;
 
             auto invokeLayoutFactory(PipelineLayout::ID id,
                                      const Instance& instance,
-                                     RenderConfig& renderConfig)
+                                     ResourceConfig& resourceConfig)
                 -> PipelineLayout;
 
         private:
@@ -258,13 +260,13 @@ namespace trc
 
         PipelineStorage(typename PipelineRegistry::StorageAccessInterface interface,
                         const Instance& instance,
-                        RenderConfig& renderConfig);
+                        ResourceConfig& resourceConfig);
 
         auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
 
         typename PipelineRegistry::StorageAccessInterface registry;
         const Instance& instance;
-        RenderConfig* renderConfig;
+        ResourceConfig* resourceConfig;
 
         util::SafeVector<PipelineLayout, 20> layouts;
         util::SafeVector<Pipeline, 20> pipelines;

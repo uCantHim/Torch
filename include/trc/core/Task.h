@@ -13,6 +13,7 @@ namespace trc
     class Frame;
     class RenderConfig;
     class SceneBase;
+    class ResourceStorage;
 
     struct TaskEnvironment
     {
@@ -20,6 +21,7 @@ namespace trc
 
         RenderStage::ID renderStage;
         RenderConfig* renderConfig;
+        ResourceStorage* resources;
 
         SceneBase* scene;
     };

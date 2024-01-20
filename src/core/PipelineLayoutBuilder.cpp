@@ -83,7 +83,9 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
     return { descNames, pushConstants };
 }
 
-auto trc::PipelineLayoutBuilder::build(const Device& device, DescriptorRegistry& descRegistry)
+auto trc::PipelineLayoutBuilder::build(
+    const Device& device,
+    const DescriptorRegistry& descRegistry)
     -> PipelineLayout
 {
     // Collect descriptor set layouts

@@ -18,24 +18,6 @@
 namespace trc
 {
 
-RasterPlugin::RasterPlugin(
-    const Device& device,
-    s_ptr<AssetDescriptor> assetDescriptor)
-    :
-    assetDescriptor(assetDescriptor)
-    // gBufferDescriptor(std::make_shared<GBufferDescriptor>()),
-    // globalDataDescriptor(std::make_shared<GlobalRenderDataDescriptor>()),
-    // sceneDescriptor(std::make_shared<SceneDescriptor>()),
-    // shadowPool(std::make_shared<ShadowPool>()),
-
-    // gBufferPass(std::make_shared<GBufferPass>()),
-    // depthReaderPass(std::make_shared<GBufferDepthReader>()),
-    // finalLightingPass(std::make_shared<FinalLightingPass>())
-{
-    compatibleGBufferRenderPass = GBufferPass::makeVkRenderPass(device);
-    compatibleShadowRenderPass = RenderPassShadow::makeVkRenderPass(device);
-}
-
 void general_resources(
     const Device& device
     , const FrameClock& clock
@@ -46,9 +28,10 @@ void general_resources(
     vk::UniqueRenderPass compatShadowPass = RenderPassShadow::makeVkRenderPass(device);
 
     s_ptr<AssetDescriptor> assetDescriptor = given;
+    GBufferDescriptor gBufferDescriptor{ device, clock.getFrameCount() };
     // s_ptr<GlobalRenderDataDescriptor> globalDataDescriptor;
-    GlobalRenderDataDescriptor dataDesc{ device, clock };
-    // s_ptr<SceneDescriptor> sceneDescriptor;
+    GlobalRenderDataDescriptor dataDesc{ device, clock.getFrameCount() };
+   // s_ptr<SceneDescriptor> sceneDescriptor;
     SceneDescriptor sceneDesc{ device };
     // s_ptr<ShadowPool> shadowPool;
     ShadowPool shadowPool{ device, clock, { .maxShadowMaps=200 } };
@@ -63,13 +46,42 @@ void per_render_target_resources(
     , const RenderTarget& target
     )
 {
+    // We already have:
+    s_ptr<GBufferDescriptor> gBufferDescriptor;
+
+
+    // Now we create:
     GBufferCreateInfo createInfo{
         .size=target.getSize(),
         .maxTransparentFragsPerPixel=3
     };
     FrameSpecific<GBuffer> gBuffer{ target.getFrameClock(), device, createInfo };
 
-    GBufferDescriptor gBufferDescriptor{ device, gBuffer };
+    FrameSpecific<vk::UniqueDescriptorSet> desc{
+        target.getFrameClock(),
+        [&](ui32 i) {
+            return gBufferDescriptor->makeDescriptorSet(device, gBuffer.getAt(i));
+        }
+    };
+}
+
+RasterPlugin::RasterPlugin(
+    const Device& device,
+    ui32 maxViewports,
+    s_ptr<AssetDescriptor> assetDescriptor)
+    :
+    assetDescriptor(std::move(assetDescriptor)),
+    gBufferDescriptor(device, maxViewports),
+    globalDataDescriptor(device, maxViewports)
+    // sceneDescriptor(std::make_shared<SceneDescriptor>()),
+    // shadowPool(std::make_shared<ShadowPool>()),
+
+    // gBufferPass(std::make_shared<GBufferPass>()),
+    // depthReaderPass(std::make_shared<GBufferDepthReader>()),
+    // finalLightingPass(std::make_shared<FinalLightingPass>())
+{
+    compatibleGBufferRenderPass = GBufferPass::makeVkRenderPass(device);
+    compatibleShadowRenderPass = RenderPassShadow::makeVkRenderPass(device);
 }
 
 void RasterPlugin::registerRenderStages(RenderGraph& graph)
@@ -86,9 +98,9 @@ void RasterPlugin::defineResources(ResourceConfig& config)
     config.defineDescriptor(DescriptorName{ ASSET_DESCRIPTOR },
                             assetDescriptor->getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR },
-                            globalDataDescriptor->getDescriptorSetLayout());
+                            globalDataDescriptor.getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },
-                            gBufferDescriptor->getDescriptorSetLayout());
+                            gBufferDescriptor.getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ SCENE_DESCRIPTOR },
                             sceneDescriptor->getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },

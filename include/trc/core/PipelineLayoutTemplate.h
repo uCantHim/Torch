@@ -5,7 +5,8 @@
 #include <any>
 
 #include "trc/Types.h"
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/DescriptorRegistry.h"
+#include "trc/core/PipelineLayout.h"
 
 namespace trc
 {

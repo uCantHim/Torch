@@ -32,7 +32,7 @@ trc::FinalLightingPass::FinalLightingPass(
         .addDescriptor(DescriptorName{ TorchRenderConfig::SCENE_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ TorchRenderConfig::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eCompute, 0, sizeof(vec2) * 2 })
-        .build(device, config)
+        .build(device, config.getResourceConfig())
     ),
     pipeline(buildComputePipeline()
         .setProgram(internal::loadShader(pipelines::getFinalLightingShader()))
@@ -53,7 +53,7 @@ void trc::FinalLightingPass::begin(
 {
     vk::Image targetImage = renderTarget->getCurrentImage();
 
-    pipeline.bind(cmdBuf, *renderConfig);
+    pipeline.bind(cmdBuf, renderConfig->getResourceStorage());
     cmdBuf.pushConstants<vec2>(*layout, vk::ShaderStageFlagBits::eCompute,
                                0, { renderOffset, renderSize });
 

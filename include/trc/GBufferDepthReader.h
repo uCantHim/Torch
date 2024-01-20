@@ -1,16 +1,12 @@
 #pragma once
 
+#include "trc/GBuffer.h"
+#include "trc/UpdatePass.h"
 #include "trc/base/Buffer.h"
 #include "trc/base/FrameSpecificObject.h"
 
-#include "trc/GBuffer.h"
-#include "trc/UpdatePass.h"
-
 namespace trc
 {
-    class Viewport;
-    class Window;
-
     class GBufferDepthReader : public UpdatePass
     {
     public:

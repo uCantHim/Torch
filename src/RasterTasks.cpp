@@ -3,6 +3,7 @@
 #include "trc/RasterSceneModule.h"
 #include "trc/core/Frame.h"
 #include "trc/core/RenderConfiguration.h"
+#include "trc/core/RenderPlugin.h"
 #include "trc/core/SceneBase.h"
 
 
@@ -34,8 +35,8 @@ void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
         for (auto pipeline : scene.iterPipelines(stage, SubPass::ID(subPass)))
         {
             // Bind the current pipeline
-            auto& p = env.renderConfig->getPipeline(pipeline);
-            p.bind(cmdBuf, *env.renderConfig);
+            auto& p = env.resources->getPipeline(pipeline);
+            p.bind(cmdBuf, *env.resources);
 
             // Record commands for all objects with this pipeline
             scene.invokeDrawFunctions(

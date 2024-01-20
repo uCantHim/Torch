@@ -3,6 +3,7 @@
 #include <future>
 
 #include "trc/core/Frame.h"
+#include "trc/core/RenderConfiguration.h"
 #include "trc/core/Task.h"
 
 
@@ -81,7 +82,13 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
                 cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
                 for (auto& task : tasks)
                 {
-                    TaskEnvironment env{ &frame, stage, vp.viewport, vp.scene };
+                    TaskEnvironment env{
+                        &frame,
+                        stage,
+                        vp.viewport,
+                        &vp.viewport->getResourceStorage(),
+                        vp.scene
+                    };
                     task->record(cmdBuf, env);
                 }
                 cmdBuf.end();

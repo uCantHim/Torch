@@ -46,12 +46,12 @@ void trc::Pipeline::bind(vk::CommandBuffer cmdBuf) const
     layout->bindDefaultPushConstantValues(cmdBuf);
 }
 
-void trc::Pipeline::bind(vk::CommandBuffer cmdBuf, const DescriptorRegistry& registry) const
+void trc::Pipeline::bind(vk::CommandBuffer cmdBuf, const ResourceStorage& descStorage) const
 {
     assert(layout != nullptr && *layout);
 
     cmdBuf.bindPipeline(bindPoint, pipeline);
-    layout->bindStaticDescriptorSets(cmdBuf, bindPoint, registry);
+    layout->bindStaticDescriptorSets(cmdBuf, bindPoint, descStorage);
     layout->bindDefaultPushConstantValues(cmdBuf);
 }
 

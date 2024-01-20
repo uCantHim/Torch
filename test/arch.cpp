@@ -9,8 +9,12 @@
 #include <trc/core/SwapchainRenderer.h>
 #include <trc/util/NullDataStorage.h>
 
+#include <trc_util/Assert.h>
+
 int main()
 {
+    assert_arg(false == true);
+
     trc::init();
 
     trc::Instance instance;
@@ -23,7 +27,9 @@ int main()
         trc::TorchRenderConfigCreateInfo{
             renderTarget,
             &assetManager.getDeviceRegistry(),
-            trc::makeDefaultAssetModules(instance, assetManager.getDeviceRegistry(), {}),
+            trc::makeDefaultAssetModules(
+                instance, assetManager.getDeviceRegistry(),
+                { .maxGeometries=10, .maxTextures=10, .maxFonts=1 }),
             2,
             false
         }

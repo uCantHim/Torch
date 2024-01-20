@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -53,19 +54,6 @@ namespace trc
                               //s_ptr<const DescriptorProviderInterface> setProvider)
 
         /**
-         * @brief Set a descriptor set provider for a descriptor
-         *
-         * The descriptor provider is used dynamically when pipelines are bound
-         * to a command buffer which reference a descriptor statically via a
-         * `DescriptorName` handle.
-         *
-         * @throw Exception if no descriptor with the name `name` is defined at
-         *                  the descriptor registry.
-         */
-        void provideDescriptor(const DescriptorName& name,
-                               s_ptr<const DescriptorProviderInterface> provider);
-
-        /**
          * Static usage during pipeline layout creation
          *
          * @throw Exception if no descriptor with the name `name` is defined at
@@ -82,14 +70,6 @@ namespace trc
          */
         auto getDescriptorID(const DescriptorName& name) const -> DescriptorID;
 
-        /**
-         * Used internally during command recording/pipeline binding.
-         *
-         * @throw Exception if no descriptor provider is set for the descriptor
-         *                  at `id`.
-         */
-        auto getDescriptor(DescriptorID id) const -> s_ptr<const DescriptorProviderInterface>;
-
     private:
         auto getId(const DescriptorName& name) -> DescriptorID;
         auto tryInsertName(const DescriptorName& name) -> DescriptorID;
@@ -98,6 +78,53 @@ namespace trc
         std::unordered_map<std::string, DescriptorID> idPerName;
 
         data::IndexMap<DescriptorID, vk::DescriptorSetLayout> descriptorSetLayouts;
+    };
+
+    /**
+     * Stores descriptor providers that implement the descriptors declared at a
+     * `DescriptorRegistry`.
+     */
+    class DescriptorStorage
+    {
+    public:
+        explicit DescriptorStorage(const DescriptorRegistry* registry);
+
+        /**
+         * @brief Provide a resource for a declared descriptor
+         *
+         * The descriptor provider is used dynamically when pipelines are bound
+         * to a command buffer which reference a descriptor statically via a
+         * `DescriptorName` handle.
+         *
+         * @param s_ptr<const DescriptorProviderInterface> provider Must not
+         *        be `nullptr`.
+         *
+         * @throw Exception if no descriptor with name `descName` is defined at
+         *                  the parent descriptor registry.
+         */
+        void provideDescriptor(const DescriptorName& descName,
+                               s_ptr<const DescriptorProviderInterface> provider);
+
+        /**
+         * @brief Retrieve a descriptor resource
+         *
+         * @return `nullptr` if no resource is defined for descriptor
+         *         `descName`. A valid descriptor provider otherwise.
+         */
+        auto getDescriptor(const DescriptorName& descName) const noexcept
+            -> s_ptr<const DescriptorProviderInterface>;
+
+        /**
+         * @brief Retrieve a descriptor resource
+         *
+         * @return `nullptr` if no resource is defined for descriptor ID `id`.
+         *         A valid descriptor provider otherwise.
+         */
+        auto getDescriptor(DescriptorID id) const noexcept
+            -> s_ptr<const DescriptorProviderInterface>;
+
+    private:
+        const DescriptorRegistry* registry;
         data::IndexMap<DescriptorID, s_ptr<const DescriptorProviderInterface>> descriptorProviders;
     };
 } // namespace trc

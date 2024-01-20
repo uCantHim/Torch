@@ -114,7 +114,8 @@ namespace trc
         /**
          * @brief Build a pipeline layout
          */
-        auto build(const Device& device, DescriptorRegistry& descRegistry) -> PipelineLayout;
+        auto build(const Device& device, const DescriptorRegistry& descRegistry)
+            -> PipelineLayout;
 
         /**
          * @brief Build the layout and register it at a pipeline registry

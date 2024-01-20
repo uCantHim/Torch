@@ -157,31 +157,18 @@ namespace trc
      * See `GBufferDescriptorBinding` for a list of bindings provided by this
      * descriptor.
      */
-    class GBufferDescriptor : public DescriptorProviderInterface
+    class GBufferDescriptor
     {
     public:
         /**
          * @brief Create the descriptor
          */
-        GBufferDescriptor(const Device& device,
-                          const FrameClock& frameClock);
+        GBufferDescriptor(const Device& device, ui32 maxDescriptorSets);
 
-        /**
-         * @brief Create the descriptor and update the sets with resources
-         */
-        GBufferDescriptor(const Device& device,
-                          const FrameSpecific<GBuffer>& gBuffer);
-
-        void update(const Device& device,
-                    const FrameSpecific<GBuffer>& gBuffer);
+        auto makeDescriptorSet(const Device& device, const GBuffer& gBuffer)
+            -> vk::UniqueDescriptorSet;
 
         auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
-        void bindDescriptorSet(
-            vk::CommandBuffer cmdBuf,
-            vk::PipelineBindPoint bindPoint,
-            vk::PipelineLayout pipelineLayout,
-            ui32 setIndex
-        ) const override;
 
         /**
          * @return ui32 The specified binding's index in the descriptor set.
@@ -193,8 +180,5 @@ namespace trc
     private:
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSetLayout descLayout;
-        FrameSpecific<vk::UniqueDescriptorSet> descSets;
-
-        s_ptr<FrameSpecificDescriptorProvider> provider;
     };
 } // namespace trc

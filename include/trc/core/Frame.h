@@ -27,6 +27,7 @@ namespace trc
         Frame& operator=(Frame&&) noexcept = delete;
 
         explicit Frame(const Device*);
+        ~Frame() noexcept = default;
 
         const Device* device;
 

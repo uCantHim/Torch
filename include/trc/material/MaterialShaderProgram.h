@@ -12,6 +12,7 @@
 #include "material_shader_program.pb.h"
 #include "trc/core/PipelineLayoutTemplate.h"
 #include "trc/core/PipelineTemplate.h"
+#include "trc/core/RenderPassRegistry.h"
 
 namespace trc
 {

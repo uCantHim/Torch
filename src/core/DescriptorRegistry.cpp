@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <trc_util/Assert.h>
 #include <trc_util/Exception.h>
 
 #include "trc/core/DescriptorProvider.h"
@@ -38,22 +39,6 @@ void trc::DescriptorRegistry::defineDescriptor(
     descriptorSetLayouts[id] = layout;
 }
 
-void trc::DescriptorRegistry::provideDescriptor(
-    const DescriptorName& name,
-    s_ptr<const DescriptorProviderInterface> provider)
-{
-    try {
-        const DescriptorID id = idPerName.at(name.identifier);
-        descriptorProviders[id] = std::move(provider);
-    }
-    catch (const std::out_of_range&) {
-        throw Exception(
-            "[In DescriptorRegistry::provideDescriptor]: "
-            "No descriptor with the name \"" + name.identifier + "\" is defined."
-        );
-    }
-}
-
 auto trc::DescriptorRegistry::getDescriptorLayout(const DescriptorName& name) const
     -> vk::DescriptorSetLayout
 {
@@ -84,16 +69,55 @@ auto trc::DescriptorRegistry::getDescriptorID(const DescriptorName& name) const 
     }
 }
 
-auto trc::DescriptorRegistry::getDescriptor(DescriptorID id) const
+
+
+//////////////////////////////
+//    Descriptor storage    //
+//////////////////////////////
+
+trc::DescriptorStorage::DescriptorStorage(const DescriptorRegistry* registry)
+    :
+    registry(registry)
+{
+}
+
+void trc::DescriptorStorage::provideDescriptor(
+    const DescriptorName& name,
+    s_ptr<const DescriptorProviderInterface> provider)
+{
+    assert_arg(provider != nullptr);
+    assert(provider != nullptr);
+
+    try {
+        const DescriptorID id = registry->getDescriptorID(name);
+        descriptorProviders[id] = std::move(provider);
+    }
+    catch (const Exception&) {
+        throw Exception(
+            "[In DescriptorStorage::provideDescriptor]:"
+            " Unable to define a resource for descriptor \"" + name.identifier + "\" as no"
+            " descriptor with that name is defined at the parent DescriptorRegistry."
+        );
+    }
+}
+
+auto trc::DescriptorStorage::getDescriptor(const DescriptorName& descName) const noexcept
     -> s_ptr<const DescriptorProviderInterface>
 {
-    assert(id < descriptorProviders.size());
+    try {
+        const auto id = registry->getDescriptorID(descName);
+        return getDescriptor(id);
+    }
+    catch (const Exception&) {
+        return nullptr;
+    }
+}
 
-    if (descriptorProviders[id] == nullptr) {
-        throw Exception("[In DescriptorRegistry::getDescriptor]: The descriptor with ID #"
-                        + std::to_string(id) + " has no associated descriptor provider! Call"
-                        " DescriptorRegistry::provideDescriptor before using that descriptor"
-                        " in a pipeline bind.");
+auto trc::DescriptorStorage::getDescriptor(DescriptorID id) const noexcept
+    -> s_ptr<const DescriptorProviderInterface>
+{
+    if (id >= descriptorProviders.size()) {
+        return nullptr;
     }
     return descriptorProviders[id];
 }

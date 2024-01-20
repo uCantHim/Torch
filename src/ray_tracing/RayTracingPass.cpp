@@ -40,7 +40,7 @@ trc::RayTracingPass::RayTracingPass(
         .addDescriptor(DescriptorName{TorchRenderConfig::SCENE_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{TorchRenderConfig::SHADOW_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR}, true)
-        .build(instance.getDevice(), renderConfig)
+        .build(instance.getDevice(), renderConfig.getResourceConfig())
     );
 
     auto [reflectPipeline, reflectShaderBindingTable] =

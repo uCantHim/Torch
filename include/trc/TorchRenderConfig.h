@@ -12,7 +12,7 @@
 #include "trc/Types.h"
 #include "trc/assets/AssetRegistry.h"
 #include "trc/core/Instance.h"
-#include "trc/core/RenderConfigImplHelper.h"
+#include "trc/core/RenderConfiguration.h"
 #include "trc/core/RenderGraph.h"
 
 namespace trc
@@ -55,7 +55,7 @@ namespace trc
     /**
      * @brief
      */
-    class TorchRenderConfig : public RenderConfigImplHelper
+    class TorchRenderConfig : public RenderConfig
     {
     public:
         /**
@@ -105,12 +105,6 @@ namespace trc
 
         auto getGBufferRenderPass() const -> const GBufferPass&;
         auto getCompatibleShadowRenderPass() const -> vk::RenderPass;
-
-        auto getGlobalDataDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getSceneDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getGBufferDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getShadowDescriptorProvider() const -> const DescriptorProviderInterface&;
-        auto getAssetDescriptorProvider() const -> const DescriptorProviderInterface&;
 
         auto getShadowPool() -> ShadowPool&;
         auto getShadowPool() const -> const ShadowPool&;

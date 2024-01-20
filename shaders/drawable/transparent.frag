@@ -25,12 +25,6 @@ layout (set = 0, binding = 0, std140) restrict uniform CameraBuffer
     mat4 inverseProjMatrix;
 } camera;
 
-layout (set = 0, binding = 1) restrict readonly uniform GlobalDataBuffer
-{
-    vec2 mousePos;
-    vec2 resolution;
-} global;
-
 // Input
 layout (location = 0) in VertexData
 {

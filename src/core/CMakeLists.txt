@@ -17,11 +17,11 @@ target_sources(
         PipelineTemplate.cpp
         Renderer.cpp
         RenderConfiguration.cpp
-        RenderConfigImplHelper.cpp
         RenderGraph.cpp
         RenderPass.cpp
         RenderPassRegistry.cpp
         RenderTarget.cpp
+        ResourceConfig.cpp
         SceneBase.cpp
         SwapchainRenderer.cpp
         TypeErasedStructureChain.cpp

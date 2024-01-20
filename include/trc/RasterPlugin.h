@@ -48,6 +48,7 @@ namespace trc
         static constexpr auto SHADOW_PASS{ "shadow" };
 
         RasterPlugin(const Device& device,
+                     ui32 maxViewports,
                      s_ptr<AssetDescriptor> assetDescriptor);
 
         void registerRenderStages(RenderGraph& renderGraph) override;
@@ -72,8 +73,8 @@ namespace trc
         vk::UniqueRenderPass compatibleShadowRenderPass;
 
         s_ptr<AssetDescriptor> assetDescriptor;
-        s_ptr<GBufferDescriptor> gBufferDescriptor;
-        s_ptr<GlobalRenderDataDescriptor> globalDataDescriptor;
+        GBufferDescriptor gBufferDescriptor;
+        GlobalRenderDataDescriptor globalDataDescriptor;
         s_ptr<SceneDescriptor> sceneDescriptor;
         s_ptr<ShadowPool> shadowPool;
 

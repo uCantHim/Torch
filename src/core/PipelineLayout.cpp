@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "trc/core/DescriptorProvider.h"
+#include "trc/core/ResourceConfig.h"
 
 
 
@@ -39,7 +40,7 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
 void trc::PipelineLayout::bindStaticDescriptorSets(
     vk::CommandBuffer cmdBuf,
     vk::PipelineBindPoint bindPoint,
-    const DescriptorRegistry& registry) const
+    const ResourceStorage& descStorage) const
 {
     /**
      * I don't know if I have to bind the descriptors in their order of
@@ -56,7 +57,7 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
     }
     for (const auto& [index, id] : dynamicDescriptorSets)
     {
-        auto provider = registry.getDescriptor(id);
+        auto provider = descStorage.getDescriptor(id);
         assert(provider != nullptr);
         provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }

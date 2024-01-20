@@ -9,6 +9,8 @@
 
 namespace trc
 {
+    class ResourceStorage;
+
     /**
      * @brief Base class for all pipelines
      */
@@ -53,7 +55,7 @@ namespace trc
          * @param vk::CommandBuffer cmdBuf The command buffer to record the
          *                                 pipeline bind to.
          */
-        void bind(vk::CommandBuffer cmdBuf, const DescriptorRegistry& registry) const;
+        void bind(vk::CommandBuffer cmdBuf, const ResourceStorage& descStorage) const;
 
         auto getLayout() noexcept -> PipelineLayout&;
         auto getLayout() const noexcept -> const PipelineLayout&;

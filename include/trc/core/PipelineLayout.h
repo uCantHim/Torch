@@ -13,6 +13,7 @@
 namespace trc
 {
     class DescriptorProviderInterface;
+    class ResourceStorage;
 
     /**
      * @brief A pipeline layout
@@ -69,7 +70,7 @@ namespace trc
          */
         void bindStaticDescriptorSets(vk::CommandBuffer cmdBuf,
                                       vk::PipelineBindPoint bindPoint,
-                                      const DescriptorRegistry& reg) const;
+                                      const ResourceStorage& descStorage) const;
 
         /**
          * @brief Supply default values to specified push constant ranges
