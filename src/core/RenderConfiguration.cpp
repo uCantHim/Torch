@@ -2,12 +2,25 @@
 
 
 
-trc::RenderConfig::RenderConfig(const Instance& instance, RenderTarget target)
+trc::RenderConfig::RenderConfig(
+    const Instance& instance,
+    const RenderTarget& renderTarget,
+    ivec2 renderOffset,
+    uvec2 renderArea)
     :
-    renderTarget(std::move(target)),
-    renderGraph(),
     resourceConfig(),
     pipelineStorage(PipelineRegistry::makeStorage(instance, resourceConfig)),
+    viewports(
+        renderTarget.getFrameClock(),
+        [&](ui32 i) {
+            return Viewport{
+                renderTarget.getImage(i),
+                renderTarget.getImageView(i),
+                renderOffset,
+                renderArea
+            };
+        }
+    ),
     perFrameResources(
         renderTarget.getFrameClock(),
         [&](ui32) {

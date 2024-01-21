@@ -1,13 +1,12 @@
 #include "trc/particle/Particle.h"
 
-#include "trc/core/Instance.h"
-
-#include "trc/core/PipelineLayoutBuilder.h"
-#include "trc/core/PipelineBuilder.h"
-#include "trc/TorchRenderConfig.h"
+#include "trc/GBufferPass.h"
+#include "trc/ParticlePipelines.h"
 #include "trc/PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "trc/TorchRenderStages.h"
-#include "trc/ParticlePipelines.h"
+#include "trc/core/Instance.h"
+#include "trc/core/PipelineBuilder.h"
+#include "trc/core/PipelineLayoutBuilder.h"
 
 
 

@@ -2,7 +2,7 @@
 
 #include "trc/AssetDescriptor.h"
 #include "trc/GBuffer.h"
-#include "trc/TorchRenderConfig.h"
+#include "trc/RasterPlugin.h"
 #include "trc/base/Logging.h"
 #include "trc/material/FragmentShader.h"
 
@@ -17,7 +17,7 @@ void addLightingRequirements(ShaderCapabilityConfig& config)
     auto& builder = config.getCodeBuilder();
 
     auto shadowMatrixBufferResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
+        .setName=RasterPlugin::SHADOW_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="restrict readonly buffer",
         .descriptorName="ShadowMatrixBuffer",
@@ -27,7 +27,7 @@ void addLightingRequirements(ShaderCapabilityConfig& config)
         .descriptorContent="mat4 shadowMatrices[];",
     });
     auto shadowMapsResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::SHADOW_DESCRIPTOR,
+        .setName=RasterPlugin::SHADOW_DESCRIPTOR,
         .bindingIndex=1,
         .descriptorType="uniform sampler2D",
         .descriptorName="shadowMaps",
@@ -44,7 +44,7 @@ void addLightingRequirements(ShaderCapabilityConfig& config)
     );
 
     auto lightBufferResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::SCENE_DESCRIPTOR,
+        .setName=RasterPlugin::SCENE_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="restrict readonly buffer",
         .descriptorName="LightBuffer",
@@ -64,7 +64,7 @@ void addLightingRequirements(ShaderCapabilityConfig& config)
 void addTextureSampleRequirements(ShaderCapabilityConfig& config)
 {
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .setName=RasterPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eTextureSamplers),
         .descriptorType="uniform sampler2D",
         .descriptorName="textures",
@@ -89,7 +89,7 @@ auto makeFragmentCapabilityConfig() -> ShaderCapabilityConfig
     addLightingRequirements(config);
 
     auto fragListPointerImageResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
+        .setName=RasterPlugin::G_BUFFER_DESCRIPTOR,
         .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragHeadPointerImage),
         .descriptorType="uniform uimage2D",
         .descriptorName="fragmentListHeadPointer",
@@ -99,7 +99,7 @@ auto makeFragmentCapabilityConfig() -> ShaderCapabilityConfig
         .descriptorContent=std::nullopt,
     });
     auto fragListAllocResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
+        .setName=RasterPlugin::G_BUFFER_DESCRIPTOR,
         .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragListEntryAllocator),
         .descriptorType="restrict buffer",
         .descriptorName="FragmentListAllocator",
@@ -111,7 +111,7 @@ auto makeFragmentCapabilityConfig() -> ShaderCapabilityConfig
             "uint maxFragmentListIndex;"
     });
     auto fragListResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::G_BUFFER_DESCRIPTOR,
+        .setName=RasterPlugin::G_BUFFER_DESCRIPTOR,
         .bindingIndex=GBufferDescriptor::getBindingIndex(GBufferDescriptorBinding::eTpFragListBuffer),
         .descriptorType="restrict buffer",
         .descriptorName="FragmentListBuffer",
@@ -139,7 +139,7 @@ auto makeFragmentCapabilityConfig() -> ShaderCapabilityConfig
     );
 
     auto cameraBufferResource = config.addResource(DescriptorBinding{
-        .setName=TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR,
+        .setName=RasterPlugin::GLOBAL_DATA_DESCRIPTOR,
         .bindingIndex=0,
         .descriptorType="uniform",
         .descriptorName="camera",
@@ -205,7 +205,7 @@ auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
     // payload data.
 
     auto drawableDataBuf = config.addResource(Descriptor{
-        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .setName=RasterPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=1,
         .descriptorType="restrict readonly buffer",
         .descriptorName="DrawableDataBuffer",
@@ -245,7 +245,7 @@ auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
     addLightingRequirements(config);
 
     auto indexBufs = config.addResource(Descriptor{
-        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .setName=RasterPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eGeometryIndexBuffers),
         .descriptorType="restrict readonly buffer",
         .descriptorName="GeometryIndexBuffers",
@@ -255,7 +255,7 @@ auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
         .descriptorContent="uint indices[];"
     });
     auto vertexBufs = config.addResource(Descriptor{
-        .setName=TorchRenderConfig::ASSET_DESCRIPTOR,
+        .setName=RasterPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eGeometryVertexBuffers),
         .descriptorType="restrict readonly buffer",
         .descriptorName="GeometryVertexBuffers",
@@ -318,11 +318,11 @@ auto makeShaderDescriptorConfig() -> ShaderDescriptorConfig
 {
     return ShaderDescriptorConfig{
         .descriptorInfos{
-            { TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR, { 0, true } },
-            { TorchRenderConfig::ASSET_DESCRIPTOR,       { 1, true } },
-            { TorchRenderConfig::SCENE_DESCRIPTOR,       { 2, true } },
-            { TorchRenderConfig::G_BUFFER_DESCRIPTOR,    { 3, true } },
-            { TorchRenderConfig::SHADOW_DESCRIPTOR,      { 4, true } },
+            { RasterPlugin::GLOBAL_DATA_DESCRIPTOR, { 0, true } },
+            { RasterPlugin::ASSET_DESCRIPTOR,       { 1, true } },
+            { RasterPlugin::SCENE_DESCRIPTOR,       { 2, true } },
+            { RasterPlugin::G_BUFFER_DESCRIPTOR,    { 3, true } },
+            { RasterPlugin::SHADOW_DESCRIPTOR,      { 4, true } },
         }
     };
 }

@@ -5,11 +5,12 @@
 #include <trc_util/Timer.h>
 
 #include "trc/Camera.h"
-#include "trc/TorchRenderConfig.h"
+#include "trc/ShadowPool.h"
 #include "trc/Types.h"
 #include "trc/assets/Assets.h"
 #include "trc/core/Frame.h"
 #include "trc/core/Instance.h"
+#include "trc/core/RenderConfiguration.h"
 #include "trc/core/RenderTarget.h"
 #include "trc/core/SwapchainRenderer.h"
 #include "trc/core/Window.h"
@@ -84,8 +85,7 @@ namespace trc
         auto getWindow() -> Window&;
         auto getAssetManager() -> AssetManager&;
         auto getShadowPool() -> ShadowPool&;
-        auto getRenderTarget() -> RenderTarget&;
-        auto getRenderConfig() -> TorchRenderConfig&;
+        auto getRenderConfig() -> RenderConfig&;
 
         /**
          * @brief Draw a frame
@@ -98,8 +98,8 @@ namespace trc
         Instance instance;
         Window window;
         AssetManager assetManager;
-        RenderTarget swapchainRenderTarget;
-        TorchRenderConfig renderConfig;
+        ShadowPool shadowPool;
+        RenderConfig renderConfig;
 
         SwapchainRenderer frameSubmitter;
     };

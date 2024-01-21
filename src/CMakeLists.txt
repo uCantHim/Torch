@@ -33,7 +33,6 @@ target_sources(
         TopLevelAccelerationStructureBuildPass.cpp
         Torch.cpp
         TorchImplementation.cpp
-        TorchRenderConfig.cpp
         Transformation.cpp
 )
 

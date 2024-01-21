@@ -20,18 +20,19 @@ int main()
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
     trc::AssetManager assetManager{ std::make_shared<trc::NullDataStorage>() };
-    trc::TorchRenderConfig config{
-        instance,
-        trc::TorchRenderConfigCreateInfo{
-            renderTarget,
-            &assetManager.getDeviceRegistry(),
-            trc::makeDefaultAssetModules(
-                instance, assetManager.getDeviceRegistry(),
-                { .maxGeometries=10, .maxTextures=10, .maxFonts=1 }),
-            2,
-            false
-        }
-    };
+    trc::RenderConfig renderConfig{ instance, renderTarget, { 0, 0 }, renderTarget.getSize() };
+    //trc::TorchRenderConfig config{
+    //    instance,
+    //    trc::TorchRenderConfigCreateInfo{
+    //        renderTarget,
+    //        &assetManager.getDeviceRegistry(),
+    //        trc::makeDefaultAssetModules(
+    //            instance, assetManager.getDeviceRegistry(),
+    //            { .maxGeometries=10, .maxTextures=10, .maxFonts=1 }),
+    //        2,
+    //        false
+    //    }
+    //};
 
     trc::SceneBase scene;
     trc::Camera camera;
@@ -42,8 +43,7 @@ int main()
     trc::SwapchainRenderer renderer{ instance.getDevice(), window };
 
     auto frame = std::make_unique<trc::Frame>(&instance.getDevice());
-    auto& viewport = frame->addViewport(config, scene);
-    config.perFrameUpdate(camera, scene);
+    auto& viewport = frame->addViewport(renderConfig, scene);
     viewport.taskQueue.spawnTask(
         trc::gBufferRenderStage,
         trc::makeTask([&window](vk::CommandBuffer cmdBuf, trc::TaskEnvironment& env) {

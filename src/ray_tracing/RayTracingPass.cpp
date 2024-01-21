@@ -3,9 +3,10 @@
 #include <cassert>
 
 #include "trc/RayShaders.h"
-#include "trc/TorchRenderConfig.h"
+#include "trc/RasterPlugin.h"
 #include "trc/base/Barriers.h"
 #include "trc/core/PipelineLayoutBuilder.h"
+#include "trc/core/RenderConfiguration.h"
 
 
 
@@ -35,11 +36,11 @@ trc::RayTracingPass::RayTracingPass(
         trc::buildPipelineLayout()
         .addStaticDescriptor(descriptorPool.getDescriptorSetLayout(),
                              descriptorProviders.at(rt::RayBuffer::Image::eReflections))
-        .addDescriptor(DescriptorName{TorchRenderConfig::G_BUFFER_DESCRIPTOR}, true)
-        .addDescriptor(DescriptorName{TorchRenderConfig::ASSET_DESCRIPTOR}, true)
-        .addDescriptor(DescriptorName{TorchRenderConfig::SCENE_DESCRIPTOR}, true)
-        .addDescriptor(DescriptorName{TorchRenderConfig::SHADOW_DESCRIPTOR}, true)
-        .addDescriptor(DescriptorName{TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{RasterPlugin::G_BUFFER_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{RasterPlugin::ASSET_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{RasterPlugin::SCENE_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{RasterPlugin::SHADOW_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{RasterPlugin::GLOBAL_DATA_DESCRIPTOR}, true)
         .build(instance.getDevice(), renderConfig.getResourceConfig())
     );
 

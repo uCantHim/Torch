@@ -1,10 +1,10 @@
 #include "trc/text/Text.h"
 
-#include "trc/text/UnicodeUtils.h"
-#include "trc/TorchRenderConfig.h"
-#include "trc/TorchRenderStages.h"
+#include "trc/GBufferPass.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/TextPipelines.h"
+#include "trc/TorchRenderStages.h"
+#include "trc/text/UnicodeUtils.h"
 
 
 

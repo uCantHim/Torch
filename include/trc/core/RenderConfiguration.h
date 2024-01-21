@@ -19,7 +19,10 @@ namespace trc
     class RenderConfig
     {
     public:
-        RenderConfig(const Instance& instance, RenderTarget target);
+        RenderConfig(const Instance& instance,
+                     const RenderTarget& target,
+                     ivec2 renderOffset,
+                     uvec2 renderArea);
 
         auto getRenderGraph() -> RenderGraph&;
         auto getRenderGraph() const -> const RenderGraph&;
@@ -40,13 +43,13 @@ namespace trc
             ResourceStorage resources;
         };
 
-        RenderTarget renderTarget;
         RenderGraph renderGraph;
         ResourceConfig resourceConfig;
         s_ptr<PipelineStorage> pipelineStorage;
 
         std::vector<s_ptr<RenderPlugin>> plugins;
 
+        FrameSpecific<Viewport> viewports;
         FrameSpecific<PerFrame> perFrameResources;
     };
 } // namespace trc

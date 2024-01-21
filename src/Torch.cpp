@@ -1,7 +1,6 @@
 #include "trc/Torch.h"
 
 #include "trc/PipelineDefinitions.h"
-#include "trc/TorchImplementation.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
@@ -73,37 +72,13 @@ trc::TorchStack::TorchStack(
         fs::create_directories(torchConfig.assetStorageDir);
         return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
     }()),
-    swapchainRenderTarget(makeRenderTarget(window)),
-    renderConfig(
-        instance,
-        TorchRenderConfigCreateInfo{
-            .target                      = swapchainRenderTarget,
-            .assetRegistry               = &assetManager.getDeviceRegistry(),
-            .assetDescriptor             = makeDefaultAssetModules(
-                instance,
-                assetManager.getDeviceRegistry(),
-                AssetDescriptorCreateInfo{
-                    // TODO: Put these settings into a global configuration object
-                    .maxGeometries = 5000,
-                    .maxTextures = 2000,
-                    .maxFonts = 50,
-                }
-            ),
-            .maxTransparentFragsPerPixel = 3,
-            .enableRayTracing            = instanceInfo.enableRayTracing,
-            .mousePosGetter              = [&]{ return window.getMousePositionLowerLeft(); },
-        }
-    ),
+    shadowPool(instance.getDevice(), window, { .maxShadowMaps=100 }),
+    renderConfig(instance, makeRenderTarget(window), { 0, 0 }, window.getSize()),
     frameSubmitter(instance.getDevice(), window)
 {
     window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
-        const uvec2 newSize = window.getSize();
-        swapchainRenderTarget = makeRenderTarget(window);
-        renderConfig.setRenderTarget(swapchainRenderTarget);
-        renderConfig.setViewport({ 0, 0 }, newSize);
+        renderConfig.setRenderTarget(makeRenderTarget(window), { 0, 0 }, window.getSize());
     });
-
-    renderConfig.setViewport({ 0, 0 }, window.getSize());
 }
 
 trc::TorchStack::~TorchStack()
@@ -133,15 +108,10 @@ auto trc::TorchStack::getAssetManager() -> AssetManager&
 
 auto trc::TorchStack::getShadowPool() -> ShadowPool&
 {
-    return renderConfig.getShadowPool();
+    return shadowPool;
 }
 
-auto trc::TorchStack::getRenderTarget() -> RenderTarget&
-{
-    return swapchainRenderTarget;
-}
-
-auto trc::TorchStack::getRenderConfig() -> TorchRenderConfig&
+auto trc::TorchStack::getRenderConfig() -> RenderConfig&
 {
     return renderConfig;
 }
@@ -150,7 +120,7 @@ void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
 {
     auto frame = std::make_unique<Frame>(&instance.getDevice());
 
-    renderConfig.perFrameUpdate(camera, scene);
+    //renderConfig.perFrameUpdate(camera, scene);
     frame->addViewport(renderConfig, scene);
 
     frameSubmitter.renderFrame(std::move(frame));
