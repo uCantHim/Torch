@@ -13,8 +13,6 @@
 
 int main()
 {
-    assert_arg(false == true);
-
     trc::init();
 
     trc::Instance instance;

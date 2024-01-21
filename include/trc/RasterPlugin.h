@@ -1,19 +1,44 @@
 #pragma once
 
-#include "trc/FinalLightingPass.h"
-#include "trc/VulkanInclude.h"
-#include "trc/core/RenderPlugin.h"
+#include "trc/AssetDescriptor.h"
+#include "trc/FinalLighting.h"
 #include "trc/GBuffer.h"
+#include "trc/GBufferDepthReader.h"
+#include "trc/GBufferPass.h"
 #include "trc/RenderDataDescriptor.h"
 #include "trc/SceneDescriptor.h"
 #include "trc/ShadowPool.h"
-#include "trc/AssetDescriptor.h"
+#include "trc/VulkanInclude.h"
+#include "trc/core/RenderPlugin.h"
 
 namespace trc
 {
     class DescriptorProviderInterface;
     class GBufferDepthReader;
     class GBufferPass;
+
+    struct RasterPluginCreateInfo
+    {
+        // The instance that makes an AssetRegistry's data available to the
+        // device. Create this descriptor, which contains information about
+        // Torch's default assets, via `makeDefaultAssetModules`. This function
+        // registers all asset modules that are necessary to use Torch's default
+        // assets at an asset registry and builds a descriptor for their data.
+        //
+        // The same asset descriptor can be used for multiple render
+        // configurations.
+        s_ptr<AssetDescriptor> assetDescriptor;
+
+        s_ptr<ShadowPool> shadowDescriptor;
+
+        ui32 maxTransparentFragsPerPixel{ 3 };
+        bool enableRayTracing{ false };
+
+        // A function that returns the current mouse position. Used to read the
+        // depth value at the current mouse position for use in
+        // `TorchRenderConfig::getMouseWorldPos`.
+        std::function<vec2()> mousePosGetter{ []{ return vec2(0.0f); } };
+    };
 
     class RasterPlugin : public RenderPlugin
     {
@@ -49,37 +74,55 @@ namespace trc
 
         RasterPlugin(const Device& device,
                      ui32 maxViewports,
-                     s_ptr<AssetDescriptor> assetDescriptor);
+                     const RasterPluginCreateInfo& createInfo);
 
         void registerRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& config) override;
         void registerSceneModules(SceneBase& scene) override;
 
-        auto createRenderResources(const Device& device, const RenderTarget& target);
+        auto createDrawConfig(const Device& device, Viewport renderTarget)
+            -> u_ptr<DrawConfig> override;
 
+        void update(SceneBase& scene, const Camera& camera) override;
         void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
 
-        //auto getGlobalDataDescriptorProvider() const -> s_ptr<const DescriptorProviderInterface>;
-        //auto getSceneDescriptorProvider() const -> s_ptr<const DescriptorProviderInterface>;
-        //auto getGBufferDescriptorProvider() const -> s_ptr<const DescriptorProviderInterface>;
-        //auto getShadowDescriptorProvider() const -> s_ptr<const DescriptorProviderInterface>;
-        //auto getAssetDescriptorProvider() const -> s_ptr<const DescriptorProviderInterface>;
-
-        //auto getGBufferRenderPass() const -> const GBufferPass&;
-        //auto getCompatibleShadowRenderPass() const -> vk::RenderPass;
-
     private:
+        class RasterDrawConfig : public DrawConfig
+        {
+        public:
+            RasterDrawConfig(const Device& device, Viewport renderTarget, RasterPlugin& parent);
+
+            void registerResources(ResourceStorage& resources) override;
+
+            void update(SceneBase& scene, const Camera& camera) override;
+            void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
+
+        private:
+            RasterPlugin* parent;
+
+            GBuffer gBuffer;
+            s_ptr<GBufferPass> gBufferPass;
+            s_ptr<GBufferDepthReader> depthReaderPass;
+            u_ptr<FinalLightingDispatcher> finalLighting;
+
+            vk::UniqueDescriptorSet gBufferDescSet;
+            GlobalRenderDataDescriptor::DescriptorSet globalDataDescSet;
+        };
+
+        /**
+         * Called once in `defineResources`.
+         */
+        void _createFinalLightingResources(ResourceConfig& resources);
+
         vk::UniqueRenderPass compatibleGBufferRenderPass;
         vk::UniqueRenderPass compatibleShadowRenderPass;
 
         s_ptr<AssetDescriptor> assetDescriptor;
         GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
-        s_ptr<SceneDescriptor> sceneDescriptor;
-        s_ptr<ShadowPool> shadowPool;
+        SceneDescriptor sceneDescriptor;
+        s_ptr<ShadowPool> shadowDescriptor;
 
-        s_ptr<GBufferPass> gBufferPass;
-        s_ptr<GBufferDepthReader> depthReaderPass;
-        s_ptr<FinalLightingPass> finalLightingPass;
+        FinalLighting finalLighting;
     };
 } // namespace trc

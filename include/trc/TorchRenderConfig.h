@@ -1,7 +1,6 @@
 #pragma once
 
 #include "trc/AssetDescriptor.h"
-#include "trc/FinalLightingPass.h"
 #include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
 #include "trc/RenderDataDescriptor.h"
@@ -86,7 +85,6 @@ namespace trc
         static constexpr auto OPAQUE_G_BUFFER_PASS{ "g_buffer" };
         static constexpr auto TRANSPARENT_G_BUFFER_PASS{ "transparency" };
         static constexpr auto SHADOW_PASS{ "shadow" };
-        static constexpr auto FINAL_LIGHTING_PASS{ "final_lighting" };
 
         /**
          * @brief
@@ -132,7 +130,6 @@ namespace trc
         u_ptr<GBufferPass> gBufferPass;
         u_ptr<GBufferDepthReader> mouseDepthReader;
         RenderPassShadow shadowPass;
-        u_ptr<FinalLightingPass> finalLightingPass;
 
         // Descriptors
         GBufferDescriptor gBufferDescriptor;

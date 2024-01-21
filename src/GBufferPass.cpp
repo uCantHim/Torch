@@ -6,61 +6,23 @@
 
 
 
-namespace trc
-{
-
-void description(const Device& device)
-{
-    vk::UniqueRenderPass rp = GBufferPass::makeVkRenderPass(device);
-}
-
-void resources(const Device& device, const FrameClock& clock, const uvec2 size, vk::RenderPass renderPass)
-{
-    GBufferCreateInfo createInfo{ .size=size, .maxTransparentFragsPerPixel=2 };
-
-    // The actual image resources
-    FrameSpecific<GBuffer> gBuffer{ clock, device, createInfo };
-
-    // Binding the images to the pipeline
-    FrameSpecific<Framebuffer> framebuffer{
-        gBuffer.getFrameClock(),
-        [&](ui32 frameIndex)
-        {
-            const GBuffer& g = gBuffer.getAt(frameIndex);
-            std::vector<vk::ImageView> views{
-                g.getImageView(GBuffer::eNormals),
-                g.getImageView(GBuffer::eAlbedo),
-                g.getImageView(GBuffer::eMaterials),
-                g.getImageView(GBuffer::eDepth),
-            };
-
-            return Framebuffer(device, renderPass, size, {}, std::move(views));
-        }
-    };
-}
-
-} // namespace trc
-
 trc::GBufferPass::GBufferPass(
     const Device& device,
-    FrameSpecific<GBuffer>& _gBuffer)
+    GBuffer& _gBuffer)
     :
     RenderPass(makeVkRenderPass(device), NUM_SUBPASSES),
     gBuffer(_gBuffer),
-    framebufferSize(gBuffer->getSize()),
-    framebuffers(gBuffer.getFrameClock(), [&](ui32 frameIndex)
-    {
-        const GBuffer& g = gBuffer.getAt(frameIndex);
-
+    framebufferSize(gBuffer.getSize()),
+    framebuffer([&] {
         std::vector<vk::ImageView> views{
-            g.getImageView(GBuffer::eNormals),
-            g.getImageView(GBuffer::eAlbedo),
-            g.getImageView(GBuffer::eMaterials),
-            g.getImageView(GBuffer::eDepth),
+            gBuffer.getImageView(GBuffer::eNormals),
+            gBuffer.getImageView(GBuffer::eAlbedo),
+            gBuffer.getImageView(GBuffer::eMaterials),
+            gBuffer.getImageView(GBuffer::eDepth),
         };
 
-        return Framebuffer(device, *renderPass, g.getSize(), {}, std::move(views));
-    }),
+        return Framebuffer(device, *renderPass, gBuffer.getSize(), {}, std::move(views));
+    }()),
     clearValues({
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
@@ -75,7 +37,7 @@ void trc::GBufferPass::begin(
     vk::SubpassContents subpassContents,
     FrameRenderState&)
 {
-    gBuffer->initFrame(cmdBuf);
+    gBuffer.initFrame(cmdBuf);
 
     // Bring depth image into depthStencil layout
     barrier(cmdBuf, vk::ImageMemoryBarrier2{
@@ -89,14 +51,14 @@ void trc::GBufferPass::begin(
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eDepthStencilAttachmentOptimal,
         VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-        *gBuffer->getImage(GBuffer::eDepth),
+        *gBuffer.getImage(GBuffer::eDepth),
         { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
     });
 
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderPass,
-            **framebuffers,
+            *framebuffer,
             vk::Rect2D({ 0, 0 }, { framebufferSize.x, framebufferSize.y }),
             clearValues
         ),

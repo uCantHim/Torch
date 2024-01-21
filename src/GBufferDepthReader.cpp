@@ -9,7 +9,7 @@
 trc::GBufferDepthReader::GBufferDepthReader(
     const Device& device,
     std::function<vec2()> mousePosGetter,
-    FrameSpecific<GBuffer>& _gBuffer)
+    GBuffer& _gBuffer)
     :
     getMousePos(std::move(mousePosGetter)),
     gBuffer(_gBuffer),
@@ -40,7 +40,7 @@ auto trc::GBufferDepthReader::getMouseDepth() const noexcept -> float
 
 void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
 {
-    Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
+    Image& depthImage = gBuffer.getImage(GBuffer::eDepth);
     const ivec2 mousePos = glm::clamp(getMousePos(), vec2(0), vec2(depthImage.getSize()) - 1.0f);
 
     imageMemoryBarrier(

@@ -90,9 +90,9 @@ trc::TorchRenderConfig::TorchRenderConfig(
 
     // The final lighting pass wants to create a pipeline layout, so it has
     // to be created after the descriptors have been defined.
-    finalLightingPass = std::make_unique<FinalLightingPass>(
-        device, info.target, uvec2(0, 0), uvec2(1, 1), *this
-    );
+    //finalLightingPass = std::make_unique<FinalLightingPass>(
+    //    device, info.target, uvec2(0, 0), uvec2(1, 1), *this
+    //);
     //renderGraph.addPass(finalLightingRenderStage, *finalLightingPass);
 
     //renderGraph.addPass(resourceUpdateStage, info.assetRegistry->getUpdatePass());
@@ -109,20 +109,16 @@ void trc::TorchRenderConfig::perFrameUpdate(const Camera&, const SceneBase& scen
 
 void trc::TorchRenderConfig::setViewport(ivec2 offset, uvec2 size)
 {
-    assert(finalLightingPass != nullptr);
-
     viewportOffset = offset;
     viewportSize = size;
     createGBuffer(size);
-    finalLightingPass->setTargetArea(offset, size);
+    //finalLightingPass->setTargetArea(offset, size);
 }
 
 void trc::TorchRenderConfig::setRenderTarget(const RenderTarget& target)
 {
-    assert(finalLightingPass != nullptr);
-
     renderTarget = &target;
-    finalLightingPass->setRenderTarget(device, target);
+    //finalLightingPass->setRenderTarget(device, target);
 }
 
 void trc::TorchRenderConfig::setClearColor(vec4 color)

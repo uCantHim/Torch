@@ -9,7 +9,7 @@ target_sources(
         AssetDescriptor.cpp
         Camera.cpp
         DescriptorSetUtils.cpp
-        FinalLightingPass.cpp
+        FinalLighting.cpp
         Framebuffer.cpp
         GBuffer.cpp
         GBufferDepthReader.cpp

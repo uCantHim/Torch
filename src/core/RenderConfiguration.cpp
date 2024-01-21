@@ -47,9 +47,10 @@ auto trc::RenderConfig::getResourceStorage() const -> const ResourceStorage&
     return perFrameResources->resources;
 }
 
-void trc::RenderConfig::setRenderTarget(RenderTarget newTarget,
-                     ivec2 renderAreaOffset,
-                     uvec2 renderArea)
+void trc::RenderConfig::setRenderTarget(
+    RenderTarget newTarget,
+    ivec2 renderAreaOffset,
+    uvec2 renderArea)
 {
     // TODO: Create viewport configs from plugins, etc.
 }

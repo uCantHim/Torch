@@ -18,67 +18,17 @@
 namespace trc
 {
 
-void general_resources(
-    const Device& device
-    , const FrameClock& clock
-    , s_ptr<AssetDescriptor> given
-    )
-{
-    vk::UniqueRenderPass compatGPass = GBufferPass::makeVkRenderPass(device);
-    vk::UniqueRenderPass compatShadowPass = RenderPassShadow::makeVkRenderPass(device);
-
-    s_ptr<AssetDescriptor> assetDescriptor = given;
-    GBufferDescriptor gBufferDescriptor{ device, clock.getFrameCount() };
-    // s_ptr<GlobalRenderDataDescriptor> globalDataDescriptor;
-    GlobalRenderDataDescriptor dataDesc{ device, clock.getFrameCount() };
-   // s_ptr<SceneDescriptor> sceneDescriptor;
-    SceneDescriptor sceneDesc{ device };
-    // s_ptr<ShadowPool> shadowPool;
-    ShadowPool shadowPool{ device, clock, { .maxShadowMaps=200 } };
-
-    s_ptr<GBufferPass> gBufferPass;
-    s_ptr<GBufferDepthReader> depthReaderPass;
-    s_ptr<FinalLightingPass> finalLightingPass;
-}
-
-void per_render_target_resources(
-    const Device& device
-    , const RenderTarget& target
-    )
-{
-    // We already have:
-    s_ptr<GBufferDescriptor> gBufferDescriptor;
-
-
-    // Now we create:
-    GBufferCreateInfo createInfo{
-        .size=target.getSize(),
-        .maxTransparentFragsPerPixel=3
-    };
-    FrameSpecific<GBuffer> gBuffer{ target.getFrameClock(), device, createInfo };
-
-    FrameSpecific<vk::UniqueDescriptorSet> desc{
-        target.getFrameClock(),
-        [&](ui32 i) {
-            return gBufferDescriptor->makeDescriptorSet(device, gBuffer.getAt(i));
-        }
-    };
-}
-
 RasterPlugin::RasterPlugin(
     const Device& device,
     ui32 maxViewports,
-    s_ptr<AssetDescriptor> assetDescriptor)
+    const RasterPluginCreateInfo& createInfo)
     :
-    assetDescriptor(std::move(assetDescriptor)),
+    assetDescriptor(createInfo.assetDescriptor),
     gBufferDescriptor(device, maxViewports),
-    globalDataDescriptor(device, maxViewports)
-    // sceneDescriptor(std::make_shared<SceneDescriptor>()),
-    // shadowPool(std::make_shared<ShadowPool>()),
-
-    // gBufferPass(std::make_shared<GBufferPass>()),
-    // depthReaderPass(std::make_shared<GBufferDepthReader>()),
-    // finalLightingPass(std::make_shared<FinalLightingPass>())
+    globalDataDescriptor(device, maxViewports),
+    sceneDescriptor(device),
+    shadowDescriptor(createInfo.shadowDescriptor),
+    finalLighting(device, maxViewports)
 {
     compatibleGBufferRenderPass = GBufferPass::makeVkRenderPass(device);
     compatibleShadowRenderPass = RenderPassShadow::makeVkRenderPass(device);
@@ -102,9 +52,9 @@ void RasterPlugin::defineResources(ResourceConfig& config)
     config.defineDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },
                             gBufferDescriptor.getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ SCENE_DESCRIPTOR },
-                            sceneDescriptor->getDescriptorSetLayout());
+                            sceneDescriptor.getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },
-                            shadowPool->getDescriptorSetLayout());
+                            shadowDescriptor->getDescriptorSetLayout());
 
     config.addRenderPass(
         RenderPassName{ OPAQUE_G_BUFFER_PASS },
@@ -125,24 +75,75 @@ void RasterPlugin::registerSceneModules(SceneBase& scene)
     scene.registerModule(std::make_unique<RasterSceneModule>());
 }
 
-void RasterPlugin::createTasks(SceneBase& scene, TaskQueue& taskQueue)
+auto RasterPlugin::createDrawConfig(const Device& device, Viewport renderTarget)
+    -> u_ptr<DrawConfig>
+{
+    return std::make_unique<RasterDrawConfig>(device, renderTarget, *this);
+}
+
+void RasterPlugin::update(SceneBase& scene, const Camera& /*camera*/)
+{
+    sceneDescriptor.update(scene);
+}
+
+void RasterPlugin::createTasks(SceneBase& /*scene*/, TaskQueue& /*taskQueue*/)
+{
+}
+
+
+
+////////////////////////////////////////
+//    Per-image draw configuration    //
+////////////////////////////////////////
+
+RasterPlugin::RasterDrawConfig::RasterDrawConfig(
+    const Device& device,
+    Viewport renderTarget,
+    RasterPlugin& parent)
+    :
+    gBuffer(device, { .size=renderTarget.size, .maxTransparentFragsPerPixel=2 }),
+    gBufferPass(std::make_shared<GBufferPass>(device, gBuffer)),
+    depthReaderPass(std::make_shared<GBufferDepthReader>(
+        device,
+        []{ return vec2{}; },
+        gBuffer
+    )),
+    finalLighting(parent.finalLighting.makeDrawConfig(device, renderTarget)),
+    gBufferDescSet(parent.gBufferDescriptor.makeDescriptorSet(device, gBuffer)),
+    globalDataDescSet(parent.globalDataDescriptor.makeDescriptorSet())
+{
+}
+
+void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resources)
+{
+    resources.provideDescriptor(DescriptorName{G_BUFFER_DESCRIPTOR},
+                                std::make_shared<DescriptorProvider>(*gBufferDescSet));
+}
+
+void RasterPlugin::RasterDrawConfig::update(SceneBase& /*scene*/, const Camera& camera)
+{
+    globalDataDescSet.update(camera);
+}
+
+void RasterPlugin::RasterDrawConfig::createTasks(SceneBase& scene, TaskQueue& taskQueue)
 {
     auto& rasterScene = scene.getModule<RasterSceneModule>();
 
-    // Create shadow tasks
+    // Shadow tasks - one for each shadow map
     for (auto& renderPass : rasterScene.getShadowPasses()) {
         taskQueue.spawnTask(shadowRenderStage, std::make_unique<RenderPassDrawTask>(renderPass));
     }
 
     // G-buffer draw task
-    taskQueue.spawnTask(gBufferRenderStage, std::make_unique<RenderPassDrawTask>(gBufferPass));
+    taskQueue.spawnTask(gBufferRenderStage,
+                        std::make_unique<RenderPassDrawTask>(gBufferPass));
 
     // Depth reader task
-    taskQueue.spawnTask(mouseDepthReadStage, std::make_unique<RenderPassDrawTask>(depthReaderPass));
+    taskQueue.spawnTask(mouseDepthReadStage,
+                        std::make_unique<RenderPassDrawTask>(depthReaderPass));
 
     // Final lighting compute task
-    taskQueue.spawnTask(finalLightingRenderStage,
-                        std::make_unique<RenderPassDrawTask>(finalLightingPass));
+    finalLighting->createTasks(taskQueue);
 }
 
 } // namespace trc

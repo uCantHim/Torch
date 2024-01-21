@@ -12,7 +12,7 @@ namespace trc
     public:
         GBufferDepthReader(const Device& device,
                            std::function<vec2()> mousePosGetter,
-                           FrameSpecific<GBuffer>& gBuffer);
+                           GBuffer& gBuffer);
 
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) override;
 
@@ -30,7 +30,7 @@ namespace trc
 
         std::function<vec2()> getMousePos;
 
-        FrameSpecific<GBuffer>& gBuffer;
+        GBuffer& gBuffer;
         Buffer depthPixelReadBuffer;
         ui32* depthBufMap{ depthPixelReadBuffer.map<ui32*>() };
     };

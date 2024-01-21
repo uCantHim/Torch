@@ -23,4 +23,11 @@ auto ResourceStorage::getDescriptor(DescriptorID id) const noexcept
     return descriptors.getDescriptor(id);
 }
 
+void ResourceStorage::provideDescriptor(
+    const DescriptorName& descName,
+    s_ptr<const DescriptorProviderInterface> provider)
+{
+    descriptors.provideDescriptor(descName, std::move(provider));
+}
+
 } // namespace trc

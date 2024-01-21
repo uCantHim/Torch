@@ -56,16 +56,12 @@ namespace trc
 
         virtual void registerSceneModules(SceneBase& scene) = 0;
 
-        // --- Callbacks into rendering pipeline ---
-
-        virtual void preDrawUpdate(const Camera& camera, const SceneBase& scene) = 0;
-        virtual void postDrawUpdate(const Camera& camera, const SceneBase& scene) = 0;
+        virtual auto createDrawConfig(const Device& device, Viewport renderTarget)
+            -> u_ptr<DrawConfig> = 0;
 
         // --- Drawing ---
 
+        virtual void update(SceneBase& scene, const Camera& camera) = 0;
         virtual void createTasks(SceneBase& scene, TaskQueue& taskQueue) = 0;
-
-        virtual auto createViewportResources(const Device& device, Viewport renderTarget)
-            -> u_ptr<DrawConfig> = 0;
     };
 } // namespace trc

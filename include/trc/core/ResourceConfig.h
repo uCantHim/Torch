@@ -6,11 +6,17 @@
 
 namespace trc
 {
+    /**
+     * @brief Defines resource descriptions
+     */
     class ResourceConfig : public RenderPassRegistry
                          , public DescriptorRegistry
     {
     };
 
+    /**
+     * @brief Stores resources
+     */
     class ResourceStorage
     {
     public:
@@ -34,6 +40,22 @@ namespace trc
          */
         auto getDescriptor(DescriptorID id) const noexcept
             -> s_ptr<const DescriptorProviderInterface>;
+
+        /**
+         * @brief Provide a resource for a declared descriptor
+         *
+         * The descriptor provider is used dynamically when pipelines are bound
+         * to a command buffer which reference a descriptor statically via a
+         * `DescriptorName` handle.
+         *
+         * @param s_ptr<const DescriptorProviderInterface> provider Must not
+         *        be `nullptr`.
+         *
+         * @throw Exception if no descriptor with name `descName` is defined at
+         *                  the parent descriptor registry.
+         */
+        void provideDescriptor(const DescriptorName& descName,
+                               s_ptr<const DescriptorProviderInterface> provider);
 
     private:
         s_ptr<PipelineStorage> pipelines;
