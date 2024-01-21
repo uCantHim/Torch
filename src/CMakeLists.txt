@@ -32,7 +32,6 @@ target_sources(
         ShadowPool.cpp
         TopLevelAccelerationStructureBuildPass.cpp
         Torch.cpp
-        TorchImplementation.cpp
         Transformation.cpp
 )
 

@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <trc/AssetDescriptor.h>
 #include <trc/RasterSceneModule.h>
 #include <trc/RaySceneModule.h>
 #include <trc/Torch.h>
@@ -20,19 +21,15 @@ int main()
     trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
     trc::AssetManager assetManager{ std::make_shared<trc::NullDataStorage>() };
-    trc::RenderConfig renderConfig{ instance, renderTarget, { 0, 0 }, renderTarget.getSize() };
-    //trc::TorchRenderConfig config{
-    //    instance,
-    //    trc::TorchRenderConfigCreateInfo{
-    //        renderTarget,
-    //        &assetManager.getDeviceRegistry(),
-    //        trc::makeDefaultAssetModules(
-    //            instance, assetManager.getDeviceRegistry(),
-    //            { .maxGeometries=10, .maxTextures=10, .maxFonts=1 }),
-    //        2,
-    //        false
-    //    }
-    //};
+    auto assetDescriptor = trc::makeAssetDescriptor(
+        instance,
+        assetManager.getDeviceRegistry(),
+        trc::AssetDescriptorCreateInfo{
+            .maxGeometries=10,
+            .maxTextures=10,
+            .maxFonts=1,
+        }
+    );
 
     trc::SceneBase scene;
     trc::Camera camera;
@@ -40,6 +37,7 @@ int main()
     scene.registerModule(std::make_unique<trc::RasterSceneModule>());
     scene.registerModule(std::make_unique<trc::RaySceneModule>());
 
+    trc::RenderConfig renderConfig{ instance, renderTarget, { 0, 0 }, renderTarget.getSize() };
     trc::SwapchainRenderer renderer{ instance.getDevice(), window };
 
     auto frame = std::make_unique<trc::Frame>(&instance.getDevice());

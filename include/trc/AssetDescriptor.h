@@ -10,6 +10,10 @@
 
 namespace trc
 {
+    class AssetDescriptor;
+    class AssetRegistry;
+    class Instance;
+
     struct AssetDescriptorCreateInfo
     {
         // Ray-tracing specific. The maximum number of geometries for which the
@@ -23,6 +27,19 @@ namespace trc
         // The maximum number of glyph maps that may exist in the descriptor.
         ui32 maxFonts;
     };
+
+    /**
+     * Register all of Torch's assets at an AssetRegistry and create the
+     * corresponding asset descriptor set. This may only be done once for an
+     * `AssetRegistry` object.
+     *
+     * @throw std::invalid_argument if `makeDefaultAssetModules` has already
+     *                              been called on `registry`.
+     */
+    auto makeAssetDescriptor(const Instance& instance,
+                             AssetRegistry& registry,
+                             const AssetDescriptorCreateInfo& descriptorCreateInfo)
+        -> s_ptr<AssetDescriptor>;
 
     enum class AssetDescriptorBinding
     {

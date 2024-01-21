@@ -11,7 +11,6 @@
 #include "trc/core/RenderTarget.h"
 #include "trc/core/SceneBase.h"
 #include "trc/core/Task.h"
-#include "trc/TorchImplementation.h"
 
 
 
