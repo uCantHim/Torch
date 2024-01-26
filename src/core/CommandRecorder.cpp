@@ -2,6 +2,7 @@
 
 #include <future>
 
+#include "trc/base/Logging.h"
 #include "trc/core/Frame.h"
 #include "trc/core/RenderConfiguration.h"
 #include "trc/core/Task.h"
@@ -30,7 +31,8 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
         }
         return res;
     }();
-    std::cout << "[CommandRecorder]: Recording task commands with " << numThreads << " threads.\n";
+    log::debug << "[CommandRecorder]: Recording task commands with "
+               << numThreads << " threads.";
 
     const Device& device = *this->device;
 
@@ -78,23 +80,20 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
             vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
 
             // Record all tasks in the stage's task queue
-            futures.emplace_back(threadPool->async([&, cmdBuf]() -> vk::CommandBuffer {
-                cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-                for (auto& task : tasks)
+            futures.emplace_back(threadPool->async(
+                [frame=&frame, &tasks, &vp, stage, cmdBuf]() -> vk::CommandBuffer
                 {
-                    TaskEnvironment env{
-                        &frame,
-                        stage,
-                        vp.viewport,
-                        &vp.viewport->getResourceStorage(),
-                        vp.scene
-                    };
-                    task->record(cmdBuf, env);
-                }
-                cmdBuf.end();
+                    cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+                    for (auto& task : tasks)
+                    {
+                        TaskEnvironment env{ frame, stage, vp.resources, vp.scene };
+                        task->record(cmdBuf, env);
+                    }
+                    cmdBuf.end();
 
-                return cmdBuf;
-            }));
+                    return cmdBuf;
+                }
+            ));
             ++threadIndex;
         }
     }
