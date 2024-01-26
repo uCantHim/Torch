@@ -13,43 +13,79 @@ namespace trc
 {
     class Instance;
 
+    class ViewportConfig
+    {
+    public:
+        ViewportConfig(Viewport viewport,
+                       ResourceStorage resourceStorage,
+                       std::vector<u_ptr<DrawConfig>> pluginConfigs);
+
+        void update(SceneBase& scene, const Camera& camera);
+        void createTasks(SceneBase& scene, TaskQueue& taskQueue);
+
+        auto getViewport() const -> Viewport;
+        auto getResources() -> ResourceStorage&;
+        auto getResources() const -> const ResourceStorage&;
+
+    private:
+        Viewport viewport;
+
+        ResourceStorage resources;
+        std::vector<u_ptr<DrawConfig>> pluginConfigs;
+    };
+
     /**
      * @brief A configuration of an entire render cycle
      */
     class RenderConfig
     {
     public:
-        RenderConfig(const Instance& instance,
-                     const RenderTarget& target,
-                     ivec2 renderOffset,
-                     uvec2 renderArea);
+        /**
+         * @brief Construct a render pipeline
+         */
+        explicit RenderConfig(const Instance& instance);
+
+        /**
+         * @brief Add a render plugin to the pipeline
+         *
+         * It is advised to register all plugins at the render pipeline first
+         * (in a sort of initialization step), and only after that create scenes
+         * or viewports from it. Otherwise your plugin will not be taken into
+         * account during creation of those objects.
+         */
+        void registerPlugin(s_ptr<RenderPlugin> plugin);
+
+        /**
+         * @brief Create a scene with all modules required by registered plugins
+         */
+        auto makeScene() -> SceneBase;
+
+        /**
+         * @brief Instantiate the render pipeline for a viewport
+         */
+        auto makeViewportConfig(const Device& device, Viewport viewport)
+            -> ViewportConfig;
+
+        /**
+         * @brief Instantiate the render pipeline for a viewport
+         */
+        auto makeViewportConfig(const Device& device,
+                                RenderTarget newTarget,
+                                ivec2 renderAreaOffset,
+                                uvec2 renderArea)
+            -> FrameSpecific<ViewportConfig>;
 
         auto getRenderGraph() -> RenderGraph&;
         auto getRenderGraph() const -> const RenderGraph&;
 
         auto getResourceConfig() -> ResourceConfig&;
         auto getResourceConfig() const -> const ResourceConfig&;
-        auto getResourceStorage() -> ResourceStorage&;
-        auto getResourceStorage() const -> const ResourceStorage&;
-
-        void setRenderTarget(RenderTarget newTarget,
-                             ivec2 renderAreaOffset,
-                             uvec2 renderArea);
 
     protected:
-        struct PerFrame
-        {
-            std::vector<u_ptr<DrawConfig>> pluginDrawConfigs;
-            ResourceStorage resources;
-        };
-
         RenderGraph renderGraph;
         ResourceConfig resourceConfig;
         s_ptr<PipelineStorage> pipelineStorage;
 
         std::vector<s_ptr<RenderPlugin>> plugins;
-
-        FrameSpecific<Viewport> viewports;
-        FrameSpecific<PerFrame> perFrameResources;
     };
 } // namespace trc

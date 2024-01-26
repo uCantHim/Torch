@@ -5,6 +5,7 @@
 #include <trc_util/data/IdPool.h>
 #include <trc_util/data/IndexMap.h>
 
+#include "trc/RasterSceneModule.h"
 #include "trc/RaySceneModule.h"
 
 namespace trc

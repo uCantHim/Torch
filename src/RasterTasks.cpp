@@ -11,9 +11,9 @@
 namespace trc
 {
 
-RenderPassDrawTask::RenderPassDrawTask(s_ptr<RenderPass> renderPass)
+RenderPassDrawTask::RenderPassDrawTask(s_ptr<RenderPass> _renderPass)
     :
-    renderPass(std::move(renderPass))
+    renderPass(std::move(_renderPass))
 {
     if (renderPass == nullptr) {
         throw std::invalid_argument("[In RenderPassDrawTask::RenderPassDrawTask]: Render pass"

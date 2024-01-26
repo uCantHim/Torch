@@ -33,8 +33,12 @@ trc::SceneDescriptor::SceneDescriptor(const Device& device)
 
 void trc::SceneDescriptor::update(const SceneBase& scene)
 {
-    updateRasterData(scene.getModule<RasterSceneModule>());
-    updateRayData(scene.getModule<RaySceneModule>());
+    if (auto mod = scene.tryGetModule<RasterSceneModule>()) {
+        updateRasterData(*mod);
+    }
+    if (auto mod = scene.tryGetModule<RaySceneModule>()) {
+        updateRayData(*mod);
+    }
 }
 
 void trc::SceneDescriptor::updateRasterData(const RasterSceneModule& scene)

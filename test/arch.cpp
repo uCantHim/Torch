@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <trc/AssetDescriptor.h>
+#include <trc/RasterPlugin.h>
 #include <trc/RasterSceneModule.h>
 #include <trc/RaySceneModule.h>
 #include <trc/Torch.h>
@@ -31,17 +32,38 @@ int main()
         }
     );
 
-    trc::SceneBase scene;
+    auto shadowDescriptor = std::make_shared<trc::ShadowPool>(
+        instance.getDevice(), window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
+    );
+
+    trc::RenderConfig renderConfig{ instance };
+    trc::RasterPlugin rasterization{
+        instance.getDevice(),
+        window.getFrameCount(),
+        trc::RasterPluginCreateInfo{
+            .assetDescriptor             = assetDescriptor,
+            .shadowDescriptor            = shadowDescriptor,
+            .maxTransparentFragsPerPixel = 3,
+            .enableRayTracing            = false,
+            .mousePosGetter              = [&]{ return window.getMousePosition(); },
+        }
+    };
+    renderConfig.registerPlugin(std::make_shared<trc::RasterPlugin>(std::move(rasterization)));
+
+    trc::SwapchainRenderer renderer{ instance.getDevice(), window };
+    auto viewports = renderConfig.makeViewportConfig(
+        instance.getDevice(),
+        renderTarget,
+        { 0, 0 }, window.getSize()
+    );
+
+    trc::SceneBase scene = renderConfig.makeScene();
     trc::Camera camera;
 
-    scene.registerModule(std::make_unique<trc::RasterSceneModule>());
-    scene.registerModule(std::make_unique<trc::RaySceneModule>());
-
-    trc::RenderConfig renderConfig{ instance, renderTarget, { 0, 0 }, renderTarget.getSize() };
-    trc::SwapchainRenderer renderer{ instance.getDevice(), window };
-
-    auto frame = std::make_unique<trc::Frame>(&instance.getDevice());
-    auto& viewport = frame->addViewport(renderConfig, scene);
+    // Draw
+    auto frame = std::make_unique<trc::Frame>();
+    auto& viewport = frame->addViewport(*viewports, scene);
+    viewports->update(scene, camera);
     viewport.taskQueue.spawnTask(
         trc::gBufferRenderStage,
         trc::makeTask([&window](vk::CommandBuffer cmdBuf, trc::TaskEnvironment& env) {

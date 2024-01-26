@@ -83,9 +83,6 @@ namespace trc
         auto createDrawConfig(const Device& device, Viewport renderTarget)
             -> u_ptr<DrawConfig> override;
 
-        void update(SceneBase& scene, const Camera& camera) override;
-        void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
-
     private:
         class RasterDrawConfig : public DrawConfig
         {
@@ -106,7 +103,7 @@ namespace trc
             u_ptr<FinalLightingDispatcher> finalLighting;
 
             vk::UniqueDescriptorSet gBufferDescSet;
-            GlobalRenderDataDescriptor::DescriptorSet globalDataDescSet;
+            s_ptr<GlobalRenderDataDescriptor::DescriptorSet> globalDataDescriptor;
         };
 
         /**
@@ -120,7 +117,7 @@ namespace trc
         s_ptr<AssetDescriptor> assetDescriptor;
         GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
-        SceneDescriptor sceneDescriptor;
+        s_ptr<SceneDescriptor> sceneDescriptor;
         s_ptr<ShadowPool> shadowDescriptor;
 
         FinalLighting finalLighting;

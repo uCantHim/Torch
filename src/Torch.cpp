@@ -1,6 +1,8 @@
 #include "trc/Torch.h"
 
 #include "trc/PipelineDefinitions.h"
+#include "trc/RasterPlugin.h"
+#include "trc/RasterTasks.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
@@ -72,12 +74,55 @@ trc::TorchStack::TorchStack(
         fs::create_directories(torchConfig.assetStorageDir);
         return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
     }()),
-    shadowPool(instance.getDevice(), window, { .maxShadowMaps=100 }),
-    renderConfig(instance, makeRenderTarget(window), { 0, 0 }, window.getSize()),
+    renderConfig(instance),
+    shadowPool(std::make_shared<ShadowPool>(
+        instance.getDevice(), window,
+        ShadowPoolCreateInfo{ .maxShadowMaps=100 }
+    )),
     frameSubmitter(instance.getDevice(), window)
 {
-    window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
-        renderConfig.setRenderTarget(makeRenderTarget(window), { 0, 0 }, window.getSize());
+    renderConfig.registerPlugin(std::make_shared<trc::RasterPlugin>(
+        instance.getDevice(),
+        window.getFrameCount(),
+        trc::RasterPluginCreateInfo{
+            .assetDescriptor             = trc::makeAssetDescriptor(
+                instance,
+                assetManager.getDeviceRegistry(),
+                trc::AssetDescriptorCreateInfo{
+                    .maxGeometries=10,
+                    .maxTextures=10,
+                    .maxFonts=1,
+                }
+            ),
+            .shadowDescriptor            = shadowPool,
+            .maxTransparentFragsPerPixel = 3,
+            .enableRayTracing            = false,
+            .mousePosGetter              = [&]{ return window.getMousePosition(); },
+        }
+    ));
+
+    viewports = std::make_unique<FrameSpecific<ViewportConfig>>(
+        renderConfig.makeViewportConfig(
+            instance.getDevice(),
+            makeRenderTarget(window),
+            { 0, 0 },
+            window.getSize()
+        )
+    );
+
+    window.addCallbackAfterSwapchainRecreate([this](Swapchain& swapchain) {
+        // Free viewport resources first
+        viewports.reset();
+
+        // Create new viewports
+        viewports = std::make_unique<FrameSpecific<ViewportConfig>>(
+            renderConfig.makeViewportConfig(
+                instance.getDevice(),
+                makeRenderTarget(swapchain),
+                { 0, 0 },
+                window.getSize()
+            )
+        );
     });
 }
 
@@ -108,7 +153,7 @@ auto trc::TorchStack::getAssetManager() -> AssetManager&
 
 auto trc::TorchStack::getShadowPool() -> ShadowPool&
 {
-    return shadowPool;
+    return *shadowPool;
 }
 
 auto trc::TorchStack::getRenderConfig() -> RenderConfig&
@@ -118,10 +163,21 @@ auto trc::TorchStack::getRenderConfig() -> RenderConfig&
 
 void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
 {
-    auto frame = std::make_unique<Frame>(&instance.getDevice());
+    auto frame = std::make_unique<Frame>();
 
-    //renderConfig.perFrameUpdate(camera, scene);
-    frame->addViewport(renderConfig, scene);
+    auto& currentViewport = **viewports;
+    currentViewport.update(scene, camera);
+
+    auto& drawGroup = frame->addViewport(currentViewport, scene);
+    currentViewport.createTasks(scene, drawGroup.taskQueue);
+
+    auto& pass = assetManager.getDeviceRegistry().getUpdatePass();
+    drawGroup.taskQueue.spawnTask(
+        resourceUpdateStage,
+        makeTask([&pass](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
+            pass.update(cmdBuf, *env.frame);
+        })
+    );
 
     frameSubmitter.renderFrame(std::move(frame));
 }

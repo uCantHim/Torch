@@ -19,7 +19,7 @@ trc::GlobalRenderDataDescriptor::GlobalRenderDataDescriptor(
         device,
         vk::DeviceSize{kBufferSectionSize * maxDescriptorSets},
         vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
     )
 {
     createDescriptors();
@@ -107,8 +107,6 @@ void trc::GlobalRenderDataDescriptor::DescriptorSet::update(const Camera& camera
     buf[0] = vec2(0.0f);  // swapchain.getMousePosition();
     buf[1] = vec2(0.0f);  // vec2(swapchain.getSize());
     buffer.unmap();
-
-    buffer.flush(bufferOffset, kCameraDataSize + kViewportDataSize);
 }
 
 void trc::GlobalRenderDataDescriptor::DescriptorSet::bindDescriptorSet(

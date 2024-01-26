@@ -98,10 +98,12 @@ namespace trc
         Instance instance;
         Window window;
         AssetManager assetManager;
-        ShadowPool shadowPool;
         RenderConfig renderConfig;
 
+        s_ptr<ShadowPool> shadowPool;
+
         SwapchainRenderer frameSubmitter;
+        u_ptr<FrameSpecific<ViewportConfig>> viewports;
     };
 
     /**

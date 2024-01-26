@@ -20,7 +20,6 @@ namespace trc
         Frame* frame;
 
         RenderStage::ID renderStage;
-        RenderConfig* renderConfig;
         ResourceStorage* resources;
 
         SceneBase* scene;
@@ -52,6 +51,10 @@ namespace trc
     };
 
 
+
+    ///////////////////////////
+    //    Implementations    //
+    ///////////////////////////
 
     template<std::invocable<vk::CommandBuffer, TaskEnvironment&> F>
     auto makeTask(F&& func) -> u_ptr<Task>

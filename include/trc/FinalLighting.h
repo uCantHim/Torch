@@ -2,6 +2,7 @@
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
+#include "trc/core/Pipeline.h"
 #include "trc/core/RenderPlugin.h"
 #include "trc/core/Task.h"
 
@@ -47,6 +48,8 @@ namespace trc
     class FinalLighting
     {
     public:
+        static constexpr auto OUTPUT_IMAGE_DESCRIPTOR{ "final_lighting_output_image" };
+
         FinalLighting(const Device& device, ui32 maxViewports);
 
         /**
@@ -55,6 +58,8 @@ namespace trc
          */
         auto makeDrawConfig(const Device& device, Viewport viewport)
             -> u_ptr<FinalLightingDispatcher>;
+
+        auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
 
     private:
         vk::UniqueDescriptorPool descPool;

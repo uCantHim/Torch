@@ -7,12 +7,12 @@
 
 namespace trc
 {
-    class RenderConfig;
+    class ViewportConfig;
     class SceneBase;
 
     struct DrawGroup
     {
-        RenderConfig* viewport;
+        ResourceStorage* resources;
         SceneBase* scene;
 
         TaskQueue taskQueue;
@@ -26,16 +26,14 @@ namespace trc
         Frame& operator=(const Frame&) = delete;
         Frame& operator=(Frame&&) noexcept = delete;
 
-        explicit Frame(const Device*);
+        Frame() = default;
         ~Frame() noexcept = default;
-
-        const Device* device;
 
         /**
          * @param RenderConfig& config The resources backing the viewport.
          * @param SceneBase&    scene  The scene to be drawn to the viewport.
          */
-        auto addViewport(RenderConfig& config, SceneBase& scene) -> DrawGroup&;
+        auto addViewport(ViewportConfig& config, SceneBase& scene) -> DrawGroup&;
 
         auto& getViewports() {
             return drawGroups;

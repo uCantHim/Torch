@@ -104,7 +104,7 @@ trc::FinalLighting::FinalLighting(
     layout = buildPipelineLayout()
         .addDescriptor(DescriptorName{ RasterPlugin::GLOBAL_DATA_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ RasterPlugin::G_BUFFER_DESCRIPTOR }, true)
-        .addDynamicDescriptor(*descLayout)
+        .addDescriptor(DescriptorName{ OUTPUT_IMAGE_DESCRIPTOR }, false)
         .addDescriptor(DescriptorName{ RasterPlugin::SCENE_DESCRIPTOR }, true)
         .addDescriptor(DescriptorName{ RasterPlugin::SHADOW_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eCompute, 0, sizeof(vec2) * 2 })
@@ -131,4 +131,9 @@ auto trc::FinalLighting::makeDrawConfig(const Device& device, Viewport viewport)
         pipeline,
         std::move(descSet)
     );
+}
+
+auto trc::FinalLighting::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
+{
+    return *descLayout;
 }

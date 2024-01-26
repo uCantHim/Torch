@@ -1,5 +1,6 @@
 #pragma once
 
+#include "trc/Types.h"
 #include "trc/core/DescriptorRegistry.h"
 #include "trc/core/PipelineRegistry.h"
 #include "trc/core/RenderPassRegistry.h"
@@ -21,6 +22,13 @@ namespace trc
     {
     public:
         ResourceStorage(const ResourceConfig* config, s_ptr<PipelineStorage> pipelines);
+
+        ResourceStorage(const ResourceStorage&) = delete;
+        ResourceStorage& operator=(const ResourceStorage&) = delete;
+
+        ResourceStorage(ResourceStorage&&) noexcept = default;
+        ResourceStorage& operator=(ResourceStorage&&) noexcept = default;
+        ~ResourceStorage() noexcept = default;
 
         /**
          * @brief Retrieve a pipeline

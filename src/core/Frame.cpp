@@ -1,18 +1,15 @@
 #include "trc/core/Frame.h"
 
+#include "trc/core/RenderConfiguration.h"
+
 
 
 namespace trc
 {
 
-Frame::Frame(const Device* device)
-    : device(device)
+auto Frame::addViewport(ViewportConfig& config, SceneBase& scene) -> DrawGroup&
 {
-}
-
-auto Frame::addViewport(RenderConfig& config, SceneBase& scene) -> DrawGroup&
-{
-    return drawGroups.emplace_back(&config, &scene, TaskQueue{});
+    return drawGroups.emplace_back(&config.getResources(), &scene, TaskQueue{});
 }
 
 } // namespace trc

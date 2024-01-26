@@ -72,7 +72,7 @@ auto trc::PipelineLayoutBuilder::build() const -> PipelineLayoutTemplate
     std::vector<Descriptor> descNames;
     for (const auto& def : descriptors)
     {
-        if (std::holds_alternative<ProviderDefinition>(def))
+        if (!std::holds_alternative<Descriptor>(def))
         {
             throw Exception("[In PipelineLayoutBuilder::build]: Contains a descriptor definition"
                             " that is not a descriptor name; cannot build a template from this.");

@@ -76,8 +76,9 @@ namespace trc
         auto ptr = modules.try_get(TypeIndex::get<Module>());
         if (ptr != nullptr)
         {
-            assert(nullptr != dynamic_cast<Module*>(ptr.get()));
-            return static_cast<Module*>(ptr.get());
+            assert(ptr->get() != nullptr);
+            assert(dynamic_cast<Module*>(ptr->get()) != nullptr);
+            return static_cast<Module*>(ptr->get());
         }
         return nullptr;
     }
@@ -88,8 +89,9 @@ namespace trc
         auto ptr = modules.try_get(TypeIndex::get<Module>());
         if (ptr != nullptr)
         {
-            assert(nullptr != dynamic_cast<const Module*>(ptr.get()));
-            return static_cast<const Module*>(ptr.get());
+            assert(ptr->get() != nullptr);
+            assert(dynamic_cast<const Module*>(ptr->get()) != nullptr);
+            return static_cast<const Module*>(ptr->get());
         }
         return nullptr;
     }

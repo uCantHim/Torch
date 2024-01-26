@@ -1,33 +1,115 @@
 #include "trc/core/RenderConfiguration.h"
 
+#include "trc/core/SceneBase.h"
 
 
-trc::RenderConfig::RenderConfig(
-    const Instance& instance,
-    const RenderTarget& renderTarget,
-    ivec2 renderOffset,
-    uvec2 renderArea)
+
+trc::ViewportConfig::ViewportConfig(
+    Viewport viewport,
+    ResourceStorage resourceStorage,
+    std::vector<u_ptr<DrawConfig>> pluginConfigs)
     :
-    resourceConfig(),
-    pipelineStorage(PipelineRegistry::makeStorage(instance, resourceConfig)),
-    viewports(
+    viewport(viewport),
+    resources(std::move(resourceStorage)),
+    pluginConfigs(std::move(pluginConfigs))
+{
+}
+
+void trc::ViewportConfig::update(SceneBase& scene, const Camera& camera)
+{
+    for (auto& plugin : pluginConfigs) {
+        plugin->update(scene, camera);
+    }
+}
+
+void trc::ViewportConfig::createTasks(SceneBase& scene, TaskQueue& taskQueue)
+{
+    for (auto& plugin : pluginConfigs) {
+        plugin->createTasks(scene, taskQueue);
+    }
+}
+
+auto trc::ViewportConfig::getViewport() const -> Viewport
+{
+    return viewport;
+}
+
+auto trc::ViewportConfig::getResources() -> ResourceStorage&
+{
+    return resources;
+}
+
+auto trc::ViewportConfig::getResources() const -> const ResourceStorage&
+{
+    return resources;
+}
+
+
+
+trc::RenderConfig::RenderConfig(const Instance& instance)
+    :
+    renderGraph{},
+    resourceConfig{},
+    pipelineStorage(PipelineRegistry::makeStorage(instance, resourceConfig))
+{
+}
+
+void trc::RenderConfig::registerPlugin(s_ptr<RenderPlugin> plugin)
+{
+    plugin->registerRenderStages(renderGraph);
+    plugin->defineResources(resourceConfig);
+
+    plugins.emplace_back(std::move(plugin));
+}
+
+auto trc::RenderConfig::makeScene() -> SceneBase
+{
+    SceneBase scene;
+    for (auto& plugin : plugins) {
+        plugin->registerSceneModules(scene);
+    }
+
+    return scene;
+}
+
+auto trc::RenderConfig::makeViewportConfig(
+    const Device& device,
+    Viewport viewport)
+    -> ViewportConfig
+{
+    ResourceStorage resources{ &resourceConfig, pipelineStorage };
+
+    std::vector<u_ptr<DrawConfig>> configs;
+    for (auto& plugin : plugins)
+    {
+        auto conf = plugin->createDrawConfig(device, viewport);
+        conf->registerResources(resources);
+
+        configs.emplace_back(std::move(conf));
+    }
+
+    return ViewportConfig{ viewport, std::move(resources), std::move(configs) };
+}
+
+auto trc::RenderConfig::makeViewportConfig(
+    const Device& device,
+    RenderTarget renderTarget,
+    ivec2 renderAreaOffset,
+    uvec2 renderArea)
+    -> FrameSpecific<ViewportConfig>
+{
+    return FrameSpecific<ViewportConfig>{
         renderTarget.getFrameClock(),
-        [&](ui32 i) {
-            return Viewport{
-                renderTarget.getImage(i),
-                renderTarget.getImageView(i),
-                renderOffset,
+        [&](ui32 image) {
+            Viewport viewport{
+                renderTarget.getImage(image),
+                renderTarget.getImageView(image),
+                renderAreaOffset,
                 renderArea
             };
+            return makeViewportConfig(device, viewport);
         }
-    ),
-    perFrameResources(
-        renderTarget.getFrameClock(),
-        [&](ui32) {
-            return PerFrame{ {}, ResourceStorage{ &resourceConfig, pipelineStorage } };
-        }
-    )
-{
+    };
 }
 
 auto trc::RenderConfig::getRenderGraph() -> RenderGraph&
@@ -48,22 +130,4 @@ auto trc::RenderConfig::getResourceConfig() -> ResourceConfig&
 auto trc::RenderConfig::getResourceConfig() const -> const ResourceConfig&
 {
     return resourceConfig;
-}
-
-auto trc::RenderConfig::getResourceStorage() -> ResourceStorage&
-{
-    return perFrameResources->resources;
-}
-
-auto trc::RenderConfig::getResourceStorage() const -> const ResourceStorage&
-{
-    return perFrameResources->resources;
-}
-
-void trc::RenderConfig::setRenderTarget(
-    RenderTarget newTarget,
-    ivec2 renderAreaOffset,
-    uvec2 renderArea)
-{
-    // TODO: Create viewport configs from plugins, etc.
 }

@@ -2,16 +2,14 @@
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
-#include "trc/core/ResourceConfig.h"
 
 namespace trc
 {
     class Camera;
     class Device;
-    class DescriptorRegistry;
     class RenderGraph;
-    class RenderTarget;
     class ResourceConfig;
+    class ResourceStorage;
     class SceneBase;
     class TaskQueue;
 
@@ -35,7 +33,11 @@ namespace trc
     public:
         virtual ~DrawConfig() noexcept = default;
 
+        // --- Setup ---
+
         virtual void registerResources(ResourceStorage& resources) = 0;
+
+        // --- Drawing ---
 
         virtual void update(SceneBase& scene, const Camera& camera) = 0;
         virtual void createTasks(SceneBase& scene, TaskQueue& taskQueue) = 0;
@@ -58,10 +60,5 @@ namespace trc
 
         virtual auto createDrawConfig(const Device& device, Viewport renderTarget)
             -> u_ptr<DrawConfig> = 0;
-
-        // --- Drawing ---
-
-        virtual void update(SceneBase& scene, const Camera& camera) = 0;
-        virtual void createTasks(SceneBase& scene, TaskQueue& taskQueue) = 0;
     };
 } // namespace trc
