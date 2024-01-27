@@ -30,7 +30,7 @@ target_sources(
         ShaderLoader.cpp
         ShaderPath.cpp
         ShadowPool.cpp
-        TopLevelAccelerationStructureBuildPass.cpp
+        TopLevelAccelerationStructureBuilder.cpp
         Torch.cpp
         Transformation.cpp
 )
