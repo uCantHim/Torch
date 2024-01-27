@@ -33,6 +33,17 @@ namespace trc
     class DrawableScene : public DrawableComponentScene
     {
     public:
+        /**
+         * @brief Update node transformations
+         */
+        void update();
+
+        auto getRoot() noexcept -> Node&;
+        auto getRoot() const noexcept -> const Node&;
+
         auto makeDrawable(const DrawableCreateInfo& createInfo) -> Drawable;
+
+    private:
+        Node root;
     };
 } // namespace trc

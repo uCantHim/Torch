@@ -2,6 +2,7 @@
 
 #include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
+#include "trc/LightSceneModule.h"
 #include "trc/RasterSceneModule.h"
 #include "trc/RasterTasks.h"
 #include "trc/TorchRenderStages.h"
@@ -131,10 +132,9 @@ void RasterPlugin::RasterDrawConfig::update(SceneBase& scene, const Camera& came
 
 void RasterPlugin::RasterDrawConfig::createTasks(SceneBase& scene, TaskQueue& taskQueue)
 {
-    auto& rasterScene = scene.getModule<RasterSceneModule>();
-
     // Shadow tasks - one for each shadow map
-    for (auto& renderPass : rasterScene.getShadowPasses()) {
+    auto& lights = scene.getModule<LightSceneModule>();
+    for (auto& renderPass : lights.getShadowPasses()) {
         taskQueue.spawnTask(shadowRenderStage, std::make_unique<RenderPassDrawTask>(renderPass));
     }
 

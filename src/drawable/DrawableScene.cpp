@@ -10,6 +10,22 @@
 namespace trc
 {
 
+void DrawableScene::update()
+{
+    // Update transformations in the node tree
+    root.updateAsRoot();
+}
+
+auto DrawableScene::getRoot() noexcept -> Node&
+{
+    return root;
+}
+
+auto DrawableScene::getRoot() const noexcept -> const Node&
+{
+    return root;
+}
+
 auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
 {
     const DrawableID id = DrawableComponentScene::makeDrawable();

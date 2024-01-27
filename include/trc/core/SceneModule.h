@@ -10,7 +10,6 @@ namespace trc
     {
     public:
         virtual ~SceneModule() noexcept = default;
-        virtual void createTasks(TaskQueue& taskQueue) = 0;
     };
 
     template<typename T>

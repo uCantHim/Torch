@@ -45,6 +45,7 @@ DrawableComponentScene::DrawableComponentScene()
 {
     registerModule(std::make_unique<RasterSceneModule>());
     registerModule(std::make_unique<RaySceneModule>());
+    registerModule(std::make_unique<LightSceneModule>());
 }
 
 auto DrawableComponentScene::getRasterModule() -> RasterSceneModule&

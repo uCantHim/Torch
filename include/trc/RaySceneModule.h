@@ -19,9 +19,6 @@ namespace trc
             ui32 materialIndex;
         };
 
-        // TODO: Is this necessary?
-        void createTasks(TaskQueue&) override {}
-
         auto allocateRayInstance(RayInstanceData data,
                                  ui8 mask,
                                  ui32 shaderBindingTableRecordOffset,

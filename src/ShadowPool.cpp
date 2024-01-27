@@ -9,6 +9,7 @@ trc::ShadowPool::Shadow::Shadow(
     uvec2 size)
     :
     index(index),
+    camera(std::make_shared<Camera>()),
     renderPass(std::make_shared<RenderPassShadow>(
         device,
         clock,

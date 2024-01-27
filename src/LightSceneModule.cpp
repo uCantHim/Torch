@@ -1,34 +1,11 @@
-#include "trc/RasterSceneModule.h"
+#include "trc/LightSceneModule.h"
 
 
 
-void trc::RasterSceneModule::update()
+namespace trc
 {
-    // Update transformations in the node tree
-    root.updateAsRoot();
-}
 
-auto trc::RasterSceneModule::getRoot() noexcept -> Node&
-{
-    return root;
-}
-
-auto trc::RasterSceneModule::getRoot() const noexcept -> const Node&
-{
-    return root;
-}
-
-auto trc::RasterSceneModule::getLights() noexcept -> LightRegistry&
-{
-    return lightRegistry;
-}
-
-auto trc::RasterSceneModule::getLights() const noexcept -> const LightRegistry&
-{
-    return lightRegistry;
-}
-
-auto trc::RasterSceneModule::enableShadow(
+auto LightSceneModule::enableShadow(
     Light light,
     const ShadowCreateInfo& shadowInfo,
     ShadowPool& shadowPool
@@ -37,26 +14,25 @@ auto trc::RasterSceneModule::enableShadow(
     if (light.getType() != Light::Type::eSunLight) {
         throw std::invalid_argument("Shadows are currently only supported for sun lights");
     }
-    if (lightRegistry.lightExists(light)) {
+    if (lightExists(light)) {
         throw std::invalid_argument("Light does not exist in the light registry!");
     }
     if (shadowNodes.find(light) != shadowNodes.end()) {
         throw std::invalid_argument("Shadows are already enabled for the light!");
     }
 
-    auto [it, success] = shadowNodes.try_emplace(light);
+    auto [it, success] = shadowNodes.try_emplace(light, std::make_unique<ShadowNode>());
     if (!success) {
         throw std::runtime_error("Unable to add light to the map in LightRegistry::enableShadow");
     }
 
-    auto& newEntry = it->second;
+    auto& newNode = *it->second;
     for (ui32 i = 0; i < getNumShadowMaps(light.getType()); i++)
     {
-        ShadowMap& shadow = newEntry.shadows.emplace_back(
+        ShadowMap& shadow = newNode.shadows.emplace_back(
             shadowPool.allocateShadow(shadowInfo)
         );
-        Camera& camera = *shadow.camera;
-        newEntry.attach(camera);
+        newNode.attach(*shadow.camera);
 
         // Add shadow to light info
         light.addShadowMap(shadow.index);
@@ -67,16 +43,16 @@ auto trc::RasterSceneModule::enableShadow(
         // Use lookAt for sun lights
         if (light.getType() == LightData::Type::eSunLight && length(light.getDirection()) > 0.0f)
         {
-            camera.lookAt(vec3(0.0f), light.getDirection(), vec3(0, 1, 0));
+            shadow.camera->lookAt(vec3(0.0f), light.getDirection(), vec3(0, 1, 0));
         }
     }
 
-    newEntry.update();
+    newNode.update();
 
-    return newEntry;
+    return newNode;
 }
 
-void trc::RasterSceneModule::disableShadow(Light light)
+void LightSceneModule::disableShadow(Light light)
 {
     auto it = shadowNodes.find(light);
     if (it != shadowNodes.end())
@@ -84,10 +60,12 @@ void trc::RasterSceneModule::disableShadow(Light light)
         light.removeAllShadowMaps();
 
         // Remove all render passes
-        for (auto& shadow : it->second.shadows) {
+        for (auto& shadow : it->second->shadows) {
             shadowPasses.erase(shadow.renderPass);
         }
 
         shadowNodes.erase(it);
     }
 }
+
+} // namespace trc

@@ -16,12 +16,12 @@ target_sources(
         GBufferPass.cpp
         Light.cpp
         LightRegistry.cpp
+        LightSceneModule.cpp
         Meshlet.cpp
         Node.cpp
         PipelineDefinitions.cpp
         RasterPlugin.cpp
         RasterSceneBase.cpp
-        RasterSceneModule.cpp
         RasterTasks.cpp
         RaySceneModule.cpp
         RenderDataDescriptor.cpp

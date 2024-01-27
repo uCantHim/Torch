@@ -5,6 +5,7 @@
 #include <trc_util/data/IdPool.h>
 #include <trc_util/data/IndexMap.h>
 
+#include "trc/LightSceneModule.h"
 #include "trc/RasterSceneModule.h"
 #include "trc/RaySceneModule.h"
 #include "trc/core/SceneBase.h"
@@ -51,6 +52,8 @@ namespace trc
 
         auto getRasterModule() -> RasterSceneModule&;
         auto getRayModule() -> RaySceneModule&;
+        auto getLights() -> LightSceneModule&;
+        auto getLights() const -> const LightSceneModule&;
 
         void updateAnimations(float timeDelta);
 
@@ -66,7 +69,7 @@ namespace trc
             return createObject();
         }
 
-        inline auto makeDrawableUnique() -> UniqueDrawableID {
+        inline auto makeUniqueDrawable() -> UniqueDrawableID {
             return UniqueDrawableID{ makeDrawable(), *this };
         }
 

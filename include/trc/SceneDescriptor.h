@@ -8,7 +8,7 @@
 
 namespace trc
 {
-    class RasterSceneModule;
+    class LightSceneModule;
     class RaySceneModule;
     class SceneBase;
 
@@ -34,7 +34,7 @@ namespace trc
         void createDescriptors();
         void writeDescriptors();
 
-        void updateRasterData(const RasterSceneModule& scene);
+        void updateLightData(const LightSceneModule& scene);
         void updateRayData(const RaySceneModule& scene);
 
         const Device& device;

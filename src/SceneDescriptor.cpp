@@ -1,7 +1,7 @@
 #include "trc/SceneDescriptor.h"
 
 #include "trc/DescriptorSetUtils.h"
-#include "trc/RasterSceneModule.h"
+#include "trc/LightSceneModule.h"
 #include "trc/RaySceneModule.h"
 #include "trc/core/SceneBase.h"
 #include "trc/core/Window.h"
@@ -33,18 +33,16 @@ trc::SceneDescriptor::SceneDescriptor(const Device& device)
 
 void trc::SceneDescriptor::update(const SceneBase& scene)
 {
-    if (auto mod = scene.tryGetModule<RasterSceneModule>()) {
-        updateRasterData(*mod);
+    if (auto mod = scene.tryGetModule<LightSceneModule>()) {
+        updateLightData(*mod);
     }
     if (auto mod = scene.tryGetModule<RaySceneModule>()) {
         updateRayData(*mod);
     }
 }
 
-void trc::SceneDescriptor::updateRasterData(const RasterSceneModule& scene)
+void trc::SceneDescriptor::updateLightData(const LightSceneModule& lights)
 {
-    const auto& lights = scene.getLights();
-
     // Resize light buffer if the current one is too small
     if (lights.getRequiredLightDataSize() > lightBuffer.size())
     {
