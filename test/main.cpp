@@ -6,6 +6,7 @@
 #include <trc/Torch.h>
 #include <trc/base/ImageUtils.h>
 #include <trc/base/event/Event.h>
+#include <trc/drawable/DrawableScene.h>
 #include <trc/particle/Particle.h>
 #include <trc/text/Text.h>
 
@@ -25,9 +26,9 @@ void run()
     trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
     camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
     torch->getWindow().addCallbackOnResize([&camera](trc::Swapchain& swapchain) {
-        const auto extent = swapchain.getImageExtent();
-        camera.setAspect(float(extent.width) / float(extent.height));
+        camera.setAspect(swapchain.getAspectRatio());
     });
+    camera.setAspect(torch->getWindow().getAspectRatio());
 
     // ------------------
     // Random test things
@@ -77,7 +78,7 @@ void run()
 
     // ------------------
 
-    trc::RasterSceneModule scene;
+    trc::DrawableScene scene;
 
     auto grass = scene.makeDrawable({ grassGeoIndex, matIdx });
     grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
@@ -143,7 +144,7 @@ void run()
 
     // Sun light
     mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -50.0f, 5.0f);
-    auto& shadowNode = scene.enableShadow(
+    auto& shadowNode = scene.getLights().enableShadow(
         sunLight,
         { .shadowMapResolution=uvec2(2048, 2048) },
         torch->getShadowPool()
@@ -164,7 +165,7 @@ void run()
 
     // Particles
     trc::ParticleCollection particleCollection(instance, 10000);
-    particleCollection.attachToScene(scene);
+    particleCollection.attachToScene(scene.getRasterModule());
     for (int i = 0; i < 1000; i++)
     {
         trc::Particle particle;
@@ -242,7 +243,7 @@ void run()
     trc::Text text{ instance, font.getDeviceDataHandle() };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
-    text.attachToScene(scene);
+    text.attachToScene(scene.getRasterModule());
 
     trc::Timer timer;
     trc::Timer frameTimer;
@@ -253,7 +254,7 @@ void run()
 
         const float frameTime = frameTimer.reset();
         scene.update(frameTime);
-        cursor->setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
+        //cursor->setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
 
         torch->drawFrame(camera, scene);
 
@@ -266,7 +267,7 @@ void run()
         }
     }
 
-    device->waitIdle();
+    torch->waitForAllFrames();
 
     particleUpdateThread.join();
     particleSpawnThread.join();

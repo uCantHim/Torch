@@ -1,42 +1,19 @@
 #include <trc/DescriptorSetUtils.h>
 #include <trc/Torch.h>
 #include <trc/base/Barriers.h>
-#include <trc/base/event/Event.h>
 #include <trc/core/Instance.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/core/Window.h>
+#include <trc/drawable/DrawableScene.h>
 #include <trc/ray_tracing/RayPipelineBuilder.h>
 #include <trc/ray_tracing/ShaderBindingTable.h>
 
 using namespace trc::basic_types;
 
-class BasicRayConfig : public trc::RenderConfig
-{
-public:
-    explicit BasicRayConfig(const trc::Window& window)
-        :
-        trc::RenderConfig(makeRenderGraph())
-    {
-    }
-
-    static auto makeRenderGraph() -> trc::RenderGraph
-    {
-        trc::RenderGraph graph;
-        graph.first(kRayStage);
-
-        return graph;
-    }
-
-    auto getPipeline(trc::Pipeline::ID) -> trc::Pipeline& override {
-        assert(false);
-        return *((trc::Pipeline*)nullptr);
-    }
-
-    static inline const trc::RenderStage kRayStage = trc::RenderStage::make();
-};
-
 int main()
 {
+    const trc::RenderStage kRayStage = trc::RenderStage::make();
+
     trc::init();
     trc::Instance instance({ .enableRayTracing=true, .deviceExtensions={}, .deviceFeatures={} });
     trc::Window window(instance);
@@ -129,9 +106,9 @@ int main()
     ));
 
     std::vector<vk::DescriptorSetLayout> descLayouts{ *descLayout, *descLayout, *descLayout };
-    auto sets = device->allocateDescriptorSetsUnique(vk::DescriptorSetAllocateInfo(*pool, descLayouts));
+    auto descSets = device->allocateDescriptorSetsUnique(vk::DescriptorSetAllocateInfo(*pool, descLayouts));
 
-    for (ui32 i = 0; auto& set : sets)
+    for (ui32 i = 0; auto& set : descSets)
     {
         vk::StructureChain tlasDescWrite{
             vk::WriteDescriptorSet(*set, 0, 0, 1, vk::DescriptorType::eAccelerationStructureKHR,
@@ -149,18 +126,19 @@ int main()
         ++i;
     }
 
-    trc::FrameSpecificDescriptorProvider provider(
-        *descLayout,
-        trc::FrameSpecific<vk::DescriptorSet>(window, [&](ui32 i){ return *sets[i]; })
-    );
-
     // Pipeline
-    BasicRayConfig renderConfig(window);
+    trc::RenderConfig renderConfig{ instance };
+    renderConfig.getRenderGraph().first(kRayStage);
 
     auto layout = trc::buildPipelineLayout()
         .addPushConstantRange({ vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 })
-        .addDescriptor(provider, true)
-        .build(instance.getDevice(), renderConfig);
+        .addStaticDescriptor(
+            *descLayout,
+            std::make_shared<trc::FrameSpecificDescriptorProvider>(
+                trc::FrameSpecific<vk::DescriptorSet>(window, [&](ui32 i){ return *descSets[i]; })
+            )
+        )
+        .build(instance.getDevice(), renderConfig.getResourceConfig());
 
     auto [pipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(instance)
         .addRaygenGroup(trc::ShaderPath("basic_ray/raygen.rgen"))
@@ -171,65 +149,62 @@ int main()
     auto& sbt = shaderBindingTable;
 
     // Other stuff
-    trc::RasterSceneModule scene;
+    trc::DrawableScene scene;
     trc::Camera camera;
     camera.lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
 
-    // Render pass
-    //
-    // The render pass is just a function that dispatches a vkCmdTraceRaysKHR call.
-    trc::UpdateFunctionPass rayPass(
-        [&, &pipeline=pipeline](vk::CommandBuffer cmdBuf, trc::FrameRenderState&)
-        {
-            trc::imageMemoryBarrier(
-                cmdBuf,
-                target.getCurrentImage(),
-                vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eAllCommands,
-                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
-                vk::AccessFlagBits::eHostWrite,
-                vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
-            pipeline.bind(cmdBuf);
-            cmdBuf.pushConstants<mat4>(*pipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
-                                       0, { camera.getViewMatrix(), camera.getProjectionMatrix() });
-            cmdBuf.traceRaysKHR(
-                sbt.getEntryAddress(0),
-                sbt.getEntryAddress(1),
-                sbt.getEntryAddress(2), // hit
-                {}, // callable
-                target.getSize().x, target.getSize().y, 1,
-                instance.getDL()
-            );
-            trc::imageMemoryBarrier(
-                cmdBuf,
-                target.getCurrentImage(),
-                vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR,
-                vk::PipelineStageFlagBits::eRayTracingShaderKHR,
-                vk::PipelineStageFlagBits::eHost,
-                vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
-                vk::AccessFlagBits::eHostRead,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
-        }
-    );
-    renderConfig.getRenderGraph().addPass(renderConfig.kRayStage, rayPass);
+    trc::SwapchainRenderer frameSubmitter{ device, window };
+    trc::ViewportConfig viewportConfig = renderConfig.makeViewportConfig(device, trc::Viewport{});
 
-    trc::DrawConfig drawConfig{
-        .scene=scene,
-        .renderConfig=renderConfig
-    };
-
-    trc::Keyboard::init();
-    while (!trc::Keyboard::isPressed(trc::Key::escape))
+    while (!window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
 
-        window.drawFrame(drawConfig);
+        auto frame = std::make_unique<trc::Frame>();
+        auto& viewport = frame->addViewport(viewportConfig, scene);
+
+        viewport.taskQueue.spawnTask(
+            kRayStage,
+            trc::makeTask([&, &pipeline=pipeline](vk::CommandBuffer cmdBuf, trc::TaskEnvironment&)
+            {
+                trc::imageMemoryBarrier(
+                    cmdBuf,
+                    target.getCurrentImage(),
+                    vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral,
+                    vk::PipelineStageFlagBits::eAllCommands,
+                    vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+                    vk::AccessFlagBits::eHostWrite,
+                    vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
+                    vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+                );
+                pipeline.bind(cmdBuf);
+                cmdBuf.pushConstants<mat4>(*pipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
+                                           0, { camera.getViewMatrix(), camera.getProjectionMatrix() });
+                cmdBuf.traceRaysKHR(
+                    sbt.getEntryAddress(0),
+                    sbt.getEntryAddress(1),
+                    sbt.getEntryAddress(2), // hit
+                    {}, // callable
+                    target.getSize().x, target.getSize().y, 1,
+                    instance.getDL()
+                );
+                trc::imageMemoryBarrier(
+                    cmdBuf,
+                    target.getCurrentImage(),
+                    vk::ImageLayout::eGeneral, vk::ImageLayout::ePresentSrcKHR,
+                    vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+                    vk::PipelineStageFlagBits::eHost,
+                    vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
+                    vk::AccessFlagBits::eHostRead,
+                    vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+                );
+            })
+        );
+
+        frameSubmitter.renderFrame(std::move(frame));
     }
 
-    window.getRenderer().waitForAllFrames();
+    frameSubmitter.waitForAllFrames();
     trc::terminate();
 
     return 0;

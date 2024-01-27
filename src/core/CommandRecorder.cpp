@@ -31,8 +31,6 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
         }
         return res;
     }();
-    log::debug << "[CommandRecorder]: Recording task commands with "
-               << numThreads << " threads.";
 
     const Device& device = *this->device;
 

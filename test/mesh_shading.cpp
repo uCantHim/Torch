@@ -1,10 +1,12 @@
 #include <trc/DescriptorSetUtils.h>
 #include <trc/Meshlet.h>
 #include <trc/PipelineDefinitions.h>
+#include <trc/RasterPlugin.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/core/PipelineBuilder.h>
 #include <trc/core/PipelineLayoutBuilder.h>
+#include <trc/drawable/DrawableScene.h>
 using namespace trc::basic_types;
 
 void run();
@@ -58,8 +60,10 @@ void run()
         .addBinding(vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eMeshNV)
         .build(device);
 
-    trc::DescriptorProvider meshInputProvider{ *descLayout, {} };
-    torch->getRenderConfig().addDescriptor(trc::DescriptorName{ "mesh_input" }, meshInputProvider);
+    torch->getRenderConfig().getResourceConfig().defineDescriptor(
+        trc::DescriptorName{ "mesh_input" },
+        *descLayout
+    );
 
     trc::DeviceLocalBuffer meshletDescBuffer(
         device, meshlets.meshlets, vk::BufferUsageFlagBits::eUniformTexelBuffer
@@ -112,7 +116,8 @@ void run()
     camera.makePerspective(float(window.getSize().x) / float(window.getSize().y), 45.0f, 0.1f, 100.0f);
 
     // Scene setup
-    trc::RasterSceneModule scene;
+    trc::DescriptorProvider meshInputProvider{ {} };
+    trc::DrawableScene scene;
     auto sun = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -0.3f, 0), 0.3f);
 
     // Object properties
@@ -120,7 +125,7 @@ void run()
 
     // Mesh draw function
     auto pipeline = createPipeline();
-    scene.registerDrawFunction(trc::gBufferRenderStage, trc::SubPass::ID(0), pipeline,
+    scene.getRasterModule().registerDrawFunction(trc::gBufferRenderStage, trc::SubPass::ID(0), pipeline,
         [&](const trc::DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
             auto layout = *env.currentPipeline->getLayout();
@@ -136,14 +141,14 @@ void run()
         torch->drawFrame(camera, scene);
     }
 
-    window.getRenderer().waitForAllFrames();
+    torch->waitForAllFrames();
 }
 
 auto createPipeline() -> trc::Pipeline::ID
 {
     auto layout = trc::buildPipelineLayout()
         .addDescriptor(trc::DescriptorName{ "mesh_input" }, false)
-        .addDescriptor(trc::DescriptorName{ trc::TorchRenderConfig::GLOBAL_DATA_DESCRIPTOR }, true)
+        .addDescriptor(trc::DescriptorName{ trc::RasterPlugin::GLOBAL_DATA_DESCRIPTOR }, true)
         .addPushConstantRange({ vk::ShaderStageFlagBits::eMeshNV, 0, sizeof(mat4) + sizeof(ui32) })
         .registerLayout();
 
@@ -156,6 +161,6 @@ auto createPipeline() -> trc::Pipeline::ID
         .disableBlendAttachments(3)
         .registerPipeline(
             layout,
-            trc::RenderPassName{ trc::TorchRenderConfig::OPAQUE_G_BUFFER_PASS }
+            trc::RenderPassName{ trc::RasterPlugin::OPAQUE_G_BUFFER_PASS }
         );
 }

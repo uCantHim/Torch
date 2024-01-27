@@ -8,6 +8,7 @@
 #include <trc/Torch.h>
 #include <trc/assets/SimpleMaterial.h>
 #include <trc/assets/import/AssetImport.h>
+#include <trc/drawable/DrawableScene.h>
 #include <trc/material/CommonShaderFunctions.h>
 #include <trc/material/FragmentShader.h>
 #include <trc/material/ShaderModuleCompiler.h>
@@ -98,7 +99,7 @@ int main()
     camera.makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.01f, 100.0f);
     camera.lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
 
-    RasterSceneModule scene;
+    DrawableScene scene;
     scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create a fancy material

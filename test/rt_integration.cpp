@@ -2,12 +2,13 @@
 
 #include <trc/DescriptorSetUtils.h>
 #include <trc/PipelineDefinitions.h>
-#include <trc/TopLevelAccelerationStructureBuildPass.h>
+#include <trc/TopLevelAccelerationStructureBuilder.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
 #include <trc/base/ImageUtils.h>
 #include <trc/base/event/Event.h>
+#include <trc/drawable/DrawableScene.h>
 #include <trc/ray_tracing/RaygenDescriptor.h>
 #include <trc_util/Timer.h>
 using namespace trc::basic_types;
@@ -21,7 +22,7 @@ void run()
     auto& window = torch->getWindow();
     auto& assets = torch->getAssetManager();
 
-    auto scene = std::make_unique<trc::RasterSceneModule>();
+    auto scene = std::make_unique<trc::DrawableScene>();
 
     // Camera
     trc::Camera camera;
@@ -76,8 +77,9 @@ void run()
         true, true
     });
 
-    auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
-    auto& shadow = scene->enableShadow(
+    auto& lights = scene->getModule<trc::LightSceneModule>();
+    auto sun = lights.makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
+    auto& shadow = lights.enableShadow(
         sun,
         { .shadowMapResolution=uvec2(2048, 2048) },
         torch->getShadowPool()
@@ -125,8 +127,6 @@ void run()
             frameTimer.reset();
         }
     }
-
-    window.getRenderer().waitForAllFrames();
 }
 
 int main()
