@@ -126,6 +126,7 @@ void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resource
 
 void RasterPlugin::RasterDrawConfig::update(SceneBase& scene, const Camera& camera)
 {
+    parent->shadowDescriptor->update();
     parent->sceneDescriptor->update(scene);
     globalDataDescriptor->update(camera);
 }

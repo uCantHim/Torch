@@ -4,7 +4,6 @@
 #include <stdexcept>
 
 #include "trc/Types.h"
-#include "trc/UpdatePass.h"
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetRegistryModuleStorage.h"
 #include "trc/assets/AssetSource.h"
@@ -84,26 +83,15 @@ namespace trc
         template<AssetBaseType T>
         bool hasModule() const noexcept;
 
-        auto getUpdatePass() -> UpdatePass&;
+        /**
+         * Allows registered modules to perform updates to device data as needed.
+         */
+        void updateDeviceResources(vk::CommandBuffer cmdBuf, FrameRenderState& frameState) {
+            modules.update(cmdBuf, frameState);
+        }
 
     private:
         AssetRegistryModuleStorage modules;
-
-
-        //////////////
-        // Descriptors
-
-        struct AssetModuleUpdatePass : UpdatePass
-        {
-            AssetModuleUpdatePass(AssetRegistry* reg) : registry(reg) {}
-            void update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState) override;
-
-            AssetRegistry* registry;
-        };
-
-        void update(vk::CommandBuffer cmdBuf, FrameRenderState& frameState);
-
-        u_ptr<AssetModuleUpdatePass> updateRenderPass{ new AssetModuleUpdatePass{ this } };
     };
 
 

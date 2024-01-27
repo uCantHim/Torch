@@ -75,6 +75,15 @@ trc::TorchStack::TorchStack(
         return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
     }()),
     renderConfig(instance),
+    assetDescriptor(trc::makeAssetDescriptor(
+        instance,
+        assetManager.getDeviceRegistry(),
+        trc::AssetDescriptorCreateInfo{
+            .maxGeometries=10,
+            .maxTextures=10,
+            .maxFonts=1,
+        }
+    )),
     shadowPool(std::make_shared<ShadowPool>(
         instance.getDevice(), window,
         ShadowPoolCreateInfo{ .maxShadowMaps=100 }
@@ -85,15 +94,7 @@ trc::TorchStack::TorchStack(
         instance.getDevice(),
         window.getFrameCount(),
         trc::RasterPluginCreateInfo{
-            .assetDescriptor             = trc::makeAssetDescriptor(
-                instance,
-                assetManager.getDeviceRegistry(),
-                trc::AssetDescriptorCreateInfo{
-                    .maxGeometries=10,
-                    .maxTextures=10,
-                    .maxFonts=1,
-                }
-            ),
+            .assetDescriptor             = assetDescriptor,
             .shadowDescriptor            = shadowPool,
             .maxTransparentFragsPerPixel = 3,
             .enableRayTracing            = false,
@@ -163,6 +164,10 @@ auto trc::TorchStack::getRenderConfig() -> RenderConfig&
 
 void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
 {
+    // Update host resources
+    assetDescriptor->update(instance.getDevice());
+
+    // Create a frame and draw to it
     auto frame = std::make_unique<Frame>();
 
     auto& currentViewport = **viewports;
@@ -171,13 +176,18 @@ void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
     auto& drawGroup = frame->addViewport(currentViewport, scene);
     currentViewport.createTasks(scene, drawGroup.taskQueue);
 
-    auto& pass = assetManager.getDeviceRegistry().getUpdatePass();
+    // Enqueue an update to the asset registry's device data
     drawGroup.taskQueue.spawnTask(
         resourceUpdateStage,
-        makeTask([&pass](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
-            pass.update(cmdBuf, *env.frame);
+        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
+            assetManager.getDeviceRegistry().updateDeviceResources(cmdBuf, *env.frame);
         })
     );
 
     frameSubmitter.renderFrame(std::move(frame));
+}
+
+void trc::TorchStack::waitForAllFrames(ui64 timeoutNs)
+{
+    frameSubmitter.waitForAllFrames(timeoutNs);
 }

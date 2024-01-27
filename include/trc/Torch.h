@@ -4,6 +4,7 @@
 
 #include <trc_util/Timer.h>
 
+#include "trc/AssetDescriptor.h"
 #include "trc/Camera.h"
 #include "trc/ShadowPool.h"
 #include "trc/Types.h"
@@ -94,12 +95,15 @@ namespace trc
          */
         void drawFrame(const Camera& camera, SceneBase& scene);
 
+        void waitForAllFrames(ui64 timeoutNs = std::numeric_limits<ui64>::max());
+
     private:
         Instance instance;
         Window window;
         AssetManager assetManager;
         RenderConfig renderConfig;
 
+        s_ptr<AssetDescriptor> assetDescriptor;
         s_ptr<ShadowPool> shadowPool;
 
         SwapchainRenderer frameSubmitter;
