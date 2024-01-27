@@ -663,7 +663,6 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     swapchainExtent = optimalImageExtent;
     swapchainFormat = optimalFormat.format;
     presentMode = optimalPresentMode;
-    FrameClock::resetCurrentFrame();
 
     // Retrieve created images
     images = device->getSwapchainImagesKHR(*swapchain);
