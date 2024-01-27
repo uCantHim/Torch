@@ -1,6 +1,7 @@
 #include "trc/drawable/Drawable.h"
 
 #include "trc/drawable/AnimationComponent.h"
+#include "trc/drawable/DrawableScene.h"
 
 
 
@@ -9,7 +10,7 @@ namespace trc
 
 DrawableObj::DrawableObj(
     DrawableID id,
-    DrawableComponentScene& scene,
+    DrawableScene& scene,
     GeometryID geometry,
     MaterialID material)
     :

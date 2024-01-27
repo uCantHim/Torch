@@ -1,11 +1,20 @@
 #pragma once
 
+#include <componentlib/ComponentStorage.h>
+#include <trc_util/data/IdPool.h>
+#include <trc_util/data/IndexMap.h>
+
+#include "trc/LightSceneModule.h"
+#include "trc/RasterSceneModule.h"
+#include "trc/RaySceneModule.h"
 #include "trc/Types.h"
+#include "trc/core/SceneBase.h"
 #include "trc/drawable/Drawable.h"
-#include "trc/drawable/DrawableComponentScene.h"
 
 namespace trc
 {
+    class DrawableScene;
+
     /**
      * @brief A shared handle to a drawable object
      *
@@ -30,20 +39,77 @@ namespace trc
         bool rayTraced{ false };
     };
 
-    class DrawableScene : public DrawableComponentScene
+    struct UniqueDrawableID
+    {
+        UniqueDrawableID(const UniqueDrawableID&) = delete;
+        UniqueDrawableID& operator=(const UniqueDrawableID&) = delete;
+
+        UniqueDrawableID(UniqueDrawableID&&) noexcept;
+        UniqueDrawableID& operator=(UniqueDrawableID&&) noexcept;
+        ~UniqueDrawableID() noexcept;
+
+        UniqueDrawableID() = default;
+        UniqueDrawableID(DrawableID drawable, DrawableScene& scene);
+
+        constexpr auto operator*() const -> DrawableID {
+            return id;
+        }
+
+    private:
+        DrawableID id{ DrawableID::NONE };
+        DrawableScene* scene{ nullptr };
+    };
+
+    /**
+     * @brief
+     */
+    class DrawableScene
+        : public componentlib::ComponentStorage<DrawableScene, DrawableID>
+        , public SceneBase
     {
     public:
-        /**
-         * @brief Update node transformations
-         */
-        void update();
+        DrawableScene();
 
+        void update(float timeDeltaMs);
+
+        auto getRasterModule() -> RasterSceneModule&;
+        auto getRayModule() -> RaySceneModule&;
+        auto getLights() -> LightSceneModule&;
+        auto getLights() const -> const LightSceneModule&;
         auto getRoot() noexcept -> Node&;
         auto getRoot() const noexcept -> const Node&;
 
+        /**
+         * @brief A more expressive name for `createObject`
+         */
+        inline auto makeDrawable() -> DrawableID {
+            return createObject();
+        }
+
+        inline auto makeUniqueDrawable() -> UniqueDrawableID {
+            return UniqueDrawableID{ makeDrawable(), *this };
+        }
+
         auto makeDrawable(const DrawableCreateInfo& createInfo) -> Drawable;
 
+        /**
+         * @brief A more expressive name for `deleteObject`
+         */
+        inline void destroyDrawable(DrawableID drawable) {
+            deleteObject(drawable);
+        }
+
     private:
+        template<componentlib::ComponentType T>
+        friend struct componentlib::ComponentTraits;
+
+        void updateAnimations(float timeDelta);
+
+        /**
+         * @brief Update transformations of ray geometry instances
+         */
+        void updateRayInstances();
+
         Node root;
     };
 } // namespace trc

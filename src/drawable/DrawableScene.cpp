@@ -10,10 +10,88 @@
 namespace trc
 {
 
-void DrawableScene::update()
+UniqueDrawableID::UniqueDrawableID(DrawableID drawable, DrawableScene& scene)
+    :
+    id(drawable),
+    scene(&scene)
+{
+}
+
+UniqueDrawableID::UniqueDrawableID(UniqueDrawableID&& other) noexcept
+    :
+    id(other.id),
+    scene(other.scene)
+{
+    other.id = DrawableID::NONE;
+    other.scene = nullptr;
+}
+
+UniqueDrawableID& UniqueDrawableID::operator=(UniqueDrawableID&& other) noexcept
+{
+    std::swap(id, other.id);
+    std::swap(scene, other.scene);
+    return *this;
+}
+
+UniqueDrawableID::~UniqueDrawableID() noexcept
+{
+    if (id != DrawableID::NONE && scene != nullptr)
+    {
+        scene->destroyDrawable(id);
+    }
+}
+
+
+
+DrawableScene::DrawableScene()
+{
+    registerModule(std::make_unique<RasterSceneModule>());
+    registerModule(std::make_unique<RaySceneModule>());
+    registerModule(std::make_unique<LightSceneModule>());
+}
+
+void DrawableScene::update(float timeDeltaMs)
 {
     // Update transformations in the node tree
     root.updateAsRoot();
+
+    updateAnimations(timeDeltaMs);
+    updateRayInstances();
+}
+
+void DrawableScene::updateAnimations(const float timeDelta)
+{
+    for (auto& anim : get<AnimationComponent>())
+    {
+        anim.engine.update(timeDelta);
+    }
+}
+
+void DrawableScene::updateRayInstances()
+{
+    for (const auto& ray : get<RayComponent>()) {
+        getRayModule().setInstanceTransform(ray.instanceDataIndex, ray.modelMatrix.get());
+    }
+}
+
+auto DrawableScene::getRasterModule() -> RasterSceneModule&
+{
+    return getModule<RasterSceneModule>();
+}
+
+auto DrawableScene::getRayModule() -> RaySceneModule&
+{
+    return getModule<RaySceneModule>();
+}
+
+auto DrawableScene::getLights() -> LightSceneModule&
+{
+    return getModule<LightSceneModule>();
+}
+
+auto DrawableScene::getLights() const -> const LightSceneModule&
+{
+    return getModule<LightSceneModule>();
 }
 
 auto DrawableScene::getRoot() noexcept -> Node&
@@ -28,7 +106,7 @@ auto DrawableScene::getRoot() const noexcept -> const Node&
 
 auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
 {
-    const DrawableID id = DrawableComponentScene::makeDrawable();
+    const DrawableID id = DrawableScene::makeDrawable();
 
     std::shared_ptr<DrawableObj> drawable(
         new DrawableObj{ id, *this, info.geo, info.mat },

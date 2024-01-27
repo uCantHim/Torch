@@ -3,7 +3,6 @@ target_sources(
     PRIVATE
         DefaultDrawable.cpp
         Drawable.cpp
-        DrawableComponentScene.cpp
         DrawableScene.cpp
         RasterComponent.cpp
         RayComponent.cpp

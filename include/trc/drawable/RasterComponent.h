@@ -11,7 +11,7 @@
 #include "trc/assets/Material.h"
 #include "trc/RasterSceneBase.h"
 #include "trc/drawable/DefaultDrawable.h"
-#include "trc/drawable/DrawableComponentScene.h"
+#include "trc/drawable/DrawableScene.h"
 
 namespace trc
 {
@@ -47,7 +47,7 @@ namespace trc
 template<>
 struct componentlib::ComponentTraits<trc::RasterComponent>
 {
-    void onCreate(trc::DrawableComponentScene& storage,
+    void onCreate(trc::DrawableScene& storage,
                   trc::DrawableID drawable,
                   trc::RasterComponent& comp);
 };

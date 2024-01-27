@@ -22,7 +22,7 @@ trc::RayComponent::RayComponent(const RayComponentCreateInfo& info)
 }
 
 void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
-    trc::DrawableComponentScene& storage,
+    trc::DrawableScene& storage,
     trc::DrawableID /*drawable*/,
     trc::RayComponent& ray)
 {
@@ -44,7 +44,7 @@ void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
 }
 
 void componentlib::ComponentTraits<trc::RayComponent>::onDelete(
-    trc::DrawableComponentScene& storage,
+    trc::DrawableScene& storage,
     trc::DrawableID /*id*/,
     trc::RayComponent ray)
 {

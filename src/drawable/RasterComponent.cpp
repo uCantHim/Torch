@@ -24,7 +24,7 @@ trc::RasterComponent::RasterComponent(const RasterComponentCreateInfo& createInf
 }
 
 void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
-    trc::DrawableComponentScene& storage,
+    trc::DrawableScene& storage,
     trc::DrawableID /*drawable*/,
     trc::RasterComponent& comp)
 {
