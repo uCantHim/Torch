@@ -10,21 +10,15 @@
 namespace trc
 {
 
-DrawableScene::DrawableScene(RasterSceneBase& baseScene)
-    :
-    components(baseScene)
-{
-}
-
 auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
 {
-    const DrawableID id = components.makeDrawable();
+    const DrawableID id = DrawableComponentScene::makeDrawable();
 
     std::shared_ptr<DrawableObj> drawable(
-        &drawables.emplace(ui32{id}, DrawableObj{ id, components, info.geo, info.mat }),
+        new DrawableObj{ id, *this, info.geo, info.mat },
         [this](DrawableObj* drawable) {
-            drawables.erase(ui32{drawable->id});
-            components.destroyDrawable(drawable->id);
+            destroyDrawable(drawable->id);
+            delete drawable;
         }
     );
 
@@ -33,12 +27,12 @@ auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
     {
         auto geo = info.geo.getDeviceDataHandle();
 
-        components.add<RasterComponent>(id, RasterComponentCreateInfo{
+        add<RasterComponent>(id, RasterComponentCreateInfo{
             .geo=info.geo,
             .mat=info.mat,
             .modelMatrixId=drawable->getGlobalTransformID(),
             .anim=geo.hasRig()
-                ? components.add<AnimationComponent>(id, geo.getRig()).engine.getState()
+                ? add<AnimationComponent>(id, geo.getRig()).engine.getState()
                 : AnimationEngine::ID{}
         });
     }
@@ -46,7 +40,7 @@ auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
     // Create a ray tracing component
     if (info.rayTraced)
     {
-        components.add<RayComponent>(
+        add<RayComponent>(
             id,
             RayComponentCreateInfo{ info.geo, info.mat, drawable->getGlobalTransformID() }
         );

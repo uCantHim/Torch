@@ -37,7 +37,7 @@ void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
         .animated=comp.drawInfo->geo.hasRig(),
         .transparent=comp.drawInfo->mat.isTransparent(),
     };
-    RasterSceneBase& base = storage.getSceneBase();
+    RasterSceneBase& base = storage.getRasterModule();
 
     // Create a storage for the draw functions with automatic lifetime
     using SubPasses = GBufferPass::SubPasses;

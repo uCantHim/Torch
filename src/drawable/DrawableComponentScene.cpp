@@ -39,16 +39,22 @@ UniqueDrawableID::~UniqueDrawableID() noexcept
     }
 }
 
-DrawableComponentScene::DrawableComponentScene(RasterSceneBase& base)
-    :
-    base(&base)
+
+
+DrawableComponentScene::DrawableComponentScene()
 {
+    registerModule(std::make_unique<RasterSceneModule>());
+    registerModule(std::make_unique<RaySceneModule>());
 }
 
-auto DrawableComponentScene::getSceneBase() -> RasterSceneBase&
+auto DrawableComponentScene::getRasterModule() -> RasterSceneModule&
 {
-    assert(base != nullptr);
-    return *base;
+    return getModule<RasterSceneModule>();
+}
+
+auto DrawableComponentScene::getRayModule() -> RaySceneModule&
+{
+    return getModule<RaySceneModule>();
 }
 
 void DrawableComponentScene::updateAnimations(const float timeDelta)
@@ -62,7 +68,7 @@ void DrawableComponentScene::updateAnimations(const float timeDelta)
 void DrawableComponentScene::updateRayInstances()
 {
     for (const auto& ray : get<RayComponent>()) {
-        setInstanceTransform(ray.instanceDataIndex, ray.modelMatrix.get());
+        getRayModule().setInstanceTransform(ray.instanceDataIndex, ray.modelMatrix.get());
     }
 }
 

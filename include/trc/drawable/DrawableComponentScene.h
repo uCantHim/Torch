@@ -7,10 +7,10 @@
 
 #include "trc/RasterSceneModule.h"
 #include "trc/RaySceneModule.h"
+#include "trc/core/SceneBase.h"
 
 namespace trc
 {
-    class RasterSceneBase;
     class DrawableComponentScene;
 
     namespace drawcomp {
@@ -44,12 +44,13 @@ namespace trc
      */
     class DrawableComponentScene
         : public componentlib::ComponentStorage<DrawableComponentScene, DrawableID>
-        , public RaySceneModule
+        , public SceneBase
     {
     public:
-        DrawableComponentScene(RasterSceneBase& base);
+        DrawableComponentScene();
 
-        auto getSceneBase() -> RasterSceneBase&;
+        auto getRasterModule() -> RasterSceneModule&;
+        auto getRayModule() -> RaySceneModule&;
 
         void updateAnimations(float timeDelta);
 
@@ -79,7 +80,5 @@ namespace trc
     private:
         template<componentlib::ComponentType T>
         friend struct componentlib::ComponentTraits;
-
-        RasterSceneBase* base;
     };
 } // namespace trc

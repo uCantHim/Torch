@@ -31,8 +31,8 @@ void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
     // This data is referenced by geometry instances via the instanceCustomIndex
     // property and defines auxiliary information that Torch needs to draw
     // ray traced objects.
-    ray.instanceDataIndex = storage.allocateRayInstance(
-        trc::DrawableComponentScene::RayInstanceData{
+    ray.instanceDataIndex = storage.getRayModule().allocateRayInstance(
+        trc::RaySceneModule::RayInstanceData{
             .geometryIndex=ray.geo.getDeviceIndex(),
             .materialIndex=ray.materialIndex,
         },
@@ -48,5 +48,5 @@ void componentlib::ComponentTraits<trc::RayComponent>::onDelete(
     trc::DrawableID /*id*/,
     trc::RayComponent ray)
 {
-    storage.freeRayInstance(ray.instanceDataIndex);
+    storage.getRayModule().freeRayInstance(ray.instanceDataIndex);
 }

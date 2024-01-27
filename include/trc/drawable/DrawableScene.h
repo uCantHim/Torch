@@ -1,7 +1,5 @@
 #pragma once
 
-#include <trc_util/data/SafeVector.h>
-
 #include "trc/Types.h"
 #include "trc/drawable/Drawable.h"
 #include "trc/drawable/DrawableComponentScene.h"
@@ -32,32 +30,9 @@ namespace trc
         bool rayTraced{ false };
     };
 
-    class DrawableScene
+    class DrawableScene : public DrawableComponentScene
     {
     public:
-        explicit DrawableScene(RasterSceneBase& base);
-
-        void updateAnimations(float timeDelta) {
-            components.updateAnimations(timeDelta);
-        }
-
-        void updateRayData() {
-            components.updateRayInstances();
-        }
-
         auto makeDrawable(const DrawableCreateInfo& createInfo) -> Drawable;
-
-        auto getComponentInternals() -> DrawableComponentScene& {
-            return components;
-        }
-
-        auto getComponentInternals() const -> const DrawableComponentScene& {
-            return components;
-        }
-
-    private:
-        DrawableComponentScene components;
-
-        util::SafeVector<DrawableObj> drawables;
     };
 } // namespace trc

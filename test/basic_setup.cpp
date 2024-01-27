@@ -1,4 +1,9 @@
+#include <trc/GBufferPass.h>
 #include <trc/Torch.h>
+#include <trc/TorchRenderStages.h>
+#include <trc/core/SceneBase.h>
+#include <trc/drawable/DefaultDrawable.h>
+#include <trc/drawable/DrawableScene.h>
 
 int main()
 {
@@ -11,7 +16,7 @@ int main()
     // The things required to render something are
     //   1. A scene
     //   2. A camera
-    trc::RasterSceneModule scene;
+    trc::DrawableScene scene;
     trc::Camera camera;
     camera.makeOrthogonal(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
 
