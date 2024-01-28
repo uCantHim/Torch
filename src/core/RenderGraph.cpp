@@ -1,5 +1,7 @@
 #include "trc/core/RenderGraph.h"
 
+#include <stdexcept>
+
 
 
 void trc::RenderGraph::first(RenderStage::ID newStage)
@@ -77,6 +79,7 @@ auto trc::RenderGraph::findStage(RenderStage::ID stage) const -> std::optional<S
 
 void trc::RenderGraph::insert(StageIterator next, RenderStage::ID newStage)
 {
-    assert(!contains(newStage));
-    stages.insert(next, StageInfo{ .stage=newStage, .waitDependencies={} });
+    if (!contains(newStage)) {
+        stages.insert(next, StageInfo{ .stage=newStage, .waitDependencies={} });
+    }
 }

@@ -1,9 +1,7 @@
 #pragma once
 
-#include <vector>
-#include <unordered_map>
 #include <optional>
-#include <functional>
+#include <vector>
 
 #include "trc/Types.h"
 #include "trc/core/RenderStage.h"
