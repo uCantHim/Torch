@@ -1,5 +1,6 @@
+#include <trc/AssetDescriptor.h>
 #include <trc/Torch.h>
-#include <trc/TorchImplementation.h>
+#include <trc/TorchRenderStages.h>
 #include <trc/util/NullDataStorage.h>
 using namespace trc::basic_types;
 
@@ -14,7 +15,8 @@ void run()
 
     trc::AssetManager assets(std::make_shared<trc::NullDataStorage>());
 
-    auto assetDescriptor = trc::makeDefaultAssetModules(
+    auto& device = instance.getDevice();
+    auto assetDescriptor = trc::makeAssetDescriptor(
         instance,
         assets.getDeviceRegistry(),
         trc::AssetDescriptorCreateInfo{
@@ -24,6 +26,11 @@ void run()
             .maxFonts = 50,
         }
     );
+    auto shadowPool = std::make_shared<trc::ShadowPool>(
+        device,
+        renderTarget.getFrameClock(),
+        trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
+    );
 
     // Create one render configuration for each viewport.
     // This also means that it would be possible to use different rendering
@@ -31,26 +38,29 @@ void run()
     // use the standard deferred rendering algorithm while the other uses
     // ray tracing.
     trc::TorchRenderConfigCreateInfo info{
-        .target=renderTarget,
-        .assetRegistry=&assets.getDeviceRegistry(),
+        .assetRegistry=assets.getDeviceRegistry(),
         .assetDescriptor=assetDescriptor,
+        .shadowDescriptor=shadowPool,
     };
-    trc::TorchRenderConfig config1(instance, info);
-    trc::TorchRenderConfig config2(instance, info);
-    config1.setViewport({ 100, 200 }, { 400, 400 });
-    config2.setViewport({ 400, 550 }, { 300, 150 });
-    config1.setClearColor(vec4(1, 1, 0, 1));
-    config2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
+
+    auto config = trc::makeTorchRenderConfig(instance, window.getFrameCount() * 2, info);
+
+    auto vp1 = config.makeViewportConfig(device, renderTarget, { 100, 200 }, { 400, 400 });
+    auto vp2 = config.makeViewportConfig(device, renderTarget, { 400, 550 }, { 300, 150 });
+    //vp1.setClearColor(vec4(1, 1, 0, 1));
+    //vp2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
 
     // Recreate render target when swapchain is recreated
     window.addCallbackOnResize([&](trc::Swapchain& swapchain) {
         renderTarget = trc::makeRenderTarget(swapchain);
-        config1.setRenderTarget(renderTarget);
-        config2.setRenderTarget(renderTarget);
+        vp1 = { window };  // Release resources first
+        vp2 = { window };  // Release resources first
+        vp1 = config.makeViewportConfig(device, renderTarget, { 100, 200 }, { 400, 400 });
+        vp2 = config.makeViewportConfig(device, renderTarget, { 400, 550 }, { 300, 150 });
     });
 
     // Render the same scene to both viewports, but from different cameras
-    trc::RasterSceneModule scene;
+    trc::Scene scene;
     trc::Camera camera1;
     trc::Camera camera2;
 
@@ -63,23 +73,22 @@ void run()
     scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create some geometries to render
-    auto planeGeo = assets.create<trc::Geometry>(trc::makePlaneGeo());
-    auto cubeGeo = assets.create<trc::Geometry>(trc::makeCubeGeo());
-    auto greenMat = assets.create<trc::Material>(trc::makeMaterial({ .color=vec4(0, 1, 0, 1) }));
-    auto redMat = assets.create<trc::Material>(trc::makeMaterial({ .color=vec4(1, 0.3f, 0, 1) }));
+    auto planeGeo = assets.create(trc::makePlaneGeo());
+    auto cubeGeo = assets.create(trc::makeCubeGeo());
+    auto greenMat = assets.create(trc::makeMaterial({ .color=vec4(0, 1, 0, 1) }));
+    auto redMat = assets.create(trc::makeMaterial({ .color=vec4(1, 0.3f, 0, 1) }));
 
     // Create an inclined plane and a rotating cube
     trc::Drawable plane = scene.makeDrawable({ planeGeo, greenMat });
-    plane->rotateX(glm::radians(45.0f)).rotateY(glm::radians(-45.0f)).translate(0.5f, -0.5f, -1.5f);
+    plane->rotateX(glm::radians(45.0f))
+        .rotateY(glm::radians(-45.0f))
+        .translate(0.5f, -0.5f, -1.5f);
 
     trc::Drawable cube = scene.makeDrawable({ cubeGeo, redMat });
     cube->scale(0.7f);
 
-    // Create two draw configurations because we draw two viewports
-    trc::DrawConfig drawConfigs[]{
-        { scene, config1 },
-        { scene, config2 },
-    };
+    // Create a renderer that submits a frame to a render target
+    trc::SwapchainRenderer renderer{ device, window };
 
     trc::Timer timer;
     while (window.isOpen() && window.getKeyState(trc::Key::escape) != trc::InputAction::press)
@@ -88,14 +97,22 @@ void run()
 
         cube->rotateY(timer.reset() * 0.001f);
 
-        config1.perFrameUpdate(camera1, scene);  // Viewport with perspective camera
-        config2.perFrameUpdate(camera2, scene);  // Viewport with orthogonal camera
+        // Draw viewports
+        auto frame = std::make_unique<trc::Frame>();
 
-        // Specify two draws
-        window.drawFrame({ 2, drawConfigs });
+        auto& viewport1 = **vp1;
+        auto& viewport2 = **vp2;
+        viewport1.update(device, scene, camera1);
+        viewport2.update(device, scene, camera2);
+
+        frame->addViewport(viewport1, scene);
+        frame->addViewport(viewport2, scene);
+
+        // Dispatch the frame for rendering
+        renderer.renderFrame(std::move(frame));
     }
 
-    window.getRenderer().waitForAllFrames();
+    renderer.waitForAllFrames();
 }
 
 int main()
