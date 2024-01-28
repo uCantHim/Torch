@@ -20,7 +20,7 @@ namespace trc
                        ResourceStorage resourceStorage,
                        std::vector<u_ptr<DrawConfig>> pluginConfigs);
 
-        void update(SceneBase& scene, const Camera& camera);
+        void update(const Device& device, SceneBase& scene, const Camera& camera);
         void createTasks(SceneBase& scene, TaskQueue& taskQueue);
 
         auto getViewport() const -> Viewport;
@@ -64,7 +64,7 @@ namespace trc
          * @brief Instantiate the render pipeline for a viewport
          */
         auto makeViewportConfig(const Device& device, Viewport viewport)
-            -> ViewportConfig;
+            -> u_ptr<ViewportConfig>;
 
         /**
          * @brief Instantiate the render pipeline for a viewport
@@ -73,7 +73,7 @@ namespace trc
                                 RenderTarget newTarget,
                                 ivec2 renderAreaOffset,
                                 uvec2 renderArea)
-            -> FrameSpecific<ViewportConfig>;
+            -> FrameSpecific<u_ptr<ViewportConfig>>;
 
         auto getRenderGraph() -> RenderGraph&;
         auto getRenderGraph() const -> const RenderGraph&;

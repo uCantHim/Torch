@@ -1,5 +1,6 @@
 #include "trc/Torch.h"
 
+#include "trc/AssetPlugin.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/RasterPlugin.h"
 #include "trc/RasterTasks.h"
@@ -55,6 +56,29 @@ auto trc::initFull(
     return std::make_unique<TorchStack>(torchConfig, instanceInfo, windowInfo);
 }
 
+auto trc::makeTorchRenderConfig(
+    const Instance& instance,
+    ui32 maxViewports,
+    const TorchRenderConfigCreateInfo& createInfo) -> RenderConfig
+{
+    const Device& device{ instance.getDevice() };
+
+    RenderConfig renderConfig{ instance };
+    renderConfig.registerPlugin(std::make_shared<AssetPlugin>(
+        createInfo.assetRegistry,
+        createInfo.assetDescriptor
+    ));
+    renderConfig.registerPlugin(std::make_shared<RasterPlugin>(
+        device,
+        maxViewports,
+        trc::RasterPluginCreateInfo{
+            .shadowDescriptor            = createInfo.shadowDescriptor,
+            .maxTransparentFragsPerPixel = 3,
+        }
+    ));
+
+    return renderConfig;
+}
 
 
 trc::TorchStack::TorchStack(
@@ -74,7 +98,6 @@ trc::TorchStack::TorchStack(
         fs::create_directories(torchConfig.assetStorageDir);
         return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
     }()),
-    renderConfig(instance),
     assetDescriptor(trc::makeAssetDescriptor(
         instance,
         assetManager.getDeviceRegistry(),
@@ -88,41 +111,33 @@ trc::TorchStack::TorchStack(
         instance.getDevice(), window,
         ShadowPoolCreateInfo{ .maxShadowMaps=100 }
     )),
-    frameSubmitter(instance.getDevice(), window)
-{
-    renderConfig.registerPlugin(std::make_shared<trc::RasterPlugin>(
-        instance.getDevice(),
+    renderConfig(makeTorchRenderConfig(
+        instance,
         window.getFrameCount(),
-        trc::RasterPluginCreateInfo{
-            .assetDescriptor             = assetDescriptor,
-            .shadowDescriptor            = shadowPool,
-            .maxTransparentFragsPerPixel = 3,
-            .enableRayTracing            = false,
-            .mousePosGetter              = [&]{ return window.getMousePosition(); },
+        TorchRenderConfigCreateInfo{
+            .assetRegistry=assetManager.getDeviceRegistry(),
+            .assetDescriptor=assetDescriptor,
+            .shadowDescriptor=shadowPool
         }
-    ));
-
-    viewports = std::make_unique<FrameSpecific<ViewportConfig>>(
-        renderConfig.makeViewportConfig(
-            instance.getDevice(),
-            makeRenderTarget(window),
-            { 0, 0 },
-            window.getSize()
-        )
-    );
-
+    )),
+    frameSubmitter(instance.getDevice(), window),
+    viewports(renderConfig.makeViewportConfig(
+        instance.getDevice(),
+        makeRenderTarget(window),
+        { 0, 0 },
+        window.getSize()
+    ))
+{
     window.addCallbackAfterSwapchainRecreate([this](Swapchain& swapchain) {
         // Free viewport resources first
-        viewports.reset();
+        viewports = { window };
 
         // Create new viewports
-        viewports = std::make_unique<FrameSpecific<ViewportConfig>>(
-            renderConfig.makeViewportConfig(
-                instance.getDevice(),
-                makeRenderTarget(swapchain),
-                { 0, 0 },
-                window.getSize()
-            )
+        viewports = renderConfig.makeViewportConfig(
+            instance.getDevice(),
+            makeRenderTarget(swapchain),
+            { 0, 0 },
+            window.getSize()
         );
     });
 }
@@ -164,25 +179,12 @@ auto trc::TorchStack::getRenderConfig() -> RenderConfig&
 
 void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
 {
-    // Update host resources
-    assetDescriptor->update(instance.getDevice());
-
     // Create a frame and draw to it
     auto frame = std::make_unique<Frame>();
 
     auto& currentViewport = **viewports;
-    currentViewport.update(scene, camera);
-
-    auto& drawGroup = frame->addViewport(currentViewport, scene);
-    currentViewport.createTasks(scene, drawGroup.taskQueue);
-
-    // Enqueue an update to the asset registry's device data
-    drawGroup.taskQueue.spawnTask(
-        resourceUpdateStage,
-        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
-            assetManager.getDeviceRegistry().updateDeviceResources(cmdBuf, *env.frame);
-        })
-    );
+    currentViewport.update(instance.getDevice(), scene, camera);
+    frame->addViewport(currentViewport, scene);
 
     frameSubmitter.renderFrame(std::move(frame));
 }

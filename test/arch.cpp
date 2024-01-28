@@ -41,11 +41,8 @@ int main()
         instance.getDevice(),
         window.getFrameCount(),
         trc::RasterPluginCreateInfo{
-            .assetDescriptor             = assetDescriptor,
             .shadowDescriptor            = shadowDescriptor,
             .maxTransparentFragsPerPixel = 3,
-            .enableRayTracing            = false,
-            .mousePosGetter              = [&]{ return window.getMousePosition(); },
         }
     };
     renderConfig.registerPlugin(std::make_shared<trc::RasterPlugin>(std::move(rasterization)));
@@ -62,8 +59,8 @@ int main()
 
     // Draw
     auto frame = std::make_unique<trc::Frame>();
-    auto& viewport = frame->addViewport(*viewports, scene);
-    viewports->update(scene, camera);
+    auto& viewport = frame->addViewport(**viewports, scene);
+    viewports.get()->update(instance.getDevice(), scene, camera);
     viewport.taskQueue.spawnTask(
         trc::gBufferRenderStage,
         trc::makeTask([&window](vk::CommandBuffer cmdBuf, trc::TaskEnvironment& env) {

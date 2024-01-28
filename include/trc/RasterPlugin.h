@@ -3,7 +3,6 @@
 #include "trc/AssetDescriptor.h"
 #include "trc/FinalLighting.h"
 #include "trc/GBuffer.h"
-#include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
 #include "trc/RenderDataDescriptor.h"
 #include "trc/SceneDescriptor.h"
@@ -19,25 +18,15 @@ namespace trc
 
     struct RasterPluginCreateInfo
     {
-        // The instance that makes an AssetRegistry's data available to the
-        // device. Create this descriptor, which contains information about
-        // Torch's default assets, via `makeDefaultAssetModules`. This function
-        // registers all asset modules that are necessary to use Torch's default
-        // assets at an asset registry and builds a descriptor for their data.
-        //
-        // The same asset descriptor can be used for multiple render
-        // configurations.
-        s_ptr<AssetDescriptor> assetDescriptor;
-
         s_ptr<ShadowPool> shadowDescriptor;
 
+        /**
+         * This does not actually limit the possible number of transparent
+         * fragments that are blended together per pixel, but is a heuristic
+         * from which an upper bound on the number of transparent fragments on
+         * the entire viewport is calculated.
+         */
         ui32 maxTransparentFragsPerPixel{ 3 };
-        bool enableRayTracing{ false };
-
-        // A function that returns the current mouse position. Used to read the
-        // depth value at the current mouse position for use in
-        // `TorchRenderConfig::getMouseWorldPos`.
-        std::function<vec2()> mousePosGetter{ []{ return vec2(0.0f); } };
     };
 
     class RasterPlugin : public RenderPlugin
@@ -47,11 +36,6 @@ namespace trc
          * Camera matrices, resolution, mouse position
          */
         static constexpr auto GLOBAL_DATA_DESCRIPTOR{ "global_data" };
-
-        /**
-         * All of the asset registry's data
-         */
-        static constexpr auto ASSET_DESCRIPTOR{ "asset_registry" };
 
         /**
          * Lights
@@ -91,7 +75,7 @@ namespace trc
 
             void registerResources(ResourceStorage& resources) override;
 
-            void update(SceneBase& scene, const Camera& camera) override;
+            void update(const Device& device, SceneBase& scene, const Camera& camera) override;
             void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
 
         private:
@@ -99,7 +83,6 @@ namespace trc
 
             GBuffer gBuffer;
             s_ptr<GBufferPass> gBufferPass;
-            s_ptr<GBufferDepthReader> depthReaderPass;
             u_ptr<FinalLightingDispatcher> finalLighting;
 
             vk::UniqueDescriptorSet gBufferDescSet;
@@ -114,7 +97,6 @@ namespace trc
         vk::UniqueRenderPass compatibleGBufferRenderPass;
         vk::UniqueRenderPass compatibleShadowRenderPass;
 
-        s_ptr<AssetDescriptor> assetDescriptor;
         GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
         s_ptr<SceneDescriptor> sceneDescriptor;

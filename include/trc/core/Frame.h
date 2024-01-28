@@ -30,6 +30,8 @@ namespace trc
         ~Frame() noexcept = default;
 
         /**
+         * Adds the viewport config's tasks to the draw group.
+         *
          * @param RenderConfig& config The resources backing the viewport.
          * @param SceneBase&    scene  The scene to be drawn to the viewport.
          */
@@ -40,6 +42,6 @@ namespace trc
         }
 
     private:
-        std::vector<DrawGroup> drawGroups;
+        std::vector<u_ptr<DrawGroup>> drawGroups;
     };
 } // namespace trc

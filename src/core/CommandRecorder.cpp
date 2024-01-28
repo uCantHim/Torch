@@ -25,7 +25,7 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
     const size_t numThreads = [&]{
         size_t res{ 0 };
         for (const auto& vp : frame.getViewports()) {
-            for (const auto& stage : vp.taskQueue.tasks) {
+            for (const auto& stage : vp->taskQueue.tasks) {
                 res += stage.size();
             }
         }
@@ -69,7 +69,7 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
 
     for (ui32 threadIndex = 0; auto& vp : frame.getViewports())
     {
-        for (auto [stage, tasks] : vp.taskQueue.tasks.items())
+        for (auto [stage, tasks] : vp->taskQueue.tasks.items())
         {
             if (tasks.empty()) {
                 continue;
@@ -84,7 +84,7 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
                     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
                     for (auto& task : tasks)
                     {
-                        TaskEnvironment env{ frame, stage, vp.resources, vp.scene };
+                        TaskEnvironment env{ frame, stage, vp->resources, vp->scene };
                         task->record(cmdBuf, env);
                     }
                     cmdBuf.end();

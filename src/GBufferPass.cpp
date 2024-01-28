@@ -30,6 +30,7 @@ trc::GBufferPass::GBufferPass(
         vk::ClearDepthStencilValue(1.0f, 0.0f),
     })
 {
+    setClearColor({ 0.2f, 0.5f, 1.0f, 1.0f });
 }
 
 void trc::GBufferPass::begin(
@@ -129,7 +130,7 @@ auto trc::GBufferPass::makeVkRenderPass(const Device& device)
             vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
-            vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
     };
 

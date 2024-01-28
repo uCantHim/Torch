@@ -90,6 +90,12 @@ namespace trc
 
         AssetDescriptor(const Device& device, const AssetDescriptorCreateInfo& info);
 
+        /**
+         * @brief Apply queued changes to bindings in the descriptor
+         *
+         * For example: Add newly created textures to a binding, remove freed
+         * resources, etc.
+         */
         void update(const Device& device);
 
         /**

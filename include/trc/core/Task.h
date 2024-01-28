@@ -6,6 +6,7 @@
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
+#include "trc/base/Device.h"
 #include "trc/core/RenderStage.h"
 
 namespace trc

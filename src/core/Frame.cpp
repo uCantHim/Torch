@@ -9,7 +9,12 @@ namespace trc
 
 auto Frame::addViewport(ViewportConfig& config, SceneBase& scene) -> DrawGroup&
 {
-    return drawGroups.emplace_back(&config.getResources(), &scene, TaskQueue{});
+    auto& group = *drawGroups.emplace_back(
+        std::make_unique<DrawGroup>(&config.getResources(), &scene, TaskQueue{})
+    );
+    config.createTasks(scene, group.taskQueue);
+
+    return group;
 }
 
 } // namespace trc

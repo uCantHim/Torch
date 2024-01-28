@@ -23,7 +23,6 @@ RasterPlugin::RasterPlugin(
     ui32 maxViewports,
     const RasterPluginCreateInfo& createInfo)
     :
-    assetDescriptor(createInfo.assetDescriptor),
     gBufferDescriptor(device, maxViewports),
     globalDataDescriptor(device, maxViewports),
     sceneDescriptor(std::make_shared<SceneDescriptor>(device)),
@@ -39,14 +38,11 @@ void RasterPlugin::registerRenderStages(RenderGraph& graph)
     graph.first(resourceUpdateStage);
     graph.after(resourceUpdateStage, shadowRenderStage);
     graph.after(shadowRenderStage, gBufferRenderStage);
-    graph.after(gBufferRenderStage, mouseDepthReadStage);
-    graph.after(mouseDepthReadStage, finalLightingRenderStage);
+    graph.after(gBufferRenderStage, finalLightingRenderStage);
 }
 
 void RasterPlugin::defineResources(ResourceConfig& config)
 {
-    config.defineDescriptor(DescriptorName{ ASSET_DESCRIPTOR },
-                            assetDescriptor->getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR },
                             globalDataDescriptor.getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },
@@ -97,11 +93,6 @@ RasterPlugin::RasterDrawConfig::RasterDrawConfig(
     parent(&parent),
     gBuffer(device, { .size=renderTarget.size, .maxTransparentFragsPerPixel=2 }),
     gBufferPass(std::make_shared<GBufferPass>(device, gBuffer)),
-    depthReaderPass(std::make_shared<GBufferDepthReader>(
-        device,
-        []{ return vec2{}; },
-        gBuffer
-    )),
     finalLighting(parent.finalLighting.makeDrawConfig(device, renderTarget)),
     gBufferDescSet(parent.gBufferDescriptor.makeDescriptorSet(device, gBuffer)),
     globalDataDescriptor(std::make_shared<GlobalRenderDataDescriptor::DescriptorSet>(
@@ -112,8 +103,6 @@ RasterPlugin::RasterDrawConfig::RasterDrawConfig(
 
 void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resources)
 {
-    resources.provideDescriptor(DescriptorName{ ASSET_DESCRIPTOR },
-                                parent->assetDescriptor);
     resources.provideDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR },
                                 globalDataDescriptor);
     resources.provideDescriptor(DescriptorName{ G_BUFFER_DESCRIPTOR },
@@ -124,7 +113,10 @@ void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resource
                                 parent->shadowDescriptor);
 }
 
-void RasterPlugin::RasterDrawConfig::update(SceneBase& scene, const Camera& camera)
+void RasterPlugin::RasterDrawConfig::update(
+    const Device& /*device*/,
+    SceneBase& scene,
+    const Camera& camera)
 {
     parent->shadowDescriptor->update();
     parent->sceneDescriptor->update(scene);
@@ -142,10 +134,6 @@ void RasterPlugin::RasterDrawConfig::createTasks(SceneBase& scene, TaskQueue& ta
     // G-buffer draw task
     taskQueue.spawnTask(gBufferRenderStage,
                         std::make_unique<RenderPassDrawTask>(gBufferPass));
-
-    // Depth reader task
-    taskQueue.spawnTask(mouseDepthReadStage,
-                        std::make_unique<RenderPassDrawTask>(depthReaderPass));
 
     // Final lighting compute task
     finalLighting->createTasks(taskQueue);

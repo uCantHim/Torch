@@ -39,7 +39,7 @@ namespace trc
 
         // --- Drawing ---
 
-        virtual void update(SceneBase& scene, const Camera& camera) = 0;
+        virtual void update(const Device& device, SceneBase& scene, const Camera& camera) = 0;
         virtual void createTasks(SceneBase& scene, TaskQueue& taskQueue) = 0;
     };
 

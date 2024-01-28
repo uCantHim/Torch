@@ -1,6 +1,7 @@
 #include "trc/material/TorchMaterialSettings.h"
 
 #include "trc/AssetDescriptor.h"
+#include "trc/AssetPlugin.h"
 #include "trc/GBuffer.h"
 #include "trc/RasterPlugin.h"
 #include "trc/base/Logging.h"
@@ -64,7 +65,7 @@ void addLightingRequirements(ShaderCapabilityConfig& config)
 void addTextureSampleRequirements(ShaderCapabilityConfig& config)
 {
     auto textureResource = config.addResource(ShaderCapabilityConfig::DescriptorBinding{
-        .setName=RasterPlugin::ASSET_DESCRIPTOR,
+        .setName=AssetPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eTextureSamplers),
         .descriptorType="uniform sampler2D",
         .descriptorName="textures",
@@ -205,7 +206,7 @@ auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
     // payload data.
 
     auto drawableDataBuf = config.addResource(Descriptor{
-        .setName=RasterPlugin::ASSET_DESCRIPTOR,
+        .setName=AssetPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=1,
         .descriptorType="restrict readonly buffer",
         .descriptorName="DrawableDataBuffer",
@@ -245,7 +246,7 @@ auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
     addLightingRequirements(config);
 
     auto indexBufs = config.addResource(Descriptor{
-        .setName=RasterPlugin::ASSET_DESCRIPTOR,
+        .setName=AssetPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eGeometryIndexBuffers),
         .descriptorType="restrict readonly buffer",
         .descriptorName="GeometryIndexBuffers",
@@ -255,7 +256,7 @@ auto makeRayHitCapabilityConfig() -> ShaderCapabilityConfig
         .descriptorContent="uint indices[];"
     });
     auto vertexBufs = config.addResource(Descriptor{
-        .setName=RasterPlugin::ASSET_DESCRIPTOR,
+        .setName=AssetPlugin::ASSET_DESCRIPTOR,
         .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eGeometryVertexBuffers),
         .descriptorType="restrict readonly buffer",
         .descriptorName="GeometryVertexBuffers",
@@ -319,7 +320,7 @@ auto makeShaderDescriptorConfig() -> ShaderDescriptorConfig
     return ShaderDescriptorConfig{
         .descriptorInfos{
             { RasterPlugin::GLOBAL_DATA_DESCRIPTOR, { 0, true } },
-            { RasterPlugin::ASSET_DESCRIPTOR,       { 1, true } },
+            { AssetPlugin::ASSET_DESCRIPTOR,       { 1, true } },
             { RasterPlugin::SCENE_DESCRIPTOR,       { 2, true } },
             { RasterPlugin::G_BUFFER_DESCRIPTOR,    { 3, true } },
             { RasterPlugin::SHADOW_DESCRIPTOR,      { 4, true } },

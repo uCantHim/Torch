@@ -8,7 +8,6 @@ namespace trc
 
     inline RenderStage gBufferRenderStage = RenderStage::make();
     inline RenderStage shadowRenderStage = RenderStage::make();
-    inline RenderStage mouseDepthReadStage = RenderStage::make();
     inline RenderStage finalLightingRenderStage = RenderStage::make();
 
     inline RenderStage rayTracingRenderStage = RenderStage::make();

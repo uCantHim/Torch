@@ -154,14 +154,14 @@ int main()
     camera.lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
 
     trc::SwapchainRenderer frameSubmitter{ device, window };
-    trc::ViewportConfig viewportConfig = renderConfig.makeViewportConfig(device, trc::Viewport{});
+    auto viewportConfig = renderConfig.makeViewportConfig(device, trc::Viewport{});
 
     while (!window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
 
         auto frame = std::make_unique<trc::Frame>();
-        auto& viewport = frame->addViewport(viewportConfig, scene);
+        auto& viewport = frame->addViewport(*viewportConfig, scene);
 
         viewport.taskQueue.spawnTask(
             kRayStage,

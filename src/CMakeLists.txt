@@ -7,6 +7,7 @@ target_sources(
     PRIVATE
         AnimationEngine.cpp
         AssetDescriptor.cpp
+        AssetPlugin.cpp
         Camera.cpp
         DescriptorSetUtils.cpp
         FinalLighting.cpp

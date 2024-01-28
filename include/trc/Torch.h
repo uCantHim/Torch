@@ -15,6 +15,7 @@
 #include "trc/core/RenderTarget.h"
 #include "trc/core/SwapchainRenderer.h"
 #include "trc/core/Window.h"
+#include "trc/drawable/DrawableScene.h"
 
 namespace trc
 {
@@ -51,6 +52,39 @@ namespace trc
      * function.
      */
     void terminate();
+
+    using Scene = DrawableScene;
+
+    struct TorchRenderConfigCreateInfo
+    {
+        // The asset registry from which the render config shall source asset
+        // data. `assetDescriptor` must point to this asset registry.
+        //
+        // The created render config will apply updates to this asset registry's
+        // device data during rendering.
+        AssetRegistry& assetRegistry;
+
+        // The instance that makes an AssetRegistry's data available to the
+        // device. Create this descriptor, which contains information about
+        // Torch's default assets, via `makeDefaultAssetModules`. This function
+        // registers all asset modules that are necessary to use Torch's default
+        // assets at an asset registry and builds a descriptor for their data.
+        //
+        // The same asset descriptor can be used for multiple render
+        // configurations.
+        //
+        // The create render config will apply updates to this descriptor during
+        // rendering.
+        s_ptr<AssetDescriptor> assetDescriptor;
+
+        // A pool from which shadow maps are allocated.
+        s_ptr<ShadowPool> shadowDescriptor;
+    };
+
+    auto makeTorchRenderConfig(const Instance& instance,
+                               ui32 maxViewports,
+                               const TorchRenderConfigCreateInfo& createInfo)
+        -> RenderConfig;
 
     /**
      * @brief Configuration for the `TorchStack` created by `initFull`
@@ -101,13 +135,13 @@ namespace trc
         Instance instance;
         Window window;
         AssetManager assetManager;
-        RenderConfig renderConfig;
 
         s_ptr<AssetDescriptor> assetDescriptor;
         s_ptr<ShadowPool> shadowPool;
 
+        RenderConfig renderConfig;
         SwapchainRenderer frameSubmitter;
-        u_ptr<FrameSpecific<ViewportConfig>> viewports;
+        FrameSpecific<u_ptr<ViewportConfig>> viewports;
     };
 
     /**

@@ -15,10 +15,10 @@ trc::ViewportConfig::ViewportConfig(
 {
 }
 
-void trc::ViewportConfig::update(SceneBase& scene, const Camera& camera)
+void trc::ViewportConfig::update(const Device& device, SceneBase& scene, const Camera& camera)
 {
     for (auto& plugin : pluginConfigs) {
-        plugin->update(scene, camera);
+        plugin->update(device, scene, camera);
     }
 }
 
@@ -75,7 +75,7 @@ auto trc::RenderConfig::makeScene() -> SceneBase
 auto trc::RenderConfig::makeViewportConfig(
     const Device& device,
     Viewport viewport)
-    -> ViewportConfig
+    -> u_ptr<ViewportConfig>
 {
     ResourceStorage resources{ &resourceConfig, pipelineStorage };
 
@@ -88,7 +88,7 @@ auto trc::RenderConfig::makeViewportConfig(
         configs.emplace_back(std::move(conf));
     }
 
-    return ViewportConfig{ viewport, std::move(resources), std::move(configs) };
+    return std::make_unique<ViewportConfig>(viewport, std::move(resources), std::move(configs));
 }
 
 auto trc::RenderConfig::makeViewportConfig(
@@ -96,9 +96,9 @@ auto trc::RenderConfig::makeViewportConfig(
     RenderTarget renderTarget,
     ivec2 renderAreaOffset,
     uvec2 renderArea)
-    -> FrameSpecific<ViewportConfig>
+    -> FrameSpecific<u_ptr<ViewportConfig>>
 {
-    return FrameSpecific<ViewportConfig>{
+    return {
         renderTarget.getFrameClock(),
         [&](ui32 image) {
             Viewport viewport{

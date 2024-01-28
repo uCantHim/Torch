@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "trc/RayShaders.h"
+#include "trc/AssetPlugin.h"
 #include "trc/RasterPlugin.h"
 #include "trc/base/Barriers.h"
 #include "trc/core/PipelineLayoutBuilder.h"
@@ -37,7 +38,7 @@ trc::RayTracingPass::RayTracingPass(
         .addStaticDescriptor(descriptorPool.getDescriptorSetLayout(),
                              descriptorProviders.at(rt::RayBuffer::Image::eReflections))
         .addDescriptor(DescriptorName{RasterPlugin::G_BUFFER_DESCRIPTOR}, true)
-        .addDescriptor(DescriptorName{RasterPlugin::ASSET_DESCRIPTOR}, true)
+        .addDescriptor(DescriptorName{AssetPlugin::ASSET_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{RasterPlugin::SCENE_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{RasterPlugin::SHADOW_DESCRIPTOR}, true)
         .addDescriptor(DescriptorName{RasterPlugin::GLOBAL_DATA_DESCRIPTOR}, true)
