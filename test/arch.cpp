@@ -54,7 +54,7 @@ int main()
         { 0, 0 }, window.getSize()
     );
 
-    trc::SceneBase scene = renderConfig.makeScene();
+    trc::Scene scene;
     trc::Camera camera;
 
     // Draw

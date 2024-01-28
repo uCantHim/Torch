@@ -68,11 +68,6 @@ void RasterPlugin::defineResources(ResourceConfig& config)
     );
 }
 
-void RasterPlugin::registerSceneModules(SceneBase& scene)
-{
-    scene.registerModule(std::make_unique<RasterSceneModule>());
-}
-
 auto RasterPlugin::createDrawConfig(const Device& device, Viewport renderTarget)
     -> u_ptr<DrawConfig>
 {

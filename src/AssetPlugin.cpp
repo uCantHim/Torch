@@ -33,10 +33,6 @@ void AssetPlugin::defineResources(ResourceConfig& config)
                             assetDescriptor->getDescriptorSetLayout());
 }
 
-void AssetPlugin::registerSceneModules(SceneBase& /*scene*/)
-{
-}
-
 auto AssetPlugin::createDrawConfig(const Device& /*device*/, Viewport /*renderTarget*/)
     -> u_ptr<DrawConfig>
 {

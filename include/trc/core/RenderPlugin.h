@@ -56,8 +56,6 @@ namespace trc
         virtual void registerRenderStages(RenderGraph& renderGraph) = 0;
         virtual void defineResources(ResourceConfig& config) = 0;
 
-        virtual void registerSceneModules(SceneBase& scene) = 0;
-
         virtual auto createDrawConfig(const Device& device, Viewport renderTarget)
             -> u_ptr<DrawConfig> = 0;
     };

@@ -56,11 +56,6 @@ namespace trc
         void registerPlugin(s_ptr<RenderPlugin> plugin);
 
         /**
-         * @brief Create a scene with all modules required by registered plugins
-         */
-        auto makeScene() -> SceneBase;
-
-        /**
          * @brief Instantiate the render pipeline for a viewport
          */
         auto makeViewportConfig(const Device& device, Viewport viewport)

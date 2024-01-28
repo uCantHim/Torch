@@ -62,16 +62,6 @@ void trc::RenderConfig::registerPlugin(s_ptr<RenderPlugin> plugin)
     plugins.emplace_back(std::move(plugin));
 }
 
-auto trc::RenderConfig::makeScene() -> SceneBase
-{
-    SceneBase scene;
-    for (auto& plugin : plugins) {
-        plugin->registerSceneModules(scene);
-    }
-
-    return scene;
-}
-
 auto trc::RenderConfig::makeViewportConfig(
     const Device& device,
     Viewport viewport)

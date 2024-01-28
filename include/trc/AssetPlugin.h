@@ -34,7 +34,6 @@ namespace trc
 
         void registerRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& config) override;
-        void registerSceneModules(SceneBase& scene) override;
 
         auto createDrawConfig(const Device& device, Viewport renderTarget)
             -> u_ptr<DrawConfig> override;
