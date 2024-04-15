@@ -119,8 +119,6 @@ private:
     auto makeStoredType() -> std::string;
     template<typename T>
     auto makeValue(const T& value) -> std::string;
-    template<typename T>
-    void writeVariantStorageInit(const UniqueName& name, const T& val, std::ostream& os);
 
     CompileResult::Meta meta;
     const TorchCppWriterCreateInfo config;

@@ -405,7 +405,12 @@ auto Compiler::compileSingle<ShaderDesc>(const compiler::Object& obj) -> ShaderD
         res.target = expectString(expectSingle(obj, "Target"));
     }
     else {
-        res.target = res.source;
+        // For shader variants generated from the same input file, generate a unique
+        // name for each shader module.
+        static size_t targetFileIndex{ 0 };
+        fs::path file{ res.source };
+        res.target = file.replace_extension("." + std::to_string(targetFileIndex++)
+                                            + file.extension().string());
     }
 
     auto it = obj.fields.find("Variable");
