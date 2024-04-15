@@ -1,12 +1,13 @@
 #pragma once
 
-#include "trc/core/Task.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/GeometryUtils.h"
 
 namespace trc
 {
-    class TopLevelAccelerationStructureBuilder : public Task
+    class TaskQueue;
+
+    class TopLevelAccelerationStructureBuilder
     {
     public:
         TopLevelAccelerationStructureBuilder(const Device& device, rt::TLAS& tlas);

@@ -8,6 +8,7 @@
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
 #include "trc/base/event/EventHandler.h"
+#include "trc/ray_tracing/RayTracingPlugin.h"
 #include "trc/util/FilesystemDataStorage.h"
 
 
@@ -76,6 +77,16 @@ auto trc::makeTorchRenderConfig(
             .maxTransparentFragsPerPixel = 3,
         }
     ));
+    if (createInfo.enableRayTracing)
+    {
+        renderConfig.registerPlugin(std::make_shared<RayTracingPlugin>(
+                instance,
+                renderConfig.getResourceConfig(),
+                maxViewports,
+                createInfo.maxRayGeometries
+            )
+        );
+    }
 
     return renderConfig;
 }
@@ -117,7 +128,8 @@ trc::TorchStack::TorchStack(
         TorchRenderConfigCreateInfo{
             .assetRegistry=assetManager.getDeviceRegistry(),
             .assetDescriptor=assetDescriptor,
-            .shadowDescriptor=shadowPool
+            .shadowDescriptor=shadowPool,
+            .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
         }
     )),
     frameSubmitter(instance.getDevice(), window),

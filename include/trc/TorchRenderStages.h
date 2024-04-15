@@ -11,4 +11,5 @@ namespace trc
     inline RenderStage finalLightingRenderStage = RenderStage::make();
 
     inline RenderStage rayTracingRenderStage = RenderStage::make();
+    inline RenderStage finalCompositingRenderStage = RenderStage::make();
 } // namespace trc

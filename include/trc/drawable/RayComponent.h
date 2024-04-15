@@ -27,6 +27,7 @@ namespace trc
 
         Transformation::ID modelMatrix;
         GeometryHandle geo;  // Keep the geometry alive
+        MaterialHandle mat;
         ui32 materialIndex;
 
         ui32 instanceDataIndex;

@@ -1,7 +1,6 @@
 #include "trc/RenderDataDescriptor.h"
 
-#include "trc_util/Util.h"
-#include "trc/core/Window.h"
+#include "trc_util/Padding.h"
 
 
 

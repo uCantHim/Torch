@@ -21,6 +21,8 @@ layout (set = 5, binding = 0) restrict readonly uniform CameraData
 {
     mat4 viewMatrix;
     mat4 projMatrix;
+    mat4 inverseViewMatrix;
+    mat4 inverseProjMatrix;
 };
 
 layout (location = 0) rayPayloadEXT vec3 color;
@@ -30,8 +32,8 @@ vec3 worldPosFromDepth(vec2 normalPixelCoord, float depth)
     normalPixelCoord.y = 1.0 - normalPixelCoord.y;
 
     const vec4 clipSpace = vec4(normalPixelCoord * 2.0 - 1.0, depth, 1.0);
-    const vec4 viewSpace = inverse(projMatrix) * clipSpace;
-    const vec4 worldSpace = inverse(viewMatrix) * (viewSpace / viewSpace.w);
+    const vec4 viewSpace = inverseProjMatrix * clipSpace;
+    const vec4 worldSpace = inverseViewMatrix * (viewSpace / viewSpace.w);
     // or: worldSpace /= worldSpace.w;
 
     return worldSpace.xyz;

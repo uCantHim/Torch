@@ -79,6 +79,14 @@ namespace trc
 
         // A pool from which shadow maps are allocated.
         s_ptr<ShadowPool> shadowDescriptor;
+
+        // Decides whether the ray tracer is inserted into the rendering
+        // pipeline.
+        bool enableRayTracing{ true };
+
+        // The maximum number of ray-traced geometry instances present in any
+        // scene.
+        ui32 maxRayGeometries{ 10000 };
     };
 
     auto makeTorchRenderConfig(const Instance& instance,

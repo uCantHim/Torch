@@ -4,6 +4,7 @@
 #include "trc/TorchRenderStages.h"
 #include "trc/base/Barriers.h"
 #include "trc/core/SceneBase.h"
+#include "trc/core/Task.h"
 
 
 

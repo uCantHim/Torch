@@ -5,7 +5,6 @@
 
 #include "trc/core/DescriptorProvider.h"
 #include "trc/Camera.h"
-#include "trc_util/Padding.h"
 
 namespace trc
 {
@@ -58,9 +57,6 @@ namespace trc
         auto makeDescriptorSet() const -> DescriptorSet;
 
     private:
-        // static constexpr vk::DeviceSize kCameraDataSize{
-        //     util::pad(sizeof(mat4) * 4, 256u)
-        // };
         static constexpr vk::DeviceSize kCameraDataSize{ sizeof(mat4) * 4 };
         static constexpr vk::DeviceSize kViewportDataSize{ sizeof(vec2) };
 

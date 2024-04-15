@@ -6,6 +6,7 @@ trc::RayComponent::RayComponent(const RayComponentCreateInfo& info)
     :
     modelMatrix(info.transformation),
     geo(info.geo.getDeviceDataHandle()),
+    mat(info.mat.getDeviceDataHandle()),
     materialIndex(0),
     instanceDataIndex(0) // Set by ComponentTraits::onCreate
 {

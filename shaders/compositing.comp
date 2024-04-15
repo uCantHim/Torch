@@ -4,9 +4,8 @@
 
 layout (local_size_x = 10, local_size_y = 10) in;
 
-layout (set = 0, binding = 0, rgba8) readonly uniform image2D rayBufferReflection;
-
-layout (set = 1, binding = 0, rgba8) uniform image2D outputImage;
+layout (set = 0, binding = 0, rgba8) uniform image2D outputImage;
+layout (set = 0, binding = 1, rgba8) readonly uniform image2D rayBufferReflection;
 
 void main()
 {
