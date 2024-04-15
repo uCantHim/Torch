@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "trc/Types.h"
-#include "trc/assets/AssetBase.h"
 #include "trc/assets/SharedDescriptorSet.h"
 #include "trc/base/Device.h"
 #include "trc/core/DescriptorProvider.h"
@@ -18,14 +17,14 @@ namespace trc
     {
         // Ray-tracing specific. The maximum number of geometries for which the
         // descriptor can hold vertex and index data.
-        ui32 maxGeometries;
+        ui32 maxGeometries{ 10000 };
 
         // The maximum number of texture samplers that may exist in the
         // descriptor.
-        ui32 maxTextures;
+        ui32 maxTextures{ 5000 };
 
         // The maximum number of glyph maps that may exist in the descriptor.
-        ui32 maxFonts;
+        ui32 maxFonts{ 100 };
     };
 
     /**

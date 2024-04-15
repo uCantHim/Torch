@@ -95,7 +95,8 @@ auto trc::makeTorchRenderConfig(
 trc::TorchStack::TorchStack(
     const TorchStackCreateInfo& torchConfig,
     const InstanceCreateInfo& instanceInfo,
-    const WindowCreateInfo& windowInfo)
+    const WindowCreateInfo& windowInfo,
+    const AssetDescriptorCreateInfo& assetDescriptorInfo)
     :
     instance(instanceInfo),
     window(instance, [&] {
@@ -112,14 +113,11 @@ trc::TorchStack::TorchStack(
     assetDescriptor(trc::makeAssetDescriptor(
         instance,
         assetManager.getDeviceRegistry(),
-        trc::AssetDescriptorCreateInfo{
-            .maxGeometries=10,
-            .maxTextures=10,
-            .maxFonts=1,
-        }
+        assetDescriptorInfo
     )),
     shadowPool(std::make_shared<ShadowPool>(
-        instance.getDevice(), window,
+        instance.getDevice(),
+        window,
         ShadowPoolCreateInfo{ .maxShadowMaps=100 }
     )),
     renderConfig(makeTorchRenderConfig(

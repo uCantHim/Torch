@@ -120,7 +120,8 @@ namespace trc
 
         TorchStack(const TorchStackCreateInfo& torchConfig = {},
                    const InstanceCreateInfo& instanceInfo = {},
-                   const WindowCreateInfo& windowInfo = {});
+                   const WindowCreateInfo& windowInfo = {},
+                   const AssetDescriptorCreateInfo& assetDescriptorInfo = {});
         ~TorchStack();
 
         auto getDevice() -> Device&;
