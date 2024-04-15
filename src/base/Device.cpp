@@ -28,6 +28,8 @@ trc::Device::Device(
 #endif
     physicalDevice(physDevice),
     device(std::move(logicalDevice)),
+    dispatchLoaderDynamic(physDevice.instance, vkGetInstanceProcAddr,
+                          *device, vkGetDeviceProcAddr),
     queueManager(physDevice, *this)
 {
     // Create one command pool for each queue family. These will be used
@@ -61,6 +63,11 @@ auto trc::Device::get() const noexcept -> vk::Device
 auto trc::Device::getPhysicalDevice() const noexcept -> const PhysicalDevice&
 {
     return physicalDevice;
+}
+
+auto trc::Device::getDL() const noexcept -> const vk::DispatchLoaderDynamic&
+{
+    return dispatchLoaderDynamic;
 }
 
 auto trc::Device::getQueueManager() noexcept -> QueueManager&

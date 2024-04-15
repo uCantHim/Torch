@@ -63,7 +63,7 @@ namespace trc
          *        object is destroyed!
          */
         Instance(const InstanceCreateInfo& info, vk::Instance instance);
-        ~Instance();
+        ~Instance() noexcept;
 
         auto getVulkanInstance() const -> vk::Instance;
 

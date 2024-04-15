@@ -90,7 +90,7 @@ namespace trc
          * Requires a surface because it has to query for swapchain and
          * presentation support.
          */
-        PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface);
+        PhysicalDevice(vk::Instance instance, vk::PhysicalDevice device, vk::SurfaceKHR surface);
 
         PhysicalDevice(const PhysicalDevice&) = default;
         PhysicalDevice(PhysicalDevice&&) noexcept = default;
@@ -165,6 +165,7 @@ namespace trc
         ///////////////////////////
         // Public device properties
 
+        const vk::Instance instance;
         const vk::PhysicalDevice physicalDevice;
 
         // Queues
