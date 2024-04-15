@@ -49,15 +49,15 @@ auto trc::ViewportConfig::getResources() const -> const ResourceStorage&
 trc::RenderConfig::RenderConfig(const Instance& instance)
     :
     renderGraph{},
-    resourceConfig{},
-    pipelineStorage(PipelineRegistry::makeStorage(instance, resourceConfig))
+    resourceConfig(std::make_shared<ResourceConfig>()),
+    pipelineStorage(PipelineRegistry::makeStorage(instance, *resourceConfig))
 {
 }
 
 void trc::RenderConfig::registerPlugin(s_ptr<RenderPlugin> plugin)
 {
     plugin->registerRenderStages(renderGraph);
-    plugin->defineResources(resourceConfig);
+    plugin->defineResources(*resourceConfig);
 
     plugins.emplace_back(std::move(plugin));
 }
@@ -67,7 +67,7 @@ auto trc::RenderConfig::makeViewportConfig(
     Viewport viewport)
     -> u_ptr<ViewportConfig>
 {
-    ResourceStorage resources{ &resourceConfig, pipelineStorage };
+    ResourceStorage resources{ resourceConfig, pipelineStorage };
 
     std::vector<u_ptr<DrawConfig>> configs;
     for (auto& plugin : plugins)
@@ -114,10 +114,10 @@ auto trc::RenderConfig::getRenderGraph() const -> const RenderGraph&
 
 auto trc::RenderConfig::getResourceConfig() -> ResourceConfig&
 {
-    return resourceConfig;
+    return *resourceConfig;
 }
 
 auto trc::RenderConfig::getResourceConfig() const -> const ResourceConfig&
 {
-    return resourceConfig;
+    return *resourceConfig;
 }

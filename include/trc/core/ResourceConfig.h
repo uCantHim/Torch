@@ -21,7 +21,7 @@ namespace trc
     class ResourceStorage
     {
     public:
-        ResourceStorage(const ResourceConfig* config, s_ptr<PipelineStorage> pipelines);
+        ResourceStorage(s_ptr<ResourceConfig> config, s_ptr<PipelineStorage> pipelines);
 
         ResourceStorage(const ResourceStorage&) = delete;
         ResourceStorage& operator=(const ResourceStorage&) = delete;
@@ -29,6 +29,9 @@ namespace trc
         ResourceStorage(ResourceStorage&&) noexcept = default;
         ResourceStorage& operator=(ResourceStorage&&) noexcept = default;
         ~ResourceStorage() noexcept = default;
+
+        auto getResourceConfig() -> ResourceConfig&;
+        auto getResourceConfig() const -> const ResourceConfig&;
 
         /**
          * @brief Retrieve a pipeline
@@ -66,6 +69,8 @@ namespace trc
                                s_ptr<const DescriptorProviderInterface> provider);
 
     private:
+        s_ptr<ResourceConfig> resourceConfig;
+
         s_ptr<PipelineStorage> pipelines;
         DescriptorStorage descriptors;
     };

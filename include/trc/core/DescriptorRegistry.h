@@ -87,7 +87,7 @@ namespace trc
     class DescriptorStorage
     {
     public:
-        explicit DescriptorStorage(const DescriptorRegistry* registry);
+        explicit DescriptorStorage(s_ptr<const DescriptorRegistry> registry);
 
         DescriptorStorage(const DescriptorStorage&) = delete;
         DescriptorStorage& operator=(const DescriptorStorage&) = delete;
@@ -131,7 +131,7 @@ namespace trc
             -> s_ptr<const DescriptorProviderInterface>;
 
     private:
-        const DescriptorRegistry* registry;
+        s_ptr<const DescriptorRegistry> registry;
         data::IndexMap<DescriptorID, s_ptr<const DescriptorProviderInterface>> descriptorProviders;
     };
 } // namespace trc

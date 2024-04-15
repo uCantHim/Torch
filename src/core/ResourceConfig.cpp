@@ -5,11 +5,22 @@
 namespace trc
 {
 
-ResourceStorage::ResourceStorage(const ResourceConfig* config, s_ptr<PipelineStorage> pipelines)
+ResourceStorage::ResourceStorage(s_ptr<ResourceConfig> config, s_ptr<PipelineStorage> pipelines)
     :
+    resourceConfig(config),
     pipelines(std::move(pipelines)),
     descriptors(config)
 {
+}
+
+auto ResourceStorage::getResourceConfig() -> ResourceConfig&
+{
+    return *resourceConfig;
+}
+
+auto ResourceStorage::getResourceConfig() const -> const ResourceConfig&
+{
+    return *resourceConfig;
 }
 
 auto ResourceStorage::getPipeline(Pipeline::ID id) -> Pipeline&

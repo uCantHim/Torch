@@ -75,7 +75,7 @@ auto trc::DescriptorRegistry::getDescriptorID(const DescriptorName& name) const 
 //    Descriptor storage    //
 //////////////////////////////
 
-trc::DescriptorStorage::DescriptorStorage(const DescriptorRegistry* registry)
+trc::DescriptorStorage::DescriptorStorage(s_ptr<const DescriptorRegistry> registry)
     :
     registry(registry)
 {

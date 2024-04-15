@@ -78,7 +78,7 @@ namespace trc
 
     protected:
         RenderGraph renderGraph;
-        ResourceConfig resourceConfig;
+        s_ptr<ResourceConfig> resourceConfig;
         s_ptr<PipelineStorage> pipelineStorage;
 
         std::vector<s_ptr<RenderPlugin>> plugins;
