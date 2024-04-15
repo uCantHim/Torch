@@ -18,6 +18,7 @@ namespace trc
 
     struct TaskEnvironment
     {
+        const Device& device;
         Frame* frame;
 
         RenderStage::ID renderStage;

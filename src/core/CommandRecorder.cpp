@@ -79,12 +79,12 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
 
             // Record all tasks in the stage's task queue
             futures.emplace_back(threadPool->async(
-                [frame=&frame, &tasks, &vp, stage, cmdBuf]() -> vk::CommandBuffer
+                [&device, &frame, &tasks, &vp, stage, cmdBuf]() -> vk::CommandBuffer
                 {
                     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
                     for (auto& task : tasks)
                     {
-                        TaskEnvironment env{ frame, stage, vp->resources, vp->scene };
+                        TaskEnvironment env{ device, &frame, stage, vp->resources, vp->scene };
                         task->record(cmdBuf, env);
                     }
                     cmdBuf.end();
