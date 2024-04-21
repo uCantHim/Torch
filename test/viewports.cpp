@@ -45,8 +45,8 @@ void run()
 
     auto config = trc::makeTorchRenderConfig(instance, window.getFrameCount() * 2, info);
 
-    auto vp1 = config.makeViewportConfig(device, renderTarget, { 100, 200 }, { 400, 400 });
-    auto vp2 = config.makeViewportConfig(device, renderTarget, { 400, 550 }, { 300, 150 });
+    auto vp1 = config.makeViewports(device, renderTarget, { 100, 200 }, { 400, 400 });
+    auto vp2 = config.makeViewports(device, renderTarget, { 400, 550 }, { 300, 150 });
     //vp1.setClearColor(vec4(1, 1, 0, 1));
     //vp2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
 
@@ -55,8 +55,8 @@ void run()
         renderTarget = trc::makeRenderTarget(swapchain);
         vp1 = { window };  // Release resources first
         vp2 = { window };  // Release resources first
-        vp1 = config.makeViewportConfig(device, renderTarget, { 100, 200 }, { 400, 400 });
-        vp2 = config.makeViewportConfig(device, renderTarget, { 400, 550 }, { 300, 150 });
+        vp1 = config.makeViewports(device, renderTarget, { 100, 200 }, { 400, 400 });
+        vp2 = config.makeViewports(device, renderTarget, { 400, 550 }, { 300, 150 });
     });
 
     // Render the same scene to both viewports, but from different cameras
@@ -88,7 +88,7 @@ void run()
     cube->scale(0.7f);
 
     // Create a renderer that submits a frame to a render target
-    trc::SwapchainRenderer renderer{ device, window };
+    trc::Renderer renderer{ device, window };
 
     trc::Timer timer;
     while (window.isOpen() && window.getKeyState(trc::Key::escape) != trc::InputAction::press)
@@ -109,7 +109,7 @@ void run()
         frame->addViewport(viewport2, scene);
 
         // Dispatch the frame for rendering
-        renderer.renderFrame(std::move(frame));
+        renderer.renderFrameAndPresent(std::move(frame), window);
     }
 
     renderer.waitForAllFrames();

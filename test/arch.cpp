@@ -7,8 +7,8 @@
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
+#include <trc/core/Renderer.h>
 #include <trc/core/SceneBase.h>
-#include <trc/core/SwapchainRenderer.h>
 #include <trc/util/NullDataStorage.h>
 
 #include <trc_util/Assert.h>
@@ -47,8 +47,8 @@ int main()
     };
     renderConfig.registerPlugin(std::make_shared<trc::RasterPlugin>(std::move(rasterization)));
 
-    trc::SwapchainRenderer renderer{ instance.getDevice(), window };
-    auto viewports = renderConfig.makeViewportConfig(
+    trc::Renderer renderer{ instance.getDevice(), window };
+    auto viewports = renderConfig.makeViewports(
         instance.getDevice(),
         renderTarget,
         { 0, 0 }, window.getSize()
@@ -79,7 +79,7 @@ int main()
             });
         })
     );
-    renderer.renderFrame(std::move(frame));
+    renderer.renderFrameAndPresent(std::move(frame), window);
 
     renderer.waitForAllFrames();
 

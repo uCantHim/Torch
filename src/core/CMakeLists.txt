@@ -23,7 +23,6 @@ target_sources(
         RenderTarget.cpp
         ResourceConfig.cpp
         SceneBase.cpp
-        SwapchainRenderer.cpp
         TypeErasedStructureChain.cpp
         Window.cpp
 )

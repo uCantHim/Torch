@@ -62,7 +62,7 @@ void trc::RenderConfig::registerPlugin(s_ptr<RenderPlugin> plugin)
     plugins.emplace_back(std::move(plugin));
 }
 
-auto trc::RenderConfig::makeViewportConfig(
+auto trc::RenderConfig::makeViewport(
     const Device& device,
     Viewport viewport)
     -> u_ptr<ViewportConfig>
@@ -81,9 +81,9 @@ auto trc::RenderConfig::makeViewportConfig(
     return std::make_unique<ViewportConfig>(viewport, std::move(resources), std::move(configs));
 }
 
-auto trc::RenderConfig::makeViewportConfig(
+auto trc::RenderConfig::makeViewports(
     const Device& device,
-    RenderTarget renderTarget,
+    const RenderTarget& renderTarget,
     ivec2 renderAreaOffset,
     uvec2 renderArea)
     -> FrameSpecific<u_ptr<ViewportConfig>>
@@ -97,7 +97,7 @@ auto trc::RenderConfig::makeViewportConfig(
                 renderAreaOffset,
                 renderArea
             };
-            return makeViewportConfig(device, viewport);
+            return makeViewport(device, viewport);
         }
     };
 }

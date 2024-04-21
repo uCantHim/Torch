@@ -4,7 +4,6 @@
 
 #include "trc/base/Logging.h"
 #include "trc/core/Frame.h"
-#include "trc/core/RenderConfiguration.h"
 #include "trc/core/Task.h"
 
 

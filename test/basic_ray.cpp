@@ -153,8 +153,8 @@ int main()
     trc::Camera camera;
     camera.lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
 
-    trc::SwapchainRenderer frameSubmitter{ device, window };
-    auto viewportConfig = renderConfig.makeViewportConfig(device, trc::Viewport{});
+    trc::Renderer renderer{ device, window };
+    auto viewportConfig = renderConfig.makeViewport(device, trc::Viewport{});
 
     while (!window.isPressed(trc::Key::escape))
     {
@@ -201,10 +201,10 @@ int main()
             })
         );
 
-        frameSubmitter.renderFrame(std::move(frame));
+        renderer.renderFrameAndPresent(std::move(frame), window);
     }
 
-    frameSubmitter.waitForAllFrames();
+    renderer.waitForAllFrames();
     trc::terminate();
 
     return 0;

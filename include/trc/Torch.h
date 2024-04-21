@@ -12,8 +12,7 @@
 #include "trc/core/Frame.h"
 #include "trc/core/Instance.h"
 #include "trc/core/RenderConfiguration.h"
-#include "trc/core/RenderTarget.h"
-#include "trc/core/SwapchainRenderer.h"
+#include "trc/core/Renderer.h"
 #include "trc/core/Window.h"
 #include "trc/drawable/DrawableScene.h"
 
@@ -149,7 +148,7 @@ namespace trc
         s_ptr<ShadowPool> shadowPool;
 
         RenderConfig renderConfig;
-        SwapchainRenderer frameSubmitter;
+        Renderer renderer;
         FrameSpecific<u_ptr<ViewportConfig>> viewports;
     };
 

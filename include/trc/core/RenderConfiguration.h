@@ -13,6 +13,9 @@ namespace trc
 {
     class Instance;
 
+    /**
+     * @brief An instantiation of a render pipeline for a specific viewport.
+     */
     class ViewportConfig
     {
     public:
@@ -58,16 +61,17 @@ namespace trc
         /**
          * @brief Instantiate the render pipeline for a viewport
          */
-        auto makeViewportConfig(const Device& device, Viewport viewport)
+        auto makeViewport(const Device& device, Viewport viewport)
             -> u_ptr<ViewportConfig>;
 
         /**
-         * @brief Instantiate the render pipeline for a viewport
+         * @brief Instantiate the render pipeline for all images of a render
+         *        target.
          */
-        auto makeViewportConfig(const Device& device,
-                                RenderTarget newTarget,
-                                ivec2 renderAreaOffset,
-                                uvec2 renderArea)
+        auto makeViewports(const Device& device,
+                           const RenderTarget& newTarget,
+                           ivec2 renderAreaOffset,
+                           uvec2 renderArea)
             -> FrameSpecific<u_ptr<ViewportConfig>>;
 
         auto getRenderGraph() -> RenderGraph&;

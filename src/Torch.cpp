@@ -77,7 +77,7 @@ auto trc::makeTorchRenderConfig(
             .maxTransparentFragsPerPixel = 3,
         }
     ));
-    if (createInfo.enableRayTracing)
+    if (createInfo.enableRayTracing && instance.hasRayTracing())
     {
         renderConfig.registerPlugin(std::make_shared<RayTracingPlugin>(
                 instance,
@@ -130,8 +130,8 @@ trc::TorchStack::TorchStack(
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
         }
     )),
-    frameSubmitter(instance.getDevice(), window),
-    viewports(renderConfig.makeViewportConfig(
+    renderer(instance.getDevice(), window),
+    viewports(renderConfig.makeViewports(
         instance.getDevice(),
         makeRenderTarget(window),
         { 0, 0 },
@@ -140,21 +140,21 @@ trc::TorchStack::TorchStack(
 {
     window.addCallbackAfterSwapchainRecreate([this](Swapchain& swapchain) {
         // Free viewport resources first
-        viewports = { window };
+        viewports = { swapchain };
 
         // Create new viewports
-        viewports = renderConfig.makeViewportConfig(
+        viewports = renderConfig.makeViewports(
             instance.getDevice(),
             makeRenderTarget(swapchain),
             { 0, 0 },
-            window.getSize()
+            swapchain.getSize()
         );
     });
 }
 
 trc::TorchStack::~TorchStack()
 {
-    frameSubmitter.waitForAllFrames();
+    renderer.waitForAllFrames();
 }
 
 auto trc::TorchStack::getDevice() -> Device&
@@ -196,10 +196,10 @@ void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
     currentViewport.update(instance.getDevice(), scene, camera);
     frame->addViewport(currentViewport, scene);
 
-    frameSubmitter.renderFrame(std::move(frame));
+    renderer.renderFrameAndPresent(std::move(frame), window);
 }
 
 void trc::TorchStack::waitForAllFrames(ui64 timeoutNs)
 {
-    frameSubmitter.waitForAllFrames(timeoutNs);
+    renderer.waitForAllFrames(timeoutNs);
 }

@@ -11,6 +11,7 @@
 namespace trc
 {
     class Frame;
+    class Swapchain;
 
     /**
      * @brief Records commands from `Frame` objects and submits them to a queue.
@@ -21,7 +22,7 @@ namespace trc
     class Renderer
     {
     public:
-        Renderer(const Device& device, const FrameClock& clock);
+        Renderer(Device& device, const FrameClock& clock);
 
         /**
          * Waits for all frames to finish rendering
@@ -42,7 +43,7 @@ namespace trc
          * Dispatches a thread that waits for this specific frame's commands
          * to be executed, then calls its registered `onRenderFinish` callbacks.
          *
-         * @param s_ptr<Frame>    frame The frame to draw.
+         * @param u_ptr<Frame>    frame The frame to draw.
          * @param ExclusiveQueue& queue The queue to which recorded device
          *                              commands will be submitted.
          * @param vk::Semaphore waitSemaphore   A semaphore that must be signalled
@@ -52,10 +53,11 @@ namespace trc
          *                                      all device commands have finished
          *                                      executing. May be `VK_NULL_HANDLE`.
          */
-        void renderFrame(s_ptr<Frame> frame,
-                         ExclusiveQueue& queue,
-                         vk::Semaphore waitSemaphore,
-                         vk::Semaphore signalSemaphore);
+        void renderFrame(u_ptr<Frame> frame,
+                         vk::Semaphore waitSemaphore = VK_NULL_HANDLE,
+                         vk::Semaphore signalSemaphore = VK_NULL_HANDLE);
+
+        void renderFrameAndPresent(u_ptr<Frame> frame, Swapchain& swapchain);
 
         /**
          * @brief Wait for all frames that are being rendered to finish.
@@ -86,10 +88,25 @@ namespace trc
             void operator()();
         };
 
-        const Device& device;
+        /**
+         * @return A signaled fence.
+         * @throw std::runtime_error if a timeout occurs during vkWaitForFences.
+         */
+        auto waitForCurrentFrame() -> vk::Fence;
+
+        void submitDraw(u_ptr<Frame> frame,
+                        ExclusiveQueue& queue,
+                        vk::Semaphore waitSemaphore,
+                        vk::Semaphore signalSemaphore,
+                        vk::Fence signalFence);
+
+        Device& device;
 
         async::ThreadPool threadPool;
         CommandRecorder cmdRecorder;
+
+        ExclusiveQueue drawQueue;
+        ExclusiveQueue presentQueue;
 
         // Synchronization
         FrameSpecific<vk::UniqueFence> frameInFlightFences;
@@ -103,5 +120,8 @@ namespace trc
          */
         FrameSpecific<vk::UniqueSemaphore> renderFinishedHostSignalSemaphores;
         FrameSpecific<ui64> renderFinishedHostSignalValue;
+
+        FrameSpecific<vk::UniqueSemaphore> swapchainImageAcquireSemaphores;
+        FrameSpecific<vk::UniqueSemaphore> renderFinishedSemaphores;
     };
 }
