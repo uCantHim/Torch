@@ -46,7 +46,7 @@ void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
     imageMemoryBarrier(
         cmdBuf,
         *depthImage,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::ImageLayout::eShaderReadOnlyOptimal,
         vk::ImageLayout::eTransferSrcOptimal,
         vk::PipelineStageFlagBits::eEarlyFragmentTests
             | vk::PipelineStageFlagBits::eLateFragmentTests,
@@ -74,7 +74,7 @@ void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
         vk::PipelineStageFlagBits::eTransfer,
         vk::PipelineStageFlagBits::eComputeShader,
         vk::AccessFlagBits::eTransferRead,
-        vk::AccessFlagBits::eShaderRead,
+        vk::AccessFlagBits::eShaderWrite,
         { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
     );
 }

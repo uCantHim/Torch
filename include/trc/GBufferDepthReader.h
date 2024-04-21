@@ -3,7 +3,6 @@
 #include "trc/GBuffer.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Buffer.h"
-#include "trc/base/FrameSpecificObject.h"
 
 namespace trc
 {

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "trc/base/FrameSpecificObject.h"
-
-#include "trc/core/RenderPass.h"
 #include "trc/Framebuffer.h"
 #include "trc/GBuffer.h"
+#include "trc/core/RenderPass.h"
 
 namespace trc
 {

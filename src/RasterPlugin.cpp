@@ -3,13 +3,11 @@
 #include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
 #include "trc/LightSceneModule.h"
-#include "trc/RasterSceneModule.h"
 #include "trc/RasterTasks.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/core/Frame.h"
-#include "trc/core/RenderConfiguration.h"
 #include "trc/core/RenderGraph.h"
-#include "trc/core/RenderTarget.h"
+#include "trc/core/ResourceConfig.h"
 #include "trc/core/SceneBase.h"
 #include "trc/core/Task.h"
 
@@ -88,6 +86,9 @@ RasterPlugin::RasterDrawConfig::RasterDrawConfig(
     parent(&parent),
     gBuffer(device, { .size=renderTarget.size, .maxTransparentFragsPerPixel=2 }),
     gBufferPass(std::make_shared<GBufferPass>(device, gBuffer)),
+    gBufferDepthReaderPass(
+        std::make_shared<GBufferDepthReader>(device, []{ return vec2{}; }, gBuffer)
+    ),
     finalLighting(parent.finalLighting.makeDrawConfig(device, renderTarget)),
     gBufferDescSet(parent.gBufferDescriptor.makeDescriptorSet(device, gBuffer)),
     globalDataDescriptor(std::make_shared<GlobalRenderDataDescriptor::DescriptorSet>(
@@ -129,6 +130,11 @@ void RasterPlugin::RasterDrawConfig::createTasks(SceneBase& scene, TaskQueue& ta
     // G-buffer draw task
     taskQueue.spawnTask(gBufferRenderStage,
                         std::make_unique<RenderPassDrawTask>(gBufferPass));
+    taskQueue.spawnTask(gBufferRenderStage,
+        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
+            gBufferDepthReaderPass->update(cmdBuf, *env.frame);
+        })
+    );
 
     // Final lighting compute task
     finalLighting->createTasks(taskQueue);

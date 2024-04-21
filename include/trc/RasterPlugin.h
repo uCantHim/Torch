@@ -1,6 +1,5 @@
 #pragma once
 
-#include "trc/AssetDescriptor.h"
 #include "trc/FinalLighting.h"
 #include "trc/GBuffer.h"
 #include "trc/GBufferPass.h"
@@ -82,6 +81,7 @@ namespace trc
 
             GBuffer gBuffer;
             s_ptr<GBufferPass> gBufferPass;
+            s_ptr<GBufferDepthReader> gBufferDepthReaderPass;
             u_ptr<FinalLightingDispatcher> finalLighting;
 
             vk::UniqueDescriptorSet gBufferDescSet;

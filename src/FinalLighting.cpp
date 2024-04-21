@@ -9,7 +9,7 @@
 #include "trc/base/Barriers.h"
 #include "trc/core/ComputePipelineBuilder.h"
 #include "trc/core/PipelineLayoutBuilder.h"
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/ResourceConfig.h"
 #include "trc/core/Task.h"
 
 
@@ -48,7 +48,7 @@ void trc::FinalLightingDispatcher::createTasks(TaskQueue& queue)
             imageMemoryBarrier(
                 cmdBuf,
                 targetImage,
-                vk::ImageLayout::eUndefined,
+                vk::ImageLayout::ePresentSrcKHR,
                 vk::ImageLayout::eGeneral,
                 vk::PipelineStageFlagBits::eColorAttachmentOutput,
                 vk::PipelineStageFlagBits::eComputeShader,
