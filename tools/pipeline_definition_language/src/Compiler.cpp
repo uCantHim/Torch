@@ -1,5 +1,7 @@
 #include "Compiler.h"
 
+#include <algorithm>
+
 #include "Exceptions.h"
 #include "Util.h"
 #include "PipelineDataWriter.h"

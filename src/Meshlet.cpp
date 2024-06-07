@@ -1,5 +1,7 @@
 #include "trc/Meshlet.h"
 
+#include <algorithm>
+
 #include <trc_util/Padding.h>
 
 #include "trc/util/TriangleCacheOptimizer.h"
