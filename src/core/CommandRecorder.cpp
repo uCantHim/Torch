@@ -4,6 +4,7 @@
 
 #include "trc/base/Logging.h"
 #include "trc/core/Frame.h"
+#include "trc/core/RenderConfiguration.h"
 #include "trc/core/Task.h"
 
 
@@ -62,33 +63,55 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
         );
     }
 
+    struct StageRecording
+    {
+        RenderStage::ID stage;
+        vk::CommandBuffer cmdBuf;
+        DependencyRegion resourceDependencies;
+    };
+
     // Dispatch command buffer recorder threads.
-    std::vector<std::future<vk::CommandBuffer>> futures;
+    std::vector<std::future<StageRecording>> futures;
     futures.reserve(numThreads);
 
-    for (ui32 threadIndex = 0; auto& vp : frame.getViewports())
+    // Idea:
+    //
+    // std::vector<std::pair<RenderStage::ID, std::future<vk::CommandBuffer>>>;
+    //
+    // Then insert all barriers from each stage to its depending stages at the end
+    // if the respective command buffer according to the stage's dependency region.
+    //
+    // This requires a real render stage graph that defines a complex ordering
+    // of stages with respect to each other.
+
+    ui32 threadIndex = 0;
+    for (auto& vp : frame.getViewports())
     {
-        for (auto [stage, tasks] : vp->taskQueue.tasks.items())
+        auto& renderGraph = vp->config->getRenderGraph();
+
+        // For each render stage, dispatch one thread that executes its tasks.
+        for (const RenderStage::ID stage : renderGraph)
         {
+            auto& tasks = vp->taskQueue.tasks.get(stage);
             if (tasks.empty()) {
-                continue;
+                break;
             }
 
             vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
 
             // Record all tasks in the stage's task queue
             futures.emplace_back(threadPool->async(
-                [&device, &frame, &tasks, &vp, stage, cmdBuf]() -> vk::CommandBuffer
+                [&device, &frame, &tasks, &vp, cmdBuf, stage]() -> StageRecording
                 {
+                    TaskEnvironment env{ {}, device, &frame, vp->resources, vp->scene };
+
                     cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-                    for (auto& task : tasks)
-                    {
-                        TaskEnvironment env{ device, &frame, stage, vp->resources, vp->scene };
+                    for (auto& task : tasks) {
                         task->record(cmdBuf, env);
                     }
                     cmdBuf.end();
 
-                    return cmdBuf;
+                    return { stage, cmdBuf, env };
                 }
             ));
             ++threadIndex;
@@ -98,8 +121,12 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
     // Join threads.
     // Insert recorded command buffers *in order*.
     std::vector<vk::CommandBuffer> result;
-    for (auto& f : futures) {
-        result.emplace_back(f.get());
+    std::unordered_map<RenderStage::ID, StageRecording> recordings;
+    for (auto& f : futures)
+    {
+        auto rec = f.get();
+        recordings.try_emplace(rec.stage, rec);
+        result.emplace_back(rec.cmdBuf);
     }
 
     return result;

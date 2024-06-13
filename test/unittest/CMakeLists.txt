@@ -11,6 +11,7 @@ target_sources(UnitTests
         assets_tests/test_asset_type.cpp
         assets_tests/test_custom_asset.cpp
         assets_tests/test_device_data_cache.cpp
+        core_tests/test_render_graph.cpp
         test_basic_type.cpp
         test_event_handler.cpp
         test_filesystem_data_storage.cpp

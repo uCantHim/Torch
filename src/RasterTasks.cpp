@@ -11,8 +11,11 @@
 namespace trc
 {
 
-RenderPassDrawTask::RenderPassDrawTask(s_ptr<RenderPass> _renderPass)
+RenderPassDrawTask::RenderPassDrawTask(
+    RenderStage::ID renderStage,
+    s_ptr<RenderPass> _renderPass)
     :
+    renderStage(renderStage),
     renderPass(std::move(_renderPass))
 {
     if (renderPass == nullptr) {
@@ -24,7 +27,6 @@ RenderPassDrawTask::RenderPassDrawTask(s_ptr<RenderPass> _renderPass)
 void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
 {
     const RasterSceneModule& scene = env.scene->getModule<RasterSceneModule>();
-    const auto stage = env.renderStage;
 
     renderPass->begin(cmdBuf, vk::SubpassContents::eInline, *env.frame);
 
@@ -32,7 +34,7 @@ void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
     const ui32 subPassCount = renderPass->getNumSubPasses();
     for (ui32 subPass = 0; subPass < subPassCount; subPass++)
     {
-        for (auto pipeline : scene.iterPipelines(stage, SubPass::ID(subPass)))
+        for (auto pipeline : scene.iterPipelines(renderStage, SubPass::ID(subPass)))
         {
             // Bind the current pipeline
             auto& p = env.resources->getPipeline(pipeline);
@@ -40,7 +42,7 @@ void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
 
             // Record commands for all objects with this pipeline
             scene.invokeDrawFunctions(
-                stage, *renderPass, SubPass::ID(subPass),
+                renderStage, *renderPass, SubPass::ID(subPass),
                 pipeline, p,
                 cmdBuf
             );

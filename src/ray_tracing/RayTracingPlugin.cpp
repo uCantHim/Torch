@@ -52,10 +52,12 @@ RayTracingPlugin::RayTracingPlugin(
 
 void RayTracingPlugin::registerRenderStages(RenderGraph& graph)
 {
-    graph.after(finalLightingRenderStage, rayTracingRenderStage);
-    graph.after(rayTracingRenderStage, finalCompositingRenderStage);
-    graph.require(rayTracingRenderStage, resourceUpdateStage);
-    graph.require(rayTracingRenderStage, finalLightingRenderStage);
+    graph.insert(rayTracingRenderStage);
+    graph.insert(finalCompositingRenderStage);
+
+    graph.createOrdering(resourceUpdateStage, rayTracingRenderStage);
+    graph.createOrdering(rayTracingRenderStage, finalCompositingRenderStage);
+    graph.createOrdering(finalLightingRenderStage, finalCompositingRenderStage);
 }
 
 void RayTracingPlugin::defineResources(ResourceConfig& /*conf*/)

@@ -2,6 +2,8 @@
 
 #include <trc_util/data/TypesafeId.h>
 
+#include "trc/Types.h"
+
 namespace trc
 {
     struct RenderStage;

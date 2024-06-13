@@ -33,10 +33,13 @@ RasterPlugin::RasterPlugin(
 
 void RasterPlugin::registerRenderStages(RenderGraph& graph)
 {
-    graph.first(resourceUpdateStage);
-    graph.after(resourceUpdateStage, shadowRenderStage);
-    graph.after(shadowRenderStage, gBufferRenderStage);
-    graph.after(gBufferRenderStage, finalLightingRenderStage);
+    graph.insert(shadowRenderStage);
+    graph.insert(gBufferRenderStage);
+    graph.insert(finalLightingRenderStage);
+
+    graph.createOrdering(resourceUpdateStage, shadowRenderStage);
+    graph.createOrdering(shadowRenderStage, gBufferRenderStage);
+    graph.createOrdering(gBufferRenderStage, finalLightingRenderStage);
 }
 
 void RasterPlugin::defineResources(ResourceConfig& config)
@@ -124,12 +127,12 @@ void RasterPlugin::RasterDrawConfig::createTasks(SceneBase& scene, TaskQueue& ta
     // Shadow tasks - one for each shadow map
     auto& lights = scene.getModule<LightSceneModule>();
     for (auto& renderPass : lights.getShadowPasses()) {
-        taskQueue.spawnTask(shadowRenderStage, std::make_unique<RenderPassDrawTask>(renderPass));
+        taskQueue.spawnTask(shadowRenderStage, std::make_unique<RenderPassDrawTask>(shadowRenderStage, renderPass));
     }
 
     // G-buffer draw task
     taskQueue.spawnTask(gBufferRenderStage,
-                        std::make_unique<RenderPassDrawTask>(gBufferPass));
+                        std::make_unique<RenderPassDrawTask>(gBufferRenderStage, gBufferPass));
     taskQueue.spawnTask(gBufferRenderStage,
         makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
             gBufferDepthReaderPass->update(cmdBuf, *env.frame);

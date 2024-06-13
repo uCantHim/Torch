@@ -8,6 +8,8 @@
 #include "trc/core/ResourceConfig.h"
 #include "trc/core/Task.h"
 
+#include "trc/core/DataFlow.h"
+
 
 
 namespace trc
@@ -24,7 +26,7 @@ AssetPlugin::AssetPlugin(
 
 void AssetPlugin::registerRenderStages(RenderGraph& renderGraph)
 {
-    renderGraph.first(resourceUpdateStage);
+    renderGraph.insert(resourceUpdateStage);
 }
 
 void AssetPlugin::defineResources(ResourceConfig& config)

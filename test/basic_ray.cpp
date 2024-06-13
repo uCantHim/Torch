@@ -128,7 +128,7 @@ int main()
 
     // Pipeline
     trc::RenderConfig renderConfig{ instance };
-    renderConfig.getRenderGraph().first(kRayStage);
+    renderConfig.getRenderGraph().insert(kRayStage);
 
     auto layout = trc::buildPipelineLayout()
         .addPushConstantRange({ vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 })

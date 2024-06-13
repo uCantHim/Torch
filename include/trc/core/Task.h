@@ -8,6 +8,7 @@
 #include "trc/VulkanInclude.h"
 #include "trc/base/Device.h"
 #include "trc/core/RenderStage.h"
+#include "trc/core/DataFlow.h"
 
 namespace trc
 {
@@ -16,14 +17,12 @@ namespace trc
     class SceneBase;
     class ResourceStorage;
 
-    struct TaskEnvironment
+    struct TaskEnvironment : DependencyRegion
     {
         const Device& device;
+
         Frame* frame;
-
-        RenderStage::ID renderStage;
         ResourceStorage* resources;
-
         SceneBase* scene;
     };
 
