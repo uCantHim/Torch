@@ -1,18 +1,26 @@
 #include "trc/core/RenderConfiguration.h"
 
+#include <cassert>
+
 #include "trc/core/SceneBase.h"
 
 
 
 trc::ViewportConfig::ViewportConfig(
-    Viewport viewport,
-    ResourceStorage resourceStorage,
-    std::vector<u_ptr<DrawConfig>> pluginConfigs)
+    Viewport _viewport,
+    s_ptr<RenderGraph> _renderGraph,
+    ResourceStorage _resourceStorage,
+    std::vector<u_ptr<DrawConfig>> _pluginConfigs)
     :
-    viewport(viewport),
-    resources(std::move(resourceStorage)),
-    pluginConfigs(std::move(pluginConfigs))
+    viewport(_viewport),
+    renderGraph(std::move(_renderGraph)),
+    resources(std::move(_resourceStorage)),
+    pluginConfigs(std::move(_pluginConfigs))
 {
+    assert(renderGraph != nullptr);
+    for (auto& plugin : pluginConfigs) {
+        assert(plugin != nullptr);
+    }
 }
 
 void trc::ViewportConfig::update(const Device& device, SceneBase& scene, const Camera& camera)
@@ -34,6 +42,11 @@ auto trc::ViewportConfig::getViewport() const -> Viewport
     return viewport;
 }
 
+auto trc::ViewportConfig::getRenderGraph() const -> const RenderGraph&
+{
+    return *renderGraph;
+}
+
 auto trc::ViewportConfig::getResources() -> ResourceStorage&
 {
     return resources;
@@ -48,7 +61,7 @@ auto trc::ViewportConfig::getResources() const -> const ResourceStorage&
 
 trc::RenderConfig::RenderConfig(const Instance& instance)
     :
-    renderGraph{},
+    renderGraph(std::make_shared<RenderGraph>()),
     resourceConfig(std::make_shared<ResourceConfig>()),
     pipelineStorage(PipelineRegistry::makeStorage(instance, *resourceConfig))
 {
@@ -56,7 +69,7 @@ trc::RenderConfig::RenderConfig(const Instance& instance)
 
 void trc::RenderConfig::registerPlugin(s_ptr<RenderPlugin> plugin)
 {
-    plugin->registerRenderStages(renderGraph);
+    plugin->registerRenderStages(*renderGraph);
     plugin->defineResources(*resourceConfig);
 
     plugins.emplace_back(std::move(plugin));
@@ -69,6 +82,7 @@ auto trc::RenderConfig::makeViewport(
 {
     ResourceStorage resources{ resourceConfig, pipelineStorage };
 
+    // Instantiate a draw configuration for each registered render plugin
     std::vector<u_ptr<DrawConfig>> configs;
     for (auto& plugin : plugins)
     {
@@ -78,7 +92,12 @@ auto trc::RenderConfig::makeViewport(
         configs.emplace_back(std::move(conf));
     }
 
-    return std::make_unique<ViewportConfig>(viewport, std::move(resources), std::move(configs));
+    return std::make_unique<ViewportConfig>(
+        viewport,
+        renderGraph,
+        std::move(resources),
+        std::move(configs)
+    );
 }
 
 auto trc::RenderConfig::makeViewports(
@@ -104,12 +123,12 @@ auto trc::RenderConfig::makeViewports(
 
 auto trc::RenderConfig::getRenderGraph() -> RenderGraph&
 {
-    return renderGraph;
+    return *renderGraph;
 }
 
 auto trc::RenderConfig::getRenderGraph() const -> const RenderGraph&
 {
-    return renderGraph;
+    return *renderGraph;
 }
 
 auto trc::RenderConfig::getResourceConfig() -> ResourceConfig&

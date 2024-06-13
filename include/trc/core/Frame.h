@@ -12,6 +12,7 @@ namespace trc
 
     struct DrawGroup
     {
+        ViewportConfig* config;
         ResourceStorage* resources;
         SceneBase* scene;
 

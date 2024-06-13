@@ -10,7 +10,7 @@ namespace trc
 auto Frame::addViewport(ViewportConfig& config, SceneBase& scene) -> DrawGroup&
 {
     auto& group = *drawGroups.emplace_back(
-        std::make_unique<DrawGroup>(&config.getResources(), &scene, TaskQueue{})
+        std::make_unique<DrawGroup>(&config, &config.getResources(), &scene, TaskQueue{})
     );
     config.createTasks(scene, group.taskQueue);
 

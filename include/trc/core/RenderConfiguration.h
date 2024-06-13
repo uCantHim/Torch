@@ -20,6 +20,7 @@ namespace trc
     {
     public:
         ViewportConfig(Viewport viewport,
+                       s_ptr<RenderGraph> renderGraph,
                        ResourceStorage resourceStorage,
                        std::vector<u_ptr<DrawConfig>> pluginConfigs);
 
@@ -27,12 +28,14 @@ namespace trc
         void createTasks(SceneBase& scene, TaskQueue& taskQueue);
 
         auto getViewport() const -> Viewport;
+        auto getRenderGraph() const -> const RenderGraph&;
         auto getResources() -> ResourceStorage&;
         auto getResources() const -> const ResourceStorage&;
 
     private:
         Viewport viewport;
 
+        s_ptr<RenderGraph> renderGraph;
         ResourceStorage resources;
         std::vector<u_ptr<DrawConfig>> pluginConfigs;
     };
@@ -81,7 +84,7 @@ namespace trc
         auto getResourceConfig() const -> const ResourceConfig&;
 
     protected:
-        RenderGraph renderGraph;
+        s_ptr<RenderGraph> renderGraph;
         s_ptr<ResourceConfig> resourceConfig;
         s_ptr<PipelineStorage> pipelineStorage;
 
