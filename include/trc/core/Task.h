@@ -24,6 +24,10 @@ namespace trc
         Frame* frame;
         ResourceStorage* resources;
         SceneBase* scene;
+
+        inline auto getDependencyRegion() const -> const DependencyRegion& {
+            return *static_cast<const DependencyRegion*>(this);
+        }
     };
 
     class Task

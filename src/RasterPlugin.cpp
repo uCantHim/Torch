@@ -40,6 +40,9 @@ void RasterPlugin::registerRenderStages(RenderGraph& graph)
     graph.createOrdering(resourceUpdateStage, shadowRenderStage);
     graph.createOrdering(shadowRenderStage, gBufferRenderStage);
     graph.createOrdering(gBufferRenderStage, finalLightingRenderStage);
+
+    graph.createOrdering(renderTargetImageInitStage, finalLightingRenderStage);
+    graph.createOrdering(finalLightingRenderStage, renderTargetImageFinalizeStage);
 }
 
 void RasterPlugin::defineResources(ResourceConfig& config)

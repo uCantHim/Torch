@@ -31,6 +31,7 @@ target_sources(
         ShaderLoader.cpp
         ShaderPath.cpp
         ShadowPool.cpp
+        SwapchainPlugin.cpp
         TopLevelAccelerationStructureBuilder.cpp
         Torch.cpp
         Transformation.cpp

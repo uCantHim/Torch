@@ -45,31 +45,23 @@ void trc::FinalLightingDispatcher::createTasks(TaskQueue& queue)
                                       2,  // set index
                                       *descSet, {});
 
-            imageMemoryBarrier(
-                cmdBuf,
+            env.consume(ImageAccess{
                 targetImage,
-                vk::ImageLayout::ePresentSrcKHR,
+                vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 },
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite,
                 vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                vk::PipelineStageFlagBits::eComputeShader,
-                {},
-                vk::AccessFlagBits::eShaderWrite,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
+            });
 
             cmdBuf.dispatch(groupCount.x, groupCount.y, groupCount.z);
 
-            imageMemoryBarrier(
-                cmdBuf,
+            env.produce(ImageAccess{
                 targetImage,
+                vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 },
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite,
                 vk::ImageLayout::eGeneral,
-                vk::ImageLayout::ePresentSrcKHR,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eShaderWrite,
-                {},
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
+            });
         })
     );
 }

@@ -4,6 +4,7 @@
 #include "trc/PipelineDefinitions.h"
 #include "trc/RasterPlugin.h"
 #include "trc/RasterTasks.h"
+#include "trc/SwapchainPlugin.h"
 #include "trc/TorchRenderStages.h"
 #include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
@@ -65,6 +66,7 @@ auto trc::makeTorchRenderConfig(
     const Device& device{ instance.getDevice() };
 
     RenderConfig renderConfig{ instance };
+    renderConfig.registerPlugin(std::make_shared<SwapchainPlugin>());
     renderConfig.registerPlugin(std::make_shared<AssetPlugin>(
         createInfo.assetRegistry,
         createInfo.assetDescriptor

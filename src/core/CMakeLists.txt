@@ -3,6 +3,7 @@ target_sources(
     PRIVATE
         CommandRecorder.cpp
         ComputePipelineBuilder.cpp
+        DataFlow.cpp
         DescriptorProvider.cpp
         DescriptorRegistry.cpp
         Frame.cpp
