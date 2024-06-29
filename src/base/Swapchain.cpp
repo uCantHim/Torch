@@ -664,11 +664,14 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     swapchainFormat = optimalFormat.format;
     presentMode = optimalPresentMode;
 
-    // Retrieve created images
+    // Retrieve created images and create image views
     images = device->getSwapchainImagesKHR(*swapchain);
     imageViews.clear();
-    for (size_t i = 0; i < images.size(); i++) {
+    for (size_t i = 0; i < images.size(); i++)
+    {
         imageViews.emplace_back(createImageView(i));
+        device.setDebugName(images[i], "Swapchain image #" + std::to_string(i));
+        device.setDebugName(*imageViews[i], "Swapchain image view #" + std::to_string(i));
     }
 
     // Logging
