@@ -40,22 +40,6 @@ void trc::GBufferPass::begin(
 {
     gBuffer.initFrame(cmdBuf);
 
-    // Bring depth image into depthStencil layout
-    barrier(cmdBuf, vk::ImageMemoryBarrier2{
-        // 1st scope
-        vk::PipelineStageFlagBits2::eBottomOfPipe,
-        vk::AccessFlagBits2::eNone,
-        // 2nd scope
-        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-        // Layout transition
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-        *gBuffer.getImage(GBuffer::eDepth),
-        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
-    });
-
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderPass,
@@ -129,7 +113,7 @@ auto trc::GBufferPass::makeVkRenderPass(const Device& device)
             vk::Format::eD24UnormS8Uint,
             vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
-            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
+            vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
             vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
     };

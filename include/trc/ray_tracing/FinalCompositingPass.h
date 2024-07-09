@@ -1,19 +1,13 @@
 #pragma once
 
 #include "trc/core/Pipeline.h"
-#include "trc/core/RenderStage.h"
+#include "trc/core/PipelineLayout.h"
+#include "trc/core/RenderPipelineTasks.h"
+#include "trc/core/RenderTarget.h"
 #include "trc/ray_tracing/RayBuffer.h"
-
-namespace trc
-{
-    class TaskQueue;
-    struct Viewport;
-}
 
 namespace trc::rt
 {
-    inline RenderStage compositingStage = RenderStage::make();
-
     class CompositingDescriptor
     {
     public:
@@ -39,18 +33,15 @@ namespace trc::rt
     /**
      * @brief Compute pass that merges raster and rt results together
      */
-    class FinalCompositingPass
+    class FinalCompositingDispatcher
     {
     public:
-        /**
-         * @brief
-         */
-        FinalCompositingPass(const Device& device,
+        FinalCompositingDispatcher(const Device& device,
                              const RayBuffer& rayBuffer,
                              const Viewport& renderTarget,
                              CompositingDescriptor& descriptor);
 
-        void createTasks(TaskQueue& taskQueue);
+        void createTasks(ViewportDrawTaskQueue& taskQueue);
 
     private:
         static constexpr uvec3 COMPUTE_LOCAL_SIZE{ 10, 10, 1 };

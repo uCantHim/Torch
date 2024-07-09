@@ -4,27 +4,31 @@
 
 namespace trc
 {
+    class Swapchain;
+
     class SwapchainPlugin : public RenderPlugin
     {
     public:
-        void registerRenderStages(RenderGraph& renderGraph) override;
+        explicit SwapchainPlugin(const Swapchain& swapchain);
+
+        void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig&) override {}
 
-        auto createDrawConfig(const Device& device, Viewport renderTarget)
-            -> u_ptr<DrawConfig> override;
+        auto createGlobalResources(RenderPipelineContext& ctx) -> u_ptr<GlobalResources> override;
 
     private:
-        struct SwapchainPluginDrawConfig : public DrawConfig
+        struct Instance : public GlobalResources
         {
-            explicit SwapchainPluginDrawConfig(vk::Image swapchainImage)
-                : image(swapchainImage) {}
+            explicit Instance(const Swapchain& sc)
+                : swapchain(sc) {}
 
             void registerResources(ResourceStorage&) override {}
-            void update(const Device&, SceneBase&, const Camera&) override {}
+            void hostUpdate(RenderPipelineContext&) override {}
+            void createTasks(GlobalUpdateTaskQueue& taskQueue) override;
 
-            void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
-
-            vk::Image image;
+            const Swapchain& swapchain;
         };
+
+        const Swapchain& swapchain;
     };
 } // namespace trc

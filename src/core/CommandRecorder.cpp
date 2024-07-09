@@ -4,10 +4,12 @@
 
 #include <trc_util/algorithm/VectorTransform.h>
 
+#include "trc/base/Device.h"
 #include "trc/base/Logging.h"
+#include "trc/core/DataFlow.h"
+#include "trc/core/DeviceTask.h"
 #include "trc/core/Frame.h"
-#include "trc/core/RenderConfiguration.h"
-#include "trc/core/Task.h"
+#include "trc/core/RenderStage.h"
 
 
 
@@ -63,15 +65,7 @@ trc::CommandRecorder::CommandRecorder(
 
 auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
 {
-    const size_t numCmdBufs = [&]{
-        size_t res{ 0 };
-        for (const auto& vp : frame.getViewports()) {
-            for (const auto& stage : vp->taskQueue.tasks) {
-                res += stage.size();
-            }
-        }
-        return res;
-    }();
+    const size_t numCmdBufs = frame.getRenderGraph().size();
     //log::debug << "[CommandRecorder]: Recording task commands with "
     //           << numThreads << " threads.";
 
@@ -109,59 +103,41 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
     // Each viewport has its own list of command buffer recordings (one command
     // buffer for each render stage) that define resource dependencies among
     // each other.
-    std::vector<std::vector<std::future<StageRecording>>> futuresPerVp;
-    futuresPerVp.reserve(frame.getViewports().size());
+    std::vector<std::future<StageRecording>> futures;
+    futures.reserve(numCmdBufs);
 
-    // Dispatch command buffer recorder threads.
+    // For each render stage, dispatch one thread that executes its tasks.
     ui32 threadIndex = 0;
-    for (auto& vp : frame.getViewports())
+    for (const RenderStage::ID stage : frame.getRenderGraph())
     {
-        auto& renderGraph = vp->config->getRenderGraph();
-        auto& futures = futuresPerVp.emplace_back();
+        vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
 
-        // For each render stage, dispatch one thread that executes its tasks.
-        for (const RenderStage::ID stage : renderGraph)
-        {
-            auto tasks = vp->taskQueue.tasks.try_get(stage);
-            if (!tasks || tasks->empty()) {
-                continue;
-            }
+        // Record all tasks in the stage's task queue
+        futures.emplace_back(threadPool->async(
+            [&frame, stage, cmdBuf]() -> StageRecording
+            {
+                auto deps = std::make_shared<DependencyRegion>();
+                DeviceExecutionContext ctx = frame.makeTaskExecutionContext(deps);
 
-            vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
-
-            // Record all tasks in the stage's task queue
-            futures.emplace_back(threadPool->async(
-                [&device, &frame, tasks, &vp, cmdBuf, stage]() -> StageRecording
-                {
-                    TaskEnvironment env{ {}, device, &frame, vp->resources, vp->scene };
-
-                    cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-                    for (auto& task : *tasks) {
-                        task->record(cmdBuf, env);
-                    }
-                    // We do NOT end the command buffer here! This is done in
-                    // `finalizeCmdBuffers` because additional pipeline barriers
-                    // need to be recorded at the end of command buffers.
-                    // cmdBuf.end();
-
-                    return { stage, cmdBuf, env.getDependencyRegion() };
+                cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+                for (auto& task : frame.iterTasks(stage)) {
+                    task.record(cmdBuf, ctx);
                 }
-            ));
-            ++threadIndex;
-        }
+
+                // We do NOT end the command buffer here! This is done in
+                // `finalizeCmdBuffers` because additional pipeline barriers
+                // need to be recorded at the end of command buffers.
+
+                return { stage, cmdBuf, std::move(*deps) };
+            }
+        ));
+        ++threadIndex;
     }
 
     // Join threads and finalize the recorded command buffers
-    std::vector<vk::CommandBuffer> result;
-    for (auto& vp : futuresPerVp)
-    {
-        std::vector<StageRecording> recs;
-        recs.reserve(vp.size());
-        for (auto& f : vp) recs.emplace_back(f.get());
+    std::vector<StageRecording> recs;
+    recs.reserve(futures.size());
+    for (auto& f : futures) recs.emplace_back(f.get());
 
-        auto cmdBufs = finalizeCmdBuffers(std::move(recs));
-        util::merge(result, cmdBufs);
-    }
-
-    return result;
+    return finalizeCmdBuffers(std::move(recs));
 }

@@ -4,8 +4,6 @@
 
 namespace trc
 {
-    class TaskQueue;
-
     class SceneModule
     {
     public:

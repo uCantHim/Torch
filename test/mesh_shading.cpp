@@ -60,7 +60,7 @@ void run()
         .addBinding(vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eMeshNV)
         .build(device);
 
-    torch->getRenderConfig().getResourceConfig().defineDescriptor(
+    torch->getRenderPipeline().getResourceConfig().defineDescriptor(
         trc::DescriptorName{ "mesh_input" },
         *descLayout
     );

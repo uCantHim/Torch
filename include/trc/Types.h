@@ -90,16 +90,3 @@ namespace trc
 {
     using namespace basic_types;
 } // namespace trc
-
-/**
- * Expose Torch's interface with vk_base completely integrated into the trc
- * namespace to avoid confusion.
- */
-#ifdef TRC_USE_VKB_NAMESPACE
-namespace trc {}
-
-namespace trc
-{
-    using namespace trc;
-} // namespace trc
-#endif

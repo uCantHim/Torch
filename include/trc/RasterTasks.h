@@ -1,10 +1,11 @@
 #pragma once
 
+#include "trc/core/RenderPipelineTasks.h"
 #include "trc/core/RenderStage.h"
-#include "trc/core/Task.h"
 
 namespace trc
 {
+    class RasterSceneModule;
     class RenderPass;
 
     /**
@@ -12,12 +13,13 @@ namespace trc
      *        RasterSceneBase for a specific render stage within a specific
      *        instance of a render pass
      */
-    class RenderPassDrawTask : public Task
+    class RenderPassDrawTask : public ViewportDrawTask
     {
     public:
-        RenderPassDrawTask(RenderStage::ID renderStage, s_ptr<RenderPass> renderPass);
+        RenderPassDrawTask(RenderStage::ID renderStage,
+                           s_ptr<RenderPass> renderPass);
 
-        void record(vk::CommandBuffer cmdBuf, TaskEnvironment& env) override;
+        void record(vk::CommandBuffer cmdBuf, ViewportDrawContext& env) override;
 
     private:
         RenderStage::ID renderStage;

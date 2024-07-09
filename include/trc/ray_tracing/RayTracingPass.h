@@ -1,19 +1,13 @@
 #pragma once
 
-#include <vector>
-
-#include "trc/base/FrameSpecificObject.h"
-
-#include "trc/core/Pipeline.h"
-#include "trc/core/Task.h"
-#include "trc/ray_tracing/AccelerationStructure.h"
-#include "trc/ray_tracing/FinalCompositingPass.h"
-#include "trc/ray_tracing/RaygenDescriptor.h"
-#include "trc/ray_tracing/RayBuffer.h"
-#include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/core/RenderPipelineTasks.h"
+#include "trc/ray_tracing/ShaderBindingTable.h"
 
 namespace trc
 {
+    class Pipeline;
+    class PipelineLayout;
+
     struct RayTracingCall
     {
         PipelineLayout* pipelineLayout;
@@ -34,12 +28,12 @@ namespace trc
     /**
      * @brief A renderpass that does nothing
      */
-    class RayTracingTask : public Task
+    class RayTracingTask : public ViewportDrawTask
     {
     public:
         explicit RayTracingTask(RayTracingCall rayCall);
 
-        void record(vk::CommandBuffer cmdBuf, TaskEnvironment& env) override;
+        void record(vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx) override;
 
     private:
         RayTracingCall rayCall;

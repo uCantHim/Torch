@@ -1,9 +1,5 @@
 #pragma once
 
-#include "trc/base/Image.h"
-#include "trc/base/FrameClock.h"
-#include "trc/base/FrameSpecificObject.h"
-
 #include "trc/ray_tracing/AccelerationStructure.h"
 
 namespace trc::rt
@@ -13,20 +9,17 @@ namespace trc::rt
     public:
         RaygenDescriptorPool(const Instance& instance, ui32 maxDescriptorSets);
 
-        auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
+        auto getTlasDescriptorSetLayout() const -> vk::DescriptorSetLayout;
+        auto getImageDescriptorSetLayout() const -> vk::DescriptorSetLayout;
 
-        auto allocateDescriptorSet(const TLAS& tlas,
-                                   vk::ImageView outputImageView)
-            -> vk::UniqueDescriptorSet;
-
-        auto allocateFrameSpecificDescriptorSet(const TLAS& tlas,
-                                                FrameSpecific<vk::ImageView> outputImageView)
-            -> FrameSpecific<vk::UniqueDescriptorSet>;
+        auto allocateTlasDescriptorSet(const TLAS& tlas) -> vk::UniqueDescriptorSet;
+        auto allocateImageDescriptorSet(vk::ImageView image) -> vk::UniqueDescriptorSet;
 
     private:
         const Device& device;
 
         vk::UniqueDescriptorPool pool;
-        vk::UniqueDescriptorSetLayout layout;
+        vk::UniqueDescriptorSetLayout tlasLayout;
+        vk::UniqueDescriptorSetLayout imageLayout;
     };
 } // namespace trc::rt

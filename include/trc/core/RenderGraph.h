@@ -8,7 +8,15 @@
 
 namespace trc
 {
-    class Window;
+    /**
+     * @brief An ordered, iterable representation of a render graph.
+     *
+     * Create a render graph layout with `RenderGraph::compile`.
+     *
+     * Iterating over the render graph layout yields defined render stages in
+     * the order in which they depend on each other.
+     */
+    class RenderGraphLayout;
 
     /**
      * @brief Declares render stages and dependencies between them.
@@ -16,15 +24,10 @@ namespace trc
     class RenderGraph
     {
     public:
-        friend class RenderGraphIterator;
-
-        using const_iterator = class RenderGraphIterator;
-
         RenderGraph() = default;
 
         /**
-         * @throw std::invalid_argument if `newStage` is already present in the
-         *        render graph.
+         * @brief Add a stage to the graph.
          */
         void insert(RenderStage::ID newStage);
 
@@ -37,6 +40,35 @@ namespace trc
          */
         void createOrdering(RenderStage::ID from, RenderStage::ID to);
 
+        /**
+         * @throw std::runtime_error if the graph contains cycles.
+         */
+        auto compile() const -> RenderGraphLayout;
+
+    private:
+        /**
+         * @return bool True if the graph contains a cycle, false otherwise.
+         */
+        bool hasCycles() const;
+
+        // Declares all dependencies among stages. Is not inherently cycle-free;
+        // `hasCycles` computes that property.
+        std::unordered_map<RenderStage::ID, std::unordered_set<RenderStage::ID>> stageDeps;
+
+        // Stages that don't depend on any other stages.
+        std::unordered_set<RenderStage::ID> headStages;
+    };
+
+    class RenderGraphLayout
+    {
+    public:
+        using const_iterator = class RenderGraphIterator;
+
+        /**
+         * @return size_t Number of render stages in the graph.
+         */
+        auto size() const -> size_t;
+
         /** Iterate over stages in the graph in their dependency order. */
         auto begin() const -> const_iterator;
 
@@ -44,24 +76,10 @@ namespace trc
         auto end() const -> const_iterator;
 
     private:
-        /**
-         * @return None if `stage` is not present in the graph.
-         */
-        auto findLowestOrderIndex(RenderStage::ID stage) -> std::optional<size_t>;
+        friend RenderGraph;                // Creates RenderGraphLayout
+        friend class RenderGraphIterator;  // Accesses RenderGraphLayout's private member
 
-        /**
-         * @return bool True if the graph contains a cycle, false otherwise.
-         */
-        bool hasCycles() const;
-
-        /**
-         * Uses persistent information from `headStages` and `stageDeps` to
-         * recalculate the iterable `orderedStages` representation.
-         *
-         * Must not be called if the graph may contain cycles. Check with
-         * `hasCycles` first.
-         */
-        void recalcLayout();
+        RenderGraphLayout() = default;
 
         /**
          * As we are only interested in the acyclic ordering of stages with
@@ -85,13 +103,6 @@ namespace trc
          * `orderedStages[0]` contains all nodes of rank 0, and so on.
          */
         std::vector<std::vector<RenderStage::ID>> orderedStages;
-
-        // Declares all dependencies. `recalcLayout` computes the `orderedStages` vector
-        // from this information.
-        std::unordered_map<RenderStage::ID, std::unordered_set<RenderStage::ID>> stageDeps;
-
-        // After a call to `recalcLayout`, this is equal to `orderedStages[0]`.
-        std::unordered_set<RenderStage::ID> headStages;
     };
 
     class RenderGraphIterator
@@ -106,16 +117,16 @@ namespace trc
 
         bool operator==(const RenderGraphIterator& other) const;
 
-        static auto makeBegin(const RenderGraph* graph) -> RenderGraphIterator;
-        static auto makeEnd(const RenderGraph* graph) -> RenderGraphIterator;
+        static auto makeBegin(const RenderGraphLayout& graph) -> RenderGraphIterator;
+        static auto makeEnd(const RenderGraphLayout& graph) -> RenderGraphIterator;
 
     private:
-        using OuterIter = decltype(RenderGraph::orderedStages)::const_iterator;
+        using OuterIter = decltype(RenderGraphLayout::orderedStages)::const_iterator;
         using InnerIter = std::vector<RenderStage::ID>::const_iterator;
 
-        RenderGraphIterator(const RenderGraph* graph);
+        RenderGraphIterator(const RenderGraphLayout& graph);
 
-        const RenderGraph* graph;
+        const RenderGraphLayout& graph;
         OuterIter outer;
         InnerIter inner;
     };

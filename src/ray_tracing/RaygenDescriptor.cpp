@@ -22,46 +22,48 @@ RaygenDescriptorPool::RaygenDescriptorPool(const Instance& instance, ui32 maxDes
         poolSizes
     });
 
-    layout = buildDescriptorSetLayout()
-        .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1, vk::ShaderStageFlagBits::eRaygenKHR)
+    imageLayout = buildDescriptorSetLayout()
         .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eRaygenKHR)
+        .build(device);
+    tlasLayout = buildDescriptorSetLayout()
+        .addBinding(vk::DescriptorType::eAccelerationStructureKHR, 1, vk::ShaderStageFlagBits::eRaygenKHR)
         .build(device);
 }
 
-auto RaygenDescriptorPool::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
+auto RaygenDescriptorPool::getTlasDescriptorSetLayout() const -> vk::DescriptorSetLayout
 {
-    return *layout;
+    return *tlasLayout;
 }
 
-auto RaygenDescriptorPool::allocateDescriptorSet(const TLAS& tlas, vk::ImageView outputImageView)
+auto RaygenDescriptorPool::getImageDescriptorSetLayout() const -> vk::DescriptorSetLayout
+{
+    return *imageLayout;
+}
+
+auto RaygenDescriptorPool::allocateTlasDescriptorSet(const TLAS& tlas)
     -> vk::UniqueDescriptorSet
 {
-    auto set = std::move(device->allocateDescriptorSetsUnique({ *pool, *layout })[0]);
+    auto set = std::move(device->allocateDescriptorSetsUnique({ *pool, *tlasLayout })[0]);
 
     vk::StructureChain tlasWrite{
         vk::WriteDescriptorSet(*set, 0, 0, 1, vk::DescriptorType::eAccelerationStructureKHR),
         vk::WriteDescriptorSetAccelerationStructureKHR(*tlas)
     };
-
-    vk::DescriptorImageInfo image({}, outputImageView, vk::ImageLayout::eGeneral);
-    vk::WriteDescriptorSet imageWrite(*set, 1, 0, vk::DescriptorType::eStorageImage, image);
-
-    device->updateDescriptorSets({ tlasWrite.get(), imageWrite }, {});
+    device->updateDescriptorSets({ tlasWrite.get() }, {});
 
     return set;
 }
 
-auto RaygenDescriptorPool::allocateFrameSpecificDescriptorSet(
-    const TLAS& tlas,
-    FrameSpecific<vk::ImageView> outputImageView)
-    -> FrameSpecific<vk::UniqueDescriptorSet>
+auto RaygenDescriptorPool::allocateImageDescriptorSet(vk::ImageView imageView)
+    -> vk::UniqueDescriptorSet
 {
-    return {
-        outputImageView.getFrameClock(),
-        [&](ui32 i) {
-            return allocateDescriptorSet(tlas, outputImageView.getAt(i));
-        }
-    };
+    auto set = std::move(device->allocateDescriptorSetsUnique({ *pool, *tlasLayout })[0]);
+
+    vk::DescriptorImageInfo image({}, imageView, vk::ImageLayout::eGeneral);
+    vk::WriteDescriptorSet imageWrite(*set, 1, 0, vk::DescriptorType::eStorageImage, image);
+    device->updateDescriptorSets({ imageWrite }, {});
+
+    return set;
 }
 
 } // namespace trc::rt

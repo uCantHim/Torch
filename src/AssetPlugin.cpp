@@ -6,9 +6,7 @@
 #include "trc/core/Frame.h"
 #include "trc/core/RenderGraph.h"
 #include "trc/core/ResourceConfig.h"
-#include "trc/core/Task.h"
-
-#include "trc/core/DataFlow.h"
+#include "trc/core/DeviceTask.h"
 
 
 
@@ -24,7 +22,7 @@ AssetPlugin::AssetPlugin(
 {
 }
 
-void AssetPlugin::registerRenderStages(RenderGraph& renderGraph)
+void AssetPlugin::defineRenderStages(RenderGraph& renderGraph)
 {
     renderGraph.insert(resourceUpdateStage);
 }
@@ -35,8 +33,8 @@ void AssetPlugin::defineResources(ResourceConfig& config)
                             assetDescriptor->getDescriptorSetLayout());
 }
 
-auto AssetPlugin::createDrawConfig(const Device& /*device*/, Viewport /*renderTarget*/)
-    -> u_ptr<DrawConfig>
+auto AssetPlugin::createGlobalResources(RenderPipelineContext&)
+    -> u_ptr<GlobalResources>
 {
     return std::make_unique<UpdateConfig>(*this);
 }
@@ -55,18 +53,18 @@ void AssetPlugin::UpdateConfig::registerResources(ResourceStorage& resources)
                                 parent->assetDescriptor);
 }
 
-void AssetPlugin::UpdateConfig::update(const Device& device, SceneBase&, const Camera&)
+void AssetPlugin::UpdateConfig::hostUpdate(RenderPipelineContext& ctx)
 {
-    parent->assetDescriptor->update(device);
+    parent->assetDescriptor->update(ctx.device());
 }
 
-void AssetPlugin::UpdateConfig::createTasks(SceneBase& /*scene*/, TaskQueue& taskQueue)
+void AssetPlugin::UpdateConfig::createTasks(GlobalUpdateTaskQueue& taskQueue)
 {
     taskQueue.spawnTask(
         resourceUpdateStage,
-        makeTask([reg=parent->registry](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
-            reg->updateDeviceResources(cmdBuf, *env.frame);
-        })
+        [reg=parent->registry](vk::CommandBuffer cmdBuf, GlobalUpdateContext& ctx) {
+            reg->updateDeviceResources(cmdBuf, ctx.frame());
+        }
     );
 }
 

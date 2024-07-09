@@ -6,37 +6,37 @@
 #include "trc/RasterPipelines.h"
 #include "trc/RasterPlugin.h"
 #include "trc/TorchRenderStages.h"
-#include "trc/base/Barriers.h"
 #include "trc/core/ComputePipelineBuilder.h"
+#include "trc/core/Frame.h"
 #include "trc/core/PipelineLayoutBuilder.h"
 #include "trc/core/ResourceConfig.h"
-#include "trc/core/Task.h"
+#include "trc/core/DeviceTask.h"
 
 
 
 trc::FinalLightingDispatcher::FinalLightingDispatcher(
-    Viewport viewport,
+    const Viewport& viewport,
     Pipeline::ID pipeline,
     vk::UniqueDescriptorSet renderTargetDescSet)
     :
-    groupCount{ (uvec3(viewport.size, 1) + kLocalGroupSize - 1u) / kLocalGroupSize },
-    renderOffset(viewport.offset),
-    renderSize(viewport.size),
-    targetImage(viewport.image),
+    groupCount{ (uvec3(viewport.area.size, 1) + kLocalGroupSize - 1u) / kLocalGroupSize },
+    renderOffset(viewport.area.offset),
+    renderSize(viewport.area.size),
+    targetImage(viewport.target.image),
     pipeline(pipeline),
     descSet(std::move(renderTargetDescSet))
 {
 }
 
-void trc::FinalLightingDispatcher::createTasks(TaskQueue& queue)
+void trc::FinalLightingDispatcher::createTasks(ViewportDrawTaskQueue& queue)
 {
     queue.spawnTask(
         finalLightingRenderStage,
-        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env){
-            const auto& pipeline = env.resources->getPipeline(this->pipeline);
+        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx){
+            const auto& pipeline = ctx.resources().getPipeline(this->pipeline);
             const auto layout = *pipeline.getLayout();
 
-            pipeline.bind(cmdBuf, *env.resources);
+            pipeline.bind(cmdBuf, ctx.resources());
             cmdBuf.pushConstants<vec2>(layout,
                                        vk::ShaderStageFlagBits::eCompute,
                                        0, { renderOffset, renderSize });
@@ -45,7 +45,7 @@ void trc::FinalLightingDispatcher::createTasks(TaskQueue& queue)
                                       2,  // set index
                                       *descSet, {});
 
-            env.consume(ImageAccess{
+            ctx.deps().consume(ImageAccess{
                 targetImage,
                 vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 },
                 vk::PipelineStageFlagBits2::eComputeShader,
@@ -55,20 +55,20 @@ void trc::FinalLightingDispatcher::createTasks(TaskQueue& queue)
 
             cmdBuf.dispatch(groupCount.x, groupCount.y, groupCount.z);
 
-            env.produce(ImageAccess{
+            ctx.deps().produce(ImageAccess{
                 targetImage,
                 vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 },
                 vk::PipelineStageFlagBits2::eComputeShader,
                 vk::AccessFlagBits2::eShaderWrite,
                 vk::ImageLayout::eGeneral,
             });
-        })
+        }
     );
 }
 
 trc::FinalLighting::FinalLighting(
     const Device& device,
-    const ui32 maxViewports)
+    const ui32 maxInstances)
 {
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
@@ -76,7 +76,7 @@ trc::FinalLighting::FinalLighting(
     };
     descPool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo{
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        maxViewports,
+        maxInstances,
         poolSizes
     });
 
@@ -106,13 +106,13 @@ trc::FinalLighting::FinalLighting(
         .registerPipeline(layout);
 }
 
-auto trc::FinalLighting::makeDrawConfig(const Device& device, Viewport viewport)
+auto trc::FinalLighting::makeDrawConfig(const Device& device, const Viewport& viewport)
     -> u_ptr<FinalLightingDispatcher>
 {
     // Create the descriptor set
     auto descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
 
-    vk::DescriptorImageInfo imageInfo({}, viewport.imageView, vk::ImageLayout::eGeneral);
+    vk::DescriptorImageInfo imageInfo({}, viewport.target.imageView, vk::ImageLayout::eGeneral);
     vk::WriteDescriptorSet write(
         *descSet, 0, 0, vk::DescriptorType::eStorageImage, imageInfo
     );

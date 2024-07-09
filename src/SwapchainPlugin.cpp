@@ -1,41 +1,46 @@
 #include "trc/SwapchainPlugin.h"
 
 #include "trc/TorchRenderStages.h"
+#include "trc/base/Swapchain.h"
+#include "trc/core/DataFlow.h"
 #include "trc/core/RenderGraph.h"
-#include "trc/core/Task.h"
 
 
 
 namespace trc
 {
 
-void SwapchainPlugin::registerRenderStages(RenderGraph& graph)
+SwapchainPlugin::SwapchainPlugin(const Swapchain& swapchain)
+    :
+    swapchain(swapchain)
+{
+}
+
+void SwapchainPlugin::defineRenderStages(RenderGraph& graph)
 {
     graph.insert(renderTargetImageInitStage);
     graph.insert(renderTargetImageFinalizeStage);
 }
 
-auto SwapchainPlugin::createDrawConfig(const Device& /*device*/, Viewport renderTarget)
-    -> u_ptr<DrawConfig>
+auto SwapchainPlugin::createGlobalResources(RenderPipelineContext&)
+    -> u_ptr<GlobalResources>
 {
-    return std::make_unique<SwapchainPluginDrawConfig>(renderTarget.image);
+    return std::make_unique<Instance>(swapchain);
 }
 
-void SwapchainPlugin::SwapchainPluginDrawConfig::createTasks(
-    SceneBase& /*scene*/,
-    TaskQueue& taskQueue)
+void SwapchainPlugin::Instance::createTasks(GlobalUpdateTaskQueue& queue)
 {
     // Create accesses to swapchain image in pre- and post stages
-    taskQueue.spawnTask(renderTargetImageInitStage,
-        makeTask([image=this->image](vk::CommandBuffer, TaskEnvironment& env) {
-            env.produce(ImageAccess{
-                image,
+    queue.spawnTask(renderTargetImageInitStage,
+        [this](vk::CommandBuffer, GlobalUpdateContext& ctx) {
+            ctx.deps().produce(ImageAccess{
+                swapchain.getImage(swapchain.getCurrentFrame()),
                 vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
                 vk::PipelineStageFlagBits2::eTopOfPipe,
                 vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead,
                 vk::ImageLayout::eUndefined
             });
-        })
+        }
     );
 
     /**
@@ -49,16 +54,16 @@ void SwapchainPlugin::SwapchainPluginDrawConfig::createTasks(
      * the dstStageMask parameter should be set to
      * VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT.
      */
-    taskQueue.spawnTask(renderTargetImageFinalizeStage,
-        makeTask([image=this->image](vk::CommandBuffer, TaskEnvironment& env) {
-            env.consume(ImageAccess{
-                image,
+    queue.spawnTask(renderTargetImageFinalizeStage,
+        [this](vk::CommandBuffer, GlobalUpdateContext& ctx) {
+            ctx.deps().consume(ImageAccess{
+                swapchain.getImage(swapchain.getCurrentFrame()),
                 vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
                 vk::PipelineStageFlagBits2::eBottomOfPipe,
                 vk::AccessFlagBits2::eNone,
                 vk::ImageLayout::ePresentSrcKHR
             });
-        })
+        }
     );
 }
 

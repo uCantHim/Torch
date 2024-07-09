@@ -1,12 +1,10 @@
 #include "trc/Torch.h"
 
+#include <cassert>
+
 #include "trc/AssetPlugin.h"
-#include "trc/PipelineDefinitions.h"
 #include "trc/RasterPlugin.h"
-#include "trc/RasterTasks.h"
 #include "trc/SwapchainPlugin.h"
-#include "trc/TorchRenderStages.h"
-#include "trc/UpdatePass.h"
 #include "trc/base/Logging.h"
 #include "trc/base/event/EventHandler.h"
 #include "trc/ray_tracing/RayTracingPlugin.h"
@@ -58,39 +56,47 @@ auto trc::initFull(
     return std::make_unique<TorchStack>(torchConfig, instanceInfo, windowInfo);
 }
 
-auto trc::makeTorchRenderConfig(
+auto trc::makeTorchRenderPipeline(
     const Instance& instance,
-    ui32 maxViewports,
-    const TorchRenderConfigCreateInfo& createInfo) -> RenderConfig
+    const Swapchain& swapchain,
+    const TorchRenderConfigCreateInfo& createInfo) -> u_ptr<RenderPipeline>
 {
-    const Device& device{ instance.getDevice() };
-
-    RenderConfig renderConfig{ instance };
-    renderConfig.registerPlugin(std::make_shared<SwapchainPlugin>());
-    renderConfig.registerPlugin(std::make_shared<AssetPlugin>(
-        createInfo.assetRegistry,
-        createInfo.assetDescriptor
-    ));
-    renderConfig.registerPlugin(std::make_shared<RasterPlugin>(
-        device,
-        maxViewports,
-        trc::RasterPluginCreateInfo{
-            .shadowDescriptor            = createInfo.shadowDescriptor,
-            .maxTransparentFragsPerPixel = 3,
-        }
-    ));
+    RenderPipelineBuilder builder;
+    builder.addPlugin([&swapchain](auto&) {
+        return std::make_unique<SwapchainPlugin>(swapchain);
+    });
+    builder.addPlugin([&createInfo](PluginBuildContext&) {
+        return std::make_unique<AssetPlugin>(
+            createInfo.assetRegistry,
+            createInfo.assetDescriptor
+        );
+    });
+    builder.addPlugin([&createInfo](PluginBuildContext& ctx) {
+        return std::make_unique<RasterPlugin>(
+            ctx.device(),
+            ctx.numViewports(),
+            trc::RasterPluginCreateInfo{
+                .shadowDescriptor            = createInfo.shadowDescriptor,
+                .maxTransparentFragsPerPixel = 3,
+            }
+        );
+    });
     if (createInfo.enableRayTracing && instance.hasRayTracing())
     {
-        renderConfig.registerPlugin(std::make_shared<RayTracingPlugin>(
-                instance,
-                renderConfig.getResourceConfig(),
-                maxViewports,
+        builder.addPlugin([&createInfo](PluginBuildContext& ctx) -> u_ptr<RenderPlugin> {
+            return std::make_unique<RayTracingPlugin>(
+                ctx.instance(),
+                ctx.numViewports(),
                 createInfo.maxRayGeometries
-            )
-        );
+            );
+        });
     }
 
-    return renderConfig;
+    return builder.compile(RenderPipelineCreateInfo{
+        instance,
+        makeRenderTarget(swapchain),
+        1,  // maximum number of viewports on the render target
+    });
 }
 
 
@@ -122,9 +128,9 @@ trc::TorchStack::TorchStack(
         window,
         ShadowPoolCreateInfo{ .maxShadowMaps=100 }
     )),
-    renderConfig(makeTorchRenderConfig(
+    renderPipeline(makeTorchRenderPipeline(
         instance,
-        window.getFrameCount(),
+        window,
         TorchRenderConfigCreateInfo{
             .assetRegistry=assetManager.getDeviceRegistry(),
             .assetDescriptor=assetDescriptor,
@@ -132,24 +138,35 @@ trc::TorchStack::TorchStack(
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
         }
     )),
-    renderer(instance.getDevice(), window),
-    viewports(renderConfig.makeViewports(
-        instance.getDevice(),
-        makeRenderTarget(window),
-        { 0, 0 },
-        window.getSize()
-    ))
+    defaultCamera{},
+    defaultScene{},
+    viewport(renderPipeline->makeViewport(
+        RenderArea{ { 0, 0 }, window.getSize() },
+        defaultCamera,
+        defaultScene
+    )),
+    renderer(instance.getDevice(), window)
 {
-    window.addCallbackAfterSwapchainRecreate([this](Swapchain& swapchain) {
-        // Free viewport resources first
-        viewports = { swapchain };
+    window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
+        renderPipeline.reset();
+        viewport.reset();
 
-        // Create new viewports
-        viewports = renderConfig.makeViewports(
-            instance.getDevice(),
-            makeRenderTarget(swapchain),
-            { 0, 0 },
-            swapchain.getSize()
+        // Recreate the entire render pipeline on swapchain recreate.
+        // This may not be optimal.
+        renderPipeline = makeTorchRenderPipeline(
+            instance,
+            window,
+            TorchRenderConfigCreateInfo{
+                .assetRegistry=assetManager.getDeviceRegistry(),
+                .assetDescriptor=assetDescriptor,
+                .shadowDescriptor=shadowPool,
+                .enableRayTracing=instance.hasRayTracing()
+            }
+        );
+        viewport = renderPipeline->makeViewport(
+            RenderArea{ { 0, 0 }, window.getSize() },
+            defaultCamera,
+            defaultScene
         );
     });
 }
@@ -184,20 +201,19 @@ auto trc::TorchStack::getShadowPool() -> ShadowPool&
     return *shadowPool;
 }
 
-auto trc::TorchStack::getRenderConfig() -> RenderConfig&
+auto trc::TorchStack::getRenderPipeline() -> RenderPipeline&
 {
-    return renderConfig;
+    assert(renderPipeline != nullptr);
+    return *renderPipeline;
 }
 
-void trc::TorchStack::drawFrame(const Camera& camera, SceneBase& scene)
+void trc::TorchStack::drawFrame(Camera& camera, SceneBase& scene)
 {
+    viewport.setCamera(camera);
+    viewport.setScene(scene);
+
     // Create a frame and draw to it
-    auto frame = std::make_unique<Frame>();
-
-    auto& currentViewport = **viewports;
-    currentViewport.update(instance.getDevice(), scene, camera);
-    frame->addViewport(currentViewport, scene);
-
+    auto frame = renderPipeline->draw();
     renderer.renderFrameAndPresent(std::move(frame), window);
 }
 

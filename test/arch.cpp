@@ -36,7 +36,7 @@ int main()
         instance.getDevice(), window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
     );
 
-    trc::RenderConfig renderConfig{ instance };
+    trc::RenderPipelineBuilder renderConfig{ instance };
     trc::RasterPlugin rasterization{
         instance.getDevice(),
         window.getFrameCount(),

@@ -2,8 +2,7 @@
 
 #include "trc/RasterSceneModule.h"
 #include "trc/core/Frame.h"
-#include "trc/core/RenderConfiguration.h"
-#include "trc/core/RenderPlugin.h"
+#include "trc/core/ResourceConfig.h"
 #include "trc/core/SceneBase.h"
 
 
@@ -24,11 +23,11 @@ RenderPassDrawTask::RenderPassDrawTask(
     }
 }
 
-void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
+void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx)
 {
-    const RasterSceneModule& scene = env.scene->getModule<RasterSceneModule>();
+    auto& scene = ctx.scene().getModule<RasterSceneModule>();
 
-    renderPass->begin(cmdBuf, vk::SubpassContents::eInline, *env.frame);
+    renderPass->begin(cmdBuf, vk::SubpassContents::eInline, ctx.frame());
 
     // Record all commands
     const ui32 subPassCount = renderPass->getNumSubPasses();
@@ -37,8 +36,8 @@ void RenderPassDrawTask::record(vk::CommandBuffer cmdBuf, TaskEnvironment& env)
         for (auto pipeline : scene.iterPipelines(renderStage, SubPass::ID(subPass)))
         {
             // Bind the current pipeline
-            auto& p = env.resources->getPipeline(pipeline);
-            p.bind(cmdBuf, *env.resources);
+            auto& p = ctx.resources().getPipeline(pipeline);
+            p.bind(cmdBuf, ctx.resources());
 
             // Record commands for all objects with this pipeline
             scene.invokeDrawFunctions(

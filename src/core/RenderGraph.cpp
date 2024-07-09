@@ -14,16 +14,6 @@ namespace trc
 
 void RenderGraph::insert(RenderStage::ID newStage)
 {
-    if (findLowestOrderIndex(newStage) != std::nullopt)
-    {
-        throw std::invalid_argument("[In RenderGraph::insert]: "
-                                    "New stage is already present in the graph!");
-    }
-
-    if (orderedStages.empty()) {
-        orderedStages.emplace_back();
-    }
-    orderedStages.front().emplace_back(newStage);
     headStages.emplace(newStage);
     stageDeps.try_emplace(newStage);
 }
@@ -48,30 +38,6 @@ void RenderGraph::createOrdering(RenderStage::ID from, RenderStage::ID to)
     }
 
     headStages.erase(to);  // the dependency destination is no longer a head stage
-    recalcLayout();
-}
-
-auto RenderGraph::begin() const -> const_iterator
-{
-    return RenderGraphIterator::makeBegin(this);
-}
-
-auto RenderGraph::end() const -> const_iterator
-{
-    return RenderGraphIterator::makeEnd(this);
-}
-
-auto RenderGraph::findLowestOrderIndex(RenderStage::ID stage) -> std::optional<size_t>
-{
-    for (size_t i = 0; const auto& vec : orderedStages)
-    {
-        if (std::ranges::find(vec, stage) != vec.end()) {
-            return i;
-        }
-        ++i;
-    }
-
-    return std::nullopt;
 }
 
 bool RenderGraph::hasCycles() const
@@ -103,9 +69,11 @@ bool RenderGraph::hasCycles() const
     return false;
 }
 
-void RenderGraph::recalcLayout()
+auto RenderGraph::compile() const -> RenderGraphLayout
 {
-    assert(!hasCycles());
+    if (hasCycles()) {
+        throw std::runtime_error("[In RenderGraph::compile]: The graph contains cycles.");
+    }
 
     std::unordered_map<RenderStage::ID, size_t> ranks;
     std::function<void(RenderStage::ID, size_t)> visit = [&](RenderStage::ID stage, size_t rank) {
@@ -125,23 +93,45 @@ void RenderGraph::recalcLayout()
 
     assert(!ranks.empty());
     const size_t maxRank = *std::ranges::max_element(std::views::values(ranks));
-    orderedStages.clear();
-    orderedStages.resize(maxRank + 1);
 
+    RenderGraphLayout res;
+    res.orderedStages.resize(maxRank + 1);
     for (const auto& [stage, rank] : ranks) {
-        orderedStages.at(rank).emplace_back(stage);
+        res.orderedStages.at(rank).emplace_back(stage);
     }
+
+    return res;
 }
 
 
 
-RenderGraphIterator::RenderGraphIterator(const RenderGraph* _graph)
+auto RenderGraphLayout::size() const -> size_t
+{
+    size_t res{ 0 };
+    for (const auto& rank : orderedStages) {
+        res += rank.size();
+    }
+    return res;
+}
+
+auto RenderGraphLayout::begin() const -> const_iterator
+{
+    return RenderGraphIterator::makeBegin(*this);
+}
+
+auto RenderGraphLayout::end() const -> const_iterator
+{
+    return RenderGraphIterator::makeEnd(*this);
+}
+
+
+
+RenderGraphIterator::RenderGraphIterator(const RenderGraphLayout& _graph)
     :
     graph(_graph),
-    outer(graph->orderedStages.begin()),
-    inner(outer != graph->orderedStages.end() ? outer->begin() : InnerIter{})
+    outer(graph.orderedStages.begin()),
+    inner(outer != graph.orderedStages.end() ? outer->begin() : InnerIter{})
 {
-    assert(graph != nullptr);
 }
 
 auto RenderGraphIterator::operator*() -> RenderStage::ID
@@ -156,7 +146,7 @@ auto RenderGraphIterator::operator->() -> const RenderStage::ID*
 
 auto RenderGraphIterator::operator++() -> RenderGraphIterator&
 {
-    if (outer == graph->orderedStages.end())
+    if (outer == graph.orderedStages.end())
     {
         throw std::out_of_range("[In RenderGraphIterator::operator++]: "
                                 "Trying to increment an `end` iterator!");
@@ -166,7 +156,7 @@ auto RenderGraphIterator::operator++() -> RenderGraphIterator&
     if (inner == outer->end())
     {
         ++outer;
-        if (outer == graph->orderedStages.end()) {
+        if (outer == graph.orderedStages.end()) {
             inner = InnerIter{};
         }
         else {
@@ -179,26 +169,26 @@ auto RenderGraphIterator::operator++() -> RenderGraphIterator&
 
 bool RenderGraphIterator::operator==(const RenderGraphIterator& other) const
 {
-    if (graph == other.graph)
+    if (&graph == &other.graph)
     {
         // `outer` must be the same if `inner` is the same
         assert(inner == other.inner ? outer == other.outer : true);
     }
 
-    return other.graph == this->graph
+    return &other.graph == &this->graph
         && other.outer == this->outer
         && other.inner == this->inner;
 }
 
-auto RenderGraphIterator::makeBegin(const RenderGraph* graph) -> RenderGraphIterator
+auto RenderGraphIterator::makeBegin(const RenderGraphLayout& graph) -> RenderGraphIterator
 {
     return { graph };
 }
 
-auto RenderGraphIterator::makeEnd(const RenderGraph* graph) -> RenderGraphIterator
+auto RenderGraphIterator::makeEnd(const RenderGraphLayout& graph) -> RenderGraphIterator
 {
     RenderGraphIterator iter{ graph };
-    iter.outer = graph->orderedStages.end();
+    iter.outer = graph.orderedStages.end();
     iter.inner = InnerIter{};
     return iter;
 }

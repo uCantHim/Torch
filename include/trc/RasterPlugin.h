@@ -6,7 +6,6 @@
 #include "trc/RenderDataDescriptor.h"
 #include "trc/SceneDescriptor.h"
 #include "trc/ShadowPool.h"
-#include "trc/VulkanInclude.h"
 #include "trc/core/RenderPlugin.h"
 
 namespace trc
@@ -59,22 +58,22 @@ namespace trc
                      ui32 maxViewports,
                      const RasterPluginCreateInfo& createInfo);
 
-        void registerRenderStages(RenderGraph& renderGraph) override;
+        void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& config) override;
 
-        auto createDrawConfig(const Device& device, Viewport renderTarget)
-            -> u_ptr<DrawConfig> override;
+        auto createViewportResources(ViewportContext& ctx)
+            -> u_ptr<ViewportResources> override;
 
     private:
-        class RasterDrawConfig : public DrawConfig
+        class RasterDrawConfig : public ViewportResources
         {
         public:
             RasterDrawConfig(const Device& device, Viewport renderTarget, RasterPlugin& parent);
 
             void registerResources(ResourceStorage& resources) override;
 
-            void update(const Device& device, SceneBase& scene, const Camera& camera) override;
-            void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
+            void hostUpdate(ViewportContext& ctx) override;
+            void createTasks(ViewportDrawTaskQueue& taskQueue, ViewportContext& ctx) override;
 
         private:
             RasterPlugin* parent;

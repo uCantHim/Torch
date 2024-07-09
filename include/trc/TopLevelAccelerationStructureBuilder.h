@@ -1,18 +1,20 @@
 #pragma once
 
+#include "trc/core/RenderPipelineTasks.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/GeometryUtils.h"
 
 namespace trc
 {
-    class TaskQueue;
+    class RaySceneModule;
 
     class TopLevelAccelerationStructureBuilder
     {
     public:
         TopLevelAccelerationStructureBuilder(const Device& device, rt::TLAS& tlas);
 
-        void createTasks(TaskQueue& queue);
+        void uploadData(RaySceneModule& scene);
+        void createBuildTasks(SceneUpdateTaskQueue& queue);
 
     private:
         rt::TLAS* tlas;
@@ -23,5 +25,6 @@ namespace trc
 
         /** Persistent mapping of instanceBuildBuffer */
         rt::GeometryInstance* instances;
+        size_t numInstances{ 0 };
     };
 } // namespace trc

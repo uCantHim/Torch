@@ -4,7 +4,7 @@
 #include "trc/TorchRenderStages.h"
 #include "trc/base/Barriers.h"
 #include "trc/core/SceneBase.h"
-#include "trc/core/Task.h"
+#include "trc/core/DeviceTask.h"
 
 
 
@@ -36,11 +36,17 @@ TopLevelAccelerationStructureBuilder::TopLevelAccelerationStructureBuilder(
 {
 }
 
-void TopLevelAccelerationStructureBuilder::createTasks(TaskQueue& queue)
+void TopLevelAccelerationStructureBuilder::uploadData(RaySceneModule& scene)
+{
+    numInstances = scene.writeTlasInstances(instances, tlas->getMaxInstances());
+    instanceBuildBuffer.flush();
+}
+
+void TopLevelAccelerationStructureBuilder::createBuildTasks(SceneUpdateTaskQueue& queue)
 {
     queue.spawnTask(
         resourceUpdateStage,
-        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env)
+        [this](vk::CommandBuffer cmdBuf, auto&&)
         {
             bufferMemoryBarrier(
                 cmdBuf,
@@ -59,12 +65,8 @@ void TopLevelAccelerationStructureBuilder::createTasks(TaskQueue& queue)
                 vk::AccessFlagBits::eShaderRead
             );
 
-            auto& rayScene = env.scene->getModule<RaySceneModule>();
-            const size_t numInstances = rayScene.writeTlasInstances(instances, tlas->getMaxInstances());
-            instanceBuildBuffer.flush();
-
             tlas->build(cmdBuf, scratchMemoryAddress, *instanceBuildBuffer, numInstances);
-        })
+        }
     );
 }
 

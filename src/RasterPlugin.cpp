@@ -9,7 +9,7 @@
 #include "trc/core/RenderGraph.h"
 #include "trc/core/ResourceConfig.h"
 #include "trc/core/SceneBase.h"
-#include "trc/core/Task.h"
+#include "trc/core/DeviceTask.h"
 
 
 
@@ -31,7 +31,7 @@ RasterPlugin::RasterPlugin(
     compatibleShadowRenderPass = RenderPassShadow::makeVkRenderPass(device);
 }
 
-void RasterPlugin::registerRenderStages(RenderGraph& graph)
+void RasterPlugin::defineRenderStages(RenderGraph& graph)
 {
     graph.insert(shadowRenderStage);
     graph.insert(gBufferRenderStage);
@@ -72,10 +72,14 @@ void RasterPlugin::defineResources(ResourceConfig& config)
     );
 }
 
-auto RasterPlugin::createDrawConfig(const Device& device, Viewport renderTarget)
-    -> u_ptr<DrawConfig>
+auto RasterPlugin::createViewportResources(ViewportContext& ctx)
+    -> u_ptr<ViewportResources>
 {
-    return std::make_unique<RasterDrawConfig>(device, renderTarget, *this);
+    return std::make_unique<RasterDrawConfig>(
+        ctx.device(),
+        Viewport{ ctx.renderImage(), ctx.renderArea() },
+        *this
+    );
 }
 
 
@@ -90,7 +94,7 @@ RasterPlugin::RasterDrawConfig::RasterDrawConfig(
     RasterPlugin& parent)
     :
     parent(&parent),
-    gBuffer(device, { .size=renderTarget.size, .maxTransparentFragsPerPixel=2 }),
+    gBuffer(device, { .size=renderTarget.area.size, .maxTransparentFragsPerPixel=2 }),
     gBufferPass(std::make_shared<GBufferPass>(device, gBuffer)),
     gBufferDepthReaderPass(
         std::make_shared<GBufferDepthReader>(device, []{ return vec2{}; }, gBuffer)
@@ -115,35 +119,43 @@ void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resource
                                 parent->shadowDescriptor);
 }
 
-void RasterPlugin::RasterDrawConfig::update(
-    const Device& /*device*/,
-    SceneBase& scene,
-    const Camera& camera)
+void RasterPlugin::RasterDrawConfig::hostUpdate(ViewportContext& ctx)
 {
     parent->shadowDescriptor->update();
-    parent->sceneDescriptor->update(scene);
-    globalDataDescriptor->update(camera);
+    parent->sceneDescriptor->update(ctx.scene());
+    globalDataDescriptor->update(ctx.camera());
 }
 
-void RasterPlugin::RasterDrawConfig::createTasks(SceneBase& scene, TaskQueue& taskQueue)
+void RasterPlugin::RasterDrawConfig::createTasks(
+    ViewportDrawTaskQueue& queue,
+    ViewportContext& ctx)
 {
+    auto& lights = ctx.scene().getModule<LightSceneModule>();
+
     // Shadow tasks - one for each shadow map
-    auto& lights = scene.getModule<LightSceneModule>();
-    for (auto& renderPass : lights.getShadowPasses()) {
-        taskQueue.spawnTask(shadowRenderStage, std::make_unique<RenderPassDrawTask>(shadowRenderStage, renderPass));
+    for (auto& renderPass : lights.getShadowPasses())
+    {
+        queue.spawnTask(
+            shadowRenderStage,
+            std::make_unique<RenderPassDrawTask>(shadowRenderStage, renderPass)
+        );
     }
 
     // G-buffer draw task
-    taskQueue.spawnTask(gBufferRenderStage,
-                        std::make_unique<RenderPassDrawTask>(gBufferRenderStage, gBufferPass));
-    taskQueue.spawnTask(gBufferRenderStage,
-        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment& env) {
-            gBufferDepthReaderPass->update(cmdBuf, *env.frame);
-        })
+    queue.spawnTask(
+        gBufferRenderStage,
+        std::make_unique<RenderPassDrawTask>(gBufferRenderStage, gBufferPass)
+    );
+
+    // Depth reader task
+    queue.spawnTask(gBufferRenderStage,
+        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx) {
+            gBufferDepthReaderPass->update(cmdBuf, ctx.frame());
+        }
     );
 
     // Final lighting compute task
-    finalLighting->createTasks(taskQueue);
+    finalLighting->createTasks(queue);
 }
 
 } // namespace trc

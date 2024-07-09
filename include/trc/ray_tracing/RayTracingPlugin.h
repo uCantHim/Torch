@@ -5,59 +5,81 @@
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/FinalCompositingPass.h"
 #include "trc/ray_tracing/RayTracingPass.h"
+#include "trc/ray_tracing/RaygenDescriptor.h"
 
 namespace trc
 {
+    auto buildRayTracingPlugin(PluginBuildContext& ctx) -> u_ptr<RenderPlugin>;
+
     class RayTracingPlugin : public RenderPlugin
     {
     public:
         /**
          * Contains a TLAS and an output image.
          */
-        static constexpr auto RAYGEN_DESCRIPTOR{ "trc_raytracing_raygen_descriptor" };
+        static constexpr auto RAYGEN_TLAS_DESCRIPTOR{ "trc_raytracing_raygen_tlas_descriptor" };
+        static constexpr auto RAYGEN_IMAGE_DESCRIPTOR{ "trc_raytracing_raygen_image_descriptor" };
 
         RayTracingPlugin(const Instance& instance,
-                         ResourceConfig& resourceConfig,
                          ui32 maxViewports,
                          ui32 tlasMaxInstances);
 
-        void registerRenderStages(RenderGraph& renderGraph) override;
+        void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& conf) override;
 
-        auto createDrawConfig(const Device& device, Viewport renderTarget)
-            -> u_ptr<DrawConfig> override;
+        auto createSceneResources(SceneContext& ctx)
+            -> u_ptr<SceneResources> override;
+
+        auto createViewportResources(ViewportContext& ctx)
+            -> u_ptr<ViewportResources> override;
 
     private:
-        class RayDrawConfig : public DrawConfig
+        class TlasUpdateConfig : public SceneResources
+        {
+        public:
+            TlasUpdateConfig(RayTracingPlugin& parent);
+
+            void registerResources(ResourceStorage& resources) override;
+            void hostUpdate(SceneContext& ctx) override;
+            void createTasks(SceneUpdateTaskQueue& taskQueue) override;
+
+        private:
+            rt::TLAS tlas;
+            TopLevelAccelerationStructureBuilder tlasBuilder;
+
+            vk::UniqueDescriptorSet tlasDescriptor;
+        };
+
+        class RayDrawConfig : public ViewportResources
         {
         public:
             RayDrawConfig(RayTracingPlugin& parent, Viewport renderTarget);
 
             void registerResources(ResourceStorage& resources) override;
-
-            void update(const Device& device, SceneBase& scene, const Camera& camera) override;
-            void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
+            void hostUpdate(ViewportContext&) override {}
+            void createTasks(ViewportDrawTaskQueue& taskQueue, ViewportContext&) override;
 
         private:
             rt::RayBuffer rayBuffer;
-            rt::TLAS tlas;
-            vk::UniqueDescriptorSet raygenDescriptor;
+            vk::UniqueDescriptorSet outputImageDescriptor;
 
-            TopLevelAccelerationStructureBuilder tlasBuilder;
-            rt::FinalCompositingPass compositingPass;
-
+            rt::FinalCompositingDispatcher compositingPass;
             RayTracingCall reflectionsRayCall;
         };
+
+        void init(ViewportContext& ctx);
 
         static constexpr ui32 kMaxRecursionDepth{ 16 };
 
         const ui32 maxTlasInstances;
         const Instance& instance;
 
+        bool isInitialized{ false };
+
         rt::RaygenDescriptorPool raygenDescriptorPool;
         rt::CompositingDescriptor compositingDescriptorPool;
 
-        PipelineLayout reflectPipelineLayout;
+        u_ptr<PipelineLayout> reflectPipelineLayout;
         MemoryPool sbtMemoryPool;
         s_ptr<Pipeline> reflectPipeline;
         u_ptr<rt::ShaderBindingTable> reflectShaderBindingTable;

@@ -88,10 +88,10 @@ namespace trc
         ui32 maxRayGeometries{ 10000 };
     };
 
-    auto makeTorchRenderConfig(const Instance& instance,
-                               ui32 maxViewports,
-                               const TorchRenderConfigCreateInfo& createInfo)
-        -> RenderConfig;
+    auto makeTorchRenderPipeline(const Instance& instance,
+                                 const Swapchain& swapchain,
+                                 const TorchRenderConfigCreateInfo& createInfo)
+        -> u_ptr<RenderPipeline>;
 
     /**
      * @brief Configuration for the `TorchStack` created by `initFull`
@@ -128,14 +128,14 @@ namespace trc
         auto getWindow() -> Window&;
         auto getAssetManager() -> AssetManager&;
         auto getShadowPool() -> ShadowPool&;
-        auto getRenderConfig() -> RenderConfig&;
+        auto getRenderPipeline() -> RenderPipeline&;
 
         /**
          * @brief Draw a frame
          *
          * Performs the required frame setup and -teardown tasks.
          */
-        void drawFrame(const Camera& camera, SceneBase& scene);
+        void drawFrame(Camera& camera, SceneBase& scene);
 
         void waitForAllFrames(ui64 timeoutNs = std::numeric_limits<ui64>::max());
 
@@ -147,9 +147,13 @@ namespace trc
         s_ptr<AssetDescriptor> assetDescriptor;
         s_ptr<ShadowPool> shadowPool;
 
-        RenderConfig renderConfig;
+        u_ptr<RenderPipeline> renderPipeline;
+
+        Camera defaultCamera;
+        SceneBase defaultScene;
+        ViewportHandle viewport;
+
         Renderer renderer;
-        FrameSpecific<u_ptr<ViewportConfig>> viewports;
     };
 
     /**

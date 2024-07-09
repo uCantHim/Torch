@@ -1,48 +1,91 @@
 #pragma once
 
-#include <vector>
-
-#include "trc/core/FrameRenderState.h"
-#include "trc/core/Task.h"
+#include "trc/Types.h"
+#include "trc/base/Buffer.h"
+#include "trc/base/Memory.h"
+#include "trc/core/DeviceTask.h"
+#include "trc/core/RenderGraph.h"
 
 namespace trc
 {
-    class ViewportConfig;
-    class SceneBase;
+    class DependencyRegion;
+    class Device;
+    class ResourceStorage;
 
-    struct DrawGroup
+    // TODO: Subsume this into Frame.
+    class FrameRenderState
     {
-        ViewportConfig* config;
-        ResourceStorage* resources;
-        SceneBase* scene;
+    public:
+        explicit FrameRenderState(const Device& device);
 
-        TaskQueue taskQueue;
+        auto getDevice() const -> const Device&;
+
+        /**
+         * Register a callback that's called when all of the frame's commands
+         * have been executed on a device.
+         */
+        void onRenderFinished(std::function<void()> func);
+
+        /**
+         * @brief Create a temporary buffer that lives for the duration of
+         *        one frame
+         */
+        auto makeTransientBuffer(const Device& device,
+                                 size_t size,
+                                 vk::BufferUsageFlags usageFlags,
+                                 vk::MemoryPropertyFlags memoryFlags,
+                                 const DeviceMemoryAllocator& alloc
+                                     = DefaultDeviceMemoryAllocator{})
+            -> Buffer&;
+
+    private:
+        friend class Renderer;
+        void signalRenderFinished();
+
+        const Device& device;
+
+        std::mutex mutex;
+        std::vector<std::function<void()>> renderFinishedCallbacks;
+        std::vector<u_ptr<Buffer>> transientBuffers;
     };
 
     class Frame : public FrameRenderState
     {
     public:
+        Frame(const Device& device,
+              RenderGraphLayout renderGraph,
+              s_ptr<ResourceStorage> resources);
+
+        ~Frame() noexcept = default;
+
         Frame(const Frame&) = delete;
         Frame(Frame&&) noexcept = delete;
         Frame& operator=(const Frame&) = delete;
         Frame& operator=(Frame&&) noexcept = delete;
 
-        Frame() = default;
-        ~Frame() noexcept = default;
+        auto getDevice() const -> const Device&;
+        auto getRenderGraph() const -> const RenderGraphLayout&;
+        auto getResources() -> ResourceStorage&;
+        auto getTaskQueue() -> DeviceTaskQueue&;
 
-        /**
-         * Adds the viewport config's tasks to the draw group.
-         *
-         * @param RenderConfig& config The resources backing the viewport.
-         * @param SceneBase&    scene  The scene to be drawn to the viewport.
-         */
-        auto addViewport(ViewportConfig& config, SceneBase& scene) -> DrawGroup&;
+        auto makeTaskExecutionContext(s_ptr<DependencyRegion>) & -> DeviceExecutionContext;
 
-        auto& getViewports() {
-            return drawGroups;
+        void spawnTask(RenderStage::ID stage, u_ptr<DeviceTask> task);
+
+        template<std::invocable<vk::CommandBuffer, DeviceExecutionContext&> F>
+        void spawnTask(RenderStage::ID stage, F&& taskFunc) {
+            taskQueue.spawnTask(stage, std::forward<F>(taskFunc));
+        }
+
+        auto iterTasks(RenderStage::ID stage) {
+            return taskQueue.iterTasks(stage);
         }
 
     private:
-        std::vector<u_ptr<DrawGroup>> drawGroups;
+        const Device& device;
+        RenderGraphLayout renderGraph;
+        s_ptr<ResourceStorage> resources;
+
+        DeviceTaskQueue taskQueue;
     };
 } // namespace trc

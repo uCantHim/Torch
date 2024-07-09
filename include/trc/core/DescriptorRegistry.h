@@ -89,10 +89,9 @@ namespace trc
     public:
         explicit DescriptorStorage(s_ptr<const DescriptorRegistry> registry);
 
-        DescriptorStorage(const DescriptorStorage&) = delete;
-        DescriptorStorage& operator=(const DescriptorStorage&) = delete;
-
+        DescriptorStorage(const DescriptorStorage&) = default;
         DescriptorStorage(DescriptorStorage&&) noexcept = default;
+        DescriptorStorage& operator=(const DescriptorStorage&) = default;
         DescriptorStorage& operator=(DescriptorStorage&&) noexcept = default;
         ~DescriptorStorage() noexcept = default;
 

@@ -3,11 +3,10 @@
 #include "trc/DescriptorSetUtils.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/RayShaders.h"
+#include "trc/TorchRenderStages.h"
 #include "trc/base/Barriers.h"
 #include "trc/core/ComputePipelineBuilder.h"
-#include "trc/core/RenderPlugin.h"
-#include "trc/core/Task.h"
-#include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/core/DeviceTask.h"
 #include "trc/util/GlmStructuredBindings.h"
 
 
@@ -54,7 +53,7 @@ auto CompositingDescriptor::getDescriptorSetLayout() const -> vk::DescriptorSetL
 
 
 
-FinalCompositingPass::FinalCompositingPass(
+FinalCompositingDispatcher::FinalCompositingDispatcher(
     const Device& device,
     const RayBuffer& rayBuffer,
     const Viewport& renderTarget,
@@ -62,26 +61,26 @@ FinalCompositingPass::FinalCompositingPass(
     :
     device(device),
     computeGroupSize(uvec3(
-        glm::ceil(vec2(renderTarget.size) / vec2(COMPUTE_LOCAL_SIZE)),
+        glm::ceil(vec2(renderTarget.area.size) / vec2(COMPUTE_LOCAL_SIZE)),
         1
     )),
-    descSet(descriptor.makeDescriptorSet(device, rayBuffer, renderTarget.imageView)),
+    descSet(descriptor.makeDescriptorSet(device, rayBuffer, renderTarget.target.imageView)),
     computePipelineLayout(device, descriptor.getDescriptorSetLayout(), {}),
     computePipeline(buildComputePipeline()
         .setProgram(internal::loadShader(rt::shaders::getFinalCompositing()))
         .build(device, computePipelineLayout)
     ),
     descriptorProvider(std::make_shared<DescriptorProvider>(*descSet)),
-    targetImage(renderTarget.image)
+    targetImage(renderTarget.target.image)
 {
     computePipelineLayout.addStaticDescriptorSet(0, descriptorProvider);
 }
 
-void FinalCompositingPass::createTasks(TaskQueue& taskQueue)
+void FinalCompositingDispatcher::createTasks(ViewportDrawTaskQueue& taskQueue)
 {
     taskQueue.spawnTask(
-        compositingStage,
-        makeTask([this](vk::CommandBuffer cmdBuf, TaskEnvironment&)
+        finalCompositingRenderStage,
+        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext&)
         {
             // Swapchain image: ePresentSrcKHR -> eGeneral
             imageMemoryBarrier(
@@ -112,7 +111,7 @@ void FinalCompositingPass::createTasks(TaskQueue& taskQueue)
                 vk::AccessFlagBits::eHostRead,
                 vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
             );
-        })
+        }
     );
 }
 

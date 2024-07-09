@@ -1,7 +1,5 @@
 #include "trc/RenderPassShadow.h"
 
-#include "trc/core/Window.h"
-
 
 
 trc::RenderPassShadow::RenderPassShadow(
@@ -112,11 +110,10 @@ auto trc::RenderPassShadow::makeVkRenderPass(const Device& device) -> vk::Unique
     std::vector<vk::SubpassDependency> dependencies{
         vk::SubpassDependency(
             VK_SUBPASS_EXTERNAL, 0,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eAllGraphics,
-            vk::AccessFlags(),
-            vk::AccessFlagBits::eDepthStencilAttachmentWrite
-            | vk::AccessFlagBits::eDepthStencilAttachmentRead,
+            vk::PipelineStageFlagBits::eLateFragmentTests,
+            vk::PipelineStageFlagBits::eFragmentShader,
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+            vk::AccessFlagBits::eShaderRead,
             vk::DependencyFlagBits::eByRegion
         ),
     };

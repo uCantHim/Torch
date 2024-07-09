@@ -6,8 +6,8 @@ target_sources(
         DataFlow.cpp
         DescriptorProvider.cpp
         DescriptorRegistry.cpp
+        DeviceTask.cpp
         Frame.cpp
-        FrameRenderState.cpp
         Instance.cpp
         Pipeline.cpp
         PipelineBuilder.cpp

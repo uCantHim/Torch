@@ -1,10 +1,8 @@
 #pragma once
 
 #include "trc/Types.h"
-#include "trc/VulkanInclude.h"
 #include "trc/core/Pipeline.h"
-#include "trc/core/RenderPlugin.h"
-#include "trc/core/Task.h"
+#include "trc/core/RenderPipelineTasks.h"
 
 namespace trc
 {
@@ -19,14 +17,14 @@ namespace trc
     class FinalLightingDispatcher
     {
     public:
-        FinalLightingDispatcher(Viewport viewport,
+        FinalLightingDispatcher(const Viewport& viewport,
                                 Pipeline::ID computePipeline,
                                 vk::UniqueDescriptorSet renderTargetDescSet);
 
         /**
          * @brief Spawn a compute task in the `finalLightingRenderStage` stage
          */
-        void createTasks(TaskQueue& queue);
+        void createTasks(ViewportDrawTaskQueue& queue);
 
     private:
         static constexpr uvec3 kLocalGroupSize{ 16, 16, 1 };
@@ -50,13 +48,13 @@ namespace trc
     public:
         static constexpr auto OUTPUT_IMAGE_DESCRIPTOR{ "final_lighting_output_image" };
 
-        FinalLighting(const Device& device, ui32 maxViewports);
+        FinalLighting(const Device& device, ui32 maxInstances);
 
         /**
          * @brief Create resources that can execute the lighting stage on an
          *        image.
          */
-        auto makeDrawConfig(const Device& device, Viewport viewport)
+        auto makeDrawConfig(const Device& device, const Viewport& viewport)
             -> u_ptr<FinalLightingDispatcher>;
 
         auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;

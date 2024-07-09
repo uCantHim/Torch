@@ -127,7 +127,7 @@ int main()
     }
 
     // Pipeline
-    trc::RenderConfig renderConfig{ instance };
+    trc::RenderPipelineBuilder renderConfig{ instance };
     renderConfig.getRenderGraph().insert(kRayStage);
 
     auto layout = trc::buildPipelineLayout()

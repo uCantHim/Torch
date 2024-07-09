@@ -40,6 +40,7 @@ namespace trc
          * function is called.
          *
          * @return Pipeline&
+         * @throw std::out_of_range if no pipeline with this ID exists.
          */
         auto getPipeline(Pipeline::ID id) -> Pipeline&;
 
@@ -68,7 +69,41 @@ namespace trc
         void provideDescriptor(const DescriptorName& descName,
                                s_ptr<const DescriptorProviderInterface> provider);
 
+        /**
+         * @brief Create a derived resource storage.
+         *
+         * Create a resource storage by deriving it from another. The derived
+         * storage inherits references to all of the parent's resources, but can
+         * define its own resources that will overwrite those of the parent.
+         *
+         * Example:
+         * ```
+         *
+         * auto a = parent->getDescriptor(myDescId);
+         *
+         * auto derived = ResourceStorage::derive(parent);
+         * assert(a == derived->getDescriptor(myDescId));
+         *
+         * derived->provideDescriptor(myDesc, newDescriptor);
+         * assert(a != derived->getDescriptor(myDescId));
+         * ```
+         *
+         * @param s_ptr<ResourceStorage> parent The resource storage from which
+         *                                      to derive a new one. Must not
+         *                                      be `nullptr`.
+         */
+        static auto derive(s_ptr<ResourceStorage> parent) -> u_ptr<ResourceStorage>;
+
+        void setParentStorage(s_ptr<ResourceStorage> newParent);
+
     private:
+        /**
+         * Construct a derived resource storage
+         */
+        explicit ResourceStorage(s_ptr<ResourceStorage> parent);
+
+        s_ptr<ResourceStorage> parent{ nullptr };
+
         s_ptr<ResourceConfig> resourceConfig;
 
         s_ptr<PipelineStorage> pipelines;

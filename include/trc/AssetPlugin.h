@@ -32,22 +32,20 @@ namespace trc
         AssetPlugin(AssetRegistry& registry,
                     s_ptr<AssetDescriptor> assetDescriptor);
 
-        void registerRenderStages(RenderGraph& renderGraph) override;
+        void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& config) override;
 
-        auto createDrawConfig(const Device& device, Viewport renderTarget)
-            -> u_ptr<DrawConfig> override;
+        auto createGlobalResources(RenderPipelineContext& ctx) -> u_ptr<GlobalResources> override;
 
     private:
-        class UpdateConfig : public DrawConfig
+        class UpdateConfig : public GlobalResources
         {
         public:
             explicit UpdateConfig(AssetPlugin& parent);
 
             void registerResources(ResourceStorage& resources) override;
-
-            void update(const Device& device, SceneBase& scene, const Camera& camera) override;
-            void createTasks(SceneBase& scene, TaskQueue& taskQueue) override;
+            void hostUpdate(RenderPipelineContext& ctx) override;
+            void createTasks(GlobalUpdateTaskQueue& taskQueue) override;
 
         private:
             AssetPlugin* parent;

@@ -1,93 +1,200 @@
 #pragma once
 
+#include <span>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
-#include "trc/base/FrameSpecificObject.h"
-#include "trc/core/Pipeline.h"
-#include "trc/core/RenderGraph.h"
+#include <trc_util/data/IdPool.h>
+
+#include "trc/Types.h"
+#include "trc/core/RenderPipelineTasks.h"
 #include "trc/core/RenderPlugin.h"
-#include "trc/core/RenderTarget.h"
 #include "trc/core/ResourceConfig.h"
 
 namespace trc
 {
+    class AssetManager;
+    class Frame;
     class Instance;
+    class RenderTarget;
+    class SceneBase;
 
-    /**
-     * @brief An instantiation of a render pipeline for a specific viewport.
-     */
-    class ViewportConfig
+    class RenderPipelineBuilder;
+    class RenderPipeline;
+    class ViewportHandle;
+
+    struct RenderPipelineCreateInfo
+    {
+        const Instance& instance;
+        const RenderTarget& renderTarget;
+        ui32 maxViewports{ 1 };
+    };
+
+    class RenderPipelineBuilder
     {
     public:
-        ViewportConfig(Viewport viewport,
-                       s_ptr<RenderGraph> renderGraph,
-                       ResourceStorage resourceStorage,
-                       std::vector<u_ptr<DrawConfig>> pluginConfigs);
+        RenderPipelineBuilder() = default;
 
-        void update(const Device& device, SceneBase& scene, const Camera& camera);
-        void createTasks(SceneBase& scene, TaskQueue& taskQueue);
+        auto compile(const RenderPipelineCreateInfo& createInfo) -> u_ptr<RenderPipeline>;
 
-        auto getViewport() const -> Viewport;
-        auto getRenderGraph() const -> const RenderGraph&;
-        auto getResources() -> ResourceStorage&;
-        auto getResources() const -> const ResourceStorage&;
+        void addPlugin(PluginBuilder builder);
 
     private:
-        Viewport viewport;
-
-        s_ptr<RenderGraph> renderGraph;
-        ResourceStorage resources;
-        std::vector<u_ptr<DrawConfig>> pluginConfigs;
+        std::vector<PluginBuilder> pluginBuilders;
     };
 
     /**
-     * @brief A configuration of an entire render cycle
+     * @brief Exposed by a RenderPipeline to allow viewport manipulation.
+     *
+     * May be null.
      */
-    class RenderConfig
+    class ViewportHandle
     {
     public:
         /**
-         * @brief Construct a render pipeline
+         * @brief Construct a null handle.
          */
-        explicit RenderConfig(const Instance& instance);
+        ViewportHandle() = default;
+
+        operator bool() const {
+            return impl != nullptr;
+        }
+
+        bool operator==(const ViewportHandle&) const = default;
+
+        void reset();
+
+        auto draw() -> u_ptr<Frame>;
+
+        auto image() -> const RenderImage&;
+        auto renderArea() -> const RenderArea&;
+
+        auto camera() -> Camera&;
+        auto scene() -> SceneBase&;
+
+        void resize(const RenderArea& newArea);
+        void setRenderTarget(const RenderTarget& newTarget);
+        void setCamera(Camera& camera);
+        void setScene(SceneBase& scene);
+
+    private:
+        friend class RenderPipeline;
+        ViewportHandle(RenderPipeline* parent, ui32 vpIndex);
+
+        // Treat the ViewportHandle as a reference with shared_ptr semantics.
+        struct Impl;
+        s_ptr<Impl> impl;
+    };
+
+    class RenderPipeline
+    {
+    public:
+        RenderPipeline(const Instance& instance,
+                       std::span<PluginBuilder> plugins,
+                       const RenderTarget& renderTarget,
+                       ui32 maxViewports);
 
         /**
-         * @brief Add a render plugin to the pipeline
-         *
-         * It is advised to register all plugins at the render pipeline first
-         * (in a sort of initialization step), and only after that create scenes
-         * or viewports from it. Otherwise your plugin will not be taken into
-         * account during creation of those objects.
+         * @brief Create a frame and submit draw commands for all viewports to it.
          */
-        void registerPlugin(s_ptr<RenderPlugin> plugin);
+        auto draw() -> u_ptr<Frame>;
 
         /**
-         * @brief Instantiate the render pipeline for a viewport
+         * @brief Create a frame and draw a specific selection of viewports.
          */
-        auto makeViewport(const Device& device, Viewport viewport)
-            -> u_ptr<ViewportConfig>;
+        auto draw(std::span<ViewportHandle> viewports) -> u_ptr<Frame>;
 
         /**
-         * @brief Instantiate the render pipeline for all images of a render
-         *        target.
+         * @throw std::out_of_range
          */
-        auto makeViewports(const Device& device,
-                           const RenderTarget& newTarget,
-                           ivec2 renderAreaOffset,
-                           uvec2 renderArea)
-            -> FrameSpecific<u_ptr<ViewportConfig>>;
-
-        auto getRenderGraph() -> RenderGraph&;
-        auto getRenderGraph() const -> const RenderGraph&;
+        auto makeViewport(const RenderArea& renderArea,
+                          Camera& camera,
+                          SceneBase& scene)
+            -> ViewportHandle;
 
         auto getResourceConfig() -> ResourceConfig&;
-        auto getResourceConfig() const -> const ResourceConfig&;
+        auto getRenderGraph() -> RenderGraph&;
 
-    protected:
+    private:
+        friend ViewportHandle;        // Accesses RenderPipeline::pipelinesPerFrame
+        friend ViewportHandle::Impl;  // Accesses RenderPipeline::freeViewport
+
+        struct Global
+        {
+            impl::RenderPipelineInfo info;
+
+            std::vector<u_ptr<GlobalResources>> pluginImpls;
+            GlobalUpdateTaskQueue taskQueue;
+            s_ptr<ResourceStorage> resources;
+        };
+
+        struct PerScene
+        {
+            impl::SceneInfo info;
+
+            std::vector<u_ptr<SceneResources>> pluginImpls;
+            SceneUpdateTaskQueue taskQueue;
+            s_ptr<ResourceStorage> resources;
+        };
+
+        struct PerViewport
+        {
+            impl::ViewportInfo info;
+
+            std::vector<u_ptr<ViewportResources>> pluginImpls;
+            ViewportDrawTaskQueue taskQueue;
+            s_ptr<ResourceStorage> resources;
+        };
+
+        struct PipelineInstance
+        {
+            Global global;
+            std::unordered_map<SceneBase*, u_ptr<PerScene>> scenes;
+            std::vector<u_ptr<PerViewport>> viewports;
+        };
+
+        static void recordGlobal(Frame& frame, PipelineInstance& pipeline);
+        static void recordScenes(Frame& frame, PipelineInstance& pipeline);
+        static void recordViewports(Frame& frame,
+                                    PipelineInstance& pipeline,
+                                    std::ranges::range auto&& vpIndices);
+
+        auto createPluginGlobalInstances(ResourceStorage& resourceStorage,
+                                         const impl::RenderPipelineInfo& pipeline)
+            -> std::vector<u_ptr<GlobalResources>>;
+        auto createPluginSceneInstances(ResourceStorage& resourceStorage,
+                                        const impl::RenderPipelineInfo& pipeline,
+                                        SceneBase& scene)
+            -> std::vector<u_ptr<SceneResources>>;
+        auto createPluginViewportInstances(ResourceStorage& resourceStorage,
+                                           const impl::RenderPipelineInfo& pipeline,
+                                           const impl::ViewportInfo& viewport)
+            -> std::vector<u_ptr<ViewportResources>>;
+
+        void freeViewport(ui32 viewportIndex);
+
+        void drawToFrame(Frame& frame, std::ranges::range auto&& vpIndices);
+
+        const Device& device;
+        const ui32 maxViewports;
+
+        RenderTarget renderTarget;
+
         s_ptr<RenderGraph> renderGraph;
         s_ptr<ResourceConfig> resourceConfig;
         s_ptr<PipelineStorage> pipelineStorage;
 
-        std::vector<s_ptr<RenderPlugin>> plugins;
+        /**
+         * All other resource storages for viewports or scenes derive from this
+         * one.
+         */
+        s_ptr<ResourceStorage> topLevelResourceStorage;
+
+        std::vector<u_ptr<RenderPlugin>> renderPlugins;
+        trc::FrameSpecific<PipelineInstance> pipelinesPerFrame;
+
+        std::unordered_multiset<SceneBase*> uniqueScenes;
+        data::IdPool<ui32> viewportIdPool;
     };
 } // namespace trc

@@ -1,24 +1,37 @@
 #pragma once
 
-#include "trc/base/FrameSpecificObject.h"
+#include <generator>
 
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
-
-namespace trc {
-    class Swapchain;
-}
+#include "trc/base/FrameSpecificObject.h"
 
 namespace trc
 {
-    /**
-     * How do I communicate swapchain recreates where the vk::Image handles
-     * are invalidated?
-     *
-     * Should the render target be responsible for acquiring and presenting
-     * images?
-     *     --> Probably not, since it might not even be a swapchain image
-     */
+    class Swapchain;
+
+    struct RenderImage
+    {
+        vk::Image image;
+        vk::ImageView imageView;
+
+        vk::Format format;
+        vk::ImageUsageFlags possibleUsage;
+
+        uvec2 size;
+    };
+
+    struct RenderArea
+    {
+        ivec2 offset;
+        uvec2 size;
+    };
+
+    struct Viewport
+    {
+        RenderImage target;
+        RenderArea area;
+    };
 
     /**
      * @brief A reference to image resources to which Torch can draw.
@@ -59,12 +72,15 @@ namespace trc
 
         auto getCurrentImage() const -> vk::Image;
         auto getCurrentImageView() const -> vk::ImageView;
+        auto getCurrentRenderImage() const -> RenderImage;
 
         auto getImage(ui32 frameIndex) const -> vk::Image;
         auto getImageView(ui32 frameIndex) const -> vk::ImageView;
+        auto getRenderImage(ui32 frameIndex) const -> RenderImage;
 
         auto getImages() const -> const FrameSpecific<vk::Image>&;
         auto getImageViews() const -> const FrameSpecific<vk::ImageView>&;
+        auto getRenderImages() const -> std::generator<RenderImage>;
 
         auto getSize() const -> uvec2;
         auto getFormat() const -> vk::Format;
