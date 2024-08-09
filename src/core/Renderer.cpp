@@ -185,22 +185,36 @@ void trc::Renderer::submitDraw(
     auto cmdBufs = cmdRecorder.record(*frame);
 
     // Submit command buffers
-    vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eComputeShader
-                                       | vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    constexpr auto waitStage = vk::PipelineStageFlagBits::eComputeShader
+                               | vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
+    std::vector<vk::Semaphore> waitSemaphores;
+    std::vector<vk::PipelineStageFlags> waitDstStageMask;
     std::vector<vk::Semaphore> signalSemaphores{
-        signalSemaphore,
         **renderFinishedHostSignalSemaphores,
     };
-    const ui64 signalValues[]{ 0, *renderFinishedHostSignalValue };
+    std::vector<ui64> signalSemaphoreValues {
+        *renderFinishedHostSignalValue,
+    };
+    if (waitSemaphore != VK_NULL_HANDLE)
+    {
+        waitSemaphores.emplace_back(waitSemaphore);
+        waitDstStageMask.emplace_back(waitStage);
+    }
+    if (signalSemaphore != VK_NULL_HANDLE)
+    {
+        signalSemaphores.emplace_back(signalSemaphore);
+        signalSemaphoreValues.emplace_back(0);
+    }
+
     vk::StructureChain submit{
         vk::SubmitInfo(
-            waitSemaphore,
-            waitStage,
+            waitSemaphores,
+            waitDstStageMask,
             cmdBufs,
             signalSemaphores
         ),
-        vk::TimelineSemaphoreSubmitInfo(0, nullptr, 2, signalValues)
+        vk::TimelineSemaphoreSubmitInfo({}, signalSemaphoreValues),
     };
 
     queue.waitSubmit(submit.get(), signalFence);
