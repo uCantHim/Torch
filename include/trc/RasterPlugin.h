@@ -16,9 +16,19 @@ namespace trc
 
     struct RasterPluginCreateInfo
     {
+        /**
+         * A pool from which the plugin will allocate shadow maps. Shall not be
+         * `nullptr`.
+         *
+         * TODO: Change this to a `ui32 maxShadows` parameter and create the
+         * pool inside of the raster plugin.
+         */
         s_ptr<ShadowPool> shadowDescriptor;
 
         /**
+         * A maximum number of transparent objects that may overlap on a single
+         * pixel.
+         *
          * This does not actually limit the possible number of transparent
          * fragments that are blended together per pixel, but is a heuristic
          * from which an upper bound on the number of transparent fragments on
@@ -26,6 +36,8 @@ namespace trc
          */
         ui32 maxTransparentFragsPerPixel{ 3 };
     };
+
+    auto buildRasterPlugin(const RasterPluginCreateInfo& createInfo) -> PluginBuilder;
 
     class RasterPlugin : public RenderPlugin
     {

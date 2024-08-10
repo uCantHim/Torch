@@ -1,8 +1,4 @@
-#include <trc/GBufferPass.h>
 #include <trc/Torch.h>
-#include <trc/TorchRenderStages.h>
-#include <trc/core/SceneBase.h>
-#include <trc/drawable/DefaultDrawable.h>
 #include <trc/drawable/DrawableScene.h>
 
 int main()
@@ -29,6 +25,8 @@ int main()
     }));
     auto myDrawable = scene.makeDrawable({ geo, mat });
 
+    auto vp = torch.makeViewport(camera, scene);
+
     // Main loop
     while (torch.getWindow().isOpen())
     {
@@ -36,7 +34,7 @@ int main()
         trc::pollEvents();
 
         // Draw a frame
-        torch.drawFrame(camera, scene);
+        torch.drawFrame(vp);
     }
 
     // Call this after you've destroyed all Torch/Vulkan resources.

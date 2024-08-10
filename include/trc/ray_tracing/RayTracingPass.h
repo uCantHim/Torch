@@ -1,10 +1,12 @@
 #pragma once
 
 #include "trc/core/RenderPipelineTasks.h"
-#include "trc/ray_tracing/ShaderBindingTable.h"
 
 namespace trc
 {
+    namespace rt {
+        class ShaderBindingTable;
+    }
     class Pipeline;
     class PipelineLayout;
 
@@ -20,7 +22,6 @@ namespace trc
         ui32 hitTableIndex;
         ui32 callableTableIndex;
 
-        vk::DescriptorSet raygenDescriptorSet;
         vk::Image outputImage;
         uvec2 viewportSize;
     };

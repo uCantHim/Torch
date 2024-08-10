@@ -38,21 +38,43 @@ namespace trc
      */
     struct PluginBuildContext
     {
-        auto instance() -> const Instance&;
-        auto device() -> const Device&;
+        PluginBuildContext(const PluginBuildContext&) = delete;
+        PluginBuildContext(PluginBuildContext&&) noexcept = delete;
+        PluginBuildContext& operator=(const PluginBuildContext&) = delete;
+        PluginBuildContext& operator=(PluginBuildContext&&) noexcept = delete;
 
-        /** Number of buffered frames in the render target. */
-        auto numFrames() -> ui32;
+        PluginBuildContext(const Instance& instance, RenderPipeline& parentPipeline);
+        ~PluginBuildContext() noexcept = default;
 
-        /** Is also the maximum number of scenes. */
-        auto numViewports() -> ui32;
+        auto instance() const -> const Instance&;
+        auto device() const -> const Device&;
 
-        auto renderTarget() -> RenderTarget&;
-        auto assetManager() -> AssetManager&;
+        /**
+         * The maximum number of logical viewports that may be created for the
+         * render pipeline.
+         *
+         * Is also the maximum number of scenes.
+         */
+        auto maxViewports() const -> ui32;
+
+        /**
+         * @brief The number of buffered frames in the render target.
+         */
+        auto maxRenderTargetFrames() const -> ui32;
+
+        /**
+         * The maximum number of times `RenderPlugin::createViewportResources`
+         * may be called without releasing any previously created viewports.
+         *
+         * Is the same as `maxViewports() * maxRenderTargetFrames()`.
+         */
+        auto maxPluginViewportInstances() const -> ui32;
+
+        auto renderTarget() const -> const RenderTarget&;
 
     private:
-        struct Self;
-        s_ptr<Self> self;
+        const Instance& _instance;
+        RenderPipeline& _parent;
     };
 
     /**

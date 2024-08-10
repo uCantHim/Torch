@@ -34,15 +34,21 @@ namespace trc
     class RenderPipelineBuilder
     {
     public:
+        using Self = RenderPipelineBuilder;
+
         RenderPipelineBuilder() = default;
 
-        auto compile(const RenderPipelineCreateInfo& createInfo) -> u_ptr<RenderPipeline>;
+        auto build(const RenderPipelineCreateInfo& createInfo) -> u_ptr<RenderPipeline>;
 
-        void addPlugin(PluginBuilder builder);
+        auto addPlugin(PluginBuilder builder) -> Self&;
 
     private:
         std::vector<PluginBuilder> pluginBuilders;
     };
+
+    inline auto buildRenderPipeline() -> RenderPipelineBuilder {
+        return RenderPipelineBuilder{};
+    }
 
     /**
      * @brief Exposed by a RenderPipeline to allow viewport manipulation.
@@ -74,7 +80,6 @@ namespace trc
         auto scene() -> SceneBase&;
 
         void resize(const RenderArea& newArea);
-        void setRenderTarget(const RenderTarget& newTarget);
         void setCamera(Camera& camera);
         void setScene(SceneBase& scene);
 
@@ -103,18 +108,22 @@ namespace trc
         /**
          * @brief Create a frame and draw a specific selection of viewports.
          */
-        auto draw(std::span<ViewportHandle> viewports) -> u_ptr<Frame>;
+        auto draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_ptr<Frame>;
 
         /**
-         * @throw std::out_of_range
+         * @throw std::out_of_range if the new number of viewports would exceed
+         *                          `RenderPipeline::getMaxViewports`.
          */
         auto makeViewport(const RenderArea& renderArea,
                           Camera& camera,
                           SceneBase& scene)
             -> ViewportHandle;
 
+        auto getMaxViewports() const -> ui32;
+
         auto getResourceConfig() -> ResourceConfig&;
         auto getRenderGraph() -> RenderGraph&;
+        auto getRenderTarget() const -> const RenderTarget&;
 
     private:
         friend ViewportHandle;        // Accesses RenderPipeline::pipelinesPerFrame
@@ -172,8 +181,22 @@ namespace trc
                                            const impl::ViewportInfo& viewport)
             -> std::vector<u_ptr<ViewportResources>>;
 
+        /**
+         * Inform the pipeline that a scene is used in a viewport and needs
+         * backing resources.
+         *
+         * Does nothing if the scene is already known to the pipeline.
+         */
+        void registerScene(SceneBase& newScene);
+
+        /**
+         * Destroy a viewport's resources.
+         */
         void freeViewport(ui32 viewportIndex);
 
+        /**
+         * Create tasks for a selection of viewports and submit them to a frame.
+         */
         void drawToFrame(Frame& frame, std::ranges::range auto&& vpIndices);
 
         const Device& device;

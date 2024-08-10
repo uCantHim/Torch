@@ -4,6 +4,7 @@
 #include <trc/RasterPlugin.h>
 #include <trc/RasterSceneModule.h>
 #include <trc/RaySceneModule.h>
+#include <trc/SwapchainPlugin.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
@@ -36,51 +37,44 @@ int main()
         instance.getDevice(), window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
     );
 
-    trc::RenderPipelineBuilder renderConfig{ instance };
-    trc::RasterPlugin rasterization{
-        instance.getDevice(),
-        window.getFrameCount(),
-        trc::RasterPluginCreateInfo{
-            .shadowDescriptor            = shadowDescriptor,
-            .maxTransparentFragsPerPixel = 3,
-        }
-    };
-    renderConfig.registerPlugin(std::make_shared<trc::RasterPlugin>(std::move(rasterization)));
+    // Create a render pipeline
+    auto pipeline = trc::RenderPipelineBuilder{}
+        .addPlugin(trc::buildRasterPlugin({
+            trc::RasterPluginCreateInfo{
+                .shadowDescriptor            = shadowDescriptor,
+                .maxTransparentFragsPerPixel = 3,
+            }
+        }))
+        .addPlugin(trc::buildSwapchainPlugin(window))
+        .build({
+            .instance=instance,
+            .renderTarget=renderTarget,
+            .maxViewports=1,
+        });
 
-    trc::Renderer renderer{ instance.getDevice(), window };
-    auto viewports = renderConfig.makeViewports(
-        instance.getDevice(),
-        renderTarget,
-        { 0, 0 }, window.getSize()
-    );
+    const auto myRenderStage = trc::RenderStage::make();
+    pipeline->getRenderGraph().insert(myRenderStage);
 
     trc::Scene scene;
     trc::Camera camera;
+    auto viewport = pipeline->makeViewport(
+        trc::RenderArea{ { 0, 0 }, window.getSize() },
+        camera,
+        scene
+    );
 
     // Draw
-    auto frame = std::make_unique<trc::Frame>();
-    auto& viewport = frame->addViewport(**viewports, scene);
-    viewports.get()->update(instance.getDevice(), scene, camera);
-    viewport.taskQueue.spawnTask(
-        trc::gBufferRenderStage,
-        trc::makeTask([&window](vk::CommandBuffer cmdBuf, trc::TaskEnvironment& env) {
-            std::cout << "Hello Task!\n";
-            auto image = window.getImage(window.getCurrentFrame());
-            trc::barrier(cmdBuf, vk::ImageMemoryBarrier2{
-                vk::PipelineStageFlagBits2::eBottomOfPipe,
-                vk::AccessFlagBits2::eNone,
-                vk::PipelineStageFlagBits2::eTopOfPipe,
-                vk::AccessFlagBits2::eNone,
-                vk::ImageLayout::eUndefined,
-                vk::ImageLayout::ePresentSrcKHR,
-                VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-                image,
-                vk::ImageSubresourceRange{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
-            });
-        })
-    );
-    renderer.renderFrameAndPresent(std::move(frame), window);
+    trc::Renderer renderer{ instance.getDevice(), window };
 
+    auto frame = pipeline->draw();
+    frame->spawnTask(
+        myRenderStage,
+        [&window](vk::CommandBuffer, trc::DeviceExecutionContext&) {
+            std::cout << "Hello Task!\n";
+        }
+    );
+
+    renderer.renderFrameAndPresent(std::move(frame), window);
     renderer.waitForAllFrames();
 
     trc::terminate();

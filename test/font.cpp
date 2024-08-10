@@ -16,23 +16,20 @@ int main()
         camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
         camera.setDepthBounds(0.1f, 100.0f);
 
-
         // Font stuff
-
         auto font = assets.create(trc::loadFont(TRC_TEST_FONT_DIR"/gil.ttf", 60));
 
         trc::Text text(instance, font.getDeviceDataHandle());
         text.print("^Hello{ | }\n ~World_!$ ✓");
         text.attachToScene(scene.getRasterModule());
-
         // ---
 
-
         // Main loop
+        auto vp = torch->makeViewport(camera, scene);
         while (window.isOpen())
         {
             trc::pollEvents();
-            torch->drawFrame(camera, scene);
+            torch->drawFrame(vp);
         }
 
         torch->waitForAllFrames();

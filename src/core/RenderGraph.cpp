@@ -43,7 +43,7 @@ void RenderGraph::createOrdering(RenderStage::ID from, RenderStage::ID to)
 bool RenderGraph::hasCycles() const
 {
     if (headStages.empty()) {
-        return true;
+        return !stageDeps.empty();
     }
 
     using Set = std::unordered_set<RenderStage::ID>;
@@ -91,7 +91,12 @@ auto RenderGraph::compile() const -> RenderGraphLayout
         visit(head, 0);
     }
 
-    assert(!ranks.empty());
+    // An empty render graph?
+    if (ranks.empty()) {
+        return {};
+    }
+
+    // Order stages by rank
     const size_t maxRank = *std::ranges::max_element(std::views::values(ranks));
 
     RenderGraphLayout res;

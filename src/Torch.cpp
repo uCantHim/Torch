@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <trc_util/Assert.h>
+
 #include "trc/AssetPlugin.h"
 #include "trc/RasterPlugin.h"
 #include "trc/SwapchainPlugin.h"
@@ -59,43 +61,37 @@ auto trc::initFull(
 auto trc::makeTorchRenderPipeline(
     const Instance& instance,
     const Swapchain& swapchain,
-    const TorchRenderConfigCreateInfo& createInfo) -> u_ptr<RenderPipeline>
+    const TorchPipelineCreateInfo& createInfo) -> u_ptr<RenderPipeline>
 {
+    assert_arg(createInfo.maxViewports > 0);
+
     RenderPipelineBuilder builder;
-    builder.addPlugin([&swapchain](auto&) {
-        return std::make_unique<SwapchainPlugin>(swapchain);
-    });
+    builder.addPlugin(buildSwapchainPlugin(swapchain));
     builder.addPlugin([&createInfo](PluginBuildContext&) {
         return std::make_unique<AssetPlugin>(
             createInfo.assetRegistry,
             createInfo.assetDescriptor
         );
     });
-    builder.addPlugin([&createInfo](PluginBuildContext& ctx) {
-        return std::make_unique<RasterPlugin>(
-            ctx.device(),
-            ctx.numViewports(),
-            trc::RasterPluginCreateInfo{
-                .shadowDescriptor            = createInfo.shadowDescriptor,
-                .maxTransparentFragsPerPixel = 3,
-            }
-        );
-    });
+    builder.addPlugin(buildRasterPlugin(
+        trc::RasterPluginCreateInfo{
+            .shadowDescriptor            = createInfo.shadowDescriptor,
+            .maxTransparentFragsPerPixel = 3,
+        }
+    ));
     if (createInfo.enableRayTracing && instance.hasRayTracing())
     {
-        builder.addPlugin([&createInfo](PluginBuildContext& ctx) -> u_ptr<RenderPlugin> {
-            return std::make_unique<RayTracingPlugin>(
-                ctx.instance(),
-                ctx.numViewports(),
-                createInfo.maxRayGeometries
-            );
-        });
+        builder.addPlugin(buildRayTracingPlugin(
+            trc::RayTracingPluginCreateInfo{
+                .maxTlasInstances=createInfo.maxRayGeometries
+            }
+        ));
     }
 
-    return builder.compile(RenderPipelineCreateInfo{
+    return builder.build(RenderPipelineCreateInfo{
         instance,
         makeRenderTarget(swapchain),
-        1,  // maximum number of viewports on the render target
+        createInfo.maxViewports,
     });
 }
 
@@ -131,42 +127,29 @@ trc::TorchStack::TorchStack(
     renderPipeline(makeTorchRenderPipeline(
         instance,
         window,
-        TorchRenderConfigCreateInfo{
+        TorchPipelineCreateInfo{
             .assetRegistry=assetManager.getDeviceRegistry(),
             .assetDescriptor=assetDescriptor,
             .shadowDescriptor=shadowPool,
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
         }
     )),
-    defaultCamera{},
-    defaultScene{},
-    viewport(renderPipeline->makeViewport(
-        RenderArea{ { 0, 0 }, window.getSize() },
-        defaultCamera,
-        defaultScene
-    )),
     renderer(instance.getDevice(), window)
 {
     window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
         renderPipeline.reset();
-        viewport.reset();
 
         // Recreate the entire render pipeline on swapchain recreate.
         // This may not be optimal.
         renderPipeline = makeTorchRenderPipeline(
             instance,
             window,
-            TorchRenderConfigCreateInfo{
+            TorchPipelineCreateInfo{
                 .assetRegistry=assetManager.getDeviceRegistry(),
                 .assetDescriptor=assetDescriptor,
                 .shadowDescriptor=shadowPool,
                 .enableRayTracing=instance.hasRayTracing()
             }
-        );
-        viewport = renderPipeline->makeViewport(
-            RenderArea{ { 0, 0 }, window.getSize() },
-            defaultCamera,
-            defaultScene
         );
     });
 }
@@ -207,13 +190,19 @@ auto trc::TorchStack::getRenderPipeline() -> RenderPipeline&
     return *renderPipeline;
 }
 
-void trc::TorchStack::drawFrame(Camera& camera, SceneBase& scene)
+auto trc::TorchStack::makeViewport(Camera& camera, SceneBase& scene) -> ViewportHandle
 {
-    viewport.setCamera(camera);
-    viewport.setScene(scene);
+    auto vp = renderPipeline->makeViewport(
+        RenderArea{ { 0, 0 }, window.getSize() },
+        camera,
+        scene
+    );
+    return vp;
+}
 
-    // Create a frame and draw to it
-    auto frame = renderPipeline->draw();
+void trc::TorchStack::drawFrame(ViewportHandle viewport)
+{
+    auto frame = renderPipeline->draw(viewport);
     renderer.renderFrameAndPresent(std::move(frame), window);
 }
 

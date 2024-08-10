@@ -20,9 +20,16 @@ constexpr size_t _20MiB{ 20000000 };
 
 
 
-auto buildRayTracingPlugin(PluginBuildContext& ctx) -> u_ptr<RenderPlugin>
+auto buildRayTracingPlugin(const RayTracingPluginCreateInfo& createInfo)
+    -> PluginBuilder
 {
-
+    return [createInfo](PluginBuildContext& ctx) {
+        return std::make_unique<RayTracingPlugin>(
+            ctx.instance(),
+            ctx.maxPluginViewportInstances(),
+            createInfo
+        );
+    };
 }
 
 
@@ -30,14 +37,14 @@ auto buildRayTracingPlugin(PluginBuildContext& ctx) -> u_ptr<RenderPlugin>
 RayTracingPlugin::RayTracingPlugin(
     const Instance& instance,
     ui32 maxViewports,
-    ui32 tlasMaxInstances)
+    const RayTracingPluginCreateInfo& createInfo)
     :
-    maxTlasInstances(tlasMaxInstances),
+    maxTlasInstances(createInfo.maxTlasInstances),
     instance(instance),
     raygenDescriptorPool(instance, rt::RayBuffer::Image::NUM_IMAGES * maxViewports),
     compositingDescriptorPool(instance.getDevice(), maxViewports),
     reflectPipelineLayout(nullptr),
-    sbtMemoryPool(instance.getDevice(), _20MiB)
+    sbtMemoryPool(instance.getDevice(), _20MiB, vk::MemoryAllocateFlagBits::eDeviceAddress)
 {
 }
 
@@ -57,6 +64,12 @@ void RayTracingPlugin::defineResources(ResourceConfig& conf)
                           raygenDescriptorPool.getTlasDescriptorSetLayout());
     conf.defineDescriptor({ RAYGEN_IMAGE_DESCRIPTOR },
                           raygenDescriptorPool.getImageDescriptorSetLayout());
+}
+
+auto RayTracingPlugin::createSceneResources(SceneContext&)
+    -> u_ptr<SceneResources>
+{
+    return std::make_unique<TlasUpdateConfig>(*this);
 }
 
 auto RayTracingPlugin::createViewportResources(ViewportContext& ctx)
@@ -108,7 +121,8 @@ void RayTracingPlugin::init(ViewportContext& ctx)
 RayTracingPlugin::TlasUpdateConfig::TlasUpdateConfig(RayTracingPlugin& parent)
     :
     tlas{ parent.instance, parent.maxTlasInstances },
-    tlasBuilder(parent.instance.getDevice(), tlas)
+    tlasBuilder(parent.instance.getDevice(), tlas),
+    tlasDescriptor(parent.raygenDescriptorPool.allocateTlasDescriptorSet(tlas))
 {
 }
 
@@ -144,7 +158,10 @@ RayTracingPlugin::RayDrawConfig::RayDrawConfig(
         }
     },
     outputImageDescriptor{
-        parent.raygenDescriptorPool.allocateImageDescriptorSet(renderTarget.target.imageView)
+        //parent.raygenDescriptorPool.allocateImageDescriptorSet(renderTarget.target.imageView)
+        parent.raygenDescriptorPool.allocateImageDescriptorSet(
+            rayBuffer.getImageView(rt::RayBuffer::Image::eReflections)
+        )
     },
     compositingPass{
         parent.instance.getDevice(),
@@ -160,7 +177,6 @@ RayTracingPlugin::RayDrawConfig::RayDrawConfig(
         .missTableIndex     = 1,
         .hitTableIndex      = 2,
         .callableTableIndex = {},
-        .raygenDescriptorSet{ *outputImageDescriptor },
         .outputImage = *rayBuffer.getImage(trc::rt::RayBuffer::Image::eReflections),
         .viewportSize{ renderTarget.area.size },
     }
@@ -170,7 +186,7 @@ RayTracingPlugin::RayDrawConfig::RayDrawConfig(
 void RayTracingPlugin::RayDrawConfig::registerResources(ResourceStorage& resources)
 {
     resources.provideDescriptor(
-        { RAYGEN_TLAS_DESCRIPTOR },
+        { RAYGEN_IMAGE_DESCRIPTOR },
         std::make_shared<DescriptorProvider>(*outputImageDescriptor)
     );
 }
@@ -179,6 +195,19 @@ void RayTracingPlugin::RayDrawConfig::createTasks(
     ViewportDrawTaskQueue& taskQueue,
     ViewportContext&)
 {
+    taskQueue.spawnTask(
+        resourceUpdateStage,
+        [this](vk::CommandBuffer, ViewportDrawContext& ctx) {
+            ctx.deps().produce(ImageAccess{
+                reflectionsRayCall.outputImage,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+                vk::PipelineStageFlagBits2::eBottomOfPipe,
+                vk::AccessFlagBits2::eNone,
+                vk::ImageLayout::eUndefined,
+            });
+        }
+    );
+
     taskQueue.spawnTask(
         rayTracingRenderStage,
         std::make_unique<RayTracingTask>(reflectionsRayCall)

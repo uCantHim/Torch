@@ -10,6 +10,15 @@
 namespace trc
 {
 
+auto buildSwapchainPlugin(const Swapchain& swapchain) -> PluginBuilder
+{
+    return [&](auto&&) {
+        return std::make_unique<SwapchainPlugin>(swapchain);
+    };
+}
+
+
+
 SwapchainPlugin::SwapchainPlugin(const Swapchain& swapchain)
     :
     swapchain(swapchain)

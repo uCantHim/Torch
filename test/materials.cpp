@@ -130,12 +130,13 @@ int main()
             .setScaleX(3.0f);
 
     Timer timer;
+    auto vp = torch->makeViewport(camera, scene);
     while (torch->getWindow().isOpen())
     {
         pollEvents();
         cube->setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
 
-        torch->drawFrame(camera, scene);
+        torch->drawFrame(vp);
     }
 
     terminate();

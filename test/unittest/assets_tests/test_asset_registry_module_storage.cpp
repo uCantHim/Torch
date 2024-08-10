@@ -4,7 +4,7 @@
 #include <trc/assets/GeometryRegistry.h>
 #include <trc/assets/MaterialRegistry.h>
 #include <trc/assets/TextureRegistry.h>
-#include <trc/core/FrameRenderState.h>
+#include <trc/core/Frame.h>
 
 #include "define_asset_type.h"
 

@@ -135,10 +135,11 @@ void run()
         }
     );
 
+    auto vp = torch->makeViewport(camera, scene);
     while (window.isOpen())
     {
         trc::pollEvents();
-        torch->drawFrame(camera, scene);
+        torch->drawFrame(vp);
     }
 
     torch->waitForAllFrames();

@@ -54,8 +54,12 @@ namespace trc
 
     using Scene = DrawableScene;
 
-    struct TorchRenderConfigCreateInfo
+    struct TorchPipelineCreateInfo
     {
+        // The maximum number of viewports that may be allocated from the
+        // resulting pipeline. Must be greater than 0.
+        ui32 maxViewports{ 1 };
+
         // The asset registry from which the render config shall source asset
         // data. `assetDescriptor` must point to this asset registry.
         //
@@ -90,7 +94,7 @@ namespace trc
 
     auto makeTorchRenderPipeline(const Instance& instance,
                                  const Swapchain& swapchain,
-                                 const TorchRenderConfigCreateInfo& createInfo)
+                                 const TorchPipelineCreateInfo& createInfo)
         -> u_ptr<RenderPipeline>;
 
     /**
@@ -131,11 +135,21 @@ namespace trc
         auto getRenderPipeline() -> RenderPipeline&;
 
         /**
+         * @throw std::out_of_range if more viewports are allocated than the
+         *                          allowed maximum. (default: 1)
+         */
+        auto makeViewport(Camera& camera, SceneBase& scene) -> ViewportHandle;
+
+        auto makeFullscreenViewport(Camera& camera, SceneBase& scene) -> ViewportHandle;
+
+        void destroyFullscreenViewport(ViewportHandle vp);
+
+        /**
          * @brief Draw a frame
          *
          * Performs the required frame setup and -teardown tasks.
          */
-        void drawFrame(Camera& camera, SceneBase& scene);
+        void drawFrame(ViewportHandle viewport);
 
         void waitForAllFrames(ui64 timeoutNs = std::numeric_limits<ui64>::max());
 
@@ -148,10 +162,6 @@ namespace trc
         s_ptr<ShadowPool> shadowPool;
 
         u_ptr<RenderPipeline> renderPipeline;
-
-        Camera defaultCamera;
-        SceneBase defaultScene;
-        ViewportHandle viewport;
 
         Renderer renderer;
     };

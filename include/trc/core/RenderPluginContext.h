@@ -1,5 +1,7 @@
 #pragma once
 
+#include "trc/core/RenderTarget.h"
+
 namespace trc
 {
     class Camera;
@@ -42,7 +44,7 @@ namespace trc::impl
     class SceneInfo
     {
     public:
-        SceneInfo(SceneBase& _scene) : _scene(_scene) {}
+        SceneInfo(SceneBase& _scene);
 
         auto scene() -> SceneBase&;
 
@@ -54,7 +56,7 @@ namespace trc::impl
      * @brief Everything there is to know about a viewport.
      *
      * Note: Is currently used by ViewportContext and ViewportDrawContext to
-     * provide consistent interfaces and reduce boilerplate code.
+     * provide consistent interfaces and reduce boilerplate.
      */
     class ViewportInfo
     {
@@ -63,15 +65,15 @@ namespace trc::impl
                      SceneBase& scene,
                      Camera& camera);
 
-        auto viewport() -> const Viewport&;
-        auto renderImage() -> const RenderImage&;
-        auto renderArea() -> const RenderArea&;
+        auto viewport() const -> const Viewport&;
+        auto renderImage() const -> const RenderImage&;
+        auto renderArea() const -> const RenderArea&;
 
         auto scene() -> SceneBase&;
         auto camera() -> Camera&;
 
     private:
-        const Viewport& _vp;
+        Viewport _vp;
         SceneBase& _scene;
         Camera& _camera;
     };

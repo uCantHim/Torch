@@ -27,8 +27,10 @@ struct RenderGraphTest : public testing::Test
 void testDeps(const RenderGraph& graph,
               const std::unordered_map<RenderStage::ID, std::vector<RenderStage::ID>>& deps)
 {
+    const auto ordering = graph.compile();
+
     std::unordered_set<RenderStage::ID> visited;
-    for (auto stage : graph)
+    for (auto stage : ordering)
     {
         for (const auto& depStage : deps.at(stage)) {
             ASSERT_TRUE(visited.contains(depStage));
@@ -37,42 +39,47 @@ void testDeps(const RenderGraph& graph,
     }
 };
 
-TEST_F(RenderGraphTest, DoubleInsertThrows)
+TEST_F(RenderGraphTest, DoubleInsertDoesNotThrow)
 {
     RenderGraph graph;
     graph.insert(a);
     graph.insert(b);
     graph.insert(c);
-    ASSERT_THROW(graph.insert(a), std::invalid_argument);
-    ASSERT_THROW(graph.insert(b), std::invalid_argument);
-    ASSERT_THROW(graph.insert(c), std::invalid_argument);
+    ASSERT_NO_THROW(graph.insert(a));
+    ASSERT_NO_THROW(graph.insert(b));
+    ASSERT_NO_THROW(graph.insert(c));
 }
 
 TEST_F(RenderGraphTest, IterateOverGraph)
 {
     // Iterate over empty graph
     RenderGraph graph;
-    ASSERT_EQ(graph.begin(), graph.end());
+    auto iter = graph.compile();
+    ASSERT_EQ(iter.begin(), iter.end());
 
     int i{ 0 };
-    for (const auto& stage : graph) {
+    for (const auto& stage : iter) {
         ++i;
     }
     ASSERT_EQ(i, 0);
 
     // Add some elements
     graph.insert(a);
-    ASSERT_EQ(++graph.begin(), graph.end());
+    iter = graph.compile();
+    ASSERT_EQ(++iter.begin(), iter.end());
+
     graph.insert(b);
     graph.insert(c);
-    ASSERT_EQ(++++++graph.begin(), graph.end());
-    for (const auto& stage : graph) {
+    iter = graph.compile();
+    ASSERT_EQ(++++++iter.begin(), iter.end());
+    for (const auto& stage : iter) {
         ++i;
     }
     ASSERT_EQ(i, 3);
 
     graph.insert(f);
-    for (const auto& stage : graph) {
+    iter = graph.compile();
+    for (const auto& stage : iter) {
         ++i;
     }
     ASSERT_EQ(i, 7);
@@ -193,7 +200,7 @@ TEST_F(RenderGraphTest, CycleDetection)
 
     // Check if graph is still functional
     std::deque<RenderStage::ID> stages{ c, a, b };
-    for (auto stage : graph) {
+    for (auto stage : graph.compile()) {
         ASSERT_EQ(stage, stages.front());
         stages.pop_front();
     }
@@ -212,7 +219,7 @@ TEST_F(RenderGraphTest, CreateOrderingInsertsNewStages)
     graph.createOrdering(c, b);
 
     std::unordered_set<RenderStage::ID> stages{ a, b, c };
-    for (auto stage : graph) {
+    for (auto stage : graph.compile()) {
         ASSERT_TRUE(stages.erase(stage));
     }
     ASSERT_TRUE(stages.empty());

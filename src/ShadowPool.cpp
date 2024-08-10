@@ -1,5 +1,7 @@
 #include "trc/ShadowPool.h"
 
+#include "trc/ray_tracing/RayPipelineBuilder.h"
+
 
 
 trc::ShadowPool::Shadow::Shadow(
@@ -116,7 +118,8 @@ void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
 {
     auto shaderStages = vk::ShaderStageFlagBits::eVertex
                         | vk::ShaderStageFlagBits::eFragment
-                        | vk::ShaderStageFlagBits::eCompute;
+                        | vk::ShaderStageFlagBits::eCompute
+                        | rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
 
     // Layout
     std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{

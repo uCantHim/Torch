@@ -16,6 +16,22 @@
 namespace trc
 {
 
+auto buildRasterPlugin(const RasterPluginCreateInfo& createInfo) -> PluginBuilder
+{
+    return [createInfo](PluginBuildContext& ctx) {
+        return std::make_unique<RasterPlugin>(
+            ctx.device(),
+            ctx.maxPluginViewportInstances(),
+            trc::RasterPluginCreateInfo{
+                .shadowDescriptor            = createInfo.shadowDescriptor,
+                .maxTransparentFragsPerPixel = 3,
+            }
+        );
+    };
+}
+
+
+
 RasterPlugin::RasterPlugin(
     const Device& device,
     ui32 maxViewports,

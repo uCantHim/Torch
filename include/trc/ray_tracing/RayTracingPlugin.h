@@ -9,7 +9,20 @@
 
 namespace trc
 {
-    auto buildRayTracingPlugin(PluginBuildContext& ctx) -> u_ptr<RenderPlugin>;
+    struct RayTracingPluginCreateInfo
+    {
+        /**
+         * The maximum number of individual geometric objects that may be ray
+         * traced at any point.
+         *
+         * Must be geater than 0.
+         *
+         * TODO: Dynamically resize the buffers in the plugin's scene resources.
+         */
+        ui32 maxTlasInstances;
+    };
+
+    auto buildRayTracingPlugin(const RayTracingPluginCreateInfo& createInfo) -> PluginBuilder;
 
     class RayTracingPlugin : public RenderPlugin
     {
@@ -22,7 +35,7 @@ namespace trc
 
         RayTracingPlugin(const Instance& instance,
                          ui32 maxViewports,
-                         ui32 tlasMaxInstances);
+                         const RayTracingPluginCreateInfo& createInfo);
 
         void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& conf) override;

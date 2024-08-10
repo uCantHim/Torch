@@ -5,19 +5,19 @@
 #include "material.glsl"
 
 layout (set = 0, binding = 0) uniform accelerationStructureEXT TLAS;
-layout (set = 0, binding = 1, rgba8) writeonly uniform image2D outputImage;
+layout (set = 1, binding = 0, rgba8) writeonly uniform image2D outputImage;
 
-layout (set = 1, binding = 0, rgba16f) uniform restrict readonly image2D gBufferNormal;
-layout (set = 1, binding = 1, rgba8)   uniform restrict readonly image2D gBufferAlbedo;
-layout (set = 1, binding = 2, rgba8)   uniform restrict readonly image2D gBufferMaterial;
-layout (set = 1, binding = 3) uniform sampler2D gBufferDepth;
+layout (set = 2, binding = 0, rgba16f) uniform restrict readonly image2D gBufferNormal;
+layout (set = 2, binding = 1, rgba8)   uniform restrict readonly image2D gBufferAlbedo;
+layout (set = 2, binding = 2, rgba8)   uniform restrict readonly image2D gBufferMaterial;
+layout (set = 2, binding = 3) uniform sampler2D gBufferDepth;
 
-layout (set = 2, binding = 0, std430) restrict readonly buffer Materials
+layout (set = 3, binding = 0, std430) restrict readonly buffer Materials
 {
     Material materials[];
 };
 
-layout (set = 5, binding = 0) restrict readonly uniform CameraData
+layout (set = 6, binding = 0) restrict readonly uniform CameraData
 {
     mat4 viewMatrix;
     mat4 projMatrix;

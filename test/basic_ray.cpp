@@ -3,6 +3,7 @@
 #include <trc/base/Barriers.h>
 #include <trc/core/Instance.h>
 #include <trc/core/PipelineLayoutBuilder.h>
+#include <trc/core/RenderConfiguration.h>
 #include <trc/core/Window.h>
 #include <trc/drawable/DrawableScene.h>
 #include <trc/ray_tracing/RayPipelineBuilder.h>
@@ -127,8 +128,12 @@ int main()
     }
 
     // Pipeline
-    trc::RenderPipelineBuilder renderConfig{ instance };
-    renderConfig.getRenderGraph().insert(kRayStage);
+    auto pipeline = trc::buildRenderPipeline().build({
+        .instance=instance,
+        .renderTarget=target,
+        .maxViewports=1,
+    });
+    pipeline->getRenderGraph().insert(kRayStage);
 
     auto layout = trc::buildPipelineLayout()
         .addPushConstantRange({ vk::ShaderStageFlagBits::eRaygenKHR, 0, sizeof(mat4) * 2 })
@@ -138,9 +143,9 @@ int main()
                 trc::FrameSpecific<vk::DescriptorSet>(window, [&](ui32 i){ return *descSets[i]; })
             )
         )
-        .build(instance.getDevice(), renderConfig.getResourceConfig());
+        .build(instance.getDevice(), pipeline->getResourceConfig());
 
-    auto [pipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(instance)
+    auto [rtPipeline, shaderBindingTable] = trc::rt::buildRayTracingPipeline(instance)
         .addRaygenGroup(trc::ShaderPath("basic_ray/raygen.rgen"))
         .addMissGroup(trc::ShaderPath("basic_ray/miss.rmiss"))
         .addTrianglesHitGroup(trc::ShaderPath("basic_ray/closesthit.rchit"),
@@ -154,18 +159,17 @@ int main()
     camera.lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
 
     trc::Renderer renderer{ device, window };
-    auto viewportConfig = renderConfig.makeViewport(device, trc::Viewport{});
+    auto viewportConfig = pipeline->makeViewport({ {0, 0}, window.getSize() }, camera, scene);
 
     while (!window.isPressed(trc::Key::escape))
     {
         trc::pollEvents();
 
-        auto frame = std::make_unique<trc::Frame>();
-        auto& viewport = frame->addViewport(*viewportConfig, scene);
+        auto frame = pipeline->draw();
 
-        viewport.taskQueue.spawnTask(
+        frame->spawnTask(
             kRayStage,
-            trc::makeTask([&, &pipeline=pipeline](vk::CommandBuffer cmdBuf, trc::TaskEnvironment&)
+            [&](vk::CommandBuffer cmdBuf, trc::DeviceExecutionContext&)
             {
                 trc::imageMemoryBarrier(
                     cmdBuf,
@@ -177,8 +181,8 @@ int main()
                     vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
                     vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
                 );
-                pipeline.bind(cmdBuf);
-                cmdBuf.pushConstants<mat4>(*pipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
+                rtPipeline.bind(cmdBuf);
+                cmdBuf.pushConstants<mat4>(*rtPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
                                            0, { camera.getViewMatrix(), camera.getProjectionMatrix() });
                 cmdBuf.traceRaysKHR(
                     sbt.getEntryAddress(0),
@@ -198,7 +202,7 @@ int main()
                     vk::AccessFlagBits::eHostRead,
                     vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
                 );
-            })
+            }
         );
 
         renderer.renderFrameAndPresent(std::move(frame), window);

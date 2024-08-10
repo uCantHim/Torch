@@ -32,33 +32,6 @@ void run()
         trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
     );
 
-    // Create one render configuration for each viewport.
-    // This also means that it would be possible to use different rendering
-    // techniques for individual viewports; for example, one viewport could
-    // use the standard deferred rendering algorithm while the other uses
-    // ray tracing.
-    trc::TorchRenderConfigCreateInfo info{
-        .assetRegistry=assets.getDeviceRegistry(),
-        .assetDescriptor=assetDescriptor,
-        .shadowDescriptor=shadowPool,
-    };
-
-    auto config = trc::makeTorchRenderConfig(instance, window.getFrameCount() * 2, info);
-
-    auto vp1 = config.makeViewports(device, renderTarget, { 100, 200 }, { 400, 400 });
-    auto vp2 = config.makeViewports(device, renderTarget, { 400, 550 }, { 300, 150 });
-    //vp1.setClearColor(vec4(1, 1, 0, 1));
-    //vp2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
-
-    // Recreate render target when swapchain is recreated
-    window.addCallbackOnResize([&](trc::Swapchain& swapchain) {
-        renderTarget = trc::makeRenderTarget(swapchain);
-        vp1 = { window };  // Release resources first
-        vp2 = { window };  // Release resources first
-        vp1 = config.makeViewports(device, renderTarget, { 100, 200 }, { 400, 400 });
-        vp2 = config.makeViewports(device, renderTarget, { 400, 550 }, { 300, 150 });
-    });
-
     // Render the same scene to both viewports, but from different cameras
     trc::Scene scene;
     trc::Camera camera1;
@@ -87,6 +60,20 @@ void run()
     trc::Drawable cube = scene.makeDrawable({ cubeGeo, redMat });
     cube->scale(0.7f);
 
+    // Create a render pipeline and two viewports.
+    trc::TorchPipelineCreateInfo info{
+        .maxViewports=2,
+        .assetRegistry=assets.getDeviceRegistry(),
+        .assetDescriptor=assetDescriptor,
+        .shadowDescriptor=shadowPool,
+    };
+
+    auto pipeline = trc::makeTorchRenderPipeline(instance, window, info);
+    auto vp1 = pipeline->makeViewport({ { 100, 200 }, { 400, 400 } }, camera1, scene);
+    auto vp2 = pipeline->makeViewport({ { 400, 550 }, { 300, 150 } }, camera2, scene);
+    //vp1.setClearColor(vec4(1, 1, 0, 1));
+    //vp2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
+
     // Create a renderer that submits a frame to a render target
     trc::Renderer renderer{ device, window };
 
@@ -98,15 +85,7 @@ void run()
         cube->rotateY(timer.reset() * 0.001f);
 
         // Draw viewports
-        auto frame = std::make_unique<trc::Frame>();
-
-        auto& viewport1 = **vp1;
-        auto& viewport2 = **vp2;
-        viewport1.update(device, scene, camera1);
-        viewport2.update(device, scene, camera2);
-
-        frame->addViewport(viewport1, scene);
-        frame->addViewport(viewport2, scene);
+        auto frame = pipeline->draw({ vp2, vp1 });
 
         // Dispatch the frame for rendering
         renderer.renderFrameAndPresent(std::move(frame), window);

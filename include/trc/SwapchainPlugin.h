@@ -6,6 +6,8 @@ namespace trc
 {
     class Swapchain;
 
+    auto buildSwapchainPlugin(const Swapchain& swapchain) -> PluginBuilder;
+
     class SwapchainPlugin : public RenderPlugin
     {
     public:

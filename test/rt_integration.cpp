@@ -109,6 +109,7 @@ void run()
     trc::Timer timer;
     trc::Timer frameTimer;
     int frames{ 0 };
+    auto vp = torch->makeViewport(camera, *scene);
     while (window.isOpen())
     {
         trc::pollEvents();
@@ -117,7 +118,7 @@ void run()
         sphereNode.rotateY(time / 1000.0f * 0.5f);
         scene->update(time);
 
-        torch->drawFrame(camera, *scene);
+        torch->drawFrame(vp);
 
         frames++;
         if (frameTimer.duration() >= 1000.0f)
@@ -127,6 +128,8 @@ void run()
             frameTimer.reset();
         }
     }
+
+    torch->waitForAllFrames();
 }
 
 int main()

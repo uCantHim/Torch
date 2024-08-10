@@ -44,7 +44,6 @@ Frame::Frame(
     RenderGraphLayout renderGraph,
     s_ptr<ResourceStorage> resources)
     :
-    FrameRenderState(device),
     device(device),
     renderGraph(std::move(renderGraph)),
     resources(std::move(resources))

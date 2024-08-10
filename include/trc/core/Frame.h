@@ -16,10 +16,6 @@ namespace trc
     class FrameRenderState
     {
     public:
-        explicit FrameRenderState(const Device& device);
-
-        auto getDevice() const -> const Device&;
-
         /**
          * Register a callback that's called when all of the frame's commands
          * have been executed on a device.
@@ -41,8 +37,6 @@ namespace trc
     private:
         friend class Renderer;
         void signalRenderFinished();
-
-        const Device& device;
 
         std::mutex mutex;
         std::vector<std::function<void()>> renderFinishedCallbacks;

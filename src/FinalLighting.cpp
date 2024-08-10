@@ -111,6 +111,7 @@ auto trc::FinalLighting::makeDrawConfig(const Device& device, const Viewport& vi
 {
     // Create the descriptor set
     auto descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
+    device.setDebugName(*descSet, "Final lighting output image descriptor set");
 
     vk::DescriptorImageInfo imageInfo({}, viewport.target.imageView, vk::ImageLayout::eGeneral);
     vk::WriteDescriptorSet write(

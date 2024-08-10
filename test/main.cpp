@@ -245,6 +245,9 @@ void run()
     text.print("Hello World!");
     text.attachToScene(scene.getRasterModule());
 
+    // The renderable viewport
+    auto vp = torch->makeViewport(camera, scene);
+
     trc::Timer timer;
     trc::Timer frameTimer;
     uint32_t frames{ 0 };
@@ -256,7 +259,7 @@ void run()
         scene.update(frameTime);
         //cursor->setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
 
-        torch->drawFrame(camera, scene);
+        torch->drawFrame(vp);
 
         frames++;
         if (timer.duration() >= 1000)
