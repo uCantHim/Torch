@@ -3,7 +3,6 @@
 #include <trc/base/Barriers.h>
 #include <trc/core/Instance.h>
 #include <trc/core/PipelineLayoutBuilder.h>
-#include <trc/core/RenderConfiguration.h>
 #include <trc/core/Window.h>
 #include <trc/drawable/DrawableScene.h>
 #include <trc/ray_tracing/RayPipelineBuilder.h>

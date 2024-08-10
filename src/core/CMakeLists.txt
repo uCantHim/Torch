@@ -16,14 +16,14 @@ target_sources(
         PipelineLayoutTemplate.cpp
         PipelineRegistry.cpp
         PipelineTemplate.cpp
-        Renderer.cpp
-        RenderConfiguration.cpp
         RenderGraph.cpp
         RenderPass.cpp
         RenderPassRegistry.cpp
+        RenderPipeline.cpp
         RenderPlugin.cpp
         RenderPluginContext.cpp
         RenderTarget.cpp
+        Renderer.cpp
         ResourceConfig.cpp
         SceneBase.cpp
         TypeErasedStructureChain.cpp

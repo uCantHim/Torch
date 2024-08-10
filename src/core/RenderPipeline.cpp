@@ -1,4 +1,4 @@
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/RenderPipeline.h"
 
 #include <cassert>
 

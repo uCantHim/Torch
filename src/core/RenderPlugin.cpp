@@ -1,6 +1,6 @@
 #include "trc/core/RenderPlugin.h"
 
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/RenderPipeline.h"
 
 
 

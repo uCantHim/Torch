@@ -11,7 +11,7 @@
 #include "trc/assets/Assets.h"
 #include "trc/core/Frame.h"
 #include "trc/core/Instance.h"
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/RenderPipeline.h"
 #include "trc/core/Renderer.h"
 #include "trc/core/Window.h"
 #include "trc/drawable/DrawableScene.h"
