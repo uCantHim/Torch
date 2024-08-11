@@ -1,8 +1,6 @@
 #pragma once
 
 #include <span>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <trc_util/data/IdPool.h>
@@ -11,6 +9,7 @@
 #include "trc/core/RenderPipelineTasks.h"
 #include "trc/core/RenderPlugin.h"
 #include "trc/core/ResourceConfig.h"
+#include "trc/util/Multiset.h"
 
 namespace trc
 {
@@ -22,7 +21,6 @@ namespace trc
 
     class RenderPipelineBuilder;
     class RenderPipeline;
-    class ViewportHandle;
 
     struct RenderPipelineCreateInfo
     {
@@ -55,29 +53,14 @@ namespace trc
      *
      * May be null.
      */
-    class ViewportHandle
+    class RenderPipelineViewport
     {
     public:
-        /**
-         * @brief Construct a null handle.
-         */
-        ViewportHandle() = default;
+        auto getRenderTarget() -> const RenderTarget&;
+        auto getRenderArea() -> const RenderArea&;
 
-        operator bool() const {
-            return impl != nullptr;
-        }
-
-        bool operator==(const ViewportHandle&) const = default;
-
-        void reset();
-
-        auto draw() -> u_ptr<Frame>;
-
-        auto image() -> const RenderImage&;
-        auto renderArea() -> const RenderArea&;
-
-        auto camera() -> Camera&;
-        auto scene() -> SceneBase&;
+        auto getCamera() -> Camera&;
+        auto getScene() -> SceneBase&;
 
         void resize(const RenderArea& newArea);
         void setCamera(Camera& camera);
@@ -85,12 +68,21 @@ namespace trc
 
     private:
         friend class RenderPipeline;
-        ViewportHandle(RenderPipeline* parent, ui32 vpIndex);
+        RenderPipelineViewport(RenderPipeline& pipeline,
+                               ui32 viewportIndex,
+                               const RenderArea& renderArea,
+                               Camera& camera,
+                               SceneBase& scene);
 
-        // Treat the ViewportHandle as a reference with shared_ptr semantics.
-        struct Impl;
-        s_ptr<Impl> impl;
+        RenderPipeline& parent;
+        const ui32 vpIndex;
+
+        RenderArea area;
+        Camera& _camera;
+        SceneBase& _scene;
     };
+
+    using ViewportHandle = s_ptr<RenderPipelineViewport>;
 
     class RenderPipeline
     {
@@ -125,10 +117,13 @@ namespace trc
         auto getRenderGraph() -> RenderGraph&;
         auto getRenderTarget() const -> const RenderTarget&;
 
-    private:
-        friend ViewportHandle;        // Accesses RenderPipeline::pipelinesPerFrame
-        friend ViewportHandle::Impl;  // Accesses RenderPipeline::freeViewport
+        /**
+         * Note: This function may be very expensive, as it has to re-create all
+         * resources that depend on the render target.
+         */
+        void changeRenderTarget(const RenderTarget& newTarget);
 
+    private:
         struct Global
         {
             impl::RenderPipelineInfo info;
@@ -160,7 +155,7 @@ namespace trc
         {
             Global global;
             std::unordered_map<SceneBase*, u_ptr<PerScene>> scenes;
-            std::vector<u_ptr<PerViewport>> viewports;
+            std::vector<u_ptr<PerViewport>> viewports;  // Fixed size
         };
 
         static void recordGlobal(Frame& frame, PipelineInstance& pipeline);
@@ -168,6 +163,8 @@ namespace trc
         static void recordViewports(Frame& frame,
                                     PipelineInstance& pipeline,
                                     std::ranges::range auto&& vpIndices);
+
+        void initForRenderTarget(const RenderTarget& target);
 
         auto createPluginGlobalInstances(ResourceStorage& resourceStorage,
                                          const impl::RenderPipelineInfo& pipeline)
@@ -187,7 +184,25 @@ namespace trc
          *
          * Does nothing if the scene is already known to the pipeline.
          */
-        void registerScene(SceneBase& newScene);
+        void useScene(SceneBase& newScene);
+
+        /**
+         * Inform the pipeline that a scene is not used anymore. If the total
+         * use count of that scene drops to zero, its resources are freed.
+         */
+        void freeScene(SceneBase& scene);
+
+        auto instantiateViewport(PipelineInstance& parent,
+                                 const RenderImage& img,
+                                 const RenderArea& renderArea,
+                                 Camera& camera,
+                                 SceneBase& scene)
+            -> u_ptr<PerViewport>;
+
+        /**
+         * @return All viewport indices that are currently in use.
+         */
+        auto getUsedViewports() const -> std::generator<ViewportHandle>;
 
         /**
          * Destroy a viewport's resources.
@@ -198,6 +213,8 @@ namespace trc
          * Create tasks for a selection of viewports and submit them to a frame.
          */
         void drawToFrame(Frame& frame, std::ranges::range auto&& vpIndices);
+
+        using WeakViewportHandle = w_ptr<RenderPipelineViewport>;
 
         const Device& device;
         const ui32 maxViewports;
@@ -215,9 +232,10 @@ namespace trc
         s_ptr<ResourceStorage> topLevelResourceStorage;
 
         std::vector<u_ptr<RenderPlugin>> renderPlugins;
-        trc::FrameSpecific<PipelineInstance> pipelinesPerFrame;
+        u_ptr<trc::FrameSpecific<PipelineInstance>> pipelinesPerFrame;
 
-        std::unordered_multiset<SceneBase*> uniqueScenes;
+        util::Multiset<SceneBase*> uniqueScenes;
         data::IdPool<ui32> viewportIdPool;
+        std::vector<WeakViewportHandle> allocatedViewports;  // Fixed size
     };
 } // namespace trc

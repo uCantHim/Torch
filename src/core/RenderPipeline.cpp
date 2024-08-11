@@ -4,8 +4,6 @@
 
 #include <generator>
 #include <ranges>
-#include <source_location>
-#include <string>
 
 #include "trc/core/Frame.h"
 
@@ -14,89 +12,53 @@
 namespace trc
 {
 
-#ifdef TRC_DEBUG
-#define assert_valid_vp_handle() \
-    if (this->impl == nullptr) { \
-        constexpr auto loc = std::source_location::current(); \
-        throw std::runtime_error( \
-            "[" + std::string{loc.function_name()} + "]: " \
-            + "Invalid operation: Viewport handle is null!"); \
-    }
-#else
-#define assert_valid_vp_handle (static_cast<void>(0))
-#endif
-
-struct ViewportHandle::Impl
-{
-    auto getVp() const -> RenderPipeline::PerViewport& {
-        auto& pipeline = parent->pipelinesPerFrame.getAt(0);
-        return *pipeline.viewports[vpIndex];
-    }
-
-    RenderPipeline* parent;
-    ui32 vpIndex;
-};
-
-ViewportHandle::ViewportHandle(RenderPipeline* parent, ui32 vpIndex)
+RenderPipelineViewport::RenderPipelineViewport(
+    RenderPipeline& pipeline,
+    ui32 viewportIndex,
+    const RenderArea& renderArea,
+    Camera& camera,
+    SceneBase& scene)
     :
-    impl{
-        new Impl{ parent, vpIndex },
-        [](Impl* impl) {
-            impl->parent->freeViewport(impl->vpIndex);
-            delete impl;
-        }
-    }
+    parent(pipeline),
+    vpIndex(viewportIndex),
+    area(renderArea),
+    _camera(camera),
+    _scene(scene)
 {
 }
 
-void ViewportHandle::reset()
+auto RenderPipelineViewport::getRenderTarget() -> const RenderTarget&
 {
-    impl.reset();
+    return parent.getRenderTarget();
 }
 
-//void ViewportHandle::draw(Frame& frame)
-//{
-//}
-
-auto ViewportHandle::image() -> const RenderImage&
+auto RenderPipelineViewport::getRenderArea() -> const RenderArea&
 {
-    assert_valid_vp_handle();
-    return impl->getVp().info.renderImage();
+    return area;
 }
 
-auto ViewportHandle::renderArea() -> const RenderArea&
+auto RenderPipelineViewport::getCamera() -> Camera&
 {
-    assert_valid_vp_handle();
-    return impl->getVp().info.renderArea();
+    return _camera;
 }
 
-auto ViewportHandle::camera() -> Camera&
+auto RenderPipelineViewport::getScene() -> SceneBase&
 {
-    assert_valid_vp_handle();
-    return impl->getVp().info.camera();
+    return _scene;
 }
 
-auto ViewportHandle::scene() -> SceneBase&
+void RenderPipelineViewport::resize(const RenderArea& newArea)
 {
-    assert_valid_vp_handle();
-    return impl->getVp().info.scene();
-}
-
-void ViewportHandle::resize(const RenderArea& newArea)
-{
-    assert_valid_vp_handle();
     throw std::logic_error("not implemented");
 }
 
-void ViewportHandle::setCamera(Camera& camera)
+void RenderPipelineViewport::setCamera(Camera& camera)
 {
-    assert_valid_vp_handle();
     throw std::logic_error("not implemented");
 }
 
-void ViewportHandle::setScene(SceneBase& scene)
+void RenderPipelineViewport::setScene(SceneBase& scene)
 {
-    assert_valid_vp_handle();
     throw std::logic_error("not implemented");
 }
 
@@ -142,29 +104,12 @@ RenderPipeline::RenderPipeline(
         pipelineStorage
     )),
 
-    // Pipeline instances per swapchain image. Render plugins are not created yet!
-    pipelinesPerFrame(
-        _renderTarget.getFrameClock(),
-        [&](ui32) -> PipelineInstance
-        {
-            impl::RenderPipelineInfo info{ device, *this };
-            auto resourceStorage = ResourceStorage::derive(topLevelResourceStorage);
-            return {
-                .global{
-                    .info{ info },
-                    .pluginImpls{},  // Are created after the plugins have been
-                                     // created. See constructor body below.
-                    .taskQueue{},
-                    .resources{ std::move(resourceStorage) },
-                },
-                .scenes{},     // No scenes or viewports yet.
-                .viewports{},  // Create these on demand.
-            };
-        }
-    )
+    // Initialize these later
+    pipelinesPerFrame(nullptr)
 {
     assert(renderGraph != nullptr);
     assert(resourceConfig != nullptr);
+    assert(topLevelResourceStorage != nullptr);
 
     // Create all render plugins.
     PluginBuildContext ctx{ instance, *this };
@@ -178,21 +123,8 @@ RenderPipeline::RenderPipeline(
         renderPlugins.emplace_back(std::move(plugin));
     }
 
-    // Initialize render pipeline instances per frame.
-    for (auto& pipeline : pipelinesPerFrame)
-    {
-        assert(pipeline.global.resources != nullptr);
-
-        // Create global (viewport-independent) resources.
-        pipeline.global.pluginImpls = createPluginGlobalInstances(
-            *pipeline.global.resources,
-            pipeline.global.info
-        );
-
-        // Initialize an empty fixed-size vector for all the viewports that may
-        // exist.
-        pipeline.viewports.resize(maxViewports);
-    }
+    // Initialize rendertarget-dependent stuff now
+    initForRenderTarget(_renderTarget);
 }
 
 auto RenderPipeline::draw() -> u_ptr<Frame>
@@ -212,7 +144,7 @@ auto RenderPipeline::draw() -> u_ptr<Frame>
         renderGraph->compile(),
         topLevelResourceStorage
     );
-    drawToFrame(*frame, getAllViewportIndices(pipelinesPerFrame.get()));
+    drawToFrame(*frame, getAllViewportIndices(pipelinesPerFrame->get()));
 
     return frame;
 }
@@ -227,7 +159,7 @@ auto RenderPipeline::draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_
 
     drawToFrame(
         *frame,
-        std::views::transform(viewports, [](auto&& vp) { return vp.impl->vpIndex; })
+        std::views::transform(viewports, [](auto&& vp) { return vp->vpIndex; })
     );
 
     return frame;
@@ -239,8 +171,9 @@ auto RenderPipeline::makeViewport(
     SceneBase& scene) -> ViewportHandle
 {
     // If the scene is new, create all necessary resources for it.
-    registerScene(scene);
+    useScene(scene);
 
+    // Allocate a slot in the fixed-size vector of viewport resources.
     const ui32 viewportIndex = viewportIdPool.generate();
     if (viewportIndex >= maxViewports)
     {
@@ -250,32 +183,30 @@ auto RenderPipeline::makeViewport(
     }
 
     // Create resources specific to the new viewport
-    for (auto [img, pipeline] : std::views::zip(renderTarget.getRenderImages(), pipelinesPerFrame))
+    for (auto [img, pipeline] : std::views::zip(renderTarget.getRenderImages(), *pipelinesPerFrame))
     {
         assert(pipeline.viewports.size() == maxViewports);
         assert(viewportIndex < pipeline.viewports.size());
         assert(pipeline.viewports[viewportIndex] == nullptr);
 
-        const impl::ViewportInfo vpInfo{ Viewport{ img, renderArea }, scene, camera };
-
-        auto baseResources = pipeline.scenes.at(&scene)->resources;
-        auto resourceStorage = ResourceStorage::derive(baseResources);
-        auto pluginInstances = createPluginViewportInstances(
-            *resourceStorage,
-            pipeline.global.info,
-            vpInfo
-        );
-        pipeline.viewports[viewportIndex] = std::make_unique<PerViewport>(
-            PerViewport{
-                .info{ vpInfo },
-                .pluginImpls{ std::move(pluginInstances) },
-                .taskQueue{},
-                .resources{ std::move(resourceStorage) },
-            }
+        pipeline.viewports[viewportIndex] = instantiateViewport(
+            pipeline,
+            img,
+            renderArea,
+            camera,
+            scene
         );
     }
 
-    return { this, viewportIndex };
+    return std::shared_ptr<RenderPipelineViewport>{
+        new RenderPipelineViewport{ *this, viewportIndex, renderArea, camera, scene },
+        [this, viewportIndex](RenderPipelineViewport* hnd)
+        {
+            this->freeScene(hnd->getScene());
+            this->freeViewport(viewportIndex);
+            delete hnd;
+        }
+    };
 }
 
 auto RenderPipeline::getMaxViewports() const -> ui32
@@ -298,6 +229,36 @@ auto RenderPipeline::getRenderGraph() -> RenderGraph&
 auto RenderPipeline::getRenderTarget() const -> const RenderTarget&
 {
     return renderTarget;
+}
+
+void RenderPipeline::changeRenderTarget(const RenderTarget& newTarget)
+{
+    // We keep all allocated viewport handles intact and re-create their
+    // backing resources.
+    const auto usedViewports = std::ranges::to<std::vector>(getUsedViewports());
+
+    // Destroy all resources (global, scenes, and viewports).
+    pipelinesPerFrame.reset();
+    uniqueScenes.clear();
+
+    // Re-create global resources for the new render target.
+    initForRenderTarget(newTarget);
+
+    // Re-create resources for all viewports and scenes that are currently in use.
+    for (const auto& vp : usedViewports)
+    {
+        useScene(vp->_scene);
+        for (auto [img, pipeline] : std::views::zip(renderTarget.getRenderImages(),
+                                                    *pipelinesPerFrame))
+        {
+            pipeline.viewports.at(vp->vpIndex) = instantiateViewport(
+                pipeline, img,
+                vp->getRenderArea(),
+                vp->getCamera(),
+                vp->getScene()
+            );
+        }
+    }
 }
 
 void RenderPipeline::recordGlobal(Frame& frame, PipelineInstance& pipeline)
@@ -376,6 +337,48 @@ void RenderPipeline::recordViewports(
     }
 }
 
+void RenderPipeline::initForRenderTarget(const RenderTarget& target)
+{
+    renderTarget = target;
+
+    pipelinesPerFrame.reset();
+    pipelinesPerFrame = std::make_unique<FrameSpecific<PipelineInstance>>(
+        target.getFrameClock(),
+        [&](ui32) -> PipelineInstance
+        {
+            impl::RenderPipelineInfo info{ device, *this };
+            auto resourceStorage = ResourceStorage::derive(topLevelResourceStorage);
+            return {
+                .global{
+                    .info{ info },
+                    .pluginImpls{},  // Are created after the plugins have been
+                                     // created. See constructor body below.
+                    .taskQueue{},
+                    .resources{ std::move(resourceStorage) },
+                },
+                .scenes{},     // No scenes or viewports yet.
+                .viewports{},  // Create these on demand.
+            };
+        }
+    );
+
+    // Initialize render pipeline instances per frame.
+    for (auto& pipeline : *pipelinesPerFrame)
+    {
+        assert(pipeline.global.resources != nullptr);
+
+        // Create global (viewport-independent) resources.
+        pipeline.global.pluginImpls = createPluginGlobalInstances(
+            *pipeline.global.resources,
+            pipeline.global.info
+        );
+
+        // Initialize an empty fixed-size vector for all the viewports that may
+        // exist.
+        pipeline.viewports.resize(maxViewports);
+    }
+}
+
 auto RenderPipeline::createPluginGlobalInstances(
     ResourceStorage& resourceStorage,
     const impl::RenderPipelineInfo& pipeline)
@@ -438,15 +441,14 @@ auto RenderPipeline::createPluginViewportInstances(
     return pluginResources;
 }
 
-void RenderPipeline::registerScene(SceneBase& scene)
+void RenderPipeline::useScene(SceneBase& scene)
 {
-    if (uniqueScenes.contains(&scene)) {
+    if (uniqueScenes.emplace(&scene) > 1) {
         return;
     }
-    uniqueScenes.emplace(&scene);
 
     // Create resources specific to the scene
-    for (auto& pipeline : pipelinesPerFrame)
+    for (auto& pipeline : *pipelinesPerFrame)
     {
         assert(!pipeline.scenes.contains(&scene));
 
@@ -463,20 +465,68 @@ void RenderPipeline::registerScene(SceneBase& scene)
     }
 }
 
+void RenderPipeline::freeScene(SceneBase& scene)
+{
+    if (uniqueScenes.erase(&scene) == 0)
+    {
+        for (auto& pipeline : *pipelinesPerFrame) {
+            pipeline.scenes.erase(&scene);
+        }
+    }
+}
+
+auto RenderPipeline::instantiateViewport(
+    PipelineInstance& pipeline,
+    const RenderImage& img,
+    const RenderArea& renderArea,
+    Camera& camera,
+    SceneBase& scene)
+    -> u_ptr<PerViewport>
+{
+    const impl::ViewportInfo vpInfo{ Viewport{ img, renderArea }, scene, camera };
+
+    auto baseResources = pipeline.scenes.at(&scene)->resources;
+    auto resourceStorage = ResourceStorage::derive(baseResources);
+    auto pluginInstances = createPluginViewportInstances(
+        *resourceStorage,
+        pipeline.global.info,
+        vpInfo
+    );
+    return std::make_unique<PerViewport>(
+        PerViewport{
+            .info{ vpInfo },
+            .pluginImpls{ std::move(pluginInstances) },
+            .taskQueue{},
+            .resources{ std::move(resourceStorage) },
+        }
+    );
+}
+
+auto RenderPipeline::getUsedViewports() const -> std::generator<ViewportHandle>
+{
+    for (auto& handle : allocatedViewports)
+    {
+        if (auto vp = handle.lock()) {
+            co_yield vp;
+        }
+    }
+}
+
 void RenderPipeline::freeViewport(ui32 viewportIndex)
 {
-    for (auto& pipeline : pipelinesPerFrame)
+    for (auto& pipeline : *pipelinesPerFrame)
     {
         assert(pipeline.viewports.size() > viewportIndex);
         assert(pipeline.viewports[viewportIndex] != nullptr);
 
         pipeline.viewports[viewportIndex].reset();
     }
+    viewportIdPool.free(viewportIndex);
 }
 
 void RenderPipeline::drawToFrame(Frame& frame, std::ranges::range auto&& vpIndices)
 {
-    auto& curPipeline = pipelinesPerFrame.get();
+    auto& curPipeline = pipelinesPerFrame->get();
     recordGlobal(frame, curPipeline);
     recordScenes(frame, curPipeline);
     recordViewports(frame, curPipeline, vpIndices);
