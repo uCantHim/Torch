@@ -23,12 +23,12 @@ void run()
     auto& instance = torch->getInstance();
     const auto& device = instance.getDevice();
 
-    trc::Camera camera(1.0f, 45.0f, 0.1f, 100.0f);
-    camera.lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
+    auto camera = std::make_shared<trc::Camera>(1.0f, 45.0f, 0.1f, 100.0f);
+    camera->lookAt({ 0.0f, 2.0f, 5.0f }, vec3(0, 0.5f, -1.0f ), { 0, 1, 0 });
     torch->getWindow().addCallbackOnResize([&camera](trc::Swapchain& swapchain) {
-        camera.setAspect(swapchain.getAspectRatio());
+        camera->setAspect(swapchain.getAspectRatio());
     });
-    camera.setAspect(torch->getWindow().getAspectRatio());
+    camera->setAspect(torch->getWindow().getAspectRatio());
 
     // ------------------
     // Random test things
@@ -78,9 +78,9 @@ void run()
 
     // ------------------
 
-    trc::DrawableScene scene;
+    auto scene = std::make_shared<trc::DrawableScene>();
 
-    auto grass = scene.makeDrawable({ grassGeoIndex, matIdx });
+    auto grass = scene->makeDrawable({ grassGeoIndex, matIdx });
     grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     // Animated skeleton
@@ -88,23 +88,23 @@ void run()
     skeletonNode.scale(0.02f).translateZ(1.2f)
                 .translate(1.0f, 0.0f, 0.0f)
                 .rotateY(-glm::half_pi<float>());
-    scene.getRoot().attach(skeletonNode);
+    scene->getRoot().attach(skeletonNode);
 
     const trc::DrawableCreateInfo skelCreateInfo{ skeletonGeoIndex, matIdx };
     std::vector<s_ptr<trc::DrawableObj>> skeletons;
     for (int i = 0; i < 50; i++)
     {
-        auto& inst = *skeletons.emplace_back(scene.makeDrawable(skelCreateInfo));
+        auto& inst = *skeletons.emplace_back(scene->makeDrawable(skelCreateInfo));
         const float angle = glm::two_pi<float>() / 50 * i;
         inst.scale(0.02f).translateZ(1.2f)
             .translate(glm::cos(angle), 0.0f, glm::sin(angle))
             .rotateY(-glm::half_pi<float>() - angle);
-        scene.getRoot().attach(inst);
+        scene->getRoot().attach(inst);
         inst.getAnimationEngine().value()->playAnimation(0);
     }
 
     // Hooded boi
-    auto hoodedBoi = scene.makeDrawable({ hoodedBoiGeoIndex, mapMatIndex });
+    auto hoodedBoi = scene->makeDrawable({ hoodedBoiGeoIndex, mapMatIndex });
     hoodedBoi->setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     hoodedBoi->getAnimationEngine().value()->playAnimation(0);
 
@@ -114,7 +114,7 @@ void run()
         .albedoTexture = lindaDiffTexIdx
     }));
 
-    auto linda = scene.makeDrawable({ lindaGeoIndex, lindaMatIdx });
+    auto linda = scene->makeDrawable({ lindaGeoIndex, lindaMatIdx });
     linda->setScale(0.3f).translateX(-1.0f);
     linda->getAnimationEngine().value()->playAnimation(0);
 
@@ -127,37 +127,37 @@ void run()
     auto opaqueImg = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
         .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     }));
-    auto img = scene.makeDrawable({ planeGeo, transparentImg });
+    auto img = scene->makeDrawable({ planeGeo, transparentImg });
     img->translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
-    auto img2 = scene.makeDrawable({ planeGeo, opaqueImg });
+    auto img2 = scene->makeDrawable({ planeGeo, opaqueImg });
     img2->translate(-5.001f, 1, -3.001f).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
 
     // Generated plane geo
     auto myPlaneGeoIndex = ar.create(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
-    auto plane = scene.makeDrawable({ myPlaneGeoIndex, mapMatIndex });
+    auto plane = scene->makeDrawable({ myPlaneGeoIndex, mapMatIndex });
 
-    trc::Light sunLight = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
+    trc::Light sunLight = scene->getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
     [[maybe_unused]]
-    trc::Light ambientLight = scene.getLights().makeAmbientLight(vec3(0.15f));
+    trc::Light ambientLight = scene->getLights().makeAmbientLight(vec3(0.15f));
     [[maybe_unused]]
-    trc::Light pointLight = scene.getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
+    trc::Light pointLight = scene->getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
 
     // Sun light
     mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -50.0f, 5.0f);
-    auto& shadowNode = scene.getLights().enableShadow(
+    auto& shadowNode = scene->getLights().enableShadow(
         sunLight,
         { .shadowMapResolution=uvec2(2048, 2048) },
         torch->getShadowPool()
     );
     shadowNode.setProjectionMatrix(proj);
-    scene.getRoot().attach(shadowNode);
+    scene->getRoot().attach(shadowNode);
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 200;
     std::vector<s_ptr<trc::DrawableObj>> trees;
     for (ui32 i = 0; i < NUM_TREES; i++)
     {
-        auto& tree = *trees.emplace_back(scene.makeDrawable({ treeGeoIndex, treeMatIdx }));
+        auto& tree = *trees.emplace_back(scene->makeDrawable({ treeGeoIndex, treeMatIdx }));
         tree.setScale(0.1f).rotateX(glm::radians(-90.0f))
             .setTranslationX(-3.0f + static_cast<float>(i % 14) * 0.5f)
             .setTranslationZ(-1.0f - (static_cast<float>(i) / 14.0f) * 0.4f);
@@ -165,7 +165,7 @@ void run()
 
     // Particles
     trc::ParticleCollection particleCollection(instance, 10000);
-    particleCollection.attachToScene(scene.getRasterModule());
+    particleCollection.attachToScene(scene->getRasterModule());
     for (int i = 0; i < 1000; i++)
     {
         trc::Particle particle;
@@ -220,7 +220,7 @@ void run()
     auto cubeMatIdx = ar.create<trc::Material>(
         trc::makeMaterial({ .color={ 0.3, 0.3, 1 }, .opacity=0.5f })
     );
-    auto cube = scene.makeDrawable({ cubeGeoIdx, cubeMatIdx });
+    auto cube = scene->makeDrawable({ cubeGeoIdx, cubeMatIdx });
     cube->translate(1.5f, 0.7f, 1.5f).setScale(0.3f);
 
     std::thread cubeRotateThread([&cube, &running]() {
@@ -235,7 +235,7 @@ void run()
     auto cursorCubeMat = ar.create(trc::makeMaterial(
         trc::SimpleMaterialData{ .color=vec3(1, 1, 0), .opacity=0.3f }
     ));
-    auto cursor = scene.makeDrawable({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat });
+    auto cursor = scene->makeDrawable({ ar.create(trc::makeSphereGeo(16, 8)), cursorCubeMat });
     cursor->scale(0.15f);
 
     // Text
@@ -243,7 +243,7 @@ void run()
     trc::Text text{ instance, font.getDeviceDataHandle() };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");
-    text.attachToScene(scene.getRasterModule());
+    text.attachToScene(scene->getRasterModule());
 
     // The renderable viewport
     auto vp = torch->makeViewport(camera, scene);
@@ -256,7 +256,7 @@ void run()
         trc::pollEvents();
 
         const float frameTime = frameTimer.reset();
-        scene.update(frameTime);
+        scene->update(frameTime);
         //cursor->setTranslation(torch->getRenderConfig().getMouseWorldPos(camera));
 
         torch->drawFrame(vp);

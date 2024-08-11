@@ -44,12 +44,12 @@ namespace trc::impl
     class SceneInfo
     {
     public:
-        SceneInfo(SceneBase& _scene);
+        SceneInfo(const s_ptr<SceneBase>& _scene);
 
         auto scene() -> SceneBase&;
 
     private:
-        SceneBase& _scene;
+        s_ptr<SceneBase> _scene;
     };
 
     /**
@@ -62,8 +62,8 @@ namespace trc::impl
     {
     public:
         ViewportInfo(const Viewport& vp,
-                     SceneBase& scene,
-                     Camera& camera);
+                     const s_ptr<Camera>& camera,
+                     const s_ptr<SceneBase>& scene);
 
         auto viewport() const -> const Viewport&;
         auto renderImage() const -> const RenderImage&;
@@ -74,8 +74,8 @@ namespace trc::impl
 
     private:
         Viewport _vp;
-        SceneBase& _scene;
-        Camera& _camera;
+        s_ptr<Camera> _camera;
+        s_ptr<SceneBase> _scene;
     };
 } // namespace trc::impl
 

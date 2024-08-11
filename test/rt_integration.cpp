@@ -22,13 +22,13 @@ void run()
     auto& window = torch->getWindow();
     auto& assets = torch->getAssetManager();
 
-    auto scene = std::make_unique<trc::DrawableScene>();
+    auto scene = std::make_shared<trc::DrawableScene>();
 
     // Camera
-    trc::Camera camera;
-    camera.lookAt({ 0, 2, 4 }, { 0, 0, 0 }, { 0, 1, 0 });
+    auto camera = std::make_shared<trc::Camera>();
+    camera->lookAt({ 0, 2, 4 }, { 0, 0, 0 }, { 0, 1, 0 });
     auto size = window.getImageExtent();
-    camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
+    camera->makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
 
     // --- Create a scene --- //
@@ -109,7 +109,7 @@ void run()
     trc::Timer timer;
     trc::Timer frameTimer;
     int frames{ 0 };
-    auto vp = torch->makeViewport(camera, *scene);
+    auto vp = torch->makeViewport(camera, scene);
     while (window.isOpen())
     {
         trc::pollEvents();

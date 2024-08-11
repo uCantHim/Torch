@@ -11,17 +11,17 @@ int main()
         auto& window = torch->getWindow();
         auto& assets = torch->getAssetManager();
 
-        trc::DrawableScene scene;
-        trc::Camera camera;
-        camera.lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
-        camera.setDepthBounds(0.1f, 100.0f);
+        auto scene = std::make_shared<trc::DrawableScene>();
+        auto camera = std::make_shared<trc::Camera>();
+        camera->lookAt({ -1.0f, 1.0f, 2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+        camera->setDepthBounds(0.1f, 100.0f);
 
         // Font stuff
         auto font = assets.create(trc::loadFont(TRC_TEST_FONT_DIR"/gil.ttf", 60));
 
         trc::Text text(instance, font.getDeviceDataHandle());
         text.print("^Hello{ | }\n ~World_!$ ✓");
-        text.attachToScene(scene.getRasterModule());
+        text.attachToScene(scene->getRasterModule());
         // ---
 
         // Main loop

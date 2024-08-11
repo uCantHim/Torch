@@ -38,26 +38,31 @@ auto impl::RenderPipelineInfo::renderTarget() -> const RenderTarget&
 
 
 
-impl::SceneInfo::SceneInfo(SceneBase& _scene)
-    : _scene(_scene)
-{}
+impl::SceneInfo::SceneInfo(const s_ptr<SceneBase>& scene)
+    : _scene(scene)
+{
+    assert_arg(scene != nullptr);
+}
 
 auto impl::SceneInfo::scene() -> SceneBase&
 {
-    return _scene;
+    return *_scene;
 }
 
 
 
 impl::ViewportInfo::ViewportInfo(
     const Viewport& vp,
-    SceneBase& scene,
-    Camera& camera)
+    const s_ptr<Camera>& camera,
+    const s_ptr<SceneBase>& scene)
     :
     _vp(vp),
-    _scene(scene),
-    _camera(camera)
-{}
+    _camera(camera),
+    _scene(scene)
+{
+    assert_arg(camera != nullptr);
+    assert_arg(scene != nullptr);
+}
 
 auto impl::ViewportInfo::viewport() const -> const Viewport&
 {
@@ -76,12 +81,12 @@ auto impl::ViewportInfo::renderArea() const -> const RenderArea&
 
 auto impl::ViewportInfo::scene() -> SceneBase&
 {
-    return _scene;
+    return *_scene;
 }
 
 auto impl::ViewportInfo::camera() -> Camera&
 {
-    return _camera;
+    return *_camera;
 }
 
 } // namespace trc

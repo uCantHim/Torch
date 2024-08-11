@@ -190,7 +190,7 @@ auto trc::TorchStack::getRenderPipeline() -> RenderPipeline&
     return *renderPipeline;
 }
 
-auto trc::TorchStack::makeViewport(Camera& camera, SceneBase& scene) -> ViewportHandle
+auto trc::TorchStack::makeViewport(const s_ptr<Camera>& camera, const s_ptr<SceneBase>& scene) -> ViewportHandle
 {
     auto vp = renderPipeline->makeViewport(
         RenderArea{ { 0, 0 }, window.getSize() },

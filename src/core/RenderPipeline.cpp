@@ -16,15 +16,17 @@ RenderPipelineViewport::RenderPipelineViewport(
     RenderPipeline& pipeline,
     ui32 viewportIndex,
     const RenderArea& renderArea,
-    Camera& camera,
-    SceneBase& scene)
+    const s_ptr<Camera>& camera,
+    const s_ptr<SceneBase>& scene)
     :
     parent(pipeline),
     vpIndex(viewportIndex),
     area(renderArea),
-    _camera(camera),
-    _scene(scene)
+    camera(camera),
+    scene(scene)
 {
+    assert_arg(camera != nullptr);
+    assert_arg(scene != nullptr);
 }
 
 auto RenderPipelineViewport::getRenderTarget() -> const RenderTarget&
@@ -39,12 +41,12 @@ auto RenderPipelineViewport::getRenderArea() -> const RenderArea&
 
 auto RenderPipelineViewport::getCamera() -> Camera&
 {
-    return _camera;
+    return *camera;
 }
 
 auto RenderPipelineViewport::getScene() -> SceneBase&
 {
-    return _scene;
+    return *scene;
 }
 
 void RenderPipelineViewport::resize(const RenderArea& newArea)
@@ -52,12 +54,12 @@ void RenderPipelineViewport::resize(const RenderArea& newArea)
     throw std::logic_error("not implemented");
 }
 
-void RenderPipelineViewport::setCamera(Camera& camera)
+void RenderPipelineViewport::setCamera(s_ptr<Camera> camera)
 {
     throw std::logic_error("not implemented");
 }
 
-void RenderPipelineViewport::setScene(SceneBase& scene)
+void RenderPipelineViewport::setScene(s_ptr<SceneBase> scene)
 {
     throw std::logic_error("not implemented");
 }
@@ -167,9 +169,12 @@ auto RenderPipeline::draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_
 
 auto RenderPipeline::makeViewport(
     const RenderArea& renderArea,
-    Camera& camera,
-    SceneBase& scene) -> ViewportHandle
+    const s_ptr<Camera>& camera,
+    const s_ptr<SceneBase>& scene) -> ViewportHandle
 {
+    assert_arg(camera != nullptr);
+    assert_arg(scene != nullptr);
+
     // If the scene is new, create all necessary resources for it.
     useScene(scene);
 
@@ -202,7 +207,7 @@ auto RenderPipeline::makeViewport(
         new RenderPipelineViewport{ *this, viewportIndex, renderArea, camera, scene },
         [this, viewportIndex](RenderPipelineViewport* hnd)
         {
-            this->freeScene(hnd->getScene());
+            this->freeScene(hnd->scene);
             this->freeViewport(viewportIndex);
             delete hnd;
         }
@@ -247,15 +252,15 @@ void RenderPipeline::changeRenderTarget(const RenderTarget& newTarget)
     // Re-create resources for all viewports and scenes that are currently in use.
     for (const auto& vp : usedViewports)
     {
-        useScene(vp->_scene);
+        useScene(vp->scene);
         for (auto [img, pipeline] : std::views::zip(renderTarget.getRenderImages(),
                                                     *pipelinesPerFrame))
         {
             pipeline.viewports.at(vp->vpIndex) = instantiateViewport(
                 pipeline, img,
                 vp->getRenderArea(),
-                vp->getCamera(),
-                vp->getScene()
+                vp->camera,
+                vp->scene
             );
         }
     }
@@ -402,7 +407,7 @@ auto RenderPipeline::createPluginGlobalInstances(
 auto RenderPipeline::createPluginSceneInstances(
     ResourceStorage& resourceStorage,
     const impl::RenderPipelineInfo& pipeline,
-    SceneBase& scene)
+    const s_ptr<SceneBase>& scene)
     -> std::vector<u_ptr<SceneResources>>
 {
     SceneContext ctx{ pipeline, scene };
@@ -441,20 +446,20 @@ auto RenderPipeline::createPluginViewportInstances(
     return pluginResources;
 }
 
-void RenderPipeline::useScene(SceneBase& scene)
+void RenderPipeline::useScene(const s_ptr<SceneBase>& scene)
 {
-    if (uniqueScenes.emplace(&scene) > 1) {
+    if (uniqueScenes.emplace(scene) > 1) {
         return;
     }
 
     // Create resources specific to the scene
     for (auto& pipeline : *pipelinesPerFrame)
     {
-        assert(!pipeline.scenes.contains(&scene));
+        assert(!pipeline.scenes.contains(scene));
 
         auto resourceStorage = ResourceStorage::derive(pipeline.global.resources);
         auto pluginInstances = createPluginSceneInstances(*resourceStorage, pipeline.global.info, scene);
-        pipeline.scenes.try_emplace(&scene, std::make_unique<PerScene>(
+        pipeline.scenes.try_emplace(scene, std::make_unique<PerScene>(
             PerScene{
                 .info{ scene },
                 .pluginImpls{ std::move(pluginInstances) },
@@ -465,12 +470,12 @@ void RenderPipeline::useScene(SceneBase& scene)
     }
 }
 
-void RenderPipeline::freeScene(SceneBase& scene)
+void RenderPipeline::freeScene(const s_ptr<SceneBase>& scene)
 {
-    if (uniqueScenes.erase(&scene) == 0)
+    if (uniqueScenes.erase(scene) == 0)
     {
         for (auto& pipeline : *pipelinesPerFrame) {
-            pipeline.scenes.erase(&scene);
+            pipeline.scenes.erase(scene);
         }
     }
 }
@@ -479,13 +484,16 @@ auto RenderPipeline::instantiateViewport(
     PipelineInstance& pipeline,
     const RenderImage& img,
     const RenderArea& renderArea,
-    Camera& camera,
-    SceneBase& scene)
+    const s_ptr<Camera>& camera,
+    const s_ptr<SceneBase>& scene)
     -> u_ptr<PerViewport>
 {
-    const impl::ViewportInfo vpInfo{ Viewport{ img, renderArea }, scene, camera };
+    assert(camera != nullptr);
+    assert(scene != nullptr);
 
-    auto baseResources = pipeline.scenes.at(&scene)->resources;
+    const impl::ViewportInfo vpInfo{ Viewport{ img, renderArea }, camera, scene };
+
+    auto baseResources = pipeline.scenes.at(scene)->resources;
     auto resourceStorage = ResourceStorage::derive(baseResources);
     auto pluginInstances = createPluginViewportInstances(
         *resourceStorage,

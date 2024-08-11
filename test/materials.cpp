@@ -95,12 +95,12 @@ int main()
     );
     auto& assetManager = torch->getAssetManager();
 
-    Camera camera;
-    camera.makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.01f, 100.0f);
-    camera.lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
+    auto camera = std::make_shared<Camera>();
+    camera->makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.01f, 100.0f);
+    camera->lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
 
-    DrawableScene scene;
-    scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
+    auto scene = std::make_shared<DrawableScene>();
+    scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create a fancy material
     auto materialData = createMaterial(assetManager);
@@ -123,8 +123,8 @@ int main()
     auto triMat = assetManager.create(makeMaterial(SimpleMaterialData{ .color=vec3(0, 1, 0.3f) }));
 
     // Create drawable
-    auto cube = scene.makeDrawable({ cubeGeo, cubeMat });
-    auto triangle = scene.makeDrawable({ triGeo, triMat });
+    auto cube = scene->makeDrawable({ cubeGeo, cubeMat });
+    auto triangle = scene->makeDrawable({ triGeo, triMat });
     triangle->translate(-1.4f, 0.75f, -0.3f)
             .rotateY(0.2f * glm::pi<float>())
             .setScaleX(3.0f);

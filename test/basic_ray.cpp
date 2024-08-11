@@ -153,9 +153,9 @@ int main()
     auto& sbt = shaderBindingTable;
 
     // Other stuff
-    trc::DrawableScene scene;
-    trc::Camera camera;
-    camera.lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
+    auto scene = std::make_shared<trc::DrawableScene>();
+    auto camera = std::make_shared<trc::Camera>();
+    camera->lookAt(vec3(0, 0, -2), vec3(0, 0, 0), vec3(0, 1, 0));
 
     trc::Renderer renderer{ device, window };
     auto viewportConfig = pipeline->makeViewport({ {0, 0}, window.getSize() }, camera, scene);
@@ -182,7 +182,7 @@ int main()
                 );
                 rtPipeline.bind(cmdBuf);
                 cmdBuf.pushConstants<mat4>(*rtPipeline.getLayout(), vk::ShaderStageFlagBits::eRaygenKHR,
-                                           0, { camera.getViewMatrix(), camera.getProjectionMatrix() });
+                                           0, { camera->getViewMatrix(), camera->getProjectionMatrix() });
                 cmdBuf.traceRaysKHR(
                     sbt.getEntryAddress(0),
                     sbt.getEntryAddress(1),

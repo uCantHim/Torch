@@ -18,6 +18,8 @@
 
 namespace trc
 {
+    using Scene = DrawableScene;
+
     /**
      */
     struct TorchInitInfo
@@ -51,8 +53,6 @@ namespace trc
      * function.
      */
     void terminate();
-
-    using Scene = DrawableScene;
 
     struct TorchPipelineCreateInfo
     {
@@ -138,9 +138,9 @@ namespace trc
          * @throw std::out_of_range if more viewports are allocated than the
          *                          allowed maximum. (default: 1)
          */
-        auto makeViewport(Camera& camera, SceneBase& scene) -> ViewportHandle;
+        auto makeViewport(const s_ptr<Camera>& camera, const s_ptr<SceneBase>& scene) -> ViewportHandle;
 
-        auto makeFullscreenViewport(Camera& camera, SceneBase& scene) -> ViewportHandle;
+        auto makeFullscreenViewport(const s_ptr<Camera>& camera, const s_ptr<SceneBase>& scene) -> ViewportHandle;
 
         void destroyFullscreenViewport(ViewportHandle vp);
 

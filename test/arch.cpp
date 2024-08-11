@@ -55,8 +55,8 @@ int main()
     const auto myRenderStage = trc::RenderStage::make();
     pipeline->getRenderGraph().insert(myRenderStage);
 
-    trc::Scene scene;
-    trc::Camera camera;
+    auto scene = std::make_shared<trc::Scene>();
+    auto camera = std::make_shared<trc::Camera>();
     auto viewport = pipeline->makeViewport(
         trc::RenderArea{ { 0, 0 }, window.getSize() },
         camera,

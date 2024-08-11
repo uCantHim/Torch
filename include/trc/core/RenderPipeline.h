@@ -63,23 +63,23 @@ namespace trc
         auto getScene() -> SceneBase&;
 
         void resize(const RenderArea& newArea);
-        void setCamera(Camera& camera);
-        void setScene(SceneBase& scene);
+        void setCamera(s_ptr<Camera> camera);
+        void setScene(s_ptr<SceneBase> scene);
 
     private:
         friend class RenderPipeline;
         RenderPipelineViewport(RenderPipeline& pipeline,
                                ui32 viewportIndex,
                                const RenderArea& renderArea,
-                               Camera& camera,
-                               SceneBase& scene);
+                               const s_ptr<Camera>& camera,
+                               const s_ptr<SceneBase>& scene);
 
         RenderPipeline& parent;
         const ui32 vpIndex;
 
         RenderArea area;
-        Camera& _camera;
-        SceneBase& _scene;
+        s_ptr<Camera> camera;
+        s_ptr<SceneBase> scene;
     };
 
     using ViewportHandle = s_ptr<RenderPipelineViewport>;
@@ -107,8 +107,8 @@ namespace trc
          *                          `RenderPipeline::getMaxViewports`.
          */
         auto makeViewport(const RenderArea& renderArea,
-                          Camera& camera,
-                          SceneBase& scene)
+                          const s_ptr<Camera>& camera,
+                          const s_ptr<SceneBase>& scene)
             -> ViewportHandle;
 
         auto getMaxViewports() const -> ui32;
@@ -154,7 +154,7 @@ namespace trc
         struct PipelineInstance
         {
             Global global;
-            std::unordered_map<SceneBase*, u_ptr<PerScene>> scenes;
+            std::unordered_map<s_ptr<SceneBase>, u_ptr<PerScene>> scenes;
             std::vector<u_ptr<PerViewport>> viewports;  // Fixed size
         };
 
@@ -171,7 +171,7 @@ namespace trc
             -> std::vector<u_ptr<GlobalResources>>;
         auto createPluginSceneInstances(ResourceStorage& resourceStorage,
                                         const impl::RenderPipelineInfo& pipeline,
-                                        SceneBase& scene)
+                                        const s_ptr<SceneBase>& scene)
             -> std::vector<u_ptr<SceneResources>>;
         auto createPluginViewportInstances(ResourceStorage& resourceStorage,
                                            const impl::RenderPipelineInfo& pipeline,
@@ -184,19 +184,19 @@ namespace trc
          *
          * Does nothing if the scene is already known to the pipeline.
          */
-        void useScene(SceneBase& newScene);
+        void useScene(const s_ptr<SceneBase>& newScene);
 
         /**
          * Inform the pipeline that a scene is not used anymore. If the total
          * use count of that scene drops to zero, its resources are freed.
          */
-        void freeScene(SceneBase& scene);
+        void freeScene(const s_ptr<SceneBase>& scene);
 
         auto instantiateViewport(PipelineInstance& parent,
                                  const RenderImage& img,
                                  const RenderArea& renderArea,
-                                 Camera& camera,
-                                 SceneBase& scene)
+                                 const s_ptr<Camera>& camera,
+                                 const s_ptr<SceneBase>& scene)
             -> u_ptr<PerViewport>;
 
         /**
@@ -234,7 +234,7 @@ namespace trc
         std::vector<u_ptr<RenderPlugin>> renderPlugins;
         u_ptr<trc::FrameSpecific<PipelineInstance>> pipelinesPerFrame;
 
-        util::Multiset<SceneBase*> uniqueScenes;
+        util::Multiset<s_ptr<SceneBase>> uniqueScenes;
         data::IdPool<ui32> viewportIdPool;
         std::vector<WeakViewportHandle> allocatedViewports;  // Fixed size
     };

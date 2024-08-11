@@ -22,7 +22,9 @@ protected:
             frameClock,
             { VK_NULL_HANDLE }, { VK_NULL_HANDLE },
             RenderTargetCreateInfo{ {1, 1}, vk::Format::eR8G8B8A8Unorm, {} },
-        }
+        },
+        camera(std::make_shared<Camera>()),
+        scene(std::make_shared<SceneBase>())
     {}
 
     ~RenderPipelineTest() {
@@ -45,8 +47,8 @@ protected:
     FrameClock frameClock;
     RenderTarget renderTarget;
 
-    Camera camera;
-    SceneBase scene;
+    s_ptr<Camera> camera;
+    s_ptr<SceneBase> scene;
 };
 
 TEST_F(RenderPipelineTest, ViewportCountLimitations)
@@ -91,3 +93,10 @@ TEST_F(RenderPipelineTest, ViewportCountLimitations)
         }
     }
 }
+
+
+//TEST_F(RenderPipelineTest, ScenesAreFreedCorrectly) {}
+//
+//TEST_F(RenderPipelineTest, ViewportCountLimitations) {}
+//TEST_F(RenderPipelineTest, ViewportCountLimitations) {}
+//TEST_F(RenderPipelineTest, ViewportCountLimitations) {}

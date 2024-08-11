@@ -111,21 +111,21 @@ void run()
 
 
     // Camera setup
-    trc::Camera camera;
-    camera.lookAt(vec3(0, 1, 2.5f), vec3(0, 0.5f, 0), vec3(0, 1, 0));
-    camera.makePerspective(float(window.getSize().x) / float(window.getSize().y), 45.0f, 0.1f, 100.0f);
+    auto camera = std::make_shared<trc::Camera>();
+    camera->lookAt(vec3(0, 1, 2.5f), vec3(0, 0.5f, 0), vec3(0, 1, 0));
+    camera->makePerspective(float(window.getSize().x) / float(window.getSize().y), 45.0f, 0.1f, 100.0f);
 
     // Scene setup
     trc::DescriptorProvider meshInputProvider{ {} };
-    trc::DrawableScene scene;
-    auto sun = scene.getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -0.3f, 0), 0.3f);
+    auto scene = std::make_shared<trc::DrawableScene>();
+    auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -0.3f, 0), 0.3f);
 
     // Object properties
     mat4 modelMatrix = trc::Transformation{}.setScale(0.9f).translateY(0.5f).getTransformationMatrix();
 
     // Mesh draw function
     auto pipeline = createPipeline();
-    scene.getRasterModule().registerDrawFunction(trc::gBufferRenderStage, trc::SubPass::ID(0), pipeline,
+    scene->getRasterModule().registerDrawFunction(trc::gBufferRenderStage, trc::SubPass::ID(0), pipeline,
         [&](const trc::DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
             auto layout = *env.currentPipeline->getLayout();
