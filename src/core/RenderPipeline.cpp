@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <stack>
 #include <generator>
 #include <ranges>
 
@@ -93,6 +94,7 @@ RenderPipeline::RenderPipeline(
     // Constants
     device(instance.getDevice()),
     maxViewports(maxViewports),
+    maxRenderTargetFrames(_renderTarget.getFrameClock().getFrameCount()),
 
     // Pipeline-defining rendering entities
     renderTarget(_renderTarget),
@@ -203,7 +205,7 @@ auto RenderPipeline::makeViewport(
         );
     }
 
-    return std::shared_ptr<RenderPipelineViewport>{
+    auto vp = std::shared_ptr<RenderPipelineViewport>{
         new RenderPipelineViewport{ *this, viewportIndex, renderArea, camera, scene },
         [this, viewportIndex](RenderPipelineViewport* hnd)
         {
@@ -212,6 +214,17 @@ auto RenderPipeline::makeViewport(
             delete hnd;
         }
     };
+
+    // Store weak reference to the viewport so we can look it up later when
+    // viewports have to be re-created.
+    allocatedViewports.emplace_back(vp);
+
+    // Maintenance: Remove dangling weak references from the list.
+    allocatedViewports = std::ranges::to<std::vector>(
+        std::views::filter(allocatedViewports, [](auto&& v){ return !!v.lock(); })
+    );
+
+    return vp;
 }
 
 auto RenderPipeline::getMaxViewports() const -> ui32
@@ -238,6 +251,11 @@ auto RenderPipeline::getRenderTarget() const -> const RenderTarget&
 
 void RenderPipeline::changeRenderTarget(const RenderTarget& newTarget)
 {
+    // We never re-created the render plugins. That means that the original
+    // number of swapchain frames must never be exceeded because plugins can use
+    // that number to determine sizes of resource pools.
+    assert_arg(newTarget.getFrameClock().getFrameCount() <= maxRenderTargetFrames);
+
     // We keep all allocated viewport handles intact and re-create their
     // backing resources.
     const auto usedViewports = std::ranges::to<std::vector>(getUsedViewports());
@@ -361,8 +379,8 @@ void RenderPipeline::initForRenderTarget(const RenderTarget& target)
                     .taskQueue{},
                     .resources{ std::move(resourceStorage) },
                 },
-                .scenes{},     // No scenes or viewports yet.
-                .viewports{},  // Create these on demand.
+                .scenes{},                   // No scenes or viewports yet. Create
+                .viewports{ maxViewports },  // these on demand.
             };
         }
     );
@@ -377,10 +395,6 @@ void RenderPipeline::initForRenderTarget(const RenderTarget& target)
             *pipeline.global.resources,
             pipeline.global.info
         );
-
-        // Initialize an empty fixed-size vector for all the viewports that may
-        // exist.
-        pipeline.viewports.resize(maxViewports);
     }
 }
 

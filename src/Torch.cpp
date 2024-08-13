@@ -136,21 +136,13 @@ trc::TorchStack::TorchStack(
     )),
     renderer(instance.getDevice(), window)
 {
-    window.addCallbackAfterSwapchainRecreate([this](Swapchain&) {
-        renderPipeline.reset();
+    window.addCallbackAfterSwapchainRecreate([this](Swapchain& sc) {
+        if (&sc != &window) {
+            return;
+        }
 
-        // Recreate the entire render pipeline on swapchain recreate.
-        // This may not be optimal.
-        renderPipeline = makeTorchRenderPipeline(
-            instance,
-            window,
-            TorchPipelineCreateInfo{
-                .assetRegistry=assetManager.getDeviceRegistry(),
-                .assetDescriptor=assetDescriptor,
-                .shadowDescriptor=shadowPool,
-                .enableRayTracing=instance.hasRayTracing()
-            }
-        );
+        renderer.waitForAllFrames();
+        renderPipeline->changeRenderTarget(makeRenderTarget(window));
     });
 }
 
@@ -200,9 +192,9 @@ auto trc::TorchStack::makeViewport(const s_ptr<Camera>& camera, const s_ptr<Scen
     return vp;
 }
 
-void trc::TorchStack::drawFrame(ViewportHandle viewport)
+void trc::TorchStack::drawFrame(const vk::ArrayProxy<ViewportHandle>& viewports)
 {
-    auto frame = renderPipeline->draw(viewport);
+    auto frame = renderPipeline->draw(viewports);
     renderer.renderFrameAndPresent(std::move(frame), window);
 }
 

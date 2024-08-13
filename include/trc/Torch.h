@@ -146,10 +146,8 @@ namespace trc
 
         /**
          * @brief Draw a frame
-         *
-         * Performs the required frame setup and -teardown tasks.
          */
-        void drawFrame(ViewportHandle viewport);
+        void drawFrame(const vk::ArrayProxy<ViewportHandle>& viewports);
 
         void waitForAllFrames(ui64 timeoutNs = std::numeric_limits<ui64>::max());
 

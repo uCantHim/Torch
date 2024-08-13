@@ -9,6 +9,7 @@
 #include "trc/core/RenderPipelineTasks.h"
 #include "trc/core/RenderPlugin.h"
 #include "trc/core/ResourceConfig.h"
+#include "trc/util/FixedSizeVector.h"
 #include "trc/util/Multiset.h"
 
 namespace trc
@@ -118,8 +119,15 @@ namespace trc
         auto getRenderTarget() const -> const RenderTarget&;
 
         /**
-         * Note: This function may be very expensive, as it has to re-create all
-         * resources that depend on the render target.
+         * @brief Change the render target to which the pipeline draws its
+         *        viewports.
+         *
+         * The new target must never have more buffered frames than the render
+         * target for which the RenderPipeline was created.
+         *
+         * Note: This function can be very expensive, as it may have to
+         * re-create all resources that depend on the render target, notably all
+         * viewport resources.
          */
         void changeRenderTarget(const RenderTarget& newTarget);
 
@@ -155,7 +163,7 @@ namespace trc
         {
             Global global;
             std::unordered_map<s_ptr<SceneBase>, u_ptr<PerScene>> scenes;
-            std::vector<u_ptr<PerViewport>> viewports;  // Fixed size
+            util::FixedSize<u_ptr<PerViewport>> viewports;
         };
 
         static void recordGlobal(Frame& frame, PipelineInstance& pipeline);
@@ -218,6 +226,7 @@ namespace trc
 
         const Device& device;
         const ui32 maxViewports;
+        const ui32 maxRenderTargetFrames;
 
         RenderTarget renderTarget;
 
@@ -236,6 +245,6 @@ namespace trc
 
         util::Multiset<s_ptr<SceneBase>> uniqueScenes;
         data::IdPool<ui32> viewportIdPool;
-        std::vector<WeakViewportHandle> allocatedViewports;  // Fixed size
+        std::vector<WeakViewportHandle> allocatedViewports;
     };
 } // namespace trc
