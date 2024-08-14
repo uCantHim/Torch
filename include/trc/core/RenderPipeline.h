@@ -4,13 +4,13 @@
 #include <vector>
 
 #include <trc_util/data/IdPool.h>
+#include <trc_util/data/FixedSizeVector.h>
+#include <trc_util/data/Multiset.h>
 
 #include "trc/Types.h"
 #include "trc/core/RenderPipelineTasks.h"
 #include "trc/core/RenderPlugin.h"
 #include "trc/core/ResourceConfig.h"
-#include "trc/util/FixedSizeVector.h"
-#include "trc/util/Multiset.h"
 
 namespace trc
 {
@@ -189,7 +189,7 @@ namespace trc
         {
             Global global;
             std::unordered_map<s_ptr<SceneBase>, u_ptr<PerScene>> scenes;
-            util::FixedSize<u_ptr<PerViewport>> viewports;
+            data::FixedSize<u_ptr<PerViewport>> viewports;
         };
 
         static void recordGlobal(Frame& frame, PipelineInstance& pipeline);
@@ -269,7 +269,7 @@ namespace trc
         std::vector<u_ptr<RenderPlugin>> renderPlugins;
         u_ptr<trc::FrameSpecific<PipelineInstance>> pipelinesPerFrame;
 
-        util::Multiset<s_ptr<SceneBase>> uniqueScenes;
+        data::Multiset<s_ptr<SceneBase>> uniqueScenes;
         data::IdPool<ui32> viewportIdPool;
         std::vector<WeakViewportHandle> allocatedViewports;
     };

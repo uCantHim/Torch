@@ -4,7 +4,7 @@
 #include <ranges>
 #include <unordered_map>
 
-namespace trc::util
+namespace trc::data
 {
     /**
      * @brief A set that counts copies of each key.

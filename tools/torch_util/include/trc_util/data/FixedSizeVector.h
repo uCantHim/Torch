@@ -6,7 +6,7 @@
 #include <initializer_list>
 #include <vector>
 
-namespace trc::util
+namespace trc::data
 {
     /**
      * @brief An adapter to a fixed-size container.
