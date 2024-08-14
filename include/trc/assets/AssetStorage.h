@@ -3,6 +3,8 @@
 #include <optional>
 #include <utility>
 
+#include <trc_util/Exception.h>
+
 #include "trc/Types.h"
 #include "trc/assets/AssetPath.h"
 #include "trc/assets/AssetSource.h"
@@ -16,7 +18,7 @@ namespace trc
     class AssetLoadError : Exception
     {
     public:
-        AssetLoadError(const AssetPath& path, std::string reason)
+        AssetLoadError(const AssetPath& path, const std::string& reason)
             : Exception("Unable to load asset from \"" + path.string() + "\": "
                         + reason + ".")
         {}

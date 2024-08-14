@@ -1,5 +1,7 @@
 #include "trc/core/RenderPassRegistry.h"
 
+#include <stdexcept>
+
 #include <trc_util/TypeUtils.h>
 
 
@@ -23,7 +25,9 @@ void trc::RenderPassRegistry::addRenderPass(
     addRenderPass(name, [=]{ return RenderPassInfo{ renderPass, subPass }; });
 }
 
-void trc::RenderPassRegistry::addRenderPass(const RenderPassName& name, DynamicRenderingInfo info)
+void trc::RenderPassRegistry::addRenderPass(
+    const RenderPassName& name,
+    const DynamicRenderingInfo& info)
 {
     addRenderPass(name, [=]{ return info; });
 }
@@ -36,7 +40,7 @@ void trc::RenderPassRegistry::addRenderPass(
 
     if (!success)
     {
-        throw Exception(
+        throw std::invalid_argument(
             "[In RenderPassRegistry::addRenderPass]: "
             "Render pass with name " + it->first + " is already registered!"
         );
@@ -51,7 +55,7 @@ auto trc::RenderPassRegistry::getRenderPass(const RenderPassName& name) const
         return it->second();
     }
 
-    throw Exception(
+    throw std::out_of_range(
         "[In RenderPassRegistry::getRenderPass]: "
         "No render pass with the name \"" + name + "\" has been defined."
     );

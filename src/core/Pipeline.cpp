@@ -1,5 +1,7 @@
 #include "trc/core/Pipeline.h"
 
+#include <trc_util/Exception.h>
+
 #include "trc/base/ShaderProgram.h"
 
 

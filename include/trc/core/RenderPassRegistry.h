@@ -76,23 +76,29 @@ namespace trc
 
         /**
          * @brief Register a render pass for compatibility information
+         *
+         * @throw std::invalid_argument if `name` is already registered.
          */
         void addRenderPass(const RenderPassName& name, vk::RenderPass renderPass, ui32 subPass);
 
         /**
          * @brief Register a renderpassless dynamic rendering context
+         *
+         * @throw std::invalid_argument if `name` is already registered.
          */
-        void addRenderPass(const RenderPassName& name, DynamicRenderingInfo info);
+        void addRenderPass(const RenderPassName& name, const DynamicRenderingInfo& info);
 
         /**
          * @param RenderPassGetter getter Function for lazy access to the render
          *        pass, in case it is created conditionally or at a later point.
          *        Can return either a render pass or dynamic rendering info.
+         *
+         * @throw std::invalid_argument if `name` is already registered.
          */
         void addRenderPass(const RenderPassName& name, const RenderPassGetter& getter);
 
         /**
-         * @throw Exception if no render pass with `name` is registered.
+         * @throw std::out_of_range if no render pass with `name` is registered.
          */
         auto getRenderPass(const RenderPassName& name) const
             -> RenderPassCompatInfo;

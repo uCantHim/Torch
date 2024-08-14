@@ -6,8 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "trc_util/functional/Maybe.h"
-#include "trc_util/data/TypesafeId.h"
+#include <trc_util/data/TypesafeId.h>
 
 /**
  * @brief Defines useful basic types
@@ -57,6 +56,9 @@ namespace trc::basic_types
     using uvec2 = glm::uvec2;
     using uvec3 = glm::uvec3;
     using uvec4 = glm::uvec4;
+    using bvec2 = glm::bvec2;
+    using bvec3 = glm::bvec3;
+    using bvec4 = glm::bvec4;
 
     using mat2 = glm::mat2;
     using mat3 = glm::mat3;
@@ -82,8 +84,6 @@ namespace trc::basic_types
     // ----------------------- //
 
     using data::TypesafeID;
-    using functional::Maybe;
-    using functional::MaybeEmptyError;
 } // namespace trc::basic_types
 
 namespace trc
