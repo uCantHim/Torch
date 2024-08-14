@@ -57,6 +57,9 @@ namespace trc
     class RenderPipelineViewport
     {
     public:
+        using RenderTargetUpdateCallback
+            = std::function<RenderArea(const RenderPipelineViewport&, const RenderTarget&)>;
+
         auto getRenderTarget() -> const RenderTarget&;
         auto getRenderArea() -> const RenderArea&;
 
@@ -67,6 +70,16 @@ namespace trc
         void setCamera(s_ptr<Camera> camera);
         void setScene(s_ptr<SceneBase> scene);
 
+        /**
+         * Set a callback that gets called when the render target to which the
+         * viewport draws changes. The callback should calculate and return a
+         * new render area on the new render target.
+         *
+         * Only one callback function can be set on a viewport, so this function
+         * always overwrites the current callback.
+         */
+        void onRenderTargetUpdate(RenderTargetUpdateCallback callback);
+
     private:
         friend class RenderPipeline;
         RenderPipelineViewport(RenderPipeline& pipeline,
@@ -75,12 +88,20 @@ namespace trc
                                const s_ptr<Camera>& camera,
                                const s_ptr<SceneBase>& scene);
 
+        /**
+         * Called by the RenderPipeline when the viewport's render target
+         * changes.
+         */
+        auto notifyRenderTargetUpdate(const RenderTarget& newTarget) const -> RenderArea;
+
         RenderPipeline& parent;
         const ui32 vpIndex;
 
         RenderArea area;
         s_ptr<Camera> camera;
         s_ptr<SceneBase> scene;
+
+        RenderTargetUpdateCallback renderTargetUpdateCallback;
     };
 
     using ViewportHandle = s_ptr<RenderPipelineViewport>;
@@ -100,6 +121,11 @@ namespace trc
 
         /**
          * @brief Create a frame and draw a specific selection of viewports.
+         *
+         * @param viewport None shall be nullptr.
+         *
+         * @throw std::invalid_argument if any of the specified viewport handles
+         *                              are nullptr.
          */
         auto draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_ptr<Frame>;
 

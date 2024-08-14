@@ -2,7 +2,6 @@
 
 #include <cassert>
 
-#include <stack>
 #include <generator>
 #include <ranges>
 
@@ -24,7 +23,8 @@ RenderPipelineViewport::RenderPipelineViewport(
     vpIndex(viewportIndex),
     area(renderArea),
     camera(camera),
-    scene(scene)
+    scene(scene),
+    renderTargetUpdateCallback([](auto& vp, auto&){ return vp.area; })
 {
     assert_arg(camera != nullptr);
     assert_arg(scene != nullptr);
@@ -63,6 +63,17 @@ void RenderPipelineViewport::setCamera(s_ptr<Camera> camera)
 void RenderPipelineViewport::setScene(s_ptr<SceneBase> scene)
 {
     throw std::logic_error("not implemented");
+}
+
+void RenderPipelineViewport::onRenderTargetUpdate(RenderTargetUpdateCallback callback)
+{
+    renderTargetUpdateCallback = std::move(callback);
+}
+
+auto RenderPipelineViewport::notifyRenderTargetUpdate(const RenderTarget& newTarget) const
+    -> RenderArea
+{
+    return renderTargetUpdateCallback(*this, newTarget);
 }
 
 
@@ -155,6 +166,8 @@ auto RenderPipeline::draw() -> u_ptr<Frame>
 
 auto RenderPipeline::draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_ptr<Frame>
 {
+    assert_arg(std::ranges::all_of(viewports, [](auto& v){ return v != nullptr; }));
+
     auto frame = std::make_unique<Frame>(
         device,
         renderGraph->compile(),
@@ -270,13 +283,16 @@ void RenderPipeline::changeRenderTarget(const RenderTarget& newTarget)
     // Re-create resources for all viewports and scenes that are currently in use.
     for (const auto& vp : usedViewports)
     {
+        assert(vp != nullptr);
+
+        const auto newArea = vp->notifyRenderTargetUpdate(newTarget);
         useScene(vp->scene);
         for (auto [img, pipeline] : std::views::zip(renderTarget.getRenderImages(),
                                                     *pipelinesPerFrame))
         {
             pipeline.viewports.at(vp->vpIndex) = instantiateViewport(
                 pipeline, img,
-                vp->getRenderArea(),
+                newArea,
                 vp->camera,
                 vp->scene
             );

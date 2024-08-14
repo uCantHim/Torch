@@ -28,7 +28,7 @@ int main()
     auto myDrawable = scene->makeDrawable({ geo, mat });
 
     // Torch draws scenes to viewports. Create a viewport.
-    auto vp = torch.makeViewport(camera, scene);
+    auto vp = torch.makeFullscreenViewport(camera, scene);
 
     // Main loop
     while (torch.getWindow().isOpen())

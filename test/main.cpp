@@ -246,7 +246,7 @@ void run()
     text.attachToScene(scene->getRasterModule());
 
     // The renderable viewport
-    auto vp = torch->makeViewport(camera, scene);
+    auto vp = torch->makeFullscreenViewport(camera, scene);
 
     trc::Timer timer;
     trc::Timer frameTimer;

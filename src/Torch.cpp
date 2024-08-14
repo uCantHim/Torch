@@ -182,13 +182,24 @@ auto trc::TorchStack::getRenderPipeline() -> RenderPipeline&
     return *renderPipeline;
 }
 
-auto trc::TorchStack::makeViewport(const s_ptr<Camera>& camera, const s_ptr<SceneBase>& scene) -> ViewportHandle
+auto trc::TorchStack::makeViewport(
+    const RenderArea& area,
+    const s_ptr<Camera>& camera,
+    const s_ptr<SceneBase>& scene)
+    -> ViewportHandle
 {
-    auto vp = renderPipeline->makeViewport(
-        RenderArea{ { 0, 0 }, window.getSize() },
-        camera,
-        scene
-    );
+    return renderPipeline->makeViewport(area, camera, scene);
+}
+
+auto trc::TorchStack::makeFullscreenViewport(
+    const s_ptr<Camera>& camera,
+    const s_ptr<SceneBase>& scene)
+    -> ViewportHandle
+{
+    auto vp = makeViewport(RenderArea{ {0, 0}, window.getSize() }, camera, scene);
+    vp->onRenderTargetUpdate([](auto&&, const RenderTarget& target) {
+        return RenderArea{ {0, 0}, target.getSize() };
+    });
     return vp;
 }
 

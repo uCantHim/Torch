@@ -109,7 +109,7 @@ void run()
     trc::Timer timer;
     trc::Timer frameTimer;
     int frames{ 0 };
-    auto vp = torch->makeViewport(camera, scene);
+    auto vp = torch->makeFullscreenViewport(camera, scene);
     while (window.isOpen())
     {
         trc::pollEvents();

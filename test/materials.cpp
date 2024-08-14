@@ -130,7 +130,7 @@ int main()
             .setScaleX(3.0f);
 
     Timer timer;
-    auto vp = torch->makeViewport(camera, scene);
+    auto vp = torch->makeFullscreenViewport(camera, scene);
     while (torch->getWindow().isOpen())
     {
         pollEvents();

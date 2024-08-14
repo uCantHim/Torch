@@ -138,11 +138,17 @@ namespace trc
          * @throw std::out_of_range if more viewports are allocated than the
          *                          allowed maximum. (default: 1)
          */
-        auto makeViewport(const s_ptr<Camera>& camera, const s_ptr<SceneBase>& scene) -> ViewportHandle;
+        auto makeViewport(const RenderArea& area,
+                          const s_ptr<Camera>& camera,
+                          const s_ptr<SceneBase>& scene)
+            -> ViewportHandle;
 
-        auto makeFullscreenViewport(const s_ptr<Camera>& camera, const s_ptr<SceneBase>& scene) -> ViewportHandle;
-
-        void destroyFullscreenViewport(ViewportHandle vp);
+        /**
+         * Create a viewport that always resizes to the full window size.
+         */
+        auto makeFullscreenViewport(const s_ptr<Camera>& camera,
+                                    const s_ptr<SceneBase>& scene)
+            -> ViewportHandle;
 
         /**
          * @brief Draw a frame

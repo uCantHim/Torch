@@ -135,7 +135,7 @@ void run()
         }
     );
 
-    auto vp = torch->makeViewport(camera, scene);
+    auto vp = torch->makeFullscreenViewport(camera, scene);
     while (window.isOpen())
     {
         trc::pollEvents();
