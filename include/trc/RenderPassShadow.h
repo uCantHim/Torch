@@ -1,16 +1,12 @@
 #pragma once
 
-#include "trc/base/Image.h"
-#include "trc/base/FrameSpecificObject.h"
-
-#include "trc/Types.h"
-#include "trc/core/RenderPass.h"
 #include "trc/Framebuffer.h"
+#include "trc/Types.h"
+#include "trc/base/Image.h"
+#include "trc/core/RenderPass.h"
 
 namespace trc
 {
-    class Window;
-
     struct ShadowPassCreateInfo
     {
         ui32 shadowIndex;
@@ -28,14 +24,11 @@ namespace trc
     public:
         /**
          * @param const Device& device
-         * @param const FrameClock& clock A frame clock for the shadow images.
-         *                                Is usually the same clock used for
-         *                                the rest of the render pipeline.
          * @param const ShadowPassCreateInfo& info
          */
         RenderPassShadow(const Device& device,
-                         const FrameClock& clock,
-                         const ShadowPassCreateInfo& info);
+                         const ShadowPassCreateInfo& info,
+                         const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
 
         /**
          * Updates the shadow matrix in the descriptor and starts the
@@ -55,16 +48,16 @@ namespace trc
          */
         auto getShadowMatrixIndex() const noexcept -> ui32;
 
-        auto getShadowImage(ui32 frameIndex) const -> const Image&;
-        auto getShadowImageView(ui32 frameIndex) const -> vk::ImageView;
+        auto getShadowImage() const -> const Image&;
+        auto getShadowImageView() const -> vk::ImageView;
 
         static auto makeVkRenderPass(const Device& device) -> vk::UniqueRenderPass;
 
     private:
         const uvec2 resolution;
-        ui32 shadowMatrixIndex;
+        const ui32 shadowMatrixIndex;
 
-        FrameSpecific<Image> depthImages;
-        FrameSpecific<Framebuffer> framebuffers;
+        Image depthImage;
+        Framebuffer framebuffer;
     };
 } // namespace trc
