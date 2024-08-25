@@ -100,7 +100,7 @@ int main()
     camera->lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
 
     auto scene = std::make_shared<DrawableScene>();
-    scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
+    auto light = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create a fancy material
     auto materialData = createMaterial(assetManager);

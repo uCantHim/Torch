@@ -75,8 +75,8 @@ auto trc::makeTorchRenderPipeline(
     });
     builder.addPlugin(buildRasterPlugin(
         trc::RasterPluginCreateInfo{
-            .shadowDescriptor            = createInfo.shadowDescriptor,
-            .maxTransparentFragsPerPixel = 3,
+            .maxShadowMaps=createInfo.maxShadowMaps,
+            .maxTransparentFragsPerPixel=createInfo.maxTransparentFragsPerPixel,
         }
     ));
     if (createInfo.enableRayTracing && instance.hasRayTracing())
@@ -119,18 +119,14 @@ trc::TorchStack::TorchStack(
         assetManager.getDeviceRegistry(),
         assetDescriptorInfo
     )),
-    shadowPool(std::make_shared<ShadowPool>(
-        instance.getDevice(),
-        window,
-        ShadowPoolCreateInfo{ .maxShadowMaps=100 }
-    )),
     renderPipeline(makeTorchRenderPipeline(
         instance,
         window,
         TorchPipelineCreateInfo{
             .assetRegistry=assetManager.getDeviceRegistry(),
             .assetDescriptor=assetDescriptor,
-            .shadowDescriptor=shadowPool,
+            .maxShadowMaps=kDefaultMaxShadowMaps,
+            .maxTransparentFragsPerPixel=kDefaultMaxTransparentFrags,
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
         }
     )),
@@ -169,11 +165,6 @@ auto trc::TorchStack::getWindow() -> Window&
 auto trc::TorchStack::getAssetManager() -> AssetManager&
 {
     return assetManager;
-}
-
-auto trc::TorchStack::getShadowPool() -> ShadowPool&
-{
-    return *shadowPool;
 }
 
 auto trc::TorchStack::getRenderPipeline() -> RenderPipeline&

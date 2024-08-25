@@ -136,21 +136,16 @@ void run()
     auto myPlaneGeoIndex = ar.create(trc::makePlaneGeo(20.0f, 20.0f, 20, 20));
     auto plane = scene->makeDrawable({ myPlaneGeoIndex, mapMatIndex });
 
-    trc::Light sunLight = scene->getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
+    auto sunLight = scene->getLights().makeSunLight(vec3(1.0f), vec3(1.0f, -1.0f, -1.5f));
     [[maybe_unused]]
-    trc::Light ambientLight = scene->getLights().makeAmbientLight(vec3(0.15f));
+    auto ambientLight = scene->getLights().makeAmbientLight(vec3(0.15f));
     [[maybe_unused]]
-    trc::Light pointLight = scene->getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
+    auto pointLight = scene->getLights().makePointLight(vec3(1, 1, 0), vec3(2, 0.5f, 0.5f), 0.4f);
 
     // Sun light
-    mat4 proj = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -50.0f, 5.0f);
-    auto& shadowNode = scene->getLights().enableShadow(
-        sunLight,
-        { .shadowMapResolution=uvec2(2048, 2048) },
-        torch->getShadowPool()
-    );
-    shadowNode.setProjectionMatrix(proj);
-    scene->getRoot().attach(shadowNode);
+    auto sunShadow = scene->getLights().enableShadow(sunLight, uvec2(2048, 2048));
+    sunShadow->getCamera().makeOrthogonal(-5.0f, 5.0f, -5.0f, 5.0f, -50.0f, 5.0f);
+    scene->getRoot().attach(sunShadow->getCamera());
 
     // Instanced trees
     constexpr trc::ui32 NUM_TREES = 200;

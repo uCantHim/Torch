@@ -1,34 +1,72 @@
 #include "trc/ShadowPool.h"
 
+#include <ranges>
+
+#include <trc_util/Assert.h>
+
+#include "trc/DescriptorSetUtils.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
-trc::ShadowPool::Shadow::Shadow(
-    const Device& device,
-    const FrameClock& clock,
-    ui32 index,
-    uvec2 size)
+namespace trc
+{
+
+ShadowMap::ShadowMap(const Device& device, ui32 index, const ShadowMapCreateInfo& info)
     :
     index(index),
-    camera(std::make_shared<Camera>()),
     renderPass(std::make_shared<RenderPassShadow>(
         device,
-        clock,
-        ShadowPassCreateInfo{ .shadowIndex=index, .resolution=size }
-    ))
+        ShadowPassCreateInfo{ index, info.shadowMapResolution }
+    )),
+    camera(info.camera)
 {
+    assert_arg(info.camera != nullptr);
+}
+
+auto ShadowMap::getCamera() -> Camera&
+{
+    return *camera;
+}
+
+auto ShadowMap::getCamera() const -> const Camera&
+{
+    return *camera;
+}
+
+auto ShadowMap::getRenderPass() -> RenderPassShadow&
+{
+    return *renderPass;
+}
+
+auto ShadowMap::getRenderPass() const -> const RenderPassShadow&
+{
+    return *renderPass;
+}
+
+auto ShadowMap::getImage() const -> vk::Image
+{
+    return *renderPass->getShadowImage();
+}
+
+auto ShadowMap::getImageView() const -> vk::ImageView
+{
+    return renderPass->getShadowImageView();
+}
+
+auto ShadowMap::getShadowMatrixIndex() const -> ui32
+{
+    return index;
 }
 
 
 
-trc::ShadowPool::ShadowPool(
+ShadowPool::ShadowPool(
     const Device& device,
-    const FrameClock& clock,
-    ShadowPoolCreateInfo info)
+    const ShadowPoolCreateInfo& info,
+    const DeviceMemoryAllocator& alloc)
     :
     device(device),
-    clock(clock),
     kMaxShadowMaps(info.maxShadowMaps),
     // Must be a storage buffer rather than a uniform buffer because it has
     // a dynamically sized array in GLSL.
@@ -36,174 +74,163 @@ trc::ShadowPool::ShadowPool(
         device, sizeof(mat4) * info.maxShadowMaps,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal
-        | vk::MemoryPropertyFlagBits::eHostCoherent
+        | vk::MemoryPropertyFlagBits::eHostCoherent,
+        alloc
     ),
-    shadowMatrixBufferMap(shadowMatrixBuffer.map<mat4*>()),
-    descSets(clock)
+    shadowMatrixBufferMap(shadowMatrixBuffer.map<mat4*>())
 {
     if (info.maxShadowMaps == 0)
     {
         throw std::invalid_argument("[In ShadowPool::ShadowPool]: Maximum number of shadows must"
                                     " be greater than 0!");
     }
-
-    createDescriptors(info.maxShadowMaps);
-    for (ui32 i = 0; i < clock.getFrameCount(); i++) {
-        writeDescriptors(i);
-    }
 }
 
-void trc::ShadowPool::update()
+void ShadowPool::update()
 {
     updateMatrixBuffer();
 }
 
-auto trc::ShadowPool::allocateShadow(const ShadowCreateInfo& info) -> ShadowMap
+auto ShadowPool::allocateShadow(ui32 index, const ShadowMapCreateInfo& info) -> s_ptr<ShadowMap>
 {
-    const ui32 id = shadowIdPool.generate();
-    if (id > kMaxShadowMaps)
+    if (index >= kMaxShadowMaps)
     {
-        shadowIdPool.free(id);
-        throw std::out_of_range(
-            "[In ShadowPool::allocateShadow]: Unable to allocate shadow - the maximum of "
-            + std::to_string(kMaxShadowMaps) + " shadows is exceeded!"
+        throw std::invalid_argument(
+            "[In ShadowPool::allocateShadow]: Invalid shadow map index: Must not exceed"
+            " the maximum of " + std::to_string(kMaxShadowMaps) + " shadow maps!"
         );
     }
 
-    auto& shadow = shadows.emplace(
-        id,
-        std::make_unique<Shadow>(device, clock, id, info.shadowMapResolution)
-    );
-
-    // Update all descriptors
-    for (ui32 i = 0; i < clock.getFrameCount(); i++) {
-        writeDescriptors(i);
-    }
     updateMatrixBuffer();
 
-    return {
-        .index      = id,
-        .renderPass = shadow->renderPass,
-        .camera     = shadow->camera
-    };
+    return shadowMaps.emplace(device, index, info);
 }
 
-auto trc::ShadowPool::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
+auto ShadowPool::getMatrixBuffer() const -> const Buffer&
+{
+    return shadowMatrixBuffer;
+}
+
+auto ShadowPool::getShadows() const -> std::generator<const ShadowMap&>
+{
+    return shadowMaps.iterValidElements();
+};
+
+void ShadowPool::updateMatrixBuffer()
+{
+    for (auto& shadow : shadowMaps.iterValidElementsWithCleanup())
+    {
+        const auto& cam = shadow.getCamera();
+        const mat4 viewProj = cam.getProjectionMatrix() * cam.getViewMatrix();
+        shadowMatrixBufferMap[shadow.getShadowMatrixIndex()] = viewProj;
+    }
+
+    shadowMatrixBuffer.flush();
+}
+
+
+
+ShadowDescriptor::ShadowDescriptor(
+    const Device& device,
+    ui32 maxShadowMaps,
+    ui32 maxDescriptorSets)
+{
+    constexpr auto shaderStages = vk::ShaderStageFlagBits::eVertex
+                                | vk::ShaderStageFlagBits::eFragment
+                                | vk::ShaderStageFlagBits::eCompute
+                                | rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
+
+    auto builder = buildDescriptorSetLayout()
+        .addBinding(vk::DescriptorType::eStorageBuffer, 1, shaderStages)
+        .addBinding(vk::DescriptorType::eCombinedImageSampler, maxShadowMaps, shaderStages,
+                    vk::DescriptorBindingFlagBits::ePartiallyBound);
+
+    descLayout = builder.build(device);
+    descPool = builder.buildPool(device, maxDescriptorSets,
+                                 vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+
+    device.setDebugName(*descLayout, "Shadow descriptor set layout");
+    device.setDebugName(*descPool, "Shadow descriptor pool");
+}
+
+auto ShadowDescriptor::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
 {
     return *descLayout;
 }
 
-void trc::ShadowPool::bindDescriptorSet(
+auto ShadowDescriptor::makeDescriptorSet(
+    const Device& device,
+    const ShadowPool& shadowPool)
+    -> s_ptr<DescriptorSet>
+{
+    auto descSet = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
+    device.setDebugName(*descSet, "Shadow descriptor set");
+
+    return std::make_shared<DescriptorSet>(device, std::move(descSet), shadowPool);
+}
+
+
+
+ShadowDescriptor::DescriptorSet::DescriptorSet(
+    const Device& device,
+    vk::UniqueDescriptorSet _set,
+    const ShadowPool& pool)
+    :
+    descSet(std::move(_set))
+{
+    // Write shadow matrix buffer only once
+    vk::DescriptorBufferInfo bufferInfo(*pool.getMatrixBuffer(), 0, VK_WHOLE_SIZE);
+    std::vector<vk::WriteDescriptorSet> writes{
+        { *descSet, 0, 0, vk::DescriptorType::eStorageBuffer, {}, bufferInfo },
+    };
+    device->updateDescriptorSets(writes, {});
+
+    update(device, pool);
+}
+
+void ShadowDescriptor::DescriptorSet::update(
+    const Device& device,
+    const ShadowPool& shadowPool)
+{
+    // Collect all shadow images
+    std::vector<std::pair<ui32, vk::DescriptorImageInfo>> imageInfos;
+    for (const ShadowMap& shadow : shadowPool.getShadows())
+    {
+        const ui32 index = shadow.getShadowMatrixIndex();
+
+        const auto& pass = shadow.getRenderPass();
+        auto imageView = pass.getShadowImageView();
+        auto sampler = pass.getShadowImage().getDefaultSampler();
+        imageInfos.emplace_back(
+            index,
+            vk::DescriptorImageInfo{ sampler, imageView, vk::ImageLayout::eShaderReadOnlyOptimal }
+        );
+    }
+
+    // Update the image descriptor
+    if (!imageInfos.empty())
+    {
+        auto imageWrites = imageInfos
+            | std::views::transform([this](auto& pair) {
+                const auto& [index, image] = pair;
+                return vk::WriteDescriptorSet{
+                    *descSet, 1, index, vk::DescriptorType::eCombinedImageSampler,
+                    image,
+                };
+            })
+            | std::ranges::to<std::vector>();
+
+        device->updateDescriptorSets(imageWrites, {});
+    }
+}
+
+void ShadowDescriptor::DescriptorSet::bindDescriptorSet(
     vk::CommandBuffer cmdBuf,
     vk::PipelineBindPoint bindPoint,
     vk::PipelineLayout pipelineLayout,
     ui32 setIndex) const
 {
-    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, **descSets, {});
+    cmdBuf.bindDescriptorSets(bindPoint, pipelineLayout, setIndex, *descSet, {});
 }
 
-void trc::ShadowPool::updateMatrixBuffer()
-{
-    for (auto& shadow : shadows)
-    {
-        if (shadow == nullptr) continue;
-
-        const auto& cam = shadow->camera;
-        const mat4 viewProj = cam->getProjectionMatrix() * cam->getViewMatrix();
-        shadowMatrixBufferMap[shadow->index] = viewProj;
-    }
-}
-
-void trc::ShadowPool::createDescriptors(const ui32 maxShadowMaps)
-{
-    auto shaderStages = vk::ShaderStageFlagBits::eVertex
-                        | vk::ShaderStageFlagBits::eFragment
-                        | vk::ShaderStageFlagBits::eCompute
-                        | rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
-
-    // Layout
-    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{
-        // Shadow matrix buffer
-        { 0, vk::DescriptorType::eStorageBuffer, 1, shaderStages },
-        // Shadow maps
-        { 1, vk::DescriptorType::eCombinedImageSampler, maxShadowMaps, shaderStages },
-    };
-    std::vector<vk::DescriptorBindingFlags> layoutFlags{
-        {}, // shadow matrix buffer
-        vk::DescriptorBindingFlagBits::eVariableDescriptorCount
-        | vk::DescriptorBindingFlagBits::ePartiallyBound, // shadow map samplers
-    };
-
-    vk::StructureChain layoutChain{
-        vk::DescriptorSetLayoutCreateInfo({}, layoutBindings),
-        vk::DescriptorSetLayoutBindingFlagsCreateInfo(layoutFlags)
-    };
-    descLayout = device->createDescriptorSetLayoutUnique(
-        layoutChain.get<vk::DescriptorSetLayoutCreateInfo>()
-    );
-
-    // Pool
-    std::vector<vk::DescriptorPoolSize> poolSizes{
-        { vk::DescriptorType::eStorageBuffer, 1 },
-        { vk::DescriptorType::eCombinedImageSampler, maxShadowMaps },
-    };
-    descPool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        clock.getFrameCount(), // max num sets
-        poolSizes
-    ));
-
-    // Sets
-    const ui32 numSets = clock.getFrameCount();
-    const std::vector<ui32> max(numSets, maxShadowMaps);
-    const std::vector<vk::DescriptorSetLayout> layouts(numSets, *descLayout);
-    vk::StructureChain descSetAllocateChain{
-        vk::DescriptorSetAllocateInfo(*descPool, layouts),
-        vk::DescriptorSetVariableDescriptorCountAllocateInfo(numSets, max.data()),
-    };
-    descSets = {
-        clock,
-        device->allocateDescriptorSetsUnique(
-            descSetAllocateChain.get<vk::DescriptorSetAllocateInfo>()
-        )
-    };
-
-    // Write shadow matrix buffers only once
-    descSets.foreach([this](auto& set) {
-        vk::DescriptorBufferInfo bufferInfo(*shadowMatrixBuffer, 0, VK_WHOLE_SIZE);
-        std::vector<vk::WriteDescriptorSet> writes = {
-            { *set, 0, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &bufferInfo },
-        };
-
-        device->updateDescriptorSets(writes, {});
-    });
-}
-
-void trc::ShadowPool::writeDescriptors(ui32 frameIndex)
-{
-    auto descSet = *descSets.getAt(frameIndex);
-
-    // Collect all shadow images
-    std::vector<vk::DescriptorImageInfo> imageInfos;
-    for (auto& shadow : shadows)
-    {
-        // Vector space is pre-allocated. Skip empty shadow slots.
-        if (shadow == nullptr) continue;
-
-        auto& pass = shadow->renderPass;
-        auto imageView = pass->getShadowImageView(frameIndex);
-        auto sampler = pass->getShadowImage(frameIndex).getDefaultSampler();
-        imageInfos.emplace_back(sampler, imageView, vk::ImageLayout::eShaderReadOnlyOptimal);
-    }
-
-    if (!imageInfos.empty())
-    {
-        vk::WriteDescriptorSet write(
-            descSet, 1, 0, imageInfos.size(),
-            vk::DescriptorType::eCombinedImageSampler,
-            imageInfos.data()
-        );
-
-        device->updateDescriptorSets(write, {});
-    }
-}
+} // namespace trc

@@ -1,14 +1,15 @@
 #pragma once
 
 #include "trc/Types.h"
-#include "trc_util/Padding.h"
 
 namespace trc
 {
+    class LightRegistry;
+
     /**
      * @brief Internal light data for usage on the device
      */
-    struct LightData
+    struct LightDeviceData
     {
         enum Type : ui32
         {
@@ -35,89 +36,68 @@ namespace trc
         ui32 __padding[3]{ 0 };
     };
 
-    static_assert(sizeof(LightData) == util::sizeof_pad_16_v<LightData>,
-                  "LightData structs must be padded to a Device-friendly length");
+    namespace impl
+    {
+        class LightInterfaceBase
+        {
+        public:
+            explicit LightInterfaceBase(LightDeviceData* data) : data(data) {
+                assert(this->data != nullptr);
+            }
 
-    /**
-     * @brief Light handle
-     *
-     * TODO: Implement typesafe handles for different light types
-     */
-    class Light
+            /**
+             * Link a shadow map to the light.
+             *
+             * @return True if the shadow map was successfully linked to the
+             *         light, false if it exceeded the maximum allowed number
+             *         of shadow maps per light.
+             */
+            auto linkShadowMap(ui32 shadowMapIndex) -> bool;
+
+            /**
+             * Remove all linked shadow maps from the light.
+             */
+            void clearShadowMaps();
+
+        protected:
+            LightDeviceData* data;
+        };
+
+        class ColoredLightInterface : public LightInterfaceBase
+        {
+        public:
+            auto getColor() const -> vec3;
+            auto getAmbientPercentage() const -> float;
+
+            void setColor(vec3 newColor);
+
+            /**
+             * @brief Set how much the light's color is added as ambient lighting
+             *
+             * A convenient and cheap way to fake global illumination effects.
+             *
+             * @param ambient The new ambient light percentage. Should be in the
+             *                range [0, 1].
+             */
+            void setAmbientPercentage(float ambient);
+        };
+    } // namespace impl
+
+    class SunLightInterface : public impl::ColoredLightInterface
     {
     public:
-        using Type = LightData::Type;
-
-        constexpr Light() = default;
-
-        auto operator<=>(const Light&) const = default;
-
-        /**
-         * @return bool True if the object is a valid handle to an existing
-         *              light, false otherwise.
-         */
-        operator bool() const;
-
-        auto getType() const -> Type;
-        auto getColor() const -> vec3;
-        auto getPosition() const -> vec3;
         auto getDirection() const -> vec3;
-        auto getAmbientPercentage() const -> float;
-
-        void setColor(vec3 newColor);
-
-        /**
-         * Only affects point lights
-         */
-        void setPosition(vec3 newPos);
-
-        /**
-         * Only affects sun lights
-         */
         void setDirection(vec3 newDir);
-
-        /**
-         * @brief Set how much the light's color is added as ambient lighting
-         */
-        void setAmbientPercentage(float ambient);
-
-        void addShadowMap(ui32 shadowMapIndex);
-        void removeAllShadowMaps();
-
-    private:
-        friend struct std::hash<trc::Light>;
-        friend class LightRegistry;
-        explicit Light(LightData& lightData);
-
-        LightData* data{ nullptr };
     };
 
-    /**
-     * @brief Unique light handle
-     */
-    using UniqueLight = u_ptr<Light, std::function<void(Light*)>>;
-
-    static_assert(std::regular<Light>, "Light handles are regular types");
-
-    /**
-     * @return Number of shadow maps based on light type
-     * @throw std::logic_error if the enum doesn't exist
-     */
-    extern ui32 getNumShadowMaps(Light::Type lightType);
-} // namespace trc
-
-
-
-namespace std
-{
-    /**
-     * @brief std::hash specialization for Light handles
-     */
-    template<>
-    struct hash<trc::Light>
+    class PointLightInterface : public impl::ColoredLightInterface
     {
-        size_t operator()(const trc::Light& light) const noexcept {
-            return hash<trc::LightData*>{}(light.data);
-        }
+    public:
+        auto getPosition() const -> vec3;
+        void setPosition(vec3 newPos);
     };
-} // namespace std
+
+    class AmbientLightInterface : public impl::ColoredLightInterface
+    {
+    };
+} // namespace trc

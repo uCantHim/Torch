@@ -1,9 +1,5 @@
 #include "trc/GBufferPass.h"
 
-#include <glm/detail/type_half.hpp>
-
-#include "trc/base/Barriers.h"
-
 
 
 trc::GBufferPass::GBufferPass(
@@ -13,16 +9,17 @@ trc::GBufferPass::GBufferPass(
     RenderPass(makeVkRenderPass(device), NUM_SUBPASSES),
     gBuffer(_gBuffer),
     framebufferSize(gBuffer.getSize()),
-    framebuffer([&] {
-        std::vector<vk::ImageView> views{
+    framebuffer(
+        device,
+        *renderPass,
+        gBuffer.getSize(),
+        {
             gBuffer.getImageView(GBuffer::eNormals),
             gBuffer.getImageView(GBuffer::eAlbedo),
             gBuffer.getImageView(GBuffer::eMaterials),
             gBuffer.getImageView(GBuffer::eDepth),
-        };
-
-        return Framebuffer(device, *renderPass, gBuffer.getSize(), {}, std::move(views));
-    }()),
+        }
+    ),
     clearValues({
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),

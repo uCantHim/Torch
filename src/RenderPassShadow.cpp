@@ -1,5 +1,7 @@
 #include "trc/RenderPassShadow.h"
 
+#include <ranges>
+
 
 
 trc::RenderPassShadow::RenderPassShadow(
@@ -24,12 +26,12 @@ trc::RenderPassShadow::RenderPassShadow(
         ),
         alloc
     },
+    depthImageView(depthImage.createView(vk::ImageAspectFlagBits::eDepth)),
     framebuffer{
         device,
         *renderPass,
         resolution,
-        { depthImage.createView(vk::ImageAspectFlagBits::eDepth), },
-        {}
+        *depthImageView
     }
 {
 }

@@ -79,12 +79,8 @@ void run()
 
     auto& lights = scene->getModule<trc::LightSceneModule>();
     auto sun = lights.makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
-    auto& shadow = lights.enableShadow(
-        sun,
-        { .shadowMapResolution=uvec2(2048, 2048) },
-        torch->getShadowPool()
-    );
-    shadow.setProjectionMatrix(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f));
+    auto shadow = lights.enableShadow(sun, uvec2(2048, 2048));
+    shadow->getCamera().makeOrthogonal(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f);
 
 
     // --- Set some keybindings --- //

@@ -1,69 +1,82 @@
 #pragma once
 
+#include <concepts>
+#include <unordered_map>
+
 #include <componentlib/Table.h>
+#include <trc_util/Assert.h>
 
 #include "trc/LightRegistry.h"
-#include "trc/Node.h"
-#include "trc/ShadowPool.h"
+#include "trc/ShadowRegistry.h"
 #include "trc/Types.h"
 #include "trc/core/SceneModule.h"
 
 namespace trc
 {
+    class Camera;
+
     class LightSceneModule : public SceneModule
                            , public LightRegistry
     {
     public:
-        /**
-         * @brief Handle to a light's shadow
-         */
-        struct ShadowNode : public Node
+        struct SunShadow
         {
-            /**
-             * @brief Set a projection matrix on all shadow cameras
-             */
-            void setProjectionMatrix(mat4 proj) noexcept
-            {
-                for (auto& shadow : shadows) {
-                    shadow.camera->setProjectionMatrix(proj);
-                }
+        public:
+            auto getCamera() -> Camera& {
+                return *camera;
+            }
+            auto getCamera() const -> const Camera& {
+                return *camera;
             }
 
         private:
             friend LightSceneModule;
+            SunShadow(const s_ptr<Camera>& camera, ShadowID id)
+                : camera(camera), shadowMapId(id) {
+                assert_arg(camera != nullptr);
+            }
 
-            std::vector<ShadowMap> shadows;
+            s_ptr<Camera> camera;
+            ShadowID shadowMapId;
         };
 
         /**
-         * @brief Enable shadows for a specific light
+         * @brief Enable shadows for a sun light
          *
          * @param Light light The light that shall cast shadows.
-         * @param const ShadowCreateInfo& shadowInfo
-         * @param ShadowPool& shadowPool A shadow pool from which to
-         *        allocate shadow maps.
-         *
-         * @return ShadowNode& The node is NOT automatically attached to
-         *                     the scene's root.
-         *
-         * @throw std::invalid_argument if shadows are already enabled on the light
-         * @throw std::runtime_error if something unexpected happens
+         * @param uvec2 shadowMapResolution
          */
-        auto enableShadow(Light light,
-                          const ShadowCreateInfo& shadowInfo,
-                          ShadowPool& shadowPool) -> ShadowNode&;
+        auto enableShadow(const SunLight& light,
+                          uvec2 shadowMapResolution)
+            -> s_ptr<SunShadow>;
 
         /**
          * Does nothing if shadows are not enabled for the light
          */
-        void disableShadow(Light light);
+        void disableShadow(const SunLight& light);
 
-        auto getShadowPasses() -> const std::unordered_set<s_ptr<RenderPass>>& {
-            return shadowPasses;
+        /**
+         * @return Handle to the created listener. Removes the listener from the
+         *         light scene when destroyed.
+         */
+        template<std::invocable<const ShadowRegistry::ShadowCreateEvent&> F>
+        [[nodiscard]]
+        auto onShadowCreate(F&& func) -> EventListener<ShadowRegistry::ShadowCreateEvent> {
+            return shadowRegistry.onShadowCreate(std::forward<F>(func));
+        }
+
+        /**
+         * @return Handle to the created listener. Removes the listener from the
+         *         light scene when destroyed.
+         */
+        template<std::invocable<const ShadowRegistry::ShadowDestroyEvent&> F>
+        [[nodiscard]]
+        auto onShadowDestroy(F&& func) -> EventListener<ShadowRegistry::ShadowDestroyEvent> {
+            return shadowRegistry.onShadowDestroy(std::forward<F>(func));
         }
 
     private:
-        std::unordered_map<Light, u_ptr<ShadowNode>> shadowNodes;
-        std::unordered_set<s_ptr<RenderPass>> shadowPasses;
+        ShadowRegistry shadowRegistry;
+        std::unordered_map<SunLight, s_ptr<SunShadow>> sunShadows;
     };
 } // namespace trc

@@ -58,6 +58,7 @@ namespace trc
         const ui32 shadowMatrixIndex;
 
         Image depthImage;
+        vk::UniqueImageView depthImageView;
         Framebuffer framebuffer;
     };
 } // namespace trc

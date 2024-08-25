@@ -33,15 +33,11 @@ int main()
         }
     );
 
-    auto shadowDescriptor = std::make_shared<trc::ShadowPool>(
-        instance.getDevice(), window, trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
-    );
-
     // Create a render pipeline
     auto pipeline = trc::RenderPipelineBuilder{}
         .addPlugin(trc::buildRasterPlugin({
             trc::RasterPluginCreateInfo{
-                .shadowDescriptor            = shadowDescriptor,
+                .maxShadowMaps = 1,
                 .maxTransparentFragsPerPixel = 3,
             }
         }))

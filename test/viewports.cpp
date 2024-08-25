@@ -11,7 +11,6 @@ void run()
     // Create basic Torch objects
     trc::Instance instance;
     trc::Window window(instance);
-    trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
     trc::AssetManager assets(std::make_shared<trc::NullDataStorage>());
 
@@ -26,11 +25,6 @@ void run()
             .maxFonts = 50,
         }
     );
-    auto shadowPool = std::make_shared<trc::ShadowPool>(
-        device,
-        renderTarget.getFrameClock(),
-        trc::ShadowPoolCreateInfo{ .maxShadowMaps=1 }
-    );
 
     // Render the same scene to both viewports, but from different cameras
     auto scene = std::make_shared<trc::Scene>();
@@ -43,7 +37,7 @@ void run()
     camera2->makeOrthogonal(-2.0f, 2.0f, -1.0f, 1.0f, -10.0f, 10.0f);
 
     // Create a light
-    scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
+    auto light = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create some geometries to render
     auto planeGeo = assets.create(trc::makePlaneGeo());
@@ -65,7 +59,7 @@ void run()
         .maxViewports=2,
         .assetRegistry=assets.getDeviceRegistry(),
         .assetDescriptor=assetDescriptor,
-        .shadowDescriptor=shadowPool,
+        .maxShadowMaps=1
     };
 
     auto pipeline = trc::makeTorchRenderPipeline(instance, window, info);
@@ -73,6 +67,10 @@ void run()
     auto vp2 = pipeline->makeViewport({ { 400, 550 }, { 300, 150 } }, camera2, scene);
     //vp1.setClearColor(vec4(1, 1, 0, 1));
     //vp2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
+
+    window.addCallbackOnResize([&pipeline](auto& swapchain) {
+        pipeline->changeRenderTarget(trc::makeRenderTarget(swapchain));
+    });
 
     // Create a renderer that submits a frame to a render target
     trc::Renderer renderer{ device, window };

@@ -1,10 +1,11 @@
 #include "trc/SceneDescriptor.h"
 
+#include <trc_util/Padding.h>
+
 #include "trc/DescriptorSetUtils.h"
 #include "trc/LightSceneModule.h"
 #include "trc/RaySceneModule.h"
 #include "trc/core/SceneBase.h"
-#include "trc/core/Window.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
@@ -14,7 +15,7 @@ trc::SceneDescriptor::SceneDescriptor(const Device& device)
     device(device),
     lightBuffer(
         device,
-        util::sizeof_pad_16_v<LightData> * 128,
+        util::sizeof_pad_16_v<LightDeviceData> * 128,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),

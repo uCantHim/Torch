@@ -6,7 +6,6 @@
 
 #include "trc/AssetDescriptor.h"
 #include "trc/Camera.h"
-#include "trc/ShadowPool.h"
 #include "trc/Types.h"
 #include "trc/assets/Assets.h"
 #include "trc/core/Frame.h"
@@ -81,7 +80,10 @@ namespace trc
         s_ptr<AssetDescriptor> assetDescriptor;
 
         // A pool from which shadow maps are allocated.
-        s_ptr<ShadowPool> shadowDescriptor;
+        ui32 maxShadowMaps{ 100 };
+
+        // A heuristic used to allocate pre-sized fragment list buffers.
+        ui32 maxTransparentFragsPerPixel{ 3 };
 
         // Decides whether the ray tracer is inserted into the rendering
         // pipeline.
@@ -131,7 +133,6 @@ namespace trc
         auto getInstance() -> Instance&;
         auto getWindow() -> Window&;
         auto getAssetManager() -> AssetManager&;
-        auto getShadowPool() -> ShadowPool&;
         auto getRenderPipeline() -> RenderPipeline&;
 
         /**
@@ -158,13 +159,14 @@ namespace trc
         void waitForAllFrames(ui64 timeoutNs = std::numeric_limits<ui64>::max());
 
     private:
+        static constexpr ui32 kDefaultMaxShadowMaps{ 200 };
+        static constexpr ui32 kDefaultMaxTransparentFrags{ 3 };
+
         Instance instance;
         Window window;
         AssetManager assetManager;
 
         s_ptr<AssetDescriptor> assetDescriptor;
-        s_ptr<ShadowPool> shadowPool;
-
         u_ptr<RenderPipeline> renderPipeline;
 
         Renderer renderer;

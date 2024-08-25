@@ -4,12 +4,14 @@
 #include "trc/GBufferPass.h"
 #include "trc/LightSceneModule.h"
 #include "trc/RasterTasks.h"
+#include "trc/SceneDescriptor.h"
+#include "trc/ShadowPool.h"
 #include "trc/TorchRenderStages.h"
+#include "trc/core/DeviceTask.h"
 #include "trc/core/Frame.h"
 #include "trc/core/RenderGraph.h"
 #include "trc/core/ResourceConfig.h"
 #include "trc/core/SceneBase.h"
-#include "trc/core/DeviceTask.h"
 
 
 
@@ -22,10 +24,7 @@ auto buildRasterPlugin(const RasterPluginCreateInfo& createInfo) -> PluginBuilde
         return std::make_unique<RasterPlugin>(
             ctx.device(),
             ctx.maxPluginViewportInstances(),
-            trc::RasterPluginCreateInfo{
-                .shadowDescriptor            = createInfo.shadowDescriptor,
-                .maxTransparentFragsPerPixel = 3,
-            }
+            createInfo
         );
     };
 }
@@ -40,7 +39,7 @@ RasterPlugin::RasterPlugin(
     gBufferDescriptor(device, maxViewports),
     globalDataDescriptor(device, maxViewports),
     sceneDescriptor(std::make_shared<SceneDescriptor>(device)),
-    shadowDescriptor(createInfo.shadowDescriptor),
+    shadowDescriptor(device, createInfo.maxShadowMaps, maxViewports),
     finalLighting(device, maxViewports)
 {
     compatibleGBufferRenderPass = GBufferPass::makeVkRenderPass(device);
@@ -70,7 +69,7 @@ void RasterPlugin::defineResources(ResourceConfig& config)
     config.defineDescriptor(DescriptorName{ SCENE_DESCRIPTOR },
                             sceneDescriptor->getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },
-                            shadowDescriptor->getDescriptorSetLayout());
+                            shadowDescriptor.getDescriptorSetLayout());
     config.defineDescriptor(DescriptorName{ FinalLighting::OUTPUT_IMAGE_DESCRIPTOR },
                             finalLighting.getDescriptorSetLayout());
 
@@ -88,10 +87,16 @@ void RasterPlugin::defineResources(ResourceConfig& config)
     );
 }
 
+auto RasterPlugin::createSceneResources(SceneContext& ctx)
+    -> u_ptr<SceneResources>
+{
+    return std::make_unique<SceneConfig>(ctx, *this);
+}
+
 auto RasterPlugin::createViewportResources(ViewportContext& ctx)
     -> u_ptr<ViewportResources>
 {
-    return std::make_unique<RasterDrawConfig>(
+    return std::make_unique<DrawConfig>(
         ctx.device(),
         Viewport{ ctx.renderImage(), ctx.renderArea() },
         *this
@@ -104,7 +109,7 @@ auto RasterPlugin::createViewportResources(ViewportContext& ctx)
 //    Per-image draw configuration    //
 ////////////////////////////////////////
 
-RasterPlugin::RasterDrawConfig::RasterDrawConfig(
+RasterPlugin::DrawConfig::DrawConfig(
     const Device& device,
     Viewport renderTarget,
     RasterPlugin& parent)
@@ -123,7 +128,7 @@ RasterPlugin::RasterDrawConfig::RasterDrawConfig(
 {
 }
 
-void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resources)
+void RasterPlugin::DrawConfig::registerResources(ResourceStorage& resources)
 {
     resources.provideDescriptor(DescriptorName{ GLOBAL_DATA_DESCRIPTOR },
                                 globalDataDescriptor);
@@ -131,32 +136,18 @@ void RasterPlugin::RasterDrawConfig::registerResources(ResourceStorage& resource
                                 std::make_shared<DescriptorProvider>(*gBufferDescSet));
     resources.provideDescriptor(DescriptorName{ SCENE_DESCRIPTOR },
                                 parent->sceneDescriptor);
-    resources.provideDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },
-                                parent->shadowDescriptor);
 }
 
-void RasterPlugin::RasterDrawConfig::hostUpdate(ViewportContext& ctx)
+void RasterPlugin::DrawConfig::hostUpdate(ViewportContext& ctx)
 {
-    parent->shadowDescriptor->update();
     parent->sceneDescriptor->update(ctx.scene());
     globalDataDescriptor->update(ctx.camera());
 }
 
-void RasterPlugin::RasterDrawConfig::createTasks(
+void RasterPlugin::DrawConfig::createTasks(
     ViewportDrawTaskQueue& queue,
-    ViewportContext& ctx)
+    ViewportContext&)
 {
-    auto& lights = ctx.scene().getModule<LightSceneModule>();
-
-    // Shadow tasks - one for each shadow map
-    for (auto& renderPass : lights.getShadowPasses())
-    {
-        queue.spawnTask(
-            shadowRenderStage,
-            std::make_unique<RenderPassDrawTask>(shadowRenderStage, renderPass)
-        );
-    }
-
     // G-buffer draw task
     queue.spawnTask(
         gBufferRenderStage,
@@ -172,6 +163,59 @@ void RasterPlugin::RasterDrawConfig::createTasks(
 
     // Final lighting compute task
     finalLighting->createTasks(queue);
+}
+
+
+
+RasterPlugin::SceneConfig::SceneConfig(SceneContext& ctx, RasterPlugin& parent)
+    :
+    shadowPool(
+        ctx.device(),
+        ShadowPoolCreateInfo{ .maxShadowMaps=parent.config.maxShadowMaps }
+    ),
+    shadowDescriptorSet(
+        parent.shadowDescriptor.makeDescriptorSet(ctx.device(), shadowPool)
+    )
+{
+    auto& lights = ctx.scene().getModule<LightSceneModule>();
+    onShadowCreate = lights.onShadowCreate(
+        [this](const ShadowRegistry::ShadowCreateEvent& event)
+        {
+            auto shadowMap = shadowPool.allocateShadow(
+                event.id,
+                { event.createInfo.shadowMapResolution, event.createInfo.camera, }
+            );
+            allocatedShadows.emplace(event.id, std::move(shadowMap));
+        }
+    );
+    onShadowDestroy = lights.onShadowDestroy(
+        [this](const ShadowRegistry::ShadowDestroyEvent& event) {
+            allocatedShadows.erase(event.id);
+        }
+    );
+}
+
+void RasterPlugin::SceneConfig::registerResources(ResourceStorage& resources)
+{
+    resources.provideDescriptor(DescriptorName{ SHADOW_DESCRIPTOR },
+                                shadowDescriptorSet);
+}
+
+void RasterPlugin::SceneConfig::hostUpdate(SceneContext& ctx)
+{
+    shadowPool.update();
+    shadowDescriptorSet->update(ctx.device(), shadowPool);
+}
+
+void RasterPlugin::SceneConfig::createTasks(SceneUpdateTaskQueue& taskQueue)
+{
+    for (auto& [_, shadowMap] : allocatedShadows)
+    {
+        taskQueue.spawnTask(
+            shadowRenderStage,
+            std::make_unique<ShadowMapDrawTask>(shadowRenderStage, shadowMap)
+        );
+    }
 }
 
 } // namespace trc

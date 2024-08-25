@@ -1,11 +1,13 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "trc/FinalLighting.h"
 #include "trc/GBuffer.h"
 #include "trc/GBufferPass.h"
 #include "trc/RenderDataDescriptor.h"
-#include "trc/SceneDescriptor.h"
 #include "trc/ShadowPool.h"
+#include "trc/ShadowRegistry.h"
 #include "trc/core/RenderPlugin.h"
 
 namespace trc
@@ -13,17 +15,14 @@ namespace trc
     class DescriptorProviderInterface;
     class GBufferDepthReader;
     class GBufferPass;
+    class SceneDescriptor;
 
     struct RasterPluginCreateInfo
     {
         /**
-         * A pool from which the plugin will allocate shadow maps. Shall not be
-         * `nullptr`.
-         *
-         * TODO: Change this to a `ui32 maxShadows` parameter and create the
-         * pool inside of the raster plugin.
+         * The maximum number of shadow maps that may be used for lighting.
          */
-        s_ptr<ShadowPool> shadowDescriptor;
+        ui32 maxShadowMaps{ 100 };
 
         /**
          * A maximum number of transparent objects that may overlap on a single
@@ -73,14 +72,16 @@ namespace trc
         void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& config) override;
 
+        auto createSceneResources(SceneContext& ctx)
+            -> u_ptr<SceneResources> override;
         auto createViewportResources(ViewportContext& ctx)
             -> u_ptr<ViewportResources> override;
 
     private:
-        class RasterDrawConfig : public ViewportResources
+        class DrawConfig : public ViewportResources
         {
         public:
-            RasterDrawConfig(const Device& device, Viewport renderTarget, RasterPlugin& parent);
+            DrawConfig(const Device& device, Viewport renderTarget, RasterPlugin& parent);
 
             void registerResources(ResourceStorage& resources) override;
 
@@ -99,10 +100,33 @@ namespace trc
             s_ptr<GlobalRenderDataDescriptor::DescriptorSet> globalDataDescriptor;
         };
 
+        class SceneConfig : public SceneResources
+        {
+        public:
+            SceneConfig(SceneContext& ctx, RasterPlugin& parent);
+
+            void registerResources(ResourceStorage& resources) override;
+
+            void hostUpdate(SceneContext& ctx) override;
+            void createTasks(SceneUpdateTaskQueue& taskQueue) override;
+
+        private:
+            ShadowPool shadowPool;
+            s_ptr<ShadowDescriptor::DescriptorSet> shadowDescriptorSet;
+
+            std::unordered_map<ShadowID, s_ptr<ShadowMap>> allocatedShadows;
+
+            // Keep our shadow event notifiers alive:
+            EventListener<ShadowRegistry::ShadowCreateEvent> onShadowCreate;
+            EventListener<ShadowRegistry::ShadowDestroyEvent> onShadowDestroy;
+        };
+
         /**
          * Called once in `defineResources`.
          */
-        void _createFinalLightingResources(ResourceConfig& resources);
+        void createFinalLightingResources(ResourceConfig& resources);
+
+        const RasterPluginCreateInfo config;
 
         vk::UniqueRenderPass compatibleGBufferRenderPass;
         vk::UniqueRenderPass compatibleShadowRenderPass;
@@ -110,7 +134,7 @@ namespace trc
         GBufferDescriptor gBufferDescriptor;
         GlobalRenderDataDescriptor globalDataDescriptor;
         s_ptr<SceneDescriptor> sceneDescriptor;
-        s_ptr<ShadowPool> shadowDescriptor;
+        ShadowDescriptor shadowDescriptor;
 
         FinalLighting finalLighting;
     };
