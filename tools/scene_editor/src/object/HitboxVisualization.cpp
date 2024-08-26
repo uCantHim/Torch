@@ -1,7 +1,6 @@
 #include "HitboxVisualization.h"
 
 #include <trc/DrawablePipelines.h>
-#include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/core/PipelineBuilder.h>
 #include <trc/core/PipelineLayoutBuilder.h>

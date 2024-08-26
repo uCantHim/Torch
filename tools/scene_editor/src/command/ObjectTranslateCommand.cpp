@@ -1,5 +1,7 @@
 #include "ObjectTranslateCommand.h"
 
+#include <trc/base/event/InputState.h>
+
 #include "AxisFlags.h"
 #include "Globals.h"
 #include "Scene.h"

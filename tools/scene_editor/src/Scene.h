@@ -1,8 +1,5 @@
 #pragma once
 
-#include <vector>
-#include <mutex>
-
 #include <componentlib/ComponentStorage.h>
 #include <trc/Torch.h>
 using namespace trc::basic_types;
@@ -15,7 +12,7 @@ class App;
 class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
 public:
-    explicit Scene(App& app);
+    Scene(App& app, s_ptr<trc::Camera> camera, s_ptr<trc::Scene> scene);
     ~Scene();
 
     void update(float timeDelta);
@@ -74,10 +71,10 @@ private:
 
     App* app;
 
+    s_ptr<trc::Camera> camera;
+    s_ptr<trc::Scene> scene;
     trc::Node cameraViewNode;
-    trc::Camera camera;
-    trc::Scene scene;
-    trc::Light sunLight;
+    trc::SunLight sunLight;
 
     ObjectSelection objectSelection;
 };

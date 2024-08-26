@@ -2,13 +2,10 @@
 
 #include <optional>
 
+#include <trc/Torch.h>
 #include <trc/drawable/DrawableScene.h>
 
 #include "Hitbox.h"
-
-namespace trc{
-    class Scene;
-}
 
 /**
  * The capsule visualization is a stretched sphere until I implement a

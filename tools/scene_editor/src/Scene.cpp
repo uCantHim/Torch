@@ -7,30 +7,31 @@
 
 
 
-Scene::Scene(App& app)
+Scene::Scene(App& app, s_ptr<trc::Camera> _camera, s_ptr<trc::Scene> _scene)
     :
     app(&app),
+    camera(_camera),
+    scene(_scene),
     objectSelection(*this)
 {
     auto recalcProjMat = [this](const trc::Swapchain& swapchain)
     {
         auto size = swapchain.getImageExtent();
-        camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 200.0f);
+        camera->makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 200.0f);
     };
     recalcProjMat(app.getTorch().getWindow());
 
-    scene.getRoot().attach(cameraViewNode);
-    cameraViewNode.attach(camera);
+    scene->getRoot().attach(cameraViewNode);
+    cameraViewNode.attach(*camera);
     cameraViewNode.setFromMatrix(glm::lookAt(vec3(5, 5, 5), vec3(0, 0, 0), vec3(0, 1, 0)));
     app.getTorch().getWindow().addCallbackOnResize(recalcProjMat);
 
-    // Enable shadows for the sun
-    sunLight = scene.getLights().makeSunLight(vec3(1, 1, 1), vec3(1, -1, -1), 0.6f);
-    scene.enableShadow(
-        sunLight,
-        trc::ShadowCreateInfo{ .shadowMapResolution={ 4096, 4096 } },
-        app.getTorch().getShadowPool()
-    ).setProjectionMatrix(glm::ortho(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 20.0f));;
+    // Create a sun light.
+    sunLight = scene->getLights().makeSunLight(vec3(1, 1, 1), vec3(1, -1, -1), 0.6f);
+
+    // Enable shadows for the sun light.
+    auto shadow = scene->getLights().enableShadow(sunLight, uvec2{ 4096, 4096 });
+    shadow->getCamera().makeOrthogonal(-15.0f, 15.0f, -15.0f, 15.0f, -50.0f, 20.0f);
 }
 
 Scene::~Scene()
@@ -40,7 +41,7 @@ Scene::~Scene()
 
 void Scene::update(const float timeDelta)
 {
-    scene.update(timeDelta);
+    scene->update(timeDelta);
     calcObjectHover();
 }
 
@@ -51,32 +52,32 @@ auto Scene::getTorch() -> trc::TorchStack&
 
 auto Scene::getCamera() -> trc::Camera&
 {
-    return camera;
+    return *camera;
 }
 
 auto Scene::getCamera() const -> const trc::Camera&
 {
-    return camera;
+    return *camera;
 }
 
 auto Scene::getDrawableScene() -> trc::Scene&
 {
-    return scene;
+    return *scene;
 }
 
 auto Scene::getMouseDepth() const -> float
 {
-    return app->getTorch().getRenderConfig().getMouseDepth();
+    return 0.0f; //app->getTorch().getRenderConfig().getMouseDepth();
 }
 
 auto Scene::getMousePosAtDepth(const float depth) const -> vec3
 {
-    return app->getTorch().getRenderConfig().getMousePosAtDepth(camera, depth);
+    return vec3(0.0f); //app->getTorch().getRenderConfig().getMousePosAtDepth(camera, depth);
 }
 
 auto Scene::getMouseWorldPos() const -> vec3
 {
-    return app->getTorch().getRenderConfig().getMouseWorldPos(camera);
+    return vec3(0.0f); //app->getTorch().getRenderConfig().getMouseWorldPos(camera);
 }
 
 auto Scene::createObject() -> SceneObject
@@ -163,7 +164,7 @@ auto Scene::createDefaultObject(trc::Drawable drawable) -> SceneObject
     auto& node = add<ObjectBaseNode>(obj);
     auto& d = add<trc::Drawable>(obj, std::move(drawable));
     node.attach(*d);
-    scene.getRoot().attach(node);
+    scene->getRoot().attach(node);
 
     // Create hitbox component
     auto& hitboxes = app->getAssets().manager().getModule<HitboxAsset>();
@@ -179,7 +180,7 @@ auto Scene::createDefaultObject(const trc::DrawableCreateInfo& createInfo) -> Sc
 
 void Scene::calcObjectHover()
 {
-    const vec4 mousePos = vec4(app->getTorch().getRenderConfig().getMouseWorldPos(camera), 1.0f);
+    const vec4 mousePos = vec4(getMouseWorldPos(), 1.0f);
 
     float closestDist{ std::numeric_limits<float>::max() };
     SceneObject closestObject{ SceneObject::NONE };
