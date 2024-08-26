@@ -336,6 +336,7 @@ bool trc::Swapchain::presentImage(
     {
         log::info << "--- Swapchain has become invalid, create a new one.";
         createSwapchain(createInfo);
+        FrameClock::resetCurrentFrame();
         return false;
     }
 
