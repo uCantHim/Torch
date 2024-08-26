@@ -59,14 +59,16 @@ auto trc::initFull(
 }
 
 auto trc::makeTorchRenderPipeline(
-    const Instance& instance,
-    const Swapchain& swapchain,
-    const TorchPipelineCreateInfo& createInfo) -> u_ptr<RenderPipeline>
+    Instance& instance,
+    Window& window,
+    const TorchPipelineCreateInfo& createInfo,
+    const vk::ArrayProxy<TorchPipelinePluginBuilder>& plugins)
+    -> u_ptr<RenderPipeline>
 {
     assert_arg(createInfo.maxViewports > 0);
 
     RenderPipelineBuilder builder;
-    builder.addPlugin(buildSwapchainPlugin(swapchain));
+    builder.addPlugin(buildSwapchainPlugin(window));
     builder.addPlugin([&createInfo](PluginBuildContext&) {
         return std::make_unique<AssetPlugin>(
             createInfo.assetRegistry,
@@ -88,9 +90,14 @@ auto trc::makeTorchRenderPipeline(
         ));
     }
 
+    // Add user-supplied plugins
+    for (auto& plugin : plugins) {
+        builder.addPlugin(plugin(window));
+    }
+
     return builder.build(RenderPipelineCreateInfo{
         instance,
-        makeRenderTarget(swapchain),
+        makeRenderTarget(window),
         createInfo.maxViewports,
     });
 }
@@ -128,7 +135,8 @@ trc::TorchStack::TorchStack(
             .maxShadowMaps=kDefaultMaxShadowMaps,
             .maxTransparentFragsPerPixel=kDefaultMaxTransparentFrags,
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()
-        }
+        },
+        torchConfig.plugins
     )),
     renderer(instance.getDevice(), window)
 {

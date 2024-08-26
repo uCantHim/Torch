@@ -94,9 +94,12 @@ namespace trc
         ui32 maxRayGeometries{ 10000 };
     };
 
-    auto makeTorchRenderPipeline(const Instance& instance,
-                                 const Swapchain& swapchain,
-                                 const TorchPipelineCreateInfo& createInfo)
+    using TorchPipelinePluginBuilder = std::function<PluginBuilder(Window&)>;
+
+    auto makeTorchRenderPipeline(Instance& instance,
+                                 Window& window,
+                                 const TorchPipelineCreateInfo& createInfo,
+                                 const vk::ArrayProxy<TorchPipelinePluginBuilder>& plugins = {})
         -> u_ptr<RenderPipeline>;
 
     /**
@@ -104,6 +107,8 @@ namespace trc
      */
     struct TorchStackCreateInfo
     {
+        vk::ArrayProxy<TorchPipelinePluginBuilder> plugins;
+
         // TODO: Make these optional. Create in-memory asset storage if these
         // are not provided.
         fs::path projectRootDir{ TRC_COMPILE_ROOT_DIR"/torch_project_root" };
