@@ -11,6 +11,7 @@
 #include "trc/base/event/EventHandler.h"
 #include "trc/ray_tracing/RayTracingPlugin.h"
 #include "trc/util/FilesystemDataStorage.h"
+#include "trc/util/NullDataStorage.h"
 
 
 
@@ -117,9 +118,13 @@ trc::TorchStack::TorchStack(
         }
         return winInfo;
     }()),
-    assetManager([&torchConfig]{
-        fs::create_directories(torchConfig.assetStorageDir);
-        return std::make_shared<FilesystemDataStorage>(torchConfig.assetStorageDir);
+    assetManager([&torchConfig] -> s_ptr<DataStorage> {
+        if (torchConfig.assetStorageDir)
+        {
+            fs::create_directories(*torchConfig.assetStorageDir);
+            return std::make_shared<FilesystemDataStorage>(*torchConfig.assetStorageDir);
+        }
+        return std::make_shared<NullDataStorage>();
     }()),
     assetDescriptor(trc::makeAssetDescriptor(
         instance,

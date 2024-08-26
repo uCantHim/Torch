@@ -1,8 +1,7 @@
 #pragma once
 
 #include <filesystem>
-
-#include <trc_util/Timer.h>
+#include <optional>
 
 #include "trc/AssetDescriptor.h"
 #include "trc/Camera.h"
@@ -107,12 +106,19 @@ namespace trc
      */
     struct TorchStackCreateInfo
     {
+        /**
+         * @brief Specify a list of additional render plugins that shall be
+         *        inserted into Torch's render pipeline.
+         */
         vk::ArrayProxy<TorchPipelinePluginBuilder> plugins;
 
-        // TODO: Make these optional. Create in-memory asset storage if these
-        // are not provided.
-        fs::path projectRootDir{ TRC_COMPILE_ROOT_DIR"/torch_project_root" };
-        fs::path assetStorageDir{ projectRootDir / "assets" };
+        /**
+         * @brief A path to the project's asset storage directory.
+         *
+         * If not given, no asset storage is used. Instead, assets can be
+         * created in-memory and referenced by their assigned IDs.
+         */
+        std::optional<fs::path> assetStorageDir;
     };
 
     /**

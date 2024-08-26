@@ -2,6 +2,7 @@
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/util/NullDataStorage.h>
+#include <trc_util/Timer.h>
 using namespace trc::basic_types;
 
 void run()

@@ -7,6 +7,7 @@
 #include <trc/core/PipelineBuilder.h>
 #include <trc/core/PipelineLayoutBuilder.h>
 #include <trc/drawable/DrawableScene.h>
+#include <trc_util/Timer.h>
 using namespace trc::basic_types;
 
 void run();

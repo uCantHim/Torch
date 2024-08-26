@@ -13,6 +13,7 @@
 #include <trc/material/FragmentShader.h>
 #include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/TorchMaterialSettings.h>
+#include <trc_util/Timer.h>
 
 using namespace trc;
 
@@ -90,7 +91,7 @@ int main()
 {
     // Initialize Torch
     auto torch = initFull(
-        TorchStackCreateInfo{ .projectRootDir=TRC_TEST_ASSET_DIR"/.." },
+        TorchStackCreateInfo{ .assetStorageDir=TRC_TEST_ASSET_DIR },
         InstanceCreateInfo{ .enableRayTracing=false }
     );
     auto& assetManager = torch->getAssetManager();

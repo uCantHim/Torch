@@ -2,6 +2,7 @@
 
 #include <trc/ImguiIntegration.h>
 #include <trc/Torch.h>
+#include <trc_util/Timer.h>
 
 using namespace trc::basic_types;
 namespace ig = ImGui;
