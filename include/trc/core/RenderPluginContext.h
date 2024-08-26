@@ -8,7 +8,6 @@ namespace trc
     class Device;
     class RenderGraph;
     class RenderPipeline;
-    class RenderTarget;
     class ResourceConfig;
     class SceneBase;
     struct RenderArea;
@@ -20,22 +19,29 @@ namespace trc::impl
 {
     /**
      * @brief Everything there is to know about a render pipeline's state.
+     *
+     * This is still a *frame specific* structure and holds information for a
+     * specific instance of a pipeline for a specific frame.
      */
     class RenderPipelineInfo
     {
     public:
-        RenderPipelineInfo(const Device& device, RenderPipeline& pipeline);
+        RenderPipelineInfo(const Device& device,
+                           const RenderImage& renderTargetImage,
+                           RenderPipeline& pipeline);
 
         auto device() const -> const Device&;
 
         auto resourceConfig() -> ResourceConfig&;
         auto renderGraph() -> RenderGraph&;
 
-        auto renderTarget() -> const RenderTarget&;
+        auto renderTargetImage() -> const RenderImage&;
 
     private:
         const Device& _device;
-        RenderPipeline& _pipeline;
+        const RenderImage _image;
+        RenderPipeline& _pipeline;  // For global information that is not frame
+                                    // specific.
     };
 
     /**

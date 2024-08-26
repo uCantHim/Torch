@@ -69,6 +69,17 @@ auto trc::RenderTarget::getImageView(ui32 frameIndex) const -> vk::ImageView
     return imageViews.getAt(frameIndex);
 }
 
+auto trc::RenderTarget::getRenderImage(ui32 frameIndex) const -> RenderImage
+{
+    return {
+        images.getAt(frameIndex),
+        imageViews.getAt(frameIndex),
+        format,
+        usage,
+        size
+    };
+}
+
 auto trc::RenderTarget::getImages() const -> const FrameSpecific<vk::Image>&
 {
     return images;

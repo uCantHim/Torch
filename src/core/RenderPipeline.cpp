@@ -383,10 +383,10 @@ void RenderPipeline::initForRenderTarget(const RenderTarget& target)
     pipelinesPerFrame.reset();
     pipelinesPerFrame = std::make_unique<FrameSpecific<PipelineInstance>>(
         target.getFrameClock(),
-        [&](ui32) -> PipelineInstance
+        [&](ui32 i) -> PipelineInstance
         {
-            impl::RenderPipelineInfo info{ device, *this };
             auto resourceStorage = ResourceStorage::derive(topLevelResourceStorage);
+            impl::RenderPipelineInfo info{ device, renderTarget.getRenderImage(i), *this };
             return {
                 .global{
                     .info{ info },

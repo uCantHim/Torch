@@ -9,9 +9,11 @@ namespace trc
 
 impl::RenderPipelineInfo::RenderPipelineInfo(
     const Device& device,
+    const RenderImage& renderTargetImage,
     RenderPipeline& pipeline)
     :
     _device(device),
+    _image(renderTargetImage),
     _pipeline(pipeline)
 {
 }
@@ -31,9 +33,9 @@ auto impl::RenderPipelineInfo::renderGraph() -> RenderGraph&
     return _pipeline.getRenderGraph();
 }
 
-auto impl::RenderPipelineInfo::renderTarget() -> const RenderTarget&
+auto impl::RenderPipelineInfo::renderTargetImage() -> const RenderImage&
 {
-    return _pipeline.getRenderTarget();
+    return _image;
 }
 
 
