@@ -32,6 +32,15 @@ auto LightSceneModule::enableShadow(
     return shadow;
 }
 
+auto LightSceneModule::getShadow(const SunLight& light) -> s_ptr<SunShadow>
+{
+    auto it = sunShadows.find(light);
+    if (it != sunShadows.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
 void LightSceneModule::disableShadow(const SunLight& light)
 {
     auto node = sunShadows.extract(light);

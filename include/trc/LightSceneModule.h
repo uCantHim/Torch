@@ -45,13 +45,26 @@ namespace trc
          *
          * @param Light light The light that shall cast shadows.
          * @param uvec2 shadowMapResolution
+         *
+         * @return A handle to the shadow. Does not need to be kept alive;
+         *         destroy a shadow with `LightSceneModule::disableShadow`.
          */
         auto enableShadow(const SunLight& light,
                           uvec2 shadowMapResolution)
             -> s_ptr<SunShadow>;
 
         /**
-         * Does nothing if shadows are not enabled for the light
+         * @brief Access a light's shadow.
+         *
+         * @return nullptr if shadows are not enabled for the light. The light's
+         *         shadow otherwise.
+         */
+        auto getShadow(const SunLight& light) -> s_ptr<SunShadow>;
+
+        /**
+         * @brief Disable shadows for a light.
+         *
+         * Does nothing if shadows are not enabled for the light.
          */
         void disableShadow(const SunLight& light);
 
@@ -79,4 +92,6 @@ namespace trc
         ShadowRegistry shadowRegistry;
         std::unordered_map<SunLight, s_ptr<SunShadow>> sunShadows;
     };
+
+    using SunShadow = s_ptr<LightSceneModule::SunShadow>;
 } // namespace trc
