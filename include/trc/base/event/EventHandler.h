@@ -56,21 +56,8 @@ namespace trc
     template<typename EventType>
     class EventHandler
     {
-        struct ListenerEntry
-        {
-        public:
-            template<typename T>
-            friend class EventHandler;
-
-            // Don't ask me why the constructor has to be public
-            ListenerEntry(std::function<void(const EventType&)> callback)
-                : callback(std::move(callback)) {}
-
-        private:
-            std::function<void(const EventType&)> callback;
-        };
-
     public:
+        using ListenerEntry = std::function<void(const EventType&)>;
         using ListenerId = const ListenerEntry*;
 
         static void notify(EventType event);
@@ -103,8 +90,7 @@ namespace trc
     public:
         using IdType = typename EventHandler<EventType>::ListenerId;
 
-        UniqueListenerId() = default;
-        UniqueListenerId(IdType id)
+        explicit UniqueListenerId(IdType id)
             :
             _id(new IdType(id), [](IdType* oldId) {
                 EventHandler<EventType>::removeListener(*oldId);
@@ -113,7 +99,7 @@ namespace trc
         {}
 
     private:
-        std::unique_ptr<IdType, std::function<void(IdType*)>> _id;
+        std::unique_ptr<IdType, void(IdType*)> _id;
     };
 
 
@@ -176,7 +162,7 @@ namespace trc
         while (auto event = eventQueue.try_pop())
         {
             for (auto& listener : listeners.iter()) {
-                listener->callback(*event);
+                std::invoke(*listener, *event);
             }
         }
 
