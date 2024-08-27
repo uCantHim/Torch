@@ -4,6 +4,7 @@
 #include <optional>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <trc_util/Assert.h>
 
@@ -13,7 +14,7 @@
 template<>
 struct std::hash<vk::Buffer>
 {
-    auto operator()(const vk::Buffer& buffer) const -> size_t {
+    constexpr auto operator()(const vk::Buffer& buffer) const -> size_t {
         return std::hash<VkBuffer>{}(buffer);
     }
 };
@@ -21,55 +22,9 @@ struct std::hash<vk::Buffer>
 template<>
 struct std::hash<vk::Image>
 {
-    auto operator()(const vk::Image& image) const -> size_t {
+    constexpr auto operator()(const vk::Image& image) const -> size_t {
         return std::hash<VkImage>{}(image);
     }
-};
-
-template<typename T>
-struct RangeIntersection
-{
-    bool operator==(const RangeIntersection&) const = default;
-
-    std::optional<std::pair<T, T>> before;
-    std::optional<std::pair<T, T>> overlap;
-    std::optional<std::pair<T, T>> after;
-};
-
-/**
- * Intersects to ranges [aStart, aEnd) and [bStart, bEnd).
- *
- * Is constexpr computable!
- *
- * @param T aStart Start of range A.
- * @param T aEnd   Non-inclusive end of range A.
- * @param T bStart Start of range B.
- * @param T bEnd   Non-inclusive end of range B.
- *
- * @return RangeIntersection<T> A detailed intersection result.
- */
-template<std::totally_ordered T>
-constexpr auto intersectRanges(T aStart, T aEnd, T bStart, T bEnd)
-    -> RangeIntersection<T>
-{
-    auto left = glm::min(aStart, bStart);
-    auto right = glm::max(aEnd, bEnd);
-    auto begin = glm::max(aStart, bStart);
-    auto end = glm::min(aEnd, bEnd);
-
-    RangeIntersection<T> res;
-
-    // Include `begin == end` because it shouldn't have an overlap
-    if (begin >= end) {
-        std::swap(begin, end);
-    }
-    else {
-        res.overlap = { begin, end };
-    }
-    if (left != begin) res.before = { left, begin };
-    if (end != right)  res.after = { end, right };
-
-    return res;
 };
 
 namespace trc
@@ -96,6 +51,105 @@ namespace trc
         vk::AccessFlags2 access;
 
         ui32 queueFamilyIndex{ VK_QUEUE_FAMILY_IGNORED };
+    };
+
+    /**
+     * A region of execution that may define resource dependencies with respect
+     * to other regions.
+     */
+    class DependencyRegion
+    {
+    public:
+        DependencyRegion() = default;
+
+        /**
+         * Note: If an image is consumed but is never produced by a preceding
+         * dependency region, an initial layout of `vk::ImageLayout::eUndefined`
+         * is assumed; meaning the image will be cleared.
+         */
+        void consume(const ImageAccess& image);
+        void produce(const ImageAccess& image);
+
+        void consume(const BufferAccess& buffer);
+        void produce(const BufferAccess& buffer);
+
+        /**
+         * Modifies the `to` region by inserting any non-consumed resources that
+         * are produced by the `from` region.
+         */
+        static auto genBarriers(const DependencyRegion& from,
+                                DependencyRegion& to)
+            -> std::pair<
+                std::vector<vk::BufferMemoryBarrier2>,
+                std::vector<vk::ImageMemoryBarrier2>
+            >;
+
+    private:
+        /**
+         * Currently adds all barriers of previous dependency regions of a
+         * resource to the produced accesses of that resource in the newest
+         * region.
+         *
+         * @param srcMap Produced resources of the previous dependency region.
+         * @param dstConsumerMap Consumed resources of the next dependency region.
+         * @param dstProducerMap Produced resources of the next dependency region.
+         */
+        template<typename Resource, typename Access>
+        static auto concat(const std::unordered_map<Resource, Access>& srcMap,
+                           const std::unordered_map<Resource, Access>& dstConsumerMap,
+                           std::unordered_map<Resource, Access>& dstProducerMap);
+
+        std::unordered_map<vk::Image, ImageAccess> consumedImages;
+        std::unordered_map<vk::Image, ImageAccess> producedImages;
+
+        std::unordered_map<vk::Buffer, BufferAccess> consumedBuffers;
+        std::unordered_map<vk::Buffer, BufferAccess> producedBuffers;
+    };
+
+    template<typename T>
+    struct RangeIntersection
+    {
+        bool operator==(const RangeIntersection&) const = default;
+
+        std::optional<std::pair<T, T>> before;
+        std::optional<std::pair<T, T>> overlap;
+        std::optional<std::pair<T, T>> after;
+    };
+
+    /**
+     * Intersects to ranges [aStart, aEnd) and [bStart, bEnd).
+     *
+     * Is constexpr computable!
+     *
+     * @param T aStart Start of range A.
+     * @param T aEnd   Non-inclusive end of range A.
+     * @param T bStart Start of range B.
+     * @param T bEnd   Non-inclusive end of range B.
+     *
+     * @return RangeIntersection<T> A detailed intersection result.
+     */
+    template<std::totally_ordered T>
+    constexpr auto intersectRanges(T aStart, T aEnd, T bStart, T bEnd)
+        -> RangeIntersection<T>
+    {
+        auto left = glm::min(aStart, bStart);
+        auto right = glm::max(aEnd, bEnd);
+        auto begin = glm::max(aStart, bStart);
+        auto end = glm::min(aEnd, bEnd);
+
+        RangeIntersection<T> res;
+
+        // Include `begin == end` because it shouldn't have an overlap
+        if (begin >= end) {
+            std::swap(begin, end);
+        }
+        else {
+            res.overlap = { begin, end };
+        }
+        if (left != begin) res.before = { left, begin };
+        if (end != right)  res.after = { end, right };
+
+        return res;
     };
 
     /**
@@ -244,50 +298,6 @@ namespace trc
             a.queueFamilyIndex,
         };
     }
-
-    class DependencyRegion
-    {
-    public:
-        DependencyRegion() = default;
-
-        void consume(const ImageAccess& image);
-        void produce(const ImageAccess& image);
-
-        void consume(const BufferAccess& buffer);
-        void produce(const BufferAccess& buffer);
-
-        /**
-         * Modifies the `to` region by inserting any non-consumed resources that
-         * are produced by the `from` region.
-         */
-        static auto genBarriers(const DependencyRegion& from,
-                                DependencyRegion& to)
-            -> std::pair<
-                std::vector<vk::BufferMemoryBarrier2>,
-                std::vector<vk::ImageMemoryBarrier2>
-            >;
-
-    private:
-        /**
-         * Currently adds all barriers of previous dependency regions of a
-         * resource to the produced accesses of that resource in the newest
-         * region.
-         *
-         * @param srcMap Produced resources of the previous dependency region.
-         * @param consumerMap Consumed resources of the next dependency region.
-         * @param producerMap Produced resources of the next dependency region.
-         */
-        template<typename Resource, typename Access>
-        static auto concat(const std::unordered_map<Resource, Access>& srcMap,
-                           const std::unordered_map<Resource, Access>& consumerMap,
-                           std::unordered_map<Resource, Access>& producerMap);
-
-        std::unordered_map<vk::Image, ImageAccess> consumedImages;
-        std::unordered_map<vk::Image, ImageAccess> producedImages;
-
-        std::unordered_map<vk::Buffer, BufferAccess> consumedBuffers;
-        std::unordered_map<vk::Buffer, BufferAccess> producedBuffers;
-    };
 } // namespace
 
 // Unit tests for `intersectRanges`.
@@ -299,88 +309,88 @@ namespace trc
 //   bEnd   : )
 //
 // [ ( ] )
-static_assert(intersectRanges(0, 5, 3, 8).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(0, 5, 3, 8).overlap == std::pair{ 3, 5 });
-static_assert(intersectRanges(0, 5, 3, 8).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 5, 3, 8).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(0, 5, 3, 8).overlap == std::pair{ 3, 5 });
+static_assert(trc::intersectRanges(0, 5, 3, 8).after   == std::pair{ 5, 8 });
 
 // ( [ ) ]
-static_assert(intersectRanges(3, 8, 0, 5).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(3, 8, 0, 5).overlap == std::pair{ 3, 5 });
-static_assert(intersectRanges(3, 8, 0, 5).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(3, 8, 0, 5).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(3, 8, 0, 5).overlap == std::pair{ 3, 5 });
+static_assert(trc::intersectRanges(3, 8, 0, 5).after   == std::pair{ 5, 8 });
 
 // [ ( ) ]
-static_assert(intersectRanges(0, 8, 3, 5).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(0, 8, 3, 5).overlap == std::pair{ 3, 5 });
-static_assert(intersectRanges(0, 8, 3, 5).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 8, 3, 5).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(0, 8, 3, 5).overlap == std::pair{ 3, 5 });
+static_assert(trc::intersectRanges(0, 8, 3, 5).after   == std::pair{ 5, 8 });
 
 // ( [ ] )
-static_assert(intersectRanges(3, 5, 0, 8).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(3, 5, 0, 8).overlap == std::pair{ 3, 5 });
-static_assert(intersectRanges(3, 5, 0, 8).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(3, 5, 0, 8).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(3, 5, 0, 8).overlap == std::pair{ 3, 5 });
+static_assert(trc::intersectRanges(3, 5, 0, 8).after   == std::pair{ 5, 8 });
 
 // [ ] ( )
-static_assert(intersectRanges(0, 3, 5, 8).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(0, 3, 5, 8).overlap == std::nullopt);
-static_assert(intersectRanges(0, 3, 5, 8).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 3, 5, 8).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(0, 3, 5, 8).overlap == std::nullopt);
+static_assert(trc::intersectRanges(0, 3, 5, 8).after   == std::pair{ 5, 8 });
 
 // ( ) [ ]
-static_assert(intersectRanges(5, 8, 0, 3).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(5, 8, 0, 3).overlap == std::nullopt);
-static_assert(intersectRanges(5, 8, 0, 3).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(5, 8, 0, 3).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(5, 8, 0, 3).overlap == std::nullopt);
+static_assert(trc::intersectRanges(5, 8, 0, 3).after   == std::pair{ 5, 8 });
 
 // [ ]
 //   ( )
-static_assert(intersectRanges(0, 5, 5, 8).before  == std::pair{ 0, 5 });
-static_assert(intersectRanges(0, 5, 5, 8).overlap == std::nullopt);
-static_assert(intersectRanges(0, 5, 5, 8).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 5, 5, 8).before  == std::pair{ 0, 5 });
+static_assert(trc::intersectRanges(0, 5, 5, 8).overlap == std::nullopt);
+static_assert(trc::intersectRanges(0, 5, 5, 8).after   == std::pair{ 5, 8 });
 
 // ( )
 //   [ ]
-static_assert(intersectRanges(5, 8, 0, 5).before  == std::pair{ 0, 5 });
-static_assert(intersectRanges(5, 8, 0, 5).overlap == std::nullopt);
-static_assert(intersectRanges(5, 8, 0, 5).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(5, 8, 0, 5).before  == std::pair{ 0, 5 });
+static_assert(trc::intersectRanges(5, 8, 0, 5).overlap == std::nullopt);
+static_assert(trc::intersectRanges(5, 8, 0, 5).after   == std::pair{ 5, 8 });
 
 // [ ]
 // (   )
-static_assert(intersectRanges(0, 5, 0, 8).before  == std::nullopt);
-static_assert(intersectRanges(0, 5, 0, 8).overlap == std::pair{ 0, 5 });
-static_assert(intersectRanges(0, 5, 0, 8).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 5, 0, 8).before  == std::nullopt);
+static_assert(trc::intersectRanges(0, 5, 0, 8).overlap == std::pair{ 0, 5 });
+static_assert(trc::intersectRanges(0, 5, 0, 8).after   == std::pair{ 5, 8 });
 
 // [   ]
 // ( )
-static_assert(intersectRanges(0, 8, 0, 5).before  == std::nullopt);
-static_assert(intersectRanges(0, 8, 0, 5).overlap == std::pair{ 0, 5 });
-static_assert(intersectRanges(0, 8, 0, 5).after   == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 8, 0, 5).before  == std::nullopt);
+static_assert(trc::intersectRanges(0, 8, 0, 5).overlap == std::pair{ 0, 5 });
+static_assert(trc::intersectRanges(0, 8, 0, 5).after   == std::pair{ 5, 8 });
 
 // [   ]
 //   ( )
-static_assert(intersectRanges(0, 8, 5, 8).before  == std::pair{ 0, 5 });
-static_assert(intersectRanges(0, 8, 5, 8).overlap == std::pair{ 5, 8 });
-static_assert(intersectRanges(0, 8, 5, 8).after   == std::nullopt);
+static_assert(trc::intersectRanges(0, 8, 5, 8).before  == std::pair{ 0, 5 });
+static_assert(trc::intersectRanges(0, 8, 5, 8).overlap == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(0, 8, 5, 8).after   == std::nullopt);
 
 //   [ ]
 // (   )
-static_assert(intersectRanges(5, 8, 0, 8).before  == std::pair{ 0, 5 });
-static_assert(intersectRanges(5, 8, 0, 8).overlap == std::pair{ 5, 8 });
-static_assert(intersectRanges(5, 8, 0, 8).after   == std::nullopt);
+static_assert(trc::intersectRanges(5, 8, 0, 8).before  == std::pair{ 0, 5 });
+static_assert(trc::intersectRanges(5, 8, 0, 8).overlap == std::pair{ 5, 8 });
+static_assert(trc::intersectRanges(5, 8, 0, 8).after   == std::nullopt);
 
 // [   ]
 // (   )
-static_assert(intersectRanges(0, 8, 0, 8).before  == std::nullopt);
-static_assert(intersectRanges(0, 8, 0, 8).overlap == std::pair{ 0, 8 });
-static_assert(intersectRanges(0, 8, 0, 8).after   == std::nullopt);
+static_assert(trc::intersectRanges(0, 8, 0, 8).before  == std::nullopt);
+static_assert(trc::intersectRanges(0, 8, 0, 8).overlap == std::pair{ 0, 8 });
+static_assert(trc::intersectRanges(0, 8, 0, 8).after   == std::nullopt);
 
 // First range empty
-static_assert(intersectRanges(0, 0, 0, 3).before  == std::nullopt);
-static_assert(intersectRanges(0, 0, 0, 3).overlap == std::nullopt);
-static_assert(intersectRanges(0, 0, 0, 3).after   == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(0, 0, 0, 3).before  == std::nullopt);
+static_assert(trc::intersectRanges(0, 0, 0, 3).overlap == std::nullopt);
+static_assert(trc::intersectRanges(0, 0, 0, 3).after   == std::pair{ 0, 3 });
 
 // Second range empty
-static_assert(intersectRanges(0, 3, 3, 3).before  == std::pair{ 0, 3 });
-static_assert(intersectRanges(0, 3, 3, 3).overlap == std::nullopt);
-static_assert(intersectRanges(0, 3, 3, 3).after   == std::nullopt);
+static_assert(trc::intersectRanges(0, 3, 3, 3).before  == std::pair{ 0, 3 });
+static_assert(trc::intersectRanges(0, 3, 3, 3).overlap == std::nullopt);
+static_assert(trc::intersectRanges(0, 3, 3, 3).after   == std::nullopt);
 
 // Both ranges empty
-static_assert(intersectRanges(0, 0, 0, 0).before  == std::nullopt);
-static_assert(intersectRanges(0, 0, 0, 0).overlap == std::nullopt);
-static_assert(intersectRanges(0, 0, 0, 0).after   == std::nullopt);
+static_assert(trc::intersectRanges(0, 0, 0, 0).before  == std::nullopt);
+static_assert(trc::intersectRanges(0, 0, 0, 0).overlap == std::nullopt);
+static_assert(trc::intersectRanges(0, 0, 0, 0).after   == std::nullopt);
