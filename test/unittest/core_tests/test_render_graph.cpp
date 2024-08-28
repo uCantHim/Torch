@@ -10,15 +10,15 @@ using trc::makeRenderStage;
 
 struct RenderGraphTest : public testing::Test
 {
-    RenderStage::ID a = makeRenderStage();
-    RenderStage::ID b = makeRenderStage();
-    RenderStage::ID c = makeRenderStage();
-    RenderStage::ID d = makeRenderStage();
-    RenderStage::ID e = makeRenderStage();
-    RenderStage::ID f = makeRenderStage();
-    RenderStage::ID g = makeRenderStage();
-    RenderStage::ID h = makeRenderStage();
-    RenderStage::ID i = makeRenderStage();
+    RenderStage a = makeRenderStage();
+    RenderStage b = makeRenderStage();
+    RenderStage c = makeRenderStage();
+    RenderStage d = makeRenderStage();
+    RenderStage e = makeRenderStage();
+    RenderStage f = makeRenderStage();
+    RenderStage g = makeRenderStage();
+    RenderStage h = makeRenderStage();
+    RenderStage i = makeRenderStage();
 };
 
 /**
@@ -201,7 +201,7 @@ TEST_F(RenderGraphTest, CycleDetection)
     // Check if graph is still functional
     std::deque<RenderStage::ID> stages{ c, a, b };
     for (auto stage : graph.compile()) {
-        ASSERT_EQ(stage, stages.front());
+        ASSERT_EQ(stage.getID(), stages.front());
         stages.pop_front();
     }
     ASSERT_TRUE(stages.empty());

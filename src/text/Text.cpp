@@ -42,7 +42,7 @@ trc::Text::Text(const Instance& instance, FontHandle font)
 void trc::Text::attachToScene(RasterSceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
-        gBufferRenderStage,
+        stages::gBuffer,
         GBufferPass::SubPasses::transparency,
         pipelines::text::getStaticTextPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)

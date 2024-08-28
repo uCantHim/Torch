@@ -45,7 +45,7 @@ void TopLevelAccelerationStructureBuilder::uploadData(RaySceneModule& scene)
 void TopLevelAccelerationStructureBuilder::createBuildTasks(SceneUpdateTaskQueue& queue)
 {
     queue.spawnTask(
-        resourceUpdateStage,
+        stages::resourceUpdate,
         [this](vk::CommandBuffer cmdBuf, auto&&)
         {
             bufferMemoryBarrier(

@@ -43,7 +43,7 @@ void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
     using SubPasses = GBufferPass::SubPasses;
     comp.drawFuncs.emplace_back(
         base.registerDrawFunction(
-            gBufferRenderStage,
+            stages::gBuffer,
             pipelineInfo.transparent ? SubPasses::transparency : SubPasses::gBuffer,
             comp.drawInfo->matRuntime.getPipeline(),
             makeGBufferDrawFunction(comp.drawInfo)
@@ -51,7 +51,7 @@ void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
     );
     comp.drawFuncs.emplace_back(
         base.registerDrawFunction(
-            shadowRenderStage,
+            stages::shadow,
             SubPass::ID(0),
             pipelineInfo.determineShadowPipeline(),
             makeShadowDrawFunction(comp.drawInfo)

@@ -48,16 +48,19 @@ RasterPlugin::RasterPlugin(
 
 void RasterPlugin::defineRenderStages(RenderGraph& graph)
 {
-    graph.insert(shadowRenderStage);
-    graph.insert(gBufferRenderStage);
-    graph.insert(finalLightingRenderStage);
+    graph.insert(stages::shadow);
+    graph.insert(stages::gBuffer);
+    graph.insert(stages::deferredLighting);
 
-    graph.createOrdering(resourceUpdateStage, shadowRenderStage);
-    graph.createOrdering(shadowRenderStage, gBufferRenderStage);
-    graph.createOrdering(gBufferRenderStage, finalLightingRenderStage);
+    // Internal deps
+    graph.createOrdering(stages::resourceUpdate, stages::shadow);
+    graph.createOrdering(stages::resourceUpdate, stages::gBuffer);
+    graph.createOrdering(stages::shadow, stages::deferredLighting);
+    graph.createOrdering(stages::gBuffer, stages::deferredLighting);
 
-    graph.createOrdering(renderTargetImageInitStage, finalLightingRenderStage);
-    graph.createOrdering(finalLightingRenderStage, renderTargetImageFinalizeStage);
+    // Deps to pre and post
+    graph.createOrdering(stages::pre, stages::deferredLighting);
+    graph.createOrdering(stages::deferredLighting, stages::post);
 }
 
 void RasterPlugin::defineResources(ResourceConfig& config)
@@ -150,12 +153,12 @@ void RasterPlugin::DrawConfig::createTasks(
 {
     // G-buffer draw task
     queue.spawnTask(
-        gBufferRenderStage,
-        std::make_unique<RenderPassDrawTask>(gBufferRenderStage, gBufferPass)
+        stages::gBuffer,
+        std::make_unique<RenderPassDrawTask>(stages::gBuffer, gBufferPass)
     );
 
     // Depth reader task
-    queue.spawnTask(gBufferRenderStage,
+    queue.spawnTask(stages::gBuffer,
         [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx) {
             gBufferDepthReaderPass->update(cmdBuf, ctx.frame());
         }
@@ -212,8 +215,8 @@ void RasterPlugin::SceneConfig::createTasks(SceneUpdateTaskQueue& taskQueue)
     for (auto& [_, shadowMap] : allocatedShadows)
     {
         taskQueue.spawnTask(
-            shadowRenderStage,
-            std::make_unique<ShadowMapDrawTask>(shadowRenderStage, shadowMap)
+            stages::shadow,
+            std::make_unique<ShadowMapDrawTask>(stages::shadow, shadowMap)
         );
     }
 }

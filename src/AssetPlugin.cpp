@@ -24,7 +24,8 @@ AssetPlugin::AssetPlugin(
 
 void AssetPlugin::defineRenderStages(RenderGraph& renderGraph)
 {
-    renderGraph.insert(resourceUpdateStage);
+    renderGraph.createOrdering(stages::pre, stages::resourceUpdate);
+    renderGraph.createOrdering(stages::resourceUpdate, stages::post);
 }
 
 void AssetPlugin::defineResources(ResourceConfig& config)
@@ -61,7 +62,7 @@ void AssetPlugin::UpdateConfig::hostUpdate(RenderPipelineContext& ctx)
 void AssetPlugin::UpdateConfig::createTasks(GlobalUpdateTaskQueue& taskQueue)
 {
     taskQueue.spawnTask(
-        resourceUpdateStage,
+        stages::resourceUpdate,
         [reg=parent->registry](vk::CommandBuffer cmdBuf, GlobalUpdateContext& ctx) {
             reg->updateDeviceResources(cmdBuf, ctx.frame());
         }

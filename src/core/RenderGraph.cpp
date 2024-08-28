@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <ranges>
+#include <sstream>
 #include <stdexcept>
 
 #include <trc_util/Assert.h>
@@ -12,13 +13,13 @@
 namespace trc
 {
 
-void RenderGraph::insert(RenderStage::ID newStage)
+void RenderGraph::insert(RenderStage newStage)
 {
     headStages.emplace(newStage);
     stageDeps.try_emplace(newStage);
 }
 
-void RenderGraph::createOrdering(RenderStage::ID from, RenderStage::ID to)
+void RenderGraph::createOrdering(RenderStage from, RenderStage to)
 {
     if (!stageDeps.contains(from)) {
         insert(from);
@@ -46,8 +47,8 @@ bool RenderGraph::hasCycles() const
         return !stageDeps.empty();
     }
 
-    using Set = std::unordered_set<RenderStage::ID>;
-    std::function<bool(RenderStage::ID, Set)> visit = [&](RenderStage::ID stage, Set visited) {
+    using Set = std::unordered_set<RenderStage>;
+    std::function<bool(RenderStage, Set)> visit = [&](RenderStage stage, Set visited) {
         if (!visited.emplace(stage).second) {
             return true;
         }
@@ -75,8 +76,8 @@ auto RenderGraph::compile() const -> RenderGraphLayout
         throw std::runtime_error("[In RenderGraph::compile]: The graph contains cycles.");
     }
 
-    std::unordered_map<RenderStage::ID, size_t> ranks;
-    std::function<void(RenderStage::ID, size_t)> visit = [&](RenderStage::ID stage, size_t rank) {
+    std::unordered_map<RenderStage, size_t> ranks;
+    std::function<void(RenderStage, size_t)> visit = [&](const RenderStage& stage, size_t rank) {
         auto [it, success] = ranks.try_emplace(stage, rank);
         if (!success) {
             it->second = std::max(rank, it->second);
@@ -106,6 +107,21 @@ auto RenderGraph::compile() const -> RenderGraphLayout
     }
 
     return res;
+}
+
+auto RenderGraph::toDot() const -> std::string
+{
+    std::stringstream ss;
+    ss << "digraph G {";
+    for (auto& [stage, deps] : stageDeps)
+    {
+        for (auto& dep : deps) {
+            ss << stage.getDescription() << "->" << dep.getDescription() << ";";
+        }
+    }
+    ss << "}";
+
+    return ss.str();
 }
 
 
@@ -139,12 +155,12 @@ RenderGraphIterator::RenderGraphIterator(const RenderGraphLayout& _graph)
 {
 }
 
-auto RenderGraphIterator::operator*() -> RenderStage::ID
+auto RenderGraphIterator::operator*() -> const_reference
 {
     return *inner;
 }
 
-auto RenderGraphIterator::operator->() -> const RenderStage::ID*
+auto RenderGraphIterator::operator->() -> const_pointer
 {
     return &*inner;
 }

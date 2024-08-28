@@ -50,12 +50,17 @@ RayTracingPlugin::RayTracingPlugin(
 
 void RayTracingPlugin::defineRenderStages(RenderGraph& graph)
 {
-    graph.insert(rayTracingRenderStage);
-    graph.insert(finalCompositingRenderStage);
+    graph.insert(stages::rayTracing);
+    graph.insert(stages::rayCompositing);
 
-    graph.createOrdering(resourceUpdateStage, rayTracingRenderStage);
-    graph.createOrdering(rayTracingRenderStage, finalCompositingRenderStage);
-    graph.createOrdering(finalLightingRenderStage, finalCompositingRenderStage);
+    // Internal deps
+    graph.createOrdering(stages::resourceUpdate, stages::rayTracing);
+    graph.createOrdering(stages::rayTracing, stages::rayCompositing);
+    graph.createOrdering(stages::deferredLighting, stages::rayCompositing);
+
+    // Deps to pre and post
+    graph.createOrdering(stages::pre, stages::rayTracing);
+    graph.createOrdering(stages::rayCompositing, stages::post);
 }
 
 void RayTracingPlugin::defineResources(ResourceConfig& conf)
@@ -158,7 +163,6 @@ RayTracingPlugin::RayDrawConfig::RayDrawConfig(
         }
     },
     outputImageDescriptor{
-        //parent.raygenDescriptorPool.allocateImageDescriptorSet(renderTarget.target.imageView)
         parent.raygenDescriptorPool.allocateImageDescriptorSet(
             rayBuffer.getImageView(rt::RayBuffer::Image::eReflections)
         )
@@ -196,20 +200,7 @@ void RayTracingPlugin::RayDrawConfig::createTasks(
     ViewportContext&)
 {
     taskQueue.spawnTask(
-        resourceUpdateStage,
-        [this](vk::CommandBuffer, ViewportDrawContext& ctx) {
-            ctx.deps().produce(ImageAccess{
-                reflectionsRayCall.outputImage,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
-                vk::PipelineStageFlagBits2::eBottomOfPipe,
-                vk::AccessFlagBits2::eNone,
-                vk::ImageLayout::eUndefined,
-            });
-        }
-    );
-
-    taskQueue.spawnTask(
-        rayTracingRenderStage,
+        stages::rayTracing,
         std::make_unique<RayTracingTask>(reflectionsRayCall)
     );
     compositingPass.createTasks(taskQueue);

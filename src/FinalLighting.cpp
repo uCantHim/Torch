@@ -31,7 +31,7 @@ trc::FinalLightingDispatcher::FinalLightingDispatcher(
 void trc::FinalLightingDispatcher::createTasks(ViewportDrawTaskQueue& queue)
 {
     queue.spawnTask(
-        finalLightingRenderStage,
+        stages::deferredLighting,
         [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx){
             const auto& pipeline = ctx.resources().getPipeline(this->pipeline);
             const auto layout = *pipeline.getLayout();

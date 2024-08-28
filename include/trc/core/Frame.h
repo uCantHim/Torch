@@ -1,5 +1,10 @@
 #pragma once
 
+#include <concepts>
+#include <functional>
+#include <mutex>
+#include <vector>
+
 #include "trc/Types.h"
 #include "trc/base/Buffer.h"
 #include "trc/base/Memory.h"
@@ -12,7 +17,6 @@ namespace trc
     class Device;
     class ResourceStorage;
 
-    // TODO: Subsume this into Frame.
     class FrameRenderState
     {
     public:

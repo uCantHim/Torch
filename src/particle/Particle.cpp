@@ -77,7 +77,7 @@ void trc::ParticleCollection::attachToScene(RasterSceneBase& scene)
 {
     // Alpha discard pipeline
     drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(
-        gBufferRenderStage,
+        stages::gBuffer,
         GBufferPass::SubPasses::gBuffer,
         pipelines::particle::getParticlePipeline(pipelines::particle::AlphaBlendTypeFlagBits::discard),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -94,7 +94,7 @@ void trc::ParticleCollection::attachToScene(RasterSceneBase& scene)
 
     // Alpha blend pipeline
     drawRegistrations[Blend::eAlphaBlend] = scene.registerDrawFunction(
-        gBufferRenderStage,
+        stages::gBuffer,
         GBufferPass::SubPasses::transparency,
         pipelines::particle::getParticlePipeline(pipelines::particle::AlphaBlendTypeFlagBits::blend),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -110,7 +110,7 @@ void trc::ParticleCollection::attachToScene(RasterSceneBase& scene)
     ).makeUnique();
 
     //shadowRegistration = scene.registerDrawFunction(
-    //    shadowRenderStage, SubPass::ID(0), getShadowPipeline(),
+    //    stages::shadow, SubPass::ID(0), getShadowPipeline(),
     //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
     //    {
     //        if (particles.empty()) return;

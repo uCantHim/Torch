@@ -29,7 +29,7 @@ namespace trc
         /**
          * @brief Add a stage to the graph.
          */
-        void insert(RenderStage::ID newStage);
+        void insert(RenderStage newStage);
 
         /**
          * @brief Insert a dependency edge into the graph.
@@ -38,12 +38,18 @@ namespace trc
          *
          * @throw std::invalid_argument if the new edge results in a cycle.
          */
-        void createOrdering(RenderStage::ID from, RenderStage::ID to);
+        void createOrdering(RenderStage from, RenderStage to);
 
         /**
          * @throw std::runtime_error if the graph contains cycles.
          */
         auto compile() const -> RenderGraphLayout;
+
+        /**
+         * Produce a graph file language string (for use with the `dot` program)
+         * of the graph.
+         */
+        auto toDot() const -> std::string;
 
     private:
         /**
@@ -53,10 +59,10 @@ namespace trc
 
         // Declares all dependencies among stages. Is not inherently cycle-free;
         // `hasCycles` computes that property.
-        std::unordered_map<RenderStage::ID, std::unordered_set<RenderStage::ID>> stageDeps;
+        std::unordered_map<RenderStage, std::unordered_set<RenderStage>> stageDeps;
 
         // Stages that don't depend on any other stages.
-        std::unordered_set<RenderStage::ID> headStages;
+        std::unordered_set<RenderStage> headStages;
     };
 
     class RenderGraphLayout
@@ -102,16 +108,22 @@ namespace trc
          *
          * `orderedStages[0]` contains all nodes of rank 0, and so on.
          */
-        std::vector<std::vector<RenderStage::ID>> orderedStages;
+        std::vector<std::vector<RenderStage>> orderedStages;
     };
 
     class RenderGraphIterator
     {
     public:
+        using value_type = RenderStage;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
+
         using iterator_category = std::forward_iterator_tag;
 
-        auto operator*() -> RenderStage::ID;
-        auto operator->() -> const RenderStage::ID*;
+        auto operator*() -> const_reference;
+        auto operator->() -> const_pointer;
 
         auto operator++() -> RenderGraphIterator&;
 
@@ -122,7 +134,7 @@ namespace trc
 
     private:
         using OuterIter = decltype(RenderGraphLayout::orderedStages)::const_iterator;
-        using InnerIter = std::vector<RenderStage::ID>::const_iterator;
+        using InnerIter = std::vector<RenderStage>::const_iterator;
 
         RenderGraphIterator(const RenderGraphLayout& graph);
 

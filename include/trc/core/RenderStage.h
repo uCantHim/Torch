@@ -9,7 +9,7 @@ namespace trc
     struct RenderStage;
 
     /** @brief Create a unique render stage */
-    auto makeRenderStage() -> RenderStage;
+    auto makeRenderStage(const char* name =  "<unnamed_render_stage>") -> RenderStage;
 
     /**
      * Create render stages via `RenderStage::make`, which allocates a unique
@@ -19,32 +19,49 @@ namespace trc
     {
         using ID = data::TypesafeID<RenderStage>;
 
-        RenderStage(const RenderStage&) = delete;
-        RenderStage(RenderStage&&) noexcept = delete;
-        auto operator=(const RenderStage&) -> RenderStage& = delete;
-        auto operator=(RenderStage&&) noexcept -> RenderStage& = delete;
-
-        ~RenderStage() = default;
-
         operator ID() const {
             return id;
+        }
+
+        bool operator==(const RenderStage& other) const {
+            return id == other.id;
+        }
+
+        auto getID() const -> ID {
+            return id;
+        }
+
+        auto getDescription() const {
+            return description;
         }
 
         /**
          * @brief Create a render stage with a globally unique ID
          */
-        static inline auto make() -> RenderStage
+        static auto make(const char* name = "<unnamed_render_stage>")
+            -> RenderStage
         {
             static ui32 nextId{ 0 };
-            return RenderStage{ ID{nextId++} };
+            return RenderStage{ ID{nextId++}, name };
         }
 
     private:
-        RenderStage(ID id) : id(id) {}
+        constexpr RenderStage(ID id, const char* description)
+            : id(id), description(description) {}
+
         ID id;
+        const char* description;
     };
 
-    inline auto makeRenderStage() -> RenderStage {
-        return RenderStage::make();
+    inline auto makeRenderStage(const char* name) -> RenderStage {
+        return RenderStage::make(name);
     }
 } // namespace trc
+
+template<>
+struct std::hash<trc::RenderStage>
+{
+    auto operator()(const trc::RenderStage& stage) const -> size_t {
+        return std::hash<trc::RenderStage::ID>{}(stage);
+    }
+};

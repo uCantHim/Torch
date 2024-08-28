@@ -79,38 +79,28 @@ FinalCompositingDispatcher::FinalCompositingDispatcher(
 void FinalCompositingDispatcher::createTasks(ViewportDrawTaskQueue& taskQueue)
 {
     taskQueue.spawnTask(
-        finalCompositingRenderStage,
-        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext&)
+        stages::rayCompositing,
+        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx)
         {
-            // Swapchain image: ePresentSrcKHR -> eGeneral
-            imageMemoryBarrier(
-                cmdBuf,
+            ctx.deps().consume(ImageAccess{
                 targetImage,
-                vk::ImageLayout::ePresentSrcKHR,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
                 vk::ImageLayout::eGeneral,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::AccessFlagBits::eShaderWrite,
-                vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
+            });
 
             computePipeline.bind(cmdBuf);
             auto [x, y, z] = computeGroupSize;
             cmdBuf.dispatch(x, y, z);
 
-            // Swapchain image: eGeneral -> ePresentSrcKHR
-            imageMemoryBarrier(
-                cmdBuf,
+            ctx.deps().consume(ImageAccess{
                 targetImage,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite,
                 vk::ImageLayout::eGeneral,
-                vk::ImageLayout::ePresentSrcKHR,
-                vk::PipelineStageFlagBits::eComputeShader,
-                vk::PipelineStageFlagBits::eAllCommands,
-                vk::AccessFlagBits::eShaderWrite,
-                vk::AccessFlagBits::eHostRead,
-                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-            );
+            });
         }
     );
 }

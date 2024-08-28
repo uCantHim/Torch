@@ -22,7 +22,7 @@ namespace trc
                                 vk::UniqueDescriptorSet renderTargetDescSet);
 
         /**
-         * @brief Spawn a compute task in the `finalLightingRenderStage` stage
+         * @brief Spawn a compute task in the `stages::finalLighting` stage
          */
         void createTasks(ViewportDrawTaskQueue& queue);
 

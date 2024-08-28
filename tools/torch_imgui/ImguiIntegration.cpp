@@ -248,10 +248,9 @@ ImguiRenderPlugin::~ImguiRenderPlugin() noexcept
 
 void ImguiRenderPlugin::defineRenderStages(RenderGraph& graph)
 {
-    graph.createOrdering(renderTargetImageInitStage, imguiRenderStage);
-    graph.createOrdering(finalLightingRenderStage, imguiRenderStage);
-    graph.createOrdering(finalCompositingRenderStage, imguiRenderStage);
-    graph.createOrdering(imguiRenderStage, renderTargetImageFinalizeStage);
+    graph.createOrdering(stages::renderTargetImageInit, imguiRenderStage);
+    graph.createOrdering(stages::post, imguiRenderStage);
+    graph.createOrdering(imguiRenderStage, stages::renderTargetImageFinalize);
 }
 
 void ImguiRenderPlugin::defineResources(ResourceConfig& /*resources*/)

@@ -27,8 +27,8 @@ SwapchainPlugin::SwapchainPlugin(const Swapchain& swapchain)
 
 void SwapchainPlugin::defineRenderStages(RenderGraph& graph)
 {
-    graph.insert(renderTargetImageInitStage);
-    graph.insert(renderTargetImageFinalizeStage);
+    graph.createOrdering(stages::renderTargetImageInit, stages::pre);
+    graph.createOrdering(stages::post, stages::renderTargetImageFinalize);
 }
 
 auto SwapchainPlugin::createGlobalResources(RenderPipelineContext&)
@@ -40,7 +40,7 @@ auto SwapchainPlugin::createGlobalResources(RenderPipelineContext&)
 void SwapchainPlugin::Instance::createTasks(GlobalUpdateTaskQueue& queue)
 {
     // Create accesses to swapchain image in pre- and post stages
-    queue.spawnTask(renderTargetImageInitStage,
+    queue.spawnTask(stages::renderTargetImageInit,
         [this](vk::CommandBuffer, GlobalUpdateContext& ctx) {
             ctx.deps().produce(ImageAccess{
                 swapchain.getImage(swapchain.getCurrentFrame()),
@@ -63,7 +63,7 @@ void SwapchainPlugin::Instance::createTasks(GlobalUpdateTaskQueue& queue)
      * the dstStageMask parameter should be set to
      * VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT.
      */
-    queue.spawnTask(renderTargetImageFinalizeStage,
+    queue.spawnTask(stages::renderTargetImageFinalize,
         [this](vk::CommandBuffer, GlobalUpdateContext& ctx) {
             ctx.deps().consume(ImageAccess{
                 swapchain.getImage(swapchain.getCurrentFrame()),
