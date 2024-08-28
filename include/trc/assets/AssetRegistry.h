@@ -1,7 +1,6 @@
 #pragma once
 
 #include <concepts>
-#include <stdexcept>
 
 #include "trc/Types.h"
 #include "trc/assets/AssetBase.h"
@@ -118,13 +117,13 @@ namespace trc
     template<AssetBaseType T>
     inline auto AssetRegistry::getModule() -> AssetRegistryModule<T>&
     {
-        return dynamic_cast<AssetRegistryModule<T>&>(modules.get<T>());
+        return modules.getModule<T>();
     }
 
     template<AssetBaseType T>
     inline auto AssetRegistry::getModule() const -> const AssetRegistryModule<T>&
     {
-        return dynamic_cast<const AssetRegistryModule<T>&>(modules.get<T>());
+        return modules.getModule<T>();
     }
 
     template<AssetBaseType T>

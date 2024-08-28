@@ -14,10 +14,11 @@ namespace trc
 {
 
 AssetPlugin::AssetPlugin(
+    const Instance& instance,
     AssetRegistry& registry,
-    s_ptr<AssetDescriptor> assetDescriptor)
+    const AssetDescriptorCreateInfo& createInfo)
     :
-    assetDescriptor(std::move(assetDescriptor)),
+    assetDescriptor(makeAssetDescriptor(instance, registry, createInfo)),
     registry(&registry)
 {
 }

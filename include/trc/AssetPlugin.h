@@ -1,10 +1,10 @@
 #pragma once
 
+#include "trc/AssetDescriptor.h"
 #include "trc/core/RenderPlugin.h"
 
 namespace trc
 {
-    class AssetDescriptor;
     class AssetRegistry;
 
     /**
@@ -29,8 +29,9 @@ namespace trc
          *        default asset types at an asset registry and builds a
          *        descriptor for their data.
          */
-        AssetPlugin(AssetRegistry& registry,
-                    s_ptr<AssetDescriptor> assetDescriptor);
+        AssetPlugin(const Instance& instance,
+                    AssetRegistry& registry,
+                    const AssetDescriptorCreateInfo& createInfo);
 
         void defineRenderStages(RenderGraph& renderGraph) override;
         void defineResources(ResourceConfig& config) override;

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <mutex>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "trc/base/Device.h"

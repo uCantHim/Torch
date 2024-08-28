@@ -16,16 +16,6 @@ void run()
     trc::AssetManager assets(std::make_shared<trc::NullDataStorage>());
 
     auto& device = instance.getDevice();
-    auto assetDescriptor = trc::makeAssetDescriptor(
-        instance,
-        assets.getDeviceRegistry(),
-        trc::AssetDescriptorCreateInfo{
-            // TODO: Put these settings into a global configuration object
-            .maxGeometries = 5000,
-            .maxTextures = 2000,
-            .maxFonts = 50,
-        }
-    );
 
     // Render the same scene to both viewports, but from different cameras
     auto scene = std::make_shared<trc::Scene>();
@@ -59,8 +49,12 @@ void run()
     trc::TorchPipelineCreateInfo info{
         .maxViewports=2,
         .assetRegistry=assets.getDeviceRegistry(),
-        .assetDescriptor=assetDescriptor,
-        .maxShadowMaps=1
+        .assetDescriptorCreateInfo{
+            .maxGeometries = 5000,
+            .maxTextures = 2000,
+            .maxFonts = 50,
+        },
+        .maxShadowMaps=1,
     };
 
     auto pipeline = trc::makeTorchRenderPipeline(instance, window, info);

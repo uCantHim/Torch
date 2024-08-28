@@ -70,10 +70,11 @@ auto trc::makeTorchRenderPipeline(
 
     RenderPipelineBuilder builder;
     builder.addPlugin(buildSwapchainPlugin(window));
-    builder.addPlugin([&createInfo](PluginBuildContext&) {
+    builder.addPlugin([&instance, &createInfo](PluginBuildContext&) {
         return std::make_unique<AssetPlugin>(
+            instance,
             createInfo.assetRegistry,
-            createInfo.assetDescriptor
+            createInfo.assetDescriptorCreateInfo
         );
     });
     builder.addPlugin(buildRasterPlugin(
@@ -126,17 +127,12 @@ trc::TorchStack::TorchStack(
         }
         return std::make_shared<NullDataStorage>();
     }()),
-    assetDescriptor(trc::makeAssetDescriptor(
-        instance,
-        assetManager.getDeviceRegistry(),
-        assetDescriptorInfo
-    )),
     renderPipeline(makeTorchRenderPipeline(
         instance,
         window,
         TorchPipelineCreateInfo{
             .assetRegistry=assetManager.getDeviceRegistry(),
-            .assetDescriptor=assetDescriptor,
+            .assetDescriptorCreateInfo=assetDescriptorInfo,
             .maxShadowMaps=kDefaultMaxShadowMaps,
             .maxTransparentFragsPerPixel=kDefaultMaxTransparentFrags,
             .enableRayTracing=instanceInfo.enableRayTracing && instance.hasRayTracing()

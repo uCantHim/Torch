@@ -65,18 +65,7 @@ namespace trc
         // device data during rendering.
         AssetRegistry& assetRegistry;
 
-        // The instance that makes an AssetRegistry's data available to the
-        // device. Create this descriptor, which contains information about
-        // Torch's default assets, via `makeDefaultAssetModules`. This function
-        // registers all asset modules that are necessary to use Torch's default
-        // assets at an asset registry and builds a descriptor for their data.
-        //
-        // The same asset descriptor can be used for multiple render
-        // configurations.
-        //
-        // The create render config will apply updates to this descriptor during
-        // rendering.
-        s_ptr<AssetDescriptor> assetDescriptor;
+        AssetDescriptorCreateInfo assetDescriptorCreateInfo;
 
         // A pool from which shadow maps are allocated.
         ui32 maxShadowMaps{ 100 };
@@ -177,7 +166,6 @@ namespace trc
         Window window;
         AssetManager assetManager;
 
-        s_ptr<AssetDescriptor> assetDescriptor;
         u_ptr<RenderPipeline> renderPipeline;
 
         Renderer renderer;

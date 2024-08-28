@@ -20,7 +20,6 @@ int main()
 
     trc::Instance instance;
     trc::Window window{ instance };
-    trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
 
     trc::AssetManager assetManager{ std::make_shared<trc::NullDataStorage>() };
     auto assetDescriptor = trc::makeAssetDescriptor(
@@ -34,7 +33,7 @@ int main()
     );
 
     // Create a render pipeline
-    auto pipeline = trc::RenderPipelineBuilder{}
+    auto pipeline = trc::buildRenderPipeline()
         .addPlugin(trc::buildRasterPlugin({
             trc::RasterPluginCreateInfo{
                 .maxShadowMaps = 1,
@@ -44,7 +43,7 @@ int main()
         .addPlugin(trc::buildSwapchainPlugin(window))
         .build({
             .instance=instance,
-            .renderTarget=renderTarget,
+            .renderTarget=trc::makeRenderTarget(window),
             .maxViewports=1,
         });
 
