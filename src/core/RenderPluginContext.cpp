@@ -55,10 +55,12 @@ auto impl::SceneInfo::scene() -> SceneBase&
 
 impl::ViewportInfo::ViewportInfo(
     const Viewport& vp,
+    vec4 clearColor,
     const s_ptr<Camera>& camera,
     const s_ptr<SceneBase>& scene)
     :
     _vp(vp),
+    _clearColor(clearColor),
     _camera(camera),
     _scene(scene)
 {
@@ -79,6 +81,11 @@ auto impl::ViewportInfo::renderImage() const -> const RenderImage&
 auto impl::ViewportInfo::renderArea() const -> const RenderArea&
 {
     return _vp.area;
+}
+
+auto impl::ViewportInfo::clearColor() const -> vec4
+{
+    return _clearColor;
 }
 
 auto impl::ViewportInfo::scene() -> SceneBase&

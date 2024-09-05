@@ -81,7 +81,7 @@ namespace trc
         class DrawConfig : public ViewportResources
         {
         public:
-            DrawConfig(const Device& device, Viewport renderTarget, RasterPlugin& parent);
+            DrawConfig(ViewportContext& ctx, RasterPlugin& parent);
 
             void registerResources(ResourceStorage& resources) override;
 

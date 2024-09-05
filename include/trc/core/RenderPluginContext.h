@@ -68,18 +68,21 @@ namespace trc::impl
     {
     public:
         ViewportInfo(const Viewport& vp,
+                     vec4 clearColor,
                      const s_ptr<Camera>& camera,
                      const s_ptr<SceneBase>& scene);
 
         auto viewport() const -> const Viewport&;
         auto renderImage() const -> const RenderImage&;
         auto renderArea() const -> const RenderArea&;
+        auto clearColor() const -> vec4;
 
         auto scene() -> SceneBase&;
         auto camera() -> Camera&;
 
     private:
         Viewport _vp;
+        vec4 _clearColor;
         s_ptr<Camera> _camera;
         s_ptr<SceneBase> _scene;
     };

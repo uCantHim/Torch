@@ -6,6 +6,11 @@
 namespace trc
 {
     class AssetRegistry;
+    class AssetPlugin;
+
+    auto buildAssetPlugin(AssetRegistry& reg,
+                          const AssetDescriptorCreateInfo& createInfo)
+        -> PluginBuilder;
 
     /**
      * Provides definitions for the asset descriptor and performs device updates

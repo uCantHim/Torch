@@ -15,9 +15,24 @@ void run()
 
     trc::AssetManager assets(std::make_shared<trc::NullDataStorage>());
 
-    auto& device = instance.getDevice();
+    // Create a render pipeline.
+    trc::TorchPipelineCreateInfo info{
+        .maxViewports=2,
+        .assetRegistry=assets.getDeviceRegistry(),
+        .assetDescriptorCreateInfo{
+            .maxGeometries = 5000,
+            .maxTextures = 2000,
+            .maxFonts = 50,
+        },
+        .maxShadowMaps=1,
+    };
+    auto pipeline = trc::makeTorchRenderPipeline(instance, window, info);
 
-    // Render the same scene to both viewports, but from different cameras
+    window.addCallbackOnResize([&pipeline](auto& swapchain) {
+        pipeline->changeRenderTarget(trc::makeRenderTarget(swapchain));
+    });
+
+    // Create a scene with two objects.
     auto scene = std::make_shared<trc::Scene>();
     auto camera1 = std::make_shared<trc::Camera>();
     auto camera2 = std::make_shared<trc::Camera>();
@@ -45,30 +60,12 @@ void run()
     trc::Drawable cube = scene->makeDrawable({ cubeGeo, redMat });
     cube->scale(0.7f);
 
-    // Create a render pipeline and two viewports.
-    trc::TorchPipelineCreateInfo info{
-        .maxViewports=2,
-        .assetRegistry=assets.getDeviceRegistry(),
-        .assetDescriptorCreateInfo{
-            .maxGeometries = 5000,
-            .maxTextures = 2000,
-            .maxFonts = 50,
-        },
-        .maxShadowMaps=1,
-    };
+    // Create two viewports. Both draw the same scene, but from different cameras.
+    auto vp1 = pipeline->makeViewport({ { 100, 200 }, { 400, 400 } }, camera1, scene, vec4(1, 1, 0, 1));
+    auto vp2 = pipeline->makeViewport({ { 400, 550 }, { 300, 150 } }, camera2, scene, vec4(0.2f, 0.5f, 1.0f, 1));
 
-    auto pipeline = trc::makeTorchRenderPipeline(instance, window, info);
-    auto vp1 = pipeline->makeViewport({ { 100, 200 }, { 400, 400 } }, camera1, scene);
-    auto vp2 = pipeline->makeViewport({ { 400, 550 }, { 300, 150 } }, camera2, scene);
-    //vp1.setClearColor(vec4(1, 1, 0, 1));
-    //vp2.setClearColor(vec4(0.2f, 0.5f, 1.0f, 1));
-
-    window.addCallbackOnResize([&pipeline](auto& swapchain) {
-        pipeline->changeRenderTarget(trc::makeRenderTarget(swapchain));
-    });
-
-    // Create a renderer that submits a frame to a render target
-    trc::Renderer renderer{ device, window };
+    // Create a renderer that draws frames to a window.
+    trc::Renderer renderer{ instance.getDevice(), window };
 
     trc::Timer timer;
     while (window.isOpen() && window.getKeyState(trc::Key::escape) != trc::InputAction::press)

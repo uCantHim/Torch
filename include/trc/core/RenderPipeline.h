@@ -51,8 +51,6 @@ namespace trc
 
     /**
      * @brief Exposed by a RenderPipeline to allow viewport manipulation.
-     *
-     * May be null.
      */
     class RenderPipelineViewport
     {
@@ -60,8 +58,10 @@ namespace trc
         using RenderTargetUpdateCallback
             = std::function<RenderArea(const RenderPipelineViewport&, const RenderTarget&)>;
 
-        auto getRenderTarget() -> const RenderTarget&;
-        auto getRenderArea() -> const RenderArea&;
+        static GLM_CONSTEXPR const vec4 kDefaultClearColor{ 0, 0, 0, 1 };
+
+        auto getRenderTarget() const -> const RenderTarget&;
+        auto getRenderArea() const -> const RenderArea&;
 
         auto getCamera() -> Camera&;
         auto getScene() -> SceneBase&;
@@ -86,7 +86,8 @@ namespace trc
                                ui32 viewportIndex,
                                const RenderArea& renderArea,
                                const s_ptr<Camera>& camera,
-                               const s_ptr<SceneBase>& scene);
+                               const s_ptr<SceneBase>& scene,
+                               vec4 clearColor = kDefaultClearColor);
 
         /**
          * Called by the RenderPipeline when the viewport's render target
@@ -100,6 +101,7 @@ namespace trc
         RenderArea area;
         s_ptr<Camera> camera;
         s_ptr<SceneBase> scene;
+        const vec4 clearColor;
 
         RenderTargetUpdateCallback renderTargetUpdateCallback;
     };
@@ -135,7 +137,8 @@ namespace trc
          */
         auto makeViewport(const RenderArea& renderArea,
                           const s_ptr<Camera>& camera,
-                          const s_ptr<SceneBase>& scene)
+                          const s_ptr<SceneBase>& scene,
+                          vec4 clearColor = RenderPipelineViewport::kDefaultClearColor)
             -> ViewportHandle;
 
         auto getMaxViewports() const -> ui32;
@@ -230,7 +233,8 @@ namespace trc
                                  const RenderImage& img,
                                  const RenderArea& renderArea,
                                  const s_ptr<Camera>& camera,
-                                 const s_ptr<SceneBase>& scene)
+                                 const s_ptr<SceneBase>& scene,
+                                 vec4 clearColor)
             -> u_ptr<PerViewport>;
 
         /**

@@ -13,6 +13,17 @@
 namespace trc
 {
 
+auto buildAssetPlugin(AssetRegistry& reg,
+                      const AssetDescriptorCreateInfo& createInfo)
+    -> PluginBuilder
+{
+    return [&reg, createInfo](PluginBuildContext& ctx) {
+        return std::make_unique<AssetPlugin>(ctx.instance(), reg, createInfo);
+    };
+}
+
+
+
 AssetPlugin::AssetPlugin(
     const Instance& instance,
     AssetRegistry& registry,

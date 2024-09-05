@@ -58,16 +58,13 @@ namespace trc
         // resulting pipeline. Must be greater than 0.
         ui32 maxViewports{ 1 };
 
-        // The asset registry from which the render config shall source asset
-        // data. `assetDescriptor` must point to this asset registry.
-        //
-        // The created render config will apply updates to this asset registry's
-        // device data during rendering.
+        // The asset registry that is being updated by the pipeline. Access an
+        // asset manager's registry with `AssetManager::getDeviceRegistry`.
         AssetRegistry& assetRegistry;
 
         AssetDescriptorCreateInfo assetDescriptorCreateInfo;
 
-        // A pool from which shadow maps are allocated.
+        // The maximum number of shadow maps supported by the pipeline.
         ui32 maxShadowMaps{ 100 };
 
         // A heuristic used to allocate pre-sized fragment list buffers.

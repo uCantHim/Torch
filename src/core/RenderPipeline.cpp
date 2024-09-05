@@ -17,25 +17,27 @@ RenderPipelineViewport::RenderPipelineViewport(
     ui32 viewportIndex,
     const RenderArea& renderArea,
     const s_ptr<Camera>& camera,
-    const s_ptr<SceneBase>& scene)
+    const s_ptr<SceneBase>& scene,
+    vec4 clearColor)
     :
     parent(pipeline),
     vpIndex(viewportIndex),
     area(renderArea),
     camera(camera),
     scene(scene),
+    clearColor(clearColor),
     renderTargetUpdateCallback([](auto& vp, auto&){ return vp.area; })
 {
     assert_arg(camera != nullptr);
     assert_arg(scene != nullptr);
 }
 
-auto RenderPipelineViewport::getRenderTarget() -> const RenderTarget&
+auto RenderPipelineViewport::getRenderTarget() const -> const RenderTarget&
 {
     return parent.getRenderTarget();
 }
 
-auto RenderPipelineViewport::getRenderArea() -> const RenderArea&
+auto RenderPipelineViewport::getRenderArea() const -> const RenderArea&
 {
     return area;
 }
@@ -185,7 +187,8 @@ auto RenderPipeline::draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_
 auto RenderPipeline::makeViewport(
     const RenderArea& renderArea,
     const s_ptr<Camera>& camera,
-    const s_ptr<SceneBase>& scene) -> ViewportHandle
+    const s_ptr<SceneBase>& scene,
+    vec4 clearColor) -> ViewportHandle
 {
     assert_arg(camera != nullptr);
     assert_arg(scene != nullptr);
@@ -214,7 +217,8 @@ auto RenderPipeline::makeViewport(
             img,
             renderArea,
             camera,
-            scene
+            scene,
+            clearColor
         );
     }
 
@@ -294,7 +298,8 @@ void RenderPipeline::changeRenderTarget(const RenderTarget& newTarget)
                 pipeline, img,
                 newArea,
                 vp->camera,
-                vp->scene
+                vp->scene,
+                vp->clearColor
             );
         }
     }
@@ -515,13 +520,14 @@ auto RenderPipeline::instantiateViewport(
     const RenderImage& img,
     const RenderArea& renderArea,
     const s_ptr<Camera>& camera,
-    const s_ptr<SceneBase>& scene)
+    const s_ptr<SceneBase>& scene,
+    vec4 clearColor)
     -> u_ptr<PerViewport>
 {
     assert(camera != nullptr);
     assert(scene != nullptr);
 
-    const impl::ViewportInfo vpInfo{ Viewport{ img, renderArea }, camera, scene };
+    const impl::ViewportInfo vpInfo{ Viewport{ img, renderArea }, clearColor, camera, scene };
 
     auto baseResources = pipeline.scenes.at(scene)->resources;
     auto resourceStorage = ResourceStorage::derive(baseResources);

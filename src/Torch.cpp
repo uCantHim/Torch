@@ -70,13 +70,10 @@ auto trc::makeTorchRenderPipeline(
 
     RenderPipelineBuilder builder;
     builder.addPlugin(buildSwapchainPlugin(window));
-    builder.addPlugin([&instance, &createInfo](PluginBuildContext&) {
-        return std::make_unique<AssetPlugin>(
-            instance,
-            createInfo.assetRegistry,
-            createInfo.assetDescriptorCreateInfo
-        );
-    });
+    builder.addPlugin(buildAssetPlugin(
+        createInfo.assetRegistry,
+        createInfo.assetDescriptorCreateInfo
+    ));
     builder.addPlugin(buildRasterPlugin(
         trc::RasterPluginCreateInfo{
             .maxShadowMaps=createInfo.maxShadowMaps,

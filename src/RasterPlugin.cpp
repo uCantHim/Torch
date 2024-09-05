@@ -99,11 +99,7 @@ auto RasterPlugin::createSceneResources(SceneContext& ctx)
 auto RasterPlugin::createViewportResources(ViewportContext& ctx)
     -> u_ptr<ViewportResources>
 {
-    return std::make_unique<DrawConfig>(
-        ctx.device(),
-        Viewport{ ctx.renderImage(), ctx.renderArea() },
-        *this
-    );
+    return std::make_unique<DrawConfig>(ctx, *this);
 }
 
 
@@ -113,22 +109,25 @@ auto RasterPlugin::createViewportResources(ViewportContext& ctx)
 ////////////////////////////////////////
 
 RasterPlugin::DrawConfig::DrawConfig(
-    const Device& device,
-    Viewport renderTarget,
+    ViewportContext& ctx,
     RasterPlugin& parent)
     :
     parent(&parent),
-    gBuffer(device, { .size=renderTarget.area.size, .maxTransparentFragsPerPixel=2 }),
-    gBufferPass(std::make_shared<GBufferPass>(device, gBuffer)),
+    gBuffer(ctx.device(), {
+        .size=ctx.renderArea().size,
+        .maxTransparentFragsPerPixel=parent.config.maxTransparentFragsPerPixel,
+    }),
+    gBufferPass(std::make_shared<GBufferPass>(ctx.device(), gBuffer)),
     gBufferDepthReaderPass(
-        std::make_shared<GBufferDepthReader>(device, []{ return vec2{}; }, gBuffer)
+        std::make_shared<GBufferDepthReader>(ctx.device(), []{ return vec2{}; }, gBuffer)
     ),
-    finalLighting(parent.finalLighting.makeDrawConfig(device, renderTarget)),
-    gBufferDescSet(parent.gBufferDescriptor.makeDescriptorSet(device, gBuffer)),
+    finalLighting(parent.finalLighting.makeDrawConfig(ctx.device(), ctx.viewport())),
+    gBufferDescSet(parent.gBufferDescriptor.makeDescriptorSet(ctx.device(), gBuffer)),
     globalDataDescriptor(std::make_shared<GlobalRenderDataDescriptor::DescriptorSet>(
         parent.globalDataDescriptor.makeDescriptorSet()
     ))
 {
+    gBufferPass->setClearColor(ctx.clearColor());
 }
 
 void RasterPlugin::DrawConfig::registerResources(ResourceStorage& resources)
