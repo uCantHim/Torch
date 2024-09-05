@@ -115,7 +115,7 @@ auto makeAssetDescriptor(
 
 AssetDescriptor::AssetDescriptor(const Device& device, const AssetDescriptorCreateInfo& info)
 {
-    auto builder = SharedDescriptorSet::build();
+    auto builder = buildSharedDescriptorSet();
     builder.addLayoutFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool);
     builder.addPoolFlag(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind);
 

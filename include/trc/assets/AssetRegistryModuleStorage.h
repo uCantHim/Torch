@@ -16,14 +16,6 @@ namespace trc
 {
     /**
      * @brief Stores asset registry modules
-     *
-     * Hides implementations behind the virtual `AssetRegistryModuleInterface<>`
-     * interface, which ensures correct typing but still allows handling
-     * incomplete types. This is necessary to allow modules to be defined after
-     * asset storage, -registry, and -manager.
-     *
-     * Also, the virtualness effectively enforces a common interface for asset
-     * registry modules.
      */
     class AssetRegistryModuleStorage
     {

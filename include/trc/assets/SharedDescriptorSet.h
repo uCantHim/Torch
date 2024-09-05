@@ -11,6 +11,10 @@
 
 namespace trc
 {
+    class SharedDescriptorSetBuilder;
+
+    auto buildSharedDescriptorSet() -> SharedDescriptorSetBuilder;
+
     /**
      * The SharedDescriptorSet is intended to be used as a collection of
      * descriptor bindings that each 'belong' to a different service and
@@ -25,7 +29,7 @@ namespace trc
     class SharedDescriptorSet
     {
     private:
-        friend class Builder;
+        friend class SharedDescriptorSetBuilder;
         SharedDescriptorSet() = default;
 
     public:
@@ -35,13 +39,6 @@ namespace trc
         auto operator=(SharedDescriptorSet&&) noexcept -> SharedDescriptorSet&;
 
         ~SharedDescriptorSet() noexcept = default;
-
-        class Builder;
-
-        /**
-         * Build a descriptor set.
-         */
-        static auto build() -> Builder;
 
         auto getDescriptorSetLayout() const -> vk::DescriptorSetLayout;
         auto getProvider() const -> s_ptr<const DescriptorProviderInterface>;
@@ -57,10 +54,7 @@ namespace trc
         class Binding
         {
         public:
-            /**
-             * Can only be constructed by `SharedDescriptorSet::Builder`.
-             */
-            Binding() = delete;
+            Binding(s_ptr<SharedDescriptorSet> set, ui32 bindingIndex);
 
             Binding(const Binding&) = default;
             Binding(Binding&&) = default;
@@ -86,53 +80,12 @@ namespace trc
                         const vk::ArrayProxy<const vk::BufferView>& views);
 
         private:
-            friend Builder;
-            Binding(s_ptr<SharedDescriptorSet> set, ui32 bindingIndex);
-
             s_ptr<SharedDescriptorSet> set;
             ui32 bindingIndex;
         };
 
-        class Builder
-        {
-        public:
-            Builder();
-
-            void addLayoutFlag(vk::DescriptorSetLayoutCreateFlags flags);
-            void addPoolFlag(vk::DescriptorPoolCreateFlags flags);
-            auto addBinding(vk::DescriptorType type,
-                            ui32 count,
-                            vk::ShaderStageFlags stages,
-                            vk::DescriptorBindingFlags flags = {})
-                -> Binding;
-
-            /**
-             * @brief Finalize and return the SharedDescriptorSet
-             *
-             * May only be called once per builder object.
-             *
-             * @throw std::runtime_error if `build` is called multiple times on
-             *        the same builder.
-             */
-            auto build(const Device& device) -> s_ptr<SharedDescriptorSet>;
-
-        private:
-            friend SharedDescriptorSet;
-
-            vk::DescriptorSetLayoutCreateFlags layoutFlags;
-            vk::DescriptorPoolCreateFlags poolFlags;
-            std::vector<vk::DescriptorBindingFlags> bindingFlags;
-
-            std::vector<vk::DescriptorSetLayoutBinding> bindings;
-
-            // Created with the builder so it can be passed to the constructor
-            // of `Binding` objects when they are created.
-            s_ptr<SharedDescriptorSet> set;
-        };
-
     private:
-        void build(const Device& device, const Builder& builder);
-
+        void build(const Device& device, const SharedDescriptorSetBuilder& builder);
 
         /////////////////////////
         // Basic device resources
@@ -143,7 +96,6 @@ namespace trc
         s_ptr<DescriptorProvider> provider{ new DescriptorProvider{{}} };
 
         std::vector<vk::DescriptorSetLayoutBinding> bindings;
-
 
         /////////////////////
         // Descriptor updates
@@ -183,5 +135,42 @@ namespace trc
         std::mutex descriptorUpdateLock;
         std::vector<UpdateContainer> updateStructs;
         std::vector<vk::WriteDescriptorSet> writes;
+    };
+
+    class SharedDescriptorSetBuilder
+    {
+    public:
+        SharedDescriptorSetBuilder();
+
+        void addLayoutFlag(vk::DescriptorSetLayoutCreateFlags flags);
+        void addPoolFlag(vk::DescriptorPoolCreateFlags flags);
+        auto addBinding(vk::DescriptorType type,
+                        ui32 count,
+                        vk::ShaderStageFlags stages,
+                        vk::DescriptorBindingFlags flags = {})
+            -> SharedDescriptorSet::Binding;
+
+        /**
+         * @brief Finalize and return the SharedDescriptorSet
+         *
+         * May only be called once per builder object.
+         *
+         * @throw std::runtime_error if `build` is called multiple times on
+         *        the same builder.
+         */
+        auto build(const Device& device) -> s_ptr<SharedDescriptorSet>;
+
+    private:
+        friend SharedDescriptorSet;
+
+        vk::DescriptorSetLayoutCreateFlags layoutFlags;
+        vk::DescriptorPoolCreateFlags poolFlags;
+        std::vector<vk::DescriptorBindingFlags> bindingFlags;
+
+        std::vector<vk::DescriptorSetLayoutBinding> bindings;
+
+        // Created with the builder so it can be passed to the constructor
+        // of `Binding` objects when they are created.
+        s_ptr<SharedDescriptorSet> set;
     };
 } // namespace trc
