@@ -48,11 +48,9 @@ auto finalizeCmdBuffers(std::vector<StageRecording> recordings)
     return result;
 }
 
-} // namespace trc
 
 
-
-trc::CommandRecorder::CommandRecorder(
+CommandRecorder::CommandRecorder(
     const Device& device,
     const FrameClock& frameClock,
     async::ThreadPool* threadPool)
@@ -63,7 +61,7 @@ trc::CommandRecorder::CommandRecorder(
 {
 }
 
-auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
+auto CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
 {
     const size_t numCmdBufs = frame.getRenderGraph().size();
     //log::debug << "[CommandRecorder]: Recording task commands with "
@@ -120,8 +118,19 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
                 DeviceExecutionContext ctx = frame.makeTaskExecutionContext(deps);
 
                 cmdBuf.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-                for (auto& task : frame.iterTasks(stage)) {
-                    task.record(cmdBuf, ctx);
+                for (auto& task : frame.iterTasks(stage))
+                {
+                    try {
+                        task.record(cmdBuf, ctx);
+                    }
+                    catch (const std::exception& err)
+                    {
+                        log::error << "A render task in stage " << stage
+                                   << " threw an error during recording."
+                                   << " All commands of the task will be discarded."
+                                   << " Error: " << err.what();
+                        continue;
+                    }
                 }
 
                 // We do NOT end the command buffer here! This is done in
@@ -141,3 +150,5 @@ auto trc::CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer
 
     return finalizeCmdBuffers(std::move(recs));
 }
+
+} // namespace trc
