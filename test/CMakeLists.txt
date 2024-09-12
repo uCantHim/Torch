@@ -55,6 +55,3 @@ if (TORCH_BUILD_EXAMPLES)
         target_link_libraries(Gui PUBLIC torch)
     endif()
 endif ()
-
-add_executable(new-arch arch.cpp)
-target_link_libraries(new-arch PUBLIC torch)
