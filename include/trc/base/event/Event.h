@@ -1,11 +1,12 @@
-#pragma once
-
 /**
  * Includes all common event-related headers.
  *
  * Also defines some convenience functions to deal with events more
  * expressively.
  */
+#pragma once
+
+#include <concepts>
 
 #include "trc/base/event/EventHandler.h"
 #include "trc/base/event/InputEvents.h"
@@ -83,10 +84,10 @@ namespace trc
      *
      * @return MaybeUniqueListener<EventType>
      */
-    template<typename EventType>
-    inline auto on(std::function<void(const EventType&)> callback) -> MaybeUniqueListener<EventType>
+    template<typename EventType, std::invocable<const EventType&> F>
+    inline auto on(F&& callback) -> MaybeUniqueListener<EventType>
     {
-        return { EventHandler<EventType>::addListener(std::move(callback)) };
+        return { EventHandler<EventType>::addListener(std::forward<F>(callback)) };
     }
 
     /**

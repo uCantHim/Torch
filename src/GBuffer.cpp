@@ -205,10 +205,7 @@ void trc::GBuffer::initFrame(vk::CommandBuffer cmdBuf) const
 
 trc::GBufferDescriptor::GBufferDescriptor(
     const Device& device,
-    const FrameClock& frameClock)
-    :
-    descSets(frameClock),
-    provider({}, { frameClock }) // Doesn't have a default constructor
+    ui32 maxDescriptorSets)
 {
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes = {
@@ -218,7 +215,7 @@ trc::GBufferDescriptor::GBufferDescriptor(
     };
     descPool = device->createDescriptorPoolUnique({
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        frameClock.getFrameCount(),
+        maxDescriptorSets,
         poolSizes
     });
 
@@ -245,74 +242,53 @@ trc::GBufferDescriptor::GBufferDescriptor(
         .build(device);
 
     // Sets
-    std::vector<vk::DescriptorSetLayout> layouts(frameClock.getFrameCount(), *descLayout);
-    descSets = { frameClock, device->allocateDescriptorSetsUnique({ *descPool, layouts }) };
+}
 
-    provider = {
-        *descLayout,
-        { frameClock, [this](ui32 imageIndex) { return *descSets.getAt(imageIndex); } }
+auto trc::GBufferDescriptor::makeDescriptorSet(const Device& device, const GBuffer& g)
+    -> vk::UniqueDescriptorSet
+{
+    auto set = std::move(device->allocateDescriptorSetsUnique({ *descPool, *descLayout })[0]);
+
+    vk::ImageView imageViews[]{
+        g.getImageView(GBuffer::eNormals),
+        g.getImageView(GBuffer::eAlbedo),
+        g.getImageView(GBuffer::eMaterials),
+        g.getImageView(GBuffer::eDepth),
     };
+    vk::Sampler depthSampler = g.getImage(GBuffer::eDepth).getDefaultSampler();
+    const auto transparent = g.getTransparencyResources();
+
+    // Write to the descriptor set
+    vk::DescriptorImageInfo imageInfos[]{
+        { {},           imageViews[0],                    vk::ImageLayout::eGeneral },
+        { {},           imageViews[1],                    vk::ImageLayout::eGeneral },
+        { {},           imageViews[2],                    vk::ImageLayout::eGeneral },
+        { depthSampler, imageViews[3],                    vk::ImageLayout::eShaderReadOnlyOptimal },
+        { {},           transparent.headPointerImageView, vk::ImageLayout::eGeneral },
+    };
+    vk::DescriptorBufferInfo bufferInfos[]{
+        { transparent.allocatorAndFragmentListBuf, 0, transparent.FRAGMENT_LIST_OFFSET },
+        { transparent.allocatorAndFragmentListBuf, transparent.FRAGMENT_LIST_OFFSET,
+                                                   transparent.FRAGMENT_LIST_SIZE },
+    };
+
+    std::vector<vk::WriteDescriptorSet> writes{
+        { *set, 0, 0, vk::DescriptorType::eStorageImage,         imageInfos[0] },
+        { *set, 1, 0, vk::DescriptorType::eStorageImage,         imageInfos[1] },
+        { *set, 2, 0, vk::DescriptorType::eStorageImage,         imageInfos[2] },
+        { *set, 3, 0, vk::DescriptorType::eCombinedImageSampler, imageInfos[3] },
+
+        { *set, 4, 0, vk::DescriptorType::eStorageImage,         imageInfos[4] },
+        { *set, 5, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[0] },
+        { *set, 6, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[1] },
+    };
+
+    device->updateDescriptorSets(writes, {});
+
+    return set;
 }
 
-trc::GBufferDescriptor::GBufferDescriptor(
-    const Device& device,
-    const FrameSpecific<GBuffer>& gBuffer)
-    :
-    GBufferDescriptor(device, gBuffer.getFrameClock())
+auto trc::GBufferDescriptor::getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout
 {
-    update(device, gBuffer);
-}
-
-void trc::GBufferDescriptor::update(
-    const Device& device,
-    const FrameSpecific<GBuffer>& gBuffer)
-{
-    const ui32 frameCount = gBuffer.getFrameClock().getFrameCount();
-    for (size_t frame = 0; frame < frameCount; frame++)
-    {
-        const auto& g = gBuffer.getAt(frame);
-
-        vk::ImageView imageViews[]{
-            g.getImageView(GBuffer::eNormals),
-            g.getImageView(GBuffer::eAlbedo),
-            g.getImageView(GBuffer::eMaterials),
-            g.getImageView(GBuffer::eDepth),
-        };
-        vk::Sampler depthSampler = g.getImage(GBuffer::eDepth).getDefaultSampler();
-        const auto transparent = g.getTransparencyResources();
-
-        // Write set
-        vk::DescriptorImageInfo imageInfos[]{
-            { {},           imageViews[0],                    vk::ImageLayout::eGeneral },
-            { {},           imageViews[1],                    vk::ImageLayout::eGeneral },
-            { {},           imageViews[2],                    vk::ImageLayout::eGeneral },
-            { depthSampler, imageViews[3],                    vk::ImageLayout::eShaderReadOnlyOptimal },
-            { {},           transparent.headPointerImageView, vk::ImageLayout::eGeneral },
-        };
-        vk::DescriptorBufferInfo bufferInfos[]{
-            { transparent.allocatorAndFragmentListBuf, 0, transparent.FRAGMENT_LIST_OFFSET },
-            { transparent.allocatorAndFragmentListBuf, transparent.FRAGMENT_LIST_OFFSET,
-                                                       transparent.FRAGMENT_LIST_SIZE },
-        };
-
-        const auto set = *descSets.getAt(frame);
-        std::vector<vk::WriteDescriptorSet> writes{
-            { set, 0, 0, vk::DescriptorType::eStorageImage,         imageInfos[0] },
-            { set, 1, 0, vk::DescriptorType::eStorageImage,         imageInfos[1] },
-            { set, 2, 0, vk::DescriptorType::eStorageImage,         imageInfos[2] },
-            { set, 3, 0, vk::DescriptorType::eCombinedImageSampler, imageInfos[3] },
-
-            { set, 4, 0, vk::DescriptorType::eStorageImage,         imageInfos[4] },
-            { set, 5, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[0] },
-            { set, 6, 0, vk::DescriptorType::eStorageBuffer,        {}, bufferInfos[1] },
-        };
-
-        device->updateDescriptorSets(writes, {});
-    }
-}
-
-auto trc::GBufferDescriptor::getProvider() const noexcept
-    -> const DescriptorProviderInterface&
-{
-    return provider;
+    return *descLayout;
 }

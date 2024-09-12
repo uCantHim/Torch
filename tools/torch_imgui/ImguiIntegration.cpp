@@ -1,37 +1,103 @@
 #include "trc/ImguiIntegration.h"
 
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "trc/PipelineDefinitions.h"
-#include "trc/Torch.h"
-#include "trc/TorchRenderStages.h"
-#include "trc/base/Barriers.h"
-#include "trc/base/event/Event.h"
-#include "trc/core/PipelineBuilder.h"
+#include <trc/PipelineDefinitions.h>
+#include <trc/TorchRenderStages.h>
+#include <trc/base/Barriers.h>
+#include <trc/base/Logging.h>
+#include <trc/base/event/Event.h>
+#include <trc/core/PipelineBuilder.h>
+#include <trc/core/RenderPipelineTasks.h>
 
 namespace ig = ImGui;
 
 
 
-namespace
+namespace trc::imgui
 {
-    vk::UniqueDescriptorPool imguiDescPool;
-    bool imguiInitialized{ false };
 
-    bool imguiHasBegun{ false };
-} // anonymous namespace
+vk::UniqueDescriptorPool imguiDescPool;
+bool imguiInitialized{ false };
+bool imguiHasBegun{ false };
 
-auto trc::imgui::initImgui(Window& window, RenderGraph& graph)
-    -> trc::u_ptr<ImguiRenderPass>
+struct CallbackStorage
 {
+    GLFWwindowfocusfun torchCallbackWindowFocus;
+    GLFWcursorposfun   torchCallbackCursorPos;
+    GLFWcursorenterfun torchCallbackCursorEnter;
+    GLFWmousebuttonfun torchCallbackMouseButton;
+    GLFWscrollfun      torchCallbackScroll;
+    GLFWkeyfun         torchCallbackKey;
+    GLFWcharfun        torchCallbackChar;
+    GLFWmonitorfun     torchCallbackMonitor;
+};
+
+std::unordered_map<GLFWwindow*, CallbackStorage> callbackStorages;
+
+#define replace_cb(_window_, _name_, _device_) \
+    glfwSet ## _name_ ## Callback( \
+        _window_, \
+        [](GLFWwindow* window, auto... args){ \
+            if (!ig::GetIO().WantCapture ## _device_) { \
+                auto& storage = callbackStorages.at(window); \
+                auto& cb = storage.torchCallback ## _name_; \
+                if (cb != nullptr) cb(window, args...); \
+            } \
+            else { \
+                ImGui_ImplGlfw_ ## _name_ ## Callback(window, args...); \
+            } \
+        } \
+    )
+
+void initCallbacks(GLFWwindow* window)
+{
+    auto [it, success] = callbackStorages.try_emplace(window);
+    if (!success) {
+        throw std::runtime_error("Don't call initCallbacks multiple times for the same window!");
+    }
+
+    it->second = CallbackStorage{
+        .torchCallbackWindowFocus = replace_cb(window, WindowFocus, Mouse),
+        .torchCallbackCursorPos = replace_cb(window, CursorPos, Mouse),
+        .torchCallbackCursorEnter = replace_cb(window, CursorEnter, Mouse),
+        .torchCallbackMouseButton = replace_cb(window, MouseButton, Mouse),
+        .torchCallbackScroll = replace_cb(window, Scroll, Mouse),
+        .torchCallbackKey = replace_cb(window, Key, Keyboard),
+        .torchCallbackChar = replace_cb(window, Char, Keyboard),
+        // Don't set the monitor callback because I'm too lazy to deal with
+        // that right now.
+        .torchCallbackMonitor{},
+    };
+}
+
+void restoreCallbacks(GLFWwindow* window)
+{
+    auto& storage = callbackStorages.at(window);
+    glfwSetWindowFocusCallback(window, storage.torchCallbackWindowFocus);
+    glfwSetCursorEnterCallback(window, storage.torchCallbackCursorEnter);
+    glfwSetCursorPosCallback(window, storage.torchCallbackCursorPos);
+    glfwSetMouseButtonCallback(window, storage.torchCallbackMouseButton);
+    glfwSetScrollCallback(window, storage.torchCallbackScroll);
+    glfwSetKeyCallback(window, storage.torchCallbackKey);
+    glfwSetCharCallback(window, storage.torchCallbackChar);
+    //glfwSetMonitorCallback(storage.torchCallbackMonitor);
+
+    callbackStorages.erase(window);
+}
+
+
+
+void initImgui(Window& window)
+{
+    auto& instance = window.getInstance();
     auto& device = window.getDevice();
-    auto& swapchain = window.getSwapchain();
-
-    auto renderPass = std::make_unique<ImguiRenderPass>(swapchain);
-    graph.addPass(imguiRenderStage, *renderPass);
 
     // Initialize global imgui stuff
     if (!imguiInitialized)
@@ -69,25 +135,35 @@ auto trc::imgui::initImgui(Window& window, RenderGraph& graph)
             auto [queue, family] = device.getQueueManager().getAnyQueue(QueueType::graphics);
             device.getQueueManager().reserveQueue(queue);
 
+            auto imageFormat = window.getImageFormat();
+            vk::PipelineRenderingCreateInfo pipelineRenderingInfo{
+                0x00,
+                imageFormat,
+                vk::Format::eUndefined,  // depth attachment format
+                vk::Format::eUndefined,  // stencil attachment format
+            };
+
             // Init ImGui for Vulkan
             ImGui_ImplVulkan_InitInfo igInfo{
-                .Instance              = window.getInstance().getVulkanInstance(),
-                .PhysicalDevice        = *device.getPhysicalDevice(),
-                .Device                = *device,
-                .QueueFamily           = family,
-                .Queue                 = *queue,
-                .PipelineCache         = VK_NULL_HANDLE,
-                .DescriptorPool        = *imguiDescPool,
-                .Subpass               = 0,
-                .MinImageCount         = swapchain.getFrameCount(),
-                .ImageCount            = swapchain.getFrameCount(),
-                .MSAASamples           = VK_SAMPLE_COUNT_1_BIT,
-                .UseDynamicRendering   = true,
-                .ColorAttachmentFormat = VkFormat(swapchain.getImageFormat()),
-                .Allocator             = nullptr,
-                .CheckVkResultFn       = nullptr,
+                .Instance                    = instance.getVulkanInstance(),
+                .PhysicalDevice              = *device.getPhysicalDevice(),
+                .Device                      = *device,
+                .QueueFamily                 = family,
+                .Queue                       = *queue,
+                .DescriptorPool              = *imguiDescPool,
+                .RenderPass                  = VK_NULL_HANDLE,
+                .MinImageCount               = window.getFrameCount(),
+                .ImageCount                  = window.getFrameCount(),
+                .MSAASamples                 = VK_SAMPLE_COUNT_1_BIT,
+                .PipelineCache               = VK_NULL_HANDLE,
+                .Subpass                     = 0,
+                .UseDynamicRendering         = true,
+                .PipelineRenderingCreateInfo = pipelineRenderingInfo,
+                .Allocator                   = nullptr,
+                .CheckVkResultFn             = nullptr,
+                .MinAllocationSize           = 1024 * 1024,
             };
-            ImGui_ImplVulkan_Init(&igInfo, VK_NULL_HANDLE);
+            ImGui_ImplVulkan_Init(&igInfo);
         }
         catch (const QueueReservedError& err)
         {
@@ -96,20 +172,19 @@ auto trc::imgui::initImgui(Window& window, RenderGraph& graph)
         }
 
         // Upload fonts texture
-        device.executeCommands(QueueType::graphics, [](auto cmdBuf) {
-            ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
-        });
+        if (!ImGui_ImplVulkan_CreateFontsTexture()) {
+            log::warn << log::here() << ": Unable to create fonts texture:"
+                                        " ImGui_ImplVulkan_CreateFontsTexture returned false.";
+        }
 
         imguiInitialized = true;
     }
 
     // Initialize window-specific stuff
-    ImGui_ImplGlfw_InitForVulkan(swapchain.getGlfwWindow(), true);
-
-    return renderPass;
+    ImGui_ImplGlfw_InitForVulkan(window.getGlfwWindow(), false);
 }
 
-void trc::imgui::terminateImgui()
+void terminateImgui()
 {
     if (imguiInitialized)
     {
@@ -122,7 +197,7 @@ void trc::imgui::terminateImgui()
     }
 }
 
-void trc::imgui::beginImguiFrame()
+void beginImguiFrame()
 {
     if (!imguiHasBegun)
     {
@@ -134,69 +209,35 @@ void trc::imgui::beginImguiFrame()
     }
 }
 
-
-
-trc::imgui::ImguiRenderPass::ImguiRenderPass(const Swapchain& swapchain)
-    :
-    RenderPass({}, 0),
-    swapchain(swapchain)
+void endImguiFrame()
 {
-    auto window = swapchain.getGlfwWindow();
-    auto it = callbackStorages.find(window);
-    if (it != callbackStorages.end()) {
-        throw std::runtime_error("Don't create multiple ImguiRenderPasses for the same swapchain!");
+    if (imguiHasBegun)
+    {
+        ig::EndFrame();
+        imguiHasBegun = false;
     }
-    else {
-        it = callbackStorages.try_emplace(window).first;
-    }
-
-    // Replace trc's event callbacks
-    auto& storage = it->second;
-
-    storage.trcCharCallback = glfwSetCharCallback(window,
-        [](GLFWwindow* window, unsigned int codepoint) {
-            if (!ig::GetIO().WantCaptureKeyboard) {
-                callbackStorages.at(window).trcCharCallback(window, codepoint);
-            }
-        }
-    );
-    storage.trcKeyCallback = glfwSetKeyCallback(window,
-        [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-            if (!ig::GetIO().WantCaptureKeyboard) {
-                callbackStorages.at(window).trcKeyCallback(window, key, scancode, action, mods);
-            }
-        }
-    );
-    storage.trcMouseButtonCallback = glfwSetMouseButtonCallback(window,
-        [](GLFWwindow* window, int button, int action, int mods) {
-            if (!ig::GetIO().WantCaptureMouse) {
-                callbackStorages.at(window).trcMouseButtonCallback(window, button, action, mods);
-            }
-        }
-    );
-    storage.trcScrollCallback = glfwSetScrollCallback(window,
-        [](GLFWwindow* window, double xOffset, double yOffset) {
-            if (!ig::GetIO().WantCaptureMouse) {
-                callbackStorages.at(window).trcScrollCallback(window, xOffset, yOffset);
-            }
-        }
-    );
 }
 
-trc::imgui::ImguiRenderPass::~ImguiRenderPass()
+auto buildImguiRenderPlugin(Window& window) -> PluginBuilder
 {
-    swapchain.device->waitIdle();
+    return [&window](auto&&) -> u_ptr<RenderPlugin> {
+        return std::make_unique<ImguiRenderPlugin>(window);
+    };
+}
 
-    auto window = swapchain.getGlfwWindow();
-    auto& storage = callbackStorages.at(window);
 
-    // Replace trc's event callbacks
-    glfwSetCharCallback(window, storage.trcCharCallback);
-    glfwSetKeyCallback(window, storage.trcKeyCallback);
-    glfwSetMouseButtonCallback(window, storage.trcMouseButtonCallback);
-    glfwSetScrollCallback(window, storage.trcScrollCallback);
 
-    callbackStorages.erase(window);
+ImguiRenderPlugin::ImguiRenderPlugin(Window& _window)
+    :
+    window(_window.getGlfwWindow())
+{
+    initImgui(_window);
+    initCallbacks(window);
+}
+
+ImguiRenderPlugin::~ImguiRenderPlugin() noexcept
+{
+    restoreCallbacks(window);
     if (callbackStorages.empty())
     {
         // No ImguiRenderPass instances exist anymore. Terminate now for
@@ -205,64 +246,92 @@ trc::imgui::ImguiRenderPass::~ImguiRenderPass()
     }
 }
 
-void trc::imgui::ImguiRenderPass::begin(
-    vk::CommandBuffer cmdBuf,
-    vk::SubpassContents /*subpassContents*/,
-    FrameRenderState&)
+void ImguiRenderPlugin::defineRenderStages(RenderGraph& graph)
 {
-    // Bring swapchain image into eColorAttachmentOptimal layout. The final
-    // lighting pass brings it into ePresentSrcKHR.
-    barrier(cmdBuf, vk::ImageMemoryBarrier2{
-        vk::PipelineStageFlagBits2::eComputeShader,
-        vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite,
+    graph.createOrdering(stages::renderTargetImageInit, imguiRenderStage);
+    graph.createOrdering(stages::post, imguiRenderStage);
+    graph.createOrdering(imguiRenderStage, stages::renderTargetImageFinalize);
+}
+
+void ImguiRenderPlugin::defineResources(ResourceConfig& /*resources*/)
+{
+    // Nothing to do - ImGui holds all of its resources.
+}
+
+auto ImguiRenderPlugin::createGlobalResources(RenderPipelineContext& /*ctx*/)
+    -> u_ptr<GlobalResources>
+{
+    return std::make_unique<ImguiDrawResources>();
+}
+
+
+
+void ImguiRenderPlugin::ImguiDrawResources::registerResources(ResourceStorage& /*resources*/)
+{
+    // Nothing to do - ImGui holds all of its resources.
+}
+
+void ImguiRenderPlugin::ImguiDrawResources::hostUpdate(RenderPipelineContext& /*ctx*/)
+{
+    // Nothing to do
+}
+
+void ImguiRenderPlugin::ImguiDrawResources::createTasks(GlobalUpdateTaskQueue& queue)
+{
+    queue.spawnTask(imguiRenderStage, dispatchImguiCommands);
+}
+
+void ImguiRenderPlugin::ImguiDrawResources::dispatchImguiCommands(
+    vk::CommandBuffer cmdBuf,
+    GlobalUpdateContext& ctx)
+{
+    if (!imguiHasBegun)
+    {
+        log::debug << "Imgui frame was never started via `beginImguiFrame()` before"
+                      " the frame was submitted for rendering. No commands will be"
+                      " executed.";
+        return;
+    }
+    endImguiFrame();
+
+    auto& target = ctx.renderTargetImage();
+
+    ctx.deps().consume(ImageAccess{
+        target.image,
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::AccessFlagBits2::eColorAttachmentWrite,
-        vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eColorAttachmentOptimal,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-        swapchain.getImage(swapchain.getCurrentFrame()),
-        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        vk::ImageLayout::eColorAttachmentOptimal,
     });
 
+    // Render to the current render target image
     vk::RenderingAttachmentInfo colorAttachment{
-        swapchain.getImageView(swapchain.getCurrentFrame()),
-        vk::ImageLayout::eColorAttachmentOptimal,
-        vk::ResolveModeFlagBits::eNone, VK_NULL_HANDLE, vk::ImageLayout::eUndefined,
+        target.imageView, vk::ImageLayout::eColorAttachmentOptimal,  // color attachment image
+        vk::ResolveModeFlagBits::eNone, VK_NULL_HANDLE, vk::ImageLayout::eUndefined,  // resolve image
         vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore,
         vk::ClearValue{}
     };
     vk::RenderingInfo renderInfo{
         {},
-        { { 0, 0 }, swapchain.getImageExtent() },
+        { { 0, 0 }, { target.size.x, target.size.y } },
         1, 0,
         colorAttachment,
         nullptr, nullptr  // depth an stencil attachments
     };
 
+    // Collect and submit ImGui draw commands
     cmdBuf.beginRendering(renderInfo);
-
-    // If imgui hasn't been begun yet, do it now.
-    if (!imguiHasBegun) {
-        beginImguiFrame();
-    }
-}
-
-void trc::imgui::ImguiRenderPass::end(vk::CommandBuffer cmdBuf)
-{
-    ig::EndFrame();
     ig::Render();
     ImGui_ImplVulkan_RenderDrawData(ig::GetDrawData(), cmdBuf, VK_NULL_HANDLE);
-    imguiHasBegun = false;
-
     cmdBuf.endRendering();
 
-    barrier(cmdBuf, vk::ImageMemoryBarrier2{
+    ctx.deps().produce(ImageAccess{
+        target.image,
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::AccessFlagBits2::eColorAttachmentWrite,
-        vk::PipelineStageFlagBits2::eHost,
-        vk::AccessFlagBits2::eHostRead,
-        vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-        swapchain.getImage(swapchain.getCurrentFrame()),
-        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        vk::ImageLayout::eColorAttachmentOptimal,
     });
 }
+
+} // namespace trc::imgui

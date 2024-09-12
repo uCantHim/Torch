@@ -3,9 +3,10 @@
 #extension GL_EXT_nonuniform_qualifier: require
 #extension GL_EXT_ray_tracing : require
 
-#define ASSET_DESCRIPTOR_SET_BINDING 2
-#define LIGHT_DESCRIPTOR_SET 3
+#define ASSET_DESCRIPTOR_SET_BINDING 3
+#define LIGHT_DESCRIPTOR_SET 4
 #define LIGHT_DESCRIPTOR_BINDING 0
+#define SHADOW_DESCRIPTOR_SET_BINDING 5
 #include "asset_registry_descriptor.glsl"
 #include "lighting.glsl"
 #include "ray_tracing/hit_utils.glsl"
@@ -16,7 +17,7 @@ struct DrawableData
     uint mat;
 };
 
-layout (set = 3, binding = 1, std430) restrict readonly buffer DrawableDataBuffer
+layout (set = 4, binding = 1, std430) restrict readonly buffer DrawableDataBuffer
 {
     DrawableData drawables[];
 };

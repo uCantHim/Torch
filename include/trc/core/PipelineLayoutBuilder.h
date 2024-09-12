@@ -1,7 +1,9 @@
 #pragma once
 
-#include <vector>
 #include <optional>
+#include <tuple>
+#include <variant>
+#include <vector>
 
 #include "trc/core/PipelineLayoutTemplate.h"
 #include "trc/core/PipelineRegistry.h"
@@ -9,6 +11,8 @@
 
 namespace trc
 {
+    class DescriptorRegistry;
+
     /**
      * @brief
      */
@@ -71,7 +75,19 @@ namespace trc
                              bool hasStaticSet = true
                              ) -> Self&;
 
-        auto addDescriptor(const DescriptorProviderInterface& provider, bool hasStaticSet) -> Self&;
+        /**
+         * @brief Define a descriptor set layout used by the pipeline
+         *
+         * Also supply a descriptor provider to be used to bind a descriptor set
+         * whenever a pipeline using this layout is bound to a command buffer.
+         */
+        auto addStaticDescriptor(vk::DescriptorSetLayout descLayout,
+                                 s_ptr<const DescriptorProviderInterface> provider) -> Self&;
+
+        /**
+         * @brief Define a descriptor set layout used by the pipeline
+         */
+        auto addDynamicDescriptor(vk::DescriptorSetLayout descLayout) -> Self&;
 
         /**
          * Only call this function once per stage in vk::PipelineStageFlags.
@@ -98,7 +114,8 @@ namespace trc
         /**
          * @brief Build a pipeline layout
          */
-        auto build(const Device& device, RenderConfig& renderConfig) -> PipelineLayout;
+        auto build(const Device& device, const DescriptorRegistry& descRegistry)
+            -> PipelineLayout;
 
         /**
          * @brief Build the layout and register it at a pipeline registry
@@ -106,8 +123,8 @@ namespace trc
         auto registerLayout() const -> PipelineLayout::ID;
 
     private:
-        using ProviderDefinition = std::pair<const DescriptorProviderInterface*, bool>;
-        using DescriptorDefinition = std::variant<Descriptor, ProviderDefinition>;
+        using ProviderDefinition = std::tuple<vk::DescriptorSetLayout, s_ptr<const DescriptorProviderInterface>>;
+        using DescriptorDefinition = std::variant<Descriptor, vk::DescriptorSetLayout, ProviderDefinition>;
 
         std::vector<DescriptorDefinition> descriptors;
         std::vector<PipelineLayoutTemplate::PushConstant> pushConstants;

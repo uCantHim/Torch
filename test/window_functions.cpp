@@ -1,6 +1,8 @@
-#include <trc/Torch.h>
-#include <trc/ImguiIntegration.h>
 #include <imgui.h>
+
+#include <trc/ImguiIntegration.h>
+#include <trc/Torch.h>
+#include <trc_util/Timer.h>
 
 using namespace trc::basic_types;
 namespace ig = ImGui;
@@ -10,13 +12,17 @@ int main()
     {
         ivec2 windowSize{ 800, 600 };
         ivec2 windowPos{ 100, 100 };
-        auto torch = trc::initFull({}, {}, { .size=windowSize, .pos=windowPos });
+        auto torch = trc::initFull(
+            trc::TorchStackCreateInfo{ .plugins{ trc::imgui::buildImguiRenderPlugin } },
+            trc::InstanceCreateInfo{},
+            trc::WindowCreateInfo{ .size=windowSize, .pos=windowPos }
+        );
+
+        auto scene = std::make_shared<trc::Scene>();
+        auto camera = std::make_shared<trc::Camera>();
+        auto vp = torch->makeFullscreenViewport(camera, scene);
 
         auto& window = torch->getWindow();
-        auto imgui = trc::imgui::initImgui(window, torch->getRenderConfig().getRenderGraph());
-
-        trc::Scene scene;
-        trc::Camera camera;
 
         bool floating{ false };
         bool decorated{ true };
@@ -79,8 +85,10 @@ int main()
                 window.show();
             }
 
-            torch->drawFrame(camera, scene);
+            torch->drawFrame(vp);
         }
+
+        torch->waitForAllFrames();
     }
 
     trc::terminate();

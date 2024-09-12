@@ -1,102 +1,145 @@
 #pragma once
 
-#include <vector>
 #include <unordered_map>
-#include <optional>
-#include <functional>
+#include <unordered_set>
+#include <vector>
 
-#include "trc/Types.h"
 #include "trc/core/RenderStage.h"
 
 namespace trc
 {
-    class Window;
-    class RenderPass;
+    /**
+     * @brief An ordered, iterable representation of a render graph.
+     *
+     * Create a render graph layout with `RenderGraph::compile`.
+     *
+     * Iterating over the render graph layout yields defined render stages in
+     * the order in which they depend on each other.
+     */
+    class RenderGraphLayout;
 
     /**
-     * @brief Declares the layout of a complete render pathway
-     *
-     * Can be compiled into a RenderLayout structure, which can be used to
-     * collect all draw commands from a scene that are relevant to the
-     * layout.
+     * @brief Declares render stages and dependencies between them.
      */
     class RenderGraph
     {
     public:
-        struct StageInfo
-        {
-            RenderStage::ID stage;
-            std::vector<RenderPass*> renderPasses;
-
-            std::vector<RenderStage::ID> waitDependencies;
-        };
-
         RenderGraph() = default;
-        RenderGraph(const RenderGraph&) = default;
-        RenderGraph(RenderGraph&&) noexcept = default;
-        RenderGraph& operator=(const RenderGraph&) = default;
-        RenderGraph& operator=(RenderGraph&&) noexcept = default;
-        ~RenderGraph() noexcept = default;
-
-        void first(RenderStage::ID newStage);
-        void last(RenderStage::ID newStage);
 
         /**
-         * @throw std::out_of_range if `nextStage` is not present in the graph.
+         * @brief Add a stage to the graph.
          */
-        void before(RenderStage::ID nextStage, RenderStage::ID newStage);
+        void insert(RenderStage newStage);
 
         /**
-         * @throw std::out_of_range if `prevStage` is not present in the graph.
-         */
-        void after(RenderStage::ID prevStage, RenderStage::ID newStage);
-
-        /**
-         * @brief Create a stage-to-stage execution dependency
+         * @brief Insert a dependency edge into the graph.
          *
-         * All commands in `requiredStage` must have completed execution
-         * before any command in `stage` can be executed.
+         * Any stage that does not yet exist in the graph is inserted first.
          *
-         * TODO: This is currently not functional.
-         *
-         * @param RenderStage::ID stage
-         * @param RenderStage::ID requiredStage
+         * @throw std::invalid_argument if the new edge results in a cycle.
          */
-        void require(RenderStage::ID stage, RenderStage::ID requiredStage);
+        void createOrdering(RenderStage from, RenderStage to);
 
         /**
-         * @param RenderStage::ID stage
-         *
-         * @return bool True if the graph contains the specified stage type
-         *              at least once.
+         * @throw std::runtime_error if the graph contains cycles.
          */
-        bool contains(RenderStage::ID stage) const noexcept;
+        auto compile() const -> RenderGraphLayout;
 
         /**
-         * @return size_t The number of stages in the graph
+         * Produce a graph file language string (for use with the `dot` program)
+         * of the graph.
          */
-        auto size() const noexcept -> size_t;
-
-        // TODO
-        auto getStages() const -> const std::vector<StageInfo>& {
-            return stages;
-        }
-
-        /**
-         * @throw std::out_of_range if `stage` is not present in the render
-         *        graph.
-         */
-        void addPass(RenderStage::ID stage, RenderPass& newPass);
-        void removePass(RenderStage::ID stage, RenderPass& pass);
+        auto toDot() const -> std::string;
 
     private:
-        using StageIterator = typename std::vector<StageInfo>::iterator;
-        using StageConstIterator = typename std::vector<StageInfo>::const_iterator;
+        /**
+         * @return bool True if the graph contains a cycle, false otherwise.
+         */
+        bool hasCycles() const;
 
-        auto findStage(RenderStage::ID stage) -> std::optional<StageIterator>;
-        auto findStage(RenderStage::ID stage) const -> std::optional<StageConstIterator>;
-        void insert(StageIterator next, RenderStage::ID newStage);
+        // Declares all dependencies among stages. Is not inherently cycle-free;
+        // `hasCycles` computes that property.
+        std::unordered_map<RenderStage, std::unordered_set<RenderStage>> stageDeps;
 
-        std::vector<StageInfo> stages;
+        // Stages that don't depend on any other stages.
+        std::unordered_set<RenderStage> headStages;
+    };
+
+    class RenderGraphLayout
+    {
+    public:
+        using const_iterator = class RenderGraphIterator;
+
+        /**
+         * @return size_t Number of render stages in the graph.
+         */
+        auto size() const -> size_t;
+
+        /** Iterate over stages in the graph in their dependency order. */
+        auto begin() const -> const_iterator;
+
+        /** Iterate over stages in the graph in their dependency order. */
+        auto end() const -> const_iterator;
+
+    private:
+        friend RenderGraph;                // Creates RenderGraphLayout
+        friend class RenderGraphIterator;  // Accesses RenderGraphLayout's private member
+
+        RenderGraphLayout() = default;
+
+        /**
+         * As we are only interested in the acyclic ordering of stages with
+         * respect to each other, I constructed an algorithm that distributes
+         * stages into 'ranks' according to the dependencies specified via
+         * `createOrdering`.
+         *
+         * Example render graph:
+         *
+         *   | Rank 0  | Rank 1  | Rank 2  | Rank 3
+         *   |         |         |         |
+         *   |---------|---------|---------|-------
+         *   |         |      /--|----o    |
+         *   |    o----|-\   /   |         |
+         *   |         |  |-o----|----o----|---o
+         *   |    o----|-/   \   |         |
+         *   |         |      \--|----o    |
+         *   |         |         |   /     |
+         *   |    o----|---------|--/      |
+         *
+         * `orderedStages[0]` contains all nodes of rank 0, and so on.
+         */
+        std::vector<std::vector<RenderStage>> orderedStages;
+    };
+
+    class RenderGraphIterator
+    {
+    public:
+        using value_type = RenderStage;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
+
+        using iterator_category = std::forward_iterator_tag;
+
+        auto operator*() -> const_reference;
+        auto operator->() -> const_pointer;
+
+        auto operator++() -> RenderGraphIterator&;
+
+        bool operator==(const RenderGraphIterator& other) const;
+
+        static auto makeBegin(const RenderGraphLayout& graph) -> RenderGraphIterator;
+        static auto makeEnd(const RenderGraphLayout& graph) -> RenderGraphIterator;
+
+    private:
+        using OuterIter = decltype(RenderGraphLayout::orderedStages)::const_iterator;
+        using InnerIter = std::vector<RenderStage>::const_iterator;
+
+        RenderGraphIterator(const RenderGraphLayout& graph);
+
+        const RenderGraphLayout& graph;
+        OuterIter outer;
+        InnerIter inner;
     };
 } // namespace trc

@@ -1,17 +1,19 @@
 #pragma once
 
-#include <vector>
-#include <tuple>
+#include <cstddef>
 
-#include "trc/base/Device.h"
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include "trc/Types.h"
+#include "trc/base/Device.h"
 #include "trc/core/DescriptorRegistry.h"
 
 namespace trc
 {
-    class Instance;
     class DescriptorProviderInterface;
+    class ResourceStorage;
 
     /**
      * @brief A pipeline layout
@@ -68,7 +70,7 @@ namespace trc
          */
         void bindStaticDescriptorSets(vk::CommandBuffer cmdBuf,
                                       vk::PipelineBindPoint bindPoint,
-                                      const DescriptorRegistry& reg) const;
+                                      const ResourceStorage& descStorage) const;
 
         /**
          * @brief Supply default values to specified push constant ranges
@@ -83,7 +85,7 @@ namespace trc
          * is bound to a command buffer.
          */
         void addStaticDescriptorSet(ui32 descriptorIndex,
-                                    const DescriptorProviderInterface& provider) noexcept;
+                                    s_ptr<const DescriptorProviderInterface> provider) noexcept;
 
         /**
          * @brief Define a static descriptor for the pipeline layout
@@ -126,7 +128,7 @@ namespace trc
         using PushConstantValue = std::tuple<ui32, vk::ShaderStageFlags, std::vector<std::byte>>;
         std::vector<PushConstantValue> defaultPushConstants;
         std::vector<std::pair<ui32, DescriptorID>> dynamicDescriptorSets;
-        std::vector<std::pair<ui32, const DescriptorProviderInterface*>> staticDescriptorSets;
+        std::vector<std::pair<ui32, s_ptr<const DescriptorProviderInterface>>> staticDescriptorSets;
     };
 
     /**

@@ -33,7 +33,8 @@ namespace trc::rt
             const vk::DispatchLoaderDynamic& dl,
             vk::Pipeline pipeline,
             std::vector<ui32> entrySizes,
-            const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{}
+            const DeviceMemoryAllocator& alloc
+                = DefaultDeviceMemoryAllocator{ vk::MemoryAllocateFlagBits::eDeviceAddress}
         );
 
         /**

@@ -7,29 +7,34 @@ target_sources(
     PRIVATE
         AnimationEngine.cpp
         AssetDescriptor.cpp
+        AssetPlugin.cpp
         Camera.cpp
         DescriptorSetUtils.cpp
-        FinalLightingPass.cpp
+        FinalLighting.cpp
         Framebuffer.cpp
         GBuffer.cpp
         GBufferDepthReader.cpp
         GBufferPass.cpp
         Light.cpp
         LightRegistry.cpp
+        LightSceneModule.cpp
         Meshlet.cpp
         Node.cpp
         PipelineDefinitions.cpp
+        RasterPlugin.cpp
+        RasterSceneBase.cpp
+        RasterTasks.cpp
+        RaySceneModule.cpp
         RenderDataDescriptor.cpp
         RenderPassShadow.cpp
-        Scene.cpp
         SceneDescriptor.cpp
         ShaderLoader.cpp
         ShaderPath.cpp
         ShadowPool.cpp
-        TopLevelAccelerationStructureBuildPass.cpp
+        ShadowRegistry.cpp
+        SwapchainPlugin.cpp
+        TopLevelAccelerationStructureBuilder.cpp
         Torch.cpp
-        TorchImplementation.cpp
-        TorchRenderConfig.cpp
         Transformation.cpp
 )
 

@@ -5,7 +5,7 @@
 #include "trc/base/Buffer.h"
 
 #include "trc/Node.h"
-#include "trc/core/SceneBase.h"
+#include "trc/RasterSceneBase.h"
 #include "trc/text/Font.h"
 
 namespace trc
@@ -18,7 +18,7 @@ namespace trc
     public:
         Text(const Instance& instance, FontHandle font);
 
-        void attachToScene(SceneBase& scene);
+        void attachToScene(RasterSceneBase& scene);
         void removeFromScene();
 
         void print(const std::string& str);
@@ -31,7 +31,7 @@ namespace trc
         FontHandle font;
 
         DeviceLocalBuffer vertexBuffer;
-        SceneBase::UniqueRegistrationID drawRegistration;
+        RasterSceneBase::UniqueRegistrationID drawRegistration;
 
         struct LetterData
         {

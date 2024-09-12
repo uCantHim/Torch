@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "trc/core/ResourceConfig.h"
 #include "trc_util/TypeUtils.h"
 
 
@@ -28,11 +29,11 @@ InvalidPipelineType::InvalidPipelineType(
 PipelineStorage::PipelineStorage(
     typename PipelineRegistry::StorageAccessInterface interface,
     const Instance& instance,
-    RenderConfig& renderConfig)
+    ResourceConfig& resourceConfig)
     :
     registry(interface),
     instance(instance),
-    renderConfig(&renderConfig)
+    resourceConfig(&resourceConfig)
 {
 }
 
@@ -40,12 +41,12 @@ auto PipelineStorage::get(Pipeline::ID pipeline) -> Pipeline&
 {
     if (!pipelines.contains(pipeline))
     {
-        assert(renderConfig != nullptr);
+        assert(resourceConfig != nullptr);
 
         auto& layout = getLayout(registry.getPipelineLayout(pipeline));
         pipelines.try_emplace(
             pipeline,
-            registry.invokePipelineFactory(pipeline, instance, *renderConfig, layout)
+            registry.invokePipelineFactory(pipeline, instance, *resourceConfig, layout)
         );
     }
 
@@ -56,8 +57,8 @@ auto PipelineStorage::getLayout(PipelineLayout::ID id) -> PipelineLayout&
 {
     if (!layouts.contains(id))
     {
-        assert(renderConfig != nullptr);
-        layouts.try_emplace(id, registry.invokeLayoutFactory(id, instance, *renderConfig));
+        assert(resourceConfig != nullptr);
+        layouts.try_emplace(id, registry.invokeLayoutFactory(id, instance, *resourceConfig));
     }
 
     return layouts.at(id);
@@ -74,7 +75,7 @@ auto PipelineStorage::createPipeline(FactoryType& factory) -> u_ptr<Pipeline>
     PipelineLayout& layout = getLayout(factory.getLayout());
     assert(layout);
 
-    return std::make_unique<Pipeline>(factory.create(instance, *renderConfig, layout));
+    return std::make_unique<Pipeline>(factory.create(instance, *resourceConfig, layout));
 }
 
 
@@ -239,11 +240,11 @@ auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id)
     return std::nullopt;
 }
 
-auto PipelineRegistry::makeStorage(const Instance& instance, RenderConfig& renderConfig)
+auto PipelineRegistry::makeStorage(const Instance& instance, ResourceConfig& resourceConfig)
     -> std::unique_ptr<PipelineStorage>
 {
     return u_ptr<PipelineStorage>{
-        new PipelineStorage(StorageAccessInterface{}, instance, renderConfig)
+        new PipelineStorage(StorageAccessInterface{}, instance, resourceConfig)
     };
 }
 
@@ -286,26 +287,26 @@ auto trc::PipelineRegistry::StorageAccessInterface::getPipelineLayout(Pipeline::
 auto trc::PipelineRegistry::StorageAccessInterface::invokePipelineFactory(
     Pipeline::ID id,
     const Instance& instance,
-    RenderConfig& renderConfig,
+    ResourceConfig& resourceConfig,
     PipelineLayout& layout)
     -> Pipeline
 {
     std::scoped_lock lock(PipelineRegistry::factoryLock);
     assert(id < PipelineRegistry::factories.size());
 
-    return PipelineRegistry::factories.at(id).create(instance, renderConfig, layout);
+    return PipelineRegistry::factories.at(id).create(instance, resourceConfig, layout);
 }
 
 auto trc::PipelineRegistry::StorageAccessInterface::invokeLayoutFactory(
     PipelineLayout::ID id,
     const Instance& instance,
-    RenderConfig& renderConfig)
+    ResourceConfig& resourceConfig)
     -> PipelineLayout
 {
     std::scoped_lock lock(PipelineRegistry::layoutFactoryLock);
     assert(id < PipelineRegistry::layoutFactories.size());
 
-    return PipelineRegistry::layoutFactories.at(id).create(instance, renderConfig);
+    return PipelineRegistry::layoutFactories.at(id).create(instance, resourceConfig);
 }
 
 
@@ -366,7 +367,7 @@ auto trc::PipelineRegistry::PipelineFactory::getRenderPassCompatInfo() const
 
 auto PipelineRegistry::PipelineFactory::create(
     const Instance& instance,
-    RenderConfig& renderConfig,
+    ResourceConfig& resourceConfig,
     PipelineLayout& layout)
     -> Pipeline
 {
@@ -380,7 +381,7 @@ auto PipelineRegistry::PipelineFactory::create(
             const auto& rpCompat = std::visit(util::VariantVisitor{
                 [&](const RenderPassName& ref){
                     try {
-                        return renderConfig.getRenderPass(ref);
+                        return resourceConfig.getRenderPass(ref);
                     }
                     catch (const Exception&) {
                         throw std::runtime_error(
@@ -460,10 +461,10 @@ PipelineRegistry::LayoutFactory::LayoutFactory(PipelineLayoutTemplate t)
 
 auto PipelineRegistry::LayoutFactory::create(
     const Instance& instance,
-    RenderConfig& renderConfig)
+    ResourceConfig& resourceConfig)
     -> PipelineLayout
 {
-    return makePipelineLayout(instance.getDevice(), _template, renderConfig);
+    return makePipelineLayout(instance.getDevice(), _template, resourceConfig);
 }
 
 auto PipelineRegistry::LayoutFactory::clone() const -> PipelineLayoutTemplate

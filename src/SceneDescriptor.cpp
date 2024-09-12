@@ -1,26 +1,28 @@
 #include "trc/SceneDescriptor.h"
 
+#include <trc_util/Padding.h>
+
 #include "trc/DescriptorSetUtils.h"
-#include "trc/Scene.h"
-#include "trc/core/Window.h"
+#include "trc/LightSceneModule.h"
+#include "trc/RaySceneModule.h"
+#include "trc/core/SceneBase.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 
 
 
-trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
+trc::SceneDescriptor::SceneDescriptor(const Device& device)
     :
-    instance(instance),
-    device(instance.getDevice()),
+    device(device),
     lightBuffer(
-        instance.getDevice(),
-        util::sizeof_pad_16_v<LightData> * 128,
+        device,
+        util::sizeof_pad_16_v<LightDeviceData> * 128,
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible
     ),
     lightBufferMap(lightBuffer.map()),
     drawableDataBuf(
-        instance.getDevice(),
-        200 * sizeof(DrawableComponentScene::RayInstanceData),
+        device,
+        200 * sizeof(RaySceneModule::RayInstanceData),
         vk::BufferUsageFlagBits::eStorageBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
     ),
@@ -30,10 +32,18 @@ trc::SceneDescriptor::SceneDescriptor(const Instance& instance)
     writeDescriptors();
 }
 
-void trc::SceneDescriptor::update(const Scene& scene)
+void trc::SceneDescriptor::update(const SceneBase& scene)
 {
-    const auto& lights = scene.getLights();
+    if (auto mod = scene.tryGetModule<LightSceneModule>()) {
+        updateLightData(*mod);
+    }
+    if (auto mod = scene.tryGetModule<RaySceneModule>()) {
+        updateRayData(*mod);
+    }
+}
 
+void trc::SceneDescriptor::updateLightData(const LightSceneModule& lights)
+{
     // Resize light buffer if the current one is too small
     if (lights.getRequiredLightDataSize() > lightBuffer.size())
     {
@@ -58,14 +68,16 @@ void trc::SceneDescriptor::update(const Scene& scene)
 
     // Update light data
     lights.writeLightData(lightBufferMap);
+}
 
-    // Update ray scene data
-    const size_t dataSize = scene.getComponentInternals().getMaxRayDeviceDataSize();
+void trc::SceneDescriptor::updateRayData(const RaySceneModule& scene)
+{
+    const size_t dataSize = scene.getMaxRayDeviceDataSize();
     if (dataSize > drawableDataBuf.size())
     {
         drawableDataBuf.unmap();
         drawableDataBuf = Buffer(
-            instance.getDevice(),
+            device,
             glm::max(dataSize, drawableDataBuf.size() * 2),
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible
@@ -79,22 +91,35 @@ void trc::SceneDescriptor::update(const Scene& scene)
         device->updateDescriptorSets(writes, {});
     }
 
-    scene.getComponentInternals().writeRayDeviceData(drawableBufferMap, dataSize);
+    scene.writeRayDeviceData(drawableBufferMap, dataSize);
     drawableDataBuf.flush();
 }
 
-auto trc::SceneDescriptor::getProvider() const noexcept -> const DescriptorProviderInterface&
+auto trc::SceneDescriptor::getDescriptorSetLayout() const noexcept
+    -> vk::DescriptorSetLayout
 {
-    return provider;
+    return *descLayout;
+}
+
+void trc::SceneDescriptor::bindDescriptorSet(
+    vk::CommandBuffer cmdBuf,
+    vk::PipelineBindPoint bindPoint,
+    vk::PipelineLayout pipelineLayout,
+    ui32 setIndex) const
+{
+    cmdBuf.bindDescriptorSets(
+        bindPoint,
+        pipelineLayout,
+        setIndex, *descSet,
+        {}
+    );
 }
 
 void trc::SceneDescriptor::createDescriptors()
 {
     vk::ShaderStageFlags shaderStages = vk::ShaderStageFlagBits::eFragment
-                                        | vk::ShaderStageFlagBits::eCompute;
-    if (instance.hasRayTracing()) {
-        shaderStages |= rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
-    }
+                                        | vk::ShaderStageFlagBits::eCompute
+                                        | rt::ALL_RAY_PIPELINE_STAGE_FLAGS;
 
     // Layout
     descLayout = buildDescriptorSetLayout()
@@ -133,31 +158,4 @@ void trc::SceneDescriptor::writeDescriptors()
         { *descSet, 1, 0, 1, vk::DescriptorType::eStorageBuffer, {}, &drawableBufferInfo },
     };
     device->updateDescriptorSets(writes, {});
-}
-
-
-
-trc::SceneDescriptor::SceneDescriptorProvider::SceneDescriptorProvider(
-    const SceneDescriptor& descriptor)
-    : descriptor(descriptor)
-{}
-
-auto trc::SceneDescriptor::SceneDescriptorProvider::getDescriptorSetLayout() const noexcept
-    -> vk::DescriptorSetLayout
-{
-    return *descriptor.descLayout;
-}
-
-void trc::SceneDescriptor::SceneDescriptorProvider::bindDescriptorSet(
-    vk::CommandBuffer cmdBuf,
-    vk::PipelineBindPoint bindPoint,
-    vk::PipelineLayout pipelineLayout,
-    ui32 setIndex) const
-{
-    cmdBuf.bindDescriptorSets(
-        bindPoint,
-        pipelineLayout,
-        setIndex, *descriptor.descSet,
-        {}
-    );
 }

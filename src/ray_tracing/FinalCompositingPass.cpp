@@ -1,167 +1,108 @@
 #include "trc/ray_tracing/FinalCompositingPass.h"
 
-#include "trc/base/ShaderProgram.h"
-#include "trc/base/Barriers.h"
-
 #include "trc/DescriptorSetUtils.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/RayShaders.h"
-#include "trc/assets/AssetRegistry.h"
+#include "trc/TorchRenderStages.h"
+#include "trc/base/Barriers.h"
 #include "trc/core/ComputePipelineBuilder.h"
-#include "trc/core/RenderTarget.h"
-#include "trc/ray_tracing/RayPipelineBuilder.h"
+#include "trc/core/DeviceTask.h"
 #include "trc/util/GlmStructuredBindings.h"
 
 
 
-trc::rt::FinalCompositingPass::FinalCompositingPass(
-    const Instance& instance,
-    const RenderTarget& target,
-    const FrameSpecific<RayBuffer>& rayBuffer)
+namespace trc::rt
+{
+
+CompositingDescriptor::CompositingDescriptor(const Device& device, ui32 maxDescriptorSets)
+{
+    auto builder = buildDescriptorSetLayout()
+        .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute)
+        .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute);
+
+    pool = builder.buildPool(device, maxDescriptorSets,
+                             vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+    layout = builder.build(device);
+}
+
+auto CompositingDescriptor::makeDescriptorSet(
+    const Device& device,
+    const RayBuffer& rayBuffer,
+    vk::ImageView outputImage) -> vk::UniqueDescriptorSet
+{
+    auto set = std::move(device->allocateDescriptorSetsUnique({ *pool, *layout })[0]);
+
+    vk::DescriptorImageInfo dstImage({}, outputImage, vk::ImageLayout::eGeneral);
+    std::vector<vk::DescriptorImageInfo> rayImages{
+        { {}, rayBuffer.getImageView(RayBuffer::eReflections), vk::ImageLayout::eGeneral },
+    };
+
+    std::vector<vk::WriteDescriptorSet> writes{
+        { *set, 0, 0, vk::DescriptorType::eStorageImage, dstImage },
+        { *set, 1, 0, vk::DescriptorType::eStorageImage, rayImages },
+    };
+    device->updateDescriptorSets(writes, {});
+
+    return set;
+}
+
+auto CompositingDescriptor::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
+{
+    return *layout;
+}
+
+
+
+FinalCompositingDispatcher::FinalCompositingDispatcher(
+    const Device& device,
+    const RayBuffer& rayBuffer,
+    const Viewport& renderTarget,
+    CompositingDescriptor& descriptor)
     :
-    RenderPass({}, NUM_SUBPASSES),
-    device(instance.getDevice()),
-    renderTarget(&target),
+    device(device),
     computeGroupSize(uvec3(
-        glm::ceil(vec2(target.getSize()) / vec2(COMPUTE_LOCAL_SIZE)),
+        glm::ceil(vec2(renderTarget.area.size) / vec2(COMPUTE_LOCAL_SIZE)),
         1
     )),
-    pool([&] {
-        const ui32 frameCount{ target.getFrameClock().getFrameCount() };
-        std::vector<vk::DescriptorPoolSize> poolSizes{
-            // RayBuffer images
-            { vk::DescriptorType::eStorageImage, RayBuffer::NUM_IMAGES * frameCount },
-            // Swapchain output image
-            { vk::DescriptorType::eStorageImage, frameCount },
-        };
-        return instance.getDevice()->createDescriptorPoolUnique({
-            vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            // Two distinct sets: one for inputs, one for output
-            2 * frameCount,
-            poolSizes
-        });
-    }()),
-    // Layouts
-    inputLayout(buildDescriptorSetLayout()
-        // Ray-Buffer bindings
-        .addBinding(vk::DescriptorType::eStorageImage, 1,
-                    vk::ShaderStageFlagBits::eCompute | ALL_RAY_PIPELINE_STAGE_FLAGS)
-        .build(instance.getDevice())
-    ),
-    outputLayout(buildDescriptorSetLayout()
-        .addBinding(vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute)
-        .build(instance.getDevice())
-    ),
-
-    inputSets(target.getFrameClock()),
-    outputSets(target.getFrameClock()),
-    inputSetProvider({}, { target.getFrameClock() }),
-    outputSetProvider({}, { target.getFrameClock() }),
-
-    computePipelineLayout(
-        instance.getDevice(),
-        {
-            *inputLayout,
-            *outputLayout,
-        },
-        {}
-    ),
+    descSet(descriptor.makeDescriptorSet(device, rayBuffer, renderTarget.target.imageView)),
+    computePipelineLayout(device, descriptor.getDescriptorSetLayout(), {}),
     computePipeline(buildComputePipeline()
         .setProgram(internal::loadShader(rt::shaders::getFinalCompositing()))
-        .build(instance.getDevice(), computePipelineLayout)
-    )
+        .build(device, computePipelineLayout)
+    ),
+    descriptorProvider(std::make_shared<DescriptorProvider>(*descSet)),
+    targetImage(renderTarget.target.image)
 {
-    computePipelineLayout.addStaticDescriptorSet(0, inputSetProvider);
-    computePipelineLayout.addStaticDescriptorSet(1, outputSetProvider);
-
-    inputSets = {
-        target.getFrameClock(),
-        [&](ui32 i) -> vk::UniqueDescriptorSet {
-            auto set = std::move(
-                instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *inputLayout })[0]
-            );
-
-            auto& r = rayBuffer.getAt(i);
-            std::vector<vk::DescriptorImageInfo> rayImages{
-                { {}, r.getImageView(RayBuffer::eReflections), vk::ImageLayout::eGeneral },
-            };
-
-            std::vector<vk::WriteDescriptorSet> writes{
-                { *set, 0, 0, vk::DescriptorType::eStorageImage, rayImages },
-            };
-            instance.getDevice()->updateDescriptorSets(writes, {});
-
-            return set;
-        }
-    };
-    outputSets = {
-        target.getFrameClock(),
-        [&](ui32 i) -> vk::UniqueDescriptorSet {
-            auto set = std::move(
-                instance.getDevice()->allocateDescriptorSetsUnique({ *pool, *outputLayout })[0]
-            );
-
-            vk::DescriptorImageInfo imageInfo({}, target.getImageView(i), vk::ImageLayout::eGeneral);
-            vk::WriteDescriptorSet write(*set, 0, 0, vk::DescriptorType::eStorageImage, imageInfo);
-            instance.getDevice()->updateDescriptorSets(write, {});
-
-            return set;
-        }
-    };
-
-    inputSetProvider = { *inputLayout, inputSets };
-    outputSetProvider = { *outputLayout, outputSets };
+    computePipelineLayout.addStaticDescriptorSet(0, descriptorProvider);
 }
 
-void trc::rt::FinalCompositingPass::begin(
-    vk::CommandBuffer cmdBuf,
-    vk::SubpassContents,
-    FrameRenderState&)
+void FinalCompositingDispatcher::createTasks(ViewportDrawTaskQueue& taskQueue)
 {
-    // Swapchain image: ePresentSrcKHR -> eGeneral
-    imageMemoryBarrier(
-        cmdBuf,
-        renderTarget->getCurrentImage(),
-        vk::ImageLayout::ePresentSrcKHR,
-        vk::ImageLayout::eGeneral,
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::AccessFlagBits::eShaderWrite,
-        vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eShaderRead,
-        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-    );
+    taskQueue.spawnTask(
+        stages::rayCompositing,
+        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx)
+        {
+            ctx.deps().consume(ImageAccess{
+                targetImage,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead,
+                vk::ImageLayout::eGeneral,
+            });
 
-    computePipeline.bind(cmdBuf);
-    auto [x, y, z] = computeGroupSize;
-    cmdBuf.dispatch(x, y, z);
+            computePipeline.bind(cmdBuf);
+            auto [x, y, z] = computeGroupSize;
+            cmdBuf.dispatch(x, y, z);
 
-    // Swapchain image: eGeneral -> ePresentSrcKHR
-    imageMemoryBarrier(
-        cmdBuf,
-        renderTarget->getCurrentImage(),
-        vk::ImageLayout::eGeneral,
-        vk::ImageLayout::ePresentSrcKHR,
-        vk::PipelineStageFlagBits::eComputeShader,
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::AccessFlagBits::eShaderWrite,
-        vk::AccessFlagBits::eHostRead,
-        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+            ctx.deps().consume(ImageAccess{
+                targetImage,
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+                vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite,
+                vk::ImageLayout::eGeneral,
+            });
+        }
     );
 }
 
-void trc::rt::FinalCompositingPass::end(vk::CommandBuffer)
-{
-}
-
-void trc::rt::FinalCompositingPass::setRenderTarget(const RenderTarget& target)
-{
-    renderTarget = &target;
-    for (ui32 i = 0; i < outputSets.getFrameClock().getFrameCount(); ++i)
-    {
-        auto set = *outputSets.getAt(i);
-
-        vk::DescriptorImageInfo imageInfo({}, target.getImageView(i), vk::ImageLayout::eGeneral);
-        vk::WriteDescriptorSet write(set, 0, 0, vk::DescriptorType::eStorageImage, imageInfo);
-        device->updateDescriptorSets(write, {});
-    }
-}
+} // namespace trc::rt

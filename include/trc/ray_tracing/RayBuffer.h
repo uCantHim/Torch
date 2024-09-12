@@ -34,7 +34,7 @@ namespace trc::rt
         auto getImage(Image imageType) const -> const trc::Image&;
         auto getImageView(Image imageType) const -> vk::ImageView;
 
-        auto getImageDescriptor(Image imageType) const -> const DescriptorProvider&;
+        auto getImageDescriptor(Image imageType) const -> s_ptr<const DescriptorProvider>;
         auto getImageDescriptorSet(Image imageType) const -> vk::DescriptorSet;
         auto getImageDescriptorLayout() const -> vk::DescriptorSetLayout;
 
@@ -49,6 +49,6 @@ namespace trc::rt
         vk::UniqueDescriptorSetLayout layout;
         vk::UniqueDescriptorPool pool;
         std::vector<vk::UniqueDescriptorSet> sets;
-        std::vector<u_ptr<DescriptorProvider>> singleImageProviders;
+        std::vector<s_ptr<DescriptorProvider>> singleImageProviders;
     };
 } // namespace trc

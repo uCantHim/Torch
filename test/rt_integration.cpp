@@ -1,13 +1,14 @@
-#include <future>
 #include <iostream>
 
 #include <trc/DescriptorSetUtils.h>
 #include <trc/PipelineDefinitions.h>
-#include <trc/TopLevelAccelerationStructureBuildPass.h>
+#include <trc/TopLevelAccelerationStructureBuilder.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
 #include <trc/base/ImageUtils.h>
+#include <trc/base/event/Event.h>
+#include <trc/drawable/DrawableScene.h>
 #include <trc/ray_tracing/RaygenDescriptor.h>
 #include <trc_util/Timer.h>
 using namespace trc::basic_types;
@@ -21,13 +22,13 @@ void run()
     auto& window = torch->getWindow();
     auto& assets = torch->getAssetManager();
 
-    auto scene = std::make_unique<trc::Scene>();
+    auto scene = std::make_shared<trc::DrawableScene>();
 
     // Camera
-    trc::Camera camera;
-    camera.lookAt({ 0, 2, 4 }, { 0, 0, 0 }, { 0, 1, 0 });
+    auto camera = std::make_shared<trc::Camera>();
+    camera->lookAt({ 0, 2, 4 }, { 0, 0, 0 }, { 0, 1, 0 });
     auto size = window.getImageExtent();
-    camera.makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
+    camera->makePerspective(float(size.width) / float(size.height), 45.0f, 0.1f, 100.0f);
 
 
     // --- Create a scene --- //
@@ -76,13 +77,10 @@ void run()
         true, true
     });
 
-    auto sun = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
-    auto& shadow = scene->enableShadow(
-        sun,
-        { .shadowMapResolution=uvec2(2048, 2048) },
-        torch->getShadowPool()
-    );
-    shadow.setProjectionMatrix(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f));
+    auto& lights = scene->getModule<trc::LightSceneModule>();
+    auto sun = lights.makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.5f);
+    auto shadow = lights.enableShadow(sun, uvec2(2048, 2048));
+    shadow->getCamera().makeOrthogonal(-10.0f, 10.0f, -10.0f, 10.0f, -20.0f, 10.0f);
 
 
     // --- Set some keybindings --- //
@@ -107,6 +105,7 @@ void run()
     trc::Timer timer;
     trc::Timer frameTimer;
     int frames{ 0 };
+    auto vp = torch->makeFullscreenViewport(camera, scene);
     while (window.isOpen())
     {
         trc::pollEvents();
@@ -115,7 +114,7 @@ void run()
         sphereNode.rotateY(time / 1000.0f * 0.5f);
         scene->update(time);
 
-        torch->drawFrame(camera, *scene);
+        torch->drawFrame(vp);
 
         frames++;
         if (frameTimer.duration() >= 1000.0f)
@@ -126,7 +125,7 @@ void run()
         }
     }
 
-    window.getRenderer().waitForAllFrames();
+    torch->waitForAllFrames();
 }
 
 int main()

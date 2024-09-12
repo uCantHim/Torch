@@ -82,8 +82,12 @@ trc::PhysicalDevice::PhysicalDevice(vk::Instance instance, vk::SurfaceKHR surfac
 {
 }
 
-trc::PhysicalDevice::PhysicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface)
+trc::PhysicalDevice::PhysicalDevice(
+    vk::Instance instance,
+    vk::PhysicalDevice device,
+    vk::SurfaceKHR surface)
     :
+    instance(instance),
     physicalDevice(device),
     queueFamilies(getQueueFamilies(device, surface)),
     queueFamilyCapabilities(sortByCapabilities(queueFamilies)),
@@ -276,7 +280,7 @@ auto trc::findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
     // Create all available physical devices
     std::vector<PhysicalDevice> detectedDevices;
     for (const auto& device : availableDevices) {
-        detectedDevices.emplace_back(PhysicalDevice(device, surface));
+        detectedDevices.emplace_back(PhysicalDevice(instance, device, surface));
     }
 
     return detectedDevices;

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "trc/base/FrameSpecificObject.h"
-
-#include "trc/core/RenderPass.h"
 #include "trc/Framebuffer.h"
 #include "trc/GBuffer.h"
+#include "trc/core/RenderPass.h"
 
 namespace trc
 {
@@ -29,8 +27,7 @@ namespace trc
             static constexpr SubPass::ID transparency{ 1 };
         };
 
-        GBufferPass(const Device& device,
-                    FrameSpecific<GBuffer>& gBuffer);
+        GBufferPass(const Device& device, GBuffer& gBuffer);
 
         void begin(vk::CommandBuffer cmdBuf,
                    vk::SubpassContents subpassContents,
@@ -52,9 +49,9 @@ namespace trc
         static auto makeVkRenderPass(const Device& device) -> vk::UniqueRenderPass;
 
     private:
-        FrameSpecific<GBuffer>& gBuffer;
+        GBuffer& gBuffer;
         uvec2 framebufferSize;
-        FrameSpecific<Framebuffer> framebuffers;
+        Framebuffer framebuffer;
 
         std::array<vk::ClearValue, 4> clearValues;
     };

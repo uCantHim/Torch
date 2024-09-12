@@ -2,13 +2,69 @@
 
 
 
+auto trc::buildSharedDescriptorSet() -> SharedDescriptorSetBuilder
+{
+    return SharedDescriptorSetBuilder{};
+}
+
+
+
+/////////////////////////////
+//  DescriptorSet Builder  //
+/////////////////////////////
+
+trc::SharedDescriptorSetBuilder::SharedDescriptorSetBuilder()
+    :
+    set(new SharedDescriptorSet{})
+{
+}
+
+void trc::SharedDescriptorSetBuilder::addLayoutFlag(vk::DescriptorSetLayoutCreateFlags flags)
+{
+    layoutFlags |= flags;
+}
+
+void trc::SharedDescriptorSetBuilder::addPoolFlag(vk::DescriptorPoolCreateFlags flags)
+{
+    poolFlags |= flags;
+}
+
+auto trc::SharedDescriptorSetBuilder::addBinding(
+    vk::DescriptorType type,
+    ui32 count,
+    vk::ShaderStageFlags stages,
+    vk::DescriptorBindingFlags flags) -> SharedDescriptorSet::Binding
+{
+    const ui32 index = static_cast<ui32>(bindings.size());
+    bindings.emplace_back(index, type, count, stages);
+    bindingFlags.emplace_back(flags);
+
+    return { set, index };
+}
+
+auto trc::SharedDescriptorSetBuilder::build(const Device& device)
+    -> s_ptr<SharedDescriptorSet>
+{
+    if (set == nullptr)
+    {
+        throw std::runtime_error(
+            "[In Builder::build]: `build` was called multiple times."
+            " The `build` method may only be called once on any builder object!");
+    }
+
+    set->build(device, *this);
+    return std::move(set);
+}
+
+
+
 /////////////////////////////
 //  DescriptorSet Binding  //
 /////////////////////////////
 
-trc::SharedDescriptorSet::Binding::Binding(s_ptr<SharedDescriptorSet> set, ui32 bindingIndex)
+trc::SharedDescriptorSet::Binding::Binding(s_ptr<SharedDescriptorSet> _set, ui32 bindingIndex)
     :
-    set(set),
+    set(std::move(_set)),
     bindingIndex(bindingIndex)
 {
     assert(set != nullptr);
@@ -63,61 +119,11 @@ void trc::SharedDescriptorSet::Binding::update(
 
 
 
-/////////////////////////////
-//  DescriptorSet Builder  //
-/////////////////////////////
-
-
-trc::SharedDescriptorSet::Builder::Builder()
-    :
-    set(new SharedDescriptorSet)
-{
-}
-
-void trc::SharedDescriptorSet::Builder::addLayoutFlag(vk::DescriptorSetLayoutCreateFlags flags)
-{
-    layoutFlags |= flags;
-}
-
-void trc::SharedDescriptorSet::Builder::addPoolFlag(vk::DescriptorPoolCreateFlags flags)
-{
-    poolFlags |= flags;
-}
-
-auto trc::SharedDescriptorSet::Builder::addBinding(
-    vk::DescriptorType type,
-    ui32 count,
-    vk::ShaderStageFlags stages,
-    vk::DescriptorBindingFlags flags) -> Binding
-{
-    const ui32 index = static_cast<ui32>(bindings.size());
-    bindings.emplace_back(index, type, count, stages);
-    bindingFlags.emplace_back(flags);
-
-    return Binding(set, index);
-}
-
-auto trc::SharedDescriptorSet::Builder::build(const Device& device)
-    -> s_ptr<SharedDescriptorSet>
-{
-    if (set == nullptr)
-    {
-        throw std::runtime_error(
-            "[In SharedDescriptorSet::Builder::build]: `build` was called multiple times."
-            " The `build` method may only be called once on any builder object!");
-    }
-
-    set->build(device, *this);
-    return std::move(set);
-}
-
-
-
 /////////////////////
 //  DescriptorSet  //
 /////////////////////
 
-void trc::SharedDescriptorSet::build(const Device& device, const Builder& builder)
+void trc::SharedDescriptorSet::build(const Device& device, const SharedDescriptorSetBuilder& builder)
 {
     const ui32 numSets = 1;
     bindings = builder.bindings;
@@ -148,7 +154,6 @@ void trc::SharedDescriptorSet::build(const Device& device, const Builder& builde
     set = std::move(sets.at(0));
 
     provider->setDescriptorSet(*set);
-    provider->setDescriptorSetLayout(*layout);
 
     // Update descriptor sets
     // It is possible to specify descriptor updates during building.
@@ -159,15 +164,15 @@ void trc::SharedDescriptorSet::build(const Device& device, const Builder& builde
     update(device);
 }
 
-auto trc::SharedDescriptorSet::build() -> Builder
+auto trc::SharedDescriptorSet::getDescriptorSetLayout() const -> vk::DescriptorSetLayout
 {
-    return Builder{};
+    return *layout;
 }
 
-auto trc::SharedDescriptorSet::getProvider() const -> const DescriptorProviderInterface&
+auto trc::SharedDescriptorSet::getProvider() const -> s_ptr<const DescriptorProviderInterface>
 {
     assert(provider != nullptr);
-    return *provider;
+    return provider;
 }
 
 void trc::SharedDescriptorSet::update(const Device& device)

@@ -1,20 +1,22 @@
 #include <iostream>
 
-#include <trc/Torch.h>
 #include <trc/ImguiIntegration.h>
+#include <trc/Torch.h>
 
 namespace ig = ImGui;
 
 int main()
 {
     {
-        auto torch = trc::initFull();
-        trc::Scene scene;
-        trc::Camera camera;
+        auto torch = trc::initFull({
+            .plugins{
+                trc::imgui::buildImguiRenderPlugin,
+            }
+        });
 
-        auto& renderGraph = torch->getRenderConfig().getRenderGraph();
-        renderGraph.after(trc::postProcessingRenderStage, trc::imgui::imguiRenderStage);
-        auto imgui = trc::imgui::initImgui(torch->getWindow(), renderGraph);
+        auto scene = std::make_shared<trc::Scene>();
+        auto camera = std::make_shared<trc::Camera>();
+        auto vp = torch->makeFullscreenViewport(camera, scene);
 
         while (torch->getWindow().isOpen())
         {
@@ -25,8 +27,10 @@ int main()
             ig::Text("Hello World!");
             ig::End();
 
-            torch->drawFrame(camera, scene);
+            torch->drawFrame(vp);
         }
+
+        torch->waitForAllFrames();
     }
 
     trc::terminate();

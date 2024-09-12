@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cassert>
+
 #include <concepts>
-#include <functional>
 #include <mutex>
+#include <stdexcept>
 
 #include <componentlib/Table.h>
 #include <trc_util/data/TypeMap.h>
@@ -14,14 +16,6 @@ namespace trc
 {
     /**
      * @brief Stores asset registry modules
-     *
-     * Hides implementations behind the virtual `AssetRegistryModuleInterface<>`
-     * interface, which ensures correct typing but still allows handling
-     * incomplete types. This is necessary to allow modules to be defined after
-     * asset storage, -registry, and -manager.
-     *
-     * Also, the virtualness effectively enforces a common interface for asset
-     * registry modules.
      */
     class AssetRegistryModuleStorage
     {
@@ -51,7 +45,7 @@ namespace trc
          * @throw std::out_of_range if no module for T has been registered.
          */
         template<AssetBaseType T>
-        auto get() -> AssetRegistryModuleInterface<T>&;
+        auto getModule() -> AssetRegistryModule<T>&;
 
         /**
          * @brief Update all registered modules.
@@ -93,7 +87,7 @@ namespace trc
     }
 
     template<AssetBaseType T>
-    auto AssetRegistryModuleStorage::get() -> AssetRegistryModuleInterface<T>&
+    auto AssetRegistryModuleStorage::getModule() -> AssetRegistryModule<T>&
     {
         std::scoped_lock lock(entriesLock);
         if (!hasModule<T>())
@@ -105,6 +99,8 @@ namespace trc
             );
         }
 
-        return dynamic_cast<AssetRegistryModuleInterface<T>&>(*entries.get(TypeIndex::get<T>()));
+        auto mod = entries.get(TypeIndex::get<T>()).get();
+        assert(dynamic_cast<AssetRegistryModule<T>*>(mod) != nullptr);
+        return dynamic_cast<AssetRegistryModule<T>&>(*mod);
     }
 } // namespace trc

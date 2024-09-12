@@ -1,31 +1,25 @@
 #include "trc/GBufferPass.h"
 
-#include <glm/detail/type_half.hpp>
-
-#include "trc/base/Barriers.h"
-
 
 
 trc::GBufferPass::GBufferPass(
     const Device& device,
-    FrameSpecific<GBuffer>& _gBuffer)
+    GBuffer& _gBuffer)
     :
     RenderPass(makeVkRenderPass(device), NUM_SUBPASSES),
     gBuffer(_gBuffer),
-    framebufferSize(gBuffer->getSize()),
-    framebuffers(gBuffer.getFrameClock(), [&](ui32 frameIndex)
-    {
-        const GBuffer& g = gBuffer.getAt(frameIndex);
-
-        std::vector<vk::ImageView> views{
-            g.getImageView(GBuffer::eNormals),
-            g.getImageView(GBuffer::eAlbedo),
-            g.getImageView(GBuffer::eMaterials),
-            g.getImageView(GBuffer::eDepth),
-        };
-
-        return Framebuffer(device, *renderPass, g.getSize(), {}, std::move(views));
-    }),
+    framebufferSize(gBuffer.getSize()),
+    framebuffer(
+        device,
+        *renderPass,
+        gBuffer.getSize(),
+        {
+            gBuffer.getImageView(GBuffer::eNormals),
+            gBuffer.getImageView(GBuffer::eAlbedo),
+            gBuffer.getImageView(GBuffer::eMaterials),
+            gBuffer.getImageView(GBuffer::eDepth),
+        }
+    ),
     clearValues({
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
         vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 0.0f }),
@@ -33,6 +27,7 @@ trc::GBufferPass::GBufferPass(
         vk::ClearDepthStencilValue(1.0f, 0.0f),
     })
 {
+    setClearColor({ 0.2f, 0.5f, 1.0f, 1.0f });
 }
 
 void trc::GBufferPass::begin(
@@ -40,28 +35,12 @@ void trc::GBufferPass::begin(
     vk::SubpassContents subpassContents,
     FrameRenderState&)
 {
-    gBuffer->initFrame(cmdBuf);
-
-    // Bring depth image into depthStencil layout
-    barrier(cmdBuf, vk::ImageMemoryBarrier2{
-        // 1st scope
-        vk::PipelineStageFlagBits2::eBottomOfPipe,
-        vk::AccessFlagBits2::eNone,
-        // 2nd scope
-        vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
-        vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-        // Layout transition
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-        *gBuffer->getImage(GBuffer::eDepth),
-        { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
-    });
+    gBuffer.initFrame(cmdBuf);
 
     cmdBuf.beginRenderPass(
         vk::RenderPassBeginInfo(
             *renderPass,
-            **framebuffers,
+            *framebuffer,
             vk::Rect2D({ 0, 0 }, { framebufferSize.x, framebufferSize.y }),
             clearValues
         ),
@@ -131,8 +110,8 @@ auto trc::GBufferPass::makeVkRenderPass(const Device& device)
             vk::Format::eD24UnormS8Uint,
             vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, // load/store ops
-            vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eDontCare, // stencil ops
-            vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal
+            vk::AttachmentLoadOp::eDontCare, vk::AttachmentStoreOp::eDontCare, // stencil ops
+            vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal
         ),
     };
 

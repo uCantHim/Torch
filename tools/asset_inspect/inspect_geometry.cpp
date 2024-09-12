@@ -2,6 +2,7 @@
 
 #include <argparse/argparse.hpp>
 #include <trc/Torch.h>
+#include <trc/base/event/Event.h>
 
 #include "display_utils.h"
 #include "load_utils.h"

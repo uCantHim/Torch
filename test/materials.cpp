@@ -8,10 +8,12 @@
 #include <trc/Torch.h>
 #include <trc/assets/SimpleMaterial.h>
 #include <trc/assets/import/AssetImport.h>
+#include <trc/drawable/DrawableScene.h>
 #include <trc/material/CommonShaderFunctions.h>
 #include <trc/material/FragmentShader.h>
 #include <trc/material/ShaderModuleCompiler.h>
 #include <trc/material/TorchMaterialSettings.h>
+#include <trc_util/Timer.h>
 
 using namespace trc;
 
@@ -89,17 +91,17 @@ int main()
 {
     // Initialize Torch
     auto torch = initFull(
-        TorchStackCreateInfo{ .projectRootDir=TRC_TEST_ASSET_DIR"/.." },
+        TorchStackCreateInfo{ .assetStorageDir=TRC_TEST_ASSET_DIR },
         InstanceCreateInfo{ .enableRayTracing=false }
     );
     auto& assetManager = torch->getAssetManager();
 
-    Camera camera;
-    camera.makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.01f, 100.0f);
-    camera.lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
+    auto camera = std::make_shared<Camera>();
+    camera->makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.01f, 100.0f);
+    camera->lookAt(vec3(0, 1, 4), vec3(0.0f), vec3(0, 1, 0));
 
-    Scene scene;
-    scene.getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
+    auto scene = std::make_shared<DrawableScene>();
+    auto light = scene->getLights().makeSunLight(vec3(1.0f), vec3(1, -1, -1), 0.6f);
 
     // Create a fancy material
     auto materialData = createMaterial(assetManager);
@@ -122,19 +124,20 @@ int main()
     auto triMat = assetManager.create(makeMaterial(SimpleMaterialData{ .color=vec3(0, 1, 0.3f) }));
 
     // Create drawable
-    auto cube = scene.makeDrawable({ cubeGeo, cubeMat });
-    auto triangle = scene.makeDrawable({ triGeo, triMat });
+    auto cube = scene->makeDrawable({ cubeGeo, cubeMat });
+    auto triangle = scene->makeDrawable({ triGeo, triMat });
     triangle->translate(-1.4f, 0.75f, -0.3f)
             .rotateY(0.2f * glm::pi<float>())
             .setScaleX(3.0f);
 
     Timer timer;
+    auto vp = torch->makeFullscreenViewport(camera, scene);
     while (torch->getWindow().isOpen())
     {
         pollEvents();
         cube->setRotation(glm::half_pi<float>() * timer.duration() * 0.001f, vec3(0, 1, 0));
 
-        torch->drawFrame(camera, scene);
+        torch->drawFrame(vp);
     }
 
     terminate();

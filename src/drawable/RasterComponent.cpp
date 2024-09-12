@@ -24,7 +24,7 @@ trc::RasterComponent::RasterComponent(const RasterComponentCreateInfo& createInf
 }
 
 void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
-    trc::DrawableComponentScene& storage,
+    trc::DrawableScene& storage,
     trc::DrawableID /*drawable*/,
     trc::RasterComponent& comp)
 {
@@ -37,13 +37,13 @@ void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
         .animated=comp.drawInfo->geo.hasRig(),
         .transparent=comp.drawInfo->mat.isTransparent(),
     };
-    SceneBase& base = storage.getSceneBase();
+    RasterSceneBase& base = storage.getRasterModule();
 
     // Create a storage for the draw functions with automatic lifetime
     using SubPasses = GBufferPass::SubPasses;
     comp.drawFuncs.emplace_back(
         base.registerDrawFunction(
-            gBufferRenderStage,
+            stages::gBuffer,
             pipelineInfo.transparent ? SubPasses::transparency : SubPasses::gBuffer,
             comp.drawInfo->matRuntime.getPipeline(),
             makeGBufferDrawFunction(comp.drawInfo)
@@ -51,7 +51,7 @@ void componentlib::ComponentTraits<trc::RasterComponent>::onCreate(
     );
     comp.drawFuncs.emplace_back(
         base.registerDrawFunction(
-            shadowRenderStage,
+            stages::shadow,
             SubPass::ID(0),
             pipelineInfo.determineShadowPipeline(),
             makeShadowDrawFunction(comp.drawInfo)

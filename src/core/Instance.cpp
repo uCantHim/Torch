@@ -57,9 +57,14 @@ trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
     dynamicLoader = { instance, vkGetInstanceProcAddr, **device, vkGetDeviceProcAddr };
 }
 
-trc::Instance::~Instance()
+trc::Instance::~Instance() noexcept
 {
-    getDevice()->waitIdle();
+    try {
+        getDevice()->waitIdle();
+    }
+    catch (const std::runtime_error& err) {
+        log::warn << log::here() << ": " << err.what();
+    }
 }
 
 auto trc::Instance::getVulkanInstance() const -> vk::Instance

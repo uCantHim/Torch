@@ -3,26 +3,42 @@
 #include <unordered_map>
 
 #include "trc/Types.h"
-#include "trc/assets/AssetBase.h"
 #include "trc/assets/SharedDescriptorSet.h"
 #include "trc/base/Device.h"
 #include "trc/core/DescriptorProvider.h"
 
 namespace trc
 {
+    class AssetDescriptor;
+    class AssetRegistry;
+    class Instance;
+
     struct AssetDescriptorCreateInfo
     {
         // Ray-tracing specific. The maximum number of geometries for which the
         // descriptor can hold vertex and index data.
-        ui32 maxGeometries;
+        ui32 maxGeometries{ 10000 };
 
         // The maximum number of texture samplers that may exist in the
         // descriptor.
-        ui32 maxTextures;
+        ui32 maxTextures{ 5000 };
 
         // The maximum number of glyph maps that may exist in the descriptor.
-        ui32 maxFonts;
+        ui32 maxFonts{ 100 };
     };
+
+    /**
+     * Register all of Torch's assets at an AssetRegistry and create the
+     * corresponding asset descriptor set. This may only be done once for an
+     * `AssetRegistry` object.
+     *
+     * @throw std::invalid_argument if `makeDefaultAssetModules` has already
+     *                              been called on `registry`.
+     */
+    auto makeAssetDescriptor(const Instance& instance,
+                             AssetRegistry& registry,
+                             const AssetDescriptorCreateInfo& descriptorCreateInfo)
+        -> s_ptr<AssetDescriptor>;
 
     enum class AssetDescriptorBinding
     {
@@ -73,6 +89,12 @@ namespace trc
 
         AssetDescriptor(const Device& device, const AssetDescriptorCreateInfo& info);
 
+        /**
+         * @brief Apply queued changes to bindings in the descriptor
+         *
+         * For example: Add newly created textures to a binding, remove freed
+         * resources, etc.
+         */
         void update(const Device& device);
 
         /**
@@ -92,7 +114,7 @@ namespace trc
             return static_cast<ui32>(binding);
         }
 
-        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
         void bindDescriptorSet(
             vk::CommandBuffer cmdBuf,
             vk::PipelineBindPoint bindPoint,

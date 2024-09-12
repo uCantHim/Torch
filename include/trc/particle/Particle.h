@@ -8,7 +8,7 @@
 #include "trc/base/MemoryPool.h"
 
 #include "trc/Types.h"
-#include "trc/core/SceneBase.h"
+#include "trc/RasterSceneBase.h"
 #include "trc/core/PipelineTemplate.h"
 #include "trc_util/Timer.h"
 #include "trc_util/Util.h"
@@ -66,7 +66,7 @@ namespace trc
     public:
         ParticleCollection(Instance& instance, ui32 maxParticles);
 
-        void attachToScene(SceneBase& scene);
+        void attachToScene(RasterSceneBase& scene);
         void removeFromScene();
 
         void addParticle(const Particle& particle);
@@ -130,8 +130,8 @@ namespace trc
         vk::UniqueCommandBuffer transferCmdBuf;
 
         // Drawable registrations
-        PerBlendType<SceneBase::UniqueRegistrationID> drawRegistrations;
-        SceneBase::UniqueRegistrationID shadowRegistration;
+        PerBlendType<RasterSceneBase::UniqueRegistrationID> drawRegistrations;
+        RasterSceneBase::UniqueRegistrationID shadowRegistration;
     };
 
     /**

@@ -1,57 +1,47 @@
 #pragma once
 
-#include "trc/base/Buffer.h"
+#include <cstddef>
 
 #include "trc/Types.h"
+#include "trc/base/Buffer.h"
 #include "trc/core/DescriptorProvider.h"
-#include "trc/drawable/DrawableComponentScene.h"
 
 namespace trc
 {
-    class Instance;
-    class Scene;
+    class LightSceneModule;
+    class RaySceneModule;
+    class SceneBase;
 
     /**
      * binding 0: Lights (uniform buffer)
      * binding 1: Ray drawable data (storage buffer)
      */
-    class SceneDescriptor
+    class SceneDescriptor : public DescriptorProviderInterface
     {
     public:
-        explicit SceneDescriptor(const Instance& instance);
+        explicit SceneDescriptor(const Device& device);
 
-        void update(const Scene& scene);
+        void update(const SceneBase& scene);
 
-        auto getProvider() const noexcept -> const DescriptorProviderInterface&;
+        auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
+        void bindDescriptorSet(vk::CommandBuffer cmdBuf,
+                               vk::PipelineBindPoint bindPoint,
+                               vk::PipelineLayout pipelineLayout,
+                               ui32 setIndex
+                               ) const override;
 
     private:
-        class SceneDescriptorProvider : public DescriptorProviderInterface
-        {
-        public:
-            explicit SceneDescriptorProvider(const SceneDescriptor& descriptor);
-
-            auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
-            void bindDescriptorSet(
-                vk::CommandBuffer cmdBuf,
-                vk::PipelineBindPoint bindPoint,
-                vk::PipelineLayout pipelineLayout,
-                ui32 setIndex
-            ) const override;
-
-        private:
-            const SceneDescriptor& descriptor;
-        };
-
         void createDescriptors();
         void writeDescriptors();
 
-        const Instance& instance;
+        void updateLightData(const LightSceneModule& scene);
+        void updateRayData(const RaySceneModule& scene);
+
         const Device& device;
 
         vk::UniqueDescriptorSetLayout descLayout;
         vk::UniqueDescriptorPool descPool;
         vk::UniqueDescriptorSet descSet;
-        SceneDescriptorProvider provider{ *this };
 
         Buffer lightBuffer;
         ui8* lightBufferMap;  // Persistent mapping

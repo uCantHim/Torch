@@ -4,7 +4,7 @@
 #include <trc_util/algorithm/VectorTransform.h>
 #include "trc/base/Barriers.h"
 
-#include "trc/core/FrameRenderState.h"
+#include "trc/core/Frame.h"
 #include "trc/core/Instance.h"
 
 

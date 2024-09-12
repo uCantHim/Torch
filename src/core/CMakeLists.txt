@@ -3,11 +3,11 @@ target_sources(
     PRIVATE
         CommandRecorder.cpp
         ComputePipelineBuilder.cpp
+        DataFlow.cpp
         DescriptorProvider.cpp
-        DescriptorProviderWrapper.cpp
         DescriptorRegistry.cpp
-        DynamicRenderPassContainer.cpp
-        FrameRenderState.cpp
+        DeviceTask.cpp
+        Frame.cpp
         Instance.cpp
         Pipeline.cpp
         PipelineBuilder.cpp
@@ -16,12 +16,15 @@ target_sources(
         PipelineLayoutTemplate.cpp
         PipelineRegistry.cpp
         PipelineTemplate.cpp
-        Renderer.cpp
-        RenderConfiguration.cpp
-        RenderConfigImplHelper.cpp
         RenderGraph.cpp
         RenderPass.cpp
+        RenderPassRegistry.cpp
+        RenderPipeline.cpp
+        RenderPlugin.cpp
+        RenderPluginContext.cpp
         RenderTarget.cpp
+        Renderer.cpp
+        ResourceConfig.cpp
         SceneBase.cpp
         TypeErasedStructureChain.cpp
         Window.cpp

@@ -6,6 +6,7 @@ trc::RayComponent::RayComponent(const RayComponentCreateInfo& info)
     :
     modelMatrix(info.transformation),
     geo(info.geo.getDeviceDataHandle()),
+    mat(info.mat.getDeviceDataHandle()),
     materialIndex(0),
     instanceDataIndex(0) // Set by ComponentTraits::onCreate
 {
@@ -22,8 +23,8 @@ trc::RayComponent::RayComponent(const RayComponentCreateInfo& info)
 }
 
 void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
-    trc::DrawableComponentScene& storage,
-    trc::DrawableID drawable,
+    trc::DrawableScene& storage,
+    trc::DrawableID /*drawable*/,
     trc::RayComponent& ray)
 {
     // Allocate a user data structure
@@ -31,32 +32,22 @@ void componentlib::ComponentTraits<trc::RayComponent>::onCreate(
     // This data is referenced by geometry instances via the instanceCustomIndex
     // property and defines auxiliary information that Torch needs to draw
     // ray traced objects.
-    ray.instanceDataIndex = storage.allocateRayInstance(
-        trc::DrawableComponentScene::RayInstanceData{
+    ray.instanceDataIndex = storage.getRayModule().allocateRayInstance(
+        trc::RaySceneModule::RayInstanceData{
             .geometryIndex=ray.geo.getDeviceIndex(),
             .materialIndex=ray.materialIndex,
-        }
-    );
-
-    // Allocate a geometry instance
-    //
-    // This data communicates definitions of ray traced object to Vulkan.
-    storage.add<trc::rt::GeometryInstance>(drawable,
-        trc::rt::GeometryInstance(
-            trc::mat4{ 1.0f },
-            ray.instanceDataIndex,
-            0xff, 0,
-            vk::GeometryInstanceFlagBitsKHR::eForceOpaque
-            | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
-            ray.geo.getAccelerationStructure()
-        )
+        },
+        0xff, 0,
+        vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+        | vk::GeometryInstanceFlagBitsKHR::eTriangleFacingCullDisable,
+        ray.geo.getAccelerationStructure()
     );
 }
 
 void componentlib::ComponentTraits<trc::RayComponent>::onDelete(
-    trc::DrawableComponentScene& storage,
+    trc::DrawableScene& storage,
     trc::DrawableID /*id*/,
     trc::RayComponent ray)
 {
-    storage.freeRayInstance(ray.instanceDataIndex);
+    storage.getRayModule().freeRayInstance(ray.instanceDataIndex);
 }

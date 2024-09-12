@@ -1,6 +1,9 @@
 #include "trc/core/PipelineLayout.h"
 
+#include <cassert>
+
 #include "trc/core/DescriptorProvider.h"
+#include "trc/core/ResourceConfig.h"
 
 
 
@@ -37,7 +40,7 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
 void trc::PipelineLayout::bindStaticDescriptorSets(
     vk::CommandBuffer cmdBuf,
     vk::PipelineBindPoint bindPoint,
-    const DescriptorRegistry& registry) const
+    const ResourceStorage& descStorage) const
 {
     /**
      * I don't know if I have to bind the descriptors in their order of
@@ -54,7 +57,9 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
     }
     for (const auto& [index, id] : dynamicDescriptorSets)
     {
-        registry.getDescriptor(id).bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
+        auto provider = descStorage.getDescriptor(id);
+        assert(provider != nullptr);
+        provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }
 }
 
@@ -68,9 +73,9 @@ void trc::PipelineLayout::bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf
 
 void trc::PipelineLayout::addStaticDescriptorSet(
     ui32 descriptorIndex,
-    const DescriptorProviderInterface& provider) noexcept
+    s_ptr<const DescriptorProviderInterface> provider) noexcept
 {
-    staticDescriptorSets.emplace_back(descriptorIndex, &provider);
+    staticDescriptorSets.emplace_back(descriptorIndex, provider);
 }
 
 void trc::PipelineLayout::addStaticDescriptorSet(ui32 descriptorIndex, DescriptorID id) noexcept

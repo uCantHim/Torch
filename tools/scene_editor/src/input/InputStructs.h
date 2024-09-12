@@ -4,6 +4,7 @@
 
 #include <trc/base/event/Keys.h>
 #include <trc/Types.h>
+#include <trc_util/Exception.h>
 using namespace trc::basic_types;
 
 struct KeyInput
@@ -105,7 +106,7 @@ struct std::hash<MouseInput>
 template<>
 struct std::hash<UserInput>
 {
-    inline auto operator()(const UserInput& val) const noexcept
+    inline auto operator()(const UserInput& val) const
     {
         return std::visit(
             [](auto&& val) { return std::hash<std::decay_t<decltype(val)>>{}(val); },

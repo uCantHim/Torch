@@ -1,9 +1,38 @@
 #pragma once
 
+#include <algorithm>
 #include <vector>
+
+#include "trc_util/Assert.h"
 
 namespace trc::util
 {
+    /**
+     * @brief Cheaply erase an element from a vector
+     *
+     * Erase an element from a vector by moving the last element of the vector
+     * into its place, then popping the last element from the vector.
+     *
+     * No expensive memory copying, at the expense of not preserving the order
+     * of elements in the vector.
+     *
+     * No iterators are invalidated except for `vec.end() - 1`.
+     *
+     * @throw std::invalid_argument if `index` is not contained in the vector.
+     */
+    template<typename T>
+        requires std::is_move_assignable_v<T> && std::is_destructible_v<T>
+    constexpr
+    inline void erase_unstably(std::vector<T>& vec, size_t index)
+        noexcept(std::is_nothrow_move_assignable_v<T> && std::is_nothrow_destructible_v<T>)
+    {
+        assert_arg(index < vec.size());
+        if (index != vec.size() - 1) {
+            vec.at(index) = std::move(vec.back());
+        }
+        vec.pop_back();
+    }
+
     /**
      * @brief Insert an item into a sorted vector
      */

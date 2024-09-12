@@ -2,14 +2,22 @@
 
 #include <optional>
 
+#include <componentlib/ComponentID.h>
+
 #include "trc/AnimationEngine.h"
 #include "trc/Node.h"
 #include "trc/assets/Geometry.h"
 #include "trc/assets/Material.h"
-#include "trc/drawable/DrawableComponentScene.h"
 
 namespace trc
 {
+    class DrawableScene;
+
+    namespace drawcomp {
+        struct _DrawableIdTypeTag {};
+    }
+    using DrawableID = componentlib::ComponentID<drawcomp::_DrawableIdTypeTag>;
+
     class DrawableObj : public Node
     {
     public:
@@ -18,7 +26,7 @@ namespace trc
         auto operator=(DrawableObj&&) noexcept -> DrawableObj& = delete;
 
         DrawableObj(DrawableObj&&) noexcept = default;
-        ~DrawableObj() noexcept = default;
+        ~DrawableObj() noexcept override = default;
 
         auto getGeometry() const -> GeometryID;
         auto getMaterial() const -> MaterialID;
@@ -38,11 +46,11 @@ namespace trc
         friend class DrawableScene;
 
         DrawableObj(DrawableID id,
-                    DrawableComponentScene& scene,
+                    DrawableScene& scene,
                     GeometryID geometry,
                     MaterialID material);
 
-        DrawableComponentScene* scene;
+        DrawableScene* scene;
         DrawableID id;
 
         GeometryID geo;

@@ -6,8 +6,8 @@
 
 #include "trc/Types.h"
 #include "trc/core/DefaultPipelineValues.h"
+#include "trc/core/Pipeline.h"
 #include "trc/core/PipelineLayout.h"
-#include "trc/core/RenderConfiguration.h"
 
 namespace trc {
     class ShaderProgram;

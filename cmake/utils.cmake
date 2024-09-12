@@ -1,5 +1,5 @@
 function (torch_default_compile_options TARGET)
-    target_compile_features(${TARGET} PUBLIC cxx_std_20)
+    target_compile_features(${TARGET} PUBLIC cxx_std_23)
 
     if (NOT MSVC)
         target_compile_options(${TARGET} PRIVATE -fPIC)

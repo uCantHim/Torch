@@ -2,7 +2,7 @@
 
 #include "trc/base/Barriers.h"
 
-#include "trc/core/FrameRenderState.h"
+#include "trc/core/Frame.h"
 
 
 

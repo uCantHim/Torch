@@ -1,12 +1,12 @@
 #pragma once
 
 #include <trc/Torch.h>
+#include <trc_util/Timer.h>
 using namespace trc::basic_types;
 
 #include "Scene.h"
 #include "gui/MainMenu.h"
 #include "input/InputState.h"
-#include "object/Hitbox.h"
 
 class App
 {
@@ -37,9 +37,13 @@ private:
 
     u_ptr<int, void(*)(int*)> torchTerminator;
     u_ptr<trc::TorchStack> torch;
-    u_ptr<trc::imgui::ImguiRenderPass> imgui;
+
+    s_ptr<trc::Camera> camera;
+    s_ptr<trc::Scene> drawableScene;
+    s_ptr<Scene> scene;
+    trc::ViewportHandle mainViewport;
+
     AssetInventory assetInventory;
-    Scene scene;
 
     gui::MainMenu mainMenu;
     InputStateMachine inputState;

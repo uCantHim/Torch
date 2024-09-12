@@ -1,5 +1,7 @@
 #include "trc/core/RenderTarget.h"
 
+#include <ranges>
+
 #include "trc/base/Swapchain.h"
 
 
@@ -67,6 +69,17 @@ auto trc::RenderTarget::getImageView(ui32 frameIndex) const -> vk::ImageView
     return imageViews.getAt(frameIndex);
 }
 
+auto trc::RenderTarget::getRenderImage(ui32 frameIndex) const -> RenderImage
+{
+    return {
+        images.getAt(frameIndex),
+        imageViews.getAt(frameIndex),
+        format,
+        usage,
+        size
+    };
+}
+
 auto trc::RenderTarget::getImages() const -> const FrameSpecific<vk::Image>&
 {
     return images;
@@ -75,6 +88,13 @@ auto trc::RenderTarget::getImages() const -> const FrameSpecific<vk::Image>&
 auto trc::RenderTarget::getImageViews() const -> const FrameSpecific<vk::ImageView>&
 {
     return imageViews;
+}
+
+auto trc::RenderTarget::getRenderImages() const -> std::generator<RenderImage>
+{
+    for (auto [image, view] : std::views::zip(images, imageViews)) {
+        co_yield RenderImage{ image, view, format, usage, size };
+    }
 }
 
 auto trc::RenderTarget::getSize() const -> uvec2

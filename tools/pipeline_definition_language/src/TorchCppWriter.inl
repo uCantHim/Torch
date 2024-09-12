@@ -79,11 +79,8 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
                       [](auto& a, auto& b){ return std::get<0>(a) < std::get<0>(b); });
 
     // Write the sorted list of variants in an inline-initializer-list constructor
-    for (const auto& [_, name, variant] : variantsAtIndex)
-    {
-        os << nl;
-        writeVariantStorageInit(*name, *variant, os);
-        os << ",";
+    for (const auto& [_, name, variant] : variantsAtIndex) {
+        os << nl << makeValue(*variant) << ",";
     }
     os << --nl << "};" << nl;
 
@@ -156,20 +153,6 @@ inline auto TorchCppWriter::makeValue(const ShaderDesc& shader) -> std::string
     return makeStoredType<ShaderDesc>() + "(\"" + shader.target + "\")";
 }
 
-template<>
-inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName& name,
-    const ShaderDesc& shader,
-    std::ostream& os)
-{
-    // Construct unique file path based on the source path
-    fs::path outFilePath = addUniqueExtension(shader.target, name);
-
-    os << makeStoredType<ShaderDesc>() << "{ "
-       << "\"" << outFilePath.string() << "\""
-       << " }";
-}
-
 
 
 ///////////////////////////
@@ -214,15 +197,6 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
     ss << --nl << "}" << --nl << "}";
 
     return ss.str();
-}
-
-template<>
-inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName&,
-    const ProgramDesc& program,
-    std::ostream& os)
-{
-    os << makeValue(program);
 }
 
 
@@ -270,15 +244,6 @@ inline auto TorchCppWriter::makeValue(const LayoutDesc& layout) -> std::string
     return ss.str();
 }
 
-template<>
-inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName&,
-    const LayoutDesc& layout,
-    std::ostream& os)
-{
-    os << makeValue(layout);
-}
-
 
 
 ////////////////////////////
@@ -303,15 +268,6 @@ inline auto TorchCppWriter::makeValue(const PipelineDesc& pipeline) -> std::stri
     return ss.str();
 }
 
-template<>
-inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName&,
-    const PipelineDesc& pipeline,
-    std::ostream& os)
-{
-    os << makeValue(pipeline);
-}
-
 
 
 ////////////////////////////
@@ -327,13 +283,4 @@ inline auto TorchCppWriter::makeValue(const ComputePipelineDesc& pipeline) -> st
        << nl << makeValue(pipeline.layout)
        << --nl << ")";
     return ss.str();
-}
-
-template<>
-inline void TorchCppWriter::writeVariantStorageInit(
-    const UniqueName&,
-    const ComputePipelineDesc& pipeline,
-    std::ostream& os)
-{
-    os << makeValue(pipeline);
 }

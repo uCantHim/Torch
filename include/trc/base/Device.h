@@ -64,6 +64,14 @@ public:
 
     auto getPhysicalDevice() const noexcept -> const PhysicalDevice&;
 
+    /**
+     * @brief Get a dynamic loader that can dispatch calls to device functions
+     *        as well as those of the device's instance.
+     *
+     * @return The device's dynamic dispatch loader.
+     */
+    auto getDL() const noexcept -> const vk::DispatchLoaderDynamic&;
+
     auto getQueueManager() noexcept -> QueueManager&;
     auto getQueueManager() const noexcept -> const QueueManager&;
 
@@ -107,8 +115,9 @@ private:
     const PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
 #endif
 
-    const PhysicalDevice& physicalDevice;
+    const PhysicalDevice physicalDevice;
     vk::UniqueDevice device;
+    const vk::DispatchLoaderDynamic dispatchLoaderDynamic;
 
     QueueManager queueManager;
 

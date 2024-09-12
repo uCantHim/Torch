@@ -1,10 +1,10 @@
 #include "trc/text/Text.h"
 
-#include "trc/text/UnicodeUtils.h"
-#include "trc/TorchRenderConfig.h"
-#include "trc/TorchRenderStages.h"
+#include "trc/GBufferPass.h"
 #include "trc/PipelineDefinitions.h"
 #include "trc/TextPipelines.h"
+#include "trc/TorchRenderStages.h"
+#include "trc/text/UnicodeUtils.h"
 
 
 
@@ -39,10 +39,10 @@ trc::Text::Text(const Instance& instance, FontHandle font)
 {
 }
 
-void trc::Text::attachToScene(SceneBase& scene)
+void trc::Text::attachToScene(RasterSceneBase& scene)
 {
     drawRegistration = scene.registerDrawFunction(
-        gBufferRenderStage,
+        stages::gBuffer,
         GBufferPass::SubPasses::transparency,
         pipelines::text::getStaticTextPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)

@@ -5,7 +5,8 @@
 #include <any>
 
 #include "trc/Types.h"
-#include "trc/core/RenderConfiguration.h"
+#include "trc/core/DescriptorRegistry.h"
+#include "trc/core/PipelineLayout.h"
 
 namespace trc
 {
@@ -67,7 +68,7 @@ namespace trc
      */
     auto makePipelineLayout(const Device& device,
                             const PipelineLayoutTemplate& _template,
-                            const RenderConfig& renderConfig
+                            const DescriptorRegistry& descRegistry
         ) -> PipelineLayout;
 
 

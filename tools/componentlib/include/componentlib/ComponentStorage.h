@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -239,7 +240,7 @@ public:
      * @return trc::Maybe<C&>
      */
     template<ComponentType C>
-    inline auto tryGet(Key key) -> std::optional<std::reference_wrapper<C>>
+    inline auto tryGet(Key key) -> C*
     {
         return getTable<C>().try_get(key);
     }
@@ -250,7 +251,7 @@ public:
      * @return trc::Maybe<C&>
      */
     template<ComponentType C>
-    inline auto tryGet(Key key) const -> std::optional<std::reference_wrapper<const C>>
+    inline auto tryGet(Key key) const -> const C*
     {
         return getTable<C>().try_get(key);
     }

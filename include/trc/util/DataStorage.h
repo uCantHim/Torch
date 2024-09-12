@@ -1,9 +1,9 @@
 #pragma once
 
-#include <filesystem>
 #include <istream>
 #include <ostream>
 
+#include "trc/Types.h"
 #include "trc/util/Pathlet.h"
 
 namespace trc

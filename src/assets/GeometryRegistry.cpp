@@ -3,7 +3,7 @@
 #include "geometry.pb.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/assets/import/InternalFormat.h"
-#include "trc/core/FrameRenderState.h"
+#include "trc/core/Frame.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/GeometryUtils.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"

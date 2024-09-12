@@ -39,6 +39,9 @@ if (TORCH_BUILD_EXAMPLES)
     add_executable(MeshShading mesh_shading.cpp)
     target_link_libraries(MeshShading PUBLIC torch)
 
+    add_executable(Materials materials.cpp)
+    target_link_libraries(Materials PUBLIC torch pipeline_compiler_lib)
+
     if (${TORCH_INTEGRATE_IMGUI})
         add_executable(ImGui imgui_integration.cpp)
         target_link_libraries(ImGui PUBLIC torch torch-imgui)
@@ -52,6 +55,3 @@ if (TORCH_BUILD_EXAMPLES)
         target_link_libraries(Gui PUBLIC torch)
     endif()
 endif ()
-
-add_executable(Materials materials.cpp)
-target_link_libraries(Materials PUBLIC torch pipeline_compiler_lib)

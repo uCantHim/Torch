@@ -9,7 +9,7 @@
 trc::GBufferDepthReader::GBufferDepthReader(
     const Device& device,
     std::function<vec2()> mousePosGetter,
-    FrameSpecific<GBuffer>& _gBuffer)
+    GBuffer& _gBuffer)
     :
     getMousePos(std::move(mousePosGetter)),
     gBuffer(_gBuffer),
@@ -40,13 +40,13 @@ auto trc::GBufferDepthReader::getMouseDepth() const noexcept -> float
 
 void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
 {
-    Image& depthImage = gBuffer->getImage(GBuffer::eDepth);
+    Image& depthImage = gBuffer.getImage(GBuffer::eDepth);
     const ivec2 mousePos = glm::clamp(getMousePos(), vec2(0), vec2(depthImage.getSize()) - 1.0f);
 
     imageMemoryBarrier(
         cmdBuf,
         *depthImage,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::ImageLayout::eShaderReadOnlyOptimal,
         vk::ImageLayout::eTransferSrcOptimal,
         vk::PipelineStageFlagBits::eEarlyFragmentTests
             | vk::PipelineStageFlagBits::eLateFragmentTests,
@@ -74,7 +74,7 @@ void trc::GBufferDepthReader::readDepthAtMousePos(vk::CommandBuffer cmdBuf)
         vk::PipelineStageFlagBits::eTransfer,
         vk::PipelineStageFlagBits::eComputeShader,
         vk::AccessFlagBits::eTransferRead,
-        vk::AccessFlagBits::eShaderRead,
+        vk::AccessFlagBits::eShaderWrite,
         { vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1 }
     );
 }

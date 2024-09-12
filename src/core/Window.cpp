@@ -1,7 +1,8 @@
 #include "trc/core/Window.h"
 
-#include "trc/base/Device.h"
+#include "trc/base/Logging.h"
 #include "trc/base/event/EventHandler.h"
+#include "trc/core/Instance.h"
 
 
 
@@ -33,24 +34,9 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
             return info.swapchainCreateInfo;
         }()
     ),
-    instance(&instance),
-    renderer(std::make_unique<Renderer>(*this))
+    instance(&instance)
 {
-    addCallbackBeforeSwapchainRecreate([this](Swapchain&) {
-        renderer->waitForAllFrames();
-        renderer.reset();
-    });
-    addCallbackAfterSwapchainRecreate([this](Swapchain&) {
-        assert(renderer == nullptr);
-        renderer = std::make_unique<Renderer>(*this);
-    });
-
     setPosition(info.pos.x, info.pos.y);
-}
-
-void trc::Window::drawFrame(const vk::ArrayProxy<const DrawConfig>& draws)
-{
-    renderer->drawFrame(draws);
 }
 
 auto trc::Window::getInstance() -> Instance&
@@ -81,9 +67,4 @@ auto trc::Window::getSwapchain() -> Swapchain&
 auto trc::Window::getSwapchain() const -> const Swapchain&
 {
     return *this;
-}
-
-auto trc::Window::getRenderer() -> Renderer&
-{
-    return *renderer;
 }

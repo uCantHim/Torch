@@ -10,21 +10,109 @@
 namespace trc
 {
 
-DrawableScene::DrawableScene(SceneBase& baseScene)
+UniqueDrawableID::UniqueDrawableID(DrawableID drawable, DrawableScene& scene)
     :
-    components(baseScene)
+    id(drawable),
+    scene(&scene)
 {
+}
+
+UniqueDrawableID::UniqueDrawableID(UniqueDrawableID&& other) noexcept
+    :
+    id(other.id),
+    scene(other.scene)
+{
+    other.id = DrawableID::NONE;
+    other.scene = nullptr;
+}
+
+UniqueDrawableID& UniqueDrawableID::operator=(UniqueDrawableID&& other) noexcept
+{
+    std::swap(id, other.id);
+    std::swap(scene, other.scene);
+    return *this;
+}
+
+UniqueDrawableID::~UniqueDrawableID() noexcept
+{
+    if (id != DrawableID::NONE && scene != nullptr)
+    {
+        scene->destroyDrawable(id);
+    }
+}
+
+
+
+DrawableScene::DrawableScene()
+{
+    registerModule(std::make_unique<RasterSceneModule>());
+    registerModule(std::make_unique<RaySceneModule>());
+    registerModule(std::make_unique<LightSceneModule>());
+}
+
+void DrawableScene::update(float timeDeltaMs)
+{
+    // Update transformations in the node tree
+    root.updateAsRoot();
+
+    updateAnimations(timeDeltaMs);
+    updateRayInstances();
+}
+
+void DrawableScene::updateAnimations(const float timeDelta)
+{
+    for (auto& anim : get<AnimationComponent>())
+    {
+        anim.engine.update(timeDelta);
+    }
+}
+
+void DrawableScene::updateRayInstances()
+{
+    for (const auto& ray : get<RayComponent>()) {
+        getRayModule().setInstanceTransform(ray.instanceDataIndex, ray.modelMatrix.get());
+    }
+}
+
+auto DrawableScene::getRasterModule() -> RasterSceneModule&
+{
+    return getModule<RasterSceneModule>();
+}
+
+auto DrawableScene::getRayModule() -> RaySceneModule&
+{
+    return getModule<RaySceneModule>();
+}
+
+auto DrawableScene::getLights() -> LightSceneModule&
+{
+    return getModule<LightSceneModule>();
+}
+
+auto DrawableScene::getLights() const -> const LightSceneModule&
+{
+    return getModule<LightSceneModule>();
+}
+
+auto DrawableScene::getRoot() noexcept -> Node&
+{
+    return root;
+}
+
+auto DrawableScene::getRoot() const noexcept -> const Node&
+{
+    return root;
 }
 
 auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
 {
-    const DrawableID id = components.makeDrawable();
+    const DrawableID id = DrawableScene::makeDrawable();
 
     std::shared_ptr<DrawableObj> drawable(
-        &drawables.emplace(ui32{id}, DrawableObj{ id, components, info.geo, info.mat }),
+        new DrawableObj{ id, *this, info.geo, info.mat },
         [this](DrawableObj* drawable) {
-            drawables.erase(ui32{drawable->id});
-            components.destroyDrawable(drawable->id);
+            destroyDrawable(drawable->id);
+            delete drawable;
         }
     );
 
@@ -33,12 +121,12 @@ auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
     {
         auto geo = info.geo.getDeviceDataHandle();
 
-        components.add<RasterComponent>(id, RasterComponentCreateInfo{
+        add<RasterComponent>(id, RasterComponentCreateInfo{
             .geo=info.geo,
             .mat=info.mat,
             .modelMatrixId=drawable->getGlobalTransformID(),
             .anim=geo.hasRig()
-                ? components.add<AnimationComponent>(id, geo.getRig()).engine.getState()
+                ? add<AnimationComponent>(id, geo.getRig()).engine.getState()
                 : AnimationEngine::ID{}
         });
     }
@@ -46,7 +134,7 @@ auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
     // Create a ray tracing component
     if (info.rayTraced)
     {
-        components.add<RayComponent>(
+        add<RayComponent>(
             id,
             RayComponentCreateInfo{ info.geo, info.mat, drawable->getGlobalTransformID() }
         );

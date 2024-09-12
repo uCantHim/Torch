@@ -10,9 +10,10 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-#include "trc/base/event/Keys.h"
+#include "trc/Types.h"
 #include "trc/base/FrameClock.h"
 #include "trc/base/InputProcessor.h"
+#include "trc/base/event/Keys.h"
 
 namespace trc
 {

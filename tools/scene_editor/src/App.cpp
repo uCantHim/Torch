@@ -27,22 +27,31 @@ App::App(const fs::path& projectRootDir)
     }()),
     torchTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
     torch(trc::initFull(
-        trc::TorchStackCreateInfo{ .projectRootDir=projectRootDir },
+        trc::TorchStackCreateInfo{
+            .plugins{
+                trc::imgui::buildImguiRenderPlugin,
+            },
+            .assetStorageDir=projectRootDir/"assets",
+        },
         trc::InstanceCreateInfo{},
         trc::WindowCreateInfo{}
     )),
+    camera(std::make_shared<trc::Camera>()),
+    drawableScene(std::make_shared<trc::Scene>()),
     assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
-    scene(*this),
     mainMenu(*this)
 {
-    torch->getRenderConfig().getRenderGraph().after(trc::postProcessingRenderStage,
-                                                    trc::imgui::imguiRenderStage);
-    imgui = trc::imgui::initImgui(torch->getWindow(), torch->getRenderConfig().getRenderGraph());
+    // Create a scene
+    scene = std::make_shared<Scene>(*this, camera, drawableScene);
 
+    // Initialize viewport
     vec2 size = torch->getWindow().getWindowSize();
-    torch->getRenderConfig().setViewport({ size.x * 0.25f, 0.0f }, size);
-    scene.getCamera().setAspect(size.x / size.y);
     setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
+
+    torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
+        vec2 size = swapchain.getWindowSize();
+        setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
+    });
 
     // Initialize input
     trc::Keyboard::init();
@@ -129,20 +138,20 @@ App::App(const fs::path& projectRootDir)
         .geometry=cubeGeo
     });
 
-    scene.createDefaultObject({ gi, mg });
+    scene->createDefaultObject({ gi, mg });
 
-    auto smallPlane = scene.createDefaultObject({ gi1, mr });
-    scene.get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
+    auto smallPlane = scene->createDefaultObject({ gi1, mr });
+    scene->get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
 
-    auto cube = scene.createDefaultObject({ cubeGeo, mo });
-    scene.get<ObjectBaseNode>(cube).translateY(0.5f);
+    auto cube = scene->createDefaultObject({ cubeGeo, mo });
+    scene->get<ObjectBaseNode>(cube).translateY(0.5f);
 
     frameTimer.reset();
 }
 
 App::~App()
 {
-    torch->getWindow().getRenderer().waitForAllFrames();
+    torch->waitForAllFrames();
     _app = nullptr;
 }
 
@@ -177,13 +186,17 @@ auto App::getAssets() -> AssetInventory&
 
 auto App::getScene() -> Scene&
 {
-    return scene;
+    return *scene;
 }
 
 void App::setSceneViewport(vec2 offset, vec2 size)
 {
-    torch->getRenderConfig().setViewport(offset, size);
-    scene.getCamera().setAspect(size.x / size.y);
+    assert(camera != nullptr);
+    assert(drawableScene != nullptr);
+
+    mainViewport.reset();
+    mainViewport = torch->makeViewport({ offset, size }, camera, drawableScene);
+    camera->setAspect(size.x / size.y);
 }
 
 void App::tick()
@@ -195,14 +208,14 @@ void App::tick()
     // Update
     trc::pollEvents();
     inputState.update(frameTime);
-    scene.update(frameTime);
+    scene->update(frameTime);
 
     // Render
     trc::imgui::beginImguiFrame();
     mainMenu.drawImGui();
     gui::ContextMenu::drawImGui();
 
-    torch->drawFrame(scene.getCamera(), scene.getDrawableScene());
+    torch->drawFrame(mainViewport);
 
     // Finalize
     static trc::Timer timer;

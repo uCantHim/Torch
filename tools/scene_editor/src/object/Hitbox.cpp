@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 #include <trc/base/Logging.h>

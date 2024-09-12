@@ -1,110 +1,217 @@
 #include "trc/core/RenderGraph.h"
 
-#include "trc/core/RenderPass.h"
+#include <algorithm>
+#include <functional>
+#include <ranges>
+#include <sstream>
+#include <stdexcept>
+
+#include <trc_util/Assert.h>
 
 
 
-void trc::RenderGraph::first(RenderStage::ID newStage)
+namespace trc
 {
-    insert(stages.begin(), newStage);
+
+void RenderGraph::insert(RenderStage newStage)
+{
+    headStages.emplace(newStage);
+    stageDeps.try_emplace(newStage);
 }
 
-void trc::RenderGraph::last(RenderStage::ID newStage)
+void RenderGraph::createOrdering(RenderStage from, RenderStage to)
 {
-    stages.emplace_back(newStage);
-}
-
-void trc::RenderGraph::before(RenderStage::ID nextStage, RenderStage::ID newStage)
-{
-    if (auto stage = findStage(nextStage)) {
-        insert(stage.value(), newStage);
+    if (!stageDeps.contains(from)) {
+        insert(from);
     }
-    else {
-        throw std::out_of_range("[In RenderGraph::before]: Unable to insert the new render stage:"
-                                " Succeeding stage is not present in the render graph.");
+    if (!stageDeps.contains(to)) {
+        insert(to);
     }
+
+    auto [it, success] = stageDeps.at(from).emplace(to);
+    if (!success) {
+        return;  // Dependency has already been established.
+    }
+
+    if (hasCycles()) {
+        stageDeps.at(from).erase(it);  // cleanup
+        throw std::invalid_argument("Cycle in graph!");
+    }
+
+    headStages.erase(to);  // the dependency destination is no longer a head stage
 }
 
-void trc::RenderGraph::after(RenderStage::ID prevStage, RenderStage::ID newStage)
+bool RenderGraph::hasCycles() const
 {
-    if (auto stage = findStage(prevStage)) {
-        insert(++stage.value(), newStage);
+    if (headStages.empty()) {
+        return !stageDeps.empty();
     }
-    else {
-        throw std::out_of_range("[In RenderGraph::before]: Unable to insert the new render stage:"
-                                " Preceeding stage is not present in the render graph.");
-    }
-}
 
-void trc::RenderGraph::require(RenderStage::ID stage, RenderStage::ID requiredStage)
-{
-    if (auto it = findStage(stage)) {
-        it.value()->waitDependencies.emplace_back(requiredStage);
-    }
-}
+    using Set = std::unordered_set<RenderStage>;
+    std::function<bool(RenderStage, Set)> visit = [&](RenderStage stage, Set visited) {
+        if (!visited.emplace(stage).second) {
+            return true;
+        }
+        for (const auto dep : stageDeps.at(stage))
+        {
+            if (visit(dep, visited)) {
+                return true;
+            }
+        }
+        return false;
+    };
 
-bool trc::RenderGraph::contains(RenderStage::ID stage) const noexcept
-{
-    return findStage(stage).has_value();
-}
-
-auto trc::RenderGraph::size() const noexcept -> size_t
-{
-    return stages.size();
-}
-
-void trc::RenderGraph::addPass(RenderStage::ID stage, RenderPass& newPass)
-{
-    auto it = findStage(stage);
-    if (it.has_value()) {
-        it.value()->renderPasses.push_back(&newPass);
-    }
-    else {
-        throw std::out_of_range("[In RenderGraph::addPass]: Tried to add a render pass to"
-                                " render stage " + std::to_string(stage) + ", which is not"
-                                " present in the graph.");
-    }
-}
-
-void trc::RenderGraph::removePass(RenderStage::ID stage, RenderPass& pass)
-{
-    if (auto it = findStage(stage))
+    for (const auto head : headStages)
     {
-        auto& renderPasses = it.value()->renderPasses;
-
-        auto removed = std::remove(renderPasses.begin(), renderPasses.end(), &pass);
-        if (removed != renderPasses.end()) {
-            renderPasses.erase(removed);
+        if (visit(head, {})) {
+            return true;
         }
     }
+    return false;
 }
 
-auto trc::RenderGraph::findStage(RenderStage::ID stage) -> std::optional<StageIterator>
+auto RenderGraph::compile() const -> RenderGraphLayout
 {
-    for (auto it = stages.begin(); it !=stages.end(); ++it)
+    if (hasCycles()) {
+        throw std::runtime_error("[In RenderGraph::compile]: The graph contains cycles.");
+    }
+
+    std::unordered_map<RenderStage, size_t> ranks;
+    std::function<void(RenderStage, size_t)> visit = [&](const RenderStage& stage, size_t rank) {
+        auto [it, success] = ranks.try_emplace(stage, rank);
+        if (!success) {
+            it->second = std::max(rank, it->second);
+        }
+
+        for (const auto dep : stageDeps.at(stage)) {
+            visit(dep, rank + 1);
+        }
+    };
+
+    for (const auto head : headStages) {
+        visit(head, 0);
+    }
+
+    // An empty render graph?
+    if (ranks.empty()) {
+        return {};
+    }
+
+    // Order stages by rank
+    const size_t maxRank = *std::ranges::max_element(std::views::values(ranks));
+
+    RenderGraphLayout res;
+    res.orderedStages.resize(maxRank + 1);
+    for (const auto& [stage, rank] : ranks) {
+        res.orderedStages.at(rank).emplace_back(stage);
+    }
+
+    return res;
+}
+
+auto RenderGraph::toDot() const -> std::string
+{
+    std::stringstream ss;
+    ss << "digraph G {";
+    for (auto& [stage, deps] : stageDeps)
     {
-        if (it->stage == stage) {
-            return it;
+        for (auto& dep : deps) {
+            ss << stage.getDescription() << "->" << dep.getDescription() << ";";
+        }
+    }
+    ss << "}";
+
+    return ss.str();
+}
+
+
+
+auto RenderGraphLayout::size() const -> size_t
+{
+    size_t res{ 0 };
+    for (const auto& rank : orderedStages) {
+        res += rank.size();
+    }
+    return res;
+}
+
+auto RenderGraphLayout::begin() const -> const_iterator
+{
+    return RenderGraphIterator::makeBegin(*this);
+}
+
+auto RenderGraphLayout::end() const -> const_iterator
+{
+    return RenderGraphIterator::makeEnd(*this);
+}
+
+
+
+RenderGraphIterator::RenderGraphIterator(const RenderGraphLayout& _graph)
+    :
+    graph(_graph),
+    outer(graph.orderedStages.begin()),
+    inner(outer != graph.orderedStages.end() ? outer->begin() : InnerIter{})
+{
+}
+
+auto RenderGraphIterator::operator*() -> const_reference
+{
+    return *inner;
+}
+
+auto RenderGraphIterator::operator->() -> const_pointer
+{
+    return &*inner;
+}
+
+auto RenderGraphIterator::operator++() -> RenderGraphIterator&
+{
+    if (outer == graph.orderedStages.end())
+    {
+        throw std::out_of_range("[In RenderGraphIterator::operator++]: "
+                                "Trying to increment an `end` iterator!");
+    }
+
+    ++inner;
+    if (inner == outer->end())
+    {
+        ++outer;
+        if (outer == graph.orderedStages.end()) {
+            inner = InnerIter{};
+        }
+        else {
+            inner = outer->begin();
         }
     }
 
-    return std::nullopt;
+    return *this;
 }
 
-auto trc::RenderGraph::findStage(RenderStage::ID stage) const -> std::optional<StageConstIterator>
+bool RenderGraphIterator::operator==(const RenderGraphIterator& other) const
 {
-    for (auto it = stages.begin(); it !=stages.end(); ++it)
+    if (&graph == &other.graph)
     {
-        if (it->stage == stage) {
-            return it;
-        }
+        // `outer` must be the same if `inner` is the same
+        assert(inner == other.inner ? outer == other.outer : true);
     }
 
-    return std::nullopt;
+    return &other.graph == &this->graph
+        && other.outer == this->outer
+        && other.inner == this->inner;
 }
 
-void trc::RenderGraph::insert(StageIterator next, RenderStage::ID newStage)
+auto RenderGraphIterator::makeBegin(const RenderGraphLayout& graph) -> RenderGraphIterator
 {
-    assert(!contains(newStage));
-    stages.insert(next, StageInfo{ .stage=newStage, .renderPasses={}, .waitDependencies={} });
+    return { graph };
 }
+
+auto RenderGraphIterator::makeEnd(const RenderGraphLayout& graph) -> RenderGraphIterator
+{
+    RenderGraphIterator iter{ graph };
+    iter.outer = graph.orderedStages.end();
+    iter.inner = InnerIter{};
+    return iter;
+}
+
+} // namespace trc

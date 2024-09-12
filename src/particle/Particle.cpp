@@ -1,13 +1,12 @@
 #include "trc/particle/Particle.h"
 
-#include "trc/core/Instance.h"
-
-#include "trc/core/PipelineLayoutBuilder.h"
-#include "trc/core/PipelineBuilder.h"
-#include "trc/TorchRenderConfig.h"
+#include "trc/GBufferPass.h"
+#include "trc/ParticlePipelines.h"
 #include "trc/PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "trc/TorchRenderStages.h"
-#include "trc/ParticlePipelines.h"
+#include "trc/core/Instance.h"
+#include "trc/core/PipelineBuilder.h"
+#include "trc/core/PipelineLayoutBuilder.h"
 
 
 
@@ -74,11 +73,11 @@ trc::ParticleCollection::ParticleCollection(
     particles.reserve(maxParticles);
 }
 
-void trc::ParticleCollection::attachToScene(SceneBase& scene)
+void trc::ParticleCollection::attachToScene(RasterSceneBase& scene)
 {
     // Alpha discard pipeline
     drawRegistrations[Blend::eDiscardZeroAlpha] = scene.registerDrawFunction(
-        gBufferRenderStage,
+        stages::gBuffer,
         GBufferPass::SubPasses::gBuffer,
         pipelines::particle::getParticlePipeline(pipelines::particle::AlphaBlendTypeFlagBits::discard),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -95,7 +94,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
 
     // Alpha blend pipeline
     drawRegistrations[Blend::eAlphaBlend] = scene.registerDrawFunction(
-        gBufferRenderStage,
+        stages::gBuffer,
         GBufferPass::SubPasses::transparency,
         pipelines::particle::getParticlePipeline(pipelines::particle::AlphaBlendTypeFlagBits::blend),
         [this](const DrawEnvironment&, vk::CommandBuffer cmdBuf)
@@ -111,7 +110,7 @@ void trc::ParticleCollection::attachToScene(SceneBase& scene)
     ).makeUnique();
 
     //shadowRegistration = scene.registerDrawFunction(
-    //    shadowRenderStage, SubPass::ID(0), getShadowPipeline(),
+    //    stages::shadow, SubPass::ID(0), getShadowPipeline(),
     //    [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
     //    {
     //        if (particles.empty()) return;

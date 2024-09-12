@@ -7,5 +7,6 @@ target_sources(
         RayBuffer.cpp
         RayPipelineBuilder.cpp
         RayTracingPass.cpp
+        RayTracingPlugin.cpp
         ShaderBindingTable.cpp
 )

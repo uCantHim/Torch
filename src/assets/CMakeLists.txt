@@ -5,7 +5,6 @@ target_sources(
         AssetManager.cpp
         AssetManagerBase.cpp
         AssetPath.cpp
-        AssetRegistry.cpp
         AssetRegistryModuleStorage.cpp
         AssetStorage.cpp
         GeometryRegistry.cpp

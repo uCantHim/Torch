@@ -1,6 +1,7 @@
 #include <cstdlib>
+#include <algorithm>
+#include <ranges>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include <gtest/gtest.h>
