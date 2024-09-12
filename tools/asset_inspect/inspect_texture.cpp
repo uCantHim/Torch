@@ -3,6 +3,7 @@
 #include <argparse/argparse.hpp>
 #include <trc/Torch.h>
 #include <trc/assets/Texture.h>
+#include <trc_util/Timer.h>
 using namespace trc::basic_types;
 
 #include "load_utils.h"
@@ -79,10 +80,13 @@ void display(const trc::TextureData& tex, const float maxDuration)
         }
     );
 
+    auto camera = std::make_shared<trc::Camera>();
+    auto scene = std::make_shared<trc::Scene>();
+    auto vp = torch->makeFullscreenViewport(camera, scene);
+
     // Set up the camera
-    trc::Camera camera;
-    camera.makeOrthogonal(-0.5f, 0.5f, -0.5f, 0.5f, -10.0f, 10.0f);
-    camera.translateZ(-5.0f);
+    camera->makeOrthogonal(-0.5f, 0.5f, -0.5f, 0.5f, -10.0f, 10.0f);
+    camera->translateZ(-5.0f);
 
     // Set up the scene
     trc::SimpleMaterialData mat{
@@ -90,8 +94,7 @@ void display(const trc::TextureData& tex, const float maxDuration)
         .albedoTexture=torch->getAssetManager().create(tex),
     };
 
-    trc::Scene scene;
-    auto drawable = scene.makeDrawable(trc::DrawableCreateInfo{
+    auto drawable = scene->makeDrawable(trc::DrawableCreateInfo{
         .geo=torch->getAssetManager().create(trc::makePlaneGeo()),
         .mat=torch->getAssetManager().create(trc::makeMaterial(mat)),
         .rasterized=true,
@@ -105,8 +108,7 @@ void display(const trc::TextureData& tex, const float maxDuration)
     while (!torch->getWindow().isPressed(trc::Key::escape))
     {
         trc::pollEvents();
-
-        torch->drawFrame(camera, scene);
+        torch->drawFrame(vp);
 
         const float seconds = timer.duration() * 0.001f;
         if (seconds >= maxDuration) {

@@ -3,6 +3,7 @@
 #include <argparse/argparse.hpp>
 #include <trc/Torch.h>
 #include <trc/base/event/Event.h>
+#include <trc_util/Timer.h>
 
 #include "display_utils.h"
 #include "load_utils.h"
@@ -54,8 +55,14 @@ int main(int argc, const char* argv[])
     // Try to open file
     const auto inputFile = program.get("file");
     auto geo = tryLoad<trc::Geometry>(inputFile);
-    if (!geo) {
+    if (!geo)
+    {
         std::cout << "Error: " << geo.error() << ". Exiting.\n";
+        exit(1);
+    }
+    if (geo->vertices.empty() || geo->indices.empty())
+    {
+        std::cout << "Error: Geometry has no vertices. The file may not be a Torch asset file.\n";
         exit(1);
     }
 
@@ -91,10 +98,10 @@ void display(const trc::GeometryData& geo, float maxDuration)
             .title{ "Geometry preview" }
         });
 
-    trc::Camera camera;
-    trc::Scene scene;
+    auto camera = std::make_shared<trc::Camera>();
+    auto scene = std::make_shared<trc::Scene>();
 
-    scene.getLights().makeSunLight(trc::vec3(1.0f), trc::vec3(-1, -1, 0), 0.7f);
+    auto sun = scene->getLights().makeSunLight(trc::vec3(1.0f), trc::vec3(-1, -1, 0), 0.7f);
 
     // Create a drawable
     trc::SimpleMaterialData material{
@@ -102,7 +109,7 @@ void display(const trc::GeometryData& geo, float maxDuration)
         .roughness=0.8f,
         .emissive=false,
     };
-    auto drawable = scene.makeDrawable(trc::DrawableCreateInfo{
+    auto drawable = scene->makeDrawable(trc::DrawableCreateInfo{
         .geo=torch->getAssetManager().create(geo),
         .mat=torch->getAssetManager().create(trc::makeMaterial(material)),
         .rasterized=true,
@@ -110,7 +117,7 @@ void display(const trc::GeometryData& geo, float maxDuration)
     });
     trc::Node node;
     node.attach(*drawable);
-    scene.getRoot().attach(node);
+    scene->getRoot().attach(node);
 
     // Normalize the geometry's size
     const vec3 geoExtent = calcExtent(geo);
@@ -119,12 +126,12 @@ void display(const trc::GeometryData& geo, float maxDuration)
     // Center camera on the geometry
     const vec3 camPos{ 0.0f, 1.5f, 2.0f };
     const vec3 camTarget{ 0.0f, 0.6f, 0.0f };
-    camera.makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.1f, 50.0f);
-    camera.lookAt(camPos, camTarget, trc::vec3(0, 1, 0));
+    camera->makePerspective(torch->getWindow().getAspectRatio(), 45.0f, 0.1f, 50.0f);
+    camera->lookAt(camPos, camTarget, trc::vec3(0, 1, 0));
 
     // Set up user interaction
     torch->getWindow().addCallbackOnResize([&camera](trc::Swapchain& swapchain){
-        camera.setAspect(swapchain.getAspectRatio());
+        camera->setAspect(swapchain.getAspectRatio());
     });
 
     trc::on<trc::CharInputEvent>([&](const trc::CharInputEvent& e) {
@@ -166,11 +173,13 @@ void display(const trc::GeometryData& geo, float maxDuration)
         }
 
         // Recalculate camera position
-        camera.lookAt(camPos + zoom * static_cast<float>(zoomLevel),
+        camera->lookAt(camPos + zoom * static_cast<float>(zoomLevel),
                       camTarget,
                       vec3(0, 1, 0));
-        camera.translate(vec3{-movementLevel} * movement);
+        camera->translate(vec3{-movementLevel} * movement);
     });
+
+    auto vp = torch->makeFullscreenViewport(camera, scene);
 
     trc::Timer timer;
     float totalTime{ 0.0f };
@@ -181,11 +190,11 @@ void display(const trc::GeometryData& geo, float maxDuration)
         trc::pollEvents();
 
         const float timeDelta = timer.reset();
-        scene.update(timeDelta);
+        scene->update(timeDelta);
 
         const float seconds = timeDelta * 0.001f;
         node.rotateY(seconds * rotationSpeed);
-        torch->drawFrame(camera, scene);
+        torch->drawFrame(vp);
 
         if ((totalTime += seconds) >= maxDuration) {
             break;

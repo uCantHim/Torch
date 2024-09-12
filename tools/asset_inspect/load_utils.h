@@ -3,7 +3,7 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
-#include <stdexcept>
+#include <string>
 namespace fs = std::filesystem;
 
 #include <trc/assets/AssetBase.h>
@@ -19,18 +19,16 @@ inline auto tryLoad(const fs::path& path) -> std::expected<trc::AssetData<T>, st
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) {
         return std::unexpected("Unable to open file " + path.string());
-        exit(1);
     }
 
-    // Try to parse geometry from file
+    // Try to parse asset from file
     try {
         trc::AssetData<T> data;
         data.deserialize(file);
         return data;
     }
     catch (const std::exception& err) {
-        return std::unexpected("Unable to parse geometry file " + path.string()
-                               + ": " + err.what());
-        exit(1);
+        return std::unexpected("Unable to parse an asset of type \"" + std::string{T::name()}
+                               + "\" from file " + path.string() + ": " + err.what());
     }
 }
