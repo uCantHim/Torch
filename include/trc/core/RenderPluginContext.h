@@ -81,8 +81,8 @@ namespace trc::impl
         auto camera() -> Camera&;
 
     private:
-        Viewport _vp;
-        vec4 _clearColor;
+        const Viewport _vp;
+        const vec4 _clearColor;
         s_ptr<Camera> _camera;
         s_ptr<SceneBase> _scene;
     };

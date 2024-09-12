@@ -67,8 +67,8 @@ namespace trc
         auto getScene() -> SceneBase&;
 
         void resize(const RenderArea& newArea);
-        void setCamera(s_ptr<Camera> camera);
-        void setScene(s_ptr<SceneBase> scene);
+        void setCamera(const s_ptr<Camera>& camera);
+        void setScene(const s_ptr<SceneBase>& scene);
 
         /**
          * Set a callback that gets called when the render target to which the
@@ -161,6 +161,8 @@ namespace trc
         void changeRenderTarget(const RenderTarget& newTarget);
 
     private:
+        friend RenderPipelineViewport;
+
         struct Global
         {
             impl::RenderPipelineInfo info;
@@ -229,13 +231,11 @@ namespace trc
          */
         void freeScene(const s_ptr<SceneBase>& scene);
 
-        auto instantiateViewport(PipelineInstance& parent,
-                                 const RenderImage& img,
-                                 const RenderArea& renderArea,
-                                 const s_ptr<Camera>& camera,
-                                 const s_ptr<SceneBase>& scene,
-                                 vec4 clearColor)
-            -> u_ptr<PerViewport>;
+        void recreateViewportForAllFrames(ui32 viewportIndex,
+                                          const RenderArea& renderArea,
+                                          const s_ptr<Camera>& camera,
+                                          const s_ptr<SceneBase>& scene,
+                                          vec4 clearColor);
 
         /**
          * @return All viewport indices that are currently in use.
