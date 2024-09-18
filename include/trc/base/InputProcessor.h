@@ -21,6 +21,8 @@ namespace trc
         virtual void onMouseInput(Swapchain&, MouseButton button, InputAction action, KeyModFlags mods) = 0;
         virtual void onMouseMove(Swapchain&, double x, double y) = 0;
         virtual void onMouseScroll(Swapchain&, double xOffset, double yOffset) = 0;
+
+        virtual void onWindowResize(Swapchain&, uint newX, uint newY) =  0;
         virtual void onWindowClose(Swapchain&) = 0;
     };
 
@@ -35,6 +37,7 @@ namespace trc
         void onMouseInput(Swapchain&, MouseButton, InputAction, KeyModFlags) override {}
         void onMouseMove(Swapchain&, double, double) override {}
         void onMouseScroll(Swapchain&, double, double) override {}
+        void onWindowResize(Swapchain&, uint, uint) override {}
         void onWindowClose(Swapchain&) override {}
     };
 } // namespace trc

@@ -293,9 +293,19 @@ trc::Swapchain::Swapchain(
         auto& sc = getSwapchain(win);
         sc.inputProcessor->onMouseScroll(sc, xoff, yoff);
     });
+    glfwSetWindowSizeCallback(window, [](auto win, int x, int y) {
+        assert(x > 0 && y > 0);
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onWindowResize(sc, x, y);
+    });
     glfwSetWindowCloseCallback(window, [](auto win){
         auto& sc = getSwapchain(win);
         sc.inputProcessor->onWindowClose(sc);
+    });
+
+    resizeCallbacks.add([](Swapchain& sc) {
+        const auto size = sc.getWindowSize();
+        sc.inputProcessor->onWindowResize(sc, size.x, size.y);
     });
 
     // Create the Vulkan swapchain object

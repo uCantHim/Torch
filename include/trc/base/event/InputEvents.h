@@ -5,6 +5,12 @@
 
 namespace trc
 {
+    struct SwapchainResizeEvent
+    {
+        const Swapchain* swapchain;
+        uvec2 newSize;
+    };
+
     /**
      * Dispatched when the OS requests the window to close.
      */

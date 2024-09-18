@@ -69,6 +69,11 @@ void InputEventSpawner::onMouseScroll(Swapchain& swapchain, double xOffset, doub
     );
 }
 
+void InputEventSpawner::onWindowResize(Swapchain& swapchain, uint x, uint y)
+{
+    EventHandler<SwapchainResizeEvent>::notify({ &swapchain, uvec2{ x, y } });
+}
+
 void InputEventSpawner::onWindowClose(Swapchain& swapchain)
 {
     EventHandler<SwapchainCloseEvent>::notify({ &swapchain });
