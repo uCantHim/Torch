@@ -27,19 +27,9 @@ namespace trc::ui
     void initUserCallbacks(std::function<void(ui32, const GlyphCache&)> onFontLoad,
                            std::function<void(ui32)>                    onImageLoad);
 
-    class WindowBackend
-    {
-    public:
-        virtual ~WindowBackend() = default;
-
-        virtual auto getSize() -> vec2 = 0;
-    };
-
     struct WindowCreateInfo
     {
-        u_ptr<WindowBackend> windowBackend;
-        std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
-
+        uvec2 initialSize{ 1, 1 };
         KeyMapping keyMap;
     };
 
@@ -49,13 +39,12 @@ namespace trc::ui
     class Window
     {
     public:
-        explicit Window(WindowCreateInfo createInfo);
+        explicit Window(const WindowCreateInfo& createInfo);
+
         Window(Window&&) noexcept = default;
-        ~Window();
+        ~Window() noexcept = default;
 
-        Window() = delete;
         Window(const Window&) = delete;
-
         auto operator=(const Window&) -> Window& = delete;
         auto operator=(Window&&) -> Window& = delete;
 
@@ -77,6 +66,14 @@ namespace trc::ui
          */
         template<GuiElement E, typename... Args>
         auto create(Args&&... args) -> s_ptr<E>;
+
+        /**
+         * @brief Notify a change in logical UI window size.
+         *
+         * Use this to change the size of the logical UI window. Sizes and
+         * positions of elements are calculated relative to this.
+         */
+        void setSize(uvec2 newSize);
 
         /**
          * @brief Signal to the window that a mouse click has occured
@@ -104,11 +101,6 @@ namespace trc::ui
          */
         auto pixelsToNorm(vec2 p) const -> vec2;
 
-        /**
-         * @brief Called when the window is destroyed
-         */
-        std::function<void(Window&)> onWindowDestruction{ [](auto&&) {} };
-
     private:
         /**
          * @brief Dispatch an event to all events that the mouse hovers
@@ -134,7 +126,7 @@ namespace trc::ui
          */
         void realignElements();
 
-        u_ptr<WindowBackend> windowBackend;
+        uvec2 windowSize;
         IoConfig ioConfig;
 
         DrawList drawList;

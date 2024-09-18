@@ -1,12 +1,12 @@
 #include "trc/ui/torch/DrawImplementations.h"
 
+#include "trc/DescriptorSetUtils.h"
 #include "trc/GuiShaders.h"
 #include "trc/base/Buffer.h"
 #include "trc/base/Logging.h"
 #include "trc/core/PipelineBuilder.h"
-#include "trc/core/PipelineLayoutBuilder.h"
+#include "trc/ui/FontRegistry.h"
 #include "trc/ui/Window.h"
-#include "trc/ui/torch/GuiRenderer.h"
 
 
 
@@ -16,7 +16,7 @@ struct QuadVertex
     trc::vec2 uv;
 };
 
-auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui32 subPass)
+auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::Format format)
     -> Pipeline
 {
     return buildGraphicsPipeline()
@@ -33,10 +33,10 @@ auto trc::ui_impl::DrawCollector::makeLinePipeline(vk::RenderPass renderPass, ui
         .addDynamicState(vk::DynamicState::eLineWidth)
         .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
         .setColorBlending({}, false, {}, {})
-        .build(device, linePipelineLayout, renderPass, subPass);
+        .build(device, linePipelineLayout, { 0x00, format, {}, {} });
 }
 
-auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass)
+auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::Format format)
     -> Pipeline
 {
     return buildGraphicsPipeline()
@@ -63,12 +63,24 @@ auto trc::ui_impl::DrawCollector::makeQuadPipeline(vk::RenderPass renderPass, ui
         .addDynamicState(vk::DynamicState::eViewport)
         .addDynamicState(vk::DynamicState::eScissor)
         .setCullMode(vk::CullModeFlagBits::eNone)
-        .addColorBlendAttachment(DEFAULT_COLOR_BLEND_ATTACHMENT_DISABLED)
+        .addColorBlendAttachment(vk::PipelineColorBlendAttachmentState{
+            true,
+            vk::BlendFactor::eSrcAlpha,
+            vk::BlendFactor::eOneMinusSrcAlpha,
+            vk::BlendOp::eAdd,
+            vk::BlendFactor::eSrcAlpha,
+            vk::BlendFactor::eOneMinusSrcAlpha,
+            vk::BlendOp::eAdd,
+            vk::ColorComponentFlagBits::eR
+            | vk::ColorComponentFlagBits::eG
+            | vk::ColorComponentFlagBits::eB
+            | vk::ColorComponentFlagBits::eA
+        })
         .setColorBlending({}, false, {}, {})
-        .build(device, quadPipelineLayout, renderPass, subPass);
+        .build(device, quadPipelineLayout, { 0x00, format, {}, {} });
 }
 
-auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui32 subPass)
+auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::Format format)
     -> Pipeline
 {
     return buildGraphicsPipeline()
@@ -120,7 +132,7 @@ auto trc::ui_impl::DrawCollector::makeTextPipeline(vk::RenderPass renderPass, ui
             )
         )
         .setColorBlending({}, false, {}, {})
-        .build(device, textPipelineLayout, renderPass, subPass);
+        .build(device, quadPipelineLayout, { 0x00, format, {}, {} });
 }
 
 
@@ -136,7 +148,6 @@ void trc::ui_impl::DrawCollector::initStaticResources()
         // Callback on font load
         [] (ui32 fontIndex, const GlyphCache& cache)
         {
-            existingFonts.emplace_back(fontIndex, cache);
             for (auto collector : existingCollectors) {
                 collector->addFont(fontIndex, cache);
             }
@@ -148,7 +159,7 @@ void trc::ui_impl::DrawCollector::initStaticResources()
 
 
 
-trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRenderer& renderer)
+trc::ui_impl::DrawCollector::DrawCollector(const Device& device, vk::Format dstImageFormat)
     :
     device(device),
     quadVertexBuffer(
@@ -169,24 +180,14 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
         vk::BufferUsageFlagBits::eVertexBuffer
     ),
     // Create descriptor set layout
-    descLayout([&] {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings{
-            vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 30,
-                                           vk::ShaderStageFlagBits::eFragment)
-        };
-        auto bindingFlags = vk::DescriptorBindingFlagBits::eVariableDescriptorCount
-                            | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
-        vk::StructureChain chain{
-            vk::DescriptorSetLayoutCreateInfo(
-                vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
-                bindings
-            ),
-            vk::DescriptorSetLayoutBindingFlagsCreateInfo(bindingFlags),
-        };
-
-        return device->createDescriptorSetLayoutUnique(chain.get<vk::DescriptorSetLayoutCreateInfo>());
-    }()),
-
+    descLayout(trc::buildDescriptorSetLayout()
+        .addBinding(vk::DescriptorType::eCombinedImageSampler, 30,
+                    vk::ShaderStageFlagBits::eFragment,
+                    vk::DescriptorBindingFlagBits::eVariableDescriptorCount
+                    | vk::DescriptorBindingFlagBits::eUpdateAfterBind)
+        .addFlag(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool)
+        .build(device)
+    ),
     linePipelineLayout(makePipelineLayout(device, {},
         {
             // Line start and end
@@ -195,11 +196,12 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
             { vk::ShaderStageFlagBits::eFragment, sizeof(vec2) * 2, sizeof(vec4) },
         }
     )),
-    quadPipelineLayout(makePipelineLayout(device, {}, {})),
+    //quadPipelineLayout(makePipelineLayout(device, {}, {})),
+    quadPipelineLayout(trc::makePipelineLayout(device, { *descLayout }, {})),
     textPipelineLayout(trc::makePipelineLayout(device, { *descLayout }, {})),
-    linePipeline(makeLinePipeline(renderer.getRenderPass(), 0)),
-    quadPipeline(makeQuadPipeline(renderer.getRenderPass(), 0)),
-    textPipeline(makeTextPipeline(renderer.getRenderPass(), 0)),
+    linePipeline(makeLinePipeline(dstImageFormat)),
+    quadPipeline(makeQuadPipeline(dstImageFormat)),
+    textPipeline(makeTextPipeline(dstImageFormat)),
     quadBuffer(
         device,
         100, // Initial max number of quads
@@ -229,7 +231,7 @@ trc::ui_impl::DrawCollector::DrawCollector(const Device& device, ::trc::GuiRende
     );
 
     existingCollectors.push_back(this);
-    for (auto& [i, cache] : existingFonts) {
+    for (auto [i, cache] : ui::FontRegistry::getFonts()) {
         addFont(i, cache);
     }
 }

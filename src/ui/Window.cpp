@@ -24,20 +24,12 @@ void trc::ui::initUserCallbacks(
 
 
 
-trc::ui::Window::Window(WindowCreateInfo createInfo)
+trc::ui::Window::Window(const WindowCreateInfo& createInfo)
     :
-    onWindowDestruction(std::move(createInfo.onWindowDestruction)),
-    windowBackend(std::move(createInfo.windowBackend)),
+    windowSize(createInfo.initialSize),
     root(new Root{ *this })
 {
-    assert(this->windowBackend != nullptr);
-
     ioConfig.keyMap = createInfo.keyMap;
-}
-
-trc::ui::Window::~Window()
-{
-    onWindowDestruction(*this);
 }
 
 auto trc::ui::Window::draw() -> const DrawList&
@@ -54,7 +46,12 @@ auto trc::ui::Window::draw() -> const DrawList&
 
 auto trc::ui::Window::getSize() const -> vec2
 {
-    return windowBackend->getSize();
+    return windowSize;
+}
+
+void trc::ui::Window::setSize(uvec2 size)
+{
+    windowSize = size;
 }
 
 auto trc::ui::Window::getRoot() -> Element&
@@ -110,12 +107,12 @@ auto trc::ui::Window::getIoConfig() const -> const IoConfig&
 
 auto trc::ui::Window::normToPixels(vec2 p) const -> vec2
 {
-    return glm::floor(p * windowBackend->getSize());
+    return glm::floor(p * vec2{windowSize});
 }
 
 auto trc::ui::Window::pixelsToNorm(vec2 p) const -> vec2
 {
-    return p / windowBackend->getSize();
+    return p / vec2{windowSize};
 }
 
 void trc::ui::Window::realignElements()

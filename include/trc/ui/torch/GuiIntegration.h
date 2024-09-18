@@ -1,93 +1,62 @@
 #pragma once
 
-#include <mutex>
-#include <thread>
-
 #include <trc_util/Timer.h>
 
-#include "trc/base/FrameSpecificObject.h"
+#include "trc/Framebuffer.h"
+#include "trc/Torch.h"
 #include "trc/core/Pipeline.h"
-#include "trc/core/RenderPass.h"
+#include "trc/core/RenderPlugin.h"
 #include "trc/core/RenderStage.h"
 #include "trc/core/RenderTarget.h"
+#include "trc/core/RenderTarget.h"
 #include "trc/ui/Window.h"
-#include "trc/ui/torch/GuiRenderer.h"
+#include "trc/ui/torch/DrawImplementations.h"
 
 namespace trc
 {
     class RenderGraph;
 
-    inline RenderStage guiRenderStage = makeRenderStage();
+    inline const RenderStage guiRenderStage = makeRenderStage();
 
-    class TorchWindowBackend : public ui::WindowBackend
+    auto buildGuiRenderPlugin(s_ptr<ui::Window> window) -> TorchPipelinePluginBuilder;
+
+    /**
+     * @brief Render plugin implementation for Torch's gui framework.
+     *
+     * Naturally, everything related to Torch's UI is highly experimental and
+     * more of a proof-of-concept right now.
+     */
+    class GuiRenderPlugin : public RenderPlugin
     {
     public:
-        explicit TorchWindowBackend(const RenderTarget& renderTarget)
-            : renderTarget(renderTarget)
-        {}
+        explicit GuiRenderPlugin(s_ptr<ui::Window> window);
 
-        auto getSize() -> vec2 override {
-            return renderTarget.getSize();
-        }
+        void defineRenderStages(RenderGraph& graph) override;
+        void defineResources(ResourceConfig& config) override;
 
-    private:
-        const RenderTarget& renderTarget;
-    };
-
-    /**
-     * Render pass that integrates the gui into Torch's render pipeline.
-     *
-     * Actually, the GuiRenderer class contains the vkRenderPass instance.
-     * This class is merely the component that ties the GUI rendering to
-     * Torch's render pipeline.
-     */
-    class GuiIntegrationPass : public RenderPass
-    {
-    public:
-        GuiIntegrationPass(const Device& device,
-                           RenderTarget renderTarget,
-                           ui::Window& window);
-        ~GuiIntegrationPass();
-
-        void begin(vk::CommandBuffer, vk::SubpassContents, FrameRenderState&) override;
-        void end(vk::CommandBuffer) override;
-
-        void setRenderTarget(RenderTarget renderTarget);
+        auto createViewportResources(ViewportContext& ctx)
+            -> u_ptr<ViewportResources> override;
 
     private:
-        const Device& device;
-        RenderTarget target;
+        class GuiViewportConfig : public ViewportResources
+        {
+        public:
+            GuiViewportConfig(const s_ptr<ui::Window>& window,
+                              const Device& device,
+                              const RenderImage& dstImage);
 
-        std::mutex renderLock;
-        std::thread renderThread;
-        bool stopRenderThread{ false };
+            void registerResources(ResourceStorage& resources) override;
+            void hostUpdate(ViewportContext& ctx) override;
+            void createTasks(ViewportDrawTaskQueue& queue, ViewportContext& ctx) override;
 
-        void createDescriptorSets();
-        void writeDescriptorSets(vk::ImageView srcImage);
+        private:
+            const RenderImage dstImage;
 
-        GuiRenderer renderer;
-        GuiRenderTarget guiImage;
+            s_ptr<ui::Window> window;
+            ui_impl::DrawCollector collector;
+            ui::DrawList drawList;
+        };
 
-        vk::UniqueDescriptorPool blendDescPool;
-        vk::UniqueDescriptorSetLayout blendDescLayout;
-        FrameSpecific<vk::UniqueDescriptorSet> blendDescSets;
-        PipelineLayout imageBlendPipelineLayout;
-        Pipeline imageBlendPipeline;
+        s_ptr<ui::Window> window;
     };
-
-    /**
-     * @brief Initialize the GUI implementation
-     *
-     * Creates a key map for the `ui::Window` that maps Torch's key definitions
-     * in `trc/base/event/Keys.h` to key events for the window.
-     */
-    auto makeGui(const Device& device, const RenderTarget& renderTarget)
-        -> std::pair<u_ptr<ui::Window>, u_ptr<GuiIntegrationPass>>;
-
-    /**
-     * @brief Insert gui renderpass into a render layout
-     *
-     * Inserts the render pass into the graph at the `trc::guiRenderStage` stage.
-     */
-    void integrateGui(GuiIntegrationPass& renderPass, RenderGraph& graph);
 } // namespace trc

@@ -1,5 +1,7 @@
 #include "trc/ui/FontRegistry.h"
 
+#include <ranges>
+
 
 
 auto trc::ui::FontRegistry::addFont(const fs::path& file, ui32 fontSize) -> ui32
@@ -27,4 +29,14 @@ auto trc::ui::FontRegistry::getGlyph(ui32 fontIndex, CharCode character) -> cons
 void trc::ui::FontRegistry::setFontAddCallback(std::function<void(ui32, const GlyphCache&)> func)
 {
     onFontAdd = std::move(func);
+}
+
+auto trc::ui::FontRegistry::getFonts() -> std::generator<std::pair<ui32, GlyphCache&>>
+{
+    for (auto [i, glyphs] : std::views::enumerate(fonts))
+    {
+        if (glyphs != nullptr) {
+            co_yield {i, *glyphs};
+        }
+    }
 }

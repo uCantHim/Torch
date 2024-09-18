@@ -3,17 +3,12 @@
 #include <map>
 
 #include <trc_util/data/IndexMap.h>
-#include "trc/base/Buffer.h"
 
+#include "trc/base/Buffer.h"
 #include "trc/core/Pipeline.h"
 #include "trc/text/GlyphMap.h"
 #include "trc/ui/DrawInfo.h"
-#include "trc/ui/FontRegistry.h"
 #include "trc/ui/torch/DynamicBuffer.h"
-
-namespace trc {
-    class GuiRenderer;
-}
 
 namespace trc::ui_impl
 {
@@ -22,7 +17,7 @@ namespace trc::ui_impl
     class DrawCollector
     {
     public:
-        DrawCollector(const Device& device, ::trc::GuiRenderer& renderer);
+        DrawCollector(const Device& device, vk::Format dstImageFormat);
         ~DrawCollector();
 
         void beginFrame();
@@ -34,12 +29,10 @@ namespace trc::ui_impl
 
         // A list of all existing collectors to notify them about newly loaded resources
         static inline std::vector<DrawCollector*> existingCollectors;
-        // Save previously loaded fonts for collectors constructed later on
-        static inline std::vector<std::pair<ui32, const GlyphCache&>> existingFonts;
 
-        auto makeLinePipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
-        auto makeQuadPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
-        auto makeTextPipeline(vk::RenderPass renderPass, ui32 subPass) -> Pipeline;
+        auto makeLinePipeline(vk::Format format) -> Pipeline;
+        auto makeQuadPipeline(vk::Format format) -> Pipeline;
+        auto makeTextPipeline(vk::Format format) -> Pipeline;
 
         /** @brief Internal drawable type representing a border around an element */
         struct _border {};

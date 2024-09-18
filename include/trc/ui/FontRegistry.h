@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
 #include <atomic>
+#include <generator>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <trc_util/data/IndexMap.h>
 
@@ -19,6 +21,7 @@ namespace trc::ui
         static auto getGlyph(ui32 fontIndex, CharCode character) -> const GlyphMeta&;
 
         static void setFontAddCallback(std::function<void(ui32, const GlyphCache&)> func);
+        static auto getFonts() -> std::generator<std::pair<ui32, GlyphCache&>>;
 
     private:
         static inline std::atomic<ui32> nextFontIndex{ 0 };
