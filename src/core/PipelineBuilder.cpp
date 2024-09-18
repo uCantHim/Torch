@@ -314,6 +314,15 @@ auto trc::GraphicsPipelineBuilder::build(
     return makeGraphicsPipeline(device, build(), layout, renderPass, subPass);
 }
 
+auto trc::GraphicsPipelineBuilder::build(
+    const Device& device,
+    PipelineLayout& layout,
+    const vk::PipelineRenderingCreateInfo& dynamicRenderingInfo)
+    -> Pipeline
+{
+    return makeGraphicsPipeline(device, build(), layout, dynamicRenderingInfo);
+}
+
 auto trc::GraphicsPipelineBuilder::registerPipeline(
     PipelineLayout::ID layout,
     const RenderPassName& renderPass) const -> Pipeline::ID

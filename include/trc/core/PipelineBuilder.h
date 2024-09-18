@@ -125,10 +125,21 @@ namespace trc
          */
         auto build() const -> PipelineTemplate;
 
+        /**
+         * @brief Build the pipeline for a specific render pass.
+         */
         auto build(const Device& device,
                    PipelineLayout& layout,
                    vk::RenderPass renderPass,
                    ui32 subPass)
+            -> Pipeline;
+
+        /**
+         * @brief Build the pipeline for dynamic rendering.
+         */
+        auto build(const Device& device,
+                   PipelineLayout& layout,
+                   const vk::PipelineRenderingCreateInfo& dynamicRenderingInfo)
             -> Pipeline;
 
         /**
