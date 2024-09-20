@@ -149,24 +149,15 @@ RenderPipeline::RenderPipeline(
     initForRenderTarget(_renderTarget);
 }
 
-auto RenderPipeline::draw() -> u_ptr<Frame>
+auto RenderPipeline::makeFrame() -> u_ptr<Frame>
 {
-    auto getAllViewportIndices = [](const PipelineInstance& pipeline)
-        -> std::generator<ui32>
-    {
-        for (ui32 i = 0; auto& vp : pipeline.viewports)
-        {
-            if (vp != nullptr) co_yield i;
-            ++i;
-        }
-    };
+    return std::make_unique<Frame>(device, topLevelResourceStorage, *renderGraph);
+}
 
-    auto frame = std::make_unique<Frame>(
-        device,
-        renderGraph->compile(),
-        topLevelResourceStorage
-    );
-    drawToFrame(*frame, getAllViewportIndices(pipelinesPerFrame->get()));
+auto RenderPipeline::drawAllViewports() -> u_ptr<Frame>
+{
+    auto frame = makeFrame();
+    drawAllViewports(*frame);
 
     return frame;
 }
@@ -175,18 +166,26 @@ auto RenderPipeline::draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_
 {
     assert_arg(std::ranges::all_of(viewports, [](auto& v){ return v != nullptr; }));
 
-    auto frame = std::make_unique<Frame>(
-        device,
-        renderGraph->compile(),
-        topLevelResourceStorage
-    );
-
-    drawToFrame(
-        *frame,
-        std::views::transform(viewports, [](auto&& vp) { return vp->vpIndex; })
-    );
+    auto frame = makeFrame();
+    draw(viewports, *frame);
 
     return frame;
+}
+
+void RenderPipeline::drawAllViewports(Frame& frame)
+{
+    draw(std::ranges::to<std::vector>(getUsedViewports()), frame);
+}
+
+void RenderPipeline::draw(const vk::ArrayProxy<ViewportHandle>& viewports, Frame& frame)
+{
+    assert_arg(std::ranges::all_of(viewports, [](auto& v){ return v != nullptr; }));
+
+    frame.mergeRenderGraph(*renderGraph);
+    drawToFrame(
+        frame,
+        std::views::transform(viewports, [](auto&& vp) { return vp->vpIndex; })
+    );
 }
 
 auto RenderPipeline::makeViewport(

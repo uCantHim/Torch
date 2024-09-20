@@ -164,7 +164,7 @@ int main()
     {
         trc::pollEvents();
 
-        auto frame = pipeline->draw();
+        auto frame = pipeline->drawAllViewports();
 
         frame->spawnTask(
             kRayStage,

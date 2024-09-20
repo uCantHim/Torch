@@ -63,12 +63,9 @@ CommandRecorder::CommandRecorder(
 
 auto CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
 {
-    const size_t numCmdBufs = frame.getRenderGraph().size();
-    //log::debug << "[CommandRecorder]: Recording task commands with "
-    //           << numThreads << " threads.";
-
     const Device& device = *this->device;
 
+    const auto renderGraph = frame.compileRenderGraph();
     auto& resources = perFrameObjects.get();
     auto& pools = resources.perThreadPools;
     auto& cmdBuffers = resources.perThreadCmdBuffers;
@@ -84,6 +81,10 @@ auto CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
     }
 
     // Possibly create new pools if more are required
+    const size_t numCmdBufs = renderGraph.size();
+    //log::debug << "[CommandRecorder]: Recording task commands with "
+    //           << numThreads << " threads.";
+
     while (pools.size() < numCmdBufs)
     {
         auto pool = *pools.emplace_back(device->createCommandPoolUnique(
@@ -106,7 +107,7 @@ auto CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
 
     // For each render stage, dispatch one thread that executes its tasks.
     ui32 threadIndex = 0;
-    for (const RenderStage::ID stage : frame.getRenderGraph())
+    for (const RenderStage::ID stage : renderGraph)
     {
         vk::CommandBuffer cmdBuf = *cmdBuffers.at(threadIndex);
 

@@ -116,10 +116,12 @@ namespace trc
                        const RenderTarget& renderTarget,
                        ui32 maxViewports);
 
+        auto makeFrame() -> u_ptr<Frame>;
+
         /**
          * @brief Create a frame and submit draw commands for all viewports to it.
          */
-        auto draw() -> u_ptr<Frame>;
+        auto drawAllViewports() -> u_ptr<Frame>;
 
         /**
          * @brief Create a frame and draw a specific selection of viewports.
@@ -130,6 +132,16 @@ namespace trc
          *                              are nullptr.
          */
         auto draw(const vk::ArrayProxy<ViewportHandle>& viewports) -> u_ptr<Frame>;
+
+        /**
+         * @brief Draw all viewports to a frame.
+         */
+        void drawAllViewports(Frame& frame);
+
+        /**
+         * @brief Draw a selection of viewports to a frame.
+         */
+        void draw(const vk::ArrayProxy<ViewportHandle>& viewports, Frame& frame);
 
         /**
          * @throw std::out_of_range if the new number of viewports would exceed

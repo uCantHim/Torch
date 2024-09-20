@@ -41,6 +41,11 @@ namespace trc
         void createOrdering(RenderStage from, RenderStage to);
 
         /**
+         * @brief Add another graph's dependencies to the graph.
+         */
+        void merge(const RenderGraph& other);
+
+        /**
          * @throw std::runtime_error if the graph contains cycles.
          */
         auto compile() const -> RenderGraphLayout;
