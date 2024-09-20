@@ -51,8 +51,8 @@ namespace trc
     {
     public:
         Frame(const Device& device,
-              RenderGraphLayout renderGraph,
-              s_ptr<ResourceStorage> resources);
+              s_ptr<ResourceStorage> resources,
+              const RenderGraph& renderGraph = {});
 
         ~Frame() noexcept = default;
 
@@ -62,11 +62,13 @@ namespace trc
         Frame& operator=(Frame&&) noexcept = delete;
 
         auto getDevice() const -> const Device&;
-        auto getRenderGraph() const -> const RenderGraphLayout&;
         auto getResources() -> ResourceStorage&;
         auto getTaskQueue() -> DeviceTaskQueue&;
 
-        auto makeTaskExecutionContext(s_ptr<DependencyRegion>) & -> DeviceExecutionContext;
+        void mergeRenderGraph(const RenderGraph& other);
+        auto compileRenderGraph() const -> RenderGraphLayout;
+
+        auto makeTaskExecutionContext(s_ptr<DependencyRegion> deps) & -> DeviceExecutionContext;
 
         void spawnTask(RenderStage::ID stage, u_ptr<DeviceTask> task);
 
@@ -81,7 +83,7 @@ namespace trc
 
     private:
         const Device& device;
-        RenderGraphLayout renderGraph;
+        RenderGraph renderGraph;
         s_ptr<ResourceStorage> resources;
 
         DeviceTaskQueue taskQueue;

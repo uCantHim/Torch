@@ -41,6 +41,23 @@ void RenderGraph::createOrdering(RenderStage from, RenderStage to)
     headStages.erase(to);  // the dependency destination is no longer a head stage
 }
 
+void RenderGraph::merge(const RenderGraph& other)
+{
+    for (const auto& [stage, deps] : other.stageDeps)
+    {
+        // Dependency destinations are never head stages
+        for (const auto& to : deps) {
+            headStages.erase(to);
+        }
+
+        // Insert new dependencies
+        auto [it, success] = this->stageDeps.try_emplace(stage, deps);
+        if (!success) {
+            it->second.insert(deps.begin(), deps.end());
+        }
+    }
+}
+
 bool RenderGraph::hasCycles() const
 {
     if (headStages.empty()) {
