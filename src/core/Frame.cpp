@@ -41,11 +41,11 @@ void FrameRenderState::signalRenderFinished()
 
 Frame::Frame(
     const Device& device,
-    RenderGraphLayout renderGraph,
-    s_ptr<ResourceStorage> resources)
+    s_ptr<ResourceStorage> resources,
+    const RenderGraph& renderGraph)
     :
     device(device),
-    renderGraph(std::move(renderGraph)),
+    renderGraph(renderGraph),
     resources(std::move(resources))
 {
     assert_arg(this->resources != nullptr);
@@ -56,11 +56,6 @@ auto Frame::getDevice() const -> const Device&
     return device;
 }
 
-auto Frame::getRenderGraph() const -> const RenderGraphLayout&
-{
-    return renderGraph;
-}
-
 auto Frame::getResources() -> ResourceStorage&
 {
     return *resources;
@@ -69,6 +64,16 @@ auto Frame::getResources() -> ResourceStorage&
 auto Frame::getTaskQueue() -> DeviceTaskQueue&
 {
     return taskQueue;
+}
+
+void Frame::mergeRenderGraph(const RenderGraph& other)
+{
+    renderGraph.merge(other);
+}
+
+auto Frame::compileRenderGraph() const -> RenderGraphLayout
+{
+    return renderGraph.compile();
 }
 
 auto Frame::makeTaskExecutionContext(s_ptr<DependencyRegion> depRegion) &
