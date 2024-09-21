@@ -1,41 +1,28 @@
 #include "MaterialEditorRenderConfig.h"
 
+#include <trc/TorchRenderStages.h>
 #include <trc/base/Barriers.h>
 
 
 
-MaterialEditorRenderPass::MaterialEditorRenderPass(
-    const trc::RenderTarget& target,
-    const trc::Device& device,
-    const MaterialEditorRenderingInfo& info,
-    trc::RenderConfig& config)
-    :
-    trc::RenderPass(vk::UniqueRenderPass{VK_NULL_HANDLE}, 1),
-    renderConfig(&config),
-    renderTarget(&target),
-    area{ { 0, 0 }, { target.getSize().x, target.getSize().y } },
-    renderTargetBarrier(info.renderTargetBarrier),
-    finalLayout(info.finalLayout),
-    renderer(device, target.getFrameClock())
-{
-}
-
 void MaterialEditorRenderPass::begin(
     vk::CommandBuffer cmdBuf,
-    vk::SubpassContents,
-    trc::FrameRenderState&)
+    trc::ViewportDrawContext& ctx)
 {
-    if (renderTargetBarrier)
-    {
-        renderTargetBarrier->setImage(renderTarget->getCurrentImage());
-        renderTargetBarrier->setSubresourceRange({ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 });
-        renderTargetBarrier->setDstStageMask(vk::PipelineStageFlagBits2::eColorAttachmentOutput);
-        renderTargetBarrier->setDstAccessMask(vk::AccessFlagBits2::eColorAttachmentWrite);
-        trc::barrier(cmdBuf, *renderTargetBarrier);
-    }
+    ctx.deps().consume(trc::ImageAccess{
+        ctx.renderImage().image,
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::ImageLayout::eColorAttachmentOptimal,
+    });
 
+    const vk::Rect2D area{
+        { ctx.renderArea().offset.x, ctx.renderArea().offset.y, },
+        { ctx.renderArea().size.x, ctx.renderArea().size.y, },
+    };
     vk::RenderingAttachmentInfo colorAttachment{
-        renderTarget->getCurrentImageView(),
+        ctx.renderImage().imageView,
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::ResolveModeFlagBits::eNone, VK_NULL_HANDLE, vk::ImageLayout::eUndefined,  // resolve
         vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
@@ -59,87 +46,97 @@ void MaterialEditorRenderPass::begin(
         static_cast<float>(area.extent.width), static_cast<float>(area.extent.height),
         0.0f, 1.0f
     });
-
-    // Draw the graph
-    renderer.draw(cmdBuf, *renderConfig);
 }
 
-void MaterialEditorRenderPass::end(vk::CommandBuffer cmdBuf)
+void MaterialEditorRenderPass::end(vk::CommandBuffer cmdBuf, trc::ViewportDrawContext& ctx)
 {
     cmdBuf.endRendering();
 
-    trc::barrier(cmdBuf, vk::ImageMemoryBarrier2{
+    ctx.deps().produce(trc::ImageAccess{
+        ctx.renderImage().image,
+        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::AccessFlagBits2::eColorAttachmentWrite,
-        vk::PipelineStageFlagBits2::eBottomOfPipe,
-        vk::AccessFlagBits2::eNone,
-        vk::ImageLayout::eColorAttachmentOptimal, finalLayout,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-        renderTarget->getCurrentImage(),
-        vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+        vk::ImageLayout::eColorAttachmentOptimal,
     });
 }
 
-void MaterialEditorRenderPass::setViewport(ivec2 offset, uvec2 size)
-{
-    area = vk::Rect2D{ { offset.x, offset.y }, { size.x, size.y } };
-}
-
-void MaterialEditorRenderPass::setRenderTarget(const trc::RenderTarget& newTarget)
-{
-    renderTarget = &newTarget;
-}
-
-auto MaterialEditorRenderPass::getRenderer() -> MaterialGraphRenderer&
-{
-    return renderer;
-}
 
 
-
-MaterialEditorRenderConfig::MaterialEditorRenderConfig(
-    const trc::RenderTarget& renderTarget,
-    trc::Window& window,
-    const MaterialEditorRenderingInfo& info)
+MaterialEditorRenderPlugin::MaterialEditorRenderPlugin(
+    const trc::Device& device,
+    const trc::RenderTarget& renderTarget)
     :
-    trc::RenderConfigImplHelper(window.getInstance(), trc::RenderGraph{}),
-    cameraDesc(renderTarget.getFrameClock(), window.getDevice()),
-    renderPass(renderTarget, window.getDevice(), info, *this)
+    renderTargetFormat(renderTarget.getFormat()),
+    cameraDesc(std::make_shared<CameraDescriptor>(renderTarget.getFrameClock(), device)),
+    renderer(device, renderTarget.getFrameClock())
 {
-    addDescriptor(trc::DescriptorName{ kCameraDescriptor }, cameraDesc);
-    addDescriptor(trc::DescriptorName{ kTextureDescriptor },
-                  renderPass.getRenderer().getTextureDescriptor());
-    addRenderPass(kForwardRenderpass, trc::DynamicRenderingInfo{
+}
+
+void MaterialEditorRenderPlugin::defineRenderStages(trc::RenderGraph& graph)
+{
+    graph.createOrdering(kMainRenderStage, trc::imgui::imguiRenderStage);
+    graph.createOrdering(trc::stages::renderTargetImageInit, kMainRenderStage);
+    graph.createOrdering(kMainRenderStage, trc::stages::renderTargetImageFinalize);
+}
+
+void MaterialEditorRenderPlugin::defineResources(trc::ResourceConfig& config)
+{
+    config.defineDescriptor(trc::DescriptorName{ kCameraDescriptor },
+                            cameraDesc->getDescriptorSetLayout());
+    config.defineDescriptor(trc::DescriptorName{ kTextureDescriptor },
+                            renderer.getTextureDescriptorLayout());
+    config.addRenderPass(kForwardRenderpass, trc::DynamicRenderingInfo{
         .viewMask=0x00,
-        .colorAttachmentFormats{ renderTarget.getFormat() },
+        .colorAttachmentFormats{ renderTargetFormat },
         .depthAttachmentFormat{},
         .stencilAttachmentFormat{},
     });
-
-    getRenderGraph().first(kMainRenderStage);
-    getRenderGraph().after(kMainRenderStage, trc::imgui::imguiRenderStage);
-    getRenderGraph().addPass(kMainRenderStage, renderPass);
-    imgui = trc::imgui::initImgui(window, getRenderGraph());
 }
 
-void MaterialEditorRenderConfig::setViewport(ivec2 offset, uvec2 size)
+auto MaterialEditorRenderPlugin::createViewportResources(trc::ViewportContext& ctx)
+    -> u_ptr<trc::ViewportResources>
 {
-    renderPass.setViewport(offset, size);
+    return std::make_unique<ViewportConfig>(*this, ctx);
 }
 
-void MaterialEditorRenderConfig::setRenderTarget(const trc::RenderTarget& newTarget)
+
+
+MaterialEditorRenderPlugin::ViewportConfig::ViewportConfig(
+    MaterialEditorRenderPlugin& parent,
+    trc::ViewportContext&)
+    :
+    parent(parent)
 {
-    renderPass.setRenderTarget(newTarget);
 }
 
-void MaterialEditorRenderConfig::update(const trc::Camera& camera, const GraphRenderData& data)
+void MaterialEditorRenderPlugin::ViewportConfig::registerResources(trc::ResourceStorage& resources)
 {
-    cameraDesc.update(camera);
-    renderPass.getRenderer().uploadData(data);
+    resources.provideDescriptor(trc::DescriptorName{ kCameraDescriptor },
+                                parent.cameraDesc);
+    resources.provideDescriptor(trc::DescriptorName{ kTextureDescriptor },
+                                parent.renderer.getTextureDescriptor());
 }
 
-auto MaterialEditorRenderConfig::getCameraDescriptor() const
-    -> const trc::DescriptorProviderInterface&
+void MaterialEditorRenderPlugin::ViewportConfig::hostUpdate(trc::ViewportContext& ctx)
 {
-    return cameraDesc;
+    parent.cameraDesc->update(ctx.camera());
+
+    auto& scene = ctx.scene().getModule<GraphScene>();
+    const auto renderData = buildRenderData(scene);
+    parent.renderer.uploadData(renderData);
+}
+
+void MaterialEditorRenderPlugin::ViewportConfig::createTasks(
+    trc::ViewportDrawTaskQueue& queue,
+    trc::ViewportContext&)
+{
+    queue.spawnTask(
+        parent.kMainRenderStage,
+        [this](vk::CommandBuffer cmdBuf, trc::ViewportDrawContext& ctx) {
+            parent.renderPass.begin(cmdBuf, ctx);
+            parent.renderer.draw(cmdBuf, ctx.resources());
+            parent.renderPass.end(cmdBuf, ctx);
+        }
+    );
 }

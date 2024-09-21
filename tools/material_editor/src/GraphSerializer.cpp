@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include <trc/base/Logging.h>
+
 #include "material_graph.pb.h"
 
 #include "GraphScene.h"

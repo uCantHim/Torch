@@ -1,9 +1,9 @@
 #pragma once
 
-#include <optional>
 #include <stack>
 
 #include <trc/Camera.h>
+#include <trc/core/Window.h>
 using namespace trc::basic_types;
 
 #include "GraphScene.h"

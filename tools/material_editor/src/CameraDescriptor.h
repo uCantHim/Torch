@@ -15,7 +15,7 @@ public:
 
     void update(const trc::Camera& camera);
 
-    auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout override;
+    auto getDescriptorSetLayout() const noexcept -> vk::DescriptorSetLayout;
     void bindDescriptorSet(
         vk::CommandBuffer cmdBuf,
         vk::PipelineBindPoint bindPoint,

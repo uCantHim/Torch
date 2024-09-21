@@ -28,11 +28,11 @@ auto inferType(const GraphTopology& graph, SocketID sock) -> std::optional<TypeC
     if (auto _out = graph.outputValue.try_get(sock))
     {
         // Socket is an output socket
-        if (auto constVal = try_get<ConstantValue>(_out->get())) {
+        if (auto constVal = try_get<ConstantValue>(*_out)) {
             return toShaderType(constVal->type);
         }
 
-        auto& out = std::get<ComputedValue>(_out->get());
+        auto& out = std::get<ComputedValue>(*_out);
         if (out.resultType) {
             return TypeRange(*out.resultType);
         }
@@ -138,7 +138,7 @@ auto makeInputSocketValue(
         return std::visit(trc::util::VariantVisitor{
             [&](const NumberInputField& f){ return builder.makeConstant(std::stof(f.literalInput)); },
             [&](const ColorInputField& f){ return builder.makeConstant(f.value); },
-        }, inputField->get());
+        }, *inputField);
     }
 
     // No value is defined for the socket.
