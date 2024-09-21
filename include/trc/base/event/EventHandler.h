@@ -91,6 +91,7 @@ namespace trc
     public:
         using IdType = typename EventHandler<EventType>::ListenerId;
 
+        UniqueListenerId() : _id(nullptr, [](IdType*){}) {}
         explicit UniqueListenerId(IdType id)
             :
             _id(new IdType(id), [](IdType* oldId) {
@@ -100,7 +101,7 @@ namespace trc
         {}
 
     private:
-        std::unique_ptr<IdType, void(IdType*)> _id;
+        std::unique_ptr<IdType, void(*)(IdType*)> _id;
     };
 
 
