@@ -46,7 +46,7 @@ namespace trc
          */
         inline operator UniqueListenerId<EventType>() && {
             // Can't use makeUnique() here because the rvalue qualifer is discarded
-            return { id };
+            return UniqueListenerId<EventType>{ id };
         }
 
         /**
@@ -56,7 +56,7 @@ namespace trc
          * @return UniqueListenerId<EventType>
          */
         inline auto makeUnique() && -> UniqueListenerId<EventType> {
-            return { id };
+            return UniqueListenerId<EventType>{ id };
         }
 
     private:
