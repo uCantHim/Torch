@@ -65,10 +65,9 @@ auto GraphScene::findHover(const vec2 pos) const -> GraphHoverInfo
             }
 
             // Now test for hover of the socket's decoration element
-            if (auto decoration = layout.decorationSize.try_get(sock))
+            if (auto hitbox = layout.decorationSize.try_get(sock))
             {
-                const auto& hitbox = decoration->get();
-                if (isInside(pos, { hitbox.origin + nodePos, hitbox.extent })) {
+                if (isInside(pos, { hitbox->origin + nodePos, hitbox->extent })) {
                     return { node, std::nullopt, sock };
                 }
             }

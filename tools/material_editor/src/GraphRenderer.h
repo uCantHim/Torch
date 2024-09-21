@@ -4,6 +4,7 @@
 
 #include <trc/base/FrameSpecificObject.h>
 #include <trc/base/Buffer.h>
+#include <trc/core/Pipeline.h>
 
 #include "Font.h"
 #include "GraphScene.h"
@@ -106,9 +107,10 @@ public:
                           const trc::FrameClock& clock);
 
     void uploadData(const GraphRenderData& data);
-    void draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& conf);
+    void draw(vk::CommandBuffer cmdBuf, trc::ResourceStorage& res);
 
-    auto getTextureDescriptor() const -> const trc::DescriptorProviderInterface&;
+    auto getTextureDescriptorLayout() const -> vk::DescriptorSetLayout;
+    auto getTextureDescriptor() const -> s_ptr<const trc::DescriptorProviderInterface>;
 
 private:
     static constexpr size_t kVertexPosOffset{ 0 };
@@ -161,7 +163,7 @@ private:
 
     vk::UniqueDescriptorPool pool;
     vk::UniqueDescriptorSetLayout layout;
-    trc::DescriptorProvider descProvider;
+    s_ptr<trc::DescriptorProvider> descProvider;
 
     trc::Image baseTexture;
     Texture textures[2];

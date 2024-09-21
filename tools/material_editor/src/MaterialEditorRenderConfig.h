@@ -4,8 +4,7 @@
 
 #include <trc/ImguiIntegration.h>
 #include <trc/core/Instance.h>
-#include <trc/core/RenderConfigImplHelper.h>
-#include <trc/core/RenderConfiguration.h>
+#include <trc/core/RenderPlugin.h>
 #include <trc/core/RenderStage.h>
 #include <trc/core/RenderTarget.h>
 #include <trc/text/Font.h>
@@ -16,46 +15,14 @@ using namespace trc::basic_types;
 #include "CameraDescriptor.h"
 #include "GraphRenderer.h"
 
-struct MaterialEditorRenderingInfo
-{
-    // A barrier on the render target inserted before rendering to it.
-    //
-    // The barrier must bring the image into the color attachment optimal
-    // layout. The image view can be left blank as it will be set by the
-    // renderer.
-    std::optional<vk::ImageMemoryBarrier2> renderTargetBarrier;
-
-    // The layout in which the render target's images should be after the
-    // material editor's draw commands are executed.
-    vk::ImageLayout finalLayout{ vk::ImageLayout::eGeneral };
-};
-
-class MaterialEditorRenderPass : public trc::RenderPass
+class MaterialEditorRenderPass
 {
 public:
-    MaterialEditorRenderPass(const trc::RenderTarget& target,
-                             const trc::Device& device,
-                             const MaterialEditorRenderingInfo& info,
-                             trc::RenderConfig& renderConfig);
-
-    void begin(vk::CommandBuffer cmdBuf, vk::SubpassContents, trc::FrameRenderState&) override;
-    void end(vk::CommandBuffer cmdBuf) override;
-
-    void setViewport(ivec2 offset, uvec2 size);
-    void setRenderTarget(const trc::RenderTarget& newTarget);
-    auto getRenderer() -> MaterialGraphRenderer&;
+    void begin(vk::CommandBuffer cmdBuf, trc::ViewportDrawContext& ctx);
+    void end(vk::CommandBuffer cmdBuf, trc::ViewportDrawContext& ctx);
 
 private:
     static constexpr vk::ClearColorValue kClearValue{ 0.08f, 0.08f, 0.08f, 1.0f };
-
-    trc::RenderConfig* renderConfig;
-
-    const trc::RenderTarget* renderTarget;
-    vk::Rect2D area;
-    std::optional<vk::ImageMemoryBarrier2> renderTargetBarrier;
-    vk::ImageLayout finalLayout;
-
-    MaterialGraphRenderer renderer;
 };
 
 /**
@@ -66,7 +33,7 @@ private:
  * implements its own simplified rendering algorithm: a classical forward
  * approach.
  */
-class MaterialEditorRenderConfig : public trc::RenderConfigImplHelper
+class MaterialEditorRenderPlugin : public trc::RenderPlugin
 {
 public:
     static inline auto kMainRenderStage = trc::makeRenderStage();
@@ -75,24 +42,37 @@ public:
     static constexpr auto kCameraDescriptor{ "material_editor_camera_descriptor" };
     static constexpr auto kTextureDescriptor{ "material_editor_texture_descriptor" };
 
-    MaterialEditorRenderConfig(const trc::RenderTarget& renderTarget,
-                               trc::Window& window,
-                               const MaterialEditorRenderingInfo& info);
+    MaterialEditorRenderPlugin(const trc::Device& device,
+                               const trc::RenderTarget& renderTarget);
 
     void update(const trc::Camera& camera, const GraphRenderData& data);
 
-    void setViewport(ivec2 offset, uvec2 size);
-    void setRenderTarget(const trc::RenderTarget& newTarget);
-
-    auto getCameraDescriptor() const -> const trc::DescriptorProviderInterface&;
+    void defineRenderStages(trc::RenderGraph& graph) override;
+    void defineResources(trc::ResourceConfig& config) override;
+    auto createViewportResources(trc::ViewportContext& ctx)
+        -> u_ptr<trc::ViewportResources> override;
 
 private:
-    CameraDescriptor cameraDesc;
+    class ViewportConfig : public trc::ViewportResources
+    {
+    public:
+        ViewportConfig(MaterialEditorRenderPlugin& parent, trc::ViewportContext& ctx);
+
+        void registerResources(trc::ResourceStorage& resources) override;
+        void hostUpdate(trc::ViewportContext& ctx) override;
+        void createTasks(trc::ViewportDrawTaskQueue& queue, trc::ViewportContext& ctx) override;
+
+    private:
+        MaterialEditorRenderPlugin& parent;
+    };
+
+    const vk::Format renderTargetFormat;
+
+    s_ptr<CameraDescriptor> cameraDesc;
     s_ptr<trc::SharedDescriptorSet> textureDesc;
     s_ptr<trc::FontRegistry> fontRegistry;
     std::optional<trc::FontHandle> font;
 
     MaterialEditorRenderPass renderPass;
-
-    u_ptr<trc::imgui::ImguiRenderPass> imgui;
+    MaterialGraphRenderer renderer;
 };
