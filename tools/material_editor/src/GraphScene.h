@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include <trc/core/SceneModule.h>
+
 #include "GraphTopology.h"
 #include "MaterialNode.h"
 #include "GraphInteraction.h"
@@ -14,7 +16,7 @@ struct GraphHoverInfo
     std::optional<SocketID> hoveredInputField;
 };
 
-struct GraphScene
+struct GraphScene : public trc::SceneModule
 {
     // Graph topology
     GraphTopology graph;

@@ -1,12 +1,11 @@
 #include "GraphRenderer.h"
 
-#include <algorithm>
-#include <numeric>
 #include <ranges>
 
 #include <trc/DescriptorSetUtils.h>
 #include <trc/base/Barriers.h>
 #include <trc/base/ImageUtils.h>
+#include <trc/core/ResourceConfig.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "Font.h"
@@ -260,7 +259,7 @@ MaterialGraphRenderer::MaterialGraphRenderer(
     const trc::FrameClock& clock)
     :
     device(device),
-    descProvider({}, {}),
+    descProvider(std::make_shared<trc::DescriptorProvider>(vk::DescriptorSet{})),
     baseTexture(trc::makeSinglePixelImage(device, vec4(1.0f))),
     vertexBuf(
         device,
@@ -337,7 +336,6 @@ MaterialGraphRenderer::MaterialGraphRenderer(
         .addBinding(descType, 1, vk::ShaderStageFlagBits::eFragment);
     pool = b.buildPool(device, setCount, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
     layout = b.build(device);
-    descProvider = { *layout, {} };
 
     std::vector<vk::DescriptorSetLayout> numSets(setCount, *layout);
     auto sets = device->allocateDescriptorSetsUnique({ *pool, numSets });
@@ -455,7 +453,7 @@ void MaterialGraphRenderer::ensureBufferSize(
     }
 }
 
-void MaterialGraphRenderer::draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& conf)
+void MaterialGraphRenderer::draw(vk::CommandBuffer cmdBuf, trc::ResourceStorage& res)
 {
     const auto& data = *deviceData;
 
@@ -470,8 +468,9 @@ void MaterialGraphRenderer::draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& co
     {
         if (draw.instanceCount == 0) continue;
 
-        auto& pipeline = conf.getPipeline(draw.pipeline);
-        pipeline.bind(cmdBuf, conf);
+
+        auto& pipeline = res.getPipeline(draw.pipeline);
+        pipeline.bind(cmdBuf, res);
         cmdBuf.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, *pipeline.getLayout(),
             1, *textures[draw.textureIndex].descSet, {}
@@ -486,7 +485,12 @@ void MaterialGraphRenderer::draw(vk::CommandBuffer cmdBuf, trc::RenderConfig& co
     }
 }
 
-auto MaterialGraphRenderer::getTextureDescriptor() const -> const trc::DescriptorProviderInterface&
+auto MaterialGraphRenderer::getTextureDescriptorLayout() const -> vk::DescriptorSetLayout
+{
+    return *layout;
+}
+
+auto MaterialGraphRenderer::getTextureDescriptor() const -> s_ptr<const trc::DescriptorProviderInterface>
 {
     return descProvider;
 }

@@ -243,7 +243,7 @@ struct InputTextFieldState : ControlState
                 std::scoped_lock lock{ strLock };
                 inputString += static_cast<char>(e.character);
             }
-        )),
+        ).makeUnique()),
         backspacePress(trc::on<trc::KeyPressEvent>(
             [this](const auto& e){
                 if (e.key == trc::Key::backspace && !inputString.empty()) {
@@ -251,7 +251,7 @@ struct InputTextFieldState : ControlState
                     inputString.pop_back();
                 }
             }
-        )),
+        ).makeUnique()),
         backspaceRepeat(trc::on<trc::KeyRepeatEvent>(
             [this](const auto& e){
                 if (e.key == trc::Key::backspace && !inputString.empty()) {
@@ -259,7 +259,7 @@ struct InputTextFieldState : ControlState
                     inputString.pop_back();
                 }
             }
-        ))
+        ).makeUnique())
     {}
 
     auto update(const ControlInput& in, ControlOutput& out)

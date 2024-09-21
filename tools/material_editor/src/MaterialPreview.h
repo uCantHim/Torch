@@ -1,19 +1,16 @@
 #pragma once
 
-#include <trc/Scene.h>
-#include <trc/TorchRenderConfig.h>
+#include <trc/Torch.h>
 #include <trc/assets/AssetManager.h>
-#include <trc/material/FragmentShader.h>
 
 using namespace trc::basic_types;
 
 class MaterialPreview
 {
 public:
-    MaterialPreview(const trc::Instance& instance, const trc::RenderTarget& renderTarget);
+    MaterialPreview(trc::Window& window, const trc::RenderArea& viewportSize);
 
-    void update();
-    auto getDrawConfig() -> trc::DrawConfig;
+    void draw(trc::Frame& frame);
 
     void setViewport(ivec2 offset, uvec2 size);
     void setRenderTarget(const trc::RenderTarget& newTarget);
@@ -26,11 +23,14 @@ public:
 private:
     void showMaterial(trc::MaterialID mat);
 
-    trc::AssetManagerBase man;
-    trc::TorchRenderConfig config;
+    trc::AssetManager assetManager;
+    u_ptr<trc::RenderPipeline> renderPipeline;
 
-    trc::Camera camera;
-    trc::Scene scene;
+    s_ptr<trc::Camera> camera;
+    s_ptr<trc::Scene> scene;
+    trc::ViewportHandle viewport;
+
+    trc::SunLight sunLight;
 
     trc::GeometryID previewGeo;
     trc::MaterialID mat;

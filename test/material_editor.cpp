@@ -1,4 +1,7 @@
+#include <trc/ImguiIntegration.h>
+#include <trc/SwapchainPlugin.h>
 #include <trc/Torch.h>
+#include <trc/base/event/Event.h>
 #include <trc/material/CommonShaderFunctions.h>
 #include <trc/util/NullDataStorage.h>
 
@@ -17,55 +20,59 @@ int main()
 
     trc::Instance instance{ { .enableRayTracing=false } };
     trc::Window window{ instance };
-    trc::RenderTarget renderTarget = trc::makeRenderTarget(window);
+    trc::Renderer renderer{ instance.getDevice(), window };
 
     const auto fontPath = TRC_TEST_FONT_DIR"/gil.ttf";
     const auto monoFontPath = TRC_TEST_FONT_DIR"/hack_mono.ttf";
     setGlobalTextFont(Font{ window.getDevice(), trc::loadFont(fontPath, 64) });
     setGlobalMonoFont(Font{ window.getDevice(), trc::loadFont(monoFontPath, 64) });
 
+    auto materialEditorPipeline = trc::buildRenderPipeline()
+        .addPlugin([](trc::PluginBuildContext& ctx) -> u_ptr<trc::RenderPlugin> {
+            return std::make_unique<MaterialEditorRenderPlugin>(
+                ctx.device(),
+                ctx.renderTarget()
+            );
+        })
+        .addPlugin(trc::imgui::buildImguiRenderPlugin(window))
+        .addPlugin(trc::buildSwapchainPlugin(window))
+        .build({
+            .instance=instance,
+            .renderTarget=trc::makeRenderTarget(window),
+            .maxViewports=1,
+        });
+
     // -------------------------------------------------------------------------
     // Material preview viewport:
 
-    MaterialPreview preview{ instance, renderTarget };
-
-    preview.setViewport({ window.getSize().x - 350 - 20, 20 }, { 350, 350 });
-    trc::on<trc::SwapchainRecreateEvent>([&](auto&&) {
-        preview.setRenderTarget(renderTarget);
-        preview.setViewport({ renderTarget.getSize().x - 350 - 20, 20 }, { 350, 350 });
+    MaterialPreview preview{
+        window,
+        trc::RenderArea{ { window.getSize().x - 350 - 20, 20 }, { 350, 350 } }
+    };
+    trc::on<trc::SwapchainResizeEvent>([&](auto&&) {
+        preview.setViewport({ window.getSize().x - 350 - 20, 20 }, { 350, 350 });
     });
 
     // -------------------------------------------------------------------------
     // Material graph viewport:
 
-    MaterialEditorRenderConfig config{
-        renderTarget,
-        window,
-        MaterialEditorRenderingInfo{
-            .renderTargetBarrier=vk::ImageMemoryBarrier2{
-                vk::PipelineStageFlagBits2::eAllCommands,
-                vk::AccessFlagBits2::eHostWrite | vk::AccessFlagBits2::eHostRead,
-                {}, {},  // dst flags; will be set by the renderer
-                vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal
-            },
-            .finalLayout=vk::ImageLayout::ePresentSrcKHR
-        }
-    };
-    trc::on<trc::SwapchainRecreateEvent>([&](auto&&) {
-        renderTarget = trc::makeRenderTarget(window);
-        config.setRenderTarget(renderTarget);
-        config.setViewport({ 0, 0 }, renderTarget.getSize());
+    auto scene = std::make_shared<trc::Scene>();
+    auto camera = std::make_shared<trc::Camera>();
+    camera->makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
+
+    auto viewport = materialEditorPipeline->makeViewport({ {}, window.getSize() }, camera, scene);
+    trc::on<trc::SwapchainResizeEvent>([&](auto&&) {
+        materialEditorPipeline->changeRenderTarget(trc::makeRenderTarget(window));
+        viewport->resize({ {}, window.getSize() });
     });
 
-    trc::SceneBase scene;
-    trc::Camera camera;
-    camera.makeOrthogonal(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
-
     // -------------------------------------------------------------------------
-    // Material graph data:
+    // Material graph:
 
-    GraphScene materialGraph;
-    if (std::ifstream file = std::ifstream(".matedit_save", std::ios::binary))
+    scene->registerModule(std::make_unique<GraphScene>());
+    GraphScene& materialGraph = scene->getModule<GraphScene>();
+
+    if (std::ifstream file{ ".matedit_save", std::ios::binary })
     {
         if (auto graph = parseGraph(file)) {
             materialGraph = std::move(*graph);
@@ -79,7 +86,7 @@ int main()
 
     MaterialEditorCommands commands{ materialGraph, preview };
     MaterialEditorGui gui{ window, commands };
-    MaterialEditorControls controls{ window, gui, camera, { .initialZoomLevel=5 } };
+    MaterialEditorControls controls{ window, gui, *camera, { .initialZoomLevel=5 } };
 
     while (window.isOpen() && !window.isPressed(trc::Key::escape))
     {
@@ -87,21 +94,14 @@ int main()
 
         controls.update(materialGraph, commands);
 
-        // Generate renderable data from graph
-        const auto renderData = buildRenderData(materialGraph);
-
-        // Draw a frame
+        // Execute ImGui commands
         gui.drawGui();
 
-        config.update(camera, renderData);
-        preview.update();
-        window.drawFrame({
-            trc::DrawConfig{
-                .scene=scene,
-                .renderConfig=config,
-            },
-            preview.getDrawConfig()
-        });
+        // Draw a frame
+        auto frame = materialEditorPipeline->makeFrame();
+        preview.draw(*frame);
+        materialEditorPipeline->drawAllViewports(*frame);
+        renderer.renderFrameAndPresent(std::move(frame), window);
     }
 
     destroyGlobalFonts();
