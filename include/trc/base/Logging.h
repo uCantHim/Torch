@@ -7,10 +7,31 @@
 
 namespace trc
 {
-    template<bool Enable>
+    namespace log
+    {
+        enum class LogLevel
+        {
+            eDebug,
+            eInfo,
+            eWarning,
+            eError,
+        };
+
+        /**
+         * @return bool True if the specified log level is enabled by the
+         *              applicable compile-time rules.
+         */
+        consteval bool isStaticallyEnabled(LogLevel level) {
+            return level >= TRC_LOG_LEVEL;
+        }
+    } // namespace log
+
+    template<log::LogLevel level>
     class Logger
     {
     public:
+        static constexpr bool kEnable = log::isStaticallyEnabled(level);
+
         struct LogEntry
         {
             LogEntry(const LogEntry&) = delete;
@@ -26,7 +47,7 @@ namespace trc
 
             ~LogEntry()
             {
-                if constexpr (Enable) {
+                if constexpr (kEnable) {
                     if (isOwning) os << "\n";
                 }
             }
@@ -34,7 +55,7 @@ namespace trc
             template<typename T>
             auto operator<<(T&& v) -> LogEntry&
             {
-                if constexpr (Enable) {
+                if constexpr (kEnable) {
                     os << std::forward<T>(v);
                 }
                 return *this;
@@ -42,7 +63,7 @@ namespace trc
 
             auto operator<<(std::source_location loc) -> LogEntry&
             {
-                if constexpr (Enable)
+                if constexpr (kEnable)
                 {
                     os << "["
                        << loc.file_name() << ":" << loc.line()
@@ -96,19 +117,21 @@ namespace trc
 
     namespace log
     {
-#ifdef TRC_DEBUG
-        constexpr auto enableDebugLogging = true;
-#else
-        constexpr auto enableDebugLogging = false;
-#endif
+        extern Logger<LogLevel::eDebug>   debug;
+        extern Logger<LogLevel::eInfo>    info;
+        extern Logger<LogLevel::eWarning> warn;
+        extern Logger<LogLevel::eError>   error;
 
-        extern Logger<enableDebugLogging> debug;
-        extern Logger<enableDebugLogging> info;
-        extern Logger<enableDebugLogging> warn;
-        extern Logger<true>               error;
-
-        inline auto here(std::source_location loc = std::source_location::current())
-        {
+        /**
+         * @brief Insert the current source location into a stream.
+         *
+         * Example:
+         * ```cpp
+         *
+         * log::error << here() << ": An error has occurred!";
+         * ```
+         */
+        constexpr auto here(std::source_location loc = std::source_location::current()) {
             return loc;
         }
 

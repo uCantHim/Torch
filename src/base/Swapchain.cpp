@@ -142,8 +142,7 @@ auto findOptimalImageExtent(
 auto findOptimalSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& formats)
     -> vk::SurfaceFormatKHR
 {
-    if constexpr (trc::log::enableDebugLogging)
-    {
+    { // logging
         auto line = trc::log::info << "   Possible surface formats: ";
         for (const auto& format : formats)
         {
@@ -172,8 +171,7 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
                                    vk::PresentModeKHR preferredMode = vk::PresentModeKHR::eMailbox)
     -> vk::PresentModeKHR
 {
-    if constexpr (trc::log::enableDebugLogging)
-    {
+    { // logging
         auto line = trc::log::info << "   Possible present modes: ";
         for (const auto& mode : presentModes) {
             line << vk::to_string(mode) << ", ";

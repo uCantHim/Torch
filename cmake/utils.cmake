@@ -4,23 +4,32 @@ function (torch_default_compile_options TARGET)
     if (NOT MSVC)
         target_compile_options(${TARGET} PRIVATE -fPIC)
         target_compile_options(${TARGET} PRIVATE
-            $<$<CONFIG:Debug>:-O0 -g>
-            $<$<NOT:$<CONFIG:Debug>>:-O2>
+            $<$<BOOL:${TORCH_BUILD_WITH_DEBUG_INFO}>:-g>
+            -O${TORCH_OPTIMIZATION_LEVEL}
         )
-        target_compile_options(${TARGET} PRIVATE -Wall -Wextra)
-
-        # Generate code coverage when using GCC
-        if (${TORCH_GENERATE_CODE_COVERAGE} AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            target_compile_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:-fprofile-arcs -ftest-coverage --coverage>)
-            target_link_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:--coverage>)
-            target_link_libraries(${TARGET} PRIVATE gcov)
-        endif ()
+        target_compile_options(${TARGET} PRIVATE -Wall -Wextra -Wpedantic)
     else()
-        target_compile_options(${TARGET} PRIVATE /W4)
+        target_compile_options(${TARGET} PRIVATE
+            /W4
+            /O${TORCH_OPTIMIZATION_LEVEL}
+        )
         if (POLICY CMP0091)
             cmake_policy(SET CMP0091 NEW)
         endif ()
     endif()
+
+    # Generate code coverage when using GCC
+    if (${TORCH_GENERATE_CODE_COVERAGE})
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:-fprofile-arcs -ftest-coverage --coverage>)
+            target_link_options(${TARGET} PRIVATE $<$<CONFIG:Debug>:--coverage>)
+            target_link_libraries(${TARGET} PRIVATE gcov)
+        else()
+            message(WARNING "Code coverage generation was enabled by setting TORCH_GENERATE_CODE_COVERAGE"
+                            " to ON, but this feature is only supported for GCC. Disabling code coverage"
+                            " generation.")
+        endif()
+    endif ()
 endfunction()
 
 function (link_gtest TARGET)

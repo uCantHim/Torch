@@ -9,10 +9,9 @@
 
 auto trc::getRequiredValidationLayers() -> std::vector<const char*>
 {
-    if constexpr (!TRC_DEBUG_BUILD) {
-        return {};
-    }
-
+#ifndef TRC_DEBUG
+    return {};
+#else
     static const std::vector<const char*> enabledValidationLayers = {
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_LUNARG_monitor",
@@ -43,6 +42,7 @@ auto trc::getRequiredValidationLayers() -> std::vector<const char*>
     }
 
     return result;
+#endif
 }
 
 
@@ -114,10 +114,10 @@ trc::VulkanDebug::VulkanDebugLogger::VulkanDebugLogger()
     vkInfoLogFile    = { debugLogDir / "vulkan_info.log" };
     vkVerboseLogFile = { debugLogDir / "vulkan_verbose.log" };
 
-    vkErrorLog   = Logger<true>{ vkErrorLogFile, log::makeDefaultLogHeader("ERROR") };
-    vkWarningLog = Logger<true>{ vkWarningLogFile, log::makeDefaultLogHeader("WARNING") };
-    vkInfoLog    = Logger<true>{ vkInfoLogFile, log::makeDefaultLogHeader("INFO") };
-    vkVerboseLog = Logger<true>{ vkVerboseLogFile, log::makeDefaultLogHeader("VERBOSE") };
+    vkErrorLog   = Logger<log::LogLevel::eError>{ vkErrorLogFile, log::makeDefaultLogHeader("ERROR") };
+    vkWarningLog = Logger<log::LogLevel::eWarning>{ vkWarningLogFile, log::makeDefaultLogHeader("WARNING") };
+    vkInfoLog    = Logger<log::LogLevel::eInfo>{ vkInfoLogFile, log::makeDefaultLogHeader("INFO") };
+    vkVerboseLog = Logger<log::LogLevel::eDebug>{ vkVerboseLogFile, log::makeDefaultLogHeader("VERBOSE") };
 
     if (!fs::is_directory(debugLogDir)) {
         fs::create_directories(debugLogDir);

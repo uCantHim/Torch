@@ -12,12 +12,6 @@ namespace fs = std::filesystem;
 namespace trc
 {
 
-#ifdef TRC_DEBUG
-constexpr auto TRC_DEBUG_BUILD = true;
-#else
-constexpr auto TRC_DEBUG_BUILD = false;
-#endif
-
 auto getRequiredValidationLayers() -> std::vector<const char*>;
 
 /**
@@ -55,10 +49,10 @@ private:
         std::ofstream vkWarningLogFile;
         std::ofstream vkInfoLogFile;
         std::ofstream vkVerboseLogFile;
-        Logger<true> vkErrorLog{ vkErrorLogFile };
-        Logger<true> vkWarningLog{ vkWarningLogFile };
-        Logger<true> vkInfoLog{ vkInfoLogFile };
-        Logger<true> vkVerboseLog{ vkVerboseLogFile };
+        Logger<log::LogLevel::eError> vkErrorLog{ vkErrorLogFile };
+        Logger<log::LogLevel::eWarning> vkWarningLog{ vkWarningLogFile };
+        Logger<log::LogLevel::eInfo> vkInfoLog{ vkInfoLogFile };
+        Logger<log::LogLevel::eDebug> vkVerboseLog{ vkVerboseLogFile };
 
         void vulkanDebugCallback(
             vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

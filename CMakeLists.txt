@@ -20,17 +20,33 @@ option(TORCH_FLIP_Y_AXIS "Build Torch in a configuration that has Vulkan's negat
 option(TORCH_BUILD_SHARED_LIBRARY "Build torch as a shared library" OFF)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_GENERATE_CODE_COVERAGE "Enable compiler flags to generate coverage information with gcov. Only affects GCC." OFF)
-option(TORCH_BUILD_EXAMPLES "Build examples" ON)
-option(TORCH_DEBUG "Build with debug flags and -logging" OFF)
+option(TORCH_DEBUG "Build with debug compiler flags, logging, and other debugging features." $<CONFIG:Debug>)
 option(TORCH_DEBUG_THROW_ON_VALIDATION_ERROR
        "Throw a std::runtime_error from the Vulkan debug callback if a validation error occurs.
-       Log all information but do not throw if set to OFF."
+       If set to OFF, log all information but do not throw."
        OFF
 )
 option(TORCH_USE_FBX_SDK "Toggle use of the FBX SDK and related features. Requires libxml2!" ON)
 option(TORCH_INTEGRATE_IMGUI "Build ImGui integration library" OFF)
-option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" ON)
+option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" OFF)
+option(TORCH_BUILD_EXAMPLES "Build examples" ON)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
+
+# Some more user options
+set(TORCH_LOG_LEVEL $<IF:$<BOOL:${TORCH_DEBUG}>,Debug,Warning> CACHE STRING
+    "Log level. May be one of {'Error', 'Warning', 'Info', 'Debug'}.")
+set(TORCH_OPTIMIZATION_LEVEL $<IF:$<BOOL:${TORCH_DEBUG}>,0,2> CACHE STRING
+    "A string appended to the '-O' or '/O' compiler options.")
+option(TORCH_BUILD_WITH_DEBUG_INFO "Build Torch with the -g flag" ${TORCH_DEBUG})
+
+# Process options
+if (${TORCH_DEBUG})
+    message(
+        "TORCH_DEBUG is enabled; this sets the following default values: TORCH_LOG_LEVEL=Debug,"
+        " TORCH_OPTIMIZATION_LEVEL=0, and TORCH_BUILD_WITH_DEBUG_INFO=ON."
+        " You may override these individually as you see fit."
+    )
+endif()
 
 # Torch build variables
 set(TORCH_EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/bin)
@@ -40,15 +56,8 @@ set(TORCH_SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
 set(TORCH_SHADER_OUTPUT_DIR ${TORCH_GENERATED_DIR}/shaders)
 set(TORCH_INTERNAL_SHADER_DB ${TORCH_GENERATED_DIR}/shader-db.json)
 
-if (${TORCH_DEBUG})
-    set(CMAKE_BUILD_TYPE DEBUG)
-endif()
-
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Debug settings
-set(TORCH_DEBUG $<$<CONFIG:Debug>:ON>)
 
 # Third-party
 find_package(Threads REQUIRED)
@@ -110,14 +119,14 @@ target_compile_definitions(torch
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
 
         # Debug settings
+        TRC_LOG_LEVEL=::trc::log::LogLevel::e${TORCH_LOG_LEVEL}
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
         $<$<BOOL:${TORCH_DEBUG_THROW_ON_VALIDATION_ERROR}>:TRC_DEBUG_THROW_ON_VALIDATION_ERROR>
-        TRC_DEBUG_VULKAN_LOGS_DIR="vulkan_logs"
+        TRC_DEBUG_VULKAN_LOGS_DIR="torch_vulkan_logs"
 )
 
 # Sources
 add_subdirectory(src)
-add_subdirectory(include/trc) # Precompiled headers
 
 # Pipeline generation
 include(cmake/build_tools.cmake)

@@ -1,11 +1,8 @@
 #include "trc/base/Logging.h"
 
-#include <ctime>  // std::localtime
-
 #include <chrono>
-#include <iomanip>  // std::put_time
 #include <iostream>
-#include <sstream>
+#include <format>
 
 
 
@@ -17,11 +14,13 @@ namespace trc::log
 
         auto operator()() const -> std::string
         {
-            std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-            std::stringstream ss;
-            ss << "[" << std::put_time(std::localtime(&time), "%F %T") << "]"
-               << " --" << severity << "-- ";
-            return ss.str();
+            auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+
+            // https://en.cppreference.com/w/cpp/chrono/hh_mm_ss/formatter
+            // %F is eqivalent to %Y-%m-%d
+            // %X is the locale's time representation. %T could work instead but it
+            // prints too many sub-second digits for my taste.
+            return std::format("[{:%F %X}] --{}-- ", time, severity);
         }
 
         std::string_view severity;
@@ -32,8 +31,8 @@ namespace trc::log
         return DefaultLogHeader{ messageSeverity };
     }
 
-    Logger<enableDebugLogging> debug(std::cout, DefaultLogHeader{ "DEBUG" });
-    Logger<enableDebugLogging> info(std::cout, DefaultLogHeader{ "INFO" });
-    Logger<enableDebugLogging> warn(std::cout, DefaultLogHeader{ "WARNING" });
-    Logger<true> error(std::cout, DefaultLogHeader{ "ERROR" });
+    Logger<LogLevel::eDebug>   debug(std::cout, DefaultLogHeader{ "DEBUG" });
+    Logger<LogLevel::eInfo>    info(std::cout, DefaultLogHeader{ "INFO" });
+    Logger<LogLevel::eWarning> warn(std::cout, DefaultLogHeader{ "WARNING" });
+    Logger<LogLevel::eError>   error(std::cout, DefaultLogHeader{ "ERROR" });
 }

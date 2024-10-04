@@ -54,7 +54,7 @@ std::vector<const char*> getRequiredInstanceExtensions()
     auto requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
     if (requiredExtensions == nullptr)
     {
-        trc::log::error << trc::log::here() << ": The current machine does not support the minimal"
+        trc::log::warn << trc::log::here() << ": The current machine does not support the minimal"
             " required set of Vulkan extensions. Surface creation will not be possible.";
     }
     else {
