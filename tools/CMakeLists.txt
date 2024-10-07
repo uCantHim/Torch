@@ -24,25 +24,38 @@ set_target_properties(glslc_exe PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
 )
 
-# Other tools
-add_subdirectory(asset_convert)
-add_subdirectory(asset_inspect)
-
 
 ######################
 #   Optional tools   #
 ######################
 
+if (${TORCH_BUILD_ASSET_TOOLS})
+    add_subdirectory(asset_convert)
+    add_subdirectory(asset_inspect)
+endif()
+
 if (${TORCH_BUILD_SCENE_EDITOR})
     if (NOT ${TORCH_INTEGRATE_IMGUI})
-        message(FATAL_ERROR "ImGui integration must be enabled to build the scene editor")
+        message(FATAL_ERROR "ImGui integration must be enabled to build the scene editor."
+                            " Set TORCH_INTEGRATE_IMGUI=ON to solve this.")
+    endif ()
+
+    add_subdirectory(scene_editor)
+    set_target_properties(scene_editor_exe PROPERTIES
+        OUTPUT_NAME scene_editor
+        RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
+    )
+endif ()
+
+if (${TORCH_BUILD_MATERIAL_EDITOR})
+    if (NOT ${TORCH_INTEGRATE_IMGUI})
+        message(FATAL_ERROR "ImGui integration must be enabled to build the material editor."
+                            " Set TORCH_INTEGRATE_IMGUI=ON to solve this.")
     endif ()
 
     add_subdirectory(material_editor)
-    add_subdirectory(scene_editor)
-
-    set_target_properties(scene_editor_exe PROPERTIES
-        OUTPUT_NAME scene_editor
+    set_target_properties(material_editor_exe PROPERTIES
+        OUTPUT_NAME material_editor
         RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
     )
 endif ()

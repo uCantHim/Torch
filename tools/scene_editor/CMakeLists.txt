@@ -36,7 +36,7 @@ if (${SCENE_EDITOR_BUILD_TESTS})
     add_subdirectory(test)
 endif ()
 
-# Create the actual executable
+# Create the scene editor executable
 add_executable(scene_editor_exe main.cpp)
 target_link_libraries(scene_editor_exe PRIVATE scene_editor)
 target_include_directories(scene_editor_exe PRIVATE src)
