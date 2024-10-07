@@ -17,7 +17,7 @@ project(Torch)
 
 # Options
 option(TORCH_FLIP_Y_AXIS "Build Torch in a configuration that has Vulkan's negative y-axis flipped" ON)
-option(TORCH_BUILD_SHARED_LIBRARY "Build torch as a shared library" OFF)
+option(TORCH_BUILD_SHARED_LIBRARY "Build torch as a shared library" ON)
 option(TORCH_BUILD_TEST "Build tests for torch" ON)
 option(TORCH_GENERATE_CODE_COVERAGE "Enable compiler flags to generate coverage information with gcov. Only affects GCC." OFF)
 option(TORCH_DEBUG "Build with debug compiler flags, logging, and other debugging features." $<CONFIG:Debug>)
@@ -31,6 +31,8 @@ option(TORCH_INTEGRATE_IMGUI "Build ImGui integration library" OFF)
 option(TORCH_INTEGRATE_GUI "Build integration of custom GUI library" OFF)
 option(TORCH_BUILD_EXAMPLES "Build examples" ON)
 option(TORCH_BUILD_SCENE_EDITOR "Build a graphical scene editing tool" OFF)
+option(TORCH_BUILD_MATERIAL_EDITOR "Build a graphical material editing tool" OFF)
+option(TORCH_BUILD_ASSET_TOOLS "Build additional tools for asset manipulation" OFF)
 
 # Some more user options
 set(TORCH_LOG_LEVEL $<IF:$<BOOL:${TORCH_DEBUG}>,Debug,Warning> CACHE STRING
