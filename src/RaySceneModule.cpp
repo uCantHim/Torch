@@ -1,5 +1,7 @@
 #include "trc/RaySceneModule.h"
 
+#include "trc/ray_tracing/GeometryUtils.h"
+
 
 
 namespace trc

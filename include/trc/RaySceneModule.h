@@ -10,6 +10,12 @@
 
 namespace trc
 {
+    namespace rt
+    {
+        class BottomLevelAccelerationStructure;
+        using BLAS = BottomLevelAccelerationStructure;
+    } // namespace rt
+
     class RaySceneModule : public SceneModule
     {
     public:

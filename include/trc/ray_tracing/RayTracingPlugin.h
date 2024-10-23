@@ -1,6 +1,7 @@
 #pragma once
 
 #include "trc/TopLevelAccelerationStructureBuilder.h"
+#include "trc/base/MemoryPool.h"
 #include "trc/core/RenderPlugin.h"
 #include "trc/ray_tracing/AccelerationStructure.h"
 #include "trc/ray_tracing/FinalCompositingPass.h"

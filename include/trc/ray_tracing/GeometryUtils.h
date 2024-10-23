@@ -1,18 +1,11 @@
 #pragma once
 
-#include "trc/Node.h"
-#include "trc/assets/Geometry.h"
-
-namespace trc {
-    class Device;
-}
+#include "trc/Types.h"
+#include "trc/VulkanInclude.h"
 
 namespace trc::rt
 {
     class BottomLevelAccelerationStructure;
-
-    auto makeGeometryInfo(const Device& device, const GeometryHandle& geo)
-        -> vk::AccelerationStructureGeometryKHR;
 
     struct GeometryInstance
     {

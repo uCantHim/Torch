@@ -206,6 +206,9 @@ namespace trc
          */
         auto getAccelerationStructure() const -> const rt::BottomLevelAccelerationStructure&;
 
+        auto getAccelerationStructureGeometry(const Device& device) const
+            -> vk::AccelerationStructureGeometryKHR;
+
     private:
         friend class GeometryRegistry;
         using DeviceDataHandle = DeviceDataCache<GeometryRegistry::DeviceData>::CacheEntryHandle;

@@ -48,7 +48,7 @@ GeometryRegistry::GeometryRegistry(const GeometryRegistryCreateInfo& info)
 
         return MemoryPool(info.instance.getDevice(), info.memoryPoolChunkSize, allocFlags);
     }()),
-    dataWriter(info.instance.getDevice()),  /* , memoryPool.makeAllocator()) */
+    dataWriter(info.instance.getDevice()/*, memoryPool.makeAllocator()*/),
     accelerationStructureBuilder(info.instance),
     deviceDataStorage(DeviceDataCache<DeviceData>::makeLoader(
         [this](ui32 id){ return loadDeviceData(LocalID{ id }); },
@@ -98,6 +98,7 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
     const size_t indicesSize = data.indices.size() * sizeof(decltype(data.indices)::value_type);
     const size_t meshVerticesSize = data.vertices.size() * sizeof(decltype(data.vertices)::value_type);
 
+    const auto alloc = memoryPool.makeAllocator();
     auto deviceData = DeviceData{
         .deviceIndex = ui32{id},
         .indexBuf = {
@@ -106,7 +107,7 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
             config.geometryBufferUsage
                 | vk::BufferUsageFlagBits::eIndexBuffer
                 | vk::BufferUsageFlagBits::eTransferDst,
-            memoryPool.makeAllocator()
+            alloc
         },
         .meshVertexBuf = {
             instance.getDevice(),
@@ -114,7 +115,7 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
             config.geometryBufferUsage
                 | vk::BufferUsageFlagBits::eVertexBuffer
                 | vk::BufferUsageFlagBits::eTransferDst,
-            memoryPool.makeAllocator()
+            alloc
         },
         .skeletalVertexBuf = {},
 
@@ -138,7 +139,7 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
             config.geometryBufferUsage
                 | vk::BufferUsageFlagBits::eVertexBuffer
                 | vk::BufferUsageFlagBits::eTransferDst,
-            memoryPool.makeAllocator()
+            alloc
         };
         dataWriter.write(*deviceData.skeletalVertexBuf, 0, data.skeletalVertices.data(), skelVerticesSize);
     }
@@ -156,7 +157,7 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
         deviceData.blas = std::make_unique<rt::BLAS>(
             instance,
             makeAccelerationStructureGeometryInfo(instance.getDevice(), deviceData),
-            memoryPool.makeAllocator()
+            alloc
         );
         accelerationStructureBuilder.enqueue(*deviceData.blas);
 
@@ -367,6 +368,12 @@ auto GeometryHandle::getAccelerationStructure() const -> const rt::BottomLevelAc
     }
 
     return *deviceData->blas;
+}
+
+auto GeometryHandle::getAccelerationStructureGeometry(const Device& device) const
+    -> vk::AccelerationStructureGeometryKHR
+{
+    return GeometryRegistry::makeAccelerationStructureGeometryInfo(device, *deviceData);
 }
 
 } // namespace trc

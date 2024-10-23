@@ -1,29 +1,8 @@
 #include "trc/ray_tracing/GeometryUtils.h"
 
-#include "trc/base/Device.h"
-
 #include "trc/ray_tracing/AccelerationStructure.h"
 
 
-
-auto trc::rt::makeGeometryInfo(const Device& device, const GeometryHandle& geo)
-    -> vk::AccelerationStructureGeometryKHR
-{
-    return { // Array of geometries in the AS
-        vk::GeometryTypeKHR::eTriangles,
-        vk::AccelerationStructureGeometryDataKHR{ // a union
-            vk::AccelerationStructureGeometryTrianglesDataKHR(
-                vk::Format::eR32G32B32Sfloat,
-                device->getBufferAddress({ geo.getVertexBuffer() }),
-                geo.getVertexSize(),
-                geo.getIndexCount(), // max vertex
-                vk::IndexType::eUint32,
-                device->getBufferAddress({ geo.getIndexBuffer() }),
-                nullptr // transform data
-            )
-        }
-    };
-}
 
 trc::rt::GeometryInstance::GeometryInstance(
     glm::mat3x4 transform,
