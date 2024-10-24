@@ -1,6 +1,5 @@
 #pragma once
 
-#include <concepts>
 #include <iostream>
 #include <optional>
 #include <unordered_map>
@@ -15,7 +14,7 @@
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
 #include "trc/assets/TextureRegistry.h"
-#include "trc/base/Buffer.h"
+#include "trc/material/MaterialProgram.h"
 #include "trc/material/MaterialSpecialization.h"
 
 namespace trc
@@ -32,12 +31,23 @@ namespace trc
     };
 
     template<>
-    struct AssetData<Material> : public ShaderRuntimeConstantDeserializer
+    struct AssetData<Material>
     {
-        AssetData() = default;
-        AssetData(ShaderModule fragModule, bool transparent);
+        /**
+         * @brief Create a material
+         */
+        explicit AssetData(const MaterialBaseInfo& createInfo);
 
-        std::unordered_map<MaterialKey, MaterialProgramData> programs;
+        /** Used internally during serialization. */
+        explicit AssetData(MaterialSpecializationCache specializations);
+
+        MaterialSpecializationCache shaderProgram;
+
+        /**
+         * Default values for runtime parameters to the material's shader
+         * program. Runtime parameters are usually implemented as push constants.
+         */
+        std::vector<std::pair<ui32, std::vector<std::byte>>> runtimeValueDefaults;
 
         bool transparent{ false };
         std::optional<vk::PolygonMode> polygonMode;
@@ -52,19 +62,43 @@ namespace trc
 
         void resolveReferences(AssetManager& man);
 
-        void serialize(std::ostream& os) const;
-        void deserialize(std::istream& is);
+        /**
+         * Implements all types of runtime constants that Torch defines.
+         */
+        struct RuntimeConstantDeserializer : public shader::ShaderRuntimeConstantDeserializer
+        {
+            auto deserialize(const std::string& data)
+                -> std::optional<s_ptr<shader::ShaderRuntimeConstant>> override;
 
-    private:
-        auto deserialize(const std::string& data)
-            -> std::optional<s_ptr<ShaderRuntimeConstant>> override;
+            // The output. After calling `deserialize` an arbitrary number of
+            // times, this array will contain all texture references that were
+            // parsed, if any.
+            std::vector<AssetReference<Texture>> loadedTextures;
+        };
 
-        std::vector<AssetReference<Texture>> textures;
+        std::vector<AssetReference<Texture>> requiredTextures;
     };
 
     using MaterialHandle = AssetHandle<Material>;
     using MaterialData = AssetData<Material>;
     using MaterialID = TypedAssetID<Material>;
+
+    template<>
+    struct AssetSerializerTraits<Material>
+    {
+        static void serialize(const MaterialData& data, std::ostream& os);
+        static auto deserialize(std::istream& is) -> AssetParseResult<Material>;
+    };
+
+    /**
+     * @brief Specialize a material description to create a runtime program.
+     *
+     * @param data           The material description.
+     * @param specialization Specialization info.
+     */
+    auto makeMaterialProgram(MaterialData& data,
+                             const MaterialSpecializationInfo& specialization)
+        -> u_ptr<MaterialProgram>;
 
     class MaterialRegistry : public AssetRegistryModuleInterface<Material>
     {
@@ -83,23 +117,26 @@ namespace trc
     private:
         friend Handle;
 
-        struct Storage
+        /**
+         * @brief Manages specializations for a material.
+         *
+         * Lazily creates material specializations (shader programs and
+         * runtimes) when they're requested.
+         */
+        struct SpecializationStorage
         {
-            auto getSpecialization(const MaterialKey& key) const -> MaterialRuntime
-            {
-                assert(runtimePrograms.at(key.flags.toIndex()) != nullptr);
-                return runtimePrograms.at(key.flags.toIndex())->makeRuntime();
-            }
+            auto getSpecialization(const MaterialKey& key) -> MaterialRuntime;
+
+            static constexpr size_t kNumSpecializations
+                = MaterialKey::MaterialSpecializationFlags::size();
 
             MaterialData data;
-            std::array<
-                u_ptr<const MaterialShaderProgram>,
-                MaterialKey::MaterialSpecializationFlags::size()
-            > runtimePrograms;
+            std::array<u_ptr<const MaterialProgram>, kNumSpecializations> shaderPrograms;
+            std::array<u_ptr<MaterialRuntime>, kNumSpecializations> runtimes;
         };
 
         data::IdPool<ui64> localIdPool;
-        util::SafeVector<Storage> storage;
+        util::SafeVector<SpecializationStorage> storage;
     };
 
     template<>
@@ -120,9 +157,9 @@ namespace trc
 
     private:
         friend class MaterialRegistry;
-        AssetHandle(MaterialRegistry::Storage& storage)
+        AssetHandle(MaterialRegistry::SpecializationStorage& storage)
             : storage(&storage) {}
 
-        MaterialRegistry::Storage* storage;
+        MaterialRegistry::SpecializationStorage* storage;
     };
 } // namespace trc

@@ -9,10 +9,10 @@
 #include <trc/assets/SimpleMaterial.h>
 #include <trc/assets/import/AssetImport.h>
 #include <trc/drawable/DrawableScene.h>
-#include <trc/material/CommonShaderFunctions.h>
 #include <trc/material/FragmentShader.h>
-#include <trc/material/ShaderModuleCompiler.h>
+#include <trc/material/ShaderFunctions.h>
 #include <trc/material/TorchMaterialSettings.h>
+#include <trc/material/shader/CommonShaderFunctions.h>
 #include <trc_util/Timer.h>
 
 using namespace trc;
@@ -35,7 +35,7 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     AssetReference<Texture> normalMap(stonePath);
 
     // Build a material graph
-    ShaderModuleBuilder builder;
+    trc::shader::ShaderModuleBuilder builder;
 
     auto uvs = builder.makeCapabilityAccess(MaterialCapability::kVertexUV);
     auto texColor = builder.makeCall<TextureSample>({
@@ -43,13 +43,13 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
         uvs
     });
 
-    auto color = builder.makeCall<Mix<4, float>>({
+    auto color = builder.makeCall<shader::Mix<4, float>>({
         builder.makeConstant(vec4(1, 0, 0, 1)),
         builder.makeConstant(vec4(0, 0, 1, 1)),
         builder.makeExternalCall("length", { uvs }),
     });
     auto c = builder.makeConstant(0.5f);
-    auto mix = builder.makeCall<Mix<4, float>>({ color, texColor, c });
+    auto mix = builder.makeCall<shader::Mix<4, float>>({ color, texColor, c });
     mix = builder.makeConstructor<vec4>(
         builder.makeMemberAccess(mix, "rgb"),
         builder.makeConstant(0.3f)
@@ -82,7 +82,7 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
 
     // Create a pipeline
     const bool transparent{ true };
-    MaterialData materialData{ fragmentModule.build(std::move(builder), transparent), transparent };
+    MaterialData materialData{ {fragmentModule.build(std::move(builder), transparent), transparent} };
 
     return materialData;
 }
@@ -109,11 +109,9 @@ int main()
     // Demonstrate serialization and deserialization
     {
         std::stringstream stream;
-        materialData.serialize(stream);
+        AssetSerializerTraits<Material>::serialize(materialData, stream);
         stream.flush();
-
-        materialData = {};
-        materialData.deserialize(stream);
+        materialData = AssetSerializerTraits<Material>::deserialize(stream).value();
     }
 
     // Load resources
