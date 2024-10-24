@@ -53,6 +53,9 @@ namespace trc
             bool isArray;  // TODO: Add an array type to code::Type?
 
             // An array count of 0 means that the length is runtime dependent.
+            //
+            // TODO: Remove `isArray`, make `arrayCount` a std::optional<ui32>
+            // instead.
             ui32 arrayCount{ 0 };
 
             std::optional<std::string> layoutQualifier;

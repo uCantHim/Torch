@@ -199,6 +199,9 @@ namespace trc
      * The code builder can query capabilities in the form of code values.
      * `ShaderResourceInterface` collects all resources queried this way and
      * finally generates the shader code that defines these resources.
+     *
+     * TODO: This should be called 'ShaderResourceInterfaceBuilder'. 'ShaderResources' should
+     *       be called 'ShaderResourceInterface' instead.
      */
     class ShaderResourceInterface
     {

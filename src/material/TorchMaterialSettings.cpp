@@ -320,7 +320,7 @@ auto makeShaderDescriptorConfig() -> ShaderDescriptorConfig
     return ShaderDescriptorConfig{
         .descriptorInfos{
             { RasterPlugin::GLOBAL_DATA_DESCRIPTOR, { 0, true } },
-            { AssetPlugin::ASSET_DESCRIPTOR,       { 1, true } },
+            { AssetPlugin::ASSET_DESCRIPTOR,        { 1, true } },
             { RasterPlugin::SCENE_DESCRIPTOR,       { 2, true } },
             { RasterPlugin::G_BUFFER_DESCRIPTOR,    { 3, true } },
             { RasterPlugin::SHADOW_DESCRIPTOR,      { 4, true } },

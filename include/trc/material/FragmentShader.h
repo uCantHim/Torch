@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ShaderCapabilities.h"
-#include "ShaderModuleBuilder.h"
-#include "ShaderOutputInterface.h"
-#include "ShaderModuleCompiler.h"
+#include "trc/material/ShaderCapabilities.h"
+#include "trc/material/ShaderModuleBuilder.h"
+#include "trc/material/ShaderModuleCompiler.h"
+#include "trc/material/TorchMaterialSettings.h"
 
 namespace trc
 {
@@ -108,7 +108,7 @@ namespace trc
         void setParameter(Parameter param, code::Value value);
 
         /**
-         * @brief Compile the module description to a shader module
+         * @brief Compile the module description to a fragment shader module
          *
          * @param ShaderModuleBuilder moduleCode The code builder with which
          *        the shader code used in `FragmentModule::setParameter` was
@@ -116,12 +116,28 @@ namespace trc
          * @param bool transparent An additional setting for the fragment
          *        shader. Set to `true` if the shader is used for transparent
          *        objects.
+         * @param ShaderCapabilityConfig config The capability configuration to
+         *        be used to generate the shader module. If a custom one is
+         *        provided (e.g. to add custom functionality/inputs to the
+         *        fragment shader), it should be a superset (i.e. a modified
+         *        version) of the default config, which can be obtained from
+         *        `trc::makeFragmentCapabilityConfig`.
          *
          * @throw std::invalid_argument if a required parameter has not been set
          *                              beforehand.
          */
-        auto build(ShaderModuleBuilder moduleCode, bool transparent) -> ShaderModule;
+        auto build(ShaderModuleBuilder moduleCode,
+                   bool transparent,
+                   const ShaderCapabilityConfig& config = makeFragmentCapabilityConfig())
+            -> ShaderModule;
 
+        /**
+         * @brief Compile the module description to a closest-hit shader module
+         *
+         * @param ShaderModuleBuilder moduleCode The code builder with which
+         *        the shader code used in `FragmentModule::setParameter` was
+         *        generated.
+         */
         auto buildClosesthitShader(ShaderModuleBuilder builder) -> ShaderModule;
 
     private:

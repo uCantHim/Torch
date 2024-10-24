@@ -13,7 +13,7 @@ trc::DeviceLocalDataWriter::DeviceLocalDataWriter(
     device(device),
     alloc(std::move(alloc))
 {
-    updateData.emplace_back(new PersistentUpdateStructures);
+    updateData.emplace_back(std::make_unique<PersistentUpdateStructures>());
 }
 
 void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderState& state)
@@ -27,7 +27,7 @@ void trc::DeviceLocalDataWriter::update(vk::CommandBuffer cmdBuf, FrameRenderSta
         if (frame->empty()) return;
 
         // Append new update information storage
-        updateData.emplace_back(new PersistentUpdateStructures);
+        updateData.emplace_back(std::make_unique<PersistentUpdateStructures>());
 
         state.onRenderFinished([this, ptr=frame] {
             std::scoped_lock lock(updateDataLock);

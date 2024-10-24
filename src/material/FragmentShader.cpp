@@ -1,7 +1,5 @@
 #include "trc/material/FragmentShader.h"
 
-#include "trc/material/TorchMaterialSettings.h"
-
 
 
 namespace trc
@@ -29,7 +27,10 @@ void FragmentModule::setParameter(Parameter param, code::Value value)
     parameters[static_cast<size_t>(param)] = value;
 }
 
-auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> ShaderModule
+auto FragmentModule::build(
+    ShaderModuleBuilder builder,
+    bool transparent,
+    const ShaderCapabilityConfig& capabilityConfig) -> ShaderModule
 {
     ShaderOutputInterface output;
 
@@ -118,7 +119,7 @@ auto FragmentModule::build(ShaderModuleBuilder builder, bool transparent) -> Sha
     return ShaderModuleCompiler{}.compile(
         output,
         std::move(builder),
-        makeFragmentCapabilityConfig()
+        capabilityConfig
     );
 }
 
