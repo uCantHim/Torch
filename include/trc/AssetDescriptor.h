@@ -23,6 +23,10 @@ namespace trc
         // descriptor.
         ui32 maxTextures{ 5000 };
 
+        // The maximum number of material parameter structures that may exist
+        // in the descriptor. Used to draw data for the 'SimpleMaterial' asset.
+        ui32 maxSimpleMaterials{ 10000 };
+
         // The maximum number of glyph maps that may exist in the descriptor.
         ui32 maxFonts{ 100 };
     };
@@ -59,6 +63,11 @@ namespace trc
         //
         // GLSL format: `sampler2D[]`
         eTextureSamplers,
+
+        // A storage buffer.
+        //
+        // GLSL format: `std430 buffer{ SimpleMaterialData mats[]; }`
+        eMaterialParameterBuffer,
 
         // An array of samplers. Contains one sampler for each registered
         // glyph map.
