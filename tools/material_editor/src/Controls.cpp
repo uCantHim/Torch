@@ -1,20 +1,18 @@
 #include "Controls.h"
 
 #include <cassert>
-#include <fstream>
 #include <mutex>
 #include <variant>
 
 #include <trc/base/event/Event.h>
 #include <trc/base/event/InputState.h>
 #include <trc/core/Window.h>
-#include <trc/material/ShaderCodeCompiler.h>
-#include <trc/material/ShaderModuleCompiler.h>
+#include <trc/material/shader/ShaderCodeCompiler.h>
+#include <trc/material/shader/ShaderModuleCompiler.h>
 #include <trc/material/TorchMaterialSettings.h>
 #include <trc_util/Timer.h>
 
 #include "ControlState.h"
-#include "GraphCompiler.h"
 #include "ManipulationActions.h"
 #include "MaterialEditorGui.h"
 

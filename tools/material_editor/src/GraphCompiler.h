@@ -4,8 +4,8 @@
 #include <string>
 #include <unordered_map>
 
-#include <trc/material/ShaderCodePrimitives.h>
-#include <trc/material/ShaderModuleBuilder.h>
+#include <trc/material/shader/CodePrimitives.h>
+#include <trc/material/shader/ShaderModuleBuilder.h>
 
 #include "GraphTopology.h"
 

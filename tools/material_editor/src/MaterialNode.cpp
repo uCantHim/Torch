@@ -3,8 +3,7 @@
 #include <array>
 #include <concepts>
 
-#include <trc/material/CommonShaderFunctions.h>
-#include <trc/material/FragmentShader.h>
+#include <trc/material/shader/CommonShaderFunctions.h>
 
 
 

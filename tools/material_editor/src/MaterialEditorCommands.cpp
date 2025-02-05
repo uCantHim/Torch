@@ -69,6 +69,6 @@ void MaterialEditorCommands::compileMaterial()
     trySet(P::eRoughness, "Roughness");
     trySet(P::eSpecularFactor, "Specular Factor (shinyness)");
 
-    trc::MaterialData mat{ frag.build(builder, false), false };
+    trc::MaterialData mat{ {frag.build(builder, false), false} };
     previewWindow.makeMaterial(std::move(mat));
 }

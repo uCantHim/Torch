@@ -6,13 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include <trc/material/BasicType.h>
-#include <trc/material/ShaderModuleBuilder.h>
+#include <trc/material/shader/BasicType.h>
+#include <trc/material/shader/ShaderModuleBuilder.h>
 
 #include "Typing.h"
 
 using namespace trc::basic_types;
-namespace code = trc::code;
+namespace code = trc::shader::code;
 
 struct NodeInput
 {
