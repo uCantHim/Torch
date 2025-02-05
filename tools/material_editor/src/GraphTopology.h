@@ -5,8 +5,8 @@
 
 #include <componentlib/Table.h>
 #include <trc/Types.h>
-#include <trc/material/BasicType.h>
-#include <trc/material/ShaderModuleBuilder.h>
+#include <trc/material/shader/BasicType.h>
+#include <trc/material/shader/ShaderModuleBuilder.h>
 #include <trc_util/data/IdPool.h>
 #include <trc_util/data/TypesafeId.h>
 

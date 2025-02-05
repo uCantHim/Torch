@@ -4,10 +4,13 @@
 #include <compare>
 #include <variant>
 
-#include <trc/material/BasicType.h>
-#include <trc/material/ShaderModuleBuilder.h>
+#include <trc/material/shader/BasicType.h>
+#include <trc/material/shader/ShaderModuleBuilder.h>
 
 using namespace trc::basic_types;
+namespace trc {  // HACK
+    using namespace shader;
+}
 
 /**
  * @brief A value's type on the abstraction level of material node inputs

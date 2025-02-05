@@ -8,7 +8,6 @@
 
 #include "Font.h"
 #include "GraphScene.h"
-#include "GraphTopology.h"
 
 namespace graph
 {

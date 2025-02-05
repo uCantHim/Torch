@@ -2,7 +2,7 @@
 #include <trc/SwapchainPlugin.h>
 #include <trc/Torch.h>
 #include <trc/base/event/Event.h>
-#include <trc/material/CommonShaderFunctions.h>
+#include <trc/material/shader/CommonShaderFunctions.h>
 #include <trc/util/NullDataStorage.h>
 
 #include <Controls.h>
