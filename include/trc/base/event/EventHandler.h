@@ -19,16 +19,21 @@ namespace trc
     /**
      * @brief An input processor that generates events at the `EventHandler`
      */
-    class InputEventSpawner : public InputProcessor
+    class AsyncEventDispatcher : public InputProcessor
     {
     public:
         void onCharInput(Swapchain&, uint32_t charcode) override;
         void onKeyInput(Swapchain&, Key key, InputAction action, KeyModFlags mods) override;
+        void onMouseEnter(Swapchain&, bool entered) override;
         void onMouseInput(Swapchain&, MouseButton button, InputAction action, KeyModFlags mods) override;
         void onMouseMove(Swapchain&, double x, double y) override;
         void onMouseScroll(Swapchain&, double xOffset, double yOffset) override;
+
+        void onWindowFocus(Swapchain&, bool focused) override;
         void onWindowResize(Swapchain&, uint newX, uint newY) override;
+        void onWindowMove(Swapchain&, int newX, int newY) override;
         void onWindowClose(Swapchain&) override;
+        void onWindowRefresh(Swapchain&) override;
     };
 
     class EventThread

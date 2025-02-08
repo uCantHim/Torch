@@ -9,12 +9,12 @@
 namespace trc
 {
 
-void InputEventSpawner::onCharInput(Swapchain& swapchain, uint32_t charcode)
+void AsyncEventDispatcher::onCharInput(Swapchain& swapchain, uint32_t charcode)
 {
     EventHandler<CharInputEvent>::notify({ &swapchain, charcode });
 }
 
-void InputEventSpawner::onKeyInput(
+void AsyncEventDispatcher::onKeyInput(
     Swapchain& swapchain,
     Key key,
     InputAction action,
@@ -36,7 +36,12 @@ void InputEventSpawner::onKeyInput(
     };
 }
 
-void InputEventSpawner::onMouseInput(
+void AsyncEventDispatcher::onMouseEnter(Swapchain& swapchain, bool enter)
+{
+    EventHandler<MouseEnterEvent>::notify({ &swapchain, enter });
+}
+
+void AsyncEventDispatcher::onMouseInput(
     Swapchain& swapchain,
     MouseButton button,
     InputAction action,
@@ -55,28 +60,43 @@ void InputEventSpawner::onMouseInput(
     }
 }
 
-void InputEventSpawner::onMouseMove(Swapchain& swapchain, double x, double y)
+void AsyncEventDispatcher::onMouseMove(Swapchain& swapchain, double x, double y)
 {
     EventHandler<MouseMoveEvent>::notify(
         { &swapchain, static_cast<float>(x), static_cast<float>(y) }
     );
 }
 
-void InputEventSpawner::onMouseScroll(Swapchain& swapchain, double xOffset, double yOffset)
+void AsyncEventDispatcher::onMouseScroll(Swapchain& swapchain, double xOffset, double yOffset)
 {
     EventHandler<ScrollEvent>::notify(
         { &swapchain, static_cast<float>(xOffset), static_cast<float>(yOffset) }
     );
 }
 
-void InputEventSpawner::onWindowResize(Swapchain& swapchain, uint x, uint y)
+void AsyncEventDispatcher::onWindowResize(Swapchain& swapchain, uint x, uint y)
 {
     EventHandler<SwapchainResizeEvent>::notify({ &swapchain, uvec2{ x, y } });
 }
 
-void InputEventSpawner::onWindowClose(Swapchain& swapchain)
+void AsyncEventDispatcher::onWindowClose(Swapchain& swapchain)
 {
     EventHandler<SwapchainCloseEvent>::notify({ &swapchain });
+}
+
+void AsyncEventDispatcher::onWindowFocus(Swapchain& swapchain, bool focused)
+{
+    EventHandler<SwapchainFocusEvent>::notify({ &swapchain, focused });
+}
+
+void AsyncEventDispatcher::onWindowMove(Swapchain& swapchain, int newX, int newY)
+{
+    EventHandler<SwapchainMoveEvent>::notify({ &swapchain, ivec2{ newX, newY } });
+}
+
+void AsyncEventDispatcher::onWindowRefresh(Swapchain& swapchain)
+{
+    EventHandler<SwapchainRefreshEvent>::notify({ &swapchain });
 }
 
 

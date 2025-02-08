@@ -18,10 +18,10 @@ class Device
 {
 public:
     Device(const Device&) = delete;
+    Device(Device&&) noexcept = delete;
     Device& operator=(const Device&) = delete;
     Device& operator=(Device&&) noexcept = delete;
 
-    Device(Device&&) noexcept = default;
     ~Device() = default;
 
     /**

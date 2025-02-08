@@ -261,11 +261,12 @@ trc::Swapchain::Swapchain(
     glfwSetWindowUserPointer(window, this);
 
     // Register input event callbacks
-    static auto getSwapchain = [](auto window) -> Swapchain& {
+    static auto getSwapchain = [](GLFWwindow* window) -> Swapchain& {
+        assert(glfwGetWindowUserPointer(window) != nullptr);
         return *static_cast<Swapchain*>(glfwGetWindowUserPointer(window));
     };
 
-    glfwSetCharCallback(window, [](auto win, auto c){
+    glfwSetCharCallback(window, [](auto win, uint32_t c){
         auto& sc = getSwapchain(win);
         sc.inputProcessor->onCharInput(sc, c);
     });
@@ -275,6 +276,10 @@ trc::Swapchain::Swapchain(
                                       static_cast<Key>(key),
                                       static_cast<InputAction>(action),
                                       KeyModFlags(mods));
+    });
+    glfwSetCursorEnterCallback(window, [](auto win, int entered) {
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onMouseEnter(sc, !!entered);
     });
     glfwSetCursorPosCallback(window, [](auto win, double xpos, double ypos){
         auto& sc = getSwapchain(win);
@@ -291,14 +296,26 @@ trc::Swapchain::Swapchain(
         auto& sc = getSwapchain(win);
         sc.inputProcessor->onMouseScroll(sc, xoff, yoff);
     });
+    glfwSetWindowFocusCallback(window, [](auto win, int focused) {
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onWindowFocus(sc, !!focused);
+    });
     glfwSetWindowSizeCallback(window, [](auto win, int x, int y) {
         assert(x > 0 && y > 0);
         auto& sc = getSwapchain(win);
         sc.inputProcessor->onWindowResize(sc, x, y);
     });
+    glfwSetWindowPosCallback(window, [](auto win, int x, int y) {
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onWindowMove(sc, x, y);
+    });
     glfwSetWindowCloseCallback(window, [](auto win){
         auto& sc = getSwapchain(win);
         sc.inputProcessor->onWindowClose(sc);
+    });
+    glfwSetWindowRefreshCallback(window, [](auto win) {
+        auto& sc = getSwapchain(win);
+        sc.inputProcessor->onWindowRefresh(sc);
     });
 
     resizeCallbacks.add([](Swapchain& sc) {

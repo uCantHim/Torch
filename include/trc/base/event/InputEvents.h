@@ -5,10 +5,22 @@
 
 namespace trc
 {
+    struct SwapchainFocusEvent
+    {
+        Swapchain* swapchain;
+        bool focused;
+    };
+
     struct SwapchainResizeEvent
     {
-        const Swapchain* swapchain;
+        Swapchain* swapchain;
         uvec2 newSize;
+    };
+
+    struct SwapchainMoveEvent
+    {
+        Swapchain* swapchain;
+        ivec2 newPos;
     };
 
     /**
@@ -16,8 +28,43 @@ namespace trc
      */
     struct SwapchainCloseEvent
     {
-        const Swapchain* swapchain;
+        Swapchain* swapchain;
     };
+
+    /**
+     * Dispatched when the swapchain's content has become damaged and needs to
+     * be refreshed.
+     */
+    struct SwapchainRefreshEvent
+    {
+        Swapchain* swapchain;
+    };
+
+    /**
+     * Dispatched when a window gains or loses focus.
+     */
+    using WindowFocusEvent = SwapchainFocusEvent;
+
+    /**
+     * Dispatched when the window is resized.
+     */
+    using WindowResizeEvent = SwapchainResizeEvent;
+
+    /**
+     * Dispatched when the window is moved to a new position on the screen.
+     */
+    using WindowMoveEvent = SwapchainMoveEvent;
+
+    /**
+     * Dispatched when the user attempts to close a window.
+     */
+    using WindowCloseEvent = SwapchainCloseEvent;
+
+    /**
+     * Dispatched when the window's content has become damaged and needs to
+     * be refreshed.
+     */
+    using WindowRefreshEvent = SwapchainRefreshEvent;
 
     ///////////////////////////
     //      Key Events       //
@@ -65,6 +112,17 @@ namespace trc
     /////////////////////////////
     //      Mouse Events       //
     /////////////////////////////
+
+    /**
+     * Dispatched when the cursor enters or leaves a window.
+     */
+    struct MouseEnterEvent
+    {
+        Swapchain* swapchain;
+
+        // True if the cursor entered the window, false if it left.
+        bool entered;
+    };
 
     struct MouseMoveEvent
     {

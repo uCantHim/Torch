@@ -21,10 +21,10 @@ trc::Window::Window(Instance& instance, WindowCreateInfo info)
         [&info]() -> s_ptr<InputProcessor> {
             if (info.inputProcessor == nullptr)
             {
-                log::warn << log::here() << "Field `inputProcessor` of `WindowCreateInfo` is"
-                                            " nullptr. Using `InputEventSpawner` as a default"
+                log::info << log::here() << "Field `inputProcessor` of `WindowCreateInfo` is"
+                                            " nullptr. Using `AsyncEventDispatcher` as a default"
                                             " input processor.";
-                return std::make_shared<InputEventSpawner>();
+                return std::make_shared<AsyncEventDispatcher>();
             }
             return info.inputProcessor;
         }(),
