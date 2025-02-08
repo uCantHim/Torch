@@ -41,18 +41,21 @@ struct CallbackStorage
 
 std::unordered_map<GLFWwindow*, CallbackStorage> callbackStorages;
 
+/**
+ * Create a callback that sends an event to ImGui first, then, if appropriate,
+ * forwards it to Torch.
+ */
 #define replace_cb(_window_, _name_, _device_) \
     glfwSet ## _name_ ## Callback( \
         _window_, \
         [](GLFWwindow* window, auto... args){ \
+            ImGui_ImplGlfw_ ## _name_ ## Callback(window, args...); \
+            \
             if (!ig::GetIO().WantCapture ## _device_) { \
                 auto& storage = callbackStorages.at(window); \
                 auto& cb = storage.torchCallback ## _name_; \
                 if (cb != nullptr) cb(window, args...); \
-            } \
-            else { \
-                ImGui_ImplGlfw_ ## _name_ ## Callback(window, args...); \
-            } \
+            }\
         } \
     )
 
