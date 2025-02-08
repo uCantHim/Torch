@@ -205,8 +205,8 @@ namespace trc
         struct PipelineInstance
         {
             Global global;
-            std::unordered_map<s_ptr<SceneBase>, u_ptr<PerScene>> scenes;
-            data::FixedSize<u_ptr<PerViewport>> viewports;
+            std::unordered_map<s_ptr<SceneBase>, s_ptr<PerScene>> scenes;
+            data::FixedSize<s_ptr<PerViewport>> viewports;
         };
 
         static void recordGlobal(Frame& frame, PipelineInstance& pipeline);
@@ -282,7 +282,7 @@ namespace trc
          */
         s_ptr<ResourceStorage> topLevelResourceStorage;
 
-        std::vector<u_ptr<RenderPlugin>> renderPlugins;
+        std::vector<s_ptr<RenderPlugin>> renderPlugins;
         u_ptr<trc::FrameSpecific<PipelineInstance>> pipelinesPerFrame;
 
         data::Multiset<s_ptr<SceneBase>> uniqueScenes;
