@@ -107,7 +107,6 @@ namespace trc
         auto getDevice() const -> const Device&;
 
 
-
         /////////////////////////////////////////
         //                                     //
         //   Swapchain-related functionality   //
@@ -212,7 +211,6 @@ namespace trc
          *                           the SwapchainCreateInfo.
          */
         void setPresentMode(vk::PresentModeKHR newMode);
-
 
 
         //////////////////////////////////////
