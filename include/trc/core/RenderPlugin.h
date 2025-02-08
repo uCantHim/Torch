@@ -80,7 +80,7 @@ namespace trc
     /**
      * @brief A function signature for render plugin factories.
      */
-    using PluginBuilder = std::function<u_ptr<RenderPlugin>(PluginBuildContext&)>;
+    using PluginBuilder = std::function<s_ptr<RenderPlugin>(PluginBuildContext&)>;
 
     class GlobalResources : impl::IsVirtual
     {

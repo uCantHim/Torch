@@ -328,7 +328,7 @@ void RenderPipeline::recordScenes(Frame& frame, PipelineInstance& pipeline)
         }
 
         queue.moveTasks<DeviceExecutionContext>(
-            [&scene](DeviceExecutionContext& baseCtx) -> SceneUpdateContext {
+            [scene](DeviceExecutionContext& baseCtx) -> SceneUpdateContext {
                 auto ctx = baseCtx.overrideResources(scene->resources);
                 return { ctx, scene->info };
             },
@@ -344,7 +344,7 @@ void RenderPipeline::recordViewports(
 {
     for (const auto& i : vpIndices)
     {
-        auto& vp = pipeline.viewports.at(i);
+        const s_ptr<PerViewport> vp = pipeline.viewports.at(i);
 
         // Skip `nullptr` viewports because the vector is fixed-length and not
         // all slots may be used.
@@ -359,7 +359,7 @@ void RenderPipeline::recordViewports(
         }
 
         queue.template moveTasks<DeviceExecutionContext>(
-            [&vp](DeviceExecutionContext& baseCtx) -> ViewportDrawContext {
+            [vp](DeviceExecutionContext& baseCtx) -> ViewportDrawContext {
                 auto ctx = baseCtx.overrideResources(vp->resources);
                 return { ctx, vp->info };
             },

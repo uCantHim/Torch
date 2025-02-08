@@ -28,8 +28,17 @@ namespace trc
          * @throw std::out_of_range
          */
         template<SceneModuleT Module>
+        void registerModule(s_ptr<Module> newModule);
+
+        /**
+         * @throw std::out_of_range
+         */
+        template<SceneModuleT Module>
         auto getModule() -> Module&;
 
+        /**
+         * @throw std::out_of_range
+         */
         template<SceneModuleT Module>
         auto getModule() const -> const Module&;
 
@@ -45,13 +54,19 @@ namespace trc
     private:
         using TypeIndex = data::TypeIndexAllocator<SceneBase>;
 
-        componentlib::Table<u_ptr<SceneModule>> modules;
+        componentlib::Table<s_ptr<SceneModule>> modules;
     };
 
 
 
     template<SceneModuleT Module>
     inline void SceneBase::registerModule(u_ptr<Module> newModule)
+    {
+        modules.emplace(TypeIndex::get<Module>(), std::move(newModule));
+    }
+
+    template<SceneModuleT Module>
+    inline void SceneBase::registerModule(s_ptr<Module> newModule)
     {
         modules.emplace(TypeIndex::get<Module>(), std::move(newModule));
     }
