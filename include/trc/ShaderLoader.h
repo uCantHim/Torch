@@ -21,11 +21,13 @@ namespace trc
     {
     public:
         /**
-         * @param fs::path indexFile The cache file containing file
-         *        modification time information.
-         * @param std::vector<fs::path> includePaths Additional include
-         *        directories.
-         * @param fs::path Output directory for compiled SPIRV binaries.
+         * @param std::vector<fs::path> includePaths Shader include directories.
+         * @param fs::path binaryPath Output directory for compiled SPIRV
+         *                            binaries.
+         * @param std::optional<fs::path> shaderDatabase An optional path to
+         *        a shader database file, which caches relationships between
+         *        shader sources and their generated binaries.
+         * @param shaderc::CompileOptions opts Shader compile options.
          */
         ShaderLoader(std::vector<fs::path> includePaths,
                      fs::path binaryPath,
@@ -34,7 +36,12 @@ namespace trc
 
         static auto makeDefaultOptions() -> shaderc::CompileOptions;
 
-        auto load(ShaderPath shaderPath) const -> std::vector<ui32>;
+        /**
+         * @brief Load a compiled shader SPIR-V binary from a path.
+         *
+         * Re-compiles the shader if the binary is outdated.
+         */
+        auto load(const ShaderPath& shaderPath) const -> std::vector<ui32>;
 
     private:
         struct ShaderDB

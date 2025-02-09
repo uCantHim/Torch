@@ -71,14 +71,14 @@ auto ShaderLoader::makeDefaultOptions() -> shaderc::CompileOptions
     return opts;
 }
 
-auto ShaderLoader::load(ShaderPath shaderPath) const -> std::vector<ui32>
+auto ShaderLoader::load(const ShaderPath& shaderPath) const -> std::vector<ui32>
 {
     /**
      * The longest possible dependency chain is:
      *
      *     file  -->  GLSL source  -->  SPIRV code
      *
-     * where `file` contains unset variables. This intermediate 'true' GLSL
+     * where `file` contains unset variables. The intermediate 'true' GLSL
      * source is generated in `findFile` if it is outdated.
      */
 
@@ -90,11 +90,9 @@ auto ShaderLoader::load(ShaderPath shaderPath) const -> std::vector<ui32>
         const auto& srcPath = *srcPathOpt;
         const auto binPath = outDir / shaderPath.getBinaryName();
 
-        if (binaryDirty(srcPath, binPath))
-        {
+        if (binaryDirty(srcPath, binPath)) {
             return compile(srcPath, binPath);
         }
-
         return readSpirvFile(binPath);
     }
 
