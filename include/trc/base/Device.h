@@ -11,6 +11,12 @@
 namespace trc
 {
 
+template<typename T>
+concept VulkanHppObjectT = requires {
+    typename T::NativeType;
+    requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
+};
+
 /**
  * A logical device used to interface with an underlying physical device.
  */
@@ -91,11 +97,7 @@ public:
      *
      * Does nothing when the TRC_DEBUG macro is not defined.
      */
-    template<typename T>
-        requires requires {
-            typename T::NativeType;
-            requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
-        }
+    template<VulkanHppObjectT T>
     void setDebugName(T object, const char* name) const;
 
     /**
@@ -103,12 +105,11 @@ public:
      *
      * Does nothing when the TRC_DEBUG macro is not defined.
      */
-    template<typename T>
-        requires requires {
-            typename T::NativeType;
-            requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
-        }
+    template<VulkanHppObjectT T>
     void setDebugName(T object, const std::string& name) const;
+
+    template<VulkanHppObjectT T, typename ...Args>
+    void setDebugName(T object, std::format_string<Args...> fmt, Args&&... args) const;
 
 private:
 #ifdef TRC_DEBUG
@@ -154,11 +155,7 @@ void Device::executeCommands(QueueType queueType, F func, uint64_t timeout) cons
     }
 }
 
-template<typename T>
-    requires requires {
-        typename T::NativeType;
-        requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
-    }
+template<VulkanHppObjectT T>
 void Device::setDebugName([[maybe_unused]] T object, [[maybe_unused]] const char* name) const
 {
 #ifdef TRC_DEBUG
@@ -174,14 +171,21 @@ void Device::setDebugName([[maybe_unused]] T object, [[maybe_unused]] const char
 #endif
 }
 
-template<typename T>
-    requires requires {
-        typename T::NativeType;
-        requires std::same_as<const vk::ObjectType, decltype(T::objectType)>;
-    }
+template<VulkanHppObjectT T>
 void Device::setDebugName(T object, const std::string& name) const
 {
     setDebugName(std::forward<T>(object), name.c_str());
+}
+
+template<VulkanHppObjectT T, typename ...Args>
+void Device::setDebugName([[maybe_unused]] T object,
+                          [[maybe_unused]] std::format_string<Args...> fmt,
+                          [[maybe_unused]] Args&&... args) const
+{
+#ifdef TRC_DEBUG
+    const auto str = std::format(fmt, std::forward<Args>(args)...);
+    setDebugName(object, str);
+#endif
 }
 
 } // namespace trc
