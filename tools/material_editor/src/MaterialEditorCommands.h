@@ -13,7 +13,7 @@ class MaterialPreview;
 class MaterialEditorCommands : public GraphManipulator
 {
 public:
-    MaterialEditorCommands(GraphScene& graph, MaterialPreview& preview);
+    MaterialEditorCommands(s_ptr<GraphScene> graph, MaterialPreview& preview);
 
     /**
      * @brief Serialize the material graph and write it to the currently
@@ -36,6 +36,6 @@ public:
     void compileMaterial();
 
 private:
-    GraphScene& graph;
+    s_ptr<GraphScene> graph;
     MaterialPreview& previewWindow;
 };

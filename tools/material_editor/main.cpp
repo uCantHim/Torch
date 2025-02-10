@@ -69,19 +69,19 @@ int main()
     // -------------------------------------------------------------------------
     // Material graph:
 
-    scene->registerModule(std::make_unique<GraphScene>());
-    GraphScene& materialGraph = scene->getModule<GraphScene>();
-
+    auto materialGraph = std::make_shared<GraphScene>();
     if (std::ifstream file{ ".matedit_save", std::ios::binary })
     {
         if (auto graph = parseGraph(file)) {
-            materialGraph = std::move(*graph);
+            materialGraph = std::make_shared<GraphScene>(std::move(*graph));
         }
     }
 
+    scene->registerModule(materialGraph);
+
     // The graph must contain an output node. Create one if none exists.
-    if (materialGraph.graph.outputNode == NodeID::NONE) {
-        materialGraph.graph.outputNode = materialGraph.makeNode(getOutputNode());
+    if (materialGraph->graph.outputNode == NodeID::NONE) {
+        materialGraph->graph.outputNode = materialGraph->makeNode(getOutputNode());
     }
 
     MaterialEditorCommands commands{ materialGraph, preview };
@@ -92,7 +92,7 @@ int main()
     {
         trc::pollEvents();
 
-        controls.update(materialGraph, commands);
+        controls.update(*materialGraph, commands);
 
         // Execute ImGui commands
         gui.drawGui();

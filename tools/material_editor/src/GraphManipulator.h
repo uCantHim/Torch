@@ -22,7 +22,7 @@ public:
 class GraphManipulator
 {
 public:
-    explicit GraphManipulator(GraphScene& graph);
+    explicit GraphManipulator(s_ptr<GraphScene> graph);
 
     void applyAction(u_ptr<GraphManipAction> action);
 
@@ -30,7 +30,7 @@ public:
     void reapplyLastUndoneAction();
 
 private:
-    GraphScene& graph;
+    s_ptr<GraphScene> graph;
 
     std::stack<u_ptr<GraphManipAction>> actionHistory;
     std::stack<u_ptr<GraphManipAction>> undoneActionHistory;

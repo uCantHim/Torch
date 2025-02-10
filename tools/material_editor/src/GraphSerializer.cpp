@@ -1,6 +1,5 @@
 #include "GraphSerializer.h"
 
-#include <ranges>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -57,7 +56,6 @@ auto parseGraph(std::istream& is) -> std::optional<GraphScene>
     if (!in.ParseFromIstream(&is)) {
         return std::nullopt;
     }
-
 
     GraphScene res;
 

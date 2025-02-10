@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <compare>
-#include <variant>
 
 #include <trc/material/shader/BasicType.h>
 #include <trc/material/shader/ShaderModuleBuilder.h>
