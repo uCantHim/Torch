@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <ranges>
-#include <stdexcept>
 #include <string>
 #include <unordered_set>
 
 #include <shader_tools/ShaderDocument.h>
 #include <trc_util/Padding.h>
+#include <trc_util/StringManip.h>
 #include <trc_util/Timer.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
@@ -15,34 +15,6 @@
 #include "trc/base/Logging.h"
 
 
-
-auto shaderStageToExtension(vk::ShaderStageFlagBits stage) -> std::string
-{
-    switch (stage)
-    {
-    case vk::ShaderStageFlagBits::eVertex: return ".vert";
-    case vk::ShaderStageFlagBits::eGeometry: return ".geom";
-    case vk::ShaderStageFlagBits::eTessellationControl: return ".tese";
-    case vk::ShaderStageFlagBits::eTessellationEvaluation: return ".tesc";
-    case vk::ShaderStageFlagBits::eFragment: return ".frag";
-
-    case vk::ShaderStageFlagBits::eTaskEXT: return ".task";
-    case vk::ShaderStageFlagBits::eMeshEXT: return ".mesh";
-
-    case vk::ShaderStageFlagBits::eRaygenKHR: return ".rgen";
-    case vk::ShaderStageFlagBits::eIntersectionKHR: return ".rint";
-    case vk::ShaderStageFlagBits::eMissKHR: return ".rmiss";
-    case vk::ShaderStageFlagBits::eAnyHitKHR: return ".rahit";
-    case vk::ShaderStageFlagBits::eClosestHitKHR: return ".rchit";
-    case vk::ShaderStageFlagBits::eCallableKHR: return ".rcall";
-    default:
-        throw std::runtime_error("[In shaderStageToExtension]: Shader stage "
-                                 + vk::to_string(stage) + " is not implemented.");
-    }
-
-    assert(false);
-    throw std::logic_error("");
-}
 
 class NullIncluder : public shaderc::CompileOptions::IncluderInterface
 {
@@ -84,50 +56,19 @@ namespace trc::shader
 
 using ShaderStageMap = std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>;
 
-auto makeDefaultShaderCompileOptions() -> u_ptr<shaderc::CompileOptions>
-{
-    auto opts = std::make_unique<shaderc::CompileOptions>();
-    opts->SetTargetSpirv(shaderc_spirv_version::shaderc_spirv_version_1_6);
-    opts->SetTargetEnvironment(shaderc_target_env::shaderc_target_env_vulkan,
-                              shaderc_env_version_vulkan_1_3);
-    opts->SetOptimizationLevel(shaderc_optimization_level_performance);
-    opts->SetIncluder(std::make_unique<NullIncluder>());
-
-    return opts;
-}
-
-auto compileShader(
-    vk::ShaderStageFlagBits shaderStage,
-    const std::string& glslCode,
-    const ShaderProgramLinkSettings& config)
-    -> std::vector<ui32>
-{
-    assert_arg(config.compileOptions != nullptr);
-
-    // Compile source
-    const auto result = spirv::generateSpirv(
-        glslCode,
-        "foo" + shaderStageToExtension(shaderStage),
-        *config.compileOptions
-    );
-    if (result.GetCompilationStatus() != shaderc_compilation_status_success)
-    {
-        throw std::runtime_error("[In MaterialShaderProgram::compileShader]: Compile error when"
-                                 " compiling source of shader stage " + vk::to_string(shaderStage)
-                                 + " to SPIRV: " + result.GetErrorMessage());
-    }
-
-    return { result.begin(), result.end() };
-}
-
-auto compileProgram(
+/**
+ * @return Final GLSL shader code for each stage, or an error message.
+ */
+auto compileProgramCode(
     const ShaderStageMap& stages,
     const std::vector<ShaderProgramData::DescriptorSet>& descriptors,
-    const std::vector<ShaderProgramData::PushConstantRange>& pushConstants,
-    const ShaderProgramLinkSettings& config)
-    -> std::unordered_map<vk::ShaderStageFlagBits, std::vector<ui32>>
+    const std::vector<ShaderProgramData::PushConstantRange>& pushConstants)
+    -> std::expected<
+        std::unordered_map<vk::ShaderStageFlagBits, std::string>,
+        std::string
+    >
 {
-    std::unordered_map<vk::ShaderStageFlagBits, std::vector<ui32>> result;
+    std::unordered_map<vk::ShaderStageFlagBits, std::string> result;
     for (const auto& [stage, mod] : stages)
     {
         Timer timer;
@@ -149,29 +90,18 @@ auto compileProgram(
             }
         }
 
-        // Try to compile to SPIRV
+        // Try to finalize GLSL
         try {
-            result.emplace(stage, compileShader(stage, doc.compile(), config));
-            log::info << "Compiling GLSL code for " << vk::to_string(stage) << " stage to SPIRV"
-                      << " (" << timer.reset() << " ms)";
+            result.emplace(stage, doc.compile());
+            log::info << "Finalized GLSL code for " << vk::to_string(stage) << " stage"
+                      << " in " << timer.reset() << "ms.";
         }
         catch (const shader_edit::CompileError& err)
         {
-            log::info << "Compiling GLSL code for " << vk::to_string(stage) << " stage to SPIRV.";
             log::error << "[In linkMaterialProgram]: Unable to finalize shader code for"
                        << " SPIRV conversion (shader stage " << vk::to_string(stage) << ")"
                        << ": " << err.what();
-            throw err;
-        }
-        catch (const std::runtime_error& err)
-        {
-            log::info << "Compiling GLSL code for " << vk::to_string(stage) << " stage to SPIRV"
-                      << " -- ERROR!";
-            log::error << "[In linkMaterialProgram]: Unable to compile shader code for stage "
-                       << vk::to_string(stage) << " to SPIRV: " << err.what() << "\n"
-                       << "  >>> Tried to compile the following shader code:\n\n"
-                       << doc.compile()
-                       << "\n+++++ END SHADER CODE +++++\n";
+            return std::unexpected(err.what());
         }
     }
 
@@ -287,7 +217,7 @@ auto combinePushConstantsPerStage(
 auto linkShaderProgram(
     std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
     const ShaderProgramLinkSettings& config)
-    -> ShaderProgramData
+    -> std::expected<ShaderProgramData, ShaderProgramLinkError>
 {
     ShaderProgramData data;
 
@@ -304,7 +234,12 @@ auto linkShaderProgram(
     data.descriptorSets = collectDescriptorSets(stages, config);
 
     // Compile each shader module to SPIR-V
-    data.spirvCode = compileProgram(stages, data.descriptorSets, data.pushConstants, config);
+    if (auto prog = compileProgramCode(stages, data.descriptorSets, data.pushConstants)) {
+        data.glslCode = *prog;
+    }
+    else {
+        return std::unexpected(ShaderProgramLinkError::eShaderCodeFinalizeError);
+    }
 
     return data;
 }
@@ -314,7 +249,7 @@ auto linkShaderProgram(
 auto ShaderProgramData::serialize() const -> serial::ShaderProgram
 {
     serial::ShaderProgram prog;
-    for (const auto& [stage, mod] : spirvCode)
+    for (const auto& [stage, mod] : glslCode)
     {
         auto newModule = prog.add_shader_modules();
         newModule->set_spirv_code(mod.data(), mod.size() * sizeof(ui32));
@@ -355,7 +290,7 @@ void ShaderProgramData::deserialize(
 
     for (const auto& mod : prog.shader_modules())
     {
-        auto [it, _] = spirvCode.try_emplace(static_cast<vk::ShaderStageFlagBits>(mod.stage()));
+        auto [it, _] = glslCode.try_emplace(static_cast<vk::ShaderStageFlagBits>(mod.stage()));
         auto& code = it->second;
 
         assert(mod.spirv_code().size() % sizeof(ui32) == 0);

@@ -41,6 +41,12 @@ namespace trc
     auto makeProgramLinkerSettings() -> shader::ShaderProgramLinkSettings;
 
     /**
+     * @brief Define Torch's standard shader compilation settings for
+     *        material shaders.
+     */
+    auto makeShaderCompileOptions() -> u_ptr<shaderc::CompileOptions>;
+
+    /**
      * @brief A specialization constant that specifies a texture's device index
      */
     class RuntimeTextureIndex : public shader::ShaderRuntimeConstant

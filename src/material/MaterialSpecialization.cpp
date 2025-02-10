@@ -13,13 +13,20 @@ auto makeDeferredMaterialSpecialization(const shader::ShaderModule& fragmentModu
     -> shader::ShaderProgramData
 {
     auto vertexModule = VertexModule{ info.animated }.build(fragmentModule);
-    return shader::linkShaderProgram(
+    auto prog = shader::linkShaderProgram(
         {
             { vk::ShaderStageFlagBits::eVertex,   std::move(vertexModule) },
             { vk::ShaderStageFlagBits::eFragment, fragmentModule },
         },
         makeProgramLinkerSettings()
     );
+
+    if (!prog) {
+        throw std::runtime_error("Unexpected error: Unable to create material specialization."
+                                 " A program link error occurred; should this even be possible?");
+    }
+
+    return *prog;
 }
 
 auto makeDeferredMaterialSpecialization(const MaterialBaseInfo& baseInfo,

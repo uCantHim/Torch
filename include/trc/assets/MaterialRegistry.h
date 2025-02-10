@@ -98,7 +98,7 @@ namespace trc
      */
     auto makeMaterialProgram(MaterialData& data,
                              const MaterialSpecializationInfo& specialization)
-        -> u_ptr<MaterialProgram>;
+        -> std::expected<u_ptr<MaterialProgram>, ShaderCompileError>;
 
     class MaterialRegistry : public AssetRegistryModuleInterface<Material>
     {
