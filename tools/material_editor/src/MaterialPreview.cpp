@@ -64,9 +64,7 @@ void MaterialPreview::setViewport(ivec2 offset, uvec2 size)
 void MaterialPreview::makeMaterial(trc::MaterialData data)
 {
     assetManager.destroy(mat);
-    mat = assetManager.create<trc::Material>(
-        std::make_unique<trc::InMemorySource<trc::Material>>(std::move(data))
-    );
+    mat = assetManager.create<trc::Material>(std::move(data));
 
     showMaterial(mat);
 }
