@@ -147,7 +147,7 @@ auto trc::AssetData<trc::Material>::RuntimeConstantDeserializer::deserialize(con
 auto trc::makeMaterialProgram(
     MaterialData& data,
     const MaterialSpecializationInfo& specialization)
-    -> u_ptr<MaterialProgram>
+    -> std::expected<u_ptr<MaterialProgram>, ShaderCompileError>
 {
     const MaterialKey key{ specialization };
 
@@ -176,11 +176,16 @@ auto trc::makeMaterialProgram(
     }
 
     // Create the runtime program
-    return std::make_unique<MaterialProgram>(
-        data.shaderProgram.getSpecialization(key),
-        pipelineData,
-        renderPass
-    );
+    try {
+        return std::make_unique<MaterialProgram>(
+            data.shaderProgram.getSpecialization(key),
+            pipelineData,
+            renderPass
+        );
+    }
+    catch (const ShaderCompileError& err) {
+        return std::unexpected(err);
+    }
 }
 
 
@@ -223,16 +228,26 @@ auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const Mater
     if (!runtime)
     {
         assert(shaderPrograms.at(key.flags.toIndex()) == nullptr);
-        auto& prog = shaderPrograms.at(key.flags.toIndex());
-        prog = makeMaterialProgram(
+
+        auto matProgram = makeMaterialProgram(
             data,
             MaterialSpecializationInfo{
                 .animated=key.flags.has(MaterialKey::Flags::Animated::eTrue)
             }
         );
-        runtime = prog->cloneRuntime();
-        for (const auto& [id, data] : data.runtimeValueDefaults) {
-            runtime->setPushConstantDefaultValue(id, std::span{data});
+
+        if (matProgram)
+        {
+            auto& prog = shaderPrograms.at(key.flags.toIndex());
+            prog = std::move(*matProgram);
+            runtime = prog->cloneRuntime();
+            for (const auto& [id, data] : data.runtimeValueDefaults) {
+                runtime->setPushConstantDefaultValue(id, std::span{data});
+            }
+        }
+        else {
+            // TODO: Use a default program here
+            throw ShaderCompileError{matProgram.error()};
         }
     }
 

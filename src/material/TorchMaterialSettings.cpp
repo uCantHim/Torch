@@ -296,6 +296,19 @@ auto makeRayHitCapabilityConfig() -> CapabilityConfig
 
 auto makeProgramLinkerSettings() -> shader::ShaderProgramLinkSettings
 {
+    return shader::ShaderProgramLinkSettings{
+        .preferredDescriptorSetIndices{
+            { RasterPlugin::GLOBAL_DATA_DESCRIPTOR, 0 },
+            { AssetPlugin::ASSET_DESCRIPTOR,        1 },
+            { RasterPlugin::SCENE_DESCRIPTOR,       2 },
+            { RasterPlugin::G_BUFFER_DESCRIPTOR,    3 },
+            { RasterPlugin::SHADOW_DESCRIPTOR,      4 },
+        }
+    };
+}
+
+auto makeShaderCompileOptions() -> u_ptr<shaderc::CompileOptions>
+{
     auto opts = std::make_unique<shaderc::CompileOptions>(ShaderLoader::makeDefaultOptions());
     auto includer = std::make_unique<spirv::FileIncluder>(
         std::vector<fs::path>{
@@ -305,16 +318,7 @@ auto makeProgramLinkerSettings() -> shader::ShaderProgramLinkSettings
     );
     opts->SetIncluder(std::move(includer));
 
-    return shader::ShaderProgramLinkSettings{
-        .compileOptions{ std::move(opts) },
-        .preferredDescriptorSetIndices{
-            { RasterPlugin::GLOBAL_DATA_DESCRIPTOR, 0 },
-            { AssetPlugin::ASSET_DESCRIPTOR,        1 },
-            { RasterPlugin::SCENE_DESCRIPTOR,       2 },
-            { RasterPlugin::G_BUFFER_DESCRIPTOR,    3 },
-            { RasterPlugin::SHADOW_DESCRIPTOR,      4 },
-        }
-    };
+    return opts;
 }
 
 

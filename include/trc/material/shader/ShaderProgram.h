@@ -1,10 +1,9 @@
 #pragma once
 
+#include <expected>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <spirv/CompileSpirv.h>
 
 #include "ShaderRuntime.h"
 #include "ShaderModuleCompiler.h"
@@ -13,27 +12,11 @@
 
 namespace trc::shader
 {
-    auto makeDefaultShaderCompileOptions() -> u_ptr<shaderc::CompileOptions>;
-
     /**
      * @brief Configuration options passed to `linkShaderProgram`.
      */
     struct ShaderProgramLinkSettings
     {
-        /**
-         * Compile options for shader code. Shall not be `nullptr`.
-         *
-         * Note that this also defines a file includer strategy. The default
-         * value does not search any include paths.
-         *
-         * @throw std::invalid_argument if `nullptr` is given.
-         *
-         * NOTE to self: This has to be a unique ptr because moving
-         * `shaderc::CompileOptions` seems to be causing crashes related to the
-         * includer.
-         */
-        u_ptr<shaderc::CompileOptions> compileOptions{ makeDefaultShaderCompileOptions() };
-
         /**
          * Maps numbers to descriptor set names. Lower numbers are preferred
          * to have a lower descriptor set index in the final program.
@@ -103,9 +86,9 @@ namespace trc::shader
         };
 
         /**
-         * The SPIR-V code for each shader stage.
+         * The final GLSL code for each shader stage.
          */
-        std::unordered_map<vk::ShaderStageFlagBits, std::vector<ui32>> spirvCode;
+        std::unordered_map<vk::ShaderStageFlagBits, std::string> glslCode;
 
         /**
          * For each shader stage, a list of runtime constants.
@@ -151,10 +134,18 @@ namespace trc::shader
                          ShaderRuntimeConstantDeserializer& deserializer);
     };
 
+    enum class ShaderProgramLinkError : ui8
+    {
+        eShaderCodeFinalizeError,
+    };
+
     /**
-     * @brief Create a shader program from a set of shader modules
+     * @brief Create a shader program from a set of shader modules.
+     *
+     * Ties shader module interfaces together and finalizes the respective
+     * shader codes.
      */
     auto linkShaderProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> modules,
                            const ShaderProgramLinkSettings& config = {})
-        -> ShaderProgramData;
+        -> std::expected<ShaderProgramData, ShaderProgramLinkError>;
 } // namespace trc::shader
