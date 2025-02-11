@@ -38,6 +38,17 @@ void SimpleMaterialData::deserialize(std::istream& is)
 
 auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
 {
+    struct PcData
+    {
+        vec3 color;
+        float specularFactor;
+        float roughness;
+        float metallicness;
+        ui32 albedoTexture;
+        ui32 normalTexture;
+        bool emissive;
+    };
+
     constexpr auto kCapCurrentMat = "simplemat_param_obj";
 
     shader::ShaderModuleBuilder builder;
@@ -117,17 +128,6 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
         frag.build(std::move(builder), transparent, capabilities),
         transparent
     }};
-
-    struct PcData
-    {
-        vec3 color;
-        float specularFactor;
-        float roughness;
-        float metallicness;
-        ui32 albedoTexture;
-        ui32 normalTexture;
-        bool emissive;
-    };
 
     PcData pcData{
         data.color,

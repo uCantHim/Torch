@@ -66,12 +66,14 @@ namespace trc
                         const RenderPassDefinition& renderPass,
                         u_ptr<shaderc::CompileOptions> compileOptions = makeShaderCompileOptions());
 
+        auto getPipelineConfig() const -> const PipelineDefinitionData&;
         auto getPipeline() const -> Pipeline::ID;
 
         auto getRuntime() const -> s_ptr<MaterialRuntime>;
         auto cloneRuntime() const -> u_ptr<MaterialRuntime>;
 
     private:
+        const PipelineDefinitionData pipelineConfig;
         PipelineLayout::ID layout;
         Pipeline::ID pipeline;
 

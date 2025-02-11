@@ -56,7 +56,7 @@ namespace trc
                     elements.pop_back();
                 }
             }
-        };;;
+        }
 
     private:
         std::vector<weak_ref> elements;

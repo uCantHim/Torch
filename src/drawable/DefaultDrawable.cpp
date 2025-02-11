@@ -35,18 +35,18 @@ auto makeGBufferDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> Drawable
     {
         auto layout = *env.currentPipeline->getLayout();
         auto& material = drawInfo->matRuntime;
-        material.pushConstants(cmdBuf, layout, DrawablePushConstIndex::eModelMatrix,
+        material->pushConstants(cmdBuf, layout, DrawablePushConstIndex::eModelMatrix,
                                drawInfo->modelMatrixId.get());
 
         const bool animated = drawInfo->anim != AnimationEngine::ID::NONE;
         if (animated)
         {
-            material.pushConstants(
+            material->pushConstants(
                 cmdBuf, layout, DrawablePushConstIndex::eAnimationData,
                 drawInfo->anim.get()
             );
         }
-        material.uploadPushConstantDefaultValues(cmdBuf, layout);
+        material->uploadPushConstantDefaultValues(cmdBuf, layout);
 
         drawInfo->geo.bindVertices(cmdBuf, 0);
         cmdBuf.drawIndexed(drawInfo->geo.getIndexCount(), 1, 0, 0, 0);

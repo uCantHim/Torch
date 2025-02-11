@@ -37,6 +37,8 @@ namespace trc
 
         bool rasterized{ true };
         bool rayTraced{ false };
+
+        bool disableShadow{ false };
     };
 
     /**

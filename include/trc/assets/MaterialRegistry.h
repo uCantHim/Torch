@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <optional>
-#include <unordered_map>
 #include <vector>
 
 #include <trc_util/Padding.h>
@@ -38,9 +37,6 @@ namespace trc
          */
         explicit AssetData(const MaterialBaseInfo& createInfo);
 
-        /** Used internally during serialization. */
-        explicit AssetData(MaterialSpecializationCache specializations);
-
         MaterialSpecializationCache shaderProgram;
 
         /**
@@ -62,6 +58,11 @@ namespace trc
 
         void resolveReferences(AssetManager& man);
 
+        static void serialize(const AssetData<Material>& data, std::ostream& os);
+        static auto deserialize(std::istream& is)
+            -> std::expected<AssetData<Material>, AssetParseError>;
+
+    private:
         /**
          * Implements all types of runtime constants that Torch defines.
          */
@@ -76,6 +77,9 @@ namespace trc
             std::vector<AssetReference<Texture>> loadedTextures;
         };
 
+        /** Used internally during serialization. */
+        explicit AssetData(MaterialSpecializationCache specializations);
+
         std::vector<AssetReference<Texture>> requiredTextures;
     };
 
@@ -89,6 +93,18 @@ namespace trc
         static void serialize(const MaterialData& data, std::ostream& os);
         static auto deserialize(std::istream& is) -> AssetParseResult<Material>;
     };
+
+    /**
+     * @brief Create a material by specifying base information manually.
+     *
+     * This is the most detailed possible way to create a material. Usually,
+     * this function will be used internally by tools.
+     *
+     * @param baseInfo The minimum required information to create a material.
+     *                 Includes a fragment shader, meaning a description of the
+     *                 material's lighting computations.
+     */
+    auto makeMaterial(const MaterialBaseInfo& baseInfo) -> MaterialData;
 
     /**
      * @brief Specialize a material description to create a runtime program.
@@ -125,14 +141,14 @@ namespace trc
          */
         struct SpecializationStorage
         {
-            auto getSpecialization(const MaterialKey& key) -> MaterialRuntime;
+            auto getSpecialization(const MaterialKey& key) -> s_ptr<MaterialRuntime>;
 
             static constexpr size_t kNumSpecializations
                 = MaterialKey::MaterialSpecializationFlags::size();
 
             MaterialData data;
             std::array<u_ptr<const MaterialProgram>, kNumSpecializations> shaderPrograms;
-            std::array<u_ptr<MaterialRuntime>, kNumSpecializations> runtimes;
+            std::array<s_ptr<MaterialRuntime>, kNumSpecializations> runtimes;
         };
 
         data::IdPool<ui64> localIdPool;
@@ -149,7 +165,7 @@ namespace trc
             return storage->data.transparent;
         }
 
-        auto getRuntime(MaterialSpecializationInfo params) const -> MaterialRuntime
+        auto getRuntime(MaterialSpecializationInfo params) const -> s_ptr<MaterialRuntime>
         {
             assert(storage != nullptr);
             return storage->getSpecialization(params);
