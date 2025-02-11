@@ -97,7 +97,7 @@ struct TableJoinIterator
     auto operator++(int) -> TableJoinIterator
     {
         auto result = *this;
-        ++this;
+        ++*this;
         return result;
     }
 
