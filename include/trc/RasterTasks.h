@@ -8,7 +8,7 @@ namespace trc
 {
     class RasterSceneModule;
     class RenderPass;
-    class ShadowMap;
+    struct ShadowMap;
 
     /**
      * @brief A task that draws classical drawables registered at a

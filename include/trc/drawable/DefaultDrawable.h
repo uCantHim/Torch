@@ -22,7 +22,7 @@ namespace trc
     {
         GeometryHandle geo;
         MaterialHandle mat;
-        MaterialRuntime matRuntime;
+        s_ptr<MaterialRuntime> matRuntime;
 
         Transformation::ID modelMatrixId;
         AnimationEngine::ID anim;

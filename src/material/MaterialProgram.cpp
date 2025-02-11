@@ -115,10 +115,11 @@ auto compileShader(
 
 MaterialProgram::MaterialProgram(
     const shader::ShaderProgramData& data,
-    const PipelineDefinitionData& pipelineConfig,
+    const PipelineDefinitionData& _pipelineConfig,
     const RenderPassDefinition& renderPass,
     u_ptr<shaderc::CompileOptions> compileOptions)
     :
+    pipelineConfig(_pipelineConfig),
     layout(PipelineRegistry::registerPipelineLayout(makePipelineLayout(data))),
     rootRuntime(nullptr)
 {
@@ -166,6 +167,11 @@ MaterialProgram::MaterialProgram(
     );
 
     rootRuntime = std::make_unique<MaterialRuntime>(data, *this);
+}
+
+auto MaterialProgram::getPipelineConfig() const -> const PipelineDefinitionData&
+{
+    return pipelineConfig;
 }
 
 auto MaterialProgram::getPipeline() const -> Pipeline::ID

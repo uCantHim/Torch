@@ -22,6 +22,8 @@ namespace trc
 
         Transformation::ID modelMatrixId;
         AnimationEngine::ID anim;
+
+        bool disableShadow{ false };
     };
 
     struct RasterComponent
@@ -33,6 +35,10 @@ namespace trc
          * component's `ComponentTraits<>::onCreate` function.
          */
         explicit RasterComponent(const RasterComponentCreateInfo& createInfo);
+
+        bool isAnimated;
+        bool transparentLighting;
+        bool hasShadow;
 
         // This data is referenced by the draw functions and used at runtime
         // to record draw commands

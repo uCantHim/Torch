@@ -38,7 +38,7 @@ trc::AssetData<trc::Material>::AssetData(MaterialSpecializationCache specializat
 {
 }
 
-void trc::AssetSerializerTraits<trc::Material>::serialize(
+void trc::AssetData<trc::Material>::serialize(
     const trc::MaterialData& data,
     std::ostream& os)
 {
@@ -78,7 +78,7 @@ void trc::AssetSerializerTraits<trc::Material>::serialize(
     mat.SerializeToOstream(&os);
 }
 
-auto trc::AssetSerializerTraits<trc::Material>::deserialize(std::istream& is)
+auto trc::AssetData<trc::Material>::deserialize(std::istream& is)
     -> AssetParseResult<trc::Material>
 {
     serial::Material mat;
@@ -143,6 +143,26 @@ auto trc::AssetData<trc::Material>::RuntimeConstantDeserializer::deserialize(con
 }
 
 
+
+void trc::AssetSerializerTraits<trc::Material>::serialize(
+    const trc::MaterialData& data,
+    std::ostream& os)
+{
+    MaterialData::serialize(data, os);
+}
+
+auto trc::AssetSerializerTraits<trc::Material>::deserialize(std::istream& is)
+    -> AssetParseResult<trc::Material>
+{
+    return MaterialData::deserialize(is);
+}
+
+
+
+auto trc::makeMaterial(const MaterialBaseInfo& baseInfo) -> MaterialData
+{
+    return MaterialData{ baseInfo };
+}
 
 auto trc::makeMaterialProgram(
     MaterialData& data,
@@ -222,7 +242,7 @@ auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 }
 
 auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const MaterialKey& key)
-    -> MaterialRuntime
+    -> s_ptr<MaterialRuntime>
 {
     auto& runtime = runtimes.at(key.flags.toIndex());
     if (!runtime)
@@ -251,5 +271,5 @@ auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const Mater
         }
     }
 
-    return *runtime;
+    return runtime;
 }

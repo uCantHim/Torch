@@ -93,7 +93,8 @@ auto DrawableScene::makeDrawable(const DrawableCreateInfo& info) -> Drawable
             .modelMatrixId=drawable->getGlobalTransformID(),
             .anim=geo.hasRig()
                 ? add<AnimationComponent>(id, geo.getRig()).engine.getState()
-                : AnimationEngine::ID{}
+                : AnimationEngine::ID{},
+            .disableShadow=info.disableShadow,
         });
     }
 
