@@ -5,6 +5,8 @@
 #include <stdexcept>
 using namespace std::chrono;
 
+#include <trc_util/Timer.h>
+
 #include "trc/base/Device.h"
 #include "trc/base/Logging.h"
 #include "trc/base/PhysicalDevice.h"
@@ -629,7 +631,7 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // recreate, like locking resources.
     beforeRecreateCallbacks.call(*this);
 
-    const auto timerStart = system_clock::now();
+    Timer timer;
     const auto& physDevice = device.getPhysicalDevice();
 
     const auto [imageSharingMode, imageSharingQueueFamilies] = findOptimalImageSharingMode(physDevice);
@@ -702,9 +704,7 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
 
     // Logging
     {
-        auto duration = duration_cast<milliseconds>(system_clock::now() - timerStart).count();
-
-        log::info << "Swapchain created (" << duration << " ms):";
+        log::info << "Swapchain created (" << timer.duration() << " ms):";
 
         log::info << "   Size: (" << swapchainExtent.width << ", " << swapchainExtent.height << ")";
         log::info << "   Images: " << numFrames;
@@ -720,10 +720,11 @@ void trc::Swapchain::createSwapchain(const SwapchainCreateInfo& info)
     // Signal that recreation is finished.
     // Objects depending on the swapchain should now recreate their
     // resources.
+    timer.reset();
     afterRecreateCallbacks.call(*this);
     resizeCallbacks.call(*this);
 
-    log::info << "Swapchain-dependent resource creation completed.";
+    log::info << "Swapchain-dependent resources created (" << timer.duration() << "ms)";
 }
 
 auto trc::Swapchain::createImageView(uint32_t imageIndex) const -> vk::UniqueImageView
