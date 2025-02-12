@@ -57,7 +57,7 @@ void initDefaultAssets(trc::AssetManager& am)
         .objectHitbox = am.create([]{
             auto mat = trc::makeMaterial({
                 .color=vec3(1.0f, 0.8f, 0.0f),
-                .emissive=false,
+                .emissive=true,
             });
             mat.polygonMode = vk::PolygonMode::eLine;
 

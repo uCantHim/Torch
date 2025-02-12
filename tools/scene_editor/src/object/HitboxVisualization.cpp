@@ -24,7 +24,11 @@ void HitboxVisualization::removeFromScene()
 
 void HitboxVisualization::enableSphere(const Sphere& sphere)
 {
-    sphereDrawable = scene->makeDrawable({ g::geos().sphere, g::mats().objectHitbox });
+    sphereDrawable = scene->makeDrawable({
+        .geo=g::geos().sphere,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
     sphereDrawable.value()->setScale(sphere.radius);
     attach(**sphereDrawable);
 }
@@ -41,7 +45,11 @@ bool HitboxVisualization::isSphereEnabled() const
 
 void HitboxVisualization::enableCapsule(const Capsule& capsule)
 {
-    capsuleDrawable = scene->makeDrawable({ g::geos().sphere, g::mats().objectHitbox });
+    capsuleDrawable = scene->makeDrawable({
+        .geo=g::geos().sphere,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
     capsuleDrawable.value()->setScale(capsule.radius, capsule.height, capsule.radius);
     attach(**capsuleDrawable);
 }
