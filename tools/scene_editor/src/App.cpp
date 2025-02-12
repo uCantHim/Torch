@@ -98,6 +98,7 @@ App::App(const fs::path& projectRootDir)
         HitboxData hitboxData{
             .sphere=hitbox.getSphere(),
             .capsule=hitbox.getCapsule(),
+            .box=hitbox.getBox(),
             .geometry=geoPath
         };
         const trc::AssetPath path(geoPath.string() + "_hitbox");
@@ -120,6 +121,7 @@ App::App(const fs::path& projectRootDir)
     ar.create(HitboxData{
         .sphere=hb.getSphere(),
         .capsule=hb.getCapsule(),
+        .box=hb.getBox(),
         .geometry=gi
     });
     auto planeData1 = trc::makePlaneGeo(0.5f, 0.5f, 1, 1);
@@ -128,6 +130,7 @@ App::App(const fs::path& projectRootDir)
     ar.create(HitboxData{
         .sphere=hb1.getSphere(),
         .capsule=hb1.getCapsule(),
+        .box=hb1.getBox(),
         .geometry=gi1
     });
     auto cubeGeo = ar.create(trc::makeCubeGeo());
@@ -135,13 +138,14 @@ App::App(const fs::path& projectRootDir)
     ar.create(HitboxData{
         .sphere=cubeHb.getSphere(),
         .capsule=cubeHb.getCapsule(),
+        .box=cubeHb.getBox(),
         .geometry=cubeGeo
     });
 
     scene->createDefaultObject({ gi, mg });
 
-    auto smallPlane = scene->createDefaultObject({ gi1, mr });
-    scene->get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
+    auto smallCube = scene->createDefaultObject({ cubeGeo, mr });
+    scene->get<ObjectBaseNode>(smallCube).rotateX(glm::radians(90.0f)).translateY(1.5f).scale(0.2f);
 
     auto cube = scene->createDefaultObject({ cubeGeo, mo });
     scene->get<ObjectBaseNode>(cube).translateY(0.5f);
@@ -197,6 +201,11 @@ void App::setSceneViewport(vec2 offset, vec2 size)
     mainViewport.reset();
     mainViewport = torch->makeViewport({ offset, size }, camera, drawableScene);
     camera->setAspect(size.x / size.y);
+}
+
+auto App::getSceneViewport() -> trc::RenderArea
+{
+    return mainViewport->getRenderArea();
 }
 
 void App::tick()

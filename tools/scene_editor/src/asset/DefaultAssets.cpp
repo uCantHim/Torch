@@ -23,6 +23,9 @@ void initDefaultAssets(trc::AssetManager& am)
     defaultGeos = {
         .cube = am.create(trc::makeCubeGeo()),
         .sphere = am.create(trc::makeSphereGeo()),
+        .capsule = am.create(trc::loadGeometry(SCENE_EDITOR_BUILTIN_ASSET_DIR"/capsule.obj")),
+        .openCylinder = am.create(trc::loadGeometry(SCENE_EDITOR_BUILTIN_ASSET_DIR"/open_cylinder.obj")),
+        .halfSphere = am.create(trc::loadGeometry(SCENE_EDITOR_BUILTIN_ASSET_DIR"/half_sphere.obj")),
     };
 
     defaultMats = {
@@ -57,9 +60,10 @@ void initDefaultAssets(trc::AssetManager& am)
         .objectHitbox = am.create([]{
             auto mat = trc::makeMaterial({
                 .color=vec3(1.0f, 0.8f, 0.0f),
-                .emissive=false,
+                .emissive=true,
             });
             mat.polygonMode = vk::PolygonMode::eLine;
+            mat.cullMode = vk::CullModeFlagBits::eNone;
 
             return mat;
         }()),

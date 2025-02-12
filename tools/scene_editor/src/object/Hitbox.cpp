@@ -28,19 +28,25 @@ auto makeHitbox(const trc::GeometryData& geo) -> Hitbox
     const vec3 lowerPoint = vec3(midPoint.x, minCoords.y, midPoint.z);
     const float height = maxCoords.y - minCoords.y;
     const float xzRadius = distance(xz(lowerPoint), xz(maxAbsCoords));
-    Capsule capsule(height, xzRadius, lowerPoint);
+    Capsule capsule(height, xzRadius, midPoint);
+
+    Box box{ 0.5f * (maxCoords - minCoords), midPoint };
 
     // Logging
     {
         vec3 m = sphere.position;
         trc::log::info << "Generated hitbox for geometry with "
-            << "sphere [m = (" << m.x << ", " << m.y << ", " << m.z << "), r = " << sphere.radius
-            << "] and capsule [r = " << capsule.radius << ", h = " << capsule.height << "]"
+            << "\n   sphere [m = (" << m.x << ", " << m.y << ", " << m.z << "), r = " << sphere.radius << "]"
+            << "\n   capsule [r = " << capsule.radius << ", h = " << capsule.height << "]"
+            << "\n   aabb    [m = (" << m.x << ", " << m.y << ", " << m.z << ")"
+                << ", extent = (" << box.halfExtent.x << ", " << box.halfExtent.y << ", " << box.halfExtent.z << ")"
             << "\n";
     }
 
-    return { sphere, capsule };
+    return { sphere, capsule, box };
 }
+
+
 
 bool isInside(vec3 point, const Sphere& sphere)
 {
@@ -67,10 +73,11 @@ bool isInside(vec3 p, const Capsule& cap)
 
 
 
-Hitbox::Hitbox(Sphere sphere, Capsule capsule)
+Hitbox::Hitbox(Sphere sphere, Capsule capsule, Box box)
     :
     sphere(sphere),
-    capsule(capsule)
+    capsule(capsule),
+    box(box)
 {
 }
 
@@ -84,7 +91,23 @@ auto Hitbox::getCapsule() const -> const Capsule&
     return capsule;
 }
 
+auto Hitbox::getBox() const -> const Box&
+{
+    return box;
+}
+
 bool Hitbox::isInside(vec3 point) const
 {
-    return ::isInside(point, sphere) || ::isInside(point, capsule);
+    return ::isInside(point, sphere) && ::isInside(point, capsule);
+}
+
+auto Hitbox::intersect(const Ray& ray) const -> std::optional<Intersection>
+{
+    if (::intersectEdge(ray, sphere))
+    {
+        if (auto hit = ::intersect(ray, box)) {
+            return hit->first;
+        }
+    }
+    return std::nullopt;
 }

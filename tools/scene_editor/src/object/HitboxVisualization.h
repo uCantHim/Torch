@@ -1,11 +1,11 @@
 #pragma once
 
-#include <optional>
+#include <array>
 
 #include <trc/Torch.h>
 #include <trc/drawable/DrawableScene.h>
 
-#include "Hitbox.h"
+#include "scene/Geometry.h"
 
 /**
  * The capsule visualization is a stretched sphere until I implement a
@@ -26,9 +26,14 @@ public:
     void disableCapsule();
     bool isCapsuleEnabled() const;
 
+    void enableBox(const Box& box);
+    void disableBox();
+    bool isBoxEnabled() const;
+
 private:
     trc::Scene* scene;
 
-    std::optional<trc::Drawable> sphereDrawable;
-    std::optional<trc::Drawable> capsuleDrawable;
+    trc::Drawable sphereDrawable;
+    trc::Drawable boxDrawable;
+    std::array<trc::Drawable, 3> capsuleDrawables;
 };

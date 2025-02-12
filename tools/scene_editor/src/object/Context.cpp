@@ -47,9 +47,9 @@ public:
 
         ig::Text("Sphere");
         ig::TreePush("##context_hitbox_sphere_data");
-            ig::Text("Radius: %.2f", hitbox.getSphere().radius);
-            vec3 o = hitbox.getSphere().position;
-            ig::Text("Offset: [%.2f, %.2f, %.2f]", o.x, o.y, o.z);
+        ig::Text("Radius: %.2f", hitbox.getSphere().radius);
+        vec3 o = hitbox.getSphere().position;
+        ig::Text("Offset: [%.2f, %.2f, %.2f]", o.x, o.y, o.z);
         ig::TreePop();
         if (bool showSphere = vis.isSphereEnabled();
             ig::Checkbox("Show spherical hitbox", &showSphere))
@@ -65,10 +65,10 @@ public:
 
         ig::Text("Capsule");
         ig::TreePush("##context_hitbox_capsule_data");
-            ig::Text("Height: %.2f", hitbox.getCapsule().height);
-            ig::Text("Radius: %.2f", hitbox.getCapsule().radius);
-            vec3 p = hitbox.getCapsule().position;
-            ig::Text("Offset: [%.2f, %.2f, %.2f]", p.x, p.y, p.z);
+        ig::Text("Height: %.2f", hitbox.getCapsule().height);
+        ig::Text("Radius: %.2f", hitbox.getCapsule().radius);
+        vec3 p = hitbox.getCapsule().position;
+        ig::Text("Offset: [%.2f, %.2f, %.2f]", p.x, p.y, p.z);
         ig::TreePop();
         if (bool showCapsule = vis.isCapsuleEnabled();
             ig::Checkbox("Show capsule hitbox", &showCapsule))
@@ -79,6 +79,21 @@ public:
             else {
                 vis.disableCapsule();
             }
+        }
+        ig::Separator();
+
+        ig::Text("Box");
+        ig::TreePush("##context_hitbox_box_data");
+        p = hitbox.getBox().position;
+        vec3 s = hitbox.getBox().halfExtent;
+        ig::Text("Offset: [%.2f, %.2f, %.2f]", p.x, p.y, p.z);
+        ig::Text("Half extent: [%.2f, %.2f, %.2f]", s.x, s.y, s.z);
+        ig::TreePop();
+        if (bool showBox = vis.isBoxEnabled();
+            ig::Checkbox("Show box hitbox", &showBox))
+        {
+            if (showBox) vis.enableBox(hitbox.getBox());
+            else vis.disableBox();
         }
 
         ig::TreePop();

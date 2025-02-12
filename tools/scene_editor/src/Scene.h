@@ -8,6 +8,7 @@ using namespace trc::basic_types;
 #include "object/SceneObject.h"
 
 class App;
+struct Ray;
 
 class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
@@ -23,10 +24,17 @@ public:
     auto getTorch() -> trc::TorchStack&;
     auto getCamera() -> trc::Camera&;
     auto getCamera() const -> const trc::Camera&;
+    auto getCameraViewNode() -> trc::Node&;
     auto getDrawableScene() -> trc::Scene&;
 
-    auto getMouseDepth() const -> float;
+    /**
+     * @brief Project the cursor position into world space at a specific depth.
+     */
     auto getMousePosAtDepth(float depth) const -> vec3;
+
+    /**
+     * @return Cursor position in world space, as calculated via ray casting.
+     */
     auto getMouseWorldPos() const -> vec3;
 
     /**
@@ -66,7 +74,17 @@ public:
     auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
     auto createDefaultObject(const trc::DrawableCreateInfo& createInfo) -> SceneObject;
 
+    /**
+     * @brief Cast a ray into the scene.
+     *
+     * @return The first object hit by the ray, and the hit position.
+     */
+    auto castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3>>;
+
 private:
+    auto getCursorPosInSceneViewport() const -> std::optional<ivec2>;
+    auto getCursorPosClampedToSceneViewport() const -> ivec2;
+
     void calcObjectHover();
 
     App* app;
@@ -76,5 +94,6 @@ private:
     trc::Node cameraViewNode;
     trc::SunLight sunLight;
 
+    vec3 mouseWorldPos;
     ObjectSelection objectSelection;
 };

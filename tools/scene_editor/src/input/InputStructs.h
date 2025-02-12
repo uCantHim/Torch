@@ -13,6 +13,8 @@ struct KeyInput
     KeyInput(trc::Key key, trc::KeyModFlags mods);
     KeyInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action);
 
+    bool operator==(const KeyInput&) const = default;
+
     trc::Key key;
     trc::KeyModFlags mod{ trc::KeyModFlagBits::none };
     trc::InputAction action{ trc::InputAction::press };
@@ -23,6 +25,8 @@ struct MouseInput
     MouseInput(trc::MouseButton button);
     MouseInput(trc::MouseButton button, trc::KeyModFlags mods);
     MouseInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action);
+
+    bool operator==(const MouseInput&) const = default;
 
     trc::MouseButton button;
     trc::KeyModFlags mod{ trc::KeyModFlagBits::none };
@@ -51,6 +55,8 @@ struct UserInput
     UserInput(trc::MouseButton button, trc::KeyModFlags mods);
     UserInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action);
 
+    bool operator==(const UserInput& other) const = default;
+
     template<typename T> requires keyOrMouseInput<T>
     bool is() const
     {
@@ -66,18 +72,6 @@ struct UserInput
 
     std::variant<KeyInput, MouseInput> input;
 };
-
-
-
-inline bool operator==(const KeyInput& a, const KeyInput& b)
-{
-    return a.key == b.key && a.mod == b.mod && a.action == b.action;
-}
-
-inline bool operator==(const MouseInput& a, const MouseInput& b)
-{
-    return a.button == b.button && a.mod == b.mod && a.action == b.action;
-}
 
 template<>
 struct std::hash<KeyInput>

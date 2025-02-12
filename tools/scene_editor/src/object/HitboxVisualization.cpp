@@ -19,14 +19,18 @@ HitboxVisualization::HitboxVisualization(trc::Scene& scene)
 void HitboxVisualization::removeFromScene()
 {
     sphereDrawable.reset();
-    capsuleDrawable.reset();
+    capsuleDrawables = {};
 }
 
 void HitboxVisualization::enableSphere(const Sphere& sphere)
 {
-    sphereDrawable = scene->makeDrawable({ g::geos().sphere, g::mats().objectHitbox });
-    sphereDrawable.value()->setScale(sphere.radius);
-    attach(**sphereDrawable);
+    sphereDrawable = scene->makeDrawable({
+        .geo=g::geos().sphere,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
+    sphereDrawable->setScale(sphere.radius).setTranslation(sphere.position);
+    attach(*sphereDrawable);
 }
 
 void HitboxVisualization::disableSphere()
@@ -36,22 +40,69 @@ void HitboxVisualization::disableSphere()
 
 bool HitboxVisualization::isSphereEnabled() const
 {
-    return sphereDrawable.has_value();
+    return !!sphereDrawable;
 }
 
 void HitboxVisualization::enableCapsule(const Capsule& capsule)
 {
-    capsuleDrawable = scene->makeDrawable({ g::geos().sphere, g::mats().objectHitbox });
-    capsuleDrawable.value()->setScale(capsule.radius, capsule.height, capsule.radius);
-    attach(**capsuleDrawable);
+    capsuleDrawables[0] = scene->makeDrawable({
+        .geo=g::geos().halfSphere,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
+    capsuleDrawables[1] = scene->makeDrawable({
+        .geo=g::geos().openCylinder,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
+    capsuleDrawables[2] = scene->makeDrawable({
+        .geo=g::geos().halfSphere,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
+
+    capsuleDrawables[0]->scale(capsule.radius)
+                       .rotate(glm::pi<float>(), 0, 0)
+                       .translate(0, -capsule.height / 2.0f, 0)
+                       .translate(capsule.position);
+    capsuleDrawables[1]->scale(capsule.radius, capsule.height / 2.0f, capsule.radius)
+                       .translate(capsule.position);
+    capsuleDrawables[2]->scale(capsule.radius)
+                       .translate(0, capsule.height / 2.0f, 0)
+                       .translate(capsule.position);
+    attach(*capsuleDrawables[0]);
+    attach(*capsuleDrawables[1]);
+    attach(*capsuleDrawables[2]);
 }
 
 void HitboxVisualization::disableCapsule()
 {
-    capsuleDrawable.reset();
+    capsuleDrawables = {};
 }
 
 bool HitboxVisualization::isCapsuleEnabled() const
 {
-    return capsuleDrawable.has_value();
+    return !!capsuleDrawables[0];
+}
+
+void HitboxVisualization::enableBox(const Box& box)
+{
+    boxDrawable = scene->makeDrawable({
+        .geo=g::geos().cube,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
+    boxDrawable->setScale(box.halfExtent * 2.0f);  // cube geo has 0.5 half extent
+    boxDrawable->setTranslation(box.position);
+    attach(*boxDrawable);
+}
+
+void HitboxVisualization::disableBox()
+{
+    boxDrawable.reset();
+}
+
+bool HitboxVisualization::isBoxEnabled() const
+{
+    return !!boxDrawable;
 }

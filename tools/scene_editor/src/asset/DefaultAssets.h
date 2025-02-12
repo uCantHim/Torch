@@ -10,6 +10,9 @@ namespace g
     {
         trc::GeometryID cube;
         trc::GeometryID sphere;
+        trc::GeometryID capsule;
+        trc::GeometryID openCylinder;
+        trc::GeometryID halfSphere;
     };
 
     struct DefaultMaterials

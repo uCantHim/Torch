@@ -20,8 +20,9 @@ template<>
 class trc::AssetHandle<HitboxAsset> : public Hitbox
 {
 public:
+    explicit
     AssetHandle(Hitbox hitbox) : Hitbox(hitbox) {}
-    AssetHandle(Sphere sphere, Capsule capsule) : Hitbox(sphere, capsule) {}
+    AssetHandle(Sphere sphere, Capsule capsule, Box box) : Hitbox(sphere, capsule, box) {}
 };
 
 template<>
@@ -29,6 +30,7 @@ struct trc::AssetData<HitboxAsset>
 {
     Sphere sphere;
     Capsule capsule;
+    Box box;
 
     trc::AssetReference<trc::Geometry> geometry;
 
