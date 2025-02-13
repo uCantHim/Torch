@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "trc/assets/import/AssimpImporter.h"
+#include "trc/assets/import/FBXImporter.h"
 #include "trc/base/ImageUtils.h"
 #include "trc/base/Logging.h"
 
@@ -68,6 +70,18 @@ auto trc::loadGeometry(const fs::path& filePath) -> GeometryData
     linkAssetReferences(mesh);
 
     return mesh.geometry;
+}
+
+auto trc::loadGeometry(const fs::path& filePath, std::string_view name)
+    -> std::optional<GeometryData>
+{
+    auto assets = loadAssets(filePath);
+    if (auto mesh = assets.findMesh(name))
+    {
+        linkAssetReferences(*mesh);
+        return std::move(mesh->geometry);
+    }
+    return std::nullopt;
 }
 
 auto trc::loadTexture(const fs::path& filePath) -> TextureData
