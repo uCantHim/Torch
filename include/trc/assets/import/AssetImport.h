@@ -1,11 +1,12 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
+#include <string_view>
 
 #include <trc_util/Exception.h>
 
-#include "trc/assets/import/AssimpImporter.h"
-#include "trc/assets/import/FBXImporter.h"
+#include "trc/assets/import/AssetImportBase.h"
 #include "trc/text/Font.h"
 
 namespace trc
@@ -33,12 +34,26 @@ namespace trc
     /**
      * @brief Load the first geometry from a file
      *
-     * Tries to interpret the file as a geometry storing file type, such
+     * Tries to interpret the file as any of the geometry file types, such
      * as COLLADA, FBX, or OBJ.
      *
-     * @throw DataImportError if the file format is not supported
+     * @throw DataImportError if the file format is not supported, or if the
+     *                        file contains no geometries.
      */
     auto loadGeometry(const fs::path& filePath) -> GeometryData;
+
+    /**
+     * @brief Try to load a specific geometry from a file
+     *
+     * Tries to interpret the file as any of the geometry file types, such
+     * as COLLADA, FBX, or OBJ.
+     *
+     * @return A geometry if one with the specified name exists. Nothing
+     *         otherwise.
+     * @throw DataImportError if the file format is not supported
+     */
+    auto loadGeometry(const fs::path& filePath, std::string_view name)
+        -> std::optional<GeometryData>;
 
     /**
      * @brief Load a texture from an image file

@@ -40,6 +40,8 @@ auto trc::AssetImporter::load(const fs::path& filePath) -> ThirdPartyFileImportD
     );
 
     if (!scene) {
+        log::error << "Unable to import assets from " << filePath << ": "
+                   << importer.GetErrorString();
         return {};
     }
 
@@ -66,6 +68,7 @@ auto trc::AssetImporter::loadMeshes(const aiScene* scene) -> std::vector<ThirdPa
         }
 
         ThirdPartyMeshImport& newMesh = result.emplace_back();
+        newMesh.name = mesh->mName.C_Str();
         auto& meshData = newMesh.geometry;
 
         const bool hasUVs = mesh->HasTextureCoords(0);

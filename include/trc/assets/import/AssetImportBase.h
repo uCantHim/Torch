@@ -1,9 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
-#include <filesystem>
 
 #include "trc/Types.h"
 #include "trc/assets/Animation.h"
@@ -40,5 +41,18 @@ namespace trc
         fs::path filePath;
 
         std::vector<ThirdPartyMeshImport> meshes;
+
+        /**
+         * @return `nullptr` if no mesh with the specified name was found. A
+         *         valid pointer otherwise.
+         */
+        auto findMesh(std::string_view name) & -> ThirdPartyMeshImport*
+        {
+            auto it = std::ranges::find_if(meshes, [&](auto& mesh){ return mesh.name == name; });
+            if (it != meshes.end()) {
+                return &*it;
+            }
+            return nullptr;
+        }
     };
 } // namespace trc
