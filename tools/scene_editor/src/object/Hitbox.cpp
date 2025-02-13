@@ -28,7 +28,7 @@ auto makeHitbox(const trc::GeometryData& geo) -> Hitbox
     const vec3 lowerPoint = vec3(midPoint.x, minCoords.y, midPoint.z);
     const float height = maxCoords.y - minCoords.y;
     const float xzRadius = distance(xz(lowerPoint), xz(maxAbsCoords));
-    Capsule capsule(height, xzRadius, lowerPoint);
+    Capsule capsule(height, xzRadius, midPoint);
 
     // Logging
     {

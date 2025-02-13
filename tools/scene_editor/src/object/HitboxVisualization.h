@@ -1,6 +1,6 @@
 #pragma once
 
-#include <optional>
+#include <array>
 
 #include <trc/Torch.h>
 #include <trc/drawable/DrawableScene.h>
@@ -29,6 +29,6 @@ public:
 private:
     trc::Scene* scene;
 
-    std::optional<trc::Drawable> sphereDrawable;
-    std::optional<trc::Drawable> capsuleDrawable;
+    trc::Drawable sphereDrawable;
+    std::array<trc::Drawable, 3> capsuleDrawables;
 };

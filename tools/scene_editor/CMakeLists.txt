@@ -30,6 +30,9 @@ protobuf_generate_cpp(
 )
 target_sources(scene_editor PRIVATE ${SCENE_EDITOR_PROTO_SRCS})
 target_include_directories(scene_editor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_definitions(scene_editor PRIVATE
+    SCENE_EDITOR_BUILTIN_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
+)
 
 # Include tests
 if (${SCENE_EDITOR_BUILD_TESTS})
