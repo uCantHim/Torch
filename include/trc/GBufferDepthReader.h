@@ -1,36 +1,38 @@
 #pragma once
 
-#include "trc/GBuffer.h"
-#include "trc/UpdatePass.h"
+#include "trc/Types.h"
 #include "trc/base/Buffer.h"
 
 namespace trc
 {
-    class GBufferDepthReader : public UpdatePass
+    class ViewportDrawContext;
+
+    class DepthReaderCallback
+    {
+    public:
+        virtual ~DepthReaderCallback() noexcept = default;
+
+        virtual auto getReadPosition() -> ivec2 = 0;
+        virtual void onDepthRead(ivec2 pos, float depthValue) = 0;
+    };
+
+    class GBufferDepthReader
     {
     public:
         GBufferDepthReader(const Device& device,
-                           std::function<vec2()> mousePosGetter,
-                           GBuffer& gBuffer);
+                           s_ptr<DepthReaderCallback> callback,
+                           vk::Image readImage,
+                           const DeviceMemoryAllocator& alloc = DefaultDeviceMemoryAllocator{});
 
-        void update(vk::CommandBuffer cmdBuf, FrameRenderState&) override;
+        void update(vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx);
 
-        /**
-         * @brief Get the depth of pixel under the mouse cursor
-         *
-         * @return float Depth of the pixel which contains the mouse cursor.
-         *               Is the last read depth value if the cursor is not
-         *               in a window.
-         */
-        auto getMouseDepth() const noexcept -> float;
+        static auto packedD24S8ToDepth(ui32 depthValueD24S8) -> float;
 
     private:
-        void readDepthAtMousePos(vk::CommandBuffer cmdBuf);
+        s_ptr<DepthReaderCallback> callback;
 
-        std::function<vec2()> getMousePos;
-
-        GBuffer& gBuffer;
+        vk::Image readImage;
         Buffer depthPixelReadBuffer;
-        ui32* depthBufMap{ depthPixelReadBuffer.map<ui32*>() };
+        ui32* depthBufMap;
     };
 } // namespace trc

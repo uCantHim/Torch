@@ -4,6 +4,7 @@
 
 #include "trc/FinalLighting.h"
 #include "trc/GBuffer.h"
+#include "trc/GBufferDepthReader.h"
 #include "trc/GBufferPass.h"
 #include "trc/RenderDataDescriptor.h"
 #include "trc/ShadowPool.h"
@@ -13,7 +14,6 @@
 namespace trc
 {
     class DescriptorProviderInterface;
-    class GBufferDepthReader;
     class GBufferPass;
     class SceneDescriptor;
 
@@ -34,6 +34,14 @@ namespace trc
          * the entire viewport is calculated.
          */
         ui32 maxTransparentFragsPerPixel{ 3 };
+
+        /**
+         * An interface to the plugin's capability to read depth values from
+         * the g-buffer.
+         *
+         * Passing `nullptr` disables this feature.
+         */
+        s_ptr<DepthReaderCallback> depthReaderCallback{ nullptr };
     };
 
     auto buildRasterPlugin(const RasterPluginCreateInfo& createInfo) -> PluginBuilder;
