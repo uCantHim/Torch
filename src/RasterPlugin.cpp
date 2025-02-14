@@ -119,7 +119,12 @@ RasterPlugin::DrawConfig::DrawConfig(
     }),
     gBufferPass(std::make_shared<GBufferPass>(ctx.device(), gBuffer)),
     gBufferDepthReaderPass(
-        std::make_shared<GBufferDepthReader>(ctx.device(), []{ return vec2{}; }, gBuffer)
+        parent.config.depthReaderCallback
+        ? std::make_shared<GBufferDepthReader>(
+            ctx.device(),
+            parent.config.depthReaderCallback,
+            *gBuffer.getImage(GBuffer::Image::eDepth))
+        : nullptr
     ),
     finalLighting(parent.finalLighting.makeDrawConfig(ctx.device(), ctx.viewport())),
     gBufferDescSet(parent.gBufferDescriptor.makeDescriptorSet(ctx.device(), gBuffer)),
@@ -157,11 +162,14 @@ void RasterPlugin::DrawConfig::createTasks(
     );
 
     // Depth reader task
-    queue.spawnTask(stages::gBuffer,
-        [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx) {
-            gBufferDepthReaderPass->update(cmdBuf, ctx.frame());
-        }
-    );
+    if (gBufferDepthReaderPass)
+    {
+        queue.spawnTask(stages::gBuffer,
+            [this](vk::CommandBuffer cmdBuf, ViewportDrawContext& ctx) {
+                gBufferDepthReaderPass->update(cmdBuf, ctx);
+            }
+        );
+    }
 
     // Final lighting compute task
     finalLighting->createTasks(queue);
