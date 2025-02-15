@@ -361,13 +361,13 @@ namespace trc
 
         /**
          * @return vec2 Cursor position relative to the upper-left corner
-         *              of the window's content area
+         *              of the window's content area in screen coordinates.
          */
         auto getMousePosition() const -> glm::vec2;
 
         /**
          * @return vec2 Cursor position relative to the lower-left corner
-         *              of the window's content area
+         *              of the window's content area in screen coordinates.
          */
         auto getMousePositionLowerLeft() const -> glm::vec2;
 
