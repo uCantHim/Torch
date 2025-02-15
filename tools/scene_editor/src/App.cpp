@@ -140,8 +140,8 @@ App::App(const fs::path& projectRootDir)
 
     scene->createDefaultObject({ gi, mg });
 
-    auto smallPlane = scene->createDefaultObject({ gi1, mr });
-    scene->get<ObjectBaseNode>(smallPlane).rotateX(glm::radians(90.0f)).translateY(1.5f);
+    auto smallCube = scene->createDefaultObject({ cubeGeo, mr });
+    scene->get<ObjectBaseNode>(smallCube).rotateX(glm::radians(90.0f)).translateY(1.5f).scale(0.2f);
 
     auto cube = scene->createDefaultObject({ cubeGeo, mo });
     scene->get<ObjectBaseNode>(cube).translateY(0.5f);
@@ -197,6 +197,11 @@ void App::setSceneViewport(vec2 offset, vec2 size)
     mainViewport.reset();
     mainViewport = torch->makeViewport({ offset, size }, camera, drawableScene);
     camera->setAspect(size.x / size.y);
+}
+
+auto App::getSceneViewport() -> trc::RenderArea
+{
+    return mainViewport->getRenderArea();
 }
 
 void App::tick()

@@ -1,33 +1,13 @@
 #pragma once
 
-#include <componentlib/ComponentBase.h>
+#include <optional>
+
 #include <trc/Types.h>
 #include <trc/assets/Geometry.h>
 using namespace trc::basic_types;
 
-struct Capsule
-{
-    Capsule() = default;
-    Capsule(float height, float radius, vec3 pos = vec3(0.0f))
-        : height(height), radius(radius), position(pos)
-    {}
-
-    /** Full height from end to end; cylinder's height is height - 2 * radius. */
-    float height{ 0.0f };
-    float radius{ 0.0f };
-    vec3 position;
-};
-
-struct Sphere
-{
-    Sphere() = default;
-    Sphere(float radius, vec3 pos = vec3(0.0f))
-        : radius(radius), position(pos)
-    {}
-
-    float radius{ 0.0f };
-    vec3 position;
-};
+#include "scene/Geometry.h"
+#include "scene/RayIntersect.h"
 
 bool isInside(vec3 point, const Sphere& sphere);
 bool isInside(vec3 point, const Capsule& capsule);
@@ -51,6 +31,14 @@ public:
      * if the point lies inside of the sphere.
      */
     bool isInside(vec3 point) const;
+
+    /**
+     * @brief Test if a ray intersects with the hitbox
+     *
+     * @return The intersection nearest to the ray origin, if one exists.
+     *         Nothing otherwise.
+     */
+    auto intersect(const Ray& ray) const -> std::optional<Intersection>;
 
 private:
     Sphere sphere;

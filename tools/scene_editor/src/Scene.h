@@ -8,6 +8,7 @@ using namespace trc::basic_types;
 #include "object/SceneObject.h"
 
 class App;
+struct Ray;
 
 class Scene : public componentlib::ComponentStorage<Scene, SceneObject>
 {
@@ -23,6 +24,7 @@ public:
     auto getTorch() -> trc::TorchStack&;
     auto getCamera() -> trc::Camera&;
     auto getCamera() const -> const trc::Camera&;
+    auto getCameraViewNode() -> trc::Node&;
     auto getDrawableScene() -> trc::Scene&;
 
     auto getMouseDepth() const -> float;
@@ -65,6 +67,13 @@ public:
 
     auto createDefaultObject(trc::Drawable drawable) -> SceneObject;
     auto createDefaultObject(const trc::DrawableCreateInfo& createInfo) -> SceneObject;
+
+    /**
+     * @brief Cast a ray into the scene.
+     *
+     * @return The first object hit by the ray, and the hit position.
+     */
+    auto castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3>>;
 
 private:
     void calcObjectHover();

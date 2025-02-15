@@ -13,6 +13,7 @@ ObjectOutline::ObjectOutline(Scene& _scene, SceneObject obj, Type outlineType)
     drawable = scene.makeDrawable(trc::DrawableCreateInfo{
         .geo = d->getGeometry(),
         .mat = toMaterial(outlineType),
+        .disableShadow = true,
     });
     drawable->setScale(OUTLINE_SCALE);
 

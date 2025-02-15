@@ -22,6 +22,7 @@ public:
     auto getScene() -> Scene&;
 
     void setSceneViewport(vec2 offset, vec2 size);
+    auto getSceneViewport() -> trc::RenderArea;
 
     static auto get() -> App&;
 

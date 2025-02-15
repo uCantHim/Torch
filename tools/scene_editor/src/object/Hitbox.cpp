@@ -42,6 +42,8 @@ auto makeHitbox(const trc::GeometryData& geo) -> Hitbox
     return { sphere, capsule };
 }
 
+
+
 bool isInside(vec3 point, const Sphere& sphere)
 {
     return distance2(point, sphere.position) < sphere.radius * sphere.radius;
@@ -86,5 +88,13 @@ auto Hitbox::getCapsule() const -> const Capsule&
 
 bool Hitbox::isInside(vec3 point) const
 {
-    return ::isInside(point, sphere) || ::isInside(point, capsule);
+    return ::isInside(point, sphere) && ::isInside(point, capsule);
+}
+
+auto Hitbox::intersect(const Ray& ray) const -> std::optional<Intersection>
+{
+    if (auto hit = intersectEdge(ray, sphere)) {
+        return hit->first;
+    }
+    return std::nullopt;
 }
