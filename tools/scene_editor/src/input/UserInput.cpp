@@ -1,4 +1,4 @@
-#include "InputStructs.h"
+#include "input/UserInput.h"
 
 
 
@@ -8,12 +8,17 @@ KeyInput::KeyInput(trc::Key key)
 }
 
 KeyInput::KeyInput(trc::Key key, trc::KeyModFlags mods)
-    : key(key), mod(mods)
+    : key(key), mods(mods)
+{
+}
+
+KeyInput::KeyInput(trc::Key key, trc::InputAction action)
+    : key(key), action(action)
 {
 }
 
 KeyInput::KeyInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
-    : key(key), mod(mods), action(action)
+    : key(key), mods(mods), action(action)
 {
 }
 
@@ -23,12 +28,17 @@ MouseInput::MouseInput(trc::MouseButton button)
 }
 
 MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods)
-    : button(button), mod(mods)
+    : button(button), mods(mods)
+{
+}
+
+MouseInput::MouseInput(trc::MouseButton button, trc::InputAction action)
+    : button(button), action(action)
 {
 }
 
 MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action)
-    : button(button), mod(mods), action(action)
+    : button(button), mods(mods), action(action)
 {
 }
 
@@ -44,6 +54,11 @@ UserInput::UserInput(trc::Key key, trc::KeyModFlags mods)
 {
 }
 
+UserInput::UserInput(trc::Key key, trc::InputAction action)
+    : input(KeyInput(key, action))
+{
+}
+
 UserInput::UserInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
     : input(KeyInput(key, mods, action))
 {
@@ -56,6 +71,11 @@ UserInput::UserInput(trc::MouseButton button)
 
 UserInput::UserInput(trc::MouseButton button, trc::KeyModFlags mods)
     : input(MouseInput(button, mods))
+{
+}
+
+UserInput::UserInput(trc::MouseButton button, trc::InputAction action)
+    : input(MouseInput(button, action))
 {
 }
 

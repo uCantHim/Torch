@@ -5,8 +5,14 @@
 using namespace trc::basic_types;
 
 #include "Scene.h"
-#include "gui/MainMenu.h"
-#include "input/InputState.h"
+#include "asset/AssetInventory.h"
+#include "graphics/Graphics.h"
+#include "input/InputProcessor.h"
+#include "viewport/SceneViewport.h"
+#include "viewport/ViewportTree.h"
+#include "viewport/ViewportTreeController.h"
+
+struct KeyConfig;
 
 class App
 {
@@ -17,16 +23,18 @@ public:
     void run();
     void end();
 
-    auto getTorch() -> trc::TorchStack&;
+    auto getMainWindow() -> trc::Window&;
     auto getAssets() -> AssetInventory&;
     auto getScene() -> Scene&;
 
-    void setSceneViewport(vec2 offset, vec2 size);
-    auto getSceneViewport() -> trc::RenderArea;
+    auto getViewportManager() -> ViewportTree&;
+    auto getSceneViewport() -> ViewportArea;
 
     static auto get() -> App&;
 
 private:
+    static constexpr vec3 kClearColor{ 0.12f, 0.12f, 0.12f };
+
     static inline App* _app{ nullptr };
 
     /** I try to limit the initialization hacks to only this single one */
@@ -36,18 +44,27 @@ private:
     void tick();
     bool doEnd{ false };
 
-    u_ptr<int, void(*)(int*)> torchTerminator;
-    u_ptr<trc::TorchStack> torch;
+    /**
+     * @brief Set up key bindings for the root frame.
+     */
+    void setupRootInputFrame(InputFrame& frame, const KeyConfig& conf);
+
+    GraphicsStack graphics;
+
+    s_ptr<trc::DataStorage> assetDataStorage;
+    trc::AssetManager assetManager;
+    AssetInventory assetInventory;
 
     s_ptr<trc::Camera> camera;
     s_ptr<trc::Scene> drawableScene;
     s_ptr<Scene> scene;
-    trc::ViewportHandle mainViewport;
 
-    AssetInventory assetInventory;
+    s_ptr<WindowRenderer> mainWindow;
 
-    gui::MainMenu mainMenu;
-    InputStateMachine inputState;
+    s_ptr<InputProcessor> windowManager;
+    s_ptr<SceneViewport> sceneViewport;
+    s_ptr<ViewportTree> mainWindowViewportManager;
+    s_ptr<ViewportTreeController> mainWindowViewport;
 
     trc::Timer frameTimer;
 };

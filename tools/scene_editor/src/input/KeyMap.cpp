@@ -2,26 +2,26 @@
 
 
 
-auto KeyMap::get(UserInput input) -> InputCommand*
+auto KeyMap::get(const UserInput& input) -> Command*
 {
-    auto it = map.find(std::hash<UserInput>{}(input));
+    auto it = map.find(input);
     if (it != map.end()) {
         return it->second.get();
     }
     return nullptr;
 }
 
-void KeyMap::set(UserInput input, u_ptr<InputCommand> cmd)
+void KeyMap::set(const UserInput& input, u_ptr<Command> cmd)
 {
     assert(cmd != nullptr);
 
-    auto [it, success] = map.try_emplace(std::hash<UserInput>{}(input));
+    auto [it, success] = map.try_emplace(input);
     it->second = std::move(cmd);
 }
 
-void KeyMap::unset(UserInput input)
+void KeyMap::unset(const UserInput& input)
 {
-    map.erase(std::hash<UserInput>{}(input));
+    map.erase(input);
 }
 
 void KeyMap::clear()

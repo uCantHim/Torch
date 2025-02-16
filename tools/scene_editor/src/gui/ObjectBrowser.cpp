@@ -1,6 +1,8 @@
 #include "ObjectBrowser.h"
 
-#include "App.h"
+#include <imgui.h>
+namespace ig = ImGui;
+
 #include "object/Context.h"
 
 
@@ -8,17 +10,16 @@
 namespace gui
 {
 
-ObjectBrowser::ObjectBrowser(MainMenu& menu)
+ObjectBrowser::ObjectBrowser(s_ptr<Scene> scene)
     :
-    app(&menu.getApp())
+    ImguiWindow("Scene Object Browser"),
+    scene(std::move(scene))
 {
 }
 
-void ObjectBrowser::drawImGui()
+void ObjectBrowser::drawWindowContent()
 {
-    Scene& scene = app->getScene();
-
-    for (const auto& meta : scene.iterObjects())
+    for (const auto& meta : scene->iterObjects())
     {
         const SceneObject obj = meta.id;
         const std::string label = obj.toString() + meta.name;
@@ -26,16 +27,16 @@ void ObjectBrowser::drawImGui()
         if (ig::Selectable(label.c_str(), obj == selected))
         {
             selected = obj;
-            scene.selectObject(obj);
+            scene->selectObject(obj);
         }
         if (ig::IsItemHovered()) {
-            scene.hoverObject(obj);
+            scene->hoverObject(obj);
         }
 
         // Right-click context menu
         if (ig::BeginPopupContextItem(label.c_str()))
         {
-            drawObjectContextMenu(scene, obj);
+            drawObjectContextMenu(*scene, obj);
             ig::EndPopup();
         }
     }

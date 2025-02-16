@@ -1,117 +1,128 @@
 #include "ObjectRotateCommand.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/vec_swizzle.hpp>
+
 #include "AxisFlags.h"
-#include "Globals.h"
 #include "Scene.h"
-#include "input/InputState.h"
+#include "input/InputHandler.h"
+#include "scene/action/RotateObject.h"
 
 
 
-class ObjectRotateState : public CommandState
+class ObjectRotateState : public InputFrame
 {
 public:
-    ObjectRotateState(SceneObject obj, Scene& scene)
+    ObjectRotateState(SceneObject obj, s_ptr<Scene> scene)
         :
         obj(obj),
-        scene(&scene),
-        originalOrientation(scene.get<ObjectBaseNode>(obj).getRotation()),
-        pivot(scene.get<ObjectBaseNode>(obj).getGlobalTransform()[3]),
-        depth(scene.getCamera().calcScreenDepth(pivot)),
-        originalDir(glm::normalize(scene.getMousePosAtDepth(depth) - pivot)),
-        rotationAxis(glm::normalize(pivot - vec3(scene.getCamera().getViewMatrix()[3])))
+        scene(scene),
+        originalOrientation(scene->get<ObjectBaseNode>(obj).getRotation()),
+        pivotWorld(scene->get<ObjectBaseNode>(obj).getGlobalTransform()[3]),
+        depth(scene->getCamera().calcScreenDepth(pivotWorld)),
+        orientation(1, 0, 0, 0)
     {
-        assert(glm::all(glm::not_(glm::isnan(originalDir))));
-        assert(glm::all(glm::not_(glm::isnan(rotationAxis))));
-        assert(glm::all(glm::not_(glm::isnan(pivot))));
     }
 
-    bool update(const float) override
+    void applyRotation(CommandExecutionContext& ctx)
     {
-        const quat rotation = glm::angleAxis(getNewAngle(), rotationAxis) * originalOrientation;
-        scene->get<ObjectBaseNode>(obj).setRotation(rotation);
-
-        return terminate;
-    }
-
-    void onExit() override
-    {
-        const quat rotation = glm::angleAxis(finalAngle, rotationAxis) * originalOrientation;
-        scene->get<ObjectBaseNode>(obj).setRotation(rotation);
-    }
-
-    void applyRotation()
-    {
-        finalAngle = getNewAngle();
-        terminate = true;
+        ctx.generateAction(
+            std::make_unique<action::RotateObject>(scene, obj, originalOrientation, orientation)
+        );
+        exitFrame();
     }
 
     void resetRotation()
     {
-        finalAngle = 0.0f;
-        terminate = true;
+        scene->get<ObjectBaseNode>(obj).setRotation(originalOrientation);
+        exitFrame();
     }
 
     void lockAxes(AxisFlags flags)
     {
-        assert(glm::length(toVector(flags)) > 0.0f);
-        rotationAxis = glm::normalize(toVector(flags));
+        axisLock = toVector(flags);
+        orientation = quat{ 1, 0, 0, 0 };
+        scene->get<ObjectBaseNode>(obj).setRotation(originalOrientation);
     }
 
-private:
-    auto getNewAngle() const -> float
+    void handleCursorMove(const CursorMovement& cursor)
     {
-        vec3 dir = scene->getMousePosAtDepth(depth) - pivot;
-        if (float len = glm::length(dir); len > 0.0f) {
-            dir /= len;
-        }
-        else {
-            return 0.0f;
-        }
+        const auto [angle, axis] = calcRotation(cursor);
+        orientation = glm::rotate(orientation, angle, axis);
+        scene->get<ObjectBaseNode>(obj).setRotation(originalOrientation * orientation);
+    }
 
-        const vec3 cross = glm::cross(dir, originalDir);
-        const float diff = glm::dot(dir, originalDir);
-        if (glm::abs(diff) == 1.0f) {
-            return 0.0f;
-        }
+    auto calcRotation(const CursorMovement& _cursor) const -> std::pair<float, vec3>
+    {
+        /** Component-wise sign. Returns 1 if x > 0, 1 if x == 0, -1 if x < 0. */
+        constexpr auto sign_nonnull = [](vec3 v) -> vec3 {
+            return { v.x >= 0.0f ? 1 : -1, v.y >= 0.0f ? 1 : -1, v.z >= 0.0f ? 1 : -1, };
+        };
 
-        return -glm::sign(cross.x + cross.y + cross.z) * glm::acos(diff);
+        // Invert y-axis on cursor coordinates (origin needs to be lower left)
+        const CursorMovement cursor = _cursor.invertY();
+        const vec2 cursorPos = cursor.position;
+        const vec2 prevCursorPos = cursorPos - cursor.offset;
+
+        // Compute screen space vectors
+        const vec4 pivotProj = scene->getCamera().project(pivotWorld);
+        const vec2 pivot = glm::xy(pivotProj) * vec2{cursor.areaSize};
+
+        // Compute angle and direction
+        const vec2 a = cursorPos - pivot;
+        const vec2 b = prevCursorPos - pivot;
+        const float angle = glm::acos(glm::dot(glm::normalize(a), glm::normalize(b)));
+        const float sign = glm::sign(a.x * b.y - b.x * a.y);  // Derived from cross product on
+                                                              // x-y plane
+
+        // Compute rotation axis
+        const vec3 eyeVec = pivotWorld - scene->getCameraArm().getCameraWorldPos();
+        const vec3 axis = axisLock ? (*axisLock * sign_nonnull(eyeVec))
+                                   : glm::normalize(eyeVec);
+
+        return { sign * (glm::isnan(angle) ? 0.0f : angle), axis };
     }
 
     const SceneObject obj;
-    Scene* scene;
+    s_ptr<Scene> scene;
 
     const quat originalOrientation;
-
-    const vec3 pivot;
+    const vec3 pivotWorld;
     const float depth;
-    const vec3 originalDir;
-    vec3 rotationAxis;
 
-    bool terminate{ false };
-    float finalAngle{ 0.0f };
+    std::optional<vec3> axisLock;
+    quat orientation;
 };
 
 
 
-void ObjectRotateCommand::execute(CommandCall& call)
+ObjectRotateCommand::ObjectRotateCommand(s_ptr<Scene> scene)
+    :
+    scene(scene)
+{}
+
+void ObjectRotateCommand::execute(CommandExecutionContext& ctx)
 {
-    auto& scene = g::scene();
-    scene.getSelectedObject() >> [&](auto obj)
+    scene->getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectRotateState{ obj, scene });
+        using S = ObjectRotateState;
+        auto state = ctx.pushFrame(ObjectRotateState{ obj, scene });
 
-        call.on(trc::Key::escape,        [&](auto&){ state.resetRotation(); });
-        call.on(trc::MouseButton::right, [&](auto&){ state.resetRotation(); });
-        call.on(trc::Key::enter,         [&](auto&){ state.applyRotation(); });
-        call.on(trc::MouseButton::left,  [&](auto&){ state.applyRotation(); });
+        state.on(trc::Key::escape,        [](S& state){ state.resetRotation(); });
+        state.on(trc::MouseButton::right, [](S& state){ state.resetRotation(); });
+        state.on(trc::Key::enter,         [](S& state, auto& ctx){ state.applyRotation(ctx); });
+        state.on(trc::MouseButton::left,  [](S& state, auto& ctx){ state.applyRotation(ctx); });
 
-        // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
+        // x and y keys are swapped because key codes use the american keyboard layout
         auto shift = trc::KeyModFlagBits::shift;
-        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ trc::Key::x, shift }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x }, [](S& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on({ trc::Key::z }, [](S& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on({ trc::Key::y }, [](S& state){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x, shift }, [](S& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on({ trc::Key::z, shift }, [](S& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on({ trc::Key::y, shift }, [](S& state){ state.lockAxes(Axis::eX | Axis::eY); });
+
+        state.onCursorMove(&ObjectRotateState::handleCursorMove);
     };
 }

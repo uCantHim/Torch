@@ -1,5 +1,6 @@
 #include "KeyConfig.h"
 
+#include "App.h"
 #include "Globals.h"
 #include "command/CameraCommands.h"
 #include "command/ObjectRotateCommand.h"
@@ -22,49 +23,31 @@ void selectHoveredObject()
     g::scene().selectHoveredObject();
 }
 
-auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap
+void setupMainSceneInputFrame(InputFrame& f, const KeyConfig& conf, s_ptr<Scene> scene)
 {
-    KeyMap map;
-
-    map.set(conf.closeApp,            makeInputCommand([&]{ app.end(); }));
-    map.set(conf.openContext,         makeInputCommand([&]{ openContextMenu(app.getScene()); }));
-    map.set(conf.selectHoveredObject, makeInputCommand(selectHoveredObject));
-    map.set(conf.deleteHoveredObject, makeInputCommand([&app](){
-        app.getScene().getSelectedObject() >> [&](SceneObject obj) {
-            app.getScene().deleteObject(obj);
+    f.on(conf.openContext,         [scene]{ openContextMenu(*scene); });
+    f.on(conf.selectHoveredObject, selectHoveredObject);
+    f.on(conf.deleteHoveredObject, [scene]{
+        scene->getSelectedObject() >> [&](SceneObject obj) {
+            scene->deleteObject(obj);
         };
-    }));
+    });
 
-    map.set(conf.cameraRotate, std::make_unique<CameraRotateCommand>(app));
-    map.set(conf.cameraMove,   std::make_unique<CameraMoveCommand>(app));
+    f.on(conf.cameraRotate, std::make_unique<CameraRotateCommand>(scene));
+    f.on(conf.cameraMove,   std::make_unique<CameraMoveCommand>(scene));
 
-    map.set(conf.translateObject, std::make_unique<ObjectTranslateCommand>(app));
-    map.set(conf.scaleObject,     std::make_unique<ObjectScaleCommand>());
-    map.set(conf.rotateObject,    std::make_unique<ObjectRotateCommand>());
+    f.on(conf.translateObject, std::make_unique<ObjectTranslateCommand>(scene));
+    f.on(conf.scaleObject,     std::make_unique<ObjectScaleCommand>(scene));
+    f.on(conf.rotateObject,    std::make_unique<ObjectRotateCommand>(scene));
 
-    // General stuff that I don't know how to deal with
-    trc::on<trc::MouseClickEvent>([contextMenuKey=conf.openContext](auto& e) {
-        if (UserInput{e.button} != contextMenuKey) {
+    f.onScroll([scene, scrollLevel=0](auto&, const Scroll& scroll) mutable {
+        scrollLevel += static_cast<i32>(glm::sign(scroll.offset.y));
+        scene->getCameraArm().setZoomLevel(scrollLevel);
+    });
+
+    f.onUnhandledMouseInput([contextMenuKey=conf.openContext](auto&, MouseInput input) {
+        if (input.action == trc::InputAction::press && input != contextMenuKey) {
             gui::ContextMenu::close();
         }
     });
-
-    trc::on<trc::ScrollEvent>([&app](const auto& e)
-    {
-        static i32 scrollLevel{ 0 };
-        scrollLevel += static_cast<i32>(glm::sign(e.yOffset));
-
-        trc::Camera& camera = app.getScene().getCamera();
-        if (scrollLevel == 0) {
-            camera.setScale(1.0f);
-        }
-        else if (scrollLevel < 0) {
-            camera.setScale(1.0f / -(scrollLevel - 1));
-        }
-        else {
-            camera.setScale(scrollLevel + 1);
-        }
-    });
-
-    return map;
 }

@@ -1,11 +1,19 @@
 #pragma once
 
-#include "input/InputCommand.h"
+#include <trc/Types.h>
+using namespace trc::basic_types;
 
-class ObjectRotateCommand : public InputCommand
+#include "input/Command.h"
+
+class Scene;
+
+class ObjectRotateCommand : public Command
 {
 public:
-    ObjectRotateCommand() = default;
+    explicit ObjectRotateCommand(s_ptr<Scene> scene);
 
-    void execute(CommandCall& call) override;
+    void execute(CommandExecutionContext& ctx) override;
+
+private:
+    s_ptr<Scene> scene;
 };

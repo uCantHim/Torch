@@ -1,14 +1,19 @@
 #pragma once
 
-#include "input/InputCommand.h"
+#include <trc/Types.h>
+using namespace trc::basic_types;
 
-class ObjectTranslateCommand : public InputCommand
+#include "input/Command.h"
+
+class Scene;
+
+class ObjectTranslateCommand : public Command
 {
 public:
-    explicit ObjectTranslateCommand(App& app);
+    explicit ObjectTranslateCommand(s_ptr<Scene> scene);
 
-    void execute(CommandCall& call) override;
+    void execute(CommandExecutionContext& ctx) override;
 
 private:
-    App* app;
+    s_ptr<Scene> scene;
 };

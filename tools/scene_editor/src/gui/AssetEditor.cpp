@@ -97,9 +97,9 @@ bool assetNameInputPopupModal(
 }
 
 
-gui::AssetEditor::AssetEditor(MainMenu& menu)
+gui::AssetEditor::AssetEditor()
     :
-    mainMenu(menu),
+    ImguiWindow("Asset Browser"),
     assets(g::assets().manager()),
     inventory(g::assets())
 {
@@ -118,7 +118,7 @@ gui::AssetEditor::AssetEditor(MainMenu& menu)
     registerTrait(HitboxAsset{});
 }
 
-void gui::AssetEditor::drawImGui()
+void gui::AssetEditor::drawWindowContent()
 {
     drawAssetCreateButton();
     drawAssetList();

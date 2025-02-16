@@ -1,7 +1,9 @@
 target_sources(scene_editor PRIVATE
-    InputCommand.cpp
-    InputState.cpp
-    InputStructs.cpp
+    InputHandler.cpp
+    InputProcessor.cpp
     KeyConfig.cpp
     KeyMap.cpp
+    KeyboardState.cpp
+    MouseState.cpp
+    UserInput.cpp
 )

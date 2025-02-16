@@ -1,8 +1,9 @@
 #pragma once
 
-#include "KeyMap.h"
+#include "input/InputHandler.h"
+#include "input/UserInput.h"
 
-class App;
+class Scene;
 
 struct KeyConfig
 {
@@ -19,4 +20,7 @@ struct KeyConfig
     UserInput rotateObject;
 };
 
-auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap;
+/**
+ * @brief Set up key bindings for the main scene viewport.
+ */
+void setupMainSceneInputFrame(InputFrame& frame, const KeyConfig& conf, s_ptr<Scene> scene);

@@ -3,97 +3,90 @@
 #include <trc/base/event/InputState.h>
 
 #include "AxisFlags.h"
-#include "Globals.h"
 #include "Scene.h"
-#include "input/InputState.h"
+#include "input/InputHandler.h"
+#include "scene/action/MoveObject.h"
 
 
 
-class ObjectTranslateState : public CommandState
+class ObjectTranslateState : public InputFrame
 {
 public:
-    ObjectTranslateState(SceneObject obj)
+    ObjectTranslateState(SceneObject obj, s_ptr<Scene> _scene)
         :
         obj(obj),
-        scene(&g::scene()),
-        originalPos(scene->get<ObjectBaseNode>(obj).getTranslation()),
-        finalPos(originalPos)
+        scene(_scene),
+        originalPos(_scene->get<ObjectBaseNode>(obj).getGlobalTransform()[3]),
+        newPos(originalPos)
     {}
 
-    bool update(float) override
+    void onMouseMove(const CursorMovement& _cursor)
     {
-        const auto now = trc::Mouse::getPosition();
-        const vec2 windowSize = g::torch().getWindow().getWindowSize();
-        const auto diff = (now - originalMousePos) / windowSize * kDragSpeed;
-
         const auto& camera = scene->getCamera();
-        const vec3 worldDiff = glm::inverse(camera.getViewMatrix()) * vec4(diff.x, -diff.y, 0, 0);
-        newPos = originalPos + worldDiff * lockedAxis;
+        const auto cursor = _cursor.invertY();
 
+        const float depth = camera.calcScreenDepth(originalPos);
+        const vec3 a = camera.unproject(cursor.position - cursor.offset, depth, cursor.areaSize);
+        const vec3 b = camera.unproject(cursor.position,                 depth, cursor.areaSize);
+
+        newPos += (b - a) * lockedAxis;
         scene->get<ObjectBaseNode>(obj).setTranslation(newPos);
-
-        return terminate;
     }
 
-    void onExit() override
+    void applyPlacement(CommandExecutionContext& ctx)
     {
-        scene->get<ObjectBaseNode>(obj).setTranslation(finalPos);
-    }
-
-    void applyPlacement()
-    {
-        finalPos = newPos;
-        terminate = true;
+        ctx.generateAction(std::make_unique<action::MoveObject>(scene, obj, originalPos, newPos));
+        exitFrame();
     }
 
     void resetPlacement()
     {
-        terminate = true;
+        scene->get<ObjectBaseNode>(obj).setTranslation(originalPos);
+        exitFrame();
     }
 
     void lockAxes(AxisFlags axes)
     {
-        lockedAxis = vec3(!(axes & Axis::eX), !(axes & Axis::eY), !(axes & Axis::eZ));
+        lockedAxis = toVector(axes);
+        newPos = originalPos + (newPos - originalPos) * lockedAxis;
+        scene->get<ObjectBaseNode>(obj).setTranslation(newPos);
     }
 
 private:
-    static constexpr float kDragSpeed{ 10.0f };
-
     const SceneObject obj;
-    Scene* scene;
+    const s_ptr<Scene> scene;
 
     const vec3 originalPos;
-    const vec2 originalMousePos{ trc::Mouse::getPosition() };
     vec3 newPos;
-    vec3 finalPos;
-
     vec3 lockedAxis{ 1, 1, 1 };
-    bool terminate{ false };
 };
 
-ObjectTranslateCommand::ObjectTranslateCommand(App& app)
-    : app(&app)
-{
-}
 
-void ObjectTranslateCommand::execute(CommandCall& call)
+
+ObjectTranslateCommand::ObjectTranslateCommand(s_ptr<Scene> scene)
+    :
+    scene(scene)
+{}
+
+void ObjectTranslateCommand::execute(CommandExecutionContext& ctx)
 {
-    auto& scene = g::scene();
-    scene.getSelectedObject() >> [&](auto obj)
+    scene->getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectTranslateState{ obj });
+        auto state = ctx.pushFrame(ObjectTranslateState{ obj, scene });
 
-        call.on(trc::Key::escape,        [&](auto&){ state.resetPlacement(); });
-        call.on(trc::MouseButton::right, [&](auto&){ state.resetPlacement(); });
-        call.on(trc::Key::enter,         [&](auto&){ state.applyPlacement(); });
-        call.on(trc::MouseButton::left,  [&](auto&){ state.applyPlacement(); });
+        state.on(trc::Key::escape,        [](auto& state){ state.resetPlacement(); });
+        state.on(trc::MouseButton::right, [](auto& state){ state.resetPlacement(); });
+        state.on(trc::Key::enter,         [](auto& state, auto&& ctx){ state.applyPlacement(ctx); });
+        state.on(trc::MouseButton::left,  [](auto& state, auto&& ctx){ state.applyPlacement(ctx); });
 
-        // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
-        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eX); });
-        call.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eY); });
-        call.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eZ); });
+        // x and y keys are swapped because key codes use american layout
+        state.on(trc::Key::x, [](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on(trc::Key::z, [](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on(trc::Key::y, [](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eX); });
+        state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eY); });
+        state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eZ); });
+
+        state.onCursorMove([](auto& state, auto&& cursor){ state.onMouseMove(cursor); });
     };
 }

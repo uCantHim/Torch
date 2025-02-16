@@ -1,11 +1,19 @@
 #pragma once
 
-#include "input/InputCommand.h"
+#include <trc/Types.h>
+using namespace trc::basic_types;
 
-class ObjectScaleCommand : public InputCommand
+#include "input/Command.h"
+
+class Scene;
+
+class ObjectScaleCommand : public Command
 {
 public:
-    ObjectScaleCommand() = default;
+    explicit ObjectScaleCommand(s_ptr<Scene> scene);
 
-    void execute(CommandCall& call) override;
+    void execute(CommandExecutionContext& ctx) override;
+
+private:
+    s_ptr<Scene> scene;
 };

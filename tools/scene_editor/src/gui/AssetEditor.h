@@ -1,14 +1,9 @@
 #pragma once
 
-#include <array>
-#include <string>
-
-#include <trc/assets/Assets.h>
-#include <trc/assets/AssetStorage.h>
-#include <trc/text/Font.h>
+#include <trc/assets/AssetManager.h>
 
 #include "asset/AssetInventory.h"
-#include "asset/HitboxAsset.h"
+#include "gui/ImguiWindow.h"
 
 class App;
 
@@ -16,15 +11,14 @@ namespace gui
 {
     class MainMenu;
 
-    class AssetEditor
+    class AssetEditor : public ImguiWindow
     {
     public:
-        explicit AssetEditor(MainMenu& menu);
+        AssetEditor();
 
-        void drawImGui();
+        void drawWindowContent() override;
 
     private:
-        MainMenu& mainMenu;
         trc::AssetManager& assets;
         AssetInventory& inventory;
 

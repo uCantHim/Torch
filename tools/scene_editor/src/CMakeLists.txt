@@ -7,7 +7,9 @@ target_sources(scene_editor PRIVATE
 add_subdirectory(asset)
 add_subdirectory(command)
 add_subdirectory(gui)
+add_subdirectory(graphics)
 add_subdirectory(input)
 add_subdirectory(object)
+add_subdirectory(viewport)
 
 target_include_directories(scene_editor PRIVATE ${CMAKE_CURRENT_LIST_DIR})

@@ -11,21 +11,12 @@ Scene::Scene(App& app, s_ptr<trc::Camera> _camera, s_ptr<trc::Scene> _scene)
     :
     app(&app),
     camera(_camera),
+    cameraArm(_camera, vec3(0, 5, -5), vec3(0, 0, 0), vec3(0, 1, 0)),
     scene(_scene),
     objectSelection(*this)
 {
-    auto recalcProjMat = [this](const trc::Swapchain& swapchain)
-    {
-        auto size = swapchain.getImageExtent();
-        camera->makePerspective(float(size.width) / float(size.height), 45.0f, 0.5f, 200.0f);
-    };
-    recalcProjMat(app.getTorch().getWindow());
-    app.getTorch().getWindow().addCallbackOnResize(recalcProjMat);
-
-    // Init camera view
-    scene->getRoot().attach(cameraViewNode);
-    cameraViewNode.attach(*camera);
-    cameraViewNode.setFromMatrix(glm::lookAt(vec3(0, 5, -5), vec3(0, 0, 0), vec3(0, 1, 0)));
+    // Init camera view.
+    scene->getRoot().attach(cameraArm);
 
     // Create a sun light.
     sunLight = scene->getLights().makeSunLight(vec3(1, 1, 1), vec3(1, -1, -1), 0.6f);
@@ -46,11 +37,6 @@ void Scene::update(const float timeDelta)
     calcObjectHover();
 }
 
-auto Scene::getTorch() -> trc::TorchStack&
-{
-    return app->getTorch();
-}
-
 auto Scene::getCamera() -> trc::Camera&
 {
     return *camera;
@@ -61,14 +47,26 @@ auto Scene::getCamera() const -> const trc::Camera&
     return *camera;
 }
 
-auto Scene::getCameraViewNode() -> trc::Node&
+auto Scene::getCameraArm() -> CameraArm&
 {
-    return cameraViewNode;
+    return cameraArm;
 }
 
 auto Scene::getDrawableScene() -> trc::Scene&
 {
     return *scene;
+}
+
+auto Scene::unprojectScreenCoords(vec2 screenPos, float depth) -> vec3
+{
+    const auto vp = app->getSceneViewport();
+
+    screenPos = { screenPos.x, vp.size.y - screenPos.y };
+    const ivec2 vpPos = glm::clamp(ivec2{screenPos} - vp.pos,
+                                   vp.pos,
+                                   vp.pos + ivec2{vp.size});
+
+    return camera->unproject(vpPos, depth, vp.size);
 }
 
 auto Scene::getMousePosAtDepth(const float depth) const -> vec3
@@ -224,8 +222,8 @@ auto Scene::getCursorPosInSceneViewport() const -> std::optional<ivec2>
 {
     const auto vp = app->getSceneViewport();
 
-    const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = mousePosScreen - vp.offset;
+    const ivec2 mousePosScreen = app->getMainWindow().getMousePositionLowerLeft();
+    const ivec2 mousePosVp = mousePosScreen - vp.pos;
     if (mousePosVp.x < 0
         || mousePosVp.y < 0
         || mousePosVp.x >= static_cast<int>(vp.size.x)
@@ -242,10 +240,9 @@ auto Scene::getCursorPosClampedToSceneViewport() const -> ivec2
 {
     const auto vp = app->getSceneViewport();
 
-    const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = glm::clamp(mousePosScreen - vp.offset,
-                                        vp.offset,
-                                        vp.offset + ivec2{vp.size});
+    const ivec2 mousePosScreen = app->getMainWindow().getMousePositionLowerLeft();
+    const ivec2 mousePosVp = glm::clamp(mousePosScreen, vp.pos, vp.pos + ivec2{vp.size})
+                             - vp.pos;
     return mousePosVp;
 }
 
@@ -257,10 +254,10 @@ void Scene::calcObjectHover()
         return;
     }
 
-    const vec4 mousePos = vec4{ getMousePosAtDepth(0.5f), 1.0f };
-    const vec4 cameraWorldPos = glm::inverse(camera->getGlobalTransform()) * vec4(0, 0, 0, 1);
+    const vec3 mousePos = getMousePosAtDepth(0.5f);
+    const vec3 cameraWorldPos = getCameraArm().getCameraWorldPos();
 
-    // A ray from the camera throught the cursor into the scene
+    // A ray from the camera through the cursor into the scene
     const Ray cameraRay{ cameraWorldPos, mousePos - cameraWorldPos };
 
     if (const auto hit = castRay(cameraRay))

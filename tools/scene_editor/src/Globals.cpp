@@ -16,8 +16,15 @@ namespace g
         return App::get().getScene();
     }
 
-    auto torch() -> trc::TorchStack&
+    void openFloatingViewport(s_ptr<Viewport> vp)
     {
-        return App::get().getTorch();
+        App::get().getViewportManager().createFloating(std::move(vp));
+    }
+
+    void closeFloatingViewport(Viewport* vp)
+    {
+        if (vp != nullptr) {
+            App::get().getViewportManager().remove(vp);
+        }
     }
 } // namespace g

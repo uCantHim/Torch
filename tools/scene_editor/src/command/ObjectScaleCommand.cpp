@@ -1,50 +1,64 @@
 #include "ObjectScaleCommand.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
+
 #include "AxisFlags.h"
-#include "Globals.h"
 #include "Scene.h"
-#include "input/InputState.h"
+#include "input/InputHandler.h"
+#include "scene/action/ScaleObject.h"
 
 
 
-class ObjectScaleState : public CommandState
+class ObjectScaleState : public InputFrame
 {
 public:
-    ObjectScaleState(SceneObject obj, Scene& scene)
+    ObjectScaleState(SceneObject obj, s_ptr<Scene> scene, const MouseState& cursor)
         :
         obj(obj),
-        scene(&scene),
-        pivot(scene.get<ObjectBaseNode>(obj).getTranslation()),
-        depth(scene.getCamera().calcScreenDepth(pivot)),
-        // We divide by the original pivot distance later on, so it cannot be zero
-        originalPivotDist(glm::max(0.001f, glm::distance(pivot, scene.getMousePosAtDepth(depth)))),
-        originalScaling(scene.get<ObjectBaseNode>(obj).getScale()),
-        finalScaling(originalScaling)
+        scene(scene),
+        pivot(scene->get<ObjectBaseNode>(obj).getTranslation()),
+        depth(scene->getCamera().calcScreenDepth(pivot)),
+        originalCursorPosUL(cursor.getCursorPos()),
+        originalScaling(scene->get<ObjectBaseNode>(obj).getScale())
     {
     }
 
-    bool update(const float) override
+    void updateScalingPreview(const CursorMovement& _cursor)
     {
-        scene->get<ObjectBaseNode>(obj).setScale(getNewScaling());
+        const auto& camera = scene->getCamera();
+        const auto cursor = _cursor.invertY();
 
-        return terminate;
+        const vec2 origCursor{ originalCursorPosUL.x, cursor.areaSize.y - originalCursorPosUL.y };
+        const vec3 originalWorldPos = camera.unproject(origCursor, depth, cursor.areaSize);
+        const vec3 newWorldPos = camera.unproject(cursor.position, depth, cursor.areaSize);
+
+        // The factor is set up such that the distance from the pivot to the
+        // original cursor position (when the command was started) represents
+        // the scaling value range `[0, originalScaling]`; Moving the cursor
+        // on top of the scaled object changes the scaling to 0, while moving it away
+        // from the object makes it larger.
+        const float factor = glm::distance(pivot, newWorldPos)
+                             / glm::distance(pivot, originalWorldPos);
+        const float sign = glm::sign(glm::dot(originalWorldPos - pivot, newWorldPos - pivot));
+
+        newScaling = originalScaling * sign * factor * lockedAxis;
+
+        scene->get<ObjectBaseNode>(obj).setScale(newScaling);
     }
 
-    void onExit() override
+    void applyScaling(CommandExecutionContext& ctx)
     {
-        scene->get<ObjectBaseNode>(obj).setScale(finalScaling);
-    }
-
-    void applyScaling()
-    {
-        finalScaling = getNewScaling();
-        terminate = true;
+        ctx.generateAction(
+            std::make_unique<action::ScaleObject>(scene, obj, originalScaling, newScaling)
+        );
+        exitFrame();
     }
 
     void resetScaling()
     {
-        finalScaling = originalScaling;
-        terminate = true;
+        scene->get<ObjectBaseNode>(obj).setScale(originalScaling);
+        exitFrame();
     }
 
     void lockAxes(AxisFlags flags)
@@ -53,47 +67,46 @@ public:
     }
 
 private:
-    auto getNewScaling() const -> vec3
-    {
-        const float dist = glm::distance(pivot, scene->getMousePosAtDepth(depth));
-
-        assert(originalPivotDist > 0.0f);
-        return originalScaling + ((dist / originalPivotDist) - 1.0f) * lockedAxis;
-    }
-
     const SceneObject obj;
-    Scene* scene;
+    s_ptr<Scene> scene;
 
     const vec3 pivot;
     const float depth;
-    const float originalPivotDist;
+    const vec2 originalCursorPosUL;
     const vec3 originalScaling;
-    vec3 finalScaling;
 
     vec3 lockedAxis{ 1, 1, 1 };
-    bool terminate{ false };
+    vec3 newScaling{ originalScaling };
 };
 
 
 
-void ObjectScaleCommand::execute(CommandCall& call)
+ObjectScaleCommand::ObjectScaleCommand(s_ptr<Scene> scene)
+    :
+    scene(scene)
+{}
+
+void ObjectScaleCommand::execute(CommandExecutionContext& ctx)
 {
-    auto& scene = g::scene();
-    scene.getSelectedObject() >> [&](auto obj)
+    scene->getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectScaleState{ obj, scene });
+        auto state = ctx.pushFrame(ObjectScaleState{ obj, scene, ctx.mouse() });
 
-        call.on(trc::Key::escape,        [&](auto&){ state.resetScaling(); });
-        call.on(trc::MouseButton::right, [&](auto&){ state.resetScaling(); });
-        call.on(trc::Key::enter,         [&](auto&){ state.applyScaling(); });
-        call.on(trc::MouseButton::left,  [&](auto&){ state.applyScaling(); });
+        state.on(trc::Key::escape,        [](auto& state){ state.resetScaling(); });
+        state.on(trc::MouseButton::right, [](auto& state){ state.resetScaling(); });
+        state.on(trc::Key::enter,         [](auto& state, auto& ctx){ state.applyScaling(ctx); });
+        state.on(trc::MouseButton::left,  [](auto& state, auto& ctx){ state.applyScaling(ctx); });
 
-        // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
-        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eX); });
-        call.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eY); });
-        call.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eZ); });
+        // x and y keys are swapped because the key codes use the american keyboard
+        state.on({ trc::Key::x }, [](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on({ trc::Key::z }, [](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on({ trc::Key::y }, [](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eX); });
+        state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eY); });
+        state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eZ); });
+
+        state.onCursorMove([](auto& state, auto&& cursor){
+            state.updateScalingPreview(cursor);
+        });
     };
 }
