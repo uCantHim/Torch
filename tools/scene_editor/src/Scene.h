@@ -27,8 +27,14 @@ public:
     auto getCameraViewNode() -> trc::Node&;
     auto getDrawableScene() -> trc::Scene&;
 
-    auto getMouseDepth() const -> float;
+    /**
+     * @brief Project the cursor position into world space at a specific depth.
+     */
     auto getMousePosAtDepth(float depth) const -> vec3;
+
+    /**
+     * @return Cursor position in world space, as calculated via ray casting.
+     */
     auto getMouseWorldPos() const -> vec3;
 
     /**
@@ -76,6 +82,9 @@ public:
     auto castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3>>;
 
 private:
+    auto getCursorPosInSceneViewport() const -> std::optional<ivec2>;
+    auto getCursorPosClampedToSceneViewport() const -> ivec2;
+
     void calcObjectHover();
 
     App* app;
@@ -85,5 +94,6 @@ private:
     trc::Node cameraViewNode;
     trc::SunLight sunLight;
 
+    vec3 mouseWorldPos;
     ObjectSelection objectSelection;
 };

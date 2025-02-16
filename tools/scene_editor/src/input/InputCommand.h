@@ -1,14 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <functional>
-#include <variant>
 
 #include <trc/base/event/Keys.h>
 #include <trc/Types.h>
 using namespace trc::basic_types;
-
-#include "InputStructs.h"
 
 class App;
 class CommandCall;

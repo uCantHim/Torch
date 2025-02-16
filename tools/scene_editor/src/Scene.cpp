@@ -71,21 +71,17 @@ auto Scene::getDrawableScene() -> trc::Scene&
     return *scene;
 }
 
-auto Scene::getMouseDepth() const -> float
+auto Scene::getMousePosAtDepth(const float depth) const -> vec3
 {
-    return 0.0f; //app->getTorch().getRenderConfig().getMouseDepth();
-}
+    const auto vp = app->getSceneViewport();
+    const ivec2 mousePosVp = getCursorPosClampedToSceneViewport();
 
-auto Scene::getMousePosAtDepth(const float) const -> vec3
-{
-    return vec3(std::numeric_limits<float>::max());
-    return vec3(0.0f); //app->getTorch().getRenderConfig().getMousePosAtDepth(camera, depth);
+    return camera->unproject(mousePosVp, depth, vp.size);
 }
 
 auto Scene::getMouseWorldPos() const -> vec3
 {
-    return vec3(std::numeric_limits<float>::max());
-    return vec3(0.0f); //app->getTorch().getRenderConfig().getMouseWorldPos(camera);
+    return mouseWorldPos;
 }
 
 auto Scene::createObject() -> SceneObject
@@ -224,22 +220,44 @@ auto Scene::castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3
     return std::pair{ closestObject, hitPos };
 }
 
-void Scene::calcObjectHover()
+auto Scene::getCursorPosInSceneViewport() const -> std::optional<ivec2>
 {
-    const vec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
     const auto vp = app->getSceneViewport();
 
-    if (mousePosScreen.x < vp.offset.x
-        || mousePosScreen.y < vp.offset.y
-        || mousePosScreen.x > vp.offset.x + vp.size.x
-        || mousePosScreen.y > vp.offset.y + vp.size.y)
+    const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
+    const ivec2 mousePosVp = mousePosScreen - vp.offset;
+    if (mousePosVp.x < 0
+        || mousePosVp.y < 0
+        || mousePosVp.x >= static_cast<int>(vp.size.x)
+        || mousePosVp.y >= static_cast<int>(vp.size.y))
+    {
+        // Cursor not in viewport.
+        return std::nullopt;
+    }
+
+    return mousePosVp;
+}
+
+auto Scene::getCursorPosClampedToSceneViewport() const -> ivec2
+{
+    const auto vp = app->getSceneViewport();
+
+    const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
+    const ivec2 mousePosVp = glm::clamp(mousePosScreen - vp.offset,
+                                        vp.offset,
+                                        vp.offset + ivec2{vp.size});
+    return mousePosVp;
+}
+
+void Scene::calcObjectHover()
+{
+    if (!getCursorPosInSceneViewport())
     {
         // Cursor not in viewport.
         return;
     }
 
-    const vec2 mousePosVp = mousePosScreen - vec2{vp.offset};
-    const vec4 mousePos = vec4{ camera->unproject(mousePosVp, 0.5f, vp.size), 1.0f };
+    const vec4 mousePos = vec4{ getMousePosAtDepth(0.5f), 1.0f };
     const vec4 cameraWorldPos = glm::inverse(camera->getGlobalTransform()) * vec4(0, 0, 0, 1);
 
     // A ray from the camera throught the cursor into the scene
@@ -247,7 +265,8 @@ void Scene::calcObjectHover()
 
     if (const auto hit = castRay(cameraRay))
     {
-        const auto closestObject = hit->first;
+        const auto [closestObject, hitPoint] = *hit;
         objectSelection.hoverObject(closestObject);
+        mouseWorldPos = hitPoint;
     }
 }
