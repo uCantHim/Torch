@@ -84,3 +84,25 @@ bool HitboxVisualization::isCapsuleEnabled() const
 {
     return !!capsuleDrawables[0];
 }
+
+void HitboxVisualization::enableBox(const Box& box)
+{
+    boxDrawable = scene->makeDrawable({
+        .geo=g::geos().cube,
+        .mat=g::mats().objectHitbox,
+        .disableShadow=true,
+    });
+    boxDrawable->setScale(box.halfExtent * 2.0f);  // cube geo has 0.5 half extent
+    boxDrawable->setTranslation(box.position);
+    attach(*boxDrawable);
+}
+
+void HitboxVisualization::disableBox()
+{
+    boxDrawable.reset();
+}
+
+bool HitboxVisualization::isBoxEnabled() const
+{
+    return !!boxDrawable;
+}

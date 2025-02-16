@@ -8,8 +8,15 @@
 
 struct Ray
 {
+    constexpr Ray() = default;
+    constexpr Ray(const vec3& origin, const vec3& direction)
+        : origin(origin), direction(direction) {}
+
     vec3 origin;
     vec3 direction;
+
+    // Needed for intersection with AABB geometries.
+    vec3 invDir{ util::inverse(direction) };
 };
 
 struct Intersection
@@ -101,10 +108,38 @@ auto intersectEdge(const Ray& ray, const Sphere& sphere)
     }
 }
 
+/**
+ * @brief Ray-AABB intersection
+ *
+ * Implementation from https://tavianator.com/2011/ray_box.html.
+ */
 inline constexpr
-auto intersect(const Ray&, const Capsule&)
+auto intersect(const Ray& ray, const Box& box)
     -> std::optional<std::pair<Intersection, Intersection>>
 {
+    const float tx1 = (box.min.x - ray.origin.x) * ray.invDir.x;
+    const float tx2 = (box.max.x - ray.origin.x) * ray.invDir.x;
+    float tmin = glm::min(tx1, tx2);
+    float tmax = glm::max(tx1, tx2);
+
+    const float ty1 = (box.min.y - ray.origin.y) * ray.invDir.y;
+    const float ty2 = (box.max.y - ray.origin.y) * ray.invDir.y;
+    tmin = glm::max(tmin, glm::min(ty1, ty2));
+    tmax = glm::min(tmax, glm::max(ty1, ty2));
+
+    const float tz1 = (box.min.z - ray.origin.z) * ray.invDir.z;
+    const float tz2 = (box.max.z - ray.origin.z) * ray.invDir.z;
+    tmin = glm::max(tmin, glm::min(tz1, tz2));
+    tmax = glm::min(tmax, glm::max(tz1, tz2));
+
+    if (tmax >= tmin)
+    {
+        return std::pair{
+            Intersection{ ray.origin + tmin * ray.direction, tmin },
+            Intersection{ ray.origin + tmax * ray.direction, tmax },
+        };
+    }
+
     return std::nullopt;
 }
 

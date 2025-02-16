@@ -43,7 +43,11 @@ auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap
     map.set(conf.rotateObject,    std::make_unique<ObjectRotateCommand>());
 
     // General stuff that I don't know how to deal with
-    trc::on<trc::MouseClickEvent>([](auto&) { gui::ContextMenu::close(); });
+    trc::on<trc::MouseClickEvent>([contextMenuKey=conf.openContext](auto& e) {
+        if (UserInput{e.button} != contextMenuKey) {
+            gui::ContextMenu::close();
+        }
+    });
 
     trc::on<trc::ScrollEvent>([&app](const auto& e)
     {

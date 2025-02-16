@@ -18,10 +18,11 @@ bool isInside(vec3 point, const Capsule& capsule);
 class Hitbox
 {
 public:
-    Hitbox(Sphere sphere, Capsule capsule);
+    Hitbox(Sphere sphere, Capsule capsule, Box aabb);
 
     auto getSphere() const -> const Sphere&;
     auto getCapsule() const -> const Capsule&;
+    auto getBox() const -> const Box&;
 
     /**
      * @brief Test if a point is inside of the hitbox
@@ -43,6 +44,7 @@ public:
 private:
     Sphere sphere;
     Capsule capsule;
+    Box box;
 };
 
 auto makeHitbox(const trc::GeometryData& geo) -> Hitbox;

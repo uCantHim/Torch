@@ -201,8 +201,12 @@ auto Scene::castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3
             glm::normalize(toObjectSpace * vec4{ ray.direction, 0.0f }),
         };
 
-        // Intersect.
-        if (auto hit = intersectEdge(objectSpaceRay, hitbox.getSphere()))
+        // Broadphase with spheres
+        if (!intersectEdge(objectSpaceRay, hitbox.getSphere())) {
+            continue;
+        }
+
+        if (auto hit = intersect(objectSpaceRay, hitbox.getBox()))
         {
             // The hit coordinates are in object space, and so is the hit distance;
             // calculate the hit distance in world coordinates.

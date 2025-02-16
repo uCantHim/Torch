@@ -15,5 +15,12 @@ message Hitbox
     float capsule_pos_y = 8;
     float capsule_pos_z = 9;
 
+    float box_pos_x = 11;
+    float box_pos_y = 12;
+    float box_pos_z = 13;
+    float box_extent_x = 14;
+    float box_extent_y = 15;
+    float box_extent_z = 16;
+
     string geometry_path = 10;
 }

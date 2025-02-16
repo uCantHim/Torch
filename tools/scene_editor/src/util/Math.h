@@ -44,4 +44,21 @@ namespace util
         static_assert(1 < N && N <= 4);
         return glm::dot(a - b, a - b);
     }
+
+    /**
+     * @brief Calculate the inverse of a vector, i.e., `1.0f / vec`.
+     *
+     * This is a constexpr version of the above calculation because possible
+     * division by zero is non-constexpr. If any component of the vector is
+     * zero, the corresponding component in the result will be infinity.
+     */
+    template<glm::length_t L, std::floating_point T, glm::qualifier Q>
+    constexpr auto inverse(const glm::vec<L, T, Q>& v) -> const glm::vec<L, T, Q>
+    {
+        glm::vec<L, T, Q> res{};
+        for (glm::length_t i = 0; i < L; ++i) {
+            res[i] = v[i] != 0.0f ? 1.0f / v[i] : std::numeric_limits<T>::infinity();
+        }
+        return res;
+    }
 } // namespace util

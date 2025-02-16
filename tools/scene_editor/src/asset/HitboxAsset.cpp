@@ -18,6 +18,13 @@ void trc::AssetData<HitboxAsset>::serialize(std::ostream& os) const
     data.set_capsule_pos_y(capsule.position.y);
     data.set_capsule_pos_z(capsule.position.z);
 
+    data.set_box_pos_x(box.position.x);
+    data.set_box_pos_y(box.position.y);
+    data.set_box_pos_z(box.position.z);
+    data.set_box_extent_x(box.halfExtent.x);
+    data.set_box_extent_y(box.halfExtent.y);
+    data.set_box_extent_z(box.halfExtent.z);
+
     data.set_geometry_path(geometry.getAssetPath().string());
 
     data.SerializeToOstream(&os);
@@ -39,6 +46,9 @@ void trc::AssetData<HitboxAsset>::deserialize(std::istream& is)
     capsule.position.y = data.capsule_pos_y();
     capsule.position.z = data.capsule_pos_z();
 
+    box.position = { data.box_pos_x(), data.box_pos_y(), data.box_pos_z(), };
+    box.halfExtent = { data.box_extent_x(), data.box_extent_y(), data.box_extent_z(), };
+
     geometry = trc::AssetPath(data.geometry_path());
 }
 
@@ -53,7 +63,7 @@ auto HitboxRegistry::add(u_ptr<trc::AssetSource<HitboxAsset>> source) -> LocalID
 {
     const LocalID id(idPool.generate());
     const auto data = source->load();
-    hitboxes.emplace(id, data.sphere, data.capsule);
+    hitboxes.emplace(id, data.sphere, data.capsule, data.box);
     perGeometry.emplace(data.geometry.getID().getDeviceID(), id);
 
     return id;
