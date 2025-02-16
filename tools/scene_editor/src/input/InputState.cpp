@@ -113,20 +113,9 @@ void InputStateMachine::update(const float timeDelta)
     }
 }
 
-void InputStateMachine::notify(KeyInput input)
+void InputStateMachine::notify(const UserInput& input)
 {
-    auto cmd = top().getKeyMap().get(input);
-    if (cmd != nullptr)
-    {
-        executeCommand(input, *cmd);
-    }
-}
-
-void InputStateMachine::notify(MouseInput input)
-{
-    auto cmd = top().getKeyMap().get(input);
-    if (cmd != nullptr)
-    {
+    if (auto cmd = top().getKeyMap().get(input)) {
         executeCommand(input, *cmd);
     }
 }
@@ -134,12 +123,15 @@ void InputStateMachine::notify(MouseInput input)
 auto InputStateMachine::getKeyMap() -> KeyMap&
 {
     assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
+    assert(stateStack.front() != nullptr && "Base state must always be valid.");
     return stateStack.front()->getKeyMap();
 }
 
 void InputStateMachine::setKeyMap(KeyMap map)
 {
-    top().setKeyMap(std::move(map));
+    assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
+    assert(stateStack.front() != nullptr && "Base state must always be valid.");
+    stateStack.front()->setKeyMap(std::move(map));
 }
 
 void InputStateMachine::executeCommand(UserInput input, InputCommand& cmd)
@@ -149,6 +141,7 @@ void InputStateMachine::executeCommand(UserInput input, InputCommand& cmd)
 
 void InputStateMachine::push(u_ptr<InputState> state)
 {
+    assert(state != nullptr);
     stateStack.emplace_back(std::move(state));
 }
 
@@ -165,5 +158,6 @@ void InputStateMachine::pop()
 auto InputStateMachine::top() -> InputState&
 {
     assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
+    assert(stateStack.back() != nullptr);
     return *stateStack.back();
 }

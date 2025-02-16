@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <stack>
 
 #include <trc/base/event/Keys.h>
 
@@ -120,8 +119,7 @@ public:
 
     void update(float timeDelta);
 
-    void notify(KeyInput input);
-    void notify(MouseInput input);
+    void notify(const UserInput& input);
 
     auto getKeyMap() -> KeyMap&;
     void setKeyMap(KeyMap map);

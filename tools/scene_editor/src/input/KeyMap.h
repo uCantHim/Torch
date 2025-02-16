@@ -5,8 +5,8 @@
 #include <trc/Types.h>
 using namespace trc::basic_types;
 
-#include "InputStructs.h"
 #include "InputCommand.h"
+#include "InputStructs.h"
 
 /**
  * Could be turned into a template
@@ -24,7 +24,5 @@ public:
     void clear();
 
 private:
-    using CommonHashType = decltype(std::hash<ui32>{}(ui32{}));
-
-    std::unordered_map<CommonHashType, u_ptr<InputCommand>> map{};
+    std::unordered_map<UserInput, u_ptr<InputCommand>> map{};
 };
