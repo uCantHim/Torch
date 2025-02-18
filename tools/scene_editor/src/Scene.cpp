@@ -11,6 +11,7 @@ Scene::Scene(App& app, s_ptr<trc::Camera> _camera, s_ptr<trc::Scene> _scene)
     :
     app(&app),
     camera(_camera),
+    cameraArm(_camera, vec3(0, 5, -5), vec3(0, 0, 0), vec3(0, 1, 0)),
     scene(_scene),
     objectSelection(*this)
 {
@@ -22,10 +23,8 @@ Scene::Scene(App& app, s_ptr<trc::Camera> _camera, s_ptr<trc::Scene> _scene)
     recalcProjMat(app.getTorch().getWindow());
     app.getTorch().getWindow().addCallbackOnResize(recalcProjMat);
 
-    // Init camera view
-    scene->getRoot().attach(cameraViewNode);
-    cameraViewNode.attach(*camera);
-    cameraViewNode.setFromMatrix(glm::lookAt(vec3(0, 5, -5), vec3(0, 0, 0), vec3(0, 1, 0)));
+    // Init camera view.
+    scene->getRoot().attach(cameraArm);
 
     // Create a sun light.
     sunLight = scene->getLights().makeSunLight(vec3(1, 1, 1), vec3(1, -1, -1), 0.6f);
@@ -61,9 +60,9 @@ auto Scene::getCamera() const -> const trc::Camera&
     return *camera;
 }
 
-auto Scene::getCameraViewNode() -> trc::Node&
+auto Scene::getCameraArm() -> CameraArm&
 {
-    return cameraViewNode;
+    return cameraArm;
 }
 
 auto Scene::getDrawableScene() -> trc::Scene&

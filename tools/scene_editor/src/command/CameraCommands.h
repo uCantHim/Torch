@@ -36,8 +36,10 @@ public:
             const vec2 windowSize = state.app->getTorch().getWindow().getWindowSize();
             const auto diff = cursor.offset / windowSize * state.kDragSpeed;
 
-            auto& camera = state.app->getScene().getCameraViewNode();
-            camera.translate(diff.x, -diff.y, 0);
+            const auto invView = glm::inverse(state.app->getScene().getCamera().getViewMatrix());
+            const vec4 move = invView * vec4(diff.x, -diff.y, 0, 0);
+
+            state.app->getScene().getCameraArm().translate(move.x, move.y, move.z);
         });
     }
 
@@ -72,14 +74,9 @@ public:
         auto state = ctx.pushFrame(std::make_unique<State>(*app));
         state.on(invert(ctx.getProvokingInput()), &State::exitFrame);
         state.onCursorMove([](State& state, const CursorMovement& cursor) {
-            const auto diff = cursor.offset;
-            const float length = glm::sign(diff.x) * glm::length(diff);
-
             const vec2 windowSize = state.app->getTorch().getWindow().getWindowSize();
-            const float angle = length / windowSize.x * glm::two_pi<float>();
-
-            auto& camera = state.app->getScene().getCamera();
-            camera.rotate(0.0f, angle, 0.0f);
+            const vec2 angle = cursor.offset / windowSize * glm::two_pi<float>();
+            state.app->getScene().getCameraArm().rotate(angle.y, -angle.x);
         });
     }
 

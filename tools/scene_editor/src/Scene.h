@@ -6,6 +6,7 @@ using namespace trc::basic_types;
 
 #include "object/ObjectSelection.h"
 #include "object/SceneObject.h"
+#include "scene/CameraArm.h"
 
 class App;
 struct Ray;
@@ -24,7 +25,7 @@ public:
     auto getTorch() -> trc::TorchStack&;
     auto getCamera() -> trc::Camera&;
     auto getCamera() const -> const trc::Camera&;
-    auto getCameraViewNode() -> trc::Node&;
+    auto getCameraArm() -> CameraArm&;
     auto getDrawableScene() -> trc::Scene&;
 
     /**
@@ -90,8 +91,9 @@ private:
     App* app;
 
     s_ptr<trc::Camera> camera;
+    CameraArm cameraArm;
+
     s_ptr<trc::Scene> scene;
-    trc::Node cameraViewNode;
     trc::SunLight sunLight;
 
     vec3 mouseWorldPos;

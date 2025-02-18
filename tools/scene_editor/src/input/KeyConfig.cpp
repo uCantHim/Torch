@@ -50,17 +50,7 @@ auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>
 
     f->onScroll([&app, scrollLevel=0](auto&, const Scroll& scroll) mutable {
         scrollLevel += static_cast<i32>(glm::sign(scroll.offset.y));
-
-        trc::Camera& camera = app.getScene().getCamera();
-        if (scrollLevel == 0) {
-            camera.setScale(1.0f);
-        }
-        else if (scrollLevel < 0) {
-            camera.setScale(1.0f / -(scrollLevel - 1));
-        }
-        else {
-            camera.setScale(scrollLevel + 1);
-        }
+        app.getScene().getCameraArm().setZoomLevel(scrollLevel);
     });
 
     f->onUnhandledMouseInput([contextMenuKey=conf.openContext](auto&, MouseInput input) {
