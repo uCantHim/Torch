@@ -1,7 +1,6 @@
 #include "trc/base/Swapchain.h"
 
 #include <cassert>
-#include <chrono>
 #include <stdexcept>
 using namespace std::chrono;
 
@@ -587,6 +586,24 @@ auto trc::Swapchain::getKeyState(Key key) const -> InputAction
 auto trc::Swapchain::getMouseButtonState(MouseButton button) const -> InputAction
 {
     return static_cast<InputAction>(glfwGetMouseButton(window, static_cast<int>(button)));
+}
+
+auto trc::Swapchain::getKeyModifierState() const -> KeyModFlags
+{
+    constexpr auto none = KeyModFlagBits::none;
+
+    const auto window = getGlfwWindow();
+    return
+        (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) ? KeyModFlagBits::shift : none)
+        | (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) ? KeyModFlagBits::shift : none)
+        | (glfwGetKey(window, GLFW_KEY_LEFT_ALT) ? KeyModFlagBits::alt : none)
+        | (glfwGetKey(window, GLFW_KEY_RIGHT_ALT) ? KeyModFlagBits::alt : none)
+        | (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) ? KeyModFlagBits::control : none)
+        | (glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) ? KeyModFlagBits::control : none)
+        | (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) ? KeyModFlagBits::super : none)
+        | (glfwGetKey(window, GLFW_KEY_RIGHT_SUPER) ? KeyModFlagBits::super : none)
+        | (glfwGetKey(window, GLFW_KEY_CAPS_LOCK) ? KeyModFlagBits::caps_lock : none)
+        | (glfwGetKey(window, GLFW_KEY_NUM_LOCK) ? KeyModFlagBits::num_lock : none);
 }
 
 auto trc::Swapchain::getMousePosition() const -> glm::vec2

@@ -360,6 +360,11 @@ namespace trc
         auto getMouseButtonState(MouseButton button) const -> InputAction;
 
         /**
+         * @brief Query which key modifiers are currently active
+         */
+        auto getKeyModifierState() const -> KeyModFlags;
+
+        /**
          * @return vec2 Cursor position relative to the upper-left corner
          *              of the window's content area in screen coordinates.
          */
