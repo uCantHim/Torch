@@ -1,5 +1,5 @@
 target_sources(scene_editor PRIVATE
-    InputCommand.cpp
+    InputProcessor.cpp
     InputState.cpp
     InputStructs.cpp
     KeyConfig.cpp

@@ -6,7 +6,8 @@ using namespace trc::basic_types;
 
 #include "Scene.h"
 #include "gui/MainMenu.h"
-#include "input/InputState.h"
+
+class InputProcessor;
 
 class App
 {
@@ -36,6 +37,8 @@ private:
     void tick();
     bool doEnd{ false };
 
+    s_ptr<InputProcessor> inputProcessor;
+
     u_ptr<int, void(*)(int*)> torchTerminator;
     u_ptr<trc::TorchStack> torch;
 
@@ -47,7 +50,6 @@ private:
     AssetInventory assetInventory;
 
     gui::MainMenu mainMenu;
-    InputStateMachine inputState;
 
     trc::Timer frameTimer;
 };

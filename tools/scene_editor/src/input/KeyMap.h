@@ -5,7 +5,7 @@
 #include <trc/Types.h>
 using namespace trc::basic_types;
 
-#include "InputCommand.h"
+#include "Command.h"
 #include "InputStructs.h"
 
 /**
@@ -16,13 +16,13 @@ class KeyMap
 public:
     KeyMap() = default;
 
-    auto get(UserInput input) -> InputCommand*;
+    auto get(const UserInput& input) -> Command*;
 
-    void set(UserInput input, u_ptr<InputCommand> cmd);
-    void unset(UserInput input);
+    void set(const UserInput& input, u_ptr<Command> cmd);
+    void unset(const UserInput& input);
 
     void clear();
 
 private:
-    std::unordered_map<UserInput, u_ptr<InputCommand>> map{};
+    std::unordered_map<UserInput, u_ptr<Command>> map{};
 };

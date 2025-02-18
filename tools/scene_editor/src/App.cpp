@@ -11,6 +11,7 @@
 #include "asset/HitboxAsset.h"
 #include "gui/ContextMenu.h"
 #include "input/KeyConfig.h"
+#include "input/InputProcessor.h"
 
 
 
@@ -25,6 +26,26 @@ App::App(const fs::path& projectRootDir)
 
         return true;
     }()),
+
+    // Create the root input frame from a default key configuration.
+    inputProcessor(std::make_shared<InputProcessor>(
+        makeInputFrame(
+            KeyConfig{
+                .closeApp = trc::Key::escape,
+                .openContext = trc::MouseButton::right,
+                .selectHoveredObject = trc::MouseButton::left,
+                .deleteHoveredObject = trc::Key::del,
+                .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
+                .cameraRotate = trc::MouseButton::middle,
+                .translateObject = trc::Key::g,
+                .scaleObject = trc::Key::s,
+                .rotateObject = trc::Key::r,
+            },
+            *this
+        )
+    )),
+
+    // Create torch.
     torchTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
     torch(trc::initFull(
         trc::TorchStackCreateInfo{
@@ -34,11 +55,17 @@ App::App(const fs::path& projectRootDir)
             .assetStorageDir=projectRootDir/"assets",
         },
         trc::InstanceCreateInfo{},
-        trc::WindowCreateInfo{}
+        trc::WindowCreateInfo{
+            .inputProcessor=inputProcessor,
+        }
     )),
     camera(std::make_shared<trc::Camera>()),
     drawableScene(std::make_shared<trc::Scene>()),
+
+    // Set up asset management.
     assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
+
+    // Create the user interface.
     mainMenu(*this)
 {
     // Create a scene
@@ -54,37 +81,8 @@ App::App(const fs::path& projectRootDir)
     });
 
     // Initialize input
-    trc::Keyboard::init();
-    trc::Mouse::init();
-    trc::on<trc::KeyPressEvent>([this](const trc::KeyPressEvent& e) {
-        inputState.notify({ e.key, e.mods, trc::InputAction::press });
-    });
-    trc::on<trc::KeyRepeatEvent>([this](const trc::KeyRepeatEvent& e) {
-        inputState.notify({ e.key, e.mods, trc::InputAction::repeat });
-    });
-    trc::on<trc::KeyReleaseEvent>([this](const trc::KeyReleaseEvent& e) {
-        inputState.notify({ e.key, e.mods, trc::InputAction::release });
-    });
-    trc::on<trc::MouseClickEvent>([this](const trc::MouseClickEvent& e) {
-        inputState.notify({ e.button, e.mods, trc::InputAction::press });
-    });
-    trc::on<trc::MouseReleaseEvent>([this](const trc::MouseReleaseEvent& e) {
-        inputState.notify({ e.button, e.mods, trc::InputAction::release });
-    });
-
-    inputState.setKeyMap(makeKeyMap(*this,
-        KeyConfig{
-            .closeApp = trc::Key::escape,
-            .openContext = trc::MouseButton::right,
-            .selectHoveredObject = trc::MouseButton::left,
-            .deleteHoveredObject = trc::Key::del,
-            .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
-            .cameraRotate = trc::MouseButton::middle,
-            .translateObject = trc::Key::g,
-            .scaleObject = trc::Key::s,
-            .rotateObject = trc::Key::r,
-        }
-    ));
+    //trc::Keyboard::init();
+    //trc::Mouse::init();
 
     // Initialize assets
     torch->getAssetManager().registerAssetType<HitboxAsset>(std::make_unique<HitboxRegistry>());
@@ -216,7 +214,7 @@ void App::tick()
 
     // Update
     trc::pollEvents();
-    inputState.update(frameTime);
+    inputProcessor->tick(frameTime);
     scene->update(frameTime);
 
     // Render

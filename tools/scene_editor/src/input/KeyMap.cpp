@@ -2,7 +2,7 @@
 
 
 
-auto KeyMap::get(UserInput input) -> InputCommand*
+auto KeyMap::get(const UserInput& input) -> Command*
 {
     auto it = map.find(input);
     if (it != map.end()) {
@@ -11,7 +11,7 @@ auto KeyMap::get(UserInput input) -> InputCommand*
     return nullptr;
 }
 
-void KeyMap::set(UserInput input, u_ptr<InputCommand> cmd)
+void KeyMap::set(const UserInput& input, u_ptr<Command> cmd)
 {
     assert(cmd != nullptr);
 
@@ -19,7 +19,7 @@ void KeyMap::set(UserInput input, u_ptr<InputCommand> cmd)
     it->second = std::move(cmd);
 }
 
-void KeyMap::unset(UserInput input)
+void KeyMap::unset(const UserInput& input)
 {
     map.erase(input);
 }

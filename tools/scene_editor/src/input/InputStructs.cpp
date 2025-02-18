@@ -8,12 +8,17 @@ KeyInput::KeyInput(trc::Key key)
 }
 
 KeyInput::KeyInput(trc::Key key, trc::KeyModFlags mods)
-    : key(key), mod(mods)
+    : key(key), mods(mods)
+{
+}
+
+KeyInput::KeyInput(trc::Key key, trc::InputAction action)
+    : key(key), action(action)
 {
 }
 
 KeyInput::KeyInput(trc::Key key, trc::KeyModFlags mods, trc::InputAction action)
-    : key(key), mod(mods), action(action)
+    : key(key), mods(mods), action(action)
 {
 }
 
@@ -23,12 +28,17 @@ MouseInput::MouseInput(trc::MouseButton button)
 }
 
 MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods)
-    : button(button), mod(mods)
+    : button(button), mods(mods)
+{
+}
+
+MouseInput::MouseInput(trc::MouseButton button, trc::InputAction action)
+    : button(button), action(action)
 {
 }
 
 MouseInput::MouseInput(trc::MouseButton button, trc::KeyModFlags mods, trc::InputAction action)
-    : button(button), mod(mods), action(action)
+    : button(button), mods(mods), action(action)
 {
 }
 

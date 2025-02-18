@@ -7,7 +7,7 @@
 
 
 
-class ObjectScaleState : public CommandState
+class ObjectScaleState : public InputFrame
 {
 public:
     ObjectScaleState(SceneObject obj, Scene& scene)
@@ -23,28 +23,28 @@ public:
     {
     }
 
-    bool update(const float) override
-    {
-        scene->get<ObjectBaseNode>(obj).setScale(getNewScaling());
-
-        return terminate;
-    }
+    void onTick(float) override {}
 
     void onExit() override
     {
         scene->get<ObjectBaseNode>(obj).setScale(finalScaling);
     }
 
+    void updateScalingPreview()
+    {
+        scene->get<ObjectBaseNode>(obj).setScale(calcNewScaling());
+    }
+
     void applyScaling()
     {
-        finalScaling = getNewScaling();
-        terminate = true;
+        finalScaling = calcNewScaling();
+        exitFrame();
     }
 
     void resetScaling()
     {
         finalScaling = originalScaling;
-        terminate = true;
+        exitFrame();
     }
 
     void lockAxes(AxisFlags flags)
@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    auto getNewScaling() const -> vec3
+    auto calcNewScaling() const -> vec3
     {
         const float dist = glm::distance(pivot, scene->getMousePosAtDepth(depth));
 
@@ -71,29 +71,30 @@ private:
     vec3 finalScaling;
 
     vec3 lockedAxis{ 1, 1, 1 };
-    bool terminate{ false };
 };
 
 
 
-void ObjectScaleCommand::execute(CommandCall& call)
+void ObjectScaleCommand::execute(CommandExecutionContext& ctx)
 {
     auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectScaleState{ obj, scene });
+        auto state = ctx.pushFrame(std::make_unique<ObjectScaleState>(obj, scene));
 
-        call.on(trc::Key::escape,        [&](auto&){ state.resetScaling(); });
-        call.on(trc::MouseButton::right, [&](auto&){ state.resetScaling(); });
-        call.on(trc::Key::enter,         [&](auto&){ state.applyScaling(); });
-        call.on(trc::MouseButton::left,  [&](auto&){ state.applyScaling(); });
+        state.on(trc::Key::escape,        [](auto& state){ state.resetScaling(); });
+        state.on(trc::MouseButton::right, [](auto& state){ state.resetScaling(); });
+        state.on(trc::Key::enter,         [](auto& state){ state.applyScaling(); });
+        state.on(trc::MouseButton::left,  [](auto& state){ state.applyScaling(); });
 
-        // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
-        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eX); });
-        call.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eY); });
-        call.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [&](auto&){ state.lockAxes(Axis::eZ); });
+        // x and y keys are swapped because the key codes use the american keyboard
+        state.on({ trc::Key::x }, [](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on({ trc::Key::z }, [](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on({ trc::Key::y }, [](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eX); });
+        state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eY); });
+        state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eZ); });
+
+        state.onCursorMove([](auto& state, auto&&){ state.updateScalingPreview(); });
     };
 }

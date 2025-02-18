@@ -7,7 +7,7 @@
 
 
 
-class ObjectRotateState : public CommandState
+class ObjectRotateState : public InputFrame
 {
 public:
     ObjectRotateState(SceneObject obj, Scene& scene)
@@ -25,13 +25,7 @@ public:
         assert(glm::all(glm::not_(glm::isnan(pivot))));
     }
 
-    bool update(const float) override
-    {
-        const quat rotation = glm::angleAxis(getNewAngle(), rotationAxis) * originalOrientation;
-        scene->get<ObjectBaseNode>(obj).setRotation(rotation);
-
-        return terminate;
-    }
+    void onTick(const float) override {}
 
     void onExit() override
     {
@@ -39,16 +33,22 @@ public:
         scene->get<ObjectBaseNode>(obj).setRotation(rotation);
     }
 
+    void updateRotationPreview()
+    {
+        const quat rotation = glm::angleAxis(getNewAngle(), rotationAxis) * originalOrientation;
+        scene->get<ObjectBaseNode>(obj).setRotation(rotation);
+    }
+
     void applyRotation()
     {
         finalAngle = getNewAngle();
-        terminate = true;
+        exitFrame();
     }
 
     void resetRotation()
     {
         finalAngle = 0.0f;
-        terminate = true;
+        exitFrame();
     }
 
     void lockAxes(AxisFlags flags)
@@ -87,31 +87,32 @@ private:
     const vec3 originalDir;
     vec3 rotationAxis;
 
-    bool terminate{ false };
     float finalAngle{ 0.0f };
 };
 
 
 
-void ObjectRotateCommand::execute(CommandCall& call)
+void ObjectRotateCommand::execute(CommandExecutionContext& ctx)
 {
     auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto& state = call.setState(ObjectRotateState{ obj, scene });
+        auto state = ctx.pushFrame(std::make_unique<ObjectRotateState>(obj, scene));
 
-        call.on(trc::Key::escape,        [&](auto&){ state.resetRotation(); });
-        call.on(trc::MouseButton::right, [&](auto&){ state.resetRotation(); });
-        call.on(trc::Key::enter,         [&](auto&){ state.applyRotation(); });
-        call.on(trc::MouseButton::left,  [&](auto&){ state.applyRotation(); });
+        state.on(trc::Key::escape,        [&](auto& state){ state.resetRotation(); });
+        state.on(trc::MouseButton::right, [&](auto& state){ state.resetRotation(); });
+        state.on(trc::Key::enter,         [&](auto& state){ state.applyRotation(); });
+        state.on(trc::MouseButton::left,  [&](auto& state){ state.applyRotation(); });
 
         // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
         auto shift = trc::KeyModFlagBits::shift;
-        call.on({ trc::Key::x }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
-        call.on({ trc::Key::x, shift }, [&](auto&){ state.lockAxes(Axis::eY | Axis::eZ); });
-        call.on({ trc::Key::z, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eZ); });
-        call.on({ trc::Key::y, shift }, [&](auto&){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x }, [&](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on({ trc::Key::z }, [&](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on({ trc::Key::y }, [&](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x, shift }, [&](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on({ trc::Key::z, shift }, [&](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on({ trc::Key::y, shift }, [&](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
+
+        state.onCursorMove([](auto& state, auto&&){ state.updateRotationPreview(); });
     };
 }

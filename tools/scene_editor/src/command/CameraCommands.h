@@ -1,98 +1,66 @@
 #pragma once
 
-#include <trc/base/event/InputState.h>
-
 #include "App.h"
-#include "input/InputCommand.h"
+#include "input/Command.h"
 #include "input/InputState.h"
 
-class CameraMoveCommand : public InputCommand
+class CameraMoveCommand : public Command
 {
 public:
-    struct State : public CommandState
+    struct State : public InputFrame
     {
         static constexpr float kDragSpeed{ 5.0f };
 
         explicit State(App& app) : app(&app) {}
 
-        bool update(float) override
-        {
-            const auto now = trc::Mouse::getPosition();
-            const vec2 windowSize = app->getTorch().getWindow().getWindowSize();
-            const auto diff = (now - prevMousePos) / windowSize * kDragSpeed;
-
-            auto& camera = app->getScene().getCamera();
-            camera.translate(glm::inverse(camera.getViewMatrix()) * vec4(diff.x, -diff.y, 0, 0));
-
-            prevMousePos = now;
-
-            return exit;
-        }
-
+        void onTick(float) override {}
         void onExit() override {}
 
         App* app;
-        vec2 prevMousePos{ trc::Mouse::getPosition() };
-        bool exit{ false };
     };
 
     explicit CameraMoveCommand(App& app) : app(&app) {}
 
-    void execute(CommandCall& call) override
+    void execute(CommandExecutionContext& ctx) override
     {
-        constexpr auto invert = [](const UserInput& input) -> UserInput {
+        constexpr auto inverted = [](const UserInput& input) -> UserInput {
             return std::visit([](auto state) -> UserInput {
                 state.action = trc::InputAction::release;
                 return state;
             }, input.input);
         };
 
-        auto state = std::make_unique<State>(*app);
+        auto state = ctx.pushFrame(std::make_unique<State>(*app));
+        state.on(inverted(ctx.getProvokingInput()), &State::exitFrame);
+        state.onCursorMove([](State& state, const CursorMovement& cursor) {
+            const vec2 windowSize = state.app->getTorch().getWindow().getWindowSize();
+            const auto diff = cursor.offset / windowSize * state.kDragSpeed;
 
-        call.on(invert(call.getProvokingInput()),
-                [state=state.get()](auto&){ state->exit = true; });
-
-        call.setState(std::move(state));
+            auto& camera = state.app->getScene().getCameraViewNode();
+            camera.translate(diff.x, -diff.y, 0);
+        });
     }
 
 private:
     App* app;
 };
 
-class CameraRotateCommand : public InputCommand
+class CameraRotateCommand : public Command
 {
 public:
-    struct State : public CommandState
+    struct State : public InputFrame
     {
         explicit State(App& app) : app(&app) {}
 
-        bool update(float) override
-        {
-            const auto now = trc::Mouse::getPosition();
-            const auto diff = now - prevMousePos;
-            const float length = glm::sign(diff.x) * glm::length(diff);
-
-            const vec2 windowSize = app->getTorch().getWindow().getWindowSize();
-            const float angle = length / windowSize.x * glm::two_pi<float>();
-
-            auto& camera = app->getScene().getCamera();
-            camera.rotate(0.0f, angle, 0.0f);
-
-            prevMousePos = now;
-
-            return exit;
-        }
-
+        void onTick(float) override {}
         void onExit() override {}
 
         App* app;
-        vec2 prevMousePos{ trc::Mouse::getPosition() };
-        bool exit{ false };
     };
 
     explicit CameraRotateCommand(App& app) : app(&app) {}
 
-    void execute(CommandCall& call) override
+    void execute(CommandExecutionContext& ctx) override
     {
         constexpr auto invert = [](const UserInput& input) -> UserInput {
             return std::visit([](auto state) -> UserInput {
@@ -101,12 +69,18 @@ public:
             }, input.input);
         };
 
-        auto state = std::make_unique<State>(*app);
+        auto state = ctx.pushFrame(std::make_unique<State>(*app));
+        state.on(invert(ctx.getProvokingInput()), &State::exitFrame);
+        state.onCursorMove([](State& state, const CursorMovement& cursor) {
+            const auto diff = cursor.offset;
+            const float length = glm::sign(diff.x) * glm::length(diff);
 
-        call.on(invert(call.getProvokingInput()),
-                [state=state.get()](auto&){ state->exit = true; });
+            const vec2 windowSize = state.app->getTorch().getWindow().getWindowSize();
+            const float angle = length / windowSize.x * glm::two_pi<float>();
 
-        call.setState(std::move(state));
+            auto& camera = state.app->getScene().getCamera();
+            camera.rotate(0.0f, angle, 0.0f);
+        });
     }
 
 private:

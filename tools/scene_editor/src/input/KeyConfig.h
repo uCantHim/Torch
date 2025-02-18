@@ -1,6 +1,6 @@
 #pragma once
 
-#include "KeyMap.h"
+#include "input/InputState.h"
 
 class App;
 
@@ -19,4 +19,7 @@ struct KeyConfig
     UserInput rotateObject;
 };
 
-auto makeKeyMap(App& app, const KeyConfig& conf) -> KeyMap;
+/**
+ * @brief Create a root input frame from a key configuration.
+ */
+auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>;

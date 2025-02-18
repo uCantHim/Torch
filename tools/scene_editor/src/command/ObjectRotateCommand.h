@@ -1,11 +1,11 @@
 #pragma once
 
-#include "input/InputCommand.h"
+#include "input/Command.h"
 
-class ObjectRotateCommand : public InputCommand
+class ObjectRotateCommand : public Command
 {
 public:
     ObjectRotateCommand() = default;
 
-    void execute(CommandCall& call) override;
+    void execute(CommandExecutionContext& ctx) override;
 };

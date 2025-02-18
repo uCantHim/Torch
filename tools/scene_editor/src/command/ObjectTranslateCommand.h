@@ -1,13 +1,15 @@
 #pragma once
 
-#include "input/InputCommand.h"
+#include "input/Command.h"
 
-class ObjectTranslateCommand : public InputCommand
+class App;
+
+class ObjectTranslateCommand : public Command
 {
 public:
     explicit ObjectTranslateCommand(App& app);
 
-    void execute(CommandCall& call) override;
+    void execute(CommandExecutionContext& ctx) override;
 
 private:
     App* app;

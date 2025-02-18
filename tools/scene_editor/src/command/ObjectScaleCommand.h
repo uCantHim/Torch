@@ -1,11 +1,11 @@
 #pragma once
 
-#include "input/InputCommand.h"
+#include "input/Command.h"
 
-class ObjectScaleCommand : public InputCommand
+class ObjectScaleCommand : public Command
 {
 public:
     ObjectScaleCommand() = default;
 
-    void execute(CommandCall& call) override;
+    void execute(CommandExecutionContext& ctx) override;
 };

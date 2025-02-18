@@ -1,112 +1,171 @@
 #pragma once
 
-#include <memory>
+#include <concepts>
+#include <functional>
 
 #include <trc/base/event/Keys.h>
+#include <trc_util/Assert.h>
 
-#include "KeyMap.h"
+#include "input/Command.h"
+#include "input/InputFrameBuilder.h"
+#include "input/KeyMap.h"
 
-class InputState;
+class InputFrame;
 
-class CommandState
+namespace action
+{
+    struct PushFrame {
+        u_ptr<InputFrame> newFrame;
+    };
+
+    struct None {};
+};
+
+class InputFrame
 {
 public:
-    virtual ~CommandState() = default;
+    InputFrame(const InputFrame&) = delete;
+    InputFrame(InputFrame&&) noexcept = delete;
+    InputFrame& operator=(const InputFrame&) = delete;
+    InputFrame& operator=(InputFrame&&) noexcept = delete;
 
-    virtual bool update(float timeDelta) = 0;
+    InputFrame() = default;
+    virtual ~InputFrame() noexcept = default;
+
+    virtual void onTick(float timeDelta) = 0;
     virtual void onExit() = 0;
-};
 
-/**
- * @brief Interface for building and manipulating command states
- */
-class CommandCall
-{
-private:
-    friend class InputState;
-    CommandCall(UserInput input, InputState& state);
-    ~CommandCall() = default;
+    auto notify(const UserInput& input) -> std::variant<action::None, action::PushFrame>;
+    auto notify(const Scroll& scroll) -> std::variant<action::None, action::PushFrame>;
+    auto notify(const CursorMovement& cursorMove) -> std::variant<action::None, action::PushFrame>;
 
-public:
-    CommandCall(const CommandCall&) = delete;
-    CommandCall(CommandCall&&) noexcept = delete;
-    auto operator=(const CommandCall&) -> CommandCall& = delete;
-    auto operator=(CommandCall&&) noexcept -> CommandCall& = delete;
+    void on(UserInput input, u_ptr<Command> command);
 
-    void onFirstRepeat(std::function<void()> func);
-    void onRepeat(std::function<void()> func);
-    void onRelease(std::function<void()> func);
+    template<std::invocable F>
+    void on(UserInput input, F&& callback) {
+        on(input, makeCommand(std::forward<F>(callback)));
+    }
 
-    void on(UserInput input, u_ptr<InputCommand> cmd);
+    template<CommandFunctionT F>
+    void on(UserInput input, F&& callback) {
+        on(input, makeCommand(std::forward<F>(callback)));
+    }
 
-    template<std::invocable<CommandCall&> T>
-    void on(UserInput input, T&& func);
+    template<std::invocable<CommandExecutionContext&, KeyInput> F>
+    void onUnhandledKeyInput(F&& callback) {
+        unhandledKeyCallback = std::forward<F>(callback);
+    }
 
-    template<std::derived_from<CommandState> T>
-    auto setState(T&& t) -> T&;
-    auto setState(u_ptr<CommandState> state) -> CommandState&;
+    template<std::invocable<CommandExecutionContext&, MouseInput> F>
+    void onUnhandledMouseInput(F&& callback) {
+        unhandledMouseCallback = std::forward<F>(callback);
+    }
 
-    auto getProvokingInput() const -> const UserInput&;
+    template<std::invocable<CommandExecutionContext&, Scroll> F>
+    void onScroll(F&& callback) {
+        scrollCallback = std::forward<F>(callback);
+    }
 
-private:
-    template<typename T>
-    struct FunctionalInputCommand : InputCommand
-    {
-        FunctionalInputCommand(T&& t) : func(std::forward<T>(t)) {}
-        T func;
-
-        void execute(CommandCall& call) override
-        {
-            func(call);
-        };
-    };
-
-    UserInput input;
-    InputState* state;
-};
-
-/**
- * @brief State that determines response to inputs
- *
- * Contains key mappings and per-frame update behaviour.
- *
- * Only used internally in InputStateMachine.
- */
-class InputState
-{
-    /** CommandCall enables manipulation of the CommandState */
-    friend class CommandCall;
-
-public:
-    enum class Status
-    {
-        eInProgress,
-        eDone,
-    };
+    template<std::invocable<CommandExecutionContext&, CursorMovement> F>
+    void onCursorMove(F&& callback) {
+        cursorMoveCallback = std::forward<F>(callback);
+    }
 
     /**
-     * @brief Create state for a command and execute it
+     * TODO: Idea
      */
-    InputState(UserInput input, InputCommand& command);
+    void applyCommand(auto&& _do, auto&& _undo);
 
-    auto update(float timeDelta) -> Status;
-    void exit();
-
-    void setCommandState(u_ptr<CommandState> state);
-    auto getKeyMap() -> KeyMap&;
-    void setKeyMap(KeyMap newMap);
+    void exitFrame();
+    bool shouldExit() const;
 
 private:
-    struct NullCommandState : CommandState
+    KeyMap keyMap;
+
+    std::function<void(CommandExecutionContext&, KeyInput)> unhandledKeyCallback;
+    std::function<void(CommandExecutionContext&, MouseInput)> unhandledMouseCallback;
+
+    std::function<void(CommandExecutionContext&, Scroll)> scrollCallback;
+    std::function<void(CommandExecutionContext&, CursorMovement)> cursorMoveCallback;
+
+    bool _shouldExit{ false };
+};
+
+/**
+ * Isolates command execution logic, which requires dubious access of private
+ * members in CommandExecutionContext.
+ */
+class CommandExecutor
+{
+public:
+    explicit CommandExecutor(const UserInput& provokingInput);
+
+    auto executeCommand(Command& cmd) -> std::variant<action::None, action::PushFrame>;
+    auto executeCommand(CommandFunctionT auto&& cmdFunc)
+        -> std::variant<action::None, action::PushFrame>;
+
+private:
+    UserInput provokingInput;
+};
+
+/**
+ * @brief Information provided to a command invocation.
+ */
+class CommandExecutionContext
+{
+public:
+    CommandExecutionContext(const CommandExecutionContext&) = delete;
+    CommandExecutionContext(CommandExecutionContext&&) noexcept = delete;
+    CommandExecutionContext& operator=(const CommandExecutionContext&) = delete;
+    CommandExecutionContext& operator=(CommandExecutionContext&&) noexcept = delete;
+
+    ~CommandExecutionContext() noexcept = default;
+
+    explicit CommandExecutionContext(const UserInput& provokingInput);
+
+    auto getProvokingInput() -> UserInput;
+
+    // auto keyboard();
+    // auto mouse();
+
+    class GenericInputFrame : public InputFrame
     {
-        bool update(float) override { return true; }
-        void onExit() override {}
+    public:
+        void onTick(float) final {}
+        void onExit() final {}
+
+    private:
+        std::function<void(float)> _onTick;
+        std::function<void()> _onExit;
     };
 
-    CommandCall call;
-    u_ptr<CommandState> state{ new NullCommandState };
+    class GenericInputFrameBuilder : public InputFrameBuilder<GenericInputFrame>
+    {
+    public:
+        void onTick(std::function<void(InputFrame&, float)> callback);
+        void onExit(std::function<void(InputFrame&)> callback);
+    };
 
-    KeyMap keyMap;
+    auto pushFrame() -> GenericInputFrameBuilder;
+
+    template<std::derived_from<InputFrame> Frame>
+    auto pushFrame(u_ptr<Frame> frame) -> InputFrameBuilder<Frame>
+    {
+        assert_arg(frame != nullptr);
+
+        nextFrame = std::move(frame);
+        return InputFrameBuilder{ static_cast<Frame*>(nextFrame.get()) };
+    }
+
+    bool hasFramePushed() const;
+
+private:
+    friend CommandExecutor;
+    auto getFrame() && -> u_ptr<InputFrame>;
+
+private:
+    UserInput provokingInput;
+    u_ptr<InputFrame> nextFrame{ nullptr };
 };
 
 /**
@@ -116,38 +175,39 @@ class InputStateMachine
 {
 public:
     InputStateMachine();
+    explicit InputStateMachine(u_ptr<InputFrame> topLevelFrame);
 
+    /**
+     * TODO: Replace timeDelta with a `TickData` parameter struct.
+     */
     void update(float timeDelta);
 
     void notify(const UserInput& input);
+    void notify(const Scroll& scroll);
+    void notify(const CursorMovement& cursorMove);
 
-    auto getKeyMap() -> KeyMap&;
-    void setKeyMap(KeyMap map);
+    auto getRootFrame() -> InputFrame&;
+
+    static auto build() -> std::pair<InputStateMachine, InputFrame&>;
 
 private:
-    void executeCommand(UserInput input, InputCommand& cmd);
-
-    void push(u_ptr<InputState> state);
+    void push(u_ptr<InputFrame> frame);
     void pop();
-    auto top() -> InputState&;
+    auto top() -> InputFrame&;
 
-    std::vector<u_ptr<InputState>> stateStack;
+    std::vector<u_ptr<InputFrame>> frameStack;
 };
 
 
 
-template<std::invocable<CommandCall&> T>
-void CommandCall::on(UserInput input, T&& func)
+inline auto CommandExecutor::executeCommand(CommandFunctionT auto&& cmdFunc)
+    -> std::variant<action::None, action::PushFrame>
 {
-    on(input, std::make_unique<FunctionalInputCommand<T>>(std::forward<T>(func)));
-}
+    CommandExecutionContext ctx{ provokingInput };
+    cmdFunc(ctx);
 
-template<std::derived_from<CommandState> T>
-inline auto CommandCall::setState(T&& t) -> T&
-{
-    auto ptr = std::make_unique<T>(std::forward<T>(t));
-    auto& ref = *ptr;
-    state->setCommandState(std::move(ptr));
-
-    return ref;
+    if (ctx.hasFramePushed()) {
+        return action::PushFrame{ .newFrame=std::move(ctx).getFrame() };
+    }
+    return action::None{};
 }

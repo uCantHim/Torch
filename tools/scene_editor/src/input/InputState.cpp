@@ -1,163 +1,219 @@
 #include "InputState.h"
 
+#include <iostream>
+
+#include <trc_util/Assert.h>
+#include <trc_util/TypeUtils.h>
 
 
-CommandCall::CommandCall(UserInput input, InputState& state)
-    :
-    input(input),
-    state(&state)
+
+auto InputFrame::notify(const UserInput& input) -> std::variant<action::None, action::PushFrame>
 {
-}
+    auto tryExecCallback = [](auto&& input, auto&& key, auto&& mouse) {
+        using Res = std::variant<action::None, action::PushFrame>;
 
-void CommandCall::onFirstRepeat(std::function<void()>)
-{
-    throw trc::Exception("Not implemented");
-}
+        CommandExecutor exec{ input };
+        return std::visit(trc::util::VariantVisitor{
+            [&](const KeyInput& input) -> Res {
+                if (key) return exec.executeCommand([&](auto& ctx){ key(ctx, input); });
+                return action::None{};
+            },
+            [&](const MouseInput& input) -> Res {
+                if (mouse) return exec.executeCommand([&](auto& ctx){ mouse(ctx, input); });
+                return action::None{};
+            },
+        }, input.input);
+    };
 
-void CommandCall::onRepeat(std::function<void()>)
-{
-    throw trc::Exception("Not implemented");
-}
+    std::cout << "Input frame: processing input event...\n";
 
-void CommandCall::onRelease(std::function<void()>)
-{
-    throw trc::Exception("Not implemented");
-}
-
-void CommandCall::on(UserInput input, u_ptr<InputCommand> cmd)
-{
-    state->keyMap.set(input, std::move(cmd));
-}
-
-auto CommandCall::setState(u_ptr<CommandState> newState) -> CommandState&
-{
-    auto& ref = *newState;
-    state->setCommandState(std::move(newState));
-
-    return ref;
-}
-
-auto CommandCall::getProvokingInput() const -> const UserInput&
-{
-    return input;
-}
-
-
-
-InputState::InputState(UserInput input, InputCommand& command)
-    :
-    call(input, *this)
-{
-    command.execute(call);
-}
-
-auto InputState::update(const float timeDelta) -> Status
-{
-    assert(state != nullptr);
-
-    if (state->update(timeDelta)) {
-        return Status::eDone;
+    // Find a command for the input and execute it.
+    CommandExecutor exec{ input };
+    if (auto cmd = keyMap.get(input)) {
+        std::cout << "Command is set for this event. Executing it...\n";
+        return exec.executeCommand(*cmd);
     }
-    return Status::eInProgress;
+
+    // No command is set for the input. Forward it to the catch-all handler.
+    std::cout << "No command registered. Calling catch-all callback...\n";
+    return tryExecCallback(input, unhandledKeyCallback, unhandledMouseCallback);
 }
 
-void InputState::exit()
+auto InputFrame::notify(const Scroll& scroll) -> std::variant<action::None, action::PushFrame>
 {
-    assert(state != nullptr);
-    state->onExit();
+    const KeyInput noKey{ trc::Key::unknown };
+
+    if (scrollCallback)
+    {
+        auto cmd = [this, scroll](CommandExecutionContext& ctx) {
+            this->scrollCallback(ctx, scroll);
+        };
+        return CommandExecutor{ noKey }.executeCommand(cmd);
+    }
+    return action::None{};
 }
 
-void InputState::setCommandState(u_ptr<CommandState> newState)
+auto InputFrame::notify(const CursorMovement& cursorMove)
+    -> std::variant<action::None, action::PushFrame>
 {
-    assert(newState != nullptr);
-    state = std::move(newState);
+    const KeyInput noKey{ trc::Key::unknown };
+
+    if (cursorMoveCallback)
+    {
+        auto cmd = [this, cursorMove](CommandExecutionContext& ctx) {
+            this->cursorMoveCallback(ctx, cursorMove);
+        };
+        return CommandExecutor{ noKey }.executeCommand(cmd);
+    }
+    return action::None{};
 }
 
-auto InputState::getKeyMap() -> KeyMap&
+void InputFrame::on(UserInput input, u_ptr<Command> command)
 {
-    return keyMap;
+    if (command != nullptr) {
+        keyMap.set(input, std::move(command));
+    }
+    else {
+        keyMap.unset(input);
+    }
 }
 
-void InputState::setKeyMap(KeyMap newMap)
+void InputFrame::exitFrame()
 {
-    keyMap = std::move(newMap);
+    _shouldExit = true;
+}
+
+bool InputFrame::shouldExit() const
+{
+    return _shouldExit;
+}
+
+
+
+CommandExecutor::CommandExecutor(const UserInput& provokingInput)
+    : provokingInput(provokingInput)
+{}
+
+auto CommandExecutor::executeCommand(Command& cmd)
+    -> std::variant<action::None, action::PushFrame>
+{
+    return executeCommand([&cmd](auto& ctx){ cmd.execute(ctx); });
+}
+
+
+
+CommandExecutionContext::CommandExecutionContext(const UserInput& provokingInput)
+    :
+    provokingInput(provokingInput)
+{}
+
+auto CommandExecutionContext::getProvokingInput() -> UserInput
+{
+    return provokingInput;
+}
+
+auto CommandExecutionContext::pushFrame() -> GenericInputFrameBuilder
+{
+    return { pushFrame(std::make_unique<GenericInputFrame>()) };
+}
+
+bool CommandExecutionContext::hasFramePushed() const
+{
+    return nextFrame != nullptr;
+}
+
+auto CommandExecutionContext::getFrame() && -> u_ptr<InputFrame>
+{
+    return std::move(nextFrame);
 }
 
 
 
 InputStateMachine::InputStateMachine()
+    : InputStateMachine(std::make_unique<CommandExecutionContext::GenericInputFrame>())
 {
-    struct EndlessCommandState : CommandState
-    {
-        bool update(float) override { return false; }
-        void onExit() override {}
-    };
+}
 
-    struct TopLevelCommand : InputCommand
-    {
-        void execute(CommandCall& call) override
-        {
-            call.setState(std::make_unique<EndlessCommandState>());
-        }
-    };
+InputStateMachine::InputStateMachine(u_ptr<InputFrame> topLevelFrame)
+{
+    assert_arg(topLevelFrame != nullptr);
 
-    TopLevelCommand command;
-    executeCommand({ trc::Key::unknown }, command);
+    push(std::move(topLevelFrame));
 }
 
 void InputStateMachine::update(const float timeDelta)
 {
-    auto status = top().update(timeDelta);
-    if (status == InputState::Status::eDone) {
+    auto& frame = top();
+
+    frame.onTick(timeDelta);
+    if (frame.shouldExit()) {
         pop();
     }
 }
 
 void InputStateMachine::notify(const UserInput& input)
 {
-    if (auto cmd = top().getKeyMap().get(input)) {
-        executeCommand(input, *cmd);
+    auto result = top().notify(input);
+
+    if (top().shouldExit()) {
+        pop();
     }
+    std::visit(trc::util::VariantVisitor{
+        [](action::None){},
+        [this](action::PushFrame& frame){ push(std::move(frame.newFrame)); },
+    }, result);
 }
 
-auto InputStateMachine::getKeyMap() -> KeyMap&
+void InputStateMachine::notify(const Scroll& scroll)
 {
-    assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
-    assert(stateStack.front() != nullptr && "Base state must always be valid.");
-    return stateStack.front()->getKeyMap();
+    auto result = top().notify(scroll);
+
+    if (top().shouldExit()) {
+        pop();
+    }
+    std::visit(trc::util::VariantVisitor{
+        [](action::None){},
+        [this](action::PushFrame& frame){ push(std::move(frame.newFrame)); },
+    }, result);
 }
 
-void InputStateMachine::setKeyMap(KeyMap map)
+void InputStateMachine::notify(const CursorMovement& cursorMove)
 {
-    assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
-    assert(stateStack.front() != nullptr && "Base state must always be valid.");
-    stateStack.front()->setKeyMap(std::move(map));
+    auto result = top().notify(cursorMove);
+
+    if (top().shouldExit()) {
+        pop();
+    }
+    std::visit(trc::util::VariantVisitor{
+        [](action::None){},
+        [this](action::PushFrame& frame){ push(std::move(frame.newFrame)); },
+    }, result);
 }
 
-void InputStateMachine::executeCommand(UserInput input, InputCommand& cmd)
+auto InputStateMachine::getRootFrame() -> InputFrame&
 {
-    push(std::make_unique<InputState>(input, cmd));
+    assert(!frameStack.empty() && "Frame stack can never be empty: The first element is the base frame.");
+    assert(frameStack.front() != nullptr && "Root frame must always be valid.");
+    return *frameStack.front();
 }
 
-void InputStateMachine::push(u_ptr<InputState> state)
+void InputStateMachine::push(u_ptr<InputFrame> frame)
 {
-    assert(state != nullptr);
-    stateStack.emplace_back(std::move(state));
+    assert(frame != nullptr && "You shall not push nullptrs onto the frame stack.");
+    frameStack.emplace_back(std::move(frame));
 }
 
 void InputStateMachine::pop()
 {
-    assert(!stateStack.empty());
+    top().onExit();
+    frameStack.pop_back();
 
-    top().exit();
-    stateStack.pop_back();
-
-    assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
+    assert(!frameStack.empty() && "Frame stack can never be empty: The first element is the root frame.");
 }
 
-auto InputStateMachine::top() -> InputState&
+auto InputStateMachine::top() -> InputFrame&
 {
-    assert(!stateStack.empty() && "State stack can never be empty: The first element is the base state.");
-    assert(stateStack.back() != nullptr);
-    return *stateStack.back();
+    assert(!frameStack.empty() && "Frame stack can never be empty: The first element is the root frame.");
+    assert(frameStack.back() != nullptr);
+    return *frameStack.back();
 }
