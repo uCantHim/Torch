@@ -68,6 +68,20 @@ auto InputFrame::notify(const CursorMovement& cursorMove)
     return action::None{};
 }
 
+auto InputFrame::notifyFrameExit() -> std::variant<action::None, action::PushFrame>
+{
+    const KeyInput noKey{ trc::Key::unknown };
+
+    if (frameExitCallback)
+    {
+        auto cmd = [this](CommandExecutionContext& ctx) {
+            this->frameExitCallback(ctx);
+        };
+        return CommandExecutor{ noKey }.executeCommand(cmd);
+    }
+    return action::None{};
+}
+
 void InputFrame::on(UserInput input, u_ptr<Command> command)
 {
     if (command != nullptr) {
@@ -112,11 +126,6 @@ auto CommandExecutionContext::getProvokingInput() -> UserInput
     return provokingInput;
 }
 
-auto CommandExecutionContext::pushFrame() -> GenericInputFrameBuilder
-{
-    return { pushFrame(std::make_unique<GenericInputFrame>()) };
-}
-
 bool CommandExecutionContext::hasFramePushed() const
 {
     return nextFrame != nullptr;
@@ -130,7 +139,7 @@ auto CommandExecutionContext::getFrame() && -> u_ptr<InputFrame>
 
 
 InputStateMachine::InputStateMachine()
-    : InputStateMachine(std::make_unique<CommandExecutionContext::GenericInputFrame>())
+    : InputStateMachine(std::make_unique<InputFrame>())
 {
 }
 
@@ -171,7 +180,9 @@ void InputStateMachine::notify(const CursorMovement& cursorMove)
 {
     auto result = top().notify(cursorMove);
 
-    if (top().shouldExit()) {
+    if (top().shouldExit())
+    {
+        top().notifyFrameExit();
         pop();
     }
     std::visit(trc::util::VariantVisitor{
@@ -195,7 +206,6 @@ void InputStateMachine::push(u_ptr<InputFrame> frame)
 
 void InputStateMachine::pop()
 {
-    top().onExit();
     frameStack.pop_back();
 
     assert(!frameStack.empty() && "Frame stack can never be empty: The first element is the root frame.");

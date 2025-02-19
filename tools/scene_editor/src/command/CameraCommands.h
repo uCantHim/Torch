@@ -10,11 +10,6 @@ public:
     struct State : public InputFrame
     {
         static constexpr float kDragSpeed{ 5.0f };
-
-        explicit State(App& app) : app(&app) {}
-
-        void onExit() override {}
-
         App* app;
     };
 
@@ -29,7 +24,7 @@ public:
             }, input.input);
         };
 
-        auto state = ctx.pushFrame(std::make_unique<State>(*app));
+        auto state = ctx.pushFrame(State{ .app=app });
         state.on(inverted(ctx.getProvokingInput()), &State::exitFrame);
         state.onCursorMove([](State& state, const CursorMovement& cursor) {
             const vec2 windowSize = state.app->getTorch().getWindow().getWindowSize();
@@ -51,10 +46,6 @@ class CameraRotateCommand : public Command
 public:
     struct State : public InputFrame
     {
-        explicit State(App& app) : app(&app) {}
-
-        void onExit() override {}
-
         App* app;
     };
 
@@ -69,12 +60,12 @@ public:
             }, input.input);
         };
 
-        auto state = ctx.pushFrame(std::make_unique<State>(*app));
+        auto state = ctx.pushFrame(State{ .app=app });
         state.on(invert(ctx.getProvokingInput()), &State::exitFrame);
         state.onCursorMove([](State& state, const CursorMovement& cursor) {
             const vec2 windowSize = state.app->getTorch().getWindow().getWindowSize();
             const vec2 angle = cursor.offset / windowSize * glm::two_pi<float>();
-            state.app->getScene().getCameraArm().rotate(angle.y, -angle.x);
+            state.app->getScene().getCameraArm().rotate(-angle.y, angle.x);
         });
     }
 

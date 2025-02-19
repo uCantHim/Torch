@@ -24,10 +24,7 @@ void selectHoveredObject()
 
 auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>
 {
-    struct DefaultRootInputFrame : InputFrame
-    {
-        void onExit() override {}
-    };
+    struct DefaultRootInputFrame : InputFrame {};
 
     auto f = std::make_unique<DefaultRootInputFrame>();
 
@@ -53,9 +50,7 @@ auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>
     });
 
     f->onUnhandledMouseInput([contextMenuKey=conf.openContext](auto&, MouseInput input) {
-        std::cout << "unhandled mouse input\n";
         if (input.action == trc::InputAction::press && input != contextMenuKey) {
-            std::cout << "    closing context menu.\n";
             gui::ContextMenu::close();
         }
     });

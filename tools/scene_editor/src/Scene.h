@@ -28,6 +28,8 @@ public:
     auto getCameraArm() -> CameraArm&;
     auto getDrawableScene() -> trc::Scene&;
 
+    auto unprojectScreenCoords(vec2 screenPos, float depth) -> vec3;
+
     /**
      * @brief Project the cursor position into world space at a specific depth.
      */

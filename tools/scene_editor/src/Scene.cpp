@@ -70,6 +70,18 @@ auto Scene::getDrawableScene() -> trc::Scene&
     return *scene;
 }
 
+auto Scene::unprojectScreenCoords(vec2 screenPos, float depth) -> vec3
+{
+    const auto vp = app->getSceneViewport();
+
+    screenPos = { screenPos.x, vp.size.y - screenPos.y };
+    const ivec2 vpPos = glm::clamp(ivec2{screenPos} - vp.offset,
+                                   vp.offset,
+                                   vp.offset + ivec2{vp.size});
+
+    return camera->unproject(vpPos, depth, vp.size);
+}
+
 auto Scene::getMousePosAtDepth(const float depth) const -> vec3
 {
     const auto vp = app->getSceneViewport();
@@ -256,10 +268,10 @@ void Scene::calcObjectHover()
         return;
     }
 
-    const vec4 mousePos = vec4{ getMousePosAtDepth(0.5f), 1.0f };
-    const vec4 cameraWorldPos = glm::inverse(camera->getGlobalTransform()) * vec4(0, 0, 0, 1);
+    const vec3 mousePos = getMousePosAtDepth(0.5f);
+    const vec3 cameraWorldPos = getCameraArm().getCameraWorldPos();
 
-    // A ray from the camera throught the cursor into the scene
+    // A ray from the camera through the cursor into the scene
     const Ray cameraRay{ cameraWorldPos, mousePos - cameraWorldPos };
 
     if (const auto hit = castRay(cameraRay))

@@ -28,6 +28,11 @@ struct CameraArm : trc::Node
         });
     }
 
+    auto getCameraWorldPos() const -> vec3
+    {
+        return vec3{ glm::inverse(camera->getViewMatrix())[3] };
+    }
+
     /**
      * @brief Move the pivot point.
      */

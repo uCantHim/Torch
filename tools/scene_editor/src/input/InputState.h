@@ -30,13 +30,12 @@ public:
 
     InputFrame() = default;
     InputFrame(InputFrame&&) noexcept = default;
-    virtual ~InputFrame() noexcept = default;
-
-    virtual void onExit() = 0;
+    ~InputFrame() noexcept = default;
 
     auto notify(const UserInput& input) -> std::variant<action::None, action::PushFrame>;
     auto notify(const Scroll& scroll) -> std::variant<action::None, action::PushFrame>;
     auto notify(const CursorMovement& cursorMove) -> std::variant<action::None, action::PushFrame>;
+    auto notifyFrameExit() -> std::variant<action::None, action::PushFrame>;
 
     void on(UserInput input, u_ptr<Command> command);
 
@@ -70,6 +69,11 @@ public:
         cursorMoveCallback = std::forward<F>(callback);
     }
 
+    template<std::invocable<CommandExecutionContext&> F>
+    void onFrameExit(F&& callback) {
+        frameExitCallback = std::forward<F>(callback);
+    }
+
     /**
      * TODO: Idea
      */
@@ -87,6 +91,7 @@ private:
     std::function<void(CommandExecutionContext&, Scroll)> scrollCallback;
     std::function<void(CommandExecutionContext&, CursorMovement)> cursorMoveCallback;
 
+    std::function<void(CommandExecutionContext&)> frameExitCallback;
     bool _shouldExit{ false };
 };
 
@@ -127,22 +132,9 @@ public:
     // auto keyboard();
     // auto mouse();
 
-    class GenericInputFrame : public InputFrame
-    {
-    public:
-        void onExit() final {}
-
-    private:
-        std::function<void()> _onExit;
-    };
-
-    class GenericInputFrameBuilder : public InputFrameBuilder<GenericInputFrame>
-    {
-    public:
-        void onExit(std::function<void(InputFrame&)> callback);
-    };
-
-    auto pushFrame() -> GenericInputFrameBuilder;
+    auto pushFrame() -> InputFrameBuilder<InputFrame> {
+        return pushFrame(std::make_unique<InputFrame>());
+    }
 
     /**
      * Mostly this overload enables better intellisense and type deduction at

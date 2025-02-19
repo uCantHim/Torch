@@ -16,55 +16,46 @@ public:
         :
         obj(obj),
         scene(&g::scene()),
-        originalPos(scene->get<ObjectBaseNode>(obj).getTranslation()),
-        finalPos(originalPos)
+        originalPos(scene->get<ObjectBaseNode>(obj).getTranslation())
     {}
-
-    void onExit() override
-    {
-        scene->get<ObjectBaseNode>(obj).setTranslation(finalPos);
-    }
 
     void onMouseMove(const CursorMovement& cursor)
     {
-        totalCursorMovement += cursor.offset;
         const vec2 windowSize = g::torch().getWindow().getWindowSize();
-        const auto diff = totalCursorMovement / windowSize * kDragSpeed;
+        const auto diff = cursor.offset / windowSize * kDragSpeed;
 
         const auto& camera = scene->getCamera();
-        const vec3 worldDiff = glm::inverse(camera.getViewMatrix()) * vec4(diff.x, -diff.y, 0, 0);
-        newPos = originalPos + worldDiff * lockedAxis;
+        const vec3 worldDiff = glm::inverse(camera.getViewMatrix())
+                             * glm::inverse(camera.getProjectionMatrix())
+                             * vec4(diff.x, -diff.y, 0, 0);
 
-        scene->get<ObjectBaseNode>(obj).setTranslation(newPos);
+        scene->get<ObjectBaseNode>(obj).translate(worldDiff * lockedAxis);
     }
 
     void applyPlacement()
     {
-        finalPos = newPos;
         exitFrame();
     }
 
     void resetPlacement()
     {
+        scene->get<ObjectBaseNode>(obj).setTranslation(originalPos);
         exitFrame();
     }
 
     void lockAxes(AxisFlags axes)
     {
-        lockedAxis = vec3(!(axes & Axis::eX), !(axes & Axis::eY), !(axes & Axis::eZ));
+        scene->get<ObjectBaseNode>(obj).setTranslation(originalPos);
+        lockedAxis = toVector(axes);
     }
 
 private:
-    static constexpr float kDragSpeed{ 10.0f };
+    static constexpr float kDragSpeed{ 15.0f };
 
     const SceneObject obj;
     Scene* scene;
 
     const vec3 originalPos;
-    vec2 totalCursorMovement;
-    vec3 newPos;
-    vec3 finalPos;
-
     vec3 lockedAxis{ 1, 1, 1 };
 };
 
@@ -93,7 +84,6 @@ void ObjectTranslateCommand::execute(CommandExecutionContext& ctx)
         state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [&](auto& state){ state.lockAxes(Axis::eY); });
         state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [&](auto& state){ state.lockAxes(Axis::eZ); });
 
-        //state.onCursorMove(&ObjectTranslateState::onMouseMove);
         state.onCursorMove([](auto& state, auto&& cursor){ state.onMouseMove(cursor); });
     };
 }
