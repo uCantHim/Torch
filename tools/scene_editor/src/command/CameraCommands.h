@@ -13,7 +13,6 @@ public:
 
         explicit State(App& app) : app(&app) {}
 
-        void onTick(float) override {}
         void onExit() override {}
 
         App* app;
@@ -54,7 +53,6 @@ public:
     {
         explicit State(App& app) : app(&app) {}
 
-        void onTick(float) override {}
         void onExit() override {}
 
         App* app;

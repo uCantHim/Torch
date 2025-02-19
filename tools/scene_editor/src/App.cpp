@@ -214,7 +214,6 @@ void App::tick()
 
     // Update
     trc::pollEvents();
-    inputProcessor->tick(frameTime);
     scene->update(frameTime);
 
     // Render

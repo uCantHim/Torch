@@ -20,8 +20,6 @@ public:
         finalPos(originalPos)
     {}
 
-    void onTick(float) override {}
-
     void onExit() override
     {
         scene->get<ObjectBaseNode>(obj).setTranslation(finalPos);

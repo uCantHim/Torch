@@ -15,10 +15,6 @@ public:
     // InputProcessor(ViewportTree* targets);
     explicit InputProcessor(u_ptr<InputFrame> rootFrame);
 
-    void tick(float timeDelta) {
-        inputState.update(timeDelta);
-    }
-
     void onCharInput(trc::Swapchain&, uint32_t) override {}
     void onKeyInput(trc::Swapchain&, trc::Key, trc::InputAction, trc::KeyModFlags) override;
     void onMouseEnter(trc::Swapchain&, bool) override {}

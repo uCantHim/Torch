@@ -23,8 +23,6 @@ public:
     {
     }
 
-    void onTick(float) override {}
-
     void onExit() override
     {
         scene->get<ObjectBaseNode>(obj).setScale(finalScaling);

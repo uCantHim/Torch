@@ -26,7 +26,6 @@ auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>
 {
     struct DefaultRootInputFrame : InputFrame
     {
-        void onTick(float) override {}
         void onExit() override {}
     };
 

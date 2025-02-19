@@ -32,7 +32,6 @@ public:
     InputFrame() = default;
     virtual ~InputFrame() noexcept = default;
 
-    virtual void onTick(float timeDelta) = 0;
     virtual void onExit() = 0;
 
     auto notify(const UserInput& input) -> std::variant<action::None, action::PushFrame>;
@@ -131,18 +130,15 @@ public:
     class GenericInputFrame : public InputFrame
     {
     public:
-        void onTick(float) final {}
         void onExit() final {}
 
     private:
-        std::function<void(float)> _onTick;
         std::function<void()> _onExit;
     };
 
     class GenericInputFrameBuilder : public InputFrameBuilder<GenericInputFrame>
     {
     public:
-        void onTick(std::function<void(InputFrame&, float)> callback);
         void onExit(std::function<void(InputFrame&)> callback);
     };
 
@@ -176,11 +172,6 @@ class InputStateMachine
 public:
     InputStateMachine();
     explicit InputStateMachine(u_ptr<InputFrame> topLevelFrame);
-
-    /**
-     * TODO: Replace timeDelta with a `TickData` parameter struct.
-     */
-    void update(float timeDelta);
 
     void notify(const UserInput& input);
     void notify(const Scroll& scroll);

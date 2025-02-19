@@ -25,8 +25,6 @@ public:
         assert(glm::all(glm::not_(glm::isnan(pivot))));
     }
 
-    void onTick(const float) override {}
-
     void onExit() override
     {
         const quat rotation = glm::angleAxis(finalAngle, rotationAxis) * originalOrientation;

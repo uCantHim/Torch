@@ -141,16 +141,6 @@ InputStateMachine::InputStateMachine(u_ptr<InputFrame> topLevelFrame)
     push(std::move(topLevelFrame));
 }
 
-void InputStateMachine::update(const float timeDelta)
-{
-    auto& frame = top();
-
-    frame.onTick(timeDelta);
-    if (frame.shouldExit()) {
-        pop();
-    }
-}
-
 void InputStateMachine::notify(const UserInput& input)
 {
     auto result = top().notify(input);
