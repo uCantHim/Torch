@@ -78,7 +78,7 @@ void ObjectScaleCommand::execute(CommandExecutionContext& ctx)
     auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto state = ctx.pushFrame(std::make_unique<ObjectScaleState>(obj, scene));
+        auto state = ctx.pushFrame(ObjectScaleState{ obj, scene });
 
         state.on(trc::Key::escape,        [](auto& state){ state.resetScaling(); });
         state.on(trc::MouseButton::right, [](auto& state){ state.resetScaling(); });

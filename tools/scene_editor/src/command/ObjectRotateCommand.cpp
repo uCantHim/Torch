@@ -95,7 +95,7 @@ void ObjectRotateCommand::execute(CommandExecutionContext& ctx)
     auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto state = ctx.pushFrame(std::make_unique<ObjectRotateState>(obj, scene));
+        auto state = ctx.pushFrame(ObjectRotateState{ obj, scene });
 
         state.on(trc::Key::escape,        [&](auto& state){ state.resetRotation(); });
         state.on(trc::MouseButton::right, [&](auto& state){ state.resetRotation(); });

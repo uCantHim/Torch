@@ -78,7 +78,7 @@ void ObjectTranslateCommand::execute(CommandExecutionContext& ctx)
     auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto state = ctx.pushFrame(std::make_unique<ObjectTranslateState>(obj));
+        auto state = ctx.pushFrame(ObjectTranslateState{ obj });
 
         state.on(trc::Key::escape,        [&](auto& state){ state.resetPlacement(); });
         state.on(trc::MouseButton::right, [&](auto& state){ state.resetPlacement(); });

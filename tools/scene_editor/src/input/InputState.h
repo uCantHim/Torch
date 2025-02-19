@@ -25,11 +25,11 @@ class InputFrame
 {
 public:
     InputFrame(const InputFrame&) = delete;
-    InputFrame(InputFrame&&) noexcept = delete;
     InputFrame& operator=(const InputFrame&) = delete;
     InputFrame& operator=(InputFrame&&) noexcept = delete;
 
     InputFrame() = default;
+    InputFrame(InputFrame&&) noexcept = default;
     virtual ~InputFrame() noexcept = default;
 
     virtual void onExit() = 0;
@@ -144,6 +144,22 @@ public:
 
     auto pushFrame() -> GenericInputFrameBuilder;
 
+    /**
+     * Mostly this overload enables better intellisense and type deduction at
+     * the call size, for both the derived frame type's constructor and the
+     * returned frame builder.
+     */
+    template<std::derived_from<InputFrame> Frame>
+        requires std::move_constructible<Frame> || std::copy_constructible<Frame>
+    auto pushFrame(Frame&& frame) -> InputFrameBuilder<Frame>
+    {
+        nextFrame = std::make_unique<Frame>(std::forward<Frame>(frame));
+        return InputFrameBuilder{ static_cast<Frame*>(nextFrame.get()) };
+    }
+
+    /**
+     * @throw std::invalid_argument if `frame == nullptr`.
+     */
     template<std::derived_from<InputFrame> Frame>
     auto pushFrame(u_ptr<Frame> frame) -> InputFrameBuilder<Frame>
     {
