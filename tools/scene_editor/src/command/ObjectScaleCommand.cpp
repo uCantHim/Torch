@@ -22,14 +22,19 @@ public:
     {
     }
 
-    void updateScalingPreview()
+    void updateScalingPreview(const CursorMovement& cursor)
     {
-        scene->get<ObjectBaseNode>(obj).setScale(calcNewScaling());
+        assert(originalPivotDist > 0.0f);
+
+        const vec3 worldPos = scene->getCamera().unproject(cursor.position, depth, cursor.areaSize);
+        const float dist = glm::distance(pivot, worldPos);
+        const vec3 s = originalScaling + ((dist / originalPivotDist) - 1.0f) * lockedAxis;
+
+        scene->get<ObjectBaseNode>(obj).setScale(s);
     }
 
     void applyScaling()
     {
-        updateScalingPreview();
         exitFrame();
     }
 
@@ -45,14 +50,6 @@ public:
     }
 
 private:
-    auto calcNewScaling() const -> vec3
-    {
-        const float dist = glm::distance(pivot, scene->getMousePosAtDepth(depth));
-
-        assert(originalPivotDist > 0.0f);
-        return originalScaling + ((dist / originalPivotDist) - 1.0f) * lockedAxis;
-    }
-
     const SceneObject obj;
     Scene* scene;
 
@@ -86,6 +83,8 @@ void ObjectScaleCommand::execute(CommandExecutionContext& ctx)
         state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eY); });
         state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eZ); });
 
-        state.onCursorMove([](auto& state, auto&&){ state.updateScalingPreview(); });
+        state.onCursorMove([](auto& state, auto&& cursor){
+            state.updateScalingPreview(cursor);
+        });
     };
 }

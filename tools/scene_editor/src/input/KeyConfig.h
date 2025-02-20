@@ -22,4 +22,4 @@ struct KeyConfig
 /**
  * @brief Create a root input frame from a key configuration.
  */
-auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>;
+void setupRootInputFrame(InputFrame& frame, const KeyConfig& conf, App& app);

@@ -3,14 +3,17 @@
 #include <trc/Camera.h>
 #include <trc/Node.h>
 #include <trc/Types.h>
+#include <trc_util/Assert.h>
 
 using namespace trc::basic_types;
 
 struct CameraArm : trc::Node
 {
     CameraArm(s_ptr<trc::Camera> _camera, vec3 eyePos, vec3 center, vec3 up)
-        : camera(_camera)
+        : camera(std::move(_camera))
     {
+        assert_arg(camera != nullptr);
+
         auto order = [](std::vector<trc::Node*> nodes) {
             for (size_t i = 0; i < nodes.size() - 1; ++i) {
                 nodes[i]->attach(*nodes[i+1]);
@@ -26,6 +29,10 @@ struct CameraArm : trc::Node
             &translationNode,
             camera.get(),
         });
+    }
+
+    auto getCamera() -> trc::Camera& {
+        return *camera;
     }
 
     auto getCameraWorldPos() const -> vec3

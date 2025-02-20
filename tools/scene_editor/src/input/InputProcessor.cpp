@@ -4,9 +4,9 @@
 
 
 
-InputProcessor::InputProcessor(u_ptr<InputFrame> rootFrame)
+InputProcessor::InputProcessor(s_ptr<EventTarget> _target)
     :
-    inputState(std::move(rootFrame))
+    target(std::move(_target))
 {
 }
 
@@ -16,10 +16,7 @@ void InputProcessor::onKeyInput(
     trc::InputAction action,
     trc::KeyModFlags mods)
 {
-    // auto& vp = findViewportAt(swapchain.getMousePosition());
-    // vp.notify({ key, mods, action });
-
-    inputState.notify({ key, mods, action });
+    target->notify({ key, mods, action });
 }
 
 void InputProcessor::onMouseInput(
@@ -28,19 +25,23 @@ void InputProcessor::onMouseInput(
     trc::InputAction action,
     trc::KeyModFlags mods)
 {
-    inputState.notify({ button, mods, action });
+    target->notify({ button, mods, action });
 }
 
-void InputProcessor::onMouseMove(trc::Swapchain&, double x, double y)
+void InputProcessor::onMouseMove(trc::Swapchain& swapchain, double x, double y)
 {
     const vec2 newPos{ x, y };
     const vec2 diff = newPos - previousCursorPos;
     previousCursorPos = newPos;
-    inputState.notify(CursorMovement{ .position=newPos, .offset=diff });
+    target->notify(CursorMovement{
+        .position=newPos,
+        .offset=diff,
+        .areaSize=swapchain.getWindowSize()
+    });
 }
 
 void InputProcessor::onMouseScroll(trc::Swapchain& swapchain, double xOff, double yOff)
 {
     const vec2 scroll{ xOff, yOff };
-    inputState.notify(Scroll{ .offset=scroll, .mod=swapchain.getKeyModifierState() });
+    target->notify(Scroll{ .offset=scroll, .mod=swapchain.getKeyModifierState() });
 }

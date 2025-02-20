@@ -127,7 +127,7 @@ public:
 
     explicit CommandExecutionContext(const UserInput& provokingInput);
 
-    auto getProvokingInput() -> UserInput;
+    auto getProvokingInput() const -> UserInput;
 
     // auto keyboard();
     // auto mouse();

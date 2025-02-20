@@ -1,5 +1,6 @@
 #include "InputState.h"
 
+#include <cassert>
 #include <iostream>
 
 #include <trc_util/Assert.h>
@@ -121,7 +122,7 @@ CommandExecutionContext::CommandExecutionContext(const UserInput& provokingInput
     provokingInput(provokingInput)
 {}
 
-auto CommandExecutionContext::getProvokingInput() -> UserInput
+auto CommandExecutionContext::getProvokingInput() const -> UserInput
 {
     return provokingInput;
 }

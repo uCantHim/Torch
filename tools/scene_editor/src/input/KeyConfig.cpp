@@ -1,5 +1,6 @@
 #include "KeyConfig.h"
 
+#include "App.h"
 #include "Globals.h"
 #include "command/CameraCommands.h"
 #include "command/ObjectRotateCommand.h"
@@ -22,38 +23,32 @@ void selectHoveredObject()
     g::scene().selectHoveredObject();
 }
 
-auto makeInputFrame(const KeyConfig& conf, App& app) -> u_ptr<InputFrame>
+void setupRootInputFrame(InputFrame& f, const KeyConfig& conf, App& app)
 {
-    struct DefaultRootInputFrame : InputFrame {};
-
-    auto f = std::make_unique<DefaultRootInputFrame>();
-
-    f->on(conf.closeApp,            [&]{ app.end(); });
-    f->on(conf.openContext,         [&]{ openContextMenu(app.getScene()); });
-    f->on(conf.selectHoveredObject, selectHoveredObject);
-    f->on(conf.deleteHoveredObject, [&app]{
+    f.on(conf.closeApp,            [&]{ app.end(); });
+    f.on(conf.openContext,         [&]{ openContextMenu(app.getScene()); });
+    f.on(conf.selectHoveredObject, selectHoveredObject);
+    f.on(conf.deleteHoveredObject, [&app]{
         app.getScene().getSelectedObject() >> [&](SceneObject obj) {
             app.getScene().deleteObject(obj);
         };
     });
 
-    f->on(conf.cameraRotate, std::make_unique<CameraRotateCommand>(app));
-    f->on(conf.cameraMove,   std::make_unique<CameraMoveCommand>(app));
+    f.on(conf.cameraRotate, std::make_unique<CameraRotateCommand>(app.getScene()));
+    f.on(conf.cameraMove,   std::make_unique<CameraMoveCommand>(app.getScene()));
 
-    f->on(conf.translateObject, std::make_unique<ObjectTranslateCommand>(app));
-    f->on(conf.scaleObject,     std::make_unique<ObjectScaleCommand>());
-    f->on(conf.rotateObject,    std::make_unique<ObjectRotateCommand>());
+    f.on(conf.translateObject, std::make_unique<ObjectTranslateCommand>());
+    f.on(conf.scaleObject,     std::make_unique<ObjectScaleCommand>());
+    f.on(conf.rotateObject,    std::make_unique<ObjectRotateCommand>());
 
-    f->onScroll([&app, scrollLevel=0](auto&, const Scroll& scroll) mutable {
+    f.onScroll([&app, scrollLevel=0](auto&, const Scroll& scroll) mutable {
         scrollLevel += static_cast<i32>(glm::sign(scroll.offset.y));
         app.getScene().getCameraArm().setZoomLevel(scrollLevel);
     });
 
-    f->onUnhandledMouseInput([contextMenuKey=conf.openContext](auto&, MouseInput input) {
+    f.onUnhandledMouseInput([contextMenuKey=conf.openContext](auto&, MouseInput input) {
         if (input.action == trc::InputAction::press && input != contextMenuKey) {
             gui::ContextMenu::close();
         }
     });
-
-    return f;
 }

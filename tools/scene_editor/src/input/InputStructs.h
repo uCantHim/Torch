@@ -75,6 +75,17 @@ struct CursorMovement
     // How far the cursor has been moved since the last 'cursor move' event in
     // units of screen coordinates.
     vec2 offset;
+
+    // Size of the area on which the cursor was moved in pixels. This is usually
+    // the window size, but may be something like the size of the viewport on
+    // which the cursor event occurred, depending on the implementation.
+    //
+    // `position` is relative to the origin coordinates `{0, 0}` of this area.
+    //
+    // The following statements are always true:
+    // `0 <= position.x < area.x`
+    // `0 <= position.y < area.y`
+    uvec2 areaSize;
 };
 
 /**

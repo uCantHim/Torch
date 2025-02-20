@@ -75,9 +75,9 @@ auto Scene::unprojectScreenCoords(vec2 screenPos, float depth) -> vec3
     const auto vp = app->getSceneViewport();
 
     screenPos = { screenPos.x, vp.size.y - screenPos.y };
-    const ivec2 vpPos = glm::clamp(ivec2{screenPos} - vp.offset,
-                                   vp.offset,
-                                   vp.offset + ivec2{vp.size});
+    const ivec2 vpPos = glm::clamp(ivec2{screenPos} - vp.pos,
+                                   vp.pos,
+                                   vp.pos + ivec2{vp.size});
 
     return camera->unproject(vpPos, depth, vp.size);
 }
@@ -236,7 +236,7 @@ auto Scene::getCursorPosInSceneViewport() const -> std::optional<ivec2>
     const auto vp = app->getSceneViewport();
 
     const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = mousePosScreen - vp.offset;
+    const ivec2 mousePosVp = mousePosScreen - vp.pos;
     if (mousePosVp.x < 0
         || mousePosVp.y < 0
         || mousePosVp.x >= static_cast<int>(vp.size.x)
@@ -254,9 +254,9 @@ auto Scene::getCursorPosClampedToSceneViewport() const -> ivec2
     const auto vp = app->getSceneViewport();
 
     const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = glm::clamp(mousePosScreen - vp.offset,
-                                        vp.offset,
-                                        vp.offset + ivec2{vp.size});
+    const ivec2 mousePosVp = glm::clamp(mousePosScreen - vp.pos,
+                                        vp.pos,
+                                        vp.pos + ivec2{vp.size});
     return mousePosVp;
 }
 

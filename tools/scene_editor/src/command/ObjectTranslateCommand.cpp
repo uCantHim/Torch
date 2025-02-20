@@ -21,8 +21,7 @@ public:
 
     void onMouseMove(const CursorMovement& cursor)
     {
-        const vec2 windowSize = g::torch().getWindow().getWindowSize();
-        const auto diff = cursor.offset / windowSize * kDragSpeed;
+        const auto diff = cursor.offset / vec2{cursor.areaSize} * kDragSpeed;
 
         const auto& camera = scene->getCamera();
         const vec3 worldDiff = glm::inverse(camera.getViewMatrix())

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <trc/Types.h>
 #include <trc/base/InputProcessor.h>
+using namespace trc::basic_types;
 
-#include "input/InputState.h"
+#include "input/EventTarget.h"
 
 /**
  * @brief The scene editor's implementation of an input processor.
@@ -12,8 +14,7 @@
 class InputProcessor : public trc::InputProcessor
 {
 public:
-    // InputProcessor(ViewportTree* targets);
-    explicit InputProcessor(u_ptr<InputFrame> rootFrame);
+    explicit InputProcessor(s_ptr<EventTarget> target);
 
     void onCharInput(trc::Swapchain&, uint32_t) override {}
     void onKeyInput(trc::Swapchain&, trc::Key, trc::InputAction, trc::KeyModFlags) override;
@@ -29,7 +30,7 @@ public:
     void onWindowRefresh(trc::Swapchain&) override {}
 
 private:
-    InputStateMachine inputState;
+    s_ptr<EventTarget> target;
 
     vec2 previousCursorPos;
 

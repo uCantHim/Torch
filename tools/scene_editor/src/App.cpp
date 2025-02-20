@@ -15,6 +15,48 @@
 
 
 
+ViewportManager::ViewportManager(App& app, u_ptr<SceneViewport> sceneVp)
+    :
+    mainMenuViewport(app),
+    sceneViewport(std::move(sceneVp))
+{
+}
+
+void ViewportManager::resize(uvec2 size)
+{
+    sceneViewport->resize({
+        { size.x * horizontalSceneVpPos,          0.0f },
+        { size.x * (1.0f - horizontalSceneVpPos), size.y },
+    });
+}
+
+void ViewportManager::setSceneViewportPos(float horizontalPos)
+{
+    horizontalSceneVpPos = horizontalPos;
+}
+
+void ViewportManager::notify(const UserInput& input)
+{
+    sceneViewport->notify(input);
+}
+
+void ViewportManager::notify(const Scroll& scroll)
+{
+    sceneViewport->notify(scroll);
+}
+
+void ViewportManager::notify(const CursorMovement& cursorMove)
+{
+    const auto [off, size] = sceneViewport->getSize();
+    sceneViewport->notify(CursorMovement{
+        .position = cursorMove.position - vec2{off},
+        .offset = cursorMove.offset,
+        .areaSize = size,
+    });
+}
+
+
+
 App::App(const fs::path& projectRootDir)
     :
     initGlobalState([this]() -> bool {
@@ -27,24 +69,6 @@ App::App(const fs::path& projectRootDir)
         return true;
     }()),
 
-    // Create the root input frame from a default key configuration.
-    inputProcessor(std::make_shared<InputProcessor>(
-        makeInputFrame(
-            KeyConfig{
-                .closeApp = trc::Key::escape,
-                .openContext = trc::MouseButton::right,
-                .selectHoveredObject = trc::MouseButton::left,
-                .deleteHoveredObject = trc::Key::del,
-                .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
-                .cameraRotate = trc::MouseButton::middle,
-                .translateObject = trc::Key::g,
-                .scaleObject = trc::Key::s,
-                .rotateObject = trc::Key::r,
-            },
-            *this
-        )
-    )),
-
     // Create torch.
     torchTerminator(new int(42), [](int* i) { delete i; trc::terminate(); }),
     torch(trc::initFull(
@@ -55,34 +79,67 @@ App::App(const fs::path& projectRootDir)
             .assetStorageDir=projectRootDir/"assets",
         },
         trc::InstanceCreateInfo{},
-        trc::WindowCreateInfo{
-            .inputProcessor=inputProcessor,
-        }
+        trc::WindowCreateInfo{}
     )),
-    camera(std::make_shared<trc::Camera>()),
-    drawableScene(std::make_shared<trc::Scene>()),
 
     // Set up asset management.
     assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
 
-    // Create the user interface.
-    mainMenu(*this)
+    // Create the main scene.
+    camera(std::make_shared<trc::Camera>()),
+    drawableScene(std::make_shared<trc::Scene>()),
+    scene(nullptr),
+
+    // Create the viewport manager
+    sceneVp(torch->makeViewport(
+        trc::RenderArea{
+            { torch->getWindow().getSize().x * 0.25f, 0.0f },
+            { torch->getWindow().getSize().x * 0.75f, torch->getWindow().getSize().y }
+        },
+        camera,
+        drawableScene
+    )),
+    viewportManager(std::make_shared<ViewportManager>(
+        *this,
+        std::make_unique<SceneViewport>(sceneVp)
+        //std::make_unique<SceneViewport>(
+        //    torch->getWindow(),
+        //    assetInventory,
+        //    ViewportArea{
+        //        { torch->getWindow().getSize().x * 0.25f, 0.0f },
+        //        { torch->getWindow().getSize().x * 0.75f, torch->getWindow().getSize().y }
+        //    },
+        //    drawableScene,
+        //    camera
+        //)
+    ))
 {
     // Create a scene
     scene = std::make_shared<Scene>(*this, camera, drawableScene);
 
     // Initialize viewport
-    vec2 size = torch->getWindow().getWindowSize();
-    setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
-
+    viewportManager->setSceneViewportPos(0.25f);
     torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
-        vec2 size = swapchain.getWindowSize();
-        setSceneViewport({ size.x * 0.25f, 0.0f }, { size.x * 0.75f, size.y });
+        viewportManager->resize(swapchain.getWindowSize());
     });
 
     // Initialize input
-    //trc::Keyboard::init();
-    //trc::Mouse::init();
+    torch->getWindow().setInputProcessor(std::make_shared<InputProcessor>(viewportManager));
+    setupRootInputFrame(
+        viewportManager->sceneViewport->getInputHandler(),
+        KeyConfig{
+            .closeApp = trc::Key::escape,
+            .openContext = trc::MouseButton::right,
+            .selectHoveredObject = trc::MouseButton::left,
+            .deleteHoveredObject = trc::Key::del,
+            .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
+            .cameraRotate = trc::MouseButton::middle,
+            .translateObject = trc::Key::g,
+            .scaleObject = trc::Key::s,
+            .rotateObject = trc::Key::r,
+        },
+        *this
+    );
 
     // Initialize assets
     torch->getAssetManager().registerAssetType<HitboxAsset>(std::make_unique<HitboxRegistry>());
@@ -191,19 +248,9 @@ auto App::getScene() -> Scene&
     return *scene;
 }
 
-void App::setSceneViewport(vec2 offset, vec2 size)
+auto App::getSceneViewport() -> ViewportArea
 {
-    assert(camera != nullptr);
-    assert(drawableScene != nullptr);
-
-    mainViewport.reset();
-    mainViewport = torch->makeViewport({ offset, size }, camera, drawableScene);
-    camera->setAspect(size.x / size.y);
-}
-
-auto App::getSceneViewport() -> trc::RenderArea
-{
-    return mainViewport->getRenderArea();
+    return viewportManager->sceneViewport->getSize();
 }
 
 void App::tick()
@@ -218,10 +265,10 @@ void App::tick()
 
     // Render
     trc::imgui::beginImguiFrame();
-    mainMenu.drawImGui();
+    viewportManager->mainMenuViewport.drawImGui();
     gui::ContextMenu::drawImGui();
 
-    torch->drawFrame(mainViewport);
+    torch->drawFrame(sceneVp);
 
     // Finalize
     static trc::Timer timer;
