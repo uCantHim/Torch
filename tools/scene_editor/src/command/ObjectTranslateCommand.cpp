@@ -12,11 +12,11 @@
 class ObjectTranslateState : public InputFrame
 {
 public:
-    ObjectTranslateState(SceneObject obj)
+    ObjectTranslateState(SceneObject obj, Scene& _scene)
         :
         obj(obj),
-        scene(&g::scene()),
-        originalPos(scene->get<ObjectBaseNode>(obj).getTranslation())
+        scene(&_scene),
+        originalPos(_scene.get<ObjectBaseNode>(obj).getTranslation())
     {}
 
     void onMouseMove(const CursorMovement& cursor)
@@ -59,17 +59,14 @@ private:
     vec3 lockedAxis{ 1, 1, 1 };
 };
 
-ObjectTranslateCommand::ObjectTranslateCommand(App& app)
-    : app(&app)
-{
-}
+
 
 void ObjectTranslateCommand::execute(CommandExecutionContext& ctx)
 {
     auto& scene = g::scene();
     scene.getSelectedObject() >> [&](auto obj)
     {
-        auto state = ctx.pushFrame(ObjectTranslateState{ obj });
+        auto state = ctx.pushFrame(ObjectTranslateState{ obj, scene });
 
         state.on(trc::Key::escape,        [&](auto& state){ state.resetPlacement(); });
         state.on(trc::MouseButton::right, [&](auto& state){ state.resetPlacement(); });
