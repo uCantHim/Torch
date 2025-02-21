@@ -10,8 +10,13 @@ using namespace trc::basic_types;
 
 struct SplitLocation
 {
-    static auto makePixel(ui32 pos) -> SplitLocation;
-    static auto makeNormalized(float pos) -> SplitLocation;
+    static auto makePixel(ui32 pos) -> SplitLocation {
+        return SplitLocation{ pos };
+    }
+
+    static auto makeNormalized(float pos) -> SplitLocation {
+        return SplitLocation{ pos };
+    }
 
     auto getPosInPixels(ui32 parentSize) const -> ui32
     {
@@ -22,6 +27,7 @@ struct SplitLocation
     }
 
 private:
+    explicit SplitLocation(std::variant<ui32, float> pos) : pos(pos) {}
     std::variant<ui32, float> pos;
 };
 

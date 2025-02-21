@@ -22,12 +22,14 @@ bool operator==(const ViewportTree::Node& node, const ViewportTree::Split* split
 
 
 
-ViewportTree::ViewportTree(s_ptr<Viewport> rootVp)
+ViewportTree::ViewportTree(const ViewportArea& size, s_ptr<Viewport> rootVp)
     :
-    root(_Leaf{nullptr})
+    root(_Leaf{nullptr}),
+    viewportArea(size)
 {
     assert_arg(rootVp != nullptr);
     root = std::move(rootVp);
+    resize(size);
 }
 
 void ViewportTree::draw(trc::Frame& frame)
@@ -116,7 +118,7 @@ auto ViewportTree::findAt(ivec2 pos) -> Viewport*
             if (auto child = std::visit(*this, split->first)) {
                 return child;
             }
-            return std::visit(*this, split->first);
+            return std::visit(*this, split->second);
         }
 
         auto operator()(_Leaf& leaf) -> Viewport*
@@ -157,6 +159,9 @@ auto ViewportTree::createSplit(
             .second=newVpLoc == ViewportLocation::eFirst ? std::move(curVp) : std::move(newVp),
         });
 
+        // Recalculate tree layout
+        resize(getSize());  // TODO: Use the Resize visitor from ViewportTree::resize
+
         return res;
     }
 
@@ -173,6 +178,9 @@ void ViewportTree::remove(Viewport* viewport)
             viewport == parent->first ? ViewportLocation::eFirst
                                       : ViewportLocation::eSecond
         );
+
+        // Recalculate tree layout
+        resize(getSize());
     }
 }
 
@@ -185,6 +193,14 @@ auto ViewportTree::findParent(std::variant<Split*, Viewport*> elem) -> Split*
 
 auto ViewportTree::findNode(std::variant<Split*, Viewport*> elem) -> Node*
 {
+    // Treat the special case where the node cannot be found through the
+    // element's parent because the element is the root node.
+    auto isRoot = [this](auto&& elem){ return root == elem; };
+    if (std::visit(isRoot, elem)) {
+        return &root;
+    }
+
+    // Find the element's node by looking it up in the element's parent.
     return std::visit(trc::util::VariantVisitor{
         [this](auto&& elem) -> Node* {
             if (auto parent = findParent(elem))

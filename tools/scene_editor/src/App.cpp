@@ -9,59 +9,13 @@
 
 #include "asset/DefaultAssets.h"
 #include "asset/HitboxAsset.h"
+#include "gui/AssetEditor.h"
 #include "gui/ContextMenu.h"
-#include "input/KeyConfig.h"
+#include "gui/ObjectBrowser.h"
+#include "gui/SceneEditorFileExplorer.h"
 #include "input/InputProcessor.h"
-
-
-
-ViewportManager::ViewportManager(App& app, u_ptr<SceneViewport> sceneVp)
-    :
-    mainMenuViewport(app),
-    sceneViewport(std::move(sceneVp))
-{
-}
-
-void ViewportManager::resize(const ViewportArea& newArea)
-{
-    currentArea = newArea;
-
-    const auto [_, size] = newArea;
-    sceneViewport->resize({
-        { size.x * horizontalSceneVpPos,          0.0f },
-        { size.x * (1.0f - horizontalSceneVpPos), size.y },
-    });
-}
-
-auto ViewportManager::getSize() -> ViewportArea
-{
-    return currentArea;
-}
-
-void ViewportManager::setSceneViewportPos(float horizontalPos)
-{
-    horizontalSceneVpPos = horizontalPos;
-}
-
-void ViewportManager::notify(const UserInput& input)
-{
-    sceneViewport->notify(input);
-}
-
-void ViewportManager::notify(const Scroll& scroll)
-{
-    sceneViewport->notify(scroll);
-}
-
-void ViewportManager::notify(const CursorMovement& cursorMove)
-{
-    const auto [off, size] = sceneViewport->getSize();
-    sceneViewport->notify(CursorMovement{
-        .position = cursorMove.position - vec2{off},
-        .offset = cursorMove.offset,
-        .areaSize = size,
-    });
-}
+#include "input/KeyConfig.h"
+#include "viewport/SceneViewport.h"
 
 
 
@@ -89,6 +43,7 @@ App::App(const fs::path& projectRootDir)
         trc::InstanceCreateInfo{},
         trc::WindowCreateInfo{}
     )),
+    renderer(torch->getDevice(), torch->getWindow()),
 
     // Set up asset management.
     assetInventory(torch->getAssetManager(), torch->getAssetManager().getDataStorage()),
@@ -96,46 +51,56 @@ App::App(const fs::path& projectRootDir)
     // Create the main scene.
     camera(std::make_shared<trc::Camera>()),
     drawableScene(std::make_shared<trc::Scene>()),
-    scene(nullptr),
+    scene(std::make_shared<Scene>(*this, camera, drawableScene)),
 
-    // Create the viewport manager
-    sceneVp(torch->makeViewport(
-        trc::RenderArea{
+    // Create the always-present main scene viewport
+    sceneViewport(std::make_unique<SceneViewport>(
+        torch->getRenderPipeline(),
+        camera,
+        drawableScene,
+        ViewportArea{
             { torch->getWindow().getSize().x * 0.25f, 0.0f },
             { torch->getWindow().getSize().x * 0.75f, torch->getWindow().getSize().y }
-        },
-        camera,
-        drawableScene
+        }
     )),
-    viewportManager(std::make_shared<ViewportManager>(
-        *this,
-        std::make_unique<SceneViewport>(sceneVp)
-        //std::make_unique<SceneViewport>(
-        //    torch->getWindow(),
-        //    assetInventory,
-        //    ViewportArea{
-        //        { torch->getWindow().getSize().x * 0.25f, 0.0f },
-        //        { torch->getWindow().getSize().x * 0.75f, torch->getWindow().getSize().y }
-        //    },
-        //    drawableScene,
-        //    camera
-        //)
-    )),
-    viewportTree(std::make_shared<ViewportTree>(viewportManager))
-{
-    // Create a scene
-    scene = std::make_shared<Scene>(*this, camera, drawableScene);
 
+    // Create the viewport manager
+    viewportManager(std::make_shared<ViewportTree>(
+        ViewportArea{ { 0, 0 }, torch->getWindow().getSize() },
+        sceneViewport
+    ))
+{
     // Initialize viewport
-    viewportManager->setSceneViewportPos(0.25f);
+    auto fileExplorer = std::make_shared<gui::SceneEditorFileExplorer>(mainMenu);
+    auto assetBrowser = std::make_shared<gui::AssetEditor>();
+    auto objectBrowser = std::make_shared<gui::ObjectBrowser>(scene);
+    viewportManager->createSplit(
+        sceneViewport.get(),
+        SplitInfo{
+            .horizontal=false,
+            .location=SplitLocation::makeNormalized(0.25f),
+        },
+        assetBrowser,
+        ViewportLocation::eFirst
+    );
+    viewportManager->createSplit(
+        assetBrowser.get(),
+        SplitInfo{
+            .horizontal=true,
+            .location=SplitLocation::makePixel(300u),
+        },
+        objectBrowser,
+        ViewportLocation::eSecond
+    );
+
     torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
-        viewportTree->resize({ { 0, 0 }, swapchain.getWindowSize() });
+        viewportManager->resize({ { 0, 0 }, swapchain.getWindowSize() });
     });
 
     // Initialize input
-    torch->getWindow().setInputProcessor(std::make_shared<InputProcessor>(viewportTree));
+    torch->getWindow().setInputProcessor(std::make_shared<InputProcessor>(viewportManager));
     setupRootInputFrame(
-        viewportManager->sceneViewport->getInputHandler(),
+        sceneViewport->getInputHandler(),
         KeyConfig{
             .closeApp = trc::Key::escape,
             .openContext = trc::MouseButton::right,
@@ -149,6 +114,7 @@ App::App(const fs::path& projectRootDir)
         },
         *this
     );
+    sceneViewport->getInputHandler().on(trc::Key::a, []{ std::cout << "A!\n"; });
 
     // Initialize assets
     torch->getAssetManager().registerAssetType<HitboxAsset>(std::make_unique<HitboxRegistry>());
@@ -259,7 +225,7 @@ auto App::getScene() -> Scene&
 
 auto App::getSceneViewport() -> ViewportArea
 {
-    return viewportManager->sceneViewport->getSize();
+    return sceneViewport->getSize();
 }
 
 void App::tick()
@@ -274,10 +240,12 @@ void App::tick()
 
     // Render
     trc::imgui::beginImguiFrame();
-    viewportManager->mainMenuViewport.drawImGui();
+    mainMenu.drawImGui();
     gui::ContextMenu::drawImGui();
 
-    torch->drawFrame(sceneVp);
+    auto frame = torch->getRenderPipeline().makeFrame();
+    viewportManager->draw(*frame);
+    renderer.renderFrameAndPresent(std::move(frame), torch->getWindow());
 
     // Finalize
     static trc::Timer timer;

@@ -5,33 +5,10 @@
 using namespace trc::basic_types;
 
 #include "Scene.h"
+#include "asset/AssetInventory.h"
 #include "gui/MainMenu.h"
 #include "viewport/SceneViewport.h"
 #include "viewport/ViewportTree.h"
-
-/**
- * An ad-hoc proof of concept thing.
- */
-struct ViewportManager : public Viewport
-{
-    ViewportManager(App& app, u_ptr<SceneViewport> sceneVp);
-
-    void draw(trc::Frame&) override {}
-    void resize(const ViewportArea& newArea) override;
-    auto getSize() -> ViewportArea override;
-
-    void setSceneViewportPos(float horizontalPos);
-
-    void notify(const UserInput& input) override;
-    void notify(const Scroll& scroll) override;
-    void notify(const CursorMovement& cursorMove) override;
-
-    ViewportArea currentArea;
-    gui::MainMenu mainMenuViewport;
-    u_ptr<SceneViewport> sceneViewport;
-
-    float horizontalSceneVpPos{ 0.25f };
-};
 
 class App
 {
@@ -62,6 +39,7 @@ private:
 
     u_ptr<int, void(*)(int*)> torchTerminator;
     u_ptr<trc::TorchStack> torch;
+    trc::Renderer renderer;
 
     AssetInventory assetInventory;
 
@@ -69,9 +47,11 @@ private:
     s_ptr<trc::Scene> drawableScene;
     s_ptr<Scene> scene;
 
-    trc::ViewportHandle sceneVp;
-    s_ptr<ViewportManager> viewportManager;
-    s_ptr<ViewportTree> viewportTree;
+    s_ptr<SceneViewport> sceneViewport;
+    s_ptr<ViewportTree> viewportManager;
+
+    // UI
+    gui::MainMenu mainMenu;
 
     trc::Timer frameTimer;
 };

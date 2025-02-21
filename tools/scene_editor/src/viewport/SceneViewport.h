@@ -3,36 +3,18 @@
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 
-#include "asset/AssetInventory.h"
 #include "viewport/InputViewport.h"
 
 class SceneViewport : public InputViewport
 {
 public:
-    SceneViewport(trc::ViewportHandle vp)
-        : vp(vp)
-    {}
-
-    SceneViewport(trc::Window& window,
-                  AssetInventory& assets,
-                  const ViewportArea& vpArea,
-                  s_ptr<trc::Scene> scene,
-                  s_ptr<trc::Camera> camera)
+    SceneViewport(trc::RenderPipeline& pipeline,
+                  const s_ptr<trc::Camera>& camera,
+                  const s_ptr<trc::Scene>& scene,
+                  const ViewportArea& initialArea)
         :
-        pipeline(trc::makeTorchRenderPipeline(
-            window.getInstance(),
-            window,
-            trc::TorchPipelineCreateInfo{
-                .assetRegistry=assets.manager().getDeviceRegistry(),
-                .assetDescriptorCreateInfo={},
-            }
-        )),
-        vp(pipeline->makeViewport(
-            trc::RenderArea{ vpArea.pos, vpArea.size },
-            camera,
-            scene,
-            vec4{ 0.3f, 0.3f, 1.0f, 1.0f }
-        ))
+        pipeline(pipeline),
+        vp(pipeline.makeViewport({ initialArea.pos, initialArea.size }, camera, scene))
     {}
 
     void resize(const ViewportArea& newArea) override
@@ -48,10 +30,10 @@ public:
 
     void draw(trc::Frame& frame) override
     {
-        pipeline->draw(vp, frame);
+        pipeline.draw(vp, frame);
     }
 
 private:
-    u_ptr<trc::RenderPipeline> pipeline;
+    trc::RenderPipeline& pipeline;
     trc::ViewportHandle vp;
 };

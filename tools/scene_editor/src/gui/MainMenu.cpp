@@ -2,41 +2,35 @@
 
 #include <trc_util/Timer.h>
 
-#include "App.h"
 
 
-
-gui::MainMenu::MainMenu(App& app)
+gui::MainMenu::MainMenu()
     :
-    app(app),
-    fileExplorer(*this),
-    assetEditor(*this),
-    objectBrowser(*this)
+    fileExplorer(*this)
 {
+    openWindow([this]{
+        // Show file explorer is separate window
+        ig::Begin("File Explorer");
+        fileExplorer.drawImGui();
+        ig::End();
+        return true;
+    });
 }
 
 void gui::MainMenu::drawImGui()
 {
-    const vec2 windowSize = app.getTorch().getWindow().getWindowSize();
-    ig::SetNextWindowPos({ -1, -1 });
-    ig::SetNextWindowSize({ windowSize.x * 0.25f, windowSize.y + 2 });
     ig::SetNextWindowBgAlpha(1.0f);
     gui::util::StyleVar style(ImGuiStyleVar_WindowBorderSize, 0);
 
-    int flags = ImGuiWindowFlags_NoResize
-              | ImGuiWindowFlags_NoTitleBar
-              | ImGuiWindowFlags_NoBringToFrontOnFocus;
-    gui::util::WindowGuard guard;
-    if (!ig::Begin("Main Menu", nullptr, flags)) {
+    // Draw main window content
+    if (!ig::Begin("Main Menu")) {
+        ig::End();
         return;
     }
-
     drawMainMenu();
+    ig::End();
 
-    // Draw sub menus
-    assetEditor.drawImGui();
-    objectBrowser.drawImGui();
-
+    // Draw floating windows
     {
         auto range = openWindows.iter();
         for (auto it = range.begin(); it != range.end(); ++it)
@@ -47,17 +41,6 @@ void gui::MainMenu::drawImGui()
         }
     }
     openWindows.update();
-
-    // Show file explorer is separate window
-    guard.close();
-    ig::Begin("File Explorer");
-    fileExplorer.drawImGui();
-    ig::End();
-}
-
-auto gui::MainMenu::getApp() -> App&
-{
-    return app;
 }
 
 void gui::MainMenu::openWindow(std::function<bool()> window)

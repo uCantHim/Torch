@@ -13,7 +13,7 @@ enum class ViewportLocation
 class ViewportTree : public Viewport
 {
 public:
-    explicit ViewportTree(s_ptr<Viewport> rootVp);
+    ViewportTree(const ViewportArea& size, s_ptr<Viewport> rootVp);
 
     void draw(trc::Frame& frame) override;
 

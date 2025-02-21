@@ -1,27 +1,19 @@
 #pragma once
 
-#include <unordered_map>
-#include <vector>
+#include <functional>
 
 #include <trc_util/data/DeferredInsertVector.h>
 
-#include "gui/AssetEditor.h"
-#include "gui/ImguiUtil.h"
-#include "gui/ObjectBrowser.h"
 #include "gui/SceneEditorFileExplorer.h"
-
-class App;
 
 namespace gui
 {
     class MainMenu
     {
     public:
-        explicit MainMenu(App& app);
+        MainMenu();
 
         void drawImGui();
-
-        auto getApp() -> App&;
 
         /**
          * @param bool() window Draw function. Returns false when window is
@@ -32,12 +24,7 @@ namespace gui
     private:
         void drawMainMenu();
 
-        App& app;
-
-        trc::data::DeferredInsertVector<std::function<bool()>> openWindows;
-
         gui::SceneEditorFileExplorer fileExplorer;
-        gui::AssetEditor assetEditor;
-        gui::ObjectBrowser objectBrowser;
+        trc::data::DeferredInsertVector<std::function<bool()>> openWindows;
     };
 } // namespace gui

@@ -4,10 +4,10 @@
 
 #include "viewport/InputViewport.h"
 
-class ImGuiWindow : public InputViewport
+class ImguiWindow : public InputViewport
 {
 public:
-    explicit ImGuiWindow(std::string windowName);
+    explicit ImguiWindow(std::string windowName);
 
     virtual void drawWindowContent() = 0;
 

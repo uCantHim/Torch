@@ -1,15 +1,15 @@
-#include "viewport/ImGuiViewport.h"
+#include "gui/ImguiWindow.h"
 
 #include <imgui.h>
 namespace ig = ImGui;
 
 
 
-ImGuiWindow::ImGuiWindow(std::string windowName)
+ImguiWindow::ImguiWindow(std::string windowName)
     : name(std::move(windowName))
 {}
 
-void ImGuiWindow::draw(trc::Frame&)
+void ImguiWindow::draw(trc::Frame&)
 {
     const vec2 pos = viewportArea.pos;
     const vec2 size = viewportArea.size;
@@ -21,18 +21,21 @@ void ImGuiWindow::draw(trc::Frame&)
         nullptr,
         ImGuiWindowFlags_NoResize
         | ImGuiWindowFlags_NoMove
+        | ImGuiWindowFlags_NoCollapse
+        | ImGuiWindowFlags_NoDecoration
         | ImGuiWindowFlags_NoNavFocus
+        | ImGuiWindowFlags_NoBringToFrontOnFocus
     );
     this->drawWindowContent();
     ig::End();
 }
 
-void ImGuiWindow::resize(const ViewportArea& newArea)
+void ImguiWindow::resize(const ViewportArea& newArea)
 {
     viewportArea = newArea;
 }
 
-auto ImGuiWindow::getSize() -> ViewportArea
+auto ImguiWindow::getSize() -> ViewportArea
 {
     return viewportArea;
 }

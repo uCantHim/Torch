@@ -1,23 +1,24 @@
 #pragma once
 
 #include "Scene.h"
+#include "gui/ImguiWindow.h"
 
 namespace gui
 {
     class MainMenu;
 
-    class ObjectBrowser
+    class ObjectBrowser : public ImguiWindow
     {
     public:
-        explicit ObjectBrowser(MainMenu& menu);
+        explicit ObjectBrowser(s_ptr<Scene> scene);
 
-        void drawImGui();
+        void drawWindowContent() override;
 
         void notifyNewObject(SceneObject obj);
         void notifyRemoveObject(SceneObject obj);
 
     private:
-        App* app;
+        s_ptr<Scene> scene;
 
         SceneObject selected;
     };
