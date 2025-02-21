@@ -6,23 +6,27 @@ using namespace trc::basic_types;
 
 #include "Scene.h"
 #include "gui/MainMenu.h"
-#include "input/EventTarget.h"
 #include "viewport/SceneViewport.h"
+#include "viewport/ViewportTree.h"
 
 /**
  * An ad-hoc proof of concept thing.
  */
-struct ViewportManager : public EventTarget
+struct ViewportManager : public Viewport
 {
     ViewportManager(App& app, u_ptr<SceneViewport> sceneVp);
 
-    void resize(uvec2 size);
+    void draw(trc::Frame&) override {}
+    void resize(const ViewportArea& newArea) override;
+    auto getSize() -> ViewportArea override;
+
     void setSceneViewportPos(float horizontalPos);
 
     void notify(const UserInput& input) override;
     void notify(const Scroll& scroll) override;
     void notify(const CursorMovement& cursorMove) override;
 
+    ViewportArea currentArea;
     gui::MainMenu mainMenuViewport;
     u_ptr<SceneViewport> sceneViewport;
 
@@ -67,6 +71,7 @@ private:
 
     trc::ViewportHandle sceneVp;
     s_ptr<ViewportManager> viewportManager;
+    s_ptr<ViewportTree> viewportTree;
 
     trc::Timer frameTimer;
 };

@@ -22,12 +22,20 @@ ViewportManager::ViewportManager(App& app, u_ptr<SceneViewport> sceneVp)
 {
 }
 
-void ViewportManager::resize(uvec2 size)
+void ViewportManager::resize(const ViewportArea& newArea)
 {
+    currentArea = newArea;
+
+    const auto [_, size] = newArea;
     sceneViewport->resize({
         { size.x * horizontalSceneVpPos,          0.0f },
         { size.x * (1.0f - horizontalSceneVpPos), size.y },
     });
+}
+
+auto ViewportManager::getSize() -> ViewportArea
+{
+    return currentArea;
 }
 
 void ViewportManager::setSceneViewportPos(float horizontalPos)
@@ -112,7 +120,8 @@ App::App(const fs::path& projectRootDir)
         //    drawableScene,
         //    camera
         //)
-    ))
+    )),
+    viewportTree(std::make_shared<ViewportTree>(viewportManager))
 {
     // Create a scene
     scene = std::make_shared<Scene>(*this, camera, drawableScene);
@@ -120,11 +129,11 @@ App::App(const fs::path& projectRootDir)
     // Initialize viewport
     viewportManager->setSceneViewportPos(0.25f);
     torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
-        viewportManager->resize(swapchain.getWindowSize());
+        viewportTree->resize({ { 0, 0 }, swapchain.getWindowSize() });
     });
 
     // Initialize input
-    torch->getWindow().setInputProcessor(std::make_shared<InputProcessor>(viewportManager));
+    torch->getWindow().setInputProcessor(std::make_shared<InputProcessor>(viewportTree));
     setupRootInputFrame(
         viewportManager->sceneViewport->getInputHandler(),
         KeyConfig{
