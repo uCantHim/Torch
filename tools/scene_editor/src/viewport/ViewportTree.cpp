@@ -77,7 +77,7 @@ void ViewportTree::resize(const ViewportArea& newArea)
         }
 
         void operator()(_Leaf& leaf) {
-            leaf->resize(area);
+            leaf->resize({ area.pos + kViewportPadding, area.size - 2u * kViewportPadding });
         }
 
         const ViewportArea area;

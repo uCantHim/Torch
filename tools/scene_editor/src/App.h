@@ -28,6 +28,8 @@ public:
     static auto get() -> App&;
 
 private:
+    static constexpr vec3 kClearColor{ 0.12f, 0.12f, 0.12f };
+
     static inline App* _app{ nullptr };
 
     /** I try to limit the initialization hacks to only this single one */

@@ -144,6 +144,8 @@ private:
     auto findNode(std::variant<Split*, Viewport*> elem) -> Node*;
     void mergeSplit(Split* split, ViewportLocation removedViewport);
 
+    static constexpr i32 kViewportPadding = 3;
+
     Node root;
     std::vector<s_ptr<Viewport>> floatingViewports;
 

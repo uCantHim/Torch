@@ -4,6 +4,7 @@
 #include <memory>
 #include <thread>
 
+#include <trc/ImageClear.h>
 #include <trc/ImguiIntegration.h>
 #include <trc/base/Logging.h>
 #include <trc_util/Timer.h>
@@ -38,11 +39,20 @@ App::App(const fs::path& projectRootDir)
         trc::TorchStackCreateInfo{
             .plugins{
                 trc::imgui::buildImguiRenderPlugin,
+                [](auto&&) {
+                    return trc::buildRenderTargetImageClearPlugin(
+                        vk::ClearColorValue{ kClearColor.r, kClearColor.g, kClearColor.b, 1.0f }
+                    );
+                },
             },
             .assetStorageDir=projectRootDir/"assets",
         },
         trc::InstanceCreateInfo{},
-        trc::WindowCreateInfo{}
+        trc::WindowCreateInfo{
+            .swapchainCreateInfo{
+                .imageUsage = vk::ImageUsageFlagBits::eTransferDst,
+            }
+        }
     )),
     renderer(torch->getDevice(), torch->getWindow()),
 
