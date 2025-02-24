@@ -15,6 +15,7 @@ target_sources(
         GBuffer.cpp
         GBufferDepthReader.cpp
         GBufferPass.cpp
+        ImageClear.cpp
         Light.cpp
         LightRegistry.cpp
         LightSceneModule.cpp
