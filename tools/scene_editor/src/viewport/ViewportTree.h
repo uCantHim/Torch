@@ -35,6 +35,8 @@ public:
                      ViewportLocation newViewportLocation)
         -> Viewport*;
 
+    void createFloating(s_ptr<Viewport> vp, std::optional<ViewportArea> area = {});
+
     /**
      * Merges the viewport's parent.
      */
@@ -101,6 +103,11 @@ private:
     friend bool operator==(const Node& node, const Split* vp);
 
     /**
+     * @brief Test whether a point is inside of a viewport.
+     */
+    static bool isInside(ivec2 pos, const ViewportArea& area);
+
+    /**
      * @brief Visitor that finds a tree element's parent.
      *
      * The parent is always a split.
@@ -138,6 +145,7 @@ private:
     void mergeSplit(Split* split, ViewportLocation removedViewport);
 
     Node root;
+    std::vector<s_ptr<Viewport>> floatingViewports;
 
     // Total extent of the viewport tree.
     ViewportArea viewportArea;

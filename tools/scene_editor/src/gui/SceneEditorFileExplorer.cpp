@@ -4,11 +4,10 @@
 #include <fstream>
 #include <sstream>
 
-#include "MainMenu.h"
-#include "ContextMenu.h"
-#include "ImportDialog.h"
-
-namespace fs = std::filesystem;
+#include "Globals.h"
+#include "gui/ContextMenu.h"
+#include "gui/ImguiUtil.h"
+#include "gui/ImportDialog.h"
 
 
 
@@ -64,58 +63,39 @@ struct FileContentsPreview
     std::string selectedFileContent;
 };
 
-/**
- * Context menu for filesystem entries
- */
-class FileContextMenu
+void fileContextMenu(const fs::path& filePath)
 {
-public:
-    FileContextMenu(MainMenu& menu, fs::path path)
-        :
-        menu(menu),
-        filePath(std::move(path))
-    {}
-
-    void operator()()
-    {
-        if (ig::Button("Preview")) {
-            menu.openWindow(FileContentsPreview(filePath));
-        }
-
-        if (ig::Button("Import"))
-        {
-            menu.openWindow([importDialog = ImportDialog{filePath}]() mutable -> bool
-            {
-                gui::util::WindowGuard guard;
-                if (!ig::Begin("Import")) {
-                    return false;
-                }
-
-                importDialog.drawImGui();
-                if (ig::Button("Close")) {
-                    return false;
-                }
-                return true;
-            });
-        }
+    if (ig::Button("Preview")) {
+        g::openFloatingWindow(FileContentsPreview(filePath));
     }
 
-private:
-    MainMenu& menu;
-    fs::path filePath;
-};
+    if (ig::Button("Import"))
+    {
+        g::openFloatingWindow([importDialog = ImportDialog{filePath}]() mutable -> bool
+        {
+            gui::util::WindowGuard guard;
+            if (!ig::Begin("Import")) {
+                return false;
+            }
+
+            importDialog.drawImGui();
+            return !ig::Button("Close");
+        });
+    }
+}
 
 
 
-SceneEditorFileExplorer::SceneEditorFileExplorer(MainMenu& menu)
+SceneEditorFileExplorer::SceneEditorFileExplorer()
     :
-    fileExplorer([&menu](const fs::path& selectedFile) {
-        ContextMenu::show("Context", FileContextMenu(menu, selectedFile));
+    ImguiWindow("File Explorer"),
+    fileExplorer([](const fs::path& selectedFile) {
+        ContextMenu::show("Context", [selectedFile]{ fileContextMenu(selectedFile); });
     })
 {
 }
 
-void SceneEditorFileExplorer::drawImGui()
+void SceneEditorFileExplorer::drawWindowContent()
 {
     fileExplorer.drawImGui();
 }

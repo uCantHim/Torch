@@ -6,7 +6,6 @@ using namespace trc::basic_types;
 
 #include "Scene.h"
 #include "asset/AssetInventory.h"
-#include "gui/MainMenu.h"
 #include "viewport/SceneViewport.h"
 #include "viewport/ViewportTree.h"
 
@@ -23,6 +22,7 @@ public:
     auto getAssets() -> AssetInventory&;
     auto getScene() -> Scene&;
 
+    auto getViewportManager() -> ViewportTree&;
     auto getSceneViewport() -> ViewportArea;
 
     static auto get() -> App&;
@@ -49,9 +49,6 @@ private:
 
     s_ptr<SceneViewport> sceneViewport;
     s_ptr<ViewportTree> viewportManager;
-
-    // UI
-    gui::MainMenu mainMenu;
 
     trc::Timer frameTimer;
 };

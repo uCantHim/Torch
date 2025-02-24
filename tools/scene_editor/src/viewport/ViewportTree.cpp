@@ -20,6 +20,13 @@ bool operator==(const ViewportTree::Node& node, const ViewportTree::Split* split
     }, node);
 }
 
+bool ViewportTree::isInside(ivec2 p, const ViewportArea& area)
+{
+    const auto [pos, size] = area;
+    return glm::all(glm::lessThanEqual(pos, p))
+        && glm::all(glm::lessThan(p, pos + ivec2{size}));
+}
+
 
 
 ViewportTree::ViewportTree(const ViewportArea& size, s_ptr<Viewport> rootVp)
@@ -49,7 +56,13 @@ void ViewportTree::draw(trc::Frame& frame)
         trc::Frame& frame;
     };
 
+    // Draw the tree first
     std::visit(DrawViewports{ frame }, root);
+
+    // Now draw all floating viewports
+    for (auto& vp : floatingViewports) {
+        vp->draw(frame);
+    }
 }
 
 void ViewportTree::resize(const ViewportArea& newArea)
@@ -111,6 +124,9 @@ void ViewportTree::notify(const CursorMovement& cursorMove)
 
 auto ViewportTree::findAt(ivec2 pos) -> Viewport*
 {
+    /**
+     * @brief Visitor that finds the viewport that contains a point.
+     */
     struct Finder
     {
         auto operator()(_Split& split) -> Viewport*
@@ -123,10 +139,7 @@ auto ViewportTree::findAt(ivec2 pos) -> Viewport*
 
         auto operator()(_Leaf& leaf) -> Viewport*
         {
-            const auto [pos, size] = leaf->getSize();
-            if (glm::all(glm::lessThanEqual(pos, p))
-                && glm::all(glm::lessThan(p, pos + ivec2{size})))
-            {
+            if (isInside(p, leaf->getSize())) {
                 return leaf.get();
             }
             return nullptr;
@@ -135,6 +148,17 @@ auto ViewportTree::findAt(ivec2 pos) -> Viewport*
         const ivec2 p;
     };
 
+    // Search floating viewports first.
+    // Viewports at the end of the list are considered 'in front of' viewports
+    // at the beginning.
+    for (auto& vp : std::views::reverse(floatingViewports))
+    {
+        if (isInside(pos, vp->getSize())) {
+            return vp.get();
+        }
+    }
+
+    // Now search the viewport tree.
     return std::visit(Finder{ pos }, root);
 }
 
@@ -168,15 +192,32 @@ auto ViewportTree::createSplit(
     return nullptr;
 }
 
-void ViewportTree::remove(Viewport* viewport)
+void ViewportTree::createFloating(s_ptr<Viewport> vp, std::optional<ViewportArea> area)
 {
-    if (auto parent = findParent(viewport))
+    if (area) {
+        vp->resize(*area);
+    }
+    floatingViewports.emplace_back(std::move(vp));
+}
+
+void ViewportTree::remove(Viewport* vp)
+{
+    // Test whether the viewport is floating
+    auto it = std::ranges::find_if(floatingViewports, [&](auto& el){ return vp == el.get(); });
+    if (it != floatingViewports.end())
     {
-        assert(viewport == parent->first || viewport == parent->second);
+        floatingViewports.erase(it);
+        return;
+    }
+
+    // Viewport is not floating, try to remove it from the tree
+    if (auto parent = findParent(vp))
+    {
+        assert(vp == parent->first || vp == parent->second);
         mergeSplit(
             parent,
-            viewport == parent->first ? ViewportLocation::eFirst
-                                      : ViewportLocation::eSecond
+            vp == parent->first ? ViewportLocation::eFirst
+                                : ViewportLocation::eSecond
         );
 
         // Recalculate tree layout

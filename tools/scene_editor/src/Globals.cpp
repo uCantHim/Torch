@@ -20,4 +20,9 @@ namespace g
     {
         return App::get().getTorch();
     }
+
+    void openFloatingViewport(s_ptr<Viewport> vp)
+    {
+        App::get().getViewportManager().createFloating(std::move(vp));
+    }
 } // namespace g

@@ -1,17 +1,18 @@
 #pragma once
 
-#include "FileExplorer.h"
+#include "gui/FileExplorer.h"
+#include "gui/ImguiWindow.h"
 
 namespace gui
 {
     class MainMenu;
 
-    class SceneEditorFileExplorer
+    class SceneEditorFileExplorer : public ImguiWindow
     {
     public:
-        explicit SceneEditorFileExplorer(MainMenu& menu);
+        SceneEditorFileExplorer();
 
-        void drawImGui();
+        void drawWindowContent() override;
 
     private:
         FileExplorer fileExplorer;

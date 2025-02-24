@@ -14,7 +14,7 @@ struct SplitLocation
         return SplitLocation{ pos };
     }
 
-    static auto makeNormalized(float pos) -> SplitLocation {
+    static auto makeRelative(float pos) -> SplitLocation {
         return SplitLocation{ pos };
     }
 

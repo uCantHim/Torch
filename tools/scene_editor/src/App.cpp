@@ -4,6 +4,7 @@
 #include <memory>
 #include <thread>
 
+#include <trc/ImguiIntegration.h>
 #include <trc/base/Logging.h>
 #include <trc_util/Timer.h>
 
@@ -71,14 +72,14 @@ App::App(const fs::path& projectRootDir)
     ))
 {
     // Initialize viewport
-    auto fileExplorer = std::make_shared<gui::SceneEditorFileExplorer>(mainMenu);
+    auto fileExplorer = std::make_shared<gui::SceneEditorFileExplorer>();
     auto assetBrowser = std::make_shared<gui::AssetEditor>();
     auto objectBrowser = std::make_shared<gui::ObjectBrowser>(scene);
     viewportManager->createSplit(
         sceneViewport.get(),
         SplitInfo{
             .horizontal=false,
-            .location=SplitLocation::makeNormalized(0.25f),
+            .location=SplitLocation::makeRelative(0.25f),
         },
         assetBrowser,
         ViewportLocation::eFirst
@@ -91,6 +92,12 @@ App::App(const fs::path& projectRootDir)
         },
         objectBrowser,
         ViewportLocation::eSecond
+    );
+
+    fileExplorer->setWindowType(ImguiWindowType::eFloating);
+    viewportManager->createFloating(
+        std::move(fileExplorer),
+        ViewportArea{ { sceneViewport->getSize().pos.x + 30, 0 }, { 300, 300 } }
     );
 
     torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
@@ -223,6 +230,11 @@ auto App::getScene() -> Scene&
     return *scene;
 }
 
+auto App::getViewportManager() -> ViewportTree&
+{
+    return *viewportManager;
+}
+
 auto App::getSceneViewport() -> ViewportArea
 {
     return sceneViewport->getSize();
@@ -240,7 +252,6 @@ void App::tick()
 
     // Render
     trc::imgui::beginImguiFrame();
-    mainMenu.drawImGui();
     gui::ContextMenu::drawImGui();
 
     auto frame = torch->getRenderPipeline().makeFrame();

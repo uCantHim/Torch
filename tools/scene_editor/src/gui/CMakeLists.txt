@@ -5,7 +5,6 @@ target_sources(scene_editor PRIVATE
     ImguiUtil.cpp
     ImguiWindow.cpp
     ImportDialog.cpp
-    MainMenu.cpp
     ObjectBrowser.cpp
     SceneEditorFileExplorer.cpp
 )
