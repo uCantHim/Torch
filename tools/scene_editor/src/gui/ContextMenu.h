@@ -3,24 +3,37 @@
 #include <string>
 #include <functional>
 
-#include <trc/base/event/InputState.h>
-#include <trc/base/event/Event.h>
+#include "viewport/InputViewport.h"
 
 namespace gui
 {
-    class ContextMenu
+    class ContextMenu : public InputViewport
     {
     public:
-        static void drawImGui();
+        ContextMenu(const std::string& title, std::function<void()> drawContents);
 
+        void draw(trc::Frame& frame) override;
+        void resize(const ViewportArea& size) override;
+        auto getSize() -> ViewportArea override;
+
+        /**
+         * @brief Show the global context menu (the 'right-click' menu).
+         *
+         * Only one context menu can be open at any time.
+         */
         static void show(const std::string& title, std::function<void()> drawContents);
+
+        /**
+         * @brief Close the global context menu (the 'right-click' menu).
+         */
         static void close();
 
     private:
-        static inline bool open{ false };
+        static inline s_ptr<ContextMenu> globalContextMenu{ nullptr };
 
-        static inline std::function<void()> contentsFunc{ []{} };
-        static inline std::string popupTitle;
-        static inline glm::vec2 popupPos;
+        ViewportArea viewportSize;
+
+        std::string popupTitle;
+        std::function<void()> contentsFunc{ []{} };
     };
 } // namespace gui

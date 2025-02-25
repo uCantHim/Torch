@@ -12,7 +12,6 @@
 #include "asset/DefaultAssets.h"
 #include "asset/HitboxAsset.h"
 #include "gui/AssetEditor.h"
-#include "gui/ContextMenu.h"
 #include "gui/ObjectBrowser.h"
 #include "gui/SceneEditorFileExplorer.h"
 #include "input/InputProcessor.h"
@@ -107,7 +106,7 @@ App::App(const fs::path& projectRootDir)
     fileExplorer->setWindowType(ImguiWindowType::eFloating);
     viewportManager->createFloating(
         std::move(fileExplorer),
-        ViewportArea{ { sceneViewport->getSize().pos.x + 30, 0 }, { 300, 300 } }
+        ViewportArea{ { sceneViewport->getSize().pos.x + 30, 30 }, { 300, 300 } }
     );
 
     torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
@@ -262,7 +261,6 @@ void App::tick()
 
     // Render
     trc::imgui::beginImguiFrame();
-    gui::ContextMenu::drawImGui();
 
     auto frame = torch->getRenderPipeline().makeFrame();
     viewportManager->draw(*frame);

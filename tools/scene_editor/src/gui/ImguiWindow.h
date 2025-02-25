@@ -18,16 +18,18 @@ public:
     explicit ImguiWindow(std::string windowName,
                          ImguiWindowType type = ImguiWindowType::eViewport);
 
-    virtual void drawWindowContent() = 0;
-
-    void setWindowType(ImguiWindowType type);
-
     void draw(trc::Frame& frame) final;
     void resize(const ViewportArea& newArea) override;
     auto getSize() -> ViewportArea override;
 
+    virtual void drawWindowContent() = 0;
+
+    void setWindowType(ImguiWindowType type);
+
 private:
     std::string name;
+
+    bool wasResizedExternally{ true };
     ViewportArea viewportArea;
 
     ImguiWindowType windowType;

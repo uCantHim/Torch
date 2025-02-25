@@ -25,4 +25,11 @@ namespace g
     {
         App::get().getViewportManager().createFloating(std::move(vp));
     }
+
+    void closeFloatingViewport(Viewport* vp)
+    {
+        if (vp != nullptr) {
+            App::get().getViewportManager().remove(vp);
+        }
+    }
 } // namespace g

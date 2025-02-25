@@ -33,19 +33,18 @@ void ImguiWindow::setWindowType(ImguiWindowType type)
 
 void ImguiWindow::draw(trc::Frame&)
 {
-    auto resizeFlags = ImGuiCond_Always;
-    if (windowType == ImguiWindowType::eFloating)
+    if (wasResizedExternally)
     {
-        resizeFlags = ImGuiCond_FirstUseEver;
-        ig::SetNextWindowFocus();
+        const vec2 pos = viewportArea.pos;
+        const vec2 size = viewportArea.size;
+        ig::SetNextWindowPos({ pos.x, pos.y });
+        if (windowType != ImguiWindowType::eFloating) {
+            ig::SetNextWindowSize({ size.x, size.y });
+        }
+        wasResizedExternally = false;
     }
 
-    const vec2 pos = viewportArea.pos;
-    const vec2 size = viewportArea.size;
-    ig::SetNextWindowPos({ pos.x, pos.y }, resizeFlags);
-    ig::SetNextWindowSize({ size.x, size.y }, resizeFlags);
     ig::Begin(name.c_str(), nullptr, windowFlags);
-
     this->drawWindowContent();
 
     if (!ig::IsWindowCollapsed())
@@ -61,6 +60,7 @@ void ImguiWindow::draw(trc::Frame&)
 void ImguiWindow::resize(const ViewportArea& newArea)
 {
     viewportArea = newArea;
+    wasResizedExternally = true;
 }
 
 auto ImguiWindow::getSize() -> ViewportArea

@@ -13,9 +13,11 @@ namespace g
     auto torch() -> trc::TorchStack&;
 
     void openFloatingViewport(s_ptr<Viewport> vp);
+    void closeFloatingViewport(Viewport* vp);
 
     template<std::invocable T>
-    void openFloatingWindow(T&& windowFunc)
+    [[nodiscard]]
+    auto openFloatingWindow(T&& windowFunc) -> s_ptr<Viewport>
     {
         struct Window : public ImguiWindow
         {
@@ -31,7 +33,8 @@ namespace g
             T func;
         };
 
-        auto window = std::make_unique<Window>(std::forward<T>(windowFunc));
-        openFloatingViewport(std::move(window));
+        auto window = std::make_shared<Window>(std::forward<T>(windowFunc));
+        openFloatingViewport(window);
+        return window;
     }
 } // namespace g
