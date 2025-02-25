@@ -83,6 +83,18 @@ void ViewportTree::resize(const ViewportArea& newArea)
         const ViewportArea area;
     };
 
+    // Reposition floating viewports such that they have the same relative
+    // position to the origin on the new window area.
+    std::vector<vec2> relativePositions;
+    for (const vec2 size = this->getSize().size;
+         auto& vp : floatingViewports)
+    {
+        const auto [vpPos, vpSize] = vp->getSize();
+        const vec2 relativePos = vec2{vpPos} / size;
+        vp->resize({ relativePos * vec2{newArea.size}, vpSize });
+    }
+
+    // Resize viewports in the tree.
     viewportArea = newArea;
     std::visit(Resize{ newArea }, root);
 }
@@ -256,8 +268,11 @@ auto ViewportTree::findNode(std::variant<Split*, Viewport*> elem) -> Node*
 
 void ViewportTree::mergeSplit(Split* split, ViewportLocation removedViewport)
 {
-    assert(std::holds_alternative<_Leaf>(split->first));
-    assert(std::holds_alternative<_Leaf>(split->second));
+    if (!(std::holds_alternative<_Leaf>(split->first)
+          && std::holds_alternative<_Leaf>(split->second)))
+    {
+        throw std::logic_error("Merging splits with non-splits is not yet implemented.");
+    }
 
     if (auto node = findNode(split))
     {

@@ -10,6 +10,9 @@ enum class ViewportLocation
     eFirst, eSecond
 };
 
+/**
+ * @brief A binary tree of fixed-size (tiled) viewports.
+ */
 class ViewportTree : public Viewport
 {
 public:
