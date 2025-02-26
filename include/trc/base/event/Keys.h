@@ -90,7 +90,7 @@ namespace trc
         menu            = GLFW_KEY_MENU,
 
         space           = GLFW_KEY_SPACE,
-        capslock        = GLFW_KEY_CAPS_LOCK,
+        caps_lock       = GLFW_KEY_CAPS_LOCK,
         escape          = GLFW_KEY_ESCAPE,
         enter           = GLFW_KEY_ENTER,
         tab             = GLFW_KEY_TAB,
