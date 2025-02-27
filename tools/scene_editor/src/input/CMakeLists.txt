@@ -4,4 +4,6 @@ target_sources(scene_editor PRIVATE
     InputStructs.cpp
     KeyConfig.cpp
     KeyMap.cpp
+    KeyboardState.cpp
+    MouseState.cpp
 )

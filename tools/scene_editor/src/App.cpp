@@ -63,6 +63,8 @@ App::App(const fs::path& projectRootDir)
     drawableScene(std::make_shared<trc::Scene>()),
     scene(std::make_shared<Scene>(*this, camera, drawableScene)),
 
+    windowManager(std::make_shared<InputProcessor>()),
+
     // Create the always-present main scene viewport
     sceneViewport(std::make_unique<SceneViewport>(
         torch->getRenderPipeline(),
@@ -75,16 +77,20 @@ App::App(const fs::path& projectRootDir)
     )),
 
     // Create the viewport manager
-    viewportManager(std::make_shared<ViewportTree>(
+    mainWindowViewportManager(std::make_shared<ViewportTree>(
         ViewportArea{ { 0, 0 }, torch->getWindow().getSize() },
         sceneViewport
     ))
 {
-    // Initialize viewport
+    // Initialize the window manager
+    torch->getWindow().setInputProcessor(windowManager);
+    windowManager->setRootViewport(torch->getWindow(), mainWindowViewportManager);
+
+    // Initialize main viewport
     auto fileExplorer = std::make_shared<gui::SceneEditorFileExplorer>();
     auto assetBrowser = std::make_shared<gui::AssetEditor>();
     auto objectBrowser = std::make_shared<gui::ObjectBrowser>(scene);
-    viewportManager->createSplit(
+    mainWindowViewportManager->createSplit(
         sceneViewport.get(),
         SplitInfo{
             .horizontal=false,
@@ -93,7 +99,7 @@ App::App(const fs::path& projectRootDir)
         assetBrowser,
         ViewportLocation::eFirst
     );
-    viewportManager->createSplit(
+    mainWindowViewportManager->createSplit(
         assetBrowser.get(),
         SplitInfo{
             .horizontal=true,
@@ -104,17 +110,16 @@ App::App(const fs::path& projectRootDir)
     );
 
     fileExplorer->setWindowType(ImguiWindowType::eFloating);
-    viewportManager->createFloating(
+    mainWindowViewportManager->createFloating(
         std::move(fileExplorer),
         ViewportArea{ { sceneViewport->getSize().pos.x + 30, 30 }, { 300, 300 } }
     );
 
     torch->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
-        viewportManager->resize({ { 0, 0 }, swapchain.getWindowSize() });
+        mainWindowViewportManager->resize({ { 0, 0 }, swapchain.getWindowSize() });
     });
 
     // Initialize input
-    torch->getWindow().setInputProcessor(std::make_shared<InputProcessor>(viewportManager));
     setupRootInputFrame(
         sceneViewport->getInputHandler(),
         KeyConfig{
@@ -201,6 +206,8 @@ App::App(const fs::path& projectRootDir)
 
 App::~App()
 {
+    torch->getWindow().setInputProcessor(std::make_unique<trc::NullInputProcessor>());
+
     torch->waitForAllFrames();
     _app = nullptr;
 }
@@ -241,7 +248,7 @@ auto App::getScene() -> Scene&
 
 auto App::getViewportManager() -> ViewportTree&
 {
-    return *viewportManager;
+    return *mainWindowViewportManager;
 }
 
 auto App::getSceneViewport() -> ViewportArea
@@ -263,7 +270,7 @@ void App::tick()
     trc::imgui::beginImguiFrame();
 
     auto frame = torch->getRenderPipeline().makeFrame();
-    viewportManager->draw(*frame);
+    mainWindowViewportManager->draw(*frame);
     renderer.renderFrameAndPresent(std::move(frame), torch->getWindow());
 
     // Finalize
