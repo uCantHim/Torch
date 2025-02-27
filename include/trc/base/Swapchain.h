@@ -224,7 +224,17 @@ namespace trc
          */
         auto getGlfwWindow() const noexcept -> GLFWwindow*;
 
-        void setInputProcessor(s_ptr<InputProcessor> proc);
+        /**
+         * @brief Set a new input processor for the swapchain.
+         *
+         * An input processor handles all user input events received by the
+         * current platform's underlying window associated with the swapchain.
+         *
+         * @param newProc Must not be `nullptr`.
+         *
+         * @throw std::invalid_argument if `newProc == nullptr`.
+         */
+        void setInputProcessor(s_ptr<InputProcessor> newProc);
 
         /**
          * Is the same as `!shouldClose()`.

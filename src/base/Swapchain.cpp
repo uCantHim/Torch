@@ -4,12 +4,12 @@
 #include <stdexcept>
 using namespace std::chrono;
 
+#include <trc_util/Assert.h>
 #include <trc_util/Timer.h>
 
 #include "trc/base/Device.h"
 #include "trc/base/Logging.h"
 #include "trc/base/PhysicalDevice.h"
-#include "trc/base/event/EventHandler.h"
 
 
 
@@ -210,7 +210,7 @@ auto findOptimalSurfacePresentMode(const std::vector<vk::PresentModeKHR>& presen
 trc::Swapchain::Swapchain(
     const Device& device,
     Surface s,
-    s_ptr<InputProcessor> inputProcessor,
+    s_ptr<InputProcessor> _inputProcessor,
     const SwapchainCreateInfo& info)
     :
     FrameClock([&device, &s, &info] {
@@ -224,11 +224,21 @@ trc::Swapchain::Swapchain(
         const uint32_t numFrames = glm::clamp(info.imageCount, minImages, maxImages);
         if (numFrames != info.imageCount)
         {
-            throw std::runtime_error(
-                "[In Swapchain::Swapchain]: Image count of " + std::to_string(info.imageCount)
-                + " is not supported! The device supports a minimum of " + std::to_string(minImages)
-                + " and a maximum of " + std::to_string(maxImages) + "."
-            );
+            if (info.throwWhenUnsupported)
+            {
+                const auto msg = "Image count of " + std::to_string(info.imageCount) + " is not"
+                                 " supported! The device supports a minimum of "
+                                 + std::to_string(minImages) + " images and a maximum of "
+                                 + std::to_string(maxImages) + " images.";
+
+                log::error << log::here() << msg;
+                throw std::runtime_error("[In Swapchain::Swapchain]: " + msg);
+            }
+            else {
+                log::warn << log::here() << ": The preferred image count of " << info.imageCount
+                          << " is not supported by the device. Creating swapchain with "
+                          << numFrames << " images instead.";
+            }
         }
 
         return numFrames;
@@ -237,13 +247,13 @@ trc::Swapchain::Swapchain(
     createInfo(info),
     surface(std::move(s)),
     window(surface.getGlfwWindow()),
-    inputProcessor(inputProcessor),
+    inputProcessor(_inputProcessor),
     swapchainImageUsage([&info] {
         // Add necessary default usage flags
         return info.imageUsage | vk::ImageUsageFlagBits::eColorAttachment;
     }())
 {
-    assert(this->inputProcessor != nullptr);
+    assert_arg(_inputProcessor != nullptr);
 
     /**
      * This call also has practical significance: Vulkan requires that the
@@ -431,9 +441,10 @@ auto trc::Swapchain::getGlfwWindow() const noexcept -> GLFWwindow*
     return window;
 }
 
-void trc::Swapchain::setInputProcessor(s_ptr<InputProcessor> proc)
+void trc::Swapchain::setInputProcessor(s_ptr<InputProcessor> newProc)
 {
-    inputProcessor = proc;
+    assert_arg(newProc != nullptr);
+    inputProcessor = newProc;
 }
 
 auto trc::Swapchain::isOpen() const noexcept -> bool

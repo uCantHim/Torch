@@ -95,7 +95,27 @@ namespace trc
          */
         auto notifyRenderTargetUpdate(const RenderTarget& newTarget) const -> RenderArea;
 
-        RenderPipeline& parent;
+        auto accessParent(this auto&& self) -> decltype(auto)
+        {
+            if (auto p = self.parent.lock()) {
+                return p->self;
+            }
+
+            throw std::runtime_error("[In RenderPipelineViewport::accessParent]: The viewport's"
+                                     " parent render pipeline has been destroyed. Access to the"
+                                     " viewport object is now invalid.");
+        }
+
+        struct Parent {
+            RenderPipeline& self;
+        };
+
+        // Weak reference to the viewport's parent.
+        //
+        // See RenderPipeline::self for more documentation.
+        w_ptr<Parent> parent;
+
+        // This viewport's index in the parent's list of viewports.
         const ui32 vpIndex;
 
         RenderArea area;
@@ -265,6 +285,19 @@ namespace trc
         void drawToFrame(Frame& frame, std::ranges::range auto&& vpIndices);
 
         using WeakViewportHandle = w_ptr<RenderPipelineViewport>;
+
+        // RenderPipelineViewports created by the pipeline reference this struct
+        // via a weak_pointer. This is used to ensure that a viewport never
+        // accesses a parent pipeline that has already been destroyed.
+        //
+        // This creates a weak dependency cycle where both parent (the render
+        // pipeline) and child (the viewport) reference each other via weak
+        // pointers.
+        //
+        // Note that the `Parent` struct is merely a pointer to the parent.
+        s_ptr<RenderPipelineViewport::Parent> selfReference{
+            std::make_unique<RenderPipelineViewport::Parent>(*this)
+        };
 
         const Device& device;
         const ui32 maxViewports;

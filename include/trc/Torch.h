@@ -19,6 +19,7 @@ namespace trc
     using Scene = DrawableScene;
 
     /**
+     * @brief Global initialization parameters to Torch.
      */
     struct TorchInitInfo
     {
@@ -26,7 +27,7 @@ namespace trc
     };
 
     /**
-     * @brief Initialize Torch globally
+     * @brief Initialize Torch's global resources.
      *
      * Required to be called once before any other Torch functionality can
      * be used. Calls to `init` before `terminate` has been called return

@@ -20,7 +20,7 @@ RenderPipelineViewport::RenderPipelineViewport(
     const s_ptr<SceneBase>& scene,
     vec4 clearColor)
     :
-    parent(pipeline),
+    parent(pipeline.selfReference),
     vpIndex(viewportIndex),
     area(renderArea),
     camera(camera),
@@ -34,7 +34,7 @@ RenderPipelineViewport::RenderPipelineViewport(
 
 auto RenderPipelineViewport::getRenderTarget() const -> const RenderTarget&
 {
-    return parent.getRenderTarget();
+    return accessParent().getRenderTarget();
 }
 
 auto RenderPipelineViewport::getRenderArea() const -> const RenderArea&
@@ -54,21 +54,21 @@ auto RenderPipelineViewport::getScene() -> SceneBase&
 
 void RenderPipelineViewport::resize(const RenderArea& newArea)
 {
-    parent.recreateViewportForAllFrames(vpIndex, newArea, camera, scene, clearColor);
+    accessParent().recreateViewportForAllFrames(vpIndex, newArea, camera, scene, clearColor);
     area = newArea;
 }
 
 void RenderPipelineViewport::setCamera(const s_ptr<Camera>& newCamera)
 {
     assert(newCamera != nullptr);
-    parent.recreateViewportForAllFrames(vpIndex, area, newCamera, scene, clearColor);
+    accessParent().recreateViewportForAllFrames(vpIndex, area, newCamera, scene, clearColor);
     camera = newCamera;
 }
 
 void RenderPipelineViewport::setScene(const s_ptr<SceneBase>& newScene)
 {
     assert(newScene != nullptr);
-    parent.recreateViewportForAllFrames(vpIndex, area, camera, newScene, clearColor);
+    accessParent().recreateViewportForAllFrames(vpIndex, area, camera, newScene, clearColor);
     scene = newScene;
 }
 
@@ -215,10 +215,13 @@ auto RenderPipeline::makeViewport(
     // Create a handle to the viewport.
     auto vp = std::shared_ptr<RenderPipelineViewport>{
         new RenderPipelineViewport{ *this, viewportIndex, renderArea, camera, scene },
-        [this, viewportIndex](RenderPipelineViewport* hnd)
+        [](RenderPipelineViewport* hnd)
         {
-            this->freeScene(hnd->scene);
-            this->freeViewport(viewportIndex);
+            if (auto self = hnd->parent.lock())
+            {
+                self->self.freeScene(hnd->scene);
+                self->self.freeViewport(hnd->vpIndex);
+            }
             delete hnd;
         }
     };
