@@ -53,11 +53,37 @@ if [[ ${BRANCH_NAME} == *"no branch"* ]]; then
 	exit 0
 fi
 
-if ./build/tools/pipeline_definition_language/test/pipeline_compiler_test \
-    && ./build/tools/scene_editor/test/unittest_scene_editor \
-    && ./build/test/unittest/UnitTests \
-    && ./build/tools/componentlib/test/unittest_componentlib; then
-    exit 0
-else
-    exit 1
-fi
+required_test () {
+    if ! [[ -x "$1" ]]; then
+        echo "Error: Required test $1 cannot be executed because the executable" \
+             "does not exist or is not executable. Aborting."
+        return 1
+    fi
+
+    if ! eval $1; then
+        echo "Error: Test $1 failed. Aborting."
+        return 1
+    fi
+}
+
+optional_test() {
+    if [[ -x "$1" ]]
+    then
+        if ! eval $1; then
+            echo "Error: Test $1 failed. Aborting."
+            return 1
+        fi
+    else
+        echo "Warning: Optional test $1 not executed because the executable" \
+             "does not exist or is not executable. Continuing without error."
+        return 0
+    fi
+    return 0
+}
+
+set -e  # Exit if a simple command exits with a nonzero value.
+
+required_test ./build/tools/pipeline_definition_language/test/pipeline_compiler_test
+required_test ./build/test/unittest/UnitTests
+required_test ./build/tools/componentlib/test/unittest_componentlib
+optional_test ./build/tools/scene_editor/test/unittest_scene_editor
