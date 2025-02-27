@@ -5,6 +5,21 @@
 
 class CommandExecutionContext;
 
+struct ActionContext
+{
+    auto app();
+    auto window();
+};
+
+class InvertibleAction
+{
+public:
+    virtual ~InvertibleAction() noexcept = default;
+
+    virtual void apply() = 0;
+    virtual void undo() = 0;
+};
+
 class Command
 {
 public:

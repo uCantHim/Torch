@@ -132,6 +132,8 @@ public:
     // auto keyboard();
     // auto mouse();
 
+    void applyAction(u_ptr<InvertibleAction> action);
+
     auto pushFrame() -> InputFrameBuilder<InputFrame> {
         return pushFrame(std::make_unique<InputFrame>());
     }

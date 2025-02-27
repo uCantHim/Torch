@@ -9,6 +9,27 @@
 
 
 
+class MoveObject : public InvertibleAction
+{
+public:
+    MoveObject(Scene* scene, SceneObject obj, vec3 from, vec3 to)
+        : scene(scene), obj(obj), from(from), to(to)
+    {}
+
+    void apply() override {
+        scene->get<ObjectBaseNode>(obj).setTranslation(to);
+    }
+
+    void undo() override {
+        scene->get<ObjectBaseNode>(obj).setTranslation(from);
+    }
+
+    Scene* scene;
+    const SceneObject obj;
+    const vec3 from;
+    const vec3 to;
+};
+
 class ObjectTranslateState : public InputFrame
 {
 public:
@@ -16,7 +37,8 @@ public:
         :
         obj(obj),
         scene(&_scene),
-        originalPos(_scene.get<ObjectBaseNode>(obj).getTranslation())
+        originalPos(_scene.get<ObjectBaseNode>(obj).getTranslation()),
+        newPos(originalPos)
     {}
 
     void onMouseMove(const CursorMovement& cursor)
@@ -28,11 +50,13 @@ public:
                              * glm::inverse(camera.getProjectionMatrix())
                              * vec4(diff.x, -diff.y, 0, 0);
 
-        scene->get<ObjectBaseNode>(obj).translate(worldDiff * lockedAxis);
+        newPos += worldDiff * lockedAxis;
+        scene->get<ObjectBaseNode>(obj).setTranslation(newPos);
     }
 
-    void applyPlacement()
+    void applyPlacement(CommandExecutionContext& ctx)
     {
+        ctx.applyAction(std::make_unique<MoveObject>(scene, obj, originalPos, newPos));
         exitFrame();
     }
 
@@ -55,6 +79,7 @@ private:
     Scene* scene;
 
     const vec3 originalPos;
+    vec3 newPos;
     vec3 lockedAxis{ 1, 1, 1 };
 };
 
@@ -67,18 +92,18 @@ void ObjectTranslateCommand::execute(CommandExecutionContext& ctx)
     {
         auto state = ctx.pushFrame(ObjectTranslateState{ obj, scene });
 
-        state.on(trc::Key::escape,        [&](auto& state){ state.resetPlacement(); });
-        state.on(trc::MouseButton::right, [&](auto& state){ state.resetPlacement(); });
-        state.on(trc::Key::enter,         [&](auto& state){ state.applyPlacement(); });
-        state.on(trc::MouseButton::left,  [&](auto& state){ state.applyPlacement(); });
+        state.on(trc::Key::escape,        [](auto& state){ state.resetPlacement(); });
+        state.on(trc::MouseButton::right, [](auto& state){ state.resetPlacement(); });
+        state.on(trc::Key::enter,         [](auto& state, auto&& ctx){ state.applyPlacement(ctx); });
+        state.on(trc::MouseButton::left,  [](auto& state, auto&& ctx){ state.applyPlacement(ctx); });
 
-        // x and y keys are swapped because it seems like glfw uses the american keyboard (why?)
-        state.on({ trc::Key::x }, [&](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
-        state.on({ trc::Key::z }, [&](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
-        state.on({ trc::Key::y }, [&](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
-        state.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [&](auto& state){ state.lockAxes(Axis::eX); });
-        state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [&](auto& state){ state.lockAxes(Axis::eY); });
-        state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [&](auto& state){ state.lockAxes(Axis::eZ); });
+        // x and y keys are swapped because key codes use american layout
+        state.on(trc::Key::x, [](auto& state){ state.lockAxes(Axis::eY | Axis::eZ); });
+        state.on(trc::Key::z, [](auto& state){ state.lockAxes(Axis::eX | Axis::eZ); });
+        state.on(trc::Key::y, [](auto& state){ state.lockAxes(Axis::eX | Axis::eY); });
+        state.on({ trc::Key::x, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eX); });
+        state.on({ trc::Key::z, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eY); });
+        state.on({ trc::Key::y, trc::KeyModFlagBits::shift }, [](auto& state){ state.lockAxes(Axis::eZ); });
 
         state.onCursorMove([](auto& state, auto&& cursor){ state.onMouseMove(cursor); });
     };
