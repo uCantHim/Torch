@@ -78,9 +78,14 @@ bool InputFrame::shouldExit() const
 
 
 
-CommandExecutionContext::CommandExecutionContext(const UserInput& provokingInput)
+CommandExecutionContext::CommandExecutionContext(
+    const UserInput& provokingInput,
+    const KeyboardState* curKeyboard,
+    const MouseState* curMouse)
     :
-    provokingInput(provokingInput)
+    provokingInput(provokingInput),
+    keyboardState(curKeyboard),
+    mouseState(curMouse)
 {}
 
 auto CommandExecutionContext::getProvokingInput() const -> UserInput
@@ -88,22 +93,34 @@ auto CommandExecutionContext::getProvokingInput() const -> UserInput
     return provokingInput;
 }
 
-void CommandExecutionContext::generateAction(u_ptr<InvertibleAction> action)
+auto CommandExecutionContext::keyboard() -> const KeyboardState&
 {
-    actions.emplace_back(std::move(action));
+    return *keyboardState;
 }
 
-bool CommandExecutionContext::hasFramePushed() const
+auto CommandExecutionContext::mouse() -> const MouseState&
 {
-    return nextFrame != nullptr;
+    return *mouseState;
+}
+
+void CommandExecutionContext::generateAction(u_ptr<InvertibleAction> action)
+{
+    if (action != nullptr) {
+        result.actions.emplace_back(std::move(action));
+    }
 }
 
 auto CommandExecutionContext::createResult() -> CommandResult
 {
-    return {
-        .pushedFrame=std::move(nextFrame),
-        .actions=std::move(actions),
-    };
+    return std::move(result);
+}
+
+void CommandExecutionContext::checkNoPushedFrame()
+{
+    if (result.pushedFrame != nullptr) {
+        throw std::out_of_range("[In CommandExecutionContext::pushFrame]: Cannot"
+                                " push more than one frame onto a command context.");
+    }
 }
 
 
@@ -116,13 +133,19 @@ InputStateMachine::InputStateMachine()
 InputStateMachine::InputStateMachine(u_ptr<InputFrame> topLevelFrame)
 {
     assert_arg(topLevelFrame != nullptr);
-
     push(std::move(topLevelFrame));
 }
 
 auto InputStateMachine::notify(const UserInput& input) -> NotifyResult
 {
-    CommandExecutionContext ctx{ input };
+    // Set the corresponding persistent state.
+    std::visit(trc::util::VariantVisitor{
+        [this](const KeyInput& input){ keyboard.notify(input.key, input.action); },
+        [this](const MouseInput& input){ mouse.notify(input.button, input.action); },
+    }, input.input);
+
+    // Execute the respective command.
+    CommandExecutionContext ctx{ input, &keyboard, &mouse };
     if (!top().notify(ctx, input)) {
         return NotifyResult::eRejected;
     }
@@ -133,7 +156,7 @@ auto InputStateMachine::notify(const UserInput& input) -> NotifyResult
 
 auto InputStateMachine::notify(const Scroll& scroll) -> NotifyResult
 {
-    CommandExecutionContext ctx{ trc::Key::unknown };
+    CommandExecutionContext ctx{ trc::Key::unknown, &keyboard, &mouse };
     if (!top().notify(ctx, scroll)) {
         return NotifyResult::eRejected;
     }
@@ -144,7 +167,10 @@ auto InputStateMachine::notify(const Scroll& scroll) -> NotifyResult
 
 auto InputStateMachine::notify(const CursorMovement& cursorMove) -> NotifyResult
 {
-    CommandExecutionContext ctx{ trc::Key::unknown };
+    mouse.notifyCursorMove(cursorMove.position);
+
+    // Execute the respective command.
+    CommandExecutionContext ctx{ trc::Key::unknown, &keyboard, &mouse };
     if (!top().notify(ctx, cursorMove)) {
         return NotifyResult::eRejected;
     }
@@ -153,9 +179,9 @@ auto InputStateMachine::notify(const CursorMovement& cursorMove) -> NotifyResult
     return NotifyResult::eConsumed;
 }
 
-void InputStateMachine::processCommandResult(CommandResult res)
+void InputStateMachine::processCommandResult(CommandExecutionContext::CommandResult res)
 {
-    if (top().shouldExit()) {
+    if (top().shouldExit() && frameStack.size() > 1) {
         pop();
     }
 
