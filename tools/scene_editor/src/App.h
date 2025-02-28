@@ -7,6 +7,7 @@ using namespace trc::basic_types;
 #include "Scene.h"
 #include "asset/AssetInventory.h"
 #include "input/InputProcessor.h"
+#include "viewport/RootViewport.h"
 #include "viewport/SceneViewport.h"
 #include "viewport/ViewportTree.h"
 
@@ -53,6 +54,7 @@ private:
     s_ptr<InputProcessor> windowManager;
     s_ptr<SceneViewport> sceneViewport;
     s_ptr<ViewportTree> mainWindowViewportManager;
+    s_ptr<RootViewport> mainWindowViewport;
 
     trc::Timer frameTimer;
 };

@@ -80,11 +80,12 @@ App::App(const fs::path& projectRootDir)
     mainWindowViewportManager(std::make_shared<ViewportTree>(
         ViewportArea{ { 0, 0 }, torch->getWindow().getSize() },
         sceneViewport
-    ))
+    )),
+    mainWindowViewport(std::make_unique<RootViewport>(*this, mainWindowViewportManager))
 {
     // Initialize the window manager
     torch->getWindow().setInputProcessor(windowManager);
-    windowManager->setRootViewport(torch->getWindow(), mainWindowViewportManager);
+    windowManager->setRootViewport(torch->getWindow(), mainWindowViewport);
 
     // Initialize main viewport
     auto fileExplorer = std::make_shared<gui::SceneEditorFileExplorer>();
@@ -131,7 +132,7 @@ App::App(const fs::path& projectRootDir)
         .scaleObject = trc::Key::s,
         .rotateObject = trc::Key::r,
     };
-    setupRootInputFrame(mainWindowViewportManager->getRootInputHandler(), keyConfig, *this);
+    setupRootInputFrame(mainWindowViewport->getInputHandler(), keyConfig, *this);
     setupMainSceneInputFrame(sceneViewport->getInputHandler(), keyConfig, *this);
     sceneViewport->getInputHandler().on(trc::Key::a, []{ std::cout << "A!\n"; });
 

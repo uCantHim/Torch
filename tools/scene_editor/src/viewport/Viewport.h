@@ -13,6 +13,13 @@ struct ViewportArea
 class Viewport : public EventTarget
 {
 public:
+    Viewport(const Viewport&) = delete;
+    Viewport(Viewport&&) noexcept = delete;
+    Viewport& operator=(const Viewport&) = delete;
+    Viewport& operator=(Viewport&&) noexcept = delete;
+
+    Viewport() = default;
+
     virtual ~Viewport() noexcept = default;
 
     virtual void draw(trc::Frame& frame) = 0;

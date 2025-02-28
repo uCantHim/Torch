@@ -2,7 +2,6 @@
 
 #include <variant>
 
-#include "input/InputState.h"
 #include "viewport/Viewport.h"
 #include "viewport/Split.h"
 
@@ -27,12 +26,6 @@ public:
     auto notify(const UserInput& input) -> NotifyResult override;
     auto notify(const Scroll& scroll) -> NotifyResult override;
     auto notify(const CursorMovement& cursorMove) -> NotifyResult override;
-
-    /**
-     * @return The input frame that receives all events not handled by any
-     *         viewport in the tree.
-     */
-    auto getRootInputHandler() -> InputFrame&;
 
     auto findAt(ivec2 pos) -> Viewport*;
 
@@ -164,6 +157,4 @@ private:
     // Cached because we need it for all events to decide which viewport they
     // affect.
     ivec2 cursorPos{ 0, 0 };
-
-    InputStateMachine inputHandler;
 };

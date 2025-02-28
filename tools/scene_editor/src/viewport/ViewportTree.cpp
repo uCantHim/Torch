@@ -106,26 +106,18 @@ auto ViewportTree::getSize() -> ViewportArea
 
 auto ViewportTree::notify(const UserInput& input) -> NotifyResult
 {
-    if (auto target = findAt(cursorPos))
-    {
-        if (target->notify(input) == NotifyResult::eConsumed) {
-            return NotifyResult::eConsumed;
-        }
+    if (auto target = findAt(cursorPos)) {
+        return target->notify(input);
     }
-
-    return inputHandler.notify(input);
+    return NotifyResult::eRejected;
 }
 
 auto ViewportTree::notify(const Scroll& scroll) -> NotifyResult
 {
-    if (auto target = findAt(cursorPos))
-    {
-        if (target->notify(scroll) == NotifyResult::eConsumed) {
-            return NotifyResult::eConsumed;
-        }
+    if (auto target = findAt(cursorPos)) {
+        return target->notify(scroll);
     }
-
-    return inputHandler.notify(scroll);
+    return NotifyResult::eRejected;
 }
 
 auto ViewportTree::notify(const CursorMovement& cursorMove) -> NotifyResult
@@ -141,17 +133,9 @@ auto ViewportTree::notify(const CursorMovement& cursorMove) -> NotifyResult
             .areaSize = vpSize,
         };
 
-        if (target->notify(childCursorMove) == NotifyResult::eConsumed) {
-            return NotifyResult::eConsumed;
-        }
+        return target->notify(childCursorMove);
     }
-
-    return inputHandler.notify(cursorMove);
-}
-
-auto ViewportTree::getRootInputHandler() -> InputFrame&
-{
-    return inputHandler.getRootFrame();
+    return NotifyResult::eRejected;
 }
 
 auto ViewportTree::findAt(ivec2 pos) -> Viewport*
