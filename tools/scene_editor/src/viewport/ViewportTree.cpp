@@ -104,34 +104,54 @@ auto ViewportTree::getSize() -> ViewportArea
     return viewportArea;
 }
 
-void ViewportTree::notify(const UserInput& input)
+auto ViewportTree::notify(const UserInput& input) -> NotifyResult
 {
-    if (auto target = findAt(cursorPos)) {
-        target->notify(input);
+    if (auto target = findAt(cursorPos))
+    {
+        if (target->notify(input) == NotifyResult::eConsumed) {
+            return NotifyResult::eConsumed;
+        }
     }
+
+    return inputHandler.notify(input);
 }
 
-void ViewportTree::notify(const Scroll& scroll)
+auto ViewportTree::notify(const Scroll& scroll) -> NotifyResult
 {
-    if (auto target = findAt(cursorPos)) {
-        target->notify(scroll);
+    if (auto target = findAt(cursorPos))
+    {
+        if (target->notify(scroll) == NotifyResult::eConsumed) {
+            return NotifyResult::eConsumed;
+        }
     }
+
+    return inputHandler.notify(scroll);
 }
 
-void ViewportTree::notify(const CursorMovement& cursorMove)
+auto ViewportTree::notify(const CursorMovement& cursorMove) -> NotifyResult
 {
     cursorPos = cursorMove.position;
 
     if (auto target = findAt(cursorPos))
     {
         const auto [vpPos, vpSize] = target->getSize();
-        CursorMovement cursor{
+        CursorMovement childCursorMove{
             .position = cursorMove.position - vec2{vpPos},
             .offset   = cursorMove.offset,
             .areaSize = vpSize,
         };
-        target->notify(cursor);
+
+        if (target->notify(childCursorMove) == NotifyResult::eConsumed) {
+            return NotifyResult::eConsumed;
+        }
     }
+
+    return inputHandler.notify(cursorMove);
+}
+
+auto ViewportTree::getRootInputHandler() -> InputFrame&
+{
+    return inputHandler.getRootFrame();
 }
 
 auto ViewportTree::findAt(ivec2 pos) -> Viewport*

@@ -11,6 +11,21 @@ ImguiWindow::ImguiWindow(std::string windowName, ImguiWindowType type)
     setWindowType(type);
 }
 
+auto ImguiWindow::notify(const UserInput&) -> NotifyResult
+{
+    return NotifyResult::eRejected;
+}
+
+auto ImguiWindow::notify(const Scroll&) -> NotifyResult
+{
+    return NotifyResult::eRejected;
+}
+
+auto ImguiWindow::notify(const CursorMovement&) -> NotifyResult
+{
+    return NotifyResult::eRejected;
+}
+
 void ImguiWindow::setWindowType(ImguiWindowType type)
 {
     switch (type)

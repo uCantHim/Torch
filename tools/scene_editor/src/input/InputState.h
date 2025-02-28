@@ -7,6 +7,7 @@
 #include <trc_util/Assert.h>
 
 #include "input/Command.h"
+#include "input/EventTarget.h"
 #include "input/InputFrameBuilder.h"
 #include "input/KeyMap.h"
 
@@ -21,6 +22,9 @@ namespace action
     struct None {};
 };
 
+/**
+ * Maps keys to callbacks.
+ */
 class InputFrame
 {
 public:
@@ -32,10 +36,20 @@ public:
     InputFrame(InputFrame&&) noexcept = default;
     ~InputFrame() noexcept = default;
 
-    auto notify(const UserInput& input) -> std::variant<action::None, action::PushFrame>;
-    auto notify(const Scroll& scroll) -> std::variant<action::None, action::PushFrame>;
-    auto notify(const CursorMovement& cursorMove) -> std::variant<action::None, action::PushFrame>;
-    auto notifyFrameExit() -> std::variant<action::None, action::PushFrame>;
+    /**
+     * @return True if the event has been handled, false otherwise.
+     */
+    bool notify(CommandExecutionContext& ctx, const UserInput& input);
+
+    /**
+     * @return True if the event has been handled, false otherwise.
+     */
+    bool notify(CommandExecutionContext& ctx, const Scroll& scroll);
+
+    /**
+     * @return True if the event has been handled, false otherwise.
+     */
+    bool notify(CommandExecutionContext& ctx, const CursorMovement& cursorMove);
 
     void on(UserInput input, u_ptr<Command> command);
 
@@ -69,16 +83,6 @@ public:
         cursorMoveCallback = std::forward<F>(callback);
     }
 
-    template<std::invocable<CommandExecutionContext&> F>
-    void onFrameExit(F&& callback) {
-        frameExitCallback = std::forward<F>(callback);
-    }
-
-    /**
-     * TODO: Idea
-     */
-    void applyCommand(auto&& _do, auto&& _undo);
-
     void exitFrame();
     bool shouldExit() const;
 
@@ -91,25 +95,13 @@ private:
     std::function<void(CommandExecutionContext&, Scroll)> scrollCallback;
     std::function<void(CommandExecutionContext&, CursorMovement)> cursorMoveCallback;
 
-    std::function<void(CommandExecutionContext&)> frameExitCallback;
     bool _shouldExit{ false };
 };
 
-/**
- * Isolates command execution logic, which requires dubious access of private
- * members in CommandExecutionContext.
- */
-class CommandExecutor
+struct CommandResult
 {
-public:
-    explicit CommandExecutor(const UserInput& provokingInput);
-
-    auto executeCommand(Command& cmd) -> std::variant<action::None, action::PushFrame>;
-    auto executeCommand(CommandFunctionT auto&& cmdFunc)
-        -> std::variant<action::None, action::PushFrame>;
-
-private:
-    UserInput provokingInput;
+    u_ptr<InputFrame> pushedFrame;
+    std::vector<u_ptr<InvertibleAction>> actions;
 };
 
 /**
@@ -132,7 +124,7 @@ public:
     // auto keyboard();
     // auto mouse();
 
-    void applyAction(u_ptr<InvertibleAction> action);
+    void generateAction(u_ptr<InvertibleAction> action);
 
     auto pushFrame() -> InputFrameBuilder<InputFrame> {
         return pushFrame(std::make_unique<InputFrame>());
@@ -144,11 +136,13 @@ public:
      * returned frame builder.
      */
     template<std::derived_from<InputFrame> Frame>
-        requires std::move_constructible<Frame> || std::copy_constructible<Frame>
+        requires std::constructible_from<std::remove_cvref_t<Frame>, Frame>
     auto pushFrame(Frame&& frame) -> InputFrameBuilder<Frame>
     {
-        nextFrame = std::make_unique<Frame>(std::forward<Frame>(frame));
-        return InputFrameBuilder{ static_cast<Frame*>(nextFrame.get()) };
+        using FrameT = std::remove_cvref_t<Frame>;
+
+        nextFrame = std::make_unique<FrameT>(std::forward<Frame>(frame));
+        return InputFrameBuilder{ static_cast<FrameT*>(nextFrame.get()) };
     }
 
     /**
@@ -166,49 +160,38 @@ public:
     bool hasFramePushed() const;
 
 private:
-    friend CommandExecutor;
-    auto getFrame() && -> u_ptr<InputFrame>;
+    friend class InputStateMachine;
+    auto createResult() -> CommandResult;
 
 private:
     UserInput provokingInput;
     u_ptr<InputFrame> nextFrame{ nullptr };
+    std::vector<u_ptr<InvertibleAction>> actions;
 };
 
 /**
  * @brief Stack-based state machine for global input management
  */
-class InputStateMachine
+class InputStateMachine : public EventTarget
 {
 public:
     InputStateMachine();
     explicit InputStateMachine(u_ptr<InputFrame> topLevelFrame);
 
-    void notify(const UserInput& input);
-    void notify(const Scroll& scroll);
-    void notify(const CursorMovement& cursorMove);
+    auto notify(const UserInput& input) -> NotifyResult override;
+    auto notify(const Scroll& scroll) -> NotifyResult override;
+    auto notify(const CursorMovement& cursorMove) -> NotifyResult override;
 
     auto getRootFrame() -> InputFrame&;
 
     static auto build() -> std::pair<InputStateMachine, InputFrame&>;
 
 private:
+    void processCommandResult(CommandResult result);
+
     void push(u_ptr<InputFrame> frame);
     void pop();
     auto top() -> InputFrame&;
 
     std::vector<u_ptr<InputFrame>> frameStack;
 };
-
-
-
-inline auto CommandExecutor::executeCommand(CommandFunctionT auto&& cmdFunc)
-    -> std::variant<action::None, action::PushFrame>
-{
-    CommandExecutionContext ctx{ provokingInput };
-    cmdFunc(ctx);
-
-    if (ctx.hasFramePushed()) {
-        return action::PushFrame{ .newFrame=std::move(ctx).getFrame() };
-    }
-    return action::None{};
-}

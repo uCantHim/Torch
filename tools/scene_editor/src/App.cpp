@@ -120,21 +120,19 @@ App::App(const fs::path& projectRootDir)
     });
 
     // Initialize input
-    setupRootInputFrame(
-        sceneViewport->getInputHandler(),
-        KeyConfig{
-            .closeApp = trc::Key::escape,
-            .openContext = trc::MouseButton::right,
-            .selectHoveredObject = trc::MouseButton::left,
-            .deleteHoveredObject = trc::Key::del,
-            .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
-            .cameraRotate = trc::MouseButton::middle,
-            .translateObject = trc::Key::g,
-            .scaleObject = trc::Key::s,
-            .rotateObject = trc::Key::r,
-        },
-        *this
-    );
+    KeyConfig keyConfig{
+        .closeApp = trc::Key::escape,
+        .openContext = trc::MouseButton::right,
+        .selectHoveredObject = trc::MouseButton::left,
+        .deleteHoveredObject = trc::Key::del,
+        .cameraMove = { trc::MouseButton::middle, trc::KeyModFlagBits::shift },
+        .cameraRotate = trc::MouseButton::middle,
+        .translateObject = trc::Key::g,
+        .scaleObject = trc::Key::s,
+        .rotateObject = trc::Key::r,
+    };
+    setupRootInputFrame(mainWindowViewportManager->getRootInputHandler(), keyConfig, *this);
+    setupMainSceneInputFrame(sceneViewport->getInputHandler(), keyConfig, *this);
     sceneViewport->getInputHandler().on(trc::Key::a, []{ std::cout << "A!\n"; });
 
     // Initialize assets

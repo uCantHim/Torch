@@ -4,7 +4,7 @@
 
 #include <imgui.h>
 
-#include "viewport/InputViewport.h"
+#include "viewport/Viewport.h"
 
 enum class ImguiWindowType
 {
@@ -12,11 +12,15 @@ enum class ImguiWindowType
     eFloating,
 };
 
-class ImguiWindow : public InputViewport
+class ImguiWindow : public Viewport
 {
 public:
     explicit ImguiWindow(std::string windowName,
                          ImguiWindowType type = ImguiWindowType::eViewport);
+
+    auto notify(const UserInput& input) -> NotifyResult final;
+    auto notify(const Scroll& scroll) -> NotifyResult final;
+    auto notify(const CursorMovement& cursorMove) -> NotifyResult final;
 
     void draw(trc::Frame& frame) final;
     void resize(const ViewportArea& newArea) override;

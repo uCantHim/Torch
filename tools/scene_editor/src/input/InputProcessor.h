@@ -24,7 +24,7 @@ struct InputState
  * @brief The scene editor's implementation of an input processor.
  *
  * Manages all windows created by the application and dispatches events to their
- * respective viewport managers.
+ * respective root viewports.
  */
 class InputProcessor : public trc::InputProcessor
 {

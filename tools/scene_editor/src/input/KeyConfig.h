@@ -20,6 +20,11 @@ struct KeyConfig
 };
 
 /**
- * @brief Create a root input frame from a key configuration.
+ * @brief Set up key bindings for the root frame.
  */
 void setupRootInputFrame(InputFrame& frame, const KeyConfig& conf, App& app);
+
+/**
+ * @brief Set up key bindings for the main scene viewport.
+ */
+void setupMainSceneInputFrame(InputFrame& frame, const KeyConfig& conf, App& app);

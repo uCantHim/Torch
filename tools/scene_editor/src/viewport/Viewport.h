@@ -20,7 +20,7 @@ public:
     virtual void resize(const ViewportArea& newArea) = 0;
     virtual auto getSize() -> ViewportArea = 0;
 
-    virtual void notify(const UserInput& input) override = 0;
-    virtual void notify(const Scroll& scroll) override = 0;
-    virtual void notify(const CursorMovement& cursorMove) override = 0;
+    virtual auto notify(const UserInput& input) -> NotifyResult override = 0;
+    virtual auto notify(const Scroll& scroll) -> NotifyResult override = 0;
+    virtual auto notify(const CursorMovement& cursorMove) -> NotifyResult override = 0;
 };

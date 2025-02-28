@@ -5,9 +5,19 @@
 class EventTarget
 {
 public:
+    enum class NotifyResult
+    {
+        // The event has been consumed and should not be further processed
+        // by the caller.
+        eConsumed,
+
+        // The event has not been consumed and may be processed by the caller.
+        eRejected,
+    };
+
     virtual ~EventTarget() noexcept = default;
 
-    virtual void notify(const UserInput& input) = 0;
-    virtual void notify(const Scroll& scroll) = 0;
-    virtual void notify(const CursorMovement& cursorMove) = 0;
+    virtual auto notify(const UserInput& input) -> NotifyResult = 0;
+    virtual auto notify(const Scroll& scroll) -> NotifyResult = 0;
+    virtual auto notify(const CursorMovement& cursorMove) -> NotifyResult = 0;
 };

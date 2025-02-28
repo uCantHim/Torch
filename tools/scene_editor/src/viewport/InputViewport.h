@@ -9,9 +9,9 @@
 class InputViewport : public Viewport
 {
 public:
-    void notify(const UserInput& input) final;
-    void notify(const Scroll& scroll) final;
-    void notify(const CursorMovement& cursorMove) final;
+    auto notify(const UserInput& input) -> NotifyResult final;
+    auto notify(const Scroll& scroll) -> NotifyResult final;
+    auto notify(const CursorMovement& cursorMove) -> NotifyResult final;
 
     auto getInputHandler() -> InputFrame&;
 

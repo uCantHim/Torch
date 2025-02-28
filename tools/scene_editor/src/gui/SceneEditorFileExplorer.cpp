@@ -66,12 +66,14 @@ struct FileContentsPreview
 void fileContextMenu(const fs::path& filePath)
 {
     if (ig::Button("Preview")) {
-        g::openFloatingWindow(FileContentsPreview(filePath));
+        [[maybe_unused]]
+        auto vp = g::openFloatingWindow(FileContentsPreview(filePath));
     }
 
     if (ig::Button("Import"))
     {
-        g::openFloatingWindow([importDialog = ImportDialog{filePath}]() mutable -> bool
+        [[maybe_unused]]
+        auto vp = g::openFloatingWindow([importDialog = ImportDialog{filePath}]() mutable -> bool
         {
             gui::util::WindowGuard guard;
             if (!ig::Begin("Import")) {

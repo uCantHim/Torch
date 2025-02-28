@@ -8,79 +8,52 @@
 
 
 
-auto InputFrame::notify(const UserInput& input) -> std::variant<action::None, action::PushFrame>
+bool InputFrame::notify(CommandExecutionContext& ctx, const UserInput& input)
 {
-    auto tryExecCallback = [](auto&& input, auto&& key, auto&& mouse) {
-        using Res = std::variant<action::None, action::PushFrame>;
-
-        CommandExecutor exec{ input };
-        return std::visit(trc::util::VariantVisitor{
-            [&](const KeyInput& input) -> Res {
-                if (key) return exec.executeCommand([&](auto& ctx){ key(ctx, input); });
-                return action::None{};
-            },
-            [&](const MouseInput& input) -> Res {
-                if (mouse) return exec.executeCommand([&](auto& ctx){ mouse(ctx, input); });
-                return action::None{};
-            },
-        }, input.input);
-    };
-
     std::cout << "Input frame: processing input event...\n";
 
     // Find a command for the input and execute it.
-    CommandExecutor exec{ input };
-    if (auto cmd = keyMap.get(input)) {
+    if (auto cmd = keyMap.get(input))
+    {
         std::cout << "Command is set for this event. Executing it...\n";
-        return exec.executeCommand(*cmd);
+        cmd->execute(ctx);
+        return true;
     }
 
-    // No command is set for the input. Forward it to the catch-all handler.
     std::cout << "No command registered. Calling catch-all callback...\n";
-    return tryExecCallback(input, unhandledKeyCallback, unhandledMouseCallback);
+
+    // No command is set for the input. Forward it to the catch-all handler, if
+    // one is registered.
+    return std::visit(trc::util::VariantVisitor{
+        [&](const KeyInput& input) {
+            if (unhandledKeyCallback) unhandledKeyCallback(ctx, input);
+            return !!unhandledKeyCallback;
+        },
+        [&](const MouseInput& input) {
+            if (unhandledMouseCallback) unhandledMouseCallback(ctx, input);
+            return !!unhandledMouseCallback;
+        },
+    }, input.input);
 }
 
-auto InputFrame::notify(const Scroll& scroll) -> std::variant<action::None, action::PushFrame>
+bool InputFrame::notify(CommandExecutionContext& ctx, const Scroll& scroll)
 {
-    const KeyInput noKey{ trc::Key::unknown };
-
     if (scrollCallback)
     {
-        auto cmd = [this, scroll](CommandExecutionContext& ctx) {
-            this->scrollCallback(ctx, scroll);
-        };
-        return CommandExecutor{ noKey }.executeCommand(cmd);
+        scrollCallback(ctx, scroll);
+        return true;
     }
-    return action::None{};
+    return false;
 }
 
-auto InputFrame::notify(const CursorMovement& cursorMove)
-    -> std::variant<action::None, action::PushFrame>
+bool InputFrame::notify(CommandExecutionContext& ctx, const CursorMovement& cursorMove)
 {
-    const KeyInput noKey{ trc::Key::unknown };
-
     if (cursorMoveCallback)
     {
-        auto cmd = [this, cursorMove](CommandExecutionContext& ctx) {
-            this->cursorMoveCallback(ctx, cursorMove);
-        };
-        return CommandExecutor{ noKey }.executeCommand(cmd);
+        cursorMoveCallback(ctx, cursorMove);
+        return true;
     }
-    return action::None{};
-}
-
-auto InputFrame::notifyFrameExit() -> std::variant<action::None, action::PushFrame>
-{
-    const KeyInput noKey{ trc::Key::unknown };
-
-    if (frameExitCallback)
-    {
-        auto cmd = [this](CommandExecutionContext& ctx) {
-            this->frameExitCallback(ctx);
-        };
-        return CommandExecutor{ noKey }.executeCommand(cmd);
-    }
-    return action::None{};
+    return false;
 }
 
 void InputFrame::on(UserInput input, u_ptr<Command> command)
@@ -105,18 +78,6 @@ bool InputFrame::shouldExit() const
 
 
 
-CommandExecutor::CommandExecutor(const UserInput& provokingInput)
-    : provokingInput(provokingInput)
-{}
-
-auto CommandExecutor::executeCommand(Command& cmd)
-    -> std::variant<action::None, action::PushFrame>
-{
-    return executeCommand([&cmd](auto& ctx){ cmd.execute(ctx); });
-}
-
-
-
 CommandExecutionContext::CommandExecutionContext(const UserInput& provokingInput)
     :
     provokingInput(provokingInput)
@@ -127,14 +88,22 @@ auto CommandExecutionContext::getProvokingInput() const -> UserInput
     return provokingInput;
 }
 
+void CommandExecutionContext::generateAction(u_ptr<InvertibleAction> action)
+{
+    actions.emplace_back(std::move(action));
+}
+
 bool CommandExecutionContext::hasFramePushed() const
 {
     return nextFrame != nullptr;
 }
 
-auto CommandExecutionContext::getFrame() && -> u_ptr<InputFrame>
+auto CommandExecutionContext::createResult() -> CommandResult
 {
-    return std::move(nextFrame);
+    return {
+        .pushedFrame=std::move(nextFrame),
+        .actions=std::move(actions),
+    };
 }
 
 
@@ -151,45 +120,54 @@ InputStateMachine::InputStateMachine(u_ptr<InputFrame> topLevelFrame)
     push(std::move(topLevelFrame));
 }
 
-void InputStateMachine::notify(const UserInput& input)
+auto InputStateMachine::notify(const UserInput& input) -> NotifyResult
 {
-    auto result = top().notify(input);
+    CommandExecutionContext ctx{ input };
+    if (!top().notify(ctx, input)) {
+        return NotifyResult::eRejected;
+    }
+    processCommandResult(ctx.createResult());
 
+    return NotifyResult::eConsumed;
+}
+
+auto InputStateMachine::notify(const Scroll& scroll) -> NotifyResult
+{
+    CommandExecutionContext ctx{ trc::Key::unknown };
+    if (!top().notify(ctx, scroll)) {
+        return NotifyResult::eRejected;
+    }
+    processCommandResult(ctx.createResult());
+
+    return NotifyResult::eConsumed;
+}
+
+auto InputStateMachine::notify(const CursorMovement& cursorMove) -> NotifyResult
+{
+    CommandExecutionContext ctx{ trc::Key::unknown };
+    if (!top().notify(ctx, cursorMove)) {
+        return NotifyResult::eRejected;
+    }
+    processCommandResult(ctx.createResult());
+
+    return NotifyResult::eConsumed;
+}
+
+void InputStateMachine::processCommandResult(CommandResult res)
+{
     if (top().shouldExit()) {
         pop();
     }
-    std::visit(trc::util::VariantVisitor{
-        [](action::None){},
-        [this](action::PushFrame& frame){ push(std::move(frame.newFrame)); },
-    }, result);
-}
 
-void InputStateMachine::notify(const Scroll& scroll)
-{
-    auto result = top().notify(scroll);
-
-    if (top().shouldExit()) {
-        pop();
+    if (res.pushedFrame) {
+        push(std::move(res.pushedFrame));
     }
-    std::visit(trc::util::VariantVisitor{
-        [](action::None){},
-        [this](action::PushFrame& frame){ push(std::move(frame.newFrame)); },
-    }, result);
-}
 
-void InputStateMachine::notify(const CursorMovement& cursorMove)
-{
-    auto result = top().notify(cursorMove);
-
-    if (top().shouldExit())
+    for (auto& action : res.actions)
     {
-        top().notifyFrameExit();
-        pop();
+        action->apply();
+        // Push onto history
     }
-    std::visit(trc::util::VariantVisitor{
-        [](action::None){},
-        [this](action::PushFrame& frame){ push(std::move(frame.newFrame)); },
-    }, result);
 }
 
 auto InputStateMachine::getRootFrame() -> InputFrame&

@@ -78,15 +78,6 @@ struct InputFrameBuilder
         );
     }
 
-    template<std::invocable<Frame&, CommandExecutionContext&> F>
-    void onExit(F&& callback)
-    {
-        frame->onExit(
-            [frame=this->frame, cb=std::forward<F>(callback)]
-            (auto& ctx) { std::invoke(cb, *frame, ctx); }
-        );
-    }
-
 protected:
     friend CommandExecutionContext;
     explicit InputFrameBuilder(Frame* frame) : frame(frame) {

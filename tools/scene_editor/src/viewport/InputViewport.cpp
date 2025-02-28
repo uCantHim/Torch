@@ -2,19 +2,19 @@
 
 
 
-void InputViewport::notify(const UserInput& input)
+auto InputViewport::notify(const UserInput& input) -> NotifyResult
 {
-    inputHandler.notify(input);
+    return inputHandler.notify(input);
 }
 
-void InputViewport::notify(const Scroll& scroll)
+auto InputViewport::notify(const Scroll& scroll) -> NotifyResult
 {
-    inputHandler.notify(scroll);
+    return inputHandler.notify(scroll);
 }
 
-void InputViewport::notify(const CursorMovement& cursorMove)
+auto InputViewport::notify(const CursorMovement& cursorMove) -> NotifyResult
 {
-    inputHandler.notify(cursorMove);
+    return inputHandler.notify(cursorMove);
 }
 
 auto InputViewport::getInputHandler() -> InputFrame&

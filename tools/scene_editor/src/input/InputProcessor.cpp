@@ -131,6 +131,7 @@ void InputProcessor::setRootViewport(trc::Swapchain& window, s_ptr<Viewport> roo
     auto [it, isNewWindow] = windows.try_emplace(&window);
     if (isNewWindow)
     {
+        it->second = std::make_unique<WindowState>();
         it->second->inputState = std::make_shared<InputState>();
         it->second->previousCursorPos = window.getMousePosition();
     }

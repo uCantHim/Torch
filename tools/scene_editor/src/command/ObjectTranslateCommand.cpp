@@ -56,7 +56,7 @@ public:
 
     void applyPlacement(CommandExecutionContext& ctx)
     {
-        ctx.applyAction(std::make_unique<MoveObject>(scene, obj, originalPos, newPos));
+        ctx.generateAction(std::make_unique<MoveObject>(scene, obj, originalPos, newPos));
         exitFrame();
     }
 

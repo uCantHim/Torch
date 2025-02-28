@@ -25,7 +25,11 @@ void selectHoveredObject()
 
 void setupRootInputFrame(InputFrame& f, const KeyConfig& conf, App& app)
 {
-    f.on(conf.closeApp,            [&]{ app.end(); });
+    f.on(conf.closeApp, [&]{ app.end(); });
+}
+
+void setupMainSceneInputFrame(InputFrame& f, const KeyConfig& conf, App& app)
+{
     f.on(conf.openContext,         [&]{ openContextMenu(app.getScene()); });
     f.on(conf.selectHoveredObject, selectHoveredObject);
     f.on(conf.deleteHoveredObject, [&app]{
