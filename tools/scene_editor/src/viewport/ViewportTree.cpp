@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <trc_util/Assert.h>
+
 
 
 bool operator==(const ViewportTree::Node& node, const Viewport* vp)
@@ -140,42 +142,10 @@ auto ViewportTree::notify(const CursorMovement& cursorMove) -> NotifyResult
 
 auto ViewportTree::findAt(ivec2 pos) -> Viewport*
 {
-    /**
-     * @brief Visitor that finds the viewport that contains a point.
-     */
-    struct Finder
-    {
-        auto operator()(_Split& split) -> Viewport*
-        {
-            if (auto child = std::visit(*this, split->first)) {
-                return child;
-            }
-            return std::visit(*this, split->second);
-        }
-
-        auto operator()(_Leaf& leaf) -> Viewport*
-        {
-            if (isInside(p, leaf->getSize())) {
-                return leaf.get();
-            }
-            return nullptr;
-        }
-
-        const ivec2 p;
-    };
-
-    // Search floating viewports first.
-    // Viewports at the end of the list are considered 'in front of' viewports
-    // at the beginning.
-    for (auto& vp : std::views::reverse(floatingViewports))
-    {
-        if (isInside(pos, vp->getSize())) {
-            return vp.get();
-        }
+    if (auto el = findElemAt(pos)) {
+        return std::holds_alternative<Viewport*>(*el) ? std::get<Viewport*>(*el) : nullptr;
     }
-
-    // Now search the viewport tree.
-    return std::visit(Finder{ pos }, root);
+    return nullptr;
 }
 
 auto ViewportTree::createSplit(
@@ -185,6 +155,10 @@ auto ViewportTree::createSplit(
     ViewportLocation newVpLoc)
     -> Viewport*
 {
+    if (vp == nullptr || newVp == nullptr) {
+        return nullptr;
+    }
+
     if (Node* node = findNode(vp))
     {
         assert(std::holds_alternative<_Leaf>(*node));
@@ -210,14 +184,21 @@ auto ViewportTree::createSplit(
 
 void ViewportTree::createFloating(s_ptr<Viewport> vp, std::optional<ViewportArea> area)
 {
-    if (area) {
-        vp->resize(*area);
+    if (vp != nullptr)
+    {
+        if (area) {
+            vp->resize(*area);
+        }
+        floatingViewports.emplace_back(std::move(vp));
     }
-    floatingViewports.emplace_back(std::move(vp));
 }
 
 void ViewportTree::remove(Viewport* vp)
 {
+    if (vp == nullptr) {
+        return;
+    }
+
     // Test whether the viewport is floating
     auto it = std::ranges::find_if(floatingViewports, [&](auto& el){ return vp == el.get(); });
     if (it != floatingViewports.end())
@@ -272,6 +253,7 @@ auto ViewportTree::findNode(std::variant<Split*, Viewport*> elem) -> Node*
 
 void ViewportTree::mergeSplit(Split* split, ViewportLocation removedViewport)
 {
+    assert(split != nullptr);
     if (!(std::holds_alternative<_Leaf>(split->first)
           && std::holds_alternative<_Leaf>(split->second)))
     {
@@ -284,4 +266,91 @@ void ViewportTree::mergeSplit(Split* split, ViewportLocation removedViewport)
             ? std::move(split->first)
             : std::move(split->second);
     }
+}
+
+auto ViewportTree::calcElemSize(const Node& node) -> ViewportArea
+{
+    struct CalcSize
+    {
+        auto operator()(const _Split& split) -> ViewportArea
+        {
+            const auto fst = std::visit(CalcSize{}, split->first);
+            const auto snd = std::visit(CalcSize{}, split->second);
+
+            // Note that only the width of the split line must be included, not
+            // the padding on all sides of the children. See `resize`: Padding
+            // is only applied at the leaf level to avoid multiplying it when
+            // nesting.
+            if (split->split.horizontal) {
+                return { snd.pos, { snd.size.x, snd.size.y + fst.size.y + kViewportPadding * 2 } };
+            }
+            else /* if split.vertical */ {
+                return { fst.pos, { fst.size.x + snd.size.x + kViewportPadding * 2, fst.size.y } };
+            }
+        };
+
+        auto operator()(const _Leaf& leaf) -> ViewportArea {
+            return leaf->getSize();
+        };
+    };
+
+    return std::visit(CalcSize{}, node);
+}
+
+auto ViewportTree::findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*, Split*>>
+{
+    /**
+     * @brief Visitor that finds the entity at a position.
+     */
+    struct Finder
+    {
+        auto operator()(_Split& split) -> std::optional<std::variant<Viewport*, Split*>>
+        {
+            if (auto child = std::visit(*this, split->first)) {
+                return child;
+            }
+            if (auto child = std::visit(*this, split->second)) {
+                return child;
+            }
+
+            // Now test whether the point is on the split line
+            const auto fst = tree->calcElemSize(split->first);
+            const auto snd = tree->calcElemSize(split->second);
+
+            const vec2 axis = split->split.horizontal ? vec2{ 0, 1 } : vec2{ 1, 0 };  // Orth axis
+            const float axisPos = glm::dot(vec2{p}, axis);
+            if (glm::dot(vec2{fst.size} + vec2{fst.pos}, axis) < axisPos
+                && axisPos < glm::dot(vec2{snd.pos}, axis))
+            {
+                return split.get();
+            }
+
+            // Point is not anywhere in the split area
+            return std::nullopt;
+        }
+
+        auto operator()(_Leaf& leaf) -> std::optional<std::variant<Viewport*, Split*>>
+        {
+            if (isInside(p, leaf->getSize())) {
+                return leaf.get();
+            }
+            return std::nullopt;
+        }
+
+        ViewportTree* tree;
+        const ivec2 p;
+    };
+
+    // Search floating viewports first.
+    // Viewports at the end of the list are considered 'in front of' viewports
+    // at the beginning.
+    for (auto& vp : std::views::reverse(floatingViewports))
+    {
+        if (isInside(pos, vp->getSize())) {
+            return vp.get();
+        }
+    }
+
+    // Now search the viewport tree.
+    return std::visit(Finder{ this, pos }, root);
 }

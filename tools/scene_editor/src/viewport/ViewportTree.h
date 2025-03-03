@@ -1,9 +1,11 @@
 #pragma once
 
+#include <optional>
 #include <variant>
+#include <vector>
 
-#include "viewport/Viewport.h"
 #include "viewport/Split.h"
+#include "viewport/Viewport.h"
 
 enum class ViewportLocation
 {
@@ -11,13 +13,26 @@ enum class ViewportLocation
 };
 
 /**
- * @brief A binary tree of fixed-size (tiled) viewports.
+ * @brief A binary tree of tiled viewports.
+ *
+ * Forwards received input events to the viewport that is currently hovered by
+ * the cursor.
  */
 class ViewportTree : public Viewport
 {
 public:
+    /**
+     * @param rootVp An initial viewport that will cover the entire tree area.
+     *               Required because a viewport tree cannot have empty viewport
+     *               slots. Must not be `nullptr`.
+     *
+     * @throw std::invalid_argument if `rootVp` is `nullptr`.
+     */
     ViewportTree(const ViewportArea& size, s_ptr<Viewport> rootVp);
 
+    /**
+     * @brief Draw the contents of all viewports in the tree.
+     */
     void draw(trc::Frame& frame) override;
 
     void resize(const ViewportArea& newArea) override;
@@ -27,10 +42,31 @@ public:
     auto notify(const Scroll& scroll) -> NotifyResult override;
     auto notify(const CursorMovement& cursorMove) -> NotifyResult override;
 
+    /**
+     * @brief Try to find a viewport that encloses a specific point.
+     *
+     * Prefers floating viewports over static ones if the point intersects both.
+     *
+     * @param pos
+     *
+     * @return A viewport if one resides at `pos`. `nullptr` if `pos` does not
+     *         touch any viewport.
+     */
     auto findAt(ivec2 pos) -> Viewport*;
 
     /**
-     * Insert a viewport into the tree by splitting an existing viewport.
+     * @brief Insert a viewport into the tree by splitting an existing viewport.
+     *
+     * @param vp          The existing viewport to split into two. Must be part
+     *                    of the tree.
+     * @param split       A description of how to layout the split.
+     * @param newViewport A viewport to insert into the tree. Must not be
+     *                    `nullptr`.
+     * @param newViewportLocation The new viewport's location within the split.
+     *
+     * @return A pointer to the new viewport. `nullptr` if insertion failed,
+     *         either because `vp` is `nullptr`, `vp` doesn't exist in the tree,
+     *         or `newViewport` is `nullptr`.
      */
     auto createSplit(Viewport* vp,
                      const SplitInfo& split,
@@ -38,10 +74,27 @@ public:
                      ViewportLocation newViewportLocation)
         -> Viewport*;
 
+    /**
+     * @brief Create a floating viewport.
+     *
+     * Floating viewports are not subject to tree layout based resizing and are
+     * always considered to be 'in front of' the static viewport tree.
+     *
+     * Use `remove` to close floating viewports.
+     *
+     * @param vp   The new floating viewport. Passing `nullptr` will not create
+     *             a new viewport.
+     * @param area An optional initial position and size for the new viewport.
+     */
     void createFloating(s_ptr<Viewport> vp, std::optional<ViewportArea> area = {});
 
     /**
-     * Merges the viewport's parent.
+     * @brief Remove a viewport from the tree.
+     *
+     * Removing a viewport that is part of a split closes that split and causes
+     * the other half to occupy the combined area.
+     *
+     * @param viewport The viewport to remove from the tree.
      */
     void remove(Viewport* viewport);
 
@@ -144,6 +197,22 @@ private:
     auto findParent(std::variant<Split*, Viewport*> elem) -> Split*;
     auto findNode(std::variant<Split*, Viewport*> elem) -> Node*;
     void mergeSplit(Split* split, ViewportLocation removedViewport);
+
+    /**
+     * @brief Calculate the bounding area of a tree node.
+     */
+    auto calcElemSize(const Node& node) -> ViewportArea;
+
+    /**
+     * @param pos A point to test for intersection with tree elements.
+     *
+     * Returns a split if `pos` is exactly on the boundary line between the
+     * split's viewports.
+     *
+     * @return A viewport or a split. Nothing if `pos` is not contained by the
+     *         viewport tree.
+     */
+    auto findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*, Split*>>;
 
     static constexpr i32 kViewportPadding = 3;
 
