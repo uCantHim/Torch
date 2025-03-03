@@ -13,6 +13,25 @@ using namespace std::chrono;
 
 
 
+auto toGlfwEnum(trc::CursorShape shape) -> int
+{
+    switch (shape)
+    {
+    case trc::CursorShape::eArrow: return GLFW_ARROW_CURSOR;
+    case trc::CursorShape::eBeam: return GLFW_IBEAM_CURSOR;
+    case trc::CursorShape::eCrosshair: return GLFW_CROSSHAIR_CURSOR;
+    case trc::CursorShape::ePointingHand: return GLFW_POINTING_HAND_CURSOR;
+    case trc::CursorShape::eResize: return GLFW_RESIZE_ALL_CURSOR;
+    case trc::CursorShape::eResizeHorizontal: return GLFW_RESIZE_EW_CURSOR;
+    case trc::CursorShape::eResizeVertical: return GLFW_RESIZE_NS_CURSOR;
+    case trc::CursorShape::eResizeDiagonalULtoLR: return GLFW_RESIZE_NWSE_CURSOR;
+    case trc::CursorShape::eResizeDiagonalURtoLL: return GLFW_RESIZE_NESW_CURSOR;
+    case trc::CursorShape::eNotAllowed: return GLFW_NOT_ALLOWED_CURSOR;
+    }
+}
+
+
+
 trc::Surface::Surface(vk::Instance instance, const SurfaceCreateInfo& info)
 {
     // Create GLFW window
@@ -641,6 +660,30 @@ auto trc::Swapchain::isPressed(Key key) const -> bool
 auto trc::Swapchain::isPressed(MouseButton button) const -> bool
 {
     return getMouseButtonState(button) == InputAction::press;
+}
+
+bool trc::Swapchain::systemSupportsCursor(CursorShape shape)
+{
+    return !!cursors.tryGet(shape);
+}
+
+bool trc::Swapchain::setCursorShape(CursorShape shape)
+{
+    if (auto cursor = cursors.tryGet(shape))
+    {
+        glfwSetCursor(getGlfwWindow(), cursor);
+        return true;
+    }
+    return false;
+}
+
+auto trc::Swapchain::CursorStorage::tryGet(CursorShape shape) -> GLFWcursor*
+{
+    auto& cursor = standardCursors[std::to_underlying(shape)];
+    if (cursor == nullptr) {
+        cursor = glfwCreateStandardCursor(toGlfwEnum(shape));
+    }
+    return cursor;
 }
 
 

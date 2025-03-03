@@ -20,6 +20,44 @@ namespace trc
     class Device;
     class VulkanInstance;
 
+    /**
+     * System-provided standard cursor shapes.
+     */
+    enum class CursorShape
+    {
+        // The default cursor shape. Same as eArrow.
+        eDefault,
+
+        // The default arrow-shaped cursor.
+        eArrow = eDefault,
+
+        // A text input beam.
+        eBeam,
+
+        eCrosshair,
+        ePointingHand,
+
+        // An omnidirectional resize shape with arrows pointing in all
+        // directions.
+        eResize,
+
+        // A double-headed arrow pointing left and right.
+        eResizeHorizontal,
+
+        // A double-headed arrow pointing up and down.
+        eResizeVertical,
+
+        // A double-headed arrow pointing to the upper left and the lower right.
+        eResizeDiagonalULtoLR,
+
+        // A double-headed arrow pointing to the upper right and the lower left.
+        eResizeDiagonalURtoLL,
+
+        // A shape that signals that an operation is not permitted, e.g., a
+        // circle with a diagonal line through it.
+        eNotAllowed,
+    };
+
     struct SurfaceCreateInfo
     {
         glm::ivec2 windowSize{ 1920, 1080 };
@@ -389,6 +427,19 @@ namespace trc
         auto isPressed(Key key) const -> bool;
         auto isPressed(MouseButton button) const -> bool;
 
+        /**
+         * @brief Test if the current system supports a standard cursor shape.
+         */
+        bool systemSupportsCursor(CursorShape shape);
+
+        /**
+         * @brief Set the cursor image to one of the standard system shapes.
+         *
+         * @return True if the operation succeeded, false if the cursor is not
+         *         supported on the current system.
+         */
+        bool setCursorShape(CursorShape shape);
+
     public:
         const Device& device;
 
@@ -412,6 +463,22 @@ namespace trc
         };
 
     private:
+        struct CursorStorage
+        {
+            CursorStorage() = default;
+            ~CursorStorage() noexcept
+            {
+                for (auto cursor : standardCursors) {
+                    glfwDestroyCursor(cursor);
+                }
+            }
+
+            auto tryGet(CursorShape shape) -> GLFWcursor*;
+
+            static constexpr size_t kNumStandardCursors = 10;
+            std::array<GLFWcursor*, kNumStandardCursors> standardCursors{};
+        };
+
         void createSwapchain(const SwapchainCreateInfo& info);
 
         /**
@@ -439,5 +506,7 @@ namespace trc
 
         std::vector<vk::Image> images;
         std::vector<vk::UniqueImageView> imageViews;
+
+        CursorStorage cursors;
     };
 } // namespace trc
