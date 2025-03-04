@@ -254,9 +254,8 @@ auto Scene::getCursorPosClampedToSceneViewport() const -> ivec2
     const auto vp = app->getSceneViewport();
 
     const ivec2 mousePosScreen = app->getTorch().getWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = glm::clamp(mousePosScreen - vp.pos,
-                                        vp.pos,
-                                        vp.pos + ivec2{vp.size});
+    const ivec2 mousePosVp = glm::clamp(mousePosScreen, vp.pos, vp.pos + ivec2{vp.size})
+                             - vp.pos;
     return mousePosVp;
 }
 
