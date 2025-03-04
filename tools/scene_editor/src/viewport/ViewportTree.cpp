@@ -1,8 +1,41 @@
 #include "viewport/ViewportTree.h"
 
 #include <cassert>
+#include <iostream>
 
 #include <trc_util/Assert.h>
+
+
+
+struct ViewportTree::PrintTree
+{
+    void operator()(_Split& split)
+    {
+        for (int i = 0; i < indent; ++i) std::cout << " ";
+        std::cout << "Split: ";
+        printArea(split->area);
+        std::cout << "\n";
+
+        std::visit(PrintTree{ indent + 2 }, split->first);
+        std::visit(PrintTree{ indent + 2 }, split->second);
+    }
+
+    void operator()(_Leaf& leaf)
+    {
+        for (int i = 0; i < indent; ++i) std::cout << " ";
+        std::cout << "Leaf: ";
+        printArea(leaf->getSize());
+        std::cout << "\n";
+    }
+
+    static void printArea(const ViewportArea& area)
+    {
+        std::cout << "(" << area.pos.x << ", " << area.pos.y << ") - ("
+                  << area.size.x << ", " << area.size.y << ")";
+    }
+
+    const int indent{ 0 };
+};
 
 
 
@@ -69,17 +102,41 @@ void ViewportTree::draw(trc::Frame& frame)
 
 void ViewportTree::resize(const ViewportArea& newArea)
 {
+    /**
+     * The visitor returns the visited child's new size. We do this to be able
+     * to calculate sizes of split nodes correctly - this is sort of a bi-
+     * -directional tree traversal approach.
+     *
+     * Other methods have trouble with the padding because it has to be applied
+     * per viewport, not per nesting level.
+     */
     struct Resize
     {
-        void operator()(_Split& split)
+        auto operator()(_Split& split) -> ViewportArea
         {
-            const auto [fst, snd] = splitArea(area, split->split);
-            std::visit(Resize{ fst }, split->first);
-            std::visit(Resize{ snd }, split->second);
+            auto [fst, snd] = splitArea(area, split->split);
+            fst = std::visit(Resize{ fst }, split->first);
+            snd = std::visit(Resize{ snd }, split->second);
+
+            // Note that only the width of the split line must be included, not
+            // the padding on all sides of the children; Padding is only applied
+            // at the leaf level to avoid multiplying it when nesting.
+            ViewportArea size;
+            if (split->split.horizontal) {
+                size = { fst.pos, { fst.size.x, snd.size.y + fst.size.y + kViewportPadding * 2 } };
+            }
+            else /* if split.vertical */ {
+                size = { fst.pos, { fst.size.x + snd.size.x + kViewportPadding * 2, fst.size.y } };
+            }
+
+            split->area = size;
+            return size;
         }
 
-        void operator()(_Leaf& leaf) {
+        auto operator()(_Leaf& leaf) -> ViewportArea
+        {
             leaf->resize({ area.pos + kViewportPadding, area.size - 2u * kViewportPadding });
+            return leaf->getSize();
         }
 
         const ViewportArea area;
@@ -168,6 +225,7 @@ auto ViewportTree::createSplit(
         // The node is not a valid unique_ptr anymore!
 
         *node = std::make_unique<Split>(Split{
+            .area=vp->getSize(),
             .split=split,
             .first=newVpLoc == ViewportLocation::eFirst ? std::move(newVp) : std::move(curVp),
             .second=newVpLoc == ViewportLocation::eFirst ? std::move(curVp) : std::move(newVp),
@@ -268,33 +326,12 @@ void ViewportTree::mergeSplit(Split* split, ViewportLocation removedViewport)
     }
 }
 
-auto ViewportTree::calcElemSize(const Node& node) -> ViewportArea
+auto ViewportTree::getElemSize(const Node& node) -> ViewportArea
 {
-    struct CalcSize
-    {
-        auto operator()(const _Split& split) -> ViewportArea
-        {
-            const auto fst = std::visit(CalcSize{}, split->first);
-            const auto snd = std::visit(CalcSize{}, split->second);
-
-            // Note that only the width of the split line must be included, not
-            // the padding on all sides of the children. See `resize`: Padding
-            // is only applied at the leaf level to avoid multiplying it when
-            // nesting.
-            if (split->split.horizontal) {
-                return { snd.pos, { snd.size.x, snd.size.y + fst.size.y + kViewportPadding * 2 } };
-            }
-            else /* if split.vertical */ {
-                return { fst.pos, { fst.size.x + snd.size.x + kViewportPadding * 2, fst.size.y } };
-            }
-        };
-
-        auto operator()(const _Leaf& leaf) -> ViewportArea {
-            return leaf->getSize();
-        };
-    };
-
-    return std::visit(CalcSize{}, node);
+    return std::visit(trc::util::VariantVisitor{
+        [](const _Split& split){ return split->area; },
+        [](const _Leaf& leaf){ return leaf->getSize(); },
+    }, node);
 }
 
 auto ViewportTree::findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*, Split*>>
@@ -306,6 +343,12 @@ auto ViewportTree::findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*
     {
         auto operator()(_Split& split) -> std::optional<std::variant<Viewport*, Split*>>
         {
+            // Test whether the point is anywhere in the split
+            if (!isInside(p, split->area)) {
+                return std::nullopt;
+            }
+
+            // Test the children
             if (auto child = std::visit(*this, split->first)) {
                 return child;
             }
@@ -313,14 +356,15 @@ auto ViewportTree::findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*
                 return child;
             }
 
-            // Now test whether the point is on the split line
-            const auto fst = tree->calcElemSize(split->first);
-            const auto snd = tree->calcElemSize(split->second);
+            // Now test whether the point is on the split line, i.e., exactly
+            // between the children.
+            const auto fst = getElemSize(split->first);
+            const auto snd = getElemSize(split->second);
 
-            const vec2 axis = split->split.horizontal ? vec2{ 0, 1 } : vec2{ 1, 0 };  // Orth axis
-            const float axisPos = glm::dot(vec2{p}, axis);
-            if (glm::dot(vec2{fst.size} + vec2{fst.pos}, axis) < axisPos
-                && axisPos < glm::dot(vec2{snd.pos}, axis))
+            const vec2 axisMap = split->split.horizontal ? vec2{ 0, 1 } : vec2{ 1, 0 };
+            const float axisPos = glm::dot(vec2{p}, axisMap);
+            if (glm::dot(vec2{fst.pos} + vec2{fst.size}, axisMap) < axisPos
+                && axisPos < glm::dot(vec2{snd.pos}, axisMap))
             {
                 return split.get();
             }
@@ -337,7 +381,6 @@ auto ViewportTree::findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*
             return std::nullopt;
         }
 
-        ViewportTree* tree;
         const ivec2 p;
     };
 
@@ -352,5 +395,5 @@ auto ViewportTree::findElemAt(ivec2 pos) -> std::optional<std::variant<Viewport*
     }
 
     // Now search the viewport tree.
-    return std::visit(Finder{ this, pos }, root);
+    return std::visit(Finder{ pos }, root);
 }

@@ -148,6 +148,8 @@ private:
 
     struct Split
     {
+        ViewportArea area;
+
         SplitInfo split;
         Node first;
         Node second;
@@ -157,9 +159,9 @@ private:
     friend bool operator==(const Node& node, const Split* vp);
 
     /**
-     * @brief Test whether a point is inside of a viewport.
+     * @brief A debug utility that prints a node and its children.
      */
-    static bool isInside(ivec2 pos, const ViewportArea& area);
+    struct PrintTree;
 
     /**
      * @brief Visitor that finds a tree element's parent.
@@ -194,14 +196,19 @@ private:
         T elem;
     };
 
-    auto findParent(std::variant<Split*, Viewport*> elem) -> Split*;
-    auto findNode(std::variant<Split*, Viewport*> elem) -> Node*;
-    void mergeSplit(Split* split, ViewportLocation removedViewport);
+    /**
+     * @brief Test whether a point is inside of a viewport.
+     */
+    static bool isInside(ivec2 pos, const ViewportArea& area);
 
     /**
      * @brief Calculate the bounding area of a tree node.
      */
-    auto calcElemSize(const Node& node) -> ViewportArea;
+    static auto getElemSize(const Node& node) -> ViewportArea;
+
+    auto findParent(std::variant<Split*, Viewport*> elem) -> Split*;
+    auto findNode(std::variant<Split*, Viewport*> elem) -> Node*;
+    void mergeSplit(Split* split, ViewportLocation removedViewport);
 
     /**
      * @param pos A point to test for intersection with tree elements.
