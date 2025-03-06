@@ -136,7 +136,18 @@ namespace trc
                        const RenderTarget& renderTarget,
                        ui32 maxViewports);
 
+        /**
+         * @brief Create a frame and enqueue all viewport-independent tasks.
+         */
         auto makeFrame() -> u_ptr<Frame>;
+
+        /**
+         * @brief Submit all global and per-scene tasks to a frame.
+         *
+         * `makeFrame` already does this for you. Use this function to record
+         * to a frame created by other means.
+         */
+        void recordGeneralTasks(Frame& frame);
 
         /**
          * @brief Create a frame and submit draw commands for all viewports to it.

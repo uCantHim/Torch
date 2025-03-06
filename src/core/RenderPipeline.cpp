@@ -151,7 +151,16 @@ RenderPipeline::RenderPipeline(
 
 auto RenderPipeline::makeFrame() -> u_ptr<Frame>
 {
-    return std::make_unique<Frame>(device, topLevelResourceStorage, *renderGraph);
+    auto frame = std::make_unique<Frame>(device, topLevelResourceStorage, *renderGraph);
+    recordGeneralTasks(*frame);
+    return frame;
+}
+
+void RenderPipeline::recordGeneralTasks(Frame& frame)
+{
+    auto& curPipeline = pipelinesPerFrame->get();
+    recordGlobal(frame, curPipeline);
+    recordScenes(frame, curPipeline);
 }
 
 auto RenderPipeline::drawAllViewports() -> u_ptr<Frame>
@@ -568,8 +577,6 @@ void RenderPipeline::freeViewport(ui32 viewportIndex)
 void RenderPipeline::drawToFrame(Frame& frame, std::ranges::range auto&& vpIndices)
 {
     auto& curPipeline = pipelinesPerFrame->get();
-    recordGlobal(frame, curPipeline);
-    recordScenes(frame, curPipeline);
     recordViewports(frame, curPipeline, vpIndices);
 }
 
