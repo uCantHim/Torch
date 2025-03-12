@@ -90,6 +90,11 @@ auto CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
         auto pool = *pools.emplace_back(device->createCommandPoolUnique(
             vk::CommandPoolCreateInfo({}, {})
         ));
+        device.setDebugName(
+            pool,
+            "[CommandRecorder] Command pool {} (frame {})",
+            pools.size() - 1,
+            perFrameObjects.getFrameClock().getCurrentFrame());
 
         // Create a command buffer for the thread
         cmdBuffers.emplace_back(
@@ -97,6 +102,11 @@ auto CommandRecorder::record(Frame& frame) -> std::vector<vk::CommandBuffer>
                 pool, vk::CommandBufferLevel::ePrimary, 1
             ))[0])
         );
+        device.setDebugName(
+            *cmdBuffers.back(),
+            "[CommandRecorder] Command buffer for command pool {} (frame {})",
+            pools.size() - 1,
+            perFrameObjects.getFrameClock().getCurrentFrame());
     }
 
     // Each viewport has its own list of command buffer recordings (one command

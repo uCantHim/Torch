@@ -111,6 +111,18 @@ void DependencyRegion::produce(const BufferAccess& access)
     producedBuffers.try_emplace(access.buffer, access);
 }
 
+void DependencyRegion::access(const ImageAccess& image)
+{
+    consume(image);
+    produce(image);
+}
+
+void DependencyRegion::access(const BufferAccess& buffer)
+{
+    consume(buffer);
+    produce(buffer);
+}
+
 auto DependencyRegion::genBarriers(
     const DependencyRegion& from,
     DependencyRegion& to)

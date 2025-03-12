@@ -25,6 +25,10 @@ namespace trc
     {
         ivec2 offset;
         uvec2 size;
+
+        constexpr inline auto toRect2D() const noexcept -> vk::Rect2D {
+            return { { offset.x, offset.y }, { size.x, size.y } };
+        }
     };
 
     struct Viewport

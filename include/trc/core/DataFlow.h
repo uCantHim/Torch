@@ -63,19 +63,91 @@ namespace trc
         DependencyRegion() = default;
 
         /**
+         * @brief Declare a resource access in the region's consumption scope.
+         *
+         * A resouce access in a dependency region's consumption scope is
+         * equivalent to the second synchronization scope of a barrier between
+         * it and a preceding region.
+         *
          * Note: If an image is consumed but is never produced by a preceding
          * dependency region, an initial layout of `vk::ImageLayout::eUndefined`
-         * is assumed; meaning the image will be cleared.
+         * is assumed - meaning the image will be cleared.
          */
         void consume(const ImageAccess& image);
+
+        /**
+         * @brief Declare a resource access in the region's production scope.
+         *
+         * A resouce access in a dependency region's production scope is
+         * equivalent to the first synchronization scope of a barrier between
+         * it and a succeeding region.
+         */
         void produce(const ImageAccess& image);
 
+        /**
+         * @brief Declare a resource access in the region's consumption scope.
+         *
+         * A resouce access in a dependency region's consumption scope is
+         * equivalent to the second synchronization scope of a barrier between
+         * it and a preceding region.
+         */
         void consume(const BufferAccess& buffer);
+
+        /**
+         * @brief Declare a resource access in the region's production scope.
+         *
+         * A resouce access in a dependency region's production scope is
+         * equivalent to the first synchronization scope of a barrier between
+         * it and a succeeding region.
+         */
         void produce(const BufferAccess& buffer);
 
         /**
+         * @brief Declare a resource access to an image in both scopes.
+         *
+         * A common pattern for resource accesses is that the consumption scope
+         * is equal to the production scope. Example: A fragment shader reads
+         * from an image.
+         *
+         * In this case, the same access would have to be specified in `consume`
+         * and `produce`. `access` is a shorter way to do exactly that.
+         */
+        void access(const ImageAccess& image);
+
+        /**
+         * @brief Declare a resource access to an image in both scopes.
+         *
+         * A common pattern for resource accesses is that the consumption scope
+         * is equal to the production scope. Example: A compute shader reads
+         * from a buffer.
+         *
+         * In this case, the same access would have to be specified in `consume`
+         * and `produce`. `access` is a shorter way to do exactly that.
+         */
+        void access(const BufferAccess& buffer);
+
+        /**
+         * Generates all barriers required to synchronize resources between
+         * two dependency regions.
+         *
          * Modifies the `to` region by inserting any non-consumed resources that
-         * are produced by the `from` region.
+         * are produced by the `from` region as productions of `to`. This
+         * effectively chains regions together and propagates resource accesses
+         * through the chain.
+         *
+         * Example: Given two dependency regions A and B, A declares a write to
+         * image I in the color attachment output stage, B declares a read from
+         * I in the compute stage. `genBarriers(A, B)` will produce an image
+         * memory barrier on I with the first synchronization scope including
+         * memory writes in the color attachment output stage, and the second
+         * scope including memory reads in the compute stage.
+         *
+         * Example 2: A declares a read from buffer D in the vertex shader
+         * stage, B declares a read from image I in the compute stage.
+         * `genBarriers(A, B)` will generate no barriers as A and B do not
+         * access overlapping resource ranges. Additionally, a read access to D
+         * in the vertex shader stage will be added to B (B now declares two
+         * resource accesses, one to D and one to I).
          */
         static auto genBarriers(const DependencyRegion& from,
                                 DependencyRegion& to)
