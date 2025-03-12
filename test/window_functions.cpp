@@ -7,6 +7,54 @@
 using namespace trc::basic_types;
 namespace ig = ImGui;
 
+auto toString(trc::CursorShape shape) -> const char*
+{
+    switch (shape)
+    {
+    case trc::CursorShape::eArrow: return "Arrow";
+    case trc::CursorShape::eBeam: return "Text Insertion Beam";
+    case trc::CursorShape::eCrosshair: return "Crosshair";
+    case trc::CursorShape::ePointingHand: return "Pointing Hand";
+    case trc::CursorShape::eResize: return "Resize";
+    case trc::CursorShape::eResizeHorizontal: return "Resize Horizontally";
+    case trc::CursorShape::eResizeVertical: return "Resize Vertically";
+    case trc::CursorShape::eResizeDiagonalULtoLR: return "Resize UL - LR";
+    case trc::CursorShape::eResizeDiagonalURtoLL: return "Resize LL - UR";
+    case trc::CursorShape::eNotAllowed: return "Operation Not Allowed";
+    }
+}
+
+auto toTorchEnum(ImGuiMouseCursor cursor) -> trc::CursorShape
+{
+    switch (cursor)
+    {
+    case ImGuiMouseCursor_Arrow: return trc::CursorShape::eArrow;
+    case ImGuiMouseCursor_Hand: return trc::CursorShape::ePointingHand;
+    case ImGuiMouseCursor_TextInput: return trc::CursorShape::eBeam;
+    case ImGuiMouseCursor_ResizeEW: return trc::CursorShape::eResizeHorizontal;
+    case ImGuiMouseCursor_ResizeNS: return trc::CursorShape::eResizeVertical;
+    case ImGuiMouseCursor_ResizeNESW: return trc::CursorShape::eResizeDiagonalURtoLL;
+    case ImGuiMouseCursor_ResizeNWSE: return trc::CursorShape::eResizeDiagonalULtoLR;
+    case ImGuiMouseCursor_ResizeAll: return trc::CursorShape::eResize;
+    case ImGuiMouseCursor_NotAllowed: return trc::CursorShape::eNotAllowed;
+    default:
+        throw std::logic_error("Invalid ImGuiMouseCursor value.");
+    }
+}
+
+constexpr trc::CursorShape kAllCursorShapes[]{
+    trc::CursorShape::eArrow,
+    trc::CursorShape::eBeam,
+    trc::CursorShape::eCrosshair,
+    trc::CursorShape::ePointingHand,
+    trc::CursorShape::eResize,
+    trc::CursorShape::eResizeHorizontal,
+    trc::CursorShape::eResizeVertical,
+    trc::CursorShape::eResizeDiagonalULtoLR,
+    trc::CursorShape::eResizeDiagonalURtoLL,
+    trc::CursorShape::eNotAllowed,
+};
+
 int main()
 {
     {
@@ -30,6 +78,9 @@ int main()
         trc::Timer windowHiddenTimer;
         float opacity{ 1.0f };
         bool forcedAspectRatio{ false };
+
+        // Disable imgui setting the mouse cursor image itself.
+        ig::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
         while (window.isOpen() && !window.isPressed(trc::Key::escape))
         {
@@ -76,6 +127,30 @@ int main()
             if (ig::Checkbox("Force aspect ratio", &forcedAspectRatio)) {
                 window.forceAspectRatio(forcedAspectRatio);
             }
+
+            static trc::CursorShape selectedCursor{ trc::CursorShape::eDefault };
+            if (ig::BeginCombo("Cursor Shape", toString(selectedCursor)))
+            {
+                for (auto shape : kAllCursorShapes)
+                {
+                    if (ig::Selectable(toString(shape), shape == selectedCursor)) {
+                        selectedCursor = shape;
+                    }
+                }
+                ig::EndCombo();
+            }
+
+            // Honor requests from ImGui to set the mouse cursor shape.
+            // Overrides cursor setting via the dropdown menu.
+            const auto imguiCursor = ig::GetMouseCursor();
+            if (imguiCursor != ImGuiMouseCursor_None && imguiCursor != ImGuiMouseCursor_Arrow) {
+                window.setCursorShape(toTorchEnum(imguiCursor));
+            }
+            else {
+                window.setCursorShape(selectedCursor);
+            }
+
+            // End the frame.
             ig::End();
 
             // Un-hide window after some time
