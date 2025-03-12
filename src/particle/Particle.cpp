@@ -2,11 +2,9 @@
 
 #include "trc/GBufferPass.h"
 #include "trc/ParticlePipelines.h"
-#include "trc/PipelineDefinitions.h" // For the SHADER_DIR constant
 #include "trc/TorchRenderStages.h"
+#include "trc/base/Barriers.h"
 #include "trc/core/Instance.h"
-#include "trc/core/PipelineBuilder.h"
-#include "trc/core/PipelineLayoutBuilder.h"
 
 
 
@@ -61,6 +59,12 @@ trc::ParticleCollection::ParticleCollection(
     transferFence(instance.getDevice()->createFenceUnique({ vk::FenceCreateFlagBits::eSignaled }))
 {
     auto& dev = instance.getDevice();
+
+    dev.setDebugName(*vertexBuffer, "Particle vertex buffer");
+    dev.setDebugName(*particleDeviceDataBuffer, "Particle vertex attribute buffer");
+    dev.setDebugName(*particleDeviceDataStagingBuffer, "Particle device data staging buffer");
+    dev.setDebugName(*transferFence, "Particle vertex data transfer fence");
+
     auto [tq, tf] = dev.getQueueManager().getAnyQueue(QueueType::transfer);
     transferQueue = dev.getQueueManager().reserveQueue(tq);
     transferCmdPool = dev->createCommandPoolUnique({

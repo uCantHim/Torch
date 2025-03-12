@@ -1,7 +1,5 @@
 #include "trc/RenderPassShadow.h"
 
-#include <ranges>
-
 
 
 trc::RenderPassShadow::RenderPassShadow(
@@ -34,6 +32,9 @@ trc::RenderPassShadow::RenderPassShadow(
         *depthImageView
     }
 {
+    device.setDebugName(*renderPass, "Shadow render pass");
+    device.setDebugName(*framebuffer, "Framebuffer of Shadow render pass with 1 image (depth)");
+    device.setDebugName(*depthImage, "Shadow map image");
 }
 
 void trc::RenderPassShadow::begin(
@@ -113,10 +114,21 @@ auto trc::RenderPassShadow::makeVkRenderPass(const Device& device) -> vk::Unique
     std::vector<vk::SubpassDependency> dependencies{
         vk::SubpassDependency(
             VK_SUBPASS_EXTERNAL, 0,
-            vk::PipelineStageFlagBits::eLateFragmentTests,
-            vk::PipelineStageFlagBits::eFragmentShader,
+            vk::PipelineStageFlagBits::eBottomOfPipe,
+            vk::PipelineStageFlagBits::eEarlyFragmentTests
+                | vk::PipelineStageFlagBits::eLateFragmentTests,
+            vk::AccessFlagBits::eMemoryWrite,
+            vk::AccessFlagBits::eDepthStencilAttachmentRead
+                | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+            vk::DependencyFlagBits::eByRegion
+        ),
+        vk::SubpassDependency(
+            0, VK_SUBPASS_EXTERNAL,
+            vk::PipelineStageFlagBits::eEarlyFragmentTests
+                | vk::PipelineStageFlagBits::eLateFragmentTests,
+            vk::PipelineStageFlagBits::eAllGraphics,
             vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-            vk::AccessFlagBits::eShaderRead,
+            vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite,
             vk::DependencyFlagBits::eByRegion
         ),
     };

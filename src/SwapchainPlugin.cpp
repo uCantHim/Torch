@@ -45,7 +45,7 @@ void SwapchainPlugin::Instance::createTasks(GlobalUpdateTaskQueue& queue)
             ctx.deps().produce(ImageAccess{
                 swapchain.getImage(swapchain.getCurrentFrame()),
                 vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
-                vk::PipelineStageFlagBits2::eTopOfPipe,
+                vk::PipelineStageFlagBits2::eBottomOfPipe,
                 vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eMemoryRead,
                 vk::ImageLayout::eUndefined
             });

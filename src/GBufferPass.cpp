@@ -28,6 +28,9 @@ trc::GBufferPass::GBufferPass(
     })
 {
     setClearColor({ 0.2f, 0.5f, 1.0f, 1.0f });
+
+    device.setDebugName(*renderPass, "G-Buffer render pass");
+    device.setDebugName(*framebuffer, "G-Buffer framebuffer with 4 images (normals, albedo, material index, depth)");
 }
 
 void trc::GBufferPass::begin(
@@ -153,15 +156,17 @@ auto trc::GBufferPass::makeVkRenderPass(const Device& device)
             vk::AccessFlagBits::eDepthStencilAttachmentRead,
             vk::DependencyFlagBits::eByRegion
         ),
-        // From transparency subpass to final lighting compute pass
+
+        // Image layout transition depthStencilAttachmentOptimal -> shaderReadOnlyOptimal
+        // of attachment 3 (depth/stencil attachment) during vkCmdEndRenderPass.
         vk::SubpassDependency(
             1, VK_SUBPASS_EXTERNAL,
-            vk::PipelineStageFlagBits::eFragmentShader,
-            vk::PipelineStageFlagBits::eComputeShader,
-            vk::AccessFlagBits::eShaderWrite,
-            vk::AccessFlagBits::eShaderRead,
+            vk::PipelineStageFlagBits::eLateFragmentTests | vk::PipelineStageFlagBits::eVertexInput,
+            vk::PipelineStageFlagBits::eAllGraphics | vk::PipelineStageFlagBits::eTransfer,
+            vk::AccessFlagBits::eDepthStencilAttachmentWrite | vk::AccessFlagBits::eVertexAttributeRead,
+            vk::AccessFlagBits::eMemoryWrite | vk::AccessFlagBits::eTransferWrite,
             vk::DependencyFlagBits::eByRegion
-        )
+        ),
     };
 
     return device->createRenderPassUnique(

@@ -33,6 +33,7 @@ struct VulkanInstanceCreateInfo
     std::vector<vk::ValidationFeatureEnableEXT> enabledValidationFeatures{
         vk::ValidationFeatureEnableEXT::eBestPractices,
         vk::ValidationFeatureEnableEXT::eDebugPrintf,
+        vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
     };
 
     // `vk::ValidationFeaturesEXT` will only be enabled if `TORCH_DEBUG` is defined.

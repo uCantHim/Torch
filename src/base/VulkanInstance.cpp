@@ -1,39 +1,3 @@
-// If I enable vk::ValidationFeatureEnableEXT::eSynchronizationValidation,
-// I get very weird WRITE-AFTER-WRITE hazard errors that are, how I see it,
-// not sensible.
-//
-// The following code reproduces the error for an image layout change before a
-// clear command:
-//
-// ```c++
-//    trc::Image image(device, 20, 20);
-
-//    device.executeCommands(trc::QueueType::graphics, [&](vk::CommandBuffer cmdBuf)
-//    {
-//        const vk::ImageMemoryBarrier2 imageBarrier(
-//            vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eTransferWrite,
-//            vk::PipelineStageFlagBits2::eClear, vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eMemoryWrite,
-//            vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
-//            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-//            *image,
-//            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-//        );
-//        cmdBuf.pipelineBarrier2(
-//            vk::DependencyInfo{
-//                vk::DependencyFlagBits::eByRegion,
-//                {}, {}, imageBarrier
-//            }
-//        );
-
-//        cmdBuf.clearColorImage(
-//            *image,
-//            vk::ImageLayout::eTransferDstOptimal,
-//            vk::ClearColorValue(0, 0, 0, 0),
-//            vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
-//        );
-//    });
-// ```
-
 #include "trc/base/VulkanInstance.h"
 
 #include <cassert>

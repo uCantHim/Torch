@@ -11,7 +11,7 @@ auto makeResourceInit(const ImageAccess& access)
     return {
         .image=access.image,
         .subresource=access.subresource,
-        .pipelineStages=vk::PipelineStageFlagBits2::eTopOfPipe,
+        .pipelineStages=vk::PipelineStageFlagBits2::eBottomOfPipe,
         .access=vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
         .layout=vk::ImageLayout::eUndefined,
     };
@@ -24,7 +24,7 @@ auto makeResourceInit(const BufferAccess& access)
         .buffer=access.buffer,
         .offset=access.offset,
         .size=access.size,
-        .pipelineStages=vk::PipelineStageFlagBits2::eTopOfPipe,
+        .pipelineStages=vk::PipelineStageFlagBits2::eBottomOfPipe,
         .access=vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
     };
 }
