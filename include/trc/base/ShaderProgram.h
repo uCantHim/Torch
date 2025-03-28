@@ -52,8 +52,8 @@ namespace trc
         const Device& device;
 
         std::vector<std::vector<uint32_t>> shaderCodes;
+        std::vector<std::unique_ptr<vk::ShaderModuleCreateInfo>> moduleCreateInfos;
 
-        std::vector<vk::UniqueShaderModule> modules;
         std::vector<std::unique_ptr<vk::SpecializationInfo>> specInfos;
         std::vector<vk::PipelineShaderStageCreateInfo> createInfos;
     };

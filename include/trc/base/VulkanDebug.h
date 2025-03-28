@@ -62,9 +62,9 @@ private:
     };
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL vulkanDebugCallbackWrapper(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+        vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        vk::DebugUtilsMessageTypeFlagsEXT messageType,
+        const vk::DebugUtilsMessengerCallbackDataEXT* callbackData,
         void* userData
     );
 

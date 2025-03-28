@@ -167,6 +167,14 @@ auto trc::PhysicalDevice::createLogicalDevice(
         vk::PhysicalDeviceFeatures2{},
         vk::PhysicalDeviceSynchronization2Features{},    // Vulkan 1.3
         vk::PhysicalDeviceDynamicRenderingFeatures{},    // Vulkan 1.3
+
+        /**
+         * Maintenance 5 deprecates shader modules and allows a VkShaderModuleCreateInfo
+         * struct in the pNext chain of VkPipelineShaderStageCreateInfo.
+         */
+        vk::PhysicalDeviceMaintenance5Features{},        // Vulkan 1.4
+
+        /** Must be the last feature in the chain. See next statement below. */
         vk::PhysicalDeviceDescriptorIndexingFeatures{},  // Vulkan 1.2
     };
 
@@ -341,6 +349,7 @@ auto trc::device_helpers::getRequiredDeviceExtensions() -> std::vector<const cha
 {
     return {
         VK_KHR_MAINTENANCE_1_EXTENSION_NAME,  // Core in 1.1
+        VK_KHR_MAINTENANCE_5_EXTENSION_NAME,  // Core in 1.4
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
     };

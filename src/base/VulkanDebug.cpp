@@ -54,7 +54,7 @@ trc::VulkanDebug::VulkanDebug(vk::Instance instance)
     dispatcher(instance, vkGetInstanceProcAddr),
     debugLogger(std::make_unique<VulkanDebugLogger>())
 {
-    vk::DebugUtilsMessengerCreateInfoEXT createInfo(
+    vk::DebugUtilsMessengerCreateInfoEXT createInfo{
         {}, // Create flags
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
@@ -62,13 +62,12 @@ trc::VulkanDebug::VulkanDebug(vk::Instance instance)
         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
         ,
         vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-        | vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
         | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
         | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
         ,
         vulkanDebugCallbackWrapper,
         debugLogger.get()
-    );
+    };
 
     debugMessenger = instance.createDebugUtilsMessengerEXTUnique(createInfo, nullptr, dispatcher);
 }
@@ -78,16 +77,16 @@ trc::VulkanDebug::VulkanDebug(vk::Instance instance)
 #endif
 
 VKAPI_ATTR VkBool32 VKAPI_CALL trc::VulkanDebug::vulkanDebugCallbackWrapper(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+    vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    vk::DebugUtilsMessageTypeFlagsEXT messageType,
+    const vk::DebugUtilsMessengerCallbackDataEXT* callbackData,
     void* userData)
 {
     assert(userData != nullptr);
     static_cast<VulkanDebugLogger*>(userData)->vulkanDebugCallback(
-        vk::DebugUtilsMessageSeverityFlagBitsEXT(messageSeverity),
-        vk::DebugUtilsMessageTypeFlagBitsEXT(messageType),
-        vk::DebugUtilsMessengerCallbackDataEXT(*callbackData)
+        messageSeverity,
+        messageType,
+        *callbackData
     );
 
     // "The application *should* always return VK_FALSE. The VK_TRUE value is

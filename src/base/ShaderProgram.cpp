@@ -1,7 +1,6 @@
 #include "trc/base/ShaderProgram.h"
 
 #include <fstream>
-#include <sstream>
 
 
 
@@ -46,8 +45,12 @@ trc::ShaderProgram::ShaderProgram(const trc::Device& device)
 void trc::ShaderProgram::addStage(vk::ShaderStageFlagBits type, std::vector<uint32_t> shaderCode)
 {
     const auto& code = shaderCodes.emplace_back(std::move(shaderCode));
-    const auto& mod = modules.emplace_back(makeShaderModule(device, code));
-    createInfos.emplace_back(vk::PipelineShaderStageCreateInfo({}, type, *mod, "main", nullptr));
+    const auto& mod = moduleCreateInfos.emplace_back(std::make_unique<vk::ShaderModuleCreateInfo>(
+        vk::ShaderModuleCreateInfo{ {}, code.size() * sizeof(uint32_t), code.data() }
+    ));
+
+    createInfos.emplace_back(vk::PipelineShaderStageCreateInfo({}, type, VK_NULL_HANDLE, "main", nullptr));
+    createInfos.back().setPNext(mod.get());
 }
 
 void trc::ShaderProgram::addStage(
@@ -58,10 +61,10 @@ void trc::ShaderProgram::addStage(
     addStage(type, std::move(shaderCode));
 
     // Set the specialization info on the newly created stage
-    vk::SpecializationInfo* specInfo = specInfos.emplace_back(
-        new vk::SpecializationInfo(specializationInfo)
-    ).get();
-    createInfos.back().setPSpecializationInfo(specInfo);
+    auto& specInfo = specInfos.emplace_back(
+        std::make_unique<vk::SpecializationInfo>(specializationInfo)
+    );
+    createInfos.back().setPSpecializationInfo(specInfo.get());
 }
 
 void trc::ShaderProgram::setSpecialization(
