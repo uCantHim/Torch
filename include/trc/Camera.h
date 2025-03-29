@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include "trc/Node.h"
 #include "trc/Types.h"
 
@@ -31,9 +33,10 @@ namespace trc
     class Camera : public Node
     {
     public:
-        static constexpr float DEFAULT_FOV = 45.0f;
-
-        Camera();
+        /**
+         * @brief Construct a camera with a default perspective projection.
+         */
+        Camera() = default;
 
         /**
          * @brief Construct a camera with perspective projection
@@ -135,9 +138,10 @@ namespace trc
         void setProjectionMatrix(mat4 proj) noexcept;
 
         /**
-         * Short-hand for `camera.getProjectionMatrix() * camera.getViewMatrix() * pos`.
+         * @prief Project a world-space point to normalized clip space.
          *
-         * @return vec3 The calculated coordinates in projection space
+         * @return `worldPos`'s coordinates in clip space. x, y are in `[-1, 1]`
+         *         and z is in `[0, 1]`.
          */
         auto project(vec3 worldPos) const -> vec4;
 
@@ -155,24 +159,30 @@ namespace trc
 
         /**
          * @brief Calculate a world position's projected screen depth
-         *
-         * @note This only works with perspective projection!
          */
         auto calcScreenDepth(vec3 worldPos) const -> float;
 
     private:
         void calcProjMatrix();
-        bool isOrtho{ false };
 
-        vec2 depthBounds{ 1.0f, 100.0f };
-        float fov{ DEFAULT_FOV };
-        float aspect{ 1.0f };
+        struct Perspective
+        {
+            vec2 depthBounds{ 0.0f, 100.0f };
+            float fov{ 45.0f };
+            float aspect{ 1.0f };
+        };
 
-        float orthoLeft   { 0.0f };
-        float orthoRight  { 0.0f };
-        float orthoBottom { 0.0f };
-        float orthoTop    { 0.0f };
+        struct Orthogonal
+        {
+            float left   { 0.0f };
+            float right  { 0.0f };
+            float bottom { 0.0f };
+            float top    { 0.0f };
+            float front  { 0.0f };
+            float back   { 0.0f };
+        };
 
+        std::variant<Perspective, Orthogonal> projectionParams{ Perspective{} };
         mat4 projectionMatrix{ 1.0f };
     };
 }
