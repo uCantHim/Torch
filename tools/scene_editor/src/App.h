@@ -7,6 +7,7 @@ using namespace trc::basic_types;
 #include "Scene.h"
 #include "asset/AssetInventory.h"
 #include "graphics/Graphics.h"
+#include "graphics/Window.h"
 #include "input/InputProcessor.h"
 #include "viewport/SceneViewport.h"
 #include "viewport/ViewportTree.h"
@@ -50,6 +51,7 @@ private:
     void setupRootInputFrame(InputFrame& frame, const KeyConfig& conf);
 
     GraphicsStack graphics;
+    s_ptr<trc::Window> mainTorchWindow;
 
     s_ptr<trc::DataStorage> assetDataStorage;
     trc::AssetManager assetManager;
@@ -59,12 +61,10 @@ private:
     s_ptr<trc::Scene> drawableScene;
     s_ptr<Scene> scene;
 
-    s_ptr<WindowRenderer> mainWindow;
-
-    s_ptr<InputProcessor> windowManager;
+    s_ptr<trc::RenderPipeline> sceneRenderPipeline;
     s_ptr<SceneViewport> sceneViewport;
-    s_ptr<ViewportTree> mainWindowViewportManager;
-    s_ptr<ViewportTreeController> mainWindowViewport;
+
+    s_ptr<Window> mainWindow;
 
     trc::Timer frameTimer;
 };

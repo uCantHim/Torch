@@ -13,10 +13,10 @@
 
 #include "asset/DefaultAssets.h"
 #include "asset/HitboxAsset.h"
+#include "graphics/SceneRenderPipeline.h"
 #include "gui/AssetEditor.h"
 #include "gui/ObjectBrowser.h"
 #include "gui/SceneEditorFileExplorer.h"
-#include "input/InputProcessor.h"
 #include "input/KeyConfig.h"
 #include "viewport/SceneViewport.h"
 
@@ -38,6 +38,15 @@ App::App(const fs::path& projectRootDir)
 
     // Set up graphics
     graphics(),
+    mainTorchWindow(std::make_unique<trc::Window>(
+        graphics.getInstance(),
+        trc::WindowCreateInfo{
+            .swapchainCreateInfo{
+                // Required to be able to clear swapchain images via vkCmdClearColorImage
+                .imageUsage = vk::ImageUsageFlagBits::eTransferDst,
+            }
+        }
+    )),
 
     // Set up asset management.
     assetDataStorage(std::make_shared<trc::FilesystemDataStorage>(projectRootDir/"assets")),
@@ -49,41 +58,35 @@ App::App(const fs::path& projectRootDir)
     drawableScene(std::make_shared<trc::Scene>()),
     scene(std::make_shared<Scene>(*this, camera, drawableScene)),
 
-    // Set up the primary window
-    mainWindow(graphics.makeWindow(assetManager.getDeviceRegistry())),
-    windowManager(std::make_shared<InputProcessor>()),
-
     // Create the always-present main scene viewport
+    sceneRenderPipeline(makeSceneRenderPipeline(*mainTorchWindow, assetManager.getDeviceRegistry())),
     sceneViewport(std::make_unique<SceneViewport>(
-        mainWindow->getRenderPipeline(),
+        *sceneRenderPipeline,
         camera,
         drawableScene,
-        ViewportArea{
-            { mainWindow->getWindow().getSize().x * 0.25f, 0.0f },
-            { mainWindow->getWindow().getSize().x * 0.75f, mainWindow->getWindow().getSize().y }
-        }
+        ViewportArea{ { 0, 0 }, { 1, 1 } }
     )),
 
-    // Create the viewport manager
-    mainWindowViewportManager(std::make_shared<ViewportTree>(
-        ViewportArea{ { 0, 0 }, mainWindow->getWindow().getSize() },
+    // Set up viewport management for the main window
+    mainWindow(std::make_shared<Window>(
+        graphics,
+        mainTorchWindow,
         sceneViewport
-    )),
-    mainWindowViewport(std::make_unique<ViewportTreeController>(
-        mainWindowViewportManager,
-        &mainWindow->getWindow(),
-        graphics
     ))
 {
-    // Initialize the window manager
-    mainWindow->getWindow().setInputProcessor(windowManager);
-    windowManager->setRootViewport(mainWindow->getWindow(), mainWindowViewport);
+    mainTorchWindow->addCallbackAfterSwapchainRecreate(
+        [renderer=mainWindow->renderer.get(), pipeline=sceneRenderPipeline.get()](trc::Swapchain& sc)
+        {
+            renderer->waitForAllFrames();
+            pipeline->changeRenderTarget(makeRenderTarget(sc));
+        }
+    );
 
     // Initialize main viewport
     auto fileExplorer = std::make_shared<gui::SceneEditorFileExplorer>();
     auto assetBrowser = std::make_shared<gui::AssetEditor>();
     auto objectBrowser = std::make_shared<gui::ObjectBrowser>(scene);
-    mainWindowViewportManager->createSplit(
+    mainWindow->viewportTree->createSplit(
         sceneViewport.get(),
         SplitInfo{
             .horizontal=false,
@@ -92,7 +95,7 @@ App::App(const fs::path& projectRootDir)
         assetBrowser,
         ViewportLocation::eFirst
     );
-    mainWindowViewportManager->createSplit(
+    mainWindow->viewportTree->createSplit(
         assetBrowser.get(),
         SplitInfo{
             .horizontal=true,
@@ -103,13 +106,13 @@ App::App(const fs::path& projectRootDir)
     );
 
     fileExplorer->setWindowType(ImguiWindowType::eFloating);
-    mainWindowViewportManager->createFloating(
+    mainWindow->viewportTree->createFloating(
         std::move(fileExplorer),
         ViewportArea{ { sceneViewport->getSize().pos.x + 30, 30 }, { 300, 300 } }
     );
 
-    mainWindow->getWindow().addCallbackOnResize([this](trc::Swapchain& swapchain) {
-        mainWindowViewportManager->resize({ { 0, 0 }, swapchain.getWindowSize() });
+    mainWindow->torchWindow->addCallbackOnResize([this](trc::Swapchain& swapchain) {
+        mainWindow->viewportTree->resize({ { 0, 0 }, swapchain.getWindowSize() });
     });
 
     // Initialize input
@@ -124,7 +127,7 @@ App::App(const fs::path& projectRootDir)
         .scaleObject = trc::Key::s,
         .rotateObject = trc::Key::r,
     };
-    setupRootInputFrame(mainWindowViewport->getInputHandler(), keyConfig);
+    setupRootInputFrame(mainWindow->rootViewport->getInputHandler(), keyConfig);
     setupMainSceneInputFrame(sceneViewport->getInputHandler(), keyConfig, scene);
 
     // Disable imgui setting the mouse cursor image. We do this ourselves (see
@@ -225,7 +228,7 @@ void App::end()
 
 auto App::getMainWindow() -> trc::Window&
 {
-    return mainWindow->getWindow();
+    return *mainTorchWindow;
 }
 
 auto App::getAssets() -> AssetInventory&
@@ -240,7 +243,7 @@ auto App::getScene() -> Scene&
 
 auto App::getViewportManager() -> ViewportTree&
 {
-    return *mainWindowViewportManager;
+    return *mainWindow->viewportTree;
 }
 
 auto App::getSceneViewport() -> ViewportArea
@@ -259,19 +262,19 @@ void App::tick()
     // Render
     trc::imgui::beginImguiFrame();
 
-    auto frame = mainWindow->makeFrame();
-    mainWindowViewport->draw(*frame);
-
-    // Handle cursor changes.
-    // TODO
-
-    mainWindow->submitFrame(std::move(frame));
+    auto frame = sceneRenderPipeline->makeFrame();
+    mainWindow->drawFrame(std::move(frame));
+    // TODO: Handle cursor changes.
 
     // Finalize
     static trc::Timer timer;
     std::chrono::milliseconds timeDiff(static_cast<i64>(30.0f - timer.duration()));
     std::this_thread::sleep_for(timeDiff);
     timer.reset();
+
+    if (mainWindow->torchWindow->shouldClose()) {
+        end();
+    }
 }
 
 void App::setupRootInputFrame(InputFrame& f, const KeyConfig& conf)
