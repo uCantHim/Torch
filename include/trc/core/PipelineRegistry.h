@@ -117,7 +117,7 @@ namespace trc
         /**
          * @brief Create a pipeline storage object
          */
-        static auto makeStorage(const Instance& instance, ResourceConfig& resourceConfig)
+        static auto makeStorage(const Instance& instance, s_ptr<ResourceConfig> resourceConfig)
             -> u_ptr<PipelineStorage>;
 
         /**
@@ -260,13 +260,13 @@ namespace trc
 
         PipelineStorage(typename PipelineRegistry::StorageAccessInterface interface,
                         const Instance& instance,
-                        ResourceConfig& resourceConfig);
+                        s_ptr<ResourceConfig> resourceConfig);
 
         auto createPipeline(FactoryType& factory) -> u_ptr<Pipeline>;
 
         typename PipelineRegistry::StorageAccessInterface registry;
         const Instance& instance;
-        ResourceConfig* resourceConfig;
+        s_ptr<ResourceConfig> resourceConfig;
 
         util::SafeVector<PipelineLayout, 20> layouts;
         util::SafeVector<Pipeline, 20> pipelines;

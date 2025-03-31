@@ -120,7 +120,7 @@ RenderPipeline::RenderPipeline(
 
     // Resource storage
     resourceConfig(std::make_shared<ResourceConfig>()),
-    pipelineStorage(PipelineRegistry::makeStorage(instance, *resourceConfig)),
+    pipelineStorage(PipelineRegistry::makeStorage(instance, resourceConfig)),
     topLevelResourceStorage(std::make_shared<ResourceStorage>(
         resourceConfig,
         pipelineStorage

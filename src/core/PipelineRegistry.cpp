@@ -29,11 +29,11 @@ InvalidPipelineType::InvalidPipelineType(
 PipelineStorage::PipelineStorage(
     typename PipelineRegistry::StorageAccessInterface interface,
     const Instance& instance,
-    ResourceConfig& resourceConfig)
+    s_ptr<ResourceConfig> resourceConfig)
     :
     registry(interface),
     instance(instance),
-    resourceConfig(&resourceConfig)
+    resourceConfig(resourceConfig)
 {
 }
 
@@ -240,7 +240,7 @@ auto PipelineRegistry::getPipelineRenderPass(Pipeline::ID id)
     return std::nullopt;
 }
 
-auto PipelineRegistry::makeStorage(const Instance& instance, ResourceConfig& resourceConfig)
+auto PipelineRegistry::makeStorage(const Instance& instance, s_ptr<ResourceConfig> resourceConfig)
     -> std::unique_ptr<PipelineStorage>
 {
     return u_ptr<PipelineStorage>{
