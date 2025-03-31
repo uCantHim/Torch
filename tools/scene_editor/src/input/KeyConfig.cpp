@@ -45,6 +45,10 @@ void setupMainSceneInputFrame(InputFrame& f, const KeyConfig& conf, s_ptr<Scene>
         scene->getCameraArm().setZoomLevel(scrollLevel);
     });
 
+    f.onCursorMove([scene](auto&, const CursorMovement& cursor) {
+        scene->notifyCursorMove(cursor);
+    });
+
     f.onUnhandledMouseInput([contextMenuKey=conf.openContext](auto&, MouseInput input) {
         if (input.action == trc::InputAction::press && input != contextMenuKey) {
             gui::ContextMenu::close();

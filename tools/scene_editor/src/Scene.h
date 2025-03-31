@@ -4,6 +4,7 @@
 #include <trc/Torch.h>
 using namespace trc::basic_types;
 
+#include "input/UserInput.h"
 #include "object/ObjectSelection.h"
 #include "object/SceneObject.h"
 #include "scene/CameraArm.h"
@@ -18,6 +19,7 @@ public:
     ~Scene();
 
     void update(float timeDelta);
+    void notifyCursorMove(const CursorMovement& cursor);
 
     void saveToFile();
     void loadFromFile();
@@ -26,18 +28,6 @@ public:
     auto getCamera() const -> const trc::Camera&;
     auto getCameraArm() -> CameraArm&;
     auto getDrawableScene() -> trc::Scene&;
-
-    auto unprojectScreenCoords(vec2 screenPos, float depth) -> vec3;
-
-    /**
-     * @brief Project the cursor position into world space at a specific depth.
-     */
-    auto getMousePosAtDepth(float depth) const -> vec3;
-
-    /**
-     * @return Cursor position in world space, as calculated via ray casting.
-     */
-    auto getMouseWorldPos() const -> vec3;
 
     /**
      * @brief Create an object
@@ -84,10 +74,7 @@ public:
     auto castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3>>;
 
 private:
-    auto getCursorPosInSceneViewport() const -> std::optional<ivec2>;
-    auto getCursorPosClampedToSceneViewport() const -> ivec2;
-
-    void calcObjectHover();
+    void calcObjectHover(vec2 cursorPos, uvec2 viewportSize);
 
     App* app;
 
@@ -97,6 +84,5 @@ private:
     s_ptr<trc::Scene> scene;
     trc::SunLight sunLight;
 
-    vec3 mouseWorldPos;
     ObjectSelection objectSelection;
 };

@@ -34,7 +34,11 @@ Scene::~Scene()
 void Scene::update(const float timeDelta)
 {
     scene->update(timeDelta);
-    calcObjectHover();
+}
+
+void Scene::notifyCursorMove(const CursorMovement& cursor)
+{
+    calcObjectHover(cursor.invertY().position, cursor.areaSize);
 }
 
 auto Scene::getCamera() -> trc::Camera&
@@ -55,31 +59,6 @@ auto Scene::getCameraArm() -> CameraArm&
 auto Scene::getDrawableScene() -> trc::Scene&
 {
     return *scene;
-}
-
-auto Scene::unprojectScreenCoords(vec2 screenPos, float depth) -> vec3
-{
-    const auto vp = app->getSceneViewport();
-
-    screenPos = { screenPos.x, vp.size.y - screenPos.y };
-    const ivec2 vpPos = glm::clamp(ivec2{screenPos} - vp.pos,
-                                   vp.pos,
-                                   vp.pos + ivec2{vp.size});
-
-    return camera->unproject(vpPos, depth, vp.size);
-}
-
-auto Scene::getMousePosAtDepth(const float depth) const -> vec3
-{
-    const auto vp = app->getSceneViewport();
-    const ivec2 mousePosVp = getCursorPosClampedToSceneViewport();
-
-    return camera->unproject(mousePosVp, depth, vp.size);
-}
-
-auto Scene::getMouseWorldPos() const -> vec3
-{
-    return mouseWorldPos;
 }
 
 auto Scene::createObject() -> SceneObject
@@ -218,43 +197,9 @@ auto Scene::castRay(const Ray& ray) -> std::optional<std::pair<SceneObject, vec3
     return std::pair{ closestObject, hitPos };
 }
 
-auto Scene::getCursorPosInSceneViewport() const -> std::optional<ivec2>
+void Scene::calcObjectHover(const vec2 cursorPos, const uvec2 viewportSize)
 {
-    const auto vp = app->getSceneViewport();
-
-    const ivec2 mousePosScreen = app->getMainWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = mousePosScreen - vp.pos;
-    if (mousePosVp.x < 0
-        || mousePosVp.y < 0
-        || mousePosVp.x >= static_cast<int>(vp.size.x)
-        || mousePosVp.y >= static_cast<int>(vp.size.y))
-    {
-        // Cursor not in viewport.
-        return std::nullopt;
-    }
-
-    return mousePosVp;
-}
-
-auto Scene::getCursorPosClampedToSceneViewport() const -> ivec2
-{
-    const auto vp = app->getSceneViewport();
-
-    const ivec2 mousePosScreen = app->getMainWindow().getMousePositionLowerLeft();
-    const ivec2 mousePosVp = glm::clamp(mousePosScreen, vp.pos, vp.pos + ivec2{vp.size})
-                             - vp.pos;
-    return mousePosVp;
-}
-
-void Scene::calcObjectHover()
-{
-    if (!getCursorPosInSceneViewport())
-    {
-        // Cursor not in viewport.
-        return;
-    }
-
-    const vec3 mousePos = getMousePosAtDepth(0.5f);
+    const vec3 mousePos = camera->unproject(cursorPos, 0.5f, viewportSize);
     const vec3 cameraWorldPos = getCameraArm().getCameraWorldPos();
 
     // A ray from the camera through the cursor into the scene
@@ -264,6 +209,5 @@ void Scene::calcObjectHover()
     {
         const auto [closestObject, hitPoint] = *hit;
         objectSelection.hoverObject(closestObject);
-        mouseWorldPos = hitPoint;
     }
 }
