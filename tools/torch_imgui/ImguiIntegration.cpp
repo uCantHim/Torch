@@ -82,20 +82,76 @@ void initCallbacks(GLFWwindow* window)
 
 void restoreCallbacks(GLFWwindow* window)
 {
-    auto& storage = callbackStorages.at(window);
-    glfwSetWindowFocusCallback(window, storage.torchCallbackWindowFocus);
-    glfwSetCursorEnterCallback(window, storage.torchCallbackCursorEnter);
-    glfwSetCursorPosCallback(window, storage.torchCallbackCursorPos);
-    glfwSetMouseButtonCallback(window, storage.torchCallbackMouseButton);
-    glfwSetScrollCallback(window, storage.torchCallbackScroll);
-    glfwSetKeyCallback(window, storage.torchCallbackKey);
-    glfwSetCharCallback(window, storage.torchCallbackChar);
-    //glfwSetMonitorCallback(storage.torchCallbackMonitor);
+    if (callbackStorages.contains(window))
+    {
+        auto& storage = callbackStorages.at(window);
+        glfwSetWindowFocusCallback(window, storage.torchCallbackWindowFocus);
+        glfwSetCursorEnterCallback(window, storage.torchCallbackCursorEnter);
+        glfwSetCursorPosCallback(window, storage.torchCallbackCursorPos);
+        glfwSetMouseButtonCallback(window, storage.torchCallbackMouseButton);
+        glfwSetScrollCallback(window, storage.torchCallbackScroll);
+        glfwSetKeyCallback(window, storage.torchCallbackKey);
+        glfwSetCharCallback(window, storage.torchCallbackChar);
+        //glfwSetMonitorCallback(storage.torchCallbackMonitor);
 
-    callbackStorages.erase(window);
+        callbackStorages.erase(window);
+    }
+}
+
+namespace impl_callback
+{
+    void cursorPos(trc::Swapchain& sc, double x, double y) {
+        ImGui_ImplGlfw_CursorPosCallback(sc.getGlfwWindow(), x, y);
+    }
+
+    void windowFocus(Swapchain& sc, bool focused) {
+        ImGui_ImplGlfw_WindowFocusCallback(sc.getGlfwWindow(), focused);
+    }
+
+    void cursorEnter(Swapchain& sc, bool entered) {
+        ImGui_ImplGlfw_CursorEnterCallback(sc.getGlfwWindow(), entered);
+    }
+
+    void mouseButton(Swapchain& sc, MouseButton button, InputAction action, KeyModFlags mods) {
+        ImGui_ImplGlfw_MouseButtonCallback(
+            sc.getGlfwWindow(),
+            static_cast<int>(button),
+            static_cast<int>(action),
+            static_cast<int>(static_cast<ui8>(mods))
+        );
+    }
+
+    void scroll(Swapchain& sc, double xOff, double yOff) {
+        ImGui_ImplGlfw_ScrollCallback(sc.getGlfwWindow(), xOff, yOff);
+    }
+
+    void key(Swapchain& sc, Key key, InputAction action, KeyModFlags mods) {
+        ImGui_ImplGlfw_KeyCallback(
+            sc.getGlfwWindow(),
+            static_cast<int>(key),
+            0,  // Scancode. Let's hope this doesn't do anything.
+            static_cast<int>(action),
+            static_cast<int>(static_cast<ui8>(mods))
+        );
+    }
+
+    void charInput(Swapchain& sc, ui32 c) {
+        ImGui_ImplGlfw_CharCallback(sc.getGlfwWindow(), c);
+    }
+
+    void monitor(GLFWmonitor* monitor, int event) {
+        ImGui_ImplGlfw_MonitorCallback(monitor, event);
+    }
 }
 
 
+
+bool globalConfigOverrideTorchEventCallbacks{ true };
+
+void disableInsertingImguiEventCallbacks()
+{
+    globalConfigOverrideTorchEventCallbacks = false;
+}
 
 void initImgui(Window& window)
 {
@@ -235,7 +291,9 @@ ImguiRenderPlugin::ImguiRenderPlugin(Window& _window)
     window(_window.getGlfwWindow())
 {
     initImgui(_window);
-    initCallbacks(window);
+    if (globalConfigOverrideTorchEventCallbacks) {
+        initCallbacks(window);
+    }
 }
 
 ImguiRenderPlugin::~ImguiRenderPlugin() noexcept

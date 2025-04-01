@@ -14,6 +14,33 @@ namespace trc::imgui
 
     inline RenderStage imguiRenderStage = trc::makeRenderStage();
 
+    namespace impl_callback
+    {
+        void cursorPos(Swapchain& sc, double x, double y);
+        void windowFocus(Swapchain& sc, bool focused);
+        void cursorEnter(Swapchain& sc, bool entered);
+        void mouseButton(Swapchain& sc, MouseButton button, InputAction action, KeyModFlags mods);
+        void scroll(Swapchain& sc, double xOff, double yOff);
+        void key(Swapchain& sc, Key key, InputAction action, KeyModFlags mods);
+        void charInput(Swapchain& sc, ui32 c);
+        void monitor(GLFWmonitor* monitor, int event);
+    } // namespace callback
+
+    /**
+     * @brief A configuration option.
+     *
+     * When an `ImguiRenderPlugin` is created for a specific window, that
+     * window's event callbacks are overwritten with imgui-specific ones. These
+     * callbacks dispatch all events to ImGui first, then, if ImGui allows it,
+     * pass them along to the original Torch callbacks.
+     *
+     * If you don't want this behaviour, call this function before creating any
+     * `ImguiRenderPlugin`. In this case, you can use the functions in the
+     * `trc::imgui::impl_callback` namespace to call ImGui's backend-specific
+     * event callbacks yourself.
+     */
+    void disableInsertingImguiEventCallbacks();
+
     /**
      * @brief Initialize ImGui for a window.
      *
