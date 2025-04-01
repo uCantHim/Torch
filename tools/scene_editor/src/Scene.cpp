@@ -1,7 +1,6 @@
 #include "Scene.h"
 
 #include "App.h"
-#include "gui/ContextMenu.h"
 #include "object/Context.h"
 #include "object/Hitbox.h"
 
@@ -81,18 +80,6 @@ auto Scene::iterObjects() const
 
     const auto& meta = get<ObjectMetadata>();
     return trc::algorithm::IteratorRange<const_iterator>{ meta.begin(), meta.end() };
-}
-
-void Scene::openContextMenu()
-{
-    if (objectSelection.hasHoveredObject())
-    {
-        auto obj = objectSelection.getHoveredObject();
-        gui::ContextMenu::show(
-            "object " + obj.toString(),
-            makeContext(*this, obj)
-        );
-    }
 }
 
 void Scene::selectHoveredObject()

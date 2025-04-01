@@ -4,6 +4,7 @@
 #include <trc/base/InputProcessor.h>
 using namespace trc::basic_types;
 
+#include "input/GlobalInputState.h"
 #include "viewport/Viewport.h"
 
 /**
@@ -34,7 +35,11 @@ public:
      */
     auto getRootViewport() -> s_ptr<Viewport>;
 
+    static auto getGlobalInputState() -> const GlobalInputState&;
+
 private:
+    static inline GlobalInputState globalState;
+
     s_ptr<Viewport> rootViewport;
     vec2 previousCursorPos{ 0, 0 };
 };

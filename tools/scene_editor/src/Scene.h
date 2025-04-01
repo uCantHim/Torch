@@ -50,12 +50,6 @@ public:
     auto iterObjects() const
         -> trc::algorithm::IteratorRange<componentlib::Table<ObjectMetadata, SceneObject>::const_iterator>;
 
-    /**
-     * @brief Open a context menu for the currenty hovered object.
-     *
-     * Does nothing if no object is being hovered.
-     */
-    void openContextMenu();
     void selectHoveredObject();
     auto getHoveredObject() -> trc::Maybe<SceneObject>;
     auto getSelectedObject() -> trc::Maybe<SceneObject>;

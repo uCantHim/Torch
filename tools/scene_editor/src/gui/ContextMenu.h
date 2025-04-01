@@ -3,6 +3,7 @@
 #include <string>
 #include <functional>
 
+#include "Globals.h"
 #include "viewport/InputViewport.h"
 
 namespace gui
@@ -21,7 +22,9 @@ namespace gui
          *
          * Only one context menu can be open at any time.
          */
-        static void show(const std::string& title, std::function<void()> drawContents);
+        static void show(const std::string& title,
+                         std::function<void()> drawContents,
+                         ivec2 pos = g::mouse().getCursorPos());
 
         /**
          * @brief Close the global context menu (the 'right-click' menu).

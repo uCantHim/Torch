@@ -32,7 +32,7 @@ auto gui::ContextMenu::getSize() -> ViewportArea
     return viewportSize;
 }
 
-void gui::ContextMenu::show(const std::string& title, std::function<void()> drawContents)
+void gui::ContextMenu::show(const std::string& title, std::function<void()> drawContents, ivec2 pos)
 {
     close();
 
@@ -42,7 +42,7 @@ void gui::ContextMenu::show(const std::string& title, std::function<void()> draw
 
     globalContextMenu->popupTitle = title;
     globalContextMenu->contentsFunc = std::move(drawContents);
-    globalContextMenu->resize({ { 400, 100 }, {} });
+    globalContextMenu->resize({ pos, {} });
     g::openFloatingViewport(globalContextMenu);
 }
 

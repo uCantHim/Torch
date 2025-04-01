@@ -24,6 +24,7 @@ void InputProcessor::onKeyInput(
     trc::InputAction action,
     trc::KeyModFlags mods)
 {
+    globalState.keyboard.notify(key, action);
     rootViewport->notify({ key, mods, action });
 }
 
@@ -33,11 +34,14 @@ void InputProcessor::onMouseInput(
     trc::InputAction action,
     trc::KeyModFlags mods)
 {
+    globalState.mouse.notify(button, action);
     rootViewport->notify({ button, mods, action });
 }
 
 void InputProcessor::onMouseMove(trc::Swapchain& swapchain, double x, double y)
 {
+    globalState.mouse.notifyCursorMove({ x, y });
+
     const vec2 newPos{ x, y };
     const vec2 diff = newPos - previousCursorPos;
     previousCursorPos = newPos;
@@ -62,4 +66,9 @@ void InputProcessor::onWindowResize(trc::Swapchain&, uint x, uint y)
 auto InputProcessor::getRootViewport() -> s_ptr<Viewport>
 {
     return rootViewport;
+}
+
+auto InputProcessor::getGlobalInputState() -> const GlobalInputState&
+{
+    return globalState;
 }

@@ -5,9 +5,17 @@
 #include "Scene.h"
 #include "asset/AssetInventory.h"
 #include "gui/ImguiWindow.h"
+#include "input/KeyboardState.h"
+#include "input/MouseState.h"
 
 namespace g
 {
+    /** Access the global keyboard state */
+    auto keyboard() -> const KeyboardState&;
+
+    /** Access the global mouse state */
+    auto mouse() -> const MouseState&;
+
     auto assets() -> AssetInventory&;
     auto scene() -> Scene&;
 

@@ -1,11 +1,22 @@
 #include "Globals.h"
 
 #include "App.h"
+#include "input/InputProcessor.h"
 
 
 
 namespace g
 {
+    auto keyboard() -> const KeyboardState&
+    {
+        return InputProcessor::getGlobalInputState().keyboard;
+    }
+
+    auto mouse() -> const MouseState&
+    {
+        return InputProcessor::getGlobalInputState().mouse;
+    }
+
     auto assets() -> AssetInventory&
     {
         return App::get().getAssets();
