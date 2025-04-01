@@ -11,6 +11,10 @@ inline auto makeSceneRenderPipeline(trc::Window& window, trc::AssetRegistry& ass
 {
     static constexpr vec3 kClearColor{ 0.12f, 0.12f, 0.12f };
 
+    // Configuration
+    trc::imgui::disableInsertingImguiEventCallbacks();
+
+    // Create a Torch pipeline with imgui and image clear plugins enabled.
     return trc::makeTorchRenderPipeline(
         window.getInstance(),
         window,

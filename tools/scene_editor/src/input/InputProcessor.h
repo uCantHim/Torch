@@ -17,14 +17,14 @@ class InputProcessor : public trc::InputProcessor
 public:
     explicit InputProcessor(s_ptr<Viewport> rootViewport);
 
-    void onCharInput(trc::Swapchain&, uint32_t) override {}
+    void onCharInput(trc::Swapchain&, uint32_t) override;
     void onKeyInput(trc::Swapchain&, trc::Key, trc::InputAction, trc::KeyModFlags) override;
-    void onMouseEnter(trc::Swapchain&, bool) override {}
+    void onMouseEnter(trc::Swapchain&, bool) override;
     void onMouseInput(trc::Swapchain&, trc::MouseButton, trc::InputAction, trc::KeyModFlags) override;
     void onMouseMove(trc::Swapchain&, double, double) override;
     void onMouseScroll(trc::Swapchain&, double, double) override;
 
-    void onWindowFocus(trc::Swapchain&, bool) override {}
+    void onWindowFocus(trc::Swapchain&, bool) override;
     void onWindowResize(trc::Swapchain&, uint, uint) override;
     void onWindowClose(trc::Swapchain&) override {}
     void onWindowMove(trc::Swapchain&, int, int) override {}
