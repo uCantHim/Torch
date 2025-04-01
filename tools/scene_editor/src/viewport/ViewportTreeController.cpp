@@ -5,26 +5,9 @@
 #include <trc/core/Window.h>
 #include <trc_util/Assert.h>
 
-namespace ig = ImGui;
+#include "graphics/Window.h"
 
-/** @brief Translate the ImGuiMouseCursor enum to Torch's CursorShape. */
-auto toTorchEnum(ImGuiMouseCursor cursor) -> trc::CursorShape
-{
-    switch (cursor)
-    {
-    case ImGuiMouseCursor_Arrow: return trc::CursorShape::eArrow;
-    case ImGuiMouseCursor_Hand: return trc::CursorShape::ePointingHand;
-    case ImGuiMouseCursor_TextInput: return trc::CursorShape::eBeam;
-    case ImGuiMouseCursor_ResizeEW: return trc::CursorShape::eResizeHorizontal;
-    case ImGuiMouseCursor_ResizeNS: return trc::CursorShape::eResizeVertical;
-    case ImGuiMouseCursor_ResizeNESW: return trc::CursorShape::eResizeDiagonalURtoLL;
-    case ImGuiMouseCursor_ResizeNWSE: return trc::CursorShape::eResizeDiagonalULtoLR;
-    case ImGuiMouseCursor_ResizeAll: return trc::CursorShape::eResize;
-    case ImGuiMouseCursor_NotAllowed: return trc::CursorShape::eNotAllowed;
-    default:
-        throw std::logic_error("Invalid ImGuiMouseCursor value.");
-    }
-}
+
 
 constexpr
 auto makeSplitLine(ViewportTree::SplitLine split, ui32 lineOffset)
@@ -171,14 +154,14 @@ struct ViewportTreeVisualizeCommand : public Command
 
 ViewportTreeController::ViewportTreeController(
     s_ptr<ViewportTree> _tree,
-    trc::Window* _window,
+    Window* _window,
     GraphicsStack& graphics)
     :
     window(_window),
     tree(_tree),
     primitiveRenderer(
         &graphics.getDevice(),
-        window->getImageFormat(),
+        window->torchWindow->getImageFormat(),
         trc::DefaultDeviceMemoryAllocator{}
     ),
     drawList(std::make_shared<PrimitiveDrawList>())
@@ -208,22 +191,7 @@ ViewportTreeController::ViewportTreeController(
                 },
             }, *elem);
         }
-
-        // Honor requests from ImGui to set the mouse cursor shape.
-        // Overrides cursor setting via the dropdown menu.
-        //
-        // TODO: Use custom window class that wraps a `setCursorShape` function
-        // around this stuff.
-        const auto imguiCursor = ig::GetMouseCursor();
-        if (imguiCursor != ImGuiMouseCursor_None && imguiCursor != ImGuiMouseCursor_Arrow) {
-            window->setCursorShape(toTorchEnum(imguiCursor));
-        }
-        else if (selectedCursor) {
-            window->setCursorShape(*selectedCursor);
-        }
-        else {
-            window->setCursorShape(trc::CursorShape::eDefault);
-        }
+        window->setCursorShape(selectedCursor.value_or(trc::CursorShape::eDefault));
 
         ctx.discardEvent();
     });
@@ -244,8 +212,8 @@ void ViewportTreeController::draw(trc::Frame& frame)
     graph.createOrdering(primStage, trc::stages::renderTargetImageFinalize);
     frame.mergeRenderGraph(graph);
     trc::Viewport windowVp{
-        trc::makeRenderTarget(*window).getCurrentRenderImage(),
-        { { 0, 0 }, window->getSize() }
+        trc::makeRenderTarget(*window->torchWindow).getCurrentRenderImage(),
+        { { 0, 0 }, window->torchWindow->getSize() }
     };
     primitiveRenderer.draw(*drawList, frame, primStage, windowVp);
 }

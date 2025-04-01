@@ -263,8 +263,8 @@ void App::tick()
     trc::imgui::beginImguiFrame();
 
     auto frame = sceneRenderPipeline->makeFrame();
-    mainWindow->drawFrame(std::move(frame));
-    // TODO: Handle cursor changes.
+    mainWindow->drawContent(*frame);
+    mainWindow->submitFrame(std::move(frame));
 
     // Finalize
     static trc::Timer timer;

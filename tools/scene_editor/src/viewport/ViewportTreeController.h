@@ -5,15 +5,13 @@
 #include "input/InputHandler.h"
 #include "viewport/ViewportTree.h"
 
-namespace trc {
-    class Window;
-}
+class Window;
 
 class ViewportTreeController : public Viewport
 {
 public:
     ViewportTreeController(s_ptr<ViewportTree> tree,
-                           trc::Window* window,
+                           Window* window,
                            GraphicsStack& graphics);
 
     void draw(trc::Frame& frame) override;
@@ -28,7 +26,7 @@ public:
     auto getInputHandler() -> InputFrame&;
 
 private:
-    trc::Window* window;
+    Window* window;
     s_ptr<ViewportTree> tree;
 
     vec2 cursorPos;

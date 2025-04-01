@@ -161,9 +161,9 @@ public:
 
     /**
      * Signal that the command does not handle the current event. The event may
-     * be passed to a delegated handler. This can be useful when a precondition
-     * to the command is not satisfied and the event should be treated as if
-     * having no command specified.
+     * be passed to a delegated handler. This can be useful when a runtime
+     * precondition to the command is not satisfied; in this case, the event
+     * should be treated as if having no command specified.
      *
      * The command should only call this function when it does not produce any
      * side effects as a result of the discarded event. Any generated

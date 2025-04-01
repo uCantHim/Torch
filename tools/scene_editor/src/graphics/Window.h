@@ -6,8 +6,9 @@ using namespace trc::basic_types;
 #include "viewport/ViewportTree.h"
 #include "viewport/ViewportTreeController.h"
 
-struct Window
+class Window
 {
+public:
     Window(const Window&) = delete;
     Window(Window&&) noexcept = delete;
     Window& operator=(const Window&) = delete;
@@ -25,5 +26,11 @@ struct Window
     s_ptr<ViewportTree> viewportTree;
     s_ptr<ViewportTreeController> rootViewport;
 
-    void drawFrame(u_ptr<trc::Frame> frame);
+    void setCursorShape(trc::CursorShape shape);
+
+    void drawContent(trc::Frame& frame);
+    void submitFrame(u_ptr<trc::Frame> frame);
+
+private:
+    std::optional<trc::CursorShape> selectedCursor;
 };
