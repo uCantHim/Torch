@@ -49,7 +49,11 @@ App::App(const fs::path& projectRootDir)
     )),
 
     // Set up asset management.
-    assetDataStorage(std::make_shared<trc::FilesystemDataStorage>(projectRootDir/"assets")),
+    assetDataStorage([&]{
+        auto path = projectRootDir / "assets";
+        fs::create_directories(path);
+        return std::make_shared<trc::FilesystemDataStorage>(path);
+    }()),
     assetManager(assetDataStorage),
     assetInventory(assetManager, assetManager.getDataStorage()),
 
