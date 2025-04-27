@@ -1,5 +1,9 @@
 #pragma once
 
+#include <generator>
+#include <string>
+#include <vector>
+
 #include <trc_util/Exception.h>
 
 #include "ShaderDocumentParser.h"
@@ -24,6 +28,12 @@ namespace shader_edit
         explicit ShaderDocument(std::istream& is);
         explicit ShaderDocument(const std::string& str);
         explicit ShaderDocument(ParseResult parseResult);
+
+        auto allVariables() -> std::generator<const std::string&>;
+        auto unsetVariables() -> std::generator<const std::string&>;
+
+        auto findOccurrences(const std::string& varName)
+            -> std::generator<Location>;
 
         /**
          * @brief Set the value of a variable

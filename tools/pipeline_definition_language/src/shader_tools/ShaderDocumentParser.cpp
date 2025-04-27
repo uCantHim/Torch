@@ -28,14 +28,14 @@ SyntaxError::SyntaxError(uint32_t line, const std::string& error)
 
 
 
-auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
+auto parseVariable(const std::string& line) -> std::vector<Variable>
 {
     constexpr size_t NAME_POS{ 1 };
 
     auto split = splitString(line, " ");
     removeEmpty(split);
 
-    if (split.empty()) return std::nullopt;
+    if (split.empty()) return {};
 
     // Test if line is a variable declaration
     if (split.at(0) == VAR_DECL)
@@ -45,23 +45,29 @@ auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
             throw std::runtime_error("Expected variable name, found none");
         }
 
-        return ParsedVariable{ .name=split.at(NAME_POS) };
+        return { Variable{ .name=split.at(NAME_POS), .location{} } };
     }
 
-    // Test if line contains inline variable
-    for (size_t first = 0; const char c : line)
+    // Test if line contains inline variables
+    std::vector<Variable> result;
+    for (size_t i = 0; const char c : line)
     {
+        // Don't parse comments.
+        if (c == '/' && line.size() > i + 1 && line[i+1] == '/') {
+            break;
+        }
+
         if (c == INLINE_VAR_DECL)
         {
-            ++first;
+            size_t first = i + 1;
             size_t last{ line.size() };
             for (size_t i = first; i < last; ++i)
             {
                 const char c = line[i];
-                const bool alpha   = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-                const bool num     = c >= '0' && c <= '9';
-                const bool special = c == '_';
-                if (!(alpha || num || special))
+                const bool alpha    = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+                const bool num      = c >= '0' && c <= '9';
+                const bool wordchar = c == '_' || c == ':';
+                if (!(alpha || num || wordchar))
                 {
                     last = i;
                     break;
@@ -73,12 +79,19 @@ auto parseVariable(const std::string& line) -> std::optional<ParsedVariable>
                 throw std::runtime_error("Expected variable name, found none");
             }
 
-            return ParsedVariable{ .name=varName, .firstChar=first - 1, .lastChar=last };
+            result.emplace_back(Variable{
+                .name=varName,
+                .location{
+                    .firstChar=first - 1,
+                    .lastChar=last
+                }
+            });
         }
-        ++first;
+
+        ++i;
     }
 
-    return std::nullopt;
+    return result;
 }
 
 
@@ -98,11 +111,13 @@ auto parseShader(std::vector<std::string> _lines) -> ParseResult
         std::replace(line.begin(), line.end(), '\t', ' ');
 
         try {
-            auto var = parseVariable(line);
-            if (var.has_value())
+            auto vars = parseVariable(line);
+            for (auto& var : vars)
             {
-                var->line = i;
-                result.variablesByName.try_emplace(var->name, std::move(var.value()));
+                var.location.line = i;
+                result.variablesInOrderOfOccurrence.emplace_back(var);
+                auto [it, _] = result.variablesByName.try_emplace(var.name);
+                it->second.emplace_back(var);
             }
         }
         catch (const std::runtime_error& err) {

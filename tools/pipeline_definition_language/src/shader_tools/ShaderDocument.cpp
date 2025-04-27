@@ -1,7 +1,8 @@
 #include "shader_tools/ShaderDocument.h"
 
-#include <cstdint>
-#include <iomanip>
+#include <format>
+#include <list>
+#include <ranges>
 #include <sstream>
 
 #include <trc_util/StringManip.h>
@@ -27,6 +28,34 @@ ShaderDocument::ShaderDocument(ParseResult parseResult)
 {
 }
 
+auto ShaderDocument::allVariables() -> std::generator<const std::string&>
+{
+    for (auto& [name, _] : parseData.variablesByName) {
+        co_yield name;
+    }
+}
+
+auto ShaderDocument::unsetVariables() -> std::generator<const std::string&>
+{
+    for (auto& [name, _] : parseData.variablesByName)
+    {
+        if (!variableValues.contains(name)) {
+            co_yield name;
+        }
+    }
+}
+
+auto ShaderDocument::findOccurrences(const std::string& varName)
+    -> std::generator<Location>
+{
+    auto it = parseData.variablesByName.find(varName);
+    if (it != parseData.variablesByName.end())
+    {
+        auto locs = it->second | std::views::transform([](auto&& var){ return var.location; });
+        co_yield std::ranges::elements_of(locs);
+    }
+}
+
 void ShaderDocument::set(const std::string& name, VariableValue value)
 {
     variableValues[name] = std::move(value);
@@ -47,34 +76,35 @@ auto ShaderDocument::permutate(const std::string& name, std::vector<VariableValu
 
 auto ShaderDocument::compile(bool allowUnsetVariables) const -> std::string
 {
-    /** A variable's location */
-    struct Location
-    {
-        uint32_t line;
-        size_t begin;
-        size_t end;
-    };
-
     auto resultLines = parseData.lines;
-    auto remainingVars = parseData.variablesByName;
-    auto getVariableLine = [&remainingVars](const std::string& name) -> Location
+    auto remainingVars = parseData.variablesInOrderOfOccurrence
+                       | std::views::transform([](auto& v){ return v.name; })
+                       | std::ranges::to<std::list>();
+
+    // Replace variables in the document.
+    // Process in reverse order to avoid indexing problems with multiple
+    // variables on the same line, where character ranges of variables at the
+    // end of the line would be invalidated when replacing leading variables.
+    //
+    // Example:
+    //
+    //     $a, $b       { a = "hello", b = "world" }
+    //         v
+    //     hellworld    { expected: "hello, world" }
+    for (auto remIt = remainingVars.end();
+         const auto& var : std::views::reverse(parseData.variablesInOrderOfOccurrence))
     {
-        auto node = remainingVars.extract(name);
-        if (node.empty())
-        {
-            throw CompileError("[In Document::compile]: Variable \"" + name + "\" does not exist"
-                               " in the document");
+        if (remIt != remainingVars.begin()) {
+            --remIt;
         }
+        if (variableValues.contains(var.name))
+        {
+            const auto& value = variableValues.at(var.name);
+            const auto& [line, begin, end] = var.location;
+            resultLines.at(line).replace(begin, end - begin, value.toString());
 
-        const auto& var = node.mapped();
-        return { var.line, var.firstChar, var.lastChar };
-    };
-
-    // Replace variables in the document
-    for (auto& [name, value] : variableValues)
-    {
-        auto [line, begin, end] = getVariableLine(name);
-        resultLines.at(line).replace(begin, end - begin, value.toString());
+            remIt = remainingVars.erase(remIt);
+        }
     }
 
     // Ensure that all variables have been set
@@ -82,21 +112,19 @@ auto ShaderDocument::compile(bool allowUnsetVariables) const -> std::string
     {
         std::stringstream ss;
         ss << "[In Document::compile]: Unable to compile document - not all variables have"
-           << " been set! Unset variables: ";
-        for (const auto& [name, _] : remainingVars) ss << std::quoted(name) << "  ";
+           << " been set! Unset variables: [";
+        ss << (remainingVars
+                | std::views::transform([](auto&& s){ return std::format("\"{}\"", s); })
+                | std::views::join_with(std::string{", "})
+                | std::ranges::to<std::string>());
+        ss << "]";
 
         throw CompileError(ss.str());
     }
 
     // Create resulting document string
-    std::string result;
-    for (auto& line : resultLines)
-    {
-        result += line;
-        result += '\n';
-    }
-
-    return result;
+    resultLines.emplace_back();  // The tests expect a newline at the end and I'm lazy
+    return resultLines | std::views::join_with('\n') | std::ranges::to<std::string>();
 }
 
 
