@@ -24,6 +24,9 @@ set_target_properties(glslc_exe PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
 )
 
+# Cloth
+add_subdirectory(cloth)
+
 
 ######################
 #   Optional tools   #

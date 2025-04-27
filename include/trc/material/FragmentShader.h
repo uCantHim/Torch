@@ -112,6 +112,10 @@ namespace trc
          */
         void setParameter(Parameter param, code::Value value);
 
+        auto buildOutputs(shader::ShaderModuleBuilder& builder,
+                          bool transparent)
+            -> shader::ShaderOutputInterface;
+
         /**
          * @brief Compile the module description to a fragment shader module
          *

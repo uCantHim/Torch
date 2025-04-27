@@ -29,10 +29,10 @@ void FragmentModule::setParameter(Parameter param, code::Value value)
     parameters[static_cast<size_t>(param)] = value;
 }
 
-auto FragmentModule::build(
-    shader::ShaderModuleBuilder builder,
-    bool transparent,
-    const shader::CapabilityConfig& capabilityConfig) -> shader::ShaderModule
+auto FragmentModule::buildOutputs(
+    shader::ShaderModuleBuilder& builder,
+    bool transparent)
+    -> shader::ShaderOutputInterface
 {
     shader::ShaderOutputInterface output;
 
@@ -118,8 +118,17 @@ auto FragmentModule::build(
 
     builder.enableEarlyFragmentTest();
 
+    return output;
+}
+
+auto FragmentModule::build(
+    shader::ShaderModuleBuilder builder,
+    bool transparent,
+    const shader::CapabilityConfig& capabilityConfig) -> shader::ShaderModule
+{
+    auto outputs = buildOutputs(builder, transparent);
     return shader::ShaderModuleCompiler{}.compile(
-        output,
+        std::move(outputs),
         std::move(builder),
         capabilityConfig
     );
