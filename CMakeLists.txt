@@ -104,10 +104,10 @@ target_link_libraries(
         torch_util
         component
         spirv_compiler
+        pipeline_compiler_lib  # for ShaderDocument
 
     PRIVATE
         PNG::PNG
-        pipeline_compiler_lib  # for ShaderDocument
 )
 
 target_compile_definitions(torch

@@ -18,15 +18,15 @@ namespace trc
      */
     namespace MaterialCapability
     {
-        constexpr shader::Capability kVertexWorldPos{ "trc_mat_vertexWorldPos" };
-        constexpr shader::Capability kVertexNormal{ "trc_mat_vertexNormal" };
-        constexpr shader::Capability kVertexUV{ "trc_mat_vertexUV" };
-        constexpr shader::Capability kTangentToWorldSpaceMatrix{ "trc_mat_tangentToWorld" };
+        constexpr shader::Capability kVertexWorldPos{ "vertexWorldPos" };
+        constexpr shader::Capability kVertexNormal{ "vertexNormal" };
+        constexpr shader::Capability kVertexUV{ "vertexUV" };
+        constexpr shader::Capability kTangentToWorldSpaceMatrix{ "tangentToWorld" };
 
-        constexpr shader::Capability kCameraWorldPos{ "trc_mat_cameraWorldPos" };
+        constexpr shader::Capability kCameraWorldPos{ "cameraWorldPos" };
 
-        constexpr shader::Capability kTime{ "trc_mat_currentTime" };
-        constexpr shader::Capability kTimeDelta{ "trc_mat_frameTime" };
+        constexpr shader::Capability kTime{ "currentTime" };
+        constexpr shader::Capability kTimeDelta{ "frameTime" };
 
         /**
          * Gives access to an array of texture samplers. The array shall be

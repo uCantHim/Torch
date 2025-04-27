@@ -13,15 +13,20 @@ namespace trc::shader
      * # Example
      * ```cpp
      *
-     * auto fragColor = builder.makeOutputLocation(0, vec4{});
-     * output.makeStore(fragColor, myColor);
+     * auto fragColorLoc = builder.makeOutputLocation(0, vec4{});
+     * auto myColor = builder.makeConstant(vec4{ 1, 0, 0, 1 });
+     *
+     * ShaderOutputInterface output;
+     * output.makeStore(fragColorLoc, myColor);
      * ```
      *
      * Results in:
      * ```glsl
      *
      * layout (location=0) out vec4 fragColor;
-     * void main() { fragColor = <myColor>; }
+     * void main() {
+     *     fragColor = vec4(1, 0, 0, 1);
+     * }
      * ```
      */
     class ShaderOutputInterface

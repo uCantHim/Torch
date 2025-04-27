@@ -128,6 +128,11 @@ namespace trc::shader
         void addShaderInclude(ResourceID resource, util::Pathlet includePath);
         void addMacro(ResourceID resource, std::string name, std::optional<std::string> value);
 
+        /**
+         * @brief Create an accessor for a resource.
+         *
+         * Returns an expression that evaluates to a resource.
+         */
         auto accessResource(ResourceID resource) const -> code::Value;
         auto getResource(ResourceID resource) const -> const ResourceData&;
 
@@ -137,11 +142,34 @@ namespace trc::shader
                             std::vector<ResourceID> resources);
 
         /**
-         * @return bool True if `capability` is linked to a resource
+         * @return bool True if `capability` is linked to a resource, i.e., if
+         *              it is defined at this capability config.
          */
         bool hasCapability(Capability capability) const;
 
+        /**
+         * @brief Create an accessor for a capability.
+         *
+         * Creates an expression that evaluates to a capability's value.
+         *
+         * This may be just an identifier, or a more complex expression like an
+         * array access, a computation, or a function call, depending on the
+         * capability's implementation.
+         *
+         * @throw std::out_of_range if `capability` is not defined at this
+         *        capability config.
+         */
         auto accessCapability(Capability capability) const -> code::Value;
+
+        /**
+         * @brief Query all resources that a capability accesses.
+         *
+         * Returns a list of resources that are accessed by a capability's
+         * implementation.
+         *
+         * @throw std::out_of_range if `capability` is not defined at this
+         *        capability config.
+         */
         auto getCapabilityResources(Capability capability) const -> std::vector<ResourceID>;
 
     private:

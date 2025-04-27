@@ -154,6 +154,17 @@ auto ShaderModuleBuilder::compileIncludedCode(
     return result;
 }
 
+auto ShaderModuleBuilder::compileSettings() const -> std::string
+{
+    std::string result;
+    result += "#version " + shaderSettings.versionString + "\n";
+    if (shaderSettings.earlyFragmentTests) {
+        result += "layout (early_fragment_tests) in;\n";
+    }
+
+    return result;
+}
+
 auto ShaderModuleBuilder::getOrMakeFunctionDef(ShaderFunction& funcBuilder) -> Function
 {
     if (auto func = getFunction(funcBuilder.getName())) {

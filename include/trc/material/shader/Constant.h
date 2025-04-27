@@ -26,7 +26,10 @@ namespace trc::shader
         template<int N, typename T> requires (N >= 1 && N <= 4)
         Constant(glm::vec<N, T> value);
 
-        Constant(BasicType type, std::array<std::byte, kMaxSize> data);
+        /**
+         * Creates a zero-initialized value by default.
+         */
+        Constant(BasicType type, std::array<std::byte, kMaxSize> data = {});
 
         auto getType() const -> BasicType;
         auto datatype() const -> std::string;

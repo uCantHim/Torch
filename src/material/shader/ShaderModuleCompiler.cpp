@@ -10,17 +10,22 @@ namespace trc::shader
 {
 
 ShaderModule::ShaderModule(
-    std::string shaderCode,
-    ShaderResourceInterface resourceInfo)
+    shader_edit::ShaderDocument _shaderCode,
+    ShaderResourceInterface _resourceInfo)
     :
-    ShaderResourceInterface(std::move(resourceInfo)),
-    shaderGlslCode(std::move(shaderCode))
+    ShaderResourceInterface(std::move(_resourceInfo)),
+    shaderCode(std::move(_shaderCode))
 {
 }
 
-auto ShaderModule::getShaderCode() const -> const std::string&
+auto ShaderModule::getShaderCode() -> shader_edit::ShaderDocument&
 {
-    return shaderGlslCode;
+    return shaderCode;
+}
+
+auto ShaderModule::getShaderCode() const -> const shader_edit::ShaderDocument&
+{
+    return shaderCode;
 }
 
 
@@ -44,19 +49,19 @@ auto ShaderModuleCompiler::compile(
             util::getInternalShaderStorageDirectory(),
         }
     };
-    CapabilityConfigResourceResolver resolver{ caps, builder };
+    ShaderResourceInterfaceBuilder resourceBuilder{ caps, builder };
+    CapabilityConfigResourceResolver resolver{ resourceBuilder };
 
     const auto includedCode = builder.compileIncludedCode(includer, resolver);
     const auto typeDeclCode = builder.compileTypeDecls();
     const auto functionDeclCode = builder.compileFunctionDecls(resolver); // Compiles all code.
-    const auto resources = resolver.buildResources();  // Finalizes definitions of resources
-                                                       // required by the compiled shader code.
+    const auto resources = resourceBuilder.compile();
 
     // Build the shader file
     std::stringstream ss;
 
     // Write module settings and version
-    ss << compileSettings(builder.getSettings()) << "\n";
+    ss << builder.compileSettings() << "\n";
 
     // Write type definitions
     ss << typeDeclCode << "\n";
@@ -72,19 +77,7 @@ auto ShaderModuleCompiler::compile(
     // This also writes the main function.
     ss << functionDeclCode;
 
-    return { ss.str(), resources };
-}
-
-auto ShaderModuleCompiler::compileSettings(const ShaderModuleBuilder::Settings& settings)
-    -> std::string
-{
-    std::string result;
-    result += "#version " + settings.versionString + "\n";
-    if (settings.earlyFragmentTests) {
-        result += "layout (early_fragment_tests) in;\n";
-    }
-
-    return result;
+    return { shader_edit::ShaderDocument{ ss.str() }, resources };
 }
 
 } // namespace trc::shader

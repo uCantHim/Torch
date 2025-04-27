@@ -132,6 +132,17 @@ namespace trc::shader
                             const std::vector<std::pair<Type, std::string>>& fields)
             -> StructType;
 
+        /**
+         * @brief Define a value's type manually.
+         *
+         * Type annotations are hints to the type checker, which may not be able
+         * to infer types of all kinds of expressions. In particular, it can
+         * never infer types of 'external' identifiers and expressions (see
+         * `ShaderCodeBuilder::makeExternal*`).
+         *
+         * Type annotations always have precedence over inferred types during
+         * type checking.
+         */
         void annotateType(Value val, Type type);
 
         auto compileTypeDecls() const -> std::string;

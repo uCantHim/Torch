@@ -114,7 +114,7 @@ auto CapabilityConfig::getCapabilityResources(Capability capability) const
     auto it = requiredResources.find(capability);
     if (it == requiredResources.end())
     {
-        throw std::runtime_error(
+        throw std::out_of_range(
             "[In ShaderCapabilityConfig::getCapabilityResources]: Shader capability \""
             + capability.toString() + "\" has not been defined.");
     }

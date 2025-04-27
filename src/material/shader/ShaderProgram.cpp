@@ -72,7 +72,7 @@ auto compileProgramCode(
     for (const auto& [stage, mod] : stages)
     {
         Timer timer;
-        shader_edit::ShaderDocument doc(mod.getShaderCode());
+        shader_edit::ShaderDocument doc = mod.getShaderCode();
 
         // Set descriptor indices in the shader code
         for (const auto& desc : descriptors)

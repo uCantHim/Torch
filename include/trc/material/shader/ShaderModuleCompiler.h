@@ -4,6 +4,8 @@
 
 #include <string>
 
+#include <shader_tools/ShaderDocument.h>
+
 #include "ShaderModuleBuilder.h"
 #include "ShaderOutputInterface.h"
 #include "ShaderResourceInterface.h"
@@ -22,16 +24,30 @@ namespace trc::shader
         ~ShaderModule() noexcept = default;
 
         /**
-         * @return std::string The GLSL code for the entire shader module.
+         * @brief Create a shader module.
          */
-        auto getShaderCode() const -> const std::string&;
+        ShaderModule(shader_edit::ShaderDocument shaderCode,
+                     ShaderResourceInterface resourceInfo);
+
+        /**
+         * @return The code for the entire shader module. May contain unset
+         *         variables, such as descriptor set index placeholders. The
+         *         shader module has functions to query information about these.
+         */
+        auto getShaderCode() -> shader_edit::ShaderDocument&;
+
+        /**
+         * @return The code for the entire shader module. May contain unset
+         *         variables, such as descriptor set index placeholders. The
+         *         shader module has functions to query information about these.
+         */
+        auto getShaderCode() const -> const shader_edit::ShaderDocument&;
 
     private:
-        friend class ShaderModuleCompiler;
+        // Hide this so it cannot be confused with the module's `getShaderCode`.
+        using ShaderResourceInterface::getGlslCode;
 
-        ShaderModule(std::string shaderCode, ShaderResourceInterface resourceInfo);
-
-        std::string shaderGlslCode;
+        shader_edit::ShaderDocument shaderCode;
     };
 
     class ShaderModuleCompiler
@@ -50,8 +66,5 @@ namespace trc::shader
                             ShaderModuleBuilder builder,
                             const CapabilityConfig& caps)
             -> ShaderModule;
-
-    private:
-        static auto compileSettings(const ShaderModuleBuilder::Settings& settings) -> std::string;
     };
 } // namespace trc::shader

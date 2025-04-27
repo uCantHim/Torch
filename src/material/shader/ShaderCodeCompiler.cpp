@@ -24,6 +24,11 @@ ShaderValueCompiler::ShaderValueCompiler(ResourceResolver& resolver, bool inline
 {
 }
 
+void ShaderValueCompiler::setResourceResolver(ResourceResolver& newResolver)
+{
+    resolver = &newResolver;
+}
+
 auto ShaderValueCompiler::compile(Value value) -> std::pair<std::string, std::string>
 {
     // visit creates the code that computes the returned identfier's value
@@ -150,7 +155,14 @@ auto ShaderValueCompiler::operator()(const code::RuntimeConstant& v) -> std::str
 
 ShaderBlockCompiler::ShaderBlockCompiler(ResourceResolver& resolver)
     :
-    valueCompiler(resolver)
+    defaultValueCompiler(resolver),
+    valueCompiler(defaultValueCompiler)
+{
+}
+
+ShaderBlockCompiler::ShaderBlockCompiler(ShaderValueCompiler& compiler)
+    :
+    valueCompiler(compiler)
 {
 }
 

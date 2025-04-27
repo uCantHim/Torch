@@ -2,7 +2,6 @@
 
 #include <string>
 #include <unordered_map>
-#include <variant>
 
 #include "ShaderCodeBuilder.h"
 
@@ -53,6 +52,11 @@ namespace trc::shader
         explicit ShaderValueCompiler(ResourceResolver& resolver, bool inlineAll = false);
 
         /**
+         * @brief Set a resource resolver.
+         */
+        void setResourceResolver(ResourceResolver& newResolver);
+
+        /**
          * @return std::pair<std::string, std::string> [indentifier, declaration code]
          */
         auto compile(Value value) -> std::pair<std::string, std::string>;
@@ -74,7 +78,7 @@ namespace trc::shader
         auto genIdentifier() -> std::string;
 
         const bool inlineAll{ false };
-        ResourceResolver* resolver;
+        ResourceResolver* resolver{ nullptr };
 
         ui32 nextId{ 0 };
 
@@ -103,6 +107,14 @@ namespace trc::shader
          */
         explicit ShaderBlockCompiler(ResourceResolver& resolver);
 
+        /**
+         * Seed an existing value compiler. Useful if one wants to ensure that
+         * generated IDs are unique across multiple blocks.
+         *
+         * The block compiler will use the supplied value compiler's resolver.
+         */
+        explicit ShaderBlockCompiler(ShaderValueCompiler& compiler);
+
         auto compile(Block block) -> std::string;
 
         auto operator()(const code::Return& v) -> std::string;
@@ -111,6 +123,7 @@ namespace trc::shader
         auto operator()(const code::FunctionCall& v) -> std::string;
 
     private:
-        ShaderValueCompiler valueCompiler;
+        ShaderValueCompiler defaultValueCompiler;
+        ShaderValueCompiler& valueCompiler{ defaultValueCompiler };
     };
 } // namespace trc::shader

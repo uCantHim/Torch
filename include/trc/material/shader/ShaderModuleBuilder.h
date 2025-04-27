@@ -155,6 +155,13 @@ namespace trc::shader
                                  ResourceResolver& resolver)
             -> std::string;
 
+        /**
+         * @brief Compile shader module settings to shader code.
+         *
+         * Settings include stuff like the #version string.
+         */
+        auto compileSettings() const -> std::string;
+
     private:
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
