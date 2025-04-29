@@ -50,8 +50,13 @@ MaterialSpecializationCache::MaterialSpecializationCache(
     :
     base(std::nullopt)
 {
-    for (const auto& [i, prog] : std::views::enumerate(serial.specializations())) {
-        shaderPrograms.at(i)->deserialize(prog.shader_program(), des);
+    for (const auto& [i, specData] : std::views::enumerate(serial.specializations()))
+    {
+        assert(specData.has_shader_program());
+
+        shader::ShaderProgramData prog{};
+        prog.deserialize(specData.shader_program(), des);
+        shaderPrograms[i] = std::move(prog);
     }
 }
 

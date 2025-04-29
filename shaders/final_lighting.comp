@@ -35,7 +35,7 @@ layout (set = 1, binding = 6) restrict buffer FragmentList
     uvec4 fragmentList[];
 };
 
-layout (set = 2, binding = 0, rgba8)  uniform restrict writeonly image2D outputImage;
+layout (set = 2, binding = 0)  uniform restrict writeonly image2D outputImage;
 
 layout (push_constant) uniform PushConstants
 {

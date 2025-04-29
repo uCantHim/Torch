@@ -31,7 +31,7 @@ message ShaderProgram
     {
         ShaderStageBit stage = 2;
 
-        bytes spirv_code = 1;
+        bytes code = 1;
 
         // Maps specialization constant indices to their serialized runtime value
         map<uint32, bytes> specialization_constants = 3;

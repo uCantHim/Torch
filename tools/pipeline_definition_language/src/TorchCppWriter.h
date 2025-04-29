@@ -51,6 +51,7 @@ private:
     {
         std::string combinedFlagType;
         std::string storageName;
+        std::string storageAccessor;
     };
 
     struct TypeRepr

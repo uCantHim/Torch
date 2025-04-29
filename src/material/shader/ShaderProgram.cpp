@@ -249,10 +249,10 @@ auto linkShaderProgram(
 auto ShaderProgramData::serialize() const -> serial::ShaderProgram
 {
     serial::ShaderProgram prog;
-    for (const auto& [stage, mod] : glslCode)
+    for (const auto& [stage, moduleCode] : glslCode)
     {
         auto newModule = prog.add_shader_modules();
-        newModule->set_spirv_code(mod.data(), mod.size() * sizeof(ui32));
+        newModule->set_code(moduleCode.data(), moduleCode.size());
         newModule->set_stage(static_cast<serial::ShaderStageBit>(stage));
 
         if (specConstants.contains(stage))
@@ -292,10 +292,8 @@ void ShaderProgramData::deserialize(
     {
         auto [it, _] = glslCode.try_emplace(static_cast<vk::ShaderStageFlagBits>(mod.stage()));
         auto& code = it->second;
-
-        assert(mod.spirv_code().size() % sizeof(ui32) == 0);
-        code.resize(mod.spirv_code().size() / sizeof(ui32));
-        memcpy(code.data(), mod.spirv_code().data(), mod.spirv_code().size());
+        code.resize(mod.code().size());
+        memcpy(code.data(), mod.code().data(), mod.code().size());
 
         if (!mod.specialization_constants().empty())
         {

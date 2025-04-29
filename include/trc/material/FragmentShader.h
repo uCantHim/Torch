@@ -18,15 +18,15 @@ namespace trc
      */
     namespace MaterialCapability
     {
-        constexpr shader::Capability kVertexWorldPos{ "vertexWorldPos" };
-        constexpr shader::Capability kVertexNormal{ "vertexNormal" };
-        constexpr shader::Capability kVertexUV{ "vertexUV" };
-        constexpr shader::Capability kTangentToWorldSpaceMatrix{ "tangentToWorld" };
+        inline const shader::Capability kVertexWorldPos{ "vertexWorldPos" };
+        inline const shader::Capability kVertexNormal{ "vertexNormal" };
+        inline const shader::Capability kVertexUV{ "vertexUV" };
+        inline const shader::Capability kTangentToWorldSpaceMatrix{ "tangentToWorld" };
 
-        constexpr shader::Capability kCameraWorldPos{ "cameraWorldPos" };
+        inline const shader::Capability kCameraWorldPos{ "cameraWorldPos" };
 
-        constexpr shader::Capability kTime{ "currentTime" };
-        constexpr shader::Capability kTimeDelta{ "frameTime" };
+        inline const shader::Capability kTime{ "currentTime" };
+        inline const shader::Capability kTimeDelta{ "frameTime" };
 
         /**
          * Gives access to an array of texture samplers. The array shall be
@@ -34,7 +34,7 @@ namespace trc
          *
          * Use the `TextureSample` shader function as a default implementation.
          */
-        constexpr shader::Capability kTextureSample{ "trc_mat_textureSample" };
+        inline const shader::Capability kTextureSample{ "trc_mat_textureSample" };
     } // namespace MaterialCapability
 
     /**
@@ -43,12 +43,12 @@ namespace trc
      */
     namespace FragmentCapability
     {
-        constexpr shader::Capability kNextFragmentListIndex{ "frag_allocFragListIndex" };
-        constexpr shader::Capability kMaxFragmentListIndex{ "frag_maxFragListIndex" };
-        constexpr shader::Capability kFragmentListHeadPointerImage{ "frag_fragListPointerImage" };
-        constexpr shader::Capability kFragmentListBuffer{ "frag_fragListBuffer" };
-        constexpr shader::Capability kShadowMatrices{ "frag_shadowMatrixBuffer" };
-        constexpr shader::Capability kLightBuffer{ "frag_lightDataBuffer" };
+        inline const shader::Capability kNextFragmentListIndex{ "frag_allocFragListIndex" };
+        inline const shader::Capability kMaxFragmentListIndex{ "frag_maxFragListIndex" };
+        inline const shader::Capability kFragmentListHeadPointerImage{ "frag_fragListPointerImage" };
+        inline const shader::Capability kFragmentListBuffer{ "frag_fragListBuffer" };
+        inline const shader::Capability kShadowMatrices{ "frag_shadowMatrixBuffer" };
+        inline const shader::Capability kLightBuffer{ "frag_lightDataBuffer" };
     } // namespace FragmentCapability
 
     /**
@@ -57,10 +57,10 @@ namespace trc
      */
     namespace RayHitCapability
     {
-        constexpr shader::Capability kBarycentricCoords{ "rcall_baryCoords" };
-        constexpr shader::Capability kGeometryIndex{ "rcall_geoIndex" };
+        inline const shader::Capability kBarycentricCoords{ "rcall_baryCoords" };
+        inline const shader::Capability kGeometryIndex{ "rcall_geoIndex" };
 
-        constexpr shader::Capability kOutColor{ "rcall_colorOutput" };
+        inline const shader::Capability kOutColor{ "rcall_colorOutput" };
     } // namespace RayHitCapability
 
     /**

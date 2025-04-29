@@ -1,6 +1,7 @@
 #include "TorchCppWriter.h"
 
 #include <algorithm>
+#include <format>
 #include <ranges>
 #include <sstream>
 #include <tuple>
@@ -19,6 +20,7 @@ auto TorchCppWriter::makeGroupInfo(const VariantGroup<T>& group) -> VariantGroup
     return {
         .combinedFlagType=std::move(flagTypeName),
         .storageName=group.baseName + "Storage",
+        .storageAccessor="get_" + group.baseName + "Storage()",
     };
 }
 
@@ -46,14 +48,12 @@ auto TorchCppWriter::makeFlagsType(const VariantGroup<T>& group) -> std::string
 template<typename T>
 void TorchCppWriter::writeSingle(const std::string& name, const T& value, std::ostream& os)
 {
-    // Write storage variable
-    os << makeStoredType<T>() << " " << name << " = " << makeValue(value) << ";";
-
     // Write getter function
     os << nl;
     writeGetterFunctionHead<T>(name, os);
     os << nl << "{"
-       << ++nl << "return " << name << ";"
+       << ++nl << "static " << makeStoredType<T>() << " " << name << "{ " << makeValue(value) << "};"
+       << nl << "return " << name << ";"
        << --nl << "}";
 }
 
@@ -62,9 +62,12 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
 {
     auto groupInfo = makeGroupInfo(group);
 
-    // Write storage array
-    os << "std::array<" << makeStoredType<T>() << ", " << groupInfo.combinedFlagType << "::size()> "
-       << groupInfo.storageName;
+    // Write storage array accessor
+    auto storageArrayType = std::format("std::array<{}, {}::size()>",
+                                        makeStoredType<T>(), groupInfo.combinedFlagType);
+    os << "auto " << groupInfo.storageAccessor << " -> " << storageArrayType << "&"
+       << nl << "{"
+       << ++nl << "static " << storageArrayType << " " << groupInfo.storageName;
 
     // Write data initialization
     os << "{";
@@ -82,7 +85,9 @@ void TorchCppWriter::writeGroup(const VariantGroup<T>& group, std::ostream& os)
     for (const auto& [_, name, variant] : variantsAtIndex) {
         os << nl << makeValue(*variant) << ",";
     }
-    os << --nl << "};" << nl;
+    os << --nl << "};"
+       << nl << "return " << groupInfo.storageName << ";"
+       << --nl << "}" << nl;
 
     // Write getter function
     writeGetterFunction(group, os);
@@ -111,7 +116,7 @@ void TorchCppWriter::writeGetterFunction(const VariantGroup<T>& group, std::ostr
 
     writeGetterFunctionHead(group, os);
     os << nl << "{" << ++nl
-       << "return " << groupInfo.storageName << "[flags.toIndex()];"
+       << "return " << groupInfo.storageAccessor << "[flags.toIndex()];"
        << --nl << "}" << nl;
 }
 
@@ -164,7 +169,7 @@ inline auto TorchCppWriter::makeValue(const ProgramDesc& program) -> std::string
 {
     std::stringstream ss;
     auto writeStage = [this, &ss](const char* stage, const ObjectReference<ShaderDesc>& ref) {
-        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { shaderLoader.load(";
+        ss << nl << "{ vk::ShaderStageFlagBits::e" << stage << ", { getShaderLoader().load(";
         std::visit(VariantVisitor{
             [&](const UniqueName& name) {
                 ss << makeReferenceCall(name);

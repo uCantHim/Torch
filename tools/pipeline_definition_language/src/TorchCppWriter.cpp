@@ -202,7 +202,10 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
 
 void TorchCppWriter::writeStaticData(std::ostream& os)
 {
-    os << "static trc::ShaderLoader shaderLoader("
+    os << "inline auto getShaderLoader() -> trc::ShaderLoader&"
+       << nl << "{"
+       << ++nl
+       << "static trc::ShaderLoader shaderLoader{"
        // Shader source (input) directories:
        << ++nl << "{ " << config.shaderInputDir << ", " << config.shaderOutputDir << " },"
        // Shader binary (output) directory:
@@ -213,7 +216,9 @@ void TorchCppWriter::writeStaticData(std::ostream& os)
         os << "," << nl << config.shaderDatabasePath.value();
     }
 
-    os << --nl << ");";
+    os << --nl << "};"
+       << nl << "return shaderLoader;"
+       << --nl << "}";
 }
 
 

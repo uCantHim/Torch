@@ -60,7 +60,7 @@ namespace trc::util
     }
 
     /**
-     * @brief Create a merged copy of two verctors
+     * @brief Create a merged copy of two vectors
      */
     template<typename T>
     inline auto merged(const std::vector<T>& a, const std::vector<T>& b)
@@ -69,13 +69,13 @@ namespace trc::util
         if (a.size() > b.size())
         {
             auto result = a;
-            result.insert(a.end(), b.begin(), b.end());
+            result.insert(result.end(), b.begin(), b.end());
             return result;
         }
         else
         {
             auto result = b;
-            result.insert(b.end(), a.begin(), a.end());
+            result.insert(result.end(), a.begin(), a.end());
             return result;
         }
     }

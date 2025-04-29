@@ -10,23 +10,23 @@ namespace trc
 
     namespace VertexCapability
     {
-        constexpr shader::Capability kPosition{ "vert_vertexPosition" };
-        constexpr shader::Capability kNormal{ "vert_vertexNormal" };
-        constexpr shader::Capability kTangent{ "vert_vertexTangent" };
-        constexpr shader::Capability kUV{ "vert_vertexUV" };
+        inline const shader::Capability kPosition{ "vert_vertexPosition" };
+        inline const shader::Capability kNormal{ "vert_vertexNormal" };
+        inline const shader::Capability kTangent{ "vert_vertexTangent" };
+        inline const shader::Capability kUV{ "vert_vertexUV" };
 
-        constexpr shader::Capability kBoneIndices{ "vert_boneIndices" };
-        constexpr shader::Capability kBoneWeights{ "vert_boneWeights" };
+        inline const shader::Capability kBoneIndices{ "vert_boneIndices" };
+        inline const shader::Capability kBoneWeights{ "vert_boneWeights" };
 
-        constexpr shader::Capability kModelMatrix{ "vert_modelMatrix" };
-        constexpr shader::Capability kViewMatrix{ "vert_viewMatrix" };
-        constexpr shader::Capability kProjMatrix{ "vert_projMatrix" };
+        inline const shader::Capability kModelMatrix{ "vert_modelMatrix" };
+        inline const shader::Capability kViewMatrix{ "vert_viewMatrix" };
+        inline const shader::Capability kProjMatrix{ "vert_projMatrix" };
 
-        constexpr shader::Capability kAnimIndex{ "vert_animIndex" };
-        constexpr shader::Capability kAnimKeyframes{ "vert_animKeyframes" };
-        constexpr shader::Capability kAnimFrameWeight{ "vert_animFrameWeight" };
-        constexpr shader::Capability kAnimMetaBuffer{ "vert_animMetaBuffer" };
-        constexpr shader::Capability kAnimDataBuffer{ "vert_animDataBuffer" };
+        inline const shader::Capability kAnimIndex{ "vert_animIndex" };
+        inline const shader::Capability kAnimKeyframes{ "vert_animKeyframes" };
+        inline const shader::Capability kAnimFrameWeight{ "vert_animFrameWeight" };
+        inline const shader::Capability kAnimMetaBuffer{ "vert_animMetaBuffer" };
+        inline const shader::Capability kAnimDataBuffer{ "vert_animDataBuffer" };
     };
 
     enum DrawablePushConstIndex : ui32
