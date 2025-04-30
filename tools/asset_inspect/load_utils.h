@@ -7,6 +7,7 @@
 namespace fs = std::filesystem;
 
 #include <trc/assets/AssetBase.h>
+#include <trc/assets/Serializer.h>
 
 template<trc::AssetBaseType T>
 inline auto tryLoad(const fs::path& path) -> std::expected<trc::AssetData<T>, std::string>
@@ -22,13 +23,11 @@ inline auto tryLoad(const fs::path& path) -> std::expected<trc::AssetData<T>, st
     }
 
     // Try to parse asset from file
-    try {
-        trc::AssetData<T> data;
-        data.deserialize(file);
-        return data;
+    auto data = trc::AssetSerializerTraits<T>::deserialize(file);
+    if (data) {
+        return data.value();
     }
-    catch (const std::exception& err) {
-        return std::unexpected("Unable to parse an asset of type \"" + std::string{T::name()}
-                               + "\" from file " + path.string() + ": " + err.what());
-    }
+
+    return std::unexpected("Unable to parse an asset of type \"" + std::string{T::name()}
+                           + "\" from file " + path.string() + ": " + data.error().message);
 }

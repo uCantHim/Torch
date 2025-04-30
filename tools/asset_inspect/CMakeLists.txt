@@ -2,7 +2,7 @@ if (NOT TARGET argparse)
     message(FATAL_ERROR "argparse should be available as a target from the pipeline compiler.")
 endif ()
 
-foreach(ASSET geometry texture)
+foreach(ASSET geometry texture material)
     set(TARGET inspect-${ASSET})
     set(SRC inspect_${ASSET}.cpp)
 
