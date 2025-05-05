@@ -22,15 +22,19 @@ auto trc::util::readLines(std::istream& is) -> std::vector<std::string>
     return result;
 }
 
-auto trc::util::splitString(const std::string& to_str, const char delimiter)
+auto trc::util::splitString(const std::string& str, const char delimiter)
     -> std::vector<std::string>
 {
-    std::vector<std::string> result;
-    std::stringstream _str;
-    _str << to_str;
+    std::stringstream stream;
+    stream << str;
+
     std::string token;
-    while (std::getline(_str, token, delimiter)) {
+    std::vector<std::string> result;
+    while (std::getline(stream, token, delimiter)) {
         result.push_back(std::move(token));
+    }
+    if (str.ends_with(delimiter)) {
+        result.emplace_back();
     }
 
     return result;
@@ -53,16 +57,17 @@ auto trc::util::splitString(const std::string& str, const std::string& delimiter
                 break;
             if (delim == delimiter.end() - 1)
             {
-                result.emplace_back(std::string(tokenStart, i));
+                result.emplace_back(tokenStart, i);
                 tokenStart = temp + 1;
                 i = temp; // Not (temp + 1) here because of the i++ in for-loop
             }
         }
     }
+
     // Append the remainder of the input string
-    auto remainingString = std::string(tokenStart, str.end());
-    if (!remainingString.empty())
-        result.push_back(remainingString);
+    if (tokenStart != str.end() || str.ends_with(delimiter)) {
+        result.emplace_back(tokenStart, str.end());
+    }
 
     return result;
 }
