@@ -1,0 +1,9 @@
+diff --git a/lsp/connection.cpp b/lsp/connection.cpp
+index 5f30049..713c613 100644
+--- a/lsp/connection.cpp
++++ b/lsp/connection.cpp
+@@ -1,3 +1,4 @@
++#include <algorithm>
+ #include <charconv>
+ #include <string_view>
+ #include <lsp/connection.h>

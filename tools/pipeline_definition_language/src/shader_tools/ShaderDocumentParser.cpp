@@ -83,7 +83,7 @@ auto parseVariable(const std::string& line) -> std::vector<Variable>
                 .name=varName,
                 .location{
                     .firstChar=first - 1,
-                    .lastChar=last
+                    .endChar=last
                 }
             });
         }

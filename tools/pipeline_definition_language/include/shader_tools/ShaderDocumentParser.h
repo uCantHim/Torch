@@ -29,7 +29,7 @@ namespace shader_edit
     {
         uint32_t line{ UINT32_MAX };
         size_t firstChar{ 0 };
-        size_t lastChar{ std::string::npos };
+        size_t endChar{ std::string::npos };
     };
 
     /**
