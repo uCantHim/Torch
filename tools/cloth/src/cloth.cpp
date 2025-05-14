@@ -77,7 +77,7 @@ auto compileShader(
     ShaderOutputImpl& outputConfig)
     -> std::expected<CompileResult, CompileError>
 {
-    auto parseResult = parser::parseClothDocument(is);
+    auto parseResult = parser::parseDocument(is);
     if (!parseResult)
     {
         auto& err = parseResult.error();

@@ -89,6 +89,8 @@ void outputErrors(cloth::CompileError& doc, std::optional<std::string> filePath)
                   << " | " << indent(loc.firstChar)
                   << "^" << indent(loc.endChar - loc.firstChar - 1, '~') << "\n";
     }
+
+    exit(1);
 }
 
 constexpr int kInvalidUsageExitcode{ 64 };

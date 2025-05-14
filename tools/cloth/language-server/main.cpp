@@ -40,6 +40,9 @@ int main()
                     .documentHighlightProvider = lsp::DocumentHighlightOptions{
                         .workDoneProgress = false,
                     },
+
+                    // These signal the server's capability for "pull model" diagnostics:
+                    // .diagnosticProvider{}
                 },
                 .serverInfo = lsp::InitializeResultServerInfo{
                     .name = "Cloth language server",
@@ -128,6 +131,19 @@ int main()
             const auto& uri = params.textDocument.uri;
             for (const auto& change : params.contentChanges) {
                 std::visit([&](const auto& c){ documentManager.update(uri, c); }, change);
+            }
+
+            // Send new diagnostics to the client
+            if (auto doc = documentManager.getDocument(uri))
+            {
+                auto diagnostics = doc->makeDiagnostics();
+                msgHandler.sendNotification<lsp::notifications::TextDocument_PublishDiagnostics>(
+                    lsp::notifications::TextDocument_PublishDiagnostics::Params{
+                        .uri=uri,
+                        .diagnostics=std::move(diagnostics),
+                        .version=params.textDocument.version,
+                    }
+                );
             }
         }
     );

@@ -8,6 +8,8 @@
 #include <ranges>
 #include <string_view>
 
+#include <trc_util/StringManip.h>
+
 
 
 namespace cloth::parser
@@ -99,15 +101,13 @@ class Parser
 public:
     Parser() = default;
 
-    void parse(std::istream& is)
+    void parse(std::vector<std::string> document)
     {
-        std::string line;
-        while (std::getline(is, line))
+        for (auto [i, line] : std::views::enumerate(document))
         {
+            currentLine = i;
             parseLine(line);
             lines.emplace_back(std::move(line));
-
-            ++currentLine;
         }
     }
 
@@ -214,7 +214,7 @@ private:
         {
             return std::unexpected(Error{
                 .code=Error::Code::eSyntaxError,
-                .location{ .line=currentLine, .firstChar=lex.pos() - 1, .endChar=lex.pos() },
+                .location{ .line=currentLine, .firstChar=lex.pos() - 2, .endChar=lex.pos() },
                 .message=std::format("Expected symbol {}, got EOF.", kArgumentListEnd)
             });
         }
@@ -307,11 +307,15 @@ auto Result::toDocument() const -> shader_edit::ShaderDocument
     return shader_edit::ShaderDocument{ std::move(res) };
 }
 
-auto parseClothDocument(std::istream& is)
-    -> std::expected<Result, IncompleteResult>
+auto parseDocument(std::istream& is) -> std::expected<Result, IncompleteResult>
+{
+    return parseDocument(trc::util::readLines(is));
+}
+
+auto parseDocument(std::vector<std::string> lines) -> std::expected<Result, IncompleteResult>
 {
     Parser parser;
-    parser.parse(is);
+    parser.parse(std::move(lines));
     return parser.makeResult();
 }
 

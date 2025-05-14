@@ -84,6 +84,6 @@ namespace cloth::parser
         Result partialResult;
     };
 
-    auto parseClothDocument(std::istream& is)
-        -> std::expected<Result, IncompleteResult>;
+    auto parseDocument(std::istream& is) -> std::expected<Result, IncompleteResult>;
+    auto parseDocument(std::vector<std::string> lines) -> std::expected<Result, IncompleteResult>;
 } // namespace cloth

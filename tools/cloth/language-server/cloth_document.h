@@ -5,9 +5,10 @@
 
 #include <lsp/types.h>
 #include <rapidfuzz/fuzz.hpp>
-#include <shader_tools/ShaderDocument.h>
 #include <trc/material/FragmentShader.h>
 #include <trc/material/TorchMaterialSettings.h>
+
+#include <cloth/parser.h>
 
 #include "util.h"
 
@@ -39,6 +40,27 @@ public:
 
         lines.erase(lines.begin() + lineBegin, lines.begin() + lineEnd);
         lines.insert(lines.begin() + lineBegin, change.begin(), change.end());
+    }
+
+    auto makeDiagnostics() const -> std::vector<lsp::Diagnostic>
+    {
+        std::vector<lsp::Diagnostic> res;
+        auto errs = _getParseErrors();
+        if (errs)
+        {
+            for (const auto& err : errs->errors)
+            {
+                const auto loc = err.location;
+                res.emplace_back(lsp::Diagnostic{
+                    .range{ .start{ loc.line, uint(loc.firstChar) }, .end{ loc.line, uint(loc.endChar) } },
+                    .message=err.message,
+                    .severity=lsp::DiagnosticSeverity::Error,
+                    .source="Cloth Language Server",
+                });
+            }
+        }
+
+        return res;
     }
 
     auto makeCompletionSuggestions(const lsp::Position& pos) const
@@ -79,7 +101,7 @@ public:
         if (auto var = findVariableAt(pos))
         {
             const auto loc = var->location;
-            auto content = getVariableDocumentation(var->name);
+            auto content = getVariableDocumentation(var->fullId.id);
 
             return lsp::Hover{
                 .contents = lsp::MarkupContent{
@@ -96,14 +118,15 @@ public:
         return std::nullopt;
     }
 
-    auto findOccurrences(const shader_edit::Variable& var) const
+    auto findOccurrences(const cloth::parser::Variable& var) const
         -> std::vector<lsp::Range>
     {
-        const auto shaderDoc = shader_edit::parseShader(lines);
+        const auto shaderDoc = _getParsedDocument();
 
         std::vector<lsp::Range> res;
-        for (const auto& [_, loc] : shaderDoc.variablesByName.at(var.name))
+        for (const auto& var : shaderDoc.variablesByName.at(var.fullId))
         {
+            const auto loc = var.location;
             res.emplace_back(lsp::Range{
                 .start{ loc.line, static_cast<uint>(loc.firstChar), },
                 .end{ loc.line, static_cast<uint>(loc.endChar), },
@@ -137,13 +160,13 @@ public:
         return line.substr(charPos + 1, pos.character - (charPos + 1));
     }
 
-    auto findVariableAt(const lsp::Position& pos) const -> std::optional<shader_edit::Variable>
+    auto findVariableAt(const lsp::Position& pos) const -> std::optional<cloth::parser::Variable>
     {
-        return findVariableAt(pos, shader_edit::parseShader(lines));
+        return findVariableAt(pos, _getParsedDocument());
     }
 
-    static auto findVariableAt(const lsp::Position& pos, const shader_edit::ParseResult& doc)
-        -> std::optional<shader_edit::Variable>
+    static auto findVariableAt(const lsp::Position& pos, const cloth::parser::Result& doc)
+        -> std::optional<cloth::parser::Variable>
     {
         for (const auto& var : doc.variablesInOrderOfOccurrence)
         {
@@ -176,6 +199,29 @@ public:
         return ss.str();
     }
 
-    // TODO: Store ParseResult with a dirty flag
+    auto _getParsedDocument() const -> cloth::parser::Result
+    {
+        // TODO: Store ParseResult with a dirty flag. Implement a cache here.
+        auto res = cloth::parser::parseDocument(lines);
+        if (res) {
+            return *res;
+        }
+        else {
+            return res.error().partialResult;
+        }
+    }
+
+    auto _getParseErrors() const -> std::optional<cloth::parser::IncompleteResult>
+    {
+        auto res = cloth::parser::parseDocument(lines);
+        if (res) {
+            return std::nullopt;
+        }
+        else {
+            return res.error();
+        }
+    }
+
     std::vector<std::string> lines;
+    //cloth::parser::Result parseResult;
 };
