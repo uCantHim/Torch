@@ -16,6 +16,8 @@
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "DocumentUtil.h"
+#include "document.h"
+#include "parser.h"
 
 
 
@@ -59,14 +61,14 @@ auto ShaderOutputImpl::getParamValues() const
 struct VariableInfo
 {
     std::string name;
-    std::string varName;
+    FullId varName;
 
     std::string shaderId;  // Identifier in shader code that represents the value
     std::string declCode;
 
-    std::vector<shader_edit::Location> orderedOccurrences;
-    shader_edit::Location firstLoc;  // Location of the variable's first occurrence
-    shader_edit::Location lastLoc;   // Location of the variable's last occurrence
+    std::vector<parser::Location> orderedOccurrences;
+    parser::Location firstLoc;  // Location of the variable's first occurrence
+    parser::Location lastLoc;   // Location of the variable's last occurrence
 };
 
 auto compileShader(
@@ -75,7 +77,7 @@ auto compileShader(
     ShaderOutputImpl& outputConfig)
     -> CompileResult
 {
-    shader_edit::ShaderDocument doc{ is };
+    Document doc{ parser::parseClothDocument(is).value() };
 
     trc::shader::ShaderResourceInterfaceBuilder resources{ caps, caps.getCodeBuilder() };
     trc::shader::CapabilityConfigResourceResolver resolver{ resources };
@@ -88,7 +90,7 @@ auto compileShader(
     // Process variables in the shader document
     for (const auto& varName : doc.allVariables())
     {
-        auto split = trc::util::splitString(varName, ':');
+        auto split = trc::util::splitString(varName.id, ':');
         if (split.size() != 2) {
             continue;
         }
@@ -148,7 +150,7 @@ auto compileShader(
         }
     }
 
-    auto lines = doc.compile(true)
+    auto lines = doc.compile(true).value()
                  | std::views::split('\n')
                  | std::ranges::to<std::vector<std::string>>();
 
@@ -210,9 +212,17 @@ auto compileShader(
     code << functionDecls;
 
     // Insert output statements at the end of main
-    const auto main = util::findMain(lines);
-    lines[main->bodyEnd.line].insert(main->bodyEnd.pos, outputStatements);
-    lines[main->bodyEnd.line].insert(main->bodyEnd.pos, "\n// Cloth-generated output statements:\n");
+    if (const auto main = util::findMain(lines))
+    {
+        lines[main->bodyEnd.line].insert(main->bodyEnd.pos, outputStatements);
+        lines[main->bodyEnd.line].insert(main->bodyEnd.pos, "\n// Cloth-generated output statements:");
+    }
+    else {
+        lines.emplace_back("\n// Cloth-generated main function:");
+        lines.emplace_back("void main() {");
+        lines.emplace_back(outputStatements);
+        lines.emplace_back("}");
+    }
 
     // Append original Cloth shader code (modified)
     code << std::ranges::to<std::string>(std::views::join_with(lines, '\n'));

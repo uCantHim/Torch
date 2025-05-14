@@ -9,7 +9,9 @@ endif ()
 
 add_library(cloth
     src/cloth.cpp
+    src/document.cpp
     src/DocumentUtil.cpp
+    src/parser.cpp
 )
 torch_default_compile_options(cloth)
 target_link_libraries(cloth

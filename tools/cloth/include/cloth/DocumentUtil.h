@@ -6,18 +6,6 @@
 
 namespace cloth::util
 {
-    class DocumentWalker
-    {
-    public:
-        auto getCurrentLocation() const -> std::pair<size_t, size_t>;
-
-        auto peek() -> char;
-        auto step() -> char;
-
-        void stepUntilMatch(std::string_view pattern);
-        void skipSpaces();
-    };
-
     struct BlockLocation
     {
         struct Loc
