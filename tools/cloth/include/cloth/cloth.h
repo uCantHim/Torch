@@ -11,6 +11,8 @@
 #include <trc/material/shader/ShaderModuleCompiler.h>
 #include <trc/material/shader/ShaderOutputInterface.h>
 
+#include "parser.h"
+
 namespace cloth
 {
     struct ShaderOutputImpl
@@ -38,9 +40,14 @@ namespace cloth
         std::unordered_map<std::string, trc::shader::code::Value> paramValues;
     };
 
-    // TODO: Error handling
     struct CompileResult {
         trc::shader::ShaderModule shaderModule;
+    };
+
+    struct CompileError
+    {
+        std::vector<parser::Error> errors;
+        std::vector<std::string> initialDocumentLines;
     };
 
     /**
@@ -49,5 +56,5 @@ namespace cloth
     auto compileShader(std::istream& is,
                        trc::shader::CapabilityConfig& caps,
                        ShaderOutputImpl& outputs)
-        -> CompileResult;
+        -> std::expected<CompileResult, CompileError>;
 } // namespace cloth

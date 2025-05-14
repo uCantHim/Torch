@@ -81,7 +81,7 @@ namespace cloth::parser
     struct IncompleteResult
     {
         std::vector<Error> errors;
-        Result result;
+        Result partialResult;
     };
 
     auto parseClothDocument(std::istream& is)

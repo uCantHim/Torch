@@ -9,7 +9,7 @@
 
 namespace cloth
 {
-    struct CompileError
+    struct DocumentError
     {
         std::string message;
     };
@@ -45,7 +45,7 @@ namespace cloth
          * @return A text document on success, or an error on failure.
          */
         auto compile(bool allowUnsetVariables = false) const
-            -> std::expected<std::string, CompileError>;
+            -> std::expected<std::string, DocumentError>;
 
         auto getLine(size_t idx) -> const std::string*;
         auto getLines() -> const std::vector<std::string>&;

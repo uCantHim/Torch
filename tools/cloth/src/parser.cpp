@@ -124,7 +124,7 @@ public:
         }
         return std::unexpected(IncompleteResult{
             .errors=std::move(errors),
-            .result=std::move(res),
+            .partialResult=std::move(res),
         });
     }
 
@@ -164,7 +164,7 @@ private:
         {
             emitError(Error{
                 .code=Error::Code::eSyntaxError,
-                .location{ .line=currentLine, .firstChar=lex.pos(), .endChar=lex.pos(), },
+                .location{ .line=currentLine, .firstChar=var.location.firstChar, .endChar=lex.pos(), },
                 .message="Expected an identifier."
             });
             return;
@@ -214,7 +214,7 @@ private:
         {
             return std::unexpected(Error{
                 .code=Error::Code::eSyntaxError,
-                .location{ .firstChar=lex.pos() - 1, .endChar=lex.pos() },
+                .location{ .line=currentLine, .firstChar=lex.pos() - 1, .endChar=lex.pos() },
                 .message=std::format("Expected symbol {}, got EOF.", kArgumentListEnd)
             });
         }

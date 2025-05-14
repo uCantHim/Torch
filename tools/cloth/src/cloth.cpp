@@ -75,9 +75,19 @@ auto compileShader(
     std::istream& is,
     trc::shader::CapabilityConfig& caps,
     ShaderOutputImpl& outputConfig)
-    -> CompileResult
+    -> std::expected<CompileResult, CompileError>
 {
-    Document doc{ parser::parseClothDocument(is).value() };
+    auto parseResult = parser::parseClothDocument(is);
+    if (!parseResult)
+    {
+        auto& err = parseResult.error();
+        return std::unexpected(CompileError{
+            .errors=std::move(err.errors),
+            .initialDocumentLines=std::move(err.partialResult.lines),
+        });
+    }
+
+    Document doc{ parseResult.value() };
 
     trc::shader::ShaderResourceInterfaceBuilder resources{ caps, caps.getCodeBuilder() };
     trc::shader::CapabilityConfigResourceResolver resolver{ resources };

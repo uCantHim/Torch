@@ -45,13 +45,13 @@ void Document::set(const FullId& name, std::string value)
 }
 
 auto Document::compile(bool allowUnsetVariables) const
-    -> std::expected<std::string, CompileError>
+    -> std::expected<std::string, DocumentError>
 {
     try {
         return doc.compile(allowUnsetVariables);
     }
     catch (shader_edit::CompileError& err) {
-        return std::unexpected(CompileError{ err.what() });
+        return std::unexpected(DocumentError{ err.what() });
     }
 }
 

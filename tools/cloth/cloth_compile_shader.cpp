@@ -10,6 +10,7 @@
 #include <trc_util/Timer.h>
 
 #include <cloth/cloth.h>
+#include <cloth/parser.h>
 
 struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
 {
@@ -51,7 +52,7 @@ struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
     trc::FragmentModule frag;
 };
 
-auto compileToMaterial(std::istream& is) -> trc::MaterialData
+auto compileToMaterial(std::istream& is) -> std::expected<trc::MaterialData, cloth::CompileError>
 {
     auto capabilityConfig = trc::makeFragmentCapabilityConfig();
     auto outputConfig = DeferredFragmentShaderImpl{};
@@ -60,7 +61,34 @@ auto compileToMaterial(std::istream& is) -> trc::MaterialData
     auto res = cloth::compileShader(is, capabilityConfig, outputConfig);
     std::cout << "Cloth shader processed in " << timer.reset() << "ms\n";
 
-    return trc::makeMaterial({ .fragmentModule=res.shaderModule, .transparent=false });
+    if (res) {
+        return trc::makeMaterial({ .fragmentModule=res->shaderModule, .transparent=false });
+    }
+    return std::unexpected(res.error());
+}
+
+void outputErrors(cloth::CompileError& doc, std::optional<std::string> filePath)
+{
+    auto indent = [](size_t n, char c = ' ') { return std::string(n, c); };
+
+    std::cout << "Compile error.\n";
+    for (const auto& err : doc.errors)
+    {
+        const auto& lines = doc.initialDocumentLines;
+        const auto loc = err.location;
+
+        // Error message
+        if (filePath) {
+            std::cout << *filePath << ":";
+        }
+        std::cout << loc.line << ":" << loc.firstChar << ": error: " << err.message << "\n";
+        // Code line
+        std::cout << "  " << loc.line << " | " << lines.at(loc.line) << "\n";
+        // Positional indiator line
+        std::cout << "  " << indent(std::to_string(loc.line).size())
+                  << " | " << indent(loc.firstChar)
+                  << "^" << indent(loc.endChar - loc.firstChar - 1, '~') << "\n";
+    }
 }
 
 constexpr int kInvalidUsageExitcode{ 64 };
@@ -103,15 +131,24 @@ int main(int argc, const char** argv)
     {
         std::ifstream file{ *fileName };
         auto res = compileToMaterial(file);
-
-        std::ofstream outFile{ *fileName + ".out" };
-        trc::AssetSerializerTraits<trc::Material>::serialize(res, outFile);
+        if (res)
+        {
+            std::ofstream outFile{ *fileName + ".out" };
+            trc::AssetSerializerTraits<trc::Material>::serialize(*res, outFile);
+        }
+        else {
+            outputErrors(res.error(), fileName);
+        }
     }
     else {
         auto res = compileToMaterial(std::cin);
-
-        std::ofstream outFile{ program.get("output") };
-        trc::MaterialData::serialize(res, outFile);
+        if (res) {
+            std::ofstream outFile{ program.get("output") };
+            trc::MaterialData::serialize(*res, outFile);
+        }
+        else {
+            outputErrors(res.error(), "STDIN");
+        }
     }
 
     return 0;
