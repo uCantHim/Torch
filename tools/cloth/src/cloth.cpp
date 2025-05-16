@@ -16,6 +16,7 @@
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "DocumentUtil.h"
+#include "builtins.h"
 #include "document.h"
 #include "parser.h"
 
@@ -23,53 +24,6 @@
 
 namespace cloth
 {
-
-void ShaderOutputImpl::defineParameter(const std::string& name, trc::shader::BasicType type)
-{
-    params.try_emplace(name, type);
-}
-
-auto ShaderOutputImpl::getParameters() const
-    -> std::generator<std::pair<std::string_view, trc::shader::BasicType>>
-{
-    co_yield std::ranges::elements_of(params);
-}
-
-auto ShaderOutputImpl::getParameterType(const std::string& param) const
-    -> std::optional<trc::shader::BasicType>
-{
-    auto it = params.find(param);
-    if (it != params.end()) {
-        return it->second;
-    }
-    return std::nullopt;
-}
-
-void ShaderOutputImpl::setParameter(const std::string& param, trc::shader::code::Value value)
-{
-    paramValues[param] = value;
-}
-
-auto ShaderOutputImpl::getParamValues() const
-    -> std::generator<std::pair<std::string_view, trc::shader::code::Value>>
-{
-    co_yield std::ranges::elements_of(paramValues);
-}
-
-
-
-struct VariableInfo
-{
-    std::string name;
-    FullId varName;
-
-    std::string shaderId;  // Identifier in shader code that represents the value
-    std::string declCode;
-
-    std::vector<parser::Location> orderedOccurrences;
-    parser::Location firstLoc;  // Location of the variable's first occurrence
-    parser::Location lastLoc;   // Location of the variable's last occurrence
-};
 
 auto compileShader(
     std::istream& is,
@@ -94,98 +48,73 @@ auto compileShader(
     trc::shader::ShaderValueCompiler valueCompiler{ resolver, false };
     trc::shader::ShaderModuleBuilder moduleBuilder;
 
-    std::vector<VariableInfo> capabilityVariables;
-    std::vector<VariableInfo> outputVariables;
+    std::vector<FullId> outputVariables;
+    std::unordered_map<FullId, trc::shader::code::Value> varImpls;
 
     // Process variables in the shader document
-    for (const auto& varName : doc.allVariables())
+    BuiltinProvider clothImpl;
+    for (const auto& varId : doc.allVariables())
     {
-        auto split = trc::util::splitString(varName.id, ':');
-        if (split.size() != 2) {
-            continue;
-        }
-
-        const auto locs = doc.findOccurrences(varName)
-            | std::ranges::to<std::vector>();
-        VariableInfo var{
-            .name=split[1],
-            .varName=varName,
-            .shaderId{},   // Will be generated later
-            .declCode{},   // Will be generated later
-            .orderedOccurrences=locs,
-            .firstLoc=locs.front(),
-            .lastLoc=locs.back(),
-        };
-
-        // Categorize variables by type
-        if (split[0] == "cap")
+        auto value = clothImpl.makeValue(varId, {}, moduleBuilder);
+        if (value)
         {
-            const trc::shader::Capability cap{ var.name };
-            const bool hasCap = caps.hasCapability(cap);
-            if (hasCap)
-            {
-                auto access = resources.queryCapability(cap);
-                auto [id, decl] = valueCompiler.compile(access);
-                doc.set(var.varName, id);
-
-                var.shaderId = std::move(id);
-                var.declCode = std::move(decl);
-                capabilityVariables.emplace_back(std::move(var));
-            }
-            else {
-                trc::log::error << "Capability \"" << cap.getName()
-                                << "\" is not defined by the shader implementation.\n";
-            }
-        }
-        else if (split[0] == "out")
-        {
-            const auto type = outputConfig.getParameterType(var.name);
-            if (type)
-            {
-                auto value = moduleBuilder.makeConstant(*type);
-                auto [id, decl] = valueCompiler.compile(value);
-                doc.set(var.varName, id);
-
-                var.shaderId = std::move(id);
-                var.declCode = std::move(decl);
-                outputVariables.emplace_back(std::move(var));
-            }
-            else {
-                trc::log::error << "Output parameter \"" << var.name
-                                << "\" is not defined by the shader implementation.\n";
+            varImpls.try_emplace(varId, value.value());
+            if (varId.nsQualifier && varId.nsQualifier == "out") {
+                outputVariables.emplace_back(varId);
             }
         }
         else {
-            trc::log::warn << "Variable type \"" << split[0] << "\" not recognized. Skipping.\n";
+            trc::log::warn << "Cloth built-in \"" << varId.id << "\" not defined: "
+                           << value.error().message << ". Skipping.";
         }
     }
 
-    auto lines = doc.compile(true).value()
+    // Generate code for Cloth built-ins.
+    std::unordered_map<FullId, std::string> shaderId;
+    std::unordered_map<FullId, std::string> declCode;
+    for (const auto& [var, value] : varImpls)
+    {
+        // Generate code for the variable's value.
+        auto [id, decl] = valueCompiler.compile(value);
+        doc.set(var, id);
+        shaderId.try_emplace(var, std::move(id));
+        declCode.try_emplace(var, std::move(decl));
+    }
+
+    // Create document version with all variables set.
+    auto lines = doc.compile(false).value()
                  | std::views::split('\n')
                  | std::ranges::to<std::vector<std::string>>();
 
     // Sort variables by first occurrence
-    auto allVars = trc::util::merged(capabilityVariables, outputVariables);
-    std::ranges::sort(allVars, [](auto& a, auto& b){ return a.firstLoc.line < b.firstLoc.line; });
+    auto firstOccurrences = doc.allVariables()
+        | std::views::transform([&doc](auto&& id) {
+            auto firstOcc = *doc.findOccurrences(id).begin();
+            return std::make_pair(id, firstOcc);
+        })
+        | std::ranges::to<std::vector>();
+    std::ranges::sort(firstOccurrences, [](auto& a, auto& b){ return a.second.line < b.second.line; });
 
     // Insert declaration code for variables (both $cap and $out variables)
     // before the variable's first occurrence.
-    for (size_t insertedLines = 0; auto& var : allVars)
+    for (size_t insertedLines = 0; const auto& [var, loc] : firstOccurrences)
     {
-        auto& declCode = var.declCode;
-        const auto lineIdx = var.firstLoc.line + insertedLines;
-        if (!declCode.empty())
+        auto& code = declCode.at(var);
+
+        // Insert declaration code before the variable's first occurrence.
+        const auto lineIdx = loc.line + insertedLines;
+        if (!code.empty())
         {
             // Make the output a bit nicer
-            if (declCode.ends_with('\n')) {
-                declCode.pop_back();
+            if (code.ends_with('\n')) {
+                code.pop_back();
             }
             if (auto indent = lines[lineIdx].find_first_not_of(' '); indent != std::string::npos) {
-                declCode.insert(0, indent, ' ');
+                code.insert(0, indent, ' ');
             }
 
             // Insert declaration code for the output variable
-            lines.insert(lines.begin() + lineIdx, declCode);
+            lines.insert(lines.begin() + lineIdx, code);
             ++insertedLines;
         }
     }
@@ -193,8 +122,7 @@ auto compileShader(
     // Generate output parameter implementations
     for (const auto& var : outputVariables)
     {
-        // Only process output parameters
-        auto id = moduleBuilder.makeExternalIdentifier(var.shaderId);
+        auto id = moduleBuilder.makeExternalIdentifier(shaderId.at(var));
         outputConfig.setParameter(var.name, id);
     }
     auto outputInterface = outputConfig.buildShaderOutputs(moduleBuilder);
@@ -225,7 +153,7 @@ auto compileShader(
     if (const auto main = util::findMain(lines))
     {
         lines[main->bodyEnd.line].insert(main->bodyEnd.pos, outputStatements);
-        lines[main->bodyEnd.line].insert(main->bodyEnd.pos, "\n// Cloth-generated output statements:");
+        lines[main->bodyEnd.line].insert(main->bodyEnd.pos, "\n// Cloth-generated output statements:\n");
     }
     else {
         lines.emplace_back("\n// Cloth-generated main function:");
@@ -237,8 +165,17 @@ auto compileShader(
     // Append original Cloth shader code (modified)
     code << std::ranges::to<std::string>(std::views::join_with(lines, '\n'));
 
+    // Debug:
+    //std::cout << "\nFinal shader code:\n" << code.str() << "\n";
+
+    /*
+     * Note: Because we only output a single shader module (not a full shader
+     * program), the final code generated here is likely to contain unset
+     * variables, such as descriptor index placeholders. These will be set
+     * during shader program linking.
+     */
     return CompileResult{
-        .shaderModule{ shader_edit::ShaderDocument{ code.str() }, shaderResources },
+        .shaderModule{ shader_edit::ShaderDocument{ code.str() }, std::move(shaderResources) },
     };
 }
 

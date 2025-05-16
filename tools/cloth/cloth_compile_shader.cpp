@@ -14,16 +14,6 @@
 
 struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
 {
-    DeferredFragmentShaderImpl()
-    {
-        defineParameter("color", glm::vec4{});
-        defineParameter("normal", glm::vec3{});
-        defineParameter("specularFactor", float{});
-        defineParameter("emissive", bool{});
-        defineParameter("roughness", float{});
-        defineParameter("metallicness", float{});
-    }
-
     void setParameter(const std::string& outputName,
                       trc::shader::code::Value value) override
     {

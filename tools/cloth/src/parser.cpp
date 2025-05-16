@@ -16,6 +16,7 @@ namespace cloth::parser
 {
 
 constexpr std::string_view kVarDeclStart = "$";
+constexpr std::string_view kNamespaceSep = ":";
 constexpr std::string_view kCommentStart = "//";
 constexpr std::string_view kArgumentListStart = "[";
 constexpr std::string_view kArgumentListEnd = "]";
@@ -163,19 +164,12 @@ private:
         if (id.empty())
         {
             emitError(Error{
-                .code=Error::Code::eSyntaxError,
                 .location{ .line=currentLine, .firstChar=var.location.firstChar, .endChar=lex.pos(), },
                 .message="Expected an identifier."
             });
             return;
         }
-
-        auto split = std::views::split(id, ':') | std::ranges::to<std::vector<std::string>>();
-        assert(!split.empty());
-        var.id = split.back();
-        var.fullId.id = id;
-        var.namespaces = std::move(split);
-        var.namespaces.pop_back();
+        var.id = FullId::fromString(id, kNamespaceSep);
 
         // Parse argument list
         if (auto args = parseArgumentList(lex))
@@ -213,8 +207,7 @@ private:
         if (!content)
         {
             return std::unexpected(Error{
-                .code=Error::Code::eSyntaxError,
-                .location{ .line=currentLine, .firstChar=lex.pos() - 2, .endChar=lex.pos() },
+                .location{ .line=currentLine, .firstChar=lex.pos() - 1, .endChar=lex.pos() },
                 .message=std::format("Expected symbol {}, got EOF.", kArgumentListEnd)
             });
         }
@@ -264,7 +257,7 @@ private:
     void emitVariable(Variable&& var)
     {
         variablesInOrderOfOccurrence.emplace_back(var);
-        auto [it, _] = variablesByName.try_emplace(var.fullId);
+        auto [it, _] = variablesByName.try_emplace(var.id);
         it->second.emplace_back(var);
     }
 
@@ -282,7 +275,7 @@ auto Result::toDocument() const -> shader_edit::ShaderDocument
     {
         const auto loc = var.location;
         return shader_edit::Variable{
-            .name=var.fullId.id,
+            .name=var.id.id,
             .location{ .line=loc.line, .firstChar=loc.firstChar, .endChar=loc.endChar, },
         };
     };

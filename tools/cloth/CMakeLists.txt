@@ -8,6 +8,7 @@ endif ()
 ################################################################################
 
 add_library(cloth
+    src/builtins.cpp
     src/cloth.cpp
     src/document.cpp
     src/DocumentUtil.cpp

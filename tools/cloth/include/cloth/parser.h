@@ -24,13 +24,6 @@ namespace cloth::parser
 
     struct Error
     {
-        enum class Code
-        {
-            eSyntaxError,
-            eTypeError,
-        };
-
-        Code code;
         Location location;
         std::string message;
     };
@@ -49,17 +42,14 @@ namespace cloth::parser
         /**
          * String:     The string's content, without enclosing quotes.
          * Expression: The expression code as a string.
-         * Variable:   The variable's full ID
+         * Variable:   The variable's full ID.
          */
         std::string content;
     };
 
     struct Variable
     {
-        std::string id;
-        FullId fullId;
-        std::vector<std::string> namespaces;
-
+        FullId id;
         std::vector<Argument> arguments;
 
         Location location;

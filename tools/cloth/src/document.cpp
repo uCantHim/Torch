@@ -24,7 +24,7 @@ auto Document::allVariables() -> std::generator<const FullId&>
 auto Document::unsetVariables() -> std::generator<const FullId&>
 {
     for (const auto& name : doc.unsetVariables()) {
-        co_yield FullId{ name };
+        co_yield FullId::fromString(name);
     }
 }
 
@@ -53,6 +53,19 @@ auto Document::compile(bool allowUnsetVariables) const
     catch (shader_edit::CompileError& err) {
         return std::unexpected(DocumentError{ err.what() });
     }
+}
+
+auto Document::getLine(size_t idx) -> const std::string*
+{
+    if (idx < parseData.lines.size()) {
+        return &parseData.lines.at(idx);
+    }
+    return nullptr;
+}
+
+auto Document::getLines() -> const std::vector<std::string>&
+{
+    return parseData.lines;
 }
 
 } // namespace shader_edit

@@ -101,7 +101,7 @@ public:
         if (auto var = findVariableAt(pos))
         {
             const auto loc = var->location;
-            auto content = getVariableDocumentation(var->fullId.id);
+            auto content = getVariableDocumentation(var->id.id);
 
             return lsp::Hover{
                 .contents = lsp::MarkupContent{
@@ -124,7 +124,7 @@ public:
         const auto shaderDoc = _getParsedDocument();
 
         std::vector<lsp::Range> res;
-        for (const auto& var : shaderDoc.variablesByName.at(var.fullId))
+        for (const auto& var : shaderDoc.variablesByName.at(var.id))
         {
             const auto loc = var.location;
             res.emplace_back(lsp::Range{
