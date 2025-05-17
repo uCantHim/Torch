@@ -41,13 +41,14 @@ inline auto shaderKindFromExtension(const fs::path& path)
 auto generateSpirv(
     const std::string& code,
     const fs::path& inputFilePath,
-    const shaderc::CompileOptions& opts)
+    const shaderc::CompileOptions& opts,
+    std::optional<shaderc_shader_kind> shaderKind)
     -> shaderc::SpvCompilationResult
 {
     shaderc::Compiler compiler;
     auto result = compiler.CompileGlslToSpv(
         code,
-        shaderKindFromExtension(inputFilePath),
+        shaderKind ? *shaderKind : shaderKindFromExtension(inputFilePath),
         inputFilePath.string().c_str(),
         opts
     );
