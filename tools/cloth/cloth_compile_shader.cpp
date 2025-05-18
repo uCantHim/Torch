@@ -126,7 +126,7 @@ int main(int argc, const char** argv)
         if (res)
         {
             std::ofstream outFile{ *fileName + ".out" };
-            trc::AssetSerializerTraits<trc::Material>::serialize(*res, outFile);
+            trc::serializeAsset(*res, outFile);
         }
         else {
             outputErrors(res.error(), fileName);
@@ -136,7 +136,7 @@ int main(int argc, const char** argv)
         auto res = compileToMaterial(std::cin);
         if (res) {
             std::ofstream outFile{ program.get("output") };
-            trc::MaterialData::serialize(*res, outFile);
+            trc::serializeAsset(*res, outFile);
         }
         else {
             outputErrors(res.error(), "STDIN");

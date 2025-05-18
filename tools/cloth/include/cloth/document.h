@@ -1,11 +1,11 @@
 #pragma once
 
-#include <expected>
 #include <generator>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "parser.h"
-#include "types.h"
 
 namespace cloth
 {
@@ -15,7 +15,10 @@ namespace cloth
     };
 
     /**
-     * @brief A parsed Cloth document.
+     * @brief A Cloth document.
+     *
+     * Handles variable replacement and provides some information about
+     * variables in the document.
      */
     class Document
     {
@@ -24,37 +27,34 @@ namespace cloth
 
         explicit Document(parser::Result parseResult);
 
-        auto allVariables() -> std::generator<const FullId&>;
-        auto unsetVariables() -> std::generator<const FullId&>;
+        auto allVariables() const -> std::generator<const parser::Variable&>;
 
-        auto findOccurrences(const FullId& varName)
+        /**
+         * @return All references to the same variable value in the document,
+         *         *including* the first one.
+         */
+        auto findAllReferences(const parser::Variable& varName) const
             -> std::generator<parser::Location>;
 
         /**
          * @brief Set the value of a variable
          */
-        void set(const FullId& name, std::string value);
+        void set(const parser::Variable& var, const std::string& value);
 
         /**
          * @brief Compile variable settings into a document.
          *
-         * @param bool allowUnsetVariables If false, return an error if
-         *        the document has one or more variables for which no value
-         *        has been set.
-         *
-         * @return A text document on success, or an error on failure.
+         * @return A text document.
          */
-        auto compile(bool allowUnsetVariables = false) const
-            -> std::expected<std::string, DocumentError>;
+        auto compile() const -> std::string;
 
-        auto getLine(size_t idx) -> const std::string*;
-        auto getLines() -> const std::vector<std::string>&;
+        auto getLines() const -> const std::vector<std::string>&;
 
     private:
         /** Stores the entire document and all variables discovered during parsing. */
         parser::Result parseData;
 
-        /** The underlying document. I don't want to duplicate the implementations. */
-        shader_edit::ShaderDocument doc;
+        /** Stores substitution text for all locations that require substitution. */
+        std::unordered_map<parser::Location, std::string> variableValues;
     };
 } // namespace cloth

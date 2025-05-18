@@ -4,6 +4,7 @@
 #include <iostream>
 #include <optional>
 #include <ranges>
+#include <utility>
 
 #include <shader_tools/ShaderDocument.h>
 #include <trc/base/Logging.h>
@@ -25,82 +26,207 @@
 namespace cloth
 {
 
+struct BuiltinCompilationResult
+{
+    std::vector<const parser::Variable*> outputVariables;
+    std::unordered_map<const parser::Variable*, trc::shader::code::Value> varImpls;
+};
+
+/**
+ * Compile a variable to a shader code expression.
+ *
+ * This pushes the generated code into the respective arrays `varImpls` and
+ * `outputVariables` as a side effect because it calls itself recursively
+ * for the variable's arguments.
+ */
+auto compileVariable(
+    const parser::Variable& var,
+    BuiltinProvider& clothImpl,
+    trc::shader::ShaderModuleBuilder& moduleBuilder)
+    -> std::expected<trc::shader::code::Value, CompileError>
+{
+    auto error = [](parser::Error&& err) {
+        return std::unexpected(CompileError{ .errors{ std::move(err) }, .initialDocumentLines{} });
+    };
+
+    // Perform some upfront validation on the argument list's shape.
+    auto builtin = clothImpl.getDefinition(var.id);
+    if (builtin == nullptr)
+    {
+        return error({
+            .location=var.location,
+            .message=std::format("\"{}\" is not a Cloth built-in.", var.id.id),
+        });
+    }
+
+    if (var.arguments.size() != builtin->args.size())
+    {
+        return error({
+            .location=var.location,
+            .message=std::format("\"{}\" expects {} argument(s), but got {}.",
+                                 builtin->fullId,
+                                 builtin->args.size(),
+                                 var.arguments.size()),
+        });
+    }
+
+    // Compile arguments to values.
+    auto compileArg = [&](const parser::Argument& arg)
+        -> std::expected<Builtin::ArgValue, CompileError>
+    {
+        switch (arg.type)
+        {
+        case parser::Argument::Type::eVariable:
+            return compileVariable(std::any_cast<const parser::Variable&>(arg.content),
+                                   clothImpl,
+                                   moduleBuilder)
+                .transform([](auto val){ return Builtin::ArgValue{ val }; });
+        case parser::Argument::Type::eString:
+            return trc::AssetPath{ std::any_cast<std::string>(arg.content) };
+        case parser::Argument::Type::eExternalExpression:
+            return moduleBuilder.makeExternalIdentifier(std::any_cast<std::string>(arg.content));
+        }
+        std::unreachable();
+    };
+
+    std::vector<Builtin::ArgValue> argValues;
+    for (const auto& arg : var.arguments)
+    {
+        auto value = compileArg(arg);
+        if (value) {
+            argValues.emplace_back(std::move(*value));
+        }
+        else {
+            return std::unexpected(value.error());
+        }
+    }
+
+    // Create final value.
+    auto value = clothImpl.makeValue(var.id, argValues, moduleBuilder);
+    if (value) {
+        return *value;
+    }
+    return error(parser::Error{
+        var.location,
+        std::format("Unable to process item \"{}\": {}", var.id.id, value.error().message)
+    });
+};
+
+auto compileBuiltins(
+    const Document& doc,
+    BuiltinProvider& clothImpl,
+    trc::shader::ShaderModuleBuilder& moduleBuilder)
+    -> std::expected<BuiltinCompilationResult, CompileError>
+{
+    std::vector<parser::Error> errors;
+
+    std::vector<const parser::Variable*> outputVariables;
+    std::unordered_map<const parser::Variable*, trc::shader::code::Value> varImpls;
+
+    for (const auto& var : doc.allVariables())
+    {
+        auto value = compileVariable(var, clothImpl, moduleBuilder);
+        if (value)
+        {
+            varImpls.try_emplace(&var, value.value());
+            if (var.id.nsQualifier && var.id.nsQualifier == "out") {
+                outputVariables.emplace_back(&var);
+            }
+        }
+        else {
+            trc::util::merge(errors, value.error().errors);
+        }
+    }
+
+    if (!errors.empty()) {
+        return std::unexpected(CompileError{ std::move(errors), doc.getLines() });
+    }
+    return BuiltinCompilationResult{
+        .outputVariables=std::move(outputVariables),
+        .varImpls=std::move(varImpls),
+    };
+}
+
 auto compileShader(
     std::istream& is,
     trc::shader::CapabilityConfig& caps,
     ShaderOutputImpl& outputConfig)
     -> std::expected<CompileResult, CompileError>
 {
+    // Return both parse- and compile errors
+    std::vector<cloth::parser::Error> errors;
+
+    // Parse document
     auto parseResult = parser::parseDocument(is);
+    if (!parseResult) {
+        errors = std::move(parseResult.error().errors);
+    }
+
+    // Compile document to shader module
+    auto parsed = parseResult ? *parseResult : parseResult.error().partialResult;
+    auto compileResult = compileShader(parsed, caps, outputConfig);
+    if (!compileResult)
+    {
+        return std::unexpected(CompileError{
+            .errors=trc::util::merged(compileResult.error().errors, errors),
+            .initialDocumentLines=std::move(parsed.lines),
+        });
+    }
     if (!parseResult)
     {
-        auto& err = parseResult.error();
         return std::unexpected(CompileError{
-            .errors=std::move(err.errors),
-            .initialDocumentLines=std::move(err.partialResult.lines),
+            .errors=std::move(errors),
+            .initialDocumentLines=std::move(parsed.lines),
         });
     }
 
-    Document doc{ parseResult.value() };
+    return compileResult.value();
+}
 
+auto compileShader(const parser::Result& parseResult,
+                   trc::shader::CapabilityConfig& caps,
+                   ShaderOutputImpl& outputConfig)
+    -> std::expected<CompileResult, CompileError>
+{
+    Document doc{ parseResult };
+    trc::shader::ShaderModuleBuilder moduleBuilder;
+
+    // Generate values for Cloth built-ins.
+    BuiltinProvider clothImpl;
+    auto builtinCompileResult = compileBuiltins(doc, clothImpl, moduleBuilder);
+    if (!builtinCompileResult) {
+        return std::unexpected(builtinCompileResult.error());
+    }
+    auto& [outputVariables, varImpls] = *builtinCompileResult;
+
+    // Generate and insert code into document
     trc::shader::ShaderResourceInterfaceBuilder resources{ caps, caps.getCodeBuilder() };
     trc::shader::CapabilityConfigResourceResolver resolver{ resources };
     trc::shader::ShaderValueCompiler valueCompiler{ resolver, false };
-    trc::shader::ShaderModuleBuilder moduleBuilder;
 
-    std::vector<FullId> outputVariables;
-    std::unordered_map<FullId, trc::shader::code::Value> varImpls;
-
-    // Process variables in the shader document
-    BuiltinProvider clothImpl;
-    for (const auto& varId : doc.allVariables())
-    {
-        auto value = clothImpl.makeValue(varId, {}, moduleBuilder);
-        if (value)
-        {
-            varImpls.try_emplace(varId, value.value());
-            if (varId.nsQualifier && varId.nsQualifier == "out") {
-                outputVariables.emplace_back(varId);
-            }
-        }
-        else {
-            trc::log::warn << "Cloth built-in \"" << varId.id << "\" not defined: "
-                           << value.error().message << ". Skipping.";
-        }
-    }
-
-    // Generate code for Cloth built-ins.
-    std::unordered_map<FullId, std::string> shaderId;
-    std::unordered_map<FullId, std::string> declCode;
+    std::unordered_map<parser::Location, std::string> shaderId;
+    std::vector<std::pair<parser::Location, std::string>> declCode;
     for (const auto& [var, value] : varImpls)
     {
         // Generate code for the variable's value.
         auto [id, decl] = valueCompiler.compile(value);
-        doc.set(var, id);
-        shaderId.try_emplace(var, std::move(id));
-        declCode.try_emplace(var, std::move(decl));
+        doc.set(*var, id);
+        shaderId.try_emplace(var->location, std::move(id));
+        declCode.emplace_back(var->location, std::move(decl));
     }
 
     // Create document version with all variables set.
-    auto lines = doc.compile(false).value()
+    auto lines = doc.compile()
                  | std::views::split('\n')
                  | std::ranges::to<std::vector<std::string>>();
 
-    // Sort variables by first occurrence
-    auto firstOccurrences = doc.allVariables()
-        | std::views::transform([&doc](auto&& id) {
-            auto firstOcc = *doc.findOccurrences(id).begin();
-            return std::make_pair(id, firstOcc);
-        })
-        | std::ranges::to<std::vector>();
-    std::ranges::sort(firstOccurrences, [](auto& a, auto& b){ return a.second.line < b.second.line; });
+    // Sort declaration code by location
+    std::ranges::sort(declCode, [](auto& a, auto& b){ return a.first < b.first; });
 
     // Insert declaration code for variables (both $cap and $out variables)
     // before the variable's first occurrence.
-    for (size_t insertedLines = 0; const auto& [var, loc] : firstOccurrences)
+    for (size_t insertedLines = 0; auto& [loc, code] : declCode)
     {
-        auto& code = declCode.at(var);
-
         // Insert declaration code before the variable's first occurrence.
         const auto lineIdx = loc.line + insertedLines;
         if (!code.empty())
@@ -122,8 +248,8 @@ auto compileShader(
     // Generate output parameter implementations
     for (const auto& var : outputVariables)
     {
-        auto id = moduleBuilder.makeExternalIdentifier(shaderId.at(var));
-        outputConfig.setParameter(var.name, id);
+        auto id = moduleBuilder.makeExternalIdentifier(shaderId.at(var->location));
+        outputConfig.setParameter(var->id.name, id);
     }
     auto outputInterface = outputConfig.buildShaderOutputs(moduleBuilder);
 
@@ -166,7 +292,7 @@ auto compileShader(
     code << std::ranges::to<std::string>(std::views::join_with(lines, '\n'));
 
     // Debug:
-    //std::cout << "\nFinal shader code:\n" << code.str() << "\n";
+    // std::cout << "\nFinal shader code:\n" << code.str() << "\n";
 
     /*
      * Note: Because we only output a single shader module (not a full shader

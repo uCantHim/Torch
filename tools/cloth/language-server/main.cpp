@@ -5,8 +5,69 @@
 #include <lsp/io/standardio.h>
 #include <lsp/messages.h>
 #include <lsp/messagehandler.h>
+#include <trc/material/FragmentShader.h>
+#include <trc/material/TorchMaterialSettings.h>
 
+#include "backend_config.h"
 #include "textdocument_manager.h"
+
+/**
+ * Uses the deferred fragment shader implementation as the default backend.
+ */
+class DefaultTorchBackend : public BackendConfig
+{
+    auto makeCapabilityConfig() -> trc::shader::CapabilityConfig override
+    {
+        return trc::makeFragmentCapabilityConfig();
+    }
+
+    auto makeOutputConfig() -> std::unique_ptr<cloth::ShaderOutputImpl> override
+    {
+        return std::make_unique<DeferredFragmentShaderImpl>();
+    }
+
+    struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
+    {
+        void setParameter(const std::string& outputName,
+                          trc::shader::code::Value value) override
+        {
+            using Param = trc::FragmentModule::Parameter;
+            static const std::unordered_map<std::string, Param> map{
+                { "color", Param::eColor },
+                { "normal", Param::eNormal },
+                { "specularFactor", Param::eSpecularFactor },
+                { "metallicness", Param::eMetallicness },
+                { "roughness", Param::eRoughness },
+                { "emissive", Param::eEmissive },
+            };
+
+            if (map.contains(outputName)) {
+                frag.setParameter(map.at(outputName), value);
+            }
+        }
+
+        auto buildShaderOutputs(trc::shader::ShaderModuleBuilder& builder)
+            -> trc::shader::ShaderOutputInterface override
+        {
+            const bool transparent = false;
+            return frag.buildOutputs(builder, transparent);
+        }
+
+        trc::FragmentModule frag;
+    };
+};
+
+void sendDiagnostics(lsp::MessageHandler& msgHandler, const ClothDocument& doc)
+{
+    auto diagnostics = doc.makeDiagnostics();
+    msgHandler.sendNotification<lsp::notifications::TextDocument_PublishDiagnostics>(
+        lsp::notifications::TextDocument_PublishDiagnostics::Params{
+            .uri=doc.uri,
+            .diagnostics=std::move(diagnostics),
+            .version=std::nullopt,
+        }
+    );
+}
 
 int main()
 {
@@ -17,6 +78,7 @@ int main()
     log << "Cloth language server started." << std::endl;
 
     TextdocumentManager documentManager{ log };
+    auto engineBackend = std::make_shared<DefaultTorchBackend>();
 
     msgHandler.add<lsp::requests::Initialize>(
         [](const lsp::MessageId& /*id*/, lsp::requests::Initialize::Params&& /*params*/)
@@ -119,7 +181,12 @@ int main()
         {
             log << "Opened text document \"" << params.textDocument.uri.toString() << "\""
                 << " [language type: " << params.textDocument.languageId << "]." << std::endl;
-            documentManager.open(std::move(params.textDocument));
+            documentManager.open(std::move(params.textDocument), engineBackend);
+
+            // Send initial diagnostics to the client
+            if (auto doc = documentManager.getDocument(params.textDocument.uri)) {
+                sendDiagnostics(msgHandler, *doc);
+            }
         }
     );
     msgHandler.add<lsp::notifications::TextDocument_DidChange>(
@@ -134,16 +201,8 @@ int main()
             }
 
             // Send new diagnostics to the client
-            if (auto doc = documentManager.getDocument(uri))
-            {
-                auto diagnostics = doc->makeDiagnostics();
-                msgHandler.sendNotification<lsp::notifications::TextDocument_PublishDiagnostics>(
-                    lsp::notifications::TextDocument_PublishDiagnostics::Params{
-                        .uri=uri,
-                        .diagnostics=std::move(diagnostics),
-                        .version=params.textDocument.version,
-                    }
-                );
+            if (auto doc = documentManager.getDocument(params.textDocument.uri)) {
+                sendDiagnostics(msgHandler, *doc);
             }
         }
     );

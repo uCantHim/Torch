@@ -7,17 +7,29 @@
 #include <rapidfuzz/fuzz.hpp>
 #include <trc/material/FragmentShader.h>
 #include <trc/material/TorchMaterialSettings.h>
+#include <trc_util/algorithm/VectorTransform.h>
 
+#include <cloth/builtins.h>
+#include <cloth/cloth.h>
 #include <cloth/parser.h>
 
+#include "backend_config.h"
 #include "util.h"
 
 class ClothDocument
 {
 public:
-    explicit ClothDocument(std::string text)
-        : lines(toLines(text))
+    explicit ClothDocument(std::string text,
+                           lsp::FileURI _uri,
+                           std::shared_ptr<BackendConfig> _backend)
+        :
+        uri(std::move(_uri)),
+        backend(_backend),
+        lines(toLines(text))
     {
+        cloth::BuiltinProvider provider;
+        builtins = std::ranges::to<std::vector>(provider.getAllDefinitions());
+        std::ranges::sort(builtins, [](auto& a, auto& b){ return a.fullId < b.fullId; });
     }
 
     void replace(const lsp::Range& range, const std::string& text)
@@ -45,19 +57,15 @@ public:
     auto makeDiagnostics() const -> std::vector<lsp::Diagnostic>
     {
         std::vector<lsp::Diagnostic> res;
-        auto errs = _getParseErrors();
-        if (errs)
+        for (const auto& err : _getCompileErrors())
         {
-            for (const auto& err : errs->errors)
-            {
-                const auto loc = err.location;
-                res.emplace_back(lsp::Diagnostic{
-                    .range{ .start{ loc.line, uint(loc.firstChar) }, .end{ loc.line, uint(loc.endChar) } },
-                    .message=err.message,
-                    .severity=lsp::DiagnosticSeverity::Error,
-                    .source="Cloth Language Server",
-                });
-            }
+            const auto loc = err.location;
+            res.emplace_back(lsp::Diagnostic{
+                .range{ .start{ loc.line, uint(loc.firstChar) }, .end{ loc.line, uint(loc.endChar) } },
+                .message=err.message,
+                .severity=lsp::DiagnosticSeverity::Error,
+                .source="Cloth Language Server",
+            });
         }
 
         return res;
@@ -66,30 +74,22 @@ public:
     auto makeCompletionSuggestions(const lsp::Position& pos) const
         -> std::vector<lsp::CompletionItem>
     {
-        static const std::vector<trc::shader::Capability> allCaps{
-            trc::MaterialCapability::kCameraWorldPos,
-            trc::MaterialCapability::kTangentToWorldSpaceMatrix,
-            trc::MaterialCapability::kVertexWorldPos,
-            trc::MaterialCapability::kVertexNormal,
-            trc::MaterialCapability::kVertexUV,
-            trc::MaterialCapability::kTextureSample,
-            trc::MaterialCapability::kTime,
-            trc::MaterialCapability::kTimeDelta,
-        };
-
         const auto word = findWordAt(pos);
-        std::vector<std::pair<double, std::string_view>> scores(allCaps.size());
-        for (const auto& [i, cap] : std::views::enumerate(allCaps)) {
-            scores[i] = { rapidfuzz::fuzz::ratio(word, cap.getName()), cap.getName() };
+        std::vector<std::pair<double, const cloth::Builtin*>> scores(builtins.size());
+        for (const auto& [i, builtin] : std::views::enumerate(builtins)) {
+            scores[i] = { rapidfuzz::fuzz::ratio(word, builtin.fullId), &builtin };
         }
         std::ranges::sort(scores, [](auto& a, auto& b){ return a.first < b.first; });
 
         std::vector<lsp::CompletionItem> res;
-        for (const auto& [_, capName] : scores)
+        for (const auto& [_, builtin] : scores)
         {
             auto& item = res.emplace_back();
-            item.label = capName;
-            item.detail = "Capability";
+            item.label = builtin->fullId;
+            item.labelDetails = lsp::CompletionItemLabelDetails{
+                .detail=makeArgumentListAnnotation(*builtin),
+            };
+            item.detail = getVariableDocumentation(builtin->fullId);
             item.kind = lsp::CompletionItemKind::Variable;
         }
 
@@ -124,9 +124,8 @@ public:
         const auto shaderDoc = _getParsedDocument();
 
         std::vector<lsp::Range> res;
-        for (const auto& var : shaderDoc.variablesByName.at(var.id))
+        for (const auto& loc : shaderDoc.allReferences.at(var.fullDeclText))
         {
-            const auto loc = var.location;
             res.emplace_back(lsp::Range{
                 .start{ loc.line, static_cast<uint>(loc.firstChar), },
                 .end{ loc.line, static_cast<uint>(loc.endChar), },
@@ -170,11 +169,14 @@ public:
     {
         for (const auto& var : doc.variablesInOrderOfOccurrence)
         {
-            if (var.location.line < pos.line) continue;
-            if (var.location.line > pos.line) break;
+            for (const auto& loc : doc.allReferences.at(var.fullDeclText))
+            {
+                if (loc.line < pos.line) continue;
+                if (loc.line > pos.line) break;
 
-            if (var.location.firstChar <= pos.character && var.location.endChar > pos.character) {
-                return var;
+                if (loc.firstChar <= pos.character && loc.endChar > pos.character) {
+                    return var;
+                }
             }
         }
 
@@ -187,15 +189,41 @@ public:
         ss << "# " << varName << "\n"
            << "\n";
 
-        if (varName.starts_with("cap:")) {
-            ss << "References the \""
-               << trc::util::splitString(varName, ':').at(1) << "\" capability.\n";
-        }
-        else if (varName.starts_with("out:")) {
+        if (varName.starts_with("out:")) {
             ss << "References the \""
                << trc::util::splitString(varName, ':').at(1) << "\" output parameter.\n";
         }
+        else {
+            ss << "References the \"" << varName << "\" built-in.\n";
+        }
 
+        return ss.str();
+    }
+
+    static auto makeArgumentListAnnotation(const cloth::Builtin& builtin) -> std::string
+    {
+        if (builtin.args.empty()) {
+            return {};
+        }
+
+        auto makeArgNames = [&] -> std::generator<std::string> {
+            for (const auto& argType : builtin.args)
+            {
+                switch (argType)
+                {
+                case cloth::Builtin::ArgType::eValue:
+                    co_yield "value";
+                    break;
+                case cloth::Builtin::ArgType::eResourcePath:
+                    co_yield "path";
+                    break;
+                }
+            }
+        };
+        std::stringstream ss;
+        ss << "[";
+        ss << std::ranges::to<std::string>(std::views::join_with(makeArgNames(), ','));
+        ss << "]";
         return ss.str();
     }
 
@@ -211,17 +239,35 @@ public:
         }
     }
 
-    auto _getParseErrors() const -> std::optional<cloth::parser::IncompleteResult>
+    auto _getCompileErrors() const -> std::vector<cloth::parser::Error>
     {
-        auto res = cloth::parser::parseDocument(lines);
-        if (res) {
-            return std::nullopt;
+        // Merge parse errors and compile errors together - show as much as possible
+        std::vector<cloth::parser::Error> errors;
+
+        // Parse document
+        auto parsed = cloth::parser::parseDocument(lines);
+        if (!parsed) {
+            errors = std::move(parsed.error().errors);
         }
-        else {
-            return res.error();
+
+        // Compile document to shader module
+        auto caps = backend->makeCapabilityConfig();
+        auto outputs = backend->makeOutputConfig();
+        auto compileResult = cloth::compileShader(
+            parsed ? *parsed : parsed.error().partialResult,
+            caps,
+            *outputs
+        );
+
+        if (!compileResult) {
+            trc::util::merge(errors, compileResult.error().errors);
         }
+        return errors;
     }
 
+    lsp::FileURI uri;
+    std::shared_ptr<BackendConfig> backend;
+    std::vector<cloth::Builtin> builtins;
+
     std::vector<std::string> lines;
-    //cloth::parser::Result parseResult;
 };

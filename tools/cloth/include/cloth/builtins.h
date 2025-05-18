@@ -6,45 +6,52 @@
 #include <string>
 #include <vector>
 
+#include <trc/assets/AssetPath.h>
 #include <trc/material/shader/BasicType.h>
 #include <trc/material/shader/ShaderModuleBuilder.h>
 
-#include "types.h"
+#include "full_id.h"
 
 namespace cloth
 {
-    //namespace code = trc::shader::code;
-
-    namespace resource_references
-    {
-        /**
-         * Cloth code: $texture["/path/to/texture"]
-         *
-         * Implementation:
-         *     <path-string> -> AssetReference -> RuntimeTextureIndex
-         */
-        struct Texture
-        {
-        };
-    }
-
+    /**
+     * @brief Describes a Cloth builtin.
+     *
+     * Builtins are an additional semantic layer between the parser and
+     * the code generator. They describe Cloth's built-in high-level
+     * functionality and the corresponding translation to shader code.
+     *
+     * Builtins can be conceived of as functions of zero or more arguments that
+     * yield exactly one value.
+     */
     struct Builtin
     {
-        enum class ArgType {
-            eValue, eTexturePath,
+        enum class ArgType
+        {
+            eValue,
+
+            /**
+             * Cloth code: $texture["/path/to/texture"]
+             *
+             * Implementation:
+             *     <path-string> -> AssetReference -> RuntimeTextureIndex
+             */
+            eResourcePath,
         };
 
         using ArgValue = std::variant<
-            trc::shader::code::Value,     // Identifiers or expressions passed as arguments
-            resource_references::Texture  // A texture path string?
-            // ...
+            trc::shader::code::Value,  // Identifiers or expressions passed as arguments
+            trc::AssetPath             // A texture path string?
         >;
 
-        // Fully-qualified ID, i.e., including namespaces
+        // Fully-qualified ID, i.e., and identifier including namespaces
         std::string fullId;
 
+        // The result type.
         trc::shader::BasicType type;
-        std::optional<std::vector<ArgType>> args{ std::nullopt };
+
+        // The number of parameters the builtin takes and their respective types.
+        std::vector<ArgType> args{};
     };
 
     struct BuiltinDocumentation
@@ -67,6 +74,8 @@ namespace cloth
     };
 
     /**
+     * Defines all of Cloth's built-ins.
+     *
      * Implements Cloth built-ins by translating them to shader code, perhaps
      * utilizing capabilities to do so.
      */
@@ -74,7 +83,9 @@ namespace cloth
     {
     public:
         /**
-         * @param std::string id The corresponding `Builtin::shaderId` field.
+         * @brief Get the corresponding builtin to a variable identifier.
+         *
+         * @return `nullptr` if no builtin with the specified name is defined.
          */
         auto getDefinition(const FullId& id) -> const Builtin*;
 

@@ -20,6 +20,7 @@ constexpr std::string_view kNamespaceSep = ":";
 constexpr std::string_view kCommentStart = "//";
 constexpr std::string_view kArgumentListStart = "[";
 constexpr std::string_view kArgumentListEnd = "]";
+constexpr std::string_view kArgumentSep = ",";
 
 class Lexer
 {
@@ -33,6 +34,13 @@ public:
 
     bool eof() const {
         return curPos == str.size();
+    }
+
+    void skipWhitespace()
+    {
+        while (!eof() && std::isspace(peek())) {
+            consume();
+        }
     }
 
     auto peek() -> char
@@ -62,7 +70,7 @@ public:
         return false;
     }
 
-    auto consumeWhile(auto&& func) -> std::string_view
+    auto consumeWhile(std::invocable<char> auto&& func) -> std::string_view
     {
         const auto begin = pos();
         while (!eof() && func(peek())) {
@@ -83,13 +91,31 @@ public:
         return str.substr(begin, pos() - begin);
     }
 
-    auto consumeUntil(auto&& func) -> std::string_view
+    auto consumeUntil(std::invocable<char> auto&& func) -> std::string_view
     {
         const auto begin = pos();
         while (!eof() && !func(peek())) {
             consume();
         }
         return str.substr(begin, pos() - begin);
+    }
+
+    /** Return the entire remaining string. */
+    auto consumeAll() -> std::string_view
+    {
+        auto res = str.substr(curPos);
+        curPos = str.size();
+        return res;
+    }
+
+    /**
+     * Access a range of text from the underlying buffer, ignoring the current
+     * position.
+     */
+    auto getAbsoluteRange(size_t begin, size_t end) -> std::string_view
+    {
+        assert(begin < str.size() && end <= str.size());
+        return str.substr(begin, end - begin);
     }
 
 private:
@@ -116,8 +142,8 @@ public:
     {
         Result res{
             .lines=std::move(lines),
-            .variablesByName=std::move(variablesByName),
             .variablesInOrderOfOccurrence=std::move(variablesInOrderOfOccurrence),
+            .allReferences=std::move(allReferences),
         };
 
         if (errors.empty()) {
@@ -132,6 +158,15 @@ public:
 private:
     void parseLine(std::string_view line)
     {
+        auto processVariable = [this](auto&& expectedVar) {
+            if (expectedVar) {
+                emitVariable(std::move(expectedVar.value()));
+            }
+            else {
+                emitError(std::move(expectedVar.error()));
+            }
+        };
+
         Lexer lex{ line };
         while (!lex.eof())
         {
@@ -140,7 +175,7 @@ private:
             }
 
             if (lex.peek(kVarDeclStart)) {
-                parseVariable(lex);
+                processVariable(parseVariable(lex));
             }
             else {
                 lex.consume();
@@ -148,7 +183,7 @@ private:
         }
     }
 
-    void parseVariable(Lexer& lex)
+    auto parseVariable(Lexer& lex) -> std::expected<Variable, Error>
     {
         Variable var;
         var.location = { .line=currentLine, .firstChar=lex.pos(), .endChar=lex.pos(), };
@@ -163,11 +198,10 @@ private:
         auto id = parseIdentifier(lex);
         if (id.empty())
         {
-            emitError(Error{
+            return std::unexpected(Error{
                 .location{ .line=currentLine, .firstChar=var.location.firstChar, .endChar=lex.pos(), },
                 .message="Expected an identifier."
             });
-            return;
         }
         var.id = FullId::fromString(id, kNamespaceSep);
 
@@ -178,12 +212,13 @@ private:
                 var.arguments = **args;
             }
             else {
-                emitError(std::move(args->error()));
+                return std::unexpected(args->error());
             }
         }
 
         var.location.endChar = lex.pos();
-        emitVariable(std::move(var));
+        var.fullDeclText = lex.getAbsoluteRange(var.location.firstChar, lex.pos());
+        return var;
     }
 
     auto parseIdentifier(Lexer& lex) const -> std::string_view
@@ -203,49 +238,81 @@ private:
             return std::nullopt;
         }
 
-        auto content = lex.consumeUntil(kArgumentListEnd);
-        if (!content)
+        std::vector<Argument> args;
+        while (!lex.eof() && !lex.peek(kArgumentListEnd))
+        {
+            lex.skipWhitespace();  // Whitespace before the argument
+
+            auto arg = parseArgument(lex);
+            if (arg) {
+                args.emplace_back(std::move(*arg));
+            }
+            else {
+                return std::unexpected(arg.error());
+            }
+
+            lex.skipWhitespace();  // Whitespace after the argument
+            if (!lex.tryConsume(kArgumentSep)) {
+                break;
+            }
+        }
+
+        lex.skipWhitespace();
+        if (!lex.tryConsume(kArgumentListEnd))
         {
             return std::unexpected(Error{
-                .location{ .line=currentLine, .firstChar=lex.pos() - 1, .endChar=lex.pos() },
-                .message=std::format("Expected symbol {}, got EOF.", kArgumentListEnd)
+                .location{ currentLine, lex.pos(), lex.pos() + 1 },
+                .message=std::format("Expected {}.", kArgumentListEnd)
             });
         }
-        lex.consume();  // Consume the closing ']'
-
-        auto trimWhitespace = [](std::string_view str) {
-            size_t begin{ 0 };
-            size_t end{ str.size() };
-            while (begin < str.size() && std::isspace(str[begin])) ++begin;
-            while (end > begin && std::isspace(str[end-1])) --end;
-
-            assert(end >= begin);
-            return str.substr(begin, end - begin);
-        };
-
-        // NOTE: I need to parse this manually if string arguments can contain commas
-        auto args = *content
-            | std::views::split(',')
-            | std::views::transform([](auto s){ return std::string_view{ s }; })
-            | std::views::transform(trimWhitespace)
-            | std::views::transform([this](auto sv) -> Argument {
-                if (auto arg = parseArgument(sv)) {
-                    return *arg;
-                }
-                return { .type=Argument::Type::eExternalExpression, .content="" };
-            });
-
-        return std::ranges::to<std::vector>(args);
+        return args;
     }
 
-    auto parseArgument(std::string_view str) -> std::expected<Argument, Error>
+    auto parseArgument(Lexer& lex) -> std::expected<Argument, Error>
     {
-        // Emit a variable if the argument is a variable reference
-        // ...
+        // Try to parse a Cloth variable
+        if (lex.peek(kVarDeclStart))
+        {
+            auto var = parseVariable(lex);
+            if (var) {
+                Argument arg{
+                    .type=Argument::Type::eVariable,
+                    .location=var->location,
+                    .content=var.value()
+                };
+                emitVariable(std::move(*var));
+                return arg;
+            }
+            return std::unexpected(var.error());
+        }
+        // Try to parse a string literal
+        else if (lex.tryConsume("\""))
+        {
+            const auto begin = lex.pos();
+            const auto arg = lex.consumeUntil("\"");
+            if (arg) {
+                lex.consume();
+                return Argument{
+                    .type=Argument::Type::eString,
+                    .location{ .line=currentLine, .firstChar=begin, .endChar=lex.pos() },
+                    .content=std::string{ *arg }
+                };
+            }
+            return std::unexpected(Error{
+                Location{ currentLine, lex.pos() - 1, lex.pos() },
+                "Expected closing quote '\"'."
+            });
+        }
 
+        // Argument is not a Cloth value type - try to interpret it as an
+        // external GLSL expression.
+        const auto begin = lex.pos();
+        auto isArgumentEnd = [](char c){ return c == ']' || c == ','; };
+        auto expr = lex.consumeUntil(isArgumentEnd);
         return Argument{
             .type=Argument::Type::eExternalExpression,
-            .content{ str },
+            .location{ .line=currentLine, .firstChar=begin, .endChar=lex.pos() },
+            .content=std::string{ expr },
         };
     }
 
@@ -256,49 +323,34 @@ private:
 
     void emitVariable(Variable&& var)
     {
-        variablesInOrderOfOccurrence.emplace_back(var);
-        auto [it, _] = variablesByName.try_emplace(var.id);
-        it->second.emplace_back(var);
+        auto [it, success] = allReferences.try_emplace(var.fullDeclText);
+        it->second.emplace_back(var.location);
+        if (success) {
+            // Only add the first occurrence of any unique variable
+            variablesInOrderOfOccurrence.emplace_back(std::move(var));
+        }
     }
 
     ui32 currentLine{ 0 };
     std::vector<std::string> lines;
 
     std::vector<Error> errors;
-    std::unordered_map<FullId, std::vector<Variable>> variablesByName;
+
+    /**
+     * The respective first occurrence of every unique variable in the document.
+     */
     std::vector<Variable> variablesInOrderOfOccurrence;
+
+    /**
+     * Maps [<decl-text> -> <occurrences>]
+     *
+     * Two variable references with the same full declaration text (e.g.
+     * '$texture["/my/image.png"]') always have the same unique value. This map
+     * points from unique values - in this described sense - to their points of
+     * reference in the document.
+     */
+    std::unordered_map<std::string, std::vector<Location>> allReferences;
 };
-
-auto Result::toDocument() const -> shader_edit::ShaderDocument
-{
-    auto convert = [](const Variable& var) -> shader_edit::Variable
-    {
-        const auto loc = var.location;
-        return shader_edit::Variable{
-            .name=var.id.id,
-            .location{ .line=loc.line, .firstChar=loc.firstChar, .endChar=loc.endChar, },
-        };
-    };
-
-    shader_edit::ParseResult res{ .lines=lines, };
-    for (const auto& [id, vars] : variablesByName)
-    {
-        auto [it, _] = res.variablesByName.try_emplace(id.id);
-        for (const auto& var : vars) {
-            it->second.emplace_back(convert(var));
-        }
-    }
-    for (const auto& var : variablesInOrderOfOccurrence)
-    {
-        auto _var = convert(var);
-
-        auto [it, _] = res.variablesByName.try_emplace(_var.name);
-        it->second.emplace_back(_var);
-        res.variablesInOrderOfOccurrence.emplace_back(std::move(_var));
-    }
-
-    return shader_edit::ShaderDocument{ std::move(res) };
-}
 
 auto parseDocument(std::istream& is) -> std::expected<Result, IncompleteResult>
 {

@@ -1,5 +1,6 @@
 #include "document.h"
 
+#include <algorithm>
 #include <ranges>
 
 
@@ -11,59 +12,83 @@ Document::Document(parser::Result _parseResult)
     :
     parseData(std::move(_parseResult))
 {
-    doc = parseData.toDocument();
 }
 
-auto Document::allVariables() -> std::generator<const FullId&>
+auto Document::allVariables() const -> std::generator<const parser::Variable&>
 {
-    for (auto& [name, _] : parseData.variablesByName) {
-        co_yield name;
-    }
+    co_yield std::ranges::elements_of(parseData.variablesInOrderOfOccurrence);
 }
 
-auto Document::unsetVariables() -> std::generator<const FullId&>
-{
-    for (const auto& name : doc.unsetVariables()) {
-        co_yield FullId::fromString(name);
-    }
-}
-
-auto Document::findOccurrences(const FullId& varName)
+auto Document::findAllReferences(const parser::Variable& var) const
     -> std::generator<parser::Location>
 {
-    auto it = parseData.variablesByName.find(varName);
-    if (it != parseData.variablesByName.end())
+    co_yield var.location;
+    for (const auto& loc : parseData.allReferences.at(var.fullDeclText)) {
+        co_yield loc;
+    }
+}
+
+void Document::set(const parser::Variable& var, const std::string& value)
+{
+    for (const auto& ref : parseData.allReferences.at(var.fullDeclText)) {
+        variableValues[ref] = value;
+    }
+}
+
+auto Document::compile() const -> std::string
+{
+    auto resultLines = parseData.lines;
+    auto values = variableValues
+        | std::ranges::to<std::vector<std::pair<parser::Location, std::string>>>();
+    std::ranges::sort(values, [](auto& a, auto& b){ return a.first < b.first; });
+
+    // Replace variables in the document.
+    // All of these fancy-looking calculations are here to ensure that inserted
+    // text of different size than the text it replaces correctly changes the
+    // boundaries of following substitutions in the same line.
+    //
+    // Initially, I simply processed the substitutions in reverse order of
+    // occurrence, but that doesn't work anymore when we have to detect and skip
+    // nested substitutions (arguments).
+    //
+    // Example (if this mechanism weren't in place):
+    //
+    //     $a, $b       { a = "hello", b = "world" }
+    //         v
+    //     hellworld    { expected: "hello, world" }
+    std::optional<parser::Location> lastLoc;
+    int lineSizeChange = 0;
+    for (const auto& [loc, value] : values)
     {
-        auto locs = it->second | std::views::transform([](auto&& var){ return var.location; });
-        co_yield std::ranges::elements_of(locs);
+        // Skip nested variables (arguments). They don't receive code
+        // substitution because their values are included in the parent's value.
+        if (lastLoc)
+        {
+            const auto [line, begin, end] = *lastLoc;
+            if (loc.line == line && loc.firstChar >= begin && loc.endChar <= end) {
+                continue;
+            }
+        }
+        if (lastLoc && loc.line != lastLoc->line) {
+            lineSizeChange = 0;
+        }
+
+        auto [line, begin, end] = loc;
+        begin += lineSizeChange;
+        end += lineSizeChange;
+        assert(resultLines.at(loc.line).size() >= loc.endChar + lineSizeChange);
+        resultLines.at(line).replace(begin, end - begin, value);
+
+        lineSizeChange += int(value.size()) - int(end - begin);
+        lastLoc = loc;
     }
+
+    // Create resulting document string
+    resultLines.emplace_back();  // The tests expect a newline at the end and I'm lazy
+    return resultLines | std::views::join_with('\n') | std::ranges::to<std::string>();
 }
 
-void Document::set(const FullId& name, std::string value)
-{
-    doc.set(name.id, std::move(value));
-}
-
-auto Document::compile(bool allowUnsetVariables) const
-    -> std::expected<std::string, DocumentError>
-{
-    try {
-        return doc.compile(allowUnsetVariables);
-    }
-    catch (shader_edit::CompileError& err) {
-        return std::unexpected(DocumentError{ err.what() });
-    }
-}
-
-auto Document::getLine(size_t idx) -> const std::string*
-{
-    if (idx < parseData.lines.size()) {
-        return &parseData.lines.at(idx);
-    }
-    return nullptr;
-}
-
-auto Document::getLines() -> const std::vector<std::string>&
+auto Document::getLines() const -> const std::vector<std::string>&
 {
     return parseData.lines;
 }

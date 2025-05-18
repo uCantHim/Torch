@@ -47,4 +47,15 @@ namespace cloth
                        trc::shader::CapabilityConfig& caps,
                        ShaderOutputImpl& outputs)
         -> std::expected<CompileResult, CompileError>;
+
+    /**
+     * @brief Compile Cloth shader code to a shader module.
+     *
+     * @param caps    The shader input implementation.
+     * @param outputs The shader output implementation.
+     */
+    auto compileShader(const parser::Result& parsedDocument,
+                       trc::shader::CapabilityConfig& caps,
+                       ShaderOutputImpl& outputs)
+        -> std::expected<CompileResult, CompileError>;
 } // namespace cloth

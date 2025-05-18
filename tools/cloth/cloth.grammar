@@ -1,0 +1,7 @@
+document -> line*
+line     -> (GLSL | var-decl)* NEWLINE
+
+var-decl -> var-id [arg-list]
+var-id   -> "$" IDENTIFIER
+arg-list -> "[" [argument ("," argument)*] "]"
+argument -> GLSL | var-decl | STRING

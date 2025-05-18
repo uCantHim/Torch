@@ -1,9 +1,13 @@
 #include "builtins.h"
 
+#include <cassert>
+
+#include <format>
 #include <ranges>
 #include <unordered_map>
 
 #include <trc/material/FragmentShader.h>
+#include <trc/material/ShaderFunctions.h>
 
 
 
@@ -37,7 +41,22 @@ auto getBuiltinDefinitions() -> auto&
         Builtin{
             .fullId = "texture",
             .type = glm::vec4{},
-            .args{ { Builtin::ArgType::eTexturePath } },
+            .args{ Builtin::ArgType::eResourcePath },
+        },
+        Builtin{
+            .fullId = "tangentSpaceToWorldSpace",
+            .type = glm::vec3{},
+            .args{ Builtin::ArgType::eValue },
+        },
+        Builtin{
+            .fullId = "sampleTexture",
+            .type = glm::vec4{},
+            .args{ { Builtin::ArgType::eResourcePath, Builtin::ArgType::eValue } },
+        },
+        Builtin{
+            .fullId = "sampleNormalMap",
+            .type = glm::vec3{},
+            .args{ { Builtin::ArgType::eResourcePath, Builtin::ArgType::eValue } },
         },
 
         ////////////////////////////
@@ -51,8 +70,20 @@ auto getBuiltinDefinitions() -> auto&
             .type = glm::vec3{},
         },
         Builtin{
+            .fullId = "out:specularFactor",
+            .type = float{},
+        },
+        Builtin{
             .fullId = "out:roughness",
             .type = float{},
+        },
+        Builtin{
+            .fullId = "out:metallicness",
+            .type = float{},
+        },
+        Builtin{
+            .fullId = "out:emissive",
+            .type = bool{},
         },
     });
     return res;
@@ -77,11 +108,62 @@ auto getBuiltinFactories() -> auto&
     };
 
     static auto factories = []{
+        static constexpr auto makeTextureAccess = [](trc::shader::ShaderModuleBuilder& builder,
+                                                     const trc::AssetPath& path)
+        {
+            return builder.makeArrayAccess(
+                builder.makeCapabilityAccess(trc::MaterialCapability::kTextureSample),
+                builder.makeSpecializationConstant(
+                    std::make_shared<trc::RuntimeTextureIndex>(path)
+                )
+            );
+        };
+
         std::unordered_map<std::string, BuiltinValueFactory> res{
             { "vertexPosition", capabilityAccess(trc::MaterialCapability::kVertexWorldPos) },
             { "vertexNormal", capabilityAccess(trc::MaterialCapability::kVertexNormal) },
             { "vertexUV", capabilityAccess(trc::MaterialCapability::kVertexUV) },
             { "cameraWorldPos", capabilityAccess(trc::MaterialCapability::kCameraWorldPos) },
+            {
+                "texture",
+                [](const std::vector<Builtin::ArgValue>& args, trc::shader::ShaderModuleBuilder& builder) {
+                    return makeTextureAccess(builder, std::get<trc::AssetPath>(args[0]));
+                }
+            },
+            {
+                "tangentSpaceToWorldSpace",
+                [](const std::vector<Builtin::ArgValue>& args, trc::shader::ShaderModuleBuilder& builder)
+                {
+                    return builder.makeCall<trc::TangentToWorldspace>({
+                        std::get<trc::shader::code::Value>(args[0])
+                    });
+                }
+            },
+            {
+                "sampleTexture",
+                [](const std::vector<Builtin::ArgValue>& args, trc::shader::ShaderModuleBuilder& builder)
+                {
+                    return builder.makeExternalCall("texture", {
+                        makeTextureAccess(builder, std::get<trc::AssetPath>(args[0])),
+                        std::get<trc::shader::code::Value>(args[1])
+                    });
+                }
+            },
+            {
+                "sampleNormalMap",
+                [](const std::vector<Builtin::ArgValue>& args, trc::shader::ShaderModuleBuilder& builder)
+                {
+                    return builder.makeCall<trc::TangentToWorldspace>({
+                        builder.makeMemberAccess(
+                            builder.makeExternalCall("texture", {
+                                makeTextureAccess(builder, std::get<trc::AssetPath>(args[0])),
+                                std::get<trc::shader::code::Value>(args[1])
+                            }),
+                            "xyz"
+                        )
+                    });
+                }
+            },
 
             // Output parameters are implemented as simple variable declarations:
             //
@@ -126,23 +208,20 @@ bool BuiltinProvider::validateArgs(
     const std::vector<Builtin::ArgValue>& args)
 {
     // Check number of arguments
-    if (!builtin.args) {
-        return args.empty();
-    }
-    if (builtin.args->size() != args.size()) {
+    if (builtin.args.size() != args.size()) {
         return false;
     }
 
     // Check argument types
-    for (const auto& [def, arg] : std::views::zip(*builtin.args, args))
+    for (const auto& [def, arg] : std::views::zip(builtin.args, args))
     {
         switch (def)
         {
         case Builtin::ArgType::eValue:
             if (!std::holds_alternative<trc::shader::code::Value>(arg)) return false;
             break;
-        case Builtin::ArgType::eTexturePath:
-            if (!std::holds_alternative<resource_references::Texture>(arg)) return false;
+        case Builtin::ArgType::eResourcePath:
+            if (!std::holds_alternative<trc::AssetPath>(arg)) return false;
             break;
         default:
             std::unreachable();
@@ -162,16 +241,13 @@ auto BuiltinProvider::makeValue(
     using C = BuiltinImplementationError::Code;
 
     if (!getDefinition(id)) {
-        return std::unexpected(E{ C::eNotFound, "Requested builtin is not an input builtin" });
-    }
-    if (!validateArgs(*getDefinition(id), args)) {
-        assert(false);
-        return std::unexpected(E{ C::eInvalidArguments, "Given arguments do not match expected arguments" });
+        return std::unexpected(E{ C::eNotFound, std::format("\"{}\" is not a Cloth built-in.", id.id) });
     }
     if (!getBuiltinFactories().contains(id.id)) {
         return std::unexpected(E{ C::eNotImplemented, "Requested builtin is not implemented" });
     }
 
+    assert(validateArgs(*getDefinition(id), args) && "Should be verified externally.");
     return getBuiltinFactories().at(id.id)(args, builder);
 }
 
