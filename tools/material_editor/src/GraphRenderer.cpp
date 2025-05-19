@@ -336,11 +336,11 @@ MaterialGraphRenderer::MaterialGraphRenderer(
         .addBinding(descType, 1, vk::ShaderStageFlagBits::eFragment);
     pool = b.buildPool(device, setCount, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
     layout = b.build(device);
+    device.setDebugName(*pool, "Material graph renderer descriptor pool");
+    device.setDebugName(*layout, "Material graph renderer descriptor set layout");
 
-    std::vector<vk::DescriptorSetLayout> numSets(setCount, *layout);
-    auto sets = device->allocateDescriptorSetsUnique({ *pool, numSets });
-    textures[baseTextureIndex].descSet = std::move(sets[0]);
-    textures[fontTextureIndex].descSet = std::move(sets[1]);
+    textures[baseTextureIndex].descSet = std::move(device->allocateDescriptorSetsUnique({ *pool, *layout })[0]);
+    textures[fontTextureIndex].descSet = std::move(device->allocateDescriptorSetsUnique({ *pool, *layout })[0]);
 
     // Update descriptor sets
     auto imgInfo = textures | std::views::transform(

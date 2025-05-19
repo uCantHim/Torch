@@ -207,22 +207,10 @@ trc::GBufferDescriptor::GBufferDescriptor(
     const Device& device,
     ui32 maxDescriptorSets)
 {
-    // Pool
-    std::vector<vk::DescriptorPoolSize> poolSizes = {
-        { vk::DescriptorType::eStorageImage, 5 },
-        { vk::DescriptorType::eStorageBuffer, 2 },
-        { vk::DescriptorType::eCombinedImageSampler, 1 },
-    };
-    descPool = device->createDescriptorPoolUnique({
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        maxDescriptorSets,
-        poolSizes
-    });
-
     auto shaderStages = vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eRaygenKHR;
 
     // Layout
-    descLayout = buildDescriptorSetLayout()
+    auto b = buildDescriptorSetLayout()
         // G-Buffer images
         .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
         .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
@@ -239,9 +227,13 @@ trc::GBufferDescriptor::GBufferDescriptor(
                                                            | shaderStages)
         // Swapchain image
         .addBinding(vk::DescriptorType::eStorageImage, 1, shaderStages)
-        .build(device);
+        ;
 
-    // Sets
+    descPool = b.buildPool(device, maxDescriptorSets, vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+    descLayout = b.build(device);
+
+    device.setDebugName(*descPool, "G-Buffer descriptor pool");
+    device.setDebugName(*descLayout, "G-Buffer descriptor set layout");
 }
 
 auto trc::GBufferDescriptor::makeDescriptorSet(const Device& device, const GBuffer& g)

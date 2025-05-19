@@ -134,7 +134,7 @@ void trc::SceneDescriptor::createDescriptors()
 
     // Pool
     std::vector<vk::DescriptorPoolSize> poolSizes{
-        { vk::DescriptorType::eStorageBuffer, 1 },
+        { vk::DescriptorType::eStorageBuffer, 2 },
     };
     descPool = device->createDescriptorPoolUnique(vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet
