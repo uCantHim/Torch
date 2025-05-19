@@ -12,6 +12,7 @@
 #include "trc/assets/AssetBase.h"
 #include "trc/assets/AssetPath.h"
 #include "trc/assets/AssetType.h"
+#include "trc/serial/asset.pb.h"
 
 namespace trc
 {
@@ -23,6 +24,29 @@ namespace trc
         std::string name;
         AssetType type;
         std::optional<AssetPath> path{ std::nullopt };
+
+        auto serialize() const -> serial::AssetMetadata
+        {
+            serial::AssetMetadata meta;
+            meta.set_name(name);
+            meta.mutable_type()->set_name(type.getName());
+            if (path) {
+                meta.set_path(path->string());
+            }
+            return meta;
+        }
+
+        static auto parse(const serial::AssetMetadata& data) -> AssetMetadata
+        {
+            AssetMetadata res{
+                .name = data.name(),
+                .type = AssetType::make(data.type().name()),
+            };
+            if (data.has_path()) {
+                res.path = AssetPath{ data.path() };
+            }
+            return res;
+        }
     };
 
     /**

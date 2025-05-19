@@ -1,8 +1,11 @@
+#pragma once
+
+#include <iosfwd>
 #include <unordered_map>
-#include <vector>
+#include <sstream>
+#include <string>
 
 #include <trc/util/DataStorage.h>
-#include <trc_util/MemoryStream.h>
 
 using namespace trc::basic_types;
 
@@ -20,18 +23,27 @@ public:
         }
 
         auto& data = it->second;
-        return std::make_shared<trc::util::MemoryStream>((char*)data.data(), data.size());
+        return std::make_shared<std::stringstream>(*data);
     }
 
-    auto write(const path& path) -> s_ptr<std::ostream> override {
-        auto [it, success] = storage.try_emplace(path, std::vector<std::byte>(1000000));
-        auto& data = it->second;
-        return std::make_shared<trc::util::MemoryStream>((char*)data.data(), data.size());
+    auto write(const path& path) -> s_ptr<std::ostream> override
+    {
+        // TODO: This is a bit of a hack (a small one). Implement a real memory
+        // stream that own its backing memory and can expand it as required
+        // (starts at 0 and only allocates what is needed).
+        auto [it, success] = storage.try_emplace(path, std::make_unique<std::string>());
+        return s_ptr<std::stringstream>{
+            new std::stringstream{ *it->second },
+            [str=it->second.get()](std::stringstream* ss) {
+                *str = ss->str();
+                delete ss;
+            }
+        };
     }
 
     bool remove(const path& path) override {
         return storage.erase(path) > 0;
     }
 private:
-    std::unordered_map<path, std::vector<std::byte>> storage;
+    std::unordered_map<path, u_ptr<std::string>> storage;
 };

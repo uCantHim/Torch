@@ -24,9 +24,10 @@ target_link_libraries(scene_editor PUBLIC
 add_subdirectory(src)
 
 # Compile protobuf sources
-protobuf_generate_cpp(
+protobuf_compile_cpp(
     SCENE_EDITOR_PROTO_SRCS SCENE_EDITOR_PROTO_HDRS
-    protobuf/hitbox.proto
+    SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/protobuf
+    hitbox.proto
 )
 target_sources(scene_editor PRIVATE ${SCENE_EDITOR_PROTO_SRCS})
 target_include_directories(scene_editor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

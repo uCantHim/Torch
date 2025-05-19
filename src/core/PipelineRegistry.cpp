@@ -155,7 +155,7 @@ inline auto PipelineRegistry::_registerPipelineFactory(PipelineFactory newFactor
     std::scoped_lock lock(factoryLock);
 
     // Create a new factory
-    *factories.emplace(factories.begin() + id, std::move(newFactory));
+    factories.emplace(factories.begin() + id, std::move(newFactory));
 
     return id;
 }

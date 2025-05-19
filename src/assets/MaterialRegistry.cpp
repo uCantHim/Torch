@@ -1,6 +1,6 @@
 #include "trc/assets/MaterialRegistry.h"
 
-#include "material.pb.h"
+#include "trc/serial/material.pb.h"
 #include "trc/DrawablePipelines.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/drawable/DefaultDrawable.h"

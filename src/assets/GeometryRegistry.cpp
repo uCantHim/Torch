@@ -1,6 +1,6 @@
 #include "trc/assets/GeometryRegistry.h"
 
-#include "geometry.pb.h"
+#include "trc/serial/geometry.pb.h"
 #include "trc/assets/AssetManager.h"
 #include "trc/assets/import/InternalFormat.h"
 #include "trc/core/Frame.h"

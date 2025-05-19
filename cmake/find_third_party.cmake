@@ -56,11 +56,12 @@ if (NOT Protobuf_FOUND)
     FetchContent_Declare(
         protobuf
         GIT_REPOSITORY https://github.com/protocolbuffers/protobuf
-        GIT_TAG        main
+        GIT_TAG        v30.1
     )
     set(protobuf_BUILD_TESTS OFF)
     set(protobuf_BUILD_CONFORMANCE OFF)
     set(protobuf_BUILD_EXAMPLES OFF)
+    set(protobuf_BUILD_PROTOBUF_BINARIES ON)
     if (${TORCH_BUILD_SHARED_LIBRARY})
         option(protobuf_MSVC_STATIC_RUNTIME "" OFF)
     else()

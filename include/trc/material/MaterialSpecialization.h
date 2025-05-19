@@ -3,7 +3,7 @@
 #include <functional>
 #include <generator>
 
-#include "material.pb.h"
+#include "trc/serial/material.pb.h"
 
 #include "trc/FlagCombination.h"
 #include "trc/material/shader/ShaderProgram.h"

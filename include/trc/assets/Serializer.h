@@ -7,6 +7,9 @@
 #include <trc_util/TypeUtils.h>
 
 #include "trc/assets/AssetBase.h"
+#include "trc/assets/AssetSource.h"
+#include "trc/assets/AssetType.h"
+#include "trc/serial/asset.pb.h"
 
 namespace trc
 {
@@ -32,6 +35,56 @@ namespace trc
 
     template<AssetBaseType Asset>
     using AssetParseResult = std::expected<AssetData<Asset>, AssetParseError>;
+
+    template<AssetBaseType T>
+    auto parseAsset(std::istream& is) -> AssetParseResult<T>
+    {
+        serial::AssetFile file;
+        if (!file.ParseFromIstream(&is)) {
+            return std::unexpected(AssetParseError{
+                AssetParseError::Code::eSyntaxError,
+                "Unable to parse asset data"
+            });
+        }
+
+        if (file.metadata().type().name() != AssetType::make<T>().getName())
+        {
+            return std::unexpected(AssetParseError{
+                AssetParseError::Code::eSemanticError,
+                "Asset data is not of the requested type " + AssetType::make<T>().getName()
+                + " (Actual type: " + file.metadata().type().name() + ")"
+            });
+        }
+
+        std::stringstream ss{ file.asset_data() };
+        return AssetSerializerTraits<T>::deserialize(ss);
+    }
+
+    template<AssetBaseType T>
+    bool serializeAsset(const AssetData<T>& data,
+                        std::ostream& os,
+                        std::optional<AssetMetadata> meta = {})
+    {
+        serial::AssetFile file;
+
+        // Write metadata
+        if (meta) {
+            *file.mutable_metadata() = meta->serialize();
+        }
+        else {
+            *file.mutable_metadata() = AssetMetadata{
+                .name="<no name specified in serializeAsset()>",
+                .type=AssetType::make<T>(),
+            }.serialize();
+        }
+
+        // Write asset data
+        std::stringstream ss;
+        AssetSerializerTraits<T>::serialize(data, ss);
+        file.set_asset_data(ss.str());
+
+        return file.SerializeToOstream(&os);
+    }
 
     template<typename Asset>
     concept SerializableAsset =

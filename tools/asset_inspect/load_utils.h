@@ -23,7 +23,7 @@ inline auto tryLoad(const fs::path& path) -> std::expected<trc::AssetData<T>, st
     }
 
     // Try to parse asset from file
-    auto data = trc::AssetSerializerTraits<T>::deserialize(file);
+    auto data = trc::parseAsset<T>(file);
     if (data) {
         return data.value();
     }

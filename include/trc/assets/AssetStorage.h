@@ -5,6 +5,7 @@
 
 #include <trc_util/Exception.h>
 
+#include "trc/serial/asset.pb.h"
 #include "trc/Types.h"
 #include "trc/assets/AssetPath.h"
 #include "trc/assets/AssetSource.h"
@@ -54,7 +55,8 @@ namespace trc
          *         `path` or if the asset at `path` is not of type `T`.
          */
         template<AssetBaseType T>
-        auto loadDeferred(const AssetPath& path) -> std::optional<u_ptr<AssetSource<T>>>;
+        auto loadDeferred(const AssetPath& path)
+            -> std::expected<u_ptr<AssetSource<T>>, AssetParseError>;
 
         template<AssetBaseType T>
         bool store(const AssetPath& path, const AssetData<T>& data);
@@ -73,7 +75,9 @@ namespace trc
             using const_reference = const AssetPath&;
             using const_pointer = const AssetPath*;
 
-            AssetIterator(DataStorage::iterator begin, DataStorage::iterator end);
+            AssetIterator(DataStorage::iterator begin,
+                          DataStorage::iterator end,
+                          s_ptr<DataStorage> storage);
 
             auto operator*() const -> const_reference;
             auto operator->() const -> const_pointer;
@@ -84,12 +88,13 @@ namespace trc
             bool operator!=(const AssetIterator& other) const = default;
 
         private:
-            static bool isMetaFile(const util::Pathlet& path);
+            bool isAssetFile(const util::Pathlet& path);
             void step();
 
             DataStorage::iterator iter;
             DataStorage::iterator end;
             std::optional<AssetPath> currentPath;
+            s_ptr<DataStorage> storage;
         };
 
         using iterator = AssetIterator;
@@ -98,10 +103,12 @@ namespace trc
         auto end() -> iterator;
 
     private:
-        static auto makeMetaPath(const AssetPath& path) -> util::Pathlet;
-        static auto makeDataPath(const AssetPath& path) -> util::Pathlet;
-        static void serializeMetadata(const AssetMetadata& meta, std::ostream& os);
-        static auto deserializeMetadata(std::istream& is) -> AssetMetadata;
+        static auto getMetadata(const serial::AssetFile& file) -> AssetMetadata;
+
+        bool isAssetFile(const util::Pathlet& path);
+        auto loadFile(const util::Pathlet& path) -> std::expected<serial::AssetFile, std::string>;
+        auto writeFile(const util::Pathlet& path, const serial::AssetFile& file)
+            -> std::optional<std::string>;
 
         s_ptr<DataStorage> storage;
     };
@@ -122,11 +129,8 @@ namespace trc
             auto data = AssetStorage{storage}.load<T>(path);
             if (!data.has_value())
             {
-                log::error << "Unable to load asset at " << path.string()
-                           << ": path not found in the asset storage or the stored data is "
-                           << "not of the requested type.\n";
-                throw AssetLoadError(path, "Path is not in storage or stored data is not of type"
-                                           + ("T [T = " + std::string(typeid(T).name()) + "]"));
+                log::error << log::here() << ": " << data.error().message;
+                throw data.error();
             }
             return *data;
         }
@@ -136,8 +140,9 @@ namespace trc
             auto meta = AssetStorage{storage}.getMetadata(path);
             if (!meta.has_value())
             {
-                log::error << "Unable to load asset metadata from " << path.string()
-                           << ": path not found in the asset storage.\n";
+                log::error << "Unable to load asset metadata for " << path.string()
+                           << ": file \"" << path.string()
+                           << "\" not found in the asset storage.\n";
                 throw AssetLoadError(path, "Metadata not found in storage.");
             }
             return std::move(*meta);
@@ -146,41 +151,55 @@ namespace trc
     private:
         const AssetPath path;
         s_ptr<DataStorage> storage;
+        std::optional<serial::AssetFile> file;
     };
 
     template<AssetBaseType T>
     auto AssetStorage::load(const AssetPath& path) -> AssetParseResult<T>
     {
+        auto file = loadFile(path);
+        if (!file) {
+            return std::unexpected(AssetParseError{
+                .errorCode=AssetParseError::Code::eSystemError,
+                .message=file.error(),
+            });
+        }
+
         // Ensure that the correct type of asset is stored at `path`
-        const auto meta = getMetadata(path);
-        if (!meta || meta->type != AssetType::make<T>())
+        const auto meta = getMetadata(*file);
+        if (meta.type != AssetType::make<T>())
         {
             return std::unexpected(AssetParseError{
                 AssetParseError::Code::eSemanticError,
-                "Asset at " + path.string() + " does not exist or data at that"
-                " path is not of the requested type " + std::string{T::name()} + "."
+                "Asset at " + path.string() + " is not of the requested type "
+                + AssetType::make<T>().getName() + ". (Actual type: " + meta.type.getName() + ")"
             });
         }
 
         // Load and parse data
-        auto dataStream = storage->read(makeDataPath(path));
-        if (dataStream != nullptr) {
-            return AssetSerializerTraits<T>::deserialize(*dataStream);
-        }
-
-        return std::unexpected(AssetParseError{
-            AssetParseError::Code::eSystemError,
-            "Unable to read data at path " + makeDataPath(path).string() + "."
-        });
+        std::stringstream ss{ file->asset_data() };
+        return AssetSerializerTraits<T>::deserialize(ss);
     }
 
     template<AssetBaseType T>
-    auto AssetStorage::loadDeferred(const AssetPath& path) -> std::optional<u_ptr<AssetSource<T>>>
+    auto AssetStorage::loadDeferred(const AssetPath& path)
+        -> std::expected<u_ptr<AssetSource<T>>, AssetParseError>
     {
         // Ensure that the correct type of asset is stored at `path`
-        const auto meta = getMetadata(path);
-        if (!meta || meta->type != AssetType::make<T>()) {
-            return std::nullopt;
+        auto file = loadFile(path);
+        if (!file) {
+            return std::unexpected(AssetParseError{
+                AssetParseError::Code::eSyntaxError,
+                file.error()
+            });
+        }
+        if (auto meta = getMetadata(*file); !meta.type.is<T>())
+        {
+            return std::unexpected(AssetParseError{
+                AssetParseError::Code::eSemanticError,
+                "Asset at " + path.string() + " is not of the requested type "
+                + AssetType::make<T>().getName() + ". (Actual type: " + meta.type.getName() + ")"
+            });
         }
 
         return std::make_unique<AssetStorageSource<T>>(path, this->storage);
@@ -189,30 +208,21 @@ namespace trc
     template<AssetBaseType T>
     bool AssetStorage::store(const AssetPath& path, const AssetData<T>& data)
     {
-        auto dataStream = storage->write(makeDataPath(path));
-        auto metaStream = storage->write(makeMetaPath(path));
-        if (dataStream == nullptr || metaStream == nullptr)
-        {
-            if (dataStream != metaStream)
-            {
-                log::debug << "[In AssetStorage::store]: If the data path of an asset does not"
-                    " exist in the data storage, then the metadata path should not exist either,"
-                    " and vice-versa. However, this is not the case. [For asset path "
-                    << path.string() << std::boolalpha
-                    << ": <meta-path> -> " << !!metaStream
-                    << ", <data-path> -> " << !!dataStream << "]"
-                    ". Investigate whether this is an issue.";
-            }
-            return false;
-        }
+        serial::AssetFile file;
 
-        serializeMetadata(AssetMetadata{
+        // Write metadata
+        *file.mutable_metadata() = AssetMetadata{
             .name=path.getAssetName(),
             .type=AssetType::make<T>(),
-            .path=path
-        }, *metaStream);
-        AssetSerializerTraits<T>::serialize(data, *dataStream);
+            .path=path,
+        }.serialize();
 
-        return true;
+        // Write asset data
+        std::stringstream ss;
+        AssetSerializerTraits<T>::serialize(data, ss);
+        file.set_asset_data(ss.str());
+
+        auto res = writeFile(path, file);
+        return !res.has_value();
     }
 } // namespace trc

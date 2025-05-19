@@ -1,6 +1,6 @@
 #include "trc/assets/TextureRegistry.h"
 
-#include "texture.pb.h"
+#include "trc/serial/texture.pb.h"
 #include "trc/assets/import/InternalFormat.h"
 #include "trc/ray_tracing/RayPipelineBuilder.h"
 

@@ -1,17 +1,19 @@
-protobuf_generate_cpp(
+protobuf_compile_cpp(
     TRC_PROTO_SRCS TRC_PROTO_HDRS
-    protobuf/vector_types.proto
-    protobuf/geometry.proto
-    protobuf/texture.proto
-    protobuf/material.proto
-    protobuf/rig.proto
-    protobuf/animation.proto
-    protobuf/font.proto
+    SRC_DIR ${CMAKE_CURRENT_LIST_DIR}
+    OUT_DIR ${TORCH_PROTOBUF_OUTPUT_DIR}
+    vector_types.proto
+    geometry.proto
+    texture.proto
+    material.proto
+    rig.proto
+    animation.proto
+    font.proto
 
-    protobuf/material_shader_program.proto
+    material_shader_program.proto
 
-    protobuf/asset.proto
-    protobuf/asset_reference.proto
+    asset.proto
+    asset_reference.proto
 )
 
 target_sources(torch PRIVATE ${TRC_PROTO_SRCS})

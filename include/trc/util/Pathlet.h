@@ -64,6 +64,11 @@ namespace trc::util
         auto filename() const -> fs::path;
 
         /**
+         * @return std::string The file extension.
+         */
+        auto extension() const -> std::string;
+
+        /**
          * @brief Replace the outer-most extension with a string
          */
         auto replaceExtension(const std::string& newExt) const -> Pathlet;

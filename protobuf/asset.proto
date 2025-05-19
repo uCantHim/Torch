@@ -12,3 +12,9 @@ message AssetMetadata
     AssetType type = 2;
     optional string path = 3;
 }
+
+message AssetFile
+{
+    AssetMetadata metadata = 1;
+    bytes asset_data = 2;
+}

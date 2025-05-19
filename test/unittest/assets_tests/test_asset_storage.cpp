@@ -113,7 +113,7 @@ TEST_F(AssetStorageTest, EmptyIterator)
     trc::AssetStorage storage(std::make_shared<trc::FilesystemDataStorage>(newRoot));
 
     ASSERT_TRUE(storage.begin() == storage.end());
-    ASSERT_NO_THROW(for (const auto& path : storage););
+    ASSERT_NO_THROW(for (const auto& path : storage) {});
 }
 
 TEST_F(AssetStorageTest, Iterator)
@@ -145,6 +145,7 @@ TEST_F(AssetStorageTest, Iterator)
         auto meta = storage.getMetadata(path);
         ASSERT_TRUE(meta.has_value());
         ASSERT_TRUE(meta->type.is<trc::Geometry>());
+        ASSERT_TRUE(meta->path);
         ASSERT_EQ(*meta->path, path);
 
         auto data = storage.load<trc::Geometry>(path);

@@ -8,7 +8,7 @@
 #include "ShaderRuntime.h"
 #include "ShaderModuleCompiler.h"
 #include "ShaderRuntimeConstant.h"
-#include "material_shader_program.pb.h"
+#include "trc/serial/material_shader_program.pb.h"
 
 namespace trc::shader
 {

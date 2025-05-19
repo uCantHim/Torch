@@ -50,7 +50,7 @@ void display(const trc::MaterialData& mat)
     static constexpr vec3 sunLightColor{ 0.957f, 0.918f, 0.608f };
 
     auto torch = trc::initFull(
-        {},
+        {.assetStorageDir="."},
         trc::InstanceCreateInfo{ .enableRayTracing=false },
         trc::WindowCreateInfo{
             .size=windowSize,

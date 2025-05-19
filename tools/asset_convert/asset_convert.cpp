@@ -221,7 +221,7 @@ void convertGeometry(
                 return false;
             }
 
-            trc::AssetSerializerTraits<T>::serialize(data, file);
+            trc::serializeAsset(data, file);
             return true;
         };
 
@@ -268,7 +268,7 @@ void convertTexture(
     }
 
     std::ofstream file(outPath);
-    tex.serialize(file);
+    trc::serializeAsset(tex, file);
     std::cout << "Exported texture " << input << " to " << outPath << ".\n";
 }
 
@@ -285,6 +285,6 @@ void convertFont(const fs::path& input, const fs::path& outPath, argparse::Argum
     }
 
     std::ofstream file(outPath);
-    font.serialize(file);
+    trc::serializeAsset(font, file);
     std::cout << "Exported font " << input << " (size " << size << ") to " << outPath << ".\n";
 }

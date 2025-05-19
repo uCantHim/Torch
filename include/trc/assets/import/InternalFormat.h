@@ -1,11 +1,11 @@
 #pragma once
 
-#include "animation.pb.h"
-#include "asset.pb.h"
-#include "geometry.pb.h"
-#include "material.pb.h"
-#include "rig.pb.h"
-#include "texture.pb.h"
+#include "trc/serial/animation.pb.h"
+#include "trc/serial/asset.pb.h"
+#include "trc/serial/geometry.pb.h"
+#include "trc/serial/material.pb.h"
+#include "trc/serial/rig.pb.h"
+#include "trc/serial/texture.pb.h"
 
 #include "trc/assets/Animation.h"
 #include "trc/assets/Geometry.h"

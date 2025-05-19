@@ -28,9 +28,9 @@ target_sources(
 target_include_directories(material_editor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/)
 
 # Build protobuf sources
-protobuf_generate_cpp(
+protobuf_compile_cpp(
     MEDIT_PROTO_SRCS MEDIT_PROTO_HDRS
-    "${CMAKE_CURRENT_LIST_DIR}/material_graph.proto"
+    material_graph.proto
 )
 target_sources(material_editor PRIVATE ${MEDIT_PROTO_SRCS})
 target_include_directories(material_editor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

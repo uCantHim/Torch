@@ -1,6 +1,6 @@
 #include "trc/assets/AnimationRegistry.h"
 
-#include "animation.pb.h"
+#include "trc/serial/animation.pb.h"
 #include "trc/assets/import/InternalFormat.h"
 
 

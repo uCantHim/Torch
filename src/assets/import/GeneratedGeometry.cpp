@@ -179,8 +179,8 @@ auto trc::makeSphereGeo(const size_t cols, const size_t rows) -> GeometryData
         const float r = glm::sin(rowAngle);
         vec3 pos{ r * glm::cos(colAngle), glm::cos(rowAngle), r * glm::sin(colAngle) };
         vec3 normal{ glm::normalize(pos) };
-        vec2 uv{};
-        vec3 tangent{};
+        vec2 uv{ colAngle / two_pi, rowAngle / pi };
+        vec3 tangent{ glm::sin(colAngle), 0, -glm::cos(colAngle) };
 
         data.vertices.emplace_back(MeshVertex(pos, normal, uv, tangent));
     };

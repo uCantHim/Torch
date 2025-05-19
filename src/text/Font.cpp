@@ -1,6 +1,6 @@
 #include "trc/text/Font.h"
 
-#include "font.pb.h"
+#include "trc/serial/font.pb.h"
 #include "trc/core/Instance.h"
 #include "trc/AssetDescriptor.h"
 

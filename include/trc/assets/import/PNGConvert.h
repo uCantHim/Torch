@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <vector>
 
 #include "trc/Types.h"
@@ -7,6 +8,8 @@
 
 namespace trc
 {
+    namespace fs = std::filesystem;
+
     /**
      * @brief Test if a file contains PNG-formatted data
      *

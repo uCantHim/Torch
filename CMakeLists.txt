@@ -57,14 +57,21 @@ set(TORCH_GENERATED_DIR ${CMAKE_BINARY_DIR}/generated-sources)
 set(TORCH_SHADER_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
 set(TORCH_SHADER_OUTPUT_DIR ${TORCH_GENERATED_DIR}/shaders)
 set(TORCH_INTERNAL_SHADER_DB ${TORCH_GENERATED_DIR}/shader-db.json)
+set(TORCH_PROTOBUF_OUTPUT_DIR ${TORCH_GENERATED_DIR}/include/trc/serial)
+
+file(MAKE_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH})
+file(MAKE_DIRECTORY ${TORCH_GENERATED_DIR})
+file(MAKE_DIRECTORY ${TORCH_SHADER__OUTPUT_DIR})
+file(MAKE_DIRECTORY ${TORCH_PROTOBUF_OUTPUT_DIR})
 
 # Other project settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Third-party
 find_package(Threads REQUIRED)
-include(cmake/utils.cmake)
+include(cmake/build_tools.cmake)
 include(cmake/find_third_party.cmake) # Finds all required third-party dependencies
+include(cmake/utils.cmake)
 
 # In-project dependencies
 add_subdirectory(tools)
@@ -131,7 +138,6 @@ target_compile_definitions(torch
 add_subdirectory(src)
 
 # Pipeline generation
-include(cmake/build_tools.cmake)
 torch_compile_pipelines_cpp(TARGET torch FILE "Common")
 torch_compile_pipelines_cpp(TARGET torch FILE "DrawablePipelines")
 torch_compile_pipelines_cpp(TARGET torch FILE "RasterPipelines")
@@ -191,9 +197,9 @@ endif ()
 # Optional assimp stuff
 find_package(assimp QUIET)
 if (${assimp_FOUND})
-    message(INFO "Found Assimp; building Torch with support for it.")
+    message("-- Found Assimp; including it in the Torch build.")
     target_link_libraries(torch PUBLIC ${ASSIMP_LIBRARIES})
     target_compile_definitions(torch PUBLIC TRC_USE_ASSIMP)
 else ()
-    message(INFO "Assimp was not found; building Torch without it.")
+    message("-- Assimp was not found; building Torch without it.")
 endif ()

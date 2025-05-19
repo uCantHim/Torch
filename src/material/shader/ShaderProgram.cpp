@@ -11,7 +11,7 @@
 #include <trc_util/Timer.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
-#include "material_shader_program.pb.h"
+#include "trc/serial/material_shader_program.pb.h"
 #include "trc/base/Logging.h"
 
 

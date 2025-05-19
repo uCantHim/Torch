@@ -1,6 +1,6 @@
 #include "trc/assets/AssetStorage.h"
 
-#include "asset.pb.h"
+#include "trc/serial/asset.pb.h"
 
 
 
@@ -14,78 +14,79 @@ AssetStorage::AssetStorage(s_ptr<DataStorage> storage)
     assert(this->storage != nullptr);
 }
 
-auto AssetStorage::getMetadata(const AssetPath& path) -> std::optional<AssetMetadata>
+bool AssetStorage::isAssetFile(const util::Pathlet& path)
 {
-    auto metaStream = storage->read(makeMetaPath(path));
-    if (metaStream != nullptr) {
-        return deserializeMetadata(*metaStream);
+    return !!loadFile(path);
+}
+
+auto AssetStorage::loadFile(const util::Pathlet& path)
+    -> std::expected<serial::AssetFile, std::string>
+{
+    auto dataStream = storage->read(path);
+    if (!dataStream) {
+        return std::unexpected("Unable to read from " + path.string() + ".");
+    }
+
+    serial::AssetFile file;
+    if (!file.ParseFromIstream(dataStream.get())) {
+        return std::unexpected("Unable to load asset file data from " + path.string()
+                               + ": Parse error.");
+    }
+    return file;
+}
+
+auto AssetStorage::writeFile(const util::Pathlet& path, const serial::AssetFile& file)
+    -> std::optional<std::string>
+{
+    auto dataStream = storage->write(path);
+    if (!dataStream) {
+        return "Unable to write asset data to " + path.string() + ": System error.";
+    }
+    if (!file.SerializeToOstream(dataStream.get())) {
+        return "Unable to write asset data to " + path.string() + ": Serialization error.";
     }
     return std::nullopt;
 }
 
+auto AssetStorage::getMetadata(const AssetPath& path) -> std::optional<AssetMetadata>
+{
+    auto file = loadFile(path);
+    if (!file) {
+        return std::nullopt;
+    }
+    return getMetadata(*file);
+}
+
 bool AssetStorage::remove(const AssetPath& path)
 {
-    const bool res1 = storage->remove(makeMetaPath(path));
-    const bool res2 = storage->remove(makeDataPath(path));
-    return res1 && res2;
+    return storage->remove(path);
 }
 
-auto AssetStorage::makeMetaPath(const AssetPath& path) -> util::Pathlet
+auto AssetStorage::getMetadata(const serial::AssetFile& file) -> AssetMetadata
 {
-    return util::Pathlet(path.string() + ".meta");
-}
-
-auto AssetStorage::makeDataPath(const AssetPath& path) -> util::Pathlet
-{
-    return util::Pathlet(path.string() + ".data");
-}
-
-void AssetStorage::serializeMetadata(const AssetMetadata& meta, std::ostream& os)
-{
-    serial::AssetMetadata serial;
-    serial.set_name(meta.name);
-    serial.mutable_type()->set_name(meta.type.getName());
-    if (meta.path.has_value()) {
-        serial.set_path(meta.path->string());
-    }
-
-    serial.SerializeToOstream(&os);
-}
-
-auto AssetStorage::deserializeMetadata(std::istream& is) -> AssetMetadata
-{
-    serial::AssetMetadata serial;
-    serial.ParseFromIstream(&is);
-
-    AssetMetadata meta{
-        .name=serial.name(),
-        .type=AssetType::make(serial.type().name()),
-    };
-    if (serial.has_path()) {
-        meta.path = AssetPath(serial.path());
-    }
-
-    return meta;
+    return AssetMetadata::parse(file.metadata());
 }
 
 auto AssetStorage::begin() -> iterator
 {
-    return { storage->begin(), storage->end() };
+    return { storage->begin(), storage->end(), storage };
 }
 
 auto AssetStorage::end() -> iterator
 {
-    return { storage->end(), storage->end() };
+    return { storage->end(), storage->end(), storage };
 }
 
 
 
 AssetStorage::AssetIterator::AssetIterator(
     DataStorage::iterator _begin,
-    DataStorage::iterator _end)
+    DataStorage::iterator _end,
+    s_ptr<DataStorage> _storage)
     :
     iter(std::move(_begin)),
-    end(std::move(_end))
+    end(std::move(_end)),
+    storage(_storage)
 {
     step();
 }
@@ -112,16 +113,17 @@ bool AssetStorage::AssetIterator::operator==(const AssetIterator& other) const
     return iter == other.iter;
 }
 
-bool AssetStorage::AssetIterator::isMetaFile(const util::Pathlet& path)
+bool AssetStorage::AssetIterator::isAssetFile(const util::Pathlet& path)
 {
-    return path.filename().extension() == ".meta";
+    const auto ext = path.extension();
+    return ext == ".ta" || AssetStorage{storage}.isAssetFile(path);
 }
 
 void AssetStorage::AssetIterator::step()
 {
-    while (iter != end && !isMetaFile(*iter)) ++iter;
+    while (iter != end && !isAssetFile(*iter)) ++iter;
     if (iter != end) {
-        currentPath = AssetPath(iter->replaceExtension(""));
+        currentPath = AssetPath(*iter);
     }
 }
 

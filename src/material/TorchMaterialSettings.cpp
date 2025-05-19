@@ -336,7 +336,8 @@ auto RuntimeTextureIndex::loadData() -> std::vector<std::byte>
     {
         throw std::runtime_error(
             "[In RuntimeTextureIndex::loadData]: Unable to load specialization constant data:"
-            " Texture reference has not been registered at an asset manager."
+            " Referenced texture " + texture.getAssetPath().string()
+            + " has not been registered at an asset manager."
         );
     }
 
