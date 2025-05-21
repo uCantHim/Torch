@@ -93,8 +93,6 @@ auto compileProgramCode(
         // Try to finalize GLSL
         try {
             result.emplace(stage, doc.compile());
-            log::info << "Finalized GLSL code for " << vk::to_string(stage) << " stage"
-                      << " in " << timer.reset() << "ms.";
         }
         catch (const shader_edit::CompileError& err)
         {
