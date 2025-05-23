@@ -12,7 +12,7 @@
 class TextdocumentManager
 {
 public:
-    TextdocumentManager(std::ostream& log) : log(log) {}
+    TextdocumentManager() = default;
 
     void open(lsp::TextDocumentItem&& doc, std::shared_ptr<BackendConfig> backend)
     {
@@ -20,32 +20,32 @@ public:
             documents.try_emplace(doc.uri, std::move(doc.text), doc.uri, backend);
         }
         else {
-            log << "[TextdocumentManager] Opened document " << doc.uri.toString()
+            debug << "[TextdocumentManager] Opened document " << doc.uri.toString()
                 << " is not a cloth document. Ignoring it.\n";
         }
     }
 
     void update(const lsp::FileURI& uri, const lsp::TextDocumentContentChangeEvent_Text&)
     {
-        log << "[TextdocumentManager] Full text update for " << uri.toString()
-            << " - not implemented!" << std::endl;
+        debug << "[TextdocumentManager] Full text update for " << uri.toString()
+              << " - not implemented!" << std::flush;
     }
 
     void update(const lsp::FileURI& uri,
                 const lsp::TextDocumentContentChangeEvent_Range_Text& change)
     {
-        log << "[TextdocumentManager] Partial text update for range "
-            << change.range << ": \"" << change.text << "\""
-            << std::endl;
+        debug << "[TextdocumentManager] Partial text update for range "
+              << change.range << ": \"" << change.text << "\""
+              << std::flush;
 
         auto& doc = documents.at(uri);
         doc.replace(change.range, change.text);
 
-        // log << "New document:\n";
+        // debug << "New document:\n";
         // for (auto [i, line] : doc.lines | std::views::enumerate) {
-        //     log << std::setw(4) << std::setfill(' ') << i << " | " << line;
+        //     debug << std::setw(4) << std::setfill(' ') << i << " | " << line;
         // }
-        // log << std::endl;
+        // debug << std::flush;
     }
 
     void close(const lsp::FileURI& documentUri) {
@@ -62,6 +62,5 @@ public:
     }
 
 private:
-    std::ostream& log;
     std::unordered_map<lsp::FileURI, ClothDocument> documents;
 };

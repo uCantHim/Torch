@@ -7,18 +7,27 @@
 #include <vector>
 
 #include <lsp/types.h>
+#include <trc/base/Logging.h>
 #include <trc_util/StringManip.h>
 
-inline auto operator<<(std::ostream& os, const lsp::Position& pos) -> std::ostream&
-{
-    os << pos.line << ":" << pos.character;
-    return os;
-}
+// A debug setting for development
+constexpr bool _enableLogging = false;
 
-inline auto operator<<(std::ostream& os, const lsp::Range& r) -> std::ostream&
+extern trc::Logger<trc::log::LogLevel::eDebug, _enableLogging> debug;
+
+namespace lsp
 {
-    os << "[" << r.start << ", " << r.end << "]";
-    return os;
+    inline auto operator<<(std::ostream& os, const Position& pos) -> std::ostream&
+    {
+        os << pos.line << ":" << pos.character;
+        return os;
+    }
+
+    inline auto operator<<(std::ostream& os, const Range& r) -> std::ostream&
+    {
+        os << "[" << r.start << ", " << r.end << "]";
+        return os;
+    }
 }
 
 template<>

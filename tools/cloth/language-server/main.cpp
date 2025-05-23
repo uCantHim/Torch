@@ -71,13 +71,11 @@ void sendDiagnostics(lsp::MessageHandler& msgHandler, const ClothDocument& doc)
 
 int main()
 {
-    std::ofstream log{ "cloth-lsp.log", std::ios_base::app };
-
     lsp::Connection con{ lsp::io::standardInput(), lsp::io::standardOutput() };
     lsp::MessageHandler msgHandler{ con };
-    log << "Cloth language server started." << std::endl;
+    debug << "Cloth language server started." << std::flush;
 
-    TextdocumentManager documentManager{ log };
+    TextdocumentManager documentManager;
     auto engineBackend = std::make_shared<DefaultTorchBackend>();
 
     msgHandler.add<lsp::requests::Initialize>(
@@ -118,8 +116,8 @@ int main()
     msgHandler.add<lsp::requests::TextDocument_Completion>(
         [&](const lsp::MessageId& /*id*/, lsp::requests::TextDocument_Completion::Params&& params)
         {
-            log << "Request for completion on document " << params.textDocument.uri.toString()
-                << std::endl;
+            debug << "Request for completion on document " << params.textDocument.uri.toString()
+                  << std::flush;
 
             auto doc = documentManager.getDocument(params.textDocument.uri);
             if (!doc) {
@@ -135,8 +133,8 @@ int main()
         [&](const lsp::MessageId& /*id*/, lsp::requests::TextDocument_Hover::Params&& params)
             -> lsp::requests::TextDocument_Hover::Result
         {
-            log << "Request for hover on document " << params.textDocument.uri.toString()
-                << std::endl;
+            debug << "Request for hover on document " << params.textDocument.uri.toString()
+                  << std::flush;
 
             auto doc = documentManager.getDocument(params.textDocument.uri);
             if (!doc) {
@@ -153,8 +151,8 @@ int main()
         [&](const lsp::MessageId& /*id*/, lsp::requests::TextDocument_DocumentHighlight::Params&& params)
             -> lsp::requests::TextDocument_DocumentHighlight::Result
         {
-            log << "Request for document highlight on document " << params.textDocument.uri.toString()
-                << std::endl;
+            debug << "Request for document highlight on document " << params.textDocument.uri.toString()
+                  << std::flush;
 
             auto doc = documentManager.getDocument(params.textDocument.uri);
             if (!doc) {
@@ -179,8 +177,8 @@ int main()
     msgHandler.add<lsp::notifications::TextDocument_DidOpen>(
         [&](lsp::notifications::TextDocument_DidOpen::Params&& params)
         {
-            log << "Opened text document \"" << params.textDocument.uri.toString() << "\""
-                << " [language type: " << params.textDocument.languageId << "]." << std::endl;
+            debug << "Opened text document \"" << params.textDocument.uri.toString() << "\""
+                  << " [language type: " << params.textDocument.languageId << "]." << std::flush;
             documentManager.open(std::move(params.textDocument), engineBackend);
 
             // Send initial diagnostics to the client
@@ -192,8 +190,8 @@ int main()
     msgHandler.add<lsp::notifications::TextDocument_DidChange>(
         [&](lsp::notifications::TextDocument_DidChange::Params&& params)
         {
-            log << "Text document \"" << params.textDocument.uri.toString() << "\""
-                << " has changed." << std::endl;
+            debug << "Text document \"" << params.textDocument.uri.toString() << "\""
+                  << " has changed." << std::flush;
 
             const auto& uri = params.textDocument.uri;
             for (const auto& change : params.contentChanges) {
@@ -209,7 +207,7 @@ int main()
     msgHandler.add<lsp::notifications::TextDocument_DidClose>(
         [&](lsp::notifications::TextDocument_DidClose::Params&& params)
         {
-            log << "Closed text document \"" << params.textDocument.uri.toString() << "\"." << std::endl;
+            debug << "Closed text document \"" << params.textDocument.uri.toString() << "\"." << std::flush;
             documentManager.close(params.textDocument.uri);
         }
     );
@@ -222,7 +220,7 @@ int main()
     while (isRunning) {
         msgHandler.processIncomingMessages();
     }
-    log << "Cloth language server stopped." << std::endl;
+    debug << "Cloth language server stopped." << std::flush;
 
     return 0;
 }

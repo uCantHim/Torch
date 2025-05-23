@@ -56,7 +56,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(rapidfuzz)
 
-add_executable(cloth-language-server language-server/main.cpp)
+add_executable(cloth-language-server
+    language-server/main.cpp
+    language-server/util.cpp
+)
 torch_default_compile_options(cloth-language-server)
 target_link_libraries(
     cloth-language-server
