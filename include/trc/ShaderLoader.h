@@ -1,9 +1,11 @@
 #pragma once
 
 #include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -63,16 +65,24 @@ namespace trc
         };
 
         /**
-         * Determines if dst in the dependency src -> dst is dirty and
-         * needs recompilation or re-generation.
+         * Determine if a shader binary is dirty (outdated) and needs
+         * recompilation or re-generation.
          */
-        static bool binaryDirty(const fs::path& srcPath, const fs::path& binPath);
+        bool binaryDirty(const fs::path& srcPath, const fs::path& binPath) const;
 
         /**
          * Search all include paths for a file. Try to look for it in the
          * shader database if no file can be found this way.
          */
         auto findShaderSource(const util::Pathlet& pathlet) const -> std::optional<fs::path>;
+
+        /**
+         * Recursively scan a file for #included files and return their paths.
+         *
+         * Note: findDeps does not perform path resolution with respect to
+         * include directories. Feed it the result of `findShaderSource`.
+         */
+        auto findDeps(const fs::path& path) const -> std::vector<fs::path>;
 
         auto compile(const fs::path& srcPath, const fs::path& dstPath) const -> std::vector<ui32>;
 
@@ -81,5 +91,9 @@ namespace trc
         fs::path outDir;
 
         shaderc::CompileOptions compileOpts;
+
+        // Caches include dependencies for shader source files.
+        mutable std::unordered_map<fs::path, std::vector<fs::path>> sourceDepsCache;
+        mutable std::mutex sourceDepsCacheLock;
     };
 } // namespace trc

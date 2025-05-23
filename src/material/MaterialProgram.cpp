@@ -129,16 +129,18 @@ MaterialProgram::MaterialProgram(
     ProgramDefinitionData program;
     for (const auto& [stage, glsl] : data.glslCode)
     {
-        log::info << "Compiling GLSL code for " << vk::to_string(stage) << " stage to SPIRV...";
-
         Timer timer;
-        if (auto spirv = compileShader(stage, glsl, *compileOptions))
+        auto spirv = compileShader(stage, glsl, *compileOptions);
+        if (spirv)
         {
-            log::info << "Compiled in " << timer.reset() << " ms.";
+            const auto time = timer.reset();
+            log::info << "[MaterialProgram] Compiled GLSL code for " << vk::to_string(stage)
+                      << " stage to SPIRV in " << time << "ms.";
             program.stages.emplace(stage, ProgramDefinitionData::ShaderStage{ std::move(*spirv) });
         }
         else {
-            throw ShaderCompileError("[In MaterialProgram::MaterialProgram]: Shader compile error.");
+            throw ShaderCompileError("[In MaterialProgram::MaterialProgram]:"
+                                     " Shader compile error: " + spirv.error());
         }
     }
 

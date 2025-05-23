@@ -79,6 +79,8 @@ namespace trc::util
         auto withExtension(const std::string& ext) const -> Pathlet;
 
         /**
+         * @brief Create a full filesystem path from the pathlet.
+         *
          * @return fs::path The result of the path-concatenation
          *         `parentPath / pathlet`.
          */
@@ -100,6 +102,11 @@ namespace trc::util
      *                            path.
      */
     auto operator/(const fs::path& parentPath, const Pathlet& pathlet) -> fs::path;
+
+    /**
+     * @brief Serialize the pathlet to an ostream.
+     */
+    auto operator<<(std::ostream& os, const Pathlet& pathlet) -> std::ostream&;
 } // namespace trc
 
 /**

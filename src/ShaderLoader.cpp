@@ -1,13 +1,12 @@
 #include "trc/ShaderLoader.h"
 
-#include <cstring>
-
 #include <fstream>
 
 #include <nlohmann/json.hpp>
 #include <shader_tools/ShaderDocument.h>
 #include <spirv/FileIncluder.h>
 #include <trc_util/Util.h>
+#include <trc_util/Timer.h>
 
 #include "trc/Types.h"
 #include "trc/base/Logging.h"
@@ -82,16 +81,13 @@ auto ShaderLoader::load(const ShaderPath& shaderPath) const -> std::vector<ui32>
      * source is generated in `findFile` if it is outdated.
      */
 
-    const auto srcPathOpt = findShaderSource(shaderPath.getSourceName());
-    if (srcPathOpt)
+    if (const auto srcPath = findShaderSource(shaderPath.getSourceName()))
     {
-        assert(fs::is_regular_file(*srcPathOpt));
+        assert(fs::is_regular_file(*srcPath));
 
-        const auto& srcPath = *srcPathOpt;
         const auto binPath = outDir / shaderPath.getBinaryName();
-
-        if (binaryDirty(srcPath, binPath)) {
-            return compile(srcPath, binPath);
+        if (binaryDirty(*srcPath, binPath)) {
+            return compile(*srcPath, binPath);
         }
         return readSpirvFile(binPath);
     }
@@ -100,11 +96,67 @@ auto ShaderLoader::load(const ShaderPath& shaderPath) const -> std::vector<ui32>
                             + shaderPath.getSourceName().string() + " not found.");
 }
 
-bool ShaderLoader::binaryDirty(const fs::path& srcPath, const fs::path& binPath)
+auto ShaderLoader::findDeps(const fs::path& path) const -> std::vector<fs::path>
 {
-    return !fs::is_regular_file(binPath)
-        || fs::last_write_time(srcPath) > fs::last_write_time(binPath)
-        || fs::file_size(binPath) == 0;
+    std::vector<fs::path> res;
+
+    std::ifstream file{ path };
+    std::string line;
+    while (std::getline(file, line))
+    {
+        if (auto begin = line.find("#include"); begin != std::string::npos)
+        {
+            begin = line.find('"', begin);
+            if (begin == std::string::npos) {
+                continue;
+            }
+            ++begin;
+            auto end = line.find('"', begin);
+            if (end == std::string::npos)
+            {
+                log::debug << "[ShaderLoader] Weird occurrence: Syntactically incorrect #include"
+                           << " statement in " << path << " line \"" << line << "\".";
+                continue;
+            }
+
+            const util::Pathlet depPath{ line.substr(begin, end - begin) };
+            if (auto dep = findShaderSource(depPath))
+            {
+                res.emplace_back(*dep);
+                auto recursive = findDeps(*dep);
+                std::move(recursive.begin(), recursive.end(), std::back_inserter(res));
+            }
+            else {
+                log::debug << "[ShaderLoader] Include \"" << depPath << "\" not found"
+                           << " (included from " << path << ").";
+            }
+        }
+    }
+
+    return res;
+}
+
+bool ShaderLoader::binaryDirty(const fs::path& srcPath, const fs::path& binPath) const
+{
+    assert(fs::is_regular_file(srcPath));
+
+    // Check whether the expected binary exists and is newer than the source file
+    if (!fs::is_regular_file(binPath)
+        || fs::file_size(binPath) == 0
+        || fs::last_write_time(srcPath) > fs::last_write_time(binPath))
+    {
+        return true;
+    }
+
+    // Check whether any included file is newer than the binary
+    const auto lastBinaryUpdate = fs::last_write_time(binPath);
+    for (const auto& dep : findDeps(srcPath))
+    {
+        if (fs::last_write_time(dep) > lastBinaryUpdate) {
+            return true;
+        }
+    }
+    return false;
 }
 
 auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std::optional<fs::path>
@@ -133,8 +185,8 @@ auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std:
             auto dstFile = find(filePath);
             if (rawSourcePath && (!dstFile || binaryDirty(*rawSourcePath, *dstFile)))
             {
-                log::info << "Regenerate shader source " << filePath.string()
-                          << " from " << *rawSourcePath << "\n";
+                log::info << "[ShaderLoader] Regenerate shader source " << filePath.string()
+                          << " from " << *rawSourcePath;
 
                 std::ifstream rawSource(*rawSourcePath);
                 shader_edit::ShaderDocument doc(rawSource);
@@ -175,7 +227,7 @@ auto ShaderLoader::compile(const fs::path& srcPath, const fs::path& dstPath) con
 {
     assert(fs::is_regular_file(srcPath));
 
-    log::info << "Compiling shader " << srcPath << " to " << dstPath;
+    log::info << "[ShaderLoader] Compiling shader " << srcPath << " to " << dstPath;
 
     auto result = spirv::generateSpirv(util::readFile(srcPath), srcPath, compileOpts);
     if (result.GetCompilationStatus()

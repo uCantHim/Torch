@@ -71,4 +71,10 @@ auto operator/(const fs::path& parentPath, const Pathlet& pathlet) -> fs::path
     return pathlet.filesystemPath(parentPath);
 }
 
+auto operator<<(std::ostream& os, const Pathlet& pathlet) -> std::ostream&
+{
+    os << pathlet.string();
+    return os;
+}
+
 } // namespace trc::util
