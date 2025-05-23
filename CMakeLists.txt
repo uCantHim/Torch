@@ -35,15 +35,26 @@ option(TORCH_BUILD_MATERIAL_EDITOR "Build a graphical material editing tool" OFF
 option(TORCH_BUILD_ASSET_TOOLS "Build additional tools for asset manipulation" OFF)
 
 # Some more user options
-set(TORCH_LOG_LEVEL $<IF:$<BOOL:${TORCH_DEBUG}>,Debug,Warning> CACHE STRING
-    "Log level. May be one of {'Error', 'Warning', 'Info', 'Debug'}.")
+string(APPEND torch_log_level_help
+       "The smallest compile-time enabled log level. Disabling log levels with "
+       "this option enables the compiler to remove almost all logging overhead. "
+       "The downside is that no runtime configuration can re-enable log levels "
+       "that have been disabled this way.")
+set(TORCH_LOG_LEVEL Debug CACHE STRING ${torch_log_level_help})
+set(torch_allowed_log_levels "Critical" "Error" "Warning" "Info" "Debug")
+set_property(CACHE TORCH_LOG_LEVEL PROPERTY STRINGS ${torch_allowed_log_levels})
+if (NOT ${TORCH_LOG_LEVEL} IN_LIST torch_allowed_log_levels)
+    message(SEND_ERROR "\"${TORCH_LOG_LEVEL}\" is not a valid log level. Valid"
+                       " log levels are: Critical, Error, Warning, Info, Debug.")
+endif()
+
 set(TORCH_OPTIMIZATION_LEVEL $<IF:$<BOOL:${TORCH_DEBUG}>,0,2> CACHE STRING
     "A string appended to the '-O' or '/O' compiler options.")
 option(TORCH_BUILD_WITH_DEBUG_INFO "Build Torch with the -g flag" ${TORCH_DEBUG})
 
 # Process options
 if (${TORCH_DEBUG})
-    message(
+    message(STATUS
         "TORCH_DEBUG is enabled; this sets the following default values: TORCH_LOG_LEVEL=Debug,"
         " TORCH_OPTIMIZATION_LEVEL=0, and TORCH_BUILD_WITH_DEBUG_INFO=ON."
         " You may override these individually as you see fit."
@@ -129,6 +140,7 @@ target_compile_definitions(torch
 
         # Debug settings
         TRC_LOG_LEVEL=::trc::log::LogLevel::e${TORCH_LOG_LEVEL}
+        TRC_LOG_LEVEL_ENV_NAME="TORCH_LOG_LEVEL"
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
         $<$<BOOL:${TORCH_DEBUG_THROW_ON_VALIDATION_ERROR}>:TRC_DEBUG_THROW_ON_VALIDATION_ERROR>
         TRC_DEBUG_VULKAN_LOGS_DIR="torch_vulkan_logs"
