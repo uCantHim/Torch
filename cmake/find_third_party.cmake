@@ -126,7 +126,7 @@ endif ()
 FetchContent_Declare(
     cimg
     GIT_REPOSITORY https://github.com/dtschump/CImg.git
-    GIT_TAG        927fee511fe4fcc1ae5cdf2365a60048fe4ff935
+    GIT_TAG        v.3.5.5
 )
 FetchContent_MakeAvailable(cimg)
 
