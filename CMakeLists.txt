@@ -117,6 +117,7 @@ target_link_libraries(
         Freetype::Freetype
         protobuf::libprotobuf
         nlohmann_json::nlohmann_json
+        SQLiteCpp
 
         # first-party
         torch_util
@@ -138,9 +139,12 @@ target_compile_definitions(torch
         # Torch configuration macros
         $<$<BOOL:${TORCH_FLIP_Y_AXIS}>:TRC_FLIP_Y_PROJECTION>
 
+        # Environment variables that Torch uses for runtime configuration
+        TRC_LOG_LEVEL_ENV_NAME="TORCH_LOG_LEVEL"
+        TRC_SHADER_CACHE_ENV_NAME="TORCH_SHADER_CACHE"
+
         # Debug settings
         TRC_LOG_LEVEL=::trc::log::LogLevel::e${TORCH_LOG_LEVEL}
-        TRC_LOG_LEVEL_ENV_NAME="TORCH_LOG_LEVEL"
         $<$<BOOL:${TORCH_DEBUG}>:TRC_DEBUG>
         $<$<BOOL:${TORCH_DEBUG_THROW_ON_VALIDATION_ERROR}>:TRC_DEBUG_THROW_ON_VALIDATION_ERROR>
         TRC_DEBUG_VULKAN_LOGS_DIR="torch_vulkan_logs"

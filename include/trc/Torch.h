@@ -97,7 +97,7 @@ namespace trc
          * @brief Specify a list of additional render plugins that shall be
          *        inserted into Torch's render pipeline.
          */
-        vk::ArrayProxy<TorchPipelinePluginBuilder> plugins;
+        vk::ArrayProxy<TorchPipelinePluginBuilder> plugins{};
 
         /**
          * @brief A path to the project's asset storage directory.

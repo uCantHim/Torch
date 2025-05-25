@@ -16,41 +16,6 @@
 
 
 
-class NullIncluder : public shaderc::CompileOptions::IncluderInterface
-{
-public:
-    NullIncluder(const NullIncluder&) = delete;
-    NullIncluder(NullIncluder&&) noexcept = delete;
-    NullIncluder& operator=(const NullIncluder&) = delete;
-    NullIncluder& operator=(NullIncluder&&) noexcept = delete;
-    ~NullIncluder() noexcept override = default;
-
-    NullIncluder() = default;
-
-    /** Handles shaderc_include_resolver_fn callbacks. */
-    auto GetInclude(const char* /*requested_source*/,
-                    shaderc_include_type /*type*/,
-                    const char* /*requesting_source*/,
-                    size_t)
-        -> shaderc_include_result* override
-    {
-        return &nullResult;
-    }
-
-    /** Handles shaderc_include_result_releultase_fn callbacks. */
-    void ReleaseInclude(shaderc_include_result* /*data*/) override
-    {
-    }
-
-    shaderc_include_result nullResult{
-        .source_name = "",
-        .source_name_length = 0,
-        .content = "No include paths given",
-        .content_length = strlen("No include paths given"),
-        .user_data=nullptr,
-    };
-};
-
 namespace trc::shader
 {
 

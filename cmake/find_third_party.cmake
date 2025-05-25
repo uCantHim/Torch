@@ -129,3 +129,10 @@ FetchContent_Declare(
     GIT_TAG        927fee511fe4fcc1ae5cdf2365a60048fe4ff935
 )
 FetchContent_MakeAvailable(cimg)
+
+FetchContent_Declare(
+    SQLiteCpp
+    GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp
+    GIT_TAG 3.3.3
+)
+FetchContent_MakeAvailable(SQLiteCpp)

@@ -6,6 +6,7 @@ target_sources(
         FragmentShader.cpp
         MaterialProgram.cpp
         MaterialSpecialization.cpp
+        ShaderCache.cpp
         TorchMaterialSettings.cpp
         VertexShader.cpp
 )

@@ -196,16 +196,11 @@ auto trc::makeMaterialProgram(
     }
 
     // Create the runtime program
-    try {
-        return std::make_unique<MaterialProgram>(
-            data.shaderProgram.getSpecialization(key),
-            pipelineData,
-            renderPass
-        );
-    }
-    catch (const ShaderCompileError& err) {
-        return std::unexpected(err);
-    }
+    return makeMaterialProgram(
+        data.shaderProgram.getSpecialization(key),
+        pipelineData,
+        renderPass
+    );
 }
 
 

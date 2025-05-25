@@ -98,6 +98,16 @@ auto ShaderLoader::load(const ShaderPath& shaderPath) const -> std::vector<ui32>
 
 auto ShaderLoader::findDeps(const fs::path& path) const -> std::vector<fs::path>
 {
+    // Try to look up dependencies in the cache first
+    {
+        std::scoped_lock _lock{ sourceDepsCacheLock };
+        auto [it, notCached] = sourceDepsCache.try_emplace(path);
+        if (!notCached) {
+            return it->second;
+        }
+    }
+
+    // Not cached - recursively gather #include directives from the file.
     std::vector<fs::path> res;
 
     std::ifstream file{ path };
@@ -131,6 +141,13 @@ auto ShaderLoader::findDeps(const fs::path& path) const -> std::vector<fs::path>
                            << " (included from " << path << ").";
             }
         }
+    }
+
+    // Store results in the cache.
+    {
+        std::scoped_lock _lock{ sourceDepsCacheLock };
+        assert(sourceDepsCache.contains(path));
+        sourceDepsCache.at(path) = res;
     }
 
     return res;
@@ -179,6 +196,8 @@ auto ShaderLoader::findShaderSource(const util::Pathlet& filePath) const -> std:
     {
         if (auto shader = shaderDatabase->get(filePath.string()))
         {
+            // The 'raw source' is a document that may contain unset variables
+            // and from which a shader source (GLSL) is generated.
             auto rawSourcePath = find(shader->source);
 
             // Regenerate the shader source if it does not exist or is outdated

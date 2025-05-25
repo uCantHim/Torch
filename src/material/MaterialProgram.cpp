@@ -1,5 +1,7 @@
 #include "trc/material/MaterialProgram.h"
 
+#include <cstdlib>
+
 #include <spirv/CompileSpirv.h>
 #include <trc_util/StringManip.h>
 #include <trc_util/Timer.h>
@@ -7,11 +9,26 @@
 #include "trc/core/DeviceTask.h"
 #include "trc/core/ResourceConfig.h"
 #include "trc/core/Pipeline.h"
+#include "trc/material/ShaderCache.h"
 
 
 
 namespace trc
 {
+
+auto getShaderCacheFile() -> const char*
+{
+    if (auto env = std::getenv(TRC_SHADER_CACHE_ENV_NAME)) {
+        return env;
+    }
+    return ".torch_material_shader_cache";
+}
+
+auto getShaderCache() -> ShaderCache&
+{
+    static thread_local ShaderCache cache{ getShaderCacheFile() };
+    return cache;
+}
 
 auto makePipelineLayout(const shader::ShaderProgramData& program)
     -> PipelineLayoutTemplate
@@ -37,37 +54,51 @@ auto makePipelineLayout(const shader::ShaderProgramData& program)
     return PipelineLayoutTemplate{ descriptors, pushConstants };
 }
 
-auto shaderStageToExtension(vk::ShaderStageFlagBits stage) -> std::string
+auto makeMaterialProgram(
+    const shader::ShaderProgramData& data,
+    const PipelineDefinitionData& pipeline,
+    const RenderPassDefinition& renderPass,
+    u_ptr<shaderc::CompileOptions> opts)
+    -> std::expected<u_ptr<MaterialProgram>, ShaderCompileError>
+{
+    try {
+        return std::make_unique<MaterialProgram>(data, pipeline, renderPass, std::move(opts));
+    }
+    catch (const ShaderCompileError& err) {
+        return std::unexpected(err);
+    }
+}
+
+auto shaderStageToShaderKind(vk::ShaderStageFlagBits stage) -> shaderc_shader_kind
 {
     switch (stage)
     {
-    case vk::ShaderStageFlagBits::eVertex: return ".vert";
-    case vk::ShaderStageFlagBits::eGeometry: return ".geom";
-    case vk::ShaderStageFlagBits::eTessellationControl: return ".tese";
-    case vk::ShaderStageFlagBits::eTessellationEvaluation: return ".tesc";
-    case vk::ShaderStageFlagBits::eFragment: return ".frag";
+    case vk::ShaderStageFlagBits::eVertex: return shaderc_shader_kind::shaderc_vertex_shader;
+    case vk::ShaderStageFlagBits::eGeometry: return shaderc_shader_kind::shaderc_geometry_shader;
+    case vk::ShaderStageFlagBits::eTessellationControl: return shaderc_shader_kind::shaderc_tess_control_shader;
+    case vk::ShaderStageFlagBits::eTessellationEvaluation: return shaderc_shader_kind::shaderc_tess_evaluation_shader;
+    case vk::ShaderStageFlagBits::eFragment: return shaderc_shader_kind::shaderc_fragment_shader;
 
-    case vk::ShaderStageFlagBits::eTaskEXT: return ".task";
-    case vk::ShaderStageFlagBits::eMeshEXT: return ".mesh";
+    case vk::ShaderStageFlagBits::eTaskEXT: return shaderc_shader_kind::shaderc_task_shader;
+    case vk::ShaderStageFlagBits::eMeshEXT: return shaderc_shader_kind::shaderc_mesh_shader;
 
-    case vk::ShaderStageFlagBits::eRaygenKHR: return ".rgen";
-    case vk::ShaderStageFlagBits::eIntersectionKHR: return ".rint";
-    case vk::ShaderStageFlagBits::eMissKHR: return ".rmiss";
-    case vk::ShaderStageFlagBits::eAnyHitKHR: return ".rahit";
-    case vk::ShaderStageFlagBits::eClosestHitKHR: return ".rchit";
-    case vk::ShaderStageFlagBits::eCallableKHR: return ".rcall";
+    case vk::ShaderStageFlagBits::eRaygenKHR: return shaderc_shader_kind::shaderc_raygen_shader;
+    case vk::ShaderStageFlagBits::eIntersectionKHR: return shaderc_shader_kind::shaderc_intersection_shader;
+    case vk::ShaderStageFlagBits::eMissKHR: return shaderc_shader_kind::shaderc_miss_shader;
+    case vk::ShaderStageFlagBits::eAnyHitKHR: return shaderc_shader_kind::shaderc_anyhit_shader;
+    case vk::ShaderStageFlagBits::eClosestHitKHR: return shaderc_shader_kind::shaderc_closesthit_shader;
+    case vk::ShaderStageFlagBits::eCallableKHR: return shaderc_shader_kind::shaderc_callable_shader;
 
-    case vk::ShaderStageFlagBits::eCompute: return ".comp";
+    case vk::ShaderStageFlagBits::eCompute: return shaderc_shader_kind::shaderc_compute_shader;
 
     case vk::ShaderStageFlagBits::eAll:
     case vk::ShaderStageFlagBits::eAllGraphics:
     case vk::ShaderStageFlagBits::eSubpassShadingHUAWEI:
     case vk::ShaderStageFlagBits::eClusterCullingHUAWEI:
-        return ".glsl";
+        return shaderc_shader_kind::shaderc_glsl_infer_from_source;
     }
 
-    assert(false);
-    throw std::logic_error("");
+    std::unreachable();
 }
 
 /**
@@ -79,10 +110,24 @@ auto compileShader(
     const shaderc::CompileOptions& opts)
     -> std::expected<std::vector<ui32>, std::string>
 {
+    Timer timer;
+
+    // Check if the SPIR-V result is already cached.
+    if (auto cached = getShaderCache().query(glslCode))
+    {
+        log::debug << "[MaterialProgram] Found cached SPIR-V code for shader stage "
+                   << vk::to_string(shaderStage)
+                   << " (lookup time: " << timer.reset() << "ms).";
+        return std::move(cached->spirvCode);
+    }
+
+    // SPIR-V code is not cached, compile it now.
+    timer.reset();
     const auto result = spirv::generateSpirv(
         glslCode,
-        "foo" + shaderStageToExtension(shaderStage),
-        opts
+        {},
+        opts,
+        shaderStageToShaderKind(shaderStage)
     );
 
     if (result.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -110,7 +155,15 @@ auto compileShader(
         return std::unexpected(result.GetErrorMessage());
     }
 
-    return std::vector<ui32>{ result.begin(), result.end() };
+    // Log some info
+    const auto time = timer.reset();
+    log::info << "[MaterialProgram] Compiled GLSL code for " << vk::to_string(shaderStage)
+              << " stage to SPIRV in " << time << "ms.";
+
+    // Create result and cache it
+    std::vector<ui32> spirv{ result.begin(), result.end() };
+    getShaderCache().store(glslCode, { spirv, std::chrono::system_clock::now() });
+    return spirv;
 }
 
 MaterialProgram::MaterialProgram(
@@ -129,13 +182,8 @@ MaterialProgram::MaterialProgram(
     ProgramDefinitionData program;
     for (const auto& [stage, glsl] : data.glslCode)
     {
-        Timer timer;
         auto spirv = compileShader(stage, glsl, *compileOptions);
-        if (spirv)
-        {
-            const auto time = timer.reset();
-            log::info << "[MaterialProgram] Compiled GLSL code for " << vk::to_string(stage)
-                      << " stage to SPIRV in " << time << "ms.";
+        if (spirv) {
             program.stages.emplace(stage, ProgramDefinitionData::ShaderStage{ std::move(*spirv) });
         }
         else {

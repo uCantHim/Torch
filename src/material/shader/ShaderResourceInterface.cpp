@@ -1,6 +1,8 @@
 #include "trc/material/shader/ShaderResourceInterface.h"
 
+#include <algorithm>
 #include <format>
+#include <ranges>
 #include <sstream>
 
 #include <trc_util/Util.h>
@@ -277,10 +279,21 @@ ShaderResourceInterfaceBuilder::ShaderResourceInterfaceBuilder(
 
 auto ShaderResourceInterfaceBuilder::compile() const -> ShaderResourceInterface
 {
+    /**
+     * We sort these macro definitions to obtain a deterministic result. This is
+     * important for the shader caching system which caches SPIR-V code for the
+     * corresponding GLSL code (see ShaderCache).
+     */
+    auto getOrderedResourceMacros = [this] -> std::vector<std::pair<std::string, std::string>> {
+        auto items = resourceMacros | std::views::values | std::ranges::to<std::vector>();
+        std::ranges::sort(items);
+        return items;
+    };
+
     std::stringstream ss;
 
-    for (const auto& [_, macro] : resourceMacros) {
-        ss << "#define " << macro.first << " " << macro.second << "\n";
+    for (const auto& [macroName, resourceAccessor] : getOrderedResourceMacros()) {
+        ss << "#define " << macroName << " " << resourceAccessor << "\n";
     }
     for (const auto& [name, val] : requiredMacros) {
         ss << "#define " << name << " (" << val.value_or("") << ")\n";
