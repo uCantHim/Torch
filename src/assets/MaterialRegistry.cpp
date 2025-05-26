@@ -244,13 +244,7 @@ auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const Mater
     {
         assert(shaderPrograms.at(key.flags.toIndex()) == nullptr);
 
-        auto matProgram = makeMaterialProgram(
-            data,
-            MaterialSpecializationInfo{
-                .animated=key.flags.has(MaterialKey::Flags::Animated::eTrue)
-            }
-        );
-
+        auto matProgram = makeMaterialProgram(data, key.toSpecializationInfo());
         if (matProgram)
         {
             auto& prog = shaderPrograms.at(key.flags.toIndex());

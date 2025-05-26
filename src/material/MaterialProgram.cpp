@@ -26,7 +26,7 @@ auto getShaderCacheFile() -> const char*
 
 auto getShaderCache() -> ShaderCache&
 {
-    static thread_local ShaderCache cache{ getShaderCacheFile() };
+    thread_local ShaderCache cache{ getShaderCacheFile() };
     return cache;
 }
 

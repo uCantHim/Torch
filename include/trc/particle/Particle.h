@@ -151,8 +151,6 @@ namespace trc
         // void generateParticles();
 
     private:
-        static inline async::ThreadPool threads;
-
         std::vector<Particle> particles;
         ParticleCollection* collection{ nullptr };
     };

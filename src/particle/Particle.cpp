@@ -262,17 +262,14 @@ void trc::ParticleSpawn::addParticle(Particle particle)
 
 void trc::ParticleSpawn::spawnParticles()
 {
-    threads.async([this]()
+    const mat4& globalTransform = getGlobalTransform();
+    std::vector<Particle> newParticles{ particles };
+    for (auto& p : newParticles)
     {
-        const mat4& globalTransform = getGlobalTransform();
-        std::vector<Particle> newParticles{ particles };
-        for (auto& p : newParticles)
-        {
-            p.phys.position = vec3(globalTransform * vec4(p.phys.position, 1.0f));
-            p.phys.timeLived = 0.0f;
-        }
+        p.phys.position = vec3(globalTransform * vec4(p.phys.position, 1.0f));
+        p.phys.timeLived = 0.0f;
+    }
 
-        // This function is costly as well
-        collection->addParticles(particles);
-    });
+    // This function is costly as well
+    collection->addParticles(particles);
 }
