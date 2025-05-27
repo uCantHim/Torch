@@ -6,6 +6,7 @@ target_sources(
         Constant.cpp
         ShaderCodeBuilder.cpp
         ShaderCodeCompiler.cpp
+        ShaderModule.cpp
         ShaderModuleBuilder.cpp
         ShaderModuleCompiler.cpp
         ShaderOutputInterface.cpp

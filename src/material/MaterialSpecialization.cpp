@@ -44,20 +44,9 @@ MaterialSpecializationCache::MaterialSpecializationCache(const MaterialBaseInfo&
 {
 }
 
-MaterialSpecializationCache::MaterialSpecializationCache(
-    const serial::MaterialProgramSpecializations& serial,
-    shader::ShaderRuntimeConstantDeserializer& des)
-    :
-    base(std::nullopt)
+auto MaterialSpecializationCache::getBaseInfo() const -> const MaterialBaseInfo&
 {
-    for (const auto& [i, specData] : std::views::enumerate(serial.specializations()))
-    {
-        assert(specData.has_shader_program());
-
-        shader::ShaderProgramData prog{};
-        prog.deserialize(specData.shader_program(), des);
-        shaderPrograms[i] = std::move(prog);
-    }
+    return base;
 }
 
 auto MaterialSpecializationCache::getSpecialization(const MaterialKey& key)
@@ -81,45 +70,12 @@ auto MaterialSpecializationCache::iterSpecializations()
     }
 }
 
-auto MaterialSpecializationCache::serialize() const -> serial::MaterialProgramSpecializations
-{
-    serial::MaterialProgramSpecializations res;
-    serialize(res);
-    return res;
-}
-
-void MaterialSpecializationCache::serialize(serial::MaterialProgramSpecializations& out) const
-{
-    out.clear_specializations();
-    for (const auto& [i, prog] : std::views::enumerate(shaderPrograms))
-    {
-        assert(prog || base);  // The constructor interface is designed in a way
-                               // that this should always be true.
-
-        const auto key = MaterialKey::fromUniqueIndex(i);
-        auto newSpec = out.add_specializations();
-        newSpec->set_animated(key.flags & MaterialKey::Flags::Animated::eTrue);
-
-        if (prog) {
-            *newSpec->mutable_shader_program() = prog->serialize();
-        }
-        else {
-            assert(base);
-            auto spec = createSpecialization(*base, key);
-            *newSpec->mutable_shader_program() = spec.serialize();
-        }
-    }
-}
-
 auto MaterialSpecializationCache::getOrCreateSpecialization(const MaterialKey& key)
     -> shader::ShaderProgramData&
 {
     auto& program = shaderPrograms[key.toUniqueIndex()];
-    if (!program)
-    {
-        assert(base);  // The constructor interface is designed in a way that
-                       // this should always be true.
-        program = createSpecialization(*base, key);
+    if (!program) {
+        program = createSpecialization(base, key);
     }
 
     return program.value();

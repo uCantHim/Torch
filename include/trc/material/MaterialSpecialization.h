@@ -2,8 +2,7 @@
 
 #include <functional>
 #include <generator>
-
-#include "trc/serial/material.pb.h"
+#include <utility>
 
 #include "trc/FlagCombination.h"
 #include "trc/material/shader/ShaderProgram.h"
@@ -130,8 +129,11 @@ namespace trc
         ~MaterialSpecializationCache() noexcept = default;
 
         explicit MaterialSpecializationCache(const MaterialBaseInfo& base);
-        explicit MaterialSpecializationCache(const serial::MaterialProgramSpecializations& serial,
-                                             shader::ShaderRuntimeConstantDeserializer& des);
+
+        /**
+         * @return nullptr if the cache has no base info.
+         */
+        auto getBaseInfo() const -> const MaterialBaseInfo&;
 
         auto getSpecialization(const MaterialKey& key) -> const shader::ShaderProgramData&;
 
@@ -146,16 +148,6 @@ namespace trc
         auto iterSpecializations()
             -> std::generator<std::pair<MaterialKey, const shader::ShaderProgramData&>>;
 
-        /**
-         * Always pre-computes and outputs all specializations.
-         */
-        auto serialize() const -> serial::MaterialProgramSpecializations;
-
-        /**
-         * Always pre-computes and outputs all specializations.
-         */
-        void serialize(serial::MaterialProgramSpecializations& out) const;
-
     private:
         static constexpr size_t kNumSpecializations
             = MaterialKey::MaterialSpecializationFlags::size();
@@ -169,7 +161,7 @@ namespace trc
         auto getOrCreateSpecialization(const MaterialKey& key)
             -> shader::ShaderProgramData&;
 
-        std::optional<MaterialBaseInfo> base;
+        MaterialBaseInfo base;
         PerSpecialization<std::optional<shader::ShaderProgramData>> shaderPrograms;
     };
 } // namespace trc

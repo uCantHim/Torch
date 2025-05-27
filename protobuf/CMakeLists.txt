@@ -10,11 +10,12 @@ protobuf_compile_cpp(
     animation.proto
     font.proto
 
-    material_shader_program.proto
-
     asset.proto
     asset_reference.proto
+
+    shader_primitives.proto
+    shader_module.proto
+    material_shader_program.proto
 )
 
 target_sources(torch PRIVATE ${TRC_PROTO_SRCS})
-target_include_directories(torch PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

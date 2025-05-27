@@ -1,0 +1,58 @@
+syntax = "proto3";
+package trc.serial;
+
+import 'shader_primitives.proto';
+
+message ShaderResourceInterface
+{
+    message SpecializationConstant
+    {
+        uint32 index = 1;
+        RuntimeConstantValue value = 2;
+    }
+
+    message ShaderInput
+    {
+        uint32 location = 1;
+        BasicType type = 2;
+        string shader_var_id = 3;
+        string decl_code = 4;
+        string capability = 5;
+    }
+
+    message PushConstant
+    {
+        uint32 offset = 1;
+        uint32 size = 2;
+        uint32 user_id = 3;
+        string offset_placeholder = 4;
+    }
+
+    message Payload
+    {
+        oneof type {
+            BasicType basic_type = 1;
+            StructType struct_type = 2;
+        }
+
+        string capability = 3;
+        string location_placeholder = 4;
+    }
+
+    // Resource declaration code
+    string code = 1;
+
+    repeated ShaderInput            shader_inputs = 3;
+    repeated Payload                payloads = 4;
+    repeated SpecializationConstant spec_constants = 5;
+    repeated PushConstant           push_constants = 6;
+    uint32 total_pc_size = 8;
+
+    map<string, string>             desc_index_placholders = 7;
+}
+
+message ShaderModule
+{
+    string code = 1;
+    ShaderResourceInterface resources = 2;
+}

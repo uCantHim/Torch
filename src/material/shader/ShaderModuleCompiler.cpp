@@ -9,27 +9,6 @@
 namespace trc::shader
 {
 
-ShaderModule::ShaderModule(
-    shader_edit::ShaderDocument _shaderCode,
-    ShaderResourceInterface _resourceInfo)
-    :
-    ShaderResourceInterface(std::move(_resourceInfo)),
-    shaderCode(std::move(_shaderCode))
-{
-}
-
-auto ShaderModule::getShaderCode() -> shader_edit::ShaderDocument&
-{
-    return shaderCode;
-}
-
-auto ShaderModule::getShaderCode() const -> const shader_edit::ShaderDocument&
-{
-    return shaderCode;
-}
-
-
-
 auto ShaderModuleCompiler::compile(
     const ShaderOutputInterface& outputs,
     ShaderModuleBuilder builder,

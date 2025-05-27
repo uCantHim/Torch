@@ -1,0 +1,31 @@
+syntax = "proto3";
+package trc.serial;
+
+message BasicType
+{
+    // static_cast<ui32>(trc::BasicType::Type{}) value
+    uint32 type = 1;
+
+    // Number of
+    uint32 channels = 2;
+}
+
+message StructType
+{
+    message Field
+    {
+        string name = 1;
+        oneof type {
+            BasicType basic_type = 3;
+            StructType struct_type = 4;
+        }
+    }
+
+    string name = 1;
+    repeated Field fields = 2;
+}
+
+message RuntimeConstantValue
+{
+    bytes data = 2;
+}

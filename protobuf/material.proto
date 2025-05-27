@@ -1,9 +1,10 @@
 syntax = "proto3";
 package trc.serial;
 
-import "vector_types.proto";
 import "asset_reference.proto";
 import "material_shader_program.proto";
+import "shader_module.proto";
+import "vector_types.proto";
 
 message SimpleMaterial
 {
@@ -22,6 +23,11 @@ message SimpleMaterial
     optional AssetReference normal_texture = 9;
 }
 
+// [now unused]
+//
+// Was used to serialize a full specialization of a MaterialSpecializationCache.
+// Currently, we only store the material base info and create all needed
+// specializations at runtime.
 message MaterialProgramSpecializations
 {
     message Specialization
@@ -81,6 +87,6 @@ message Material
     }
 
     Settings settings = 1;
-    MaterialProgramSpecializations specializations = 2;
+    ShaderModule fragment_module = 2;
     repeated RuntimeValueDefault runtime_values = 3;
 }

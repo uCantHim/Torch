@@ -12,6 +12,8 @@
 #include "CodePrimitives.h"
 #include "ShaderRuntimeConstant.h"
 
+#include "trc/serial/shader_module.pb.h"
+
 namespace trc::shader
 {
     /**
@@ -202,6 +204,16 @@ namespace trc::shader
             -> std::optional<std::string>;
 
         auto getRequiredPayloads() const -> const std::vector<PayloadInfo>&;
+
+        auto serialize() const -> serial::ShaderResourceInterface;
+
+        /**
+         * @param des May be omitted by passing `nullptr`, but runtime constants
+         *            will not be deserialized.
+         */
+        static auto deserialize(const serial::ShaderResourceInterface& data,
+                                ShaderRuntimeConstantDeserializer* des)
+            -> ShaderResourceInterface;
 
     private:
         friend class ShaderResourceInterfaceBuilder;

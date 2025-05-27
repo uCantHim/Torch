@@ -45,7 +45,7 @@ void trc::AssetData<trc::Material>::serialize(
     serial::Material mat;
 
     // Serialize shader programs
-    data.shaderProgram.serialize(*mat.mutable_specializations());
+    *mat.mutable_fragment_module() = data.shaderProgram.getBaseInfo().fragmentModule.serialize();
 
     // Serialize default runtime values
     for (const auto& [pcId, data] : data.runtimeValueDefaults)
@@ -86,7 +86,12 @@ auto trc::AssetData<trc::Material>::deserialize(std::istream& is)
 
     // Create result data
     MaterialData::RuntimeConstantDeserializer runtimeConstants;
-    MaterialData res{ MaterialSpecializationCache{ mat.specializations(), runtimeConstants } };
+    MaterialData res{
+        MaterialBaseInfo{
+            .fragmentModule = shader::ShaderModule::deserialize(mat.fragment_module(), &runtimeConstants),
+            .transparent = mat.settings().transparent(),
+        }
+    };
 
     // Parse settings
     const auto& settings = mat.settings();
@@ -116,9 +121,6 @@ auto trc::AssetData<trc::Material>::deserialize(std::istream& is)
             }
         );
     }
-
-    // Store runtime constants to resolve them later on
-    res.requiredTextures = runtimeConstants.loadedTextures;
 
     return res;
 }

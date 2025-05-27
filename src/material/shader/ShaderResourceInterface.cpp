@@ -7,6 +7,8 @@
 
 #include <trc_util/Util.h>
 
+#include "trc/base/Logging.h"
+
 
 
 namespace trc::shader
@@ -78,6 +80,128 @@ auto ShaderResourceInterface::getPushConstantOffsetPlaceholder(ui32 pushConstant
 auto ShaderResourceInterface::getRequiredPayloads() const -> const std::vector<PayloadInfo>&
 {
     return requiredPayloads;
+}
+
+auto ShaderResourceInterface::serialize() const -> serial::ShaderResourceInterface
+{
+    serial::ShaderResourceInterface res;
+
+    res.set_code(code);
+    res.set_total_pc_size(pushConstantSize);
+    for (const auto& [key, value] : descriptorSetIndexPlaceholders) {
+        res.mutable_desc_index_placholders()->try_emplace(key, value);
+    }
+
+    for (const auto& in : requiredShaderInputs)
+    {
+        auto _in = res.add_shader_inputs();
+        _in->set_location(in.location);
+        auto type = _in->mutable_type();
+        type->set_type(static_cast<ui32>(in.type.type));
+        type->set_channels(in.type.channels);
+        _in->set_shader_var_id(in.variableName);
+        _in->set_decl_code(in.declCode);
+        _in->set_capability(in.capability.toString());
+    }
+    for (const auto& pl : requiredPayloads)
+    {
+        auto _pl = res.add_payloads();
+        _pl->set_capability(pl.capability.toString());
+        _pl->set_location_placeholder(pl.locationPlaceholder);
+        if (auto type = std::get_if<BasicType>(&pl.type))
+        {
+            auto _type = _pl->mutable_basic_type();
+            _type->set_type(static_cast<ui32>(type->type));
+            _type->set_channels(type->channels);
+        }
+        else {
+            log::error << "[ShaderResourceInterface::serialize]: Unable to serialize struct type"
+                          " of shader payload: not implemented.";
+        }
+    }
+    for (const auto& spec : specConstants)
+    {
+        auto _spec = res.add_spec_constants();
+        _spec->set_index(spec.specializationConstantIndex);
+        auto val = _spec->mutable_value();
+        val->set_data(spec.value->serialize());
+    }
+    for (const auto& [_, pc] : pushConstantInfos)
+    {
+        auto _pc = res.add_push_constants();
+        _pc->set_offset(pc.offset);
+        _pc->set_size(pc.size);
+        _pc->set_user_id(pc.userId);
+        _pc->set_offset_placeholder(pc.offsetPlaceholder);
+    }
+
+    return res;
+}
+
+auto ShaderResourceInterface::deserialize(
+    const serial::ShaderResourceInterface& data,
+    ShaderRuntimeConstantDeserializer* des)
+    -> ShaderResourceInterface
+{
+    ShaderResourceInterface res;
+
+    res.code = data.code();
+    res.pushConstantSize = data.total_pc_size();
+    const auto& _desc_index_ph = data.desc_index_placholders();
+    res.descriptorSetIndexPlaceholders = { _desc_index_ph.begin(), _desc_index_ph.end() };
+
+    for (const auto& in : data.shader_inputs())
+    {
+        res.requiredShaderInputs.push_back({
+            .location = in.location(),
+            .type{
+                static_cast<BasicType::Type>(in.type().type()),
+                static_cast<ui8>(in.type().channels())
+            },
+            .variableName = in.shader_var_id(),
+            .declCode = in.decl_code(),
+            .capability = in.capability()
+        });
+    }
+    for (const auto& pl : data.payloads())
+    {
+        assert(pl.has_basic_type() && "alternative is not implemented.");
+        res.requiredPayloads.push_back({
+            .type = BasicType{
+                static_cast<BasicType::Type>(pl.basic_type().type()),
+                static_cast<ui8>(pl.basic_type().channels())
+            },
+            .capability = pl.capability(),
+            .locationPlaceholder = pl.location_placeholder(),
+        });
+    }
+    if (des != nullptr)
+    {
+        for (const auto& spec : data.spec_constants())
+        {
+            res.specConstants.push_back({
+                .value = des->deserialize(spec.value().data()).value(),
+                .specializationConstantIndex = spec.index(),
+            });
+        }
+    }
+    else if (data.spec_constants_size() > 0) {
+        log::warn << "[ShaderResourceInterface::deserialize]: Loaded data has "
+                  << data.spec_constants_size() << " runtime constants defined, but no"
+                  << " runtime constant deserializer was specified. Runtime constants"
+                     " will be ignored.";
+    }
+    for (const auto& pc : data.push_constants())
+    {
+        res.pushConstantInfos.try_emplace(pc.user_id(), PushConstantInfo{
+            .offset = pc.offset(),
+            .size = pc.size(),
+            .userId = pc.user_id(),
+            .offsetPlaceholder = pc.offset_placeholder(),
+        });
+    }
+
+    return res;
 }
 
 
