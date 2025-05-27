@@ -26,7 +26,8 @@ namespace trc
     struct MaterialSpecializationInfo
     {
         bool animated;
-    };
+        vk::PrimitiveTopology primitiveTopology{ vk::PrimitiveTopology::eTriangleList };
+   };
 
     /**
      * Can be created from MaterialSpecializationInfo or directly from its
@@ -37,11 +38,20 @@ namespace trc
         struct Flags
         {
             enum class Animated{ eFalse, eTrue, eMaxEnum };
-            // enum class ...
+
+            enum class PrimitiveTopology
+            {
+                ePoints,
+                eLines,
+                eTriangles,
+                eMaxEnum,
+            };
         };
 
+
         using MaterialSpecializationFlags = FlagCombination<
-            Flags::Animated
+            Flags::Animated,
+            Flags::PrimitiveTopology
             //, ...
         >;
 
@@ -55,6 +65,27 @@ namespace trc
         constexpr MaterialKey(const MaterialSpecializationInfo& info)
         {
             if (info.animated) flags |= Flags::Animated::eTrue;
+            switch (info.primitiveTopology)
+            {
+            case vk::PrimitiveTopology::ePointList:
+                flags |= Flags::PrimitiveTopology::ePoints;
+                break;
+            case vk::PrimitiveTopology::eLineList:
+            case vk::PrimitiveTopology::eLineStrip:
+            case vk::PrimitiveTopology::eLineListWithAdjacency:
+            case vk::PrimitiveTopology::eLineStripWithAdjacency:
+                flags |= Flags::PrimitiveTopology::eLines;
+                break;
+            case vk::PrimitiveTopology::eTriangleList:
+            case vk::PrimitiveTopology::eTriangleFan:
+            case vk::PrimitiveTopology::eTriangleStrip:
+            case vk::PrimitiveTopology::eTriangleListWithAdjacency:
+            case vk::PrimitiveTopology::eTriangleStripWithAdjacency:
+                flags |= Flags::PrimitiveTopology::eTriangles;
+                break;
+            case vk::PrimitiveTopology::ePatchList:
+                throw std::invalid_argument{ "Not implemented: Primitive topology 'patch list'" };
+            }
         }
 
         explicit
@@ -71,7 +102,17 @@ namespace trc
         constexpr auto toSpecializationInfo() const -> MaterialSpecializationInfo
         {
             return {
-                .animated=flags & Flags::Animated::eTrue
+                .animated=flags & Flags::Animated::eTrue,
+                .primitiveTopology=[this]{
+                    switch (flags.get<Flags::PrimitiveTopology>())
+                    {
+                    case Flags::PrimitiveTopology::ePoints: return vk::PrimitiveTopology::ePointList;
+                    case Flags::PrimitiveTopology::eLines: return vk::PrimitiveTopology::eLineList;
+                    case Flags::PrimitiveTopology::eTriangles: return vk::PrimitiveTopology::eTriangleList;
+                    case Flags::PrimitiveTopology::eMaxEnum: assert(false && "unreachable");
+                    }
+                    std::unreachable();
+                }()
             };
         }
 

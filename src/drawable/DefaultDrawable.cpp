@@ -49,6 +49,7 @@ auto makeGBufferDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> Drawable
         material->uploadPushConstantDefaultValues(cmdBuf, layout);
 
         drawInfo->geo.bindVertices(cmdBuf, 0);
+        cmdBuf.setPrimitiveTopology(drawInfo->geo.getPrimitiveTopology());
         cmdBuf.drawIndexed(drawInfo->geo.getIndexCount(), 1, 0, 0, 0);
     };
 }

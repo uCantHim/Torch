@@ -195,6 +195,11 @@ auto trc::makeMaterialProgram(
         if (data.depthTest) ds.setDepthTestEnable(*data.depthTest);
         if (data.depthBiasConstantFactor) r.setDepthBiasConstantFactor(*data.depthBiasConstantFactor);
         if (data.depthBiasSlopeFactor) r.setDepthBiasSlopeFactor(*data.depthBiasSlopeFactor);
+
+        // The topology value is used to configure the topology class, which
+        // must be compatible with the topology set via vkSetPrimitiveTopology.
+        pipelineData.inputAssembly.setTopology(specialization.primitiveTopology);
+        pipelineData.dynamicStates.emplace_back(vk::DynamicState::ePrimitiveTopology);
     }
 
     // Create the runtime program

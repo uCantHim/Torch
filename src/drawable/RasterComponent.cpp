@@ -21,6 +21,7 @@ trc::RasterComponent::RasterComponent(const RasterComponentCreateInfo& createInf
         .mat=matHandle,
         .matRuntime=matHandle.getRuntime({
             .animated=this->isAnimated,
+            .primitiveTopology=geoHandle.getPrimitiveTopology(),
         }),
         .modelMatrixId=createInfo.modelMatrixId,
         .anim=createInfo.anim,

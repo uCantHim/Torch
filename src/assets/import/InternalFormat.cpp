@@ -84,8 +84,9 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
            || data.skeletalVertices.size() == data.vertices.size());
 
     trc::serial::Geometry geo;
-    for (uint32_t idx : data.indices)
-    {
+    geo.set_primitive_topology(static_cast<ui32>(data.primitiveTopology));
+
+    for (uint32_t idx : data.indices) {
         geo.add_indices(idx);
     }
     for (const trc::MeshVertex& v : data.vertices)
@@ -126,6 +127,7 @@ auto serializeAssetData(const GeometryData& data) -> trc::serial::Geometry
 auto deserializeAssetData(const trc::serial::Geometry& geo) -> GeometryData
 {
     GeometryData data;
+    data.primitiveTopology = static_cast<vk::PrimitiveTopology>(geo.primitive_topology());
 
     // Get vertices
     data.vertices.reserve(geo.vertices().size());

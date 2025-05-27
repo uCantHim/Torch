@@ -8,14 +8,10 @@ namespace trc
 
     struct MeshVertex
     {
-        MeshVertex() = default;
-        MeshVertex(vec3 p, vec3 n, vec2 uv, vec3 t)
-            : position(p), normal(n), uv(uv), tangent(t) {}
-
-        vec3 position;
-        vec3 normal;
-        vec2 uv;
-        vec3 tangent;
+        vec3 position{ 0, 0, 0 };
+        vec3 normal{ 0, 0, 0 };
+        vec2 uv{ 0, 0 };
+        vec3 tangent{ 0, 0, 0 };
     };
 
     struct SkeletalVertex

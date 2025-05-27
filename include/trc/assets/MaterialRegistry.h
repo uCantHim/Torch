@@ -12,6 +12,7 @@
 #include "trc/assets/AssetReference.h"
 #include "trc/assets/AssetRegistryModule.h"
 #include "trc/assets/AssetSource.h"
+#include "trc/assets/GeometryRegistry.h"
 #include "trc/assets/TextureRegistry.h"
 #include "trc/material/MaterialProgram.h"
 #include "trc/material/MaterialSpecialization.h"
@@ -42,6 +43,8 @@ namespace trc
         /**
          * Default values for runtime parameters to the material's shader
          * program. Runtime parameters are usually implemented as push constants.
+         *
+         * Currently used by SimpleMaterial to set its material parameters.
          */
         std::vector<std::pair<ui32, std::vector<std::byte>>> runtimeValueDefaults;
 
@@ -169,6 +172,14 @@ namespace trc
         {
             assert(storage != nullptr);
             return storage->getSpecialization(params);
+        }
+
+        auto getRuntime(GeometryHandle geo) const -> s_ptr<MaterialRuntime>
+        {
+            return getRuntime(MaterialSpecializationInfo{
+                .animated=geo.hasRig(),
+                .primitiveTopology=geo.getPrimitiveTopology(),
+            });
         }
 
     private:

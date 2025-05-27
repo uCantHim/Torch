@@ -37,9 +37,11 @@ namespace trc
     template<>
     struct AssetData<Geometry>
     {
-        std::vector<MeshVertex> vertices;
-        std::vector<SkeletalVertex> skeletalVertices;
-        std::vector<VertexIndex> indices;
+        std::vector<MeshVertex> vertices{};
+        std::vector<SkeletalVertex> skeletalVertices{};
+        std::vector<VertexIndex> indices{};
+
+        vk::PrimitiveTopology primitiveTopology{ vk::PrimitiveTopology::eTriangleList };
 
         AssetReference<Rig> rig{};
 
@@ -97,6 +99,8 @@ namespace trc
             DeviceLocalBuffer skeletalVertexBuf;
             ui32 numIndices{ 0 };
             ui32 numVertices{ 0 };
+
+            vk::PrimitiveTopology primitiveTopology;
 
             bool hasSkeleton{ false };
             std::optional<RigID> rig{ std::nullopt };
@@ -175,6 +179,8 @@ namespace trc
         auto getIndexType() const noexcept -> vk::IndexType;
         auto getVertexSize() const noexcept -> size_t;
         auto getSkeletalVertexSize() const noexcept -> size_t;
+
+        auto getPrimitiveTopology() const noexcept -> vk::PrimitiveTopology;
 
         bool hasSkeleton() const;
         bool hasRig() const;

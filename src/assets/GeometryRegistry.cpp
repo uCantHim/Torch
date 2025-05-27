@@ -121,6 +121,8 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
 
         .numIndices = static_cast<ui32>(data.indices.size()),
         .numVertices = static_cast<ui32>(data.vertices.size()),
+
+        .primitiveTopology = data.primitiveTopology,
     };
 
     // Enqueue writes to the device-local vertex buffers
@@ -312,6 +314,11 @@ auto GeometryHandle::getVertexSize() const noexcept -> size_t
 auto GeometryHandle::getSkeletalVertexSize() const noexcept -> size_t
 {
     return sizeof(SkeletalVertex);
+}
+
+auto GeometryHandle::getPrimitiveTopology() const noexcept -> vk::PrimitiveTopology
+{
+    return deviceData->primitiveTopology;
 }
 
 bool GeometryHandle::hasSkeleton() const

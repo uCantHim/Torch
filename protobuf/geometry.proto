@@ -24,5 +24,8 @@ message Geometry
     repeated Vertex vertices = 3;
     repeated SkelVertex skeletal_vertices = 4;
 
+    // static_cast<ui32>(vk::PrimitiveTopology{})
+    uint32 primitive_topology = 6;
+
     optional AssetReference rig = 5;
 }
