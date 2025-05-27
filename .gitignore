@@ -1,5 +1,6 @@
 build/
 torch_vulkan_logs/
+.torch_material_shader_cache
 
 .vscode/
 .vs/
