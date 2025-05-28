@@ -1,6 +1,6 @@
 #include <iostream>
-#include <fstream>
 
+#include <cloth/torch_impl.h>
 #include <lsp/connection.h>
 #include <lsp/io/standardio.h>
 #include <lsp/messages.h>
@@ -8,54 +8,7 @@
 #include <trc/material/FragmentShader.h>
 #include <trc/material/TorchMaterialSettings.h>
 
-#include "backend_config.h"
 #include "textdocument_manager.h"
-
-/**
- * Uses the deferred fragment shader implementation as the default backend.
- */
-class DefaultTorchBackend : public BackendConfig
-{
-    auto makeCapabilityConfig() -> trc::shader::CapabilityConfig override
-    {
-        return trc::makeFragmentCapabilityConfig();
-    }
-
-    auto makeOutputConfig() -> std::unique_ptr<cloth::ShaderOutputImpl> override
-    {
-        return std::make_unique<DeferredFragmentShaderImpl>();
-    }
-
-    struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
-    {
-        void setParameter(const std::string& outputName,
-                          trc::shader::code::Value value) override
-        {
-            using Param = trc::FragmentModule::Parameter;
-            static const std::unordered_map<std::string, Param> map{
-                { "color", Param::eColor },
-                { "normal", Param::eNormal },
-                { "specularFactor", Param::eSpecularFactor },
-                { "metallicness", Param::eMetallicness },
-                { "roughness", Param::eRoughness },
-                { "emissive", Param::eEmissive },
-            };
-
-            if (map.contains(outputName)) {
-                frag.setParameter(map.at(outputName), value);
-            }
-        }
-
-        auto buildShaderOutputs(trc::shader::ShaderModuleBuilder& builder)
-            -> trc::shader::ShaderOutputInterface override
-        {
-            const bool transparent = false;
-            return frag.buildOutputs(builder, transparent);
-        }
-
-        trc::FragmentModule frag;
-    };
-};
 
 void sendDiagnostics(lsp::MessageHandler& msgHandler, const ClothDocument& doc)
 {
@@ -76,7 +29,7 @@ int main()
     debug << "Cloth language server started." << std::flush;
 
     TextdocumentManager documentManager;
-    auto engineBackend = std::make_shared<DefaultTorchBackend>();
+    auto engineBackend = std::make_shared<cloth::TorchImpl>();
 
     msgHandler.add<lsp::requests::Initialize>(
         [](const lsp::MessageId& /*id*/, lsp::requests::Initialize::Params&& /*params*/)

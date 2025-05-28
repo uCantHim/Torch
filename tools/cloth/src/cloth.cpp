@@ -149,8 +149,8 @@ auto compileBuiltins(
 
 auto compileShader(
     std::istream& is,
-    trc::shader::CapabilityConfig& caps,
-    ShaderOutputImpl& outputConfig)
+    const trc::shader::CapabilityConfig& caps,
+    std::unique_ptr<ShaderOutputImpl> outputConfig)
     -> std::expected<CompileResult, CompileError>
 {
     // Return both parse- and compile errors
@@ -164,7 +164,7 @@ auto compileShader(
 
     // Compile document to shader module
     auto parsed = parseResult ? *parseResult : parseResult.error().partialResult;
-    auto compileResult = compileShader(parsed, caps, outputConfig);
+    auto compileResult = compileShader(parsed, caps, std::move(outputConfig));
     if (!compileResult)
     {
         return std::unexpected(CompileError{
@@ -184,10 +184,12 @@ auto compileShader(
 }
 
 auto compileShader(const parser::Result& parseResult,
-                   trc::shader::CapabilityConfig& caps,
-                   ShaderOutputImpl& outputConfig)
+                   const trc::shader::CapabilityConfig& caps,
+                   std::unique_ptr<ShaderOutputImpl> outputConfig)
     -> std::expected<CompileResult, CompileError>
 {
+    assert(outputConfig);
+
     Document doc{ parseResult };
     trc::shader::ShaderModuleBuilder moduleBuilder;
 
@@ -200,7 +202,7 @@ auto compileShader(const parser::Result& parseResult,
     auto& [outputVariables, varImpls] = *builtinCompileResult;
 
     // Generate and insert code into document
-    trc::shader::ShaderResourceInterfaceBuilder resources{ caps, caps.getCodeBuilder() };
+    trc::shader::ShaderResourceInterfaceBuilder resources{ caps, moduleBuilder };
     trc::shader::CapabilityConfigResourceResolver resolver{ resources };
     trc::shader::ShaderValueCompiler valueCompiler{ resolver, false };
 
@@ -249,9 +251,9 @@ auto compileShader(const parser::Result& parseResult,
     for (const auto& var : outputVariables)
     {
         auto id = moduleBuilder.makeExternalIdentifier(shaderId.at(var->location));
-        outputConfig.setParameter(var->id.name, id);
+        outputConfig->setParameter(var->id.name, id);
     }
-    auto outputInterface = outputConfig.buildShaderOutputs(moduleBuilder);
+    auto outputInterface = outputConfig->buildShaderOutputs(moduleBuilder);
 
     // Create output statements
     trc::shader::code::Block block = std::make_shared<trc::shader::code::BlockT>();
@@ -303,6 +305,34 @@ auto compileShader(const parser::Result& parseResult,
     return CompileResult{
         .shaderModule{ shader_edit::ShaderDocument{ code.str() }, std::move(shaderResources) },
     };
+}
+
+auto printErrors(const cloth::CompileError& doc, std::optional<std::string> filePath)
+    -> std::string
+{
+    auto indent = [](size_t n, char c = ' ') { return std::string(n, c); };
+
+    std::stringstream ss;
+    ss << "Compile error.\n";
+    for (const auto& err : doc.errors)
+    {
+        const auto& lines = doc.initialDocumentLines;
+        const auto loc = err.location;
+
+        // Error message
+        if (filePath) {
+            ss << *filePath << ":";
+        }
+        ss << loc.line << ":" << loc.firstChar << ": error: " << err.message << "\n";
+        // Code line
+        ss << "  " << loc.line << " | " << lines.at(loc.line) << "\n";
+        // Positional indicator line
+        ss << "  " << indent(std::to_string(loc.line).size())
+                  << " | " << indent(loc.firstChar)
+                  << "^" << indent(loc.endChar - loc.firstChar - 1, '~') << "\n";
+    }
+
+    return ss.str();
 }
 
 } // namespace cloth

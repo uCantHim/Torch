@@ -8,11 +8,11 @@
 #include <trc/material/TorchMaterialSettings.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
+#include <cloth/backend_config.h>
 #include <cloth/builtins.h>
 #include <cloth/cloth.h>
 #include <cloth/parser.h>
 
-#include "backend_config.h"
 #include "util.h"
 
 class ClothDocument
@@ -20,7 +20,7 @@ class ClothDocument
 public:
     explicit ClothDocument(std::string text,
                            lsp::FileURI _uri,
-                           std::shared_ptr<BackendConfig> _backend)
+                           std::shared_ptr<cloth::BackendConfig> _backend)
         :
         uri(std::move(_uri)),
         backend(_backend),
@@ -251,11 +251,10 @@ public:
 
         // Compile document to shader module
         auto caps = backend->makeCapabilityConfig();
-        auto outputs = backend->makeOutputConfig();
         auto compileResult = cloth::compileShader(
             parsed ? *parsed : parsed.error().partialResult,
             caps,
-            *outputs
+            backend->makeOutputConfig()
         );
 
         if (!compileResult) {
@@ -265,7 +264,7 @@ public:
     }
 
     lsp::FileURI uri;
-    std::shared_ptr<BackendConfig> backend;
+    std::shared_ptr<cloth::BackendConfig> backend;
     std::vector<cloth::Builtin> builtins;
 
     std::vector<std::string> lines;

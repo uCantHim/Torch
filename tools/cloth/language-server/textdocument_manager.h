@@ -3,9 +3,9 @@
 #include <memory>
 #include <unordered_map>
 
+#include <cloth/backend_config.h>
 #include <lsp/types.h>
 
-#include "backend_config.h"
 #include "cloth_document.h"
 #include "util.h"
 
@@ -14,7 +14,7 @@ class TextdocumentManager
 public:
     TextdocumentManager() = default;
 
-    void open(lsp::TextDocumentItem&& doc, std::shared_ptr<BackendConfig> backend)
+    void open(lsp::TextDocumentItem&& doc, std::shared_ptr<cloth::BackendConfig> backend)
     {
         if (doc.languageId == "cloth") {
             documents.try_emplace(doc.uri, std::move(doc.text), doc.uri, backend);

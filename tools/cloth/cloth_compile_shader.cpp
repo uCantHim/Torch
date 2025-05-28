@@ -1,54 +1,25 @@
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 
 #include <argparse/argparse.hpp>
 #include <shader_tools/ShaderDocument.h>
 #include <trc/assets/MaterialRegistry.h>
 #include <trc/assets/SimpleMaterial.h>
-#include <trc/material/FragmentShader.h>
-#include <trc/material/TorchMaterialSettings.h>
 #include <trc_util/Timer.h>
 
 #include <cloth/cloth.h>
 #include <cloth/parser.h>
+#include <cloth/torch_impl.h>
 
-struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
-{
-    void setParameter(const std::string& outputName,
-                      trc::shader::code::Value value) override
-    {
-        using Param = trc::FragmentModule::Parameter;
-        static const std::unordered_map<std::string, Param> map{
-            { "color", Param::eColor },
-            { "normal", Param::eNormal },
-            { "specularFactor", Param::eSpecularFactor },
-            { "metallicness", Param::eMetallicness },
-            { "roughness", Param::eRoughness },
-            { "emissive", Param::eEmissive },
-        };
-
-        if (map.contains(outputName)) {
-            frag.setParameter(map.at(outputName), value);
-        }
-    }
-
-    auto buildShaderOutputs(trc::shader::ShaderModuleBuilder& builder)
-        -> trc::shader::ShaderOutputInterface override
-    {
-        const bool transparent = false;
-        return frag.buildOutputs(builder, transparent);
-    }
-
-    trc::FragmentModule frag;
-};
+namespace fs = std::filesystem;
 
 auto compileToMaterial(std::istream& is) -> std::expected<trc::MaterialData, cloth::CompileError>
 {
-    auto capabilityConfig = trc::makeFragmentCapabilityConfig();
-    auto outputConfig = DeferredFragmentShaderImpl{};
+    cloth::TorchImpl impl;
 
     trc::Timer timer;
-    auto res = cloth::compileShader(is, capabilityConfig, outputConfig);
+    auto res = cloth::compileShader(is, impl.makeCapabilityConfig(), impl.makeOutputConfig());
     std::cout << "Cloth shader processed in " << timer.reset() << "ms\n";
 
     if (res) {
@@ -59,27 +30,7 @@ auto compileToMaterial(std::istream& is) -> std::expected<trc::MaterialData, clo
 
 void outputErrors(cloth::CompileError& doc, std::optional<std::string> filePath)
 {
-    auto indent = [](size_t n, char c = ' ') { return std::string(n, c); };
-
-    std::cout << "Compile error.\n";
-    for (const auto& err : doc.errors)
-    {
-        const auto& lines = doc.initialDocumentLines;
-        const auto loc = err.location;
-
-        // Error message
-        if (filePath) {
-            std::cout << *filePath << ":";
-        }
-        std::cout << loc.line << ":" << loc.firstChar << ": error: " << err.message << "\n";
-        // Code line
-        std::cout << "  " << loc.line << " | " << lines.at(loc.line) << "\n";
-        // Positional indiator line
-        std::cout << "  " << indent(std::to_string(loc.line).size())
-                  << " | " << indent(loc.firstChar)
-                  << "^" << indent(loc.endChar - loc.firstChar - 1, '~') << "\n";
-    }
-
+    std::cout << cloth::printErrors(doc, filePath);
     exit(1);
 }
 
@@ -87,23 +38,13 @@ constexpr int kInvalidUsageExitcode{ 64 };
 
 void configureArgumentParser(argparse::ArgumentParser& prog)
 {
-    prog.add_description("Compile Cloth shader code to GLSL or SPIR-V.");
+    prog.add_description("Compile Cloth shader code to Torch materials.");
 
     prog.add_argument("file")
         .help("A Cloth shader file. Omit to read from STDIN.");
     prog.add_argument("--output", "-o")
         .help("Path to an output file. Omit to construct a default file name."
               " Specify '-' to write output to STDOUT.");
-
-    auto& outputType = prog.add_mutually_exclusive_group();
-    outputType.add_argument("--glsl")
-              .implicit_value(true)
-              .default_value(true)
-              .help("Output GLSL code.");
-    outputType.add_argument("--spirv")
-              .implicit_value(true)
-              .default_value(false)
-              .help("Output SPIR-V code.");
 }
 
 int main(int argc, const char** argv)
@@ -119,14 +60,38 @@ int main(int argc, const char** argv)
         exit(kInvalidUsageExitcode);
     }
 
+    auto outputFilePath = [&program] -> std::optional<fs::path> {
+        if (auto outFile = program.present("output"))
+        {
+            if (*outFile == "-") {
+                return std::nullopt;
+            }
+            return *outFile;
+        }
+        if (auto fileName = program.present("file")) {
+            return fs::path{*fileName}.replace_extension(".mat.ta");
+        }
+        return std::nullopt;
+    }();
+
+    auto writeOutput = [&outputFilePath](const trc::MaterialData& data)
+    {
+        if (outputFilePath)
+        {
+            std::ofstream outFile{ *outputFilePath };
+            trc::serializeAsset(data, outFile);
+        }
+        else {
+            trc::serializeAsset(data, std::cout);
+        }
+    };
+
     if (auto fileName = program.present("file"))
     {
         std::ifstream file{ *fileName };
         auto res = compileToMaterial(file);
-        if (res)
-        {
-            std::ofstream outFile{ *fileName + ".out" };
-            trc::serializeAsset(*res, outFile);
+        if (res) {
+            writeOutput(*res);
         }
         else {
             outputErrors(res.error(), fileName);
@@ -135,8 +100,7 @@ int main(int argc, const char** argv)
     else {
         auto res = compileToMaterial(std::cin);
         if (res) {
-            std::ofstream outFile{ program.get("output") };
-            trc::serializeAsset(*res, outFile);
+            writeOutput(*res);
         }
         else {
             outputErrors(res.error(), "STDIN");
