@@ -71,7 +71,7 @@ auto trc::makeTorchRenderPipeline(
     RenderPipelineBuilder builder;
     builder.addPlugin(buildSwapchainPlugin(window));
     builder.addPlugin(buildAssetPlugin(
-        createInfo.assetRegistry,
+        createInfo.assetManager,
         createInfo.assetDescriptorCreateInfo
     ));
     builder.addPlugin(buildRasterPlugin(
@@ -128,7 +128,7 @@ trc::TorchStack::TorchStack(
         instance,
         window,
         TorchPipelineCreateInfo{
-            .assetRegistry=assetManager.getDeviceRegistry(),
+            .assetManager=assetManager,
             .assetDescriptorCreateInfo=assetDescriptorInfo,
             .maxShadowMaps=kDefaultMaxShadowMaps,
             .maxTransparentFragsPerPixel=kDefaultMaxTransparentFrags,

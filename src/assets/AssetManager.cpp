@@ -2,9 +2,6 @@
 
 #include <source_location>
 
-#include "trc/assets/Assets.h"
-#include "trc/assets/DefaultTraits.h"
-
 
 
 trc::AssetManager::AssetManager(s_ptr<DataStorage> assetDataStorage)
@@ -12,13 +9,6 @@ trc::AssetManager::AssetManager(s_ptr<DataStorage> assetDataStorage)
     dataStorage(assetDataStorage)
 {
     assert(assetDataStorage != nullptr);
-
-    registerDefaultTraits<Material>(assetTraits);
-    registerDefaultTraits<Texture>(assetTraits);
-    registerDefaultTraits<Geometry>(assetTraits);
-    registerDefaultTraits<Rig>(assetTraits);
-    registerDefaultTraits<Animation>(assetTraits);
-    registerDefaultTraits<Font>(assetTraits);
 }
 
 auto trc::AssetManager::create(const AssetPath& path) -> std::optional<AssetID>
@@ -65,30 +55,19 @@ void trc::AssetManager::destroy(AssetID id)
 void trc::AssetManager::destroy(const AssetPath& path)
 {
     auto it = pathsToAssets.find(path);
-    if (it != pathsToAssets.end())
-    {
+    if (it != pathsToAssets.end()) {
         destroy(it->second);
-        // Path is removed from map in `beforeAssetDestroy`
-    }
-}
-
-void trc::AssetManager::beforeAssetDestroy(AssetID asset)
-{
-    try {
-        auto path = assetsToPaths.copyAtomically(toIndex(asset));
-        pathsToAssets.erase(path);
-        assetsToPaths.erase(toIndex(asset));
-    }
-    catch (const std::out_of_range&) {
-        // Asset with the specified ID does not exist (copyAtomically failed).
-        // Perhaps I should throw an InvalidAssetIdError here, but I don't know
-        // the implications of this so I won't.
     }
 }
 
 bool trc::AssetManager::exists(const AssetPath& path) const
 {
     return pathsToAssets.contains(path);
+}
+
+auto trc::AssetManager::getAssetType(AssetID id) const -> const AssetType&
+{
+    return base.getAssetType(id);
 }
 
 auto trc::AssetManager::getMetadata(const AssetPath& path) const -> const AssetMetadata*
@@ -99,7 +78,22 @@ auto trc::AssetManager::getMetadata(const AssetPath& path) const -> const AssetM
     return nullptr;
 }
 
+auto trc::AssetManager::begin() const -> const_iterator
+{
+    return base.begin();
+}
+
+auto trc::AssetManager::end() const -> const_iterator
+{
+    return base.end();
+}
+
 auto trc::AssetManager::getDataStorage() -> AssetStorage&
 {
     return dataStorage;
+}
+
+auto trc::AssetManager::getDeviceRegistry() -> AssetRegistry&
+{
+    return base.getDeviceRegistry();
 }

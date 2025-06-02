@@ -168,7 +168,7 @@ namespace trc
         AssetManagerBase& operator=(AssetManagerBase&&) noexcept = delete;
 
         AssetManagerBase() = default;
-        ~AssetManagerBase() = default;
+        ~AssetManagerBase() noexcept = default;
 
         /**
          * @brief Create an asset
@@ -267,39 +267,16 @@ namespace trc
         template<AssetBaseType T>
         auto getModule() -> AssetRegistryModule<T>&;
 
-        /**
-         * @brief Access the device-data registry
-         *
-         * One should normally not access the device registry directly. Use the
-         * asset manager's interface to manipulate assets instead.
-         */
         auto getDeviceRegistry() -> AssetRegistry&;
 
-    protected:
         /**
-         * This is a quick and dirty solution for the problem that the
-         * AssetManager has to remove auxiliary data in the case that an
-         * asset was added via `create(AssetPath)`, but destroyed with
-         * `destroy(AssetID)`.
-         *
-         * I found two alternatives:
-         *  1. Use a general `ComponentStorage` object in `AssetManager` to
-         *  store a component for each asset with a custom destructor that
-         *  removes the remaining meta information.
-         *  2. Overload all `AssetManagerBase::destroy` functions statically
-         *  in `AssetManager` in the same fashion as I did in
-         *  `AssetManager::create<T>(u_ptr<AssetSource<T>>)`. This is kind of
-         *  tedious with the multiple overloads in `AssetManagerBase`.
-         *
-         * See `AssetManager::beforeAssetDestroy` for details.
+         * Convert an asset ID to a numeric index.
          */
-        virtual void beforeAssetDestroy(AssetID /*asset*/) {}
-
-    protected:
         static constexpr auto toIndex(AssetID id) noexcept -> ui32 {
             return ui32{id};
         }
 
+    private:
         /**
          * Assert that an asset ID exists in the storage. Failing the test means
          * that `id` has become invalid, and `InvalidAssetIdError` is thrown.
@@ -308,7 +285,6 @@ namespace trc
          */
         void assertExists(AssetID id, std::string_view hint) const;
 
-    private:
         data::IdPool<ui32> assetIdPool;
         util::SafeVector<AssetInfo> assetInformation;
 
@@ -432,18 +408,17 @@ namespace trc
             );
         }
 
-        beforeAssetDestroy(id);
-
-        const auto typedId = *getAs<T>(id);
-        deviceRegistry.remove<T>(typedId.getDeviceID());
-        assetInformation.erase(ui32{id});
-        assetIdPool.free(ui32{id});
+        destroy(*getAs<T>(id));
     }
 
     template<AssetBaseType T>
     void AssetManagerBase::destroy(TypedAssetID<T> id)
     {
-        destroy<T>(id.getAssetID());
+        assertExists(id, "possible double free?");
+
+        deviceRegistry.remove<T>(id.getDeviceID());
+        assetInformation.erase(ui32{id.getAssetID()});
+        assetIdPool.free(ui32{id.getAssetID()});
     }
 
     template<AssetBaseType T>

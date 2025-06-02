@@ -18,7 +18,7 @@ void run()
     // Create a render pipeline.
     trc::TorchPipelineCreateInfo info{
         .maxViewports=2,
-        .assetRegistry=assets.getDeviceRegistry(),
+        .assetManager=assets,
         .assetDescriptorCreateInfo{
             .maxGeometries = 5000,
             .maxTextures = 2000,

@@ -33,7 +33,8 @@ namespace trc
 
         void destroy(AssetManager& manager, AssetID id) override
         {
-            manager.destroy<T>(id);
+            assert(manager.getAs<T>(id));
+            manager.destroy(manager.getAs<T>(id).value());
         }
     };
 } // namespace trc

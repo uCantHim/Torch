@@ -2,7 +2,6 @@
 
 #include <trc/assets/AssetManagerBase.h>
 
-#include "assets_tests/memory_data_storage.h"
 #include "define_asset_type.h"
 
 DEFINE_ASSET_TYPE(DummyAsset, DummyRegistry);

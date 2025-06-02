@@ -2,7 +2,7 @@
 
 #include "trc/AssetDescriptor.h"
 #include "trc/TorchRenderStages.h"
-#include "trc/assets/AssetRegistry.h"
+#include "trc/assets/AssetManager.h"
 #include "trc/core/Frame.h"
 #include "trc/core/RenderGraph.h"
 #include "trc/core/ResourceConfig.h"
@@ -13,12 +13,12 @@
 namespace trc
 {
 
-auto buildAssetPlugin(AssetRegistry& reg,
+auto buildAssetPlugin(AssetManager& man,
                       const AssetDescriptorCreateInfo& createInfo)
     -> PluginBuilder
 {
-    return [&reg, createInfo](PluginBuildContext& ctx) {
-        return std::make_unique<AssetPlugin>(ctx.instance(), reg, createInfo);
+    return [&man, createInfo](PluginBuildContext& ctx) {
+        return std::make_unique<AssetPlugin>(ctx.instance(), man, createInfo);
     };
 }
 
@@ -26,11 +26,11 @@ auto buildAssetPlugin(AssetRegistry& reg,
 
 AssetPlugin::AssetPlugin(
     const Instance& instance,
-    AssetRegistry& registry,
+    AssetManager& manager,
     const AssetDescriptorCreateInfo& createInfo)
     :
-    assetDescriptor(makeAssetDescriptor(instance, registry, createInfo)),
-    registry(&registry)
+    assetDescriptor(makeAssetDescriptor(instance, manager, createInfo)),
+    manager(&manager)
 {
 }
 
@@ -75,7 +75,7 @@ void AssetPlugin::UpdateConfig::createTasks(GlobalUpdateTaskQueue& taskQueue)
 {
     taskQueue.spawnTask(
         stages::resourceUpdate,
-        [reg=parent->registry](vk::CommandBuffer cmdBuf, GlobalUpdateContext& ctx) {
+        [reg=&parent->manager->getDeviceRegistry()](vk::CommandBuffer cmdBuf, GlobalUpdateContext& ctx) {
             reg->updateDeviceResources(cmdBuf, ctx.frame());
         }
     );

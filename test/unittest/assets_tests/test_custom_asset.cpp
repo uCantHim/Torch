@@ -1,9 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <array>
-#include <fstream>
-#include <sstream>
-
 #include <trc/assets/AssetBase.h>
 #include <trc/assets/AssetManager.h>
 #include <trc/assets/AssetRegistryModule.h>
@@ -106,14 +102,13 @@ TEST_F(CustomAssetTest, CreateAndDestroy)
 {
     registerModule();
 
-    auto& module = assets.getModule<Hitbox>();
-
     std::vector<trc::TypedAssetID<Hitbox>> ids;
     ASSERT_NO_THROW(ids.emplace_back(assets.create(HitboxData{ vec3(0.0f), 4 })));
     ASSERT_NO_THROW(ids.emplace_back(assets.create(HitboxData{ vec3(5.432f), 77 })));
     ASSERT_NO_THROW(assets.getMetadata(ids[0]));
     ASSERT_NO_THROW(assets.getMetadata(ids[1]));
 
+    auto& module = assets.getModule<Hitbox>();
     auto hitboxes = module.getHitboxes();
     ASSERT_EQ(hitboxes.size(), 2);
     ASSERT_EQ(hitboxes[0].offset, vec3(0.0f));

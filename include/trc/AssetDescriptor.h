@@ -10,7 +10,7 @@
 namespace trc
 {
     class AssetDescriptor;
-    class AssetRegistry;
+    class AssetManager;
     class Instance;
 
     struct AssetDescriptorCreateInfo
@@ -40,7 +40,7 @@ namespace trc
      *                              been called on `registry`.
      */
     auto makeAssetDescriptor(const Instance& instance,
-                             AssetRegistry& registry,
+                             AssetManager& registry,
                              const AssetDescriptorCreateInfo& descriptorCreateInfo)
         -> s_ptr<AssetDescriptor>;
 

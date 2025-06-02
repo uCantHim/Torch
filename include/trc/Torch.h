@@ -59,9 +59,8 @@ namespace trc
         // resulting pipeline. Must be greater than 0.
         ui32 maxViewports{ 1 };
 
-        // The asset registry that is being updated by the pipeline. Access an
-        // asset manager's registry with `AssetManager::getDeviceRegistry`.
-        AssetRegistry& assetRegistry;
+        // The asset manager that provides assets for the pipeline.
+        AssetManager& assetManager;
 
         AssetDescriptorCreateInfo assetDescriptorCreateInfo;
 

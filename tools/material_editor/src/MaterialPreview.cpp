@@ -16,7 +16,7 @@ MaterialPreview::MaterialPreview(
         window,
         trc::TorchPipelineCreateInfo{
             1,  // max viewports
-            assetManager.getDeviceRegistry(),
+            assetManager,
             { .maxGeometries=1, .maxTextures=20, .maxFonts=1 },
             1,  // shadow map
             1,  // transparent frags

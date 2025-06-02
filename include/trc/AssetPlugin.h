@@ -5,10 +5,10 @@
 
 namespace trc
 {
-    class AssetRegistry;
+    class AssetManager;
     class AssetPlugin;
 
-    auto buildAssetPlugin(AssetRegistry& reg,
+    auto buildAssetPlugin(AssetManager& man,
                           const AssetDescriptorCreateInfo& createInfo)
         -> PluginBuilder;
 
@@ -25,8 +25,8 @@ namespace trc
         static constexpr auto ASSET_DESCRIPTOR{ "asset_registry" };
 
         /**
-         * @param AssetRegistry&         assetRegistry   The asset registry to
-         *        which `assetDescriptor` points.
+         * @param AssetManager& assetManager The asset manager to whose
+         *        resources `assetDescriptor` points.
          * @param s_ptr<AssetDescriptor> assetDescriptor The instance that makes
          *        makes an AssetRegistry's data available to the device. Create
          *        this descriptor via `makeAssetDescriptor`. That function
@@ -35,7 +35,7 @@ namespace trc
          *        descriptor for their data.
          */
         AssetPlugin(const Instance& instance,
-                    AssetRegistry& registry,
+                    AssetManager& manager,
                     const AssetDescriptorCreateInfo& createInfo);
 
         void defineRenderStages(RenderGraph& renderGraph) override;
@@ -58,6 +58,6 @@ namespace trc
         };
 
         s_ptr<AssetDescriptor> assetDescriptor;
-        AssetRegistry* registry;
+        AssetManager* manager;
     };
 } // namespace trc

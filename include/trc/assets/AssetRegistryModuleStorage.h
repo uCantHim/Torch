@@ -21,6 +21,7 @@ namespace trc
     {
     public:
         AssetRegistryModuleStorage() = default;
+        ~AssetRegistryModuleStorage();
 
         /**
          * @brief Register a module for T
@@ -56,7 +57,7 @@ namespace trc
         using TypeIndex = data::TypeIndexAllocator<AssetRegistryModuleStorage>;
 
         std::mutex entriesLock;
-        componentlib::Table<u_ptr<internal::AssetRegistryModuleInterfaceBase>> entries;
+        data::IndexMap<ui32, u_ptr<internal::AssetRegistryModuleInterfaceBase>> entries;
     };
 
 
@@ -82,8 +83,8 @@ namespace trc
     template<AssetBaseType T>
     bool AssetRegistryModuleStorage::hasModule() const
     {
-        return entries.contains(TypeIndex::get<T>())
-            && entries.get(TypeIndex::get<T>()) != nullptr;
+        return entries.size() > TypeIndex::get<T>()
+            && entries.at(TypeIndex::get<T>()) != nullptr;
     }
 
     template<AssetBaseType T>
@@ -99,7 +100,7 @@ namespace trc
             );
         }
 
-        auto mod = entries.get(TypeIndex::get<T>()).get();
+        auto mod = entries.at(TypeIndex::get<T>()).get();
         assert(dynamic_cast<AssetRegistryModule<T>*>(mod) != nullptr);
         return dynamic_cast<AssetRegistryModule<T>&>(*mod);
     }

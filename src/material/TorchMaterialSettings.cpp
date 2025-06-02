@@ -1,5 +1,7 @@
 #include "trc/material/TorchMaterialSettings.h"
 
+#include <cassert>
+
 #include "trc/AssetDescriptor.h"
 #include "trc/AssetPlugin.h"
 #include "trc/GBuffer.h"
@@ -336,13 +338,16 @@ auto RuntimeTextureIndex::loadData() -> std::vector<std::byte>
     {
         throw std::runtime_error(
             "[In RuntimeTextureIndex::loadData]: Unable to load specialization constant data:"
-            " Referenced texture " + texture.getAssetPath().string()
-            + " has not been registered at an asset manager."
+            " Referenced texture "
+            + (texture.hasAssetPath() ? (texture.getAssetPath().string() + " ") : "")
+            + "is not registered at the asset manager."
         );
     }
 
-    if (!runtimeHandle) {
+    if (!runtimeHandle)
+    {
         runtimeHandle = texture.getID().getDeviceDataHandle();
+        assert(runtimeHandle);
     }
     const ui32 index = runtimeHandle->getDeviceIndex();
     return {

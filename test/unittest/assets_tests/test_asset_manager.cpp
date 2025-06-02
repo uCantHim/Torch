@@ -137,9 +137,8 @@ TEST_F(AssetManagerTest, CreateFromSource)
     ASSERT_TRUE(source1);
     ASSERT_TRUE(source2);
 
-    ASSERT_THROW(assets.create<Foo>(nullptr), std::invalid_argument);
-    ASSERT_THROW(assets.create<Bar>(nullptr), std::invalid_argument);
-    ASSERT_THROW(assets.create<Baz>(nullptr), std::invalid_argument);
+    u_ptr<trc::AssetSource<Foo>> nullSource{ nullptr };
+    ASSERT_THROW(assets.create(std::move(nullSource)), std::invalid_argument);
     FooID foo = assets.create<Foo>(std::make_unique<MySource>());
     BarID bar1 = assets.create(std::move(*source1));
     BarID bar2 = assets.create(std::move(*source2));
@@ -185,9 +184,9 @@ TEST_F(AssetManagerTest, CreateFromPathExplicitType)
     ASSERT_EQ(fooTyped, assets.create<Foo>(pathFoo));
     ASSERT_EQ(barTyped, assets.create<Bar>(pathBar));
 
-    // Wrong explicit type throws
-    ASSERT_THROW(assets.create<Bar>(pathFoo), std::invalid_argument);
-    ASSERT_THROW(assets.create<Foo>(pathBar), std::invalid_argument);
+    // Wrong explicit type fails
+    ASSERT_FALSE(assets.create<Bar>(pathFoo));
+    ASSERT_FALSE(assets.create<Foo>(pathBar));
 }
 
 TEST_F(AssetManagerTest, CreateFromPathImplicitType)
@@ -250,7 +249,7 @@ TEST_F(AssetManagerTest, DestroyFromIdRemovesPath)
     ASSERT_FALSE(assets.exists(path));
     ASSERT_THROW(assets.getAs<Bar>(id), trc::InvalidAssetIdError);
     ASSERT_FALSE(assets.getAs<Bar>(path));
-    ASSERT_THROW(assets.destroy<Bar>(id), trc::InvalidAssetIdError);
+    ASSERT_THROW(assets.destroy(id), trc::InvalidAssetIdError);
     ASSERT_NO_THROW(assets.destroy(path));
 }
 

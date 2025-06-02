@@ -6,7 +6,7 @@
 
 namespace trc
 {
-    class AssetRegistry;
+    class AssetManager;
     class FrameRenderState;
 
     namespace internal
@@ -23,11 +23,11 @@ namespace trc
             AssetRegistryModuleInterfaceBase() = default;
             virtual ~AssetRegistryModuleInterfaceBase() = default;
 
-            virtual void init(AssetRegistry& /*parent*/) {}
+            virtual void init(AssetManager& /*parent*/) {}
             virtual void update(vk::CommandBuffer cmdBuf, FrameRenderState& state) = 0;
 
         protected:
-            auto getAssetRegistry() -> AssetRegistry&
+            auto getAssetRegistry() -> AssetManager&
             {
                 if (parent == nullptr) {
                     throw std::runtime_error("Asset module not initialized:"
@@ -37,8 +37,8 @@ namespace trc
             }
 
         private:
-            friend AssetRegistry;
-            AssetRegistry* parent{ nullptr };
+            friend AssetManager;
+            AssetManager* parent{ nullptr };
         };
     } // namespace internal
 
@@ -57,11 +57,11 @@ namespace trc
          *
          * Called once when the module is registered at an asset registry.
          *
-         * @param AssetRegistry& parent The asset registry at which the module
+         * @param AssetManagerBase& parent The asset registry at which the module
          *        is being registered. Asset modules can always access this even
          *        outside of the `init` function via `getAssetRegistry()`.
          */
-        virtual void init(AssetRegistry& /*parent*/) {}
+        virtual void init(AssetManager& /*parent*/) {}
 
         /**
          * @brief Perform updates on device resources
