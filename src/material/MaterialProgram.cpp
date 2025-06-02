@@ -125,7 +125,7 @@ auto compileShader(
     timer.reset();
     const auto result = spirv::generateSpirv(
         glslCode,
-        {},
+        "<trc-material-generated-shader>",
         opts,
         shaderStageToShaderKind(shaderStage)
     );
@@ -141,7 +141,7 @@ auto compileShader(
             const auto lines = util::splitString(str, '\n');
             const auto width = numDigits(lines.size() - 1);
             for (auto [i, line] : std::views::enumerate(lines)) {
-                co_yield std::format("{:<{}} | {}", i + 1, width, line);
+                co_yield std::format(" {:<{}} | {}", i + 1, width, line);
             }
         };
 
