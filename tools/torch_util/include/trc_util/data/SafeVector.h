@@ -1,11 +1,10 @@
 #pragma once
 
 #include <cassert>
-#include <cstdint>
 
 #include <concepts>
-#include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 #include "OptionalStorage.h"
@@ -17,6 +16,24 @@ namespace trc::util
      * Default chunk size for a `SafeVector<>` instantiation.
      */
     constexpr size_t kSafeVectorDefaultChunkSize{ 40 };
+
+    /**
+     * These defines transform InvalidElementAccess exceptions thrown by the
+     * underlying OptionalStorage into std::out_of_range exceptions.
+     *
+     * I introduced this because leaking the InvalidElementAccess type was not
+     * documented and led to problems in the AssetManager's exception handling.
+     * I'm busy with other stuff right now, so this is the solution I'm going
+     * with. SafeVector<> will now exclusively throw std::out_of_range objects
+     * and nothing else.
+     */
+#define _SafeVector_catch(expr) \
+    try { (expr); } \
+    catch (const data::InvalidElementAccess& err) { throw std::out_of_range(err.what()); }
+
+#define _SafeVector_catch_ret(expr) \
+    try { return (expr); } \
+    catch (const data::InvalidElementAccess& err) { throw std::out_of_range(err.what()); }
 
     /**
      * @brief A memory- and thread-safe container
@@ -109,7 +126,7 @@ namespace trc::util
         auto at(size_type index) -> reference
         {
             auto chunk = chunks.write(_chunk_index(index));
-            return chunk->at(_elem_index(index));
+            _SafeVector_catch_ret(chunk->at(_elem_index(index)));
         }
 
         /**
@@ -127,7 +144,7 @@ namespace trc::util
         auto at(size_type index) const -> const_reference
         {
             auto chunk = chunks.read(_chunk_index(index));
-            return chunk->at(_elem_index(index));
+            _SafeVector_catch_ret(chunk->at(_elem_index(index)));
         }
 
         /**
@@ -233,7 +250,7 @@ namespace trc::util
             requires std::copy_constructible<value_type>
         {
             auto chunk = chunks.read(_chunk_index(index));
-            return value_type{ chunk->at(_elem_index(index)) };
+            _SafeVector_catch_ret(value_type{ chunk->at(_elem_index(index)) });
         }
 
         /**
@@ -256,10 +273,10 @@ namespace trc::util
         {
             auto chunk = chunks.write(_chunk_index(index));
             if constexpr (std::same_as<void, std::invoke_result_t<F, reference>>) {
-                func(chunk->at(_elem_index(index)));
+                _SafeVector_catch(func(chunk->at(_elem_index(index))));
             }
             else {
-                return func(chunk->at(_elem_index(index)));
+                _SafeVector_catch_ret(func(chunk->at(_elem_index(index))));
             }
         }
 
@@ -283,10 +300,10 @@ namespace trc::util
         {
             auto chunk = chunks.read(_chunk_index(index));
             if constexpr (std::same_as<void, std::invoke_result_t<F, reference>>) {
-                func(chunk->at(_elem_index(index)));
+                _SafeVector_catch(func(chunk->at(_elem_index(index))));
             }
             else {
-                return func(chunk->at(_elem_index(index)));
+                _SafeVector_catch_ret(func(chunk->at(_elem_index(index))));
             }
         }
 

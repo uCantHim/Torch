@@ -3,7 +3,6 @@
 #include <future>
 #include <numeric>
 #include <random>
-#include <ranges>
 #include <string>
 #include <thread>
 #include <vector>
@@ -31,7 +30,7 @@ TEST(SafeVectorTest, BasicValidityTests)
     ASSERT_FALSE(vec.contains(4));
     ASSERT_FALSE(vec.contains(1234));
 
-    ASSERT_THROW(vec.at(0), trc::data::InvalidElementAccess);
+    ASSERT_THROW(vec.at(0), std::out_of_range);
     ASSERT_NO_THROW(vec.at(2));
 
     ASSERT_TRUE(vec.erase(2));
