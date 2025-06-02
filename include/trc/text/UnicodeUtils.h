@@ -50,6 +50,13 @@ namespace trc
         }
     }
 
+    inline auto decodeUtf8(std::string_view str) -> std::vector<CharCode>
+    {
+        std::vector<CharCode> chars;
+        iterUtf8(str, [&](auto c){ chars.emplace_back(c); });
+        return chars;
+    }
+
     /**
      * Transform Unicode code-points into binary-encoded UTF-8
      */

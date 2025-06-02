@@ -1,7 +1,5 @@
 #include "trc/ui/elements/Text.h"
 
-#include <iostream>
-
 #include "trc/text/UnicodeUtils.h"
 #include "trc/ui/DrawInfo.h"
 #include "trc/ui/Window.h"

@@ -13,7 +13,7 @@ trc::ui::InputField::InputField()
 
     addEventListener([this](event::CharInput& e) {
         if (focused) {
-            inputCharacter(decodeUtf8(e.character));
+            inputCharacter(e.character);
         }
     });
 

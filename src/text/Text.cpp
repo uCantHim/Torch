@@ -47,6 +47,8 @@ void trc::Text::attachToScene(RasterSceneBase& scene)
         pipelines::text::getStaticTextPipeline(),
         [this](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
         {
+            if (numLetters == 0) return;
+
             cmdBuf.pushConstants<mat4>(
                 *env.currentPipeline->getLayout(), vk::ShaderStageFlagBits::eVertex,
                 0, glm::scale(getGlobalTransform(), vec3(BASE_SCALING))
@@ -69,6 +71,9 @@ void trc::Text::removeFromScene()
 
 void trc::Text::print(const std::string& str)
 {
+    numLetters = str.size();
+    if (numLetters == 0) return;
+
     // Create new buffer if new text exceeds current size
     if (str.size() * sizeof(LetterData) > glyphBuffer.size())
     {
@@ -105,6 +110,4 @@ void trc::Text::print(const std::string& str)
         penPosition.x += g.advance;
     });
     glyphBuffer.unmap();
-
-    numLetters = str.size();
 }
