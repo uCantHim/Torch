@@ -126,6 +126,7 @@ namespace trc
 
         MaterialRegistry() = default;
 
+        void init(AssetManager& manager) override;
         void update(vk::CommandBuffer cmdBuf, FrameRenderState&) final;
 
         auto add(u_ptr<AssetSource<Material>> source) -> LocalID override;
@@ -156,6 +157,9 @@ namespace trc
 
         data::IdPool<ui64> localIdPool;
         util::SafeVector<SpecializationStorage> storage;
+
+        // A material to fall back on in case of errors.
+        LocalID defaultMaterial;
     };
 
     template<>
@@ -171,7 +175,10 @@ namespace trc
         auto getRuntime(MaterialSpecializationInfo params) const -> s_ptr<MaterialRuntime>
         {
             assert(storage != nullptr);
-            return storage->getSpecialization(params);
+            if (auto spec = storage->getSpecialization(params)) {
+                return spec;
+            }
+            return parent->getHandle(parent->defaultMaterial).getRuntime(params);
         }
 
         auto getRuntime(GeometryHandle geo) const -> s_ptr<MaterialRuntime>
@@ -184,9 +191,10 @@ namespace trc
 
     private:
         friend class MaterialRegistry;
-        AssetHandle(MaterialRegistry::SpecializationStorage& storage)
-            : storage(&storage) {}
+        AssetHandle(MaterialRegistry& parent, MaterialRegistry::SpecializationStorage& storage)
+            : parent(&parent), storage(&storage) {}
 
+        MaterialRegistry* parent;
         MaterialRegistry::SpecializationStorage* storage;
     };
 } // namespace trc

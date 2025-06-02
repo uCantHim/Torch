@@ -1,10 +1,11 @@
 #include "trc/assets/MaterialRegistry.h"
 
-#include "trc/serial/material.pb.h"
 #include "trc/DrawablePipelines.h"
 #include "trc/assets/AssetManager.h"
+#include "trc/assets/SimpleMaterial.h"
 #include "trc/drawable/DefaultDrawable.h"
 #include "trc/material/TorchMaterialSettings.h"
+#include "trc/serial/material.pb.h"
 
 
 
@@ -212,6 +213,25 @@ auto trc::makeMaterialProgram(
 
 
 
+void trc::MaterialRegistry::init(AssetManager& manager)
+{
+    SimpleMaterialData defaultMatData{
+        .roughness=1.0f,
+        .opacity=1.0f,
+        .albedoTexture{
+            TextureData{
+                .size{ 1, 3 },
+                .pixels{
+                    { 255, 0, 0, 255 },
+                    { 0, 255, 0, 255 },
+                    { 0, 0, 255, 255 },
+                },
+            }
+        }
+    };
+    defaultMaterial = manager.create(makeMaterial(defaultMatData)).getDeviceID();
+}
+
 void trc::MaterialRegistry::update(vk::CommandBuffer, FrameRenderState&)
 {
 }
@@ -239,8 +259,7 @@ void trc::MaterialRegistry::remove(LocalID id)
 auto trc::MaterialRegistry::getHandle(LocalID id) -> Handle
 {
     assert(storage.contains(id));
-
-    return Handle{ storage.at(id) };
+    return Handle{ *this, storage.at(id) };
 }
 
 auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const MaterialKey& key)
@@ -262,8 +281,10 @@ auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const Mater
             }
         }
         else {
-            // TODO: Use a default program here
-            throw ShaderCompileError{matProgram.error()};
+            log::error << "[MaterialRegistry]: Unable to create material specialization: "
+                       << matProgram.error().what()
+                       << " -> returning handle to placeholder material instead.";
+            return nullptr;
         }
     }
 

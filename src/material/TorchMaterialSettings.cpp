@@ -336,12 +336,16 @@ auto RuntimeTextureIndex::loadData() -> std::vector<std::byte>
 {
     if (!texture.hasResolvedID())
     {
-        throw std::runtime_error(
-            "[In RuntimeTextureIndex::loadData]: Unable to load specialization constant data:"
-            " Referenced texture "
-            + (texture.hasAssetPath() ? (texture.getAssetPath().string() + " ") : "")
-            + "is not registered at the asset manager."
-        );
+        log::error
+            << "[In RuntimeTextureIndex::loadData]: Unable to load specialization constant data:"
+            << " Referenced texture "
+            << (texture.hasAssetPath() ? (texture.getAssetPath().string() + " ") : "")
+            << "is not registered at the asset manager.";
+        const ui32 defaultIndex{ 0 };
+        return {
+            reinterpret_cast<const std::byte*>(&defaultIndex),
+            reinterpret_cast<const std::byte*>(&defaultIndex) + 4
+        };
     }
 
     if (!runtimeHandle)
