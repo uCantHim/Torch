@@ -1,0 +1,8 @@
+void main()
+{
+    $out:color = $sampleTexture["/images/grassy_pavement", $vertexUV];
+    $out:normal = $sampleNormalMap["/images/grassy_pavement_normal", $vertexUV];
+
+    $out:roughness = 0.8f;
+    $out:specularFactor = 0.5f;
+}

@@ -72,3 +72,18 @@ target_link_libraries(
 set_target_properties(cloth-language-server PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
 )
+
+
+################################################################################
+# Cloth Preview Tool
+################################################################################
+
+add_executable(cloth-preview
+    preview-tool/main.cpp
+)
+torch_default_compile_options(cloth-preview)
+target_link_libraries(cloth-preview PRIVATE cloth torch argparse)
+
+set_target_properties(cloth-preview PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
+)
