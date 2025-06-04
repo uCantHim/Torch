@@ -4,6 +4,7 @@
 
 #include "trc/assets/import/AssimpImporter.h"
 #include "trc/assets/import/FBXImporter.h"
+#include "trc/assets/import/GltfImporter.h"
 #include "trc/base/ImageUtils.h"
 #include "trc/base/Logging.h"
 
@@ -37,6 +38,19 @@ auto trc::loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData
                          " FBX SDK enabled. The fallback asset importer may not be able"
                          " to load all asset data from the file.";
 #endif
+        }
+
+        if (filePath.extension() == ".glb")
+        {
+            auto res = GltfImporter::loadFromBinaryFile(filePath);
+            if (res) return res.value();
+            else throw DataImportError{ res.error() };
+        }
+        if (filePath.extension() == ".gltf")
+        {
+            auto res = GltfImporter::loadFromAsciiFile(filePath);
+            if (res) return res.value();
+            else throw DataImportError{ res.error() };
         }
 
 #ifdef TRC_USE_ASSIMP

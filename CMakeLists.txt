@@ -118,6 +118,7 @@ target_link_libraries(
         protobuf::libprotobuf
         nlohmann_json::nlohmann_json
         SQLiteCpp
+        fastgltf
 
         # first-party
         torch_util

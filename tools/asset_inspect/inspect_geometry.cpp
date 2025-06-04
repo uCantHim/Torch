@@ -138,6 +138,7 @@ void display(const trc::GeometryData& geo, float maxDuration, const fs::path& as
     // Normalize the geometry's size
     const vec3 geoExtent = calcExtent(geo);
     drawable->setScale(1.0f / maxOf(geoExtent));
+    trc::log::warn << "Automatic model scale: " << 1.0f / maxOf(geoExtent);
 
     // Center camera on the geometry
     const vec3 camPos{ 0.0f, 1.5f, 2.0f };
@@ -217,6 +218,4 @@ void display(const trc::GeometryData& geo, float maxDuration, const fs::path& as
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
-
-    trc::terminate();
 }

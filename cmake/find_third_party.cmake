@@ -124,6 +124,14 @@ if (NOT nlohmann_json_FOUND)
 endif ()
 
 FetchContent_Declare(
+    fastgltf
+    GIT_REPOSITORY https://github.com/spnda/fastgltf
+    GIT_TAG v0.9.0
+)
+FetchContent_MakeAvailable(fastgltf)
+target_compile_options(fastgltf PRIVATE -fPIC)
+
+FetchContent_Declare(
     cimg
     GIT_REPOSITORY https://github.com/dtschump/CImg.git
     GIT_TAG        v.3.5.5
