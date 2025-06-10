@@ -44,6 +44,10 @@ namespace trc::shader
         {
             // The input data's input location as in
             // `layout (location = X) in ...`
+            //
+            // This is only a preliminary value, it may be used as a default.
+            // Shader program linking will determine the final location of
+            // module inputs.
             ui32 location;
 
             // Data type of the shader input.
@@ -52,13 +56,13 @@ namespace trc::shader
             // Name of the shader input variable in the generated shader code.
             std::string variableName;
 
-            // The declaration code for the resource.
-            // Usually only used internally.
-            std::string declCode;
-
             // The capability in the corresponding `ShaderCapabilityConfig`
             // that defines this shader input.
             Capability capability;
+
+            // A placeholder variable in the generated GLSL code. This must
+            // be replaced by the input's final location in the shader program.
+            std::string locationPlaceholder;
         };
 
         struct PushConstantInfo
@@ -320,8 +324,14 @@ namespace trc::shader
             auto make(Capability capability, const CapabilityConfig::ShaderInput& in)
                 -> std::string;
 
+            auto getInfos() const -> const std::vector<ShaderResourceInterface::ShaderInputInfo>&;
+            auto getCode() const -> std::string;
+
+        private:
             ui32 nextShaderInputLocation{ 0 };
             std::vector<ShaderResourceInterface::ShaderInputInfo> shaderInputs;
+
+            std::string code;
         };
 
         struct RayPayloadFactory
@@ -379,7 +389,7 @@ namespace trc::shader
 
         DescriptorBindingFactory descriptorFactory;
         PushConstantFactory pushConstantFactory;
-        ShaderInputFactory shaderInput;
+        ShaderInputFactory shaderInputFactory;
         RayPayloadFactory rayPayloadFactory;
         HitAttributeFactory hitAttributeFactory;
     };

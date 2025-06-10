@@ -100,8 +100,8 @@ auto ShaderResourceInterface::serialize() const -> serial::ShaderResourceInterfa
         type->set_type(static_cast<ui32>(in.type.type));
         type->set_channels(in.type.channels);
         _in->set_shader_var_id(in.variableName);
-        _in->set_decl_code(in.declCode);
         _in->set_capability(in.capability.toString());
+        _in->set_location_placeholder(in.locationPlaceholder);
     }
     for (const auto& pl : requiredPayloads)
     {
@@ -159,8 +159,8 @@ auto ShaderResourceInterface::deserialize(
                 static_cast<ui8>(in.type().channels())
             },
             .variableName = in.shader_var_id(),
-            .declCode = in.decl_code(),
-            .capability = in.capability()
+            .capability = in.capability(),
+            .locationPlaceholder = in.location_placeholder(),
         });
     }
     for (const auto& pl : data.payloads())
@@ -326,12 +326,34 @@ auto ShaderResourceInterfaceBuilder::ShaderInputFactory::make(
     const ui32 shaderInputLocation = in.location;
     const std::string name = "shaderStageInput_" + std::to_string(shaderInputLocation);
 
+    shaderInputs.push_back({
+        .location=shaderInputLocation,
+        .type=in.type,
+        .variableName=name,
+        .capability=capability,
+        .locationPlaceholder=name + "_LOCATION_PLACEHOLDER"
+    });
+
     // Make member code
-    std::stringstream ss;
-    ss << (in.flat ? "flat " : "") << in.type.to_string() << " " << name;
-    shaderInputs.push_back({ shaderInputLocation, in.type, name, ss.str(), capability });
+    code += std::format(
+        "layout (location = {}) in {}{} {};\n",
+        in.location,
+        (in.flat ? "flat " : ""),
+        in.type.to_string(),
+        name
+    );
 
     return name;
+}
+auto ShaderResourceInterfaceBuilder::ShaderInputFactory::getInfos() const
+    -> const std::vector<ShaderResourceInterface::ShaderInputInfo>&
+{
+    return shaderInputs;
+}
+
+auto ShaderResourceInterfaceBuilder::ShaderInputFactory::getCode() const -> std::string
+{
+    return code;
 }
 
 
@@ -443,10 +465,7 @@ auto ShaderResourceInterfaceBuilder::compile() const -> ShaderResourceInterface
     ss << pushConstantFactory.getCode() << "\n";
 
     // Write shader inputs
-    for (const auto& out : shaderInput.shaderInputs) {
-        ss << "layout (location = " << out.location << ") in " << out.declCode << ";\n";
-    }
-    ss << "\n";
+    ss << shaderInputFactory.getCode() << "\n";
 
     // Write ray payloads
     ss << rayPayloadFactory.getCode() << "\n";
@@ -457,7 +476,7 @@ auto ShaderResourceInterfaceBuilder::compile() const -> ShaderResourceInterface
     // Create result value
     ShaderResourceInterface result;
     result.code = ss.str();
-    result.requiredShaderInputs = shaderInput.shaderInputs;
+    result.requiredShaderInputs = shaderInputFactory.getInfos();
     result.requiredPayloads = rayPayloadFactory.getPayloads();
     for (const auto& [specIdx, value] : specializationConstantValues)
     {
@@ -521,7 +540,7 @@ void ShaderResourceInterfaceBuilder::requireResource(
             return descriptorFactory.make(binding);
         },
         [this, capability](const CapabilityConfig::ShaderInput& v) {
-            return shaderInput.make(capability, v);
+            return shaderInputFactory.make(capability, v);
         },
         [this, resourceId](const CapabilityConfig::PushConstant& pc) {
             return pushConstantFactory.make(resourceId, pc);

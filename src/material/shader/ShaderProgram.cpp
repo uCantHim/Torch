@@ -55,6 +55,13 @@ auto compileProgramCode(
             }
         }
 
+        // Set input locations in the shader code
+        // Currently just uses the default location specified by the generating
+        // capability config.
+        for (const auto& input : mod.getRequiredShaderInputs()) {
+            doc.set(input.locationPlaceholder, input.location);
+        }
+
         // Try to finalize GLSL
         try {
             result.emplace(stage, doc.compile());

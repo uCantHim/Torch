@@ -16,8 +16,8 @@ message ShaderResourceInterface
         uint32 location = 1;
         BasicType type = 2;
         string shader_var_id = 3;
-        string decl_code = 4;
         string capability = 5;
+        string location_placeholder = 6;
     }
 
     message PushConstant
