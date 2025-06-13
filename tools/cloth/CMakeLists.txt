@@ -11,7 +11,7 @@ add_library(cloth
     src/builtins.cpp
     src/cloth.cpp
     src/document.cpp
-    src/DocumentUtil.cpp
+    src/parse_utils.cpp
     src/parser.cpp
 )
 torch_default_compile_options(cloth)

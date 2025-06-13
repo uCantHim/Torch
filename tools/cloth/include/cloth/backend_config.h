@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <trc/material/shader/CapabilityConfig.h>
 #include <trc/material/shader/ShaderModuleBuilder.h>
 #include <trc/material/shader/ShaderOutputInterface.h>

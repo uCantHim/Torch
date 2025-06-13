@@ -82,6 +82,8 @@ namespace cloth
     class BuiltinProvider
     {
     public:
+        virtual ~BuiltinProvider() noexcept = default;
+
         /**
          * @brief Get the corresponding builtin to a variable identifier.
          *
@@ -91,12 +93,13 @@ namespace cloth
 
         auto getAllDefinitions() const -> std::generator<const Builtin&>;
 
-        static bool validateArgs(const Builtin& builtin,
-                                 const std::vector<Builtin::ArgValue>& args);
-
         auto makeValue(const FullId& builtinId,
                        const std::vector<Builtin::ArgValue>& args,
                        trc::shader::ShaderModuleBuilder& builder)
             -> std::expected<trc::shader::code::Value, BuiltinImplementationError>;
+
+    private:
+        static bool validateArgs(const Builtin& builtin,
+                                 const std::vector<Builtin::ArgValue>& args);
     };
 } // namespace cloth

@@ -16,7 +16,7 @@
 #include <trc_util/StringManip.h>
 #include <trc_util/algorithm/VectorTransform.h>
 
-#include "DocumentUtil.h"
+#include "parse_utils.h"
 #include "builtins.h"
 #include "document.h"
 #include "parser.h"
