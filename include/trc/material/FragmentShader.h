@@ -3,10 +3,11 @@
 #include <array>
 #include <optional>
 
-#include "trc/material/shader/Capability.h"
-#include "trc/material/shader/ShaderModuleBuilder.h"
-#include "trc/material/shader/ShaderModuleCompiler.h"
 #include "trc/material/TorchMaterialSettings.h"
+#include "trc/material/shader/Capability.h"
+#include "trc/material/shader/ShaderModule.h"
+#include "trc/material/shader/ShaderModuleBuilder.h"
+#include "trc/material/shader/ShaderOutputInterface.h"
 
 namespace trc
 {

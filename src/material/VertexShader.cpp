@@ -5,6 +5,7 @@
 
 #include "trc/AssetDescriptor.h"
 #include "trc/material/FragmentShader.h"
+#include "trc/material/shader/ShaderModuleCompiler.h"
 
 
 
@@ -135,10 +136,13 @@ VertexModule::VertexModule(bool animated)
     };
 }
 
-auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::ShaderModule
+auto VertexModule::buildOutputs(
+    shader::ShaderModuleBuilder& builder,
+    const std::vector<trc::shader::ShaderResourceInterface::ShaderInputInfo>& requiredOutputs)
+    -> shader::ShaderOutputInterface
 {
     ShaderOutputInterface shaderOutput;
-    for (const auto& out : fragment.getRequiredShaderInputs())
+    for (const auto& out : requiredOutputs)
     {
         auto loc = builder.makeOutputLocation(out.location, out.type);
 
@@ -148,9 +152,9 @@ auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::Sha
         }
         catch (const std::out_of_range&)
         {
-            log::warn << "Warning: [In VertexShaderBuilder::buildVertexShader]: Fragment"
-                      << " capability \"" << out.capability.toString()
-                      << "\" is requested as an output but not implemented.\n";
+            log::warn << "[VertexModule]: Fragment capability"
+                      << " \"" << out.capability.toString() << "\" is requested as a"
+                      << " vertex stage output, but is not implemented by this stage.";
         }
     }
 
@@ -162,14 +166,20 @@ auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::Sha
         )
     );
 
+    return shaderOutput;
+}
+
+auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::ShaderModule
+{
+    auto outputs = buildOutputs(builder, fragment.getRequiredShaderInputs());
     return ShaderModuleCompiler{}.compile(
-        shaderOutput,
+        outputs,
         std::move(builder),
-        makeVertexCapabilityConfig()
+        makeCapabilityConfig()
     );
 }
 
-auto VertexModule::makeVertexCapabilityConfig() -> shader::CapabilityConfig
+auto VertexModule::makeCapabilityConfig() -> shader::CapabilityConfig
 {
     using shader::CapabilityConfig;
 
@@ -267,6 +277,27 @@ auto VertexModule::makeVertexCapabilityConfig() -> shader::CapabilityConfig
     }();
 
     return config;
+}
+
+auto VertexModule::makeVertexInputCapabilityConfig() -> shader::CapabilityConfig
+{
+    using ShaderInput = shader::CapabilityConfig::ShaderInput;
+
+    shader::CapabilityConfig config;
+
+    auto vPos     = config.addResource(ShaderInput{ vec3{}, 0 });
+    auto vNormal  = config.addResource(ShaderInput{ vec3{}, 1 });
+    auto vUV      = config.addResource(ShaderInput{ vec2{}, 2 });
+    auto vTangent = config.addResource(ShaderInput{ vec3{}, 3 });
+    auto vBoneIndices = config.addResource(ShaderInput{ uvec4{}, 4 });
+    auto vBoneWeights = config.addResource(ShaderInput{ vec4{}, 5 });
+
+    config.linkCapability(VertexCapability::kPosition, vPos);
+    config.linkCapability(VertexCapability::kNormal, vNormal);
+    config.linkCapability(VertexCapability::kTangent, vTangent);
+    config.linkCapability(VertexCapability::kUV, vUV);
+    config.linkCapability(VertexCapability::kBoneIndices, vBoneIndices);
+    config.linkCapability(VertexCapability::kBoneWeights, vBoneWeights);
 }
 
 } // namespace trc

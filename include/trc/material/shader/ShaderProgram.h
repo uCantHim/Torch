@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "ShaderModule.h"
 #include "ShaderRuntime.h"
-#include "ShaderModuleCompiler.h"
 #include "ShaderRuntimeConstant.h"
 #include "trc/serial/material_shader_program.pb.h"
 
@@ -40,6 +40,39 @@ namespace trc::shader
          * implementation-defined.
          */
         std::unordered_map<std::string, ui32> preferredDescriptorSetIndices;
+
+        /**
+         * Declares optional changes to shader stage input locations.
+         *
+         * Each shader stage has pairs [<old-loc>, <new-loc>] that declare
+         * corrected locations for shader inputs. <old-loc> is the default
+         * location as specified by the shader module's resource interface and
+         * uniquely identifies the input.  The corresponding <new-loc> is a new
+         * location at which the input resides in the end.
+         *
+         * Example: The helper `linkShaderStageInputs` generates this data
+         * structure.
+         *
+         * Example 2: A map specified as
+         *
+         *     {
+         *         { vk::ShaderStageFlagBits::eFragment, { {0, 3}, {1, 0} } },
+         *     }
+         *
+         * will cause the linker to change input locations in the fragment module
+         *
+         *     layout (location = 0) foo;
+         *     layout (location = 1) bar;
+         *     layout (location = 2) baz;
+         *
+         * to
+         *
+         *     layout (location = 3) foo;
+         *     layout (location = 0) bar;
+         *     layout (location = 2) baz;
+         */
+        std::unordered_map<vk::ShaderStageFlagBits, std::vector<std::pair<ui32, ui32>>>
+            inputLocationMapping;
     };
 
     /**

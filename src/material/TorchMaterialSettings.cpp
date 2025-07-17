@@ -151,7 +151,7 @@ auto makeFragmentCapabilityConfig() -> CapabilityConfig
 
     auto vWorldPos  = config.addResource(ShaderInput{ vec3{}, 0 });
     auto vUv        = config.addResource(ShaderInput{ vec2{}, 1 });
-    auto vTbnMat    = config.addResource(ShaderInput{ mat3{}, 3 });
+    auto vTbnMat    = config.addResource(ShaderInput{ mat3{}, 2 });
 
     config.linkCapability(MaterialCapability::kVertexWorldPos, vWorldPos);
     config.linkCapability(MaterialCapability::kVertexUV, vUv);

@@ -1,6 +1,6 @@
 #include "trc/material/FragmentShader.h"
 
-#include "trc/material/shader/ShaderOutputInterface.h"
+#include "trc/material/shader/ShaderModuleCompiler.h"
 
 
 

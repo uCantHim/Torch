@@ -2,7 +2,8 @@
 
 #include "trc/material/shader/Capability.h"
 #include "trc/material/shader/ShaderModuleBuilder.h"
-#include "trc/material/shader/ShaderModuleCompiler.h"
+#include "trc/material/shader/ShaderModule.h"
+#include "trc/material/shader/ShaderOutputInterface.h"
 
 namespace trc
 {
@@ -41,11 +42,16 @@ namespace trc
     public:
         explicit VertexModule(bool animated);
 
+        auto buildOutputs(shader::ShaderModuleBuilder& builder,
+                          const std::vector<trc::shader::ShaderResourceInterface::ShaderInputInfo>& requiredOutputs)
+            -> shader::ShaderOutputInterface;
+
         auto build(const shader::ShaderModule& fragment) && -> shader::ShaderModule;
 
-    private:
-        static auto makeVertexCapabilityConfig() -> shader::CapabilityConfig;
+        static auto makeCapabilityConfig() -> shader::CapabilityConfig;
+        static auto makeVertexInputCapabilityConfig() -> shader::CapabilityConfig;
 
+    private:
         shader::ShaderModuleBuilder builder;
 
         std::unordered_map<shader::Capability, code::Value> fragmentInputProviders;

@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <spirv/CompileSpirv.h>
+
 #include "trc/assets/AssetReference.h"
 #include "trc/assets/TextureRegistry.h"
 #include "trc/material/shader/ShaderProgram.h"

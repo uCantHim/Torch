@@ -27,7 +27,11 @@ using ShaderStageMap = std::unordered_map<vk::ShaderStageFlagBits, ShaderModule>
 auto compileProgramCode(
     const ShaderStageMap& stages,
     const std::vector<ShaderProgramData::DescriptorSet>& descriptors,
-    const std::vector<ShaderProgramData::PushConstantRange>& pushConstants)
+    const std::vector<ShaderProgramData::PushConstantRange>& pushConstants,
+    const std::unordered_map<
+        vk::ShaderStageFlagBits,
+        std::vector<ShaderResourceInterface::ShaderInputInfo>
+    >& stageInputs)
     -> std::expected<
         std::unordered_map<vk::ShaderStageFlagBits, std::string>,
         std::string
@@ -58,7 +62,7 @@ auto compileProgramCode(
         // Set input locations in the shader code
         // Currently just uses the default location specified by the generating
         // capability config.
-        for (const auto& input : mod.getRequiredShaderInputs()) {
+        for (const auto& input : stageInputs.at(stage)) {
             doc.set(input.locationPlaceholder, input.location);
         }
 
@@ -184,6 +188,32 @@ auto combinePushConstantsPerStage(
     return perStage;
 }
 
+auto applyInputLocationCorrections(
+    const ShaderStageMap& stages,
+    const ShaderProgramLinkSettings& config)
+    -> std::unordered_map<vk::ShaderStageFlagBits, std::vector<ShaderResourceInterface::ShaderInputInfo>>
+{
+    std::unordered_map<
+        vk::ShaderStageFlagBits,
+        std::vector<ShaderResourceInterface::ShaderInputInfo>
+    > result;
+
+    for (const auto& [stage, mod] : stages)
+    {
+        auto [it, _] = result.try_emplace(stage, mod.getRequiredShaderInputs());
+        if (config.inputLocationMapping.contains(stage))
+        {
+            auto newLocs = std::ranges::to<std::unordered_map>(config.inputLocationMapping.at(stage));
+            auto hasNewLoc = [&](auto&& in){ return newLocs.contains(in.location); };
+            for (auto& input : it->second | std::views::filter(hasNewLoc)) {
+                input.location = newLocs.at(input.location);
+            }
+        }
+    }
+
+    return result;
+}
+
 auto linkShaderProgram(
     std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> stages,
     const ShaderProgramLinkSettings& config)
@@ -202,9 +232,11 @@ auto linkShaderProgram(
     data.pushConstants = collectPushConstants(stages);
     data.pcRangesPerStage = combinePushConstantsPerStage(data.pushConstants);
     data.descriptorSets = collectDescriptorSets(stages, config);
+    auto stageInputs = applyInputLocationCorrections(stages, config);
 
     // Compile each shader module to SPIR-V
-    if (auto prog = compileProgramCode(stages, data.descriptorSets, data.pushConstants)) {
+    auto prog = compileProgramCode(stages, data.descriptorSets, data.pushConstants, stageInputs);
+    if (prog) {
         data.glslCode = *prog;
     }
     else {
