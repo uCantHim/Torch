@@ -106,7 +106,7 @@ int main(const int argc, const char** argv)
             output = input.filename().replace_extension(
                   type == FileType::eTexture ? kTexFileExt
                 : type == FileType::eFont ? kFontFileExt
-                : ""
+                : ".out"
                 );
         }
 
@@ -162,7 +162,8 @@ auto parseFileTypeString(const std::string& typeStr, const fs::path& inputFile) 
         if (Set{ ".ttf", ".otf" }.contains(ext)) {
             return FileType::eFont;
         }
-        throw std::invalid_argument(std::format("Unable to detect file type of {}.", typeStr));
+        // Fallback: try to parse files with unknown extensions as scene file types
+        return FileType::eGeometry;
     }
 
     throw std::runtime_error(std::format("Value not allowed for '--type' argument: {}.", typeStr));
