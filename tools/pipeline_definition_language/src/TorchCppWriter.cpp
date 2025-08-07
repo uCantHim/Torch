@@ -202,7 +202,9 @@ void TorchCppWriter::writeBanner(const std::string& msg, std::ostream& os)
 
 void TorchCppWriter::writeStaticData(std::ostream& os)
 {
-    os << "inline auto getShaderLoader() -> trc::ShaderLoader&"
+    os << "namespace {"
+
+       << "inline auto getShaderLoader() -> trc::ShaderLoader&"
        << nl << "{"
        << ++nl
        << "static trc::ShaderLoader shaderLoader{"
@@ -218,7 +220,8 @@ void TorchCppWriter::writeStaticData(std::ostream& os)
 
     os << --nl << "};"
        << nl << "return shaderLoader;"
-       << --nl << "}";
+       << --nl << "}"
+       << "}";  // Anonymous namespace closing brace
 }
 
 
