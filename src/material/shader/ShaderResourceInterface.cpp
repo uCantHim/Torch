@@ -316,7 +316,7 @@ auto ShaderResourceInterfaceBuilder::ShaderInputFactory::make(
     // Make member code
     code += std::format(
         "layout (location = {}) in {}{} {};\n",
-        in.location,
+        "$" + inputDef.locationPlaceholder,
         (in.flat ? "flat " : ""),
         in.type.to_string(),
         name
