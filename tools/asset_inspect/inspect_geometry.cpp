@@ -11,7 +11,9 @@
 constexpr auto kInvalidUsageExitcode{ 64 };
 
 void printInfo(const trc::GeometryData& geo);
-void display(const trc::GeometryData& geo, float maxDuration);
+void display(const trc::GeometryData& geo,
+             float maxDuration,
+             const fs::path& assetDir);
 
 constexpr const char* description =
 R"(Print some information about a geometry and display it in a preview window.
@@ -43,6 +45,10 @@ int main(int argc, const char* argv[])
         .scan<'f', float>()
         .help("Automatically close the display after this many seconds.");
 
+    program.add_argument("--asset-dir")
+        .default_value(".")
+        .help("Asset root directory. Current directory by default.");
+
     // Parse command-line args
     try {
         program.parse_args(argc, argv);
@@ -73,7 +79,12 @@ int main(int argc, const char* argv[])
     if (!program.get<bool>("--no-display"))
     {
         const auto maxDuration = program.present<float>("--display-duration");
-        display(*geo, maxDuration.value_or(std::numeric_limits<float>::max()));
+        display(
+            *geo,
+            maxDuration.value_or(std::numeric_limits<float>::max()),
+            program.get("asset-dir")
+        );
+        trc::terminate();
     }
 
     return 0;
@@ -88,10 +99,10 @@ void printInfo(const trc::GeometryData& geo)
     std::cout << "Rig: " << !geo.rig.empty() << "\n";
 }
 
-void display(const trc::GeometryData& geo, float maxDuration)
+void display(const trc::GeometryData& geo, float maxDuration, const fs::path& assetDir)
 {
     auto torch = trc::initFull(
-        {},
+        trc::TorchStackCreateInfo{ .assetStorageDir=assetDir},
         trc::InstanceCreateInfo{ .enableRayTracing=false },
         trc::WindowCreateInfo{
             .size{ 500, 800 },
@@ -118,6 +129,11 @@ void display(const trc::GeometryData& geo, float maxDuration)
     trc::Node node;
     node.attach(*drawable);
     scene->getRoot().attach(node);
+
+    // Play an animation if the mesh has any
+    if (auto anim = drawable->getAnimationEngine()) {
+        anim->playAnimation(0);
+    }
 
     // Normalize the geometry's size
     const vec3 geoExtent = calcExtent(geo);
