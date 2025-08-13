@@ -60,6 +60,10 @@ int main(const int argc, const char** argv)
               " multiple assets are exported from a single file; this is the case with"
               " geometry file formats.");
 
+    program.add_argument("-a", "--all")
+        .help("Export all assets found in geometry/scene files, not just geometries.")
+        .default_value(false)
+        .implicit_value(true);
     program.add_argument("--rigs")
         .help("Also export skeletal rigs from geometry file types.")
         .default_value(false)
@@ -176,9 +180,10 @@ void convertGeometry(
 {
     const bool dryRun = args.get<bool>("dry-run");
 
-    const bool exportRigs = args.get<bool>("rigs");
-    const bool exportAnimations = args.get<bool>("animations");
-    const bool exportMaterials = args.get<bool>("materials");
+    const bool exportAll        = args.get<bool>("all");
+    const bool exportRigs       = exportAll || args.get<bool>("rigs");
+    const bool exportAnimations = exportAll || args.get<bool>("animations");
+    const bool exportMaterials  = exportAll || args.get<bool>("materials");
 
     trc::ThirdPartyFileImportData data = trc::loadAssets(input);
     if (data.meshes.empty())
@@ -211,35 +216,45 @@ void convertGeometry(
                                              outPath.string(), err.what()));
     }
 
-    for (const auto& mesh : data.meshes)
+    for (auto& mesh : data.meshes)
     {
-        auto tryWrite = [&]<typename T>(const trc::AssetData<T>& data, const fs::path& fileName) {
+        auto tryWrite = [&]<typename T>(const trc::AssetData<T>& data, const fs::path& fileName)
+            -> std::optional<trc::AssetPath>
+        {
             const auto filePath = outPath / fileName;
             std::ofstream file(filePath);
             if (!file.is_open())
             {
                 std::cout << "[Warning] Unable to write to file " << filePath << ". Skipping.\n";
-                return false;
+                return std::nullopt;
             }
 
             trc::serializeAsset(data, file);
-            return true;
+            return trc::AssetPath{ fileName };
         };
 
-        // Always export the geometry
-        tryWrite(mesh.geometry, mesh.name + kGeoFileExt);
-
-        // Export additional data if enabled
-        if (exportRigs && mesh.rig)
-        {
-            auto rig = mesh.rig.value();
-            rig.animations.clear();
-            tryWrite(rig, mesh.rig->name + kRigFileExt);
-        }
+        // Export additional assets if enabled
         if (exportAnimations)
         {
-            for (const auto& anim : mesh.animations) {
-                tryWrite(anim, anim.name + kAnimFileExt);
+            // Clear references to animations and replace them with asset
+            // paths.
+            if (mesh.rig) {
+                mesh.rig->animations.clear();
+            }
+
+            for (const auto& anim : mesh.animations)
+            {
+                auto path = tryWrite(anim, anim.name + kAnimFileExt);
+                if (path && mesh.rig) {
+                    mesh.rig->animations.emplace_back(*path);
+                }
+            }
+        }
+        if (exportRigs && mesh.rig)
+        {
+            const auto& rig = mesh.rig.value();
+            if (auto path = tryWrite(rig, mesh.rig->name + kRigFileExt)) {
+                mesh.geometry.rig = *path;
             }
         }
         if (exportMaterials)
@@ -248,6 +263,9 @@ void convertGeometry(
                 tryWrite(trc::makeMaterial(mat.data), mat.name + kMatFileExt);
             }
         }
+
+        // Always export the geometry
+        tryWrite(mesh.geometry, mesh.name + kGeoFileExt);
     }
 
     std::cout << "Exported data from " << input << " to " << outPath << ".\n";
