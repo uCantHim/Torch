@@ -41,12 +41,16 @@ AssetHandle<Rig>::AssetHandle(InternalStorage& storage)
 
 auto AssetHandle<Rig>::getName() const noexcept -> const std::string&
 {
-    return storage->rigName;
+    return storage->data.name;
 }
 
-auto AssetHandle<Rig>::getBoneByName(const std::string& name) const -> const RigData::Bone&
+auto AssetHandle<Rig>::getBoneByName(const std::string& name) const -> RigData::Bone
 {
-    return storage->bones.at(storage->boneNames.at(name));
+    ui32 boneIdx = storage->boneNames.at(name);
+    return {
+        .name = storage->data.jointName[boneIdx],
+        .inverseBindPoseMat = storage->data.inverseBindPoseMat[boneIdx],
+    };
 }
 
 auto AssetHandle<Rig>::getAnimationCount() const noexcept -> ui32
@@ -63,13 +67,11 @@ auto AssetHandle<Rig>::getAnimation(ui32 index) const -> AnimationID
 
 AssetHandle<Rig>::InternalStorage::InternalStorage(const RigData& data)
     :
-    rigName(data.name),
-    bones(data.bones)
+    data(data)
 {
     // Create mapping from bone name to bone index
-    for (ui32 i = 0; const RigData::Bone& bone : data.bones)
-    {
-        boneNames[bone.name] = i++;
+    for (auto [i, name] : std::views::enumerate(data.jointName)) {
+        boneNames[name] = i;
     }
 
     for (const auto& anim : data.animations) {

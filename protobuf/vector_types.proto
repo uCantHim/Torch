@@ -29,3 +29,9 @@ message uvec4
     uint32 z = 3;
     uint32 w = 4;
 }
+
+message mat4
+{
+    // Column-major matrix elements
+    repeated float data = 1;
+}

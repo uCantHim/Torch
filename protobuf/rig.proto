@@ -2,15 +2,26 @@ syntax = "proto3";
 package trc.serial;
 
 import "asset_reference.proto";
+import "vector_types.proto";
 
 message Rig
 {
-    message Bone
+    message Relatives
     {
-        string name = 1;
-        repeated float inv_bind_pose_matrix = 2;
+        optional uint32 parent = 1;
+        repeated uint32 children = 2;
     }
 
-    repeated Bone bones = 1;
-    repeated AssetReference animations = 2;
+    string name = 1;
+    uint32 num_joints = 2;
+    uint32 root_joint = 3;
+
+    repeated Relatives relatives = 4;
+    repeated string joint_name = 5;
+
+    repeated mat4 inv_bind_pose_mat = 6;
+    repeated mat4 local_joint_transform = 7;
+    repeated mat4 global_joint_transform = 8;
+
+    repeated AssetReference animations = 10;
 }

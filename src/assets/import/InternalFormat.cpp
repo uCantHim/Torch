@@ -58,6 +58,20 @@ void writeMatrix(mat4 mat, google::protobuf::RepeatedField<float>* out)
     memcpy(out->mutable_data(), &mat, sizeof(mat4));
 }
 
+auto convert(const mat4& mat) -> serial::mat4
+{
+    serial::mat4 res;
+    writeMatrix(mat, res.mutable_data());
+    return res;
+}
+
+auto convert(const serial::mat4& mat) -> mat4
+{
+    mat4 res;
+    readMatrix(mat.data(), &res);
+    return res;
+}
+
 
 
 template<typename T>
@@ -244,13 +258,30 @@ auto deserializeAssetData(const trc::serial::SimpleMaterial& mat) -> SimpleMater
 auto serializeAssetData(const RigData& data)  -> serial::Rig
 {
     serial::Rig out;
+    out.set_name(data.name);
+    out.set_num_joints(data.numJoints);
+    out.set_root_joint(data.rootJoint);
 
-    for (const RigData::Bone& bone : data.bones)
+    for (const auto& [parent, children] : std::views::zip(data.parent, data.children))
     {
-        auto& newBone = *out.add_bones();
-        newBone.set_name(bone.name);
-        writeMatrix(bone.inverseBindPoseMat, newBone.mutable_inv_bind_pose_matrix());
+        auto rel = out.add_relatives();
+        if (parent) {
+            rel->set_parent(*parent);
+        }
+        rel->mutable_children()->Add(children.begin(), children.end());
     }
+
+    for (const mat4& mat : data.inverseBindPoseMat) {
+        *out.add_inv_bind_pose_mat() = convert(mat);
+    }
+    for (const mat4& mat : data.localJointTransform) {
+        *out.add_local_joint_transform() = convert(mat);
+    }
+    for (const mat4& mat : data.jointTransform) {
+        *out.add_global_joint_transform() = convert(mat);
+    }
+
+    out.mutable_joint_name()->Add(data.jointName.begin(), data.jointName.end());
 
     for (const auto& ref : data.animations)
     {
@@ -258,9 +289,9 @@ auto serializeAssetData(const RigData& data)  -> serial::Rig
             assignRef(out.add_animations(), ref);
         }
         else {
-            log::warn << "Warning: During rig asset serialization: RigData contains reference to"
-                " an asset without an asset path - the reference will not be included in the"
-                " serialized output!\n";
+            log::warn << "[RigData Serialization] RigData contains reference to an animation"
+                         " without an asset path - the reference will not be included in the"
+                " serialized output!";
         }
     }
 
@@ -270,13 +301,29 @@ auto serializeAssetData(const RigData& data)  -> serial::Rig
 auto deserializeAssetData(const serial::Rig& rig) -> RigData
 {
     RigData out;
+    out.name = rig.name();
+    out.numJoints = rig.num_joints();
+    out.rootJoint = rig.root_joint();
 
-    for (const auto& bone : rig.bones())
+    for (const auto& rel : rig.relatives())
     {
-        auto& newBone = out.bones.emplace_back();
-        newBone.name = bone.name();
-        readMatrix(bone.inv_bind_pose_matrix(), &newBone.inverseBindPoseMat);
+        if (rel.has_parent()) {
+            out.parent.emplace_back(rel.parent());
+        }
+        out.children.emplace_back(std::ranges::to<std::vector>(rel.children()));
     }
+
+    for (const auto& mat : rig.inv_bind_pose_mat()) {
+        out.inverseBindPoseMat.emplace_back(convert(mat));
+    }
+    for (const auto& mat : rig.local_joint_transform()) {
+        out.localJointTransform.emplace_back(convert(mat));
+    }
+    for (const auto& mat : rig.global_joint_transform()) {
+        out.jointTransform.emplace_back(convert(mat));
+    }
+
+    out.jointName.append_range(rig.joint_name());
 
     for (const auto& ref : rig.animations())
     {
