@@ -101,7 +101,7 @@ void run()
             .rotateY(-glm::half_pi<float>() - angle);
         scene->getRoot().attach(inst);
         if (auto anim = inst.getAnimationEngine()) {
-            anim.value()->playAnimation(0);
+            anim->playAnimation(0);
         }
     }
 
@@ -109,7 +109,7 @@ void run()
     auto hoodedBoi = scene->makeDrawable({ hoodedBoiGeoIndex, mapMatIndex });
     hoodedBoi->setScale(0.2f).translate(1.0f, 0.6f, -7.0f);
     if (auto anim = hoodedBoi->getAnimationEngine()) {
-        anim.value()->playAnimation(0);
+        anim->playAnimation(0);
     }
 
     // Linda
@@ -121,7 +121,7 @@ void run()
     auto linda = scene->makeDrawable({ lindaGeoIndex, lindaMatIdx });
     linda->setScale(0.3f).translateX(-1.0f);
     if (auto anim = linda->getAnimationEngine()) {
-        anim.value()->playAnimation(0);
+        anim->playAnimation(0);
     }
 
     // Images

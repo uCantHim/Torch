@@ -125,7 +125,7 @@ public:
             ig::PushID(i);
             if (ig::Button("Play"))
             {
-                scene->get<trc::Drawable>(obj)->getAnimationEngine().value()->playAnimation(i);
+                scene->get<trc::Drawable>(obj)->getAnimationEngine()->playAnimation(i);
             }
             ig::PopID();
             ig::SameLine(0.0f, 50.0f);

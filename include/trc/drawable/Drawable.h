@@ -38,9 +38,9 @@ namespace trc
         bool isAnimated() const;
 
         /**
-         * @return std::optional<AnimationEngine*>
+         * @return nullptr if the drawable has no animation engine.
          */
-        auto getAnimationEngine() -> std::optional<AnimationEngine*>;
+        auto getAnimationEngine() -> AnimationEngine*;
 
     private:
         friend class DrawableScene;

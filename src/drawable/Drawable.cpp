@@ -36,12 +36,12 @@ bool DrawableObj::isAnimated() const
     return scene->has<AnimationComponent>(id);
 }
 
-auto DrawableObj::getAnimationEngine() -> std::optional<AnimationEngine*>
+auto DrawableObj::getAnimationEngine() -> AnimationEngine*
 {
     if (auto comp = scene->tryGet<AnimationComponent>(id)) {
         return &comp->engine;
     }
-    return std::nullopt;
+    return nullptr;
 }
 
 } // namespace trc

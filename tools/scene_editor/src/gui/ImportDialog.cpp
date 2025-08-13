@@ -95,6 +95,6 @@ void gui::ImportDialog::createObject(trc::GeometryID geo, mat4 transform)
     auto& d = scene.get<trc::Drawable>(obj);
     d->setFromMatrix(transform);
     if (d->isAnimated()) {
-        d->getAnimationEngine().value()->playAnimation(0);
+        d->getAnimationEngine()->playAnimation(0);
     }
 }
