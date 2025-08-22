@@ -17,7 +17,7 @@ int main()
         camera->setDepthBounds(0.1f, 100.0f);
 
         // Font stuff
-        auto font = assets.create(trc::loadFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 60));
+        auto font = assets.create(*trc::importFont(TRC_TEST_FONT_DIR"/hack_mono.ttf", 60));
 
         trc::Text text(instance, font.getDeviceDataHandle());
         text.print("^Hello{  }\n World! ✓");

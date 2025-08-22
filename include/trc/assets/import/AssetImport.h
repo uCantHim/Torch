@@ -1,7 +1,7 @@
 #pragma once
 
+#include <expected>
 #include <filesystem>
-#include <optional>
 #include <string_view>
 
 #include <trc_util/Exception.h>
@@ -13,14 +13,6 @@ namespace trc
 {
     namespace fs = std::filesystem;
 
-    class AssetRegistry;
-
-    class DataImportError : public Exception
-    {
-    public:
-        explicit DataImportError(std::string errorMsg) : Exception(std::move(errorMsg)) {}
-    };
-
     /**
      * @brief Load all assets from a geometry file type
      *
@@ -29,7 +21,8 @@ namespace trc
      *
      * @throw DataImportError if the file format is not supported
      */
-    auto loadAssets(const fs::path& filePath) -> ThirdPartyFileImportData;
+    auto importAssets(const fs::path& filePath)
+        -> std::expected<import::ThirdPartyImport, import::ImportError>;
 
     /**
      * @brief Load the first geometry from a file
@@ -40,7 +33,8 @@ namespace trc
      * @throw DataImportError if the file format is not supported, or if the
      *                        file contains no geometries.
      */
-    auto loadGeometry(const fs::path& filePath) -> GeometryData;
+    auto importGeometry(const fs::path& filePath)
+        -> std::expected<GeometryData, import::ImportError>;
 
     /**
      * @brief Try to load a specific geometry from a file
@@ -52,8 +46,8 @@ namespace trc
      *         otherwise.
      * @throw DataImportError if the file format is not supported
      */
-    auto loadGeometry(const fs::path& filePath, std::string_view name)
-        -> std::optional<GeometryData>;
+    auto importGeometry(const fs::path& filePath, std::string_view name)
+        -> std::expected<GeometryData, import::ImportError>;
 
     /**
      * @brief Load a texture from an image file
@@ -62,7 +56,8 @@ namespace trc
      *                        might happen if the file format is not supported
      *                        or if the file cannot be opened.
      */
-    auto loadTexture(const fs::path& filePath) -> TextureData;
+    auto importTexture(const fs::path& filePath)
+        -> std::expected<TextureData, import::ImportError>;
 
     /**
      * @brief Load font data from any font file
@@ -75,5 +70,6 @@ namespace trc
      * @throw DataImportError if `path` cannot be opened as a file in read
      *                           mode.
      */
-    auto loadFont(const fs::path& path, ui32 fontSize) -> FontData;
+    auto importFont(const fs::path& path, ui32 fontSize)
+        -> std::expected<FontData, import::ImportError>;
 } // namespace trc

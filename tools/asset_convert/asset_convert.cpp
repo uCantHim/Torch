@@ -35,6 +35,26 @@ void convertGeometry(const fs::path& input, const fs::path& outPath, argparse::A
 void convertTexture(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&);
 void convertFont(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser&);
 
+template<trc::AssetBaseType T>
+bool writeTo(const trc::AssetData<T>& data, const fs::path& fromPath, const fs::path& dstPath)
+{
+    std::ofstream file(dstPath);
+    if (!file.is_open())
+    {
+        std::cout << "Error: Unable to write to file " << dstPath << ". Skipping.\n";
+        return false;
+    }
+
+    trc::serializeAsset(data, file);
+    std::cout << "Exported " << T::name() << " from " << fromPath << " to " << dstPath << ".\n";
+    return true;
+}
+
+void printError(const trc::import::ImportError& err)
+{
+    std::cout << "Error when importing from " << err.filePath << ": " << err.msg << "\n";
+}
+
 int main(const int argc, const char** argv)
 {
     argparse::ArgumentParser program;
@@ -185,8 +205,12 @@ void convertGeometry(
     const bool exportAnimations = exportAll || args.get<bool>("animations");
     const bool exportMaterials  = exportAll || args.get<bool>("materials");
 
-    trc::ThirdPartyFileImportData data = trc::loadAssets(input);
-    if (data.meshes.empty())
+    auto data = trc::importAssets(input);
+    if (!data) {
+        throw std::runtime_error(data.error().msg);
+    }
+
+    if (data->geometries.empty())
     {
         std::cout << "Nothing to import. Exiting.";
         return;
@@ -194,14 +218,23 @@ void convertGeometry(
 
     if (dryRun)
     {
-        std::cout << input << " contains " << data.meshes.size() << " meshes:\n";
-        for (const auto& mesh : data.meshes)
+        std::cout << input << " contains " << data->geometries.size() << " meshes:\n";
+        for (const auto& [idx, geo] : data->geometries | std::views::enumerate)
         {
-            std::cout << " - " << mesh.name << " ("
-                      << mesh.materials.size() << " materials, "
-                      << mesh.animations.size() << " animations, "
-                      << (mesh.rig.has_value() ? "1 rig" : "no rig")
+            const bool hasRig = data->refs.geoToRig.contains(trc::import::GeoID{ idx });
+            std::cout << " - " << geo.name << " ("
+                      << (hasRig ? "1 rig" : "no rig")
                       << ")\n";
+        }
+        for (const auto& [idx, rig] : data->rigs | std::views::enumerate)
+        {
+            const trc::import::RigID rigId{ idx };
+            const bool hasAnims = data->refs.rigToAnimations.contains(rigId);
+            std::cout << " - " << rig.name << " (";
+            if (hasAnims) {
+                std::cout << data->refs.rigToAnimations[rigId].size() << " animations";
+            }
+            std::cout << ")\n";
         }
         return;
     }
@@ -216,56 +249,53 @@ void convertGeometry(
                                              outPath.string(), err.what()));
     }
 
-    for (auto& mesh : data.meshes)
+    for (auto [_meshIdx, mesh] : data->geometries | std::views::enumerate)
     {
         auto tryWrite = [&]<typename T>(const trc::AssetData<T>& data, const fs::path& fileName)
             -> std::optional<trc::AssetPath>
         {
             const auto filePath = outPath / fileName;
-            std::ofstream file(filePath);
-            if (!file.is_open())
-            {
-                std::cout << "[Warning] Unable to write to file " << filePath << ". Skipping.\n";
-                return std::nullopt;
+            if (writeTo(data, input, fileName)) {
+                return trc::AssetPath{ fileName };
             }
-
-            trc::serializeAsset(data, file);
-            return trc::AssetPath{ fileName };
+            return std::nullopt;
         };
+
+        const trc::import::GeoID meshIdx{ _meshIdx };
+        auto rig = data->getRig(meshIdx);
 
         // Export additional assets if enabled
         if (exportAnimations)
         {
             // Clear references to animations and replace them with asset
             // paths.
-            if (mesh.rig) {
-                mesh.rig->animations.clear();
+            if (rig) {
+                rig->data.animations.clear();
             }
 
-            for (const auto& anim : mesh.animations)
+            for (const auto& anim : data->animations)
             {
-                auto path = tryWrite(anim, anim.name + kAnimFileExt);
-                if (path && mesh.rig) {
-                    mesh.rig->animations.emplace_back(*path);
+                auto path = tryWrite(anim.data, anim.name + kAnimFileExt);
+                if (path && rig) {
+                    rig->data.animations.emplace_back(*path);
                 }
             }
         }
-        if (exportRigs && mesh.rig)
+        if (exportRigs && rig)
         {
-            const auto& rig = mesh.rig.value();
-            if (auto path = tryWrite(rig, mesh.rig->name + kRigFileExt)) {
-                mesh.geometry.rig = *path;
+            if (auto path = tryWrite(rig->data, rig->name + kRigFileExt)) {
+                mesh.data.rig = *path;
             }
         }
         if (exportMaterials)
         {
-            for (const auto& mat : mesh.materials) {
+            for (const auto& mat : data->materials) {
                 tryWrite(trc::makeMaterial(mat.data), mat.name + kMatFileExt);
             }
         }
 
         // Always export the geometry
-        tryWrite(mesh.geometry, mesh.name + kGeoFileExt);
+        tryWrite(mesh.data, mesh.name + kGeoFileExt);
     }
 
     std::cout << "Exported data from " << input << " to " << outPath << ".\n";
@@ -278,17 +308,20 @@ void convertTexture(
 {
     const bool dryRun = args.get<bool>("dry-run");
 
-    const auto tex = trc::loadTexture(input);
-    if (dryRun)
-    {
-        std::cout << input << " contains an image of size "
-                  << tex.size.x << "x" << tex.size.y << ".\n";
+    const auto tex = trc::importTexture(input);
+    if (!tex) {
+        printError(tex.error());
         return;
     }
 
-    std::ofstream file(outPath);
-    trc::serializeAsset(tex, file);
-    std::cout << "Exported texture " << input << " to " << outPath << ".\n";
+    if (dryRun)
+    {
+        std::cout << input << " contains an image of size "
+                  << tex->size.x << "x" << tex->size.y << ".\n";
+        return;
+    }
+
+    writeTo(*tex, input, outPath);
 }
 
 void convertFont(const fs::path& input, const fs::path& outPath, argparse::ArgumentParser& args)
@@ -296,14 +329,12 @@ void convertFont(const fs::path& input, const fs::path& outPath, argparse::Argum
     const bool dryRun = args.get<bool>("dry-run");
     const uint size = args.get<uint>("font-size");
 
-    const auto font = trc::loadFont(input, size);
+    const auto font = trc::importFont(input, size);
     if (dryRun)
     {
         std::cout << input << " contains a font.\n";
         return;
     }
 
-    std::ofstream file(outPath);
-    trc::serializeAsset(font, file);
-    std::cout << "Exported font " << input << " (size " << size << ") to " << outPath << ".\n";
+    writeTo(*font, input, outPath);
 }

@@ -2,27 +2,15 @@
 
 #include <filesystem>
 
-#ifdef TRC_USE_ASSIMP
-#include <assimp/scene.h>
-#endif
-
 #include "trc/assets/import/AssetImportBase.h"
 
-#ifdef TRC_USE_ASSIMP
-
-namespace trc
+namespace trc::import
 {
     namespace fs = std::filesystem;
 
-    class AssetImporter
+    class AssimpImporter
     {
     public:
-        static auto load(const fs::path& filePath) -> ThirdPartyFileImportData;
-
-    private:
-        static auto loadMeshes(const aiScene* scene) -> std::vector<ThirdPartyMeshImport>;
-        static auto loadMaterial(const aiMaterial* mat) -> SimpleMaterialData;
+        static auto load(const fs::path& filePath) -> std::expected<ThirdPartyImport, ImportError>;
     };
-} // namespace trc
-
-#endif
+} // namespace trc::import

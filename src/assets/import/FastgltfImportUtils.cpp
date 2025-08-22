@@ -15,6 +15,7 @@
 
 #include "trc/Types.h"
 #include "trc/assets/RigRegistry.h"
+#include "trc/assets/import/AssetImportBase.h"
 #include "trc/base/Logging.h"
 
 namespace trc
@@ -22,9 +23,9 @@ namespace trc
 
 using NodeID = data::TypesafeID<fastgltf::Node>;
 
-using MeshID = data::TypesafeID<fastgltf::Mesh>;
-using SkinID = data::TypesafeID<fastgltf::Skin>;
-using AnimID = data::TypesafeID<fastgltf::Animation>;
+using MeshID = import::GeoID;
+using SkinID = import::RigID;
+using AnimID = import::AnimID;
 
 
 

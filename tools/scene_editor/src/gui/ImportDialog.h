@@ -4,7 +4,8 @@
 #include <string>
 #include <unordered_set>
 
-#include <trc/assets/Assets.h>
+#include <trc/Types.h>
+#include <trc/assets/import/AssetImport.h>
 
 using namespace trc::basic_types;
 
@@ -24,16 +25,18 @@ namespace gui
     public:
         explicit ImportDialog(const fs::path& filePath);
 
-        void loadFrom(const fs::path& fbxFilePath);
+        void loadFrom(const fs::path& filePath);
 
         void drawImGui();
 
     private:
-        bool importAndCreateObject(const trc::ThirdPartyMeshImport& mesh);
+        bool importAndCreateObject(const trc::import::ThirdPartyImport& data);
         void createObject(trc::GeometryID geo, mat4 transform);
 
         fs::path filePath;
-        trc::ThirdPartyFileImportData importData;
+        bool successfulImport;
+        trc::import::ImportError importError;
+        trc::import::ThirdPartyImport importData;
 
         /** Flags items as imported to ensure they're not imported multiple times. */
         std::unordered_set<std::string> imported;

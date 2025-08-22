@@ -2,10 +2,8 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
-
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
-
 #include <trc_util/Timer.h>
 
 #include "trc/base/Logging.h"
@@ -14,10 +12,13 @@
 
 
 
-namespace trc
+namespace trc::import
 {
 
 namespace math = fastgltf::math;
+
+namespace
+{
 
 constexpr
 auto toPrimitiveTopology(fastgltf::PrimitiveType fastgltfType) -> vk::PrimitiveTopology
@@ -46,7 +47,7 @@ auto toPrimitiveTopology(fastgltf::PrimitiveType fastgltfType) -> vk::PrimitiveT
 
 struct Loader
 {
-    auto load(const fs::path& filePath, bool binary) -> std::optional<std::string>
+    auto load(const fs::path& filePath, bool binary) -> std::optional<ImportError>
     {
         fastgltf::GltfFileStream file{ filePath };
         auto asset = [&]{
@@ -63,9 +64,14 @@ struct Loader
             }
         }();
 
-        if (asset.error() != fastgltf::Error::None) {
+        if (asset.error() != fastgltf::Error::None)
+        {
             log::error << "[GltfImporter] Error(s) during file import.";
-            return "[GltfImporter] Error(s) during file import.";
+            return ImportError{
+                filePath,
+                ImportError::Code::eSyntaxError,
+                "[GltfImporter] Error(s) during file import."
+            };
         }
         model = std::move(asset.get());
 
@@ -104,7 +110,7 @@ struct Loader
 
     struct AnimationImportResult
     {
-        std::vector<AnimationData> animations;
+        std::vector<AnimationImport> animations;
 
         // Maps animations to skins whose bones are affected by the animation.
         //
@@ -118,10 +124,10 @@ struct Loader
     void computeGlobalNodeTransforms();
     auto findMeshSkinAssociations() const -> MeshSkinAssociationInfo;
 
-    auto loadAll() const -> ThirdPartyFileImportData;
+    auto loadAll() const -> ThirdPartyImport;
 
-    auto loadMeshes() const -> std::vector<ThirdPartyMeshImport>;
-    auto loadSkins() const -> std::vector<Skeleton>;
+    auto loadMeshes() const -> std::vector<GeometryImport>;
+    auto loadSkins() const -> std::vector<RigImport>;
     auto loadAnimations(const AnimationImportInfo& info) const -> AnimationImportResult;
 
     auto loadGeometry(const fastgltf::Mesh& mesh) const -> GeometryData;
@@ -133,20 +139,22 @@ struct Loader
     std::unordered_map<const fastgltf::Node*, mat4> globalNodeTransforms;
 };
 
+}
+
 auto GltfImporter::loadFromAsciiFile(const fs::path& filePath)
-    -> std::expected<ThirdPartyFileImportData, std::string>
+    -> std::expected<ThirdPartyImport, ImportError>
 {
     return load(filePath, false);
 }
 
 auto GltfImporter::loadFromBinaryFile(const fs::path& filePath)
-    -> std::expected<ThirdPartyFileImportData, std::string>
+    -> std::expected<ThirdPartyImport, ImportError>
 {
     return load(filePath, true);
 }
 
 auto GltfImporter::load(const fs::path& filePath, bool binary)
-    -> std::expected<ThirdPartyFileImportData, std::string>
+    -> std::expected<ThirdPartyImport, ImportError>
 {
     Timer timer;
 
@@ -161,7 +169,7 @@ auto GltfImporter::load(const fs::path& filePath, bool binary)
 
     // Post process
     std::unordered_set<std::string> names;
-    for (ui32 i = 0; auto& mesh : res.meshes)
+    for (ui32 i = 0; auto& mesh : res.geometries)
     {
         if (!names.emplace(mesh.name).second) {
             mesh.name = mesh.name + "_" + std::to_string(i++);
@@ -171,7 +179,7 @@ auto GltfImporter::load(const fs::path& filePath, bool binary)
     // Log results
     const auto time = timer.reset();
     log::info << "[GltfImporter] Imported data from " << filePath << ": "
-              << res.meshes.size() << " mesh(es)"
+              << res.geometries.size() << " mesh(es)"
               << " (" << time << "ms)";
 
     return res;
@@ -239,21 +247,9 @@ auto Loader::findMeshSkinAssociations() const -> MeshSkinAssociationInfo
     return res;
 }
 
-auto Loader::loadAll() const -> ThirdPartyFileImportData
+auto Loader::loadAll() const -> ThirdPartyImport
 {
-    ThirdPartyFileImportData res;
-    res.meshes = loadMeshes();
-
-    return res;
-}
-
-auto Loader::loadMeshes() const -> std::vector<ThirdPartyMeshImport>
-{
-    std::vector<GeometryData> meshes;
-    for (const auto& mesh : model.meshes) {
-        meshes.emplace_back(loadGeometry(mesh));
-    }
-
+    auto meshes = loadMeshes();
     auto skins = loadSkins();
     auto meshToSkinInfo = findMeshSkinAssociations();
 
@@ -284,44 +280,42 @@ auto Loader::loadMeshes() const -> std::vector<ThirdPartyMeshImport>
         const NodeID parentNodeIdx = meshToSkinInfo.parentNode.at(skinIdx);
         const mat4 globalTransform = globalNodeTransforms.at(&model.nodes[parentNodeIdx]);
 
-        bakeSkinBindPose(skins[skinIdx], anim, globalTransform);
+        bakeSkinBindPose(skins[skinIdx].data, anim.data, globalTransform);
     }
+
+    // Create result
+    ThirdPartyImport res{
+        .filePath{},
+        .geometries = std::move(meshes),
+        .rigs       = std::move(skins),
+        .animations = std::move(anims.animations),
+        .materials{},
+        .textures{},
+        .refs{},
+    };
 
     // Log result
     log::info << "[GltfImporter] Imported assets from glTF file:";
-    log::info << "    " << meshes.size() << " geometries";
-    log::info << "    " << skins.size() << " rigs";
-    log::info << "    " << anims.animations.size() << " animations";
-
-    // Create result
-    std::vector<ThirdPartyMeshImport> res;
-    res.resize(meshes.size());
-
-    for (auto [meshIdx, geo] : std::views::enumerate(meshes))
-    {
-        auto& mesh = res[meshIdx];
-        mesh.name = model.meshes[meshIdx].name;
-        mesh.geometry = geo;
-    }
+    log::info << "    " << res.geometries.size() << " geometries";
+    log::info << "    " << res.rigs.size() << " rigs";
+    log::info << "    " << res.animations.size() << " animations";
 
     // Associate meshes with rigs
     for (const auto& [meshIdx, skinIdxs] : meshToSkinInfo.skinsByMesh)
     {
         const SkinID skinIdx = skinIdxs.front();
-        log::info << "[GltfImporter] Associating skin \"" << skins[skinIdx].name
-                  << "\" with mesh \"" << res[meshIdx].name << "\"";
+        log::info << "[GltfImporter] Associating skin \"" << res.rigs[skinIdx].name
+                  << "\" with mesh \"" << res.geometries[meshIdx].name << "\"";
 
-        res[meshIdx].rig = skins[skinIdx];
+        res.refs.geoToRig.try_emplace(meshIdx, skinIdx);
     }
 
-    // Associate animations with geometries
+    // Associate animations with rigs
     for (const auto& [animIdx, anim] : std::views::enumerate(anims.animations))
     {
         const auto& skins = anims.skinsByAnimation.at(AnimID{ animIdx });
-        for (const SkinID skinIdx : skins)
-        {
-            const auto geoIdx = animHelperInfo.skins.at(skinIdx).geoIndex;
-            res[geoIdx].animations.emplace_back(anim);
+        for (const SkinID skinIdx : skins) {
+            res.refs.rigToAnimations[skinIdx].emplace_back(animIdx);
         }
     }
 
@@ -334,8 +328,8 @@ auto Loader::loadMeshes() const -> std::vector<ThirdPartyMeshImport>
     {
         const SkinID skinIdx = skinIdxs.front();
 
-        auto& geo = res[meshIdx].geometry;
-        const auto& skin = skins[skinIdx];
+        auto& geo = res.geometries[meshIdx].data;
+        const auto& skin = res.rigs[skinIdx].data;
         for (auto [vert, skelVert] : std::views::zip(geo.vertices, geo.skeletalVertices))
         {
             const auto boneIdxs = skelVert.boneIndices;
@@ -353,20 +347,22 @@ auto Loader::loadMeshes() const -> std::vector<ThirdPartyMeshImport>
 #endif
 
 #if (bakeAnimation)
-    for (auto [meshIdx, mesh] : std::views::enumerate(res))
+    for (auto [_meshIdx, mesh] : std::views::enumerate(res.geometries))
     {
-        if (!mesh.rig) continue;
-        if (mesh.animations.empty()) continue;
+        const MeshID meshIdx{ _meshIdx };
+        if (!res.refs.geoToRig.contains(meshIdx)) continue;
+        const SkinID skinIdx = res.refs.geoToRig.at(meshIdx);
+        if (!res.refs.rigToAnimations.contains(skinIdx)) continue;
 
-        const auto& anim = mesh.animations.at(0);
+        const auto& animIds = res.refs.rigToAnimations.at(skinIdx);
+        const auto& anim = res.animations[animIds.front()].data;
         const auto& kf = anim.keyframes.at(anim.keyframes.size() / 2);
         log::debug << "[GltfImporter] Baking animation \"" << anim.name
                    << "\" at keyframe #" << anim.keyframes.size() / 2
                    << " into geometry \"" << mesh.name << "\".";
 
-        const auto skinIdx = meshToSkinInfo.skinsByMesh.at(MeshID{ meshIdx }).front();
-        auto& skel = skins.at(skinIdx);
-        auto& geo = mesh.geometry;
+        auto& skel = res.rigs[skinIdx].data;
+        auto& geo = res.geometries[meshIdx].data;
 
         // Adjust skeleton local transforms
         for (auto [jointIdx, localTransform] : skel.localJointTransform | std::views::enumerate) {
@@ -396,11 +392,25 @@ auto Loader::loadMeshes() const -> std::vector<ThirdPartyMeshImport>
     return res;
 }
 
-auto Loader::loadSkins() const -> std::vector<Skeleton>
+auto Loader::loadMeshes() const -> std::vector<GeometryImport>
 {
-    std::vector<Skeleton> skels;
+    std::vector<GeometryImport> meshes;
+    for (const auto& mesh : model.meshes)
+    {
+        meshes.emplace_back(GeometryImport{
+            .name{ mesh.name },
+            .data=loadGeometry(mesh)
+        });
+    }
+
+    return meshes;
+}
+
+auto Loader::loadSkins() const -> std::vector<RigImport>
+{
+    std::vector<RigImport> skels;
     for (const auto& skin : model.skins) {
-        skels.emplace_back(loadSkeleton(model, skin));
+        skels.push_back({ .name{skin.name}, .data=loadSkeleton(model, skin) });
     }
 
     return skels;
@@ -514,7 +524,7 @@ auto Loader::loadAnimations(const AnimationImportInfo& info) const -> AnimationI
     for (const auto& [idx, anim] : std::views::enumerate(model.animations))
     {
         auto [data, affectedSkins] = loadAnimation(anim, info);
-        res.animations.emplace_back(std::move(data));
+        res.animations.emplace_back(std::string{anim.name}, std::move(data));
         res.skinsByAnimation.try_emplace(AnimID{ idx }, std::move(affectedSkins));
     }
 
@@ -575,4 +585,4 @@ auto Loader::loadAnimation(const fastgltf::Animation& anim, const AnimationImpor
     return { res, { transformedRigs.begin(), transformedRigs.end() } };
 }
 
-} // namespace trc
+} // namespace trc::import

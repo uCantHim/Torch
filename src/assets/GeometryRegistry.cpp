@@ -146,7 +146,7 @@ auto GeometryRegistry::loadDeviceData(const LocalID id) -> DeviceData
         dataWriter.write(*deviceData.skeletalVertexBuf, 0, data.skeletalVertices.data(), skelVerticesSize);
     }
 
-    if (!data.rig.empty())
+    if (data.rig.hasResolvedID())
     {
         assert(!data.skeletalVertices.empty() && deviceData.hasSkeleton
                 && "A geometry with a rig must also have a skeleton.");

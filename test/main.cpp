@@ -33,25 +33,25 @@ void run()
     // ------------------
     // Random test things
 
-    auto grassGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx"));
-    auto treeGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
+    auto grassGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx"));
+    auto treeGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
 
-    auto skeletonGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
-    auto hoodedBoiGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
-    auto lindaGeoIndex = ar.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
+    auto skeletonGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
+    auto hoodedBoiGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
+    auto lindaGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
 
     auto lindaDiffTexIdx = ar.create(
-        trc::loadTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
+        *trc::importTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
     );
 
     auto grassImgIdx = ar.create(
-        trc::loadTexture(TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
+        *trc::importTexture(TRC_TEST_ASSET_DIR"/grass_billboard_001.png")
     );
     auto stoneTexIdx = ar.create(
-        trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
+        *trc::importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
     );
     auto stoneNormalTexIdx = ar.create(
-        trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
+        *trc::importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
     );
 
     auto matIdx = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
@@ -61,8 +61,8 @@ void run()
         .normalTexture = stoneNormalTexIdx,
     }));
 
-    auto mapImport = trc::loadAssets(TRC_TEST_ASSET_DIR"/map.fbx");
-    auto mapMat = mapImport.meshes[0].materials[0].data;
+    auto mapImport = *trc::importAssets(TRC_TEST_ASSET_DIR"/map.fbx");
+    auto mapMat = mapImport.getMaterials(trc::import::GeoID{0}).front()->data;
     mapMat.specularCoefficient = 1.0f;
     mapMat.albedoTexture = stoneTexIdx;
     mapMat.normalTexture = stoneNormalTexIdx;
@@ -128,10 +128,10 @@ void run()
     auto planeGeo = ar.create(trc::makePlaneGeo());
     auto transparentImg = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
         .opacity=0.0f,  // Enable transparency
-        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/standard_model.png")),
+        .albedoTexture=ar.create(*trc::importTexture(TRC_TEST_ASSET_DIR"/standard_model.png")),
     }));
     auto opaqueImg = ar.create(trc::makeMaterial(trc::SimpleMaterialData{
-        .albedoTexture=ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/lena.png"))
+        .albedoTexture=ar.create(*trc::importTexture(TRC_TEST_ASSET_DIR"/lena.png"))
     }));
     auto img = scene->makeDrawable({ planeGeo, transparentImg });
     img->translate(-5, 1, -3).rotate(glm::radians(90.0f), glm::radians(30.0f), 0.0f).scale(2);
@@ -180,7 +180,7 @@ void run()
         particleCollection.addParticle(particle);
     }
 
-    auto particleImg = ar.create(trc::loadTexture(TRC_TEST_ASSET_DIR"/yellowlight.png")).getDeviceDataHandle();
+    auto particleImg = ar.create(*trc::importTexture(TRC_TEST_ASSET_DIR"/yellowlight.png")).getDeviceDataHandle();
     trc::ParticleSpawn spawn(particleCollection);
     for (int i = 0; i < 50; i++)
     {
@@ -240,7 +240,7 @@ void run()
     cursor->scale(0.15f);
 
     // Text
-    auto font = ar.create(trc::loadFont(TRC_TEST_FONT_DIR"/gil.ttf", 64));
+    auto font = ar.create(*trc::importFont(TRC_TEST_FONT_DIR"/gil.ttf", 64));
     trc::Text text{ instance, font.getDeviceDataHandle() };
     text.rotateY(0.5f).translate(-1.3f, 0.0f, -0.1f);
     text.print("Hello World!");

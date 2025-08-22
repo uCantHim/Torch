@@ -56,7 +56,7 @@ void run()
          .translate(0.5f, 0.5f, -1.0f)
          .setScale(3.0f, 1.0f, 1.7f);
 
-    trc::GeometryID treeGeo = assets.create(trc::loadGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
+    trc::GeometryID treeGeo = assets.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
     trc::MaterialID treeMat = assets.create(trc::makeMaterial({ .color=vec4(0, 1, 0, 1) }));
     auto tree = scene->makeDrawable({ treeGeo, treeMat, true, true });
     tree->rotateX(-glm::half_pi<float>()).setScale(0.1f);
@@ -68,10 +68,10 @@ void run()
             .specularCoefficient=0.2f,
             .roughness=1.0f - kFloorReflectivity,
             .albedoTexture=assets.create(
-                trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
+                *trc::importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall.tif")
             ),
             .normalTexture=assets.create(
-                trc::loadTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
+                *trc::importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif")
             ),
         })),
         true, true

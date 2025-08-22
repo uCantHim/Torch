@@ -67,18 +67,19 @@ auto AssetInventory::import(const trc::AssetPath& dstPath, const trc::AssetData<
     // Create a local copy of the asset data
     auto data = _data;
 
-    // Invoke potential data-pre-processing functions
+    // Store the asset in the storage and register it at the asset manager
+    if (!persistentStorage->store(dstPath, data)) {
+        return std::nullopt;
+    }
+    auto id = assetManager->create<T>(dstPath);
+
+    // Invoke potential data-post-processing functions
     try {
         map.at<T>()(dstPath, &data);
     }
     catch (const std::out_of_range&) {}
 
-    // Store the asset in the storage and register it at the asset manager
-    if (!persistentStorage->store(dstPath, data)) {
-        return std::nullopt;
-    }
-
-    return assetManager->create<T>(dstPath);
+    return id;
 }
 
 template<

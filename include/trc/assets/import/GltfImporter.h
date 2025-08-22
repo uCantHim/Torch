@@ -2,11 +2,10 @@
 
 #include <expected>
 #include <filesystem>
-#include <string>
 
 #include "trc/assets/import/AssetImportBase.h"
 
-namespace trc
+namespace trc::import
 {
     namespace fs = std::filesystem;
 
@@ -14,12 +13,12 @@ namespace trc
     {
     public:
         static auto loadFromAsciiFile(const fs::path& filePath)
-            -> std::expected<ThirdPartyFileImportData, std::string>;
+            -> std::expected<import::ThirdPartyImport, import::ImportError>;
 
         static auto loadFromBinaryFile(const fs::path& filePath)
-            -> std::expected<ThirdPartyFileImportData, std::string>;
+            -> std::expected<import::ThirdPartyImport, import::ImportError>;
 
         static auto load(const fs::path& filePath, bool binary = true)
-            -> std::expected<ThirdPartyFileImportData, std::string>;
+            -> std::expected<import::ThirdPartyImport, import::ImportError>;
     };
-} // namespace trc
+} // namespace trc::import

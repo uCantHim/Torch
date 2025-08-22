@@ -24,7 +24,7 @@ int main()
 
 void run()
 {
-    auto geo = trc::loadGeometry(TRC_TEST_ASSET_DIR"/sphere_many_triangles.fbx");
+    auto geo = *trc::importGeometry(TRC_TEST_ASSET_DIR"/sphere_many_triangles.fbx");
 
     trc::Timer timer;
     auto meshlets = trc::makeMeshletIndices(geo.indices);

@@ -1,39 +1,50 @@
 #include "ImportDialog.h"
 
-#include "App.h"
+#include <ranges>
+
 #include "Globals.h"
 #include "ImguiUtil.h"
 #include "asset/DefaultAssets.h"
-#include "object/Hitbox.h"
 
 
 
 gui::ImportDialog::ImportDialog(const fs::path& path)
     :
-    filePath(path),
-    importData(trc::loadAssets(path))
+    filePath(path)
 {
+    auto data = trc::importAssets(path);
+    if (data) {
+        importData = std::move(*data);
+    }
+    successfulImport = data.has_value();
 }
 
 void gui::ImportDialog::drawImGui()
 {
-    ig::Text("Imported %lu meshes from %s", ui64(importData.meshes.size()), filePath.c_str());
+    if (!successfulImport)
+    {
+        ig::Text("Error during import: %s", importError.msg.c_str());
+        return;
+    }
+
+    ig::Text("Imported %lu meshes from %s", ui64(importData.geometries.size()), filePath.c_str());
     ig::Separator();
-    for (const auto& mesh : importData.meshes)
+    for (const auto& [idx, geo] : importData.geometries | std::views::enumerate)
     {
         // General information
-        ig::Text("Imported mesh \"%s\"", mesh.name.c_str());
-        ig::TreePush(&mesh);
+        ig::Text("Imported mesh \"%s\"", geo.name.c_str());
+        ig::TreePush(&geo);
 
         // Vertex information
-        ig::Text("%lu vertices", ui64(mesh.geometry.indices.size()));
+        ig::Text("%lu vertices", ui64(geo.data.indices.size()));
 
         // Material information
-        ig::Text("%lu materials", ui64(mesh.materials.size()));
-        if (!mesh.materials.empty())
+        auto materials = importData.getMaterials(trc::import::GeoID{ idx });
+        ig::Text("%lu materials", ui64(materials.size()));
+        if (!materials.empty())
         {
-            ig::TreePush(&mesh.materials);
-            for ([[maybe_unused]] const auto& material : mesh.materials)
+            ig::TreePush(&materials);
+            for ([[maybe_unused]] const auto& material : materials)
             {
                 ig::Text("A material. More information coming soon.");
             }
@@ -41,22 +52,25 @@ void gui::ImportDialog::drawImGui()
         }
 
         // Animation information
-        if (mesh.rig.has_value())
+        if (importData.refs.geoToRig.contains(trc::import::GeoID{ idx }))
         {
-            auto& rigData = mesh.rig.value();
+            const auto rigId = importData.refs.geoToRig[trc::import::GeoID{ idx }];
+            auto& rigData = importData.rigs[rigId].data;
+            auto anims = importData.getAnimations(rigId);
+
             ig::Text("Rig \"%s\"", rigData.name.c_str());
             ig::TreePush(&rigData);
-            ig::Text("%lu bones", ui64(rigData.bones.size()));
+            ig::Text("%lu bones", ui64(rigData.numJoints));
             ig::TreePop();
 
             ig::Separator();
-            ig::Text("%lu animations", ui64(mesh.animations.size()));
-            for (const auto& anim : mesh.animations)
+            ig::Text("%lu animations", ui64(anims.size()));
+            for (const auto& anim : anims)
             {
-                ig::Text("Animation \"%s\"", anim.name.c_str());
+                ig::Text("Animation \"%s\"", anim->name.c_str());
                 ig::TreePush(&anim);
-                ig::Text("Duration: %fms", anim.durationMs);
-                ig::Text("%u frames", anim.frameCount);
+                ig::Text("Duration: %fms", anim->data.durationMs);
+                ig::Text("%u frames", anim->data.frameCount);
                 ig::TreePop();
             }
         }
@@ -64,19 +78,19 @@ void gui::ImportDialog::drawImGui()
             ig::Text("No rigs found");
         }
 
-        if (!imported.contains(mesh.name))
+        if (!imported.contains(geo.name))
         {
             if (ig::Button("Import"))
             {
-                g::assets().import(trc::AssetPath(mesh.name), mesh.geometry);
-                imported.emplace(mesh.name);
+                g::assets().import(trc::AssetPath(geo.name), geo.data);
+                imported.emplace(geo.name);
             }
             if (ig::Button("Import and create in scene"))
             {
-                const auto geoId = g::assets().import(trc::AssetPath(mesh.name), mesh.geometry);
+                const auto geoId = g::assets().import(trc::AssetPath(geo.name), geo.data);
                 if (geoId) {
-                    createObject(*geoId, mesh.globalTransform);
-                    imported.emplace(mesh.name);
+                    createObject(*geoId, geo.globalTransform);
+                    imported.emplace(geo.name);
                 }
             }
         }

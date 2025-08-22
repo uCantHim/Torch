@@ -1,5 +1,3 @@
-#include <cstring>
-
 #include <iostream>
 #include <sstream>
 
@@ -22,15 +20,15 @@ using namespace trc;
  */
 auto createMaterial(AssetManager& assetManager) -> MaterialData
 {
-    auto importTexture = [&](fs::path filePath) -> AssetPath
+    auto importTex = [&](fs::path filePath) -> AssetPath
     {
         const AssetPath path(filePath.filename().replace_extension(".ta"));
-        assetManager.getDataStorage().store(path, loadTexture(filePath));
+        assetManager.getDataStorage().store(path, *importTexture(filePath));
         return path;
     };
 
-    const auto lenaPath = importTexture(TRC_TEST_ASSET_DIR"/lena.png");
-    const auto stonePath = importTexture(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif");
+    const auto lenaPath = importTex(TRC_TEST_ASSET_DIR"/lena.png");
+    const auto stonePath = importTex(TRC_TEST_ASSET_DIR"/rough_stone_wall_normal.tif");
     AssetReference<Texture> tex(lenaPath);
     AssetReference<Texture> normalMap(stonePath);
 
