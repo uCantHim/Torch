@@ -46,10 +46,13 @@ void main()
     vec4 normal = vec4(vertexNormal, 0.0);
     vec4 tangent = vec4(vertexTangent, 0.0);
 
-    vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
-    normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
-    tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
-    vertPos.w = 1.0;
+    if (animData.animation != NO_ANIMATION)
+    {
+        vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
+        normal = applyAnimation(animData.animation, normal, animData.keyframes, animData.keyframeWeigth);
+        tangent = applyAnimation(animData.animation, tangent, animData.keyframes, animData.keyframeWeigth);
+        vertPos.w = 1.0;
+    }
 
     vec4 worldPos = modelMatrix * vertPos;
     gl_Position = camera.projMatrix * camera.viewMatrix * worldPos;

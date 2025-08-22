@@ -26,8 +26,12 @@ void main()
 {
     mat4 viewProj = shadowMatrices[shadowIndex];
     vec4 vertPos = vec4(vertexPosition, 1.0);
-    vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
-    vertPos.w = 1.0;
+
+    if (animData.animation != NO_ANIMATION)
+    {
+        vertPos = applyAnimation(animData.animation, vertPos, animData.keyframes, animData.keyframeWeigth);
+        vertPos.w = 1.0;
+    }
 
     gl_Position = viewProj * modelMatrix * vertPos;
 }
