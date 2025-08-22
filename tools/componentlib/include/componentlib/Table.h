@@ -28,7 +28,7 @@ using trc::algorithm::IteratorRange;
  * based on the tradeoffs you want to make.
  */
 template<typename T, typename Key = uint32_t, typename Impl = StableTableImpl<T, Key>>
-class Table
+class Table : public std::ranges::view_interface<Table<T, Key, Impl>>
 {
 public:
     using value_type = T;

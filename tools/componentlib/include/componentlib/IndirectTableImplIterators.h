@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <concepts>
 #include <iterator>
 #include <type_traits>
 #include <vector>
@@ -36,7 +35,7 @@ public:
     using pointer = conditionally_const_value_type*;
     using key_type = typename TableType::key_type;
 
-    using difference_type = size_t;
+    using difference_type = std::ptrdiff_t;
 
     IndirectTableValueIterator() = default;
     explicit
@@ -59,8 +58,13 @@ public:
     // Postfix
     auto operator--(int) -> IndirectTableValueIterator;
 
-    auto operator*() -> reference;
-    auto operator->() -> pointer;
+    auto operator*(this auto&& self) -> reference {
+        return *self.it;
+    }
+
+    auto operator->(this auto&& self) -> pointer {
+        return &*self.it;
+    }
 
     bool operator==(const IndirectTableValueIterator& a) const;
     bool operator!=(const IndirectTableValueIterator& a) const;
@@ -85,7 +89,7 @@ struct IndirectTableKeyIterator
     using reference = const key_type&;
     using pointer = const key_type*;
 
-    using difference_type = size_t;
+    using difference_type = std::ptrdiff_t;
 
     IndirectTableKeyIterator() = default;
     IndirectTableKeyIterator(typename std::vector<size_t>::const_iterator it, TableType& table);
@@ -107,8 +111,13 @@ struct IndirectTableKeyIterator
     // Postfix
     auto operator--(int) -> IndirectTableKeyIterator;
 
-    auto operator*() -> reference;
-    auto operator->() -> pointer;
+    auto operator*(this auto&& self) -> reference {
+        return self.currentKey;
+    }
+
+    auto operator->(this auto&& self) -> pointer {
+        return &self.currentKey;
+    }
 
     bool operator==(const IndirectTableKeyIterator& a) const;
     bool operator!=(const IndirectTableKeyIterator& a) const;
@@ -147,18 +156,6 @@ inline IndirectTableValueIterator<TableType>::IndirectTableValueIterator(VectorI
     :
     it(_it)
 {
-}
-
-template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::operator*() -> reference
-{
-    return *it;
-}
-
-template<typename TableType>
-inline auto IndirectTableValueIterator<TableType>::operator->() -> pointer
-{
-    return &*it;
 }
 
 template<typename TableType>
@@ -229,18 +226,6 @@ inline IndirectTableKeyIterator<TableType>::IndirectTableKeyIterator(
         ++it;
         incrementCurrentKey();
     }
-}
-
-template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::operator*() -> reference
-{
-    return currentKey;
-}
-
-template<typename TableType>
-inline auto IndirectTableKeyIterator<TableType>::operator->() -> pointer
-{
-    return &currentKey;
 }
 
 template<typename TableType>

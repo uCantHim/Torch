@@ -1,3 +1,4 @@
+#include <ranges>
 #include <unordered_set>
 #include <vector>
 
@@ -227,4 +228,29 @@ TEST(TABLE_TEST_NAME, ConstIteratorsCompileTime)
     for ([[maybe_unused]] auto k : t.keys()) {}
     for ([[maybe_unused]] auto v : t.values()) {}
     for ([[maybe_unused]] auto [k, v] : t.items()) {}
+}
+
+TEST(TABLE_TEST_NAME, RangesAndViews)
+{
+    Table<int> t;
+    t.emplace(0, 42);
+    t.emplace(1, 84);
+    t.emplace(2, 126);
+    t.emplace(3, 168);
+    t.emplace(4, 210);
+
+    std::vector<int> truth{ 42, 84, 126, 168, 210 };
+    std::vector<int> truthNeg{ -42, -84, -126, -168, -210 };
+
+    const auto vec = t.values() | std::ranges::to<std::vector>();
+    ASSERT_EQ(vec, truth);
+
+    const auto negated = t.values()
+        | std::views::transform([](auto n){ return -n; })
+        | std::ranges::to<std::vector>();
+    ASSERT_EQ(negated, truthNeg);
+
+    for (auto [val, truth] : std::views::zip(t.keys(), std::views::iota(0))) {
+        ASSERT_EQ(val, truth);
+    }
 }

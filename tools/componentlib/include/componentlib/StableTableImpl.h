@@ -63,6 +63,10 @@ namespace componentlib
         using ConstValueIterator = StableTableValueIterator<const StableTableImpl<T, Key>>;
         using ConstKeyIterator = StableTableKeyIterator<const StableTableImpl<T, Key>>;
 
+        // Sentinel types
+        using ValueSentinel = StableTableValueIterator<StableTableImpl<T, Key>>::Sentinel;
+        using KeySentinel = StableTableKeyIterator<StableTableImpl<T, Key>>::Sentinel;
+
         auto valueBegin() -> ValueIterator {
             return ValueIterator(*this, key_type(0));
         }
@@ -90,22 +94,11 @@ namespace componentlib
         }
 
     private:
-        template<typename> friend class StableTableIterator;  // Friend the base for all iters
+        template<typename, typename> friend class StableTableIterator;  // Friend the base for all iters
         friend ValueIterator;
         friend ConstValueIterator;
         friend KeyIterator;
         friend ConstKeyIterator;
-
-        static_assert(requires (StableTableImpl<T, Key> t) {
-            { *std::declval<ValueIterator>() }      -> std::same_as<reference>;
-            { *std::declval<ConstValueIterator>() } -> std::same_as<const_reference>;
-            { *std::declval<KeyIterator>() }        -> std::same_as<const key_type&>;
-            { *std::declval<ConstKeyIterator>() }   -> std::same_as<const key_type&>;
-            { std::declval<ValueIterator>().operator->() }      -> std::same_as<pointer>;
-            { std::declval<ConstValueIterator>().operator->() } -> std::same_as<const_pointer>;
-            { std::declval<KeyIterator>().operator->() }        -> std::same_as<const key_type*>;
-            { std::declval<ConstKeyIterator>().operator->() }   -> std::same_as<const key_type*>;
-        });
 
         static constexpr size_type kChunkSize = ChunkSize;
 
@@ -117,6 +110,10 @@ namespace componentlib
         }
 
         using Chunk = trc::data::OptionalStorage<value_type, kChunkSize>;
+
+        auto capacity() const noexcept -> size_type {
+            return chunks.size() * kChunkSize;
+        }
 
         trc::data::IndexMap<size_type, std::unique_ptr<Chunk>> chunks;
     };

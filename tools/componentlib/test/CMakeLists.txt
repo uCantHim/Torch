@@ -2,9 +2,9 @@ add_executable(unittest_componentlib)
 torch_default_compile_options(unittest_componentlib)
 
 target_sources(unittest_componentlib PRIVATE
+    test_component_storage.cpp
     test_indirect_table.cpp
     test_stable_table.cpp
-    test_component_storage.cpp
 )
 
 target_link_libraries(unittest_componentlib PRIVATE component)

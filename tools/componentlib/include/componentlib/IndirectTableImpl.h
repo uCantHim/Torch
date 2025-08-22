@@ -32,6 +32,10 @@ namespace componentlib
             indices.reserve(minElems);
         }
 
+        auto size() const noexcept -> size_type {
+            return objects.size();
+        }
+
         bool contains(key_type key) const {
             return indices.size() > static_cast<size_t>(key)
                 && indices.at(static_cast<size_t>(key)) != NONE;

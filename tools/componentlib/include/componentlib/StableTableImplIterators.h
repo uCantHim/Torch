@@ -1,44 +1,49 @@
 #pragma once
 
 #include <cassert>
-#include <concepts>
 #include <iterator>
+#include <type_traits>
 
 namespace componentlib
 {
-    template<typename TableType>
+    template<typename TableType, typename Derived>
     class StableTableIterator
     {
     public:
+        struct Sentinel {};
+
+        using iterator_category = std::input_iterator_tag;
+
         using key_type = typename TableType::key_type;
         using size_type = typename TableType::size_type;
+        using difference_type = std::ptrdiff_t;
+
+        StableTableIterator() = default;
 
         StableTableIterator(TableType& _table, key_type keyPos)
             :
             table(&_table),
             key(keyPos)
         {
-            while (table->chunkIndex(key) < table->chunks.size() && !table->contains(key)) {
+            while (*this != Sentinel{} && !table->contains(key)) {
                 key = inc(key);
             }
 
-            assert(table->contains(key)
-                   || static_cast<size_type>(key) == (table->chunks.size() * table->kChunkSize));
+            assert(table->contains(key) || *this == Sentinel{});
         }
 
-        auto operator++() -> StableTableIterator&
+        auto operator++() -> Derived&
         {
             do {
                 key = inc(key);
-            } while (table->chunkIndex(key) < table->chunks.size()
-                     && !table->chunks.at(table->chunkIndex(key))->valid(table->elemIndex(key)));
+            } while (*this != Sentinel{} && !table->contains(key));
 
-            return *this;
+            return static_cast<Derived&>(*this);
         }
 
-        auto operator++(int) -> StableTableIterator
+        auto operator++(int) -> Derived
         {
-            auto ret = *this;
+            auto ret = static_cast<Derived&>(*this);
             ++*this;
             return ret;
         }
@@ -46,21 +51,30 @@ namespace componentlib
         bool operator==(const StableTableIterator&) const = default;
         bool operator!=(const StableTableIterator&) const = default;
 
+        bool operator==(const Sentinel&) const noexcept {
+            return table == nullptr || static_cast<size_t>(key) == table->capacity();
+        }
+
+        bool operator!=(const Sentinel&) const noexcept {
+            return !(*this == Sentinel{});
+        }
+
     protected:
         static constexpr auto inc(key_type key) -> key_type {
             return key_type(static_cast<size_type>(key) + 1);
         }
 
-        TableType* table;
-        key_type key;
+        TableType* table{ nullptr };
+        key_type key{ 0 };
     };
 
     template<typename TableType>
-    struct StableTableValueIterator : public StableTableIterator<TableType>
+    struct StableTableValueIterator
+        : public StableTableIterator<TableType, StableTableValueIterator<TableType>>
     {
         using iterator_category = std::forward_iterator_tag;
 
-        using Base = StableTableIterator<TableType>;
+        using Base = StableTableIterator<TableType, StableTableValueIterator<TableType>>;
 
         using value_type = typename TableType::value_type;
         using conditionally_const_value_type = std::conditional_t<
@@ -72,50 +86,59 @@ namespace componentlib
         using pointer = conditionally_const_value_type*;
         using typename Base::key_type;
 
+        StableTableValueIterator() = default;
         StableTableValueIterator(TableType& table, key_type key) : Base(table, key) {}
 
-        auto operator*() -> reference
+        auto operator*(this auto&& self) -> reference
         {
-            assert(Base::table->contains(Base::key));
-            assert(Base::table->at(Base::key) != nullptr);
-            return *Base::table->at(Base::key);
+            assert(self.table->contains(self.key));
+            assert(self.table->at(self.key) != nullptr);
+            return *self.table->at(self.key);
         }
 
-        auto operator->() -> pointer
+        auto operator->(this auto&& self) -> pointer
         {
-            assert(Base::table->contains(Base::key));
-            return Base::table->at(Base::key);
+            assert(self.table->contains(self.key));
+            return self.table->at(self.key);
 
         }
+
+        bool operator==(const StableTableValueIterator&) const = default;
+        bool operator!=(const StableTableValueIterator&) const = default;
     };
 
     template<typename TableType>
-    struct StableTableKeyIterator : public StableTableIterator<TableType>
+    struct StableTableKeyIterator
+        : public StableTableIterator<TableType, StableTableKeyIterator<TableType>>
     {
         using iterator_category = std::forward_iterator_tag;
 
-        using Base = StableTableIterator<TableType>;
+        using Base = StableTableIterator<TableType, StableTableKeyIterator<TableType>>;
 
         using typename Base::key_type;
         using value_type = key_type;
         using reference = const key_type&;
         using pointer = const key_type*;
 
+        StableTableKeyIterator() = default;
         StableTableKeyIterator(TableType& table, key_type key) : Base(table, key) {}
 
-        auto operator*() -> reference
+        auto operator*(this auto&& self) -> reference
         {
-            assert(Base::table->contains(Base::key));
-            assert(Base::table->at(Base::key) != nullptr);
-            return Base::key;
+            assert(self.table->contains(self.key));
+            assert(self.table->at(self.key) != nullptr);
+            return self.key;
         }
 
-        auto operator->() -> pointer
+        auto operator->(this auto&& self) -> pointer
         {
-            assert(Base::table->contains(Base::key));
-            return &Base::key;
+            assert(self.table->contains(self.key));
+            return &self.key;
 
         }
+
+        bool operator==(const StableTableKeyIterator&) const = default;
+        bool operator!=(const StableTableKeyIterator&) const = default;
 
         auto queryValue() -> std::conditional_t<std::is_const_v<TableType>,
                                                 typename TableType::const_reference,
