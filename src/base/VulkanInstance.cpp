@@ -6,6 +6,8 @@
 #include <trc_util/algorithm/VectorTransform.h>
 
 #include "trc/base/Logging.h"
+#include "trc/base/PhysicalDevice.h"
+#include "trc/base/Swapchain.h"
 #include "trc/base/VulkanDebug.h"
 
 
@@ -70,4 +72,21 @@ trc::VulkanInstance::VulkanInstance(const VulkanInstanceCreateInfo& createInfo)
     }
 
     debug = std::make_unique<VulkanDebug>(*instance);
+}
+
+auto trc::VulkanInstance::makeSurface(const SurfaceCreateInfo& createInfo)
+    -> std::expected<Surface, std::string>
+{
+    try {
+        return Surface{ *instance, createInfo };
+    }
+    catch (const std::runtime_error& err) {
+        return std::unexpected(err.what());
+    }
+}
+
+auto trc::VulkanInstance::queryPhysicalDevices(std::optional<vk::SurfaceKHR> surface)
+    -> std::vector<PhysicalDevice>
+{
+    return findAllPhysicalDevices(*instance, surface);
 }

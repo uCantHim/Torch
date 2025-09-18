@@ -41,7 +41,7 @@ int main()
     trc::init();
     trc::VulkanInstance instance;
     trc::Surface surface(*instance);
-    trc::Device device(trc::findOptimalPhysicalDevice(*instance, surface.getVulkanSurface()));
+    trc::Device device(*trc::findOptimalPhysicalDevice(*instance, surface.getVulkanSurface()));
 
     constexpr size_t memory{ 2000000000 };  // 2 GB
 

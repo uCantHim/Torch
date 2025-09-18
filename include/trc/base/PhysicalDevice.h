@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,17 +21,21 @@ namespace trc
         numQueueTypes
     };
 
+    auto to_string(QueueType queueType) -> std::string;
+
     using QueueFamilyIndex = uint32_t;
 
     struct QueueFamily
     {
+        static constexpr size_t kNumQueueTypes = static_cast<size_t>(QueueType::numQueueTypes);
+
         QueueFamily() = default;
         QueueFamily(uint32_t _index, uint32_t _queueCount,
-                    std::array<bool, static_cast<size_t>(QueueType::numQueueTypes)> capabilities)
+                    std::array<bool, kNumQueueTypes> _capabilities)
             :
             index(_index),
             queueCount(_queueCount),
-            capabilities(capabilities.begin(), capabilities.end())
+            capabilities(_capabilities)
         {}
 
         QueueFamilyIndex index;
@@ -41,7 +46,7 @@ namespace trc
         }
 
     private:
-        std::vector<bool> capabilities;
+        std::array<bool, kNumQueueTypes> capabilities;
     };
 
     struct QueueFamilyCapabilities
@@ -54,11 +59,18 @@ namespace trc
         std::vector<QueueFamily> presentationCapable;
     };
 
-    extern auto getQueueFamilies(vk::PhysicalDevice, vk::SurfaceKHR surface)
+    /**
+     * @brief Find all queue families on a physical device.
+     */
+    auto getQueueFamilies(vk::PhysicalDevice,
+                          std::optional<vk::SurfaceKHR> surface = {})
         -> std::vector<QueueFamily>;
-    extern auto sortByCapabilities(const std::vector<QueueFamily>& families)
-        -> QueueFamilyCapabilities;
 
+    /**
+     * @brief Categorize a list of queue families by their capabilities.
+     */
+    auto sortByCapabilities(const std::vector<QueueFamily>& families)
+        -> QueueFamilyCapabilities;
 
     /**
      * @brief A physical vulkan-capable device
@@ -74,23 +86,17 @@ namespace trc
         };
 
         /**
-         * @brief Create optimal physical device
-         *
-         * Uses several restrictions to search for an optimal physical
-         * device in the system and uses that. Throws a std::runtime_error
-         * if no such device exists.
-         *
-         * @throw std::runtime_error if no appropriate device can be found.
-         */
-        PhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface);
-
-        /**
          * @brief Create a physical device object
          *
          * Requires a surface because it has to query for swapchain and
          * presentation support.
+         *
+         * @param surface Either std::nullopt to create a physical device
+         *                without surface/present support, or a valid handle.
          */
-        PhysicalDevice(vk::Instance instance, vk::PhysicalDevice device, vk::SurfaceKHR surface);
+        PhysicalDevice(vk::Instance instance,
+                       vk::PhysicalDevice device,
+                       std::optional<vk::SurfaceKHR> surface);
 
         PhysicalDevice(const PhysicalDevice&) = default;
         PhysicalDevice(PhysicalDevice&&) noexcept = default;
@@ -108,15 +114,12 @@ namespace trc
          * Some basic extensions that are required to be supported by the
          * specification will be enabled by default.
          *
-         * @param std::vector<const char*> deviceExtensions Extensions to
-         *        enable on the device.
-         * @param void* extraPhysicalDeviceFeatureChain Additional chained
-         *        device features to enable on the logical device. This
-         *        pointer will be set as pNext of the end of vkb's default
-         *        feature chain.
+         * @param deviceExtensions Additional device extensions to enable.
+         * @param extraPhysicalDeviceFeatureChain Additional device
+         *                                        features to enable.
          */
-        auto createLogicalDevice(std::vector<const char*> deviceExtensions = {},
-                                 void* extraPhysicalDeviceFeatureChain = nullptr) const
+        auto makeLogicalDevice(std::vector<const char*> deviceExtensions = {},
+                               void* extraPhysicalDeviceFeatureChain = nullptr) const
             -> vk::UniqueDevice;
 
         /**
@@ -186,34 +189,76 @@ namespace trc
         const std::string typeString;
     };
 
-    auto findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
+    /**
+     * List all available physical devices.
+     *
+     * @param surface Specify a surface to check for present capabilities
+     *                on queue families of detected devices. If none is
+     *                specified, queues will not be marked as 'presentation
+     *                capable', even though they might be. This is a technical
+     *                requirement imposed by Vulkan.
+     */
+    auto findAllPhysicalDevices(vk::Instance instance,
+                                std::optional<vk::SurfaceKHR> surface = {})
         -> std::vector<PhysicalDevice>;
 
-    auto findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
-        -> PhysicalDevice;
+    /**
+     * Try to find a physical device that supports all required extensions
+     * and queue capabilities.
+     *
+     * @param surface Specify a surface to check for present capabilities
+     *                on queue families of detected devices. If none is
+     *                specified, queues will not be marked as 'presentation
+     *                capable', even though they might be. This is a technical
+     *                requirement imposed by Vulkan.
+     *
+     * @return std::nullopt if no such device can be found.
+     */
+    auto findOptimalPhysicalDevice(vk::Instance instance,
+                                   std::optional<vk::SurfaceKHR> surface = {})
+        -> std::optional<PhysicalDevice>;
+
+    /**
+     * Try to find an optimal physical device that supports all required
+     * extensions and queue capabilities, but fall back to an inferior one
+     * if no such device can be found.
+     *
+     * @param surface Specify a surface to check for present capabilities
+     *                on queue families of detected devices. If none is
+     *                specified, queues will not be marked as 'presentation
+     *                capable', even though they might be. This is a technical
+     *                requirement imposed by Vulkan.
+     *
+     * @return std::nullopt if no physical device can be found at all.
+     */
+    auto findBestPhysicalDevice(vk::Instance instance,
+                                std::optional<vk::SurfaceKHR> surface = {})
+        -> std::optional<PhysicalDevice>;
 
     namespace device_helpers
     {
-        bool isOptimalDevice(const PhysicalDevice& device);
+        bool isOptimalDevice(const PhysicalDevice& device, bool requirePresentation);
 
         /**
          * Required queue families are:
          *  - graphics family
-         *  - presentation family
+         *  - compute family
          *  - transfer family
+         *  - presentation family if `requirePresentation == true`
          */
-        bool supportsRequiredQueueCapabilities(const PhysicalDevice& device);
-        bool supportsRequiredDeviceExtensions(const PhysicalDevice& device);
+        bool supportsRequiredQueueCapabilities(const PhysicalDevice& device,
+                                               bool requirePresentation);
+        bool supportsRequiredDeviceExtensions(const PhysicalDevice& device,
+                                              bool requirePresentation);
 
         /**
          * @brief Basic extensions that are always loaded.
          */
-        auto getRequiredDeviceExtensions() -> std::vector<const char*>;
+        auto getRequiredDeviceExtensions(bool requirePresentation) -> std::vector<const char*>;
     }
 } // namespace trc
 
 
 namespace std
 {
-    auto to_string(trc::QueueType queueType) -> std::string;
 }

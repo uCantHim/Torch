@@ -122,7 +122,7 @@ private:
 
     QueueManager queueManager;
 
-    // Stores one command pool for each queue
+    // Stores one command pool for each queue family
     std::vector<vk::UniqueCommandPool> commandPools;
 };
 

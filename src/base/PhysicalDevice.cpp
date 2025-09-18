@@ -1,5 +1,6 @@
 #include "trc/base/PhysicalDevice.h"
 
+#include <ranges>
 #include <set>
 
 #include "trc/base/Logging.h"
@@ -13,7 +14,7 @@
 
 auto trc::getQueueFamilies(
     vk::PhysicalDevice device,
-    vk::SurfaceKHR surface) -> std::vector<QueueFamily>
+    std::optional<vk::SurfaceKHR> surface) -> std::vector<QueueFamily>
 {
     std::vector<QueueFamily> result;
     auto queueFamilies = device.getQueueFamilyProperties();
@@ -21,7 +22,9 @@ auto trc::getQueueFamilies(
     for (uint32_t familyIndex = 0; const auto& family : queueFamilies)
     {
         const vk::QueueFlags queueCapabilities = family.queueFlags;
-        const bool presentCapability = device.getSurfaceSupportKHR(familyIndex, surface);
+        const bool presentCapability = surface
+            ? device.getSurfaceSupportKHR(familyIndex, *surface)
+            : false;
 
         result.push_back({
             familyIndex,
@@ -76,16 +79,10 @@ auto trc::sortByCapabilities(const std::vector<QueueFamily>& families)
 //        Physcial device       //
 // ---------------------------- //
 
-trc::PhysicalDevice::PhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
-    :
-    PhysicalDevice(findOptimalPhysicalDevice(instance, surface))
-{
-}
-
 trc::PhysicalDevice::PhysicalDevice(
     vk::Instance instance,
     vk::PhysicalDevice device,
-    vk::SurfaceKHR surface)
+    std::optional<vk::SurfaceKHR> surface)
     :
     instance(instance),
     physicalDevice(device),
@@ -133,7 +130,7 @@ auto trc::PhysicalDevice::operator*() const noexcept -> vk::PhysicalDevice
     return physicalDevice;
 }
 
-auto trc::PhysicalDevice::createLogicalDevice(
+auto trc::PhysicalDevice::makeLogicalDevice(
     std::vector<const char*> deviceExtensions,
     void* extraPhysicalDeviceFeatureChain
     ) const -> vk::UniqueDevice
@@ -159,7 +156,7 @@ auto trc::PhysicalDevice::createLogicalDevice(
     const auto validationLayers = getRequiredValidationLayers();
 
     // Extensions
-    const auto requiredDevExt = device_helpers::getRequiredDeviceExtensions();
+    const auto requiredDevExt = device_helpers::getRequiredDeviceExtensions(true);
     deviceExtensions.insert(deviceExtensions.end(), requiredDevExt.begin(), requiredDevExt.end());
 
     // Default device features
@@ -276,7 +273,7 @@ uint32_t trc::PhysicalDevice::findMemoryType(
 //        Helper functions      //
 // ---------------------------- //
 
-auto trc::findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
+auto trc::findAllPhysicalDevices(vk::Instance instance, std::optional<vk::SurfaceKHR> surface)
     -> std::vector<PhysicalDevice>
 {
     auto availableDevices = instance.enumeratePhysicalDevices();
@@ -294,8 +291,8 @@ auto trc::findAllPhysicalDevices(vk::Instance instance, vk::SurfaceKHR surface)
     return detectedDevices;
 }
 
-auto trc::findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
-    -> PhysicalDevice
+auto trc::findOptimalPhysicalDevice(vk::Instance instance, std::optional<vk::SurfaceKHR> surface)
+    -> std::optional<PhysicalDevice>
 {
     auto detectedDevices = findAllPhysicalDevices(instance, surface);
 
@@ -303,7 +300,7 @@ auto trc::findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surfac
     // The decision algorithm is not complex at all right now, but could be improved easily.
     for (const auto& device : detectedDevices)
     {
-        if (device_helpers::isOptimalDevice(device))
+        if (device_helpers::isOptimalDevice(device, surface.has_value()))
         {
             log::info << "Found optimal physical device: \"" << device.name << "\"!";
             return device;
@@ -311,80 +308,105 @@ auto trc::findOptimalPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surfac
         log::info << device.name << " is a suboptimal physical device.";
     }
 
-    log::error << "Fatal error: Unable to find a physical device that meets the criteria!";
-    throw std::runtime_error("Unable to find a physical device that meets the criteria.");
+    log::error << "Unable to find an 'optimal' physical device.";
+    return std::nullopt;
 }
 
-bool trc::device_helpers::isOptimalDevice(const PhysicalDevice& device)
+auto trc::findBestPhysicalDevice(vk::Instance instance, std::optional<vk::SurfaceKHR> surface)
+    -> std::optional<PhysicalDevice>
 {
-    return supportsRequiredDeviceExtensions(device)
-        && supportsRequiredQueueCapabilities(device);
+    auto allDevices = trc::findAllPhysicalDevices(instance, surface);
+    for (const auto& device : allDevices)
+    {
+        if (device_helpers::isOptimalDevice(device, surface.has_value()))
+        {
+            log::info << "Found optimal physical device: \"" << device.name << "\"!";
+            return device;
+        }
+        log::info << device.name << " is a suboptimal physical device.";
+    }
+
+    if (allDevices.empty()) {
+        return std::nullopt;
+    }
+    return allDevices.front();
 }
 
-bool trc::device_helpers::supportsRequiredQueueCapabilities(const PhysicalDevice& device)
+bool trc::device_helpers::isOptimalDevice(
+    const PhysicalDevice& device,
+    bool requirePresentation)
+{
+    return supportsRequiredDeviceExtensions(device, requirePresentation)
+        && supportsRequiredQueueCapabilities(device, requirePresentation);
+}
+
+bool trc::device_helpers::supportsRequiredQueueCapabilities(
+    const PhysicalDevice& device,
+    bool requirePresentation)
 {
     const auto& families = device.queueFamilyCapabilities;
 
     return !families.graphicsCapable.empty()
-        && !families.presentationCapable.empty()
         && !families.transferCapable.empty()
-        && !families.computeCapable.empty();
+        && !families.computeCapable.empty()
+        && (!requirePresentation || !families.presentationCapable.empty());
 }
 
-bool trc::device_helpers::supportsRequiredDeviceExtensions(const PhysicalDevice& device)
+bool trc::device_helpers::supportsRequiredDeviceExtensions(
+    const PhysicalDevice& device,
+    bool requirePresentation)
 {
-    const auto requiredDeviceExtensions = getRequiredDeviceExtensions();
-    std::set<std::string> requiredExtensions(
-        requiredDeviceExtensions.begin(),
-        requiredDeviceExtensions.end());
+    auto requiredExtensions = getRequiredDeviceExtensions(requirePresentation)
+                              | std::ranges::to<std::set<std::string>>();
 
     for (const auto& supportedExt : device.supportedExtensions) {
         requiredExtensions.erase(static_cast<const char*>(supportedExt.extensionName));
     }
-
     return requiredExtensions.empty();
 }
 
-auto trc::device_helpers::getRequiredDeviceExtensions() -> std::vector<const char*>
+auto trc::device_helpers::getRequiredDeviceExtensions(bool requirePresentation)
+    -> std::vector<const char*>
 {
-    return {
+    std::vector res{
         VK_KHR_MAINTENANCE_1_EXTENSION_NAME,  // Core in 1.1
         VK_KHR_MAINTENANCE_5_EXTENSION_NAME,  // Core in 1.4
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
     };
+    if (requirePresentation) {
+        res.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
+
+    return res;
 }
 
 
 
-namespace std
+auto trc::to_string(QueueType queueType) -> std::string
 {
-    auto to_string(trc::QueueType queueType) -> std::string
+    switch (queueType)
     {
-        switch (queueType)
-        {
-        case trc::QueueType::graphics:
-            return "Graphics";
-            break;
-        case trc::QueueType::compute:
-            return "Compute";
-            break;
-        case trc::QueueType::transfer:
-            return "Transfer";
-            break;
-        case trc::QueueType::presentation:
-            return "Presentation";
-            break;
-        case trc::QueueType::sparseMemory:
-            return "Sparse Memory";
-            break;
-        case trc::QueueType::protectedMemory:
-            return "Protected Memory";
-            break;
-        case trc::QueueType::numQueueTypes:
-            [[fallthrough]];
-        default:
-            throw std::logic_error("");
-        }
+    case QueueType::graphics:
+        return "Graphics";
+        break;
+    case QueueType::compute:
+        return "Compute";
+        break;
+    case QueueType::transfer:
+        return "Transfer";
+        break;
+    case QueueType::presentation:
+        return "Presentation";
+        break;
+    case QueueType::sparseMemory:
+        return "Sparse Memory";
+        break;
+    case QueueType::protectedMemory:
+        return "Protected Memory";
+        break;
+    case QueueType::numQueueTypes:
+        [[fallthrough]];
+    default:
+        throw std::logic_error("");
     }
 }

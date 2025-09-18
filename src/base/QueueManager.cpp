@@ -114,11 +114,11 @@ trc::QueueManager::QueueManager(const PhysicalDevice& physDevice, const Device& 
             if (primaryQueueFamilies[i] != UINT32_MAX)
             {
                 log::info << "   Chose queue family " << primaryQueueFamilies[i]
-                    << " as the primary " << std::to_string(QueueType(i)) << " queue family.";
+                    << " as the primary " << to_string(QueueType(i)) << " queue family.";
             }
             else
             {
-                log::info << "   No queue family found with " << std::to_string(QueueType(i))
+                log::info << "   No queue family found with " << to_string(QueueType(i))
                     << " support.";
             }
         }
@@ -148,7 +148,7 @@ auto trc::QueueManager::getPrimaryQueueFamily(QueueType type) const -> QueueFami
     {
         throw std::out_of_range(
             "[QueueManager::getPrimaryQueueFamily]: No queue supports the requested "
-            "capability" + std::to_string(static_cast<size_t>(type))
+            "capability" + to_string(type)
         );
     }
 
@@ -169,7 +169,7 @@ auto trc::QueueManager::getPrimaryQueue(QueueType type) const -> ExclusiveQueue
 
     if (!queue.has_value())
     {
-        throw QueueReservedError("All primary queues of type " + std::to_string(type)
+        throw QueueReservedError("All primary queues of type " + to_string(type)
                                  + " are reserved");
     }
     return queue.value();
@@ -180,7 +180,7 @@ auto trc::QueueManager::getPrimaryQueue(QueueType type, uint32_t queueIndex) con
     auto queue = getQueue(queuesPerFamily[getPrimaryQueueFamily(type)].at(queueIndex));
     if (!queue.has_value())
     {
-        throw QueueReservedError("Primary queue of type " + std::to_string(type)
+        throw QueueReservedError("Primary queue of type " + to_string(type)
                                  + " at index " + std::to_string(queueIndex) + " is reserved");
     }
     return queue.value();
@@ -220,7 +220,7 @@ auto trc::QueueManager::getAnyQueue(QueueType type) const
         queueIndex = getNextQueueIndex(type);
     } while (firstQueueIndex != queueIndex);
 
-    throw QueueReservedError("All queues of type " + std::to_string(type) + " are reserved");
+    throw QueueReservedError("All queues of type " + to_string(type) + " are reserved");
 }
 
 auto trc::QueueManager::getAnyQueue(QueueType type, uint32_t queueIndex) const
@@ -230,7 +230,7 @@ auto trc::QueueManager::getAnyQueue(QueueType type, uint32_t queueIndex) const
     auto queue = getQueue(index);
     if (!queue.has_value())
     {
-        throw QueueReservedError("Queue of type " + std::to_string(type)
+        throw QueueReservedError("Queue of type " + to_string(type)
                                  + " at index " + std::to_string(queueIndex) + " is reserved");
     }
     return { queue.value(), family };

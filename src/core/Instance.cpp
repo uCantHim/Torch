@@ -24,14 +24,21 @@ auto trc::makeDefaultTorchVulkanInstance(const std::string& appName, ui32 appVer
 
 
 
+auto findPhysicalDevice(vk::Instance instance)
+    -> trc::u_ptr<trc::PhysicalDevice>
+{
+    trc::Surface surface(instance, { .hidden=true });
+    if (auto dev = trc::findBestPhysicalDevice(instance, surface.getVulkanSurface())) {
+        return std::make_unique<trc::PhysicalDevice>(*dev);
+    }
+    throw std::runtime_error("Unable to create trc::Instance: No physical device found.");
+}
+
 trc::Instance::Instance(const InstanceCreateInfo& info)
     :
     optionalLocalInstance(makeDefaultTorchVulkanInstance()),
     instance(**optionalLocalInstance),
-    physicalDevice([instance=this->instance] {
-        Surface surface(instance, { .hidden=true });
-        return new PhysicalDevice(instance, surface.getVulkanSurface());
-    }())
+    physicalDevice(findPhysicalDevice(instance))
 {
     auto [dev, rayFeatures] = makeDevice(info, *physicalDevice);
     device = std::move(dev);
@@ -45,10 +52,7 @@ trc::Instance::Instance(const InstanceCreateInfo& info, vk::Instance _instance)
     // Create a new VkInstance if the _instance argument is VK_NULL_HANDLE
     optionalLocalInstance(nullptr),
     instance(_instance),
-    physicalDevice([instance=this->instance] {
-        Surface surface(instance, { .hidden=true });
-        return new PhysicalDevice(instance, surface.getVulkanSurface());
-    }())
+    physicalDevice(findPhysicalDevice(instance))
 {
     auto [dev, rayFeatures] = makeDevice(info, *physicalDevice);
     device = std::move(dev);

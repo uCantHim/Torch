@@ -9,7 +9,7 @@ trc::Device::Device(
     :
     Device(
         physDevice,
-        physDevice.createLogicalDevice(
+        physDevice.makeLogicalDevice(
             std::move(deviceExtensions),
             extraPhysicalDeviceFeatureChain
         )

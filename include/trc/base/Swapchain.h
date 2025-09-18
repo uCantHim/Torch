@@ -74,6 +74,11 @@ namespace trc
     class Surface
     {
     public:
+        /**
+         * @throw std::runtime_error if either window creation or surface
+         *        creation fails. This happens when VK_KHR_swapchain is not
+         *        supported or if GLFW initialization fails.
+         */
         Surface(vk::Instance instance, const SurfaceCreateInfo& info = {});
 
         auto getGlfwWindow() -> GLFWwindow*;

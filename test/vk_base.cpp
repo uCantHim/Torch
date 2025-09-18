@@ -24,7 +24,9 @@ int main()
             trc::Surface surface(*instance, {});
             log("Surface and window created");
 
-            phys = std::make_unique<trc::PhysicalDevice>(*instance, surface.getVulkanSurface());
+            phys = std::make_unique<trc::PhysicalDevice>(
+                trc::findOptimalPhysicalDevice(*instance, surface.getVulkanSurface()).value()
+            );
             log("Optimal physical device found");
         }
         catch (const std::exception& err) {

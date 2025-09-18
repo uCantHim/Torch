@@ -1,15 +1,21 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "trc/VulkanInclude.h"
+#include "Swapchain.h"
 #include "VulkanDebug.h"
+#include "trc/VulkanInclude.h"
 
 namespace trc
 {
+
+class PhysicalDevice;
+struct SurfaceCreateInfo;
+class Surface;
 
 struct VulkanInstanceCreateInfo
 {
@@ -63,6 +69,12 @@ public:
     auto inline get() const noexcept -> vk::Instance {
         return *instance;
     }
+
+    auto makeSurface(const SurfaceCreateInfo& createInfo = {})
+        -> std::expected<Surface, std::string>;
+
+    auto queryPhysicalDevices(std::optional<vk::SurfaceKHR> surface = {})
+        -> std::vector<PhysicalDevice>;
 
 private:
     vk::UniqueInstance instance;
