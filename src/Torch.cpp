@@ -7,7 +7,6 @@
 #include "trc/AssetPlugin.h"
 #include "trc/RasterPlugin.h"
 #include "trc/SwapchainPlugin.h"
-#include "trc/base/Logging.h"
 #include "trc/base/event/EventHandler.h"
 #include "trc/ray_tracing/RayTracingPlugin.h"
 #include "trc/util/FilesystemDataStorage.h"
@@ -25,15 +24,6 @@ void trc::init(const TorchInitInfo& info)
     if (info.startEventThread) {
         EventThread::start();
     }
-
-    // Init GLFW first
-    if (glfwInit() == GLFW_FALSE)
-    {
-        const char* errorMsg{ nullptr };
-        glfwGetError(&errorMsg);
-        throw std::runtime_error("Initialization of GLFW failed: " + std::string(errorMsg));
-    }
-    log::info << "GLFW initialized successfully";
 }
 
 void trc::pollEvents()
@@ -44,8 +34,6 @@ void trc::pollEvents()
 void trc::terminate()
 {
     EventThread::terminate();
-    glfwTerminate();
-
     isInitialized = false;
 }
 

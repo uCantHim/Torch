@@ -12,20 +12,25 @@
 
 
 
-std::vector<const char*> getRequiredInstanceExtensions()
+auto getRequiredInstanceExtensions(bool useGlfw) -> std::vector<const char*>
 {
     std::vector<const char*> extensions;
 
-    uint32_t requiredExtensionCount = 0;
-    auto requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
-    if (requiredExtensions == nullptr)
+    if (useGlfw)
     {
-        trc::log::warn << trc::log::here() << ": The current machine does not support the minimal"
-            " required set of Vulkan extensions. Surface creation will not be possible.";
-    }
-    else {
-        assert(requiredExtensionCount > 0);
-        extensions = { requiredExtensions, requiredExtensions + requiredExtensionCount };
+        uint32_t requiredExtensionCount = 0;
+        auto requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
+        if (requiredExtensions == nullptr)
+        {
+            trc::log::warn << trc::log::here()
+                << ": GLFW is enabled but no valid set of instance extensions was found that"
+                << " would allow window surface creation."
+                << " Vulkan can still be used for compute/off-screen tasks.";
+        }
+        else {
+            assert(requiredExtensionCount > 0);
+            extensions = { requiredExtensions, requiredExtensions + requiredExtensionCount };
+        }
     }
 
 #ifdef TRC_DEBUG
@@ -37,9 +42,38 @@ std::vector<const char*> getRequiredInstanceExtensions()
 
 trc::VulkanInstance::VulkanInstance(const VulkanInstanceCreateInfo& createInfo)
 {
+    // Init GLFW first
+    const int glfwStatus = glfwInit();
+    if (glfwStatus == GLFW_FALSE)
+    {
+        const char* errorMsg{ nullptr };
+        glfwGetError(&errorMsg);
+        log::info << "GLFW initialization failed: " << errorMsg;
+    }
+    else {
+        log::info << "GLFW initialized successfully";
+    }
+
+    // Count the number of created instances so that we know when to terminate GLFW.
+    // This counter is decremented in a unique_ptr deleter because that makes it
+    // safe (and easier) to move VulkanInstance.
+    ++numExistingInstances;
+    glfwAlivenessChecker = {
+        new std::byte{42},
+        [](std::byte* b) {
+            delete b;
+
+            // Check whether we can terminate GLFW.
+            --numExistingInstances;
+            if (numExistingInstances == 0) {
+                glfwTerminate();
+            }
+        }
+    };
+
     const auto layers = getRequiredValidationLayers();
     const auto extensions = trc::util::merged(
-        getRequiredInstanceExtensions(),
+        getRequiredInstanceExtensions(glfwStatus == GLFW_TRUE),
         createInfo.instanceExtensions
     );
 

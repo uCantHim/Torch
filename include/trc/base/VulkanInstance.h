@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <expected>
 #include <memory>
@@ -77,6 +78,9 @@ public:
         -> std::vector<PhysicalDevice>;
 
 private:
+    static inline std::atomic<uint32_t> numExistingInstances{ 0 };
+
+    std::unique_ptr<std::byte, std::function<void(std::byte*)>> glfwAlivenessChecker;
     vk::UniqueInstance instance;
     std::unique_ptr<VulkanDebug> debug;
 };
