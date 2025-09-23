@@ -36,6 +36,16 @@ namespace trc
     template<AssetBaseType Asset>
     using AssetParseResult = std::expected<AssetData<Asset>, AssetParseError>;
 
+    template<typename Asset>
+    concept SerializableAsset =
+        AssetBaseType<Asset>
+        && util::CompleteType<AssetSerializerTraits<Asset>>
+        && util::CompleteType<AssetData<Asset>>
+        && requires (AssetData<Asset> data, std::istream& is, std::ostream& os) {
+            { AssetSerializerTraits<Asset>{}.deserialize(is) } -> std::same_as<AssetParseResult<Asset>>;
+            { AssetSerializerTraits<Asset>{}.serialize(data, os) };
+        };
+
     template<AssetBaseType T>
     auto parseAsset(std::istream& is) -> AssetParseResult<T>
     {
@@ -60,7 +70,7 @@ namespace trc
         return AssetSerializerTraits<T>::deserialize(ss);
     }
 
-    template<AssetBaseType T>
+    template<SerializableAsset T>
     bool serializeAsset(const AssetData<T>& data,
                         std::ostream& os,
                         std::optional<AssetMetadata> meta = {})
@@ -85,16 +95,6 @@ namespace trc
 
         return file.SerializeToOstream(&os);
     }
-
-    template<typename Asset>
-    concept SerializableAsset =
-        AssetBaseType<Asset>
-        && util::CompleteType<AssetSerializerTraits<Asset>>
-        && util::CompleteType<AssetData<Asset>>
-        && requires (AssetData<Asset> data, std::istream& is, std::ostream& os) {
-            { AssetSerializerTraits<Asset>::deserialize(is) } -> std::same_as<AssetParseResult<Asset>>;
-            { AssetSerializerTraits<Asset>::serialize(data, os) };
-        };
 
     /**
      * A default implementation as a solution while I migrate the old interfaces
