@@ -86,7 +86,7 @@ public:
 
 VertexModule::VertexModule(bool animated)
 {
-    auto tbn = [this, animated]() -> code::Value {
+    const auto makeTbn = [animated](shader::ShaderModuleBuilder& builder) {
         auto zero = builder.makeConstant(0.0f);
 
         auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
@@ -105,12 +105,12 @@ VertexModule::VertexModule(bool animated)
         auto tbn = builder.makeConstructor<mat3>(tangent, bitangent, normal);
 
         return tbn;
-    }();
+    };
 
     fragmentInputProviders = {
         {
             MaterialCapability::kVertexWorldPos,
-            [this, animated]() -> code::Value
+            [animated](shader::ShaderModuleBuilder& builder) -> code::Value
             {
                 auto objPos = builder.makeCapabilityAccess(VertexCapability::kPosition);
                 auto modelMat = builder.makeCapabilityAccess(VertexCapability::kModelMatrix);
@@ -128,11 +128,16 @@ VertexModule::VertexModule(bool animated)
 
                 auto worldPos = builder.makeMul(modelMat, objPos4);
                 return builder.makeMemberAccess(worldPos, "xyz");
-            }()
+            }
         },
-        { MaterialCapability::kTangentToWorldSpaceMatrix, tbn },
-        { MaterialCapability::kVertexUV, builder.makeCapabilityAccess(VertexCapability::kUV) },
-        { MaterialCapability::kVertexNormal, tbn },
+        { MaterialCapability::kTangentToWorldSpaceMatrix, makeTbn },
+        {
+            MaterialCapability::kVertexUV,
+            [](shader::ShaderModuleBuilder& builder) {
+                return builder.makeCapabilityAccess(VertexCapability::kUV);
+            }
+        },
+        { MaterialCapability::kVertexNormal, makeTbn },
     };
 }
 
@@ -147,7 +152,7 @@ auto VertexModule::buildOutputs(
         auto loc = builder.makeOutputLocation(out.location, out.type);
 
         try {
-            auto inputNode = fragmentInputProviders.at(out.capability);
+            auto inputNode = fragmentInputProviders.at(out.capability)(builder);
             shaderOutput.makeStore(loc, inputNode);
         }
         catch (const std::out_of_range&)
@@ -162,7 +167,7 @@ auto VertexModule::buildOutputs(
     shaderOutput.makeStore(
         builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
-            { fragmentInputProviders.at(MaterialCapability::kVertexWorldPos) }
+            { fragmentInputProviders.at(MaterialCapability::kVertexWorldPos)(builder) }
         )
     );
 
@@ -171,6 +176,8 @@ auto VertexModule::buildOutputs(
 
 auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::ShaderModule
 {
+    shader::ShaderModuleBuilder builder;
+
     auto outputs = buildOutputs(builder, fragment.getRequiredShaderInputs());
     return ShaderModuleCompiler{}.compile(
         outputs,
@@ -298,6 +305,8 @@ auto VertexModule::makeVertexInputCapabilityConfig() -> shader::CapabilityConfig
     config.linkCapability(VertexCapability::kUV, vUV);
     config.linkCapability(VertexCapability::kBoneIndices, vBoneIndices);
     config.linkCapability(VertexCapability::kBoneWeights, vBoneWeights);
+
+    return config;
 }
 
 } // namespace trc

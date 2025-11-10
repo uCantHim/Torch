@@ -52,8 +52,9 @@ namespace trc
         static auto makeVertexInputCapabilityConfig() -> shader::CapabilityConfig;
 
     private:
-        shader::ShaderModuleBuilder builder;
-
-        std::unordered_map<shader::Capability, code::Value> fragmentInputProviders;
+        std::unordered_map<
+            shader::Capability,
+            std::function<code::Value(shader::ShaderModuleBuilder&)>
+        > fragmentInputProviders;
     };
 } // namespace trc
