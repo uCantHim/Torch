@@ -122,16 +122,16 @@ void run(const fs::path& clothFile, const fs::path& assetDir)
         trc::pollEvents();
         std::this_thread::sleep_for(kFileCheckInterval);
 
+        if (display.getWindow().isPressed(trc::Key::f5)) {
+            needsRedraw = true;
+        }
+
         if (fs::is_regular_file(clothFile)
             && fs::last_write_time(clothFile) >= lastCheckTime)
         {
             std::ifstream file{ clothFile };
             cloth::TorchImpl clothImpl;
-            auto res = cloth::compileShader(
-                file,
-                clothImpl.makeCapabilityConfig(),
-                clothImpl.makeOutputConfig()
-            );
+            auto res = cloth::compileShader(file, clothImpl);
 
             if (res) {
                 auto mat = trc::makeMaterial({

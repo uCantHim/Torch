@@ -8,6 +8,8 @@
 
 namespace cloth
 {
+    class BuiltinProvider;
+
     /**
      * Implements shader outputs in the form of semantical parameters for an
      * engine backend.
@@ -26,7 +28,8 @@ namespace cloth
     public:
         virtual ~BackendConfig() noexcept = default;
 
-        virtual auto makeCapabilityConfig() -> trc::shader::CapabilityConfig = 0;
+        virtual auto getBuiltins() -> BuiltinProvider& = 0;
+        virtual auto makeBuilder() -> std::unique_ptr<trc::shader::ShaderModuleBuilder> = 0;
         virtual auto makeOutputConfig() -> std::unique_ptr<ShaderOutputImpl> = 0;
     };
 } // namespace cloth

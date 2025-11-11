@@ -10,13 +10,15 @@ endif
 
 " ---------------------------- Cloth Extensions --------------------------------
 
-syn match clothVarDecl  display "\v\$([a-z]+:)?" nextgroup=clothVariable
-syn match clothVariable display "\v[0-9A-Za-z_:]+" contained
-syn match clothString   display "\v\".*\""
+syn match clothVarDecl   display "\v\$([a-z]+:)?" nextgroup=clothVariable
+syn match clothVariable  display "\v[0-9A-Za-z_:]+" contained
+syn match clothString    display "\v\".*\""
+syn match clothBlockDecl display "\v\@[A-Za-z_]+"
 
-hi def link clothVarDecl  Statement
-hi def link clothVariable Function
-hi def link clothString   String
+hi def link clothVarDecl   Statement
+hi def link clothVariable  Function
+hi def link clothString    String
+hi def link clothBlockDecl Structure
 
 " ------------------------------------------------------------------------------
 

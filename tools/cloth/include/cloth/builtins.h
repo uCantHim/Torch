@@ -82,7 +82,14 @@ namespace cloth
     class BuiltinProvider
     {
     public:
-        virtual ~BuiltinProvider() noexcept = default;
+        using BuiltinValueFactory = std::function<
+            trc::shader::code::Value(
+                const std::vector<Builtin::ArgValue>&,
+                trc::shader::ShaderModuleBuilder&
+            )
+        >;
+
+        explicit BuiltinProvider(std::vector<std::pair<Builtin, BuiltinValueFactory>> builtinDefinitions);
 
         /**
          * @brief Get the corresponding builtin to a variable identifier.
@@ -101,5 +108,11 @@ namespace cloth
     private:
         static bool validateArgs(const Builtin& builtin,
                                  const std::vector<Builtin::ArgValue>& args);
+
+        std::unordered_map<std::string, Builtin> builtinDefinitions;
+        std::unordered_map<std::string, BuiltinValueFactory> builtinFactories;
     };
+
+    auto makeVertexBuiltinProvider() -> BuiltinProvider;
+    auto makeFragmentBuiltinProvider() -> BuiltinProvider;
 } // namespace cloth

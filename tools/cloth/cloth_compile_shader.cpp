@@ -19,7 +19,7 @@ auto compileToMaterial(std::istream& is) -> std::expected<trc::MaterialData, clo
     cloth::TorchImpl impl;
 
     trc::Timer timer;
-    auto res = cloth::compileShader(is, impl.makeCapabilityConfig(), impl.makeOutputConfig());
+    auto res = cloth::compileShader(is, impl);
     std::cout << "Cloth shader processed in " << timer.reset() << "ms\n";
 
     if (res) {

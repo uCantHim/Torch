@@ -2,7 +2,9 @@
 
 #include <any>
 #include <expected>
+#include <generator>
 #include <iosfwd>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -11,6 +13,11 @@
 #include <trc/Types.h>
 
 #include "full_id.h"
+#include "parse_utils.h"
+
+namespace vk {
+    enum class ShaderStageFlagBits : unsigned int;
+}
 
 namespace cloth::parser
 {
@@ -122,4 +129,60 @@ namespace cloth::parser
 
     auto parseDocument(std::istream& is) -> std::expected<Result, IncompleteResult>;
     auto parseDocument(std::vector<std::string> lines) -> std::expected<Result, IncompleteResult>;
-} // namespace cloth
+
+    enum class ShaderStage
+    {
+        eVertex,
+        eGeometry,
+        eFragment,
+    };
+
+    auto to_string(ShaderStage stage) -> std::string_view;
+    auto toVulkanEnum(const cloth::parser::ShaderStage stage) -> vk::ShaderStageFlagBits;
+    auto fromVulkanEnum(const vk::ShaderStageFlagBits& stage) -> ShaderStage;
+
+    struct MultiDocumentResult
+    {
+        std::vector<std::string> originalLines;
+
+        // Code shared among all shader stages. This is code that does not
+        // reside in any block.
+        //
+        // Note: This is extremely WIP. The shared code is currently collected
+        // correctly, but not inserted anywhere because it causes too many
+        // problems with line numbering, variable declaration code placement,
+        // different implementations/availability of builtins in different
+        // shader stages, ...
+        std::vector<std::string> sharedCode;
+
+        // Shader stages that compiled successfully.
+        std::unordered_map<ShaderStage, Result> shaderStages;
+
+        // Shader stages that did not compile successfully.
+        std::unordered_map<ShaderStage, IncompleteResult> incompleteShaderStages;
+
+        // Locations of shader module blocks in the original document, excluding
+        // the block declarations.
+        //
+        // Only contains a shader stage if the entire block declaration was
+        // parsed successfully.
+        std::unordered_map<ShaderStage, util::BlockLocation> shaderStageLocations;
+
+        // Only errors regarding parsing of block declarations.
+        std::vector<Error> errors;
+
+        /**
+         * Iterate over all parse error, meaning global document-level errors
+         * and shader-block internal errors.
+         */
+        auto allErrors() const -> std::generator<const Error&>
+        {
+            co_yield std::ranges::elements_of(errors);
+            for (auto& [_, result] : incompleteShaderStages) {
+                co_yield std::ranges::elements_of(result.errors);
+            }
+        }
+    };
+
+    auto parseMultiDocument(const std::vector<std::string>& lines) -> MultiDocumentResult;
+} // namespace cloth::parser

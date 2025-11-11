@@ -26,7 +26,7 @@ public:
         backend(_backend),
         lines(toLines(text))
     {
-        cloth::BuiltinProvider provider;
+        auto& provider = backend->getBuiltins();
         builtins = std::ranges::to<std::vector>(provider.getAllDefinitions());
         std::ranges::sort(builtins, [](auto& a, auto& b){ return a.fullId < b.fullId; });
     }
@@ -250,11 +250,9 @@ public:
         }
 
         // Compile document to shader module
-        auto caps = backend->makeCapabilityConfig();
         auto compileResult = cloth::compileShader(
             parsed ? *parsed : parsed.error().partialResult,
-            caps,
-            backend->makeOutputConfig()
+            *backend
         );
 
         if (!compileResult) {

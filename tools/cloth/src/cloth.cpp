@@ -8,10 +8,10 @@
 
 #include <shader_tools/ShaderDocument.h>
 #include <trc/base/Logging.h>
-#include <trc/material/shader/DefaultResourceResolver.h>
 #include <trc/material/shader/ShaderCodeCompiler.h>
 #include <trc/material/shader/ShaderModuleCompiler.h>
 #include <trc/material/shader/ShaderResourceInterface.h>
+#include <trc/material/ShaderStageInputLinker.h>
 #include <trc/util/TorchDirectories.h>
 #include <trc_util/StringManip.h>
 #include <trc_util/algorithm/VectorTransform.h>
@@ -147,74 +147,52 @@ auto compileBuiltins(
     };
 }
 
-auto compileShader(
-    std::istream& is,
-    const trc::shader::CapabilityConfig& caps,
-    std::unique_ptr<ShaderOutputImpl> outputConfig)
-    -> std::expected<CompileResult, CompileError>
+struct PartialResult
 {
-    // Return both parse- and compile errors
-    std::vector<cloth::parser::Error> errors;
+    std::vector<std::string> clothLines;
+    trc::shader::ShaderModuleBuilder builder;
+    trc::shader::ShaderOutputInterface outputs;
+    trc::shader::ShaderValueCompiler valueCompiler;
+};
 
-    // Parse document
-    auto parseResult = parser::parseDocument(is);
-    if (!parseResult) {
-        errors = std::move(parseResult.error().errors);
-    }
-
-    // Compile document to shader module
-    auto parsed = parseResult ? *parseResult : parseResult.error().partialResult;
-    auto compileResult = compileShader(parsed, caps, std::move(outputConfig));
-    if (!compileResult)
-    {
-        return std::unexpected(CompileError{
-            .errors=trc::util::merged(compileResult.error().errors, errors),
-            .initialDocumentLines=std::move(parsed.lines),
-        });
-    }
-    if (!parseResult)
-    {
-        return std::unexpected(CompileError{
-            .errors=std::move(errors),
-            .initialDocumentLines=std::move(parsed.lines),
-        });
-    }
-
-    return compileResult.value();
-}
-
-auto compileShader(const parser::Result& parseResult,
-                   const trc::shader::CapabilityConfig& caps,
-                   std::unique_ptr<ShaderOutputImpl> outputConfig)
-    -> std::expected<CompileResult, CompileError>
+auto compilePartial(const parser::Result& parseResult, BackendConfig& impl)
+    -> std::expected<PartialResult, CompileError>
 {
-    assert(outputConfig);
-
     Document doc{ parseResult };
-    trc::shader::ShaderModuleBuilder moduleBuilder;
+    trc::shader::ShaderModuleBuilder moduleBuilder{ *impl.makeBuilder() };
 
     // Generate values for Cloth built-ins.
-    BuiltinProvider clothImpl;
-    auto builtinCompileResult = compileBuiltins(doc, clothImpl, moduleBuilder);
+    auto builtinCompileResult = compileBuiltins(doc, impl.getBuiltins(), moduleBuilder);
     if (!builtinCompileResult) {
         return std::unexpected(builtinCompileResult.error());
     }
     auto& [outputVariables, varImpls] = *builtinCompileResult;
 
-    // Generate and insert code into document
-    trc::shader::ShaderResourceInterfaceBuilder resources{ caps, moduleBuilder };
-    trc::shader::CapabilityConfigResourceResolver resolver{ resources };
-    trc::shader::ShaderValueCompiler valueCompiler{ resolver, false };
+    // Generate code from the values of cloth built-ins and set document
+    // variables.
+    trc::shader::ShaderValueCompiler valueCompiler{ false };
 
     std::unordered_map<parser::Location, std::string> shaderId;
     std::vector<std::pair<parser::Location, std::string>> declCode;
     for (const auto& [var, value] : varImpls)
     {
-        // Generate code for the variable's value.
-        auto [id, decl] = valueCompiler.compile(value);
-        doc.set(*var, id);
-        shaderId.try_emplace(var->location, std::move(id));
-        declCode.emplace_back(var->location, std::move(decl));
+        try {
+            // Generate code for the variable's value.
+            auto [id, decl] = valueCompiler.compile(value);
+            doc.set(*var, id);
+            shaderId.try_emplace(var->location, std::move(id));
+            declCode.emplace_back(var->location, std::move(decl));
+        }
+        catch (const std::exception& err) {
+            return std::unexpected(CompileError{
+                .errors{ parser::Error{
+                    var->location,
+                    std::format("Unable to generate code for variable \"{}\": {}",
+                                var->id.id, err.what())
+                } },
+                .initialDocumentLines=parseResult.lines,
+            });
+        }
     }
 
     // Create document version with all variables set.
@@ -248,91 +226,231 @@ auto compileShader(const parser::Result& parseResult,
     }
 
     // Generate output parameter implementations
+    auto outputConfig = impl.makeOutputConfig();
     for (const auto& var : outputVariables)
     {
         auto id = moduleBuilder.makeExternalIdentifier(shaderId.at(var->location));
         outputConfig->setParameter(var->id.name, id);
     }
-    auto outputInterface = outputConfig->buildShaderOutputs(moduleBuilder);
+    auto shaderOutputs = outputConfig->buildShaderOutputs(moduleBuilder);
+
+    // Create result
+    return PartialResult{
+        .clothLines = std::move(lines),
+        .builder = std::move(moduleBuilder),
+        .outputs = std::move(shaderOutputs),
+        .valueCompiler = std::move(valueCompiler),
+    };
+}
+
+auto generateCode(PartialResult& partial) -> std::string
+{
+    auto& moduleBuilder = partial.builder;
+    auto& shaderOutputs = partial.outputs;
+    auto& valueCompiler = partial.valueCompiler;
+    auto& clothLines = partial.clothLines;
 
     // Create output statements
     trc::shader::code::Block block = std::make_shared<trc::shader::code::BlockT>();
     moduleBuilder.startBlock(block);
-    outputInterface.buildStatements(moduleBuilder);
+    shaderOutputs.buildStatements(moduleBuilder);
     moduleBuilder.endBlock();
     auto outputStatements = trc::shader::ShaderBlockCompiler{ valueCompiler }.compile(block);
 
     // Generate shader module code
     spirv::FileIncluder fileIncluder{ {trc::util::getInternalShaderStorageDirectory()} };
-    auto typeDecls = moduleBuilder.compileTypeDecls();
-    auto functionDecls = moduleBuilder.compileFunctionDecls(resolver);
-    auto includedCode = moduleBuilder.compileIncludedCode(fileIncluder, resolver);
-    auto shaderResources = resources.compile();
 
     std::stringstream code;
     code << moduleBuilder.compileSettings();
-    code << typeDecls;
-    code << shaderResources.getGlslCode();
+    code << moduleBuilder.compileTypeDecls();
+    code << moduleBuilder.compileInputResources();
     code << moduleBuilder.compileOutputLocations();
-    code << includedCode;
-    code << functionDecls;
+    code << moduleBuilder.compileIncludedCode(fileIncluder);
+    code << moduleBuilder.compileFunctionDecls();
 
     // Insert output statements at the end of main
-    if (const auto main = util::findMain(lines))
+    if (const auto main = util::findMain(clothLines))
     {
-        lines[main->bodyEnd.line].insert(main->bodyEnd.pos, outputStatements);
-        lines[main->bodyEnd.line].insert(main->bodyEnd.pos, "\n// Cloth-generated output statements:\n");
+        clothLines[main->bodyEnd.line].insert(main->bodyEnd.pos, outputStatements);
+        clothLines[main->bodyEnd.line].insert(main->bodyEnd.pos,
+                                         "\n// Cloth-generated output statements:\n");
     }
     else {
-        lines.emplace_back("\n// Cloth-generated main function:");
-        lines.emplace_back("void main() {");
-        lines.emplace_back(outputStatements);
-        lines.emplace_back("}");
+        clothLines.insert(clothLines.begin(), "\n// Cloth-generated main function:");
+        clothLines.insert(clothLines.begin(), "void main() {");
+        clothLines.insert(clothLines.end(), outputStatements);
+        clothLines.insert(clothLines.end(), "}");
     }
 
-    // Append original Cloth shader code (modified)
-    code << std::ranges::to<std::string>(std::views::join_with(lines, '\n'));
+    code << std::ranges::to<std::string>(std::views::join_with(clothLines, '\n'));
 
     // Debug:
-    // std::cout << "\nFinal shader code:\n" << code.str() << "\n";
+    //std::cout << "\nFinal shader code:\n" << code.str() << "\n";
 
-    /*
+    /**
      * Note: Because we only output a single shader module (not a full shader
      * program), the final code generated here is likely to contain unset
      * variables, such as descriptor index placeholders. These will be set
      * during shader program linking.
      */
-    return CompileResult{
-        .shaderModule{ shader_edit::ShaderDocument{ code.str() }, std::move(shaderResources) },
-    };
+    return code.str();
+}
+
+auto compileShader(std::istream& is, BackendConfig& impl)
+    -> std::expected<CompileResult, CompileError>
+{
+    // Return both parse- and compile errors
+    std::vector<cloth::parser::Error> errors;
+
+    // Parse document
+    auto parseResult = parser::parseDocument(is);
+    if (!parseResult) {
+        errors = std::move(parseResult.error().errors);
+    }
+
+    // Compile document to shader module
+    auto parsed = parseResult ? *parseResult : parseResult.error().partialResult;
+    auto compileResult = compileShader(parsed, impl);
+    if (!compileResult)
+    {
+        return std::unexpected(CompileError{
+            .errors=trc::util::merged(compileResult.error().errors, errors),
+            .initialDocumentLines=std::move(parsed.lines),
+        });
+    }
+    if (!parseResult)
+    {
+        return std::unexpected(CompileError{
+            .errors=std::move(errors),
+            .initialDocumentLines=std::move(parsed.lines),
+        });
+    }
+
+    return compileResult.value();
+}
+
+auto compileShader(const parser::Result& parseResult, BackendConfig& impl)
+    -> std::expected<CompileResult, CompileError>
+{
+    return compilePartial(parseResult, impl)
+        .transform([](PartialResult res){
+            return CompileResult{
+                .shaderModule = trc::shader::ShaderModule{
+                    shader_edit::ShaderDocument{ generateCode(res) },
+                    res.builder.getResourceInterface()
+                },
+            };
+        });
 }
 
 auto printErrors(const cloth::CompileError& doc, std::optional<std::string> filePath)
     -> std::string
 {
-    auto indent = [](size_t n, char c = ' ') { return std::string(n, c); };
+    return "Compile error.\n"
+           + util::formatErrors(doc.errors, doc.initialDocumentLines, filePath);
+}
 
-    std::stringstream ss;
-    ss << "Compile error.\n";
-    for (const auto& err : doc.errors)
+auto compileMultiShader(
+    std::istream& is,
+    const std::unordered_map<parser::ShaderStage, std::shared_ptr<BackendConfig>>& impl
+    ) -> MultiCompileResult
+{
+    const auto lines = trc::util::readLines(is);
+    return compileMultiShader(parser::parseMultiDocument(lines), impl);
+}
+
+auto compileMultiShader(
+    const parser::MultiDocumentResult& parsedDocument,
+    const std::unordered_map<parser::ShaderStage, std::shared_ptr<BackendConfig>>& impl
+    ) -> MultiCompileResult
+{
+    // Get the location of a block's declaration header.
+    auto getBlockDeclLocation = [&](parser::ShaderStage stage) {
+        auto loc = parsedDocument.shaderStageLocations.at(stage);
+        return parser::Location{
+            (parser::ui32)loc.declBegin.line,
+            loc.declBegin.pos,
+            parsedDocument.originalLines[loc.declBegin.line].size()
+        };
+    };
+
+    MultiCompileResult result;
+    result.errors.append_range(parsedDocument.allErrors());
+
+    std::vector<std::pair<parser::ShaderStage, PartialResult>> partialStages;
+    for (const auto& [stage, parseResult] : parsedDocument.shaderStages)
     {
-        const auto& lines = doc.initialDocumentLines;
-        const auto loc = err.location;
-
-        // Error message
-        if (filePath) {
-            ss << *filePath << ":";
+        assert(parsedDocument.shaderStageLocations.contains(stage));
+        if (!impl.contains(stage)) {
+            result.errors.emplace_back(parser::Error{
+                .location = getBlockDeclLocation(stage),
+                .message  = "The Cloth backend does not implement this stage."
+            });
         }
-        ss << loc.line << ":" << loc.firstChar << ": error: " << err.message << "\n";
-        // Code line
-        ss << "  " << loc.line << " | " << lines.at(loc.line) << "\n";
-        // Positional indicator line
-        ss << "  " << indent(std::to_string(loc.line).size())
-                  << " | " << indent(loc.firstChar)
-                  << "^" << indent(loc.endChar - loc.firstChar - 1, '~') << "\n";
+
+        auto partial = compilePartial(parseResult, *impl.at(stage));
+        if (partial) {
+            partialStages.emplace_back(stage, std::move(*partial));
+        }
+        else {
+            // Fix error locations
+            const auto& loc = parsedDocument.shaderStageLocations.at(stage);
+            for (auto& err : partial.error().errors) {
+                err.location.line += loc.bodyBegin.line;
+            }
+
+            result.errors.append_range(partial.error().errors);
+        }
     }
 
-    return ss.str();
+    // Link shader stage inputs/outputs
+    auto stageLinkInfo = partialStages
+        | std::views::transform([](auto& pair) {
+            auto& partial = pair.second;
+            return std::make_pair(
+                parser::toVulkanEnum(pair.first),
+                trc::ModuleLinkInfo{ .builder=&partial.builder, .outputs=&partial.outputs }
+            );
+        })
+        | std::ranges::to<std::unordered_map>();
+
+    auto linkResult = trc::linkShaderStageInputs(stageLinkInfo);
+    if (!linkResult)
+    {
+        for (const auto& [stage, inputs] : linkResult.error().unresolvedInputs)
+        {
+            auto loc = parsedDocument.shaderStageLocations.at(parser::fromVulkanEnum(stage));
+            parser::Location stageLoc{
+                (parser::ui32)loc.declBegin.line,
+                loc.declBegin.pos,
+                parsedDocument.originalLines[loc.declBegin.line].size()
+            };
+
+            for (const auto& input : inputs)
+            {
+                result.errors.emplace_back(parser::Error{
+                    stageLoc,
+                    std::format("Stage link error: Requested capability {}"
+                                " is not provided by any prior shader stage.",
+                                input.capability.getName()),
+                });
+            }
+        }
+    }
+
+    // Generate code for the finalized, linked modules
+    result.shaderStages = partialStages
+        | std::views::transform([](auto& pair) {
+            return std::make_pair(pair.first, CompileResult{
+                .shaderModule = trc::shader::ShaderModule{
+                    shader_edit::ShaderDocument{ generateCode(pair.second) },
+                    pair.second.builder.getResourceInterface()
+                },
+            });
+        })
+        | std::ranges::to<std::unordered_map>();
+
+    return result;
 }
 
 } // namespace cloth

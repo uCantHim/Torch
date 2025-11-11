@@ -3,14 +3,47 @@
 #include <cassert>
 #include <cctype>
 
+#include <sstream>
 #include <string_view>
 #include <tuple>
 #include <utility>
+
+#include "parser.h"
 
 
 
 namespace cloth::util
 {
+
+auto findClosingBrace(const std::vector<std::string>& lines,
+                      BlockLocation::Loc begin)
+    -> std::optional<BlockLocation::Loc>
+{
+    auto it = lines.begin() + begin.line;
+    size_t charPos = begin.pos;
+
+    size_t level = 0;
+    while (it != lines.end())
+    {
+        while (charPos != it->size())
+        {
+            switch (it->at(charPos))
+            {
+            case '{': ++level; break;
+            case '}':
+                if (level == 0) {
+                    return BlockLocation::Loc{ static_cast<size_t>(it - lines.begin()), charPos };
+                }
+                --level;
+            }
+            ++charPos;
+        }
+        ++it;
+        charPos = 0;
+    }
+
+    return std::nullopt;
+}
 
 auto findMain(const std::vector<std::string>& lines) -> std::optional<BlockLocation>
 {
@@ -63,26 +96,10 @@ auto findMain(const std::vector<std::string>& lines) -> std::optional<BlockLocat
     auto findClosingBrace = [&](LinesIter it, size_t charPos)
         -> std::optional<std::pair<LinesIter, size_t>>
     {
-        size_t level = 0;
-        while (it != lines.end())
-        {
-            while (charPos != it->size())
-            {
-                switch (it->at(charPos))
-                {
-                case '{': ++level; break;
-                case '}':
-                    if (level == 0) {
-                        return std::make_pair(it, charPos);
-                    }
-                    --level;
-                }
-                ++charPos;
-            }
-            ++it;
-            charPos = 0;
-        }
-        return std::nullopt;
+        return ::cloth::util::findClosingBrace(lines, { size_t(it - lines.begin()), charPos })
+            .transform([&](BlockLocation::Loc loc) {
+                return std::make_pair(lines.begin() + loc.line, loc.pos);
+            });
     };
 
     for (auto lineIt = lines.begin(); lineIt != lines.end(); ++lineIt)
@@ -140,6 +157,34 @@ auto findMain(const std::vector<std::string>& lines) -> std::optional<BlockLocat
     }
 
     return std::nullopt;
+}
+
+auto formatErrors(const std::vector<parser::Error>& errors,
+                  const std::vector<std::string> lines,
+                  std::optional<std::string> filePath)
+    -> std::string
+{
+    auto indent = [](size_t n, char c = ' ') { return std::string(n, c); };
+
+    std::stringstream ss;
+    for (const auto& err : errors)
+    {
+        const auto loc = err.location;
+
+        // Error message
+        if (filePath) {
+            ss << *filePath << ":";
+        }
+        ss << loc.line + 1 << ":" << loc.firstChar << ": Error: " << err.message << "\n";
+        // Code line
+        ss << "  " << loc.line + 1 << " | " << lines.at(loc.line) << "\n";
+        // Positional indicator line
+        ss << "  " << indent(std::to_string(loc.line).size())
+                  << " | " << indent(loc.firstChar)
+                  << "^" << indent(loc.endChar - loc.firstChar - 1, '~') << "\n";
+    }
+
+    return ss.str();
 }
 
 } // namespace cloth::util

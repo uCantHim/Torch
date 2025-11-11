@@ -9,6 +9,9 @@
 #include <string_view>
 
 #include <trc_util/StringManip.h>
+#include <trc/VulkanInclude.h>
+
+#include "parse_utils.h"
 
 
 
@@ -53,6 +56,11 @@ public:
     {
         assert(!eof());
         return str[curPos++];
+    }
+
+    bool peek(char c) const
+    {
+        return str.substr(pos()).starts_with(c);
     }
 
     bool peek(std::string_view pattern) const
@@ -362,6 +370,229 @@ auto parseDocument(std::vector<std::string> lines) -> std::expected<Result, Inco
     Parser parser;
     parser.parse(std::move(lines));
     return parser.makeResult();
+}
+
+auto to_string(ShaderStage stage) -> std::string_view
+{
+    switch (stage)
+    {
+    case ShaderStage::eVertex: return "Vertex";
+    case ShaderStage::eGeometry: return "Geometry";
+    case ShaderStage::eFragment: return "Fragment";
+    }
+
+    std::unreachable();
+}
+
+auto toVulkanEnum(const cloth::parser::ShaderStage stage) -> vk::ShaderStageFlagBits
+{
+    switch (stage)
+    {
+    case ShaderStage::eFragment:
+        return vk::ShaderStageFlagBits::eFragment;
+    case ShaderStage::eVertex:
+        return vk::ShaderStageFlagBits::eVertex;
+    case ShaderStage::eGeometry:
+        return vk::ShaderStageFlagBits::eGeometry;
+    }
+    std::unreachable();
+};
+
+auto fromVulkanEnum(const vk::ShaderStageFlagBits& stage) -> ShaderStage
+{
+    switch (stage) {
+    case vk::ShaderStageFlagBits::eFragment:
+        return ShaderStage::eFragment;
+    case vk::ShaderStageFlagBits::eVertex:
+        return ShaderStage::eVertex;
+    case vk::ShaderStageFlagBits::eGeometry:
+        return ShaderStage::eGeometry;
+    default:
+        throw std::invalid_argument(std::format("Shader stage {} is not valid in Cloth.",
+                                                vk::to_string(stage)));
+    }
+    std::unreachable();
+};
+
+/**
+ * @return The result only has the members `originalLines`, `sharedCode`,
+ *         `shaderStageLocations`, and `errors` populated.
+ */
+auto findBlocks(const std::vector<std::string>& lines) -> MultiDocumentResult
+{
+    constexpr auto kBlockNameDeclSymbol = '@';
+    constexpr auto kBlockOpeningSymbol = '{';
+    constexpr auto isIdCharacter = [](char c){ return std::isalpha(c) || c == '_'; };
+
+    constexpr auto idToShaderStage = [](std::string_view str) -> std::optional<ShaderStage> {
+        if (str == "vertex") {
+            return ShaderStage::eVertex;
+        }
+        if (str == "geometry") {
+            return ShaderStage::eGeometry;
+        }
+        if (str == "fragment") {
+            return ShaderStage::eFragment;
+        }
+        return std::nullopt;
+    };
+
+    MultiDocumentResult res;
+    res.originalLines = lines;
+
+    auto sharedCodeBeginLine = lines.begin();
+    for (auto lineIt = lines.begin(); lineIt != lines.end(); ++lineIt)
+    {
+        const auto& line = *lineIt;
+        const size_t i = lineIt - lines.begin();
+
+        // Find a shader block declaration (starts with '@')
+        auto pos = line.find(kBlockNameDeclSymbol);
+        if (pos == std::string::npos) {
+            continue;
+        }
+        if (pos != 0)
+        {
+            // Error: Expected block declaration to be at the start of a line.
+            res.errors.emplace_back(
+                Location{ ui32(i), pos, pos + 1 },
+                "Block declarations must be placed at the beginning of a line."
+            );
+            continue;
+        }
+
+        // Parse the shader block name
+        Lexer lexer{ std::string_view{ line.begin() + pos, line.end() } };
+        lexer.consume();  // Consume the initial '@' symbol
+        const auto blockName = lexer.consumeWhile(isIdCharacter);
+        if (blockName.empty())
+        {
+            // Error: Missing block name identifier.
+            res.errors.emplace_back(
+                Location{ ui32(i), pos, lexer.pos() + 1 },
+                "Expected an identifier."
+            );
+            continue;
+        }
+
+        // Validate the shader block name
+        const auto shaderStage = idToShaderStage(blockName);
+        if (!shaderStage)
+        {
+            // Error: Invalid block name.
+            res.errors.emplace_back(
+                Location{ ui32(i), pos, lexer.pos() },
+                std::format("\"{}\" is not a valid shader stage.", blockName)
+            );
+            continue;
+        }
+
+        // Find the opening brace '{'
+        lexer.skipWhitespace();
+        if (!lexer.peek(kBlockOpeningSymbol))
+        {
+            // Error: Expected '{'.
+            res.errors.emplace_back(
+                Location{ ui32(i), lexer.pos(), lexer.pos() + 1 },
+                "Expected '{'."
+            );
+            continue;
+        }
+        lexer.consume();
+
+        // Forbid putting code on the same line with the block decl
+        lexer.skipWhitespace();
+        if (lexer.pos() != line.size())
+        {
+            res.errors.emplace_back(
+                Location{ ui32(i), lexer.pos(), line.size() },
+                "Don't put code on the same line with a block declaration."
+            );
+            continue;
+        }
+
+        // Find the closing brace '}'
+        const auto close = util::findClosingBrace(lines, { i, lexer.pos() });
+        if (!close)
+        {
+            // Error: Expected closing '}'
+            res.errors.emplace_back(
+                Location{ ui32(lines.size() - 1), lines.back().size() - 1, lines.back().size() },
+                "Expected closing '}'."
+            );
+            continue;
+        }
+
+        // Forbid putting something in front of the closing brace.
+        if (close->pos != 0)
+        {
+            res.errors.emplace_back(
+                Location{ ui32(close->line), 0, close->pos },
+                "You shall put the block closing brace on a separate line."
+            );
+            continue;
+        }
+
+        // The block is complete - emit it.
+        const auto blockEnd = lines.begin() + close->line;
+        res.shaderStageLocations.try_emplace(
+            *shaderStage,
+            util::BlockLocation{
+                .declBegin{ i, pos },
+                .declEnd{ close->line, close->pos },
+                .bodyBegin{ i + 1, 0 },
+                .bodyEnd{ close->line - 1, lines[close->line - 1].size() },
+            }
+        );
+
+        // Store shared code (code outside of the block)
+        res.sharedCode.insert(res.sharedCode.end(), sharedCodeBeginLine, lineIt);
+        sharedCodeBeginLine = blockEnd + 1;
+
+        lineIt = blockEnd;  // Will be incremented by the loop
+    }
+
+    return res;
+}
+
+auto parseMultiDocument(const std::vector<std::string>& lines) -> MultiDocumentResult
+{
+    MultiDocumentResult res = findBlocks(lines);
+
+    // Parse blocks as standalone shader modules
+    for (const auto& [stage, blockLocation] : res.shaderStageLocations)
+    {
+        // TODO:
+        // Prepend shared code to each module individually.
+        // This is necessary because variables in the shared code may get
+        // resolved differently depending on the shader stage.
+        //
+        // This introduces many problems with line numbering and so forth...
+
+        std::vector<std::string> blockLines{
+            lines.begin() + blockLocation.bodyBegin.line,
+            lines.begin() + blockLocation.bodyEnd.line
+        };
+
+        auto block = parseDocument(blockLines);
+        if (block) {
+            res.shaderStages.try_emplace(stage, std::move(*block));
+        }
+        else {
+            res.incompleteShaderStages.try_emplace(stage, std::move(block.error()));
+        }
+    }
+
+    // Make error locations relative to the original document lines.
+    for (auto& [stage, errs] : res.incompleteShaderStages)
+    {
+        const auto& loc = res.shaderStageLocations.at(stage);
+        for (auto& err : errs.errors) {
+            err.location.line += loc.bodyBegin.line;
+        }
+    }
+
+    return res;
 }
 
 } // namespace cloth
