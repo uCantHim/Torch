@@ -42,14 +42,15 @@ auto ResourceStorage::getPipeline(Pipeline::ID id) -> Pipeline&
     try {
         return pipelines->get(id);
     }
-    catch (const std::exception&)
+    catch (const std::exception& err)
     {
         if (parent != nullptr) {
             return parent->getPipeline(id);
         }
-    }
 
-    throw std::out_of_range("");
+        throw std::out_of_range("Can't find pipeline in ResourceStorage: "
+                                + std::string{err.what()});
+    }
 }
 
 auto ResourceStorage::getDescriptor(DescriptorID id) const noexcept

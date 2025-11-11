@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <trc_util/Assert.h>
+
 #include "trc/core/DescriptorProvider.h"
 #include "trc/core/ResourceConfig.h"
 
@@ -33,6 +35,7 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
 {
     for (const auto& [index, provider] : staticDescriptorSets)
     {
+        assert(provider != nullptr);
         provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }
 }
@@ -55,10 +58,19 @@ void trc::PipelineLayout::bindStaticDescriptorSets(
         assert(provider != nullptr);
         provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }
+
     for (const auto& [index, id] : dynamicDescriptorSets)
     {
         auto provider = descStorage.getDescriptor(id);
-        assert(provider != nullptr);
+        if (provider == nullptr)
+        {
+            throw std::runtime_error(std::format(
+                "[In PipelineLayout::bindStaticDescriptorSets]"
+                " Unable to bind dynamic descriptor set (descriptor ID {}, set index {}):"
+                " This descriptor is not defined in the draw context's ResourceStorage.",
+                static_cast<ui32>(id), index
+            ));
+        }
         provider->bindDescriptorSet(cmdBuf, bindPoint, *layout, index);
     }
 }
@@ -73,8 +85,9 @@ void trc::PipelineLayout::bindDefaultPushConstantValues(vk::CommandBuffer cmdBuf
 
 void trc::PipelineLayout::addStaticDescriptorSet(
     ui32 descriptorIndex,
-    s_ptr<const DescriptorProviderInterface> provider) noexcept
+    s_ptr<const DescriptorProviderInterface> provider)
 {
+    assert_arg(provider != nullptr);
     staticDescriptorSets.emplace_back(descriptorIndex, provider);
 }
 

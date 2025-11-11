@@ -383,7 +383,7 @@ auto PipelineRegistry::PipelineFactory::create(
                     try {
                         return resourceConfig.getRenderPass(ref);
                     }
-                    catch (const Exception&) {
+                    catch (const std::exception&) {
                         throw std::runtime_error(
                             "[In PipelineFactory::create]: Failed to create a pipeline because its"
                             " render pass compatibility information was specified as a reference"

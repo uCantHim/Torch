@@ -83,9 +83,13 @@ namespace trc
          * This function defines a descriptor provider that will be used
          * to bind a descriptor set whenever a pipeline with this layout
          * is bound to a command buffer.
+         *
+         * @param provider May not be `nullptr`.
+         *
+         * @throw std::invalid_argument if `provider` is `nullptr`.
          */
         void addStaticDescriptorSet(ui32 descriptorIndex,
-                                    s_ptr<const DescriptorProviderInterface> provider) noexcept;
+                                    s_ptr<const DescriptorProviderInterface> provider);
 
         /**
          * @brief Define a static descriptor for the pipeline layout
