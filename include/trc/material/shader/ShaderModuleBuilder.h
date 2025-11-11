@@ -10,14 +10,14 @@
 
 #include "Capability.h"
 #include "ShaderCodeBuilder.h"
-#include "ShaderRuntimeConstant.h"
 #include "ShaderFunction.h"
+#include "ShaderResourceInterface.h"
+#include "ShaderRuntimeConstant.h"
 
 namespace trc::shader
 {
     namespace fs = std::filesystem;
 
-    class ResourceResolver;
     class CapabilityConfig;
 
     /**
@@ -36,7 +36,7 @@ namespace trc::shader
         ShaderModuleBuilder(ShaderModuleBuilder&&) noexcept = default;
         ~ShaderModuleBuilder() noexcept = default;
 
-        ShaderModuleBuilder() = default;
+        explicit ShaderModuleBuilder(s_ptr<const CapabilityConfig> caps);
 
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
@@ -138,12 +138,7 @@ namespace trc::shader
 
         auto getSettings() const -> const Settings&;
 
-        /**
-         * @brief Generate code that declares the module's outputs.
-         *
-         * Append this to the resource declaration code.
-         */
-        auto compileOutputLocations() const -> std::string;
+        auto getResourceInterface() const -> const ShaderResourceInterface&;
 
         /**
          * @brief Generate included code by reading included files.
@@ -151,8 +146,7 @@ namespace trc::shader
          * Search for included files, apply variable replacement to their
          * content if specified, and append their content in order.
          */
-        auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer,
-                                 ResourceResolver& resolver)
+        auto compileIncludedCode(shaderc::CompileOptions::IncluderInterface& includer)
             -> std::string;
 
         /**
@@ -162,12 +156,25 @@ namespace trc::shader
          */
         auto compileSettings() const -> std::string;
 
+        /**
+         * @brief Generate code that declares the module's input.
+         */
+        auto compileInputResources() const -> std::string;
+
+        /**
+         * @brief Generate code that declares the module's outputs.
+         *
+         * Append this to the resource declaration code.
+         */
+        auto compileOutputLocations() const -> std::string;
+
     private:
         template<std::derived_from<ShaderFunction> T>
             requires std::is_default_constructible_v<T>
         auto getOrMakeFunctionDef() -> Function;
         auto getOrMakeFunctionDef(ShaderFunction& func) -> Function;
 
+        s_ptr<const CapabilityConfig> capabilities;
         Settings shaderSettings;
 
         /** Maps [location -> { type, name }] */
@@ -177,6 +184,8 @@ namespace trc::shader
         std::vector<
             std::pair<fs::path, std::unordered_map<std::string, Value>>
         > includedFiles;
+
+        ShaderResourceInterfaceBuilder inputResourcesBuilder;
     };
 
 

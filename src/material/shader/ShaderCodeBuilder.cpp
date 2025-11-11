@@ -279,7 +279,7 @@ auto ShaderCodeBuilder::compileTypeDecls() const -> std::string
     return res;
 }
 
-auto ShaderCodeBuilder::compileFunctionDecls(ResourceResolver& resolver) const -> std::string
+auto ShaderCodeBuilder::compileFunctionDecls() const -> std::string
 {
     std::string forwardDecls;
     std::string res;
@@ -301,21 +301,20 @@ auto ShaderCodeBuilder::compileFunctionDecls(ResourceResolver& resolver) const -
         funcHead += ")";
 
         forwardDecls += funcHead + ";\n";
-        res += funcHead + "\n{\n" + compile(func->body, resolver) + "}\n";
+        res += funcHead + "\n{\n" + compile(func->body) + "}\n";
     }
 
     return forwardDecls + res;
 }
 
-auto ShaderCodeBuilder::compile(Value value, ResourceResolver& resolver)
-    -> std::pair<std::string, std::string>
+auto ShaderCodeBuilder::compile(Value value) -> std::pair<std::string, std::string>
 {
-    return ShaderValueCompiler{ resolver }.compile(std::move(value));
+    return ShaderValueCompiler{}.compile(std::move(value));
 }
 
-auto ShaderCodeBuilder::compile(Block block, ResourceResolver& resolver) -> std::string
+auto ShaderCodeBuilder::compile(Block block) -> std::string
 {
-    return ShaderBlockCompiler{ resolver }.compile(std::move(block));
+    return ShaderBlockCompiler{}.compile(std::move(block));
 }
 
 } // namespace trc::shader

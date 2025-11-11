@@ -51,10 +51,10 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
 
     constexpr auto kCapCurrentMat = "simplemat_param_obj";
 
-    shader::ShaderModuleBuilder builder;
-    auto capabilities = makeFragmentCapabilityConfig();
-
     // Declare the material data struct as a push constant
+    s_ptr capabilities = makeFragmentCapabilityConfig();
+    shader::ShaderModuleBuilder builder{ capabilities };
+
     auto pcStructType = builder.makeStructType(
         "MaterialParameters",
         {
@@ -67,11 +67,11 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
             { bool{},  "emissive" },
         }
     );
-    auto pc = capabilities.addResource(shader::CapabilityConfig::PushConstant{
+    auto pc = capabilities->addResource(shader::CapabilityConfig::PushConstant{
         pcStructType,
         DrawablePushConstIndex::eMaterialData,
     });
-    capabilities.linkCapability(kCapCurrentMat, pc);
+    capabilities->linkCapability(kCapCurrentMat, pc);
 
     auto mat = builder.makeCapabilityAccess(kCapCurrentMat);
     auto colorParam        = builder.makeMemberAccess(mat, "color");
@@ -125,7 +125,7 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
 
     const bool transparent = data.opacity < 1.0f;
     auto res = MaterialData{ MaterialBaseInfo{
-        frag.build(std::move(builder), transparent, capabilities),
+        frag.build(std::move(builder), transparent),
         transparent
     }};
 

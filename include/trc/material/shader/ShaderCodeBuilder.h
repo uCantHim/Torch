@@ -13,8 +13,6 @@
 
 namespace trc::shader
 {
-    class ResourceResolver;
-
     class ShaderCodeBuilder
     {
     public:
@@ -146,7 +144,7 @@ namespace trc::shader
         void annotateType(Value val, Type type);
 
         auto compileTypeDecls() const -> std::string;
-        auto compileFunctionDecls(ResourceResolver& resolver) const -> std::string;
+        auto compileFunctionDecls() const -> std::string;
 
         /**
          * @return pair [<identifier>, <code>] where <identifier> is a GLSL
@@ -157,10 +155,8 @@ namespace trc::shader
          *         <code> *must* precede any use of <identifier> in subsequent
          *         code.
          */
-        static auto compile(Value value, ResourceResolver& resolver)
-            -> std::pair<std::string, std::string>;
-        static auto compile(Block block, ResourceResolver& resolver)
-            -> std::string;
+        static auto compile(Value value) -> std::pair<std::string, std::string>;
+        static auto compile(Block block) -> std::string;
 
     protected:
         template<typename T>

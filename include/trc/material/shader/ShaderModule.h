@@ -42,9 +42,6 @@ namespace trc::shader
             -> ShaderModule;
 
     private:
-        // Hide this so it cannot be confused with the module's `getShaderCode`.
-        using ShaderResourceInterface::getGlslCode;
-
         shader_edit::ShaderDocument shaderCode;
     };
 } // namespace trc::shader

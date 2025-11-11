@@ -48,8 +48,8 @@ namespace trc
 
         auto build(const shader::ShaderModule& fragment) && -> shader::ShaderModule;
 
-        static auto makeCapabilityConfig() -> shader::CapabilityConfig;
-        static auto makeVertexInputCapabilityConfig() -> shader::CapabilityConfig;
+        static auto makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
+        static auto makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
 
     private:
         std::unordered_map<

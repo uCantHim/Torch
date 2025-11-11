@@ -14,11 +14,6 @@
 namespace trc::shader
 {
 
-auto ShaderResourceInterface::getGlslCode() const -> const std::string&
-{
-    return code;
-}
-
 auto ShaderResourceInterface::getRequiredShaderInputs() const
     -> const std::vector<ShaderInputInfo>&
 {
@@ -210,7 +205,8 @@ auto ShaderResourceInterfaceBuilder::DescriptorBindingFactory::make(
     const CapabilityConfig::DescriptorBinding& binding) -> std::string
 {
     const auto placeholder = makeDescriptorSetPlaceholder(binding.setName);
-    auto [_, success] = descriptorSetPlaceholders.try_emplace(binding.setName, placeholder);
+    auto [_, success] = resources->descriptorSetIndexPlaceholders.try_emplace(binding.setName,
+                                                                              placeholder);
     if (success) {
         generatedCode += "#define _" + placeholder + " $" + placeholder + "\n";
     }
@@ -244,12 +240,6 @@ auto ShaderResourceInterfaceBuilder::DescriptorBindingFactory::getCode() const -
     return generatedCode;
 }
 
-auto ShaderResourceInterfaceBuilder::DescriptorBindingFactory::getDescriptorSets() const
-    -> std::unordered_map<std::string, std::string>
-{
-    return descriptorSetPlaceholders;
-}
-
 auto ShaderResourceInterfaceBuilder::DescriptorBindingFactory::makeDescriptorSetPlaceholder(
     const std::string& set)
     -> std::string
@@ -269,16 +259,16 @@ auto ShaderResourceInterfaceBuilder::PushConstantFactory::make(
     const std::string name = "_push_constant_" + std::to_string(pc.userId);
     const std::string offsetPlaceholder = name + "_offset";
 
-    infos.try_emplace(
+    resources->pushConstantInfos.try_emplace(
         pc.userId,
         PushConstantInfo{
-            .offset=totalSize,
+            .offset=resources->pushConstantSize,
             .size=byteSize,
             .userId=pc.userId,
             .offsetPlaceholder=offsetPlaceholder
         }
     );
-    totalSize += byteSize;
+    resources->pushConstantSize += byteSize;
 
     code += std::format(
         "layout (offset=${}) {} {};\n",
@@ -304,35 +294,24 @@ auto ShaderResourceInterfaceBuilder::PushConstantFactory::getCode() const -> std
     return "";
 }
 
-auto ShaderResourceInterfaceBuilder::PushConstantFactory::getTotalSize() const -> ui32
-{
-    return totalSize;
-}
-
-auto ShaderResourceInterfaceBuilder::PushConstantFactory::getInfos() const
-    -> const std::unordered_map<ResourceID, PushConstantInfo>&
-{
-    return infos;
-}
-
 
 
 auto ShaderResourceInterfaceBuilder::ShaderInputFactory::make(
     Capability capability,
     const CapabilityConfig::ShaderInput& in) -> std::string
 {
-    // const ui32 shaderInputLocation = nextShaderInputLocation;
-    // nextShaderInputLocation += in.type.locations();
     const ui32 shaderInputLocation = in.location;
     const std::string name = "shaderStageInput_" + std::to_string(shaderInputLocation);
 
-    shaderInputs.push_back({
-        .location=shaderInputLocation,
-        .type=in.type,
-        .variableName=name,
-        .capability=capability,
-        .locationPlaceholder=name + "_LOCATION_PLACEHOLDER"
-    });
+    auto& inputDef = resources->requiredShaderInputs.emplace_back(
+        ShaderResourceInterface::ShaderInputInfo{
+            .location=shaderInputLocation,
+            .type=in.type,
+            .variableName=name,
+            .capability=capability,
+            .locationPlaceholder=name + "_LOCATION_PLACEHOLDER"
+        }
+    );
 
     // Make member code
     code += std::format(
@@ -344,11 +323,6 @@ auto ShaderResourceInterfaceBuilder::ShaderInputFactory::make(
     );
 
     return name;
-}
-auto ShaderResourceInterfaceBuilder::ShaderInputFactory::getInfos() const
-    -> const std::vector<ShaderResourceInterface::ShaderInputInfo>&
-{
-    return shaderInputs;
 }
 
 auto ShaderResourceInterfaceBuilder::ShaderInputFactory::getCode() const -> std::string
@@ -366,7 +340,7 @@ auto ShaderResourceInterfaceBuilder::RayPayloadFactory::make(
     std::string payloadIdentifier = "_ray_payload_" + std::to_string(nextNameIndex++);
     std::string locationPlaceholder = payloadIdentifier + "_LOCATION_PLACEHOLDER";
 
-    payloads.push_back({
+    resources->requiredPayloads.push_back({
         .type=pl.type,
         .capability=requestingCapability,
         .locationPlaceholder=locationPlaceholder
@@ -385,12 +359,6 @@ auto ShaderResourceInterfaceBuilder::RayPayloadFactory::make(
 auto ShaderResourceInterfaceBuilder::RayPayloadFactory::getCode() const -> const std::string&
 {
     return code;
-}
-
-auto ShaderResourceInterfaceBuilder::RayPayloadFactory::getPayloads() const
-    -> const std::vector<PayloadInfo>&
-{
-    return payloads;
 }
 
 
@@ -416,14 +384,21 @@ ShaderResourceInterfaceBuilder::ShaderResourceInterfaceBuilder(
     const CapabilityConfig& config,
     ShaderCodeBuilder& codeBuilder)
     :
-    config(config),
+    config(&config),
     codeBuilder(&codeBuilder),
+    resources(std::make_shared<ShaderResourceInterface>()),
     requiredExtensions(config.getGlobalShaderExtensions()),
     requiredIncludePaths(config.getGlobalShaderIncludes())
 {
 }
 
-auto ShaderResourceInterfaceBuilder::compile() const -> ShaderResourceInterface
+auto ShaderResourceInterfaceBuilder::getResourceInterface() const
+    -> s_ptr<const ShaderResourceInterface>
+{
+    return resources;
+}
+
+auto ShaderResourceInterfaceBuilder::compile() const -> std::string
 {
     /**
      * We sort these macro definitions to obtain a deterministic result. This is
@@ -473,40 +448,29 @@ auto ShaderResourceInterfaceBuilder::compile() const -> ShaderResourceInterface
     // Write hit attributes
     ss << hitAttributeFactory.getCode() << "\n";
 
-    // Create result value
-    ShaderResourceInterface result;
-    result.code = ss.str();
-    result.requiredShaderInputs = shaderInputFactory.getInfos();
-    result.requiredPayloads = rayPayloadFactory.getPayloads();
-    for (const auto& [specIdx, value] : specializationConstantValues)
-    {
-        result.specConstants.push_back(ShaderResourceInterface::SpecializationConstantInfo{
-            .value=value,
-            .specializationConstantIndex=specIdx
-        });
-    }
-    result.descriptorSetIndexPlaceholders = descriptorFactory.getDescriptorSets();
-    result.pushConstantSize = pushConstantFactory.getTotalSize();
-    result.pushConstantInfos = pushConstantFactory.getInfos();
-
-    return result;
+    return ss.str();
 }
 
 auto ShaderResourceInterfaceBuilder::queryCapability(Capability capability) -> code::Value
 {
-    for (auto id : config.getCapabilityResources(capability)) {
+    for (auto id : config->getCapabilityResources(capability)) {
         requireResource(capability, id);
     }
 
-    return config.accessCapability(capability);
+    return config->accessCapability(capability);
 }
 
 auto ShaderResourceInterfaceBuilder::makeSpecConstant(s_ptr<ShaderRuntimeConstant> value) -> code::Value
 {
-    auto [it, success] = specializationConstantValues.try_emplace(nextSpecConstantIndex++, value);
-    assert(success);
+    // Create resource
+    auto spec = resources->specConstants.emplace_back(
+        ShaderResourceInterface::SpecializationConstantInfo{
+            .value=value,
+            .specializationConstantIndex=nextSpecConstantIndex++,
+        }
+    );
 
-    const auto& [idx, _] = *it;
+    const ui32 idx = spec.specializationConstantIndex;
     const std::string specConstName = "kSpecConstant" + std::to_string(idx) + "_RuntimeValue";
     specializationConstants.emplace_back(idx, specConstName);
 
@@ -521,7 +485,7 @@ void ShaderResourceInterfaceBuilder::requireResource(
     Capability capability,
     CapabilityConfig::ResourceID resourceId)
 {
-    const auto& res = config.getResource(resourceId);
+    const auto& res = config->getResource(resourceId);
 
     // Only add a resource once
     if (resourceMacros.contains(&res)) {

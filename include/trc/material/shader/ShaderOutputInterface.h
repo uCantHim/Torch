@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "CodePrimitives.h"
+#include "ShaderCodeBuilder.h"
 
 namespace trc::shader
 {

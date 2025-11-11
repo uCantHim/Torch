@@ -22,7 +22,7 @@ namespace trc
      *                                Torch's material system for standard
      *                                drawable objects.
      */
-    auto makeFragmentCapabilityConfig() -> shader::CapabilityConfig;
+    auto makeFragmentCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
 
     /**
      * @brief Create a configuration that implements all capabilities that Torch
@@ -35,7 +35,7 @@ namespace trc
      *                                Torch's material system for standard
      *                                drawable objects.
      */
-    auto makeRayHitCapabilityConfig() -> shader::CapabilityConfig;
+    auto makeRayHitCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
 
     /**
      * @brief Define Torch's standard program link settings.

@@ -10,22 +10,26 @@ namespace trc::shader
 {
 
 ShaderProgramRuntime::ShaderProgramRuntime(const ShaderProgramData& program)
-    :
-    pc(std::make_shared<std::vector<PushConstant>>()),
-    descriptorSetIndices(std::make_shared<std::unordered_map<std::string, ui32>>())
 {
+    std::vector<PushConstant> _pc;
+    std::unordered_map<std::string, ui32> _descriptorSetIndices;
+
     for (auto [offset, size, stages, userId] : program.pushConstants)
     {
         constexpr PushConstant alloc{ .offset=kUserIdNotUsed, .stages={} };
-        pc->resize(std::max(size_t{userId + 1}, pc->size()), alloc);
+        _pc.resize(std::max(size_t{userId + 1}, _pc.size()), alloc);
 
-        pc->at(userId).offset = offset;
-        pc->at(userId).stages = stages;
+        _pc.at(userId).offset = offset;
+        _pc.at(userId).stages = stages;
     }
 
     for (const auto& [desc, index] : program.descriptorSets) {
-        descriptorSetIndices->try_emplace(desc, index);
+        _descriptorSetIndices.try_emplace(desc, index);
     }
+
+    this->pc = std::make_shared<std::vector<PushConstant>>(std::move(_pc));
+    this->descriptorSetIndices = std::make_shared<std::unordered_map<std::string, ui32>>(
+        std::move(_descriptorSetIndices));
 }
 
 auto ShaderProgramRuntime::clone() const -> u_ptr<ShaderProgramRuntime>

@@ -31,6 +31,13 @@ auto ShaderFunction::getType() const -> const FunctionType&
 
 
 
+ShaderModuleBuilder::ShaderModuleBuilder(s_ptr<const CapabilityConfig> caps)
+    :
+    capabilities(caps),
+    inputResourcesBuilder(*caps, *this)
+{
+}
+
 auto ShaderModuleBuilder::makeCall(ShaderFunction& func, std::vector<Value> args) -> Value
 {
     return ShaderCodeBuilder::makeCall(getOrMakeFunctionDef(func), std::move(args));
@@ -43,13 +50,13 @@ void ShaderModuleBuilder::makeCallStatement(ShaderFunction& func, std::vector<co
 
 auto ShaderModuleBuilder::makeCapabilityAccess(Capability capability) -> Value
 {
-    return makeValue(code::CapabilityAccess{ capability });
+    return inputResourcesBuilder.queryCapability(capability);
 }
 
 auto ShaderModuleBuilder::makeSpecializationConstant(s_ptr<ShaderRuntimeConstant> constant)
     -> Value
 {
-    return makeValue(code::RuntimeConstant{ constant });
+    return inputResourcesBuilder.makeSpecConstant(constant);
 }
 
 auto ShaderModuleBuilder::makeOutputLocation(ui32 location, BasicType type) -> Value
@@ -107,6 +114,16 @@ auto ShaderModuleBuilder::getSettings() const -> const Settings&
     return shaderSettings;
 }
 
+auto ShaderModuleBuilder::getResourceInterface() const -> const ShaderResourceInterface&
+{
+    return *inputResourcesBuilder.getResourceInterface();
+}
+
+auto ShaderModuleBuilder::compileInputResources() const -> std::string
+{
+    return inputResourcesBuilder.compile();
+}
+
 auto ShaderModuleBuilder::compileOutputLocations() const -> std::string
 {
     std::string res;
@@ -121,8 +138,7 @@ auto ShaderModuleBuilder::compileOutputLocations() const -> std::string
 }
 
 auto ShaderModuleBuilder::compileIncludedCode(
-    shaderc::CompileOptions::IncluderInterface& includer,
-    ResourceResolver& resolver)
+    shaderc::CompileOptions::IncluderInterface& includer)
     -> std::string
 {
     std::string result;
@@ -144,7 +160,7 @@ auto ShaderModuleBuilder::compileIncludedCode(
         shader_edit::ShaderDocument doc(file);
         for (const auto& [name, value] : vars)
         {
-            auto [id, code] = ShaderValueCompiler{ resolver, true }.compile(value);
+            auto [id, code] = ShaderValueCompiler{ true }.compile(value);
             doc.set(name, id);
         }
 

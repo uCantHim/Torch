@@ -72,7 +72,7 @@ void addTextureSampleRequirements(CapabilityConfig& config)
     config.linkCapability(MaterialCapability::kTextureSample, textureResource);
 }
 
-auto makeFragmentCapabilityConfig() -> CapabilityConfig
+auto makeFragmentCapabilityConfig() -> u_ptr<CapabilityConfig>
 {
     using ShaderInput = CapabilityConfig::ShaderInput;
     using DescriptorBinding = CapabilityConfig::DescriptorBinding;
@@ -158,14 +158,14 @@ auto makeFragmentCapabilityConfig() -> CapabilityConfig
     config.linkCapability(MaterialCapability::kTangentToWorldSpaceMatrix, vTbnMat);
     config.linkCapability(
         MaterialCapability::kVertexNormal,
-        code.makeArrayAccess(config.accessResource(vTbnMat), code.makeConstant(2)),
+        code.makeArrayAccess(config.accessCapability(MaterialCapability::kTangentToWorldSpaceMatrix), code.makeConstant(2)),
         { vTbnMat }
     );
 
-    return config;
+    return std::make_unique<CapabilityConfig>(std::move(config));
 }
 
-auto makeRayHitCapabilityConfig() -> CapabilityConfig
+auto makeRayHitCapabilityConfig() -> u_ptr<CapabilityConfig>
 {
     // ------------------------------------------------------------------------
     // Capabilities specific to the callable shader variant
@@ -293,7 +293,7 @@ auto makeRayHitCapabilityConfig() -> CapabilityConfig
         {}
     );
 
-    return config;
+    return std::make_unique<CapabilityConfig>(std::move(config));
 }
 
 auto makeProgramLinkerSettings() -> shader::ShaderProgramLinkSettings
@@ -305,7 +305,8 @@ auto makeProgramLinkerSettings() -> shader::ShaderProgramLinkSettings
             { RasterPlugin::SCENE_DESCRIPTOR,       2 },
             { RasterPlugin::G_BUFFER_DESCRIPTOR,    3 },
             { RasterPlugin::SHADOW_DESCRIPTOR,      4 },
-        }
+        },
+        .inputLocationMapping{},
     };
 }
 

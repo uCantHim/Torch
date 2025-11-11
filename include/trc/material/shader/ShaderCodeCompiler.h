@@ -10,16 +10,6 @@ namespace trc::shader
     class ShaderResourceInterfaceBuilder;
     class ShaderRuntimeConstant;
 
-    class ResourceResolver
-    {
-    public:
-        virtual ~ResourceResolver() noexcept = default;
-
-        virtual auto resolveCapabilityAccess(Capability cap) -> code::Value = 0;
-        virtual auto resolveRuntimeConstantAccess(s_ptr<ShaderRuntimeConstant> c)
-            -> code::Value = 0;
-    };
-
     /**
      * Use the same ShaderValueCompiler object to compile multiple values
      * if they are computed in the same scope.
@@ -30,31 +20,9 @@ namespace trc::shader
         using Value = ShaderCodeBuilder::Value;
 
         /**
-         * Construct a value compiler without a resource resolver. `compile`
-         * will throw `std::runtime_error` if it encounters either a
-         * `CapabilityAccess` or a `RuntimeConstant` value as it has no way to
-         * to generate code for them.
-         *
-         * This is useful for testing purposes or implementations of code
-         * builders that don't make use of capabilities.
+         * Construct a value compiler.
          */
         explicit ShaderValueCompiler(bool inlineAll = false);
-
-        /**
-         * Construct a value compiler with a resource resolver. It will be able
-         * to handle all types of values.
-         *
-         * Use the default implementation `CapabilityConfigResourceResolver` for
-         * a resolver that resolves resources based on a `ShaderCapabilityConfig`
-         * object. See `CapabilityConfigResourceResolver`'s documentation for
-         * more information.
-         */
-        explicit ShaderValueCompiler(ResourceResolver& resolver, bool inlineAll = false);
-
-        /**
-         * @brief Set a resource resolver.
-         */
-        void setResourceResolver(ResourceResolver& newResolver);
 
         /**
          * @return std::pair<std::string, std::string> [indentifier, declaration code]
@@ -69,8 +37,6 @@ namespace trc::shader
         auto operator()(const code::MemberAccess& v) -> std::string;
         auto operator()(const code::ArrayAccess& v) -> std::string;
         auto operator()(const code::Conditional& v) -> std::string;
-        auto operator()(const code::CapabilityAccess& v) -> std::string;
-        auto operator()(const code::RuntimeConstant& v) -> std::string;
 
     private:
         /** @return std::string Identifier name */
@@ -78,7 +44,6 @@ namespace trc::shader
         auto genIdentifier() -> std::string;
 
         const bool inlineAll{ false };
-        ResourceResolver* resolver{ nullptr };
 
         ui32 nextId{ 0 };
 
@@ -92,26 +57,13 @@ namespace trc::shader
         using Block = code::Block;
 
         /**
-         * Construct a block compiler without a resource resolver. `compile`
-         * will throw `std::runtime_error` if it encounters either a
-         * `CapabilityAccess` or a `RuntimeConstant` value as it has no way to
-         * to generate code for them.
-         *
-         * This is useful for testing purposes or implementations of code
-         * builders that don't make use of capabilities.
+         * Construct a block compiler.
          */
         ShaderBlockCompiler() = default;
 
         /**
-         * Construct a block compiler with a resource resolver.
-         */
-        explicit ShaderBlockCompiler(ResourceResolver& resolver);
-
-        /**
          * Seed an existing value compiler. Useful if one wants to ensure that
          * generated IDs are unique across multiple blocks.
-         *
-         * The block compiler will use the supplied value compiler's resolver.
          */
         explicit ShaderBlockCompiler(ShaderValueCompiler& compiler);
 

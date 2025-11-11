@@ -2,7 +2,6 @@
 
 #include <shader_tools/ShaderDocument.h>
 
-#include "CapabilityConfig.h"
 #include "ShaderModule.h"
 #include "ShaderModuleBuilder.h"
 #include "ShaderOutputInterface.h"
@@ -18,12 +17,11 @@ namespace trc::shader
          * Compile resource requirements, function definitions, and output value
          * declarations into a shader module.
          *
-         * Queries or creates a function "main" and appends output code
-         * (assignments, function calls, ...) to it's block.
+         * Queries or creates a function "main" and inserts output code
+         * (assignments, function calls, ...) into its block.
          */
         static auto compile(const ShaderOutputInterface& output,
-                            ShaderModuleBuilder builder,
-                            const CapabilityConfig& caps)
+                            ShaderModuleBuilder builder)
             -> ShaderModule;
     };
 } // namespace trc::shader

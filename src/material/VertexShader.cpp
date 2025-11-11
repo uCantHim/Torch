@@ -176,17 +176,13 @@ auto VertexModule::buildOutputs(
 
 auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::ShaderModule
 {
-    shader::ShaderModuleBuilder builder;
+    shader::ShaderModuleBuilder builder{ makeCapabilityConfig() };
 
     auto outputs = buildOutputs(builder, fragment.getRequiredShaderInputs());
-    return ShaderModuleCompiler{}.compile(
-        outputs,
-        std::move(builder),
-        makeCapabilityConfig()
-    );
+    return ShaderModuleCompiler{}.compile(outputs, std::move(builder));
 }
 
-auto VertexModule::makeCapabilityConfig() -> shader::CapabilityConfig
+auto VertexModule::makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
 {
     using shader::CapabilityConfig;
 
@@ -283,10 +279,10 @@ auto VertexModule::makeCapabilityConfig() -> shader::CapabilityConfig
         return config;
     }();
 
-    return config;
+    return std::make_unique<CapabilityConfig>(config);
 }
 
-auto VertexModule::makeVertexInputCapabilityConfig() -> shader::CapabilityConfig
+auto VertexModule::makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
 {
     using ShaderInput = shader::CapabilityConfig::ShaderInput;
 
@@ -306,7 +302,7 @@ auto VertexModule::makeVertexInputCapabilityConfig() -> shader::CapabilityConfig
     config.linkCapability(VertexCapability::kBoneIndices, vBoneIndices);
     config.linkCapability(VertexCapability::kBoneWeights, vBoneWeights);
 
-    return config;
+    return std::make_unique<shader::CapabilityConfig>(std::move(config));
 }
 
 } // namespace trc

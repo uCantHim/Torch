@@ -1,7 +1,5 @@
 #include "trc/material/shader/ShaderModuleCompiler.h"
 
-#include "trc/material/shader/DefaultResourceResolver.h"
-#include "trc/material/shader/ShaderCodeCompiler.h"
 #include "trc/util/TorchDirectories.h"
 
 
@@ -11,8 +9,7 @@ namespace trc::shader
 
 auto ShaderModuleCompiler::compile(
     const ShaderOutputInterface& outputs,
-    ShaderModuleBuilder builder,
-    const CapabilityConfig& caps)
+    ShaderModuleBuilder builder)
     -> ShaderModule
 {
     // Create and build the main function
@@ -28,13 +25,10 @@ auto ShaderModuleCompiler::compile(
             util::getInternalShaderStorageDirectory(),
         }
     };
-    ShaderResourceInterfaceBuilder resourceBuilder{ caps, builder };
-    CapabilityConfigResourceResolver resolver{ resourceBuilder };
 
-    const auto includedCode = builder.compileIncludedCode(includer, resolver);
+    const auto includedCode = builder.compileIncludedCode(includer);
     const auto typeDeclCode = builder.compileTypeDecls();
-    const auto functionDeclCode = builder.compileFunctionDecls(resolver); // Compiles all code.
-    const auto resources = resourceBuilder.compile();
+    const auto functionDeclCode = builder.compileFunctionDecls(); // Compiles all code.
 
     // Build the shader file
     std::stringstream ss;
@@ -46,7 +40,7 @@ auto ShaderModuleCompiler::compile(
     ss << typeDeclCode << "\n";
 
     // Write resources
-    ss << resources.getGlslCode() << "\n";
+    ss << builder.compileInputResources() << "\n";
     ss << builder.compileOutputLocations() << "\n";
 
     // Write additional includes
@@ -56,7 +50,7 @@ auto ShaderModuleCompiler::compile(
     // This also writes the main function.
     ss << functionDeclCode;
 
-    return { shader_edit::ShaderDocument{ ss.str() }, resources };
+    return { shader_edit::ShaderDocument{ ss.str() }, builder.getResourceInterface() };
 }
 
 } // namespace trc::shader

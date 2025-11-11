@@ -252,7 +252,7 @@ void MaterialRuntime::bind(vk::CommandBuffer cmdBuf, DeviceExecutionContext& ctx
 {
     auto& p = ctx.resources().getPipeline(pipeline);
     p.bind(cmdBuf, ctx.resources());
-    shader::ShaderProgramRuntime::uploadPushConstantDefaultValues(cmdBuf, *p.getLayout());
+    uploadPushConstantDefaultValues(cmdBuf, *p.getLayout());
 }
 
 auto MaterialRuntime::getPipeline() const -> Pipeline::ID

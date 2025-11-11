@@ -33,46 +33,54 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     AssetReference<Texture> normalMap(stonePath);
 
     // Build a material graph
-    trc::shader::ShaderModuleBuilder builder;
-
-    auto uvs = builder.makeCapabilityAccess(MaterialCapability::kVertexUV);
-    auto texColor = builder.makeCall<TextureSample>({
-        builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(tex)),
-        uvs
-    });
-
-    auto color = builder.makeCall<shader::Mix<4, float>>({
-        builder.makeConstant(vec4(1, 0, 0, 1)),
-        builder.makeConstant(vec4(0, 0, 1, 1)),
-        builder.makeExternalCall("length", { uvs }),
-    });
-    auto c = builder.makeConstant(0.5f);
-    auto mix = builder.makeCall<shader::Mix<4, float>>({ color, texColor, c });
-    mix = builder.makeConstructor<vec4>(
-        builder.makeMemberAccess(mix, "rgb"),
-        builder.makeConstant(0.3f)
-    );
-
-    auto sampledNormal = builder.makeMemberAccess(
-        builder.makeCall<TextureSample>({
-            builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(normalMap)),
+    auto buildShader = [tex, normalMap](shader::ShaderModuleBuilder& builder)
+    {
+        auto uvs = builder.makeCapabilityAccess(MaterialCapability::kVertexUV);
+        auto texColor = builder.makeCall<TextureSample>({
+            builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(tex)),
             uvs
-        }),
-        "rgb"
-    );
-    auto normal = builder.makeCall<TangentToWorldspace>({ sampledNormal });
+        });
 
-    using Param = FragmentModule::Parameter;
-    FragmentModule fragmentModule;
-    fragmentModule.setParameter(Param::eColor, mix);
-    fragmentModule.setParameter(Param::eNormal, normal);
-    fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
-    fragmentModule.setParameter(Param::eMetallicness, builder.makeConstant(0.0f));
-    fragmentModule.setParameter(Param::eRoughness, builder.makeConstant(0.4f));
+        auto color = builder.makeCall<shader::Mix<4, float>>({
+            builder.makeConstant(vec4(1, 0, 0, 1)),
+            builder.makeConstant(vec4(0, 0, 1, 1)),
+            builder.makeExternalCall("length", { uvs }),
+        });
+        auto c = builder.makeConstant(0.5f);
+        auto mix = builder.makeCall<shader::Mix<4, float>>({ color, texColor, c });
+        mix = builder.makeConstructor<vec4>(
+            builder.makeMemberAccess(mix, "rgb"),
+            builder.makeConstant(0.3f)
+        );
 
+        auto sampledNormal = builder.makeMemberAccess(
+            builder.makeCall<TextureSample>({
+                builder.makeSpecializationConstant(std::make_shared<RuntimeTextureIndex>(normalMap)),
+                uvs
+            }),
+            "rgb"
+        );
+        auto normal = builder.makeCall<TangentToWorldspace>({ sampledNormal });
+
+        using Param = FragmentModule::Parameter;
+        FragmentModule fragmentModule;
+        fragmentModule.setParameter(Param::eColor, mix);
+        fragmentModule.setParameter(Param::eNormal, normal);
+        fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
+        fragmentModule.setParameter(Param::eMetallicness, builder.makeConstant(0.0f));
+        fragmentModule.setParameter(Param::eRoughness, builder.makeConstant(0.4f));
+
+        return fragmentModule;
+    };
+
+    trc::shader::ShaderModuleBuilder fragmentBuilder{ makeFragmentCapabilityConfig() };
+    trc::shader::ShaderModuleBuilder closestHitBuilder{ makeRayHitCapabilityConfig() };
+
+    // Build the corresponding closest hit module, just for fun
     {
         Timer timer;
-        fragmentModule.buildClosesthitShader(builder);
+        auto closestHitModule = buildShader(closestHitBuilder);
+        closestHitModule.buildClosesthitShader(closestHitBuilder);
         const auto time = timer.reset();
         std::cout << "--- Also generated a closest hit shader for the material"
                      " in " << time << " ms\n";
@@ -80,7 +88,8 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
 
     // Create a pipeline
     const bool transparent{ true };
-    MaterialData materialData{ {fragmentModule.build(std::move(builder), transparent), transparent} };
+    auto fragmentModule = buildShader(fragmentBuilder);
+    MaterialData materialData{ {fragmentModule.build(std::move(fragmentBuilder), transparent), transparent} };
 
     return materialData;
 }

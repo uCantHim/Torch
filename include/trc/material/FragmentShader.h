@@ -126,19 +126,11 @@ namespace trc
          * @param bool transparent An additional setting for the fragment
          *        shader. Set to `true` if the shader is used for transparent
          *        objects.
-         * @param ShaderCapabilityConfig config The capability configuration to
-         *        be used to generate the shader module. If a custom one is
-         *        provided (e.g. to add custom functionality/inputs to the
-         *        fragment shader), it should be a superset (i.e. a modified
-         *        version) of the default config, which can be obtained from
-         *        `trc::makeFragmentCapabilityConfig`.
          *
          * @throw std::invalid_argument if a required parameter has not been set
          *                              beforehand.
          */
-        auto build(shader::ShaderModuleBuilder moduleCode,
-                   bool transparent,
-                   const shader::CapabilityConfig& config = makeFragmentCapabilityConfig())
+        auto build(shader::ShaderModuleBuilder moduleCode, bool transparent)
             -> shader::ShaderModule;
 
         /**

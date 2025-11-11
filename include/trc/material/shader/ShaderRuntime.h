@@ -66,8 +66,19 @@ namespace trc::shader
             pushConstants(cmdBuf, layout, pushConstantId, &value, sizeof(T));
         }
 
+        /**
+         * Set a default value for a push constant.
+         *
+         * @param data Will be copied into the runtime's internal storage.
+         *             Size must not exceed the push constant value's size
+         *             in the shader.
+         */
         void setPushConstantDefaultValue(ui32 pushConstantId, std::span<const std::byte> data);
 
+        /**
+         * Upload all default push constant values previously set via
+         * `setPushConstantDefaultValue` to the device.
+         */
         void uploadPushConstantDefaultValues(vk::CommandBuffer cmdBuf, vk::PipelineLayout layout);
 
         auto getDescriptorSetIndex(const std::string& name) const -> std::optional<ui32>;
@@ -81,8 +92,8 @@ namespace trc::shader
 
         static constexpr ui32 kUserIdNotUsed{ std::numeric_limits<ui32>::max() };
 
-        s_ptr<std::vector<PushConstant>> pc;
-        s_ptr<std::unordered_map<std::string, ui32>> descriptorSetIndices;
+        s_ptr<const std::vector<PushConstant>> pc;
+        s_ptr<const std::unordered_map<std::string, ui32>> descriptorSetIndices;
 
         std::vector<std::pair<ui32, std::vector<std::byte>>> pushConstantData;
     };

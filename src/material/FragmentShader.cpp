@@ -121,16 +121,13 @@ auto FragmentModule::buildOutputs(
     return output;
 }
 
-auto FragmentModule::build(
-    shader::ShaderModuleBuilder builder,
-    bool transparent,
-    const shader::CapabilityConfig& capabilityConfig) -> shader::ShaderModule
+auto FragmentModule::build(shader::ShaderModuleBuilder builder, bool transparent)
+    -> shader::ShaderModule
 {
     auto outputs = buildOutputs(builder, transparent);
     return shader::ShaderModuleCompiler{}.compile(
         std::move(outputs),
-        std::move(builder),
-        capabilityConfig
+        std::move(builder)
     );
 }
 
@@ -164,11 +161,7 @@ auto FragmentModule::buildClosesthitShader(shader::ShaderModuleBuilder builder)
         )
     );
 
-    return shader::ShaderModuleCompiler{}.compile(
-        out,
-        std::move(builder),
-        makeRayHitCapabilityConfig()
-    );
+    return shader::ShaderModuleCompiler{}.compile(out, std::move(builder));
 }
 
 auto FragmentModule::getParamValue(Parameter param) -> code::Value

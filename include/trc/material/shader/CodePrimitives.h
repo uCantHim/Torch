@@ -8,15 +8,11 @@
 #include <trc_util/TypeUtils.h>
 
 #include "BasicType.h"
-#include "Capability.h"
 #include "Constant.h"
 #include "trc/Types.h"
 
 namespace trc::shader
 {
-    class ShaderCodeBuilder;
-    class ShaderRuntimeConstant;
-
     struct FunctionType
     {
         std::vector<BasicType> argTypes;
@@ -101,15 +97,6 @@ namespace trc::shader
         struct ArrayAccess;
         struct Conditional;
 
-        // vvv These are a bit special as they *should* live outside of the core
-        //     shader code building functionality: They relate more to resources
-        //     used by a shader module than to shader code itself. They still
-        //     live here because I was not able to think of a better way to make
-        //     the shader code tree independent of a specific capability config.
-        struct CapabilityAccess;
-        struct RuntimeConstant;
-        // ^^^
-
         struct ValueT;
 
         struct Return;
@@ -186,16 +173,6 @@ namespace trc::shader
             Value ifFalse;
         };
 
-        struct CapabilityAccess
-        {
-            Capability capability;
-        };
-
-        struct RuntimeConstant
-        {
-            s_ptr<ShaderRuntimeConstant> runtimeValue;
-        };
-
         struct ValueT
         {
             std::variant<
@@ -206,9 +183,7 @@ namespace trc::shader
                 BinaryOperator,
                 MemberAccess,
                 ArrayAccess,
-                Conditional,
-                CapabilityAccess,
-                RuntimeConstant
+                Conditional
             > value;
 
             std::optional<Type> typeAnnotation;

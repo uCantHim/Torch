@@ -95,19 +95,6 @@ namespace trc::shader
         ShaderResourceInterface() = default;
 
         /**
-         * @brief Get all resource definitions as GLSL code
-         *
-         * This is only the code for the shader module's resource definitions
-         * (descriptor set declarations, shader input locations, ...), NOT the
-         * full code of the shader module! The shader logic and the resources
-         * it uses are decoupled and handled by `ShaderCodeBuilder` and
-         * `ShaderResourceInterface`, respectively.
-         *
-         * @return const std::string&
-         */
-        auto getGlslCode() const -> const std::string&;
-
-        /**
          * @brief Query required shader inputs
          *
          * @return std::vector<ShaderInputInfo> A list of all input locations
@@ -274,25 +261,34 @@ namespace trc::shader
         auto makeSpecConstant(s_ptr<ShaderRuntimeConstant> value) -> code::Value;
 
         /**
-         * @brief Compile requested resources to shader code
+         * @brief Access the current state of the resource interface.
+         *
+         * @return Is never null.
          */
-        auto compile() const -> ShaderResourceInterface;
+        auto getResourceInterface() const -> s_ptr<const ShaderResourceInterface>;
+
+        /**
+         * @brief Compile requested resources to shader code
+         *
+         * The result is only the code for the shader module's resource
+         * definitions (descriptor set declarations, shader input locations,
+         * ...), NOT the full code of the shader module!
+         *
+         * @return std::string
+         */
+        auto compile() const -> std::string;
 
     private:
         struct DescriptorBindingFactory
         {
             auto make(const CapabilityConfig::DescriptorBinding& binding) -> std::string;
-
             auto getCode() const -> const std::string&;
-            auto getDescriptorSets() const -> std::unordered_map<std::string, std::string>;
 
-        private:
             auto makeDescriptorSetPlaceholder(const std::string& set) -> std::string;
 
+            s_ptr<ShaderResourceInterface> resources;
             ui32 nextNameIndex{ 0 };
-
-            std::unordered_map<std::string, std::string> descriptorSetPlaceholders;
-            std::string generatedCode;
+            std::string generatedCode{};
         };
 
         struct PushConstantFactory
@@ -303,20 +299,13 @@ namespace trc::shader
             auto make(ResourceID resource, const CapabilityConfig::PushConstant& pc)
                 -> std::string;
 
-            auto getTotalSize() const -> ui32;
-            auto getInfos() const -> const std::unordered_map<ResourceID, PushConstantInfo>&;
-
             auto getCode() const -> std::string;
 
-        private:
             static constexpr auto kPcBlockName{ "PushConstants" };
             static constexpr auto kPcBlockNamespaceName{ "pushConstants" };
 
-            ui32 totalSize{ 0 };
-            // Map { pcUserId -> PushConstantInfo }
-            std::unordered_map<ui32, PushConstantInfo> infos;
-
-            std::string code;
+            s_ptr<ShaderResourceInterface> resources;
+            std::string code{};
         };
 
         struct ShaderInputFactory
@@ -324,14 +313,10 @@ namespace trc::shader
             auto make(Capability capability, const CapabilityConfig::ShaderInput& in)
                 -> std::string;
 
-            auto getInfos() const -> const std::vector<ShaderResourceInterface::ShaderInputInfo>&;
             auto getCode() const -> std::string;
 
-        private:
-            ui32 nextShaderInputLocation{ 0 };
-            std::vector<ShaderResourceInterface::ShaderInputInfo> shaderInputs;
-
-            std::string code;
+            s_ptr<ShaderResourceInterface> resources;
+            std::string code{};
         };
 
         struct RayPayloadFactory
@@ -344,13 +329,10 @@ namespace trc::shader
                 -> std::string;
 
             auto getCode() const -> const std::string&;
-            auto getPayloads() const -> const std::vector<PayloadInfo>&;
 
-        private:
+            s_ptr<ShaderResourceInterface> resources;
             ui32 nextNameIndex{ 0 };
-
-            std::vector<PayloadInfo> payloads;
-            std::string code;
+            std::string code{};
         };
 
         struct HitAttributeFactory
@@ -359,9 +341,8 @@ namespace trc::shader
 
             auto getCode() const -> const std::string&;
 
-        private:
             ui32 nextNameIndex{ 0 };
-            std::string code;
+            std::string code{};
         };
 
         using Resource = const CapabilityConfig::ResourceData*;
@@ -372,8 +353,9 @@ namespace trc::shader
          */
         void requireResource(Capability capability, CapabilityConfig::ResourceID resource);
 
-        const CapabilityConfig& config;
+        const CapabilityConfig* config;
         ShaderCodeBuilder* codeBuilder;
+        s_ptr<ShaderResourceInterface> resources;
 
         std::unordered_set<std::string> requiredExtensions;
         std::unordered_set<util::Pathlet> requiredIncludePaths;
@@ -382,15 +364,13 @@ namespace trc::shader
         ui32 nextSpecConstantIndex{ 0 };
         /** Vector of pairs (index, name) */
         std::vector<std::pair<ui32, std::string>> specializationConstants;
-        /** Map of pairs (index -> value) */
-        std::unordered_map<ui32, s_ptr<ShaderRuntimeConstant>> specializationConstantValues;
 
         std::unordered_map<Resource, std::pair<std::string, std::string>> resourceMacros;
 
-        DescriptorBindingFactory descriptorFactory;
-        PushConstantFactory pushConstantFactory;
-        ShaderInputFactory shaderInputFactory;
-        RayPayloadFactory rayPayloadFactory;
+        DescriptorBindingFactory descriptorFactory{ resources };
+        PushConstantFactory pushConstantFactory{ resources };
+        ShaderInputFactory shaderInputFactory{ resources };
+        RayPayloadFactory rayPayloadFactory{ resources };
         HitAttributeFactory hitAttributeFactory;
     };
 } // namespace trc::shader

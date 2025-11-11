@@ -57,6 +57,10 @@ namespace trc
                              u_ptr<shaderc::CompileOptions> compileOptions = makeShaderCompileOptions())
         -> std::expected<u_ptr<MaterialProgram>, ShaderCompileError>;
 
+    /**
+     * Runtime resources for a shader program, including executable SPIR-V
+     * code and pipeline object.
+     */
     class MaterialProgram
     {
     public:
@@ -113,6 +117,11 @@ namespace trc
         s_ptr<MaterialRuntime> rootRuntime;
     };
 
+    /**
+     * An extension of the basic ShaderProgramRuntime that also includes a
+     * pipeline object. This makes for a full executable environment for
+     * draw commands.
+     */
     class MaterialRuntime : public shader::ShaderProgramRuntime
     {
     public:
