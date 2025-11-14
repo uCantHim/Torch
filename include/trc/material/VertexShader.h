@@ -7,27 +7,30 @@
 
 namespace trc
 {
-    namespace code = shader::code;
-
+    /**
+     * Capabilities for internal use in the vertex shader implementation.
+     */
     namespace VertexCapability
     {
-        inline const shader::Capability kPosition{ "vert_vertexPosition" };
-        inline const shader::Capability kNormal{ "vert_vertexNormal" };
-        inline const shader::Capability kTangent{ "vert_vertexTangent" };
-        inline const shader::Capability kUV{ "vert_vertexUV" };
+        using shader::Capability;
 
-        inline const shader::Capability kBoneIndices{ "vert_boneIndices" };
-        inline const shader::Capability kBoneWeights{ "vert_boneWeights" };
+        inline const Capability kPosition{ "vert_vertexPosition" };
+        inline const Capability kNormal{ "vert_vertexNormal" };
+        inline const Capability kTangent{ "vert_vertexTangent" };
+        inline const Capability kUV{ "vert_vertexUV" };
 
-        inline const shader::Capability kModelMatrix{ "vert_modelMatrix" };
-        inline const shader::Capability kViewMatrix{ "vert_viewMatrix" };
-        inline const shader::Capability kProjMatrix{ "vert_projMatrix" };
+        inline const Capability kBoneIndices{ "vert_boneIndices" };
+        inline const Capability kBoneWeights{ "vert_boneWeights" };
 
-        inline const shader::Capability kAnimIndex{ "vert_animIndex" };
-        inline const shader::Capability kAnimKeyframes{ "vert_animKeyframes" };
-        inline const shader::Capability kAnimFrameWeight{ "vert_animFrameWeight" };
-        inline const shader::Capability kAnimMetaBuffer{ "vert_animMetaBuffer" };
-        inline const shader::Capability kAnimDataBuffer{ "vert_animDataBuffer" };
+        inline const Capability kModelMatrix{ "vert_modelMatrix" };
+        inline const Capability kViewMatrix{ "vert_viewMatrix" };
+        inline const Capability kProjMatrix{ "vert_projMatrix" };
+
+        inline const Capability kAnimIndex{ "vert_animIndex" };
+        inline const Capability kAnimKeyframes{ "vert_animKeyframes" };
+        inline const Capability kAnimFrameWeight{ "vert_animFrameWeight" };
+        inline const Capability kAnimMetaBuffer{ "vert_animMetaBuffer" };
+        inline const Capability kAnimDataBuffer{ "vert_animDataBuffer" };
     };
 
     enum DrawablePushConstIndex : ui32
@@ -37,10 +40,15 @@ namespace trc
         eAnimationData,
     };
 
+    struct VertexModuleCreateInfo
+    {
+        bool animated{ false };
+    };
+
     class VertexModule
     {
     public:
-        explicit VertexModule(bool animated);
+        explicit VertexModule(const VertexModuleCreateInfo& createInfo);
 
         auto buildOutputs(shader::ShaderModuleBuilder& builder,
                           const std::vector<trc::shader::ShaderResourceInterface::ShaderInputInfo>& requiredOutputs)
@@ -48,13 +56,29 @@ namespace trc
 
         auto build(const shader::ShaderModule& fragment) && -> shader::ShaderModule;
 
-        static auto makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
-        static auto makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
+        static auto makeCapabilityConfig(const VertexModuleCreateInfo& config)
+            -> u_ptr<shader::CapabilityConfig>;
 
     private:
-        std::unordered_map<
-            shader::Capability,
-            std::function<code::Value(shader::ShaderModuleBuilder&)>
-        > fragmentInputProviders;
+        /**
+         * Declare capabilities for *internal use* in the vertex module.
+         */
+        static auto makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
+
+        /**
+         * Create a module builder with a capability config that defines the
+         * MaterialCapabilities that the vertex shader can implement as outputs.
+         */
+        static auto makeCapabilityConfigWithOutputs(const VertexModuleCreateInfo& createInfo)
+            -> u_ptr<shader::CapabilityConfig>;
+
+        /**
+         * TODO: This is how a capability config for a virtual shader stage
+         * "VertexInput" could be implemented and used in automatic shader stage
+         * linking.
+         */
+        static auto __makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
+
+        const VertexModuleCreateInfo config;
     };
 } // namespace trc

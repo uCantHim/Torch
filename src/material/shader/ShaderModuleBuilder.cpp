@@ -34,7 +34,7 @@ auto ShaderFunction::getType() const -> const FunctionType&
 ShaderModuleBuilder::ShaderModuleBuilder(s_ptr<const CapabilityConfig> caps)
     :
     capabilities(caps),
-    inputResourcesBuilder(*caps, *this)
+    inputResourcesBuilder(caps, *this)
 {
 }
 

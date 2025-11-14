@@ -234,8 +234,8 @@ namespace trc::shader
     class ShaderResourceInterfaceBuilder
     {
     public:
-        ShaderResourceInterfaceBuilder(const CapabilityConfig& config,
-                                       ShaderCodeBuilder& codeBuilder);
+        ShaderResourceInterfaceBuilder(s_ptr<const CapabilityConfig> config,
+                                       ShaderModuleBuilder& builder);
 
         /**
          * @brief Directly query a capability
@@ -353,8 +353,8 @@ namespace trc::shader
          */
         void requireResource(Capability capability, CapabilityConfig::ResourceID resource);
 
-        const CapabilityConfig* config;
-        ShaderCodeBuilder* codeBuilder;
+        s_ptr<const CapabilityConfig> config;
+        ShaderModuleBuilder* builder;
         s_ptr<ShaderResourceInterface> resources;
 
         std::unordered_set<std::string> requiredExtensions;

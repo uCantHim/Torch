@@ -12,7 +12,7 @@ auto makeDeferredMaterialSpecialization(const shader::ShaderModule& fragmentModu
                                         const MaterialSpecializationInfo& info)
     -> shader::ShaderProgramData
 {
-    auto vertexModule = VertexModule{ info.animated }.build(fragmentModule);
+    auto vertexModule = VertexModule{ {.animated=info.animated} }.build(fragmentModule);
     auto prog = shader::linkShaderProgram(
         {
             { vk::ShaderStageFlagBits::eVertex,   std::move(vertexModule) },

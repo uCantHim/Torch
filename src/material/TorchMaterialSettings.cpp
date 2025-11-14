@@ -21,7 +21,6 @@ using shader::CapabilityConfig;
 void addLightingRequirements(CapabilityConfig& config)
 {
     using DescriptorBinding = CapabilityConfig::DescriptorBinding;
-    auto& builder = config.getCodeBuilder();
 
     auto shadowMatrixBufferResource = config.addResource(DescriptorBinding{
         .setName=RasterPlugin::SHADOW_DESCRIPTOR,
@@ -40,9 +39,12 @@ void addLightingRequirements(CapabilityConfig& config)
     config.addShaderExtension(shadowMapsResource, "GL_EXT_nonuniform_qualifier");
     config.linkCapability(
         FragmentCapability::kShadowMatrices,
-        builder.makeMemberAccess(config.accessResource(shadowMatrixBufferResource), "shadowMatrices"),
-        { shadowMapsResource, shadowMatrixBufferResource }
-    );
+        [=](shader::CapabilityBuildContext& ctx) {
+            // Mark additional resources as used
+            ctx.accessResource(shadowMapsResource);
+            auto shadowMatBuffer = ctx.accessResource(shadowMatrixBufferResource);
+            return ctx.builder.makeMemberAccess(shadowMatBuffer, "shadowMatrices");
+        });
 
     auto lightBufferResource = config.addResource(DescriptorBinding{
         .setName=RasterPlugin::SCENE_DESCRIPTOR,
@@ -77,8 +79,16 @@ auto makeFragmentCapabilityConfig() -> u_ptr<CapabilityConfig>
     using ShaderInput = CapabilityConfig::ShaderInput;
     using DescriptorBinding = CapabilityConfig::DescriptorBinding;
 
+    // Helper that creates a capability builder for a simple member access on
+    // a resource.
+    auto makeResourceMemberAccess = [](auto resourceId, std::string member) {
+        return [resourceId, member=std::move(member)](shader::CapabilityBuildContext& ctx) {
+            auto resource = ctx.accessResource(resourceId);
+            return ctx.builder.makeMemberAccess(resource, member);
+        };
+    };
+
     CapabilityConfig config;
-    auto& code = config.getCodeBuilder();
 
     addTextureSampleRequirements(config);
     addLightingRequirements(config);
@@ -109,21 +119,15 @@ auto makeFragmentCapabilityConfig() -> u_ptr<CapabilityConfig>
     });
     config.linkCapability(
         FragmentCapability::kNextFragmentListIndex,
-        code.makeMemberAccess(config.accessResource(fragListAllocResource), "nextFragmentListIndex"),
-        { fragListAllocResource }
-    );
+        makeResourceMemberAccess(fragListAllocResource, "nextFragmentListIndex"));
     config.linkCapability(
         FragmentCapability::kMaxFragmentListIndex,
-        code.makeMemberAccess(config.accessResource(fragListAllocResource), "maxFragmentListIndex"),
-        { fragListAllocResource }
-    );
+        makeResourceMemberAccess(fragListAllocResource, "maxFragmentListIndex"));
     config.linkCapability(FragmentCapability::kFragmentListHeadPointerImage,
                           fragListPointerImageResource);
     config.linkCapability(
         FragmentCapability::kFragmentListBuffer,
-        code.makeMemberAccess(config.accessResource(fragListResource), "fragmentList"),
-        { fragListResource }
-    );
+        makeResourceMemberAccess(fragListResource, "fragmentList"));
 
     auto cameraBufferResource = config.addResource(DescriptorBinding{
         .setName=RasterPlugin::GLOBAL_DATA_DESCRIPTOR,
@@ -139,15 +143,14 @@ auto makeFragmentCapabilityConfig() -> u_ptr<CapabilityConfig>
     });
     config.linkCapability(
         MaterialCapability::kCameraWorldPos,
-        code.makeMemberAccess(
-            code.makeArrayAccess(
-                code.makeMemberAccess(config.accessResource(cameraBufferResource), "viewMatrix"),
-                code.makeConstant(2)
-            ),
-            "xyz"
-        ),
-        { cameraBufferResource }
-    );
+        [cameraBufferResource](shader::CapabilityBuildContext& ctx) {
+            auto& b = ctx.builder;
+            return b.makeMemberAccess(
+                b.makeArrayAccess(
+                    b.makeMemberAccess(ctx.accessResource(cameraBufferResource), "viewMatrix"),
+                    b.makeConstant(2)),
+                "xyz");
+        });
 
     auto vWorldPos  = config.addResource(ShaderInput{ vec3{}, 0 });
     auto vUv        = config.addResource(ShaderInput{ vec2{}, 1 });
@@ -158,8 +161,11 @@ auto makeFragmentCapabilityConfig() -> u_ptr<CapabilityConfig>
     config.linkCapability(MaterialCapability::kTangentToWorldSpaceMatrix, vTbnMat);
     config.linkCapability(
         MaterialCapability::kVertexNormal,
-        code.makeArrayAccess(config.accessCapability(MaterialCapability::kTangentToWorldSpaceMatrix), code.makeConstant(2)),
-        { vTbnMat }
+        [](shader::CapabilityBuildContext& ctx) {
+            return ctx.builder.makeArrayAccess(
+                ctx.builder.makeCapabilityAccess(MaterialCapability::kTangentToWorldSpaceMatrix),
+                ctx.builder.makeConstant(2));
+        }
     );
 
     return std::make_unique<CapabilityConfig>(std::move(config));
@@ -173,11 +179,9 @@ auto makeRayHitCapabilityConfig() -> u_ptr<CapabilityConfig>
 
     using Descriptor = CapabilityConfig::DescriptorBinding;
     using RayPayload = CapabilityConfig::RayPayload;
-
     namespace cap = RayHitCapability;
 
     CapabilityConfig config;
-    auto& builder = config.getCodeBuilder();
 
     // ------------------------------------------------------------------------
     // Global settings for ray tracing shader modules
@@ -198,23 +202,26 @@ auto makeRayHitCapabilityConfig() -> u_ptr<CapabilityConfig>
         .descriptorContent="DrawableData drawables[];"
     });
     config.linkCapability(RayHitCapability::kGeometryIndex,
-        builder.makeArrayAccess(
-            builder.makeMemberAccess(config.accessResource(drawableDataBuf), "drawables"),
-            builder.makeExternalIdentifier("gl_InstanceCustomIndexEXT")
-        ),
-        { drawableDataBuf }
-    );
+        [=](shader::CapabilityBuildContext& ctx) {
+            return ctx.builder.makeArrayAccess(
+                ctx.builder.makeMemberAccess(ctx.accessResource(drawableDataBuf), "drawables"),
+                ctx.builder.makeExternalIdentifier("gl_InstanceCustomIndexEXT")
+            );
+        });
 
     auto baryHitAttr = config.addResource(CapabilityConfig::HitAttribute{ vec2{} });
-    auto baryX = builder.makeMemberAccess(config.accessResource(baryHitAttr), "x");
-    auto baryY = builder.makeMemberAccess(config.accessResource(baryHitAttr), "y");
     config.linkCapability(RayHitCapability::kBarycentricCoords,
-        builder.makeConstructor<vec3>(
-            builder.makeSub(builder.makeConstant(1.0f), builder.makeSub(baryX, baryY)),
-            baryX,
-            baryY
-        ),
-        { baryHitAttr }
+        [baryHitAttr](shader::CapabilityBuildContext& ctx) {
+            auto& b = ctx.builder;
+            auto bary = ctx.accessResource(baryHitAttr);
+            auto baryX = b.makeMemberAccess(bary, "x");
+            auto baryY = b.makeMemberAccess(bary, "y");
+            return b.makeConstructor<vec3>(
+                b.makeSub(b.makeConstant(1.0f), b.makeSub(baryX, baryY)),
+                baryX,
+                baryY
+            );
+        }
     );
 
     auto outputPayload = config.addResource(RayPayload{ .type=vec3{}, .incoming=true });
@@ -249,49 +256,59 @@ auto makeRayHitCapabilityConfig() -> u_ptr<CapabilityConfig>
     config.addShaderInclude(indexBufs, util::Pathlet("/vertex.glsl"));
 
     config.linkCapability(MaterialCapability::kVertexUV,
-        builder.makeCast<vec2>(builder.makeExternalCall("calcHitUv", {
-            config.accessCapability(cap::kBarycentricCoords),
-            config.accessCapability(cap::kGeometryIndex),
-        })),
-        { indexBufs, vertexBufs }
+        [=](shader::CapabilityBuildContext& ctx) {
+            ctx.accessResource(indexBufs);
+            ctx.accessResource(vertexBufs);
+            return ctx.builder.makeCast<vec2>(ctx.builder.makeExternalCall("calcHitUv", {
+                ctx.builder.makeCapabilityAccess(cap::kBarycentricCoords),
+                ctx.builder.makeCapabilityAccess(cap::kGeometryIndex),
+            }));
+        }
     );
     config.linkCapability(MaterialCapability::kVertexNormal,
-        builder.makeCast<vec3>(builder.makeExternalCall("calcHitNormal", {
-            config.accessCapability(cap::kBarycentricCoords),
-            config.accessCapability(cap::kGeometryIndex),
-            builder.makeExternalIdentifier("gl_PrimitiveID"),
-        })),
-        { indexBufs, vertexBufs }
+        [=](shader::CapabilityBuildContext& ctx) {
+            ctx.accessResource(indexBufs);
+            ctx.accessResource(vertexBufs);
+            return ctx.builder.makeCast<vec3>(ctx.builder.makeExternalCall("calcHitNormal", {
+                ctx.builder.makeCapabilityAccess(cap::kBarycentricCoords),
+                ctx.builder.makeCapabilityAccess(cap::kGeometryIndex),
+                ctx.builder.makeExternalIdentifier("gl_PrimitiveID"),
+            }));
+        }
     );
 
     // Implement world position capability
-    auto worldPosCalculation = builder.makeExternalCall("calcHitWorldPos", {});
-    builder.annotateType(worldPosCalculation, vec3{});
-    config.linkCapability(MaterialCapability::kVertexWorldPos, worldPosCalculation, {});
+    config.linkCapability(MaterialCapability::kVertexWorldPos,
+        [](shader::CapabilityBuildContext& ctx) {
+            auto worldPosCalculation = ctx.builder.makeExternalCall("calcHitWorldPos", {});
+            ctx.builder.annotateType(worldPosCalculation, vec3{});
+            return worldPosCalculation;
+        });
 
     // Implement tangentspace-to-worldspace matrix capability
-    auto tangent = builder.makeCast<vec3>(builder.makeExternalCall("calcHitTangent", {
-        config.accessCapability(cap::kBarycentricCoords),
-        config.accessCapability(cap::kGeometryIndex),
-        builder.makeExternalIdentifier("gl_PrimitiveID"),
-    }));
     config.linkCapability(MaterialCapability::kTangentToWorldSpaceMatrix,
-        builder.makeConstructor<mat3>(
-            tangent,
-            builder.makeExternalCall("cross", {
+        [](shader::CapabilityBuildContext& ctx) {
+            auto& b = ctx.builder;
+            auto tangent = b.makeCast<vec3>(b.makeExternalCall("calcHitTangent", {
+                b.makeCapabilityAccess(cap::kBarycentricCoords),
+                b.makeCapabilityAccess(cap::kGeometryIndex),
+                b.makeExternalIdentifier("gl_PrimitiveID"),
+            }));
+            return b.makeConstructor<mat3>(
                 tangent,
-                config.accessCapability(MaterialCapability::kVertexNormal),
-            }),
-            config.accessCapability(MaterialCapability::kVertexNormal)
-        ),
-        {} // No additional resources
-    );
+                b.makeExternalCall("cross", {
+                    tangent,
+                    b.makeCapabilityAccess(MaterialCapability::kVertexNormal),
+                }),
+                b.makeCapabilityAccess(MaterialCapability::kVertexNormal)
+            );
+        });
 
     config.linkCapability(
         MaterialCapability::kCameraWorldPos,
-        builder.makeExternalIdentifier("gl_WorldRayOriginEXT"),
-        {}
-    );
+        [](shader::CapabilityBuildContext& ctx) {
+            return ctx.builder.makeExternalIdentifier("gl_WorldRayOriginEXT");
+        });
 
     return std::make_unique<CapabilityConfig>(std::move(config));
 }

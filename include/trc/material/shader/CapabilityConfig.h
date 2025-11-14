@@ -9,13 +9,16 @@
 
 #include "BasicType.h"
 #include "Capability.h"
-#include "ShaderCodeBuilder.h"
+#include "CodePrimitives.h"
 #include "trc/Types.h"
 #include "trc/util/Pathlet.h"
 
 namespace trc::shader
 {
-    class ShaderCodeBuilder;
+    class ShaderModuleBuilder;
+    struct CapabilityBuildContext;
+
+    using CapabilityBuilder = std::function<code::Value(CapabilityBuildContext&)>;
 
     /**
      * @brief Defines an input/output interface for a single shader module
@@ -116,8 +119,6 @@ namespace trc::shader
 
         using ResourceID = ui32;
 
-        auto getCodeBuilder() -> ShaderCodeBuilder&;
-
         void addGlobalShaderExtension(std::string extensionName);
         void addGlobalShaderInclude(util::Pathlet includePath);
         auto getGlobalShaderExtensions() const -> const std::unordered_set<std::string>&;
@@ -133,17 +134,26 @@ namespace trc::shader
          *
          * Returns an expression that evaluates to a resource.
          */
-        auto accessResource(ResourceID resource) const -> code::Value;
-        auto getResource(ResourceID resource) const -> const ResourceData&;
+        auto accessResource(ResourceID resource, ShaderModuleBuilder& builder) const
+            -> code::Value;
 
-        void linkCapability(Capability capability, ResourceID resource);
-        void linkCapability(Capability capability,
-                            code::Value value,
-                            std::vector<ResourceID> resources);
+        auto getResourceInfo(ResourceID resource) const -> const ResourceData&;
 
         /**
-         * @return bool True if `capability` is linked to a resource, i.e., if
-         *              it is defined at this capability config.
+         * Implement a capability as a direct resource access.
+         */
+        void linkCapability(Capability capability, ResourceID resource);
+
+        /**
+         * It is allowed to reference other capabilites from inside the builder
+         * function by calling `ShaderModuleBuilder::makeCapabilityAccess` on
+         * the build context's builder.
+         */
+        void linkCapability(Capability capability, CapabilityBuilder factory);
+
+        /**
+         * @return bool True if this capability configuration implements
+         *              `capability`.
          */
         bool hasCapability(Capability capability) const;
 
@@ -156,39 +166,40 @@ namespace trc::shader
          * array access, a computation, or a function call, depending on the
          * capability's implementation.
          *
-         * @throw std::out_of_range if `capability` is not defined at this
-         *        capability config.
-         */
-        auto accessCapability(Capability capability) const -> code::Value;
-
-        /**
-         * @brief Query all resources that a capability accesses.
-         *
-         * Returns a list of resources that are accessed by a capability's
-         * implementation.
+         * @return A list of resources that are accessed by the capability's
+         *         implementation.
          *
          * @throw std::out_of_range if `capability` is not defined at this
          *        capability config.
          */
-        auto getCapabilityResources(Capability capability) const -> std::vector<ResourceID>;
+        auto accessCapability(Capability capability, ShaderModuleBuilder& builder) const
+            -> std::pair<code::Value, std::vector<ResourceID>>;
 
     private:
-        struct BuiltinConstantInfo
-        {
-            BasicType type;
-            Capability capability;
-        };
-
-        s_ptr<ShaderCodeBuilder> codeBuilder{ new ShaderCodeBuilder };
+        static auto makeCapabilityBuilderFromResource(ResourceID resource) -> CapabilityBuilder;
 
         std::unordered_set<std::string> globalExtensions;
         std::unordered_set<util::Pathlet> globalIncludes;
-        std::unordered_set<util::Pathlet> postResourceIncludes;
 
+        /** `ResourceID` is an index into this array. */
         std::vector<s_ptr<ResourceData>> resources;
-        std::unordered_map<ResourceID, code::Value> resourceAccessors;
 
-        std::unordered_map<Capability, std::unordered_set<ResourceID>> requiredResources;
-        std::unordered_map<Capability, code::Value> capabilityAccessors;
+        std::unordered_map<Capability, CapabilityBuilder> capabilityImpls;
+    };
+
+    struct CapabilityBuildContext
+    {
+        ShaderModuleBuilder& builder;
+
+        auto accessResource(CapabilityConfig::ResourceID resourceID) -> code::Value;
+
+    private:
+        friend class CapabilityConfig;
+        CapabilityBuildContext(const CapabilityConfig* conf, ShaderModuleBuilder& builder)
+            : builder(builder), conf(conf)
+        {}
+
+        const CapabilityConfig* conf;
+        std::unordered_set<CapabilityConfig::ResourceID> accessedResources;
     };
 } // namespace trc::shader

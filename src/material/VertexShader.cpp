@@ -84,61 +84,10 @@ public:
 
 
 
-VertexModule::VertexModule(bool animated)
+VertexModule::VertexModule(const VertexModuleCreateInfo& createInfo)
+    :
+    config(createInfo)
 {
-    const auto makeTbn = [animated](shader::ShaderModuleBuilder& builder) {
-        auto zero = builder.makeConstant(0.0f);
-
-        auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
-        auto tangentObjspace = builder.makeCapabilityAccess(VertexCapability::kTangent);
-        normalObjspace = builder.makeConstructor<vec4>(normalObjspace, zero);
-        tangentObjspace = builder.makeConstructor<vec4>(tangentObjspace, zero);
-        if (animated) {
-            normalObjspace = builder.makeCall<ApplyAnimation>({ normalObjspace });
-            tangentObjspace = builder.makeCall<ApplyAnimation>({ tangentObjspace });
-        }
-
-        auto normal = builder.makeCall<NormalToWorldspace>({ normalObjspace });
-        auto tangent = builder.makeCall<NormalToWorldspace>({ tangentObjspace });
-        auto bitangent = builder.makeExternalCall("cross", { normal, tangent });
-
-        auto tbn = builder.makeConstructor<mat3>(tangent, bitangent, normal);
-
-        return tbn;
-    };
-
-    fragmentInputProviders = {
-        {
-            MaterialCapability::kVertexWorldPos,
-            [animated](shader::ShaderModuleBuilder& builder) -> code::Value
-            {
-                auto objPos = builder.makeCapabilityAccess(VertexCapability::kPosition);
-                auto modelMat = builder.makeCapabilityAccess(VertexCapability::kModelMatrix);
-                auto objPos4 = builder.makeConstructor<vec4>(objPos, builder.makeConstant(1.0f));
-                if (animated)
-                {
-                    builder.includeCode("material_utils/animation.glsl", {
-                        { "animationMetaDataDescriptorName", VertexCapability::kAnimMetaBuffer },
-                        { "animationDataDescriptorName", VertexCapability::kAnimDataBuffer },
-                        { "vertexBoneIndicesAttribName", VertexCapability::kBoneIndices },
-                        { "vertexBoneWeightsAttribName", VertexCapability::kBoneWeights },
-                    });
-                    objPos4 = builder.makeCall<ApplyAnimation>({ objPos4 });
-                }
-
-                auto worldPos = builder.makeMul(modelMat, objPos4);
-                return builder.makeMemberAccess(worldPos, "xyz");
-            }
-        },
-        { MaterialCapability::kTangentToWorldSpaceMatrix, makeTbn },
-        {
-            MaterialCapability::kVertexUV,
-            [](shader::ShaderModuleBuilder& builder) {
-                return builder.makeCapabilityAccess(VertexCapability::kUV);
-            }
-        },
-        { MaterialCapability::kVertexNormal, makeTbn },
-    };
 }
 
 auto VertexModule::buildOutputs(
@@ -152,8 +101,8 @@ auto VertexModule::buildOutputs(
         auto loc = builder.makeOutputLocation(out.location, out.type);
 
         try {
-            auto inputNode = fragmentInputProviders.at(out.capability)(builder);
-            shaderOutput.makeStore(loc, inputNode);
+            auto outputValue = builder.makeCapabilityAccess(out.capability);
+            shaderOutput.makeStore(loc, outputValue);
         }
         catch (const std::out_of_range&)
         {
@@ -163,11 +112,11 @@ auto VertexModule::buildOutputs(
         }
     }
 
-    // Always add the gl_Position output
+    // Always add the built-in gl_Position output
     shaderOutput.makeStore(
         builder.makeExternalIdentifier("gl_Position"),
         builder.makeCall<GlPosition>(
-            { fragmentInputProviders.at(MaterialCapability::kVertexWorldPos)(builder) }
+            { builder.makeCapabilityAccess(MaterialCapability::kVertexWorldPos) }
         )
     );
 
@@ -176,19 +125,24 @@ auto VertexModule::buildOutputs(
 
 auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::ShaderModule
 {
-    shader::ShaderModuleBuilder builder{ makeCapabilityConfig() };
+    shader::ShaderModuleBuilder builder{ makeCapabilityConfig(config) };
 
     auto outputs = buildOutputs(builder, fragment.getRequiredShaderInputs());
     return ShaderModuleCompiler{}.compile(outputs, std::move(builder));
 }
 
-auto VertexModule::makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
+auto VertexModule::makeCapabilityConfig(const VertexModuleCreateInfo& createInfo)
+    -> u_ptr<shader::CapabilityConfig>
+{
+    return makeCapabilityConfigWithOutputs(createInfo);
+}
+
+auto VertexModule::makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
 {
     using shader::CapabilityConfig;
 
     static auto config = []{
         CapabilityConfig config;
-        auto& code = config.getCodeBuilder();
 
         config.addGlobalShaderExtension("GL_GOOGLE_include_directive");
 
@@ -209,7 +163,7 @@ auto VertexModule::makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
             mat4{}, DrawablePushConstIndex::eModelMatrix
         });
         auto animDataPc = config.addResource(CapabilityConfig::PushConstant{
-            code.makeStructType("AnimationPushConstantData", {
+                code::makeStructType("AnimationPushConstantData", {
                 { uint{}, "animation" },
                 { uvec2{}, "keyframes" },
                 { float{}, "keyframeWeigth" },
@@ -256,25 +210,24 @@ auto VertexModule::makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
         config.linkCapability(VertexCapability::kModelMatrix, modelPc);
 
         // Camera matrices
-        auto camera = config.accessResource(cameraMatrices);
+        auto makeResourceMemberAccess = [](auto resourceId, std::string member) {
+            return [resourceId, member=std::move(member)](shader::CapabilityBuildContext& ctx) {
+                auto resource = ctx.accessResource(resourceId);
+                return ctx.builder.makeMemberAccess(resource, member);
+            };
+        };
         config.linkCapability(VertexCapability::kViewMatrix,
-                              code.makeMemberAccess(camera, "viewMatrix"),
-                              { cameraMatrices });
+                              makeResourceMemberAccess(cameraMatrices, "viewMatrix"));
         config.linkCapability(VertexCapability::kProjMatrix,
-                              code.makeMemberAccess(camera, "projMatrix"),
-                              { cameraMatrices });
+                              makeResourceMemberAccess(cameraMatrices, "projMatrix"));
 
         // Animation data
-        auto animData = config.accessResource(animDataPc);
         config.linkCapability(VertexCapability::kAnimIndex,
-                              code.makeMemberAccess(animData, "animation"),
-                              { animDataPc });
+                              makeResourceMemberAccess(animDataPc, "animation"));
         config.linkCapability(VertexCapability::kAnimKeyframes,
-                              code.makeMemberAccess(animData, "keyframes"),
-                              { animDataPc });
+                              makeResourceMemberAccess(animDataPc, "keyframes"));
         config.linkCapability(VertexCapability::kAnimFrameWeight,
-                              code.makeMemberAccess(animData, "keyframeWeigth"),
-                              { animDataPc });
+                              makeResourceMemberAccess(animDataPc, "keyframeWeigth"));
 
         return config;
     }();
@@ -282,7 +235,71 @@ auto VertexModule::makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
     return std::make_unique<CapabilityConfig>(config);
 }
 
-auto VertexModule::makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
+auto VertexModule::makeCapabilityConfigWithOutputs(const VertexModuleCreateInfo& createInfo)
+    -> u_ptr<shader::CapabilityConfig>
+{
+    auto caps = makeInputCapabilityConfig();
+
+    caps->linkCapability(
+        MaterialCapability::kVertexWorldPos,
+        [createInfo](shader::CapabilityBuildContext ctx) -> code::Value
+        {
+            auto& b = ctx.builder;
+
+            auto objPos = b.makeCapabilityAccess(VertexCapability::kPosition);
+            auto modelMat = b.makeCapabilityAccess(VertexCapability::kModelMatrix);
+            auto objPos4 = b.makeConstructor<vec4>(objPos, b.makeConstant(1.0f));
+            if (createInfo.animated)
+            {
+                b.includeCode("material_utils/animation.glsl", {
+                    { "animationMetaDataDescriptorName", VertexCapability::kAnimMetaBuffer },
+                    { "animationDataDescriptorName", VertexCapability::kAnimDataBuffer },
+                    { "vertexBoneIndicesAttribName", VertexCapability::kBoneIndices },
+                    { "vertexBoneWeightsAttribName", VertexCapability::kBoneWeights },
+                });
+                objPos4 = b.makeCall<ApplyAnimation>({ objPos4 });
+            }
+
+            auto worldPos = b.makeMul(modelMat, objPos4);
+            return b.makeMemberAccess(worldPos, "xyz");
+        }
+    );
+
+    const auto makeTbn = [createInfo](shader::CapabilityBuildContext& ctx) {
+        auto& builder = ctx.builder;
+
+        auto zero = builder.makeConstant(0.0f);
+        auto normalObjspace = builder.makeCapabilityAccess(VertexCapability::kNormal);
+        auto tangentObjspace = builder.makeCapabilityAccess(VertexCapability::kTangent);
+        normalObjspace = builder.makeConstructor<vec4>(normalObjspace, zero);
+        tangentObjspace = builder.makeConstructor<vec4>(tangentObjspace, zero);
+        if (createInfo.animated) {
+            normalObjspace = builder.makeCall<ApplyAnimation>({ normalObjspace });
+            tangentObjspace = builder.makeCall<ApplyAnimation>({ tangentObjspace });
+        }
+
+        auto normal = builder.makeCall<NormalToWorldspace>({ normalObjspace });
+        auto tangent = builder.makeCall<NormalToWorldspace>({ tangentObjspace });
+        auto bitangent = builder.makeExternalCall("cross", { normal, tangent });
+
+        auto tbn = builder.makeConstructor<mat3>(tangent, bitangent, normal);
+
+        return tbn;
+    };
+
+    caps->linkCapability(MaterialCapability::kTangentToWorldSpaceMatrix, makeTbn);
+    caps->linkCapability(
+        MaterialCapability::kVertexUV,
+        [](shader::CapabilityBuildContext& ctx) {
+            return ctx.builder.makeCapabilityAccess(VertexCapability::kUV);
+        }
+    );
+    caps->linkCapability(MaterialCapability::kVertexNormal, makeTbn);
+
+    return caps;
+}
+
+auto VertexModule::__makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
 {
     using ShaderInput = shader::CapabilityConfig::ShaderInput;
 

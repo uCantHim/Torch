@@ -245,7 +245,7 @@ auto ShaderCodeBuilder::makeStructType(
 {
     auto [it, success] = structTypes.try_emplace(
         name,
-        new types::StructType{ .name=name, .fields=fields }
+        code::makeStructType(name, fields)
     );
 
     if (!success) {
@@ -256,7 +256,7 @@ auto ShaderCodeBuilder::makeStructType(
         );
     }
 
-    return it->second.get();
+    return it->second;
 }
 
 void ShaderCodeBuilder::annotateType(Value val, Type type)

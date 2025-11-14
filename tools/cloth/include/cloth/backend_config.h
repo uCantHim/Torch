@@ -29,7 +29,7 @@ namespace cloth
         virtual ~BackendConfig() noexcept = default;
 
         virtual auto getBuiltins() -> BuiltinProvider& = 0;
-        virtual auto makeBuilder() -> std::unique_ptr<trc::shader::ShaderModuleBuilder> = 0;
+        virtual auto makeCapabilityConfig() -> std::unique_ptr<trc::shader::CapabilityConfig> = 0;
         virtual auto makeOutputConfig() -> std::unique_ptr<ShaderOutputImpl> = 0;
     };
 } // namespace cloth

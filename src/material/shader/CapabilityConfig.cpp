@@ -2,15 +2,12 @@
 
 #include <stdexcept>
 
+#include "trc/material/shader/ShaderModuleBuilder.h"
+
 
 
 namespace trc::shader
 {
-
-auto CapabilityConfig::getCodeBuilder() -> ShaderCodeBuilder&
-{
-    return *codeBuilder;
-}
 
 void CapabilityConfig::addGlobalShaderExtension(std::string extensionName)
 {
@@ -38,9 +35,7 @@ auto CapabilityConfig::addResource(Resource shaderResource) -> ResourceID
 {
     const ResourceID id{ static_cast<ui32>(resources.size()) };
     const std::string name = "_access_resource_" + std::to_string(id);
-
     resources.emplace_back(new ResourceData{ std::move(shaderResource), name, {}, {}, {} });
-    resourceAccessors.try_emplace(id, codeBuilder->makeExternalIdentifier(name));
 
     return id;
 }
@@ -63,63 +58,73 @@ void CapabilityConfig::addMacro(
     resources.at(resource)->macroDefinitions.try_emplace(std::move(name), std::move(value));
 }
 
-auto CapabilityConfig::accessResource(ResourceID resource) const -> code::Value
+auto CapabilityConfig::accessResource(ResourceID resourceId, ShaderModuleBuilder& builder) const
+    -> code::Value
 {
-    return resourceAccessors.at(resource);
+    auto& resource = getResourceInfo(resourceId);
+    return builder.makeExternalIdentifier(resource.resourceMacroName);
 }
 
-auto CapabilityConfig::getResource(ResourceID resource) const -> const ResourceData&
+auto CapabilityConfig::getResourceInfo(ResourceID resource) const -> const ResourceData&
 {
     assert(resource < resources.size());
     return *resources.at(resource);
 }
 
-void CapabilityConfig::linkCapability(
-    Capability capability,
-    ResourceID resource)
+auto CapabilityConfig::makeCapabilityBuilderFromResource(ResourceID resource)
+    -> CapabilityBuilder
 {
-    return linkCapability(capability, accessResource(resource), { resource });
+    // More verbose than a lambda but better to debug.
+    struct ResourceAccessCapabilityBuilder
+    {
+        auto operator()(CapabilityBuildContext& ctx) -> code::Value {
+            return ctx.accessResource(resource);
+        }
+        ResourceID resource;
+    };
+
+    return ResourceAccessCapabilityBuilder{ resource };
 }
 
-void CapabilityConfig::linkCapability(
-    Capability capability,
-    code::Value value,
-    std::vector<ResourceID> resources)
+void CapabilityConfig::linkCapability(Capability capability, ResourceID resource)
 {
-    auto [_, success] = capabilityAccessors.try_emplace(capability, value);
-    if (!success)
-    {
-        throw std::invalid_argument(
-            "[In ShaderCapabilityConfig::linkCapability]: The capability \""
-            + capability.toString() + "\" is already linked to a resource!");
-    }
+    return linkCapability(capability, makeCapabilityBuilderFromResource(resource));
+}
 
-    auto res = requiredResources.try_emplace(capability, resources.begin(), resources.end());
-    assert(res.second);
+void CapabilityConfig::linkCapability(Capability capability, CapabilityBuilder impl)
+{
+    capabilityImpls[capability] = std::move(impl);
 }
 
 bool CapabilityConfig::hasCapability(Capability capability) const
 {
-    return capabilityAccessors.contains(capability);
+    return capabilityImpls.contains(capability);
 }
 
-auto CapabilityConfig::accessCapability(Capability capability) const -> code::Value
+auto CapabilityConfig::accessCapability(Capability capability, ShaderModuleBuilder& builder) const
+    -> std::pair<code::Value, std::vector<ResourceID>>
 {
-    return capabilityAccessors.at(capability);
-}
-
-auto CapabilityConfig::getCapabilityResources(Capability capability) const
-    -> std::vector<ResourceID>
-{
-    auto it = requiredResources.find(capability);
-    if (it == requiredResources.end())
+    auto it = capabilityImpls.find(capability);
+    if (it != capabilityImpls.end())
     {
-        throw std::out_of_range(
-            "[In ShaderCapabilityConfig::getCapabilityResources]: Shader capability \""
-            + capability.toString() + "\" has not been defined.");
+        CapabilityBuildContext ctx{ this, builder };
+        code::Value value = it->second(ctx);
+        return { value, {ctx.accessedResources.begin(), ctx.accessedResources.end()} };
     }
 
-    return { it->second.begin(), it->second.end() };
+    throw std::out_of_range(std::format(
+        "[In CapabilityConfig::accessCapability]: The requested capability \"{}\" is not defined.",
+        capability.toString()
+    ));
+}
+
+
+
+auto CapabilityBuildContext::accessResource(CapabilityConfig::ResourceID resourceID)
+    -> code::Value
+{
+    accessedResources.emplace(resourceID);
+    return conf->accessResource(resourceID, builder);
 }
 
 } // namespace trc::shader

@@ -21,7 +21,7 @@ namespace trc::shader
         using Value = code::Value;
         using Type = code::Type;
 
-        using StructType = const code::types::StructType*;
+        using StructType = code::types::StructType;
 
         ShaderCodeBuilder& operator=(const ShaderCodeBuilder&) = delete;
 
@@ -126,6 +126,9 @@ namespace trc::shader
         void makeExternalCallStatement(const std::string& funcName, std::vector<code::Value> args);
         auto makeIfStatement(Value condition) -> Block;
 
+        /**
+         * @throw std::runtime_error if a struct type `name` already exists.
+         */
         auto makeStructType(const std::string& name,
                             const std::vector<std::pair<Type, std::string>>& fields)
             -> StructType;
@@ -169,7 +172,7 @@ namespace trc::shader
         std::unordered_map<std::string, Function> functions;
         std::unordered_map<std::string, Function> builtinFunctions;
 
-        std::unordered_map<std::string, s_ptr<code::types::StructType>> structTypes;
+        std::unordered_map<std::string, StructType> structTypes;
 
         std::vector<Block> blocks;
 

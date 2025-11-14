@@ -21,17 +21,18 @@ namespace trc::shader
 
     namespace code::types
     {
-        struct StructType;
+        struct StructTypeT;
+        using StructType = s_ptr<const StructTypeT>;
 
         /**
          * @brief Any type; either a basic type or a structure type
          */
         using TypeT = std::variant<
             BasicType,
-            const StructType*
+            StructType
         >;
 
-        struct StructType
+        struct StructTypeT
         {
             std::string name;
             std::vector<std::pair<TypeT, std::string>> fields;
@@ -49,7 +50,7 @@ namespace trc::shader
                 {
                     size += std::visit(util::VariantVisitor{
                         [](const BasicType& type)  { return type.size(); },
-                        [](const StructType* type) { return type->size(); }
+                        [](s_ptr<const StructTypeT> type) { return type->size(); }
                     }, type);
                 }
 
@@ -65,7 +66,7 @@ namespace trc::shader
             return std::visit(
                 util::VariantVisitor{
                     [](BasicType type)         -> std::string { return type.to_string(); },
-                    [](const StructType* type) -> std::string { return type->to_string(); }
+                    [](s_ptr<const StructTypeT> type) -> std::string { return type->to_string(); }
                 },
                 type
             );
@@ -79,7 +80,7 @@ namespace trc::shader
             return std::visit(
                 util::VariantVisitor{
                     [](BasicType type)         { return type.size(); },
-                    [](const StructType* type) { return type->size(); }
+                    [](s_ptr<const StructTypeT> type) { return type->size(); }
                 },
                 type
             );
@@ -236,5 +237,16 @@ namespace trc::shader
             Block body;
             std::vector<Value> argumentRefs;
         };
+
+        /**
+         * Utility to create struct types.
+         */
+        inline
+        auto makeStructType(const std::string& name,
+                            const std::vector<std::pair<Type, std::string>>& fields)
+            -> s_ptr<const types::StructTypeT>
+        {
+            return std::make_shared<types::StructTypeT>(name, fields);
+        }
     } // namespace code
 } // namespace trc::shader

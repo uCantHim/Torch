@@ -8,6 +8,7 @@
 #include <trc_util/Util.h>
 
 #include "trc/base/Logging.h"
+#include "trc/material/shader/ShaderModuleBuilder.h"
 
 
 
@@ -381,14 +382,14 @@ auto ShaderResourceInterfaceBuilder::HitAttributeFactory::getCode() const -> con
 
 
 ShaderResourceInterfaceBuilder::ShaderResourceInterfaceBuilder(
-    const CapabilityConfig& config,
-    ShaderCodeBuilder& codeBuilder)
+    s_ptr<const CapabilityConfig> config,
+    ShaderModuleBuilder& codeBuilder)
     :
-    config(&config),
-    codeBuilder(&codeBuilder),
+    config(config),
+    builder(&codeBuilder),
     resources(std::make_shared<ShaderResourceInterface>()),
-    requiredExtensions(config.getGlobalShaderExtensions()),
-    requiredIncludePaths(config.getGlobalShaderIncludes())
+    requiredExtensions(config->getGlobalShaderExtensions()),
+    requiredIncludePaths(config->getGlobalShaderIncludes())
 {
 }
 
@@ -453,11 +454,13 @@ auto ShaderResourceInterfaceBuilder::compile() const -> std::string
 
 auto ShaderResourceInterfaceBuilder::queryCapability(Capability capability) -> code::Value
 {
-    for (auto id : config->getCapabilityResources(capability)) {
+    // TODO: Cache capability values?
+    const auto [value, resources] = config->accessCapability(capability, *builder);
+    for (auto id : resources) {
         requireResource(capability, id);
     }
 
-    return config->accessCapability(capability);
+    return value;
 }
 
 auto ShaderResourceInterfaceBuilder::makeSpecConstant(s_ptr<ShaderRuntimeConstant> value) -> code::Value
@@ -475,8 +478,8 @@ auto ShaderResourceInterfaceBuilder::makeSpecConstant(s_ptr<ShaderRuntimeConstan
     specializationConstants.emplace_back(idx, specConstName);
 
     // Create the shader code value
-    auto id = codeBuilder->makeExternalIdentifier(specConstName);
-    codeBuilder->annotateType(id, value->getType());
+    auto id = builder->makeExternalIdentifier(specConstName);
+    builder->annotateType(id, value->getType());
 
     return id;
 }
@@ -485,7 +488,7 @@ void ShaderResourceInterfaceBuilder::requireResource(
     Capability capability,
     CapabilityConfig::ResourceID resourceId)
 {
-    const auto& res = config->getResource(resourceId);
+    const auto& res = config->getResourceInfo(resourceId);
 
     // Only add a resource once
     if (resourceMacros.contains(&res)) {
@@ -499,6 +502,18 @@ void ShaderResourceInterfaceBuilder::requireResource(
         requiredMacros.emplace_back(name, val);
     }
 
+    auto registerType = [this](code::Type type) {
+        // Inform the builder that a struct type exists, because the type
+        // may not have been created at a module builder.
+        if (std::holds_alternative<code::types::StructType>(type))
+        {
+            auto structType = std::get<code::types::StructType>(type);
+            try {
+                builder->makeStructType(structType->name, structType->fields);
+            } catch(...){}
+        }
+    };
+
     auto accessorStr = std::visit(util::VariantVisitor{
         [this](const CapabilityConfig::DescriptorBinding& binding) {
             return descriptorFactory.make(binding);
@@ -506,10 +521,12 @@ void ShaderResourceInterfaceBuilder::requireResource(
         [this, capability](const CapabilityConfig::ShaderInput& v) {
             return shaderInputFactory.make(capability, v);
         },
-        [this, resourceId](const CapabilityConfig::PushConstant& pc) {
+        [&, this, resourceId](const CapabilityConfig::PushConstant& pc) {
+            registerType(pc.type);
             return pushConstantFactory.make(resourceId, pc);
         },
-        [this, capability](const CapabilityConfig::RayPayload& pl) {
+        [&, this, capability](const CapabilityConfig::RayPayload& pl) {
+            registerType(pl.type);
             return rayPayloadFactory.make(capability, pl);
         },
         [this](const CapabilityConfig::HitAttribute& att) {

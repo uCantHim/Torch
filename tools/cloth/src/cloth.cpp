@@ -159,7 +159,7 @@ auto compilePartial(const parser::Result& parseResult, BackendConfig& impl)
     -> std::expected<PartialResult, CompileError>
 {
     Document doc{ parseResult };
-    trc::shader::ShaderModuleBuilder moduleBuilder{ *impl.makeBuilder() };
+    trc::shader::ShaderModuleBuilder moduleBuilder{ impl.makeCapabilityConfig() };
 
     // Generate values for Cloth built-ins.
     auto builtinCompileResult = compileBuiltins(doc, impl.getBuiltins(), moduleBuilder);
