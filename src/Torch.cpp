@@ -194,6 +194,11 @@ void trc::TorchStack::drawFrame(const vk::ArrayProxy<ViewportHandle>& viewports)
     renderer.renderFrameAndPresent(std::move(frame), window);
 }
 
+void trc::TorchStack::drawFrame(u_ptr<Frame> frame)
+{
+    renderer.renderFrameAndPresent(std::move(frame), window);
+}
+
 void trc::TorchStack::waitForAllFrames(ui64 timeoutNs)
 {
     renderer.waitForAllFrames(timeoutNs);

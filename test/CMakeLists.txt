@@ -54,4 +54,10 @@ if (TORCH_BUILD_EXAMPLES)
         add_executable(Gui gui.cpp)
         target_link_libraries(Gui PUBLIC torch)
     endif()
+
+    add_executable(link shader_stage_linking.cpp)
+    target_link_libraries(link PUBLIC torch)
+
+    add_executable(cloth_multi_document cloth_multi_document.cpp)
+    target_link_libraries(cloth_multi_document PUBLIC cloth)
 endif ()

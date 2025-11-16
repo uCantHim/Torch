@@ -153,6 +153,12 @@ namespace trc
          */
         void drawFrame(const vk::ArrayProxy<ViewportHandle>& viewports);
 
+        /**
+         * Submit a frame for rendering and enqueue its result for presentation
+         * to the stack's window.
+         */
+        void drawFrame(u_ptr<Frame> frame);
+
         void waitForAllFrames(ui64 timeoutNs = std::numeric_limits<ui64>::max());
 
     private:

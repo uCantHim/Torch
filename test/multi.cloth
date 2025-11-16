@@ -1,0 +1,14 @@
+void foo()
+{
+
+}
+
+@vertex {
+    const vec4 inNormal = vec4($vertexNormal, 0.0);
+    $out:position = ($modelMatrix * vec4($vertexPosition, 1.0)).xyz;
+    $out:normal = vec3($viewProjMatrix * inverse(transpose($modelMatrix)) * inNormal);
+}
+
+@fragment {
+    $out:color = vec4($vertexNormal, 1.0);
+}
