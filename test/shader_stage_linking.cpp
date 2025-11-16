@@ -1,13 +1,13 @@
-#include <trc/material/FragmentShader.h>
-#include <trc/material/ShaderStageInputLinker.h>
-#include <trc/material/VertexShader.h>
-#include <trc/material/shader/ShaderTypeChecker.h>
-#include <trc/material/shader/ShaderModuleCompiler.h>
-#include <trc/material/shader/ShaderFunction.h>
-#include <trc/material/shader/ShaderProgram.h>
+#include <trc/DrawablePipelines.h>
 #include <trc/Torch.h>
 #include <trc/TorchRenderStages.h>
-#include <trc/DrawablePipelines.h>
+#include <trc/material/FragmentShader.h>
+#include <trc/material/VertexShader.h>
+#include <trc/material/shader/ShaderFunction.h>
+#include <trc/material/shader/ShaderModuleCompiler.h>
+#include <trc/material/shader/ShaderProgram.h>
+#include <trc/material/shader/ShaderStageInputLinker.h>
+#include <trc/material/shader/ShaderTypeChecker.h>
 
 using namespace trc::basic_types;
 
@@ -45,14 +45,18 @@ int main()
     auto fragOutputs = fragStage.makeOutputs(fragBuilder);
 
     // Link the stages
-    auto res = trc::linkShaderStageInputs({
+    auto res = trc::shader::linkShaderStageInputs({
         {
             vk::ShaderStageFlagBits::eVertex,
-            trc::ModuleLinkInfo{ &vertBuilder, &vertBuilder.getResourceInterface(), &vertOutputs, }
+            trc::shader::ModuleLinkInfo{
+                &vertBuilder,
+                &vertBuilder.getResourceInterface(),
+                &vertOutputs,
+            }
         },
         {
             vk::ShaderStageFlagBits::eFragment,
-            trc::ModuleLinkInfo{ nullptr, &fragBuilder.getResourceInterface(), nullptr, },
+            trc::shader::ModuleLinkInfo{ nullptr, &fragBuilder.getResourceInterface(), nullptr, },
         },
     });
     if (!res)

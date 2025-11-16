@@ -1,4 +1,4 @@
-#include "trc/material/ShaderStageInputLinker.h"
+#include "trc/material/shader/ShaderStageInputLinker.h"
 
 #include <algorithm>
 #include <ranges>
@@ -10,7 +10,7 @@
 
 
 
-namespace trc
+namespace trc::shader
 {
 
 constexpr bool orderStages(vk::ShaderStageFlagBits a, vk::ShaderStageFlagBits b)

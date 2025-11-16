@@ -8,7 +8,6 @@ target_sources(
         MaterialSpecialization.cpp
         ShaderCache.cpp
         MaterialShaderImpl.cpp
-        ShaderStageInputLinker.cpp
         TorchMaterialSettings.cpp
         VertexShader.cpp
 )

@@ -11,7 +11,7 @@
 #include <trc/material/shader/ShaderCodeCompiler.h>
 #include <trc/material/shader/ShaderModuleCompiler.h>
 #include <trc/material/shader/ShaderResourceInterface.h>
-#include <trc/material/ShaderStageInputLinker.h>
+#include <trc/material/shader/ShaderStageInputLinker.h>
 #include <trc/util/TorchDirectories.h>
 #include <trc_util/StringManip.h>
 #include <trc_util/algorithm/VectorTransform.h>
@@ -420,7 +420,7 @@ auto compileMultiShader(
             PartialResult& partial = pair.second;
             return std::make_pair(
                 parser::toVulkanEnum(pair.first),
-                trc::ModuleLinkInfo{
+                trc::shader::ModuleLinkInfo{
                     .builder=&partial.builder,
                     .resources=&partial.builder.getResourceInterface(),
                     .outputs=&partial.outputs
@@ -429,7 +429,7 @@ auto compileMultiShader(
         })
         | std::ranges::to<std::unordered_map>();
 
-    auto linkResult = trc::linkShaderStageInputs(stageLinkInfo);
+    auto linkResult = trc::shader::linkShaderStageInputs(stageLinkInfo);
     if (!linkResult)
     {
         for (const auto& [stage, inputs] : linkResult.error().unresolvedInputs)

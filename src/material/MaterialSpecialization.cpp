@@ -1,9 +1,9 @@
 #include "trc/material/MaterialSpecialization.h"
 
-#include "trc/material/ShaderStageInputLinker.h"
 #include "trc/material/TorchMaterialSettings.h"
 #include "trc/material/VertexShader.h"
 #include "trc/material/shader/ShaderModuleCompiler.h"
+#include "trc/material/shader/ShaderStageInputLinker.h"
 
 
 
@@ -21,9 +21,9 @@ auto makeDeferredMaterialSpecialization(const shader::ShaderModule& fragmentModu
     auto vertOutputs = vertShader.makeOutputs(vertBuilder);
 
     // Link shader inputs/outputs across modules.
-    ModuleLinkInfo vertexLink{ &vertBuilder, &vertBuilder.getResourceInterface(), &vertOutputs };
-    ModuleLinkInfo fragmentLink{ .builder=nullptr, .resources=&fragmentModule, .outputs=nullptr, };
-    auto inputLinkRes = linkShaderStageInputs({
+    shader::ModuleLinkInfo vertexLink{ &vertBuilder, &vertBuilder.getResourceInterface(), &vertOutputs };
+    shader::ModuleLinkInfo fragmentLink{ .builder=nullptr, .resources=&fragmentModule, .outputs=nullptr, };
+    auto inputLinkRes = shader::linkShaderStageInputs({
         { vk::ShaderStageFlagBits::eVertex, vertexLink },
         { vk::ShaderStageFlagBits::eFragment, fragmentLink },
     });

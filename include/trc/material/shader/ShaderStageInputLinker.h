@@ -4,17 +4,14 @@
 #include <unordered_map>
 #include <vector>
 
+#include "ShaderResourceInterface.h"
 #include "trc/Types.h"
 #include "trc/VulkanInclude.h"
-#include "trc/material/shader/ShaderResourceInterface.h"
 
-namespace trc
+namespace trc::shader
 {
-    namespace shader
-    {
-        class ShaderModuleBuilder;
-        class ShaderOutputInterface;
-    }
+    class ShaderModuleBuilder;
+    class ShaderOutputInterface;
 
     /**
      * The result of successful shader stage input linking.

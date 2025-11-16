@@ -13,5 +13,6 @@ target_sources(
         ShaderProgram.cpp
         ShaderResourceInterface.cpp
         ShaderRuntime.cpp
+        ShaderStageInputLinker.cpp
         ShaderTypeChecker.cpp
 )
