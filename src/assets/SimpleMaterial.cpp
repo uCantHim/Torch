@@ -114,18 +114,21 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
         });
     }
 
-    FragmentModule frag;
-    frag.setParameter(FragmentModule::Parameter::eColor,          color);
-    frag.setParameter(FragmentModule::Parameter::eNormal,         normal);
-    frag.setParameter(FragmentModule::Parameter::eSpecularFactor, specularParam);
-    frag.setParameter(FragmentModule::Parameter::eRoughness,      roughnessParam);
-    frag.setParameter(FragmentModule::Parameter::eMetallicness,   metallicnessParam);
-    frag.setParameter(FragmentModule::Parameter::eEmissive,
+    const bool transparent = data.opacity < 1.0f;
+    const FragmentModuleCreateInfo fragConfig{
+        .transparent = transparent,
+    };
+    FragmentModule frag{ fragConfig };
+    frag.setParameter(FragmentModule::Out::color,          color);
+    frag.setParameter(FragmentModule::Out::normal,         normal);
+    frag.setParameter(FragmentModule::Out::specularFactor, specularParam);
+    frag.setParameter(FragmentModule::Out::roughness,      roughnessParam);
+    frag.setParameter(FragmentModule::Out::metallicness,   metallicnessParam);
+    frag.setParameter(FragmentModule::Out::emissive,
                       builder.makeCast<float>(emissiveParam));
 
-    const bool transparent = data.opacity < 1.0f;
     auto res = MaterialData{ MaterialBaseInfo{
-        frag.build(std::move(builder), transparent),
+        frag.build(std::move(builder)),
         transparent
     }};
 

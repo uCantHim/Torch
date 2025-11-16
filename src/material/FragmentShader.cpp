@@ -1,5 +1,6 @@
 #include "trc/material/FragmentShader.h"
 
+#include "trc/material/TorchMaterialSettings.h"
 #include "trc/material/shader/ShaderModuleCompiler.h"
 
 
@@ -7,31 +8,18 @@
 namespace trc
 {
 
-auto to_string(FragmentModule::Parameter param) -> std::string
+FragmentModule::FragmentModule(const FragmentModuleCreateInfo& createInfo)
+    :
+    config(createInfo)
 {
-    switch (param)
-    {
-    case FragmentModule::Parameter::eColor: return "Color";
-    case FragmentModule::Parameter::eNormal: return "Normal";
-    case FragmentModule::Parameter::eSpecularFactor: return "Specular Coefficient";
-    case FragmentModule::Parameter::eRoughness: return "Roughness";
-    case FragmentModule::Parameter::eMetallicness: return "Metallicness";
-    case FragmentModule::Parameter::eEmissive: return "Emissive";
-    };
-
-    throw std::logic_error("Enum `FragmentModule::Parameter` exhausted.");
 }
 
-
-
-void FragmentModule::setParameter(Parameter param, code::Value value)
+auto FragmentModule::makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig>
 {
-    parameters[static_cast<size_t>(param)] = value;
+    return makeFragmentCapabilityConfig();
 }
 
-auto FragmentModule::buildOutputs(
-    shader::ShaderModuleBuilder& builder,
-    bool transparent)
+auto FragmentModule::makeOutputs(shader::ShaderModuleBuilder& builder)
     -> shader::ShaderOutputInterface
 {
     shader::ShaderOutputInterface output;
@@ -40,33 +28,31 @@ auto FragmentModule::buildOutputs(
     fillDefaultValues(builder);
 
     // Cast the emissive value (bool) to float.
-    auto emissiveParam = *parameters[static_cast<size_t>(Parameter::eEmissive)];
-    setParameter(Parameter::eEmissive, builder.makeCast<float>(emissiveParam));
+    auto emissiveParam = builder.makeCast<bool>(getParameterValue(Out::emissive));
+    setParameter(Out::emissive, builder.makeCast<float>(emissiveParam));
 
-    if (!transparent)
+    if (!config.transparent)
     {
-        static constexpr std::array<std::string_view, FragmentModule::kNumParams> paramAccessors{{
-            "", "", "x", "y", "z", "w",
-        }};
-
-        auto storeOutput = [&, this](Parameter param, code::Value out) {
-            const auto index = static_cast<size_t>(param);
-            if (!paramAccessors[index].empty()) {
-                out = builder.makeMemberAccess(out, std::string(paramAccessors[index]));
+        auto storeOutput = [&](OutputParameter param,
+                               shader::code::Value out,
+                               std::string_view accessor="")
+        {
+            if (!accessor.empty()) {
+                out = builder.makeMemberAccess(out, std::string{accessor});
             }
-            output.makeStore(out, getParamValue(param));
+            output.makeStore(out, getParameterValue(param));
         };
 
         auto outNormal = builder.makeOutputLocation(0, vec3{});
         auto outAlbedo = builder.makeOutputLocation(1, vec4{});
         auto outMaterial = builder.makeOutputLocation(2, vec4{});
 
-        storeOutput(Parameter::eColor, outAlbedo);
-        storeOutput(Parameter::eNormal, outNormal);
-        storeOutput(Parameter::eSpecularFactor, outMaterial);
-        storeOutput(Parameter::eMetallicness, outMaterial);
-        storeOutput(Parameter::eRoughness, outMaterial);
-        storeOutput(Parameter::eEmissive, outMaterial);
+        storeOutput(Out::color, outAlbedo);
+        storeOutput(Out::normal, outNormal);
+        storeOutput(Out::specularFactor, outMaterial, "x");
+        storeOutput(Out::roughness,      outMaterial, "y");
+        storeOutput(Out::metallicness,   outMaterial, "z");
+        storeOutput(Out::emissive,       outMaterial, "w");
     }
     else {
         builder.includeCode("material_utils/append_fragment.glsl", {
@@ -82,11 +68,11 @@ auto FragmentModule::buildOutputs(
             { "lightBufferName", FragmentCapability::kLightBuffer },
         });
 
-        auto color = getParamValue(Parameter::eColor);
+        auto color = getParameterValue(Out::color);
         builder.annotateType(color, vec4{});
 
         auto alpha = builder.makeMemberAccess(color, "a");
-        auto doLighting = builder.makeNot(builder.makeCast<bool>(getParamValue(Parameter::eEmissive)));
+        auto doLighting = builder.makeNot(emissiveParam);
         auto isVisible = builder.makeGreaterThan(alpha, builder.makeConstant(0.0f));
         auto cond = builder.makeAnd(isVisible, doLighting);
 
@@ -97,12 +83,12 @@ auto FragmentModule::buildOutputs(
                 builder.makeExternalCall("calcLighting", {
                     builder.makeMemberAccess(color, "xyz"),
                     builder.makeCapabilityAccess(MaterialCapability::kVertexWorldPos),
-                    getParamValue(Parameter::eNormal),
+                    getParameterValue(Out::normal),
                     builder.makeCapabilityAccess(MaterialCapability::kCameraWorldPos),
                     builder.makeExternalCall("MaterialParams", {
-                        getParamValue(Parameter::eSpecularFactor),
-                        getParamValue(Parameter::eRoughness),
-                        getParamValue(Parameter::eMetallicness),
+                        getParameterValue(Out::specularFactor),
+                        getParameterValue(Out::roughness),
+                        getParameterValue(Out::metallicness),
                     })
                 }),
                 builder.makeMemberAccess(color, "a")
@@ -121,40 +107,36 @@ auto FragmentModule::buildOutputs(
     return output;
 }
 
-auto FragmentModule::build(shader::ShaderModuleBuilder builder, bool transparent)
+auto FragmentModule::build(shader::ShaderModuleBuilder builder)
     -> shader::ShaderModule
 {
-    auto outputs = buildOutputs(builder, transparent);
-    return shader::ShaderModuleCompiler{}.compile(
-        std::move(outputs),
-        std::move(builder)
-    );
+    auto outputs = makeOutputs(builder);
+    return shader::ShaderModuleCompiler{}.compile(std::move(outputs), std::move(builder));
 }
 
 auto FragmentModule::buildClosesthitShader(shader::ShaderModuleBuilder builder)
     -> shader::ShaderModule
 {
-    namespace cap = RayHitCapability;
     shader::ShaderOutputInterface out;
 
     fillDefaultValues(builder);
     out.makeStore(
-        builder.makeCapabilityAccess(cap::kOutColor),
+        builder.makeCapabilityAccess(RayHitCapability::kOutColor),
         builder.makeConditional(
-            getParamValue(Parameter::eEmissive),
+            getParameterValue(Out::emissive),
             // Use albedo if the material is emissive
-            getParamValue(Parameter::eColor),
+            getParameterValue(Out::color),
             // Calculate full lighting if not emissive
             builder.makeExternalCall(
                 "calcLighting", {
-                    getParamValue(Parameter::eColor),
+                    getParameterValue(Out::color),
                     builder.makeCapabilityAccess(MaterialCapability::kVertexWorldPos),
-                    getParamValue(Parameter::eNormal),
+                    getParameterValue(Out::normal),
                     builder.makeCapabilityAccess(MaterialCapability::kCameraWorldPos),
                     builder.makeExternalCall("MaterialParams", {
-                        getParamValue(Parameter::eSpecularFactor),
-                        getParamValue(Parameter::eRoughness),
-                        getParamValue(Parameter::eMetallicness),
+                        getParameterValue(Out::specularFactor),
+                        getParameterValue(Out::roughness),
+                        getParameterValue(Out::metallicness),
                     })
                 }
             )
@@ -164,34 +146,20 @@ auto FragmentModule::buildClosesthitShader(shader::ShaderModuleBuilder builder)
     return shader::ShaderModuleCompiler{}.compile(out, std::move(builder));
 }
 
-auto FragmentModule::getParamValue(Parameter param) -> code::Value
-{
-    const auto index = static_cast<size_t>(param);
-    if (!parameters[index].has_value())
-    {
-        throw std::invalid_argument(
-            "[In FragmentShader::build]: A transparent material requires a value for the "
-            + to_string(param) + " parameter, but none was specified.");
-    }
-
-    return parameters[index].value();
-}
-
 void FragmentModule::fillDefaultValues(shader::ShaderModuleBuilder& builder)
 {
-    auto tryFill = [&](Parameter param, shader::Constant constant) {
-        const auto index = static_cast<size_t>(param);
-        if (!parameters[index]) {
-            parameters[index] = builder.makeConstant(constant);
+    auto tryFill = [&](OutputParameter param, shader::Constant constant) {
+        if (!tryGetParameterValue(param)) {
+            setParameter(param, builder.makeConstant(constant));
         }
     };
 
-    tryFill(Parameter::eColor,          vec4(1.0f));
-    tryFill(Parameter::eNormal,         vec3(0, 0, 1));
-    tryFill(Parameter::eSpecularFactor, 1.0f);
-    tryFill(Parameter::eMetallicness,   0.0f);
-    tryFill(Parameter::eRoughness,      1.0f);
-    tryFill(Parameter::eEmissive,       false);
+    tryFill(Out::color,          vec4(1.0f));
+    tryFill(Out::normal,         vec3(0, 0, 1));
+    tryFill(Out::specularFactor, 1.0f);
+    tryFill(Out::metallicness,   0.0f);
+    tryFill(Out::roughness,      1.0f);
+    tryFill(Out::emissive,       false);
 }
 
 } // namespace trc

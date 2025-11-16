@@ -1,7 +1,9 @@
 #include "trc/material/MaterialSpecialization.h"
 
+#include "trc/material/ShaderStageInputLinker.h"
 #include "trc/material/TorchMaterialSettings.h"
 #include "trc/material/VertexShader.h"
+#include "trc/material/shader/ShaderModuleCompiler.h"
 
 
 
@@ -12,13 +14,46 @@ auto makeDeferredMaterialSpecialization(const shader::ShaderModule& fragmentModu
                                         const MaterialSpecializationInfo& info)
     -> shader::ShaderProgramData
 {
-    auto vertexModule = VertexModule{ {.animated=info.animated} }.build(fragmentModule);
+    // Create the corresponding vertex shader module.
+    VertexModuleCreateInfo vertConfig{ .animated=info.animated };
+    VertexModule vertShader{ vertConfig };
+    shader::ShaderModuleBuilder vertBuilder{ vertShader.makeCapabilityConfig() };
+    auto vertOutputs = vertShader.makeOutputs(vertBuilder);
+
+    // Link shader inputs/outputs across modules.
+    ModuleLinkInfo vertexLink{ &vertBuilder, &vertBuilder.getResourceInterface(), &vertOutputs };
+    ModuleLinkInfo fragmentLink{ .builder=nullptr, .resources=&fragmentModule, .outputs=nullptr, };
+    auto inputLinkRes = linkShaderStageInputs({
+        { vk::ShaderStageFlagBits::eVertex, vertexLink },
+        { vk::ShaderStageFlagBits::eFragment, fragmentLink },
+    });
+    if (!inputLinkRes)
+    {
+        auto& err = inputLinkRes.error();
+        throw std::runtime_error("[In makeDeferredMaterialSpecialization] Unable to link shader"
+                                 " stage inputs: Shader stage "
+                                 + vk::to_string(err.unresolvedInputs.begin()->first)
+                                 + " has unresolved capabilities.");
+    }
+
+    // Build the vertex module now that all outputs required by the fragment
+    // shader have been requested.
+    //
+    // We can take the fragment module as a fully built module because its
+    // outputs are never modified by the shader stage input linker.
+    auto vertexModule = shader::ShaderModuleCompiler{}.compile(vertOutputs, vertBuilder);
+
+    // Configure shader program linking.
+    auto programLinkSettings = makeProgramLinkerSettings();
+    programLinkSettings.inputLocationMapping = inputLinkRes->locationMap;
+
+    // Link the shader stages to a program.
     auto prog = shader::linkShaderProgram(
         {
             { vk::ShaderStageFlagBits::eVertex,   std::move(vertexModule) },
             { vk::ShaderStageFlagBits::eFragment, fragmentModule },
         },
-        makeProgramLinkerSettings()
+        programLinkSettings
     );
 
     if (!prog) {

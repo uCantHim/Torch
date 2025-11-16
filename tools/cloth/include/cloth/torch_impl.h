@@ -20,9 +20,11 @@ namespace cloth
             return trc::makeFragmentCapabilityConfig();
         }
 
-        auto makeOutputConfig() -> std::unique_ptr<cloth::ShaderOutputImpl> override
+        auto makeOutputConfig() -> std::unique_ptr<trc::MaterialShaderImpl> override
         {
-            return std::make_unique<DeferredFragmentShaderImpl>();
+            return std::make_unique<trc::FragmentModule>(trc::FragmentModuleCreateInfo{
+                .transparent=false,
+            });
         }
 
         auto getBuiltins() -> BuiltinProvider& override
@@ -30,35 +32,22 @@ namespace cloth
             return builtins;
         }
 
-        struct DeferredFragmentShaderImpl : cloth::ShaderOutputImpl
+        auto outputBuiltinToParameter(const FullId& out)
+            -> std::optional<trc::MaterialShaderImpl::OutputParameter> override
         {
-            void setParameter(const std::string& outputName,
-                              trc::shader::code::Value value) override
-            {
-                using Param = trc::FragmentModule::Parameter;
-                static const std::unordered_map<std::string, Param> map{
-                    { "color", Param::eColor },
-                    { "normal", Param::eNormal },
-                    { "specularFactor", Param::eSpecularFactor },
-                    { "metallicness", Param::eMetallicness },
-                    { "roughness", Param::eRoughness },
-                    { "emissive", Param::eEmissive },
-                };
-
-                if (map.contains(outputName)) {
-                    frag.setParameter(map.at(outputName), value);
-                }
+            static std::unordered_map<std::string, trc::MaterialShaderImpl::OutputParameter> map{
+                { "color",          trc::FragmentModule::Out::color },
+                { "normal",         trc::FragmentModule::Out::normal },
+                { "specularFactor", trc::FragmentModule::Out::specularFactor },
+                { "roughness",      trc::FragmentModule::Out::roughness },
+                { "metallicness",   trc::FragmentModule::Out::metallicness },
+                { "emissive",       trc::FragmentModule::Out::emissive },
+            };
+            if (map.contains(out.name)) {
+                return map.at(out.name);
             }
-
-            auto buildShaderOutputs(trc::shader::ShaderModuleBuilder& builder)
-                -> trc::shader::ShaderOutputInterface override
-            {
-                const bool transparent = false;
-                return frag.buildOutputs(builder, transparent);
-            }
-
-            trc::FragmentModule frag;
-        };
+            return std::nullopt;
+        }
 
         BuiltinProvider builtins = makeFragmentBuiltinProvider();
     };
@@ -75,9 +64,9 @@ namespace cloth
             return trc::VertexModule::makeCapabilityConfig({ .animated=animated });
         }
 
-        auto makeOutputConfig() -> std::unique_ptr<cloth::ShaderOutputImpl> override
+        auto makeOutputConfig() -> std::unique_ptr<trc::MaterialShaderImpl> override
         {
-            return std::make_unique<ShaderImpl>(trc::VertexModuleCreateInfo{
+            return std::make_unique<trc::VertexModule>(trc::VertexModuleCreateInfo{
                 .animated=animated
             });
         }
@@ -87,35 +76,14 @@ namespace cloth
             return builtins;
         }
 
-        struct ShaderImpl : cloth::ShaderOutputImpl
+        auto outputBuiltinToParameter(const FullId& out)
+            -> std::optional<trc::MaterialShaderImpl::OutputParameter> override
         {
-            void setParameter(const std::string& outputName,
-                              trc::shader::code::Value value) override
-            {
-                using Param = trc::FragmentModule::Parameter;
-                static const std::unordered_map<std::string, Param> map{
-                    { "position", Param::eColor },
-                    { "normal", Param::eNormal },
-                };
-
-                std::cout << "-- Vertex shader impl: Setting parameter \"" << outputName << "\".\n";
-                //if (map.contains(outputName)) {
-                //    frag.setParameter(map.at(outputName), value);
-                //}
+            if (out.name == "position") {
+                return trc::VertexModule::Out::vertexPosition;
             }
-
-            auto buildShaderOutputs(trc::shader::ShaderModuleBuilder& builder)
-                -> trc::shader::ShaderOutputInterface override
-            {
-                return vert.buildOutputs(builder, {});
-            }
-
-            explicit ShaderImpl(const trc::VertexModuleCreateInfo& conf)
-                : vert(conf)
-            {}
-
-            trc::VertexModule vert;
-        };
+            return std::nullopt;
+        }
 
         BuiltinProvider builtins = makeVertexBuiltinProvider();
         const bool animated;

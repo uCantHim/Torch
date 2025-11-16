@@ -158,6 +158,13 @@ struct PartialResult
 auto compilePartial(const parser::Result& parseResult, BackendConfig& impl)
     -> std::expected<PartialResult, CompileError>
 {
+    auto makeError = [&](parser::Location loc, std::string msg) {
+        return std::unexpected(CompileError{
+            .errors{ parser::Error{ loc, std::move(msg) } },
+            .initialDocumentLines=parseResult.lines,
+        });
+    };
+
     Document doc{ parseResult };
     trc::shader::ShaderModuleBuilder moduleBuilder{ impl.makeCapabilityConfig() };
 
@@ -184,14 +191,9 @@ auto compilePartial(const parser::Result& parseResult, BackendConfig& impl)
             declCode.emplace_back(var->location, std::move(decl));
         }
         catch (const std::exception& err) {
-            return std::unexpected(CompileError{
-                .errors{ parser::Error{
-                    var->location,
-                    std::format("Unable to generate code for variable \"{}\": {}",
-                                var->id.id, err.what())
-                } },
-                .initialDocumentLines=parseResult.lines,
-            });
+            return makeError(var->location,
+                             std::format("Unable to generate code for variable \"{}\": {}",
+                                         var->id.id, err.what()));
         }
     }
 
@@ -230,9 +232,18 @@ auto compilePartial(const parser::Result& parseResult, BackendConfig& impl)
     for (const auto& var : outputVariables)
     {
         auto id = moduleBuilder.makeExternalIdentifier(shaderId.at(var->location));
-        outputConfig->setParameter(var->id.name, id);
+        auto outParam = impl.outputBuiltinToParameter(var->id);
+        if (!outParam)
+        {
+            return makeError(
+                var->location,
+                std::format("Cloth built-in \"{}\" is not defined as a shader output.", var->id.id)
+            );
+        }
+
+        outputConfig->setParameter(*outParam, id);
     }
-    auto shaderOutputs = outputConfig->buildShaderOutputs(moduleBuilder);
+    auto shaderOutputs = outputConfig->makeOutputs(moduleBuilder);
 
     // Create result
     return PartialResult{
@@ -406,10 +417,14 @@ auto compileMultiShader(
     // Link shader stage inputs/outputs
     auto stageLinkInfo = partialStages
         | std::views::transform([](auto& pair) {
-            auto& partial = pair.second;
+            PartialResult& partial = pair.second;
             return std::make_pair(
                 parser::toVulkanEnum(pair.first),
-                trc::ModuleLinkInfo{ .builder=&partial.builder, .outputs=&partial.outputs }
+                trc::ModuleLinkInfo{
+                    .builder=&partial.builder,
+                    .resources=&partial.builder.getResourceInterface(),
+                    .outputs=&partial.outputs
+                }
             );
         })
         | std::ranges::to<std::unordered_map>();

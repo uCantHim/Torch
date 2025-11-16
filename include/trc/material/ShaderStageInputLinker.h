@@ -49,8 +49,51 @@ namespace trc
      */
     struct ModuleLinkInfo
     {
+        /**
+         * The builder that is used to build the shader module.
+         *
+         * Used by the input linker algorithm to create output locations and
+         * their corresponding values.
+         *
+         * Can be `nullptr` only for the last shader stage in pipeline order
+         * (usually the fragment stage).
+         */
         shader::ShaderModuleBuilder* builder;
+
+        /**
+         * The module's required resources.
+         *
+         * Used to determine which capabilities are requested as inputs from
+         * earlier shader stages.
+         *
+         * This is usually just `builder.getResourceInterface()`. Can be
+         * `nullptr` only for the first shader stage in pipeline order (usually
+         * the vertex stage).
+         */
+        const shader::ShaderResourceInterface* resources;
+
+        /**
+         * The module's output interface.
+         *
+         * Used to create writes to output locations.
+         *
+         * Can be `nullptr` only for the last shader stage in pipeline order
+         * (usually the fragment stage).
+         */
         shader::ShaderOutputInterface* outputs;
+
+        /**
+         * The first input location that can be used to take data from previous
+         * shader stages. Set this to the first input location that is not used
+         * by the shader module.
+         */
+        ui32 nextInputLocation = 0;
+
+        /**
+         * The first output location that can be used to pass data to later
+         * shader stages. Set this to the first output location that is not used
+         * by the shader module.
+         */
         ui32 nextOutputLocation = 0;
     };
 

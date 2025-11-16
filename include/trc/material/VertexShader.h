@@ -1,8 +1,8 @@
 #pragma once
 
+#include "trc/material/MaterialShaderImpl.h"
 #include "trc/material/shader/Capability.h"
 #include "trc/material/shader/ShaderModuleBuilder.h"
-#include "trc/material/shader/ShaderModule.h"
 #include "trc/material/shader/ShaderOutputInterface.h"
 
 namespace trc
@@ -45,16 +45,24 @@ namespace trc
         bool animated{ false };
     };
 
-    class VertexModule
+    class VertexModule : public MaterialShaderImpl
     {
     public:
-        explicit VertexModule(const VertexModuleCreateInfo& createInfo);
+        // Built-in outputs of the vertex module.
+        struct Out
+        {
+            static constexpr OutputParameter vertexPosition{ "trc_vert_glPosition" };
+        };
 
-        auto buildOutputs(shader::ShaderModuleBuilder& builder,
-                          const std::vector<trc::shader::ShaderResourceInterface::ShaderInputInfo>& requiredOutputs)
-            -> shader::ShaderOutputInterface;
+        explicit
+        VertexModule(const VertexModuleCreateInfo& createInfo);
 
-        auto build(const shader::ShaderModule& fragment) && -> shader::ShaderModule;
+        auto makeOutputs(shader::ShaderModuleBuilder& builder)
+            -> shader::ShaderOutputInterface override;
+
+        auto makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig> override {
+            return makeCapabilityConfig(config);
+        }
 
         static auto makeCapabilityConfig(const VertexModuleCreateInfo& config)
             -> u_ptr<shader::CapabilityConfig>;
@@ -66,8 +74,8 @@ namespace trc
         static auto makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
 
         /**
-         * Create a module builder with a capability config that defines the
-         * MaterialCapabilities that the vertex shader can implement as outputs.
+         * Declare internal capabilities as well as public capabilities that
+         * define vertex shader outputs.
          */
         static auto makeCapabilityConfigWithOutputs(const VertexModuleCreateInfo& createInfo)
             -> u_ptr<shader::CapabilityConfig>;
@@ -79,6 +87,6 @@ namespace trc
          */
         static auto __makeVertexInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig>;
 
-        const VertexModuleCreateInfo config;
+        VertexModuleCreateInfo config;
     };
 } // namespace trc

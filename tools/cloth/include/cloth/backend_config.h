@@ -2,26 +2,13 @@
 
 #include <memory>
 
-#include <trc/material/shader/CapabilityConfig.h>
-#include <trc/material/shader/ShaderModuleBuilder.h>
-#include <trc/material/shader/ShaderOutputInterface.h>
+#include <trc/material/MaterialShaderImpl.h>
+
+#include "full_id.h"
 
 namespace cloth
 {
     class BuiltinProvider;
-
-    /**
-     * Implements shader outputs in the form of semantical parameters for an
-     * engine backend.
-     */
-    struct ShaderOutputImpl
-    {
-        virtual ~ShaderOutputImpl() noexcept = default;
-
-        virtual void setParameter(const std::string& param, trc::shader::code::Value value) = 0;
-        virtual auto buildShaderOutputs(trc::shader::ShaderModuleBuilder& builder)
-            -> trc::shader::ShaderOutputInterface = 0;
-    };
 
     class BackendConfig
     {
@@ -29,7 +16,10 @@ namespace cloth
         virtual ~BackendConfig() noexcept = default;
 
         virtual auto getBuiltins() -> BuiltinProvider& = 0;
+        virtual auto outputBuiltinToParameter(const FullId& out)
+            -> std::optional<trc::MaterialShaderImpl::OutputParameter> = 0;
+
         virtual auto makeCapabilityConfig() -> std::unique_ptr<trc::shader::CapabilityConfig> = 0;
-        virtual auto makeOutputConfig() -> std::unique_ptr<ShaderOutputImpl> = 0;
+        virtual auto makeOutputConfig() -> std::unique_ptr<trc::MaterialShaderImpl> = 0;
     };
 } // namespace cloth

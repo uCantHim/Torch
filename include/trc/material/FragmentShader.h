@@ -1,9 +1,6 @@
 #pragma once
 
-#include <array>
-#include <optional>
-
-#include "trc/material/TorchMaterialSettings.h"
+#include "trc/material/MaterialShaderImpl.h"
 #include "trc/material/shader/Capability.h"
 #include "trc/material/shader/ShaderModule.h"
 #include "trc/material/shader/ShaderModuleBuilder.h"
@@ -11,8 +8,6 @@
 
 namespace trc
 {
-    namespace code = shader::code;
-
     /**
      * A collection of capabilities intended to be used by shader code
      * implementing material calculations: 'user code' if you will.
@@ -64,6 +59,11 @@ namespace trc
         inline const shader::Capability kOutColor{ "rcall_colorOutput" };
     } // namespace RayHitCapability
 
+    struct FragmentModuleCreateInfo
+    {
+        bool transparent{ false };
+    };
+
     /**
      * @brief Torch's implementation of a configurable fragment shader
      *
@@ -80,42 +80,34 @@ namespace trc
      * ShaderModuleBuilder builder{ myConfig };
      * FragmentModule frag;
      * frag.setParameter(
-     *     FragmentModule::Parameter::eColor,
+     *     FragmentModule::Out::color,
      *     builder.makeConstant(vec4{ 1, 0.5, 0, 1.0f })
      * );
      *
      * auto shaderModule = frag.build(std::move(builder), false);
      * ```
      */
-    class FragmentModule
+    class FragmentModule : public MaterialShaderImpl
     {
     public:
-        static constexpr size_t kNumParams{ 6 };
-
-        enum class Parameter : size_t
+        // Built-in outputs of the fragment module.
+        struct Out
         {
-            eColor,
-            eNormal,
-            eSpecularFactor,
-            eRoughness,
-            eMetallicness,
-            eEmissive,
+            static constexpr OutputParameter color{ "trc_frag_color" };
+            static constexpr OutputParameter normal{ "trc_frag_normal" };
+            static constexpr OutputParameter specularFactor{ "trc_frag_specularFactor" };
+            static constexpr OutputParameter roughness{ "trc_frag_roughness" };
+            static constexpr OutputParameter metallicness{ "trc_frag_metallicness" };
+            static constexpr OutputParameter emissive{ "trc_frag_emissive" };
         };
 
-        FragmentModule() = default;
+        explicit
+        FragmentModule(const FragmentModuleCreateInfo& createInfo);
 
-        /**
-         * @brief Set a value for one of the module's output parameters
-         *
-         * @param Parameter param   The parameter for which to set a value.
-         * @param code::Value value A shader code expression that calculates a
-         *                          value for `param`.
-         */
-        void setParameter(Parameter param, code::Value value);
+        auto makeCapabilityConfig() -> u_ptr<shader::CapabilityConfig> override;
 
-        auto buildOutputs(shader::ShaderModuleBuilder& builder,
-                          bool transparent)
-            -> shader::ShaderOutputInterface;
+        auto makeOutputs(shader::ShaderModuleBuilder& builder)
+            -> shader::ShaderOutputInterface override;
 
         /**
          * @brief Compile the module description to a fragment shader module
@@ -130,7 +122,7 @@ namespace trc
          * @throw std::invalid_argument if a required parameter has not been set
          *                              beforehand.
          */
-        auto build(shader::ShaderModuleBuilder moduleCode, bool transparent)
+        auto build(shader::ShaderModuleBuilder moduleCode)
             -> shader::ShaderModule;
 
         /**
@@ -143,11 +135,8 @@ namespace trc
         auto buildClosesthitShader(shader::ShaderModuleBuilder builder) -> shader::ShaderModule;
 
     private:
-        /** @throw std::invalid_argument */
-        auto getParamValue(Parameter param) -> code::Value;
-
         void fillDefaultValues(shader::ShaderModuleBuilder& builder);
 
-        std::array<std::optional<code::Value>, kNumParams> parameters;
+        FragmentModuleCreateInfo config;
     };
 } // namespace trc

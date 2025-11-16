@@ -5,7 +5,6 @@
 
 #include "trc/AssetDescriptor.h"
 #include "trc/material/FragmentShader.h"
-#include "trc/material/shader/ShaderModuleCompiler.h"
 
 
 
@@ -14,8 +13,8 @@ namespace trc
 
 using shader::FunctionType;
 using shader::ShaderFunction;
-using shader::ShaderModuleCompiler;
 using shader::ShaderOutputInterface;
+namespace code = shader::code;
 
 class GlPosition : public ShaderFunction
 {
@@ -90,45 +89,29 @@ VertexModule::VertexModule(const VertexModuleCreateInfo& createInfo)
 {
 }
 
-auto VertexModule::buildOutputs(
-    shader::ShaderModuleBuilder& builder,
-    const std::vector<trc::shader::ShaderResourceInterface::ShaderInputInfo>& requiredOutputs)
+auto VertexModule::makeOutputs(shader::ShaderModuleBuilder& builder)
     -> shader::ShaderOutputInterface
 {
-    ShaderOutputInterface shaderOutput;
-    for (const auto& out : requiredOutputs)
-    {
-        auto loc = builder.makeOutputLocation(out.location, out.type);
+    ShaderOutputInterface outputs;
 
-        try {
-            auto outputValue = builder.makeCapabilityAccess(out.capability);
-            shaderOutput.makeStore(loc, outputValue);
-        }
-        catch (const std::out_of_range&)
-        {
-            log::warn << "[VertexModule]: Fragment capability"
-                      << " \"" << out.capability.toString() << "\" is requested as a"
-                      << " vertex stage output, but is not implemented by this stage.";
-        }
+    // Process gl_Position output
+    if (auto pos = tryGetParameterValue(Out::vertexPosition))
+    {
+        // Cast to vec4
+        auto val = builder.makeConstructor<vec4>(builder.makeCast<vec3>(*pos),
+                                                 builder.makeConstant(1.0f));
+        outputs.makeStore(builder.makeExternalIdentifier("gl_Position"), val);
+    }
+    else {
+        outputs.makeStore(
+            builder.makeExternalIdentifier("gl_Position"),
+            builder.makeCall<GlPosition>(
+                { builder.makeCapabilityAccess(MaterialCapability::kVertexWorldPos) }
+            )
+        );
     }
 
-    // Always add the built-in gl_Position output
-    shaderOutput.makeStore(
-        builder.makeExternalIdentifier("gl_Position"),
-        builder.makeCall<GlPosition>(
-            { builder.makeCapabilityAccess(MaterialCapability::kVertexWorldPos) }
-        )
-    );
-
-    return shaderOutput;
-}
-
-auto VertexModule::build(const shader::ShaderModule& fragment) && -> shader::ShaderModule
-{
-    shader::ShaderModuleBuilder builder{ makeCapabilityConfig(config) };
-
-    auto outputs = buildOutputs(builder, fragment.getRequiredShaderInputs());
-    return ShaderModuleCompiler{}.compile(outputs, std::move(builder));
+    return outputs;
 }
 
 auto VertexModule::makeCapabilityConfig(const VertexModuleCreateInfo& createInfo)
@@ -294,7 +277,6 @@ auto VertexModule::makeCapabilityConfigWithOutputs(const VertexModuleCreateInfo&
             return ctx.builder.makeCapabilityAccess(VertexCapability::kUV);
         }
     );
-    caps->linkCapability(MaterialCapability::kVertexNormal, makeTbn);
 
     return caps;
 }

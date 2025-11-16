@@ -1,9 +1,9 @@
 #include "trc/material/ShaderStageInputLinker.h"
 
-#include <cassert>
-
 #include <algorithm>
 #include <ranges>
+
+#include <trc_util/Assert.h>
 
 #include "trc/material/shader/ShaderModuleBuilder.h"
 #include "trc/material/shader/ShaderOutputInterface.h"
@@ -37,31 +37,34 @@ auto linkShaderStageInputs(
     for (int i = stages.size() - 1; i >= 0; --i)
     {
         auto [curStage, curModule] = stages[i];
-        assert(curModule.builder != nullptr);
+        assert_arg(curModule.resources != nullptr);
 
         if (i > 0)
         {
             // Add the current stage's inputs to the list of required inputs
-            remainingInputs.try_emplace(
-                curStage,
-                curModule.builder->getResourceInterface().getRequiredShaderInputs());
+            remainingInputs.try_emplace(curStage, curModule.resources->getRequiredShaderInputs());
 
             // Try to get the required shader inputs from the preceding stage
             auto [prevStage, prevModule] = stages[i - 1];
-            assert(prevModule.builder != nullptr);
-            assert(prevModule.outputs != nullptr);
             for (auto& [inputStage, requiredInputs] : remainingInputs)
             {
                 for (auto it = requiredInputs.begin(); it != requiredInputs.end(); /*nothing*/)
                 {
                     const auto& reqInput = *it;
-                    const ui32 locIdx = prevModule.nextOutputLocation++;
+                    const ui32 locIdx = glm::max(prevModule.nextOutputLocation, curModule.nextInputLocation);
                     try {
+                        assert_arg(prevModule.builder != nullptr);
+                        assert_arg(prevModule.outputs != nullptr);
                         auto capValue = prevModule.builder->makeCapabilityAccess(reqInput.capability);
                         auto location = prevModule.builder->makeOutputLocation(locIdx, reqInput.type);
                         prevModule.outputs->makeStore(location, capValue);
+
+                        curModule.nextInputLocation = locIdx + reqInput.type.locations();
+                        prevModule.nextOutputLocation = locIdx + reqInput.type.locations();
                     }
                     catch (const std::out_of_range&) {
+                        // The requested capability is not provided by the
+                        // previous shader stage.
                         ++it;
                         continue;
                     }

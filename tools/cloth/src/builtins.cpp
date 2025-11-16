@@ -7,8 +7,9 @@
 #include <unordered_map>
 
 #include <trc/material/FragmentShader.h>
-#include <trc/material/VertexShader.h>
 #include <trc/material/ShaderFunctions.h>
+#include <trc/material/TorchMaterialSettings.h>
+#include <trc/material/VertexShader.h>
 
 
 

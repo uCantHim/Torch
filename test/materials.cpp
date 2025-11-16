@@ -33,7 +33,8 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     AssetReference<Texture> normalMap(stonePath);
 
     // Build a material graph
-    auto buildShader = [tex, normalMap](shader::ShaderModuleBuilder& builder)
+    auto buildShader = [tex, normalMap](shader::ShaderModuleBuilder& builder,
+                                        FragmentModuleCreateInfo createInfo)
     {
         auto uvs = builder.makeCapabilityAccess(MaterialCapability::kVertexUV);
         auto texColor = builder.makeCall<TextureSample>({
@@ -62,13 +63,13 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
         );
         auto normal = builder.makeCall<TangentToWorldspace>({ sampledNormal });
 
-        using Param = FragmentModule::Parameter;
-        FragmentModule fragmentModule;
-        fragmentModule.setParameter(Param::eColor, mix);
-        fragmentModule.setParameter(Param::eNormal, normal);
-        fragmentModule.setParameter(Param::eSpecularFactor, builder.makeConstant(1.0f));
-        fragmentModule.setParameter(Param::eMetallicness, builder.makeConstant(0.0f));
-        fragmentModule.setParameter(Param::eRoughness, builder.makeConstant(0.4f));
+        using Param = FragmentModule::Out;
+        FragmentModule fragmentModule{ createInfo };
+        fragmentModule.setParameter(Param::color, mix);
+        fragmentModule.setParameter(Param::normal, normal);
+        fragmentModule.setParameter(Param::specularFactor, builder.makeConstant(1.0f));
+        fragmentModule.setParameter(Param::metallicness, builder.makeConstant(0.0f));
+        fragmentModule.setParameter(Param::roughness, builder.makeConstant(0.4f));
 
         return fragmentModule;
     };
@@ -76,10 +77,14 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     trc::shader::ShaderModuleBuilder fragmentBuilder{ makeFragmentCapabilityConfig() };
     trc::shader::ShaderModuleBuilder closestHitBuilder{ makeRayHitCapabilityConfig() };
 
+    FragmentModuleCreateInfo fragmentConfig{
+        .transparent=true,
+    };
+
     // Build the corresponding closest hit module, just for fun
     {
         Timer timer;
-        auto closestHitModule = buildShader(closestHitBuilder);
+        auto closestHitModule = buildShader(closestHitBuilder, fragmentConfig);
         closestHitModule.buildClosesthitShader(closestHitBuilder);
         const auto time = timer.reset();
         std::cout << "--- Also generated a closest hit shader for the material"
@@ -87,9 +92,8 @@ auto createMaterial(AssetManager& assetManager) -> MaterialData
     }
 
     // Create a pipeline
-    const bool transparent{ true };
-    auto fragmentModule = buildShader(fragmentBuilder);
-    MaterialData materialData{ {fragmentModule.build(std::move(fragmentBuilder), transparent), transparent} };
+    auto fragmentModule = buildShader(fragmentBuilder, fragmentConfig);
+    MaterialData materialData{ {fragmentModule.build(std::move(fragmentBuilder)), fragmentConfig.transparent} };
 
     return materialData;
 }
