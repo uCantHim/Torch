@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -141,6 +142,14 @@ namespace trc::shader
         auto getResourceInterface() const -> const ShaderResourceInterface&;
 
         /**
+         * @return An ordered list of all output locations currently in use.
+         *         Types that occupy multiple locations  will generate a
+         *         separate entry for each of them (example: A `mat4` at
+         *         location 0 will generate the array `{ 0, 1, 2, 3 }`).
+         */
+        auto getUsedOutputLocations() const -> std::vector<ui32>;
+
+        /**
          * @brief Generate included code by reading included files.
          *
          * Search for included files, apply variable replacement to their
@@ -177,8 +186,13 @@ namespace trc::shader
         s_ptr<const CapabilityConfig> capabilities;
         Settings shaderSettings;
 
-        /** Maps [location -> { type, name }] */
-        std::unordered_map<ui32, std::pair<BasicType, std::string>> outputLocations;
+        /**
+         * Maps [location -> { type, name }]
+         *
+         * We use a sorted map for `getUsedOutputLocations`, which returns a
+         * sorted list of all locations.
+         */
+        std::map<ui32, std::pair<BasicType, std::string>> outputLocations;
 
         // Keep the includes in insertion order
         std::vector<

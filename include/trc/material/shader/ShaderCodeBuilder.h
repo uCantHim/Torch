@@ -9,7 +9,6 @@
 
 #include "CodePrimitives.h"
 #include "Constant.h"
-#include "trc/Types.h"
 
 namespace trc::shader
 {

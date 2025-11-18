@@ -108,7 +108,6 @@ int main()
     auto [tmpl, rp] = trc::PipelineRegistry::cloneGraphicsPipeline(
         trc::pipelines::getDrawableBasePipeline(trc::pipelines::DrawableBasePipelineTypeFlags{})
     );
-    //trc::PipelineDefinitionData pipeline;
     auto matProg = trc::makeMaterialProgram(program, tmpl.getPipelineData(), rp);
     if (!matProg)
     {

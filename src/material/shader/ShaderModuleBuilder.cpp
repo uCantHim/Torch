@@ -119,6 +119,26 @@ auto ShaderModuleBuilder::getResourceInterface() const -> const ShaderResourceIn
     return *inputResourcesBuilder.getResourceInterface();
 }
 
+auto ShaderModuleBuilder::getUsedOutputLocations() const -> std::vector<ui32>
+{
+    std::vector<ui32> res;
+    for (const auto& [loc, pair] : outputLocations)
+    {
+        const BasicType& t = pair.first;
+        for (ui32 i = loc; i < loc + t.locations(); ++i)
+        {
+            // Ensure that locations are unique in the result array. This is
+            // necessary because nothing prevents the user to create overlapping
+            // ranges of output locations.
+            if (res.empty() || i > res.back()) {
+                res.emplace_back(i);
+            }
+        }
+    }
+
+    return res;
+}
+
 auto ShaderModuleBuilder::compileInputResources() const -> std::string
 {
     return inputResourcesBuilder.compile();
