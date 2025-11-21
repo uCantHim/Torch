@@ -68,8 +68,8 @@ auto makeMaterial(const SimpleMaterialData& data) -> MaterialData
         }
     );
     auto pc = capabilities->addResource(shader::CapabilityConfig::PushConstant{
-        pcStructType,
         DrawablePushConstIndex::eMaterialData,
+        pcStructType,
     });
     capabilities->linkCapability(kCapCurrentMat, pc);
 

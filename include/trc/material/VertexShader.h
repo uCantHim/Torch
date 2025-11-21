@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string_view>
+using namespace std::string_view_literals;
+
 #include "trc/material/MaterialShaderImpl.h"
 #include "trc/material/shader/Capability.h"
 #include "trc/material/shader/ShaderModuleBuilder.h"
@@ -33,11 +36,11 @@ namespace trc
         inline const Capability kAnimDataBuffer{ "vert_animDataBuffer" };
     };
 
-    enum DrawablePushConstIndex : ui32
+    namespace DrawablePushConstIndex
     {
-        eMaterialData,
-        eModelMatrix,
-        eAnimationData,
+        constexpr auto eMaterialData = "trc:pc:material_data"sv;
+        constexpr auto eModelMatrix = "trc:pc:model_matrix"sv;
+        constexpr auto eAnimationData = "trc:pc:anim_data"sv;
     };
 
     struct VertexModuleCreateInfo

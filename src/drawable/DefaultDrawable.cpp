@@ -29,29 +29,44 @@ auto DrawablePipelineInfo::determineShadowPipeline() const -> Pipeline::ID
     return pipelines::getDrawableShadowPipeline(toPipelineFlags());
 }
 
-auto makeGBufferDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> DrawableFunction
+struct GBufferDrawFunction
 {
-    return [drawInfo](const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
+    s_ptr<DrawableRasterDrawInfo> drawInfo;
+    shader::PushConstant modelMatrix;
+    std::optional<shader::PushConstant> animationData;
+
+    GBufferDrawFunction(const s_ptr<DrawableRasterDrawInfo>& info)
+        :
+        drawInfo(info),
+        modelMatrix(info->matRuntime->getPushConstantHandle(DrawablePushConstIndex::eModelMatrix)),
+        animationData(
+            info->matRuntime->tryGetPushConstantHandle(DrawablePushConstIndex::eAnimationData))
+    {}
+
+    void operator()(const DrawEnvironment& env, vk::CommandBuffer cmdBuf)
     {
         auto layout = *env.currentPipeline->getLayout();
-        auto& material = drawInfo->matRuntime;
-        material->pushConstants(cmdBuf, layout, DrawablePushConstIndex::eModelMatrix,
-                               drawInfo->modelMatrixId.get());
+        auto& shader = drawInfo->matRuntime;
 
-        const bool animated = drawInfo->anim != AnimationEngine::ID::NONE;
-        if (animated)
+        shader->uploadPushConstantDefaultValues(cmdBuf, layout);
+        shader->pushConstants(cmdBuf, layout,
+                              modelMatrix,
+                              drawInfo->modelMatrixId.get());
+        if (animationData)
         {
-            material->pushConstants(
-                cmdBuf, layout, DrawablePushConstIndex::eAnimationData,
-                drawInfo->anim.get()
-            );
+            assert(drawInfo->anim != AnimationEngine::ID::NONE);
+            shader->pushConstants(cmdBuf, layout, *animationData, drawInfo->anim.get());
         }
-        material->uploadPushConstantDefaultValues(cmdBuf, layout);
 
         drawInfo->geo.bindVertices(cmdBuf, 0);
         cmdBuf.setPrimitiveTopology(drawInfo->geo.getPrimitiveTopology());
         cmdBuf.drawIndexed(drawInfo->geo.getIndexCount(), 1, 0, 0, 0);
-    };
+    }
+};
+
+auto makeGBufferDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> DrawableFunction
+{
+    return GBufferDrawFunction{ drawInfo };
 }
 
 auto makeShadowDrawFunction(s_ptr<DrawableRasterDrawInfo> drawInfo) -> DrawableFunction

@@ -55,7 +55,7 @@ void CapabilityConfig::addMacro(
     std::string name,
     std::optional<std::string> value)
 {
-    resources.at(resource)->macroDefinitions.try_emplace(std::move(name), std::move(value));
+    resources.at(resource)->macroDefinitions[std::move(name)] = std::move(value);
 }
 
 auto CapabilityConfig::accessResource(ResourceID resourceId, ShaderModuleBuilder& builder) const

@@ -46,7 +46,7 @@ namespace trc
          *
          * Currently used by SimpleMaterial to set its material parameters.
          */
-        std::vector<std::pair<ui32, std::vector<std::byte>>> runtimeValueDefaults;
+        std::vector<std::pair<std::string, std::vector<std::byte>>> runtimeValueDefaults;
 
         bool transparent{ false };
         std::optional<vk::PolygonMode> polygonMode;

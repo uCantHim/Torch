@@ -82,7 +82,7 @@ message Material
 
     message RuntimeValueDefault
     {
-        uint32 push_constant_id = 1;
+        string push_constant_name = 1;
         bytes data = 2;
     }
 

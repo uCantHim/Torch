@@ -13,6 +13,100 @@
 namespace trc::shader
 {
     /**
+     * @brief A serializable representation of a compiled shader program
+     *
+     * Create `ShaderProgramData` objects with the `linkMaterialProgram` helper.
+     * This function generates a full shader program from a set of shader stages
+     * by merging shader module interfaces and finalizing shader code.
+     *
+     * # Example
+     * ```cpp
+     *
+     * ShaderModule myVertexModule = ...;
+     * ShaderModule myFragmentModule = ...;
+     *
+     * ShaderProgramData myProgram = linkMaterialProgram(
+     *     {
+     *         { vk::ShaderStageFlagBits::eVertex, std::move(myVertexModule) },
+     *         { vk::ShaderStageFlagBits::eFragment, std::move(myVertexModule) },
+     *     },
+     *     myDescriptorConfig
+     * );
+     * ```
+     */
+    struct ShaderProgramData
+    {
+        struct DescriptorSet
+        {
+            std::string name;
+
+            /** The descriptor set index in the shader program */
+            ui32 index;
+        };
+
+        struct PushConstantRange
+        {
+            ui32 offset;
+            ui32 size;
+
+            /** All shader stages that access the push constant. */
+            vk::ShaderStageFlags shaderStages;
+
+            /** User-provided unique identifier */
+            std::string name;
+        };
+
+        /**
+         * The final GLSL code for each shader stage.
+         */
+        std::unordered_map<vk::ShaderStageFlagBits, std::string> glslCode;
+
+        /**
+         * For each shader stage, a list of runtime constants.
+         */
+        std::unordered_map<
+            vk::ShaderStageFlagBits,
+            std::vector<std::pair<ui32, s_ptr<ShaderRuntimeConstant>>>
+        > specConstants;
+
+        /**
+         * A list of push constant ranges.
+         *
+         * These are *not* the physical byte ranges accessed in shaders. These
+         * represent the semantical, user-accessible push constant values that
+         * were specified as resources or capabilities and can be referenced
+         * with user-supplied IDs. These are therefore subranges of the final
+         * combined push constant ranges that are specified for shader modules.
+         */
+        std::vector<PushConstantRange> pushConstants;
+
+        /**
+         * We only have one large push constant range across all shader stages.
+         * Otherwise it would be very difficult to guarantee the requirement
+         * VUID-VkPipelineLayoutCreateInfo-pPushConstantRanges-00292: Any two
+         * elements of pPushConstantRanges must not include the same stage in
+         * stageFlags.
+         */
+        vk::PushConstantRange physicalPushConstantRange;
+
+        /**
+         * A list of descriptor sets that are used by the program.
+         *
+         * Each descriptor set has an `index` member associated with it; this is
+         * the respective descriptor set index in the program's shader code.
+         */
+        std::vector<DescriptorSet> descriptorSets;
+
+        auto serialize() const -> serial::ShaderProgram;
+        void deserialize(const serial::ShaderProgram& program,
+                         ShaderRuntimeConstantDeserializer& deserializer);
+
+        void serialize(std::ostream& os) const;
+        void deserialize(std::istream& is,
+                         ShaderRuntimeConstantDeserializer& deserializer);
+    };
+
+    /**
      * @brief Configuration options passed to `linkShaderProgram`.
      */
     struct ShaderProgramLinkSettings
@@ -75,101 +169,9 @@ namespace trc::shader
             inputLocationMapping;
     };
 
-    /**
-     * @brief A serializable representation of a full shader program
-     *
-     * Create `MaterialProgramData` structs with `linkMaterialProgram`. This
-     * function performs quite complicated logic to collect and merge
-     * information from a set of shader modules and one should never edit
-     * `MaterialProgramData`'s fields manually.
-     *
-     * # Example
-     * ```cpp
-     *
-     * ShaderModule myVertexModule = ...;
-     * ShaderModule myFragmentModule = ...;
-     *
-     * MaterialProgramData myProgram = linkMaterialProgram(
-     *     {
-     *         { vk::ShaderStageFlagBits::eVertex, std::move(myVertexModule) },
-     *         { vk::ShaderStageFlagBits::eFragment, std::move(myVertexModule) },
-     *     },
-     *     myDescriptorConfig
-     * );
-     * ```
-     */
-    struct ShaderProgramData
+    struct ShaderProgramLinkError
     {
-        struct DescriptorSet
-        {
-            std::string name;
-
-            /** The descriptor set index in the shader program */
-            ui32 index;
-        };
-
-        struct PushConstantRange
-        {
-            ui32 offset;
-            ui32 size;
-            vk::ShaderStageFlagBits shaderStage;
-
-            /** ID that identifies the push constant as a semantic value */
-            ui32 userId;
-        };
-
-        /**
-         * The final GLSL code for each shader stage.
-         */
-        std::unordered_map<vk::ShaderStageFlagBits, std::string> glslCode;
-
-        /**
-         * For each shader stage, a list of runtime constants.
-         */
-        std::unordered_map<
-            vk::ShaderStageFlagBits,
-            std::vector<std::pair<ui32, s_ptr<ShaderRuntimeConstant>>>
-        > specConstants;
-
-        /**
-         * A list of push constant ranges.
-         *
-         * These are *not* the physical byte ranges accessed in shaders. These
-         * represent the semantical, user-accessible push constant values that
-         * were specified as resources or capabilities and can be referenced
-         * with user-supplied IDs. These are therefore subranges of the final
-         * combined push constant ranges that are specified for shader modules.
-         */
-        std::vector<PushConstantRange> pushConstants;
-
-        /**
-         * A push constant range for each shader stage.
-         *
-         * These are the combined, physical byte ranges which are accessed in
-         * shaders as push constants.
-         */
-        std::unordered_map<vk::ShaderStageFlagBits, vk::PushConstantRange> pcRangesPerStage;
-
-        /**
-         * A list of descriptor sets that are used by the program.
-         *
-         * Each descriptor set has an `index` member associated with it; this is
-         * the respective descriptor set index in the program's shader code.
-         */
-        std::vector<DescriptorSet> descriptorSets;
-
-        auto serialize() const -> serial::ShaderProgram;
-        void deserialize(const serial::ShaderProgram& program,
-                         ShaderRuntimeConstantDeserializer& deserializer);
-
-        void serialize(std::ostream& os) const;
-        void deserialize(std::istream& is,
-                         ShaderRuntimeConstantDeserializer& deserializer);
-    };
-
-    enum class ShaderProgramLinkError : ui8
-    {
-        eShaderCodeFinalizeError,
+        std::string msg;
     };
 
     /**
@@ -177,6 +179,9 @@ namespace trc::shader
      *
      * Ties shader module interfaces together and finalizes the respective
      * shader codes.
+     *
+     * Note: This function does not link input locations among the shader
+     * stages. To do that, you'll need to call `linkShaderStageInputs` first.
      */
     auto linkShaderProgram(std::unordered_map<vk::ShaderStageFlagBits, ShaderModule> modules,
                            const ShaderProgramLinkSettings& config = {})

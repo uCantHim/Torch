@@ -33,16 +33,16 @@ auto getShaderCache() -> ShaderCache&
 auto makePipelineLayout(const shader::ShaderProgramData& program)
     -> PipelineLayoutTemplate
 {
-    // Convert push constant ranges to PipelineLayoutTemplate's format
+    // We only have one large push constant range across all shader stages.
+    // Otherwise it would be very difficult to guarantee the requirement
+    // VUID-VkPipelineLayoutCreateInfo-pPushConstantRanges-00292: Any two
+    // elements of pPushConstantRanges must not include the same stage in
+    // stageFlags
     std::vector<PipelineLayoutTemplate::PushConstant> pushConstants;
-    pushConstants.reserve(program.pcRangesPerStage.size());
-    for (const auto& [stage, range] : program.pcRangesPerStage)
-    {
-        pushConstants.push_back({
-            .range=range,
-            .defaultValue=std::nullopt
-        });
-    }
+    pushConstants.push_back({
+        .range=program.physicalPushConstantRange,
+        .defaultValue=std::nullopt,
+    });
 
     // Convert descriptors to PipelineLayoutTemplate's format
     std::vector<PipelineLayoutTemplate::Descriptor> descriptors;

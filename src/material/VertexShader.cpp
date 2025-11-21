@@ -4,6 +4,8 @@
 #include <unordered_map>
 
 #include "trc/AssetDescriptor.h"
+#include "trc/AssetPlugin.h"
+#include "trc/RasterPlugin.h"
 #include "trc/material/FragmentShader.h"
 
 
@@ -130,7 +132,7 @@ auto VertexModule::makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig
         config.addGlobalShaderExtension("GL_GOOGLE_include_directive");
 
         auto cameraMatrices = config.addResource(CapabilityConfig::DescriptorBinding{
-            .setName="global_data",
+            .setName=RasterPlugin::GLOBAL_DATA_DESCRIPTOR,
             .bindingIndex=0,
             .descriptorType="uniform",
             .descriptorName="camera",
@@ -143,20 +145,21 @@ auto VertexModule::makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig
         });
 
         auto modelPc = config.addResource(CapabilityConfig::PushConstant{
-            mat4{}, DrawablePushConstIndex::eModelMatrix
+            DrawablePushConstIndex::eModelMatrix,
+            mat4{},
         });
         auto animDataPc = config.addResource(CapabilityConfig::PushConstant{
-                code::makeStructType("AnimationPushConstantData", {
+            DrawablePushConstIndex::eAnimationData,
+            code::makeStructType("AnimationPushConstantData", {
                 { uint{}, "animation" },
                 { uvec2{}, "keyframes" },
                 { float{}, "keyframeWeigth" },
             }),
-            DrawablePushConstIndex::eAnimationData
         });
         config.addShaderInclude(animDataPc, util::Pathlet("material_utils/animation_data.glsl"));
 
         auto animMeta = config.addResource(CapabilityConfig::DescriptorBinding{
-            .setName="asset_registry",
+            .setName=AssetPlugin::ASSET_DESCRIPTOR,
             .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eAnimationMetadata),
             .descriptorType="restrict readonly buffer",
             .descriptorName="AnimationMetaDataDescriptor",
@@ -164,7 +167,7 @@ auto VertexModule::makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig
             .descriptorContent="AnimationMetaData metas[];"
         });
         auto animBuffer = config.addResource(CapabilityConfig::DescriptorBinding{
-            .setName="asset_registry",
+            .setName=AssetPlugin::ASSET_DESCRIPTOR,
             .bindingIndex=AssetDescriptor::getBindingIndex(AssetDescriptorBinding::eAnimationData),
             .descriptorType="restrict readonly buffer",
             .descriptorName="AnimationDataDescriptor",

@@ -67,18 +67,21 @@ namespace trc::shader
 
         struct PushConstantInfo
         {
+            // A preliminary value. Is unique in the shader module, but will be
+            // adjusted in the `linkShaderProgram` function to account for other
+            // push constants across all the program's shader modules.
             ui32 offset;
-            ui32 size;
 
-            // The push constant value's runtime handle as specified by the user.
-            //
-            // Used to interface with `MaterialRuntime::pushConstants`.
-            ui32 userId;
+            // Size of the push constant value in bytes.
+            ui32 size;
 
             // A placeholder variable in the generated GLSL code. This must
             // be replaced by the final byte offset of the push constant in the
             // full shader program.
             std::string offsetPlaceholder;
+
+            // A user-provided name that uniquely identifies the push constant.
+            std::string name;
         };
 
         struct PayloadInfo
@@ -191,7 +194,7 @@ namespace trc::shader
          *         push constant is not required by the shader module or if no
          *         push constant with the specified ID exists.
          */
-        auto getPushConstantOffsetPlaceholder(ui32 pushConstantId) const
+        auto getPushConstantOffsetPlaceholder(const std::string& pushConstantName) const
             -> std::optional<std::string>;
 
         auto getRequiredPayloads() const -> const std::vector<PayloadInfo>&;
@@ -217,8 +220,8 @@ namespace trc::shader
         std::vector<SpecializationConstantInfo> specConstants;
         std::unordered_map<std::string, std::string> descriptorSetIndexPlaceholders;
 
-        // Map { pcUserId -> PushConstantInfo }
-        std::unordered_map<ui32, PushConstantInfo> pushConstantInfos;
+        // Map { name -> PushConstantInfo }
+        std::unordered_map<std::string, PushConstantInfo> pushConstantInfos;
         ui32 pushConstantSize;
     };
 
@@ -305,6 +308,8 @@ namespace trc::shader
             static constexpr auto kPcBlockNamespaceName{ "pushConstants" };
 
             s_ptr<ShaderResourceInterface> resources;
+
+            ui32 nextInternalId{ 0 };
             std::string code{};
         };
 

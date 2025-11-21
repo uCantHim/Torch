@@ -64,11 +64,12 @@ auto ShaderResourceInterface::getPushConstants() const -> std::vector<PushConsta
     return result;
 }
 
-auto ShaderResourceInterface::getPushConstantOffsetPlaceholder(ui32 pushConstantId) const
+auto ShaderResourceInterface::getPushConstantOffsetPlaceholder(
+    const std::string& pushConstantName) const
     -> std::optional<std::string>
 {
-    if (pushConstantInfos.contains(pushConstantId)) {
-        return pushConstantInfos.at(pushConstantId).offsetPlaceholder;
+    if (pushConstantInfos.contains(pushConstantName)) {
+        return pushConstantInfos.at(pushConstantName).offsetPlaceholder;
     }
     return std::nullopt;
 }
@@ -127,8 +128,8 @@ auto ShaderResourceInterface::serialize() const -> serial::ShaderResourceInterfa
         auto _pc = res.add_push_constants();
         _pc->set_offset(pc.offset);
         _pc->set_size(pc.size);
-        _pc->set_user_id(pc.userId);
         _pc->set_offset_placeholder(pc.offsetPlaceholder);
+        _pc->set_name(pc.name);
     }
 
     return res;
@@ -189,11 +190,11 @@ auto ShaderResourceInterface::deserialize(
     }
     for (const auto& pc : data.push_constants())
     {
-        res.pushConstantInfos.try_emplace(pc.user_id(), PushConstantInfo{
+        res.pushConstantInfos.try_emplace(pc.name(), PushConstantInfo{
             .offset = pc.offset(),
             .size = pc.size(),
-            .userId = pc.user_id(),
             .offsetPlaceholder = pc.offset_placeholder(),
+            .name = pc.name(),
         });
     }
 
@@ -257,16 +258,16 @@ auto ShaderResourceInterfaceBuilder::PushConstantFactory::make(
     const auto byteSize = code::types::getTypeSize(pc.type);
     assert(byteSize > 0);
 
-    const std::string name = "_push_constant_" + std::to_string(pc.userId);
-    const std::string offsetPlaceholder = name + "_offset";
+    const std::string glslName = "_push_constant_" + std::to_string(nextInternalId++);
+    const std::string offsetPlaceholder = glslName + "_offset";
 
     resources->pushConstantInfos.try_emplace(
-        pc.userId,
+        pc.name,
         PushConstantInfo{
             .offset=resources->pushConstantSize,
             .size=byteSize,
-            .userId=pc.userId,
-            .offsetPlaceholder=offsetPlaceholder
+            .offsetPlaceholder=offsetPlaceholder,
+            .name=pc.name,
         }
     );
     resources->pushConstantSize += byteSize;
@@ -275,10 +276,10 @@ auto ShaderResourceInterfaceBuilder::PushConstantFactory::make(
         "layout (offset=${}) {} {};\n",
         offsetPlaceholder,
         code::types::to_string(pc.type),
-        name
+        glslName
     );
 
-    return std::format("{}.{}", kPcBlockNamespaceName, name);
+    return std::format("{}.{}", kPcBlockNamespaceName, glslName);
 }
 
 auto ShaderResourceInterfaceBuilder::PushConstantFactory::getCode() const -> std::string

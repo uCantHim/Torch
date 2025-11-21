@@ -24,8 +24,8 @@ message ShaderResourceInterface
     {
         uint32 offset = 1;
         uint32 size = 2;
-        uint32 user_id = 3;
-        string offset_placeholder = 4;
+        string offset_placeholder = 3;
+        string name = 4;
     }
 
     message Payload

@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -51,10 +52,10 @@ namespace trc::shader
             // This is supposed to be set to 'buffer' or 'uniform sampler2D' or
             // something like that.
             std::string descriptorType;
-            std::string descriptorName; // TODO: This one could can be generated
-                                        // automatically, but then we can't rely
-                                        // on the descriptor names anymore when
-                                        // including code.
+            std::string descriptorName; // TODO: This one could be generated
+                                        // automatically, but then we couldn't
+                                        // rely on the descriptor names in
+                                        // included code.
 
             // Makes the descriptor a descriptor array if specified.
             //
@@ -68,17 +69,40 @@ namespace trc::shader
         struct ShaderInput
         {
             BasicType type;
+
+            // The location of the shader input as in `layout (location = X)`.
+            // For types that occupy multiple locations (e.g., `mat4`), this is
+            // the *first* of the locations that it uses.
+            //
+            // This is a preliminary hint that *may* be used as a default
+            // location. However, the shader stage input linker will determine
+            // the final location for the input.
             ui32 location;
+
+            // The GLSL `flat` modifier, i.e., whether the value will be
+            // interpolated between vertex positions when passed to the fragment
+            // shader.
             bool flat{ false };
         };
 
         struct PushConstant
         {
-            PushConstant(code::Type type, ui32 userId)
-                : type(type), userId(userId) {}
+            PushConstant(std::string name, code::Type type)
+                : name(std::move(name)), type(type) {}
 
+            PushConstant(std::string_view name, code::Type type)
+                : name{ name }, type(type) {}
+
+            PushConstant(const char* name, code::Type type)
+                : name{ name }, type(type) {}
+
+            // A string that uniquely identifies the push constant. Can be used
+            // later on as a handle to the push constant in the compiled shader
+            // program.
+            std::string name;
+
+            // A basic type or a struct type.
             code::Type type;
-            ui32 userId;
         };
 
         struct RayPayload
@@ -108,12 +132,18 @@ namespace trc::shader
         struct ResourceData
         {
             Resource resourceType;
+
+            // The identifier by which the resource is referenced in shader
+            // code.
             std::string resourceMacroName;
 
             std::unordered_set<std::string> extensions;
             std::unordered_set<util::Pathlet> includeFiles;
 
-            /** Maps [name -> value?] */
+            // Map [name -> value?]
+            //
+            // GLSL preprocessor macro definitions that are included in the
+            // generated code *if* the resource is accessed in the shader.
             std::unordered_map<std::string, std::optional<std::string>> macroDefinitions;
         };
 

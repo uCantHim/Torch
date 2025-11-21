@@ -54,7 +54,9 @@ auto compileProgramCode(
         // Set push constant offsets in the shader code
         for (const auto& pc : pushConstants)
         {
-            if (auto varName = mod.getPushConstantOffsetPlaceholder(pc.userId)) {
+            if (!(stage & pc.shaderStages)) continue;
+
+            if (auto varName = mod.getPushConstantOffsetPlaceholder(pc.name)) {
                 doc.set(*varName, pc.offset);
             }
         }
@@ -128,64 +130,80 @@ auto collectDescriptorSets(
         | std::ranges::to<std::vector>();
 }
 
-// TODO: This is a quick hack. I have to implement much more sophisticated merging
-// of push constant ranges for all possible shader stages.
 auto collectPushConstants(const ShaderStageMap& stages)
     -> std::vector<ShaderProgramData::PushConstantRange>
 {
-    using Range = ShaderProgramData::PushConstantRange;
+    using PcRange = ShaderProgramData::PushConstantRange;
 
-    std::vector<Range> pcRanges;
+    /**
+     * Individual semantically atomic push constant values (e.g., the model
+     * matrix) can be accessed from multiple shader stages. Here, we find all
+     * unique push constants that are accessed across the program and put them
+     * at the same offset in each shader stage, so that each value can be
+     * uploaded once and then accessed by every stage that requires it.
+     */
+    std::unordered_map<std::string, PcRange> uniquePushConstants;
+
     ui32 totalOffset{ 0 };
-    for (const auto& [stage, mod] : stages)
+    for (const auto& [stage, shader] : stages)
     {
-        if (mod.getPushConstantSize() <= 0) continue;
-
-        for (const auto& pc : mod.getPushConstants())
+        for (const auto& pc : shader.getPushConstants())
         {
-            pcRanges.push_back(Range{
-                .offset=pc.offset + totalOffset,
-                .size=pc.size,
-                .shaderStage=stage,
-                .userId=pc.userId,
+            auto [it, isNewUniquePc] = uniquePushConstants.try_emplace(pc.name, PcRange{
+                .offset=totalOffset,
+                /**
+                 * The 16-byte padding is, strictly speaking, slightly over-secure.
+                 * Theoretically, each member must be offset by a multiple of its own
+                 * alignment. However, I don't want to figure out the the first member
+                 * in the next push constant range and deduce its alignment from its
+                 * type right now. 16 bytes are the largest possible alignment (e.g. of
+                 * 4x4 matrices) and it always works.
+                 */
+                .size=util::pad_16(pc.size),
+                .shaderStages=stage,
+                .name=pc.name,
             });
-        }
 
-        /**
-         * The push constants of each stage have their offsets specified with
-         * respect to all preceding ranges of the same stage. To each range of
-         * subsequent stages, add the total offset of all previous stages.
-         *
-         * The 16-byte padding is, strictly speaking, slightly over-secure.
-         * Theoretically, each member must be offset by a multiple of its own
-         * alignment. However, I don't want to figure out the the first member
-         * in the next push constant range and deduce its alignment from its
-         * type right now. 16 bytes are the largest possible alignment (e.g. of
-         * 4x4 matrices) and it always works.
-         */
-        totalOffset += util::pad_16(mod.getPushConstantSize());
+            auto& uniquePc = it->second;
+            if (isNewUniquePc) {
+                totalOffset += uniquePc.size;
+            }
+            else {
+                if (uniquePc.size != pc.size)
+                {
+                    throw std::runtime_error(std::format(
+                        "Multiple conflicting definitions of push constant \"{}\""
+                        " detected: One with size {} bytes, another with size {} bytes.",
+                        pc.name, uniquePc.size, pc.size
+                    ));
+                }
+
+                uniquePc.shaderStages |= stage;
+            }
+        }
     }
 
-    return pcRanges;
+    return uniquePushConstants
+        | std::views::values
+        | std::ranges::to<std::vector>();
 }
 
-auto combinePushConstantsPerStage(
-    const std::vector<ShaderProgramData::PushConstantRange>& pushConstants)
-    -> std::unordered_map<vk::ShaderStageFlagBits, vk::PushConstantRange>
+/**
+ * Combine all push constant ranges across shader stages into one single push
+ * constant range.
+ */
+auto combinePushConstants(const std::vector<ShaderProgramData::PushConstantRange>& pushConstants)
+    -> vk::PushConstantRange
 {
-    // Combine push constant ranges into a single one for each shader stage
-    std::unordered_map<vk::ShaderStageFlagBits, vk::PushConstantRange> perStage;
-    for (const auto& range : pushConstants)
+    vk::PushConstantRange totalRange;
+    for (const auto& uniquePc : pushConstants)
     {
-        constexpr ui32 _off = std::numeric_limits<ui32>::max();
-        auto [it, _] = perStage.try_emplace(range.shaderStage,
-                                            vk::PushConstantRange(range.shaderStage, _off, 0));
-        vk::PushConstantRange& totalRange = it->second;
-        totalRange.size += range.size;
-        totalRange.offset = std::min(totalRange.offset, range.offset);
+        totalRange.offset = glm::min(totalRange.offset, uniquePc.offset);
+        totalRange.size += uniquePc.size;
+        totalRange.stageFlags |= uniquePc.shaderStages;
     }
 
-    return perStage;
+    return totalRange;
 }
 
 auto applyInputLocationCorrections(
@@ -230,7 +248,7 @@ auto linkShaderProgram(
         }
     }
     data.pushConstants = collectPushConstants(stages);
-    data.pcRangesPerStage = combinePushConstantsPerStage(data.pushConstants);
+    data.physicalPushConstantRange = combinePushConstants(data.pushConstants);
     data.descriptorSets = collectDescriptorSets(stages, config);
     auto stageInputs = applyInputLocationCorrections(stages, config);
 
@@ -240,7 +258,7 @@ auto linkShaderProgram(
         data.glslCode = *prog;
     }
     else {
-        return std::unexpected(ShaderProgramLinkError::eShaderCodeFinalizeError);
+        return std::unexpected(ShaderProgramLinkError{ prog.error() });
     }
 
     return data;
@@ -270,8 +288,8 @@ auto ShaderProgramData::serialize() const -> serial::ShaderProgram
         auto pc = prog.add_push_constants();
         pc->set_offset(range.offset);
         pc->set_size(range.size);
-        pc->set_shader_stage_flags(static_cast<ui32>(range.shaderStage));
-        pc->set_user_id(range.userId);
+        pc->set_shader_stage_flags(static_cast<ui32>(range.shaderStages));
+        pc->set_name(range.name);
     }
 
     for (const auto& desc : descriptorSets)
@@ -319,11 +337,11 @@ void ShaderProgramData::deserialize(
         pushConstants.push_back({
             .offset=range.offset(),
             .size=range.size(),
-            .shaderStage=vk::ShaderStageFlagBits(range.shader_stage_flags()),
-            .userId=range.user_id()
+            .shaderStages=vk::ShaderStageFlagBits(range.shader_stage_flags()),
+            .name=range.name(),
         });
     }
-    pcRangesPerStage = combinePushConstantsPerStage(pushConstants);
+    physicalPushConstantRange = combinePushConstants(pushConstants);
 
     for (const auto& desc : prog.descriptor_sets())
     {

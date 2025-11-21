@@ -49,10 +49,10 @@ void trc::AssetData<trc::Material>::serialize(
     *mat.mutable_fragment_module() = data.shaderProgram.getBaseInfo().fragmentModule.serialize();
 
     // Serialize default runtime values
-    for (const auto& [pcId, data] : data.runtimeValueDefaults)
+    for (const auto& [name, data] : data.runtimeValueDefaults)
     {
         auto val = mat.add_runtime_values();
-        val->set_push_constant_id(pcId);
+        val->set_push_constant_name(name);
         val->set_data(data.data(), data.size());
     }
 
@@ -115,7 +115,7 @@ auto trc::AssetData<trc::Material>::deserialize(std::istream& is)
     {
         const auto& data = val.data();
         res.runtimeValueDefaults.emplace_back(
-            val.push_constant_id(),
+            val.push_constant_name(),
             std::vector<std::byte>{
                 reinterpret_cast<const std::byte*>(data.c_str()),
                 reinterpret_cast<const std::byte*>(data.c_str() + data.size()),
@@ -276,8 +276,11 @@ auto trc::MaterialRegistry::SpecializationStorage::getSpecialization(const Mater
             auto& prog = shaderPrograms.at(key.flags.toIndex());
             prog = std::move(*matProgram);
             runtime = prog->cloneRuntime();
-            for (const auto& [id, data] : data.runtimeValueDefaults) {
-                runtime->setPushConstantDefaultValue(id, std::span{data});
+            for (const auto& [name, data] : data.runtimeValueDefaults)
+            {
+                runtime->setPushConstantDefaultValue(
+                    runtime->getPushConstantHandle(name),
+                    std::span{data});
             }
         }
         else {
