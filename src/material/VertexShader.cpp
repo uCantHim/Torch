@@ -55,10 +55,17 @@ public:
 
     void build(shader::ShaderModuleBuilder& builder, const std::vector<code::Value>& args) override
     {
+        auto value = args[0];
+
         auto anim = builder.makeCapabilityAccess(VertexCapability::kAnimIndex);
         auto keyframes = builder.makeCapabilityAccess(VertexCapability::kAnimKeyframes);
         auto weight = builder.makeCapabilityAccess(VertexCapability::kAnimFrameWeight);
-        auto res = builder.makeExternalCall("applyAnimation", { anim, args[0], keyframes, weight });
+        auto animRes = builder.makeExternalCall("applyAnimation", { anim, value, keyframes, weight });
+
+        auto res = builder.makeConditional(
+            builder.makeNotEqual(anim, builder.makeExternalIdentifier("NO_ANIMATION")),
+            animRes,
+            value);
         builder.makeReturn(res);
     }
 };
@@ -150,11 +157,7 @@ auto VertexModule::makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig
         });
         auto animDataPc = config.addResource(CapabilityConfig::PushConstant{
             DrawablePushConstIndex::eAnimationData,
-            code::makeStructType("AnimationPushConstantData", {
-                { uint{}, "animation" },
-                { uvec2{}, "keyframes" },
-                { float{}, "keyframeWeigth" },
-            }),
+            code::makeExternalType("AnimationPushConstantData", 16),
         });
         config.addShaderInclude(animDataPc, util::Pathlet("material_utils/animation_data.glsl"));
 

@@ -5,6 +5,7 @@
 #include <variant>
 #include <vector>
 
+#include <trc_util/Padding.h>
 #include <trc_util/TypeUtils.h>
 
 #include "BasicType.h"
@@ -23,14 +24,34 @@ namespace trc::shader
     {
         struct StructTypeT;
         using StructType = s_ptr<const StructTypeT>;
+        struct ExternalType;
 
         /**
          * @brief Any type; either a basic type or a structure type
          */
         using TypeT = std::variant<
             BasicType,
-            StructType
+            StructType,
+            ExternalType
         >;
+
+        /**
+         * @brief Get a type's name
+         */
+        inline auto to_string(const TypeT& type) -> std::string;
+
+        /**
+         * @brief Get a type's size in bytes
+         */
+        inline auto getTypeSize(const TypeT& type) -> ui32;
+
+        struct ExternalType
+        {
+            std::string name;
+            ui32 size;
+
+            bool operator==(const ExternalType&) const = default;
+        };
 
         struct StructTypeT
         {
@@ -46,27 +67,42 @@ namespace trc::shader
             auto size() const -> ui32
             {
                 ui32 size{ 0 };
-                for (const auto& [type, _] : fields)
-                {
-                    size += std::visit(util::VariantVisitor{
-                        [](const BasicType& type)  { return type.size(); },
-                        [](s_ptr<const StructTypeT> type) { return type->size(); }
-                    }, type);
+                const ui32 padding = _memberPadding();
+                for (const auto& [type, _] : fields) {
+                    size += util::pad(getTypeSize(type), padding);
+                    //size += getTypeSize(type);
                 }
 
                 return size;
+            }
+
+            auto _memberPadding() const -> ui32
+            {
+                ui32 padding = 4;
+                for (const auto& [type, _] : fields)
+                {
+                    const auto size = getTypeSize(type);
+                    if (size > sizeof(vec2)) {
+                        padding = 16;
+                    }
+                    else if (size > sizeof(int)) {
+                        padding = 8;
+                    }
+                }
+                return padding;
             }
         };
 
         /**
          * @brief Get a type's name
          */
-        inline auto to_string(const TypeT& type)
+        inline auto to_string(const TypeT& type) -> std::string
         {
             return std::visit(
                 util::VariantVisitor{
-                    [](BasicType type)         -> std::string { return type.to_string(); },
-                    [](s_ptr<const StructTypeT> type) -> std::string { return type->to_string(); }
+                    [](BasicType type) { return type.to_string(); },
+                    [](s_ptr<const StructTypeT> type) { return type->to_string(); },
+                    [](const ExternalType& type) { return type.name; },
                 },
                 type
             );
@@ -75,12 +111,13 @@ namespace trc::shader
         /**
          * @brief Get a type's size in bytes
          */
-        inline auto getTypeSize(const TypeT& type)
+        inline auto getTypeSize(const TypeT& type) -> ui32
         {
             return std::visit(
                 util::VariantVisitor{
-                    [](BasicType type)         { return type.size(); },
-                    [](s_ptr<const StructTypeT> type) { return type->size(); }
+                    [](BasicType type) { return type.size(); },
+                    [](s_ptr<const StructTypeT> type) { return type->size(); },
+                    [](const ExternalType& type) { return type.size; },
                 },
                 type
             );
@@ -239,7 +276,7 @@ namespace trc::shader
         };
 
         /**
-         * Utility to create struct types.
+         * Create a struct type.
          */
         inline
         auto makeStructType(const std::string& name,
@@ -247,6 +284,16 @@ namespace trc::shader
             -> s_ptr<const types::StructTypeT>
         {
             return std::make_shared<types::StructTypeT>(name, fields);
+        }
+
+        /**
+         * Create a declaration of an externaly defined type, e.g, a type
+         * defined in an included file.
+         */
+        inline
+        auto makeExternalType(std::string name, ui32 size) -> types::ExternalType
+        {
+            return types::ExternalType{ std::move(name), size };
         }
     } // namespace code
 } // namespace trc::shader

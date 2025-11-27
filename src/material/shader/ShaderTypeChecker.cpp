@@ -108,28 +108,31 @@ auto ShaderTypeChecker::operator()(const code::MemberAccess& obj)
     -> std::optional<TypeInferenceResult>
 {
     using StructType = TypeInferenceResult::StructType;
+    using ExternalType = code::types::ExternalType;
 
     if (auto lhsType = inferType(obj.lhs))
     {
-        std::visit(
-            util::VariantVisitor{
-                [](BasicType)        -> std::optional<TypeInferenceResult> { return std::nullopt; },
-                [&](StructType type) -> std::optional<TypeInferenceResult>
-                {
-                    auto pred = [&obj](const auto& field){ return field.second == obj.rhs.name; };
-                    auto it = std::ranges::find_if(type->fields, pred);
-                    if (it != type->fields.end()) {
-                        return it->first;
-                    }
-
-                    // The struct type does not contain the field specified by the right hand
-                    // side identifier.
-                    // This case will result in an error when the shader code is compiled.
-                    return std::nullopt;
-                }
+        std::visit(util::VariantVisitor{
+            [](const BasicType&) -> std::optional<TypeInferenceResult> {
+                return std::nullopt;
             },
-            lhsType->type
-        );
+            [&](const StructType& type) -> std::optional<TypeInferenceResult>
+            {
+                auto pred = [&obj](const auto& field){ return field.second == obj.rhs.name; };
+                auto it = std::ranges::find_if(type->fields, pred);
+                if (it != type->fields.end()) {
+                    return it->first;
+                }
+
+                // The struct type does not contain the field specified by the right hand
+                // side identifier.
+                // This case will result in an error when the shader code is compiled.
+                return std::nullopt;
+            },
+            [](const ExternalType&) -> std::optional<TypeInferenceResult> {
+                return std::nullopt;
+            },
+        }, lhsType->type);
     }
     return std::nullopt;
 }

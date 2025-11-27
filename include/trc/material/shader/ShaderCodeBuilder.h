@@ -133,6 +133,12 @@ namespace trc::shader
             -> StructType;
 
         /**
+         * Create a declaration of an externaly defined type, e.g, a type
+         * defined in an included file.
+         */
+        auto makeExternalType(const std::string& name, ui32 size) -> Type;
+
+        /**
          * @brief Define a value's type manually.
          *
          * Type annotations are hints to the type checker, which may not be able

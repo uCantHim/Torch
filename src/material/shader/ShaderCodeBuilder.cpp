@@ -259,6 +259,11 @@ auto ShaderCodeBuilder::makeStructType(
     return it->second;
 }
 
+auto ShaderCodeBuilder::makeExternalType(const std::string& name, ui32 size) -> Type
+{
+    return code::makeExternalType(name, size);
+}
+
 void ShaderCodeBuilder::annotateType(Value val, Type type)
 {
     ((ValueT*)val.get())->typeAnnotation = type;
