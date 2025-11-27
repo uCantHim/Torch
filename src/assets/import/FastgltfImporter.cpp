@@ -283,6 +283,27 @@ auto Loader::loadAll() const -> ThirdPartyImport
         bakeSkinBindPose(skins[skinIdx].data, anim.data, globalTransform);
     }
 
+    ThirdPartyImport::Associations refs;
+
+    // Associate meshes with rigs
+    for (const auto& [meshIdx, skinIdxs] : meshToSkinInfo.skinsByMesh)
+    {
+        const SkinID skinIdx = skinIdxs.front();
+        log::debug << "[GltfImporter] Associating skin \"" << skins[skinIdx].name
+                   << "\" with mesh \"" << meshes[meshIdx].name << "\"";
+
+        refs.geoToRig.try_emplace(meshIdx, skinIdx);
+    }
+
+    // Associate animations with rigs
+    for (const auto& [animIdx, anim] : std::views::enumerate(anims.animations))
+    {
+        const auto& skins = anims.skinsByAnimation.at(AnimID{ animIdx });
+        for (const SkinID skinIdx : skins) {
+            refs.rigToAnimations[skinIdx].emplace_back(animIdx);
+        }
+    }
+
     // Create result
     ThirdPartyImport res{
         .filePath{},
@@ -291,7 +312,7 @@ auto Loader::loadAll() const -> ThirdPartyImport
         .animations = std::move(anims.animations),
         .materials{},
         .textures{},
-        .refs{},
+        .refs=std::move(refs),
     };
 
     // Log result
@@ -299,25 +320,6 @@ auto Loader::loadAll() const -> ThirdPartyImport
     log::info << "    " << res.geometries.size() << " geometries";
     log::info << "    " << res.rigs.size() << " rigs";
     log::info << "    " << res.animations.size() << " animations";
-
-    // Associate meshes with rigs
-    for (const auto& [meshIdx, skinIdxs] : meshToSkinInfo.skinsByMesh)
-    {
-        const SkinID skinIdx = skinIdxs.front();
-        log::info << "[GltfImporter] Associating skin \"" << res.rigs[skinIdx].name
-                  << "\" with mesh \"" << res.geometries[meshIdx].name << "\"";
-
-        res.refs.geoToRig.try_emplace(meshIdx, skinIdx);
-    }
-
-    // Associate animations with rigs
-    for (const auto& [animIdx, anim] : std::views::enumerate(anims.animations))
-    {
-        const auto& skins = anims.skinsByAnimation.at(AnimID{ animIdx });
-        for (const SkinID skinIdx : skins) {
-            res.refs.rigToAnimations[skinIdx].emplace_back(animIdx);
-        }
-    }
 
     // DEBUG: Testing bind poses and animations
 #define bakeBindPose false
@@ -447,6 +449,9 @@ auto Loader::loadGeometry(const fastgltf::Mesh& mesh) const -> GeometryData
                 }
             );
         }
+        else {
+            log::warn << "[GltfImporter] Standard vertex attribute POSITION not found in mesh.";
+        }
         if (auto normals = prim.findAttribute("NORMAL"); normals != prim.attributes.end())
         {
             const auto& accessor = model.accessors[normals->accessorIndex];
@@ -456,6 +461,9 @@ auto Loader::loadGeometry(const fastgltf::Mesh& mesh) const -> GeometryData
                 }
             );
         }
+        else {
+            log::warn << "[GltfImporter] Standard vertex attribute NORMAL not found in mesh.";
+        }
         if (auto texcoords = prim.findAttribute("TEXCOORD_0"); texcoords != prim.attributes.end())
         {
             const auto& accessor = model.accessors[texcoords->accessorIndex];
@@ -464,6 +472,9 @@ auto Loader::loadGeometry(const fastgltf::Mesh& mesh) const -> GeometryData
                     geo.vertices[idx].uv = { uv.x(), uv.y() };
                 }
             );
+        }
+        else {
+            log::warn << "[GltfImporter] Standard vertex attribute TEXCOORD_0 not found in mesh.";
         }
         if (auto tangents = prim.findAttribute("TANGENT"); tangents != prim.attributes.end())
         {

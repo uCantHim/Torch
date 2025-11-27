@@ -255,8 +255,8 @@ void convertGeometry(
             -> std::optional<trc::AssetPath>
         {
             const auto filePath = outPath / fileName;
-            if (writeTo(data, input, fileName)) {
-                return trc::AssetPath{ fileName };
+            if (writeTo(data, input, filePath)) {
+                return trc::AssetPath{ filePath };
             }
             return std::nullopt;
         };

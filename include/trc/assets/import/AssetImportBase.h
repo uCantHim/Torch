@@ -112,15 +112,15 @@ namespace trc::import
 
         void bakeAssociations()
         {
-            for (const auto& [geo, rig] : refs.geoToRig) {
-                geometries[geo].data.rig = rigs[rig].data;
-            }
-
             for (const auto& [rig, anims] : refs.rigToAnimations)
             {
                 for (auto anim : anims) {
                     rigs[rig].data.animations.emplace_back(animations[anim].data);
                 }
+            }
+
+            for (const auto& [geo, rig] : refs.geoToRig) {
+                geometries[geo].data.rig = rigs[rig].data;
             }
         }
 
