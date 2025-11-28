@@ -36,9 +36,9 @@ void run()
     auto grassGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/grass_lowpoly.fbx"));
     auto treeGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/tree_lowpoly.fbx"));
 
-    auto skeletonGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/skeleton.fbx"));
-    auto hoodedBoiGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.fbx"));
-    auto lindaGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/Female_Character.fbx"));
+    auto skeletonGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/skeleton.glb"));
+    auto hoodedBoiGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/hooded_boi.glb"));
+    auto lindaGeoIndex = ar.create(*trc::importGeometry(TRC_TEST_ASSET_DIR"/linda.glb"));
 
     auto lindaDiffTexIdx = ar.create(
         *trc::importTexture(TRC_TEST_ASSET_DIR"/Female_Character.png")
@@ -84,12 +84,6 @@ void run()
     grass->setScale(0.1f).rotateX(glm::radians(-90.0f)).translateX(0.5f);
 
     // Animated skeleton
-    trc::Node skeletonNode;
-    skeletonNode.scale(0.02f).translateZ(1.2f)
-                .translate(1.0f, 0.0f, 0.0f)
-                .rotateY(-glm::half_pi<float>());
-    scene->getRoot().attach(skeletonNode);
-
     const trc::DrawableCreateInfo skelCreateInfo{ skeletonGeoIndex, matIdx };
     std::vector<s_ptr<trc::DrawableObj>> skeletons;
     for (int i = 0; i < 50; i++)
