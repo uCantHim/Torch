@@ -16,10 +16,13 @@ public:
     {
         using Type = ShaderCodeBuilder::Type;
         using StructType = ShaderCodeBuilder::StructType;
+        using ExternalType = code::types::ExternalType;
 
         TypeInferenceResult(const Type& type) : type(type) {}
         TypeInferenceResult(BasicType type) : type(type) {}
+        TypeInferenceResult(ArrayType type) : type(type) {}
         TypeInferenceResult(StructType type) : type(type) {}
+        TypeInferenceResult(ExternalType type) : type(type) {}
 
         /** @return std::string The type's name as a string. */
         auto to_string() const -> std::string;

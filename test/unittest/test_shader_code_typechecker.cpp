@@ -19,6 +19,14 @@ protected:
         mat3{}, mat4{}
     };
 
+    const std::vector<BasicType> kAllVectorTypes{
+        vec2{}, vec3{}, vec4{},
+        ivec2{}, ivec3{}, ivec4{},
+        uvec2{}, uvec3{}, uvec4{},
+        glm::dvec2{}, glm::dvec3{}, glm::dvec4{},
+        mat3{}, mat4{}
+    };
+
     ShaderTypeChecker check;
     ShaderCodeBuilder builder;
 };
@@ -85,7 +93,7 @@ TEST_F(TestShaderCodeTypechecker, SimpleMemberAccess)
 
     for (const auto& t : kAllBasicTypes)
     {
-        auto value = builder.makeConstant(uvec2{});
+        auto value = builder.makeConstant(t);
         ASSERT_FALSE(check.inferType(builder.makeMemberAccess(value, "xy")));
     }
 }
@@ -97,11 +105,27 @@ TEST_F(TestShaderCodeTypechecker, SimpleArrayAccess)
     ASSERT_FALSE(check.inferType(builder.makeArrayAccess(id, builder.makeConstant(3))));
 
     auto expr = builder.makeMul(builder.makeConstant(2), builder.makeConstant(13));
-    for (const auto& t : kAllBasicTypes)
-    {
-        auto arr = builder.makeConstant(Constant(t, {{ std::byte(0) }}));
-        ASSERT_EQ(t, check.inferType(builder.makeArrayAccess(arr, expr)));
-    }
+    auto makeArrayAccess = [&]<typename T>(T type) {
+        return builder.makeArrayAccess(builder.makeConstant(type), expr);
+    };
+
+    ASSERT_EQ(BasicType{float{}}, check.inferType(makeArrayAccess(vec2{})));
+    ASSERT_EQ(BasicType{float{}}, check.inferType(makeArrayAccess(vec3{})));
+    ASSERT_EQ(BasicType{float{}}, check.inferType(makeArrayAccess(vec4{})));
+    ASSERT_EQ(BasicType{float{}}, check.inferType(makeArrayAccess(mat3{})));
+    ASSERT_EQ(BasicType{float{}}, check.inferType(makeArrayAccess(mat4{})));
+    ASSERT_EQ(BasicType{int{}}, check.inferType(makeArrayAccess(ivec2{})));
+    ASSERT_EQ(BasicType{int{}}, check.inferType(makeArrayAccess(ivec3{})));
+    ASSERT_EQ(BasicType{int{}}, check.inferType(makeArrayAccess(ivec4{})));
+    ASSERT_EQ(BasicType{uint{}}, check.inferType(makeArrayAccess(uvec2{})));
+    ASSERT_EQ(BasicType{uint{}}, check.inferType(makeArrayAccess(uvec3{})));
+    ASSERT_EQ(BasicType{uint{}}, check.inferType(makeArrayAccess(uvec4{})));
+    ASSERT_EQ(BasicType{double{}}, check.inferType(makeArrayAccess(glm::dvec2{})));
+    ASSERT_EQ(BasicType{double{}}, check.inferType(makeArrayAccess(glm::dvec3{})));
+    ASSERT_EQ(BasicType{double{}}, check.inferType(makeArrayAccess(glm::dvec4{})));
+    ASSERT_EQ(BasicType{double{}}, check.inferType(makeArrayAccess(glm::dmat3{})));
+    ASSERT_EQ(BasicType{double{}}, check.inferType(makeArrayAccess(glm::dmat3{})));
+    ASSERT_EQ(BasicType{double{}}, check.inferType(makeArrayAccess(glm::dmat4{})));
 }
 
 TEST_F(TestShaderCodeTypechecker, ComplexArrayAccess)
@@ -112,21 +136,31 @@ TEST_F(TestShaderCodeTypechecker, ComplexArrayAccess)
             builder.makeConstant(42)
         )
     ));
-    ASSERT_EQ(BasicType(double{}), check.inferType(
+    ASSERT_FALSE(check.inferType(
         builder.makeArrayAccess(
             builder.makeConstant(2.71828),
             builder.makeExternalIdentifier("array_access_with_no_type")
         )
     ));
 
-    auto index = builder.makeConstant(0);
-    for (const auto& type : kAllBasicTypes)
-    {
+    auto makeFunctionCall = [&](BasicType type) {
         auto func = builder.makeOrGetFunction("bar_" + type.to_string(), FunctionType{ {}, type });
-        ASSERT_EQ(type, check.inferType(
-            builder.makeArrayAccess(builder.makeCall(func, {}), index)
-        ));
-    }
+        auto call = builder.makeCall(func, {});
+        return call;
+    };
+    auto index = builder.makeConstant(0);
+    ASSERT_EQ(BasicType{float{}},
+              check.inferType(builder.makeArrayAccess(makeFunctionCall(vec2{}), index)));
+    ASSERT_EQ(BasicType{double{}},
+              check.inferType(builder.makeArrayAccess(makeFunctionCall(glm::dvec4{}), index)));
+    ASSERT_EQ(BasicType{double{}},
+              check.inferType(builder.makeArrayAccess(makeFunctionCall(glm::dmat4{}), index)));
+    ASSERT_EQ(BasicType{int{}},
+              check.inferType(builder.makeArrayAccess(makeFunctionCall(ivec2{}), index)));
+    ASSERT_EQ(BasicType{int{}},
+              check.inferType(builder.makeArrayAccess(makeFunctionCall(ivec3{}), index)));
+    ASSERT_EQ(BasicType{bool{}},
+              check.inferType(builder.makeArrayAccess(makeFunctionCall(bvec4{}), index)));
 }
 
 TEST_F(TestShaderCodeTypechecker, UnaryOperatorTypeIsOperandType)
@@ -142,7 +176,8 @@ TEST_F(TestShaderCodeTypechecker, UnaryOperatorTypeIsOperandType)
         ASSERT_EQ(type, check(code::UnaryOperator{ ",", call }));
 
         auto access = builder.makeArrayAccess(c, builder.makeConstant(4));
-        ASSERT_EQ(type, check(code::UnaryOperator{ "op", access }));
+        auto arrayAccessType = check.inferType(access);
+        ASSERT_EQ(arrayAccessType, check(code::UnaryOperator{ "op", access }));
     }
 }
 

@@ -8,6 +8,7 @@
 #include <trc_util/Padding.h>
 #include <trc_util/TypeUtils.h>
 
+#include "ArrayType.h"
 #include "BasicType.h"
 #include "Constant.h"
 #include "trc/Types.h"
@@ -31,6 +32,7 @@ namespace trc::shader
          */
         using TypeT = std::variant<
             BasicType,
+            ArrayType,
             StructType,
             ExternalType
         >;
@@ -100,7 +102,8 @@ namespace trc::shader
         {
             return std::visit(
                 util::VariantVisitor{
-                    [](BasicType type) { return type.to_string(); },
+                    [](const BasicType& type) { return type.to_string(); },
+                    [](const ArrayType& type) { return type.to_string(); },
                     [](s_ptr<const StructTypeT> type) { return type->to_string(); },
                     [](const ExternalType& type) { return type.name; },
                 },
@@ -115,7 +118,8 @@ namespace trc::shader
         {
             return std::visit(
                 util::VariantVisitor{
-                    [](BasicType type) { return type.size(); },
+                    [](const BasicType& type) { return type.size(); },
+                    [](const ArrayType& type) { return type.size(); },
                     [](s_ptr<const StructTypeT> type) { return type->size(); },
                     [](const ExternalType& type) { return type.size; },
                 },

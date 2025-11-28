@@ -2,8 +2,6 @@
 
 #include <trc_util/Util.h>
 
-#include "trc/material/shader/ShaderRuntimeConstant.h"
-
 
 
 namespace trc::shader
@@ -116,6 +114,9 @@ auto ShaderTypeChecker::operator()(const code::MemberAccess& obj)
             [](const BasicType&) -> std::optional<TypeInferenceResult> {
                 return std::nullopt;
             },
+            [](const ArrayType&) -> std::optional<TypeInferenceResult> {
+                return std::nullopt;
+            },
             [&](const StructType& type) -> std::optional<TypeInferenceResult>
             {
                 auto pred = [&obj](const auto& field){ return field.second == obj.rhs.name; };
@@ -140,7 +141,26 @@ auto ShaderTypeChecker::operator()(const code::MemberAccess& obj)
 auto ShaderTypeChecker::operator()(const code::ArrayAccess& v)
     -> std::optional<TypeInferenceResult>
 {
-    return inferType(v.lhs);
+    using Res = std::optional<TypeInferenceResult>;
+
+    if (auto lhsType = inferType(v.lhs))
+    {
+        return std::visit(util::VariantVisitor{
+            [](const BasicType& t) -> Res
+            {
+                if (t.channels > 1) {
+                    return BasicType{ t.type, 1 };
+                }
+                return std::nullopt;
+            },
+            [](const ArrayType& t) -> Res {
+                return t.type;
+            },
+            [](const code::types::StructType&) -> Res { return std::nullopt; },
+            [](const code::types::ExternalType&) -> Res { return std::nullopt; },
+        }, lhsType->type);
+    }
+    return std::nullopt;
 }
 
 auto ShaderTypeChecker::operator()(const code::Conditional& cond)

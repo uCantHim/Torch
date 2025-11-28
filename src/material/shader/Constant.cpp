@@ -1,46 +1,9 @@
 #include "trc/material/shader/Constant.h"
 
-#include <sstream>
-
 
 
 namespace trc::shader
 {
-
-Constant::Constant(bool val)
-    :
-    type(BasicType::Type::eBool, 1)
-{
-    *reinterpret_cast<bool*>(value.data()) = val;
-}
-
-Constant::Constant(i32 val)
-    :
-    type(BasicType::Type::eSint, 1)
-{
-    *reinterpret_cast<i32*>(value.data()) = val;
-}
-
-Constant::Constant(ui32 val)
-    :
-    type(BasicType::Type::eUint, 1)
-{
-    *reinterpret_cast<ui32*>(value.data()) = val;
-}
-
-Constant::Constant(float val)
-    :
-    type(BasicType::Type::eFloat, 1)
-{
-    *reinterpret_cast<float*>(value.data()) = val;
-}
-
-Constant::Constant(double val)
-    :
-    type(BasicType::Type::eDouble, 1)
-{
-    *reinterpret_cast<double*>(value.data()) = val;
-}
 
 Constant::Constant(BasicType type, std::array<std::byte, kMaxSize> data)
     :

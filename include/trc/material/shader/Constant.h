@@ -1,30 +1,25 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 
 #include <array>
-#include <ostream>
+#include <concepts>
 #include <string>
 
 #include "BasicType.h"
-#include "trc/Types.h"
 
 namespace trc::shader
 {
     struct Constant
     {
     public:
-        using LargestType = glm::dvec4;
+        using LargestType = glm::dmat4;
         static constexpr size_t kMaxSize{ sizeof(LargestType) };
 
-        Constant(bool val);
-        Constant(i32 val);
-        Constant(ui32 val);
-        Constant(float val);
-        Constant(double val);
-
-        template<int N, typename T> requires (N >= 1 && N <= 4)
-        Constant(glm::vec<N, T> value);
+        template<std::convertible_to<BasicType> T>
+            requires (sizeof(T) <= sizeof(Constant::LargestType))
+        Constant(const T& val);
 
         /**
          * Creates a zero-initialized value by default.
@@ -43,13 +38,14 @@ namespace trc::shader
         std::array<std::byte, kMaxSize> value;
     };
 
-    template<int N, typename T>
-        requires (N >= 1 && N <= 4)
-    Constant::Constant(glm::vec<N, T> val)
+    template<std::convertible_to<BasicType> T>
+        requires (sizeof(T) <= sizeof(Constant::LargestType))  // Using Constant::kMaxSize here
+                                                               // doesn't compile.
+    Constant::Constant(const T& val)
         :
-        type(toBasicTypeEnum<T>, N)
+        type(val)
     {
-        *reinterpret_cast<decltype(val)*>(value.data()) = val;
+        *reinterpret_cast<T*>(value.data()) = val;
     }
 
     template<typename T>
