@@ -12,11 +12,12 @@ struct AnimationMetaData
     uint boneCount;
 };
 
-struct AnimationPushConstantData
-{
-    uint animation;
-    uint keyframes[2];
-    float keyframeWeigth;
-};
+// Defined in src/material/VertexShader.cpp
+// struct AnimationPushConstantData
+// {
+//     uint animation;
+//     uint keyframes[2];
+//     float keyframeWeigth;
+// };
 
 #endif

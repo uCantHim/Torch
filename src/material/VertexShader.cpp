@@ -157,7 +157,11 @@ auto VertexModule::makeInputCapabilityConfig() -> u_ptr<shader::CapabilityConfig
         });
         auto animDataPc = config.addResource(CapabilityConfig::PushConstant{
             DrawablePushConstIndex::eAnimationData,
-            code::makeExternalType("AnimationPushConstantData", 16),
+            code::makeStructType("AnimationPushConstantData", {
+                { uint{}, "animation" },
+                { shader::ArrayType{ uint{}, 2 }, "keyframes" },
+                { float{}, "keyframeWeigth" },
+            }),
         });
         config.addShaderInclude(animDataPc, util::Pathlet("material_utils/animation_data.glsl"));
 
