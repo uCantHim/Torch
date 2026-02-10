@@ -1,8 +1,6 @@
 #include "trc_util/async/ThreadPool.h"
 
 #include <cassert>
-#include <ranges>
-#include <algorithm>
 
 
 
@@ -39,7 +37,7 @@ trc::async::ThreadPool::~ThreadPool()
     assert(workQueue.empty());
 }
 
-void trc::async::ThreadPool::execute(std::function<void()> work)
+void trc::async::ThreadPool::execute(std::move_only_function<void()> work)
 {
     if (workers.empty()) {
         throw std::invalid_argument("A thread pool with 0 threads cannot execute work!");

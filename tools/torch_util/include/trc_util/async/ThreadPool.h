@@ -40,12 +40,13 @@ namespace trc::async
         /**
          * @brief Execute a function asynchronously with low overhead
          *
-         * This function can run into a deadlock if the maximum worker
-         * count has been reached **and** no workers are idle **and** if
-         * no existing worker can finish its task before the task supplied
-         * to this function is completed. In this case, this function
-         * would block indefinitely waiting for a worker to become
-         * available and the work would never be executed.
+         * This function can run into a deadlock if the maximum worker count
+         * has been reached **and** no workers are idle **and** if all existing
+         * workers depend on the new task to finish their own work. In this
+         * case, this function would block indefinitely waiting for a worker to
+         * become available and the work would never be executed. There's no
+         * way to avoid this, it's on you to design your data dependencies
+         * correctly.
          *
          * @return std::future Future with the result value of the executed
          *                     function.
@@ -63,11 +64,11 @@ namespace trc::async
          * Tries to find an idle thread to execute the function with. If
          * no such thread is available, it creates a new thread.
          */
-        void execute(std::function<void()> func);
+        void execute(std::move_only_function<void()> func);
 
         struct Work
         {
-            std::function<void()> work;
+            std::move_only_function<void()> work;
             bool terminateThread;
         };
 
@@ -87,7 +88,10 @@ namespace trc::async
         // Use a shared ptr because std::functions must be copyable, which
         // isn't the case for std::promise
         auto promise = std::make_shared<std::promise<ReturnType>>();
-        execute([promise, func = std::forward<Func>(func), ...args = std::forward<Args>(args)]() mutable
+        execute([promise,
+                 func = std::forward<Func>(func),
+                 ...args = std::forward<Args>(args)
+                ]() mutable
         {
             if constexpr (std::is_same_v<ReturnType, void>)
             {
