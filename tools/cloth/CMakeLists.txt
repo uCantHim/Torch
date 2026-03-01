@@ -43,9 +43,7 @@ set_target_properties(cloth-compile PROPERTIES
 FetchContent_Declare(
     lsp
     GIT_REPOSITORY https://github.com/leon-bckl/lsp-framework.git
-    GIT_TAG        ce016753aabc3da4db8d20ad6614bca1409cd313
-    PATCH_COMMAND  git apply ${CMAKE_CURRENT_SOURCE_DIR}/cmake/lsp.patch
-    UPDATE_DISCONNECTED 1  # Don't apply the patch again after populate.
+    GIT_TAG        1.3.0
 )
 FetchContent_MakeAvailable(lsp)
 
@@ -72,6 +70,7 @@ target_link_libraries(
 set_target_properties(cloth-language-server PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${TORCH_EXECUTABLE_OUTPUT_PATH}
 )
+target_link_options(cloth-language-server PRIVATE -fsanitize=address,undefined)
 
 
 ################################################################################

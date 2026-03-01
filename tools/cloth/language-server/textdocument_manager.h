@@ -25,13 +25,13 @@ public:
         }
     }
 
-    void update(const lsp::FileURI& uri, const lsp::TextDocumentContentChangeEvent_Text&)
+    void update(const lsp::FileUri& uri, const lsp::TextDocumentContentChangeEvent_Text&)
     {
         debug << "[TextdocumentManager] Full text update for " << uri.toString()
               << " - not implemented!" << std::flush;
     }
 
-    void update(const lsp::FileURI& uri,
+    void update(const lsp::FileUri& uri,
                 const lsp::TextDocumentContentChangeEvent_Range_Text& change)
     {
         debug << "[TextdocumentManager] Partial text update for range "
@@ -48,11 +48,11 @@ public:
         // debug << std::flush;
     }
 
-    void close(const lsp::FileURI& documentUri) {
+    void close(const lsp::FileUri& documentUri) {
         documents.erase(documentUri);
     }
 
-    auto getDocument(const lsp::FileURI& uri) -> const ClothDocument*
+    auto getDocument(const lsp::FileUri& uri) -> const ClothDocument*
     {
         auto it = documents.find(uri);
         if (it != documents.end()) {
@@ -62,5 +62,5 @@ public:
     }
 
 private:
-    std::unordered_map<lsp::FileURI, ClothDocument> documents;
+    std::unordered_map<lsp::FileUri, ClothDocument> documents;
 };

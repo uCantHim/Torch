@@ -31,9 +31,9 @@ namespace lsp
 }
 
 template<>
-struct std::hash<lsp::FileURI>
+struct std::hash<lsp::FileUri>
 {
-    auto operator()(const lsp::FileURI& uri) const -> size_t {
+    auto operator()(const lsp::FileUri& uri) const -> size_t {
         return std::hash<std::string>{}(uri.toString());
     }
 };

@@ -24,7 +24,7 @@ void sendDiagnostics(lsp::MessageHandler& msgHandler, const ClothDocument& doc)
 
 int main()
 {
-    lsp::Connection con{ lsp::io::standardInput(), lsp::io::standardOutput() };
+    lsp::Connection con{ lsp::io::standardIO() };
     lsp::MessageHandler msgHandler{ con };
     debug << "Cloth language server started." << std::flush;
 
@@ -32,7 +32,7 @@ int main()
     auto engineBackend = std::make_shared<cloth::TorchImpl>();
 
     msgHandler.add<lsp::requests::Initialize>(
-        [](const lsp::MessageId& /*id*/, lsp::requests::Initialize::Params&& /*params*/)
+        [](lsp::requests::Initialize::Params&& /*params*/)
         {
             lsp::requests::Initialize::Result res{
                 .capabilities{
@@ -67,7 +67,7 @@ int main()
     );
 
     msgHandler.add<lsp::requests::TextDocument_Completion>(
-        [&](const lsp::MessageId& /*id*/, lsp::requests::TextDocument_Completion::Params&& params)
+        [&](lsp::requests::TextDocument_Completion::Params&& params)
         {
             debug << "Request for completion on document " << params.textDocument.uri.toString()
                   << std::flush;
@@ -83,7 +83,7 @@ int main()
         }
     );
     msgHandler.add<lsp::requests::TextDocument_Hover>(
-        [&](const lsp::MessageId& /*id*/, lsp::requests::TextDocument_Hover::Params&& params)
+        [&](lsp::requests::TextDocument_Hover::Params&& params)
             -> lsp::requests::TextDocument_Hover::Result
         {
             debug << "Request for hover on document " << params.textDocument.uri.toString()
@@ -101,7 +101,7 @@ int main()
         }
     );
     msgHandler.add<lsp::requests::TextDocument_DocumentHighlight>(
-        [&](const lsp::MessageId& /*id*/, lsp::requests::TextDocument_DocumentHighlight::Params&& params)
+        [&](lsp::requests::TextDocument_DocumentHighlight::Params&& params)
             -> lsp::requests::TextDocument_DocumentHighlight::Result
         {
             debug << "Request for document highlight on document " << params.textDocument.uri.toString()

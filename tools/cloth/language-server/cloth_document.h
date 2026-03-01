@@ -19,7 +19,7 @@ class ClothDocument
 {
 public:
     explicit ClothDocument(std::string text,
-                           lsp::FileURI _uri,
+                           lsp::FileUri _uri,
                            std::shared_ptr<cloth::BackendConfig> _backend)
         :
         uri(std::move(_uri)),
@@ -261,7 +261,7 @@ public:
         return errors;
     }
 
-    lsp::FileURI uri;
+    lsp::FileUri uri;
     std::shared_ptr<cloth::BackendConfig> backend;
     std::vector<cloth::Builtin> builtins;
 
